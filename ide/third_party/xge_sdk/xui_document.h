@@ -704,14 +704,20 @@ XUI_API int xuiDocumentSnapshotGetReferenceCandidate(xui_document_snapshot snaps
  * leaves source, revision, identities, save point and history unchanged. */
 XUI_API int xuiDocumentSnapshotCreateSourceIndex(xui_document_snapshot snapshot,
     const xui_doc_source_index_desc_t* desc, xui_document_source_index* out);
+/* 增加不可变源码索引的引用计数。 */
 XUI_API void xuiDocumentSourceIndexRetain(xui_document_source_index index);
+/* 释放一个源码索引引用。 */
 XUI_API void xuiDocumentSourceIndexRelease(xui_document_source_index index);
+/* 读取源码索引的版本、长度与各类记录数量。 */
 XUI_API int xuiDocumentSourceIndexGetInfo(xui_document_source_index index,
     xui_doc_source_index_info_t* out);
+/* 按序号读取一条源码记录。 */
 XUI_API int xuiDocumentSourceIndexGetRecord(xui_document_source_index index,
     uint64_t ordinal, xui_doc_source_record_t* out);
+/* 按序号读取一个源码令牌。 */
 XUI_API int xuiDocumentSourceIndexGetToken(xui_document_source_index index,
     uint64_t ordinal, xui_doc_source_token_t* out);
+/* 按序号读取一条源码到文档对象的绑定。 */
 XUI_API int xuiDocumentSourceIndexGetBinding(xui_document_source_index index,
     uint64_t ordinal, xui_doc_source_binding_t* out);
 /* Visit every overlapping complete binding in source/ordinal order without
@@ -782,7 +788,9 @@ XUI_API int xuiDocumentSnapshotExportFile(xui_document_snapshot snapshot, const 
 /* Save committed content and update the saved state on success. */
 XUI_API int xuiDocumentSaveFile(xui_document document, const char* path, uint32_t format);
 /* Returns a new, clean document without an import undo entry. max_file_bytes=0
- * selects a 256 MiB input cap. Native and Markdown are accepted input formats. */
+ * selects a 256 MiB input cap; exceeding it returns XUI_DOC_ERROR_LIMIT while
+ * other filesystem read failures return XUI_DOC_ERROR_IO. Native and Markdown
+ * are accepted input formats. */
 XUI_API int xuiDocumentOpenFile(const char* path, uint32_t format, const xui_doc_desc_t* desc, uint64_t max_file_bytes, xui_document* out);
 /* Inspect a Rich snapshot before explicitly converting it to Markdown.
  * Reports one entry per affected node in document order; a root ROUNDTRIP
@@ -1028,7 +1036,8 @@ XUI_API int xuiDocumentTxnSetLink(xui_document_transaction transaction, const xu
 XUI_API int xuiDocumentTxnInsertLink(xui_document_transaction transaction, const xui_doc_range_t* range,
     const char* label, uint64_t label_bytes, const char* uri, const char* title, xui_doc_position_t* caret);
 /* common: marks present throughout the selection; mixed: marks present on only
- * part of it. Structural gaps are supported, including a root Select All range. */
+ * part of it. Structural gaps are supported, including a root Select All range.
+ * A collapsed container gap inspects its adjacent inline run. */
 XUI_API int xuiDocumentSnapshotQueryMarks(xui_document_snapshot snapshot, const xui_doc_range_t* range, uint32_t* common, uint32_t* mixed);
 #endif
 typedef struct xui_doc_link_info_t {
@@ -1038,7 +1047,8 @@ typedef struct xui_doc_link_info_t {
     const char* sUri;   /* Borrowed from snapshot; NULL when absent or mixed. */
     const char* sTitle; /* Borrowed from snapshot; NULL when absent or mixed. */
 } xui_doc_link_info_t;
-/* Query link state and borrowed URI/title for a semantic range. */
+/* Query link state and borrowed URI/title for a semantic range. A collapsed
+ * container gap inspects its adjacent inline run. */
 #if XUI_ENABLE_DOCUMENT
 XUI_API int xuiDocumentSnapshotQueryLink(xui_document_snapshot snapshot, const xui_doc_range_t* range,
     xui_doc_link_info_t* out);
@@ -1173,7 +1183,9 @@ XUI_API int xuiDocumentTxnSetTableColumnWidth(xui_document_transaction transacti
 /* Merge a rectangular group of table cells. */
 XUI_API int xuiDocumentTxnMergeCells(xui_document_transaction transaction, xui_doc_node_id table,
     uint32_t row, uint32_t column, uint32_t rows, uint32_t columns, xui_doc_node_id* out);
-/* Split a merged table cell into separate cells. */
+/* Split a merged table cell into separate cells. New cells inherit the source
+ * cell's presentation attributes. An already unmerged cell returns
+ * INVALID_STATE. */
 XUI_API int xuiDocumentTxnSplitCell(xui_document_transaction transaction, xui_doc_node_id cell);
 /* Paste a UTF-8 TSV rectangle at an existing cell. Double-quoted fields may
  * contain tabs, row breaks and doubled quotes; malformed quoting is rejected.

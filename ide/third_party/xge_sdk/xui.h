@@ -529,6 +529,9 @@ typedef struct xui_language_text_t {
 #define XUI_ACCESSIBLE_STATE_SELECTABLE		0x00001000u
 #define XUI_ACCESSIBLE_STATE_MODAL		0x00002000u
 #define XUI_ACCESSIBLE_STATE_VERTICAL		0x00004000u
+#define XUI_ACCESSIBLE_STATE_MIXED		0x00008000u
+#define XUI_ACCESSIBLE_STATE_MULTISELECTABLE	0x00010000u
+#define XUI_ACCESSIBLE_STATE_SELECTION_REQUIRED	0x00020000u
 
 #define XUI_ACCESSIBLE_ACTION_FOCUS		1
 #define XUI_ACCESSIBLE_ACTION_ACTIVATE		2
@@ -654,6 +657,7 @@ typedef struct xui_language_text_t {
 
 #define XUI_BUTTON_STATE_CHECKED	0x00000010u
 #define XUI_CHECKBOX_STATE_CHECKED	0x00000010u
+#define XUI_CHECKBOX_STATE_MIXED	0x00000020u
 #define XUI_CHECKCARD_STATE_CHECKED	0x00000010u
 #define XUI_RADIO_STATE_CHECKED		0x00000010u
 #define XUI_TOGGLE_STATE_CHECKED	0x00000010u
@@ -661,6 +665,10 @@ typedef struct xui_language_text_t {
 #define XUI_TEXT_EDIT_STATE_READONLY	0x00000010u
 #define XUI_NUMERIC_INPUT_STATE_ERROR	0x00000010u
 #define XUI_NUMERIC_INPUT_STATE_READONLY	0x00000020u
+
+#define XUI_CHECKBOX_CHECK_STATE_UNCHECKED	0
+#define XUI_CHECKBOX_CHECK_STATE_CHECKED	1
+#define XUI_CHECKBOX_CHECK_STATE_MIXED		2
 
 #define XUI_RADIO_GROUP_VERTICAL	0
 #define XUI_RADIO_GROUP_HORIZONTAL	1
@@ -1252,8 +1260,10 @@ typedef struct xui_language_text_t {
 #define XUI_POPUP_OUTSIDE_CLOSE	0
 #define XUI_POPUP_OUTSIDE_IGNORE	1
 #define XUI_POPUP_OUTSIDE_CONSUME	2
+/* 宿主区域按正常命中顺序接收指针事件，弹层保持打开。 */
 #define XUI_POPUP_OWNER_PASSTHROUGH	0
 #define XUI_POPUP_OWNER_CLOSE	1
+/* 宿主按下时关闭弹层，并将本次完整点击交互交给宿主子树。 */
 #define XUI_POPUP_OWNER_TOGGLE	2
 #define XUI_POPUP_OWNER_CONSUME	3
 #define XUI_POPUP_ESCAPE_CLOSE	0
@@ -1332,6 +1342,9 @@ typedef struct xui_language_text_t {
 #define XUI_COLOR_PICKER_PART_NEW		7
 #define XUI_COLOR_PICKER_PART_PALETTE		8
 #define XUI_COLOR_PICKER_PART_HEX		9
+#define XUI_COLOR_PICKER_PART_RED		100
+#define XUI_COLOR_PICKER_PART_GREEN		101
+#define XUI_COLOR_PICKER_PART_BLUE		102
 
 #define XUI_ICON_PICKER_TEXT_NONE		0
 #define XUI_ICON_PICKER_TEXT_ID			1
@@ -1481,6 +1494,8 @@ typedef struct xui_language_text_t {
 #define XUI_CODE_COMMAND_SELECT_LINE_END 48
 #define XUI_CODE_COMMAND_SELECT_DOCUMENT_START 49
 #define XUI_CODE_COMMAND_SELECT_DOCUMENT_END 50
+#define XUI_CODE_COMMAND_SELECT_WORD_LEFT 51
+#define XUI_CODE_COMMAND_SELECT_WORD_RIGHT 52
 #define XUI_CODE_COMMAND_USER_BASE	10000
 
 #define XUI_CODE_INPUT_PREVIEW		1
@@ -1892,7 +1907,7 @@ typedef struct xui_text_line_t {
 /* 标签创建描述；全部字段有默认值。 */
 typedef struct xui_label_desc_t {
 	uint32_t iSize;
-/* 文本内容。 */
+/* 文本内容；创建时复制，NULL 视为空串。 */
 	const char* sText;
 /* 字体；NULL 用默认。 */
 	struct xui_font_t* pFont;
@@ -1900,7 +1915,7 @@ typedef struct xui_label_desc_t {
 	uint32_t iTextColor;
 /* 禁用态文字颜色。 */
 	uint32_t iDisabledTextColor;
-/* 文本绘制标志。 */
+/* 文本绘制标志（对齐、裁剪、下划线及 RTL）。 */
 	uint32_t iTextFlags;
 /* 换行模式。 */
 	int iWrapMode;
@@ -1915,6 +1930,7 @@ typedef struct xui_label_desc_t {
 /* 超链接创建描述。 */
 typedef struct xui_hyperlink_desc_t {
 	uint32_t iSize;
+	/* Copied at creation; NULL is treated as an empty string. */
 	const char* sText;
 	struct xui_font_t* pFont;
 	uint32_t iTextColor;
@@ -1957,7 +1973,8 @@ typedef struct xui_breadcrumb_desc_t {
 	float fPaddingY;
 } xui_breadcrumb_desc_t;
 
-/* 图片创建描述（surface/源区/适配模式）。 */
+/* 图片创建描述（surface/源区/适配模式）。pSurface 为借用资源，调用方须保证
+ * 其生命周期覆盖 Image 对它的使用期。 */
 typedef struct xui_image_desc_t {
 	uint32_t iSize;
 	struct xui_surface_t* pSurface;
@@ -1969,7 +1986,10 @@ typedef struct xui_image_desc_t {
 	int iAlignY;
 } xui_image_desc_t;
 
-/* 二维码创建描述。 */
+/* 二维码创建描述。sValue 会被复制；pIconSurface 为借用资源，调用方须保证
+ * 其生命周期覆盖控件。tIconSrc 宽高均为 0 时使用整张 surface，否则宽高
+ * 必须同时为正。当前编码使用 QR byte mode 与 M 级纠错。绘制始终保留至少
+ * 4 个完整模块的标准静区，fPadding 是附加的最小像素边距。 */
 typedef struct xui_qrcode_desc_t {
 	uint32_t iSize;
 	const char* sValue;
@@ -1983,7 +2003,8 @@ typedef struct xui_qrcode_desc_t {
 	int iMaxVersion;
 } xui_qrcode_desc_t;
 
-/* 面板创建描述（标题/图标/头高）。 */
+/* 面板创建描述（标题/图标/头高）。sTitle 会被复制；pFont 与 pIconSurface
+ * 仅在使用期间借用，调用方须保证其生命周期覆盖 Panel。 */
 typedef struct xui_panel_desc_t {
 	uint32_t iSize;
 	const char* sTitle;
@@ -2139,6 +2160,7 @@ typedef xui_workflow_node_type_t* xui_workflow_node_type;
 #define XUI_FLOW_COMMAND_ADD_EDGE 4
 #define XUI_FLOW_COMMAND_REMOVE_EDGE 5
 #define XUI_FLOW_COMMAND_SET_NODE_CONFIG 6
+#define XUI_FLOW_COMMAND_DELETE_SELECTION 7
 #define XUI_WORKFLOW_NODE_RUN_IDLE 0
 #define XUI_WORKFLOW_NODE_RUN_QUEUED 1
 #define XUI_WORKFLOW_NODE_RUN_RUNNING 2
@@ -2176,8 +2198,8 @@ typedef struct xui_flow_port_desc_t {
 	const char* sDataType;
 	int iDirection;
 	int iKind;
-	int bRequired;
-	int bMulti;
+	int bRequired; /* 输入端口必须至少有一条有效入边。 */
+	int bMulti;    /* 输入端口允许多条有效入边。 */
 	int bDynamic;
 } xui_flow_port_desc_t;
 
@@ -2189,8 +2211,8 @@ typedef struct xui_flow_node_desc_t {
 	const char* sTitle;
 	float fX;
 	float fY;
-	float fW;
-	float fH;
+	float fW; /* 0 使用画布默认宽度；不得为负数。 */
+	float fH; /* 0 使用画布默认高度；不得为负数。 */
 	const char* sSummary;
 } xui_flow_node_desc_t;
 
@@ -2289,8 +2311,8 @@ typedef struct xui_flow_viewport_t {
 	float fPanX;
 	float fPanY;
 	float fZoom;
-	float fWidth;
-	float fHeight;
+	float fWidth;  /* 可选视口宽度；0 表示未指定，不得为负数。 */
+	float fHeight; /* 可选视口高度；0 表示未指定，不得为负数。 */
 } xui_flow_viewport_t;
 
 /* 流程图诊断描述（节点/连线错误）。 */
@@ -2327,6 +2349,11 @@ typedef struct xui_workflow_desc_t {
 	xui_flow_graph_desc_t tGraph;
 } xui_workflow_desc_t;
 
+/* Workflow 回调中的字符串、配置与输出数组仅在本次调用期间借用；框架会复制成功返回的
+ * 端口/诊断描述。动态端口回调每次最多写 iPortCapacity 项，*pPortCount 可报告更大的所需
+ * 总数；输出填满容量时框架可能扩容重试，因此回调必须可重复调用并返回同一配置快照。
+ * 回调不得销毁 pWorkflow，也不得注册类型、增删节点/连线或修改正在验证的配置；需要改变
+ * 模型时应在外层 API 返回后执行。 */
 typedef int (*xui_workflow_dynamic_ports_proc)(xui_workflow pWorkflow, const char* sNodeId, const char* sType, xvalue* pConfig, xui_flow_port_desc_t* pPorts, int iPortCapacity, int* pPortCount, void* pUser);
 typedef int (*xui_workflow_validate_proc)(xui_workflow pWorkflow, const char* sNodeId, const char* sType, xvalue* pConfig, xui_flow_diagnostic_desc_t* pDiagnostics, int iDiagnosticCapacity, int* pDiagnosticCount, void* pUser);
 
@@ -2424,7 +2451,10 @@ typedef struct xui_nine_patch_t {
 	int iMode;
 } xui_nine_patch_t;
 
-/* 进度条创建描述。 */
+/* 进度条创建描述。sText 会被复制；pFont 与 nine-patch surface 为借用资源，
+ * 调用方须保证其生命周期覆盖 Progress 对它们的使用期。nine-patch 的源矩形
+ * 与切片均使用整数像素；源区域宽高必须同时为 0（整图）或同时为正，
+ * 尺寸及切片不得为负，组合几何不得超过 XUI_LAYOUT_UNBOUNDED。 */
 typedef struct xui_progress_desc_t {
 	uint32_t iSize;
 	struct xui_font_t* pFont;
@@ -2445,7 +2475,8 @@ typedef struct xui_progress_desc_t {
 	int bHasFillPatch;
 } xui_progress_desc_t;
 
-/* 步骤条创建描述。 */
+/* 步骤条创建描述。ppTitles 中的标题会被复制；pFont 为借用资源，调用方须保证
+ * 其生命周期覆盖 StepBar 对它的使用期。度量值须为有限非负数，0 使用默认值。 */
 typedef struct xui_step_bar_desc_t {
 	uint32_t iSize;
 	const char* const* ppTitles;
@@ -2470,7 +2501,7 @@ struct xui_chart_point_t {
 	double x;
 	double y;
 	double value;
-	const char* label;
+	const char* label; /* 可选 UTF-8 标签；xuiChartSetSeriesData 会复制其内容。 */
 	uint32_t color;
 };
 
@@ -2542,8 +2573,10 @@ struct xui_code_fold_range_t {
 	uint32_t iFlags;
 };
 
+/* 代码布局描述借用文档与折叠区间；调用期间两者必须保持有效。
+ * 滚动量和边栏宽度必须为非负有限值；非正或非有限的行高/字符宽使用默认值。 */
 struct xui_code_layout_desc_t {
-	uint32_t iSize;
+	uint32_t iSize; /* 必须至少为 sizeof(xui_code_layout_desc_t)。 */
 	xui_code_document_t* pDocument;
 	const xui_code_fold_range_t* pFoldRanges;
 	int iFoldRangeCount;
@@ -2785,8 +2818,9 @@ typedef void (*xui_code_find_activate_proc)(xui_code_find_scope_t* pScope, xui_w
 typedef int (*xui_code_margin_render_proc)(xui_widget_t* pWidget, int iMarginId, int iLine, xui_draw_context_t* pDraw, xui_rect_t tRect, void* pUser);
 typedef int (*xui_code_margin_event_proc)(xui_widget_t* pWidget, int iMarginId, int iLine, int iEvent, xui_rect_t tRect, void* pUser);
 
+/* 边栏描述按值复制；回调和 pUser 为借用引用，必须在模型使用期间保持有效。 */
 struct xui_code_margin_desc_t {
-	uint32_t iSize;
+	uint32_t iSize; /* 必须至少为 sizeof(xui_code_margin_desc_t)。 */
 	int iId;
 	int iKind;
 	float fWidth;
@@ -2833,7 +2867,7 @@ struct xui_code_key_binding_t {
 };
 
 struct xui_code_command_context_t {
-	uint32_t iSize;
+	uint32_t iSize; /* 0 或至少为 sizeof(xui_code_command_context_t)。 */
 	xui_widget_t* pWidget;
 	xui_proxy_t* pProxy;
 	xui_code_document_t* pDocument;
@@ -2852,7 +2886,7 @@ struct xui_code_edit_desc_t {
 	uint32_t iSize;
 	struct xui_font_t* pFont;
 	const char* sText;
-	const char* sLanguage;
+	const char* sLanguage; /* Registered syntax language id; NULL/empty uses plain text. */
 	int bReadonly;
 	int bShowLineNumbers;
 	int bShowFoldMargin;
@@ -2865,46 +2899,88 @@ struct xui_code_edit_desc_t {
 	int iFlags;
 };
 
+/* Button click callbacks run synchronously on the UI thread and may destroy the button or its context. */
 typedef void (*xui_button_click_proc)(xui_widget_t* pWidget, void* pUser);
+/* Hyperlink callbacks run synchronously on the UI thread and may destroy the
+ * hyperlink, an owning parent, or the context. */
 typedef void (*xui_hyperlink_click_proc)(xui_widget_t* pWidget, void* pUser);
+/* Breadcrumb callbacks run synchronously on the UI thread and may destroy the
+ * control or its context. */
 typedef void (*xui_breadcrumb_click_proc)(xui_widget_t* pWidget, int iIndex, int iValue, void* pUser);
 typedef int (*xui_breadcrumb_context_proc)(xui_widget_t* pWidget, int iIndex, int iValue, float fX, float fY, void* pUser);
-typedef void (*xui_checkbox_change_proc)(xui_widget_t* pWidget, int bChecked, void* pUser);
+/* Choice callbacks run synchronously on the UI thread and may destroy the
+ * control, an owning parent, or the context. */
+/* iCheckState is one of XUI_CHECKBOX_CHECK_STATE_*; two-state checkboxes only
+ * report UNCHECKED or CHECKED. */
+typedef void (*xui_checkbox_change_proc)(xui_widget_t* pWidget, int iCheckState, void* pUser);
 typedef void (*xui_check_card_change_proc)(xui_widget_t* pWidget, int bChecked, void* pUser);
 typedef void (*xui_radio_change_proc)(xui_widget_t* pWidget, int bChecked, void* pUser);
 typedef void (*xui_radio_group_change_proc)(xui_widget_t* pGroup, xui_widget_t* pSelected, int iSelectedIndex, void* pUser);
 typedef void (*xui_toggle_change_proc)(xui_widget_t* pWidget, int bChecked, void* pUser);
 typedef void (*xui_scrollbar_change_proc)(xui_widget_t* pWidget, float fValue, void* pUser);
+/* Slider and range-slider callbacks run synchronously on the UI thread and may
+ * destroy the control, an owning parent, or the context. */
 typedef void (*xui_slider_change_proc)(xui_widget_t* pWidget, float fValue, void* pUser);
 typedef void (*xui_range_slider_change_proc)(xui_widget_t* pWidget, float fStart, float fEnd, void* pUser);
+/* Page callbacks run synchronously on the UI thread and may destroy the Page
+ * widget or its context. */
 typedef void (*xui_page_change_proc)(xui_widget_t* pWidget, int iOldPage, int iNewPage, void* pUser);
 typedef void (*xui_split_layout_change_proc)(xui_widget_t* pWidget, int iDivider, void* pUser);
+/* Tabs callbacks run on the UI thread and may destroy the tabs widget or its context. */
 typedef void (*xui_tabs_select_proc)(xui_widget_t* pWidget, int iIndex, void* pUser);
 typedef void (*xui_tabs_close_proc)(xui_widget_t* pWidget, int iIndex, void* pUser);
 typedef int (*xui_tabs_context_proc)(xui_widget_t* pWidget, int iIndex, float fX, float fY, void* pUser);
+/* Accordion selection callbacks run synchronously on the UI thread and may
+ * destroy the Accordion or its context. */
 typedef void (*xui_accordion_select_proc)(xui_widget_t* pWidget, int iIndex, int iId, void* pUser);
+/* Window close callbacks run synchronously on the UI thread and may destroy the
+ * window, an owning parent, or the context. */
 typedef void (*xui_window_close_proc)(xui_widget_t* pWidget, void* pUser);
 typedef int (*xui_window_context_proc)(xui_widget_t* pWidget, int iPart, float fX, float fY, void* pUser);
+/* Result callbacks run synchronously on the UI thread and may destroy the
+ * message box or its context. */
 typedef void (*xui_msgbox_result_proc)(xui_msgbox_t* pBox, int iResult, void* pUser);
+/* File-dialog callbacks run synchronously on the UI thread and may destroy the
+ * dialog or its context. Path arguments are borrowed for the call only. */
 typedef void (*xui_file_dialog_result_proc)(xui_file_dialog_t* pDialog, int iResult, const char* sPath, void* pUser);
 typedef int (*xui_file_dialog_context_proc)(xui_file_dialog_t* pDialog, int iIndex, const char* sPath, int bDirectory, float fX, float fY, void* pUser);
+/* MsgTip close callbacks run synchronously on the UI thread and may destroy
+ * the tip or its context. */
 typedef void (*xui_msgtip_close_proc)(xui_msgtip_t* pTip, int bExpired, void* pUser);
+/* Toast callbacks run synchronously on the UI thread and may close, clear, or
+ * destroy the notification center. Callback arguments are borrowed for the
+ * duration of the call. */
 typedef void (*xui_toast_click_proc)(xui_toast_t* pToast, int iToastId, void* pUser);
 typedef void (*xui_toast_close_proc)(xui_toast_t* pToast, int iToastId, int iReason, void* pUser);
 typedef void (*xui_scroll_frame_change_proc)(xui_widget_t* pWidget, float fOffsetX, float fOffsetY, void* pUser);
 typedef void (*xui_scroll_view_change_proc)(xui_widget_t* pWidget, float fOffsetX, float fOffsetY, void* pUser);
+/* ListView selection/activation/context callbacks run synchronously on the UI
+ * thread and may destroy the ListView or its context. */
 typedef void (*xui_list_view_select_proc)(xui_widget_t* pWidget, int iIndex, void* pUser);
+typedef void (*xui_list_view_activate_proc)(xui_widget_t* pWidget, int iIndex, int iButton, void* pUser);
 typedef int (*xui_list_view_context_proc)(xui_widget_t* pWidget, int iIndex, float fX, float fY, void* pUser);
 typedef int (*xui_list_view_item_proc)(xui_widget_t* pWidget, int iIndex, xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);
 /* UI-thread, read-only provider. Text is borrowed until the next provider call;
  * NULL means empty. Do not mutate/destroy the list from this callback. */
 typedef const char* (*xui_list_view_text_proc)(xui_widget_t* pWidget, int iIndex, void* pUser);
+/* MessageList event callbacks run synchronously on the UI thread and may
+ * mutate or destroy the list or its context. pEvent and pEvent->pNode are
+ * borrowed only for the duration of the callback. */
 typedef void (*xui_message_list_event_proc)(xui_widget_t* pWidget, const xui_message_list_event_t* pEvent, void* pUser);
+/* The node snapshot is read-only and borrowed for this synchronous render
+ * call. Mutating or destroying the list safely aborts the current render. */
 typedef int (*xui_message_list_node_renderer_proc)(xui_widget_t* pWidget, int iIndex, const xui_message_node_t* pNode, xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);
+/* TreeView callbacks run on the UI thread. Selection and context callbacks may
+ * destroy the widget or its context. */
 typedef void (*xui_tree_view_select_proc)(xui_widget_t* pWidget, int iNodeId, void* pUser);
 typedef int (*xui_tree_view_context_proc)(xui_widget_t* pWidget, int iNodeId, int iVisibleIndex, float fX, float fY, void* pUser);
+/* Adapter callbacks are synchronous. Reentrant mutation or destruction is
+ * supported by aborting the current refresh; pNode is an output buffer valid
+ * only for the duration of the node callback. */
 typedef int (*xui_tree_view_count_proc)(xui_widget_t* pWidget, void* pUser);
 typedef int (*xui_tree_view_node_proc)(xui_widget_t* pWidget, int iIndex, xui_tree_view_node_t* pNode, void* pUser);
+/* pNode is a read-only snapshot. Mutating or destroying the TreeView aborts
+ * the current render batch safely. */
 typedef int (*xui_tree_view_item_proc)(xui_widget_t* pWidget, int iNodeId, int iVisible, const xui_tree_view_node_t* pNode, xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);
 typedef int (*xui_table_view_count_proc)(xui_widget_t* pWidget, void* pUser);
 typedef int (*xui_table_view_cell_proc)(xui_widget_t* pWidget, int iRow, int iColumn, xui_table_view_cell_t* pCell, void* pUser);
@@ -2917,12 +2993,19 @@ typedef void (*xui_table_view_column_resize_proc)(xui_widget_t* pWidget, int iCo
 typedef void (*xui_table_view_hover_proc)(xui_widget_t* pWidget, int iRow, int iColumn, int iSelectionMode, void* pUser);
 typedef int (*xui_table_view_merge_proc)(xui_widget_t* pWidget, int iRow, int iColumn, int* pRowSpan, int* pColSpan, void* pUser);
 typedef int (*xui_table_view_context_proc)(xui_widget_t* pWidget, int iPart, int iRow, int iColumn, float fX, float fY, void* pUser);
+/* TableGrid callbacks run on the UI thread and may destroy the grid or context.
+ * sValue and cell/config snapshots are valid only for the duration of the callback. */
 typedef void (*xui_table_grid_set_proc)(xui_widget_t* pWidget, int iRow, int iColumn, const char* sValue, int iType, void* pUser);
 typedef int (*xui_table_grid_validate_proc)(xui_widget_t* pWidget, int iRow, int iColumn, const char* sValue, int iType, void* pUser);
 typedef void (*xui_table_grid_change_proc)(xui_widget_t* pWidget, int iRow, int iColumn, const char* sValue, int iType, void* pUser);
 typedef int (*xui_table_grid_editor_proc)(xui_widget_t* pWidget, int iRow, int iColumn, const xui_table_view_cell_t* pCell, xui_rect_t tWorldRect, void* pUser);
 typedef int (*xui_table_grid_editor_config_proc)(xui_widget_t* pWidget, int iRow, int iColumn, int iType, xui_table_grid_editor_config_t* pConfig, void* pUser);
 typedef int (*xui_table_grid_context_proc)(xui_widget_t* pWidget, int iPart, int iRow, int iColumn, float fX, float fY, void* pUser);
+/* TimelineView callbacks run synchronously on the UI thread and may mutate or
+ * destroy the control or its context. A reentrant changing callback supersedes
+ * the outer change. Hit/model pointers are read-only snapshots borrowed only
+ * for the callback duration. Mutating during a renderer safely aborts the
+ * current render batch. */
 typedef int (*xui_timeline_current_frame_changing_proc)(xui_widget_t* pWidget, int iOldFrame, int iNewFrame, void* pUser);
 typedef void (*xui_timeline_current_frame_changed_proc)(xui_widget_t* pWidget, int iOldFrame, int iNewFrame, void* pUser);
 typedef int (*xui_timeline_layer_changing_proc)(xui_widget_t* pWidget, int iLayer, int iChange, void* pUser);
@@ -2940,10 +3023,14 @@ typedef int (*xui_timeline_layer_renderer_proc)(xui_widget_t* pWidget, int iLaye
 typedef int (*xui_timeline_ruler_renderer_proc)(xui_widget_t* pWidget, int iFrame, xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);
 typedef int (*xui_timeline_frame_renderer_proc)(xui_widget_t* pWidget, int iLayer, int iFrame, const xui_timeline_frame_t* pFrame, xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);
 typedef int (*xui_timeline_span_renderer_proc)(xui_widget_t* pWidget, int iLayer, int iSpanId, const xui_timeline_span_t* pSpan, xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);
+/* DockPanel callbacks run on the UI thread and may destroy the panel or its context.
+ * Hit-test arguments are snapshots valid only for the callback duration. */
 typedef void (*xui_dock_window_state_proc)(xui_widget_t* pWidget, int iWindow, int iOldState, int iNewState, void* pUser);
 typedef void (*xui_dock_active_proc)(xui_widget_t* pWidget, int iPane, int iOldWindow, int iNewWindow, void* pUser);
 typedef void (*xui_dock_window_close_proc)(xui_widget_t* pWidget, int iWindow, void* pUser);
 typedef int (*xui_dock_context_proc)(xui_widget_t* pWidget, const xui_dock_hit_t* pHit, float fX, float fY, void* pUser);
+/* PropertyGrid callbacks run on the UI thread and may destroy the grid or its context.
+ * String and cell arguments are snapshots valid only for the callback duration. */
 typedef void (*xui_property_grid_select_proc)(xui_widget_t* pWidget, int iProperty, const char* sId, void* pUser);
 typedef int (*xui_property_grid_validate_proc)(xui_widget_t* pWidget, int iProperty, const char* sId, const char* sValue, int iType, void* pUser);
 typedef void (*xui_property_grid_change_proc)(xui_widget_t* pWidget, int iProperty, const char* sId, const char* sValue, int iType, void* pUser);
@@ -2955,13 +3042,22 @@ typedef void (*xui_menu_select_proc)(xui_widget_t* pWidget, int iIndex, int iVal
 typedef void (*xui_toolbar_select_proc)(xui_widget_t* pWidget, int iIndex, int iValue, void* pUser);
 typedef void (*xui_toolbar_overflow_proc)(xui_widget_t* pWidget, int iFirst, int iCount, void* pUser);
 typedef int (*xui_toolbar_context_proc)(xui_widget_t* pWidget, int iIndex, int iValue, float fX, float fY, void* pUser);
+/* StatusBar callbacks run synchronously on the UI thread and may destroy the
+ * StatusBar or its context. */
 typedef void (*xui_statusbar_select_proc)(xui_widget_t* pWidget, int iIndex, int iValue, void* pUser);
 typedef int (*xui_statusbar_context_proc)(xui_widget_t* pWidget, int iIndex, int iValue, float fX, float fY, void* pUser);
+/* Chart callbacks run synchronously on the UI thread and may mutate or destroy
+ * the chart or its context. Context hit data is a read-only snapshot borrowed
+ * only for the callback duration. */
 typedef int (*xui_chart_tooltip_proc)(xui_widget_t* pWidget, int iSeries, int iItem, char* sBuffer, int iCapacity, void* pUser);
 typedef int (*xui_chart_context_proc)(xui_widget_t* pWidget, const xui_chart_hit_t* pHit, float fX, float fY, void* pUser);
 typedef int (*xui_tag_input_context_proc)(xui_widget_t* pWidget, int iIndex, float fX, float fY, void* pUser);
 typedef int (*xui_flow_context_proc)(xui_widget_t* pWidget, const xui_flow_hit_t* pHit, float fX, float fY, void* pUser);
+/* Carousel callbacks run synchronously on the UI thread and may destroy the
+ * Carousel or its context. */
 typedef void (*xui_carousel_change_proc)(xui_widget_t* pWidget, int iOldIndex, int iNewIndex, void* pUser);
+/* VirtualJoystick callbacks run synchronously on the UI thread and may destroy
+ * the control or its context. pState is a read-only snapshot valid only for the call. */
 typedef void (*xui_virtual_joystick_change_proc)(xui_widget_t* pWidget, const xui_virtual_joystick_state_t* pState, void* pUser);
 typedef void (*xui_inventory_select_proc)(xui_widget_t* pWidget, int iSlot, void* pUser);
 typedef void (*xui_inventory_activate_proc)(xui_widget_t* pWidget, int iSlot, int iButton, void* pUser);
@@ -2972,6 +3068,7 @@ typedef void (*xui_inventory_split_proc)(xui_widget_t* pWidget, int iSlot, int i
 typedef int (*xui_inventory_tooltip_proc)(xui_widget_t* pWidget, int iSlot, const xui_inventory_slot_t* pSlot, char* sBuffer, int iCapacity, void* pUser);
 typedef int (*xui_inventory_slot_render_proc)(xui_widget_t* pWidget, int iSlot, const xui_inventory_slot_t* pSlot, xui_draw_context_t* pDraw, xui_rect_t tRect, uint32_t iState, void* pUser);
 typedef int (*xui_inventory_animation_render_proc)(xui_widget_t* pWidget, int iSlot, const xui_inventory_slot_t* pSlot, xui_animation_object_t* pAnimation, xui_draw_context_t* pDraw, xui_rect_t tRect, uint32_t iState, uint32_t iFlags, uint32_t iTint, void* pUser);
+/* Filter/compare callbacks receive const snapshots. They may mutate or destroy the grid; the operation then aborts safely. */
 typedef int (*xui_inventory_filter_proc)(xui_widget_t* pWidget, int iSlot, const xui_inventory_slot_t* pSlot, void* pUser);
 typedef int (*xui_inventory_compare_proc)(xui_widget_t* pWidget, int iSlotA, const xui_inventory_slot_t* pSlotA, int iSlotB, const xui_inventory_slot_t* pSlotB, void* pUser);
 typedef void (*xui_terminal_data_proc)(xui_widget_t* pWidget, const uint8_t* pData, int iSize, void* pUser);
@@ -3003,8 +3100,11 @@ typedef struct xui_edit_event_t {
 typedef int (*xui_edit_event_proc)(xui_widget_t* pWidget, const xui_edit_event_t* pEvent, void* pUser);
 typedef void (*xui_input_decoration_click_proc)(xui_widget_t* pWidget, xui_input_decoration_t* pDecoration, void* pUser);
 typedef int (*xui_input_decoration_paint_proc)(xui_widget_t* pWidget, xui_input_decoration_t* pDecoration, xui_draw_context_t* pDraw, xui_rect_t tRect, uint32_t iState, void* pUser);
+/* TagInput callbacks run synchronously on the UI thread and may destroy the control/context. */
 typedef void (*xui_tag_input_change_proc)(xui_widget_t* pWidget, int iTagCount, void* pUser);
+/* TextEdit callbacks run synchronously on the UI thread and may destroy the control/context. */
 typedef void (*xui_text_edit_change_proc)(xui_widget_t* pWidget, const char* sText, void* pUser);
+/* NumericInput callbacks run synchronously on the UI thread and may destroy the control/context. */
 typedef void (*xui_numeric_input_change_proc)(xui_widget_t* pWidget, float fValue, void* pUser);
 typedef void (*xui_numeric_input_error_proc)(xui_widget_t* pWidget, int bError, void* pUser);
 typedef int (*xui_numeric_input_format_proc)(float fValue, char* sBuffer, int iCapacity, void* pUser);
@@ -3038,16 +3138,16 @@ typedef struct xui_edit_behavior_t {
 	int bCommitOnBlur;
 } xui_edit_behavior_t;
 
-/* 输入框创建描述；全部字段有默认值。 */
+/* 输入框创建描述；全部字段有默认值。文本会在创建时复制，字体为借用资源。 */
 typedef struct xui_input_desc_t {
 	uint32_t iSize;
-/* 初始文本。 */
+	/* 初始文本；NULL 视为空串。 */
 	const char* sText;
-/* 占位文本。 */
+	/* 占位文本；NULL 视为空串。 */
 	const char* sPlaceholder;
-/* 字体；NULL 用默认。 */
+	/* 字体；NULL 用默认，调用方须保证非 NULL 字体生命周期覆盖控件。 */
 	struct xui_font_t* pFont;
-/* 最大长度；0 不限。 */
+	/* UTF-8 字节上限；0 不限。 */
 	int iMaxLength;
 /* 文本对齐。 */
 	int iTextAlign;
@@ -3088,12 +3188,17 @@ typedef struct xui_input_desc_t {
 /* 标签输入创建描述。 */
 typedef struct xui_tag_input_desc_t {
 	uint32_t iSize;
+	/* Initial tags are copied. NULL entries are treated as empty tags. */
 	const char* const* ppTags;
 	int iTagCount;
+	/* Initial editor text and placeholder are copied. */
 	const char* sText;
 	const char* sPlaceholder;
+	/* Borrowed font; it must outlive the control or be replaced before release. */
 	struct xui_font_t* pFont;
+	/* 0 selects the built-in capacity. */
 	int iMaxTags;
+	/* UTF-8 byte limit per tag/editor value; 0 means unlimited. */
 	int iMaxLength;
 	uint32_t iTextColor;
 	uint32_t iPlaceholderColor;
@@ -3117,7 +3222,9 @@ typedef struct xui_tag_input_desc_t {
 /* 数值输入创建描述（范围/步进/精度）。 */
 typedef struct xui_numeric_input_desc_t {
 	uint32_t iSize;
+	/* Borrowed font; it must outlive the control or be replaced before release. */
 	struct xui_font_t* pFont;
+	/* Copied placeholder text. */
 	const char* sPlaceholder;
 	float fMin;
 	float fMax;
@@ -3126,6 +3233,7 @@ typedef struct xui_numeric_input_desc_t {
 	int iPrecision;
 	int bInteger;
 	int bReadonly;
+	/* Zero keeps the default visible spinner; use a negative value to hide it at creation. */
 	int bSpinnerVisible;
 	uint32_t iTextColor;
 	uint32_t iPlaceholderColor;
@@ -3150,13 +3258,14 @@ typedef struct xui_numeric_input_desc_t {
 	float fBorderWidth;
 } xui_numeric_input_desc_t;
 
-/* 多行文本创建描述。 */
+/* 多行文本创建描述。sText/sPlaceholder 在创建时复制；pFont 为借用资源，
+ * 调用方须保证字体生命周期覆盖控件，NULL 使用上下文默认字体。 */
 typedef struct xui_text_edit_desc_t {
 	uint32_t iSize;
 	const char* sText;
 	const char* sPlaceholder;
 	struct xui_font_t* pFont;
-	int iMaxLength;
+	int iMaxLength; /* UTF-8 字节上限；0 表示不限。 */
 	int bReadonly;
 	int bWordWrap;
 	int bLineNumbers;
@@ -3363,6 +3472,7 @@ typedef struct xui_range_slider_desc_t {
 /* 分页器创建描述。 */
 typedef struct xui_page_desc_t {
 	uint32_t iSize;
+	/* Borrowed font; the caller keeps it alive while the Page uses it. */
 	struct xui_font_t* pFont;
 	int iPageCount;
 	int iCurrentPage;
@@ -3407,12 +3517,14 @@ struct xui_inventory_slot_t {
 	uint32_t iFlags;
 	uint32_t iQualityColor;
 	uint32_t iIconTint;
+	/* Borrowed icon surface; the caller keeps it alive while the slot uses it. */
 	struct xui_surface_t* pIcon;
 	xui_rect_t tIconSrc;
 	float fCooldownRate;
 	float fDurabilityRate;
 	char sText[XUI_INVENTORY_GRID_TEXT_CAPACITY];
 	char sHotkey[XUI_INVENTORY_GRID_HOTKEY_CAPACITY];
+	/* Borrowed animation object; the caller keeps it alive while the slot uses it. */
 	xui_animation_object_t* pAnimation;
 	uint32_t iAnimationFlags;
 	float fAnimationScale;
@@ -3486,6 +3598,7 @@ typedef struct xui_inventory_slot_query_t {
 	uint32_t iRequiredFlags;
 	uint32_t iRejectedFlags;
 	int iSortMode;
+	/* Copied for the duration of QuerySlots. Callbacks receive immutable slot snapshots. */
 	const char* sTextContains;
 	xui_inventory_filter_proc onFilter;
 	void* pFilterUser;
@@ -3513,6 +3626,7 @@ typedef struct xui_inventory_gamepad_profile_t {
 typedef struct xui_inventory_grid_desc_t {
 	uint32_t iSize;
 	struct xui_font_t* pFont;
+	/* Slot records and their embedded text are copied; pointer resources remain borrowed. */
 	const xui_inventory_slot_t* arrSlots;
 	int iSlotCount;
 	xui_inventory_grid_layout_t tLayout;
@@ -3624,7 +3738,9 @@ typedef struct xui_terminal_ssh_desc_t {
 	int iRows;
 } xui_terminal_ssh_desc_t;
 
-/* 轮播创建描述。 */
+/* 轮播创建描述。pFont 为借用资源，调用方须保证其生命周期覆盖控件。
+ * 传入描述时各布尔字段按其实际值生效；传 NULL 描述时默认启用循环。
+ * pFont/SetFont 为早期文本箭头 API 保留，当前矢量箭头不依赖字体。 */
 typedef struct xui_carousel_desc_t {
 	uint32_t iSize;
 	struct xui_font_t* pFont;
@@ -3661,7 +3777,7 @@ struct xui_virtual_joystick_state_t {
 	int iPointerType;
 };
 
-/* 虚拟摇杆创建描述。 */
+/* 虚拟摇杆创建描述。所有 surface 均为借用资源，调用方须保证其生命周期覆盖控件。 */
 typedef struct xui_virtual_joystick_desc_t {
 	uint32_t iSize;
 	xui_virtual_joystick_change_proc onChange;
@@ -3740,7 +3856,8 @@ typedef struct xui_split_layout_desc_t {
 	uint32_t iShadowColor;
 } xui_split_layout_desc_t;
 
-/* 选项卡创建描述。 */
+/* 选项卡创建描述。标题会按完整 UTF-8 字素复制到控件；数组仅在创建期间读取。
+ * pFont、图标 surface 为借用资源，调用方须保证其生命周期覆盖控件。 */
 typedef struct xui_tabs_desc_t {
 	uint32_t iSize;
 	const char** arrItems;
@@ -3907,6 +4024,7 @@ struct xui_dock_panel_colors_t {
 
 struct xui_dock_panel_desc_t {
 	uint32_t iSize;
+	/* Borrowed font; keep it alive while the DockPanel uses it. */
 	struct xui_font_t* pFont;
 	xui_dock_panel_metrics_t tMetrics;
 	xui_dock_panel_colors_t tColors;
@@ -3985,7 +4103,7 @@ struct xui_dock_drop_info_t {
 typedef struct xui_msgbox_button_t {
 	const char* sText;
 	int iResult;
-	int iSemantic;
+	int iSemantic; /* XUI_BUTTON_SEMANTIC_*; other values are rejected. */
 } xui_msgbox_button_t;
 
 typedef struct xui_msgbox_metrics_t {
@@ -3997,9 +4115,9 @@ typedef struct xui_msgbox_metrics_t {
 	float fButtonWidth; /* Minimum width; buttons expand to fit measured content. */
 	float fButtonHeight;
 	float fButtonGap;
-	float fFooterHeight;
+	float fFooterHeight; /* Must be at least fButtonHeight. */
 	float fMinMessageHeight;
-	float fMinWidth;
+	float fMinWidth; /* Must not exceed fMaxWidth. */
 	float fMaxWidth;
 	float fMaxWidthRatio;
 } xui_msgbox_metrics_t;
@@ -4018,7 +4136,8 @@ typedef struct xui_msgbox_colors_t {
 	uint32_t iButtonDisabledColor;
 } xui_msgbox_colors_t;
 
-/* 消息框创建描述（标题/消息/按钮/模态）。 */
+/* 消息框创建描述（标题/消息/按钮/模态）。文本与自定义按钮会被复制；字体和
+ * 自定义图标 surface 为借用资源，调用方须保证其生命周期覆盖消息框。 */
 typedef struct xui_msgbox_desc_t {
 	uint32_t iSize;
 	const char* sTitle;
@@ -4058,16 +4177,16 @@ typedef struct xui_file_dialog_desc_t {
 	xui_file_dialog_result_proc onResult;
 	void* pResultUser;
 	int iMode;
-	int bModal;
-	float fWidth;
-	float fHeight;
+	int bModal; /* xuiFileDialogCreate only; convenience open APIs are always modal. */
+	float fWidth;  /* 0 selects the default; positive values are clamped to the dialog minimum. */
+	float fHeight; /* 0 selects the default; positive values are clamped to the dialog minimum. */
 } xui_file_dialog_desc_t;
 
 typedef struct xui_msgtip_metrics_t {
 	uint32_t iSize;
-	float fMinWidth;
+	float fMinWidth; /* At least 32 and not greater than fMaxWidth. */
 	float fMaxWidth;
-	float fMinHeight;
+	float fMinHeight; /* At least 24. */
 	float fPaddingX;
 	float fPaddingY;
 	float fIconSize;
@@ -4084,7 +4203,8 @@ typedef struct xui_msgtip_colors_t {
 	uint32_t iShadowColor;
 } xui_msgtip_colors_t;
 
-/* 轻提示创建描述。 */
+/* 轻提示创建描述。文本会被复制；字体和自定义图标 surface 为借用资源，调用方
+ * 须保证其生命周期覆盖轻提示。自定义图标要求非空源矩形。fDuration 为 0 时不自动关闭。 */
 typedef struct xui_msgtip_desc_t {
 	uint32_t iSize;
 	const char* sText;
@@ -4102,9 +4222,9 @@ typedef struct xui_msgtip_desc_t {
 
 typedef struct xui_toast_metrics_t {
 	uint32_t iSize;
-	float fWidth;
-	float fMinWidth;
-	float fMinHeight;
+	float fWidth; /* Must be at least fMinWidth. */
+	float fMinWidth; /* At least 32. */
+	float fMinHeight; /* At least 24. */
 	float fMargin;
 	float fGap;
 	float fPaddingX;
@@ -4113,7 +4233,7 @@ typedef struct xui_toast_metrics_t {
 	float fIconGap;
 	float fCloseSize;
 	float fProgressHeight;
-	int iMaxVisible;
+	int iMaxVisible; /* 0 selects an automatic limit; otherwise an upper bound in 1..XUI_TOAST_VISIBLE_CAPACITY. */
 } xui_toast_metrics_t;
 
 typedef struct xui_toast_colors_t {
@@ -4131,7 +4251,7 @@ typedef struct xui_toast_colors_t {
 	uint32_t iCloseHoverColor;
 } xui_toast_colors_t;
 
-/* Toast 通知中心创建描述。 */
+/* Toast 通知中心创建描述。字体为借用资源，调用方须保证其生命周期覆盖通知中心。 */
 typedef struct xui_toast_desc_t {
 	uint32_t iSize;
 	struct xui_font_t* pFont;
@@ -4216,7 +4336,9 @@ typedef struct xui_scroll_view_desc_t {
 	float fViewportHeight;
 } xui_scroll_view_desc_t;
 
-/* 列表视图创建描述。 */
+/* 列表视图创建描述。arrItems 文本会被复制；arrEnabled 仅在创建期间读取。
+ * arrSelected 为可选的借用选择缓冲，须在绑定期间保持有效，且
+ * iSelectionCount 必须覆盖全部 iItemCount 项。pFont 为借用资源。 */
 typedef struct xui_list_view_desc_t {
 	uint32_t iSize;
 	const char** arrItems;
@@ -4334,7 +4456,8 @@ struct xui_tree_view_node_t {
 	void* pUser;
 };
 
-/* 树视图创建描述。 */
+/* 树视图创建描述。节点记录与文本会被复制；pUser 仅作为不透明值复制。
+ * pFont 为借用资源，调用方须保证其生命周期覆盖 TreeView。 */
 typedef struct xui_tree_view_desc_t {
 	uint32_t iSize;
 	const xui_tree_view_node_t* arrNodes;
@@ -4418,6 +4541,9 @@ struct xui_table_view_cell_t {
 	void* pFormatUser;
 	xui_table_view_cell_renderer_proc onRender;
 	void* pRenderUser;
+	/* Read-only cells remain selectable and focusable, but TableGrid will not
+	 * start an editor for them. */
+	int bReadOnly;
 };
 
 struct xui_table_view_colors_t {
@@ -4465,14 +4591,16 @@ typedef struct xui_table_view_desc_t {
 } xui_table_view_desc_t;
 
 struct xui_combobox_item_t {
-	const char* sText;
+	const char* sText; /* SetItems/SetItemData/Create copy the UTF-8 text. */
 	int iValue;
 	int bEnabled;
 	int bSeparator;
 	int iIcon;
-	void* pUser;
+	void* pUser; /* Borrowed application value; never owned or freed by ComboBox. */
 };
 
+/* 单元格编辑器配置。回调提供的数组与字符串仅在本次编辑器初始化期间借用，
+ * 回调返回后控件会立即复制所需内容；数量、范围和日期边界会在应用前校验。 */
 struct xui_table_grid_editor_config_t {
 	const char** arrEnumItems;
 	const xui_combobox_item_t* arrEnumItemData;
@@ -4750,6 +4878,7 @@ typedef struct xui_popup_desc_t {
 	int bConsumeInside;
 	int bMatchOwnerWidth;
 	int iScrollbarMode;
+/* 滚动条厚度；COMPACT 模式范围为 (0, 8]，0 使用默认值。 */
 	float fScrollbarSize;
 	uint32_t iPanelColor;
 	uint32_t iBorderColor;
@@ -4764,12 +4893,14 @@ typedef struct xui_popup_desc_t {
 } xui_popup_desc_t;
 
 typedef struct xui_menu_item_t {
+	/* UTF-8 label and shortcut are copied by SetItems/AddItem. */
 	const char* sText;
 	const char* sShortcut;
 	int iType;
 	uint32_t iState;
 	int iValue;
 	int iIcon;
+	/* Borrowed submenu widget; it must remain alive while referenced. */
 	xui_widget_t* pSubmenu;
 	void* pUser;
 } xui_menu_item_t;
@@ -4822,17 +4953,22 @@ typedef struct xui_menu_desc_t {
 } xui_menu_desc_t;
 
 typedef struct xui_menubar_item_t {
+	/* UTF-8 label; SetItems/AddItem copy its contents. '&' marks an access key. */
 	const char* sText;
 	int iState;
 	int iValue;
 	int iMnemonic;
+	/* Borrowed Menu widget in the same context; keep it alive while referenced. */
 	xui_widget_t* pMenu;
+	/* Output layout cache owned by MenuBar; input values are ignored. */
 	xui_rect_t tRect;
 	void* pUser;
 } xui_menubar_item_t;
 
 typedef struct xui_menubar_metrics_t {
 	uint32_t iSize;
+	/* All values are finite and bounded by XUI_LAYOUT_UNBOUNDED. The fixed
+	 * geometry for the maximum item capacity must fit the same bound. */
 	float fHeight;
 	float fPaddingX;
 	float fPaddingY;
@@ -4920,6 +5056,9 @@ typedef struct xui_toolbar_desc_t {
 	int bOverflowEnabled;
 } xui_toolbar_desc_t;
 
+/* 状态栏条目。fWidth 与 fFlex 须为 [0, XUI_LAYOUT_UNBOUNDED] 内的有限值；
+ * fWidth 为 0 且 fFlex 大于 0 时，条目按权重分配其分区获得的剩余宽度。
+ * 进度值须有限。tRect 为布局输出，创建及批量设置时会被忽略。 */
 typedef struct xui_statusbar_item_t {
 	const char* sText;
 	int iType;
@@ -4935,6 +5074,9 @@ typedef struct xui_statusbar_item_t {
 	void* pUser;
 } xui_statusbar_item_t;
 
+/* 状态栏度量。所有浮点值均须有限且位于 [0, XUI_LAYOUT_UNBOUNDED]，
+ * fHeight 与 fProgressHeight 还必须大于 0；内边距、间距和边框的组合
+ * 几何不得超过 XUI_LAYOUT_UNBOUNDED。 */
 typedef struct xui_statusbar_metrics_t {
 	uint32_t iSize;
 	float fHeight;
@@ -4975,7 +5117,10 @@ typedef struct xui_statusbar_desc_t {
 	int bHasColors;
 } xui_statusbar_desc_t;
 
-/* 组合框创建描述。 */
+/* 组合框创建描述。选项数组、选项文本、sText 与 sPlaceholder 在创建期间
+ * 读取，控件复制需要保留的字符串；pUser 与 pFont 为借用资源。iMaxLength
+ * 使用 UTF-8 字节数，0 表示不限；可编辑模式的初始选中项文本必须能在
+ * iMaxLength 内完整表示。四个尺寸字段须位于 [0, XUI_LAYOUT_UNBOUNDED]。 */
 typedef struct xui_combobox_desc_t {
 	uint32_t iSize;
 	const char** arrItems;
@@ -5022,7 +5167,7 @@ typedef struct xui_combobox_desc_t {
 typedef struct xui_cascader_item_t {
 	const char* sText;
 	int iValue;
-	int iParent;
+	int iParent; /* 父项索引；根项为 -1。 */
 	uint32_t iFlags;
 	void* pUser;
 } xui_cascader_item_t;
@@ -5112,7 +5257,10 @@ typedef struct xui_color_picker_desc_t {
 	float fBorderWidth;
 } xui_color_picker_desc_t;
 
-/* 图标选择器创建描述。 */
+/* 图标选择器创建描述。
+ * pCategory 必须属于同一 xui_context，控件会持有其引用；sPlaceholder 在创建时
+ * 复制。pFont 为借用句柄，调用方须保证字体生命周期覆盖控件。
+ * 网格尺寸、间距及滚动条的单项与组合几何均不得超过 XUI_LAYOUT_UNBOUNDED。 */
 typedef struct xui_icon_picker_desc_t {
 	uint32_t iSize;
 	xui_icon_category_t* pCategory;
@@ -5154,7 +5302,11 @@ typedef struct xui_icon_picker_desc_t {
 	float fScrollbarSize;
 } xui_icon_picker_desc_t;
 
-/* 日期选择器创建描述。 */
+/* 日期选择器创建描述。
+ * 弹层宽高为 0 时使用模式默认值；自定义尺寸必须满足对应模式的最小可用布局，
+ * 且所有浮点度量不得超过 XUI_LAYOUT_UNBOUNDED。
+ * 同时设置上下限时要求规范化后的 tMin <= tMax。
+ * sFormat、sRangeSeparator 在创建时复制；pFont 为借用句柄，调用方须保证其生命周期覆盖控件。 */
 typedef struct xui_date_picker_desc_t {
 	uint32_t iSize;
 	int iMode;
@@ -5372,7 +5524,9 @@ typedef struct xui_accessible_range_t {
 	double fPageStep;
 } xui_accessible_range_t;
 
-/* SET_VALUE uses this payload. ComboBox NUMBER values are item indices. */
+/* SET_VALUE uses this payload. ComboBox and Cascader NUMBER values are item
+ * indices; IconPicker NUMBER values are icon ids; ColorPicker TEXT values are
+ * #RRGGBB or #RRGGBBAA strings. */
 typedef struct xui_accessible_value_t {
 	uint32_t iSize;
 	int iType;
@@ -6069,13 +6223,14 @@ XUI_API xui_font xuiFindFont(xui_context pContext, const char* sName);
 /* 清除上下文已注册字体。 */
 XUI_API void xuiClearFonts(xui_context pContext);
 
-/* 注册命名资源（surface/纹理等，按名全局可查）。 */
+/* 注册命名资源（surface/纹理等，按名全局可查）。同名且描述完全一致时幂等；
+ * 替换仍被外部引用的资源或复用其拥有型句柄时返回 XUI_ERROR_INVALID_STATE。 */
 XUI_API int xuiResourceSet(xui_context pContext, xui_resource* ppResource, const xui_resource_desc_t* pDesc);
 /* 按名查找资源；不存在返回 NULL。 */
 XUI_API xui_resource xuiResourceFind(xui_context pContext, const char* sName);
-/* 移除资源注册（引用归零后释放）。 */
+/* 移除资源注册并释放注册表引用；仍有外部引用时返回 XUI_ERROR_INVALID_STATE。 */
 XUI_API int xuiResourceRemove(xui_resource pResource);
-/* 提升资源热度（LRU 保活）。 */
+/* 标记资源内容已变更；修订号会传递到全部直接和间接依赖资源。 */
 XUI_API int xuiResourceTouch(xui_resource pResource);
 /* 读取资源名。 */
 XUI_API const char* xuiResourceGetName(xui_resource pResource);
@@ -6094,7 +6249,7 @@ XUI_API int xuiResourceAddRef(xui_resource pResource);
 XUI_API int xuiResourceRelease(xui_resource pResource);
 /* 读取资源引用计数。 */
 XUI_API int xuiResourceGetRefCount(xui_resource pResource);
-/* 声明资源依赖（依赖失效级联本资源）。 */
+/* 声明资源依赖（依赖失效会传递到本资源及其依赖方）。 */
 XUI_API int xuiResourceAddDependency(xui_resource pResource, xui_resource pDependency);
 /* 清空依赖声明。 */
 XUI_API void xuiResourceClearDependencies(xui_resource pResource);
@@ -6406,9 +6561,9 @@ XUI_API void xuiTextShapeFree(xui_text_shape_t* pShape);
 /* 取文本标签控件类型。 */
 #if XUI_ENABLE_LABEL
 XUI_API xui_widget_type xuiLabelGetType(xui_context pContext);
-/* 创建文本标签。 */
+/* 创建文本标签；失败时 *ppWidget 置 NULL。 */
 XUI_API int xuiLabelCreate(xui_context pContext, xui_widget* ppWidget, const xui_label_desc_t* pDesc);
-/* 设置文本。 */
+/* 设置文本并复制内容；NULL 清空。 */
 XUI_API int xuiLabelSetText(xui_widget pWidget, const char* sText);
 /* 读取文本。 */
 XUI_API const char* xuiLabelGetText(xui_widget pWidget);
@@ -6424,7 +6579,7 @@ XUI_API uint32_t xuiLabelGetTextColor(xui_widget pWidget);
 XUI_API int xuiLabelSetDisabledTextColor(xui_widget pWidget, uint32_t iColor);
 /* 读取禁用态颜色。 */
 XUI_API uint32_t xuiLabelGetDisabledTextColor(xui_widget pWidget);
-/* 设置文本绘制标志（对齐/省略）。 */
+/* 设置文本绘制标志（对齐、裁剪、下划线及 RTL）。 */
 XUI_API int xuiLabelSetTextFlags(xui_widget pWidget, uint32_t iTextFlags);
 /* 读取文本标志。 */
 XUI_API uint32_t xuiLabelGetTextFlags(xui_widget pWidget);
@@ -6449,11 +6604,11 @@ XUI_API float xuiLabelGetParagraphGap(xui_widget pWidget);
 /* 取超链接控件类型。 */
 #if XUI_ENABLE_HYPERLINK
 XUI_API xui_widget_type xuiHyperlinkGetType(xui_context pContext);
-/* 创建超链接文本。 */
+/* 创建超链接文本；失败时 *ppWidget 置 NULL。 */
 XUI_API int xuiHyperlinkCreate(xui_context pContext, xui_widget* ppWidget, const xui_hyperlink_desc_t* pDesc);
-/* 注册点击回调。 */
+/* 注册同步点击回调；回调可销毁控件、父控件或上下文。 */
 XUI_API int xuiHyperlinkSetClick(xui_widget pWidget, xui_hyperlink_click_proc onClick, void* pUser);
-/* 设置链接文本。 */
+/* 设置并复制链接文本；NULL 清空。 */
 XUI_API int xuiHyperlinkSetText(xui_widget pWidget, const char* sText);
 /* 读取文本。 */
 XUI_API const char* xuiHyperlinkGetText(xui_widget pWidget);
@@ -6512,7 +6667,8 @@ XUI_API int xuiHyperlinkGetClickCount(xui_widget pWidget);
 /* 取面包屑控件类型。 */
 #if XUI_ENABLE_BREADCRUMB
 XUI_API xui_widget_type xuiBreadcrumbGetType(xui_context pContext);
-/* 创建面包屑导航。 */
+/* 创建面包屑导航；节点与分隔符文本会被复制，字体和分隔符 surface 为借用资源。
+ * 创建失败时 *ppWidget 保证为 NULL。 */
 XUI_API int xuiBreadcrumbCreate(xui_context pContext, xui_widget* ppWidget, const xui_breadcrumb_desc_t* pDesc);
 /* 注册节点点击回调。 */
 XUI_API int xuiBreadcrumbSetClick(xui_widget pWidget, xui_breadcrumb_click_proc onClick, void* pUser);
@@ -6528,7 +6684,7 @@ XUI_API int xuiBreadcrumbAddItem(xui_widget pWidget, const char* sText, int bCli
 XUI_API int xuiBreadcrumbSetItem(xui_widget pWidget, int iIndex, const char* sText, int bClickable, int iValue);
 /* 读取节点数量。 */
 XUI_API int xuiBreadcrumbGetItemCount(xui_widget pWidget);
-/* 按索引读取节点文本。 */
+/* 按索引读取节点文本；返回值为控件持有的只读借用字符串。 */
 XUI_API const char* xuiBreadcrumbGetItemText(xui_widget pWidget, int iIndex);
 /* 按索引读取可点标志。 */
 XUI_API int xuiBreadcrumbGetItemClickable(xui_widget pWidget, int iIndex);
@@ -6536,9 +6692,10 @@ XUI_API int xuiBreadcrumbGetItemClickable(xui_widget pWidget, int iIndex);
 XUI_API int xuiBreadcrumbGetItemValue(xui_widget pWidget, int iIndex);
 /* 设置分隔符文本。 */
 XUI_API int xuiBreadcrumbSetSeparator(xui_widget pWidget, const char* sSeparator);
-/* 读取分隔符文本。 */
+/* 读取分隔符文本；返回值为控件持有的只读借用字符串。 */
 XUI_API const char* xuiBreadcrumbGetSeparator(xui_widget pWidget);
-/* 以 surface 设置分隔符图标。 */
+/* 以借用 surface 设置分隔符图标；源矩形宽高必须同时为 0（使用整张 surface）或同时为正，
+ * fIconSize 为 0 时使用默认显示尺寸。调用方须保证其生命周期覆盖控件使用期。 */
 XUI_API int xuiBreadcrumbSetSeparatorIcon(xui_widget pWidget, xui_surface pSurface, xui_rect_t tSrc, float fIconSize);
 /* 读取分隔符图标 surface。 */
 XUI_API xui_surface xuiBreadcrumbGetSeparatorIcon(xui_widget pWidget);
@@ -6581,15 +6738,15 @@ XUI_API int xuiBreadcrumbGetClickCount(xui_widget pWidget);
 /* 取图片控件类型。 */
 #if XUI_ENABLE_IMAGE
 XUI_API xui_widget_type xuiImageGetType(xui_context pContext);
-/* 创建图片控件。 */
+/* 创建图片控件；失败时 *ppWidget 置 NULL。 */
 XUI_API int xuiImageCreate(xui_context pContext, xui_widget* ppWidget, const xui_image_desc_t* pDesc);
-/* 设置显示的 surface。 */
+/* 设置显示的借用 surface；调用方须保证其生命周期覆盖 Image 对它的使用期。 */
 XUI_API int xuiImageSetSurface(xui_widget pWidget, xui_surface pSurface);
-/* 读取 surface；未设置返回 NULL。 */
+/* 读取借用 surface；未设置返回 NULL。 */
 XUI_API xui_surface xuiImageGetSurface(xui_widget pWidget);
-/* 设置源区域（精灵图子区域）。 */
+/* 设置源区域（精灵图子区域）；宽高必须同时为 0（整图）或同时为正。 */
 XUI_API int xuiImageSetSource(xui_widget pWidget, xui_rect_t tSrc);
-/* 以两点坐标设置源区域。 */
+/* 以两点坐标设置源区域；两点重合表示整图。 */
 XUI_API int xuiImageSetSourceRect(xui_widget pWidget, float fX1, float fY1, float fX2, float fY2);
 /* 清除源区域（整图）。 */
 XUI_API int xuiImageClearSource(xui_widget pWidget);
@@ -6601,7 +6758,7 @@ XUI_API int xuiImageSetColor(xui_widget pWidget, uint32_t iColor);
 XUI_API int xuiImageSetTint(xui_widget pWidget, uint32_t iColor);
 /* 读取乘色。 */
 XUI_API uint32_t xuiImageGetColor(xui_widget pWidget);
-/* 设置适配模式（填充/包含/拉伸/平铺）。 */
+/* 设置适配模式（原始/拉伸/包含/覆盖/仅缩小/自定义）。 */
 XUI_API int xuiImageSetMode(xui_widget pWidget, int iMode);
 /* 读取适配模式。 */
 XUI_API int xuiImageGetMode(xui_widget pWidget);
@@ -6620,9 +6777,9 @@ XUI_API xui_rect_t xuiImageGetDrawRect(xui_widget pWidget);
 /* 取二维码控件类型。 */
 #if XUI_ENABLE_QRCODE
 XUI_API xui_widget_type xuiQrCodeGetType(xui_context pContext);
-/* 创建自绘二维码控件。 */
+/* 创建自绘二维码控件；失败时 *ppWidget 保证为 NULL。 */
 XUI_API int xuiQrCodeCreate(xui_context pContext, xui_widget* ppWidget, const xui_qrcode_desc_t* pDesc);
-/* 设置编码内容（UTF-8）。 */
+/* 设置编码内容（UTF-8 字节会被复制）；超出版本范围容量时保持原值不变。 */
 XUI_API int xuiQrCodeSetValue(xui_widget pWidget, const char* sValue);
 /* 读取编码内容。 */
 XUI_API const char* xuiQrCodeGetValue(xui_widget pWidget);
@@ -6636,11 +6793,12 @@ XUI_API uint32_t xuiQrCodeGetForegroundColor(xui_widget pWidget);
 XUI_API int xuiQrCodeSetBackgroundColor(xui_widget pWidget, uint32_t iColor);
 /* 读取背景色。 */
 XUI_API uint32_t xuiQrCodeGetBackgroundColor(xui_widget pWidget);
-/* 设置静区边距。 */
+/* 设置最小像素边距；实际静区不会小于 4 个完整二维码模块。 */
 XUI_API int xuiQrCodeSetPadding(xui_widget pWidget, float fPadding);
 /* 读取边距。 */
 XUI_API float xuiQrCodeGetPadding(xui_widget pWidget);
-/* 设置中心图标 surface。 */
+/* 设置中心图标 surface；surface 为借用资源，NULL 清除图标。tIconSrc 宽高均为
+ * 0 时使用整张 surface，否则宽高必须同时为正。 */
 XUI_API int xuiQrCodeSetIcon(xui_widget pWidget, xui_surface pIconSurface, xui_rect_t tIconSrc, float fIconSize);
 /* 读取图标 surface。 */
 XUI_API xui_surface xuiQrCodeGetIcon(xui_widget pWidget);
@@ -6648,7 +6806,7 @@ XUI_API xui_surface xuiQrCodeGetIcon(xui_widget pWidget);
 XUI_API xui_rect_t xuiQrCodeGetIconSource(xui_widget pWidget);
 /* 读取图标尺寸。 */
 XUI_API float xuiQrCodeGetIconSize(xui_widget pWidget);
-/* 设置版本范围（容量的自动选档）。 */
+/* 设置版本范围（容量的自动选档）；0 表示支持的最小/最大版本，失败时保持原范围。 */
 XUI_API int xuiQrCodeSetVersionRange(xui_widget pWidget, int iMinVersion, int iMaxVersion);
 /* 读取实际使用的版本。 */
 XUI_API int xuiQrCodeGetVersion(xui_widget pWidget);
@@ -6663,25 +6821,25 @@ XUI_API int xuiQrCodeGetChangeCount(xui_widget pWidget);
 /* 取面板控件类型。 */
 #if XUI_ENABLE_PANEL
 XUI_API xui_widget_type xuiPanelGetType(xui_context pContext);
-/* 创建面板（图标/标题/头部 + 内容容器）。 */
+/* 创建面板（图标/标题/头部 + 内容容器）；失败时 *ppWidget 保证为 NULL。 */
 XUI_API int xuiPanelCreate(xui_context pContext, xui_widget* ppWidget, const xui_panel_desc_t* pDesc);
-/* 取头部容器控件。 */
+/* 取头部容器控件（借用句柄，由 Panel 所有，不得销毁）。 */
 XUI_API xui_widget xuiPanelGetHeaderWidget(xui_widget pWidget);
-/* 取图标子控件。 */
+/* 取图标子控件（借用句柄，由 Panel 所有，不得销毁）。 */
 XUI_API xui_widget xuiPanelGetIconWidget(xui_widget pWidget);
-/* 取标题子控件。 */
+/* 取标题子控件（借用句柄，由 Panel 所有，不得销毁）。 */
 XUI_API xui_widget xuiPanelGetTitleWidget(xui_widget pWidget);
-/* 取内容容器（添加子控件的目标）。 */
+/* 取内容容器（添加子控件的目标；借用句柄，由 Panel 所有，不得销毁）。 */
 XUI_API xui_widget xuiPanelGetClientWidget(xui_widget pWidget);
 /* 向内容区追加子控件。 */
 XUI_API int xuiPanelAddChild(xui_widget pWidget, xui_widget pChild);
 /* 在内容区指定子控件前插入。 */
 XUI_API int xuiPanelInsertBefore(xui_widget pWidget, xui_widget pChild, xui_widget pBefore);
-/* 设置标题文本。 */
+/* 设置标题文本；文本会被复制，NULL 等价于空字符串。 */
 XUI_API int xuiPanelSetTitle(xui_widget pWidget, const char* sTitle);
 /* 读取标题。 */
 XUI_API const char* xuiPanelGetTitle(xui_widget pWidget);
-/* 设置标题字体。 */
+/* 设置标题字体；字体为借用资源，NULL 表示使用默认字体。 */
 XUI_API int xuiPanelSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiPanelGetFont(xui_widget pWidget);
@@ -6697,7 +6855,7 @@ XUI_API uint32_t xuiPanelGetDisabledTitleColor(xui_widget pWidget);
 XUI_API int xuiPanelSetTitleAlign(xui_widget pWidget, uint32_t iTextFlags);
 /* 读取标题对齐。 */
 XUI_API uint32_t xuiPanelGetTitleAlign(xui_widget pWidget);
-/* 以 surface 子区域设置图标。 */
+/* 以 surface 子区域设置图标；surface 为借用资源，NULL 清除图标。 */
 XUI_API int xuiPanelSetIcon(xui_widget pWidget, xui_surface pSurface, xui_rect_t tSrc);
 /* 读取图标 surface；未设置返回 NULL。 */
 XUI_API xui_surface xuiPanelGetIconSurface(xui_widget pWidget);
@@ -6727,7 +6885,7 @@ XUI_API int xuiPanelGetBorder(xui_widget pWidget, float* pBorderWidth, uint32_t*
 XUI_API int xuiPanelSetHeaderHeight(xui_widget pWidget, float fHeight);
 /* 读取头部高度。 */
 XUI_API float xuiPanelGetHeaderHeight(xui_widget pWidget);
-/* 设置头部与内容区间距。 */
+/* 设置头部中图标与标题的间距。 */
 XUI_API int xuiPanelSetHeaderGap(xui_widget pWidget, float fGap);
 /* 读取间距。 */
 XUI_API float xuiPanelGetHeaderGap(xui_widget pWidget);
@@ -6756,7 +6914,7 @@ XUI_API int xuiSeparatorCreate(xui_context pContext, xui_widget* ppWidget, const
 XUI_API int xuiSeparatorSetColor(xui_widget pWidget, uint32_t iColor);
 /* 读取颜色。 */
 XUI_API uint32_t xuiSeparatorGetColor(xui_widget pWidget);
-/* 设置线条粗细。 */
+/* 设置线条粗细；0 隐藏线条。 */
 XUI_API int xuiSeparatorSetThickness(xui_widget pWidget, float fThickness);
 /* 读取粗细。 */
 XUI_API float xuiSeparatorGetThickness(xui_widget pWidget);
@@ -6764,11 +6922,11 @@ XUI_API float xuiSeparatorGetThickness(xui_widget pWidget);
 XUI_API int xuiSeparatorSetOrientation(xui_widget pWidget, int iOrientation);
 /* 读取方向。 */
 XUI_API int xuiSeparatorGetOrientation(xui_widget pWidget);
-/* 设置对齐（短线的伸缩侧）。 */
+/* 设置线条在控件厚度方向的对齐。 */
 XUI_API int xuiSeparatorSetAlign(xui_widget pWidget, int iAlign);
 /* 读取对齐。 */
 XUI_API int xuiSeparatorGetAlign(xui_widget pWidget);
-/* 设置线型（实线/虚线）。 */
+/* 设置线型（实线/点线/虚线/点划线）。 */
 XUI_API int xuiSeparatorSetLineStyle(xui_widget pWidget, int iLineStyle);
 /* 读取线型。 */
 XUI_API int xuiSeparatorGetLineStyle(xui_widget pWidget);
@@ -6779,7 +6937,7 @@ XUI_API xui_rect_t xuiSeparatorGetLineRect(xui_widget pWidget);
 /* 取进度条控件类型。 */
 #if XUI_ENABLE_PROGRESS
 XUI_API xui_widget_type xuiProgressGetType(xui_context pContext);
-/* 创建进度条（条形/环形）。 */
+/* 创建进度条；失败时 *ppWidget 保证为 NULL。 */
 XUI_API int xuiProgressCreate(xui_context pContext, xui_widget* ppWidget, const xui_progress_desc_t* pDesc);
 /* 设置值范围。 */
 XUI_API int xuiProgressSetRange(xui_widget pWidget, float fMin, float fMax);
@@ -6791,9 +6949,18 @@ XUI_API int xuiProgressSetValue(xui_widget pWidget, float fValue);
 XUI_API float xuiProgressGetValue(xui_widget pWidget);
 /* 读取进度比例 [0,1]。 */
 XUI_API float xuiProgressGetRate(xui_widget pWidget);
-/* 一步设置文本字体与内容。 */
+/* 启用/关闭不确定进度（marquee）模式。 */
+XUI_API int xuiProgressSetIndeterminate(xui_widget pWidget, int bIndeterminate);
+/* 查询是否为不确定进度模式。 */
+XUI_API int xuiProgressGetIndeterminate(xui_widget pWidget);
+/* 设置 marquee 从一端移动到另一端的周期（秒，必须大于 0）。 */
+XUI_API int xuiProgressSetMarqueeInterval(xui_widget pWidget, float fSeconds);
+/* 读取 marquee 周期（秒）。 */
+XUI_API float xuiProgressGetMarqueeInterval(xui_widget pWidget);
+/* 原子设置文本字体与内容；字体为借用资源，内容会被复制。 */
 XUI_API int xuiProgressSetText(xui_widget pWidget, xui_font pFont, const char* sText);
-/* 设置文本模板（如 "{value}/{max}"）。 */
+/* 设置文本模板。支持 {value}/{min}/{max}/{percent}，并兼容以百分比值为
+ * 参数的 printf 浮点格式（如 "%1.0f%%"）；{{、}} 和 %% 分别输出字面量。 */
 XUI_API int xuiProgressSetTextTemplate(xui_widget pWidget, const char* sTextTemplate);
 /* 读取文本模板。 */
 XUI_API const char* xuiProgressGetTextTemplate(xui_widget pWidget);
@@ -6825,7 +6992,7 @@ XUI_API uint32_t xuiProgressGetFillColor(xui_widget pWidget);
 XUI_API int xuiProgressSetFillDirection(xui_widget pWidget, int iFillDirection);
 /* 读取填充方向。 */
 XUI_API int xuiProgressGetFillDirection(xui_widget pWidget);
-/* 设置轨道九宫格贴图。 */
+/* 设置轨道九宫格贴图；几何边界见 xui_progress_desc_t。 */
 XUI_API int xuiProgressSetTrackPatch(xui_widget pWidget, const xui_nine_patch_t* pPatch);
 /* 清除轨道贴图。 */
 XUI_API int xuiProgressClearTrackPatch(xui_widget pWidget);
@@ -6833,7 +7000,7 @@ XUI_API int xuiProgressClearTrackPatch(xui_widget pWidget);
 XUI_API int xuiProgressHasTrackPatch(xui_widget pWidget);
 /* 输出轨道贴图。 */
 XUI_API int xuiProgressGetTrackPatch(xui_widget pWidget, xui_nine_patch_t* pPatch);
-/* 设置填充九宫格贴图。 */
+/* 设置填充九宫格贴图；几何边界见 xui_progress_desc_t。 */
 XUI_API int xuiProgressSetFillPatch(xui_widget pWidget, const xui_nine_patch_t* pPatch);
 /* 清除填充贴图。 */
 XUI_API int xuiProgressClearFillPatch(xui_widget pWidget);
@@ -6852,25 +7019,25 @@ XUI_API xui_rect_t xuiProgressGetFillRect(xui_widget pWidget);
 /* 取步骤条控件类型。 */
 #if XUI_ENABLE_STEP_BAR
 XUI_API xui_widget_type xuiStepBarGetType(xui_context pContext);
-/* 创建步骤条（完成/当前/待办三态）。 */
+/* 创建步骤条（完成/当前/待办三态）。标题字符串会被复制；失败时 *ppWidget 为 NULL。 */
 XUI_API int xuiStepBarCreate(xui_context pContext, xui_widget* ppWidget, const xui_step_bar_desc_t* pDesc);
-/* 以标题数组设置步骤。 */
+/* 以标题数组设置步骤；标题字符串会被复制，ppTitles 可为 NULL 以生成空标题。 */
 XUI_API int xuiStepBarSetSteps(xui_widget pWidget, const char* const* ppTitles, int iStepCount);
-/* 按索引设置步骤标题。 */
+/* 按索引设置步骤标题；字符串会被复制，NULL 等价于空标题。 */
 XUI_API int xuiStepBarSetTitle(xui_widget pWidget, int iIndex, const char* sTitle);
 /* 读取步骤数。 */
 XUI_API int xuiStepBarGetStepCount(xui_widget pWidget);
-/* 按索引读取标题。 */
+/* 按索引读取借用标题；指针在下一次标题修改或控件销毁前有效。 */
 XUI_API const char* xuiStepBarGetTitle(xui_widget pWidget, int iIndex);
 /* 设置当前步骤（之前为完成、之后为待办）。 */
 XUI_API int xuiStepBarSetCurrent(xui_widget pWidget, int iCurrent);
 /* 读取当前步骤索引。 */
 XUI_API int xuiStepBarGetCurrent(xui_widget pWidget);
-/* 设置样式（点式/数字式）。 */
+/* 设置样式（箭头/水平圆点/垂直圆点）。 */
 XUI_API int xuiStepBarSetStyle(xui_widget pWidget, int iStyle);
 /* 读取样式。 */
 XUI_API int xuiStepBarGetStyle(xui_widget pWidget);
-/* 设置字体。 */
+/* 设置借用字体；调用方负责保证字体生命周期覆盖控件使用期。 */
 XUI_API int xuiStepBarSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiStepBarGetFont(xui_widget pWidget);
@@ -6886,7 +7053,7 @@ XUI_API int xuiStepBarGetTextColors(xui_widget pWidget, uint32_t* pText, uint32_
 XUI_API int xuiStepBarSetBackgroundColor(xui_widget pWidget, uint32_t iColor);
 /* 读取背景色。 */
 XUI_API uint32_t xuiStepBarGetBackgroundColor(xui_widget pWidget);
-/* 设置度量（条高/圆点半径/连线宽）。 */
+/* 设置度量（条高/圆点半径/连线宽）；单项为 0 时保留当前值。 */
 XUI_API int xuiStepBarSetMetrics(xui_widget pWidget, float fBarHeight, float fDotRadius, float fLineWidth);
 /* 输出度量。 */
 XUI_API int xuiStepBarGetMetrics(xui_widget pWidget, float* pBarHeight, float* pDotRadius, float* pLineWidth);
@@ -6903,13 +7070,13 @@ XUI_API int xuiStepBarGetChangeCount(xui_widget pWidget);
 XUI_API xui_widget_type xuiChartGetType(xui_context pContext);
 /* 创建图表（折线/柱状/饼/散点序列容器）。 */
 XUI_API int xuiChartCreate(xui_context pContext, xui_widget* ppWidget, const xui_chart_desc_t* pDesc);
-/* 设置图表标题。 */
+/* 设置图表标题；文本会被复制，NULL 表示无标题。 */
 XUI_API int xuiChartSetTitle(xui_widget pWidget, const char* sTitle);
-/* 读取标题。 */
+/* 读取内部标题；返回值为借用指针，下一次标题变更或销毁后失效。 */
 XUI_API const char* xuiChartGetTitle(xui_widget pWidget);
-/* 设置字体。 */
+/* 设置字体；字体为借用资源，调用方须保证其生命周期覆盖控件使用期。 */
 XUI_API int xuiChartSetFont(xui_widget pWidget, xui_font pFont);
-/* 读取字体。 */
+/* 读取借用字体。 */
 XUI_API xui_font xuiChartGetFont(xui_widget pWidget);
 /* 批量设置七色（背景/绘图区/网格/轴/文字/提示框两色）。 */
 XUI_API int xuiChartSetColors(xui_widget pWidget, uint32_t iBackground, uint32_t iPlot, uint32_t iGrid, uint32_t iAxis, uint32_t iText, uint32_t iTooltip, uint32_t iTooltipText);
@@ -6949,19 +7116,19 @@ XUI_API int xuiChartSetPadding(xui_widget pWidget, xui_thickness_t tPadding);
 XUI_API xui_thickness_t xuiChartGetPadding(xui_widget pWidget);
 /* 读取三层脏标记（STATIC/PLOT/OVERLAY，测试用）。 */
 XUI_API uint32_t xuiChartGetDirtyFlags(xui_widget pWidget);
-/* 设置可视数据范围（缩放/平移）。 */
+/* 设置可视数据范围（缩放/平移）；四个端点须为有限数，控件会稳定处理完整 double 有限范围。 */
 XUI_API int xuiChartSetViewRange(xui_widget pWidget, double fMinX, double fMaxX, double fMinY, double fMaxY);
 /* 输出可视数据范围。 */
 XUI_API int xuiChartGetViewRange(xui_widget pWidget, double* pMinX, double* pMaxX, double* pMinY, double* pMaxY);
 /* 重置为全量范围。 */
 XUI_API int xuiChartResetViewRange(xui_widget pWidget);
-/* 设置框选范围（刷选联动）。 */
+/* 设置框选范围（刷选联动）；四个端点须为有限数且每个轴范围非空。 */
 XUI_API int xuiChartSetBrushRange(xui_widget pWidget, double fMinX, double fMaxX, double fMinY, double fMaxY);
 /* 输出框选范围。 */
 XUI_API int xuiChartGetBrushRange(xui_widget pWidget, double* pMinX, double* pMaxX, double* pMinY, double* pMaxY);
 /* 清除框选。 */
 XUI_API int xuiChartClearBrushRange(xui_widget pWidget);
-/* 设置抽稀阈值（超阈值数据抽稀绘制）。 */
+/* 设置抽稀阈值（折线按桶保留首尾与纵向极值，散点按序列均匀采样）。 */
 XUI_API int xuiChartSetLodThreshold(xui_widget pWidget, int iThreshold);
 /* 读取抽稀阈值。 */
 XUI_API int xuiChartGetLodThreshold(xui_widget pWidget);
@@ -6981,7 +7148,7 @@ XUI_API int xuiChartClearSeries(xui_widget pWidget);
 XUI_API int xuiChartGetSeriesCount(xui_widget pWidget);
 /* 读取序列类型。 */
 XUI_API int xuiChartGetSeriesType(xui_widget pWidget, int iSeries);
-/* 替换序列数据点。 */
+/* 替换序列数据点；x/y/value 须为有限数。点数组及非 NULL 标签仅在调用期间读取，控件会完整复制。 */
 XUI_API int xuiChartSetSeriesData(xui_widget pWidget, int iSeries, const xui_chart_point_t* pPoints, int iCount);
 /* 设置序列颜色。 */
 XUI_API int xuiChartSetSeriesColor(xui_widget pWidget, int iSeries, uint32_t iColor);
@@ -7060,7 +7227,7 @@ XUI_API int xuiCodeDocumentGetByte(xui_code_document pDocument, int iOffset, cha
 XUI_API int xuiCodeDocumentCopyRange(xui_code_document pDocument, int iStart, int iEnd, char* sOutput, int iCapacity, int* pLength);
 /* 从文件加载文本（iCharset 指定字符集）。 */
 XUI_API int xuiCodeDocumentLoadTextFile(xui_code_document pDocument, const char* sPath, int iCharset);
-/* 把全文写出文件。 */
+/* 把全文写出文件；成功后以当前内容为保存基线并清除脏标记。 */
 XUI_API int xuiCodeDocumentSaveTextFile(xui_code_document pDocument, const char* sPath, int iCharset);
 /* 读取全文字节长度。 */
 XUI_API int xuiCodeDocumentGetLength(xui_code_document pDocument);
@@ -7100,17 +7267,18 @@ XUI_API uint32_t xuiCodeDocumentGetChangeVersion(xui_code_document pDocument);
 XUI_API int xuiCodeDocumentGetLastEditRange(xui_code_document pDocument, xui_code_range_t* pRange);
 /* 读取脏标记（自上次保存）。 */
 XUI_API int xuiCodeDocumentGetDirty(xui_code_document pDocument);
-/* 设置/清除脏标记（保存后调用）。 */
+/* 显式设置/清除脏标记；清除时以当前内容为新的保存基线。 */
 XUI_API int xuiCodeDocumentSetDirty(xui_code_document pDocument, int bDirty);
 /* 读取最近一次失败原因；无错误返回 NULL。 */
 XUI_API const char* xuiCodeDocumentGetLastError(xui_code_document pDocument);
-/* C 词法分析全文为 token 流（输出到调用方缓冲）。 */
+/* C 词法分析全文为 token 流；*pTokenCount 返回总数，可能大于容量。 */
 XUI_API int xuiCodeLexerCTokenize(const char* sText, int iTextSize, xui_code_token_t* pTokens, int iTokenCapacity, int* pTokenCount);
-/* C 词法分析指定字节区间。 */
+/* C 词法分析指定 UTF-8 字节区间；负长度/结束位置表示文本末尾。 */
 XUI_API int xuiCodeLexerCTokenizeRange(const char* sText, int iTextSize, int iStartOffset, int iEndOffset, xui_code_token_t* pTokens, int iTokenCapacity, int* pTokenCount);
-/* 对文档指定区间做 C 词法分析。 */
+/* 对文档指定 UTF-8 字节区间做 C 词法分析；边界会钳制到字素边界。 */
 XUI_API int xuiCodeLexerCTokenizeDocumentRange(xui_code_document pDocument, int iStartOffset, int iEndOffset, xui_code_token_t* pTokens, int iTokenCapacity, int* pTokenCount);
-/* 按正则规则表做通用词法分析（自定义语言用）；失败输出原因。 */
+/* 按正则规则表做通用词法分析（自定义语言用）；规则必须消费至少一个字节，
+ * *pTokenCount 返回总数，任意失败时清零。 */
 XUI_API int xuiCodeLexerRegexTokenize(const char* sText, int iTextSize, const xui_code_regex_rule_t* pRules, int iRuleCount, xui_code_token_t* pTokens, int iTokenCapacity, int* pTokenCount, char* sError, int iErrorCapacity);
 /* 构建 C 代码折叠区间（花括号配对）。 */
 XUI_API int xuiCodeFoldCBuildRanges(const char* sText, int iTextSize, xui_code_fold_range_t* pRanges, int iRangeCapacity, int* pRangeCount);
@@ -7118,21 +7286,26 @@ XUI_API int xuiCodeFoldCBuildRanges(const char* sText, int iTextSize, xui_code_f
 XUI_API int xuiCodeFoldCBuildDocumentRanges(xui_code_document pDocument, xui_code_fold_range_t* pRanges, int iRangeCapacity, int* pRangeCount);
 /* 由折叠区间计算可见行映射表。 */
 XUI_API int xuiCodeFoldBuildVisibleLines(int iLineCount, const xui_code_fold_range_t* pRanges, int iRangeCount, int* pVisibleLines, int iVisibleCapacity, int* pVisibleCount);
-/* 布局可见行（含换行/制表投影），输出行描述与内容尺寸。 */
+/* 布局视口相交行（含换行/制表投影），*pLineCount 返回总数，可能大于容量。 */
 XUI_API int xuiCodeLayoutBuildVisibleLines(const xui_code_layout_desc_t* pDesc, xui_code_layout_line_t* pLines, int iLineCapacity, int* pLineCount, xui_vec2_t* pContentSize, xui_rect_t* pTextRect);
 /* 布局空间命中测试（坐标转行/列/偏移）。 */
 XUI_API int xuiCodeLayoutHitTest(const xui_code_layout_desc_t* pDesc, float fX, float fY, xui_code_hit_t* pHit);
 /* 计算指定行/列的光标矩形。 */
 XUI_API int xuiCodeLayoutGetCaretRect(const xui_code_layout_desc_t* pDesc, int iLine, int iColumn, xui_rect_t* pRect);
 #endif
-/* 单次查找（纯文本/正则由 flags）；区间限定。 */
+/* 单次查找（纯文本/正则由 flags）；长度和结果区间均为 UTF-8 字节数。
+ * iTextLength < 0 使用 strlen；iRangeEnd < 0 使用全文末尾，其他范围值会钳制。
+ * 纯文本忽略大小写仅折叠 ASCII 字母；正则忽略大小写语义由正则引擎定义。
+ * XUI_FIND_SELECTION 仅供上层标记搜索域，调用方仍须通过 range 明确范围；
+ * 未定义的 flags 位会返回 XUI_ERROR_INVALID_ARGUMENT。 */
 #if XUI_ENABLE_FIND
 XUI_API int xuiFindText(const char* sText, int iTextLength, const char* sPattern, int iStartOffset, int iRangeStart, int iRangeEnd, uint32_t iFlags, xui_find_result_t* pResult, char* sError, int iErrorCapacity);
-/* 收集区间内全部匹配。 */
+/* 收集区间内全部非重叠匹配；pResultCount 返回总数，可大于 iResultCapacity。 */
 XUI_API int xuiFindCollectText(const char* sText, int iTextLength, const char* sPattern, int iRangeStart, int iRangeEnd, uint32_t iFlags, xui_find_result_t* pResults, int iResultCapacity, int* pResultCount, char* sError, int iErrorCapacity);
 /* 全部替换；*psOutput 输出新文本（FindFreeText 释放）。 */
 XUI_API int xuiFindReplaceAllText(const char* sText, int iTextLength, const char* sPattern, const char* sReplacement, int iRangeStart, int iRangeEnd, uint32_t iFlags, char** psOutput, int* pOutputLength, int* pReplaceCount, char* sError, int iErrorCapacity);
-/* 为单次匹配构建替换文本（正则分组引用）；输出需 FindFreeText 释放。 */
+/* 为单次匹配构建替换文本；正则分组引用支持 $0..$9 和 \0..\9，
+ * XUI_FIND_ESCAPE 启用常用反斜杠转义；输出需 FindFreeText 释放。 */
 XUI_API int xuiFindBuildReplacement(const char* sText, int iTextLength, const char* sPattern,
 	const char* sReplacement, uint32_t iFlags, const xui_find_result_t* pResult,
 	char** psOutput, int* pOutputLength, char* sError, int iErrorCapacity);
@@ -7202,31 +7375,31 @@ XUI_API int xuiCodeAnnotationSetMarker(xui_code_annotation_store pStore, int iLi
 XUI_API int xuiCodeAnnotationClearMarker(xui_code_annotation_store pStore, int iLine, int iMarker);
 /* 清除行上全部标记。 */
 XUI_API int xuiCodeAnnotationClearMarkers(xui_code_annotation_store pStore, int iLine);
-/* 输出行上全部标记。 */
+/* 输出行上全部标记；提示文本指针由存储拥有，后续修改或销毁存储后失效。 */
 XUI_API int xuiCodeAnnotationGetMarkers(xui_code_annotation_store pStore, int iLine, xui_code_marker_t* pMarkers, int iMarkerCapacity, int* pMarkerCount);
 /* 设置区间指示器（样式条/下划线高亮）。 */
 XUI_API int xuiCodeAnnotationSetIndicator(xui_code_annotation_store pStore, int iIndicator, int iStyle, int iStart, int iEnd, uint32_t iFlags, uintptr_t iUserData);
-/* 清除区间内指定指示器。 */
+/* 清除区间内指定指示器的重叠部分；必要时保留并拆分两侧区间。 */
 XUI_API int xuiCodeAnnotationClearIndicator(xui_code_annotation_store pStore, int iIndicator, int iStart, int iEnd);
 /* 清除指定类型的全部指示器。 */
 XUI_API int xuiCodeAnnotationClearIndicators(xui_code_annotation_store pStore, int iIndicator);
 /* 输出偏移处命中的全部指示器。 */
 XUI_API int xuiCodeAnnotationGetIndicatorsAt(xui_code_annotation_store pStore, int iOffset, xui_code_indicator_t* pIndicators, int iIndicatorCapacity, int* pIndicatorCount);
-/* 批量设置诊断集合（错误/警告/信息）。 */
+/* 批量设置诊断集合（错误/警告/信息）；输入字符串会被复制。 */
 XUI_API int xuiCodeAnnotationSetDiagnostics(xui_code_annotation_store pStore, const xui_code_diagnostic_t* pDiagnostics, int iDiagnosticCount);
 /* 清空诊断集合。 */
 XUI_API int xuiCodeAnnotationClearDiagnostics(xui_code_annotation_store pStore);
 /* 读取诊断数量。 */
 XUI_API int xuiCodeAnnotationGetDiagnosticCount(xui_code_annotation_store pStore);
-/* 按索引输出诊断。 */
+/* 按索引输出诊断；字符串指针由存储拥有，后续修改或销毁存储后失效。 */
 XUI_API int xuiCodeAnnotationGetDiagnostic(xui_code_annotation_store pStore, int iIndex, xui_code_diagnostic_t* pDiagnostic);
 /* 输出偏移处命中的诊断。 */
 XUI_API int xuiCodeAnnotationGetDiagnosticsAt(xui_code_annotation_store pStore, int iOffset, xui_code_diagnostic_t* pDiagnostics, int iDiagnosticCapacity, int* pDiagnosticCount);
-/* 输出区间内命中的诊断（附索引）。 */
+/* 输出区间内命中的诊断（附索引）；字符串指针的生命周期同存储。 */
 XUI_API int xuiCodeAnnotationGetDiagnosticsInRange(xui_code_annotation_store pStore, int iStart, int iEnd, xui_code_diagnostic_t* pDiagnostics, int* pIndices, int iDiagnosticCapacity, int* pDiagnosticCount);
 /* 读取诊断集修订号（变更自增）。 */
 XUI_API uint32_t xuiCodeAnnotationGetDiagnosticVersion(xui_code_annotation_store pStore);
-/* 编辑后平移注释区间（保持标记随文本移动）。 */
+/* 编辑后平移注释区间（半开区间；保留未编辑前后缀并保持标记随文本移动）。 */
 XUI_API int xuiCodeAnnotationTrackEdit(xui_code_annotation_store pStore, int iStartOffset, int iEndOffset, int iNewEndOffset, int iStartLine, int iEndLine, int iNewEndLine);
 /* 创建语言注册表。 */
 XUI_API int xuiCodeLanguageRegistryCreate(xui_code_language_registry* ppRegistry);
@@ -7236,15 +7409,15 @@ XUI_API void xuiCodeLanguageRegistryDestroy(xui_code_language_registry pRegistry
 XUI_API void xuiCodeLanguageRegistryClear(xui_code_language_registry pRegistry);
 /* 装入内建语言（当前仅 C）。 */
 XUI_API int xuiCodeLanguageRegistryLoadDefaults(xui_code_language_registry pRegistry);
-/* 注册一门语言（词法规则/折叠/注释符等）。 */
+/* 注册一门语言（深拷贝字符串、扩展名及正则规则；回调与 pUser 由调用方持有）。 */
 XUI_API int xuiCodeLanguageRegistryRegister(xui_code_language_registry pRegistry, const xui_code_language_t* pLanguage);
 /* 读取已注册语言数。 */
 XUI_API int xuiCodeLanguageRegistryGetCount(xui_code_language_registry pRegistry);
-/* 按索引输出语言定义。 */
+/* 按索引输出语言定义；其中的指针由注册表持有，替换、Clear 或 Destroy 后失效。 */
 XUI_API int xuiCodeLanguageRegistryGet(xui_code_language_registry pRegistry, int iIndex, xui_code_language_t* pLanguage);
-/* 按语言 id 查找。 */
+/* 按语言 id 查找；输出定义中的指针生命周期同注册表。 */
 XUI_API int xuiCodeLanguageRegistryFind(xui_code_language_registry pRegistry, const char* sId, xui_code_language_t* pLanguage);
-/* 按文件扩展名匹配语言。 */
+/* 按文件扩展名匹配语言；输出定义中的指针生命周期同注册表。 */
 XUI_API int xuiCodeLanguageRegistryFindByExtension(xui_code_language_registry pRegistry, const char* sExtension, xui_code_language_t* pLanguage);
 /* 按语言定义对文档区间做词法分析。 */
 XUI_API int xuiCodeLanguageLex(const xui_code_language_t* pLanguage, xui_code_document pDocument, int iStartLine, int iEndLine, xui_code_token_t* pTokens, int iTokenCapacity, int* pTokenCount, char* sError, int iErrorCapacity);
@@ -7258,7 +7431,7 @@ XUI_API void xuiCodeTokenBufferDestroy(xui_code_token_buffer pBuffer);
 XUI_API void xuiCodeTokenBufferClear(xui_code_token_buffer pBuffer);
 /* 以全量 token 覆盖缓存（记录文本版本）。 */
 XUI_API int xuiCodeTokenBufferSet(xui_code_token_buffer pBuffer, const xui_code_token_t* pTokens, int iTokenCount, uint32_t iTextVersion);
-/* 以区间 token 增量更新缓存（编辑后局部重词法）。 */
+/* 以指定窗口的升序 token 替换缓存；token 必须完全位于该窗口内。 */
 XUI_API int xuiCodeTokenBufferSetRange(xui_code_token_buffer pBuffer, const xui_code_token_t* pTokens, int iTokenCount, uint32_t iTextVersion, int iRangeStart, int iRangeEnd);
 /* 输出缓存对应的文本版本。 */
 XUI_API int xuiCodeTokenBufferGetVersion(xui_code_token_buffer pBuffer, uint32_t* pTextVersion);
@@ -7266,9 +7439,11 @@ XUI_API int xuiCodeTokenBufferGetVersion(xui_code_token_buffer pBuffer, uint32_t
 XUI_API int xuiCodeTokenBufferGetRange(xui_code_token_buffer pBuffer, uint32_t* pTextVersion, int* pRangeStart, int* pRangeEnd);
 /* 读取缓存 token 数。 */
 XUI_API int xuiCodeTokenBufferGetCount(xui_code_token_buffer pBuffer);
-/* 输出缓存 token（版本不匹配时返回错误）。 */
+/* 输出缓存 token（版本不匹配时返回错误）；容量可为 0 以只查询总数，
+ * pTokenCount 返回总数且可能大于输出容量。 */
 XUI_API int xuiCodeTokenBufferGetTokens(xui_code_token_buffer pBuffer, uint32_t iTextVersion, xui_code_token_t* pTokens, int iTokenCapacity, int* pTokenCount);
-/* 输出缓存中落于区间的 token。 */
+/* 输出缓存中与半开区间相交的 token；容量可为 0 以只查询总数，
+ * pTokenCount 返回命中总数且可能大于输出容量。 */
 XUI_API int xuiCodeTokenBufferGetTokensInRange(xui_code_token_buffer pBuffer, uint32_t iTextVersion, int iStart, int iEnd, xui_code_token_t* pTokens, int iTokenCapacity, int* pTokenCount);
 /* 创建折叠状态（展开/折叠记录）。 */
 XUI_API int xuiCodeFoldStateCreate(xui_code_fold_state* ppState);
@@ -7280,7 +7455,7 @@ XUI_API void xuiCodeFoldStateClear(xui_code_fold_state pState);
 XUI_API int xuiCodeFoldStateSetRanges(xui_code_fold_state pState, const xui_code_fold_range_t* pRanges, int iRangeCount);
 /* 编辑后平移折叠区间（行级）。 */
 XUI_API int xuiCodeFoldStateTrackEdit(xui_code_fold_state pState, int iStartLine, int iEndLine, int iNewEndLine);
-/* 以回调提供折叠范围并重建状态。 */
+/* 以回调提供折叠范围并重建状态；几何位置不变的区间保留折叠状态。 */
 XUI_API int xuiCodeFoldStateBuildFromProvider(xui_code_fold_state pState, xui_code_document pDocument, xui_code_fold_proc onFold, void* pUser);
 /* 读取折叠区间数。 */
 XUI_API int xuiCodeFoldStateGetCount(xui_code_fold_state pState);
@@ -7300,10 +7475,13 @@ XUI_API int xuiCodeFoldStateIsLineVisible(xui_code_fold_state pState, int iLine,
 XUI_API int xuiCodeFoldStateGetVisibleLineCount(xui_code_fold_state pState, int iLineCount, int* pVisibleCount);
 /* 实际行号转可见行号。 */
 XUI_API int xuiCodeFoldStateLineToVisibleRow(xui_code_fold_state pState, int iLine, int* pRow);
-/* 可见行号转实际行号。 */
+/* 可见行号转实际行号；越界行号钳制到最后一个可见行。 */
 XUI_API int xuiCodeFoldStateVisibleRowToLine(xui_code_fold_state pState, int iLineCount, int iRow, int* pLine);
 /* 构建可见行号映射表。 */
 XUI_API int xuiCodeFoldStateBuildVisibleLines(xui_code_fold_state pState, int iLineCount, int* pVisibleLines, int iVisibleCapacity, int* pVisibleCount);
+/* 语言服务回调在请求线程同步执行。回调写入的字符串和参数数组仍由提供者
+ * 所有，并须保持有效，直至同类请求再次执行、相应回调被替换或集合被清空。
+ * 补全回调返回的数量不得超过 iItemCapacity；每个返回描述必须设置有效 iSize。 */
 /* 创建语言服务提供者集合（补全/悬停/签名/命令）。 */
 XUI_API int xuiCodeProviderSetCreate(xui_code_provider_set* ppProviders);
 /* 释放提供者集合。 */
@@ -7320,7 +7498,8 @@ XUI_API int xuiCodeProviderSetSignature(xui_code_provider_set pProviders, xui_co
 XUI_API int xuiCodeProviderSetCommand(xui_code_provider_set pProviders, xui_code_command_proc onCommand, void* pUser);
 /* 注册命令可用性查询回调。 */
 XUI_API int xuiCodeProviderSetCommandEnabled(xui_code_provider_set pProviders, xui_code_command_enabled_proc onEnabled, void* pUser);
-/* 请求指定前缀的补全项（同步调用注册的提供者）。 */
+/* 请求指定前缀的补全项（同步调用注册的提供者）。pItems 在回调前清零，
+ * 每个槽位的 iSize 会预置为当前结构大小。 */
 XUI_API int xuiCodeProviderRequestCompletion(xui_code_provider_set pProviders, xui_widget pWidget, int iOffset, const char* sPrefix, xui_code_completion_item_t* pItems, int iItemCapacity, int* pItemCount);
 /* 请求指定偏移的悬停信息。 */
 XUI_API int xuiCodeProviderRequestHover(xui_code_provider_set pProviders, xui_widget pWidget, int iOffset, xui_code_hover_t* pHover);
@@ -7338,7 +7517,7 @@ XUI_API void xuiCodeMarginModelDestroy(xui_code_margin_model pModel);
 XUI_API void xuiCodeMarginModelClear(xui_code_margin_model pModel);
 /* 按开关组合装入默认边栏（行号/标记/折叠/诊断）。 */
 XUI_API int xuiCodeMarginModelLoadDefaults(xui_code_margin_model pModel, int bLineNumber, int bMarker, int bFold, int bDiagnostic);
-/* 添加自定义边栏。 */
+/* 添加或按 id 替换自定义边栏；描述按值复制，回调和 pUser 不转移所有权。 */
 XUI_API int xuiCodeMarginModelAdd(xui_code_margin_model pModel, const xui_code_margin_desc_t* pDesc);
 /* 按 id 移除边栏。 */
 XUI_API int xuiCodeMarginModelRemove(xui_code_margin_model pModel, int iId);
@@ -7354,7 +7533,7 @@ XUI_API int xuiCodeMarginModelGet(xui_code_margin_model pModel, int iIndex, xui_
 XUI_API int xuiCodeMarginModelGetTotalWidth(xui_code_margin_model pModel, float* pWidth);
 /* 计算指定边栏在视口内的矩形。 */
 XUI_API int xuiCodeMarginModelGetRect(xui_code_margin_model pModel, int iId, xui_rect_t tViewport, xui_rect_t* pRect);
-/* 布局全部边栏（输出各自矩形与文本区）。 */
+/* 布局全部可见边栏（输出各自矩形与文本区）；*pInfoCount 返回总数，可能大于容量。 */
 XUI_API int xuiCodeMarginModelLayout(xui_code_margin_model pModel, xui_rect_t tViewport, xui_code_margin_info_t* pInfos, int iInfoCapacity, int* pInfoCount, xui_rect_t* pTextRect);
 /* 边栏命中测试（坐标转边栏 id 与行）。 */
 XUI_API int xuiCodeMarginModelHitTest(xui_code_margin_model pModel, xui_rect_t tViewport, float fX, float fY, float fLineHeight, float fScrollY, xui_code_margin_hit_t* pHit);
@@ -7414,13 +7593,13 @@ XUI_API int xuiCodeThemeCreate(xui_code_theme* ppTheme);
 XUI_API void xuiCodeThemeDestroy(xui_code_theme pTheme);
 /* 重置为默认配色。 */
 XUI_API int xuiCodeThemeSetDefault(xui_code_theme pTheme);
-/* 按样式 id 设置颜色样式。 */
+/* 按样式 id 设置颜色样式；自定义 id 从 XUI_CODE_STYLE_CUSTOM_BASE 起编号。 */
 XUI_API int xuiCodeThemeSetStyle(xui_code_theme pTheme, int iStyleId, const xui_code_style_t* pStyle);
-/* 按样式 id 读取样式。 */
+/* 按样式 id 读取样式；未定义的自定义样式返回 XUI_ERROR_NOT_FOUND。 */
 XUI_API int xuiCodeThemeGetStyle(xui_code_theme pTheme, int iStyleId, xui_code_style_t* pStyle);
-/* 建立 token 种类到样式 id 的映射。 */
+/* 建立 token 种类到已定义样式 id 的映射；自定义 token 从 XUI_CODE_TOKEN_CUSTOM_BASE 起编号。 */
 XUI_API int xuiCodeThemeMapTokenKind(xui_code_theme pTheme, int iTokenKind, int iStyleId);
-/* 取 token 种类对应样式（经映射解析）。 */
+/* 取 token 种类对应样式（经映射解析）；未映射的自定义 token 使用默认样式。 */
 XUI_API int xuiCodeThemeGetTokenStyle(xui_code_theme pTheme, int iTokenKind, xui_code_style_t* pStyle);
 /* 复制主题内容。 */
 XUI_API int xuiCodeThemeCopy(xui_code_theme pDst, xui_code_theme pSrc);
@@ -7430,7 +7609,7 @@ XUI_API int xuiCodeCommandMapCreate(xui_code_command_map* ppMap);
 XUI_API void xuiCodeCommandMapDestroy(xui_code_command_map pMap);
 /* 装入默认编辑器键位。 */
 XUI_API int xuiCodeCommandMapLoadDefaults(xui_code_command_map pMap);
-/* 绑定键+修饰到命令。 */
+/* 绑定键+修饰到命令；键和命令必须为正数，修饰符只能使用 XUI_MOD_*。 */
 XUI_API int xuiCodeCommandMapBind(xui_code_command_map pMap, int iKey, uint32_t iModifiers, int iCommand);
 /* 解除一处绑定。 */
 XUI_API int xuiCodeCommandMapUnbind(xui_code_command_map pMap, int iKey, uint32_t iModifiers);
@@ -7440,7 +7619,7 @@ XUI_API int xuiCodeCommandMapFind(xui_code_command_map pMap, int iKey, uint32_t 
 XUI_API int xuiCodeCommandMapGetCount(xui_code_command_map pMap);
 /* 按索引输出键绑定。 */
 XUI_API int xuiCodeCommandMapGetBinding(xui_code_command_map pMap, int iIndex, xui_code_key_binding_t* pBinding);
-/* 在命令上下文中执行编辑命令。 */
+/* 在命令上下文中执行编辑命令；上下文 iSize 为 0 或至少为结构体大小。 */
 XUI_API int xuiCodeCommandExecute(const xui_code_command_context_t* pContext, int iCommand, int* pHandled);
 
 /* 取代码编辑器控件类型。 */
@@ -7475,7 +7654,7 @@ XUI_API xui_code_margin_model xuiCodeEditGetMargins(xui_widget pWidget);
 XUI_API xui_code_command_map xuiCodeEditGetCommandMap(xui_widget pWidget);
 /* 取语言注册表（编辑器持有）。 */
 XUI_API xui_code_language_registry xuiCodeEditGetLanguageRegistry(xui_widget pWidget);
-/* 按 id 切换当前语言。 */
+/* 按 id 切换当前语言；空字符串关闭语法高亮。 */
 XUI_API int xuiCodeEditSetLanguage(xui_widget pWidget, const char* sLanguage);
 /* 输出当前语言定义。 */
 XUI_API const char* xuiCodeEditGetLanguage(xui_widget pWidget);
@@ -7714,7 +7893,7 @@ XUI_API xui_widget_type xuiInputGetType(xui_context pContext);
 XUI_API int xuiInputCreate(xui_context pContext, xui_widget* ppWidget, const xui_input_desc_t* pDesc);
 /* 注册文本变更回调。 */
 XUI_API int xuiInputSetChange(xui_widget pWidget, xui_input_change_proc onChange, void* pUser);
-/* 设置文本。 */
+/* 整体替换并复制文本；NULL 视为空串。成功后清空撤销/重做状态，且不触发变更回调。 */
 XUI_API int xuiInputSetText(xui_widget pWidget, const char* sText);
 /* 读取文本。 */
 XUI_API const char* xuiInputGetText(xui_widget pWidget);
@@ -7726,7 +7905,7 @@ XUI_API const char* xuiInputGetPlaceholder(xui_widget pWidget);
 XUI_API int xuiInputSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiInputGetFont(xui_widget pWidget);
-/* 设置最大长度。 */
+/* 设置最大长度（UTF-8 字节）；0 表示不限，必要时在字素边界截断现有文本。 */
 XUI_API int xuiInputSetMaxLength(xui_widget pWidget, int iMaxLength);
 /* 读取最大长度。 */
 XUI_API int xuiInputGetMaxLength(xui_widget pWidget);
@@ -7823,11 +8002,11 @@ XUI_API int xuiInputGetChangeCount(xui_widget pWidget);
 /* 取标签输入控件类型。 */
 #if XUI_ENABLE_TAG_INPUT
 XUI_API xui_widget_type xuiTagInputGetType(xui_context pContext);
-/* 创建标签输入（标签块 + 内嵌输入框）。 */
+/* 创建标签输入（标签块 + 内嵌输入框）；描述中的字符串均会复制，字体为借用。 */
 XUI_API int xuiTagInputCreate(xui_context pContext, xui_widget* ppWidget, const xui_tag_input_desc_t* pDesc);
-/* 注册标签集变更回调。 */
+/* 注册标签集变更回调；同步调用，回调可销毁控件或上下文。 */
 XUI_API int xuiTagInputSetChange(xui_widget pWidget, xui_tag_input_change_proc onChange, void* pUser);
-/* 注册右键回调。 */
+/* 注册右键回调；同步调用，回调可销毁控件或上下文。 */
 XUI_API int xuiTagInputSetContextMenu(xui_widget pWidget, xui_tag_input_context_proc onContext, void* pUser);
 /* 追加一个标签。 */
 XUI_API int xuiTagInputAddTag(xui_widget pWidget, const char* sText);
@@ -7855,11 +8034,11 @@ XUI_API const char* xuiTagInputGetPlaceholder(xui_widget pWidget);
 XUI_API int xuiTagInputSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiTagInputGetFont(xui_widget pWidget);
-/* 设置标签数量上限（0 不限）。 */
+/* 设置标签数量上限（0 使用 XUI_TAG_INPUT_TAG_CAPACITY）。 */
 XUI_API int xuiTagInputSetMaxTags(xui_widget pWidget, int iMaxTags);
 /* 读取数量上限。 */
 XUI_API int xuiTagInputGetMaxTags(xui_widget pWidget);
-/* 设置单标签文本长度上限。 */
+/* 设置单标签/编辑中文本的 UTF-8 字节上限；0 不限，降低上限会截断已有标签。 */
 XUI_API int xuiTagInputSetMaxLength(xui_widget pWidget, int iMaxLength);
 /* 读取长度上限。 */
 XUI_API int xuiTagInputGetMaxLength(xui_widget pWidget);
@@ -7894,11 +8073,11 @@ XUI_API int xuiTagInputGetChangeCount(xui_widget pWidget);
 XUI_API xui_widget_type xuiNumericInputGetType(xui_context pContext);
 /* 创建数值输入（范围/步进/精度/微调器）。 */
 XUI_API int xuiNumericInputCreate(xui_context pContext, xui_widget* ppWidget, const xui_numeric_input_desc_t* pDesc);
-/* 注册值变更回调。 */
+/* 注册值变更回调；同步调用，回调可销毁控件或上下文。 */
 XUI_API int xuiNumericInputSetChange(xui_widget pWidget, xui_numeric_input_change_proc onChange, void* pUser);
-/* 注册非法输入错误回调。 */
+/* 注册非法输入错误回调；同步调用，回调可销毁控件或上下文。 */
 XUI_API int xuiNumericInputSetErrorChange(xui_widget pWidget, xui_numeric_input_error_proc onError, void* pUser);
-/* 注册显示格式化回调（单位/千分位）。 */
+/* 注册显示格式化回调（单位/千分位）；同步调用，回调可销毁控件或上下文。 */
 XUI_API int xuiNumericInputSetFormatter(xui_widget pWidget, xui_numeric_input_format_proc onFormat, void* pUser);
 /* 设置值范围（钳制当前值）。 */
 XUI_API int xuiNumericInputSetRange(xui_widget pWidget, float fMin, float fMax);
@@ -7980,7 +8159,7 @@ XUI_API int xuiNumericInputGetHoverButton(xui_widget pWidget);
 XUI_API int xuiNumericInputGetActiveButton(xui_widget pWidget);
 /* 查询微调按钮启用状态（边界禁用）。 */
 XUI_API int xuiNumericInputIsButtonEnabled(xui_widget pWidget, int iButton);
-/* 读取当前错误码（无错误 XUI_OK）。 */
+/* 读取当前非法输入状态（0/1）。 */
 XUI_API int xuiNumericInputGetError(xui_widget pWidget);
 /* 读取控件状态位。 */
 XUI_API uint32_t xuiNumericInputGetState(xui_widget pWidget);
@@ -7995,7 +8174,7 @@ XUI_API xui_widget_type xuiTextEditGetType(xui_context pContext);
 XUI_API int xuiTextEditCreate(xui_context pContext, xui_widget* ppWidget, const xui_text_edit_desc_t* pDesc);
 /* 注册内容变更回调。 */
 XUI_API int xuiTextEditSetChange(xui_widget pWidget, xui_text_edit_change_proc onChange, void* pUser);
-/* 整体替换文本。 */
+/* 整体替换并复制文本；NULL 视为空串。成功后清空撤销/重做历史，且不触发变更回调。 */
 XUI_API int xuiTextEditSetText(xui_widget pWidget, const char* sText);
 /* 读取全文。 */
 XUI_API const char* xuiTextEditGetText(xui_widget pWidget);
@@ -8007,7 +8186,7 @@ XUI_API const char* xuiTextEditGetPlaceholder(xui_widget pWidget);
 XUI_API int xuiTextEditSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiTextEditGetFont(xui_widget pWidget);
-/* 设置最大长度（字节）。 */
+/* 设置最大长度（UTF-8 字节）；0 表示不限，必要时在字素边界截断现有文本。 */
 XUI_API int xuiTextEditSetMaxLength(xui_widget pWidget, int iMaxLength);
 /* 读取最大长度。 */
 XUI_API int xuiTextEditGetMaxLength(xui_widget pWidget);
@@ -8025,7 +8204,7 @@ XUI_API int xuiTextEditSetLineNumbers(xui_widget pWidget, int bVisible, float fW
 XUI_API int xuiTextEditGetLineNumbers(xui_widget pWidget);
 /* 读取行号栏宽度。 */
 XUI_API float xuiTextEditGetLineNumberWidth(xui_widget pWidget);
-/* 设置行号栏三色。 */
+/* 设置行号栏三色；颜色值 0 也会作为透明色写入。 */
 XUI_API int xuiTextEditSetLineNumberColors(xui_widget pWidget, uint32_t iText, uint32_t iBackground, uint32_t iBorder);
 /* 设置选区（字节偏移）。 */
 XUI_API int xuiTextEditSetSelection(xui_widget pWidget, int iStart, int iEnd);
@@ -8069,9 +8248,9 @@ XUI_API int xuiTextEditCanUndo(xui_widget pWidget);
 XUI_API int xuiTextEditCanRedo(xui_widget pWidget);
 /* 取滚动模型。 */
 XUI_API xui_scroll_model_t* xuiTextEditGetScrollModel(xui_widget pWidget);
-/* 取水平滚动条控件；不可见返回 NULL。 */
+/* 取内部水平滚动条控件；始终返回实例，可见性用 xuiWidgetGetVisible 查询。 */
 XUI_API xui_widget xuiTextEditGetHScrollBarWidget(xui_widget pWidget);
-/* 取垂直滚动条控件；不可见返回 NULL。 */
+/* 取内部垂直滚动条控件；始终返回实例，可见性用 xuiWidgetGetVisible 查询。 */
 XUI_API xui_widget xuiTextEditGetVScrollBarWidget(xui_widget pWidget);
 /* 直接设置滚动偏移。 */
 XUI_API int xuiTextEditSetScroll(xui_widget pWidget, float fScrollX, float fScrollY);
@@ -8116,15 +8295,15 @@ XUI_API int xuiTextEditGetChangeCount(xui_widget pWidget);
 /* 取按钮控件类型。 */
 #if XUI_ENABLE_BUTTON
 XUI_API xui_widget_type xuiButtonGetType(xui_context pContext);
-/* 创建按钮；pDesc 为 NULL 时用默认描述。 */
+/* 创建按钮；pDesc 为 NULL 时用默认描述；失败时将 *ppWidget 置 NULL。 */
 XUI_API int xuiButtonCreate(xui_context pContext, xui_widget* ppWidget, const xui_button_desc_t* pDesc);
 /* 注册点击回调。 */
 XUI_API int xuiButtonSetClick(xui_widget pWidget, xui_button_click_proc onClick, void* pUser);
 /* 设置按钮文本。 */
 XUI_API int xuiButtonSetText(xui_widget pWidget, const char* sText);
-/* 读取按钮文本。 */
+/* 读取按钮文本（借用指针，修改文本或销毁按钮后失效）。 */
 XUI_API const char* xuiButtonGetText(xui_widget pWidget);
-/* 设置字体。 */
+/* 设置字体（借用资源，调用方须保证其生命周期覆盖按钮使用期）。 */
 XUI_API int xuiButtonSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiButtonGetFont(xui_widget pWidget);
@@ -8132,7 +8311,7 @@ XUI_API xui_font xuiButtonGetFont(xui_widget pWidget);
 XUI_API int xuiButtonSetTextFlags(xui_widget pWidget, uint32_t iTextFlags);
 /* 读取文本绘制标志。 */
 XUI_API uint32_t xuiButtonGetTextFlags(xui_widget pWidget);
-/* 设置文字颜色。 */
+/* 设置文字颜色；不修改由 xuiButtonSetIconColor 独立管理的图标着色。 */
 XUI_API int xuiButtonSetTextColor(xui_widget pWidget, uint32_t iColor);
 /* 读取文字颜色。 */
 XUI_API uint32_t xuiButtonGetTextColor(xui_widget pWidget);
@@ -8152,7 +8331,7 @@ XUI_API int xuiButtonIsSelected(xui_widget pWidget);
 XUI_API int xuiButtonSetSemantic(xui_widget pWidget, int iSemantic);
 /* 读取语义类型。 */
 XUI_API int xuiButtonGetSemantic(xui_widget pWidget);
-/* 以 surface 子区域设置图标。 */
+/* 以 surface 子区域设置图标（surface 为借用资源）。 */
 XUI_API int xuiButtonSetIcon(xui_widget pWidget, xui_surface pSurface, xui_rect_t tSrc);
 /* 输出图标 surface 与源矩形。 */
 XUI_API int xuiButtonGetIcon(xui_widget pWidget, xui_surface* ppSurface, xui_rect_t* pSrc);
@@ -8174,7 +8353,7 @@ XUI_API int xuiButtonSetStateVisual(xui_widget pWidget, uint32_t iState, uint32_
 XUI_API int xuiButtonGetStateVisual(xui_widget pWidget, uint32_t iState, uint32_t* pFill, float* pBorderWidth, uint32_t* pBorderColor);
 /* 设置边框宽度与颜色。 */
 XUI_API int xuiButtonSetBorder(xui_widget pWidget, float fBorderWidth, uint32_t iBorderColor);
-/* 为指定状态设置九宫格贴图。 */
+/* 为指定状态设置九宫格贴图（其中 surface 为借用资源）。 */
 XUI_API int xuiButtonSetPatch(xui_widget pWidget, uint32_t iState, const xui_nine_patch_t* pPatch);
 /* 输出指定状态九宫格。 */
 XUI_API int xuiButtonGetPatch(xui_widget pWidget, uint32_t iState, xui_nine_patch_t* pPatch);
@@ -8198,7 +8377,7 @@ XUI_API int xuiButtonGetBadgeOffset(xui_widget pWidget, float* pX, float* pY);
 XUI_API int xuiButtonSetBadgeSize(xui_widget pWidget, float fSize);
 /* 读取徽标尺寸。 */
 XUI_API float xuiButtonGetBadgeSize(xui_widget pWidget);
-/* 以 surface 设置徽标图样。 */
+/* 以 surface 设置徽标图样（surface 为借用资源）。 */
 XUI_API int xuiButtonSetBadgeSurface(xui_widget pWidget, xui_surface pSurface, xui_rect_t tSrc);
 /* 输出徽标 surface 与源矩形。 */
 XUI_API int xuiButtonGetBadgeSurface(xui_widget pWidget, xui_surface* ppSurface, xui_rect_t* pSrc);
@@ -8231,6 +8410,14 @@ XUI_API uint32_t xuiCheckBoxGetTextFlags(xui_widget pWidget);
 XUI_API int xuiCheckBoxSetChecked(xui_widget pWidget, int bChecked);
 /* 读取勾选态。 */
 XUI_API int xuiCheckBoxGetChecked(xui_widget pWidget);
+/* 设置精确状态（未选中/选中/混合）。 */
+XUI_API int xuiCheckBoxSetCheckState(xui_widget pWidget, int iCheckState);
+/* 读取精确状态。 */
+XUI_API int xuiCheckBoxGetCheckState(xui_widget pWidget);
+/* 启用用户操作的未选中->选中->混合循环；关闭时保持二态切换。 */
+XUI_API int xuiCheckBoxSetAutoThreeState(xui_widget pWidget, int bEnable);
+/* 读取自动三态循环开关。 */
+XUI_API int xuiCheckBoxGetAutoThreeState(xui_widget pWidget);
 /* 设置文字颜色。 */
 XUI_API int xuiCheckBoxSetTextColor(xui_widget pWidget, uint32_t iColor);
 /* 读取文字颜色。 */
@@ -8255,6 +8442,10 @@ XUI_API int xuiCheckBoxGetColors(xui_widget pWidget, uint32_t* pAccent, uint32_t
 XUI_API int xuiCheckBoxSetIndicatorSurface(xui_widget pWidget, xui_surface pUncheckedSurface, xui_rect_t tUncheckedSrc, xui_surface pCheckedSurface, xui_rect_t tCheckedSrc);
 /* 输出两态图样 surface 与源矩形。 */
 XUI_API int xuiCheckBoxGetIndicatorSurface(xui_widget pWidget, xui_surface* ppUncheckedSurface, xui_rect_t* pUncheckedSrc, xui_surface* ppCheckedSurface, xui_rect_t* pCheckedSrc);
+/* 设置混合态图样；未设置时绘制内建横线指示。 */
+XUI_API int xuiCheckBoxSetMixedIndicatorSurface(xui_widget pWidget, xui_surface pSurface, xui_rect_t tSrc);
+/* 输出混合态图样 surface 与源矩形。 */
+XUI_API int xuiCheckBoxGetMixedIndicatorSurface(xui_widget pWidget, xui_surface* ppSurface, xui_rect_t* pSrc);
 /* 切换内建图集勾选框图样。 */
 XUI_API int xuiCheckBoxUseBuiltinAtlas(xui_widget pWidget, int bEnable);
 /* 读取内建图集开关。 */
@@ -8280,8 +8471,8 @@ XUI_API int xuiCheckCardSetChecked(xui_widget pWidget, int bChecked);
 XUI_API int xuiCheckCardSetCheckedFromGroup(xui_widget pWidget, int bChecked, int bNotify);
 /* 读取选中态。 */
 XUI_API int xuiCheckCardGetChecked(xui_widget pWidget);
-/* Assigning a radio group reparents the card to that group. Reparenting the
- * card elsewhere clears the association. */
+/* Assigning a radio group reparents the card to that group. Passing NULL
+ * detaches a grouped card; reparenting it elsewhere also clears the association. */
 XUI_API int xuiCheckCardSetRadioGroup(xui_widget pWidget, xui_widget pGroup);
 /* 读取单选组容器。 */
 XUI_API xui_widget xuiCheckCardGetRadioGroup(xui_widget pWidget);
@@ -8367,17 +8558,17 @@ XUI_API uint32_t xuiRadioGetState(xui_widget pWidget);
 /* 取单选组控件类型。 */
 #if XUI_ENABLE_RADIO_GROUP
 XUI_API xui_widget_type xuiRadioGroupGetType(xui_context pContext);
-/* 创建单选组（组内互斥 + 布局排列）。 */
+/* 创建单选组（直接子选项互斥 + 布局排列）。 */
 XUI_API int xuiRadioGroupCreate(xui_context pContext, xui_widget* ppWidget, const xui_radio_group_desc_t* pDesc);
 /* 注册选中变更回调。 */
 XUI_API int xuiRadioGroupSetChange(xui_widget pGroup, xui_radio_group_change_proc onChange, void* pUser);
-/* 添加已有单选框到组。 */
+/* 添加已有单选框到组，并将其重设为组的直接子项。 */
 XUI_API int xuiRadioGroupAddRadio(xui_widget pGroup, xui_widget pRadio);
-/* 添加勾选卡片到组（卡片式单选）。 */
+/* 添加勾选卡片到组（卡片式单选），并将其重设为组的直接子项。 */
 XUI_API int xuiRadioGroupAddCheckCard(xui_widget pGroup, xui_widget pCard);
 /* 按描述创建并添加单选框；*ppRadio 可空输出句柄。 */
 XUI_API int xuiRadioGroupAddOption(xui_widget pGroup, xui_widget* ppRadio, const xui_radio_desc_t* pDesc);
-/* 按索引设置选中（清除其余）。 */
+/* 按索引设置选中（清除其余）；传入 -1 清除组内选择。 */
 XUI_API int xuiRadioGroupSetSelectedIndex(xui_widget pGroup, int iIndex);
 /* 读取选中索引（未选 -1）。 */
 XUI_API int xuiRadioGroupGetSelectedIndex(xui_widget pGroup);
@@ -8426,6 +8617,10 @@ XUI_API int xuiToggleGetInnerTextMetrics(xui_widget pWidget, float* pPadding, fl
 XUI_API int xuiToggleSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiToggleGetFont(xui_widget pWidget);
+/* 设置文本绘制标志；切换 XUI_TEXT_RTL 时会同步镜像轨道与滑块方向。 */
+XUI_API int xuiToggleSetTextFlags(xui_widget pWidget, uint32_t iTextFlags);
+/* 读取文本绘制标志。 */
+XUI_API uint32_t xuiToggleGetTextFlags(xui_widget pWidget);
 /* 设置开关状态。 */
 XUI_API int xuiToggleSetChecked(xui_widget pWidget, int bChecked);
 /* 读取开关状态。 */
@@ -8481,7 +8676,7 @@ XUI_API uint32_t xuiToggleGetState(xui_widget pWidget);
 XUI_API xui_widget_type xuiScrollBarGetType(xui_context pContext);
 /* 创建独立滚动条（含按钮长按重复）。 */
 XUI_API int xuiScrollBarCreate(xui_context pContext, xui_widget* ppWidget, const xui_scrollbar_desc_t* pDesc);
-/* 注册值变更回调。 */
+/* 注册值变更回调；回调可销毁控件或上下文，返回后不得继续使用原控件。 */
 XUI_API int xuiScrollBarSetChange(xui_widget pWidget, xui_scrollbar_change_proc onChange, void* pUser);
 /* 设置值域与页大小（决定滑块比例）。 */
 XUI_API int xuiScrollBarSetRange(xui_widget pWidget, float fMin, float fMax, float fPage);
@@ -8503,7 +8698,7 @@ XUI_API int xuiScrollBarGetSteps(xui_widget pWidget, float* pSmallStep, float* p
 XUI_API int xuiScrollBarSetOrientation(xui_widget pWidget, int iOrientation);
 /* 读取方向。 */
 XUI_API int xuiScrollBarGetOrientation(xui_widget pWidget);
-/* 设置显示模式（常显/悬停/自动隐藏）。 */
+/* 设置显示模式（完整滚动条/紧凑滚动条）。 */
 XUI_API int xuiScrollBarSetMode(xui_widget pWidget, int iMode);
 /* 读取显示模式。 */
 XUI_API int xuiScrollBarGetMode(xui_widget pWidget);
@@ -8511,7 +8706,7 @@ XUI_API int xuiScrollBarGetMode(xui_widget pWidget);
 XUI_API int xuiScrollBarSetButtonMode(xui_widget pWidget, int iButtonMode);
 /* 读取按钮模式。 */
 XUI_API int xuiScrollBarGetButtonMode(xui_widget pWidget);
-/* 设置度量（厚度/最小滑块/按钮尺寸）。 */
+/* 设置度量（厚度/最小滑块/按钮尺寸）；厚度 0 使用模式默认值，最小滑块 0 使用 18px。 */
 XUI_API int xuiScrollBarSetMetrics(xui_widget pWidget, float fThickness, float fMinThumbSize, float fButtonSize);
 /* 输出度量。 */
 XUI_API int xuiScrollBarGetMetrics(xui_widget pWidget, float* pThickness, float* pMinThumbSize, float* pButtonSize);
@@ -8544,9 +8739,9 @@ XUI_API int xuiScrollBarGetChangeCount(xui_widget pWidget);
 /* 取滑动条控件类型。 */
 #if XUI_ENABLE_SLIDER
 XUI_API xui_widget_type xuiSliderGetType(xui_context pContext);
-/* 创建滑动条（单滑块）。 */
+/* 创建滑动条（单滑块）；失败时 *ppWidget 为 NULL。 */
 XUI_API int xuiSliderCreate(xui_context pContext, xui_widget* ppWidget, const xui_slider_desc_t* pDesc);
-/* 注册值变更回调。 */
+/* 注册用户交互值变更回调；程序调用 SetValue 不触发回调。 */
 XUI_API int xuiSliderSetChange(xui_widget pWidget, xui_slider_change_proc onChange, void* pUser);
 /* 设置值范围。 */
 XUI_API int xuiSliderSetRange(xui_widget pWidget, float fMin, float fMax);
@@ -8597,9 +8792,9 @@ XUI_API int xuiSliderGetChangeCount(xui_widget pWidget);
 /* 取范围滑动条控件类型。 */
 #if XUI_ENABLE_RANGE_SLIDER
 XUI_API xui_widget_type xuiRangeSliderGetType(xui_context pContext);
-/* 创建范围滑动条（双滑块区间选择）。 */
+/* 创建范围滑动条（双滑块区间选择）；失败时 *ppWidget 为 NULL。 */
 XUI_API int xuiRangeSliderCreate(xui_context pContext, xui_widget* ppWidget, const xui_range_slider_desc_t* pDesc);
-/* 注册区间变更回调。 */
+/* 注册用户交互区间变更回调；程序调用 SetValues 不触发回调。 */
 XUI_API int xuiRangeSliderSetChange(xui_widget pWidget, xui_range_slider_change_proc onChange, void* pUser);
 /* 设置值范围。 */
 XUI_API int xuiRangeSliderSetRange(xui_widget pWidget, float fMin, float fMax);
@@ -8649,7 +8844,7 @@ XUI_API xui_rect_t xuiRangeSliderGetFillRect(xui_widget pWidget);
 XUI_API xui_rect_t xuiRangeSliderGetStartKnobRect(xui_widget pWidget);
 /* 读取终点滑块矩形。 */
 XUI_API xui_rect_t xuiRangeSliderGetEndKnobRect(xui_widget pWidget);
-/* 读取拖拽中滑块（无则 -1）。 */
+/* 读取当前键盘/拖拽滑块（XUI_RANGE_SLIDER_THUMB_*，无则 NONE）。 */
 XUI_API int xuiRangeSliderGetActiveThumb(xui_widget pWidget);
 /* 读取控件状态位。 */
 XUI_API uint32_t xuiRangeSliderGetState(xui_widget pWidget);
@@ -8671,7 +8866,7 @@ XUI_API xui_widget_type xuiPageGetType(xui_context pContext);
 XUI_API int xuiPageCreate(xui_context pContext, xui_widget* ppWidget, const xui_page_desc_t* pDesc);
 /* 注册翻页回调。 */
 XUI_API int xuiPageSetChange(xui_widget pWidget, xui_page_change_proc onChange, void* pUser);
-/* 设置总页数。 */
+/* 设置总页数。当前页超界时会被钳制并计为一次变更，但不调用用户回调。 */
 XUI_API int xuiPageSetPageCount(xui_widget pWidget, int iPageCount);
 /* 读取总页数。 */
 XUI_API int xuiPageGetPageCount(xui_widget pWidget);
@@ -8689,7 +8884,7 @@ XUI_API int xuiPageGetWindowSize(xui_widget pWidget);
 XUI_API int xuiPageSetText(xui_widget pWidget, const char* sFirst, const char* sLast, const char* sPrev, const char* sNext);
 /* 输出四个导航按钮文本。 */
 XUI_API int xuiPageGetText(xui_widget pWidget, const char** ppFirst, const char** ppLast, const char** ppPrev, const char** ppNext);
-/* 设置字体。 */
+/* 设置借用字体；调用方须保证字体在分页器使用期间有效。 */
 XUI_API int xuiPageSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiPageGetFont(xui_widget pWidget);
@@ -8726,11 +8921,12 @@ XUI_API xui_widget_type xuiCarouselGetType(xui_context pContext);
 XUI_API int xuiCarouselCreate(xui_context pContext, xui_widget* ppWidget, const xui_carousel_desc_t* pDesc);
 /* 注册翻页回调。 */
 XUI_API int xuiCarouselSetChange(xui_widget pWidget, xui_carousel_change_proc onChange, void* pUser);
-/* 设置页数（重建页面容器）。 */
+/* 设置页数。已有页面容器会保留并按索引复用；缩页导致当前索引越界时会
+ * 钳制到末页并递增变更计数，但不会触发用户回调。 */
 XUI_API int xuiCarouselSetPageCount(xui_widget pWidget, int iPageCount);
 /* 读取页数。 */
 XUI_API int xuiCarouselGetPageCount(xui_widget pWidget);
-/* 按索引取页面容器控件。 */
+/* 按索引取页面容器控件；返回值为控件拥有的借用句柄。 */
 XUI_API xui_widget xuiCarouselGetPageWidget(xui_widget pWidget, int iIndex);
 /* 向指定页追加子控件。 */
 XUI_API int xuiCarouselAddPageChild(xui_widget pWidget, int iIndex, xui_widget pChild);
@@ -8742,7 +8938,8 @@ XUI_API int xuiCarouselGetCurrent(xui_widget pWidget);
 XUI_API int xuiCarouselNext(xui_widget pWidget, int bNotify);
 /* 翻到上一页。 */
 XUI_API int xuiCarouselPrev(xui_widget pWidget, int bNotify);
-/* 设置自动轮播（间隔秒）。 */
+/* 设置自动轮播（间隔秒）。悬停、主动按压、禁用或不可见期间暂停，
+ * 恢复后从完整间隔重新计时。 */
 XUI_API int xuiCarouselSetAutoPlay(xui_widget pWidget, int bEnabled, float fInterval);
 /* 输出自动轮播开关与间隔。 */
 XUI_API int xuiCarouselGetAutoPlay(xui_widget pWidget, int* pEnabled, float* pInterval);
@@ -8754,9 +8951,9 @@ XUI_API int xuiCarouselGetLoop(xui_widget pWidget);
 XUI_API int xuiCarouselSetIndicatorsVisible(xui_widget pWidget, int bVisible);
 /* 读取指示器可见性。 */
 XUI_API int xuiCarouselGetIndicatorsVisible(xui_widget pWidget);
-/* 设置箭头数字字体。 */
+/* 设置兼容字体借用句柄；当前矢量箭头不依赖字体。 */
 XUI_API int xuiCarouselSetFont(xui_widget pWidget, xui_font pFont);
-/* 读取字体。 */
+/* 读取兼容字体借用句柄。 */
 XUI_API xui_font xuiCarouselGetFont(xui_widget pWidget);
 /* 设置箭头仅悬停时显示。 */
 XUI_API int xuiCarouselSetArrowsOnHover(xui_widget pWidget, int bEnabled);
@@ -8787,7 +8984,7 @@ XUI_API int xuiCarouselGetChangeCount(xui_widget pWidget);
 XUI_API xui_widget_type xuiVirtualJoystickGetType(xui_context pContext);
 /* 创建虚拟摇杆（多点触控 + 按钮通道 + 涟漪反馈）。 */
 XUI_API int xuiVirtualJoystickCreate(xui_context pContext, xui_widget* ppWidget, const xui_virtual_joystick_desc_t* pDesc);
-/* 注册摇杆/按钮变更回调。 */
+/* 注册摇杆/按钮变更回调；回调可销毁控件或其 Context。 */
 XUI_API int xuiVirtualJoystickSetChange(xui_widget pWidget, xui_virtual_joystick_change_proc onChange, void* pUser);
 /* 直接设置摇杆值（[-1,1]²）；bNotify 控制通知。 */
 XUI_API int xuiVirtualJoystickSetValue(xui_widget pWidget, float fX, float fY, int bNotify);
@@ -8817,7 +9014,7 @@ XUI_API int xuiVirtualJoystickGetMetrics(xui_widget pWidget, float* pRadius, flo
 XUI_API int xuiVirtualJoystickUseBuiltinAtlas(xui_widget pWidget, int bEnable);
 /* 读取内建图集开关。 */
 XUI_API int xuiVirtualJoystickGetUseBuiltinAtlas(xui_widget pWidget);
-/* 按部件设置 surface 图样。 */
+/* 按部件设置 surface 图样；surface 为借用资源，NULL 清除对应图样。 */
 XUI_API int xuiVirtualJoystickSetSurface(xui_widget pWidget, int iPart, xui_surface pSurface, xui_rect_t tSrc);
 /* 输出部件 surface 与源矩形。 */
 XUI_API int xuiVirtualJoystickGetSurface(xui_widget pWidget, int iPart, xui_surface* ppSurface, xui_rect_t* pSrc);
@@ -9020,8 +9217,8 @@ XUI_API int xuiTerminalSetTitleCallback(xui_widget pWidget, xui_terminal_title_p
 /* 注册超链接回调（OSC 8）。 */
 XUI_API int xuiTerminalSetLinkCallback(xui_widget pWidget, xui_terminal_link_proc onLink, void* pUser);
 #endif
-/* 注册内嵌图像回调。 */
-#if XGE_ENABLE_XUI
+/* 注册内嵌图像回调；当前终端后端尚不支持 Sixel/iTerm2，返回 XUI_ERROR_UNSUPPORTED。 */
+#if XUI_ENABLE_TERMINAL
 XUI_API int xuiTerminalSetImageCallback(xui_widget pWidget, xui_terminal_image_proc onImage, void* pUser);
 #endif
 /* 设置 256 色调色板项。 */
@@ -9088,8 +9285,8 @@ XUI_API xui_terminal_session_t* xuiTerminalCreateFakeSession(const xui_terminal_
 /* 创建子进程会话（管道接通 stdin/stdout）；Windows 专用。 */
 XUI_API xui_terminal_session_t* xuiTerminalCreateProcessSession(const xui_terminal_process_desc_t* pDesc);
 #endif
-/* 按 SSH 描述拼装命令行到缓冲。 */
-#if XGE_ENABLE_XUI
+/* 按 SSH 描述拼装命令行。返回所需字节数（不含 NUL）；缓冲不足时仍返回所需长度，并保证非空缓冲以 NUL 结尾。 */
+#if XUI_ENABLE_TERMINAL
 XUI_API int xuiTerminalBuildSshCommand(const xui_terminal_ssh_desc_t* pDesc, char* sBuffer, int iCapacity);
 /* 创建 SSH 远程会话（经 ssh 命令管道）。 */
 XUI_API xui_terminal_session_t* xuiTerminalCreateSshSession(const xui_terminal_ssh_desc_t* pDesc);
@@ -9120,7 +9317,7 @@ XUI_API int xuiTerminalGetStats(xui_widget pWidget, xui_terminal_stats_t* pStats
 XUI_API xui_widget_type xuiSplitLayoutGetType(xui_context pContext);
 /* 创建分割布局（多窗格 + 可拖分割条）。 */
 XUI_API int xuiSplitLayoutCreate(xui_context pContext, xui_widget* ppWidget, const xui_split_layout_desc_t* pDesc);
-/* 注册分割变更回调。 */
+/* 注册分割变更回调；回调可销毁 SplitLayout 或其 Context。 */
 XUI_API int xuiSplitLayoutSetChange(xui_widget pWidget, xui_split_layout_change_proc onChange, void* pUser);
 /* 设置分割方向。 */
 XUI_API int xuiSplitLayoutSetOrientation(xui_widget pWidget, int iOrientation);
@@ -9130,7 +9327,7 @@ XUI_API int xuiSplitLayoutGetOrientation(xui_widget pWidget);
 XUI_API int xuiSplitLayoutSetPaneCount(xui_widget pWidget, int iPaneCount);
 /* 读取窗格数。 */
 XUI_API int xuiSplitLayoutGetPaneCount(xui_widget pWidget);
-/* 按索引取窗格容器。 */
+/* 按索引取窗格容器（借用句柄，由 SplitLayout 所有，不得销毁）。 */
 XUI_API xui_widget xuiSplitLayoutGetPaneWidget(xui_widget pWidget, int iIndex);
 /* 向窗格追加子控件。 */
 XUI_API int xuiSplitLayoutAddPaneChild(xui_widget pWidget, int iPane, xui_widget pChild);
@@ -9138,7 +9335,7 @@ XUI_API int xuiSplitLayoutAddPaneChild(xui_widget pWidget, int iPane, xui_widget
 XUI_API int xuiSplitLayoutSetPaneWeight(xui_widget pWidget, int iIndex, float fWeight);
 /* 读取窗格权重。 */
 XUI_API float xuiSplitLayoutGetPaneWeight(xui_widget pWidget, int iIndex);
-/* 设置窗格尺寸模式（加权/固定/自适应）。 */
+/* 设置窗格尺寸模式（加权或固定）。 */
 XUI_API int xuiSplitLayoutSetPaneMode(xui_widget pWidget, int iIndex, int iMode);
 /* 读取窗格模式。 */
 XUI_API int xuiSplitLayoutGetPaneMode(xui_widget pWidget, int iIndex);
@@ -9150,7 +9347,7 @@ XUI_API float xuiSplitLayoutGetPaneFixedSize(xui_widget pWidget, int iIndex);
 XUI_API int xuiSplitLayoutSetPaneMinSize(xui_widget pWidget, int iIndex, float fSize);
 /* 读取最小尺寸。 */
 XUI_API float xuiSplitLayoutGetPaneMinSize(xui_widget pWidget, int iIndex);
-/* 设置窗格最大尺寸。 */
+/* 设置窗格最大尺寸；0 表示不限制，非零值不得小于最小尺寸。 */
 XUI_API int xuiSplitLayoutSetPaneMaxSize(xui_widget pWidget, int iIndex, float fSize);
 /* 读取最大尺寸。 */
 XUI_API float xuiSplitLayoutGetPaneMaxSize(xui_widget pWidget, int iIndex);
@@ -9191,33 +9388,38 @@ XUI_API int xuiSplitLayoutGetChangeCount(xui_widget pWidget);
 /* 取选项卡控件类型。 */
 #if XUI_ENABLE_TABS
 XUI_API xui_widget_type xuiTabsGetType(xui_context pContext);
-/* 创建选项卡（页签条 + 页面容器）。 */
+/* 创建选项卡（页签条 + 页面容器）。页签自身聚焦时方向键/Home/End 切换，
+ * Ctrl+Tab/Ctrl+Shift+Tab 也可从当前页面的子控件切换。 */
 XUI_API int xuiTabsCreate(xui_context pContext, xui_widget* ppWidget, const xui_tabs_desc_t* pDesc);
 /* 注册页签切换回调。 */
 XUI_API int xuiTabsSetSelect(xui_widget pWidget, xui_tabs_select_proc onSelect, void* pUser);
-/* 注册页签关闭回调；bCloseButtons 控制显示关闭钮。 */
+/* 注册页签关闭回调；bCloseButtons 控制显示关闭钮。控件不自动删除页面，回调可调用 xuiTabsRemovePage。 */
 XUI_API int xuiTabsSetClose(xui_widget pWidget, xui_tabs_close_proc onClose, int bCloseButtons, void* pUser);
 /* 注册页签右键回调。 */
 XUI_API int xuiTabsSetContextMenu(xui_widget pWidget, xui_tabs_context_proc onContext, void* pUser);
-/* 添加页面（标题）；*ppPage 可空输出页面容器。 */
+/* 添加页面（标题会复制）；*ppPage 可空输出借用的页面容器。 */
 XUI_API int xuiTabsAddPage(xui_widget pWidget, const char* sTitle, xui_widget* ppPage);
-/* 以字符串数组批量设置页签。 */
+/* 修改指定页签标题；标题按 UTF-8 字素边界复制。 */
+XUI_API int xuiTabsSetItemText(xui_widget pWidget, int iIndex, const char* sTitle);
+/* 删除指定页签，并销毁 Tabs 拥有的按钮、页面容器及其子树；相关借用句柄随即失效。 */
+XUI_API int xuiTabsRemovePage(xui_widget pWidget, int iIndex);
+/* 以字符串数组批量设置页签；标题会复制，既有页面容器及其启用、脏标记和图标状态按索引复用。 */
 XUI_API int xuiTabsSetItems(xui_widget pWidget, const char** arrItems, int iItemCount);
 /* 读取页签数。 */
 XUI_API int xuiTabsGetItemCount(xui_widget pWidget);
 /* 按索引读取页签文本。 */
 XUI_API const char* xuiTabsGetItemText(xui_widget pWidget, int iIndex);
-/* 取页签条控件。 */
+/* 取借用的页签条控件。 */
 XUI_API xui_widget xuiTabsGetTabBarWidget(xui_widget pWidget);
-/* 取页面容器控件。 */
+/* 取借用的页面容器控件。 */
 XUI_API xui_widget xuiTabsGetClientWidget(xui_widget pWidget);
-/* 按索引取页面容器。 */
+/* 按索引取借用的页面容器。 */
 XUI_API xui_widget xuiTabsGetPageWidget(xui_widget pWidget, int iIndex);
-/* 按索引取页签按钮控件。 */
+/* 按索引取借用的页签按钮控件。 */
 XUI_API xui_widget xuiTabsGetButtonWidget(xui_widget pWidget, int iIndex);
 /* 向指定页追加子控件。 */
 XUI_API int xuiTabsAddPageChild(xui_widget pWidget, int iIndex, xui_widget pChild);
-/* 按位数组设置页签启用状态。 */
+/* 按位数组设置页签启用状态；若当前页被禁用会选择下一可用页，不触发回调。 */
 XUI_API int xuiTabsSetEnabledItems(xui_widget pWidget, const int* arrEnabled, int iItemCount);
 /* 按位数组设置页签脏标记（未保存提示点）。 */
 XUI_API int xuiTabsSetDirtyItems(xui_widget pWidget, const int* arrDirty, int iItemCount);
@@ -9227,11 +9429,11 @@ XUI_API int xuiTabsSetIcons(xui_widget pWidget, xui_surface* arrIcons, const xui
 XUI_API int xuiTabsSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiTabsGetFont(xui_widget pWidget);
-/* 设置选中页签。 */
+/* 设置选中页签；程序化设置不触发选择回调。 */
 XUI_API int xuiTabsSetSelected(xui_widget pWidget, int iIndex);
 /* 读取选中索引。 */
 XUI_API int xuiTabsGetSelected(xui_widget pWidget);
-/* 设置页签尺寸（宽度可自动）。 */
+/* 设置页签尺寸。 */
 XUI_API int xuiTabsSetTabSize(xui_widget pWidget, float fWidth, float fHeight);
 /* 输出页签尺寸。 */
 XUI_API int xuiTabsGetTabSize(xui_widget pWidget, float* pWidth, float* pHeight);
@@ -9304,8 +9506,10 @@ XUI_API int xuiAccordionCreate(xui_context pContext, xui_widget* ppWidget, const
 XUI_API int xuiAccordionSetSelect(xui_widget pWidget, xui_accordion_select_proc onSelect, void* pUser);
 /* 移除全部分区（子控件一并销毁）。 */
 XUI_API int xuiAccordionClear(xui_widget pWidget);
-/* 添加分区（标题/id/初始展开）；*ppClient 可空，输出内容容器。 */
+/* 添加分区（标题/id/初始展开）；标题会复制，*ppClient 可空并输出内容容器。 */
 XUI_API int xuiAccordionAddSection(xui_widget pWidget, const char* sTitle, int iId, int bExpanded, xui_widget* ppClient);
+/* 删除指定分区并销毁其内容子树；其余分区及内容容器保持原身份。 */
+XUI_API int xuiAccordionRemoveSection(xui_widget pWidget, int iIndex);
 /* 读取分区数量。 */
 XUI_API int xuiAccordionGetSectionCount(xui_widget pWidget);
 /* 按索引取分区整体控件。 */
@@ -9318,9 +9522,9 @@ XUI_API xui_widget xuiAccordionGetButtonWidget(xui_widget pWidget, int iIndex);
 XUI_API xui_widget xuiAccordionGetClientWidget(xui_widget pWidget, int iIndex);
 /* 向指定分区内容区追加子控件。 */
 XUI_API int xuiAccordionAddSectionChild(xui_widget pWidget, int iIndex, xui_widget pChild);
-/* 设置分区标题。 */
+/* 设置分区标题；标题按 UTF-8 字素边界复制。 */
 XUI_API int xuiAccordionSetSectionTitle(xui_widget pWidget, int iIndex, const char* sTitle);
-/* 读取分区标题。 */
+/* 读取分区标题；返回只读借用指针，后续修改或销毁控件会使其失效。 */
 XUI_API const char* xuiAccordionGetSectionTitle(xui_widget pWidget, int iIndex);
 /* 设置分区业务 id。 */
 XUI_API int xuiAccordionSetSectionId(xui_widget pWidget, int iIndex, int iId);
@@ -9368,7 +9572,7 @@ XUI_API int xuiAccordionGetHoverIndex(xui_widget pWidget);
 XUI_API int xuiAccordionGetActiveIndex(xui_widget pWidget);
 /* 读取控件状态位。 */
 XUI_API uint32_t xuiAccordionGetState(xui_widget pWidget);
-/* 读取变更计数（展开/收起自增，测试用）。 */
+/* 读取变更计数（模型或展开状态变化时自增，测试用）。 */
 XUI_API int xuiAccordionGetChangeCount(xui_widget pWidget);
 #endif
 
@@ -9377,7 +9581,7 @@ XUI_API int xuiAccordionGetChangeCount(xui_widget pWidget);
 XUI_API xui_widget_type xuiWindowGetType(xui_context pContext);
 /* 创建 MDI 虚拟窗口（标题栏/拖动/缩放/折叠/最大化）。 */
 XUI_API int xuiWindowCreate(xui_context pContext, xui_widget* ppWidget, const xui_window_desc_t* pDesc);
-/* 注册关闭请求回调（返回非 0 可阻止）。 */
+/* 注册关闭完成通知；回调在窗口隐藏后运行，可销毁窗口或其上下文。 */
 XUI_API int xuiWindowSetClose(xui_widget pWidget, xui_window_close_proc onClose, void* pUser);
 /* 注册标题栏右键回调。 */
 XUI_API int xuiWindowSetContextMenu(xui_widget pWidget, xui_window_context_proc onContext, void* pUser);
@@ -9512,15 +9716,18 @@ XUI_API xui_widget_type xuiDockPanelGetType(xui_context pContext);
 XUI_API int xuiDockPanelCreate(xui_context pContext, xui_widget* ppWidget, const xui_dock_panel_desc_t* pDesc);
 /* 清空全部停靠窗口与布局。 */
 XUI_API int xuiDockPanelClear(xui_widget pWidget);
-/* 添加停靠窗口；返回窗口句柄。 */
+/* 添加停靠窗口；返回窗口句柄。标题会被复制，内容控件会重设父级到内部宿主，
+ * 且同一内容控件不能同时附着到多个停靠窗口。附着期间不得由调用方销毁。
+ * 替换内容或 Clear 会分离旧内容而不销毁；销毁 DockPanel 会随控件树销毁仍
+ * 附着的内容。DockPanel 内部宿主和按钮不能作为内容控件。失败时输出 -1。 */
 XUI_API int xuiDockPanelAddWindow(xui_widget pWidget, const char* sTitle, xui_widget pClient, int* pWindow);
-/* 设置停靠窗口的内容控件。 */
+/* 设置停靠窗口的内容控件；所有权规则同 AddWindow。 */
 XUI_API int xuiDockPanelSetWindowClient(xui_widget pWidget, int iWindow, xui_widget pClient);
-/* 读取停靠窗口内容控件。 */
+/* 读取停靠窗口内容控件；返回借用指针。 */
 XUI_API xui_widget xuiDockPanelGetWindowClient(xui_widget pWidget, int iWindow);
 /* 设置停靠窗口标题。 */
 XUI_API int xuiDockPanelSetWindowTitle(xui_widget pWidget, int iWindow, const char* sTitle);
-/* 读取停靠窗口标题。 */
+/* 读取停靠窗口标题；返回内部借用字符串，标题修改、Clear 或销毁后失效。 */
 XUI_API const char* xuiDockPanelGetWindowTitle(xui_widget pWidget, int iWindow);
 /* 设置停靠窗口标志位。 */
 XUI_API int xuiDockPanelSetWindowFlags(xui_widget pWidget, int iWindow, int bClosable, int bDockable);
@@ -9540,21 +9747,21 @@ XUI_API uint32_t xuiDockPanelGetWindowResizeEdges(xui_widget pWidget, int iWindo
 XUI_API int xuiDockPanelSetWindowMinSize(xui_widget pWidget, int iWindow, float fMinWidth, float fMinHeight);
 /* 输出最小尺寸。 */
 XUI_API int xuiDockPanelGetWindowMinSize(xui_widget pWidget, int iWindow, float* pMinWidth, float* pMinHeight);
-/* 以 surface 设置窗口图标。 */
+/* 以 surface 设置窗口图标；surface 为借用资源，NULL 清除图标。 */
 XUI_API int xuiDockPanelSetWindowIcon(xui_widget pWidget, int iWindow, xui_surface pSurface, xui_rect_t tSrc);
 /* 读取窗口图标 surface。 */
 XUI_API xui_surface xuiDockPanelGetWindowIconSurface(xui_widget pWidget, int iWindow);
 /* 读取窗口图标源矩形。 */
 XUI_API xui_rect_t xuiDockPanelGetWindowIconSource(xui_widget pWidget, int iWindow);
-/* 取窗口关闭钮控件。 */
+/* 取窗口关闭钮控件；返回内部借用控件，不得销毁或重设父级。 */
 XUI_API xui_widget xuiDockPanelGetWindowCloseButtonWidget(xui_widget pWidget, int iWindow);
-/* 取窗口图钉钮控件。 */
+/* 取窗口图钉钮控件；返回内部借用控件，不得销毁或重设父级。 */
 XUI_API xui_widget xuiDockPanelGetWindowPinButtonWidget(xui_widget pWidget, int iWindow);
 /* 设置窗口用户指针。 */
 XUI_API int xuiDockPanelSetWindowUserData(xui_widget pWidget, int iWindow, void* pUser);
 /* 读取窗口用户指针。 */
 XUI_API void* xuiDockPanelGetWindowUserData(xui_widget pWidget, int iWindow);
-/* 设置字体。 */
+/* 设置借用字体；DockPanel 使用期间调用方须保持字体有效。 */
 XUI_API int xuiDockPanelSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiDockPanelGetFont(xui_widget pWidget);
@@ -9622,9 +9829,9 @@ XUI_API int xuiDockPanelHitTest(xui_widget pWidget, float fX, float fY, xui_dock
 XUI_API int xuiDockPanelFindDropTarget(xui_widget pWidget, int iWindow, float fX, float fY, xui_dock_drop_info_t* pInfo);
 /* 读取拖拽预览矩形。 */
 XUI_API int xuiDockPanelGetDragPreview(xui_widget pWidget, xui_dock_drop_info_t* pInfo);
-/* 取窗格选项菜单控件。 */
+/* 取窗格选项菜单控件；返回内部借用控件，不得销毁或重设父级。 */
 XUI_API xui_widget xuiDockPanelGetOptionMenu(xui_widget pWidget);
-/* 取溢出标签菜单控件。 */
+/* 取溢出标签菜单控件；返回内部借用控件，不得销毁或重设父级。 */
 XUI_API xui_widget xuiDockPanelGetOverflowMenu(xui_widget pWidget);
 /* 按命令 id 设置菜单标题。 */
 XUI_API int xuiDockPanelSetMenuTitle(xui_widget pWidget, int iCommand, const char* sTitle);
@@ -9658,7 +9865,7 @@ XUI_API int xuiDockPanelGetLayoutChangeCount(xui_widget pWidget);
 XUI_API int xuiDockPanelGetWindowChangeCount(xui_widget pWidget);
 #endif
 
-/* 创建消息框（模态对话框，内建四态图标）。 */
+/* 创建消息框（模态对话框，内建四态图标）；失败时总会清空 *ppBox。 */
 #if XUI_ENABLE_MSGBOX
 XUI_API int xuiMsgBoxCreate(xui_context pContext, xui_msgbox* ppBox, const xui_msgbox_desc_t* pDesc);
 /* 释放消息框。 */
@@ -9667,17 +9874,17 @@ XUI_API void xuiMsgBoxDestroy(xui_msgbox pBox);
 XUI_API int xuiMsgBoxSetText(xui_msgbox pBox, const char* sTitle, const char* sMessage);
 /* 设置标题。 */
 XUI_API int xuiMsgBoxSetTitle(xui_msgbox pBox, const char* sTitle);
-/* 读取标题。 */
+/* 读取标题；返回值由消息框持有，下一次改标题或销毁后失效。 */
 XUI_API const char* xuiMsgBoxGetTitle(xui_msgbox pBox);
 /* 设置消息文本（支持换行）。 */
 XUI_API int xuiMsgBoxSetMessage(xui_msgbox pBox, const char* sMessage);
-/* 读取消息文本。 */
+/* 读取消息文本；返回值由消息框持有，下一次改文本或销毁后失效。 */
 XUI_API const char* xuiMsgBoxGetMessage(xui_msgbox pBox);
 /* 设置类型（信息/询问/警告/错误）。 */
 XUI_API int xuiMsgBoxSetType(xui_msgbox pBox, int iType);
 /* 读取类型。 */
 XUI_API int xuiMsgBoxGetType(xui_msgbox pBox);
-/* 以 surface 自定义图标。 */
+/* 以 surface 自定义图标；非 NULL surface 要求非空源矩形。 */
 XUI_API int xuiMsgBoxSetIconSurface(xui_msgbox pBox, xui_surface pSurface, xui_rect_t tSrc);
 /* 使用内建类型图标（恢复默认）。 */
 XUI_API int xuiMsgBoxUseBuiltinIcon(xui_msgbox pBox);
@@ -9687,9 +9894,9 @@ XUI_API int xuiMsgBoxSetButtons(xui_msgbox pBox, int iButtons);
 XUI_API int xuiMsgBoxSetCustomButtons(xui_msgbox pBox, const xui_msgbox_button_t* pButtons, int iCount);
 /* 覆盖预设按钮文本（本地化用）。 */
 XUI_API int xuiMsgBoxSetPresetButtonTitle(xui_msgbox pBox, int iTitle, const char* sText);
-/* 读取预设按钮文本。 */
+/* 读取预设按钮文本；返回值由消息框持有，修改该标题或销毁后失效。 */
 XUI_API const char* xuiMsgBoxGetPresetButtonTitle(xui_msgbox pBox, int iTitle);
-/* 直接设置结果（编程关闭）。 */
+/* 设置结果回调；回调可销毁当前消息框，框架不会在回调返回后继续访问它。 */
 XUI_API int xuiMsgBoxSetResult(xui_msgbox pBox, xui_msgbox_result_proc onResult, void* pUser);
 /* 设置模态（带背景护罩）。 */
 XUI_API int xuiMsgBoxSetModal(xui_msgbox pBox, int bModal);
@@ -9709,13 +9916,13 @@ XUI_API int xuiMsgBoxGetMetrics(xui_msgbox pBox, xui_msgbox_metrics_t* pMetrics)
 XUI_API int xuiMsgBoxSetColors(xui_msgbox pBox, const xui_msgbox_colors_t* pColors);
 /* 输出颜色组。 */
 XUI_API int xuiMsgBoxGetColors(xui_msgbox pBox, xui_msgbox_colors_t* pColors);
-/* 取对话框窗口控件。 */
+/* 取对话框窗口控件（借用句柄，消息框销毁后失效）。 */
 XUI_API xui_widget xuiMsgBoxGetWindowWidget(xui_msgbox pBox);
-/* 取内容容器控件。 */
+/* 取内容容器控件（借用句柄，消息框销毁后失效）。 */
 XUI_API xui_widget xuiMsgBoxGetContentWidget(xui_msgbox pBox);
-/* 取护罩控件。 */
+/* 取护罩控件（借用句柄，消息框销毁后失效）。 */
 XUI_API xui_widget xuiMsgBoxGetBackdropWidget(xui_msgbox pBox);
-/* 按索引取按钮控件。 */
+/* 按索引取按钮控件（借用句柄，消息框销毁后失效）。 */
 XUI_API xui_widget xuiMsgBoxGetButtonWidget(xui_msgbox pBox, int iIndex);
 /* 读取按钮数。 */
 XUI_API int xuiMsgBoxGetButtonCount(xui_msgbox pBox);
@@ -9742,15 +9949,19 @@ XUI_API int xuiFileDialogCreate(xui_context pContext, xui_file_dialog* ppDialog,
 XUI_API void xuiFileDialogDestroy(xui_file_dialog pDialog);
 /* 一步打开文件选择对话框（模态；结果经 GetResultPath 读取）。 */
 XUI_API int xuiOpenFileDialog(xui_context pContext, xui_file_dialog* ppDialog, const xui_file_dialog_desc_t* pDesc);
-/* 一步打开保存文件对话框（覆盖确认）。 */
+/* 一步打开保存文件对话框（模态；覆盖确认）。 */
 XUI_API int xuiSaveFileDialog(xui_context pContext, xui_file_dialog* ppDialog, const xui_file_dialog_desc_t* pDesc);
-/* 一步打开目录选择对话框。 */
+/* 一步打开目录选择对话框（模态）。 */
 XUI_API int xuiSelectFolderDialog(xui_context pContext, xui_file_dialog* ppDialog, const xui_file_dialog_desc_t* pDesc);
-/* 设置打开/关闭。 */
+/* 设置打开/关闭；从关闭切换为打开时重置上一次结果和结果路径。 */
 XUI_API int xuiFileDialogSetOpen(xui_file_dialog pDialog, int bOpen);
 /* 是否打开。 */
 XUI_API int xuiFileDialogIsOpen(xui_file_dialog pDialog);
-/* 直接设置结果（编程关闭）。 */
+/* 设置是否阻止对话框外部的输入；Create 默认读取描述字段，便捷打开 API 始终使用模态。 */
+XUI_API int xuiFileDialogSetModal(xui_file_dialog pDialog, int bModal);
+/* 是否为模态。 */
+XUI_API int xuiFileDialogIsModal(xui_file_dialog pDialog);
+/* 注册结果回调。 */
 XUI_API int xuiFileDialogSetResult(xui_file_dialog pDialog, xui_file_dialog_result_proc onResult, void* pUser);
 /* 注册列表右键回调。 */
 XUI_API int xuiFileDialogSetContextMenu(xui_file_dialog pDialog, xui_file_dialog_context_proc onContext, void* pUser);
@@ -9758,7 +9969,7 @@ XUI_API int xuiFileDialogSetContextMenu(xui_file_dialog pDialog, xui_file_dialog
 XUI_API int xuiFileDialogSetFilter(xui_file_dialog pDialog, const char* sFilter);
 /* 读取当前过滤器串。 */
 XUI_API const char* xuiFileDialogGetFilter(xui_file_dialog pDialog);
-/* 切换当前目录。 */
+/* 切换当前目录；路径不存在或无法枚举时保留原目录和列表。 */
 XUI_API int xuiFileDialogSetDirectory(xui_file_dialog pDialog, const char* sDir);
 /* 读取当前目录。 */
 XUI_API const char* xuiFileDialogGetDirectory(xui_file_dialog pDialog);
@@ -9816,12 +10027,12 @@ XUI_API const char* xuiFileDialogGetEntryPath(xui_file_dialog pDialog, int iInde
 XUI_API int xuiFileDialogEntryIsDir(xui_file_dialog pDialog, int iIndex);
 #endif
 
-/* 创建轻提示（非控件句柄式，宿主坐标显示）。 */
+/* 创建轻提示（非控件句柄式，宿主坐标显示）；失败时总会清空 *ppTip。 */
 #if XUI_ENABLE_MSGTIP
 XUI_API int xuiMsgTipCreate(xui_context pContext, xui_msgtip* ppTip, const xui_msgtip_desc_t* pDesc);
 /* 释放轻提示。 */
 XUI_API void xuiMsgTipDestroy(xui_msgtip pTip);
-/* 显示提示（类型/文本/持续秒数；持续 0 不自动关闭）。 */
+/* 显示提示（类型/文本/非负持续秒数；持续 0 不自动关闭）。 */
 XUI_API int xuiMsgTipShow(xui_msgtip pTip, int iType, const char* sText, float fDuration);
 /* 关闭提示。 */
 XUI_API int xuiMsgTipClose(xui_msgtip pTip);
@@ -9829,17 +10040,17 @@ XUI_API int xuiMsgTipClose(xui_msgtip pTip);
 XUI_API int xuiMsgTipIsOpen(xui_msgtip pTip);
 /* 设置提示文本。 */
 XUI_API int xuiMsgTipSetText(xui_msgtip pTip, const char* sText);
-/* 读取文本。 */
+/* 读取文本；返回值由轻提示持有，修改文本或销毁后失效。 */
 XUI_API const char* xuiMsgTipGetText(xui_msgtip pTip);
-/* 设置提示类型（信息/成功/警告/错误）。 */
+/* 设置提示类型（无图标/信息/询问/警告/错误）。 */
 XUI_API int xuiMsgTipSetType(xui_msgtip pTip, int iType);
 /* 读取类型。 */
 XUI_API int xuiMsgTipGetType(xui_msgtip pTip);
-/* 设置自动关闭秒数。 */
+/* 设置非负自动关闭秒数；0 表示不自动关闭。 */
 XUI_API int xuiMsgTipSetDuration(xui_msgtip pTip, float fDuration);
 /* 读取持续时长。 */
 XUI_API float xuiMsgTipGetDuration(xui_msgtip pTip);
-/* 以 surface 设置图标。 */
+/* 以 surface 设置图标；非 NULL surface 要求非空源矩形。 */
 XUI_API int xuiMsgTipSetIconSurface(xui_msgtip pTip, xui_surface pSurface, xui_rect_t tSrc);
 /* 使用内建四态图标。 */
 XUI_API int xuiMsgTipUseBuiltinIcon(xui_msgtip pTip);
@@ -9851,9 +10062,9 @@ XUI_API int xuiMsgTipGetMetrics(xui_msgtip pTip, xui_msgtip_metrics_t* pMetrics)
 XUI_API int xuiMsgTipSetColors(xui_msgtip pTip, const xui_msgtip_colors_t* pColors);
 /* 输出颜色组。 */
 XUI_API int xuiMsgTipGetColors(xui_msgtip pTip, xui_msgtip_colors_t* pColors);
-/* 注册关闭回调（含超时到期）。 */
+/* 注册关闭回调（含超时到期）；回调可销毁当前轻提示。 */
 XUI_API int xuiMsgTipSetClose(xui_msgtip pTip, xui_msgtip_close_proc onClose, void* pUser);
-/* 取提示关联的显示控件。 */
+/* 取提示关联的显示控件（借用句柄，轻提示销毁后失效）。 */
 XUI_API xui_widget xuiMsgTipGetWidget(xui_msgtip pTip);
 /* 读取提示整体矩形。 */
 XUI_API xui_rect_t xuiMsgTipGetTipRect(xui_msgtip pTip);
@@ -9873,12 +10084,14 @@ XUI_API int xuiMsgTipGetExpireCount(xui_msgtip pTip);
 XUI_API int xuiMsgTipGetChangeCount(xui_msgtip pTip);
 #endif
 
-/* 创建 Toast 通知中心（多实例排队，覆盖层显示）。 */
+/* 创建 Toast 通知中心（多实例排队，覆盖层显示）；失败时总会清空 *ppToast。 */
 #if XUI_ENABLE_TOAST
 XUI_API int xuiToastCreate(xui_context pContext, xui_toast* ppToast, const xui_toast_desc_t* pDesc);
 /* 释放通知中心。 */
 XUI_API void xuiToastDestroy(xui_toast pToast);
-/* 显示一条通知；返回通知 id，fDuration 秒后自动关闭（0 不自动）。 */
+/* 显示一条通知；标题和正文会被复制。返回通知 id，fDuration 为非负秒数（0 不自动关闭），
+ * 鼠标悬停在通知上时自动关闭倒计时暂停。
+ * 队列满时丢弃最早的待显示通知，并以 XUI_TOAST_CLOSE_CAPACITY_DROP 通知关闭回调。 */
 XUI_API int xuiToastShow(xui_toast pToast, int iType, const char* sTitle, const char* sMessage, float fDuration, xui_toast_click_proc onClick, void* pUser);
 /* 按 id 关闭一条通知。 */
 XUI_API int xuiToastClose(xui_toast pToast, int iToastId);
@@ -9908,7 +10121,7 @@ XUI_API int xuiToastGetColors(xui_toast pToast, xui_toast_colors_t* pColors);
 XUI_API int xuiToastSetFont(xui_toast pToast, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiToastGetFont(xui_toast pToast);
-/* 注册通知关闭回调（含超时到期）。 */
+/* 注册通知关闭回调（含超时到期和容量丢弃）；回调可销毁当前通知中心。 */
 XUI_API int xuiToastSetClose(xui_toast pToast, xui_toast_close_proc onClose, void* pUser);
 /* 按槽位取通知项控件。 */
 XUI_API xui_widget xuiToastGetItemWidget(xui_toast pToast, int iSlot);
@@ -9951,15 +10164,15 @@ XUI_API int xuiScrollModelGetOffset(const xui_scroll_model_t* pModel, float* pOf
 XUI_API int xuiScrollModelGetMaxOffset(const xui_scroll_model_t* pModel, float* pMaxX, float* pMaxY);
 /* 滚动到内容矩形可见（不足则最小滚动）。 */
 XUI_API int xuiScrollModelEnsureRectVisible(xui_scroll_model_t* pModel, xui_rect_t tContentRect);
-/* 屏幕坐标转视口坐标。 */
+/* 屏幕坐标转视口坐标；非法坐标返回零向量。 */
 XUI_API xui_vec2_t xuiScrollModelScreenToViewport(const xui_scroll_model_t* pModel, float fX, float fY);
-/* 视口坐标转内容坐标（加偏移）。 */
+/* 视口坐标转内容坐标（加偏移）；非法坐标返回零向量。 */
 XUI_API xui_vec2_t xuiScrollModelViewportToContent(const xui_scroll_model_t* pModel, float fX, float fY);
-/* 屏幕坐标转内容坐标。 */
+/* 屏幕坐标转内容坐标；非法坐标返回零向量。 */
 XUI_API xui_vec2_t xuiScrollModelScreenToContent(const xui_scroll_model_t* pModel, float fX, float fY);
-/* 内容坐标转视口坐标（减偏移）。 */
+/* 内容坐标转视口坐标（减偏移）；非法坐标返回零向量。 */
 XUI_API xui_vec2_t xuiScrollModelContentToViewport(const xui_scroll_model_t* pModel, float fX, float fY);
-/* 内容坐标转屏幕坐标。 */
+/* 内容坐标转屏幕坐标；非法坐标返回零向量。 */
 XUI_API xui_vec2_t xuiScrollModelContentToScreen(const xui_scroll_model_t* pModel, float fX, float fY);
 #endif
 
@@ -9968,17 +10181,17 @@ XUI_API xui_vec2_t xuiScrollModelContentToScreen(const xui_scroll_model_t* pMode
 XUI_API xui_widget_type xuiScrollFrameGetType(xui_context pContext);
 /* 创建滚动框架（视口 + 双滚动条 + 角块）。 */
 XUI_API int xuiScrollFrameCreate(xui_context pContext, xui_widget* ppWidget, const xui_scroll_frame_desc_t* pDesc);
-/* 注册滚动变更回调。 */
+/* 注册滚动变更回调；回调可销毁控件或上下文。 */
 XUI_API int xuiScrollFrameSetChange(xui_widget pWidget, xui_scroll_frame_change_proc onChange, void* pUser);
-/* 取内嵌滚动模型。 */
+/* 取内嵌滚动模型（借用指针；不要释放，修改滚动状态应优先使用 ScrollFrame API）。 */
 XUI_API xui_scroll_model_t* xuiScrollFrameGetModel(xui_widget pWidget);
-/* 取视口子控件。 */
+/* 取视口子控件（借用句柄；由 ScrollFrame 持有，不得销毁或迁移）。 */
 XUI_API xui_widget xuiScrollFrameGetViewportWidget(xui_widget pWidget);
-/* 取水平滚动条控件；不可见返回 NULL。 */
+/* 取水平滚动条控件（借用句柄；隐藏时仍返回内部控件，不得销毁或迁移）。 */
 XUI_API xui_widget xuiScrollFrameGetHScrollBarWidget(xui_widget pWidget);
-/* 取垂直滚动条控件；不可见返回 NULL。 */
+/* 取垂直滚动条控件（借用句柄；隐藏时仍返回内部控件，不得销毁或迁移）。 */
 XUI_API xui_widget xuiScrollFrameGetVScrollBarWidget(xui_widget pWidget);
-/* 取角块控件。 */
+/* 取角块控件（借用句柄；由 ScrollFrame 持有，不得销毁或迁移）。 */
 XUI_API xui_widget xuiScrollFrameGetCornerWidget(xui_widget pWidget);
 /* 设置内容尺寸（滚动范围）。 */
 XUI_API int xuiScrollFrameSetContentSize(xui_widget pWidget, float fWidth, float fHeight);
@@ -10004,7 +10217,7 @@ XUI_API int xuiScrollFrameGetScrollbarPolicy(xui_widget pWidget, int* pPolicyX, 
 XUI_API int xuiScrollFrameSetScrollbarMode(xui_widget pWidget, int iMode);
 /* 读取显示模式。 */
 XUI_API int xuiScrollFrameGetScrollbarMode(xui_widget pWidget);
-/* 设置滚轮作用轴（垂直/水平/自动 Shift）。 */
+/* 设置滚轮作用轴；按住 Shift 时，垂直滚轮输入转为水平滚动。 */
 XUI_API int xuiScrollFrameSetWheelAxis(xui_widget pWidget, int iAxis);
 /* 读取滚轮轴。 */
 XUI_API int xuiScrollFrameGetWheelAxis(xui_widget pWidget);
@@ -10020,7 +10233,7 @@ XUI_API int xuiScrollFrameIsContentDragEnabled(xui_widget pWidget);
 XUI_API int xuiScrollFrameSetCornerMode(xui_widget pWidget, int iMode);
 /* 读取角块模式。 */
 XUI_API int xuiScrollFrameGetCornerMode(xui_widget pWidget);
-/* 设置度量（滚动条尺寸等）。 */
+/* 设置度量（滚动条尺寸等）；滚动条尺寸 0 使用当前模式默认值，最小滑块 0 使用 18px。 */
 XUI_API int xuiScrollFrameSetMetrics(xui_widget pWidget, float fScrollbarSize, float fMinThumbSize, float fButtonSize);
 /* 输出度量。 */
 XUI_API int xuiScrollFrameGetMetrics(xui_widget pWidget, float* pScrollbarSize, float* pMinThumbSize, float* pButtonSize);
@@ -10063,15 +10276,15 @@ XUI_API int xuiScrollFrameGetChangeCount(xui_widget pWidget);
 XUI_API xui_widget_type xuiScrollViewGetType(xui_context pContext);
 /* 创建滚动视图（框架 + 单内容容器）。 */
 XUI_API int xuiScrollViewCreate(xui_context pContext, xui_widget* ppWidget, const xui_scroll_view_desc_t* pDesc);
-/* 注册滚动变更回调。 */
+/* 注册滚动变更回调；回调可销毁控件或上下文。 */
 XUI_API int xuiScrollViewSetChange(xui_widget pWidget, xui_scroll_view_change_proc onChange, void* pUser);
-/* 取内部滚动框架控件。 */
+/* 取内部滚动框架控件（借用句柄；由 ScrollView 持有，不得销毁或迁移）。 */
 XUI_API xui_widget xuiScrollViewGetFrameWidget(xui_widget pWidget);
-/* 取内容容器（添加子控件的目标）。 */
+/* 取内容容器（添加子控件的目标；借用句柄，不得销毁或迁移）。 */
 XUI_API xui_widget xuiScrollViewGetContentWidget(xui_widget pWidget);
-/* 取视口控件。 */
+/* 取视口控件（借用句柄；由 ScrollView 持有，不得销毁或迁移）。 */
 XUI_API xui_widget xuiScrollViewGetViewportWidget(xui_widget pWidget);
-/* 取滚动模型。 */
+/* 取滚动模型（借用指针；不要释放，修改滚动状态应优先使用 ScrollView API）。 */
 XUI_API xui_scroll_model_t* xuiScrollViewGetModel(xui_widget pWidget);
 /* 设置内容尺寸。 */
 XUI_API int xuiScrollViewSetContentSize(xui_widget pWidget, float fWidth, float fHeight);
@@ -10146,15 +10359,16 @@ XUI_API int xuiScrollViewGetChangeCount(xui_widget pWidget);
 XUI_API xui_widget_type xuiCanvasGetType(xui_context pContext);
 /* 创建自绘画布（带滚动视口与缓存位图）。 */
 XUI_API int xuiCanvasCreate(xui_context pContext, xui_widget* ppWidget, const xui_canvas_desc_t* pDesc);
-/* 取内部滚动框架子控件。 */
+/* 取内部滚动框架子控件。返回借用句柄，生命周期由 Canvas 管理；不得销毁或迁移。 */
 XUI_API xui_widget xuiCanvasGetFrameWidget(xui_widget pWidget);
-/* 取内部视口子控件。 */
+/* 取内部视口子控件。返回借用句柄，生命周期由 Canvas 管理；不得销毁或迁移。 */
 XUI_API xui_widget xuiCanvasGetViewportWidget(xui_widget pWidget);
-/* 取滚动模型（坐标变换用；控件持有）。 */
+/* 取滚动模型（坐标变换用）。返回借用指针，修改 Canvas/Frame 后应重新获取。 */
 XUI_API xui_scroll_model_t* xuiCanvasGetModel(xui_widget pWidget);
-/* 取画布缓存位图 surface（绘制目标）。 */
+/* 取画布缓存位图 surface（绘制目标）；首次调用可能延迟创建。
+ * 返回借用句柄，生命周期由 Canvas 管理，尺寸变化后旧句柄立即失效。 */
 XUI_API xui_surface xuiCanvasGetSurface(xui_widget pWidget);
-/* 设置画布逻辑尺寸（滚动范围）。 */
+/* 设置画布像素尺寸（滚动范围）；尺寸会对齐到实际 surface 像素。 */
 XUI_API int xuiCanvasSetCanvasSize(xui_widget pWidget, float fWidth, float fHeight);
 /* 输出画布逻辑尺寸。 */
 XUI_API int xuiCanvasGetCanvasSize(xui_widget pWidget, float* pWidth, float* pHeight);
@@ -10221,19 +10435,23 @@ XUI_API int xuiCanvasGetDrawCount(xui_widget pWidget);
 XUI_API xui_widget_type xuiListViewGetType(xui_context pContext);
 /* 创建虚拟化列表视图。 */
 XUI_API int xuiListViewCreate(xui_context pContext, xui_widget* ppWidget, const xui_list_view_desc_t* pDesc);
-/* 注册选中项回调。 */
+/* 注册选中项回调；回调可销毁 ListView 或其 Context。 */
 XUI_API int xuiListViewSetSelect(xui_widget pWidget, xui_list_view_select_proc onSelect, void* pUser);
-/* 注册条目右键回调。 */
+/* 注册条目激活回调（双击、Enter 或无障碍 Activate）；回调可销毁 ListView 或其 Context。 */
+XUI_API int xuiListViewSetActivate(xui_widget pWidget, xui_list_view_activate_proc onActivate, void* pUser);
+/* 注册条目右键回调；回调可销毁 ListView 或其 Context。 */
 XUI_API int xuiListViewSetContextMenu(xui_widget pWidget, xui_list_view_context_proc onContext, void* pUser);
-/* 注册条目自绘回调（覆盖默认绘制）。 */
+/* 注册条目自绘回调（覆盖默认绘制）；允许回调销毁控件，修改列表会终止当前绘制批次。 */
 XUI_API int xuiListViewSetItemRenderer(xui_widget pWidget, xui_list_view_item_proc onRender, void* pUser);
 /* 以字符串数组批量设置条目。 */
 XUI_API int xuiListViewSetItems(xui_widget pWidget, const char** arrItems, int iCount);
 /* Virtual rows: no per-row text/storage allocation in single-selection mode.
  * onText may be NULL for custom renderers. Caller owns provider data through
- * replacement or widget destruction. Rebind (even at the same count) to notify
- * content changes. Multi-selection/enabled arrays are allocated only on demand.
- * Switching from owned SetItems releases its old copied strings synchronously. */
+ * replacement or widget destruction. The provider may destroy the control;
+ * mutating/rebinding the list ends the current render batch. Rebind (even at the
+ * same count) to notify content changes. Multi-selection/enabled arrays are
+ * allocated only on demand. Switching from owned SetItems releases its old
+ * copied strings synchronously. */
 XUI_API int xuiListViewSetVirtualItems(xui_widget pWidget, int iCount, xui_list_view_text_proc onText, void* pUser);
 /* 按位数组设置条目启用状态。 */
 XUI_API int xuiListViewSetEnabledItems(xui_widget pWidget, const int* arrEnabled, int iCount);
@@ -10259,11 +10477,12 @@ XUI_API int xuiListViewGetMetrics(xui_widget pWidget, float* pItemHeight, float*
 XUI_API int xuiListViewSetSelected(xui_widget pWidget, int iIndex);
 /* 读取选中索引（未选 -1）。 */
 XUI_API int xuiListViewGetSelected(xui_widget pWidget);
-/* 设置选择模式（单选/多选/无）。 */
+/* 设置选择模式（单选/多选/范围）。 */
 XUI_API int xuiListViewSetSelectionMode(xui_widget pWidget, int iMode);
 /* 读取选择模式。 */
 XUI_API int xuiListViewGetSelectionMode(xui_widget pWidget);
-/* 批量设置多选集合。 */
+/* 绑定外部多选缓冲；有效容量必须不小于当前条目数。缓冲为借用资源，
+ * 解除绑定时当前选择会复制回内部存储。NULL 或 iCount==0 表示解除绑定。 */
 XUI_API int xuiListViewSetSelectionBuffer(xui_widget pWidget, int* arrSelected, int iCount);
 /* 清空选择。 */
 XUI_API int xuiListViewClearSelection(xui_widget pWidget);
@@ -10293,11 +10512,11 @@ XUI_API int xuiListViewGetColors(xui_widget pWidget, uint32_t* pBackground, uint
 XUI_API int xuiListViewSetScrollbarColors(xui_widget pWidget, uint32_t iTrack, uint32_t iThumb, uint32_t iHover, uint32_t iActive, uint32_t iFocus, uint32_t iDisabled);
 /* 批量输出滚动条六色。 */
 XUI_API int xuiListViewGetScrollbarColors(xui_widget pWidget, uint32_t* pTrack, uint32_t* pThumb, uint32_t* pHover, uint32_t* pActive, uint32_t* pFocus, uint32_t* pDisabled);
-/* 取内部滚动框架控件。 */
+/* 取内部滚动框架控件（借用句柄，由 ListView 所有，不得销毁或迁移）。 */
 XUI_API xui_widget xuiListViewGetFrameWidget(xui_widget pWidget);
-/* 取内部视口控件。 */
+/* 取内部视口控件（借用句柄，由 ListView 所有，不得销毁或迁移）。 */
 XUI_API xui_widget xuiListViewGetViewportWidget(xui_widget pWidget);
-/* 取滚动模型（控件持有）。 */
+/* 取滚动模型（借用指针，不得释放）。 */
 XUI_API xui_scroll_model_t* xuiListViewGetModel(xui_widget pWidget);
 /* 读取视口矩形。 */
 XUI_API xui_rect_t xuiListViewGetViewportRect(xui_widget pWidget);
@@ -10309,7 +10528,7 @@ XUI_API int xuiListViewGetItemAt(xui_widget pWidget, float fX, float fY);
 XUI_API int xuiListViewGetHoverIndex(xui_widget pWidget);
 /* 读取焦点条目。 */
 XUI_API int xuiListViewGetFocusIndex(xui_widget pWidget);
-/* 读取选中数量。 */
+/* 读取选择通知计数（测试用）。 */
 XUI_API int xuiListViewGetSelectCount(xui_widget pWidget);
 /* 读取变更计数（测试用）。 */
 XUI_API int xuiListViewGetChangeCount(xui_widget pWidget);
@@ -10342,7 +10561,7 @@ XUI_API int xuiMessageListGetNodeCollapsed(xui_widget pWidget, const char* sId);
 XUI_API int xuiMessageListClear(xui_widget pWidget);
 /* 读取消息数。 */
 XUI_API int xuiMessageListGetNodeCount(xui_widget pWidget);
-/* 按索引输出消息描述。 */
+/* 按索引输出消息描述。返回指针由当前控件所有，在当前控件的下一次查询或修改前有效。 */
 XUI_API const xui_message_node_t* xuiMessageListGetNode(xui_widget pWidget, int iIndex);
 /* 设置选中消息索引。 */
 XUI_API int xuiMessageListSetSelected(xui_widget pWidget, int iIndex);
@@ -10415,7 +10634,8 @@ XUI_API int xuiTreeViewSetSelect(xui_widget pWidget, xui_tree_view_select_proc o
 XUI_API int xuiTreeViewSetContextMenu(xui_widget pWidget, xui_tree_view_context_proc onContext, void* pUser);
 /* 注册行自绘回调。 */
 XUI_API int xuiTreeViewSetItemRenderer(xui_widget pWidget, xui_tree_view_item_proc onRender, void* pUser);
-/* 设置虚拟化适配器（子节点数 + 节点描述按需取）。 */
+/* 设置数据适配器（总节点数 + 按索引读取节点描述）。回调绑定成功后立即刷新；
+ * 刷新失败时保留绑定，调用方可修正数据后重试 xuiTreeViewRefreshAdapter。 */
 XUI_API int xuiTreeViewSetAdapter(xui_widget pWidget, xui_tree_view_count_proc onCount, xui_tree_view_node_proc onNode, void* pUser);
 /* Adapter reads observe the old tree until commit. Reentrant refresh/rebind or
  * a callback invalidating the tree aborts with XUI_ERROR_INVALID_STATE. */
@@ -10428,9 +10648,9 @@ XUI_API int xuiTreeViewSetNodes(xui_widget pWidget, const xui_tree_view_node_t* 
 XUI_API int xuiTreeViewAddNode(xui_widget pWidget, int iId, int iParentId, const char* sText);
 /* 读取节点总数。 */
 XUI_API int xuiTreeViewGetNodeCount(xui_widget pWidget);
-/* 按索引输出节点描述。 */
+/* 按索引输出节点描述。返回借用指针，任意节点修改、替换或清空后失效。 */
 XUI_API const xui_tree_view_node_t* xuiTreeViewGetNode(xui_widget pWidget, int iIndex);
-/* 按 id 输出节点描述。 */
+/* 按 id 输出节点描述。返回借用指针，任意节点修改、替换或清空后失效。 */
 XUI_API const xui_tree_view_node_t* xuiTreeViewGetNodeById(xui_widget pWidget, int iNodeId);
 /* 按 id 查节点索引；不存在返回 -1。 */
 XUI_API int xuiTreeViewFindNode(xui_widget pWidget, int iNodeId);
@@ -10458,7 +10678,7 @@ XUI_API int xuiTreeViewGetSelected(xui_widget pWidget);
 XUI_API int xuiTreeViewGetVisibleCount(xui_widget pWidget);
 /* 可见行号转节点 id。 */
 XUI_API int xuiTreeViewGetVisibleNodeId(xui_widget pWidget, int iVisible);
-/* 可见行号转节点描述。 */
+/* 可见行号转节点描述。返回借用指针，任意节点修改、替换或清空后失效。 */
 XUI_API const xui_tree_view_node_t* xuiTreeViewGetVisibleNode(xui_widget pWidget, int iVisible);
 /* 节点 id 转可见行号（隐藏返回 -1）。 */
 XUI_API int xuiTreeViewGetVisibleIndexOfId(xui_widget pWidget, int iNodeId);
@@ -10492,11 +10712,11 @@ XUI_API int xuiTreeViewGetDecorationColors(xui_widget pWidget, uint32_t* pExpand
 XUI_API int xuiTreeViewSetScrollbarColors(xui_widget pWidget, uint32_t iTrack, uint32_t iThumb, uint32_t iHover, uint32_t iActive, uint32_t iFocus, uint32_t iDisabled);
 /* 批量输出滚动条六色。 */
 XUI_API int xuiTreeViewGetScrollbarColors(xui_widget pWidget, uint32_t* pTrack, uint32_t* pThumb, uint32_t* pHover, uint32_t* pActive, uint32_t* pFocus, uint32_t* pDisabled);
-/* 取滚动框架控件。 */
+/* 取滚动框架控件（借用句柄，由 TreeView 所有，不得销毁）。 */
 XUI_API xui_widget xuiTreeViewGetFrameWidget(xui_widget pWidget);
-/* 取视口控件。 */
+/* 取视口控件（借用句柄，由 TreeView 所有，不得销毁）。 */
 XUI_API xui_widget xuiTreeViewGetViewportWidget(xui_widget pWidget);
-/* 取滚动模型。 */
+/* 取滚动模型（借用指针，由 TreeView 所有，控件销毁后失效）。 */
 XUI_API xui_scroll_model_t* xuiTreeViewGetModel(xui_widget pWidget);
 /* 读取视口矩形。 */
 XUI_API xui_rect_t xuiTreeViewGetViewportRect(xui_widget pWidget);
@@ -10508,7 +10728,7 @@ XUI_API int xuiTreeViewGetItemAt(xui_widget pWidget, float fX, float fY);
 XUI_API int xuiTreeViewGetHoverIndex(xui_widget pWidget);
 /* 读取焦点行。 */
 XUI_API int xuiTreeViewGetFocusIndex(xui_widget pWidget);
-/* 读取选择计数（测试用）。 */
+/* 读取选择通知计数（测试用；重复设置相同选择不会增加）。 */
 XUI_API int xuiTreeViewGetSelectCount(xui_widget pWidget);
 /* 读取变更计数（测试用）。 */
 XUI_API int xuiTreeViewGetChangeCount(xui_widget pWidget);
@@ -10519,31 +10739,33 @@ XUI_API int xuiTreeViewGetChangeCount(xui_widget pWidget);
 XUI_API xui_widget_type xuiTableViewGetType(xui_context pContext);
 /* 创建虚拟化表格视图（列描述 + 行/适配器）。 */
 XUI_API int xuiTableViewCreate(xui_context pContext, xui_widget* ppWidget, const xui_table_view_desc_t* pDesc);
-/* 批量设置列描述（宽度/对齐/可排序等）。 */
+/* 批量设置列描述（宽度/对齐/可排序等）。描述会复制；其中字符串、回调及用户指针为借用资源，替换列或销毁控件前须保持有效。 */
 XUI_API int xuiTableViewSetColumns(xui_widget pWidget, const xui_table_view_column_t* arrColumns, int iCount);
-/* 批量设置行数据（立即模式）。 */
+/* 批量设置行数据（立即模式，结构内容会复制）。 */
 XUI_API int xuiTableViewSetRows(xui_widget pWidget, const xui_table_view_row_t* arrRows, int iCount);
-/* 设置虚拟化适配器（count + cell 回调，按需取值）。 */
+/* 设置虚拟化适配器（count + cell 回调，按需取值）。回调在调用线程同步执行；
+ * cell 输出中的字符串/用户指针仅须在本次回调消费完成前有效。回调可重入修改或
+ * 销毁控件；此时外层读取以 XUI_ERROR_INVALID_STATE 中止，重入修改保留。 */
 XUI_API int xuiTableViewSetAdapter(xui_widget pWidget, xui_table_view_count_proc onCount, xui_table_view_cell_proc onCell, void* pUser);
 /* 数据源变更后请求重取（行数变化）。 */
 XUI_API int xuiTableViewRefreshAdapter(xui_widget pWidget);
-/* 注册排序回调（点击表头触发）。 */
+/* 注册排序回调（同一表头按下并抬起时触发；回调可销毁控件或上下文）。 */
 XUI_API int xuiTableViewSetSort(xui_widget pWidget, xui_table_view_sort_proc onSort, void* pUser);
-/* 注册选择回调。 */
+/* 注册选择回调；回调可销毁控件或上下文。 */
 XUI_API int xuiTableViewSetSelect(xui_widget pWidget, xui_table_view_select_proc onSelect, void* pUser);
-/* 注册列宽调整回调（拖拽边界）。 */
+/* 注册列宽调整回调（拖拽边界；回调可销毁控件或上下文）。 */
 XUI_API int xuiTableViewSetColumnResize(xui_widget pWidget, xui_table_view_column_resize_proc onResize, void* pUser);
 /* 注册悬停回调。 */
 XUI_API int xuiTableViewSetHover(xui_widget pWidget, xui_table_view_hover_proc onHover, void* pUser);
-/* 注册右键回调。 */
+/* 注册右键回调；回调可销毁控件或上下文。 */
 XUI_API int xuiTableViewSetContextMenu(xui_widget pWidget, xui_table_view_context_proc onContext, void* pUser);
-/* 注册单元格合并判定回调。 */
+/* 注册单元格合并判定回调；同步调用，允许重入修改/销毁并中止当前外层读取。 */
 XUI_API int xuiTableViewSetMergeProvider(xui_widget pWidget, xui_table_view_merge_proc onMerge, void* pUser);
-/* 注册表头自绘回调。 */
+/* 注册表头自绘回调；传入列描述仅在回调期间有效，回调可销毁控件或上下文。 */
 XUI_API int xuiTableViewSetHeaderRenderer(xui_widget pWidget, xui_table_view_header_renderer_proc onRender, void* pUser);
-/* 注册单元格自绘回调（覆盖默认文本绘制）。 */
+/* 注册单元格自绘回调（覆盖默认文本绘制）；传入单元格仅在回调期间有效，回调可销毁控件或上下文。 */
 XUI_API int xuiTableViewSetCellRenderer(xui_widget pWidget, xui_table_view_cell_renderer_proc onRender, void* pUser);
-/* 按列注册文本格式化回调。 */
+/* 按列注册文本格式化回调；同步调用，输出缓冲仅在本次回调内有效。 */
 XUI_API int xuiTableViewSetColumnFormatter(xui_widget pWidget, int iColumn, xui_table_view_format_proc onFormat, void* pUser);
 /* 设置字体。 */
 XUI_API int xuiTableViewSetFont(xui_widget pWidget, xui_font pFont);
@@ -10575,7 +10797,7 @@ XUI_API int xuiTableViewSetScrollbarMode(xui_widget pWidget, int iMode);
 XUI_API int xuiTableViewGetScrollbarMode(xui_widget pWidget);
 /* 读取列数。 */
 XUI_API int xuiTableViewGetColumnCount(xui_widget pWidget);
-/* 按索引输出列描述。 */
+/* 按索引输出列描述。返回借用指针，列替换或控件销毁后失效。 */
 XUI_API const xui_table_view_column_t* xuiTableViewGetColumn(xui_widget pWidget, int iColumn);
 /* 读取列宽（含拖拽后）。 */
 XUI_API float xuiTableViewGetColumnWidth(xui_widget pWidget, int iColumn);
@@ -10587,7 +10809,7 @@ XUI_API int xuiTableViewGetRowCount(xui_widget pWidget);
 XUI_API int xuiTableViewGetFirstVisible(xui_widget pWidget);
 /* 读取上帧绘制行数（诊断）。 */
 XUI_API int xuiTableViewGetPaintVisibleCount(xui_widget pWidget);
-/* 输出按压单元格。 */
+/* 输出当前按压单元格；未按压或指针已释放时输出 -1/-1。 */
 XUI_API int xuiTableViewGetActiveCell(xui_widget pWidget, int* pRow, int* pColumn);
 /* 输出悬停单元格。 */
 XUI_API int xuiTableViewGetHoverCell(xui_widget pWidget, int* pRow, int* pColumn);
@@ -10595,13 +10817,13 @@ XUI_API int xuiTableViewGetHoverCell(xui_widget pWidget, int* pRow, int* pColumn
 XUI_API int xuiTableViewGetCellContentRect(xui_widget pWidget, int iRow, int iColumn, xui_rect_t* pRect);
 /* 输出单元格整体矩形。 */
 XUI_API int xuiTableViewGetCellRect(xui_widget pWidget, int iRow, int iColumn, xui_rect_t* pRect);
-/* 取滚动框架控件。 */
+/* 取滚动框架控件（借用句柄，由 TableView 所有，不得销毁）。 */
 XUI_API xui_widget xuiTableViewGetFrameWidget(xui_widget pWidget);
-/* 取视口控件。 */
+/* 取视口控件（借用句柄，由 TableView 所有，不得销毁）。 */
 XUI_API xui_widget xuiTableViewGetViewportWidget(xui_widget pWidget);
-/* 取表体控件。 */
+/* 取表体控件（当前为滚动框架的兼容别名；借用句柄，不得销毁）。 */
 XUI_API xui_widget xuiTableViewGetBodyWidget(xui_widget pWidget);
-/* 取滚动模型。 */
+/* 取滚动模型（借用指针，由 TableView 所有，控件销毁后失效）。 */
 XUI_API xui_scroll_model_t* xuiTableViewGetModel(xui_widget pWidget);
 /* 读取视口矩形。 */
 XUI_API xui_rect_t xuiTableViewGetViewportRect(xui_widget pWidget);
@@ -10625,7 +10847,7 @@ XUI_API int xuiTableViewRefresh(xui_widget pWidget);
 XUI_API int xuiTableViewEnsureCellVisible(xui_widget pWidget, int iRow, int iColumn);
 /* 输出当前排序列与方向。 */
 XUI_API int xuiTableViewGetSortColumn(xui_widget pWidget, int* pDescending);
-/* 读取选择计数（测试用）。 */
+/* 读取选择通知计数（测试用，不是当前选中项数量）。 */
 XUI_API int xuiTableViewGetSelectCount(xui_widget pWidget);
 /* 读取排序触发计数。 */
 XUI_API int xuiTableViewGetSortCount(xui_widget pWidget);
@@ -10640,9 +10862,10 @@ XUI_API int xuiTableViewGetChangeCount(xui_widget pWidget);
 /* 取数据网格控件类型。 */
 #if XUI_ENABLE_TABLE_GRID
 XUI_API xui_widget_type xuiTableGridGetType(xui_context pContext);
-/* 创建可编辑数据网格（包装 tableview + 单元格编辑器）。 */
+/* 创建可编辑数据网格（包装 tableview + 单元格编辑器）。
+ * 外层控件作为编辑器宿主暴露 GROUP 语义，内部 TableView 暴露表格和单元格语义。 */
 XUI_API int xuiTableGridCreate(xui_context pContext, xui_widget* ppWidget, const xui_table_grid_desc_t* pDesc);
-/* 取内部表格视图控件。 */
+/* 取内部表格视图控件；返回借用句柄，由 TableGrid 所有，不得销毁。 */
 XUI_API xui_widget xuiTableGridGetTableView(xui_widget pWidget);
 /* 批量设置列描述。 */
 XUI_API int xuiTableGridSetColumns(xui_widget pWidget, const xui_table_view_column_t* arrColumns, int iCount);
@@ -10656,11 +10879,11 @@ XUI_API int xuiTableGridSetValidate(xui_widget pWidget, xui_table_grid_validate_
 XUI_API int xuiTableGridSetChange(xui_widget pWidget, xui_table_grid_change_proc onChange, void* pUser);
 /* 注册编辑器工厂回调（按列创建编辑控件）。 */
 XUI_API int xuiTableGridSetEditor(xui_widget pWidget, xui_table_grid_editor_proc onEditor, void* pUser);
-/* 注册编辑器配置回调（编辑前初始化控件）。 */
+/* 注册编辑器配置回调（编辑前初始化控件）；配置期间对同一网格的编辑/模型修改重入会被拒绝。 */
 XUI_API int xuiTableGridSetEditorConfig(xui_widget pWidget, xui_table_grid_editor_config_proc onConfig, void* pUser);
 /* 注册右键回调。 */
 XUI_API int xuiTableGridSetContextMenu(xui_widget pWidget, xui_table_grid_context_proc onContext, void* pUser);
-/* 设置编辑模式（点击/双击/按键进入）。 */
+/* 设置编辑模式：DISPLAY 双击进入，QUICK 在单击抬起时进入，IMMEDIATE 在单击按下时进入；键盘 Enter/Space/F2 均可进入。 */
 XUI_API int xuiTableGridSetEditMode(xui_widget pWidget, int iMode);
 /* 读取编辑模式。 */
 XUI_API int xuiTableGridGetEditMode(xui_widget pWidget);
@@ -10678,7 +10901,7 @@ XUI_API int xuiTableGridSetScrollbarMode(xui_widget pWidget, int iMode);
 XUI_API int xuiTableGridSetColors(xui_widget pWidget, uint32_t iBackground, uint32_t iHeader, uint32_t iRow, uint32_t iSelected, uint32_t iGrid, uint32_t iText);
 /* 以结构体批量设置颜色组。 */
 XUI_API int xuiTableGridSetColorStyle(xui_widget pWidget, const xui_table_view_colors_t* pColors);
-/* 进入指定单元格编辑态。 */
+/* 进入指定单元格编辑态并同步当前选择；初始化期间不可重入。 */
 XUI_API int xuiTableGridBeginEdit(xui_widget pWidget, int iRow, int iColumn);
 /* 结束编辑；bCommit 为真提交写回。 */
 XUI_API int xuiTableGridEndEdit(xui_widget pWidget, int bCommit);
@@ -10701,25 +10924,26 @@ XUI_API int xuiTableGridGetChangeCount(xui_widget pWidget);
 /* 取时间轴控件类型。 */
 #if XUI_ENABLE_TIMELINE_VIEW
 XUI_API xui_widget_type xuiTimeLineViewGetType(xui_context pContext);
-/* 创建时间轴（图层 + 关键帧 + 区间，动画编辑器用）。 */
+/* 创建时间轴（图层 + 关键帧 + 区间，动画编辑器用）。数值字段必须有限；
+ * 0 使用默认值，iScrollbarMode 的 0 值为 FULL。失败时 *ppWidget 置空。 */
 XUI_API int xuiTimeLineViewCreate(xui_context pContext, xui_widget* ppWidget, const xui_timeline_view_desc_t* pDesc);
-/* 取滚动框架控件。 */
+/* 取滚动框架控件（借用句柄，由 TimelineView 所有，不得销毁）。 */
 XUI_API xui_widget xuiTimeLineViewGetFrameWidget(xui_widget pWidget);
-/* 取视口控件。 */
+/* 取视口控件（借用句柄，由 TimelineView 所有，不得销毁）。 */
 XUI_API xui_widget xuiTimeLineViewGetViewportWidget(xui_widget pWidget);
-/* 取滚动模型。 */
+/* 取滚动模型（借用指针，控件销毁后失效）。 */
 XUI_API xui_scroll_model_t* xuiTimeLineViewGetModel(xui_widget pWidget);
 /* 清空全部图层与帧。 */
 XUI_API int xuiTimeLineViewClear(xui_widget pWidget);
-/* 设置字体。 */
+/* 设置字体；NULL 恢复上下文默认字体，字体对象由调用方持有。 */
 XUI_API int xuiTimeLineViewSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiTimeLineViewGetFont(xui_widget pWidget);
-/* 设置总帧数。 */
+/* 设置总帧数；帧数与帧宽乘积不得超出滚动模型范围。 */
 XUI_API int xuiTimeLineViewSetFrameCount(xui_widget pWidget, int iFrameCount);
 /* 读取总帧数。 */
 XUI_API int xuiTimeLineViewGetFrameCount(xui_widget pWidget);
-/* 设置帧率（时间标尺换算）。 */
+/* 设置有限且大于 0 的帧率（时间标尺换算）。 */
 XUI_API int xuiTimeLineViewSetFrameRate(xui_widget pWidget, float fFrameRate);
 /* 读取帧率。 */
 XUI_API float xuiTimeLineViewGetFrameRate(xui_widget pWidget);
@@ -10727,7 +10951,7 @@ XUI_API float xuiTimeLineViewGetFrameRate(xui_widget pWidget);
 XUI_API int xuiTimeLineViewSetCurrentFrame(xui_widget pWidget, int iFrame);
 /* 读取当前帧。 */
 XUI_API int xuiTimeLineViewGetCurrentFrame(xui_widget pWidget);
-/* 设置度量（层头宽/帧宽/行高/标尺高）。 */
+/* 设置度量（层头宽/帧宽/行高/标尺高）；各参数为 0 时保持原值，非 0 值必须有限且大于 0。 */
 XUI_API int xuiTimeLineViewSetMetrics(xui_widget pWidget, float fLayerHeaderWidth, float fFrameWidth, float fRowHeight, float fRulerHeight);
 /* 输出度量。 */
 XUI_API int xuiTimeLineViewGetMetrics(xui_widget pWidget, float* pLayerHeaderWidth, float* pFrameWidth, float* pRowHeight, float* pRulerHeight);
@@ -10759,7 +10983,7 @@ XUI_API int xuiTimeLineViewGetLayerCount(xui_widget pWidget);
 XUI_API int xuiTimeLineViewGetLayer(xui_widget pWidget, int iLayer, xui_timeline_layer_t* pLayer);
 /* 设置图层名。 */
 XUI_API int xuiTimeLineViewSetLayerName(xui_widget pWidget, int iLayer, const char* sName);
-/* 读取图层名。 */
+/* 读取图层名；返回借用字符串，图层变更或控件销毁后失效。 */
 XUI_API const char* xuiTimeLineViewGetLayerName(xui_widget pWidget, int iLayer);
 /* 设置图层可见性。 */
 XUI_API int xuiTimeLineViewSetLayerVisible(xui_widget pWidget, int iLayer, int bVisible);
@@ -10787,7 +11011,7 @@ XUI_API int xuiTimeLineViewSetFrame(xui_widget pWidget, int iLayer, int iFrame, 
 XUI_API int xuiTimeLineViewGetFrame(xui_widget pWidget, int iLayer, int iFrame, xui_timeline_frame_t* pFrame);
 /* 清除关键帧。 */
 XUI_API int xuiTimeLineViewClearFrame(xui_widget pWidget, int iLayer, int iFrame);
-/* 设置关键帧用户指针。 */
+/* 设置已有关键帧的用户指针；空帧返回 XUI_ERROR_INVALID_ARGUMENT。 */
 XUI_API int xuiTimeLineViewSetFrameUserData(xui_widget pWidget, int iLayer, int iFrame, void* pUser);
 /* 读取关键帧用户指针。 */
 XUI_API void* xuiTimeLineViewGetFrameUserData(xui_widget pWidget, int iLayer, int iFrame);
@@ -10811,7 +11035,7 @@ XUI_API void* xuiTimeLineViewGetSpanUserData(xui_widget pWidget, int iSpanId);
 XUI_API int xuiTimeLineViewClearSelection(xui_widget pWidget);
 /* 设置帧选中态。 */
 XUI_API int xuiTimeLineViewSelectFrame(xui_widget pWidget, int iLayer, int iFrame, int bSelected);
-/* 框选图层/帧矩形区域。 */
+/* 框选图层/帧矩形区域；超出固定选择容量时返回 XUI_ERROR_OUT_OF_MEMORY，原选择不变。 */
 XUI_API int xuiTimeLineViewSelectRange(xui_widget pWidget, int iLayer0, int iFrame0, int iLayer1, int iFrame1, int bSelected);
 /* 查询帧选中态。 */
 XUI_API int xuiTimeLineViewIsFrameSelected(xui_widget pWidget, int iLayer, int iFrame);
@@ -10821,7 +11045,8 @@ XUI_API int xuiTimeLineViewGetSelectionCount(xui_widget pWidget);
 XUI_API int xuiTimeLineViewGetSelection(xui_widget pWidget, int iIndex, xui_timeline_selection_t* pSelection);
 /* 注册当前帧 changing/changed 回调对。 */
 XUI_API int xuiTimeLineViewSetCurrentFrameCallbacks(xui_widget pWidget, xui_timeline_current_frame_changing_proc onChanging, xui_timeline_current_frame_changed_proc onChanged, void* pUser);
-/* 注册图层结构变更回调对。 */
+/* 注册图层名称、可见性、锁定与激活选择的 changing/changed 回调对；
+ * changing 返回 0 可否决对应变更。 */
 XUI_API int xuiTimeLineViewSetLayerCallbacks(xui_widget pWidget, xui_timeline_layer_changing_proc onChanging, xui_timeline_layer_changed_proc onChanged, void* pUser);
 /* 注册关键帧变更回调对。 */
 XUI_API int xuiTimeLineViewSetFrameCallbacks(xui_widget pWidget, xui_timeline_frame_changing_proc onChanging, xui_timeline_frame_changed_proc onChanged, void* pUser);
@@ -10833,7 +11058,7 @@ XUI_API int xuiTimeLineViewSetLayerSelected(xui_widget pWidget, xui_timeline_lay
 XUI_API int xuiTimeLineViewSetContextMenu(xui_widget pWidget, xui_timeline_context_opening_proc onOpening, xui_timeline_context_command_proc onCommand, void* pUser);
 /* 按命令 id 设置菜单标题。 */
 XUI_API int xuiTimeLineViewSetMenuTitle(xui_widget pWidget, int iCommand, const char* sTitle);
-/* 按命令 id 读取菜单标题。 */
+/* 按命令 id 读取菜单标题；返回借用字符串，下次标题修改或控件销毁后失效。 */
 XUI_API const char* xuiTimeLineViewGetMenuTitle(xui_widget pWidget, int iCommand);
 /* 执行右键菜单命令。 */
 XUI_API int xuiTimeLineViewRunContextCommand(xui_widget pWidget, int iCommand);
@@ -10841,7 +11066,7 @@ XUI_API int xuiTimeLineViewRunContextCommand(xui_widget pWidget, int iCommand);
 XUI_API int xuiTimeLineViewSetFrameClick(xui_widget pWidget, xui_timeline_frame_click_proc onClick, xui_timeline_frame_click_proc onDoubleClick, void* pUser);
 /* 注册选择集变更回调。 */
 XUI_API int xuiTimeLineViewSetSelectionChange(xui_widget pWidget, xui_timeline_selection_proc onSelection, void* pUser);
-/* 注册图层/标尺/帧/区间自绘回调（全量覆盖默认绘制）。 */
+/* 注册图层/标尺/帧/区间自绘回调（返回非 0 全量覆盖默认绘制）。回调参数均为只读借用快照。 */
 XUI_API int xuiTimeLineViewSetRenderers(xui_widget pWidget, xui_timeline_layer_renderer_proc onLayer, xui_timeline_ruler_renderer_proc onRuler, xui_timeline_frame_renderer_proc onFrame, xui_timeline_span_renderer_proc onSpan, void* pUser);
 /* 以结构体批量设置颜色组。 */
 XUI_API int xuiTimeLineViewSetColors(xui_widget pWidget, const xui_timeline_view_colors_t* pColors);
@@ -10874,17 +11099,17 @@ XUI_API int xuiTimeLineViewGetClickCount(xui_widget pWidget);
 /* 取属性网格控件类型。 */
 #if XUI_ENABLE_PROPERTY_GRID
 XUI_API xui_widget_type xuiPropertyGridGetType(xui_context pContext);
-/* 创建属性网格（类目/属性行 + 描述面板，基于 tablegrid）。 */
+/* 创建属性网格（类目/属性行 + 描述面板，基于 tablegrid）。pFont 为借用资源。 */
 XUI_API int xuiPropertyGridCreate(xui_context pContext, xui_widget* ppWidget, const xui_property_grid_desc_t* pDesc);
-/* 取内部数据网格控件。 */
+/* 取内部数据网格控件（借用句柄；不得销毁或重设父级）。 */
 XUI_API xui_widget xuiPropertyGridGetTableGrid(xui_widget pWidget);
-/* 取内部表格视图控件。 */
+/* 取内部表格视图控件（借用句柄；不得销毁或重设父级）。 */
 XUI_API xui_widget xuiPropertyGridGetTableView(xui_widget pWidget);
 /* 清空全部类目与属性。 */
 XUI_API int xuiPropertyGridClear(xui_widget pWidget);
-/* 添加类目（可折叠分组）；返回类目索引。 */
+/* 添加类目（可折叠分组）；返回类目索引。id 必须完整装入固定容量，显示名称仅按完整 UTF-8 字素截断。 */
 XUI_API int xuiPropertyGridAddCategory(xui_widget pWidget, const char* sId, const char* sName, int bExpanded);
-/* 向类目添加属性行（类型驱动编辑器）。 */
+/* 向类目添加属性行（类型驱动编辑器）。id 必须完整装入固定容量，名称、说明和值仅按完整 UTF-8 字素截断。 */
 XUI_API int xuiPropertyGridAddProperty(xui_widget pWidget, int iCategory, const xui_property_desc_t* pDesc);
 /* 按类目 id 查索引；不存在返回 -1。 */
 XUI_API int xuiPropertyGridFindCategory(xui_widget pWidget, const char* sId);
@@ -10906,9 +11131,9 @@ XUI_API int xuiPropertyGridGetPropertyCount(xui_widget pWidget);
 XUI_API int xuiPropertyGridGetVisibleCount(xui_widget pWidget);
 /* 可见行号转属性索引。 */
 XUI_API int xuiPropertyGridGetVisibleProperty(xui_widget pWidget, int iVisible);
-/* 以文本设置属性值。 */
+/* 以文本设置属性值；超长文本仅按完整 UTF-8 字素截断。 */
 XUI_API int xuiPropertyGridSetValue(xui_widget pWidget, int iProperty, const char* sValue);
-/* 以文本读取属性值。 */
+/* 以文本读取属性值；返回控件持有的借用字符串，后续修改、清空或销毁后失效。 */
 XUI_API const char* xuiPropertyGridGetValue(xui_widget pWidget, int iProperty);
 /* 读取布尔属性（默认值兜底）。 */
 XUI_API int xuiPropertyGridGetBool(xui_widget pWidget, int iProperty, int bDefault);
@@ -10930,7 +11155,8 @@ XUI_API int xuiPropertyGridSetColor(xui_widget pWidget, int iProperty, uint32_t 
 XUI_API int xuiPropertyGridSetPropertyFlags(xui_widget pWidget, int iProperty, int iFlags);
 /* 读取属性行标志。 */
 XUI_API int xuiPropertyGridGetPropertyFlags(xui_widget pWidget, int iProperty);
-/* 覆盖属性编辑器配置（下拉选项等）。 */
+/* 覆盖属性编辑器配置（下拉选项等）。数组、字符串和调色板内容会被复制；
+ * pUser 仍是借用的应用数据。枚举索引、值枚举数据、日期范围和默认区间跨度必须自洽。 */
 XUI_API int xuiPropertyGridSetEditorConfig(xui_widget pWidget, int iProperty, const xui_table_grid_editor_config_t* pConfig);
 /* 为属性注册自绘回调。 */
 XUI_API int xuiPropertyGridSetRenderer(xui_widget pWidget, int iProperty, xui_property_grid_render_proc onRender, void* pUser);
@@ -10942,15 +11168,15 @@ XUI_API int xuiPropertyGridIsEditing(xui_widget pWidget);
 XUI_API int xuiPropertyGridBeginEdit(xui_widget pWidget, int iProperty);
 /* 结束编辑；bCommit 为真提交。 */
 XUI_API int xuiPropertyGridEndEdit(xui_widget pWidget, int bCommit);
-/* 设置字体。 */
+/* 设置借用字体；调用方须保证字体生命周期覆盖控件使用期。 */
 XUI_API int xuiPropertyGridSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiPropertyGridGetFont(xui_widget pWidget);
-/* 设置度量（名称列宽/行高/类目高）。 */
+/* 设置度量（名称列宽/行高/类目高）；0 保留当前值，组合后的最大模型几何不得超过布局上限。 */
 XUI_API int xuiPropertyGridSetMetrics(xui_widget pWidget, float fNameWidth, float fRowHeight, float fCategoryHeight);
 /* 输出度量。 */
 XUI_API int xuiPropertyGridGetMetrics(xui_widget pWidget, float* pNameWidth, float* pRowHeight, float* pCategoryHeight);
-/* 设置描述面板模式（高度）。 */
+/* 设置描述面板模式（高度）；面板参与布局时，组合后的最大模型几何不得超过布局上限。 */
 XUI_API int xuiPropertyGridSetDescriptionMode(xui_widget pWidget, int iMode, float fPanelHeight);
 /* 读取描述面板模式。 */
 XUI_API int xuiPropertyGridGetDescriptionMode(xui_widget pWidget);
@@ -10982,7 +11208,7 @@ XUI_API int xuiPropertyGridSetContextMenu(xui_widget pWidget, xui_property_grid_
 XUI_API int xuiPropertyGridSetStyle(xui_widget pWidget, const xui_property_grid_style_t* pStyle);
 /* 输出样式组。 */
 XUI_API int xuiPropertyGridGetStyle(xui_widget pWidget, xui_property_grid_style_t* pStyle);
-/* 批量设置六色。 */
+/* 批量设置六色；iText 同时应用于类目图标、类目名称、属性名称和值文本。 */
 XUI_API int xuiPropertyGridSetColors(xui_widget pWidget, uint32_t iBackground, uint32_t iCategory, uint32_t iRow, uint32_t iSelected, uint32_t iGrid, uint32_t iText);
 /* 读取选择计数（测试用）。 */
 XUI_API int xuiPropertyGridGetSelectCount(xui_widget pWidget);
@@ -10993,9 +11219,9 @@ XUI_API int xuiPropertyGridGetToggleCount(xui_widget pWidget);
 /* 取弹出层控件类型。 */
 #if XUI_ENABLE_POPUP
 XUI_API xui_widget_type xuiPopupGetType(xui_context pContext);
-/* 创建弹出层（锚定定位 + 关闭策略 + 焦点管理）。 */
+/* 创建弹出层（锚定定位 + 关闭策略 + 焦点管理）；失败时 *ppWidget 置空。 */
 XUI_API int xuiPopupCreate(xui_context pContext, xui_widget* ppWidget, const xui_popup_desc_t* pDesc);
-/* 注册开合变更回调。 */
+/* 注册开合变更回调；回调可销毁弹层或其上下文。 */
 XUI_API int xuiPopupSetChange(xui_widget pWidget, xui_popup_change_proc onChange, void* pUser);
 /* 设置开合状态。 */
 XUI_API int xuiPopupSetOpen(xui_widget pWidget, int bOpen);
@@ -11035,9 +11261,9 @@ XUI_API int xuiPopupGetOffset(xui_widget pWidget, float* pOffsetX, float* pOffse
 XUI_API int xuiPopupSetMargin(xui_widget pWidget, float fMargin);
 /* 读取安全边距。 */
 XUI_API float xuiPopupGetMargin(xui_widget pWidget);
-/* 设置内容尺寸。 */
+/* 设置内容尺寸；某一维为 0 时，该维在每次定位时从内容容器重新解析。 */
 XUI_API int xuiPopupSetContentSize(xui_widget pWidget, float fWidth, float fHeight);
-/* 输出内容尺寸。 */
+/* 输出调用方设置的内容尺寸；0 表示对应维使用自动解析。 */
 XUI_API int xuiPopupGetContentSize(xui_widget pWidget, float* pWidth, float* pHeight);
 /* 设置最大尺寸（超出滚动）。 */
 XUI_API int xuiPopupSetMaxSize(xui_widget pWidget, float fMaxWidth, float fMaxHeight);
@@ -11065,25 +11291,25 @@ XUI_API int xuiPopupSetFocusPolicy(xui_widget pWidget, int iFocusPolicy, xui_wid
 XUI_API int xuiPopupGetFocusPolicy(xui_widget pWidget);
 /* 设置关闭时焦点归还目标控件。 */
 XUI_API int xuiPopupSetFocusRestore(xui_widget pWidget, xui_widget pRestore);
-/* 直接设置内容滚动。 */
+/* 直接设置内容滚动；开合弹层不会隐式重置该偏移。 */
 XUI_API int xuiPopupSetScroll(xui_widget pWidget, float fOffsetX, float fOffsetY);
 /* 输出滚动偏移。 */
 XUI_API int xuiPopupGetScroll(xui_widget pWidget, float* pOffsetX, float* pOffsetY);
-/* 设置滚动条样式（模式/尺寸）。 */
+/* 设置滚动条样式（模式/尺寸）；COMPACT 模式尺寸范围为 (0, 8]。 */
 XUI_API int xuiPopupSetScrollbarStyle(xui_widget pWidget, int iMode, float fScrollbarSize);
 /* 输出滚动条样式。 */
 XUI_API int xuiPopupGetScrollbarStyle(xui_widget pWidget, int* pMode, float* pScrollbarSize);
-/* 取面板子控件。 */
+/* 取面板子控件（借用句柄，由 Popup 所有，不得销毁）。 */
 XUI_API xui_widget xuiPopupGetPanelWidget(xui_widget pWidget);
-/* 取滚动视图子控件。 */
+/* 取滚动视图子控件（借用句柄，由 Popup 所有，不得销毁）。 */
 XUI_API xui_widget xuiPopupGetScrollViewWidget(xui_widget pWidget);
-/* 取滚动框架子控件。 */
+/* 取滚动框架子控件（借用句柄，由 Popup 所有，不得销毁）。 */
 XUI_API xui_widget xuiPopupGetFrameWidget(xui_widget pWidget);
-/* 取视口子控件。 */
+/* 取视口子控件（借用句柄，由 Popup 所有，不得销毁）。 */
 XUI_API xui_widget xuiPopupGetViewportWidget(xui_widget pWidget);
-/* 取内容容器（添加子控件的目标）。 */
+/* 取内容容器（添加子控件的目标；借用句柄，由 Popup 所有，不得销毁）。 */
 XUI_API xui_widget xuiPopupGetContentWidget(xui_widget pWidget);
-/* 取滚动模型（控件持有）。 */
+/* 取滚动模型（借用指针，Popup 销毁后失效）。 */
 XUI_API xui_scroll_model_t* xuiPopupGetModel(xui_widget pWidget);
 /* 读取弹层实际显示矩形。 */
 XUI_API xui_rect_t xuiPopupGetPopupRect(xui_widget pWidget);
@@ -11095,7 +11321,7 @@ XUI_API xui_rect_t xuiPopupGetContentRect(xui_widget pWidget);
 XUI_API int xuiPopupSetColors(xui_widget pWidget, uint32_t iPanel, uint32_t iBorder, uint32_t iShadow, uint32_t iBackdrop);
 /* 批量输出四色。 */
 XUI_API int xuiPopupGetColors(xui_widget pWidget, uint32_t* pPanel, uint32_t* pBorder, uint32_t* pShadow, uint32_t* pBackdrop);
-/* 设置度量（内边距/边框/阴影尺寸）。 */
+/* 设置度量（内边距/边框/阴影尺寸）；组合绘制范围不得超过上下文几何上限。 */
 XUI_API int xuiPopupSetMetrics(xui_widget pWidget, float fPadding, float fBorderWidth, float fShadowSize);
 /* 输出度量。 */
 XUI_API int xuiPopupGetMetrics(xui_widget pWidget, float* pPadding, float* pBorderWidth, float* pShadowSize);
@@ -11106,11 +11332,11 @@ XUI_API int xuiPopupGetChangeCount(xui_widget pWidget);
 /* 取菜单控件类型。 */
 #if XUI_ENABLE_MENU
 XUI_API xui_widget_type xuiMenuGetType(xui_context pContext);
-/* 创建上下文菜单（支持子菜单/快捷键/勾选）。 */
+/* 创建上下文菜单（支持子菜单/快捷键/勾选）；失败时将 *ppWidget 清空。 */
 XUI_API int xuiMenuCreate(xui_context pContext, xui_widget* ppWidget, const xui_menu_desc_t* pDesc);
-/* 批量设置菜单项。 */
+/* 批量设置菜单项；复制文字/快捷键，子菜单和 pUser 保持借用关系。 */
 XUI_API int xuiMenuSetItems(xui_widget pWidget, const xui_menu_item_t* pItems, int iCount);
-/* 追加菜单项。 */
+/* 追加菜单项；复制文字/快捷键，子菜单和 pUser 保持借用关系；运行中修改会取消当前按压并收起子菜单。 */
 XUI_API int xuiMenuAddItem(xui_widget pWidget, const xui_menu_item_t* pItem);
 /* 追加分隔线。 */
 XUI_API int xuiMenuAddSeparator(xui_widget pWidget);
@@ -11118,7 +11344,7 @@ XUI_API int xuiMenuAddSeparator(xui_widget pWidget);
 XUI_API int xuiMenuClear(xui_widget pWidget);
 /* 读取菜单项数。 */
 XUI_API int xuiMenuGetItemCount(xui_widget pWidget);
-/* 按索引输出菜单项描述。 */
+/* 按索引输出菜单项描述（借用指针；下次修改菜单项或销毁菜单后失效）。 */
 XUI_API const xui_menu_item_t* xuiMenuGetItem(xui_widget pWidget, int iIndex);
 /* 读取菜单项矩形。 */
 XUI_API xui_rect_t xuiMenuGetItemRect(xui_widget pWidget, int iIndex);
@@ -11132,7 +11358,7 @@ XUI_API int xuiMenuGetHoverIndex(xui_widget pWidget);
 XUI_API int xuiMenuSetHoverIndex(xui_widget pWidget, int iIndex);
 /* 确认当前悬停项（触发打开/选择）。 */
 XUI_API int xuiMenuCommitHover(xui_widget pWidget);
-/* 注册菜单项选择回调。 */
+/* 注册菜单项选择回调；子菜单未设置回调时，在打开链中继承最近父菜单回调。回调可销毁菜单或上下文。 */
 XUI_API int xuiMenuSetSelect(xui_widget pWidget, xui_menu_select_proc onSelect, void* pUser);
 /* 读取选择计数（测试用）。 */
 XUI_API int xuiMenuGetSelectCount(xui_widget pWidget);
@@ -11140,7 +11366,7 @@ XUI_API int xuiMenuGetSelectCount(xui_widget pWidget);
 XUI_API int xuiMenuSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiMenuGetFont(xui_widget pWidget);
-/* 以结构体设置度量组。 */
+/* 以结构体设置度量组；单项与最大菜单容量的组合几何均不得超过布局上限。 */
 XUI_API int xuiMenuSetMetrics(xui_widget pWidget, const xui_menu_metrics_t* pMetrics);
 /* 输出度量组。 */
 XUI_API int xuiMenuGetMetrics(xui_widget pWidget, xui_menu_metrics_t* pMetrics);
@@ -11150,7 +11376,7 @@ XUI_API int xuiMenuSetColors(xui_widget pWidget, const xui_menu_colors_t* pColor
 XUI_API int xuiMenuGetColors(xui_widget pWidget, xui_menu_colors_t* pColors);
 /* 测量菜单自然尺寸（弹出前）。 */
 XUI_API int xuiMenuMeasure(xui_widget pWidget, float* pWidth, float* pHeight);
-/* 在宿主坐标处弹出菜单。 */
+/* 在宿主坐标处弹出菜单；坐标必须位于 XUI 支持的上下文几何范围内。 */
 XUI_API int xuiMenuOpenAt(xui_widget pWidget, xui_widget pOwner, float fX, float fY);
 /* 在宿主控件下方弹出（下拉语义）。 */
 XUI_API int xuiMenuOpenForOwner(xui_widget pWidget, xui_widget pOwner);
@@ -11158,32 +11384,32 @@ XUI_API int xuiMenuOpenForOwner(xui_widget pWidget, xui_widget pOwner);
 XUI_API int xuiMenuClose(xui_widget pWidget);
 /* 菜单是否打开。 */
 XUI_API int xuiMenuIsOpen(xui_widget pWidget);
-/* 取弹层容器控件。 */
+/* 取弹层容器控件（借用句柄，由 Menu 所有，不得销毁）。 */
 XUI_API xui_widget xuiMenuGetPopupWidget(xui_widget pWidget);
-/* 取菜单内容控件。 */
+/* 取菜单内容控件（即 Menu 自身，借用句柄）。 */
 XUI_API xui_widget xuiMenuGetContentWidget(xui_widget pWidget);
-/* 取弹出宿主控件。 */
+/* 取弹出宿主控件（借用句柄，可能为 NULL）。 */
 XUI_API xui_widget xuiMenuGetOwner(xui_widget pWidget);
 #endif
 
 /* 取菜单栏控件类型。 */
 #if XUI_ENABLE_MENUBAR
 XUI_API xui_widget_type xuiMenuBarGetType(xui_context pContext);
-/* 创建菜单栏（顶部条 + 下拉菜单）。 */
+/* 创建菜单栏（顶部条 + 下拉菜单）；失败时将 *ppWidget 置 NULL。 */
 XUI_API int xuiMenuBarCreate(xui_context pContext, xui_widget* ppWidget, const xui_menubar_desc_t* pDesc);
-/* 批量设置菜单栏项。 */
+/* 批量设置菜单栏项；复制文字，菜单控件和 pUser 保持借用关系；绑定菜单销毁时对应项会被清空并禁用。 */
 XUI_API int xuiMenuBarSetItems(xui_widget pWidget, const xui_menubar_item_t* pItems, int iCount);
-/* 追加菜单栏项（绑定下拉菜单控件）。 */
+/* 追加菜单栏项（绑定同一上下文中的下拉 Menu 控件）；复制文字。 */
 XUI_API int xuiMenuBarAddItem(xui_widget pWidget, const char* sText, xui_widget pMenu, int iValue);
 /* 清空菜单栏项。 */
 XUI_API int xuiMenuBarClear(xui_widget pWidget);
 /* 读取项数。 */
 XUI_API int xuiMenuBarGetItemCount(xui_widget pWidget);
-/* 按索引输出项描述。 */
+/* 按索引输出项描述（借用指针，设置/清空项或销毁菜单栏后失效）。 */
 XUI_API const xui_menubar_item_t* xuiMenuBarGetItem(xui_widget pWidget, int iIndex);
 /* 读取项矩形。 */
 XUI_API xui_rect_t xuiMenuBarGetItemRect(xui_widget pWidget, int iIndex);
-/* 按索引绑定下拉菜单控件。 */
+/* 按索引绑定同一上下文中的下拉 Menu（借用句柄；Menu 销毁时自动清空并禁用该项）。 */
 XUI_API int xuiMenuBarSetItemMenu(xui_widget pWidget, int iIndex, xui_widget pMenu);
 /* 设置项启用状态。 */
 XUI_API int xuiMenuBarSetItemEnabled(xui_widget pWidget, int iIndex, int bEnabled);
@@ -11195,7 +11421,7 @@ XUI_API int xuiMenuBarSetItemMnemonic(xui_widget pWidget, int iIndex, int iMnemo
 XUI_API int xuiMenuBarGetHoverIndex(xui_widget pWidget);
 /* 设置悬停项。 */
 XUI_API int xuiMenuBarSetHoverIndex(xui_widget pWidget, int iIndex);
-/* 读取按压项。 */
+/* 读取当前按压或已打开项。 */
 XUI_API int xuiMenuBarGetActiveIndex(xui_widget pWidget);
 /* 读取当前打开下拉的项（无则 -1）。 */
 XUI_API int xuiMenuBarGetOpenIndex(xui_widget pWidget);
@@ -11205,15 +11431,15 @@ XUI_API int xuiMenuBarOpenItem(xui_widget pWidget, int iIndex);
 XUI_API int xuiMenuBarClose(xui_widget pWidget);
 /* 是否有下拉打开。 */
 XUI_API int xuiMenuBarIsOpen(xui_widget pWidget);
-/* 取当前打开的菜单控件。 */
+/* 取当前打开的菜单控件（借用句柄，关闭、解绑或销毁后失效）。 */
 XUI_API xui_widget xuiMenuBarGetOpenMenu(xui_widget pWidget);
-/* 注册菜单选择回调（透传自各下拉菜单）。 */
+/* 注册菜单选择回调（透传自各下拉菜单）；回调可销毁菜单栏或上下文。 */
 XUI_API int xuiMenuBarSetSelect(xui_widget pWidget, xui_menu_select_proc onSelect, void* pUser);
 /* 设置字体。 */
 XUI_API int xuiMenuBarSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiMenuBarGetFont(xui_widget pWidget);
-/* 以结构体设置度量组。 */
+/* 以结构体设置度量组；单项、最大项容量的组合几何及实际文本布局均不得超过布局上限。 */
 XUI_API int xuiMenuBarSetMetrics(xui_widget pWidget, const xui_menubar_metrics_t* pMetrics);
 /* 输出度量组。 */
 XUI_API int xuiMenuBarGetMetrics(xui_widget pWidget, xui_menubar_metrics_t* pMetrics);
@@ -11232,17 +11458,17 @@ XUI_API int xuiMenuBarGetChangeCount(xui_widget pWidget);
 XUI_API xui_widget_type xuiToolbarGetType(xui_context pContext);
 /* 创建工具栏（按钮组 + 分隔线 + 溢出菜单）。 */
 XUI_API int xuiToolbarCreate(xui_context pContext, xui_widget* ppWidget, const xui_toolbar_desc_t* pDesc);
-/* 注册按钮选择回调。 */
+/* 注册按钮选择回调；回调可销毁 Toolbar 或其 Context。 */
 XUI_API int xuiToolbarSetSelect(xui_widget pWidget, xui_toolbar_select_proc onSelect, void* pUser);
 /* 注册右键回调。 */
 XUI_API int xuiToolbarSetContextMenu(xui_widget pWidget, xui_toolbar_context_proc onContext, void* pUser);
-/* 启用溢出收纳（窄空间折叠进菜单）。 */
+/* 启用溢出收纳（窄空间折叠进菜单）；回调可销毁 Toolbar 或其 Context。 */
 XUI_API int xuiToolbarSetOverflow(xui_widget pWidget, int bEnabled, float fButtonSize, xui_toolbar_overflow_proc onOverflow, void* pUser);
 /* 读取溢出开关。 */
 XUI_API int xuiToolbarIsOverflowEnabled(xui_widget pWidget);
-/* 批量设置工具项；提示文本由 Toolbar 复制，sText 仍由调用方保持有效。 */
+/* 批量设置工具项；Toolbar 复制 sText/sTooltip，pIcon/pUser 仍由调用方管理，输入 tRect 被忽略。 */
 XUI_API int xuiToolbarSetItems(xui_widget pWidget, const xui_toolbar_item_t* pItems, int iCount);
-/* 追加工具项（类型区分按钮/展开/自定义）。 */
+/* 追加工具项（类型区分按钮、切换按钮与分隔线）。 */
 XUI_API int xuiToolbarAddItem(xui_widget pWidget, const char* sText, int iType, int iValue);
 /* 追加分隔线。 */
 XUI_API int xuiToolbarAddSeparator(xui_widget pWidget);
@@ -11262,7 +11488,7 @@ XUI_API int xuiToolbarSetOrientation(xui_widget pWidget, int iOrientation);
 XUI_API int xuiToolbarGetOrientation(xui_widget pWidget);
 /* 设置工具项与分隔线尺寸。 */
 XUI_API int xuiToolbarSetItemSize(xui_widget pWidget, float fWidth, float fHeight, float fSeparatorSize);
-/* 设置工具项分组（组内单选）。 */
+/* 设置工具项布局分组；相邻不同组之间使用 group gap。 */
 XUI_API int xuiToolbarSetItemGroup(xui_widget pWidget, int iIndex, int iGroup);
 /* 读取工具项分组。 */
 XUI_API int xuiToolbarGetItemGroup(xui_widget pWidget, int iIndex);
@@ -11276,7 +11502,7 @@ XUI_API const char* xuiToolbarGetHoverTooltip(xui_widget pWidget);
 XUI_API int xuiToolbarSetItemEnabled(xui_widget pWidget, int iIndex, int bEnabled);
 /* 读取启用状态。 */
 XUI_API int xuiToolbarIsItemEnabled(xui_widget pWidget, int iIndex);
-/* 设置工具项勾选态（可单选组）。 */
+/* 设置按钮或切换按钮的勾选态；分组不隐含互斥选择语义。 */
 XUI_API int xuiToolbarSetItemChecked(xui_widget pWidget, int iIndex, int bChecked);
 /* 读取勾选态。 */
 XUI_API int xuiToolbarGetItemChecked(xui_widget pWidget, int iIndex);
@@ -11325,7 +11551,8 @@ XUI_API int xuiStatusBarCreate(xui_context pContext, xui_widget* ppWidget, const
 XUI_API int xuiStatusBarSetSelect(xui_widget pWidget, xui_statusbar_select_proc onSelect, void* pUser);
 /* 注册条目右键回调。 */
 XUI_API int xuiStatusBarSetContextMenu(xui_widget pWidget, xui_statusbar_context_proc onContext, void* pUser);
-/* 批量设置条目。 */
+/* 批量设置条目。条目文本会被复制；pUser 等非文本指针仍由调用方管理。
+ * 输入条目的 tRect 会被忽略并由布局重新计算。 */
 XUI_API int xuiStatusBarSetItems(xui_widget pWidget, const xui_statusbar_item_t* pItems, int iCount);
 /* 向分区追加文本条目。 */
 XUI_API int xuiStatusBarAddText(xui_widget pWidget, int iSection, const char* sText, float fWidth, int bClickable, int iValue);
@@ -11333,13 +11560,13 @@ XUI_API int xuiStatusBarAddText(xui_widget pWidget, int iSection, const char* sT
 XUI_API int xuiStatusBarAddProgress(xui_widget pWidget, int iSection, float fMin, float fMax, float fValue, float fWidth);
 /* 追加固定宽度占位。 */
 XUI_API int xuiStatusBarAddSpacer(xui_widget pWidget, int iSection, float fWidth);
-/* 追加弹性占位（加权撑开）。 */
+/* 向任意分区追加弹性占位；剩余宽度先按各分区权重分配，再在分区内按权重分配。 */
 XUI_API int xuiStatusBarAddFlexibleSpacer(xui_widget pWidget, int iSection, float fWeight);
 /* 清空全部条目。 */
 XUI_API int xuiStatusBarClear(xui_widget pWidget);
 /* 读取条目数。 */
 XUI_API int xuiStatusBarGetItemCount(xui_widget pWidget);
-/* 按索引输出条目描述。 */
+/* 按索引输出只读条目描述；返回指针由控件持有，后续修改可能使其失效。 */
 XUI_API const xui_statusbar_item_t* xuiStatusBarGetItem(xui_widget pWidget, int iIndex);
 /* 读取条目矩形。 */
 XUI_API xui_rect_t xuiStatusBarGetItemRect(xui_widget pWidget, int iIndex);
@@ -11351,9 +11578,9 @@ XUI_API int xuiStatusBarSetItemEnabled(xui_widget pWidget, int iIndex, int bEnab
 XUI_API int xuiStatusBarIsItemEnabled(xui_widget pWidget, int iIndex);
 /* 设置条目可点。 */
 XUI_API int xuiStatusBarSetItemClickable(xui_widget pWidget, int iIndex, int bClickable);
-/* 读取可点标志。 */
+/* 读取可点能力标志；禁用状态不改变该标志，但会阻止实际激活。 */
 XUI_API int xuiStatusBarIsItemClickable(xui_widget pWidget, int iIndex);
-/* 设置条目文本。 */
+/* 设置条目文本（控件复制字符串）。 */
 XUI_API int xuiStatusBarSetItemText(xui_widget pWidget, int iIndex, const char* sText);
 /* 设置条目业务值。 */
 XUI_API int xuiStatusBarSetItemValue(xui_widget pWidget, int iIndex, int iValue);
@@ -11377,7 +11604,7 @@ XUI_API int xuiStatusBarGetActiveIndex(xui_widget pWidget);
 XUI_API int xuiStatusBarSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiStatusBarGetFont(xui_widget pWidget);
-/* 以结构体设置度量组。 */
+/* 以结构体设置度量组；取值与组合边界见 xui_statusbar_metrics_t。 */
 XUI_API int xuiStatusBarSetMetrics(xui_widget pWidget, const xui_statusbar_metrics_t* pMetrics);
 /* 输出度量组。 */
 XUI_API int xuiStatusBarGetMetrics(xui_widget pWidget, xui_statusbar_metrics_t* pMetrics);
@@ -11398,47 +11625,51 @@ XUI_API int xuiStatusBarGetChangeCount(xui_widget pWidget);
 XUI_API xui_widget_type xuiComboBoxGetType(xui_context pContext);
 /* 创建组合框（下拉选择，可编辑模式含内嵌输入框）。 */
 XUI_API int xuiComboBoxCreate(xui_context pContext, xui_widget* ppWidget, const xui_combobox_desc_t* pDesc);
-/* 注册选中项回调。 */
+/* 注册选中项回调；提交与回焦已完成后调用，回调可销毁控件。 */
 XUI_API int xuiComboBoxSetSelect(xui_widget pWidget, xui_combobox_select_proc onSelect, void* pUser);
-/* 注册可编辑文本变更回调。 */
+/* 注册可编辑文本变更回调；回调可销毁控件。 */
 XUI_API int xuiComboBoxSetTextChange(xui_widget pWidget, xui_combobox_text_proc onChange, void* pUser);
-/* 以字符串数组批量设置选项。 */
+/* 以字符串数组批量设置选项；数量不得超过 XUI_COMBOBOX_ITEM_CAPACITY，文本在调用期间读取并复制。 */
 XUI_API int xuiComboBoxSetItems(xui_widget pWidget, const char** arrItems, int iCount);
-/* 以完整项描述批量设置选项（含值/禁用/图标）。 */
+/* 以完整项描述批量设置选项（含值/禁用/图标）；项文本在调用期间读取并复制。 */
 XUI_API int xuiComboBoxSetItemData(xui_widget pWidget, const xui_combobox_item_t* pItems, int iCount);
-/* 按位数组设置各选项启用状态。 */
+/* 按位数组设置前 iCount 个选项的启用状态；arrEnabled 为 NULL 时重新启用
+ * 这些非分隔项。若当前选中项被禁用，选中状态清空。 */
 XUI_API int xuiComboBoxSetEnabledItems(xui_widget pWidget, const int* arrEnabled, int iCount);
 /* 读取选项数量。 */
 XUI_API int xuiComboBoxGetItemCount(xui_widget pWidget);
-/* 按索引输出选项描述。 */
+/* 按索引输出只读选项描述；返回指针由控件持有，后续数据更新会使其失效。 */
 XUI_API const xui_combobox_item_t* xuiComboBoxGetItem(xui_widget pWidget, int iIndex);
-/* 按索引读取选项文本。 */
+/* 按索引读取控件持有的只读文本；后续数据更新会使其失效。 */
 XUI_API const char* xuiComboBoxGetItemText(xui_widget pWidget, int iIndex);
 /* 按索引读取选项业务值。 */
 XUI_API int xuiComboBoxGetItemValue(xui_widget pWidget, int iIndex);
 /* 按索引查询启用状态。 */
 XUI_API int xuiComboBoxIsItemEnabled(xui_widget pWidget, int iIndex);
-/* 按索引设置选中项。 */
+/* 按索引设置选中项；-1、越界、禁用项或分隔项均清空选择。可编辑模式下，
+ * 若选项文本超过最大长度则返回 XUI_ERROR_BUFFER_TOO_SMALL 并保持原选择。 */
 XUI_API int xuiComboBoxSetSelected(xui_widget pWidget, int iIndex);
 /* 读取选中索引（未选 -1）。 */
 XUI_API int xuiComboBoxGetSelected(xui_widget pWidget);
-/* 按业务值设置选中项。 */
+/* 按业务值设置首个匹配且可用的选项；无匹配项时清空选择。可编辑模式下，
+ * 若匹配项文本超过最大长度则返回 XUI_ERROR_BUFFER_TOO_SMALL 并保持原选择。 */
 XUI_API int xuiComboBoxSetSelectedValue(xui_widget pWidget, int iValue);
-/* 读取选中项业务值。 */
+/* 读取选中项业务值；未选时返回 0，请配合 GetSelected 区分合法值 0。 */
 XUI_API int xuiComboBoxGetSelectedValue(xui_widget pWidget);
-/* 设置模式（只选/可编辑/可多选）。 */
+/* 设置模式（只选/可编辑）。切换到可编辑模式时会同步选中项文本；若文本超过
+ * 最大长度则返回 XUI_ERROR_BUFFER_TOO_SMALL，并保持原模式、选择与焦点。 */
 XUI_API int xuiComboBoxSetMode(xui_widget pWidget, int iMode);
 /* 读取模式。 */
 XUI_API int xuiComboBoxGetMode(xui_widget pWidget);
-/* 设置可编辑文本。 */
+/* 设置可编辑文本；应用最大长度并在 UTF-8 字素边界截断。 */
 XUI_API int xuiComboBoxSetText(xui_widget pWidget, const char* sText);
-/* 读取显示文本。 */
+/* 读取控件持有的只读显示文本；下一次文本、选择或数据更新会使其失效。 */
 XUI_API const char* xuiComboBoxGetText(xui_widget pWidget);
 /* 设置占位文本。 */
 XUI_API int xuiComboBoxSetPlaceholder(xui_widget pWidget, const char* sText);
 /* 读取占位文本。 */
 XUI_API const char* xuiComboBoxGetPlaceholder(xui_widget pWidget);
-/* 设置可编辑最大长度。 */
+/* 设置可编辑文本最大 UTF-8 字节数；0 表示不限。只选模式下不截断或清除当前选择。 */
 XUI_API int xuiComboBoxSetMaxLength(xui_widget pWidget, int iMaxLength);
 /* 读取最大长度。 */
 XUI_API int xuiComboBoxGetMaxLength(xui_widget pWidget);
@@ -11458,11 +11689,11 @@ XUI_API int xuiComboBoxClose(xui_widget pWidget);
 XUI_API int xuiComboBoxToggle(xui_widget pWidget);
 /* 下拉是否打开。 */
 XUI_API int xuiComboBoxIsOpen(xui_widget pWidget);
-/* 设置下拉高度。 */
+/* 设置下拉高度；参数须为 [0, XUI_LAYOUT_UNBOUNDED] 内的有限值。 */
 XUI_API int xuiComboBoxSetPopupHeight(xui_widget pWidget, float fHeight);
 /* 读取下拉高度。 */
 XUI_API float xuiComboBoxGetPopupHeight(xui_widget pWidget);
-/* 设置下拉最大高度（超出滚动）。 */
+/* 设置下拉最大高度（超出滚动）；参数须为 [0, XUI_LAYOUT_UNBOUNDED] 内的有限值。 */
 XUI_API int xuiComboBoxSetPopupMaxHeight(xui_widget pWidget, float fMaxHeight);
 /* 读取下拉最大高度。 */
 XUI_API float xuiComboBoxGetPopupMaxHeight(xui_widget pWidget);
@@ -11470,7 +11701,8 @@ XUI_API float xuiComboBoxGetPopupMaxHeight(xui_widget pWidget);
 XUI_API int xuiComboBoxSetPopupPlacement(xui_widget pWidget, int iPlacement);
 /* 读取下拉方位。 */
 XUI_API int xuiComboBoxGetPopupPlacement(xui_widget pWidget);
-/* 设置度量（项高/边框宽）。 */
+/* 设置度量（项高/边框宽）；参数须为 [0, XUI_LAYOUT_UNBOUNDED] 内的有限值，
+ * 项高 0 表示保持当前值。 */
 XUI_API int xuiComboBoxSetMetrics(xui_widget pWidget, float fItemHeight, float fBorderWidth);
 /* 输出度量。 */
 XUI_API int xuiComboBoxGetMetrics(xui_widget pWidget, float* pItemHeight, float* pBorderWidth);
@@ -11494,15 +11726,15 @@ XUI_API int xuiComboBoxGetButtonColors(xui_widget pWidget, uint32_t* pButton, ui
 XUI_API int xuiComboBoxSetPopupColors(xui_widget pWidget, uint32_t iPanel, uint32_t iBorder, uint32_t iShadow, uint32_t iHover, uint32_t iText, uint32_t iHoverText, uint32_t iDisabledText, uint32_t iSeparator);
 /* 批量输出下拉八色。 */
 XUI_API int xuiComboBoxGetPopupColors(xui_widget pWidget, uint32_t* pPanel, uint32_t* pBorder, uint32_t* pShadow, uint32_t* pHover, uint32_t* pText, uint32_t* pHoverText, uint32_t* pDisabledText, uint32_t* pSeparator);
-/* 设置字体。 */
+/* 设置借用字体；NULL 恢复上下文默认字体。 */
 XUI_API int xuiComboBoxSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiComboBoxGetFont(xui_widget pWidget);
-/* 取下拉菜单控件。 */
+/* 取内部下拉菜单控件；返回借用句柄，ComboBox 销毁后失效。 */
 XUI_API xui_widget xuiComboBoxGetMenuWidget(xui_widget pWidget);
-/* 取弹层容器控件。 */
+/* 取内部弹层容器控件；返回借用句柄，ComboBox 销毁后失效。 */
 XUI_API xui_widget xuiComboBoxGetPopupWidget(xui_widget pWidget);
-/* 取内嵌输入框控件（可编辑模式）。 */
+/* 取内嵌输入框控件（可编辑模式）；返回借用句柄。 */
 XUI_API xui_widget xuiComboBoxGetInputWidget(xui_widget pWidget);
 /* 读取触发按钮矩形。 */
 XUI_API xui_rect_t xuiComboBoxGetButtonRect(xui_widget pWidget);
@@ -11517,25 +11749,30 @@ XUI_API int xuiComboBoxGetChangeCount(xui_widget pWidget);
 /* 取级联选择器控件类型。 */
 #if XUI_ENABLE_CASCADER
 XUI_API xui_widget_type xuiCascaderGetType(xui_context pContext);
-/* 创建级联选择器（多列弹层逐级选择）。 */
+/* 创建级联选择器（多列弹层逐级选择）。初始路径上的各项必须启用；未开启
+ * bSelectAnyLevel 时末项必须为叶子。弹层条目仅在同一项按下并抬起时提交；
+ * 支持方向键、Home/End、PageUp/PageDown、F4 与 Alt+Up/Down。 */
 XUI_API int xuiCascaderCreate(xui_context pContext, xui_widget* ppWidget, const xui_cascader_desc_t* pDesc);
-/* 注册选择路径变更回调。 */
+/* 注册选择路径变更回调；回调在弹层关闭后触发，并允许销毁控件。 */
 XUI_API int xuiCascaderSetChange(xui_widget pWidget, xui_cascader_change_proc onChange, void* pUser);
-/* 批量设置选项树（扁平数组 + 层级字段）。 */
+/* 批量设置选项树（扁平数组 + 层级字段）。同级 value 必须唯一，树深不超过
+ * XUI_CASCADER_PATH_CAPACITY；控件深拷贝 sText，pUser 保持借用。 */
 XUI_API int xuiCascaderSetItems(xui_widget pWidget, const xui_cascader_item_t* pItems, int iCount);
 /* 读取选项总数。 */
 XUI_API int xuiCascaderGetItemCount(xui_widget pWidget);
-/* 按索引输出选项描述。 */
+/* 按索引输出选项描述；返回借用指针，在下次 SetItems 或控件销毁后失效。 */
 XUI_API const xui_cascader_item_t* xuiCascaderGetItem(xui_widget pWidget, int iIndex);
-/* 按各级值数组设置选中路径。 */
+/* 按各级值数组设置选中路径。路径上的各项必须启用；未开启“任意层级可选”时
+ * 末项必须为叶子。校验失败时保留原选择和交互状态。 */
 XUI_API int xuiCascaderSetSelectedPath(xui_widget pWidget, const int* arrValues, int iDepth);
-/* 输出选中路径值数组；返回实际深度。 */
+/* 输出选中路径值数组；返回实际深度。arrValues 可为 NULL 以查询深度；容量不足时
+ * 写入可容纳的前缀，返回值仍为完整深度。 */
 XUI_API int xuiCascaderGetSelectedPath(xui_widget pWidget, int* arrValues, int iCapacity);
 /* 读取选中深度。 */
 XUI_API int xuiCascaderGetSelectedDepth(xui_widget pWidget);
-/* 读取选中叶子值（未选完返回 -1）。 */
+/* 读取选中末级项索引（未选返回 -1）。 */
 XUI_API int xuiCascaderGetSelectedLeaf(xui_widget pWidget);
-/* 读取选中路径文本（按分隔符拼接）。 */
+/* 读取选中路径文本（按分隔符拼接）；返回控件内部借用指针。 */
 XUI_API const char* xuiCascaderGetSelectedText(xui_widget pWidget);
 /* 清除选择。 */
 XUI_API int xuiCascaderClear(xui_widget pWidget);
@@ -11555,7 +11792,8 @@ XUI_API int xuiCascaderGetShowAllLevels(xui_widget pWidget);
 XUI_API int xuiCascaderSetClearable(xui_widget pWidget, int bClearable);
 /* 读取清除按钮开关。 */
 XUI_API int xuiCascaderGetClearable(xui_widget pWidget);
-/* 设置允许选中任意层级（非仅叶子）。 */
+/* 设置允许选中任意层级（非仅叶子）。关闭该能力时，若当前选择为非叶项，
+ * 将清除选择但不触发用户 change 回调。 */
 XUI_API int xuiCascaderSetSelectAnyLevel(xui_widget pWidget, int bSelectAnyLevel);
 /* 读取任意层级可选开关。 */
 XUI_API int xuiCascaderGetSelectAnyLevel(xui_widget pWidget);
@@ -11563,7 +11801,8 @@ XUI_API int xuiCascaderGetSelectAnyLevel(xui_widget pWidget);
 XUI_API int xuiCascaderSetExpandTrigger(xui_widget pWidget, int iExpandTrigger);
 /* 读取展开触发方式。 */
 XUI_API int xuiCascaderGetExpandTrigger(xui_widget pWidget);
-/* 设置弹层尺寸（列宽/高/最大高）。 */
+/* 设置弹层尺寸（列宽/高/最大高）。参数须位于 [0, XUI_LAYOUT_UNBOUNDED]；
+ * 列宽和最大高为 0 时保留当前值，弹层高为 0 时按内容自动计算。 */
 XUI_API int xuiCascaderSetPopupSize(xui_widget pWidget, float fColumnWidth, float fPopupHeight, float fPopupMaxHeight);
 /* 输出弹层尺寸参数。 */
 XUI_API int xuiCascaderGetPopupSize(xui_widget pWidget, float* pColumnWidth, float* pPopupHeight, float* pPopupMaxHeight);
@@ -11571,7 +11810,8 @@ XUI_API int xuiCascaderGetPopupSize(xui_widget pWidget, float* pColumnWidth, flo
 XUI_API int xuiCascaderSetPopupPlacement(xui_widget pWidget, int iPlacement);
 /* 读取弹出方位。 */
 XUI_API int xuiCascaderGetPopupPlacement(xui_widget pWidget);
-/* 设置度量（项高/边框宽）。 */
+/* 设置度量（项高/边框宽）。项高须位于 (0, XUI_LAYOUT_UNBOUNDED]，
+ * 边框宽须位于 [0, XUI_LAYOUT_UNBOUNDED]。 */
 XUI_API int xuiCascaderSetMetrics(xui_widget pWidget, float fItemHeight, float fBorderWidth);
 /* 输出度量参数。 */
 XUI_API int xuiCascaderGetMetrics(xui_widget pWidget, float* pItemHeight, float* pBorderWidth);
@@ -11595,21 +11835,21 @@ XUI_API int xuiCascaderGetButtonColors(xui_widget pWidget, uint32_t* pButton, ui
 XUI_API int xuiCascaderSetPopupColors(xui_widget pWidget, uint32_t iPanel, uint32_t iBorder, uint32_t iShadow, uint32_t iText, uint32_t iMutedText, uint32_t iHover, uint32_t iActive, uint32_t iSelected, uint32_t iActiveText, uint32_t iDisabledText, uint32_t iSeparator);
 /* 批量输出弹层十一色。 */
 XUI_API int xuiCascaderGetPopupColors(xui_widget pWidget, uint32_t* pPanel, uint32_t* pBorder, uint32_t* pShadow, uint32_t* pText, uint32_t* pMutedText, uint32_t* pHover, uint32_t* pActive, uint32_t* pSelected, uint32_t* pActiveText, uint32_t* pDisabledText, uint32_t* pSeparator);
-/* 设置字体。 */
+/* 设置字体；字体句柄保持借用，调用方须保证其生命周期覆盖控件使用期。 */
 XUI_API int xuiCascaderSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
 XUI_API xui_font xuiCascaderGetFont(xui_widget pWidget);
-/* 设置占位文本。 */
+/* 设置占位文本；控件复制文本，超出内部容量时按完整 UTF-8 边界截断。 */
 XUI_API int xuiCascaderSetPlaceholder(xui_widget pWidget, const char* sPlaceholder);
-/* 读取占位文本。 */
+/* 读取占位文本；返回控件内部借用指针。 */
 XUI_API const char* xuiCascaderGetPlaceholder(xui_widget pWidget);
-/* 设置路径文本分隔符。 */
+/* 设置路径文本分隔符；控件复制文本，超出内部容量时按完整 UTF-8 边界截断。 */
 XUI_API int xuiCascaderSetSeparator(xui_widget pWidget, const char* sSeparator);
-/* 读取分隔符。 */
+/* 读取分隔符；返回控件内部借用指针。 */
 XUI_API const char* xuiCascaderGetSeparator(xui_widget pWidget);
-/* 取弹层控件；未打开返回 NULL。 */
+/* 取弹层控件；返回借用句柄，不得由调用方销毁。 */
 XUI_API xui_widget xuiCascaderGetPopupWidget(xui_widget pWidget);
-/* 取弹层面板控件。 */
+/* 取弹层面板控件；返回借用句柄，不得由调用方销毁。 */
 XUI_API xui_widget xuiCascaderGetPanelWidget(xui_widget pWidget);
 /* 读取当前展示列数。 */
 XUI_API int xuiCascaderGetColumnCount(xui_widget pWidget);
@@ -11630,9 +11870,9 @@ XUI_API int xuiCascaderGetChangeCount(xui_widget pWidget);
 /* 取颜色选择器控件类型。 */
 #if XUI_ENABLE_COLOR_PICKER
 XUI_API xui_widget_type xuiColorPickerGetType(xui_context pContext);
-/* 创建颜色选择器（弹层面板含饱和度/色相/透明度/Hex/预设）。 */
+/* 创建颜色选择器（弹层面板含饱和度/色相/透明度/Hex/预设）。描述中的色板在创建时复制，字体为借用句柄。 */
 XUI_API int xuiColorPickerCreate(xui_context pContext, xui_widget* ppWidget, const xui_color_picker_desc_t* pDesc);
-/* 注册颜色变更回调。 */
+/* 注册颜色变更回调；由用户交互触发，回调可销毁当前控件。 */
 XUI_API int xuiColorPickerSetChange(xui_widget pWidget, xui_color_picker_change_proc onChange, void* pUser);
 /* 设置当前颜色。 */
 XUI_API int xuiColorPickerSetColor(xui_widget pWidget, uint32_t iColor);
@@ -11648,9 +11888,9 @@ XUI_API int xuiColorPickerSetAlphaEnabled(xui_widget pWidget, int bEnabled);
 XUI_API int xuiColorPickerGetAlphaEnabled(xui_widget pWidget);
 /* 以十六进制串设置颜色。 */
 XUI_API int xuiColorPickerSetHex(xui_widget pWidget, const char* sHex);
-/* 以十六进制串读取颜色。 */
+/* 以十六进制串读取颜色；返回值由控件持有，在下一次颜色或透明度配置变更后失效。 */
 XUI_API const char* xuiColorPickerGetHex(xui_widget pWidget);
-/* 设置预设色板。 */
+/* 设置预设色板；数量不得超过 XUI_COLOR_PICKER_PALETTE_CAPACITY，颜色数组仅在调用期间读取。 */
 XUI_API int xuiColorPickerSetPalette(xui_widget pWidget, const uint32_t* arrColors, int iCount);
 /* 读取色板数量。 */
 XUI_API int xuiColorPickerGetPaletteCount(xui_widget pWidget);
@@ -11664,7 +11904,7 @@ XUI_API int xuiColorPickerClose(xui_widget pWidget);
 XUI_API int xuiColorPickerToggle(xui_widget pWidget);
 /* 弹层是否打开。 */
 XUI_API int xuiColorPickerIsOpen(xui_widget pWidget);
-/* 设置弹层尺寸。 */
+/* 设置弹层尺寸；0 表示保持当前值，非零尺寸至少为 408x260，且不得超过 XUI_LAYOUT_UNBOUNDED。 */
 XUI_API int xuiColorPickerSetPopupSize(xui_widget pWidget, float fWidth, float fHeight);
 /* 输出弹层尺寸。 */
 XUI_API int xuiColorPickerGetPopupSize(xui_widget pWidget, float* pWidth, float* pHeight);
@@ -11672,7 +11912,7 @@ XUI_API int xuiColorPickerGetPopupSize(xui_widget pWidget, float* pWidth, float*
 XUI_API int xuiColorPickerSetPopupPlacement(xui_widget pWidget, int iPlacement);
 /* 读取弹层方位。 */
 XUI_API int xuiColorPickerGetPopupPlacement(xui_widget pWidget);
-/* 设置度量（边框宽）。 */
+/* 设置度量（边框宽）；参数须为 [0, XUI_LAYOUT_UNBOUNDED] 内的有限值。 */
 XUI_API int xuiColorPickerSetMetrics(xui_widget pWidget, float fBorderWidth);
 /* 输出度量。 */
 XUI_API int xuiColorPickerGetMetrics(xui_widget pWidget, float* pBorderWidth);
@@ -11696,13 +11936,13 @@ XUI_API int xuiColorPickerGetButtonColors(xui_widget pWidget, uint32_t* pButton,
 XUI_API int xuiColorPickerSetPopupColors(xui_widget pWidget, uint32_t iPanel, uint32_t iBorder, uint32_t iShadow, uint32_t iText, uint32_t iMutedText, uint32_t iAccent, uint32_t iField, uint32_t iFieldBorder, uint32_t iSeparator);
 /* 批量输出弹层九色。 */
 XUI_API int xuiColorPickerGetPopupColors(xui_widget pWidget, uint32_t* pPanel, uint32_t* pBorder, uint32_t* pShadow, uint32_t* pText, uint32_t* pMutedText, uint32_t* pAccent, uint32_t* pField, uint32_t* pFieldBorder, uint32_t* pSeparator);
-/* 设置字体。 */
+/* 设置字体；字体句柄为借用引用，调用方须保证其生命周期覆盖控件使用期。 */
 XUI_API int xuiColorPickerSetFont(xui_widget pWidget, xui_font pFont);
-/* 读取字体。 */
+/* 读取借用的字体句柄。 */
 XUI_API xui_font xuiColorPickerGetFont(xui_widget pWidget);
-/* 取弹层控件。 */
+/* 取借用的弹层控件句柄；不得由调用方销毁。 */
 XUI_API xui_widget xuiColorPickerGetPopupWidget(xui_widget pWidget);
-/* 取弹层面板控件。 */
+/* 取借用的弹层面板控件句柄；不得由调用方销毁。 */
 XUI_API xui_widget xuiColorPickerGetPanelWidget(xui_widget pWidget);
 /* 读取触发按钮色块矩形。 */
 XUI_API xui_rect_t xuiColorPickerGetSwatchRect(xui_widget pWidget);
@@ -11739,19 +11979,19 @@ XUI_API int xuiColorPickerGetChangeCount(xui_widget pWidget);
 XUI_API xui_widget_type xuiIconPickerGetType(xui_context pContext);
 /* 创建图标选择器（弹层网格浏览图标类别）。 */
 XUI_API int xuiIconPickerCreate(xui_context pContext, xui_widget* ppWidget, const xui_icon_picker_desc_t* pDesc);
-/* 注册选中图标回调。 */
+/* 注册选中图标回调；回调可销毁当前控件。 */
 XUI_API int xuiIconPickerSetChange(xui_widget pWidget, xui_icon_picker_change_proc onChange, void* pUser);
-/* 注册显示文本格式化回调。 */
+/* 注册显示文本格式化回调；回调在绘制期间同步执行，仅应写入给定缓冲区。 */
 XUI_API int xuiIconPickerSetFormatter(xui_widget pWidget, xui_icon_picker_format_proc onFormat, void* pUser);
-/* 设置浏览的图标类别。 */
+/* 设置同一 xui_context 内的图标类别（控件持有引用；重复设置同一类别不会清除选择）。 */
 XUI_API int xuiIconPickerSetCategory(xui_widget pWidget, xui_icon_category pCategory);
-/* 读取图标类别。 */
+/* 读取图标类别（借用句柄，不增加引用计数）。 */
 XUI_API xui_icon_category xuiIconPickerGetCategory(xui_widget pWidget);
-/* 按图标 id 设置选中。 */
+/* 按图标 id 设置选中；程序化设置不触发选中回调。 */
 XUI_API int xuiIconPickerSetSelectedId(xui_widget pWidget, xui_icon_id iId);
 /* 读取选中图标 id（未选返回 0）。 */
 XUI_API xui_icon_id xuiIconPickerGetSelectedId(xui_widget pWidget);
-/* 取选中图标句柄；未选返回 NULL。 */
+/* 取选中图标借用句柄；未选返回 NULL，类别变更后旧句柄可能失效。 */
 XUI_API xui_icon xuiIconPickerGetSelectedIcon(xui_widget pWidget);
 /* 清除选中。 */
 XUI_API int xuiIconPickerClearSelection(xui_widget pWidget);
@@ -11761,17 +12001,17 @@ XUI_API int xuiIconPickerSetTextMode(xui_widget pWidget, int iMode);
 XUI_API int xuiIconPickerGetTextMode(xui_widget pWidget);
 /* 设置占位文本。 */
 XUI_API int xuiIconPickerSetPlaceholder(xui_widget pWidget, const char* sText);
-/* 读取占位文本。 */
+/* 读取控件持有的占位文本；返回指针在下次设置或销毁控件前有效。 */
 XUI_API const char* xuiIconPickerGetPlaceholder(xui_widget pWidget);
-/* 设置弹层网格行列数。 */
+/* 设置弹层网格行列数；每一维范围为 [1, 1024]，组合几何不得超过 XUI_LAYOUT_UNBOUNDED。 */
 XUI_API int xuiIconPickerSetGrid(xui_widget pWidget, int iRows, int iColumns);
 /* 输出网格行列数。 */
 XUI_API int xuiIconPickerGetGrid(xui_widget pWidget, int* pRows, int* pColumns);
-/* 设置网格单元尺寸。 */
+/* 设置网格单元尺寸；两倍图标内边距必须小于对应单元尺寸，组合几何不得超过 XUI_LAYOUT_UNBOUNDED。 */
 XUI_API int xuiIconPickerSetCellSize(xui_widget pWidget, float fWidth, float fHeight);
 /* 输出单元尺寸。 */
 XUI_API int xuiIconPickerGetCellSize(xui_widget pWidget, float* pWidth, float* pHeight);
-/* 设置间距（格距两向/图标内边距）。 */
+/* 设置间距（格距两向/图标内边距）；组合几何不得超过 XUI_LAYOUT_UNBOUNDED。 */
 XUI_API int xuiIconPickerSetSpacing(xui_widget pWidget, float fGapX, float fGapY, float fIconPadding);
 /* 输出间距参数。 */
 XUI_API int xuiIconPickerGetSpacing(xui_widget pWidget, float* pGapX, float* pGapY, float* pIconPadding);
@@ -11793,7 +12033,7 @@ XUI_API int xuiIconPickerToggle(xui_widget pWidget);
 XUI_API int xuiIconPickerIsOpen(xui_widget pWidget);
 /* 滚动到指定图标可见。 */
 XUI_API int xuiIconPickerEnsureVisible(xui_widget pWidget, xui_icon_id iId);
-/* 设置度量（边框宽/滚动条尺寸）。 */
+/* 设置度量（边框宽/compact 滚动条尺寸）；滚动条尺寸范围为 (0, 8]。 */
 XUI_API int xuiIconPickerSetMetrics(xui_widget pWidget, float fBorderWidth, float fScrollbarSize);
 /* 输出度量。 */
 XUI_API int xuiIconPickerGetMetrics(xui_widget pWidget, float* pBorderWidth, float* pScrollbarSize);
@@ -11819,13 +12059,13 @@ XUI_API int xuiIconPickerSetPopupColors(xui_widget pWidget, uint32_t iPanel, uin
 XUI_API int xuiIconPickerGetPopupColors(xui_widget pWidget, uint32_t* pPanel, uint32_t* pBorder, uint32_t* pShadow, uint32_t* pHover, uint32_t* pSelected, uint32_t* pFocus);
 /* 设置字体。 */
 XUI_API int xuiIconPickerSetFont(xui_widget pWidget, xui_font pFont);
-/* 读取字体。 */
+/* 读取借用字体句柄。 */
 XUI_API xui_font xuiIconPickerGetFont(xui_widget pWidget);
-/* 取弹层控件。 */
+/* 取内部弹层借用句柄；不得销毁或重挂，选择器销毁后失效。 */
 XUI_API xui_widget xuiIconPickerGetPopupWidget(xui_widget pWidget);
-/* 取弹层内滚动框架控件。 */
+/* 取内部滚动框架借用句柄；不得销毁或重挂，选择器销毁后失效。 */
 XUI_API xui_widget xuiIconPickerGetFrameWidget(xui_widget pWidget);
-/* 取弹层内视口控件。 */
+/* 取内部视口借用句柄；不得销毁或重挂，选择器销毁后失效。 */
 XUI_API xui_widget xuiIconPickerGetViewportWidget(xui_widget pWidget);
 /* 读取触发按钮矩形。 */
 XUI_API xui_rect_t xuiIconPickerGetButtonRect(xui_widget pWidget);
@@ -11848,15 +12088,15 @@ XUI_API int xuiIconPickerGetChangeCount(xui_widget pWidget);
 XUI_API xui_widget_type xuiDatePickerGetType(xui_context pContext);
 /* 创建日期选择器（日历弹层，支持时刻与范围模式）。 */
 XUI_API int xuiDatePickerCreate(xui_context pContext, xui_widget* ppWidget, const xui_date_picker_desc_t* pDesc);
-/* 注册值调整中回调（翻页/选日未提交）。 */
+/* 注册值调整中回调（翻页/选日未提交）；回调可销毁控件。 */
 XUI_API int xuiDatePickerSetChanging(xui_widget pWidget, xui_date_picker_proc onChanging, void* pUser);
-/* 注册值变更回调。 */
+/* 注册值变更回调；回调可销毁控件。 */
 XUI_API int xuiDatePickerSetChange(xui_widget pWidget, xui_date_picker_proc onChange, void* pUser);
-/* 注册确认回调。 */
+/* 注册确认回调；回调触发时弹层已关闭，且回调可销毁控件。 */
 XUI_API int xuiDatePickerSetCommit(xui_widget pWidget, xui_date_picker_proc onCommit, void* pUser);
-/* 注册取消回调。 */
+/* 注册取消回调；回调触发时弹层已关闭，且回调可销毁控件。 */
 XUI_API int xuiDatePickerSetCancel(xui_widget pWidget, xui_date_picker_proc onCancel, void* pUser);
-/* 注册清除回调。 */
+/* 注册清除回调；回调触发时弹层已关闭，且回调可销毁控件。 */
 XUI_API int xuiDatePickerSetClear(xui_widget pWidget, xui_date_picker_proc onClear, void* pUser);
 /* 设置模式（单值/范围）。 */
 XUI_API int xuiDatePickerSetMode(xui_widget pWidget, int iMode);
@@ -11866,7 +12106,7 @@ XUI_API int xuiDatePickerGetMode(xui_widget pWidget);
 XUI_API int xuiDatePickerSetNullable(xui_widget pWidget, int bNullable);
 /* 读取可空开关。 */
 XUI_API int xuiDatePickerGetNullable(xui_widget pWidget);
-/* 设置当前日期时刻。 */
+/* 设置当前日期时刻；程序化赋值不触发用户交互回调。 */
 XUI_API int xuiDatePickerSetValue(xui_widget pWidget, xtime tValue);
 /* 读取当前值。 */
 XUI_API xtime xuiDatePickerGetValue(xui_widget pWidget);
@@ -11874,15 +12114,15 @@ XUI_API xtime xuiDatePickerGetValue(xui_widget pWidget);
 XUI_API int xuiDatePickerHasValue(xui_widget pWidget);
 /* 清除当前值。 */
 XUI_API int xuiDatePickerClearValue(xui_widget pWidget);
-/* 设置范围起止值。 */
+/* 设置范围起止值；程序化赋值不触发用户交互回调。 */
 XUI_API int xuiDatePickerSetRangeValue(xui_widget pWidget, xtime tStart, xtime tEnd);
 /* 输出范围起止值。 */
 XUI_API int xuiDatePickerGetRangeValue(xui_widget pWidget, xtime* pStart, xtime* pEnd);
 /* 是否已有范围值。 */
 XUI_API int xuiDatePickerHasRangeValue(xui_widget pWidget);
-/* 设置可选上下限。 */
+/* 设置可选上下限；tMin > tMax 时返回 XUI_ERROR_INVALID_ARGUMENT，原状态不变。 */
 XUI_API int xuiDatePickerSetLimits(xui_widget pWidget, xtime tMin, xtime tMax);
-/* 按有无标志设置可选范围。 */
+/* 按有无标志设置可选范围；双端有效时要求 tMin <= tMax。 */
 XUI_API int xuiDatePickerSetLimitRange(xui_widget pWidget, int bHasMin, xtime tMin, int bHasMax, xtime tMax);
 /* 输出可选范围（含有无标志）。 */
 XUI_API int xuiDatePickerGetLimitRange(xui_widget pWidget, int* pHasMin, xtime* pMin, int* pHasMax, xtime* pMax);
@@ -11890,11 +12130,11 @@ XUI_API int xuiDatePickerGetLimitRange(xui_widget pWidget, int* pHasMin, xtime* 
 XUI_API int xuiDatePickerClearLimits(xui_widget pWidget);
 /* 设置显示格式串。 */
 XUI_API int xuiDatePickerSetFormat(xui_widget pWidget, const char* sFormat);
-/* 读取格式串。 */
+/* 读取格式串；返回控件内部借用字符串，下次修改或销毁控件后失效。 */
 XUI_API const char* xuiDatePickerGetFormat(xui_widget pWidget);
 /* 设置范围显示分隔符。 */
 XUI_API int xuiDatePickerSetRangeSeparator(xui_widget pWidget, const char* sSeparator);
-/* 读取范围分隔符。 */
+/* 读取范围分隔符；返回控件内部借用字符串，下次修改或销毁控件后失效。 */
 XUI_API const char* xuiDatePickerGetRangeSeparator(xui_widget pWidget);
 /* 设置显示秒级时间。 */
 XUI_API int xuiDatePickerSetShowSecond(xui_widget pWidget, int bShowSecond);
@@ -11916,7 +12156,8 @@ XUI_API int xuiDatePickerClose(xui_widget pWidget);
 XUI_API int xuiDatePickerToggle(xui_widget pWidget);
 /* 弹层是否打开。 */
 XUI_API int xuiDatePickerIsOpen(xui_widget pWidget);
-/* 设置弹层尺寸。 */
+/* 设置弹层尺寸；单个参数为 0 时保留该维度，非零尺寸须满足当前模式的最小布局，
+ * 且不得超过 XUI_LAYOUT_UNBOUNDED。两个参数均为 0 时不改变自定义尺寸状态。 */
 XUI_API int xuiDatePickerSetPopupSize(xui_widget pWidget, float fWidth, float fHeight);
 /* 输出弹层尺寸。 */
 XUI_API int xuiDatePickerGetPopupSize(xui_widget pWidget, float* pWidth, float* pHeight);
@@ -11924,7 +12165,7 @@ XUI_API int xuiDatePickerGetPopupSize(xui_widget pWidget, float* pWidth, float* 
 XUI_API int xuiDatePickerSetPopupPlacement(xui_widget pWidget, int iPlacement);
 /* 读取弹层方位。 */
 XUI_API int xuiDatePickerGetPopupPlacement(xui_widget pWidget);
-/* 设置度量（边框宽）。 */
+/* 设置度量（边框宽，范围 0..XUI_LAYOUT_UNBOUNDED）。 */
 XUI_API int xuiDatePickerSetMetrics(xui_widget pWidget, float fBorderWidth);
 /* 输出度量。 */
 XUI_API int xuiDatePickerGetMetrics(xui_widget pWidget, float* pBorderWidth);
@@ -11944,15 +12185,15 @@ XUI_API int xuiDatePickerGetArrowColors(xui_widget pWidget, uint32_t* pArrow, ui
 XUI_API int xuiDatePickerSetPopupColors(xui_widget pWidget, uint32_t iPanel, uint32_t iBorder, uint32_t iShadow, uint32_t iText, uint32_t iMutedText, uint32_t iAccent, uint32_t iField, uint32_t iFieldBorder, uint32_t iSelectedText, uint32_t iDisabledDay, uint32_t iSeparator);
 /* 批量输出弹层十一色。 */
 XUI_API int xuiDatePickerGetPopupColors(xui_widget pWidget, uint32_t* pPanel, uint32_t* pBorder, uint32_t* pShadow, uint32_t* pText, uint32_t* pMutedText, uint32_t* pAccent, uint32_t* pField, uint32_t* pFieldBorder, uint32_t* pSelectedText, uint32_t* pDisabledDay, uint32_t* pSeparator);
-/* 设置字体。 */
+/* 设置借用字体句柄；控件不接管其生命周期。 */
 XUI_API int xuiDatePickerSetFont(xui_widget pWidget, xui_font pFont);
-/* 读取字体。 */
+/* 读取借用字体句柄。 */
 XUI_API xui_font xuiDatePickerGetFont(xui_widget pWidget);
-/* 读取格式化显示文本。 */
+/* 读取格式化显示文本；返回控件内部借用字符串，下次修改或销毁控件后失效。 */
 XUI_API const char* xuiDatePickerGetText(xui_widget pWidget);
-/* 取弹层控件。 */
+/* 取内部弹层控件（借用句柄，不得由调用方销毁）。 */
 XUI_API xui_widget xuiDatePickerGetPopupWidget(xui_widget pWidget);
-/* 取面板控件。 */
+/* 取内部面板控件（借用句柄，不得由调用方销毁）。 */
 XUI_API xui_widget xuiDatePickerGetPanelWidget(xui_widget pWidget);
 /* 读取触发按钮矩形。 */
 XUI_API xui_rect_t xuiDatePickerGetButtonRect(xui_widget pWidget);
@@ -12449,7 +12690,7 @@ XUI_API int xuiFlowGraphSetEdgeRunState(xui_flow_graph pGraph, const char* sId, 
 XUI_API int xuiFlowGraphSetEdgeRoute(xui_flow_graph pGraph, const char* sId, int iRouteStyle, float fRouteBias, float fSourceOffset, float fTargetOffset);
 /* 设置节点配置（xvalue 树）。 */
 XUI_API int xuiFlowGraphSetNodeConfig(xui_flow_graph pGraph, const char* sId, xvalue* pConfig);
-/* 输出节点配置指针（模型持有，勿改结构）。 */
+/* 输出节点配置深拷贝；调用方使用后需 xrtValueRelease。 */
 XUI_API int xuiFlowGraphGetNodeConfig(xui_flow_graph pGraph, const char* sId, xvalue** ppConfig);
 /* 命令式添加节点（入撤销栈）。 */
 XUI_API int xuiFlowGraphCommandAddNode(xui_flow_graph pGraph, const xui_flow_node_desc_t* pDesc, int* pIndex);
@@ -12521,6 +12762,8 @@ XUI_API int xuiFlowGraphAddDiagnostic(xui_flow_graph pGraph, const xui_flow_diag
 XUI_API int xuiFlowGraphClearDiagnostics(xui_flow_graph pGraph);
 /* 读取诊断总数。 */
 XUI_API int xuiFlowGraphGetDiagnosticCount(xui_flow_graph pGraph);
+/* 按索引读取诊断；字符串为流程图持有的只读借用数据。 */
+XUI_API int xuiFlowGraphGetDiagnostic(xui_flow_graph pGraph, int iIndex, xui_flow_diagnostic_desc_t* pDesc);
 /* 读取节点诊断数。 */
 XUI_API int xuiFlowGraphGetNodeDiagnosticCount(xui_flow_graph pGraph, const char* sNodeId);
 /* 读取连线诊断数。 */
@@ -12531,7 +12774,7 @@ XUI_API xui_widget_type xuiFlowGraphGetType(xui_context pContext);
 XUI_API int xuiFlowGraphWidgetCreate(xui_context pContext, xui_widget* ppWidget, const xui_flow_graph_desc_t* pDesc);
 /* 取绑定的流程图模型。 */
 XUI_API xui_flow_graph xuiFlowGraphWidgetGetGraph(xui_widget pWidget);
-/* 绑定模型；bOwnGraph 为真时模型由控件接管销毁。 */
+/* 绑定非 NULL 模型；bOwnGraph 为真时模型由控件接管销毁。切换前会取消并回滚活动拖拽。 */
 XUI_API int xuiFlowGraphWidgetSetGraph(xui_widget pWidget, xui_flow_graph pGraph, int bOwnGraph);
 /* 注册画布右键回调。 */
 XUI_API int xuiFlowGraphWidgetSetContextMenu(xui_widget pWidget, xui_flow_context_proc onContext, void* pUser);
@@ -12567,7 +12810,7 @@ XUI_API xui_flow_graph xuiWorkflowGetGraph(xui_workflow pWorkflow);
 XUI_API int xuiWorkflowConfigSchemaCreate(xvalue** ppSchema);
 /* 向 schema 追加字段定义。 */
 XUI_API int xuiWorkflowConfigSchemaAddField(xvalue* pSchema, const xui_workflow_config_field_desc_t* pDesc);
-/* 注册节点类型（含端口/配置 schema）。 */
+/* 注册节点类型（含端口/配置 schema）；描述内容由工作流深拷贝。 */
 XUI_API int xuiWorkflowRegisterNodeType(xui_workflow pWorkflow, const xui_workflow_node_type_desc_t* pDesc, int* pIndex);
 /* 按类型 id 查索引；不存在返回 -1。 */
 XUI_API int xuiWorkflowFindNodeType(xui_workflow pWorkflow, const char* sId);
@@ -12599,21 +12842,21 @@ XUI_API int xuiWorkflowValidateConfigEx(xui_workflow pWorkflow, const char* sTyp
 XUI_API int xuiWorkflowValidateGraph(xui_workflow pWorkflow, int* pDiagnosticCount);
 /* 设置节点配置（经 schema 校验）。 */
 XUI_API int xuiWorkflowSetNodeConfig(xui_workflow pWorkflow, const char* sId, xvalue* pConfig);
-/* 输出节点配置指针（模型持有）。 */
+/* 输出节点配置深拷贝；调用方使用后需 xrtValueRelease。 */
 XUI_API int xuiWorkflowGetNodeConfig(xui_workflow pWorkflow, const char* sId, xvalue** ppConfig);
 /* 生成唯一变量 id。 */
 XUI_API int xuiWorkflowMakeVariableId(xui_workflow pWorkflow, char* sBuffer, int iCapacity);
-/* 添加工作流变量。 */
+/* 添加工作流变量；描述内容与默认值由工作流深拷贝。 */
 XUI_API int xuiWorkflowAddVariable(xui_workflow pWorkflow, const xui_workflow_variable_desc_t* pDesc, int* pIndex);
 /* 按变量 id 查索引；不存在返回 -1。 */
 XUI_API int xuiWorkflowFindVariable(xui_workflow pWorkflow, const char* sId);
 /* 读取变量数。 */
 XUI_API int xuiWorkflowGetVariableCount(xui_workflow pWorkflow);
-/* 按索引输出变量描述。 */
+/* 按索引输出变量描述；字符串和默认值为工作流持有的只读借用数据。 */
 XUI_API int xuiWorkflowGetVariable(xui_workflow pWorkflow, int iIndex, xui_workflow_variable_desc_t* pDesc);
 /* 序列化为 xvalue 树；*ppValue 需 xvalue 释放。 */
 XUI_API int xuiWorkflowToXValue(xui_workflow pWorkflow, xvalue** ppValue);
-/* 从 xvalue 树反序列化（替换当前内容）。 */
+/* 从 xvalue 树反序列化（替换当前内容）；兼容缺少格式头的旧文档，若提供格式头则必须为 v1。 */
 XUI_API int xuiWorkflowLoadXValue(xui_workflow pWorkflow, xvalue* pValue);
 /* 保存为 XSON 文件。 */
 XUI_API int xuiWorkflowSaveXSONFile(xui_workflow pWorkflow, const char* sPath);
@@ -12658,8 +12901,8 @@ typedef enum xui_webview_event_t {
 	XUI_WEBVIEW_EVENT_CLOSED = 5
 } xui_webview_event_t;
 
-/* 回调在初始化所用的 UI STA 线程执行。pWidget 在回调期间有效；
- * 直接销毁控件不会再发回调。iNativeError 在 Windows 为 HRESULT。 */
+/* 回调在初始化所用的 UI STA 线程同步执行。回调可关闭或销毁 pWidget；
+ * 销毁后不会再发回调。iNativeError 在 Windows 为 HRESULT。 */
 typedef void (*xui_webview_event_proc)(xui_widget pWidget, int iEvent,
 	int32_t iNativeError, void* pUser);
 typedef struct xui_webview_desc_t {

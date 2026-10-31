@@ -113,6 +113,26 @@
 #ifndef XGE3D_ENABLE_FOG
 #define XGE3D_ENABLE_FOG XGE_ENABLE_3D
 #endif
+#ifndef XGE3D_ENABLE_FXAA
+#define XGE3D_ENABLE_FXAA XGE_ENABLE_3D
+#endif
+#if (XGE3D_ENABLE_FXAA != 0 && XGE3D_ENABLE_FXAA != 1) || (XGE3D_ENABLE_FXAA && !XGE_ENABLE_3D)
+#error "3D FXAA requires 3D and a 0 or 1 feature switch"
+#endif
+#ifndef XGE3D_ENABLE_SCENE
+#define XGE3D_ENABLE_SCENE XGE_ENABLE_3D
+#endif
+#ifndef XGE3D_ENABLE_COLLISION
+#define XGE3D_ENABLE_COLLISION XGE_ENABLE_3D
+#endif
+#ifndef XGE3D_ENABLE_CACHE
+#define XGE3D_ENABLE_CACHE XGE3D_ENABLE_MODEL
+#endif
+#if (XGE3D_ENABLE_SCENE != 0 && XGE3D_ENABLE_SCENE != 1) || (XGE3D_ENABLE_SCENE && !XGE_ENABLE_3D) || \
+    (XGE3D_ENABLE_COLLISION != 0 && XGE3D_ENABLE_COLLISION != 1) || (XGE3D_ENABLE_COLLISION && !XGE_ENABLE_3D) || \
+    (XGE3D_ENABLE_CACHE != 0 && XGE3D_ENABLE_CACHE != 1) || (XGE3D_ENABLE_CACHE && !XGE3D_ENABLE_MODEL)
+#error "Invalid optional 3D scene/collision/cache configuration"
+#endif
 #if (XGE3D_ENABLE_FOG != 0 && XGE3D_ENABLE_FOG != 1) || (XGE3D_ENABLE_FOG && !XGE_ENABLE_3D)
 #error "3D fog requires 3D and a 0 or 1 feature switch"
 #endif

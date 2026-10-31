@@ -67,7 +67,7 @@
   "privateCandidate": true,
   "formalRelease": false,
   "provenance": {
-    "builtAtUtc": "2026-10-22T20:50:00.726262+00:00",
+    "builtAtUtc": "2026-10-23T04:30:53.778091+00:00",
     "sourceRepository": "https://gitee.com/xywhsoft/xge",
     "sourceCommit": "f248fd17192b3eb81c2a29dc34549b696e6e4c43",
     "sourceWorktreeDirty": true,
@@ -81,7 +81,11 @@
       "provenance/compatibility-patches/xui_code_edit.c",
       "provenance/compatibility-patches/xui_code_edit.patch",
       "provenance/compatibility-patches/xui_code_annotation.c",
-      "provenance/compatibility-patches/xui_code_annotation.patch"
+      "provenance/compatibility-patches/xui_code_annotation.patch",
+      "provenance/compatibility-patches/xrt.h",
+      "provenance/compatibility-patches/xrt.h.patch",
+      "provenance/compatibility-patches/upstream.json",
+      "provenance/compatibility-patches/upstream.json.patch"
     ],
     "compiler": "gcc.EXE (GCC) 16.2.0",
     "xrt": {
@@ -90,17 +94,34 @@
       "source_commit": "ca0856824f649147419f3dc1342d5e8ce5a893ff",
       "source_worktree_dirty": true,
       "source_snapshot_sha256": "b4965f695b0e43ca8e0102cb469163b197fa486645fac93d0de854d372bb8bd6",
-      "header_sha256": "a222542a4abe652ee92cd28f6de21d6fa7a76398d04c03c6b24b45329c57d1a3",
+      "header_sha256": "095a852f390a83e7adef52e8e456634298f40245b7a36ec1e55b138e91143e16",
       "declaration_header_sha256": "f3d9fff774815759265b008f452561f732c5f0d5afb4a19cfdaf60d2e5327845",
       "generation": "tools/amalgamate.py in isolated source snapshot",
       "extensions": [
         "xllm",
         "xllm-session",
         "xwork"
+      ],
+      "base_header_sha256": "a222542a4abe652ee92cd28f6de21d6fa7a76398d04c03c6b24b45329c57d1a3",
+      "ide_source_overlays": [
+        {
+          "source": "E:\\codex-builds-xlang-lsp-20261023\\m7a2b7d-c1c36026\\sdk-tree-v1\\source\\extlibs\\xrt\\xrt.h",
+          "sourceSha256": "a222542a4abe652ee92cd28f6de21d6fa7a76398d04c03c6b24b45329c57d1a3",
+          "compiledSource": "E:\\codex-builds-xlang-lsp-20261023\\m7a2b7d-c1c36026\\sdk-tree-v1\\generated\\xrt.h",
+          "compiledSha256": "095a852f390a83e7adef52e8e456634298f40245b7a36ec1e55b138e91143e16",
+          "change": "Windows KillTree cleans the retained Job after terminal root publication; other stop kinds and POSIX unchanged",
+          "unchangedOutsideSourceFunction": true,
+          "sourceMaterials": {
+            "D:\\GIT\\x-lang\\ide\\third_party\\sdk_patches\\xrt-process-tree-v1\\process_stop.before.inc": "7f5af3acd8de655a8a52269f188458fb2a38275a29d9549dbe76f81604cb301f",
+            "D:\\GIT\\x-lang\\ide\\third_party\\sdk_patches\\xrt-process-tree-v1\\process_stop.inc": "a34d5eb813b9c51a35dcf3af2f1799242bfa905da565c7fcf7201108d1060d9a",
+            "D:\\GIT\\x-lang\\ide\\third_party\\sdk_patches\\xrt-process-tree-v1\\process_stop.patch": "bed8615415a1954fb88c44f650ae0fcf4d6fb4ac10cb802b34c6295fc2b265d5",
+            "D:\\GIT\\x-lang\\ide\\tools\\xrt_process_tree_overlay.py": "862ae5d8a34bef9e245cb32d4f38a386f09f388fdea7c01cad7089e66e1f0555"
+          }
+        }
       ]
     },
-    "sourceBuildReportSha256": "5100b4d420721ced92aebf2fc85efa5cb73d0a942469df90c54715aa1de297c4",
-    "sourceBuildManifestSha256": "d79cf7eb1913f2fbc4772a959b92735b30953e53dd10b2c1f1836de9110ddc64"
+    "sourceBuildReportSha256": "32a588fd3938300378053fb32234c92c61aa06b8050817cb11f585ac5c51f570",
+    "sourceBuildManifestSha256": "b0e8ab8e95f0a469fe77d8f311ae7e7a4fdf3293048302ffb5f895f50a9717a6"
   },
   "files": [
     {
@@ -161,7 +182,7 @@
     },
     {
       "path": "extlibs/xrt/upstream.json",
-      "sha256": "024b84f195ac98a5bbb71fbdfb60492bf20cc239e38fbcd96065e46268cd36df"
+      "sha256": "31451c4e78a4359dcd809394873231369108208b23e63f93e21df9bfa960de6a"
     },
     {
       "path": "extlibs/xrt/xrt.h",
@@ -173,7 +194,23 @@
     },
     {
       "path": "provenance/compatibility-patches/patch-manifest.json",
-      "sha256": "d2fa52e514f97275d4b8c0dee75358a87f46ccb876d50a3a18a5ff3c5351a8f6"
+      "sha256": "973a7f7e6ea1a6c3ac5ad0b9301b6b8e3387983ba51e1ba23767a10b144f7ab6"
+    },
+    {
+      "path": "provenance/compatibility-patches/upstream.json",
+      "sha256": "31451c4e78a4359dcd809394873231369108208b23e63f93e21df9bfa960de6a"
+    },
+    {
+      "path": "provenance/compatibility-patches/upstream.json.patch",
+      "sha256": "5a2e102b4118448e9f63d3ae4e2fbc2086cf13bd0367d298b0c3576947a21b9b"
+    },
+    {
+      "path": "provenance/compatibility-patches/xrt.h",
+      "sha256": "095a852f390a83e7adef52e8e456634298f40245b7a36ec1e55b138e91143e16"
+    },
+    {
+      "path": "provenance/compatibility-patches/xrt.h.patch",
+      "sha256": "d09ce7a4f3aefe579d8083754e311a7f069acd9867cd617f61d724f3f4ed2a88"
     },
     {
       "path": "provenance/compatibility-patches/xui_code_annotation.c",
@@ -201,23 +238,23 @@
     },
     {
       "path": "provenance/parent-sdk-manifest.json",
-      "sha256": "7651dcf7f91c0b84f0f378b307f2cb47c2e96f4db48d917f5b1ae922a9d37fd7"
+      "sha256": "3e69b3ca5cd3be62151ded0a4bebd9deadfb3a89120f696d6ef9ac2da8264958"
     },
     {
       "path": "provenance/source-build-manifest.json",
-      "sha256": "d79cf7eb1913f2fbc4772a959b92735b30953e53dd10b2c1f1836de9110ddc64"
+      "sha256": "b0e8ab8e95f0a469fe77d8f311ae7e7a4fdf3293048302ffb5f895f50a9717a6"
     },
     {
       "path": "provenance/source-build-report.json",
-      "sha256": "5100b4d420721ced92aebf2fc85efa5cb73d0a942469df90c54715aa1de297c4"
+      "sha256": "32a588fd3938300378053fb32234c92c61aa06b8050817cb11f585ac5c51f570"
     },
     {
       "path": "xge-source-files.json",
-      "sha256": "d79cf7eb1913f2fbc4772a959b92735b30953e53dd10b2c1f1836de9110ddc64"
+      "sha256": "b0e8ab8e95f0a469fe77d8f311ae7e7a4fdf3293048302ffb5f895f50a9717a6"
     },
     {
       "path": "xge.dll",
-      "sha256": "44e5e9d09e4f96768d77c329bd6b016065dada84f7f7162d81af79c39c83e8ea"
+      "sha256": "91ddb616d3c0a65017e686922e377ebdadb104a36eea16491d1fecdc271026c3"
     },
     {
       "path": "xge.h",
@@ -225,11 +262,11 @@
     },
     {
       "path": "xge.lib",
-      "sha256": "587529fede485bd6f9a4fc8c2cf1f10cc1a3e517248248e293d8773786991838"
+      "sha256": "675bf40eb235195ee5cb0afee40ffe220eb3f0653b06ae1e7920971e5071123d"
     },
     {
       "path": "xge_build_config.h",
-      "sha256": "b159558f23bbba0ce48538a843b4948cf0fd8f9cfda752ee3e953a415f187b9e"
+      "sha256": "0d31f87b4b77f8d1699db4cb6293ed134bfff2218a61b3bb274005976f5a1761"
     },
     {
       "path": "xge_config.h",

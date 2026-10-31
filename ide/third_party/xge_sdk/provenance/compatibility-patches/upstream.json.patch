@@ -1,5 +1,5 @@
---- extlibs/xrt/upstream.json
-+++ extlibs/xrt/upstream.json
+--- a/extlibs/xrt/upstream.json
++++ b/extlibs/xrt/upstream.json
 @@ -1,15 +1,32 @@
 -{
 -  "source_repository": "D:\\GIT\\xrt",

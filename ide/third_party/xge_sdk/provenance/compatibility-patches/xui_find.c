@@ -3,7 +3,7 @@
 #include "xui_internal.h"
 #include "xui_xrt_port.h"
 
-#include <ctype.h>
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -11,17 +11,39 @@ typedef struct xui_find_engine_t {
 	char* sPattern;
 	char* sReplacement;
 	int iPatternLength;
+	int iReplacementLength;
 	uint32_t iFlags;
 #ifndef XRT_NO_REGEX
 	xui_xrt_regex_t* pRegex;
 #endif
 } xui_find_engine_t;
 
+static int __xuiFindFlagsValid(uint32_t iFlags)
+{
+	return (iFlags & ~(XUI_FIND_CASE_SENSITIVE | XUI_FIND_WHOLE_WORD |
+		XUI_FIND_BACKWARD | XUI_FIND_WRAP | XUI_FIND_MULTILINE |
+		XUI_FIND_DOT_NEWLINE | XUI_FIND_REGEX | XUI_FIND_ESCAPE |
+		XUI_FIND_SELECTION)) == 0u;
+}
+
 static void __xuiFindSetError(char* sError, int iCapacity, const char* sMessage)
 {
 	if ( sError == NULL || iCapacity <= 0 ) return;
 	if ( sMessage == NULL ) sMessage = "";
 	snprintf(sError, (size_t)iCapacity, "%s", sMessage);
+}
+
+static void __xuiFindSetStatusError(char* sError, int iCapacity, int iStatus)
+{
+	if ( sError == NULL || iCapacity <= 0 || sError[0] != '\0' || iStatus == XUI_OK ) return;
+	switch ( iStatus ) {
+	case XUI_ERROR_INVALID_ARGUMENT: __xuiFindSetError(sError, iCapacity, "invalid argument"); break;
+	case XUI_ERROR_OUT_OF_MEMORY: __xuiFindSetError(sError, iCapacity, "out of memory"); break;
+	case XUI_ERROR_LIMIT_EXCEEDED: __xuiFindSetError(sError, iCapacity, "result is too large"); break;
+	case XUI_ERROR_INVALID_STATE: __xuiFindSetError(sError, iCapacity, "regex match failed"); break;
+	case XUI_ERROR_UNSUPPORTED: __xuiFindSetError(sError, iCapacity, "not found"); break;
+	default: __xuiFindSetError(sError, iCapacity, "find operation failed"); break;
+	}
 }
 
 static int __xuiFindClamp(int iValue, int iMin, int iMax)
@@ -31,11 +53,19 @@ static int __xuiFindClamp(int iValue, int iMin, int iMax)
 	return iValue;
 }
 
-static int __xuiFindTextLength(const char* sText, int iTextLength)
+static int __xuiFindResolveTextLength(const char* sText, int iTextLength, int* pResolvedLength)
 {
-	if ( sText == NULL ) return 0;
-	if ( iTextLength < 0 ) return (int)strlen(sText);
-	return iTextLength;
+	size_t iLength;
+
+	if ( sText == NULL || pResolvedLength == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( iTextLength >= 0 ) {
+		*pResolvedLength = iTextLength;
+		return XUI_OK;
+	}
+	iLength = strlen(sText);
+	if ( iLength > (size_t)INT_MAX ) return XUI_ERROR_LIMIT_EXCEEDED;
+	*pResolvedLength = (int)iLength;
+	return XUI_OK;
 }
 
 static void __xuiFindNormalizeRange(int iTextLength, int* pRangeStart, int* pRangeEnd, int* pStartOffset)
@@ -66,42 +96,27 @@ static int __xuiFindHex(char c)
 	return -1;
 }
 
-/* Check the remaining length before reading any escape digits. */
-static int __xuiFindReadHex(const char* sText, int iAvailable, int iDigits, unsigned int* pValue)
-{
-	unsigned int iValue = 0u;
-	int i;
-	if ( iAvailable < iDigits ) return 0;
-	for ( i = 0; i < iDigits; i++ ) {
-		int iHex = __xuiFindHex(sText[i]);
-		if ( iHex < 0 ) return 0;
-		iValue = (iValue << 4) | (unsigned int)iHex;
-	}
-	*pValue = iValue;
-	return 1;
-}
-
-/* Empty matches advance by one complete UTF-8 scalar, preserving bytes. */
-static int __xuiFindNextUtf8Offset(const char* sText, int iOffset, int iLimit)
-{
-	size_t iRead = 0;
-	uint32 iScalar = 0;
-	if ( iOffset >= iLimit ) return iLimit;
-	(void)xrtUtf8Decode((xstrview){sText + iOffset, (size_t)(iLimit - iOffset)}, &iScalar, &iRead);
-	if ( iRead == 0 || iRead > (size_t)(iLimit - iOffset) ) iRead = 1;
-	return iOffset + (int)iRead;
-}
-
 static int __xuiFindAppendBytes(char** psBuffer, int* pLength, int* pCapacity, const char* sText, int iTextLength)
 {
 	char* sNew;
+	int iRequired;
 	int iNewCapacity;
 
 	if ( psBuffer == NULL || pLength == NULL || pCapacity == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
-	if ( sText == NULL || iTextLength <= 0 ) return XUI_OK;
-	if ( *pLength + iTextLength + 1 > *pCapacity ) {
+	if ( iTextLength < 0 || *pLength < 0 || *pCapacity < 0 || *pLength > *pCapacity ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( iTextLength == 0 ) return XUI_OK;
+	if ( sText == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( iTextLength > INT_MAX - *pLength - 1 ) return XUI_ERROR_LIMIT_EXCEEDED;
+	iRequired = *pLength + iTextLength + 1;
+	if ( iRequired > *pCapacity ) {
 		iNewCapacity = (*pCapacity > 0) ? *pCapacity : 64;
-		while ( *pLength + iTextLength + 1 > iNewCapacity ) iNewCapacity *= 2;
+		while ( iRequired > iNewCapacity ) {
+			if ( iNewCapacity > INT_MAX / 2 ) {
+				iNewCapacity = iRequired;
+				break;
+			}
+			iNewCapacity *= 2;
+		}
 		sNew = (char*)xrtRealloc(*psBuffer, (size_t)iNewCapacity);
 		if ( sNew == NULL ) return XUI_ERROR_OUT_OF_MEMORY;
 		*psBuffer = sNew;
@@ -130,6 +145,8 @@ static int __xuiFindAppendUtf8(char** psBuffer, int* pLength, int* pCapacity, un
 		sBytes[0] = (char)(0xC0u | ((iCodepoint >> 6) & 0x1Fu));
 		sBytes[1] = (char)(0x80u | (iCodepoint & 0x3Fu));
 		iCount = 2;
+	} else if ( iCodepoint >= 0xD800u && iCodepoint <= 0xDFFFu ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
 	} else if ( iCodepoint <= 0xFFFFu ) {
 		sBytes[0] = (char)(0xE0u | ((iCodepoint >> 12) & 0x0Fu));
 		sBytes[1] = (char)(0x80u | ((iCodepoint >> 6) & 0x3Fu));
@@ -147,102 +164,141 @@ static int __xuiFindAppendUtf8(char** psBuffer, int* pLength, int* pCapacity, un
 	return __xuiFindAppendBytes(psBuffer, pLength, pCapacity, sBytes, iCount);
 }
 
+static int __xuiFindParseHex4(const char* sText, int iTextLength, int iOffset, unsigned int* pValue)
+{
+	unsigned int iValue;
+	int i;
+	int iHex;
+
+	if ( sText == NULL || pValue == NULL || iOffset < 0 || iTextLength - iOffset < 4 ) return XUI_ERROR_INVALID_ARGUMENT;
+	iValue = 0u;
+	for ( i = 0; i < 4; i++ ) {
+		iHex = __xuiFindHex(sText[iOffset + i]);
+		if ( iHex < 0 ) return XUI_ERROR_INVALID_ARGUMENT;
+		iValue = (iValue << 4) | (unsigned int)iHex;
+	}
+	*pValue = iValue;
+	return XUI_OK;
+}
+
+static int __xuiFindAppendEscape(const char* sText, int iTextLength, int* pOffset,
+	char** psOutput, int* pLength, int* pCapacity, char* sError, int iErrorCapacity)
+{
+	unsigned int iCodepoint;
+	unsigned int iLowSurrogate;
+	int iHex0;
+	int iHex1;
+	int iOffset;
+	int iRet;
+
+	if ( sText == NULL || pOffset == NULL || psOutput == NULL || pLength == NULL || pCapacity == NULL )
+		return XUI_ERROR_INVALID_ARGUMENT;
+	iOffset = *pOffset;
+	if ( iOffset < 0 || iOffset >= iTextLength ) return XUI_ERROR_INVALID_ARGUMENT;
+	switch ( sText[iOffset] ) {
+	case 'n': return __xuiFindAppendByte(psOutput, pLength, pCapacity, '\n');
+	case 'r': return __xuiFindAppendByte(psOutput, pLength, pCapacity, '\r');
+	case 't': return __xuiFindAppendByte(psOutput, pLength, pCapacity, '\t');
+	case '\\': return __xuiFindAppendByte(psOutput, pLength, pCapacity, '\\');
+	case 'x':
+		if ( iTextLength - iOffset < 3 ) {
+			__xuiFindSetError(sError, iErrorCapacity, "invalid hex escape");
+			return XUI_ERROR_INVALID_ARGUMENT;
+		}
+		iHex0 = __xuiFindHex(sText[iOffset + 1]);
+		iHex1 = __xuiFindHex(sText[iOffset + 2]);
+		if ( iHex0 < 0 || iHex1 < 0 ) {
+			__xuiFindSetError(sError, iErrorCapacity, "invalid hex escape");
+			return XUI_ERROR_INVALID_ARGUMENT;
+		}
+		if ( iHex0 == 0 && iHex1 == 0 ) {
+			__xuiFindSetError(sError, iErrorCapacity, "nul escape is unsupported");
+			return XUI_ERROR_INVALID_ARGUMENT;
+		}
+		*pOffset = iOffset + 2;
+		return __xuiFindAppendByte(psOutput, pLength, pCapacity, (char)((iHex0 << 4) | iHex1));
+	case 'u':
+		iRet = __xuiFindParseHex4(sText, iTextLength, iOffset + 1, &iCodepoint);
+		if ( iRet != XUI_OK ) {
+			__xuiFindSetError(sError, iErrorCapacity, "invalid unicode escape");
+			return iRet;
+		}
+		if ( iCodepoint >= 0xD800u && iCodepoint <= 0xDBFFu ) {
+			if ( iTextLength - iOffset < 11 || sText[iOffset + 5] != '\\' || sText[iOffset + 6] != 'u' ||
+			     __xuiFindParseHex4(sText, iTextLength, iOffset + 7, &iLowSurrogate) != XUI_OK ||
+			     iLowSurrogate < 0xDC00u || iLowSurrogate > 0xDFFFu ) {
+				__xuiFindSetError(sError, iErrorCapacity, "invalid unicode surrogate pair");
+				return XUI_ERROR_INVALID_ARGUMENT;
+			}
+			iCodepoint = 0x10000u + ((iCodepoint - 0xD800u) << 10) + (iLowSurrogate - 0xDC00u);
+			*pOffset = iOffset + 10;
+		} else {
+			if ( iCodepoint == 0u ) {
+				__xuiFindSetError(sError, iErrorCapacity, "nul escape is unsupported");
+				return XUI_ERROR_INVALID_ARGUMENT;
+			}
+			if ( iCodepoint >= 0xDC00u && iCodepoint <= 0xDFFFu ) {
+				__xuiFindSetError(sError, iErrorCapacity, "invalid unicode surrogate pair");
+				return XUI_ERROR_INVALID_ARGUMENT;
+			}
+			*pOffset = iOffset + 4;
+		}
+		return __xuiFindAppendUtf8(psOutput, pLength, pCapacity, iCodepoint);
+	default:
+		return __xuiFindAppendByte(psOutput, pLength, pCapacity, sText[iOffset]);
+	}
+}
+
 static int __xuiFindDecodeEscapes(const char* sText, char** psOutput, char* sError, int iErrorCapacity)
 {
 	char* sOutput;
+	size_t iSourceLength;
+	int iTextLength;
 	int iLength;
 	int iCapacity;
 	int i;
-	int iTextLength;
-	unsigned int iCodepoint;
 	int iRet;
 
 	if ( sText == NULL || psOutput == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
 	*psOutput = NULL;
-	iTextLength = (int)strlen(sText);
+	iSourceLength = strlen(sText);
+	if ( iSourceLength > (size_t)INT_MAX ) {
+		__xuiFindSetError(sError, iErrorCapacity, "text is too large");
+		return XUI_ERROR_LIMIT_EXCEEDED;
+	}
+	iTextLength = (int)iSourceLength;
 	sOutput = NULL;
 	iLength = 0;
 	iCapacity = 0;
-	for ( i = 0; sText[i] != '\0'; i++ ) {
+	for ( i = 0; i < iTextLength; i++ ) {
 		if ( sText[i] != '\\' ) {
 			iRet = __xuiFindAppendByte(&sOutput, &iLength, &iCapacity, sText[i]);
 			if ( iRet != XUI_OK ) goto fail;
 			continue;
 		}
 		i++;
-		if ( sText[i] == '\0' ) {
+		if ( i >= iTextLength ) {
 			iRet = __xuiFindAppendByte(&sOutput, &iLength, &iCapacity, '\\');
 			if ( iRet != XUI_OK ) goto fail;
 			break;
 		}
-		switch ( sText[i] ) {
-		case 'n': iRet = __xuiFindAppendByte(&sOutput, &iLength, &iCapacity, '\n'); break;
-		case 'r': iRet = __xuiFindAppendByte(&sOutput, &iLength, &iCapacity, '\r'); break;
-		case 't': iRet = __xuiFindAppendByte(&sOutput, &iLength, &iCapacity, '\t'); break;
-		case '0':
+		if ( sText[i] == '0' ) {
 			__xuiFindSetError(sError, iErrorCapacity, "nul escape is unsupported");
 			iRet = XUI_ERROR_INVALID_ARGUMENT;
 			goto fail;
-		case '\\': iRet = __xuiFindAppendByte(&sOutput, &iLength, &iCapacity, '\\'); break;
-		case 'x':
-			if ( !__xuiFindReadHex(sText + i + 1, iTextLength - i - 1, 2, &iCodepoint) ) {
-				__xuiFindSetError(sError, iErrorCapacity, "invalid hex escape");
-				iRet = XUI_ERROR_INVALID_ARGUMENT;
-				goto fail;
-			}
-			if ( iCodepoint == 0u ) {
-				__xuiFindSetError(sError, iErrorCapacity, "nul escape is unsupported");
-				iRet = XUI_ERROR_INVALID_ARGUMENT;
-				goto fail;
-			}
-			i += 2;
-			iRet = __xuiFindAppendByte(&sOutput, &iLength, &iCapacity, (char)iCodepoint);
-			break;
-		case 'u':
-			if ( !__xuiFindReadHex(sText + i + 1, iTextLength - i - 1, 4, &iCodepoint) ) {
-				__xuiFindSetError(sError, iErrorCapacity, "invalid unicode escape");
-				iRet = XUI_ERROR_INVALID_ARGUMENT;
-				goto fail;
-			}
-			i += 4;
-			if ( iCodepoint >= 0xD800u && iCodepoint <= 0xDBFFu ) {
-				unsigned int iLow;
-				/* A UTF-16 high surrogate must be followed by a complete low one. */
-				if ( iTextLength - i - 1 < 6 || sText[i + 1] != '\\' || sText[i + 2] != 'u' ||
-				     !__xuiFindReadHex(sText + i + 3, iTextLength - i - 3, 4, &iLow) ||
-				     iLow < 0xDC00u || iLow > 0xDFFFu ) {
-					__xuiFindSetError(sError, iErrorCapacity, "invalid unicode surrogate pair");
-					iRet = XUI_ERROR_INVALID_ARGUMENT;
-					goto fail;
-				}
-				iCodepoint = 0x10000u + ((iCodepoint - 0xD800u) << 10) + (iLow - 0xDC00u);
-				i += 6;
-			} else if ( iCodepoint >= 0xDC00u && iCodepoint <= 0xDFFFu ) {
-				__xuiFindSetError(sError, iErrorCapacity, "unpaired unicode low surrogate");
-				iRet = XUI_ERROR_INVALID_ARGUMENT;
-				goto fail;
-			}
-			if ( iCodepoint == 0u ) {
-				__xuiFindSetError(sError, iErrorCapacity, "nul escape is unsupported");
-				iRet = XUI_ERROR_INVALID_ARGUMENT;
-				goto fail;
-			}
-			iRet = __xuiFindAppendUtf8(&sOutput, &iLength, &iCapacity, iCodepoint);
-			break;
-		default:
-			iRet = __xuiFindAppendByte(&sOutput, &iLength, &iCapacity, sText[i]);
-			break;
 		}
+		iRet = __xuiFindAppendEscape(sText, iTextLength, &i, &sOutput, &iLength, &iCapacity,
+			sError, iErrorCapacity);
 		if ( iRet != XUI_OK ) goto fail;
 	}
 	iRet = __xuiFindAppendBytes(&sOutput, &iLength, &iCapacity, "", 1);
 	if ( iRet != XUI_OK ) goto fail;
 	if ( iLength > 0 ) iLength--;
 	if ( !xrtUtf8Valid((xstrview){sOutput, (size_t)iLength}, NULL) ) {
-		__xuiFindSetError(sError, iErrorCapacity, "escape produces invalid UTF-8");
-		iRet = XUI_ERROR_INVALID_ARGUMENT;
-		goto fail;
-	}
+        __xuiFindSetError(sError, iErrorCapacity, "escape produces invalid UTF-8");
+        iRet = XUI_ERROR_INVALID_ARGUMENT;
+        goto fail;
+    }
 	*psOutput = sOutput;
 	__xuiFindSetError(sError, iErrorCapacity, "");
 	return XUI_OK;
@@ -261,6 +317,10 @@ static int __xuiFindDupMaybeEscaped(const char* sText, uint32_t iFlags, char** p
 	if ( sText == NULL || psOutput == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
 	if ( (iFlags & XUI_FIND_ESCAPE) != 0 ) return __xuiFindDecodeEscapes(sText, psOutput, sError, iErrorCapacity);
 	iLength = strlen(sText);
+	if ( iLength > (size_t)INT_MAX ) {
+		__xuiFindSetError(sError, iErrorCapacity, "text is too large");
+		return XUI_ERROR_LIMIT_EXCEEDED;
+	}
 	sCopy = (char*)xrtMalloc(iLength + 1u);
 	if ( sCopy == NULL ) {
 		__xuiFindSetError(sError, iErrorCapacity, "out of memory");
@@ -279,6 +339,10 @@ static int __xuiFindDupRaw(const char* sText, char** psOutput, char* sError, int
 
 	if ( sText == NULL || psOutput == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
 	iLength = strlen(sText);
+	if ( iLength > (size_t)INT_MAX ) {
+		__xuiFindSetError(sError, iErrorCapacity, "text is too large");
+		return XUI_ERROR_LIMIT_EXCEEDED;
+	}
 	sCopy = (char*)xrtMalloc(iLength + 1u);
 	if ( sCopy == NULL ) {
 		__xuiFindSetError(sError, iErrorCapacity, "out of memory");
@@ -289,6 +353,27 @@ static int __xuiFindDupRaw(const char* sText, char** psOutput, char* sError, int
 	return XUI_OK;
 }
 
+static int __xuiFindNextBoundary(const char* sText, int iTextLength, int iOffset)
+{
+	int iNext;
+
+	if ( iOffset >= iTextLength ) return iTextLength;
+	iNext = xuiInternalTextGraphemeNext(sText, iTextLength, iOffset);
+	if ( iNext <= iOffset || iNext > iTextLength ) iNext = iOffset + 1;
+	return iNext;
+}
+
+/* Regex empty matches advance one scalar, including combining marks. */
+static int __xuiFindNextScalar(const char* sText, int iTextLength, int iOffset)
+{
+    size_t iRead = 0;
+    uint32 iScalar = 0;
+    if ( iOffset >= iTextLength ) return iTextLength;
+    (void)xrtUtf8Decode((xstrview){sText + iOffset, (size_t)(iTextLength - iOffset)}, &iScalar, &iRead);
+    if ( iRead == 0 || iRead > (size_t)(iTextLength - iOffset) ) iRead = 1;
+    return iOffset + (int)iRead;
+}
+
 static int __xuiFindIsWholeWord(const char* sText, int iTextLength, int iStart, int iEnd)
 {
 	return xuiInternalTextWordBoundary(sText, iTextLength, iStart,
@@ -297,51 +382,64 @@ static int __xuiFindIsWholeWord(const char* sText, int iTextLength, int iStart, 
 		XUI_INTERNAL_WORD_NATURAL);
 }
 
-static int __xuiFindCharEquals(char a, char b, uint32_t iFlags)
-{
-	if ( (iFlags & XUI_FIND_CASE_SENSITIVE) != 0 ) return a == b;
-	return tolower((unsigned char)a) == tolower((unsigned char)b);
-}
-
-static int __xuiFindPlainMatchAt(const char* sText, int iTextLength, const char* sPattern, int iPatternLength, int iOffset, uint32_t iFlags)
-{
-	int i;
-
-	if ( iOffset < 0 || iOffset + iPatternLength > iTextLength ) return 0;
-	for ( i = 0; i < iPatternLength; i++ ) {
-		if ( !__xuiFindCharEquals(sText[iOffset + i], sPattern[i], iFlags) ) return 0;
-	}
-	if ( (iFlags & XUI_FIND_WHOLE_WORD) != 0 ) {
-		return __xuiFindIsWholeWord(sText, iTextLength, iOffset, iOffset + iPatternLength);
-	}
-	return 1;
-}
-
 static int __xuiFindPlainInRange(const char* sText, int iTextLength, const xui_find_engine_t* pEngine, int iStart, int iEnd, xui_find_result_t* pResult)
 {
-	int i;
+	xstrview tPattern;
+	xstrview tRange;
+	size_t iFound;
+	size_t iSearchStart;
+	int iOffset;
+	int iLastOffset;
 
 	if ( pEngine->iPatternLength <= 0 ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( iStart < 0 || iEnd < iStart || iEnd > iTextLength ||
+	     pEngine->iPatternLength > iEnd - iStart ) return XUI_ERROR_UNSUPPORTED;
+	tPattern = xuiXrtText(pEngine->sPattern, (size_t)pEngine->iPatternLength);
 	if ( (pEngine->iFlags & XUI_FIND_BACKWARD) != 0 ) {
-		for ( i = iEnd - pEngine->iPatternLength; i >= iStart; i-- ) {
-			if ( __xuiFindPlainMatchAt(sText, iTextLength, pEngine->sPattern, pEngine->iPatternLength, i, pEngine->iFlags) ) {
-				memset(pResult, 0, sizeof(*pResult));
-				pResult->iSize = sizeof(*pResult);
-				pResult->iStart = i;
-				pResult->iEnd = i + pEngine->iPatternLength;
-				return XUI_OK;
+		tRange = xuiXrtText(sText + iStart, (size_t)(iEnd - iStart));
+		if ( (pEngine->iFlags & XUI_FIND_WHOLE_WORD) == 0 ) {
+			iFound = ((pEngine->iFlags & XUI_FIND_CASE_SENSITIVE) != 0) ?
+				xrtStrRFind(tRange, tPattern) : xrtStrCaseRFind(tRange, tPattern);
+			if ( iFound == XRT_NPOS ) return XUI_ERROR_UNSUPPORTED;
+			iOffset = iStart + (int)iFound;
+		} else {
+			iSearchStart = 0u;
+			iLastOffset = -1;
+			while ( iSearchStart + (size_t)pEngine->iPatternLength <= tRange.Size ) {
+				iFound = ((pEngine->iFlags & XUI_FIND_CASE_SENSITIVE) != 0) ?
+					xrtStrFind(tRange, tPattern, iSearchStart) :
+					xrtStrCaseFind(tRange, tPattern, iSearchStart);
+				if ( iFound == XRT_NPOS ) break;
+				iOffset = iStart + (int)iFound;
+				if ( __xuiFindIsWholeWord(sText, iTextLength, iOffset,
+					iOffset + pEngine->iPatternLength) ) iLastOffset = iOffset;
+				iSearchStart = iFound + 1u;
 			}
+			if ( iLastOffset < 0 ) return XUI_ERROR_UNSUPPORTED;
+			iOffset = iLastOffset;
 		}
-		return XUI_ERROR_UNSUPPORTED;
+		memset(pResult, 0, sizeof(*pResult));
+		pResult->iSize = sizeof(*pResult);
+		pResult->iStart = iOffset;
+		pResult->iEnd = iOffset + pEngine->iPatternLength;
+		return XUI_OK;
 	}
-	for ( i = iStart; i + pEngine->iPatternLength <= iEnd; i++ ) {
-		if ( __xuiFindPlainMatchAt(sText, iTextLength, pEngine->sPattern, pEngine->iPatternLength, i, pEngine->iFlags) ) {
+	tRange = xuiXrtText(sText + iStart, (size_t)(iEnd - iStart));
+	iSearchStart = 0u;
+	while ( iSearchStart + (size_t)pEngine->iPatternLength <= tRange.Size ) {
+		iFound = ((pEngine->iFlags & XUI_FIND_CASE_SENSITIVE) != 0) ?
+			xrtStrFind(tRange, tPattern, iSearchStart) : xrtStrCaseFind(tRange, tPattern, iSearchStart);
+		if ( iFound == XRT_NPOS ) return XUI_ERROR_UNSUPPORTED;
+		iOffset = iStart + (int)iFound;
+		if ( (pEngine->iFlags & XUI_FIND_WHOLE_WORD) == 0 ||
+		     __xuiFindIsWholeWord(sText, iTextLength, iOffset, iOffset + pEngine->iPatternLength) ) {
 			memset(pResult, 0, sizeof(*pResult));
 			pResult->iSize = sizeof(*pResult);
-			pResult->iStart = i;
-			pResult->iEnd = i + pEngine->iPatternLength;
+			pResult->iStart = iOffset;
+			pResult->iEnd = iOffset + pEngine->iPatternLength;
 			return XUI_OK;
 		}
+		iSearchStart = iFound + 1u;
 	}
 	return XUI_ERROR_UNSUPPORTED;
 }
@@ -350,16 +448,22 @@ static int __xuiFindPlainInRange(const char* sText, int iTextLength, const xui_f
 static int __xuiFindRegexCreate(xui_find_engine_t* pEngine, char* sError, int iErrorCapacity)
 {
 	uint32 iRegexFlags;
+	int iRet;
 
 	pEngine->pRegex = NULL;
 	iRegexFlags = 0;
 	if ( (pEngine->iFlags & XUI_FIND_CASE_SENSITIVE) == 0 ) iRegexFlags |= 1u;
 	if ( (pEngine->iFlags & XUI_FIND_MULTILINE) != 0 ) iRegexFlags |= 2u;
 	if ( (pEngine->iFlags & XUI_FIND_DOT_NEWLINE) != 0 ) iRegexFlags |= 4u;
-	pEngine->pRegex = xuiXrtRegexCreate(pEngine->sPattern, strlen(pEngine->sPattern), iRegexFlags);
-	if ( pEngine->pRegex == NULL ) {
+	iRet = xuiXrtRegexCreateChecked(pEngine->sPattern, strlen(pEngine->sPattern),
+		iRegexFlags, &pEngine->pRegex);
+	if ( iRet != XUI_OK ) {
+		if ( iRet == XUI_ERROR_OUT_OF_MEMORY ) {
+			__xuiFindSetError(sError, iErrorCapacity, "out of memory");
+			return iRet;
+		}
 		__xuiFindSetError(sError, iErrorCapacity, "regex compile failed");
-		return XUI_ERROR_INVALID_ARGUMENT;
+		return iRet;
 	}
 	return XUI_OK;
 }
@@ -395,16 +499,19 @@ static int __xuiFindRegexFillResult(xui_find_engine_t* pEngine, const char* sTex
 static int __xuiFindRegexForward(xui_find_engine_t* pEngine, const char* sText, int iTextLength, int iStart, int iEnd, xui_find_result_t* pResult)
 {
 	xregexspan tSpan = { 0 };
+	int iNext;
 	int iPos;
 	int iRet;
 
 	iPos = iStart;
 	while ( iPos <= iEnd ) {
-		iRet = xuiXrtRegexFindAt(pEngine->pRegex, sText, (size_t)iTextLength, (size_t)iPos, &tSpan);
+		iRet = xuiXrtRegexFindAt(pEngine->pRegex, sText, (size_t)iEnd, (size_t)iPos, &tSpan);
+		if ( iRet == XREGEX_ERROR ) return xuiXrtRegexFailureStatus();
 		if ( iRet != XREGEX_MATCH || (int)tSpan.Begin > iEnd ) return XUI_ERROR_UNSUPPORTED;
 		if ( (int)tSpan.End <= iEnd && __xuiFindRegexFillResult(pEngine, sText, iTextLength, tSpan, pResult) == XUI_OK ) return XUI_OK;
-		if ( (int)tSpan.Begin >= iEnd ) break;
-		iPos = ((int)tSpan.End > (int)tSpan.Begin) ? (int)tSpan.End : __xuiFindNextUtf8Offset(sText, (int)tSpan.Begin, iEnd);
+		iNext = __xuiFindNextScalar(sText, iTextLength, (int)tSpan.Begin);
+		if ( iNext <= (int)tSpan.Begin ) break;
+		iPos = iNext;
 	}
 	return XUI_ERROR_UNSUPPORTED;
 }
@@ -415,37 +522,48 @@ static int __xuiFindRegexBackward(xui_find_engine_t* pEngine, const char* sText,
 	xui_find_result_t tCurrent;
 	int iPos;
 	int iFound;
+	int iRet;
 
 	iFound = 0;
 	iPos = iStart;
-	while ( __xuiFindRegexForward(pEngine, sText, iTextLength, iPos, iEnd, &tCurrent) == XUI_OK ) {
+	while ( (iRet = __xuiFindRegexForward(pEngine, sText, iTextLength, iPos, iEnd, &tCurrent)) == XUI_OK ) {
 		if ( tCurrent.iEnd > iEnd ) break;
 		tLast = tCurrent;
 		iFound = 1;
-		if ( tCurrent.iEnd == tCurrent.iStart && tCurrent.iStart >= iEnd ) break;
-		iPos = (tCurrent.iEnd > tCurrent.iStart) ? tCurrent.iEnd : __xuiFindNextUtf8Offset(sText, tCurrent.iStart, iEnd);
+		iPos = __xuiFindNextScalar(sText, iTextLength, tCurrent.iStart);
+		if ( iPos <= tCurrent.iStart ) break;
 	}
+	if ( iRet != XUI_ERROR_UNSUPPORTED && iRet != XUI_OK ) return iRet;
 	if ( !iFound ) return XUI_ERROR_UNSUPPORTED;
 	*pResult = tLast;
 	return XUI_OK;
 }
 #endif
 
-static int __xuiFindAppendReplacement(xui_find_engine_t* pEngine, char** psOutput, int* pLength, int* pCapacity, const char* sText, const xui_find_result_t* pResult);
+static int __xuiFindAppendReplacement(xui_find_engine_t* pEngine, char** psOutput, int* pLength,
+    int* pCapacity, const char* sText, const xui_find_result_t* pResult,
+    char* sError, int iErrorCapacity);
+
+static void __xuiFindEngineDestroy(xui_find_engine_t* pEngine);
 
 static int __xuiFindEngineCreate(xui_find_engine_t* pEngine, const char* sPattern, const char* sReplacement, uint32_t iFlags, char* sError, int iErrorCapacity)
 {
 	int iRet;
 
-	if ( pEngine == NULL || sPattern == NULL || sPattern[0] == '\0' ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( pEngine == NULL || sPattern == NULL || sPattern[0] == '\0' ||
+	     !__xuiFindFlagsValid(iFlags) ) {
+		__xuiFindSetError(sError, iErrorCapacity, "invalid argument");
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
 	memset(pEngine, 0, sizeof(*pEngine));
 	pEngine->iFlags = iFlags;
 	iRet = __xuiFindDupMaybeEscaped(sPattern, iFlags, &pEngine->sPattern, sError, iErrorCapacity);
-	if ( iRet != XUI_OK ) return iRet;
+	if ( iRet != XUI_OK ) goto fail;
 	pEngine->iPatternLength = (int)strlen(pEngine->sPattern);
 	if ( pEngine->iPatternLength <= 0 ) {
 		__xuiFindSetError(sError, iErrorCapacity, "empty pattern");
-		return XUI_ERROR_INVALID_ARGUMENT;
+		iRet = XUI_ERROR_INVALID_ARGUMENT;
+		goto fail;
 	}
 	if ( sReplacement != NULL ) {
 		if ( (iFlags & XUI_FIND_REGEX) != 0 ) {
@@ -453,31 +571,37 @@ static int __xuiFindEngineCreate(xui_find_engine_t* pEngine, const char* sPatter
 		} else {
 			iRet = __xuiFindDupMaybeEscaped(sReplacement, iFlags, &pEngine->sReplacement, sError, iErrorCapacity);
 		}
-		if ( iRet != XUI_OK ) return iRet;
-		if ( (iFlags & (XUI_FIND_REGEX | XUI_FIND_ESCAPE)) == (XUI_FIND_REGEX | XUI_FIND_ESCAPE) ) {
-			/* Validate before matching, including when there are no matches. */
-			xui_find_result_t tEmpty = {0};
-			char* sValidation = NULL;
-			int iLength = 0, iCapacity = 0;
-			iRet = __xuiFindAppendReplacement(pEngine, &sValidation, &iLength, &iCapacity, "", &tEmpty);
-			if ( iRet == XUI_OK && !xrtUtf8Valid((xstrview){sValidation, (size_t)iLength}, NULL) ) iRet = XUI_ERROR_INVALID_ARGUMENT;
-			xrtFree(sValidation);
-			if ( iRet != XUI_OK ) {
-				__xuiFindSetError(sError, iErrorCapacity, "invalid replacement escape");
-				return iRet;
-			}
-		}
+		if ( iRet != XUI_OK ) goto fail;
+		pEngine->iReplacementLength = (int)strlen(pEngine->sReplacement);
+        if ( (iFlags & (XUI_FIND_REGEX | XUI_FIND_ESCAPE)) == (XUI_FIND_REGEX | XUI_FIND_ESCAPE) ) {
+            xui_find_result_t tEmpty = {0};
+            char* sValidation = NULL;
+            int iLength = 0, iCapacity = 0;
+            iRet = __xuiFindAppendReplacement(pEngine, &sValidation, &iLength, &iCapacity,
+                "", &tEmpty, sError, iErrorCapacity);
+            if ( iRet == XUI_OK && !xrtUtf8Valid((xstrview){sValidation, (size_t)iLength}, NULL) ) {
+                __xuiFindSetError(sError, iErrorCapacity, "invalid replacement escape");
+                iRet = XUI_ERROR_INVALID_ARGUMENT;
+            }
+            xrtFree(sValidation);
+            if ( iRet != XUI_OK ) goto fail;
+        }
 	}
 	if ( (iFlags & XUI_FIND_REGEX) != 0 ) {
 #ifdef XRT_NO_REGEX
 		__xuiFindSetError(sError, iErrorCapacity, "XRT regex support is disabled");
-		return XUI_ERROR_UNSUPPORTED;
+		iRet = XUI_ERROR_UNSUPPORTED;
+		goto fail;
 #else
 		iRet = __xuiFindRegexCreate(pEngine, sError, iErrorCapacity);
-		if ( iRet != XUI_OK ) return iRet;
+		if ( iRet != XUI_OK ) goto fail;
 #endif
 	}
 	return XUI_OK;
+
+fail:
+	__xuiFindEngineDestroy(pEngine);
+	return iRet;
 }
 
 static void __xuiFindEngineDestroy(xui_find_engine_t* pEngine)
@@ -527,23 +651,23 @@ static int __xuiFindEngineFind(const xui_find_engine_t* pEngineConst, const char
 	return __xuiFindPlainInRange(sText, iTextLength, pEngine, iRangeStart, iStartOffset, pResult);
 }
 
-static int __xuiFindAppendReplacement(xui_find_engine_t* pEngine, char** psOutput, int* pLength, int* pCapacity, const char* sText, const xui_find_result_t* pResult)
+static int __xuiFindAppendReplacement(xui_find_engine_t* pEngine, char** psOutput, int* pLength,
+	int* pCapacity, const char* sText, const xui_find_result_t* pResult,
+	char* sError, int iErrorCapacity)
 {
 	const char* sReplacement;
 	int i;
 	int iCapture;
-	int iTextLength;
-	unsigned int iCodepoint;
 	int iRet;
 
 	if ( pEngine == NULL || psOutput == NULL || pLength == NULL || pCapacity == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
 	sReplacement = (pEngine->sReplacement != NULL) ? pEngine->sReplacement : "";
-	iTextLength = (int)strlen(sReplacement);
 	if ( (pEngine->iFlags & XUI_FIND_REGEX) == 0 ) {
-		return __xuiFindAppendBytes(psOutput, pLength, pCapacity, sReplacement, (int)strlen(sReplacement));
+		return __xuiFindAppendBytes(psOutput, pLength, pCapacity, sReplacement, pEngine->iReplacementLength);
 	}
-	for ( i = 0; sReplacement[i] != '\0'; i++ ) {
-		if ( sReplacement[i] == '$' && sReplacement[i + 1] >= '0' && sReplacement[i + 1] <= '9' ) {
+	for ( i = 0; i < pEngine->iReplacementLength; i++ ) {
+		if ( sReplacement[i] == '$' && i + 1 < pEngine->iReplacementLength &&
+		     sReplacement[i + 1] >= '0' && sReplacement[i + 1] <= '9' ) {
 			iCapture = sReplacement[i + 1] - '0';
 			i++;
 			if ( iCapture < pResult->iCaptureCount && pResult->arrCaptures[iCapture].iStart >= 0 ) {
@@ -553,7 +677,8 @@ static int __xuiFindAppendReplacement(xui_find_engine_t* pEngine, char** psOutpu
 			continue;
 		}
 		if ( sReplacement[i] == '\\' ) {
-			if ( sReplacement[i + 1] >= '0' && sReplacement[i + 1] <= '9' ) {
+			if ( i + 1 < pEngine->iReplacementLength &&
+			     sReplacement[i + 1] >= '0' && sReplacement[i + 1] <= '9' ) {
 				iCapture = sReplacement[i + 1] - '0';
 				i++;
 				if ( iCapture < pResult->iCaptureCount && pResult->arrCaptures[iCapture].iStart >= 0 ) {
@@ -564,55 +689,9 @@ static int __xuiFindAppendReplacement(xui_find_engine_t* pEngine, char** psOutpu
 			}
 			if ( (pEngine->iFlags & XUI_FIND_ESCAPE) != 0 ) {
 				i++;
-				if ( sReplacement[i] == '\0' ) return __xuiFindAppendByte(psOutput, pLength, pCapacity, '\\');
-				switch ( sReplacement[i] ) {
-				case 'n': iRet = __xuiFindAppendByte(psOutput, pLength, pCapacity, '\n'); break;
-				case 'r': iRet = __xuiFindAppendByte(psOutput, pLength, pCapacity, '\r'); break;
-				case 't': iRet = __xuiFindAppendByte(psOutput, pLength, pCapacity, '\t'); break;
-				case '\\': iRet = __xuiFindAppendByte(psOutput, pLength, pCapacity, '\\'); break;
-				case 'x':
-					if ( !__xuiFindReadHex(sReplacement + i + 1, iTextLength - i - 1, 2, &iCodepoint) ) {
-						iRet = XUI_ERROR_INVALID_ARGUMENT;
-						return iRet;
-					}
-					if ( iCodepoint == 0u ) {
-						iRet = XUI_ERROR_INVALID_ARGUMENT;
-						return iRet;
-					}
-					i += 2;
-					iRet = __xuiFindAppendByte(psOutput, pLength, pCapacity, (char)iCodepoint);
-					break;
-				case 'u':
-					if ( !__xuiFindReadHex(sReplacement + i + 1, iTextLength - i - 1, 4, &iCodepoint) ) {
-						iRet = XUI_ERROR_INVALID_ARGUMENT;
-						return iRet;
-					}
-					i += 4;
-					if ( iCodepoint >= 0xD800u && iCodepoint <= 0xDBFFu ) {
-						unsigned int iLow;
-						/* A UTF-16 high surrogate must be followed by a complete low one. */
-						if ( iTextLength - i - 1 < 6 || sReplacement[i + 1] != '\\' || sReplacement[i + 2] != 'u' ||
-						     !__xuiFindReadHex(sReplacement + i + 3, iTextLength - i - 3, 4, &iLow) ||
-						     iLow < 0xDC00u || iLow > 0xDFFFu ) {
-							iRet = XUI_ERROR_INVALID_ARGUMENT;
-							return iRet;
-						}
-						iCodepoint = 0x10000u + ((iCodepoint - 0xD800u) << 10) + (iLow - 0xDC00u);
-						i += 6;
-					} else if ( iCodepoint >= 0xDC00u && iCodepoint <= 0xDFFFu ) {
-						iRet = XUI_ERROR_INVALID_ARGUMENT;
-						return iRet;
-					}
-					if ( iCodepoint == 0u ) {
-						iRet = XUI_ERROR_INVALID_ARGUMENT;
-						return iRet;
-					}
-					iRet = __xuiFindAppendUtf8(psOutput, pLength, pCapacity, iCodepoint);
-					break;
-				default:
-					iRet = __xuiFindAppendByte(psOutput, pLength, pCapacity, sReplacement[i]);
-					break;
-				}
+				if ( i >= pEngine->iReplacementLength ) return __xuiFindAppendByte(psOutput, pLength, pCapacity, '\\');
+				iRet = __xuiFindAppendEscape(sReplacement, pEngine->iReplacementLength, &i,
+					psOutput, pLength, pCapacity, sError, iErrorCapacity);
 				if ( iRet != XUI_OK ) return iRet;
 				continue;
 			}
@@ -623,21 +702,46 @@ static int __xuiFindAppendReplacement(xui_find_engine_t* pEngine, char** psOutpu
 	return XUI_OK;
 }
 
+static int __xuiFindValidateResult(const xui_find_result_t* pResult, int iTextLength)
+{
+	int i;
+	int iStart;
+	int iEnd;
+
+	if ( pResult == NULL || pResult->iStart < 0 || pResult->iEnd < pResult->iStart ||
+	     pResult->iEnd > iTextLength || pResult->iCaptureCount < 0 ||
+	     pResult->iCaptureCount > XUI_FIND_MAX_CAPTURES ) return XUI_ERROR_INVALID_ARGUMENT;
+	for ( i = 0; i < pResult->iCaptureCount; i++ ) {
+		iStart = pResult->arrCaptures[i].iStart;
+		iEnd = pResult->arrCaptures[i].iEnd;
+		if ( iStart == -1 && iEnd == -1 ) continue;
+		if ( iStart < 0 || iEnd < iStart || iEnd > iTextLength ) return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	return XUI_OK;
+}
+
 XUI_API int xuiFindText(const char* sText, int iTextLength, const char* sPattern, int iStartOffset, int iRangeStart, int iRangeEnd, uint32_t iFlags, xui_find_result_t* pResult, char* sError, int iErrorCapacity)
 {
 	xui_find_engine_t tEngine;
 	int iRet;
 
-	if ( sText == NULL || sPattern == NULL || pResult == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
-	iTextLength = __xuiFindTextLength(sText, iTextLength);
+	__xuiFindSetError(sError, iErrorCapacity, "");
+	if ( pResult != NULL ) memset(pResult, 0, sizeof(*pResult));
+	if ( sText == NULL || sPattern == NULL || pResult == NULL ) {
+		__xuiFindSetStatusError(sError, iErrorCapacity, XUI_ERROR_INVALID_ARGUMENT);
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	iRet = __xuiFindResolveTextLength(sText, iTextLength, &iTextLength);
+	if ( iRet != XUI_OK ) {
+		__xuiFindSetStatusError(sError, iErrorCapacity, iRet);
+		return iRet;
+	}
 	__xuiFindNormalizeRange(iTextLength, &iRangeStart, &iRangeEnd, &iStartOffset);
-	memset(pResult, 0, sizeof(*pResult));
 	memset(&tEngine, 0, sizeof(tEngine));
 	iRet = __xuiFindEngineCreate(&tEngine, sPattern, NULL, iFlags, sError, iErrorCapacity);
 	if ( iRet == XUI_OK ) iRet = __xuiFindEngineFind(&tEngine, sText, iTextLength, iStartOffset, iRangeStart, iRangeEnd, pResult);
 	__xuiFindEngineDestroy(&tEngine);
-	if ( iRet == XUI_OK ) __xuiFindSetError(sError, iErrorCapacity, "");
-	else if ( iRet == XUI_ERROR_UNSUPPORTED ) __xuiFindSetError(sError, iErrorCapacity, "not found");
+	__xuiFindSetStatusError(sError, iErrorCapacity, iRet);
 	return iRet;
 }
 
@@ -646,31 +750,57 @@ XUI_API int xuiFindCollectText(const char* sText, int iTextLength, const char* s
 	xui_find_engine_t tEngine;
 	xui_find_result_t tResult;
 	int iOffset;
+	int iNext;
 	int iCount;
 	int iRet;
 
-	if ( sText == NULL || sPattern == NULL || pResultCount == NULL || iResultCapacity < 0 || (iResultCapacity > 0 && pResults == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
-	iTextLength = __xuiFindTextLength(sText, iTextLength);
+	__xuiFindSetError(sError, iErrorCapacity, "");
+	if ( pResultCount != NULL ) *pResultCount = 0;
+	if ( sText == NULL || sPattern == NULL || pResultCount == NULL || iResultCapacity < 0 || (iResultCapacity > 0 && pResults == NULL) ) {
+		__xuiFindSetStatusError(sError, iErrorCapacity, XUI_ERROR_INVALID_ARGUMENT);
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	iRet = __xuiFindResolveTextLength(sText, iTextLength, &iTextLength);
+	if ( iRet != XUI_OK ) {
+		__xuiFindSetStatusError(sError, iErrorCapacity, iRet);
+		return iRet;
+	}
 	iOffset = iRangeStart;
 	__xuiFindNormalizeRange(iTextLength, &iRangeStart, &iRangeEnd, &iOffset);
 	iFlags &= ~(XUI_FIND_BACKWARD | XUI_FIND_WRAP);
-	*pResultCount = 0;
 	iCount = 0;
 	memset(&tEngine, 0, sizeof(tEngine));
 	iRet = __xuiFindEngineCreate(&tEngine, sPattern, NULL, iFlags, sError, iErrorCapacity);
-	if ( iRet != XUI_OK ) return iRet;
+	if ( iRet != XUI_OK ) {
+		__xuiFindSetStatusError(sError, iErrorCapacity, iRet);
+		return iRet;
+	}
 	iOffset = iRangeStart;
-	while ( __xuiFindEngineFind(&tEngine, sText, iTextLength, iOffset, iRangeStart, iRangeEnd, &tResult) == XUI_OK ) {
+	for ( ;; ) {
+		iRet = __xuiFindEngineFind(&tEngine, sText, iTextLength, iOffset, iRangeStart, iRangeEnd, &tResult);
+		if ( iRet == XUI_ERROR_UNSUPPORTED ) break;
+		if ( iRet != XUI_OK ) goto cleanup;
 		if ( pResults != NULL && iCount < iResultCapacity ) pResults[iCount] = tResult;
+		if ( iCount == INT_MAX ) {
+			iRet = XUI_ERROR_LIMIT_EXCEEDED;
+			goto cleanup;
+		}
 		iCount++;
-		if ( tResult.iEnd == tResult.iStart && tResult.iStart >= iRangeEnd ) break;
-		iOffset = (tResult.iEnd > tResult.iStart) ? tResult.iEnd : __xuiFindNextUtf8Offset(sText, tResult.iStart, iRangeEnd);
+		iNext = (tResult.iEnd > tResult.iStart) ? tResult.iEnd :
+			__xuiFindNextScalar(sText, iTextLength, tResult.iStart);
+		if ( iNext <= tResult.iStart ) break;
+		iOffset = iNext;
 		if ( iOffset > iRangeEnd ) break;
 	}
 	*pResultCount = iCount;
 	__xuiFindEngineDestroy(&tEngine);
 	__xuiFindSetError(sError, iErrorCapacity, "");
 	return XUI_OK;
+
+cleanup:
+	__xuiFindEngineDestroy(&tEngine);
+	__xuiFindSetStatusError(sError, iErrorCapacity, iRet);
+	return iRet;
 }
 
 XUI_API int xuiFindReplaceAllText(const char* sText, int iTextLength, const char* sPattern, const char* sReplacement, int iRangeStart, int iRangeEnd, uint32_t iFlags, char** psOutput, int* pOutputLength, int* pReplaceCount, char* sError, int iErrorCapacity)
@@ -681,20 +811,33 @@ XUI_API int xuiFindReplaceAllText(const char* sText, int iTextLength, const char
 	int iOutputLength;
 	int iCapacity;
 	int iCursor;
+	int iNext;
+	int bNextBeyondRange;
 	int iCount;
 	int iRet;
 
-	if ( sText == NULL || sPattern == NULL || sReplacement == NULL || psOutput == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
-	*psOutput = NULL;
+	__xuiFindSetError(sError, iErrorCapacity, "");
+	if ( psOutput != NULL ) *psOutput = NULL;
 	if ( pOutputLength != NULL ) *pOutputLength = 0;
 	if ( pReplaceCount != NULL ) *pReplaceCount = 0;
-	iTextLength = __xuiFindTextLength(sText, iTextLength);
+	if ( sText == NULL || sPattern == NULL || sReplacement == NULL || psOutput == NULL ) {
+		__xuiFindSetStatusError(sError, iErrorCapacity, XUI_ERROR_INVALID_ARGUMENT);
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	iRet = __xuiFindResolveTextLength(sText, iTextLength, &iTextLength);
+	if ( iRet != XUI_OK ) {
+		__xuiFindSetStatusError(sError, iErrorCapacity, iRet);
+		return iRet;
+	}
 	iCursor = iRangeStart;
 	__xuiFindNormalizeRange(iTextLength, &iRangeStart, &iRangeEnd, &iCursor);
 	iFlags &= ~(XUI_FIND_BACKWARD | XUI_FIND_WRAP);
 	memset(&tEngine, 0, sizeof(tEngine));
 	iRet = __xuiFindEngineCreate(&tEngine, sPattern, sReplacement, iFlags, sError, iErrorCapacity);
-	if ( iRet != XUI_OK ) return iRet;
+	if ( iRet != XUI_OK ) {
+		__xuiFindSetStatusError(sError, iErrorCapacity, iRet);
+		return iRet;
+	}
 	sOutput = NULL;
 	iOutputLength = 0;
 	iCapacity = 0;
@@ -702,21 +845,32 @@ XUI_API int xuiFindReplaceAllText(const char* sText, int iTextLength, const char
 	iRet = __xuiFindAppendBytes(&sOutput, &iOutputLength, &iCapacity, sText, iRangeStart);
 	if ( iRet != XUI_OK ) goto cleanup;
 	iCursor = iRangeStart;
-	while ( __xuiFindEngineFind(&tEngine, sText, iTextLength, iCursor, iRangeStart, iRangeEnd, &tResult) == XUI_OK ) {
-		iRet = __xuiFindAppendBytes(&sOutput, &iOutputLength, &iCapacity, sText + iCursor, tResult.iStart - iCursor);
-		if ( iRet == XUI_OK ) iRet = __xuiFindAppendReplacement(&tEngine, &sOutput, &iOutputLength, &iCapacity, sText, &tResult);
+	for ( ;; ) {
+		iRet = __xuiFindEngineFind(&tEngine, sText, iTextLength, iCursor, iRangeStart, iRangeEnd, &tResult);
+		if ( iRet == XUI_ERROR_UNSUPPORTED ) break;
 		if ( iRet != XUI_OK ) goto cleanup;
+		iRet = __xuiFindAppendBytes(&sOutput, &iOutputLength, &iCapacity, sText + iCursor, tResult.iStart - iCursor);
+		if ( iRet == XUI_OK ) iRet = __xuiFindAppendReplacement(&tEngine, &sOutput, &iOutputLength,
+			&iCapacity, sText, &tResult, sError, iErrorCapacity);
+		if ( iRet != XUI_OK ) goto cleanup;
+		if ( iCount == INT_MAX ) {
+			iRet = XUI_ERROR_LIMIT_EXCEEDED;
+			goto cleanup;
+		}
 		iCount++;
 		if ( tResult.iEnd > tResult.iStart ) {
 			iCursor = tResult.iEnd;
 		} else {
-			int iNext;
-			iCursor = tResult.iEnd;
-			if ( iCursor >= iRangeEnd ) break;
-			iNext = __xuiFindNextUtf8Offset(sText, iCursor, iRangeEnd);
-			iRet = __xuiFindAppendBytes(&sOutput, &iOutputLength, &iCapacity, sText + iCursor, iNext - iCursor);
-			if ( iRet != XUI_OK ) goto cleanup;
+			iNext = __xuiFindNextScalar(sText, iTextLength, tResult.iStart);
+			bNextBeyondRange = iNext > iRangeEnd;
+			if ( iNext > iRangeEnd ) iNext = iRangeEnd;
+			if ( iNext > tResult.iStart ) {
+				iRet = __xuiFindAppendBytes(&sOutput, &iOutputLength, &iCapacity,
+					sText + tResult.iStart, iNext - tResult.iStart);
+				if ( iRet != XUI_OK ) goto cleanup;
+			}
 			iCursor = iNext;
+			if ( tResult.iStart >= iRangeEnd || bNextBeyondRange ) break;
 		}
 		if ( iCursor > iRangeEnd ) break;
 	}
@@ -735,7 +889,7 @@ XUI_API int xuiFindReplaceAllText(const char* sText, int iTextLength, const char
 cleanup:
 	xrtFree(sOutput);
 	__xuiFindEngineDestroy(&tEngine);
-	if ( iRet == XUI_ERROR_OUT_OF_MEMORY ) __xuiFindSetError(sError, iErrorCapacity, "out of memory");
+	__xuiFindSetStatusError(sError, iErrorCapacity, iRet);
 	return iRet;
 }
 
@@ -748,19 +902,30 @@ XUI_API int xuiFindBuildReplacement(const char* sText, int iTextLength, const ch
 	int iLength = 0;
 	int iCapacity = 0;
 	int iRet;
-	if ( sText == NULL || sPattern == NULL || sReplacement == NULL || pResult == NULL || psOutput == NULL )
-		return XUI_ERROR_INVALID_ARGUMENT;
-	*psOutput = NULL;
+	__xuiFindSetError(sError, iErrorCapacity, "");
+	if ( psOutput != NULL ) *psOutput = NULL;
 	if ( pOutputLength != NULL ) *pOutputLength = 0;
-	iTextLength = __xuiFindTextLength(sText, iTextLength);
-	if ( pResult->iStart < 0 || pResult->iEnd < pResult->iStart || pResult->iEnd > iTextLength )
+	if ( sText == NULL || sPattern == NULL || sReplacement == NULL || pResult == NULL || psOutput == NULL ) {
+		__xuiFindSetStatusError(sError, iErrorCapacity, XUI_ERROR_INVALID_ARGUMENT);
 		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	iRet = __xuiFindResolveTextLength(sText, iTextLength, &iTextLength);
+	if ( iRet == XUI_OK ) iRet = __xuiFindValidateResult(pResult, iTextLength);
+	if ( iRet != XUI_OK ) {
+		__xuiFindSetStatusError(sError, iErrorCapacity, iRet);
+		return iRet;
+	}
 	memset(&tEngine, 0, sizeof(tEngine));
 	iRet = __xuiFindEngineCreate(&tEngine, sPattern, sReplacement, iFlags, sError, iErrorCapacity);
-	if ( iRet == XUI_OK ) iRet = __xuiFindAppendReplacement(&tEngine, &sOutput, &iLength, &iCapacity, sText, pResult);
+	if ( iRet == XUI_OK ) iRet = __xuiFindAppendReplacement(&tEngine, &sOutput, &iLength,
+		&iCapacity, sText, pResult, sError, iErrorCapacity);
 	if ( iRet == XUI_OK ) iRet = __xuiFindAppendBytes(&sOutput, &iLength, &iCapacity, "", 1);
 	__xuiFindEngineDestroy(&tEngine);
-	if ( iRet != XUI_OK ) { xrtFree(sOutput); return iRet; }
+	if ( iRet != XUI_OK ) {
+		xrtFree(sOutput);
+		__xuiFindSetStatusError(sError, iErrorCapacity, iRet);
+		return iRet;
+	}
 	iLength--;
 	*psOutput = sOutput;
 	if ( pOutputLength != NULL ) *pOutputLength = iLength;
@@ -773,4 +938,4 @@ XUI_API void xuiFindFreeText(char* sText)
 	xrtFree(sText);
 }
 
-#endif /* XUI_ENABLE_FIND */
+#endif
