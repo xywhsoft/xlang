@@ -270,6 +270,64 @@ static int navigationKey(xls_semantic_check* check,const xide_semantic_source* s
  }
  return okay ? 1 : 0;
 }
+struct xide_navigation_snapshot {
+ xls_semantic_check* owner;xls_projection_store* cache;uint64_t revision;int bound;
+ size_t count,bytes;xide_semantic_source sources[];
+};
+typedef struct navigation_admission {xls_semantic_check* owner;xls_projection_store* cache;uint64_t revision;int active;} navigation_admission;
+static _Thread_local navigation_admission activeNavigationAdmission;
+void xideSemanticNavigationDestroy(xide_navigation_snapshot* snapshot)
+{
+ if(!snapshot)return;
+ for(size_t i=0;i<snapshot->count;++i)xrtFree((void*)snapshot->sources[i].path);
+ xlsSemanticCheckDestroy(snapshot->owner);xrtFree(snapshot);
+}
+xide_navigation_snapshot* xideSemanticNavigationCapture(xls_semantic_check* check,
+ const xide_semantic_source* sources,size_t count,xide_model_error* error)
+{
+ xstrbuf unused={0};
+ const xls_semantic_index* index=xlsSemanticCheckTypedIndex(check);
+ if(!index || navigationKey(check,sources,count,&unused,0)<0){
+  if(error){error->code=XIDE_MODEL_INVALID;snprintf(error->message,sizeof(error->message),"Deferred navigation sources do not match their checked owner.");}
+  return NULL;
+ }
+ /* Keep the original projection capacity boundary. Its existing rejection
+  * still runs through the eager fallback;do not advertise an unavailable
+  * navigation view merely because small deferred metadata would fit. */
+ size_t coordinateBudget=0;
+ if(!typedCapacity(xlsSemanticIndexCount(index),sources,count,&coordinateBudget))return NULL;
+ size_t bytes=sizeof(xide_navigation_snapshot)+count*sizeof(xide_semantic_source);
+ if(bytes>XLS_PROJECTION_KEY_BYTES)return NULL;
+ for(size_t i=0;i<count;++i){size_t n=strlen(sources[i].path);if(n>=XLS_PROJECTION_KEY_BYTES-bytes)return NULL;bytes+=n+1;}
+ xide_navigation_snapshot* snapshot=xrtCalloc(1,sizeof(*snapshot)+count*sizeof(*sources));if(!snapshot)return NULL;
+ snapshot->owner=xlsSemanticCheckRetain(check);snapshot->count=count;snapshot->bytes=bytes;
+ for(size_t i=0;i<count;++i){
+  xls_input_source row;
+  if(!xlsSemanticCheckSource(check,i,&row)){
+   if(error){error->code=XIDE_MODEL_INVALID;snprintf(error->message,sizeof(error->message),"Deferred navigation owner became invalid during capture.");}
+   xideSemanticNavigationDestroy(snapshot);return NULL;
+  }
+  char* path=xrtStrDup(sources[i].path);
+  if(!path){xideSemanticNavigationDestroy(snapshot);return NULL;}
+  snapshot->sources[i]=(xide_semantic_source){path,row.text,sources[i].kind,sources[i].utf16Prefix};
+ }
+ return snapshot;
+}
+size_t xideSemanticNavigationBytes(const xide_navigation_snapshot* snapshot)
+{return snapshot ? snapshot->bytes : 0;}
+void xideSemanticNavigationBind(xide_navigation_snapshot* snapshot,xls_projection_store* cache)
+{if(snapshot){snapshot->cache=cache;snapshot->revision=xlsProjectionRetireOther(cache,snapshot->owner);snapshot->bound=1;}}
+xide_semantic_definitions* xideSemanticNavigationResolve(const xide_navigation_snapshot* snapshot,
+ xls_projection_store* cache,xls_projection** lease,xide_navigation_work* work,xide_model_error* error)
+{
+ if(!snapshot){if(lease)*lease=NULL;if(work)*work=(xide_navigation_work){0};return NULL;}
+ if(!snapshot->bound)return xideSemanticDefinitionsAcquireTyped(cache,snapshot->owner,snapshot->sources,snapshot->count,lease,work,error);
+ if(cache!=snapshot->cache)cache=NULL;
+ navigation_admission previous=activeNavigationAdmission;
+ activeNavigationAdmission=(navigation_admission){snapshot->owner,cache,snapshot->revision,1};
+ xide_semantic_definitions* result=xideSemanticDefinitionsAcquireTyped(cache,snapshot->owner,snapshot->sources,snapshot->count,lease,work,error);
+ activeNavigationAdmission=previous;return result;
+}
 xide_semantic_definitions* xideSemanticDefinitionsAcquireTyped(xls_projection_store* cache,
  xls_semantic_check* check,const xide_semantic_source* sources,size_t count,xls_projection** lease,xide_navigation_work* work,xide_model_error* error)
 {
@@ -282,7 +340,10 @@ xide_semantic_definitions* xideSemanticDefinitionsAcquireTyped(xls_projection_st
  xide_semantic_definitions* d=p ? xlsProjectionValue(p) : xideSemanticDefinitionsCreateTyped(xlsSemanticCheckTypedIndex(check),sources,count,error);
  if(!d){xrtStrBufFree(&key);return NULL;}
  if(work){work->built=p==NULL;work->hit=p!=NULL;work->bytes=navigationBytes(d);}
- if(!p && ready){p=xlsProjectionCreate(check,key.Data,key.Size,d,navigationBytes(d),destroyNavigation);if(p){p=xlsProjectionPublish(cache,p);d=xlsProjectionValue(p);}}
+ if(!p && ready){p=xlsProjectionCreate(check,key.Data,key.Size,d,navigationBytes(d),destroyNavigation);if(p){
+  const navigation_admission* admission=&activeNavigationAdmission;
+  p=admission->active && admission->owner==check && admission->cache==cache ? xlsProjectionPublishAt(cache,p,admission->revision) : xlsProjectionPublish(cache,p);d=xlsProjectionValue(p);
+ }}
  if(lease)*lease=p;
  if(work)work->bytes=navigationBytes(d);
  xrtStrBufFree(&key);return d;

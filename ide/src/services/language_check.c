@@ -71,6 +71,43 @@ static xvalue* diagnostics(xide_language_check* q,const xvalue* raw,xide_model_e
  return out;
 invalid: xrtValueRelease(out); fail(e,"编译器诊断位置、来源或字段无法验证。"); return NULL;
 }
+#ifdef XLS_COMPILER_XRT
+static void buildRequestedNavigation(xide_language_check* q)
+{
+ EnterCriticalSection(&q->lock);
+ xide_navigation_snapshot* snapshot=q->navigationState==1 && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING ? q->deferredNavigation : NULL;
+ if(snapshot)q->navigationState=2;
+ LeaveCriticalSection(&q->lock);if(!snapshot)return;
+ xls_projection* lease=NULL;xide_navigation_work work={0};xide_model_error error={0},changed={0};
+ xide_semantic_definitions* table=xideSemanticNavigationResolve(snapshot,xlsWorkerProjectionStore(q->semanticActor),&lease,&work,&error);
+ int current=!cancelled(q) && xideLanguageSnapshotGuard(q,&changed),installed=0;
+ EnterCriticalSection(&q->lock);
+ if(table && current && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING){
+  q->definitions=table;q->navigationProjection=lease;q->navigationWork=work;q->deferredNavigation=NULL;q->navigationState=3;installed=1;
+ }else{
+  q->navigationState=-1;snprintf(q->navigationError,sizeof(q->navigationError),"%s",*error.message ? error.message : "Deferred navigation could not be constructed.");
+  if(!current && !cancelled(q)){q->guardState=XIDE_GUARD_INVALID;snprintf(q->guardError,sizeof(q->guardError),"%s",*changed.message ? changed.message : "Navigation inputs are no longer current.");}
+ }
+ LeaveCriticalSection(&q->lock);
+ if(installed)xideSemanticNavigationDestroy(snapshot);else xideSemanticDefinitionsReleaseTyped(table,lease);
+ if(q->wake)q->wake(q->wakeUser);
+}
+int xideLanguageCheckPrepareNavigation(xide_language_check* q,const char* path,int version,char* message,size_t capacity)
+{
+ if(!q || !path)return -2;
+ EnterCriticalSection(&q->lock);int match=0,result=-2;
+ for(size_t i=0;i<q->snapshotCount;++i)if(version==q->snapshots[i].version && xidePathLexicalEqual(path,q->snapshots[i].path)){match=1;break;}
+ if(match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING){
+  if(q->definitions)result=1;
+  else if(q->deferredNavigation){
+   if(!q->navigationState){q->navigationState=1;if(!q->navigationEvent || !SetEvent(q->navigationEvent)){q->navigationState=-1;snprintf(q->navigationError,sizeof(q->navigationError),"Unable to wake navigation worker.");}}
+   result=q->navigationState<0 ? -1 : 0;
+  }
+ }
+ if(result==-1 && message && capacity)snprintf(message,capacity,"%s",q->navigationError);
+ LeaveCriticalSection(&q->lock);return result;
+}
+#endif
 static DWORD WINAPI worker(void* user)
 {
  xide_language_check* q=user; xide_model_error e={0}; xide_toolchain_stamp stamp={0}; xide_toolchain_profile profile={0}; xide_file_snapshot file={0}; char *help=NULL,*json=NULL; xvalue *raw=NULL,*result=NULL,*list=NULL; int code=0,success=0; uint64_t began=GetTickCount64();
@@ -90,7 +127,14 @@ done:
  if(q->state==XIDE_CHECK_READY) { q->result=result; result=NULL; if(q->snapshotCount) q->guardState=XIDE_GUARD_RUNNING; } else snprintf(q->error,sizeof(q->error),"%s",cancelled(q) ? "源码检查已取消。" : *e.message ? e.message : "未取得可验证的源码分析结果。");
  LeaveCriticalSection(&q->lock); xrtValueRelease(result);
  if(q->wake) q->wake(q->wakeUser);
- if(success && q->snapshotCount) while(WaitForSingleObject(q->stopEvent,1000)==WAIT_TIMEOUT) {
+ if(success && q->snapshotCount) while(1) {
+#ifdef XLS_COMPILER_XRT
+  HANDLE events[2]={q->stopEvent,q->navigationEvent};DWORD signal=q->navigationEvent ? WaitForMultipleObjects(2,events,FALSE,1000) : WaitForSingleObject(q->stopEvent,1000);
+  if(signal==WAIT_OBJECT_0+1){buildRequestedNavigation(q);continue;}
+#else
+  DWORD signal=WaitForSingleObject(q->stopEvent,1000);
+#endif
+  if(signal!=WAIT_TIMEOUT)break;
   xide_model_error changed={0}; if(xideLanguageSnapshotGuard(q,&changed)) continue;
   if(!cancelled(q)) { EnterCriticalSection(&q->lock); q->guardState=XIDE_GUARD_INVALID; snprintf(q->guardError,sizeof(q->guardError),"%s",*changed.message ? changed.message : "发布后检查输入无法复核。"); LeaveCriticalSection(&q->lock); if(q->wake) q->wake(q->wakeUser); }
   break;
@@ -285,12 +329,25 @@ static xvalue* definitionProof(xide_language_check* q,const xvalue* location)
  if(okay) { okay=put(out,"document",document); document=NULL; }
  xrtValueRelease(document); if(!okay) { xrtValueRelease(out); out=NULL; } return out;
 }
+/* Called only under q->lock after the current envelope/guard checks. The
+ * original constructor still owns all converted ranges and binding rules. */
+static xide_semantic_definitions* navigation(xide_language_check* q)
+{
+#ifdef XLS_COMPILER_XRT
+ if(!q->definitions && q->deferredNavigation && !q->navigationState){
+  xide_model_error error={0};
+  q->definitions=xideSemanticNavigationResolve(q->deferredNavigation,xlsWorkerProjectionStore(q->semanticActor),&q->navigationProjection,&q->navigationWork,&error);
+  if(q->definitions){xideSemanticNavigationDestroy(q->deferredNavigation);q->deferredNavigation=NULL;}
+ }
+#endif
+ return q->definitions;
+}
 static xvalue* definition(xide_language_check* q,const char* path,int version,int line,int character,int proof)
 {
  if(!q || !path) return NULL;
  EnterCriticalSection(&q->lock); int match=0;
  for(size_t i=0;i<q->snapshotCount;++i) if(xidePathLexicalEqual(path,q->snapshots[i].path) && version==q->snapshots[i].version) match=1;
- xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && q->definitions ? xideSemanticDefinition(q->definitions,path,line,character) : NULL;
+ xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && navigation(q) ? xideSemanticDefinition(q->definitions,path,line,character) : NULL;
  if(proof && out && xrtValueType(out)!=XVALUE_NULL && !put(out,"xlang",definitionProof(q,out))) { xrtValueRelease(out); out=NULL; }
  LeaveCriticalSection(&q->lock); return out;
 }
@@ -303,7 +360,7 @@ xvalue* xideLanguageCheckHover(xide_language_check* q,const char* path,int versi
  if(!q || !path) return NULL;
  EnterCriticalSection(&q->lock); int match=0;
  for(size_t i=0;i<q->snapshotCount;++i) if(xidePathLexicalEqual(path,q->snapshots[i].path) && version==q->snapshots[i].version) match=1;
- xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && q->definitions ? xideSemanticHover(q->definitions,path,line,character) : NULL;
+ xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && navigation(q) ? xideSemanticHover(q->definitions,path,line,character) : NULL;
  LeaveCriticalSection(&q->lock); return out;
 }
 xvalue* xideLanguageCheckDocumentSymbols(xide_language_check* q,const char* path,int version)
@@ -311,7 +368,7 @@ xvalue* xideLanguageCheckDocumentSymbols(xide_language_check* q,const char* path
  if(!q || !path) return NULL;
  EnterCriticalSection(&q->lock); int match=0;
  for(size_t i=0;i<q->snapshotCount;++i) if(xidePathLexicalEqual(path,q->snapshots[i].path) && version==q->snapshots[i].version) match=1;
- xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && q->definitions ? xideSemanticDocumentSymbols(q->definitions,path) : NULL;
+ xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && navigation(q) ? xideSemanticDocumentSymbols(q->definitions,path) : NULL;
  LeaveCriticalSection(&q->lock); return out;
 }
 xvalue* xideLanguageCheckDocumentHighlights(xide_language_check* q,const char* path,int version,int line,int character)
@@ -319,7 +376,7 @@ xvalue* xideLanguageCheckDocumentHighlights(xide_language_check* q,const char* p
  if(!q || !path) return NULL;
  EnterCriticalSection(&q->lock); int match=0;
  for(size_t i=0;i<q->snapshotCount;++i) if(xidePathLexicalEqual(path,q->snapshots[i].path) && version==q->snapshots[i].version) match=1;
- xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && q->definitions ? xideSemanticDocumentHighlights(q->definitions,path,line,character) : NULL;
+ xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && navigation(q) ? xideSemanticDocumentHighlights(q->definitions,path,line,character) : NULL;
  LeaveCriticalSection(&q->lock); return out;
 }
 void xideLanguageCheckCancel(xide_language_check* q) { if(q) { InterlockedExchange(&q->cancel,1); if(q->stopEvent) SetEvent(q->stopEvent); } }
@@ -342,6 +399,8 @@ void xideLanguageCheckDestroy(xide_language_check* q)
  free(q->snapshots); if(q->stopEvent) CloseHandle(q->stopEvent); xrtValueRelease(q->guardFiles); xrtValueRelease(q->guardResolution);
 #ifdef XLS_COMPILER_XRT
  xideSemanticDefinitionsReleaseTyped(q->definitions,q->navigationProjection);
+ xideSemanticNavigationDestroy(q->deferredNavigation);
+ if(q->navigationEvent)CloseHandle(q->navigationEvent);
 #else
  xideSemanticDefinitionsDestroy(q->definitions);
 #endif
@@ -387,6 +446,9 @@ static xide_language_check* startSnapshots(xide_toolchains* cache,const char* co
  xide_language_check* q=createSnapshots(cache,compiler,directory,entry,documents,count,queryPath,line,character,0,e);
  if(!q) return NULL;
  if(options) { q->nativeSemantic=options->nativeBackend; q->wake=options->wake; q->wakeUser=options->user; }
+#ifdef XLS_COMPILER_XRT
+ if(q->nativeSemantic)q->navigationEvent=CreateEventW(NULL,FALSE,FALSE,NULL);
+#endif
  q->stopEvent=CreateEventW(NULL,TRUE,FALSE,NULL); if(q->stopEvent) q->worker=CreateThread(NULL,0,worker,q,0,NULL);
  if(q->worker) return q;
  xideLanguageCheckDestroy(q); fail(e,"Cannot start copied snapshot worker."); return NULL;
@@ -463,6 +525,7 @@ static xide_language_check* startRetained(xls_context* context,int configured,in
   if(!found) goto invalid;
  }
  if(options) { q->wake=options->wake; q->wakeUser=options->user; }
+ q->navigationEvent=CreateEventW(NULL,FALSE,FALSE,NULL);
  q->stopEvent=CreateEventW(NULL,TRUE,FALSE,NULL); if(q->stopEvent) q->worker=CreateThread(NULL,0,worker,q,0,NULL);
  if(q->worker) return q;
 invalid:
