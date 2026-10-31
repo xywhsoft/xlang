@@ -95,6 +95,7 @@ CORE_TESTS = ("analysis_semantic_final_input_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_input_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_alias_reads_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_multifunction_syntax_test", "analysis_multifunction_fault_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_type_constructor_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 HOST_TESTS += ("project_reference_parallel_test",)
@@ -353,6 +354,8 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
     if current:
         from native_semantic_effects_overlay import derive
         source,effect_overlay=derive(frontend,output,source)
+    from native_type_constructor_overlay import derive as derive_type_constructor
+    source,type_constructor=derive_type_constructor(frontend,output,source,current)
     source = semantic_cancellation(source)
     source = derive_type_sources(source)
     compiled.write_text(source, encoding='utf-8', newline='\n')
@@ -367,6 +370,7 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
         overloadCandidateBytes=8 * 1024 * 1024,
         syntheticTypeOrigins='eight explicit at-node constructors retain original AST source/ranges;original type rules unchanged',
         observedTypeQueries=type_queries, projectedAliasQueries=1 if current else 0,
+        typeConstructor=type_constructor,
         currentUnitProbe=bool(current and _current_unit_probe), declarationEffects=effect_overlay,
         semanticCohort='current-2084f8ac' if cohort_dependencies else None,
         auditedDependencies={**cohort_dependencies, str(registry): registry_sha, str(registry_header):registry_header_sha, str(ast): ast_sha})
@@ -623,7 +627,7 @@ def main() -> None:
         sources += [(ide / "tests" / (name + ".c"), name not in
                      ("analysis_semantic_read_front_test", "analysis_ir_sparse_decode_test",
                       "analysis_semantic_final_input_test", "analysis_ir_input_test",
-                      "analysis_semantic_alias_reads_test")) for name in tests]
+                      "analysis_semantic_alias_reads_test", "analysis_type_constructor_test")) for name in tests]
     if args.server:
         if os.name != "nt":
             parser.error("the current host still uses Windows transport/process adapters; the standalone core is separate")
@@ -721,7 +725,7 @@ def main() -> None:
     inputs[str(Path(__file__).with_name('native_current_ir_overlay.py').resolve())] = sha(Path(__file__).with_name('native_current_ir_overlay.py'))
     inputs[str(Path(__file__).with_name('native_current_ir_profile.py').resolve())] = sha(Path(__file__).with_name('native_current_ir_profile.py'))
     inputs[str(Path(__file__).with_name('native_current_retirement_profile.py').resolve())] = sha(Path(__file__).with_name('native_current_retirement_profile.py'))
-    for name in ('native_current_semantic_profile.py','native_semantic_effects_overlay.py','native_current_stdlib_profile.py','native_current_context_profile.py'):
+    for name in ('native_current_semantic_profile.py','native_semantic_effects_overlay.py','native_current_stdlib_profile.py','native_current_context_profile.py','native_type_constructor_overlay.py'):
         controller=Path(__file__).with_name(name).resolve()
         inputs[str(controller)]=sha(controller)
     for overlay in (ir_overlay,sem_overlay,stdlib_overlay,completion_overlay,*context_overlays):
@@ -820,6 +824,8 @@ def main() -> None:
             if name=='analysis_current_loader_test' and loader_references:
                 extra += [str(objects[p.stem]) for p in loader_references]+['-Wl,--wrap=xrtMalloc']
             if name=='analysis_ir_callsite_test':extra+=['-Wl,--wrap=xrtArrayReserve','-Wl,--wrap=xrtArrayResize']
+            if name=='analysis_type_constructor_test':
+                extra += ['-Wl,--wrap='+function for function in ('xrtCalloc','xrtStrDupN','xrtStrDup')]
             if name=='analysis_selection_test':extra+=['-Wl,--wrap=xrtCalloc','-Wl,--wrap=xrtArrayInit','-Wl,--wrap=xrtArrayPush']
             if name == "analysis_index_limit_test":
                 extra.append(str(limited_index))
