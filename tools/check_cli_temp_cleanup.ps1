@@ -135,9 +135,7 @@ if ( ! (Test-Path -LiteralPath $xl -PathType Leaf) ) {
     exit 1
 }
 
-if ( ! (Test-Path -LiteralPath $tmpDir -PathType Container) ) {
-    New-Item -ItemType Directory -Path $tmpDir | Out-Null
-}
+$tmpExistedBefore = Test-Path -LiteralPath $tmpDir -PathType Container
 if ( Test-Path -LiteralPath $artifactDir -PathType Container ) {
     Remove-Item -LiteralPath $artifactDir -Recurse -Force
 }
@@ -229,9 +227,23 @@ if ( $result.Code -ne 0 ) {
 }
 Assert-NoTempDirDelta "save-temps cleanup" "xl6_build_*" $buildBefore
 
-$remainingTmpItems = @(Get-ChildItem -LiteralPath $tmpDir -Force)
+$remainingTmpItems = if (Test-Path -LiteralPath $tmpDir -PathType Container) { @(Get-ChildItem -LiteralPath $tmpDir -Force) } else { @() }
 if ( $remainingTmpItems.Count -ne 0 ) {
     Add-Failure "release tmp must be empty after CLI temp cleanup: $($remainingTmpItems.Count) item(s) remain"
+}
+if (!$tmpExistedBefore -and $remainingTmpItems.Count -eq 0 -and (Test-Path -LiteralPath $tmpDir -PathType Container)) {
+    # Remove only the empty parent introduced by these checks. A racing writer
+    # makes this non-recursive removal fail, preserving its contents.
+    $runtimePath = (Resolve-Path -LiteralPath $RuntimeDirectory).Path
+    $resolvedTmp = (Resolve-Path -LiteralPath $tmpDir).Path
+    if ($resolvedTmp -ne [IO.Path]::GetFullPath((Join-Path $runtimePath 'tmp')) -or
+        ((Get-Item -LiteralPath $runtimePath -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) -or
+        ((Get-Item -LiteralPath $resolvedTmp -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        Add-Failure 'Refusing an unexpected or reparse temp parent'
+    } else {
+        try { Remove-Item -LiteralPath $resolvedTmp -ErrorAction Stop }
+        catch { Add-Failure ("Cannot remove the owned empty temp parent: " + $_.Exception.Message) }
+    }
 }
 
 if ( $failures.Count -gt 0 ) {

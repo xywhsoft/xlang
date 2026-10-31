@@ -58,4 +58,15 @@ if ( $failures.Count -gt 0 ) {
     exit 1
 }
 
+if (Test-Path -LiteralPath $tmpDir -PathType Container) {
+    $expectedTmp = [IO.Path]::GetFullPath($tmpDir)
+    if ($resolvedTmpDir -ne $expectedTmp -or
+        ((Get-Item -LiteralPath $tmpDir -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        throw 'Refusing an unexpected or reparse temp parent'
+    }
+    if (@(Get-ChildItem -LiteralPath $tmpDir -Force).Count -eq 0) {
+        # Do not recursively remove the parent: concurrent new data must survive.
+        Remove-Item -LiteralPath $tmpDir -ErrorAction Stop
+    }
+}
 Write-Host "release tmp cleanup ok: $($items.Count) entries scanned."

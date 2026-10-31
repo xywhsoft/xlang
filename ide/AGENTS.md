@@ -1,6 +1,7 @@
 # IDE build and validation
 
-- Use the repository root `release/` for normal local IDE and language-server builds and runtime validation. Keep compiler objects in `ide/build/Release/` and logs or temporary fixtures in `release/tmp/`.
+- Use the repository root `release/` for normal local IDE and language-server builds and runtime validation. Keep compiler objects in `ide/build/Release/` and validation logs or temporary fixtures in a dedicated run subdirectory; do not create `release/tmp/` just to hold verification evidence. Executables under test still load the real root release libraries and tools.
+- When a test explicitly exercises compiler temporary paths, preserve pre-existing user data and remove its owned temporary entries afterward, including a newly created empty `release/tmp/` parent. Remove an empty parent non-recursively so concurrent contents cannot be deleted.
 - Create a separate runtime environment only for a concrete need, such as a version comparison, fault injection or protecting the user's running session. Explain that need. Test-only desktop windows do not require a separate runtime directory.
 - When updating the language server, rebuild and validate the IDE against the same `release/xlang-ls.exe`, matched XGE SDK/DLL and root compiler. Protocol tests alone do not establish that the IDE is usable.
 - Include C and xlang typing, deletion, undo, Unicode/IME and click-to-focus checks, plus the language features affected by the change. Keep test executables out of the final release root after validation.
