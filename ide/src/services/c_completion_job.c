@@ -1,3 +1,5 @@
+#include "app/features.h"
+#if XIDE_ENABLE_C_LSP
 #include "services/c_completion_job.h"
 #include "services/c_input_trace.h"
 #include "platform/path.h"
@@ -296,3 +298,5 @@ int xideCAnalysisJobGuard(xide_c_completion_job* j,const char* path,xide_file_sn
  if(!yes && !cjcancelled(j) && j->state==XIDE_C_JOB_READY && !xideCBridgePrivatePath(j->bridge,path)) yes=xideCInputTraceSnapshot(j->trace,path,out);
  LeaveCriticalSection(&j->lock); return yes;
 }
+
+#endif /* XIDE_ENABLE_C_LSP */

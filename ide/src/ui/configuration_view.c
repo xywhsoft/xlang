@@ -57,12 +57,16 @@ static xvalue* list(xide_configuration_view* view)
     }
     static const char* keys[]={"includePaths","libraryPaths","linkLibraries","arguments","environment"};
     xvalue* root=current(view); if(view->category<5) return get(view->category<3 ? root : get(root,"run"),keys[view->category]);
+#if XIDE_ENABLE_C_LSP
     if(!root) return NULL;
     xvalue* analysis=get(root,"cAnalysis");
     if(!analysis) { analysis=xrtValueObject(); if(!analysis || !xrtValueObjectSetNew(root,sv("cAnalysis"),analysis)) return NULL; }
     const char* cKeys[]={"systemIncludes","forcedIncludes","defines","undefines"}; const char* key=cKeys[view->category-5];
     if(!get(analysis,key) && !xrtValueObjectSetNew(analysis,sv(key),xrtValueArray())) return NULL;
     return get(analysis,key);
+#else
+    return NULL;
+#endif
 }
 static void message(xide_configuration_view* view,const char* value) { xuiLabelSetText(view->message,value); xgeRenderRequest(); }
 static int storeFields(xide_configuration_view* view)
@@ -143,9 +147,15 @@ static void configSelected(xui_widget widget,int index,int value,void* user)
 static void categorySelected(xui_widget widget,int index,int value,void* user)
 {
     (void)widget; (void)value; xide_app* app=user; xide_configuration_view* view=app->configurationView;
+#if XIDE_ENABLE_C_LSP
     if(index<0 || index>10 || view->sync) return;
-    view->category=index; refreshRows(app,-1);
-    if(index>=9) message(view,"测试仅启动明确配置的 .exe 程序。脚本填写解释器程序及参数；Ctrl+F7 主动运行所选项目测试。");
+    view->category=index;
+#else
+    if(index<0 || index>6 || view->sync) return;
+    view->category=index<5 ? index : index+4;
+#endif
+    refreshRows(app,-1);
+    if(view->category>=9) message(view,"测试仅启动明确配置的 .exe 程序。脚本填写解释器程序及参数；Ctrl+F7 主动运行所选项目测试。");
     else if(index>=5) message(view,"C 分析设置由 clangd 使用，不改变 TCC 构建。强制头按列表顺序包含；宏定义先于取消定义。");
     else message(view,"参数保持原文，不添加 shell 引号。测试程序在测试类别中配置。");
     xgeRenderRequest();
@@ -253,7 +263,12 @@ int xideConfigurationViewCreate(xide_app* app)
     TRY(label(app,&view->directoryLabel,"运行工作目录",(xui_rect_t){0,198,736,20})); TRY(input(app,XIDE_CONFIG_DIRECTORY,"运行工作目录",(xui_rect_t){0,220,736,32}));
     TRY(input(app,XIDE_CONFIG_TEST_PROGRAM,"测试程序 (.exe)",(xui_rect_t){0,158,736,32})); TRY(input(app,XIDE_CONFIG_TEST_DIRECTORY,"测试工作目录",(xui_rect_t){0,220,736,32}));
     TRY(xuiWidgetSetVisible(view->controls[XIDE_CONFIG_TEST_PROGRAM],0)); TRY(xuiWidgetSetVisible(view->controls[XIDE_CONFIG_TEST_DIRECTORY],0));
-    static const char* categories[]={"头文件搜索路径","库搜索路径","链接库","运行参数","环境变量","C 分析：系统头目录","C 分析：强制包含头文件","C 分析：宏定义","C 分析：取消宏定义","测试参数与程序","测试环境变量"}; combo.arrItems=categories; combo.iItemCount=11; combo.fPopupHeight=360; combo.fPopupMaxHeight=420;
+    static const char* categories[]={"头文件搜索路径","库搜索路径","链接库","运行参数","环境变量",
+#if XIDE_ENABLE_C_LSP
+        "C 分析：系统头目录","C 分析：强制包含头文件","C 分析：宏定义","C 分析：取消宏定义",
+#endif
+        "测试参数与程序","测试环境变量"};
+    combo.arrItems=categories; combo.iItemCount=(int)(sizeof(categories)/sizeof(*categories)); combo.fPopupHeight=360; combo.fPopupMaxHeight=420;
     TRY(xuiComboBoxCreate(app->context,&view->controls[XIDE_CONFIG_CATEGORY],&combo)); TRY(xuiWidgetSetRect(view->controls[XIDE_CONFIG_CATEGORY],(xui_rect_t){0,268,360,32}));
     TRY(xuiWidgetAddChild(view->content,view->controls[XIDE_CONFIG_CATEGORY])); TRY(xuiComboBoxSetSelect(view->controls[XIDE_CONFIG_CATEGORY],categorySelected,app));
     TRY(label(app,NULL,"参数保持原文，不需要手动添加 shell 引号。",(xui_rect_t){374,268,362,32}));

@@ -48,8 +48,8 @@ def preferences(old, destination, value):
     tools = value.setdefault('toolchain', {})
     if not isinstance(tools, dict):
         raise ValueError('Invalid existing toolchain preferences')
-    old_tools = {'compiler': ('toolchains/xlang/xl.exe', 'xl.exe'),
-                 'cServer': ('toolchains/clangd/bin/clangd.exe', 'toolchains/clangd/bin/clangd.exe')}
+    tools.pop('cServer', None)
+    old_tools = {'compiler': ('toolchains/xlang/xl.exe', 'xl.exe')}
     for key, (previous, current) in old_tools.items():
         stored = tools.get(key)
         bundled = stored is None
@@ -97,7 +97,7 @@ def merge(source, application_release, output, language_server=None):
     applications = application_release.resolve(strict=True) if application_release else source
     selected = {}
     for name, digest in original.items():
-        if name.startswith('toolchains/xlang/'):
+        if name.startswith(('toolchains/xlang/', 'toolchains/clangd/', 'sources/clangd-adaptation/', 'notices/clangd/', 'provenance/clangd-adaptation/')) or name == 'provenance/clangd-inputs.json':
             continue
         if name == 'package-manifest.json':
             name = 'provenance/ide-original-package-manifest.json'
@@ -112,7 +112,7 @@ def merge(source, application_release, output, language_server=None):
         for name, digest in files(applications / 'data').items():
             selected['data/' + name] = (applications / 'data' / name, digest)
     allowed = {'QUICKSTART.md', *APPLICATIONS}
-    namespaces = ('data/', 'option/', 'toolchains/clangd/', 'sources/', 'notices/', 'provenance/')
+    namespaces = ('data/', 'option/', 'sources/', 'notices/', 'provenance/')
     for name, (path, digest) in selected.items():
         if name not in allowed and not name.startswith(namespaces):
             raise ValueError('Unexpected IDE runtime asset: ' + name)

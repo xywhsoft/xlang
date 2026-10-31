@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([ValidateSet('Debug','Release')][string]$Configuration='Debug', [switch]$SkipBuild, [switch]$SkipRender, [string]$CompilerPath, [string]$CompletionCompilerPath, [string]$CServerPath, [string]$CInputTraceServerPath, [string]$BridgeCompilerPath, [string]$MappingCompilerPath, [string]$PortablePackagePath, [string]$BuildInputCompilerPath, [string]$TestRoot, [string]$TypeFactsCompilerPath, [string]$PublicTypeCompilerPath, [string]$ClassScalarCompilerPath, [string]$NativeScalarCompilerPath, [switch]$NativeDebugTrace, [string]$CServerMaterialsManifest, [string]$NativeAggregateCompilerPath, [string]$NativeExtensionCompilerPath, [string]$ReleaseDirectory='')
+param([ValidateSet('Debug','Release')][string]$Configuration='Debug', [switch]$SkipBuild, [switch]$SkipRender, [string]$CompilerPath, [string]$CompletionCompilerPath, [string]$CServerPath, [string]$CInputTraceServerPath, [string]$BridgeCompilerPath, [string]$MappingCompilerPath, [string]$PortablePackagePath, [string]$BuildInputCompilerPath, [string]$TestRoot, [string]$TypeFactsCompilerPath, [string]$PublicTypeCompilerPath, [string]$ClassScalarCompilerPath, [string]$NativeScalarCompilerPath, [switch]$NativeDebugTrace, [string]$CServerMaterialsManifest, [string]$NativeAggregateCompilerPath, [string]$NativeExtensionCompilerPath, [string]$ReleaseDirectory='', [switch]$EnableCLsp)
 $ErrorActionPreference='Stop'
 $ideRoot=Split-Path -Parent $PSScriptRoot
 $releaseRoot=if ($ReleaseDirectory) { [IO.Path]::GetFullPath($ReleaseDirectory) } else { Join-Path $ideRoot ('build\'+$Configuration+'\release') }
@@ -7,7 +7,7 @@ $testRoot=if ($TestRoot) { [IO.Path]::GetFullPath($TestRoot) } else { Join-Path 
 [void](New-Item -ItemType Directory -Path $testRoot -Force)
 $projectTestRoot = Join-Path $testRoot ('project-tests-'+[Guid]::NewGuid().ToString('N'))
 if (-not $SkipBuild) {
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'build.ps1') -Configuration $Configuration -Tests -ReleaseDirectory $releaseRoot
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'build.ps1') -Configuration $Configuration -Tests -ReleaseDirectory $releaseRoot -EnableCLsp:$EnableCLsp
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 }
 & python -X utf8 -B (Join-Path $PSScriptRoot 'check_lsp_folding.py') --server (Join-Path $releaseRoot 'xlang-ls.exe') --output (Join-Path $testRoot ('resident-folding-'+[Guid]::NewGuid().ToString('N')))
@@ -29,26 +29,26 @@ if ($LASTEXITCODE -ne 0) { throw 'Native semantic/IR diagnostics, guarded index 
 if ($LASTEXITCODE -ne 0) { throw 'Shared exact diagnostic dependency dictionary gate failed.' }
 & python -X utf8 -B (Join-Path $PSScriptRoot 'check_lsp_overlay_proofs.py') --server (Join-Path $releaseRoot 'xlang-ls.exe') --output (Join-Path $testRoot ('diagnostic-overlay-proofs-'+[Guid]::NewGuid().ToString('N')))
 if ($LASTEXITCODE -ne 0) { throw 'Causal diagnostic overlay input proof gate failed.' }
-if ($NativeExtensionCompilerPath) {
+if ($NativeExtensionCompilerPath -and $EnableCLsp) {
     if (-not $CServerPath) { throw 'Native extension checks require CServerPath.' }
     & python -X utf8 (Join-Path $PSScriptRoot 'check_c_extensions.py') --compiler $NativeExtensionCompilerPath --server $CServerPath --fixture (Join-Path $releaseRoot 'c_extension_test.exe') --output (Join-Path $testRoot 'c-extensions')
     if ($LASTEXITCODE -ne 0) { throw 'Actual extension imports, stdio execution and IDE C context checks failed.' }
 }
-if ($NativeAggregateCompilerPath) {
+if ($NativeAggregateCompilerPath -and $EnableCLsp) {
     if (-not $CServerPath -or -not $CompilerPath) { throw 'Native aggregate checks require CServerPath and the legacy CompilerPath.' }
     & python -X utf8 (Join-Path $PSScriptRoot 'check_c_native_aggregates.py') --compiler $NativeAggregateCompilerPath --server $CServerPath --fixture (Join-Path $releaseRoot 'c_bridge_test.exe') --legacy $CompilerPath --output (Join-Path $testRoot 'c-native-aggregates')
     if ($LASTEXITCODE -ne 0) { throw 'Actual TCC aggregate layout and IDE C bridge comparison failed.' }
 }
-if ($NativeScalarCompilerPath) {
+if ($NativeScalarCompilerPath -and $EnableCLsp) {
     if (-not $CServerPath -or -not $CompilerPath) { throw 'Native C scalar checks require CServerPath and the legacy CompilerPath.' }
     & python (Join-Path $PSScriptRoot 'check_c_native_scalars.py') --compiler $NativeScalarCompilerPath --server $CServerPath --fixture (Join-Path $releaseRoot 'c_bridge_test.exe') --legacy $CompilerPath --output (Join-Path $testRoot 'c-native-scalars')
     if ($LASTEXITCODE -ne 0) { throw 'Actual TCC scalar target and IDE C bridge comparison failed.' }
 }
-if ($CServerMaterialsManifest) {
+if ($CServerMaterialsManifest -and $EnableCLsp) {
     & python -X utf8 (Join-Path $PSScriptRoot 'check_c_server_materials.py') --manifest $CServerMaterialsManifest --output (Join-Path $testRoot 'c-server-materials')
     if ($LASTEXITCODE -ne 0) { throw 'Selected C server material integrity gate failed.' }
 }
-if ($CInputTraceServerPath) {
+if ($CInputTraceServerPath -and $EnableCLsp) {
     & (Join-Path $releaseRoot 'c_input_trace_test.exe') (Join-Path $testRoot 'c-input-trace') $CInputTraceServerPath
     if ($LASTEXITCODE -ne 0) { throw 'Real compiler-observed C input trace gate failed.' }
     & (Join-Path $releaseRoot 'c_input_trace_view_test.exe') (Join-Path $testRoot 'c-input-trace-ui') $CInputTraceServerPath
@@ -72,7 +72,7 @@ if ($TypeFactsCompilerPath) {
     & (Join-Path $releaseRoot 'definition_view_test.exe') (Join-Path $testRoot 'type-facts-ui') $TypeFactsCompilerPath 'type-facts'
     if ($LASTEXITCODE -ne 0) { throw 'Native protocol/base/generic type navigation gate failed.' }
 }
-if ($PublicTypeCompilerPath) {
+if ($PublicTypeCompilerPath -and $EnableCLsp) {
     if (-not $CServerPath) { throw 'Public C type navigation gates require CServerPath.' }
     & python (Join-Path $PSScriptRoot 'check_public_type_map.py') --compiler $PublicTypeCompilerPath
     if ($LASTEXITCODE -ne 0) { throw 'Actual public C type emission and mixed execution gate failed.' }
@@ -81,20 +81,21 @@ if ($PublicTypeCompilerPath) {
     & (Join-Path $releaseRoot 'c_bridge_definition_view_test.exe') (Join-Path $testRoot 'public-type-definition-ui') $CServerPath $PublicTypeCompilerPath 'public-types'
     if ($LASTEXITCODE -ne 0) { throw 'Native C typedef/tag to xlang nominal type navigation gate failed.' }
 } else { Write-Output 'Public C type navigation gates omitted: PublicTypeCompilerPath was not supplied.' }
-if ($BridgeCompilerPath) {
+if ($BridgeCompilerPath -and $EnableCLsp) {
     if (-not $CServerPath -or -not $CompilerPath) { throw 'Automatic bridge gates require CServerPath and a legacy CompilerPath.' }
     & (Join-Path $releaseRoot 'c_bridge_test.exe') (Join-Path $testRoot 'c-bridge') $CServerPath $BridgeCompilerPath $CompilerPath
     if ($LASTEXITCODE -ne 0) { throw 'Real automatic C/xlang bridge backend gate failed.' }
     & (Join-Path $releaseRoot 'c_bridge_view_test.exe') (Join-Path $testRoot 'c-bridge-ui') $CServerPath $BridgeCompilerPath
     if ($LASTEXITCODE -ne 0) { throw 'Native automatic C/xlang bridge gate failed.' }
 } else { Write-Output 'Automatic C/xlang bridge gate omitted: BridgeCompilerPath was not supplied.' }
-if ($MappingCompilerPath) {
+if ($MappingCompilerPath -and $EnableCLsp) {
     if (-not $CServerPath) { throw 'Cross-language definition gates require CServerPath.' }
     & (Join-Path $releaseRoot 'c_bridge_map_test.exe') (Join-Path $testRoot 'c-bridge-map') $MappingCompilerPath
     if ($LASTEXITCODE -ne 0) { throw 'Real C declaration source mapping gate failed.' }
     & (Join-Path $releaseRoot 'c_bridge_definition_view_test.exe') (Join-Path $testRoot 'c-bridge-definition-ui') $CServerPath $MappingCompilerPath
     if ($LASTEXITCODE -ne 0) { throw 'Native C to xlang definition navigation gate failed.' }
 } else { Write-Output 'C to xlang definition gates omitted: MappingCompilerPath was not supplied.' }
+if ($EnableCLsp) {
 $cEnvironmentArguments=@((Join-Path $testRoot 'c-environment'))
 if ($CServerPath) { $cEnvironmentArguments += $CServerPath; if ($CompilerPath) { $cEnvironmentArguments += $CompilerPath } }
 & (Join-Path $releaseRoot 'c_environment_test.exe') @cEnvironmentArguments
@@ -110,6 +111,7 @@ if ($CServerPath) {
     if ($LASTEXITCODE -ne 0) { throw 'Native C semantics gate failed.' }
     & (Join-Path $releaseRoot 'c_completion_view_test.exe') (Join-Path $testRoot 'c-completion-ui') $CServerPath
     if ($LASTEXITCODE -ne 0) { throw 'Native C completion gate failed.' }
+}
 }
 foreach ($test in @('semantic_lookup_test','language_refresh_test','language_test','resource_text_test','workbench_test','catalog_view_test')) {
     & (Join-Path $releaseRoot ($test+'.exe'))
@@ -135,6 +137,7 @@ foreach ($fixture in @('diagnostic_dependencies_test','diagnostic_notice_test','
 & python -X utf8 (Join-Path $PSScriptRoot 'check_sdk_backgrounds.py') --fixture (Join-Path $releaseRoot 'sdk_background_view_test.exe') --output (Join-Path $testRoot ('sdk-background-pixels-'+[Guid]::NewGuid().ToString('N')))
 if ($LASTEXITCODE -ne 0) { throw 'SDK background indicator pixel gate failed.' }
 foreach ($fixture in @(@('analysis_context_test','analysis-context'),@('analysis_project_context_test','analysis-project-context'),@('lsp_receive_test','lsp-receive'),@('completion_result_test','completion-result'),@('sync_view_test','sync-view'),@('sync_plan_test','sync-plan'),@('sdk_background_index_test','sdk-background-index'),@('sdk_background_layout_test','sdk-background-layout'),@('highlight_result_test','highlight-result'),@('editor_lsp_coordinates_test','editor-lsp-coordinates'),@('document_sync_test','document-sync'),@('analysis_text_test','analysis-text'),@('file_dialog_test','file-dialogs'),@('dialog_message_test','dialog-message-ui'),@('catalog_source_view_test','catalog-source-ui'),@('startup_stage_test','startup-stage'),@('state_repair_test','state-repairs'),@('global_recovery_view_test','global-recovery-ui'),@('c_input_trace_test','c-input-trace'),@('c_record_layout_test','c-record-layout'),@('c_input_directory_test','c-input-directories'),@('model_test','models'),@('workspace_view_test','workspace-ui'),@('document_test','documents'),@('editor_view_test','editor-ui'),@('editor_minimap_test','editor-minimap'),@('toolbar_test','toolbar'),@('process_test','processes'),@('task_view_test','task-ui'),@('task_responsiveness_test','task-responsiveness'),@('task_pending_input_view_test','task-pending-input-ui'),@('standalone_task_test','standalone-tasks'),@('project_test_test','project-tests'),@('project_test_view_test','project-test-ui'),@('configuration_test','configurations'),@('settings_test','settings'),@('catalog_test','catalog'),@('help_document_test','help'),@('help_render_test','help-render'),@('help_viewport_test','help-viewport'),@('state_test','state'),@('session_test','sessions'),@('input_test','input'),@('font_test','fonts'),@('window_test','windows'),@('dpi_test','dpi'),@('ui_font_test','ui-fonts'),@('reading_test','reading'),@('recovery_test','recovery'),@('migration_store_test','migration-store'),@('recovery_backup_test','recovery-backups'),@('recovery_view_test','recovery-ui'),@('file_watch_test','file-watch'),@('file_sync_test','file-sync'),@('file_changes_view_test','file-changes-ui'),@('actions_test','actions'),@('find_view_test','find-ui'),@('find_escape_test','find-escapes'),@('find_options_view_test','find-options-ui'),@('find_boundaries_test','find-boundaries'),@('find_boundary_view_test','find-boundaries-ui'),@('goto_view_test','goto-ui'),@('references_test','references'),@('template_test','templates'),@('template_view_test','template-ui'),@('file_rebind_test','file-rebind'),@('rename_test','rename'),@('tree_rename_test','tree-rename'),@('resource_rebind_test','resource-rename'),@('project_migration_test','project-migration'),@('project_migration_view_test','project-migration-ui'),@('legacy_import_test','legacy-import'),@('import_view_test','legacy-import-ui'),@('resource_view_test','resources-ui'),@('resource_creation_test','resource-create-ui'),@('toolchain_test','toolchains-ui'),@('symbol_view_test','language-symbol-ui'),@('definition_view_test','language-definition-ui'),@('snapshot_view_test','language-snapshot-ui'),@('snapshot_check_test','language-snapshots'),@('lsp_test','language-protocol'),@('language_view_test','language-ui'))) {
+    if (-not $EnableCLsp -and $fixture[0] -in @('c_input_trace_test','c_record_layout_test','c_input_directory_test')) { continue }
     $fixtureArguments=@((Join-Path $testRoot $fixture[1]))
     if ($fixture[0] -in @('task_pending_input_view_test','standalone_task_test')) {
         if (-not $BuildInputCompilerPath) { Write-Output 'Actual pending build input UI gate omitted: BuildInputCompilerPath was not supplied.'; continue }

@@ -2,7 +2,9 @@
 #include "services/execution_target.h"
 #include "ui/language_view.h"
 #include "ui/completion_view.h"
+#if XIDE_ENABLE_C_LSP
 #include "ui/c_completion_view.h"
+#endif
 #include "ui/editor_view.h"
 #include "ui/workspace_view.h"
 #include "platform/path.h"
@@ -368,7 +370,11 @@ int xideTaskViewShowLanguageProblemsRouted(xide_app* app,const char* scope,const
  if(okay) { owned[0]=malloc(strlen(scope)+1); if(owned[0]) strcpy(owned[0],scope); else okay=0; nodes[0]=(xui_tree_view_node_t){.iId=0,.iParent=-1,.sText=owned[0],.bEnabled=1}; }
  for(size_t i=0;okay && i<count;++i) { owned[i+1]=malloc(strlen(titles[i])+1); if(owned[i+1]) strcpy(owned[i+1],titles[i]); else okay=0; nodes[i+1]=(xui_tree_view_node_t){.iId=(int)i+1,.iParent=0,.sText=owned[i+1],.bEnabled=1}; }
  int result=okay ? xuiTreeViewSetNodes(view->problems,nodes,(int)count+1) : XUI_ERROR_OUT_OF_MEMORY;
- if(result==XUI_OK) { clearTitles(&view->problemTitles,&view->problemTitleCount); view->problemTitles=owned; view->problemTitleCount=count+1; owned=NULL; view->languageProblems=1; view->problemOwner=owner; view->problemJump=jump; xuiTreeViewSetNodeExpanded(view->problems,0,1); if(activate && !xideCompletionViewActive(app) && !xideCCompletionViewActive(app)) result=show(app,XIDE_PROBLEMS); }
+ if(result==XUI_OK) { clearTitles(&view->problemTitles,&view->problemTitleCount); view->problemTitles=owned; view->problemTitleCount=count+1; owned=NULL; view->languageProblems=1; view->problemOwner=owner; view->problemJump=jump; xuiTreeViewSetNodeExpanded(view->problems,0,1); if(activate && !xideCompletionViewActive(app)
+#if XIDE_ENABLE_C_LSP
+ && !xideCCompletionViewActive(app)
+#endif
+ ) result=show(app,XIDE_PROBLEMS); }
  if(owned) { for(size_t i=0;i<=count;++i) free(owned[i]); free(owned); } free(nodes); xgeRenderRequest(); return result;
 }
 int xideTaskViewShowLanguageProblemsScoped(xide_app* app,const char* scope,const char* const* titles,size_t count,int activate)

@@ -3,7 +3,9 @@
 #include "services/analysis_configuration.h"
 #include "services/execution_target.h"
 #include "editor/lsp_coordinates.h"
+#if XIDE_ENABLE_C_LSP
 #include "ui/c_language_view.h"
+#endif
 #include "ui/editor_view.h"
 #include "ui/task_view.h"
 #include "services/language_client.h"
@@ -423,10 +425,18 @@ void xideLanguageViewStop(xide_app* app) { if(app->languageView) {automaticPause
 void xideLanguageViewDestroy(xide_app* app)
 { xide_language_view* v=app->languageView; if(v) { xideLanguageClientStop(v->client);automaticDestroy(v); xideSyncPlannerDestroy(v->syncPlanner);xideSyncResultRelease(v->syncReady);destroyReferences(v);xideHighlightDecoderDestroy(v->highlightDecoder); xrtValueRelease(v->deferredMessage); xideHighlightResultRelease(v->highlightResult); xlsSyncDestroy(v->sync); free(v->compiler); free(v->directory); free(v->uri); free(v->path); free(v->packagePath); xrtValueRelease(v->diagnostics); xrtValueRelease(v->snapshotResult);xrtValueRelease(v->analysisCatalog); freeInputs(v); while(v->bindings) { semantic_editor_binding* next=v->bindings->next; free(v->bindings); v->bindings=next; } free(v); app->languageView=NULL; } }
 int xideLanguageViewCanCheck(xide_app* app) { return app && app->languageView && !app->languageView->busy && eligible(app->activeDocument) && xideTaskViewCompiler(app); }
-int xideLanguageViewCanCheckCurrent(xide_app* app) { if(app && app->activeDocument && !strcmp(app->activeDocument->language,"c")) return xideCLanguageViewCanCheck(app); return app && app->languageView && !app->languageView->busy && canSnapshot(app,app->activeDocument) && xideTaskViewCompiler(app); }
+int xideLanguageViewCanCheckCurrent(xide_app* app) {
+#if XIDE_ENABLE_C_LSP
+ if(app && app->activeDocument && !strcmp(app->activeDocument->language,"c")) return xideCLanguageViewCanCheck(app);
+#endif
+ return app && app->languageView && !app->languageView->busy && canSnapshot(app,app->activeDocument) && xideTaskViewCompiler(app); }
 int xideLanguageViewCanDefine(xide_app* app)
 {
+
+#if XIDE_ENABLE_C_LSP
  if(app && app->activeDocument && !strcmp(app->activeDocument->language,"c")) return xideCLanguageViewCanQuery(app,1);
+#endif
+
  xide_language_view* v=app ? app->languageView : NULL; xide_document* d=app ? app->activeDocument : NULL; bool indexed=false;
  if(!v || !d || !d->open || !d->path || strcmp(d->language,"xlang") || v->busy || v->definitionRequest || v->definitionPending) return 0;
  if(v->definitionSupported && v->snapshotMode && current(v) && xrtValueGetBool(get(v->snapshotResult,"semanticDefinitions"),&indexed) && indexed)
@@ -474,15 +484,27 @@ static void pollDefinition(xide_app* app)
   else if(!sendDefinition(app)) v->definitionPending=0;
  }
 }
-int xideLanguageViewCanCancel(xide_app* app) { xide_language_view* v=app ? app->languageView : NULL; return xideCLanguageViewCanCancel(app) || referencesBusy(v) || (v && (v->autoEnabled || v->syncMode || v->highlightRequest || v->highlightDecoding || v->highlightApplied || v->highlightResult || v->busy || (v->snapshotMode && v->automatic) || v->recheckAt || v->semanticRefreshAt || (v->onDemandMode && (v->waitingInitialize || v->receiptRequest || v->definitionPending || v->definitionRequest || v->hoverRequest || v->outlineRequest)))); }
+int xideLanguageViewCanCancel(xide_app* app) { xide_language_view* v=app ? app->languageView : NULL; return
+#if XIDE_ENABLE_C_LSP
+ xideCLanguageViewCanCancel(app) ||
+#endif
+ referencesBusy(v) || (v && (v->autoEnabled || v->syncMode || v->highlightRequest || v->highlightDecoding || v->highlightApplied || v->highlightResult || v->busy || (v->snapshotMode && v->automatic) || v->recheckAt || v->semanticRefreshAt || (v->onDemandMode && (v->waitingInitialize || v->receiptRequest || v->definitionPending || v->definitionRequest || v->hoverRequest || v->outlineRequest)))); }
 int xideLanguageViewBusy(xide_app* app) { return app && app->languageView && app->languageView->busy; }
 static int showOutline(xide_app* app);
 static int requestCaretHover(xide_app* app);
 int xideLanguageViewAction(xide_app* app,int action)
 {
  if(action==XIDE_ACTION_FIND_REFERENCES)return requestReferences(app);
+
+#if XIDE_ENABLE_C_LSP
  if(action==XIDE_ACTION_CANCEL_CHECK) xideCLanguageViewAction(app,action);
+#endif
+
+
+#if XIDE_ENABLE_C_LSP
  if(app && app->activeDocument && !strcmp(app->activeDocument->language,"c") && action!=XIDE_ACTION_CHECK_SAVED && action!=XIDE_ACTION_CANCEL_CHECK) return xideCLanguageViewAction(app,action);
+#endif
+
  if(action==XIDE_ACTION_OUTLINE) return showOutline(app);
  if(action==XIDE_ACTION_HOVER) return requestCaretHover(app);
  if(action==XIDE_ACTION_DEFINITION) return requestDefinition(app);
@@ -870,7 +892,11 @@ static int readySymbols(xide_app* app)
 }
 int xideLanguageViewCanHover(xide_app* app)
 {
+
+#if XIDE_ENABLE_C_LSP
  if(app && app->activeDocument && !strcmp(app->activeDocument->language,"c")) return xideCLanguageViewCanQuery(app,2);
+#endif
+
  xide_language_view* v=app ? app->languageView : NULL;
  return v && ((v->hoverSupported && readySymbols(app)) || (!v->busy && !v->automatic && (!v->initialized || v->onDemandSupported) && canSnapshot(app,app->activeDocument) && xideTaskViewCompiler(app)));
 }

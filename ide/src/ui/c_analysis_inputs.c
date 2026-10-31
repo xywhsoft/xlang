@@ -1,3 +1,5 @@
+#include "app/features.h"
+#if XIDE_ENABLE_C_LSP
 #include "ui/c_analysis_inputs.h"
 #include "ui/c_completion_view.h"
 #include "ui/task_view.h"
@@ -215,3 +217,5 @@ xide_c_job_spec xideCInputsSpec(xide_c_inputs* b,xide_document* root,int offset,
  b->bridge=(xide_c_bridge_spec){b->compiler,b->bridgeProjects,xlang,b->xlangCount};
  return (xide_c_job_spec){.server=b->program,.directory=b->directory,.commands=b->commands,.documents=docs,.count=b->count,.documentId=root->id,.offset=offset,.extraFiles=b->extras,.extraCount=b->extraCount,.wake=wake,.user=b->app,.bridge=xrtValueCount(b->bridgeProjects) ? &b->bridge : NULL};
 }
+
+#endif /* XIDE_ENABLE_C_LSP */

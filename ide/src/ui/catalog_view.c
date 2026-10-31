@@ -1,7 +1,9 @@
 #include "ui/catalog_view.h"
 #include "platform/dpi_proxy.h"
 #include "ui/completion_view.h"
+#if XIDE_ENABLE_C_LSP
 #include "ui/c_completion_view.h"
+#endif
 #include "ui/references_view.h"
 #include "ui/reading_state.h"
 #include "services/ui_font.h"
@@ -409,7 +411,11 @@ static int complete(xui_widget editor,int offset,const char* prefix,xui_code_com
     size_t length=(size_t)(offset-start),qualifier=0;
     for(size_t i=0;i<length;++i) if(text[start+(int)i]=='.') qualifier=i+1;
     xideCompletionViewCollect(app,editor,offset,items,capacity,count);
-    xideCCompletionViewCollect(app,editor,offset,items,capacity,count);
+
+#if XIDE_ENABLE_C_LSP
+ xideCCompletionViewCollect(app,editor,offset,items,capacity,count);
+#endif
+
     const char* language=xuiCodeEditGetLanguage(editor); const char* last=NULL;
     for(size_t i=0;i<app->catalog.count;++i) {
         const xide_command* command=&app->catalog.entries[i]; size_t nameLength=strlen(command->name);
@@ -417,7 +423,11 @@ static int complete(xui_widget editor,int offset,const char* prefix,xui_code_com
         /* Qualified insertion replaces only CodeEdit's final identifier prefix. */
         if(qualifier && nameLength<=qualifier) continue;
         const char* insert=command->name+qualifier; last=command->name;
-        if(xideCompletionViewHasName(app,editor,insert) || xideCCompletionViewHasName(app,editor,insert)) continue;
+        if(xideCompletionViewHasName(app,editor,insert)
+#if XIDE_ENABLE_C_LSP
+ || xideCCompletionViewHasName(app,editor,insert)
+#endif
+) continue;
         if(items && *count<capacity) {
             xui_code_completion_item_t item={0}; item.iSize=sizeof(item); item.sLabel=insert; item.sInsertText=insert; item.sFilterText=insert;
             item.sDetail=app->catalogView->details[i]; item.sDocumentation=command->description; item.iUserData=i; item.iSortOrder=(int)i;
@@ -429,7 +439,11 @@ static int complete(xui_widget editor,int offset,const char* prefix,xui_code_com
 }
 static int input(xui_widget editor,const xui_code_input_event_t* event,xui_code_input_action_t* action,void* user)
 {
-    xide_app* app=user; xideCompletionViewInput(app,editor,event,action); xideCCompletionViewInput(app,editor,event,action);
+    xide_app* app=user; xideCompletionViewInput(app,editor,event,action);
+#if XIDE_ENABLE_C_LSP
+ xideCCompletionViewInput(app,editor,event,action);
+#endif
+
     if(!event || !app->catalogView || event->iPhase!=XUI_CODE_INPUT_COMMITTED || event->iSource==XUI_CODE_INPUT_SOURCE_PASTE || event->iSource==XUI_CODE_INPUT_SOURCE_COMPLETION || event->iTextSize!=1 || !event->sText) return XUI_OK;
     int offset=event->tSelectionAfter.iCaretOffset;
     const char* text=xuiCodeEditGetText(editor);

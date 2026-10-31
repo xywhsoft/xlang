@@ -1,3 +1,5 @@
+#include "app/features.h"
+#if XIDE_ENABLE_C_LSP
 #include "ui/c_completion_view.h"
 #include "services/c_completion_job.h"
 #include "ui/c_analysis_inputs.h"
@@ -208,3 +210,5 @@ void xideCCompletionViewDestroy(xide_app* app)
 }
 
 int xideCCompletionViewActive(xide_app* app) { xide_c_completion_view* v=app ? app->cCompletionView : NULL; return v && v->document && v->document->open && v->document->id==v->id && xuiCodeEditIsCompletionOpen(v->document->editor); }
+
+#endif /* XIDE_ENABLE_C_LSP */

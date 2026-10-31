@@ -1,3 +1,5 @@
+#include "app/features.h"
+#if XIDE_ENABLE_C_LSP
 #include "services/c_language.h"
 #include "platform/path.h"
 #include <windows.h>
@@ -372,3 +374,5 @@ void xideCSessionDestroy(xide_c_session* s)
  for(size_t i=0;i<s->count;++i) { free(s->documents[i].path); free(s->documents[i].uri); free(s->documents[i].text); }
  free(s);
 }
+
+#endif /* XIDE_ENABLE_C_LSP */

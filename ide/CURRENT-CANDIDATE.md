@@ -1,5 +1,7 @@
 # 当前 xlang IDE 开发验收候选
 
+2026-10-31：当前根 `release/` 版本默认不启用 C LSP，不再随包携带 clangd；源码由 `XIDE_ENABLE_C_LSP=0` 保留关闭，C 语法编辑及 xlang 驱动的编译运行继续可用，xlang-ls 保留。详见 [C LSP 构建选项](docs/c-lsp-build-option.md)。本轮默认便携载荷重新验证，不更新下方历史 ZIP 摘要。
+
 2026-10-29 目录调整：当前运行入口改为 [根目录 release/xlang_ide.exe](../release/xlang_ide.exe)，使用同目录的 xlang 引擎。以下 `ide/release` 的候选说明与 ZIP 摘要属于历史记录；本次迁移见[统一发布目录](docs/unified-release.md)。
 
 2026-10-30 补齐根目录最新引擎的 schema 2 构建收据及源码报告兼容，保留 schema 1 支持，并重新构建传统 IDE 与 CLI 语言服务。当前运行文件及安装摘要见根目录 `release/provenance/ide-receipt-compatibility.json`；以下旧 ZIP 未重新生成。

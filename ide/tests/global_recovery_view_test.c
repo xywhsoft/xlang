@@ -86,7 +86,7 @@ static int verify(void* data)
     image=xidePathResolve(root,"native-global-large-confirm.png"); CHECK(image && !xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideRecoveryViewWindow(&app)),xideRecoveryViewControl(&app,XIDE_RECOVERY_CONFIRM)) && capture(&app,image)); free(image); image=NULL;
     CHECK(click(&app,XIDE_RECOVERY_CONFIRM) && idle(&app) && xrtValueObjectGet(app.preferences.source,(xstrview){"future",6}));
     xvalue* ui=xrtValueObjectGet(app.preferences.source,(xstrview){"ui",2}),*font=xrtValueObjectGet(ui,(xstrview){"font",4}); CHECK(xrtValueObjectGet(font,(xstrview){"futureFont",10}) && app.preferences.uiFontSize==40);
-    CHECK(xidePathEqual(app.preferences.compiler,tool) && xidePathEqual(app.preferences.cServer,tool) && app.compilerPath==transient && app.cServerPath==transient);
+    CHECK(xidePathEqual(app.preferences.compiler,tool) && (XIDE_ENABLE_C_LSP ? xidePathEqual(app.preferences.cServer,tool) : !app.preferences.cServer) && app.compilerPath==transient && app.cServerPath==transient);
     CHECK(click(&app,XIDE_RECOVERY_CLOSE) && xgeEnd()==XGE_OK); began=0; xideAppDestroy(&app);
     /* Preference recovery remains available when scoped persistence is disabled. */
     CHECK(writeText(settings,damaged)); memset(&app,0,sizeof(app)); app.hidden=1; app.noSession=1; app.settingsPath=settings; app.maxFrames=10000;

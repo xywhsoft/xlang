@@ -1,5 +1,7 @@
 # xlang IDE
 
+2026-10-31：默认关闭 C LSP，移除随包 clangd，保留实现代码，以 `XIDE_ENABLE_C_LSP` 宏控制。C／xlang 编辑与通过 xlang 编译运行继续保留；`xlang-ls.exe` 不变。根 `release/` 的 IDE 已重编，设置和默认打包流程同步，见 [C LSP 构建选项](docs/c-lsp-build-option.md)。下面的 C 服务器能力说明属于历史阶段。
+
 2026-10-31：日常构建和联调默认使用仓库根 `release/`。本轮已重编 IDE 并接入同目录的原生 LSP 0.100，C／xlang 编辑输入经用户确认恢复；自动诊断、补全、定义、悬浮、大纲和参数提示完成相关功能验证。整体性能与独立 C 引擎配置导出问题仍有未通过项，见[发布目录输入恢复与 LSP 联调](docs/release-input-validation.md)。后续仅在明确需要版本对照、故障注入或保护运行会话时建立隔离环境。
 
 2026-10-29 起，运行与发布目录统一为仓库根目录的 `../release/`：[启动 IDE](../release/xlang_ide.exe)。IDE 默认使用同目录的 `xl.exe`，共享引擎的 `include/` 和 `extlibs/`；clangd 保留在 `toolchains/clangd/`。不再生成 `ide/release/` 或重复的 `toolchains/xlang/`。测试产物留在 `ide/build/`，详见[统一发布目录](docs/unified-release.md)。以下带日期的候选记录保留其当时的验收范围。

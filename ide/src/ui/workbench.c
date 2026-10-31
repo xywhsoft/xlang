@@ -16,10 +16,14 @@
 #include "ui/resource_view.h"
 #include "ui/toolchain_view.h"
 #include "ui/language_view.h"
+#if XIDE_ENABLE_C_LSP
 #include "ui/c_language_view.h"
+#endif
 #include "ui/catalog_view.h"
 #include "ui/completion_view.h"
+#if XIDE_ENABLE_C_LSP
 #include "ui/c_completion_view.h"
+#endif
 #include "ui/font_view.h"
 #include "ui/goto_view.h"
 #include "ui/recovery_view.h"
@@ -122,7 +126,11 @@ static int createChrome(xide_app* app)
     const int view[]={XIDE_ACTION_OUTLINE,XIDE_ACTION_EDITOR_FONT,XIDE_ACTION_UI_FONT,XIDE_ACTION_RECOVERY,XIDE_ACTION_FILE_CHANGES,XIDE_ACTION_RESET,0,XIDE_ACTION_THEME_CLASSIC,XIDE_ACTION_THEME_GRAPHITE,XIDE_ACTION_THEME_PAPER,XIDE_ACTION_THEME_OCEAN};
     const int language[]={XIDE_ACTION_LANGUAGE_C,XIDE_ACTION_LANGUAGE_XLANG,XIDE_ACTION_LANGUAGE_TEXT};
     const int build[]={XIDE_ACTION_BUILD,XIDE_ACTION_RUN,XIDE_ACTION_TEST,0,XIDE_ACTION_STOP,XIDE_ACTION_STOP_ALL,XIDE_ACTION_SHOW_TASKS,0,XIDE_ACTION_TARGET_CONFIGURATIONS,XIDE_ACTION_BUILD_FILE,XIDE_ACTION_RUN_FILE,XIDE_ACTION_CLOSE_INPUT};
-    const int tools[]={XIDE_ACTION_COMPILER,XIDE_ACTION_C_SERVER,XIDE_ACTION_TOOLCHAIN_INFO,0,XIDE_ACTION_CHECK_CURRENT,XIDE_ACTION_CHECK_SAVED,XIDE_ACTION_CANCEL_CHECK};
+    const int tools[]={XIDE_ACTION_COMPILER,
+#if XIDE_ENABLE_C_LSP
+XIDE_ACTION_C_SERVER,
+#endif
+XIDE_ACTION_TOOLCHAIN_INFO,0,XIDE_ACTION_CHECK_CURRENT,XIDE_ACTION_CHECK_SAVED,XIDE_ACTION_CANCEL_CHECK};
     const int help[]={XIDE_ACTION_XLANG,XIDE_ACTION_C};
     TRY(addMenu(app, "文件", file, sizeof(file)/sizeof(*file)));
     TRY(addMenu(app, "项目", project, sizeof(project)/sizeof(*project)));
@@ -178,7 +186,11 @@ static int createWorkbench(xide_app* app)
     app->panels[XIDE_PROPERTIES] = app->properties; app->panels[XIDE_XLANG_DEMO] = app->editors[0];
     app->panels[XIDE_C_DEMO] = app->editors[1];
     const char* titles[] = {"命令列表", "工作空间", "项目属性", "xlang 语法演示", "C 语法演示", "命令集成帮助", "问题", "构建输出", "终端", "任务", "文档大纲", "引用"};
-    TRY(xideTaskViewCreate(app)); TRY(xideConfigurationViewCreate(app)); TRY(xideReferencesViewCreate(app)); TRY(xideResourceViewCreate(app)); TRY(xideToolchainViewCreate(app)); TRY(xideLanguageViewCreate(app)); TRY(xideCompletionViewCreate(app)); TRY(xideCCompletionViewCreate(app)); TRY(xideCLanguageViewCreate(app)); TRY(xideTemplateViewCreate(app)); TRY(xideImportViewCreate(app)); TRY(xideRenameViewCreate(app)); TRY(xideFontViewCreate(app)); TRY(xideRecoveryViewCreate(app)); TRY(xideFileChangesViewCreate(app)); TRY(xideGotoViewCreate(app));
+    TRY(xideTaskViewCreate(app)); TRY(xideConfigurationViewCreate(app)); TRY(xideReferencesViewCreate(app)); TRY(xideResourceViewCreate(app)); TRY(xideToolchainViewCreate(app)); TRY(xideLanguageViewCreate(app)); TRY(xideCompletionViewCreate(app));
+#if XIDE_ENABLE_C_LSP
+ TRY(xideCCompletionViewCreate(app)); TRY(xideCLanguageViewCreate(app));
+#endif
+ TRY(xideTemplateViewCreate(app)); TRY(xideImportViewCreate(app)); TRY(xideRenameViewCreate(app)); TRY(xideFontViewCreate(app)); TRY(xideRecoveryViewCreate(app)); TRY(xideFileChangesViewCreate(app)); TRY(xideGotoViewCreate(app));
     for (int i = 0; i < XIDE_WINDOW_COUNT; ++i) {
         TRY(xuiDockPanelAddWindow(app->dock, titles[i], app->panels[i], &app->windows[i]));
         TRY(xuiDockPanelSetWindowFlags(app->dock, app->windows[i], 1, 1));

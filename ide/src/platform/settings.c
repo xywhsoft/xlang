@@ -53,11 +53,13 @@ int xideSettingsLoad(xide_settings* settings,const char* path,xide_model_error* 
         if(okay && *compiler) { char* base=xidePathDirectory(temporary.path); temporary.compiler=xidePathResolve(base,compiler); free(base); okay=temporary.compiler!=NULL; }
         free(compiler);
     }
+#if XIDE_ENABLE_C_LSP
     if(okay && get(toolchain,"cServer")) {
         char* server=string(get(toolchain,"cServer")); okay=server!=NULL;
         if(okay && *server) { char* base=xidePathDirectory(temporary.path); temporary.cServer=xidePathResolve(base,server); free(base); okay=temporary.cServer!=NULL; }
         free(server);
     }
+#endif
     xvalue* editor=get(temporary.source,"editor"),*font=get(editor,"font");
     if(okay && editor && !xrtValueIs(editor,XVALUE_OBJECT)) okay=0;
     if(okay && font && !xrtValueIs(font,XVALUE_OBJECT)) okay=0;
@@ -105,8 +107,25 @@ static char* portableExecutablePath(const xide_settings* settings,const char* ex
     char* path=portablePath(settings,executable,"toolchains/");
     return path ? path : portablePath(settings,executable,"xl.exe");
 }
+/* Legacy server preferences remain part of the loaded disk identity, but
+ * disabled builds drop the retired key only in the independent write copy. */
+static int retiredServerPreference(xvalue* root)
+{
+#if !XIDE_ENABLE_C_LSP
+    xvalue* old=get(root,"toolchain");
+    if(get(old,"cServer")) {
+        xvalue* tools=xrtValueClone(old); if(!tools) return 0;
+        if(!xrtValueObjectRemove(tools,sv("cServer"))) {xrtValueRelease(tools);return 0;}
+        return xrtValueObjectSetNew(root,sv("toolchain"),tools);
+    }
+#else
+    (void)root;
+#endif
+    return 1;
+}
 static int writeSettings(xide_settings* settings,xvalue* root,xide_model_error* error)
 {
+    if(!retiredServerPreference(root)) return fail(error,XIDE_MODEL_MEMORY,"Cannot prepare preferences without retired C LSP settings.");
     size_t size=0; char* text=xrtJsonStringify(root,true,&size); int okay=text && size<=256u*1024u; xrtFree(text);
     if(!okay) return fail(error,XIDE_MODEL_INVALID,"Preferences exceed their 256 KiB limit.");
     xide_state_file state={settings->path,settings->source,settings->existed};
@@ -132,8 +151,10 @@ static int setExecutable(xide_settings* settings,const char* compiler,const char
 }
 int xideSettingsSetCompiler(xide_settings* settings,const char* compiler,xide_model_error* error)
 { return setExecutable(settings,compiler,"compiler",error); }
+#if XIDE_ENABLE_C_LSP
 int xideSettingsSetCServer(xide_settings* settings,const char* server,xide_model_error* error)
 { return setExecutable(settings,server,"cServer",error); }
+#endif
 int xideSettingsRememberOpen(xide_settings* settings,const char* path,xide_model_error* error)
 {
     if(error)memset(error,0,sizeof(*error));
@@ -187,8 +208,13 @@ xvalue* xideSettingsCapture(const xide_settings* settings,const char* path,const
     xvalue* root=settings->source ? xrtValueDeepClone(settings->source) : xrtValueObject();
     int okay=root && xrtValueObjectSetNew(root,sv("format"),xrtValueString(sv("xlang-ide-settings-1")));
     xvalue* tools=get(root,"toolchain"); if(!tools && okay) { tools=xrtValueObject(); okay=tools && xrtValueObjectSetNew(root,sv("toolchain"),tools); }
-    const char* keys[]={"compiler","cServer"}; const char* values[]={settings->compiler,settings->cServer}; xide_settings binding={0}; binding.path=(char*)path;
-    for(int i=0;i<2 && okay;++i) if(values[i]) {
+#if XIDE_ENABLE_C_LSP
+    const char* keys[]={"compiler","cServer"}; const char* values[]={settings->compiler,settings->cServer};
+#else
+    const char* keys[]={"compiler"}; const char* values[]={settings->compiler};
+#endif
+    xide_settings binding={0}; binding.path=(char*)path;
+    for(size_t i=0;i<sizeof(values)/sizeof(*values) && okay;++i) if(values[i]) {
         char* relative=portableExecutablePath(&binding,values[i]); okay=xrtValueObjectSetNew(tools,sv(keys[i]),xrtValueString(sv(relative ? relative : values[i]))); free(relative);
     }
     const char* sections[]={"editor","ui"}; const char* fonts[]={editorFont,uiFont}; int sizes[]={editorSize,uiSize};
@@ -199,6 +225,7 @@ xvalue* xideSettingsCapture(const xide_settings* settings,const char* path,const
         if(okay) okay=xrtValueObjectSetNew(font,sv("path"),xrtValueString(sv(relative ? relative : fonts[i]))) && xrtValueObjectSetNew(font,sv("size"),xrtValueInt(sizes[i]));
         free(relative);
     }
+    if(okay) okay=retiredServerPreference(root);
     size_t n=0; char* text=okay ? xrtJsonStringify(root,true,&n) : NULL; okay=text && n<=256u*1024u; xrtFree(text);
     if(!okay) { xrtValueRelease(root); return NULL; } return root;
 }

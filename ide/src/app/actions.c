@@ -2,7 +2,9 @@
 #include "ui/template_view.h"
 #include "ui/rename_view.h"
 #include "app/actions.h"
+#if XIDE_ENABLE_C_LSP
 #include "ui/c_completion_view.h"
+#endif
 #include "ui/completion_view.h"
 #include "app/xide_app.h"
 #include "ui/editor_view.h"
@@ -104,7 +106,9 @@ static const action_def definitions[]={
     A(XIDE_ACTION_TARGET_CONFIGURATIONS,"task.configurations","编辑目标配置…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,TASK_VIEW,NO_CHECK,xideMainToolbarAction),
     A(XIDE_ACTION_SHOW_TASKS,"task.show","查看任务与输出",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,TASK_VIEW,NO_CHECK,xideMainToolbarAction),
     A(XIDE_ACTION_OPEN_RECENT,"file.openRecent","打开最近项目或文件",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,DOCUMENTS,NO_CHECK,xideMainToolbarAction),
+#if XIDE_ENABLE_C_LSP
     A(XIDE_ACTION_C_SERVER,"language.cServer","选择 C 语言服务器…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideCCompletionViewAction),
+#endif
     A(XIDE_ACTION_COMPILER,"task.compiler","选择 xlang 编译器…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,TASK_VIEW,NO_CHECK,xideTaskViewAction),
     A(XIDE_ACTION_CLOSE_INPUT,"task.closeInput","关闭会话输入",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,INPUT,NO_CHECK,xideTaskViewAction),
     A(XIDE_ACTION_TOOLCHAIN_INFO,"task.toolchainInfo","工具链信息…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,TOOLCHAIN_VIEW,NO_CHECK,toolchainAction),

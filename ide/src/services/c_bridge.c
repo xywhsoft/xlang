@@ -1,3 +1,5 @@
+#include "app/features.h"
+#if XIDE_ENABLE_C_LSP
 #include "services/c_bridge.h"
 #include "platform/path.h"
 #include <windows.h>
@@ -290,3 +292,5 @@ void xideCBridgeDestroy(xide_c_bridge_batch* b)
  for(size_t i=0;i<b->count;++i) { free((char*)b->documents[i].path); free((char*)b->documents[i].text); }
  free(b->compiler); free(b->cache); xrtValueRelease(b->projects); xrtValueRelease(b->headers); xrtValueRelease(b->paths); xrtValueRelease(b->directories); xrtValueRelease(b->maps); free(b);
 }
+
+#endif /* XIDE_ENABLE_C_LSP */

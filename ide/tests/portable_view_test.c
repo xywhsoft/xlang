@@ -4,7 +4,9 @@
 #include "ui/language_view.h"
 #include "ui/task_view.h"
 #include "ui/catalog_view.h"
+#if XIDE_ENABLE_C_LSP
 #include "ui/c_completion_view.h"
+#endif
 #include "services/ui_font.h"
 #include "services/editor_font.h"
 #include "platform/path.h"
@@ -14,13 +16,21 @@
 #include <stdlib.h>
 #include <string.h>
 /* Inspect the real bridge view; the child has only its package-local defaults. */
+#if XIDE_ENABLE_C_LSP
 #include "../src/ui/c_language_view.c"
+#endif
 typedef struct fixture { const char* directory; int moved; HDESK desktop; int started,failed,checks; } fixture;
-#define CHECK(t) do { if(!(t)) { fprintf(stderr,"portable_view_test:%d: %s; %s; C %s; xlang %s\n",__LINE__,#t,error.message,xideCLanguageViewMessage(&app),xideLanguageViewMessage(&app)); f->failed=1; goto cleanup; } ++f->checks; } while(0)
+#define CHECK(t) do { if(!(t)) { fprintf(stderr,"portable_view_test:%d: %s; %s; C %s; xlang %s\n",__LINE__,#t,error.message,(XIDE_ENABLE_C_LSP ? "optional C LSP" : "C LSP disabled"),xideLanguageViewMessage(&app)); f->failed=1; goto cleanup; } ++f->checks; } while(0)
 static int writeText(const char* p,const char* text) { return xrtFileWriteAtomic(p,(xbytesview){(unsigned char*)text,strlen(text)}); }
-static int settle(xide_app* a) { if(xuiDispatchPendingEvents(a->context)!=XUI_OK) return 0; xideEditorPoll(a); xideTaskViewPoll(a); xideLanguageViewPoll(a); xideCLanguageViewPoll(a); xideWorkbenchLayout(a); return xuiLayout(a->context)==XUI_OK && !a->frameError; }
+static int settle(xide_app* a) { if(xuiDispatchPendingEvents(a->context)!=XUI_OK) return 0; xideEditorPoll(a); xideTaskViewPoll(a); xideLanguageViewPoll(a);
+#if XIDE_ENABLE_C_LSP
+ xideCLanguageViewPoll(a);
+#endif
+ xideWorkbenchLayout(a); return xuiLayout(a->context)==XUI_OK && !a->frameError; }
 static int token(xui_widget e,const char* word,int kind) { const char* text=xuiCodeEditGetText(e),*p=strstr(text,word); xui_code_token_t ts[512]; int count=0; if(!p || xuiCodeTokenBufferGetTokens(xuiCodeEditGetTokenBuffer(e),xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(e)),ts,512,&count)!=XUI_OK || count>512) return 0; for(int i=0;i<count;++i) if(ts[i].iStartOffset==(int)(p-text) && ts[i].iKind==kind) return 1; return 0; }
+#if XIDE_ENABLE_C_LSP
 static int waitC(xide_app* a) { uint64_t until=GetTickCount64()+60000; do { if(!settle(a)) return 0; xide_c_language_view* v=a->cLanguageView; if(v->ready && v->received==(int)v->inputs->count && v->symbolResult) return 1; if(v->paused) return 0; Sleep(5); } while(GetTickCount64()<until); return 0; }
+#endif
 static int waitXlang(xide_app* a) { uint64_t until=GetTickCount64()+60000; do { if(!settle(a)) return 0; if(!xideLanguageViewBusy(a) && strstr(xideLanguageViewMessage(a),"快照检查：")) return xideLanguageViewDiagnosticCount(a)==0; Sleep(5); } while(GetTickCount64()<until); return 0; }
 static int capture(xide_app* a,const char* p) { if(!settle(a) || xuiUpdate(a->context,0)!=XUI_OK || xuiLayout(a->context)!=XUI_OK) return 0; xui_rect_i_t rect={0,0,a->viewportWidth,a->viewportHeight}; return a->proxy.surfaceClear(&a->proxy,a->target,0xffeeeeeeu)==XUI_OK && xuiRender(a->context,a->target,&rect,1)==XUI_OK && xideAppCapture(a,p)==XGE_OK; }
 static int layout(xide_app* a,xide_document* d) { xui_dock_window_info_t wi[5]={{0}}; xui_dock_pane_info_t pi[5]={{0}}; int ids[]={d->window,a->windows[XIDE_HELP],a->windows[XIDE_COMMANDS],a->windows[XIDE_WORKSPACE],a->windows[XIDE_PROPERTIES]}; for(int i=0;i<5;++i) { wi[i].iSize=sizeof(wi[i]); pi[i].iSize=sizeof(pi[i]); if(xuiDockPanelGetWindowInfo(a->dock,ids[i],&wi[i])!=XUI_OK || xuiDockPanelGetPaneInfo(a->dock,wi[i].iPane,&pi[i])!=XUI_OK) return 0; } return pi[0].tRect.fX==pi[1].tRect.fX && pi[0].tRect.fW==pi[1].tRect.fW && pi[1].tRect.fY>=pi[0].tRect.fY+pi[0].tRect.fH && pi[2].tRect.fX<pi[0].tRect.fX && pi[3].tRect.fX>pi[0].tRect.fX && pi[3].tRect.fX==pi[4].tRect.fX && pi[3].tRect.fW==pi[4].tRect.fW && pi[4].tRect.fY>=pi[3].tRect.fY+pi[3].tRect.fH && wi[1].iRegion==XUI_DOCK_PANEL_REGION_DOCUMENT && xuiWidgetGetLayoutType(a->helpContent)==XUI_LAYOUT_COLUMN; }
@@ -45,7 +55,13 @@ static int verify(void* user)
  app.noSession=1; app.workspacePath=scene;
  CHECK(!app.compilerPath && !app.cServerPath && !app.catalogPath && !app.settingsPath && !app.hidden);
  CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
- CHECK(xidePathLexicalEqual(app.preferences.path,defaultSettings) && xidePathEqual(xideTaskViewCompiler(&app),compiler) && xidePathEqual(xideCCompletionViewServer(&app),server));
+ CHECK(xidePathLexicalEqual(app.preferences.path,defaultSettings) && xidePathEqual(xideTaskViewCompiler(&app),compiler)
+#if XIDE_ENABLE_C_LSP
+ && xidePathEqual(xideCCompletionViewServer(&app),server)
+#else
+ && !app.cLanguageView && !app.cCompletionView && !app.preferences.cServer
+#endif
+);
  CHECK(catalog && xidePathEqual(app.catalog.path,catalog) && app.catalog.count>4400 && app.catalog.documentCount==45 && app.uiFontSize==(f->moved ? 18 : 16) && app.codeFontSize==(f->moved ? 18 : 16));
  CHECK(xideCatalogFind(&app.catalog,"language:func") && xideCatalogFind(&app.catalog,"c:keyword:return"));
  CHECK(xideEditorOpen(&app,entry,&error)); xide_document* xl=app.activeDocument;
@@ -53,14 +69,23 @@ static int verify(void* user)
  CHECK(xideActionExecute(&app,XIDE_ACTION_CHECK_CURRENT)==XIDE_ACTION_DISPATCHED && waitXlang(&app));
  CHECK(xideEditorOpen(&app,native,&error)); xide_document* c=app.activeDocument;
  CHECK(settle(&app) && token(c->editor,"#include",XUI_CODE_TOKEN_PREPROCESSOR) && token(c->editor,"return",XUI_CODE_TOKEN_KEYWORD));
+#if XIDE_ENABLE_C_LSP
  CHECK(xideActionExecute(&app,XIDE_ACTION_CHECK_CURRENT)==XIDE_ACTION_DISPATCHED && waitC(&app) && !app.cLanguageView->diagnosticCount);
+#else
+ CHECK(!xideActionQuery(&app,XIDE_ACTION_CHECK_CURRENT).enabled && !xideActionFind(XIDE_ACTION_C_SERVER));
+#endif
  size_t helpIndex=0; while(helpIndex<app.catalog.count && !app.catalog.entries[helpIndex].documentCount) ++helpIndex;
  CHECK(helpIndex<app.catalog.count && xideCatalogViewSelect(&app,helpIndex) && xideHelpChapterCount(xideCatalogHelpDocument(&app))>0 && settle(&app) && layout(&app,c) && capture(&app,cImage));
+ uint64_t until=0;
+#if XIDE_ENABLE_C_LSP
  const char* at=strstr(xuiCodeEditGetText(c->editor),"xl_add"); CHECK(at && xuiCodeSelectionGotoOffset(xuiCodeEditGetSelection(c->editor),xuiCodeEditGetDocument(c->editor),(int)(at-xuiCodeEditGetText(c->editor))+1,0)==XUI_OK && xuiSetFocusWidget(app.context,c->editor)==XUI_OK);
  CHECK(xuiInputKeyDownEx(app.context,XUI_KEY_F12,0,NULL)==XUI_OK && xuiInputKeyUpEx(app.context,XUI_KEY_F12,0,NULL)==XUI_OK);
- uint64_t until=GetTickCount64()+30000; do { CHECK(settle(&app)); if(!app.cLanguageView->definition.token) break; Sleep(5); } while(GetTickCount64()<until);
+ until=GetTickCount64()+30000; do { CHECK(settle(&app)); if(!app.cLanguageView->definition.token) break; Sleep(5); } while(GetTickCount64()<until);
  CHECK(!app.cLanguageView->definition.token && app.activeDocument==xl && xl->dirty && !strcmp(xuiCodeEditGetText(xl->editor),draft));
  xui_code_selection_t selection={0}; const char* definition=strstr(draft,"便携"); CHECK(xuiCodeSelectionGetState(xuiCodeEditGetSelection(xl->editor),&selection)==XUI_OK && selection.iAnchorOffset==(int)(definition-draft) && selection.iCaretOffset==(int)(definition-draft+strlen("便携")));
+#else
+ CHECK(!xideActionQuery(&app,XIDE_ACTION_DEFINITION).enabled && xideEditorShow(&app,xl)==XUI_OK);
+#endif
  CHECK(layout(&app,xl) && capture(&app,light) && xideWorkbenchApplyTheme(&app,1)==XUI_OK && capture(&app,dark));
  CHECK(xuiCodeDocumentReplace(xuiCodeEditGetDocument(xl->editor),0,xuiCodeDocumentGetLength(xuiCodeEditGetDocument(xl->editor)),runText)==XUI_OK && settle(&app));
  CHECK(xideActionExecute(&app,XIDE_ACTION_RUN)==XIDE_ACTION_DISPATCHED); xide_task* task=xideTaskViewSelected(&app); xide_task_info info={0}; CHECK(task);
@@ -79,17 +104,29 @@ static int verify(void* user)
  until=GetTickCount64()+60000; do { CHECK(settle(&app)); xideTaskInfo(task,&info); if(info.state>=XIDE_TASK_SUCCEEDED) break; Sleep(5); } while(GetTickCount64()<until);
  CHECK(info.state==XIDE_TASK_SUCCEEDED && info.kind==XIDE_TASK_KIND_TEST && info.tested && !info.built && !info.ran && info.exit.Code==0 && !*xideTaskBuildLog(task));
  xrtFree(runBytes); runBytes=xrtFileReadAllLimit(xideTaskTestLog(task),1024*1024,&runLength); CHECK(runBytes && runLength && strstr((char*)runBytes,"PORTABLE_MIXED_42"));
- CHECK(xideSettingsSetCompiler(&app.preferences,compiler,&error) && xideSettingsSetCServer(&app.preferences,server,&error));
- xvalue* tools=xrtValueObjectGet(app.preferences.source,(xstrview){"toolchain",9}); xstrview compilerSetting={0},serverSetting={0};
+ CHECK(xideSettingsSetCompiler(&app.preferences,compiler,&error));
+#if XIDE_ENABLE_C_LSP
+ CHECK(xideSettingsSetCServer(&app.preferences,server,&error));
+#endif
+ xvalue* tools=xrtValueObjectGet(app.preferences.source,(xstrview){"toolchain",9}); xstrview compilerSetting={0};
  CHECK(tools && xrtValueGetString(xrtValueObjectGet(tools,(xstrview){"compiler",8}),&compilerSetting) && compilerSetting.Size==strlen("../xl.exe") && !memcmp(compilerSetting.Data,"../xl.exe",compilerSetting.Size));
+#if XIDE_ENABLE_C_LSP
+ xstrview serverSetting={0};
  CHECK(xrtValueGetString(xrtValueObjectGet(tools,(xstrview){"cServer",7}),&serverSetting) && serverSetting.Size==strlen("../toolchains/clangd/bin/clangd.exe") && !memcmp(serverSetting.Data,"../toolchains/clangd/bin/clangd.exe",serverSetting.Size));
+#else
+ CHECK(!xrtValueObjectGet(tools,(xstrview){"cServer",7}));
+#endif
  CHECK(xrtValueObjectGet(app.preferences.source,(xstrview){"packageFixture",14}));
  CHECK(xideSettingsSetUiFont(&app.preferences,app.uiFontPath,18,&error) && xideSettingsSetEditorFont(&app.preferences,app.codeFontPath,18,&error));
  result=xrtValueObject(); CHECK(result);
  CHECK(xrtValueObjectSetNew(result,(xstrview){"explicitTest",12},xrtValueBool(info.tested && info.kind==XIDE_TASK_KIND_TEST && !info.built && !info.ran && info.exit.Code==0)));
- CHECK(xrtValueObjectSetNew(result,(xstrview){"compiler",8},xrtValueString((xstrview){compiler,strlen(compiler)})) && xrtValueObjectSetNew(result,(xstrview){"cServer",7},xrtValueString((xstrview){server,strlen(server)})) && xrtValueObjectSetNew(result,(xstrview){"program",7},xrtValueString((xstrview){program,strlen(program)})) && xrtValueObjectSetNew(result,(xstrview){"checks",6},xrtValueInt(f->checks)) && xrtValueObjectSetNew(result,(xstrview){"moved",5},xrtValueBool(f->moved!=0)));
+ CHECK(xrtValueObjectSetNew(result,(xstrview){"compiler",8},xrtValueString((xstrview){compiler,strlen(compiler)}))
+#if XIDE_ENABLE_C_LSP
+ && xrtValueObjectSetNew(result,(xstrview){"cServer",7},xrtValueString((xstrview){server,strlen(server)}))
+#endif
+ && xrtValueObjectSetNew(result,(xstrview){"program",7},xrtValueString((xstrview){program,strlen(program)})) && xrtValueObjectSetNew(result,(xstrview){"checks",6},xrtValueInt(f->checks)) && xrtValueObjectSetNew(result,(xstrview){"moved",5},xrtValueBool(f->moved!=0)));
  size_t length=0; char* json=xrtJsonStringify(result,true,&length); CHECK(json && writeText(report,json)); xrtFree(json);
- printf("portable_view_test passed: %d native assertions, package-local defaults, C/xlang tokens, embedded help, exact central layout, real xlang-ls/clangd unsaved F12, mixed build/run and explicit configured test, relative tool saves, font and unknown preference retention; moved=%d; evidence=%s\n",f->checks,f->moved,root);
+ printf("portable_view_test passed: %d native assertions, package-local defaults, C/xlang tokens, embedded help, exact central layout, xlang-ls unsaved F12, mixed build/run and explicit configured test, relative tool saves, font and unknown preference retention; C LSP=%d; moved=%d; evidence=%s\n",f->checks,XIDE_ENABLE_C_LSP,f->moved,root);
 cleanup:
  xrtFree(runBytes); xrtValueRelease(result); xrtValueRelease(testConfigs); if(began) xgeEnd(); xideAppDestroy(&app); xideWorkspaceClear(&workspace); xideProjectClear(&project); for(size_t i=0;i<count;++i) free(owned[i]); xgeQuit(); return XGE_OK;
 }
