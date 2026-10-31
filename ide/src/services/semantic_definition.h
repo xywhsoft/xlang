@@ -38,12 +38,26 @@ void xideSemanticDefinitionsReleaseTyped(xide_semantic_definitions* definitions,
  * Resolve uses the original typed constructor/cache and returns its ordinary
  * table/lease ownership. Capture and cache do not replace freshness guards. */
 typedef struct xide_navigation_snapshot xide_navigation_snapshot;
+/* Optional readonly point-query preparation. Include its cost in diagnostics
+ * and whole interaction chains. Uses original checked facts/validation and
+ * shared selection/binding/hover serialization;does not build references or
+ * clone nodes/types/headers. 1=ready,0=optional admission declined,-1=invalid.
+ * error is optional and,when supplied,is cleared before each call. Return
+ * status is independent of its presence or previous contents.
+ * Bind before preparing to reuse the exact owner/source projection bank.
+ * Queries borrow the snapshot;concurrent reads are allowed after preparation. */
+int xideSemanticNavigationPreparePoints(xide_navigation_snapshot* snapshot,xide_model_error* error);
+int xideSemanticNavigationPointsReady(const xide_navigation_snapshot* snapshot);
+xide_navigation_work xideSemanticNavigationPointWork(const xide_navigation_snapshot* snapshot);
+xvalue* xideSemanticNavigationPointDefinition(const xide_navigation_snapshot* snapshot,const char* path,int line,int character);
+xvalue* xideSemanticNavigationPointHover(const xide_navigation_snapshot* snapshot,const char* path,int line,int character);
 xide_navigation_snapshot* xideSemanticNavigationCapture(xls_semantic_check* check,
     const xide_semantic_source* sources,size_t count,xide_model_error* error);
 void xideSemanticNavigationDestroy(xide_navigation_snapshot* snapshot);
 /* Bind once, before concurrent resolution/publication. Retires an obsolete
  * resident and captures this bank's publication revision. The borrowed bank
- * must outlive Resolve;Destroy does not use it. A different bank is uncached.
+ * must outlive PreparePoints/Resolve calls that use it;Destroy does not use it.
+ * A different bank passed to Resolve is uncached.
  * Later checks invalidate old work's permission to repopulate the bank. */
 void xideSemanticNavigationBind(xide_navigation_snapshot* snapshot,xls_projection_store* cache);
 xide_semantic_definitions* xideSemanticNavigationResolve(const xide_navigation_snapshot* snapshot,

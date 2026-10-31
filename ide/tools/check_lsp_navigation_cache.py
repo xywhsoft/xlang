@@ -1,7 +1,7 @@
 """Verify actual native navigation projection reuse without weakening inputs.
 
 The original typed constructor/query oracle is covered natively. This suite
-checks deferred diagnostics followed by real navigation demand, exact/no-op/
+checks native point preparation and deferred full navigation, exact/no-op/
 topology hits, current ranges, body/BOM/reopen/configuration fences and recovery.
 """
 from pathlib import Path
@@ -28,21 +28,22 @@ def main():
                     if r.get('error',{}).get('code')!=-32001:break
                     assert time.monotonic()<until;time.sleep(.001)
                 assert 'error' not in r,r;r=r['result'];assert r['version']==version and r['analysisContext']['epoch']==epoch,r
-                nav=r['analysis']['navigation'];assert set(nav)=={'builds','cacheHits','bytes','residentBytes','limit','deferred','deferredBytes','storeHits','storeMisses','published','retired'} and 0<=nav['residentBytes']<=nav['limit']==66*1024*1024,nav
+                nav=r['analysis']['navigation'];assert set(nav)=={'builds','cacheHits','bytes','residentBytes','limit','deferred','deferredBytes','storeHits','storeMisses','published','retired','points'} and 0<=nav['residentBytes']<=nav['limit']==66*1024*1024,nav
                 return r
             def check(expected_hit,okay=True):
                 r=read_check();assert r['ok']==okay and bool(r['count'])!=okay,r;nav=r['analysis']['navigation']
                 if okay:
                     assert nav['deferred'] and not nav['builds'] and not nav['cacheHits'] and not nav['bytes'] and nav['deferredBytes']>0 and r['semanticDefinitions'],r
+                    assert nav['points']['ready'] and nav['points']['builds']==1-expected_hit and nav['points']['cacheHits']==expected_hit and nav['points']['bytes']>0,nav
                     assert next(d for d in r['documents'] if Path(d['path'])==dep)['version']==version,r
                     params=dict(textDocument=dict(uri=dep.as_uri()),version=version,checkId=r['checkId'],position=position(body,body.index('return value')+len('return ')))
                     value=c.call('textDocument/definition',params);assert value['uri']==dep.as_uri() and value['range']['start']==position(body,body.index('value)')),value
                     hover=c.call('textDocument/hover',params);assert hover and hover['contents'],hover
                     current=read_check()['analysis']['navigation'];assert current['deferred'] and not current['builds'] and not current['cacheHits'] and current['residentBytes']>0,current
-                    assert current['storeHits']==nav['storeHits']+expected_hit and current['published']==nav['published']+1-expected_hit,(nav,current)
-                else:assert not nav['deferred'] and not nav['deferredBytes'] and not nav['builds'] and not nav['cacheHits'] and not nav['bytes'] and not r['semanticDefinitions'],r
+                    assert current['points']['cacheHits']==1 and current['storeHits']==nav['storeHits']+1 and current['published']==nav['published'],(nav,current)
+                else:assert not nav['deferred'] and not nav['deferredBytes'] and not nav['builds'] and not nav['cacheHits'] and not nav['bytes'] and not r['semanticDefinitions'] and nav['points']==dict(ready=False,builds=0,cacheHits=0,bytes=0),r
                 return r
-            first=check(0);done('cold-model-defers-until-first-real-navigation',navigation=first['analysis']['navigation'])
+            first=check(0);done('cold-model-prepares-native-points-and-defers-full-view',navigation=first['analysis']['navigation'])
             hit=check(1);assert hit['analysis']['builds']==first['analysis']['builds'];done('exact-model-hit-reuses-table')
             version+=1;c.change(dep,body,version);noop=check(1);assert noop['analysis']['builds']==first['analysis']['builds'];done('new-version-same-bytes-uses-current-envelope')
             c.open(extra,'func incomplete(',1);unrelated=check(1);assert unrelated['analysis']['builds']==first['analysis']['builds'] and unrelated['analysis']['inputScopeHits']>0;done('unused-open-topology-hit')

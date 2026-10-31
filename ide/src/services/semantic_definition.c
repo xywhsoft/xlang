@@ -8,6 +8,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <limits.h>
+#include "analysis/index_kind.h"
+#ifdef XLS_COMPILER_XRT
+#include "analysis/text.h"
+typedef struct native_points native_points;
+#endif
 #define NODE_LIMIT 65536u
 #define DEPTH_LIMIT 256u
 #define TYPED_DEFINITION_BYTES (64u*1024u*1024u)
@@ -19,8 +24,17 @@ typedef struct endpoint { int source,offset,line,column; point* output; } endpoi
 #define CURSOR_SELECTION UINT32_C(0x80000000)
 typedef struct cursor_row { uint32_t source,sl,sc,el,ec,maximumLine,maximumCharacter,node; } cursor_row;
 typedef struct reference_row { uint32_t targetSource,targetStart,targetEnd,source,start,end,node; } reference_row;
-struct xide_semantic_definitions { node* nodes; size_t count,declCount,typeCount,sourceCount; declaration *declarations,*typeDeclarations; char** paths; size_t textBytes; xarray cursors,references;int lookupReady; };
+struct xide_semantic_definitions { node* nodes; size_t count,declCount,typeCount,sourceCount; declaration *declarations,*typeDeclarations; char** paths; size_t textBytes; xarray cursors,references;int lookupReady;
 #ifdef XLS_COMPILER_XRT
+ native_points* native;
+#endif
+};
+#ifdef XLS_COMPILER_XRT
+static void nativePointsDestroy(native_points* native);
+static size_t nativePointsBytes(const xide_semantic_definitions* d);
+static node* nativePointNode(xide_semantic_definitions* d,size_t at,node* out);
+static int nativePointText(xide_semantic_definitions* d,node* n,char* name,char* header);
+static xide_semantic_definitions* nativePointsCreate(const xls_semantic_index* index,const xide_semantic_source* sources,size_t count,xide_model_error* error);
 static int typedCapacity(size_t nodes,const xide_semantic_source* sources,size_t count,size_t* coordinateBudget)
 {
  /* Bound owned data including temporary coordinate endpoints, worst-case
@@ -55,16 +69,24 @@ static char* retain(xide_semantic_definitions* d,const char* text,size_t size,si
 { if(size>limit || size+1>4u*1024u*1024u-d->textBytes) return NULL; char* out=malloc(size+1); if(out) { memcpy(out,text,size); out[size]=0; d->textBytes+=size+1; } return out; }
 static int abi(const char* text)
 { if(!text || strlen(text)!=16) return 0; for(int i=0;i<16;++i) if(!((text[i]>='0' && text[i]<='9') || (text[i]>='a' && text[i]<='f'))) return 0; return 1; }
-static int symbolKind(const char* kind)
-{ if(!strcmp(kind,"func") || !strcmp(kind,"export_func")) return 12; if(!strcmp(kind,"class")) return 5; if(!strcmp(kind,"protocol")) return 11; if(!strcmp(kind,"enum")) return 10; if(!strcmp(kind,"type_alias") || !strcmp(kind,"extern_type_alias")) return 26; if(!strcmp(kind,"union")) return 23; if(!strcmp(kind,"variant")) return 22; if(!strcmp(kind,"var_decl")) return 13; if(!strcmp(kind,"const_decl")) return 14; return 0; }
+static int symbolKind(enum xls_index_point_kind kind)
+{
+ switch(kind){
+ case XLS_INDEX_POINT_FUNC:case XLS_INDEX_POINT_EXPORT_FUNC:return 12;
+ case XLS_INDEX_POINT_CLASS:return 5;case XLS_INDEX_POINT_PROTOCOL:return 11;
+ case XLS_INDEX_POINT_ENUM:return 10;case XLS_INDEX_POINT_TYPE_ALIAS:case XLS_INDEX_POINT_EXTERN_TYPE_ALIAS:return 26;
+ case XLS_INDEX_POINT_UNION:return 23;case XLS_INDEX_POINT_VARIANT:return 22;
+ case XLS_INDEX_POINT_VAR_DECL:return 13;case XLS_INDEX_POINT_CONST_DECL:return 14;
+ default:return 0;
+ }
+}
 static int typeKind(const node* n) { return n->kind==5 || n->kind==10 || n->kind==26 || n->kind==23 || n->kind==11; }
-static int applyTypeFacts(xide_semantic_definitions* d,node* n,size_t index,int present,unsigned declared,unsigned referenced,int* metadata)
+static int applyTypeFactsParent(node* n,const node* parent,size_t index,int present,unsigned declared,unsigned referenced,int* metadata)
 {
  if(*metadata<0) *metadata=present;
  if(*metadata!=present) return 0;
  if(!present) { n->declaredType=n->declared && typeKind(n) ? n->typeId : 0; n->referencedType=n->typeSyntax ? n->typeId : 0; return 1; }
  if((declared && referenced) || (declared && declared!=n->typeId) || (referenced && referenced!=n->typeId)) return 0;
- const node* parent=n->parent ? &d->nodes[n->parent-1] : NULL;
  n->genericType=n->nameSyntax && parent && parent->typeParams;
  if(declared && !typeKind(n) && !n->genericType) return 0;
  if(n->genericType && n->typeAbi) return 0; /* No runtime ABI for a type parameter. */
@@ -73,6 +95,8 @@ static int applyTypeFacts(xide_semantic_definitions* d,node* n,size_t index,int 
  if(declared && n->genericType) n->kind=26;
  return 1;
 }
+static int applyTypeFacts(xide_semantic_definitions* d,node* n,size_t index,int present,unsigned declared,unsigned referenced,int* metadata)
+{ return applyTypeFactsParent(n,n->parent ? &d->nodes[n->parent-1] : NULL,index,present,declared,referenced,metadata); }
 static int typeFacts(xide_semantic_definitions* d,node* n,const xvalue* row,size_t index,int* metadata)
 {
  const xvalue *decl=get(row,"declaredTypeId"),*ref=get(row,"referencedTypeId"); int present=decl!=NULL || ref!=NULL; int64 declared=0,referenced=0;
@@ -112,27 +136,38 @@ static int range(const xvalue* value,int source,const xide_semantic_source* sour
  if(!number(get(value,"startOffset"),&a,0,INT_MAX) || !number(get(value,"endOffset"),&b,a,INT_MAX) || !number(get(value,"startLine"),&sl,1,INT_MAX) || !number(get(value,"startColumn"),&sc,1,INT_MAX) || !number(get(value,"endLine"),&el,1,INT_MAX) || !number(get(value,"endColumn"),&ec,1,INT_MAX)) return 0;
  return captureRange(source,sources,count,out,ends,used,(size_t)a,(size_t)b,(int)sl,(int)sc,(int)el,(int)ec);
 }
-static void nodeShape(xide_semantic_definitions* d,node* n,unsigned parent,unsigned declared,unsigned target,const char* kind)
+static void nodeShapeKind(node* n,const node* parentNode,unsigned parent,unsigned declared,unsigned target,enum xls_index_point_kind kind)
 {
- n->parent=parent; n->depth=parent ? d->nodes[parent-1].depth+1 : 1; n->declared=declared; n->target=target;
- n->call=!strcmp(kind,"call"); n->kind=symbolKind(kind); n->typeSyntax=!strcmp(kind,"type"); n->nameSyntax=!strcmp(kind,"name"); n->typeParams=!strcmp(kind,"type_params"); n->typeConstraint=!strcmp(kind,"generic_constraint");
- n->memberSyntax=!strcmp(kind,"member") || !strcmp(kind,"safe_member");
+ n->parent=parent; n->depth=parentNode ? parentNode->depth+1 : 1; n->declared=declared; n->target=target;
+ n->call=kind==XLS_INDEX_POINT_CALL;n->kind=symbolKind(kind);n->typeSyntax=kind==XLS_INDEX_POINT_TYPE;n->nameSyntax=kind==XLS_INDEX_POINT_NAME;n->typeParams=kind==XLS_INDEX_POINT_TYPE_PARAMS;n->typeConstraint=kind==XLS_INDEX_POINT_GENERIC_CONSTRAINT;
+ n->memberSyntax=kind==XLS_INDEX_POINT_MEMBER || kind==XLS_INDEX_POINT_SAFE_MEMBER;
 }
+static void nodeShapeParent(node* n,const node* parentNode,unsigned parent,unsigned declared,unsigned target,const char* kind)
+{nodeShapeKind(n,parentNode,parent,declared,target,xlsIndexPointKindParse(kind));}
+static void nodeShape(xide_semantic_definitions* d,node* n,unsigned parent,unsigned declared,unsigned target,const char* kind)
+{ nodeShapeParent(n,parent ? d->nodes+parent-1 : NULL,parent,declared,target,kind); }
 #ifdef XLS_COMPILER_XRT
 static int typedRange(xls_index_range r,int source,const xide_semantic_source* sources,size_t count,span* out,endpoint* ends,size_t* used)
 { return !r.known || captureRange(source,sources,count,out,ends,used,r.startOffset,r.endOffset,r.startLine,r.startColumn,r.endLine,r.endColumn); }
+static int typedNodeShapeKind(node* n,const xls_index_fact* f,enum xls_index_point_kind kind,size_t at,const node* parent,size_t count,int* metadata)
+{
+ if(f->id!=at+1 || f->parent>at || f->source>count || f->selectionSource>count ||
+    (f->declaredSymbol && f->declaredSymbol!=f->symbol) || !f->kind || !*f->kind || strlen(f->kind)>64 || f->typeOrigin<0 || f->typeOrigin>3)return 0;
+ if(kind<0 || kind>=XLS_INDEX_POINT_KIND_COUNT)return 0;
+ nodeShapeKind(n,parent,f->parent,f->declaredSymbol,f->targetSymbol,kind);
+ n->typeId=f->typeId;n->typeAbi=f->typeAbi;n->origin=f->typeOrigin;
+ if(f->typeOrigin ? !f->canonical || !*f->canonical || strlen(f->canonical)>8192 : f->canonical!=NULL)return 0;
+ return n->depth<=DEPTH_LIMIT && applyTypeFactsParent(n,parent,at,1,f->declaredType,f->referencedType,metadata);
+}
+static int typedNodeShape(node* n,const xls_index_fact* f,size_t at,const node* parent,size_t count,int* metadata)
+{return typedNodeShapeKind(n,f,xlsIndexPointKindParse(f->kind),at,parent,count,metadata);}
 static int typedNode(xide_semantic_definitions* d,node* n,const xls_semantic_index* index,size_t at,
  const xide_semantic_source* sources,size_t count,endpoint* ends,size_t* used,int* metadata)
 {
  xls_index_fact f;
- if(!xlsSemanticIndexFact(index,at,&f) || f.id!=at+1 || f.parent>at || f.source>count || f.selectionSource>count ||
-    (f.declaredSymbol && f.declaredSymbol!=f.symbol) || !f.kind || !*f.kind || strlen(f.kind)>64 || f.typeOrigin<0 || f.typeOrigin>3) return 0;
- nodeShape(d,n,f.parent,f.declaredSymbol,f.targetSymbol,f.kind);
- n->typeId=f.typeId; n->typeAbi=f.typeAbi; n->origin=f.typeOrigin;
- if(f.typeOrigin) {
-  if(!f.canonical || !*f.canonical || !(n->type=retain(d,f.canonical,strlen(f.canonical),8192))) return 0;
- } else if(f.canonical) return 0;
- return n->depth<=DEPTH_LIMIT && applyTypeFacts(d,n,at,1,f.declaredType,f.referencedType,metadata) &&
+ if(!xlsSemanticIndexFact(index,at,&f) || f.parent>at || !typedNodeShape(n,&f,at,f.parent ? d->nodes+f.parent-1 : NULL,count,metadata))return 0;
+ if(f.typeOrigin && !(n->type=retain(d,f.canonical,strlen(f.canonical),8192)))return 0;
+ return
   typedRange(f.range,(int)f.source,sources,count,&n->full,ends,used) &&
   typedRange(f.tokenRange,(int)f.source,sources,count,&n->token,ends,used) &&
   typedRange(f.selectionRange,(int)f.selectionSource,sources,count,&n->selection,ends,used);
@@ -155,7 +190,34 @@ int xideSemanticRangesToLsp(const xide_semantic_source* sources,size_t count,xid
  free(spans);free(ends);return okay;
 }
 void xideSemanticDefinitionsDestroy(xide_semantic_definitions* d)
-{ if(d) { if(d->lookupReady&1)xrtArrayUnit(&d->cursors);if(d->lookupReady&2)xrtArrayUnit(&d->references);if(d->paths) for(size_t i=0;i<d->sourceCount;++i) free(d->paths[i]); free(d->paths); if(d->nodes) for(size_t i=0;i<d->count;++i) { free(d->nodes[i].name); free(d->nodes[i].header); free(d->nodes[i].type); } free(d->declarations); free(d->typeDeclarations); free(d->nodes); free(d); } }
+{
+ if(!d)return;
+#ifdef XLS_COMPILER_XRT
+ nativePointsDestroy(d->native);
+#endif
+ if(d->lookupReady&1)xrtArrayUnit(&d->cursors);
+ if(d->lookupReady&2)xrtArrayUnit(&d->references);
+ if(d->paths)for(size_t i=0;i<d->sourceCount;++i)free(d->paths[i]);
+ free(d->paths);
+ if(d->nodes)for(size_t i=0;i<d->count;++i){free(d->nodes[i].name);free(d->nodes[i].header);free(d->nodes[i].type);}
+ free(d->declarations);free(d->typeDeclarations);free(d->nodes);free(d);
+}
+static int nodeTextSlices(const node* n,const xide_semantic_source* sources,xstrview* name,xstrview* header)
+{
+ *name=*header=(xstrview){0};
+ if(!n->selection.source || n->selection.endOffset<=n->selection.startOffset)return 1;
+ const char* text=sources[n->selection.source-1].text;
+ *name=(xstrview){text+n->selection.startOffset,(size_t)(n->selection.endOffset-n->selection.startOffset)};
+ if(name->Size>512)return 0;
+ if(n->full.source==n->selection.source){
+  if(n->selection.startOffset<n->full.startOffset || n->selection.endOffset>n->full.endOffset)return 0;
+  size_t start=(size_t)n->full.startOffset,end=start,limit=(size_t)n->full.endOffset;
+  while(end<limit && text[end]!='\r' && text[end]!='\n' && end-start<2048)++end;
+  while(end>start && ((unsigned char)text[end]&0xc0)==0x80)--end;
+  *header=(xstrview){text+start,end-start};
+ }
+ return 1;
+}
 static xide_semantic_definitions* definitionsCreate(const xvalue* index,
 #ifdef XLS_COMPILER_XRT
  const xls_semantic_index* typed,
@@ -203,18 +265,9 @@ static xide_semantic_definitions* definitionsCreate(const xvalue* index,
  if(okay){int fast=coordinateBudget ? convertDense(ends,used,sources,count,coordinateBudget) : -1;okay=fast<0 ? convert(ends,used,sources) : fast;}
  for(size_t i=0;okay && i<d->count;++i) {
   node* n=&d->nodes[i];
-  if(n->selection.source && n->selection.endOffset>n->selection.startOffset) {
-   const char* text=sources[n->selection.source-1].text;
-   n->name=retain(d,text+n->selection.startOffset,(size_t)(n->selection.endOffset-n->selection.startOffset),512); okay=n->name!=NULL;
-   if(okay && n->full.source==n->selection.source) {
-    if(n->selection.startOffset<n->full.startOffset || n->selection.endOffset>n->full.endOffset) { okay=0; break; }
-    size_t start=(size_t)n->full.startOffset,end=start,limit=(size_t)n->full.endOffset;
-    while(end<limit && text[end]!='\r' && text[end]!='\n' && end-start<2048) ++end;
-    /* Do not split a UTF-8 scalar when clipping a long source line. */
-    while(end>start && ((unsigned char)text[end]&0xc0)==0x80) --end;
-    n->header=retain(d,text+start,end-start,2048); okay=n->header!=NULL;
-   }
-  }
+  xstrview name,header;okay=nodeTextSlices(n,sources,&name,&header);
+  if(okay && name.Data)okay=(n->name=retain(d,name.Data,name.Size,512))!=NULL;
+  if(okay && header.Data)okay=(n->header=retain(d,header.Data,header.Size,2048))!=NULL;
  }
  if(okay) {
   qsort(d->declarations,d->declCount,sizeof(*d->declarations),compareDeclaration);
@@ -249,6 +302,7 @@ xide_semantic_definitions* xideSemanticDefinitionsCreateTyped(const xls_semantic
 { return definitionsCreate(NULL,index,sources,count,error); }
 static size_t navigationBytes(const xide_semantic_definitions* d)
 {
+ if(d->native)return nativePointsBytes(d);
  size_t bytes=sizeof(*d)+d->sourceCount*sizeof(char*)+(d->count+1)*(sizeof(node)+2*sizeof(declaration))+d->textBytes;
  for(size_t i=0;i<d->sourceCount;++i)bytes+=strlen(d->paths[i])+1;
  return bytes+d->cursors.Capacity*sizeof(cursor_row)+d->references.Capacity*sizeof(reference_row);
@@ -256,22 +310,29 @@ static size_t navigationBytes(const xide_semantic_definitions* d)
 static void destroyNavigation(void* value){xideSemanticDefinitionsDestroy(value);}
 static int navigationAppend(xstrbuf* key,const void* data,size_t bytes)
 {return key->Size<=XLS_PROJECTION_KEY_BYTES && bytes<=XLS_PROJECTION_KEY_BYTES-key->Size && xrtStrBufAppend(key,(xstrview){data,bytes});}
-/* -1: source/check mismatch;0: optional key admission declined;1: full key.
- * Continue source validation after key allocation failure;never turn a failed
- * cache attempt into permission to accept different source bytes/positions. */
-static int navigationKey(xls_semantic_check* check,const xide_semantic_source* sources,size_t count,xstrbuf* key,int wanted)
+/* Render only already validated immutable source metadata. */
+static int navigationOwnedKey(const xide_semantic_source* sources,size_t count,xstrbuf* key,int wanted)
 {
- xls_inputs inputs;if(!check || !sources || !count || count>512 || !xlsSemanticCheckInputs(check,&inputs) || inputs.sources!=count)return -1;
  const uint64_t version[]={UINT64_C(0x786c734e617601),count};int okay=wanted && navigationAppend(key,version,sizeof(version));
  for(size_t i=0;i<count;++i){
-  xls_input_source row;if(!xlsSemanticCheckSource(check,i,&row) || !row.path || !row.text || !sources[i].path || !sources[i].text || sources[i].kind!=row.kind || (sources[i].utf16Prefix!=0 && sources[i].utf16Prefix!=1) || !xidePathLexicalEqual(row.path,sources[i].path))return -1;
-  if(row.text!=sources[i].text && (strlen(sources[i].text)!=row.size || memcmp(row.text,sources[i].text,row.size)))return -1;
   if(okay){size_t bytes=strlen(sources[i].path);uint64_t fields[]={bytes,(unsigned)sources[i].kind,(unsigned)sources[i].utf16Prefix};okay=navigationAppend(key,fields,sizeof(fields)) && navigationAppend(key,sources[i].path,bytes);}
  }
  return okay ? 1 : 0;
 }
+/* -1:mismatch,0:optional key declined,1:full key. Validate every source before
+ * optional key allocation;failure never accepts different bytes/positions. */
+static int navigationKey(xls_semantic_check* check,const xide_semantic_source* sources,size_t count,xstrbuf* key,int wanted)
+{
+ xls_inputs inputs;if(!check || !sources || !count || count>512 || !xlsSemanticCheckInputs(check,&inputs) || inputs.sources!=count)return -1;
+ for(size_t i=0;i<count;++i){
+  xls_input_source row;if(!xlsSemanticCheckSource(check,i,&row) || !row.path || !row.text || !sources[i].path || !sources[i].text || sources[i].kind!=row.kind || (sources[i].utf16Prefix!=0 && sources[i].utf16Prefix!=1) || (strcmp(row.path,sources[i].path) && !xidePathLexicalEqual(row.path,sources[i].path)))return -1;
+  if(row.text!=sources[i].text && (strlen(sources[i].text)!=row.size || memcmp(row.text,sources[i].text,row.size)))return -1;
+ }
+ return navigationOwnedKey(sources,count,key,wanted);
+}
 struct xide_navigation_snapshot {
  xls_semantic_check* owner;xls_projection_store* cache;uint64_t revision;int bound;
+ xide_semantic_definitions* points;xls_projection* pointLease;xide_navigation_work pointWork;
  size_t count,bytes;xide_semantic_source sources[];
 };
 typedef struct navigation_admission {xls_semantic_check* owner;xls_projection_store* cache;uint64_t revision;int active;} navigation_admission;
@@ -279,6 +340,7 @@ static _Thread_local navigation_admission activeNavigationAdmission;
 void xideSemanticNavigationDestroy(xide_navigation_snapshot* snapshot)
 {
  if(!snapshot)return;
+ xideSemanticDefinitionsReleaseTyped(snapshot->points,snapshot->pointLease);
  for(size_t i=0;i<snapshot->count;++i)xrtFree((void*)snapshot->sources[i].path);
  xlsSemanticCheckDestroy(snapshot->owner);xrtFree(snapshot);
 }
@@ -317,6 +379,41 @@ size_t xideSemanticNavigationBytes(const xide_navigation_snapshot* snapshot)
 {return snapshot ? snapshot->bytes : 0;}
 void xideSemanticNavigationBind(xide_navigation_snapshot* snapshot,xls_projection_store* cache)
 {if(snapshot){snapshot->cache=cache;snapshot->revision=xlsProjectionRetireOther(cache,snapshot->owner);snapshot->bound=1;}}
+int xideSemanticNavigationPreparePoints(xide_navigation_snapshot* snapshot,xide_model_error* error)
+{
+ xide_model_error local;
+ if(!error)error=&local;
+ *error=(xide_model_error){0};
+ if(!snapshot)return 0;
+ if(snapshot->points){if(xideSemanticNavigationPointsReady(snapshot))return 1;if(error){error->code=XIDE_MODEL_INVALID;snprintf(error->message,sizeof(error->message),"Point navigation owner is invalid.");}return -1;}
+ /* Capture validated and independently owns this opaque source array. Its
+  * text still belongs to the retained immutable check;do not redo allocating
+  * path normalization while rendering a key for already verified metadata. */
+ if(!xlsSemanticCheckTypedIndex(snapshot->owner)){if(error){error->code=XIDE_MODEL_INVALID;snprintf(error->message,sizeof(error->message),"Point navigation owner is invalid.");}return -1;}
+ xstrbuf key={0};int valid=navigationOwnedKey(snapshot->sources,snapshot->count,&key,1);
+ const uint64_t domain=UINT64_C(0x706f696e747301);
+ int keyed=valid && navigationAppend(&key,&domain,sizeof(domain));
+ xls_projection_store* cache=snapshot->bound ? snapshot->cache : NULL;
+ xls_projection* lease=keyed ? xlsProjectionAcquire(cache,snapshot->owner,key.Data,key.Size) : NULL;
+ xide_semantic_definitions* d=lease ? xlsProjectionValue(lease) : nativePointsCreate(xlsSemanticCheckTypedIndex(snapshot->owner),snapshot->sources,snapshot->count,error);
+ if(d){
+  snapshot->pointWork=(xide_navigation_work){.built=lease==NULL,.hit=lease!=NULL,.bytes=navigationBytes(d)};
+  if(!lease && keyed){lease=xlsProjectionCreate(snapshot->owner,key.Data,key.Size,d,navigationBytes(d),destroyNavigation);if(lease){lease=xlsProjectionPublishAt(cache,lease,snapshot->revision);d=xlsProjectionValue(lease);}}
+  if(!xlsSemanticCheckTypedIndex(snapshot->owner)){
+   xideSemanticDefinitionsReleaseTyped(d,lease);d=NULL;
+   if(error){error->code=XIDE_MODEL_INVALID;snprintf(error->message,sizeof(error->message),"Point navigation owner became invalid during preparation.");}
+  }else{snapshot->points=d;snapshot->pointLease=lease;}
+ }
+ xrtStrBufFree(&key);return d ? 1 : error && error->code ? -1 : 0;
+}
+int xideSemanticNavigationPointsReady(const xide_navigation_snapshot* snapshot)
+{return snapshot && snapshot->points && xlsSemanticCheckTypedIndex(snapshot->owner)!=NULL;}
+xide_navigation_work xideSemanticNavigationPointWork(const xide_navigation_snapshot* snapshot)
+{return snapshot ? snapshot->pointWork : (xide_navigation_work){0};}
+xvalue* xideSemanticNavigationPointDefinition(const xide_navigation_snapshot* snapshot,const char* path,int line,int character)
+{return xideSemanticNavigationPointsReady(snapshot) ? xideSemanticDefinition(snapshot->points,path,line,character) : NULL;}
+xvalue* xideSemanticNavigationPointHover(const xide_navigation_snapshot* snapshot,const char* path,int line,int character)
+{return xideSemanticNavigationPointsReady(snapshot) ? xideSemanticHover(snapshot->points,path,line,character) : NULL;}
 xide_semantic_definitions* xideSemanticNavigationResolve(const xide_navigation_snapshot* snapshot,
  xls_projection_store* cache,xls_projection** lease,xide_navigation_work* work,xide_model_error* error)
 {
@@ -352,21 +449,31 @@ void xideSemanticDefinitionsReleaseTyped(xide_semantic_definitions* d,xls_projec
 {if(lease)xlsProjectionRelease(lease);else xideSemanticDefinitionsDestroy(d);}
 #endif
 static int comparePoint(point a,point b) { return a.line!=b.line ? (a.line>b.line)-(a.line<b.line) : (a.character>b.character)-(a.character<b.character); }
+static node* readNode(xide_semantic_definitions* d,size_t at,node* scratch)
+{
+#ifdef XLS_COMPILER_XRT
+ if(d->native)return nativePointNode(d,at,scratch);
+#else
+ (void)scratch;
+#endif
+ return at<d->count ? d->nodes+at : NULL;
+}
 static int contains(const span* s,int source,point p) { return s->source==source && comparePoint(s->start,p)<=0 && comparePoint(p,s->end)<0; }
 static xvalue* position(point p) { xvalue* v=xrtValueObject(); if(v && put(v,"line",xrtValueInt(p.line)) && put(v,"character",xrtValueInt(p.character))) return v; xrtValueRelease(v); return NULL; }
 static int sourceFor(xide_semantic_definitions* d,const char* path)
 { if(d && path) for(size_t i=0;i<d->sourceCount;++i) if(!strcmp(path,d->paths[i]) || xidePathLexicalEqual(path,d->paths[i])) return (int)i+1; return 0; }
 static size_t resolveDeclaration(xide_semantic_definitions* d,size_t chosen,int source,point p)
 {
- node* n=&d->nodes[chosen]; unsigned target=n->target ? n->target : n->declared;
+ node selected={0};node* n=readNode(d,chosen,&selected);if(!n)return SIZE_MAX;unsigned target=n->target ? n->target : n->declared;
  /* A call's first child is its callee. Only the callee's terminal token uses
     the resolved overload; arguments and a member receiver keep their IDs. */
  size_t child=chosen;
- for(unsigned parent=n->parent;parent;child=(size_t)parent-1,parent=d->nodes[parent-1].parent) {
-  node* call=&d->nodes[parent-1]; node* callee=&d->nodes[child];
+ for(unsigned parent=n->parent;parent;) {
+  node callBuffer={0},calleeBuffer={0};node* call=readNode(d,parent-1,&callBuffer);node* callee=readNode(d,child,&calleeBuffer);if(!call || !callee)return SIZE_MAX;
   if(call->call && call->target && child==(size_t)parent && callee->full.source==source && n->token.source==source && n->token.endOffset==callee->full.endOffset) { target=call->target; break; }
+  child=(size_t)parent-1;parent=call->parent;
  }
- if(!target) for(unsigned parent=n->parent;parent;parent=d->nodes[parent-1].parent) { node* a=&d->nodes[parent-1]; if(a->declared && contains(&a->selection,source,p)) { target=a->declared; break; } }
+ if(!target) for(unsigned parent=n->parent;parent;) { node buffer={0};node* a=readNode(d,parent-1,&buffer);if(!a)return SIZE_MAX;if(a->declared && contains(&a->selection,source,p)) { target=a->declared; break; }parent=a->parent; }
  declaration key={target,0}; declaration* found=target ? bsearch(&key,d->declarations,d->declCount,sizeof(*d->declarations),compareDeclaration) : NULL;
  /* Explicit type facts can also name a checked base or constraint NAME.
     A variable's inferred type never redirects its SymbolId. Only a proven
@@ -374,7 +481,7 @@ static size_t resolveDeclaration(xide_semantic_definitions* d,size_t chosen,int 
  unsigned typeId=n->referencedType ? n->referencedType : n->declaredType;
  if(!target && typeId) {
   declaration typeKey={typeId,0}; declaration* type=bsearch(&typeKey,d->typeDeclarations,d->typeCount,sizeof(*d->typeDeclarations),compareDeclaration);
-  if(type && type->node!=SIZE_MAX) { node* declarationNode=&d->nodes[type->node]; if(declarationNode->typeAbi==n->typeAbi && (n->typeAbi || declarationNode->genericType)) found=type; }
+  if(type && type->node!=SIZE_MAX) { node buffer={0};node* declarationNode=readNode(d,type->node,&buffer);if(declarationNode && declarationNode->typeAbi==n->typeAbi && (n->typeAbi || declarationNode->genericType)) found=type; }
  }
  return found ? found->node : SIZE_MAX;
 }
@@ -386,10 +493,11 @@ static void searchCursorTree(cursor_search* search,size_t lo,size_t hi)
  if(comparePoint((point){(int)r->maximumLine,(int)r->maximumCharacter},search->position)<=0)return;
  searchCursorTree(search,lo,mid);
  if(comparePoint((point){(int)r->sl,(int)r->sc},search->position)<=0) {
-  size_t i=r->node&~CURSOR_SELECTION;node* n=d->nodes+i;const span* s=r->node&CURSOR_SELECTION ? &n->selection : &n->token;
+  size_t i=r->node&~CURSOR_SELECTION;node buffer={0};node* n=readNode(d,i,&buffer);if(!n)return;const span* s=r->node&CURSOR_SELECTION ? &n->selection : &n->token;
   int suppressed=!(r->node&CURSOR_SELECTION) && (n->declared || n->declaredType) && contains(&n->selection,search->source,search->position);
   if(!suppressed && contains(s,search->source,search->position)) {int width=s->endOffset-s->startOffset;size_t chosen=search->chosen;
-   if(width<search->width || (width==search->width && (chosen==SIZE_MAX || n->depth>d->nodes[chosen].depth || (n->depth==d->nodes[chosen].depth && i<chosen)))) {search->chosen=i;search->width=width;}
+   node previous={0};node* prior=chosen==SIZE_MAX ? NULL : readNode(d,chosen,&previous);
+   if(width<search->width || (width==search->width && (!prior || n->depth>prior->depth || (n->depth==prior->depth && i<chosen)))) {search->chosen=i;search->width=width;}
   }
   searchCursorTree(search,mid+1,hi);
  }
@@ -412,8 +520,9 @@ xvalue* xideSemanticDefinition(xide_semantic_definitions* d,const char* path,int
 {
  int source=sourceFor(d,path); if(!source || line<0 || character<0) return NULL;
  size_t decl=SIZE_MAX; selectNode(d,source,line,character,&decl);
- if(decl==SIZE_MAX || !d->nodes[decl].selection.source) return xrtValueNull();
- span* s=&d->nodes[decl].selection; char* uri=xideLspPathToUri(d->paths[s->source-1],NULL); xvalue* out=xrtValueObject();
+ node buffer={0};node* declarationNode=decl==SIZE_MAX ? NULL : readNode(d,decl,&buffer);
+ if(!declarationNode || !declarationNode->selection.source) return xrtValueNull();
+ span* s=&declarationNode->selection; char* uri=xideLspPathToUri(d->paths[s->source-1],NULL); xvalue* out=xrtValueObject();
  int okay=uri && out && put(out,"range",wireRange(s)) && put(out,"uri",xrtValueString(sv(uri)));
  free(uri); if(!okay) { xrtValueRelease(out); return NULL; } return out;
 }
@@ -552,10 +661,15 @@ xvalue* xideSemanticHover(xide_semantic_definitions* d,const char* path,int line
 {
  int source=sourceFor(d,path); if(!source || line<0 || character<0) return NULL;
  size_t decl=SIZE_MAX,chosen=selectNode(d,source,line,character,&decl); if(chosen==SIZE_MAX) return xrtValueNull();
- node *n=&d->nodes[chosen],*a=decl==SIZE_MAX ? NULL : &d->nodes[decl];
+ node selected={0},declarationBuffer={0};node *n=readNode(d,chosen,&selected),*a=decl==SIZE_MAX ? NULL : readNode(d,decl,&declarationBuffer);if(!n)return NULL;
  /* Function scope-name IDs and callable IDs are distinct; use the actual
     enclosing declaration header when hovering its source name. */
- if(a && !a->kind) for(unsigned parent=a->parent;parent;parent=d->nodes[parent-1].parent) { node* owner=&d->nodes[parent-1]; if(owner->kind==12 && contains(&owner->selection,source,(point){line,character})) { a=owner; break; } }
+ node ownerBuffer={0};
+ if(a && !a->kind) for(unsigned parent=a->parent;parent;) { node* owner=readNode(d,parent-1,&ownerBuffer);if(!owner)return NULL;if(owner->kind==12 && contains(&owner->selection,source,(point){line,character})) { a=owner; break; }parent=owner->parent; }
+#ifdef XLS_COMPILER_XRT
+ char selectedName[513],selectedHeader[2049],declaredName[513],declaredHeader[2049];
+ if(d->native && (!nativePointText(d,n,selectedName,selectedHeader) || (a && !nativePointText(d,a,declaredName,declaredHeader))))return NULL;
+#endif
  const char *type=n->type ? n->type : a ? a->type : NULL,*header=a ? a->header : n->header;
  int origin=n->type ? n->origin : a ? a->origin : 0;
  if(!type && !header) return xrtValueNull();
@@ -591,4 +705,5 @@ xvalue* xideSemanticDocumentSymbols(xide_semantic_definitions* d,const char* pat
 }
 #ifdef XLS_COMPILER_XRT
 #include "services/semantic_reference_shard.inc"
+#include "services/semantic_native_points.inc"
 #endif

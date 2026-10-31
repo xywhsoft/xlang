@@ -92,13 +92,13 @@ static void buildRequestedNavigation(xide_language_check* q)
  if(installed)xideSemanticNavigationDestroy(snapshot);else xideSemanticDefinitionsReleaseTyped(table,lease);
  if(q->wake)q->wake(q->wakeUser);
 }
-int xideLanguageCheckPrepareNavigation(xide_language_check* q,const char* path,int version,char* message,size_t capacity)
+static int prepareNavigation(xide_language_check* q,const char* path,int version,int pointQuery,char* message,size_t capacity)
 {
  if(!q || !path)return -2;
  EnterCriticalSection(&q->lock);int match=0,result=-2;
  for(size_t i=0;i<q->snapshotCount;++i)if(version==q->snapshots[i].version && xidePathLexicalEqual(path,q->snapshots[i].path)){match=1;break;}
  if(match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING){
-  if(q->definitions)result=1;
+  if(q->definitions || (pointQuery && xideSemanticNavigationPointsReady(q->deferredNavigation)))result=1;
   else if(q->deferredNavigation){
    if(!q->navigationState){q->navigationState=1;if(!q->navigationEvent || !SetEvent(q->navigationEvent)){q->navigationState=-1;snprintf(q->navigationError,sizeof(q->navigationError),"Unable to wake navigation worker.");}}
    result=q->navigationState<0 ? -1 : 0;
@@ -107,6 +107,10 @@ int xideLanguageCheckPrepareNavigation(xide_language_check* q,const char* path,i
  if(result==-1 && message && capacity)snprintf(message,capacity,"%s",q->navigationError);
  LeaveCriticalSection(&q->lock);return result;
 }
+int xideLanguageCheckPrepareNavigation(xide_language_check* q,const char* path,int version,char* message,size_t capacity)
+{return prepareNavigation(q,path,version,0,message,capacity);}
+int xideLanguageCheckPreparePointNavigation(xide_language_check* q,const char* path,int version,char* message,size_t capacity)
+{return prepareNavigation(q,path,version,1,message,capacity);}
 #endif
 static DWORD WINAPI worker(void* user)
 {
@@ -347,7 +351,14 @@ static xvalue* definition(xide_language_check* q,const char* path,int version,in
  if(!q || !path) return NULL;
  EnterCriticalSection(&q->lock); int match=0;
  for(size_t i=0;i<q->snapshotCount;++i) if(xidePathLexicalEqual(path,q->snapshots[i].path) && version==q->snapshots[i].version) match=1;
- xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && navigation(q) ? xideSemanticDefinition(q->definitions,path,line,character) : NULL;
+ xvalue* out=NULL;
+ if(match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING){
+#ifdef XLS_COMPILER_XRT
+  if(!q->definitions && xideSemanticNavigationPointsReady(q->deferredNavigation))out=xideSemanticNavigationPointDefinition(q->deferredNavigation,path,line,character);
+  else
+#endif
+  if(navigation(q))out=xideSemanticDefinition(q->definitions,path,line,character);
+ }
  if(proof && out && xrtValueType(out)!=XVALUE_NULL && !put(out,"xlang",definitionProof(q,out))) { xrtValueRelease(out); out=NULL; }
  LeaveCriticalSection(&q->lock); return out;
 }
@@ -360,7 +371,14 @@ xvalue* xideLanguageCheckHover(xide_language_check* q,const char* path,int versi
  if(!q || !path) return NULL;
  EnterCriticalSection(&q->lock); int match=0;
  for(size_t i=0;i<q->snapshotCount;++i) if(xidePathLexicalEqual(path,q->snapshots[i].path) && version==q->snapshots[i].version) match=1;
- xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && navigation(q) ? xideSemanticHover(q->definitions,path,line,character) : NULL;
+ xvalue* out=NULL;
+ if(match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING){
+#ifdef XLS_COMPILER_XRT
+  if(!q->definitions && xideSemanticNavigationPointsReady(q->deferredNavigation))out=xideSemanticNavigationPointHover(q->deferredNavigation,path,line,character);
+  else
+#endif
+  if(navigation(q))out=xideSemanticHover(q->definitions,path,line,character);
+ }
  LeaveCriticalSection(&q->lock); return out;
 }
 xvalue* xideLanguageCheckDocumentSymbols(xide_language_check* q,const char* path,int version)
