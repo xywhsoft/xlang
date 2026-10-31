@@ -829,6 +829,7 @@ def main() -> None:
             if name=='analysis_type_constructor_test':
                 extra += ['-Wl,--wrap='+function for function in ('xrtCalloc','xrtStrDupN','xrtStrDup')]
             if name=='analysis_ir_derived_test':extra+=['-Wl,--wrap='+function for function in ('xrtCalloc','xrtArrayInit','xrtArrayResize','xrtArrayPush','xrtStrBufReserve')]
+            if name=='navigation_cache_test':extra+=['-Wl,--wrap=xrtCalloc','-Wl,--wrap=xrtStrDup','-Wl,--wrap=xlsSemanticCheckRetain']
             if name=='analysis_selection_test':extra+=['-Wl,--wrap=xrtCalloc','-Wl,--wrap=xrtArrayInit','-Wl,--wrap=xrtArrayPush']
             if name == "analysis_index_limit_test":
                 extra.append(str(limited_index))

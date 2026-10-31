@@ -31,6 +31,24 @@ xide_semantic_definitions* xideSemanticDefinitionsAcquireTyped(xls_projection_st
     xls_semantic_check* check,const xide_semantic_source* sources,size_t count,
     xls_projection** lease,xide_navigation_work* work,xide_model_error* error);
 void xideSemanticDefinitionsReleaseTyped(xide_semantic_definitions* definitions,xls_projection* lease);
+/* Exact checked-source capture for demand construction. Owns paths and a
+ * retained check (including original source bytes);never borrows the caller's
+ * source array. NULL with no error means optional storage admission failed:
+ * use the original eager constructor. No table is built during capture.
+ * Resolve uses the original typed constructor/cache and returns its ordinary
+ * table/lease ownership. Capture and cache do not replace freshness guards. */
+typedef struct xide_navigation_snapshot xide_navigation_snapshot;
+xide_navigation_snapshot* xideSemanticNavigationCapture(xls_semantic_check* check,
+    const xide_semantic_source* sources,size_t count,xide_model_error* error);
+void xideSemanticNavigationDestroy(xide_navigation_snapshot* snapshot);
+/* Bind once, before concurrent resolution/publication. Retires an obsolete
+ * resident and captures this bank's publication revision. The borrowed bank
+ * must outlive Resolve;Destroy does not use it. A different bank is uncached.
+ * Later checks invalidate old work's permission to repopulate the bank. */
+void xideSemanticNavigationBind(xide_navigation_snapshot* snapshot,xls_projection_store* cache);
+xide_semantic_definitions* xideSemanticNavigationResolve(const xide_navigation_snapshot* snapshot,
+    xls_projection_store* cache,xls_projection** lease,xide_navigation_work* work,xide_model_error* error);
+size_t xideSemanticNavigationBytes(const xide_navigation_snapshot* snapshot);
 #endif
 void xideSemanticDefinitionsDestroy(xide_semantic_definitions* definitions);
 /* Returns a Location or JSON null. Explicit type facts can resolve a unique

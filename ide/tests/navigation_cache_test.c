@@ -5,6 +5,15 @@
 #include <string.h>
 static unsigned checks;
 #define CHECK(v) do{++checks;if(!(v)){fprintf(stderr,"navigation_cache_test:%d:%s\n",__LINE__,#v);return 0;}}while(0)
+static unsigned captureFaultKind;static size_t captureFaultAt,captureVisits,captureRetains;static int captureFaultActive;
+static int captureRefuse(unsigned kind){return captureFaultActive && captureFaultKind==kind && captureVisits++==captureFaultAt;}
+void* __real_xrtCalloc(size_t,size_t);
+void* __wrap_xrtCalloc(size_t n,size_t size){return captureRefuse(1) ? NULL : __real_xrtCalloc(n,size);}
+char* __real_xrtStrDup(const char*);
+char* __wrap_xrtStrDup(const char* text){return captureRefuse(2) ? NULL : __real_xrtStrDup(text);}
+xls_semantic_check* __real_xlsSemanticCheckRetain(xls_semantic_check*);
+xls_semantic_check* __wrap_xlsSemanticCheckRetain(xls_semantic_check* check){if(captureFaultActive)++captureRetains;return __real_xlsSemanticCheckRetain(check);}
+static uint64_t liveBlocks(void){xmemstats stats;xrtMemStatsGet(&stats);return stats.BlockAllocCalls-stats.BlockFreeCalls;}
 static int equalValue(xvalue* a,xvalue* b)
 {int same=a && b && xrtValueEqual(a,b);xrtValueRelease(a);xrtValueRelease(b);return same;}
 static int sameReferences(xide_semantic_definitions* a,xide_semantic_definitions* b,const char* path,int line,int character)
@@ -27,6 +36,57 @@ static int allQueries(xide_semantic_definitions* a,xide_semantic_definitions* b,
 typedef struct reader {xide_semantic_definitions* table;const char* path;int okay;} reader;
 static int32 readTable(void* user)
 {reader* r=user;r->okay=1;for(unsigned i=0;i<32;++i){xvalue* symbols=xideSemanticDocumentSymbols(r->table,r->path);if(!symbols || !xrtValueCount(symbols))r->okay=0;xrtValueRelease(symbols);}return 0;}
+static int deferred(xls_semantic_check* checked,const xide_semantic_source* sources,
+ const xls_semantic_input* inputs,xide_semantic_definitions* reference)
+{
+ xide_model_error error={0};xls_projection* lease=NULL;xide_navigation_work work;
+ xls_semantic_check* noIndex=xlsSemanticCheckCreate(inputs[0].path,inputs,2,0,NULL,NULL,NULL,0);CHECK(noIndex && xlsSemanticCheckInfo(noIndex).accepted && !xlsSemanticCheckInfo(noIndex).hasIndex);
+ CHECK(!xideSemanticNavigationCapture(noIndex,sources,2,&error) && error.code==XIDE_MODEL_INVALID);xlsSemanticCheckDestroy(noIndex);error=(xide_model_error){0};
+ captureFaultKind=0;captureRetains=0;captureFaultActive=1;
+ xide_navigation_snapshot* snapshot=xideSemanticNavigationCapture(checked,sources,2,&error);captureFaultActive=0;
+ CHECK(snapshot && captureRetains==1 && !error.code && xideSemanticNavigationBytes(snapshot)>0 && xideSemanticNavigationBytes(snapshot)<=XLS_PROJECTION_KEY_BYTES);xideSemanticNavigationDestroy(snapshot);
+ /* Capture fault positions are actual API calls. Even failure after one
+  * owned path must restore both metadata and retained-check ownership. */
+ for(unsigned kind=1;kind<=2;++kind){
+  captureFaultKind=kind;captureFaultAt=SIZE_MAX;captureVisits=0;captureFaultActive=1;
+  snapshot=xideSemanticNavigationCapture(checked,sources,2,&error);captureFaultActive=0;size_t total=captureVisits;CHECK(snapshot && total>0);xideSemanticNavigationDestroy(snapshot);
+  for(size_t at=0;at<total;++at){uint64_t blocks=liveBlocks();captureFaultAt=at;captureVisits=0;captureFaultActive=1;error=(xide_model_error){0};snapshot=xideSemanticNavigationCapture(checked,sources,2,&error);captureFaultActive=0;CHECK(!snapshot && !error.code && captureVisits==at+1 && liveBlocks()==blocks);
+   xide_semantic_definitions* eager=xideSemanticDefinitionsAcquireTyped(NULL,checked,sources,2,&lease,&work,&error);CHECK(eager && !lease && work.built && allQueries(eager,reference,sources,2));xideSemanticDefinitionsReleaseTyped(eager,lease);
+  }
+  printf("deferred navigation capture fault kind %u: %zu API positions\n",kind,total);
+ }
+ /* Validate every source before optional allocation. An allocator failure
+  * may not turn a late mismatch into permission for an eager wrong source. */
+ for(unsigned fault=0;fault<4;++fault){xide_semantic_source bad[2]={sources[0],sources[1]};char* forged=NULL;
+  if(fault==0)bad[1].utf16Prefix=2;
+  else if(fault==1)bad[1].kind+=1;
+  else if(fault==2)bad[1].path=sources[0].path;
+  else{forged=xrtStrDup(bad[1].text);CHECK(forged && *forged);forged[0]='x';bad[1].text=forged;}
+  captureFaultKind=1;captureFaultAt=0;captureVisits=0;captureFaultActive=1;error=(xide_model_error){0};snapshot=xideSemanticNavigationCapture(checked,bad,2,&error);captureFaultActive=0;CHECK(!snapshot && error.code==XIDE_MODEL_INVALID && !captureVisits);xrtFree(forged);
+ }
+ /* Neither the caller's source array/paths/text nor its check reference
+  * survives until first demand. The resulting ordinary table outlives the
+  * deferred owner as well. BOM/CRLF/Unicode and all query kinds stay exact. */
+ xls_semantic_check* owned=xlsSemanticCheckCreate(inputs[0].path,inputs,2,1,NULL,NULL,NULL,0);CHECK(owned && xlsSemanticCheckInfo(owned).accepted);
+ xide_semantic_source copied[2];for(size_t i=0;i<2;++i){xls_input_source row;CHECK(xlsSemanticCheckSource(owned,i,&row));copied[i]=(xide_semantic_source){xrtStrDup(row.path),xrtStrDup(row.text),row.kind,1};CHECK(copied[i].path && copied[i].text);}
+ error=(xide_model_error){0};snapshot=xideSemanticNavigationCapture(owned,copied,2,&error);CHECK(snapshot && !error.code);
+ for(size_t i=0;i<2;++i){memset((void*)copied[i].path,'x',strlen(copied[i].path));memset((void*)copied[i].text,'x',strlen(copied[i].text));xrtFree((void*)copied[i].path);xrtFree((void*)copied[i].text);}memset(copied,0,sizeof(copied));xlsSemanticCheckDestroy(owned);
+ xide_semantic_definitions* resolved=xideSemanticNavigationResolve(snapshot,NULL,&lease,&work,&error);CHECK(resolved && !lease && work.built);xideSemanticNavigationDestroy(snapshot);CHECK(allQueries(resolved,reference,sources,2));xideSemanticDefinitionsReleaseTyped(resolved,lease);
+ xls_projection_store* store=xlsProjectionStoreCreate(XLS_PROJECTION_STORE_BYTES);CHECK(store);
+ snapshot=xideSemanticNavigationCapture(checked,sources,2,&error);CHECK(snapshot);resolved=xideSemanticNavigationResolve(snapshot,store,&lease,&work,&error);CHECK(resolved && lease && work.built && !work.hit);xideSemanticNavigationDestroy(snapshot);
+ xls_projection* hit=NULL;snapshot=xideSemanticNavigationCapture(checked,sources,2,&error);CHECK(snapshot);xide_semantic_definitions* same=xideSemanticNavigationResolve(snapshot,store,&hit,&work,&error);CHECK(same==resolved && hit==lease && work.hit && !work.built);xideSemanticNavigationDestroy(snapshot);xlsProjectionStoreDestroy(store);CHECK(allQueries(same,reference,sources,2));xideSemanticDefinitionsReleaseTyped(resolved,lease);xideSemanticDefinitionsReleaseTyped(same,hit);
+ /* Old delayed construction cannot repopulate a bank after a newer capture.
+  * The refused lease remains usable;the ordinary public constructor must
+  * also be unaffected by the completed scoped publication admission. */
+ store=xlsProjectionStoreCreate(XLS_PROJECTION_STORE_BYTES);CHECK(store);snapshot=xideSemanticNavigationCapture(checked,sources,2,&error);CHECK(snapshot);xideSemanticNavigationBind(snapshot,store);
+ owned=xlsSemanticCheckCreate(inputs[0].path,inputs,2,1,NULL,NULL,NULL,0);CHECK(owned && xlsSemanticCheckInfo(owned).accepted);xide_navigation_snapshot* newer=xideSemanticNavigationCapture(owned,sources,2,&error);CHECK(newer);xideSemanticNavigationBind(newer,store);
+ xls_projection_store* differentStore=xlsProjectionStoreCreate(XLS_PROJECTION_STORE_BYTES);CHECK(differentStore);xls_projection* detached=NULL;xide_semantic_definitions* uncached=xideSemanticNavigationResolve(newer,differentStore,&detached,&work,&error);xls_projection_stats differentStats;xlsProjectionStoreStats(differentStore,&differentStats);CHECK(uncached && !detached && !differentStats.entries && !differentStats.published && equalValue(xideSemanticDocumentSymbols(uncached,sources[0].path),xideSemanticDocumentSymbols(reference,sources[0].path)));xideSemanticDefinitionsReleaseTyped(uncached,detached);xlsProjectionStoreDestroy(differentStore);
+ resolved=xideSemanticNavigationResolve(snapshot,store,&lease,&work,&error);xls_projection_stats stats;xlsProjectionStoreStats(store,&stats);CHECK(resolved && lease && work.built && !stats.entries && stats.declined==1 && allQueries(resolved,reference,sources,2));xideSemanticNavigationDestroy(snapshot);
+ xls_projection* ordinary=NULL;same=xideSemanticDefinitionsAcquireTyped(store,checked,sources,2,&ordinary,&work,&error);xlsProjectionStoreStats(store,&stats);CHECK(same && ordinary && stats.entries==1 && stats.published==1);xideSemanticDefinitionsReleaseTyped(same,ordinary);
+ same=xideSemanticNavigationResolve(newer,store,&hit,&work,&error);xlsProjectionStoreStats(store,&stats);CHECK(same && hit && work.built && stats.entries==1 && stats.published==2 && allQueries(same,reference,sources,2));xideSemanticNavigationDestroy(newer);xlsSemanticCheckDestroy(owned);xlsProjectionStoreDestroy(store);xideSemanticDefinitionsReleaseTyped(resolved,lease);xideSemanticDefinitionsReleaseTyped(same,hit);
+ char* disk=xrtPathAbs("build/navigation-cache/stale.xl");const char* text="func main(...) as int\n return 0\nend\n";CHECK(disk && xrtFileWriteAtomic(disk,(xbytesview){(const unsigned char*)text,strlen(text)}));owned=xlsSemanticCheckCreate(disk,NULL,0,1,NULL,NULL,NULL,0);CHECK(owned && xlsSemanticCheckInfo(owned).accepted);xls_input_source row;CHECK(xlsSemanticCheckSource(owned,0,&row));xide_semantic_source source={row.path,row.text,row.kind,0};error=(xide_model_error){0};snapshot=xideSemanticNavigationCapture(owned,&source,1,&error);CHECK(snapshot && !error.code);
+ CHECK(xrtFileWriteAtomic(disk,(xbytesview){(const unsigned char*)text,strlen(text)}) && !xlsSemanticCheckValidate(owned));resolved=xideSemanticNavigationResolve(snapshot,NULL,&lease,&work,&error);CHECK(!resolved && !lease && error.code==XIDE_MODEL_INVALID);xideSemanticNavigationDestroy(snapshot);xlsSemanticCheckDestroy(owned);xrtFree(disk);return 1;
+}
 static int run(void)
 {
  char* directory=xrtPathAbs("build/navigation-cache");CHECK(directory && xrtDirCreateAll(directory));char *entry=xrtPathJoin(directory,"入口.xl"),*dep=xrtPathJoin(directory,"dep.xl");CHECK(entry && dep);
@@ -45,8 +105,9 @@ static int run(void)
  xls_projection_store* small=xlsProjectionStoreCreate(1);CHECK(small);xls_projection* refused=NULL;xide_semantic_definitions* e=xideSemanticDefinitionsAcquireTyped(small,checked,sources,2,&refused,&work,&error);CHECK(e && refused && work.built && allQueries(e,reference,sources,2));xls_projection_stats stats;xlsProjectionStoreStats(small,&stats);CHECK(!stats.entries && stats.declined==1);xideSemanticDefinitionsReleaseTyped(e,refused);xlsProjectionStoreDestroy(small);
  e=xideSemanticDefinitionsAcquireTyped(NULL,checked,sources,2,&refused,&work,&error);CHECK(e && !refused && work.built && allQueries(e,reference,sources,2));xideSemanticDefinitionsReleaseTyped(e,refused);
  xls_semantic_check* other=xlsSemanticCheckCreate(entry,inputs,2,1,NULL,NULL,NULL,0);CHECK(other && other!=checked && xlsSemanticCheckInfo(other).accepted);xls_projection* otherLease=NULL;e=xideSemanticDefinitionsAcquireTyped(store,other,sources,2,&otherLease,&work,&error);CHECK(e && otherLease && work.built && !work.hit && allQueries(e,reference,sources,2));xideSemanticDefinitionsReleaseTyped(e,otherLease);xlsSemanticCheckDestroy(other);
+ CHECK(deferred(checked,sources,inputs,reference));
  /* Tables and their exact original compilation survive all original owners. */
  xideSemanticDefinitionsDestroy(reference);xlsSemanticCheckDestroy(checked);xlsProjectionStoreDestroy(store);reader readers[4];xthread* threads[4];for(size_t i=0;i<4;++i){readers[i]=(reader){a,entry,0};threads[i]=xrtThreadCreate(readTable,&readers[i],0);CHECK(threads[i]);}for(size_t i=0;i<4;++i){CHECK(xrtThreadWait(threads[i])==XWAIT_OK && readers[i].okay);xrtThreadDestroy(threads[i]);}
  xideSemanticDefinitionsReleaseTyped(a,first);xideSemanticDefinitionsReleaseTyped(b,hit);xideSemanticDefinitionsReleaseTyped(c,changed);xideSemanticDefinitionsReleaseTyped(d,restored);xrtFree(entry);xrtFree(dep);xrtFree(directory);return 1;
 }
-int main(void){if(!run())return 1;printf("navigation_cache_test passed: %u checks;all valid UTF8 endpoints/full definition-hover-symbol-highlight-reference parity,overloads/types/imports/shadowing,complete owner/source/BOM fences,quota fallback and independent four-reader leases\n",checks);return 0;}
+int main(void){xrtMemStatsEnable(true);if(!run())return 1;printf("navigation_cache_test passed: %u checks;all valid UTF8 endpoints/full definition-hover-symbol-highlight-reference parity,overloads/types/imports/shadowing,complete owner/source/BOM fences,quota fallback,deferred owner retirement/faults and independent four-reader leases\n",checks);return 0;}

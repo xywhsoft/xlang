@@ -2,7 +2,7 @@
 #include <xrt.h>
 #include <string.h>
 struct xls_projection {xatomic32 references;xls_semantic_check* owner;void* value;void (*destroy)(void*);size_t size,bytes;unsigned char key[];};
-struct xls_projection_store {xmutex lock;xls_projection* resident;xls_projection_stats stats;};
+struct xls_projection_store {xmutex lock;xls_projection* resident;xls_projection_stats stats;uint64_t revision;};
 static void increment(uint64_t* n){if(*n<INT64_MAX)++*n;}
 static int usable(xls_semantic_check* owner)
 {xls_check_info info=xlsSemanticCheckInfo(owner);return info.accepted && info.hasIndex;}
@@ -12,7 +12,7 @@ xls_projection_store* xlsProjectionStoreCreate(size_t bytes)
 {
  if(!bytes || bytes>128u*1024u*1024u)return NULL;
  xls_projection_store* s=xrtCalloc(1,sizeof(*s));if(!s)return NULL;
- if(!xrtMutexInit(&s->lock)){xrtFree(s);return NULL;}s->stats.limit=bytes;return s;
+ if(!xrtMutexInit(&s->lock)){xrtFree(s);return NULL;}s->stats.limit=bytes;s->revision=1;return s;
 }
 xls_projection* xlsProjectionRetain(xls_projection* p){if(p)xrtAtomic32FetchAdd(&p->references,1,XMEMORY_RELAXED);return p;}
 void xlsProjectionRelease(xls_projection* p)
@@ -35,11 +35,12 @@ xls_projection* xlsProjectionAcquire(xls_projection_store* s,xls_semantic_check*
  int valid=usable(owner);xrtMutexLock(&s->lock);xls_projection* p=valid && same(s->resident,owner,key,size) ? xlsProjectionRetain(s->resident) : NULL;
  increment(p ? &s->stats.hits : &s->stats.misses);xrtMutexUnlock(&s->lock);return p;
 }
-xls_projection* xlsProjectionPublish(xls_projection_store* s,xls_projection* p)
+static xls_projection* publish(xls_projection_store* s,xls_projection* p,uint64_t revision,int fenced)
 {
  if(!s || !p)return p;
  int valid=usable(p->owner),winner=0;xls_projection* old=NULL,*result=p;
  xrtMutexLock(&s->lock);
+ if(fenced && (!revision || s->revision!=revision))valid=0;
  if(valid && same(s->resident,p->owner,p->key,p->size)){result=xlsProjectionRetain(s->resident);winner=1;}
  else if(valid && p->bytes<=s->stats.limit){old=s->resident;s->resident=xlsProjectionRetain(p);s->stats.entries=1;s->stats.bytes=p->bytes;increment(&s->stats.published);if(old)increment(&s->stats.replaced);}
  else increment(&s->stats.declined);
@@ -47,6 +48,17 @@ xls_projection* xlsProjectionPublish(xls_projection_store* s,xls_projection* p)
  if(winner)xlsProjectionRelease(p);
  xlsProjectionRelease(old);return result;
 }
+xls_projection* xlsProjectionPublish(xls_projection_store* s,xls_projection* p){return publish(s,p,0,0);}
+xls_projection* xlsProjectionPublishAt(xls_projection_store* s,xls_projection* p,uint64_t revision){return publish(s,p,revision,1);}
 void* xlsProjectionValue(const xls_projection* p){return p ? p->value : NULL;}
+uint64_t xlsProjectionRetireOther(xls_projection_store* s,const xls_semantic_check* owner)
+{
+ if(!s || !owner)return 0;
+ xls_projection* old=NULL;xrtMutexLock(&s->lock);
+ if(s->revision<UINT64_MAX)++s->revision;
+ uint64_t revision=s->revision==UINT64_MAX ? 0 : s->revision;
+ if(s->resident && s->resident->owner!=owner){old=s->resident;s->resident=NULL;s->stats.entries=s->stats.bytes=0;increment(&s->stats.retired);}
+ xrtMutexUnlock(&s->lock);xlsProjectionRelease(old);return revision;
+}
 void xlsProjectionStoreStats(xls_projection_store* s,xls_projection_stats* stats)
 {if(stats){*stats=(xls_projection_stats){0};if(s){xrtMutexLock(&s->lock);*stats=s->stats;xrtMutexUnlock(&s->lock);}}}

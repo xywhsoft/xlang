@@ -20,6 +20,8 @@ struct xide_language_check {
  char* referencePath;int referenceLine,referenceCharacter,referenceMode;
  struct xide_reference_shard* referenceShard;struct xide_reference_key* referenceKey;
  xls_projection* navigationProjection;xide_navigation_work navigationWork;
+ xide_navigation_snapshot* deferredNavigation;
+ HANDLE navigationEvent;int navigationState;char navigationError[512];
  xls_context* context;
  int signatureMode; unsigned signatureFlags; xls_signature_stats signatureStats;
  xls_worker_cache_stats sessionCache;

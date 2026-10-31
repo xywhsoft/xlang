@@ -723,11 +723,24 @@ analysed:
    xide_semantic_source sources[512];
    for(size_t i=0;i<graph.count;++i) { int64 kind=0; xrtValueGetInt(get(graph.items[i].report,"kind"),&kind); sources[i]=(xide_semantic_source){graph.items[i].path,graph.items[i].original,(int)kind,graph.items[i].overlay>=0 && strlen(q->snapshots[graph.items[i].overlay].text)>=3 && !memcmp(q->snapshots[graph.items[i].overlay].text,"\xef\xbb\xbf",3) ? 1 : 0}; }
 #ifdef XLS_COMPILER_XRT
-   if(nativeCheck) q->definitions=xideSemanticDefinitionsAcquireTyped(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,&q->navigationProjection,&q->navigationWork,e);
+   if(nativeCheck && !q->referenceMode && q->navigationEvent && xlsWorkerProjectionStore(q->semanticActor)) {
+    xide_model_error captureError={0};
+    q->deferredNavigation=xideSemanticNavigationCapture(nativeCheck,sources,graph.count,&captureError);
+    if(captureError.code){*e=captureError;goto done;}
+    if(q->deferredNavigation){
+     /* Retire obsolete resident work now,not after a shortened response.
+      * The exact checked source owner remains alive for a later demand. */
+     xideSemanticNavigationBind(q->deferredNavigation,xlsWorkerProjectionStore(q->semanticActor));
+    }else q->definitions=xideSemanticDefinitionsAcquireTyped(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,&q->navigationProjection,&q->navigationWork,e);
+   } else if(nativeCheck) q->definitions=xideSemanticDefinitionsAcquireTyped(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,&q->navigationProjection,&q->navigationWork,e);
    else
 #endif
    q->definitions=xideSemanticDefinitionsCreate(index,sources,graph.count,e);
-   if(!q->definitions) goto done;
+   if(!q->definitions
+#ifdef XLS_COMPILER_XRT
+      && !q->deferredNavigation
+#endif
+   ) goto done;
 #ifdef XLS_COMPILER_XRT
    if(q->referenceMode){
     q->referenceShard=xideSemanticReferenceShardCreate(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,XIDE_REFERENCE_BYTES,e);
@@ -737,7 +750,11 @@ analysed:
 #endif
   }
  }
- if(!q->queryPath && !q->nativeBridge && !put(result,"semanticDefinitions",xrtValueBool(q->definitions!=NULL))) goto done;
+ int navigationAvailable=q->definitions!=NULL;
+#ifdef XLS_COMPILER_XRT
+ navigationAvailable=navigationAvailable || q->deferredNavigation!=NULL;
+#endif
+ if(!q->queryPath && !q->nativeBridge && !put(result,"semanticDefinitions",xrtValueBool(navigationAvailable))) goto done;
 #ifdef XLS_COMPILER_XRT
  if(q->referenceMode)goto nativeValidation;
  if(retainedNative(q) && q->queryPath) {
@@ -851,7 +868,8 @@ analysed:
  }
  if(nativeCheck && retainedNative(q)) {
   xvalue* stats=get(result,"analysis"),*navigation=xrtValueObject();xls_projection_stats cached;xlsProjectionStoreStats(xlsWorkerProjectionStore(q->semanticActor),&cached);
-  int valid=stats && navigation && put(navigation,"builds",xrtValueInt(q->navigationWork.built)) && put(navigation,"cacheHits",xrtValueInt(q->navigationWork.hit)) && put(navigation,"bytes",xrtValueInt((int64)q->navigationWork.bytes)) && put(navigation,"residentBytes",xrtValueInt((int64)cached.bytes)) && put(navigation,"limit",xrtValueInt((int64)cached.limit));
+  int valid=stats && navigation && put(navigation,"builds",xrtValueInt(q->navigationWork.built)) && put(navigation,"cacheHits",xrtValueInt(q->navigationWork.hit)) && put(navigation,"bytes",xrtValueInt((int64)q->navigationWork.bytes)) && put(navigation,"residentBytes",xrtValueInt((int64)cached.bytes)) && put(navigation,"limit",xrtValueInt((int64)cached.limit)) &&
+   put(navigation,"deferred",xrtValueBool(q->deferredNavigation!=NULL)) && put(navigation,"deferredBytes",xrtValueInt((int64)xideSemanticNavigationBytes(q->deferredNavigation))) && put(navigation,"storeHits",xrtValueInt((int64)cached.hits)) && put(navigation,"storeMisses",xrtValueInt((int64)cached.misses)) && put(navigation,"published",xrtValueInt((int64)cached.published)) && put(navigation,"retired",xrtValueInt((int64)cached.retired));
   if(!valid){xrtValueRelease(navigation);goto done;}if(!put(stats,"navigation",navigation))goto done;
  }
 nativeValidation:

@@ -27,7 +27,7 @@ typedef struct message { struct message* next; xvalue* value; size_t size; int i
 typedef struct document { char *uri,*path; const char* text; xls_text* content; int version; unsigned long long generation,identity; unsigned char uriHash[32];xls_context* context;int binding; } document;
 typedef struct native_request { xvalue* id; xls_query* query; int document,version; unsigned long long identity,generation;int selection; } native_request;
 typedef struct semantic_request {
- xvalue* id; int document,version,line,character,kind,started,bound;
+ xvalue *id,*bindingId; int document,version,line,character,kind,started,bound,waitingNavigation,navigationFailed;
  unsigned long long identity,generation,order;
 } semantic_request;
 typedef struct server {
@@ -561,17 +561,23 @@ static void documents(server* s,const char* method,const xvalue* params)
 invalid: fprintf(stderr,"xlang-ls: rejected %s notification.\n",method);
 }
 static void releaseSemantic(semantic_request* request)
-{ xrtValueRelease(request->id); memset(request,0,sizeof(*request)); }
+{ xrtValueRelease(request->id);xrtValueRelease(request->bindingId); memset(request,0,sizeof(*request)); }
 static int semanticCurrent(server* s,const semantic_request* request)
 {
  document* d=&s->docs[request->document];
- return d->uri && d->identity==request->identity && d->version==request->version && s->generation==request->generation;
+ return d->uri && d->identity==request->identity && d->version==request->version && s->generation==request->generation &&
+  (!request->bound || !request->id || (s->guard && !s->guardCancelled && request->bindingId && sameId(request->bindingId,s->guardId)));
 }
-static xvalue* semanticResult(server* s,const semantic_request* request)
+static xvalue* semanticResult(server* s,semantic_request* request)
 {
+ request->waitingNavigation=request->navigationFailed=0;
  if(!s->guard || s->guardCancelled) return NULL;
  document* d=&s->docs[request->document];
  if(s->catalog && (d->binding<0 || ((!request->bound || d->binding==XIDE_ANALYSIS_PROJECT) && !xideLanguageCheckMatchesContext(s->guard,d->context)))) return NULL;
+#ifdef XLS_COMPILER_XRT
+ int prepared=xideLanguageCheckPrepareNavigation(s->guard,d->path,request->version,NULL,0);
+ if(prepared!=1){request->waitingNavigation=prepared==0;request->navigationFailed=prepared==-1;return NULL;}
+#endif
  return request->kind==3 ? xideLanguageCheckDocumentHighlights(s->guard,d->path,request->version,request->line,request->character) :
   request->kind==2 ? xideLanguageCheckDocumentSymbols(s->guard,d->path,request->version) :
   request->kind==1 ? xideLanguageCheckHover(s->guard,d->path,request->version,request->line,request->character) :
@@ -598,6 +604,7 @@ static void drainSemantic(server* s)
   if(!semanticCurrent(s,request)) { response(s,request->id,NULL,-32801,"Semantic request inputs changed."); releaseSemantic(request); continue; }
   xvalue* result=semanticResult(s,request);
   if(result) { response(s,request->id,result,0,NULL); releaseSemantic(request); }
+  else if(request->navigationFailed){response(s,request->id,NULL,-32603,"Unable to construct current semantic navigation.");releaseSemantic(request);}
  }
 }
 static void semanticCheckFinished(server* s,int index,unsigned long long generation,int current,int code,const char* reason,int indexed)
@@ -612,6 +619,8 @@ static void semanticCheckFinished(server* s,int index,unsigned long long generat
    /* Source errors have diagnostics, but no complete semantic facts. Empty
       standard results do not conceal infrastructure or resource failures. */
    xvalue* result=indexed ? semanticResult(s,request) : request->kind==2 ? xrtValueArray() : xrtValueNull();
+   if(indexed && request->waitingNavigation){request->started=0;continue;}
+   if(request->navigationFailed){response(s,request->id,NULL,-32603,"Unable to construct current semantic navigation.");releaseSemantic(request);continue;}
    response(s,request->id,result,result ? 0 : indexed ? -32801 : -32603,result ? NULL : "Semantic result is unavailable.");
   }
   releaseSemantic(request);
@@ -623,7 +632,7 @@ static void pollSemantic(server* s)
  drainSemantic(s); cancelUnusedSemanticCheck(s);
  if(s->check || s->shutdown) return;
  semantic_request* next=NULL;
- for(size_t i=0;i<DOC_LIMIT;++i) if(s->semantic[i].id && (!next || s->semantic[i].order<next->order)) next=&s->semantic[i];
+ for(size_t i=0;i<DOC_LIMIT;++i) if(s->semantic[i].id && !s->semantic[i].waitingNavigation && (!next || s->semantic[i].order<next->order)) next=&s->semantic[i];
  if(!next) return;
  int index=next->document; startCheck(s,index,NULL,1);
  if(!s->check) { cancelSemantic(s,index,-32603,"Unable to start current semantic analysis."); return; }
@@ -649,10 +658,12 @@ static void semanticQuery(server* s,const xvalue* id,const xvalue* params,int qu
   .identity=s->docs[i].identity,.generation=s->generation,.order=++s->semanticOrder,.bound=batch!=NULL};
  xvalue* result=semanticResult(s,&captured);
  if(result) { response(s,id,result,0,NULL); return; }
- if(batch || s->cliDiagnostics) { response(s,id,NULL,-32801,"No current semantic index; run a successful source check first."); return; }
+ if(captured.navigationFailed){response(s,id,NULL,-32603,"Unable to construct current semantic navigation.");return;}
+ if((batch || s->cliDiagnostics) && !captured.waitingNavigation) { response(s,id,NULL,-32801,"No current semantic index; run a successful source check first."); return; }
  if(slot==DOC_LIMIT) { response(s,id,NULL,-32001,"The semantic request queue is full."); return; }
  captured.id=xrtValueDeepClone(id);
  if(!captured.id) { response(s,id,NULL,-32603,"Unable to retain semantic request."); return; }
+ if(batch){captured.bindingId=xrtValueDeepClone(batch);if(!captured.bindingId){releaseSemantic(&captured);response(s,id,NULL,-32603,"Unable to retain checked navigation binding.");return;}}
  captured.started=s->check && (s->checkForSemantic || s->checkForDiagnostics) && !s->cancelCode && s->checkDocument==i && s->checkBatchGeneration==s->generation;
  s->semantic[slot]=captured;
 }
