@@ -1,0 +1,857 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "date": "2026-10-31",
+  "sourceRevision": "4680edd361069f9cc4b722804e542a3cb122e8c0",
+  "beforeFiles": 9067,
+  "afterCleanupFiles": 8443,
+  "beforeBytes": 804589008,
+  "removedFiles": 111,
+  "removedBytes": 73636418,
+  "archivedFiles": 513,
+  "archivedBytes": 108247261,
+  "releaseReductionBytes": 181883679,
+  "documentUpdates": [
+    "QUICKSTART.md",
+    "README.md",
+    "projects/dev/README.md"
+  ],
+  "preservedUserSettingsSha256": "a90b1cc8f3c05167730964da30a0f1d3c373bf93973625c1ba6b95a4b7e11394",
+  "runtime": {
+    "xl.exe": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05",
+    "xl.dll": "2e3559673defc88f6f6e35c03bdf9980b9876405c7086a36a9ddf75de6242feb",
+    "xlc.dll": "c36441758b31e6c500ee31534474eed8e7a408b272fcc189da802c533f895d7a",
+    "xl": "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb",
+    "libxl.so": "b3b895b1975511024aeb733c67de6f1253ba3124dae12b507cd0a93559387afc",
+    "libxlc.so": "5d1b101247ce40fde0aa4ad29b0c023f614562f9582da70871de62e7895b4e4c",
+    "xlang_ide.exe": "ce0d08a5dec0df66c918069bc183ee3ecacb796b81f5afa538b2989a88426222",
+    "xlang_ide_console.exe": "ba2d188ec07c49ead960b4332bb4d547928492c778a2c10a2aafc0183520058d",
+    "xlang-ls.exe": "8bc80fe50cc4a5856630003eb47a59426a5225e4b2d8d076a6486f56dab4339d",
+    "xge.dll": "faf58673f831ba8a58d6e3c2166094f76fbb71548469724fa5a11eca011782a0"
+  },
+  "preservedFixedCaches": [
+    "sources/xlang/tools/__pycache__"
+  ],
+  "preservedDistributionAssets": [
+    "projects/xs/xs.exe",
+    "projects/dev/dupfind/testdata/backup/calc.xl.bak",
+    "toolchains/clangd/lib/clang/23/lib/windows/clang_rt.asan_dynamic-x86_64.pdb"
+  ],
+  "archiveMappings": [
+    {
+      "original": "release/tmp/ide-input-20261031",
+      "destination": "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\validation\\ide-input-20261031"
+    },
+    {
+      "original": "release/tmp/toolbar-20261031",
+      "destination": "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\validation\\toolbar-20261031"
+    }
+  ],
+  "removed": [
+    {
+      "path": "examples/extlibs/sqlite_test.exe",
+      "bytes": 3302912,
+      "sha256": "ff32f599b4791f3c60e23f3bf3ffd49f9179ef384dad702c7d33e56cd21c9d48"
+    },
+    {
+      "path": "extlibs/barcode/test/__pycache__/check.cpython-312.pyc",
+      "bytes": 4836,
+      "sha256": "f7b04ae55283b7c045d983e64fea919289e1b7444e8e43fd09181b160d1f1f9b"
+    },
+    {
+      "path": "extlibs/fix/test/__pycache__/check_frame.cpython-312.pyc",
+      "bytes": 2768,
+      "sha256": "5b8fe0c0789937c8d30bac4b38586173785268ad3379e22590c3fc624fb05e5b"
+    },
+    {
+      "path": "option/settings.json.lock",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "projects/dev/abidemo/abidemo.exe",
+      "bytes": 809984,
+      "sha256": "0f1a6f63b8cd8b75e0736bf371767124586b5bddb6243917c01780785504daa2"
+    },
+    {
+      "path": "projects/dev/actorsys/actorsys.exe",
+      "bytes": 792064,
+      "sha256": "4bb7f37fe50492f1bae21df858d0d7f3912d2839c9c66e9edc91bfc2ecd11a07"
+    },
+    {
+      "path": "projects/dev/asciinema/asciinema.exe",
+      "bytes": 764928,
+      "sha256": "cadbd4700c8d864278d739db9ada85c5c5e25281a8c62c5a1497a95a1fa4a818"
+    },
+    {
+      "path": "projects/dev/basic/basic.exe",
+      "bytes": 819200,
+      "sha256": "e2fca2caa51b694f7b125a417f2e1ef321d1acaf5be3c8032d2ae313ee15217b"
+    },
+    {
+      "path": "projects/dev/bench/bench.exe",
+      "bytes": 677376,
+      "sha256": "d08591b7b95f2d99a7f1d75caa9b256a6ad9d9534d60efaf5ed6625c970863b9"
+    },
+    {
+      "path": "projects/dev/bigint/bigint.exe",
+      "bytes": 695296,
+      "sha256": "5dca6b35c06059c8faf445f9de369016a372bc68d2e1ee1ffcf33ba7c9641042"
+    },
+    {
+      "path": "projects/dev/brainfuck/brainfuck.exe",
+      "bytes": 747520,
+      "sha256": "c3599cd03d1d6ebeefc51cc0a6e7c487c9caa5336bea938c83331d48c2600c2a"
+    },
+    {
+      "path": "projects/dev/btree/btree.exe",
+      "bytes": 840192,
+      "sha256": "caffdb8c5cc821aed7c592934271180d6681c17fc732e8da677d6f1b80aec968"
+    },
+    {
+      "path": "projects/dev/cal/cal.exe",
+      "bytes": 697344,
+      "sha256": "8285357b63623790e4cfb3e4b1171727074d88fc6e5f5437dc81b3ffe07ebb37"
+    },
+    {
+      "path": "projects/dev/calc/calc.exe",
+      "bytes": 407040,
+      "sha256": "ca220764202686faa21a93d95a53c470c00546089142fa600eeec4f56eeafdfc"
+    },
+    {
+      "path": "projects/dev/chip8/chip8.exe",
+      "bytes": 784896,
+      "sha256": "7f2fd2aa89855e4bbf900a6360b8d9050d0165f19b9828bc803ffc3ab085f16c"
+    },
+    {
+      "path": "projects/dev/cmix/cmix.exe",
+      "bytes": 684544,
+      "sha256": "e8e4b67c72dff1f979a6e53f454a6d6597ef08f9a692f23a06ad4bd8de5d071d"
+    },
+    {
+      "path": "projects/dev/codec/codec.exe",
+      "bytes": 870912,
+      "sha256": "9d93bcbfef1e114bbab4c6e9c7f650d55f73837fbfdf610854e1c8ed1dd007b2"
+    },
+    {
+      "path": "projects/dev/config/config.exe",
+      "bytes": 730112,
+      "sha256": "7fc3b3d7ac61fbbdfbcdf36866875d5c7df90bdc15735c7889c3135e5f4be1b9"
+    },
+    {
+      "path": "projects/dev/contacts/contacts.exe",
+      "bytes": 699904,
+      "sha256": "c492067181064c7950c78eb8f953173caf6079cc73da5b4b22ffb75e52b37f6b"
+    },
+    {
+      "path": "projects/dev/convert/convert.exe",
+      "bytes": 685056,
+      "sha256": "66227019939d0436452dc86385fff63a2cde1fbbf27bd40e7b864849a7ffb257"
+    },
+    {
+      "path": "projects/dev/cryptolab/cryptolab.exe",
+      "bytes": 879104,
+      "sha256": "94275684841cae7860c2c6788ec6ac4f4b86260cd8bc8eead55b9778fa7b83a9"
+    },
+    {
+      "path": "projects/dev/csvengine/csvengine.exe",
+      "bytes": 955904,
+      "sha256": "2133bc2836282290945cf64991ca02ebc1b0d7b468f59611e675b0b5de926318"
+    },
+    {
+      "path": "projects/dev/csvjson/csvjson.exe",
+      "bytes": 418816,
+      "sha256": "1c906ad5ba5cb066f38198702634547a19a4e16e4d71b1a4fe9e9d3c2253578f"
+    },
+    {
+      "path": "projects/dev/datapipe/datapipe.exe",
+      "bytes": 1175040,
+      "sha256": "3de3bb5bd80b3b2091a1766c0a32fa822e268c5174d2ec671f93f0f3ebd512a2"
+    },
+    {
+      "path": "projects/dev/deepclone/deepclone.exe",
+      "bytes": 722944,
+      "sha256": "167948eba36c1c4a59f6fdbac71a94cf9e6b29b5817d12b9fb1879619dbab029"
+    },
+    {
+      "path": "projects/dev/diff/diff.exe",
+      "bytes": 704512,
+      "sha256": "272ad3c0de1bb02b3d67c2207cb62fab10306baea794f5ffc3001dead083497a"
+    },
+    {
+      "path": "projects/dev/dnsrv/dnsrv.exe",
+      "bytes": 948736,
+      "sha256": "f22c4b844dd3c5ddcd421d5f50d0c5eae4b198bc2ae958c2b7ff52e7d8b9b7a4"
+    },
+    {
+      "path": "projects/dev/docgen/docgen.exe",
+      "bytes": 751104,
+      "sha256": "17e5833e07878fc9c20fdfd6b7f19e704b3b01f5092bc244a1bea681db4639ee"
+    },
+    {
+      "path": "projects/dev/duptop/duptop.exe",
+      "bytes": 696320,
+      "sha256": "1b7e824254bc3cfdb5c27b7bfcca607132dd3f15d1b4d3933574c82204bf1818"
+    },
+    {
+      "path": "projects/dev/encconv/encconv.exe",
+      "bytes": 741376,
+      "sha256": "cf4e5573586388ee9571aed1aebbb15d8de0baa404531c886c026ab9fed6e9fb"
+    },
+    {
+      "path": "projects/dev/envinfo/envinfo.exe",
+      "bytes": 675328,
+      "sha256": "a88781a9e65564e5528d54d8115351c20873262efc71137d56f74df2eb361ea1"
+    },
+    {
+      "path": "projects/dev/fstr/fstr.exe",
+      "bytes": 745984,
+      "sha256": "62b82e9f150abb6b07ed149865df18b7acd626f1a4b81a97f0451d20191e6478"
+    },
+    {
+      "path": "projects/dev/ftpserver/ftpserver.exe",
+      "bytes": 982016,
+      "sha256": "7df61fda9d508d534840e95bcfb3fb1f0aeff5b4ccec680c5bf0f5b228410ce7"
+    },
+    {
+      "path": "projects/dev/fwatch/fwatch.exe",
+      "bytes": 729088,
+      "sha256": "147bf4724d1de1efc2aedfa800a4fc6d9a62b9418021df7546748b1b4399c2cc"
+    },
+    {
+      "path": "projects/dev/game24/game24.exe",
+      "bytes": 679424,
+      "sha256": "e3d72f21204da2de7648cbdb1f578006699156e4680bb7eaf292058c90697bd9"
+    },
+    {
+      "path": "projects/dev/genid/genid.exe",
+      "bytes": 678400,
+      "sha256": "8d6c1aa4ba94e60319330a474c520e92a4569c55a8c93154d25987fcdd2ffd0f"
+    },
+    {
+      "path": "projects/dev/geo/geo.exe",
+      "bytes": 695296,
+      "sha256": "906ac02ce25231c856e7a66acef0ac6e5551b4bd3948d16a2398d8ccbeeeed17"
+    },
+    {
+      "path": "projects/dev/graphalg/graphalg.exe",
+      "bytes": 1230336,
+      "sha256": "31891b1fec4c1ac66836fe70a5c53603108cec762e04138ec593ae8e224655a6"
+    },
+    {
+      "path": "projects/dev/guess/guess.exe",
+      "bytes": 675328,
+      "sha256": "22232e3ea072490045401aa8456a01c4fe938b03283abe589da00ce4ce3655ff"
+    },
+    {
+      "path": "projects/dev/imgcodecs/imgcodecs.exe",
+      "bytes": 833024,
+      "sha256": "d16fcc97017f53326cc586a04eff8cdcff72608ebaac30020171b76f5d771147"
+    },
+    {
+      "path": "projects/dev/jq/jq.exe",
+      "bytes": 393728,
+      "sha256": "f5f06ce4562c22dbe0539a8095e1e2f58771f32076e9c5ded9ea56ee59bebee3"
+    },
+    {
+      "path": "projects/dev/jsonfmt/jsonfmt.exe",
+      "bytes": 384512,
+      "sha256": "7aeef482e4c12e90bd197236e7b44b84568144b884fe98e3c37ec34ff50f0d4f"
+    },
+    {
+      "path": "projects/dev/jsonparse/jsonparse.exe",
+      "bytes": 770048,
+      "sha256": "9d6159ccbf68328eb052e4dab8d3194165b13cd9ec973038d02543fea27c4cb3"
+    },
+    {
+      "path": "projects/dev/jsonpath/jsonpath.exe",
+      "bytes": 857088,
+      "sha256": "6a01145241889de5d7481ad90b4282eb035072ba4cebba76a45de24c7345fa5a"
+    },
+    {
+      "path": "projects/dev/kvdb/kvdb.exe",
+      "bytes": 704512,
+      "sha256": "08eacfd77ca6b7d8a7682b0309ace1490347b883efc5aaf0511627f01415ba87"
+    },
+    {
+      "path": "projects/dev/life/life.exe",
+      "bytes": 691200,
+      "sha256": "4fa8987f112c38ae9c83e911f5b54d9524ef3b61be06492864fb9f2b9b67aa24"
+    },
+    {
+      "path": "projects/dev/lisp/lisp.exe",
+      "bytes": 836608,
+      "sha256": "d22aae10071f6a2f37be63326389becf46f6a754c0f74d92015f04101a5fc4a2"
+    },
+    {
+      "path": "projects/dev/matrix/matrix.exe",
+      "bytes": 421376,
+      "sha256": "3d07e0fd0f3e6dabfd3b582ac61320097cbe2ab9c44259446aa383afcd4b8ff6"
+    },
+    {
+      "path": "projects/dev/mdtoc/mdtoc.exe",
+      "bytes": 707072,
+      "sha256": "34a1d5b155270d72d03d6df46c8926bf96bcdf6b48efdf692eb860477097dbda"
+    },
+    {
+      "path": "projects/dev/merkletree/merkletree.exe",
+      "bytes": 858624,
+      "sha256": "f99f50617e64f6e731891994736380ad20beba2e876761bc8c7e0eaf96c82c2e"
+    },
+    {
+      "path": "projects/dev/mlplatform/mlplatform.exe",
+      "bytes": 2052096,
+      "sha256": "a664a4bcdc36d98df8ef541f953cee2dff03cdd67af88cd636e399558c5aa40d"
+    },
+    {
+      "path": "projects/dev/overload/overload.exe",
+      "bytes": 699904,
+      "sha256": "38f6c2846ea8980fda3954723a820a6530466cffea6806a1a1aaa35203555394"
+    },
+    {
+      "path": "projects/dev/passgen/passgen.exe",
+      "bytes": 492032,
+      "sha256": "da1964e4bef345f5b712553e6f40ea2c2d8ca7cc5987654caff0c747c9d37bfa"
+    },
+    {
+      "path": "projects/dev/pkgdemo/pkgdemo.exe",
+      "bytes": 1367040,
+      "sha256": "edd55cf9fc0d56838403136b83bfeb5ebf730d63ed0ad8cb6d3ed0b6e2fe8849"
+    },
+    {
+      "path": "projects/dev/portscan/portscan.exe",
+      "bytes": 689152,
+      "sha256": "e87a1e6b5bddab4b8b472f5f1adfc181e0e79bb75d4be29c7ec06aa6804810c7"
+    },
+    {
+      "path": "projects/dev/primes/primes.exe",
+      "bytes": 700928,
+      "sha256": "c014a2460d4d96611840362b33384486be2a1417747f4ef4520b06834871e34e"
+    },
+    {
+      "path": "projects/dev/primes/primes_smoke.exe",
+      "bytes": 696832,
+      "sha256": "12b8b37b6e23a955202699a8aa3e0ee9a9626bda174d55e29c4f966ff43f70eb"
+    },
+    {
+      "path": "projects/dev/probds/probds.exe",
+      "bytes": 736256,
+      "sha256": "ae625d4b409b084ffc7229b1ae4032267b0b8f2958db4dd1507fb555bd2cfc66"
+    },
+    {
+      "path": "projects/dev/prodcon/prodcon.exe",
+      "bytes": 720896,
+      "sha256": "4809d626203762a895a07a8f26fcc09f51434eb6003fc5599f90f923b9aa7bd2"
+    },
+    {
+      "path": "projects/dev/psearch/psearch.exe",
+      "bytes": 708096,
+      "sha256": "e677ae7779836c22a06970df762d92918ab133052a13827f90252fb45dfbb6ab"
+    },
+    {
+      "path": "projects/dev/pubsub/pubsub.exe",
+      "bytes": 884736,
+      "sha256": "c19ace83cc46585fec97a09ea40d2e36368a72119659c4b4b4717ce09ff35772"
+    },
+    {
+      "path": "projects/dev/racedemo/racedemo.exe",
+      "bytes": 743424,
+      "sha256": "65f0ae45814b363539c98fba2f41b2afc9ac834d5a152dcb118eaeac58885043"
+    },
+    {
+      "path": "projects/dev/raftsim/raftsim.exe",
+      "bytes": 854528,
+      "sha256": "980dd52dad5238decd30fa76d12931cef59c0644537968b44bbc05de07dcaed2"
+    },
+    {
+      "path": "projects/dev/rasterizer/rasterizer.exe",
+      "bytes": 845312,
+      "sha256": "e09e1d7e463ef41d6eb0cbee02703b7982f6dfc12ae927032cd1a6826c02bad3"
+    },
+    {
+      "path": "projects/dev/raytrace/raytrace.exe",
+      "bytes": 856576,
+      "sha256": "e3c2bd24057401003de96b8001caea14e4e42861a67f2860a8ab096112daaf60"
+    },
+    {
+      "path": "projects/dev/rename/rename.exe",
+      "bytes": 711680,
+      "sha256": "e3f11a9c9ee0c091b6a570c49e2603271fc72d4dd99cd581d907067db3fcca2b"
+    },
+    {
+      "path": "projects/dev/smtpcli/smtpcli.exe",
+      "bytes": 1007616,
+      "sha256": "2bf12e8fa59b8f74fffbfb8cc27c2cf860626c6ee00f3b7af6440c127441753b"
+    },
+    {
+      "path": "projects/dev/sorter/sorter.exe",
+      "bytes": 698880,
+      "sha256": "127576c3b72a96841e9820e2506de2aeafa0cd8fc9f20d9a82232aa828030d49"
+    },
+    {
+      "path": "projects/dev/sortlab/sortlab.exe",
+      "bytes": 777728,
+      "sha256": "3e0811c3e0028f6f0db84c7da0badf547013e21a54270da1429020958073ef8a"
+    },
+    {
+      "path": "projects/dev/stats/stats.exe",
+      "bytes": 688128,
+      "sha256": "b102063516a6d71b94a7ccef6887c9e3cf9cb740ecc72755d0fc98251b205296"
+    },
+    {
+      "path": "projects/dev/sudoku/sudoku.exe",
+      "bytes": 412160,
+      "sha256": "251c1481eccdec052f2dca3bcef2dd2e76aadb54edd1fc8d336cd90bf990dc87"
+    },
+    {
+      "path": "projects/dev/syncdemo/syncdemo.exe",
+      "bytes": 757248,
+      "sha256": "c418c85c98c4abafbaa1d122fa920d7b751f5bba2d682f41590c151f31c08fcd"
+    },
+    {
+      "path": "projects/dev/tictactoe/tictactoe.exe",
+      "bytes": 697344,
+      "sha256": "b9cb5262980795e7ea02014c3ccb57602e9ad7c3ab03ce176298ef950fee2a05"
+    },
+    {
+      "path": "projects/dev/timer/timer.exe",
+      "bytes": 677376,
+      "sha256": "b571b603944c22dde4d42ba71ea59f82583eabd763cde889ae4cdefabfbcf7cb"
+    },
+    {
+      "path": "projects/dev/tlshandshake/tlshandshake.exe",
+      "bytes": 1054208,
+      "sha256": "476733faeae63dfaf51b9d7894e485b843648180d35749966f22a3093eb0895d"
+    },
+    {
+      "path": "projects/dev/todo/todo.exe",
+      "bytes": 696320,
+      "sha256": "26bd3c962e3ab98e5ce1e4d030ce9d4bfeeff16c3708b841b4539ede603ced3f"
+    },
+    {
+      "path": "projects/dev/tpl/tpl.exe",
+      "bytes": 760832,
+      "sha256": "96a0142f1b9c85fe3498e8b9e2b50357b12df3e9577786379fab57d975ea54cb"
+    },
+    {
+      "path": "projects/dev/tree/tree.exe",
+      "bytes": 390656,
+      "sha256": "cc28c656c956e331dfc5a61bf54e3dfafc635e32d0d5fd480d4cd7996117d858"
+    },
+    {
+      "path": "projects/dev/ts/ts.exe",
+      "bytes": 393216,
+      "sha256": "b1424e0484de9d8c9fa6ef34387ca4023cc790efeeba77adf70ec2391daaebdb"
+    },
+    {
+      "path": "projects/dev/unionbits/unionbits.exe",
+      "bytes": 694784,
+      "sha256": "116459c5ba6ac32e3a07192d2186c0cdb4ce512210387bcbefe764d33255b202"
+    },
+    {
+      "path": "projects/dev/utf8count/utf8count.exe",
+      "bytes": 387584,
+      "sha256": "0ddcf089c380e11c6f85e1ff12e5c4a891109d055678df77a5bc5e0f996d6c9d"
+    },
+    {
+      "path": "projects/dev/wasmrun/wasmrun.exe",
+      "bytes": 1261568,
+      "sha256": "f6e3374f3d6ef47d7a1fbc83a9dace9f73f4ee770b23652741a456be72881cc4"
+    },
+    {
+      "path": "projects/dev/winui/winui.exe",
+      "bytes": 695296,
+      "sha256": "a6406e32d82c77e4eee083fa4f900a2d0d4ab61cb49d77559d7389fada096943"
+    },
+    {
+      "path": "projects/dev/worksteal/worksteal.exe",
+      "bytes": 783872,
+      "sha256": "3ead208e1866ba5808262528b64ac2c2d78f755e2da8b53bbe819983a51116ee"
+    },
+    {
+      "path": "projects/dev/xagent5000/xflowsim.exe",
+      "bytes": 1804800,
+      "sha256": "f041a7916aff7600769b2f8c3203e2e5f44abe3d691d22bf687249213b11032d"
+    },
+    {
+      "path": "projects/dev/xfmt/xfmt.exe",
+      "bytes": 1078272,
+      "sha256": "a3dfc2c1a407c9e6914dcd67057a9f267f46b986b3d43d7f6db4e42391a93779"
+    },
+    {
+      "path": "projects/dev/xmake/xmake.exe",
+      "bytes": 1073664,
+      "sha256": "bfe8abf52b6b64da113004fe0de26efbe6ff3a32d31f4d3538e1f6ec0d9c5a25"
+    },
+    {
+      "path": "projects/dev/xos2/xos2.exe",
+      "bytes": 1357824,
+      "sha256": "a9f18f708e3d2dac543ff035b82bc50afbc4fceb38aa250c74d567b6cef51ece"
+    },
+    {
+      "path": "projects/dev/xrepl/xrepl.exe",
+      "bytes": 779776,
+      "sha256": "f9844454a1617bfddc33a013d5ae1c1eb7fde0328cf959497fe961e4562c6d76"
+    },
+    {
+      "path": "projects/dev/xtest/xtest.exe",
+      "bytes": 1098240,
+      "sha256": "c50d6067389454a748e5d725005fc0ec73c93be89480e565ae32bfcf08102be3"
+    },
+    {
+      "path": "projects/dev/xvm/xvm.exe",
+      "bytes": 783360,
+      "sha256": "555778965516a3593bc2d44e0496300a64df07f0371f74ded5e8cddbfea9adc0"
+    },
+    {
+      "path": "tmp/xl6_build_10160_2613869405_0/module.c",
+      "bytes": 40045,
+      "sha256": "852a53cc59a99908196f9e865551d3c958eb332ba2363fb13691021874f4d6cd"
+    },
+    {
+      "path": "tmp/xl6_build_10160_2613869405_0/xl6_xrt_impl.c",
+      "bytes": 1054,
+      "sha256": "21c9513f2241d60634b7ce48afff034f3331cc476fae8fe1519e14562fbf195a"
+    },
+    {
+      "path": "tmp/xl6_build_12768_2615717269_0/module.c",
+      "bytes": 35135,
+      "sha256": "23476d8013898325454238b5d7f1243d755d7bc0a332e30d686f6b19fdfd415a"
+    },
+    {
+      "path": "tmp/xl6_build_12768_2615717269_0/xl6_xrt_impl.c",
+      "bytes": 1132,
+      "sha256": "9c32914651b8bf916b20dcd0776bb4b2814dd672471ef1ce7f6ea12f0a5139eb"
+    },
+    {
+      "path": "tmp/xl6_build_1936_2605340276_0/module.c",
+      "bytes": 40045,
+      "sha256": "852a53cc59a99908196f9e865551d3c958eb332ba2363fb13691021874f4d6cd"
+    },
+    {
+      "path": "tmp/xl6_build_1936_2605340276_0/xl6_xrt_impl.c",
+      "bytes": 1054,
+      "sha256": "21c9513f2241d60634b7ce48afff034f3331cc476fae8fe1519e14562fbf195a"
+    },
+    {
+      "path": "tmp/xl6_build_20176_2615718633_0/module.c",
+      "bytes": 395789,
+      "sha256": "41cef58d5c271f5203c245a1659b96539094dfa366407c63a3c074c34fcd1af3"
+    },
+    {
+      "path": "tmp/xl6_build_20176_2615718633_0/xl6_xrt_impl.c",
+      "bytes": 1228,
+      "sha256": "1f3774a4e489c7de0e42a0cc1487c22cc24aec3c25a0724ac5ff8504e60d7438"
+    },
+    {
+      "path": "tmp/xl6_build_21764_2615717265_0/module.c",
+      "bytes": 47261,
+      "sha256": "53b9215a0fd4268d7b1e1bf6ad09cdf8a839dfcbbe36d0e3a9c3582113671d0b"
+    },
+    {
+      "path": "tmp/xl6_build_21764_2615717265_0/xl6_xrt_impl.c",
+      "bytes": 1132,
+      "sha256": "9c32914651b8bf916b20dcd0776bb4b2814dd672471ef1ce7f6ea12f0a5139eb"
+    },
+    {
+      "path": "tmp/xl6_build_23460_2615718048_0/module.c",
+      "bytes": 89082,
+      "sha256": "69204318ab00fbd925937044eca328e1a5e690d5fe02a89351218f9a93182d48"
+    },
+    {
+      "path": "tmp/xl6_build_23460_2615718048_0/xl6_xrt_impl.c",
+      "bytes": 1132,
+      "sha256": "9c32914651b8bf916b20dcd0776bb4b2814dd672471ef1ce7f6ea12f0a5139eb"
+    },
+    {
+      "path": "tmp/xl6_build_28244_2615717959_0/module.c",
+      "bytes": 37856,
+      "sha256": "5549826b9dc7c0cd480a12fcd67741af2f6d64b14d86eca1c4afdd4b2844a606"
+    },
+    {
+      "path": "tmp/xl6_build_28244_2615717959_0/xl6_xrt_impl.c",
+      "bytes": 1143,
+      "sha256": "f9b3f650dd256bf5858282110cdf045987e1b5a012219d9d32a5c9138586a49d"
+    },
+    {
+      "path": "tmp/xl6_build_29448_2615718867_0/module.c",
+      "bytes": 353037,
+      "sha256": "38a4b1780c9e48fe4dedcfd40cbe3a9ab3124aaae09efc4aa5ecf3d00111b791"
+    },
+    {
+      "path": "tmp/xl6_build_29448_2615718867_0/xl6_xrt_impl.c",
+      "bytes": 1228,
+      "sha256": "1f3774a4e489c7de0e42a0cc1487c22cc24aec3c25a0724ac5ff8504e60d7438"
+    },
+    {
+      "path": "tmp/xl6_build_32428_2605317114_0/module.c",
+      "bytes": 40045,
+      "sha256": "852a53cc59a99908196f9e865551d3c958eb332ba2363fb13691021874f4d6cd"
+    },
+    {
+      "path": "tmp/xl6_build_32428_2605317114_0/xl6_xrt_impl.c",
+      "bytes": 1054,
+      "sha256": "21c9513f2241d60634b7ce48afff034f3331cc476fae8fe1519e14562fbf195a"
+    },
+    {
+      "path": "tmp/xl6_build_36692_2615720401_0/module.c",
+      "bytes": 416766,
+      "sha256": "3a3471d427f96a78cc426a002368ba69a690d2c07873cd053e7610d7e9b84e61"
+    },
+    {
+      "path": "tmp/xl6_build_36692_2615720401_0/xl6_xrt_impl.c",
+      "bytes": 1228,
+      "sha256": "1f3774a4e489c7de0e42a0cc1487c22cc24aec3c25a0724ac5ff8504e60d7438"
+    }
+  ],
+  "legacyReceipt": {
+    "missingCatalogEntriesRemoved": 177,
+    "hashesUpdated": [
+      "data/fonts/source.json",
+      "QUICKSTART.md",
+      "option/settings.json",
+      "data/commands.json",
+      "data/catalog-sources/index.json"
+    ]
+  },
+  "smoke": {
+    "status": "passed",
+    "cases": [
+      {
+        "name": "version",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "--version",
+          "--json"
+        ],
+        "exitCode": 0,
+        "seconds": 0.015
+      },
+      {
+        "name": "xl-jit",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "run",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang-only.xl"
+        ],
+        "exitCode": 0,
+        "seconds": 0.094
+      },
+      {
+        "name": "xl-build",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "build",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang-only.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xl-aot.exe"
+        ],
+        "exitCode": 0,
+        "seconds": 0.219
+      },
+      {
+        "name": "xl-aot",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xl-aot.exe"
+        ],
+        "exitCode": 0,
+        "seconds": 0.047
+      },
+      {
+        "name": "c-jit",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "run",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\c-only.c"
+        ],
+        "exitCode": 0,
+        "seconds": 0.047
+      },
+      {
+        "name": "c-build",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "build",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\c-only.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\c-aot.exe"
+        ],
+        "exitCode": 0,
+        "seconds": 0.109
+      },
+      {
+        "name": "c-aot",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\c-aot.exe"
+        ],
+        "exitCode": 0,
+        "seconds": 0.016
+      },
+      {
+        "name": "example-rebuild",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "build",
+          "D:\\GIT\\x-lang\\release\\projects\\dev\\primes\\primes.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\primes.exe"
+        ],
+        "exitCode": 0,
+        "seconds": 0.281
+      },
+      {
+        "name": "example-run",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\primes.exe",
+          "check",
+          "17"
+        ],
+        "exitCode": 0,
+        "seconds": 0.031
+      },
+      {
+        "name": "xlang_ide-c",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xlang_ide.exe",
+          "--frames",
+          "3",
+          "--hidden",
+          "--no-session",
+          "--no-auto-diagnostics",
+          "--demo",
+          "c",
+          "--settings",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang_ide-c-settings.json",
+          "--session-root",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang_ide-c-session",
+          "--diagnostic-root",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang_ide-c-diagnostics",
+          "--screenshot",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang_ide-c.png"
+        ],
+        "exitCode": 0,
+        "seconds": 6.485
+      },
+      {
+        "name": "xlang_ide-xlang",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xlang_ide.exe",
+          "--frames",
+          "3",
+          "--hidden",
+          "--no-session",
+          "--no-auto-diagnostics",
+          "--demo",
+          "xlang",
+          "--settings",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang_ide-xlang-settings.json",
+          "--session-root",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang_ide-xlang-session",
+          "--diagnostic-root",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang_ide-xlang-diagnostics",
+          "--screenshot",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang_ide-xlang.png"
+        ],
+        "exitCode": 0,
+        "seconds": 6.421
+      },
+      {
+        "name": "xlang_ide_console-c",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xlang_ide_console.exe",
+          "--frames",
+          "3",
+          "--hidden",
+          "--no-session",
+          "--no-auto-diagnostics",
+          "--demo",
+          "c",
+          "--settings",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang_ide_console-c-settings.json",
+          "--session-root",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang_ide_console-c-session",
+          "--diagnostic-root",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang_ide_console-c-diagnostics",
+          "--screenshot",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang_ide_console-c.png"
+        ],
+        "exitCode": 0,
+        "seconds": 6.485
+      },
+      {
+        "name": "xlang_ide_console-xlang",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xlang_ide_console.exe",
+          "--frames",
+          "3",
+          "--hidden",
+          "--no-session",
+          "--no-auto-diagnostics",
+          "--demo",
+          "xlang",
+          "--settings",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang_ide_console-xlang-settings.json",
+          "--session-root",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang_ide_console-xlang-session",
+          "--diagnostic-root",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang_ide_console-xlang-diagnostics",
+          "--screenshot",
+          "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\smoke\\xlang_ide_console-xlang.png"
+        ],
+        "exitCode": 0,
+        "seconds": 6.453
+      },
+      {
+        "name": "committed-delivery",
+        "command": [
+          "python",
+          "-X",
+          "utf8",
+          "D:\\GIT\\x-lang\\tools\\check_release_committed.py"
+        ],
+        "exitCode": 0,
+        "seconds": 0.953
+      }
+    ],
+    "runtimeAndUserSettingsUnchanged": true,
+    "packageScriptSyntax": "passed"
+  },
+  "verificationScope": "Release cleanup, retained payload identity, isolated cleanup safety checks and local smoke tests; no complete product regression or external publication performed.",
+  "documentAndPublicationMetadataUpdates": [
+    "QUICKSTART.md",
+    "README.md",
+    "ide-install-receipt.json",
+    "projects/dev/README.md",
+    "provenance/current-delivery.json"
+  ],
+  "retainedPayloadHashCheck": {
+    "status": "passed",
+    "unchangedFiles": 8438,
+    "expectedDocumentAndMetadataUpdates": 5
+  },
+  "finalFiles": 8443,
+  "finalBytes": 622734598,
+  "sourceArtifactsExcluded": "Only generated development EXEs, temporary compiler outputs, inactive lock and unpinned Python caches were removed. Frozen source inputs, runtime libraries, models, toolchains, legal materials and intentional fixtures remain.",
+  "cleanupSafety": {
+    "status": "passed",
+    "testRoot": "D:\\GIT\\x-lang\\build\\release-cleanup-safety-83f1622c69ff40e38c561a45ca567a92",
+    "checks": [
+      "classified removal and proof archive",
+      "retained hashes",
+      "pinned source inputs",
+      "required application and intentional fixture",
+      "idempotency",
+      "output boundary",
+      "active settings lock",
+      "unknown executable refusal",
+      "reparse refusal"
+    ]
+  },
+  "runtimeAndUserSettingsUnchanged": true,
+  "netPayloadReductionBytesIncludingMetadata": 181854410,
+  "installedReceiptVerification": {
+    "status": "passed",
+    "files": 3424
+  },
+  "retainedFilesUnchangedExceptDocumentAndMetadataUpdates": true
+}

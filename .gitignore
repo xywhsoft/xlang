@@ -27,6 +27,8 @@
 !/release/projects/
 !/release/projects/xs/
 !/release/projects/xs/**
+/release/projects/dev/**/*.exe
+/release/examples/**/*.exe
 /*.exe
 /*.dll
 /*.obj

@@ -1,5 +1,11 @@
 # 工作区与发布目录
 
+2026-10-31：当前运行目录统一为仓库根目录 `release/`。发布清理已迁出验收夹具、移除临时编译缓存与开发示例生成的 EXE，保留源码、用户设置、固定工具链和许可来源材料。当前规则以 [IDE 构建约定](../AGENTS.md) 和 [发布目录说明](../../release/README.md) 为准；清理结果见 [本次记录](../../docs/reports/release-cleanup-20261031.json)。
+
+清理使用仓库 `tools/clean_release.ps1`，只处理明确的生成文件，检查路径边界和重解析点，并校验保留内容及迁出证据的哈希。运行验收仍可写入 `release/tmp`；清理后证据按报告中的映射在 `build/release-cleanup-*` 查找。
+
+以下为 2026-10-22 及之前的历史记录，候选名称与绝对路径保留原文。
+
 2026-10-22 四种构建形态交付后，`release` 为 `portable-20261022-standalone-v2` 的完整干净运行副本，`dist` 仅保留该候选。当前构建 `cb-bd75b462`、相关回归与便携验收绑定同一精确源码。本轮归档位于 `D:\GIT\x-lang-ide-archive\20261022-standalone-targets`，`publication.json` 记录原位置和归档位置，保留上一发布、上一构建及本轮中间候选／构建；旧文件通过同卷移动保留，未删除。
 
 上次 XGE 3 更新材料仍保留在 `D:\GIT\x-lang-ide-archive\20261021-xge3-upgrade`。固定 SDK 源码与编译器、C 服务器材料继续在工作区供打包核验使用。
