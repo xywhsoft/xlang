@@ -4651,7 +4651,9 @@ typedef enum XL6_IrClosureTargetKind {
      * each typed call site expands its own native argument list. */
     XL6_IR_CLOSURE_TARGET_C_VARIADIC_NATIVE,
     /* One receiver capture and a verified concrete typed method invocation. */
-    XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER
+    XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER,
+    /* One retained source callable; only its requested result ABI changes. */
+    XL6_IR_CLOSURE_TARGET_RESULT_ADAPTER
 } XL6_IrClosureTargetKind;
 
 typedef enum XL6_IrClosureRawCallbackAbi {

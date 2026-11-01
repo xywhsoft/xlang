@@ -33151,6 +33151,7 @@ static int xl6IrLowerDefaultParameterCell(XL6_IrLowerContext* ctx,
 
 static int xl6IrLowerClosureDefaultPrograms(XL6_IrLowerContext* ctx, size_t closureIndex)
 {
+    if(ctx->module->closureTargets[closureIndex].kind==XL6_IR_CLOSURE_TARGET_RESULT_ADAPTER)return 1;
     XL6_IrModule* module = ctx->module;
     XL6_IrClosureTarget closure = module->closureTargets[closureIndex];
     const XL6_IrType* signature = xl6IrTypeGet(&module->types, closure.signatureType);
@@ -33419,6 +33420,9 @@ done:
                         "XLIR named function adapter CFG could not be materialized exactly");
     return ok;
 }
+
+#include "xl6_ir_callable_result.c"
+
 
 /* Default reconstruction is an ordinary checked invocation, independent of
  * the lexical scopes in which its class declaration appeared. */
@@ -33899,6 +33903,10 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
         if (!xl6IrLowerClosureDefaultPrograms(&ctx, i)) { ctx.failed = 1; break; }
         XL6_IrClosureTarget closure = module->closureTargets[i];
         const XL6_IrNode* node = xl6IrNodeGet(module, closure.declaration);
+        if(closure.kind==XL6_IR_CLOSURE_TARGET_RESULT_ADAPTER) {
+            if(!xl6IrLowerCallableResultBody(&ctx,&closure))ctx.failed=1;
+            continue;
+        }
         if ( closure.kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER || closure.kind == XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER ) {
             if ( !xl6IrLowerNamedAdapterBody(&ctx, &closure) ) break;
             continue;

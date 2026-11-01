@@ -286,7 +286,7 @@ static int xl6IrCgenEmitInstruction(
             case XL6_IR_INSTR_RETURN:
                 /* Replaces the old "XLIR module initializer return ABI is not defined"
                  * rejection: zero-operand return is the explicit success ABI. */
-                if(closure && closure->kind==XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER) {
+                if(closure && (closure->kind==XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER || closure->kind==XL6_IR_CLOSURE_TARGET_RESULT_ADAPTER)) {
                     if(function->returnType!=XL6_IR_TYPE_INVALID)
                         xl6OutputPrintf(out,"    *xlir_bound_output = v%u;\n",(unsigned)module->operands[instruction->firstOperand]);
                     xl6OutputPuts("    return true;\n",out);
@@ -326,7 +326,7 @@ static int xl6IrCgenEmitInstruction(
                 }
                 break;
             case XL6_IR_INSTR_THROW:
-                if(closure && closure->kind==XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER) {
+                if(closure && (closure->kind==XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER || closure->kind==XL6_IR_CLOSURE_TARGET_RESULT_ADAPTER)) {
                     xl6OutputPuts("    return false;\n",out);
                 } else if ( function->kind == XL6_IR_FUNCTION_MODULE_INIT ) {
                     if ( module->abi.finalizerFunction != 0 )

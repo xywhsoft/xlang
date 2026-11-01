@@ -27,7 +27,7 @@ static int xl6IrCgenEmitPrototype(XL6_Output* out, const XL6_IrModule* module, c
         return 1;
     }
     closure = xl6IrCgenClosureTargetGet(module, function->symbol);
-    bool bound=closure && closure->kind==XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER;
+    bool bound=closure && (closure->kind==XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER || closure->kind==XL6_IR_CLOSURE_TARGET_RESULT_ADAPTER);
     returnType = bound ? "bool" : function->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE
         ? xl6IrCgenErrorResultType(module, function->returnType)
         : (function->returnType == XL6_IR_TYPE_INVALID ? "void" : xl6IrCgenType(module, function->returnType));

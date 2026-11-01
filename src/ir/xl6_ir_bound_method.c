@@ -12,6 +12,35 @@ static XL6_IrCallTarget xl6IrLowerBoundMethodUserTarget(const XL6_IrCallTarget* 
     return user;
 }
 
+/* Parameter unification stays invariant. Only result positions admit the
+ * same recursively typed owner-copy conversion as the final adapter. */
+static int xl6IrLowerUnifyBoundResult(const XL6_IrModule* module,XL6_IrTypeId formalId,
+    XL6_IrTypeId actualId,const XL6_IrTypeId* parameters,size_t count,XL6_IrTypeId* resolved,size_t depth)
+{
+    if(xl6IrBoundMethodResultMatches(module,formalId,actualId))return 1;
+    const XL6_IrType* formal=xl6IrTypeGet(&module->types,formalId);
+    const XL6_IrType* actual=xl6IrTypeGet(&module->types,actualId);
+    if(!formal || !actual || depth>module->types.count)return 0;
+    if(formal->kind==XL6_IR_TYPE_FUNCTION && actual->kind==XL6_IR_TYPE_FUNCTION) {
+        if(formal->cAbi!=actual->cAbi || formal->callableErasureAbi!=actual->callableErasureAbi ||
+           formal->paramCount!=actual->paramCount || formal->returnCount!=actual->returnCount)return 0;
+        for(size_t p=0;p<formal->paramCount;++p)
+            if(formal->parameterModes[p]!=actual->parameterModes[p] ||
+               !xl6IrLowerUnifyGenericType(module,formal->params[p],actual->params[p],parameters,count,resolved,depth+1))return 0;
+        for(size_t r=0;r<formal->returnCount;++r)
+            if(!xl6IrLowerUnifyBoundResult(module,formal->returns[r],actual->returns[r],parameters,count,resolved,depth+1))return 0;
+        return 1;
+    }
+    if((formal->cAbi==XL6_IR_C_ABI_PRODUCT && actual->cAbi==XL6_IR_C_ABI_PRODUCT) ||
+       (formal->kind==XL6_IR_TYPE_NULLABLE && actual->kind==XL6_IR_TYPE_NULLABLE)) {
+        if(formal->paramCount!=actual->paramCount)return 0;
+        for(size_t p=0;p<formal->paramCount;++p)
+            if(!xl6IrLowerUnifyBoundResult(module,formal->params[p],actual->params[p],parameters,count,resolved,depth+1))return 0;
+        return 1;
+    }
+    return xl6IrLowerUnifyGenericType(module,formalId,actualId,parameters,count,resolved,depth);
+}
+
 static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext* ctx,XL6_IrNodeId origin,
     XL6_IrNodeId sourceId,XL6_IrTypeId signatureId,XL6_IrValueId* output)
 {
@@ -96,7 +125,7 @@ static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext* ctx,XL6_IrNodeId or
                 const XL6_IrNode* returned=xl6IrNodeGet(module,module->children[returns->firstChild+r]);
                 XL6_IrTypeId resultType=asyncPayload ? asyncPayload : signature->returns[r];
                 matches=returned && (xl6IrLowerTypeContainsTypeParam(module,returned->storageType,0)
-                    ? xl6IrLowerUnifyGenericType(module,returned->storageType,resultType,parameters,count,resolved,1)
+                    ? xl6IrLowerUnifyBoundResult(module,returned->storageType,resultType,parameters,count,resolved,1)
                     : xl6IrBoundMethodResultMatches(module,returned->storageType,resultType));
                 if(matches && returned->storageType!=resultType && !xl6IrLowerTypeContainsTypeParam(module,returned->storageType,0))
                     matches=xl6CallRankAdd(&rank,10,0)!=0;
@@ -178,6 +207,94 @@ static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext* ctx,XL6_IrNodeId or
     return 1;
 }
 
+/* A changed returned callable owns one retained source. It uses the existing
+ * closure environment and bool/out invocation ABI, not a dynamic projection. */
+static XL6_IrValueId xl6IrLowerBoundMethodResult(XL6_IrLowerContext*,XL6_IrNodeId,XL6_IrValueId,XL6_IrTypeId);
+static XL6_IrValueId xl6IrLowerCallableResult(XL6_IrLowerContext* ctx,XL6_IrNodeId origin,
+    XL6_IrValueId value,XL6_IrTypeId targetId)
+{
+    XL6_IrModule* module=ctx->module;
+    XL6_IrTypeId sourceId=xl6IrLowerValueType(ctx,value);
+    const XL6_IrType* target=xl6IrTypeGet(&module->types,targetId);
+    XL6_IrClosureTarget* closure=NULL;
+    for(size_t c=0;c<module->closureTargetCount;++c) {
+        XL6_IrClosureTarget* item=&module->closureTargets[c];
+        if(item->kind==XL6_IR_CLOSURE_TARGET_RESULT_ADAPTER && item->signatureType==targetId &&
+           module->closureCaptures[item->firstCapture].type==sourceId){closure=item;break;}
+    }
+    if(!closure) {
+        if(!xl6IrLowerGrow((void**)&module->nodes,&module->nodeCapacity,module->nodeCount,sizeof(*module->nodes)) ||
+           !xl6IrLowerGrow((void**)&module->closureTargets,&module->closureTargetCapacity,module->closureTargetCount,sizeof(*module->closureTargets)) ||
+           !xl6IrLowerGrow((void**)&module->closureCaptures,&module->closureCaptureCapacity,module->closureCaptureCount,sizeof(*module->closureCaptures)))return 0;
+        XL6_IrNode* declaration=&module->nodes[module->nodeCount++];memset(declaration,0,sizeof(*declaration));
+        declaration->kind=XL6_IR_NODE_LIST;declaration->sourceKind=XL6_AST_LIST;declaration->storageType=targetId;declaration->unionField=SIZE_MAX;
+        if(!xl6IrLowerAppendSpecializationChild(module,module->root,(XL6_IrNodeId)module->nodeCount))return 0;
+        closure=&module->closureTargets[module->closureTargetCount++];memset(closure,0,sizeof(*closure));
+        closure->kind=XL6_IR_CLOSURE_TARGET_RESULT_ADAPTER;closure->declaration=(XL6_IrNodeId)module->nodeCount;
+        closure->targetSymbol=xl6IrLowerNewSyntheticSymbol(ctx);closure->signatureType=targetId;
+        closure->rawCallbackAbi=XL6_IR_CLOSURE_RAW_CALLBACK_NONE;
+        closure->firstCapture=module->closureCaptureCount;closure->captureCount=1;closure->forwardCallMetadata=1;
+        XL6_IrClosureCapture* capture=&module->closureCaptures[module->closureCaptureCount++];
+        *capture=(XL6_IrClosureCapture){.sourceSymbol=xl6IrLowerNewSyntheticSymbol(ctx),
+            .storageSymbol=xl6IrLowerNewSyntheticSymbol(ctx),.type=sourceId,.abi=XL6_IR_CLOSURE_CAPTURE_RETAIN_CLOSURE};
+        closure->callParameterCount=target->paramCount;
+        if(target->paramCount) {
+            closure->callParameterNames=xrtCalloc(target->paramCount,sizeof(char*));
+            closure->callParameterDefaultAbis=xrtCalloc(target->paramCount,sizeof(*closure->callParameterDefaultAbis));
+            closure->callParameterDefaultLiterals=xrtCalloc(target->paramCount,sizeof(char*));
+            closure->callParameterDefaultFunctions=xrtCalloc(target->paramCount,sizeof(uint32));
+            if(!closure->callParameterNames || !closure->callParameterDefaultAbis ||
+               !closure->callParameterDefaultLiterals || !closure->callParameterDefaultFunctions)return 0;
+            for(size_t p=0;p<target->paramCount;++p) {
+                closure->callParameterNames[p]=xrtStrDup("argument");
+                if(!closure->callParameterNames[p])return 0;
+                closure->callParameterDefaultAbis[p]=XL6_IR_DYNAMIC_METHOD_DEFAULT_NONE;
+            }
+        }
+    }
+    XL6_SymbolId symbol=closure->targetSymbol;
+    size_t first=ctx->evaluationOwnerCount;
+    value=xl6IrLowerProtectOwnedBorrow(ctx,origin,value);
+    XL6_IrValueId result=0;
+    if(!value || !xl6IrLowerEmit(ctx,XL6_IR_INSTR_CLOSURE_MAKE,origin,targetId,symbol,&value,1,&result) ||
+       !xl6IrLowerEmitRuntimeErrorEdge(ctx,origin,xl6IrNodeGet(module,origin),result) ||
+       !xl6IrLowerCompleteEvaluationBorrows(ctx,origin,first,&result))return 0;
+    return result;
+}
+
+static XL6_IrValueId xl6IrLowerNullableCallableResult(XL6_IrLowerContext* ctx,XL6_IrNodeId origin,
+    XL6_IrValueId value,XL6_IrTypeId targetId)
+{
+    XL6_IrModule* module=ctx->module;
+    const XL6_IrType* source=xl6IrTypeGet(&module->types,xl6IrLowerValueType(ctx,value));
+    const XL6_IrType* target=xl6IrTypeGet(&module->types,targetId);
+    XL6_IrTypeId inner=source->params[0],output=target->params[0];
+    size_t first=ctx->evaluationOwnerCount;
+    value=xl6IrLowerProtectOwnedBorrow(ctx,origin,value);
+    XL6_SymbolId storage=xl6IrLowerNewTempStorage(ctx,targetId,origin);
+    XL6_IrValueId test,payload,result;
+    XL6_IrBlockId present,absent,merge;
+    XL6_IrTypeId boolean=xl6IrLowerFindTypeByCAbi(module,XL6_IR_C_ABI_BOOL);
+    if(!value || !storage || !xl6IrLowerEmit(ctx,XL6_IR_INSTR_NULL_TEST,origin,boolean,0,&value,1,&test) ||
+       !xl6IrLowerNewBlock(ctx,&present) || !xl6IrLowerNewBlock(ctx,&absent) || !xl6IrLowerNewBlock(ctx,&merge) ||
+       !xl6IrLowerEmit(ctx,XL6_IR_INSTR_BRANCH,origin,0,0,&test,1,NULL))return 0;
+    module->instructions[module->instructionCount-1].trueTarget=absent;
+    module->instructions[module->instructionCount-1].falseTarget=present;
+    xl6IrLowerEnterBlock(ctx,present);
+    if(!xl6IrLowerEmit(ctx,XL6_IR_INSTR_NULLABLE_UNWRAP,origin,inner,0,&value,1,&payload))return 0;
+    result=xl6IrLowerBoundMethodResult(ctx,origin,payload,output);
+    if(!result || !xl6IrLowerEmit(ctx,XL6_IR_INSTR_NULLABLE_WRAP,origin,targetId,0,&result,1,&result))return 0;
+    if(!xl6IrLowerEmit(ctx,XL6_IR_INSTR_STORE,origin,targetId,storage,&result,1,NULL) ||
+       !xl6IrLowerEmitJump(ctx,origin,merge))return 0;
+    xl6IrLowerEnterBlock(ctx,absent);
+    if(!xl6IrLowerEmit(ctx,XL6_IR_INSTR_NULL,origin,targetId,0,NULL,0,&result) ||
+       !xl6IrLowerEmit(ctx,XL6_IR_INSTR_STORE,origin,targetId,storage,&result,1,NULL) ||
+       !xl6IrLowerEmitJump(ctx,origin,merge))return 0;
+    xl6IrLowerEnterBlock(ctx,merge);
+    result=xl6IrLowerReadJoinStorage(ctx,origin,targetId,storage);
+    return xl6IrLowerCompleteEvaluationBorrows(ctx,origin,first,&result) ? result : 0;
+}
+
 /* Result conversion stays in the one typed invocation body. Product fields
  * are detached and protected before any allocation can fail. Unchanged fields
  * transfer their existing owners; only requested ordinary leaves copy bytes. */
@@ -191,6 +308,8 @@ static XL6_IrValueId xl6IrLowerBoundMethodResult(XL6_IrLowerContext* ctx,XL6_IrN
     const XL6_IrType* target=xl6IrTypeGet(&module->types,targetId);
     if(!xl6IrBoundMethodResultMatches(module,sourceId,targetId))return XL6_IR_VALUE_INVALID;
     if(xl6IrTypeIsCOwned(source))return xl6IrLowerCOwnedCopy(ctx,origin,targetId,value);
+    if(source->kind==XL6_IR_TYPE_FUNCTION)return xl6IrLowerCallableResult(ctx,origin,value,targetId);
+    if(source->kind==XL6_IR_TYPE_NULLABLE)return xl6IrLowerNullableCallableResult(ctx,origin,value,targetId);
     size_t count=source->paramCount,first=ctx->evaluationOwnerCount;
     XL6_IrValueId result=0,*fields=xrtCalloc(count,sizeof(*fields));
     XL6_SymbolId* owners=xrtCalloc(count,sizeof(*owners));

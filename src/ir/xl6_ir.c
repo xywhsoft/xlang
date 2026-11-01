@@ -14438,6 +14438,27 @@ static int xl6IrBoundMethodResultMatchesDepth(const XL6_IrModule* module,XL6_IrT
     if(xl6IrTypeIsCOwned(from) && (from->kind==XL6_IR_TYPE_NULLABLE)==(to->kind==XL6_IR_TYPE_NULLABLE))
         return (from->cAbi==XL6_IR_C_ABI_C_STRING && to->cAbi==XL6_IR_C_ABI_MANAGED_STRING) ||
             (from->cAbi==XL6_IR_C_ABI_C_BYTES && to->cAbi==XL6_IR_C_ABI_MANAGED_BYTES);
+    if(from->kind==XL6_IR_TYPE_NULLABLE && to->kind==XL6_IR_TYPE_NULLABLE &&
+       from->paramCount==1 && to->paramCount==1 && from->params && to->params) {
+        const XL6_IrType* a=xl6IrTypeGet(&module->types,from->params[0]);
+        const XL6_IrType* b=xl6IrTypeGet(&module->types,to->params[0]);
+        return a && b && a->kind==XL6_IR_TYPE_FUNCTION && b->kind==XL6_IR_TYPE_FUNCTION &&
+            xl6IrBoundMethodResultMatchesDepth(module,from->params[0],to->params[0],depth+1);
+    }
+    if(from->kind==XL6_IR_TYPE_FUNCTION && to->kind==XL6_IR_TYPE_FUNCTION) {
+        if(from->cAbi!=XL6_IR_C_ABI_CLOSURE_PTR || to->cAbi!=XL6_IR_C_ABI_CLOSURE_PTR ||
+           from->paramCount!=to->paramCount || from->returnCount!=to->returnCount ||
+           from->callableErasureAbi!=to->callableErasureAbi ||
+           (from->paramCount && (!from->params || !to->params || !from->parameterModes ||
+             !to->parameterModes || !from->parameterAbis || !to->parameterAbis)) ||
+           (from->returnCount && (!from->returns || !to->returns))) return 0;
+        for(size_t p=0;p<from->paramCount;++p)
+            if(from->params[p]!=to->params[p] || from->parameterModes[p]!=to->parameterModes[p] ||
+               from->parameterAbis[p]!=to->parameterAbis[p])return 0;
+        for(size_t r=0;r<from->returnCount;++r)
+            if(!xl6IrBoundMethodResultMatchesDepth(module,from->returns[r],to->returns[r],depth+1))return 0;
+        return 1;
+    }
     if(from->cAbi!=XL6_IR_C_ABI_PRODUCT || to->cAbi!=XL6_IR_C_ABI_PRODUCT ||
        from->paramCount!=to->paramCount)return 0;
     for(size_t i=0;i<from->paramCount;++i)
@@ -39995,10 +40016,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         }
         if ( module->stage == XL6_IR_STAGE_LOWERED && owner != NULL &&
              (owner->kind == XL6_IR_NODE_NAME || owner->kind == XL6_IR_NODE_MEMBER ||
-              owner->sourceKind == XL6_AST_GENERIC_INSTANT) ) {
+              owner->kind == XL6_IR_NODE_LIST || owner->sourceKind == XL6_AST_GENERIC_INSTANT) ) {
             for ( j = 0; j < module->closureTargetCount; ++j ) {
                 if ( (module->closureTargets[j].kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ||
-                     module->closureTargets[j].kind == XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER) &&
+                     module->closureTargets[j].kind == XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER ||
+                     module->closureTargets[j].kind == XL6_IR_CLOSURE_TARGET_RESULT_ADAPTER) &&
                      module->closureTargets[j].declaration == storage->owner ) {
                     namedAdapterOwner = 1;
                     break;
@@ -40562,6 +40584,62 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     closure->callParameterDefaultLiterals[p] || closure->callParameterDefaultFunctions[p])
                     return xl6IrDiag(diags,name,"native variadic closure parameter metadata is inconsistent");
             }
+            continue;
+        }
+        if(closure->kind==XL6_IR_CLOSURE_TARGET_RESULT_ADAPTER) {
+            const XL6_IrNode* origin=xl6IrNodeGet(module,closure->declaration);
+            const XL6_IrType* output=xl6IrTypeGet(&module->types,closure->signatureType);
+            const XL6_IrClosureCapture* capture=closure->captureCount==1 &&
+                closure->firstCapture<module->closureCaptureCount ? &module->closureCaptures[closure->firstCapture] : NULL;
+            const XL6_IrType* input=capture ? xl6IrTypeGet(&module->types,capture->type) : NULL;
+            const XL6_IrFunction* body=xl6IrFunctionBySymbol(module,closure->targetSymbol);
+            if(module->stage!=XL6_IR_STAGE_LOWERED || !origin || origin->kind!=XL6_IR_NODE_LIST ||
+               origin->sourceKind!=XL6_AST_LIST || origin->storageType!=closure->signatureType ||
+               origin->childCount || !capture || capture->abi!=XL6_IR_CLOSURE_CAPTURE_RETAIN_CLOSURE ||
+               !input || input->kind!=XL6_IR_TYPE_FUNCTION || !output || output->kind!=XL6_IR_TYPE_FUNCTION ||
+               input==output || !xl6IrBoundMethodResultMatches(module,capture->type,closure->signatureType) ||
+               !closure->forwardCallMetadata || closure->adaptedTargetSymbol || closure->boundMethodDispatchSlot ||
+               closure->rawCallbackAbi!=XL6_IR_CLOSURE_RAW_CALLBACK_NONE || closure->rawExecutionAbi ||
+               !body || body->kind!=XL6_IR_FUNCTION_NAMED_ADAPTER || body->declaration!=closure->declaration ||
+               body->parameterCount!=output->paramCount || body->returnType!=output->callableResultType ||
+               body->errorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE || closure->callParameterCount!=output->paramCount)
+                return xl6IrDiag(diags,origin,"XLIR callable-result adapter lost its exact source/signature ABI");
+            const XL6_IrStorage* captured=xl6IrStorageGet(module,capture->storageSymbol);
+            if(!capture->sourceSymbol || !captured || captured->kind!=XL6_IR_STORAGE_CAPTURE ||
+               captured->owner!=closure->declaration || captured->declaration!=closure->declaration ||
+               captured->type!=capture->type || captured->cellType ||
+               (output->paramCount && (!closure->callParameterNames || !closure->callParameterDefaultAbis ||
+                !closure->callParameterDefaultLiterals || !closure->callParameterDefaultFunctions)))
+                return xl6IrDiag(diags,origin,"XLIR callable-result adapter lost its retained capture");
+            for(size_t p=0;p<output->paramCount;++p) {
+                const XL6_IrStorage* parameter=xl6IrStorageGet(module,module->functionParameters[body->firstParameter+p]);
+                if(!parameter || parameter->kind!=XL6_IR_STORAGE_PARAMETER || parameter->owner!=closure->declaration ||
+                   parameter->type!=output->params[p] || !closure->callParameterNames[p] ||
+                   closure->callParameterDefaultAbis[p]!=XL6_IR_DYNAMIC_METHOD_DEFAULT_NONE ||
+                   closure->callParameterDefaultLiterals[p] || closure->callParameterDefaultFunctions[p])
+                    return xl6IrDiag(diags,origin,"XLIR callable-result adapter changed its forwarded parameters");
+            }
+            size_t calls=0;
+            for(size_t j=body->firstInstruction;j<body->firstInstruction+body->instructionCount;++j) {
+                const XL6_IrInstruction* instruction=&module->instructions[j];
+                if(instruction->kind==XL6_IR_INSTR_CLOSURE_CALL) {
+                    if(instruction->calleeType!=capture->type || instruction->operandCount!=input->paramCount+1)
+                        return xl6IrDiag(diags,origin,"XLIR callable-result adapter changed its source call ABI");
+                    const XL6_IrInstruction* callee=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+                    if(!callee || callee->kind!=XL6_IR_INSTR_LOAD || callee->targetSymbol!=capture->storageSymbol)
+                        return xl6IrDiag(diags,origin,"XLIR callable-result adapter must call its retained source");
+                    for(size_t p=0;p<input->paramCount;++p) {
+                        const XL6_IrInstruction* argument=xl6IrValueDefinition(module,module->operands[instruction->firstOperand+p+1],NULL);
+                        XL6_IrInstructionKind kind=(input->parameterAbis[p]==XL6_IR_PARAMETER_ABI_INOUT ||
+                            input->parameterAbis[p]==XL6_IR_PARAMETER_ABI_OUT) ? XL6_IR_INSTR_STORAGE_ADDRESS : XL6_IR_INSTR_LOAD;
+                        if(!argument || argument->kind!=kind ||
+                           argument->targetSymbol!=module->functionParameters[body->firstParameter+p])
+                            return xl6IrDiag(diags,origin,"XLIR callable-result adapter must pass each parameter once");
+                    }
+                    ++calls;
+                }
+            }
+            if(calls!=1)return xl6IrDiag(diags,origin,"XLIR callable-result adapter must invoke its source once");
             continue;
         }
         const XL6_IrNode* declaration = xl6IrNodeGet(module, closure->declaration);
