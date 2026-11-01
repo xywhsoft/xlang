@@ -1,0 +1,1891 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-02T02:06:56.3523774+08:00",
+  "package": "stb_image_write",
+  "maturity": "R",
+  "status": "HDR-value-validation-verified-dependency-M3-and-catalog-binding-open",
+  "sourceParent": "f81b2b43ee51e90052c3a5f85c07950765b64593",
+  "integrationParent": "c18795899485c03f14e8940582a2359e363a4eb4",
+  "objectiveScope": {
+    "states": {
+      "X": 4,
+      "G": 30,
+      "R": 10,
+      "M": 56
+    },
+    "goalComplete": false,
+    "ordinaryPackages": 100
+  },
+  "defects": [
+    "Negative and nonfinite HDR colors reach undefined float-to-byte conversions",
+    "Finite float32 colors at or above 2^127 wrap RGBE exponent to zero",
+    "HDR borrowed C pointers were not checked for float alignment",
+    "README incorrectly suggested every write failure returns false; native errors already throw in XLang"
+  ],
+  "fix": {
+    "errorKinds": {
+      "diagnosticAllocationFailure": "XERR_MEMORY",
+      "finiteExponentOverflow": "XERR_RANGE",
+      "misalignedPointer": "XERR_ARGUMENT",
+      "negativeOrNonfinite": "XERR_VALUE"
+    },
+    "alignment": "check address before typed pointer construction",
+    "noOutputBeforeValidation": true,
+    "channels": "1/2 encode gray, 3/4 encode RGB; unused alpha is ignored",
+    "extraPixelCopy": false,
+    "extraHDRSourceScan": true,
+    "otherFormatsScanned": false,
+    "extraOutputAllocation": false,
+    "range": "Encoded colors finite and 0 <= value < 2^127; negative zero accepted",
+    "pixelBytesBorrowedAndMustStayStable": true
+  },
+  "publicABIUnchanged": true,
+  "vendorUnchanged": true,
+  "compilerRuntimeXrtTccIdeNotModified": true,
+  "references": [
+    "https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html",
+    "https://github.com/NREL/Radiance/blob/master/src/common/color.c"
+  ],
+  "originalNative": {
+    "path": "build/test/stbiw_hdr_20261102/before_native.c",
+    "bytes": 7524,
+    "sha256": "ebf75bc926f970c1186c2e707def2991b565a6a00a68f659447f21ac6ede1613"
+  },
+  "finalNative": {
+    "path": "release/extlibs/stb_image_write/stb_image_write_native.c",
+    "bytes": 8555,
+    "sha256": "641ad34349943de854689ecf9cb274ba6added961e9c8c3ec16c6f99accfc860"
+  },
+  "regression": {
+    "validOutputAllocationFaults": 32,
+    "directStringAndPixelTypeABIUnchanged": true,
+    "invalidAttemptsPerCase": 3,
+    "invalidCases": 448,
+    "memoryFieldsChecked": 7,
+    "xlang": {
+      "path": "release/extlibs/stb_image_write/test/hdr_values.xl",
+      "bytes": 1735,
+      "sha256": "9e0c364840cd1f4f229e2815f89c26685f191f28dc35017c269b973380b8cb71"
+    },
+    "badPositions": [
+      "first pixel",
+      "last pixel second row"
+    ],
+    "diagnosticAllocationFaults": 448,
+    "invalidWriteRetainsOldTarget": true,
+    "sourceUnchangedChecked": true,
+    "c": {
+      "path": "release/extlibs/stb_image_write/test/test_hdr_values.c",
+      "bytes": 8799,
+      "sha256": "8cd64de748ad2fa93d08d333c9abd1c635f1512f5ab0f6158814f5fcace5ebf0"
+    },
+    "validCases": 96,
+    "normalDiagnosticBudget": 4,
+    "widths": [
+      1,
+      7,
+      8,
+      129
+    ],
+    "channels": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "zeroDiagnosticBudget": "Expected MemoryError, not a false claim of allocation-free diagnostics"
+  },
+  "windows": {
+    "inputCount": 61,
+    "postGateChangesReason": "Only README/examples README/site result and contract descriptions after gate",
+    "parent": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "[stb write] GCC version : PASS\n[stb write] GCC cc1 path : PASS\n[stb write] strict C syntax : PASS\n[stb write] GCC BMP budgets build : PASS\n[stb write] GCC BMP budgets : PASS\n[stb write] GCC HDR values build : PASS\n[stb write] GCC HDR values : PASS\n[stb write] independent HDR decoder : PASS\n[stb write] GCC HDR example build : PASS\n[stb write] GCC HDR example : PASS\n[stb write] GCC BMP example build : PASS\n[stb write] GCC BMP example : PASS\n[stb write] C boundaries : PASS\n[stb write] JIT test/cases/extlib_stb_image_write.xl : PASS\n[stb write] JIT release/extlibs/stb_image_write/test/boundaries.xl : PASS\n[stb write] JIT release/extlibs/stb_image_write/test/allocations.xl : PASS\n[stb write] JIT release/extlibs/stb_image_write/test/output_limit.xl : PASS\n[stb write] JIT release/extlibs/stb_image_write/test/bmp_headers.xl : PASS\n[stb write] JIT release/extlibs/stb_image_write/test/test_bmp_budget.c : PASS\n[stb write] JIT release/extlibs/stb_image_write/test/test_hdr_values.c : PASS\n[stb write] JIT release/extlibs/stb_image_write/test/hdr_values.xl : PASS\n[stb write] JIT bmp_layout.xl : PASS\n[stb write] JIT bmp_layout_c.c : PASS\n[stb write] JIT hdr_values.xl : PASS\n[stb write] JIT hdr_values_c.c : PASS\n[stb write] direct C image example : PASS\n[stb write] C runner image example : PASS\n[stb write] XLang image example : PASS\n[stb write] core AOT build : PASS\n[stb write] core AOT : PASS\n[stb write] XL image AOT build : PASS\n[stb write] XL image AOT : PASS\n[stb write] C image AOT build : PASS\n[stb write] C image AOT : PASS\n[stb write] AOT headers build : PASS\n[stb write] AOT headers : PASS\n[stb write] AOT budgets build : PASS\n[stb write] AOT budgets : PASS\n[stb write] AOT limit build : PASS\n[stb write] AOT limit : PASS\n[stb write] AOT layout_xl build : PASS\n[stb write] AOT layout_xl : PASS\n[stb write] AOT layout_c build : PASS\n[stb write] AOT layout_c : PASS\n[stb write] AOT hdr_test_c build : PASS\n[stb write] AOT hdr_test_c : PASS\n[stb write] AOT hdr_test_xl build : PASS\n[stb write] AOT hdr_test_xl : PASS\n[stb write] AOT hdr_values.xl build : PASS\n[stb write] AOT hdr_values.xl : PASS\n[stb write] AOT hdr_values_c.c build : PASS\n[stb write] AOT hdr_values_c.c : PASS\nstb_image_write Windows C/XLang gate: PASS\r\n",
+      "stderr": "",
+      "elapsedMs": 32027
+    },
+    "inputs": {
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\include\\stb_image_write_native.h": "82A07A13009B2CD289ED9C1A2596F7FD002347B3AD079B7CD81FFC78BACAADCF",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\third_party\\stb_image_write.h": "CA18EC9B6FDA667CCC6E8DA5F370BE138341ED11EDC221F88B78FA5FE149D712",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\examples\\bmp_layout.xl": "4065DF636589DA5E1AB27407769A52995B65CC36E4CE5D8D8DF2B6C0A1D602C3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\examples\\hdr_values.xl": "0796A32F967C3B829415AB9294C5B5556FB918CECB6129D619C937B51E581C4F",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\test\\benchmark_hdr.c": "03C76A64A0ABD9AB85A57F49422044AB05ADA86D3DB42761AAA99292D4157736",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\stb_image_write_native.c": "641AD34349943DE854689ECF9CB274BA6ADDED961E9C8C3EC16C6F99ACCFC860",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\test\\boundaries.xl": "88FAC6E830074E09A80126B8EC0938FFBA856C5494568CB9BF6D0E2C4E51FEA7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\test\\test_hdr_values.c": "8CD64DE748AD2FA93D08D333C9ABD1C635F1512F5AB0F6158814F5FCACE5EBF0",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\examples\\hdr_values_c.c": "CE2BC260CAB17CFF58A758D924A1B66A57139794BCC66AC8326519ED12F1E3DB",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\examples\\README.md": "2C2DF5E5EE54D76D9DB5FC5B54FAF74B2CFEDABA34F15185CB72FAE31FB1FCA3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image\\third_party\\stb_image.h": "1F8C1B6B408F26E3B20CBFBBD4758AFB3DC9B837FF1E17C258928F406148A87C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\README.md": "24CCFFDD73BD3B0349E3E9B75E6E23A29D9B029D0D4925B73C58A8FAE37F9110",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\test\\check.ps1": "E7E55BD3D62724226F49E63C7481A04FC36190129E661B71C59B0A2A44952466",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image\\LICENSE.stb.txt": "5EEE3662C16311409A4DCBFBD4E2FC58A4F8CD76778BAF2576BFDE4ACEC8314E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\test\\bmp_headers.xl": "3CF07F1F23A88F340F97432985414F555C2FB6F64DDA560750A3C3BEC152DA1A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\test\\test_stb_image_write.c": "F81E250078311F7473D10A4BE13316BE0D77FEA8ADF2B5D822073FF1A6210FDD",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\test\\output_limit.xl": "F7CB6C17FEF9FA514BFE33BE4F7E967F52D3DD446EE7CC95561575BB064DF667",
+      "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\test\\test_bmp_budget.c": "4F68E5DD9820E9AF1A5FE4C0E27D9EEF55E189EEF52060537F1BFA154257CCB9",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image\\test\\boundaries.xl": "28B750341B7350D472C442E0DF2E53B2E97614035BD87ADED70DA2C2B204E45A",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_stb_image_write.xl": "84D6E6A7A48F2DBBEC1CC81E4EBE9712165EF832CDC308ABE54BA4DB8586356D",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\assets\\tiny.png": "9C2FCFBB97B34614052BE075A8BD4D1E626412DC87DB62356AA8E7BD7887EF4A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image\\test\\private_native_status_negative.xl": "ECAC0DF719E8DDFFCE261C70DD0CC3877D74C530119CFC747425200BB05C741D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\test\\allocations.xl": "1334C9B509AF0576D31C0D787BBEA1789B86691BFEB35264D4ADED67CB4E2445",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image\\test\\test_stb_image_threads.c": "7B137C5A499FD3587364806A639520F716D694DA482E09CCCB4E3264C544A29C",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1": "5183F14DBF4444B47D8832B60A0D6A6B570C8E933874785BEF85DD1ECB024A44",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image\\docs\\site.html": "3EEA45A42FDAA23D44D841AA8A99ADC531626E354DB4446F0BFD28D091D32311",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+      "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe": "9785001B0DCF755EDDB8AF294A373C0B87B2498660F724E76C4D53F9C217C7A3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\test\\hdr_values.xl": "9E0C364840CD1F4F229E2815F89C26685F191F28DC35017C269B973380B8CB71",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image\\src\\stb_image.xl": "3A3B6B3DA5305A20AB2DDBEB3EC9249A2301A41CBD8CD9972377E12C42273E48",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image\\test\\test_stb_image.c": "8F6B4EFE2709E894BF35097C8C91982BE18039D4C6A18FE43390F1DABC6C4AFE",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image\\stb_image_native.c": "E9F70FDC80D356AFD7DA86BE2930C9550D386E7223108C3BBBE138587F8323D0",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image\\test\\private_adopt_constructor_negative.xl": "8CF20A71A42087C36E30E7A52A126ADC2E61244FC316FE622301418FE5188A48",
+      "E:\\software\\w64devkit\\libexec\\gcc\\x86_64-w64-mingw32\\16.2.0\\cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\xlang.package.json": "C204DED2CC035FF7A7A34AC41BED08A2DBC114B073808677D354BF3921846EE9",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\test\\check_hdr_corpus.py": "4EA6821A73DC47996A5AB848C731A45D22541FBC90385FA2E012362E719A630E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image\\xlang.package.json": "01D9B806AAA408CC5192B241DC1500E374AE8E2DE458886D0A42C960A72D7A6A",
+      "C:\\Program Files\\Python312\\python.exe": "4D6F5F81A4BCA11191C4C7C6B43632694D0A4CE74E068619D8FDC161D469859A",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\stb_image_write.xl": "4D361606AA41068EA199E4900E0D10B293B0700A342966716C35B4CEF967EC70",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\src\\stb_image_write.xl": "E120010446F81389EF27A69B204499F6D57FEF3D580D5DB69BBBEC20BFA48255",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image\\test\\allocations.xl": "A36A29831AD784487C83B6CD961D0B9D8D6CF0245E579048E38F5DCC6A3F21EF",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\LICENSE.stb.txt": "59D82EEFFEB999CA90E7D3C0F67DFC91AA30DA22D2097BA20AF9E6F5D9D3AEB8",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\examples\\bmp_layout_c.c": "A2C6E6E2F740E05EC62E19F333BE054C039BE3E82C22A52C49CB74C1C9805D20",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image\\test\\check.sh": "120A8474C7405721F29434355C4B9DBC58FEA3AFFD2BB95B0568F7914BE2665C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image\\test\\check.ps1": "C1FE08C7001496744608E14F34421404E3BAA8DF36A50E71B2881A14C1372D33",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\stb_image_write_c.c": "165C235C7DBD3C6C0A567225F039D26C7F43C8404B5DCA048CD17D49162B2F5C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\test\\check.sh": "9632B0BA453AC9A81F95E4AF46FD409E76C40F87C6DAEB47796FD98D7048C788",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image\\include\\stb_image_native.h": "129DCBBC4962DD779671E5EC37E89B46B064C3A7A762061F1F7E15E6CDE32960",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\docs\\site.html": "B9CA296A31EE41834CF4CDB12ED120A8F5FEFE595FDB7E4204D89D5A1ED61997",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\test\\xrt_runtime.c": "152349A7E36DA9892B98207A25E9F421FD3BA121F20C4580201913A984224444",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image\\README.md": "6F06912CE622E2E593B0D4FCE9C84EFA1F112FF6243F7ABC91E4B8E005715F0C"
+    },
+    "initialUninstrumentedProbe": [
+      {
+        "kind": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR probe kind=0 encoded=1 error=0 rgbe=128,128,128,129\r\n",
+          "stderr": "",
+          "elapsedMs": 115
+        }
+      },
+      {
+        "kind": 1,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR probe kind=1 encoded=1 error=0 rgbe=0,128,128,129\r\n",
+          "stderr": "",
+          "elapsedMs": 87
+        }
+      },
+      {
+        "kind": 2,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR probe kind=2 encoded=1 error=0 rgbe=0,0,0,128\r\n",
+          "stderr": "",
+          "elapsedMs": 94
+        }
+      },
+      {
+        "kind": 3,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR probe kind=3 encoded=1 error=0 rgbe=255,0,0,0\r\n",
+          "stderr": "",
+          "elapsedMs": 91
+        }
+      }
+    ],
+    "rawReport": {
+      "path": "build/test/stb_write_guard_9948ec4faf614189a8d216ee97405b91.report.json",
+      "bytes": 62100,
+      "sha256": "61a0b321e7cb3462705cc907c083653d2ec28a9d2b014529d0bac1dde4c304d8"
+    },
+    "checks": [
+      {
+        "label": "GCC version",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "--version"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "stderr": "",
+          "elapsedMs": 38
+        }
+      },
+      {
+        "label": "GCC cc1 path",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-print-prog-name=cc1"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe\r\n",
+          "stderr": "",
+          "elapsedMs": 25
+        }
+      },
+      {
+        "label": "strict C syntax",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-fsyntax-only",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/stb_image_write/include",
+          "-Irelease/extlibs/stb_image/include",
+          "release/extlibs/stb_image_write/stb_image_write_native.c",
+          "release/extlibs/stb_image_write/test/test_stb_image_write.c",
+          "release/extlibs/stb_image_write/test/test_hdr_values.c",
+          "release/extlibs/stb_image_write/examples/hdr_values_c.c",
+          "release/examples/extlibs/stb_image_write_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 811
+        }
+      },
+      {
+        "label": "GCC BMP budgets build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-DXRT_IMPLEMENTATION",
+          "-Ilib/xrt",
+          "release/extlibs/stb_image_write/test/test_bmp_budget.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\bmp_budget.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 5057
+        }
+      },
+      {
+        "label": "GCC BMP budgets",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\bmp_budget.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb write BMP budgets: 108 headers, 8 preflight cases, 2 OOM points PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 58
+        }
+      },
+      {
+        "label": "GCC HDR values build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-DXRT_IMPLEMENTATION",
+          "-Ilib/xrt",
+          "release/extlibs/stb_image_write/test/test_hdr_values.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_values.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 5363
+        }
+      },
+      {
+        "label": "GCC HDR values",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_values.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_corpus"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR values: 448 invalid cases, 96 valid cases, 32 output faults, 448 diagnostic faults, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 45
+        }
+      },
+      {
+        "label": "independent HDR decoder",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "release/extlibs/stb_image_write/test/check_hdr_corpus.py",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_corpus"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR independent RGBE values: 96 files, 3 rejection controls PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 92
+        }
+      },
+      {
+        "label": "GCC HDR example build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-DXRT_IMPLEMENTATION",
+          "-Ilib/xrt",
+          "release/extlibs/stb_image_write/examples/hdr_values_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_example.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 4783
+        }
+      },
+      {
+        "label": "GCC HDR example",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_example.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_gcc.hdr"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gray HDR: 8x1\r\nvalues above one: true\r\ninvalid color: rejected\r\nsource unchanged: true\r\n",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "label": "GCC BMP example build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-DXRT_IMPLEMENTATION",
+          "-Ilib/xrt",
+          "release/extlibs/stb_image_write/examples/bmp_layout_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\bmp_layout.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 5019
+        }
+      },
+      {
+        "label": "GCC BMP example",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\bmp_layout.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gray BMP: 58 bytes, pixels at 54\r\nRGB BMP: 70 bytes, pixels at 54\r\nRGBA BMP: 126 bytes, pixels at 122\r\nsource unchanged: true\r\nstb write BMP layout: OK\r\n",
+          "stderr": "",
+          "elapsedMs": 36
+        }
+      },
+      {
+        "label": "C boundaries",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1",
+          "-Package",
+          "stb_image_write,stb_image",
+          "-Source",
+          "release/extlibs/stb_image_write/test/test_stb_image_write.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb_image_write C boundaries: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 427
+        }
+      },
+      {
+        "label": "JIT test/cases/extlib_stb_image_write.xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "test/cases/extlib_stb_image_write.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 191
+        }
+      },
+      {
+        "label": "JIT release/extlibs/stb_image_write/test/boundaries.xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/stb_image_write/test/boundaries.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb_image_write XL boundaries: PASS\n",
+          "stderr": "",
+          "elapsedMs": 503
+        }
+      },
+      {
+        "label": "JIT release/extlibs/stb_image_write/test/allocations.xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/stb_image_write/test/allocations.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb_image_write allocations: PASS\n",
+          "stderr": "",
+          "elapsedMs": 522
+        }
+      },
+      {
+        "label": "JIT release/extlibs/stb_image_write/test/output_limit.xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/stb_image_write/test/output_limit.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 423
+        }
+      },
+      {
+        "label": "JIT release/extlibs/stb_image_write/test/bmp_headers.xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/stb_image_write/test/bmp_headers.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb write BMP headers: 108 PASS\n",
+          "stderr": "",
+          "elapsedMs": 293
+        }
+      },
+      {
+        "label": "JIT release/extlibs/stb_image_write/test/test_bmp_budget.c",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/stb_image_write/test/test_bmp_budget.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb write BMP budgets: 108 headers, 8 preflight cases, 2 OOM points PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 95
+        }
+      },
+      {
+        "label": "JIT release/extlibs/stb_image_write/test/test_hdr_values.c",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/stb_image_write/test/test_hdr_values.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR values: 448 invalid cases, 96 valid cases, 32 output faults, 448 diagnostic faults, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 76
+        }
+      },
+      {
+        "label": "JIT release/extlibs/stb_image_write/test/hdr_values.xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/stb_image_write/test/hdr_values.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb write HDR values: PASS\n",
+          "stderr": "",
+          "elapsedMs": 405
+        }
+      },
+      {
+        "label": "JIT bmp_layout.xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/stb_image_write/examples/bmp_layout.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gray BMP: 58 bytes, pixels at 54\nRGB BMP: 70 bytes, pixels at 54\nRGBA BMP: 126 bytes, pixels at 122\nsource unchanged: true\nstb write BMP layout: OK\n",
+          "stderr": "",
+          "elapsedMs": 282
+        }
+      },
+      {
+        "label": "JIT bmp_layout_c.c",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/stb_image_write/examples/bmp_layout_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gray BMP: 58 bytes, pixels at 54\r\nRGB BMP: 70 bytes, pixels at 54\r\nRGBA BMP: 126 bytes, pixels at 122\r\nsource unchanged: true\r\nstb write BMP layout: OK\r\n",
+          "stderr": "",
+          "elapsedMs": 69
+        }
+      },
+      {
+        "label": "JIT hdr_values.xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/stb_image_write/examples/hdr_values.xl",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_values.xl.hdr"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gray HDR: 8x1\nvalues above one: true\ninvalid color: rejected\nsource unchanged: true\n",
+          "stderr": "",
+          "elapsedMs": 273
+        }
+      },
+      {
+        "label": "JIT hdr_values_c.c",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/stb_image_write/examples/hdr_values_c.c",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_values_c.c.hdr"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gray HDR: 8x1\r\nvalues above one: true\r\ninvalid color: rejected\r\nsource unchanged: true\r\n",
+          "stderr": "",
+          "elapsedMs": 91
+        }
+      },
+      {
+        "label": "direct C image example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/examples/extlibs/stb_image_write_c.c",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb_image_write C/XL example: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 128
+        }
+      },
+      {
+        "label": "C runner image example",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1",
+          "-Package",
+          "stb_image_write,stb_image",
+          "-Source",
+          "release/examples/extlibs/stb_image_write_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb_image_write C/XL example: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 431
+        }
+      },
+      {
+        "label": "XLang image example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/examples/extlibs/stb_image_write.xl",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb_image_write C/XL example: PASS\n",
+          "stderr": "",
+          "elapsedMs": 514
+        }
+      },
+      {
+        "label": "core AOT build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "test/cases/extlib_stb_image_write.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\stbiw_core.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 405
+        }
+      },
+      {
+        "label": "core AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\stbiw_core.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 29
+        }
+      },
+      {
+        "label": "XL image AOT build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/examples/extlibs/stb_image_write.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\stbiw_example.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 916
+        }
+      },
+      {
+        "label": "XL image AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\stbiw_example.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\aot",
+          "D:\\GIT\\x-lang\\release\\examples\\extlibs\\assets\\tiny.png"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb_image_write C/XL example: PASS\n",
+          "stderr": "",
+          "elapsedMs": 47
+        }
+      },
+      {
+        "label": "C image AOT build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/examples/extlibs/stb_image_write_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\stbiw_c_example.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 163
+        }
+      },
+      {
+        "label": "C image AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\stbiw_c_example.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\c_aot",
+          "D:\\GIT\\x-lang\\release\\examples\\extlibs\\assets\\tiny.png"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb_image_write C/XL example: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 44
+        }
+      },
+      {
+        "label": "AOT headers build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/stb_image_write/test/bmp_headers.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\headers.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 423
+        }
+      },
+      {
+        "label": "AOT headers",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\headers.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb write BMP headers: 108 PASS\n",
+          "stderr": "",
+          "elapsedMs": 33
+        }
+      },
+      {
+        "label": "AOT budgets build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/stb_image_write/test/test_bmp_budget.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\budgets.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 134
+        }
+      },
+      {
+        "label": "AOT budgets",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\budgets.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb write BMP budgets: 108 headers, 8 preflight cases, 2 OOM points PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 66
+        }
+      },
+      {
+        "label": "AOT limit build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/stb_image_write/test/output_limit.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\limit.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 411
+        }
+      },
+      {
+        "label": "AOT limit",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\limit.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 83
+        }
+      },
+      {
+        "label": "AOT layout_xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/stb_image_write/examples/bmp_layout.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\layout_xl.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 452
+        }
+      },
+      {
+        "label": "AOT layout_xl",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\layout_xl.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gray BMP: 58 bytes, pixels at 54\nRGB BMP: 70 bytes, pixels at 54\nRGBA BMP: 126 bytes, pixels at 122\nsource unchanged: true\nstb write BMP layout: OK\n",
+          "stderr": "",
+          "elapsedMs": 29
+        }
+      },
+      {
+        "label": "AOT layout_c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/stb_image_write/examples/bmp_layout_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\layout_c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 132
+        }
+      },
+      {
+        "label": "AOT layout_c",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\layout_c.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gray BMP: 58 bytes, pixels at 54\r\nRGB BMP: 70 bytes, pixels at 54\r\nRGBA BMP: 126 bytes, pixels at 122\r\nsource unchanged: true\r\nstb write BMP layout: OK\r\n",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "label": "AOT hdr_test_c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/stb_image_write/test/test_hdr_values.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_test_c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 132
+        }
+      },
+      {
+        "label": "AOT hdr_test_c",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_test_c.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR values: 448 invalid cases, 96 valid cases, 32 output faults, 448 diagnostic faults, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 33
+        }
+      },
+      {
+        "label": "AOT hdr_test_xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/stb_image_write/test/hdr_values.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_test_xl.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 622
+        }
+      },
+      {
+        "label": "AOT hdr_test_xl",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_test_xl.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb write HDR values: PASS\n",
+          "stderr": "",
+          "elapsedMs": 58
+        }
+      },
+      {
+        "label": "AOT hdr_values.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/stb_image_write/examples/hdr_values.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_values.xl.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 440
+        }
+      },
+      {
+        "label": "AOT hdr_values.xl",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_values.xl.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_values.xl.aot.hdr"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gray HDR: 8x1\nvalues above one: true\ninvalid color: rejected\nsource unchanged: true\n",
+          "stderr": "",
+          "elapsedMs": 36
+        }
+      },
+      {
+        "label": "AOT hdr_values_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/stb_image_write/examples/hdr_values_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_values_c.c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 117
+        }
+      },
+      {
+        "label": "AOT hdr_values_c.c",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_values_c.c.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_values_c.c.aot.hdr"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gray HDR: 8x1\r\nvalues above one: true\r\ninvalid color: rejected\r\nsource unchanged: true\r\n",
+          "stderr": "",
+          "elapsedMs": 32
+        }
+      }
+    ],
+    "passed": true,
+    "aotPrograms": 12,
+    "postGateChanges": [
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\examples\\README.md",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\README.md",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_image_write\\docs\\site.html"
+    ],
+    "newProbe": [
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR probe kind=0 encoded=0 error=3\r\n",
+          "stderr": "",
+          "elapsedMs": 89
+        },
+        "kind": 0
+      },
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR probe kind=1 encoded=0 error=3\r\n",
+          "stderr": "",
+          "elapsedMs": 68
+        },
+        "kind": 1
+      },
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR probe kind=2 encoded=0 error=3\r\n",
+          "stderr": "",
+          "elapsedMs": 69
+        },
+        "kind": 2
+      },
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR probe kind=3 encoded=0 error=4\r\n",
+          "stderr": "",
+          "elapsedMs": 77
+        },
+        "kind": 3
+      }
+    ],
+    "checkCount": 52
+  },
+  "linux": {
+    "aotPrograms": 12,
+    "controls": [
+      {
+        "exitCode": 1,
+        "probeKind": 0,
+        "implementation": "old",
+        "stderr": "release/extlibs/stb_image_write/third_party/stb_image_write.h:647:43: runtime error: -128 is outside the range of representable values of type 'unsigned char'\n    #0 0x000000406796 in stbiw__linear_to_rgbe release/extlibs/stb_image_write/third_party/stb_image_write.h:647\n    #1 0x0000004304dc in stbiw__write_hdr_scanline release/extlibs/stb_image_write/third_party/stb_image_write.h:693\n    #2 0x0000004304dc in stbi_write_hdr_core release/extlibs/stb_image_write/third_party/stb_image_write.h:780\n    #3 0x0000004304dc in stbi_write_hdr_to_func release/extlibs/stb_image_write/third_party/stb_image_write.h:790\n    #4 0x000000431e13 in xstbiw_encode /var/tmp/xlang-stbiw-hdr-ReUD1d91/before_native.c:184\n    #5 0x00000043213a in main /var/tmp/xlang-stbiw-hdr-ReUD1d91/probe.c:14\n    #6 0x7523ed82a600 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:59\n    #7 0x7523ed82a717 in __libc_start_main_impl ../csu/libc-start.c:360\n    #8 0x000000402964 in _start (/var/tmp/xlang-stbiw-hdr-ReUD1d91/old+0x402964) (BuildId: 2f57d9966d06082b378a51e0d00a9b79eee3b847)\n\n",
+        "stdout": null
+      },
+      {
+        "exitCode": 1,
+        "probeKind": 1,
+        "implementation": "old",
+        "stderr": "release/extlibs/stb_image_write/third_party/stb_image_write.h:647:43: runtime error: nan is outside the range of representable values of type 'unsigned char'\n    #0 0x000000406796 in stbiw__linear_to_rgbe release/extlibs/stb_image_write/third_party/stb_image_write.h:647\n    #1 0x0000004304dc in stbiw__write_hdr_scanline release/extlibs/stb_image_write/third_party/stb_image_write.h:693\n    #2 0x0000004304dc in stbi_write_hdr_core release/extlibs/stb_image_write/third_party/stb_image_write.h:780\n    #3 0x0000004304dc in stbi_write_hdr_to_func release/extlibs/stb_image_write/third_party/stb_image_write.h:790\n    #4 0x000000431e13 in xstbiw_encode /var/tmp/xlang-stbiw-hdr-ReUD1d91/before_native.c:184\n    #5 0x00000043213a in main /var/tmp/xlang-stbiw-hdr-ReUD1d91/probe.c:14\n    #6 0x7b68e8c2a600 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:59\n    #7 0x7b68e8c2a717 in __libc_start_main_impl ../csu/libc-start.c:360\n    #8 0x000000402964 in _start (/var/tmp/xlang-stbiw-hdr-ReUD1d91/old+0x402964) (BuildId: 2f57d9966d06082b378a51e0d00a9b79eee3b847)\n\n",
+        "stdout": null
+      },
+      {
+        "exitCode": 1,
+        "probeKind": 2,
+        "implementation": "old",
+        "stderr": "release/extlibs/stb_image_write/third_party/stb_image_write.h:647:43: runtime error: -nan is outside the range of representable values of type 'unsigned char'\n    #0 0x000000406796 in stbiw__linear_to_rgbe release/extlibs/stb_image_write/third_party/stb_image_write.h:647\n    #1 0x0000004304dc in stbiw__write_hdr_scanline release/extlibs/stb_image_write/third_party/stb_image_write.h:693\n    #2 0x0000004304dc in stbi_write_hdr_core release/extlibs/stb_image_write/third_party/stb_image_write.h:780\n    #3 0x0000004304dc in stbi_write_hdr_to_func release/extlibs/stb_image_write/third_party/stb_image_write.h:790\n    #4 0x000000431e13 in xstbiw_encode /var/tmp/xlang-stbiw-hdr-ReUD1d91/before_native.c:184\n    #5 0x00000043213a in main /var/tmp/xlang-stbiw-hdr-ReUD1d91/probe.c:14\n    #6 0x7f477202a600 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:59\n    #7 0x7f477202a717 in __libc_start_main_impl ../csu/libc-start.c:360\n    #8 0x000000402964 in _start (/var/tmp/xlang-stbiw-hdr-ReUD1d91/old+0x402964) (BuildId: 2f57d9966d06082b378a51e0d00a9b79eee3b847)\n\n",
+        "stdout": null
+      },
+      {
+        "exitCode": 0,
+        "probeKind": 3,
+        "implementation": "old",
+        "stderr": null,
+        "stdout": "HDR probe kind=3 encoded=1 error=0 rgbe=255,0,0,0\n"
+      },
+      {
+        "exitCode": 0,
+        "probeKind": 0,
+        "implementation": "new",
+        "stderr": null,
+        "stdout": "HDR probe kind=0 encoded=0 error=3\n"
+      },
+      {
+        "exitCode": 0,
+        "probeKind": 1,
+        "implementation": "new",
+        "stderr": null,
+        "stdout": "HDR probe kind=1 encoded=0 error=3\n"
+      },
+      {
+        "exitCode": 0,
+        "probeKind": 2,
+        "implementation": "new",
+        "stderr": null,
+        "stdout": "HDR probe kind=2 encoded=0 error=3\n"
+      },
+      {
+        "exitCode": 0,
+        "probeKind": 3,
+        "implementation": "new",
+        "stderr": null,
+        "stdout": "HDR probe kind=3 encoded=0 error=4\n"
+      }
+    ],
+    "toolsBefore": [
+      "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc",
+      "30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1",
+      "52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41  /usr/bin/python3",
+      "3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash"
+    ],
+    "exitCode": 0,
+    "frozenFileCount": 68,
+    "bootBefore": "ee48ac50-e375-47f3-8299-d8d796dfc4c2",
+    "toolsUnchanged": true,
+    "postGateChangeReason": "Only README/examples README/site descriptions after snapshot",
+    "frozenFiles": {
+      "release/extlibs/stb_image_write/test/test_stb_image_write.c": "f81e250078311f7473d10a4be13316be0d77fea8adf2b5d822073ff1a6210fdd",
+      "release/include/xl_clock.h": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18",
+      "release/extlibs/stb_image/test/boundaries.xl": "28b750341b7350d472c442e0df2e53b2e97614035bd87aded70da2c2b204e45a",
+      "release/examples/extlibs/stb_image_write.xl": "4d361606aa41068ea199e4900e0d10b293b0700a342966716c35b4cef967ec70",
+      "release/examples/extlibs/assets/tiny.png": "9c2fcfbb97b34614052be075a8bd4d1e626412dc87db62356aa8e7bd7887ef4a",
+      "release/extlibs/stb_image_write/test/test_hdr_values.c": "8cd64de748ad2fa93d08d333c9abd1c635f1512f5ab0f6158814f5fcace5ebf0",
+      "release/extlibs/stb_image_write/src/stb_image_write.xl": "e120010446f81389ef27a69b204499f6d57fef3d580d5db69bbbec20bfa48255",
+      "release/extlibs/stb_image/README.md": "6f06912ce622e2e593b0d4fce9c84efa1f112ff6243f7abc91e4b8e005715f0c",
+      "release/extlibs/stb_image/test/allocations.xl": "a36a29831ad784487c83b6cd961d0b9d8d6cf0245e579048e38f5dcc6a3f21ef",
+      "release/extlibs/stb_image/stb_image_native.c": "e9f70fdc80d356afd7da86be2930c9550d386e7223108c3bbbe138587f8323d0",
+      "release/extlibs/stb_image/src/stb_image.xl": "3a3b6b3da5305a20ab2ddbeb3ec9249a2301a41cbd8cd9972377e12c42273e48",
+      "release/extlibs/stb_image/test/test_stb_image.c": "8f6b4efe2709e894bf35097c8c91982be18039d4c6a18fe43390f1dabc6c4afe",
+      "release/include/xl_extlib_abi.h": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445",
+      "release/include/xl_runtime.h": "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2",
+      "release/extlibs/stb_image/include/stb_image_native.h": "129dcbbc4962dd779671e5ec37e89b46b064c3a7a762061f1f7e15e6cde32960",
+      "lib/xruntime/xruntime_features.h": "393626877d28fa626e7b1ff5c17bd81c6e45a2d0cd9063d06567a3fbd9919bf9",
+      "release/extlibs/stb_image_write/test/hdr_values.xl": "9e0c364840cd1f4f229e2815f89c26685f191f28dc35017c269b973380b8cb71",
+      "release/extlibs/stb_image_write/test/check_hdr_corpus.py": "4ea6821a73dc47996a5ab848c731a45d22541fbc90385fa2e012362e719a630e",
+      "release/extlibs/stb_image/test/check.ps1": "c1fe08c7001496744608e14f34421404e3baa8df36a50e71b2881a14c1372d33",
+      "lib/xrt/xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+      "release/include/xrt_decl.h": "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d",
+      "release/extlibs/stb_image_write/third_party/stb_image_write.h": "ca18ec9b6fda667ccc6e8da5f370be138341ed11edc221f88b78fa5fe149d712",
+      "release/extlibs/stb_image/test/check.sh": "120a8474c7405721f29434355c4b9dbc58fea3affd2bb95b0568f7914be2665c",
+      "release/extlibs/stb_image_write/test/check.ps1": "e7e55bd3d62724226f49e63c7481a04fc36190129e661b71c59b0a2a44952466",
+      "release/include/xl_sync_retirement.h": "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e",
+      "release/extlibs/stb_image_write/stb_image_write_native.c": "641ad34349943de854689ecf9cb274ba6added961e9c8c3ec16c6f99accfc860",
+      "release/include/xl.h": "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4",
+      "release/include/xruntime_decl.h": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+      "release/extlibs/stb_image/third_party/stb_image.h": "1f8c1b6b408f26e3b20cbfbbd4758afb3dc9b837ff1e17c258928f406148a87c",
+      "release/extlibs/stb_image_write/test/check.sh": "9632b0ba453ac9a81f95e4af46fd409e76c40f87c6daeb47796fd98d7048c788",
+      "release/extlibs/stb_image_write/test/bmp_headers.xl": "3cf07f1f23a88f340f97432985414f555c2fb6f64dda560750a3c3bec152da1a",
+      "release/extlibs/stb_image_write/test/output_limit.xl": "f7cb6c17fef9fa514bfe33be4f7e967f52d3dd446ee7cc95561575bb064df667",
+      "release/libxlc.so": "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386",
+      "release/include/xl_foreign_graph.h": "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f",
+      "release/extlibs/stb_image_write/test/test_bmp_budget.c": "4f68e5dd9820e9af1a5fe4c0e27d9eef55e189eef52060537f1bfa154257ccb9",
+      "release/extlibs/stb_image_write/test/allocations.xl": "1334c9b509af0576d31c0d787bbea1789b86691bfeb35264d4aded67cb4e2445",
+      "release/include/tcc_builtin_vfs.h": "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2",
+      "release/extlibs/stb_image_write/LICENSE.stb.txt": "59d82eeffeb999ca90e7d3c0f67dfc91aa30da22d2097ba20af9e6f5d9d3aeb8",
+      "release/extlibs/stb_image/test/private_native_status_negative.xl": "ecac0df719e8ddffce261c70dd0cc3877d74c530119cfc747425200bb05c741d",
+      "release/extlibs/stb_image_write/examples/bmp_layout_c.c": "a2c6e6e2f740e05ec62e19f333be054c039be3e82c22a52c49cb74c1c9805d20",
+      "release/include/README.md": "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770",
+      "release/extlibs/stb_image/xlang.package.json": "01d9b806aaa408cc5192b241dc1500e374ae8e2de458886d0a42c960a72d7a6a",
+      "release/examples/extlibs/stb_image_write_c.c": "165c235c7dbd3c6c0a567225f039d26c7f43c8404b5dca048cd17d49162b2f5c",
+      "release/extlibs/stb_image_write/examples/README.md": "2c2df5e5ee54d76d9db5fc5b54faf74b2cfedaba34f15185cb72fae31fb1fca3",
+      "release/extlibs/stb_image_write/README.md": "24ccffdd73bd3b0349e3e9b75e6e23a29d9b029d0d4925b73c58a8fae37f9110",
+      "release/extlibs/stb_image_write/test/benchmark_hdr.c": "03c76a64a0abd9ab85a57f49422044ab05ada86d3db42761aaa99292d4157736",
+      "release/extlibs/stb_image/test/test_stb_image_threads.c": "7b137c5a499fd3587364806a639520f716d694da482e09cccb4e3264c544a29c",
+      "release/include/xl_foreign_net.h": "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a",
+      "release/extlibs/stb_image_write/test/xrt_runtime.c": "152349a7e36da9892b98207a25e9f421fd3ba121f20c4580201913a984224444",
+      "release/extlibs/stb_image_write/examples/hdr_values.xl": "0796a32f967c3b829415ab9294c5b5556fb918cecb6129d619c937b51e581c4f",
+      "release/extlibs/stb_image/test/private_adopt_constructor_negative.xl": "8cf20a71a42087c36e30e7a52a126adc2e61244fc316fe622301418fe5188a48",
+      "release/extlibs/stb_image/docs/site.html": "3eea45a42fdaa23d44d841aa8a99adc531626e354db4446f0bfd28d091d32311",
+      "test/cases/extlib_stb_image_write.xl": "84d6e6a7a48f2dbbec1cc81e4ebe9712165ef832cdc308abe54ba4db8586356d",
+      "release/include/xl_cancellation_retirement.h": "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad",
+      "release/include/xl_package.h": "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1",
+      "release/extlibs/stb_image_write/test/boundaries.xl": "88fac6e830074e09a80126b8ec0938ffba856c5494568cb9bf6d0e2c4e51fea7",
+      "release/extlibs/stb_image_write/examples/bmp_layout.xl": "4065df636589da5e1ab27407769a52995b65cc36e4ce5d8d8df2b6c0a1d602c3",
+      "release/extlibs/stb_image_write/docs/site.html": "b9ca296a31ee41834cf4cdb12ed120a8f5fefe595fdb7e4204d89d5a1ed61997",
+      "release/extlibs/stb_image_write/examples/hdr_values_c.c": "ce2bc260cab17cff58a758d924a1b66a57139794bcc66ac8326519ed12f1e3db",
+      "release/include/xl_version.h": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992",
+      "release/libxl.so": "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad",
+      "release/extlibs/stb_image_write/include/stb_image_write_native.h": "82a07a13009b2cd289ed9c1a2596f7fd002347b3ad079b7cd81ffc78bacaadcf",
+      "release/include/xlc.h": "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f",
+      "release/xl": "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb",
+      "release/include/libtcc.h": "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab",
+      "release/extlibs/stb_image_write/xlang.package.json": "c204ded2cc035ff7a7a34ac41bed08a2dbc114b073808677d354bf3921846ee9",
+      "lib/xruntime/xruntime.h": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+      "release/extlibs/stb_image/LICENSE.stb.txt": "5eee3662c16311409a4dcbfbd4e2fc58a4f8cd76778baf2576bfde4acec8314e"
+    },
+    "sourcesUnchanged": true,
+    "stdout": {
+      "path": "build/test/stbiw_hdr_20261102/linux.stdout",
+      "bytes": 893,
+      "sha256": "c642ce3189067f44d0a1611f67fdee6474ccf10b4a956bc10730a8c23d3ab881"
+    },
+    "trace": {
+      "path": "build/test/stbiw_hdr_20261102/linux/trace.txt",
+      "bytes": 19972,
+      "sha256": "95cac4e459a1f12c8ac86dece2c01beff5228e2d52049f492cde8706146005ad"
+    },
+    "bootAfter": "ee48ac50-e375-47f3-8299-d8d796dfc4c2",
+    "sanitizers": [
+      "ASan",
+      "UBSan",
+      "float-cast-overflow explicitly enabled",
+      "leak detection"
+    ],
+    "toolsAfter": [
+      "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc",
+      "30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1",
+      "52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41  /usr/bin/python3",
+      "3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash"
+    ],
+    "stderr": {
+      "path": "build/test/stbiw_hdr_20261102/linux.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "postGateChanges": [
+      "release/extlibs/stb_image_write/examples/README.md",
+      "release/extlibs/stb_image_write/README.md",
+      "release/extlibs/stb_image_write/docs/site.html"
+    ],
+    "snapshot": "/var/tmp/xlang-stbiw-hdr-ReUD1d91"
+  },
+  "invalidInitialLinuxAttempt": {
+    "sessionHandle": 48849,
+    "cause": "unknown; do not attribute to encoder or count as passing/failing tests",
+    "sessionExit": 1,
+    "observation": "No test process remained; stage release/xl, copied old native/probe, input/tool fingerprints and outputs were zero bytes after WSL reboot",
+    "validAcceptance": false,
+    "lateObservedBootId": "ee48ac50-e375-47f3-8299-d8d796dfc4c2",
+    "bootBeforeCaptured": false,
+    "nativeSnapshot": "/var/tmp/xlang-stbiw-hdr-98e7rprr"
+  },
+  "independentValues": {
+    "encodings": [
+      "flat",
+      "scanline RLE"
+    ],
+    "damagedCorpusControls": 3,
+    "passes": [
+      {
+        "label": "independent HDR decoder",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "release/extlibs/stb_image_write/test/check_hdr_corpus.py",
+          "D:\\GIT\\x-lang\\build\\test\\stb_write_guard_9948ec4faf614189a8d216ee97405b91\\hdr_corpus"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR independent RGBE values: 96 files, 3 rejection controls PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 92
+        }
+      }
+    ],
+    "validFiles": 96,
+    "source": {
+      "path": "release/extlibs/stb_image_write/test/check_hdr_corpus.py",
+      "bytes": 3732,
+      "sha256": "4ea6821a73dc47996a5ab848c731a45d22541fbc90385fa2e012362e719a630e"
+    },
+    "expectedData": "float32 values, black cutoff below 1e-32, otherwise RGBE quantization tolerance 1/128",
+    "notAFullRadianceDecoderConformanceClaim": true
+  },
+  "examples": {
+    "productionAdvice": "stb_image.loadf(...).pixels() supplies native float32 bytes",
+    "defaultCreatesNoFiles": true,
+    "xlang": {
+      "path": "release/extlibs/stb_image_write/examples/hdr_values.xl",
+      "bytes": 888,
+      "sha256": "0796a32f967c3b829415ab9294c5b5556fb918cecb6129d619c937b51e581c4f"
+    },
+    "exampleHexUsesCurrentLittleEndianX64Float32": true,
+    "fiveExecutionFormsAndFileBytesAgree": true,
+    "golden": [
+      "gray HDR: 8x1",
+      "values above one: true",
+      "invalid color: rejected",
+      "source unchanged: true"
+    ],
+    "c": {
+      "path": "release/extlibs/stb_image_write/examples/hdr_values_c.c",
+      "bytes": 1028,
+      "sha256": "ce2bc260cab17cff58a758d924a1b66a57139794bcc66ac8326519ed12f1e3db"
+    },
+    "optionalFilenameUsesPublicAtomicWrite": true
+  },
+  "benchmark": {
+    "scope": "Full process including XRT/CRT initialization, preparing 12 MiB float32 data, four 1024x1024 RGB HDR encodes and hashing each result",
+    "allOutputHash": "3426901515081677858",
+    "deltaPercent": {
+      "linux": 17.55519029029946,
+      "windows": 12.658227848101266
+    },
+    "wholeWorkloadGuarantee": false,
+    "linux": [
+      {
+        "kind": "old",
+        "round": 1,
+        "elapsedMs": 62.449501,
+        "exit": 0,
+        "stdout": "HDR benchmark: 307037 bytes, hash=3426901515081677858\n",
+        "stderr": ""
+      },
+      {
+        "kind": "new",
+        "round": 1,
+        "elapsedMs": 70.442202,
+        "exit": 0,
+        "stdout": "HDR benchmark: 307037 bytes, hash=3426901515081677858\n",
+        "stderr": ""
+      },
+      {
+        "kind": "old",
+        "round": 2,
+        "elapsedMs": 59.548201,
+        "exit": 0,
+        "stdout": "HDR benchmark: 307037 bytes, hash=3426901515081677858\n",
+        "stderr": ""
+      },
+      {
+        "kind": "new",
+        "round": 2,
+        "elapsedMs": 70.002001,
+        "exit": 0,
+        "stdout": "HDR benchmark: 307037 bytes, hash=3426901515081677858\n",
+        "stderr": ""
+      },
+      {
+        "kind": "old",
+        "round": 3,
+        "elapsedMs": 56.929001,
+        "exit": 0,
+        "stdout": "HDR benchmark: 307037 bytes, hash=3426901515081677858\n",
+        "stderr": ""
+      },
+      {
+        "kind": "new",
+        "round": 3,
+        "elapsedMs": 63.193702,
+        "exit": 0,
+        "stdout": "HDR benchmark: 307037 bytes, hash=3426901515081677858\n",
+        "stderr": ""
+      }
+    ],
+    "windows": [
+      {
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-DXRT_IMPLEMENTATION",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/stb_image_write",
+          "-DXSTBIW_TEST_NATIVE=\"D:/GIT/x-lang/build/test/stbiw_hdr_20261102/before_native.c\"",
+          "release/extlibs/stb_image_write/test/benchmark_hdr.c",
+          "-o",
+          "D:/GIT/x-lang/build/test/stbiw_hdr_20261102/bench-old.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "label": "old compile",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 5672
+        }
+      },
+      {
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-DXRT_IMPLEMENTATION",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/stb_image_write",
+          "release/extlibs/stb_image_write/test/benchmark_hdr.c",
+          "-o",
+          "D:/GIT/x-lang/build/test/stbiw_hdr_20261102/bench-new.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "label": "new compile",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 5811
+        }
+      },
+      {
+        "round": 1,
+        "label": "old run",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR benchmark: 307037 bytes, hash=3426901515081677858\r\n",
+          "stderr": "",
+          "elapsedMs": 83
+        }
+      },
+      {
+        "round": 1,
+        "label": "new run",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR benchmark: 307037 bytes, hash=3426901515081677858\r\n",
+          "stderr": "",
+          "elapsedMs": 101
+        }
+      },
+      {
+        "round": 2,
+        "label": "old run",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR benchmark: 307037 bytes, hash=3426901515081677858\r\n",
+          "stderr": "",
+          "elapsedMs": 69
+        }
+      },
+      {
+        "round": 2,
+        "label": "new run",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR benchmark: 307037 bytes, hash=3426901515081677858\r\n",
+          "stderr": "",
+          "elapsedMs": 89
+        }
+      },
+      {
+        "round": 3,
+        "label": "old run",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR benchmark: 307037 bytes, hash=3426901515081677858\r\n",
+          "stderr": "",
+          "elapsedMs": 79
+        }
+      },
+      {
+        "round": 3,
+        "label": "new run",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HDR benchmark: 307037 bytes, hash=3426901515081677858\r\n",
+          "stderr": "",
+          "elapsedMs": 87
+        }
+      }
+    ],
+    "source": {
+      "path": "release/extlibs/stb_image_write/test/benchmark_hdr.c",
+      "bytes": 972,
+      "sha256": "03c76a64a0abd9ab85a57f49422044ab05ada86d3db42761aaa99292d4157736"
+    },
+    "medianMilliseconds": {
+      "linuxNew": 70.002001,
+      "windowsNew": 89,
+      "windowsOld": 79,
+      "linuxOld": 59.548201
+    },
+    "allBytesSize": 307037,
+    "noTimingThresholdInDefaultGate": true,
+    "zeroOverheadClaim": false,
+    "roundsPerImplementation": 3
+  },
+  "codeSize": {
+    "oldText": 24296,
+    "data": 64,
+    "scope": "GCC-O2 COFF native object, not linked executable",
+    "bss": 16,
+    "receipt": [
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 629
+        },
+        "label": "old"
+      },
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 631
+        },
+        "label": "new"
+      },
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n  24296\t     64\t     16\t  24376\t   5f38\tD:/GIT/x-lang/build/test/stbiw_hdr_20261102/old.o\r\n  24712\t     64\t     16\t  24792\t   60d8\tD:/GIT/x-lang/build/test/stbiw_hdr_20261102/new.o\r\n",
+          "stderr": "",
+          "elapsedMs": 30
+        },
+        "label": "size"
+      }
+    ],
+    "dataBssUnchanged": true,
+    "newText": 24712,
+    "deltaText": 416
+  },
+  "dependencyM3": {
+    "notExecuted": true,
+    "required": "check must reject",
+    "actual": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "ok\n",
+      "stderr": "",
+      "elapsedMs": 68
+    },
+    "source": {
+      "path": "release/extlibs/stb_image/test/private_adopt_constructor_negative.xl",
+      "bytes": 138,
+      "sha256": "8cf20a71a42087c36e30e7a52a126adc2e61244fc316fe622301418fe5188a48"
+    },
+    "closed": false
+  },
+  "ideCatalog": {
+    "freshness": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "IDE extension catalog is stale; refresh_extensions.py is required. Changed inputs: src/ir/xl6_ir.h\r\n",
+      "elapsedMs": 1005
+    },
+    "generationReport": {
+      "status": "passed",
+      "catalogSha256": "33769aa375ee9824d0d35a0edd6f0a42669305e6fb11bf0314c29141fc2d6934",
+      "sourceIndexSha256": "a988c62876b9aaa5ae0cebbc70b3ff2d9a9333d144f8ef2c0aa3dc6076c3e331",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42",
+      "inputsUnchanged": true
+    },
+    "installed": false,
+    "strictBinding": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "Catalog compiler changed: xl.dll\r\n",
+      "elapsedMs": 316
+    },
+    "reason": "Parallel src/ir/xl6_ir.h changed after generation; xl.dll release binding also fails",
+    "sourceAndReplayCommandsCommitted": true,
+    "generation": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"passed\", \"catalogSha256\": \"33769aa375ee9824d0d35a0edd6f0a42669305e6fb11bf0314c29141fc2d6934\", \"sourceIndexSha256\": \"a988c62876b9aaa5ae0cebbc70b3ff2d9a9333d144f8ef2c0aa3dc6076c3e331\", \"preservedNonExtensionEntries\": 6156, \"publicPackages\": 207, \"excludedPrivate\": [\"_bzip2\", \"_expat\", \"_libzip\", \"_tomlc17\", \"_xge_native\", \"_zlib\"], \"extensionEntries\": 11442, \"addedEntries\": 0, \"removedEntries\": 0, \"documents\": 145, \"availableSources\": 593, \"extensionExporterSha256\": \"5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42\", \"inputsUnchanged\": true}\r\n",
+      "stderr": "",
+      "elapsedMs": 11856
+    }
+  },
+  "website": {
+    "preview": {
+      "path": "build/test/stbiw_hdr_20261102/site/extlibs/stb_image_write.html",
+      "bytes": 6201,
+      "sha256": "222e4b97a9fa980e16277a171421e92571c0edc8f5157714dd0db2b104045ee4"
+    },
+    "source": {
+      "path": "release/extlibs/stb_image_write/docs/site.html",
+      "bytes": 6201,
+      "sha256": "222e4b97a9fa980e16277a171421e92571c0edc8f5157714dd0db2b104045ee4"
+    },
+    "externalDeployment": false
+  },
+  "deliveryByteAudit": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+    "stderr": "",
+    "elapsedMs": 1213
+  },
+  "packageFiles": [
+    {
+      "path": "release/extlibs/stb_image_write/LICENSE.stb.txt",
+      "bytes": 250,
+      "sha256": "59d82eeffeb999ca90e7d3c0f67dfc91aa30da22d2097ba20af9e6f5d9d3aeb8"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/README.md",
+      "bytes": 16477,
+      "sha256": "a81c96052d591ef2825f2f3f32de84632aee4b2bf7dc4ae5d1e0a42bf7f03c65"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/stb_image_write_native.c",
+      "bytes": 8555,
+      "sha256": "641ad34349943de854689ecf9cb274ba6added961e9c8c3ec16c6f99accfc860"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/xlang.package.json",
+      "bytes": 1171,
+      "sha256": "c204ded2cc035ff7a7a34ac41bed08a2dbc114b073808677d354bf3921846ee9"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/docs/site.html",
+      "bytes": 6201,
+      "sha256": "222e4b97a9fa980e16277a171421e92571c0edc8f5157714dd0db2b104045ee4"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/examples/bmp_layout_c.c",
+      "bytes": 1153,
+      "sha256": "a2c6e6e2f740e05ec62e19f333be054c039be3e82c22a52c49cb74c1c9805d20"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/examples/bmp_layout.xl",
+      "bytes": 968,
+      "sha256": "4065df636589da5e1ab27407769a52995b65cc36e4ce5d8d8df2b6c0a1d602c3"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/examples/hdr_values_c.c",
+      "bytes": 1028,
+      "sha256": "ce2bc260cab17cff58a758d924a1b66a57139794bcc66ac8326519ed12f1e3db"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/examples/hdr_values.xl",
+      "bytes": 888,
+      "sha256": "0796a32f967c3b829415ab9294c5b5556fb918cecb6129d619c937b51e581c4f"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/examples/README.md",
+      "bytes": 2057,
+      "sha256": "98e60301b94269f029a98e317dca786af602f8900dda058c27f6838bdc7c02a2"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/include/stb_image_write_native.h",
+      "bytes": 1054,
+      "sha256": "82a07a13009b2cd289ed9c1a2596f7fd002347b3ad079b7cd81ffc78bacaadcf"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/src/stb_image_write.xl",
+      "bytes": 3799,
+      "sha256": "e120010446f81389ef27a69b204499f6d57fef3d580d5db69bbbec20bfa48255"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/test/allocations.xl",
+      "bytes": 1875,
+      "sha256": "1334c9b509af0576d31c0d787bbea1789b86691bfeb35264d4aded67cb4e2445"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/test/benchmark_hdr.c",
+      "bytes": 972,
+      "sha256": "03c76a64a0abd9ab85a57f49422044ab05ada86d3db42761aaa99292d4157736"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/test/bmp_headers.xl",
+      "bytes": 1234,
+      "sha256": "3cf07f1f23a88f340f97432985414f555c2fb6f64dda560750a3c3bec152da1a"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/test/boundaries.xl",
+      "bytes": 2501,
+      "sha256": "88fac6e830074e09a80126b8ec0938ffba856c5494568cb9bf6d0e2c4e51fea7"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/test/check_hdr_corpus.py",
+      "bytes": 3732,
+      "sha256": "4ea6821a73dc47996a5ab848c731a45d22541fbc90385fa2e012362e719a630e"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/test/check.ps1",
+      "bytes": 12996,
+      "sha256": "e7e55bd3d62724226f49e63c7481a04fc36190129e661b71c59b0a2a44952466"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/test/check.sh",
+      "bytes": 6753,
+      "sha256": "9632b0ba453ac9a81f95e4af46fd409e76c40f87c6daeb47796fd98d7048c788"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/test/hdr_values.xl",
+      "bytes": 1735,
+      "sha256": "9e0c364840cd1f4f229e2815f89c26685f191f28dc35017c269b973380b8cb71"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/test/output_limit.xl",
+      "bytes": 682,
+      "sha256": "f7cb6c17fef9fa514bfe33be4f7e967f52d3dd446ee7cc95561575bb064df667"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/test/test_bmp_budget.c",
+      "bytes": 6526,
+      "sha256": "4f68e5dd9820e9af1a5fe4c0e27d9eef55e189eef52060537f1bfa154257ccb9"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/test/test_hdr_values.c",
+      "bytes": 8799,
+      "sha256": "8cd64de748ad2fa93d08d333c9abd1c635f1512f5ab0f6158814f5fcace5ebf0"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/test/test_stb_image_write.c",
+      "bytes": 6490,
+      "sha256": "f81e250078311f7473d10a4be13316be0d77fea8adf2b5d822073ff1a6210fdd"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/test/xrt_runtime.c",
+      "bytes": 67,
+      "sha256": "152349a7e36da9892b98207a25e9f421fd3ba121f20c4580201913a984224444"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/third_party/stb_image_write.h",
+      "bytes": 73073,
+      "sha256": "ca18ec9b6fda667ccc6e8da5f370be138341ed11edc221f88b78fa5fe149d712"
+    }
+  ],
+  "replay": {
+    "focusedC": "xl run release/extlibs/stb_image_write/test/test_hdr_values.c",
+    "focusedXL": "xl run release/extlibs/stb_image_write/test/hdr_values.xl",
+    "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_image_write/test/check.ps1",
+    "linux": "bash release/extlibs/stb_image_write/test/check.sh",
+    "catalog": "python -B -X utf8 ide/tools/refresh_extensions.py --root D:/GIT/x-lang --output build/test/<new-candidate> --gcc E:/software/w64devkit/bin/gcc.exe",
+    "benchmark": "gcc -O2 -DXRT_IMPLEMENTATION -Ilib/xrt release/extlibs/stb_image_write/test/benchmark_hdr.c; use -DXSTBIW_TEST_NATIVE=\"absolute/before_native.c\" plus -Irelease/extlibs/stb_image_write for old control; link platform XRT system libraries"
+  },
+  "limitations": [
+    "Dependency private constructor semantics remain open",
+    "Strict IDE source freshness and release binding not passed",
+    "First WSL interruption has unknown cause and is not acceptance",
+    "Only current Windows/Linux x64 qualification; no 32-bit, big-endian, FP trap-mode or TSan claim",
+    "One additional HDR source scan has measured cost",
+    "100-package long-term objective not complete"
+  ],
+  "formalRelease": false
+}
