@@ -74,7 +74,8 @@ done
 timeout 60s "$cc" "${flags[@]}" -Werror -fsyntax-only -DXRT_MODULE_FILE_TEMP \
     release/extlibs/_libzip/platform/zip_source_file_xrt.c
 timeout 60s "$cc" "${flags[@]}" -Werror -fsyntax-only \
-    release/extlibs/zip/test/test_commit_memory.c release/extlibs/zip/examples/memory_roundtrip_c.c
+    release/extlibs/zip/test/test_commit_memory.c release/extlibs/zip/test/test_extract_memory.c \
+    release/extlibs/zip/examples/memory_roundtrip_c.c release/extlibs/zip/examples/extract_files_c.c
 timeout 240s "$cc" "${flags[@]}" -c release/extlibs/zip/test/xrt_runtime.c -o "$work/runtime.o"
 objects=("$work/runtime.o")
 index=0
@@ -87,11 +88,15 @@ for source in "${sources[@]}"; do
     objects+=("$object")
     index=$((index + 1))
 done
-for name in test_zip test_commit_memory; do
+for name in test_zip test_commit_memory test_extract_memory; do
     timeout 90s "$cc" "${flags[@]}" -Werror "release/extlibs/zip/test/$name.c" \
         "${objects[@]}" "${links[@]}" -o "$work/$name"
     timeout 120s "$work/$name"
 done
+timeout 90s "$cc" "${flags[@]}" -Werror release/extlibs/zip/examples/extract_files_c.c \
+    "${objects[@]}" "${links[@]}" -o "$work/extract_gcc"
+timeout 60s "$work/extract_gcc" > "$work/extract_gcc.txt"
+diff -u <(sed 's/\r$//' release/extlibs/zip/examples/extract_files.expected.txt) "$work/extract_gcc.txt"
 timeout 90s "$cc" "${flags[@]}" -Werror release/extlibs/zip/test/interop.c \
     "${objects[@]}" "${links[@]}" -o "$work/interop"
 XL_ZIP_INTEROP_RUNNER="$work/interop" timeout 120s python3 -I release/extlibs/zip/test/interop.py
@@ -122,8 +127,11 @@ reject() {
     if [[ -n "$symbol" ]]; then grep -Fq "$symbol" "$work/$name.txt"; fi
 }
 run_xl run release/extlibs/zip/test/test_commit_memory.c "${cargs[@]}"
+run_xl run release/extlibs/zip/test/test_extract_memory.c "${cargs[@]}"
 run_xl run release/extlibs/zip/test/commit_memory.xl > "$work/commit.txt"
 diff -u <(printf 'zip commit MemoryError/retry: PASS\n') "$work/commit.txt"
+run_xl run release/extlibs/zip/test/extract_memory.xl > "$work/extract_memory.txt"
+diff -u <(printf 'zip extraction MemoryError/retry: PASS\n') "$work/extract_memory.txt"
 run_xl run release/extlibs/zip/test/text_transfer.xl > "$work/text.txt"
 test ! -s "$work/text.txt"
 run_xl run release/extlibs/zip/test/boundaries.xl > "$work/boundaries.txt"
@@ -165,17 +173,23 @@ for kind in c xl; do
     fi
     diff -u "$work/memory.txt" "$work/${kind}jit.txt"
     python3 -I release/extlibs/zip/test/check_memory_wire.py "$work/${kind}jit.zip"
+    source=release/extlibs/zip/examples/extract_files.xl
+    arguments=()
+    if [[ "$kind" == c ]]; then source=release/extlibs/zip/examples/extract_files_c.c; arguments=("${cargs[@]}"); fi
+    run_xl run "$source" "${arguments[@]}" > "$work/extract_${kind}jit.txt"
+    diff -u "$work/extract_gcc.txt" "$work/extract_${kind}jit.txt"
 done
 run_xl run release/examples/extlibs/zip.xl > "$work/original_xl.txt"
 diff -u "$work/original.txt" "$work/original_xl.txt"
 
-for name in aot_core text_transfer boundaries commit_memory; do
+for name in aot_core text_transfer boundaries commit_memory extract_memory; do
     run_xl build "release/extlibs/zip/test/$name.xl" -o "$work/$name"
     timeout 60s "$work/$name" > "$work/$name.aot.txt"
     case "$name" in
         aot_core|text_transfer) test ! -s "$work/$name.aot.txt" ;;
         boundaries) diff -u "$work/boundaries.txt" "$work/$name.aot.txt" ;;
         commit_memory) diff -u "$work/commit.txt" "$work/$name.aot.txt" ;;
+        extract_memory) diff -u "$work/extract_memory.txt" "$work/$name.aot.txt" ;;
     esac
 done
 run_xl build release/examples/extlibs/zip.xl -o "$work/original_xl"
@@ -186,6 +200,8 @@ timeout 60s "$work/original_c_aot" > "$work/original_c.aot.txt"
 diff -u "$work/original.txt" "$work/original_c.aot.txt"
 run_xl build release/extlibs/zip/test/test_commit_memory.c "${cargs[@]}" -o "$work/commit_c"
 timeout 60s "$work/commit_c"
+run_xl build release/extlibs/zip/test/test_extract_memory.c "${cargs[@]}" -o "$work/extract_memory_c"
+timeout 120s "$work/extract_memory_c"
 for kind in c xl; do
     arguments=()
     source=release/extlibs/zip/examples/memory_roundtrip.xl
@@ -194,8 +210,14 @@ for kind in c xl; do
     timeout 60s "$work/memory_$kind" "$work/$kind.aot.zip" > "$work/$kind.aot.txt"
     diff -u "$work/memory.txt" "$work/$kind.aot.txt"
     python3 -I release/extlibs/zip/test/check_memory_wire.py "$work/$kind.aot.zip"
+    source=release/extlibs/zip/examples/extract_files.xl
+    arguments=()
+    if [[ "$kind" == c ]]; then source=release/extlibs/zip/examples/extract_files_c.c; arguments=("${cargs[@]}"); fi
+    run_xl build "$source" "${arguments[@]}" -o "$work/extract_$kind"
+    timeout 60s "$work/extract_$kind" > "$work/extract_$kind.aot.txt"
+    diff -u "$work/extract_gcc.txt" "$work/extract_$kind.aot.txt"
 done
-printf '[zip] runtime/ABI/interop and nine ordinary AOT paths: PASS\n'
+printf '[zip] runtime/ABI/interop and thirteen ordinary AOT paths: PASS\n'
 # 后续独立边界收集完整原始退出码，不把主线失败改成预期成功。
 failed=0
 status=0

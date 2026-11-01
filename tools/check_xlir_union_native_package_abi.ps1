@@ -35,7 +35,7 @@ try {
     if ( $unionTypes.Count -ne 1 -or $unionTypes[0].cName -ne $typeName ) {
         throw "XLIR does not own the exact native union package C ABI name"
     }
-    $fieldCNames = @($ir.unionFields | ForEach-Object { $_.cName })
+    $fieldCNames = @($ir.aggregateFields | ForEach-Object { $_.cName })
     if ( $fieldCNames.Count -ne 2 -or $fieldCNames[0] -ne "i" -or
          $fieldCNames[1] -ne "d" ) {
         throw "XLIR does not own the exact native union field C ABI names"

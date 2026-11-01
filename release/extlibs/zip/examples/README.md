@@ -5,6 +5,21 @@
 libzip 与 zlib 源，不额外编译一份宿主 XRT。Linux sanitizer 门禁另需
 GCC、Python 3。Python 只使用标准库。
 
+## 文件解压与覆盖约束
+
+`extract_files.xl` / `extract_files_c.c` 创建目录和 UTF-8 文件条目，解压到
+本例排他创建的临时目录，逐字节核对正文；修改文件后确认默认不覆盖，
+再显式覆盖并读取验证，退出清理自己的目录。不能用该示例证明不可信
+并发目录的安全解压，路径式提交的 RFS 风险仍在。
+
+```powershell
+release/xl.exe run release/extlibs/zip/examples/extract_files.xl
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package zip -Source release/extlibs/zip/examples/extract_files_c.c
+```
+
+两端输出均为 `extract_files.expected.txt` 的四行。独立 C 程序与下方
+内存范例使用相同的 `c_aot_import.xl` 混编入口，不新增构建方式。
+
 ## 大正文的内存往返
 
 `memory_roundtrip.xl` 与 `memory_roundtrip_c.c` 使用相同的 131072 个

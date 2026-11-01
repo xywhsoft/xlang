@@ -68,7 +68,7 @@ def main():
      wrapper=signature+'\n{\n'+(' if(!q)return;\n' if nullable else '')+' xlsLifecycleBegin();double start=xrtTimer();\n '+invoke+'\n xlsLifecycleAdd('+str(slot(label))+',start);xlsLifecycleEmit("'+group+'");\n'+(' return profileResult;\n' if result!='void' else '')+'}\n'
      return source.replace(body,renamed+'\n'+body[brace:]+'\n'+wrapper,1)
     try:
-     for name in ['check_session','frontend_entry_cache','syntax','check','language_snapshot','projection','worker','semantic_definition','language_check']:
+     for name in ['check_session','frontend_entry_cache','syntax','check','language_snapshot','projection','worker','semantic_definition','language_check','xl6_ir']:
       c=next(c for c in b['commands'] if '-c' in c and Path(c[c.index('-c')+1]).stem==name);p=Path(c[c.index('-c')+1]);copies[name]=p.read_text('utf8');assert b['inputs'][str(p)]==sha(p),p;rec['inputs'][str(p)]=sha(p)
      def session(body):
       body=body.replace('{','{\n    double lifecycleTotal=xrtTimer();',1)
@@ -89,6 +89,12 @@ def main():
       point='    if(r->accepted) r->phase="checked";';assert body.count(point)==1
       return body.replace(point,'    xlsLifecycleStep('+str(slot('body.ir-and-finish'))+',&lifecycleStage);\n'+point,1)
      copies['check']=edit(copies['check'],'createBody',check)
+     # Measure the actual raw builder and complete module passes separately.
+     # Only outer calls in the audited module-build function are wrapped;
+     # recursive builders and the original complete verifier keep their rules.
+     ir_build=function(copies['xl6_ir'],'xlsIrBuildModuleOriginal')
+     ir_names=set(re.findall(r'\b(xl6Ir(?:Build|Refresh|Intern|Normalize|TypePoolFinalize|VerifyModule)\w*)\s*\(',ir_build))
+     copies['xl6_ir']=edit(copies['xl6_ir'],'xlsIrBuildModuleOriginal',lambda body:calls(body,ir_names,'ir.',{'xl6IrBuildRuntimeTypeMap'}))
      def adapter(body):
       body=calls(body,{'nativeAnalysis','loadGraph','buildDiagnostics','buildNativeDiagnostics','xideSemanticDefinitionsAcquireTyped','validateGraph','xrtJsonRead','xrtJsonParse','xlsSemanticCheckValidate'},'adapter.')
       return body
@@ -108,7 +114,11 @@ def main():
       return body.replace(point,'XLS_LIFECYCLE_VOID('+str(slot('projection.valueDestroy'))+',p->destroy(p->value));',1)
      copies['projection']=edit(copies['projection'],'xlsProjectionRelease',release)
      def definitions(body):
-      point='if(d) {';assert body.count(point)==1;body=body.replace(point,point+'double lifecycleTotal=xrtTimer();',1)
+      # Both audited destructor forms have one non-null path. Keep the timer
+      # after its guard so a NULL no-op never contributes a retirement sample.
+      points=[point for point in ('if(d) {','if(!d)return;') if body.count(point)==1]
+      assert len(points)==1
+      point=points[0];body=body.replace(point,point+'\n double lifecycleTotal=xrtTimer();',1)
       point='free(d);';assert body.count(point)==1
       return body.replace(point,'xlsLifecycleAdd('+str(slot('navigation.destroy'))+',lifecycleTotal);'+point,1)
      copies['semantic_definition']=edit(copies['semantic_definition'],'xideSemanticDefinitionsDestroy',definitions)
@@ -134,15 +144,18 @@ void xlsLifecycleBegin(void);void xlsLifecycleAdd(size_t,double);void xlsLifecyc
     typedef struct{double ms;unsigned long long calls;} lifecycle_cell;
     static _Thread_local lifecycle_cell frames[8][128];
     static _Thread_local size_t depth;
+    /* OS thread IDs can be reused after a worker exits. A process-wide
+     * sequence distinguishes later lifetimes without allocating TLS records. */
+    static xatomic64 sequence;
     static const char* const labels[]={'''+','.join(json.dumps(x) for x in labels)+'''};
     void xlsLifecycleBegin(void){if(depth<8)memset(frames[depth],0,sizeof(frames[depth]));++depth;}
     void xlsLifecycleAdd(size_t at,double begin){if(depth && depth<=8 && at<128){lifecycle_cell* cell=&frames[depth-1][at];cell->ms+=(xrtTimer()-begin)*1000;++cell->calls;}}
     void xlsLifecycleStep(size_t at,double* begin){xlsLifecycleAdd(at,*begin);*begin=xrtTimer();}
     void xlsLifecycleEmit(const char* group){
-     char record[32768];size_t at=0;static _Thread_local unsigned long long sequence;
+     char record[32768];size_t at=0;
      if(!depth || depth>8){if(depth)--depth;fprintf(stderr,"XLS_LIFECYCLE_ERROR depth\\n");return;}
      const lifecycle_cell* cells=frames[--depth];
-     int written=snprintf(record,sizeof(record),"XLS_LIFECYCLE {\\"group\\":\\"%s\\",\\"thread\\":%llu,\\"sequence\\":%llu,\\"cells\\":{",group,(unsigned long long)xrtThreadCurrentId(),++sequence);
+     int written=snprintf(record,sizeof(record),"XLS_LIFECYCLE {\\"group\\":\\"%s\\",\\"thread\\":%llu,\\"sequence\\":%llu,\\"cells\\":{",group,(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtAtomic64FetchAdd(&sequence,1,XMEMORY_RELAXED)+1);
      if(written<0 || (size_t)written>=sizeof(record)){return;}
      at=(size_t)written;int comma=0;
      for(size_t i=0;i<sizeof(labels)/sizeof(*labels);++i)if(cells[i].calls){

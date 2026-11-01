@@ -1,0 +1,63 @@
+extern "foreign_decl_rect" struct Rect @header("test/cases/foreign_decl_record.h")
+    c_int x
+    c_int y
+    c_int width
+    c_int height
+end
+
+extern "const foreign_decl_rect*" class RectData @header("test/cases/foreign_decl_record.h") @lifetime("caller")
+    native point handle
+    extern "foreign_decl_rect_sum" @no_raise @nonblocking func sum(c_size count) as c_int
+end
+
+extern "foreign_decl_transform" struct Transform @header("test/cases/foreign_decl_record.h")
+    Rect bounds
+    c_double scale
+end
+
+extern "foreign_decl_shift" @no_raise @nonblocking func shift(Rect rect, c_int dx, c_int dy) as Rect
+extern "foreign_decl_scale" @no_raise @nonblocking func scale(Transform value, c_double factor) as Transform
+extern "foreign_decl_rect_area" @pure @no_raise @nonblocking func area(Rect rect) as c_int
+extern "foreign_decl_record_expect" @no_raise @nonblocking func expect(c_int actual, c_int expected)
+extern "foreign_decl_rect_data" @no_raise @nonblocking func data() as RectData
+
+func roundTrip(Rect value) as Rect
+    return shift(value, 2, 3)
+end
+
+func keepData(RectData value) as RectData
+    return value
+end
+
+func main(...) as int
+    Rect rect = Rect()
+    expect(rect.x, 0)
+    rect.x = 3
+    rect.y = 4
+    rect.width = 7
+    rect.height = 9
+    Rect copy = rect
+    copy.x = 12
+    expect(rect.x, 3)
+    expect(copy.x, 12)
+    Rect moved = roundTrip(rect)
+    expect(moved.x, 5)
+    expect(moved.y, 7)
+    expect(area(moved), 63)
+    expect(keepData(data()).sum(c_size(2)), 10)
+    var erased = rect
+    Rect restored = erased as Rect
+    expect(restored.x, 3)
+    array<Rect> values = [rect, moved]
+    expect(values[1].x, 5)
+    Rect? optional = rect
+    Rect? absent = null
+    assert optional != null and absent == null
+    Transform transform = Transform()
+    transform.bounds = rect
+    transform.scale = 1.5
+    Transform changed = scale(transform, 2.0)
+    assert changed.scale == 3.0 and transform.scale == 1.5
+    expect(changed.bounds.width, 7)
+    return 0
+end

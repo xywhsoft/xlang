@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import time
 from xrt_process_tree_overlay import derive as derive_process_runtime
+from native_current_unified_profile import COHORT as UNIFIED_COHORT, PINS as UNIFIED_PINS, CORPUS as UNIFIED_CORPUS
 from native_context_overlay import derive as derive_context_runtime
 from native_cancellation_overlay import ir_cancellation, semantic_cancellation
 from native_ir_memo_overlay import derive as derive_ir_memo
@@ -170,7 +171,8 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
     # Reuse depends on the checker's side effects and cross-declaration reads,
     # not just stable patch locations. Require an explicit audit on upgrades.
     audited = 'd4f19af32f1732126913b99717a6b1b2d38d92f343b60828786b62d2a7d8183a'
-    current = sha(original)=='407ca4e51cbc7889b535cbe591f7f823f59131cd179aa285073c034c6796e0b0'
+    unified = sha(original)==UNIFIED_PINS['src/sem/xl6_sem.c']
+    current = unified or sha(original)=='407ca4e51cbc7889b535cbe591f7f823f59131cd179aa285073c034c6796e0b0'
     if current:
         # Normal admission binds the audited reads, declaration effects and
         # registry records to their whole current include/SDK cohort. Private
@@ -178,7 +180,7 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
         if not _current_unit_probe:
             from native_current_semantic_profile import profile
             cohort_dependencies = profile(frontend)
-        audited = '407ca4e51cbc7889b535cbe591f7f823f59131cd179aa285073c034c6796e0b0'
+        audited = UNIFIED_PINS['src/sem/xl6_sem.c'] if unified else '407ca4e51cbc7889b535cbe591f7f823f59131cd179aa285073c034c6796e0b0'
     if hashlib.sha256(body).hexdigest() != audited:
         raise ValueError('shared semantic checker changed; audit memo context/identity/side-effect assumptions')
     registry = frontend / 'src/sem/xl6_type_registry.c'
@@ -228,7 +230,7 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
     old='static int xl6SemCheckExportSymbolUnique(XL6_SemContext* ctx, XL6_AstNode* node)\n{'
     if source.count(old)!=1:raise ValueError('semantic export visibility observation seam changed')
     source=source.replace(old,old+'\n    xlsSemReadsUnknown(ctx);')
-    type_queries = 71 if current else 62
+    type_queries = 72 if unified else 71 if current else 62
     if source.count('xl6TypeRegistryFind(')!=type_queries:
         raise ValueError('semantic type lookup calls changed; audit declaration read coverage')
     source=source.replace('xl6TypeRegistryFind(', 'xlsSemReadTypeFind(')
@@ -612,6 +614,8 @@ def main() -> None:
     args = parser.parse_args()
     tests = CORE_TESTS + (HOST_TESTS if args.server else ())
     frontend, output = args.frontend_root.resolve(), args.output.resolve()
+    unified = (frontend/'src/sem/xl6_sem.c').is_file() and sha(frontend/'src/sem/xl6_sem.c')==UNIFIED_PINS['src/sem/xl6_sem.c']
+    if unified and not args.skip_tests:tests=('analysis_unified_semantic_test',*tests)
     cc = Path(args.cc).resolve()
     if not cc.is_file():
         parser.error(f"C compiler does not exist: {cc}")
@@ -638,6 +642,17 @@ def main() -> None:
     if any(not path.is_file() for path, _ in sources):
         parser.error("frontend root must contain the shared xlang lexer, parser, AST and XRT assets")
     output.mkdir(parents=True, exist_ok=False)
+    unified_materials={}
+    if unified and not args.skip_tests:
+        folder=output/'unified-fixtures';folder.mkdir()
+        entries=[]
+        for name,accepted in UNIFIED_CORPUS:
+            original=ide.parent/'test/cases'/(name+'.xl');target=folder/(name+'.xl')
+            target.write_bytes(original.read_bytes())
+            unified_materials[str(original)]=sha(original);unified_materials[str(target)]=sha(target)
+            entries.append('{"'+name+'",'+str(accepted)+'},')
+        header=folder/'unified_semantic_cases.inc';header.write_text('\n'.join(entries)+'\n',encoding='utf8',newline='\n')
+        unified_materials[str(header)]=sha(header)
     loader_references,loader_aliases=(prepare_current_loader_oracles(frontend,output) if not args.skip_tests else ([],None))
     sources += [(p,False) for p in loader_references]
     # Keep the pinned compiler assets immutable. This checked build overlay
@@ -662,7 +677,7 @@ def main() -> None:
         runtime_overlay = derive_process_runtime(frontend / 'lib/xrt/xrt.h', output / 'native_xrt/xrt.h')
     except ValueError as error:
         parser.error(str(error))
-    if not args.skip_tests and ir_overlay.get('irDependencyCohort')=='current-ed78373d':
+    if not args.skip_tests and ir_overlay.get('irDependencyCohort') in ('current-ed78373d',UNIFIED_COHORT):
         # Original backend builds populated targets for the provider verifier
         # fixture only; the analysis service still uses its existing raw IR.
         sources.append((frontend/'src/ir/xl6_ir_lower.c',False))
@@ -700,7 +715,7 @@ def main() -> None:
     # Debug keeps the diagnostic allocator. This does not change analysis or
     # source/provenance validation and does not touch the XGE-owned GUI runtime.
     common += ["-O2", "-DXRT_EXCLUDE_MEMORY_DEBUG="] if args.configuration == "Release" else ["-O0", "-g"]
-    if ir_overlay.get('irDependencyCohort')=='current-ed78373d':common+=['-DXLS_NATIVE_IR_PROVIDER_FIELDS=1']
+    if ir_overlay.get('irDependencyCohort') in ('current-ed78373d',UNIFIED_COHORT):common+=['-DXLS_NATIVE_IR_PROVIDER_FIELDS=1']
     index_budget_flag = "-DXL6_INDEX_BYTES=" + str(NATIVE_INDEX_BYTES) + "u"
     common += [index_budget_flag]
     common += args.cflag
@@ -720,6 +735,7 @@ def main() -> None:
         str(original_completion): completion_overlay["sourceSha256"],
         str(original_types): types_overlay["sourceSha256"]}, {}, [], {}
     source_overlays = [index_overlay, ir_overlay, sem_overlay, completion_overlay, stdlib_overlay, types_overlay, ast_overlay, parser_overlay, lexer_overlay, stack_overlay, *context_overlays, *owner_overlays]
+    inputs.update(unified_materials)
     inputs.update({row['source']: row['sourceSha256'] for row in owner_overlays})
     inputs[str(Path(__file__).with_name('native_cancellation_overlay.py').resolve())] = sha(Path(__file__).with_name('native_cancellation_overlay.py'))
     inputs[str(Path(__file__).with_name('native_ir_memo_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_memo_overlay.py'))
@@ -728,7 +744,7 @@ def main() -> None:
     inputs[str(Path(__file__).with_name('native_ir_derived_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_derived_overlay.py'))
     inputs[str(Path(__file__).with_name('native_current_ir_profile.py').resolve())] = sha(Path(__file__).with_name('native_current_ir_profile.py'))
     inputs[str(Path(__file__).with_name('native_current_retirement_profile.py').resolve())] = sha(Path(__file__).with_name('native_current_retirement_profile.py'))
-    for name in ('native_current_semantic_profile.py','native_semantic_effects_overlay.py','native_current_stdlib_profile.py','native_current_context_profile.py','native_type_constructor_overlay.py'):
+    for name in ('native_current_unified_profile.py','native_current_semantic_profile.py','native_semantic_effects_overlay.py','native_current_stdlib_profile.py','native_current_context_profile.py','native_type_constructor_overlay.py'):
         controller=Path(__file__).with_name(name).resolve()
         inputs[str(controller)]=sha(controller)
     for overlay in (ir_overlay,sem_overlay,stdlib_overlay,completion_overlay,*context_overlays):
@@ -766,6 +782,8 @@ def main() -> None:
 
     def unit_flags(source: Path, owned: bool) -> list[str]:
         flags = common + (strict if owned else shared)
+        if source==ide/'tests/analysis_unified_semantic_test.c':
+            flags+=['-DXLS_UNIFIED_CASES_DIRECTORY="'+(output/'unified-fixtures').as_posix()+'"','-I'+str(output/'unified-fixtures')]
         if source in loader_references:flags+=['-include',str(loader_aliases)]
         if source==ide/'tests/analysis_current_loader_test.c':flags+=['-DXLS_CURRENT_LOADER_DIRECTORY="'+(output/'loader-fixtures').as_posix()+'"']
         if source == ide / 'tests/project_reference_owner_fault_test.c':
@@ -824,7 +842,7 @@ def main() -> None:
             program = output / (name + suffix)
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
             if name == "analysis_source_text_test":extra.append("-Wl,--wrap=xlsInputBatchAt")
-            if name=='analysis_current_provider_test' and ir_overlay.get('irDependencyCohort')=='current-ed78373d':extra+=[str(objects['xl6_ir_lower'])]
+            if name=='analysis_current_provider_test' and ir_overlay.get('irDependencyCohort') in ('current-ed78373d',UNIFIED_COHORT):extra+=[str(objects['xl6_ir_lower'])]
             if name=='analysis_current_loader_test' and loader_references:
                 extra += [str(objects[p.stem]) for p in loader_references]+['-Wl,--wrap=xrtMalloc']
             if name=='analysis_ir_callsite_test':extra+=['-Wl,--wrap=xrtArrayReserve','-Wl,--wrap=xrtArrayResize']

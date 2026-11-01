@@ -1,0 +1,59 @@
+import zip
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    // 注入时只访问本例创建的目录；每个预算都从新的输出目录开始。
+    string root = dir.temp("", "xlang-zip-extract-xl-", "")
+    try
+        for scenario in range(4)
+            auto writer = zip.create("store", 0)
+            string name = "payload.txt"
+            if scenario >= 2 then name = "目录/nested/payload.txt" end
+            if scenario == 3 then writer.mkdir("目录/nested/") end
+            writer.add(name, "payload")
+            Buffer packed = writer.finish()
+            bool complete = false
+            int failures = 0
+            for budget in range(256)
+                auto reader = zip.open(packed)
+                string destination = path.join(root, "output")
+                if scenario != 1 then assert dir.create(destination) end
+                bool memory = false
+                bool extracted = false
+                bool injected = false
+                try
+                    assert failAfter(uint64(budget))
+                    try
+                        reader.extractAll(destination, true)
+                        extracted = true
+                    catch MemoryError error
+                        memory = true
+                    finally
+                        injected = failTriggered()
+                        failClear()
+                    end
+                    assert injected and memory or not injected and extracted
+                    // 解除故障后原归档仍可用；对已完成条目显式允许覆盖。
+                    reader.extractAll(destination, true)
+                    assert file.readText(path.join(destination, name)) == "payload"
+                finally
+                    reader.close()
+                    if dir.exists(destination) then assert dir.delete(destination) end
+                end
+                if not injected then
+                    complete = true
+                    break
+                end
+                failures += 1
+            end
+            assert complete and failures > 0
+        end
+    finally
+        assert dir.delete(root)
+    end
+    println("zip extraction MemoryError/retry: PASS")
+    return 0
+end

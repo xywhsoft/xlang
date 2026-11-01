@@ -87,6 +87,7 @@ static const char* xl6IrCgenType(const XL6_IrModule* module, XL6_IrTypeId type)
     case XL6_IR_C_ABI_PRODUCT: return item->cName[0] != '\0' ? item->cName : NULL;
     case XL6_IR_C_ABI_RUNTIME_CELL_PTR: return "xlir_cell*";
     case XL6_IR_C_ABI_TAGGED_NULLABLE: return item->cName[0] != '\0' ? item->cName : NULL;
+    case XL6_IR_C_ABI_C_RECORD:
     case XL6_IR_C_ABI_UNION: return item->cName[0] != '\0' ? item->cName : NULL;
     case XL6_IR_C_ABI_STORAGE_REF_PTR: return "void*";
     case XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR:

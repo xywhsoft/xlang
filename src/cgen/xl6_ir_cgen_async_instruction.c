@@ -212,15 +212,15 @@ static int xl6IrCgenEmitAsyncMachineInstruction(
         if ( !xl6IrCgenEmitNullableInstruction(
                 out, module, instruction, diags) ) return 0;
         break;
-    case XL6_IR_INSTR_UNION_ZERO:
+    case XL6_IR_INSTR_AGGREGATE_ZERO:
         xl6OutputPrintf(out, "    v%u = (%s){0};\n",
             (unsigned int)instruction->result,
             xl6IrCgenType(module, instruction->type));
         break;
-    case XL6_IR_INSTR_UNION_GET: {
-        const XL6_IrUnionField* field =
-            instruction->elementIndex < module->unionFieldCount
-                ? &module->unionFields[instruction->elementIndex] : NULL;
+    case XL6_IR_INSTR_AGGREGATE_GET: {
+        const XL6_IrAggregateField* field =
+            instruction->elementIndex < module->aggregateFieldCount
+                ? &module->aggregateFields[instruction->elementIndex] : NULL;
         if ( field == NULL || field->cName[0] == '\0' )
             return xl6IrCgenDiag(diags, module, instruction->origin,
                 "XLIR async union read has no exact C member ABI");
@@ -230,10 +230,10 @@ static int xl6IrCgenEmitAsyncMachineInstruction(
             field->cName);
         break;
     }
-    case XL6_IR_INSTR_UNION_SET: {
-        const XL6_IrUnionField* field =
-            instruction->elementIndex < module->unionFieldCount
-                ? &module->unionFields[instruction->elementIndex] : NULL;
+    case XL6_IR_INSTR_AGGREGATE_SET: {
+        const XL6_IrAggregateField* field =
+            instruction->elementIndex < module->aggregateFieldCount
+                ? &module->aggregateFields[instruction->elementIndex] : NULL;
         if ( field == NULL || field->cName[0] == '\0' )
             return xl6IrCgenDiag(diags, module, instruction->origin,
                 "XLIR async union write has no exact C member ABI");

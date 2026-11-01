@@ -1,0 +1,2322 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-01T22:30:28.7338107+08:00",
+  "package": "sqlite",
+  "maturity": "R",
+  "status": "wal-and-error-cleanup-gates-passed-prior-risks-open",
+  "sourceParent": "4976d431e3b7ef17363fcfe9af3a4e5fde8b57bb",
+  "root": "D:\\GIT\\x-lang",
+  "changes": {
+    "productionWrapperChanged": false,
+    "languageDeclarationChanged": false,
+    "publicApiChanged": false,
+    "vendorChanged": false,
+    "compilerOrXrtChanged": false,
+    "cases": [
+      "two independent connections in one process and an owned UTF-8 database path",
+      "deterministic write lock then BUSY/reset and original bound-value retry",
+      "stable WAL read snapshot across a second connection commit",
+      "stale-snapshot write refused; explicit rollback and original prepared-statement binding reused"
+    ],
+    "cAdditionalCheck": "SQLITE_BUSY_SNAPSHOT (517)",
+    "finalRows": 4,
+    "finalSum": 8,
+    "golden": "journal: wal\nwrite retry: rows=2\nsnapshot: 2/2/3\nstale write: recovered\nfinal: rows=4 sum=8\n",
+    "executionFormsPerPlatform": [
+      "GCC native C",
+      "xl run C",
+      "xl build C and execute",
+      "xl run XLang",
+      "xl build XLang and execute"
+    ],
+    "testRuntimeMacrosAdded": [
+      "XRT_MODULE_DIR_TEMP",
+      "XRT_MODULE_PATH"
+    ]
+  },
+  "cleanup": {
+    "description": "The newly authored C example draft retained consumed statement handles after finalize returned an error; clear each handle before checking the result.",
+    "existingProductionBugClaimed": false,
+    "hookScope": "independent native C test translation unit only",
+    "redControl": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "journal: wal\r\nwrite retry: rows=2\r\nsnapshot: 2/2/3\r\nsqlite WAL finalizer failure: 2 cases, 2 failures\r\n",
+      "stderr": "SQLite WAL example line 41: xsqlite3_finalize_native(mode) == SQLITE_OK\r\nWAL cleanup case=0 result=1 injected=1 repeated=1\r\nSQLite WAL example line 76: xsqlite3_finalize_native(insert) == SQLITE_OK\r\nWAL cleanup case=1 result=1 injected=1 repeated=1\r\n",
+      "elapsedMs": 55
+    },
+    "greenControl": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "journal: wal\r\nwrite retry: rows=2\r\nsnapshot: 2/2/3\r\nsqlite WAL finalizer failure: 2 cases, 0 failures\r\n",
+      "stderr": "SQLite WAL example line 43: rc == SQLITE_OK\r\nSQLite WAL example line 79: rc == SQLITE_OK\r\n",
+      "elapsedMs": 62
+    },
+    "controlTargets": [
+      "pragma journal_mode=wal",
+      "insert into items values(?)"
+    ],
+    "checks": [
+      "real finalize occurs before the injected error",
+      "a repeated consumed-handle attempt is recorded but never forwarded to SQLite",
+      "both final cases assert owned directory absence with XERR_NOT_FOUND",
+      "SQLite memory_used is zero"
+    ],
+    "redGreenQualification": "The red draft used the same repeat-release control but preceded the final additional directory-absence assertion; not a byte-identical fixture comparison."
+  },
+  "windows": {
+    "rawEvidence": {
+      "path": "build/test/sqlite_guard/results_0dc08de3fc914da38b6719c937a71dd4.json",
+      "bytes": 75384,
+      "sha256": "815d29a27b051987525ca6318ae67ce63100ae4339ac462af02bb642aff9a5fe"
+    },
+    "parentResult": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "[sqlite] compiler-info: PASS\n[sqlite] runtime: PASS\n[sqlite] bridge: PASS\n[sqlite] sqlite-vendor: PASS\n[sqlite] test_sqlite-build: PASS\n[sqlite] test_sqlite: PASS\n[sqlite] test_sqlite_alloc-build: PASS\n[sqlite] test_sqlite_alloc: PASS\n[sqlite] test_sqlite_threads-build: PASS\n[sqlite] test_sqlite_threads: PASS\n[sqlite] test_sqlite_error_priority-build: PASS\n[sqlite] test_sqlite_error_priority: PASS\n[sqlite] test_wal_example_cleanup-build: PASS\n[sqlite] test_wal_example_cleanup: PASS\n[sqlite] test_sqlite-jit: PASS\n[sqlite] test_sqlite_threads-jit: PASS\n[sqlite] extlib_sqlite-jit: PASS\n[sqlite] extlib_sqlite-build: PASS\n[sqlite] extlib_sqlite-aot: PASS\n[sqlite] extlib_sqlite-cgen: PASS\n[sqlite] boundaries-jit: PASS\n[sqlite] boundaries-build: PASS\n[sqlite] boundaries-aot: PASS\n[sqlite] boundaries-cgen: PASS\n[sqlite] file-jit: PASS\n[sqlite] file-build: PASS\n[sqlite] file-aot: PASS\n[sqlite] file-cgen: PASS\n[sqlite] nul_inputs-jit: PASS\n[sqlite] nul_inputs-build: PASS\n[sqlite] nul_inputs-aot: PASS\n[sqlite] nul_inputs-cgen: PASS\n[sqlite] owned_results-jit: PASS\n[sqlite] owned_results-build: PASS\n[sqlite] owned_results-aot: PASS\n[sqlite] owned_results-cgen: PASS\n[sqlite] generated-prototypes-and-constants: PASS\n[sqlite] sqlite-example-jit: PASS\n[sqlite] sqlite-example-build: PASS\n[sqlite] sqlite-example-aot: PASS\n[sqlite] sqlite_basic-example-jit: PASS\n[sqlite] sqlite_basic-example-build: PASS\n[sqlite] sqlite_basic-example-aot: PASS\n[sqlite] c-example-build: PASS\n[sqlite] c-example: PASS\n[sqlite] c-example-jit: PASS\n[sqlite] c-example-aot-build: PASS\n[sqlite] c-example-aot: PASS\n[sqlite] c-example-runner: PASS\n[sqlite] text_bytes-c-build: PASS\n[sqlite] text_bytes-c: PASS\n[sqlite] text_bytes-c-jit: PASS\n[sqlite] text_bytes-c-aot-build: PASS\n[sqlite] text_bytes-c-aot: PASS\n[sqlite] text_bytes-xl-jit: PASS\n[sqlite] text_bytes-xl-aot-build: PASS\n[sqlite] text_bytes-xl-aot: PASS\n[sqlite] column_storage-c-build: PASS\n[sqlite] column_storage-c: PASS\n[sqlite] column_storage-c-jit: PASS\n[sqlite] column_storage-c-aot-build: PASS\n[sqlite] column_storage-c-aot: PASS\n[sqlite] column_storage-xl-jit: PASS\n[sqlite] column_storage-xl-aot-build: PASS\n[sqlite] column_storage-xl-aot: PASS\n[sqlite] transactions-c-build: PASS\n[sqlite] transactions-c: PASS\n[sqlite] transactions-c-jit: PASS\n[sqlite] transactions-c-aot-build: PASS\n[sqlite] transactions-c-aot: PASS\n[sqlite] transactions-xl-jit: PASS\n[sqlite] transactions-xl-aot-build: PASS\n[sqlite] transactions-xl-aot: PASS\n[sqlite] wal_snapshots-c-build: PASS\n[sqlite] wal_snapshots-c: PASS\n[sqlite] wal_snapshots-c-jit: PASS\n[sqlite] wal_snapshots-c-aot-build: PASS\n[sqlite] wal_snapshots-c-aot: PASS\n[sqlite] wal_snapshots-xl-jit: PASS\n[sqlite] wal_snapshots-xl-aot-build: PASS\n[sqlite] wal_snapshots-xl-aot: PASS\n[sqlite] report: D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\results_0dc08de3fc914da38b6719c937a71dd4.json\n",
+      "stderr": "",
+      "elapsedMs": 73706
+    },
+    "date": "2026-11-01T22:12:48.4566934+08:00",
+    "checkCount": 82,
+    "generatedPrototypes": 44,
+    "constants": 45,
+    "aotPrograms": 16,
+    "compiler": {
+      "path": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "sha256": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+      "changed": false
+    },
+    "inputs": {
+      "lib/xrt/xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "lib/xruntime/xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "release/examples/extlibs/sqlite.xl": "2B35722EED46F619AF2A16AB3A2EEC10240442B5190C676BD7E314C658FCBB9D",
+      "release/examples/extlibs/sqlite_basic.expected.txt": "EECA0AA74DF20CC8930827D033246ABE8C4E5AFB795D03B64F9B3D4813C16102",
+      "release/examples/extlibs/sqlite_basic.xl": "21BC92BAD4B19A321BF84688C5D36FBFD51BD5DF583AA97C4B17D226275E440A",
+      "release/extlibs/sqlite/docs/site.html": "8349EF07E45C7B683C15B0A960075598F16C4A4A95EFFD2894BF1DCF5FC42F8E",
+      "release/extlibs/sqlite/examples/basic.c": "B5F8520FF5291F3D3D966B91667422216F4A469D453F35472DE96AD8FD9C944C",
+      "release/extlibs/sqlite/examples/column_storage.xl": "3618A06F2244D8BEF9208D2E2489DF7C225539D173ACD37B3DF0962540C8B4DE",
+      "release/extlibs/sqlite/examples/column_storage_c.c": "14E2EC999C8D58F87A677F184B5BEBA7CF0E3E220951FAFD6EBC43DFF7B81A09",
+      "release/extlibs/sqlite/examples/text_bytes.xl": "EB4D3A9914F7364116A3D1B5F85588544DAE15C78BC742D75B653D8361652D2E",
+      "release/extlibs/sqlite/examples/text_bytes_c.c": "B80FCAD770469515B5A5F7F3FFE5046D10ED16C0A74499E0BF41549DCCA4C6B7",
+      "release/extlibs/sqlite/examples/transactions.expected.txt": "B7E19705B588F8E9DA09450BABEFC3ECE36750750D1CE820F43390DD26915503",
+      "release/extlibs/sqlite/examples/transactions.xl": "DEAD2AD0FC1C264291F227D67CC9EF0EB97ABD232F60BFB6CE185FAE89DE61EE",
+      "release/extlibs/sqlite/examples/transactions_c.c": "2BE6879AD076D25CB505BF7A425FE4021345C48A35A6331AD49F66580CAFEAE4",
+      "release/extlibs/sqlite/examples/wal_snapshots.expected.txt": "00005473F48E2318643F2214290BBD5C97D28CEF93EE57A476D5824C60F8280C",
+      "release/extlibs/sqlite/examples/wal_snapshots.xl": "C6565B85805C5C001BBC5B2326773CC6E010E8B1EA7E7329334617EF3514F87B",
+      "release/extlibs/sqlite/examples/wal_snapshots_c.c": "5D106F200A160F0F55A7739336E002EB9F3600E4A8771F2888065A45592F81B7",
+      "release/extlibs/sqlite/include/sqlite_native.h": "6CBE46601709EF5440AB3ADC49C8B792CBCC2B8D5654469777A0BC27EEC3A7A2",
+      "release/extlibs/sqlite/README.md": "60147FC7194A637EBAF1A4BD348389C5521E5148C0646B1F1F92BA57CC4BDBC0",
+      "release/extlibs/sqlite/sqlite_native.c": "CD5074FF064B6EBD36A5E76646660A5A6C707DBA3D25406D7BC141C9A8749BAD",
+      "release/extlibs/sqlite/src/sqlite.xl": "805DECE986888A4A5D0343E4E6AA9B43F57A7A7CA70CEBDC6929483D1344953F",
+      "release/extlibs/sqlite/test/boundaries.xl": "8F4C3E3B195DDBD46C07886C36434E5DCB8014D4602BA4DE47A2C5ADE003414A",
+      "release/extlibs/sqlite/test/file.xl": "9AA73C5426B03387AD07DB7E30929B24BE2CB5D3CBC33DEA8FE042ED8F015F78",
+      "release/extlibs/sqlite/test/nul_inputs.xl": "A33D16DF7666DE365BB9997A41F88E7AAE7B7D78C21F9EB95947CDFBEAE7CA32",
+      "release/extlibs/sqlite/test/owned_results.xl": "950CE6E6DDDF972F6BAF3235BD9920AFF18FE5BA06078C55018CDC78F6A168F8",
+      "release/extlibs/sqlite/test/test_sqlite.c": "9953E2BD2660AF9BC43907406A6C57749AA2C58B835EEC2404C0858897CF0844",
+      "release/extlibs/sqlite/test/test_sqlite_alloc.c": "6E2032B4BE9503391750A9A8CE3EAABD9CAB1CF279DCCDE10202C73F9F3941B5",
+      "release/extlibs/sqlite/test/test_sqlite_error_priority.c": "2CC5C8E82ACD9EE8E765698FE07CB7ADED06CFFE85936DE89AD0C685D9C04FEF",
+      "release/extlibs/sqlite/test/test_sqlite_threads.c": "493AADFA50E714D55535EBFB59FB3A3F956ABDC3005788E2AEDC78DD0A72E725",
+      "release/extlibs/sqlite/test/test_wal_example_cleanup.c": "250C220D3ACE7FF22199A081196CE66ADEAA938C021A35D7DE5FCC1A470B2198",
+      "release/extlibs/sqlite/third_party/sqlite3.c": "47C2BE8440A285D26BB9D4A176568CEAE0B7A44059CBBD36BECB6C9334F01D63",
+      "release/extlibs/sqlite/third_party/sqlite3.h": "8FF4EB239E86A498DA5FEA9931A9A72A82CB815CD8B798CB238706E4E903BE61",
+      "release/extlibs/sqlite/third_party/sqlite3ext.h": "A3CA6E430C8E97EDF8CBD66867AC178AB179A41D85C04CAD48889A8B84806DCD",
+      "release/extlibs/sqlite/VENDOR.md": "A8DD71CDFCA617621C144BCF83F0E638D2EA771259EDAF1A16943C984E6246E7",
+      "release/extlibs/sqlite/xlang.package.json": "C5EB7A7097936EE94AA115396A98EC7272FB167C7B091658792406B385F946CD",
+      "release/include/xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "release/include/xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "release/include/xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "release/xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "release/xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "release/xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "test/cases/extlib_sqlite.xl": "DC5FC6F4C096679DC8EDEAE99CF1DF37499DC21D300339C8218A83A3A16C5CA2",
+      "test/phase1_extlibs.json": "C18DDDD8D7D40F22D6AFC4CF5BBAB08F70C3F1E811A5FB832265BBB0B7996C88",
+      "test/suites/12_phase1_extlibs.bat": "CC4E1AC2764ED98A106E771FF3B496A5284A06CE6E27C4572058188263CFFCFD",
+      "test/support/extlib_sqlite_runtime.c": "FAD2461C670D29AC04969A81124A60DFB212AE4A51D8D9016F9E5E5DD436D623",
+      "tools/check_extlib_sqlite.ps1": "B60E4E3174909C2894A403831683D897D95FAA9FB2672FE9D529E70181B85C6D",
+      "tools/check_extlib_sqlite.sh": "6DA7E68443947226FE10EBFD2FE9FDD4CBE799429821C0957618D56246C83871",
+      "tools/extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "tools/run_extlib_c.ps1": "5183F14DBF4444B47D8832B60A0D6A6B570C8E933874785BEF85DD1ECB024A44",
+      "tools/xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219"
+    },
+    "inputCount": 50,
+    "changedDuringGate": [],
+    "changedSinceGate": [],
+    "checks": [
+      {
+        "name": "compiler-info",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "compiler-info",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "--version"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 37,
+          "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "runtime",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "runtime",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-c",
+            "test/support/extlib_sqlite_runtime.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\runtime.o"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 4606,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "bridge",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "bridge",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Wmissing-prototypes",
+            "-c",
+            "release/extlibs/sqlite/sqlite_native.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\native.o"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 299,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "sqlite-vendor",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "sqlite-vendor",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-c",
+            "release/extlibs/sqlite/third_party/sqlite3.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\sqlite3.o"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 28796,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_sqlite-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "test_sqlite-build",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "release/extlibs/sqlite/test/test_sqlite.c",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\native.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\sqlite3.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\runtime.o",
+            "-lAdvapi32",
+            "-lWs2_32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\test_sqlite.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 394,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_sqlite",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "test_sqlite",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\test_sqlite.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 216,
+          "stdout": "sqlite C: ABI/constants, storage/binary, statement states, errors and lifetimes passed\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_sqlite_alloc-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "test_sqlite_alloc-build",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "release/extlibs/sqlite/test/test_sqlite_alloc.c",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\native.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\sqlite3.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\runtime.o",
+            "-lAdvapi32",
+            "-lWs2_32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\test_sqlite_alloc.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 299,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_sqlite_alloc",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "test_sqlite_alloc",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\test_sqlite_alloc.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 36,
+          "stdout": "sqlite allocator: 149 injected allocation points, clean recovery passed\r\nsqlite column conversion 0: 1 allocation points\r\nsqlite column conversion 1: 1 allocation points\r\nsqlite column conversion 2: 1 allocation points\r\nsqlite column conversion 3: 0 allocation points\r\nsqlite column conversion 4: 1 allocation points\r\nsqlite deferred column conversions: 5 operations, 4 OOM paths passed\r\nsqlite XRT buffer allocator: failed=2 passed=6\r\nsqlite XRT temporary allocator: failed=1 passed=7\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_sqlite_threads-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "test_sqlite_threads-build",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-DNDEBUG",
+            "release/extlibs/sqlite/test/test_sqlite_threads.c",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\native.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\sqlite3.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\runtime.o",
+            "-lAdvapi32",
+            "-lWs2_32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\test_sqlite_threads.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 243,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_sqlite_threads",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "test_sqlite_threads",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\test_sqlite_threads.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 55,
+          "stdout": "sqlite threads: 4 independent connections, text lifetime and error isolation passed\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_sqlite_error_priority-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "test_sqlite_error_priority-build",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "release/extlibs/sqlite/test/test_sqlite_error_priority.c",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\native.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\sqlite3.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\runtime.o",
+            "-lAdvapi32",
+            "-lWs2_32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\test_sqlite_error_priority.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 294,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_sqlite_error_priority",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "test_sqlite_error_priority",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\test_sqlite_error_priority.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 41,
+          "stdout": "sqlite first error: 18 errors + 5 valid-output OOM controls, failures=0\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_wal_example_cleanup-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "test_wal_example_cleanup-build",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "release/extlibs/sqlite/test/test_wal_example_cleanup.c",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\native.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\sqlite3.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\runtime.o",
+            "-lAdvapi32",
+            "-lWs2_32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\test_wal_example_cleanup.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 339,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_wal_example_cleanup",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "test_wal_example_cleanup",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\test_wal_example_cleanup.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 45,
+          "stdout": "journal: wal\r\nwrite retry: rows=2\r\nsnapshot: 2/2/3\r\nsqlite WAL finalizer failure: 2 cases, 0 failures\r\n",
+          "stderr": "SQLite WAL example line 43: rc == SQLITE_OK\r\nSQLite WAL example line 79: rc == SQLITE_OK\r\n"
+        }
+      },
+      {
+        "name": "test_sqlite-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "test_sqlite-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/sqlite/test/test_sqlite.c",
+            "release/extlibs/sqlite/sqlite_native.c",
+            "release/extlibs/sqlite/third_party/sqlite3.c",
+            "--inc-path",
+            "lib/xrt"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 187,
+          "stdout": "sqlite C: ABI/constants, storage/binary, statement states, errors and lifetimes passed\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_sqlite_threads-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "test_sqlite_threads-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/sqlite/test/test_sqlite_threads.c",
+            "release/extlibs/sqlite/sqlite_native.c",
+            "release/extlibs/sqlite/third_party/sqlite3.c",
+            "--inc-path",
+            "lib/xrt"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 208,
+          "stdout": "sqlite threads: 4 independent connections, text lifetime and error isolation passed\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "extlib_sqlite-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "extlib_sqlite-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "test/cases/extlib_sqlite.xl"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 804,
+          "stdout": "sqlite case ok\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "extlib_sqlite-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "extlib_sqlite-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "test/cases/extlib_sqlite.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\extlib_sqlite.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 1401,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "extlib_sqlite-aot",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "extlib_sqlite-aot",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\extlib_sqlite.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 32,
+          "stdout": "sqlite case ok\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "extlib_sqlite-cgen",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "extlib_sqlite-cgen",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "cgen",
+            "test/cases/extlib_sqlite.xl",
+            "--emit",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\extlib_sqlite.c"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 483,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "boundaries-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "boundaries-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/sqlite/test/boundaries.xl"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 1846,
+          "stdout": "sqlite xlang boundaries ok\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "boundaries-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "boundaries-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/sqlite/test/boundaries.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\boundaries.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 2619,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "boundaries-aot",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "boundaries-aot",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\boundaries.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 61,
+          "stdout": "sqlite xlang boundaries ok\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "boundaries-cgen",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "boundaries-cgen",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "cgen",
+            "release/extlibs/sqlite/test/boundaries.xl",
+            "--emit",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\boundaries.c"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 1087,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "file-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "file-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/sqlite/test/file.xl"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 819,
+          "stdout": "sqlite file/locking boundaries ok\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "file-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "file-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/sqlite/test/file.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\file.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 1252,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "file-aot",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "file-aot",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\file.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 80,
+          "stdout": "sqlite file/locking boundaries ok\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "file-cgen",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "file-cgen",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "cgen",
+            "release/extlibs/sqlite/test/file.xl",
+            "--emit",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\file.c"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 479,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "nul_inputs-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "nul_inputs-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/sqlite/test/nul_inputs.xl"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 891,
+          "stdout": "sqlite NUL inputs: PASS\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "nul_inputs-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "nul_inputs-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/sqlite/test/nul_inputs.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\nul_inputs.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 1384,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "nul_inputs-aot",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "nul_inputs-aot",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\nul_inputs.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 48,
+          "stdout": "sqlite NUL inputs: PASS\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "nul_inputs-cgen",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "nul_inputs-cgen",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "cgen",
+            "release/extlibs/sqlite/test/nul_inputs.xl",
+            "--emit",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\nul_inputs.c"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 615,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "owned_results-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "owned_results-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/sqlite/test/owned_results.xl"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 919,
+          "stdout": "sqlite owned text results: PASS\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "owned_results-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "owned_results-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/sqlite/test/owned_results.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\owned_results.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 1491,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "owned_results-aot",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "owned_results-aot",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\owned_results.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 35,
+          "stdout": "sqlite owned text results: PASS\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "owned_results-cgen",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "owned_results-cgen",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "cgen",
+            "release/extlibs/sqlite/test/owned_results.xl",
+            "--emit",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\owned_results.c"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 564,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "generated-prototypes-and-constants",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "generated-prototypes-and-constants",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/sqlite/include",
+            "-Irelease/extlibs/sqlite/third_party",
+            "-fsyntax-only",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\abi.c"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 52,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "sqlite-example-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "sqlite-example-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/examples/extlibs/sqlite.xl"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 945,
+          "stdout": "sqlite extlib ok\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "sqlite-example-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "sqlite-example-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/examples/extlibs/sqlite.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\sqlite-example.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 1474,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "sqlite-example-aot",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "sqlite-example-aot",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\sqlite-example.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 38,
+          "stdout": "sqlite extlib ok\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "sqlite_basic-example-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "sqlite_basic-example-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/examples/extlibs/sqlite_basic.xl"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 785,
+          "stdout": "sqlite demo\n1: Ada\n2: O'Reilly\nrollback: 2\nblob: 3 bytes\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "sqlite_basic-example-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "sqlite_basic-example-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/examples/extlibs/sqlite_basic.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\sqlite_basic-example.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 1220,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "sqlite_basic-example-aot",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "sqlite_basic-example-aot",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\sqlite_basic-example.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 40,
+          "stdout": "sqlite demo\n1: Ada\n2: O'Reilly\nrollback: 2\nblob: 3 bytes\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "c-example-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "c-example-build",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-DNDEBUG",
+            "release/extlibs/sqlite/examples/basic.c",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\native.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\sqlite3.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\runtime.o",
+            "-lAdvapi32",
+            "-lWs2_32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\c-example.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 237,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "c-example",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "c-example",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\c-example.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 26,
+          "stdout": "sqlite demo\r\n1: Ada\r\n2: O'Reilly\r\nrollback: 2\r\nblob: 3 bytes\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "c-example-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "c-example-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/sqlite/examples/basic.c"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 192,
+          "stdout": "sqlite demo\r\n1: Ada\r\n2: O'Reilly\r\nrollback: 2\r\nblob: 3 bytes\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "c-example-aot-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "c-example-aot-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/sqlite/examples/basic.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\c-example-tcc.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 230,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "c-example-aot",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "c-example-aot",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\c-example-tcc.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 31,
+          "stdout": "sqlite demo\r\n1: Ada\r\n2: O'Reilly\r\nrollback: 2\r\nblob: 3 bytes\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "c-example-runner",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "c-example-runner",
+          "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "arguments": [
+            "-NoProfile",
+            "-File",
+            "tools/run_extlib_c.ps1",
+            "-Package",
+            "sqlite",
+            "-Source",
+            "release/extlibs/sqlite/examples/basic.c"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 481,
+          "stdout": "sqlite demo\r\n1: Ada\r\n2: O'Reilly\r\nrollback: 2\r\nblob: 3 bytes\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "text_bytes-c-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "text_bytes-c-build",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-DNDEBUG",
+            "release/extlibs/sqlite/examples/text_bytes_c.c",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\native.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\sqlite3.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\runtime.o",
+            "-lAdvapi32",
+            "-lWs2_32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\text_bytes-gcc.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 209,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "text_bytes-c",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "text_bytes-c",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\text_bytes-gcc.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 24,
+          "stdout": "TEXT: 3 bytes\r\nBLOB: 3 bytes\r\nmiddle byte: 0\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "text_bytes-c-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "text_bytes-c-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/sqlite/examples/text_bytes_c.c"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 201,
+          "stdout": "TEXT: 3 bytes\r\nBLOB: 3 bytes\r\nmiddle byte: 0\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "text_bytes-c-aot-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "text_bytes-c-aot-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/sqlite/examples/text_bytes_c.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\text_bytes-c-aot.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 256,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "text_bytes-c-aot",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "text_bytes-c-aot",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\text_bytes-c-aot.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 36,
+          "stdout": "TEXT: 3 bytes\r\nBLOB: 3 bytes\r\nmiddle byte: 0\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "text_bytes-xl-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "text_bytes-xl-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/sqlite/examples/text_bytes.xl"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 750,
+          "stdout": "TEXT: 3 bytes\nBLOB: 3 bytes\nmiddle byte: 0\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "text_bytes-xl-aot-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "text_bytes-xl-aot-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/sqlite/examples/text_bytes.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\text_bytes-xl-aot.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 1210,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "text_bytes-xl-aot",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "text_bytes-xl-aot",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\text_bytes-xl-aot.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 31,
+          "stdout": "TEXT: 3 bytes\nBLOB: 3 bytes\nmiddle byte: 0\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "column_storage-c-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "column_storage-c-build",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-DNDEBUG",
+            "release/extlibs/sqlite/examples/column_storage_c.c",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\native.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\sqlite3.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\runtime.o",
+            "-lAdvapi32",
+            "-lWs2_32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\column_storage-gcc.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 244,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "column_storage-c",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "column_storage-c",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\column_storage-gcc.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 25,
+          "stdout": "text: 你好\r\ninteger: 9223372036854775807\r\nutf8 bytes: 6\r\nzero blob: 4096\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "column_storage-c-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "column_storage-c-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/sqlite/examples/column_storage_c.c"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 184,
+          "stdout": "text: 你好\r\ninteger: 9223372036854775807\r\nutf8 bytes: 6\r\nzero blob: 4096\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "column_storage-c-aot-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "column_storage-c-aot-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/sqlite/examples/column_storage_c.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\column_storage-c-aot.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 252,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "column_storage-c-aot",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "column_storage-c-aot",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\column_storage-c-aot.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 110,
+          "stdout": "text: 你好\r\ninteger: 9223372036854775807\r\nutf8 bytes: 6\r\nzero blob: 4096\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "column_storage-xl-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "column_storage-xl-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/sqlite/examples/column_storage.xl"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 1101,
+          "stdout": "text: 你好\ninteger: 9223372036854775807\nutf8 bytes: 6\nzero blob: 4096\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "column_storage-xl-aot-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "column_storage-xl-aot-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/sqlite/examples/column_storage.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\column_storage-xl-aot.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 1194,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "column_storage-xl-aot",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "column_storage-xl-aot",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\column_storage-xl-aot.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 47,
+          "stdout": "text: 你好\ninteger: 9223372036854775807\nutf8 bytes: 6\nzero blob: 4096\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "transactions-c-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "transactions-c-build",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-DNDEBUG",
+            "release/extlibs/sqlite/examples/transactions_c.c",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\native.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\sqlite3.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\runtime.o",
+            "-lAdvapi32",
+            "-lWs2_32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\transactions-gcc.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 226,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "transactions-c",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "transactions-c",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\transactions-gcc.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 40,
+          "stdout": "constraint: rejected\r\nrollback: rows=0\r\nbusy-close: retained\r\nbefore-row: rejected\r\ncommit: rows=1 total=7\r\nsnapshot: 7\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "transactions-c-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "transactions-c-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/sqlite/examples/transactions_c.c"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 177,
+          "stdout": "constraint: rejected\r\nrollback: rows=0\r\nbusy-close: retained\r\nbefore-row: rejected\r\ncommit: rows=1 total=7\r\nsnapshot: 7\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "transactions-c-aot-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "transactions-c-aot-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/sqlite/examples/transactions_c.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\transactions-c-aot.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 252,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "transactions-c-aot",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "transactions-c-aot",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\transactions-c-aot.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 31,
+          "stdout": "constraint: rejected\r\nrollback: rows=0\r\nbusy-close: retained\r\nbefore-row: rejected\r\ncommit: rows=1 total=7\r\nsnapshot: 7\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "transactions-xl-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "transactions-xl-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/sqlite/examples/transactions.xl"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 861,
+          "stdout": "constraint: rejected\nrollback: rows=0\nbusy-close: retained\nbefore-row: rejected\ncommit: rows=1 total=7\nsnapshot: 7\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "transactions-xl-aot-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "transactions-xl-aot-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/sqlite/examples/transactions.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\transactions-xl-aot.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 1347,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "transactions-xl-aot",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "transactions-xl-aot",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\transactions-xl-aot.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 50,
+          "stdout": "constraint: rejected\nrollback: rows=0\nbusy-close: retained\nbefore-row: rejected\ncommit: rows=1 total=7\nsnapshot: 7\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "wal_snapshots-c-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "wal_snapshots-c-build",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-DNDEBUG",
+            "release/extlibs/sqlite/examples/wal_snapshots_c.c",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\native.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\sqlite3.o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\runtime.o",
+            "-lAdvapi32",
+            "-lWs2_32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\wal_snapshots-gcc.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 289,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "wal_snapshots-c",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "wal_snapshots-c",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\wal_snapshots-gcc.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 51,
+          "stdout": "journal: wal\r\nwrite retry: rows=2\r\nsnapshot: 2/2/3\r\nstale write: recovered\r\nfinal: rows=4 sum=8\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "wal_snapshots-c-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "wal_snapshots-c-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/sqlite/examples/wal_snapshots_c.c"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 201,
+          "stdout": "journal: wal\r\nwrite retry: rows=2\r\nsnapshot: 2/2/3\r\nstale write: recovered\r\nfinal: rows=4 sum=8\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "wal_snapshots-c-aot-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "wal_snapshots-c-aot-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/sqlite/examples/wal_snapshots_c.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\wal_snapshots-c-aot.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 261,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "wal_snapshots-c-aot",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "wal_snapshots-c-aot",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\wal_snapshots-c-aot.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 53,
+          "stdout": "journal: wal\r\nwrite retry: rows=2\r\nsnapshot: 2/2/3\r\nstale write: recovered\r\nfinal: rows=4 sum=8\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "wal_snapshots-xl-jit",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "wal_snapshots-xl-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/sqlite/examples/wal_snapshots.xl"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 1085,
+          "stdout": "journal: wal\nwrite retry: rows=2\nsnapshot: 2/2/3\nstale write: recovered\nfinal: rows=4 sum=8\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "wal_snapshots-xl-aot-build",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "wal_snapshots-xl-aot-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/sqlite/examples/wal_snapshots.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\wal_snapshots-xl-aot.exe"
+          ],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 1633,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "wal_snapshots-xl-aot",
+        "expectedExit": 0,
+        "evidence": {
+          "name": "wal_snapshots-xl-aot",
+          "program": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\wal_snapshots-xl-aot.exe",
+          "arguments": [],
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 50,
+          "stdout": "journal: wal\nwrite retry: rows=2\nsnapshot: 2/2/3\nstale write: recovered\nfinal: rows=4 sum=8\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "constant-write-rejected",
+        "expectedExit": 1,
+        "evidence": {
+          "name": "constant-write-rejected",
+          "status": "pass",
+          "exitCode": 1,
+          "stderr": "D:\\GIT\\x-lang\\build\\test\\sqlite_guard\\run_0dc08de3fc914da38b6719c937a71dd4\\const-write.xl:2:8: [sem] const 不能被重新赋值\n"
+        }
+      }
+    ],
+    "allocationRecovery": "sqlite allocator: 149 injected allocation points, clean recovery passed\r\nsqlite column conversion 0: 1 allocation points\r\nsqlite column conversion 1: 1 allocation points\r\nsqlite column conversion 2: 1 allocation points\r\nsqlite column conversion 3: 0 allocation points\r\nsqlite column conversion 4: 1 allocation points\r\nsqlite deferred column conversions: 5 operations, 4 OOM paths passed\r\nsqlite XRT buffer allocator: failed=2 passed=6\r\nsqlite XRT temporary allocator: failed=1 passed=7\r\n"
+  },
+  "linux": {
+    "parentResult": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "Linux SQLite exit=0 snapshot=/var/tmp/xlang-sqlite-wal-hZTWHo9m\nfinal: rows=4 sum=8\n[sqlite] wal_snapshots-xl-build\n[sqlite] wal_snapshots-xl-aot\njournal: wal\nwrite retry: rows=2\nsnapshot: 2/2/3\nstale write: recovered\nfinal: rows=4 sum=8\n[sqlite] constant-write-rejected\nSQLite Linux C ASan/UBSan and bilingual AOT gate: PASS\nSQLite WAL example line 43: rc == SQLITE_OK\nSQLite WAL example line 79: rc == SQLITE_OK\n/var/tmp/xlang-sqlite-wal-hZTWHo9m/tmp/xlang-sqlite-OZGL9TtG/const-write.xl:2:8: [sem] const 不能被重新赋值\n",
+      "stderr": "",
+      "elapsedMs": 106895
+    },
+    "snapshot": "/var/tmp/xlang-sqlite-wal-hZTWHo9m",
+    "rawEvidencePath": "/var/tmp/xlang-sqlite-wal-hZTWHo9m/tmp/xlang-sqlite-OZGL9TtG.report.txt",
+    "exit": 0,
+    "phaseCount": 81,
+    "unchangedFrozenInputs": true,
+    "inputs": {
+      "/usr/bin/gcc": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88",
+      "lib/xrt/xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+      "lib/xruntime/xruntime.h": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+      "release/examples/extlibs/sqlite.xl": "2b35722eed46f619af2a16ab3a2eec10240442b5190c676bd7e314c658fcbb9d",
+      "release/examples/extlibs/sqlite_basic.expected.txt": "eeca0aa74df20cc8930827d033246abe8c4e5afb795d03b64f9b3d4813c16102",
+      "release/examples/extlibs/sqlite_basic.xl": "21bc92bad4b19a321bf84688c5d36fbfd51bd5df583aa97c4b17d226275e440a",
+      "release/extlibs/sqlite/README.md": "60147fc7194a637ebaf1a4bd348389c5521e5148c0646b1f1f92ba57cc4bdbc0",
+      "release/extlibs/sqlite/VENDOR.md": "a8dd71cdfca617621c144bcf83f0e638d2ea771259edaf1a16943c984e6246e7",
+      "release/extlibs/sqlite/docs/site.html": "8349ef07e45c7b683c15b0a960075598f16c4a4a95effd2894bf1dcf5fc42f8e",
+      "release/extlibs/sqlite/examples/basic.c": "b5f8520ff5291f3d3d966b91667422216f4a469d453f35472de96ad8fd9c944c",
+      "release/extlibs/sqlite/examples/column_storage.xl": "3618a06f2244d8bef9208d2e2489df7c225539d173acd37b3df0962540c8b4de",
+      "release/extlibs/sqlite/examples/column_storage_c.c": "14e2ec999c8d58f87a677f184b5beba7cf0e3e220951fafd6ebc43dff7b81a09",
+      "release/extlibs/sqlite/examples/text_bytes.xl": "eb4d3a9914f7364116a3d1b5f85588544dae15c78bc742d75b653d8361652d2e",
+      "release/extlibs/sqlite/examples/text_bytes_c.c": "b80fcad770469515b5a5f7f3ffe5046d10ed16c0a74499e0bf41549dcca4c6b7",
+      "release/extlibs/sqlite/examples/transactions.expected.txt": "b7e19705b588f8e9da09450babefc3ece36750750d1ce820f43390dd26915503",
+      "release/extlibs/sqlite/examples/transactions.xl": "dead2ad0fc1c264291f227d67cc9ef0eb97abd232f60bfb6ce185fae89de61ee",
+      "release/extlibs/sqlite/examples/transactions_c.c": "2be6879ad076d25cb505bf7a425fe4021345c48a35a6331ad49f66580cafeae4",
+      "release/extlibs/sqlite/examples/wal_snapshots.expected.txt": "00005473f48e2318643f2214290bbd5c97d28cef93ee57a476d5824c60f8280c",
+      "release/extlibs/sqlite/examples/wal_snapshots.xl": "c6565b85805c5c001bbc5b2326773cc6e010e8b1ea7e7329334617ef3514f87b",
+      "release/extlibs/sqlite/examples/wal_snapshots_c.c": "5d106f200a160f0f55a7739336e002eb9f3600e4a8771f2888065a45592f81b7",
+      "release/extlibs/sqlite/include/sqlite_native.h": "6cbe46601709ef5440ab3adc49c8b792cbcc2b8d5654469777a0bc27eec3a7a2",
+      "release/extlibs/sqlite/sqlite_native.c": "cd5074ff064b6ebd36a5e76646660a5a6c707dba3d25406d7bc141c9a8749bad",
+      "release/extlibs/sqlite/src/sqlite.xl": "805dece986888a4a5d0343e4e6aa9b43f57a7a7ca70cebdc6929483d1344953f",
+      "release/extlibs/sqlite/test/boundaries.xl": "8f4c3e3b195ddbd46c07886c36434e5dcb8014d4602ba4de47a2c5ade003414a",
+      "release/extlibs/sqlite/test/file.xl": "9aa73c5426b03387ad07db7e30929b24be2cb5d3cbc33dea8fe042ed8f015f78",
+      "release/extlibs/sqlite/test/nul_inputs.xl": "a33d16df7666de365bb9997a41f88e7aae7b7d78c21f9eb95947cdfbeae7ca32",
+      "release/extlibs/sqlite/test/owned_results.xl": "950ce6e6dddf972f6baf3235bd9920aff18fe5ba06078c55018cdc78f6a168f8",
+      "release/extlibs/sqlite/test/test_sqlite.c": "9953e2bd2660af9bc43907406a6c57749aa2c58b835eec2404c0858897cf0844",
+      "release/extlibs/sqlite/test/test_sqlite_alloc.c": "6e2032b4be9503391750a9a8ce3eaabd9cab1cf279dccde10202c73f9f3941b5",
+      "release/extlibs/sqlite/test/test_sqlite_error_priority.c": "2cc5c8e82acd9ee8e765698fe07cb7aded06cffe85936de89ad0c685d9c04fef",
+      "release/extlibs/sqlite/test/test_sqlite_threads.c": "493aadfa50e714d55535ebfb59fb3a3f956abdc3005788e2aedc78dd0a72e725",
+      "release/extlibs/sqlite/test/test_wal_example_cleanup.c": "250c220d3ace7ff22199a081196ce66adeaa938c021a35d7de5fcc1a470b2198",
+      "release/extlibs/sqlite/third_party/sqlite3.c": "47c2be8440a285d26bb9d4a176568ceae0b7a44059cbbd36becb6c9334f01d63",
+      "release/extlibs/sqlite/third_party/sqlite3.h": "8ff4eb239e86a498da5fea9931a9a72a82cb815cd8b798cb238706e4e903be61",
+      "release/extlibs/sqlite/third_party/sqlite3ext.h": "a3ca6e430c8e97edf8cbd66867ac178ab179a41d85c04cad48889a8b84806dcd",
+      "release/extlibs/sqlite/xlang.package.json": "c5eb7a7097936ee94aa115396a98ec7272fb167c7b091658792406b385f946cd",
+      "release/include/README.md": "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770",
+      "release/include/libtcc.h": "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab",
+      "release/include/tcc_builtin_vfs.h": "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2",
+      "release/include/xl.h": "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4",
+      "release/include/xl_cancellation_retirement.h": "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad",
+      "release/include/xl_clock.h": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18",
+      "release/include/xl_extlib_abi.h": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445",
+      "release/include/xl_foreign_graph.h": "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f",
+      "release/include/xl_foreign_net.h": "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a",
+      "release/include/xl_package.h": "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1",
+      "release/include/xl_runtime.h": "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2",
+      "release/include/xl_sync_retirement.h": "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e",
+      "release/include/xl_version.h": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992",
+      "release/include/xlc.h": "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f",
+      "release/include/xrt_decl.h": "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d",
+      "release/include/xruntime_decl.h": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+      "release/libxl.so": "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad",
+      "release/libxlc.so": "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386",
+      "release/xl": "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb",
+      "test/cases/extlib_sqlite.xl": "dc5fc6f4c096679dc8edeae99cf1df37499dc21d300339c8218a83a3a16c5ca2",
+      "test/support/extlib_sqlite_runtime.c": "fad2461c670d29ac04969a81124a60dfb212ae4a51d8d9016f9e5e5dd436d623",
+      "tools/check_extlib_sqlite.sh": "6da7e68443947226fe10ebfd2fe9fdd4cbe799429821c0957618d56246c83871"
+    },
+    "checks": [
+      {
+        "name": "compiler-info",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "vendor-compile",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "native-compile",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "runtime-compile",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "test_sqlite-compile",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "test_sqlite-run",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "test_sqlite_alloc-compile",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "test_sqlite_alloc-run",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "test_sqlite_threads-compile",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "test_sqlite_threads-run",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "test_sqlite_error_priority-compile",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "test_sqlite_error_priority-run",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "test_wal_example_cleanup-compile",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "test_wal_example_cleanup-run",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "test_sqlite-direct",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "test_sqlite_threads-direct",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "basic-c-compile",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "basic-c-run",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "basic-c-direct",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "extlib_sqlite-jit",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "extlib_sqlite-build",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "extlib_sqlite-aot",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "extlib_sqlite-cgen",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "boundaries-jit",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "boundaries-build",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "boundaries-aot",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "boundaries-cgen",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "file-jit",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "file-build",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "file-aot",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "file-cgen",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "nul_inputs-jit",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "nul_inputs-build",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "nul_inputs-aot",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "nul_inputs-cgen",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "owned_results-jit",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "owned_results-build",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "owned_results-aot",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "owned_results-cgen",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "generated-abi",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "sqlite-example-jit",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "sqlite-example-build",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "sqlite-example-aot",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "sqlite_basic-example-jit",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "sqlite_basic-example-build",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "sqlite_basic-example-aot",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "basic-c-aot-build",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "basic-c-aot",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "text_bytes-c-compile",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "text_bytes-c-run",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "text_bytes-c-jit",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "text_bytes-c-build",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "text_bytes-c-aot",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "text_bytes-xl-jit",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "text_bytes-xl-build",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "text_bytes-xl-aot",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "column_storage-c-compile",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "column_storage-c-run",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "column_storage-c-jit",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "column_storage-c-build",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "column_storage-c-aot",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "column_storage-xl-jit",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "column_storage-xl-build",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "column_storage-xl-aot",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "transactions-c-compile",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "transactions-c-run",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "transactions-c-jit",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "transactions-c-build",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "transactions-c-aot",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "transactions-xl-jit",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "transactions-xl-build",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "transactions-xl-aot",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "wal_snapshots-c-compile",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "wal_snapshots-c-run",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "wal_snapshots-c-jit",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "wal_snapshots-c-build",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "wal_snapshots-c-aot",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "wal_snapshots-xl-jit",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "wal_snapshots-xl-build",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "wal_snapshots-xl-aot",
+        "exitCode": 0,
+        "expectedExit": 0
+      },
+      {
+        "name": "constant-write-rejected",
+        "exitCode": 1,
+        "expectedExit": 1
+      }
+    ],
+    "aotPrograms": 16,
+    "generatedPrototypes": 44,
+    "constants": 45,
+    "sanitizer": [
+      "ASan",
+      "UBSan",
+      "leak detection"
+    ],
+    "stdout": {
+      "path": "build/test/sqlite_wal_20261101/linux.stdout",
+      "bytes": 5799,
+      "sha256": "fe2201643a9e6a756981c9038699858a62f6c49e377858c0dc96f62c93b37543"
+    },
+    "stderr": {
+      "path": "build/test/sqlite_wal_20261101/linux.stderr",
+      "bytes": 203,
+      "sha256": "7998d3e00236a04abcd1fa62487d8c6ccf55a5b1d62ba1a4426024307ca05081"
+    },
+    "expectedNonzero": "constant-write-rejected exits 1; summary exits 0 only after accepting this deliberate negative case",
+    "ownedWorkRemovedByGate": true
+  },
+  "productionReceipts": [
+    {
+      "path": "release/extlibs/sqlite/sqlite_native.c",
+      "bytes": 14857,
+      "sha256": "cd5074ff064b6ebd36a5e76646660a5a6c707dba3d25406d7bc141c9a8749bad"
+    },
+    {
+      "path": "release/extlibs/sqlite/src/sqlite.xl",
+      "bytes": 21032,
+      "sha256": "805dece986888a4a5d0343e4e6aa9b43f57a7a7ca70cebdc6929483d1344953f"
+    },
+    {
+      "path": "release/extlibs/sqlite/xlang.package.json",
+      "bytes": 1045,
+      "sha256": "c5eb7a7097936ee94aa115396a98ec7272fb167c7b091658792406b385f946cd"
+    },
+    {
+      "path": "release/extlibs/sqlite/include/sqlite_native.h",
+      "bytes": 3361,
+      "sha256": "6cbe46601709ef5440ab3adc49c8b792cbcc2b8d5654469777a0bc27eec3a7a2"
+    },
+    {
+      "path": "release/extlibs/sqlite/third_party/sqlite3.c",
+      "bytes": 9758787,
+      "sha256": "47c2be8440a285d26bb9d4a176568ceae0b7a44059cbbd36becb6c9334f01d63"
+    },
+    {
+      "path": "release/extlibs/sqlite/third_party/sqlite3.h",
+      "bytes": 704382,
+      "sha256": "8ff4eb239e86a498da5fea9931a9a72a82cb815cd8b798cb238706e4e903be61"
+    }
+  ],
+  "catalog": {
+    "candidateDirectory": "build/test/sqlite_wal_20261101/catalog",
+    "generation": {
+      "status": "passed",
+      "catalogSha256": "cdefc315e97f8a47546b8e2fe8516495d67407ac49a675cf11be83aa5d7a5174",
+      "sourceIndexSha256": "29f0f6f39ad38409f30bb80b10f6b0958d4151e617bdb5650d26088ffff09bb5",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "3737f83416fc0af71fdbac8d4348b518b440ec6e92f7c59ed8093c740aabb5bd",
+      "inputsUnchanged": true
+    },
+    "validation": [
+      {
+        "name": "candidate freshness",
+        "arguments": [
+          "-B",
+          "ide/tools/refresh_extensions.py",
+          "--check",
+          "--root",
+          "D:\\GIT\\x-lang",
+          "--data",
+          "D:\\GIT\\x-lang\\build\\test\\sqlite_wal_20261101/catalog"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+          "stderr": "",
+          "elapsedMs": 1132
+        }
+      },
+      {
+        "name": "strict compiler binding",
+        "arguments": [
+          "-B",
+          "ide/tools/check_catalog_coverage.py",
+          "--root",
+          "D:\\GIT\\x-lang",
+          "--catalog",
+          "D:\\GIT\\x-lang\\build\\test\\sqlite_wal_20261101/catalog/commands.json"
+        ],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Catalog compiler changed: xl.dll\r\n",
+          "elapsedMs": 465
+        }
+      },
+      {
+        "name": "existing committed runtime audit",
+        "arguments": [
+          "-B",
+          "tools/check_release_committed.py"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+          "stderr": "",
+          "elapsedMs": 1302
+        }
+      }
+    ],
+    "installed": false,
+    "explanation": "Candidate is fresh but strict compiler binding still rejects xl.dll. Existing committed-byte audit passing does not prove the new catalog binding.",
+    "mainlineTokenIssueRecoveredByParallelOwner": true
+  },
+  "website": {
+    "source": {
+      "path": "release/extlibs/sqlite/docs/site.html",
+      "bytes": 15787,
+      "sha256": "8349ef07e45c7b683c15b0a960075598f16c4a4a95effd2894bf1dcf5fc42f8e"
+    },
+    "generated": {
+      "path": "build/test/sqlite_wal_20261101/site/extlibs/sqlite.html",
+      "bytes": 15787,
+      "sha256": "8349ef07e45c7b683c15b0a960075598f16c4a4a95effd2894bf1dcf5fc42f8e"
+    },
+    "deployedExternally": false
+  },
+  "remaining": [
+    "Historical Linux silent gate exit is not closed by a passing rerun.",
+    "Historical Windows AOT PE truncation is not closed by passing current programs.",
+    "No cross-process WAL, power-loss, network filesystem or long-duration certification.",
+    "Strict IDE catalog release binding remains unresolved outside this task."
+  ],
+  "scope": {
+    "ordinaryPackages": 100,
+    "maturityCounts": {
+      "G": 30,
+      "R": 10,
+      "M": 56,
+      "X": 4
+    },
+    "formalRelease": false,
+    "goalComplete": false,
+    "mainlineModifiedByThisPhase": false
+  }
+}

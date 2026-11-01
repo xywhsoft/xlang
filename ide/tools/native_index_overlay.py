@@ -5,6 +5,7 @@ This admits index/type assets only; full semantic memo/IR guards remain separate
 from pathlib import Path
 import hashlib
 from native_signature_overlay import profile as parser_profile, PROFILES as PARSER_PROFILES
+from native_current_unified_profile import updated_pins
 
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
 
@@ -44,6 +45,7 @@ def profile(frontend: Path) -> dict[str,str]:
     cohort = next(name for name,expected in PARSER_PROFILES.items()
                   if audited[str(frontend/ast)]==expected[ast])
     expected = PROFILES.get(cohort)
+    if expected:expected=updated_pins(frontend,expected)
     if expected and all((frontend/rel).is_file() and sha(frontend/rel)==digest for rel,digest in expected.items()):
         return {**audited, **{str(frontend/rel):digest for rel,digest in expected.items()}}
     raise ValueError('shared index/type cohort changed; audit collector/canonical/type-registry contracts')

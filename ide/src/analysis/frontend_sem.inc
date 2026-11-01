@@ -77,6 +77,7 @@ typedef struct xls_sem_raw {
     const char* text;
     XL6_AstNode** children;
     size_t count;
+    size_t textOffset,textSize;
 } xls_sem_raw;
 
 #include "analysis/frontend_sem_package.inc"
@@ -225,6 +226,13 @@ static int xlsSemKeyText(xstrbuf* key,const char* value)
     size_t size=value ? strlen(value) : 0;
     return xlsSemKeyNumber(key,value!=NULL) && xlsSemKeyNumber(key,size) && (!size || xlsSemKeyBytes(key,value,size));
 }
+static int xlsSemKeyTextAt(xstrbuf* key,const char* value,xls_sem_raw* raw)
+{
+    size_t size=value ? strlen(value) : 0;
+    if(!xlsSemKeyNumber(key,value!=NULL) || !xlsSemKeyNumber(key,size))return 0;
+    if(raw){raw->textOffset=key->Size;raw->textSize=size;}
+    return !size || xlsSemKeyBytes(key,value,size);
+}
 static int xlsSemFunction(const XL6_AstNode* node)
 { return node && (node->kind==XL6_AST_FUNC || node->kind==XL6_AST_ASYNC_FUNC || node->kind==XL6_AST_EXPORT_FUNC); }
 static int xlsSemWorthMemo(const XL6_AstNode* node,size_t* nodes,size_t depth)
@@ -288,7 +296,7 @@ static inline void xlsSemKeyScalars(const XL6_AstNode* node,uint64_t* fields)
     _Static_assert(sizeof(values)/sizeof(*values)==XLS_SEM_KEY_FIELDS,"audit complete AST scalar identity");
     memcpy(fields,values,sizeof(values));
 }
-typedef struct xls_sem_key_paths { xmap paths; size_t next,lastId; const char* last; } xls_sem_key_paths;
+typedef struct xls_sem_key_paths { xmap paths; size_t next,lastId; const char* last;xarray* raw; } xls_sem_key_paths;
 static int xlsSemKeySource(xstrbuf* key,const char* path,xls_sem_key_paths* paths)
 {
     if(!path) return xlsSemKeyNumber(key,0) && xlsSemKeyNumber(key,0);
@@ -299,10 +307,16 @@ static int xlsSemKeySource(xstrbuf* key,const char* path,xls_sem_key_paths* path
     paths->last=path; paths->lastId=id;
     return xrtMapSet(&paths->paths,name,&id) && xlsSemKeyNumber(key,1) && xlsSemKeyNumber(key,id) && xlsSemKeyText(key,path);
 }
-static int xlsSemKeyNodePaths(xstrbuf* key,const XL6_AstNode* node,size_t depth,int module,xls_sem_key_paths* paths)
+static int xlsSemKeyNodePaths(xstrbuf* key,const XL6_AstNode* node,size_t depth,int module,xls_sem_key_paths* paths,int lexical)
 {
     if(depth>512 || !xlsSemKeyNumber(key,node!=NULL)) return 0;
     if(!node) return 1;
+    xls_sem_raw* raw=NULL;
+    if(paths->raw && lexical){
+        xls_sem_raw value={(XL6_AstNode*)node,node->kind,node->text,node->children,node->childCount,0,0};
+        if(!xrtArrayPush(paths->raw,&value))return 0;
+        raw=xrtArrayGet(paths->raw,paths->raw->Count-1);
+    }
     uint64_t fields[XLS_SEM_KEY_FIELDS];xlsSemKeyScalars(node,fields);
     uint64_t present=0;
     for(size_t i=0;i<sizeof(fields)/sizeof(*fields);++i) if(fields[i]) present|=(uint64_t)1<<i;
@@ -311,22 +325,27 @@ static int xlsSemKeyNodePaths(xstrbuf* key,const XL6_AstNode* node,size_t depth,
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     if(!xlsSemKeyText(key,node->compiledPackageLink))return 0;
 #endif
-    if(!xlsSemKeyText(key,node->text) || !xlsSemKeyText(key,node->doc) ||
+    if(!xlsSemKeyTextAt(key,node->text,raw) || !xlsSemKeyText(key,node->doc) ||
        !xlsSemKeySource(key,xl6AstSourcePath(node),paths) || !xlsSemKeyNumber(key,node->literalData!=NULL) ||
        (node->literalData && !xlsSemKeyBytes(key,node->literalData,node->literalSize)) ||
-       !xlsSemKeyNodePaths(key,node->inferredType,depth+1,0,paths) || !xlsSemKeyNodePaths(key,node->semanticDeclaredType,depth+1,0,paths)) return 0;
+       !xlsSemKeyNodePaths(key,node->inferredType,depth+1,0,paths,0) || !xlsSemKeyNodePaths(key,node->semanticDeclaredType,depth+1,0,paths,0)) return 0;
     for(size_t i=0;i<node->childCount;++i) {
         /* Only direct module functions omit their bodies in this environment
          * key. Classes, aliases, globals and default expressions stay exact. */
         if(((module==1 && depth==1) || (module==2 && depth==0)) && xlsSemFunction(node) && i==3) { if(!xlsSemKeyNumber(key,0)) return 0; }
-        else if(!xlsSemKeyNodePaths(key,node->children[i],depth+1,module,paths)) return 0;
+        else if(!xlsSemKeyNodePaths(key,node->children[i],depth+1,module,paths,lexical)) return 0;
     }
     return 1;
 }
 static int xlsSemKeyNode(xstrbuf* key,const XL6_AstNode* node,size_t depth,int module)
 {
     xls_sem_key_paths paths={0}; if(!xrtMapInit(&paths.paths,sizeof(size_t))) return 0;
-    int okay=xlsSemKeyNodePaths(key,node,depth,module,&paths); xrtMapUnit(&paths.paths); return okay;
+    int okay=xlsSemKeyNodePaths(key,node,depth,module,&paths,1); xrtMapUnit(&paths.paths); return okay;
+}
+static int xlsSemKeyNodeRaw(xstrbuf* key,const XL6_AstNode* node,xarray* raw)
+{
+    xls_sem_key_paths paths={.raw=raw};if(!xrtMapInit(&paths.paths,sizeof(size_t)))return 0;
+    int okay=xlsSemKeyNodePaths(key,node,0,0,&paths,1);xrtMapUnit(&paths.paths);return okay;
 }
 /* IR keys retain the same complete non-coordinate facts,but pack each
  * node envelope once. Missing type trees are in the envelope;no repeated
@@ -602,12 +621,12 @@ static int xlsSemMoveNode(const XL6_AstNode* in,XL6_AstNode* out,void* user)
 static int xlsSemRawNodes(XL6_AstNode* node,xarray* nodes,size_t depth)
 {
     if(!node || depth>512) return 0;
-    xls_sem_raw raw={node,node->kind,node->text,node->children,node->childCount};
+    xls_sem_raw raw={node,node->kind,node->text,node->children,node->childCount,0,0};
     if(!xrtArrayPush(nodes,&raw)) return 0;
     for(size_t i=0;i<node->childCount;++i) if(!xlsSemRawNodes(node->children[i],nodes,depth+1)) return 0;
     return 1;
 }
-static int xlsSemShapeNode(const XL6_AstNode* node,const xarray* nodes,size_t* at,size_t depth)
+static int xlsSemShapeNode(const XL6_AstNode* node,const xarray* nodes,const xstrbuf* key,size_t* at,size_t depth)
 {
     if(!node || depth>512) return 0;
     const xls_sem_raw* raw=xrtArrayConstGet(nodes,(*at)++);
@@ -615,11 +634,16 @@ static int xlsSemShapeNode(const XL6_AstNode* node,const xarray* nodes,size_t* a
      * methods, typed literals). Walk only the current tree. Never inspect
      * the old pointers before proving they still name the current node. */
     if(!raw || node!=raw->node || node->kind!=raw->kind || node->text!=raw->text || node->children!=raw->children || node->childCount!=raw->count) return 0;
-    for(size_t i=0;i<node->childCount;++i) if(!xlsSemShapeNode(node->children[i],nodes,at,depth+1)) return 0;
+    /* The checker may free and replace text at the SAME allocator address.
+     * Read only current text and the already owned pre-check key bytes. Raw
+     * offsets survive key growth;no old freed pointer is dereferenced. */
+    if(!key || raw->textOffset>key->Size || raw->textSize>key->Size-raw->textOffset ||
+       (node->text && (strlen(node->text)!=raw->textSize || memcmp(node->text,key->Data+raw->textOffset,raw->textSize))))return 0;
+    for(size_t i=0;i<node->childCount;++i) if(!xlsSemShapeNode(node->children[i],nodes,key,at,depth+1)) return 0;
     return 1;
 }
-static int xlsSemSameShape(const XL6_AstNode* node,const xarray* nodes)
-{ size_t at=0; return xlsSemShapeNode(node,nodes,&at,0) && at==nodes->Count; }
+static int xlsSemSameShape(const XL6_AstNode* node,const xarray* nodes,const xstrbuf* key)
+{ size_t at=0; return xlsSemShapeNode(node,nodes,key,&at,0) && at==nodes->Count; }
 static void xlsSemFactsFree(xarray* facts)
 {
     xlsSemPackageFactsFree(facts);
@@ -1046,8 +1070,8 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
     }
     size_t nodes=ctx->queryTypeNodes,bytes=ctx->queryTypeBytes; xstrbuf state={0},after={0}; xarray raw={0};
     xls_raw_capture rawCapture={0};
-    int usable=(!ctx->diags || !ctx->diags->count) && xlsSemGlobalState(ctx,&state) && xlsRawFunctionKey(entry,node,pristine,&rawCapture) &&
-        xlsSemKeyBytes(&entry->key,state.Data,state.Size) && xrtArrayInit(&raw,sizeof(xls_sem_raw)) && xlsSemRawNodes(node,&raw,0);
+    int usable=(!ctx->diags || !ctx->diags->count) && xlsSemGlobalState(ctx,&state) && xrtArrayInit(&raw,sizeof(xls_sem_raw)) &&
+        xlsRawFunctionKey(entry,node,pristine,&rawCapture,&raw) && xlsSemKeyBytes(&entry->key,state.Data,state.Size);
     int sameInputKey=m->trackInputs && usable && old && xlsSemEqualKey(&entry->key,&old->key);
     if(m->trackInputs && !sameInputKey)m->inputSame=0;
     if(usable)xlsRawCapturePrepare(&rawCapture,&raw,node);
@@ -1096,7 +1120,7 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
        && pure
 #endif
-       && (!ctx->diags || !ctx->diags->count) && xlsSemSameShape(node,&raw) && xlsSemGlobalState(ctx,&after) && xlsSemEqualKey(&state,&after) &&
+       && (!ctx->diags || !ctx->diags->count) && xlsSemSameShape(node,&raw,&entry->key) && xlsSemGlobalState(ctx,&after) && xlsSemEqualKey(&state,&after) &&
        entry->key.Capacity<=XLS_SEM_MEMO_BYTES-m->bytes) {
         m->bytes+=entry->key.Capacity; size_t owned=0;
         size_t positions=entry->positions.Capacity*sizeof(xls_sem_position);

@@ -78,7 +78,8 @@ try {
     $null = Run 'strict package and fixtures' $gcc ($flags + @('-Werror','-fsyntax-only',
         'release/extlibs/zip/xrt_zip_source.c','release/extlibs/zip/xrt_zip_archive.c',
         'release/extlibs/zip/xrt_zip_extract.c','release/extlibs/zip/zip_native.c',
-        'release/extlibs/zip/test/test_commit_memory.c','release/extlibs/zip/examples/memory_roundtrip_c.c'))
+        'release/extlibs/zip/test/test_commit_memory.c','release/extlibs/zip/test/test_extract_memory.c',
+        'release/extlibs/zip/examples/memory_roundtrip_c.c','release/extlibs/zip/examples/extract_files_c.c'))
     $objects = @()
     $allSources = @((Join-Path $root 'release/extlibs/zip/test/xrt_runtime.c')) + $sources.ToArray()
     for ($i = 0; $i -lt $allSources.Count; ++$i) {
@@ -86,7 +87,7 @@ try {
         $null = Run "native compile $i" $gcc ($flags + @('-c',$allSources[$i],'-o',$object))
         $objects += $object
     }
-    foreach ($name in @('test_zip','test_commit_memory')) {
+    foreach ($name in @('test_zip','test_commit_memory','test_extract_memory')) {
         $target = Join-Path $work ($name + '.exe')
         $null = Run "GCC $name build" $gcc ($flags + @('-Werror',"release/extlibs/zip/test/$name.c") + $objects + $links + @('-o',$target))
         $null = Run "GCC $name" $target @()
@@ -94,6 +95,7 @@ try {
     }
     $null = Run 'Python/C ZIP interop' $python @('-I','release/extlibs/zip/test/interop.py') 'zip Python/C interop: PASS'
     $null = Run 'XLang commit memory' $xl @('run','release/extlibs/zip/test/commit_memory.xl') 'zip commit MemoryError/retry: PASS'
+    $null = Run 'XLang extraction memory' $xl @('run','release/extlibs/zip/test/extract_memory.xl') 'zip extraction MemoryError/retry: PASS'
     $null = Run 'XLang text transfer' $xl @('run','release/extlibs/zip/test/text_transfer.xl') ''
     $null = Run 'XLang boundaries' $xl @('run','release/extlibs/zip/test/boundaries.xl') 'zip boundaries: ok'
     Negative 'native member rejection' 'release/extlibs/zip/test/private_native_negative.xl' 'addNative'
@@ -127,11 +129,18 @@ try {
     $file = Join-Path $work 'xljit.zip'
     $null = Run 'XLang memory example JIT' $xl @('run','release/extlibs/zip/examples/memory_roundtrip.xl','--',$file) $golden
     $null = Run 'XL JIT independent ZIP wire' $python @('-I','release/extlibs/zip/test/check_memory_wire.py',$file)
+    $extractGolden = [IO.File]::ReadAllText((Join-Path $root 'release/extlibs/zip/examples/extract_files.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    $target = Join-Path $work 'extract_gcc.exe'
+    $null = Run 'GCC extraction example build' $gcc ($flags + @('-Werror','release/extlibs/zip/examples/extract_files_c.c') + $objects + $links + @('-o',$target))
+    $null = Run 'GCC extraction example' $target @() $extractGolden
+    $null = Run 'C extraction example JIT' $xl (@('run','release/extlibs/zip/examples/extract_files_c.c') + $cArgs) $extractGolden
+    $null = Run 'XLang extraction example JIT' $xl @('run','release/extlibs/zip/examples/extract_files.xl') $extractGolden
     $null = Run 'original C example' $shell @('-NoProfile','-ExecutionPolicy','Bypass','-File','tools/run_extlib_c.ps1','-Package','zip','-Source','release/examples/extlibs/zip_c.c') 'zip C/XL example: PASS'
     $null = Run 'original XLang example' $xl @('run','release/examples/extlibs/zip.xl') 'zip C/XL example: PASS'
     if (!$SkipAot) {
         foreach ($source in @('release/extlibs/zip/test/aot_core.xl','release/extlibs/zip/test/text_transfer.xl',
-            'release/extlibs/zip/test/boundaries.xl','release/examples/extlibs/zip.xl','release/extlibs/zip/test/commit_memory.xl')) {
+            'release/extlibs/zip/test/boundaries.xl','release/examples/extlibs/zip.xl','release/extlibs/zip/test/commit_memory.xl',
+            'release/extlibs/zip/test/extract_memory.xl')) {
             $target = Join-Path $work ([IO.Path]::GetFileName($source) + '.exe')
             $null = Run "$source AOT build" $xl @('build',$source,'-o',$target)
             $null = Run "$source AOT" $target @()
@@ -142,6 +151,9 @@ try {
         $target = Join-Path $work 'commit_c.exe'
         $null = Run 'C commit AOT build' $xl (@('build','release/extlibs/zip/test/test_commit_memory.c') + $cArgs + @('-o',$target))
         $null = Run 'C commit AOT' $target @()
+        $target = Join-Path $work 'extract_memory_c.exe'
+        $null = Run 'C extraction memory AOT build' $xl (@('build','release/extlibs/zip/test/test_extract_memory.c') + $cArgs + @('-o',$target))
+        $null = Run 'C extraction memory AOT' $target @()
         foreach ($kind in @('c','xl')) {
             $source = if ($kind -eq 'c') {'release/extlibs/zip/examples/memory_roundtrip_c.c'} else {'release/extlibs/zip/examples/memory_roundtrip.xl'}
             $target = Join-Path $work ("memory_$kind.exe")
@@ -151,6 +163,12 @@ try {
             $file = Join-Path $work ("$kind.aot.zip")
             $null = Run "$kind memory AOT" $target @($file) $golden
             $null = Run "$kind AOT independent ZIP wire" $python @('-I','release/extlibs/zip/test/check_memory_wire.py',$file)
+            $source = if ($kind -eq 'c') {'release/extlibs/zip/examples/extract_files_c.c'} else {'release/extlibs/zip/examples/extract_files.xl'}
+            $target = Join-Path $work ("extract_$kind.exe")
+            $argsForBuild = @('build',$source)
+            if ($kind -eq 'c') {$argsForBuild += $cArgs}
+            $null = Run "$kind extraction AOT build" $xl ($argsForBuild + @('-o',$target))
+            $null = Run "$kind extraction AOT" $target @() $extractGolden
         }
     }
     VerifyInputs

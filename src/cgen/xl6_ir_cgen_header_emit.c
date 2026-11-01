@@ -44,7 +44,7 @@ static void xl6IrCgenHeaderMarkType(
     if ( item == NULL || needs == NULL ) return;
     if ( !item->foreignHeader && item->cAbi != XL6_IR_C_ABI_PRODUCT &&
          item->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE &&
-         item->cAbi != XL6_IR_C_ABI_UNION ) {
+         !xl6IrCAbiIsAggregate(item->cAbi) ) {
         xl6IrCgenHeaderNeedType(module, type, needs);
         return;
     }
@@ -52,18 +52,18 @@ static void xl6IrCgenHeaderMarkType(
          (size_t)type > module->types.count || structuralTypes[type - 1] )
         return;
     structuralTypes[type - 1] = 1;
-    if ( item->cAbi == XL6_IR_C_ABI_UNION ) {
+    if ( xl6IrCAbiIsAggregate(item->cAbi) ) {
         size_t layoutIndex;
-        for ( layoutIndex = 0; layoutIndex < module->unionLayoutCount;
+        for ( layoutIndex = 0; layoutIndex < module->aggregateLayoutCount;
               ++layoutIndex ) {
-            const XL6_IrUnionLayout* layout = &module->unionLayouts[layoutIndex];
+            const XL6_IrAggregateLayout* layout = &module->aggregateLayouts[layoutIndex];
             size_t fieldOffset;
             if ( layout->type != type ) continue;
             for ( fieldOffset = 0; fieldOffset < layout->fieldCount;
                   ++fieldOffset )
                 xl6IrCgenHeaderMarkType(
                     module,
-                    module->unionFields[layout->firstField + fieldOffset].type,
+                    module->aggregateFields[layout->firstField + fieldOffset].type,
                     needs, structuralTypes);
             return;
         }
