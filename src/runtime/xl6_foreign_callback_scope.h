@@ -6,7 +6,9 @@
 /* Native-to-language execution marker. Caller independently owns code and
  * userdata residency. Caller-owned zero storage, same thread, strict LIFO;
  * never copy a live scope. Enter/Leave allocate nothing and do not drain any
- * resource queue: native caller code remains on the C stack after Leave. */
+ * resource queue: native caller code remains on the C stack after Leave.
+ * Windows state is fiber-local; POSIX state is thread-local through OS keys.
+ * First use creates OS metadata, not an owning language allocation. */
 typedef struct XL6_ForeignCallbackScopeV1 {
     struct XL6_ForeignCallbackScopeV1* self;
     struct XL6_ForeignCallbackScopeV1* previous;

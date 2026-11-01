@@ -31,3 +31,7 @@ Windows O0/O2 的 8 组独立测试及合并测试均通过；Linux 对这两份
 共享存储检查点：同一个 opaque Cell 核心增加显式 graph strategy，与 leaf strategy 共用一个指针槽；普通 Cell 的布局没有为此增大。新建和交换仍采用现有 consuming transfer 合同，拥有图逐项读取真正的 native owning slot，清理先移出 payload、退出 mutation，再执行 checked destructor。已有 Cell capture kind 可以捕获它，无须另加装箱层。Future 使用独立的 graph payload policy，验证精确 profile 身份，并在完成失败时保留生产者的 payload 拥有权。两个 checked 返回入口不把失败预先传播穿过上层 catch；void 清理适配器传播独立失败位。
 
 `check_foreign_view_storage.py` 的 Windows、Linux 检查各 40 个阶段通过，包括 cell→closure→view 与 Future→view 循环、零分配的 cell exchange／Future Copy、两个 cell 与一个 payload 创建分配失败位置、复制失败回滚、重叠拒绝，以及空诊断首错不被后续清理错误覆盖。这是校验已有源码构建对象后替换修改单元的增量内部验收；修改单元分别用 O0/O2，Linux 对这些单元启用 ASan/UBSan/泄漏检查。复用的基础对象不由此变成 O2 或 sanitizer 构建，最终仍需完整源码验收。语言、类字段、原生 callback 槽和产品接线尚未完成。
+
+执行上下文检查点：私有实现原先的 C TLS 已移除，统一使用 Windows FLS／POSIX key。Windows 回调标记与物理调用登记按 fiber 隔离；物理调用的 intrusive stack token 允许同一上下文内非 LIFO 结束，但拒绝复制 token、跨线程／fiber 结束及借用另一个 fiber 正在调用的根。drain 的防重入状态也按执行上下文保存，遍历 epoch 使用全局原子序列。新运行时没有依赖 TCC PE 不支持的 C TLS 重定位。
+
+OS key 初始化和首次绑定是冷路径，不能称作绝对零成本；稳定路径有 OS 槽访问、token 连接和失效检查，没有语言堆分配。Windows GCC O0/O2、真实 TCC JIT 和链接实际宿主 DLL 的 TCC 独立程序均通过线程／fiber 专项；既有 view、capture、cell／Future 图和真实宿主 XUI 夹具一并通过。Linux 新单元 sanitizer 检查覆盖线程隔离和存储图；POSIX 测试不声称验证 Windows fiber。捕获回调和类字段仍需实际接入，不能由该底座检查推定已经完成。

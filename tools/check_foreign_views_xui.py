@@ -18,9 +18,9 @@ def main():
     assert metadata['xrt_host_header_sha256']==hashlib.sha256((root/'lib/xrt/xrt.h').read_bytes().replace(b'\r\n',b'\n')).hexdigest()
     out.mkdir(parents=True,exist_ok=False); (out/'tmp').mkdir()
     engine=build/'xge.dll'; cc=shutil.which('gcc'); assert cc
-    sources=[root/'test/support/foreign_view_xui.c',root/'src/runtime/xl6_foreign_view.c',root/'src/runtime/xl6_foreign_callback_scope.c']
+    sources=[root/'test/support/foreign_view_xui.c',root/'src/runtime/xl6_foreign_view.c',root/'src/runtime/xl6_foreign_callback_scope.c',root/'src/runtime/xl6_foreign_context.c']
     protected=[Path(__file__).resolve(),runtime,engine,*sources,root/'src/runtime/xl6_foreign_view.h',
-        root/'src/runtime/xl6_foreign_callback_scope.h',upstream/'include/xui.h',upstream/'include/xge_host_xrt.h',
+        root/'src/runtime/xl6_foreign_callback_scope.h',root/'src/runtime/xl6_foreign_context.h',upstream/'include/xui.h',upstream/'include/xge_host_xrt.h',
         *sorted((build/'host-xrt').glob('*.h')),build/'host-xrt/xge_host_xrt_slots.inc',build/'xge_build_config.h']
     report=dict(complete=False,passed=False,networkTests=False,scope=__doc__,
         inputs={str(path):sha(path) for path in protected},rows=[])

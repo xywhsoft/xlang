@@ -1,0 +1,71 @@
+{
+  "scope": "Private execution-context safety and Windows TinyCC compatibility; language/package integration incomplete",
+  "complete": true,
+  "networkTests": false,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\view-context-win-r3\\results.json",
+      "sha256": "dd6e9addd0a6d69a5b765217d5434925921ccd4f780e345cb937e28d9707c212",
+      "stages": 15,
+      "sourceSanitizers": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\view-context-base-win-r1\\results.json",
+      "sha256": "9d2bb2f3295e8b6e3d91b25d4de0b190d4ae98d92851542328a9840de9afc5de",
+      "stages": 20,
+      "sourceSanitizers": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\view-context-capture-win-r1\\results.json",
+      "sha256": "cb20a767486570cb1da02714ba37b7e4445526d0a6ee9592f07a471f642b07dd",
+      "stages": 18,
+      "sourceSanitizers": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\view-context-storage-win-r1\\results.json",
+      "sha256": "d8a95fa28a3839220205fb9918b6822cb307c16c815b3ccb82054bf917cd0018",
+      "stages": 42,
+      "sourceSanitizers": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\view-context-xui-win-r1\\results.json",
+      "sha256": "af5ede5308ad08961e5d35ac2f586dbe5d1ba3589c124117ab48303cb3d579e5",
+      "stages": 4,
+      "sourceSanitizers": false
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-view-context-20261102-r2\\results.json",
+      "sha256": "e382ae5cd1b4a5c57505212c30298282f0c4e65087f6e231bce351ac613303b2",
+      "stages": 12,
+      "sourceSanitizers": true
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-view-context-base-20261102-r1\\results.json",
+      "sha256": "2a85d33171cab33721012f0845903476fa20072490a1b4c826d68ceeb258df5b",
+      "stages": 20,
+      "sourceSanitizers": true
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-view-context-capture-20261102-r1\\results.json",
+      "sha256": "e744b30725d2d71feba758bd6d27fe4acf9dffdf6d19c29c7ed61e90f3714634",
+      "stages": 18,
+      "sourceSanitizers": true
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-view-context-storage-20261102-r1\\results.json",
+      "sha256": "f5619e79aaa8c73d43de21051c908944c7584eb3b2d56bb97e83ce78e9a375fe",
+      "stages": 42,
+      "sourceSanitizers": true
+    }
+  ],
+  "costs": [
+    "cold OS key creation and first binding",
+    "steady-state OS slot accesses, stack token links and membership validation",
+    "no steady-state language allocator calls in measured scopes"
+  ],
+  "remaining": [
+    "class finalizer and boxed closure callback enrollment",
+    "native retained callback owning slots",
+    "compiler, package and delivery integration"
+  ]
+}
