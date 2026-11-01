@@ -86,7 +86,7 @@ static const XL6_AstNode* xl6IndexSelection(const XL6_AstNode* n)
     case XL6_AST_NATIVE_EXTERN_FUNC:
         return n->childCount && n->children[0]->kind == XL6_AST_NAME ? n->children[0] : NULL;
     case XL6_AST_NAME: case XL6_AST_PARAM: case XL6_AST_VAR_DECL: case XL6_AST_CONST_DECL:
-    case XL6_AST_CLASS: case XL6_AST_ENUM: case XL6_AST_ENUM_VARIANT: case XL6_AST_UNION:
+    case XL6_AST_CLASS: case XL6_AST_ENUM: case XL6_AST_ENUM_VARIANT: case XL6_AST_UNION: case XL6_AST_C_RECORD:
     case XL6_AST_TYPE_ALIAS: case XL6_AST_EXTERN_TYPE_ALIAS:
         return n;
     default: return NULL; /* No guessed selection for anonymous/implicit entities. */
@@ -113,7 +113,7 @@ static void xl6IndexTypeFacts(XL6_IndexFact* f, const XL6_AstNode* parent)
     const XL6_AstNode* n = f->node;
     if (!n->semanticTypeId) return;
     switch (n->kind) {
-    case XL6_AST_CLASS: case XL6_AST_ENUM: case XL6_AST_UNION:
+    case XL6_AST_CLASS: case XL6_AST_ENUM: case XL6_AST_UNION: case XL6_AST_C_RECORD:
     case XL6_AST_TYPE_ALIAS: case XL6_AST_EXTERN_TYPE_ALIAS: case XL6_AST_PROTOCOL:
         f->declaredType = n->semanticTypeId; break;
     case XL6_AST_TYPE:
@@ -377,7 +377,7 @@ char* xl6SemCBridgeMapJson(const XL6_AstNode* root, const XL6_SourceReport* repo
         /* The nominal symbol is fixed by lowered union layout. Structural
          * carriers, erased aliases and shared runtime types have no unique
          * source declaration; never recover one from C/type spelling. */
-        if (typeBinding && fact && (fact->node->kind != XL6_AST_UNION ||
+        if (typeBinding && fact && (!xl6AstKindIsAggregate(fact->node->kind) ||
                 !fact->node->semanticTypeId || !fact->node->semanticTypeAbiId)) fact = NULL;
         if (fact) {
             source = xl6IndexSourceId(&sources, fact->selection);

@@ -34,7 +34,7 @@
 
 不要整体删除 `build`：当前打包配置和收据仍引用其中的编译器、C 服务器、SDK 源码、实际构建及其证据。这些材料与普通缓存不同。
 
-`release` 顶层应用程序仅为 `xlang_ide.exe`、`xlang_ide_console.exe`、`xlang-ls.exe` 与 `xge.dll`；另含运行数据、相对默认设置、工具链、来源、许可和清单。旧 `*_test.exe`、探针与验证辅助目录已归档。`option` 初始只含包内默认 `settings.json`，没有带入开发会话或恢复文件。使用 IDE 后生成的偏好与恢复文件属于用户状态，后续整理时应先保留。
+仓库根 `release` 统一保存 IDE、语言服务和引擎，包含 `xlang_ide.exe`、`xlang-ls.exe`、`xge.dll`、`xl.exe`、`xl.dll`、`xlc.dll`，也可放置独立的 `mdo.exe`。IDE 只发行图形入口；自动化诊断使用其 `--hidden --frames N` 参数。运行资源、扩展库、公开头文件、许可和用户设置继续保留；源码快照及交付／验收材料放在 `dev/release-materials`。旧 `*_test.exe`、探针与验证辅助目录已归档。使用 IDE 后生成的偏好与恢复文件属于用户状态，后续整理时应先保留。
 
 ## 日常开发
 

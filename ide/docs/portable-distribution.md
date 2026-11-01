@@ -1,5 +1,7 @@
 # Windows x64 便携发布
 
+当前发行仅提供图形 IDE `xlang_ide.exe`，诊断也通过该程序的 `--hidden --frames N` 参数执行。默认运行目录与运行 ZIP 不包含独立控制台入口、clangd、源码快照或交付／验收报告；开发材料放在同批候选旁的 `development-materials/`，仓库内保存到 [dev/release-materials](../../dev/release-materials/README.md)。以下带日期的验收记录保留当时的载荷与测试范围。
+
 2026-10-22 已支持 C／xlang 单文件、独立 `.xlp` 和 `.xlw` 工作空间构建运行。无项目时 F7／F5 使用当前源文件；项目上下文保持所选／启动目标规则，新增“项目 → 构建当前文件／构建并运行当前文件”。显式源文件启动优先于历史工作空间恢复。严格构建 `cb-bd75b462` 为 88 个编译对象／109 项产物，构建期间源码变化为空。20 个相关原生 fixture、40 项单文件断言、7 次真实主程序入口与便携验收通过；发布目录已更新。SDK、默认编译器和 C 服务器沿用上一候选。本轮为相关范围回归，未重复全量标准／ABI 专项。见 [四种构建形态](standalone-builds.md) 和 [当前候选](../CURRENT-CANDIDATE.md)。
 
 2026-10-21 已更新为 XGE 3.0.0（`f248fd17`，XUI 代理 16），保留有来源记录的 Unicode 查找兼容补丁。严格构建 `cb-4a6a6215` 为 88 个编译对象（87 个 IDE 模块与 1 个 C 输入观察辅助对象）／108 项产物，构建期间源码变化为空；当前提供者对应的标准检查分段完成（含 29 张基础渲染，原脚本资源夹具分支失败保留），14 项实际编译器／语言服务检查及便携搬迁验收通过。`release` 为完整干净载荷，`dist` 仅保留本候选。适配、证据与范围见 [XGE 3 更新](xge3-upgrade.md) 和 [当前候选](../CURRENT-CANDIDATE.md)。下文保留历史阶段记录。
@@ -19,7 +21,6 @@ SDK 来源、具名与内嵌许可文本、编译器材料及待完成的发行�
 ```text
 xlang-ide/
   xlang_ide.exe
-  xlang_ide_console.exe
   xlang-ls.exe
   xge.dll
   data/commands.json
@@ -27,16 +28,17 @@ xlang-ide/
   option/settings.json
   xl.exe、xl.dll、xlc.dll
   include/、extlibs/
-  toolchains/clangd/{bin/,lib/,LICENSE.TXT}
-  provenance/
   notices/
-  sources/{xge/,tcc/,xlang/}
-  sources/COMPILER-REBUILD.md
   package-manifest.json
   QUICKSTART.md
+development-materials/
+  sources/{xge/,tcc/,xlang/}
+  sources/COMPILER-REBUILD.md
+  provenance/
+  materials-manifest.json
 ```
 
-默认设置使用相对于 option/settings.json 的编译器和 C 服务器路径。程序自己的默认设置重新选择同目录引擎或 toolchains 下的工具时也保存相对路径；外部工具或 --settings 指定的外部配置保持绝对绑定。命令文档原文已嵌入 commands.json，不依赖仓库 Markdown 路径。界面和代码默认使用随包 Consolas-with-Yahei，缺失/损坏时退回 Noto；随包字体偏好可相对保存。用户选择的其他外部字体和工作空间不会被打包。默认 TTF 的内嵌许可单独记录且公开分发授权尚未核实，不适用 Noto 的 OFL 说明。
+默认设置使用相对于 option/settings.json 的编译器路径，不配置 C 服务器。程序自己的默认设置重新选择同目录引擎时也保存相对路径；外部工具或 --settings 指定的外部配置保持绝对绑定。命令文档原文已嵌入 commands.json，不依赖仓库 Markdown 路径。界面和代码默认使用随包 Consolas-with-Yahei，缺失/损坏时退回 Noto；随包字体偏好可相对保存。用户选择的其他外部字体和工作空间不会被打包。默认 TTF 的内嵌许可单独记录且公开分发授权尚未核实，不适用 Noto 的 OFL 说明。
 
 解压到可写目录。option 是用户可变状态区；打包器不读取开发目录的 option，也不覆盖已经存在的候选目录或用户数据。Windows 字体和系统 DLL 属于运行环境；不复制 Windows 字体或系统 DLL。随包 Noto 字体、上游许可证与来源记录属于发行载荷。独立 xlang 服务和编译器各自使用匹配运行时，GUI 的唯一 XRT 仍由固定 xge.dll 提供。
 
@@ -45,13 +47,13 @@ xlang-ide/
 ```powershell
 .\tools\package.ps1 `
   -CompilerRoot <已验证工具链的 release 绝对目录> `
-  -CServerRoot <已验证 clangd 的 bin/lib/许可证所在绝对目录> `
   -CompilerManifest <编译器冻结输入 JSON> `
-  -CServerManifest <clangd 冻结输入 JSON> `
   -SdkSourceRoot <与固定 SDK 摘要一致的源码快照绝对目录> `
   -CompilerSourceManifest <编译器源码及构建输入清单绝对路径> `
   -CompilerSourceBuildReport <对应实际独立构建记录绝对路径>
 ```
+
+默认关闭 C LSP，不需要 C 服务器。仅在明确需要开发版 C LSP 时使用 `-WithCLsp`，并同时传入 `-CServerRoot` 和 `-CServerManifest`；该选项不属于默认发行配置。
 
 构建开发机需要 Python、PowerShell 与现有 GCC 工具；候选运行时不需要 Python 或 GCC。工具使用新建阶段目录，在输入、复制内容、PE 依赖和 ZIP 全部核对后一次发布候选目录与归档。输入变化、缺少资源、路径冲突和不支持的程序类型均失败；失败阶段保留便于检查，没有递归删除。
 

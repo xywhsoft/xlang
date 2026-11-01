@@ -52,7 +52,7 @@ try {
     $null = Check 'runtime' $gcc ($flags + @('-c','test/support/extlib_sqlite_runtime.c','-o',$runtime))
     $null = Check 'bridge' $gcc ($flags + @('-Wmissing-prototypes','-c',"$pkg/sqlite_native.c",'-o',$native))
     $null = Check 'sqlite-vendor' $gcc @('-std=c11','-O2','-c',"$pkg/third_party/sqlite3.c",'-o',$vendor) 240
-    foreach ($name in @('test_sqlite','test_sqlite_alloc','test_sqlite_threads','test_sqlite_error_priority')) {
+    foreach ($name in @('test_sqlite','test_sqlite_alloc','test_sqlite_threads','test_sqlite_error_priority','test_wal_example_cleanup')) {
         $binary = Join-Path $work "$name.exe"
         $testFlags = if ($name -eq 'test_sqlite_threads') { @('-DNDEBUG') } else { @() }
         $null = Check "$name-build" $gcc ($flags + $testFlags + @("$pkg/test/$name.c") + $objects + @('-o',$binary))
@@ -108,6 +108,7 @@ try {
         text_bytes = "TEXT: 3 bytes`nBLOB: 3 bytes`nmiddle byte: 0"
         column_storage = "text: 你好`ninteger: 9223372036854775807`nutf8 bytes: 6`nzero blob: 4096"
         transactions = [IO.File]::ReadAllText((Join-Path $Root "$pkg/examples/transactions.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
+        wal_snapshots = [IO.File]::ReadAllText((Join-Path $Root "$pkg/examples/wal_snapshots.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
     }
     foreach ($name in $paired.Keys) {
         $exampleSource = "$pkg/examples/${name}_c.c"

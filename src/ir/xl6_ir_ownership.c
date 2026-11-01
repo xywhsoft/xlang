@@ -578,8 +578,8 @@ XL6_IrOperandOwnership xl6IrInstructionOperandOwnership(
     case XL6_IR_INSTR_ERROR_TEST:
     case XL6_IR_INSTR_BRANCH:
     case XL6_IR_INSTR_SWITCH:
-    case XL6_IR_INSTR_UNION_GET:
-    case XL6_IR_INSTR_UNION_SET:
+    case XL6_IR_INSTR_AGGREGATE_GET:
+    case XL6_IR_INSTR_AGGREGATE_SET:
     case XL6_IR_INSTR_FOREIGN_RESULT_ROLLBACK:
         return XL6_IR_OPERAND_OWNERSHIP_OBSERVE;
     default:

@@ -19,6 +19,9 @@ end
 
 func main(...) as int
     WidgetAlias root = Widget(widgetAt(0))
+    point raw = root.handle
+    Widget restored = Widget(raw)
+    expect(readCount(restored), 0)
     Child child = Child(widgetAt(1))
     expect(child.childCount, 0)
     expect(readCount(root), 0)

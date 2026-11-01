@@ -36,6 +36,28 @@ static XL6_AstNode* node(XL6_AstKind kind,const char* text)
 {
  XL6_AstNode* n=xl6AstNew(kind,NULL);if(n && text){n->text=xrtStrDup(text);if(!n->text){xl6AstFree(n);return NULL;}}return n;
 }
+static int lexicalShape(void)
+{
+ XL6_AstNode* root=node(XL6_AST_MODULE,"root");CHECK(root);
+ root->childCount=root->childCapacity=80;root->children=xrtCalloc(80,sizeof(*root->children));CHECK(root->children);
+ root->inferredType=node(XL6_AST_TYPE,"int");CHECK(root->inferredType);
+ for(size_t i=0;i<80;++i){root->children[i]=node(XL6_AST_TYPE,"string");CHECK(root->children[i]);}
+ xstrbuf ordinary={0},key={0};xarray raw={0};CHECK(xrtArrayInit(&raw,sizeof(xls_sem_raw)));
+ CHECK(xlsSemKeyNode(&ordinary,root,0,0) && xlsSemKeyNodeRaw(&key,root,&raw));
+ CHECK(raw.Count==81 && ordinary.Size==key.Size && !memcmp(ordinary.Data,key.Data,key.Size));
+ CHECK(xlsSemSameShape(root,&raw,&key));
+ /* Deterministic same-address mutation:the pointer/shape still match. This
+  * must decline even if malloc never happens to reuse a freed text address. */
+ char* address=root->children[37]->text;memcpy(address,"cbytes",7);
+ CHECK(root->children[37]->text==address && !xlsSemSameShape(root,&raw,&key));
+ memcpy(address,"string",7);CHECK(xlsSemSameShape(root,&raw,&key));
+ CHECK(xrtStrBufReserve(&key,key.Capacity+8192) && xlsSemSameShape(root,&raw,&key));
+ xls_sem_raw* item=xrtArrayGet(&raw,38);size_t offset=item->textOffset,length=item->textSize;
+ item->textOffset=SIZE_MAX;CHECK(!xlsSemSameShape(root,&raw,&key));item->textOffset=offset;
+ item->textSize=SIZE_MAX;CHECK(!xlsSemSameShape(root,&raw,&key));item->textSize=length;
+ CHECK(xlsSemSameShape(root,&raw,&key));
+ xrtArrayUnit(&raw);xrtStrBufFree(&ordinary);xrtStrBufFree(&key);xl6AstFree(root);return 1;
+}
 static int init(fixture* f)
 {
  memset(f,0,sizeof(*f));f->function=node(XL6_AST_FUNC,"work");CHECK(f->function);
@@ -241,7 +263,7 @@ static int observations(void)
 int main(void)
 {
  fixture warm;if(!init(&warm))return 1;xls_sem_ir_receipt* r=xlsSemIrReceipt(warm.function,warm.unit,NULL,1024u*1024u);if(!r)return 1;xlsSemIrReceiptRelease(r);drop(&warm);
- if(!fields() || !boundaries() || !faults() || !differentUnits() || !cancellation() || !owners() || !observations())return 1;
+ if(!lexicalShape() || !fields() || !boundaries() || !faults() || !differentUnits() || !cancellation() || !owners() || !observations())return 1;
  if(tracked || overflow){fputs("final input fixture leaked tracked component storage\n",stderr);return 1;}
  printf("analysis_semantic_final_input_test passed: %u checks; final typed deltas,all18scalar fields/package links,nested type trees,late alias effects,COW/no hot allocations,bounds,real allocation failures,independent owner binding\n",checks);return 0;
 }

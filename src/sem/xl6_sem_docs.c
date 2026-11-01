@@ -30,7 +30,7 @@ static int xl6SemIsDocumentableNode(const XL6_AstNode* node)
             node->kind == XL6_AST_TYPE_ALIAS ||
             node->kind == XL6_AST_EXTERN_TYPE_ALIAS ||
             node->kind == XL6_AST_CLASS ||
-            node->kind == XL6_AST_UNION ||
+            xl6AstKindIsAggregate(node->kind) ||
             node->kind == XL6_AST_FIELD ||
             node->kind == XL6_AST_CREATE ||
             node->kind == XL6_AST_NATIVE_EXTERN_SPECIAL ||

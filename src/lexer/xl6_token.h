@@ -128,7 +128,8 @@ typedef enum XL6_TokenKind {
     XL6_TK_BIT_OR,
     XL6_TK_BIT_XOR,
     XL6_TK_SHL,
-    XL6_TK_SHR
+    XL6_TK_SHR,
+    XL6_KW_STRUCT
 } XL6_TokenKind;
 
 typedef struct XL6_Token {

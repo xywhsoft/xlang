@@ -986,7 +986,7 @@ static int xl6ImportsSymbolIsType(const XL6_ImportSymbol* symbol)
     return symbol->kind == XL6_AST_CLASS ||
            symbol->kind == XL6_AST_PROTOCOL ||
            symbol->kind == XL6_AST_ENUM ||
-           symbol->kind == XL6_AST_UNION ||
+           xl6AstKindIsAggregate(symbol->kind) ||
            symbol->kind == XL6_AST_TYPE_ALIAS ||
            symbol->kind == XL6_AST_EXTERN_TYPE_ALIAS;
 }
@@ -1187,7 +1187,7 @@ static const char* xl6ImportsDeclName(const XL6_AstNode* node)
     case XL6_AST_CLASS:
     case XL6_AST_PROTOCOL:
     case XL6_AST_ENUM:
-    case XL6_AST_UNION:
+    case XL6_AST_UNION: case XL6_AST_C_RECORD:
     case XL6_AST_TYPE_ALIAS:
     case XL6_AST_EXTERN_TYPE_ALIAS:
     case XL6_AST_VAR_DECL:
@@ -1213,7 +1213,7 @@ static int xl6ImportsDeclCanBeRenamed(const XL6_AstNode* node)
     case XL6_AST_CLASS:
     case XL6_AST_PROTOCOL:
     case XL6_AST_ENUM:
-    case XL6_AST_UNION:
+    case XL6_AST_UNION: case XL6_AST_C_RECORD:
     case XL6_AST_TYPE_ALIAS:
     case XL6_AST_EXTERN_TYPE_ALIAS:
     case XL6_AST_VAR_DECL:
@@ -1244,7 +1244,7 @@ static void xl6ImportsSetDeclName(XL6_AstNode* node, const char* name)
     case XL6_AST_CLASS:
     case XL6_AST_PROTOCOL:
     case XL6_AST_ENUM:
-    case XL6_AST_UNION:
+    case XL6_AST_UNION: case XL6_AST_C_RECORD:
     case XL6_AST_TYPE_ALIAS:
     case XL6_AST_EXTERN_TYPE_ALIAS:
     case XL6_AST_VAR_DECL:
@@ -1269,7 +1269,7 @@ static int xl6ImportsIsModulePublicDecl(const XL6_AstNode* node)
            ((node->kind == XL6_AST_CLASS ||
              node->kind == XL6_AST_PROTOCOL ||
              node->kind == XL6_AST_ENUM ||
-             node->kind == XL6_AST_UNION ||
+             xl6AstKindIsAggregate(node->kind) ||
              node->kind == XL6_AST_TYPE_ALIAS ||
              node->kind == XL6_AST_EXTERN_TYPE_ALIAS) &&
             (node->flags & XL6_AST_FLAG_PUBLIC) != 0) ||

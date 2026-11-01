@@ -749,9 +749,9 @@ static int xl6IrCgenAsyncMachineProgramSupported(
                     return xl6IrCgenAsyncProgramUnsupported(unsupportedReason,
                         "XLIR async nullable ABI is not admitted");
                 break;
-            case XL6_IR_INSTR_UNION_ZERO:
-            case XL6_IR_INSTR_UNION_GET:
-            case XL6_IR_INSTR_UNION_SET:
+            case XL6_IR_INSTR_AGGREGATE_ZERO:
+            case XL6_IR_INSTR_AGGREGATE_GET:
+            case XL6_IR_INSTR_AGGREGATE_SET:
             case XL6_IR_INSTR_BRANCH:
             case XL6_IR_INSTR_JUMP:
                 break;

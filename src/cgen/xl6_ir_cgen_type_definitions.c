@@ -57,21 +57,21 @@ static int xl6IrCgenEmitUnionTypes(
     size_t requiredCount = 0;
     size_t pass;
     size_t layoutIndex;
-    for ( layoutIndex = 0; layoutIndex < module->unionLayoutCount; ++layoutIndex )
+    for ( layoutIndex = 0; layoutIndex < module->aggregateLayoutCount; ++layoutIndex )
         if ( xl6IrCgenTypeSelected(
-                 module, module->unionLayouts[layoutIndex].type, selectedTypes) )
+                 module, module->aggregateLayouts[layoutIndex].type, selectedTypes) )
             requiredCount += 1;
     if ( requiredCount == 0 ) return 1;
     emitted = (unsigned char*)xrtCalloc(
-        module->unionLayoutCount, sizeof(*emitted));
+        module->aggregateLayoutCount, sizeof(*emitted));
     if ( emitted == NULL )
         return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
                              "XLIR union declaration ordering allocation failed");
-    for ( pass = 0; pass < module->unionLayoutCount &&
+    for ( pass = 0; pass < module->aggregateLayoutCount &&
                     emittedCount < requiredCount; ++pass ) {
         size_t before = emittedCount;
-        for ( layoutIndex = 0; layoutIndex < module->unionLayoutCount; ++layoutIndex ) {
-            const XL6_IrUnionLayout* layout = &module->unionLayouts[layoutIndex];
+        for ( layoutIndex = 0; layoutIndex < module->aggregateLayoutCount; ++layoutIndex ) {
+            const XL6_IrAggregateLayout* layout = &module->aggregateLayouts[layoutIndex];
             const XL6_IrType* unionType = xl6IrTypeGet(&module->types, layout->type);
             size_t fieldOffset;
             int ready = 1;
@@ -79,29 +79,69 @@ static int xl6IrCgenEmitUnionTypes(
                  !xl6IrCgenTypeSelected(module, layout->type, selectedTypes) )
                 continue;
             for ( fieldOffset = 0; fieldOffset < layout->fieldCount; ++fieldOffset ) {
-                const XL6_IrUnionField* field =
-                    &module->unionFields[layout->firstField + fieldOffset];
+                const XL6_IrAggregateField* field =
+                    &module->aggregateFields[layout->firstField + fieldOffset];
                 const XL6_IrType* fieldType = xl6IrTypeGet(&module->types, field->type);
                 size_t dependency;
                 if ( fieldType == NULL ) { ready = 0; break; }
-                if ( fieldType->cAbi != XL6_IR_C_ABI_UNION ) continue;
-                for ( dependency = 0; dependency < module->unionLayoutCount; ++dependency )
-                    if ( module->unionLayouts[dependency].type == field->type ) break;
-                if ( dependency == module->unionLayoutCount ||
+                if ( !xl6IrCAbiIsAggregate(fieldType->cAbi) ) continue;
+                for ( dependency = 0; dependency < module->aggregateLayoutCount; ++dependency )
+                    if ( module->aggregateLayouts[dependency].type == field->type ) break;
+                if ( dependency == module->aggregateLayoutCount ||
                      !xl6IrCgenTypeSelected(
-                         module, module->unionLayouts[dependency].type,
+                         module, module->aggregateLayouts[dependency].type,
                          selectedTypes) ||
                      !emitted[dependency] ) {
                     ready = 0; break;
                 }
             }
             if ( !ready ) continue;
-            if ( unionType == NULL || unionType->kind != XL6_IR_TYPE_UNION ||
-                 unionType->cAbi != XL6_IR_C_ABI_UNION ||
+            if ( unionType == NULL || !xl6IrTypeKindIsAggregate(unionType->kind) ||
+                 !xl6IrCAbiIsAggregate(unionType->cAbi) ||
                  unionType->cName[0] == '\0' ) {
                 xrtFree(emitted);
                 return xl6IrCgenDiag(diags, module, layout->declaration,
                     "XLIR union type has no deterministic nominal C ABI");
+            }
+            if (unionType->kind == XL6_IR_TYPE_C_RECORD) {
+                if (!unionType->foreignHeader) {
+                    xrtFree(emitted);
+                    return xl6IrCgenDiag(diags, module, layout->declaration,
+                        "C record has no authoritative declaration header");
+                }
+                xl6OutputPrintf(out, "#include <%s>\n#ifndef XL6_RECORD_CHECK_%s\n"
+                    "#define XL6_RECORD_CHECK_%s 1\ntypedef struct {\n",
+                    unionType->foreignHeader, unionType->cName, unionType->cName);
+                for (fieldOffset = 0; fieldOffset < layout->fieldCount; ++fieldOffset) {
+                    const XL6_IrAggregateField* field =
+                        &module->aggregateFields[layout->firstField + fieldOffset];
+                    const char* cType = xl6IrCgenType(module, field->type);
+                    if (!cType) {
+                        xrtFree(emitted);
+                        return xl6IrCgenDiag(diags, module, field->declaration,
+                            "C record field has no exact physical type");
+                    }
+                    xl6OutputPrintf(out, "    %s %s;\n", cType, field->cName);
+                }
+                xl6OutputPrintf(out, "} xlir_record_schema_%s;\n"
+                    "_Static_assert(sizeof(%s) == sizeof(xlir_record_schema_%s), \"C record size\");\n"
+                    "_Static_assert(_Alignof(%s) == _Alignof(xlir_record_schema_%s), \"C record alignment\");\n",
+                    unionType->cName, unionType->cName, unionType->cName,
+                    unionType->cName, unionType->cName);
+                for (fieldOffset = 0; fieldOffset < layout->fieldCount; ++fieldOffset) {
+                    const XL6_IrAggregateField* field =
+                        &module->aggregateFields[layout->firstField + fieldOffset];
+                    const char* cType = xl6IrCgenType(module, field->type);
+                    xl6OutputPrintf(out,
+                        "_Static_assert(offsetof(%s, %s) == offsetof(xlir_record_schema_%s, %s), \"C record field offset\");\n"
+                        "_Static_assert(_Generic(((%s*)0)->%s, %s:1, default:0), \"C record field type\");\n",
+                        unionType->cName, field->cName, unionType->cName, field->cName,
+                        unionType->cName, field->cName, cType);
+                }
+                xl6OutputPuts("#endif\n", out);
+                emitted[layoutIndex] = 1;
+                emittedCount += 1;
+                continue;
             }
             xl6OutputPrintf(out,
                 "#ifndef XL6_ABI_DEFINED_%s\n"
@@ -121,7 +161,7 @@ static int xl6IrCgenEmitUnionTypes(
             xl6OutputPuts(" {\n", out);
             for ( fieldOffset = 0; fieldOffset < layout->fieldCount; ++fieldOffset ) {
                 size_t fieldIndex = layout->firstField + fieldOffset;
-                const XL6_IrUnionField* field = &module->unionFields[fieldIndex];
+                const XL6_IrAggregateField* field = &module->aggregateFields[fieldIndex];
                 const char* cType = xl6IrCgenType(module, field->type);
                 if ( cType == NULL || field->cName[0] == '\0' ) {
                     xrtFree(emitted);
@@ -186,7 +226,8 @@ static int xl6IrCgenEmitProductTypes(
      * physical types bring in their authoritative declaration header. */
     for (typeIndex = 0; typeIndex < module->types.count; ++typeIndex) {
         const XL6_IrType* type = &module->types.items[typeIndex];
-        if (!type->foreignHeader || !xl6IrCgenTypeSelected(module,
+        if (!type->foreignHeader || type->cAbi != XL6_IR_C_ABI_NATIVE_HANDLE ||
+            !xl6IrCgenTypeSelected(module,
                 (XL6_IrTypeId)(typeIndex + 1), selectedTypes)) continue;
         int seen = 0, seenType = 0;
         for (size_t earlier = 0; earlier < typeIndex; ++earlier) {
@@ -302,7 +343,8 @@ static int xl6IrCgenEmitStructuralErrorResultTypes(
         if(xl6IrTypeIsCOwned(type) && !emitCOwned)continue;
         if ( type->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE &&
              type->cAbi != XL6_IR_C_ABI_PRODUCT &&
-             type->cAbi != XL6_IR_C_ABI_UNION && !xl6IrTypeIsCOwned(type)) continue;
+             !xl6IrCAbiIsAggregate(type->cAbi) && !xl6IrTypeIsCOwned(type) &&
+             !(type->foreignHeader && type->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE)) continue;
         valueType = xl6IrCgenType(module, (XL6_IrTypeId)(typeIndex + 1));
         if ( valueType == NULL || type->errorResultCName[0] == '\0' )
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,

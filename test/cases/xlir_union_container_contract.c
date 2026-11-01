@@ -104,10 +104,10 @@ int main(int argc,char** argv)
         MUTATE(nullable,!saved.nullable); MUTATE(defaultAbi,XL6_IR_SEQUENCE_DEFAULT_FORBIDDEN);
         MUTATE(role,XL6_IR_SEQUENCE_ROLE_STACK); MUTATE(abi,XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2);
 #undef MUTATE
-        XL6_IrUnionLayout* layout=(XL6_IrUnionLayout*)xl6IrUnionLayoutGet(module,saved.baseElementType); assert(layout);
-        XL6_IrUnionLayout prior=*layout; layout->fieldCount=0; refused(module,id); *layout=prior;
+        XL6_IrAggregateLayout* layout=(XL6_IrAggregateLayout*)xl6IrUnionLayoutGet(module,saved.baseElementType); assert(layout);
+        XL6_IrAggregateLayout prior=*layout; layout->fieldCount=0; refused(module,id); *layout=prior;
         layout->firstField=SIZE_MAX; refused(module,id); *layout=prior;
-        XL6_IrUnionField* field=&module->unionFields[layout->firstField]; XL6_IrTypeId owner=field->ownerType;
+        XL6_IrAggregateField* field=&module->aggregateFields[layout->firstField]; XL6_IrTypeId owner=field->ownerType;
         field->ownerType=0; refused(module,id); field->ownerType=owner; ++domains;
     }
     assert(domains>=2 && mutations>=26 && xl6IrVerifyModule(module,NULL));

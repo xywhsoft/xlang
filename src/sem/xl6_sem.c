@@ -509,7 +509,7 @@ static int xl6SemNodeHasEntityIdentity(const XL6_AstNode* node)
     case XL6_AST_CLASS:
     case XL6_AST_ENUM:
     case XL6_AST_ENUM_VARIANT:
-    case XL6_AST_UNION:
+    case XL6_AST_UNION: case XL6_AST_C_RECORD:
     case XL6_AST_TYPE_ALIAS:
     case XL6_AST_EXTERN_TYPE_ALIAS:
         return 1;
@@ -7707,7 +7707,7 @@ static int xl6SemRuntimeCastTargetSupported(XL6_SemContext* ctx, const XL6_AstNo
     typeInfo = xl6TypeRegistryFind(&ctx->types, name);
     return typeInfo != NULL &&
             (typeInfo->kind == XL6_TYPE_CLASS ||
-             typeInfo->kind == XL6_TYPE_UNION ||
+             xl6TypeKindIsAggregate(typeInfo->kind) ||
              typeInfo->kind == XL6_TYPE_PROTOCOL ||
              typeInfo->kind == XL6_TYPE_NUMERIC_ENUM ||
              typeInfo->kind == XL6_TYPE_TAGGED_ENUM);
@@ -11609,6 +11609,21 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
         }
         if ( nameNode != NULL && nameNode->kind == XL6_AST_NAME ) {
             const XL6_TypeInfo* typeInfo = xl6TypeRegistryFind(&ctx->types, nameNode->text);
+            if (typeInfo != NULL && typeInfo->kind == XL6_TYPE_C_RECORD) {
+                if (xl6SemCallArgCount(node) != 0) {
+                    xl6SemErrorNode(ctx, node, "C record zero constructor takes no arguments");
+                    return 0;
+                }
+                XL6_AstNode* type = xl6AstNewText(XL6_AST_TYPE,
+                    typeInfo->name, strlen(typeInfo->name), NULL);
+                if (!type) return 0;
+                type->semanticTypeId = typeInfo->id;
+                type->semanticTypeAbiId = typeInfo->abiId;
+                xl6AstFree(node->inferredType);
+                node->inferredType = type;
+                xl6SemSetCallPlan(node, XL6_SEM_CALL_C_RECORD_ZERO, typeInfo->decl);
+                return ok;
+            }
             if ( typeInfo != NULL && typeInfo->kind == XL6_TYPE_CLASS ) {
                 xl6SemSetCallPlan(node, XL6_SEM_CALL_CONSTRUCTOR, typeInfo->decl);
                 return xl6SemCheckCtorCall(ctx, node) && ok;
@@ -16935,7 +16950,7 @@ static int xl6SemCheckMemberExpr(XL6_SemContext* ctx, XL6_AstNode* node)
         xl6AstFree(receiverType);
         return ok;
     }
-    if ( receiverDecl != NULL && (receiverDecl->kind == XL6_AST_CLASS || receiverDecl->kind == XL6_AST_UNION) ) {
+    if ( receiverDecl != NULL && (receiverDecl->kind == XL6_AST_CLASS || xl6AstKindIsAggregate(receiverDecl->kind)) ) {
         xl6SemErrorNode(ctx, node, "unknown class/union field");
         ok = 0;
     } else if ( xl6SemMemberIsContainerMethod(ctx, receiverType, node->text) ) {
@@ -18295,7 +18310,7 @@ static int xl6SemCheckDynamicMemberAssignTarget(XL6_SemContext* ctx, XL6_AstNode
             ok = 0;
         }
     } else if ( receiverDecl != NULL &&
-                (receiverDecl->kind == XL6_AST_CLASS || receiverDecl->kind == XL6_AST_UNION) &&
+                (receiverDecl->kind == XL6_AST_CLASS || xl6AstKindIsAggregate(receiverDecl->kind)) &&
                 !xl6SemClassHasCallableMember(ctx, receiverDecl, left->text) ) {
         /*
             成员表达式检查已经报告 unknown class/union field。
@@ -18344,7 +18359,7 @@ static XL6_Symbol* xl6SemUnionFieldInitSymbol(
         return NULL;
     }
     typeInfo = xl6TypeRegistryFind(&ctx->types, typeNode->text);
-    return typeInfo != NULL && typeInfo->kind == XL6_TYPE_UNION ?
+    return typeInfo != NULL && xl6TypeKindIsAggregate(typeInfo->kind) ?
         symbol :
         NULL;
 }
@@ -20824,7 +20839,7 @@ static int xl6SemIsCAbiRecordType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
         return 0;
     }
     typeInfo = xl6TypeRegistryFind(&ctx->types, typeNode->text);
-    return typeInfo != NULL && typeInfo->kind == XL6_TYPE_UNION;
+    return typeInfo != NULL && xl6TypeKindIsAggregate(typeInfo->kind);
 }
 
 static int xl6SemIsCAbiEnumType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
@@ -21386,7 +21401,7 @@ static int xl6SemIsTypeDecl(const XL6_AstNode* node)
            (node->kind == XL6_AST_CLASS ||
              node->kind == XL6_AST_PROTOCOL ||
              node->kind == XL6_AST_ENUM ||
-             node->kind == XL6_AST_UNION ||
+             xl6AstKindIsAggregate(node->kind) ||
              node->kind == XL6_AST_TYPE_ALIAS || node->kind == XL6_AST_EXTERN_TYPE_ALIAS);
 }
 
@@ -21403,7 +21418,7 @@ static const char* xl6SemMemberName(const XL6_AstNode* node)
     switch ( node->kind ) {
     case XL6_AST_FIELD:
     case XL6_AST_CREATE:
-    case XL6_AST_UNION:
+    case XL6_AST_UNION: case XL6_AST_C_RECORD:
         return node->text;
     case XL6_AST_FUNC:
     case XL6_AST_ASYNC_FUNC:
@@ -22352,7 +22367,7 @@ static int xl6SemUnionFieldTypeIsPlainDepth(XL6_SemContext* ctx, const XL6_AstNo
     if ( decl == NULL ) {
         return 1;
     }
-    if ( typeInfo->kind == XL6_TYPE_UNION ) {
+    if ( xl6TypeKindIsAggregate(typeInfo->kind) ) {
         body = decl->childCount > 0 ? decl->children[0] : NULL;
         for ( i = 0; body != NULL && i < body->childCount; ++i ) {
             const XL6_AstNode* field = body->children[i];
@@ -22393,7 +22408,7 @@ static int xl6SemUnionFieldTypeIsPlainDepth(XL6_SemContext* ctx, const XL6_AstNo
                 return 0;
             }
             xl6AstFree(concreteType);
-        } else if ( member != NULL && member->kind == XL6_AST_UNION ) {
+        } else if ( member != NULL && xl6AstKindIsAggregate(member->kind) ) {
             XL6_AstNode* unionBody = xl6SemUnionBody((XL6_AstNode*)member);
             size_t j;
             for ( j = 0; unionBody != NULL && j < unionBody->childCount; ++j ) {
@@ -22469,7 +22484,7 @@ static int xl6SemInlineLayoutBodyReachesDecl(
             xl6AstFree(concreteType);
             continue;
         }
-        if ( member->kind == XL6_AST_UNION &&
+        if ( xl6AstKindIsAggregate(member->kind) &&
              xl6SemInlineLayoutBodyReachesDecl(
                  ctx,
                  xl6SemUnionBody((XL6_AstNode*)member),
@@ -22571,7 +22586,7 @@ static int xl6SemInlineLayoutTypeReachesDecl(
     typeInfo = xl6TypeRegistryFind(&ctx->types, typeNode->text);
     if ( typeInfo == NULL ||
          (typeInfo->kind != XL6_TYPE_CLASS &&
-          typeInfo->kind != XL6_TYPE_UNION &&
+          !xl6TypeKindIsAggregate(typeInfo->kind) &&
           typeInfo->kind != XL6_TYPE_TAGGED_ENUM) ||
          typeInfo->decl == NULL ) {
         return 0;
@@ -22580,7 +22595,7 @@ static int xl6SemInlineLayoutTypeReachesDecl(
     if ( decl == targetDecl ) {
         return 1;
     }
-    if ( typeInfo->kind == XL6_TYPE_UNION ) {
+    if ( xl6TypeKindIsAggregate(typeInfo->kind) ) {
         return xl6SemInlineLayoutBodyReachesDecl(
             ctx,
             decl->childCount > 0 ? decl->children[0] : NULL,
@@ -22636,7 +22651,7 @@ static int xl6SemCheckInlineLayoutCycles(
              xl6SemInlineLayoutTypeReachesDecl(ctx, member->children[0], decl, 0) ) {
             xl6SemErrorNode(ctx, member, "字段产生无限递归的按值布局，请改用 class 或容器保存递归对象");
             ok = 0;
-        } else if ( member->kind == XL6_AST_UNION &&
+        } else if ( xl6AstKindIsAggregate(member->kind) &&
                     xl6SemInlineLayoutBodyReachesDecl(
                         ctx,
                         xl6SemUnionBody(member),
@@ -22951,6 +22966,17 @@ static int xl6SemCheckUnion(XL6_SemContext* ctx, XL6_AstNode* node)
     int ok;
 
     ok = 1;
+    if (node->kind == XL6_AST_C_RECORD) {
+        const char* error = NULL;
+        if (xl6ForeignRecordRead(node, NULL, &error) != 1) {
+            xl6SemErrorNode(ctx, node, error);
+            return 0;
+        }
+        if (ctx->currentClass != NULL) {
+            xl6SemErrorNode(ctx, node, "C record declarations must be module-level");
+            return 0;
+        }
+    }
     if ( ctx->currentClass == NULL ) {
         if ( node->text == NULL ) {
             xl6SemErrorNode(ctx, node, "top-level union must have a name");
@@ -23324,7 +23350,7 @@ static const XL6_AstNode* xl6SemFindDirectClassFieldNode(const XL6_AstNode* clas
         if ( member != NULL && member->kind == XL6_AST_FIELD && xl6TextEquals(member->text, fieldName) ) {
             return member;
         }
-        if ( member != NULL && member->kind == XL6_AST_UNION && member->text == NULL ) {
+        if ( member != NULL && xl6AstKindIsAggregate(member->kind) && member->text == NULL ) {
             const XL6_AstNode* field = xl6SemFindUnionFieldNode(member, fieldName);
             if ( field != NULL ) {
                 return field;
@@ -23497,7 +23523,7 @@ static XL6_AstNode* xl6SemCloneRecordFieldType(
         return NULL;
     }
 
-    if ( decl->kind == XL6_AST_UNION ) {
+    if ( xl6AstKindIsAggregate(decl->kind) ) {
         field = xl6SemFindUnionFieldNode(decl, fieldName);
         return field != NULL && field->childCount > 0 ? xl6SemCloneTypeNode(field->children[0]) : NULL;
     }
@@ -23880,7 +23906,7 @@ static int xl6SemClassMemberExposesLayoutName(const XL6_AstNode* member, const c
     if ( member->kind == XL6_AST_FIELD ) {
         return xl6TextEquals(member->text, name);
     }
-    if ( member->kind == XL6_AST_UNION ) {
+    if ( xl6AstKindIsAggregate(member->kind) ) {
         if ( member->text != NULL ) {
             return xl6TextEquals(member->text, name);
         }
@@ -23944,7 +23970,7 @@ static int xl6SemCheckClassMemberConflicts(XL6_SemContext* ctx, XL6_AstNode* typ
         }
 
         if ( member != NULL &&
-             (member->kind == XL6_AST_FIELD || (member->kind == XL6_AST_UNION && name != NULL)) &&
+             (member->kind == XL6_AST_FIELD || (xl6AstKindIsAggregate(member->kind) && name != NULL)) &&
              name != NULL ) {
             for ( j = i + 1; j < body->childCount; ++j ) {
                 XL6_AstNode* other = body->children[j];
@@ -23969,7 +23995,7 @@ static int xl6SemCheckClassMemberConflicts(XL6_SemContext* ctx, XL6_AstNode* typ
             }
         }
 
-        if ( member != NULL && member->kind == XL6_AST_UNION && name == NULL && member->childCount > 0 ) {
+        if ( member != NULL && xl6AstKindIsAggregate(member->kind) && name == NULL && member->childCount > 0 ) {
             XL6_AstNode* unionBody = member->children[0];
             size_t k;
             for ( k = 0; unionBody != NULL && k < unionBody->childCount; ++k ) {
@@ -24394,7 +24420,7 @@ static int xl6SemCheckClass(XL6_SemContext* ctx, XL6_AstNode* node)
                 }
             } else if ( member->kind == XL6_AST_DERIVE ) {
                 continue;
-            } else if ( member->kind == XL6_AST_UNION ) {
+            } else if ( xl6AstKindIsAggregate(member->kind) ) {
                 oldCurrentClass = ctx->currentClass;
                 ctx->currentClass = node;
                 if ( !xl6SemCheckUnion(ctx, member) ) {
@@ -25336,7 +25362,7 @@ static int xl6SemCheckStmt(XL6_SemContext* ctx, XL6_AstNode* node)
         return xl6SemCheckClass(ctx, node) && ok;
     case XL6_AST_ENUM:
         return xl6SemCheckEnum(ctx, node) && ok;
-    case XL6_AST_UNION:
+    case XL6_AST_UNION: case XL6_AST_C_RECORD:
         return xl6SemCheckUnion(ctx, node) && ok;
     case XL6_AST_EXTERN_FUNC:
         return xl6SemCheckExternFunc(ctx, node) && ok;
@@ -25408,7 +25434,7 @@ static int xl6SemRegisterTypeDecls(XL6_SemContext* ctx)
             continue;
         }
         if ( child->text == NULL ) {
-            if ( child->kind == XL6_AST_UNION ) {
+            if ( xl6AstKindIsAggregate(child->kind) ) {
                 /*
                     顶层 union 有专用诊断；这里不再追加泛化的类型声明缺名错误。
             */
@@ -25447,8 +25473,8 @@ static int xl6SemRegisterTypeDecls(XL6_SemContext* ctx)
             typeKind = (child->flags & XL6_AST_FLAG_NUMERIC_ENUM) != 0 ?
                 XL6_TYPE_NUMERIC_ENUM :
                 XL6_TYPE_TAGGED_ENUM;
-        } else if ( child->kind == XL6_AST_UNION ) {
-            typeKind = XL6_TYPE_UNION;
+        } else if ( xl6AstKindIsAggregate(child->kind) ) {
+            typeKind = child->kind == XL6_AST_C_RECORD ? XL6_TYPE_C_RECORD : XL6_TYPE_UNION;
             allowGeneric = 0;
             genericArity = 0;
         } else {
@@ -25560,7 +25586,7 @@ static int xl6SemIsTopLevelRuntimeStmt(const XL6_AstNode* node)
            !xl6SemIsModuleGlobalDecl(node) &&
            node->kind != XL6_AST_TYPE_ALIAS &&
            node->kind != XL6_AST_EXTERN_TYPE_ALIAS &&
-           node->kind != XL6_AST_UNION &&
+           !xl6AstKindIsAggregate(node->kind) &&
            node->kind != XL6_AST_PROTOCOL &&
            node->kind != XL6_AST_ENUM &&
            node->kind != XL6_AST_CLASS;
@@ -26287,7 +26313,7 @@ int xl6SemCheckModuleWithQuery(
             if ( !xl6SemCheckEnum(&ctx, child) ) {
                 ok = 0;
             }
-        } else if ( child->kind == XL6_AST_UNION ) {
+        } else if ( xl6AstKindIsAggregate(child->kind) ) {
             if ( !xl6SemCheckUnion(&ctx, child) ) {
                 ok = 0;
             }

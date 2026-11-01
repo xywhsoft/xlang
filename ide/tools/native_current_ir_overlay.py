@@ -4,6 +4,7 @@ import hashlib
 from native_index_overlay import profile as index_profile
 from native_ir_memo_overlay import derive as raw_memo
 from native_current_retirement_profile import PINS as RETIREMENT_PINS,IR_DIGESTS as RETIREMENT_IR_DIGESTS
+from native_current_unified_profile import updated_pins
 from native_current_ir_profile import PINS as IR_DEPENDENCIES,PROFILES as IR_PROFILES
 
 PINS={
@@ -28,6 +29,7 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
     if audited[str(ast)]!='5ebb5cc003e51d954d02ad229307406a4990142d7813f755e0df3bbc9838fbb1':
         raise ValueError('current IR unit requires its current AST/parser/type/XRT cohort')
     selected_pins={**PINS,**RETIREMENT_PINS} if hashlib.sha256((frontend/'src/ir/xl6_ir.c').read_bytes()).hexdigest() in RETIREMENT_IR_DIGESTS else PINS
+    selected_pins=updated_pins(frontend,selected_pins)
     for rel,digest in selected_pins.items():
         p=frontend/rel
         if rel=='src/ir/xl6_ir.c' and p.is_file() and hashlib.sha256(p.read_bytes()).hexdigest() in PHASE_IR_DIGESTS:digest=hashlib.sha256(p.read_bytes()).hexdigest()

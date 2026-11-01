@@ -217,3 +217,5 @@ PROFILES['current-003dd48e'] = {**PROFILES['current-2084f8ac'], **COMPACT_BRIDGE
 # Exact provider field,lowerer,verifier,resource and runtime contracts.
 from native_current_retirement_profile import PINS as RETIREMENT_PINS
 PROFILES['current-ed78373d'] = {**PROFILES['current-003dd48e'],**RETIREMENT_PINS}
+from native_current_unified_profile import COHORT as UNIFIED_COHORT, PINS as UNIFIED_PINS
+PROFILES[UNIFIED_COHORT] = {**PROFILES['current-ed78373d'],**UNIFIED_PINS}

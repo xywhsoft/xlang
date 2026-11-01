@@ -82,11 +82,11 @@ static int xl6IrCgenVerifyInstructions(
                         "XLIR C emitter nullable payload ABI is unresolved");
             }
             break;
-        case XL6_IR_INSTR_UNION_ZERO:
+        case XL6_IR_INSTR_AGGREGATE_ZERO:
             {
                 const XL6_IrType* type = xl6IrTypeGet(&module->types, instruction->type);
-                if ( type == NULL || type->kind != XL6_IR_TYPE_UNION ||
-                     type->cAbi != XL6_IR_C_ABI_UNION ||
+                if ( type == NULL || !xl6IrTypeKindIsAggregate(type->kind) ||
+                     !xl6IrCAbiIsAggregate(type->cAbi) ||
                      instruction->result == XL6_IR_VALUE_INVALID ||
                      instruction->operandCount != 0 ||
                      instruction->elementIndex != SIZE_MAX )
@@ -94,12 +94,12 @@ static int xl6IrCgenVerifyInstructions(
                         "XLIR C emitter union zero ABI is unresolved");
             }
             break;
-        case XL6_IR_INSTR_UNION_GET:
-        case XL6_IR_INSTR_UNION_SET:
+        case XL6_IR_INSTR_AGGREGATE_GET:
+        case XL6_IR_INSTR_AGGREGATE_SET:
             {
-                const XL6_IrUnionField* field =
-                    instruction->elementIndex < module->unionFieldCount
-                        ? &module->unionFields[instruction->elementIndex] : NULL;
+                const XL6_IrAggregateField* field =
+                    instruction->elementIndex < module->aggregateFieldCount
+                        ? &module->aggregateFields[instruction->elementIndex] : NULL;
                 const XL6_IrInstruction* source = instruction->operandCount >= 1
                     ? xl6IrCgenValueDefinition(
                         module, module->operands[instruction->firstOperand], NULL) : NULL;
@@ -108,7 +108,7 @@ static int xl6IrCgenVerifyInstructions(
                         module, module->operands[instruction->firstOperand + 1], NULL) : NULL;
                 if ( field == NULL || source == NULL || source->type != field->ownerType ||
                      instruction->result == XL6_IR_VALUE_INVALID ||
-                     (instruction->kind == XL6_IR_INSTR_UNION_GET
+                     (instruction->kind == XL6_IR_INSTR_AGGREGATE_GET
                         ? instruction->operandCount != 1 || instruction->type != field->type
                         : instruction->operandCount != 2 || value == NULL ||
                           value->type != field->type || instruction->type != field->ownerType) )

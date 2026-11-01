@@ -136,7 +136,7 @@ static XL6_TokenKind xl6LookupKeyword(const char* text, int len)
         {"throw", XL6_KW_THROW}, {"assert", XL6_KW_ASSERT},
         {"import", XL6_KW_IMPORT}, {"from", XL6_KW_FROM}, {"export", XL6_KW_EXPORT}, {"extern", XL6_KW_EXTERN}, {"include", XL6_KW_INCLUDE}, {"define", XL6_KW_DEFINE},
         {"class", XL6_KW_CLASS}, {"protocol", XL6_KW_PROTOCOL}, {"enum", XL6_KW_ENUM},
-        {"extends", XL6_KW_EXTENDS}, {"union", XL6_KW_UNION}, {"derive", XL6_KW_DERIVE},
+        {"extends", XL6_KW_EXTENDS}, {"union", XL6_KW_UNION}, {"struct", XL6_KW_STRUCT}, {"derive", XL6_KW_DERIVE},
         {"get", XL6_KW_GET}, {"let", XL6_KW_LET},
         {"public", XL6_KW_PUBLIC}, {"private", XL6_KW_PRIVATE}, {"protected", XL6_KW_PROTECTED}, {"static", XL6_KW_STATIC},
         {"override", XL6_KW_OVERRIDE}, {"final", XL6_KW_FINAL}, {"virtual", XL6_KW_VIRTUAL}, {"native", XL6_KW_NATIVE},

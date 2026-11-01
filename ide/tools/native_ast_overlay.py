@@ -6,6 +6,7 @@ Every consumer of a selected layout must be rebuilt with its generated header.
 """
 from pathlib import Path
 import hashlib
+from native_current_unified_profile import PINS as UNIFIED_PINS
 
 
 def sha(path):
@@ -22,7 +23,8 @@ PROFILES = {
     ('b8bbafaed7b469232b73f6256282607f4644eb605fb1aa7a636bf123143cf026',
      '5ebb5cc003e51d954d02ad229307406a4990142d7813f755e0df3bbc9838fbb1'):
         dict(runtime=('d8c4d3cb7da7d91c35b38cdb22be516425d3cbd2ed69ddb90b59ec5dfb5714cc',
-                      '05e8c00fb0eef0215f4d0c9291d240438cb37782df5de1c0e9ba8699b0dcd5eb'), packageFields=True),
+                      '05e8c00fb0eef0215f4d0c9291d240438cb37782df5de1c0e9ba8699b0dcd5eb',
+                      UNIFIED_PINS['lib/xrt/xrt.h']), packageFields=True),
 }
 
 
