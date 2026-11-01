@@ -70,6 +70,7 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     case XL6_KW_ENUM: return XL6PG_KW_ENUM;
     case XL6_KW_EXTENDS: return XL6PG_KW_EXTENDS;
     case XL6_KW_UNION: return XL6PG_KW_UNION;
+    case XL6_KW_STRUCT: return XL6PG_KW_STRUCT;
     case XL6_KW_DERIVE: return XL6PG_KW_DERIVE;
     case XL6_KW_GET: return XL6PG_KW_GET;
     case XL6_KW_LET: return XL6PG_KW_LET;

@@ -505,14 +505,24 @@ static const char* xl6IrTypeExpectedErrorResultCName(
     case XL6_IR_C_ABI_C_FLOAT: return "xlir_result_c_float";
     case XL6_IR_C_ABI_C_DOUBLE: return "xlir_result_c_double";
     case XL6_IR_C_ABI_C_WCHAR: return "xlir_result_c_wchar";
-    case XL6_IR_C_ABI_RAW_POINTER:
-    case XL6_IR_C_ABI_NATIVE_HANDLE: return "xlir_result_pointer";
+    case XL6_IR_C_ABI_RAW_POINTER: return "xlir_result_pointer";
+    case XL6_IR_C_ABI_NATIVE_HANDLE:
+        if (!type->foreignHeader) return "xlir_result_pointer";
+        /* A declared const/typed pointer must not lose its qualifiers in a
+         * language failure carrier. It uses the exact selected C typedef. */
+        if (structuralName == NULL || structuralNameSize == 0 ||
+            type < pool->items || type >= pool->items + pool->count + 1) return NULL;
+        typeIndex = (size_t)(type - pool->items) + 1;
+        if (snprintf(structuralName, structuralNameSize, "xlir_result_t%lu",
+                (unsigned long)typeIndex) < 0) return NULL;
+        return structuralName;
     case XL6_IR_C_ABI_RUNTIME_ERROR_PTR: return "xlir_result_error";
     case XL6_IR_C_ABI_CLOSURE_PTR: return "xlir_result_closure";
     case XL6_IR_C_ABI_C_STRING:
     case XL6_IR_C_ABI_C_BYTES:
     case XL6_IR_C_ABI_TAGGED_NULLABLE:
     case XL6_IR_C_ABI_PRODUCT:
+    case XL6_IR_C_ABI_C_RECORD:
     case XL6_IR_C_ABI_UNION:
         if ( structuralName == NULL || structuralNameSize == 0 ||
              type < pool->items || type >= pool->items + pool->count + 1 ) return NULL;
@@ -1012,8 +1022,8 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         result.slotAbi=XL6_IR_NATIVE_SLOT_XVALUE_CARRIER;
         result.transferAbi=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN;
         result.codecAbi=XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1;
-    } else if (result.role==XL6_IR_SEQUENCE_ROLE_ARRAY && base->kind==XL6_IR_TYPE_UNION &&
-        base->cAbi==XL6_IR_C_ABI_UNION && base->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+    } else if (result.role==XL6_IR_SEQUENCE_ROLE_ARRAY && xl6IrTypeKindIsAggregate(base->kind) &&
+        xl6IrCAbiIsAggregate(base->cAbi) && base->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
         base->nullAbi==XL6_IR_NULL_ABI_NONE && !base->paramCount && !base->returnCount &&
         base->typeValueId) {
         /* Invocation remains the C union, never an xvalue pointer. A complete
@@ -1469,7 +1479,13 @@ static int xl6IrTypeUnionCName(
 {
     char component[XL6_C_SYMBOL_COMPONENT_MAX + 1];
     int written;
-    if ( type == NULL || type->kind != XL6_IR_TYPE_UNION ||
+    if (type && type->kind == XL6_IR_TYPE_C_RECORD) {
+        if (!type->foreignHeader || !xl6ForeignIdentifier(type->cName) ||
+            strlen(type->cName) >= capacity) return 0;
+        memmove(out, type->cName, strlen(type->cName) + 1);
+        return 1;
+    }
+    if ( type == NULL || !xl6IrTypeKindIsAggregate(type->kind) ||
          type->name == NULL || type->name[0] == '\0' ||
          !xl6OutputEncodeSymbolComponent(
              component, sizeof(component), type->name) ) return 0;
@@ -1611,9 +1627,9 @@ int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type)
         type->cName[0] = '\0';
         return xl6IrTypeFinalizeErrorResultCName(pool, type);
     }
-    if ( type->kind == XL6_IR_TYPE_UNION ) {
+    if ( xl6IrTypeKindIsAggregate(type->kind) ) {
         if ( type->paramCount != 0 || type->returnCount != 0 ) return 0;
-        type->cAbi = XL6_IR_C_ABI_UNION;
+        type->cAbi = type->kind == XL6_IR_TYPE_C_RECORD ? XL6_IR_C_ABI_C_RECORD : XL6_IR_C_ABI_UNION;
         type->ownershipAbi = XL6_IR_OWNERSHIP_ABI_TRIVIAL;
         type->nullAbi = XL6_IR_NULL_ABI_NONE;
         if ( !xl6IrTypeUnionCName(
@@ -1653,7 +1669,7 @@ int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type)
         if (type->foreignHeader) {
             if (type->kind != XL6_IR_TYPE_CLASS ||
                 type->cAbi != XL6_IR_C_ABI_NATIVE_HANDLE ||
-                !xl6ForeignIdentifier(type->cName) ||
+                !xl6ForeignPointerSpelling(type->cName) ||
                 !xl6ForeignHeaderName(type->foreignHeader)) return 0;
         } else type->cName[0] = '\0';
         type->nullAbi = xl6IrNullAbiFromCAbi(type->cAbi);
@@ -1661,7 +1677,7 @@ int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type)
     }
     if ( type->paramCount != 1 || type->params == NULL || type->returnCount != 0 ||
          (element = xl6IrTypeGet(pool, type->params[0])) == NULL ) return 0;
-    if (element->foreignHeader) {
+    if (element->foreignHeader && element->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE) {
         if (element->cAbi != XL6_IR_C_ABI_NATIVE_HANDLE ||
             (type->foreignHeader && strcmp(type->foreignHeader, element->foreignHeader))) return 0;
         if (!type->foreignHeader && !(type->foreignHeader = xrtStrDup(element->foreignHeader))) return 0;
@@ -2500,10 +2516,10 @@ void xl6IrModuleFree(XL6_IrModule* module)
     xrtFree(module->genericSpecializations);
     xrtFree(module->functionParameters);
     xrtFree(module->storages);
-    for ( i = 0; i < module->unionFieldCount; ++i )
-        xrtFree(module->unionFields[i].name);
-    xrtFree(module->unionLayouts);
-    xrtFree(module->unionFields);
+    for ( i = 0; i < module->aggregateFieldCount; ++i )
+        xrtFree(module->aggregateFields[i].name);
+    xrtFree(module->aggregateLayouts);
+    xrtFree(module->aggregateFields);
     for ( i = 0; i < module->enumVariantCount; ++i )
         xrtFree(module->enumVariants[i].name);
     for ( i = 0; i < module->enumPayloadCount; ++i )
@@ -2584,7 +2600,7 @@ static XL6_IrNodeKind xl6IrNodeKindFromAst(XL6_AstKind kind)
     case XL6_AST_EXTERN_FUNC: case XL6_AST_EXPORT_FUNC: case XL6_AST_GET:
     case XL6_AST_LET: case XL6_AST_CREATE: case XL6_AST_NATIVE_EXTERN_SPECIAL:
     case XL6_AST_NATIVE_EXTERN_FUNC: return XL6_IR_NODE_FUNC_DECL;
-    case XL6_AST_CLASS: case XL6_AST_PROTOCOL: case XL6_AST_UNION:
+    case XL6_AST_CLASS: case XL6_AST_PROTOCOL: case XL6_AST_UNION: case XL6_AST_C_RECORD:
     case XL6_AST_TYPE_ALIAS: case XL6_AST_EXTERN_TYPE_ALIAS: return XL6_IR_NODE_TYPE_DECL;
     case XL6_AST_ENUM: return XL6_IR_NODE_ENUM_DECL;
     case XL6_AST_ENUM_VARIANT: return XL6_IR_NODE_ENUM_VARIANT;
@@ -2730,7 +2746,7 @@ static const XL6_AstNode* xl6IrFindTypeDecl(const XL6_AstNode* root, const XL6_A
     for ( i = 0; i < root->childCount; ++i ) {
         const XL6_AstNode* item = root->children[i];
         if ( item == NULL || (item->kind != XL6_AST_CLASS && item->kind != XL6_AST_PROTOCOL &&
-                              item->kind != XL6_AST_UNION && item->kind != XL6_AST_ENUM) ) continue;
+                              !xl6AstKindIsAggregate(item->kind) && item->kind != XL6_AST_ENUM) ) continue;
         if ( type->semanticTypeId != XL6_TYPE_ID_INVALID && item->semanticTypeId == type->semanticTypeId ) return item;
         if ( type->semanticTypeId == XL6_TYPE_ID_INVALID && item->text != NULL && type->text != NULL &&
              strcmp(item->text, type->text) == 0 ) return item;
@@ -2757,7 +2773,8 @@ static XL6_IrTypeKind xl6IrTypeKindFromAst(const XL6_AstNode* root, const XL6_As
          * backend to guess a concrete requirement signature. */
         if ( declaration->kind == XL6_AST_PROTOCOL )
             return paramCount != 0 ? XL6_IR_TYPE_GENERIC_INSTANCE : XL6_IR_TYPE_PROTOCOL;
-        if ( declaration->kind == XL6_AST_UNION ) return XL6_IR_TYPE_UNION;
+        if (declaration->kind == XL6_AST_C_RECORD) return XL6_IR_TYPE_C_RECORD;
+        if (xl6AstKindIsAggregate(declaration->kind)) return XL6_IR_TYPE_UNION;
         if ( declaration->kind == XL6_AST_ENUM ) return (declaration->flags & XL6_AST_FLAG_NUMERIC_ENUM) != 0 ?
             XL6_IR_TYPE_NUMERIC_ENUM : XL6_IR_TYPE_TAGGED_ENUM;
     }
@@ -2960,8 +2977,8 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
         ? XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
         : kind == XL6_IR_TYPE_TUPLE
         ? xl6IrTupleCAbiForItems(&module->types, params, paramCount)
-        : kind == XL6_IR_TYPE_UNION
-        ? XL6_IR_C_ABI_UNION
+        : xl6IrTypeKindIsAggregate(kind)
+        ? (kind == XL6_IR_TYPE_C_RECORD ? XL6_IR_C_ABI_C_RECORD : XL6_IR_C_ABI_UNION)
         : kind == XL6_IR_TYPE_NULLABLE && paramCount == 1
         ? xl6IrNullableCAbiForElement(
             xl6IrTypeGet(&module->types, params[0]))
@@ -3039,10 +3056,13 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
      * mutable open function variable from being invoked through stale
      * initializer provenance. */
     item->cAbi = expectedCAbi;
-    if (kind == XL6_IR_TYPE_CLASS && nominalDeclaration &&
+    if ((kind == XL6_IR_TYPE_CLASS || kind == XL6_IR_TYPE_C_RECORD) && nominalDeclaration &&
         (nominalDeclaration->flags & XL6_AST_FLAG_EXTERN)) {
         XL6_ForeignClassDecl contract;
-        if (xl6ForeignClassRead(nominalDeclaration, &contract, NULL) != 1 ||
+        int read = kind == XL6_IR_TYPE_C_RECORD
+            ? xl6ForeignRecordRead(nominalDeclaration, &contract, NULL)
+            : xl6ForeignClassRead(nominalDeclaration, &contract, NULL);
+        if (read != 1 ||
             !(item->foreignHeader = xrtStrDup(contract.header))) {
             xrtFree(params); xrtFree(parameterModes); xrtFree(parameterAbis);
             xrtFree(returns); memset(item, 0, sizeof(*item));
@@ -4296,6 +4316,12 @@ static XL6_IrNodeId xl6IrBuildAstNode(
         }
         sourceChildCount = 3;
     }
+    if (source->kind == XL6_AST_C_RECORD) {
+        if (xl6ForeignRecordRead(source, NULL, NULL) != 1) {
+            *ok = 0; return XL6_IR_NODE_INVALID;
+        }
+        sourceChildCount = 1;
+    }
     id = (XL6_IrNodeId)(module->nodeCount + 1);
     node = &module->nodes[module->nodeCount++];
     memset(node, 0, sizeof(*node));
@@ -5051,7 +5077,7 @@ static XL6_IrEnumPayloadAbi xl6IrEnumPayloadAbiForType(
         return XL6_IR_ENUM_PAYLOAD_RAW_POINTER_BORROW;
     if ( type->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE )
         return XL6_IR_ENUM_PAYLOAD_NATIVE_HANDLE_BORROW;
-    if ( type->cAbi == XL6_IR_C_ABI_UNION )
+    if ( xl6IrCAbiIsAggregate(type->cAbi) )
         return XL6_IR_ENUM_PAYLOAD_UNION_COPY;
     return XL6_IR_ENUM_PAYLOAD_INVALID;
 }
@@ -5428,8 +5454,8 @@ static XL6_IrTypeId xl6IrUnionTypeByDeclaration(
         return XL6_IR_TYPE_INVALID;
     for ( i = 0; i < module->types.count; ++i ) {
         const XL6_IrType* type = &module->types.items[i];
-        if ( type->kind == XL6_IR_TYPE_UNION &&
-             type->cAbi == XL6_IR_C_ABI_UNION &&
+        if ( xl6IrTypeKindIsAggregate(type->kind) &&
+             xl6IrCAbiIsAggregate(type->cAbi) &&
              type->nominalSymbol == node->symbol )
             return (XL6_IrTypeId)(i + 1);
     }
@@ -5441,8 +5467,8 @@ static int xl6IrBuildUnionLayoutAppendField(
 {
     const XL6_IrNode* field = xl6IrNodeGet(module, declaration);
     const XL6_IrType* fieldType;
-    XL6_IrUnionField* item;
-    if ( module == NULL || layoutIndex >= module->unionLayoutCount ||
+    XL6_IrAggregateField* item;
+    if ( module == NULL || layoutIndex >= module->aggregateLayoutCount ||
          field == NULL || field->kind != XL6_IR_NODE_FIELD_DECL ||
          field->storageType == XL6_IR_TYPE_INVALID ||
          field->text == NULL || field->text[0] == '\0' ||
@@ -5457,11 +5483,11 @@ static int xl6IrBuildUnionLayoutAppendField(
          fieldType->cAbi == XL6_IR_C_ABI_VOID ||
          fieldType->cAbi == XL6_IR_C_ABI_PRODUCT ||
          fieldType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ) return 0;
-    if ( !xl6IrGrow((void**)&module->unionFields, &module->unionFieldCapacity,
-                     module->unionFieldCount, sizeof(*module->unionFields)) ) return 0;
-    item = &module->unionFields[module->unionFieldCount];
+    if ( !xl6IrGrow((void**)&module->aggregateFields, &module->aggregateFieldCapacity,
+                     module->aggregateFieldCount, sizeof(*module->aggregateFields)) ) return 0;
+    item = &module->aggregateFields[module->aggregateFieldCount];
     memset(item, 0, sizeof(*item));
-    item->ownerType = module->unionLayouts[layoutIndex].type;
+    item->ownerType = module->aggregateLayouts[layoutIndex].type;
     item->type = field->storageType;
     item->declaration = declaration;
     item->name = xrtStrDupN(field->text, strlen(field->text));
@@ -5472,8 +5498,8 @@ static int xl6IrBuildUnionLayoutAppendField(
         memset(item, 0, sizeof(*item));
         return 0;
     }
-    module->unionFieldCount += 1;
-    module->unionLayouts[layoutIndex].fieldCount += 1;
+    module->aggregateFieldCount += 1;
+    module->aggregateLayouts[layoutIndex].fieldCount += 1;
     return 1;
 }
 
@@ -5503,28 +5529,28 @@ static int xl6IrBuildUnionLayouts(XL6_IrModule* module)
         const XL6_IrType* type = &module->types.items[typeIndex];
         const XL6_IrNode* declaration;
         XL6_IrNodeId declarationId;
-        XL6_IrUnionLayout* layout;
+        XL6_IrAggregateLayout* layout;
         size_t layoutIndex;
-        if ( type->kind != XL6_IR_TYPE_UNION ||
-             type->cAbi != XL6_IR_C_ABI_UNION ) continue;
+        if ( !xl6IrTypeKindIsAggregate(type->kind) ||
+             !xl6IrCAbiIsAggregate(type->cAbi) ) continue;
         declaration = xl6IrSymbolNodeGet(module, type->nominalSymbol);
         if ( declaration == NULL || declaration->kind != XL6_IR_NODE_TYPE_DECL ||
-             declaration->sourceKind != XL6_AST_UNION ) return 0;
+             !xl6AstKindIsAggregate(declaration->sourceKind) ) return 0;
         declarationId = (XL6_IrNodeId)(declaration - module->nodes + 1);
         if ( xl6IrUnionTypeByDeclaration(module, declarationId) != typeId ||
-             !xl6IrGrow((void**)&module->unionLayouts,
-                         &module->unionLayoutCapacity,
-                         module->unionLayoutCount,
-                         sizeof(*module->unionLayouts)) ) return 0;
-        layoutIndex = module->unionLayoutCount++;
-        layout = &module->unionLayouts[layoutIndex];
+             !xl6IrGrow((void**)&module->aggregateLayouts,
+                         &module->aggregateLayoutCapacity,
+                         module->aggregateLayoutCount,
+                         sizeof(*module->aggregateLayouts)) ) return 0;
+        layoutIndex = module->aggregateLayoutCount++;
+        layout = &module->aggregateLayouts[layoutIndex];
         memset(layout, 0, sizeof(*layout));
         layout->type = typeId;
         layout->declaration = declarationId;
-        layout->firstField = module->unionFieldCount;
+        layout->firstField = module->aggregateFieldCount;
         if ( !xl6IrBuildUnionLayoutFields(
                  module, layoutIndex, declarationId, declarationId) ||
-             module->unionLayouts[layoutIndex].fieldCount == 0 ) return 0;
+             module->aggregateLayouts[layoutIndex].fieldCount == 0 ) return 0;
     }
     return 1;
 }
@@ -5824,8 +5850,8 @@ static int xl6IrBuildClassLayoutAppendField(
             item->initializerErrorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
         }
         else if ( fieldType != NULL &&
-                   fieldType->kind == XL6_IR_TYPE_UNION &&
-                   fieldType->cAbi == XL6_IR_C_ABI_UNION )
+                   xl6IrTypeKindIsAggregate(fieldType->kind) &&
+                   xl6IrCAbiIsAggregate(fieldType->cAbi) )
             item->initializerAbi = XL6_IR_INITIALIZER_UNION_ZERO;
         else if ( fieldType != NULL &&
                   fieldType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
@@ -10998,8 +11024,9 @@ XL6_IrAsyncResultAbi xl6IrAsyncResultAbiForType(const XL6_IrType* type)
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_XVALUE;
     case XL6_IR_C_ABI_CLOSURE_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE;
     case XL6_IR_C_ABI_TAGGED_NULLABLE: return XL6_IR_ASYNC_RESULT_COPY_TAGGED;
+    case XL6_IR_C_ABI_C_RECORD:
     case XL6_IR_C_ABI_UNION:
-        return type->kind==XL6_IR_TYPE_UNION && type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+        return xl6IrTypeKindIsAggregate(type->kind) && type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
             type->nullAbi==XL6_IR_NULL_ABI_NONE && type->typeValueId
             ? XL6_IR_ASYNC_RESULT_COPY_UNION : XL6_IR_ASYNC_RESULT_INVALID;
     case XL6_IR_C_ABI_RUNTIME_ERROR_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_ERROR;
@@ -13280,8 +13307,8 @@ int xl6IrTypeCanBoxRuntimeXValue(
         return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
             type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
             type->typeValueId != 0;
-    if ( type->cAbi == XL6_IR_C_ABI_UNION )
-        return type->kind == XL6_IR_TYPE_UNION &&
+    if ( xl6IrCAbiIsAggregate(type->cAbi) )
+        return xl6IrTypeKindIsAggregate(type->kind) &&
             type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
             type->typeValueId != 0 &&
             xl6IrUnionLayoutGet(module, typeId) != NULL;
@@ -17065,8 +17092,8 @@ static XL6_IrInitializerAbi xl6IrDefaultValueInitializerAbi(
         return XL6_IR_INITIALIZER_STRING_EMPTY;
     if ( type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES )
         return XL6_IR_INITIALIZER_BYTES_EMPTY;
-    if ( type->kind == XL6_IR_TYPE_UNION &&
-         type->cAbi == XL6_IR_C_ABI_UNION )
+    if ( xl6IrTypeKindIsAggregate(type->kind) &&
+         xl6IrCAbiIsAggregate(type->cAbi) )
         return XL6_IR_INITIALIZER_UNION_ZERO;
     if ( xl6IrDefaultEmptyContainerRuntimeOp(module, typeId) != XL6_IR_RUNTIME_NONE )
         return XL6_IR_INITIALIZER_XVALUE_CONTAINER_EMPTY;
@@ -17857,8 +17884,8 @@ static int xl6IrNullableProjectionTypeIsClosed(
     if ( nullable->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
          nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
          nullable->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
-         element->kind == XL6_IR_TYPE_UNION &&
-         element->cAbi == XL6_IR_C_ABI_UNION &&
+         xl6IrTypeKindIsAggregate(element->kind) &&
+         xl6IrCAbiIsAggregate(element->cAbi) &&
          element->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
          element->typeValueId != 0 &&
          xl6IrUnionLayoutGet(module, nullable->params[0]) != NULL ) return 1;
@@ -17934,7 +17961,7 @@ XL6_IrTypeId xl6IrUnionReceiverType(const XL6_IrModule* module,const XL6_IrNode*
     return xl6IrUnionLayoutGet(module,type) ? type : XL6_IR_TYPE_INVALID;
 }
 
-static const XL6_IrUnionField* xl6IrUnionFieldForMemberAbi(
+static const XL6_IrAggregateField* xl6IrUnionFieldForMemberAbi(
     const XL6_IrModule* module, const XL6_IrNode* member, size_t* outIndex)
 {
     const XL6_IrNode* receiver;
@@ -17947,14 +17974,14 @@ static const XL6_IrUnionField* xl6IrUnionFieldForMemberAbi(
     receiver = xl6IrNodeGet(module, module->children[member->firstChild]);
     XL6_IrTypeId receiverType=xl6IrUnionReceiverType(module,receiver);
     if ( receiverType == XL6_IR_TYPE_INVALID ) return NULL;
-    for ( layoutIndex = 0; layoutIndex < module->unionLayoutCount; ++layoutIndex ) {
-        const XL6_IrUnionLayout* layout = &module->unionLayouts[layoutIndex];
+    for ( layoutIndex = 0; layoutIndex < module->aggregateLayoutCount; ++layoutIndex ) {
+        const XL6_IrAggregateLayout* layout = &module->aggregateLayouts[layoutIndex];
         size_t fieldIndex;
         if ( layout->type != receiverType ) continue;
         for ( fieldIndex = layout->firstField;
               fieldIndex < layout->firstField + layout->fieldCount;
               ++fieldIndex ) {
-            const XL6_IrUnionField* field = &module->unionFields[fieldIndex];
+            const XL6_IrAggregateField* field = &module->aggregateFields[fieldIndex];
             if ( field->type == member->storageType && field->name != NULL &&
                  strcmp(field->name, member->text) == 0 ) {
                 if ( outIndex != NULL ) *outIndex = fieldIndex;
@@ -17977,7 +18004,7 @@ static void xl6IrClassInlineUnionFieldMatchesFrom(
          (node->kind == XL6_IR_NODE_FUNC_DECL ||
           node->kind == XL6_IR_NODE_ENUM_DECL) ) return;
     if ( id != ownerDeclaration && node->kind == XL6_IR_NODE_TYPE_DECL ) {
-        if ( node->sourceKind != XL6_AST_UNION ||
+        if ( !xl6AstKindIsAggregate(node->sourceKind) ||
              (node->text != NULL && node->text[0] != '\0') ) return;
         insideAnonymousUnion = 1;
     }
@@ -18265,8 +18292,9 @@ static XL6_IrMemberAbi xl6IrClassFieldMemberAbi(
                resultType->typeValueId != 0
             ? XL6_IR_MEMBER_ABI_CLASS_FIELD_ERROR_REF
             : XL6_IR_MEMBER_ABI_NONE;
+    case XL6_IR_C_ABI_C_RECORD:
     case XL6_IR_C_ABI_UNION:
-        return resultType->kind == XL6_IR_TYPE_UNION &&
+        return xl6IrTypeKindIsAggregate(resultType->kind) &&
                resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
                resultType->typeValueId != 0 &&
                xl6IrUnionLayoutGet(module, resultTypeId) != NULL
@@ -18979,8 +19007,9 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
                target->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL
             ? XL6_IR_CAST_XVALUE_TO_ERROR_CHECKED
             : XL6_IR_CAST_INVALID;
+    case XL6_IR_C_ABI_C_RECORD:
     case XL6_IR_C_ABI_UNION:
-        return target->kind == XL6_IR_TYPE_UNION &&
+        return xl6IrTypeKindIsAggregate(target->kind) &&
                target->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
                xl6IrUnionLayoutGet(module, node->storageType) != NULL
             ? XL6_IR_CAST_XVALUE_TO_UNION_CHECKED
@@ -20605,8 +20634,9 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
         if(!xl6IrNativeValuePlanForType(itemType)) return XL6_IR_LOOP_ABI_NONE;
         resolvedItemAbi=XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY;
         break;
+    case XL6_IR_C_ABI_C_RECORD:
     case XL6_IR_C_ABI_UNION:
-        if ( itemType->kind != XL6_IR_TYPE_UNION ||
+        if ( !xl6IrTypeKindIsAggregate(itemType->kind) ||
              itemType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
              itemType->nullAbi != XL6_IR_NULL_ABI_NONE ||
              itemType->nominalSymbol == XL6_SYMBOL_ID_INVALID ||
@@ -21421,18 +21451,18 @@ const XL6_IrType* xl6IrTypeGet(const XL6_IrTypePool* pool, XL6_IrTypeId typeId)
     return index < pool->count ? &pool->items[index] : NULL;
 }
 
-const XL6_IrUnionLayout* xl6IrUnionLayoutGet(
+const XL6_IrAggregateLayout* xl6IrUnionLayoutGet(
     const XL6_IrModule* module, XL6_IrTypeId typeId)
 {
     size_t i;
-    const XL6_IrUnionLayout* result = NULL;
+    const XL6_IrAggregateLayout* result = NULL;
     if ( module == NULL || typeId == XL6_IR_TYPE_INVALID ) return NULL;
-    for ( i = 0; i < module->unionLayoutCount; ++i ) {
-        if ( module->unionLayouts[i].type != typeId ) continue;
+    for ( i = 0; i < module->aggregateLayoutCount; ++i ) {
+        if ( module->aggregateLayouts[i].type != typeId ) continue;
         /* Duplicate physical layouts violate the Typed XLIR contract.  Do not
          * silently select one when a partially built module is queried. */
         if ( result != NULL ) return NULL;
-        result = &module->unionLayouts[i];
+        result = &module->aggregateLayouts[i];
     }
     return result;
 }
@@ -22821,8 +22851,8 @@ XL6_IrTypeId xl6IrNullableUnionElementType(const XL6_IrModule* module,XL6_IrType
         type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL || type->nullAbi!=XL6_IR_NULL_ABI_TAGGED_VALUE ||
         type->paramCount!=1 || !type->params || type->returnCount || !type->typeValueId || !type->cName[0]) return 0;
     const XL6_IrType* base=xl6IrTypeGet(&module->types,type->params[0]);
-    const XL6_IrUnionLayout* layout=xl6IrUnionLayoutGet(module,type->params[0]);
-    return base && base->kind==XL6_IR_TYPE_UNION && base->cAbi==XL6_IR_C_ABI_UNION &&
+    const XL6_IrAggregateLayout* layout=xl6IrUnionLayoutGet(module,type->params[0]);
+    return base && xl6IrTypeKindIsAggregate(base->kind) && xl6IrCAbiIsAggregate(base->cAbi) &&
         base->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && base->nullAbi==XL6_IR_NULL_ABI_NONE &&
         !base->paramCount && !base->returnCount && base->typeValueId && layout && layout->fieldCount &&
         xl6IrVerifyUnionLayouts(module) ? type->params[0] : 0;
@@ -22850,6 +22880,7 @@ XL6_IrRuntimeOp xl6IrAllocatingBoxOpForType(const XL6_IrModule* module, XL6_IrTy
     case XL6_IR_C_ABI_MANAGED_STRING:
         return type->kind == XL6_IR_TYPE_NULLABLE ? XL6_IR_RUNTIME_XVALUE_NULLABLE_STRING_BOX : XL6_IR_RUNTIME_XVALUE_STRING_COPY;
     case XL6_IR_C_ABI_TAGGED_NULLABLE: return XL6_IR_RUNTIME_XVALUE_TAGGED_NULLABLE_BOX;
+    case XL6_IR_C_ABI_C_RECORD:
     case XL6_IR_C_ABI_UNION: return XL6_IR_RUNTIME_XVALUE_UNION_BOX;
     default: return XL6_IR_RUNTIME_NONE;
     }
@@ -23776,12 +23807,15 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
         if (type->foreignHeader) {
             const XL6_IrType* element = type->kind == XL6_IR_TYPE_NULLABLE &&
                 type->paramCount == 1 && type->params ? xl6IrTypeGet(pool, type->params[0]) : NULL;
-            if (type->cAbi != XL6_IR_C_ABI_NATIVE_HANDLE ||
+            if ((type->kind == XL6_IR_TYPE_C_RECORD
+                    ? type->cAbi != XL6_IR_C_ABI_C_RECORD
+                    : type->cAbi != XL6_IR_C_ABI_NATIVE_HANDLE) ||
                 type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
                 !memchr(type->cName, 0, sizeof(type->cName)) ||
-                !xl6ForeignIdentifier(type->cName) || strlen(type->foreignHeader) >= 256 ||
+                !(type->kind == XL6_IR_TYPE_C_RECORD ? xl6ForeignIdentifier(type->cName)
+                    : xl6ForeignPointerSpelling(type->cName)) || strlen(type->foreignHeader) >= 256 ||
                 !xl6ForeignHeaderName(type->foreignHeader) ||
-                (type->kind != XL6_IR_TYPE_CLASS &&
+                (type->kind != XL6_IR_TYPE_CLASS && type->kind != XL6_IR_TYPE_C_RECORD &&
                  (!element || !element->foreignHeader ||
                   strcmp(type->cName, element->cName) ||
                   strcmp(type->foreignHeader, element->foreignHeader)))) return 0;
@@ -23801,7 +23835,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
         const char* expectedResultName;
         size_t j;
          if ( type->kind < XL6_IR_TYPE_BUILTIN ||
-              type->kind > XL6_IR_TYPE_PERSISTENCE_WIRE ||
+              type->kind > XL6_IR_TYPE_C_RECORD ||
                type->collectionAbi < XL6_IR_COLLECTION_NONE ||
                type->collectionAbi > XL6_IR_COLLECTION_DICT ||
                type->persistenceValueAbi < XL6_IR_PERSISTENCE_VALUE_NONE ||
@@ -23810,7 +23844,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
                type->runtimeResourceAbi < XL6_IR_RUNTIME_RESOURCE_NONE ||
               type->runtimeResourceAbi > XL6_IR_RUNTIME_RESOURCE_SLOT_MAP ||
               type->cAbi < XL6_IR_C_ABI_UNSUPPORTED ||
-             type->cAbi > XL6_IR_C_ABI_C_BYTES ||
+             type->cAbi > XL6_IR_C_ABI_C_RECORD ||
              type->ownershipAbi < XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
              type->ownershipAbi > XL6_IR_OWNERSHIP_ABI_MANAGED ||
              type->callableErasureAbi < XL6_IR_CALLABLE_ERASURE_INVALID ||
@@ -24131,9 +24165,10 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
                  (type->persistenceWireFormat != XL6_IR_PERSIST_FORMAT_JSON &&
                   type->persistenceWireFormat != XL6_IR_PERSIST_FORMAT_XLON) ) return 0;
         } else if ( type->persistenceWireFormat != XL6_IR_PERSIST_FORMAT_NONE ) return 0;
-        if ( type->kind == XL6_IR_TYPE_UNION ) {
+        if ( xl6IrTypeKindIsAggregate(type->kind) ) {
             char expectedUnionCName[sizeof(type->cName)];
-            if ( type->cAbi != XL6_IR_C_ABI_UNION ||
+            if ( type->cAbi != (type->kind == XL6_IR_TYPE_C_RECORD
+                    ? XL6_IR_C_ABI_C_RECORD : XL6_IR_C_ABI_UNION) ||
                  type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
                  type->nullAbi != XL6_IR_NULL_ABI_NONE ||
                  type->nominalSymbol == 0 || type->paramCount != 0 ||
@@ -24142,9 +24177,9 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
                                       sizeof(expectedUnionCName)) ||
                  strcmp(type->cName, expectedUnionCName) != 0 ) return 0;
             for ( j = 0; j < i; ++j )
-                if ( pool->items[j].kind == XL6_IR_TYPE_UNION &&
+                if ( xl6IrTypeKindIsAggregate(pool->items[j].kind) &&
                      strcmp(pool->items[j].cName, type->cName) == 0 ) return 0;
-        } else if ( type->cAbi == XL6_IR_C_ABI_UNION ) return 0;
+        } else if ( xl6IrCAbiIsAggregate(type->cAbi) ) return 0;
         if ( type->kind == XL6_IR_TYPE_TUPLE ) {
             int representable = type->paramCount >= 2 && type->returnCount == 0;
             int hasManagedElement = 0;
@@ -24165,7 +24200,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
         } else if ( type->cAbi == XL6_IR_C_ABI_PRODUCT ||
                      (type->cName[0] != '\0' && !type->foreignHeader &&
                      type->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE &&
-                     type->cAbi != XL6_IR_C_ABI_UNION) ) return 0;
+                     !xl6IrCAbiIsAggregate(type->cAbi)) ) return 0;
         if ( type->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE &&
              ((type->kind != XL6_IR_TYPE_CLASS && type->kind != XL6_IR_TYPE_NULLABLE) ||
                type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL) ) return 0;
@@ -25010,8 +25045,8 @@ int xl6IrExternGlobalTypeSupported(
     const XL6_IrType* type = module != NULL
         ? xl6IrTypeGet(&module->types, typeId) : NULL;
     if ( type == NULL || type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ) return 0;
-    if ( type->cAbi == XL6_IR_C_ABI_UNION )
-        return type->kind == XL6_IR_TYPE_UNION &&
+    if ( xl6IrCAbiIsAggregate(type->cAbi) )
+        return xl6IrTypeKindIsAggregate(type->kind) &&
                xl6IrUnionLayoutGet(module, typeId) != NULL;
     return type->cAbi == XL6_IR_C_ABI_TYPE_ID ||
            xl6IrCAbiIsBoolScalar(type->cAbi) || xl6IrCAbiIsNumericScalar(type->cAbi);
@@ -26960,36 +26995,37 @@ static int xl6IrVerifyUnionLayouts(const XL6_IrModule* module)
     size_t unionTypeCount = 0;
     size_t typeIndex;
     if ( module == NULL ||
-         module->unionLayoutCount > module->unionLayoutCapacity ||
-         (module->unionLayoutCount != 0 && module->unionLayouts == NULL) ||
-         module->unionFieldCount > module->unionFieldCapacity ||
-         (module->unionFieldCount != 0 && module->unionFields == NULL) ) return 0;
+         module->aggregateLayoutCount > module->aggregateLayoutCapacity ||
+         (module->aggregateLayoutCount != 0 && module->aggregateLayouts == NULL) ||
+         module->aggregateFieldCount > module->aggregateFieldCapacity ||
+         (module->aggregateFieldCount != 0 && module->aggregateFields == NULL) ) return 0;
     for ( typeIndex = 0; typeIndex < module->types.count; ++typeIndex )
-        if ( module->types.items[typeIndex].kind == XL6_IR_TYPE_UNION &&
-             module->types.items[typeIndex].cAbi == XL6_IR_C_ABI_UNION )
+        if ( xl6IrTypeKindIsAggregate(module->types.items[typeIndex].kind) &&
+             xl6IrCAbiIsAggregate(module->types.items[typeIndex].cAbi) )
             unionTypeCount += 1;
-    if ( unionTypeCount != module->unionLayoutCount ) return 0;
-    for ( layoutIndex = 0; layoutIndex < module->unionLayoutCount; ++layoutIndex ) {
-        const XL6_IrUnionLayout* layout = &module->unionLayouts[layoutIndex];
+    if ( unionTypeCount != module->aggregateLayoutCount ) return 0;
+    for ( layoutIndex = 0; layoutIndex < module->aggregateLayoutCount; ++layoutIndex ) {
+        const XL6_IrAggregateLayout* layout = &module->aggregateLayouts[layoutIndex];
         const XL6_IrType* type = xl6IrTypeGet(&module->types, layout->type);
         const XL6_IrNode* declaration = xl6IrNodeGet(module, layout->declaration);
         size_t fieldOffset;
         size_t priorLayout;
-        if ( type == NULL || type->kind != XL6_IR_TYPE_UNION ||
-             type->cAbi != XL6_IR_C_ABI_UNION ||
+        if ( type == NULL || !xl6IrTypeKindIsAggregate(type->kind) ||
+             !xl6IrCAbiIsAggregate(type->cAbi) ||
              type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
              declaration == NULL || declaration->kind != XL6_IR_NODE_TYPE_DECL ||
-             declaration->sourceKind != XL6_AST_UNION || declaration->symbol == 0 ||
+             declaration->sourceKind != (type->kind == XL6_IR_TYPE_C_RECORD
+                 ? XL6_AST_C_RECORD : XL6_AST_UNION) || declaration->symbol == 0 ||
              type->nominalSymbol != declaration->symbol ||
              layout->firstField != expectedFirst || layout->fieldCount == 0 ||
-             layout->firstField > module->unionFieldCount ||
-             layout->fieldCount > module->unionFieldCount - layout->firstField ) return 0;
+             layout->firstField > module->aggregateFieldCount ||
+             layout->fieldCount > module->aggregateFieldCount - layout->firstField ) return 0;
         for ( priorLayout = 0; priorLayout < layoutIndex; ++priorLayout )
-            if ( module->unionLayouts[priorLayout].type == layout->type ||
-                 module->unionLayouts[priorLayout].declaration == layout->declaration ) return 0;
+            if ( module->aggregateLayouts[priorLayout].type == layout->type ||
+                 module->aggregateLayouts[priorLayout].declaration == layout->declaration ) return 0;
         for ( fieldOffset = 0; fieldOffset < layout->fieldCount; ++fieldOffset ) {
             size_t fieldIndex = layout->firstField + fieldOffset;
-            const XL6_IrUnionField* field = &module->unionFields[fieldIndex];
+            const XL6_IrAggregateField* field = &module->aggregateFields[fieldIndex];
             const XL6_IrNode* source = xl6IrNodeGet(module, field->declaration);
             const XL6_IrType* fieldType = xl6IrTypeGet(&module->types, field->type);
             size_t priorField;
@@ -27011,13 +27047,13 @@ static int xl6IrVerifyUnionLayouts(const XL6_IrModule* module)
                  fieldType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ) return 0;
             for ( priorField = 0; priorField < fieldOffset; ++priorField )
                 if ( strcmp(field->name,
-                           module->unionFields[layout->firstField + priorField].name) == 0 ||
+                           module->aggregateFields[layout->firstField + priorField].name) == 0 ||
                      strcmp(field->cName,
-                           module->unionFields[layout->firstField + priorField].cName) == 0 ) return 0;
+                           module->aggregateFields[layout->firstField + priorField].cName) == 0 ) return 0;
         }
         expectedFirst += layout->fieldCount;
     }
-    return expectedFirst == module->unionFieldCount;
+    return expectedFirst == module->aggregateFieldCount;
 }
 
 static int xl6IrVerifyEnumLayouts(const XL6_IrModule* module)
@@ -27822,8 +27858,8 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
                       fieldType->nullAbi != XL6_IR_NULL_ABI_TAGGED_VALUE)) ||
                    (item->initializerAbi == XL6_IR_INITIALIZER_UNION_ZERO &&
                     (item->initializer != XL6_IR_NODE_INVALID || fieldType == NULL ||
-                     fieldType->kind != XL6_IR_TYPE_UNION ||
-                     fieldType->cAbi != XL6_IR_C_ABI_UNION)) ||
+                     !xl6IrTypeKindIsAggregate(fieldType->kind) ||
+                     !xl6IrCAbiIsAggregate(fieldType->cAbi))) ||
                    (item->initializerAbi ==
                         XL6_IR_INITIALIZER_XVALUE_CONTAINER_EMPTY &&
                     (item->initializer != XL6_IR_NODE_INVALID ||
@@ -36160,8 +36196,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                   declaration->kind == XL6_IR_NODE_TYPE_DECL && declaration->sourceKind == XL6_AST_CLASS) ||
                  ((type->kind == XL6_IR_TYPE_PROTOCOL || type->kind == XL6_IR_TYPE_GENERIC_INSTANCE) &&
                   declaration->kind == XL6_IR_NODE_TYPE_DECL && declaration->sourceKind == XL6_AST_PROTOCOL) ||
-                 (type->kind == XL6_IR_TYPE_UNION &&
-                  declaration->kind == XL6_IR_NODE_TYPE_DECL && declaration->sourceKind == XL6_AST_UNION) ||
+                 (xl6IrTypeKindIsAggregate(type->kind) &&
+                  declaration->kind == XL6_IR_NODE_TYPE_DECL && xl6AstKindIsAggregate(declaration->sourceKind)) ||
                  ((type->kind == XL6_IR_TYPE_NUMERIC_ENUM || type->kind == XL6_IR_TYPE_TAGGED_ENUM) &&
                   declaration->kind == XL6_IR_NODE_ENUM_DECL && declaration->sourceKind == XL6_AST_ENUM));
             if ( !matches )
@@ -40408,6 +40444,20 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             xrtFree(incoming);
             return xl6IrDiag(diags, node, "typed XLIR value has no canonical type or storage type");
         }
+        if (node->callKind == XL6_SEM_CALL_C_RECORD_ZERO) {
+            const XL6_IrType* type = xl6IrTypeGet(&module->types, node->storageType);
+            const XL6_IrNode* args = node->childCount == 2
+                ? xl6IrNodeGet(module, module->children[node->firstChild + 1]) : NULL;
+            const XL6_IrNode* declaration = xl6IrSymbolNodeGet(module, node->targetSymbol);
+            if (node->kind != XL6_IR_NODE_CALL || !type ||
+                type->kind != XL6_IR_TYPE_C_RECORD || type->cAbi != XL6_IR_C_ABI_C_RECORD ||
+                node->targetSymbol != type->nominalSymbol || !args || args->childCount ||
+                !declaration || declaration->sourceKind != XL6_AST_C_RECORD ||
+                !xl6IrUnionLayoutGet(module, node->storageType)) {
+                xrtFree(incoming);
+                return xl6IrDiag(diags, node, "C record zero call has no exact declaration and empty argument list");
+            }
+        }
         if(node->cOwnedCompareOp!=(node->callKind==XL6_SEM_CALL_C_OWNED_COMPARE ? xl6IrCOwnedCompareOp(node->text) : XL6_IR_RUNTIME_NONE)) {
             xrtFree(incoming);return xl6IrDiag(diags,node,"C owner comparison has no canonical relation");
         }
@@ -42827,8 +42877,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              resultType->nullAbi !=
                                  XL6_IR_NULL_ABI_TAGGED_VALUE ||
                              instruction->payloadType != resultType->params[0] ||
-                             elementType->kind != XL6_IR_TYPE_UNION ||
-                             elementType->cAbi != XL6_IR_C_ABI_UNION ||
+                             !xl6IrTypeKindIsAggregate(elementType->kind) ||
+                             !xl6IrCAbiIsAggregate(elementType->cAbi) ||
                              elementType->ownershipAbi !=
                                  XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
                              elementType->typeValueId == 0 ||
@@ -43070,7 +43120,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             XL6_IR_RUNTIME_XVALUE_UNION_CAST_CHECKED;
                         int closure = instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED;
-                        const XL6_IrUnionLayout* unionLayout = unionValue
+                        const XL6_IrAggregateLayout* unionLayout = unionValue
                             ? xl6IrUnionLayoutGet(
                                 module, instruction->payloadType) : NULL;
                         int matchingResult = resultType != NULL &&
@@ -43129,8 +43179,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                   XL6_IR_NULL_ABI_POINTER_SENTINEL) ||
                              (unionValue && instruction->castAbi ==
                                   XL6_IR_CAST_XVALUE_TO_UNION_CHECKED &&
-                              resultType->kind == XL6_IR_TYPE_UNION &&
-                              resultType->cAbi == XL6_IR_C_ABI_UNION &&
+                              xl6IrTypeKindIsAggregate(resultType->kind) &&
+                              xl6IrCAbiIsAggregate(resultType->cAbi) &&
                               resultType->ownershipAbi ==
                                   XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
                               unionLayout != NULL &&
@@ -43599,7 +43649,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 XL6_IR_RUNTIME_XVALUE_UNION_BOX ) {
                         const XL6_IrType* sourceType = left != NULL
                             ? xl6IrTypeGet(&module->types, left->type) : NULL;
-                        const XL6_IrUnionLayout* layout =
+                        const XL6_IrAggregateLayout* layout =
                             instruction->payloadType != XL6_IR_TYPE_INVALID
                                 ? xl6IrUnionLayoutGet(
                                       module, instruction->payloadType)
@@ -43612,8 +43662,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              instruction->opcode != XL6_IR_OPCODE_INVALID ||
                              !xl6IrTypeIsRuntimeXValue(module, instruction->type) ||
                              sourceType == NULL ||
-                             sourceType->kind != XL6_IR_TYPE_UNION ||
-                             sourceType->cAbi != XL6_IR_C_ABI_UNION ||
+                             !xl6IrTypeKindIsAggregate(sourceType->kind) ||
+                             !xl6IrCAbiIsAggregate(sourceType->cAbi) ||
                              sourceType->ownershipAbi !=
                                  XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
                              sourceType->typeValueId == 0 ||
@@ -43627,7 +43677,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             ? xl6IrTypeGet(&module->types, left->type) : NULL;
                         const XL6_IrType* resultType =
                             xl6IrTypeGet(&module->types, instruction->type);
-                        const XL6_IrUnionLayout* layout =
+                        const XL6_IrAggregateLayout* layout =
                             instruction->payloadType != XL6_IR_TYPE_INVALID
                                 ? xl6IrUnionLayoutGet(
                                       module, instruction->payloadType)
@@ -43642,8 +43692,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              sourceType->cAbi !=
                                  XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
                              resultType == NULL ||
-                             resultType->kind != XL6_IR_TYPE_UNION ||
-                             resultType->cAbi != XL6_IR_C_ABI_UNION ||
+                             !xl6IrTypeKindIsAggregate(resultType->kind) ||
+                             !xl6IrCAbiIsAggregate(resultType->cAbi) ||
                              resultType->ownershipAbi !=
                                  XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
                              resultType->typeValueId == 0 ||
@@ -47018,8 +47068,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 if ( instruction->kind != XL6_IR_INSTR_PRODUCT_GET &&
                      instruction->kind != XL6_IR_INSTR_PRODUCT_TAKE &&
                      instruction->kind != XL6_IR_INSTR_PRODUCT_DROP &&
-                     instruction->kind != XL6_IR_INSTR_UNION_GET &&
-                     instruction->kind != XL6_IR_INSTR_UNION_SET &&
+                     instruction->kind != XL6_IR_INSTR_AGGREGATE_GET &&
+                     instruction->kind != XL6_IR_INSTR_AGGREGATE_SET &&
                      instruction->elementIndex != SIZE_MAX )
                     return xl6IrDiag(diags, NULL,
                                      "XLIR non-product projection carries an element index ABI");
@@ -47075,11 +47125,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         return xl6IrDiag(diags, NULL,
                                          "XLIR product projection has no exact element ABI");
                 }
-                if ( instruction->kind == XL6_IR_INSTR_UNION_ZERO ) {
+                if ( instruction->kind == XL6_IR_INSTR_AGGREGATE_ZERO ) {
                     const XL6_IrType* unionType =
                         xl6IrTypeGet(&module->types, instruction->type);
-                    if ( unionType == NULL || unionType->kind != XL6_IR_TYPE_UNION ||
-                         unionType->cAbi != XL6_IR_C_ABI_UNION ||
+                    if ( unionType == NULL || !xl6IrTypeKindIsAggregate(unionType->kind) ||
+                         !xl6IrCAbiIsAggregate(unionType->cAbi) ||
                          unionType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
                          instruction->result == XL6_IR_VALUE_INVALID ||
                          instruction->operandCount != 0 || instruction->targetSymbol != 0 ||
@@ -47092,11 +47142,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         return xl6IrDiag(diags, NULL,
                             "XLIR union zero construction has no exact nominal ABI");
                 }
-                if ( instruction->kind == XL6_IR_INSTR_UNION_GET ||
-                     instruction->kind == XL6_IR_INSTR_UNION_SET ) {
-                    const XL6_IrUnionField* field =
-                        instruction->elementIndex < module->unionFieldCount
-                            ? &module->unionFields[instruction->elementIndex] : NULL;
+                if ( instruction->kind == XL6_IR_INSTR_AGGREGATE_GET ||
+                     instruction->kind == XL6_IR_INSTR_AGGREGATE_SET ) {
+                    const XL6_IrAggregateField* field =
+                        instruction->elementIndex < module->aggregateFieldCount
+                            ? &module->aggregateFields[instruction->elementIndex] : NULL;
                     const XL6_IrInstruction* source = instruction->operandCount >= 1
                         ? xl6IrValueDefinition(
                             module, module->operands[instruction->firstOperand], NULL) : NULL;
@@ -47111,7 +47161,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                          instruction->opcode != XL6_IR_OPCODE_INVALID ||
                          instruction->runtimeOp != XL6_IR_RUNTIME_NONE ||
                          instruction->immediateText != NULL ||
-                         (instruction->kind == XL6_IR_INSTR_UNION_GET
+                         (instruction->kind == XL6_IR_INSTR_AGGREGATE_GET
                             ? instruction->operandCount != 1 || value != NULL ||
                               instruction->result == XL6_IR_VALUE_INVALID ||
                               instruction->type != field->type
@@ -48340,6 +48390,7 @@ static const char* xl6IrCallKindName(XL6_SemCallKind kind)
     case XL6_SEM_CALL_DYNAMIC_FUNCTION: return "dynamic-function";
     case XL6_SEM_CALL_DYNAMIC_METHOD: return "dynamic-method";
     case XL6_SEM_CALL_CONSTRUCTOR: return "constructor";
+    case XL6_SEM_CALL_C_RECORD_ZERO: return "c-record-zero";
     case XL6_SEM_CALL_METHOD: return "method";
     case XL6_SEM_CALL_STATIC_METHOD: return "static-method";
     case XL6_SEM_CALL_PROTOCOL: return "protocol";
@@ -49376,9 +49427,9 @@ static const char* xl6IrInstructionKindName(XL6_IrInstructionKind kind)
     case XL6_IR_INSTR_PRODUCT_GET: return "product-get";
     case XL6_IR_INSTR_PRODUCT_TAKE: return "product-take";
     case XL6_IR_INSTR_PRODUCT_DROP: return "product-drop";
-    case XL6_IR_INSTR_UNION_ZERO: return "union-zero";
-    case XL6_IR_INSTR_UNION_GET: return "union-get";
-    case XL6_IR_INSTR_UNION_SET: return "union-set";
+    case XL6_IR_INSTR_AGGREGATE_ZERO: return "union-zero";
+    case XL6_IR_INSTR_AGGREGATE_GET: return "union-get";
+    case XL6_IR_INSTR_AGGREGATE_SET: return "union-set";
     case XL6_IR_INSTR_STORAGE_ADDRESS: return "storage-address";
     case XL6_IR_INSTR_RUNTIME_CALL: return "runtime-call";
     case XL6_IR_INSTR_TRAP_IF_FALSE: return "trap-if-false";
@@ -50708,7 +50759,7 @@ static const char* xl6IrExportValueAbiName(XL6_IrExportValueAbi abi)
 static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
 {
     size_t i;
-    xl6OutputPrintf(out, "xlir stage=%s nodes=%lu types=%lu storage=%lu callTargets=%lu callSites=%lu callArguments=%lu dynamicCallSites=%lu dynamicCallArguments=%lu dynamicMethods=%lu dynamicMethodParameters=%lu intrinsicCalls=%lu intrinsicOperands=%lu valueInitializers=%lu nativeHandleBinds=%lu nativeHandleProjects=%lu unionLayouts=%lu unionFields=%lu enumLayouts=%lu enumVariants=%lu enumPayloads=%lu classLayouts=%lu classDestroySteps=%lu classFields=%lu classStaticFields=%lu classDispatchSlots=%lu classDispatchImpls=%lu protocolDispatchSlots=%lu protocolDispatchImpls=%lu nominalIdentitySets=%lu nominalIdentities=%lu exports=%lu globalExports=%lu externGlobals=%lu exits=%lu cleanup=%lu blocks=%lu instructions=%lu\n",
+    xl6OutputPrintf(out, "xlir stage=%s nodes=%lu types=%lu storage=%lu callTargets=%lu callSites=%lu callArguments=%lu dynamicCallSites=%lu dynamicCallArguments=%lu dynamicMethods=%lu dynamicMethodParameters=%lu intrinsicCalls=%lu intrinsicOperands=%lu valueInitializers=%lu nativeHandleBinds=%lu nativeHandleProjects=%lu aggregateLayouts=%lu aggregateFields=%lu enumLayouts=%lu enumVariants=%lu enumPayloads=%lu classLayouts=%lu classDestroySteps=%lu classFields=%lu classStaticFields=%lu classDispatchSlots=%lu classDispatchImpls=%lu protocolDispatchSlots=%lu protocolDispatchImpls=%lu nominalIdentitySets=%lu nominalIdentities=%lu exports=%lu globalExports=%lu externGlobals=%lu exits=%lu cleanup=%lu blocks=%lu instructions=%lu\n",
                     module->stage == XL6_IR_STAGE_LOWERED ? "lowered" : "typed",
                     (unsigned long)module->nodeCount, (unsigned long)module->types.count,
                     (unsigned long)module->storageCount,
@@ -50724,8 +50775,8 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
                      (unsigned long)module->valueInitializerCount,
                      (unsigned long)module->nativeHandleBindCount,
                      (unsigned long)module->nativeHandleProjectCount,
-                     (unsigned long)module->unionLayoutCount,
-                     (unsigned long)module->unionFieldCount,
+                     (unsigned long)module->aggregateLayoutCount,
+                     (unsigned long)module->aggregateFieldCount,
                      (unsigned long)module->enumLayoutCount,
                      (unsigned long)module->enumVariantCount,
                      (unsigned long)module->enumPayloadCount,
@@ -50808,16 +50859,16 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
                 (unsigned)type->messageSchemaType,
                 xl6IrRuntimeResourceAbiName(type->runtimeResourceAbi));
     }
-    for ( i = 0; i < module->unionLayoutCount; ++i ) {
-        const XL6_IrUnionLayout* layout = &module->unionLayouts[i];
+    for ( i = 0; i < module->aggregateLayoutCount; ++i ) {
+        const XL6_IrAggregateLayout* layout = &module->aggregateLayouts[i];
         xl6OutputPrintf(out,
             "  union-layout u%lu type=t%u declaration=n%u fields=%lu..%lu\n",
             (unsigned long)i, (unsigned int)layout->type,
             (unsigned int)layout->declaration, (unsigned long)layout->firstField,
             (unsigned long)(layout->firstField + layout->fieldCount));
     }
-    for ( i = 0; i < module->unionFieldCount; ++i ) {
-        const XL6_IrUnionField* field = &module->unionFields[i];
+    for ( i = 0; i < module->aggregateFieldCount; ++i ) {
+        const XL6_IrAggregateField* field = &module->aggregateFields[i];
         xl6OutputPrintf(out,
             "  union-field uf%lu owner=t%u type=t%u declaration=n%u name=%s cname=%s\n",
             (unsigned long)i, (unsigned int)field->ownerType,
@@ -51966,7 +52017,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     if ( out == NULL || module == NULL || !xl6IrVerifyModule(module, NULL) ) {
         return;
     }
-    xl6OutputPrintf(out, "{\n  \"stage\": \"%s\",\n  \"nodeCount\": %lu,\n  \"nodeChildCount\": %lu,\n  \"typeCount\": %lu,\n  \"storageCount\": %lu,\n  \"callTargetCount\": %lu,\n  \"closureTargetCount\": %lu,\n  \"closureCaptureCount\": %lu,\n  \"callSiteCount\": %lu,\n  \"callArgumentCount\": %lu,\n  \"dynamicCallSiteCount\": %lu,\n  \"dynamicCallArgumentCount\": %lu,\n  \"dynamicMethodCount\": %lu,\n  \"dynamicMethodParameterCount\": %lu,\n  \"intrinsicCallCount\": %lu,\n  \"intrinsicOperandCount\": %lu,\n  \"valueInitializerCount\": %lu,\n  \"nativeHandleBindCount\": %lu,\n  \"nativeHandleProjectCount\": %lu,\n  \"unionLayoutCount\": %lu,\n  \"unionFieldCount\": %lu,\n  \"enumLayoutCount\": %lu,\n  \"enumVariantCount\": %lu,\n  \"enumPayloadCount\": %lu,\n  \"classLayoutCount\": %lu,\n  \"classFieldCount\": %lu,\n  \"classStaticFieldCount\": %lu,\n  \"classDispatchSlotCount\": %lu,\n  \"classDispatchImplCount\": %lu,\n  \"protocolDispatchSlotCount\": %lu,\n  \"protocolDispatchImplCount\": %lu,\n  \"nominalIdentitySetCount\": %lu,\n  \"nominalIdentityCount\": %lu,\n  \"exportCount\": %lu,\n  \"globalExportCount\": %lu,\n  \"externGlobalCount\": %lu,\n  \"exitPlanCount\": %lu,\n  \"cleanupActionCount\": %lu,\n  \"asyncMachineCount\": %lu,\n  \"asyncSuspensionCount\": %lu,\n  \"asyncMachineFrameSlotCount\": %lu,\n  \"asyncLiveSlotCount\": %lu,\n  \"asyncFrameActionCount\": %lu,\n  \"asyncMachineEntryCount\": %lu,\n  \"asyncMachineBlockCount\": %lu,\n  \"generatorMachineCount\": %lu,\n  \"generatorSuspensionCount\": %lu,\n  \"generatorFrameSlotCount\": %lu,\n  \"generatorLiveSlotCount\": %lu,\n  \"generatorFrameActionCount\": %lu,\n  \"generatorMachineEntryCount\": %lu,\n  \"generatorMachineBlockCount\": %lu,\n  \"functionCount\": %lu,\n  \"blockCount\": %lu,\n  \"instructionCount\": %lu,\n",
+    xl6OutputPrintf(out, "{\n  \"stage\": \"%s\",\n  \"nodeCount\": %lu,\n  \"nodeChildCount\": %lu,\n  \"typeCount\": %lu,\n  \"storageCount\": %lu,\n  \"callTargetCount\": %lu,\n  \"closureTargetCount\": %lu,\n  \"closureCaptureCount\": %lu,\n  \"callSiteCount\": %lu,\n  \"callArgumentCount\": %lu,\n  \"dynamicCallSiteCount\": %lu,\n  \"dynamicCallArgumentCount\": %lu,\n  \"dynamicMethodCount\": %lu,\n  \"dynamicMethodParameterCount\": %lu,\n  \"intrinsicCallCount\": %lu,\n  \"intrinsicOperandCount\": %lu,\n  \"valueInitializerCount\": %lu,\n  \"nativeHandleBindCount\": %lu,\n  \"nativeHandleProjectCount\": %lu,\n  \"aggregateLayoutCount\": %lu,\n  \"aggregateFieldCount\": %lu,\n  \"enumLayoutCount\": %lu,\n  \"enumVariantCount\": %lu,\n  \"enumPayloadCount\": %lu,\n  \"classLayoutCount\": %lu,\n  \"classFieldCount\": %lu,\n  \"classStaticFieldCount\": %lu,\n  \"classDispatchSlotCount\": %lu,\n  \"classDispatchImplCount\": %lu,\n  \"protocolDispatchSlotCount\": %lu,\n  \"protocolDispatchImplCount\": %lu,\n  \"nominalIdentitySetCount\": %lu,\n  \"nominalIdentityCount\": %lu,\n  \"exportCount\": %lu,\n  \"globalExportCount\": %lu,\n  \"externGlobalCount\": %lu,\n  \"exitPlanCount\": %lu,\n  \"cleanupActionCount\": %lu,\n  \"asyncMachineCount\": %lu,\n  \"asyncSuspensionCount\": %lu,\n  \"asyncMachineFrameSlotCount\": %lu,\n  \"asyncLiveSlotCount\": %lu,\n  \"asyncFrameActionCount\": %lu,\n  \"asyncMachineEntryCount\": %lu,\n  \"asyncMachineBlockCount\": %lu,\n  \"generatorMachineCount\": %lu,\n  \"generatorSuspensionCount\": %lu,\n  \"generatorFrameSlotCount\": %lu,\n  \"generatorLiveSlotCount\": %lu,\n  \"generatorFrameActionCount\": %lu,\n  \"generatorMachineEntryCount\": %lu,\n  \"generatorMachineBlockCount\": %lu,\n  \"functionCount\": %lu,\n  \"blockCount\": %lu,\n  \"instructionCount\": %lu,\n",
                     module->stage == XL6_IR_STAGE_LOWERED ? "lowered" : "typed",
                     (unsigned long)module->nodeCount,
                     (unsigned long)module->childCount,
@@ -51986,8 +52037,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
                       (unsigned long)module->valueInitializerCount,
                       (unsigned long)module->nativeHandleBindCount,
                       (unsigned long)module->nativeHandleProjectCount,
-                    (unsigned long)module->unionLayoutCount,
-                    (unsigned long)module->unionFieldCount,
+                    (unsigned long)module->aggregateLayoutCount,
+                    (unsigned long)module->aggregateFieldCount,
                     (unsigned long)module->enumLayoutCount,
                     (unsigned long)module->enumVariantCount,
                     (unsigned long)module->enumPayloadCount,
@@ -52107,7 +52158,9 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             if ( item != 0 ) xl6OutputPuts(",", out);
             xl6OutputPrintf(out, "%u", (unsigned int)type->params[item]);
         }
-        xl6OutputPrintf(out,"],\"nativeValueAbi\":%u",(unsigned)type->nativeValueAbi);
+        xl6OutputPrintf(out,"],\"foreignHeader\":\"%s\",\"foreignBase\":%u,\"nativeValueAbi\":%u",
+            type->foreignHeader ? type->foreignHeader : "", (unsigned)type->foreignBase,
+            (unsigned)type->nativeValueAbi);
         xl6OutputPrintf(out,",\"persistenceRestoreScalarAbi\":%u,\"persistenceRestoreCarrierAbi\":%u,\"persistenceWireFormat\":%u,\"collectionCarrierAbi\":%u,\"collectionCarrierAbiName\":\"%s\","
             "\"sequenceLayout\":{\"abi\":%u,\"abiName\":\"%s\",\"role\":%u,\"elementType\":%u,\"baseElementType\":%u,"
             "\"slotAbi\":%u,\"slotAbiName\":\"%s\",\"codecAbi\":%u,\"codecAbiName\":\"%s\","
@@ -52155,25 +52208,25 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
                         (int)xl6IrTypeReleaseEffect(module, (XL6_IrTypeId)(i + 1)),
                         i + 1 == module->types.count ? "" : ",");
     }
-    xl6OutputPuts("  ],\n  \"unionLayouts\": [\n", out);
-    for ( i = 0; i < module->unionLayoutCount; ++i ) {
-        const XL6_IrUnionLayout* layout = &module->unionLayouts[i];
+    xl6OutputPuts("  ],\n  \"aggregateLayouts\": [\n", out);
+    for ( i = 0; i < module->aggregateLayoutCount; ++i ) {
+        const XL6_IrAggregateLayout* layout = &module->aggregateLayouts[i];
         xl6OutputPrintf(out,
             "    {\"id\":%lu,\"type\":%u,\"declaration\":%u,\"firstField\":%lu,\"fieldCount\":%lu}%s\n",
             (unsigned long)i, (unsigned int)layout->type,
             (unsigned int)layout->declaration, (unsigned long)layout->firstField,
             (unsigned long)layout->fieldCount,
-            i + 1 == module->unionLayoutCount ? "" : ",");
+            i + 1 == module->aggregateLayoutCount ? "" : ",");
     }
-    xl6OutputPuts("  ],\n  \"unionFields\": [\n", out);
-    for ( i = 0; i < module->unionFieldCount; ++i ) {
-        const XL6_IrUnionField* field = &module->unionFields[i];
+    xl6OutputPuts("  ],\n  \"aggregateFields\": [\n", out);
+    for ( i = 0; i < module->aggregateFieldCount; ++i ) {
+        const XL6_IrAggregateField* field = &module->aggregateFields[i];
         xl6OutputPrintf(out,
             "    {\"id\":%lu,\"ownerType\":%u,\"type\":%u,\"declaration\":%u,\"name\":\"%s\",\"cName\":\"%s\"}%s\n",
             (unsigned long)i, (unsigned int)field->ownerType,
             (unsigned int)field->type, (unsigned int)field->declaration,
             field->name != NULL ? field->name : "", field->cName,
-            i + 1 == module->unionFieldCount ? "" : ",");
+            i + 1 == module->aggregateFieldCount ? "" : ",");
     }
     xl6OutputPuts("  ],\n  \"enumLayouts\": [\n", out);
     for ( i = 0; i < module->enumLayoutCount; ++i ) {

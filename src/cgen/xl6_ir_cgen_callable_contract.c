@@ -669,7 +669,7 @@ static int xl6IrCgenRuntimeUnionBoxAbi(
     const XL6_IrInstruction* source;
     const XL6_IrType* sourceType;
     const XL6_IrType* resultType;
-    const XL6_IrUnionLayout* layout;
+    const XL6_IrAggregateLayout* layout;
     if ( module == NULL || instruction == NULL ||
          instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_UNION_BOX ||
          instruction->operandCount != 1 || instruction->immediateText != NULL ||
@@ -685,8 +685,8 @@ static int xl6IrCgenRuntimeUnionBoxAbi(
     resultType = xl6IrTypeGet(&module->types, instruction->type);
     layout = xl6IrUnionLayoutGet(module, instruction->payloadType);
     return sourceType != NULL && source->type == instruction->payloadType &&
-           sourceType->kind == XL6_IR_TYPE_UNION &&
-           sourceType->cAbi == XL6_IR_C_ABI_UNION &&
+           xl6IrTypeKindIsAggregate(sourceType->kind) &&
+           xl6IrCAbiIsAggregate(sourceType->cAbi) &&
            sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
            sourceType->typeValueId != 0 && sourceType->cName[0] != '\0' &&
            layout != NULL && layout->type == source->type &&
@@ -701,7 +701,7 @@ static int xl6IrCgenRuntimeUnionUnboxAbi(
     const XL6_IrInstruction* source;
     const XL6_IrType* sourceType;
     const XL6_IrType* resultType;
-    const XL6_IrUnionLayout* layout;
+    const XL6_IrAggregateLayout* layout;
     if ( module == NULL || instruction == NULL ||
          instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_UNION_UNBOX ||
          instruction->operandCount != 1 || instruction->immediateText != NULL ||
@@ -718,8 +718,8 @@ static int xl6IrCgenRuntimeUnionUnboxAbi(
     layout = xl6IrUnionLayoutGet(module, instruction->payloadType);
     return sourceType != NULL &&
            sourceType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-           resultType != NULL && resultType->kind == XL6_IR_TYPE_UNION &&
-           resultType->cAbi == XL6_IR_C_ABI_UNION &&
+           resultType != NULL && xl6IrTypeKindIsAggregate(resultType->kind) &&
+           xl6IrCAbiIsAggregate(resultType->cAbi) &&
            resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
            resultType->typeValueId != 0 && resultType->cName[0] != '\0' &&
            layout != NULL && layout->type == instruction->type;
@@ -734,7 +734,7 @@ static int xl6IrCgenRuntimeCheckedUnionCastAbi(
     const XL6_IrInstruction* source;
     const XL6_IrType* sourceType;
     const XL6_IrType* resultType;
-    const XL6_IrUnionLayout* layout;
+    const XL6_IrAggregateLayout* layout;
     if ( module == NULL || instruction == NULL ||
          instruction->runtimeOp !=
              XL6_IR_RUNTIME_XVALUE_UNION_CAST_CHECKED ||
@@ -753,8 +753,8 @@ static int xl6IrCgenRuntimeCheckedUnionCastAbi(
     resultType = xl6IrTypeGet(&module->types, instruction->type);
     layout = xl6IrUnionLayoutGet(module, instruction->payloadType);
     return xl6IrCgenTypeIsOpenDynamicBuiltin(module, sourceType) &&
-           resultType != NULL && resultType->kind == XL6_IR_TYPE_UNION &&
-           resultType->cAbi == XL6_IR_C_ABI_UNION &&
+           resultType != NULL && xl6IrTypeKindIsAggregate(resultType->kind) &&
+           xl6IrCAbiIsAggregate(resultType->cAbi) &&
            resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
            resultType->typeValueId != 0 && resultType->cName[0] != '\0' &&
            layout != NULL && layout->type == instruction->type;

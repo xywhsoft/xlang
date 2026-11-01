@@ -92,8 +92,14 @@ typedef enum XL6_AstKind {
     XL6_AST_THROW,
     XL6_AST_ASSERT,
     XL6_AST_BREAK,
-    XL6_AST_CONTINUE
+    XL6_AST_CONTINUE,
+    XL6_AST_C_RECORD
 } XL6_AstKind;
+
+static inline int xl6AstKindIsAggregate(XL6_AstKind kind)
+{
+    return kind == XL6_AST_UNION || kind == XL6_AST_C_RECORD;
+}
 
 #define XL6_AST_FLAG_PUBLIC   0x00000001u
 #define XL6_AST_FLAG_PRIVATE  0x00000002u

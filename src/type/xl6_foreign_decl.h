@@ -23,6 +23,34 @@ static inline int xl6ForeignIdentifier(const char* text)
     return 1;
 }
 
+/* A typedef naming a pointer, or a bounded ordinary C pointer declarator.
+ * No parentheses, arrays, preprocessor tokens or arbitrary C expressions.
+ * Pointee qualifications remain part of the exact physical call signature. */
+static inline int xl6ForeignPointerSpelling(const char* text)
+{
+    char identifier[64];
+    const char* p = text;
+    size_t size = 0, pointers = 0;
+    if (xl6ForeignIdentifier(text)) return 1;
+    if (!p) return 0;
+    if (!strncmp(p, "const ", 6)) p += 6;
+    if (!strncmp(p, "struct ", 7)) p += 7;
+    else if (!strncmp(p, "union ", 6)) p += 6;
+    while (*p && *p != ' ' && *p != '*') {
+        if (size + 1 >= sizeof(identifier)) return 0;
+        identifier[size++] = *p++;
+    }
+    identifier[size] = 0;
+    if (!xl6ForeignIdentifier(identifier)) return 0;
+    while (*p == ' ') ++p;
+    while (*p == '*') {
+        if (++pointers > 8) return 0;
+        ++p;
+        while (*p == ' ') ++p;
+    }
+    return pointers && !*p;
+}
+
 static inline int xl6ForeignQuotedText(const XL6_AstNode* node,
     char* output, size_t capacity)
 {
@@ -66,7 +94,7 @@ static inline int xl6ForeignClassRead(const XL6_AstNode* node,
         declaration->kind != XL6_AST_FIELD_ATTR || !declaration->text ||
         strcmp(declaration->text, "c_type") || declaration->childCount < 1 ||
         !xl6ForeignQuotedText(declaration->children[0], result.cName, sizeof(result.cName)) ||
-        !xl6ForeignIdentifier(result.cName)) return -1;
+        !xl6ForeignPointerSpelling(result.cName)) return -1;
     for (size_t i = 1; i < declaration->childCount; ++i) {
         const XL6_AstNode* attr = declaration->children[i];
         char value[256];
@@ -85,6 +113,30 @@ static inline int xl6ForeignClassRead(const XL6_AstNode* node,
         if (error) *error = "external class requires @header(\"...\") and @lifetime(\"caller\")";
         return -1;
     }
+    if (output) *output = result;
+    return 1;
+}
+
+/* C records are trivial values. Their field layout belongs to the named C
+ * declaration, and is checked against the ordered language field schema. */
+static inline int xl6ForeignRecordRead(const XL6_AstNode* node,
+    XL6_ForeignClassDecl* output, const char** error)
+{
+    XL6_ForeignClassDecl result = {0};
+    const XL6_AstNode* declaration;
+    if (!node || node->kind != XL6_AST_C_RECORD) return 0;
+    if (error) *error = "C record requires a C type identifier and one @header(\"...\")";
+    if (!(node->flags & XL6_AST_FLAG_EXTERN) || node->childCount != 2 ||
+        !(declaration = node->children[1]) ||
+        declaration->kind != XL6_AST_FIELD_ATTR || !declaration->text ||
+        strcmp(declaration->text, "c_type") || declaration->childCount != 2 ||
+        !xl6ForeignQuotedText(declaration->children[0], result.cName, sizeof(result.cName)) ||
+        !xl6ForeignIdentifier(result.cName)) return -1;
+    const XL6_AstNode* header = declaration->children[1];
+    if (!header || header->kind != XL6_AST_FIELD_ATTR || !header->text ||
+        strcmp(header->text, "header") || header->childCount != 1 ||
+        !xl6ForeignQuotedText(header->children[0], result.header, sizeof(result.header)) ||
+        !xl6ForeignHeaderName(result.header)) return -1;
     if (output) *output = result;
     return 1;
 }

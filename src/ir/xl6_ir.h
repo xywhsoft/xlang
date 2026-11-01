@@ -63,8 +63,14 @@ typedef enum XL6_IrTypeKind {
     XL6_IR_TYPE_STORAGE_REF,
     /* Owned data snapshot for exactly one persistence format and logical
      * source TypeId (params[0]). Never a source-language value or alias. */
-    XL6_IR_TYPE_PERSISTENCE_WIRE
+    XL6_IR_TYPE_PERSISTENCE_WIRE,
+    XL6_IR_TYPE_C_RECORD
 } XL6_IrTypeKind;
+
+static inline int xl6IrTypeKindIsAggregate(XL6_IrTypeKind kind)
+{
+    return kind == XL6_IR_TYPE_UNION || kind == XL6_IR_TYPE_C_RECORD;
+}
 
 /* These shapes are identified by their canonical element/return TypeIds and
  * callable convention, not by a cached frontend ABI label. Every interner,
@@ -447,7 +453,7 @@ typedef enum XL6_IrCAbi {
      * lifetime ends through an explicit LoopResource destroy edge. */
     XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR,
     /* Compiler-owned, nominal, untagged plain union.  Its ordered field layout
-     * lives in XL6_IrUnionLayout; only verified trivial field ABIs are admitted.
+     * lives in XL6_IrAggregateLayout; only verified trivial field ABIs are admitted.
      * Appended to preserve every established CAbi numeric identity. */
     XL6_IR_C_ABI_UNION,
     /* Erased physical pointer used only by XL6_IR_TYPE_STORAGE_REF.  The
@@ -481,8 +487,14 @@ typedef enum XL6_IrCAbi {
      * closed resident profile fixes copy/drop/equality and outcome contracts. */
     XL6_IR_C_ABI_NATIVE_VALUE,
     XL6_IR_C_ABI_C_STRING,
-    XL6_IR_C_ABI_C_BYTES
+    XL6_IR_C_ABI_C_BYTES,
+    XL6_IR_C_ABI_C_RECORD
 } XL6_IrCAbi;
+
+static inline int xl6IrCAbiIsAggregate(XL6_IrCAbi abi)
+{
+    return abi == XL6_IR_C_ABI_UNION || abi == XL6_IR_C_ABI_C_RECORD;
+}
 
 typedef enum XL6_IrNativeValueAbi {
     XL6_IR_NATIVE_VALUE_NONE = 0,
@@ -1091,13 +1103,13 @@ typedef enum XL6_IrInstructionKind {
      * changes ownership. */
     XL6_IR_INSTR_NULLABLE_WRAP,
     XL6_IR_INSTR_NULLABLE_UNWRAP,
-    /* Plain-union values are immutable SSA aggregates. ZERO materializes the
+    /* Trivial C record/union values are immutable SSA aggregates. ZERO materializes the
      * language default, GET projects one verified field and SET returns a copy
-     * whose selected field is replaced. elementIndex is the exact module union
+     * whose selected field is replaced. elementIndex is the exact module aggregate
      * field index fixed by Typed XLIR. */
-    XL6_IR_INSTR_UNION_ZERO,
-    XL6_IR_INSTR_UNION_GET,
-    XL6_IR_INSTR_UNION_SET,
+    XL6_IR_INSTR_AGGREGATE_ZERO,
+    XL6_IR_INSTR_AGGREGATE_GET,
+    XL6_IR_INSTR_AGGREGATE_SET,
     /* Produces a compiler-owned storage-ref value for one exact targetSymbol.
      * It never reads the slot, which is essential for definite-assignment of
      * OUT arguments.  The result type's sole parameter equals storage->type. */
@@ -5970,7 +5982,7 @@ typedef struct XL6_IrStorage {
 /* A source union is an untagged, nominal, trivially-copyable value.  Typed
  * XLIR owns its ordered layout and field identity so lowering and Cgen never
  * recover either from AST children or names. */
-typedef struct XL6_IrUnionField {
+typedef struct XL6_IrAggregateField {
     XL6_IrTypeId ownerType;
     XL6_IrTypeId type;
     XL6_IrNodeId declaration;
@@ -5978,14 +5990,14 @@ typedef struct XL6_IrUnionField {
     /* Exact public C member spelling.  Cgen consumes this verified ABI fact;
      * it never substitutes pool position or reconstructs source syntax. */
     char cName[XL6_C_SYMBOL_COMPONENT_MAX + 1];
-} XL6_IrUnionField;
+} XL6_IrAggregateField;
 
-typedef struct XL6_IrUnionLayout {
+typedef struct XL6_IrAggregateLayout {
     XL6_IrTypeId type;
     XL6_IrNodeId declaration;
     size_t firstField;
     size_t fieldCount;
-} XL6_IrUnionLayout;
+} XL6_IrAggregateLayout;
 
 /* Enum layout is nominal and closed.  Numeric enums preserve one exact
  * underlying scalar ABI; tagged enums use one owned runtime xvalue object.
@@ -6822,12 +6834,12 @@ typedef struct XL6_IrModule {
     XL6_IrStorage* storages;
     size_t storageCount;
     size_t storageCapacity;
-    XL6_IrUnionLayout* unionLayouts;
-    size_t unionLayoutCount;
-    size_t unionLayoutCapacity;
-    XL6_IrUnionField* unionFields;
-    size_t unionFieldCount;
-    size_t unionFieldCapacity;
+    XL6_IrAggregateLayout* aggregateLayouts;
+    size_t aggregateLayoutCount;
+    size_t aggregateLayoutCapacity;
+    XL6_IrAggregateField* aggregateFields;
+    size_t aggregateFieldCount;
+    size_t aggregateFieldCapacity;
     XL6_IrEnumLayout* enumLayouts;
     size_t enumLayoutCount;
     size_t enumLayoutCapacity;
@@ -7417,7 +7429,7 @@ int xl6IrExternGlobalTypeSupported(
 /* Return the verified physical layout for one concrete union TypeId.  Lowering
  * and backends share this lookup so neither reconstructs a layout from source
  * names or declaration order. */
-const XL6_IrUnionLayout* xl6IrUnionLayoutGet(
+const XL6_IrAggregateLayout* xl6IrUnionLayoutGet(
     const XL6_IrModule* module, XL6_IrTypeId typeId);
 /* Resolve one concrete tagged-enum layout or one of its semantic variants.
  * Duplicate metadata is rejected instead of being selected implicitly. */
