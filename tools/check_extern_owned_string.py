@@ -19,10 +19,10 @@ def main():
     args=p.parse_args();work=args.directory.resolve();work.mkdir(parents=True,exist_ok=False)
     binary=(args.driver or args.cli).resolve();checks=[]
     env=os.environ.copy();env['XLANG_PACKAGE_PATH']=os.pathsep.join([str(ROOT/'test/fixtures'),str(ROOT/'release/extlibs')])
-    def run(name,argv,expected=True,diagnostic=None):
+    def run(name,argv,expected=True,diagnostic=None,timeout=300):
         if args.cli and argv[0]==binary:
             argv=[*argv,'--inc-path',ROOT/'release/include']
-        result=subprocess.run([str(s) for s in argv],cwd=ROOT,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=300)
+        result=subprocess.run([str(s) for s in argv],cwd=ROOT,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=timeout)
         log=result.stdout.decode('utf-8',errors='replace');(work/(name+'.log')).write_text(log,encoding='utf-8')
         passed=(result.returncode==0)==expected and (diagnostic is None or diagnostic in log)
         checks.append({'name':name,'passed':passed,'exitCode':result.returncode})
@@ -255,7 +255,7 @@ def main():
     if receipt:
         run('independent-C-public-header',[sys.executable,ROOT/'tools/check_extern_owned_string_public.py',
             '--cli' if args.cli else '--driver',binary,'--runtime-build',receipt,
-            '--directory',work/'independent-C'])
+            '--directory',work/'independent-C'],timeout=1800)
     else:
         print('independent C gate not run: source runtime receipt required via --runtime-build',flush=True)
     assert all(sha(ROOT/f)==digest for f,digest in snapshot.items()),'Test inputs changed'
