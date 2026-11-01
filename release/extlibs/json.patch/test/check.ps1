@@ -9,6 +9,7 @@ $work=Join-Path $workRoot ('run_'+[guid]::NewGuid().ToString('N'))
 $compiler=if($env:CC){$env:CC}else{'gcc'}
 $command=Get-Command $compiler -CommandType Application -ErrorAction SilentlyContinue|Select-Object -First 1
 if($command){$compiler=$command.Source}
+$python=(Get-Command python -CommandType Application -ErrorAction Stop|Select-Object -First 1).Source
 $xl=Join-Path $root 'release/xl.exe'
 $utf8=[Text.UTF8Encoding]::new($false)
 $checks=[Collections.Generic.List[object]]::new();$hashes=[ordered]@{}
@@ -22,6 +23,7 @@ function InputPaths {
         'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','test/cases/extlib_json_patch.xl',
         'release/examples/extlibs/json_patch.xl')){Join-Path $root $p}
     if(Test-Path -LiteralPath $compiler -PathType Leaf){$compiler}
+    $python
 }
 foreach($p in @(InputPaths|Sort-Object -Unique)){$hashes[$p]=(Get-FileHash -LiteralPath $p).Hash}
 function Normalize([string]$s){$s.Replace("`r`n","`n").TrimEnd("`n")}
@@ -36,6 +38,8 @@ function Run([string]$name,[string]$program,[string[]]$arguments,[int]$seconds=1
 Push-Location $root
 try {
     $null=Run 'compiler version' $compiler @('--version')
+    $cc1=Run 'compiler frontend' $compiler @('-print-prog-name=cc1')
+    $hashes[$cc1]=(Get-FileHash -LiteralPath $cc1).Hash
     $manifest=Get-Content -Raw (Join-Path $pkg 'xlang.package.json')|ConvertFrom-Json
     if(@($manifest.artifact.xrtModules).Count -ne 2){throw 'Production modules changed'}
     $modules=@($manifest.artifact.xrtModules|ForEach-Object{"-D$_"})
@@ -47,6 +51,17 @@ try {
     $null=Run 'manifest-only run' $minimal @()
     $runtime=Join-Path $work 'runtime.o'
     $null=Run 'selected XRT compile' $compiler ($flags+@('-c','release/extlibs/json.patch/test/xrt_runtime.c','-o',$runtime))
+    $semanticSource='release/extlibs/json.patch/test/semantic_oracle_cli.c'
+    $semanticScript='release/extlibs/json.patch/test/semantic_oracle.py'
+    $semantic=Join-Path $work 'semantic.exe'
+    $null=Run 'semantic oracle compile' $compiler ($flags+@($native,$semanticSource,$runtime)+$links+@('-o',$semantic))
+    $null=Run 'independent GCC semantics' $python @('-B',$semanticScript,'--cli',$semantic)
+    $null=Run 'independent TCC semantics' $python @('-B',$semanticScript,'--xl',$xl,'--source',$semanticSource)
+    if(!$SkipAot){
+        $binary=Join-Path $work 'semantic_aot.exe'
+        $null=Run 'semantic oracle build' $xl @('build',$semanticSource,'-o',$binary)
+        $null=Run 'independent AOT semantics' $python @('-B',$semanticScript,'--cli',$binary)
+    }
     $legacy=Join-Path $work 'boundaries.exe'
     $null=Run 'original C compile' $compiler ($flags+@($native,'release/extlibs/json.patch/test/test_boundaries.c',$runtime)+$links+@('-o',$legacy))
     $null=Run 'original C boundaries' $legacy @()
@@ -62,7 +77,7 @@ try {
     if((Run 'move direct C' $xl @('run',$source)) -cne $expected){throw 'Direct move differs'}
     if((Run 'move direct costs' $xl @('run',$source,'--','--costs')) -cne $costs){throw 'Direct costs differ'}
     $goldens=@{}
-    foreach($name in @('basic','workflow','relocate')){
+    foreach($name in @('basic','workflow','relocate','guarded_update')){
         $input="release/extlibs/json.patch/examples/${name}_c.c";$target=Join-Path $work ($name+'.exe')
         $null=Run "$name C compile" $compiler ($flags+@($input,$runtime)+$links+@('-o',$target))
         $output=Run "$name C" $target @()
@@ -74,6 +89,11 @@ try {
     if($goldens['release/extlibs/json.patch/examples/relocate_c.c'] -cne $golden -or
         (Run 'relocate language golden' $xl @('run',$language)) -cne $golden){throw 'Relocate golden differs'}
     $goldens[$language]=$golden
+    $guarded='release/extlibs/json.patch/examples/guarded_update.xl'
+    $guardGolden=Normalize ([IO.File]::ReadAllText((Join-Path $pkg 'examples/guarded_update.expected.txt')))
+    if($goldens['release/extlibs/json.patch/examples/guarded_update_c.c'] -cne $guardGolden -or
+        (Run 'guarded language golden' $xl @('run',$guarded)) -cne $guardGolden){throw 'Guarded update golden differs'}
+    $goldens[$guarded]=$guardGolden
     $probe=Join-Path $work 'probe.c';$null=Run 'complete cgen' $xl @('cgen',$language,'--emit',$probe)
     $text=[IO.File]::ReadAllText($probe)
     $decls=@($text -split "`r?`n"|Where-Object{$_ -match '^extern .*\bxjsonpatch_[a-z_]+\('}|Sort-Object -Unique)
@@ -85,7 +105,8 @@ try {
     $null=Run 'eight actual prototypes' $compiler ($flags+@('-fsyntax-only',$abi))
     if(!$SkipAot){
         foreach($input in @($source,$language,'release/extlibs/json.patch/examples/basic_c.c',
-            'release/extlibs/json.patch/examples/workflow_c.c','release/extlibs/json.patch/examples/relocate_c.c')){
+            'release/extlibs/json.patch/examples/workflow_c.c','release/extlibs/json.patch/examples/relocate_c.c',
+            $guarded,'release/extlibs/json.patch/examples/guarded_update_c.c')){
             $target=Join-Path $work ([guid]::NewGuid().ToString('N')+'.exe')
             $null=Run "$input build" $xl @('build',$input,'-o',$target)
             $output=Run "$input AOT" $target @()

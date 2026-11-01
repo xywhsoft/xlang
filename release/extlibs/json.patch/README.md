@@ -1,6 +1,55 @@
 # json.patch
 
-## 当前状态（2026-10-30）
+## 当前状态（2026-11-02）
+
+本轮没有确认新的生产算法错误，不修改原生实现、语言绑定或公开头。
+补上独立语义验证，避免旧参照仍用 `xrtValueEqual` 检查结果，而
+`test` 操作也依赖它，形成共同漏检。新C夹具只输出状态及完整JSON；
+Python参照不用本包编码器、补丁实现或XRT相等函数计算预期。
+
+按 [RFC 6902 test](https://www.rfc-editor.org/rfc/rfc6902.html#section-4.6)
+核对5808组根/数组/对象条件，布尔不按数字处理，数值按已表示的精确
+值比较；包括int64/uint64边界、2^53附近、正负零、次正规/最大有限
+float64、对象键顺序、Unicode不归一化及含NUL的转义路径。对象场景
+先改另一字段再test，失败时原文档和原补丁仍保持JSON语义不变。
+
+按 [RFC 7396](https://www.rfc-editor.org/rfc/rfc7396.html#section-2)
+核对2325组Merge Patch，含根类别交叉、null删除、数组整体替换、
+固定随机嵌套和本包1/31/63/64/65层对象限额。三种坏输出负对照分别
+改状态、把布尔冒作数字、把数组冒作对象，均被判据拒绝。C每个请求
+检查七项存活/非法释放/溢出计数；普通门禁只需Python标准库，不新增
+第三方包依赖。它验证本包的int64/uint64/有限float64及UTF8 JSON范围，
+不宣称任意精度数字、非JSON值图或整个RFC的全面认证。
+
+新 `examples/guarded_update.xl` / `guarded_update_c.c` 用同一六行
+golden展示1与1.0的数值条件、布尔不是0、旧版本条件拒绝、快照不变，
+以及合并补丁删除/增加字段，默认无文件或网络：
+
+```text
+release/xl.exe run release/extlibs/json.patch/examples/guarded_update.xl
+release/xl.exe run release/extlibs/json.patch/examples/guarded_update_c.c
+```
+
+Linux将 `xl.exe` 换为 `xl`。这里的test只保护单次快照转换，不是对
+外部共享状态的跨线程/数据库compare-and-swap；调用方仍负责同步。
+样例从标准JSON配置读取值，不替代原语言字面量的必过正例，不新增
+私有容器工厂、序列化回退或其他主线兼容层。
+
+两平台默认各52阶段，前51满足要求，八条前置独立程序运行通过，
+最后原中央语言字典仍在M1的has断言失败；默认仍退出1。最小独立源
+两平台check/build为0、JIT/AOT为1，后续原语言边界未冒称已运行。
+Windows59输入工具指纹不变；Linux原生54文件/四工具与boot保持，C
+含ASan/UBSan/泄漏，全部8133语料另通过float-cast-overflow检查。
+旧C边界、move的32结果/16OOM、12成本行、八实际原型均保留；可选
+旧420项第三方参照本轮未重跑，不与新8133项混算。
+
+JSON_WRITE仅加入测试宿主以输出完整结果，生产manifest仍只声明
+VALUE_GRAPH与UNICODE两个直接模块；API/ABI和所有权不变，未修改
+生成器或产品依赖，不作体积/性能收益承诺。完整结果见仓库
+`docs/reports/extlib-json-patch-semantics-20261102.json`。包仍为M，IDE
+资料发布绑定独立验收，不用C/JSON配置成功替代字面量投影闭环。
+
+## 前次状态（2026-10-30）
 
 本轮优化内部副本的 `move`：文档仍先完整复制，但待移动值只保留引用、
 移除源再插入目标，不重复调用图复制；`copy` 继续复制子树。公开 API/ABI、

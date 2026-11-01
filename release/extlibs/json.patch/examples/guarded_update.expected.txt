@@ -1,0 +1,6 @@
+updated revision: 2
+original revision: 1
+boolean guard: true
+stale guard: true
+merge delete: true
+merge burst: 4

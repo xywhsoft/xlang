@@ -1,0 +1,2649 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-02T04:32:35.4486057+08:00",
+  "package": "json.patch",
+  "maturity": "M",
+  "status": "independent-json-semantics-verified-original-literal-projection-and-release-binding-open",
+  "sourceParent": "1d1cc9bbaf8cdc012d66e86553ea18fc146f8dcd",
+  "objectiveScope": {
+    "ordinaryPackages": 100,
+    "goalComplete": false,
+    "states": {
+      "M": 56,
+      "R": 10,
+      "G": 30,
+      "X": 4
+    }
+  },
+  "changes": {
+    "gap": "Old independent patch runner still compared final values using xrtValueEqual, also used by test itself",
+    "noPrivateContainerFactoryOrProjectionFallback": true,
+    "productionModules": [
+      "XRT_MODULE_VALUE_GRAPH",
+      "XRT_MODULE_UNICODE"
+    ],
+    "compilerRuntimeXrtTccIdeNotModified": true,
+    "publicApiAbiOwnershipAndBoundsUnchanged": true,
+    "nativeBindingPublicHeaderUnchanged": true,
+    "productSizeOrSpeedClaim": false,
+    "testOnlyAdditionalModule": "XRT_MODULE_JSON_WRITE for independent result output",
+    "kind": "Test quality and examples; no newly confirmed production algorithm defect"
+  },
+  "production": [
+    {
+      "current": {
+        "path": "release/extlibs/json.patch/json_patch_native.c",
+        "bytes": 27314,
+        "sha256": "873efe4db02fe89ecbb6ca06cc729b52904a262c930f320e480135005ff6a933"
+      },
+      "gitBlob": "853e059858193d380d28a531a478469d34f91602",
+      "worktreeDiffEmpty": true
+    },
+    {
+      "current": {
+        "path": "release/extlibs/json.patch/include/json_patch.h",
+        "bytes": 1798,
+        "sha256": "899e3552face4d3c997bf159400f4297e3c1796a61ce2e5cc38afb2ff33ba198"
+      },
+      "gitBlob": "2bccc8f20f6fc81b9557b560f137909ab4f759fd",
+      "worktreeDiffEmpty": true
+    },
+    {
+      "current": {
+        "path": "release/extlibs/json.patch/src/json_patch.xl",
+        "bytes": 2727,
+        "sha256": "cde957651135d13c926876b3d3fdda960b64182c62debe1c7bd762dc3f921195"
+      },
+      "gitBlob": "1fe9e09e3dffae3c7ee0f4d64c5203134c3a8ec9",
+      "worktreeDiffEmpty": true
+    }
+  ],
+  "standards": {
+    "merge": "https://www.rfc-editor.org/rfc/rfc7396.html#section-2",
+    "scope": "Declared bounded UTF8 JSON with int64/uint64/finite float64, not arbitrary precision or non-JSON XRT graphs",
+    "test": "https://www.rfc-editor.org/rfc/rfc6902.html#section-4.6"
+  },
+  "independentOracle": {
+    "containers": "Recursive same JSON categories, array order, object key order independence, no Unicode normalization, NUL/escaped path",
+    "testOnlyDependency": "Python standard library",
+    "readerWriterCrossCheckedAgainstPython": true,
+    "finalDocstringLocalization": [
+      {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "Python executable AST unchanged; only module documentation localized\r\n",
+        "stderr": "",
+        "elapsedMs": 116
+      },
+      {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "json.patch independent semantics: 5808 test + 2325 merge, 3 negative controls PASS\r\n",
+        "stderr": "",
+        "elapsedMs": 444
+      }
+    ],
+    "testCases": 5808,
+    "uniqueCasesNotMultipliedByEnginesPlatformsOrSanitizers": true,
+    "mergeDepths": [
+      1,
+      31,
+      63,
+      64,
+      65
+    ],
+    "initialFocused": [
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 6528
+        },
+        "name": "runtime"
+      },
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 564
+        },
+        "name": "oracle-compile"
+      },
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "json.patch independent semantics: 4563 test + 1905 merge, 3 negative controls PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 407
+        },
+        "name": "GCC-oracle"
+      },
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "json.patch independent semantics: 4563 test + 1905 merge, 3 negative controls PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 477
+        },
+        "name": "TCC-oracle"
+      }
+    ],
+    "extremeFocused": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "json.patch independent semantics: 5808 test + 2325 merge, 3 negative controls PASS\r\n",
+      "stderr": "",
+      "elapsedMs": 466
+    },
+    "testShapes": [
+      "root",
+      "array",
+      "object with prior mutation"
+    ],
+    "mergeCases": 2325,
+    "memoryFieldsPerCRequest": [
+      "LiveCount",
+      "LiveBytes",
+      "InvalidFreeCount",
+      "DoubleFreeCount",
+      "OverflowCount",
+      "UnderflowCount",
+      "UseAfterFreeCount"
+    ],
+    "total": 8133,
+    "runtimeDependencyAdded": false,
+    "c": {
+      "path": "release/extlibs/json.patch/test/semantic_oracle_cli.c",
+      "bytes": 2746,
+      "sha256": "5ad812f3f48d0b24982b36bb60b54cecd4cd7813e29f85abc394fe703798a901"
+    },
+    "values": 44,
+    "mergeRandom": 384,
+    "transport": "Independent Python serializes requests; C parses input and emits status/result/original document/original patch as JSON",
+    "transactionalChecks": "Object test first replaces another field; both original document and patch are compared after execution",
+    "negativeControls": [
+      "wrong status",
+      "bool as number",
+      "array as object"
+    ],
+    "seed": "0x7396",
+    "localizationExecutableAstUnchanged": true,
+    "python": {
+      "path": "release/extlibs/json.patch/test/semantic_oracle.py",
+      "bytes": 6533,
+      "sha256": "66961e78546f83354d2f04aa2b94d61de1f3081854237463420af6eef4cdb277"
+    },
+    "expandedFocused": [
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "json.patch independent semantics: 5043 test + 2070 merge, 3 negative controls PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 424
+        },
+        "name": "GCC-final-vectors"
+      },
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "updated revision: 2\noriginal revision: 1\nboolean guard: true\nstale guard: true\nmerge delete: true\nmerge burst: 4\n",
+          "stderr": "",
+          "elapsedMs": 164
+        },
+        "name": "release/extlibs/json.patch/examples/guarded_update.xl"
+      },
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "updated revision: 2\r\noriginal revision: 1\r\nboolean guard: true\r\nstale guard: true\r\nmerge delete: true\r\nmerge burst: 4\r\n",
+          "stderr": "",
+          "elapsedMs": 79
+        },
+        "name": "release/extlibs/json.patch/examples/guarded_update_c.c"
+      }
+    ],
+    "numbers": "Exact Fraction of represented int/float; bool is not a number; 2^53, int64/uint64, signed zero, min subnormal and max finite float64",
+    "checkerUsesXrtEqualOrPackageParser": false,
+    "mergeDepthCases": 5,
+    "mergeRootCrossProduct": 1936
+  },
+  "examples": {
+    "jsonConfigurationDoesNotReplaceOriginalLiteralPositiveCases": true,
+    "defaultFilesOrNetwork": false,
+    "notCrossThreadOrDatabaseCompareAndSwap": true,
+    "c": "release/extlibs/json.patch/examples/guarded_update_c.c",
+    "verifies": [
+      "1/1.0 numeric guard",
+      "bool is not zero",
+      "stale revision rejected",
+      "original snapshot remains",
+      "merge null delete and field addition"
+    ],
+    "xlang": "release/extlibs/json.patch/examples/guarded_update.xl",
+    "golden": {
+      "path": "release/extlibs/json.patch/examples/guarded_update.expected.txt",
+      "bytes": 113,
+      "sha256": "e98604c7640eabb2bde7032af8a06ffded9134f84599cff4c126da5be1cff74b"
+    }
+  },
+  "windows": {
+    "postGateChangeReason": "Final README/site and Python module docstring only; AST unchanged and current localized checker re-run against GCC fixture",
+    "rawReport": {
+      "path": "build/test/json_patch_guard/run_20892d20cbbe49ef8c7a4b120ff95fe9.json",
+      "bytes": 63096,
+      "sha256": "72724f50c36c45f6ef9215fb6c50a77f1e1c4d1fbfeafa9e31ae428cf81e4946"
+    },
+    "inputs": {
+      "C:\\Program Files\\Python312\\python.exe": "4D6F5F81A4BCA11191C4C7C6B43632694D0A4CE74E068619D8FDC161D469859A",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\json_patch.xl": "DECBAC12E99FE141AC337377809240438483EA0B63E35FAFEF7D67A9CA9A6640",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\docs\\site.html": "DF8B7F6DF08A548E362C6AE8FDDD7577AAB983E34DFAE1D0B8132260BCDF9909",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\examples\\basic.xl": "A8A2BA71F3E72FAD0FDD426C75E04553DF270FB3A6A27E561A2E82B56866C019",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\examples\\basic_c.c": "E46145F6B99191F190C39AA6E43F18DA116EA543D62B2F0DDCBFAE2E64E793D4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\examples\\guarded_update.expected.txt": "E98604C7640EABB2BDE7032AF8A06FFDED9134F84599CFF4C126DA5BE1CFF74B",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\examples\\guarded_update.xl": "2A011F34C658F3355168BCDAF09FA2078CB1552A050A318D4FF42B3053D390E8",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\examples\\guarded_update_c.c": "138610FB1BB32858FBAA25EE65ACDBD72233C877EC974B96BDD274A0682C3DCA",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\examples\\relocate.expected.txt": "82E67ECA4846A20BC5C627AC34DD6582EBE67CA22BB0EAF0503981937A88BFA8",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\examples\\relocate.xl": "9D17DE466A68CC7498363483C531622D886C96C6CDFC2CE9313268CA8D542E3E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\examples\\relocate_c.c": "417ADDA10DFEA0045942ED428E6816A68123F444AF54CB96A1A5AC292E9D8A15",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\examples\\workflow.xl": "E99F9E605C902AB3D8B3982E7525857D73C3AE38CD7C4D2767BF232AE34FCF32",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\examples\\workflow_c.c": "184554D246B5A430D6D3F036115F192C50F22E5F9F39A4D2D5158553299221AD",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\include\\json_patch.h": "899E3552FACE4D3C997BF159400F4297E3C1796A61CE2E5CC38AFB2FF33BA198",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\json_patch_native.c": "873EFE4DB02FE89ECBB6CA06CC729B52904A262C930F320E480135005FF6A933",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\README.md": "3C1A84C9A95A20946D699C65B17A8867F8431F992808153EAAAD811B67B533F1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\src\\json_patch.xl": "CDE957651135D13C926876B3D3FDDA960B64182C62DEBE1C7BD762DC3F921195",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\test\\allocations.xl": "495F48B5CFEBBB7992E765630FF4C25FFF22880B05E84B522699184F973DDBD4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\test\\aot_core.xl": "0D7428D464B7BCA229C73F76252FC5D60D96E2A2FB681DDE2B34188D4E9DF635",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\test\\boundaries.xl": "E6425C33D5703965C7DA49AE40121E5FF81406C088F16BDD7C8B6E31489312D7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\test\\check.ps1": "AE45A367290F485BCEF8BDCA6BE15E3B8DFACF4853B5769B4C7433B6FC1BB67E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\test\\check.sh": "7F91EFE9081CD2B782B595BDD814BD7AB29F5741197EEFD913E1597C6AE0E0A1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\test\\check_oracle.ps1": "39C0A3FE4DF88FE335505E9B686E95E9D593581B9484893928F8DDE77E85DC4C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\test\\manifest_probe.c": "C17ADE6CC038851B48CBA80558CEC0A3A5994607468514CC89DA3237425E1BD4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\test\\move_ownership_c.c": "A07042A6DBD6EA1E57C9E43E5954B0035173D5B7BF9A1006A32969E29D759C17",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\test\\oracle.py": "18F6B170D176C379051FE9FC9105D4FF8E898E51074BF5B97202E97B87FF094D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\test\\oracle_cases.c": "5945E1F0193B265495D3BA016B49BE90B039B0FBE70872A0A47F21D07C586F1A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\test\\semantic_oracle.py": "E4B1B81144CC514C44BCF30C65EC573BD9FC5C2D3FC596D36438D8D19213FA1C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\test\\semantic_oracle_cli.c": "5AD812F3F48D0B24982B36BB60B54CECD4CD7813E29F85ABC394FE703798A901",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\test\\test_boundaries.c": "A2AFCC643BB754D14955D9CF370EDA74A55D7E3D87B566A9FC370CDE8EE6C4A1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\test\\var_bridge_repro.xl": "27F91431C656C988113A031B5A836B0D43C886EFE7ABA735306344D118693E80",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\test\\xrt_runtime.c": "C5E896FF7BF095DD67BA4570E137714B63AF377740A5B461D28E7BD1932498A3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\xlang.package.json": "015A43A26ADCE5A5E1AAB0137FFF10B19DC0C25232FEEA2FABA8EEED9C75F65C",
+      "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+      "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+      "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+      "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+      "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+      "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+      "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+      "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+      "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+      "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_json_patch.xl": "0F31A05AC8627A9973339363B249CCFD5232EF2656F5C14983C7C91BBCBFE9FB",
+      "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+      "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012"
+    },
+    "defaultExit": 1,
+    "postGateChanges": [
+      "release/extlibs/json.patch/docs/site.html",
+      "release/extlibs/json.patch/README.md",
+      "release/extlibs/json.patch/test/semantic_oracle.py"
+    ],
+    "parent": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "[json.patch] compiler version: PASS\n[json.patch] compiler frontend: PASS\n[json.patch] public header: PASS\n[json.patch] manifest syntax: PASS\n[json.patch] manifest-only build: PASS\n[json.patch] manifest-only run: PASS\n[json.patch] selected XRT compile: PASS\n[json.patch] semantic oracle compile: PASS\n[json.patch] independent GCC semantics: PASS\n[json.patch] independent TCC semantics: PASS\n[json.patch] semantic oracle build: PASS\n[json.patch] independent AOT semantics: PASS\n[json.patch] original C compile: PASS\n[json.patch] original C boundaries: PASS\n[json.patch] optional oracle runner compile: PASS\n[json.patch] move ownership compile: PASS\n[json.patch] move ownership: PASS\n[json.patch] move allocation costs: PASS\n[json.patch] move direct C: PASS\n[json.patch] move direct costs: PASS\n[json.patch] basic C compile: PASS\n[json.patch] basic C: PASS\n[json.patch] basic direct C: PASS\n[json.patch] workflow C compile: PASS\n[json.patch] workflow C: PASS\n[json.patch] workflow direct C: PASS\n[json.patch] relocate C compile: PASS\n[json.patch] relocate C: PASS\n[json.patch] relocate direct C: PASS\n[json.patch] guarded_update C compile: PASS\n[json.patch] guarded_update C: PASS\n[json.patch] guarded_update direct C: PASS\n[json.patch] relocate language golden: PASS\n[json.patch] guarded language golden: PASS\n[json.patch] complete cgen: PASS\n[json.patch] eight actual prototypes: PASS\n[json.patch] release/extlibs/json.patch/test/move_ownership_c.c build: PASS\n[json.patch] release/extlibs/json.patch/test/move_ownership_c.c AOT: PASS\n[json.patch] move AOT costs: PASS\n[json.patch] release/extlibs/json.patch/examples/relocate.xl build: PASS\n[json.patch] release/extlibs/json.patch/examples/relocate.xl AOT: PASS\n[json.patch] release/extlibs/json.patch/examples/basic_c.c build: PASS\n[json.patch] release/extlibs/json.patch/examples/basic_c.c AOT: PASS\n[json.patch] release/extlibs/json.patch/examples/workflow_c.c build: PASS\n[json.patch] release/extlibs/json.patch/examples/workflow_c.c AOT: PASS\n[json.patch] release/extlibs/json.patch/examples/relocate_c.c build: PASS\n[json.patch] release/extlibs/json.patch/examples/relocate_c.c AOT: PASS\n[json.patch] release/extlibs/json.patch/examples/guarded_update.xl build: PASS\n[json.patch] release/extlibs/json.patch/examples/guarded_update.xl AOT: PASS\n[json.patch] release/extlibs/json.patch/examples/guarded_update_c.c build: PASS\n[json.patch] release/extlibs/json.patch/examples/guarded_update_c.c AOT: PASS\n[json.patch] report: D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9.json\n",
+      "stderr": "test/cases/extlib_json_patch.xl complete JIT: fail exit=1\r\nuncaught xlang error: AssertionError: has /name\r\nuncaught xlang error: has /name\r\n����λ�� D:\\GIT\\x-lang\\release\\extlibs\\json.patch\\test\\check.ps1:34 �ַ�: 30\r\n+ ... -ne 'pass'){throw \"${name}: $($r.status) exit=$($r.exitCode)`n$($r.st ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : OperationStopped: (test/cases/extl...or: has /name\r\n:String) [], RuntimeException\r\n    + FullyQualifiedErrorId : test/cases/extlib_json_patch.xl complete JIT: fail exit=1\r\nuncaught xlang error: AssertionError: has /name\r\nuncaught xlang error: has /name\r\n \r\n",
+      "elapsedMs": 23994
+    },
+    "inputAndToolCount": 59,
+    "minimalM1": [
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "ok\n",
+          "stderr": "",
+          "elapsedMs": 44
+        },
+        "name": "check"
+      },
+      {
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: AssertionError: AssertionError\nuncaught xlang error: AssertionError\n",
+          "elapsedMs": 137
+        },
+        "name": "jit"
+      },
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 271
+        },
+        "name": "build"
+      },
+      {
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: AssertionError: AssertionError\n",
+          "elapsedMs": 38
+        },
+        "name": "aot"
+      }
+    ],
+    "packageComplete": false,
+    "prefixPass": 51,
+    "oldLanguagePathsAfterCentralNotExecuted": true,
+    "checks": [
+      {
+        "name": "compiler version",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "--version"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "stderr": "",
+          "elapsedMs": 37
+        }
+      },
+      {
+        "name": "compiler frontend",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-print-prog-name=cc1"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe\r\n",
+          "stderr": "",
+          "elapsedMs": 25
+        }
+      },
+      {
+        "name": "public header",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/json.patch/include",
+          "-x",
+          "c",
+          "-fsyntax-only",
+          "release/extlibs/json.patch/include/json_patch.h"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 113
+        }
+      },
+      {
+        "name": "manifest syntax",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/json.patch/include",
+          "-DXRT_MODULE_VALUE_GRAPH",
+          "-DXRT_MODULE_UNICODE",
+          "-fsyntax-only",
+          "release/extlibs/json.patch/json_patch_native.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 131
+        }
+      },
+      {
+        "name": "manifest-only build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/json.patch/include",
+          "-DXRT_MODULE_VALUE_GRAPH",
+          "-DXRT_MODULE_UNICODE",
+          "-DXRT_IMPLEMENTATION",
+          "release/extlibs/json.patch/test/manifest_probe.c",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\minimal.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 5466
+        }
+      },
+      {
+        "name": "manifest-only run",
+        "program": "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\minimal.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "json.patch manifest-only: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 23
+        }
+      },
+      {
+        "name": "selected XRT compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/json.patch/include",
+          "-c",
+          "release/extlibs/json.patch/test/xrt_runtime.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\runtime.o"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 6461
+        }
+      },
+      {
+        "name": "semantic oracle compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/json.patch/include",
+          "release/extlibs/json.patch/json_patch_native.c",
+          "release/extlibs/json.patch/test/semantic_oracle_cli.c",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\semantic.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 546
+        }
+      },
+      {
+        "name": "independent GCC semantics",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "release/extlibs/json.patch/test/semantic_oracle.py",
+          "--cli",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\semantic.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "json.patch independent semantics: 5808 test + 2325 merge, 3 negative controls PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 455
+        }
+      },
+      {
+        "name": "independent TCC semantics",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "release/extlibs/json.patch/test/semantic_oracle.py",
+          "--xl",
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "--source",
+          "release/extlibs/json.patch/test/semantic_oracle_cli.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "json.patch independent semantics: 5808 test + 2325 merge, 3 negative controls PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 519
+        }
+      },
+      {
+        "name": "semantic oracle build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/json.patch/test/semantic_oracle_cli.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\semantic_aot.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 131
+        }
+      },
+      {
+        "name": "independent AOT semantics",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "release/extlibs/json.patch/test/semantic_oracle.py",
+          "--cli",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\semantic_aot.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "json.patch independent semantics: 5808 test + 2325 merge, 3 negative controls PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 743
+        }
+      },
+      {
+        "name": "original C compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/json.patch/include",
+          "release/extlibs/json.patch/json_patch_native.c",
+          "release/extlibs/json.patch/test/test_boundaries.c",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\boundaries.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 754
+        }
+      },
+      {
+        "name": "original C boundaries",
+        "program": "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\boundaries.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "json.patch boundaries: ok\r\n",
+          "stderr": "",
+          "elapsedMs": 27
+        }
+      },
+      {
+        "name": "optional oracle runner compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/json.patch/include",
+          "release/extlibs/json.patch/json_patch_native.c",
+          "release/extlibs/json.patch/test/oracle_cases.c",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\oracle.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 579
+        }
+      },
+      {
+        "name": "move ownership compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/json.patch/include",
+          "release/extlibs/json.patch/test/move_ownership_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\move.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 539
+        }
+      },
+      {
+        "name": "move ownership",
+        "program": "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\move.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "json.patch move: 32 cases, 16 OOM paths, 0 semantic failures, 0 clone-budget failures\r\n",
+          "stderr": "",
+          "elapsedMs": 46
+        }
+      },
+      {
+        "name": "move allocation costs",
+        "program": "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\move.exe",
+        "arguments": [
+          "--costs"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "0\tmove\t1\t7\r\n0\tcopy\t2\t9\r\n1\tmove\t1\t8\r\n1\tcopy\t2\t11\r\n8\tmove\t1\t8\r\n8\tcopy\t2\t11\r\n64\tmove\t1\t8\r\n64\tcopy\t2\t11\r\n512\tmove\t1\t8\r\n512\tcopy\t2\t11\r\n4096\tmove\t1\t8\r\n4096\tcopy\t2\t11\r\n",
+          "stderr": "",
+          "elapsedMs": 24
+        }
+      },
+      {
+        "name": "move direct C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/json.patch/test/move_ownership_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "json.patch move: 32 cases, 16 OOM paths, 0 semantic failures, 0 clone-budget failures\r\n",
+          "stderr": "",
+          "elapsedMs": 89
+        }
+      },
+      {
+        "name": "move direct costs",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/json.patch/test/move_ownership_c.c",
+          "--",
+          "--costs"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "0\tmove\t1\t7\r\n0\tcopy\t2\t9\r\n1\tmove\t1\t8\r\n1\tcopy\t2\t11\r\n8\tmove\t1\t8\r\n8\tcopy\t2\t11\r\n64\tmove\t1\t8\r\n64\tcopy\t2\t11\r\n512\tmove\t1\t8\r\n512\tcopy\t2\t11\r\n4096\tmove\t1\t8\r\n4096\tcopy\t2\t11\r\n",
+          "stderr": "",
+          "elapsedMs": 81
+        }
+      },
+      {
+        "name": "basic C compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/json.patch/include",
+          "release/extlibs/json.patch/examples/basic_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\basic.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 506
+        }
+      },
+      {
+        "name": "basic C",
+        "program": "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\basic.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "9\r\n2\r\n/a~1b~0c\r\n",
+          "stderr": "",
+          "elapsedMs": 46
+        }
+      },
+      {
+        "name": "basic direct C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/json.patch/examples/basic_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "9\r\n2\r\n/a~1b~0c\r\n",
+          "stderr": "",
+          "elapsedMs": 78
+        }
+      },
+      {
+        "name": "workflow C compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/json.patch/include",
+          "release/extlibs/json.patch/examples/workflow_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\workflow.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 526
+        }
+      },
+      {
+        "name": "workflow C",
+        "program": "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\workflow.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "json.patch workflow: ok\r\n",
+          "stderr": "",
+          "elapsedMs": 49
+        }
+      },
+      {
+        "name": "workflow direct C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/json.patch/examples/workflow_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "json.patch workflow: ok\r\n",
+          "stderr": "",
+          "elapsedMs": 80
+        }
+      },
+      {
+        "name": "relocate C compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/json.patch/include",
+          "release/extlibs/json.patch/examples/relocate_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\relocate.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 490
+        }
+      },
+      {
+        "name": "relocate C",
+        "program": "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\relocate.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "title=Live\r\nbackup=Ready\r\noriginal=Ready\r\natomic=true\r\ntags=2\r\n",
+          "stderr": "",
+          "elapsedMs": 26
+        }
+      },
+      {
+        "name": "relocate direct C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/json.patch/examples/relocate_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "title=Live\r\nbackup=Ready\r\noriginal=Ready\r\natomic=true\r\ntags=2\r\n",
+          "stderr": "",
+          "elapsedMs": 78
+        }
+      },
+      {
+        "name": "guarded_update C compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/json.patch/include",
+          "release/extlibs/json.patch/examples/guarded_update_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\guarded_update.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 496
+        }
+      },
+      {
+        "name": "guarded_update C",
+        "program": "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\guarded_update.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "updated revision: 2\r\noriginal revision: 1\r\nboolean guard: true\r\nstale guard: true\r\nmerge delete: true\r\nmerge burst: 4\r\n",
+          "stderr": "",
+          "elapsedMs": 47
+        }
+      },
+      {
+        "name": "guarded_update direct C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/json.patch/examples/guarded_update_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "updated revision: 2\r\noriginal revision: 1\r\nboolean guard: true\r\nstale guard: true\r\nmerge delete: true\r\nmerge burst: 4\r\n",
+          "stderr": "",
+          "elapsedMs": 82
+        }
+      },
+      {
+        "name": "relocate language golden",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/json.patch/examples/relocate.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "title=Live\nbackup=Ready\noriginal=Ready\natomic=true\ntags=2\n",
+          "stderr": "",
+          "elapsedMs": 178
+        }
+      },
+      {
+        "name": "guarded language golden",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/json.patch/examples/guarded_update.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "updated revision: 2\noriginal revision: 1\nboolean guard: true\nstale guard: true\nmerge delete: true\nmerge burst: 4\n",
+          "stderr": "",
+          "elapsedMs": 178
+        }
+      },
+      {
+        "name": "complete cgen",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "release/extlibs/json.patch/examples/relocate.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\probe.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 59
+        }
+      },
+      {
+        "name": "eight actual prototypes",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/json.patch/include",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\abi.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 119
+        }
+      },
+      {
+        "name": "release/extlibs/json.patch/test/move_ownership_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/json.patch/test/move_ownership_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\aaa16538514a4be0813a9c8aed251c36.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 131
+        }
+      },
+      {
+        "name": "release/extlibs/json.patch/test/move_ownership_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\aaa16538514a4be0813a9c8aed251c36.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "json.patch move: 32 cases, 16 OOM paths, 0 semantic failures, 0 clone-budget failures\r\n",
+          "stderr": "",
+          "elapsedMs": 40
+        }
+      },
+      {
+        "name": "move AOT costs",
+        "program": "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\aaa16538514a4be0813a9c8aed251c36.exe",
+        "arguments": [
+          "--costs"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "0\tmove\t1\t7\r\n0\tcopy\t2\t9\r\n1\tmove\t1\t8\r\n1\tcopy\t2\t11\r\n8\tmove\t1\t8\r\n8\tcopy\t2\t11\r\n64\tmove\t1\t8\r\n64\tcopy\t2\t11\r\n512\tmove\t1\t8\r\n512\tcopy\t2\t11\r\n4096\tmove\t1\t8\r\n4096\tcopy\t2\t11\r\n",
+          "stderr": "",
+          "elapsedMs": 42
+        }
+      },
+      {
+        "name": "release/extlibs/json.patch/examples/relocate.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/json.patch/examples/relocate.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\770d85de3879431eaa41057a1ee4050a.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 318
+        }
+      },
+      {
+        "name": "release/extlibs/json.patch/examples/relocate.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\770d85de3879431eaa41057a1ee4050a.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "title=Live\nbackup=Ready\noriginal=Ready\natomic=true\ntags=2\n",
+          "stderr": "",
+          "elapsedMs": 43
+        }
+      },
+      {
+        "name": "release/extlibs/json.patch/examples/basic_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/json.patch/examples/basic_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\0dec36084bab42dea4e6f3f953bec425.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 130
+        }
+      },
+      {
+        "name": "release/extlibs/json.patch/examples/basic_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\0dec36084bab42dea4e6f3f953bec425.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "9\r\n2\r\n/a~1b~0c\r\n",
+          "stderr": "",
+          "elapsedMs": 35
+        }
+      },
+      {
+        "name": "release/extlibs/json.patch/examples/workflow_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/json.patch/examples/workflow_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\4a1d6b8aef4b45729468901b12114d17.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 129
+        }
+      },
+      {
+        "name": "release/extlibs/json.patch/examples/workflow_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\4a1d6b8aef4b45729468901b12114d17.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "json.patch workflow: ok\r\n",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "name": "release/extlibs/json.patch/examples/relocate_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/json.patch/examples/relocate_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\e9b149cd93c141ee92cb1f7da766a74d.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 131
+        }
+      },
+      {
+        "name": "release/extlibs/json.patch/examples/relocate_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\e9b149cd93c141ee92cb1f7da766a74d.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "title=Live\r\nbackup=Ready\r\noriginal=Ready\r\natomic=true\r\ntags=2\r\n",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "name": "release/extlibs/json.patch/examples/guarded_update.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/json.patch/examples/guarded_update.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\ff5754376e184ef28d973da6dc88f0e1.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 337
+        }
+      },
+      {
+        "name": "release/extlibs/json.patch/examples/guarded_update.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\ff5754376e184ef28d973da6dc88f0e1.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "updated revision: 2\noriginal revision: 1\nboolean guard: true\nstale guard: true\nmerge delete: true\nmerge burst: 4\n",
+          "stderr": "",
+          "elapsedMs": 40
+        }
+      },
+      {
+        "name": "release/extlibs/json.patch/examples/guarded_update_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/json.patch/examples/guarded_update_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\09e02018336f4ebd8b3c5be92fa2252b.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 145
+        }
+      },
+      {
+        "name": "release/extlibs/json.patch/examples/guarded_update_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\json_patch_guard\\run_20892d20cbbe49ef8c7a4b120ff95fe9\\09e02018336f4ebd8b3c5be92fa2252b.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "updated revision: 2\r\noriginal revision: 1\r\nboolean guard: true\r\nstale guard: true\r\nmerge delete: true\r\nmerge burst: 4\r\n",
+          "stderr": "",
+          "elapsedMs": 30
+        }
+      },
+      {
+        "name": "test/cases/extlib_json_patch.xl complete JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "test/cases/extlib_json_patch.xl"
+        ],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: AssertionError: has /name\nuncaught xlang error: has /name\n",
+          "elapsedMs": 1553
+        }
+      }
+    ],
+    "failed": [
+      {
+        "name": "test/cases/extlib_json_patch.xl complete JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "test/cases/extlib_json_patch.xl"
+        ],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: AssertionError: has /name\nuncaught xlang error: has /name\n",
+          "elapsedMs": 1553
+        }
+      }
+    ],
+    "changedDuringGate": [],
+    "checkCount": 52,
+    "prefixAotPass": 8,
+    "outcome": "failed"
+  },
+  "linux": {
+    "sourceManifestBefore": [
+      "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h",
+      "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h",
+      "decbac12e99fe141ac337377809240438483ea0b63e35fafef7d67a9ca9a6640  ./release/examples/extlibs/json_patch.xl",
+      "3c1a84c9a95a20946d699c65b17a8867f8431f992808153eaaad811b67b533f1  ./release/extlibs/json.patch/README.md",
+      "df8b7f6df08a548e362c6ae8fddd7577aab983e34dfae1d0b8132260bcdf9909  ./release/extlibs/json.patch/docs/site.html",
+      "a8a2ba71f3e72fad0fdd426c75e04553df270fb3a6a27e561a2e82b56866c019  ./release/extlibs/json.patch/examples/basic.xl",
+      "e46145f6b99191f190c39aa6e43f18da116ea543d62b2f0ddcbfae2e64e793d4  ./release/extlibs/json.patch/examples/basic_c.c",
+      "e98604c7640eabb2bde7032af8a06ffded9134f84599cff4c126da5be1cff74b  ./release/extlibs/json.patch/examples/guarded_update.expected.txt",
+      "2a011f34c658f3355168bcdaf09fa2078cb1552a050a318d4ff42b3053d390e8  ./release/extlibs/json.patch/examples/guarded_update.xl",
+      "138610fb1bb32858fbaa25ee65acdbd72233c877ec974b96bdd274a0682c3dca  ./release/extlibs/json.patch/examples/guarded_update_c.c",
+      "82e67eca4846a20bc5c627ac34dd6582ebe67ca22bb0eaf0503981937a88bfa8  ./release/extlibs/json.patch/examples/relocate.expected.txt",
+      "9d17de466a68cc7498363483c531622d886c96c6cdfc2ce9313268ca8d542e3e  ./release/extlibs/json.patch/examples/relocate.xl",
+      "417adda10dfea0045942ed428e6816a68123f444af54cb96a1a5ac292e9d8a15  ./release/extlibs/json.patch/examples/relocate_c.c",
+      "e99f9e605c902ab3d8b3982e7525857d73c3ae38cd7c4d2767bf232ae34fcf32  ./release/extlibs/json.patch/examples/workflow.xl",
+      "184554d246b5a430d6d3f036115f192c50f22e5f9f39a4d2d5158553299221ad  ./release/extlibs/json.patch/examples/workflow_c.c",
+      "899e3552face4d3c997bf159400f4297e3c1796a61ce2e5cc38afb2ff33ba198  ./release/extlibs/json.patch/include/json_patch.h",
+      "873efe4db02fe89ecbb6ca06cc729b52904a262c930f320e480135005ff6a933  ./release/extlibs/json.patch/json_patch_native.c",
+      "cde957651135d13c926876b3d3fdda960b64182c62debe1c7bd762dc3f921195  ./release/extlibs/json.patch/src/json_patch.xl",
+      "495f48b5cfebbb7992e765630ff4c25fff22880b05e84b522699184f973ddbd4  ./release/extlibs/json.patch/test/allocations.xl",
+      "0d7428d464b7bca229c73f76252fc5d60d96e2a2fb681dde2b34188d4e9df635  ./release/extlibs/json.patch/test/aot_core.xl",
+      "e6425c33d5703965c7da49ae40121e5ff81406c088f16bdd7c8b6e31489312d7  ./release/extlibs/json.patch/test/boundaries.xl",
+      "ae45a367290f485bcef8bdca6be15e3b8dfacf4853b5769b4c7433b6fc1bb67e  ./release/extlibs/json.patch/test/check.ps1",
+      "7f91efe9081cd2b782b595bdd814bd7ab29f5741197eefd913e1597c6ae0e0a1  ./release/extlibs/json.patch/test/check.sh",
+      "39c0a3fe4df88fe335505e9b686e95e9d593581b9484893928f8dde77e85dc4c  ./release/extlibs/json.patch/test/check_oracle.ps1",
+      "c17ade6cc038851b48cba80558cec0a3a5994607468514cc89da3237425e1bd4  ./release/extlibs/json.patch/test/manifest_probe.c",
+      "a07042a6dbd6ea1e57c9e43e5954b0035173d5b7bf9a1006a32969e29d759c17  ./release/extlibs/json.patch/test/move_ownership_c.c",
+      "18f6b170d176c379051fe9fc9105d4ff8e898e51074bf5b97202e97b87ff094d  ./release/extlibs/json.patch/test/oracle.py",
+      "5945e1f0193b265495d3ba016b49be90b039b0fbe70872a0a47f21d07c586f1a  ./release/extlibs/json.patch/test/oracle_cases.c",
+      "e4b1b81144cc514c44bcf30c65ec573bd9fc5c2d3fc596d36438d8d19213fa1c  ./release/extlibs/json.patch/test/semantic_oracle.py",
+      "5ad812f3f48d0b24982b36bb60b54cecd4cd7813e29f85abc394fe703798a901  ./release/extlibs/json.patch/test/semantic_oracle_cli.c",
+      "a2afcc643bb754d14955d9cf370eda74a55d7e3d87b566a9fc370cde8ee6c4a1  ./release/extlibs/json.patch/test/test_boundaries.c",
+      "27f91431c656c988113a031b5a836b0d43c886efe7aba735306344d118693e80  ./release/extlibs/json.patch/test/var_bridge_repro.xl",
+      "c5e896ff7bf095dd67ba4570e137714b63af377740a5b461d28e7bd1932498a3  ./release/extlibs/json.patch/test/xrt_runtime.c",
+      "015a43a26adce5a5e1aab0137fff10b19dc0c25232feea2faba8eeed9c75f65c  ./release/extlibs/json.patch/xlang.package.json",
+      "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md",
+      "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h",
+      "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h",
+      "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h",
+      "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h",
+      "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h",
+      "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h",
+      "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h",
+      "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h",
+      "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h",
+      "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h",
+      "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h",
+      "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h",
+      "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h",
+      "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h",
+      "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h",
+      "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so",
+      "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so",
+      "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl",
+      "0f31a05ac8627a9973339363b249ccfd5232ef2656f5c14983c7c91bbcbfe9fb  ./test/cases/extlib_json_patch.xl"
+    ],
+    "prefixAotPass": 8,
+    "rawDefaultExit": 1,
+    "toolsBefore": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc\n30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1\n52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41  /usr/bin/python3\n3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash\n",
+    "snapshot": "/var/tmp/xlang-json-patch-semantics-dHL3Tpgj",
+    "nativeFilesystem": true,
+    "toolsAfter": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc\n30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1\n52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41  /usr/bin/python3\n3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash\n",
+    "parent": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "JSON Patch gate=1 float-runtime=0 compile=0 oracle=0 M1=0/1/0/1 source-change=0 tools-change=0 snapshot=/var/tmp/xlang-json-patch-semantics-dHL3Tpgj\n3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]\njson.patch manifest-only: PASS\njson.patch independent semantics: 5808 test + 2325 merge, 3 negative controls PASS\njson.patch independent semantics: 5808 test + 2325 merge, 3 negative controls PASS\njson.patch independent semantics: 5808 test + 2325 merge, 3 negative controls PASS\njson.patch boundaries: ok\n[json.patch] report: /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI.report.txt\nuncaught xlang error: AssertionError: has /name\nuncaught xlang error: has /name\n[json.patch] FAIL exit=1 artifacts=/var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI\njson.patch independent semantics: 5808 test + 2325 merge, 3 negative controls PASS\n",
+      "stderr": "",
+      "elapsedMs": 36122
+    },
+    "minimalM1": {
+      "check": 0,
+      "aot": 1,
+      "aotStderr": "uncaught xlang error: AssertionError: AssertionError\n",
+      "jitStderr": "uncaught xlang error: AssertionError: AssertionError\nuncaught xlang error: AssertionError\n",
+      "build": 0,
+      "jit": 1
+    },
+    "stderr": "uncaught xlang error: AssertionError: has /name\nuncaught xlang error: has /name\n[json.patch] FAIL exit=1 artifacts=/var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI\n",
+    "fullGateLog": "\n$ timeout 10s gcc --version\nexit=0\ngcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n\n$ timeout 10s python3 -c import\\ json\\,sys\\;\\ p=json.load\\(open\\(\\\"release/extlibs/json.patch/xlang.package.json\\\"\\)\\)\\;\\ assert\\ sorted\\(p\\[\\\"artifact\\\"\\]\\[\\\"xrtModules\\\"\\]\\)\\ ==\\ \\[\\\"XRT_MODULE_UNICODE\\\"\\,\\\"XRT_MODULE_VALUE_GRAPH\\\"\\]\\;\\ print\\(sys.version\\)\nexit=0\n3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/json.patch/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -x c -fsyntax-only release/extlibs/json.patch/include/json_patch.h\nexit=0\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/json.patch/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DXRT_MODULE_VALUE_GRAPH -DXRT_MODULE_UNICODE -fsyntax-only release/extlibs/json.patch/json_patch_native.c\nexit=0\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/json.patch/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DXRT_MODULE_VALUE_GRAPH -DXRT_MODULE_UNICODE -DXRT_IMPLEMENTATION release/extlibs/json.patch/test/manifest_probe.c -no-pie -lm -ldl -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/minimal\nexit=0\n\n$ timeout 120s /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/minimal\nexit=0\njson.patch manifest-only: PASS\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/json.patch/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/json.patch/test/xrt_runtime.c -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/runtime.o\nexit=0\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/json.patch/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/json.patch/json_patch_native.c release/extlibs/json.patch/test/semantic_oracle_cli.c /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/semantic\nexit=0\n\n$ timeout 150s python3 -B release/extlibs/json.patch/test/semantic_oracle.py --cli /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/semantic\nexit=0\njson.patch independent semantics: 5808 test + 2325 merge, 3 negative controls PASS\n\n$ timeout 150s python3 -B release/extlibs/json.patch/test/semantic_oracle.py --xl ./release/xl --source release/extlibs/json.patch/test/semantic_oracle_cli.c\nexit=0\njson.patch independent semantics: 5808 test + 2325 merge, 3 negative controls PASS\n\n$ timeout 120s ./release/xl build release/extlibs/json.patch/test/semantic_oracle_cli.c -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/semantic-aot\nexit=0\n\n$ timeout 150s python3 -B release/extlibs/json.patch/test/semantic_oracle.py --cli /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/semantic-aot\nexit=0\njson.patch independent semantics: 5808 test + 2325 merge, 3 negative controls PASS\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/json.patch/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/json.patch/json_patch_native.c release/extlibs/json.patch/test/test_boundaries.c /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/boundaries\nexit=0\n\n$ timeout 120s /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/boundaries\nexit=0\njson.patch boundaries: ok\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/json.patch/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/json.patch/json_patch_native.c release/extlibs/json.patch/test/oracle_cases.c /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/oracle\nexit=0\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/json.patch/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/json.patch/test/move_ownership_c.c /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/move\nexit=0\n\n$ timeout 120s /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/move\nexit=0\njson.patch move: 32 cases, 16 OOM paths, 0 semantic failures, 0 clone-budget failures\n\n$ timeout 120s /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/move --costs\nexit=0\n0\tmove\t1\t7\n0\tcopy\t2\t9\n1\tmove\t1\t8\n1\tcopy\t2\t11\n8\tmove\t1\t8\n8\tcopy\t2\t11\n64\tmove\t1\t8\n64\tcopy\t2\t11\n512\tmove\t1\t8\n512\tcopy\t2\t11\n4096\tmove\t1\t8\n4096\tcopy\t2\t11\n\n$ timeout 120s ./release/xl run release/extlibs/json.patch/test/move_ownership_c.c\nexit=0\njson.patch move: 32 cases, 16 OOM paths, 0 semantic failures, 0 clone-budget failures\n\n$ timeout 120s ./release/xl run release/extlibs/json.patch/test/move_ownership_c.c -- --costs\nexit=0\n0\tmove\t1\t7\n0\tcopy\t2\t9\n1\tmove\t1\t8\n1\tcopy\t2\t11\n8\tmove\t1\t8\n8\tcopy\t2\t11\n64\tmove\t1\t8\n64\tcopy\t2\t11\n512\tmove\t1\t8\n512\tcopy\t2\t11\n4096\tmove\t1\t8\n4096\tcopy\t2\t11\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/json.patch/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/json.patch/examples/basic_c.c /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/basic\nexit=0\n\n$ timeout 90s /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/basic\nexit=0\n9\n2\n/a~1b~0c\n\n$ timeout 90s ./release/xl run release/extlibs/json.patch/examples/basic_c.c\nexit=0\n9\n2\n/a~1b~0c\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/json.patch/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/json.patch/examples/workflow_c.c /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/workflow\nexit=0\n\n$ timeout 90s /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/workflow\nexit=0\njson.patch workflow: ok\n\n$ timeout 90s ./release/xl run release/extlibs/json.patch/examples/workflow_c.c\nexit=0\njson.patch workflow: ok\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/json.patch/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/json.patch/examples/relocate_c.c /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/relocate\nexit=0\n\n$ timeout 90s /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/relocate\nexit=0\ntitle=Live\nbackup=Ready\noriginal=Ready\natomic=true\ntags=2\n\n$ timeout 90s ./release/xl run release/extlibs/json.patch/examples/relocate_c.c\nexit=0\ntitle=Live\nbackup=Ready\noriginal=Ready\natomic=true\ntags=2\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/json.patch/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/json.patch/examples/guarded_update_c.c /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/guarded_update\nexit=0\n\n$ timeout 90s /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/guarded_update\nexit=0\nupdated revision: 2\noriginal revision: 1\nboolean guard: true\nstale guard: true\nmerge delete: true\nmerge burst: 4\n\n$ timeout 90s ./release/xl run release/extlibs/json.patch/examples/guarded_update_c.c\nexit=0\nupdated revision: 2\noriginal revision: 1\nboolean guard: true\nstale guard: true\nmerge delete: true\nmerge burst: 4\n\n$ timeout 90s ./release/xl run release/extlibs/json.patch/examples/relocate.xl\nexit=0\ntitle=Live\nbackup=Ready\noriginal=Ready\natomic=true\ntags=2\n\n$ timeout 90s ./release/xl run release/extlibs/json.patch/examples/guarded_update.xl\nexit=0\nupdated revision: 2\noriginal revision: 1\nboolean guard: true\nstale guard: true\nmerge delete: true\nmerge burst: 4\n\n$ timeout 90s ./release/xl cgen release/extlibs/json.patch/examples/relocate.xl --emit /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/probe.c\nexit=0\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/json.patch/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -fsyntax-only /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/abi.c\nexit=0\n\n$ timeout 120s ./release/xl build release/extlibs/json.patch/test/move_ownership_c.c -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/aot-1\nexit=0\n\n$ timeout 90s /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/aot-1\nexit=0\njson.patch move: 32 cases, 16 OOM paths, 0 semantic failures, 0 clone-budget failures\n\n$ timeout 120s /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/aot-1 --costs\nexit=0\n0\tmove\t1\t7\n0\tcopy\t2\t9\n1\tmove\t1\t8\n1\tcopy\t2\t11\n8\tmove\t1\t8\n8\tcopy\t2\t11\n64\tmove\t1\t8\n64\tcopy\t2\t11\n512\tmove\t1\t8\n512\tcopy\t2\t11\n4096\tmove\t1\t8\n4096\tcopy\t2\t11\n\n$ timeout 120s ./release/xl build release/extlibs/json.patch/examples/relocate.xl -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/aot-2\nexit=0\n\n$ timeout 90s /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/aot-2\nexit=0\ntitle=Live\nbackup=Ready\noriginal=Ready\natomic=true\ntags=2\n\n$ timeout 120s ./release/xl build release/extlibs/json.patch/examples/basic_c.c -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/aot-3\nexit=0\n\n$ timeout 90s /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/aot-3\nexit=0\n9\n2\n/a~1b~0c\n\n$ timeout 120s ./release/xl build release/extlibs/json.patch/examples/workflow_c.c -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/aot-4\nexit=0\n\n$ timeout 90s /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/aot-4\nexit=0\njson.patch workflow: ok\n\n$ timeout 120s ./release/xl build release/extlibs/json.patch/examples/relocate_c.c -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/aot-5\nexit=0\n\n$ timeout 90s /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/aot-5\nexit=0\ntitle=Live\nbackup=Ready\noriginal=Ready\natomic=true\ntags=2\n\n$ timeout 120s ./release/xl build release/extlibs/json.patch/examples/guarded_update.xl -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/aot-6\nexit=0\n\n$ timeout 90s /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/aot-6\nexit=0\nupdated revision: 2\noriginal revision: 1\nboolean guard: true\nstale guard: true\nmerge delete: true\nmerge burst: 4\n\n$ timeout 120s ./release/xl build release/extlibs/json.patch/examples/guarded_update_c.c -o /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/aot-7\nexit=0\n\n$ timeout 90s /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI/aot-7\nexit=0\nupdated revision: 2\noriginal revision: 1\nboolean guard: true\nstale guard: true\nmerge delete: true\nmerge burst: 4\n\n$ timeout 120s ./release/xl run test/cases/extlib_json_patch.xl\nexit=1\nuncaught xlang error: AssertionError: has /name\nuncaught xlang error: has /name\n",
+    "sourceManifestAfter": [
+      "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h",
+      "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h",
+      "decbac12e99fe141ac337377809240438483ea0b63e35fafef7d67a9ca9a6640  ./release/examples/extlibs/json_patch.xl",
+      "3c1a84c9a95a20946d699c65b17a8867f8431f992808153eaaad811b67b533f1  ./release/extlibs/json.patch/README.md",
+      "df8b7f6df08a548e362c6ae8fddd7577aab983e34dfae1d0b8132260bcdf9909  ./release/extlibs/json.patch/docs/site.html",
+      "a8a2ba71f3e72fad0fdd426c75e04553df270fb3a6a27e561a2e82b56866c019  ./release/extlibs/json.patch/examples/basic.xl",
+      "e46145f6b99191f190c39aa6e43f18da116ea543d62b2f0ddcbfae2e64e793d4  ./release/extlibs/json.patch/examples/basic_c.c",
+      "e98604c7640eabb2bde7032af8a06ffded9134f84599cff4c126da5be1cff74b  ./release/extlibs/json.patch/examples/guarded_update.expected.txt",
+      "2a011f34c658f3355168bcdaf09fa2078cb1552a050a318d4ff42b3053d390e8  ./release/extlibs/json.patch/examples/guarded_update.xl",
+      "138610fb1bb32858fbaa25ee65acdbd72233c877ec974b96bdd274a0682c3dca  ./release/extlibs/json.patch/examples/guarded_update_c.c",
+      "82e67eca4846a20bc5c627ac34dd6582ebe67ca22bb0eaf0503981937a88bfa8  ./release/extlibs/json.patch/examples/relocate.expected.txt",
+      "9d17de466a68cc7498363483c531622d886c96c6cdfc2ce9313268ca8d542e3e  ./release/extlibs/json.patch/examples/relocate.xl",
+      "417adda10dfea0045942ed428e6816a68123f444af54cb96a1a5ac292e9d8a15  ./release/extlibs/json.patch/examples/relocate_c.c",
+      "e99f9e605c902ab3d8b3982e7525857d73c3ae38cd7c4d2767bf232ae34fcf32  ./release/extlibs/json.patch/examples/workflow.xl",
+      "184554d246b5a430d6d3f036115f192c50f22e5f9f39a4d2d5158553299221ad  ./release/extlibs/json.patch/examples/workflow_c.c",
+      "899e3552face4d3c997bf159400f4297e3c1796a61ce2e5cc38afb2ff33ba198  ./release/extlibs/json.patch/include/json_patch.h",
+      "873efe4db02fe89ecbb6ca06cc729b52904a262c930f320e480135005ff6a933  ./release/extlibs/json.patch/json_patch_native.c",
+      "cde957651135d13c926876b3d3fdda960b64182c62debe1c7bd762dc3f921195  ./release/extlibs/json.patch/src/json_patch.xl",
+      "495f48b5cfebbb7992e765630ff4c25fff22880b05e84b522699184f973ddbd4  ./release/extlibs/json.patch/test/allocations.xl",
+      "0d7428d464b7bca229c73f76252fc5d60d96e2a2fb681dde2b34188d4e9df635  ./release/extlibs/json.patch/test/aot_core.xl",
+      "e6425c33d5703965c7da49ae40121e5ff81406c088f16bdd7c8b6e31489312d7  ./release/extlibs/json.patch/test/boundaries.xl",
+      "ae45a367290f485bcef8bdca6be15e3b8dfacf4853b5769b4c7433b6fc1bb67e  ./release/extlibs/json.patch/test/check.ps1",
+      "7f91efe9081cd2b782b595bdd814bd7ab29f5741197eefd913e1597c6ae0e0a1  ./release/extlibs/json.patch/test/check.sh",
+      "39c0a3fe4df88fe335505e9b686e95e9d593581b9484893928f8dde77e85dc4c  ./release/extlibs/json.patch/test/check_oracle.ps1",
+      "c17ade6cc038851b48cba80558cec0a3a5994607468514cc89da3237425e1bd4  ./release/extlibs/json.patch/test/manifest_probe.c",
+      "a07042a6dbd6ea1e57c9e43e5954b0035173d5b7bf9a1006a32969e29d759c17  ./release/extlibs/json.patch/test/move_ownership_c.c",
+      "18f6b170d176c379051fe9fc9105d4ff8e898e51074bf5b97202e97b87ff094d  ./release/extlibs/json.patch/test/oracle.py",
+      "5945e1f0193b265495d3ba016b49be90b039b0fbe70872a0a47f21d07c586f1a  ./release/extlibs/json.patch/test/oracle_cases.c",
+      "e4b1b81144cc514c44bcf30c65ec573bd9fc5c2d3fc596d36438d8d19213fa1c  ./release/extlibs/json.patch/test/semantic_oracle.py",
+      "5ad812f3f48d0b24982b36bb60b54cecd4cd7813e29f85abc394fe703798a901  ./release/extlibs/json.patch/test/semantic_oracle_cli.c",
+      "a2afcc643bb754d14955d9cf370eda74a55d7e3d87b566a9fc370cde8ee6c4a1  ./release/extlibs/json.patch/test/test_boundaries.c",
+      "27f91431c656c988113a031b5a836b0d43c886efe7aba735306344d118693e80  ./release/extlibs/json.patch/test/var_bridge_repro.xl",
+      "c5e896ff7bf095dd67ba4570e137714b63af377740a5b461d28e7bd1932498a3  ./release/extlibs/json.patch/test/xrt_runtime.c",
+      "015a43a26adce5a5e1aab0137fff10b19dc0c25232feea2faba8eeed9c75f65c  ./release/extlibs/json.patch/xlang.package.json",
+      "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md",
+      "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h",
+      "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h",
+      "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h",
+      "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h",
+      "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h",
+      "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h",
+      "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h",
+      "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h",
+      "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h",
+      "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h",
+      "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h",
+      "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h",
+      "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h",
+      "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h",
+      "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h",
+      "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so",
+      "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so",
+      "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl",
+      "0f31a05ac8627a9973339363b249ccfd5232ef2656f5c14983c7c91bbcbfe9fb  ./test/cases/extlib_json_patch.xl"
+    ],
+    "sourceFiles": 54,
+    "focusedFloatCastOverflow": {
+      "stderr": "",
+      "all8133Cases": true,
+      "compileExit": 0,
+      "stdout": "json.patch independent semantics: 5808 test + 2325 merge, 3 negative controls PASS\n",
+      "runtimeCompileExit": 0,
+      "oracleExit": 0
+    },
+    "noSanitizerClaimForTccXlang": true,
+    "wrapperPassIsClassificationNotPackageCompletion": true,
+    "phaseCount": 52,
+    "toolBinaries": 4,
+    "prefixPass": 51,
+    "defaultCSanitizers": [
+      "address",
+      "undefined",
+      "leaks"
+    ],
+    "packageComplete": false,
+    "stdout": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]\njson.patch manifest-only: PASS\njson.patch independent semantics: 5808 test + 2325 merge, 3 negative controls PASS\njson.patch independent semantics: 5808 test + 2325 merge, 3 negative controls PASS\njson.patch independent semantics: 5808 test + 2325 merge, 3 negative controls PASS\njson.patch boundaries: ok\n[json.patch] report: /var/tmp/xlang-json-patch-semantics-dHL3Tpgj/tmp/xlang-json-patch-E8uDoI.report.txt\n",
+    "phaseExits": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    "sourceToolsBootUnchanged": true
+  },
+  "legacyCoverage": {
+    "moveResultReleaseCases": 32,
+    "optionalPythonJsonPatch420RerunThisPhase": false,
+    "notAddedToNewCorpusCount": true,
+    "actualGeneratedPrototypes": 8,
+    "moveAllocationRows": 12,
+    "originalCBoundariesPassed": true,
+    "moveOomPaths": 16
+  },
+  "catalog": {
+    "strictBinding": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "Catalog compiler changed: xl.dll\r\n",
+      "elapsedMs": 333
+    },
+    "freshness": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+      "stderr": "",
+      "elapsedMs": 973
+    },
+    "summary": {
+      "status": "passed",
+      "catalogSha256": "4ce06efb126c0ac8cc98c4cb69d0c723c5f7ef545e5b3b5d9d8dd42ed01d15fd",
+      "sourceIndexSha256": "edcae30247c630ddd151fe47544710c27304debb6d8a172223d2af04ab6bfbe7",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42",
+      "inputsUnchanged": true
+    },
+    "baseCompilerIdentityChanged": false,
+    "installed": false,
+    "generation": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"passed\", \"catalogSha256\": \"4ce06efb126c0ac8cc98c4cb69d0c723c5f7ef545e5b3b5d9d8dd42ed01d15fd\", \"sourceIndexSha256\": \"edcae30247c630ddd151fe47544710c27304debb6d8a172223d2af04ab6bfbe7\", \"preservedNonExtensionEntries\": 6156, \"publicPackages\": 207, \"excludedPrivate\": [\"_bzip2\", \"_expat\", \"_libzip\", \"_tomlc17\", \"_xge_native\", \"_zlib\"], \"extensionEntries\": 11442, \"addedEntries\": 0, \"removedEntries\": 0, \"documents\": 145, \"availableSources\": 593, \"extensionExporterSha256\": \"5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42\", \"inputsUnchanged\": true}\r\n",
+      "stderr": "",
+      "elapsedMs": 11623
+    }
+  },
+  "website": {
+    "deployed": false,
+    "source": {
+      "path": "release/extlibs/json.patch/docs/site.html",
+      "bytes": 7719,
+      "sha256": "967f88e6f2103ecf3e339a1259d985fc313b85d45d187d73d3ca5ded62465c02"
+    },
+    "isolatedCopy": {
+      "path": "build/test/json_patch_semantics_20261102/site/extlibs/json.patch.html",
+      "bytes": 7719,
+      "sha256": "967f88e6f2103ecf3e339a1259d985fc313b85d45d187d73d3ca5ded62465c02"
+    }
+  },
+  "deliveryAudit": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+    "stderr": "",
+    "elapsedMs": 967
+  },
+  "packageFiles": [
+    {
+      "path": "release/extlibs/json.patch/docs/site.html",
+      "bytes": 7719,
+      "sha256": "967f88e6f2103ecf3e339a1259d985fc313b85d45d187d73d3ca5ded62465c02"
+    },
+    {
+      "path": "release/extlibs/json.patch/examples/basic_c.c",
+      "bytes": 1487,
+      "sha256": "e46145f6b99191f190c39aa6e43f18da116ea543d62b2f0ddcbfae2e64e793d4"
+    },
+    {
+      "path": "release/extlibs/json.patch/examples/basic.xl",
+      "bytes": 387,
+      "sha256": "a8a2ba71f3e72fad0fdd426c75e04553df270fb3a6a27e561a2e82b56866c019"
+    },
+    {
+      "path": "release/extlibs/json.patch/examples/guarded_update_c.c",
+      "bytes": 2827,
+      "sha256": "138610fb1bb32858fbaa25ee65acdbd72233c877ec974b96bdd274a0682c3dca"
+    },
+    {
+      "path": "release/extlibs/json.patch/examples/guarded_update.expected.txt",
+      "bytes": 113,
+      "sha256": "e98604c7640eabb2bde7032af8a06ffded9134f84599cff4c126da5be1cff74b"
+    },
+    {
+      "path": "release/extlibs/json.patch/examples/guarded_update.xl",
+      "bytes": 1695,
+      "sha256": "2a011f34c658f3355168bcdaf09fa2078cb1552a050a318d4ff42b3053d390e8"
+    },
+    {
+      "path": "release/extlibs/json.patch/examples/relocate_c.c",
+      "bytes": 2314,
+      "sha256": "417adda10dfea0045942ed428e6816a68123f444af54cb96a1a5ac292e9d8a15"
+    },
+    {
+      "path": "release/extlibs/json.patch/examples/relocate.expected.txt",
+      "bytes": 58,
+      "sha256": "82e67eca4846a20bc5c627ac34dd6582ebe67ca22bb0eaf0503981937a88bfa8"
+    },
+    {
+      "path": "release/extlibs/json.patch/examples/relocate.xl",
+      "bytes": 1300,
+      "sha256": "9d17de466a68cc7498363483c531622d886c96c6cdfc2ce9313268ca8d542e3e"
+    },
+    {
+      "path": "release/extlibs/json.patch/examples/workflow_c.c",
+      "bytes": 2846,
+      "sha256": "184554d246b5a430d6d3f036115f192c50f22e5f9f39a4d2d5158553299221ad"
+    },
+    {
+      "path": "release/extlibs/json.patch/examples/workflow.xl",
+      "bytes": 1384,
+      "sha256": "e99f9e605c902ab3d8b3982e7525857d73c3ae38cd7c4d2767bf232ae34fcf32"
+    },
+    {
+      "path": "release/extlibs/json.patch/include/json_patch.h",
+      "bytes": 1798,
+      "sha256": "899e3552face4d3c997bf159400f4297e3c1796a61ce2e5cc38afb2ff33ba198"
+    },
+    {
+      "path": "release/extlibs/json.patch/json_patch_native.c",
+      "bytes": 27314,
+      "sha256": "873efe4db02fe89ecbb6ca06cc729b52904a262c930f320e480135005ff6a933"
+    },
+    {
+      "path": "release/extlibs/json.patch/README.md",
+      "bytes": 20792,
+      "sha256": "4a7fbfae2d763b3deaf18db732f96fe329b8eed12a3cb7e7886f946ed45cf26a"
+    },
+    {
+      "path": "release/extlibs/json.patch/src/json_patch.xl",
+      "bytes": 2727,
+      "sha256": "cde957651135d13c926876b3d3fdda960b64182c62debe1c7bd762dc3f921195"
+    },
+    {
+      "path": "release/extlibs/json.patch/test/allocations.xl",
+      "bytes": 1932,
+      "sha256": "495f48b5cfebbb7992e765630ff4c25fff22880b05e84b522699184f973ddbd4"
+    },
+    {
+      "path": "release/extlibs/json.patch/test/aot_core.xl",
+      "bytes": 215,
+      "sha256": "0d7428d464b7bca229c73f76252fc5d60d96e2a2fb681dde2b34188d4e9df635"
+    },
+    {
+      "path": "release/extlibs/json.patch/test/boundaries.xl",
+      "bytes": 6156,
+      "sha256": "e6425c33d5703965c7da49ae40121e5ff81406c088f16bdd7c8b6e31489312d7"
+    },
+    {
+      "path": "release/extlibs/json.patch/test/check_oracle.ps1",
+      "bytes": 1697,
+      "sha256": "39c0a3fe4df88fe335505e9b686e95e9d593581b9484893928f8dde77e85dc4c"
+    },
+    {
+      "path": "release/extlibs/json.patch/test/check.ps1",
+      "bytes": 10411,
+      "sha256": "ae45a367290f485bcef8bdca6be15e3b8dfacf4853b5769b4c7433b6fc1bb67e"
+    },
+    {
+      "path": "release/extlibs/json.patch/test/check.sh",
+      "bytes": 8128,
+      "sha256": "7f91efe9081cd2b782b595bdd814bd7ab29f5741197eefd913e1597c6ae0e0a1"
+    },
+    {
+      "path": "release/extlibs/json.patch/test/manifest_probe.c",
+      "bytes": 1205,
+      "sha256": "c17ade6cc038851b48cba80558cec0a3a5994607468514cc89da3237425e1bd4"
+    },
+    {
+      "path": "release/extlibs/json.patch/test/move_ownership_c.c",
+      "bytes": 6899,
+      "sha256": "a07042a6dbd6ea1e57c9e43e5954b0035173d5b7bf9a1006a32969e29d759c17"
+    },
+    {
+      "path": "release/extlibs/json.patch/test/oracle_cases.c",
+      "bytes": 1580,
+      "sha256": "5945e1f0193b265495d3ba016b49be90b039b0fbe70872a0a47f21d07c586f1a"
+    },
+    {
+      "path": "release/extlibs/json.patch/test/oracle.py",
+      "bytes": 3198,
+      "sha256": "18f6b170d176c379051fe9fc9105d4ff8e898e51074bf5b97202e97b87ff094d"
+    },
+    {
+      "path": "release/extlibs/json.patch/test/semantic_oracle_cli.c",
+      "bytes": 2746,
+      "sha256": "5ad812f3f48d0b24982b36bb60b54cecd4cd7813e29f85abc394fe703798a901"
+    },
+    {
+      "path": "release/extlibs/json.patch/test/semantic_oracle.py",
+      "bytes": 6533,
+      "sha256": "66961e78546f83354d2f04aa2b94d61de1f3081854237463420af6eef4cdb277"
+    },
+    {
+      "path": "release/extlibs/json.patch/test/test_boundaries.c",
+      "bytes": 24941,
+      "sha256": "a2afcc643bb754d14955d9cf370eda74a55d7e3d87b566a9fc370cde8ee6c4a1"
+    },
+    {
+      "path": "release/extlibs/json.patch/test/var_bridge_repro.xl",
+      "bytes": 143,
+      "sha256": "27f91431c656c988113a031b5a836b0d43c886efe7aba735306344d118693e80"
+    },
+    {
+      "path": "release/extlibs/json.patch/test/xrt_runtime.c",
+      "bytes": 193,
+      "sha256": "c5e896ff7bf095dd67ba4570e137714b63af377740a5b461d28e7bd1932498a3"
+    },
+    {
+      "path": "release/extlibs/json.patch/xlang.package.json",
+      "bytes": 637,
+      "sha256": "015a43a26adce5a5e1aab0137fff10b19dc0c25232feea2faba8eeed9c75f65c"
+    }
+  ],
+  "rawArtifacts": [
+    {
+      "path": "build/test/json_patch_semantics_20261102/focused.json",
+      "bytes": 877,
+      "sha256": "bfb1417e1463ce21a551c720d1d7c5d72c6e25b873a4b6c365652f891f9b11ca"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/focused-final.json",
+      "bytes": 957,
+      "sha256": "323bb87a59eb810b89ad5833f608a6064b2b46aca7fc72fd27a440ad40acb72e"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/focused-extremes.json",
+      "bytes": 183,
+      "sha256": "e8522f5d404ad79b3fa4c0229b29e89b690153137bf0d4c98a87cf2bb1f516e3"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/windows.json",
+      "bytes": 3432,
+      "sha256": "1b7ee6e2c7d8d76c43a856afe0b82bd56a8eb6b655d2b4959a311de884e0525d"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/windows-m1.json",
+      "bytes": 827,
+      "sha256": "dfa778476691abb9bf0517f72bb3f90f7120301160be6d62f05479d89ea8dc81"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-parent.json",
+      "bytes": 992,
+      "sha256": "6196c43c89bb77d5876a75142b3155509c8f32918a48de6c0540c0452427a7f7"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/run_linux.sh",
+      "bytes": 3679,
+      "sha256": "8e9b6d254f34148d201a1e3afbc0dd73fc2e79fbe51d63f0915dc0220e61c909"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/source.tar",
+      "bytes": 48687104,
+      "sha256": "3a9d9e0421bff4028b864f179c135d190662daee671af90695cfbb18f09089f5"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/check_docstring.py",
+      "bytes": 623,
+      "sha256": "fbc36f17ddbc5510f24940a6718edd0c3d974d8468e242b2201e3c76c682ccdf"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/localized-oracle.json",
+      "bytes": 389,
+      "sha256": "1adf8df14bd1309a9288adb83e26bc491370efd2f0855770d6a79731b0ed8626"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/catalog-generation.json",
+      "bytes": 722,
+      "sha256": "e910420105d1519c19cb90a3d1ba3165e43f173e04d4d451e96befe5094aa45d"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/catalog-freshness.json",
+      "bytes": 174,
+      "sha256": "f93e1fa37bdebeb3312cfdcd0d5922b1e59deff4ea811365855ee343dc8e89c1"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/catalog-binding.json",
+      "bytes": 133,
+      "sha256": "2bb2ef9422e30c0372da1eba58690ea13e64531fced3050b4f4be8ade03fcf64"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/delivery.json",
+      "bytes": 192,
+      "sha256": "6394f19b5e2cef6058fadece6b2f40b8fc55ce47a3a34b2e1bf13345e584569d"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/after.sha256",
+      "bytes": 5802,
+      "sha256": "84eff9afc5c53b838360bf32501abe7e2622b966dc2233c79f512b4f18ac7f73"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/before.sha256",
+      "bytes": 5802,
+      "sha256": "84eff9afc5c53b838360bf32501abe7e2622b966dc2233c79f512b4f18ac7f73"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/boot.after",
+      "bytes": 37,
+      "sha256": "9c4d494949f9f5ab536821a9ff8c551218e2350311bb77357709cedf624cccf8"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/boot.before",
+      "bytes": 37,
+      "sha256": "9c4d494949f9f5ab536821a9ff8c551218e2350311bb77357709cedf624cccf8"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/changes.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/float-compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/float-compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/float.exit",
+      "bytes": 6,
+      "sha256": "f456c1ffc6a33cd5dae1ca90cf499aadeabb167b9e687175a8fc62476833374c"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/float.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/float.stdout",
+      "bytes": 83,
+      "sha256": "98ae6146bc2bb47830973236fda7109d117be4806765b790ef40dcaea8ab9691"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate-location.txt",
+      "bytes": 73,
+      "sha256": "d27b9ebd78d39076920f14f2022cb7ba2c3063b23d400a62b4955623aa45c563"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate.report.txt",
+      "bytes": 12435,
+      "sha256": "20a8ac260620bf020f4815eecd42a6326823675c8f5adb44ab2f198bcd52c0c9"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/1.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/1.out",
+      "bytes": 239,
+      "sha256": "6e876a25bb7fdb71ab2914e8f1eeaa00cc61d20a36a6c2981ab7d4d7ceab42f8"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/10.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/10.out",
+      "bytes": 83,
+      "sha256": "98ae6146bc2bb47830973236fda7109d117be4806765b790ef40dcaea8ab9691"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/11.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/11.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/12.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/12.out",
+      "bytes": 83,
+      "sha256": "98ae6146bc2bb47830973236fda7109d117be4806765b790ef40dcaea8ab9691"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/13.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/13.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/14.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/14.out",
+      "bytes": 26,
+      "sha256": "bfc54199a0e4e5dd6bf3f82ccedee94eff2ad5ec5909703eadc7f0cd82460632"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/15.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/15.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/16.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/16.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/17.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/17.out",
+      "bytes": 86,
+      "sha256": "1f2050a2314f7636b84fb0b6530e754938bbf1dc03452ed7441031b9975d8cbf"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/18.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/18.out",
+      "bytes": 149,
+      "sha256": "aac5cc643f9f6ca13dc40f7938a3ab33b5b73e493262c485eeac21000053db81"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/19.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/19.out",
+      "bytes": 86,
+      "sha256": "1f2050a2314f7636b84fb0b6530e754938bbf1dc03452ed7441031b9975d8cbf"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/2.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/2.out",
+      "bytes": 50,
+      "sha256": "42e904b45bbc982918f64113eccb0f8e27836174dde26074c824c45c27c5742a"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/20.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/20.out",
+      "bytes": 149,
+      "sha256": "aac5cc643f9f6ca13dc40f7938a3ab33b5b73e493262c485eeac21000053db81"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/21.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/21.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/22.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/22.out",
+      "bytes": 13,
+      "sha256": "72f2f5c9c31e821e1b319d7f73fb3a8095ea241efcba9df1d00b6b62aef195b7"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/23.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/23.out",
+      "bytes": 13,
+      "sha256": "72f2f5c9c31e821e1b319d7f73fb3a8095ea241efcba9df1d00b6b62aef195b7"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/24.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/24.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/25.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/25.out",
+      "bytes": 24,
+      "sha256": "a1cec8730800aab64a486adbdad8b92053479075e1a815daf659c9ad72315480"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/26.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/26.out",
+      "bytes": 24,
+      "sha256": "a1cec8730800aab64a486adbdad8b92053479075e1a815daf659c9ad72315480"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/27.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/27.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/28.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/28.out",
+      "bytes": 58,
+      "sha256": "82e67eca4846a20bc5c627ac34dd6582ebe67ca22bb0eaf0503981937a88bfa8"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/29.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/29.out",
+      "bytes": 58,
+      "sha256": "82e67eca4846a20bc5c627ac34dd6582ebe67ca22bb0eaf0503981937a88bfa8"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/3.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/3.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/30.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/30.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/31.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/31.out",
+      "bytes": 113,
+      "sha256": "e98604c7640eabb2bde7032af8a06ffded9134f84599cff4c126da5be1cff74b"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/32.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/32.out",
+      "bytes": 113,
+      "sha256": "e98604c7640eabb2bde7032af8a06ffded9134f84599cff4c126da5be1cff74b"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/33.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/33.out",
+      "bytes": 58,
+      "sha256": "82e67eca4846a20bc5c627ac34dd6582ebe67ca22bb0eaf0503981937a88bfa8"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/34.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/34.out",
+      "bytes": 113,
+      "sha256": "e98604c7640eabb2bde7032af8a06ffded9134f84599cff4c126da5be1cff74b"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/35.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/35.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/36.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/36.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/37.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/37.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/38.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/38.out",
+      "bytes": 86,
+      "sha256": "1f2050a2314f7636b84fb0b6530e754938bbf1dc03452ed7441031b9975d8cbf"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/39.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/39.out",
+      "bytes": 149,
+      "sha256": "aac5cc643f9f6ca13dc40f7938a3ab33b5b73e493262c485eeac21000053db81"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/4.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/4.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/40.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/40.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/41.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/41.out",
+      "bytes": 58,
+      "sha256": "82e67eca4846a20bc5c627ac34dd6582ebe67ca22bb0eaf0503981937a88bfa8"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/42.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/42.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/43.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/43.out",
+      "bytes": 13,
+      "sha256": "72f2f5c9c31e821e1b319d7f73fb3a8095ea241efcba9df1d00b6b62aef195b7"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/44.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/44.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/45.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/45.out",
+      "bytes": 24,
+      "sha256": "a1cec8730800aab64a486adbdad8b92053479075e1a815daf659c9ad72315480"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/46.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/46.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/47.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/47.out",
+      "bytes": 58,
+      "sha256": "82e67eca4846a20bc5c627ac34dd6582ebe67ca22bb0eaf0503981937a88bfa8"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/48.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/48.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/49.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/49.out",
+      "bytes": 113,
+      "sha256": "e98604c7640eabb2bde7032af8a06ffded9134f84599cff4c126da5be1cff74b"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/5.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/5.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/50.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/50.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/51.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/51.out",
+      "bytes": 113,
+      "sha256": "e98604c7640eabb2bde7032af8a06ffded9134f84599cff4c126da5be1cff74b"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/52.err",
+      "bytes": 80,
+      "sha256": "64f186402417d661f92e9c646c9526ab8f84a6c75aebc8cb7a986066d3926cb8"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/52.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/6.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/6.out",
+      "bytes": 31,
+      "sha256": "c2df81f9e042e542d4583b0b473d7898c66821d4f0ce3056a025708e25c8fdd2"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/7.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/7.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/8.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/8.out",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/9.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/9.out",
+      "bytes": 83,
+      "sha256": "98ae6146bc2bb47830973236fda7109d117be4806765b790ef40dcaea8ab9691"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/abi.actual",
+      "bytes": 174,
+      "sha256": "31c774ed6198880f4ef35bc1a82ef94fa01515a4855b236cecb04ad48d70a526"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/abi.c",
+      "bytes": 452,
+      "sha256": "feb24fcf73291f9720f9a5da38842f17b4fd7c89b8f79c1c5d012824c83fa0a0"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/abi.decls",
+      "bytes": 428,
+      "sha256": "56550d7a5a43801573d9e0576899a56d5bb10104f7bc6137c01670021d8df838"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/abi.expected",
+      "bytes": 174,
+      "sha256": "31c774ed6198880f4ef35bc1a82ef94fa01515a4855b236cecb04ad48d70a526"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/aot-1.txt",
+      "bytes": 86,
+      "sha256": "1f2050a2314f7636b84fb0b6530e754938bbf1dc03452ed7441031b9975d8cbf"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/aot-2.txt",
+      "bytes": 58,
+      "sha256": "82e67eca4846a20bc5c627ac34dd6582ebe67ca22bb0eaf0503981937a88bfa8"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/aot-3.txt",
+      "bytes": 13,
+      "sha256": "72f2f5c9c31e821e1b319d7f73fb3a8095ea241efcba9df1d00b6b62aef195b7"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/aot-4.txt",
+      "bytes": 24,
+      "sha256": "a1cec8730800aab64a486adbdad8b92053479075e1a815daf659c9ad72315480"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/aot-5.txt",
+      "bytes": 58,
+      "sha256": "82e67eca4846a20bc5c627ac34dd6582ebe67ca22bb0eaf0503981937a88bfa8"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/aot-6.txt",
+      "bytes": 113,
+      "sha256": "e98604c7640eabb2bde7032af8a06ffded9134f84599cff4c126da5be1cff74b"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/aot-7.txt",
+      "bytes": 113,
+      "sha256": "e98604c7640eabb2bde7032af8a06ffded9134f84599cff4c126da5be1cff74b"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/aot-costs.tsv",
+      "bytes": 149,
+      "sha256": "aac5cc643f9f6ca13dc40f7938a3ab33b5b73e493262c485eeac21000053db81"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/basic.c.txt",
+      "bytes": 13,
+      "sha256": "72f2f5c9c31e821e1b319d7f73fb3a8095ea241efcba9df1d00b6b62aef195b7"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/basic.direct.txt",
+      "bytes": 13,
+      "sha256": "72f2f5c9c31e821e1b319d7f73fb3a8095ea241efcba9df1d00b6b62aef195b7"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/commands.log",
+      "bytes": 12418,
+      "sha256": "c525a8f4eec00abf5b3284cf7a4abe06e268a68ff27a2e97b1ac855ee3fbb0bb"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/compiler.txt",
+      "bytes": 239,
+      "sha256": "6e876a25bb7fdb71ab2914e8f1eeaa00cc61d20a36a6c2981ab7d4d7ceab42f8"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/complete.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/direct.txt",
+      "bytes": 86,
+      "sha256": "1f2050a2314f7636b84fb0b6530e754938bbf1dc03452ed7441031b9975d8cbf"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/gcc-costs.tsv",
+      "bytes": 149,
+      "sha256": "aac5cc643f9f6ca13dc40f7938a3ab33b5b73e493262c485eeac21000053db81"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/guarded_update.c.txt",
+      "bytes": 113,
+      "sha256": "e98604c7640eabb2bde7032af8a06ffded9134f84599cff4c126da5be1cff74b"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/guarded_update.direct.txt",
+      "bytes": 113,
+      "sha256": "e98604c7640eabb2bde7032af8a06ffded9134f84599cff4c126da5be1cff74b"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/guarded.expected",
+      "bytes": 113,
+      "sha256": "e98604c7640eabb2bde7032af8a06ffded9134f84599cff4c126da5be1cff74b"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/guarded.xl.txt",
+      "bytes": 113,
+      "sha256": "e98604c7640eabb2bde7032af8a06ffded9134f84599cff4c126da5be1cff74b"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/inputs.after.sha256",
+      "bytes": 5856,
+      "sha256": "b93c6a91ad103b2489a2b103fd8644742732e44dada9543628b6e759dc7e09e4"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/inputs.before.sha256",
+      "bytes": 5856,
+      "sha256": "b93c6a91ad103b2489a2b103fd8644742732e44dada9543628b6e759dc7e09e4"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/move.expected",
+      "bytes": 86,
+      "sha256": "1f2050a2314f7636b84fb0b6530e754938bbf1dc03452ed7441031b9975d8cbf"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/move.txt",
+      "bytes": 86,
+      "sha256": "1f2050a2314f7636b84fb0b6530e754938bbf1dc03452ed7441031b9975d8cbf"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/relocate.c.txt",
+      "bytes": 58,
+      "sha256": "82e67eca4846a20bc5c627ac34dd6582ebe67ca22bb0eaf0503981937a88bfa8"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/relocate.direct.txt",
+      "bytes": 58,
+      "sha256": "82e67eca4846a20bc5c627ac34dd6582ebe67ca22bb0eaf0503981937a88bfa8"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/relocate.expected",
+      "bytes": 58,
+      "sha256": "82e67eca4846a20bc5c627ac34dd6582ebe67ca22bb0eaf0503981937a88bfa8"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/relocate.xl.txt",
+      "bytes": 58,
+      "sha256": "82e67eca4846a20bc5c627ac34dd6582ebe67ca22bb0eaf0503981937a88bfa8"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/tcc-costs.tsv",
+      "bytes": 149,
+      "sha256": "aac5cc643f9f6ca13dc40f7938a3ab33b5b73e493262c485eeac21000053db81"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/workflow.c.txt",
+      "bytes": 24,
+      "sha256": "a1cec8730800aab64a486adbdad8b92053479075e1a815daf659c9ad72315480"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/gate/workflow.direct.txt",
+      "bytes": 24,
+      "sha256": "a1cec8730800aab64a486adbdad8b92053479075e1a815daf659c9ad72315480"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/m1-aot.stderr",
+      "bytes": 53,
+      "sha256": "59f597f8b3097d024039585093bc748b0aeb445d2c4f7b75202d5cc031ed1316"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/m1-aot.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/m1-build.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/m1-build.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/m1-check.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/m1-check.stdout",
+      "bytes": 3,
+      "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/m1-jit.stderr",
+      "bytes": 90,
+      "sha256": "01bcdab99cdcf746987f84a0676b8c8cf1232ee9ef2340f0b525a7a36a8109e7"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/m1-jit.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/m1.exit",
+      "bytes": 8,
+      "sha256": "e4749bc7f4f9360cf6a2e56321b815c8de72808a8ee756a48722cc9b287ddc24"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/stderr",
+      "bytes": 188,
+      "sha256": "91f60098bab08cf5a07c4031847cb4a3dacbb072fc08346cfb630550940f5d2a"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/stdout",
+      "bytes": 461,
+      "sha256": "64b37dc8446973b9e667e9997963d1168e75e9fcb339fcf28acbc5024360dcaa"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/tool-changes.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/tools.after.sha256",
+      "bytes": 349,
+      "sha256": "e2a2ae67f5016ac2c9020393b25a79580560a99cf2d506d98265ac52994e5882"
+    },
+    {
+      "path": "build/test/json_patch_semantics_20261102/linux-evidence/tools.before.sha256",
+      "bytes": 349,
+      "sha256": "e2a2ae67f5016ac2c9020393b25a79580560a99cf2d506d98265ac52994e5882"
+    }
+  ],
+  "qualifications": [
+    "Production code unchanged; no invented bug or performance/size gain claim",
+    "Original M1 literal container projection stays open and default suites remain red",
+    "New JSON configuration example not used to waive old language cases",
+    "Strict xl.dll release binding still fails; candidate not installed",
+    "100-package scope and counts unchanged; whole long-term objective remains active"
+  ],
+  "formalRelease": false
+}

@@ -48,6 +48,13 @@ compile -DXRT_MODULE_VALUE_GRAPH -DXRT_MODULE_UNICODE -fsyntax-only "$native"
 compile -DXRT_MODULE_VALUE_GRAPH -DXRT_MODULE_UNICODE -DXRT_IMPLEMENTATION release/extlibs/json.patch/test/manifest_probe.c -no-pie -lm -ldl -o "$work/minimal"
 run 120 "$work/minimal"
 compile -c release/extlibs/json.patch/test/xrt_runtime.c -o "$work/runtime.o"
+semantic=release/extlibs/json.patch/test/semantic_oracle_cli.c
+semantic_script=release/extlibs/json.patch/test/semantic_oracle.py
+compile "$native" "$semantic" "$work/runtime.o" -no-pie -lm -ldl -o "$work/semantic"
+run 150 "$python" -B "$semantic_script" --cli "$work/semantic"
+run 150 "$python" -B "$semantic_script" --xl ./release/xl --source "$semantic"
+run 120 ./release/xl build "$semantic" -o "$work/semantic-aot"
+run 150 "$python" -B "$semantic_script" --cli "$work/semantic-aot"
 compile "$native" release/extlibs/json.patch/test/test_boundaries.c "$work/runtime.o" -no-pie -lm -ldl -o "$work/boundaries"
 run 120 "$work/boundaries"
 compile "$native" release/extlibs/json.patch/test/oracle_cases.c "$work/runtime.o" -no-pie -lm -ldl -o "$work/oracle"
@@ -60,7 +67,7 @@ run 120 "$work/move" --costs > "$work/gcc-costs.tsv"
 test "$(wc -l < "$work/gcc-costs.tsv")" -eq 12
 run 120 ./release/xl run "$source" > "$work/direct.txt"; diff -u "$work/move.expected" "$work/direct.txt"
 run 120 ./release/xl run "$source" -- --costs > "$work/tcc-costs.tsv"; cmp "$work/gcc-costs.tsv" "$work/tcc-costs.tsv"
-for name in basic workflow relocate; do
+for name in basic workflow relocate guarded_update; do
     input="release/extlibs/json.patch/examples/${name}_c.c"
     compile "$input" "$work/runtime.o" -no-pie -lm -ldl -o "$work/$name"
     run 90 "$work/$name" > "$work/$name.c.txt"
@@ -70,6 +77,11 @@ language=release/extlibs/json.patch/examples/relocate.xl
 sed 's/\r$//' release/extlibs/json.patch/examples/relocate.expected.txt > "$work/relocate.expected"
 diff -u "$work/relocate.expected" "$work/relocate.c.txt"
 run 90 ./release/xl run "$language" > "$work/relocate.xl.txt"; diff -u "$work/relocate.expected" "$work/relocate.xl.txt"
+guarded=release/extlibs/json.patch/examples/guarded_update.xl
+sed 's/\r$//' release/extlibs/json.patch/examples/guarded_update.expected.txt > "$work/guarded.expected"
+diff -u "$work/guarded.expected" "$work/guarded_update.c.txt"
+run 90 ./release/xl run "$guarded" > "$work/guarded.xl.txt"
+diff -u "$work/guarded.expected" "$work/guarded.xl.txt"
 run 90 ./release/xl cgen "$language" --emit "$work/probe.c"
 grep -E '^extern .*xjsonpatch_[a-z_]+[(]' "$work/probe.c" | sort -u > "$work/abi.decls"
 grep -oE 'xjsonpatch_[a-z_]+[(]' "$work/abi.decls" | tr -d '(' | sort -u > "$work/abi.actual"
@@ -78,12 +90,13 @@ test "$(wc -l < "$work/abi.decls")" -eq 8; diff -u "$work/abi.expected" "$work/a
 printf '#include "json_patch.h"\n' > "$work/abi.c"; cat "$work/abi.decls" >> "$work/abi.c"
 compile -fsyntax-only "$work/abi.c"
 index=0
-for input in "$source" "$language" release/extlibs/json.patch/examples/basic_c.c release/extlibs/json.patch/examples/workflow_c.c release/extlibs/json.patch/examples/relocate_c.c; do
+for input in "$source" "$language" release/extlibs/json.patch/examples/basic_c.c release/extlibs/json.patch/examples/workflow_c.c release/extlibs/json.patch/examples/relocate_c.c "$guarded" release/extlibs/json.patch/examples/guarded_update_c.c; do
     index=$((index+1)); binary="$work/aot-$index"
     run 120 ./release/xl build "$input" -o "$binary"; run 90 "$binary" > "$work/aot-$index.txt"
     case "$input" in
         */move_ownership_c.c) diff -u "$work/move.expected" "$work/aot-$index.txt"; run 120 "$binary" --costs > "$work/aot-costs.tsv"; cmp "$work/gcc-costs.tsv" "$work/aot-costs.tsv" ;;
         */relocate.xl|*/relocate_c.c) diff -u "$work/relocate.expected" "$work/aot-$index.txt" ;;
+        */guarded_update.xl|*/guarded_update_c.c) diff -u "$work/guarded.expected" "$work/aot-$index.txt" ;;
         */basic_c.c) diff -u "$work/basic.c.txt" "$work/aot-$index.txt" ;;
         */workflow_c.c) diff -u "$work/workflow.c.txt" "$work/aot-$index.txt" ;;
     esac

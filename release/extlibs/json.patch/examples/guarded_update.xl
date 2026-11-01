@@ -1,0 +1,41 @@
+import json.patch
+
+func main(...) as int
+    // 对快照先校验再修改，不代表跨线程或数据库的原子compare-and-swap。
+    var original = json.parse(r"""{"revision":1,"active":false,"limits":{"count":0}}""")
+    var operations = json.parse(r"""[
+        {"op":"test","path":"/revision","value":1.0},
+        {"op":"replace","path":"/revision","value":2},
+        {"op":"replace","path":"/active","value":true}
+    ]""")
+    var updated = json.patch.apply(original, operations)
+    assert json.patch.get(updated, "/revision") == 2
+    assert json.patch.get(original, "/revision") == 1
+    println("updated revision: 2")
+    println("original revision: 1")
+
+    // JSON布尔不是数字；false不能用0代替，失败不改变输入。
+    bool booleanRejected = false
+    try
+        json.patch.apply(original, json.parse(r"""[{"op":"test","path":"/active","value":0}]"""))
+    catch ValueError error
+        booleanRejected = true
+    end
+    assert booleanRejected and not json.patch.get(original, "/active")
+    println("boolean guard: true")
+    bool staleRejected = false
+    try
+        json.patch.apply(updated, operations)
+    catch ValueError error
+        staleRejected = true
+    end
+    assert staleRejected and json.patch.get(updated, "/revision") == 2
+    println("stale guard: true")
+
+    var merged = json.patch.merge(updated, json.parse(r"""{"limits":{"count":null,"burst":4}}"""))
+    assert not json.patch.has(merged, "/limits/count") and json.patch.has(updated, "/limits/count")
+    assert json.patch.get(merged, "/limits/burst") == 4 and json.patch.get(updated, "/active")
+    println("merge delete: true")
+    println("merge burst: 4")
+    return 0
+end

@@ -19,6 +19,7 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / json.patch</p><h1>json.patch</h1>
     <p class="extlib-lead">对 JSON 值应用指针、操作补丁与合并补丁。</p>
     <p>操作返回新文档，不修改原输入；支持 JSON Pointer、JSON Patch 与 JSON Merge Patch 的常用路径。</p>
+    <p>2026-11-02：补独立语义参照，生产实现、语言绑定和公开 API/ABI 未变。两平台各 52 阶段前 51 满足要求，八条前置独立程序通过；最后原语言字典 M1 仍失败，默认退出 1，包保持 M，不签收整包。</p>
     <p>2026-10-26 Windows/Linux 发布版的 C 边界已通过，但 XLang 字典传给原生 <code>xvalue*</code> 后，<code>has</code> 与 <code>get</code> 不能正确读取已有键。下方 XLang 示例是目标 API，两平台完整语言与 AOT 门禁尚未签收。</p>
     <p>2026-10-30：内部 move 不再重复图复制待移动值，先完整复制文档，再在副本内移交引用；copy 仍独立复制。原实现结果正确，本轮是成本优化，不是结果 BUG 修复。输入不变、失败原子性、公开 API/ABI 与错误分类不变。</p>
   </header>
@@ -37,12 +38,15 @@ var changed = json.patch.apply(old,
 assert json.patch.get(changed, "/values/1") == 9</code></pre>
     <p><code>examples/workflow.xl</code> 与 <code>examples/workflow_c.c</code> 对照展示 test、copy、move、replace、add、remove，以及 merge、set、has、get；入门范例另展示 encodePointer。两份工作流都检查原文档不变。</p>
     <p>新增 <code>examples/relocate.xl</code> / <code>relocate_c.c</code> 从标准 JSON 文本读取同一配置，复制备份、移动发布项并独立改标题，再验证失败原子性，五行共同黄金输出。json.parse 返回的原生值可用，不代表语言字面量投影已通过；旧正例仍为必过项，不新增私有工厂绕行。</p>
+    <p>新 <code>examples/guarded_update.xl</code> / <code>guarded_update_c.c</code> 展示数值条件、布尔不冒作 0、旧版本拒绝、原快照不变，以及 Merge Patch 的删除/增加，匹配同一六行 golden，默认无文件/网络。test 校验的是单次快照转换，不替代对共享状态的锁或数据库事务。</p>
     <p><code>examples/basic_c.c</code> 和 <code>examples/workflow_c.c</code> 可直接使用 <code>xl run release/extlibs/json.patch/examples/basic_c.c</code> 等命令单文件运行，无需手动配置头文件和链接；Windows/Linux 包门禁会与严格 C 编译结果逐字比较。</p>
-    <p>输入应是 JSON 可表示的值；指针最多 32 段、解码后每段最多 255 字节。<code>encodePointer</code> 对超过该长度的键报错，转义后变长但原键未超限的路径仍可使用。复制失败保留 XRT 内存错误，不误报为无效补丁。C/XLang 测试另核对 RFC 6902 的 <code>/~01</code> 转义顺序及向 <code>/-</code> 插入整个数组。Linux 门禁包含 C ASan/UBSan、语言边界及双语范例；Windows 门禁还计划执行两组范例 AOT。当前 Windows 门禁在语言字典投影处退出，后续阶段未执行。C 结果所有权、根 remove 约定与验证命令见包内 README。</p>
+    <p>输入应是 JSON 可表示的值；指针最多 32 段、解码后每段最多 255 字节。<code>encodePointer</code> 对超过该长度的键报错，转义后变长但原键未超限的路径仍可使用。复制失败保留 XRT 内存错误，不误报为无效补丁。C/XLang 测试另核对 RFC 6902 的 <code>/~01</code> 转义顺序及向 <code>/-</code> 插入整个数组。Linux 门禁包含 C ASan/UBSan；11 月 2 日两平台八条前置 AOT 已通过，随后仍在原语言字典投影处退出，后续原语言阶段未完成。C 结果所有权、根 remove 约定与验证命令见包内 README。</p>
     <p>C 的零终止 JSON Pointer 便利入口最多扫描 16,353 字节以判定 16,352 字节上限；超限输入直接报错，不先执行无界 <code>strlen</code>。恰好达到上限的合法路径及超限无终止字节缓冲均有 Windows/Linux 边界测试；C 调用方仍须提供在该范围内可读取的缓冲区。</p>
     <p>补丁数组中的每一项必须是对象；非对象项统一报告无效补丁，输入文档保持不变。C/XLang 负例覆盖 <code>null</code>、数字、数组和字符串项。当前发布版的完整 AOT 尚未执行到此阶段。</p>
   </section>
   <section class="ext-panel active" aria-labelledby="verify"><h2 id="verify">当前验证</h2>
+    <p>新增 5808 条 test、2325 条 merge 独立参照及三种坏输出负对照。C 输出完整 JSON，由 Python 的类型敏感/精确数值判断核对结果、原文档和原补丁，不再只用与 test 同源的 xrtValueEqual 自证。覆盖布尔/数字、64 位/2^53、有限浮点极值、键序、NUL/Unicode及64/65层限额；不宣称任意精度或非JSON值图支持。JSON_WRITE只用于测试输出，不扩展产品的两个直接XRT模块。</p>
+    <p>Windows59输入工具指纹、Linux原生54文件/四工具/boot保持，Linux另对全部8133语料开启float-cast-overflow。最小M1源两平台check/build过、JIT/AOT仍1；未用正常JSON配置路径关闭此问题。完整结果在仓库 docs/reports/extlib-json-patch-semantics-20261102.json，外部官网未部署，IDE候选另按发布绑定门验收。</p>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/json.patch/test/check.ps1
 bash release/extlibs/json.patch/test/check.sh</code></pre>
     <p>命令从仓库根目录执行，需 GCC，可用 CC 指定路径。默认门禁含真实两模块独立运行库、原 C、新32项结果/释放顺序和16条逐点OOM/立即恢复、八条实际生成原型、双语新例及五个独立程序；Linux 增加 ASan/UBSan/泄漏检查。输入指纹、逐进程超时、命令及输出保留；失败不删现场。最后仍强制原语言字典正例，当前 Windows 预验在 M1 报 has /name 失败，不能签收整包，最终双平台证据见仓库验收矩阵。</p>
