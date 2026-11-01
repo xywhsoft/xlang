@@ -1,0 +1,36 @@
+import zip
+
+func main(...) as int
+    auto writer = zip.create("store", 0)
+    writer.mkdir("目录/")
+    writer.add("目录/内容.txt", "你好 ZIP")
+    auto reader = zip.open(writer.finish())
+    // 不接受调用方目录；示例只处理自己排他创建的工作目录。
+    string root = dir.temp("", "xlang-zip-files-", "")
+    try
+        string destination = path.join(root, "output")
+        string filename = path.join(destination, "目录/内容.txt")
+        reader.extractAll(destination)
+        assert reader.count == 2 and file.readText(filename) == "你好 ZIP"
+        println("entries: 2")
+        println("utf8 path: true")
+
+        assert file.writeText(filename, "changed")
+        bool rejected = false
+        try
+            reader.extractAll(destination)
+        catch ArchiveError error
+            rejected = true
+        end
+        assert rejected and file.readText(filename) == "changed"
+        println("no overwrite: preserved")
+
+        reader.extractAll(destination, true)
+        assert file.readText(filename) == "你好 ZIP"
+        println("overwrite: updated")
+    finally
+        reader.close()
+        assert dir.delete(root)
+    end
+    return 0
+end

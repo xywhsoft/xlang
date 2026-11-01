@@ -28,7 +28,7 @@ bool __xrtZipEntryPathSafe(const char* sName, bool bDirectory,
 
 /* 逐级检查目标路径，拒绝已有链接；缺失的目录只创建当前一级。 */
 static bool __xrtZipPrepareOutput(cstr sOutput, cstr sDestination,
-	bool bDirectory, xrtziparchive* pArchive, uint64 iEntry)
+	bool bDirectory, bool bOverwrite, xrtziparchive* pArchive, uint64 iEntry)
 {
 	size_t iRootLength = strlen(sDestination);
 	size_t iLength = strlen(sOutput);
@@ -69,18 +69,24 @@ static bool __xrtZipPrepareOutput(cstr sOutput, cstr sDestination,
 				bResult = false;
 				break;
 			}
+			if ( bLast && !bDirectory && !bOverwrite ) {
+				__xrtZipSetError(pArchive, XRT_ZIP_ERROR_EXISTS, ZIP_ER_EXISTS,
+					0, iEntry, "ZIP extraction target already exists: %s", sCopy);
+				bResult = false;
+				break;
+			}
 		} else if ( (xrtGetError() != NULL) &&
 			(xrtErrorKind(xrtGetError()) == XERR_NOT_FOUND) ) {
 			xrtClearError();
 			if ( (!bLast || bDirectory) && !xrtDirCreate(sCopy) ) {
-				__xrtZipSetError(pArchive, XRT_ZIP_ERROR_IO, ZIP_ER_WRITE, 0,
-					iEntry, "cannot create ZIP output directory: %s", sCopy);
+				__xrtZipSetOutputError(pArchive, iEntry, ZIP_ER_WRITE,
+					"cannot create ZIP output directory", sCopy);
 				bResult = false;
 				break;
 			}
 		} else {
-			__xrtZipSetError(pArchive, XRT_ZIP_ERROR_IO, ZIP_ER_READ, 0, iEntry,
-				"cannot inspect ZIP output path: %s", sCopy);
+			__xrtZipSetOutputError(pArchive, iEntry, ZIP_ER_READ,
+				"cannot inspect ZIP output path", sCopy);
 			bResult = false;
 			break;
 		}
@@ -223,16 +229,16 @@ XRT_API bool xrtZipArchiveExtractAll(xrtziparchive* pArchive, cstr sDestination,
 	if ( !xrtPathStat(sStatDestination, false, &DestinationInfo) ) {
 		if ( (xrtGetError() == NULL) ||
 			(xrtErrorKind(xrtGetError()) != XERR_NOT_FOUND) ) {
-			__xrtZipSetError(pArchive, XRT_ZIP_ERROR_IO, ZIP_ER_READ, 0, UINT64_MAX,
-				"cannot inspect ZIP extraction directory: %s", sDestination);
+			__xrtZipSetOutputError(pArchive, UINT64_MAX, ZIP_ER_READ,
+				"cannot inspect ZIP extraction directory", sDestination);
 			xrtFree(sStatDestination);
 			return false;
 		}
 		xrtClearError();
 		if ( !xrtDirCreateAll(sDestination) ||
 			!xrtPathStat(sStatDestination, false, &DestinationInfo) ) {
-			__xrtZipSetError(pArchive, XRT_ZIP_ERROR_IO, ZIP_ER_WRITE, 0, UINT64_MAX,
-				"cannot create ZIP extraction directory: %s", sDestination);
+			__xrtZipSetOutputError(pArchive, UINT64_MAX, ZIP_ER_WRITE,
+				"cannot create ZIP extraction directory", sDestination);
 			xrtFree(sStatDestination);
 			return false;
 		}
@@ -281,35 +287,20 @@ XRT_API bool xrtZipArchiveExtractAll(xrtziparchive* pArchive, cstr sDestination,
 			return false;
 		}
 		if ( !__xrtZipPrepareOutput(sOutput, sDestination,
-			Entry.bDirectory || (iType == XRT_ZIP_MODE_DIR), pArchive, i) ) {
+			Entry.bDirectory || (iType == XRT_ZIP_MODE_DIR), bOverwrite, pArchive, i) ) {
 			xrtFree(sOutput);
 			return false;
 		}
-		if ( Entry.bDirectory || (iType == XRT_ZIP_MODE_DIR) ) {
-			if ( !xrtDirExists(sOutput) && !xrtDirCreateAll(sOutput) ) {
-				__xrtZipSetError(pArchive, XRT_ZIP_ERROR_IO, ZIP_ER_WRITE, 0, i,
-					"cannot create ZIP directory: %s", sOutput);
-				xrtFree(sOutput);
-				return false;
-			}
-		} else {
+		/* 目录已逐级创建并检查；不再用 exists 把检查失败当成不存在。 */
+		if ( !Entry.bDirectory && (iType != XRT_ZIP_MODE_DIR) ) {
 			str sParent = xrtPathParent(sOutput);
 			str sTemporary = NULL;
 			xfile File;
 			xwriter* pWriter;
 
-			if ( (sParent == NULL) ||
-				(!xrtDirExists(sParent) && !xrtDirCreateAll(sParent)) ) {
-				__xrtZipSetError(pArchive, XRT_ZIP_ERROR_IO, ZIP_ER_WRITE, 0, i,
-					"cannot create ZIP entry parent directory: %s", sOutput);
-				xrtFree(sParent);
-				xrtFree(sOutput);
-				return false;
-			}
-			if ( xrtPathExists(sOutput) && !bOverwrite ) {
-				__xrtZipSetError(pArchive, XRT_ZIP_ERROR_EXISTS, ZIP_ER_EXISTS, 0, i,
-					"ZIP extraction target already exists: %s", sOutput);
-				xrtFree(sParent);
+			if ( sParent == NULL ) {
+				__xrtZipSetOutputError(pArchive, i, ZIP_ER_OPEN,
+					"cannot allocate ZIP entry parent path", sOutput);
 				xrtFree(sOutput);
 				return false;
 			}
@@ -318,11 +309,12 @@ XRT_API bool xrtZipArchiveExtractAll(xrtziparchive* pArchive, cstr sDestination,
 			xrtFree(sParent);
 			pWriter = File != NULL ? xrtWriterTakeFile(&File) : NULL;
 			if ( pWriter == NULL ) {
+				/* 清理也可能失败，必须先固定创建阶段的原始错误类别。 */
+				__xrtZipSetOutputError(pArchive, i, ZIP_ER_OPEN,
+					"cannot create ZIP entry transaction", sOutput);
 				if ( File != NULL ) { (void)xrtClose(File); }
 				if ( sTemporary != NULL ) { (void)xrtFileDelete(sTemporary); }
 				xrtFree(sTemporary);
-				__xrtZipSetError(pArchive, XRT_ZIP_ERROR_IO, ZIP_ER_OPEN, 0, i,
-					"cannot create ZIP entry transaction: %s", sOutput);
 				xrtFree(sOutput);
 				return false;
 			}
@@ -334,11 +326,15 @@ XRT_API bool xrtZipArchiveExtractAll(xrtziparchive* pArchive, cstr sDestination,
 				return false;
 			}
 			if ( !xrtPathRename(sTemporary, sOutput, bOverwrite) ) {
-				__xrtZipSetError(pArchive,
-					(!bOverwrite && xrtPathExists(sOutput)) ?
-						XRT_ZIP_ERROR_EXISTS : XRT_ZIP_ERROR_IO,
-					!bOverwrite ? ZIP_ER_EXISTS : ZIP_ER_WRITE,
-					0, i, "cannot commit ZIP entry: %s", sOutput);
+				/* 禁止覆盖由原子 rename 判定，不用第二次 stat 覆盖首因。 */
+				if ( !bOverwrite && xrtGetError() != NULL &&
+					xrtErrorKind(xrtGetError()) == XERR_EXISTS ) {
+					__xrtZipSetError(pArchive, XRT_ZIP_ERROR_EXISTS, ZIP_ER_EXISTS,
+						0, i, "ZIP extraction target already exists: %s", sOutput);
+				} else {
+					__xrtZipSetOutputError(pArchive, i, ZIP_ER_WRITE,
+						"cannot commit ZIP entry", sOutput);
+				}
 				(void)xrtFileDelete(sTemporary);
 				xrtFree(sTemporary);
 				xrtFree(sOutput);
