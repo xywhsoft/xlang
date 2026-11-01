@@ -1,0 +1,33 @@
+import watch
+
+func main(...) as int
+    string root = dir.temp("", "xlang-watch-round-robin-", "")
+    try
+        string a = path.join(root, "a.txt")
+        string b = path.join(root, "b.txt")
+        string c = path.join(root, "c.txt")
+        auto watcher = watch.create()
+        assert watcher.add(a) == 0 and watcher.add(b) == 1 and watcher.add(c) == 2
+        assert file.writeText(a, "1") and file.writeText(b, "1") and file.writeText(c, "1")
+        assert watcher.poll() == "CREATED:" + a
+        println("first: a")
+        // a 再次变化也不能插到尚未交付的 b、c 之前；用大小变化避免依赖时钟。
+        assert file.writeText(a, "12")
+        assert watcher.poll() == "CREATED:" + b
+        println("busy path: b")
+        assert watcher.poll() == "CREATED:" + c
+        println("next: c")
+        assert watcher.poll() == "MODIFIED:" + a
+        println("catch up: a")
+        assert watcher.remove(1) and watcher.add(b) == 1
+        assert watcher.path(0) == a and watcher.count == 3
+        println("slot reused:", true)
+        assert file.delete(b) and watcher.poll() == "DELETED:" + b
+        println("deleted: b")
+        assert watcher.poll() == ""
+        println("no repeats:", true)
+    finally
+        assert dir.delete(root)
+    end
+    return 0
+end

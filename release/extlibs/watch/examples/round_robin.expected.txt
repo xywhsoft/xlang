@@ -1,0 +1,7 @@
+first: a
+busy path: b
+next: c
+catch up: a
+slot reused: true
+deleted: b
+no repeats: true

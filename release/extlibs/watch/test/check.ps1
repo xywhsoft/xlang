@@ -61,6 +61,13 @@ try {
     $null = Run 'directory digest compile' $gcc ($flags + @('-DNDEBUG',$digestSource,$runtime) + $links + @('-o',$digest))
     $null = Run 'directory digest' $digest @()
     $null = Run 'directory digest direct xl run' $xl @('run',$digestSource)
+    $modelSource = 'release/extlibs/watch/test/model_c.c'
+    $model = Join-Path $work 'model.exe'
+    $modelPattern = '^watch model: 64 seeds, 8192 steps, [0-9]+ commands, [0-9]+ checks, [0-9]+ OOM, [0-9]+ IO, 0 failures$'
+    $null = Run 'state model compile' $gcc ($flags + @($modelSource,$runtime) + $links + @('-o',$model))
+    $modelOutput = Run 'state model' $model @()
+    $modelDirect = Run 'state model direct xl run' $xl @('run',$modelSource)
+    if ($modelOutput -cnotmatch $modelPattern -or $modelDirect -cnotmatch $modelPattern) { throw 'Watch state model coverage differs' }
     $race = Join-Path $work 'watch_race_test.exe'
     $null = Run 'directory race compile' $gcc ($flags + @(
         'release/extlibs/watch/watch_native.c',
@@ -103,6 +110,15 @@ try {
     $directoryXL = Run 'XLang directory example' $xl @('run','release/extlibs/watch/examples/directory.xl')
     $golden = [IO.File]::ReadAllText((Join-Path $root 'release/extlibs/watch/examples/directory.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
     if ($directoryC -cne $golden -or $directoryDirect -cne $golden -or $directoryXL -cne $golden) { throw 'Directory example golden output differs' }
+    $roundSource = 'release/extlibs/watch/examples/round_robin_c.c'
+    $roundLanguage = 'release/extlibs/watch/examples/round_robin.xl'
+    $roundExample = Join-Path $work 'round-robin.exe'
+    $roundGolden = [IO.File]::ReadAllText((Join-Path $root 'release/extlibs/watch/examples/round_robin.expected.txt')).Replace("`r`n", "`n").TrimEnd("`n")
+    $null = Run 'round-robin C compile' $gcc ($flags + @($roundSource,$runtime) + $links + @('-o',$roundExample))
+    $roundC = Run 'round-robin C' $roundExample @()
+    $roundDirect = Run 'round-robin direct C' $xl @('run',$roundSource)
+    $roundXL = Run 'round-robin XLang' $xl @('run',$roundLanguage)
+    if ($roundC -cne $roundGolden -or $roundDirect -cne $roundGolden -or $roundXL -cne $roundGolden) { throw 'Round-robin bilingual golden differs' }
 
     $boundarySource = Join-Path $root 'release/extlibs/watch/test/boundaries.xl'
     $cwdSource = Join-Path $root 'release/extlibs/watch/test/cwd_snapshot.xl'
@@ -210,11 +226,13 @@ try {
         Pop-Location
     }
     if (-not $SkipAot) {
-        foreach ($source in @($digestSource,'release/extlibs/watch/examples/directory.xl',$directorySource)) {
+        $aotGoldens = @{$directorySource=$golden;'release/extlibs/watch/examples/directory.xl'=$golden;$roundSource=$roundGolden;$roundLanguage=$roundGolden}
+        foreach ($source in @($digestSource,'release/extlibs/watch/examples/directory.xl',$directorySource,$modelSource,$roundSource,$roundLanguage)) {
             $target = Join-Path $work ([IO.Path]::GetFileNameWithoutExtension($source)+'.exe')
             $null = Run "$source build" $xl @('build',$source,'-o',$target)
             $output = Run "$source AOT" $target @()
-            if ($source -like '*/examples/*' -and $output -cne $golden) { throw 'Directory AOT golden output differs' }
+            if ($source -eq $modelSource -and $output -cnotmatch $modelPattern) { throw 'Watch AOT model coverage differs' }
+            if ($aotGoldens.ContainsKey($source) -and $output -cne $aotGoldens[$source]) { throw 'Watch AOT golden output differs' }
         }
     }
     $globalSource = 'release/extlibs/watch/test/top_level.xl'

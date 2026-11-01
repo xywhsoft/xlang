@@ -76,6 +76,12 @@ xl run release/extlibs/watch/examples/directory_c.c</code></pre>
     <p>C 范例可从仓库根目录直接以 <code>xl run release/extlibs/watch/examples/watch_c.c</code> 运行；Windows/Linux 包门禁均将其与 GCC、XLang 的输出对照。成对范例在独占临时目录验证文件创建、修改、删除事件，并演示索引删除与复用。Windows 严格 GCC、C/XLang 边界、双语范例及带输出 AOT 通过；两平台的定向目录竞争测试覆盖删除、变更类型与真实 I/O 错误，Linux C 文件/目录事件通过 ASan/UBSan，Linux XLang 包内边界用例也通过。文件/工作目录边界用例使用独占临时目录，不再写删固定的 <code>build/test/watch_guard</code>。C 源仅使用公开 XRT 头文件。旧 Windows AOT 缺符号已解除。</p>
     <p>2026-10-26 新发布物复核：Windows/Linux 默认包门禁通过 C 边界、目录竞态、XLang JIT/AOT 和公开双语范例；Windows 新增工作目录快照、分配故障及公开语言范例 AOT，两平台新增 C 单文件范例独立 EXE，固定事件输出与 GCC、TCC、XLang 一致。Linux C 侧保留 ASan/UBSan。事件文本由 XLang 直接接管 C 分配，不复制正文。能力范围仍是非递归元数据轮询，不能还原两次轮询之间的全部变化。</p>
   </section>
+  <section id="multi-path-model">
+    <h2>多路径轮转与失败恢复</h2>
+    <p>2026-11-02：新增独立状态模型，门禁要求完整 64 组、8192 步及零失败，覆盖空实例、32 个活动槽、重复路径、空洞复用、借用路径寿命、轮转以及失败后再次交付。只替换取样，真实生产分配、事件和生命周期逻辑不变；实际 OOM、受控 I/O 返回及七项内存指标均核对。计数随平台分配行为变化，逐引擎记录，不把 Windows 次数硬编码成 Linux 合同。三种故意破坏实现的负控均被检出，不把它们当产品 BUG。</p>
+    <p>新增 <code>extlibs/watch/examples/round_robin.xl</code> 与 <code>round_robin_c.c</code>。三文件同批变化时，频繁变化的 a 不会抢在尚未交付的 b/c 前面；范例随后复用槽位、检查删除与无重复事件。只使用独占临时目录，按文件长度变化验证，不需要 sleep，结束后清理。</p>
+    <p>重复 add 建立独立槽位，不自动去重；删除后的索引可复用。取样错误会终止本次 poll，不提交快照或游标，不承诺在持续错误的路径之后继续交付。本轮未确认新的生产 BUG，也未修改实现、API/ABI 或生产模块，不声称总体零开销或吞吐提升；原顶层退役正例仍须单独通过，不能以新模型通过宣称整包发布级。</p>
+  </section>
 </main>
 <script src="../main.js"></script>
 </body>
