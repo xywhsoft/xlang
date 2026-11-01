@@ -2,6 +2,12 @@
 
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-11-01主目录0.6.0复验：BSON的原最小字典、原中央用例和完整嵌套/
+文件/JIT/AOT链路均已通过，本包不再作为M1当前失败证据。其已有的正式
+数据快照桥接来自主线先前更新，本轮没有新增容器兼容分支；BSON仍受独立
+的[原子保存回滚](bson_atomic_save_cleanup.md)阻断。通用数组最小源仍报
+`input is not an array`，TOML中央用例仍报根不是dict，不能按包名相似一并关闭。
+
 2026-10-30 根目录布局复验 `sitemap`：robots行尾修复后的Windows默认
 门禁前44项符合预期（含两个必拒绝负例），第45原中央语言数组生成
 仍抛ValueError；Linux sanitizer、JIT/AOT、XML独立检查及双语例完成
