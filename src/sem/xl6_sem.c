@@ -11680,6 +11680,15 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
         }
         if ( nameNode != NULL && nameNode->kind == XL6_AST_NAME ) {
             const XL6_TypeInfo* typeInfo = xl6TypeRegistryFind(&ctx->types, nameNode->text);
+            const XL6_AstNode* aliasValueType = NULL;
+            if (typeInfo && typeInfo->kind == XL6_TYPE_ALIAS) {
+                XL6_AstNode alias = {0};
+                alias.kind = XL6_AST_TYPE; alias.text = nameNode->text;
+                aliasValueType = xl6SemResolveAliasType(ctx, &alias);
+                const XL6_AstNode* canonical = xl6SemClassValueType(ctx, aliasValueType);
+                if (canonical && !canonical->childCount && canonical->text)
+                    typeInfo = xl6TypeRegistryFind(&ctx->types, canonical->text);
+            }
             if (typeInfo != NULL && typeInfo->kind == XL6_TYPE_C_RECORD) {
                 if (xl6SemCallArgCount(node) != 0) {
                     xl6SemErrorNode(ctx, node, "C record zero constructor takes no arguments");
@@ -11697,7 +11706,13 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
             }
             if ( typeInfo != NULL && typeInfo->kind == XL6_TYPE_CLASS ) {
                 xl6SemSetCallPlan(node, XL6_SEM_CALL_CONSTRUCTOR, typeInfo->decl);
-                return xl6SemCheckCtorCall(ctx, node) && ok;
+                int valid = xl6SemCheckClassCtorCall(ctx, node, typeInfo->decl);
+                if (valid && aliasValueType) {
+                    XL6_AstNode* type = xl6SemCloneTypeNode(aliasValueType);
+                    if (!type) return 0;
+                    xl6AstFree(node->inferredType); node->inferredType = type;
+                }
+                return valid && ok;
             }
         }
     }

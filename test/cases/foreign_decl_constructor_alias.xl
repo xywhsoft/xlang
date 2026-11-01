@@ -1,0 +1,26 @@
+extern "foreign_decl_rect" struct Rect @header("test/cases/foreign_decl_record.h")
+    c_int x
+    c_int y
+    c_int width
+    c_int height
+end
+typedef RectAlias = Rect
+typedef RectAliasChain = RectAlias
+
+class Value
+    int number
+    create(int number)
+        self.number = number
+    end
+end
+typedef ValueAlias = Value
+typedef ValueAliasChain = ValueAlias
+
+func main(...) as int
+    RectAliasChain rect = RectAliasChain()
+    rect.width = 71
+    assert rect.width == 71 and rect.x == 0
+    auto value = ValueAliasChain(42)
+    assert value.number == 42
+    return 0
+end
