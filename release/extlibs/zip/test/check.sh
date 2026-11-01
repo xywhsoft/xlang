@@ -74,7 +74,7 @@ done
 timeout 60s "$cc" "${flags[@]}" -Werror -fsyntax-only -DXRT_MODULE_FILE_TEMP \
     release/extlibs/_libzip/platform/zip_source_file_xrt.c
 timeout 60s "$cc" "${flags[@]}" -Werror -fsyntax-only \
-    release/extlibs/zip/test/test_commit_memory.c release/extlibs/zip/test/test_extract_memory.c \
+    release/extlibs/zip/test/test_commit_memory.c release/extlibs/zip/test/test_extract_memory.c release/extlibs/zip/test/test_extract_paths.c \
     release/extlibs/zip/examples/memory_roundtrip_c.c release/extlibs/zip/examples/extract_files_c.c
 timeout 240s "$cc" "${flags[@]}" -c release/extlibs/zip/test/xrt_runtime.c -o "$work/runtime.o"
 objects=("$work/runtime.o")
@@ -88,7 +88,7 @@ for source in "${sources[@]}"; do
     objects+=("$object")
     index=$((index + 1))
 done
-for name in test_zip test_commit_memory test_extract_memory; do
+for name in test_zip test_commit_memory test_extract_memory test_extract_paths; do
     timeout 90s "$cc" "${flags[@]}" -Werror "release/extlibs/zip/test/$name.c" \
         "${objects[@]}" "${links[@]}" -o "$work/$name"
     timeout 120s "$work/$name"
@@ -128,10 +128,13 @@ reject() {
 }
 run_xl run release/extlibs/zip/test/test_commit_memory.c "${cargs[@]}"
 run_xl run release/extlibs/zip/test/test_extract_memory.c "${cargs[@]}"
+run_xl run release/extlibs/zip/test/test_extract_paths.c "${cargs[@]}"
 run_xl run release/extlibs/zip/test/commit_memory.xl > "$work/commit.txt"
 diff -u <(printf 'zip commit MemoryError/retry: PASS\n') "$work/commit.txt"
 run_xl run release/extlibs/zip/test/extract_memory.xl > "$work/extract_memory.txt"
 diff -u <(printf 'zip extraction MemoryError/retry: PASS\n') "$work/extract_memory.txt"
+run_xl run release/extlibs/zip/test/extract_paths.xl > "$work/extract_paths.txt"
+diff -u <(printf 'zip extraction paths: 24 cases PASS\n') "$work/extract_paths.txt"
 run_xl run release/extlibs/zip/test/text_transfer.xl > "$work/text.txt"
 test ! -s "$work/text.txt"
 run_xl run release/extlibs/zip/test/boundaries.xl > "$work/boundaries.txt"
@@ -182,7 +185,7 @@ done
 run_xl run release/examples/extlibs/zip.xl > "$work/original_xl.txt"
 diff -u "$work/original.txt" "$work/original_xl.txt"
 
-for name in aot_core text_transfer boundaries commit_memory extract_memory; do
+for name in aot_core text_transfer boundaries commit_memory extract_memory extract_paths; do
     run_xl build "release/extlibs/zip/test/$name.xl" -o "$work/$name"
     timeout 60s "$work/$name" > "$work/$name.aot.txt"
     case "$name" in
@@ -190,6 +193,7 @@ for name in aot_core text_transfer boundaries commit_memory extract_memory; do
         boundaries) diff -u "$work/boundaries.txt" "$work/$name.aot.txt" ;;
         commit_memory) diff -u "$work/commit.txt" "$work/$name.aot.txt" ;;
         extract_memory) diff -u "$work/extract_memory.txt" "$work/$name.aot.txt" ;;
+        extract_paths) diff -u "$work/extract_paths.txt" "$work/$name.aot.txt" ;;
     esac
 done
 run_xl build release/examples/extlibs/zip.xl -o "$work/original_xl"
@@ -202,6 +206,8 @@ run_xl build release/extlibs/zip/test/test_commit_memory.c "${cargs[@]}" -o "$wo
 timeout 60s "$work/commit_c"
 run_xl build release/extlibs/zip/test/test_extract_memory.c "${cargs[@]}" -o "$work/extract_memory_c"
 timeout 120s "$work/extract_memory_c"
+run_xl build release/extlibs/zip/test/test_extract_paths.c "${cargs[@]}" -o "$work/extract_paths_c"
+timeout 60s "$work/extract_paths_c"
 for kind in c xl; do
     arguments=()
     source=release/extlibs/zip/examples/memory_roundtrip.xl
@@ -217,7 +223,7 @@ for kind in c xl; do
     timeout 60s "$work/extract_$kind" > "$work/extract_$kind.aot.txt"
     diff -u "$work/extract_gcc.txt" "$work/extract_$kind.aot.txt"
 done
-printf '[zip] runtime/ABI/interop and thirteen ordinary AOT paths: PASS\n'
+printf '[zip] runtime/ABI/interop and fifteen ordinary AOT paths: PASS\n'
 # 后续独立边界收集完整原始退出码，不把主线失败改成预期成功。
 failed=0
 status=0

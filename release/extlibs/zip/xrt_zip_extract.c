@@ -197,13 +197,15 @@ bool __xrtZipExtractEntryToWriter(xrtziparchive* pArchive, uint64 iEntry,
 
 
 
+static bool __xrtZipExtractEntries(xrtziparchive* pArchive,
+	cstr sDestination, bool bOverwrite);
+
+
+
 /* 安全解压全部条目；普通文件通过同目录临时文件流式提交。 */
 XRT_API bool xrtZipArchiveExtractAll(xrtziparchive* pArchive, cstr sDestination,
 	bool bOverwrite)
 {
-	uint64 iCount;
-	uint64 iTotal = 0u;
-	uint64 i;
 	xfileinfo DestinationInfo;
 	str sStatDestination;
 
@@ -250,7 +252,28 @@ XRT_API bool xrtZipArchiveExtractAll(xrtziparchive* pArchive, cstr sDestination,
 			sDestination);
 		return false;
 	}
-	iCount = xrtZipArchiveCount(pArchive);
+	/* 先检查原始路径中的链接，再统一拼接与分量检查使用的词法形态。
+	 * 不能按原始 ./ 的字节长度切分已规范化的输出路径。 */
+	sStatDestination = xrtPathClean(xrtStrView(sDestination), XPATH_NATIVE);
+	if ( sStatDestination == NULL ) {
+		__xrtZipSetError(pArchive, XRT_ZIP_ERROR_MEMORY, ZIP_ER_MEMORY,
+			0, UINT64_MAX, "cannot normalize ZIP extraction directory");
+		return false;
+	}
+	bool bResult = __xrtZipExtractEntries(pArchive, sStatDestination, bOverwrite);
+	xrtFree(sStatDestination);
+	return bResult;
+}
+
+
+
+static bool __xrtZipExtractEntries(xrtziparchive* pArchive,
+	cstr sDestination, bool bOverwrite)
+{
+	uint64 iCount = xrtZipArchiveCount(pArchive);
+	uint64 iTotal = 0u;
+	uint64 i;
+
 	for ( i = 0u; i < iCount; ++i ) {
 		xrtzipentry Entry;
 		str sOutput;

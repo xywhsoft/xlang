@@ -1,0 +1,52 @@
+import zip
+
+func main(...) as int
+    string previous = path.cwd()
+    string root = dir.temp("", "xlang-zip-paths-xl-", "")
+    assert path.setCwd(root)
+    int cases = 0
+    try
+        array<string> forms = ["output", "./output", "output/.", "output/./", "output//", "./output//./"]
+        for directory in range(2)
+            auto writer = zip.create("store", 0)
+            if directory == 1 then writer.mkdir("a/b/") end
+            writer.add("a/b/payload.txt", "payload")
+            Buffer packed = writer.finish()
+            for absolute in range(2)
+                for form in forms
+                    auto reader = zip.open(packed)
+                    // 故意保留原写法；这里不能用 path.join 提前规范化测试输入。
+                    string destination = "./" + form
+                    if absolute == 1 then destination = root + "/" + form end
+                    assert dir.create("output")
+                    try
+                        reader.extractAll(destination)
+                        assert file.readText("output/a/b/payload.txt") == "payload"
+                        assert file.writeText("output/a/b/payload.txt", "prior")
+                        bool rejected = false
+                        try
+                            reader.extractAll(destination)
+                        catch ArchiveError error
+                            rejected = true
+                        end
+                        assert rejected and file.readText("output/a/b/payload.txt") == "prior"
+                        reader.extractAll(destination, true)
+                        assert file.readText("output/a/b/payload.txt") == "payload"
+                    finally
+                        reader.close()
+                        assert dir.delete("output")
+                    end
+                    cases += 1
+                end
+            end
+        end
+    finally
+        // 无法恢复时保留目录，不能递归删除仍作为当前目录的树。
+        bool restored = path.setCwd(previous)
+        assert restored
+        assert dir.delete(root)
+    end
+    assert cases == 24
+    println("zip extraction paths: 24 cases PASS")
+    return 0
+end
