@@ -92,6 +92,11 @@ Tabulate输出/返回阶段候选`build/test/tabulate_render_20261102/catalog/`
 官网源已更新并作隔离预览，609份交付原字节审计过；本轮包级M2和
 候选/安装检查的实际区分见`docs/reports/extlib-tabulate-render-20261102.json`。
 
+Netrc引号字段阶段候选`build/test/netrc_quoted_20261102/catalog/`生成，
+207包/17598项、新增/删除公开项0，新鲜度通过。严格绑定仍报xl.dll，
+候选未安装、未重写基础来源；官网源已更新并有隔离预览，609运行原
+字节审计通过。本包M1仍保留，结果见`docs/reports/extlib-netrc-quoted-20261102.json`。
+
 1. 主线维护者完成稳定XRT同步、相匹配的编译器发布物和验收记录。
 2. 如标准库/主线绑定改变，先按当前正式验收报告重生成基础命令目录。
 3. 再刷新扩展资料候选，运行真实前端声明检查及严格覆盖/新鲜度检查。
