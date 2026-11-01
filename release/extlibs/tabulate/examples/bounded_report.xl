@@ -1,0 +1,27 @@
+import tabulate
+
+func main(...) as int
+    auto table = tabulate.create()
+    // 宽表头会让每一行都补空格，源数据虽小，最终报告仍可能超限。
+    string wide = string.repeat("x", 4096)
+    table.setHeaders([wide, wide, wide, wide])
+    for i in range(256)
+        table.addRow(["ok"])
+    end
+    bool rejected = false
+    try
+        table.render()
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected and table.rowCount == 256 and table.colCount == 4
+    // 失败不销毁表，也不改变单元格；缩短表头后继续生成同一份数据。
+    table.setHeaders(["Value"])
+    string report = table.render()
+    assert string.byteLen(report) < 4096 and string.contains(report, "ok")
+    println("rows: 256")
+    println("oversized render: rejected")
+    println("table preserved: true")
+    println("recovered render: true")
+    return 0
+end

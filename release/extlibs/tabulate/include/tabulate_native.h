@@ -22,7 +22,9 @@ void xtab_abort(void* table);
 int xtab_set_headers(void* table, const char* const* cells, size_t count);
 int xtab_add_row(void* table, const char* const* cells, size_t count);
 
-/* 文本由 XRT 独立分配，C 调用方用 xrtFree 释放。 */
+/* 含终止符最多4MiB；先按列宽预检，成功只预留一次输出（XRT可按几何策略取容量）。 */
+/* 文本由 XRT 独立分配，C 调用方用 xrtFree 释放；失败保留表，诊断本身可能分配。 */
+/* 成功含空表均非NULL；NULL表示失败并设置XRT错误。 */
 char* xtab_render(void* table);
 int64_t xtab_row_count(void* table);
 int64_t xtab_col_count(void* table);

@@ -1,0 +1,35 @@
+import tabulate
+
+// 上限包含C终止字节；缺列的空白也必须计入，不能只统计源字符串。
+func checkLimit(int extra)
+    auto table = tabulate.create()
+    string wide = string.repeat("A", 4096)
+    table.setHeaders([wide, wide, wide, string.repeat("B", 3829)])
+    table.addRow([string.repeat("中", extra)])
+    for i in range(255)
+        table.addRow(["x"])
+    end
+    if extra == 243 then
+        string output = table.render()
+        assert string.byteLen(output) == 4 * 1024 * 1024 - 1
+        assert table.render() == output, "returned text must remain independent"
+    else
+        bool caught = false
+        try
+            table.render()
+        catch RangeError error
+            caught = true
+        end
+        assert caught, "one byte over output limit"
+    end
+    assert table.rowCount == 256 and table.colCount == 4
+    table.setHeaders([])
+    assert string.byteLen(table.render()) < 1024 * 1024, "reuse after limit failure"
+end
+
+func main(...) as int
+    checkLimit(243)
+    checkLimit(244)
+    println("tabulate render limits: PASS")
+    return 0
+end

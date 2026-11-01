@@ -1,0 +1,37 @@
+import tabulate
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func exercise(int scenario)
+    auto table = tabulate.create()
+    if scenario == 1 then table.addRow(["hello"]) end
+    if scenario == 2 then table.addRow([string.repeat("x", 4096)]) end
+    if scenario == 3 then table.addRow([string.repeat("你", 1024), "e\u0301"]) end
+    string expected = table.render()
+    // 输入、对象和预期结果预先准备；窗口只覆盖公开render的结果返回。
+    for budget in range(2)
+        string actual = "unchanged"
+        bool caught = false
+        assert failAfter(uint64(budget))
+        try
+            actual = table.render()
+        catch MemoryError error
+            caught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert caught == (budget == 0) and triggered == caught
+        if not caught then assert actual == expected end
+        assert table.render() == expected, "fault recovery and independent results"
+    end
+end
+
+func main(...) as int
+    for scenario in range(4)
+        exercise(scenario)
+    end
+    println("tabulate return budget: 8 cases PASS")
+    return 0
+end

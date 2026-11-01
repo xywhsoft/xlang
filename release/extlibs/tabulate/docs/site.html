@@ -19,6 +19,7 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / tabulate</p><h1>tabulate</h1>
     <p class="extlib-lead">用单元格数组生成纯文本终端表格。</p>
     <p>支持空单元格、逗号文本和常见中文列宽；单元格限定为单行文本，拒绝 U+00AD soft hyphen、U+2028/U+2029 行与段落分隔符、常见零宽及双向控制符，写入失败自动回滚。顶层原生对象的独立 EXE 退出清理仍有共享运行时阻断。</p>
+    <p>渲染前按列宽、缺列空白与 UTF-8 正文字节精确预检，4 MiB 限额含结尾 NUL；超限不分配输出、不改变表。成功一次预留 XRT 缓冲（容量可几何增长），公开 XLang 返回直接接管而不再复制正文。错误诊断仍可能分配；这不是全调用链零开销承诺。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>成员</th><th>用途</th></tr></thead><tbody>
@@ -33,6 +34,8 @@ tabulate.Table table = tabulate.create()
 table.setHeaders(["Name", "City"])
 table.addRow(["Alice", "北京, 中国"])
 println(table.render())</code></pre>
+    <p>新增双语 <code>examples/bounded_report.xl</code> / <code>bounded_report_c.c</code> 展示 256 行的输出限额、失败保留与缩短表头后恢复，默认仅输出摘要、不写文件。独立布局参照和完整生成函数守门见包内测试。</p>
+    <p>2026-11-02：144 个独立布局、含 NUL 的 4 MiB 临界值、八组 XLang 返回预算与双语对照通过；Linux C 含 ASan/UBSan。两平台各十份独立程序中原全局边界/分配两份仍退出失败，其余八份通过，整包保持 M2，不能按局部通过签收发布。</p>
     <p>这不是 CSV 解析器，也不承诺复杂 emoji 字素簇的精确终端宽度。C 行列计数使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。Windows/Linux 已有 C 边界、XLang 分配故障、私有原生入口负例与双语范例固定输出；Linux 另有 C sanitizer。新增的顶层 <code>Table</code> 边界独立 EXE 在退出清理时报运行时状态错误，Windows/Linux 最小复现一致，完整发布验收暂缓；<code>-SkipAot</code> 只验证 Windows C/JIT，不能代替完整门禁。C 接口、资源上限及阻断记录见包内 README。</p>
   </section>
 </main>

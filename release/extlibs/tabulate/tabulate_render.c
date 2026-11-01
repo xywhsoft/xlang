@@ -53,13 +53,32 @@ bool xtab_measure(const char* text, size_t length, size_t* width)
     return true;
 }
 
+static size_t xtab_row_extra(const xtab_row* row)
+{
+    size_t extra = 0u;
+    for (size_t column = 0u; column < row->count; ++column)
+        extra += row->cells[column].bytes - row->cells[column].width;
+    return extra;
+}
+
+static size_t xtab_output_size(const xtab_table* table)
+{
+    size_t border = 2u, total;
+    if (table->columns == 0u) return 1u;
+    for (size_t column = 0u; column < table->columns; ++column)
+        border += table->widths[column] + 3u;
+    /* 每行基数等于边框长度；UTF-8正文补上字节数与显示列数之差。
+       固定行列、单格及源文本上限使总量小于34MiB，size_t不会溢出。 */
+    total = border * (table->row_count + 2u) + 1u;
+    if (table->headers.count != 0u)
+        total += border * 2u + xtab_row_extra(&table->headers);
+    for (size_t row = 0u; row < table->row_count; ++row)
+        total += xtab_row_extra(&table->rows[row]);
+    return total;
+}
+
 static bool xtab_append(xbuffer* output, const void* data, size_t length)
 {
-    if (length == 0u) return true;
-    if (length > XTAB_MAX_OUTPUT - 1u - output->Size) {
-        xtab_error(XERR_RANGE, "rendered table exceeds 4 MiB");
-        return false;
-    }
     return xrtBufferAppend(output, (xbytesview){(cbytes)data, length});
 }
 
@@ -67,10 +86,6 @@ static bool xtab_fill(xbuffer* output, char byte, size_t count)
 {
     bytes target;
     if (count == 0u) return true;
-    if (count > XTAB_MAX_OUTPUT - 1u - output->Size) {
-        xtab_error(XERR_RANGE, "rendered table exceeds 4 MiB");
-        return false;
-    }
     target = xrtBufferAdd(output, count);
     if (target == NULL) return false;
     memset(target, byte, count);
@@ -107,13 +122,19 @@ char* xtab_render(void* handle)
     xtab_table* table = (xtab_table*)handle;
     xbuffer output;
     char* result = NULL;
-    size_t row;
+    size_t row, size;
     xrtClearError();
     if (table == NULL || table->pending_kind != 0) {
         xtab_error(XERR_VALUE, "table is null or a row is pending");
         return NULL;
     }
+    size = xtab_output_size(table);
+    if (size > XTAB_MAX_OUTPUT) {
+        xtab_error(XERR_RANGE, "rendered table exceeds 4 MiB");
+        return NULL;
+    }
     if (!xrtBufferInit(&output)) return NULL;
+    if (!xrtBufferReserve(&output, size)) goto done;
     if (table->columns != 0u) {
         if (!xtab_border(&output, table)) goto done;
         if (table->headers.count != 0u) {
