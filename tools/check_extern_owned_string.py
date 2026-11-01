@@ -128,9 +128,10 @@ def main():
     snapshot={str(f.relative_to(ROOT)):sha(f) for f in inputs if f.is_file()}
     for case,relative,sidecars,symbols in cases:
         source=ROOT/relative;prefix=work/case
+        executable=Path(str(prefix)+('.exe' if os.name=='nt' else ''))
         run(case+'-jit',[binary,'run',source,*sidecars] if args.cli else [binary,source,'run',str(prefix)+'-jit',*sidecars])
-        run(case+'-aot-build',[binary,'build',source,*sidecars,'-o',prefix] if args.cli else [binary,source,'exe',prefix,*sidecars])
-        run(case+'-aot',[prefix.with_suffix('.exe' if os.name=='nt' else '')])
+        run(case+'-aot-build',[binary,'build',source,*sidecars,'-o',executable] if args.cli else [binary,source,'exe',prefix,*sidecars])
+        run(case+'-aot',[executable])
         emit=Path(str(prefix)+'-emit')
         run(case+'-emit',[binary,'cgen',source,*sidecars,'--emit',str(emit)+'.c','--emit-header',str(emit)+'.h']
             if args.cli else [binary,source,'emit',emit,*sidecars])
@@ -190,9 +191,10 @@ def main():
                 '\nextern "owned_export_consumer" @no_raise func consumer() as bool\n',encoding='utf-8')
             extra=[*sidecars,consumer]
             run('export-C-consumer-jit',[binary,'run',entry,*extra] if args.cli else [binary,entry,'run',work/'consumer-jit',*extra])
-            run('export-C-consumer-aot-build',[binary,'build',entry,*extra,'-o',work/'consumer-aot']
+            consumer_executable=work/('consumer-aot'+('.exe' if os.name=='nt' else ''))
+            run('export-C-consumer-aot-build',[binary,'build',entry,*extra,'-o',consumer_executable]
                 if args.cli else [binary,entry,'exe',work/'consumer-aot',*extra])
-            run('export-C-consumer-aot',[(work/'consumer-aot').with_suffix('.exe' if os.name=='nt' else '')])
+            run('export-C-consumer-aot',[consumer_executable])
     negatives={
         'test/cases/bad_extern_owned_bound_compound_dynamic.xl':'no exact target identity and result ownership ABI',
         'test/cases/bad_extern_owned_bound_callback_default_constraint.xl':'typed bound method violates generic constraints',
