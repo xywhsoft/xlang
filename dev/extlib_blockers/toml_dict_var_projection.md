@@ -1,5 +1,22 @@
 # XLang 容器到 C var 的投影阻断
 
+## 当前主工作区复验（2026-11-02）
+
+Windows 默认门 72 阶段、Linux 默认门 73 阶段，除最后原中央
+`test/cases/extlib_toml.xl` 外均通过；均在语言字典传入写出器时
+报 `TypeError: TOML document root must be a dict`。各九个普通 AOT、
+新内联表失败恢复测试与 C/XLang 范例通过，不能代替这个原正例。
+
+Windows 对 `release/extlibs/toml/test/root_argument_repro.xl` 的
+`check` / `build` 仍退出 0，JIT / 独立程序均退出 1。该源先验证
+parse 返回的配置可写出，再直接传语言字面量字典，是现行最小复现。
+本轮仅修包内泄漏，不修改容器表示和桥接；建议继续按下文统一投影
+与所有权边界修主线，修后先复验原最小源，再跑完整门禁。默认门在
+首个失败处停止，后续原语言边界及文件互通未执行，不记为通过。
+证据：`docs/reports/extlib-toml-inline-cleanup-20261102.json`。
+
+## 历史定位
+
 2026-10-26 正式 `build.bat` 重建三件发布物后复验：
 `./release/xl.exe run release/extlibs/toml/test/root_argument_repro.xl`
 仍退出 1，报 `TypeError: TOML document root must be a dict`。
