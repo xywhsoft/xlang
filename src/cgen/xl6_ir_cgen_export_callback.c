@@ -49,8 +49,8 @@ static int xl6IrCgenCallbackTypeNeeded(
                target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE)) )
             continue;
         for ( p = 0; p < target->parameterCount; ++p )
-            if ( target->parameterPhysicalAbis[p] ==
-                     XL6_IR_CALL_PARAMETER_PHYSICAL_RAW_C_CALLBACK &&
+            if ( (target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_RAW_C_CALLBACK ||
+                  target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK) &&
                  target->parameterTypes[p] == type ) return 1;
     }
     return 0;

@@ -1,0 +1,27 @@
+extern "foreign_callback_widget*" class Widget @header("test/cases/foreign_decl_callback.h") @lifetime("caller")
+    native point handle
+    extern "foreign_callback_widget_value" @no_raise @nonblocking get value() as c_int
+end
+extern "foreign_callback_record" struct Record @header("test/cases/foreign_decl_callback.h")
+    c_int number
+    c_double scale
+end
+extern "foreign_callback_apply_record" func applyRecord(c_callback func(Widget, Record) as Record callback, Record input) as Record
+extern "foreign_callback_apply_pointer" func applyPointer(c_callback func(Widget?) as Widget? callback) as c_int
+
+func transform(Widget widget, Record input) as Record
+    input.number = widget.value
+    return input
+end
+func identity(Widget? widget) as Widget?
+    return widget
+end
+func main(...) as int
+    Record input = Record()
+    input.scale = c_double(2.5)
+    Record output = applyRecord(transform, input)
+    assert output.number == 71 and output.scale == c_double(2.5)
+    assert input.number == 0
+    assert applyPointer(identity) == 1
+    return 0
+end

@@ -422,6 +422,7 @@ static XL6_IrNullAbi xl6IrNullAbiFromCAbi(XL6_IrCAbi cAbi)
     case XL6_IR_C_ABI_CLOSURE_PTR:
     case XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR:
     case XL6_IR_C_ABI_STORAGE_REF_PTR:
+    case XL6_IR_C_ABI_C_FUNCTION_POINTER:
         return XL6_IR_NULL_ABI_POINTER_SENTINEL;
     default:
         return XL6_IR_NULL_ABI_NONE;
@@ -1607,6 +1608,15 @@ int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type)
     const XL6_IrType* element;
     size_t i;
     if ( pool == NULL || type == NULL ) return 0;
+    if (type->kind == XL6_IR_TYPE_C_FUNCTION_POINTER) {
+        const XL6_IrType* signature = type->paramCount == 1 && type->params ? xl6IrTypeGet(pool, type->params[0]) : NULL;
+        if (!signature || signature->kind != XL6_IR_TYPE_FUNCTION || type->returnCount) return 0;
+        type->cAbi = XL6_IR_C_ABI_C_FUNCTION_POINTER;
+        type->ownershipAbi = XL6_IR_OWNERSHIP_ABI_TRIVIAL;
+        type->nullAbi = XL6_IR_NULL_ABI_POINTER_SENTINEL;
+        int written = snprintf(type->cName, sizeof(type->cName), "xlir_raw_callback_t%u", (unsigned)type->params[0]);
+        return written > 0 && (size_t)written < sizeof(type->cName) && xl6IrTypeFinalizeErrorResultCName(pool, type);
+    }
     if (type->kind == XL6_IR_TYPE_C_ARRAY) {
         const XL6_IrType* item = type->paramCount == 1 && type->params
             ? xl6IrTypeGet(pool, type->params[0]) : NULL;
@@ -1856,6 +1866,7 @@ int xl6IrTypeFinalizeTypeValueId(XL6_IrTypePool* pool, XL6_IrType* type)
     /* Compiler-private storage carriers are not source-language type values. */
     if ( type->kind == XL6_IR_TYPE_CELL ||
          type->kind == XL6_IR_TYPE_VALUE_ITERATOR ||
+         type->kind == XL6_IR_TYPE_C_FUNCTION_POINTER ||
          type->kind == XL6_IR_TYPE_STORAGE_REF ||
          type->kind == XL6_IR_TYPE_PERSISTENCE_WIRE ||
          type->kind == XL6_IR_TYPE_TUPLE ) {
@@ -22237,6 +22248,48 @@ XL6_IrTypeId xl6IrTypeInternValueIterator(
     return (XL6_IrTypeId)module->types.count;
 }
 
+XL6_IrTypeId xl6IrCFunctionPointerForSignature(const XL6_IrModule* module, XL6_IrTypeId signature)
+{
+    if (!module) return 0;
+    for (size_t i = 0; i < module->types.count; ++i) {
+        const XL6_IrType* type = &module->types.items[i];
+        if (type->kind == XL6_IR_TYPE_C_FUNCTION_POINTER && type->cAbi == XL6_IR_C_ABI_C_FUNCTION_POINTER &&
+            type->paramCount == 1 && type->params && type->params[0] == signature) return (XL6_IrTypeId)(i + 1);
+    }
+    return 0;
+}
+
+XL6_IrTypeId xl6IrTypeInternCFunctionPointer(XL6_IrModule* module, XL6_IrTypeId signature)
+{
+    XL6_IrTypeId found = xl6IrCFunctionPointerForSignature(module, signature);
+    if (found || !xl6IrRawCCallbackSignatureSupported(module, signature)) return found;
+    const XL6_IrType* logical = xl6IrTypeGet(&module->types, signature);
+    for (size_t p = 0; p < logical->paramCount; ++p) {
+        const XL6_IrType* item = xl6IrTypeGet(&module->types, logical->params[p]);
+        if (!item || item->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+            logical->parameterAbis[p] != XL6_IR_PARAMETER_ABI_VALUE) return 0;
+    }
+    if (!xl6IrGrow((void**)&module->types.items, &module->types.capacity, module->types.count,
+            sizeof(*module->types.items))) return 0;
+    XL6_IrTypeId* params = xrtCalloc(1, sizeof(*params));
+    if (!params) return 0;
+    *params = signature;
+    XL6_IrType* item = &module->types.items[module->types.count];
+    memset(item, 0, sizeof(*item));
+    item->kind = XL6_IR_TYPE_C_FUNCTION_POINTER;
+    item->cAbi = XL6_IR_C_ABI_C_FUNCTION_POINTER;
+    item->ownershipAbi = XL6_IR_OWNERSHIP_ABI_TRIVIAL;
+    item->nullAbi = XL6_IR_NULL_ABI_POINTER_SENTINEL;
+    item->name = xrtStrDup("c-function");
+    item->params = params; item->paramCount = 1;
+    snprintf(item->cName, sizeof(item->cName), "xlir_raw_callback_t%u", (unsigned)signature);
+    if (!item->name || !xl6IrTypeFinalizeRepresentation(&module->types, item)) {
+        xrtFree(item->name); xrtFree(item->displayName); xrtFree(params); memset(item, 0, sizeof(*item)); return 0;
+    }
+    ++module->types.count;
+    return (XL6_IrTypeId)module->types.count;
+}
+
 XL6_IrTypeId xl6IrTypeInternStorageRef(
     XL6_IrModule* module, XL6_IrTypeId elementType)
 {
@@ -22631,6 +22684,47 @@ const XL6_IrCallTarget* xl6IrCallTargetGet(const XL6_IrModule* module, XL6_Symbo
     return NULL;
 }
 
+int xl6IrCFunctionAddressTargetMatches(const XL6_IrModule* module,
+    XL6_IrTypeId pointerType, XL6_SymbolId symbol)
+{
+    const XL6_IrType* pointer = xl6IrTypeGet(&module->types, pointerType);
+    const XL6_IrType* signature = pointer && pointer->kind == XL6_IR_TYPE_C_FUNCTION_POINTER &&
+        pointer->paramCount == 1 && pointer->params ? xl6IrTypeGet(&module->types, pointer->params[0]) : NULL;
+    if (!signature || !xl6IrRawCCallbackSignatureSupported(module, pointer->params[0])) return 0;
+    if (!symbol) return 1; /* A typed null callback. */
+    const XL6_IrCallTarget* target = xl6IrCallTargetGet(module, symbol);
+    const XL6_IrNode* declaration = target ? xl6IrNodeGet(module, target->declaration) : NULL;
+    if (!target || !declaration || (target->kind != XL6_IR_CALL_TARGET_INTERNAL && target->kind != XL6_IR_CALL_TARGET_EXTERN_C) ||
+        target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE || target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_NONE ||
+        target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
+        target->resultConversionAbi != XL6_IR_CALL_RESULT_CONVERSION_DIRECT ||
+        target->nativeServicesRequired || target->nativeContextAbi || target->nativeResultAbi || target->nativeArrayResultAbi ||
+        declaration->foreignCall.outputIndexPlusOne || target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
+        target->parameterCount != signature->paramCount || target->returnType != signature->callableResultType) return 0;
+    if (target->kind == XL6_IR_CALL_TARGET_INTERNAL) {
+        /* No lexical environment, receiver, argument defaults frame or coroutine. */
+        if ((declaration->sourceKind != XL6_AST_FUNC && declaration->sourceKind != XL6_AST_EXPORT_FUNC) ||
+            (declaration->parent != module->root && !(declaration->flags & XL6_AST_FLAG_STATIC))) return 0;
+    }
+    for (size_t p = 0; p < signature->paramCount; ++p) {
+        const XL6_IrType* value = xl6IrTypeGet(&module->types, signature->params[p]);
+        if (!value || value->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+            target->parameterTypes[p] != signature->params[p] || target->parameterAbis[p] != XL6_IR_PARAMETER_ABI_VALUE ||
+            target->parameterPhysicalAbis[p] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) return 0;
+    }
+    return 1;
+}
+
+XL6_IrTypeId xl6IrCallTargetPhysicalParameterType(const XL6_IrModule* module,
+    const XL6_IrCallTarget* target, size_t parameter)
+{
+    if (!target || parameter >= target->parameterCount) return 0;
+    if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK)
+        return xl6IrCFunctionPointerForSignature(module, target->parameterTypes[parameter]);
+    const XL6_IrClassField* field = xl6IrCallTargetNativeClassPhysicalField(module, target, parameter);
+    return field ? field->type : target->parameterTypes[parameter];
+}
+
 int xl6IrForeignConstRecordParameter(const XL6_IrModule* module,
     const XL6_IrCallTarget* target, size_t parameter)
 {
@@ -22641,6 +22735,18 @@ int xl6IrForeignConstRecordParameter(const XL6_IrModule* module,
         !(declaration->flags & XL6_AST_FLAG_STATIC) ? 1u : 0u;
     if (parameter < offset || parameter - offset >= 64 || parameter >= target->parameterCount) return 0;
     return (declaration->foreignCall.constRecordAddresses & (UINT64_C(1) << (parameter - offset))) != 0;
+}
+
+int xl6IrForeignStaticCallbackParameter(const XL6_IrModule* module,
+    const XL6_IrCallTarget* target, size_t parameter)
+{
+    const XL6_IrNode* declaration = target ? xl6IrNodeGet(module, target->declaration) : NULL;
+    if (!declaration || target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
+        target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE) return 0;
+    size_t offset = declaration->sourceKind == XL6_AST_NATIVE_EXTERN_FUNC &&
+        !(declaration->flags & XL6_AST_FLAG_STATIC) ? 1u : 0u;
+    if (parameter < offset || parameter - offset >= 64 || parameter >= target->parameterCount) return 0;
+    return (declaration->foreignCall.staticCallbackAddresses & (UINT64_C(1) << (parameter - offset))) != 0;
 }
 
 static int xl6IrNativeCStringResultArity(const XL6_IrCallTarget* target)
@@ -23947,7 +24053,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
         const char* expectedResultName;
         size_t j;
          if ( type->kind < XL6_IR_TYPE_BUILTIN ||
-              type->kind > XL6_IR_TYPE_C_ARRAY ||
+              type->kind > XL6_IR_TYPE_C_FUNCTION_POINTER ||
                type->collectionAbi < XL6_IR_COLLECTION_NONE ||
                type->collectionAbi > XL6_IR_COLLECTION_DICT ||
                type->persistenceValueAbi < XL6_IR_PERSISTENCE_VALUE_NONE ||
@@ -23956,7 +24062,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
                type->runtimeResourceAbi < XL6_IR_RUNTIME_RESOURCE_NONE ||
               type->runtimeResourceAbi > XL6_IR_RUNTIME_RESOURCE_SLOT_MAP ||
               type->cAbi < XL6_IR_C_ABI_UNSUPPORTED ||
-             type->cAbi > XL6_IR_C_ABI_C_ARRAY ||
+             type->cAbi > XL6_IR_C_ABI_C_FUNCTION_POINTER ||
              type->ownershipAbi < XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
              type->ownershipAbi > XL6_IR_OWNERSHIP_ABI_MANAGED ||
              type->callableErasureAbi < XL6_IR_CALLABLE_ERASURE_INVALID ||
@@ -24252,6 +24358,25 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
                  xl6IrGeneratorYieldAbiForType(pool, type->params[0]) ==
                      XL6_IR_GENERATOR_YIELD_INVALID ) return 0;
         }
+        if (type->kind == XL6_IR_TYPE_C_FUNCTION_POINTER) {
+            const XL6_IrType* signature = type->paramCount == 1 && type->params ? xl6IrTypeGet(pool, type->params[0]) : NULL;
+            char expected[64]; snprintf(expected, sizeof(expected), "xlir_raw_callback_t%u", type->params ? (unsigned)type->params[0] : 0u);
+            if (type->cAbi != XL6_IR_C_ABI_C_FUNCTION_POINTER || !signature || signature->kind != XL6_IR_TYPE_FUNCTION ||
+                type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL || type->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ||
+                type->sourceTypeId || type->abiId || type->nominalSymbol || type->typeValueId || type->returnCount ||
+                type->foreignHeader || type->foreignBase || strcmp(type->name, "c-function") || strcmp(type->cName, expected)) return 0;
+            /* Recheck the physical signature independently of its interner.
+             * An otherwise unused/NULL pointer must not admit managed arguments. */
+            for (size_t p = 0; p < signature->paramCount; ++p) {
+                const XL6_IrType* parameter = xl6IrTypeGet(pool, signature->params[p]);
+                if (!parameter || parameter->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+                    signature->parameterAbis[p] != XL6_IR_PARAMETER_ABI_VALUE) return 0;
+            }
+            if (signature->callableResultType) {
+                const XL6_IrType* result = xl6IrTypeGet(pool, signature->callableResultType);
+                if (!result || result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL) return 0;
+            }
+        } else if (type->cAbi == XL6_IR_C_ABI_C_FUNCTION_POINTER) return 0;
         if ( type->kind == XL6_IR_TYPE_STORAGE_REF ) {
             const XL6_IrType* element = type->paramCount == 1 && type->params != NULL
                 ? xl6IrTypeGet(pool, type->params[0]) : NULL;
@@ -24313,7 +24438,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
                      (type->cName[0] != '\0' && !type->foreignHeader &&
                      type->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE &&
                      !xl6IrCAbiIsAggregate(type->cAbi) &&
-                     type->cAbi != XL6_IR_C_ABI_C_ARRAY) ) return 0;
+                     type->cAbi != XL6_IR_C_ABI_C_ARRAY && type->cAbi != XL6_IR_C_ABI_C_FUNCTION_POINTER) ) return 0;
         if ( type->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE &&
              ((type->kind != XL6_IR_TYPE_CLASS && type->kind != XL6_IR_TYPE_NULLABLE) ||
                type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL) ) return 0;
@@ -24960,7 +25085,9 @@ static int xl6IrRawCCallbackTrivialValueType(const XL6_IrType* type)
 {
     if ( type == NULL ||
          type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ) return 0;
-    return type->cAbi == XL6_IR_C_ABI_BOOL ||
+    return (type->foreignHeader &&
+               (type->cAbi == XL6_IR_C_ABI_C_RECORD || type->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE)) ||
+           type->cAbi == XL6_IR_C_ABI_BOOL ||
            type->cAbi == XL6_IR_C_ABI_I64 ||
            type->cAbi == XL6_IR_C_ABI_U64 ||
            type->cAbi == XL6_IR_C_ABI_F64 ||
@@ -28974,6 +29101,7 @@ static int xl6IrBuildReachabilityFacts(
                 const XL6_IrInstruction* instruction = &module->instructions[instructionIndex];
                 if ( instruction->kind == XL6_IR_INSTR_CALL ||
                      instruction->kind == XL6_IR_INSTR_NATIVE_STATUS_OUT ||
+                     instruction->kind == XL6_IR_INSTR_C_FUNCTION_ADDRESS ||
                      instruction->kind == XL6_IR_INSTR_ASYNC_START ||
                      instruction->kind == XL6_IR_INSTR_GENERATOR_START ||
                      instruction->kind == XL6_IR_INSTR_CLOSURE_MAKE ) {
@@ -39606,6 +39734,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                    (target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC ||
                     target->kind == XL6_IR_CALL_TARGET_INTERNAL_GENERATOR)) )
                 return xl6IrDiag(diags, NULL, "XLIR call target parameter has no canonical ownership ABI");
+            if (xl6IrForeignStaticCallbackParameter(module, target, parameter) !=
+                (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK))
+                return xl6IrDiag(diags, NULL, "static C callback address disagrees with its declaration");
             if (xl6IrForeignConstRecordParameter(module, target, parameter) !=
                 (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS))
                 return xl6IrDiag(diags, NULL, "C record const address disagrees with its declaration");
@@ -39617,6 +39748,12 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       (parameterType->kind == XL6_IR_TYPE_FUNCTION || xl6IrTypeIsCOwned(parameterType))) )
                     return xl6IrDiag(diags, NULL,
                         "XLIR extern function parameter cannot use the direct closure physical ABI");
+            } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK) {
+                if (!xl6IrCFunctionPointerForSignature(module, target->parameterTypes[parameter]) ||
+                    target->parameterAbis[parameter] != XL6_IR_PARAMETER_ABI_BORROW ||
+                    target->parameterPhysicalFieldDeclarations[parameter] ||
+                    target->parameterConstraintAbis[parameter] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE)
+                    return xl6IrDiag(diags, NULL, "static C callback has no exact physical function pointer ABI");
             } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS) {
                 if (parameterType->cAbi != XL6_IR_C_ABI_C_RECORD ||
                     parameterType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
@@ -40316,14 +40453,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             : node->opcode;
         XL6_IrErrorAbi expectedOperatorErrorAbi =
             xl6IrClassifyOperatorErrorAbi(module, node);
-        if (node->foreignCall.constRecordAddresses || node->foreignCall.outputIndexPlusOne ||
+        if (node->foreignCall.constRecordAddresses || node->foreignCall.staticCallbackAddresses || node->foreignCall.outputIndexPlusOne ||
             node->foreignCall.successCode || node->foreignCall.rollbackSymbol) {
             const XL6_IrNode* params = node->childCount > 1
                 ? xl6IrNodeGet(module, module->children[node->firstChild + 1]) : NULL;
             if (node->kind != XL6_IR_NODE_FUNC_DECL ||
                 (node->sourceKind != XL6_AST_EXTERN_FUNC && node->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC) ||
                 !params || params->kind != XL6_IR_NODE_LIST ||
-                (params->childCount < 64 && (node->foreignCall.constRecordAddresses >> params->childCount)) ||
+                (params->childCount < 64 && ((node->foreignCall.constRecordAddresses | node->foreignCall.staticCallbackAddresses) >> params->childCount)) ||
                 (node->foreignCall.outputIndexPlusOne ?
                     !node->foreignCall.rollbackSymbol || node->foreignCall.outputIndexPlusOne > params->childCount + 1 :
                     node->foreignCall.successCode || node->foreignCall.rollbackSymbol))
@@ -41296,7 +41433,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      instruction->pendingFailure > module->valueCount))
                     return xl6IrDiag(diags, instructionOrigin, "XLIR pending exception restoration has no cleanup outcome");
                  if ( instruction->kind <= XL6_IR_INSTR_INVALID ||
-                instruction->kind > XL6_IR_INSTR_NATIVE_STATUS_OUT ||
+                instruction->kind > XL6_IR_INSTR_C_FUNCTION_ADDRESS ||
                        instructionOrigin == NULL ||
                        instruction->firstOperand > module->operandCount ||
                       instruction->operandCount > module->operandCount - instruction->firstOperand ||
@@ -47744,6 +47881,27 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             for ( j = function->firstInstruction;
                   j < function->firstInstruction + function->instructionCount; ++j ) {
                 const XL6_IrInstruction* instruction = &module->instructions[j];
+                if (instruction->kind == XL6_IR_INSTR_C_FUNCTION_ADDRESS) {
+                    const XL6_IrNode* source = xl6IrNodeGet(module, instruction->origin);
+                    if (!source || !instruction->result || instruction->operandCount || instruction->opcode ||
+                        instruction->runtimeOp || instruction->targetValue || instruction->calleeType || instruction->immediateText ||
+                        instruction->payloadType || instruction->sourcePayloadType || instruction->elementIndex != SIZE_MAX ||
+                        (instruction->targetSymbol ? source->namedCallableTargetSymbol != instruction->targetSymbol : source->sourceKind != XL6_AST_NULL) ||
+                        !xl6IrCFunctionAddressTargetMatches(module, instruction->type, instruction->targetSymbol))
+                        return xl6IrDiag(diags, source, "C function address has no exact resident no-raise signature");
+                    for (size_t useIndex = function->firstInstruction; useIndex < function->firstInstruction + function->instructionCount; ++useIndex) {
+                        const XL6_IrInstruction* use = &module->instructions[useIndex];
+                        if (use->targetValue == instruction->result) return xl6IrDiag(diags, source, "C function address cannot escape into a merge value");
+                        for (size_t p = 0; p < use->operandCount; ++p) {
+                            if (use->firstOperand > module->operandCount || p >= module->operandCount - use->firstOperand) return 0;
+                            if (module->operands[use->firstOperand + p] != instruction->result) continue;
+                            const XL6_IrCallTarget* sink = use->kind == XL6_IR_INSTR_CALL ? xl6IrCallTargetGet(module, use->targetSymbol) : NULL;
+                            if (!sink || p >= sink->parameterCount || sink->parameterPhysicalAbis[p] != XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK ||
+                                xl6IrCallTargetPhysicalParameterType(module, sink, p) != instruction->type)
+                                return xl6IrDiag(diags, source, "C function address only crosses its declared caller-lifetime C parameter");
+                        }
+                    }
+                }
                 if (instruction->kind == XL6_IR_INSTR_NATIVE_STATUS_OUT &&
                     !xl6IrVerifyNativeStatusOut(module, function,
                         xl6IrFunctionInstructionBlock(module, function, j), j))
@@ -48089,7 +48247,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 return xl6IrDiag(diags, NULL,
                                     "XLIR mutable call argument has no exact storage-reference ABI");
                         } else if ( argument == NULL ||
-                                    argument->type != callee->parameterTypes[operand] ) {
+                                    argument->type != xl6IrCallTargetPhysicalParameterType(module, callee, operand) ) {
                             return xl6IrDiag(diags, NULL,
                                 "XLIR call argument type does not match its parameter ABI");
                         }
@@ -48103,7 +48261,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             return xl6IrDiag(diags,
                                 xl6IrNodeGet(module, instruction->origin),
                                 "XLIR constrained raw callback operand does not terminate in a verified direct thunk or constrained caller parameter");
-                        if ( callee->parameterAbis[operand] == XL6_IR_PARAMETER_ABI_BORROW &&
+                        if ( callee->parameterPhysicalAbis[operand] != XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK &&
+                             callee->parameterAbis[operand] == XL6_IR_PARAMETER_ABI_BORROW &&
                              parameter != NULL &&
                              parameter->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
                              /* A raw-C callback operand is the already verified
@@ -49584,6 +49743,7 @@ static const char* xl6IrCallParameterPhysicalAbiName(
         return "checked-result-closure-borrow";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW: return "c-span-borrow";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS: return "const-c-record-address";
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK: return "static-c-callback";
     default: return "invalid";
     }
 }
@@ -49703,6 +49863,7 @@ static const char* xl6IrInstructionKindName(XL6_IrInstructionKind kind)
     case XL6_IR_INSTR_C_ARRAY_GET: return "c-array-get";
     case XL6_IR_INSTR_C_ARRAY_SET: return "c-array-set";
     case XL6_IR_INSTR_NATIVE_STATUS_OUT: return "native-status-out";
+    case XL6_IR_INSTR_C_FUNCTION_ADDRESS: return "c-function-address";
     case XL6_IR_INSTR_STORAGE_ADDRESS: return "storage-address";
     case XL6_IR_INSTR_RUNTIME_CALL: return "runtime-call";
     case XL6_IR_INSTR_TRAP_IF_FALSE: return "trap-if-false";
@@ -53224,8 +53385,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         xl6OutputPrintf(out, "    {\"generatorClosePointAbi\":%d,\"generatorClosePointAbiName\":\"%s\",", (int)node->generatorClosePointAbi, xl6IrGeneratorClosePointAbiName(node->generatorClosePointAbi));
         xl6OutputPrintf(out, "\"indexReceiverGate\":%d,", (int)node->indexReceiverGate);
         xl6OutputPrintf(out, "\"constructorReceiverSymbol\":%u,", (unsigned)node->constructorReceiverSymbol);
-        xl6OutputPrintf(out, "\"foreignCall\":{\"constRecordAddresses\":\"0x%016llX\",\"outputIndexPlusOne\":%u,\"successCode\":%d,\"rollbackSymbol\":%u},",
-            (unsigned long long)node->foreignCall.constRecordAddresses, (unsigned)node->foreignCall.outputIndexPlusOne,
+        xl6OutputPrintf(out, "\"foreignCall\":{\"constRecordAddresses\":\"0x%016llX\",\"staticCallbackAddresses\":\"0x%016llX\",\"outputIndexPlusOne\":%u,\"successCode\":%d,\"rollbackSymbol\":%u},",
+            (unsigned long long)node->foreignCall.constRecordAddresses, (unsigned long long)node->foreignCall.staticCallbackAddresses, (unsigned)node->foreignCall.outputIndexPlusOne,
             (int)node->foreignCall.successCode, (unsigned)node->foreignCall.rollbackSymbol);
         xl6OutputPrintf(out, "\"id\":%lu,\"kind\":%d,\"kindName\":\"%s\",\"sourceKind\":%d,\"sourceKindName\":\"%s\",\"declarationOwnerType\":%u,\"callKind\":%d,\"callKindName\":\"%s\",\"valueCategory\":%d,\"valueCategoryName\":\"%s\",\"ownership\":%d,\"ownershipName\":\"%s\",\"ownershipPlanned\":%d,\"parent\":%u,\"line\":%d,\"column\":%d,\"firstChild\":%lu,\"childCount\":%lu,\"opcode\":%d,\"opcodeName\":\"%s\",\"operatorErrorAbi\":%d,\"operatorErrorAbiName\":\"%s\",\"operatorExecutionType\":%u,\"compoundOperatorSymbol\":%u,\"operatorOperand0Abi\":%d,\"operatorOperand0AbiName\":\"%s\",\"operatorOperand1Abi\":%d,\"operatorOperand1AbiName\":\"%s\",\"castAbi\":%d,\"castAbiName\":\"%s\",\"castErrorAbi\":%d,\"castErrorAbiName\":\"%s\",\"implicitConversionRuntimeOp\":%d,\"implicitConversionRuntimeOpName\":\"%s\",\"implicitConversionErrorAbi\":%d,\"implicitConversionErrorAbiName\":\"%s\",\"implicitNameAbi\":%d,\"implicitNameAbiName\":\"%s\",\"implicitReceiverType\":%u,\"implicitFieldDeclaration\":%u,\"namedCallableAbi\":%d,\"namedCallableAbiName\":\"%s\",\"namedCallableTargetSymbol\":%u,\"namedCallableSignatureType\":%u,\"memberAbi\":%d,\"memberAbiName\":\"%s\",\"projectionErrorAbi\":%d,\"projectionErrorAbiName\":\"%s\",\"evaluationErrorAbi\":%d,\"evaluationErrorAbiName\":\"%s\",\"constructionErrorAbi\":%d,\"constructionErrorAbiName\":\"%s\",\"unionField\":%ld,\"indexWriteAbi\":%d,\"indexWriteAbiName\":\"%s\",\"indexWriteErrorAbi\":%d,\"indexWriteErrorAbiName\":\"%s\",\"loopAbi\":%d,\"loopAbiName\":\"%s\",\"loopKeyAbi\":%d,\"loopKeyAbiName\":\"%s\",\"loopItemAbi\":%d,\"loopItemAbiName\":\"%s\",\"loopKeyLifetimeAbi\":%d,\"loopKeyLifetimeAbiName\":\"%s\",\"loopItemLifetimeAbi\":%d,\"loopItemLifetimeAbiName\":\"%s\",\"loopErrorAbi\":%d,\"loopErrorAbiName\":\"%s\",\"loopResourceAbi\":%d,\"loopResourceAbiName\":\"%s\",\"loopResourceType\":%u,\"loopProtocolIterTarget\":%u,\"loopProtocolNextTarget\":%u,\"loopProtocolIterableReceiverType\":%u,\"loopProtocolIteratorReceiverType\":%u,\"loopProtocolIteratorType\":%u,\"loopProtocolNextResultType\":%u,\"loopProtocolItemType\":%u,\"type\":%u,\"storageType\":%u,\"typeValueTarget\":%u,\"symbol\":%u,\"targetSymbol\":%u,\"scopeDepth\":%u,\"region\":%u}%s\n",
                         (unsigned long)(i + 1), (int)node->kind,

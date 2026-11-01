@@ -54,6 +54,10 @@ static int xl6IrCgenVerifyDeclarations(
                       (parameterType->kind == XL6_IR_TYPE_FUNCTION || xl6IrTypeIsCOwned(parameterType))) )
                     return xl6IrCgenCallParameterDiag(diags, module, target,
                         parameter, "uses a direct closure at an extern boundary");
+            } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK) {
+                if (!xl6IrForeignStaticCallbackParameter(module, target, parameter) ||
+                    !xl6IrCFunctionPointerForSignature(module, target->parameterTypes[parameter]))
+                    return xl6IrCgenCallParameterDiag(diags, module, target, parameter, "has no static C callback signature");
             } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS) {
                 if (!xl6IrForeignConstRecordParameter(module, target, parameter) ||
                     parameterType->cAbi != XL6_IR_C_ABI_C_RECORD)

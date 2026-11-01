@@ -13573,6 +13573,12 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
     for (i = 0; i < target->parameterCount; ++i) {
         if (xl6IrForeignConstRecordParameter(module, target, i))
             target->parameterPhysicalAbis[i] = XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS;
+        if (xl6IrForeignStaticCallbackParameter(module, target, i)) {
+            if (!xl6IrTypeInternCFunctionPointer(module, target->parameterTypes[i]))
+                return xl6IrLowerDiag(ctx, declaration, "static C callback requires an exact trivial C signature without text or ownership adaptation");
+            target->parameterPhysicalAbis[i] = XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK;
+            target->parameterConstraintAbis[i] = XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE;
+        }
     }
     target->resultConversionAbi = xl6IrCallResultConversionForTarget(module, target);
     target->resultCAbi=xl6IrCallResultCAbiForTarget(target);
@@ -27976,6 +27982,21 @@ fail:
     return 0;
 }
 
+static XL6_IrValueId xl6IrLowerStaticCFunctionAddress(XL6_IrLowerContext* ctx,
+    XL6_IrNodeId origin, const XL6_IrNode* expression, XL6_IrTypeId signature)
+{
+    XL6_IrTypeId pointer = xl6IrCFunctionPointerForSignature(ctx->module, signature);
+    XL6_SymbolId symbol = expression ? expression->namedCallableTargetSymbol : 0;
+    if (!expression || !pointer ||
+        (!symbol && expression->sourceKind != XL6_AST_NULL) ||
+        !xl6IrCFunctionAddressTargetMatches(ctx->module, pointer, symbol)) {
+        xl6IrLowerDiag(ctx, origin, "static C callback requires a resident capture-free named function with an exact no-raise C ABI"); return 0;
+    }
+    XL6_IrValueId result = 0;
+    if (!xl6IrLowerEmit(ctx, XL6_IR_INSTR_C_FUNCTION_ADDRESS, origin, pointer, symbol, NULL, 0, &result)) return 0;
+    return result;
+}
+
 static XL6_IrClosureTarget* xl6IrLowerRegisterNamedAdapter(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrNode* name)
 {
@@ -31766,6 +31787,12 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                         xrtFree(operands); xrtFree(borrowedTemps);
                         return 0;
                     }
+                    continue;
+                }
+                if (target->parameterPhysicalAbis[parameterIndex] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK) {
+                    operands[parameterIndex] = xl6IrLowerStaticCFunctionAddress(ctx, argumentExprId,
+                        argumentExpr, target->parameterTypes[parameterIndex]);
+                    if (!operands[parameterIndex]) { xrtFree(operands); xrtFree(borrowedTemps); return 0; }
                     continue;
                 }
                 operands[parameterIndex] = binding != NULL

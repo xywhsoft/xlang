@@ -128,6 +128,9 @@ static int xl6IrCgenEmitInstruction(
             case XL6_IR_INSTR_FOREIGN_RESULT_ROLLBACK:
                 if (!xl6IrCgenEmitForeignResultRollback(out, module, instruction)) return 0;
                 break;
+            case XL6_IR_INSTR_C_FUNCTION_ADDRESS:
+                if (!xl6IrCgenEmitCFunctionAddress(out, module, instruction, diags)) return 0;
+                break;
             case XL6_IR_INSTR_NATIVE_STATUS_OUT:
                 if (!xl6IrCgenEmitNativeStatusOut(out, module, instruction, diags)) return 0;
                 break;

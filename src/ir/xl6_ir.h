@@ -66,7 +66,8 @@ typedef enum XL6_IrTypeKind {
      * source TypeId (params[0]). Never a source-language value or alias. */
     XL6_IR_TYPE_PERSISTENCE_WIRE,
     XL6_IR_TYPE_C_RECORD,
-    XL6_IR_TYPE_C_ARRAY
+    XL6_IR_TYPE_C_ARRAY,
+    XL6_IR_TYPE_C_FUNCTION_POINTER
 } XL6_IrTypeKind;
 
 static inline int xl6IrTypeKindIsAggregate(XL6_IrTypeKind kind)
@@ -491,7 +492,8 @@ typedef enum XL6_IrCAbi {
     XL6_IR_C_ABI_C_STRING,
     XL6_IR_C_ABI_C_BYTES,
     XL6_IR_C_ABI_C_RECORD,
-    XL6_IR_C_ABI_C_ARRAY
+    XL6_IR_C_ABI_C_ARRAY,
+    XL6_IR_C_ABI_C_FUNCTION_POINTER
 } XL6_IrCAbi;
 
 static inline int xl6IrCAbiIsAggregate(XL6_IrCAbi abi)
@@ -1216,7 +1218,8 @@ typedef enum XL6_IrInstructionKind {
     XL6_IR_INSTR_C_ARRAY_SET,
     /* One C int-returning call with one initialized pointer output. The pair
      * is (sign-extended status, raw output); admission/rollback stay in CFG. */
-    XL6_IR_INSTR_NATIVE_STATUS_OUT
+    XL6_IR_INSTR_NATIVE_STATUS_OUT,
+    XL6_IR_INSTR_C_FUNCTION_ADDRESS
 } XL6_IrInstructionKind;
 
 typedef enum XL6_IrGeneratorClosePointAbi {
@@ -4155,7 +4158,8 @@ typedef enum XL6_IrCallParameterPhysicalAbi {
      * only for this call. The resident producer owns both leases separately. */
     XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW,
     XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW,
-    XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS
+    XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS,
+    XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK
 } XL6_IrCallParameterPhysicalAbi;
 
 /* A raw C callback may cross ordinary language wrapper functions before it
@@ -7895,6 +7899,11 @@ XL6_IrModuleRetirementAbi xl6IrModuleRetirementRequirement(const XL6_IrModule* m
 XL6_IrFutureAggregateAbi xl6IrModuleFutureAggregateRequirement(const XL6_IrModule* module);
 XL6_IrNativeFutureMapAbi xl6IrModuleNativeFutureMapRequirement(const XL6_IrModule* module);
 int xl6IrModuleHasFinalizerWork(const XL6_IrModule* module);
+int xl6IrCFunctionAddressTargetMatches(const struct XL6_IrModule*, XL6_IrTypeId, XL6_SymbolId);
+XL6_IrTypeId xl6IrCallTargetPhysicalParameterType(const struct XL6_IrModule*, const XL6_IrCallTarget*, size_t);
+int xl6IrForeignStaticCallbackParameter(const struct XL6_IrModule*, const XL6_IrCallTarget*, size_t);
+XL6_IrTypeId xl6IrTypeInternCFunctionPointer(struct XL6_IrModule*, XL6_IrTypeId);
+XL6_IrTypeId xl6IrCFunctionPointerForSignature(const struct XL6_IrModule*, XL6_IrTypeId);
 int xl6IrForeignConstRecordParameter(const struct XL6_IrModule*, const XL6_IrCallTarget*, size_t);
 const XL6_IrCallTarget* xl6IrCallTargetGet(const XL6_IrModule* module, XL6_SymbolId symbol);
 XL6_IrCallResultConversionAbi xl6IrCallResultConversionForTarget(
