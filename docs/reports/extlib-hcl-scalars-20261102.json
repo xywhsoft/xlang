@@ -1,0 +1,959 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-02T00:51:21.5197298+08:00",
+  "package": "hcl",
+  "maturity": "R",
+  "status": "scalar-presence-and-memory-errors-verified-historical-linux-risk-open",
+  "originalRootRevision": "fabe7e0c6756fc7008574a7c9da0efb77356c282",
+  "integrationParent": "9e7198a3d4a248872bd077c12408ceab36d9fe57",
+  "objectiveScope": {
+    "ordinaryPackages": 100,
+    "states": {
+      "G": 30,
+      "R": 10,
+      "X": 4,
+      "M": 56
+    },
+    "goalComplete": false
+  },
+  "defects": [
+    {
+      "description": "Present empty string incorrectly succeeded as absent scalar default in integer, float and bool getters",
+      "fix": "Carry found flag through the existing complete document traversal; missing defaults and text empty strings remain valid"
+    },
+    {
+      "description": "Integer/float parser allocation failures overwritten by package ValueError",
+      "fix": "Preserve XERR_MEMORY before translating malformed scalar diagnostics"
+    }
+  ],
+  "unchanged": [
+    "12 public C signatures",
+    "XLang public signatures",
+    "missing scalar 0/false defaults",
+    "get/getRaw empty text",
+    "full-document validation",
+    "owned text allocation and transfer",
+    "no extra document traversal or result copy",
+    "compiler/runtime/XRT/TCC and installed IDE data"
+  ],
+  "regression": {
+    "liveMemoryFieldsChecked": 7,
+    "xlangAllocationBudgetProbes": 96,
+    "xlang": {
+      "path": "release/extlibs/hcl/test/scalar_values.xl",
+      "bytes": 2500,
+      "sha256": "f5e2da8ca6ea9689a6c3aa2792dde2fbbb6f850273063899f2b39af71f5e8b2d"
+    },
+    "noCaseBudgetOrKnownFailureMarkedExpectedSuccess": true,
+    "reportedQueryChecks": 188,
+    "triggeredAllocationFaults": 40,
+    "allocationSweptRows": 7,
+    "scalarCaseRows": 22,
+    "dimensions": [
+      "root/nested/comment empty strings",
+      "missing/default and actual zero/false",
+      "quoted numerics and incompatible types",
+      "whitespace and escaped whitespace",
+      "malformed tail and invalid UTF-8",
+      "invalid key and null C input",
+      "each allocation failure return/error and immediate recovery",
+      "live allocations/bytes and invalid/double/overflow/underflow/use-after-free counters"
+    ],
+    "c": {
+      "path": "release/extlibs/hcl/test/test_scalar_values.c",
+      "bytes": 7898,
+      "sha256": "5e404eeb86d8c171a285ff6a627ef22e46a7907cc5f7890630038c0291597821"
+    },
+    "scalarGetters": 3,
+    "controlInterpretation": "Old runs report 152 completed query checks and 28 failure events because each failing allocation sweep stops early; these are not 28 distinct defects. The unchanged final fixture completes 188 query checks and 40 injected allocation failures on the new implementation on both platforms."
+  },
+  "oldSource": {
+    "path": "build/test/hcl_scalar_20261102/before_native.c",
+    "bytes": 25071,
+    "sha256": "fe3d6dfb03b97a65393dd015de4db0df62c54d8edc21838ae6698ed922b5b09b"
+  },
+  "newSource": {
+    "path": "release/extlibs/hcl/hcl_native.c",
+    "bytes": 25626,
+    "sha256": "f3e7dcf3281c7c7a185dc132b6869c34e8b0722587d7b6cb8c0b8fa06543d8b7"
+  },
+  "windows": {
+    "report": {
+      "path": "build/test/hcl_scalar_20261102/windows.json",
+      "bytes": 12129,
+      "sha256": "d4e82f2f0fee941be97ed16c051d2bcd0b655d4f6c978e3112fb55e91e275149"
+    },
+    "changedDuringGate": [],
+    "inputCount": 41,
+    "inputs": {
+      "lib/xruntime/xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\test\\check_gate_diagnostics.sh": "64FCAC69C902288A67C7FE370AEC7539A70DF1FD6C91CDC39D60A78FAACDCEFC",
+      "release/include/xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\README.md": "C85B94EF1F5A8AE61544C37B5AC05A814C557B9A2713FDDC25FD4A4161A41DD3",
+      "release/examples/extlibs/hcl_c.c": "E314204937D47CCB817B75AE3547D966CB0E1015B61F9492366FBF4F13E2A495",
+      "release/include/xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\examples\\scalar_defaults_c.c": "77AF06EA902420CF71A40D72842BB181F35F9489F268F5335A0E2DF3ECD089A8",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\hcl_native.c": "F3E7DCF3281C7C7A185DC132B6869C34E8B0722587D7B6CB8C0B8FA06543D8B7",
+      "tools/run_extlib_c.ps1": "5183F14DBF4444B47D8832B60A0D6A6B570C8E933874785BEF85DD1ECB024A44",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\xlang.package.json": "372107120AA74918750064EA9A4F257B3213BF93CDB9F4577ADF38BC03D354B5",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\test\\abi_contract.c": "95F513C7D168FA4DE84A37A50C91681455472E2335A4D4E0E46336EF16DAB6EC",
+      "release/xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "test/cases/extlib_hcl.xl": "C3FF287D9CCAF266AC1CF5C3E89E66EC2D5638DB6FD4652361A48ABF0873484E",
+      "release/xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "lib/xrt/xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\src\\hcl.xl": "C5C241662AC2CA32288010C71BF579C492DE2755E607889A0F0009ABEC616EED",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\test\\check.ps1": "07B0AFF65A7C4869C7EA9C2A0368A2DD95D5EE0D6761F3DBACDD608C64F77552",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\test\\test_hcl_threads.c": "86896BD5C9AB156248388C7B3FD4EF106B76716B471B801CC893DBF3ABBAF4A3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\test\\boundaries.xl": "145705E40064808871D8580F57E656FB93734DA6B842FC37A5F8BEB861B7D88F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\test\\test_scalar_values.c": "5E404EEB86D8C171A285FF6A627EF22E46A7907CC5F7890630038C0291597821",
+      "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe": "9785001B0DCF755EDDB8AF294A373C0B87B2498660F724E76C4D53F9C217C7A3",
+      "release/xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\docs\\site.html": "27101A0062D739196D7F8DFFC791F6DB2EC07B8B70B06C8541EA4B90F9CE87FC",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\test\\check.sh": "29A4EC348161FFD16C85568F695D051E2185FF69008889A0F609E97665665053",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\test\\aot_core.xl": "C533BBB0CBFEFAD05014EFA6BF67BE1D32A8C4388D81D8AEBAD392B711A14FD3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\examples\\query_comments.xl": "984FF17AFD53176EE34E9F9856A795F550F83F30207110D2AAF1163C898D2D25",
+      "release/include/xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\test\\allocations.xl": "95417D5E650D8EC4D3C0FB5F55CD21976DEE04EEF44F51A208C6126F986B3C6A",
+      "tools/xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\test\\test_expression_strings.c": "8F6CB507DDCBEB575F87C721F8013FC2C1633EB6B4C8AC34219E3DDBCB181204",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\test\\expression_strings.xl": "2840A24A2BBFAE2C8D3E59EAF8515AD1A8357DB733BC3F837A1FEF23FF98411D",
+      "E:/software/w64devkit/bin/gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\test\\test_hcl.c": "7004DCF3F66735AFB4322D8A79538C87C1CA6A54DE5C5F18D2938C0D2DF7E605",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\examples\\query_comments_c.c": "586CE40FCD9E4D70717509F9351905805F5E98C69EEE99F1B3DF26F611D87603",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\examples\\scalar_defaults.xl": "4E59F2BF620AA8AC3D06F889F3C1848AF7743B52F8C026C075D467938EBF0220",
+      "tools/extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "release/examples/extlibs/hcl.xl": "8DB15AA5D1B91F46C1DDA70E0EDE3340EC8166FA467054372A6764E3348ACBEE",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\examples\\scalar_defaults.expected.txt": "3F5E2C66B5ECD5AE6AB4D15CA923DD91A17B8CECDA8D70C791656E87F14BF662",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\include\\hcl_native.h": "A845CD4A22B54FE0DF2B72EDBFE74BA995DC416DE89A1E3EE55A141A28B70AF4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\test\\scalar_values.xl": "F5E2DA8CA6EA9689A6C3AA2792DDE2FBBB6F850273063899F2B39AF71F5E8B2D"
+    },
+    "passed": true,
+    "postGateChanges": [
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\README.md",
+      "D:\\GIT\\x-lang\\release\\extlibs\\hcl\\docs\\site.html"
+    ],
+    "aotPrograms": 13,
+    "calls": [
+      {
+        "label": "old-compile",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-DXRT_IMPLEMENTATION",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/hcl",
+          "-DXHCL_TEST_NATIVE=\"D:/GIT/x-lang/build/test/hcl_scalar_20261102/before_native.c\"",
+          "release/extlibs/hcl/test/test_scalar_values.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\hcl_scalar_20261102/old.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 3747
+        }
+      },
+      {
+        "label": "old-run",
+        "program": "D:\\GIT\\x-lang\\build\\test\\hcl_scalar_20261102/old.exe",
+        "arguments": [],
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "HCL scalar values: 152 checks, 30 allocation faults, 28 failures\r\n",
+          "stderr": "HCL scalar mismatch: op=0 expected-error=3 actual-error=0 source=value = \"\"\r\nHCL scalar state/memory failure: op=0 source=value = \"\"\r\nHCL scalar mismatch: op=1 expected-error=3 actual-error=0 source=value = \"\"\r\nHCL scalar state/memory failure: op=1 source=value = \"\"\r\nHCL scalar mismatch: op=2 expected-error=3 actual-error=0 source=value = \"\"\r\nHCL scalar state/memory failure: op=2 source=value = \"\"\r\nHCL scalar mismatch: op=0 expected-error=3 actual-error=0 source=scope { value = \"\" }\r\nHCL scalar state/memory failure: op=0 source=scope { value = \"\" }\r\nHCL scalar mismatch: op=1 expected-error=3 actual-error=0 source=scope { value = \"\" }\r\nHCL scalar state/memory failure: op=1 source=scope { value = \"\" }\r\nHCL scalar mismatch: op=2 expected-error=3 actual-error=0 source=scope { value = \"\" }\r\nHCL scalar state/memory failure: op=2 source=scope { value = \"\" }\r\nHCL scalar mismatch: op=0 expected-error=3 actual-error=0 source=value = \"\" /* tail */\r\nother = 1\r\nHCL scalar state/memory failure: op=0 source=value = \"\" /* tail */\r\nother = 1\r\nHCL scalar mismatch: op=1 expected-error=3 actual-error=0 source=value = \"\" /* tail */\r\nother = 1\r\nHCL scalar state/memory failure: op=1 source=value = \"\" /* tail */\r\nother = 1\r\nHCL scalar mismatch: op=2 expected-error=3 actual-error=0 source=value = \"\" /* tail */\r\nother = 1\r\nHCL scalar state/memory failure: op=2 source=value = \"\" /* tail */\r\nother = 1\r\nHCL scalar mismatch: op=0 expected-error=3 actual-error=0 source=value = \"\" // tail\r\r\n\r\nHCL scalar state/memory failure: op=0 source=value = \"\" // tail\r\r\n\r\nHCL scalar mismatch: op=1 expected-error=3 actual-error=0 source=value = \"\" // tail\r\r\n\r\nHCL scalar state/memory failure: op=1 source=value = \"\" // tail\r\r\n\r\nHCL scalar mismatch: op=2 expected-error=3 actual-error=0 source=value = \"\" // tail\r\r\n\r\nHCL scalar state/memory failure: op=2 source=value = \"\" // tail\r\r\n\r\nHCL scalar mismatch: op=0 expected-error=3 actual-error=0 source=value = \"\"\r\nHCL scalar allocation failure: op=0 budget=0 triggered=1 expected=6 actual=6 source=value = \"\"\r\nHCL scalar mismatch: op=1 expected-error=3 actual-error=0 source=value = \"\"\r\nHCL scalar allocation failure: op=1 budget=0 triggered=1 expected=6 actual=6 source=value = \"\"\r\nHCL scalar mismatch: op=2 expected-error=3 actual-error=0 source=value = \"\"\r\nHCL scalar allocation failure: op=2 budget=0 triggered=1 expected=6 actual=6 source=value = \"\"\r\nHCL scalar allocation failure: op=0 budget=1 triggered=1 expected=6 actual=3 source=value = \" \"\r\nHCL scalar allocation failure: op=1 budget=1 triggered=1 expected=6 actual=3 source=value = \" \"\r\nHCL scalar allocation failure: op=0 budget=1 triggered=1 expected=6 actual=3 source=value = false\r\nHCL scalar allocation failure: op=1 budget=1 triggered=1 expected=6 actual=3 source=value = false\r\nHCL scalar allocation failure: op=0 budget=1 triggered=1 expected=6 actual=3 source=value = 1.25\r\n",
+          "elapsedMs": 35
+        }
+      },
+      {
+        "label": "new-compile",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-DXRT_IMPLEMENTATION",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/hcl",
+          "release/extlibs/hcl/test/test_scalar_values.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\hcl_scalar_20261102/new.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 3633
+        }
+      },
+      {
+        "label": "new-run",
+        "program": "D:\\GIT\\x-lang\\build\\test\\hcl_scalar_20261102/new.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HCL scalar values: 188 checks, 40 allocation faults, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 27
+        }
+      },
+      {
+        "label": "full-gate",
+        "program": "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "release/extlibs/hcl/test/check.ps1"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "HCL string/expression boundaries: 77 cases PASS\r\nHCL string/expression boundaries: 77 cases PASS\r\nHCL scalar values: 188 checks, 40 allocation faults, 0 failures\r\nport: 0\r\nmissing port: 0\r\nenabled: false\r\nratio: 1.25\r\nempty scalar: rejected\r\ntext stays empty: true\r\nHCL scalar values: 188 checks, 40 allocation faults, 0 failures\r\nhcl C smoke: PASS\r\nhcl threads: PASS\r\nhcl boundaries: ok\nhcl allocation: PASS\nHCL string/expression boundaries: 77 cases PASS\nHCL scalar values: PASS\nhcl direct string adoption: PASS\r\nhcl core AOT: PASS\r\nhcl boundaries AOT: PASS\r\nhcl allocations AOT: PASS\r\nhcl C/XLang expressions AOT: PASS\r\nhcl AOT/C example parity: PASS\r\nhcl C example AOT parity: PASS\r\nHCL scalar values: PASS\r\nHCL scalar values: 188 checks, 40 allocation faults, 0 failures\r\nport: 0\r\nmissing port: 0\r\nenabled: false\r\nratio: 1.25\r\nempty scalar: rejected\r\ntext stays empty: true\r\nport: 0\r\nmissing port: 0\r\nenabled: false\r\nratio: 1.25\r\nempty scalar: rejected\r\ntext stays empty: true\r\nhcl Windows C/XLang gate: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 24039
+        }
+      }
+    ],
+    "postGateChangesReason": "Only README and site result descriptions added after successful gate"
+  },
+  "linux": {
+    "aotPrograms": 13,
+    "phaseCount": 78,
+    "sourcesAfter": {
+      "path": "build/test/hcl_scalar_20261102/linux/after.sha256",
+      "bytes": 4922,
+      "sha256": "b974eb4cd6e4aca39abf7383be3ed3fc100a225bebcbf5bf1550045f600d3e7f"
+    },
+    "snapshot": "/var/tmp/xlang-hcl-scalars-pbEKjpzZ",
+    "sanitizer": [
+      "ASan",
+      "UBSan",
+      "leak detection"
+    ],
+    "newControl": {
+      "stderr": null,
+      "stdout": "HCL scalar values: 188 checks, 40 allocation faults, 0 failures\n",
+      "compileExit": 0,
+      "runExit": 0
+    },
+    "sourcesUnchanged": true,
+    "toolsAfter": [
+      "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc",
+      "30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1",
+      "3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash"
+    ],
+    "toolsUnchanged": true,
+    "oldControl": {
+      "stderr": "HCL scalar mismatch: op=0 expected-error=3 actual-error=0 source=value = \"\"\nHCL scalar state/memory failure: op=0 source=value = \"\"\nHCL scalar mismatch: op=1 expected-error=3 actual-error=0 source=value = \"\"\nHCL scalar state/memory failure: op=1 source=value = \"\"\nHCL scalar mismatch: op=2 expected-error=3 actual-error=0 source=value = \"\"\nHCL scalar state/memory failure: op=2 source=value = \"\"\nHCL scalar mismatch: op=0 expected-error=3 actual-error=0 source=scope { value = \"\" }\nHCL scalar state/memory failure: op=0 source=scope { value = \"\" }\nHCL scalar mismatch: op=1 expected-error=3 actual-error=0 source=scope { value = \"\" }\nHCL scalar state/memory failure: op=1 source=scope { value = \"\" }\nHCL scalar mismatch: op=2 expected-error=3 actual-error=0 source=scope { value = \"\" }\nHCL scalar state/memory failure: op=2 source=scope { value = \"\" }\nHCL scalar mismatch: op=0 expected-error=3 actual-error=0 source=value = \"\" /* tail */\nother = 1\nHCL scalar state/memory failure: op=0 source=value = \"\" /* tail */\nother = 1\nHCL scalar mismatch: op=1 expected-error=3 actual-error=0 source=value = \"\" /* tail */\nother = 1\nHCL scalar state/memory failure: op=1 source=value = \"\" /* tail */\nother = 1\nHCL scalar mismatch: op=2 expected-error=3 actual-error=0 source=value = \"\" /* tail */\nother = 1\nHCL scalar state/memory failure: op=2 source=value = \"\" /* tail */\nother = 1\nHCL scalar mismatch: op=0 expected-error=3 actual-error=0 source=value = \"\" // tail\r\n\nHCL scalar state/memory failure: op=0 source=value = \"\" // tail\r\n\nHCL scalar mismatch: op=1 expected-error=3 actual-error=0 source=value = \"\" // tail\r\n\nHCL scalar state/memory failure: op=1 source=value = \"\" // tail\r\n\nHCL scalar mismatch: op=2 expected-error=3 actual-error=0 source=value = \"\" // tail\r\n\nHCL scalar state/memory failure: op=2 source=value = \"\" // tail\r\n\nHCL scalar mismatch: op=0 expected-error=3 actual-error=0 source=value = \"\"\nHCL scalar allocation failure: op=0 budget=0 triggered=1 expected=6 actual=6 source=value = \"\"\nHCL scalar mismatch: op=1 expected-error=3 actual-error=0 source=value = \"\"\nHCL scalar allocation failure: op=1 budget=0 triggered=1 expected=6 actual=6 source=value = \"\"\nHCL scalar mismatch: op=2 expected-error=3 actual-error=0 source=value = \"\"\nHCL scalar allocation failure: op=2 budget=0 triggered=1 expected=6 actual=6 source=value = \"\"\nHCL scalar allocation failure: op=0 budget=1 triggered=1 expected=6 actual=3 source=value = \" \"\nHCL scalar allocation failure: op=1 budget=1 triggered=1 expected=6 actual=3 source=value = \" \"\nHCL scalar allocation failure: op=0 budget=1 triggered=1 expected=6 actual=3 source=value = false\nHCL scalar allocation failure: op=1 budget=1 triggered=1 expected=6 actual=3 source=value = false\nHCL scalar allocation failure: op=0 budget=1 triggered=1 expected=6 actual=3 source=value = 1.25\n",
+      "stdout": "HCL scalar values: 152 checks, 30 allocation faults, 28 failures\n",
+      "compileExit": 0,
+      "runExit": 1
+    },
+    "rawStdout": {
+      "path": "build/test/hcl_scalar_20261102/linux.stdout",
+      "bytes": 568,
+      "sha256": "a44601f2693f6300402f9dd231bd000fc1d837e8ea5aa5f6c0729c89939d845c"
+    },
+    "gateExit": 0,
+    "phases": [
+      {
+        "phase": "fingerprint",
+        "exitCode": 0
+      },
+      {
+        "phase": "compiler-info",
+        "exitCode": 0
+      },
+      {
+        "phase": "abi",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-test-compile",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-native-compile",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-test-link",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-test-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-expression-compile",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-expression-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-scalar-compile",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-scalar-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-scalar-example-compile",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-scalar-example-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "parity-scalar-gcc",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-query-compile",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-query-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "parity-query-gcc",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-threads-compile",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-threads-link",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-threads-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-example-compile",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-example-link",
+        "exitCode": 0
+      },
+      {
+        "phase": "c-example-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "jit-central",
+        "exitCode": 0
+      },
+      {
+        "phase": "jit-boundaries",
+        "exitCode": 0
+      },
+      {
+        "phase": "jit-allocations",
+        "exitCode": 0
+      },
+      {
+        "phase": "jit-expressions",
+        "exitCode": 0
+      },
+      {
+        "phase": "jit-c-expressions",
+        "exitCode": 0
+      },
+      {
+        "phase": "jit-scalars",
+        "exitCode": 0
+      },
+      {
+        "phase": "jit-c-scalars",
+        "exitCode": 0
+      },
+      {
+        "phase": "generated-c",
+        "exitCode": 0
+      },
+      {
+        "phase": "generated-abi",
+        "exitCode": 0
+      },
+      {
+        "phase": "jit-query_comments.xl",
+        "exitCode": 0
+      },
+      {
+        "phase": "parity-jit-query_comments.xl",
+        "exitCode": 0
+      },
+      {
+        "phase": "jit-query_comments_c.c",
+        "exitCode": 0
+      },
+      {
+        "phase": "parity-jit-query_comments_c.c",
+        "exitCode": 0
+      },
+      {
+        "phase": "jit-scalar_defaults.xl",
+        "exitCode": 0
+      },
+      {
+        "phase": "parity-jit-scalar_defaults.xl",
+        "exitCode": 0
+      },
+      {
+        "phase": "jit-scalar_defaults_c.c",
+        "exitCode": 0
+      },
+      {
+        "phase": "parity-jit-scalar_defaults_c.c",
+        "exitCode": 0
+      },
+      {
+        "phase": "jit-example",
+        "exitCode": 0
+      },
+      {
+        "phase": "jit-c-example",
+        "exitCode": 0
+      },
+      {
+        "phase": "parity-xl",
+        "exitCode": 0
+      },
+      {
+        "phase": "parity-direct-c",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-aot_core-build",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-aot_core-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-boundaries-build",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-boundaries-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-allocations-build",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-allocations-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-expression_strings-build",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-expression_strings-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-c-expressions-build",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-c-expressions-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-example-build",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-example-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "parity-aot-xl",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-c-example-build",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-c-example-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "parity-aot-c",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-query_comments.xl-build",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-query_comments.xl-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "parity-aot-query_comments.xl",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-query_comments_c.c-build",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-query_comments_c.c-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "parity-aot-query_comments_c.c",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-scalar_values.xl-build",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-scalar_values.xl-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-test_scalar_values.c-build",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-test_scalar_values.c-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-scalar_defaults.xl-build",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-scalar_defaults.xl-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "parity-aot-scalar_defaults.xl",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-scalar_defaults_c.c-build",
+        "exitCode": 0
+      },
+      {
+        "phase": "aot-scalar_defaults_c.c-run",
+        "exitCode": 0
+      },
+      {
+        "phase": "parity-aot-scalar_defaults_c.c",
+        "exitCode": 0
+      },
+      {
+        "phase": "fingerprint-after",
+        "exitCode": 0
+      },
+      {
+        "phase": "inputs-unchanged",
+        "exitCode": 0
+      }
+    ],
+    "frozenFiles": {
+      "release/extlibs/hcl/src/hcl.xl": "c5c241662ac2ca32288010c71bf579c492de2755e607889a0f0009abec616eed",
+      "release/include/xl_cancellation_retirement.h": "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad",
+      "release/extlibs/hcl/examples/scalar_defaults_c.c": "77af06ea902420cf71a40d72842bb181f35f9489f268f5335a0e2df3ecd089a8",
+      "release/include/xruntime_decl.h": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+      "release/extlibs/hcl/test/scalar_values.xl": "f5e2da8ca6ea9689a6c3aa2792dde2fbbb6f850273063899f2b39af71f5e8b2d",
+      "release/include/xl_foreign_net.h": "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a",
+      "release/extlibs/hcl/test/boundaries.xl": "145705e40064808871d8580f57e656fb93734da6b842fc37a5f8beb861b7d88f",
+      "release/include/xl_sync_retirement.h": "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e",
+      "release/include/xl_foreign_graph.h": "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f",
+      "release/include/xl_version.h": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992",
+      "release/extlibs/hcl/test/check.ps1": "07b0aff65a7c4869c7ea9c2a0368a2dd95d5ee0d6761f3dbacdd608c64f77552",
+      "release/extlibs/hcl/test/allocations.xl": "95417d5e650d8ec4d3c0fb5f55cd21976dee04eef44f51a208c6126f986b3c6a",
+      "release/include/xl_extlib_abi.h": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445",
+      "release/include/xl.h": "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4",
+      "release/extlibs/hcl/test/test_hcl.c": "7004dcf3f66735afb4322d8a79538c87c1ca6a54de5c5f18d2938c0d2df7e605",
+      "release/extlibs/hcl/test/abi_contract.c": "95f513c7d168fa4de84a37a50c91681455472e2335a4d4e0e46336ef16dab6ec",
+      "release/include/libtcc.h": "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab",
+      "lib/xruntime/xruntime.h": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+      "release/include/xlc.h": "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f",
+      "release/libxl.so": "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad",
+      "release/extlibs/hcl/test/check_gate_diagnostics.sh": "64fcac69c902288a67c7fe370aec7539a70df1fd6c91cdc39d60a78faacdcefc",
+      "lib/xrt/xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+      "release/examples/extlibs/hcl.xl": "8db15aa5d1b91f46c1dda70e0ede3340ec8166fa467054372a6764e3348acbee",
+      "release/extlibs/hcl/test/test_scalar_values.c": "5e404eeb86d8c171a285ff6a627ef22e46a7907cc5f7890630038c0291597821",
+      "release/extlibs/hcl/examples/scalar_defaults.expected.txt": "3f5e2c66b5ecd5ae6ab4d15ca923dd91a17b8cecda8d70c791656e87f14bf662",
+      "release/extlibs/hcl/xlang.package.json": "372107120aa74918750064ea9a4f257b3213bf93cdb9f4577adf38bc03d354b5",
+      "release/extlibs/hcl/test/test_expression_strings.c": "8f6cb507ddcbeb575f87c721f8013fc2c1633eb6b4c8ac34219e3ddbcb181204",
+      "release/extlibs/hcl/include/hcl_native.h": "a845cd4a22b54fe0df2b72edbfe74ba995dc416de89a1e3ee55a141a28b70af4",
+      "release/extlibs/hcl/hcl_native.c": "f3e7dcf3281c7c7a185dc132b6869c34e8b0722587d7b6cb8c0b8fa06543d8b7",
+      "release/extlibs/hcl/test/aot_core.xl": "c533bbb0cbfefad05014efa6bf67be1d32a8c4388d81d8aebad392b711a14fd3",
+      "release/include/xrt_decl.h": "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d",
+      "release/xl": "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb",
+      "release/extlibs/hcl/docs/site.html": "27101a0062d739196d7f8dffc791f6db2ec07b8b70b06c8541ea4b90f9ce87fc",
+      "release/extlibs/hcl/test/check.sh": "29a4ec348161ffd16c85568f695d051e2185ff69008889a0f609e97665665053",
+      "release/libxlc.so": "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386",
+      "test/cases/extlib_hcl.xl": "c3ff287d9ccaf266ac1cf5c3e89e66ec2d5638db6fd4652361a48abf0873484e",
+      "release/extlibs/hcl/README.md": "c85b94ef1f5a8ae61544c37b5ac05a814c557b9a2713fddc25fd4a4161a41dd3",
+      "release/extlibs/hcl/examples/query_comments_c.c": "586ce40fcd9e4d70717509f9351905805f5e98c69eee99f1b3df26f611d87603",
+      "release/include/tcc_builtin_vfs.h": "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2",
+      "release/include/xl_clock.h": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18",
+      "release/include/xl_package.h": "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1",
+      "release/extlibs/hcl/test/test_hcl_threads.c": "86896bd5c9ab156248388c7b3fd4ef106b76716b471b801cc893dbf3abbaf4a3",
+      "release/examples/extlibs/hcl_c.c": "e314204937d47ccb817b75ae3547d966cb0e1015b61f9492366fbf4f13e2a495",
+      "release/extlibs/hcl/examples/query_comments.xl": "984ff17afd53176ee34e9f9856a795f550f83f30207110d2aaf1163c898d2d25",
+      "release/include/xl_runtime.h": "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2",
+      "release/extlibs/hcl/test/expression_strings.xl": "2840a24a2bbfae2c8d3e59eaf8515ad1a8357db733bc3f837a1fef23ff98411d",
+      "release/include/README.md": "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770",
+      "release/extlibs/hcl/examples/scalar_defaults.xl": "4e59f2bf620aa8ac3d06f889f3c1848af7743b52f8c026c075d467938ebf0220"
+    },
+    "postGateChanges": [
+      "release/extlibs/hcl/docs/site.html",
+      "release/extlibs/hcl/README.md"
+    ],
+    "frozenFileCount": 48,
+    "rawStderr": {
+      "path": "build/test/hcl_scalar_20261102/linux.stderr",
+      "bytes": 2027,
+      "sha256": "1ba3f9d2c399831a8585ce5dc0fd1c1407f230c00ab4d952e22f4f7f33eab774"
+    },
+    "toolsBefore": [
+      "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc",
+      "30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1",
+      "3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash"
+    ],
+    "rawTrace": {
+      "path": "build/test/hcl_scalar_20261102/linux/trace.txt",
+      "bytes": 73392,
+      "sha256": "777c16c089730e0b35bba063ee4bba19a298760cb36edc9ad9a1d6c9cb2b1e59"
+    },
+    "concurrentQueries": "existing four-thread regression retained",
+    "postGateChangesReason": "Only README and site result descriptions added after frozen snapshot",
+    "sourcesBefore": {
+      "path": "build/test/hcl_scalar_20261102/linux/before.sha256",
+      "bytes": 4922,
+      "sha256": "b974eb4cd6e4aca39abf7383be3ed3fc100a225bebcbf5bf1550045f600d3e7f"
+    }
+  },
+  "bilingualExamples": {
+    "eachExampleAssertsExpectedValues": true,
+    "goldenPinnedToLF": true,
+    "executionForms": [
+      "GCC C",
+      "TCC C memory run",
+      "XLang memory run",
+      "C AOT",
+      "XLang AOT"
+    ],
+    "xlang": {
+      "path": "release/extlibs/hcl/examples/scalar_defaults.xl",
+      "bytes": 899,
+      "sha256": "4e59f2bf620aa8ac3d06f889f3c1848af7743b52f8c026c075d467938ebf0220"
+    },
+    "golden": "port: 0\nmissing port: 0\nenabled: false\nratio: 1.25\nempty scalar: rejected\ntext stays empty: true\n",
+    "expected": {
+      "path": "release/extlibs/hcl/examples/scalar_defaults.expected.txt",
+      "bytes": 97,
+      "sha256": "3f5e2c66b5ecd5ae6ab4d15ca923dd91a17b8cecda8d70c791656e87f14bf662"
+    },
+    "c": {
+      "path": "release/extlibs/hcl/examples/scalar_defaults_c.c",
+      "bytes": 1067,
+      "sha256": "77af06ea902420cf71a40d72842bb181f35f9489f268f5335a0e2df3ecd089a8"
+    }
+  },
+  "codeSize": {
+    "oldText": 10628,
+    "wholeExecutableOrThroughputClaim": false,
+    "receipt": [
+      {
+        "label": "old-object",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 475
+        }
+      },
+      {
+        "label": "new-object",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 495
+        }
+      },
+      {
+        "label": "size",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n  10628\t      0\t      0\t  10628\t   2984\tD:/GIT/x-lang/build/test/hcl_scalar_20261102/old.o\r\n  10776\t      0\t      0\t  10776\t   2a18\tD:/GIT/x-lang/build/test/hcl_scalar_20261102/new.o\r\n",
+          "stderr": "",
+          "elapsedMs": 31
+        }
+      }
+    ],
+    "deltaText": 148,
+    "newData": 0,
+    "newBss": 0,
+    "oldData": 0,
+    "oldBss": 0,
+    "measure": "GNU size, GCC -O2 COFF native object, no XRT implementation linked",
+    "newText": 10776
+  },
+  "ideCatalog": {
+    "strictBinding": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "Catalog compiler changed: xl.dll\r\n",
+      "elapsedMs": 470
+    },
+    "generationReport": {
+      "status": "passed",
+      "catalogSha256": "b60030732619be71c08f40c100aeade90d5f4f9573ede73469b38a7d569b4bf6",
+      "sourceIndexSha256": "047f1124bf18d92e9b6da0342fcd7f3622287f98308b23b698eef56b0bb7e1d1",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42",
+      "inputsUnchanged": true
+    },
+    "installed": false,
+    "sourceMaterialsAreCommittedAndCandidateIsReproducible": true,
+    "generated": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"passed\", \"catalogSha256\": \"b60030732619be71c08f40c100aeade90d5f4f9573ede73469b38a7d569b4bf6\", \"sourceIndexSha256\": \"047f1124bf18d92e9b6da0342fcd7f3622287f98308b23b698eef56b0bb7e1d1\", \"preservedNonExtensionEntries\": 6156, \"publicPackages\": 207, \"excludedPrivate\": [\"_bzip2\", \"_expat\", \"_libzip\", \"_tomlc17\", \"_xge_native\", \"_zlib\"], \"extensionEntries\": 11442, \"addedEntries\": 0, \"removedEntries\": 0, \"documents\": 145, \"availableSources\": 593, \"extensionExporterSha256\": \"5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42\", \"inputsUnchanged\": true}\r\n",
+      "stderr": "",
+      "elapsedMs": 15150
+    },
+    "reason": "Catalog compiler changed: xl.dll",
+    "freshness": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+      "stderr": "",
+      "elapsedMs": 1521
+    }
+  },
+  "deliveryByteAudit": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+    "stderr": "",
+    "elapsedMs": 1540
+  },
+  "website": {
+    "externalDeployment": false,
+    "preview": {
+      "path": "build/test/hcl_scalar_20261102/site/extlibs/hcl.html",
+      "bytes": 7733,
+      "sha256": "869e3f05a46504f25d44a7ae9880a7cc842c15e921cd37771e0b8a86e2637eda"
+    },
+    "source": {
+      "path": "release/extlibs/hcl/docs/site.html",
+      "bytes": 7733,
+      "sha256": "869e3f05a46504f25d44a7ae9880a7cc842c15e921cd37771e0b8a86e2637eda"
+    }
+  },
+  "packageFiles": [
+    {
+      "path": "release/extlibs/hcl/hcl_native.c",
+      "bytes": 25626,
+      "sha256": "f3e7dcf3281c7c7a185dc132b6869c34e8b0722587d7b6cb8c0b8fa06543d8b7"
+    },
+    {
+      "path": "release/extlibs/hcl/README.md",
+      "bytes": 22095,
+      "sha256": "5d4d305fb19bd9e55e770a857a9e70175cacbd599b8488f60e1863b467f5c539"
+    },
+    {
+      "path": "release/extlibs/hcl/xlang.package.json",
+      "bytes": 1219,
+      "sha256": "372107120aa74918750064ea9a4f257b3213bf93cdb9f4577adf38bc03d354b5"
+    },
+    {
+      "path": "release/extlibs/hcl/docs/site.html",
+      "bytes": 7733,
+      "sha256": "869e3f05a46504f25d44a7ae9880a7cc842c15e921cd37771e0b8a86e2637eda"
+    },
+    {
+      "path": "release/extlibs/hcl/examples/query_comments_c.c",
+      "bytes": 1096,
+      "sha256": "586ce40fcd9e4d70717509f9351905805f5e98c69eee99f1b3df26f611d87603"
+    },
+    {
+      "path": "release/extlibs/hcl/examples/query_comments.xl",
+      "bytes": 718,
+      "sha256": "984ff17afd53176ee34e9f9856a795f550f83f30207110d2aaf1163c898d2d25"
+    },
+    {
+      "path": "release/extlibs/hcl/examples/scalar_defaults_c.c",
+      "bytes": 1067,
+      "sha256": "77af06ea902420cf71a40d72842bb181f35f9489f268f5335a0e2df3ecd089a8"
+    },
+    {
+      "path": "release/extlibs/hcl/examples/scalar_defaults.expected.txt",
+      "bytes": 97,
+      "sha256": "3f5e2c66b5ecd5ae6ab4d15ca923dd91a17b8cecda8d70c791656e87f14bf662"
+    },
+    {
+      "path": "release/extlibs/hcl/examples/scalar_defaults.xl",
+      "bytes": 899,
+      "sha256": "4e59f2bf620aa8ac3d06f889f3c1848af7743b52f8c026c075d467938ebf0220"
+    },
+    {
+      "path": "release/extlibs/hcl/include/hcl_native.h",
+      "bytes": 1548,
+      "sha256": "a845cd4a22b54fe0df2b72edbfe74ba995dc416de89a1e3ee55a141a28b70af4"
+    },
+    {
+      "path": "release/extlibs/hcl/src/hcl.xl",
+      "bytes": 3095,
+      "sha256": "c5c241662ac2ca32288010c71bf579c492de2755e607889a0f0009abec616eed"
+    },
+    {
+      "path": "release/extlibs/hcl/test/abi_contract.c",
+      "bytes": 951,
+      "sha256": "95f513c7d168fa4de84a37a50c91681455472e2335a4d4e0e46336ef16dab6ec"
+    },
+    {
+      "path": "release/extlibs/hcl/test/allocations.xl",
+      "bytes": 1340,
+      "sha256": "95417d5e650d8ec4d3c0fb5f55cd21976dee04eef44f51a208c6126f986b3c6a"
+    },
+    {
+      "path": "release/extlibs/hcl/test/aot_core.xl",
+      "bytes": 395,
+      "sha256": "c533bbb0cbfefad05014efa6bf67be1d32a8c4388d81d8aebad392b711a14fd3"
+    },
+    {
+      "path": "release/extlibs/hcl/test/boundaries.xl",
+      "bytes": 7360,
+      "sha256": "145705e40064808871d8580f57e656fb93734da6b842fc37a5f8beb861b7d88f"
+    },
+    {
+      "path": "release/extlibs/hcl/test/check_gate_diagnostics.sh",
+      "bytes": 1796,
+      "sha256": "64fcac69c902288a67c7fe370aec7539a70df1fd6c91cdc39d60a78faacdcefc"
+    },
+    {
+      "path": "release/extlibs/hcl/test/check.ps1",
+      "bytes": 12552,
+      "sha256": "07b0aff65a7c4869c7ea9c2a0368a2dd95d5ee0d6761f3dbacdd608c64f77552"
+    },
+    {
+      "path": "release/extlibs/hcl/test/check.sh",
+      "bytes": 8325,
+      "sha256": "29a4ec348161ffd16c85568f695d051e2185ff69008889a0f609e97665665053"
+    },
+    {
+      "path": "release/extlibs/hcl/test/expression_strings.xl",
+      "bytes": 2768,
+      "sha256": "2840a24a2bbfae2c8d3e59eaf8515ad1a8357db733bc3f837a1fef23ff98411d"
+    },
+    {
+      "path": "release/extlibs/hcl/test/scalar_values.xl",
+      "bytes": 2500,
+      "sha256": "f5e2da8ca6ea9689a6c3aa2792dde2fbbb6f850273063899f2b39af71f5e8b2d"
+    },
+    {
+      "path": "release/extlibs/hcl/test/test_expression_strings.c",
+      "bytes": 6282,
+      "sha256": "8f6cb507ddcbeb575f87c721f8013fc2c1633eb6b4c8ac34219e3ddbcb181204"
+    },
+    {
+      "path": "release/extlibs/hcl/test/test_hcl_threads.c",
+      "bytes": 1399,
+      "sha256": "86896bd5c9ab156248388c7b3fd4ef106b76716b471b801cc893dbf3abbaf4a3"
+    },
+    {
+      "path": "release/extlibs/hcl/test/test_hcl.c",
+      "bytes": 19325,
+      "sha256": "7004dcf3f66735afb4322d8a79538c87c1ca6a54de5c5f18d2938c0d2df7e605"
+    },
+    {
+      "path": "release/extlibs/hcl/test/test_scalar_values.c",
+      "bytes": 7898,
+      "sha256": "5e404eeb86d8c171a285ff6a627ef22e46a7907cc5f7890630038c0291597821"
+    }
+  ],
+  "replay": {
+    "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/hcl/test/check.ps1",
+    "site": "./tools/generate_extlib_site.ps1 -Root D:/GIT/x-lang -WebsiteRoot build/test/<new-preview> -Package hcl",
+    "candidate": "python -B -X utf8 ide/tools/refresh_extensions.py --root D:/GIT/x-lang --output build/test/<new-candidate> --gcc E:/software/w64devkit/bin/gcc.exe",
+    "linux": "bash release/extlibs/hcl/test/check.sh"
+  },
+  "initialTestHarnessIssue": {
+    "receipt": {
+      "path": "build/test/hcl_scalar_20261102/windows-initial-ps5-encoding.json",
+      "bytes": 12403,
+      "sha256": "18e5917416732e34555a960d6f78ca095217b6349ab339c80bbe22fe29dd53f7"
+    },
+    "notAttributedToLanguageRuntime": true,
+    "description": "PS5 parsed non-BOM UTF-8 gate using legacy encoding; final gate explicitly UTF-8 BOM and passed"
+  },
+  "remaining": [
+    "historical Linux no-diagnostic intermittent exit cause unknown",
+    "strict IDE compiler/catalog release binding not accepted",
+    "100-package long-term goal not complete",
+    "not Terraform evaluation or full HCL conformance",
+    "no 32-bit or TSan qualification claimed"
+  ],
+  "formalRelease": false
+}
