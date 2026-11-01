@@ -1,6 +1,43 @@
 # toml
 
-## 当前状态（2026-10-30）
+## 当前状态（2026-11-02）
+
+修复内联表起始 `{` 写出失败时遗漏结束 XRT 快照迭代器的泄漏。
+输出配额不足和该字节触发缓冲扩容 OOM 均会经过这个边界；不能因为
+失败后销毁了输出缓冲，就认为输入的 backing 已释放。修复仅为该失败
+分支补齐 `xrtValueIterEnd`，不改变 API/ABI、输出、成功路径的分配和复制。
+
+新增 `test/inline_cleanup_c.c`：五种嵌套/混合/空内联表与真实容量扩容
+边界，1065 项检查、165 个输出配额、27 个实际分配故障点；每次重试
+使用原输入，对照完整字节与解析值，释放输入后检查七项内存指标。
+同夹具在旧实现下有 10 项内存平衡检查失败，修复后为零，不代表 10 个
+独立 BUG。两平台默认门禁都纳入该测试及新双语范例的 JIT/AOT；完整
+包验收仍须通过下述原语言字典正例，不能用新范例替代。
+
+### 配额失败后重试
+
+在 `release` 目录执行，默认不写文件、不改环境配置：
+
+```text
+xl run extlibs/toml/examples/output_limit.xl
+xl run extlibs/toml/examples/output_limit_c.c
+```
+
+两份范例均解析相同的混合数组配置，在内联表起始处触发 9 字节输出
+限额，然后直接使用原对象重试并校验 `worker` / `3`。期望输出：
+
+```text
+quota: rejected
+input: preserved
+retry: worker/3
+```
+
+XLang 的资源配额错误由 XRT 映射为 `RangeError`，可捕获；C 侧对应
+`XRT_TOML_ERROR_LIMIT`。示例从 `parse` 取配置是正常用法，但不作为
+语言字面量字典能跨 foreign `var` 边界写出的证明。测试、指纹与未签收项
+见根目录 `docs/reports/extlib-toml-inline-cleanup-20261102.json`。
+
+### 前轮基线与未签收项
 
 本轮修复流关闭覆盖正文 XRT 首因、绝对时间越界仍写出非法年份，以及
 私有解析器拒绝现有构造器支持的年份 0000；生产依赖补上实际使用的
@@ -8,7 +45,7 @@
 独立最小构建仅打开 manifest 的十二模块，测试运行库另加内存调试、路径与
 值图模块；不再用完整 XRT 实现掩盖缺失依赖。
 
-Windows 本轮预验的 C、日历 XLang、六个独立程序和 GCC/TCC 日历参照通过。
+前轮 Windows 预验的 C、日历 XLang、六个独立程序和 GCC/TCC 日历参照通过。
 默认门禁仍在原中央正例的语言字典传入 `stringify(var)` 时失败：
 `TypeError: TOML document root must be a dict`。原生 `parse` 返回的字典可写出，
 但不能替代语言创建的字典；这是共享 foreign `var` 投影阻断 M1，

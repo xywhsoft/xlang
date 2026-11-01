@@ -172,8 +172,10 @@ static bool __xrtTomlEncodeObjectInline(xbuffer* pOutput, const xvalue* pObject,
 
 	if ( !__xrtTomlLimitEntries(pObject, pContext, "table") ) { return false; }
 	memset(&Iterator, 0, sizeof(Iterator));
-	if ( !xrtValueIterBegin(pObject, &Iterator) ||
-		!__xrtTomlAppendText(pOutput, "{", pContext) ) {
+	if ( !xrtValueIterBegin(pObject, &Iterator) ) { return false; }
+	/* 快照取得后，连起始符写出失败也必须结束迭代。 */
+	if ( !__xrtTomlAppendText(pOutput, "{", pContext) ) {
+		xrtValueIterEnd(&Iterator);
 		return false;
 	}
 	while ( (pItem = xrtValueIterNext(&Iterator, &Key)) != NULL ) {

@@ -60,7 +60,7 @@ mapfile -t modules < <("$python" -c 'import json; print("\n".join("-D"+x for x i
 compile "${modules[@]}" -DXRT_IMPLEMENTATION release/extlibs/toml/test/manifest_probe.c -no-pie -lm -ldl -o "$work/manifest"
 run 120 "$work/manifest"
 compile -c release/extlibs/toml/test/xrt_runtime.c -o "$work/runtime.o"
-for name in test_toml ownership_bounds_c; do
+for name in test_toml ownership_bounds_c inline_cleanup_c; do
     compile "release/extlibs/toml/test/$name.c" "$work/runtime.o" -no-pie -lm -ldl -o "$work/$name"
     arguments=(); if [[ $name == test_toml ]]; then arguments=("$work/nested.toml"); fi
     run 120 "$work/$name" "${arguments[@]}" > "$work/$name.txt"
@@ -80,9 +80,10 @@ run 90 ./release/xl run "$source" -- --records > "$work/tcc.tsv"
 cmp "$work/gcc.tsv" "$work/tcc.tsv"
 run 60 "$python" release/extlibs/toml/test/check_calendar_records.py "$work/tcc.tsv"
 run 120 ./release/xl run release/extlibs/toml/test/test_toml.c
-for name in basic calendar_guard; do
+run 120 ./release/xl run release/extlibs/toml/test/inline_cleanup_c.c
+for name in basic calendar_guard output_limit; do
     source=release/examples/extlibs/toml_c.c
-    if [[ $name != basic ]]; then source=release/extlibs/toml/examples/calendar_guard_c.c; fi
+    if [[ $name != basic ]]; then source=release/extlibs/toml/examples/${name}_c.c; fi
     compile "$source" "$work/runtime.o" -no-pie -lm -ldl -o "$work/$name"
     run 90 "$work/$name" > "$work/$name.c.txt"
     run 90 ./release/xl run "$source" > "$work/$name.direct.txt"
@@ -93,6 +94,11 @@ diff -u "$work/calendar.expected" "$work/calendar_guard.c.txt"
 language=release/extlibs/toml/examples/calendar_guard.xl
 run 120 ./release/xl run "$language" > "$work/calendar.xl.txt"
 diff -u "$work/calendar.expected" "$work/calendar.xl.txt"
+sed 's/\r$//' release/extlibs/toml/examples/output_limit.expected.txt > "$work/limit.expected"
+diff -u "$work/limit.expected" "$work/output_limit.c.txt"
+limit_language=release/extlibs/toml/examples/output_limit.xl
+run 120 ./release/xl run "$limit_language" > "$work/limit.xl.txt"
+diff -u "$work/limit.expected" "$work/limit.xl.txt"
 calendar=release/extlibs/toml/test/calendar.xl
 run 120 ./release/xl run "$calendar"
 run 90 ./release/xl cgen "$language" --emit "$work/probe.c"
@@ -104,8 +110,8 @@ test "$(wc -l < "$work/abi.decls")" -eq 16
 diff -u "$work/abi.expected" "$work/abi.actual"
 printf '#include "toml_native.c"\n' > "$work/abi.c"; cat "$work/abi.decls" >> "$work/abi.c"
 compile -fsyntax-only "$work/abi.c"
-sources=(release/extlibs/toml/test/ownership_bounds_c.c release/extlibs/toml/test/test_toml.c "$calendar" "$language"
-         release/examples/extlibs/toml_c.c release/extlibs/toml/examples/calendar_guard_c.c)
+sources=(release/extlibs/toml/test/ownership_bounds_c.c release/extlibs/toml/test/test_toml.c release/extlibs/toml/test/inline_cleanup_c.c "$calendar" "$language" "$limit_language"
+         release/examples/extlibs/toml_c.c release/extlibs/toml/examples/calendar_guard_c.c release/extlibs/toml/examples/output_limit_c.c)
 index=0
 for source in "${sources[@]}"; do
     index=$((index+1)); binary="$work/aot-$index"
@@ -119,6 +125,7 @@ for source in "${sources[@]}"; do
             run 60 "$python" release/extlibs/toml/test/check_calendar_records.py "$work/aot.tsv" ;;
         */toml_c.c) diff -u "$work/basic.c.txt" "$work/aot-$index.txt" ;;
         */calendar_guard_c.c|*/calendar_guard.xl) diff -u "$work/calendar.expected" "$work/aot-$index.txt" ;;
+        */output_limit_c.c|*/output_limit.xl) diff -u "$work/limit.expected" "$work/aot-$index.txt" ;;
     esac
 done
 # 语言字典写出及原文件互通仍是必过项，不用 parse 结果替代。

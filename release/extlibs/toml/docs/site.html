@@ -83,6 +83,15 @@ bash release/extlibs/toml/test/check.sh</code></pre>
     <p>2026-10-21：C 原子保存和流写入的分配失败回归先复现错误被标为 IO，修复后均保持内存错误分类；XLang 对 <code>parse/stringify/load/save</code> 逐点注入并验证恢复。Windows 聚焦门禁、Linux C ASan/UBSan、XLang 与 <code>tomllib</code> 对照通过；完整 AOT 仍未签收。</p>
     <p>可选的 TOML 1.0 上游语料审计同时比较官方预期 JSON、Python <code>tomllib</code> 解析原文，以及本包写回后的解析值；固定语料 208 个合法与 501 个非法文件的接受结果、合法文件的可观察类型和值均一致。这不是内部 <code>xvalue</code> 每个节点的直接检查，也不替代 C/XLang 包级门禁。</p>
   </section>
+  <section id="output-recovery">
+    <h2>输出配额与失败恢复</h2>
+    <p>2026-11-02：修复内联表起始符写出失败后遗漏释放 XRT 快照的问题，覆盖配额不足和缓冲扩容内存不足，不改变公开 API、输出或成功路径的分配与复制。新 C 测试含 1065 项检查、165 个输出配额和 27 个实际分配故障点，并验证原输入可重试、完整字节和解析值一致、释放后的七项内存指标平衡。旧实现同夹具有 10 项内存检查失败，修复后为零。</p>
+    <p>在发布目录运行 <code>xl run extlibs/toml/examples/output_limit.xl</code> 或 <code>xl run extlibs/toml/examples/output_limit_c.c</code>，两者均在内联表起始处触发 9 字节配额，再用原配置重试。资源配额错误在 XLang 中为 <code>RangeError</code>，C 中为 <code>XRT_TOML_ERROR_LIMIT</code>。默认不写文件，输出均为：</p>
+    <pre><code>quota: rejected
+input: preserved
+retry: worker/3</code></pre>
+    <p>该范例使用原生 parse 返回的配置，不能代替语言自行创建字典的跨边界正例；原 foreign var 字典投影问题仍阻断完整验收，不据此宣称整包发布级。</p>
+  </section>
 </main>
 <script src="../main.js"></script>
 </body>

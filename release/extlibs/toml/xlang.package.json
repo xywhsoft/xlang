@@ -30,7 +30,7 @@
     },
     "links": [],
     "loadlibs": [],
-    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl", "test/calendar.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl", "test/calendar.xl", "examples/output_limit.xl"] },
     "dependencies": [
         {
             "name": "_tomlc17",

@@ -64,7 +64,7 @@ try {
     $runtime=Join-Path $work 'runtime.o'
     $null=Run 'selected XRT compile' $gcc ($flags+@('-c','release/extlibs/toml/test/xrt_runtime.c','-o',$runtime))
     $expected='toml ownership/calendar: 288 checks, 0 failures'
-    foreach($name in @('test_toml','ownership_bounds_c')){
+    foreach($name in @('test_toml','ownership_bounds_c','inline_cleanup_c')){
         $source="release/extlibs/toml/test/$name.c"
         $binary=Join-Path $work ($name+'.exe')
         $null=Run "$name compile" $gcc ($flags+@($source,$runtime)+$links+@('-o',$binary))
@@ -84,7 +84,8 @@ try {
     $direct=Records 'tcc' $xl @('run',$source,'--','--records')
     if($direct -cne $records){throw 'GCC/TCC calendar bytes differ'}
     $null=Run 'legacy core direct C' $xl @('run','release/extlibs/toml/test/test_toml.c')
-    $examples=@(@('release/examples/extlibs/toml_c.c','basic'),@('release/extlibs/toml/examples/calendar_guard_c.c','calendar_guard'))
+    $null=Run 'inline cleanup direct C' $xl @('run','release/extlibs/toml/test/inline_cleanup_c.c')
+    $examples=@(@('release/examples/extlibs/toml_c.c','basic'),@('release/extlibs/toml/examples/calendar_guard_c.c','calendar_guard'),@('release/extlibs/toml/examples/output_limit_c.c','output_limit'))
     $goldens=@{}
     foreach($pair in $examples){
         $binary=Join-Path $work ($pair[1]+'.exe')
@@ -92,9 +93,9 @@ try {
         $c=Run "$($pair[1]) GCC" $binary @()
         $direct=Run "$($pair[1]) direct C" $xl @('run',$pair[0])
         if($c -cne $direct){throw 'C compiler outputs differ'}
-        if($pair[1] -eq 'calendar_guard'){
-            $golden=Normalize ([IO.File]::ReadAllText((Join-Path $pkg 'examples/calendar_guard.expected.txt')))
-            if($c -cne $golden){throw 'Calendar golden differs'}
+        if($pair[1] -ne 'basic'){
+            $golden=Normalize ([IO.File]::ReadAllText((Join-Path $pkg ('examples/'+$pair[1]+'.expected.txt'))))
+            if($c -cne $golden){throw 'C example golden differs'}
         }
         $goldens[$pair[0]]=$c
     }
@@ -102,6 +103,10 @@ try {
     $goldens[$language]=$goldens['release/extlibs/toml/examples/calendar_guard_c.c']
     $output=Run 'calendar XLang golden' $xl @('run',$language)
     if($output -cne $goldens[$language]){throw 'Bilingual calendar golden differs'}
+    $limitLanguage='release/extlibs/toml/examples/output_limit.xl'
+    $goldens[$limitLanguage]=$goldens['release/extlibs/toml/examples/output_limit_c.c']
+    $output=Run 'output limit XLang golden' $xl @('run',$limitLanguage)
+    if($output -cne $goldens[$limitLanguage]){throw 'Bilingual output limit golden differs'}
     $calendar='release/extlibs/toml/test/calendar.xl'
     $null=Run 'XLang calendar boundaries' $xl @('run',$calendar)
     $probe=Join-Path $work 'probe.c'
@@ -117,7 +122,7 @@ try {
     [IO.File]::WriteAllText($abi,"#include `"toml_native.c`"`n"+($decls -join "`n"),$utf8)
     $null=Run 'sixteen actual prototypes' $gcc ($flags+@('-fsyntax-only',$abi))
     if(-not $SkipAot){
-        $sources=@($source,'release/extlibs/toml/test/test_toml.c',$calendar,$language)
+        $sources=@($source,'release/extlibs/toml/test/test_toml.c','release/extlibs/toml/test/inline_cleanup_c.c',$calendar,$language,$limitLanguage)
         foreach($pair in $examples){$sources+=$pair[0]}
         foreach($input in $sources){
             $binary=Join-Path $work (([guid]::NewGuid().ToString('N'))+'.exe')

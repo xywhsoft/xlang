@@ -1,0 +1,22 @@
+import toml
+
+func main(...) as int
+    // 混合数组中的表按内联表写出；配额不足不应破坏原配置。
+    var config = toml.parse("items = [{name = \"worker\", retries = 3}, 0]\n")
+    int rejected = 0
+    try
+        toml.stringify(config, maxOutput = 9)
+    catch RangeError error
+        assert toml.errorCode() == 5
+        rejected += 1
+    end
+    assert rejected == 1
+    string text = toml.stringify(config)
+    var restored = toml.parse(text)
+    assert restored["items"][0]["name"] == "worker"
+    assert restored["items"][0]["retries"] == 3
+    println("quota: rejected")
+    println("input: preserved")
+    println("retry: worker/3")
+    return 0
+end
