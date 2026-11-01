@@ -1043,9 +1043,6 @@ char *xbson_gen_oid(void) {
     return out;
 }
 
-void* xbson_to_hex_abi(xvalue* data) { return xbson_to_hex(data); }
-void* xbson_gen_oid_abi(void) { return xbson_gen_oid(); }
-
 /* Get BSON document length from binary var header */
 int64_t xbson_doc_length_span(xbytesview wire) {
     xrtClearError();
@@ -1090,5 +1087,3 @@ int64_t xbson_oid_time(const char *hex24) {
     }
     return (int64_t)ts;
 }
-
-void* xbson_to_hex_span_abi(xbytesview data) { return xbson_to_hex_span(data); }

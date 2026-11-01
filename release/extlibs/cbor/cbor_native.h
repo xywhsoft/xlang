@@ -27,7 +27,8 @@ void* xcbor_encode_abi(xvalue* value);
 xvalue* xcbor_decode_abi(void* data, size_t size);
 void* xcbor_encode_bytes_abi(void* data, size_t size);
 void* xcbor_decode_bytes_abi(void* data, size_t size);
-void* xcbor_to_hex_abi(void* data, size_t size);
+/* 只适配 point 的 void* 参数；拥有型文本不经过 void* 返回值中转。 */
+char* xcbor_to_hex_abi(void* data, size_t size);
 void* xcbor_from_hex_abi(const char* text);
 
 #ifdef __cplusplus

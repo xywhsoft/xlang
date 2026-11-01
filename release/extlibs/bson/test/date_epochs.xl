@@ -1,0 +1,28 @@
+import bson
+
+func main(...) as int
+    // 纪元附近保留毫秒；边界按 int64 换算能力，不把 time 限制为四位年份。
+    array<int> cases = [-9223372036854775807 - 1, -62135596800001,
+        -62135596800000, -1000, -500, -1, 0, 1, 500, 1000,
+        253402300799999, 9223309901257975807]
+    for milliseconds in cases
+        time stamp = time.fromUnixMs(milliseconds)
+        var wire = bson.encode({"when": stamp})
+        var document = bson.decode(wire)
+        assert document["when"] == stamp
+        assert time.toUnixMs(time(document["when"])) == milliseconds
+        bytes direct = bytes(wire)
+        assert bson.decode(direct)["when"] == stamp
+        assert bson.decodeAll(wire)[0]["when"] == stamp
+        assert bson.decodeAll(direct)[0]["when"] == stamp
+    end
+    bool rejected = false
+    try
+        bson.decode(Buffer.fromHex("13000000097768656e00ffffffffffffff7f00").toBytes())
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "unrepresentable wire date must not wrap"
+    println("bson date epochs: 12 time roundtrips, overflow rejected, PASS")
+    return 0
+end

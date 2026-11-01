@@ -1,7 +1,7 @@
 {
-  "revision": "3fde6da5732d54feeea4ed1b0db5b42ad0f1867c",
+  "revision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
   "dirty": false,
-  "sourceSha256": "b99013344081dd1b89839e1b4a2ec6c22b4d48f1357df7b12780be953c924be9",
+  "sourceSha256": "5ca454e42cd6c39288c3a0c15295201f3b9ee89ce8f5599c685a328b656987e1",
   "checks": [
     {
       "tool": "check_release_maturity.py",

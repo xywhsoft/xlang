@@ -1,14 +1,48 @@
 # BSON 扩展库
 
-2026-10-29 当前冻结 Windows 发布版默认门禁前36阶段满足预期：严格
+## 2026-11-01 主目录现行发布物复验
+
+当前状态为 **R：本体和完整语言链路已恢复，XRT 文件失败回滚仍有阻断**。
+原最小字典、嵌套数组/字典、全部六份包级语言测试、完整双语文件往返和
+15 份独立程序均已实跑，不再将旧 M1 当作本包当前状态；也不由此推断
+其他包的通用数组/字典投影已经修好。本轮没有修改主线或替换 XRT。
+
+- 将三条文本返回直接声明为 `@owned string`，去掉三个 `void*` 跳板和
+  `takeCstr` 中转。生成 C 的三个实际返回函数直接接管 `char*`，没有正文
+  复制；旧路径本来也已接管正文，因此本轮不声称消除了不存在的复制。
+  一次长度扫描、FFI 错误作用域、输入装箱等成本仍存在。
+- 原负毫秒 Date 的测试/范例仍按旧微秒纪元判断，数值回归出现36项失败；
+  现统一使用 AD 毫秒与 Unix 毫秒的正确换算，1080向量/72逐点 OOM全部过。
+  新56条四入口日期记录由 Python 整数/日期/小端模型独立核对，包含极值和
+  换算溢出；语言另验12个时间往返。`numeric_fields` 两份范例输出完全一致。
+- 综合教学范例不再依赖或写入固定 `build/` 文件，改用 UTF-8 独占临时
+  目录和 `finally` 清理；空工作目录运行也实际验收，不留下调用方文件。
+- Windows普通完整73阶段、Linux最终75阶段（含ASan/UBSan/泄漏检查）通过。
+  扩大到Windows共享拒绝发布 + OOM后，最终默认76阶段仅该新增必过正例
+  失败，其余75阶段符合预期；不能把前面的绿跑作为最终发布签收。
+- 固定 PyMongo 4.10.1 实跑两平台双向互通：C/XL写出相同字节、反向读取
+  UTF-8/嵌套/二进制/负毫秒Date，14个Date线格式与PyMongo双向一致。
+  Windows使用其C后端，Linux使用同版本纯Python后端；不连接数据库服务器。
+
+普通保存的Windows25组、Linux17组分配矩阵均无文件残留。然而Windows
+禁止替换的目标叠加分配故障时仍会留下临时文件：TCC与GCC的真实BSON
+保存均在14组中失败1组；不编译BSON的直接XRT对照12组也失败1组。
+旧目标和原错误保持、内存平衡，不是BSON数据损坏。修复责任与最小入口见
+[原子保存阻断](../../../dev/extlib_blockers/bson_atomic_save_cleanup.md)。
+完整摘要见 `docs/reports/extlib-bson-20261101.json`；此问题按主线约定
+记录并转交，不在包中重复实现原子写入或降低门禁标准。
+
+## 历史冻结工作树记录
+
+2026-10-29 当时冻结 Windows 发布版默认门禁前36阶段满足预期：严格
 C、边界/OOM、实际生成原型、双语数值范例及五个独立程序；第37阶段
 原中央 XLang 字典编码报 `bson: encode requires a table (var dict)`；
-最小复现在 Windows/Linux 均失败，见
-`dev/extlib_blockers/bson_encode_var_dict_projection.xl`。当前首要阻断是
+最小复现在当时 Windows/Linux 均失败，见
+`dev/extlib_blockers/bson_encode_var_dict_projection.xl`。当时首要阻断是
 共享 foreign `var` 字典投影，不是下面旧发布物的 AOT 缺符号；
 不在包内绕过，整包尚未签收发布级。
 具体双平台报告以[发布验收矩阵](../../../docs/普通扩展库发布验收矩阵_2026-10-28.md)
-和任务台账为准。下方带旧日期的结果是历史证据，不能覆盖当前的 M1。
+和任务台账为准。下方带旧日期的结果是历史证据，不能覆盖本文最新状态。
 
 ## 数值读取与错误边界
 
@@ -83,7 +117,7 @@ println(document["name"])
 
 UTF-8 字符串**值**可包含内嵌 NUL，编解码按真实字节长度保留；文档**键**是 BSON C 字符串，不能包含 NUL。两种情况均有 C/XLang 回归，不能把值的可往返性推广到键或文件路径。
 
-BSON Date 精度为毫秒，XRT `time` 精度为微秒。编码仅接受微秒值恰好为 1000 的整数倍的时间；否则报错，不做截断或四舍五入。解码超出 XRT `time` 可表示范围的 BSON Date 也会报错。
+BSON Date 是 Unix Epoch 有符号毫秒；当前 XRT `time` 是 AD Epoch 有符号毫秒，二者纪元相差 `62135596800000` 毫秒，不再进行微秒整除或精度截断。使用 `time.fromUnixMs` / `time.toUnixMs`（C 为 `xrtTimeFromUnixMs` / `xrtTimeToUnixMs`）明确转换。原始时间不人为限制为四位年份，但加减纪元发生 int64 溢出时拒绝：不可表示的线格式解码报告值错误，不能表示为 BSON Date 的原始时间编码报告范围错误，不静默回绕。
 
 `decodeAll` 读取连续 BSON 文档，整个连续流的字段/数组项合计也最多 100 万；`concat` 拼接两个文档。`concat` 只核对外层长度、终止字节与总量，不做完整结构解析或累计项数校验；拼接后的流仍可能被 `decodeAll` 按预算拒绝。不可信输入应先用 `decode` 验证。`toHex` 用于调试。`objectId` 生成 4 字节秒时间戳加 8 字节安全随机数的 12 字节 ID；不保证顺序递增。时间戳来自 XRT 时钟，超出 32 位无符号秒数范围时返回范围错误，不会静默回绕。`oidTime` 提取该时间戳。`load`/`save` 使用 XRT 文件接口，支持 UTF-8 路径。`load` 在读取前及读取中文件增长时执行 64 MiB 限额，超限保留 XRT 的 `XERR_RANGE` 错误。
 `save` 使用 XRT 原子写入；写入中途失败不会截断已有 BSON 文件。
@@ -117,14 +151,14 @@ C 接口直接依赖公开的 XRT `xvalue`，不需要 xlang 私有运行时头�
 运行包级验证：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/bson/test/check.ps1 -SkipAot
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/bson/test/check.ps1
 bash release/extlibs/bson/test/check.sh
 ```
 
-Linux 脚本使用 GCC ASan/UBSan 与泄漏检查，运行原生 C 烟测、畸形/随机字节、时钟故障与文件边界。Windows/Linux 门禁保留全部原 XLang 正例和完整双语保存/读取比较；当前这些完整语言用例在字典投影处被阻断，不能声称本轮已运行到文件对照。`coverage.tests` 登记原三份测试与新增数值测试。`-SkipAot` 仅用于 Windows 快测，不代表完整验收。早期数组/字典索引缺符号记录见 `dev/extlib_blockers/value_index_link.md`，不是当前首阻断。C/XL 范例位于 `examples/`。
+Linux 脚本使用 GCC ASan/UBSan 与泄漏检查，运行原生 C 烟测、畸形/随机字节、时钟故障与文件边界。两平台均保留全部原语言正例、完整双语保存/读取比较、15个实际原型和JIT/AOT；当前仅Windows新增的锁定发布组合仍失败。`coverage.tests` 登记原四份测试及新增拥有型文本/日期测试。`-SkipAot` 仅用于 Windows 快测，不代表完整验收。早期共享索引缺符号是历史记录，不是本包当前首阻断。C/XL范例位于 `examples/`。
 包 manifest 仅带入原生实现使用的值容器、整文件、时间、Unicode 与安全随机模块；
 同一 `test/aot_core.xl` 产物从 3,646,464 缩至 743,424 字节且运行通过。
-完整边界 AOT 仍受上述主线缺符号阻断，不能据此签收发布级别。
+上面的体积数值属于历史构建，不代表本次产物尺寸；当前15份AOT已实际通过，文件失败回滚的剩余阻断不能据此关闭。
 
 2026-10-22：C 文件 API 的逐点分配故障测试增加活动分配数/字节数
 基线核对；`load` 新增有效文件的读缓冲与解码结果故障扫描，确认内存
@@ -179,15 +213,16 @@ C/XLang 包级门禁及 Linux ASan/UBSan 下通过；完整 AOT 阻断不变。
 Windows C/XLang、双语范例、核心 AOT 与 Linux ASan/UBSan 通过；完整 AOT
 仍缺上述共享索引符号。
 
-与 [MongoDB 官方 PyMongo BSON 实现](https://www.mongodb.com/docs/languages/python/pymongo-driver/current/data-formats/bson/) 互操作的可选验证：旧构建已核对 C/xlang 范例文件一致且 PyMongo 可解码，以及反向读取64位整数、嵌套文档、数组和含 NUL/`0xFF` 的二进制。当前 M1 修复前不声称重新通过。PyMongo 只安装到 `build/test` 下的隔离环境，不进入发布包。从仓库根目录运行：
+与 [MongoDB 官方 PyMongo BSON 实现](https://www.mongodb.com/docs/languages/python/pymongo-driver/current/data-formats/bson/) 互操作的可选验证已在本次两平台实跑，包括14个全int64范围Date线格式；其中两个日期虽然是合法BSON，却不能换算为XRT时间，本包明确拒绝。PyMongo固定4.10.1，只安装到 `build/test` 隔离环境，不进入发布包。从仓库根目录运行：
 
 ```powershell
 python -m venv build\test\bson\venv
-.\build\test\bson\venv\Scripts\python.exe -m pip install pymongo==4.18.3
+.\build\test\bson\venv\Scripts\python.exe -m pip install -r release/extlibs/bson/test/requirements-external.txt
 .\release\xl.exe run release\extlibs\bson\examples\bson.xl -- build\test\bson_example_xl.bson
 .\release\xl.exe build release\extlibs\bson\examples\bson_c.c --inc-path lib\xrt --inc-path release\include -o build\test\bson_example.exe
 .\build\test\bson_example.exe build\test\bson_example_c.bson
-.\build\test\bson\venv\Scripts\python.exe release\extlibs\bson\test\check_external.py build\test\bson_example_c.bson build\test\bson_example_xl.bson build\test\bson_python.bson
+.\release\xl.exe run release\extlibs\bson\test\date_epochs_c.c | Set-Content -Encoding utf8 build\test\bson_dates.tsv
+.\build\test\bson\venv\Scripts\python.exe release\extlibs\bson\test\check_external.py build\test\bson_example_c.bson build\test\bson_example_xl.bson build\test\bson_python.bson build\test\bson_dates.tsv
 .\release\xl.exe run release\extlibs\bson\test\external_python.xl -- build\test\bson_python.bson
 .\release\xl.exe build release\extlibs\bson\test\external_python_c.c release\extlibs\bson\bson_native.c --inc-path lib\xrt --inc-path release\include -o build\test\bson_external_c.exe
 .\build\test\bson_external_c.exe build\test\bson_python.bson

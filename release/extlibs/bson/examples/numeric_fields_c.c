@@ -10,12 +10,13 @@ int main(void)
         9,'w','h','e','n',0,0x0c,0xfe,0xff,0xff,0xff,0xff,0xff,0xff, 0
     };
     xvalue* document = xbson_decode_span((xbytesview){wire, sizeof(wire)});
-    int64 small, large; double ratio; xtime time;
+    int64 small, large, unix_ms; double ratio; xtime time;
     bool ok = document != NULL && xrtGetError() == NULL &&
         xrtValueGetInt(xrtValueObjectGet(document, XRT_STR_LITERAL("small")), &small) && small == 123 &&
         xrtValueGetInt(xrtValueObjectGet(document, XRT_STR_LITERAL("large")), &large) && large == INT64_C(2147483648) &&
         xrtValueGetFloat(xrtValueObjectGet(document, XRT_STR_LITERAL("ratio")), &ratio) && ratio == 1.25 &&
-        xrtValueGetTime(xrtValueObjectGet(document, XRT_STR_LITERAL("when")), &time) && time == -500000;
+        xrtValueGetTime(xrtValueObjectGet(document, XRT_STR_LITERAL("when")), &time) &&
+        xrtTimeToUnixMs(time, &unix_ms) && unix_ms == -500;
     char* hex = ok ? xbson_to_hex_span((xbytesview){wire, sizeof(wire)}) : NULL;
     int64_t length = xbson_doc_length_span((xbytesview){wire, sizeof(wire)});
     ok = ok && hex != NULL && strlen(hex) == 120 && length == 60;

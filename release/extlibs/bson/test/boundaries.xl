@@ -106,8 +106,8 @@ func main(...) as int
     assert rejected, "document root is required"
     assert bson.decode(bson.encode({"when": time(1)}))["when"] == time(1), "millisecond date value"
     assert bson.decode(bson.encode({"when": time(-1)}))["when"] == time(-1), "millisecond date value"
-    assert bson.decode(bson.encode({"when": time(1000)}))["when"] == time(1000), "millisecond date value"
-    assert bson.decode(bson.encode({"when": time(-1000)}))["when"] == time(-1000), "millisecond date value"
+    assert bson.decode(bson.encode({"when": time.fromUnixMs(1)}))["when"] == time.fromUnixMs(1), "positive Unix millisecond"
+    assert bson.decode(bson.encode({"when": time.fromUnixMs(-1)}))["when"] == time.fromUnixMs(-1), "negative Unix millisecond"
     var deep = {}
     for level in range(63)
         deep = {"a": deep}

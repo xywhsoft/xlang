@@ -768,7 +768,7 @@ void* xcbor_encode_bytes_abi(void* data, size_t size) {
 void* xcbor_decode_bytes_abi(void* data, size_t size) {
     return xcbor_decode_bytes(data, size);
 }
-void* xcbor_to_hex_abi(void* data, size_t size) {
+char* xcbor_to_hex_abi(void* data, size_t size) {
     return xcbor_to_hex(data, size);
 }
 void* xcbor_from_hex_abi(const char* text) { return xcbor_from_hex(text); }

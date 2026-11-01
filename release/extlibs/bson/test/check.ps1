@@ -9,6 +9,9 @@ $work=Join-Path $workRoot ('run_'+[guid]::NewGuid().ToString('N'))
 $compiler=if($env:CC){$env:CC}else{'gcc'}
 $command=Get-Command $compiler -CommandType Application -ErrorAction SilentlyContinue|Select-Object -First 1
 $gcc=if($command){$command.Source}else{$compiler}
+$interpreter=if($env:PYTHON){$env:PYTHON}else{'python'}
+$command=Get-Command $interpreter -CommandType Application -ErrorAction SilentlyContinue|Select-Object -First 1
+$python=if($command){$command.Source}else{$interpreter}
 $xl=Join-Path $root 'release/xl.exe'
 . (Join-Path $root 'tools/extlib_smoke_process.ps1')
 $utf8=[Text.UTF8Encoding]::new($false)
@@ -25,12 +28,12 @@ function InputPaths {
     foreach($path in @('lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/xl.exe','release/xl.dll','release/xlc.dll',
         'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1',
         'test/cases/extlib_bson.xl','release/examples/extlibs/bson.xl')){Join-Path $root $path}
-    if(Test-Path -LiteralPath $gcc -PathType Leaf){$gcc}
+    foreach($tool in @($gcc,$python)){if(Test-Path -LiteralPath $tool -PathType Leaf){$tool}}
 }
 foreach($path in @(InputPaths|Sort-Object -Unique)){$hashes[$path]=(Get-FileHash -LiteralPath $path).Hash}
-function Run([string]$name,[string]$program,[string[]]$arguments,[int]$seconds=120,[int]$exit=0){
-    $result=Invoke-ExtlibSmokeProcess $program $arguments $root $seconds $environment
-    $checks.Add([ordered]@{name=$name;program=$program;arguments=$arguments;expectedExit=$exit;result=$result})
+function Run([string]$name,[string]$program,[string[]]$arguments,[int]$seconds=120,[int]$exit=0,[string]$directory=$root){
+    $result=Invoke-ExtlibSmokeProcess $program $arguments $directory $seconds $environment
+    $checks.Add([ordered]@{name=$name;program=$program;arguments=$arguments;workingDirectory=$directory;expectedExit=$exit;result=$result})
     if($result.exitCode -ne $exit -or $result.status -notin @('pass','fail')){
         throw "${name}: $($result.status) exit=$($result.exitCode)`n$($result.stderr)`n$($result.stdout)"
     }
@@ -51,19 +54,28 @@ try {
     $null=Run 'selected XRT compile' $gcc ($flags+@('-c','release/extlibs/bson/test/xrt_runtime.c','-o',$runtime))
     $null=Run 'native compile' $gcc ($flags+@('-c',$nativeSource,'-o',$native))
     $numericExpected='bson numeric reads: 1080 vectors, 72 OOM paths, 0 failures'
-    foreach($name in @('test_bson_smoke','test_boundaries','numeric_reads_c')){
+    foreach($name in @('test_bson_smoke','test_boundaries','numeric_reads_c','date_epochs_c')){
         $source="release/extlibs/bson/test/$name.c"
         $binary=Join-Path $work ($name+'.exe')
         $objects=@($runtime)
-        if($name -ne 'numeric_reads_c'){$objects+=$native}
+        if($name -notin @('numeric_reads_c','date_epochs_c')){$objects+=$native}
         $null=Run "$name compile" $gcc ($flags+@($source)+$objects+$links+@('-o',$binary))
         $arguments=if($name -eq 'test_boundaries'){@($work)}else{@()}
         $output=Run $name $binary $arguments
         if($name -eq 'numeric_reads_c' -and $output -cne $numericExpected){throw 'Incomplete numeric vectors'}
+        if($name -eq 'date_epochs_c'){
+            $records=Join-Path $work 'dates.tsv'
+            [IO.File]::WriteAllText($records,$output+"`n",$utf8)
+            $null=Run 'independent Date oracle' $python @('release/extlibs/bson/test/check_date_epochs.py',$records)
+        }
     }
     $numeric='release/extlibs/bson/test/numeric_reads_c.c'
     $output=Run 'numeric vectors direct C' $xl @('run',$numeric)
     if($output -cne $numericExpected){throw 'TCC numeric vectors incomplete'}
+    $dateSource='release/extlibs/bson/test/date_epochs_c.c'
+    $dateRecords=Run 'Date vectors direct C' $xl @('run',$dateSource)
+    [IO.File]::WriteAllText((Join-Path $work 'tcc-dates.tsv'),$dateRecords+"`n",$utf8)
+    $null=Run 'direct Date oracle' $python @('release/extlibs/bson/test/check_date_epochs.py',(Join-Path $work 'tcc-dates.tsv'))
     $examples=@(@('bson_c.c','basic'),@('numeric_fields_c.c','numeric_fields'))
     $goldens=@{}
     foreach($pair in $examples){
@@ -93,7 +105,7 @@ try {
     $probe=Join-Path $work 'probe.c'
     $null=Run 'complete API cgen' $xl @('cgen',$language,'--emit',$probe)
     $text=[IO.File]::ReadAllText($probe)
-    if($text -cnotmatch 'xl6_xrt_take_cstr\('){throw 'Owned hex/ObjectId strings no longer adopted'}
+    $null=Run 'three direct owned result paths' $python @('release/extlibs/bson/test/check_owned_codegen.py',$probe)
     $decls=@($text -split "`r?`n"|Where-Object{$_ -match '^extern .*\bxbson_[a-z_]+\('}|Sort-Object -Unique)
     $actual=@([regex]::Matches(($decls -join "`n"),'\bxbson_[a-z_]+(?=\()')|ForEach-Object Value|Sort-Object -Unique)
     $binding=[IO.File]::ReadAllText((Join-Path $pkg 'src/bson.xl'))
@@ -103,7 +115,7 @@ try {
     [IO.File]::WriteAllText($abi,"#include `"bson_native.c`"`n"+($decls -join "`n"),$utf8)
     $null=Run 'fifteen actual prototypes' $gcc ($flags+@('-fsyntax-only',$abi))
     if(-not $SkipAot){
-        $sources=@($numeric,$paths,$language)
+        $sources=@($numeric,$dateSource,$paths,$language)
         foreach($pair in $examples){$sources+='release/extlibs/bson/examples/'+$pair[0]}
         foreach($source in $sources){
             $binary=Join-Path $work (([guid]::NewGuid().ToString('N'))+'.exe')
@@ -111,12 +123,14 @@ try {
             $output=Run "$source AOT" $binary @()
             if($goldens.ContainsKey($source) -and $output -cne $goldens[$source]){throw 'AOT golden differs'}
             if($source -eq $numeric -and $output -cne $numericExpected){throw 'AOT numeric vectors incomplete'}
+            if($source -eq $dateSource -and $output -cne $dateRecords){throw 'AOT Date vectors differ'}
         }
     }
     # 原始语言字典始终必过；外部 bytes 解码成功不代替语言字典编码能力。
     foreach($source in @('test/cases/extlib_bson.xl','release/extlibs/bson/test/aot_core.xl',
         'release/extlibs/bson/test/boundaries.xl','release/extlibs/bson/test/bson_test.xl',
-        'release/extlibs/bson/test/allocations.xl','release/extlibs/bson/examples/bson.xl','release/examples/extlibs/bson.xl')){
+        'release/extlibs/bson/test/allocations.xl','release/extlibs/bson/test/owned_text.xl',
+        'release/extlibs/bson/test/date_epochs.xl','release/extlibs/bson/examples/bson.xl','release/examples/extlibs/bson.xl')){
         $output=Run "$source complete JIT" $xl @('run',$source)
         if($source -eq 'release/extlibs/bson/examples/bson.xl' -and $output -cne $goldens['release/extlibs/bson/examples/bson_c.c']){
             throw 'Complete bilingual output differs'
@@ -131,6 +145,17 @@ try {
     $output=Run 'XLang save/load example' $xl @('run','release/extlibs/bson/examples/bson.xl','--',$xlFile)
     if($output -cne ($goldens['release/extlibs/bson/examples/bson_c.c']+"`nfile=ok") -or
         (Get-FileHash -LiteralPath $cFile).Hash -cne (Get-FileHash -LiteralPath $xlFile).Hash){throw 'Saved bilingual files differ'}
+    $empty=Join-Path $work 'empty-cwd'
+    [IO.Directory]::CreateDirectory($empty)|Out-Null
+    $output=Run 'comprehensive example in empty cwd' $xl @('run',(Join-Path $root 'release/examples/extlibs/bson.xl')) 120 0 $empty
+    if(!$output.EndsWith('bson example: PASS') -or @(Get-ChildItem -LiteralPath $empty -Force).Count){
+        throw 'Comprehensive example did not complete or wrote into the caller directory'
+    }
+    # 关闭后的发布失败 + OOM 仍必须清理临时文件，不降为预期失败以换取绿灯。
+    $cleanup=Join-Path $work 'save-cleanup.exe'
+    $null=Run 'save cleanup C compile' $gcc ($flags+@('release/extlibs/bson/test/save_cleanup_c.c',$runtime)+$links+@('-o',$cleanup))
+    $null=Run 'ordinary save allocation cleanup' $cleanup @()
+    $null=Run 'locked publish allocation cleanup' $cleanup @('--locked')
     $outcome='passed'
 } catch {$failure=$_.Exception.Message;throw} finally {
     Pop-Location

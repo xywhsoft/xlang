@@ -68,7 +68,8 @@ try {
     $null = Run 'Python binary16 oracle' $python @('release/extlibs/cbor/test/check_half.py',$half)
     $output = Run 'wire checks direct C' $xl @('run','release/extlibs/cbor/test/wellformed_c.c')
     if ($output -cne 'cbor well-formedness: 2591 checks, 0 failures') { throw 'TCC wire checks differ' }
-    $sources = @('release/extlibs/cbor/test/aot_core.xl','release/extlibs/cbor/test/wellformed.xl')
+    $sources = @('release/extlibs/cbor/test/aot_core.xl','release/extlibs/cbor/test/wellformed.xl',
+        'release/extlibs/cbor/test/owned_text.xl')
     foreach ($source in $sources) { $null = Run "$source JIT" $xl @('run',$source) }
 
     foreach ($pair in @(@('release/extlibs/cbor/examples/cbor_c.c','',$golden),
@@ -87,6 +88,7 @@ try {
     }
     $probe = Join-Path $work 'probe.c'
     $null = Run 'complete API cgen' $xl @('cgen','release/extlibs/cbor/examples/validate_wire.xl','--emit',$probe)
+    $null = Run 'direct owned result path' $python @('release/extlibs/cbor/test/check_owned_codegen.py',$probe)
     $text = [IO.File]::ReadAllText($probe)
     $decls = @($text -split "`r?`n" | Where-Object { $_ -match '^extern .*\bxcbor_[a-z_]+\(' } | Sort-Object -Unique)
     $expected = @('xcbor_decode_abi','xcbor_decode_bytes_abi','xcbor_encode_abi','xcbor_encode_bytes_abi',

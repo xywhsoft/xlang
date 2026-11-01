@@ -73,7 +73,8 @@ run 90 "$work/wellformed_c" --half-records > "$work/half.tsv"
 run 30 "$python" release/extlibs/cbor/test/check_half.py "$work/half.tsv"
 run 120 ./release/xl run release/extlibs/cbor/test/wellformed_c.c > "$work/wire.direct"
 diff -u "$work/checks.expected" "$work/wire.direct"
-sources=(release/extlibs/cbor/test/aot_core.xl release/extlibs/cbor/test/wellformed.xl)
+sources=(release/extlibs/cbor/test/aot_core.xl release/extlibs/cbor/test/wellformed.xl
+    release/extlibs/cbor/test/owned_text.xl)
 for source in "${sources[@]}"; do run 120 ./release/xl run "$source"; done
 for name in old wire; do
     objects=("$work/runtime.o")
@@ -93,6 +94,7 @@ done
 run 90 ./release/xl run release/extlibs/cbor/examples/validate_wire.xl > "$work/wire.xl.txt"
 diff -u "$work/wire.expected" "$work/wire.xl.txt"
 run 90 ./release/xl cgen release/extlibs/cbor/examples/validate_wire.xl --emit "$work/probe.c"
+run 30 "$python" release/extlibs/cbor/test/check_owned_codegen.py "$work/probe.c"
 grep -E '^extern .*xcbor_[a-z_]+[(]' "$work/probe.c" | sort -u > "$work/abi.decls"
 grep -oE 'xcbor_[a-z_]+[(]' "$work/abi.decls" | tr -d '(' | sort -u > "$work/abi.actual"
 printf '%s\n' xcbor_decode_abi xcbor_decode_bytes_abi xcbor_encode_abi xcbor_encode_bytes_abi \

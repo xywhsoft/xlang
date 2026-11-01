@@ -87,7 +87,8 @@ static bool number_ok(xvalue* value, unsigned kind)
 {
     int64 integer; double real; xtime time;
     if (kind == 0) return xrtValueGetFloat(value, &real) && real == 1.25;
-    if (kind == 3) return xrtValueGetTime(value, &time) && time == -500000;
+    /* Unix -500 毫秒对应 AD 毫秒；不用旧微秒纪元解释同一份线格式。 */
+    if (kind == 3) return xrtValueGetTime(value, &time) && time == INT64_C(62135596799500);
     return xrtValueGetInt(value, &integer) && integer == (kind == 1 ? INT32_MAX : INT64_MIN);
 }
 

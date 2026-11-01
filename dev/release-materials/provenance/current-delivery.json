@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "date": "2026-10-31",
+  "date": "2026-11-01",
   "primaryDirectory": "D:/GIT/x-lang",
   "deliveryDirectory": "release",
   "externalPublishPerformed": false,
@@ -20,18 +20,29 @@
     "extensionSourceRevision": "8806c6b6f642e7e532fb16801246b2e6318a70ca"
   },
   "compiler": {
-    "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
+    "sourceRevision": "44ac8a20b5e3a2e6a85bd9e7d71999c39a422633",
     "version": "0.6.0",
-    "sourceDirectoriesUnchanged": [
-      "src",
-      "lib",
-      "include",
-      "release/include"
-    ],
     "originalAcceptance": "docs/reports/prerelease-0.6.0.json",
-    "rebuiltThisDelivery": false,
+    "rebuiltThisDelivery": true,
     "entireAcceptanceRerunThisDelivery": false,
-    "reusedQualifiedProducts": true
+    "reusedQualifiedProducts": false,
+    "xrtRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
+    "currentBuildProvenance": "dev/release-materials/provenance/xrt-unification-20261101.json",
+    "optimization": "-O2",
+    "previousDeliveryCompiler": {
+      "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
+      "version": "0.6.0",
+      "sourceDirectoriesUnchanged": [
+        "src",
+        "lib",
+        "include",
+        "release/include"
+      ],
+      "originalAcceptance": "docs/reports/prerelease-0.6.0.json",
+      "rebuiltThisDelivery": false,
+      "entireAcceptanceRerunThisDelivery": false,
+      "reusedQualifiedProducts": true
+    }
   },
   "ide": {
     "languageServer": "Native xlang-ls 0.100 is unchanged. The default IDE disables C LSP and excludes clangd; see dev/release-materials/provenance/ide-c-lsp-disabled-20261031.json.",
@@ -3091,37 +3102,37 @@
       "sha256": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05",
       "bytes": 71168,
       "path": "release/xl.exe",
-      "origin": "accepted-0.6.0-no-runtime-source-change"
+      "origin": "xrt-unification-20261101-targeted-accepted"
     },
     {
-      "sha256": "2e3559673defc88f6f6e35c03bdf9980b9876405c7086a36a9ddf75de6242feb",
-      "bytes": 14186496,
+      "sha256": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930",
+      "bytes": 14188544,
       "path": "release/xl.dll",
-      "origin": "accepted-0.6.0-no-runtime-source-change"
+      "origin": "xrt-unification-20261101-targeted-accepted"
     },
     {
-      "sha256": "c36441758b31e6c500ee31534474eed8e7a408b272fcc189da802c533f895d7a",
-      "bytes": 19487232,
+      "sha256": "27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334",
+      "bytes": 19489280,
       "path": "release/xlc.dll",
-      "origin": "accepted-0.6.0-no-runtime-source-change"
+      "origin": "xrt-unification-20261101-targeted-accepted"
     },
     {
       "sha256": "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb",
       "bytes": 47224,
       "path": "release/xl",
-      "origin": "accepted-0.6.0-no-runtime-source-change"
+      "origin": "xrt-unification-20261101-targeted-accepted"
     },
     {
-      "sha256": "b3b895b1975511024aeb733c67de6f1253ba3124dae12b507cd0a93559387afc",
+      "sha256": "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad",
       "bytes": 15595216,
       "path": "release/libxl.so",
-      "origin": "accepted-0.6.0-no-runtime-source-change"
+      "origin": "xrt-unification-20261101-targeted-accepted"
     },
     {
-      "sha256": "5d1b101247ce40fde0aa4ad29b0c023f614562f9582da70871de62e7895b4e4c",
+      "sha256": "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386",
       "bytes": 21022672,
       "path": "release/libxlc.so",
-      "origin": "accepted-0.6.0-no-runtime-source-change"
+      "origin": "xrt-unification-20261101-targeted-accepted"
     },
     {
       "sha256": "7161917bc86ab1675577e90397620014f18c4326bc53eec27d00c32f8b7c8c29",
@@ -3256,11 +3267,20 @@
       "status": "passed",
       "report": "docs/reports/release-materials-migration-20261031.json",
       "consoleFrontend": false
+    },
+    "xrtVersionUnification": {
+      "status": "passed-targeted-validation",
+      "provenance": "dev/release-materials/provenance/xrt-unification-20261101.json",
+      "fullSuiteExecuted": false,
+      "windowsStages": 38,
+      "linuxStages": 38,
+      "xgeTests": 7
     }
   },
   "remaining": {
     "toml": "Existing M1 foreign dict/var projection blocks the original central TOML JIT case: TypeError: TOML document root must be a dict. New C and XLang calendar boundary tests pass.",
-    "concurrentChanges": "Existing compiler and unrelated example work preserved; current GUI identities and focused validation limits are recorded by component provenance."
+    "concurrentChanges": "Existing compiler and unrelated example work preserved; current GUI identities and focused validation limits are recorded by component provenance.",
+    "xrtProviderDeduplication": "Next phase: XGE host-XRT provider and matching xlang IDE SDK deployment; this source-version update does not yet remove runtime instances."
   },
   "persistence": {
     "ignoredBuildArtifactsRequiredForUsingRelease": false,

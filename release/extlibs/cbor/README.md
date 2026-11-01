@@ -1,5 +1,31 @@
 # cbor
 
+## 2026-11-01 主目录与字符串返回收口
+
+使用主目录现行0.6.0发布物复验，原数组、字典、嵌套容器和完整Windows
+门禁已恢复；下方2026-10-29及更早的M1/缺符号记录是历史，不代表当前
+首个阻断。两平台最终结果和精确输入指纹见
+`docs/reports/extlib-cbor-20261101.json`，不能外推其他包的容器链路。
+
+`toHex(Buffer)`直接接管拥有型`char*`，不再调用`takeCstr`中转。常规C
+接口仍为`xcbor_to_hex(const void*, size_t)`；保留现有point参数适配函数，
+使生成的`void*`原型与真实C声明严格匹配。该适配只转发、不扫描或复制
+正文。旧路径也已接管正文，本轮只简化返回链路，不虚构消除了旧复制，
+也不宣称整个FFI零开销；长度扫描和错误作用域等仍存在。
+
+默认门禁新增`test/owned_text.xl`的空/非空返回、输入清空后的旧结果
+寿命、反复调用、逐点OOM与恢复，并检查实际生成函数的直接接管路径。
+八个生成C原型仍须通过真实公开头检查，原六个API的边界、全半精度
+位形对照、语言容器测试和双语JIT/AOT均保留为必过项。
+
+时间值使用XRT的AD毫秒，不是Unix微秒。tag1的浮点秒按最近毫秒取整，
+半毫秒远离零；tag0文本由XRT解析，编码也复用XRT RFC3339能力。
+超过XRT支持的时间范围会拒绝，不能承诺任意CBOR时间无损映射。
+完整模型/限额合同见下方正文。命令目录已纳入本轮刷新候选，但全局
+主线/发布绑定校验仍待并行XRT同步收口，未跳过守门安装候选。
+
+## 历史线格式审计
+
 2026-10-29 严格线格式审计：按 [RFC 8949 第3节与附录F](https://www.rfc-editor.org/rfc/rfc8949.html#appendix-F)
 修复三个解析边界。非法头 `1f` 不再被误解为 `UINT64_MAX`；`3f`、`df`
 也按坏格式拒绝。`f8 00..1f` 是保留的二字节简单值编码，不再误报成
@@ -85,7 +111,7 @@ Linux 可执行 `wsl bash release/extlibs/cbor/test/check.sh`；脚本以严格 
 包 manifest 与原生源码的七项 XRT 模块声明现已一致；同一
 `test/aot_core.xl` 从 3,624,960 缩至 661,504 字节，运行结果不变。
 完整 AOT 的共享缺符号阻断仍需另行解决。
-可选的 [cbor2](https://pypi.org/project/cbor2/) 6.1.5 双向互操作检查：C/xlang 范例输出同字节、外部库可读取；外部库写出普通容器、`bytes`、RFC 3339 tag 0 与带小数秒的 epoch tag 1，C/xlang 均可读取，其中 C 侧核对到微秒。`cbor2` 只安装在 `build/test` 的隔离环境，不进入发布包。从仓库根目录运行：
+可选的 [cbor2](https://pypi.org/project/cbor2/) 6.1.5 双向互操作检查：C/xlang 范例输出同字节、外部库可读取；外部库写出普通容器、`bytes`、RFC 3339 tag 0 与带小数秒的 epoch tag 1，C/xlang 均可读取，其中 C 侧核对到XRT毫秒精度。`cbor2` 只安装在 `build/test` 的隔离环境，不进入发布包。从仓库根目录运行：
 
 ```powershell
 python -m venv build\test\cbor\venv

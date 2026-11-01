@@ -1,3 +1,4 @@
+#define XRT_MODULE_TIME
 #include "../bson_native.h"
 
 #include <stdio.h>
@@ -16,7 +17,7 @@ int main(int argc, char **argv) {
     xvalue *doc, *nested, *items, *item;
     xstrview text;
     xbytesview raw;
-    int64 count;
+    int64 count, unix_ms;
     xtime when;
     bool enabled;
     CHECK(argc == 2);
@@ -39,7 +40,8 @@ int main(int argc, char **argv) {
     CHECK(item && xrtValueGetBytes(item, &raw) && raw.Size == 2 &&
         raw.Data[0] == 0 && raw.Data[1] == 255);
     item = field(doc, "when");
-    CHECK(item && xrtValueGetTime(item, &when) && when == -1000);
+    CHECK(item && xrtValueGetTime(item, &when) &&
+        xrtTimeToUnixMs(when, &unix_ms) && unix_ms == -1);
     xrtValueRelease(doc);
     puts("PyMongo to C BSON: PASS");
     return 0;

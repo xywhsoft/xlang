@@ -58,10 +58,17 @@ func main(...) as int
     // ═══ 7. 文件 I/O ═══
     // 一步完成 table → BSON → 文件，以及反向操作
     var fileDoc = {"saved": true, "count": 7}
-    int written = bson.save("build/bson_example_tmp.bson", fileDoc)
-    println("写入字节: ", written)
-    var loaded = bson.load("build/bson_example_tmp.bson")
-    println("loaded.count = ", loaded["count"])
+    string workDir = dir.temp("", "xlang-bson-example-", "")
+    try
+        string filename = path.join(workDir, "示例.bson")
+        int written = bson.save(filename, fileDoc)
+        println("写入字节: ", written)
+        var loaded = bson.load(filename)
+        assert loaded["saved"] and loaded["count"] == 7
+        println("loaded.count = ", loaded["count"])
+    finally
+        assert dir.delete(workDir), "示例临时目录必须清理"
+    end
 
     // ═══ 8. 多文档流 ═══
     // MongoDB 导出文件通常为多个 BSON 文档拼接

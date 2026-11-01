@@ -223311,7 +223311,7 @@ static xhttp1status __xrtHttp1Parse(
 	cstr sOperation
 )
 {
-	xhttp1limits Limits;
+	xhttp1limits Limits = {0};
 	xhttp1head Parsed;
 	xrt_http1_semantics Semantics;
 	size_t iHeadBytes = 0;
@@ -226152,7 +226152,7 @@ xhttp1status __xrtHttp1NetParse(
 	ptr pContext
 )
 {
-	xhttp1limits Limits;
+	xhttp1limits Limits = {0};
 	xnetspan Span;
 	size_t iAvailable;
 	size_t iHead;
@@ -253335,7 +253335,12 @@ static void __xrtNetProxyDialSetError(
 
 
 
-static const xrtownershipops __xrtNetProxyDialOps;
+static bool __xrtNetProxyDialCount(const void* pData, size_t* pCount);
+static bool __xrtNetProxyDialTrace(const void* pData,
+	xrtownershipvisitor visit, ptr context);
+static const xrtownershipops __xrtNetProxyDialOps = {
+	__xrtNetProxyDialCount, __xrtNetProxyDialTrace
+};
 static void __xrtNetProxyDialTryPublish(xnetproxydial* pDial);
 
 static bool __xrtNetProxyDialEnter(xnetproxydial* pDial,bool bSubmit)
@@ -254302,7 +254307,6 @@ static bool __xrtNetProxyDialTrace(const void* pData,xrtownershipvisitor visit,p
 	xrtownershipref error=xrtErrorOwnership(pDial->Error);
 	return !error.Data||visit(error,context);
 }
-static const xrtownershipops __xrtNetProxyDialOps={__xrtNetProxyDialCount,__xrtNetProxyDialTrace};
 XRT_API xrtownershipref xrtNetProxyDialOwnership(const xnetproxydial* pDial)
 {return (xrtownershipref){pDial,pDial?&__xrtNetProxyDialOps:NULL};}
 XRT_API const xrtownershipquiescencev1* xrtNetProxyDialOwnershipQuiescenceV1Get(void)

@@ -1,0 +1,73 @@
+import bson
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    bytes wire = Buffer.fromHex("0500000000").toBytes()
+    var dynamicWire = wire
+    string savedStatic = bson.toHex(wire)
+    string savedDynamic = bson.toHex(dynamicWire)
+    string savedId = bson.objectId()
+
+    // 三种返回路径分别注入故障，成功后保存的字符串不得被后续调用覆盖。
+    for operation in range(3)
+        int failures = 0
+        bool completed = false
+        for budget in range(64)
+            bool memory = false
+            bool wrong = false
+            string result = ""
+            assert failAfter(uint64(budget))
+            try
+                if operation == 0 then
+                    result = bson.toHex(wire)
+                elseif operation == 1 then
+                    result = bson.toHex(dynamicWire)
+                else
+                    result = bson.objectId()
+                end
+            catch MemoryError error
+                memory = true
+            catch ValueError error
+                wrong = true
+            catch RuntimeError error
+                wrong = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert not wrong and memory == triggered, "owned result preserves allocation failure"
+            if triggered then
+                failures += 1
+                assert bson.toHex(wire) == "0500000000", "immediate recovery"
+            else
+                if operation == 2 then
+                    assert string.byteLen(result) == 24
+                else
+                    assert result == "0500000000"
+                end
+                completed = true
+                break
+            end
+        end
+        assert failures > 0 and completed
+    end
+
+    // NULL 是错误而不是成功的空串，且两种重载有相同的输入检查。
+    bytes empty = Buffer(0).toBytes()
+    var emptyDynamic = empty
+    for operation in range(2)
+        bool caught = false
+        try
+            if operation == 0 then bson.toHex(empty) else bson.toHex(emptyDynamic) end
+        catch ValueError error
+            caught = true
+        end
+        assert caught
+    end
+    assert savedStatic == "0500000000" and savedDynamic == savedStatic
+    assert string.byteLen(savedId) == 24 and bson.oidTime(savedId) > time.fromUnix(0)
+    println("bson owned text: 3 paths, OOM recovery, retained results, PASS")
+    return 0
+end

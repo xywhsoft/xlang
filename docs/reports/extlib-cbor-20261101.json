@@ -1,0 +1,2046 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-01T19:37:48.2461159+08:00",
+  "package": "cbor",
+  "maturity": "R",
+  "status": "functional-gates-passed-release-catalog-pending",
+  "sourceParent": "5b56ea1d6de019384906bc0eaa93846865b2320b",
+  "root": "D:\\GIT\\x-lang",
+  "changes": [
+    "Owned char* result adopted directly; retain the existing void* argument adapter to preserve the public const void* C API.",
+    "Empty/retained strings, source Buffer clearing, repeated calls and allocation-failure recovery added to both default gates.",
+    "Actual generated return and eight prototypes checked; old helper, injected copy and repeated call controls rejected.",
+    "Corrected public time precision description to XRT milliseconds; no codec algorithm or mainline rewrite."
+  ],
+  "ownershipCosts": {
+    "newPayloadCopies": 0,
+    "oldPayloadCopies": 0,
+    "argumentAdapterRetained": true,
+    "lengthScanRetained": true,
+    "ffiErrorScopeRetained": true,
+    "wholeChainZeroOverheadClaim": false
+  },
+  "windowsPreviousRuntime": {
+    "outcome": "passed",
+    "date": "2026-11-01T19:25:38.1405988+08:00",
+    "checks": 59,
+    "inputs": {
+      "C:\\Program Files\\Python312\\python.exe": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a",
+      "lib/xrt/xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+      "lib/xruntime/xruntime.h": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+      "release/examples/extlibs/cbor.xl": "15b48f8e17cf735fd3cf56fd05be1c210961d4bd0ba53a230342291f6b1abc24",
+      "release/extlibs/cbor/cbor_native.c": "3aaca5e5be680dec1e883da5d46bbcb966d42674f3b67ff140dafe793fc3b3d5",
+      "release/extlibs/cbor/cbor_native.h": "8a12522cfbc07a5720f7be0f03786d62836abe0a32ac7461d07c310f6d89e145",
+      "release/extlibs/cbor/docs/site.html": "81155f720285627aff9eea64948ff3d7ed55801339ec722930c03ae7617bfe47",
+      "release/extlibs/cbor/examples/basic.expected.txt": "0f127a5a6b61ed10f5cc4bfa2bf26b68ca83da7e178d3f23020d40dd9846cdcf",
+      "release/extlibs/cbor/examples/cbor.xl": "1085550772bbd3b475ffaf5a579b3c4880368ca3c32c72659865881970225611",
+      "release/extlibs/cbor/examples/cbor_c.c": "7151f066638134b46def8608ca627773672d23df996da22265a99495155cf339",
+      "release/extlibs/cbor/examples/validate_wire.expected.txt": "3f5ab0546f025945c9f0e61ba3029d1d62a76d6df9132f56b3a08ad71c86f071",
+      "release/extlibs/cbor/examples/validate_wire.xl": "2ed54ade7b50d1f6155cfa55984a53806942e3bd1ed0248d6c0b302e20a82c6a",
+      "release/extlibs/cbor/examples/validate_wire_c.c": "943bbab17ccab9633986d226375f1cb66712d2a546d3132f48a7def009b592ed",
+      "release/extlibs/cbor/README.md": "839221a18ec3a814e3fa95638ab9e644e6b9c75545158c179368aff73fe8184b",
+      "release/extlibs/cbor/src/cbor.xl": "875257b7613451c087f90be2fcd26e2b74d16496adb3d88391cf5a62c7755e1b",
+      "release/extlibs/cbor/test/allocations.xl": "78c4f259c379734b0b42ec3b2a48835d201c0b065ff184699bced84d0e33fb22",
+      "release/extlibs/cbor/test/aot_core.xl": "7a0ef6409d1f651fcd8716d2ea18dccee2ab4cad8a71783e3da0a174b92339dc",
+      "release/extlibs/cbor/test/boundaries.xl": "cf4eac9e35d3070d9ea07ee5753aa4a86895db5bf156eb94b3beb2b31025625a",
+      "release/extlibs/cbor/test/check.ps1": "152c6b1393c7e24b7d039ce65371061224b60b5e713edb6cc300aa095494b537",
+      "release/extlibs/cbor/test/check.sh": "d607dcf165b88a65a2066f831607b0a12648635ddf88bf9cfc37fa1a8cec3769",
+      "release/extlibs/cbor/test/check_external.py": "eb2aa9725b4627a4336cb53beca7246b24076e3f952289bab4d58f33e89e3aaf",
+      "release/extlibs/cbor/test/check_half.py": "cf31ccacf09de99d9e90f1bbae01ce86dcf2921930f748dc98b9276c224fda40",
+      "release/extlibs/cbor/test/check_owned_codegen.py": "8dd0f9e75afa404bd28de725f2b6903a5b921422b36cb102a92db3f7a44e4d11",
+      "release/extlibs/cbor/test/external_python.xl": "f3ef7d9ca0f9c12b858edc36746fa0cba859e08394caa72d84a3405c194872dc",
+      "release/extlibs/cbor/test/external_python_c.c": "a8bb328f5158ac74a09afce23ddecfa65237a2a49a66fffd0e34b6fbe784f9ec",
+      "release/extlibs/cbor/test/owned_text.xl": "c60619f6fe86f1eabbd409076029851c690addd9b518e5adcb62a235edfcd2d8",
+      "release/extlibs/cbor/test/requirements-external.txt": "d058addb784bcc4d0bc7744153c98570cf829147fc1132589ebe171a402eee9e",
+      "release/extlibs/cbor/test/test_allocations.c": "e685d2acded1bf27263813134c947f3a351b87e3b6265ec648520c3db6a50c8f",
+      "release/extlibs/cbor/test/test_boundaries.c": "a28ea66b08045036fe410ac8f1b734016524bc278afce4bea4711f3edd50c79f",
+      "release/extlibs/cbor/test/test_cbor.c": "2a0cc51d09718837d44076fb50b46c10a1361f6dc09ebfdb5b0a644b54d1032d",
+      "release/extlibs/cbor/test/wellformed.xl": "79e40121842bb3539dae18b061e4f893e1c824667d1e05704a2630cd82dd87f4",
+      "release/extlibs/cbor/test/wellformed_c.c": "14381a5a5cab490cc9454875a274fc9b6169702d29b35d26312fa6eb4037beb0",
+      "release/extlibs/cbor/test/xrt_runtime.c": "9dea7d4e1743d486e0f0fb9c6e6a50b3d5fa79604774df6395c9fd670b8fea28",
+      "release/extlibs/cbor/xlang.package.json": "5415bb5d762ef692b9ad160b1e181331db3e57c1ebfe1ee9be2a9aa8c5ec78ff",
+      "release/include/libtcc.h": "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab",
+      "release/include/README.md": "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770",
+      "release/include/tcc_builtin_vfs.h": "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2",
+      "release/include/xl.h": "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4",
+      "release/include/xl_cancellation_retirement.h": "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad",
+      "release/include/xl_clock.h": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18",
+      "release/include/xl_extlib_abi.h": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445",
+      "release/include/xl_foreign_graph.h": "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f",
+      "release/include/xl_foreign_net.h": "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a",
+      "release/include/xl_package.h": "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1",
+      "release/include/xl_runtime.h": "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2",
+      "release/include/xl_sync_retirement.h": "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e",
+      "release/include/xl_version.h": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992",
+      "release/include/xlc.h": "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f",
+      "release/include/xrt_decl.h": "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d",
+      "release/include/xruntime_decl.h": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+      "release/xl.dll": "2e3559673defc88f6f6e35c03bdf9980b9876405c7086a36a9ddf75de6242feb",
+      "release/xl.exe": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05",
+      "release/xlc.dll": "c36441758b31e6c500ee31534474eed8e7a408b272fcc189da802c533f895d7a",
+      "test/cases/extlib_cbor.xl": "169459ec07793e0508bb9b79a91c2c88e02acc18e2c299b41fa26adde2b3eea8",
+      "tools/extlib_smoke_process.ps1": "294fcc133c2e4f3e5786080d6dcfedd3bfbc51656af892433cce08bb3eaf635f",
+      "tools/xlir_native_process.ps1": "c010a2ee726375ca627d3c161e65ed3fce84189810259f6a93bf8eb277caf219",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9a52de3e3af8f4896e963c4b68ed159f049954775decb20e421cd75d51aab6ed"
+    },
+    "inputCount": 57,
+    "inputChanges": [],
+    "aotSkipped": false,
+    "aotPrograms": 12,
+    "results": [
+      {
+        "name": "compiler version",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "87438b7ee2429bf0a85f172c569d3ae10e611821ed289ef1f83e20a19663d877",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANT"
+      },
+      {
+        "name": "Python version",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "6a5d9f6462ca5dfc6788cfd216ba579fffd7875776ab9d9b35659be78858f73a",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "Python 3.12.10\r\n"
+      },
+      {
+        "name": "public header",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "manifest C syntax",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "selected XRT compile",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "native compile",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "test_cbor compile",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "test_cbor",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "f3304b7e4e473bb501cbf13cece648f6e4d8f76c469c809eed8f55a22491466f",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor C smoke: PASS\r\n"
+      },
+      {
+        "name": "test_boundaries compile",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "test_boundaries",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "test_allocations compile",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "test_allocations",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "0eefbb8821b7ff16741b69adb11b6ba87787465f011d5189406d6c4096631e52",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor allocation failures: PASS\r\n"
+      },
+      {
+        "name": "wellformed_c compile",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "wellformed_c",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "13cedb54608c6d42e9795bc60563ba2dad30e83a199d02c822a1a2b2fe0d7aa3",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor well-formedness: 2591 checks, 0 failures\r\n"
+      },
+      {
+        "name": "all binary16 records",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "da6fa43065d9843e4d5da87f88a4285949978d8fc132fa6c0cd511b3e1afc97e",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "0000\t0000000000000000\r\n0001\t3e70000000000000\r\n0002\t3e80000000000000\r\n0003\t3e88000000000000\r\n0004\t3e90000000000000\r\n0005\t3e94000000000000\r\n0006\t3e98000000000000\r\n0007\t3e9c0000000000"
+      },
+      {
+        "name": "Python binary16 oracle",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "aa2162676b8ad67754a81add17a8e6137f3ced70ed213182e96615627cf53f6c",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor binary16: 65536 values, 2046 NaNs, PASS\r\n"
+      },
+      {
+        "name": "wire checks direct C",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "13cedb54608c6d42e9795bc60563ba2dad30e83a199d02c822a1a2b2fe0d7aa3",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor well-formedness: 2591 checks, 0 failures\r\n"
+      },
+      {
+        "name": "release/extlibs/cbor/test/aot_core.xl JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/wellformed.xl JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "f897e71b38c09da9e999a1dc3ce39285cce7a31769f5a9a41cb576f6cb191486",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor well-formedness XLang: PASS\n"
+      },
+      {
+        "name": "release/extlibs/cbor/test/owned_text.xl JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "a49308bad5b04702e2be57e9311449ff1fb53af1851dd715bf1a26ad3c02cbc1",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor owned text: empty/retained results, OOM recovery, PASS\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/cbor_c.c compile",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/examples/cbor_c.c GCC",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "d6f8740b5d12d4f155ce917522b1d599893a31915375d298f3813d21ccc6cea7",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\r\nname: xlang\r\nmaximum: 18446744073709551615\r\nbinary: 00ff41\r\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/cbor_c.c direct",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "d6f8740b5d12d4f155ce917522b1d599893a31915375d298f3813d21ccc6cea7",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\r\nname: xlang\r\nmaximum: 18446744073709551615\r\nbinary: 00ff41\r\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/validate_wire_c.c compile",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/examples/validate_wire_c.c GCC",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "b95dd2afaa194cbf65a7fd3c81483b29b8b7fa3a84802bafa75dabab97417013",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "integer: 182a\r\nmessage: hi 42\r\nbinary: 00ff41\r\nreject: 1f\r\nreject: f816\r\nreject: 5f00ff\r\ncbor wire validation: PASS\r\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/validate_wire_c.c direct",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "b95dd2afaa194cbf65a7fd3c81483b29b8b7fa3a84802bafa75dabab97417013",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "integer: 182a\r\nmessage: hi 42\r\nbinary: 00ff41\r\nreject: 1f\r\nreject: f816\r\nreject: 5f00ff\r\ncbor wire validation: PASS\r\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/validate_wire.xl JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "3f5ab0546f025945c9f0e61ba3029d1d62a76d6df9132f56b3a08ad71c86f071",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "integer: 182a\nmessage: hi 42\nbinary: 00ff41\nreject: 1f\nreject: f816\nreject: 5f00ff\ncbor wire validation: PASS\n"
+      },
+      {
+        "name": "complete API cgen",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "direct owned result path",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "f982b090063afcfee63b0716f02261953d3e7000060931eb7d2cd5e96b80b119",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "CBOR owned codegen: direct char* adoption, no payload copy, PASS\r\n"
+      },
+      {
+        "name": "eight actual prototypes",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/aot_core.xl build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/aot_core.xl AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/wellformed.xl build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/wellformed.xl AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "f897e71b38c09da9e999a1dc3ce39285cce7a31769f5a9a41cb576f6cb191486",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor well-formedness XLang: PASS\n"
+      },
+      {
+        "name": "release/extlibs/cbor/test/owned_text.xl build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/owned_text.xl AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "a49308bad5b04702e2be57e9311449ff1fb53af1851dd715bf1a26ad3c02cbc1",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor owned text: empty/retained results, OOM recovery, PASS\n"
+      },
+      {
+        "name": "release/extlibs/cbor/test/wellformed_c.c build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/wellformed_c.c AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "13cedb54608c6d42e9795bc60563ba2dad30e83a199d02c822a1a2b2fe0d7aa3",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor well-formedness: 2591 checks, 0 failures\r\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/cbor_c.c build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/examples/cbor_c.c AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "d6f8740b5d12d4f155ce917522b1d599893a31915375d298f3813d21ccc6cea7",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\r\nname: xlang\r\nmaximum: 18446744073709551615\r\nbinary: 00ff41\r\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/validate_wire.xl build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/examples/validate_wire.xl AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "3f5ab0546f025945c9f0e61ba3029d1d62a76d6df9132f56b3a08ad71c86f071",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "integer: 182a\nmessage: hi 42\nbinary: 00ff41\nreject: 1f\nreject: f816\nreject: 5f00ff\ncbor wire validation: PASS\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/validate_wire_c.c build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/examples/validate_wire_c.c AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "b95dd2afaa194cbf65a7fd3c81483b29b8b7fa3a84802bafa75dabab97417013",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "integer: 182a\r\nmessage: hi 42\r\nbinary: 00ff41\r\nreject: 1f\r\nreject: f816\r\nreject: 5f00ff\r\ncbor wire validation: PASS\r\n"
+      },
+      {
+        "name": "release/extlibs/cbor/test/boundaries.xl complete JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/boundaries.xl complete build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/boundaries.xl complete AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/allocations.xl complete JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "b3cd909962d1c3c8df596e76a4bda6d8c898e0bc1e4adab5dcb093285ce5331f",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor allocation: PASS\n"
+      },
+      {
+        "name": "release/extlibs/cbor/test/allocations.xl complete build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/allocations.xl complete AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "b3cd909962d1c3c8df596e76a4bda6d8c898e0bc1e4adab5dcb093285ce5331f",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor allocation: PASS\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/cbor.xl complete JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "0f127a5a6b61ed10f5cc4bfa2bf26b68ca83da7e178d3f23020d40dd9846cdcf",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\nname: xlang\nmaximum: 18446744073709551615\nbinary: 00ff41\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/cbor.xl complete build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/examples/cbor.xl complete AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "0f127a5a6b61ed10f5cc4bfa2bf26b68ca83da7e178d3f23020d40dd9846cdcf",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\nname: xlang\nmaximum: 18446744073709551615\nbinary: 00ff41\n"
+      },
+      {
+        "name": "release/examples/extlibs/cbor.xl complete JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "655e6f77f273ac28b6702b134b2800abc335f0cd318931931e31ed38e8218f05",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "CBOR hex:  a4646e616d6565786c616e676776657273696f6e0664746167738365636f6465636662696e6172796378727467656e61626c6564f5\nname:  xlang\nsecond tag:  binary\nbinary CBOR:  44deadbeef\nbina"
+      },
+      {
+        "name": "release/examples/extlibs/cbor.xl complete build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/examples/extlibs/cbor.xl complete AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "655e6f77f273ac28b6702b134b2800abc335f0cd318931931e31ed38e8218f05",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "CBOR hex:  a4646e616d6565786c616e676776657273696f6e0664746167738365636f6465636662696e6172796378727467656e61626c6564f5\nname:  xlang\nsecond tag:  binary\nbinary CBOR:  44deadbeef\nbina"
+      },
+      {
+        "name": "test/cases/extlib_cbor.xl complete JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "test/cases/extlib_cbor.xl complete build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "test/cases/extlib_cbor.xl complete AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      }
+    ],
+    "rawReport": "D:\\GIT\\x-lang\\build\\test\\cbor_guard\\run_d7ead91960714da5894996384b3132e3.json"
+  },
+  "windowsUpdatedRuntime": {
+    "outcome": "passed",
+    "date": "2026-11-01T19:33:44.8934224+08:00",
+    "checks": 59,
+    "inputs": {
+      "C:\\Program Files\\Python312\\python.exe": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a",
+      "lib/xrt/xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+      "lib/xruntime/xruntime.h": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+      "release/examples/extlibs/cbor.xl": "15b48f8e17cf735fd3cf56fd05be1c210961d4bd0ba53a230342291f6b1abc24",
+      "release/extlibs/cbor/cbor_native.c": "3aaca5e5be680dec1e883da5d46bbcb966d42674f3b67ff140dafe793fc3b3d5",
+      "release/extlibs/cbor/cbor_native.h": "8a12522cfbc07a5720f7be0f03786d62836abe0a32ac7461d07c310f6d89e145",
+      "release/extlibs/cbor/docs/site.html": "81155f720285627aff9eea64948ff3d7ed55801339ec722930c03ae7617bfe47",
+      "release/extlibs/cbor/examples/basic.expected.txt": "0f127a5a6b61ed10f5cc4bfa2bf26b68ca83da7e178d3f23020d40dd9846cdcf",
+      "release/extlibs/cbor/examples/cbor.xl": "1085550772bbd3b475ffaf5a579b3c4880368ca3c32c72659865881970225611",
+      "release/extlibs/cbor/examples/cbor_c.c": "7151f066638134b46def8608ca627773672d23df996da22265a99495155cf339",
+      "release/extlibs/cbor/examples/validate_wire.expected.txt": "3f5ab0546f025945c9f0e61ba3029d1d62a76d6df9132f56b3a08ad71c86f071",
+      "release/extlibs/cbor/examples/validate_wire.xl": "2ed54ade7b50d1f6155cfa55984a53806942e3bd1ed0248d6c0b302e20a82c6a",
+      "release/extlibs/cbor/examples/validate_wire_c.c": "943bbab17ccab9633986d226375f1cb66712d2a546d3132f48a7def009b592ed",
+      "release/extlibs/cbor/README.md": "839221a18ec3a814e3fa95638ab9e644e6b9c75545158c179368aff73fe8184b",
+      "release/extlibs/cbor/src/cbor.xl": "875257b7613451c087f90be2fcd26e2b74d16496adb3d88391cf5a62c7755e1b",
+      "release/extlibs/cbor/test/allocations.xl": "78c4f259c379734b0b42ec3b2a48835d201c0b065ff184699bced84d0e33fb22",
+      "release/extlibs/cbor/test/aot_core.xl": "7a0ef6409d1f651fcd8716d2ea18dccee2ab4cad8a71783e3da0a174b92339dc",
+      "release/extlibs/cbor/test/boundaries.xl": "cf4eac9e35d3070d9ea07ee5753aa4a86895db5bf156eb94b3beb2b31025625a",
+      "release/extlibs/cbor/test/check.ps1": "152c6b1393c7e24b7d039ce65371061224b60b5e713edb6cc300aa095494b537",
+      "release/extlibs/cbor/test/check.sh": "d607dcf165b88a65a2066f831607b0a12648635ddf88bf9cfc37fa1a8cec3769",
+      "release/extlibs/cbor/test/check_external.py": "eb2aa9725b4627a4336cb53beca7246b24076e3f952289bab4d58f33e89e3aaf",
+      "release/extlibs/cbor/test/check_half.py": "cf31ccacf09de99d9e90f1bbae01ce86dcf2921930f748dc98b9276c224fda40",
+      "release/extlibs/cbor/test/check_owned_codegen.py": "8dd0f9e75afa404bd28de725f2b6903a5b921422b36cb102a92db3f7a44e4d11",
+      "release/extlibs/cbor/test/external_python.xl": "f3ef7d9ca0f9c12b858edc36746fa0cba859e08394caa72d84a3405c194872dc",
+      "release/extlibs/cbor/test/external_python_c.c": "a8bb328f5158ac74a09afce23ddecfa65237a2a49a66fffd0e34b6fbe784f9ec",
+      "release/extlibs/cbor/test/owned_text.xl": "c60619f6fe86f1eabbd409076029851c690addd9b518e5adcb62a235edfcd2d8",
+      "release/extlibs/cbor/test/requirements-external.txt": "d058addb784bcc4d0bc7744153c98570cf829147fc1132589ebe171a402eee9e",
+      "release/extlibs/cbor/test/test_allocations.c": "e685d2acded1bf27263813134c947f3a351b87e3b6265ec648520c3db6a50c8f",
+      "release/extlibs/cbor/test/test_boundaries.c": "a28ea66b08045036fe410ac8f1b734016524bc278afce4bea4711f3edd50c79f",
+      "release/extlibs/cbor/test/test_cbor.c": "2a0cc51d09718837d44076fb50b46c10a1361f6dc09ebfdb5b0a644b54d1032d",
+      "release/extlibs/cbor/test/wellformed.xl": "79e40121842bb3539dae18b061e4f893e1c824667d1e05704a2630cd82dd87f4",
+      "release/extlibs/cbor/test/wellformed_c.c": "14381a5a5cab490cc9454875a274fc9b6169702d29b35d26312fa6eb4037beb0",
+      "release/extlibs/cbor/test/xrt_runtime.c": "9dea7d4e1743d486e0f0fb9c6e6a50b3d5fa79604774df6395c9fd670b8fea28",
+      "release/extlibs/cbor/xlang.package.json": "5415bb5d762ef692b9ad160b1e181331db3e57c1ebfe1ee9be2a9aa8c5ec78ff",
+      "release/include/libtcc.h": "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab",
+      "release/include/README.md": "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770",
+      "release/include/tcc_builtin_vfs.h": "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2",
+      "release/include/xl.h": "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4",
+      "release/include/xl_cancellation_retirement.h": "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad",
+      "release/include/xl_clock.h": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18",
+      "release/include/xl_extlib_abi.h": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445",
+      "release/include/xl_foreign_graph.h": "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f",
+      "release/include/xl_foreign_net.h": "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a",
+      "release/include/xl_package.h": "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1",
+      "release/include/xl_runtime.h": "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2",
+      "release/include/xl_sync_retirement.h": "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e",
+      "release/include/xl_version.h": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992",
+      "release/include/xlc.h": "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f",
+      "release/include/xrt_decl.h": "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d",
+      "release/include/xruntime_decl.h": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+      "release/xl.dll": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930",
+      "release/xl.exe": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05",
+      "release/xlc.dll": "27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334",
+      "test/cases/extlib_cbor.xl": "169459ec07793e0508bb9b79a91c2c88e02acc18e2c299b41fa26adde2b3eea8",
+      "tools/extlib_smoke_process.ps1": "294fcc133c2e4f3e5786080d6dcfedd3bfbc51656af892433cce08bb3eaf635f",
+      "tools/xlir_native_process.ps1": "c010a2ee726375ca627d3c161e65ed3fce84189810259f6a93bf8eb277caf219",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9a52de3e3af8f4896e963c4b68ed159f049954775decb20e421cd75d51aab6ed"
+    },
+    "inputCount": 57,
+    "inputChanges": [],
+    "aotSkipped": false,
+    "aotPrograms": 12,
+    "results": [
+      {
+        "name": "compiler version",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "87438b7ee2429bf0a85f172c569d3ae10e611821ed289ef1f83e20a19663d877",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANT"
+      },
+      {
+        "name": "Python version",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "6a5d9f6462ca5dfc6788cfd216ba579fffd7875776ab9d9b35659be78858f73a",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "Python 3.12.10\r\n"
+      },
+      {
+        "name": "public header",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "manifest C syntax",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "selected XRT compile",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "native compile",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "test_cbor compile",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "test_cbor",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "f3304b7e4e473bb501cbf13cece648f6e4d8f76c469c809eed8f55a22491466f",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor C smoke: PASS\r\n"
+      },
+      {
+        "name": "test_boundaries compile",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "test_boundaries",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "test_allocations compile",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "test_allocations",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "0eefbb8821b7ff16741b69adb11b6ba87787465f011d5189406d6c4096631e52",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor allocation failures: PASS\r\n"
+      },
+      {
+        "name": "wellformed_c compile",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "wellformed_c",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "13cedb54608c6d42e9795bc60563ba2dad30e83a199d02c822a1a2b2fe0d7aa3",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor well-formedness: 2591 checks, 0 failures\r\n"
+      },
+      {
+        "name": "all binary16 records",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "da6fa43065d9843e4d5da87f88a4285949978d8fc132fa6c0cd511b3e1afc97e",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "0000\t0000000000000000\r\n0001\t3e70000000000000\r\n0002\t3e80000000000000\r\n0003\t3e88000000000000\r\n0004\t3e90000000000000\r\n0005\t3e94000000000000\r\n0006\t3e98000000000000\r\n0007\t3e9c0000000000"
+      },
+      {
+        "name": "Python binary16 oracle",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "aa2162676b8ad67754a81add17a8e6137f3ced70ed213182e96615627cf53f6c",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor binary16: 65536 values, 2046 NaNs, PASS\r\n"
+      },
+      {
+        "name": "wire checks direct C",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "13cedb54608c6d42e9795bc60563ba2dad30e83a199d02c822a1a2b2fe0d7aa3",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor well-formedness: 2591 checks, 0 failures\r\n"
+      },
+      {
+        "name": "release/extlibs/cbor/test/aot_core.xl JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/wellformed.xl JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "f897e71b38c09da9e999a1dc3ce39285cce7a31769f5a9a41cb576f6cb191486",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor well-formedness XLang: PASS\n"
+      },
+      {
+        "name": "release/extlibs/cbor/test/owned_text.xl JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "a49308bad5b04702e2be57e9311449ff1fb53af1851dd715bf1a26ad3c02cbc1",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor owned text: empty/retained results, OOM recovery, PASS\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/cbor_c.c compile",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/examples/cbor_c.c GCC",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "d6f8740b5d12d4f155ce917522b1d599893a31915375d298f3813d21ccc6cea7",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\r\nname: xlang\r\nmaximum: 18446744073709551615\r\nbinary: 00ff41\r\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/cbor_c.c direct",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "d6f8740b5d12d4f155ce917522b1d599893a31915375d298f3813d21ccc6cea7",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\r\nname: xlang\r\nmaximum: 18446744073709551615\r\nbinary: 00ff41\r\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/validate_wire_c.c compile",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/examples/validate_wire_c.c GCC",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "b95dd2afaa194cbf65a7fd3c81483b29b8b7fa3a84802bafa75dabab97417013",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "integer: 182a\r\nmessage: hi 42\r\nbinary: 00ff41\r\nreject: 1f\r\nreject: f816\r\nreject: 5f00ff\r\ncbor wire validation: PASS\r\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/validate_wire_c.c direct",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "b95dd2afaa194cbf65a7fd3c81483b29b8b7fa3a84802bafa75dabab97417013",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "integer: 182a\r\nmessage: hi 42\r\nbinary: 00ff41\r\nreject: 1f\r\nreject: f816\r\nreject: 5f00ff\r\ncbor wire validation: PASS\r\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/validate_wire.xl JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "3f5ab0546f025945c9f0e61ba3029d1d62a76d6df9132f56b3a08ad71c86f071",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "integer: 182a\nmessage: hi 42\nbinary: 00ff41\nreject: 1f\nreject: f816\nreject: 5f00ff\ncbor wire validation: PASS\n"
+      },
+      {
+        "name": "complete API cgen",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "direct owned result path",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "f982b090063afcfee63b0716f02261953d3e7000060931eb7d2cd5e96b80b119",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "CBOR owned codegen: direct char* adoption, no payload copy, PASS\r\n"
+      },
+      {
+        "name": "eight actual prototypes",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/aot_core.xl build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/aot_core.xl AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/wellformed.xl build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/wellformed.xl AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "f897e71b38c09da9e999a1dc3ce39285cce7a31769f5a9a41cb576f6cb191486",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor well-formedness XLang: PASS\n"
+      },
+      {
+        "name": "release/extlibs/cbor/test/owned_text.xl build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/owned_text.xl AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "a49308bad5b04702e2be57e9311449ff1fb53af1851dd715bf1a26ad3c02cbc1",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor owned text: empty/retained results, OOM recovery, PASS\n"
+      },
+      {
+        "name": "release/extlibs/cbor/test/wellformed_c.c build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/wellformed_c.c AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "13cedb54608c6d42e9795bc60563ba2dad30e83a199d02c822a1a2b2fe0d7aa3",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor well-formedness: 2591 checks, 0 failures\r\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/cbor_c.c build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/examples/cbor_c.c AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "d6f8740b5d12d4f155ce917522b1d599893a31915375d298f3813d21ccc6cea7",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\r\nname: xlang\r\nmaximum: 18446744073709551615\r\nbinary: 00ff41\r\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/validate_wire.xl build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/examples/validate_wire.xl AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "3f5ab0546f025945c9f0e61ba3029d1d62a76d6df9132f56b3a08ad71c86f071",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "integer: 182a\nmessage: hi 42\nbinary: 00ff41\nreject: 1f\nreject: f816\nreject: 5f00ff\ncbor wire validation: PASS\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/validate_wire_c.c build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/examples/validate_wire_c.c AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "b95dd2afaa194cbf65a7fd3c81483b29b8b7fa3a84802bafa75dabab97417013",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "integer: 182a\r\nmessage: hi 42\r\nbinary: 00ff41\r\nreject: 1f\r\nreject: f816\r\nreject: 5f00ff\r\ncbor wire validation: PASS\r\n"
+      },
+      {
+        "name": "release/extlibs/cbor/test/boundaries.xl complete JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/boundaries.xl complete build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/boundaries.xl complete AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/allocations.xl complete JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "b3cd909962d1c3c8df596e76a4bda6d8c898e0bc1e4adab5dcb093285ce5331f",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor allocation: PASS\n"
+      },
+      {
+        "name": "release/extlibs/cbor/test/allocations.xl complete build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/test/allocations.xl complete AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "b3cd909962d1c3c8df596e76a4bda6d8c898e0bc1e4adab5dcb093285ce5331f",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "cbor allocation: PASS\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/cbor.xl complete JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "0f127a5a6b61ed10f5cc4bfa2bf26b68ca83da7e178d3f23020d40dd9846cdcf",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\nname: xlang\nmaximum: 18446744073709551615\nbinary: 00ff41\n"
+      },
+      {
+        "name": "release/extlibs/cbor/examples/cbor.xl complete build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/extlibs/cbor/examples/cbor.xl complete AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "0f127a5a6b61ed10f5cc4bfa2bf26b68ca83da7e178d3f23020d40dd9846cdcf",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\nname: xlang\nmaximum: 18446744073709551615\nbinary: 00ff41\n"
+      },
+      {
+        "name": "release/examples/extlibs/cbor.xl complete JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "655e6f77f273ac28b6702b134b2800abc335f0cd318931931e31ed38e8218f05",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "CBOR hex:  a4646e616d6565786c616e676776657273696f6e0664746167738365636f6465636662696e6172796378727467656e61626c6564f5\nname:  xlang\nsecond tag:  binary\nbinary CBOR:  44deadbeef\nbina"
+      },
+      {
+        "name": "release/examples/extlibs/cbor.xl complete build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "release/examples/extlibs/cbor.xl complete AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "655e6f77f273ac28b6702b134b2800abc335f0cd318931931e31ed38e8218f05",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": "CBOR hex:  a4646e616d6565786c616e676776657273696f6e0664746167738365636f6465636662696e6172796378727467656e61626c6564f5\nname:  xlang\nsecond tag:  binary\nbinary CBOR:  44deadbeef\nbina"
+      },
+      {
+        "name": "test/cases/extlib_cbor.xl complete JIT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "test/cases/extlib_cbor.xl complete build",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      },
+      {
+        "name": "test/cases/extlib_cbor.xl complete AOT",
+        "actualExit": 0,
+        "status": "pass",
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      }
+    ],
+    "rawReport": "D:\\GIT\\x-lang\\build\\test\\cbor_guard\\run_321ae5b968d64636863eeb8f56ec65cc.json"
+  },
+  "linux": {
+    "outcome": "passed",
+    "phases": 59,
+    "aotPrograms": 12,
+    "sanitizer": "ASan+UBSan+leak detection for standalone C",
+    "inputChangesBytes": 0,
+    "report": "/var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ.report.txt",
+    "transcriptSha256": "5baf9c2087c354973c66ca11d45325c102ac3affe33e121db639e9d0d26774f3",
+    "checks": [
+      {
+        "command": "timeout 10s gcc --version",
+        "actualExit": 0,
+        "outputSha256": "8c25a94209b149cff424925e8a212864e5d086f8523d25cc285af2b89a78f2d7",
+        "outputPreview": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even"
+      },
+      {
+        "command": "timeout 10s python3 --version",
+        "actualExit": 0,
+        "outputSha256": "6588278383a8d24d8fc465aeadebee435452dcd40e11a957176622cc1505cffd",
+        "outputPreview": "Python 3.14.4\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/cbor -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -x c -fsyntax-only release/extlibs/cbor/cbor_native.h",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/cbor -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DXRT_MODULE_BUFFER -DXRT_MODULE_BUFFER_HEX -DXRT_MODULE_CODEC_HEX -DXRT_MODULE_STRING -DXRT_MODULE_TIME_TEXT -DXRT_MODULE_UNICODE -DXRT_MODULE_VALUE_CONTAINER -fsyntax-only release/extlibs/cbor/cbor_native.c",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/cbor -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/cbor/test/xrt_runtime.c -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/runtime.o",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/cbor -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/cbor/cbor_native.c -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/native.o",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/cbor -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/cbor/test/test_cbor.c /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/native.o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/test_cbor",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/test_cbor",
+        "actualExit": 0,
+        "outputSha256": "4e1ce1e5d7451577e33bf3916da3ed6a16f88a124c6374fde6a038fdd0621ebc",
+        "outputPreview": "cbor C smoke: PASS\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/cbor -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/cbor/test/test_boundaries.c /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/native.o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/test_boundaries",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/test_boundaries",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/cbor -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/cbor/test/test_allocations.c /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/native.o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/test_allocations",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/test_allocations",
+        "actualExit": 0,
+        "outputSha256": "0c6d20bb3b7d7808627fd1c7c0b0adae2f9e5e15c5c9373b87bed0e3fe534651",
+        "outputPreview": "cbor allocation failures: PASS\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/cbor -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/cbor/test/wellformed_c.c /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/native.o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/wellformed_c",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/wellformed_c",
+        "actualExit": 0,
+        "outputSha256": "872a6d126f9b3511dfe872e0fdb0b3ffbfb90cf26070e74bcb2090f5492a1f67",
+        "outputPreview": "cbor well-formedness: 2591 checks, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/wellformed_c --half-records",
+        "actualExit": 0,
+        "outputSha256": "4c42754e641c00cf8a6ef2095fe76a6f3d1b3e34ee369b8792bbb3188561d14c",
+        "outputPreview": "0000\t0000000000000000\n0001\t3e70000000000000\n0002\t3e80000000000000\n0003\t3e88000000000000\n0004\t3e90000000000000\n0005\t3e94000000000000\n0006\t3e98000000000000\n0007\t3e9c000000000000\n0008"
+      },
+      {
+        "command": "timeout 30s python3 release/extlibs/cbor/test/check_half.py /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/half.tsv",
+        "actualExit": 0,
+        "outputSha256": "13de87c7fa507a624a4c5f7db6ec52403a24e4cc78704f0f4345c967b9b17685",
+        "outputPreview": "cbor binary16: 65536 values, 2046 NaNs, PASS\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/cbor/test/wellformed_c.c",
+        "actualExit": 0,
+        "outputSha256": "872a6d126f9b3511dfe872e0fdb0b3ffbfb90cf26070e74bcb2090f5492a1f67",
+        "outputPreview": "cbor well-formedness: 2591 checks, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/cbor/test/aot_core.xl",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/cbor/test/wellformed.xl",
+        "actualExit": 0,
+        "outputSha256": "a265262d99d42007a7bde9fcaef71c56d34882118e5010133a5204a3d9183d1d",
+        "outputPreview": "cbor well-formedness XLang: PASS\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/cbor/test/owned_text.xl",
+        "actualExit": 0,
+        "outputSha256": "15cb66cfb6fdc00c5ef890dcf5f01ea2497f16014872a436a82f04d1c6ad79aa",
+        "outputPreview": "cbor owned text: empty/retained results, OOM recovery, PASS\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/cbor -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/cbor/examples/cbor_c.c /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/old",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/old",
+        "actualExit": 0,
+        "outputSha256": "44c61051d53baf89942ae106739d03462c864a329cd29b231bf12c2e9702ebc8",
+        "outputPreview": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\nname: xlang\nmaximum: 18446744073709551615\nbinary: 00ff41\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/cbor/examples/cbor_c.c",
+        "actualExit": 0,
+        "outputSha256": "44c61051d53baf89942ae106739d03462c864a329cd29b231bf12c2e9702ebc8",
+        "outputPreview": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\nname: xlang\nmaximum: 18446744073709551615\nbinary: 00ff41\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/cbor -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/cbor/examples/validate_wire_c.c /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/runtime.o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/native.o -no-pie -lm -ldl -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/wire",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/wire",
+        "actualExit": 0,
+        "outputSha256": "e978fb9cd1e7c37c66a7c9ac7cc6fdce2c8033dc8b9bd5cd460666f4ff919472",
+        "outputPreview": "integer: 182a\nmessage: hi 42\nbinary: 00ff41\nreject: 1f\nreject: f816\nreject: 5f00ff\ncbor wire validation: PASS\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/cbor/examples/validate_wire_c.c",
+        "actualExit": 0,
+        "outputSha256": "e978fb9cd1e7c37c66a7c9ac7cc6fdce2c8033dc8b9bd5cd460666f4ff919472",
+        "outputPreview": "integer: 182a\nmessage: hi 42\nbinary: 00ff41\nreject: 1f\nreject: f816\nreject: 5f00ff\ncbor wire validation: PASS\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/cbor/examples/validate_wire.xl",
+        "actualExit": 0,
+        "outputSha256": "e978fb9cd1e7c37c66a7c9ac7cc6fdce2c8033dc8b9bd5cd460666f4ff919472",
+        "outputPreview": "integer: 182a\nmessage: hi 42\nbinary: 00ff41\nreject: 1f\nreject: f816\nreject: 5f00ff\ncbor wire validation: PASS\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl cgen release/extlibs/cbor/examples/validate_wire.xl --emit /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/probe.c",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 30s python3 release/extlibs/cbor/test/check_owned_codegen.py /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/probe.c",
+        "actualExit": 0,
+        "outputSha256": "27511b2b56c4dea4720c02277e1e8da826c03ab0019d16d82f17520f66c1e6ec",
+        "outputPreview": "CBOR owned codegen: direct char* adoption, no payload copy, PASS\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/cbor -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -fsyntax-only /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/abi.c",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/cbor/test/aot_core.xl -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/aot_core-test",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/aot_core-test",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/cbor/test/wellformed.xl -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/wellformed-test",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/wellformed-test",
+        "actualExit": 0,
+        "outputSha256": "a265262d99d42007a7bde9fcaef71c56d34882118e5010133a5204a3d9183d1d",
+        "outputPreview": "cbor well-formedness XLang: PASS\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/cbor/test/owned_text.xl -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/owned_text-test",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/owned_text-test",
+        "actualExit": 0,
+        "outputSha256": "15cb66cfb6fdc00c5ef890dcf5f01ea2497f16014872a436a82f04d1c6ad79aa",
+        "outputPreview": "cbor owned text: empty/retained results, OOM recovery, PASS\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/cbor/test/wellformed_c.c -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/wellformed_c-test",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/wellformed_c-test",
+        "actualExit": 0,
+        "outputSha256": "872a6d126f9b3511dfe872e0fdb0b3ffbfb90cf26070e74bcb2090f5492a1f67",
+        "outputPreview": "cbor well-formedness: 2591 checks, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/cbor/examples/cbor_c.c -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/cbor_c-examples",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/cbor_c-examples",
+        "actualExit": 0,
+        "outputSha256": "44c61051d53baf89942ae106739d03462c864a329cd29b231bf12c2e9702ebc8",
+        "outputPreview": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\nname: xlang\nmaximum: 18446744073709551615\nbinary: 00ff41\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/cbor/examples/validate_wire.xl -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/validate_wire-examples",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/validate_wire-examples",
+        "actualExit": 0,
+        "outputSha256": "e978fb9cd1e7c37c66a7c9ac7cc6fdce2c8033dc8b9bd5cd460666f4ff919472",
+        "outputPreview": "integer: 182a\nmessage: hi 42\nbinary: 00ff41\nreject: 1f\nreject: f816\nreject: 5f00ff\ncbor wire validation: PASS\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/cbor/examples/validate_wire_c.c -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/validate_wire_c-examples",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/validate_wire_c-examples",
+        "actualExit": 0,
+        "outputSha256": "e978fb9cd1e7c37c66a7c9ac7cc6fdce2c8033dc8b9bd5cd460666f4ff919472",
+        "outputPreview": "integer: 182a\nmessage: hi 42\nbinary: 00ff41\nreject: 1f\nreject: f816\nreject: 5f00ff\ncbor wire validation: PASS\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/cbor/test/boundaries.xl",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/cbor/test/boundaries.xl -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/boundaries-full",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/boundaries-full",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/cbor/test/allocations.xl",
+        "actualExit": 0,
+        "outputSha256": "e10f832aafcce1c3bc25829f1064877dca365dd41a44a28663e317b273b4cc49",
+        "outputPreview": "cbor allocation: PASS\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/cbor/test/allocations.xl -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/allocations-full",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/allocations-full",
+        "actualExit": 0,
+        "outputSha256": "e10f832aafcce1c3bc25829f1064877dca365dd41a44a28663e317b273b4cc49",
+        "outputPreview": "cbor allocation: PASS\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/cbor/examples/cbor.xl",
+        "actualExit": 0,
+        "outputSha256": "44c61051d53baf89942ae106739d03462c864a329cd29b231bf12c2e9702ebc8",
+        "outputPreview": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\nname: xlang\nmaximum: 18446744073709551615\nbinary: 00ff41\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/cbor/examples/cbor.xl -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/cbor-full",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/cbor-full",
+        "actualExit": 0,
+        "outputSha256": "44c61051d53baf89942ae106739d03462c864a329cd29b231bf12c2e9702ebc8",
+        "outputPreview": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\nname: xlang\nmaximum: 18446744073709551615\nbinary: 00ff41\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/examples/extlibs/cbor.xl",
+        "actualExit": 0,
+        "outputSha256": "c2702834b97a2d9b223d92d43f40b3f4f2c3b00638ab40c19b5b25442381e0ef",
+        "outputPreview": "CBOR hex:  a4646e616d6565786c616e676776657273696f6e0664746167738365636f6465636662696e6172796378727467656e61626c6564f5\nname:  xlang\nsecond tag:  binary\nbinary CBOR:  44deadbeef\nbina"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/examples/extlibs/cbor.xl -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/cbor-full",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/cbor-full",
+        "actualExit": 0,
+        "outputSha256": "c2702834b97a2d9b223d92d43f40b3f4f2c3b00638ab40c19b5b25442381e0ef",
+        "outputPreview": "CBOR hex:  a4646e616d6565786c616e676776657273696f6e0664746167738365636f6465636662696e6172796378727467656e61626c6564f5\nname:  xlang\nsecond tag:  binary\nbinary CBOR:  44deadbeef\nbina"
+      },
+      {
+        "command": "timeout 120s ./release/xl run test/cases/extlib_cbor.xl",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build test/cases/extlib_cbor.xl -o /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/extlib_cbor-full",
+        "actualExit": 0,
+        "outputSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-cbor-native-O40hbNZc/tmp/xlang-cbor-IyglTQ/extlib_cbor-full",
+        "actualExit": 0,
+        "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputPreview": ""
+      }
+    ],
+    "snapshotArchiveSha256": "e35c2fde6ba1372f2ad4b90d8af51ce2c13cc9c6568a9e81c919306325eadc97"
+  },
+  "formatChecks": {
+    "wellformedChecks": 2591,
+    "binary16Patterns": 65536,
+    "nanPatterns": 2046,
+    "halfOracle": "Python standard-library struct, exact binary64 bits except NaN category",
+    "publicApis": 6,
+    "actualCPrototypes": 8,
+    "timePrecision": "XRT AD milliseconds; Unix epoch tag 1 rounded to nearest millisecond, ties away from zero",
+    "deterministicEncodingPromised": false,
+    "arbitraryCborDataModelPromised": false
+  },
+  "interoperability": {
+    "reference": "cbor2",
+    "version": "6.1.5",
+    "runtimeDependencyAdded": false,
+    "windowsPython": "CPython 3.12 official binary wheel",
+    "linuxPython": "CPython 3.14 official manylinux_2_28 x86-64 wheel",
+    "linuxWheel": [
+      {
+        "name": "cbor2-6.1.5-cp314-cp314-manylinux_2_28_x86_64.whl",
+        "sha256": "73b97d92ce64a344015909f1888de0abec76211b9c1f33b075563a05512f3a98"
+      }
+    ],
+    "windowsInstall": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "Collecting cbor2==6.1.5 (from -r release/extlibs/cbor/test/requirements-external.txt (line 1))\r\n  Downloading cbor2-6.1.5-cp312-cp312-win_amd64.whl.metadata (5.7 kB)\r\nDownloading cbor2-6.1.5-cp312-cp312-win_amd64.whl (304 kB)\r\nInstalling collected packages: cbor2\r\nSuccessfully installed cbor2-6.1.5\r\n",
+      "stderr": "",
+      "elapsedMs": 4339
+    },
+    "linuxDownload": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "Collecting cbor2==6.1.5 (from -r release/extlibs/cbor/test/requirements-external.txt (line 1))\r\n  Downloading cbor2-6.1.5-cp314-cp314-manylinux_2_28_x86_64.whl.metadata (5.5 kB)\r\nDownloading cbor2-6.1.5-cp314-cp314-manylinux_2_28_x86_64.whl (464 kB)\r\nSaved d:\\git\\x-lang\\build\\test\\cbor_current_20261101\\linux-deps\\cbor2-6.1.5-cp314-cp314-manylinux_2_28_x86_64.whl\r\nSuccessfully downloaded cbor2\r\n",
+      "stderr": "",
+      "elapsedMs": 4647
+    },
+    "previousWindows": [
+      {
+        "name": "C writer",
+        "arguments": [
+          "run",
+          "release/extlibs/cbor/examples/cbor_c.c",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\C.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\r\nname: xlang\r\nmaximum: 18446744073709551615\r\nbinary: 00ff41\r\n",
+          "stderr": "",
+          "elapsedMs": 104
+        }
+      },
+      {
+        "name": "XLang writer",
+        "arguments": [
+          "run",
+          "release/extlibs/cbor/examples/cbor.xl",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\XL.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\nname: xlang\nmaximum: 18446744073709551615\nbinary: 00ff41\n",
+          "stderr": "",
+          "elapsedMs": 274
+        }
+      },
+      {
+        "name": "cbor2 6.1.5 wire interop",
+        "arguments": [
+          "-B",
+          "release/extlibs/cbor/test/check_external.py",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\C.bin",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\XL.bin",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\PY.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "cbor2 write/read fixture: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 141
+        }
+      },
+      {
+        "name": "GCC reader build",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "release/extlibs/cbor/test/external_python_c.c",
+          "release/extlibs/cbor/cbor_native.c",
+          "release/extlibs/cbor/test/xrt_runtime.c",
+          "-lws2_32",
+          "-ladvapi32",
+          "-liphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\external-reader.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 10448
+        }
+      },
+      {
+        "name": "GCC reader",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\PY.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "Python to C CBOR: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "name": "XLang JIT reader",
+        "arguments": [
+          "run",
+          "release/extlibs/cbor/test/external_python.xl",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\PY.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "Python to XLang CBOR: PASS\n",
+          "stderr": "",
+          "elapsedMs": 287
+        }
+      },
+      {
+        "name": "XLang AOT build",
+        "arguments": [
+          "build",
+          "release/extlibs/cbor/test/external_python.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\external-reader-xl.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 539
+        }
+      },
+      {
+        "name": "XLang AOT reader",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\PY.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "Python to XLang CBOR: PASS\n",
+          "stderr": "",
+          "elapsedMs": 37
+        }
+      },
+      {
+        "name": "C AOT build",
+        "arguments": [
+          "build",
+          "release/extlibs/cbor/test/external_python_c.c",
+          "release/extlibs/cbor/cbor_native.c",
+          "--inc-path",
+          "lib/xrt",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\external-reader-c.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 171
+        }
+      },
+      {
+        "name": "C AOT reader",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\PY.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "Python to C CBOR: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 34
+        }
+      }
+    ],
+    "updatedWindows": [
+      {
+        "name": "C writer",
+        "arguments": [
+          "run",
+          "release/extlibs/cbor/examples/cbor_c.c",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\current-C.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\r\nname: xlang\r\nmaximum: 18446744073709551615\r\nbinary: 00ff41\r\n",
+          "stderr": "",
+          "elapsedMs": 115
+        }
+      },
+      {
+        "name": "XLang writer",
+        "arguments": [
+          "run",
+          "release/extlibs/cbor/examples/cbor.xl",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\current-XL.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\nname: xlang\nmaximum: 18446744073709551615\nbinary: 00ff41\n",
+          "stderr": "",
+          "elapsedMs": 321
+        }
+      },
+      {
+        "name": "cbor2 6.1.5 wire interop",
+        "arguments": [
+          "-B",
+          "release/extlibs/cbor/test/check_external.py",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\current-C.bin",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\current-XL.bin",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\current-PY.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "cbor2 write/read fixture: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 144
+        }
+      },
+      {
+        "name": "GCC reader from unchanged sources",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\current-PY.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "Python to C CBOR: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 27
+        }
+      },
+      {
+        "name": "XLang JIT reader",
+        "arguments": [
+          "run",
+          "release/extlibs/cbor/test/external_python.xl",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\current-PY.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "Python to XLang CBOR: PASS\n",
+          "stderr": "",
+          "elapsedMs": 323
+        }
+      },
+      {
+        "name": "XLang AOT build",
+        "arguments": [
+          "build",
+          "release/extlibs/cbor/test/external_python.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\current-external-reader-xl.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 591
+        }
+      },
+      {
+        "name": "XLang AOT reader",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\current-PY.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "Python to XLang CBOR: PASS\n",
+          "stderr": "",
+          "elapsedMs": 39
+        }
+      },
+      {
+        "name": "C AOT build",
+        "arguments": [
+          "build",
+          "release/extlibs/cbor/test/external_python_c.c",
+          "release/extlibs/cbor/cbor_native.c",
+          "--inc-path",
+          "lib/xrt",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\current-external-reader-c.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 189
+        }
+      },
+      {
+        "name": "C AOT reader",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\current-PY.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "Python to C CBOR: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 39
+        }
+      }
+    ],
+    "linux": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "hex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\nname: xlang\nmaximum: 18446744073709551615\nbinary: 00ff41\nhex: a2646e616d6565786c616e67676d6178696d756d1bffffffffffffffff\nname: xlang\nmaximum: 18446744073709551615\nbinary: 00ff41\ncbor2 write/read fixture: PASS\nPython to C CBOR: PASS\nPython to XLang CBOR: PASS\nPython to XLang CBOR: PASS\nPython to C CBOR: PASS\nLinux cbor2 interop: 10 steps, PASS; /var/tmp/xlang-cbor-native-O40hbNZc/interop/commands.log\n",
+      "stderr": "",
+      "elapsedMs": 11414
+    },
+    "cBytesSha256": "1763af8b36f30ef14a98b7288f1ee51d34bbf7807b0d4f4d89ae249a53d01664",
+    "xlBytesSha256": "1763af8b36f30ef14a98b7288f1ee51d34bbf7807b0d4f4d89ae249a53d01664"
+  },
+  "codegenNegativeControls": [
+    {
+      "file": "after.c",
+      "expectedExit": 0,
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "CBOR owned codegen: direct char* adoption, no payload copy, PASS\r\n",
+        "stderr": "",
+        "elapsedMs": 80
+      }
+    },
+    {
+      "file": "before.c",
+      "expectedExit": 1,
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\cbor\\test\\check_owned_codegen.py\", line 26, in <module>\r\n    check(Path(sys.argv[1]).read_text(encoding='utf-8-sig'))\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\cbor\\test\\check_owned_codegen.py\", line 9, in check\r\n    raise ValueError('Obsolete pointer adoption path remains')\r\nValueError: Obsolete pointer adoption path remains\r\n",
+        "elapsedMs": 66
+      }
+    },
+    {
+      "file": "with-copy.c",
+      "expectedExit": 1,
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\cbor\\test\\check_owned_codegen.py\", line 26, in <module>\r\n    check(Path(sys.argv[1]).read_text(encoding='utf-8-sig'))\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\cbor\\test\\check_owned_codegen.py\", line 19, in check\r\n    raise ValueError('Payload copy in owned wrapper')\r\nValueError: Payload copy in owned wrapper\r\n",
+        "elapsedMs": 69
+      }
+    },
+    {
+      "file": "with-repeat.c",
+      "expectedExit": 1,
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\cbor\\test\\check_owned_codegen.py\", line 26, in <module>\r\n    check(Path(sys.argv[1]).read_text(encoding='utf-8-sig'))\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\cbor\\test\\check_owned_codegen.py\", line 14, in check\r\n    raise ValueError('Missing, repeated or ambiguous owned result call')\r\nValueError: Missing, repeated or ambiguous owned result call\r\n",
+        "elapsedMs": 67
+      }
+    }
+  ],
+  "relatedUpdatedRuntimeProbes": [
+    {
+      "name": "generic array projection",
+      "arguments": [
+        "run",
+        "dev/extlib_blockers/foreign_var_array_container.xl"
+      ],
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "uncaught xlang error: ValueError: input is not an array\nuncaught xlang error: input is not an array\n",
+        "elapsedMs": 217
+      }
+    },
+    {
+      "name": "original TOML dictionary",
+      "arguments": [
+        "run",
+        "test/cases/extlib_toml.xl"
+      ],
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "uncaught xlang error: TypeError: TOML document root must be a dict\nuncaught xlang error: TOML document root must be a dict\n",
+        "elapsedMs": 575
+      }
+    },
+    {
+      "name": "BSON original complete example",
+      "arguments": [
+        "run",
+        "test/cases/extlib_bson.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 477
+      }
+    },
+    {
+      "name": "BSON locked publish cleanup",
+      "arguments": [
+        "run",
+        "release/extlibs/bson/test/save_cleanup_c.c",
+        "--",
+        "--locked"
+      ],
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "save existing=1 budget=0 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=1 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=2 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=3 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=4 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=5 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=6 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=7 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=8 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=9 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=10 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=11 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=12 fault=1 extra=1 kind=10 correct=1 balanced=1\r\nsave existing=1 budget=13 fault=0 extra=0 kind=10 correct=1 balanced=1\r\nbson save cleanup: 14 cases, 13 allocation faults, 1 failures; root=D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\temp\\xlang-bson-save-cleanup-e7a39a86044c0cec\r\n",
+        "stderr": "",
+        "elapsedMs": 129
+      }
+    }
+  ],
+  "catalog": {
+    "candidate": {
+      "status": "passed",
+      "catalogSha256": "5ef0402f72da7e93c031b7d3bfb686def08f461a2ed191e2c56c589f8351ba6e",
+      "sourceIndexSha256": "8967945bc16f900ac1342ff93d04f4bbaa237cf7e0fa3ac746696c9bb0056fd4",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "d7d3869c2baae94f35f694c097458a4f303f6977d45caa92c77b2b2000aa3315",
+      "inputsUnchanged": true
+    },
+    "checks": [
+      {
+        "name": "candidate freshness",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/refresh_extensions.py",
+          "--check",
+          "--root",
+          "D:\\GIT\\x-lang",
+          "--data",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\catalog-updated-runtime"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+          "stderr": "",
+          "elapsedMs": 1516
+        }
+      },
+      {
+        "name": "strict compiler binding",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/check_catalog_coverage.py",
+          "--root",
+          "D:\\GIT\\x-lang",
+          "--catalog",
+          "D:\\GIT\\x-lang\\build\\test\\cbor_current_20261101\\catalog-updated-runtime\\commands.json"
+        ],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Catalog compiler changed: xl.dll\r\n",
+          "elapsedMs": 492
+        }
+      },
+      {
+        "name": "existing runtime commit audit",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "tools/check_release_committed.py"
+        ],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Delivery bytes changed: release/xl.dll\r\n",
+          "elapsedMs": 154
+        }
+      }
+    ],
+    "installed": false,
+    "blocker": "dev/extlib_blockers/catalog_release_binding_20261101.md"
+  },
+  "website": {
+    "status": "passed",
+    "sha256": "81155f720285627aff9eea64948ff3d7ed55801339ec722930c03ae7617bfe47",
+    "externalWebsitePublished": false
+  },
+  "scope": {
+    "compilerRuntimeOrXrtSourceModifiedByThisTask": false,
+    "ordinaryPackages": 100,
+    "allOtherPackagesRetested": false,
+    "statuses": {
+      "G": 30,
+      "R": 9,
+      "M": 57,
+      "X": 4
+    },
+    "registeredForeignContainerPackages": 19,
+    "goalComplete": false,
+    "formalRelease": false,
+    "remaining": [
+      "Qualified core source, runtime products and base catalog bindings must converge before installing the generated pair.",
+      "CBOR M1 is resolved for this package only; updated-runtime generic array and TOML probes still fail.",
+      "Other package blockers remain open, including BSON atomic-save cleanup."
+    ]
+  }
+}

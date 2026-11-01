@@ -62,11 +62,12 @@ int main(void)
   </section>
   <section id="verify">
     <h2>验证状态</h2>
+    <p>2026-11-01：主目录0.6.0的Windows完整数组/字典、六API、双语与AOT链路已恢复；此前M1及缺符号是历史记录，不直接描述当前发布物。<code>toHex</code>现以拥有型char*直接交给语言字符串，保留匹配point参数的薄C适配；旧路径也没有正文复制，不宣称移除了不存在的复制。默认新增空/非空字符串、结果寿命、逐点OOM恢复与生成代码检查；两平台最终证据见仓库 <code>docs/reports/extlib-cbor-20261101.json</code>。时间精度为XRT毫秒，不能承诺任意CBOR时间无损映射；命令目录候选仍须等待全局主线/发布绑定校验通过，未部署外部网站。</p>
     <p>2026-10-29：修复非法 <code>1f</code> 被当成最大uint64、<code>3f/df</code> 与保留 <code>f8 00..1f</code> 诊断不准确，以及分块预算超限误报值错误。新增2,591项线格式/上下文/释放检查、全部65,536种半精度位形的Python标准库独立对照，以及七行黄金输出的 <code>examples/validate_wire.xl</code> / <code>validate_wire_c.c</code> 双语报文范例。完整门禁仍要求语言容器编码通过，未把既有M1阻断移为预期失败或宣称已签收。</p>
     <p>2026-10-25 Windows 发布版复验：严格 C、C 边界/分配故障与 C 范例通过；首个 XLang 边界在语言数组传入 <code>encode(var)</code> 时报告不支持的动态类型，JIT 与独立 EXE 最小复现均失败。问题属于共享 foreign <code>var</code> 容器投影边界，完整语言与 AOT 门禁尚未签收；不能沿用早期 C/XLang 全绿的结果。</p>
-    <p>C/XLang 成对范例覆盖六个公开入口；含 NUL 与 <code>0xFF</code> 的字节样本固定编码为 <code>4300ff41</code>。既有双语黄金输出仍保留，待共享边界修复后重跑两平台完整门禁。</p>
+    <p>C/XLang 成对范例覆盖六个公开入口；含 NUL 与 <code>0xFF</code> 的字节样本固定编码为 <code>4300ff41</code>。既有双语黄金输出与完整门禁保留，不以标量/字节通路替代数组和字典合同。</p>
     <p>2026-10-21 XLang 六个公开入口的分配故障用例改为逐入口扫描到首次成功，并在每次失败后立即清除故障、重试。Windows/Linux 正式运行器均通过；包实现未改，完整 AOT 的共享阻断未变。</p>
-    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/cbor/test/check.ps1 -SkipAot
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/cbor/test/check.ps1
 wsl bash release/extlibs/cbor/test/check.sh</code></pre>
     <p>2026-10-16 历史发布物：Windows 严格 GCC、C/XLang 边界、随机输入与双语输出对照通过；Linux 包级 C smoke、边界与范例通过 ASan/UBSan，同次脚本还验证 XLang 边界及 C/XLang 范例逐字节同输出。六个公开入口新增逐点分配故障扫描，C 保留 <code>XERR_MEMORY</code>、XLang 捕获 <code>MemoryError</code>，失败清除后可重试；解码故障覆盖嵌套数组、字典和字节串。整份文档累计项数的恰好达限/超限红绿回归通过。当时完整 AOT 在首个核心构建缺少 <code>xl6NativeHandleTraceLeaf</code>，这一诊断不代表当前发布物的首个阻断。</p>
   </section>

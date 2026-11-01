@@ -24,6 +24,6 @@
     "links": [],
     "loadlibs": [],
     "dependencies": [],
-    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/bson_test.xl", "test/allocations.xl", "test/numeric_reads.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/bson_test.xl", "test/allocations.xl", "test/numeric_reads.xl", "test/owned_text.xl", "test/date_epochs.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

@@ -1,0 +1,1283 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-01T19:18:15.5120798+08:00",
+  "package": "bson",
+  "status": "improved-with-xrt-blocker",
+  "maturity": "R",
+  "root": "D:\\GIT\\x-lang",
+  "sourceParent": "44a3f3ab323d9657a9770e9401ac0b1a7adbd613",
+  "compilerVersion": "0.6.0",
+  "products": [
+    {
+      "path": "release/xl.exe",
+      "bytes": 71168,
+      "sha256": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05"
+    },
+    {
+      "path": "release/xl.dll",
+      "bytes": 14186496,
+      "sha256": "2e3559673defc88f6f6e35c03bdf9980b9876405c7086a36a9ddf75de6242feb"
+    },
+    {
+      "path": "release/xlc.dll",
+      "bytes": 19487232,
+      "sha256": "c36441758b31e6c500ee31534474eed8e7a408b272fcc189da802c533f895d7a"
+    },
+    {
+      "path": "release/xl",
+      "bytes": 47224,
+      "sha256": "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb"
+    },
+    {
+      "path": "release/libxl.so",
+      "bytes": 15595216,
+      "sha256": "b3b895b1975511024aeb733c67de6f1253ba3124dae12b507cd0a93559387afc"
+    },
+    {
+      "path": "release/libxlc.so",
+      "bytes": 21022672,
+      "sha256": "5d1b101247ce40fde0aa4ad29b0c023f614562f9582da70871de62e7895b4e4c"
+    }
+  ],
+  "xrt": {
+    "headerSha256": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+    "hostReleaseRebuiltByThisTask": false,
+    "sourceUpdateByParallelThread": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
+    "previousTestedHeaderSha256": "05e8c00fb0eef0215f4d0c9291d240438cb37782df5de1c0e9ba8699b0dcd5eb",
+    "abiDeclarationChangesObserved": false,
+    "compilerOrXrtEditsByThisTask": false
+  },
+  "changes": [
+    "Three direct @owned char* bindings; removed three void* trampolines, without claiming pre-existing payload copies.",
+    "Corrected old microsecond/epoch expectations to XRT AD milliseconds and BSON Unix milliseconds.",
+    "Added retained string/OOM recovery, four-entry Date limits and independent Python/PyMongo checks.",
+    "Comprehensive example now uses an owned UTF-8 temporary directory and finally cleanup, including empty-cwd validation.",
+    "New required atomic-save rollback test exposes a real XRT cleanup failure; no package-side replacement or expected-failure downgrade."
+  ],
+  "windows": {
+    "outcome": "failed",
+    "checks": 76,
+    "matchingExpectations": 75,
+    "aotSkipped": false,
+    "inputCount": 62,
+    "inputChanges": [],
+    "aotBuilds": 15,
+    "rawReport": "D:\\GIT\\x-lang\\build\\test\\bson_guard\\run_357dba7ab01e4812ac60b423f41a8892.json",
+    "results": [
+      {
+        "name": "compiler version",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 39,
+        "stdoutSha256": "87438b7ee2429bf0a85f172c569d3ae10e611821ed289ef1f83e20a19663d877",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "C integer ABI",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 149,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "public header",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 135,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "manifest syntax",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 156,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "selected XRT compile",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 8046,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "native compile",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 456,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "test_bson_smoke compile",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 240,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "test_bson_smoke",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 30,
+        "stdoutSha256": "5ab17e7a3e5cbadf31f601b862a7de369cc92a9d941f8d31b0a678c8f4539687",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "test_boundaries compile",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 568,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "test_boundaries",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 793,
+        "stdoutSha256": "ffd97a009b770cacb13baae79e65ac18f465c37d2cfb1fb8757d029a290e133f",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "numeric_reads_c compile",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 631,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "numeric_reads_c",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 33,
+        "stdoutSha256": "3b18c0d9c23a4aea1d795e015117ab816182a0bd983ce57605b1cacd5b62d44b",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "date_epochs_c compile",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 540,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "date_epochs_c",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 29,
+        "stdoutSha256": "f05ce26b5f7f08a41c3ff0ff44997233908eed55a5a95d61ee682b3565ed98e0",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "independent Date oracle",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 73,
+        "stdoutSha256": "f80eefeee638fa66ef98a30baf6255f1e2f613b3bb110cdcee067ea533510194",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "numeric vectors direct C",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 86,
+        "stdoutSha256": "3b18c0d9c23a4aea1d795e015117ab816182a0bd983ce57605b1cacd5b62d44b",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "Date vectors direct C",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 77,
+        "stdoutSha256": "f05ce26b5f7f08a41c3ff0ff44997233908eed55a5a95d61ee682b3565ed98e0",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "direct Date oracle",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 72,
+        "stdoutSha256": "f80eefeee638fa66ef98a30baf6255f1e2f613b3bb110cdcee067ea533510194",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "basic C compile",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 555,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "basic GCC",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 26,
+        "stdoutSha256": "7ef828719b76cadcf53d9bb188e0671ed07289b2ba16d593ff3eed14ddb59b8c",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "basic direct C",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 82,
+        "stdoutSha256": "7ef828719b76cadcf53d9bb188e0671ed07289b2ba16d593ff3eed14ddb59b8c",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "numeric_fields C compile",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 597,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "numeric_fields GCC",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 59,
+        "stdoutSha256": "1dd9b089edaa4e561e98dcd7a65d5b7ee5fe132f17c633b28233b92eb57e69e7",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "numeric_fields direct C",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 73,
+        "stdoutSha256": "1dd9b089edaa4e561e98dcd7a65d5b7ee5fe132f17c633b28233b92eb57e69e7",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "C example argument failure",
+        "expectedExit": 1,
+        "actualExit": 1,
+        "status": "fail",
+        "elapsedMs": 24,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "C example write failure",
+        "expectedExit": 1,
+        "actualExit": 1,
+        "status": "fail",
+        "elapsedMs": 26,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "C save/load example",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 26,
+        "stdoutSha256": "65e31d213f224d4b1df2a6187d6bde940eb6d5880f83dd829949edef70ffd7a2",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "numeric XLang example",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 257,
+        "stdoutSha256": "a26de878bbe6e4be81caa11a0b32ac8f05f532c759c772b1682e0fb0bc3e07e9",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "XLang numeric boundaries",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 264,
+        "stdoutSha256": "5918ac40dcc8b6645fda9c9198eb8c2c7e8ac044b060ad74047f17351270766c",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "complete API cgen",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 143,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "three direct owned result paths",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 92,
+        "stdoutSha256": "8e90414ddd2c2751ea442da1d0597b8285da06fe43d6b626798ac555873c27ae",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "fifteen actual prototypes",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 169,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/numeric_reads_c.c build",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 133,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/numeric_reads_c.c AOT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 47,
+        "stdoutSha256": "3b18c0d9c23a4aea1d795e015117ab816182a0bd983ce57605b1cacd5b62d44b",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/date_epochs_c.c build",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 150,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/date_epochs_c.c AOT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 33,
+        "stdoutSha256": "f05ce26b5f7f08a41c3ff0ff44997233908eed55a5a95d61ee682b3565ed98e0",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/numeric_reads.xl build",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 514,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/numeric_reads.xl AOT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 33,
+        "stdoutSha256": "5918ac40dcc8b6645fda9c9198eb8c2c7e8ac044b060ad74047f17351270766c",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/examples/numeric_fields.xl build",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 538,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/examples/numeric_fields.xl AOT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 35,
+        "stdoutSha256": "a26de878bbe6e4be81caa11a0b32ac8f05f532c759c772b1682e0fb0bc3e07e9",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/examples/bson_c.c build",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 138,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/examples/bson_c.c AOT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 36,
+        "stdoutSha256": "7ef828719b76cadcf53d9bb188e0671ed07289b2ba16d593ff3eed14ddb59b8c",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/examples/numeric_fields_c.c build",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 153,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/examples/numeric_fields_c.c AOT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 33,
+        "stdoutSha256": "1dd9b089edaa4e561e98dcd7a65d5b7ee5fe132f17c633b28233b92eb57e69e7",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "test/cases/extlib_bson.xl complete JIT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 442,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "test/cases/extlib_bson.xl complete build",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 764,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "test/cases/extlib_bson.xl complete AOT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 34,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/aot_core.xl complete JIT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 172,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/aot_core.xl complete build",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 371,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/aot_core.xl complete AOT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 33,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/boundaries.xl complete JIT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 1270,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/boundaries.xl complete build",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 2023,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/boundaries.xl complete AOT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 62,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/bson_test.xl complete JIT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 338,
+        "stdoutSha256": "e91fa36fb4cacf45faba26e9514da35a24fa6bb8fb89e3a3925ee7e8a1f5327d",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/bson_test.xl complete build",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 610,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/bson_test.xl complete AOT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 195,
+        "stdoutSha256": "e91fa36fb4cacf45faba26e9514da35a24fa6bb8fb89e3a3925ee7e8a1f5327d",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/allocations.xl complete JIT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 260,
+        "stdoutSha256": "a3bb74b926dc97d2373513a6075773066d0859d8d825c0e42727b514c788f7d2",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/allocations.xl complete build",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 477,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/allocations.xl complete AOT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 43,
+        "stdoutSha256": "a3bb74b926dc97d2373513a6075773066d0859d8d825c0e42727b514c788f7d2",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/owned_text.xl complete JIT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 307,
+        "stdoutSha256": "c1ff690beaed96a0dff93cc31a38ca9fd9240302ea4b06b536799f1581f7a248",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/owned_text.xl complete build",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 554,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/owned_text.xl complete AOT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 34,
+        "stdoutSha256": "c1ff690beaed96a0dff93cc31a38ca9fd9240302ea4b06b536799f1581f7a248",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/date_epochs.xl complete JIT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 308,
+        "stdoutSha256": "169506f64ae45d712c517b3a9f92a7c3f3dc6e7aad211dd8ea7b0fbe0013756b",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/date_epochs.xl complete build",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 543,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/test/date_epochs.xl complete AOT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 33,
+        "stdoutSha256": "169506f64ae45d712c517b3a9f92a7c3f3dc6e7aad211dd8ea7b0fbe0013756b",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/examples/bson.xl complete JIT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 262,
+        "stdoutSha256": "e321dbab8b3fee1faa5042bea538a5c6bde700383d7b58aab31a809c28011a98",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/examples/bson.xl complete build",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 465,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/extlibs/bson/examples/bson.xl complete AOT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 31,
+        "stdoutSha256": "e321dbab8b3fee1faa5042bea538a5c6bde700383d7b58aab31a809c28011a98",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/examples/extlibs/bson.xl complete JIT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 665,
+        "stdoutSha256": "a504c4c14b2861cee524e0d2547ba3188e8ff688e4c1bf0c5f8d1477f2e0d931",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/examples/extlibs/bson.xl complete build",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 1175,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "release/examples/extlibs/bson.xl complete AOT",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 36,
+        "stdoutSha256": "ca7a7bec56c5a89d8e78867c47ac5b4819ab1134fa764503922a7609e68bc4cd",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "XLang save/load example",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 273,
+        "stdoutSha256": "abca142d2c6b2516363373f10f2f4c2c329ce7045500867437a592ee9065f1c3",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "comprehensive example in empty cwd",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 719,
+        "stdoutSha256": "376a8aa3b1bad00fd3421291bab8af8bd2f41b8ca7a011e4311900ca1ca3282e",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "save cleanup C compile",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 631,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "ordinary save allocation cleanup",
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 57,
+        "stdoutSha256": "48d73ebac244d291396abc0c7e71ee793dfbb0d12ad21db7f19b59e8aa375964",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "locked publish allocation cleanup",
+        "expectedExit": 0,
+        "actualExit": 1,
+        "status": "fail",
+        "elapsedMs": 79,
+        "stdoutSha256": "29ce28e72b746c103db5d4def513d4d2f3db00c867e965bd4b86f15ce5c0b2f1",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "requiredFailure": {
+      "name": "locked publish allocation cleanup",
+      "program": "D:\\GIT\\x-lang\\build\\test\\bson_guard\\run_357dba7ab01e4812ac60b423f41a8892\\save-cleanup.exe",
+      "arguments": [
+        "--locked"
+      ],
+      "workingDirectory": "D:\\GIT\\x-lang",
+      "expectedExit": 0,
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "save existing=1 budget=0 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=1 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=2 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=3 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=4 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=5 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=6 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=7 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=8 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=9 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=10 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=11 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=12 fault=1 extra=1 kind=10 correct=1 balanced=1\r\nsave existing=1 budget=13 fault=0 extra=0 kind=10 correct=1 balanced=1\r\nbson save cleanup: 14 cases, 13 allocation faults, 1 failures; root=D:\\GIT\\x-lang\\build\\test\\bson_current_20261101\\current-temp\\xlang-bson-save-cleanup-bb3f874aa3fe6ef0\r\n",
+        "stderr": "",
+        "elapsedMs": 79
+      }
+    },
+    "testedInputs": {
+      "C:\\Program Files\\Python312\\python.exe": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a",
+      "lib/xrt/xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+      "lib/xruntime/xruntime.h": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+      "release/examples/extlibs/bson.xl": "c4577c9924cb92708c636f761caa0dc18eb9bfd26af4de200c87f21564e744a0",
+      "release/extlibs/bson/bson_native.c": "331736be0c18c3b7dfa5f18dc81df22b47ed7f889a7a33a23e0eb8db3240cd1b",
+      "release/extlibs/bson/bson_native.h": "8c53f8394fd234274076a7fb2bcc8a0fb1d5744080743ca9091b024b039c8e95",
+      "release/extlibs/bson/docs/site.html": "2ca7f1bccf102071eda12cb29b9a1073fb9cf08099ee8d37cfb19eaf6b64a000",
+      "release/extlibs/bson/examples/basic.expected.txt": "e321dbab8b3fee1faa5042bea538a5c6bde700383d7b58aab31a809c28011a98",
+      "release/extlibs/bson/examples/bson.xl": "95fec358ea9a5b6229d11ab53d527b51357724ab5790742eb9f29817a8a0f94b",
+      "release/extlibs/bson/examples/bson_c.c": "9847536e4c983854cb1d6f028dd4413834eeb28e52a8807c55348b5c0a9373da",
+      "release/extlibs/bson/examples/numeric_fields.expected.txt": "a26de878bbe6e4be81caa11a0b32ac8f05f532c759c772b1682e0fb0bc3e07e9",
+      "release/extlibs/bson/examples/numeric_fields.xl": "acf898459ea17b783fb82ec4525d162d8562a647f8c9c9d3411d373d112db6be",
+      "release/extlibs/bson/examples/numeric_fields_c.c": "3bd1087a781c4cbb0819d1884bffa4299fa6b48badf1b25238352b5284d0ab7c",
+      "release/extlibs/bson/LICENSE.lua-bson": "72e53084789202df92dd80b596fa48618282ec42577e610e9ddb6f5fd31307c1",
+      "release/extlibs/bson/README.md": "851ed95a5a4ddf2d5ec247858d556dddc1a522f20a90eb4d8726fbdf6a64a575",
+      "release/extlibs/bson/src/bson.xl": "c97fab93d0e5c07002fe859e433d732d4bdf13faf838057f73c7af14dfbf8c18",
+      "release/extlibs/bson/test/abi_contract.c": "4bdea00de9536a2a8fab5535c54bb14ab54565d218024a4df41981426018da03",
+      "release/extlibs/bson/test/allocations.xl": "78fd5c56cdb663284dc8460461c8bc589ea28ac42291a9e06e2e0b4e6096f970",
+      "release/extlibs/bson/test/aot_core.xl": "23df154d37a52d9776e039fd881c656cef5e3718b5b3050698e98b130b2ac1a7",
+      "release/extlibs/bson/test/boundaries.xl": "dc987bd06a3a67730e8a107b3fc010e6d9cf26d1c719a70175c10684d93db7f2",
+      "release/extlibs/bson/test/bson_test.xl": "6638f4564e612510dad1a77e1c3eb095769f1aa18441cb9dfc611cf995c6fb66",
+      "release/extlibs/bson/test/check.ps1": "754294bb2adbb660183613e6ef07fbd97ccd894136e9ab9273cbc80b0bce91f5",
+      "release/extlibs/bson/test/check.sh": "66d2de16dac1ac89f05de63235bcc9aede89d27cc62cae498c440624b5e03915",
+      "release/extlibs/bson/test/check_date_epochs.py": "0cf30e12f1739e9015e95d5662173828e6c95f98d7707cbdc5c5fb0922e59413",
+      "release/extlibs/bson/test/check_external.py": "66e1a204675cc828fedea593772f0b914e56e049269696b57f845b6051405ba0",
+      "release/extlibs/bson/test/check_owned_codegen.py": "63e25f91ecba23eaf57ee030e6ec86f9180ccf1b3ada4cc6c2b2bd29b8d6db66",
+      "release/extlibs/bson/test/date_epochs.xl": "0956bf069d04aa0f5060f785e5d7ee5a437c89e2d2d043831369a7d9851f7c24",
+      "release/extlibs/bson/test/date_epochs_c.c": "2e0e99160bc7881367fd2b994b9db52839b06250bb517ed69ee62c866f5cd3de",
+      "release/extlibs/bson/test/external_python.xl": "692d74adf351a8db4c41329e054a7bccf4d4853a94e05fcc5bc2c10005cb338d",
+      "release/extlibs/bson/test/external_python_c.c": "92cd66224b043727964535b39dbf96a64fac298c710c0955f7b17b80116584af",
+      "release/extlibs/bson/test/numeric_reads.xl": "ef642bf8b9657b1ba4e875918688552cce61b31c60babc3845b76db49d6904a1",
+      "release/extlibs/bson/test/numeric_reads_c.c": "233467fc38a0566ee4e97f9930345d7b163aa07111e846518a9db082ce81d70b",
+      "release/extlibs/bson/test/owned_text.xl": "21684d81fcf606823d85a6b17f7472e1fbf795f444341d9a94ac5138526faeff",
+      "release/extlibs/bson/test/requirements-external.txt": "23507f359fa3e52de1adde04ef66140616fc24a09bc27654e35b92e668aea3ed",
+      "release/extlibs/bson/test/save_cleanup_c.c": "925fb444d78939f2094b8560c2e8cb105f500c6cca486917a029c14bc8a6f0b0",
+      "release/extlibs/bson/test/test_boundaries.c": "af3c5ebb65a029be4f58cc4902ffc5ae4ab8352e70ab3819f0b281d903a74b78",
+      "release/extlibs/bson/test/test_bson_smoke.c": "69983a5dda7081fdc7fea7ae63086638343b448898be2db1bf9e6d4bbade56b0",
+      "release/extlibs/bson/test/xrt_runtime.c": "d34931439b6d3baf94c518bfc7c9d7d53c72def820229c01abf850255a3b2b34",
+      "release/extlibs/bson/xlang.package.json": "7a33b1f14524daefd3b4183bfc4e58e72c5921715ccf358309ff4ebcf78276d1",
+      "release/include/libtcc.h": "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab",
+      "release/include/README.md": "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770",
+      "release/include/tcc_builtin_vfs.h": "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2",
+      "release/include/xl.h": "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4",
+      "release/include/xl_cancellation_retirement.h": "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad",
+      "release/include/xl_clock.h": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18",
+      "release/include/xl_extlib_abi.h": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445",
+      "release/include/xl_foreign_graph.h": "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f",
+      "release/include/xl_foreign_net.h": "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a",
+      "release/include/xl_package.h": "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1",
+      "release/include/xl_runtime.h": "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2",
+      "release/include/xl_sync_retirement.h": "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e",
+      "release/include/xl_version.h": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992",
+      "release/include/xlc.h": "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f",
+      "release/include/xrt_decl.h": "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d",
+      "release/include/xruntime_decl.h": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+      "release/xl.dll": "2e3559673defc88f6f6e35c03bdf9980b9876405c7086a36a9ddf75de6242feb",
+      "release/xl.exe": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05",
+      "release/xlc.dll": "c36441758b31e6c500ee31534474eed8e7a408b272fcc189da802c533f895d7a",
+      "test/cases/extlib_bson.xl": "2fa5a4ab8e548260909e317b87e762cb9f072772fe4f550833d5616c02b8ab3e",
+      "tools/extlib_smoke_process.ps1": "294fcc133c2e4f3e5786080d6dcfedd3bfbc51656af892433cce08bb3eaf635f",
+      "tools/xlir_native_process.ps1": "c010a2ee726375ca627d3c161e65ed3fce84189810259f6a93bf8eb277caf219",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9a52de3e3af8f4896e963c4b68ed159f049954775decb20e421cd75d51aab6ed"
+    }
+  },
+  "linux": {
+    "status": "pass",
+    "exit": 0,
+    "phases": 75,
+    "report": "/var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb.report.txt",
+    "sourceInputChangesBytes": 0,
+    "sourceArchiveSha256": "ad06a9d269a0fa9607424394719ab23ecaee7f3adc11f3bcba85f0b4a788e3eb",
+    "sanitizer": "ASan+UBSan+leak detection for standalone C",
+    "aotPrograms": 15,
+    "windowsSharingTestRun": false,
+    "commandTranscript": "exit=0\nphases=75\n\n$ timeout 10s gcc --version\nexit=0\ngcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/bson -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -fsyntax-only release/extlibs/bson/test/abi_contract.c\nexit=0\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/bson -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -x c -fsyntax-only release/extlibs/bson/bson_native.h\nexit=0\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/bson -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DXRT_MODULE_VALUE_CONTAINER -DXRT_MODULE_FILE_WHOLE -DXRT_MODULE_TIME -DXRT_MODULE_UNICODE -DXRT_MODULE_RANDOM_SECURE -fsyntax-only release/extlibs/bson/bson_native.c\nexit=0\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/bson -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/bson/test/xrt_runtime.c -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/runtime.o\nexit=0\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/bson -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/bson/bson_native.c -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/native.o\nexit=0\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/bson -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/bson/test/test_bson_smoke.c /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/runtime.o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/native.o -no-pie -lm -ldl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/test_bson_smoke\nexit=0\n\n$ timeout 120s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/test_bson_smoke\nexit=0\ntest_bson_smoke: ok\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/bson -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/bson/test/test_boundaries.c /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/runtime.o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/native.o -Wl\\,--wrap=clock_gettime -no-pie -lm -ldl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/test_boundaries\nexit=0\n\n$ timeout 120s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/test_boundaries /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb\nexit=0\nbson boundaries: ok\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/bson -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/bson/test/numeric_reads_c.c /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/numeric_reads_c\nexit=0\n\n$ timeout 120s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/numeric_reads_c\nexit=0\nbson numeric reads: 1080 vectors, 72 OOM paths, 0 failures\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/bson -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/bson/test/date_epochs_c.c /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/date_epochs_c\nexit=0\n\n$ timeout 120s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/date_epochs_c\nexit=0\ndate\t0\t-9223372036854775808\t-9223309901257975808\t13000000097768656e00000000000000008000\ndate\t1\t-9223372036854775808\t-9223309901257975808\t13000000097768656e00000000000000008000\ndate\t2\t-9223372036854775808\t-9223309901257975808\t13000000097768656e00000000000000008000\ndate\t3\t-9223372036854775808\t-9223309901257975808\t13000000097768656e00000000000000008000\ndate\t0\t-62135596800001\t-1\t13000000097768656e00ff27d3ed7cc7ffff00\ndate\t1\t-62135596800001\t-1\t13000000097768656e00ff27d3ed7cc7ffff00\ndate\t2\t-62135596800001\t-1\t13000000097768656e00ff27d3ed7cc7ffff00\ndate\t3\t-62135596800001\t-1\t13000000097768656e00ff27d3ed7cc7ffff00\ndate\t0\t-62135596800000\t0\t13000000097768656e000028d3ed7cc7ffff00\ndate\t1\t-62135596800000\t0\t13000000097768656e000028d3ed7cc7ffff00\ndate\t2\t-62135596800000\t0\t13000000097768656e000028d3ed7cc7ffff00\ndate\t3\t-62135596800000\t0\t13000000097768656e000028d3ed7cc7ffff00\ndate\t0\t-1000\t62135596799000\t13000000097768656e0018fcffffffffffff00\ndate\t1\t-1000\t62135596799000\t13000000097768656e0018fcffffffffffff00\ndate\t2\t-1000\t62135596799000\t13000000097768656e0018fcffffffffffff00\ndate\t3\t-1000\t62135596799000\t13000000097768656e0018fcffffffffffff00\ndate\t0\t-500\t62135596799500\t13000000097768656e000cfeffffffffffff00\ndate\t1\t-500\t62135596799500\t13000000097768656e000cfeffffffffffff00\ndate\t2\t-500\t62135596799500\t13000000097768656e000cfeffffffffffff00\ndate\t3\t-500\t62135596799500\t13000000097768656e000cfeffffffffffff00\ndate\t0\t-1\t62135596799999\t13000000097768656e00ffffffffffffffff00\ndate\t1\t-1\t62135596799999\t13000000097768656e00ffffffffffffffff00\ndate\t2\t-1\t62135596799999\t13000000097768656e00ffffffffffffffff00\ndate\t3\t-1\t62135596799999\t13000000097768656e00ffffffffffffffff00\ndate\t0\t0\t62135596800000\t13000000097768656e00000000000000000000\ndate\t1\t0\t62135596800000\t13000000097768656e00000000000000000000\ndate\t2\t0\t62135596800000\t13000000097768656e00000000000000000000\ndate\t3\t0\t62135596800000\t13000000097768656e00000000000000000000\ndate\t0\t1\t62135596800001\t13000000097768656e00010000000000000000\ndate\t1\t1\t62135596800001\t13000000097768656e00010000000000000000\ndate\t2\t1\t62135596800001\t13000000097768656e00010000000000000000\ndate\t3\t1\t62135596800001\t13000000097768656e00010000000000000000\ndate\t0\t500\t62135596800500\t13000000097768656e00f40100000000000000\ndate\t1\t500\t62135596800500\t13000000097768656e00f40100000000000000\ndate\t2\t500\t62135596800500\t13000000097768656e00f40100000000000000\ndate\t3\t500\t62135596800500\t13000000097768656e00f40100000000000000\ndate\t0\t1000\t62135596801000\t13000000097768656e00e80300000000000000\ndate\t1\t1000\t62135596801000\t13000000097768656e00e80300000000000000\ndate\t2\t1000\t62135596801000\t13000000097768656e00e80300000000000000\ndate\t3\t1000\t62135596801000\t13000000097768656e00e80300000000000000\ndate\t0\t253402300799999\t315537897599999\t13000000097768656e00ffdb1fd277e6000000\ndate\t1\t253402300799999\t315537897599999\t13000000097768656e00ffdb1fd277e6000000\ndate\t2\t253402300799999\t315537897599999\t13000000097768656e00ffdb1fd277e6000000\ndate\t3\t253402300799999\t315537897599999\t13000000097768656e00ffdb1fd277e6000000\ndate\t0\t9223309901257975807\t9223372036854775807\t13000000097768656e00ff27d3ed7cc7ff7f00\ndate\t1\t9223309901257975807\t9223372036854775807\t13000000097768656e00ff27d3ed7cc7ff7f00\ndate\t2\t9223309901257975807\t9223372036854775807\t13000000097768656e00ff27d3ed7cc7ff7f00\ndate\t3\t9223309901257975807\t9223372036854775807\t13000000097768656e00ff27d3ed7cc7ff7f00\ndate\t0\t9223309901257975808\t0\t13000000097768656e000028d3ed7cc7ff7f00\ndate\t1\t9223309901257975808\t0\t13000000097768656e000028d3ed7cc7ff7f00\ndate\t2\t9223309901257975808\t0\t13000000097768656e000028d3ed7cc7ff7f00\ndate\t3\t9223309901257975808\t0\t13000000097768656e000028d3ed7cc7ff7f00\ndate\t0\t9223372036854775807\t0\t13000000097768656e00ffffffffffffff7f00\ndate\t1\t9223372036854775807\t0\t13000000097768656e00ffffffffffffff7f00\ndate\t2\t9223372036854775807\t0\t13000000097768656e00ffffffffffffff7f00\ndate\t3\t9223372036854775807\t0\t13000000097768656e00ffffffffffffff7f00\nbson date epochs: 56 decode paths, 2 encode rejections, PASS\n\n$ timeout 30s python3 release/extlibs/bson/test/check_date_epochs.py /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/date_epochs_c.txt\nexit=0\nBSON Date independent oracle: 56 records, PASS\n\n$ timeout 120s ./release/xl run release/extlibs/bson/test/date_epochs_c.c\nexit=0\ndate\t0\t-9223372036854775808\t-9223309901257975808\t13000000097768656e00000000000000008000\ndate\t1\t-9223372036854775808\t-9223309901257975808\t13000000097768656e00000000000000008000\ndate\t2\t-9223372036854775808\t-9223309901257975808\t13000000097768656e00000000000000008000\ndate\t3\t-9223372036854775808\t-9223309901257975808\t13000000097768656e00000000000000008000\ndate\t0\t-62135596800001\t-1\t13000000097768656e00ff27d3ed7cc7ffff00\ndate\t1\t-62135596800001\t-1\t13000000097768656e00ff27d3ed7cc7ffff00\ndate\t2\t-62135596800001\t-1\t13000000097768656e00ff27d3ed7cc7ffff00\ndate\t3\t-62135596800001\t-1\t13000000097768656e00ff27d3ed7cc7ffff00\ndate\t0\t-62135596800000\t0\t13000000097768656e000028d3ed7cc7ffff00\ndate\t1\t-62135596800000\t0\t13000000097768656e000028d3ed7cc7ffff00\ndate\t2\t-62135596800000\t0\t13000000097768656e000028d3ed7cc7ffff00\ndate\t3\t-62135596800000\t0\t13000000097768656e000028d3ed7cc7ffff00\ndate\t0\t-1000\t62135596799000\t13000000097768656e0018fcffffffffffff00\ndate\t1\t-1000\t62135596799000\t13000000097768656e0018fcffffffffffff00\ndate\t2\t-1000\t62135596799000\t13000000097768656e0018fcffffffffffff00\ndate\t3\t-1000\t62135596799000\t13000000097768656e0018fcffffffffffff00\ndate\t0\t-500\t62135596799500\t13000000097768656e000cfeffffffffffff00\ndate\t1\t-500\t62135596799500\t13000000097768656e000cfeffffffffffff00\ndate\t2\t-500\t62135596799500\t13000000097768656e000cfeffffffffffff00\ndate\t3\t-500\t62135596799500\t13000000097768656e000cfeffffffffffff00\ndate\t0\t-1\t62135596799999\t13000000097768656e00ffffffffffffffff00\ndate\t1\t-1\t62135596799999\t13000000097768656e00ffffffffffffffff00\ndate\t2\t-1\t62135596799999\t13000000097768656e00ffffffffffffffff00\ndate\t3\t-1\t62135596799999\t13000000097768656e00ffffffffffffffff00\ndate\t0\t0\t62135596800000\t13000000097768656e00000000000000000000\ndate\t1\t0\t62135596800000\t13000000097768656e00000000000000000000\ndate\t2\t0\t62135596800000\t13000000097768656e00000000000000000000\ndate\t3\t0\t62135596800000\t13000000097768656e00000000000000000000\ndate\t0\t1\t62135596800001\t13000000097768656e00010000000000000000\ndate\t1\t1\t62135596800001\t13000000097768656e00010000000000000000\ndate\t2\t1\t62135596800001\t13000000097768656e00010000000000000000\ndate\t3\t1\t62135596800001\t13000000097768656e00010000000000000000\ndate\t0\t500\t62135596800500\t13000000097768656e00f40100000000000000\ndate\t1\t500\t62135596800500\t13000000097768656e00f40100000000000000\ndate\t2\t500\t62135596800500\t13000000097768656e00f40100000000000000\ndate\t3\t500\t62135596800500\t13000000097768656e00f40100000000000000\ndate\t0\t1000\t62135596801000\t13000000097768656e00e80300000000000000\ndate\t1\t1000\t62135596801000\t13000000097768656e00e80300000000000000\ndate\t2\t1000\t62135596801000\t13000000097768656e00e80300000000000000\ndate\t3\t1000\t62135596801000\t13000000097768656e00e80300000000000000\ndate\t0\t253402300799999\t315537897599999\t13000000097768656e00ffdb1fd277e6000000\ndate\t1\t253402300799999\t315537897599999\t13000000097768656e00ffdb1fd277e6000000\ndate\t2\t253402300799999\t315537897599999\t13000000097768656e00ffdb1fd277e6000000\ndate\t3\t253402300799999\t315537897599999\t13000000097768656e00ffdb1fd277e6000000\ndate\t0\t9223309901257975807\t9223372036854775807\t13000000097768656e00ff27d3ed7cc7ff7f00\ndate\t1\t9223309901257975807\t9223372036854775807\t13000000097768656e00ff27d3ed7cc7ff7f00\ndate\t2\t9223309901257975807\t9223372036854775807\t13000000097768656e00ff27d3ed7cc7ff7f00\ndate\t3\t9223309901257975807\t9223372036854775807\t13000000097768656e00ff27d3ed7cc7ff7f00\ndate\t0\t9223309901257975808\t0\t13000000097768656e000028d3ed7cc7ff7f00\ndate\t1\t9223309901257975808\t0\t13000000097768656e000028d3ed7cc7ff7f00\ndate\t2\t9223309901257975808\t0\t13000000097768656e000028d3ed7cc7ff7f00\ndate\t3\t9223309901257975808\t0\t13000000097768656e000028d3ed7cc7ff7f00\ndate\t0\t9223372036854775807\t0\t13000000097768656e00ffffffffffffff7f00\ndate\t1\t9223372036854775807\t0\t13000000097768656e00ffffffffffffff7f00\ndate\t2\t9223372036854775807\t0\t13000000097768656e00ffffffffffffff7f00\ndate\t3\t9223372036854775807\t0\t13000000097768656e00ffffffffffffff7f00\nbson date epochs: 56 decode paths, 2 encode rejections, PASS\n\n$ timeout 30s python3 release/extlibs/bson/test/check_date_epochs.py /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/dates.direct\nexit=0\nBSON Date independent oracle: 56 records, PASS\n\n$ timeout 120s ./release/xl run release/extlibs/bson/test/numeric_reads_c.c\nexit=0\nbson numeric reads: 1080 vectors, 72 OOM paths, 0 failures\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/bson -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/bson/examples/bson_c.c /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/bson\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/bson\nexit=0\nname=xlang\ncount=7\nbytes=32\nhexPrefix=20000000\nstream=2\noidEpoch=0\nobjectId=ok\n\n$ timeout 90s ./release/xl run release/extlibs/bson/examples/bson_c.c\nexit=0\nname=xlang\ncount=7\nbytes=32\nhexPrefix=20000000\nstream=2\noidEpoch=0\nobjectId=ok\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/bson -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/bson/examples/numeric_fields_c.c /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/numeric_fields\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/numeric_fields\nexit=0\nsmall=123\nlarge=2147483648\nratio=1.25\nnegative_date=true\nbytes=60\n\n$ timeout 90s ./release/xl run release/extlibs/bson/examples/numeric_fields_c.c\nexit=0\nsmall=123\nlarge=2147483648\nratio=1.25\nnegative_date=true\nbytes=60\n\n$ timeout 30s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/bson extra extra\nexit=1\n\n$ timeout 30s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/bson /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/missing/output.bson\nexit=1\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/bson /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/c.bson\nexit=0\nname=xlang\ncount=7\nbytes=32\nhexPrefix=20000000\nstream=2\noidEpoch=0\nobjectId=ok\nfile=ok\n\n$ timeout 90s ./release/xl run release/extlibs/bson/examples/numeric_fields.xl\nexit=0\nsmall=123\nlarge=2147483648\nratio=1.25\nnegative_date=true\nbytes=60\n\n$ timeout 120s ./release/xl run release/extlibs/bson/test/numeric_reads.xl\nexit=0\nbson numeric paths: 56 truncations, OOM recovery, PASS\n\n$ timeout 90s ./release/xl cgen release/extlibs/bson/examples/numeric_fields.xl --emit /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/probe.c\nexit=0\n\n$ timeout 30s python3 release/extlibs/bson/test/check_owned_codegen.py /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/probe.c\nexit=0\nBSON owned codegen: 3 direct paths, no payload copies, PASS\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/bson -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -fsyntax-only /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/abi.c\nexit=0\n\n$ timeout 120s ./release/xl build release/extlibs/bson/test/numeric_reads_c.c -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/aot-1\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/aot-1\nexit=0\nbson numeric reads: 1080 vectors, 72 OOM paths, 0 failures\n\n$ timeout 120s ./release/xl build release/extlibs/bson/test/date_epochs_c.c -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/aot-2\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/aot-2\nexit=0\ndate\t0\t-9223372036854775808\t-9223309901257975808\t13000000097768656e00000000000000008000\ndate\t1\t-9223372036854775808\t-9223309901257975808\t13000000097768656e00000000000000008000\ndate\t2\t-9223372036854775808\t-9223309901257975808\t13000000097768656e00000000000000008000\ndate\t3\t-9223372036854775808\t-9223309901257975808\t13000000097768656e00000000000000008000\ndate\t0\t-62135596800001\t-1\t13000000097768656e00ff27d3ed7cc7ffff00\ndate\t1\t-62135596800001\t-1\t13000000097768656e00ff27d3ed7cc7ffff00\ndate\t2\t-62135596800001\t-1\t13000000097768656e00ff27d3ed7cc7ffff00\ndate\t3\t-62135596800001\t-1\t13000000097768656e00ff27d3ed7cc7ffff00\ndate\t0\t-62135596800000\t0\t13000000097768656e000028d3ed7cc7ffff00\ndate\t1\t-62135596800000\t0\t13000000097768656e000028d3ed7cc7ffff00\ndate\t2\t-62135596800000\t0\t13000000097768656e000028d3ed7cc7ffff00\ndate\t3\t-62135596800000\t0\t13000000097768656e000028d3ed7cc7ffff00\ndate\t0\t-1000\t62135596799000\t13000000097768656e0018fcffffffffffff00\ndate\t1\t-1000\t62135596799000\t13000000097768656e0018fcffffffffffff00\ndate\t2\t-1000\t62135596799000\t13000000097768656e0018fcffffffffffff00\ndate\t3\t-1000\t62135596799000\t13000000097768656e0018fcffffffffffff00\ndate\t0\t-500\t62135596799500\t13000000097768656e000cfeffffffffffff00\ndate\t1\t-500\t62135596799500\t13000000097768656e000cfeffffffffffff00\ndate\t2\t-500\t62135596799500\t13000000097768656e000cfeffffffffffff00\ndate\t3\t-500\t62135596799500\t13000000097768656e000cfeffffffffffff00\ndate\t0\t-1\t62135596799999\t13000000097768656e00ffffffffffffffff00\ndate\t1\t-1\t62135596799999\t13000000097768656e00ffffffffffffffff00\ndate\t2\t-1\t62135596799999\t13000000097768656e00ffffffffffffffff00\ndate\t3\t-1\t62135596799999\t13000000097768656e00ffffffffffffffff00\ndate\t0\t0\t62135596800000\t13000000097768656e00000000000000000000\ndate\t1\t0\t62135596800000\t13000000097768656e00000000000000000000\ndate\t2\t0\t62135596800000\t13000000097768656e00000000000000000000\ndate\t3\t0\t62135596800000\t13000000097768656e00000000000000000000\ndate\t0\t1\t62135596800001\t13000000097768656e00010000000000000000\ndate\t1\t1\t62135596800001\t13000000097768656e00010000000000000000\ndate\t2\t1\t62135596800001\t13000000097768656e00010000000000000000\ndate\t3\t1\t62135596800001\t13000000097768656e00010000000000000000\ndate\t0\t500\t62135596800500\t13000000097768656e00f40100000000000000\ndate\t1\t500\t62135596800500\t13000000097768656e00f40100000000000000\ndate\t2\t500\t62135596800500\t13000000097768656e00f40100000000000000\ndate\t3\t500\t62135596800500\t13000000097768656e00f40100000000000000\ndate\t0\t1000\t62135596801000\t13000000097768656e00e80300000000000000\ndate\t1\t1000\t62135596801000\t13000000097768656e00e80300000000000000\ndate\t2\t1000\t62135596801000\t13000000097768656e00e80300000000000000\ndate\t3\t1000\t62135596801000\t13000000097768656e00e80300000000000000\ndate\t0\t253402300799999\t315537897599999\t13000000097768656e00ffdb1fd277e6000000\ndate\t1\t253402300799999\t315537897599999\t13000000097768656e00ffdb1fd277e6000000\ndate\t2\t253402300799999\t315537897599999\t13000000097768656e00ffdb1fd277e6000000\ndate\t3\t253402300799999\t315537897599999\t13000000097768656e00ffdb1fd277e6000000\ndate\t0\t9223309901257975807\t9223372036854775807\t13000000097768656e00ff27d3ed7cc7ff7f00\ndate\t1\t9223309901257975807\t9223372036854775807\t13000000097768656e00ff27d3ed7cc7ff7f00\ndate\t2\t9223309901257975807\t9223372036854775807\t13000000097768656e00ff27d3ed7cc7ff7f00\ndate\t3\t9223309901257975807\t9223372036854775807\t13000000097768656e00ff27d3ed7cc7ff7f00\ndate\t0\t9223309901257975808\t0\t13000000097768656e000028d3ed7cc7ff7f00\ndate\t1\t9223309901257975808\t0\t13000000097768656e000028d3ed7cc7ff7f00\ndate\t2\t9223309901257975808\t0\t13000000097768656e000028d3ed7cc7ff7f00\ndate\t3\t9223309901257975808\t0\t13000000097768656e000028d3ed7cc7ff7f00\ndate\t0\t9223372036854775807\t0\t13000000097768656e00ffffffffffffff7f00\ndate\t1\t9223372036854775807\t0\t13000000097768656e00ffffffffffffff7f00\ndate\t2\t9223372036854775807\t0\t13000000097768656e00ffffffffffffff7f00\ndate\t3\t9223372036854775807\t0\t13000000097768656e00ffffffffffffff7f00\nbson date epochs: 56 decode paths, 2 encode rejections, PASS\n\n$ timeout 120s ./release/xl build release/extlibs/bson/test/numeric_reads.xl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/aot-3\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/aot-3\nexit=0\nbson numeric paths: 56 truncations, OOM recovery, PASS\n\n$ timeout 120s ./release/xl build release/extlibs/bson/examples/numeric_fields.xl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/aot-4\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/aot-4\nexit=0\nsmall=123\nlarge=2147483648\nratio=1.25\nnegative_date=true\nbytes=60\n\n$ timeout 120s ./release/xl build release/extlibs/bson/examples/bson_c.c -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/aot-5\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/aot-5\nexit=0\nname=xlang\ncount=7\nbytes=32\nhexPrefix=20000000\nstream=2\noidEpoch=0\nobjectId=ok\n\n$ timeout 120s ./release/xl build release/extlibs/bson/examples/numeric_fields_c.c -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/aot-6\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/aot-6\nexit=0\nsmall=123\nlarge=2147483648\nratio=1.25\nnegative_date=true\nbytes=60\n\n$ timeout 120s ./release/xl run test/cases/extlib_bson.xl\nexit=0\n\n$ timeout 120s ./release/xl build test/cases/extlib_bson.xl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\n\n$ timeout 120s ./release/xl run release/extlibs/bson/test/aot_core.xl\nexit=0\n\n$ timeout 120s ./release/xl build release/extlibs/bson/test/aot_core.xl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\n\n$ timeout 120s ./release/xl run release/extlibs/bson/test/boundaries.xl\nexit=0\n\n$ timeout 120s ./release/xl build release/extlibs/bson/test/boundaries.xl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\n\n$ timeout 120s ./release/xl run release/extlibs/bson/test/bson_test.xl\nexit=0\nbson integration: PASS\n\n$ timeout 120s ./release/xl build release/extlibs/bson/test/bson_test.xl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\nbson integration: PASS\n\n$ timeout 120s ./release/xl run release/extlibs/bson/test/allocations.xl\nexit=0\nbson allocation: PASS\n\n$ timeout 120s ./release/xl build release/extlibs/bson/test/allocations.xl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\nbson allocation: PASS\n\n$ timeout 120s ./release/xl run release/extlibs/bson/test/owned_text.xl\nexit=0\nbson owned text: 3 paths, OOM recovery, retained results, PASS\n\n$ timeout 120s ./release/xl build release/extlibs/bson/test/owned_text.xl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\nbson owned text: 3 paths, OOM recovery, retained results, PASS\n\n$ timeout 120s ./release/xl run release/extlibs/bson/test/date_epochs.xl\nexit=0\nbson date epochs: 12 time roundtrips, overflow rejected, PASS\n\n$ timeout 120s ./release/xl build release/extlibs/bson/test/date_epochs.xl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\nbson date epochs: 12 time roundtrips, overflow rejected, PASS\n\n$ timeout 120s ./release/xl run release/extlibs/bson/examples/bson.xl\nexit=0\nname=xlang\ncount=7\nbytes=32\nhexPrefix=20000000\nstream=2\noidEpoch=0\nobjectId=ok\n\n$ timeout 120s ./release/xl build release/extlibs/bson/examples/bson.xl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\nname=xlang\ncount=7\nbytes=32\nhexPrefix=20000000\nstream=2\noidEpoch=0\nobjectId=ok\n\n$ timeout 120s ./release/xl run release/examples/extlibs/bson.xl\nexit=0\n编码长度:  55\nname =  xlang\nversion =  6\npi =  3.14159\nactive =  true\ncity =  Beijing\ntag[0] =  dev\ntag[2] =  xlang\ntags.length =  3\nnothing =  null\nbig =  9876543210\nOID 1:  6ae71f5ea546b1011058221b\nOID 2:  6ae71f5e8479c8597626f96f\nOID 年份:  2026\nhex:  0c0000001078000100000000\n写入字节:  24\nloaded.count =  7\n文档数:  2\ndoc[0].msg =  hello\ndoc[1].msg =  world\nbson example: PASS\n\n$ timeout 120s ./release/xl build release/examples/extlibs/bson.xl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/complete\nexit=0\n编码长度:  55\nname =  xlang\nversion =  6\npi =  3.14159\nactive =  true\ncity =  Beijing\ntag[0] =  dev\ntag[2] =  xlang\ntags.length =  3\nnothing =  null\nbig =  9876543210\nOID 1:  6ae71f5f291599c84a0c743a\nOID 2:  6ae71f5f82f7d0a9c3122c2c\nOID 年份:  2026\nhex:  0c0000001078000100000000\n写入字节:  24\nloaded.count =  7\n文档数:  2\ndoc[0].msg =  hello\ndoc[1].msg =  world\nbson example: PASS\n\n$ timeout 120s ./release/xl run release/extlibs/bson/examples/bson.xl -- /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/xlang.bson\nexit=0\nname=xlang\ncount=7\nbytes=32\nhexPrefix=20000000\nstream=2\noidEpoch=0\nobjectId=ok\nfile=ok\n\n$ timeout 90s bash -c cd\\ --\\ \\\"\\$1\\\"\\ \\|\\|\\ exit\\ 125\\;\\ exec\\ \\\"\\$2\\\"\\ run\\ \\\"\\$3\\\" _ /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/empty-cwd /var/tmp/xlang-bson-native-lvMSMPss/stage/release/xl /var/tmp/xlang-bson-native-lvMSMPss/stage/release/examples/extlibs/bson.xl\nexit=0\n编码长度:  55\nname =  xlang\nversion =  6\npi =  3.14159\nactive =  true\ncity =  Beijing\ntag[0] =  dev\ntag[2] =  xlang\ntags.length =  3\nnothing =  null\nbig =  9876543210\nOID 1:  6ae71f60157fbc286cc39f64\nOID 2:  6ae71f60a5aadca40c5c9101\nOID 年份:  2026\nhex:  0c0000001078000100000000\n写入字节:  24\nloaded.count =  7\n文档数:  2\ndoc[0].msg =  hello\ndoc[1].msg =  world\nbson example: PASS\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/bson -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/bson/test/save_cleanup_c.c /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/save-cleanup\nexit=0\n\n$ timeout 90s /var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-egrzVb/save-cleanup\nexit=0\nsave existing=0 budget=0 fault=1 extra=0 kind=6 correct=1 balanced=1\nsave existing=0 budget=1 fault=1 extra=0 kind=6 correct=1 balanced=1\nsave existing=0 budget=2 fault=1 extra=0 kind=6 correct=1 balanced=1\nsave existing=0 budget=3 fault=1 extra=0 kind=6 correct=1 balanced=1\nsave existing=0 budget=4 fault=1 extra=0 kind=6 correct=1 balanced=1\nsave existing=0 budget=5 fault=1 extra=0 kind=6 correct=1 balanced=1\nsave existing=0 budget=6 fault=1 extra=0 kind=6 correct=1 balanced=1\nsave existing=0 budget=7 fault=1 extra=0 kind=6 correct=1 balanced=1\nsave existing=0 budget=8 fault=0 extra=0 kind=0 correct=1 balanced=1\nsave existing=1 budget=0 fault=1 extra=0 kind=6 correct=1 balanced=1\nsave existing=1 budget=1 fault=1 extra=0 kind=6 correct=1 balanced=1\nsave existing=1 budget=2 fault=1 extra=0 kind=6 correct=1 balanced=1\nsave existing=1 budget=3 fault=1 extra=0 kind=6 correct=1 balanced=1\nsave existing=1 budget=4 fault=1 extra=0 kind=6 correct=1 balanced=1\nsave existing=1 budget=5 fault=1 extra=0 kind=6 correct=1 balanced=1\nsave existing=1 budget=6 fault=1 extra=0 kind=6 correct=1 balanced=1\nsave existing=1 budget=7 fault=0 extra=0 kind=0 correct=1 balanced=1\nbson save cleanup: 17 cases, 15 allocation faults, 0 failures; root=/var/tmp/xlang-bson-native-lvMSMPss/tmp/xlang-bson-save-cleanup-cfa7f9c2bd3fafb7\n"
+  },
+  "independentReferences": {
+    "numericVectors": 1080,
+    "numericOomPaths": 72,
+    "dateRecords": 56,
+    "dateWireValues": 14,
+    "dateLanguageRoundtrips": 12,
+    "epochOffsetMs": 62135596800000,
+    "pymongoVersion": "4.10.1",
+    "databaseServerRequired": false,
+    "windowsInterop": [
+      {
+        "name": "C independent writer",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "name=xlang\r\ncount=7\r\nbytes=32\r\nhexPrefix=20000000\r\nstream=2\r\noidEpoch=0\r\nobjectId=ok\r\nfile=ok\r\n",
+          "stderr": "",
+          "elapsedMs": 94
+        },
+        "arguments": [
+          "run",
+          "release/extlibs/bson/examples/bson_c.c",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\bson_current_20261101\\C.bson"
+        ]
+      },
+      {
+        "name": "XLang independent writer",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "name=xlang\ncount=7\nbytes=32\nhexPrefix=20000000\nstream=2\noidEpoch=0\nobjectId=ok\nfile=ok\n",
+          "stderr": "",
+          "elapsedMs": 249
+        },
+        "arguments": [
+          "run",
+          "release/extlibs/bson/examples/bson.xl",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\bson_current_20261101\\XL.bson"
+        ]
+      },
+      {
+        "name": "PyMongo 4.10.1 external codec",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "PyMongo Date wire interop: 14 vectors, PASS\r\nPyMongo BSON write/read fixture: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 152
+        },
+        "arguments": [
+          "-B",
+          "release/extlibs/bson/test/check_external.py",
+          "D:\\GIT\\x-lang\\build\\test\\bson_current_20261101\\C.bson",
+          "D:\\GIT\\x-lang\\build\\test\\bson_current_20261101\\XL.bson",
+          "D:\\GIT\\x-lang\\build\\test\\bson_current_20261101\\PY.bson",
+          "D:\\GIT\\x-lang\\build\\test\\bson_current_20261101\\interop-dates.tsv"
+        ]
+      },
+      {
+        "name": "GCC external reader build",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 9033
+        },
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/bson",
+          "release/extlibs/bson/test/xrt_runtime.c",
+          "release/extlibs/bson/bson_native.c",
+          "release/extlibs/bson/test/external_python_c.c",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\bson_current_20261101\\external-reader.exe"
+        ]
+      },
+      {
+        "name": "C reads PyMongo binary and UTC Date",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "PyMongo to C BSON: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 34
+        },
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\bson_current_20261101\\PY.bson"
+        ]
+      },
+      {
+        "name": "XLang reads PyMongo JIT",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "PyMongo to XLang BSON: PASS\n",
+          "stderr": "",
+          "elapsedMs": 216
+        },
+        "arguments": [
+          "run",
+          "release/extlibs/bson/test/external_python.xl",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\bson_current_20261101\\PY.bson"
+        ]
+      },
+      {
+        "name": "XLang external reader build",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 354
+        },
+        "arguments": [
+          "build",
+          "release/extlibs/bson/test/external_python.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\bson_current_20261101\\external-reader-xl.exe"
+        ]
+      },
+      {
+        "name": "XLang reads PyMongo AOT",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "PyMongo to XLang BSON: PASS\n",
+          "stderr": "",
+          "elapsedMs": 48
+        },
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\bson_current_20261101\\PY.bson"
+        ]
+      }
+    ],
+    "linuxInterop": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "PyMongo 4.10.1 nativeExtension False\nname=xlang\ncount=7\nbytes=32\nhexPrefix=20000000\nstream=2\noidEpoch=0\nobjectId=ok\nfile=ok\nname=xlang\ncount=7\nbytes=32\nhexPrefix=20000000\nstream=2\noidEpoch=0\nobjectId=ok\nfile=ok\nPyMongo Date wire interop: 14 vectors, PASS\nPyMongo BSON write/read fixture: PASS\nPyMongo to C BSON: PASS\nPyMongo to XLang BSON: PASS\nPyMongo to XLang BSON: PASS\nBSON external interop Linux: PASS\n",
+      "stderr": "",
+      "elapsedMs": 9671
+    },
+    "directCInterop": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "PyMongo to C BSON: PASS\r\n",
+      "stderr": "",
+      "elapsedMs": 65
+    },
+    "dateOracleControls": [
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "BSON Date independent oracle: 56 records, PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 91
+        },
+        "name": "good",
+        "expectedExit": 0
+      },
+      {
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\bson\\test\\check_date_epochs.py\", line 40, in <module>\r\n    check(sys.argv[1])\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\bson\\test\\check_date_epochs.py\", line 31, in check\r\n    raise ValueError('Incomplete Date record matrix')\r\nValueError: Incomplete Date record matrix\r\n",
+          "elapsedMs": 70
+        },
+        "name": "missing",
+        "expectedExit": 1
+      },
+      {
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\bson\\test\\check_date_epochs.py\", line 40, in <module>\r\n    check(sys.argv[1])\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\bson\\test\\check_date_epochs.py\", line 20, in check\r\n    raise ValueError('Unexpected or repeated Date record: ' + line)\r\nValueError: Unexpected or repeated Date record: date\t0\t-9223372036854775808\t-9223309901257975808\t13000000097768656e00000000000000008000\r\n",
+          "elapsedMs": 152
+        },
+        "name": "duplicate",
+        "expectedExit": 1
+      },
+      {
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\bson\\test\\check_date_epochs.py\", line 40, in <module>\r\n    check(sys.argv[1])\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\bson\\test\\check_date_epochs.py\", line 23, in check\r\n    raise ValueError('Invalid independent BSON frame')\r\nValueError: Invalid independent BSON frame\r\n",
+          "elapsedMs": 68
+        },
+        "name": "badPayload",
+        "expectedExit": 1
+      },
+      {
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\bson\\test\\check_date_epochs.py\", line 40, in <module>\r\n    check(sys.argv[1])\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\bson\\test\\check_date_epochs.py\", line 28, in check\r\n    raise ValueError('XRT AD milliseconds differ')\r\nValueError: XRT AD milliseconds differ\r\n",
+          "elapsedMs": 69
+        },
+        "name": "badEpoch",
+        "expectedExit": 1
+      },
+      {
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\bson\\test\\check_date_epochs.py\", line 40, in <module>\r\n    check(sys.argv[1])\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\bson\\test\\check_date_epochs.py\", line 33, in check\r\n    raise ValueError('Missing encode-overflow checks')\r\nValueError: Missing encode-overflow checks\r\n",
+          "elapsedMs": 78
+        },
+        "name": "incomplete",
+        "expectedExit": 1
+      }
+    ],
+    "ownedCodegenControls": [
+      {
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "BSON owned codegen: 3 direct paths, no payload copies, PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 96
+        },
+        "file": "after.c"
+      },
+      {
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\bson\\test\\check_owned_codegen.py\", line 30, in <module>\r\n    check(Path(sys.argv[1]).read_text(encoding='utf-8-sig'))\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\bson\\test\\check_owned_codegen.py\", line 10, in check\r\n    raise ValueError('Obsolete pointer adoption path remains')\r\nValueError: Obsolete pointer adoption path remains\r\n",
+          "elapsedMs": 67
+        },
+        "file": "before.c"
+      },
+      {
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\bson\\test\\check_owned_codegen.py\", line 30, in <module>\r\n    check(Path(sys.argv[1]).read_text(encoding='utf-8-sig'))\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\bson\\test\\check_owned_codegen.py\", line 23, in check\r\n    raise ValueError('Payload copy in owned wrapper: ' + target)\r\nValueError: Payload copy in owned wrapper: xbson_to_hex\r\n",
+          "elapsedMs": 82
+        },
+        "file": "with-copy.c"
+      },
+      {
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\bson\\test\\check_owned_codegen.py\", line 30, in <module>\r\n    check(Path(sys.argv[1]).read_text(encoding='utf-8-sig'))\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\bson\\test\\check_owned_codegen.py\", line 19, in check\r\n    raise ValueError('Repeated native result allocation: ' + target)\r\nValueError: Repeated native result allocation: xbson_to_hex\r\n",
+          "elapsedMs": 88
+        },
+        "file": "with-repeat.c"
+      }
+    ]
+  },
+  "atomicCleanup": {
+    "windowsBsonCases": 14,
+    "windowsBsonAllocationFaults": 13,
+    "windowsBsonFailures": 1,
+    "windowsFailingBudget": 12,
+    "ordinaryWindowsCases": 25,
+    "ordinaryWindowsFaults": 23,
+    "ordinaryLinuxCases": 17,
+    "ordinaryLinuxFaults": 15,
+    "previousIndependentGcc": [
+      {
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "save existing=1 budget=0 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=1 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=2 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=3 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=4 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=5 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=6 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=7 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=8 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=9 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=10 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=11 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=12 fault=1 extra=1 kind=10 correct=1 balanced=1\r\nsave existing=1 budget=13 fault=0 extra=0 kind=10 correct=1 balanced=1\r\nbson save cleanup: 14 cases, 13 allocation faults, 1 failures; root=C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\xlang-bson-save-cleanup-dd2b02195fb1d664\r\n",
+          "stderr": "",
+          "elapsedMs": 185
+        },
+        "name": "bson"
+      },
+      {
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "save existing=1 budget=0 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=1 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=2 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=3 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=4 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=5 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=6 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=7 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=8 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=9 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=10 fault=1 extra=1 kind=10 correct=1 balanced=1\r\nsave existing=1 budget=11 fault=0 extra=0 kind=10 correct=1 balanced=1\r\nbson save cleanup: 12 cases, 11 allocation faults, 1 failures; root=C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\xlang-bson-save-cleanup-2a6980f892aea30a\r\n",
+          "stderr": "",
+          "elapsedMs": 111
+        },
+        "name": "xrt-direct"
+      }
+    ],
+    "currentDirectXrt": {
+      "build": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 8488
+      },
+      "run": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "save existing=1 budget=0 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=1 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=2 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=3 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=4 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=5 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=6 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=7 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=8 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=9 fault=1 extra=0 kind=6 correct=1 balanced=1\r\nsave existing=1 budget=10 fault=1 extra=1 kind=10 correct=1 balanced=1\r\nsave existing=1 budget=11 fault=0 extra=0 kind=10 correct=1 balanced=1\r\nbson save cleanup: 12 cases, 11 allocation faults, 1 failures; root=D:\\GIT\\x-lang\\build\\test\\bson_current_20261101\\current-temp\\xlang-bson-save-cleanup-891838caa3af1e71\r\n",
+        "stderr": "",
+        "elapsedMs": 76
+      },
+      "xrtSha256": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06"
+    },
+    "oldTargetPreserved": true,
+    "originalErrorPreserved": true,
+    "sevenMemoryIndicatorsBalanced": true,
+    "blocker": "dev/extlib_blockers/bson_atomic_save_cleanup.md"
+  },
+  "catalog": {
+    "candidate": {
+      "status": "passed",
+      "catalogSha256": "6d41cef1425d2409d36eae635bce6db401a2900e4c6bd8a8639ec09c520b6a1d",
+      "sourceIndexSha256": "d94d9e231b4f004d32913fe8d531d7f51c54faa33f4d7d899b589a196c3f04a9",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "d7d3869c2baae94f35f694c097458a4f303f6977d45caa92c77b2b2000aa3315",
+      "inputsUnchanged": true
+    },
+    "checks": [
+      {
+        "name": "candidate freshness",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/refresh_extensions.py",
+          "--check",
+          "--root",
+          "D:\\GIT\\x-lang",
+          "--data",
+          "D:\\GIT\\x-lang\\build\\test\\bson_current_20261101\\catalog"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+          "stderr": "",
+          "elapsedMs": 1280
+        }
+      },
+      {
+        "name": "strict compiler binding",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/check_catalog_coverage.py",
+          "--root",
+          "D:\\GIT\\x-lang",
+          "--catalog",
+          "D:\\GIT\\x-lang\\build\\test\\bson_current_20261101\\catalog\\commands.json"
+        ],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Command '['git', 'diff', '--quiet', '--no-ext-diff', 'ed78373dded9bde21db313799c1db8d5111631a6', '--', 'src', 'lib', 'include', 'release/include']' returned non-zero exit status 1.\r\n",
+          "elapsedMs": 486
+        }
+      },
+      {
+        "name": "existing runtime commit audit",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "tools/check_release_committed.py"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+          "stderr": "",
+          "elapsedMs": 1149
+        }
+      }
+    ],
+    "installed": false,
+    "reason": "Concurrent XRT source changes differ from the existing qualified compiler binding. Strict coverage rejects publication.",
+    "blocker": "dev/extlib_blockers/catalog_release_binding_20261101.md"
+  },
+  "website": {
+    "status": "passed",
+    "sha256": "2ca7f1bccf102071eda12cb29b9a1073fb9cf08099ee8d37cfb19eaf6b64a000",
+    "externalWebsitePublished": false,
+    "detail": "D:\\GIT\\x-lang\\build\\test\\bson_current_20261101\\site\\extlibs\\bson.html"
+  },
+  "scope": {
+    "ordinaryPackages": 100,
+    "statuses": {
+      "G": 30,
+      "R": 8,
+      "M": 58,
+      "X": 4
+    },
+    "allOtherPackagesRetested": false,
+    "formalRelease": false,
+    "goalComplete": false,
+    "externalWebsitePublished": false,
+    "remaining": [
+      "XRT atomic-save rollback must become allocation-independent after an OS publish failure.",
+      "Mainline source/release identities must converge before publishing the generated IDE catalog pair.",
+      "Other package blockers remain; BSON dictionary success does not imply universal foreign-container success."
+    ]
+  }
+}
