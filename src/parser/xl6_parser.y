@@ -13,8 +13,9 @@
 %type class_member_mods { unsigned int }
 %type class_member_modifier { unsigned int }
 %type param_mode { unsigned int }
-%type extern_func_contract { unsigned int }
-%type extern_func_contract_item { unsigned int }
+%type extern_func_contract { XL6_PExternContract }
+%destructor extern_func_contract {xl6AstFree($$.attributes);}
+%type extern_func_contract_item { XL6_AstNode* }
 %type field_attr_arg { XL6_AstNode* }
 %type field_attr_word { XL6_Token }
 
@@ -22,6 +23,18 @@
 #include "src/parser/xl6_parser_api.h"
 #include "src/lexer/xl6_literal_span.h"
 #include "src/type/xl6_foreign_decl.h"
+
+typedef struct XL6_PExternContract {
+    unsigned int flags;
+    XL6_AstNode* attributes;
+} XL6_PExternContract;
+
+static void xl6PApplyExternContract(XL6_AstNode* node, XL6_PExternContract contract)
+{
+    if (!node) { xl6AstFree(contract.attributes); return; }
+    node->flags |= contract.flags;
+    if (contract.attributes) xl6AstAddChild(node, contract.attributes);
+}
 
 static XL6_AstNode* xl6PList(void)
 {
@@ -1238,11 +1251,11 @@ func_decl(A) ::= KW_ASYNC(AW) KW_FUNC name_tok(F) LT generic_param_list(L) GT na
 
 extern_func_decl(A) ::= KW_EXTERN(E) STRING(S) extern_func_contract(C) KW_FUNC name_tok(F) name_params(P) return_sig(R) need_sep. {
     A = xl6AstNew(XL6_AST_EXTERN_FUNC, &S);
-    A->flags |= C;
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &F));
     xl6AstAddChild(A, P);
     xl6AstAddChild(A, R);
     (void)E;
+    xl6PApplyExternContract(A, C);
 }
 
 export_extern_func_decl(A) ::= KW_EXPORT(E) extern_func_decl(F). {
@@ -1632,6 +1645,11 @@ field_attr_word(A) ::= KW_NULL(N). { A = N; }
 field_attr_arg(A) ::= field_attr_word(N). {
     A = xl6AstNew(XL6_AST_NAME, &N);
 }
+field_attr_arg(A) ::= INT(N). { A = xl6AstNew(XL6_AST_INT, &N); }
+field_attr_arg(A) ::= MINUS INT(N). {
+    A = xl6AstNew(XL6_AST_UNARY, NULL); A->text = xrtStrDup("-");
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_INT, &N));
+}
 field_attr_arg(A) ::= STRING(S). {
     A = xl6AstNew(XL6_AST_STRING, &S);
 }
@@ -1648,11 +1666,21 @@ field_attr_arg(A) ::= field_attr_word(N) ASSIGN STRING(V). {
 
 /* Keep these productions after field_attr so AT retains its established
  * terminal number in the generated parser/lexer interface. */
-extern_func_contract(A) ::= . { A = 0; }
-extern_func_contract(A) ::= extern_func_contract(B) extern_func_contract_item(C). { A = B | C; }
-extern_func_contract_item(A) ::= AT name_tok(N). {
-    A = xl6PExternContractFlag(ctx, &N);
+extern_func_contract(A) ::= . { A.flags = 0; A.attributes = NULL; }
+extern_func_contract(A) ::= extern_func_contract(B) extern_func_contract_item(C). {
+    A = B;
+    if (C && C->childCount == 0) {
+        XL6_Token token = {0}; token.text = C->text; token.len = C->text ? strlen(C->text) : 0;
+        token.startLine = C->line; token.startColumn = C->column;
+        A.flags |= xl6PExternContractFlag(ctx, &token);
+        xl6AstFree(C);
+    } else if (C) {
+        if (!A.attributes) A.attributes = xl6AstNewText(XL6_AST_FIELD_ATTR, "c_call", 6, NULL);
+        xl6AstAddChild(A.attributes, C);
+    }
 }
+extern_func_contract_item(A) ::= AT name_tok(N). { A = xl6AstNew(XL6_AST_FIELD_ATTR, &N); }
+extern_func_contract_item(A) ::= field_attr(B). { A = B; }
 
 native_type_ref(A) ::= var_type_ref(T). { A = T; }
 native_type_ref(A) ::= name_tok(N) STAR. {
@@ -1664,39 +1692,41 @@ native_type_ref(A) ::= name_tok(N) STAR. {
 
 class_extern_func(A) ::= KW_EXTERN(E) STRING(S) extern_func_contract(C) KW_FUNC name_tok(N) name_params(P) return_sig(R) need_sep. {
     A = xl6AstNew(XL6_AST_NATIVE_EXTERN_FUNC, &S);
-    A->flags |= C;
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
     xl6AstAddChild(A, P);
     xl6AstAddChild(A, R);
     (void)E;
+    xl6PApplyExternContract(A, C);
 }
 
 class_extern_special(A) ::= KW_EXTERN(E) STRING(S) extern_func_contract(C) name_tok(N) name_params(P) need_sep. {
     A = xl6AstNew(XL6_AST_NATIVE_EXTERN_SPECIAL, &S);
-    A->flags |= C;
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
     xl6AstAddChild(A, P);
     (void)E;
+    xl6PApplyExternContract(A, C);
 }
 
 class_extern_get(A) ::= KW_EXTERN(E) STRING(S) extern_func_contract(C) KW_GET member_name_tok(N) name_params(P) return_sig(R) need_sep. {
     A = xl6AstNew(XL6_AST_GET, &S);
-    A->flags |= XL6_AST_FLAG_EXTERN | C;
+    A->flags |= XL6_AST_FLAG_EXTERN;
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
     xl6AstAddChild(A, P);
     xl6AstAddChild(A, R);
     xl6AstAddChild(A, xl6AstNew(XL6_AST_BLOCK, NULL));
     (void)E;
+    xl6PApplyExternContract(A, C);
 }
 
 class_extern_let(A) ::= KW_EXTERN(E) STRING(S) extern_func_contract(C) KW_LET member_name_tok(N) name_params(P) need_sep. {
     A = xl6AstNew(XL6_AST_LET, &S);
-    A->flags |= XL6_AST_FLAG_EXTERN | C;
+    A->flags |= XL6_AST_FLAG_EXTERN;
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
     xl6AstAddChild(A, P);
     xl6AstAddChild(A, xl6AstNew(XL6_AST_RETURN_TYPES, NULL));
     xl6AstAddChild(A, xl6AstNew(XL6_AST_BLOCK, NULL));
     (void)E;
+    xl6PApplyExternContract(A, C);
 }
 
 property_get_decl(A) ::= KW_GET(G) member_name_tok(N) name_params(P) return_sig(R) need_sep block(B) KW_END. {

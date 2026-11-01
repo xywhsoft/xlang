@@ -500,6 +500,7 @@ XL6_IrOperandOwnership xl6IrInstructionOperandOwnership(
         return operand == 0 ? XL6_IR_OPERAND_OWNERSHIP_CONSUME_FIELD
             : XL6_IR_OPERAND_OWNERSHIP_INVALID;
     case XL6_IR_INSTR_CALL:
+    case XL6_IR_INSTR_NATIVE_STATUS_OUT:
     case XL6_IR_INSTR_ASYNC_START:
     case XL6_IR_INSTR_GENERATOR_START:
         target = xl6IrCallTargetGet(module, instruction->targetSymbol);

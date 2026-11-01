@@ -383,6 +383,9 @@ static int xl6IrCgenEmitCallOperand(
 {
     if ( target == NULL || parameter >= target->parameterCount ||
          target->parameterPhysicalAbis == NULL ) return 0;
+    if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS) {
+        xl6OutputPrintf(out, "&v%u", (unsigned)value); return !xl6OutputHasFailed(out);
+    }
     if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW) {
         const XL6_IrType* type=xl6IrTypeGet(&module->types,target->parameterTypes[parameter]);
         if(!xl6IrTypeIsCOwned(type))return 0;
@@ -435,6 +438,30 @@ static int xl6IrCgenEmitCallOperand(
         xl6OutputPrintf(out, "v%u%s", (unsigned int)value,
             xl6IrCgenDirectPlaceSuffix(module, target, parameter));
     }
+    return !xl6OutputHasFailed(out);
+}
+
+static int xl6IrCgenEmitNativeStatusOut(XL6_Output* out, const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction, XL6_DiagList* diags)
+{
+    const XL6_IrCallTarget* target = xl6IrCallTargetGet(module, instruction->targetSymbol);
+    const XL6_IrNode* declaration = target ? xl6IrNodeGet(module, target->declaration) : NULL;
+    if (!declaration || !declaration->foreignCall.outputIndexPlusOne)
+        return xl6IrCgenDiag(diags, module, instruction->origin, "native status/output call has no exact declaration");
+    xl6OutputPrintf(out, "    v%u = (%s){0};\n    v%u.e0 = %s(",
+        (unsigned)instruction->result, xl6IrCgenType(module, instruction->type),
+        (unsigned)instruction->result, target->cName);
+    size_t output = declaration->foreignCall.outputIndexPlusOne - 1;
+    for (size_t i = 0; i <= target->parameterCount; ++i) {
+        if (i) xl6OutputPuts(", ", out);
+        if (i == output) xl6OutputPrintf(out, "&v%u.e1", (unsigned)instruction->result);
+        else {
+            size_t parameter = i - (i > output);
+            if (!xl6IrCgenEmitCallOperand(out, module, target, parameter,
+                module->operands[instruction->firstOperand + parameter])) return 0;
+        }
+    }
+    xl6OutputPuts(");\n", out);
     return !xl6OutputHasFailed(out);
 }
 

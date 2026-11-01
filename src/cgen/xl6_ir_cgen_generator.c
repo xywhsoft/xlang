@@ -162,6 +162,7 @@ static int xl6IrCgenGeneratorMachineProgramSupported(
             case XL6_IR_INSTR_ERROR_CLEAR:
                 if (!xl6IrCgenErrorStateInstructionAbi(module, instruction)) return 0;
                 break;
+            case XL6_IR_INSTR_NATIVE_STATUS_OUT:
             case XL6_IR_INSTR_RUNTIME_CALL:
                 /* Runtime operands/results have the same verified ABI in
                  * every execution mode. The shared instruction verifier and
@@ -273,6 +274,9 @@ static int xl6IrCgenEmitGeneratorInstruction(
         break;
     case XL6_IR_INSTR_SCALAR_CONVERT:
         if (!xl6IrCgenEmitScalarConversion(out, module, instruction, diags)) return 0;
+        break;
+    case XL6_IR_INSTR_NATIVE_STATUS_OUT:
+        if (!xl6IrCgenEmitNativeStatusOut(out, module, instruction, diags)) return 0;
         break;
     case XL6_IR_INSTR_CONST:
         if (xl6IrCgenResultStorageOmitted(module, instruction)) break;
