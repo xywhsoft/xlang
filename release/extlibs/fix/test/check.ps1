@@ -13,6 +13,7 @@ foreach($name in @('compiler','python')){
     $command=Get-Command $value -CommandType Application -ErrorAction SilentlyContinue|Select-Object -First 1
     if($command){Set-Variable $name $command.Source}
 }
+$cc1=(& $compiler -print-prog-name=cc1).Trim()
 $xl=Join-Path $root 'release/xl.exe'
 $utf8=[Text.UTF8Encoding]::new($false)
 $checks=[Collections.Generic.List[object]]::new()
@@ -25,7 +26,7 @@ function InputPaths {
     Get-ChildItem -LiteralPath $pkg,(Join-Path $root 'release/include') -Recurse -File|ForEach-Object FullName
     foreach($p in @('lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/xl.exe','release/xl.dll','release/xlc.dll',
         'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','test/cases/extlib_fix.xl','release/examples/extlibs/fix.xl')){Join-Path $root $p}
-    foreach($p in @($compiler,$python)){if(Test-Path -LiteralPath $p -PathType Leaf){$p}}
+    foreach($p in @($compiler,$cc1,$python)){if(Test-Path -LiteralPath $p -PathType Leaf){$p}}
 }
 foreach($p in @(InputPaths|Sort-Object -Unique)){$hashes[$p]=(Get-FileHash -LiteralPath $p).Hash}
 function Normalize([string]$s){$s.Replace("`r`n","`n").TrimEnd("`n")}
@@ -43,6 +44,13 @@ function Records([string]$name,[string]$program,[string[]]$arguments){
     [IO.File]::WriteAllText($path,$text+"`n",$utf8)
     $null=Run "$name independent grammar" $python @('release/extlibs/fix/test/check_tag_records.py',$path)
     return $text
+}
+function CheckValidation([string]$text){
+    if($text -notmatch '^fix validation: 90 cases, [1-9][0-9]* diagnostic OOM, 0 failures$'){throw 'Incomplete validation cost matrix'}
+}
+function CheckCosts([string]$text){
+    $rows=@($text -split "`n")
+    if($rows.Count -ne 28 -or @($rows|Where-Object{$_ -notmatch '^\d+\t1\t\d+\t[1-9][0-9]*\t0$'}).Count){throw 'Validation unexpectedly materialized values'}
 }
 Push-Location $root
 try {
@@ -65,7 +73,7 @@ try {
     $null=Run 'legacy C' $legacy @()
     $source='release/extlibs/fix/test/tag_grammar_c.c';$binary=Join-Path $work 'grammar.exe'
     $null=Run 'tag grammar compile' $compiler ($flags+@($source,$runtime)+$links+@('-o',$binary))
-    $expected='fix tag grammar: 374 cases, 4 OOM paths, 0 failures'
+    $expected='fix tag grammar: 374 cases, 4 fault paths, 0 failures'
     if((Run 'tag grammar' $binary @()) -cne $expected){throw 'Incomplete tag matrix'}
     $records=Records 'gcc' $binary @('--records')
     if((Run 'tag grammar direct C' $xl @('run',$source)) -cne $expected){throw 'Direct grammar differs'}
@@ -82,6 +90,24 @@ try {
     if((Run 'tag language example' $xl @('run',$language)) -cne $tagGolden){throw 'Language tag golden differs'}
     $boundaries='release/extlibs/fix/test/tag_grammar.xl'
     $null=Run 'tag language boundaries' $xl @('run',$boundaries)
+    $costSource='release/extlibs/fix/test/validate_cost_c.c'
+    $costBinary=Join-Path $work 'validate-cost.exe'
+    $null=Run 'validation cost compile' $compiler ($flags+@($costSource,'release/extlibs/fix/fix_native.c',$runtime)+$links+@('-o',$costBinary))
+    $cost=Run 'validation cost matrix' $costBinary @()
+    CheckValidation $cost
+    CheckValidation (Run 'validation cost direct C' $xl @('run',$costSource))
+    $measurement=Run 'validation allocation records' $costBinary @('--measure')
+    CheckCosts $measurement
+    CheckCosts (Run 'direct validation allocation records' $xl @('run',$costSource,'--','--measure'))
+    $budget='release/extlibs/fix/test/validate_budget.xl'
+    if((Run 'validation language budgets' $xl @('run',$budget)) -cne 'fix validation budget: PASS'){throw 'Language validation budget coverage incomplete'}
+    $validationC='release/extlibs/fix/examples/validation_c.c';$validationXL='release/extlibs/fix/examples/validation.xl'
+    $validationGolden=Normalize ([IO.File]::ReadAllText((Join-Path $pkg 'examples/validation.expected.txt')))
+    $validationBinary=Join-Path $work 'validation-example.exe'
+    $null=Run 'validation example compile' $compiler ($flags+@($validationC,$runtime)+$links+@('-o',$validationBinary))
+    if((Run 'validation C example' $validationBinary @()) -cne $validationGolden -or
+        (Run 'validation direct C example' $xl @('run',$validationC)) -cne $validationGolden -or
+        (Run 'validation language example' $xl @('run',$validationXL)) -cne $validationGolden){throw 'Validation bilingual golden differs'}
     $probe=Join-Path $work 'probe.c'
     $null=Run 'complete API cgen' $xl @('cgen',$language,'--emit',$probe)
     $text=[IO.File]::ReadAllText($probe)
@@ -94,13 +120,16 @@ try {
     [IO.File]::WriteAllText($abi,"#include `"fix_native.c`"`n"+($decls -join "`n"),$utf8)
     $null=Run 'eight actual prototypes' $compiler ($flags+@('-fsyntax-only',$abi))
     if(!$SkipAot){
-        foreach($input in @($source,$boundaries,$language,$cExample,'release/extlibs/fix/examples/fix_c.c')){
+        foreach($input in @($source,$boundaries,$language,$cExample,'release/extlibs/fix/examples/fix_c.c',$costSource,$budget,$validationC,$validationXL)){
             $target=Join-Path $work ([guid]::NewGuid().ToString('N')+'.exe')
             $null=Run "$input build" $xl @('build',$input,'-o',$target)
             $output=Run "$input AOT" $target @()
             if($input -eq $source){
                 if($output -cne $expected -or (Records 'aot' $target @('--records')) -cne $records){throw 'AOT grammar differs'}
-            }elseif($input -eq $language -or $input -eq $cExample){if($output -cne $tagGolden){throw 'AOT tag golden differs'}}
+            }elseif($input -eq $costSource){CheckValidation $output;CheckCosts (Run 'AOT validation allocation records' $target @('--measure'))}
+            elseif($input -eq $budget){if($output -cne 'fix validation budget: PASS'){throw 'AOT budget differs'}}
+            elseif($input -eq $validationC -or $input -eq $validationXL){if($output -cne $validationGolden){throw 'AOT validation example differs'}}
+            elseif($input -eq $language -or $input -eq $cExample){if($output -cne $tagGolden){throw 'AOT tag golden differs'}}
             elseif($input -like '*/fix_c.c' -and $output -cne $golden){throw 'Legacy AOT golden differs'}
         }
     }

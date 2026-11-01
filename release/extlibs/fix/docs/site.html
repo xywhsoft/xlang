@@ -20,6 +20,7 @@
   <header class="extlib-head">
     <p><a href="../extlibs.html">扩展库</a> / fix</p>
     <h1>fix</h1>
+    <p>2026-11-02：parse与validate共用扫描逻辑，只有parse创建结果树。合法报文的原生谓词不再分配字段对象或复制字段值，仍完整检查长度/顺序/标签/校验和；诊断OOM不静默当坏帧。新双语接收校验范例和分配/恢复测试保留原构帧正例，M1数组桥接仍须独立通过，未作整包发布签收。</p>
     <p class="extlib-lead">构造并校验 FIX 4.x 文本报文帧，按输入顺序保留字段和重复标签。</p>
     <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
   </header>
@@ -46,6 +47,11 @@ println(decoded["fields"][2]["value"])</code></pre>
     <p>单帧最多 16 MiB、4096 个应用字段；加上自动生成的 8、9、10，最大合法解析结果有 4099 项。8=BeginString 必须非空；文本值不能含 SOH 或 NUL，XL 传入 C 字符串接口的文本也拒绝内嵌 NUL，避免静默截断。C 的 BeginString、字段文本及 parse 输入均按 16 MiB 限界扫描，超限报告 RANGE；XLang 的 field/build/parse 相应抛 RangeError，validate 对超限输入返回 false。独立字段文本可恰好达到 16 MiB，但完整帧仍须留出头尾字段空间。字段对象的值支持字符串、有符号/无符号整数、浮点和布尔值；无符号整数按十进制完整写出。浮点字段使用点号小数，不受进程区域设置影响。它是帧编解码器，不提供交易会话、序号/重发、场所字典验证或网络连接。</p>
     <p>标签遵循 <a href="https://forum.fixtrading.org/t/fix-standard-errors-and-omissions-2018-2021/14231/13">FIX TagNum</a> 的正整数十进制语法，不允许前导零、正负号或空白。即便 BodyLength/CheckSum 正确，035= 也无效。此限制只针对标签：9=0008 与应用字段值 0007 仍可用，CheckSum 保留三位补零。标签沿用本包 int64 正数范围，不扩成场所字典校验。</p>
   </section>
+  <section id="validation">
+    <h2>先校验，再按需解析</h2>
+    <p><code>examples/validation.xl</code> 与 <code>validation_c.c</code> 使用完全相同的三份报文：一份通过、两份被拒绝，仅对通过的报文创建完整字段树，匹配同一五行黄金输出。默认无网络/文件，也不创建旁路数组工厂。帧校验不是交易会话或数据字典验证。</p>
+    <p>C合同夹具检查0..4096字段、原文/顺序、坏帧与全部短帧截断、4097字段、NULL、诊断分配失败、输入不变及七内存指标；28份实际分配记录另外检查合法谓词不物化。XLang仍有NUL校验、参数适配和异常处理成本，不能由C合法谓词零XRT分配推导整条语言调用链零开销。旧374份独立Python语法/字节参照与原C上限测试继续执行。</p>
+  </section>
   <section id="c-api">
     <h2>C 对照</h2>
     <pre><code>#define XRT_MODULE_VALUE_CONTAINER
@@ -67,6 +73,8 @@ int main(void)
   </section>
   <section id="verify">
     <h2>验证状态</h2>
+    <p>2026-11-02：Windows57阶段前56通过、Linux原生61阶段前60通过，均保留八实际原型、374独立记录、C上限/故障与各九份普通AOT；新五行双语例和完整语言预算过。90场景成本夹具旧56条不物化质量断言未满足、新0，旧新语义记录相同；0/1/64/512/4096字段的合法原生谓词XRT分配由29/36/520/4112/32792变为0，parse分配保持。诊断预算仍有OOM且保留正确错误分类，Linux含ASan/UBSan/泄漏。原中央M1及两平台最小JIT/AOT仍失败，默认门禁1，后续旧语言路径不冒称已执行。</p>
+    <p>同一GCC-O2内存诊断宿主的局部计时有收益，但Windows新路径0–1ms已近clock分辨率，不给比率，也不外推生产吞吐或parse速度。核心对象text减128/216B不是完整程序体积。后面的旧日期是各自的历史证据；官网源更新不代表外部网站已部署。</p>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/fix/test/check.ps1
 bash release/extlibs/fix/test/check.sh</code></pre>
     <p>2026-10-30：共享标签解析处增加检查，374组四种标签位置/前导零/畸形数字/边界/数值文本的旧实现256项红，修复后归零；另四条逐点 OOM/立即恢复核对活动分配和非法释放。Python 独立组帧参照比较374条完整字节与 parse/validate 结果，GCC/TCC内存运行/独立程序逐字对照。新增 tag_gate.xl/tag_gate_c.c 五行黄金例展示收到报文的校验、保留值原文、错误与恢复，不写文件。</p>

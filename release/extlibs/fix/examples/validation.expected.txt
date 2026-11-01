@@ -1,0 +1,5 @@
+checked: 3
+accepted: 1
+rejected: 2
+accepted fields: 4
+value: 0007

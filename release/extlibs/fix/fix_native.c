@@ -206,7 +206,8 @@ static bool xfix_parse_tag(xstrview Text, int64* pTag)
     return Text.Size != 0u && Text.Data[0] != '0' && xfix_parse_uint(Text, pTag) && *pTag > 0;
 }
 
-xvalue* xfix_parse(cstr sMessage)
+/* 单一扫描路径；仅parse请求物化字段，validate不创建随后立即释放的值树。 */
+static bool xfix_read(cstr sMessage, xvalue** pParsed)
 {
     const uint8* pData = (const uint8*)sMessage;
     size_t iSize = 0u;
@@ -216,28 +217,28 @@ xvalue* xfix_parse(cstr sMessage)
     size_t iChecksumStart = 0u;
     int64 iBodyLength = -1;
     int64 iChecksum = -1;
-    xvalue* pResult;
-    xvalue* pFields;
+    xvalue* pResult = NULL;
+    xvalue* pFields = NULL;
 
     xrtClearError();
     if (sMessage != NULL)
         while (iSize <= XFIX_MAX_BYTES && sMessage[iSize] != '\0') ++iSize;
     if (iSize == 0u) {
-        xfix_error(XERR_ARGUMENT, "FIX input must not be empty"); return xrtValueNull();
+        xfix_error(XERR_ARGUMENT, "FIX input must not be empty"); return false;
     }
     if (iSize > XFIX_MAX_BYTES) {
-        xfix_error(XERR_RANGE, "FIX input exceeds the 16 MiB safety limit"); return xrtValueNull();
+        xfix_error(XERR_RANGE, "FIX input exceeds the 16 MiB safety limit"); return false;
     }
-    pResult = xrtValueObject();
-    pFields = xrtValueArray();
-    if (pResult == NULL || pFields == NULL) { xrtValueRelease(pResult); xrtValueRelease(pFields); return xrtValueNull(); }
+    if (pParsed != NULL) {
+        pResult = xrtValueObject();
+        pFields = xrtValueArray();
+        if (pResult == NULL || pFields == NULL) goto fail;
+    }
     while (iOffset < iSize) {
         size_t iStart = iOffset;
         size_t iEqual = iOffset;
         size_t iEnd;
         int64 iTag;
-        xvalue* pField;
-        xvalue* pValue;
         while (iEqual < iSize && pData[iEqual] != '=') { ++iEqual; }
         if (iEqual == iSize) { xfix_error(XERR_VALUE, "FIX field lacks '='"); goto fail; }
         iEnd = iEqual + 1u;
@@ -265,32 +266,41 @@ xvalue* xfix_parse(cstr sMessage)
             iChecksumStart = iStart;
             if (iEnd + 1u != iSize) { xfix_error(XERR_VALUE, "FIX CheckSum must be the final field"); goto fail; }
         }
-        pField = xrtValueObject();
-        pValue = xrtValueString((xstrview){ (cstr)pData + iEqual + 1u, iEnd - iEqual - 1u });
-        if (pField == NULL || pValue == NULL || !xrtValueObjectSetNew(pField, XRT_STR_LITERAL("tag"), xrtValueInt(iTag)) ||
-            !xrtValueObjectSetTake(pField, XRT_STR_LITERAL("value"), &pValue) || !xrtValueArrayAppendTake(pFields, &pField)) {
-            xrtValueRelease(pField); xrtValueRelease(pValue); goto fail;
+        if (pParsed != NULL) {
+            xvalue* pField = xrtValueObject();
+            xvalue* pValue = xrtValueString((xstrview){ (cstr)pData + iEqual + 1u, iEnd - iEqual - 1u });
+            if (pField == NULL || pValue == NULL || !xrtValueObjectSetNew(pField, XRT_STR_LITERAL("tag"), xrtValueInt(iTag)) ||
+                !xrtValueObjectSetTake(pField, XRT_STR_LITERAL("value"), &pValue) || !xrtValueArrayAppendTake(pFields, &pField)) {
+                xrtValueRelease(pField); xrtValueRelease(pValue); goto fail;
+            }
         }
         iOffset = iEnd + 1u;
     }
     if (iCount < 3u || iBodyLength < 0 || iChecksum < 0 || iChecksumStart < iBodyStart) { xfix_error(XERR_VALUE, "FIX message needs tags 8, 9 and final 10"); goto fail; }
     if ((uint64)iBodyLength != (uint64)(iChecksumStart - iBodyStart) ||
         xfix_checksum_bytes(pData, iChecksumStart) != (unsigned int)iChecksum) { xfix_error(XERR_VALUE, "FIX BodyLength or CheckSum validation failed"); goto fail; }
-    if (!xrtValueObjectSetTake(pResult, XRT_STR_LITERAL("fields"), &pFields) ||
-        !xrtValueObjectSetNew(pResult, XRT_STR_LITERAL("valid"), xrtValueBool(true))) { goto fail; }
-    return pResult;
+    if (pParsed != NULL) {
+        if (!xrtValueObjectSetTake(pResult, XRT_STR_LITERAL("fields"), &pFields) ||
+            !xrtValueObjectSetNew(pResult, XRT_STR_LITERAL("valid"), xrtValueBool(true))) goto fail;
+        *pParsed = pResult;
+    }
+    return true;
 fail:
     xrtValueRelease(pFields);
     xrtValueRelease(pResult);
-    return xrtValueNull();
+    return false;
+}
+
+xvalue* xfix_parse(cstr sMessage)
+{
+    xvalue* pResult = NULL;
+    return xfix_read(sMessage, &pResult) ? pResult : xrtValueNull();
 }
 
 bool xfix_validate(cstr sMessage)
 {
-    xvalue* pResult = xfix_parse(sMessage);
-    bool bValid = pResult != NULL && xrtValueType(pResult) == XVALUE_OBJECT;
+    bool bValid = xfix_read(sMessage, NULL);
     const xerror* pError = xrtGetError();
-    xrtValueRelease(pResult);
     if (!bValid && (pError == NULL || xrtErrorKind(pError) != XERR_MEMORY))
         xrtClearError();
     return bValid;

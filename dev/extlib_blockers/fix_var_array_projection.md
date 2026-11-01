@@ -2,6 +2,17 @@
 
 # FIX 语言数组进入原生 `xvalue*` 后不再是数组
 
+2026-11-02校验路径优化后复验：Windows57阶段前56、Linux原生61
+前60通过，原中央build(var fields)仍在第一条数组调用失败。默认
+仍退出1，后续旧语言路径未运行。最小源两平台check/build0、JIT/
+AOT1，仍同一数组类型错误，不以只读取外部帧的成功替代构帧闭环。
+Windows55输入/工具未变，Linux52冻结来源/四工具/boot保持；C完整
+边界/374独立记录和各九份普通AOT过，不修改主线或制造容器旁路。
+记录见`docs/reports/extlib-fix-validate-20261102.json`，现场分别
+`build/test/fix_guard/run_0b9efc8976da4b23bfb10c78f2b230c1.json`与
+`/var/tmp/xlang-fix-validate-mApXnqGa`。修复建议仍是下方统一extern
+var投影身份/寿命排查，M1保持开放。
+
 2026-10-30 根目录布局复验：Windows/Linux 默认包门禁分别前37/38项
 满足预期（原C、新标签语法/双语、八实际原型、五个独立程序及独立记录
 参照），最后仍在原中央构帧正例失败。最小源从仓库根目录运行：

@@ -14,7 +14,7 @@ xvalue *xfix_field(int64_t tag, const char *value);
 void *xfix_build(const char *begin_string, xvalue *fields);
 xvalue *xfix_parse(const char *message);
 bool xfix_validate(const char *message);
-/* validate 的格式错误不留错误；分配失败保留 XRT 内存错误。 */
+/* validate不物化字段；格式错误不留错误，诊断分配失败保留XRT内存错误。 */
 bool xfix_has_error(void);
 bool xfix_memory_error(void);
 bool xfix_range_error(void);

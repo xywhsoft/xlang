@@ -77,7 +77,7 @@ static void check(unsigned position, const char* tag, bool padded_length, bool v
     ++cases; if (!ok) ++failures;
 }
 
-/* 有效与畸形标签都扫描实际分配，解除故障后立即解析同一有效帧。 */
+/* 有效validate不分配；其余路径扫描实际故障点，随后立即恢复。 */
 static bool allocation_path(bool predicate, bool valid)
 {
     char message[512], good[512];
@@ -103,7 +103,7 @@ static bool allocation_path(bool predicate, bool valid)
         if (!balanced(before) || !ok) return false;
         if (!triggered) { completed = true; break; }
     }
-    return completed && injected;
+    return completed && (injected || (predicate && valid));
 }
 
 int main(int argc, char** argv)
@@ -131,7 +131,7 @@ int main(int argc, char** argv)
         for (unsigned valid = 0; valid < 2; ++valid) {
             ++oom_paths; if (!allocation_path(predicate != 0,valid != 0)) ++failures;
         }
-    if (!emit) printf("fix tag grammar: %u cases, %u OOM paths, %u failures\n",cases,oom_paths,failures);
+    if (!emit) printf("fix tag grammar: %u cases, %u fault paths, %u failures\n",cases,oom_paths,failures);
     return failures != 0 || ferror(stdout);
 }
 

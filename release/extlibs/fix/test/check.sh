@@ -5,11 +5,13 @@ cd "$root"
 work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-fix-XXXXXX")
 cc=${CC:-gcc}; python=${PYTHON:-python3}; sequence=0
 cc_path=$(command -v "$cc" || true); python_path=$(command -v "$python" || true)
+cc1=$("$cc" -print-prog-name=cc1)
 input_paths() {
     find release/extlibs/fix release/include -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so test/cases/extlib_fix.xl release/examples/extlibs/fix.xl
     if [[ -n $cc_path ]]; then printf '%s\0' "$cc_path"; fi
     if [[ -n $python_path ]]; then printf '%s\0' "$python_path"; fi
+    printf '%s\0' "$cc1"
 }
 cleanup() {
     result=$?; trap - EXIT; set +e
@@ -54,7 +56,7 @@ run 120 "$work/legacy"
 source=release/extlibs/fix/test/tag_grammar_c.c
 compile "$source" "$work/runtime.o" -no-pie -lm -ldl -o "$work/grammar"
 run 120 "$work/grammar" > "$work/grammar.txt"
-printf 'fix tag grammar: 374 cases, 4 OOM paths, 0 failures\n' > "$work/grammar.expected"
+printf 'fix tag grammar: 374 cases, 4 fault paths, 0 failures\n' > "$work/grammar.expected"
 diff -u "$work/grammar.expected" "$work/grammar.txt"
 run 90 "$work/grammar" --records > "$work/gcc.tsv"
 run 60 "$python" release/extlibs/fix/test/check_tag_records.py "$work/gcc.tsv"
@@ -70,6 +72,30 @@ run 90 ./release/xl run "$c_example" > "$work/tag.direct.txt"; diff -u "$work/ta
 language=release/extlibs/fix/examples/tag_gate.xl; boundaries=release/extlibs/fix/test/tag_grammar.xl
 run 90 ./release/xl run "$language" > "$work/tag.xl.txt"; diff -u "$work/tag.expected" "$work/tag.xl.txt"
 run 90 ./release/xl run "$boundaries"
+cost_source=release/extlibs/fix/test/validate_cost_c.c
+compile "$cost_source" release/extlibs/fix/fix_native.c "$work/runtime.o" -no-pie -lm -ldl -o "$work/validate-cost"
+run 120 "$work/validate-cost" > "$work/cost.txt"
+grep -Eq '^fix validation: 90 cases, [1-9][0-9]* diagnostic OOM, 0 failures$' "$work/cost.txt"
+run 120 ./release/xl run "$cost_source" > "$work/cost-direct.txt"
+grep -Eq '^fix validation: 90 cases, [1-9][0-9]* diagnostic OOM, 0 failures$' "$work/cost-direct.txt"
+cost_records() {
+    local path=$1; shift
+    run 120 "$@" > "$path"
+    run 30 "$python" -c 'import pathlib,sys; rows=[x.split("\t") for x in pathlib.Path(sys.argv[1]).read_text().splitlines()]; assert len(rows)==28 and all(len(x)==5 and x[1]=="1" and int(x[3])>0 and int(x[4])==0 for x in rows); print("28 native predicate allocation records: PASS")' "$path"
+}
+cost_records "$work/cost-gcc.tsv" "$work/validate-cost" --measure
+cost_records "$work/cost-tcc.tsv" ./release/xl run "$cost_source" -- --measure
+budget=release/extlibs/fix/test/validate_budget.xl
+run 90 ./release/xl run "$budget" > "$work/budget.txt"
+printf 'fix validation budget: PASS\n' > "$work/budget.expected"
+diff -u "$work/budget.expected" "$work/budget.txt"
+validation_c=release/extlibs/fix/examples/validation_c.c
+validation_xl=release/extlibs/fix/examples/validation.xl
+compile "$validation_c" "$work/runtime.o" -no-pie -lm -ldl -o "$work/validation-example"
+sed 's/\r$//' release/extlibs/fix/examples/validation.expected.txt > "$work/validation.expected"
+run 90 "$work/validation-example" > "$work/validation-gcc.txt"; diff -u "$work/validation.expected" "$work/validation-gcc.txt"
+run 90 ./release/xl run "$validation_c" > "$work/validation-tcc.txt"; diff -u "$work/validation.expected" "$work/validation-tcc.txt"
+run 90 ./release/xl run "$validation_xl" > "$work/validation-xl.txt"; diff -u "$work/validation.expected" "$work/validation-xl.txt"
 run 90 ./release/xl cgen "$language" --emit "$work/probe.c"
 grep -q 'xl6_xrt_take_cstr(' "$work/probe.c"
 grep -E '^extern .*xfix_[a-z_]+[(]' "$work/probe.c" | sort -u > "$work/abi.decls"
@@ -79,13 +105,16 @@ test "$(wc -l < "$work/abi.decls")" -eq 8; diff -u "$work/abi.expected" "$work/a
 printf '#include "fix_native.c"\n' > "$work/abi.c"; cat "$work/abi.decls" >> "$work/abi.c"
 compile -fsyntax-only "$work/abi.c"
 index=0
-for input in "$source" "$boundaries" "$language" "$c_example" release/extlibs/fix/examples/fix_c.c; do
+for input in "$source" "$boundaries" "$language" "$c_example" release/extlibs/fix/examples/fix_c.c "$cost_source" "$budget" "$validation_c" "$validation_xl"; do
     index=$((index+1)); binary="$work/aot-$index"
     run 120 ./release/xl build "$input" -o "$binary"; run 90 "$binary" > "$work/aot-$index.txt"
     case "$input" in
         */tag_grammar_c.c) diff -u "$work/grammar.expected" "$work/aot-$index.txt"; run 90 "$binary" --records > "$work/aot.tsv"; cmp "$work/gcc.tsv" "$work/aot.tsv"; run 60 "$python" release/extlibs/fix/test/check_tag_records.py "$work/aot.tsv" ;;
         */tag_gate.xl|*/tag_gate_c.c) diff -u "$work/tag.expected" "$work/aot-$index.txt" ;;
         */fix_c.c) diff -u "$work/basic.txt" "$work/aot-$index.txt" ;;
+        */validate_cost_c.c) grep -Eq '^fix validation: 90 cases, [1-9][0-9]* diagnostic OOM, 0 failures$' "$work/aot-$index.txt"; cost_records "$work/cost-aot.tsv" "$binary" --measure ;;
+        */validate_budget.xl) diff -u "$work/budget.expected" "$work/aot-$index.txt" ;;
+        */validation_c.c|*/validation.xl) diff -u "$work/validation.expected" "$work/aot-$index.txt" ;;
     esac
 done
 # 原 build(var fields) 正例仍是必过项，不能拿收到的报文解析成功代替。

@@ -1,0 +1,33 @@
+import fix
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    string good = "8=FIX.4.4\x01" + "9=0008\x01" + "35=0007\x01" + "10=205\x01"
+    string bad = "8=FIX.4.4\x01" + "9=9\x01" + "035=0007\x01" + "10=110\x01"
+    int successes = 0
+    for message in [good, bad]
+        bool expected = message == good
+        for budget in range(64)
+            assert failAfter(uint64(budget))
+            bool caught = false
+            try
+                assert fix.validate(message) == expected
+            catch MemoryError error
+                caught = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            // 普通语言调用仍有参数/校验适配，不能由C零分配推导整条链零成本。
+            assert caught == triggered
+            if not caught then successes += 1 end
+            assert fix.validate(good)
+        end
+    end
+    assert successes > 0
+    assert fix.parse(good)["fields"][2]["value"] == "0007"
+    println("fix validation budget: PASS")
+    return 0
+end

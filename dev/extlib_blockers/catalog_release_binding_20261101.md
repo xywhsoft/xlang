@@ -136,6 +136,14 @@ Dotenv普通export键阶段候选
 本包M2顶层正例仍红，详见
 `docs/reports/extlib-dotenv-grammar-20261102.json`。
 
+FIX校验不物化阶段候选`build/test/fix_validate_20261102/catalog/`
+生成并通过自身新鲜度：207包/17598项，公开项增删0，145文档/593来源，
+包含最新README与语法/范例coverage。严格绑定仍报
+`Catalog compiler changed: xl.dll`，未安装、未改写基础身份或交付索引。
+官网源有隔离副本，609运行原始Git字节审计过；本包原M1构帧正例
+继续失败，未以九普通AOT或合法谓词不分配替代发布签收。详见
+`docs/reports/extlib-fix-validate-20261102.json`。
+
 1. 主线维护者完成稳定XRT同步、相匹配的编译器发布物和验收记录。
 2. 如标准库/主线绑定改变，先按当前正式验收报告重生成基础命令目录。
 3. 再刷新扩展资料候选，运行真实前端声明检查及严格覆盖/新鲜度检查。

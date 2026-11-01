@@ -1,0 +1,22 @@
+import fix
+
+func main(...) as int
+    // 帧校验不创建完整字段树，只为通过的报文调用parse；不是交易会话验证。
+    string good = "8=FIX.4.4\x01" + "9=0008\x01" + "35=0007\x01" + "10=205\x01"
+    string padded = "8=FIX.4.4\x01" + "9=9\x01" + "035=0007\x01" + "10=110\x01"
+    string checksum = "8=FIX.4.4\x01" + "9=0008\x01" + "35=0007\x01" + "10=000\x01"
+    int accepted = 0
+    int rejected = 0
+    for message in [good, padded, checksum]
+        if fix.validate(message) then accepted += 1 else rejected += 1 end
+    end
+    assert accepted == 1 and rejected == 2
+    var decoded = fix.parse(good)
+    assert decoded["fields"].length == 4
+    println("checked: 3")
+    println(f"accepted: {accepted}")
+    println(f"rejected: {rejected}")
+    println("accepted fields: 4")
+    println("value: " + string(decoded["fields"][2]["value"]))
+    return 0
+end
