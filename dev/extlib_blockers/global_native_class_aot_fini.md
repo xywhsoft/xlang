@@ -2,6 +2,27 @@
 
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+## 2026-11-01 主目录现行发布物复验
+
+当前 Windows/Linux 的十二包专项各执行 45 阶段：lz4、bz2、lzma、
+miniz、snappy、xxhash、zstd、gzip、dotenv、progress、roaring、trie。
+十二条顶层正例均 JIT 退出 0、构建退出 0，独立程序打印本包 PASS 后
+仍报状态 RuntimeError 并退出 1。progress、roaring、trie 的三条同操作
+局部控制在两平台的九阶段均退出 0。不是算法失败，也不据此断言所有
+包内部完全同根；专项门禁保持失败，不把这些正例改成预期失败。
+
+报告 `docs/reports/extlib-native-globals-20261101.json` 保存实际产品、输入
+指纹、原始退出码和诊断。Windows 使用补强后的 PowerShell 门禁，Linux
+使用冻结到原生目录的原 shell 门禁；各自记录实际工具版本，不混用身份。
+M2 原登记的 28 包不因本轮只复验其中 12 包而增减，其他包没有重新认证。
+修复责任仍在主线，不在普通包提前释放、挪入 main 或吞掉退役错误。
+
+另外修正 Windows 专项的报告首因：输入基线未收齐时，不能把尚未采集
+的文件都认作运行期间新增。报告新增 `inputSnapshotComplete`，基线失败
+保留原错误；完整基线仍检查变化。`tools/check_extlib_native_globals_failures.ps1`
+在独立子进程注入首项失败、部分失败与完成后漂移，PowerShell 5/7 各三项
+通过；不修改待测文件，不替换生产运行库，不把主线 M2 记作修复。
+
 ## 2026-10-30 BLAKE2 独立最小正例复验
 
 新增release/extlibs/blake2/test/global_lifecycle.xl，仅顶层创建真实哈希器，
