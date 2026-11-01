@@ -7,6 +7,7 @@ Every consumer of a selected layout must be rebuilt with its generated header.
 from pathlib import Path
 import hashlib
 from native_current_unified_profile import PINS as UNIFIED_PINS
+from native_c_interop_profile import PINS as C_INTEROP_PINS
 
 
 def sha(path):
@@ -27,6 +28,8 @@ PROFILES = {
                       UNIFIED_PINS['lib/xrt/xrt.h']), packageFields=True),
 }
 
+
+PROFILES[(C_INTEROP_PINS['src/ast/xl6_ast.c'],C_INTEROP_PINS['src/ast/xl6_ast.h'])]=dict(runtime=C_INTEROP_PINS['lib/xrt/xrt.h'],packageFields=True,cRecords=True)
 
 def derive(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     """Private node-owner ABI; every native AST consumer must be rebuilt."""
@@ -58,6 +61,8 @@ def derive(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     text = text.replace(old, '    size_t childCapacity;\n    struct xls_ast_storage* xlsStorage;\n} XL6_AstNode;')
     if profile['packageFields']:
         text = text.replace('#define XLS_NATIVE_AST_STORAGE 1', '#define XLS_NATIVE_AST_STORAGE 1\n#define XLS_NATIVE_AST_PACKAGE_FIELDS 1')
+    if profile.get('cRecords'):
+        text = text.replace('#define XLS_NATIVE_AST_STORAGE 1','#define XLS_NATIVE_AST_STORAGE 1\n#define XLS_NATIVE_AST_C_RECORD 1')
     identity = '    uint32 semanticTypeId;\n    uint64 semanticTypeAbiId;'
     if text.count(identity) != 1:
         raise ValueError('shared AST private leaf-reference seam changed')

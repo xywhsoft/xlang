@@ -1,0 +1,180 @@
+{
+  "scope": "Historical input aliases only;not active sources",
+  "files": [
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\build_lsp_core.py",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\tools\\build_lsp_core.py",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\tools\\build_lsp_core.py",
+      "sha256": "e3198137b7f25ab76417985bcdd03553e88ac72fffd3f732b93c358c9eb63ffd"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\native_cancellation_overlay.py",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\tools\\native_cancellation_overlay.py",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\tools\\native_cancellation_overlay.py",
+      "sha256": "6bfbc4b790edb88a4a969f5b422f8e6b22e0965e2ebea9136f0c1354b71157b5"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\native_current_ir_overlay.py",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\tools\\native_current_ir_overlay.py",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\tools\\native_current_ir_overlay.py",
+      "sha256": "b467dae99927230ed1d63ea2a91faee63dc2ff9871db56066ff0f8e01b89b2c8"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\native_ir_derived_overlay.py",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\tools\\native_ir_derived_overlay.py",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\tools\\native_ir_derived_overlay.py",
+      "sha256": "79e784d9c516659644d9bd2ee122bd0682c8117c9f619cc7be5a193dab6ed302"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\native_current_ir_profile.py",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\tools\\native_current_ir_profile.py",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\tools\\native_current_ir_profile.py",
+      "sha256": "62e3c6c840c9b16458010c6fdd240e64e242fa4da4b10b3189318b2fd9d24902"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\native_current_retirement_profile.py",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\tools\\native_current_retirement_profile.py",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\tools\\native_current_retirement_profile.py",
+      "sha256": "860d0f9fbe8dcd40225969336f04bd5ade9b655f43162002f75cc9ea1a5179e3"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\native_current_unified_profile.py",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\tools\\native_current_unified_profile.py",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\tools\\native_current_unified_profile.py",
+      "sha256": "f159728dd81ec392145126ff89cacc2a91076bd7f457de5db7b5b21ca4cfccf7"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\native_ast_overlay.py",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\tools\\native_ast_overlay.py",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\tools\\native_ast_overlay.py",
+      "sha256": "3afed8e86caca441a327eb8a75313e0105d608149ad35a2375b0ccc379e73ca6"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\native_parser_ownership_overlay.py",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\tools\\native_parser_ownership_overlay.py",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\tools\\native_parser_ownership_overlay.py",
+      "sha256": "7228ce475bc3ed065d3dbfa1fdf51fcd94fb0a8c1c6ea295c7b6da046127ac13"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\native_signature_overlay.py",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\tools\\native_signature_overlay.py",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\tools\\native_signature_overlay.py",
+      "sha256": "8e56dda53dade4057f69d19d2cb02f33c236722585527ae524d575b742262a82"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\native_index_overlay.py",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\tools\\native_index_overlay.py",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\tools\\native_index_overlay.py",
+      "sha256": "a063861a7adf0354c5ac9eeebfe90ea427b154329aedc723d4af3898d2d21740"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\index_kind.h",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\src\\analysis\\index_kind.h",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\src\\analysis\\index_kind.h",
+      "sha256": "3002d9ef28aef0e3b4dc9ffa761afb3236fbe86115aebac3afa40a3a37b5446f"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_index.inc",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_index.inc",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\src\\analysis\\frontend_index.inc",
+      "sha256": "b3120ff81a1f71c44a82a50cd83bd3ed64942cb7bff026e0ee1b5e046ba51077"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_entities.inc",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_entities.inc",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\src\\analysis\\frontend_entities.inc",
+      "sha256": "afceb0cb8f5c9a8b0f942760c369cfd57802e51b64f6876367ba81d34bcfc90f"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_ir.inc",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_ir.inc",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\src\\analysis\\frontend_ir.inc",
+      "sha256": "bec5bcf975e3c1f834fe34395f99fc4f711a3bdc1a25520047f04cbe9f9bafe7"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_ir_memo.inc",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_ir_memo.inc",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\src\\analysis\\frontend_ir_memo.inc",
+      "sha256": "7f1997665619436c3bd90590d12f45e9550687a588ee6d68d4d1f0f41c9c5c9f"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_ir_derived.inc",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_ir_derived.inc",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\src\\analysis\\frontend_ir_derived.inc",
+      "sha256": "65f608dde0d00e9d22da40052f7ec51eae374374f727d735796808b42dedac29"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\folding.c",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\src\\analysis\\folding.c",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\src\\analysis\\folding.c",
+      "sha256": "2997872e8d192ec84c49c5ffb10dbf348d989e77602d4930edc7947ebb70632b"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_ir_sparse_decode_test.c",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\tests\\analysis_ir_sparse_decode_test.c",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\tests\\analysis_ir_sparse_decode_test.c",
+      "sha256": "f0cd6ffa81462a8065d14d633f3242680703a4ccae68424b4d0ede0633e6203f"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\services\\semantic_definition.c",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\src\\services\\semantic_definition.c",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\src\\services\\semantic_definition.c",
+      "sha256": "ba35cca8a43a3b4cc26a9324fdacb0dc895a307f0e422c5122edcc49ecd021bf"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_index_view_test.c",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\tests\\analysis_index_view_test.c",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\tests\\analysis_index_view_test.c",
+      "sha256": "ed6e5c3c09beedc76e414b7bfb6461c443d14a7443a0eb2a075f2403d48b1c58"
+    },
+    {
+      "role": "previous-baseline",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\server\\xlang_ls.c",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\previous-ide-inputs\\ide\\src\\server\\xlang_ls.c",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\previous-baseline\\ide\\src\\server\\xlang_ls.c",
+      "sha256": "d621fc1816682e1992690dcc8c499d48b70c154af00f52da5811aa5cb9b1b15c"
+    },
+    {
+      "role": "pre-v4",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\index_kind.h",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\pre-v4-ide-inputs\\ide\\src\\analysis\\index_kind.h",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\pre-v4\\ide\\src\\analysis\\index_kind.h",
+      "sha256": "047c265ac9e9822b63f40a678bd7bd43fea9c65dd9a93bff36fbbce2201a55a4"
+    },
+    {
+      "role": "pre-v4",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_index_view_test.c",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\pre-v4-ide-inputs\\ide\\tests\\analysis_index_view_test.c",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\pre-v4\\ide\\tests\\analysis_index_view_test.c",
+      "sha256": "ed6e5c3c09beedc76e414b7bfb6461c443d14a7443a0eb2a075f2403d48b1c58"
+    },
+    {
+      "role": "pre-v4",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\build_lsp_core.py",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\pre-v4-ide-inputs\\ide\\tools\\build_lsp_core.py",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-c-interop-history-20261102\\pre-v4\\ide\\tools\\build_lsp_core.py",
+      "sha256": "7c9cb68eb700fd69d5a8f3c671047022c8853b86d8d5532f1b27a68f547db7e6"
+    }
+  ]
+}

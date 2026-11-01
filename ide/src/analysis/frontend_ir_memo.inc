@@ -111,10 +111,18 @@ static int xlsIrMemoTypes(const XL6_IrTypePool* pool,xstrbuf* key,size_t limit)
             ,t->nativeValueAbi,t->messageSchemaType,t->treeKeySchemaType,t->treeValueSchemaType,
             t->collectionValueSchemaType,t->setKeyAbi,t->dictKeyAbi
 #endif
+#ifdef XLS_NATIVE_IR_FOREIGN_FIELDS
+            ,t->foreignBase,t->nativeArrayExtent
+#endif
         };
         if(!xlsIrMemoData(key,fields,sizeof(fields),limit) || !xlsIrMemoData(key,t->cName,sizeof(t->cName),limit) ||
            !xlsIrMemoData(key,t->errorResultCName,sizeof(t->errorResultCName),limit) ||
            !xlsIrMemoString(key,t->name,limit) || !xlsIrMemoString(key,t->displayName,limit))return 0;
+#ifdef XLS_NATIVE_IR_FOREIGN_FIELDS
+        /* Header content and nullness are part of the closed C identity;
+         * an allocation address is never a type-prefix identity. */
+        if(!xlsIrMemoString(key,t->foreignHeader,limit))return 0;
+#endif
         if((t->paramCount && !t->params) || (t->returnCount && !t->returns))return 0;
         if((t->paramCount && !xlsIrMemoData(key,t->params,t->paramCount*sizeof(*t->params),limit)) ||
            (t->parameterModes && !xlsIrMemoData(key,t->parameterModes,t->paramCount*sizeof(*t->parameterModes),limit)) ||
@@ -286,7 +294,13 @@ static const XL6_IrNode* xlsIrMemoRead(XL6_IrModule* module,XL6_SymbolId symbol)
  * unionField=SIZE_MAX is the default;encode only differing machine words. */
 #define XLS_IR_NODE_WORDS ((sizeof(XL6_IrNode)+7)/8)
 _Static_assert(XLS_IR_NODE_WORDS<=64,"audit raw IR fragment word mask");
-#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#ifdef XLS_NATIVE_IR_FOREIGN_FIELDS
+#ifndef XLS_NATIVE_AST_PACKAGE_FIELDS
+#error C_interop_IR_requires_the_matching_package_AST_schema
+#endif
+#define XLS_IR_SYMBOL_FIELDS 5u
+#define XLS_IR_PACKAGE_MASK (1u<<10)
+#elif defined(XLS_NATIVE_AST_PACKAGE_FIELDS)
 #define XLS_IR_SYMBOL_FIELDS 4u
 #define XLS_IR_PACKAGE_MASK (1u<<8)
 #else
@@ -299,11 +313,26 @@ static int xlsIrMemoEncodeNode(xstrbuf* data,const XL6_IrNode* in,size_t limit,x
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     value.compiledPackageLink=NULL;
 #endif
+#ifdef XLS_NATIVE_IR_FOREIGN_FIELDS
+    /* The five facts are scalar, but their trailing C padding is not a fact.
+     * Normalize the private copy without mutating the checked native node. */
+    XL6_ForeignCallFacts foreign=value.foreignCall;
+    memset(&value.foreignCall,0,sizeof(value.foreignCall));
+    value.foreignCall.constRecordAddresses=foreign.constRecordAddresses;
+    value.foreignCall.staticCallbackAddresses=foreign.staticCallbackAddresses;
+    value.foreignCall.outputIndexPlusOne=foreign.outputIndexPlusOne;
+    value.foreignCall.successCode=foreign.successCode;
+    value.foreignCall.rollbackSymbol=foreign.rollbackSymbol;
+#endif
     XL6_SymbolId* fields[]={&value.symbol,&value.targetSymbol,&value.compoundOperatorSymbol
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
         ,&value.constructorReceiverSymbol
 #endif
+#ifdef XLS_NATIVE_IR_FOREIGN_FIELDS
+        ,&value.foreignCall.rollbackSymbol
+#endif
     };unsigned mask=0;
+    _Static_assert(sizeof(fields)/sizeof(*fields)==XLS_IR_SYMBOL_FIELDS,"audit encoded symbol slots");
     for(unsigned i=0;i<XLS_IR_SYMBOL_FIELDS;++i){int kind;if(!xlsIrMemoSymbol(capture,*fields[i],fields[i],&kind))return 0;if(kind)mask|=1u<<(i+(kind==2 ? XLS_IR_SYMBOL_FIELDS : 0));}
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     size_t packageSize=in->compiledPackageLink ? strlen(in->compiledPackageLink) : 0;
@@ -399,7 +428,11 @@ static int xlsIrMemoDecodeNode(xls_ir_reader* r,XL6_IrNode* out,int borrow,const
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
         ,&out->constructorReceiverSymbol
 #endif
+#ifdef XLS_NATIVE_IR_FOREIGN_FIELDS
+        ,&out->foreignCall.rollbackSymbol
+#endif
     };
+    _Static_assert(sizeof(fields)/sizeof(*fields)==XLS_IR_SYMBOL_FIELDS,"audit decoded symbol slots");
     for(unsigned i=0;i<XLS_IR_SYMBOL_FIELDS;++i)if(!xlsIrMemoResolve(unit,entities,symbols,*fields[i],(symbolMask&(1u<<(i+XLS_IR_SYMBOL_FIELDS))) ? 2 : (int)((symbolMask>>i)&1u),fields[i]))return 0;
     if(!xlsIrMemoReadText(r,&out->text,borrow) || !xlsIrMemoReadNumber(r,&present) || present>1)return 0;
     if(present){

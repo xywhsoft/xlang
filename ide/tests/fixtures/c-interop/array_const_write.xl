@@ -1,0 +1,8 @@
+extern "record" struct Record @header("record.h")
+    c_int values[2]
+end
+func probe() as int
+    const Record value = Record()
+    value.values[0] = c_int(1)
+    return 0
+end

@@ -118,6 +118,9 @@ int xlsSemanticIndexPointFact(const xls_semantic_index* index,size_t at,xls_inde
 #define XLS_INDEX_NATIVE_KIND(name,text) case XL6_AST_##name:out->kind=XLS_INDEX_POINT_##name;break;
         XLS_INDEX_POINT_NATIVE_KINDS(XLS_INDEX_NATIVE_KIND)
 #undef XLS_INDEX_NATIVE_KIND
+#ifdef XLS_NATIVE_AST_C_RECORD
+        case XL6_AST_C_RECORD:out->kind=XLS_INDEX_POINT_C_RECORD;break;
+#endif
         default:out->kind=XLS_INDEX_POINT_OTHER;break;
     }
     return 1;

@@ -1,0 +1,3 @@
+extern "record" struct Record @header("record.h")
+    c_int value = 1
+end

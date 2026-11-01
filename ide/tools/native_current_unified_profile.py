@@ -28,4 +28,6 @@ def selected(frontend: Path):
 
 
 def updated_pins(frontend: Path, previous):
+    from native_c_interop_profile import selected as c_interop, role_pins
+    if c_interop(frontend):return role_pins(frontend,previous)
     return {**previous, **PINS} if selected(frontend) else previous

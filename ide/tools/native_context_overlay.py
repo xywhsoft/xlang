@@ -2,6 +2,7 @@
 from pathlib import Path
 import hashlib
 from native_raw_body_overlay import imports as derive_raw_imports
+from native_c_interop_profile import PINS as C_INTEROP_PINS, selected as c_interop_selected
 
 
 def _completion_namespace(source: str) -> str:
@@ -36,9 +37,11 @@ def completion_source(frontend: Path) -> tuple[Path,str,dict]:
     from native_signature_overlay import profile
     audited=profile(frontend)
     original=frontend/'src/sem/xl6_completion.c'
-    if audited[str(original)]=='d56f80b8b3ca93e9ec4009a56ee9235a86b66674f2c2ea174a0f5db36fdef2bf':
+    c_interop=c_interop_selected(frontend)
+    if c_interop or audited[str(original)]=='d56f80b8b3ca93e9ec4009a56ee9235a86b66674f2c2ea174a0f5db36fdef2bf':
         path=frontend/'src/common/xl6_path_identity.h'
         digest='48fd7456ad348c974da20aefa87f32862daeab664a341cfa144e2817d03c2683'
+        if c_interop:digest=C_INTEROP_PINS['src/common/xl6_path_identity.h']
         if hashlib.sha256(path.read_bytes()).hexdigest()!=digest:
             raise ValueError('shared completion path identity changed; audit failure and equality contracts')
         audited[str(path)]=digest

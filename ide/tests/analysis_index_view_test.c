@@ -138,9 +138,48 @@ static int run(void)
     CHECK(definitions>20 && hovers>20 && symbols==2);
     xideSemanticDefinitionsDestroy(legacy); xideSemanticDefinitionsDestroy(native); xrtFree(path); xrtFree(dep); return 1;
 }
+#ifdef XLS_NATIVE_IR_FOREIGN_FIELDS
+static int cInterop(void)
+{
+    const char* text="extern \"record\" struct Record @header(\"record.h\")\n c_int value\nend\nfunc main(...) as int\n Record item=Record()\n item.value=1\n return int(item.value)\nend\n";
+    char* path=xrtPathAbs("record-navigation.xl");CHECK(path);
+    xls_semantic_input input={path,text,strlen(text)};char error[256];
+    xls_semantic_check* check=xlsSemanticCheckCreate(path,&input,1,1,NULL,NULL,error,sizeof(error));
+    CHECK(check && xlsSemanticCheckInfo(check).accepted);
+    const xls_semantic_index* index=xlsSemanticCheckTypedIndex(check);unsigned records=0;
+    for(size_t i=0;i<xlsSemanticIndexCount(index);++i){
+        xls_index_point_fact point;CHECK(xlsSemanticIndexPointFact(index,i,&point));
+        CHECK(xlsIndexPointKindParse(point.fact.kind)==point.kind);
+        if(point.kind==XLS_INDEX_POINT_C_RECORD)++records;
+    }
+    CHECK(records==1);
+    char* json=xlsSemanticCheckJson(check,NULL);CHECK(json);xvalue* raw=xrtJsonParse(xrtStrView(json));CHECK(raw);
+    xide_semantic_source source={path,text,1,0};xide_model_error e={0};
+    xide_semantic_definitions *native=xideSemanticDefinitionsCreateTyped(index,&source,1,&e),
+        *legacy=xideSemanticDefinitionsCreate(get(raw,"semanticIndex"),&source,1,&e);
+    CHECK(native && legacy);
+    xvalue *a=xideSemanticDocumentSymbols(native,path),*b=xideSemanticDocumentSymbols(legacy,path);
+    CHECK(a && b && xrtValueEqual(a,b));unsigned found=0;
+    for(size_t i=0;i<xrtValueCount(a);++i){const xvalue* row=xrtValueArrayGet(a,i);int64 kind=0;
+        if(string(get(row,"name")) && !strcmp(string(get(row,"name")),"Record")){
+            CHECK(xrtValueGetInt(get(row,"kind"),&kind) && kind==23);++found;
+        }
+    }
+    CHECK(found==1);xrtValueRelease(a);xrtValueRelease(b);
+    const char* use=strstr(text,"Record item");int line,character;CHECK(use && xideLspOffsetToPosition(text,(int)(use-text),&line,&character));
+    unsigned definitions=0,hovers=0;
+    CHECK(compare(xideSemanticDefinition(native,path,line,character),xideSemanticDefinition(legacy,path,line,character),&definitions) && definitions==1);
+    CHECK(compare(xideSemanticHover(native,path,line,character),xideSemanticHover(legacy,path,line,character),&hovers) && hovers==1);
+    xideSemanticDefinitionsDestroy(native);xideSemanticDefinitionsDestroy(legacy);xrtValueRelease(raw);xrtFree(json);
+    xlsSemanticCheckDestroy(check);xrtFree(path);return 1;
+}
+#endif
 int main(void)
 {
     if(!run() || !highlightIdentities()) return 1;
+#ifdef XLS_NATIVE_IR_FOREIGN_FIELDS
+    if(!cInterop())return 1;
+#endif
     printf("analysis_index_view_test passed: %u checks; typed/JSON navigation equivalence, exact source rejection and independent ownership.\n",checks);
     return 0;
 }

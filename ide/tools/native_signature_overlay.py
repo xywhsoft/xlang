@@ -2,6 +2,7 @@
 from pathlib import Path
 import hashlib
 from native_current_unified_profile import COHORT as UNIFIED_COHORT, PINS as UNIFIED_PINS
+from native_c_interop_profile import COHORT as C_INTEROP_COHORT, PINS as C_INTEROP_PINS, selected as c_interop_selected, profile as c_interop_profile
 
 
 def sha(path):
@@ -41,13 +42,16 @@ PROFILES['current-ed78373d'] = {**PROFILES['current-9192a99f'],
     'lib/xrt/xrt.h': '05e8c00fb0eef0215f4d0c9291d240438cb37782df5de1c0e9ba8699b0dcd5eb'}
 PROFILES[UNIFIED_COHORT] = {**PROFILES['current-ed78373d'],
     'lib/xrt/xrt.h': UNIFIED_PINS['lib/xrt/xrt.h']}
+PROFILES[C_INTEROP_COHORT] = {key:C_INTEROP_PINS[key] for key in PROFILES['current-9192a99f']}
 
 
 def profile(frontend: Path) -> dict[str, str]:
     actual = {rel: sha(frontend/rel) for rel in next(iter(PROFILES.values()))}
     if actual not in PROFILES.values():
         raise ValueError("shared parser profile changed or mixed; audit parser/grammar/AST/XRT and completion contracts")
-    return {str(frontend/rel): digest for rel,digest in actual.items()}
+    audited={str(frontend/rel): digest for rel,digest in actual.items()}
+    if c_interop_selected(frontend):audited.update(c_interop_profile(frontend))
+    return audited
 
 
 def parser(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
@@ -61,6 +65,7 @@ def parser(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         'a54d4f36062caddccab5c77070c655219e2e4fd531a5710e14ae3d524a62fd13':
             'bb389787227c49b2d4ae8155d6cb0aa65a5f9c20e8155271989e2b8f8e01bb10',
     }
+    profiles[C_INTEROP_PINS['src/parser/xl6_parser_api.c']]=C_INTEROP_PINS['src/parser/xl6_parser_api.h']
     expected = sha(original)
     header = frontend / 'src/parser/xl6_parser_api.h'
     if expected not in profiles or sha(header) != profiles[expected]:
@@ -106,6 +111,7 @@ def lexer(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         'da5629614caad4e7afa6af3504555679c8e81f5ea20a1990865bf9bdd6d94a7f':
             '4d082dc3e0672dc34e76c17db1511262d15f344f47e5356ab697e823cb2d8f49',
     }
+    profiles[C_INTEROP_PINS['src/lexer/xl6_lexer_gen.c']]=C_INTEROP_PINS['src/lexer/xl6_literal_span.h']
     expected = sha(original)
     if expected not in profiles:
         raise ValueError('shared scanner changed; audit buffer lifetime,resume and original position advance')

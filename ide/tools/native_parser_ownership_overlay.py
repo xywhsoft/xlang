@@ -7,6 +7,7 @@ different union fields. No grammar action, parse table or diagnostic changes.
 from pathlib import Path
 import hashlib
 import re
+from native_c_interop_profile import PINS as C_INTEROP_PINS, selected as c_interop_selected
 
 
 def derive(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
@@ -21,6 +22,7 @@ def derive(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         'e2afa53003d34fd77de0f8fd44ec65499f8dab5ff1f971f653a5f7c32fa88f95':
             '9d82450476c4a1784f220177bfda545c34bb85878bf9203558aea23a31baefe0',
     }
+    profiles[C_INTEROP_PINS['src/parser/xl6_parser.c']]=C_INTEROP_PINS['src/parser/xl6_parser.y']
     sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
     expected = sha(original)
     if expected not in profiles or sha(grammar) != profiles[expected]:
@@ -29,7 +31,9 @@ def derive(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     source = original.read_text(encoding='utf8')
     rules = grammar.read_text(encoding='utf8')
     assert '%default_type { XL6_AstNode* }' in rules
-    assert 'XL6_AstNode* yy270;' in source
+    c_interop=c_interop_selected(frontend)
+    ast_tag='yy230' if c_interop else 'yy270'
+    assert 'XL6_AstNode* '+ast_tag+';' in source
     overrides = dict(re.findall(r'%type\s+(\w+)\s*\{([^}]+)\}', rules))
     aliases = {}
     for name, alias in re.findall(r'(?m)^(\w+)(\(\w+\))?\s*::=', rules):
@@ -45,12 +49,31 @@ def derive(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     begin = '/********* Begin destructor definitions ***************************************/'
     end = '/********* End destructor definitions *****************************************/'
     assert source.count(begin) == source.count(end) == 1
-    assert not source.split(begin, 1)[1].split(end, 1)[0].strip()
+    existing=source.split(begin,1)[1].split(end,1)[0]
+    if c_interop:
+        # The new by-value contract has a separate union member/destructor.
+        # Keep it byte-for-byte; never pass the composite record to AstFree.
+        assert overrides['extern_func_contract'].strip()=='XL6_PExternContract'
+        assert 'extern_func_contract' not in owned
+        assert re.findall(r'case\s+(\d+):',existing)==[str(symbols['extern_func_contract'])]
+        assert 'xl6AstFree((yypminor->yy166).attributes);' in existing
+        # Lemon's inline finalizer skips symbols below this bound. The new
+        # explicit contract destructor changed it from0 to138; newly added
+        # AST destructors include import_name/target132/133. Update the range
+        # too,otherwise incomplete imports leak despite correct switch cases.
+        lo=min(symbols[name] for name in owned | {'extern_func_contract'})
+        hi=max(symbols[name] for name in owned | {'extern_func_contract'})
+        for name,value in (('YY_MIN_DSTRCTR',lo),('YY_MAX_DSTRCTR',hi)):
+            old='#define '+name+'       138'
+            assert source.count(old)==1
+            source=source.replace(old,'#define '+name+'       '+str(value),1)
+    else:
+        assert not existing.strip()
     cases = '\n'.join(f'    case {symbols[name]}: /* {name} */' for name in sorted(owned, key=symbols.get))
     destructor = ('\n    /* Original reductions transfer AST ownership. Only discarded stack\n'
                   '     * values reach this destructor;start/separator/scalar values excluded. */\n' +
-                  cases + '\n      xl6AstFree(yypminor->yy270);\n      yypminor->yy270 = NULL;\n      break;\n')
-    source = source.replace(begin + '\n' + end, begin + destructor + end)
+                  cases + '\n      xl6AstFree(yypminor->'+ast_tag+');\n      yypminor->'+ast_tag+' = NULL;\n      break;\n')
+    source = source.replace(begin + existing + end, begin + existing.rstrip('\n') + destructor + end)
     compiled = output / 'frontend/xl6_parser.c'
     compiled.parent.mkdir(parents=True, exist_ok=True)
     compiled.write_text(source, encoding='utf8', newline='\n')

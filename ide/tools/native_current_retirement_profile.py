@@ -14,6 +14,8 @@ IR_DIGESTS = (PINS['src/ir/xl6_ir.c'], '10ebdce6803d96609ea7aac51e9b395b0d04a15f
 
 
 def role_pins(frontend: Path, previous):
+    from native_c_interop_profile import selected as c_interop,role_pins as c_pins
+    if c_interop(frontend):return c_pins(frontend,previous)
     runtime=frontend/'lib/xrt/xrt.h'
     if unified(frontend):return {**previous,**PINS,**UNIFIED_PINS}
     return {**previous,**PINS} if runtime.is_file() and hashlib.sha256(runtime.read_bytes()).hexdigest()==RUNTIME_SHA256 else previous
