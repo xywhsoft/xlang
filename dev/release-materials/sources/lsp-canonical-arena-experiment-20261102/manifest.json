@@ -1,0 +1,63 @@
+{
+  "role": "Rejected candidate source overlay;not the active IDE or runtime",
+  "reason": "Pre-registered24-pair navigation confirmation failed1gate despite pooled0/192;outline relative gates remain open. Default restored.",
+  "baseHead": "a7d63522f036d279068016283dda8596e93a187e",
+  "normalBuild": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-index-arena-20261102\\product-full-v2",
+  "buildResultSha256": "099854e707c3af1d289a298d91a55f5915a745b63d79bcd26689085283963250",
+  "files": {
+    "ide/tools/native_index_overlay.py": {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\native_index_overlay.py",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-canonical-arena-experiment-20261102\\ide\\tools\\native_index_overlay.py",
+      "sha256": "28138718678b7d7befe06d7ae0cbc4d9b0c3e277d608fd33fcd71aed077ac47a",
+      "originalSha256": "a063861a7adf0354c5ac9eeebfe90ea427b154329aedc723d4af3898d2d21740"
+    },
+    "ide/tools/build_lsp_core.py": {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\build_lsp_core.py",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-canonical-arena-experiment-20261102\\ide\\tools\\build_lsp_core.py",
+      "sha256": "ffd8e8b9cd191203ade22a03b7f57f13d3d9f6c5a1ba93bfdfc06eece6526cac",
+      "originalSha256": "e3198137b7f25ab76417985bcdd03553e88ac72fffd3f732b93c358c9eb63ffd"
+    },
+    "ide/src/analysis/frontend_index.inc": {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_index.inc",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-canonical-arena-experiment-20261102\\ide\\src\\analysis\\frontend_index.inc",
+      "sha256": "ef3c3adfb3b82a9d139b9f45187dc4b3bd4f309ce3bb4ad905434ec2b2ead90c",
+      "originalSha256": "b3120ff81a1f71c44a82a50cd83bd3ed64942cb7bff026e0ee1b5e046ba51077"
+    },
+    "ide/src/analysis/frontend_index_budget.inc": {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_index_budget.inc",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-canonical-arena-experiment-20261102\\ide\\src\\analysis\\frontend_index_budget.inc",
+      "sha256": "48854b00e40d0be6437db075a15ccb229aec11479e8a85cb5113bf6ec1af8292",
+      "originalSha256": "f7aefb5972d65e1d23717ef5c79e3d164a1185d13759beff20c3ad63ab264393"
+    },
+    "ide/tests/analysis_index_storage_test.c": {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_index_storage_test.c",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-canonical-arena-experiment-20261102\\ide\\tests\\analysis_index_storage_test.c",
+      "sha256": "66a40b8553a131f5b4ca4171ec4a0b91227c84be099d5ab708dddec3a4745817",
+      "originalSha256": "b738df72defdbd271c1ed4e7e323d00bb517c5b2ecc1dbc7ab8c1fda1a5241ee"
+    },
+    "ide/src/analysis/frontend_type_arena.h": {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_type_arena.h",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-canonical-arena-experiment-20261102\\ide\\src\\analysis\\frontend_type_arena.h",
+      "sha256": "723816b6e2a0f1c4f7a29e4613e8348a5d9f3a86aec4ea6913f7917b7e3c1017",
+      "originalSha256": null
+    },
+    "ide/src/analysis/frontend_type_arena.inc": {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_type_arena.inc",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-canonical-arena-experiment-20261102\\ide\\src\\analysis\\frontend_type_arena.inc",
+      "sha256": "c6684a82d372120a7df984f566763da20451c738a43a08357a96e243591e81ef",
+      "originalSha256": null
+    },
+    "ide/tests/analysis_index_arena_test.c": {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_index_arena_test.c",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-canonical-arena-experiment-20261102\\ide\\tests\\analysis_index_arena_test.c",
+      "sha256": "6998e8c8b0360a837c757a3605bdb6d7e9a07b865355bf2980a9936bde7d345b",
+      "originalSha256": null
+    },
+    "ide/tools/check_lsp_index_arena.py": {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_index_arena.py",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-canonical-arena-experiment-20261102\\ide\\tools\\check_lsp_index_arena.py",
+      "sha256": "67997bafa57411c6fd72e92e453ee30a115a435d88f26ebef9b1672652fe5e4e",
+      "originalSha256": null
+    }
+  }
+}
