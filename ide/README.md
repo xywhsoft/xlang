@@ -157,7 +157,7 @@ $build = Get-Content .\build\current-build.json -Raw | ConvertFrom-Json
 
 从本目录执行 `..\release\xlang_ide.exe` 可启动统一运行副本。源码快照输出位于 `build/cb-xxxxxxxx/release`，不会覆盖运行副本。`-Tests` 构建会执行原生分析核心测试并编译 GUI fixtures；GUI 回归使用对应快照的 `tools/test.ps1 -Configuration Release -SkipBuild -ReleaseDirectory <快照目录>\release`，按范围传入编译器与 C 服务器参数。生成新候选使用 `package_current.bat`。直接 `build.bat` 的普通构建更新仓库根 `release`，带 `-Tests` 时与 `test.bat` 一样使用 `ide/build/<配置>/release`。
 
-诊断版本为 `../release/xlang_ide_console.exe`，支持 `--help`。可用 `--workspace PATH.xlw`、`--project PATH.xlp` 和 `--open-file PATH` 启动时打开工程或文件。工作空间与项目文件路径使用 UTF-8；命令行从 Windows Unicode 参数转换。测试使用隐藏的本程序窗口，截图写入 `build/tests/render/`。构建仅使用本目录固定 SDK；不依赖另外三个参考项目的业务源码或二进制。
+诊断直接使用 `../release/xlang_ide.exe`，支持 `--help` 和 `--hidden --frames N`；不再构建或发行独立控制台入口。可用 `--workspace PATH.xlw`、`--project PATH.xlp` 和 `--open-file PATH` 启动时打开工程或文件。工作空间与项目文件路径使用 UTF-8；命令行从 Windows Unicode 参数转换。测试使用隐藏的本程序窗口，截图写入 `build/tests/render/`。构建仅使用本目录固定 SDK；不依赖另外三个参考项目的业务源码或二进制。
 F7 构建当前所选项目；F5 先构建再运行启动项目；Shift+F5 停止活动与排队任务。编译器可从“文件 → 选择 xlang 编译器”指定，也支持 `--compiler` 或 `XLANG_COMPILER`。开发目录会查找同仓库 `release/xl.exe`。构建与运行分别使用目标项目当前配置，也可用 `--configuration ID` 覆盖。运行会话提供 stdin/stdout 管道交互，完整系统 shell / ConPTY 仍需独立验收。参见 [构建运行说明](docs/tasks-and-toolchain.md)。
 构建配置可从项目菜单或右侧项目属性编辑，支持路径、库、运行参数和环境变量列表；每个项目独立保存当前配置。编译器选择保存到 `release/option/settings.json`，下次启动恢复。配置页使用独立草稿，取消不会修改项目。
 帮助窗格顶部提供章节选择；超过 64 章时可切换章节分组，正文在同一个中央滚动区内阅读。目录缺失或损坏会显示真实错误，修复文件后可在左侧重新加载。诊断程序支持 --help-chapter N 和 --size WIDTH HEIGHT，用于长文档与窄窗口验收。

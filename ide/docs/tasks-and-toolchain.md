@@ -18,7 +18,7 @@
 ```powershell
 .\release\xlang_ide.exe --workspace .\workspace.xlw --compiler D:\GIT\x-lang\release\xl.exe
 .\release\xlang_ide.exe --project .\app.xlp --configuration development
-.\release\xlang_ide_console.exe --hidden --frames 3 --project .\app.xlp --compiler D:\GIT\x-lang\release\xl.exe --task run --wait-task --screenshot .\build\run.png
+.\release\xlang_ide.exe --hidden --frames 3 --project .\app.xlp --compiler D:\GIT\x-lang\release\xl.exe --task run --wait-task --screenshot .\build\run.png
 ```
 
 `--task build|run|build-file|run-file|test` 明确发起任务；单独打开文件或工程不会执行用户程序。`--wait-task` 仅用于有界验收，要求 `--frames` 和 `--task`，最长等待 30 秒，成功或失败均实际绘制最终面板。普通 GUI 运行没有该测试超时。

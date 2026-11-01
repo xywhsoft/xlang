@@ -19,26 +19,26 @@
 Windows PowerShell、GCC、windres 和 objdump 需要在 PATH 中。当前机器通过 `E:\software\w64devkit\bin` 提供编译工具。
 
 ```powershell
-.\build.bat                         # Debug，GUI 与诊断可执行文件
+.\build.bat                         # Debug，图形 IDE 与语言服务
 .\build.bat -Configuration Release  # 优化构建
 .\test.bat -Configuration Release   # 已注册 69 类测试；按编译器/服务参数执行对应门，含双语法/布局图与 SDK 负面测试
 .\test.bat -Configuration Release -CompilerPath D:\GIT\x-lang\release\xl.exe  # 额外真实任务、混编、五张任务图及一张真实工具链图
-.\release\xlang_ide.exe
+..\release\xlang_ide.exe
 ```
 
-独立 `.c` 文件编译为 `build/<Configuration>/` 下的对象，再链接 GUI 和控制台版本。使用 `-Wall -Wextra -Werror`。所有 SDK 和应用头文件取自本工作区，不查找参考项目目录。
+独立 `.c` 文件编译为 `build/<Configuration>/` 下的对象，再链接图形 IDE；语言服务有独立入口。使用 `-Wall -Wextra -Werror`。所有 SDK 和应用头文件取自本工作区，不查找参考项目目录。
 
 独立服务产物为 `release/xlang-ls.exe`，和 GUI 共用相邻固定 `xge.dll`。服务入口单独编译并只链接协议、保存后检查、工具链与平台模块；不初始化图形窗口，编译器继续是子进程。
 
 产物位于 `release/`，测试图片位于 `build/tests/render/`。字体暂使用 Windows 字体：微软雅黑用于 UI、Consolas 用于代码，并给代码字体注册中文回退。界面和代码字体可以在各自的原生设置中独立选择并保存，默认均为 16 DIP；控件行高和模态内容随界面字号更新，代码区域依代码字号度量。全工作台 DPI 渲染已接入，实体混合 DPI 验收继续实施。
 
-诊断程序支持：
+图形 IDE 同时支持有界诊断；从 `ide/` 目录执行：
 
 ```powershell
-.\release\xlang_ide_console.exe --help
-.\release\xlang_ide_console.exe --hidden --frames 3 --demo c --theme graphite-dark --screenshot .\build\c-dark.png
-.\release\xlang_ide.exe --workspace .\MyWorkspace.xlw --open-file .\src\main.xl
-.\release\xlang_ide.exe --recovery-manager  # 打开只读恢复管理入口，修复仍需窗口内确认
+..\release\xlang_ide.exe --help
+..\release\xlang_ide.exe --hidden --frames 3 --no-session --demo c --theme graphite-dark --screenshot .\build\c-dark.png
+..\release\xlang_ide.exe --workspace .\MyWorkspace.xlw --open-file .\src\main.xl
+..\release\xlang_ide.exe --recovery-manager  # 打开只读恢复管理入口，修复仍需窗口内确认
 ```
 
 `--hidden` 和 `--screenshot` 必须同时给出有限 `--frames`。程序会检查实际帧数、帧错误和 XUI 错误回调，不以 XGE 主循环单独返回成功作为绘制成功。隐藏开关只隐藏本程序自己的测试窗口。
