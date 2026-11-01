@@ -419,7 +419,9 @@ static int complete(xui_widget editor,int offset,const char* prefix,xui_code_com
     const char* language=xuiCodeEditGetLanguage(editor); const char* last=NULL;
     for(size_t i=0;i<app->catalog.count;++i) {
         const xide_command* command=&app->catalog.entries[i]; size_t nameLength=strlen(command->name);
-        if(!xideCatalogCanComplete(command,language) || nameLength<qualifier || (qualifier && strncmp(command->name,text+start,qualifier)) || (last && !strcmp(last,command->name))) continue;
+        /* Bound catalog candidates by the actual qualified prefix before the
+           SDK's fuzzy ranking. Semantic overloads remain distinct above. */
+        if(!xideCatalogCanComplete(command,language) || nameLength<length || (length && strncmp(command->name,text+start,length)) || (last && !strcmp(last,command->name))) continue;
         /* Qualified insertion replaces only CodeEdit's final identifier prefix. */
         if(qualifier && nameLength<=qualifier) continue;
         const char* insert=command->name+qualifier; last=command->name;
