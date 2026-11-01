@@ -14,14 +14,23 @@ python -B -X utf8 ide/tools/check_catalog_coverage.py --root D:/GIT/x-lang --cat
 
 实际退出1，原因是内部的`git diff --quiet`确认当前`lib/`不再等于
 固定发布基线`ed78373dded9bde21db313799c1db8d5111631a6`。
-并行线程正在将XRT从`3fde6da5732d54feeea4ed1b0db5b42ad0f1867c`
-同步至`93347eb5ae6beba8cf7ee3558708cc4f628fdd07`，包括网络内部初始化与
-静态ownership表修正；这些不是本任务的改动，也不是BSON导致的API缺失。
+并行线程随后通过`44ac8a20b`将XRT从
+`3fde6da5732d54feeea4ed1b0db5b42ad0f1867c`同步至
+`93347eb5ae6beba8cf7ee3558708cc4f628fdd07`，包括网络内部初始化与
+静态ownership表修正。这些不是本任务的改动，也不是BSON导致的API缺失。
+之后又替换`release/xl.dll`和`xlc.dll`，现行严格校验首先报
+`Catalog compiler changed: xl.dll`，交付原始字节审计也报DLL已变化。
+本任务分别保留新旧发布物的实际测试哈希，不替并行工作改写旧验收报告。
 
 当前候选只完成提取，并未成为已验收发布资料。不能仅把旧条目和来源
 复制过去、跳过覆盖检查、修改旧发布报告或把并行XRT改动加入本任务提交。
 本次未覆盖`ide/data/`、`release/data/`或交付索引中的既有资料摘要。
 它们在BSON更新后仍是旧快照，故本轮源码提交不代表命令目录交付完成。
+
+CBOR阶段再次生成包含BSON/CBOR最新来源的候选（同为207包/17598条目），
+在更新后的DLL上提取且新鲜度检查通过，但严格发布绑定仍未通过。
+候选位置为`build/test/cbor_current_20261101/catalog-updated-runtime/`；
+输入/工具原文均已在仓库，候选属于可重新生成的中间产物，不是唯一源码。
 
 ## 收口要求
 

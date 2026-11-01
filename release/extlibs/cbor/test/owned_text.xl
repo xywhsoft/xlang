@@ -1,0 +1,58 @@
+import cbor
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+// 返回字符串独立拥有正文，输入清空和后续调用不能使旧结果失效。
+Buffer source = cbor.fromHex("00ff41")
+string retained = cbor.toHex(source)
+source.clear()
+assert retained == "00ff41"
+assert cbor.toHex(source) == ""
+Buffer next = cbor.fromHex("0102")
+for i in range(128)
+    assert cbor.toHex(next) == "0102"
+end
+assert retained == "00ff41"
+
+// 非空/空结果分别扫描到首次无故障成功；每个故障点解除后立即重试。
+for operation in range(2)
+    int failures = 0
+    bool completed = false
+    for allocation in range(128)
+        bool memoryCaught = false
+        bool wrongCaught = false
+        assert failAfter(uint64(allocation))
+        try
+            if operation == 0 then
+                assert cbor.toHex(next) == "0102"
+            else
+                assert cbor.toHex(source) == ""
+            end
+        catch MemoryError error
+            memoryCaught = true
+        catch RuntimeError error
+            wrongCaught = true
+        catch ValueError error
+            wrongCaught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert not wrongCaught and memoryCaught == triggered
+        assert cbor.toHex(next) == "0102"
+        assert cbor.toHex(source) == ""
+        assert retained == "00ff41"
+        if triggered then
+            failures += 1
+        else
+            completed = true
+            break
+        end
+    end
+    assert completed
+    if operation == 0 then
+        assert failures > 0
+    end
+end
+println("cbor owned text: empty/retained results, OOM recovery, PASS")
