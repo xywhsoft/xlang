@@ -33532,7 +33532,10 @@ static int xl6IrLowerNamedAdapterBody(
      * Default temporaries use the same commit as incoming parameter slots. */
     if (!xl6IrLowerProjectCallTargetPhysicalOperands(ctx,closure->declaration,target,operands,target->parameterCount)) goto done;
     if (!xl6IrLowerCommitEvaluationOwners(ctx, closure->declaration, first)) goto done;
-    if ( !xl6IrLowerEmit(ctx,
+    if (declaration->foreignCall.outputIndexPlusOne) {
+        if (dispatch != SIZE_MAX || !xl6IrLowerForeignFactory(ctx, closure->declaration,
+                target, operands, target->parameterCount, &callResult)) goto done;
+    } else if ( !xl6IrLowerEmit(ctx,
                           dispatch!=SIZE_MAX ? XL6_IR_INSTR_VIRTUAL_CALL :
                           target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC
                               ? XL6_IR_INSTR_ASYNC_START
@@ -33560,7 +33563,12 @@ static int xl6IrLowerNamedAdapterBody(
             defaultStorages[count++] = defaultStorages[parameter];
         }
         cleanup.temporaries = defaultStorages; cleanup.temporaryCount = count;
-        if (!xl6IrLowerCompleteCall(ctx, closure->declaration,
+        if (declaration->foreignCall.outputIndexPlusOne) {
+            if (xl6IrLowerCallCleanupMayRaise(ctx, &cleanup) != 0 ||
+                !xl6IrLowerCompleteOwnedCleanup(ctx, closure->declaration,
+                    xl6IrNodeGet(ctx->module, closure->declaration), &callResult,
+                    target->returnType, NULL, &cleanup)) goto done;
+        } else if (!xl6IrLowerCompleteCall(ctx, closure->declaration,
                 xl6IrNodeGet(ctx->module, closure->declaration), target, &callResult, NULL, &cleanup)) goto done;
     }
     result = target->returnType == XL6_IR_TYPE_INVALID

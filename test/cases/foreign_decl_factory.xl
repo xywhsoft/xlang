@@ -32,5 +32,18 @@ func main(...) as int
     assert retry.value == 42
     dispose(retry)
     assert live() == 0
+    auto factory = create
+    Widget indirect = factory(0, config)
+    assert indirect.value == 42 and live() == 1
+    dispose(indirect)
+    for mode in array[1, 2, 3]
+        bool caught = false
+        try
+            auto invalid = factory(c_int(mode), config)
+        catch error
+            caught = true
+        end
+        assert caught and live() == 0
+    end
     return 0
 end

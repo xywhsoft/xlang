@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "date": "2026-11-02",
+  "status": "windows-source-checkpoint",
+  "releaseProductsUpdated": false,
+  "canonicalBuild": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\source-r8\\build.json",
+  "complete": true,
+  "inputsUnchanged": true,
+  "translationUnits": 1397,
+  "factoryTests": {
+    "stages": 32,
+    "mutationsPerOptimization": 62,
+    "zeroOutputRejectionsPerOptimization": 124,
+    "report": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\factory-source-r8\\stages.json"
+  },
+  "callbackTests": {
+    "stages": 32,
+    "mutationsPerOptimization": 36,
+    "zeroOutputRejectionsPerOptimization": 72,
+    "report": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\callback-source-r8\\stages.json"
+  },
+  "arrayTests": {
+    "stages": 30,
+    "report": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\array-source-r8\\stages.json"
+  },
+  "handleTests": {
+    "stages": 23,
+    "report": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\handle-source-r8\\stages.json"
+  },
+  "recordTests": {
+    "stages": 21,
+    "report": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\record-source-r8\\stages.json"
+  },
+  "remaining": [
+    "Guard raw results during fallible parameter cleanup",
+    "Owning/context lifetimes",
+    "Captured retained callbacks",
+    "Linux gate and shipping products"
+  ]
+}
