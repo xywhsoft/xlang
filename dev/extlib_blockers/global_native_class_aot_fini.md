@@ -2,6 +2,19 @@
 
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+## 2026-11-02 Tabulate 当前发布物复验
+
+本包输出预算/拥有型返回优化后，Windows45阶段与Linux原生完整门禁
+均执行十份AOT：八份函数内/普通C正例通过，原`boundaries.xl`与
+`allocations.xl`仍构建成功、打印本包PASS后报状态RuntimeError退出1。
+Windows43输入工具及Linux50来源/四工具/boot标识前后保持一致。
+新增函数内范例只验证自己的合同，不替代这两份原顶层正例，默认门
+仍失败并保存现场；没有包侧提前析构、移入main或吞退役错误。
+
+记录：`docs/reports/extlib-tabulate-render-20261102.json`，Windows
+`build/test/tabulate_guard_10846ab52b3a4301b33955261ed537bc.report.json`，
+Linux `/var/tmp/xlang-tabulate-render-JqTCRB1u`。M2保持开放，未改主线。
+
 ## 2026-11-01 主目录现行发布物复验
 
 当前 Windows/Linux 的十二包专项各执行 45 阶段：lz4、bz2、lzma、

@@ -1,0 +1,1587 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-02T02:32:49.0687167+08:00",
+  "package": "tabulate",
+  "maturity": "M",
+  "status": "render-preflight-and-return-verified-global-AOT-M2-and-release-binding-open",
+  "sourceParent": "43d69d5ed",
+  "integrationParent": "f50b22f8d148c82da40105f65ada179cf6ddd69c",
+  "objectiveScope": {
+    "ordinaryPackages": 100,
+    "states": {
+      "X": 4,
+      "M": 56,
+      "G": 30,
+      "R": 10
+    },
+    "goalComplete": false
+  },
+  "changes": {
+    "bodyMaximum": 4194303,
+    "capacityMayGrowGeometrically": true,
+    "characterWidthSubsetUnchanged": true,
+    "sourceUnchanged": true,
+    "limitBytes": 4194304,
+    "wholeReturnCopyCountBefore": 1,
+    "existingErrorContract": "Native success including empty table is nonnull, NULL means XRT error; diagnostics may allocate",
+    "publicABIUnchanged": true,
+    "preflight": "Use stored widths, missing-cell padding, UTF8 byte/display-width differences, border and NUL to determine output size before allocation",
+    "outputReservations": 1,
+    "wholeReturnCopyCountAfter": 0,
+    "privateBinding": "nonnull owned native return and direct public return",
+    "noCompilerRuntimeXrtTccIdeModification": true,
+    "limitIncludesNul": true
+  },
+  "cRegression": {
+    "oldLinuxStderr": "render budget: render needs more than one output allocation\nrender budget: render needs more than one output allocation\nrender budget: render needs more than one output allocation\nrender budget: render needs more than one output allocation\nrender budget: render needs more than one output allocation\nrender budget: render needs more than one output allocation\nrender budget: render needs more than one output allocation\nrender budget: render needs more than one output allocation\nrender budget: render needs more than one output allocation\nrender budget: render needs more than one output allocation\nrender budget: render needs more than one output allocation\nrender budget: render needs more than one output allocation\n",
+    "memoryFieldsChecked": 7,
+    "independentOracle": {
+      "rejectionControls": 3,
+      "declaredWords": [
+        "empty",
+        "ASCII",
+        "CJK",
+        "combining accent",
+        "supplementary variation selector",
+        "comma"
+      ],
+      "layouts": 144,
+      "scope": "Independent exact byte oracle only for six stated width fixtures, not general wcwidth/grapheme conformance"
+    },
+    "outputAllocationFaults": 145,
+    "independentSmallLayouts": 144,
+    "oldLinuxExit": "1",
+    "oversizeDiagnosticsBudgets": [
+      "normal",
+      "0: diagnostic OOM",
+      "4: Range without output allocation"
+    ],
+    "oldLinuxStdout": "tabulate render budget: 145 layouts, 145 output faults, 130 failures\n",
+    "source": {
+      "path": "release/extlibs/tabulate/test/test_render_budget.c",
+      "bytes": 6861,
+      "sha256": "29bbe55db2fa46eb58ad80360a010c8b22092198fdfdcc95e9e21b0fe6e55232"
+    },
+    "recoveryAfterFailure": true,
+    "oldWindows": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "tabulate render budget: 145 layouts, 145 output faults, 130 failures\r\n",
+      "stderr": "render budget: render needs more than one output allocation\r\nrender budget: render needs more than one output allocation\r\nrender budget: render needs more than one output allocation\r\nrender budget: render needs more than one output allocation\r\nrender budget: render needs more than one output allocation\r\nrender budget: render needs more than one output allocation\r\nrender budget: render needs more than one output allocation\r\nrender budget: render needs more than one output allocation\r\nrender budget: render needs more than one output allocation\r\nrender budget: render needs more than one output allocation\r\nrender budget: render needs more than one output allocation\r\nrender budget: render needs more than one output allocation\r\n",
+      "elapsedMs": 49
+    },
+    "oldResultMeaning": "130 assertions fail new allocation-quality expectations; not 130 output-corruption bugs",
+    "layouts": 145,
+    "allocationBudgetsPerLayout": 2,
+    "exactLimitAndOneByteOver": true
+  },
+  "xlangReturn": {
+    "noZeroOverheadClaim": true,
+    "scenarios": 4,
+    "budgets": 8,
+    "windowsAfter": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "tabulate return budget: 8 cases PASS\n",
+      "stderr": "",
+      "elapsedMs": 218
+    },
+    "completeGeneratedFunction": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "tabulate owned render: complete function PASS, 3 rejection controls\r\n",
+      "stderr": "",
+      "elapsedMs": 97
+    },
+    "windowsBefore": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "uncaught xlang error: AssertionError: AssertionError\nuncaught xlang error: AssertionError\n",
+      "elapsedMs": 215
+    },
+    "remainingCosts": [
+      "strlen for adoption",
+      "foreign error scope",
+      "object reference management"
+    ],
+    "source": {
+      "path": "release/extlibs/tabulate/test/return_budget.xl",
+      "bytes": 1289,
+      "sha256": "9c3849537e84150003ac72f8d349868b0867478f216eb5960b80be0649b8eab3"
+    },
+    "scope": "Warm call; table, expected and initial result created outside allocation window"
+  },
+  "windows": {
+    "stages": 45,
+    "postGateReason": "README and site descriptions only after final gate",
+    "checks": [
+      {
+        "label": "GCC version",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "--version"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "stderr": "",
+          "elapsedMs": 44
+        }
+      },
+      {
+        "label": "GCC cc1 path",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-print-prog-name=cc1"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe\r\n",
+          "stderr": "",
+          "elapsedMs": 23
+        }
+      },
+      {
+        "label": "strict C and ABI",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-fsyntax-only",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/tabulate/include",
+          "-DXRT_MODULE_BUFFER",
+          "-DXRT_MODULE_UNICODE",
+          "release/extlibs/tabulate/tabulate_native.c",
+          "release/extlibs/tabulate/tabulate_render.c",
+          "release/extlibs/tabulate/test/abi_contract.c",
+          "release/extlibs/tabulate/test/test_render_budget.c",
+          "release/extlibs/tabulate/examples/bounded_report_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 411
+        }
+      },
+      {
+        "label": "GCC render budgets build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-DXRT_IMPLEMENTATION",
+          "-Ilib/xrt",
+          "release/extlibs/tabulate/test/test_render_budget.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\render_budget.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 4071
+        }
+      },
+      {
+        "label": "GCC render budgets",
+        "program": "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\render_budget.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\corpus"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "tabulate render budget: 145 layouts, 145 output faults, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 54
+        }
+      },
+      {
+        "label": "independent byte layouts",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "release/extlibs/tabulate/test/check_render_corpus.py",
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\corpus"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "tabulate independent render: 144 layouts, 3 rejection controls PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 86
+        }
+      },
+      {
+        "label": "C test_tabulate.c",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1",
+          "-Package",
+          "tabulate",
+          "-Source",
+          "release/extlibs/tabulate/test/test_tabulate.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "tabulate C boundaries: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 379
+        }
+      },
+      {
+        "label": "C test_threads.c",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1",
+          "-Package",
+          "tabulate",
+          "-Source",
+          "release/extlibs/tabulate/test/test_threads.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "tabulate threads: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 351
+        }
+      },
+      {
+        "label": "JIT test/cases/extlib_tabulate.xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "test/cases/extlib_tabulate.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 234
+        }
+      },
+      {
+        "label": "JIT release/extlibs/tabulate/test/boundaries.xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/tabulate/test/boundaries.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "tabulate boundaries: PASS\n",
+          "stderr": "",
+          "elapsedMs": 287
+        }
+      },
+      {
+        "label": "JIT release/extlibs/tabulate/test/allocations.xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/tabulate/test/allocations.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "tabulate allocations: PASS\n",
+          "stderr": "",
+          "elapsedMs": 257
+        }
+      },
+      {
+        "label": "JIT release/extlibs/tabulate/test/render_budget.xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/tabulate/test/render_budget.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "tabulate render limits: PASS\n",
+          "stderr": "",
+          "elapsedMs": 210
+        }
+      },
+      {
+        "label": "JIT release/extlibs/tabulate/test/return_budget.xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/tabulate/test/return_budget.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "tabulate return budget: 8 cases PASS\n",
+          "stderr": "",
+          "elapsedMs": 195
+        }
+      },
+      {
+        "label": "JIT release/extlibs/tabulate/test/test_render_budget.c",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/tabulate/test/test_render_budget.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "tabulate render budget: 145 layouts, 145 output faults, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 70
+        }
+      },
+      {
+        "label": "ownership cgen",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "test/cases/extlib_tabulate.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\tabulate_owned.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 87
+        }
+      },
+      {
+        "label": "complete owned return and negative controls",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "release/extlibs/tabulate/test/check_owned_codegen.py",
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\tabulate_owned.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "tabulate owned render: complete function PASS, 2 rejection controls\r\n",
+          "stderr": "",
+          "elapsedMs": 76
+        }
+      },
+      {
+        "label": "private native negative",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "check",
+          "release/extlibs/tabulate/test/private_native_negative.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "release/extlibs/tabulate/test/private_native_negative.xl:5:7: [sem] unknown class/union field\nrelease/extlibs/tabulate/test/private_native_negative.xl:5:23: [sem] no matching callable class member '__xl6_import_tabulate_Table.appendCellNative': check argument count, types and access\n",
+          "elapsedMs": 31
+        }
+      },
+      {
+        "label": "AOT core build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "test/cases/extlib_tabulate.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\core.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 415
+        }
+      },
+      {
+        "label": "AOT core",
+        "program": "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\core.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 26
+        }
+      },
+      {
+        "label": "JIT basic_xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/examples/extlibs/tabulate.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "+----------+------+-------------+\n| Language | Year | Notes       |\n+----------+------+-------------+\n| C        | 1972 | systems     |\n| Python   | 1991 | scripting   |\n| xlang    | 2024 | 中文, UTF-8 |\n+----------+------+-------------+\n\nrows: 3\ncols: 3\n",
+          "stderr": "",
+          "elapsedMs": 208
+        }
+      },
+      {
+        "label": "AOT basic_xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/examples/extlibs/tabulate.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\basic_xl.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 370
+        }
+      },
+      {
+        "label": "AOT basic_xl",
+        "program": "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\basic_xl.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "+----------+------+-------------+\n| Language | Year | Notes       |\n+----------+------+-------------+\n| C        | 1972 | systems     |\n| Python   | 1991 | scripting   |\n| xlang    | 2024 | 中文, UTF-8 |\n+----------+------+-------------+\n\nrows: 3\ncols: 3\n",
+          "stderr": "",
+          "elapsedMs": 29
+        }
+      },
+      {
+        "label": "JIT basic_c",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/tabulate/examples/tabulate_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "+----------+------+-------------+\r\n| Language | Year | Notes       |\r\n+----------+------+-------------+\r\n| C        | 1972 | systems     |\r\n| Python   | 1991 | scripting   |\r\n| xlang    | 2024 | 中文, UTF-8 |\r\n+----------+------+-------------+\r\n\r\nrows: 3\r\ncols: 3\r\n",
+          "stderr": "",
+          "elapsedMs": 88
+        }
+      },
+      {
+        "label": "AOT basic_c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/tabulate/examples/tabulate_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\basic_c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 141
+        }
+      },
+      {
+        "label": "AOT basic_c",
+        "program": "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\basic_c.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "+----------+------+-------------+\r\n| Language | Year | Notes       |\r\n+----------+------+-------------+\r\n| C        | 1972 | systems     |\r\n| Python   | 1991 | scripting   |\r\n| xlang    | 2024 | 中文, UTF-8 |\r\n+----------+------+-------------+\r\n\r\nrows: 3\r\ncols: 3\r\n",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "label": "JIT bounded_xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/tabulate/examples/bounded_report.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "rows: 256\noversized render: rejected\ntable preserved: true\nrecovered render: true\n",
+          "stderr": "",
+          "elapsedMs": 217
+        }
+      },
+      {
+        "label": "AOT bounded_xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/tabulate/examples/bounded_report.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\bounded_xl.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 393
+        }
+      },
+      {
+        "label": "AOT bounded_xl",
+        "program": "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\bounded_xl.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "rows: 256\noversized render: rejected\ntable preserved: true\nrecovered render: true\n",
+          "stderr": "",
+          "elapsedMs": 53
+        }
+      },
+      {
+        "label": "JIT bounded_c",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/tabulate/examples/bounded_report_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "rows: 256\r\noversized render: rejected\r\ntable preserved: true\r\nrecovered render: true\r\n",
+          "stderr": "",
+          "elapsedMs": 76
+        }
+      },
+      {
+        "label": "AOT bounded_c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/tabulate/examples/bounded_report_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\bounded_c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 133
+        }
+      },
+      {
+        "label": "AOT bounded_c",
+        "program": "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\bounded_c.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "rows: 256\r\noversized render: rejected\r\ntable preserved: true\r\nrecovered render: true\r\n",
+          "stderr": "",
+          "elapsedMs": 27
+        }
+      },
+      {
+        "label": "JIT budget_xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/tabulate/test/render_budget.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "tabulate render limits: PASS\n",
+          "stderr": "",
+          "elapsedMs": 209
+        }
+      },
+      {
+        "label": "AOT budget_xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/tabulate/test/render_budget.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\budget_xl.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 372
+        }
+      },
+      {
+        "label": "AOT budget_xl",
+        "program": "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\budget_xl.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "tabulate render limits: PASS\n",
+          "stderr": "",
+          "elapsedMs": 43
+        }
+      },
+      {
+        "label": "AOT budget_c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/tabulate/test/test_render_budget.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\budget_c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 113
+        }
+      },
+      {
+        "label": "AOT budget_c",
+        "program": "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\budget_c.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "tabulate render budget: 145 layouts, 145 output faults, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 38
+        }
+      },
+      {
+        "label": "JIT return_xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/tabulate/test/return_budget.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "tabulate return budget: 8 cases PASS\n",
+          "stderr": "",
+          "elapsedMs": 202
+        }
+      },
+      {
+        "label": "AOT return_xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/tabulate/test/return_budget.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\return_xl.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 358
+        }
+      },
+      {
+        "label": "AOT return_xl",
+        "program": "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\return_xl.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "tabulate return budget: 8 cases PASS\n",
+          "stderr": "",
+          "elapsedMs": 41
+        }
+      },
+      {
+        "label": "package C tabulate_c.c",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1",
+          "-Package",
+          "tabulate",
+          "-Source",
+          "release/extlibs/tabulate/examples/tabulate_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "+----------+------+-------------+\r\n| Language | Year | Notes       |\r\n+----------+------+-------------+\r\n| C        | 1972 | systems     |\r\n| Python   | 1991 | scripting   |\r\n| xlang    | 2024 | 中文, UTF-8 |\r\n+----------+------+-------------+\r\n\r\nrows: 3\r\ncols: 3\r\n",
+          "stderr": "",
+          "elapsedMs": 330
+        }
+      },
+      {
+        "label": "package C bounded_report_c.c",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1",
+          "-Package",
+          "tabulate",
+          "-Source",
+          "release/extlibs/tabulate/examples/bounded_report_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "rows: 256\r\noversized render: rejected\r\ntable preserved: true\r\nrecovered render: true\r\n",
+          "stderr": "",
+          "elapsedMs": 334
+        }
+      },
+      {
+        "label": "AOT boundaries build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/tabulate/test/boundaries.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\boundaries.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 469
+        }
+      },
+      {
+        "label": "AOT boundaries",
+        "program": "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\boundaries.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "tabulate boundaries: PASS\n",
+          "stderr": "uncaught xlang error: RuntimeError: operation is not valid in the current state\n",
+          "elapsedMs": 38
+        }
+      },
+      {
+        "label": "AOT allocations build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/tabulate/test/allocations.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\allocations.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 398
+        }
+      },
+      {
+        "label": "AOT allocations",
+        "program": "D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\\allocations.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "tabulate allocations: PASS\n",
+          "stderr": "uncaught xlang error: RuntimeError: operation is not valid in the current state\n",
+          "elapsedMs": 38
+        }
+      }
+    ],
+    "failure": "Required global AOT tests failed: boundaries, allocations",
+    "postGateChanges": [
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\docs\\site.html",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\README.md"
+    ],
+    "rawReport": {
+      "path": "build/test/tabulate_guard_10846ab52b3a4301b33955261ed537bc.report.json",
+      "bytes": 51393,
+      "sha256": "fea1d21e1b2e4c0f7ecfdf932a0173432105d6b1a2bc14b378a7f02fffb6f9a9"
+    },
+    "inputCount": 43,
+    "passed": false,
+    "extraDirectGccExampleCompile": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "",
+      "elapsedMs": 2356
+    },
+    "extraDirectGccExample": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "rows: 256\r\noversized render: rejected\r\ntable preserved: true\r\nrecovered render: true\r\n",
+      "stderr": "",
+      "elapsedMs": 26
+    },
+    "inputChangesDuringGate": 0,
+    "requiredGlobalAotFailed": 2,
+    "privateAccessRejected": true,
+    "inputs": {
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\test\\return_budget.xl": "9C3849537E84150003AC72F8D349868B0867478F216EB5960B80BE0649B8EAB3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\test\\test_threads.c": "3237A1F19421F809A204001556709A52D3DAAA2A425D24E642FE444EE998C158",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\test\\abi_contract.c": "0B0E740EAB646FFC6C00FA494CC8C630E5B6CD115D8621E443F267FD13981F39",
+      "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+      "C:\\Program Files\\Python312\\python.exe": "4D6F5F81A4BCA11191C4C7C6B43632694D0A4CE74E068619D8FDC161D469859A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\test\\check.sh": "ABF0E773D2960054986BEE8078F65B8C20FB68F6491F30349E7B4B006E966E84",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_tabulate.xl": "D073F8F29538401213D89FBC0C03CC1E1892AA7669F9BB2BA5E91ED1FDF7A016",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\test\\boundaries.xl": "04395C2F028923844CAED71FC0FE770CE85924215A0F7EFCEF43B297F6422069",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\test\\xrt_runtime.c": "152349A7E36DA9892B98207A25E9F421FD3BA121F20C4580201913A984224444",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\examples\\tabulate_c.c": "508209C89F1CB12E72EB15DA08A1C6FCC471A63576A6E195C8A798C2B2CA6D83",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\tabulate.xl": "68538E8381F48A97E814C95BF867F9528732A8CA55BD2400177C698E0380CE7C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\xlang.package.json": "498027EF49CB196BEEA206507A686A83EC57066850A05D8EE6D17257B80A2405",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\test\\test_render_budget.c": "29BBE55DB2FA46EB58AD80360A010C8B22092198FDFDCC95E9E21B0FE6E55232",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\test\\render_budget.xl": "AD9D7159FCC2AC46DED90A57CD5C5B4E096ABDEBAA232846EF31551F43727DE6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\test\\test_tabulate.c": "1BB55FE8734EA73493ABBB790F15C8EB5A9F71D9C38EB60D96BCA35B31FAC1D2",
+      "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1": "5183F14DBF4444B47D8832B60A0D6A6B570C8E933874785BEF85DD1ECB024A44",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+      "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe": "9785001B0DCF755EDDB8AF294A373C0B87B2498660F724E76C4D53F9C217C7A3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\tabulate_internal.h": "2CF6768FC202A1B4119E6A712E1BC8470A4664C0B9FC49DC7FE18A80B319AD1D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\examples\\README.md": "DEDD0DB3E2A74A65F142D00D4D4EEEBA08BC9F8518373C3CF35D95EADA7B6398",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\examples\\bounded_report.xl": "69746F6F6AE95D7BAA54B1E0631451E8E69E1460158A2281789C98AB16811743",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\test\\check.ps1": "2A119F3440526BA95CF59EA6AA7B0CDA3ED380ECC2C28EBCF1FCA9FA8C7A60EB",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\test\\check_render_corpus.py": "A5A5AACC49BE3E42F8CB716E25FD514A6B28B94B960CC1E93B0475230EFFDF51",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\test\\tabulate.expected.txt": "F0BF89558E843E633BC7733F3F785E101F31423A526BB525D70A2D94913D6A32",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\docs\\site.html": "734CF912402940695BA6A6FDE178F362529222E2F5720DEEB78692DE34A9F203",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\tabulate_render.c": "30132D7E4E42D65C668AE98CD084CD8CADDD1364DD32413E58316848AAB259F3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\test\\check_owned_codegen.py": "F4C0FEBD40D342F594AE270DA0D1E6C4A65C77C842BEA4ABF021AA5DAD1E2996",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\test\\private_native_negative.xl": "BEE1665FB19A1688AA0306EF3076D01E10A33922B62F5502F7AF28EF93F38A9A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\include\\tabulate_native.h": "C03CD1B159AD3440E31A46C1D67635CD4DBFA32D3056FF6ADFB768C80A1E1FDF",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\examples\\bounded_report_c.c": "F5D95A0935576A8E3D662833B8402D751AFA486FA82A5B7F9707A8D2A990D2E7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\tabulate_native.c": "EB1E047309203F6A908F4917FE8C2B51927930C381ECA565B50F35E9E77EDE59",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\test\\allocations.xl": "AAB348CCF68C683AF930FA7EB0069983176B5C849A12CE42B501E1C4F6225F75",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\src\\tabulate.xl": "92DBEF71AC630196B471D435E4E5451F226E96CE445A04650C6D21F98F91059A",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\README.md": "1040F3859EC096E49C314BF9E97D241E3169411DCFB18AEA312CCFEC5DC2DEAC"
+    },
+    "parent": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "[tabulate] GCC version : PASS\n[tabulate] GCC cc1 path : PASS\n[tabulate] strict C and ABI : PASS\n[tabulate] GCC render budgets build : PASS\n[tabulate] GCC render budgets : PASS\n[tabulate] independent byte layouts : PASS\n[tabulate] C test_tabulate.c : PASS\n[tabulate] C test_threads.c : PASS\n[tabulate] JIT test/cases/extlib_tabulate.xl : PASS\n[tabulate] JIT release/extlibs/tabulate/test/boundaries.xl : PASS\n[tabulate] JIT release/extlibs/tabulate/test/allocations.xl : PASS\n[tabulate] JIT release/extlibs/tabulate/test/render_budget.xl : PASS\n[tabulate] JIT release/extlibs/tabulate/test/return_budget.xl : PASS\n[tabulate] JIT release/extlibs/tabulate/test/test_render_budget.c : PASS\n[tabulate] ownership cgen : PASS\n[tabulate] complete owned return and negative controls : PASS\n[tabulate] AOT core build : PASS\n[tabulate] AOT core : PASS\n[tabulate] JIT basic_xl : PASS\n[tabulate] AOT basic_xl build : PASS\n[tabulate] AOT basic_xl : PASS\n[tabulate] JIT basic_c : PASS\n[tabulate] AOT basic_c build : PASS\n[tabulate] AOT basic_c : PASS\n[tabulate] JIT bounded_xl : PASS\n[tabulate] AOT bounded_xl build : PASS\n[tabulate] AOT bounded_xl : PASS\n[tabulate] JIT bounded_c : PASS\n[tabulate] AOT bounded_c build : PASS\n[tabulate] AOT bounded_c : PASS\n[tabulate] JIT budget_xl : PASS\n[tabulate] AOT budget_xl build : PASS\n[tabulate] AOT budget_xl : PASS\n[tabulate] AOT budget_c build : PASS\n[tabulate] AOT budget_c : PASS\n[tabulate] JIT return_xl : PASS\n[tabulate] AOT return_xl build : PASS\n[tabulate] AOT return_xl : PASS\n[tabulate] package C tabulate_c.c : PASS\n[tabulate] package C bounded_report_c.c : PASS\n[tabulate] AOT boundaries build : PASS\n[tabulate] AOT allocations build : PASS\n警告: tabulate failure artifacts: D:\\GIT\\x-lang\\build\\test\\tabulate_guard_10846ab52b3a4301b33955261ed537bc\n",
+      "stderr": "Required global AOT tests failed: boundaries, allocations\r\n所在位置 D:\\GIT\\x-lang\\release\\extlibs\\tabulate\\test\\check.ps1:134 字符: 31\r\n+ ... es.Count) { throw \"Required global AOT tests failed: $($aotFailures - ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : OperationStopped: (Required global...es, allocations:String) [], RuntimeException\r\n    + FullyQualifiedErrorId : Required global AOT tests failed: boundaries, allocations\r\n \r\n",
+      "elapsedMs": 12979
+    },
+    "aotPrograms": 10,
+    "aotPassed": 8
+  },
+  "linux": {
+    "tools": [
+      "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc",
+      "30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1",
+      "52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41  /usr/bin/python3",
+      "3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash"
+    ],
+    "requiredGlobalAotFailed": 2,
+    "frozenFileCount": 50,
+    "sanitizers": [
+      "address",
+      "undefined",
+      "leak checks"
+    ],
+    "sourcesUnchanged": true,
+    "bootBefore": "0e5ee15a-a8f0-44ed-be08-b859477754a4",
+    "frozenFiles": [
+      {
+        "sha256": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+        "path": "lib/xrt/xrt.h"
+      },
+      {
+        "sha256": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+        "path": "lib/xruntime/xruntime.h"
+      },
+      {
+        "sha256": "68538e8381f48a97e814c95bf867f9528732a8ca55bd2400177c698e0380ce7c",
+        "path": "release/examples/extlibs/tabulate.xl"
+      },
+      {
+        "sha256": "1040f3859ec096e49c314bf9e97d241e3169411dcfb18aea312ccfec5dc2deac",
+        "path": "release/extlibs/tabulate/README.md"
+      },
+      {
+        "sha256": "734cf912402940695ba6a6fde178f362529222e2f5720deeb78692de34a9f203",
+        "path": "release/extlibs/tabulate/docs/site.html"
+      },
+      {
+        "sha256": "dedd0db3e2a74a65f142d00d4d4eeeba08bc9f8518373c3cf35d95eada7b6398",
+        "path": "release/extlibs/tabulate/examples/README.md"
+      },
+      {
+        "sha256": "69746f6f6ae95d7baa54b1e0631451e8e69e1460158a2281789c98ab16811743",
+        "path": "release/extlibs/tabulate/examples/bounded_report.xl"
+      },
+      {
+        "sha256": "f5d95a0935576a8e3d662833b8402d751afa486fa82a5b7f9707a8d2a990d2e7",
+        "path": "release/extlibs/tabulate/examples/bounded_report_c.c"
+      },
+      {
+        "sha256": "508209c89f1cb12e72eb15da08a1c6fcc471a63576a6e195c8a798c2b2ca6d83",
+        "path": "release/extlibs/tabulate/examples/tabulate_c.c"
+      },
+      {
+        "sha256": "c03cd1b159ad3440e31a46c1d67635cd4dbfa32d3056ff6adfb768c80a1e1fdf",
+        "path": "release/extlibs/tabulate/include/tabulate_native.h"
+      },
+      {
+        "sha256": "92dbef71ac630196b471d435e4e5451f226e96ce445a04650c6d21f98f91059a",
+        "path": "release/extlibs/tabulate/src/tabulate.xl"
+      },
+      {
+        "sha256": "2cf6768fc202a1b4119e6a712e1bc8470a4664c0b9fc49dc7fe18a80b319ad1d",
+        "path": "release/extlibs/tabulate/tabulate_internal.h"
+      },
+      {
+        "sha256": "eb1e047309203f6a908f4917fe8c2b51927930c381eca565b50f35e9e77ede59",
+        "path": "release/extlibs/tabulate/tabulate_native.c"
+      },
+      {
+        "sha256": "30132d7e4e42d65c668ae98cd084cd8caddd1364dd32413e58316848aab259f3",
+        "path": "release/extlibs/tabulate/tabulate_render.c"
+      },
+      {
+        "sha256": "0b0e740eab646ffc6c00fa494cc8c630e5b6cd115d8621e443f267fd13981f39",
+        "path": "release/extlibs/tabulate/test/abi_contract.c"
+      },
+      {
+        "sha256": "aab348ccf68c683af930fa7eb0069983176b5c849a12ce42b501e1c4f6225f75",
+        "path": "release/extlibs/tabulate/test/allocations.xl"
+      },
+      {
+        "sha256": "04395c2f028923844caed71fc0fe770ce85924215a0f7efcef43b297f6422069",
+        "path": "release/extlibs/tabulate/test/boundaries.xl"
+      },
+      {
+        "sha256": "2a119f3440526ba95cf59ea6aa7b0cda3ed380ecc2c28ebcf1fca9fa8c7a60eb",
+        "path": "release/extlibs/tabulate/test/check.ps1"
+      },
+      {
+        "sha256": "abf0e773d2960054986bee8078f65b8c20fb68f6491f30349e7b4b006e966e84",
+        "path": "release/extlibs/tabulate/test/check.sh"
+      },
+      {
+        "sha256": "f4c0febd40d342f594ae270da0d1e6c4a65c77c842bea4abf021aa5dad1e2996",
+        "path": "release/extlibs/tabulate/test/check_owned_codegen.py"
+      },
+      {
+        "sha256": "a5a5aacc49be3e42f8cb716e25fd514a6b28b94b960cc1e93b0475230effdf51",
+        "path": "release/extlibs/tabulate/test/check_render_corpus.py"
+      },
+      {
+        "sha256": "bee1665fb19a1688aa0306ef3076d01e10a33922b62f5502f7af28ef93f38a9a",
+        "path": "release/extlibs/tabulate/test/private_native_negative.xl"
+      },
+      {
+        "sha256": "ad9d7159fcc2ac46ded90a57cd5c5b4e096abdebaa232846ef31551f43727de6",
+        "path": "release/extlibs/tabulate/test/render_budget.xl"
+      },
+      {
+        "sha256": "9c3849537e84150003ac72f8d349868b0867478f216eb5960b80be0649b8eab3",
+        "path": "release/extlibs/tabulate/test/return_budget.xl"
+      },
+      {
+        "sha256": "f0bf89558e843e633bc7733f3f785e101f31423a526bb525d70a2d94913d6a32",
+        "path": "release/extlibs/tabulate/test/tabulate.expected.txt"
+      },
+      {
+        "sha256": "29bbe55db2fa46eb58ad80360a010c8b22092198fdfdcc95e9e21b0fe6e55232",
+        "path": "release/extlibs/tabulate/test/test_render_budget.c"
+      },
+      {
+        "sha256": "1bb55fe8734ea73493abbb790f15c8eb5a9f71d9c38eb60d96bca35b31fac1d2",
+        "path": "release/extlibs/tabulate/test/test_tabulate.c"
+      },
+      {
+        "sha256": "3237a1f19421f809a204001556709a52d3daaa2a425d24e642fe444ee998c158",
+        "path": "release/extlibs/tabulate/test/test_threads.c"
+      },
+      {
+        "sha256": "152349a7e36da9892b98207a25e9f421fd3ba121f20c4580201913a984224444",
+        "path": "release/extlibs/tabulate/test/xrt_runtime.c"
+      },
+      {
+        "sha256": "498027ef49cb196beea206507a686a83ec57066850a05d8ee6d17257b80a2405",
+        "path": "release/extlibs/tabulate/xlang.package.json"
+      },
+      {
+        "sha256": "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770",
+        "path": "release/include/README.md"
+      },
+      {
+        "sha256": "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab",
+        "path": "release/include/libtcc.h"
+      },
+      {
+        "sha256": "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2",
+        "path": "release/include/tcc_builtin_vfs.h"
+      },
+      {
+        "sha256": "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4",
+        "path": "release/include/xl.h"
+      },
+      {
+        "sha256": "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad",
+        "path": "release/include/xl_cancellation_retirement.h"
+      },
+      {
+        "sha256": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18",
+        "path": "release/include/xl_clock.h"
+      },
+      {
+        "sha256": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445",
+        "path": "release/include/xl_extlib_abi.h"
+      },
+      {
+        "sha256": "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f",
+        "path": "release/include/xl_foreign_graph.h"
+      },
+      {
+        "sha256": "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a",
+        "path": "release/include/xl_foreign_net.h"
+      },
+      {
+        "sha256": "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1",
+        "path": "release/include/xl_package.h"
+      },
+      {
+        "sha256": "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2",
+        "path": "release/include/xl_runtime.h"
+      },
+      {
+        "sha256": "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e",
+        "path": "release/include/xl_sync_retirement.h"
+      },
+      {
+        "sha256": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992",
+        "path": "release/include/xl_version.h"
+      },
+      {
+        "sha256": "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f",
+        "path": "release/include/xlc.h"
+      },
+      {
+        "sha256": "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d",
+        "path": "release/include/xrt_decl.h"
+      },
+      {
+        "sha256": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+        "path": "release/include/xruntime_decl.h"
+      },
+      {
+        "sha256": "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad",
+        "path": "release/libxl.so"
+      },
+      {
+        "sha256": "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386",
+        "path": "release/libxlc.so"
+      },
+      {
+        "sha256": "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb",
+        "path": "release/xl"
+      },
+      {
+        "sha256": "d073f8f29538401213d89fbc0c03cc1e1892aa7669f9bb2ba5e91ed1fdf7a016",
+        "path": "test/cases/extlib_tabulate.xl"
+      }
+    ],
+    "aotBuildCommands": [
+      "+ timeout 90s ./release/xl build test/cases/extlib_tabulate.xl -o /var/tmp/xlang-tabulate-render-JqTCRB1u/tmp/xlang-tabulate-y022kX/extlib_tabulate.xl",
+      "+ timeout 90s ./release/xl build release/extlibs/tabulate/test/render_budget.xl -o /var/tmp/xlang-tabulate-render-JqTCRB1u/tmp/xlang-tabulate-y022kX/render_budget.xl",
+      "+ timeout 90s ./release/xl build release/extlibs/tabulate/test/return_budget.xl -o /var/tmp/xlang-tabulate-render-JqTCRB1u/tmp/xlang-tabulate-y022kX/return_budget.xl",
+      "+ timeout 90s ./release/xl build release/extlibs/tabulate/test/test_render_budget.c -o /var/tmp/xlang-tabulate-render-JqTCRB1u/tmp/xlang-tabulate-y022kX/test_render_budget.c",
+      "+ timeout 90s ./release/xl build release/examples/extlibs/tabulate.xl -o /var/tmp/xlang-tabulate-render-JqTCRB1u/tmp/xlang-tabulate-y022kX/tabulate_xlang",
+      "+ timeout 90s ./release/xl build release/extlibs/tabulate/examples/tabulate_c.c -o /var/tmp/xlang-tabulate-render-JqTCRB1u/tmp/xlang-tabulate-y022kX/tabulate_c",
+      "+ timeout 90s ./release/xl build release/extlibs/tabulate/examples/bounded_report_c.c -o /var/tmp/xlang-tabulate-render-JqTCRB1u/tmp/xlang-tabulate-y022kX/bounded_report_c.c.aot",
+      "+ timeout 90s ./release/xl build release/extlibs/tabulate/examples/bounded_report.xl -o /var/tmp/xlang-tabulate-render-JqTCRB1u/tmp/xlang-tabulate-y022kX/bounded_report.xl.aot",
+      "+ timeout 90s ./release/xl build release/extlibs/tabulate/test/boundaries.xl -o /var/tmp/xlang-tabulate-render-JqTCRB1u/tmp/xlang-tabulate-y022kX/boundaries",
+      "+ timeout 90s ./release/xl build release/extlibs/tabulate/test/allocations.xl -o /var/tmp/xlang-tabulate-render-JqTCRB1u/tmp/xlang-tabulate-y022kX/allocations"
+    ],
+    "postGateReason": "README and site descriptions only",
+    "snapshot": "/var/tmp/xlang-tabulate-render-JqTCRB1u",
+    "postGateChanges": [
+      "release/extlibs/tabulate/README.md",
+      "release/extlibs/tabulate/docs/site.html"
+    ],
+    "stderr": "tabulate global AOT boundaries: FAIL exit=1\ntabulate boundaries: PASS\nuncaught xlang error: RuntimeError: operation is not valid in the current state\ntabulate global AOT allocations: FAIL exit=1\ntabulate allocations: PASS\nuncaught xlang error: RuntimeError: operation is not valid in the current state\ntabulate failure artifacts: /var/tmp/xlang-tabulate-render-JqTCRB1u/tmp/xlang-tabulate-y022kX\n",
+    "parent": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "Linux tabulate gate=1 source-change=0 tools-change=0 snapshot=/var/tmp/xlang-tabulate-render-JqTCRB1u\ntabulate allocations: PASS\ntabulate render limits: PASS\ntabulate return budget: 8 cases PASS\ntabulate render budget: 145 layouts, 145 output faults, 0 failures\ntabulate owned render: complete function PASS, 2 rejection controls\ntabulate render limits: PASS\ntabulate return budget: 8 cases PASS\ntabulate render budget: 145 layouts, 145 output faults, 0 failures\ntabulate global AOT boundaries: FAIL exit=1\ntabulate boundaries: PASS\nuncaught xlang error: RuntimeError: operation is not valid in the current state\ntabulate global AOT allocations: FAIL exit=1\ntabulate allocations: PASS\nuncaught xlang error: RuntimeError: operation is not valid in the current state\ntabulate failure artifacts: /var/tmp/xlang-tabulate-render-JqTCRB1u/tmp/xlang-tabulate-y022kX\ntabulate render budget: 145 layouts, 145 output faults, 130 failures\n",
+      "stderr": "",
+      "elapsedMs": 87739
+    },
+    "bootAfter": "0e5ee15a-a8f0-44ed-be08-b859477754a4",
+    "wrapperExitIsNotPackagePass": true,
+    "toolsUnchanged": true,
+    "aotPassed": 8,
+    "trace": {
+      "path": "build/test/tabulate_render_20261102/linux/trace.txt",
+      "bytes": 13555,
+      "sha256": "7f477734c4808ab2529d145e2337da1f160294fb5d29e4d82e5b962bce3d0f9d"
+    },
+    "gateExit": 1,
+    "stdout": "tabulate render budget: 145 layouts, 145 output faults, 0 failures\ntabulate independent render: 144 layouts, 3 rejection controls PASS\ntabulate C boundaries: PASS\ntabulate threads: PASS\ntabulate boundaries: PASS\ntabulate allocations: PASS\ntabulate render limits: PASS\ntabulate return budget: 8 cases PASS\ntabulate render budget: 145 layouts, 145 output faults, 0 failures\ntabulate owned render: complete function PASS, 2 rejection controls\ntabulate render limits: PASS\ntabulate return budget: 8 cases PASS\ntabulate render budget: 145 layouts, 145 output faults, 0 failures\n",
+    "aotPrograms": 10
+  },
+  "abi": {
+    "declarations": [
+      "extern char* xtab_render(void*);",
+      "extern int xtab_append_cell(void*, const char*, long long);",
+      "extern int xtab_begin_headers(void*);",
+      "extern int xtab_begin_row(void*);",
+      "extern int xtab_commit(void*);",
+      "extern int64_t xtab_col_count(void*);",
+      "extern int64_t xtab_row_count(void*);",
+      "extern void xtab_abort(void*);",
+      "extern void xtab_destroy(void*);",
+      "extern void* xtab_create(void);"
+    ],
+    "count": 10,
+    "compile": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "",
+      "elapsedMs": 45
+    },
+    "wrongOwnedReturn": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "D:\\GIT\\x-lang\\build\\test\\tabulate_render_20261102\\wrong_abi.c:2:20: error: conflicting types for 'xtab_render'; have 'const char *(void *)'\n    2 | extern const char* xtab_render(void*);\n      |                    ^~~~~~~~~~~\nIn file included from D:\\GIT\\x-lang\\build\\test\\tabulate_render_20261102\\wrong_abi.c:1:\nrelease/extlibs/tabulate/include/tabulate_native.h:28:7: note: previous declaration of 'xtab_render' with type 'char *(void *)'\n   28 | char* xtab_render(void* table);\n      |       ^~~~~~~~~~~\n",
+      "elapsedMs": 40
+    }
+  },
+  "codeSize": {
+    "compilations": [
+      {
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-DXRT_MODULE_BUFFER",
+          "-DXRT_MODULE_UNICODE",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/tabulate",
+          "-c",
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_render_20261102\\before_render.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_render_20261102\\old-render.o"
+        ],
+        "kind": "old",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 186
+        }
+      },
+      {
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-DXRT_MODULE_BUFFER",
+          "-DXRT_MODULE_UNICODE",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/tabulate",
+          "-c",
+          "release/extlibs/tabulate/tabulate_render.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\tabulate_render_20261102\\new-render.o"
+        ],
+        "kind": "new",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 184
+        }
+      }
+    ],
+    "size": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n   1876\t      0\t      0\t   1876\t    754\tD:\\GIT\\x-lang\\build\\test\\tabulate_render_20261102\\old-render.o\r\n   2024\t      0\t      0\t   2024\t    7e8\tD:\\GIT\\x-lang\\build\\test\\tabulate_render_20261102\\new-render.o\r\n",
+      "stderr": "",
+      "elapsedMs": 93
+    },
+    "scope": "COFF render object, GCC -O2, not whole executable size"
+  },
+  "examples": {
+    "platforms": [
+      "Windows x64",
+      "Linux x64"
+    ],
+    "c": {
+      "path": "release/extlibs/tabulate/examples/bounded_report_c.c",
+      "bytes": 1422,
+      "sha256": "f5d95a0935576a8e3d662833b8402d751afa486fa82a5b7f9707a8d2a990d2e7"
+    },
+    "xlang": {
+      "path": "release/extlibs/tabulate/examples/bounded_report.xl",
+      "bytes": 905,
+      "sha256": "69746f6f6ae95d7baa54b1e0631451e8e69e1460158a2281789c98ab16811743"
+    },
+    "golden": [
+      "rows: 256",
+      "oversized render: rejected",
+      "table preserved: true",
+      "recovered render: true"
+    ],
+    "defaultFileIO": false,
+    "keepsAll256RowsAfterLimit": true
+  },
+  "mainlineM2": {
+    "notReplacedByFunctionLocalExamples": true,
+    "jitAndBuildExit": 0,
+    "diagnostic": "RuntimeError: operation is not valid in the current state",
+    "bugRecord": "dev/extlib_blockers/global_native_class_aot_fini.md",
+    "requiredTests": [
+      "test/boundaries.xl",
+      "test/allocations.xl"
+    ],
+    "open": true,
+    "suggestion": "Audit global/module/object/type/error-context retirement ordering in mainline; no package early destruction or swallowed errors",
+    "notConvertedToExpectedFailure": true,
+    "aotExit": 1
+  },
+  "ideCatalog": {
+    "reason": "Candidate freshness passed; xl.dll formal binding failed; installed base unchanged",
+    "generation": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"passed\", \"catalogSha256\": \"d571c56ae1325384a844cbb90c3b526e75bbaa7f59e5244c6c28c7f142b07453\", \"sourceIndexSha256\": \"d70b4c78431b56e99a21d4c76b90e08ec4273e8d4110c87ba8fe2886ab776900\", \"preservedNonExtensionEntries\": 6156, \"publicPackages\": 207, \"excludedPrivate\": [\"_bzip2\", \"_expat\", \"_libzip\", \"_tomlc17\", \"_xge_native\", \"_zlib\"], \"extensionEntries\": 11442, \"addedEntries\": 0, \"removedEntries\": 0, \"documents\": 145, \"availableSources\": 593, \"extensionExporterSha256\": \"5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42\", \"inputsUnchanged\": true}\r\n",
+      "stderr": "",
+      "elapsedMs": 11072
+    },
+    "installedFreshness": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "IDE extension catalog is stale; refresh_extensions.py is required. Changed inputs: release/extlibs/bson/README.md, release/extlibs/bson/src/bson.xl, release/extlibs/bson/xlang.package.json, release/extlibs/cbor/README.md, release/extlibs/cbor/src/cbor.xl, release/extlibs/cbor/xlang.package.json, release/extlibs/cli/README.md, release/extlibs/hcl/README.md, release/extlibs/hcl/src/hcl.xl, release/extlibs/hcl/xlang.package.json, release/extlibs/ini/README.md, release/extlibs/ini/xlang.package.json, release/extlibs/msgpack/README.md, release/extlibs/msgpack/src/msgpack.xl, release/extlibs/msgpack/xlang.package.json, release/extlibs/redis/README.md, release/extlibs/sqlite/README.md, release/extlibs/stb_image_write/README.md, release/extlibs/stb_image_write/xlang.package.json, release/extlibs/tabulate/README.md, release/extlibs/tabulate/src/tabulate.xl, release/extlibs/tabulate/xlang.package.json, release/extlibs/tar/README.md, release/extlibs/tar/xlang.package.json, release/extlibs/zip/README.md, release/extlibs/zip/xlang.package.json, src/lexer/xl6_token.c, src/lexer/xl6_lexer_gen.c, src/parser/xl6_parser.c, src/parser/xl6_parser_api.c, src/ast/xl6_ast.c, src/ast/xl6_ast.h, src/ir/xl6_ir.h, src/lexer/xl6_token.h, src/parser/xl6_parser.h, src/sem/xl6_type_registry.h, src/type/xl6_semantic_plan.h, lib/xrt/xrt.h, release/xlc.dll\r\n",
+      "elapsedMs": 1010
+    },
+    "candidateFreshness": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+      "stderr": "",
+      "elapsedMs": 925
+    },
+    "strictBinding": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "Catalog compiler changed: xl.dll\r\n",
+      "elapsedMs": 295
+    },
+    "installed": false,
+    "report": {
+      "status": "passed",
+      "catalogSha256": "d571c56ae1325384a844cbb90c3b526e75bbaa7f59e5244c6c28c7f142b07453",
+      "sourceIndexSha256": "d70b4c78431b56e99a21d4c76b90e08ec4273e8d4110c87ba8fe2886ab776900",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42",
+      "inputsUnchanged": true
+    }
+  },
+  "website": {
+    "source": {
+      "path": "release/extlibs/tabulate/docs/site.html",
+      "bytes": 3914,
+      "sha256": "464a24d67fef846986356a1e337b917b4500d06ca228372bebe25389189974de"
+    },
+    "externalDeployment": false,
+    "preview": {
+      "path": "build/test/tabulate_render_20261102/site/extlibs/tabulate.html",
+      "bytes": 3914,
+      "sha256": "464a24d67fef846986356a1e337b917b4500d06ca228372bebe25389189974de"
+    }
+  },
+  "deliveryByteAudit": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+    "stderr": "",
+    "elapsedMs": 1092
+  },
+  "packageFiles": [
+    {
+      "path": "release/extlibs/tabulate/docs/site.html",
+      "bytes": 3914,
+      "sha256": "464a24d67fef846986356a1e337b917b4500d06ca228372bebe25389189974de"
+    },
+    {
+      "path": "release/extlibs/tabulate/examples/bounded_report_c.c",
+      "bytes": 1422,
+      "sha256": "f5d95a0935576a8e3d662833b8402d751afa486fa82a5b7f9707a8d2a990d2e7"
+    },
+    {
+      "path": "release/extlibs/tabulate/examples/bounded_report.xl",
+      "bytes": 905,
+      "sha256": "69746f6f6ae95d7baa54b1e0631451e8e69e1460158a2281789c98ab16811743"
+    },
+    {
+      "path": "release/extlibs/tabulate/examples/README.md",
+      "bytes": 1111,
+      "sha256": "dedd0db3e2a74a65f142d00d4d4eeeba08bc9f8518373c3cf35d95eada7b6398"
+    },
+    {
+      "path": "release/extlibs/tabulate/examples/tabulate_c.c",
+      "bytes": 1176,
+      "sha256": "508209c89f1cb12e72eb15da08a1c6fcc471a63576a6e195c8a798c2b2ca6d83"
+    },
+    {
+      "path": "release/extlibs/tabulate/include/tabulate_native.h",
+      "bytes": 1158,
+      "sha256": "c03cd1b159ad3440e31a46c1d67635cd4dbfa32d3056ff6adfb768c80a1e1fdf"
+    },
+    {
+      "path": "release/extlibs/tabulate/README.md",
+      "bytes": 14503,
+      "sha256": "f8b8ad501398f1d95f9894f7ea2bdc51be9921c04bbaebbb21f8e45afcf3ee0f"
+    },
+    {
+      "path": "release/extlibs/tabulate/src/tabulate.xl",
+      "bytes": 2926,
+      "sha256": "92dbef71ac630196b471d435e4e5451f226e96ce445a04650c6d21f98f91059a"
+    },
+    {
+      "path": "release/extlibs/tabulate/tabulate_internal.h",
+      "bytes": 850,
+      "sha256": "2cf6768fc202a1b4119e6a712e1bc8470a4664c0b9fc49dc7fe18a80b319ad1d"
+    },
+    {
+      "path": "release/extlibs/tabulate/tabulate_native.c",
+      "bytes": 7035,
+      "sha256": "eb1e047309203f6a908f4917fe8c2b51927930c381eca565b50f35e9e77ede59"
+    },
+    {
+      "path": "release/extlibs/tabulate/tabulate_render.c",
+      "bytes": 5632,
+      "sha256": "30132d7e4e42d65c668ae98cd084cd8caddd1364dd32413e58316848aab259f3"
+    },
+    {
+      "path": "release/extlibs/tabulate/test/abi_contract.c",
+      "bytes": 388,
+      "sha256": "0b0e740eab646ffc6c00fa494cc8c630e5b6cd115d8621e443f267fd13981f39"
+    },
+    {
+      "path": "release/extlibs/tabulate/test/allocations.xl",
+      "bytes": 2522,
+      "sha256": "aab348ccf68c683af930fa7eb0069983176b5c849a12ce42b501e1c4f6225f75"
+    },
+    {
+      "path": "release/extlibs/tabulate/test/boundaries.xl",
+      "bytes": 2244,
+      "sha256": "04395c2f028923844caed71fc0fe770ce85924215a0f7efcef43b297f6422069"
+    },
+    {
+      "path": "release/extlibs/tabulate/test/check_owned_codegen.py",
+      "bytes": 1573,
+      "sha256": "f4c0febd40d342f594ae270da0d1e6c4a65c77c842bea4abf021aa5dad1e2996"
+    },
+    {
+      "path": "release/extlibs/tabulate/test/check_render_corpus.py",
+      "bytes": 2426,
+      "sha256": "a5a5aacc49be3e42f8cb716e25fd514a6b28b94b960cc1e93b0475230effdf51"
+    },
+    {
+      "path": "release/extlibs/tabulate/test/check.ps1",
+      "bytes": 9071,
+      "sha256": "2a119f3440526ba95cf59ea6aa7b0cda3ed380ecc2c28ebcf1fca9fa8c7a60eb"
+    },
+    {
+      "path": "release/extlibs/tabulate/test/check.sh",
+      "bytes": 6311,
+      "sha256": "abf0e773d2960054986bee8078f65b8c20fb68f6491f30349e7b4b006e966e84"
+    },
+    {
+      "path": "release/extlibs/tabulate/test/private_native_negative.xl",
+      "bytes": 170,
+      "sha256": "bee1665fb19a1688aa0306ef3076d01e10a33922b62f5502f7af28ef93f38a9a"
+    },
+    {
+      "path": "release/extlibs/tabulate/test/render_budget.xl",
+      "bytes": 1098,
+      "sha256": "ad9d7159fcc2ac46ded90a57cd5c5b4e096abdebaa232846ef31551f43727de6"
+    },
+    {
+      "path": "release/extlibs/tabulate/test/return_budget.xl",
+      "bytes": 1289,
+      "sha256": "9c3849537e84150003ac72f8d349868b0867478f216eb5960b80be0649b8eab3"
+    },
+    {
+      "path": "release/extlibs/tabulate/test/tabulate.expected.txt",
+      "bytes": 257,
+      "sha256": "f0bf89558e843e633bc7733f3f785e101f31423a526bb525d70a2d94913d6a32"
+    },
+    {
+      "path": "release/extlibs/tabulate/test/test_render_budget.c",
+      "bytes": 6861,
+      "sha256": "29bbe55db2fa46eb58ad80360a010c8b22092198fdfdcc95e9e21b0fe6e55232"
+    },
+    {
+      "path": "release/extlibs/tabulate/test/test_tabulate.c",
+      "bytes": 11065,
+      "sha256": "1bb55fe8734ea73493abbb790f15c8eb5a9f71d9c38eb60d96bca35b31fac1d2"
+    },
+    {
+      "path": "release/extlibs/tabulate/test/test_threads.c",
+      "bytes": 1253,
+      "sha256": "3237a1f19421f809a204001556709a52d3daaa2a425d24e642fe444ee998c158"
+    },
+    {
+      "path": "release/extlibs/tabulate/test/xrt_runtime.c",
+      "bytes": 67,
+      "sha256": "152349a7e36da9892b98207a25e9f421fd3ba121f20c4580201913a984224444"
+    },
+    {
+      "path": "release/extlibs/tabulate/xlang.package.json",
+      "bytes": 649,
+      "sha256": "498027ef49cb196beea206507a686a83ec57066850a05d8ee6d17257b80a2405"
+    }
+  ],
+  "replay": {
+    "candidateCheck": "python -B -X utf8 ide/tools/refresh_extensions.py --root D:/GIT/x-lang --data build/test/<new-candidate> --check",
+    "xlangFocused": "xl run release/extlibs/tabulate/test/render_budget.xl",
+    "returnFocused": "xl run release/extlibs/tabulate/test/return_budget.xl",
+    "cFocused": "xl run release/extlibs/tabulate/test/test_render_budget.c",
+    "linux": "bash release/extlibs/tabulate/test/check.sh",
+    "catalog": "python -B -X utf8 ide/tools/refresh_extensions.py --root D:/GIT/x-lang --output build/test/<new-candidate> --gcc E:/software/w64devkit/bin/gcc.exe",
+    "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/tabulate/test/check.ps1"
+  },
+  "limitations": [
+    "Required global AOT failure remains M2",
+    "Strict compiler/catalog release binding is open; candidate not installed",
+    "No universal throughput or whole-program size claim",
+    "No full Unicode terminal grapheme conformance claim",
+    "Same table concurrent mutation requires caller synchronization",
+    "No 32-bit, big-endian or TSan qualification",
+    "100-package long-term objective remains active"
+  ],
+  "formalRelease": false
+}
