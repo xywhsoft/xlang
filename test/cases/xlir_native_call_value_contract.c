@@ -69,8 +69,8 @@ int main(int argc,char** argv)
             ++unions;XL6_IrAsyncResultAbi saved=target->asyncResultAbi;
             assert(xl6IrUnionLayoutGet(module,target->workerReturnType));
             target->asyncResultAbi=XL6_IR_ASYNC_RESULT_COPY_TAGGED;refused(module);target->asyncResultAbi=saved;
-            for(size_t n=0;n<module->unionLayoutCount;++n) {
-                XL6_IrTypeId other=module->unionLayouts[n].type;
+            for(size_t n=0;n<module->aggregateLayoutCount;++n) {
+                XL6_IrTypeId other=module->aggregateLayouts[n].type;
                 if(other==target->workerReturnType)continue;
                 XL6_IrTypeId original=target->workerReturnType;target->workerReturnType=other;
                 refused(module);target->workerReturnType=original;++nominal;break;
@@ -81,8 +81,8 @@ int main(int argc,char** argv)
             if(instruction->kind!=XL6_IR_INSTR_AWAIT||instruction->asyncResultAbi!=XL6_IR_ASYNC_RESULT_COPY_UNION)continue;
             ++awaits;instruction->asyncResultAbi=XL6_IR_ASYNC_RESULT_RETAINED_XVALUE;refused(module);
             instruction->asyncResultAbi=XL6_IR_ASYNC_RESULT_COPY_UNION;
-            for(size_t n=0;n<module->unionLayoutCount;++n) {
-                XL6_IrTypeId other=module->unionLayouts[n].type;
+            for(size_t n=0;n<module->aggregateLayoutCount;++n) {
+                XL6_IrTypeId other=module->aggregateLayouts[n].type;
                 if(other==instruction->type)continue;
                 XL6_IrTypeId original=instruction->type;instruction->type=other;
                 refused(module);instruction->type=original;++nominal;break;

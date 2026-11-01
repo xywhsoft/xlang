@@ -56,6 +56,7 @@ const char* xl6TokenKindName(XL6_TokenKind kind)
     case XL6_KW_ENUM: return "KW_ENUM";
     case XL6_KW_EXTENDS: return "KW_EXTENDS";
     case XL6_KW_UNION: return "KW_UNION";
+    case XL6_KW_STRUCT: return "KW_STRUCT";
     case XL6_KW_DERIVE: return "KW_DERIVE";
     case XL6_KW_GET: return "KW_GET";
     case XL6_KW_LET: return "KW_LET";
@@ -130,5 +131,5 @@ const char* xl6TokenKindName(XL6_TokenKind kind)
 
 int xl6TokenIsKeyword(XL6_TokenKind kind)
 {
-    return (kind >= XL6_KW_NULL) && (kind <= XL6_KW_NOT);
+    return ((kind >= XL6_KW_NULL) && (kind <= XL6_KW_NOT)) || kind == XL6_KW_STRUCT;
 }

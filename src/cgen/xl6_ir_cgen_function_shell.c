@@ -566,7 +566,7 @@ static int xl6IrCgenEmitRawCallbackEntry(
         xl6OutputPuts(")) {\n        xl6ForeignCallbackFail();\n"
             "        xl6CodeActivityLeaveV1(&execution);\n", out);
         if ( signature->callableResultType != XL6_IR_TYPE_INVALID )
-            xl6OutputPrintf(out, "        return (%s)0;\n", resultType);
+            xl6OutputPrintf(out, "        return (%s){0};\n", resultType);
         else
             xl6OutputPuts("        return;\n", out);
         xl6OutputPuts("    }\n", out);

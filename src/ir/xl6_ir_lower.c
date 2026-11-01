@@ -2147,8 +2147,8 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsNullable(
     else if ( nullable->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
               nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
               nullable->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
-              element->kind == XL6_IR_TYPE_UNION &&
-              element->cAbi == XL6_IR_C_ABI_UNION &&
+              xl6IrTypeKindIsAggregate(element->kind) &&
+              xl6IrCAbiIsAggregate(element->cAbi) &&
               element->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
               element->typeValueId != 0 &&
               xl6IrUnionLayoutGet(
@@ -2455,8 +2455,8 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsUnion(
     if ( ctx == NULL || borrowed == XL6_IR_VALUE_INVALID ||
          !xl6IrLowerTypeIsDynamicXValueBuiltin(
              ctx->module, xl6IrLowerValueType(ctx, borrowed)) ||
-         unionType == NULL || unionType->kind != XL6_IR_TYPE_UNION ||
-         unionType->cAbi != XL6_IR_C_ABI_UNION ||
+         unionType == NULL || !xl6IrTypeKindIsAggregate(unionType->kind) ||
+         !xl6IrCAbiIsAggregate(unionType->cAbi) ||
          unionType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
          unionType->nullAbi != XL6_IR_NULL_ABI_NONE ||
          unionType->typeValueId == 0 ||
@@ -2528,8 +2528,8 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsExactType(
          resultType->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE )
         return xl6IrLowerProjectBorrowedXValueAsNativeHandle(
             ctx, origin, borrowed, resultTypeId);
-    if ( resultType->kind == XL6_IR_TYPE_UNION &&
-         resultType->cAbi == XL6_IR_C_ABI_UNION )
+    if ( xl6IrTypeKindIsAggregate(resultType->kind) &&
+         xl6IrCAbiIsAggregate(resultType->cAbi) )
         return xl6IrLowerProjectBorrowedXValueAsUnion(
             ctx, origin, borrowed, resultTypeId);
     return XL6_IR_VALUE_INVALID;
@@ -3959,8 +3959,9 @@ static XL6_IrValueId xl6IrLowerBoxRuntimeXValueWithNativeDestroy(
         }
         break;
     }
+    case XL6_IR_C_ABI_C_RECORD:
     case XL6_IR_C_ABI_UNION:
-        if ( sourceType->kind != XL6_IR_TYPE_UNION ||
+        if ( !xl6IrTypeKindIsAggregate(sourceType->kind) ||
              sourceType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
              sourceType->typeValueId == 0 ||
              xl6IrUnionLayoutGet(ctx->module, loweredSourceType) == NULL ) {
@@ -6202,8 +6203,8 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeXValueIndexI64(
             : xl6IrLowerEmitRuntimeCall(ctx, origin, dynamicType, dynamicOp, operands, 2);
         return xl6IrLowerProjectBorrowedXValueAsString(ctx, origin, borrowed, node->storageType);
     }
-    if ( resultType->kind == XL6_IR_TYPE_UNION &&
-         resultType->cAbi == XL6_IR_C_ABI_UNION &&
+    if ( xl6IrTypeKindIsAggregate(resultType->kind) &&
+         xl6IrCAbiIsAggregate(resultType->cAbi) &&
          resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
          resultType->typeValueId != 0 &&
          xl6IrUnionLayoutGet(ctx->module, node->storageType) != NULL &&
@@ -7421,12 +7422,12 @@ static XL6_IrValueId xl6IrLowerNativeHandleFieldProject(
     return result;
 }
 
-static const XL6_IrUnionField* xl6IrLowerUnionField(
+static const XL6_IrAggregateField* xl6IrLowerUnionField(
     const XL6_IrModule* module, const XL6_IrNode* member,
     const XL6_IrNode** outReceiver)
 {
     const XL6_IrNode* receiver;
-    const XL6_IrUnionField* field;
+    const XL6_IrAggregateField* field;
     if ( outReceiver != NULL ) *outReceiver = NULL;
     if ( module == NULL || member == NULL ||
          member->kind != XL6_IR_NODE_MEMBER || member->childCount != 1 ||
@@ -7435,9 +7436,9 @@ static const XL6_IrUnionField* xl6IrLowerUnionField(
               XL6_IR_MEMBER_ABI_UNION_FIELD_DIRECT_STORAGE_WRITE &&
           member->memberAbi !=
               XL6_IR_MEMBER_ABI_UNION_FIELD_CLASS_FIELD_WRITE) ||
-         member->unionField >= module->unionFieldCount ) return NULL;
+         member->unionField >= module->aggregateFieldCount ) return NULL;
     receiver = xl6IrNodeGet(module, module->children[member->firstChild]);
-    field = &module->unionFields[member->unionField];
+    field = &module->aggregateFields[member->unionField];
     if ( xl6IrUnionReceiverType(module,receiver) != field->ownerType ||
          member->storageType != field->type ) return NULL;
     if ( outReceiver != NULL ) *outReceiver = receiver;
@@ -7448,7 +7449,7 @@ static XL6_IrValueId xl6IrLowerUnionFieldProject(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrNode* member)
 {
     const XL6_IrNode* receiver;
-    const XL6_IrUnionField* field = xl6IrLowerUnionField(
+    const XL6_IrAggregateField* field = xl6IrLowerUnionField(
         ctx != NULL ? ctx->module : NULL, member, &receiver);
     XL6_IrValueId source;
     XL6_IrValueId result = XL6_IR_VALUE_INVALID;
@@ -7461,7 +7462,7 @@ static XL6_IrValueId xl6IrLowerUnionFieldProject(
     }
     source = xl6IrLowerNode(ctx, ctx->module->children[member->firstChild]);
     if ( source == XL6_IR_VALUE_INVALID || xl6IrLowerValueType(ctx,source)!=field->ownerType ||
-         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_UNION_GET, origin, field->type,
+         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_AGGREGATE_GET, origin, field->type,
                           0, &source, 1, &result) ) return XL6_IR_VALUE_INVALID;
     ctx->module->instructions[ctx->module->instructionCount - 1].elementIndex =
         member->unionField;
@@ -7476,7 +7477,7 @@ static int xl6IrLowerUnionFieldSet(
     const XL6_IrNode* lhs, XL6_IrValueId rhsValue)
 {
     const XL6_IrNode* receiver;
-    const XL6_IrUnionField* field = xl6IrLowerUnionField(
+    const XL6_IrAggregateField* field = xl6IrLowerUnionField(
         ctx != NULL ? ctx->module : NULL, lhs, &receiver);
     XL6_SymbolId storageSymbol;
     const XL6_IrStorage* storage;
@@ -7546,7 +7547,7 @@ static int xl6IrLowerUnionFieldSet(
         operands[0] = source;
         operands[1] = rhsValue;
         if ( source == XL6_IR_VALUE_INVALID ||
-             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_UNION_SET, origin,
+             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_AGGREGATE_SET, origin,
                               field->ownerType, 0, operands, 2, &updated) ) {
             xrtFree(keyLiteral);
             return -1;
@@ -7592,7 +7593,7 @@ static int xl6IrLowerUnionFieldSet(
     operands[0] = source;
     operands[1] = rhsValue;
     if ( source == XL6_IR_VALUE_INVALID || xl6IrLowerValueType(ctx,source)!=field->ownerType ||
-         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_UNION_SET, origin,
+         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_AGGREGATE_SET, origin,
                           field->ownerType, 0, operands, 2, &updated) ) return -1;
     ctx->module->instructions[ctx->module->instructionCount - 1].elementIndex =
         lhs->unionField;
@@ -7874,8 +7875,8 @@ static int xl6IrLowerCastAbiMatchesType(
                type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
                type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL;
     case XL6_IR_CAST_XVALUE_TO_UNION_CHECKED:
-        return type->kind == XL6_IR_TYPE_UNION &&
-               type->cAbi == XL6_IR_C_ABI_UNION &&
+        return xl6IrTypeKindIsAggregate(type->kind) &&
+               xl6IrCAbiIsAggregate(type->cAbi) &&
                type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
                xl6IrUnionLayoutGet(module, typeId) != NULL;
     case XL6_IR_CAST_XVALUE_TO_CLOSURE_CHECKED:
@@ -11639,12 +11640,12 @@ static XL6_IrValueId xl6IrLowerDefaultClassFieldInitializer(
     if ( field->initializerAbi == XL6_IR_INITIALIZER_UNION_ZERO ) {
         XL6_IrValueId unionValue;
         XL6_IrValueId boxed;
-        if ( type->kind != XL6_IR_TYPE_UNION ||
-             type->cAbi != XL6_IR_C_ABI_UNION ||
+        if ( !xl6IrTypeKindIsAggregate(type->kind) ||
+             !xl6IrCAbiIsAggregate(type->cAbi) ||
              type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
              type->typeValueId == 0 ||
              xl6IrUnionLayoutGet(ctx->module, field->type) == NULL ||
-             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_UNION_ZERO, field->declaration,
+             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_AGGREGATE_ZERO, field->declaration,
                               field->type, 0, NULL, 0, &unionValue) )
             return XL6_IR_VALUE_INVALID;
         boxed = xl6IrLowerEmitRuntimeCallPayload(
@@ -22134,8 +22135,8 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
         goto invalidItemProjection;
     case XL6_IR_LOOP_ITEM_UNION_COPY:
         unionItemProjection = 1;
-        if ( projectedItemType->kind == XL6_IR_TYPE_UNION &&
-             projectedItemType->cAbi == XL6_IR_C_ABI_UNION &&
+        if ( xl6IrTypeKindIsAggregate(projectedItemType->kind) &&
+             xl6IrCAbiIsAggregate(projectedItemType->cAbi) &&
              projectedItemType->ownershipAbi ==
                  XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
              projectedItemType->nullAbi == XL6_IR_NULL_ABI_NONE &&
@@ -27338,10 +27339,10 @@ static XL6_IrValueId xl6IrLowerValueInitializer(
         return instruction->immediateText != NULL ? result : XL6_IR_VALUE_INVALID;
     }
     if ( initializer->abi == XL6_IR_INITIALIZER_UNION_ZERO ) {
-        if ( type->kind != XL6_IR_TYPE_UNION ||
-             type->cAbi != XL6_IR_C_ABI_UNION ||
+        if ( !xl6IrTypeKindIsAggregate(type->kind) ||
+             !xl6IrCAbiIsAggregate(type->cAbi) ||
              type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
-             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_UNION_ZERO, declarationId,
+             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_AGGREGATE_ZERO, declarationId,
                               initializer->type, 0, NULL, 0, &result) )
             return XL6_IR_VALUE_INVALID;
         return result;
@@ -30969,6 +30970,18 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
             }
             if ( node->callKind == XL6_SEM_CALL_ENUM_VARIANT )
                 return xl6IrLowerTaggedEnumVariantCall(ctx, id, node);
+            if (node->callKind == XL6_SEM_CALL_C_RECORD_ZERO) {
+                const XL6_IrType* type = xl6IrTypeGet(&ctx->module->types, node->storageType);
+                if (!type || type->kind != XL6_IR_TYPE_C_RECORD ||
+                    type->cAbi != XL6_IR_C_ABI_C_RECORD ||
+                    !xl6IrUnionLayoutGet(ctx->module, node->storageType) ||
+                    !xl6IrLowerEmit(ctx, XL6_IR_INSTR_AGGREGATE_ZERO, id,
+                        node->storageType, 0, NULL, 0, &result)) {
+                    xl6IrLowerDiag(ctx, id, "C record zero constructor has no exact value layout");
+                    return XL6_IR_VALUE_INVALID;
+                }
+                return result;
+            }
             if ( node->callKind == XL6_SEM_CALL_BASE_CONSTRUCTOR )
                 return xl6IrLowerBaseConstructorCall(ctx, id, node);
             if ( node->callKind == XL6_SEM_CALL_FUNCTION_VALUE )
@@ -31902,7 +31915,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                  (targetType->kind == XL6_IR_TYPE_CLASS ||
                   targetType->kind == XL6_IR_TYPE_PROTOCOL ||
                   targetType->kind == XL6_IR_TYPE_FUNCTION ||
-                  targetType->kind == XL6_IR_TYPE_UNION) ) {
+                  xl6IrTypeKindIsAggregate(targetType->kind)) ) {
                 XL6_IrInstruction* constant;
                 observed = xl6IrLowerNode(
                     ctx, ctx->module->children[node->firstChild]);

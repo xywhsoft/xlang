@@ -1103,6 +1103,8 @@ item_base(A) ::= export_protocol_decl(B). { A = B; }
 item_base(A) ::= enum_decl(B). { A = B; }
 item_base(A) ::= export_enum_decl(B). { A = B; }
 item_base(A) ::= union_decl(B). { A = B; }
+item_base(A) ::= c_record_decl(B). { A = B; }
+item_base(A) ::= KW_EXPORT c_record_decl(B). { A = xl6PWithFlags(B, XL6_AST_FLAG_PUBLIC); }
 item_base(A) ::= export_union_decl(B). { A = B; }
 item_base(A) ::= stmt(B). { A = B; }
 item(A) ::= TOK_ERROR(E). {
@@ -1689,6 +1691,17 @@ property_let_decl(A) ::= KW_LET(L) member_name_tok(N) name_params(P) need_sep bl
     xl6AstAddChild(A, P);
     xl6AstAddChild(A, xl6AstNew(XL6_AST_RETURN_TYPES, NULL));
     xl6AstAddChild(A, B);
+}
+
+c_record_decl(A) ::= KW_EXTERN(X) STRING(S) KW_STRUCT name_tok(N) field_attrs_opt(H) need_sep union_body(B) KW_END. {
+    A = xl6AstNew(XL6_AST_C_RECORD, &N);
+    A->flags |= XL6_AST_FLAG_EXTERN;
+    xl6AstAddChild(A, B);
+    XL6_AstNode* C = xl6AstNewText(XL6_AST_FIELD_ATTR, "c_type", 6, &S);
+    xl6AstAddChild(C, xl6AstNew(XL6_AST_STRING, &S));
+    if (H != NULL) { xl6AstMoveChildren(C, H); xl6AstFree(H); }
+    xl6AstAddChild(A, C);
+    (void)X;
 }
 
 union_decl(A) ::= KW_UNION(U) need_sep union_body(B) KW_END. {

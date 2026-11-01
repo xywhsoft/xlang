@@ -11,8 +11,14 @@ typedef enum XL6_TypeKind {
     XL6_TYPE_UNION,
     XL6_TYPE_PROTOCOL,
     XL6_TYPE_NUMERIC_ENUM,
-    XL6_TYPE_TAGGED_ENUM
+    XL6_TYPE_TAGGED_ENUM,
+    XL6_TYPE_C_RECORD
 } XL6_TypeKind;
+
+static inline int xl6TypeKindIsAggregate(XL6_TypeKind kind)
+{
+    return kind == XL6_TYPE_UNION || kind == XL6_TYPE_C_RECORD;
+}
 
 typedef struct XL6_TypeInfo {
     XL6_TypeId id;

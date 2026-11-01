@@ -21,6 +21,7 @@ const char* xl6AstKindName(XL6_AstKind kind)
     case XL6_AST_ENUM: return "enum";
     case XL6_AST_ENUM_VARIANT: return "enum_variant";
     case XL6_AST_UNION: return "union";
+    case XL6_AST_C_RECORD: return "C record";
     case XL6_AST_DERIVE: return "derive";
     case XL6_AST_FIELD: return "field";
     case XL6_AST_GET: return "get";
