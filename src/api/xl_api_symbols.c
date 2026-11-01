@@ -154,6 +154,16 @@
 #include "src/runtime/xl6_future_metadata.h"
 #include "src/runtime/xl6_future_payload.h"
 #include "src/runtime/xl6_native_future_payload.h"
+#include "src/runtime/xl6_foreign_context.h"
+#include "src/runtime/xl6_foreign_callback_scope.h"
+#include "src/runtime/xl6_foreign_view.h"
+#include "src/runtime/xl6_native_capture_graph.h"
+#include "src/runtime/xl6_foreign_view_capture.h"
+#include "src/runtime/xl6_capture_v3.h"
+#include "src/runtime/xl6_closure_capture_v4.h"
+#include "src/runtime/xl6_cell_native_graph.h"
+#include "src/runtime/xl6_native_graph_future_payload.h"
+
 
 #if defined(CONFIG_TCC_STATIC) && !defined(XL_STATIC_TCC)
 #define XL_STATIC_TCC 1
@@ -319,6 +329,38 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6CellRuntimeV1Get", (const void*)xl6CellRuntimeV1Get)) return 0;
     if (!visit(user, "xl6CellCreateLeafV1", (const void*)xl6CellCreateLeafV1)) return 0;
     if (!visit(user, "xl6CellCreateNativeV2", (const void*)xl6CellCreateNativeV2)) return 0;
+    if (!visit(user, "xl6ForeignContextReadyV1", (const void*)xl6ForeignContextReadyV1)) return 0;
+    if (!visit(user, "xl6ForeignContextGetV1", (const void*)xl6ForeignContextGetV1)) return 0;
+    if (!visit(user, "xl6ForeignContextSetV1", (const void*)xl6ForeignContextSetV1)) return 0;
+    if (!visit(user, "xl6ForeignContextCallEnterV1", (const void*)xl6ForeignContextCallEnterV1)) return 0;
+    if (!visit(user, "xl6ForeignContextCallContainsV1", (const void*)xl6ForeignContextCallContainsV1)) return 0;
+    if (!visit(user, "xl6ForeignContextCallOwnsV1", (const void*)xl6ForeignContextCallOwnsV1)) return 0;
+    if (!visit(user, "xl6ForeignContextCallLeaveV1", (const void*)xl6ForeignContextCallLeaveV1)) return 0;
+    if (!visit(user, "xl6ForeignCallbackEnterV1", (const void*)xl6ForeignCallbackEnterV1)) return 0;
+    if (!visit(user, "xl6ForeignCallbackLeaveV1", (const void*)xl6ForeignCallbackLeaveV1)) return 0;
+    if (!visit(user, "xl6ForeignCallbackActiveV1", (const void*)xl6ForeignCallbackActiveV1)) return 0;
+    if (!visit(user, "xl6ForeignViewCreateRootV1", (const void*)xl6ForeignViewCreateRootV1)) return 0;
+    if (!visit(user, "xl6ForeignViewBorrowChildV1", (const void*)xl6ForeignViewBorrowChildV1)) return 0;
+    if (!visit(user, "xl6ForeignViewRetainV1", (const void*)xl6ForeignViewRetainV1)) return 0;
+    if (!visit(user, "xl6ForeignViewReleaseV1", (const void*)xl6ForeignViewReleaseV1)) return 0;
+    if (!visit(user, "xl6ForeignViewCallBeginV1", (const void*)xl6ForeignViewCallBeginV1)) return 0;
+    if (!visit(user, "xl6ForeignViewCallEndV1", (const void*)xl6ForeignViewCallEndV1)) return 0;
+    if (!visit(user, "xl6ForeignViewCloseV1", (const void*)xl6ForeignViewCloseV1)) return 0;
+    if (!visit(user, "xl6ForeignViewDrainV1", (const void*)xl6ForeignViewDrainV1)) return 0;
+    if (!visit(user, "xl6ForeignViewPendingV1", (const void*)xl6ForeignViewPendingV1)) return 0;
+    if (!visit(user, "xl6ForeignViewDiscoverV1", (const void*)xl6ForeignViewDiscoverV1)) return 0;
+    if (!visit(user, "xl6ForeignViewOwnershipV1", (const void*)xl6ForeignViewOwnershipV1)) return 0;
+    if (!visit(user, "xl6OwnershipDomainForeignViewV1Get", (const void*)xl6OwnershipDomainForeignViewV1Get)) return 0;
+    if (!visit(user, "xl6NativeGraphCaptureProfileV1Get", (const void*)xl6NativeGraphCaptureProfileV1Get)) return 0;
+    if (!visit(user, "xl6ForeignViewCaptureProfileV1Get", (const void*)xl6ForeignViewCaptureProfileV1Get)) return 0;
+    if (!visit(user, "xl6CaptureRuntimeV3Get", (const void*)xl6CaptureRuntimeV3Get)) return 0;
+    if (!visit(user, "xl6ActivationCaptureRuntimeV3Get", (const void*)xl6ActivationCaptureRuntimeV3Get)) return 0;
+    if (!visit(user, "xl6ClosureRuntimeV4Get", (const void*)xl6ClosureRuntimeV4Get)) return 0;
+    if (!visit(user, "xl6CellCreateNativeGraphV3", (const void*)xl6CellCreateNativeGraphV3)) return 0;
+    if (!visit(user, "xl6NativeGraphFuturePayloadRuntimeV1Get", (const void*)xl6NativeGraphFuturePayloadRuntimeV1Get)) return 0;
+    if (!visit(user, "xl6OwnershipDomainNativeGraphFuturePayloadV1Get", (const void*)xl6OwnershipDomainNativeGraphFuturePayloadV1Get)) return 0;
+    if (!visit(user, "xl6CellCreateGraphV1", (const void*)xl6CellCreateGraphV1)) return 0;
+
     if (!visit(user, "xl6SlotRuntimeV1Get", (const void*)xl6SlotRuntimeV1Get)) return 0;
     if (!visit(user, "xl6GeneratorRuntimeV1Get", (const void*)xl6GeneratorRuntimeV1Get)) return 0;
     if (!visit(user, "xl6GeneratorRuntimeV2Get", (const void*)xl6GeneratorRuntimeV2Get)) return 0;

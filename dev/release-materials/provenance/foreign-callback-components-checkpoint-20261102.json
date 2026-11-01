@@ -1,0 +1,70 @@
+{
+  "scope": "Resident callback boundaries and private component registration; retained XUI callbacks and language/package migration remain incomplete",
+  "complete": true,
+  "networkTests": false,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\view-resident-callback-win-r1\\results.json",
+      "sha256": "5fb1b76b7bb80c18f2107d4fb8f500f0948576e50e805c8414d40f6bfa1cd56a",
+      "stages": 42
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\view-component-win-r3\\results.json",
+      "sha256": "e107b738af7f4096d9ca840b21b2d274d841aacee79e10ff03477466bcda146e",
+      "stages": 4
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\foundation-batch-r11-current-vfs\\results.json",
+      "sha256": "de3cc6609f2feffe5bcf7cfb4f825cb8d6f2fcbc6afafa135980d81c153770c8",
+      "stages": 11
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\resident-native-cell-r11-current-vfs\\results.json",
+      "sha256": "b74d85589a509bac0f22e0814c61c03bdd3a0e374dacd3416bbc482f4d2f4791",
+      "stages": 510
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\resident-native-future-r11-current-vfs-r3\\results.json",
+      "sha256": "c8e5d629fde7ca3dea058d7f32dab7a314a1c00b8d257f28717a53f58581d77a",
+      "stages": 391
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\resident-finalizer-r11\\results.json",
+      "sha256": "e58240dbb52a853ef62df6e5c97070552fdb2452d1aacfbd9c9113f9e1d34ec4",
+      "stages": 0
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-view-resident-callback-20261102-r1\\results.json",
+      "sha256": "2239e011e0ce6c356bcbde0d83334f4e0ef6e36b6ae325d770146b0c235d88c9",
+      "stages": 42,
+      "sourceSanitizers": true
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-component-20261102-r1\\results.json",
+      "sha256": "89af6f70369ecb1ab8c9345e69d80759882fe50996586b7b16e0b905243d256a",
+      "stages": 4,
+      "sourceSanitizers": false
+    }
+  ],
+  "sourceBuild": {
+    "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\source-r11\\build.json",
+    "sha256": "d0deb97b004780d5f9808aea4b7713f3261b14daa9c5bacdc23d29af1dd22f41",
+    "translationUnits": 1407
+  },
+  "tccProvider": {
+    "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\source-r11-current-vfs\\provider.json",
+    "sha256": "dea8046f3b6f5bc61aa42bb4ab727987479478431e990315f67bb120962c8878",
+    "precompiledManifest": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\precompiled-r1\\manifest.json",
+    "precompiledManifestSha256": "6b944fd1348b1f7c9e8bd0ec620688a834f2eaf6406565fb7b31205b2956974d",
+    "objects": 1555,
+    "compilerObjectOverrides": false
+  },
+  "shippingUpdated": false,
+  "remaining": [
+    "XUI retained callback owning slots and native active holds after generated thunk returns",
+    "class field graph storage and complete native ownership inventory",
+    "managed declarations and XLIR",
+    "factory transaction guard, text/span and effect contracts",
+    "package, SDK, IDE, example and final delivery migration"
+  ]
+}

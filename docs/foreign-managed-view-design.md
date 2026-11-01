@@ -35,3 +35,9 @@ Windows O0/O2 的 8 组独立测试及合并测试均通过；Linux 对这两份
 执行上下文检查点：私有实现原先的 C TLS 已移除，统一使用 Windows FLS／POSIX key。Windows 回调标记与物理调用登记按 fiber 隔离；物理调用的 intrusive stack token 允许同一上下文内非 LIFO 结束，但拒绝复制 token、跨线程／fiber 结束及借用另一个 fiber 正在调用的根。drain 的防重入状态也按执行上下文保存，遍历 epoch 使用全局原子序列。新运行时没有依赖 TCC PE 不支持的 C TLS 重定位。
 
 OS key 初始化和首次绑定是冷路径，不能称作绝对零成本；稳定路径有 OS 槽访问、token 连接和失效检查，没有语言堆分配。Windows GCC O0/O2、真实 TCC JIT 和链接实际宿主 DLL 的 TCC 独立程序均通过线程／fiber 专项；既有 view、capture、cell／Future 图和真实宿主 XUI 夹具一并通过。Linux 新单元 sanitizer 检查覆盖线程隔离和存储图；POSIX 测试不声称验证 Windows fiber。捕获回调和类字段仍需实际接入，不能由该底座检查推定已经完成。
+
+驻留回调检查点：class finalizer 的执行／context 释放、boxed closure 的调用／释放及两个原生 closure 清理入口已登记 foreign callback 边界。finalizer context 先从自身 mutation 中移出，再执行任意用户清理；边界退出本身仍不 drain。Windows 与 Linux 修改单元 O0/O2（Linux sanitizer）各 42 个阶段通过，覆盖 native 通知栈期间保留代码、无诊断析构失败、关闭请求延迟至完整 native 返回以及 native 清理回调实际释放其捕获值。
+
+十个私有组件已进入按需构建和精确符号表，通用 capture／cell／Future graph 能力不依赖 View 目录。Windows 1,407 单元源码构建完成；新组件进入独立程序时暴露了旧预编译 VFS 缺对象，现用 1,555 个当前 TCC 对象和隔离的新 VFS 提供方验收。编译器 driver／对象保持该完整源码构建的原字节；隔离 DLL 只运行 TinyCC／VFS，没有第二份正在执行的 xlang／XRT 实现，预编译目标对象仍以资源保存。发布目录没有因此更新。
+
+更新资源后的声明式接入 11 组全部通过；旧 native cell、native Future 专项分别通过 510、391 个阶段，包含独立 O0/O2 提供方、故障前缀、错误实现负控、JIT／模块／独立程序。可卸载 finalizer 夹具在两个优化等级分别验证 250 个真实 DLL 生命周期。验证工具同时改走长命令响应文件、复用隔离 SDK，不在仓库根目录重建源码快照。上述是底座接入检查点；XUI retained callback 槽、类字段、完整受管声明与 IR、独立 SDK 头、工厂保护／文本／span／效果合同和产品迁移仍未完成。

@@ -9,6 +9,7 @@
 #include "src/api/xl_foreign_error.h"
 #include "xl6_cell.h"
 #include "xl6_ownership_scope.h"
+#include "xl6_foreign_callback_scope.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -121,6 +122,7 @@ static XL6_Closure* xl6OwnershipBody_closure_create(const XL6_CodeOwner* owner, 
             (environment != NULL && (drop == NULL || trace == NULL)))) {
         xrtSetErrorKind(XERR_ARGUMENT); closure = NULL; goto done;
     }
+    if (!xl6ForeignContextReadyV1()) { closure=NULL;goto done; }
     admission = xl6CodeLeaseAcquireScoped(owner, &lease);
     if (admission != XL6_CODE_LEASE_ACQUIRED) {
         if (xrtGetError() == NULL) xrtSetErrorKind(admission == XL6_CODE_LEASE_CLOSED ? XERR_CLOSED :
@@ -270,16 +272,25 @@ static void closure_leave(XL6_ClosureScope* scope)
     closure_release(closure); xl6CodeScopeLeave(&scope->code);
 }
 static void closure_environment_retain(void* data) { (void)closure_retain((XL6_Closure*)data); }
-static void closure_environment_release(void* data) { closure_release((XL6_Closure*)data); }
+static void closure_environment_release(void* data)
+{
+    XL6_ForeignCallbackScopeV1 callback={0};
+    if(!xl6ForeignCallbackEnterV1(&callback))abort();
+    closure_release((XL6_Closure*)data);
+    if(!xl6ForeignCallbackLeaveV1(&callback))abort();
+}
 static void closure_payload_drop(void* value, void* unused)
 {
     XL6_Closure* closure; (void)unused;
     xrtownershipscope mutation = {0};
     if (value == NULL) return;
+    XL6_ForeignCallbackScopeV1 callback={0};
+    if(!xl6ForeignCallbackEnterV1(&callback))abort();
     if (!xrtOwnershipMutationBegin(&mutation)) abort();
     closure = *(XL6_Closure**)value; xrtFree(value);
     if (!xrtOwnershipScopeEnd(&mutation)) abort();
     closure_release(closure);
+    if(!xl6ForeignCallbackLeaveV1(&callback))abort();
 }
 static bool closure_payload_trace(const void* value, const void* data, XL6_ModuleOwnershipVisit visit, void* context)
 { return data == NULL && visit != NULL && (value == NULL || visit(closure_ownership(*(XL6_Closure* const*)value), context)); }
@@ -299,6 +310,8 @@ static bool box_invoke(void* data, const xrtcallframe* frame, xrtcallresult* res
 {
     ClosureBox* box = (ClosureBox*)data;
     XL6_CodeScope adapter = {0}; XL6_ClosureScope invocation = {0}; bool ok;
+    XL6_ForeignCallbackScopeV1 callback={0};
+    if(!xl6ForeignCallbackEnterV1(&callback))abort();
     xl6CodeScopeEnter(&adapter, box->adapter);
     closure_enter(&invocation, box->closure);
     ok = box->entry(box->closure, frame, result);
@@ -307,10 +320,13 @@ static bool box_invoke(void* data, const xrtcallframe* frame, xrtcallresult* res
      * is still the first failure, including resident native Box entries. */
     if(!ok)xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});
     closure_leave(&invocation); xl6CodeScopeLeave(&adapter);
+    if(!xl6ForeignCallbackLeaveV1(&callback))abort();
     return ok;
 }
 static void box_drop(void* data)
 {
+    XL6_ForeignCallbackScopeV1 callback={0};
+    if(!xl6ForeignCallbackEnterV1(&callback))abort();
     xrtownershipscope mutation = {0};
     if (!xrtOwnershipMutationBegin(&mutation)) abort();
     ClosureBox* box = (ClosureBox*)data;
@@ -319,6 +335,7 @@ static void box_drop(void* data)
     xrtFree(box);
     if (!xrtOwnershipScopeEnd(&mutation)) abort();
     closure_release(closure); xl6CodeLeaseRelease(lease); xl6CodeScopeLeave(&scope);
+    if(!xl6ForeignCallbackLeaveV1(&callback))abort();
 }
 static const xrtcallableownershipv1 box_ownership_policy = {
     sizeof(xrtcallableownershipv1), box_trace, box_drop

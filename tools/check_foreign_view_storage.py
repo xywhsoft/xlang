@@ -13,13 +13,16 @@ def main():
     p.add_argument('--base',type=Path,required=True)
     p.add_argument('--out',type=Path,required=True)
     p.add_argument('--sanitize',action='store_true')
+    p.add_argument('--callbacks',action='store_true')
     a=p.parse_args();root,base,out=[v.resolve() for v in (a.root,a.base,a.out)]
     cc=shutil.which('gcc');assert cc
     build=json.loads((base/'build.json').read_text(encoding='utf-8-sig'))
     assert build['Complete'] and build['InputsUnchanged']
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
-    sources=[root/'test/support/foreign_view_storage.c']+[root/('src/runtime/'+n+'.c') for n in (
+    fixture='foreign_view_callbacks.c' if a.callbacks else 'foreign_view_storage.c'
+    sources=[root/('test/support/'+fixture)]+[root/('src/runtime/'+n+'.c') for n in (
         'xl6_cell','xl6_native_future_payload','xl6_foreign_view','xl6_foreign_callback_scope','xl6_foreign_context',
+        'xl6_closure','xl6_code_finalizer',
         'xl6_native_capture_graph','xl6_foreign_view_capture','xl6_capture_v3','xl6_closure_capture_v4',
         'xl6_cell_native_graph','xl6_native_graph_future_payload','xl6_ownership_domain_native_graph_future_payload')]
     base_root=next(Path(row['Source']).parents[2] for row in build['Objects'] if Path(row['Source']).name=='xl_api.c')
@@ -53,6 +56,7 @@ def main():
     # about real type/signature mismatches is disabled.
     if os.name!='nt':baseflags+=['-Wno-unused-function','-Wno-unused-const-variable']
     if a.sanitize:baseflags+=['-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie']
+    cases=('finalizer','context-release','box-invoke','box-drop','all') if a.callbacks else ('cells','cell-cycle','futures','future-cycle','cleanup','allocation','all')
     for opt in ('O0','O2'):
         compiled=[]
         for source in sources:
@@ -75,11 +79,11 @@ def main():
         if a.sanitize:response+=['-fsanitize=address,undefined','-no-pie']
         rsp=out/(opt+'.rsp');rsp.write_bytes(('\n'.join('"'+item.replace('\\','/')+'"' for item in response)+'\n').encode())
         if run(opt+'-link',[cc,'@'+str(rsp)]):
-            for case in ('cells','cell-cycle','futures','future-cycle','cleanup','allocation','all'):
+            for case in cases:
                 run(opt+'-'+case,[exe,*([] if case=='all' else [case])])
     report['inputsUnchanged']=all(sha(path)==value for path,value in inputs.items())
     report['complete']=True
-    report['passed']=report['inputsUnchanged'] and len(report['rows'])==2*(len(sources)+1+7) and all(row['exitCode']==0 for row in report['rows'])
+    report['passed']=report['inputsUnchanged'] and len(report['rows'])==2*(len(sources)+1+len(cases)) and all(row['exitCode']==0 for row in report['rows'])
     save();assert report['passed'],out/'results.json'
 
 if __name__=='__main__':main()

@@ -7,6 +7,7 @@ from pathlib import Path
 import argparse,hashlib,json,os,shutil,subprocess
 from check_stdlib_slot_map import stage_private_sdk
 from xlir_public_build_inputs import verify_public_build
+from compiler_response import command_with_response
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
@@ -20,8 +21,8 @@ def main():
     case=root/'test/cases/stdlib_slot_map_native_cell.xl';host=root/'test/cases/stdlib_native_cell_host.c'
     unit=root/'test/cases/stdlib_native_cell_unit.c';contract=root/'test/cases/xlir_native_cell_contract.c'
     planner_src=root/'test/cases/xlir_artifact_runtime_contract.c';memory=root/'test/support/module_product_memory.c'
-    manifest,sdk,_=stage_private_sdk(root)
-    pinned.update((Path(__file__).resolve(),Path(cc),Path(nm),runtime,case,host,unit,contract,planner_src,memory,manifest))
+    manifest,sdk,_=stage_private_sdk(root,public/'include')
+    pinned.update((Path(__file__).resolve(),root/'tools/compiler_response.py',Path(cc),Path(nm),runtime,case,host,unit,contract,planner_src,memory,manifest))
     pinned.update(Path(row[k]) for row in sdk for k in ('Source','Path'))
     inputs=[dict(Path=str(p),Sha256=sha(p)) for p in sorted(pinned)];out.mkdir()
     env=dict(os.environ);rows=[];products=[];prefixes=[];controls=[]
@@ -40,9 +41,10 @@ def main():
     objects=[r['Path'] for r in build['Objects'] if Path(r['Path']).stem not in ('xlir_public_source_driver','xlir_public_source_linux_driver')]
     def product(p):products.append(dict(Path=str(p),Sha256=sha(p)))
     def run(name,command,bad=False):
-        result=subprocess.run(list(map(str,command)),cwd=root,env=env,capture_output=True,timeout=600 if str(command[0])==cc else 180)
+        actual=command_with_response(command,cc,out/(name+'.rsp'))
+        result=subprocess.run(actual,cwd=root,env=env,capture_output=True,timeout=600 if str(command[0])==cc else 180)
         data=result.stdout+result.stderr;log=out/(name+'.log');log.write_bytes(data)
-        rows.append(dict(Name=name,Exit=result.returncode,ExpectedRejection=bad,Log=str(log),LogSha256=sha(log)))
+        rows.append(dict(Name=name,Command=list(map(str,command)),ActualCommand=actual,Exit=result.returncode,ExpectedRejection=bad,Log=str(log),LogSha256=sha(log)))
         assert (result.returncode!=0 if bad else result.returncode==0),(name,data[-5000:])
         if bad:assert b'assert' in data.lower(),(name,data[-5000:])
         return data.decode(errors='replace')

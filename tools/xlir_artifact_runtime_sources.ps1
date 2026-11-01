@@ -6,6 +6,8 @@ function Get-XlirArtifactRuntimeSources {
         'src/runtime/xl6_ownership_plan.c',
         'src/runtime/xl6_code_lease.c',
         'src/runtime/xl6_closure.c',
+        'src/runtime/xl6_foreign_context.c',
+        'src/runtime/xl6_foreign_callback_scope.c',
         'src/runtime/xl6_cell.c',
         'src/runtime/xl6_slot.c',
         'src/runtime/xl6_frame_storage.c',

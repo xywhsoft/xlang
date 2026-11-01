@@ -34,6 +34,17 @@
     src\runtime\xl6_slot_map_iterator_values.c
     src\runtime\xl6_slot_map_iterator_count.c
     src\runtime\xl6_capture_v2.c
+    src/runtime/xl6_foreign_context.c
+    src/runtime/xl6_foreign_callback_scope.c
+    src/runtime/xl6_foreign_view.c
+    src/runtime/xl6_native_capture_graph.c
+    src/runtime/xl6_foreign_view_capture.c
+    src/runtime/xl6_capture_v3.c
+    src/runtime/xl6_closure_capture_v4.c
+    src/runtime/xl6_cell_native_graph.c
+    src/runtime/xl6_native_graph_future_payload.c
+    src/runtime/xl6_ownership_domain_native_graph_future_payload.c
+
     src\runtime\xl6_slot_map_key_capture.c
     src\runtime\xl6_c_owned_capture.c
     src\runtime\xl6_native_future_payload.c
