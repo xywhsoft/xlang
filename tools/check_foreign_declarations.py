@@ -67,7 +67,7 @@ def main():
         prefix = out / ('native-' + mode)
         run('handle-tcc-' + mode, [driver, source, mode, prefix, provider])
         if mode == 'exe':
-            run('handle-tcc-standalone', [prefix.with_suffix('.exe')])
+            run('handle-tcc-standalone', [prefix.with_suffix('.exe') if os.name == 'nt' else prefix])
 
     base = source.read_text(encoding='utf-8-sig')
     negatives = {

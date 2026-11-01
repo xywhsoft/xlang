@@ -61,6 +61,22 @@ static int xl6IrCgenEmitFunction(
     const XL6_IrClosureTarget* closure = (function->kind == XL6_IR_FUNCTION_MODULE_INIT ||
                                          function->kind == XL6_IR_FUNCTION_MODULE_FINI)
         ? NULL : xl6IrCgenClosureTargetGet(module, function->symbol);
+    const XL6_IrInstruction* forwarding = !closure && !(options && options->debugMode)
+        ? xl6IrDirectCForwardingCall(module, function) : NULL;
+    if (forwarding) {
+        const XL6_IrCallTarget* target = xl6IrCallTargetGet(module, forwarding->targetSymbol);
+        if (!xl6IrCgenEmitPrototype(out, module, function, diags)) return 0;
+        xl6OutputPuts("\n{\n", out);
+        for (i = 0; i < function->parameterCount; ++i)
+            xl6OutputPrintf(out, "    (void)s%u;\n", (unsigned)module->functionParameters[function->firstParameter + i]);
+        xl6OutputPrintf(out, "    %s%s(", function->returnType ? "return " : "", target->cName);
+        for (i = 0; i < forwarding->operandCount; ++i) {
+            if (i) xl6OutputPuts(", ", out);
+            xl6OutputPrintf(out, "s%u", (unsigned)xl6IrDirectCForwardingArgument(module, forwarding, i));
+        }
+        xl6OutputPuts(");\n}\n\n", out);
+        return !xl6OutputHasFailed(out);
+    }
     if ( function->kind == XL6_IR_FUNCTION_MODULE_INIT ) {
         xl6OutputPuts("static int xlir_module_initialized = 0;\n\n", out);
         if (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE)

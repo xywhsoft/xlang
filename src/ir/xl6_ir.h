@@ -7906,6 +7906,10 @@ XL6_IrTypeId xl6IrTypeInternCFunctionPointer(struct XL6_IrModule*, XL6_IrTypeId)
 XL6_IrTypeId xl6IrCFunctionPointerForSignature(const struct XL6_IrModule*, XL6_IrTypeId);
 int xl6IrForeignConstRecordParameter(const struct XL6_IrModule*, const XL6_IrCallTarget*, size_t);
 const XL6_IrCallTarget* xl6IrCallTargetGet(const XL6_IrModule* module, XL6_SymbolId symbol);
+/* Closed value-placement plan for a single exact C call. No AST inspection,
+ * allocation, managed inputs, adaptation, cleanup, or exceptional control flow. */
+const XL6_IrInstruction* xl6IrDirectCForwardingCall(const XL6_IrModule*, const XL6_IrFunction*);
+XL6_SymbolId xl6IrDirectCForwardingArgument(const XL6_IrModule*, const XL6_IrInstruction*, size_t);
 XL6_IrCallResultConversionAbi xl6IrCallResultConversionForTarget(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 XL6_IrCallResultCAbi xl6IrCallResultCAbiForTarget(const XL6_IrCallTarget* target);
