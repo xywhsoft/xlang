@@ -80,6 +80,12 @@ function Assert-XideBuildInputs([hashtable]$Inputs) {
         if((Get-XideSha256 $inputPath) -ne $Inputs[$inputPath]) { throw "IDE input changed during compilation; publication stopped: $inputPath" }
     }
 }
+function Assert-XideCatalog {
+    & python -X utf8 (Join-Path $PSScriptRoot 'check_catalog_coverage.py') --root (Split-Path -Parent $ideRoot) --catalog (Join-Path $ideRoot 'data\commands.json')
+    if ($LASTEXITCODE -ne 0) { throw 'IDE catalog is stale; regenerate it against the current accepted compiler release.' }
+}
+# Reject stale runtime assets before compiling or replacing any program.
+Assert-XideCatalog
 $appResources = Join-Path $objectRoot 'xlang_ide.res.o'
 & $resourceCompiler '-I' (Join-Path $ideRoot 'data') '-i' (Join-Path $ideRoot 'data\xlang_ide.rc') '-O' 'coff' '-o' $appResources
 if ($LASTEXITCODE -ne 0) { throw 'Application icon resource compilation failed.' }
@@ -101,43 +107,51 @@ if (-not $FrontendRoot) {
         $FrontendRoot=if (Test-Path -LiteralPath (Join-Path $shippedFrontend 'src\parser\xl6_parser.c')) { $shippedFrontend } else { Split-Path -Parent $ideRoot }
     }
 }
+$nativeBuildReceipt=$null
 if ($GuiOnly) {
     Assert-XideBuildInputs $buildInputs
     # Build the GUI independently; require the explicitly qualified CLI server.
-    $serverTarget=Join-Path $releaseRoot 'xlang-ls.exe'
-    if ([IO.Path]::GetFullPath($serverTarget) -ne $LanguageServerPath) {
-        Copy-Item -LiteralPath $LanguageServerPath -Destination $serverTarget -Force
-    }
-    if ((Get-XideSha256 $serverTarget) -ne $languageServerHash) { throw 'Qualified language server changed during GUI build.' }
+    $pendingServer=$LanguageServerPath
 } else {
 $nativeRoot=Join-Path $objectRoot ('lsp-'+[Guid]::NewGuid().ToString('N'))
 $nativeArguments=@('-X','utf8','-B',(Join-Path $PSScriptRoot 'build_lsp_core.py'),'--server','--frontend-root',$FrontendRoot,'--output',$nativeRoot,'--cc',$compiler,'--configuration',$Configuration)
 if (-not $Tests) { $nativeArguments+='--skip-tests' }
 & python @nativeArguments
 if ($LASTEXITCODE -ne 0) { throw 'Standalone language server/core build failed.' }
-Copy-Item -LiteralPath (Join-Path $nativeRoot 'xlang-ls.exe') -Destination (Join-Path $releaseRoot 'xlang-ls.exe') -Force
+$pendingServer=Join-Path $nativeRoot 'xlang-ls.exe'
+$languageServerHash=Get-XideSha256 $pendingServer
 $nativeReport=Join-Path $nativeRoot 'build-result.json'
-[pscustomobject]@{report=$nativeReport;reportSha256=(Get-XideSha256 $nativeReport);frontendRoot=[IO.Path]::GetFullPath($FrontendRoot)} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $objectRoot 'language-server-build.json') -Encoding utf8
+$nativeBuildReceipt=@{report=$nativeReport;reportSha256=(Get-XideSha256 $nativeReport);frontendRoot=[IO.Path]::GetFullPath($FrontendRoot)}
 }
 $guiStaging=Join-Path $objectRoot 'xlang_ide.link.exe'
 & $compiler @flags '-DXIDE_GUI=1' -mwindows (Join-Path $ideRoot 'src\main.c') @objects $appResources @libraries -o $guiStaging
 if ($LASTEXITCODE -ne 0) { throw 'GUI link failed.' }
 Assert-XideBuildInputs $buildInputs
-$guiExe=Join-Path $releaseRoot 'xlang_ide.exe'
-if (Test-Path -LiteralPath $guiExe) { [IO.File]::Replace($guiStaging,$guiExe,(Join-Path $objectRoot 'xlang_ide.previous.exe')) } else { [IO.File]::Move($guiStaging,$guiExe) }
+Assert-XideCatalog
+[void](New-Item -ItemType Directory -Path (Join-Path $releaseRoot 'data') -Force)
+& python -X utf8 (Join-Path $PSScriptRoot 'catalog_publish.py') --pair (Join-Path $ideRoot 'data') --data (Join-Path $releaseRoot 'data') --work (Join-Path $objectRoot 'catalog-publications')
+if ($LASTEXITCODE -ne 0) { throw 'Verified catalog/source pair publication failed.' }
+& python -X utf8 (Join-Path $PSScriptRoot 'font_resources.py') --source (Join-Path $ideRoot 'data\fonts') --destination (Join-Path $releaseRoot 'data\fonts')
+if ($LASTEXITCODE -ne 0) { throw 'Pinned offline font resource verification failed.' }
+Assert-XideBuildInputs $buildInputs
+Assert-XideCatalog
+if ((Get-XideSha256 $pendingServer) -ne $languageServerHash) { throw 'Qualified language server changed before publication.' }
+$serverTarget=Join-Path $releaseRoot 'xlang-ls.exe'
+if ([IO.Path]::GetFullPath($pendingServer) -ne [IO.Path]::GetFullPath($serverTarget)) {
+    $serverStaging=Join-Path $objectRoot 'xlang-ls.publish.exe'
+    Copy-Item -LiteralPath $pendingServer -Destination $serverStaging -Force
+    if ((Get-XideSha256 $serverStaging) -ne $languageServerHash) { throw 'Staged language server differs from its qualified input.' }
+    if (Test-Path -LiteralPath $serverTarget) { [IO.File]::Replace($serverStaging,$serverTarget,(Join-Path $objectRoot 'xlang-ls.previous.exe')) } else { [IO.File]::Move($serverStaging,$serverTarget) }
+}
 $sdkDll=Join-Path $sdkRoot 'xge.dll'
 $releaseDll=Join-Path $releaseRoot 'xge.dll'
 if (-not (Test-Path -LiteralPath $releaseDll) -or (Get-XideSha256 $sdkDll) -ne (Get-XideSha256 $releaseDll)) {
     Copy-Item -LiteralPath $sdkDll -Destination $releaseDll -Force
 }
-@{configuration=$Configuration;cLspEnabled=[bool]$EnableCLsp;compiler=$compiler;resourceCompiler=$resourceCompiler;flags=$flags;libraries=$libraries;objects=$objects;resources=@($appResources);inputs=$buildInputs;release=$releaseRoot;outputs=@{xlang_ide=(Get-XideSha256 $guiExe);xlang_ls=(Get-XideSha256 (Join-Path $releaseRoot 'xlang-ls.exe'));xge=(Get-XideSha256 $releaseDll)}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $objectRoot 'gui-build-inputs.json') -Encoding utf8
-[void](New-Item -ItemType Directory -Path (Join-Path $releaseRoot 'data') -Force)
-& python -X utf8 (Join-Path $PSScriptRoot 'check_catalog_coverage.py') --root (Split-Path -Parent $ideRoot) --catalog (Join-Path $ideRoot 'data\commands.json')
-if ($LASTEXITCODE -ne 0) { throw 'IDE catalog is stale; regenerate it against the current accepted compiler release.' }
-& python -X utf8 (Join-Path $PSScriptRoot 'catalog_publish.py') --pair (Join-Path $ideRoot 'data') --data (Join-Path $releaseRoot 'data') --work (Join-Path $objectRoot 'catalog-publications')
-if ($LASTEXITCODE -ne 0) { throw 'Verified catalog/source pair publication failed.' }
-& python -X utf8 (Join-Path $PSScriptRoot 'font_resources.py') --source (Join-Path $ideRoot 'data\fonts') --destination (Join-Path $releaseRoot 'data\fonts')
-if ($LASTEXITCODE -ne 0) { throw 'Pinned offline font resource verification failed.' }
+$guiExe=Join-Path $releaseRoot 'xlang_ide.exe'
+if (Test-Path -LiteralPath $guiExe) { [IO.File]::Replace($guiStaging,$guiExe,(Join-Path $objectRoot 'xlang_ide.previous.exe')) } else { [IO.File]::Move($guiStaging,$guiExe) }
+if ($nativeBuildReceipt) { $nativeBuildReceipt | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $objectRoot 'language-server-build.json') -Encoding utf8 }
+@{configuration=$Configuration;cLspEnabled=[bool]$EnableCLsp;compiler=$compiler;resourceCompiler=$resourceCompiler;flags=$flags;libraries=$libraries;objects=$objects;resources=@($appResources);inputs=$buildInputs;release=$releaseRoot;outputs=@{xlang_ide=(Get-XideSha256 $guiExe);xlang_ls=(Get-XideSha256 $serverTarget);xge=(Get-XideSha256 $releaseDll)}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $objectRoot 'gui-build-inputs.json') -Encoding utf8
 if ($Tests) {
     foreach ($fixture in @('diagnostic_dependencies_test','diagnostic_notice_test')) {
         & $compiler @flags (Join-Path $ideRoot ('tests\'+$fixture+'.c')) @objects @libraries -o (Join-Path $releaseRoot ($fixture+'.exe'))
