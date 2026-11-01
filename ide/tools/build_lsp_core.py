@@ -755,9 +755,9 @@ def main() -> None:
     started = time.monotonic()
     status = "failed"
 
-    def run(command: list[str], name: str, timeout: int = 180) -> subprocess.CompletedProcess:
+    def run(command: list[str], name: str, timeout: int = 180, *, working_directory: Path | None = None) -> subprocess.CompletedProcess:
         commands.append(command)
-        result = subprocess.run(command, env=env, cwd=ide, capture_output=True, timeout=timeout)
+        result = subprocess.run(command, env=env, cwd=working_directory or ide, capture_output=True, timeout=timeout)
         (output / (name + ".log")).write_bytes(result.stdout + result.stderr)
         if result.returncode:
             raise RuntimeError(f"{name} failed ({result.returncode}); see {output / (name + '.log')}")
@@ -886,7 +886,7 @@ def main() -> None:
                     "xrtMalloc", "xrtCalloc", "xrtFree", "xrtArrayInit",
                     "xrtArrayReserve", "xrtArrayPush", "xrtArrayUnit")]
             run([str(cc), str(objects[name]), *extra, str(core), "-Wl,--gc-sections", *libraries, "-o", str(program)], name + "-link")
-            result = run([str(program)], name + "-run", 180 if name == "analysis_ir_persistent_fault_test" else 120 if name == "analysis_ir_scan_test" else 30)
+            result = run([str(program)], name + "-run", 180 if name == "analysis_ir_persistent_fault_test" else 120 if name == "analysis_ir_scan_test" else 30, working_directory=output)
             if b"passed:" not in result.stdout:
                 raise RuntimeError(f"missing test completion receipt: {name}")
             runs.append(dict(name=name,stdout=result.stdout.decode("utf-8")))

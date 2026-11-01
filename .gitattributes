@@ -10,7 +10,10 @@ tools/tcc_vfs_manifest_linux_*.txt text eol=lf
 # Snapshot metadata hashes exact distribution bytes; keep generated single
 # headers canonical across Windows and Unix checkouts.
 /lib/xrt/xrt.h text eol=lf
+/lib/xrt/upstream.json text eol=lf
+/lib/xrt/xrt.snapshot.json text eol=lf
 /lib/xruntime/xruntime.h text eol=lf
+/lib/xruntime/xruntime.snapshot.json text eol=lf
 /release/include/xrt_decl.h text eol=lf
 /release/include/xruntime_decl.h text eol=lf
 /res/tcc/win64/x86_64/include/imm.h text eol=lf
@@ -77,3 +80,6 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 
 /lib/tcc/tcc_builtin_vfs.h text eol=lf
 /release/include/tcc_builtin_vfs.h text eol=lf
+
+# Keep recorded experimental patch hashes stable across checkout platforms.
+/ide/docs/prototypes/*.patch -text

@@ -2,6 +2,19 @@
 
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-11-01随后复验CBOR：完整数组/字典、六API、两平台双语和全部12份
+AOT均已通过，原M1在本包解除；没有在包中新增私有句柄/容器转换方案。
+Windows两组不同DLL均通过59项，Linux59项含sanitizer与独立半精度
+对照。最新DLL下通用数组/TOML仍失败、BSON原中央用例仍通过，不能把
+两个包解除外推成整个投影边界已闭环。摘要见
+`docs/reports/extlib-cbor-20261101.json`；命令目录发布另待主线绑定。
+
+2026-11-01主目录0.6.0复验：BSON的原最小字典、原中央用例和完整嵌套/
+文件/JIT/AOT链路均已通过，本包不再作为M1当前失败证据。其已有的正式
+数据快照桥接来自主线先前更新，本轮没有新增容器兼容分支；BSON仍受独立
+的[原子保存回滚](bson_atomic_save_cleanup.md)阻断。通用数组最小源仍报
+`input is not an array`，TOML中央用例仍报根不是dict，不能按包名相似一并关闭。
+
 2026-10-30 根目录布局复验 `sitemap`：robots行尾修复后的Windows默认
 门禁前44项符合预期（含两个必拒绝负例），第45原中央语言数组生成
 仍抛ValueError；Linux sanitizer、JIT/AOT、XML独立检查及双语例完成
