@@ -117,7 +117,7 @@ def main():
     for path in [source, *native, template, contract, oom_contract, task_scalar_contract, task_composition_contract, task_optional_contract,
             task_reference_contract,error_array_contract,
             reference_boundary_contract,bound_dispatch_contract,bound_constraint_contract,bound_access_contract,bound_c_owner_contract,bound_generic_owner_contract,bound_nullable_generic_contract,bound_nullable_cast_contract,bound_variadic_owner_contract,callable_result_contract,bound_compound_contract,producer_tail_contract,
-            ROOT/'test/cases/extern_owned_bound_compound.xl',
+            ROOT/'test/cases/extern_owned_bound_compound.xl', ROOT/'test/cases/extern_owned_nested_result.xl',
             bound_match_contract,ROOT/'test/cases/extern_owned_bound_match.xl',
             match_values_contract,ROOT/'test/cases/extern_owned_match_values.xl',
             bound_callback_default_contract,ROOT/'test/cases/extern_owned_bound_callback_defaults.xl',
