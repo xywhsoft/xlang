@@ -20,6 +20,8 @@ const char* xstbiw_version(void);
 
 /* 返回 xbuffer*，由调用方 xrtBufferDestroy；void* 保持 XL point ABI 一致。 */
 /* 像素只借用；BMP 的 RGB 展开/行填充在分配输出前检查 128 MiB 限额。 */
+/* HDR 按本机 float32 对齐；颜色须有限且 0 <= value < 2^127，忽略的 alpha 不校验。 */
+/* HDR 在输出分配前多扫描一次颜色；无效值 VALUE、过大 RANGE、未对齐 ARGUMENT。 */
 void* xstbiw_encode(int Format, void* Pixels, size_t Length,
     int Width, int Height, int Channels, int Option);
 

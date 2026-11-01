@@ -1,5 +1,6 @@
 /* 图片编码只使用内存回调；UTF-8 文件路径由 XRT 统一处理。 */
 #include <limits.h>
+#include <math.h>
 #include <stdio.h>
 
 #ifndef XRT_MODULE_FILE_WHOLE
@@ -128,6 +129,29 @@ static bool xstbiw_validate(int Format, void* Pixels, size_t Length,
     if (Format == XSTBIW_BMP && xstbiw_bmp_size(Width, Height, Channels) > XSTBIW_OUTPUT_LIMIT) {
         xstbiw_error(XERR_RANGE, "encoded image exceeds 128 MiB");
         return false;
+    }
+    if (Format == XSTBIW_HDR) {
+        const float* Data;
+        size_t Count = (size_t)Width * (size_t)Height;
+        int Colors = Channels < 3 ? 1 : 3;
+        if ((uintptr_t)Pixels % _Alignof(float) != 0u) {
+            xstbiw_error(XERR_ARGUMENT, "HDR pixels must be aligned float32 values");
+            return false;
+        }
+        Data = (const float*)Pixels;
+        /* RGBE 不能表达负色值或第 128 个正指数；alpha 不进入编码，不额外限制。 */
+        for (size_t i = 0u; i < Count; ++i, Data += Channels) {
+            for (int c = 0; c < Colors; ++c) {
+                if (!isfinite(Data[c]) || Data[c] < 0.0f) {
+                    xstbiw_error(XERR_VALUE, "HDR colors must be finite and non-negative");
+                    return false;
+                }
+                if (Data[c] >= 0x1p127f) {
+                    xstbiw_error(XERR_RANGE, "HDR color exceeds the RGBE exponent range");
+                    return false;
+                }
+            }
+        }
     }
     return true;
 }

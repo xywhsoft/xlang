@@ -78,6 +78,13 @@ coverage。新鲜度通过，严格绑定仍报`Catalog compiler changed: xl.dll
 严格绑定仍报xl.dll，未安装。官网仅隔离预览，609份运行原始字节审计过。
 包内及保留的M1/RFS实测见`docs/reports/extlib-tar-text-20261102.json`。
 
+stb_image_write HDR阶段生成`build/test/stbiw_hdr_20261102/catalog/`，
+207包/17598项，新增/删除公开项0；生成时输入一致，随后新鲜度检查因
+并行`src/ir/xl6_ir.h`变化失败，严格绑定仍报`Catalog compiler changed: xl.dll`。
+候选未安装，不循环重生成碰运气；源码/README/coverage可据已提交来源重建。
+609份交付原字节审计通过，不能替代这两项门禁，完整结果见
+`docs/reports/extlib-stbiw-hdr-20261102.json`。
+
 1. 主线维护者完成稳定XRT同步、相匹配的编译器发布物和验收记录。
 2. 如标准库/主线绑定改变，先按当前正式验收报告重生成基础命令目录。
 3. 再刷新扩展资料候选，运行真实前端声明检查及严格覆盖/新鲜度检查。

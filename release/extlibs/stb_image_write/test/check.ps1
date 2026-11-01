@@ -1,4 +1,4 @@
-param([switch]$SkipAot)
+﻿param([switch]$SkipAot)
 
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
@@ -6,6 +6,7 @@ $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $xl = Join-Path $root 'release/xl.exe'
 $runner = Join-Path $root 'tools/run_extlib_c.ps1'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+$python = (Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $shell = (Get-Process -Id $PID).Path
 $workRoot = Join-Path $root 'build/test'
 $work = Join-Path $workRoot ('stb_write_guard_' + [guid]::NewGuid().ToString('N'))
@@ -25,7 +26,7 @@ $inputs = @('release/xl.exe','release/xl.dll','release/xlc.dll',
 foreach ($package in @('stb_image_write','stb_image')) {
     $inputs += @(Get-ChildItem (Join-Path $root "release/extlibs/$package") -File -Recurse | ForEach-Object FullName)
 }
-$inputs += @($gcc,$shell)
+$inputs += @($gcc,$shell,$python)
 
 function Run([string]$label, [string]$program, [string[]]$arguments) {
     if ($null -eq $arguments) { $arguments = @() }
@@ -58,6 +59,8 @@ try {
         '-Ilib/xrt','-Irelease/extlibs/stb_image_write/include','-Irelease/extlibs/stb_image/include',
         'release/extlibs/stb_image_write/stb_image_write_native.c',
         'release/extlibs/stb_image_write/test/test_stb_image_write.c',
+        'release/extlibs/stb_image_write/test/test_hdr_values.c',
+        'release/extlibs/stb_image_write/examples/hdr_values_c.c',
         'release/examples/extlibs/stb_image_write_c.c')
     $flags = @('-std=c11','-O2','-Wall','-Wextra','-Werror','-DXRT_IMPLEMENTATION','-Ilib/xrt')
     $links = @('-lws2_32','-lbcrypt','-lshlwapi','-liphlpapi')
@@ -65,6 +68,19 @@ try {
     $null = Run 'GCC BMP budgets build' $gcc ($flags + @(
         'release/extlibs/stb_image_write/test/test_bmp_budget.c','-o',$budget) + $links)
     $null = Run 'GCC BMP budgets' $budget @()
+    $hdr = Join-Path $work 'hdr_values.exe'
+    $corpus = Join-Path $work 'hdr_corpus'
+    [void][IO.Directory]::CreateDirectory($corpus)
+    $null = Run 'GCC HDR values build' $gcc ($flags + @(
+        'release/extlibs/stb_image_write/test/test_hdr_values.c','-o',$hdr) + $links)
+    $null = Run 'GCC HDR values' $hdr @($corpus)
+    $null = Run 'independent HDR decoder' $python @('-B','release/extlibs/stb_image_write/test/check_hdr_corpus.py',$corpus)
+    $hdrExample = Join-Path $work 'hdr_example.exe'
+    $null = Run 'GCC HDR example build' $gcc ($flags + @(
+        'release/extlibs/stb_image_write/examples/hdr_values_c.c','-o',$hdrExample) + $links)
+    $hdrGolden = @('gray HDR: 8x1','values above one: true','invalid color: rejected','source unchanged: true') -join "`n"
+    $hdrFile = Join-Path $work 'hdr_gcc.hdr'
+    if ((Run 'GCC HDR example' $hdrExample @($hdrFile)) -cne $hdrGolden) { throw 'HDR C example differs from golden' }
     $layout = Join-Path $work 'bmp_layout.exe'
     $null = Run 'GCC BMP example build' $gcc ($flags + @(
         'release/extlibs/stb_image_write/examples/bmp_layout_c.c','-o',$layout) + $links)
@@ -80,12 +96,21 @@ try {
         'release/extlibs/stb_image_write/test/output_limit.xl',
         'release/extlibs/stb_image_write/test/bmp_headers.xl',
         'release/extlibs/stb_image_write/test/test_bmp_budget.c'
+        'release/extlibs/stb_image_write/test/test_hdr_values.c'
+        'release/extlibs/stb_image_write/test/hdr_values.xl'
     )) {
         $null = Run "JIT $source" $xl @('run',$source)
     }
     foreach ($source in @('bmp_layout.xl','bmp_layout_c.c')) {
         if ((Run "JIT $source" $xl @('run',"release/extlibs/stb_image_write/examples/$source")) -cne $golden) {
             throw "BMP example differs from golden: $source"
+        }
+    }
+    foreach ($source in @('hdr_values.xl','hdr_values_c.c')) {
+        $file = Join-Path $work ($source + '.hdr')
+        if ((Run "JIT $source" $xl @('run',"release/extlibs/stb_image_write/examples/$source",'--',$file)) -cne $hdrGolden -or
+            (Get-FileHash $file).Hash -ne (Get-FileHash $hdrFile).Hash) {
+            throw "HDR direct example differs: $source"
         }
     }
     $cDir = Join-Path $work 'c'
@@ -155,12 +180,23 @@ try {
             @{name='limit';source='test/output_limit.xl';golden=$null},
             @{name='layout_xl';source='examples/bmp_layout.xl';golden=$golden},
             @{name='layout_c';source='examples/bmp_layout_c.c';golden=$golden}
+            @{name='hdr_test_c';source='test/test_hdr_values.c';golden=$null}
+            @{name='hdr_test_xl';source='test/hdr_values.xl';golden=$null}
         )
         foreach ($case in $cases) {
             $target = Join-Path $work ($case.name + '.exe')
             $null = Run "AOT $($case.name) build" $xl @('build',("release/extlibs/stb_image_write/" + $case.source),'-o',$target)
             $output = Run "AOT $($case.name)" $target @()
             if ($null -ne $case.golden -and $output -cne $case.golden) { throw "AOT golden differs: $($case.name)" }
+        }
+        foreach ($source in @('hdr_values.xl','hdr_values_c.c')) {
+            $target = Join-Path $work ($source + '.exe')
+            $file = Join-Path $work ($source + '.aot.hdr')
+            $null = Run "AOT $source build" $xl @('build',"release/extlibs/stb_image_write/examples/$source",'-o',$target)
+            if ((Run "AOT $source" $target @($file)) -cne $hdrGolden -or
+                (Get-FileHash $file).Hash -ne (Get-FileHash $hdrFile).Hash) {
+                throw "HDR AOT example differs: $source"
+            }
         }
     }
     foreach ($path in $hashes.Keys) {

@@ -29,3 +29,18 @@ Buffer 独立拥有；C 用 `xrtBufferDestroy`，XLang 自动释放。输入仅�
 原五格式文件例仍在 `release/examples/extlibs/stb_image_write.xl` 和
 `stb_image_write_c.c`：可传输出目录和素材路径，验证实际编码文件。
 64 MiB 输出预算及分配失败专项放在 `test`，不塞入日常示例。
+
+# HDR 值域范例
+
+`hdr_values.xl` 与 `hdr_values_c.c` 在内存中编码0、0.125、0.5、1、2、4、8、16，
+默认输出相同四行，不生成文件。可从仓库根运行：
+
+```powershell
+release/xl.exe run release/extlibs/stb_image_write/examples/hdr_values.xl
+release/xl.exe run release/extlibs/stb_image_write/examples/hdr_values_c.c
+```
+
+传 `-- output.hdr` 可保留编码文件；C与XLang均走本包公开原子写出接口。
+XLang固定字节夹具按当前小端x64 float32编写，C使用本机float数组。
+真正的HDR像素通常由`stb_image.loadf(...).pixels()`取得；alpha不进入RGBE，
+负/非有限颜色或超出RGBE指数范围会报告错误，而不是静默写坏图片。

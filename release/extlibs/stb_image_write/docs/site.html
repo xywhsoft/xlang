@@ -21,6 +21,8 @@
      <p>像素上限 64 MiB，输出上限 128 MiB；编码结果超限报告范围错误，实际分配失败报告内存错误，不返回部分图片。XLang 入口拒绝 C 整数回绕及写盘路径内嵌 NUL；文件写出使用 XRT 原子替换，失败保留已有目标。2026-10-26 重建发布物后，Windows/Linux x64 默认包门禁通过严格 C、Linux ASan/UBSan、故障与限额边界，以及 PNG/JPEG/BMP/TGA/HDR 五格式 C/XLang JIT 与独立 EXE 文件逐字节对照。旧共享 AOT 缺符号不再复现；仅签收本包有界 Buffer 编码/写出范围。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <p>2026-11-02：HDR颜色须有限、非负且小于2^127，负零合法，忽略的alpha不受限制；C输入须按本机float对齐。负值/NaN/无穷原会进入未定义字节转换，过大指数会回绕，现均在输出分配前拒绝。不复制源像素，但为HDR增加一次颜色扫描；其他格式不扫描。448组非法输入、96组有效输入、32个输出OOM和448个诊断OOM通过，诊断对象自身分配失败仍报MemoryError。独立RGBE解码验证96份数据，新增双语<code>examples/hdr_values.xl</code>/<code>hdr_values_c.c</code>默认只编码内存，传路径可写出相同HDR。Windows52项、Linux原生ASan/UBSan及额外float-cast-overflow、各12份独立程序通过；首次WSL中断的零字节快照不计为验收，新快照指纹和启动标识稳定，M3风险仍保留。</p>
+    <p>写入函数的语言层尺寸/收窄/路径NUL预检返回false，进入原生层后的失败则可能按XRT抛异常；C返回0并设置错误。不能把所有失败理解为false。HDR扫描成本已测：三轮固定GCC-O2夹具的完整进程中位数Windows79→89ms、Linux约59.5→70.0ms，输出摘要一致；这是有限夹具结果，不是全负载性能保证。原生对象text+416字节，data/bss不变，不代表最终程序大小。</p>
     <p>2026-10-30：BMP 在分配输出前按 RGB 展开与四字节行对齐计算总长度，超 128 MiB 立即报范围错误；不会先分配、扫描源像素或修改已有文件。合法 BMP 一次预留输出容量，1×1 灰度编码的可注入分配点从 5 减至 2，这不是吞吐或峰值内存测量。1/2/3 通道生成 54 字节头的 24 位 BMP（双通道 alpha 不保留），4 通道生成 122 字节 V4 头并保留 alpha。</p>
     <p>新增 C/XLang 内存布局范例 <code>release/extlibs/stb_image_write/examples/bmp_layout.xl</code> 与 <code>bmp_layout_c.c</code>，无素材、不写文件，断言三种布局并输出同一五行结果。原五格式文件对照保留；108 组头信息、8 个限额/文件保留场景、实际 OOM 与恢复通过。Windows 35 项完整门禁、Linux 原生 ASan/UBSan 和双平台各 8 份独立程序通过；实际生成的 4 个 C 原型及错误返回值负例通过。失败会限时结束并保留原始状态和现场。依赖解码包的 M3 风险仍在，不据本轮结果宣称整包无风险。</p>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>

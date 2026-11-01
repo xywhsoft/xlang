@@ -1,5 +1,42 @@
 # stb_image_write
 
+2026-11-02 HDR 颜色边界：旧实现会把负值/NaN/无穷转换为字节，额外的
+`float-cast-overflow` 检查可直接复现未定义转换；`FLT_MAX` 还会把 RGBE
+指数写回0。现仅对 HDR 在输出分配前检查实际颜色分量：须有限、非负且
+小于 `2^127`，负零合法；1/2通道编码灰度，3/4通道编码RGB，忽略的alpha
+不受此限制。C像素指针必须满足float对齐，先检查地址再构造类型化指针。
+这增加一次HDR源颜色扫描，不复制源像素、不增加输出缓冲；其他格式不扫描。
+调用期间像素只借用，调用方必须保持内容稳定，未添加隐式锁。
+
+普通非法颜色报告 `XERR_VALUE` / `ValueError`，有限但超范围报告
+`XERR_RANGE` / `RangeError`，未对齐C指针报告 `XERR_ARGUMENT`。
+诊断对象本身也可能分配失败，这时保留XRT的 `MemoryError`，不宣称错误
+通道零分配。`test/test_hdr_values.c` 检查448组非法输入、96组有效输入、
+32个输出OOM和448个诊断OOM，均验证恢复/源不变及活动内存；96份输出
+还经独立RGBE解码器检查，含平面/RLE、1/2/3/4通道、次正规数和指数边界。
+Linux门禁显式增加 `-fsanitize=float-cast-overflow`，通常的
+`-fsanitize=undefined` 不包含它，见 [GCC说明](https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html)。
+
+新增双语 `examples/hdr_values.xl` / `hdr_values_c.c`，在内存中编码包含
+大于1的灰度值并演示错误拒绝；默认不写文件，传输出路径则调用原子写出
+接口，C与XLang生成相同HDR。C使用本机float数组；XLang的固定十六进制
+示例仅针对当前小端x64目标，实际应用宜从 `stb_image.loadf(...).pixels()`
+取得本机float32字节。C Buffer的float32同样使用本机字节序，不是文件字节序。
+`test/benchmark_hdr.c` 是可选固定正色值成本夹具，不加入默认回归的计时门槛。
+HDR RGBE字段的指数/分量转换可参照 [Radiance实现](https://github.com/NREL/Radiance/blob/master/src/common/color.c)。
+本轮Windows默认完整门禁52项、61输入/工具指纹通过；Linux原生完整
+门禁含ASan/UBSan及额外浮点转换检查通过，两平台各12份独立程序通过。
+旧探针的负值/NaN/无穷触发未定义转换，修复版全部在输出前拒绝；原五格式
+文件对照与新HDR双语文件逐字节一致，依赖stb_image的M3风险继续保留。
+首次WSL验收中断、快照文件为零字节，没有计入验收；新快照的68个文件、
+四个工具和内核启动标识前后保持，原始中断现场也保留。
+
+成本初测：同一GCC-O2夹具生成12 MiB正色值像素、连续编码4次并计算结果
+摘要，三轮完整进程耗时中位数Windows为79→89 ms、Linux约59.5→70.0 ms，
+输出长度/摘要一致。包含初始化、数据准备和摘要成本，只说明本夹具的约
+13%/18%开销，不是纯编码计时或全负载保证。原生对象text增加416字节，
+data/bss不变；不是最终程序体积。性能测试没有设不稳定的计时通过门槛。
+
 2026-10-30 BMP 确定输出大小改为编码前检查：单通道像素会展开为 RGB，
 64 MiB 合法源可能超过 128 MiB 输出预算。旧实现只在回调中发现超限，
 低内存时会先申请输出并误报 MEMORY；现超限直接 RANGE，不分配输出、
@@ -41,7 +78,7 @@ SHA-256 一致。下文共享 AOT 缺符号记录属于旧发布物；本轮未
 `stb_image_write` 提供 PNG、JPEG、BMP、TGA、HDR 图片编码。XLang 输入必须是
 `Buffer`，不接受没有长度信息的裸指针；HDR `Buffer` 包含按行紧密排列的
 `float32` 通道，其余格式为每通道一个字节。`encode*` 返回独立的 `Buffer`，
-`write*` 编码后通过 XRT 同目录临时文件原子替换目标，并返回布尔结果；
+`write*` 编码后通过 XRT 同目录临时文件原子替换目标，成功返回true；
 写入失败时保留已有目标，不承诺断电后的目录项持久性。Windows 中文 UTF-8
 路径与 Linux 路径使用同一接口，不走 stb 的 stdio 文件函数。
 
@@ -62,8 +99,12 @@ assert stb_image_write.writePng("copy.png", pixels,
 `encodeTga`/`writeTga`、`encodeHdr`/`writeHdr`。PNG 的可选 `stride`
 为每行字节数，`0` 表示紧凑排列；JPEG 的可选 `quality` 为 1 到 100，
 默认 90。宽高必须为正、各不超过 16384；通道数必须为 1 到 4；
-像素预算 64 MiB，编码结果预算 128 MiB。无效输入不触碰像素内存，
-`encode*` 在 XLang 中抛出 `ValueError`，`write*` 返回 `false`。XLang
+像素预算 64 MiB，编码结果预算 128 MiB。尺寸、长度和步长等元数据无效时，
+在解引用像素前拒绝；HDR颜色值域错误需要读取并检查颜色后才能判断。
+`encode*` 在 XLang 中报告相应异常。`write*` 的语言层尺寸/参数收窄/路径NUL
+预检拒绝返回 `false`；进入原生层后的参数、颜色、内存或文件错误则按XRT
+通道抛异常，不是所有失败都返回false。C的写入入口失败返回0并设置XRT错误。
+这是对既有运行行为的文档澄清，不吞异常来制造新的布尔兼容层。XLang
 入口在转换为 C `int` 前检查宽高、通道数和可选参数范围，避免大整数回绕；
 `write*` 还拒绝路径中的内嵌 NUL，避免意外覆盖截断后的前缀路径。
 合法输入若编码后超过 128 MiB，C 侧报告 `XERR_RANGE`、XLang `encode*`

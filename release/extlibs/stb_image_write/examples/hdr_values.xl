@@ -1,0 +1,24 @@
+import stb_image_write
+
+func main(...) as int
+    // 固定x64范例的float32字节：0、0.125、0.5、1、2、4、8、16。
+    // 实际图片通常从stb_image.loadf(...).pixels()取得本机float32 Buffer。
+    string source = "000000000000003e0000003f0000803f00000040000080400000004100008041"
+    Buffer pixels = Buffer.fromHex(source)
+    assert stb_image_write.encodeHdr(pixels, 8, 1, 1).len() > 0
+    if arg.length > 1 then
+        assert stb_image_write.writeHdr(string(arg[1]), pixels, 8, 1, 1)
+    end
+    bool rejected = false
+    try
+        stb_image_write.encodeHdr(Buffer.fromHex("000080bf"), 1, 1, 1)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected and pixels.hex() == source
+    println("gray HDR: 8x1")
+    println("values above one: true")
+    println("invalid color: rejected")
+    println("source unchanged: true")
+    return 0
+end

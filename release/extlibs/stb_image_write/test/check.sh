@@ -17,7 +17,7 @@ cc=${CC:-gcc}
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror
        -Ilib/xrt -Irelease/extlibs/stb_image_write/include
        -Irelease/extlibs/stb_image/include
-       -fsanitize=address,undefined -fno-omit-frame-pointer
+       -fsanitize=address,undefined,float-cast-overflow -fno-omit-frame-pointer
        -fno-pie -no-pie -pthread)
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
@@ -31,6 +31,31 @@ mapfile -d '' inputs < <(
 )
 sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
 "$cc" --version > "$work/compiler.txt"
+mkdir "$work/hdr_corpus"
+timeout 120s "$cc" "${flags[@]}" -DXRT_IMPLEMENTATION \
+    release/extlibs/stb_image_write/test/test_hdr_values.c -lm -ldl -o "$work/hdr_values"
+timeout 90s "$work/hdr_values" "$work/hdr_corpus"
+timeout 90s python3 -B release/extlibs/stb_image_write/test/check_hdr_corpus.py "$work/hdr_corpus"
+for source in test/test_hdr_values.c test/hdr_values.xl; do
+    name=${source##*/}
+    timeout 90s release/xl run "release/extlibs/stb_image_write/$source"
+    timeout 90s release/xl build "release/extlibs/stb_image_write/$source" -o "$work/$name.aot"
+    timeout 90s "$work/$name.aot"
+done
+printf 'gray HDR: 8x1\nvalues above one: true\ninvalid color: rejected\nsource unchanged: true\n' > "$work/hdr.golden"
+timeout 120s "$cc" "${flags[@]}" -DXRT_IMPLEMENTATION \
+    release/extlibs/stb_image_write/examples/hdr_values_c.c -lm -ldl -o "$work/hdr_example"
+timeout 90s "$work/hdr_example" "$work/hdr_gcc.hdr" > "$work/hdr_gcc.txt"
+diff -u "$work/hdr.golden" "$work/hdr_gcc.txt"
+for source in hdr_values.xl hdr_values_c.c; do
+    timeout 90s release/xl run "release/extlibs/stb_image_write/examples/$source" -- "$work/$source.jit.hdr" > "$work/$source.jit.txt"
+    timeout 90s release/xl build "release/extlibs/stb_image_write/examples/$source" -o "$work/$source.aot"
+    timeout 90s "$work/$source.aot" "$work/$source.aot.hdr" > "$work/$source.aot.txt"
+    diff -u "$work/hdr.golden" "$work/$source.jit.txt"
+    diff -u "$work/hdr.golden" "$work/$source.aot.txt"
+    cmp "$work/hdr_gcc.hdr" "$work/$source.jit.hdr"
+    cmp "$work/hdr_gcc.hdr" "$work/$source.aot.hdr"
+done
 
 # 确定超限应在输出分配前拒绝；普通分配失败仍是 MEMORY，且立即可重试。
 timeout 120s "$cc" "${flags[@]}" -DXRT_IMPLEMENTATION \
