@@ -1,3 +1,4 @@
+#include "src/common/xl6_xrt.h"
 #include "src/runtime/xl6_foreign_view.h"
 #include <xui.h>
 #include <xge.h>

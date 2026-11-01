@@ -1,0 +1,47 @@
+{
+  "recordedAt": "2026-11-02",
+  "scope": "Private resident retained native callback foundation; no language/native-XUI/public SDK or release activation.",
+  "checks": [
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\native-userdata-win-r5\\results.json",
+      "sha256": "bc8c91dd64e6193ffc18eb0d759d8e7a06c9b2f71752aaab573734679746c15b",
+      "stages": 58
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\view-affinity-win-r1\\results.json",
+      "sha256": "532260cedc0b5234f1c65498932fd903f94dd6e0a2c566abfaf58c9533167280",
+      "stages": 20
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\component-userdata-win-r1\\results.json",
+      "sha256": "87f29da756e5fca24b8bf81cd9ff7fb9b89c29432308306b91201204cb607f10",
+      "stages": 4
+    }
+  ],
+  "linux": {
+    "path": "/home/ubuntu/xlang-validation/native-userdata-20261102-r2/results.json",
+    "stages": 58,
+    "changedUnitsSanitized": true,
+    "reusedCoreSanitized": false
+  },
+  "contracts": [
+    "distinct closure-body and typed-adapter code leases",
+    "native snapshot retained until typed thunk returns",
+    "actual implicit control pin traced without language default-close suppression",
+    "replacement, nested typed calls, cycles, two allocation-failure prefixes",
+    "checked NULL-diagnostic cleanup failure and incoming first-error identity",
+    "creator-thread deferral; refuse foreign-thread native graph reads before Count/Trace",
+    "50 independent shared-library body/adapter lifetimes per optimization/platform"
+  ],
+  "costs": {
+    "hotPath": "typed direct call and RC/execution/context bookkeeping; zero XRT allocation in the nested-call fixture",
+    "coldPath": "one callback record plus adapter lease and existing closure/view allocations",
+    "zeroOverheadClaim": false
+  },
+  "remaining": [
+    "native XUI retained owner slots and complete raw graph",
+    "language managed type/field/capture schemas and closed XLIR",
+    "factory result guard, text borrowing, contiguous spans, complete effects",
+    "package/SDK/IDE/examples replacement and final current-source build"
+  ]
+}

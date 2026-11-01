@@ -14,17 +14,20 @@ def main():
     p.add_argument('--out',type=Path,required=True)
     p.add_argument('--sanitize',action='store_true')
     p.add_argument('--callbacks',action='store_true')
+    p.add_argument('--userdata',action='store_true')
     a=p.parse_args();root,base,out=[v.resolve() for v in (a.root,a.base,a.out)]
     cc=shutil.which('gcc');assert cc
     build=json.loads((base/'build.json').read_text(encoding='utf-8-sig'))
     assert build['Complete'] and build['InputsUnchanged']
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
-    fixture='foreign_view_callbacks.c' if a.callbacks else 'foreign_view_storage.c'
+    assert not(a.callbacks and a.userdata)
+    fixture='foreign_native_userdata.c' if a.userdata else 'foreign_view_callbacks.c' if a.callbacks else 'foreign_view_storage.c'
     sources=[root/('test/support/'+fixture)]+[root/('src/runtime/'+n+'.c') for n in (
         'xl6_cell','xl6_native_future_payload','xl6_foreign_view','xl6_foreign_callback_scope','xl6_foreign_context',
         'xl6_closure','xl6_code_finalizer',
         'xl6_native_capture_graph','xl6_foreign_view_capture','xl6_capture_v3','xl6_closure_capture_v4',
         'xl6_cell_native_graph','xl6_native_graph_future_payload','xl6_ownership_domain_native_graph_future_payload')]
+    if a.userdata:sources.append(root/'src/runtime/xl6_native_callback.c')
     base_root=next(Path(row['Source']).parents[2] for row in build['Objects'] if Path(row['Source']).name=='xl_api.c')
     replaced={str(path.relative_to(root)).lower() for path in sources}
     driver=('xlir_public_runtime_driver.c' if build['RuntimeOnly'] else 'xlir_public_source_driver.c') if os.name=='nt' else 'xlir_public_source_linux_driver.c'
@@ -32,7 +35,8 @@ def main():
     reused=[row for row in build['Objects'] if str(Path(row['Source']).relative_to(base_root)).lower() not in replaced]
     assert all(sha(row['Path']).lower()==row['Sha256'].lower() for row in reused)
     out.mkdir(parents=True,exist_ok=False);(out/'tmp').mkdir()
-    inputs={str(path):sha(path) for path in [Path(__file__).resolve(),base/'build.json',*sources,
+    module_sources=[root/'test/support/foreign_native_userdata_module.c',root/'test/support/foreign_native_userdata_module.h'] if a.userdata else []
+    inputs={str(path):sha(path) for path in [Path(__file__).resolve(),base/'build.json',*sources,*module_sources,
         root/'test/support/foreign_view_native_fixture.h',*sorted((root/'src/runtime').glob('*.h')),
         *sorted((root/'src/api').glob('*.h')),*sorted((root/'src/common').glob('*.h'))]}
     report=dict(complete=False,passed=False,scope=__doc__,networkTests=False,
@@ -56,8 +60,17 @@ def main():
     # about real type/signature mismatches is disabled.
     if os.name!='nt':baseflags+=['-Wno-unused-function','-Wno-unused-const-variable']
     if a.sanitize:baseflags+=['-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie']
-    cases=('finalizer','context-release','box-invoke','box-drop','all') if a.callbacks else ('cells','cell-cycle','futures','future-cycle','cleanup','allocation','all')
+    cases=('replacement','nested','binding','cycle','errors','cleanup','affinity','allocation','all') if a.userdata else ('finalizer','context-release','box-invoke','box-drop','all') if a.callbacks else ('cells','cell-cycle','futures','future-cycle','cleanup','allocation','all')
     for opt in ('O0','O2'):
+        modules=[]
+        if a.userdata:
+            for role in ('body','adapter'):
+                library=out/(opt+'-'+role+('.dll' if os.name=='nt' else '.so'))
+                # Modules contain only typed entries; all ownership calls use
+                # the exact resident operation table supplied by the host.
+                if run(opt+'-module-'+role,[cc,'-std=c11','-Wall','-Wextra','-Werror','-'+opt,
+                    '-I'+str(root),'-shared',*(['-fPIC'] if os.name!='nt' else []),
+                    *(['-DUSERDATA_MODULE_BODY'] if role=='body' else []),module_sources[0],'-o',library]):modules.append(library)
         compiled=[]
         for source in sources:
             obj=out/(opt+'-'+source.stem+'.o')
@@ -81,9 +94,10 @@ def main():
         if run(opt+'-link',[cc,'@'+str(rsp)]):
             for case in cases:
                 run(opt+'-'+case,[exe,*([] if case=='all' else [case])])
+            if a.userdata and len(modules)==2:run(opt+'-modules',[exe,'modules',*modules])
     report['inputsUnchanged']=all(sha(path)==value for path,value in inputs.items())
     report['complete']=True
-    report['passed']=report['inputsUnchanged'] and len(report['rows'])==2*(len(sources)+1+len(cases)) and all(row['exitCode']==0 for row in report['rows'])
+    report['passed']=report['inputsUnchanged'] and len(report['rows'])==2*(len(sources)+1+len(cases)+(3 if a.userdata else 0)) and all(row['exitCode']==0 for row in report['rows'])
     save();assert report['passed'],out/'results.json'
 
 if __name__=='__main__':main()

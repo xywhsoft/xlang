@@ -1,5 +1,6 @@
 #ifndef XL6_TEST_FOREIGN_VIEW_NATIVE_FIXTURE_H
 #define XL6_TEST_FOREIGN_VIEW_NATIVE_FIXTURE_H
+#include "src/common/xl6_xrt.h"
 #include "src/runtime/xl6_foreign_view.h"
 #include "src/runtime/xl6_ownership_plan.h"
 #include "src/runtime/xl6_closure.h"

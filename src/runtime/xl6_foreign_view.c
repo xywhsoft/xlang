@@ -1,3 +1,4 @@
+#include "src/common/xl6_xrt.h"
 #include "xl6_foreign_view.h"
 #include "xl6_foreign_context.h"
 #include "src/api/xl_foreign_error.h"
@@ -256,6 +257,20 @@ static void viewDrop(const void* raw)
     xrtFree(view);
     viewDrop(owner); xl6CodeLeaseRelease(code);
 }
+XL6_ForeignView* xl6ForeignViewNativePinV1(XL6_ForeignView* view)
+{
+    if(!view){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    XL6_ForeignView* root=viewRoot(view);
+    xrtownershipscope mutation={0};viewMutationBegin(&mutation);
+    bool ok=root->thread==xrtThreadCurrentId() && !root->claim && !root->cleared &&
+        !xrtAtomic32Load(&root->closing,XMEMORY_ACQUIRE) &&
+        xrtAtomic32Load(&root->nativeLive,XMEMORY_ACQUIRE) && viewHold(root);
+    viewMutationEnd(&mutation);
+    if(!ok)xrtSetErrorKind(XERR_STATE);
+    return ok?root:NULL;
+}
+void xl6ForeignViewNativeUnpinV1(XL6_ForeignView* root)
+{ viewDrop(root); }
 bool xl6ForeignViewReleaseV1(XL6_ForeignView* view)
 {
     if (!view) return true;
@@ -457,7 +472,7 @@ bool xl6ForeignViewDrainV1(void)
     return viewPublish(xl6ErrorScopeEnd(&errors));
 }
 
-size_t xl6ForeignViewPendingV1(uint64 thread)
+size_t xl6ForeignViewPendingV1(uint64_t thread)
 {
     size_t count=0;
     xrtownershipscope mutation={0}; viewMutationBegin(&mutation); viewLockEnter();
@@ -466,11 +481,18 @@ size_t xl6ForeignViewPendingV1(uint64 thread)
     viewLockLeave(); viewMutationEnd(&mutation); return count;
 }
 
+static bool viewBusy(const void* raw)
+{
+    const XL6_ForeignView* root=viewRoot((XL6_ForeignView*)raw);
+    /* Freeze excludes resident mutations, not arbitrary native UI writes.
+     * Creator-affine raw payloads may only be inspected on their thread. */
+    return root->thread!=xrtThreadCurrentId() ||
+        xrtAtomic32Load(&root->active,XMEMORY_ACQUIRE)!=0;
+}
 static bool viewReadCount(const void* raw,size_t* count)
 {
     const XL6_ForeignView* view=raw;
-    if (!view || !count || view->cleared ||
-        xrtAtomic32Load(&viewRoot((XL6_ForeignView*)view)->active,XMEMORY_ACQUIRE)) return false;
+    if (!view || !count || view->cleared || viewBusy(view)) return false;
     uint64 refs=xrtAtomic64Load(&view->references,XMEMORY_ACQUIRE);
     if (!refs || refs>SIZE_MAX) return false;
     *count=(size_t)refs; return true;
@@ -490,8 +512,6 @@ static bool viewTrace(const void* raw,xrtownershipvisitor visit,void* context)
     return !view->raw || !view->descriptor.TraceRaw || view->descriptor.TraceRaw(view->raw,visit,context);
 }
 static const xrtownershipops viewOps={viewReadCount,viewTrace};
-static bool viewBusy(const void* raw)
-{ return xrtAtomic32Load(&viewRoot((XL6_ForeignView*)raw)->active,XMEMORY_ACQUIRE)!=0; }
 static bool viewClaim(const void* raw,const void* token)
 {
     XL6_ForeignView* view=(XL6_ForeignView*)raw;
@@ -552,7 +572,7 @@ static bool viewDomainResolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1*
     *adapter=&viewAdapter; *preparation=&viewPreparation; *finish=NULL; return true;
 }
 static bool viewDomainAdmitsRead(xrtownershipref ref)
-{ return ref.Data && ref.Ops==&viewOps; }
+{ return ref.Data && ref.Ops==&viewOps && !viewBusy(ref.Data); }
 const XL6_OwnershipDomainV1* xl6OwnershipDomainForeignViewV1Get(void)
 {
     static const XL6_OwnershipDomainV1 domain={sizeof(domain),viewDomainLoad,viewDomainResolve,viewDomainAdmitsRead};

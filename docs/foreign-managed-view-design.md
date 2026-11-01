@@ -41,3 +41,9 @@ OS key 初始化和首次绑定是冷路径，不能称作绝对零成本；稳�
 十个私有组件已进入按需构建和精确符号表，通用 capture／cell／Future graph 能力不依赖 View 目录。Windows 1,407 单元源码构建完成；新组件进入独立程序时暴露了旧预编译 VFS 缺对象，现用 1,555 个当前 TCC 对象和隔离的新 VFS 提供方验收。编译器 driver／对象保持该完整源码构建的原字节；隔离 DLL 只运行 TinyCC／VFS，没有第二份正在执行的 xlang／XRT 实现，预编译目标对象仍以资源保存。发布目录没有因此更新。
 
 更新资源后的声明式接入 11 组全部通过；旧 native cell、native Future 专项分别通过 510、391 个阶段，包含独立 O0/O2 提供方、故障前缀、错误实现负控、JIT／模块／独立程序。可卸载 finalizer 夹具在两个优化等级分别验证 250 个真实 DLL 生命周期。验证工具同时改走长命令响应文件、复用隔离 SDK，不在仓库根目录重建源码快照。上述是底座接入检查点；XUI retained callback 槽、类字段、完整受管声明与 IR、独立 SDK 头、工厂保护／文本／span／效果合同和产品迁移仍未完成。
+
+retained userdata 检查点：驻留 `NativeCallback V1` 同时拥有类型化 Closure、独立适配器 CodeLease 和隐式 Root 控制 pin。隐式 pin 是实际图边，但不增加语言拥有值计数；普通绑定不会自行阻止 context 默认关闭。用户真正捕获的 context 仍是语言拥有值。原生发布方在调用前取得独立 snapshot 引用，在整个类型化 thunk 返回后才 Drop，避免 resident Leave 返回尾部的适配器 DLL 提前卸载。替换先发布新槽，再在 mutation 外清理旧引用；清理失败不能伪装为替换未发生。
+
+Windows 和 Linux 修改单元 O0/O2 各 58 阶段通过，Linux 对这些修改单元启用 ASan/UBSan/泄漏检查，复用核心未重新插桩。每个优化等级分别跑过 50 对实际可卸载 body／adapter 共享库；回调内部删除原生槽后，两份库仍驻留到 thunk 完整返回。还覆盖 checked 空诊断失败、首错保留、错误线程释放后由创建线程 drain、循环图和两个创建 OOM 位置。重复嵌套调用没有 XRT 分配、释放或 realloc，但仍有 RC、代码活动和执行上下文登记，不能称整个绑定零成本。
+
+View 的公开声明头移除了源树 XRT 依赖；拥有图 Count／Trace 和独立 Read 准入在检查 native payload 前拒绝错误线程。上述仅为私有组件和测试合同；XUI 原生 retained 槽、完整 payload 图、语言 schema／IR 及发布 SDK 仍需后续接入。

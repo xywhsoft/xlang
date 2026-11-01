@@ -1014,6 +1014,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_native_graph_future_payload.c",D(R(NATIVE_CAPTURE_GRAPH),R(FOREIGN_CALLBACK_SCOPE),R(FOREIGN_ERROR)),
         {"XRT_MODULE_MEMORY","XRT_MODULE_FUTURE"}},
     {"src/runtime/xl6_ownership_domain_native_graph_future_payload.c",D(R(OWNERSHIP_CATALOG),R(NATIVE_GRAPH_FUTURE_PAYLOAD)),{NULL}},
+    {"src/runtime/xl6_native_callback.c",D(R(CLOSURE),R(FOREIGN_VIEW),R(FOREIGN_ERROR)),{"XRT_MODULE_MEMORY","XRT_MODULE_ATOMIC"}},
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
