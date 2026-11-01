@@ -17,6 +17,7 @@ cleanup() {
 }
 trap cleanup EXIT
 cd "$root"
+bash release/extlibs/tar/test/check_text.sh
 sh release/extlibs/tar/test/check_numeric.sh
 sh release/extlibs/tar/test/check_reader.sh
 sh release/extlibs/tar/test/check_writer.sh
