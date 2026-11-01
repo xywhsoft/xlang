@@ -49,10 +49,12 @@ function Run([string]$Name, [string]$Program, [string[]]$Arguments, [int]$Second
 $outcome = 'failed'
 $failure = ''
 $changed = @()
+$inputSnapshotComplete = $false
 try {
     foreach ($path in @(InputPaths | Sort-Object -Unique)) {
         $hashes[$path] = (Get-FileHash -LiteralPath $path).Hash
     }
+    $inputSnapshotComplete = $true
     $failed = $false
     foreach ($name in $Package) {
         $expected = "$name top-level: PASS"
@@ -82,17 +84,21 @@ try {
     throw
 } finally {
     # 失败也检查输入，并保留全部 EXE、原始诊断和真实退出码。
-    foreach ($path in $hashes.Keys) {
-        if (!(Test-Path -LiteralPath $path) -or (Get-FileHash -LiteralPath $path).Hash -cne $hashes[$path]) {
-            $changed += $path
+    # 基线未收齐时保留首因，不能把其余未采集项误报为运行期间新增。
+    if ($inputSnapshotComplete) {
+        foreach ($path in $hashes.Keys) {
+            if (!(Test-Path -LiteralPath $path) -or (Get-FileHash -LiteralPath $path).Hash -cne $hashes[$path]) {
+                $changed += $path
+            }
         }
+        $changed += @(InputPaths | Where-Object { !$hashes.Contains($_) })
     }
-    $changed += @(InputPaths | Where-Object { !$hashes.Contains($_) })
     if ($changed.Count) { $outcome = 'invalid-input-change' }
     $report = [ordered]@{date=(Get-Date).ToString('o');outcome=$outcome;failure=$failure;
         scope='Native-backed class global creation, validity and natural retirement; not algorithm recertification';
         aotSkipped=[bool]$SkipAot;packages=$Package;runtimeDirectory=$RuntimeDirectory;
-        environment=$environment;inputs=$hashes;changedInputs=$changed;checks=@($checks.ToArray())}
+        environment=$environment;inputSnapshotComplete=$inputSnapshotComplete;
+        inputs=$hashes;changedInputs=$changed;checks=@($checks.ToArray())}
     [IO.File]::WriteAllText((Join-Path $work 'results.json'),($report | ConvertTo-Json -Depth 8),$utf8)
     Write-Host "[native-globals] report: $work"
     if ($changed.Count) { throw 'Inputs changed during native global lifetime checks' }
