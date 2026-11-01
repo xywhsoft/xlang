@@ -29,6 +29,8 @@ def main():
         if not passed:raise RuntimeError(name+'\n'+log[-5000:])
         print(name+': PASS',flush=True)
     cases=[
+        ('nested-callable-result','test/cases/extern_owned_nested_result.xl',
+            ['test/cases/extern_owned_bound_c_owners_host.c','test/cases/extern_owned_string_host.c'],[]),
         ('extern_owned_string','test/cases/extern_owned_string.xl',['test/cases/extern_owned_string_host.c'],['owned_text','owned_empty','owned_null','owned_optional']),
         ('extern_owned_string_package','test/cases/extern_owned_string_package.xl',[],['owned_package_text','owned_package_optional']),
         ('extern_owned_string_export','test/cases/extern_owned_string_export.xl',['test/cases/extern_owned_string_host.c'],['owned_text']),

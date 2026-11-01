@@ -1,0 +1,161 @@
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point data)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+extern "bound_c_owners_one_record" @no_raise func oneRecord() as bool
+extern "owned_reset" @no_raise func reset()
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int prefix)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+// Returned callable conversion retains the receiver after the factory escapes.
+typedef Text=func(int) as cstring
+typedef Copy=func(int) as string
+typedef Data=func() as cbytes
+typedef DataCopy=func() as bytes
+typedef Layer=func() as Text
+typedef LayerCopy=func() as Copy
+int calls=0
+class Reader
+    func Text(int number=7) as cstring
+        assert number==7
+        calls+=1
+        return cstring.take(rawText(),release)
+    end
+    func Data() as cbytes
+        return cbytes.take(rawBytes(),4,release)
+    end
+    func Args(...) as cstring
+        assert arg.length==2 and arg[0]==7 and arg[1]=="a"
+        return cstring.take(rawText(),release)
+    end
+    func Options(***) as cbytes
+        assert arg["key"]==7
+        return cbytes.take(rawBytes(),4,release)
+    end
+    func Echo(string label) as cstring
+        assert label=="hello"
+        return cstring.take(rawText(),release)
+    end
+    func ArgsFactory() as func(...) as cstring
+        return self.Args
+    end
+    func OptionsFactory() as func(***) as cbytes
+        return self.Options
+    end
+    func EchoFactory() as func(string) as cstring
+        return self.Echo
+    end
+    func Factory() as Text
+        return self.Text
+    end
+    func Binary() as Data
+        return self.Data
+    end
+    func Maybe(bool present) as Text?
+        return present ? self.Text : null
+    end
+    func Layer() as Layer
+        return self.Factory
+    end
+    func Pair() as (Text,cbytes,int)
+        return self.Text,self.Data(),7
+    end
+end
+class Box<K>
+    func Read(K value) as cstring
+        return cstring.take(rawText(),release)
+    end
+    func Factory() as func(K) as cstring
+        return self.Read
+    end
+end
+class VirtualFactory
+    virtual func Factory() as Text
+        return Reader().Text
+    end
+end
+class DerivedFactory extends VirtualFactory
+    override func Factory() as Text
+        calls+=1
+        return Reader().Text
+    end
+end
+int receivers=0
+func receiver() as Reader
+    receivers+=1
+    return Reader()
+end
+func escaped() as func() as Copy
+    Reader reader=Reader()
+    return reader.Factory
+end
+func check(bool flag)
+    receivers=0
+    func() as Copy evaluatedOnce=receiver().Factory
+    assert receivers==1 and evaluatedOnce()(7)=="hello" and receivers==1
+    Box<int> box=Box::<int>()
+    func() as func(int) as string generic=box.Factory
+    assert generic()(7)=="hello"
+    VirtualFactory dynamic=DerivedFactory()
+    func() as Copy dispatched=dynamic.Factory
+    calls=0
+    assert dispatched()(7)=="hello" and calls==2
+    Reader left=Reader()
+    Reader right=Reader()
+    func() as Copy factory=left.Factory
+    Copy value=factory()
+    calls=0
+    assert value(7)=="hello" and calls==1
+    assert value(7)=="hello" and calls==2
+    func() as Copy conditional=flag ? left.Factory : right.Factory
+    assert conditional()(7)=="hello"
+    auto cast=left.Factory as func() as Copy
+    assert cast()(7)=="hello"
+    func() as Text exact=left.Factory
+    string originalValue=exact()(7)
+    assert original(originalValue)
+    func() as DataCopy binary=left.Binary
+    bytes binaryValue=binary()()
+    assert binaryValue==b"\0\xff\x11*" and not originalBytes(binaryValue)
+    func(bool) as Copy? maybe=left.Maybe
+    assert maybe(false)==null
+    Copy? present=maybe(true)
+    if present!=null
+        assert present(7)=="hello"
+    end
+    func() as LayerCopy layer=left.Layer
+    assert layer()()(7)=="hello"
+    func() as (Copy,cbytes,int) pair=left.Pair
+    auto text,data,number=pair()
+    assert text(7)=="hello" and originalBytes(data) and number==7
+    func() as func(...) as string readArgs=left.ArgsFactory
+    assert readArgs()(7,"a")=="hello"
+    func() as func(***) as bytes readOptions=left.OptionsFactory
+    assert readOptions()(key=7)==b"\0\xff\x11*"
+    func() as func(string) as string echo=left.EchoFactory
+    assert echo()("hello")=="hello"
+    func() as Copy saved=escaped()
+    assert saved()(7)=="hello"
+end
+assert debug()
+check(true)
+check(false)
+assert balanced()
+int accepted=0
+int rejected=0
+for prefix in range(384)
+    int before=live()
+    failAfter(prefix)
+    try
+        check(prefix%2==0)
+        accepted+=1
+    catch problem
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before and balanced()
+end
+assert accepted>0 and rejected>0
