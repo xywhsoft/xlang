@@ -8331,6 +8331,40 @@ static int xl6SemCheckXCallConversion(XL6_SemContext* ctx, XL6_AstNode* node)
     return ok;
 }
 
+/* Infer dependent returned callables without treating their result-copy
+ * boundary as an invariant input. Containers and callable inputs still use
+ * ordinary invariant unification; the closed result is checked again below. */
+static int xl6SemInferBoundResultTypes(XL6_SemContext* ctx,const XL6_AstNode* typeParams,
+    XL6_AstNode** inferred,const XL6_AstNode* formal,const XL6_AstNode* actual,unsigned depth)
+{
+    formal=xl6SemResolveAliasType(ctx,formal);actual=xl6SemResolveAliasType(ctx,actual);
+    if(!formal || !actual || depth>32)return 0;
+    if(!xl6SemTypeContainsTypeParam(typeParams,formal))
+        return xl6SemCOwnedResultMatchDepth(ctx,actual,formal,depth)>=0;
+    const XL6_AstNode* fromInner=xl6SemNullableInnerType(formal);
+    const XL6_AstNode* toInner=xl6SemNullableInnerType(actual);
+    if(fromInner && toInner)
+        return xl6SemInferBoundResultTypes(ctx,typeParams,inferred,fromInner,toInner,depth+1);
+    if(xl6TextEquals(formal->text,"function") && xl6TextEquals(actual->text,"function") &&
+       formal->childCount==2 && actual->childCount==2) {
+        const XL6_AstNode* inputs=formal->children[0],*expected=actual->children[0];
+        const XL6_AstNode* results=formal->children[1],*wanted=actual->children[1];
+        if(inputs->childCount!=expected->childCount || results->childCount!=wanted->childCount)return 0;
+        for(size_t p=0;p<inputs->childCount;++p) {
+            const XL6_AstNode* from=xl6SemCallableItemType(inputs->children[p]);
+            const XL6_AstNode* to=xl6SemCallableItemType(expected->children[p]);
+            if(xl6SemParamMode(inputs->children[p])!=xl6SemParamMode(expected->children[p]) ||
+               !(xl6SemTypeContainsTypeParam(typeParams,from)
+                 ? xl6SemInferGenericTypeFromTypes(ctx,typeParams,inferred,from,to)
+                 : xl6SemTypeEquals(ctx,from,to)))return 0;
+        }
+        for(size_t r=0;r<results->childCount;++r)
+            if(!xl6SemInferBoundResultTypes(ctx,typeParams,inferred,results->children[r],wanted->children[r],depth+1))return 0;
+        return 1;
+    }
+    return xl6SemInferGenericTypeFromTypes(ctx,typeParams,inferred,formal,actual);
+}
+
 /* Resolve fixed method groups while semantic access, owner arguments and
  * constraint evidence are available. This also preserves the selection inside
  * generic function templates until their concrete signatures are cloned. */
@@ -8408,7 +8442,7 @@ static int xl6SemConstrainedBoundMethodCost(XL6_SemContext* ctx,const XL6_AstNod
                 const XL6_AstNode* formal=worker->children[r];
                 const XL6_AstNode* actual=asyncResult ? asyncResult : resultList->children[r];
                 if(xl6SemTypeContainsTypeParam(typeParams,formal))
-                    ok=xl6SemInferGenericTypeFromTypes(ctx,typeParams,inferred,formal,actual);
+                    ok=xl6SemInferBoundResultTypes(ctx,typeParams,inferred,formal,actual,0);
                 else {
                     int conversion=xl6SemCOwnedResultMatchDepth(ctx,actual,formal,0);
                     ok=conversion>=0;
@@ -8423,6 +8457,17 @@ static int xl6SemConstrainedBoundMethodCost(XL6_SemContext* ctx,const XL6_AstNod
                 XL6_AstNode* arg=xl6SemCloneTypeNode(inferred[t]);
                 if(args && arg)xl6AstAddChild(args,arg);
                 if(!args || !arg || args->childCount!=old+1){xl6AstFree(arg);ok=false;}
+            }
+            /* Count a dependent result copy only after its type variables
+             * are closed. Fixed result slots were ranked in the loop above. */
+            for(size_t r=0;ok && r<worker->childCount;++r) {
+                const XL6_AstNode* formal=worker->children[r];
+                if(!xl6SemTypeContainsTypeParam(typeParams,formal))continue;
+                XL6_AstNode* result=xl6SemSubstituteGenericTypeArgs(typeParams,args,formal);
+                int conversion=xl6SemCOwnedResultMatchDepth(ctx,
+                    asyncResult ? asyncResult : resultList->children[r],result,0);
+                xl6AstFree(result);ok=conversion>=0;
+                if(ok && conversion)ok=xl6CallRankAdd(&rank,10,0)!=0;
             }
             XL6_AstNode* closed=ok ? xl6SemSubstituteGenericTypeArgs(typeParams,args,params) : NULL;
             XL6_AstNode* returns=ok ? xl6SemCloneInvocationReturnTypes(ctx,cls,classArgs,method,args,expr) : NULL;

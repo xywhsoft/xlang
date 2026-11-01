@@ -1,0 +1,128 @@
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point data)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+extern "bound_c_owners_one_record" @no_raise func oneRecord() as bool
+extern "owned_reset" @no_raise func reset()
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int prefix)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+// Generic substitutions are invariant in inputs; only result leaves copy.
+typedef Native=func(c_int) as cstring
+typedef Plain=func(c_int) as string
+typedef NativeData=func(c_int) as cbytes
+typedef PlainData=func(c_int) as bytes
+class Reader
+    func Read<T>(T value) as cstring
+        return cstring.take(rawText(),release)
+    end
+    func Data<T>(T value) as cbytes
+        return cbytes.take(rawBytes(),4,release)
+    end
+    func Factory<T>(T witness) as func(T) as cstring
+        return self.Read
+    end
+    func Result<T>() as func(T) as cstring
+        return self.Read
+    end
+    func Binary<T>(T witness) as func(T) as cbytes
+        return self.Data
+    end
+    func Pair<T>(T witness) as (func(T) as cstring,func(T) as cbytes)
+        return self.Read,self.Data
+    end
+    func Maybe<T>(T witness,bool present) as (func(T) as cstring)?
+        return present ? self.Read : null
+    end
+    func Layer<T>() as func() as func(T) as cstring
+        return self.Result
+    end
+    func Packed<T>(T witness,...) as func(T) as cstring
+        assert arg.length==1
+        return self.Read
+    end
+end
+class Base
+end
+class Fallback
+    func Read<T>(T value) as cstring
+        return cstring.take(rawText(),release)
+    end
+    func Factory<T is Base>(T witness) as func(T) as cstring
+        return self.Read
+    end
+    func Factory<U>(U witness) as func(U) as cstring
+        return self.Read
+    end
+end
+func choose(func(c_int) as Plain callback) as int
+    return 2
+end
+func choose(func(c_int) as Native callback,int omitted=7) as int
+    Native exact=callback(c_int(1))
+    reset()
+    string value=exact(c_int(7))
+    assert original(value) and oneRecord()
+    return 1
+end
+func check(bool flag)
+    Fallback fallback=Fallback()
+    func(c_int) as Plain fallbackFactory=fallback.Factory
+    assert fallbackFactory(c_int(1))(c_int(7))=="hello"
+    Reader left=Reader()
+    Reader right=Reader()
+    func(c_int) as Plain copy=left.Factory
+    assert copy(c_int(1))(c_int(7))=="hello"
+    func() as Plain resultOnly=left.Result
+    assert resultOnly()(c_int(7))=="hello"
+    func(c_int) as Native exact=left.Factory
+    Native exactValue=exact(c_int(1))
+    reset()
+    string value=exactValue(c_int(7))
+    assert original(value) and oneRecord()
+    func(c_int) as Plain conditional=flag ? left.Factory : right.Factory
+    assert conditional(c_int(1))(c_int(7))=="hello"
+    auto cast=left.Factory as func(c_int) as Plain
+    assert cast(c_int(1))(c_int(7))=="hello"
+    func(c_int) as PlainData binary=left.Binary
+    bytes data=binary(c_int(1))(c_int(7))
+    assert data==b"\0\xff\x11*" and not originalBytes(data)
+    func(c_int) as (Native,PlainData) pair=left.Pair
+    auto text,binaryCopy=pair(c_int(1))
+    string unchanged=text(c_int(7))
+    assert original(unchanged)
+    bytes copied=binaryCopy(c_int(7))
+    assert copied==b"\0\xff\x11*" and not originalBytes(copied)
+    func(c_int,bool) as Plain? maybe=left.Maybe
+    assert maybe(c_int(1),false)==null
+    Plain? present=maybe(c_int(1),true)
+    if present!=null then assert present(c_int(7))=="hello" end
+    func() as func() as Plain layer=left.Layer
+    assert layer()()(c_int(7))=="hello"
+    func(c_int,...) as Plain packed=left.Packed
+    assert packed(c_int(1),"tail")(c_int(7))=="hello"
+    assert choose(left.Factory)==1
+    assert choose(flag ? left.Factory : right.Factory)==1
+end
+assert debug()
+check(true)
+check(false)
+assert balanced()
+int accepted=0
+int rejected=0
+for prefix in range(320)
+    int before=live()
+    failAfter(prefix)
+    try
+        check(prefix%2==0)
+        accepted+=1
+    catch problem
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before and balanced()
+end
+assert accepted>0 and rejected>0

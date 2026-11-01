@@ -1,0 +1,12 @@
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_release" @no_raise func release(point data)
+class Reader
+    func Read<T>(array<T> value) as cstring
+        return cstring.take(rawText(),release)
+    end
+    func Factory<T>(T witness) as func(array<T>) as cstring
+        return self.Read
+    end
+end
+Reader reader=Reader()
+func(c_int) as func(array<string>) as string invalid=reader.Factory
