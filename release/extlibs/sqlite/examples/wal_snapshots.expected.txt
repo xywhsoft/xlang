@@ -1,0 +1,5 @@
+journal: wal
+write retry: rows=2
+snapshot: 2/2/3
+stale write: recovered
+final: rows=4 sum=8

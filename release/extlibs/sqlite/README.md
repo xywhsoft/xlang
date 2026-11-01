@@ -1,5 +1,38 @@
 # SQLite
 
+## 2026-11-01 WAL 双连接与语句恢复
+
+新增 `examples/wal_snapshots.xl` / `wal_snapshots_c.c`，不修改生产桥接、
+语言声明或 vendor。两份范例都创建独占的临时目录和 UTF-8 文件名，
+使用两个独立连接；不操作用户数据库，不靠休眠制造竞争。可直接运行：
+
+```text
+release/xl.exe run release/extlibs/sqlite/examples/wal_snapshots.xl
+release/xl.exe run release/extlibs/sqlite/examples/wal_snapshots_c.c
+```
+
+输出与 `examples/wal_snapshots.expected.txt` 一致。Linux 使用 `release/xl`。
+先明确持有写锁，验证另一连接的语句返回 BUSY，reset 报告上一轮错误
+但完成复位；显式释放写锁后，原语句与绑定仍可复用。随后固定读事务
+快照，在另一个连接提交后仍读到旧计数；旧快照升级写入被拒绝，显式
+结束读事务后才看到新数据，并可再次复用原语句。C 额外核对原生扩展
+错误码为 `SQLITE_BUSY_SNAPSHOT`，不把它与普通写锁忙混淆。
+
+语句先结束，再关闭两个连接，最后清理本例自己的文件和目录；C 侧
+还核对 SQLite shutdown 后内存归零。独立 C 测试运行库只增加本范例
+需要的 XRT 目录/路径模块，没有重复编译一份宿主运行库。新双语范例
+与 GCC、C直跑、两份独立程序对照进入默认 Windows/Linux 门禁。
+完整结果见 `docs/reports/extlib-sqlite-wal-20261101.json`。
+
+新 C 范例还通过两个 finalize 错误后的清理控制：底层先真实释放语句，
+测试钩子再返回错误；范例必须先清空句柄再判断状态，不能在公共清理
+出口重复 finalize。两处原草稿控制均发现重复释放意图，修正后归零。
+钩子仅用于独立 C 测试，不改生产桥接，不把 SQLite 错误改成成功。
+
+该验证是**单进程两个独立连接**，不是跨进程 WAL 故障、断电恢复或
+网络文件系统认证。原 Linux 无诊断退出和 Windows AOT 截断风险保持
+开放，不因这组新增通过记录而关闭，SQLite 仍保留 R。
+
 2026-10-30 列读取复合失败收口：两个 C 借用型列文本/列名出口在首错已发布后，
 原会继续复制空串到 XRT 临时区；该二次分配失败把参数/范围/状态/NUL 错误，
 甚至 SQLite NOMEM 的原始错误码，覆盖成通用 MemoryError。现与已有拥有型

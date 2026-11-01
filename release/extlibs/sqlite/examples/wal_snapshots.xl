@@ -1,0 +1,64 @@
+import sqlite
+
+func countRows(sqlite.Database database) as int
+    return int(database.query("select count(*) as n from items")[0]["n"])
+end
+
+func main(...) as int
+    // 每次排他创建自己的目录；不使用调用方数据文件，不依赖休眠和线程竞争。
+    string directory = dir.temp("", "xlang-sqlite-wal-", "")
+    string filename = path.join(directory, "快照.db")
+    sqlite.Database writer = sqlite.Database()
+    sqlite.Database reader = sqlite.Database()
+    sqlite.Statement insert = sqlite.Statement()
+    try
+        writer = sqlite.open(filename)
+        assert writer.query("pragma journal_mode=wal")[0]["journal_mode"] == "wal"
+        assert writer.execute("create table items(value integer not null)")
+        assert writer.execute("insert into items values(1)")
+        reader = sqlite.open(filename)
+        assert reader.busy_timeout(0)
+        insert = reader.prepare("insert into items values(?)")
+        assert insert.bind(1, 2) == sqlite.SQLITE_OK
+
+        // 写锁明确由 writer 持有。BUSY 不代表绑定丢失，也不自动重试。
+        assert writer.execute("begin immediate")
+        assert insert.step() == sqlite.SQLITE_BUSY
+        assert insert.reset() == sqlite.SQLITE_BUSY
+        assert writer.rollback()
+        assert insert.step() == sqlite.SQLITE_DONE
+        assert insert.reset() == sqlite.SQLITE_OK
+        assert countRows(reader) == 2
+        println("journal: wal")
+        println("write retry: rows=2")
+
+        // reader 的事务固定旧快照；另一个连接提交不会修改这个快照。
+        assert reader.begin()
+        int before = countRows(reader)
+        assert writer.execute("insert into items values(3)")
+        int during = countRows(reader)
+        assert before == 2 and during == 2 and countRows(writer) == 3
+
+        // 旧快照不能直接升级成写事务。先显式结束它，再复用原语句。
+        assert insert.step() == sqlite.SQLITE_BUSY
+        assert insert.reset() == sqlite.SQLITE_BUSY
+        assert reader.rollback()
+        int after = countRows(reader)
+        assert after == 3
+        println("snapshot: " + string(before) + "/" + string(during) + "/" + string(after))
+        assert insert.step() == sqlite.SQLITE_DONE
+        assert insert.finalize() == sqlite.SQLITE_OK
+        assert countRows(writer) == 4
+        assert int(writer.query("select sum(value) as total from items")[0]["total"]) == 8
+        println("stale write: recovered")
+        println("final: rows=4 sum=8")
+        assert reader.close() == sqlite.SQLITE_OK
+        assert writer.close() == sqlite.SQLITE_OK
+    finally
+        insert.finalize()
+        reader.close_v2()
+        writer.close_v2()
+        assert dir.delete(directory), "owned WAL example directory must be removed"
+    end
+    return 0
+end

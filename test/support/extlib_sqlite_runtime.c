@@ -3,5 +3,7 @@
 #define XRT_MODULE_TEMP_MEMORY
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_THREAD
+#define XRT_MODULE_DIR_TEMP
+#define XRT_MODULE_PATH
 #define XRT_IMPLEMENTATION
 #include "xrt.h"
