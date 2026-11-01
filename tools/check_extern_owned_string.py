@@ -29,6 +29,8 @@ def main():
         if not passed:raise RuntimeError(name+'\n'+log[-5000:])
         print(name+': PASS',flush=True)
     cases=[
+        ('callable-alias-integrity','test/cases/extern_owned_callable_alias_integrity.xl',
+            ['test/cases/extern_owned_bound_c_owners_host.c','test/cases/extern_owned_string_host.c'],[]),
         ('nested-callable-result','test/cases/extern_owned_nested_result.xl',
             ['test/cases/extern_owned_bound_c_owners_host.c','test/cases/extern_owned_string_host.c'],[]),
         ('extern_owned_string','test/cases/extern_owned_string.xl',['test/cases/extern_owned_string_host.c'],['owned_text','owned_empty','owned_null','owned_optional']),

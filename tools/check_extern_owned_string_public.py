@@ -108,6 +108,7 @@ def main():
     bound_nullable_generic_contract = ROOT/'test/cases/xlir_bound_nullable_generic_contract.c'
     bound_nullable_cast_contract = ROOT/'test/cases/xlir_bound_nullable_cast_contract.c'
     bound_variadic_owner_contract = ROOT/'test/cases/xlir_bound_variadic_owner_contract.c'
+    callable_alias_contract = ROOT/'test/cases/xlir_callable_alias_integrity_contract.c'
     callable_result_contract = ROOT/'test/cases/xlir_bound_callable_result_contract.c'
     bound_compound_contract = ROOT/'test/cases/xlir_bound_compound_contract.c'
     match_values_contract = ROOT/'test/cases/xlir_match_values_contract.c'
@@ -116,6 +117,7 @@ def main():
     producer_tail_contract = ROOT/'test/cases/xlir_task_producer_tail.c'
     for path in [source, *native, template, contract, oom_contract, task_scalar_contract, task_composition_contract, task_optional_contract,
             task_reference_contract,error_array_contract,
+            callable_alias_contract,ROOT/'test/cases/extern_owned_callable_alias_integrity.xl',ROOT/'test/cases/bad_extern_owned_alias_channel.xl',
             reference_boundary_contract,bound_dispatch_contract,bound_constraint_contract,bound_access_contract,bound_c_owner_contract,bound_generic_owner_contract,bound_nullable_generic_contract,bound_nullable_cast_contract,bound_variadic_owner_contract,callable_result_contract,bound_compound_contract,producer_tail_contract,
             ROOT/'test/cases/extern_owned_bound_compound.xl', ROOT/'test/cases/extern_owned_nested_result.xl',
             bound_match_contract,ROOT/'test/cases/extern_owned_bound_match.xl',
@@ -208,6 +210,7 @@ def main():
     run('task-optional-contract-build', [cc, '@'+str(response)])
     assert '10 mutations rejected' in run('task-optional-contract', [output])
     for name,unit,message in [
+            ('callable-alias-contract',callable_alias_contract,'immutable on success and rejection, exact owner reads contain no copy'),
             ('callable-result-contract',callable_result_contract,'retained source, invariant inputs, exact conversion and error edges authenticated'),
             ('bound-dispatch-contract',bound_dispatch_contract,'6 rejected mutations'),
             ('bound-constraint-contract',bound_constraint_contract,'missing constraint evidence rejected'),

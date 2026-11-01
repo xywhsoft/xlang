@@ -707,10 +707,13 @@ static int xl6SemCOwnedAdaptCallableExpr(XL6_SemContext* ctx,XL6_AstNode* expr,c
     const XL6_AstNode* expectedElement=xl6SemCOwnedResolvedElement(ctx,expected);
     XL6_AstNode* target=xl6SemCloneTypeNode(expectedElement && expectedElement->childCount==2 ? expected : source);
     if(!target){xl6AstFree(source);return 0;}
-    XL6_AstNode* targetElement=(XL6_AstNode*)xl6SemCOwnedResolvedElement(ctx,target);
-    if(!expected || expected->childCount==0)
-        for(size_t r=0;r<targetElement->children[1]->childCount;++r)
-            if(!xl6SemCOwnedOrdinaryResultType(ctx,&targetElement->children[1]->children[r])){xl6AstFree(source);xl6AstFree(target);return 0;}
+    /* Resolving an alias can return its shared declaration. Normalize the
+     * owned clone as a whole; the recursive helper clones each resolved alias
+     * before changing it, including aliases under nullable/callable results. */
+    if((!expected || expected->childCount==0) && !xl6SemCOwnedOrdinaryResultType(ctx,&target)) {
+        xl6AstFree(source);xl6AstFree(target);return 0;
+    }
+    const XL6_AstNode* targetElement=xl6SemCOwnedResolvedElement(ctx,target);
     if((sourceOptional && !xl6SemNullableInnerType(target)) ||
        !xl6SemCallableTypeListEquals(ctx,callable->children[0],targetElement->children[0]) ||
        !xl6SemCOwnedResultListMatches(ctx,targetElement->children[1],callable->children[1])) {
