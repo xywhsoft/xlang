@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "date": "2026-11-02",
+  "kind": "evidence-correction",
+  "corrects": "dev/release-materials/provenance/foreign-static-callback-20261102.json",
+  "correction": "The earlier claim that the delivered runtime disables memory-debug counters was incorrect. A fresh host reports recording enabled; Enable(true) succeeds before language/compiler allocations. Enable() refuses while tracked allocations are active. The corrected fixture observes the existing recording state instead of enabling it again.",
+  "freshHostProbe": {
+    "enabledBefore": true,
+    "enableAtFreshHost": true,
+    "enabledAfter": true
+  },
+  "runtimeSha256": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930",
+  "windows": {
+    "compiler": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\source-r10\\build.json",
+    "stages": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\callback-alloc-correction-r1\\stages.json",
+    "expectedOutcomes": 32,
+    "allExpectedOutcomesPassed": true
+  },
+  "linux": {
+    "compiler": "/home/ubuntu/xlang-validation/xge-declarative-20261102-r2/source-r2/build.json",
+    "tests": "/home/ubuntu/xlang-validation/xge-declarative-20261102-r2/callback-allocation-correction-r1/results.json",
+    "log": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\linux-callback-allocation.log"
+  },
+  "measured": {
+    "scope": "Only applyRecord and applyPointer with capture-free direct C function addresses and successful fixture assertions between two native snapshots.",
+    "allocations": 0,
+    "frees": 0,
+    "reallocations": 0,
+    "liveCountDelta": 0,
+    "liveBytesDelta": 0,
+    "invalidFreeDelta": 0,
+    "doubleFreeDelta": 0
+  },
+  "paths": [
+    "GCC O0",
+    "GCC O2",
+    "TCC JIT",
+    "TCC module",
+    "TCC standalone"
+  ],
+  "limits": [
+    "Excludes module setup, shutdown, captured callback environments, registration and retirement",
+    "No whole-binding zero-overhead claim"
+  ],
+  "releaseProductsUpdated": false
+}

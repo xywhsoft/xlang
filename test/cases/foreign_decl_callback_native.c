@@ -1,6 +1,24 @@
 #include "foreign_decl_callback.h"
 #include <assert.h>
 #include <stddef.h>
+#include "xrt_decl.h"
+static xmemdebugsnapshot before;
+void foreign_callback_allocation_begin(void)
+{
+    /* Enable() refuses while tracked allocations are alive. The host selects
+     * debug recording before module creation; this operation only observes. */
+    assert(xrtMemDebugEnabled());
+    xrtMemDebugSnapshot(&before);
+}
+int foreign_callback_allocation_unchanged(void)
+{
+    xmemdebugsnapshot after;
+    xrtMemDebugSnapshot(&after);
+    return before.AllocCount == after.AllocCount && before.FreeCount == after.FreeCount &&
+        before.ReallocCount == after.ReallocCount && before.LiveCount == after.LiveCount &&
+        before.LiveBytes == after.LiveBytes && before.InvalidFreeCount == after.InvalidFreeCount &&
+        before.DoubleFreeCount == after.DoubleFreeCount;
+}
 struct foreign_callback_widget { int value; };
 static struct foreign_callback_widget widget = {71};
 void* foreign_callback_widget_at(void) { return &widget; }

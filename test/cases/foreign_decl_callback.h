@@ -8,4 +8,6 @@ void* foreign_callback_widget_at(void);
 int foreign_callback_widget_value(foreign_callback_widget* widget);
 foreign_callback_record foreign_callback_apply_record(foreign_callback_record_proc callback, foreign_callback_record input);
 int foreign_callback_apply_pointer(foreign_callback_pointer_proc callback);
+void foreign_callback_allocation_begin(void);
+int foreign_callback_allocation_unchanged(void);
 #endif
