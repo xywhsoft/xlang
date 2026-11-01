@@ -82,9 +82,9 @@ typedef struct xls_raw_capture {
     size_t functionBytes,body,end;
     int inert;
 } xls_raw_capture;
-static int xlsRawFunctionKey(xls_sem_entry* entry,XL6_AstNode* node,xls_raw_binding* b,xls_raw_capture* capture)
+static int xlsRawFunctionKey(xls_sem_entry* entry,XL6_AstNode* node,xls_raw_binding* b,xls_raw_capture* capture,xarray* raw)
 {
-    int okay=xlsSemKeyNode(&entry->key,node,0,0);capture->functionBytes=okay ? entry->key.Size : 0;
+    int okay=xlsSemKeyNodeRaw(&entry->key,node,raw);capture->functionBytes=okay ? entry->key.Size : 0;
     if(b && !b->deferred && b->stdlibVisited && !b->stdlibMarks && node->kind==XL6_AST_FUNC &&
        node->childCount>=4 && node->children[2] && node->children[2]->childCount &&
        (node->childCount<=4 || !node->children[4] || !node->children[4]->childCount) &&

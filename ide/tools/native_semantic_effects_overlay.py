@@ -1,6 +1,7 @@
 """Private current checker write observation; upstream language rules stay intact."""
 from pathlib import Path
 import hashlib
+from native_current_unified_profile import updated_pins
 
 
 INCLUDES={
@@ -12,8 +13,9 @@ INCLUDES={
 
 def derive(frontend:Path,output:Path,source:str):
     audited={}
-    for name,digest in INCLUDES.items():
-        path=frontend/'src/sem'/name
+    expected=updated_pins(frontend,{'src/sem/'+name:digest for name,digest in INCLUDES.items()})
+    for name,digest in expected.items():
+        path=frontend/name
         if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest()!=digest:
             raise ValueError('shared semantic include changed; audit reads/writes: '+name)
         audited[str(path)]=digest
