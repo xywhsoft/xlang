@@ -2,6 +2,21 @@
 
 # json.patch: XLang 字典传入 C xvalue 后不能按对象访问
 
+## 2026-11-02 独立语义对照后复验
+
+当前包的8133条JSON语义、C/JSON配置双语新例、八条前置独立程序、
+八实际原型在两平台通过；生产实现/绑定/公开头未改。但默认门禁
+仍在原中央`has /name`退出1，不能拿完整C/原生JSON值的通过关闭M1。
+最小`test/var_bridge_repro.xl`两平台check/build为0、JIT/AOT为1，
+源内先用语言索引读a=1，再在`json.patch.has`处失败，且在main局部
+作用域复现，不应误归为顶层析构退出问题。
+
+Windows完整52阶段/59指纹、Linux52阶段/54冻结源和四工具保持；
+第52阶段之后的原语言正例没有宣称已执行。原始日志与数据指纹在
+`build/test/json_patch_semantics_20261102`，可持久审计报告是
+`docs/reports/extlib-json-patch-semantics-20261102.json`。修复仍应落在
+共享语言容器投影边界，本普通包不读取私有句柄、不新增序列化回退。
+
 ## 2026-10-30 根目录布局复验
 
 默认Windows/Linux包门禁分别前37/38阶段满足预期，包含原C、新move
