@@ -1,3 +1,4 @@
+#include "src/common/xl6_xrt.h"
 #include "xl6_foreign_view_capture.h"
 #include <stdlib.h>
 

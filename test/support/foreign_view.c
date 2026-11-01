@@ -49,6 +49,16 @@ static void native_stack_residency(void)
 static int32 drop_on_worker(void* raw)
 {
     XL6_ForeignView* view=raw;
+    xrtownershipref ref=xl6ForeignViewOwnershipV1(view);
+    const XL6_OwnershipDomainV1* domains[]={xl6OwnershipDomainForeignViewV1Get()};
+    XL6_OwnershipCatalog* catalog=xl6OwnershipCatalogCreateV1(domains,1);assert(catalog);
+    xrtownershipscope freeze={0};assert(xrtOwnershipFreezeTryBegin(&freeze));
+    const xrtownershipadapterv1* adapter=NULL;const xrtownershippreparationv1* prepare=NULL;
+    const XL6_OwnershipFinishV1* finish=NULL;size_t count=0;
+    assert(xl6OwnershipCatalogProbeV1(ref,catalog,&adapter,&prepare,&finish)==XL6_OWNERSHIP_ADMISSION_BUSY);
+    assert(!adapter && !prepare && !finish && !xl6OwnershipCatalogAdmitsReadV1(ref,catalog));
+    assert(!ref.Ops->Count(ref.Data,&count));
+    assert(xrtOwnershipScopeEnd(&freeze));xl6OwnershipCatalogDestroyV1(catalog);
     NativeScope native={0}; XL6_ForeignViewCallV1 call={0};
     assert(!xl6ForeignViewCallBeginV1(view,&call,&native,sizeof(native))); xrtClearError();
     assert(!xl6ForeignViewCloseV1(view)); xrtClearError();

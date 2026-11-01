@@ -18,6 +18,9 @@ int main(void)
         {"xl6ForeignContextReadyV1",XL6_ARTIFACT_FOREIGN_CONTEXT},
         {"xl6ForeignCallbackEnterV1",XL6_ARTIFACT_FOREIGN_CALLBACK_SCOPE},
         {"xl6ForeignViewCallBeginV1",XL6_ARTIFACT_FOREIGN_VIEW},
+        {"xl6ForeignViewNativePinV1",XL6_ARTIFACT_FOREIGN_VIEW},
+        {"xl6NativeCallbackRuntimeV1Get",XL6_ARTIFACT_NATIVE_CALLBACK},
+        {"xl6OwnershipDomainNativeCallbackV1Get",XL6_ARTIFACT_NATIVE_CALLBACK},
         {"xl6OwnershipDomainForeignViewV1Get",XL6_ARTIFACT_FOREIGN_VIEW},
         {"xl6NativeGraphCaptureProfileV1Get",XL6_ARTIFACT_NATIVE_CAPTURE_GRAPH},
         {"xl6ForeignViewCaptureProfileV1Get",XL6_ARTIFACT_FOREIGN_VIEW_CAPTURE},
@@ -33,6 +36,8 @@ int main(void)
         require(symbols[i].owner,symbols[i].owner,true);
     }
     require(XL6_ARTIFACT_CELL,XL6_ARTIFACT_FOREIGN_ERROR,true);
+    require(XL6_ARTIFACT_NATIVE_CALLBACK,XL6_ARTIFACT_FOREIGN_VIEW,true);
+    require(XL6_ARTIFACT_NATIVE_CALLBACK,XL6_ARTIFACT_CLOSURE,true);
     require(XL6_ARTIFACT_CLOSURE,XL6_ARTIFACT_FOREIGN_CALLBACK_SCOPE,true);
     require(XL6_ARTIFACT_CODE_FINALIZER,XL6_ARTIFACT_FOREIGN_CALLBACK_SCOPE,true);
     require(XL6_ARTIFACT_FOREIGN_CALLBACK_SCOPE,XL6_ARTIFACT_FOREIGN_CONTEXT,true);

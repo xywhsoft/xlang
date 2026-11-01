@@ -157,6 +157,7 @@
 #include "src/runtime/xl6_foreign_context.h"
 #include "src/runtime/xl6_foreign_callback_scope.h"
 #include "src/runtime/xl6_foreign_view.h"
+#include "src/runtime/xl6_native_callback.h"
 #include "src/runtime/xl6_native_capture_graph.h"
 #include "src/runtime/xl6_foreign_view_capture.h"
 #include "src/runtime/xl6_capture_v3.h"
@@ -346,6 +347,8 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6ForeignViewCallBeginV1", (const void*)xl6ForeignViewCallBeginV1)) return 0;
     if (!visit(user, "xl6ForeignViewCallEndV1", (const void*)xl6ForeignViewCallEndV1)) return 0;
     if (!visit(user, "xl6ForeignViewCloseV1", (const void*)xl6ForeignViewCloseV1)) return 0;
+    if (!visit(user, "xl6ForeignViewNativePinV1", (const void*)xl6ForeignViewNativePinV1)) return 0;
+    if (!visit(user, "xl6ForeignViewNativeUnpinV1", (const void*)xl6ForeignViewNativeUnpinV1)) return 0;
     if (!visit(user, "xl6ForeignViewDrainV1", (const void*)xl6ForeignViewDrainV1)) return 0;
     if (!visit(user, "xl6ForeignViewPendingV1", (const void*)xl6ForeignViewPendingV1)) return 0;
     if (!visit(user, "xl6ForeignViewDiscoverV1", (const void*)xl6ForeignViewDiscoverV1)) return 0;
@@ -360,6 +363,8 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6NativeGraphFuturePayloadRuntimeV1Get", (const void*)xl6NativeGraphFuturePayloadRuntimeV1Get)) return 0;
     if (!visit(user, "xl6OwnershipDomainNativeGraphFuturePayloadV1Get", (const void*)xl6OwnershipDomainNativeGraphFuturePayloadV1Get)) return 0;
     if (!visit(user, "xl6CellCreateGraphV1", (const void*)xl6CellCreateGraphV1)) return 0;
+    if (!visit(user, "xl6NativeCallbackRuntimeV1Get", (const void*)xl6NativeCallbackRuntimeV1Get)) return 0;
+    if (!visit(user, "xl6OwnershipDomainNativeCallbackV1Get", (const void*)xl6OwnershipDomainNativeCallbackV1Get)) return 0;
 
     if (!visit(user, "xl6SlotRuntimeV1Get", (const void*)xl6SlotRuntimeV1Get)) return 0;
     if (!visit(user, "xl6GeneratorRuntimeV1Get", (const void*)xl6GeneratorRuntimeV1Get)) return 0;

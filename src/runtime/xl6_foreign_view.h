@@ -1,7 +1,6 @@
 #ifndef XL6_FOREIGN_VIEW_H
 #define XL6_FOREIGN_VIEW_H
 
-#include "src/common/xl6_xrt.h"
 #include "xl6_code_lease.h"
 #include "xl6_ownership_catalog.h"
 #include "xl6_foreign_callback_scope.h"
@@ -47,7 +46,7 @@ typedef struct XL6_ForeignViewDescriptorV1 {
     size_t callBytes, callAlignment;
     bool (*CallBegin)(void* root,void* storage);
     bool (*CallEnd)(void* storage);
-    bool (*TraceRaw)(const void*,xrtownershipvisitor,void*);
+    bool (*TraceRaw)(const void*,XL6_ModuleOwnershipVisit,void*);
 } XL6_ForeignViewDescriptorV1;
 #define XL6_FOREIGN_VIEW_V1_TAG UINT64_C(0x584C364656494531)
 
@@ -78,6 +77,12 @@ XL6_CODE_LEASE_API bool xl6ForeignViewReleaseV1(XL6_ForeignView*);
 XL6_CODE_LEASE_API bool xl6ForeignViewCallBeginV1(XL6_ForeignView*,XL6_ForeignViewCallV1*,void*,size_t);
 XL6_CODE_LEASE_API bool xl6ForeignViewCallEndV1(XL6_ForeignViewCallV1*);
 XL6_CODE_LEASE_API bool xl6ForeignViewCloseV1(XL6_ForeignView*);
+/* Internal native binding owner: keeps the control/code readable without
+ * creating a language owning value or suppressing default close. A retained
+ * callback uses this for its implicit context, not a hidden strong language
+ * self-reference. It is still a REAL graph edge and must be traced. */
+XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewNativePinV1(XL6_ForeignView*);
+XL6_CODE_LEASE_API void xl6ForeignViewNativeUnpinV1(XL6_ForeignView*);
 
 /* Native invalidation only clears/queues; it cannot release the final code
  * dependency while the native notifier is still on the C stack. Drain runs
@@ -86,10 +91,10 @@ XL6_CODE_LEASE_API bool xl6ForeignViewCloseV1(XL6_ForeignView*);
  * for checked recovery. A callback boundary itself never drains work. */
 XL6_CODE_LEASE_API bool xl6ForeignViewDrainV1(void);
 /* Read-only queue observation; thread==0 counts all creator threads. */
-XL6_CODE_LEASE_API size_t xl6ForeignViewPendingV1(uint64 thread);
+XL6_CODE_LEASE_API size_t xl6ForeignViewPendingV1(uint64_t thread);
 /* Freeze-only physical anchors, not additional owning references. */
 XL6_CODE_LEASE_API bool xl6ForeignViewDiscoverV1(const XL6_CodeOwner*,XL6_ModuleOwnershipVisit,void*);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainForeignViewV1Get(void);
-XL6_CODE_LEASE_API xrtownershipref xl6ForeignViewOwnershipV1(const XL6_ForeignView*);
+XL6_CODE_LEASE_API struct xrtownershipref xl6ForeignViewOwnershipV1(const XL6_ForeignView*);
 
 #endif
