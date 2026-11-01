@@ -1,0 +1,95 @@
+{
+  "complete": true,
+  "date": "2026-11-01",
+  "compilerCommit": "e0056013f0eb6e7d83fb68d9b93e4c30fefac2a2",
+  "fixCommits": [
+    "c1495775e",
+    "b05ab6004",
+    "e0056013f"
+  ],
+  "checks": {
+    "windows": {
+      "sourceUnits": 1397,
+      "acceptance": 279,
+      "independent": 57,
+      "delivery": 9,
+      "probes": 96
+    },
+    "linux": {
+      "sourceUnits": 1396,
+      "acceptance": 279,
+      "independent": 57,
+      "delivery": 7,
+      "probes": 96
+    }
+  },
+  "commonSnapshotInputs": 2713,
+  "commonSnapshotMismatches": 0,
+  "artifacts": {
+    "dev/release-materials/provenance/c-owned-complete-20261101/windows-build.json": {
+      "sha256": "b2581cbd45534744efcd813ca410a89235c4184ac1369103583dffeba49abb64",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-complete-20261101\\windows-final\\build.json",
+      "originalSha256": "b2581cbd45534744efcd813ca410a89235c4184ac1369103583dffeba49abb64"
+    },
+    "dev/release-materials/provenance/c-owned-complete-20261101/windows-acceptance.json": {
+      "sha256": "afc42c116fa3dbf0ace9699b80df0d76a71ccab9ab57f21079469db186a042a9",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-complete-20261101\\windows-acceptance\\result.json",
+      "originalSha256": "afc42c116fa3dbf0ace9699b80df0d76a71ccab9ab57f21079469db186a042a9"
+    },
+    "dev/release-materials/provenance/c-owned-complete-20261101/windows-independent.json": {
+      "sha256": "a8da3e96ae7adb4c31b9586646d13705dc29d9d00f6a114cd4cda2c320bd1a5c",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-complete-20261101\\windows-acceptance\\independent-C\\result.json",
+      "originalSha256": "a8da3e96ae7adb4c31b9586646d13705dc29d9d00f6a114cd4cda2c320bd1a5c"
+    },
+    "dev/release-materials/provenance/c-owned-complete-20261101/windows-delivery.json": {
+      "sha256": "5453de43c81275154683c9f7ddd2a3f963314ecbf747b4ed53d9af8d2c4b8c56",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-complete-20261101\\windows-delivery\\result.json",
+      "originalSha256": "5453de43c81275154683c9f7ddd2a3f963314ecbf747b4ed53d9af8d2c4b8c56"
+    },
+    "dev/release-materials/provenance/c-owned-complete-20261101/windows-probes.json": {
+      "sha256": "cd3ff393dea7359c9343548590d4257b9d4cff066c24d4d94cd5fcdffd3d12aa",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-complete-20261101\\probes\\result.json",
+      "originalSha256": "cd3ff393dea7359c9343548590d4257b9d4cff066c24d4d94cd5fcdffd3d12aa"
+    },
+    "dev/release-materials/provenance/c-owned-complete-20261101/linux-build.json": {
+      "sha256": "2838f503e75783bddc27c9a03ad4b7879a48de57db281409865d2738c97ba899",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-complete-20261101\\linux\\driver\\build.json",
+      "originalSha256": "2838f503e75783bddc27c9a03ad4b7879a48de57db281409865d2738c97ba899"
+    },
+    "dev/release-materials/provenance/c-owned-complete-20261101/linux-acceptance.json": {
+      "sha256": "93edfbc506dc484335044d3028c07aee0533651de6968ae4914481396c91cfb6",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-complete-20261101\\linux\\acceptance\\result.json",
+      "originalSha256": "93edfbc506dc484335044d3028c07aee0533651de6968ae4914481396c91cfb6"
+    },
+    "dev/release-materials/provenance/c-owned-complete-20261101/linux-independent.json": {
+      "sha256": "5c658135b1f21686865596a35d3db52432ce1a89cc2a708a58bb01be4d233f0e",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-complete-20261101\\linux\\acceptance\\independent-C\\result.json",
+      "originalSha256": "5c658135b1f21686865596a35d3db52432ce1a89cc2a708a58bb01be4d233f0e"
+    },
+    "dev/release-materials/provenance/c-owned-complete-20261101/linux-delivery.json": {
+      "sha256": "fbc25d45df5c852b78ec0541bfd96eb7a87fe0023318d380de036e9bd4df7685",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-complete-20261101\\linux\\delivery\\result.json",
+      "originalSha256": "fbc25d45df5c852b78ec0541bfd96eb7a87fe0023318d380de036e9bd4df7685"
+    },
+    "dev/release-materials/provenance/c-owned-complete-20261101/linux-probes.json": {
+      "sha256": "d3f489c53bd36dfcb6922f2c233c56b0ff1614c232b67aa11594efa64cfbb7f7",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-complete-20261101\\probes-linux\\result.json",
+      "originalSha256": "d3f489c53bd36dfcb6922f2c233c56b0ff1614c232b67aa11594efa64cfbb7f7"
+    },
+    "dev/release-materials/sources/c-owned-complete-20261101/source.tar.gz": {
+      "sha256": "4e905d9a72a755a06c4a61f61e76ac9be979d8247a0a0ec636d74cfccd7a13d0",
+      "bytes": 47214042
+    },
+    "dev/release-materials/sources/c-owned-complete-20261101/review-probes/manifest.json": {
+      "sha256": "8d240caccb3dd083b6ae61cbe2244a5615ecb5a706a382438d3d1c97c028dffe"
+    }
+  },
+  "runtimeLayoutChanged": false,
+  "shippingBinariesRebuilt": false,
+  "limitations": [
+    "Explicit ordinary returned-callable signatures require one retained conversion closure per changed callable; invocation copies the selected payload.",
+    "Exact cstring/cbytes signatures keep the original foreign buffer; existing receiver closures, code leases, owner records and length scans remain.",
+    "Existing mixed bytes/cbytes ordinary branch owner record allocation is unchanged."
+  ],
+  "sourceInputs": "Original receipts preserve original absolute paths; source.tar.gz freezes project inputs. Linux native core and toolchain remain pinned by their receipt hashes."
+}

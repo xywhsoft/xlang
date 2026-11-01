@@ -1,0 +1,39 @@
+{
+  "complete": true,
+  "checks": [
+    {
+      "name": "emit",
+      "exit": 0
+    },
+    {
+      "name": "jit",
+      "exit": 0
+    },
+    {
+      "name": "aot-build",
+      "exit": 0
+    },
+    {
+      "name": "aot",
+      "exit": 0
+    },
+    {
+      "name": "nested-jit",
+      "exit": 0
+    },
+    {
+      "name": "nested-aot-build",
+      "exit": 0
+    },
+    {
+      "name": "nested-aot",
+      "exit": 0
+    }
+  ],
+  "inputs": {
+    "/var/tmp/xlang-c-owned-complete-20261101/driver/build.json": "2838f503e75783bddc27c9a03ad4b7879a48de57db281409865d2738c97ba899",
+    "/var/tmp/xlang-c-owned-complete-20261101/driver/public_source": "6bc1ae8772d3aa2cfeaf5d5d53c8d944cb919c79f2dd9f5e16bf93b3d1d296c5",
+    "/var/tmp/xlang-fixes207.vg7YgI/native/release/libxlc.so": "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386",
+    "/var/tmp/xlang-c-owned-complete-20261101/root/tools/check_source_driver_delivery.py": "71090395bd96740018c4101f263751963a56d4d3f09a616ab89318969f68c968"
+  }
+}
