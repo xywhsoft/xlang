@@ -1,6 +1,7 @@
 """Audited parser/signature and scanner adapters for exact frontend profiles."""
 from pathlib import Path
 import hashlib
+from native_current_unified_profile import COHORT as UNIFIED_COHORT, PINS as UNIFIED_PINS
 
 
 def sha(path):
@@ -38,6 +39,8 @@ PROFILES = {
 # Same parser/AST/allocator contracts with the audited retirement runtime.
 PROFILES['current-ed78373d'] = {**PROFILES['current-9192a99f'],
     'lib/xrt/xrt.h': '05e8c00fb0eef0215f4d0c9291d240438cb37782df5de1c0e9ba8699b0dcd5eb'}
+PROFILES[UNIFIED_COHORT] = {**PROFILES['current-ed78373d'],
+    'lib/xrt/xrt.h': UNIFIED_PINS['lib/xrt/xrt.h']}
 
 
 def profile(frontend: Path) -> dict[str, str]:
