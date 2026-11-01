@@ -602,7 +602,8 @@ static int xl6SemCOwnedCallableResultCost(XL6_SemContext* ctx,const XL6_AstNode*
         callable && xl6TextEquals(callable->text,"function") && callable->childCount==2 &&
         xl6SemCallableTypeListEquals(ctx,callable->children[0],target->children[0]) &&
         xl6SemCOwnedResultListMatches(ctx,target->children[1],callable->children[1]);
-    xl6AstFree(source);return matches ? 10 : 0;
+    int lift=source && !xl6SemNullableInnerType(xl6SemResolveAliasType(ctx,source)) && targetOptional;
+    xl6AstFree(source);return matches ? 10+(lift ? 5 : 0) : 0;
 }
 static int xl6SemCOwnedAdaptCallArguments(XL6_SemContext* ctx,XL6_AstNode* call,const XL6_AstNode* function)
 {
@@ -750,7 +751,7 @@ static int xl6SemCOwnedAdaptCallableExpr(XL6_SemContext* ctx,XL6_AstNode* expr,c
     XL6_AstNode* adapterParams=xl6SemCOwnedAppendNode(adapter,xl6AstNew(XL6_AST_LIST,NULL));
     XL6_AstNode* adapterReturns=xl6SemCOwnedAppendNode(adapter,xl6SemCloneTypeNode(target->children[1]));
     XL6_AstNode* adapterBody=xl6SemCOwnedAppendNode(adapter,xl6AstNew(XL6_AST_BLOCK,NULL));
-    size_t resultCount=source->children[1]->childCount;
+    size_t resultCount=callable->children[1]->childCount;
     XL6_AstNode* result=xl6SemCOwnedAppendNode(adapterBody,xl6AstNew(
         resultCount>1 ? XL6_AST_MULTI_VAR_DECL : XL6_AST_RETURN,NULL));
     XL6_AstNode* resultNames=resultCount>1 ? xl6SemCOwnedAppendNode(result,xl6AstNew(XL6_AST_LIST,NULL)) : NULL;
@@ -772,8 +773,8 @@ static int xl6SemCOwnedAdaptCallableExpr(XL6_SemContext* ctx,XL6_AstNode* expr,c
                 xl6SemCOwnedAppendNode(elements,xl6AstNewText(XL6_AST_NAME,resultName,strlen(resultName),NULL));
         }
     }
-    for(size_t p=0;ok && p<source->children[0]->childCount;++p) {
-        const XL6_AstNode* type=source->children[0]->children[p];
+    for(size_t p=0;ok && p<callable->children[0]->childCount;++p) {
+        const XL6_AstNode* type=callable->children[0]->children[p];
         char parameterName[48];snprintf(parameterName,sizeof(parameterName),"__xl_c_owned_arg_%zu",p);
         XL6_AstNode* item=xl6SemCOwnedAppendNode(adapterParams,xl6AstNewText(XL6_AST_PARAM,parameterName,strlen(parameterName),NULL));
         XL6_AstNode* argument=xl6SemCOwnedAppendNode(invokeArgs,xl6AstNew(XL6_AST_ARG,NULL));
