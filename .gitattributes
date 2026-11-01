@@ -77,3 +77,6 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 
 /lib/tcc/tcc_builtin_vfs.h text eol=lf
 /release/include/tcc_builtin_vfs.h text eol=lf
+
+# Keep recorded experimental patch hashes stable across checkout platforms.
+/ide/docs/prototypes/*.patch -text
