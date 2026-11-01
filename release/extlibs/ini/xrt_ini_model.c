@@ -359,22 +359,28 @@ static bool __xrtIniAppendResolvedText(xrtiniconfig* pConfig, xbuffer* pOutput,
 	return true;
 }
 
-static bool __xrtIniAppendResolved(xrtiniconfig* pConfig, xbuffer* pOutput,
-	const char* sSection, const char* sKey, const char** pSections,
-	const char** pKeys, uint32 iDepth, uint32 iMaxDepth)
+typedef struct {
+	const char* Section;
+	const char* Key;
+	const char* Position;
+	str Reference;
+} xrt_ini_reference;
+
+/* 帧内只拥有引用表达式的副本；值和相对节名借用配置或仍存活的父帧。 */
+static bool __xrtIniPushReference(xrtiniconfig* pConfig,
+	xrt_ini_reference* pStack, uint32* pDepth, uint32 iMaxDepth,
+	const char* sSection, const char* sKey, str sReference)
 {
 	const char* sValue;
-	const char* p;
-	const char* pStart;
 	uint32 i;
-	if ( iDepth >= iMaxDepth ) {
+	if ( *pDepth >= iMaxDepth ) {
 		__xrtIniSetError(pConfig, XRT_INI_ERROR_INTERPOLATION, 0u, 0u, 0u,
 			"INI interpolation exceeds the configured depth");
 		return false;
 	}
-	for ( i = 0u; i < iDepth; ++i ) {
-		if ( __xrtIniNameEqual(pConfig, pSections[i], sSection) &&
-			__xrtIniNameEqual(pConfig, pKeys[i], sKey) ) {
+	for ( i = 0u; i < *pDepth; ++i ) {
+		if ( __xrtIniNameEqual(pConfig, pStack[i].Section, sSection) &&
+			__xrtIniNameEqual(pConfig, pStack[i].Key, sKey) ) {
 			__xrtIniSetError(pConfig, XRT_INI_ERROR_INTERPOLATION, 0u, 0u, 0u,
 				"INI interpolation cycle at %s.%s", sSection, sKey);
 			return false;
@@ -386,58 +392,72 @@ static bool __xrtIniAppendResolved(xrtiniconfig* pConfig, xbuffer* pOutput,
 			"INI key does not exist: %s.%s", sSection, sKey);
 		return false;
 	}
-	pSections[iDepth] = sSection;
-	pKeys[iDepth] = sKey;
-	p = sValue;
-	pStart = p;
-	while ( *p != 0 ) {
-		if ( p[0] == '$' && p[1] == '{' ) {
+	pStack[*pDepth] = (xrt_ini_reference){sSection, sKey, sValue, sReference};
+	*pDepth += 1u;
+	return true;
+}
+
+/* 深度只消耗受配置约束的堆帧，不随引用链增长宿主 C 调用栈。 */
+static bool __xrtIniAppendResolved(xrtiniconfig* pConfig, xbuffer* pOutput,
+	const char* sSection, const char* sKey, xrt_ini_reference* pStack,
+	uint32 iMaxDepth)
+{
+	uint32 iDepth = 0u;
+	bool bResult = false;
+	if ( !__xrtIniPushReference(pConfig, pStack, &iDepth,
+		iMaxDepth, sSection, sKey, NULL) ) { return false; }
+	while ( iDepth != 0u ) {
+		xrt_ini_reference* pFrame = &pStack[iDepth - 1u];
+		const char* pStart = pFrame->Position;
+		const char* p = strstr(pStart, "${");
+		if ( p != NULL ) {
 			const char* pClose = strchr(p + 2, '}');
 			const char* pDot;
-			str sRefSection;
-			str sRefKey;
+			str sReference;
+			const char* sRefSection;
+			const char* sRefKey;
 			pDot = pClose != NULL ? memchr(p + 2, '.', (size_t)(pClose - (p + 2))) : NULL;
 			/* 空节可引用全局键，空键无效；只按首个点分隔，不禁用带点键。 */
 			if ( pClose == NULL || pClose == p + 2 || (pDot != NULL && pDot + 1 == pClose) ) {
 				__xrtIniSetError(pConfig, XRT_INI_ERROR_INTERPOLATION, 0u, 0u, 0u,
 					"invalid INI interpolation expression");
-				return false;
+				break;
 			}
 			if ( p != pStart && !__xrtIniAppendResolvedText(pConfig, pOutput,
 				pStart, (size_t)(p - pStart)) ) {
-				return false;
+				break;
+			}
+			/* 一次复制完整引用，首个点原地分隔，不复制相对引用的节名。 */
+			sReference = xrtStrDupN(p + 2, (size_t)(pClose - (p + 2)));
+			if ( sReference == NULL ) {
+				__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, 0u, 0u, 0u,
+					"cannot resolve INI interpolation");
+				break;
 			}
 			if ( pDot != NULL ) {
-				sRefSection = xrtStrDupN(p + 2, (size_t)(pDot - (p + 2)));
-				sRefKey = xrtStrDupN(pDot + 1, (size_t)(pClose - (pDot + 1)));
+				sReference[pDot - (p + 2)] = 0;
+				sRefSection = sReference;
+				sRefKey = sReference + (pDot - (p + 2)) + 1;
 			} else {
-				sRefSection = xrtStrDup(sSection);
-				sRefKey = xrtStrDupN(p + 2, (size_t)(pClose - (p + 2)));
+				sRefSection = pFrame->Section;
+				sRefKey = sReference;
 			}
-			if ( sRefSection == NULL || sRefKey == NULL ||
-				!__xrtIniAppendResolved(pConfig, pOutput, (const char*)sRefSection,
-					(const char*)sRefKey, pSections, pKeys, iDepth + 1u, iMaxDepth) ) {
-				xrtFree(sRefSection);
-				xrtFree(sRefKey);
-				if ( !pConfig->Failed ) {
-					__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, 0u, 0u, 0u,
-						"cannot resolve INI interpolation");
-				}
-				return false;
+			pFrame->Position = pClose + 1;
+			if ( !__xrtIniPushReference(pConfig, pStack, &iDepth,
+				iMaxDepth, sRefSection, sRefKey, sReference) ) {
+				xrtFree(sReference);
+				break;
 			}
-			xrtFree(sRefSection);
-			xrtFree(sRefKey);
-			p = pClose + 1;
-			pStart = p;
 			continue;
 		}
-		++p;
+		if ( !__xrtIniAppendResolvedText(pConfig, pOutput,
+			pStart, strlen(pStart)) ) { break; }
+		xrtFree(pFrame->Reference);
+		--iDepth;
 	}
-	if ( p != pStart && !__xrtIniAppendResolvedText(pConfig, pOutput,
-		pStart, (size_t)(p - pStart)) ) {
-		return false;
-	}
-	return true;
+	bResult = iDepth == 0u;
+	while ( iDepth != 0u ) { xrtFree(pStack[--iDepth].Reference); }
+	return bResult;
 }
 
 XRT_API str xrtIniGet(const xrtiniconfig* pConst, str sSection, str sKey)
@@ -445,9 +465,7 @@ XRT_API str xrtIniGet(const xrtiniconfig* pConst, str sSection, str sKey)
 	xrtiniconfig* pConfig = (xrtiniconfig*)pConst;
 	const char* sRaw;
 	xbuffer* pOutput;
-	const char** pStack;
-	const char** pSections;
-	const char** pKeys;
+	xrt_ini_reference* pStack;
 	uint32 iMaxDepth;
 	str sResult;
 	if ( pConfig == NULL || sKey == NULL ) { return NULL; }
@@ -476,7 +494,8 @@ XRT_API str xrtIniGet(const xrtiniconfig* pConst, str sSection, str sKey)
 	}
 	iMaxDepth = pConfig->Options.tLimits.iMaxDepth != 0u ?
 		pConfig->Options.tLimits.iMaxDepth : 64u;
-	pStack = (const char**)xrtMalloc((size_t)iMaxDepth * sizeof(char*) * 2u);
+	/* Calloc 由 XRT 检查 count*size 溢出，不在这里重复写分配器保护。 */
+	pStack = (xrt_ini_reference*)xrtCalloc(iMaxDepth, sizeof(*pStack));
 	pOutput = xrtBufferCreate();
 	if ( pStack == NULL || pOutput == NULL || !xrtBufferReserve(pOutput, 256u) ) {
 		xrtFree(pStack);
@@ -485,10 +504,8 @@ XRT_API str xrtIniGet(const xrtiniconfig* pConst, str sSection, str sKey)
 			"cannot allocate INI interpolation state");
 		return NULL;
 	}
-	pSections = pStack;
-	pKeys = pStack + iMaxDepth;
 	if ( !__xrtIniAppendResolved(pConfig, pOutput, (const char*)sSection,
-		(const char*)sKey, pSections, pKeys, 0u, iMaxDepth) ) {
+		(const char*)sKey, pStack, iMaxDepth) ) {
 		xrtFree(pStack);
 		xrtBufferDestroy(pOutput);
 		return NULL;

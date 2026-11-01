@@ -41,11 +41,17 @@ sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
 "$cc" --version > "$work/compiler.txt"
 printf '[ini] C sanitizer gate\n'
 "$cc" "${flags[@]}" -c release/extlibs/ini/test/xrt_runtime.c -o "$work/xrt.o"
-for name in test_ini test_updates test_output_limits test_interpolation_refs test_owned_text test_stream_errors test_set_limits; do
+for name in test_ini test_updates test_output_limits test_interpolation_refs test_owned_text test_stream_errors test_set_limits test_interpolation_depth; do
     "$cc" "${flags[@]}" "release/extlibs/ini/test/$name.c" \
         "$work/xrt.o" -lm -ldl -o "$work/$name"
     timeout 90s "$work/$name"
 done
+(ulimit -s 256; timeout 90s "$work/test_interpolation_depth" 8192)
+"$cc" "${flags[@]}" release/extlibs/ini/examples/interpolation_chain_c.c \
+    "$work/xrt.o" -lm -ldl -o "$work/interpolation_chain_c"
+sed 's/\r$//' release/extlibs/ini/examples/interpolation_chain.expected.txt > "$work/chain_golden.txt"
+timeout 90s "$work/interpolation_chain_c" > "$work/chain_gcc.txt"
+diff -u "$work/chain_golden.txt" "$work/chain_gcc.txt"
 "$cc" "${flags[@]}" release/examples/extlibs/ini_c.c \
     "$work/xrt.o" -lm -ldl -o "$work/ini_c"
 timeout 90s "$work/ini_c" > "$work/gcc_example.txt"
@@ -66,6 +72,7 @@ timeout 90s ./release/xl run release/extlibs/ini/test/test_ini.c
 timeout 90s ./release/xl run release/extlibs/ini/test/test_updates.c
 timeout 90s ./release/xl run release/extlibs/ini/test/test_output_limits.c
 timeout 90s ./release/xl run release/extlibs/ini/test/test_interpolation_refs.c
+timeout 90s ./release/xl run release/extlibs/ini/test/test_interpolation_depth.c
 timeout 90s ./release/xl run release/extlibs/ini/test/test_owned_text.c
 timeout 90s ./release/xl run release/extlibs/ini/test/test_stream_errors.c
 timeout 90s ./release/xl run release/extlibs/ini/test/test_set_limits.c
@@ -75,6 +82,7 @@ timeout 90s ./release/xl run release/extlibs/ini/test/updates.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/output_limits.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/set_limits.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/interpolation_refs.xl
+timeout 90s ./release/xl run release/extlibs/ini/test/interpolation_depth.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/owned_results.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/owned_probe.xl
 timeout 90s ./release/xl cgen release/extlibs/ini/test/owned_probe.xl --emit "$work/owned_probe.c"
@@ -97,6 +105,10 @@ diff -u "$work/profiles_gcc.txt" "$work/profiles_xl.txt"
 for source in bounded_updates_c.c bounded_updates.xl; do
     timeout 90s ./release/xl run "release/extlibs/ini/examples/$source" > "$work/$source.direct.txt"
     diff -u "$work/bounded_golden.txt" "$work/$source.direct.txt"
+done
+for source in interpolation_chain_c.c interpolation_chain.xl; do
+    timeout 90s ./release/xl run "release/extlibs/ini/examples/$source" > "$work/$source.direct.txt"
+    diff -u "$work/chain_golden.txt" "$work/$source.direct.txt"
 done
 if timeout 90s ./release/xl check release/extlibs/ini/test/private_native.xl > "$work/private_native.txt" 2>&1; then
     printf 'ini: native methods must not be public\n' >&2
@@ -124,12 +136,12 @@ timeout 90s ./release/xl run release/examples/extlibs/ini.xl \
 diff -u "$work/c_example.txt" "$work/xl_example.txt"
 diff -u "$work/gcc_example.txt" "$work/c_example.txt"
 printf '[ini] XLang AOT gate\n'
-for name in aot_float_core boundaries updates output_limits interpolation_refs owned_results owned_probe set_limits; do
+for name in aot_float_core boundaries updates output_limits interpolation_refs interpolation_depth owned_results owned_probe set_limits; do
     timeout 180s ./release/xl build "release/extlibs/ini/test/$name.xl" \
         -o "$work/ini_$name"
     timeout 90s "$work/ini_$name"
 done
-for name in test_owned_text test_stream_errors test_set_limits; do
+for name in test_owned_text test_stream_errors test_set_limits test_interpolation_depth; do
     timeout 180s ./release/xl build "release/extlibs/ini/test/$name.c" -o "$work/$name.c.aot"
     timeout 90s "$work/$name.c.aot"
 done
@@ -155,6 +167,12 @@ for source in bounded_updates.xl bounded_updates_c.c; do
     timeout 180s ./release/xl build "release/extlibs/ini/examples/$source" -o "$target"
     timeout 90s "$target" > "$work/$source.aot.txt"
     diff -u "$work/bounded_golden.txt" "$work/$source.aot.txt"
+done
+for source in interpolation_chain.xl interpolation_chain_c.c; do
+    target="$work/${source//./_}"
+    timeout 180s ./release/xl build "release/extlibs/ini/examples/$source" -o "$target"
+    timeout 90s "$target" > "$work/$source.aot.txt"
+    diff -u "$work/chain_golden.txt" "$work/$source.aot.txt"
 done
 sha256sum -c "$work/inputs.before.sha256" > "$work/inputs.checked.txt"
 printf 'ini Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'

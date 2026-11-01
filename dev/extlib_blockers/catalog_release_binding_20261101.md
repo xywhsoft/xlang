@@ -62,6 +62,10 @@ ZIP解压修复阶段再次生成207包/17598项候选，生成期间输入不�
 随后等价路径补测与回归修正的最新候选在
 `build/test/zip_paths_20261101/catalog/`，207包/17598项，新鲜度通过、
 严格xl.dll绑定失败，仍未安装；对应资料源与完整报告已纳入源码提交。
+11月2日INI显式帧阶段最终候选为`build/test/ini_depth_20261101/catalog-final/`，
+包含最新README和coverage资料，生成时新鲜度通过、严格绑定仍报
+`Catalog compiler changed: xl.dll`，未安装。完整结果在
+`docs/reports/extlib-ini-depth-20261102.json`，未替主线改基线或复制旧资料。
 
 1. 主线维护者完成稳定XRT同步、相匹配的编译器发布物和验收记录。
 2. 如标准库/主线绑定改变，先按当前正式验收报告重生成基础命令目录。

@@ -1,0 +1,4 @@
+url: http://localhost:8080/v1
+updated: http://localhost:9090/v1
+cycle: rejected
+recovered: http://localhost:9090/v1
