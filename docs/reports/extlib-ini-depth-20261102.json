@@ -1,0 +1,2409 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-02T00:20:32.7882005+08:00",
+  "testMaterialDate": "2026-11-01",
+  "package": "ini",
+  "maturity": "R",
+  "status": "explicit-interpolation-frames-verified-historical-toolchain-risk-open",
+  "sourceParent": "5d9ff8e44ec8da84e0b6781107a6736818f33c37",
+  "root": "D:\\GIT\\x-lang",
+  "defect": {
+    "description": "Configured interpolation depth used native recursion and could exhaust a legitimate embedded C caller stack before the configured limit.",
+    "initialDefaultCliProbe": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "INI interpolation depth begin: 8192\r\nINI interpolation depth: PASS\r\n",
+      "stderr": "",
+      "elapsedMs": 1357
+    },
+    "qualification": "The original 8192-depth minimal CLI probe passed on its default stack. The confirmed failure is the limited-stack C host, not an asserted default-CLI or language-frontend failure.",
+    "finalFixtureDepth": 8192,
+    "smallStackBytes": 262144,
+    "windowsOldException": "0xC00000FD",
+    "linuxOldDiagnostic": "AddressSanitizer: stack-overflow",
+    "fix": "XRT-allocated explicit frames and iterative traversal. Copy each expression once, split the first dot in place, and borrow relative section names from a live ancestor.",
+    "unchanged": [
+      "syntax and public signatures",
+      "depth and cycle semantics",
+      "missing reference and output limit semantics",
+      "caller-owned result strings",
+      "configuration contents after failure",
+      "existing C-zero-depth and language defaults"
+    ],
+    "originalSource": {
+      "path": "build/test/ini_depth_20261101/before_model.c",
+      "bytes": 22168,
+      "sha256": "265220e18af28636b1edc00a48320173b7e92cfcaecef9d613a2c691ed188a5e"
+    },
+    "currentSource": {
+      "path": "release/extlibs/ini/xrt_ini_model.c",
+      "bytes": 22955,
+      "sha256": "720c3e4bc168a3e5f3fc67a01f1999fc7ce34d85b2af075fe2886edcc0ad1f49"
+    }
+  },
+  "regression": {
+    "cFixture": {
+      "path": "release/extlibs/ini/test/test_interpolation_depth.c",
+      "bytes": 7330,
+      "sha256": "3d47b6f017a984a1b4f2c09376be1e59efb12380de53b4b27a7d36c7ffff0170"
+    },
+    "xlangFixture": {
+      "path": "release/extlibs/ini/test/interpolation_depth.xl",
+      "bytes": 1285,
+      "sha256": "9c626e94970784674a93bfe864d574775c6ddfc8477c8261d07624deea267ad0"
+    },
+    "xlangDepth": 2048,
+    "dimensions": [
+      "deep success/cycle/missing and same-config recovery",
+      "exact/insufficient/default depth",
+      "owned-section parent resumption and repeated sibling references",
+      "global/relative references",
+      "empty child across output limit",
+      "every branch allocation fault and immediate recovery",
+      "live bytes/count and invalid/double/overflow/underflow/use-after-free counters after every checked deep lookup"
+    ],
+    "windowsControls": [
+      {
+        "name": "control runtime compile",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "-c",
+          "release/extlibs/ini/test/xrt_runtime.c",
+          "-o",
+          "D:/GIT/x-lang/build/test/ini_depth_20261101/control-runtime.o"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 5551
+        }
+      },
+      {
+        "name": "before-small build",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/extlibs/ini/test/test_interpolation_depth.c",
+          "D:/GIT/x-lang/build/test/ini_depth_20261101/control-runtime.o",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi",
+          "-Wl,--stack,262144",
+          "-o",
+          "D:/GIT/x-lang/build/test/ini_depth_20261101/before-small.exe",
+          "-DXINI_TEST_MODEL=\"D:/GIT/x-lang/build/test/ini_depth_20261101/before_model.c\""
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 790
+        }
+      },
+      {
+        "name": "before-small run",
+        "program": "D:/GIT/x-lang/build/test/ini_depth_20261101/before-small.exe",
+        "arguments": [
+          "8192"
+        ],
+        "expectedExit": -1073741571,
+        "result": {
+          "status": "fail",
+          "exitCode": -1073741571,
+          "stdout": "INI interpolation depth begin: 8192\r\n",
+          "stderr": "",
+          "elapsedMs": 490
+        }
+      },
+      {
+        "name": "before-large build",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/extlibs/ini/test/test_interpolation_depth.c",
+          "D:/GIT/x-lang/build/test/ini_depth_20261101/control-runtime.o",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi",
+          "-Wl,--stack,8388608",
+          "-o",
+          "D:/GIT/x-lang/build/test/ini_depth_20261101/before-large.exe",
+          "-DXINI_TEST_MODEL=\"D:/GIT/x-lang/build/test/ini_depth_20261101/before_model.c\""
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 772
+        }
+      },
+      {
+        "name": "before-large run",
+        "program": "D:/GIT/x-lang/build/test/ini_depth_20261101/before-large.exe",
+        "arguments": [
+          "8192"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "INI interpolation depth begin: 8192\r\nINI interpolation heap frames: 90 checks, 14 OOM, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 1912
+        }
+      },
+      {
+        "name": "after-small build",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/extlibs/ini/test/test_interpolation_depth.c",
+          "D:/GIT/x-lang/build/test/ini_depth_20261101/control-runtime.o",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi",
+          "-Wl,--stack,262144",
+          "-o",
+          "D:/GIT/x-lang/build/test/ini_depth_20261101/after-small.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 771
+        }
+      },
+      {
+        "name": "after-small run",
+        "program": "D:/GIT/x-lang/build/test/ini_depth_20261101/after-small.exe",
+        "arguments": [
+          "8192"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "INI interpolation depth begin: 8192\r\nINI interpolation heap frames: 70 checks, 9 OOM, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 1565
+        }
+      }
+    ],
+    "linuxControls": [
+      {
+        "name": "before-small",
+        "exit": 1,
+        "stdout": "INI interpolation depth begin: 8192\n",
+        "stderrReceipt": {
+          "path": "build/test/ini_depth_20261101/linux-before-small.stderr",
+          "bytes": 29144,
+          "sha256": "3b01ae7fe7609fbf393defc329acecbbc409445a4c2ca649e4c604ff7b6e069c"
+        },
+        "stderrPrefix": [
+          "AddressSanitizer:DEADLYSIGNAL",
+          "=================================================================",
+          "==442==ERROR: AddressSanitizer: stack-overflow on address 0x7ffce0123fa8 (pc 0x7aaf618e99de bp 0x7ffce0124810 sp 0x7ffce0123f90 T0)",
+          "    #0 0x7aaf618e99de in strcmp ../../../../src/libsanitizer/sanitizer_common/sanitizer_common_interceptors.inc:505",
+          "    #1 0x000000406514 in __xrtIniNameEqual /mnt/d/GIT/x-lang/build/test/ini_depth_20261101/before_model.c:79",
+          "    #2 0x00000040669c in __xrtIniFindSection /mnt/d/GIT/x-lang/build/test/ini_depth_20261101/before_model.c:87",
+          "    #3 0x000000408c5c in xrtIniGetRaw /mnt/d/GIT/x-lang/build/test/ini_depth_20261101/before_model.c:335",
+          "    #4 0x000000408d20 in __xrtIniAppendResolved /mnt/d/GIT/x-lang/build/test/ini_depth_20261101/before_model.c:383",
+          "    #5 0x00000040912b in __xrtIniAppendResolved /mnt/d/GIT/x-lang/build/test/ini_depth_20261101/before_model.c:418",
+          "    #6 0x00000040912b in __xrtIniAppendResolved /mnt/d/GIT/x-lang/build/test/ini_depth_20261101/before_model.c:418",
+          "    #7 0x00000040912b in __xrtIniAppendResolved /mnt/d/GIT/x-lang/build/test/ini_depth_20261101/before_model.c:418",
+          "    #8 0x00000040912b in __xrtIniAppendResolved /mnt/d/GIT/x-lang/build/test/ini_depth_20261101/before_model.c:418",
+          "    #9 0x00000040912b in __xrtIniAppendResolved /mnt/d/GIT/x-lang/build/test/ini_depth_20261101/before_model.c:418",
+          "    #10 0x00000040912b in __xrtIniAppendResolved /mnt/d/GIT/x-lang/build/test/ini_depth_20261101/before_model.c:418",
+          "    #11 0x00000040912b in __xrtIniAppendResolved /mnt/d/GIT/x-lang/build/test/ini_depth_20261101/before_model.c:418"
+        ],
+        "stackOverflow": true
+      },
+      {
+        "name": "before-large",
+        "exit": 0,
+        "stdout": "INI interpolation depth begin: 8192\nINI interpolation heap frames: 90 checks, 14 OOM, 0 failures\n",
+        "stderrReceipt": {
+          "path": "build/test/ini_depth_20261101/linux-before-large.stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stderrPrefix": null,
+        "stackOverflow": []
+      },
+      {
+        "name": "after-small",
+        "exit": 0,
+        "stdout": "INI interpolation depth begin: 8192\nINI interpolation heap frames: 70 checks, 9 OOM, 0 failures\n",
+        "stderrReceipt": {
+          "path": "build/test/ini_depth_20261101/linux-after-small.stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stderrPrefix": null,
+        "stackOverflow": []
+      }
+    ],
+    "oldBranchFaultPoints": 14,
+    "newBranchFaultPoints": 9,
+    "oldChecks": 90,
+    "newChecks": 70,
+    "countQualification": "Same final C fixture; the number of evaluations changes because it enumerates every allocation fault until success. No semantic assertion or dimension was removed.",
+    "largeStackControlBytes": {
+      "windows": 8388608,
+      "linux": 67108864
+    }
+  },
+  "costs": {
+    "frameMetadataBytes64Bit": 32,
+    "oldPointerArraysBytesPerDepth64Bit": 16,
+    "heapQualification": "Frame array capacity follows the configured maximum depth. XRT Calloc checks count*size and zeroes it. This increases per-depth heap metadata while removing per-depth native recursion.",
+    "referenceCopyQualification": "One allocation replaces the former two reference-name allocations. This does not imply all payload bytes/copies are halved or that returned text is zero-copy.",
+    "objectMeasurement": [
+      {
+        "name": "before",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "-c",
+          "D:/GIT/x-lang/build/test/ini_depth_20261101/before_model.c",
+          "-o",
+          "D:/GIT/x-lang/build/test/ini_depth_20261101/before-model.o"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 424
+        }
+      },
+      {
+        "name": "after",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "-c",
+          "release/extlibs/ini/xrt_ini_model.c",
+          "-o",
+          "D:/GIT/x-lang/build/test/ini_depth_20261101/after-model.o"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 418
+        }
+      },
+      {
+        "name": "size",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n   9716\t      0\t      0\t   9716\t   25f4\tD:/GIT/x-lang/build/test/ini_depth_20261101/before-model.o\r\n   9912\t      0\t      0\t   9912\t   26b8\tD:/GIT/x-lang/build/test/ini_depth_20261101/after-model.o\r\n",
+          "stderr": "",
+          "elapsedMs": 21
+        }
+      }
+    ],
+    "oldObjectText": 9716,
+    "newObjectText": 9912,
+    "textDelta": 196,
+    "qualification": "GNU size text for this GCC -O2 COFF model object, not a whole application binary delta. No full-workload speedup claimed; existing linear model lookup and active-chain cycle scan remain."
+  },
+  "windows": {
+    "rawEvidence": {
+      "path": "build/test/ini_guard_0b98ba3b951b43d59e1ae2df99169809.report.json",
+      "bytes": 119987,
+      "sha256": "bd04a83b25055d4ed46902291e4e7dc1794be1811f4aa64175887905b2a78251"
+    },
+    "parentResult": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "[ini] GCC version: PASS\n[ini] GCC cc1 path: PASS\n[ini] Python version: PASS\n[ini] process diagnostics: PASS\n[ini] strict C syntax: PASS\n[ini] shared C runtime compile: PASS\n[ini] GCC test_ini build: PASS\n[ini] GCC test_ini: PASS\n[ini] GCC test_updates build: PASS\n[ini] GCC test_updates: PASS\n[ini] GCC test_output_limits build: PASS\n[ini] GCC test_output_limits: PASS\n[ini] GCC test_interpolation_refs build: PASS\n[ini] GCC test_interpolation_refs: PASS\n[ini] GCC test_owned_text build: PASS\n[ini] GCC test_owned_text: PASS\n[ini] GCC test_stream_errors build: PASS\n[ini] GCC test_stream_errors: PASS\n[ini] GCC test_set_limits build: PASS\n[ini] GCC test_set_limits: PASS\n[ini] GCC test_interpolation_depth build: PASS\n[ini] GCC test_interpolation_depth: PASS\n[ini] GCC 256KiB stack build: PASS\n[ini] GCC 256KiB stack depth 8192: PASS\n[ini] GCC interpolation chain build: PASS\n[ini] GCC interpolation chain: PASS\n[ini] strict GCC C example build: PASS\n[ini] strict GCC C example: PASS\n[ini] GCC profiles build: PASS\n[ini] GCC profiles: PASS\n[ini] GCC bounded updates build: PASS\n[ini] GCC bounded updates: PASS\n[ini] independent INI interoperability build: PASS\n[ini] independent C/Python INI interoperability: PASS\n[ini] C boundaries: PASS\n[ini] C updates direct run: PASS\n[ini] C output limits direct run: PASS\n[ini] C reference errors direct run: PASS\n[ini] C deep interpolation direct run: PASS\n[ini] C owned text direct run: PASS\n[ini] C stream first-cause direct run: PASS\n[ini] C item limits direct run: PASS\n[ini] XLang boundaries: PASS\n[ini] XLang updates: PASS\n[ini] XLang output limits: PASS\n[ini] XLang item limits: PASS\n[ini] XLang reference errors: PASS\n[ini] XLang deep interpolation: PASS\n[ini] XLang owned text and defaults: PASS\n[ini] XLang ownership probe: PASS\n[ini] C profiles direct run: PASS\n[ini] XLang profiles: PASS\n[ini] direct bounded_updates_c.c: PASS\n[ini] direct bounded_updates.xl: PASS\n[ini] direct interpolation_chain_c.c: PASS\n[ini] direct interpolation_chain.xl: PASS\n[ini] direct-text cgen: PASS\n[ini] direct string adoption: PASS\n[ini] whole-return ownership cgen: PASS\n[ini] private native access: PASS\n[ini] private Config constructor: PASS\n[ini] shared suite: PASS\n[ini] C example: PASS\n[ini] XLang example: PASS\n[ini] AOT float core build: PASS\n[ini] AOT float core: PASS\n[ini] AOT boundaries build: PASS\n[ini] AOT boundaries: PASS\n[ini] AOT shared suite build: PASS\n[ini] AOT shared suite: PASS\n[ini] AOT example build: PASS\n[ini] AOT example: PASS\n[ini] AOT C example build: PASS\n[ini] AOT C example: PASS\n[ini] AOT updates build: PASS\n[ini] AOT updates: PASS\n[ini] AOT output_limits build: PASS\n[ini] AOT output_limits: PASS\n[ini] AOT interpolation_refs build: PASS\n[ini] AOT interpolation_refs: PASS\n[ini] AOT interpolation_depth build: PASS\n[ini] AOT interpolation_depth: PASS\n[ini] AOT owned_results build: PASS\n[ini] AOT owned_results: PASS\n[ini] AOT owned_probe build: PASS\n[ini] AOT owned_probe: PASS\n[ini] AOT set_limits build: PASS\n[ini] AOT set_limits: PASS\n[ini] AOT C test_owned_text build: PASS\n[ini] AOT C test_owned_text: PASS\n[ini] AOT C test_stream_errors build: PASS\n[ini] AOT C test_stream_errors: PASS\n[ini] AOT C test_set_limits build: PASS\n[ini] AOT C test_set_limits: PASS\n[ini] AOT C test_interpolation_depth build: PASS\n[ini] AOT C test_interpolation_depth: PASS\n[ini] AOT profiles.xl build: PASS\n[ini] AOT profiles.xl: PASS\n[ini] AOT profiles_c.c build: PASS\n[ini] AOT profiles_c.c: PASS\n[ini] AOT bounded_updates.xl build: PASS\n[ini] AOT bounded_updates.xl: PASS\n[ini] AOT bounded_updates_c.c build: PASS\n[ini] AOT bounded_updates_c.c: PASS\n[ini] AOT interpolation_chain.xl build: PASS\n[ini] AOT interpolation_chain.xl: PASS\n[ini] AOT interpolation_chain_c.c build: PASS\n[ini] AOT interpolation_chain_c.c: PASS\n",
+      "stderr": "",
+      "elapsedMs": 53464
+    },
+    "passed": true,
+    "checks": 107,
+    "inputCount": 60,
+    "inputs": {
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\examples\\profiles_c.c": "2E51F0F4F4FE38DBE4E7A4792C9EC64887D9B3514AEBABA8215F5848614D981A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\interpolation_refs.xl": "44A78BAD6E8F99110FC9936335F9C9CF288DA20CCA668474EF7DBC8C34619946",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\examples\\interpolation_chain.expected.txt": "B1CEDDBEE1F3A309DCCC5BF404441CAB847028349DF3EC3CDEDF773B2AA37C3C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\test_interpolation_refs.c": "F380D3F40AE06F521A2EE450EA8041694C5564131511C82C13C89F6784045FE5",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\check_gate_diagnostics.ps1": "774D106D3F619E5C00ED9299B03CAF852DB4FFFD34FCBB27E798065DED401CEC",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\xrt_ini_parser.c": "36E746AC7E500114D68B209534C7C138108AD299BA41C33378C350C465C8AC09",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\gate_probe_c.c": "346E88899B53DEB8C095BC6A4875F5D7FA5F5F662EA1B33823CB2412CFEF0811",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\aot_float_core.xl": "7095CD129CCCE59ACC5C68B52489C840CC83A1F2AB534286F13E8137FB64E38C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\check.ps1": "40DC6785D0446DCA2AB797CF25822D0B8B12555FCC476221C281104930A3E49D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\interpolation_depth.xl": "9C626E94970784674A93BFE864D574775C6DDFC8477C8261D07624DEEA267AD0",
+      "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe": "9785001B0DCF755EDDB8AF294A373C0B87B2498660F724E76C4D53F9C217C7A3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\set_limits.xl": "D1E0F43DEF2A802CE493C373939590897974290286FAB3088E34EC99AE1ABBB5",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\test_stream_errors.c": "896DB3C6E525809F759B011A6AD4BCC3D118942B895B8F266D6D6403E1A0B4B3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\xrt_runtime.c": "1F3A7EE2DF2D895FCB01D7D9F1633641635936772D98FC2E0DFE681D98A370E4",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\test_owned_text.c": "B6EC7CAA33DAF44021FAEEC5F7C606FB3D9871205D6E2B471C5186289C44CEB2",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\README.md": "5D667792EECD48D2E1C9CD1E73C100F8D416AA28E88600B87F3525C4A9C3013C",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\examples\\bounded_updates_c.c": "6430427B9EB77AB5E6E0D02738610527C6D92839646077CDDCCBC47F09CA3574",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\ini.xl": "FC38B0039F50EAF9341A7FACD41270A895F1B67C2A53916BA432DD2D21B640A4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\interop.py": "69DA595A8DBADD23AB76A8967D434BC97E69ECA3CD295FF523BDC3FBD337C64F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\xrt_ini_model.c": "720C3E4BC168A3E5F3FC67A01F1999FC7CE34D85B2AF075FE2886EDCC0AD1F49",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\examples\\interpolation_chain.xl": "18102F957EB9D94817467B137BF004EFC47FCA1AEB9053972F66FFAAD2240B44",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\test_ini.c": "40F49B1FC038E7E15FCDF1B80B9755EB4A8F76B6C71BAB5C1D89C9F922E70951",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_ini.xl": "A518D3ACC95C2DE0EE38E60C4063DE584458663A101DC229237F5558E46F310F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\output_limits.xl": "20531DCFC5C88BE8C23ACC1331B0598BA627CDC7BAB67AC92123DDFF8B7BFCF3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\boundaries.xl": "C48BB833DEFAF190EBC40C29555CD5E14E2824E137F882C95127A6DDFEBBDACF",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\test_output_limits.c": "9FD95160D6755BFC1310AC6D6D9AD5E27C866C468FBAE6170814FED971C77EA2",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\interop.c": "8C32CA2BD275900A87A369D69021DE602A87D32EF113AED97DF9CF81D46DE95E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\xrt_ini_writer.c": "694E796656EF55B39B900EAFF820757E71B868846EADE64B4459F070FDEE6158",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\owned_results.xl": "6112714D368C697F2335E4EFDF99CA4080EB372E7DEF6E6FA8BC021F42F90B7B",
+      "E:\\software\\w64devkit\\libexec\\gcc\\x86_64-w64-mingw32\\16.2.0\\cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\private_native.xl": "92CD152A9C8A1E0B78457AE7FCCCAE7E9F288C9B057EAEAE46D4CE53C56F017C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\check.sh": "BFFE4909347ED4C0157DEA69448954F06077CA64FBB3B02631B7B9C3F8D2E3C7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\docs\\site.html": "38A4D5E01742C487DC7EF32ACCE4AFEFB6D99600AD7D4F3BE3803DD19C15425A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\private_config_constructor.xl": "22A9654BDE982670CF1D67E4A6571038418B6BEEE664F5DCE183F259A54FD0C4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\ini_native.c": "83B079BDE4DD5A44D9AF07D4C5367DB926A9E1352E56934EB76A0CD7068FCBB1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\src\\ini.xl": "1030B5A4EF32F896952821A9D6B9AF36E4C20A67E6EA2A3E928A110BF913ED43",
+      "C:\\Program Files\\Python312\\python.exe": "4D6F5F81A4BCA11191C4C7C6B43632694D0A4CE74E068619D8FDC161D469859A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\updates.xl": "58CB692CF68E70E3BE65A74D715BCE5A938AD06BC9437F159769C6482268C29E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\include\\xrt_ini.h": "E8A5C5B581CEFE878659BE3E3578A7C2FF6D3603638CD9DE708A233A447B03CE",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\examples\\bounded_updates.xl": "432C80D4423DD0598CECE948BDEB6CE9F32AC7EF8D14C51AD3436740F67133E5",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\examples\\profiles.xl": "1B286C0A1F0DB9134123A35272766510ECAA0D1AA3EE62BC6802230E9D6FD940",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\test_interpolation_depth.c": "3D47B6F017A984A1B4F2C09376BE1E59EFB12380DE53B4B27A7D36C7FFFF0170",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\test_updates.c": "6A76E9CB1307CBE368FF28D0DACC8DEFDAD64C41796032232FEB27AE62672C1A",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\test_set_limits.c": "D2181C24112DDD66E976621857565BFAC2F0807A741A202DA6E07255A691F3F6",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\ini_c.c": "1286AAC725F855B6DD349780759E00BDE644E0C16AED784413954E6B981F6E0D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\xlang.package.json": "57F391D0B8120BA30A37258E009A5DA546E062B0B5BAD6E298A487666F3A53E2",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\owned_probe.xl": "CDA0AA10FC721073C1C78B1FD8F176F0C19A9C34ABCF4F2198C3C8BC2B9A1132",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\xrt_ini_internal.h": "F2913B9A49CA2C62C66914EA11852396A9CE972BD184E38FE290E39A923263E5",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\examples\\interpolation_chain_c.c": "4267B3B590262534237F1FCE8CC7654D790360DBA14FD24597B6545FD78A2381"
+    },
+    "changedDuringGate": false,
+    "postGateDocumentUpdates": [
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\README.md",
+      "D:\\GIT\\x-lang\\release\\extlibs\\ini\\docs\\site.html"
+    ],
+    "aotPrograms": 22,
+    "results": [
+      {
+        "label": "GCC version",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "--version"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 40,
+        "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "GCC cc1 path",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-print-prog-name=cc1"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 26,
+        "stdout": "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "Python version",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "--version"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 24,
+        "stdout": "Python 3.12.10\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "process diagnostics",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\release\\extlibs\\ini\\test\\check_gate_diagnostics.ps1"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 2395,
+        "stdout": "[ini] probe compile: PASS\n[ini] expected nonzero: PASS\n[ini] null arguments: PASS\n[ini] separate streams: PASS\n[ini] preserve bare CR: PASS\n[ini] relative cwd: PASS\nINI gate diagnostics: PASS (10 child results)\n",
+        "stderr": ""
+      },
+      {
+        "label": "strict C syntax",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-fsyntax-only",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/extlibs/ini/test/test_ini.c",
+          "release/extlibs/ini/ini_native.c"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 429,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "shared C runtime compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "-c",
+          "release/extlibs/ini/test/xrt_runtime.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\xrt.o"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 5112,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "GCC test_ini build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/extlibs/ini/test/test_ini.c",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\xrt.o",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_ini.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 1017,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "GCC test_ini",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_ini.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 91,
+        "stdout": "test_ini: PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "GCC test_updates build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/extlibs/ini/test/test_updates.c",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\xrt.o",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_updates.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 839,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "GCC test_updates",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_updates.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 30,
+        "stdout": "ini overwrite and write-back boundaries: PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "GCC test_output_limits build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/extlibs/ini/test/test_output_limits.c",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\xrt.o",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_output_limits.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 885,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "GCC test_output_limits",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_output_limits.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 25,
+        "stdout": "ini incremental output limits: PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "GCC test_interpolation_refs build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/extlibs/ini/test/test_interpolation_refs.c",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\xrt.o",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_interpolation_refs.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 785,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "GCC test_interpolation_refs",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_interpolation_refs.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 23,
+        "stdout": "ini interpolation references: PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "GCC test_owned_text build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/extlibs/ini/test/test_owned_text.c",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\xrt.o",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_owned_text.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 973,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "GCC test_owned_text",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_owned_text.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 24,
+        "stdout": "ini C owned text budgets: PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "GCC test_stream_errors build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/extlibs/ini/test/test_stream_errors.c",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\xrt.o",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_stream_errors.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 702,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "GCC test_stream_errors",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_stream_errors.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 27,
+        "stdout": "INI stream first-cause and close matrix: 14 cases PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "GCC test_set_limits build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/extlibs/ini/test/test_set_limits.c",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\xrt.o",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_set_limits.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 831,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "GCC test_set_limits",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_set_limits.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 36,
+        "stdout": "ini item limits and mutation rollback: PASS (108 cases, 12 allocation failures)\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "GCC test_interpolation_depth build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/extlibs/ini/test/test_interpolation_depth.c",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\xrt.o",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_interpolation_depth.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 716,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "GCC test_interpolation_depth",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_interpolation_depth.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 1543,
+        "stdout": "INI interpolation depth begin: 8192\r\nINI interpolation heap frames: 70 checks, 9 OOM, 0 failures\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "GCC 256KiB stack build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/extlibs/ini/test/test_interpolation_depth.c",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\xrt.o",
+          "-Wl,--stack,262144",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\small_stack.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 757,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "GCC 256KiB stack depth 8192",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\small_stack.exe",
+        "arguments": [
+          "8192"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 1564,
+        "stdout": "INI interpolation depth begin: 8192\r\nINI interpolation heap frames: 70 checks, 9 OOM, 0 failures\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "GCC interpolation chain build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/extlibs/ini/examples/interpolation_chain_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\xrt.o",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\interpolation_chain_c.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 717,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "GCC interpolation chain",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\interpolation_chain_c.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 26,
+        "stdout": "url: http://localhost:8080/v1\r\nupdated: http://localhost:9090/v1\r\ncycle: rejected\r\nrecovered: http://localhost:9090/v1\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "strict GCC C example build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/examples/extlibs/ini_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\xrt.o",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\ini_c.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 807,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "strict GCC C example",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\ini_c.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 41,
+        "stdout": "localhost:9090\r\nhttp://localhost:9090/api\r\nloaded= from-file\r\nini example: PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "GCC profiles build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/extlibs/ini/examples/profiles_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\xrt.o",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\profiles_c.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 768,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "GCC profiles",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\profiles_c.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 24,
+        "stdout": "http://localhost:9090\r\nhello\r\nworld\r\nunchanged\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "GCC bounded updates build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/extlibs/ini/examples/bounded_updates_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\xrt.o",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\bounded_updates_c.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 754,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "GCC bounded updates",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\bounded_updates_c.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 32,
+        "stdout": "oversized update rejected\r\n你好\r\n8080\r\nbounded configuration round-trip: OK\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "independent INI interoperability build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/ini",
+          "release/extlibs/ini/test/interop.c",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\xrt.o",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\ini_interop.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 746,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "independent C/Python INI interoperability",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "release/extlibs/ini/test/interop.py",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\ini_interop.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 97,
+        "stdout": "ini independent C/Python interoperability: PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "C boundaries",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/test/test_ini.c",
+          "--inc-path",
+          "../lib/xrt"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 172,
+        "stdout": "test_ini: PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "C updates direct run",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/test/test_updates.c"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 106,
+        "stdout": "ini overwrite and write-back boundaries: PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "C output limits direct run",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/test/test_output_limits.c"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 95,
+        "stdout": "ini incremental output limits: PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "C reference errors direct run",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/test/test_interpolation_refs.c"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 99,
+        "stdout": "ini interpolation references: PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "C deep interpolation direct run",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/test/test_interpolation_depth.c"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 2966,
+        "stdout": "INI interpolation depth begin: 8192\r\nINI interpolation heap frames: 70 checks, 9 OOM, 0 failures\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "C owned text direct run",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/test/test_owned_text.c"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 97,
+        "stdout": "ini C owned text budgets: PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "C stream first-cause direct run",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/test/test_stream_errors.c"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 83,
+        "stdout": "INI stream first-cause and close matrix: 14 cases PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "C item limits direct run",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/test/test_set_limits.c"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 97,
+        "stdout": "ini item limits and mutation rollback: PASS (108 cases, 12 allocation failures)\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "XLang boundaries",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/test/boundaries.xl"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 990,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "XLang updates",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/test/updates.xl"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 482,
+        "stdout": "ini language overwrite and write-back: PASS\n",
+        "stderr": ""
+      },
+      {
+        "label": "XLang output limits",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/test/output_limits.xl"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 505,
+        "stdout": "ini language output limits: PASS\n",
+        "stderr": ""
+      },
+      {
+        "label": "XLang item limits",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/test/set_limits.xl"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 495,
+        "stdout": "ini language item limits: PASS\n",
+        "stderr": ""
+      },
+      {
+        "label": "XLang reference errors",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/test/interpolation_refs.xl"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 577,
+        "stdout": "ini language interpolation references: PASS\n",
+        "stderr": ""
+      },
+      {
+        "label": "XLang deep interpolation",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/test/interpolation_depth.xl"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 662,
+        "stdout": "ini deep interpolation and recovery: PASS\n",
+        "stderr": ""
+      },
+      {
+        "label": "XLang owned text and defaults",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/test/owned_results.xl"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 981,
+        "stdout": "ini owned text and default snapshots: PASS\n",
+        "stderr": ""
+      },
+      {
+        "label": "XLang ownership probe",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/test/owned_probe.xl"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 446,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "C profiles direct run",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/examples/profiles_c.c"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 107,
+        "stdout": "http://localhost:9090\r\nhello\r\nworld\r\nunchanged\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "XLang profiles",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/examples/profiles.xl"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 416,
+        "stdout": "http://localhost:9090\nhello\nworld\nunchanged\n",
+        "stderr": ""
+      },
+      {
+        "label": "direct bounded_updates_c.c",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/examples/bounded_updates_c.c"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 92,
+        "stdout": "oversized update rejected\r\n你好\r\n8080\r\nbounded configuration round-trip: OK\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "direct bounded_updates.xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/examples/bounded_updates.xl"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 410,
+        "stdout": "oversized update rejected\n你好\n8080\nbounded configuration round-trip: OK\n",
+        "stderr": ""
+      },
+      {
+        "label": "direct interpolation_chain_c.c",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/examples/interpolation_chain_c.c"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 78,
+        "stdout": "url: http://localhost:8080/v1\r\nupdated: http://localhost:9090/v1\r\ncycle: rejected\r\nrecovered: http://localhost:9090/v1\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "direct interpolation_chain.xl",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/ini/examples/interpolation_chain.xl"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 459,
+        "stdout": "url: http://localhost:8080/v1\nupdated: http://localhost:9090/v1\ncycle: rejected\nrecovered: http://localhost:9090/v1\n",
+        "stderr": ""
+      },
+      {
+        "label": "direct-text cgen",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "extlibs/ini/test/boundaries.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\owned_text.c"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 542,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "whole-return ownership cgen",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "extlibs/ini/test/owned_probe.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\owned_probe.c"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 164,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "private native access",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "check",
+          "extlibs/ini/test/private_native.xl"
+        ],
+        "expectedExit": 1,
+        "actualExit": 1,
+        "status": "fail",
+        "elapsedMs": 48,
+        "stdout": "",
+        "stderr": "extlibs/ini/test/private_native.xl:4:8: [sem] unknown class/union field\nextlibs/ini/test/private_native.xl:4:17: [sem] no matching callable class member '__xl6_import_ini_Config.getNative': check argument count, types and access\n"
+      },
+      {
+        "label": "private Config constructor",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "check",
+          "extlibs/ini/test/private_config_constructor.xl"
+        ],
+        "expectedExit": 1,
+        "actualExit": 1,
+        "status": "fail",
+        "elapsedMs": 37,
+        "stdout": "",
+        "stderr": "extlibs/ini/test/private_config_constructor.xl:4:1: [import] import package has no such exported type\nextlibs/ini/test/private_config_constructor.xl:4:25: [import] import package has no such exported symbol\n"
+      },
+      {
+        "label": "shared suite",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "../test/cases/extlib_ini.xl"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 632,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "C example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "examples/extlibs/ini_c.c"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 101,
+        "stdout": "localhost:9090\r\nhttp://localhost:9090/api\r\nloaded= from-file\r\nini example: PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "XLang example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "examples/extlibs/ini.xl"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 613,
+        "stdout": "localhost:9090\nhttp://localhost:9090/api\nloaded= from-file\nini example: PASS\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT float core build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/test/aot_float_core.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\float_core.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 605,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT float core",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\float_core.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 33,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT boundaries build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/test/boundaries.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\boundaries.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 1369,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT boundaries",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\boundaries.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 52,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT shared suite build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "../test/cases/extlib_ini.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\shared_suite.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 803,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT shared suite",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\shared_suite.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 38,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT example build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "examples/extlibs/ini.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\example.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 736,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT example",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\example.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 32,
+        "stdout": "localhost:9090\nhttp://localhost:9090/api\nloaded= from-file\nini example: PASS\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT C example build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "examples/extlibs/ini_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\ini_c_aot.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 157,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT C example",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\ini_c_aot.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 32,
+        "stdout": "localhost:9090\r\nhttp://localhost:9090/api\r\nloaded= from-file\r\nini example: PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT updates build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/test/updates.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\updates.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 726,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT updates",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\updates.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 30,
+        "stdout": "ini language overwrite and write-back: PASS\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT output_limits build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/test/output_limits.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\output_limits.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 795,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT output_limits",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\output_limits.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 29,
+        "stdout": "ini language output limits: PASS\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT interpolation_refs build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/test/interpolation_refs.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\interpolation_refs.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 864,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT interpolation_refs",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\interpolation_refs.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 35,
+        "stdout": "ini language interpolation references: PASS\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT interpolation_depth build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/test/interpolation_depth.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\interpolation_depth.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 705,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT interpolation_depth",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\interpolation_depth.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 235,
+        "stdout": "ini deep interpolation and recovery: PASS\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT owned_results build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/test/owned_results.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\owned_results.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 1585,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT owned_results",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\owned_results.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 30,
+        "stdout": "ini owned text and default snapshots: PASS\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT owned_probe build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/test/owned_probe.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\owned_probe.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 683,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT owned_probe",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\owned_probe.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 31,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT set_limits build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/test/set_limits.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\set_limits.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 786,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT set_limits",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\set_limits.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 32,
+        "stdout": "ini language item limits: PASS\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT C test_owned_text build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/test/test_owned_text.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_owned_text.c.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 160,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT C test_owned_text",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_owned_text.c.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 28,
+        "stdout": "ini C owned text budgets: PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT C test_stream_errors build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/test/test_stream_errors.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_stream_errors.c.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 132,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT C test_stream_errors",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_stream_errors.c.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 28,
+        "stdout": "INI stream first-cause and close matrix: 14 cases PASS\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT C test_set_limits build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/test/test_set_limits.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_set_limits.c.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 143,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT C test_set_limits",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_set_limits.c.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 33,
+        "stdout": "ini item limits and mutation rollback: PASS (108 cases, 12 allocation failures)\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT C test_interpolation_depth build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/test/test_interpolation_depth.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_interpolation_depth.c.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 131,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT C test_interpolation_depth",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\test_interpolation_depth.c.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 2806,
+        "stdout": "INI interpolation depth begin: 8192\r\nINI interpolation heap frames: 70 checks, 9 OOM, 0 failures\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT profiles.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/examples/profiles.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\profiles_xl.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 621,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT profiles.xl",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\profiles_xl.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 29,
+        "stdout": "http://localhost:9090\nhello\nworld\nunchanged\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT profiles_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/examples/profiles_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\profiles_c_c.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 144,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT profiles_c.c",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\profiles_c_c.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 28,
+        "stdout": "http://localhost:9090\r\nhello\r\nworld\r\nunchanged\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT bounded_updates.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/examples/bounded_updates.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\bounded_updates_xl.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 635,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT bounded_updates.xl",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\bounded_updates_xl.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 30,
+        "stdout": "oversized update rejected\n你好\n8080\nbounded configuration round-trip: OK\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT bounded_updates_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/examples/bounded_updates_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\bounded_updates_c_c.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 144,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT bounded_updates_c.c",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\bounded_updates_c_c.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 28,
+        "stdout": "oversized update rejected\r\n你好\r\n8080\r\nbounded configuration round-trip: OK\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT interpolation_chain.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/examples/interpolation_chain.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\interpolation_chain_xl.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 670,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT interpolation_chain.xl",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\interpolation_chain_xl.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 31,
+        "stdout": "url: http://localhost:8080/v1\nupdated: http://localhost:9090/v1\ncycle: rejected\nrecovered: http://localhost:9090/v1\n",
+        "stderr": ""
+      },
+      {
+        "label": "AOT interpolation_chain_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/ini/examples/interpolation_chain_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\interpolation_chain_c_c.exe"
+        ],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 132,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "label": "AOT interpolation_chain_c.c",
+        "program": "D:\\GIT\\x-lang\\build\\test\\ini_guard_0b98ba3b951b43d59e1ae2df99169809\\interpolation_chain_c_c.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "actualExit": 0,
+        "status": "pass",
+        "elapsedMs": 36,
+        "stdout": "url: http://localhost:8080/v1\r\nupdated: http://localhost:9090/v1\r\ncycle: rejected\r\nrecovered: http://localhost:9090/v1\r\n",
+        "stderr": ""
+      }
+    ]
+  },
+  "linux": {
+    "snapshot": "/var/tmp/xlang-ini-depth-9dAe0y2i",
+    "exit": 0,
+    "sourceInputsUnchanged": true,
+    "inputs": {
+      "lib/xrt/xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+      "lib/xruntime/xruntime.h": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+      "release/examples/extlibs/ini.xl": "fc38b0039f50eaf9341a7facd41270a895f1b67c2a53916ba432dd2d21b640a4",
+      "release/examples/extlibs/ini_c.c": "1286aac725f855b6dd349780759e00bde644e0c16aed784413954e6b981f6e0d",
+      "release/extlibs/ini/README.md": "5d667792eecd48d2e1c9cd1e73c100f8d416aa28e88600b87f3525c4a9c3013c",
+      "release/extlibs/ini/docs/site.html": "38a4d5e01742c487dc7ef32acce4afefb6d99600ad7d4f3be3803dd19c15425a",
+      "release/extlibs/ini/examples/bounded_updates.xl": "432c80d4423dd0598cece948bdeb6ce9f32ac7ef8d14c51ad3436740f67133e5",
+      "release/extlibs/ini/examples/bounded_updates_c.c": "6430427b9eb77ab5e6e0d02738610527c6d92839646077cddccbc47f09ca3574",
+      "release/extlibs/ini/examples/interpolation_chain.expected.txt": "b1ceddbee1f3a309dccc5bf404441cab847028349df3ec3cdedf773b2aa37c3c",
+      "release/extlibs/ini/examples/interpolation_chain.xl": "18102f957eb9d94817467b137bf004efc47fca1aeb9053972f66ffaad2240b44",
+      "release/extlibs/ini/examples/interpolation_chain_c.c": "4267b3b590262534237f1fce8cc7654d790360dba14fd24597b6545fd78a2381",
+      "release/extlibs/ini/examples/profiles.xl": "1b286c0a1f0db9134123a35272766510ecaa0d1aa3ee62bc6802230e9d6fd940",
+      "release/extlibs/ini/examples/profiles_c.c": "2e51f0f4f4fe38dbe4e7a4792c9ec64887d9b3514aebaba8215f5848614d981a",
+      "release/extlibs/ini/include/xrt_ini.h": "e8a5c5b581cefe878659be3e3578a7c2ff6d3603638cd9de708a233a447b03ce",
+      "release/extlibs/ini/ini_native.c": "83b079bde4dd5a44d9af07d4c5367db926a9e1352e56934eb76a0cd7068fcbb1",
+      "release/extlibs/ini/src/ini.xl": "1030b5a4ef32f896952821a9d6b9af36e4c20a67e6ea2a3e928a110bf913ed43",
+      "release/extlibs/ini/test/aot_float_core.xl": "7095cd129ccce59acc5c68b52489c840cc83a1f2ab534286f13e8137fb64e38c",
+      "release/extlibs/ini/test/boundaries.xl": "c48bb833defaf190ebc40c29555cd5e14e2824e137f882c95127a6ddfebbdacf",
+      "release/extlibs/ini/test/check.ps1": "40dc6785d0446dca2ab797cf25822d0b8b12555fcc476221c281104930a3e49d",
+      "release/extlibs/ini/test/check.sh": "bffe4909347ed4c0157dea69448954f06077ca64fbb3b02631b7b9c3f8d2e3c7",
+      "release/extlibs/ini/test/check_gate_diagnostics.ps1": "774d106d3f619e5c00ed9299b03caf852db4fffd34fcbb27e798065ded401cec",
+      "release/extlibs/ini/test/gate_probe_c.c": "346e88899b53deb8c095bc6a4875f5d7fa5f5f662ea1b33823cb2412cfef0811",
+      "release/extlibs/ini/test/interop.c": "8c32ca2bd275900a87a369d69021de602a87d32ef113aed97df9cf81d46de95e",
+      "release/extlibs/ini/test/interop.py": "69da595a8dbadd23ab76a8967d434bc97e69eca3cd295ff523bdc3fbd337c64f",
+      "release/extlibs/ini/test/interpolation_depth.xl": "9c626e94970784674a93bfe864d574775c6ddfc8477c8261d07624deea267ad0",
+      "release/extlibs/ini/test/interpolation_refs.xl": "44a78bad6e8f99110fc9936335f9c9cf288da20cca668474ef7dbc8c34619946",
+      "release/extlibs/ini/test/output_limits.xl": "20531dcfc5c88be8c23acc1331b0598ba627cdc7bab67ac92123ddff8b7bfcf3",
+      "release/extlibs/ini/test/owned_probe.xl": "cda0aa10fc721073c1c78b1fd8f176f0c19a9c34abcf4f2198c3c8bc2b9a1132",
+      "release/extlibs/ini/test/owned_results.xl": "6112714d368c697f2335e4efdf99ca4080eb372e7def6e6fa8bc021f42f90b7b",
+      "release/extlibs/ini/test/private_config_constructor.xl": "22a9654bde982670cf1d67e4a6571038418b6beee664f5dce183f259a54fd0c4",
+      "release/extlibs/ini/test/private_native.xl": "92cd152a9c8a1e0b78457ae7fcccae7e9f288c9b057eaeae46d4ce53c56f017c",
+      "release/extlibs/ini/test/set_limits.xl": "d1e0f43def2a802ce493c373939590897974290286fab3088e34ec99ae1abbb5",
+      "release/extlibs/ini/test/test_ini.c": "40f49b1fc038e7e15fcdf1b80b9755eb4a8f76b6c71bab5c1d89c9f922e70951",
+      "release/extlibs/ini/test/test_interpolation_depth.c": "3d47b6f017a984a1b4f2c09376be1e59efb12380de53b4b27a7d36c7ffff0170",
+      "release/extlibs/ini/test/test_interpolation_refs.c": "f380d3f40ae06f521a2ee450ea8041694c5564131511c82c13c89f6784045fe5",
+      "release/extlibs/ini/test/test_output_limits.c": "9fd95160d6755bfc1310ac6d6d9ad5e27c866c468fbae6170814fed971c77ea2",
+      "release/extlibs/ini/test/test_owned_text.c": "b6ec7caa33daf44021faeec5f7c606fb3d9871205d6e2b471c5186289c44ceb2",
+      "release/extlibs/ini/test/test_set_limits.c": "d2181c24112ddd66e976621857565bfac2f0807a741a202da6e07255a691f3f6",
+      "release/extlibs/ini/test/test_stream_errors.c": "896db3c6e525809f759b011a6ad4bcc3d118942b895b8f266d6d6403e1a0b4b3",
+      "release/extlibs/ini/test/test_updates.c": "6a76e9cb1307cbe368ff28d0dacc8defdad64c41796032232feb27ae62672c1a",
+      "release/extlibs/ini/test/updates.xl": "58cb692cf68e70e3be65a74d715bce5a938ad06bc9437f159769c6482268c29e",
+      "release/extlibs/ini/test/xrt_runtime.c": "1f3a7ee2df2d895fcb01d7d9f1633641635936772d98fc2e0dfe681d98a370e4",
+      "release/extlibs/ini/xlang.package.json": "57f391d0b8120ba30a37258e009a5da546e062b0b5bad6e298a487666f3a53e2",
+      "release/extlibs/ini/xrt_ini_internal.h": "f2913b9a49ca2c62c66914ea11852396a9ce972bd184e38fe290e39a923263e5",
+      "release/extlibs/ini/xrt_ini_model.c": "720c3e4bc168a3e5f3fc67a01f1999fc7ce34d85b2af075fe2886edcc0ad1f49",
+      "release/extlibs/ini/xrt_ini_parser.c": "36e746ac7e500114d68b209534c7c138108ad299ba41c33378c350c465c8ac09",
+      "release/extlibs/ini/xrt_ini_writer.c": "694e796656ef55b39b900eaff820757e71b868846eade64b4459f070fdee6158",
+      "release/include/README.md": "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770",
+      "release/include/libtcc.h": "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab",
+      "release/include/tcc_builtin_vfs.h": "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2",
+      "release/include/xl.h": "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4",
+      "release/include/xl_cancellation_retirement.h": "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad",
+      "release/include/xl_clock.h": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18",
+      "release/include/xl_extlib_abi.h": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445",
+      "release/include/xl_foreign_graph.h": "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f",
+      "release/include/xl_foreign_net.h": "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a",
+      "release/include/xl_package.h": "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1",
+      "release/include/xl_runtime.h": "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2",
+      "release/include/xl_sync_retirement.h": "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e",
+      "release/include/xl_version.h": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992",
+      "release/include/xlc.h": "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f",
+      "release/include/xrt_decl.h": "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d",
+      "release/include/xruntime_decl.h": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+      "release/libxl.so": "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad",
+      "release/libxlc.so": "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386",
+      "release/xl": "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb",
+      "test/cases/extlib_ini.xl": "a518d3acc95c2de0ee38e60c4063de584458663a101dc229237f5558e46f310f"
+    },
+    "sanitizersForNativeC": [
+      "ASan",
+      "UBSan",
+      "leak detection"
+    ],
+    "smallStackCheckKiB": 256,
+    "aotPrograms": 22,
+    "recordedBuilds": [
+      "+ timeout 180s ./release/xl build release/extlibs/ini/test/aot_float_core.xl -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/ini_aot_float_core",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/test/boundaries.xl -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/ini_boundaries",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/test/updates.xl -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/ini_updates",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/test/output_limits.xl -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/ini_output_limits",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/test/interpolation_refs.xl -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/ini_interpolation_refs",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/test/interpolation_depth.xl -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/ini_interpolation_depth",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/test/owned_results.xl -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/ini_owned_results",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/test/owned_probe.xl -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/ini_owned_probe",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/test/set_limits.xl -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/ini_set_limits",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/test/test_owned_text.c -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/test_owned_text.c.aot",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/test/test_stream_errors.c -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/test_stream_errors.c.aot",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/test/test_set_limits.c -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/test_set_limits.c.aot",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/test/test_interpolation_depth.c -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/test_interpolation_depth.c.aot",
+      "+ timeout 180s ./release/xl build release/examples/extlibs/ini.xl -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/ini_example",
+      "+ timeout 180s ./release/xl build test/cases/extlib_ini.xl -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/ini_shared",
+      "+ timeout 180s ./release/xl build release/examples/extlibs/ini_c.c -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/ini_c_aot",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/examples/profiles.xl -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/profiles_xl",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/examples/profiles_c.c -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/profiles_c_c",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/examples/bounded_updates.xl -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/bounded_updates_xl",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/examples/bounded_updates_c.c -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/bounded_updates_c_c",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/examples/interpolation_chain.xl -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/interpolation_chain_xl",
+      "+ timeout 180s ./release/xl build release/extlibs/ini/examples/interpolation_chain_c.c -o /var/tmp/xlang-ini-depth-9dAe0y2i/tmp/xlang-ini-cB6RKp/interpolation_chain_c_c"
+    ],
+    "stdout": "[ini] C sanitizer gate\ntest_ini: PASS\nini overwrite and write-back boundaries: PASS\nini incremental output limits: PASS\nini interpolation references: PASS\nini C owned text budgets: PASS\nINI stream first-cause and close matrix: 14 cases PASS\nini item limits and mutation rollback: PASS (108 cases, 12 allocation failures)\nINI interpolation depth begin: 8192\nINI interpolation heap frames: 70 checks, 9 OOM, 0 failures\nINI interpolation depth begin: 8192\nINI interpolation heap frames: 70 checks, 9 OOM, 0 failures\n[ini] C/Python interoperability gate\nini independent C/Python interoperability: PASS\n[ini] XLang JIT gate\ntest_ini: PASS\nini overwrite and write-back boundaries: PASS\nini incremental output limits: PASS\nini interpolation references: PASS\nINI interpolation depth begin: 8192\nINI interpolation heap frames: 70 checks, 9 OOM, 0 failures\nini C owned text budgets: PASS\nINI stream first-cause and close matrix: 14 cases PASS\nini item limits and mutation rollback: PASS (108 cases, 12 allocation failures)\nini language overwrite and write-back: PASS\nini language output limits: PASS\nini language item limits: PASS\nini language interpolation references: PASS\nini deep interpolation and recovery: PASS\nini owned text and default snapshots: PASS\n[ini] XLang AOT gate\nini language overwrite and write-back: PASS\nini language output limits: PASS\nini language interpolation references: PASS\nini deep interpolation and recovery: PASS\nini owned text and default snapshots: PASS\nini language item limits: PASS\nini C owned text budgets: PASS\nINI stream first-cause and close matrix: 14 cases PASS\nini item limits and mutation rollback: PASS (108 cases, 12 allocation failures)\nINI interpolation depth begin: 8192\nINI interpolation heap frames: 70 checks, 9 OOM, 0 failures\nini Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n",
+    "stderr": null,
+    "trace": {
+      "path": "/var/tmp/xlang-ini-depth-9dAe0y2i/trace.txt",
+      "sha256": "edb8b953a41de87c3a259365d7d4e29b25ee0dbe6f12b30663721ea410bd31c7"
+    },
+    "toolsObservedAfterGate": {
+      "/usr/bin/gcc": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88",
+      "/usr/libexec/gcc/x86_64-linux-gnu/15/cc1": "30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620",
+      "/usr/bin/python3": "52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41",
+      "/usr/bin/bash": "3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd"
+    },
+    "compilerVersion": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n",
+    "toolQualification": "Linux source/runtime bytes were checked before/after the full gate. These tool hashes were observed after it; no claim of a before/after tool-binary audit."
+  },
+  "examples": {
+    "c": {
+      "path": "release/extlibs/ini/examples/interpolation_chain_c.c",
+      "bytes": 1769,
+      "sha256": "4267b3b590262534237f1fce8cc7654d790360dba14fd24597b6545fd78a2381"
+    },
+    "xlang": {
+      "path": "release/extlibs/ini/examples/interpolation_chain.xl",
+      "bytes": 976,
+      "sha256": "18102f957eb9d94817467b137bf004efc47fca1aeb9053972f66ffaad2240b44"
+    },
+    "golden": "url: http://localhost:8080/v1\nupdated: http://localhost:9090/v1\ncycle: rejected\nrecovered: http://localhost:9090/v1",
+    "nativeCAndCJitAndCAotAndXlangJitAndXlangAotPassed": true,
+    "fileDependency": false
+  },
+  "catalog": {
+    "initialGeneration": {
+      "status": "passed",
+      "catalogSha256": "41326ca450222c1421b86dce8b1b72c1b14512c51b19fde1b65efba3c4279d1c",
+      "sourceIndexSha256": "bd8f3e913b639360f4676bd1e977d85b95a1dd22f802f04efa1cc5381f47e848",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42",
+      "inputsUnchanged": true
+    },
+    "initialValidation": [
+      {
+        "name": "freshness",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/refresh_extensions.py",
+          "--check",
+          "--root",
+          "D:/GIT/x-lang",
+          "--data",
+          "D:/GIT/x-lang/build/test/ini_depth_20261101/catalog"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+          "stderr": "",
+          "elapsedMs": 1059
+        }
+      },
+      {
+        "name": "strict compiler binding",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/check_catalog_coverage.py",
+          "--root",
+          "D:/GIT/x-lang",
+          "--catalog",
+          "D:/GIT/x-lang/build/test/ini_depth_20261101/catalog/commands.json"
+        ],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Catalog compiler changed: xl.dll\r\n",
+          "elapsedMs": 313
+        }
+      },
+      {
+        "name": "committed runtime bytes",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "tools/check_release_committed.py"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+          "stderr": "",
+          "elapsedMs": 1194
+        }
+      }
+    ],
+    "generation": {
+      "status": "passed",
+      "catalogSha256": "8b9b544afc999363a4c3e8b84c30905ee07d8df3e5481237e374ad1d3e7f3180",
+      "sourceIndexSha256": "abb67183c3d07378ad5228af4aa6c4e151cde062ed06994f710fbf507cf6968d",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42",
+      "inputsUnchanged": true
+    },
+    "validation": [
+      {
+        "name": "freshness",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/refresh_extensions.py",
+          "--check",
+          "--root",
+          "D:/GIT/x-lang",
+          "--data",
+          "D:/GIT/x-lang/build/test/ini_depth_20261101/catalog-final"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+          "stderr": "",
+          "elapsedMs": 1216
+        }
+      },
+      {
+        "name": "strict compiler binding",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/check_catalog_coverage.py",
+          "--root",
+          "D:/GIT/x-lang",
+          "--catalog",
+          "D:/GIT/x-lang/build/test/ini_depth_20261101/catalog-final/commands.json"
+        ],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Catalog compiler changed: xl.dll\r\n",
+          "elapsedMs": 356
+        }
+      }
+    ],
+    "installed": false,
+    "reason": "Fresh candidate cannot replace installed data while strict compiler binding still rejects xl.dll."
+  },
+  "website": {
+    "source": {
+      "path": "release/extlibs/ini/docs/site.html",
+      "bytes": 14025,
+      "sha256": "9babdb362fc18a5831d9667b6fd9cf4f3d5e18ffb9c75540de66f306eb9510b1"
+    },
+    "generated": {
+      "path": "build/test/ini_depth_20261101/site/extlibs/ini.html",
+      "bytes": 14025,
+      "sha256": "9babdb362fc18a5831d9667b6fd9cf4f3d5e18ffb9c75540de66f306eb9510b1"
+    },
+    "deployedExternally": false
+  },
+  "remaining": [
+    "Historical GCC ICE and WSL interruption causes remain unproven; passing this suite does not close them.",
+    "Strict IDE catalog release binding remains a mainline delivery task.",
+    "No claim about all possible host stack sizes. Queries update per-config diagnostics; shared-config queries or mutations need caller synchronization, with no new implicit lock."
+  ],
+  "scope": {
+    "ordinaryPackages": 100,
+    "maturityCounts": {
+      "G": 30,
+      "R": 10,
+      "M": 56,
+      "X": 4
+    },
+    "compilerOrXrtOrIdeSourceModifiedByThisPhase": false,
+    "independentPackagesModified": false,
+    "publicApiChanged": false,
+    "formalRelease": false,
+    "goalComplete": false
+  }
+}
