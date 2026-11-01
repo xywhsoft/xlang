@@ -67,12 +67,22 @@ try {
     $runtime = Join-Path $work 'xrt.o'
     $null = Run 'shared C runtime compile' $gcc ($flags + @('-c',
         'release/extlibs/ini/test/xrt_runtime.c', '-o', $runtime))
-    foreach ($name in @('test_ini', 'test_updates', 'test_output_limits', 'test_interpolation_refs', 'test_owned_text', 'test_stream_errors', 'test_set_limits')) {
+    foreach ($name in @('test_ini', 'test_updates', 'test_output_limits', 'test_interpolation_refs', 'test_owned_text', 'test_stream_errors', 'test_set_limits', 'test_interpolation_depth')) {
         $target = Join-Path $work "$name.exe"
         $null = Run "GCC $name build" $gcc ($flags + @(
             "release/extlibs/ini/test/$name.c", $runtime, '-o', $target) + $links)
         $null = Run "GCC $name" $target @()
     }
+    $smallStack = Join-Path $work 'small_stack.exe'
+    $null = Run 'GCC 256KiB stack build' $gcc ($flags + @('release/extlibs/ini/test/test_interpolation_depth.c',
+        $runtime,'-Wl,--stack,262144','-o',$smallStack) + $links)
+    $null = Run 'GCC 256KiB stack depth 8192' $smallStack @('8192')
+    $chainExe = Join-Path $work 'interpolation_chain_c.exe'
+    $null = Run 'GCC interpolation chain build' $gcc ($flags + @('release/extlibs/ini/examples/interpolation_chain_c.c',
+        $runtime,'-o',$chainExe) + $links)
+    $chainGolden = [IO.File]::ReadAllText((Join-Path $root 'release/extlibs/ini/examples/interpolation_chain.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    $chainOutput = Run 'GCC interpolation chain' $chainExe @()
+    if ($chainOutput -cne $chainGolden) { throw 'INI interpolation chain differs from golden output' }
     $cExampleExe = Join-Path $work 'ini_c.exe'
     $null = Run 'strict GCC C example build' $gcc ($flags + @(
         'release/examples/extlibs/ini_c.c', $runtime, '-o', $cExampleExe) + $links)
@@ -100,6 +110,7 @@ try {
         $null = Run 'C updates direct run' $xl @('run', 'extlibs/ini/test/test_updates.c')
         $null = Run 'C output limits direct run' $xl @('run', 'extlibs/ini/test/test_output_limits.c')
         $null = Run 'C reference errors direct run' $xl @('run', 'extlibs/ini/test/test_interpolation_refs.c')
+        $null = Run 'C deep interpolation direct run' $xl @('run', 'extlibs/ini/test/test_interpolation_depth.c')
         $null = Run 'C owned text direct run' $xl @('run', 'extlibs/ini/test/test_owned_text.c')
         $null = Run 'C stream first-cause direct run' $xl @('run', 'extlibs/ini/test/test_stream_errors.c')
         $null = Run 'C item limits direct run' $xl @('run', 'extlibs/ini/test/test_set_limits.c')
@@ -108,6 +119,7 @@ try {
         $null = Run 'XLang output limits' $xl @('run', 'extlibs/ini/test/output_limits.xl')
         $null = Run 'XLang item limits' $xl @('run', 'extlibs/ini/test/set_limits.xl')
         $null = Run 'XLang reference errors' $xl @('run', 'extlibs/ini/test/interpolation_refs.xl')
+        $null = Run 'XLang deep interpolation' $xl @('run', 'extlibs/ini/test/interpolation_depth.xl')
         $null = Run 'XLang owned text and defaults' $xl @('run', 'extlibs/ini/test/owned_results.xl')
         $null = Run 'XLang ownership probe' $xl @('run', 'extlibs/ini/test/owned_probe.xl')
         $profilesC = Run 'C profiles direct run' $xl @('run', 'extlibs/ini/examples/profiles_c.c')
@@ -118,6 +130,10 @@ try {
         foreach ($source in @('bounded_updates_c.c', 'bounded_updates.xl')) {
             $output = Run "direct $source" $xl @('run', "extlibs/ini/examples/$source")
             if ($output -cne $boundedGolden) { throw "INI $source differs from golden output" }
+        }
+        foreach ($source in @('interpolation_chain_c.c', 'interpolation_chain.xl')) {
+            $output = Run "direct $source" $xl @('run', "extlibs/ini/examples/$source")
+            if ($output -cne $chainGolden) { throw "INI $source differs from golden output" }
         }
         $generated = Join-Path $work 'owned_text.c'
         $null = Run 'direct-text cgen' $xl @('cgen',
@@ -191,13 +207,13 @@ try {
             if ($cAotOutput -cne $gccOutput) {
                 throw '[ini] AOT C example output differs from GCC'
             }
-            foreach ($name in @('updates', 'output_limits', 'interpolation_refs', 'owned_results', 'owned_probe', 'set_limits')) {
+            foreach ($name in @('updates', 'output_limits', 'interpolation_refs', 'interpolation_depth', 'owned_results', 'owned_probe', 'set_limits')) {
                 $target = Join-Path $work "$name.exe"
                 $null = Run "AOT $name build" $xl @('build',
                     "extlibs/ini/test/$name.xl", '-o', $target)
                 $null = Run "AOT $name" $target @()
             }
-            foreach ($name in @('test_owned_text', 'test_stream_errors', 'test_set_limits')) {
+            foreach ($name in @('test_owned_text', 'test_stream_errors', 'test_set_limits', 'test_interpolation_depth')) {
                 $nativeTest = Join-Path $work "$name.c.exe"
                 $null = Run "AOT C $name build" $xl @('build',
                     "extlibs/ini/test/$name.c", '-o', $nativeTest)
@@ -215,6 +231,12 @@ try {
                 $null = Run "AOT $source build" $xl @('build', "extlibs/ini/examples/$source", '-o', $target)
                 $output = Run "AOT $source" $target @()
                 if ($output -cne $boundedGolden) { throw "INI $source AOT differs from golden output" }
+            }
+            foreach ($source in @('interpolation_chain.xl', 'interpolation_chain_c.c')) {
+                $target = Join-Path $work ($source.Replace('.', '_') + '.exe')
+                $null = Run "AOT $source build" $xl @('build', "extlibs/ini/examples/$source", '-o', $target)
+                $output = Run "AOT $source" $target @()
+                if ($output -cne $chainGolden) { throw "INI $source AOT differs from golden output" }
             }
         }
     } finally { Pop-Location }

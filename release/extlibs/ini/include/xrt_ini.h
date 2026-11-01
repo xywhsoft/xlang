@@ -74,6 +74,8 @@ XRT_API uint32 xrtIniKeyCount(const xrtiniconfig* pConfig, str sSection);
 XRT_API const char* xrtIniKeyName(const xrtiniconfig* pConfig, str sSection, uint32 iIndex);
 XRT_API bool xrtIniHas(const xrtiniconfig* pConfig, str sSection, str sKey);
 XRT_API const char* xrtIniGetRaw(const xrtiniconfig* pConfig, str sSection, str sKey);
+/* 插值使用显式堆帧，不随配置深度增长宿主 C 栈；深度/循环仍为
+ * INTERPOLATION，分配失败为 MEMORY。返回文本继续由调用方 xrtFree。 */
 XRT_API str xrtIniGet(const xrtiniconfig* pConfig, str sSection, str sKey);
 XRT_API bool xrtIniGetInt(const xrtiniconfig* pConfig, str sSection, str sKey, int64* pValue);
 XRT_API bool xrtIniGetFloat(const xrtiniconfig* pConfig, str sSection, str sKey, double* pValue);

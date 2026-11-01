@@ -1,0 +1,25 @@
+import ini
+
+func main(...) as int
+    // 值按查询时的配置展开，不缓存中间结果。
+    auto config = ini.parse("[service]\nhost=localhost\nport=8080\nbase=http://${host}:${port}\napi=${base}/v1\n", interpolation = true, maxDepth = 4)
+    assert config.get("service", "api") == "http://localhost:8080/v1"
+    println("url: " + config.get("service", "api"))
+    config.set("service", "port", "9090")
+    assert config.get("service", "api") == "http://localhost:9090/v1"
+    println("updated: " + config.get("service", "api"))
+
+    config.set("service", "host", "${api}")
+    bool rejected = false
+    try
+        config.get("service", "api")
+    catch ConfigError error
+        rejected = config.errorCode == 9
+    end
+    assert rejected
+    println("cycle: rejected")
+    config.set("service", "host", "localhost")
+    assert config.get("service", "api") == "http://localhost:9090/v1"
+    println("recovered: " + config.get("service", "api"))
+    return 0
+end

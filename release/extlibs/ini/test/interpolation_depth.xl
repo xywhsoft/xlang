@@ -1,0 +1,41 @@
+import ini
+
+func main(...) as int
+    int count = 2048
+    auto config = ini.create(interpolation = true, maxDepth = count + 1)
+    for i in range(count)
+        string text = "OK"
+        if i + 1 < count then text = "${k" + string(i + 1) + "}" end
+        config.set("s", "k" + string(i), text)
+    end
+    assert config.get("s", "k0") == "OK"
+    config.set("s", "k2047", "${k0}")
+    bool cycle = false
+    try
+        config.get("s", "k0")
+    catch ConfigError error
+        cycle = config.errorCode == 9
+    end
+    assert cycle
+    config.set("s", "k2047", "${missing}")
+    bool missing = false
+    try
+        config.get("s", "k0")
+    catch ConfigError error
+        missing = config.errorCode == 7
+    end
+    assert missing
+    // 失败只销毁展开状态，不改变配置；修改叶节点即可继续使用。
+    config.set("s", "k2047", "OK")
+    assert config.get("s", "k0") == "OK" and config.valid
+    auto bounded = ini.parse("[s]\na=${b}\nb=${c}\nc=OK\n", interpolation = true, maxDepth = 2)
+    bool limited = false
+    try
+        bounded.get("s", "a")
+    catch ConfigError error
+        limited = bounded.errorCode == 9
+    end
+    assert limited and bounded.get("s", "c") == "OK"
+    println("ini deep interpolation and recovery: PASS")
+    return 0
+end
