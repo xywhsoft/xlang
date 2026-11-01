@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "date": "2026-11-02",
+  "status": "windows-and-linux-source-checkpoint",
+  "scope": "General exact/trivial C forwarding value placement; the whole eight-capability migration remains incomplete.",
+  "releaseProductsUpdated": false,
+  "windows": {
+    "canonicalBuild": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\source-r9\\build.json",
+    "translationUnits": 1397,
+    "complete": true,
+    "inputsUnchanged": true,
+    "comparison": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\forwarding-source-r9-proof\\comparison.json",
+    "independentPlanRefusalsPerOptimization": 8,
+    "sourceGate": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\handle-source-r9\\stages.json",
+    "callbackGate": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\callback-source-r9\\stages.json"
+  },
+  "linux": {
+    "canonicalBuild": "/home/ubuntu/xlang-validation/xge-declarative-20261102-r2/source-r2/build.json",
+    "translationUnits": 1396,
+    "complete": true,
+    "inputsUnchanged": true,
+    "comparison": "/home/ubuntu/xlang-validation/xge-declarative-20261102-r2/forwarding-proof-r2/comparison.json",
+    "log": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\linux-forwarding-r2.log",
+    "independentPlanRefusalsPerOptimization": 8
+  },
+  "measuredWindowsGetter": {
+    "previous": {
+      "bytes": 51,
+      "instructions": 15,
+      "stackBytes": 48
+    },
+    "current": {
+      "bytes": 32,
+      "instructions": 10,
+      "stackBytes": 32
+    },
+    "handwritten": {
+      "bytes": 32,
+      "instructions": 10,
+      "stackBytes": 32
+    },
+    "identicalInstructionBytes": true,
+    "gccO2": "One tail jump in each"
+  },
+  "limits": [
+    "Only one-block no-raise exact C calls over trivial parameters/results",
+    "No managed resources, input/result adaptation, cleanup, retained callback, or lifetime certification",
+    "Debug-mode probes retain normal CFG emission"
+  ]
+}

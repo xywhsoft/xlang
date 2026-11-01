@@ -26966,6 +26966,72 @@ static int xl6IrInstructionTerminates(XL6_IrInstructionKind kind)
            kind == XL6_IR_INSTR_ERROR_TEST;
 }
 
+XL6_SymbolId xl6IrDirectCForwardingArgument(const XL6_IrModule* module,
+    const XL6_IrInstruction* call, size_t parameter)
+{
+    if (!module || !call || parameter >= call->operandCount ||
+        call->firstOperand > module->operandCount ||
+        parameter >= module->operandCount - call->firstOperand) return 0;
+    const XL6_IrInstruction* load = xl6IrValueDefinition(module,
+        module->operands[call->firstOperand + parameter], NULL);
+    return load && load->kind == XL6_IR_INSTR_LOAD ? load->targetSymbol : 0;
+}
+
+const XL6_IrInstruction* xl6IrDirectCForwardingCall(const XL6_IrModule* module,
+    const XL6_IrFunction* function)
+{
+    if (!module || !function || module->stage != XL6_IR_STAGE_LOWERED ||
+        function->kind != XL6_IR_FUNCTION_USER || function->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
+        function->blockCount != 1 || function->entryBlock != function->firstBlock + 1 ||
+        function->firstBlock >= module->blockCount || function->instructionCount < 2 ||
+        function->firstInstruction > module->instructionCount ||
+        function->instructionCount > module->instructionCount - function->firstInstruction ||
+        function->firstParameter > module->functionParameterCount ||
+        function->parameterCount > module->functionParameterCount - function->firstParameter) return NULL;
+    const XL6_IrBlock* block = &module->blocks[function->firstBlock];
+    if (block->firstInstruction != function->firstInstruction || block->instructionCount != function->instructionCount) return NULL;
+    for (size_t p = 0; p < function->parameterCount; ++p) {
+        const XL6_IrStorage* storage = xl6IrStorageGet(module, module->functionParameters[function->firstParameter + p]);
+        const XL6_IrType* type = storage ? xl6IrTypeGet(&module->types, storage->type) : NULL;
+        if (!storage || storage->cellType || !type || type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL) return NULL;
+    }
+    size_t callIndex = function->firstInstruction + function->instructionCount - 2;
+    const XL6_IrInstruction *call = &module->instructions[callIndex], *terminal = call + 1;
+    const XL6_IrCallTarget* target = call->kind == XL6_IR_INSTR_CALL ? xl6IrCallTargetGet(module, call->targetSymbol) : NULL;
+    const XL6_IrNode* declaration = target ? xl6IrNodeGet(module, target->declaration) : NULL;
+    const XL6_IrType* result = xl6IrTypeGet(&module->types, function->returnType);
+    if (!target || !declaration || target->kind != XL6_IR_CALL_TARGET_EXTERN_C || !target->cName ||
+        target->runtimeBridge || target->nativeServicesRequired || target->nativeContextAbi || target->nativeResultAbi ||
+        target->nativeArrayResultAbi || declaration->foreignCall.outputIndexPlusOne ||
+        target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE || target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_NONE ||
+        target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
+        target->resultConversionAbi != XL6_IR_CALL_RESULT_CONVERSION_DIRECT || target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
+        target->returnType != function->returnType || call->type != function->returnType ||
+        (function->returnType && (!result || result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL)) ||
+        call->errorScope || call->evaluationScope || call->parameterScope || call->dispatchSlot ||
+        call->operandCount != target->parameterCount || terminal->kind != XL6_IR_INSTR_RETURN ||
+        terminal->operandCount != (function->returnType ? 1u : 0u) ||
+        terminal->firstOperand > module->operandCount || terminal->operandCount > module->operandCount - terminal->firstOperand ||
+        (target->parameterCount && (!target->parameterPhysicalAbis || !target->parameterAbis ||
+            !target->parameterTypes || !target->parameterConstraintAbis)) ||
+        (function->returnType && module->operands[terminal->firstOperand] != call->result)) return NULL;
+    for (size_t i = function->firstInstruction; i < callIndex; ++i) {
+        const XL6_IrInstruction* load = &module->instructions[i];
+        int parameter = 0;
+        if (load->kind != XL6_IR_INSTR_LOAD) return NULL;
+        for (size_t p = 0; p < function->parameterCount; ++p)
+            parameter |= module->functionParameters[function->firstParameter + p] == load->targetSymbol;
+        if (!parameter) return NULL;
+    }
+    for (size_t p = 0; p < call->operandCount; ++p) {
+        const XL6_IrStorage* input = xl6IrStorageGet(module, xl6IrDirectCForwardingArgument(module, call, p));
+        if (!input || target->parameterPhysicalAbis[p] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
+            (target->parameterAbis[p] != XL6_IR_PARAMETER_ABI_VALUE && target->parameterAbis[p] != XL6_IR_PARAMETER_ABI_BORROW) ||
+            input->type != target->parameterTypes[p] || target->parameterConstraintAbis[p] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE) return NULL;
+    }
+    return call;
+}
+
 /* A foreign owning result has exclusive rollback/present consumers and, for
  * optional owners, one allocation-free empty success successor. Prove the
  * partition from CALL/ERROR_TEST dataflow and resolved physical field ABI,
