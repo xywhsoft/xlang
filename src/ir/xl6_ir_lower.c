@@ -33436,7 +33436,6 @@ done:
 
 #include "xl6_ir_callable_result.c"
 
-
 /* Default reconstruction is an ordinary checked invocation, independent of
  * the lexical scopes in which its class declaration appeared. */
 static int xl6IrLowerPersistenceDefaultFunctions(XL6_IrLowerContext* ctx)

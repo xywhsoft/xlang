@@ -40652,7 +40652,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                closure->rawCallbackAbi!=XL6_IR_CLOSURE_RAW_CALLBACK_NONE || closure->rawExecutionAbi ||
                !body || body->kind!=XL6_IR_FUNCTION_NAMED_ADAPTER || body->declaration!=closure->declaration ||
                body->parameterCount!=output->paramCount || body->returnType!=output->callableResultType ||
-               body->errorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE || closure->callParameterCount!=output->paramCount)
+               body->errorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE || closure->callParameterCount!=output->paramCount ||
+               body->firstParameter>module->functionParameterCount ||
+               body->parameterCount>module->functionParameterCount-body->firstParameter ||
+               body->firstInstruction>module->instructionCount ||
+               body->instructionCount>module->instructionCount-body->firstInstruction)
                 return xl6IrDiag(diags,origin,"XLIR callable-result adapter lost its exact source/signature ABI");
             const XL6_IrStorage* captured=xl6IrStorageGet(module,capture->storageSymbol);
             if(!capture->sourceSymbol || !captured || captured->kind!=XL6_IR_STORAGE_CAPTURE ||

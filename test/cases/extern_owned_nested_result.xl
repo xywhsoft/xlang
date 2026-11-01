@@ -115,8 +115,10 @@ func check(bool flag)
     auto cast=left.Factory as func() as Copy
     assert cast()(7)=="hello"
     func() as Text exact=left.Factory
-    string originalValue=exact()(7)
-    assert original(originalValue)
+    Text exactValue=exact()
+    reset()
+    string originalValue=exactValue(7)
+    assert original(originalValue) and oneRecord()
     func() as DataCopy binary=left.Binary
     bytes binaryValue=binary()()
     assert binaryValue==b"\0\xff\x11*" and not originalBytes(binaryValue)
