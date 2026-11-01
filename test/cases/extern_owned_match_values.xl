@@ -1,0 +1,143 @@
+// Match carrier selection is independent of arm order. Read paths keep the
+// foreign buffer; ordinary arms retain their existing string/bytes behavior.
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point value)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+extern "bound_c_owners_one_record" @no_raise func oneRecord() as bool
+extern "owned_text" @owned func nativeText() as string
+extern "owned_original" @no_raise func nativeOriginal(string value) as bool
+extern "owned_reset" @no_raise func reset()
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int prefix)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+typedef Text=string
+typedef Data=bytes
+func maybeText(bool present) as cstring?
+    return present ? cstring.take(rawText(),release) : null
+end
+func maybeData(bool present) as cbytes?
+    return present ? cbytes.take(rawBytes(),4,release) : null
+end
+func reads(int select)
+    reset()
+    Text textFirst=match select
+    case 0 then cstring.take(rawText(),release)
+    case 1 then nativeText()
+    else then "plain"
+    end
+    if select==0
+        assert original(textFirst) and oneRecord()
+    else
+        assert textFirst==(select==2 ? "plain" : "owned text")
+        if select!=2 then assert nativeOriginal(textFirst) end
+    end
+    reset()
+    Data dataFirst=match select
+    case 0 then cbytes.take(rawBytes(),4,release)
+    case 1 then b"plain"
+    else then b"plain"
+    end
+    if select==0
+        assert originalBytes(dataFirst) and oneRecord()
+    else
+        assert dataFirst==b"plain"
+    end
+    reset()
+    Text textLast=match select
+    case 0 then nativeText()
+    case 1 then cstring.take(rawText(),release)
+    else then "plain"
+    end
+    if select==1
+        assert original(textLast) and oneRecord()
+    else
+        assert textLast==(select==2 ? "plain" : "owned text")
+        if select!=2 then assert nativeOriginal(textLast) end
+    end
+    reset()
+    Data dataLast=match select
+    case 0 then b"plain"
+    case 1 then cbytes.take(rawBytes(),4,release)
+    else then b"plain"
+    end
+    if select==1
+        assert originalBytes(dataLast) and oneRecord()
+    else
+        assert dataLast==b"plain"
+    end
+    string? optionalText=match select
+    case 0 then null
+    case 1 then maybeText(true)
+    else then "plain"
+    end
+    if select==1
+        if optionalText!=null then assert original(optionalText) else assert false end
+    else
+        assert optionalText==(select==0 ? null : "plain")
+    end
+    bytes? optionalData=match select
+    case 0 then b"plain"
+    case 1 then maybeData(true)
+    else then null
+    end
+    if select==1
+        if optionalData!=null then assert originalBytes(optionalData) else assert false end
+    else
+        assert optionalData==(select==2 ? null : b"plain")
+    end
+    auto nested=match select
+    case 0 then null
+    case 1 then maybeText(false)
+    else then maybeText(true)
+    end
+    if select==2
+        if nested!=null then assert original(nested) else assert false end
+    else
+        assert nested==null
+    end
+end
+func writes(bool choose)
+    string text=match choose
+    case true then "plain"
+    case false then cstring.take(rawText(),release)
+    end
+    auto saved=text
+    text[0]='H'
+    assert text==(choose ? "Hlain" : "Hello")
+    if not choose then assert original(saved) and saved=="hello" end
+    bytes binary=match choose
+    case true then b"plain"
+    case false then cbytes.take(rawBytes(),4,release)
+    end
+    auto old=binary
+    binary[0]=uint8(7)
+    assert binary[0]==7
+    if not choose then assert originalBytes(old) and old[0]==0 end
+end
+assert debug()
+for select in range(3)
+    reads(select)
+end
+writes(true)
+writes(false)
+assert balanced()
+int accepted=0
+int rejected=0
+for prefix in range(384)
+    int before=live()
+    failAfter(prefix)
+    try
+        reads(prefix%3)
+        writes(prefix%2==0)
+        accepted+=1
+    catch problem
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before and balanced()
+end
+assert accepted>0 and rejected>0

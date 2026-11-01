@@ -24860,20 +24860,37 @@ static XL6_AstNode* xl6SemMergeMatchResultType(
         xl6AstFree(common);
         return NULL;
     }
+    commonConcrete = xl6SemResolveAliasType(ctx, common);
+    branchConcrete = xl6SemResolveAliasType(ctx, branch);
+    const XL6_AstNode* leftInner=xl6SemNullableInnerType(commonConcrete);
+    const XL6_AstNode* rightInner=xl6SemNullableInnerType(branchConcrete);
+    const XL6_AstNode* left=xl6SemResolveAliasType(ctx,leftInner ? leftInner : commonConcrete);
+    const XL6_AstNode* right=xl6SemResolveAliasType(ctx,rightInner ? rightInner : branchConcrete);
+    const char* leftBase=left ? xl6COwnedBaseName(left->text) : NULL;
+    const char* rightBase=right ? xl6COwnedBaseName(right->text) : NULL;
+    /* The carrier must depend on the value domain, never on arm order.
+     * Ordinary arms use the existing owner carrier; C-owned arms retain their
+     * payload. No runtime type test or extra representation is introduced. */
+    if(left && right &&
+        ((leftBase && xl6TextEquals(leftBase,rightBase ? rightBase : right->text)) ||
+         (rightBase && xl6TextEquals(rightBase,left->text)))) {
+        result=xl6SemCloneTypeNode(leftBase ? left : right);
+        if(result)result->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
+        if(leftInner || rightInner)result=xl6SemLiftNullableType(result,at);
+        xl6AstFree(common);xl6AstFree(branch);return result;
+    }
     if ( xl6SemTypeEquals(ctx, common, branch) ) {
         xl6AstFree(branch);
         return common;
     }
 
-    commonConcrete = xl6SemResolveAliasType(ctx, common);
-    branchConcrete = xl6SemResolveAliasType(ctx, branch);
     if ( commonConcrete != NULL && xl6TextEquals(commonConcrete->text, "null") ) {
         xl6AstFree(common);
-        return xl6SemNewNullableType(branch, at);
+        return xl6SemLiftNullableType(branch, at);
     }
     if ( branchConcrete != NULL && xl6TextEquals(branchConcrete->text, "null") ) {
         xl6AstFree(branch);
-        result = xl6SemNewNullableType(common, at);
+        result = xl6SemLiftNullableType(common, at);
         return result;
     }
     /* An unbound method group is provisionally var. Keep this join open
