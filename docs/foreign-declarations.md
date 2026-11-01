@@ -117,4 +117,40 @@ aggregate 渲染实现。
 也以错误的 C 字段长度／元素类型验证权威 ABI。传入 `--source-build` 时，还
 执行破坏性 IR 测试，要求不合法的证明、分支和类型在输出任何 C/header 前拒绝。
 
-拥有构造、回调环境、XUI 生命周期及整个 XGE/XUI 包迁移仍在后续步骤中。
+## C 描述结构和状态／输出工厂
+
+```xlang
+extern "Config" struct Config @header("provider.h")
+    c_int value
+end
+extern "readConfig" @pure @no_raise @nonblocking @c_ref(0) func read(Config config) as c_int
+extern "destroyWidget" @no_raise @nonblocking func dispose(Widget widget)
+extern "createWidget" @no_raise @nonblocking @factory(1, 0, dispose) @c_ref(1) func create(c_int mode, Config config) as Widget
+```
+
+`@c_ref(index)` 按零起始的显式语言参数序号，将平凡 C 记录映射到调用期间的
+`const Config*`。它不改变参数的值语义，不允许 C 保存或修改这个临时地址，
+也不提供语言层引用。不同参数可分别声明；重复序号、越界序号和资源类型会拒绝。
+
+上面的工厂对应 `int createWidget(int mode, Widget* output, const Config*)`。
+`@factory` 的输出序号按零起始的物理 C 参数计算；第二个参数是成功状态码，
+支持整个 C int 范围；第三个参数是具有精确结果类型的、无返回值且 no-raise 的
+原生回滚函数。它必须能唯一解析为模块级声明。工厂本身为静态／自由声明。
+
+XLIR 用一条 NATIVE_STATUS_OUT 表示原始 C 调用，并得到 `(status, raw)`。
+后续 CFG 明确检查状态及非空输出。失败先释放部分输出，再创建诊断和转入
+语言异常处理；诊断分配失败也不会跳过回滚。Cgen 不建立一层工厂包装函数，
+不将原生状态码误当成对象指针，也不根据库名补写错误处理。
+
+这里 `@no_raise` 描述 C 生产者；状态／非空结果的准入仍可失败，作为独立的
+求值效果保存到 IR，不会被该声明压掉。Cgen 的原始调用不需要额外的 foreign
+error scope。声明属性不作为可执行表达式跨入后端；IR 仅保留数值化合同。
+
+当前原生输出仍是 caller 管理的视图：成功后须显式交给原生生命周期管理者。
+工厂函数值及可能失败的参数清理尚未闭合，因此这些用法明确拒绝。受管拥有、
+上下文和回调环境是后续步骤；本节不代表完整 XGE/XUI 迁移已完成。
+
+`tools/check_foreign_factories.py` 覆盖实际 C 提供方、相对模块导入及私有回滚
+名称重写，验证 GCC O0/O2、TCC JIT／模块／独立 EXE 和完整状态码范围。
+其 IR 破坏性测试要求状态比较、非空分支、回滚身份、入口及记录地址被修改后，
+验证器在输出任何 C/header 前拒绝。

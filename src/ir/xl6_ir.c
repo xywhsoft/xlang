@@ -4350,10 +4350,13 @@ static XL6_IrNodeId xl6IrBuildAstNode(
         }
         sourceChildCount = 1;
     }
+    const XL6_AstNode* foreignAttributes = xl6ForeignFunctionAttributes(source);
+    if (foreignAttributes) --sourceChildCount;
     id = (XL6_IrNodeId)(module->nodeCount + 1);
     node = &module->nodes[module->nodeCount++];
     memset(node, 0, sizeof(*node));
     node->unionField = SIZE_MAX;
+    if (foreignAttributes && !xl6ForeignFunctionRead(source, &node->foreignCall)) { *ok = 0; return 0; }
     node->kind = xl6IrNodeKindFromAst(source->kind); node->sourceKind = source->kind; node->flags = source->flags;
     node->compiledPackageRoot = source->compiledPackageRoot;
     node->compiledPackageError = source->compiledPackageError;
@@ -21198,7 +21201,11 @@ static XL6_IrErrorAbi xl6IrNodeEvaluationErrorAbi(
         xl6IrTypeReleaseEffect(module, node->storageType) == XL6_IR_RELEASE_EFFECT_MAY_RAISE)
         return XL6_IR_ERROR_ABI_MAY_RAISE;
     switch (node->kind) {
-    case XL6_IR_NODE_CALL:
+    case XL6_IR_NODE_CALL: {
+        const XL6_IrNode* producer = node->targetSymbol && node->targetSymbol < module->symbolNodeCapacity
+            ? xl6IrNodeGet(module, module->symbolNodes[node->targetSymbol]) : NULL;
+        if (producer && producer->foreignCall.outputIndexPlusOne) return XL6_IR_ERROR_ABI_MAY_RAISE;
+        }
         /* Ordinary CallSite cleanup already has its parameter/receiver
          * contract. Intrinsics may construct and release additional owners. */
         if (xl6IrIntrinsicCallGet(module, id) == NULL) return XL6_IR_ERROR_ABI_INVALID;
@@ -22622,6 +22629,18 @@ const XL6_IrCallTarget* xl6IrCallTargetGet(const XL6_IrModule* module, XL6_Symbo
         if ( module->callTargets[i].symbol == symbol ) return &module->callTargets[i];
     }
     return NULL;
+}
+
+int xl6IrForeignConstRecordParameter(const XL6_IrModule* module,
+    const XL6_IrCallTarget* target, size_t parameter)
+{
+    const XL6_IrNode* declaration = target ? xl6IrNodeGet(module, target->declaration) : NULL;
+    if (!declaration || target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
+        target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE) return 0;
+    size_t offset = declaration->sourceKind == XL6_AST_NATIVE_EXTERN_FUNC &&
+        !(declaration->flags & XL6_AST_FLAG_STATIC) ? 1u : 0u;
+    if (parameter < offset || parameter - offset >= 64 || parameter >= target->parameterCount) return 0;
+    return (declaration->foreignCall.constRecordAddresses & (UINT64_C(1) << (parameter - offset))) != 0;
 }
 
 static int xl6IrNativeCStringResultArity(const XL6_IrCallTarget* target)
@@ -28954,6 +28973,7 @@ static int xl6IrBuildReachabilityFacts(
                   ++instructionIndex ) {
                 const XL6_IrInstruction* instruction = &module->instructions[instructionIndex];
                 if ( instruction->kind == XL6_IR_INSTR_CALL ||
+                     instruction->kind == XL6_IR_INSTR_NATIVE_STATUS_OUT ||
                      instruction->kind == XL6_IR_INSTR_ASYNC_START ||
                      instruction->kind == XL6_IR_INSTR_GENERATOR_START ||
                      instruction->kind == XL6_IR_INSTR_CLOSURE_MAKE ) {
@@ -36282,6 +36302,8 @@ invalid:
 
 #include "xl6_ir_compiled_package_verify.c"
 
+#include "src/ir/xl6_ir_foreign_call.c"
+
 int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
 {
     size_t i;
@@ -39584,6 +39606,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                    (target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC ||
                     target->kind == XL6_IR_CALL_TARGET_INTERNAL_GENERATOR)) )
                 return xl6IrDiag(diags, NULL, "XLIR call target parameter has no canonical ownership ABI");
+            if (xl6IrForeignConstRecordParameter(module, target, parameter) !=
+                (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS))
+                return xl6IrDiag(diags, NULL, "C record const address disagrees with its declaration");
             if ( target->parameterPhysicalAbis[parameter] ==
                      XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ) {
                 if ( target->parameterPhysicalFieldDeclarations[parameter] !=
@@ -39592,6 +39617,12 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       (parameterType->kind == XL6_IR_TYPE_FUNCTION || xl6IrTypeIsCOwned(parameterType))) )
                     return xl6IrDiag(diags, NULL,
                         "XLIR extern function parameter cannot use the direct closure physical ABI");
+            } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS) {
+                if (parameterType->cAbi != XL6_IR_C_ABI_C_RECORD ||
+                    parameterType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+                    target->parameterAbis[parameter] != XL6_IR_PARAMETER_ABI_VALUE ||
+                    target->parameterPhysicalFieldDeclarations[parameter])
+                    return xl6IrDiag(diags, NULL, "C record const address lacks an exact trivial value ABI");
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW) {
                 if((target->kind!=XL6_IR_CALL_TARGET_EXTERN_C && target->kind!=XL6_IR_CALL_TARGET_NATIVE_FACTORY) || !xl6IrTypeIsCOwned(parameterType) || parameterType->kind!=XL6_IR_TYPE_BUILTIN ||
                     target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
@@ -40285,6 +40316,19 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             : node->opcode;
         XL6_IrErrorAbi expectedOperatorErrorAbi =
             xl6IrClassifyOperatorErrorAbi(module, node);
+        if (node->foreignCall.constRecordAddresses || node->foreignCall.outputIndexPlusOne ||
+            node->foreignCall.successCode || node->foreignCall.rollbackSymbol) {
+            const XL6_IrNode* params = node->childCount > 1
+                ? xl6IrNodeGet(module, module->children[node->firstChild + 1]) : NULL;
+            if (node->kind != XL6_IR_NODE_FUNC_DECL ||
+                (node->sourceKind != XL6_AST_EXTERN_FUNC && node->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC) ||
+                !params || params->kind != XL6_IR_NODE_LIST ||
+                (params->childCount < 64 && (node->foreignCall.constRecordAddresses >> params->childCount)) ||
+                (node->foreignCall.outputIndexPlusOne ?
+                    !node->foreignCall.rollbackSymbol || node->foreignCall.outputIndexPlusOne > params->childCount + 1 :
+                    node->foreignCall.successCode || node->foreignCall.rollbackSymbol))
+                return xl6IrDiag(diags, node, "declarative C call facts are not attached to one exact source signature");
+        }
         XL6_IrTypeId expectedOperatorExecutionType =
             xl6IrClassifyOperatorExecutionType(module, node);
         XL6_IrOperatorOperandAbi expectedOperatorOperandAbis[2];
@@ -41252,7 +41296,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      instruction->pendingFailure > module->valueCount))
                     return xl6IrDiag(diags, instructionOrigin, "XLIR pending exception restoration has no cleanup outcome");
                  if ( instruction->kind <= XL6_IR_INSTR_INVALID ||
-                instruction->kind > XL6_IR_INSTR_C_ARRAY_SET ||
+                instruction->kind > XL6_IR_INSTR_NATIVE_STATUS_OUT ||
                        instructionOrigin == NULL ||
                        instruction->firstOperand > module->operandCount ||
                       instruction->operandCount > module->operandCount - instruction->firstOperand ||
@@ -47700,6 +47744,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             for ( j = function->firstInstruction;
                   j < function->firstInstruction + function->instructionCount; ++j ) {
                 const XL6_IrInstruction* instruction = &module->instructions[j];
+                if (instruction->kind == XL6_IR_INSTR_NATIVE_STATUS_OUT &&
+                    !xl6IrVerifyNativeStatusOut(module, function,
+                        xl6IrFunctionInstructionBlock(module, function, j), j))
+                    return xl6IrDiag(diags, xl6IrNodeGet(module, instruction->origin),
+                        "native factory lacks its exact status, non-null admission and exclusive rollback CFG");
                 size_t operand;
                 for ( operand = 0; operand < instruction->operandCount; ++operand ) {
                     size_t definitionIndex = 0;
@@ -47948,6 +47997,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         !xl6IrForeignResultOwnershipMatches(module, function, instruction))
                         return xl6IrDiag(diags, xl6IrNodeGet(module, instruction->origin),
                             "XLIR owned foreign result lacks its exclusive rollback / handle-TAKE partition");
+                    const XL6_IrNode* nativeDeclaration = callee ? xl6IrNodeGet(module, callee->declaration) : NULL;
+                    if (nativeDeclaration && nativeDeclaration->foreignCall.outputIndexPlusOne)
+                        return xl6IrDiag(diags, nativeDeclaration, "factory must use its explicit native status/output transaction");
                     XL6_IrTypeId physicalResult =
                         xl6IrCallTargetPhysicalResultType(module, callee);
                     if ( callee == NULL ||
@@ -49531,6 +49583,7 @@ static const char* xl6IrCallParameterPhysicalAbiName(
     case XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW:
         return "checked-result-closure-borrow";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW: return "c-span-borrow";
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS: return "const-c-record-address";
     default: return "invalid";
     }
 }
@@ -49649,6 +49702,7 @@ static const char* xl6IrInstructionKindName(XL6_IrInstructionKind kind)
     case XL6_IR_INSTR_C_ARRAY_BOUNDS: return "c-array-bounds";
     case XL6_IR_INSTR_C_ARRAY_GET: return "c-array-get";
     case XL6_IR_INSTR_C_ARRAY_SET: return "c-array-set";
+    case XL6_IR_INSTR_NATIVE_STATUS_OUT: return "native-status-out";
     case XL6_IR_INSTR_STORAGE_ADDRESS: return "storage-address";
     case XL6_IR_INSTR_RUNTIME_CALL: return "runtime-call";
     case XL6_IR_INSTR_TRAP_IF_FALSE: return "trap-if-false";
@@ -53170,6 +53224,9 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         xl6OutputPrintf(out, "    {\"generatorClosePointAbi\":%d,\"generatorClosePointAbiName\":\"%s\",", (int)node->generatorClosePointAbi, xl6IrGeneratorClosePointAbiName(node->generatorClosePointAbi));
         xl6OutputPrintf(out, "\"indexReceiverGate\":%d,", (int)node->indexReceiverGate);
         xl6OutputPrintf(out, "\"constructorReceiverSymbol\":%u,", (unsigned)node->constructorReceiverSymbol);
+        xl6OutputPrintf(out, "\"foreignCall\":{\"constRecordAddresses\":\"0x%016llX\",\"outputIndexPlusOne\":%u,\"successCode\":%d,\"rollbackSymbol\":%u},",
+            (unsigned long long)node->foreignCall.constRecordAddresses, (unsigned)node->foreignCall.outputIndexPlusOne,
+            (int)node->foreignCall.successCode, (unsigned)node->foreignCall.rollbackSymbol);
         xl6OutputPrintf(out, "\"id\":%lu,\"kind\":%d,\"kindName\":\"%s\",\"sourceKind\":%d,\"sourceKindName\":\"%s\",\"declarationOwnerType\":%u,\"callKind\":%d,\"callKindName\":\"%s\",\"valueCategory\":%d,\"valueCategoryName\":\"%s\",\"ownership\":%d,\"ownershipName\":\"%s\",\"ownershipPlanned\":%d,\"parent\":%u,\"line\":%d,\"column\":%d,\"firstChild\":%lu,\"childCount\":%lu,\"opcode\":%d,\"opcodeName\":\"%s\",\"operatorErrorAbi\":%d,\"operatorErrorAbiName\":\"%s\",\"operatorExecutionType\":%u,\"compoundOperatorSymbol\":%u,\"operatorOperand0Abi\":%d,\"operatorOperand0AbiName\":\"%s\",\"operatorOperand1Abi\":%d,\"operatorOperand1AbiName\":\"%s\",\"castAbi\":%d,\"castAbiName\":\"%s\",\"castErrorAbi\":%d,\"castErrorAbiName\":\"%s\",\"implicitConversionRuntimeOp\":%d,\"implicitConversionRuntimeOpName\":\"%s\",\"implicitConversionErrorAbi\":%d,\"implicitConversionErrorAbiName\":\"%s\",\"implicitNameAbi\":%d,\"implicitNameAbiName\":\"%s\",\"implicitReceiverType\":%u,\"implicitFieldDeclaration\":%u,\"namedCallableAbi\":%d,\"namedCallableAbiName\":\"%s\",\"namedCallableTargetSymbol\":%u,\"namedCallableSignatureType\":%u,\"memberAbi\":%d,\"memberAbiName\":\"%s\",\"projectionErrorAbi\":%d,\"projectionErrorAbiName\":\"%s\",\"evaluationErrorAbi\":%d,\"evaluationErrorAbiName\":\"%s\",\"constructionErrorAbi\":%d,\"constructionErrorAbiName\":\"%s\",\"unionField\":%ld,\"indexWriteAbi\":%d,\"indexWriteAbiName\":\"%s\",\"indexWriteErrorAbi\":%d,\"indexWriteErrorAbiName\":\"%s\",\"loopAbi\":%d,\"loopAbiName\":\"%s\",\"loopKeyAbi\":%d,\"loopKeyAbiName\":\"%s\",\"loopItemAbi\":%d,\"loopItemAbiName\":\"%s\",\"loopKeyLifetimeAbi\":%d,\"loopKeyLifetimeAbiName\":\"%s\",\"loopItemLifetimeAbi\":%d,\"loopItemLifetimeAbiName\":\"%s\",\"loopErrorAbi\":%d,\"loopErrorAbiName\":\"%s\",\"loopResourceAbi\":%d,\"loopResourceAbiName\":\"%s\",\"loopResourceType\":%u,\"loopProtocolIterTarget\":%u,\"loopProtocolNextTarget\":%u,\"loopProtocolIterableReceiverType\":%u,\"loopProtocolIteratorReceiverType\":%u,\"loopProtocolIteratorType\":%u,\"loopProtocolNextResultType\":%u,\"loopProtocolItemType\":%u,\"type\":%u,\"storageType\":%u,\"typeValueTarget\":%u,\"symbol\":%u,\"targetSymbol\":%u,\"scopeDepth\":%u,\"region\":%u}%s\n",
                         (unsigned long)(i + 1), (int)node->kind,
                         xl6IrNodeKindName(node->kind), (int)node->sourceKind,

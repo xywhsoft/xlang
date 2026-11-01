@@ -1,0 +1,36 @@
+extern "foreign_factory_widget*" class Widget @header("test/cases/foreign_decl_factory.h") @lifetime("caller")
+    native point handle
+    extern "foreign_factory_read" @no_raise @nonblocking get value() as c_int
+end
+extern "foreign_factory_config" struct Config @header("test/cases/foreign_decl_factory.h")
+    c_int value
+end
+extern "foreign_factory_config_read" @pure @no_raise @nonblocking @c_ref(0) func readConfig(Config config) as c_int
+extern "foreign_factory_destroy" @no_raise @nonblocking func dispose(Widget widget)
+extern "foreign_factory_create" @no_raise @nonblocking @factory(1, 0, dispose) @c_ref(1) func create(c_int mode, Config config) as Widget
+extern "foreign_factory_live" @no_raise @nonblocking func live() as c_int
+func main(...) as int
+    Config config = Config()
+    config.value = 42
+    assert readConfig(config) == 42
+    func(Config) as c_int inspect = readConfig
+    assert inspect(config) == 42
+    Widget widget = create(0, config)
+    assert widget.value == 42 and live() == 1
+    dispose(widget)
+    assert live() == 0
+    for mode in array[1, 2, 3]
+        bool caught = false
+        try
+            auto invalid = create(c_int(mode), config)
+        catch error
+            caught = true
+        end
+        assert caught and live() == 0
+    end
+    Widget retry = create(0, config)
+    assert retry.value == 42
+    dispose(retry)
+    assert live() == 0
+    return 0
+end

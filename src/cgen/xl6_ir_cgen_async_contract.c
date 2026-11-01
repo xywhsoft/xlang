@@ -752,6 +752,7 @@ static int xl6IrCgenAsyncMachineProgramSupported(
             case XL6_IR_INSTR_AGGREGATE_ZERO:
             case XL6_IR_INSTR_AGGREGATE_GET:
             case XL6_IR_INSTR_AGGREGATE_SET:
+            case XL6_IR_INSTR_NATIVE_STATUS_OUT:
             case XL6_IR_INSTR_C_ARRAY_BOUNDS:
             case XL6_IR_INSTR_C_ARRAY_GET:
             case XL6_IR_INSTR_C_ARRAY_SET:

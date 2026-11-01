@@ -2,6 +2,7 @@
 #define XL6_FOREIGN_DECL_H
 
 #include "src/ast/xl6_ast.h"
+#include "src/type/xl6_foreign_call_contract.h"
 #include <string.h>
 
 /* Declaration facts only. Backends consume the corresponding closed XLIR
@@ -11,6 +12,56 @@ typedef struct XL6_ForeignClassDecl {
     char cName[64];
     char header[256];
 } XL6_ForeignClassDecl;
+
+static inline const XL6_AstNode* xl6ForeignFunctionAttributes(const XL6_AstNode* node)
+{
+    if (!node || !node->childCount) return NULL;
+    const XL6_AstNode* last = node->children[node->childCount - 1];
+    return last && last->kind == XL6_AST_FIELD_ATTR && last->text &&
+        !strcmp(last->text, "c_call") ? last : NULL;
+}
+
+static inline int xl6ForeignDecimalInt(const XL6_AstNode* node, int32* output)
+{
+    int negative = node && node->kind == XL6_AST_UNARY && node->text &&
+        !strcmp(node->text, "-") && node->childCount == 1;
+    if (negative) node = node->children[0];
+    if (!node || node->kind != XL6_AST_INT || !node->text || !*node->text) return 0;
+    uint64 value = 0, limit = negative ? UINT64_C(2147483648) : INT32_MAX;
+    for (const unsigned char* p = (const unsigned char*)node->text; *p; ++p) {
+        if (*p < '0' || *p > '9' || value > (limit - (*p - '0')) / 10u) return 0;
+        value = value * 10u + (*p - '0');
+    }
+    *output = negative ? (int32)(-(int64)value) : (int32)value;
+    return 1;
+}
+
+static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
+    XL6_ForeignCallFacts* output)
+{
+    XL6_ForeignCallFacts facts = {0};
+    const XL6_AstNode* attributes = xl6ForeignFunctionAttributes(node);
+    for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
+        const XL6_AstNode* attr = attributes->children[i];
+        int32 index;
+        if (!attr || !attr->text || !attr->childCount ||
+            !xl6ForeignDecimalInt(attr->children[0], &index) || index < 0 || index >= 64) return 0;
+        if (!strcmp(attr->text, "c_ref")) {
+            uint64 bit = UINT64_C(1) << index;
+            if (attr->childCount != 1 || (facts.constRecordAddresses & bit)) return 0;
+            facts.constRecordAddresses |= bit;
+        } else if (!strcmp(attr->text, "factory")) {
+            if (facts.outputIndexPlusOne || attr->childCount != 3 ||
+                !xl6ForeignDecimalInt(attr->children[1], &facts.successCode) ||
+                !attr->children[2] || attr->children[2]->kind != XL6_AST_NAME ||
+                !attr->children[2]->text) return 0;
+            facts.outputIndexPlusOne = (uint32)index + 1;
+            facts.rollbackSymbol = attr->children[2]->semanticSymbolId;
+        } else return 0;
+    }
+    if (output) *output = facts;
+    return 1;
+}
 
 /* Parser-owned fixed C array vocabulary. '$' is not a source identifier, so
  * the family is introduced only by a checked field declarator, not by an

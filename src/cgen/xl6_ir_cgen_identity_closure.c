@@ -358,6 +358,8 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
           target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) || target->cName == NULL )
         return xl6IrCgenDiag(diags, module, target != NULL ? target->declaration : XL6_IR_NODE_INVALID,
                              "XLIR extern call target has no deterministic C linkage ABI");
+    const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);
+    uint32 output = declaration ? declaration->foreignCall.outputIndexPlusOne : 0;
     /* A runtime bridge is not an unresolved foreign symbol: the verified
      * component selected by runtimeBridge has already emitted its canonical
      * definition before this prototype phase.  Re-declaring it from the
@@ -373,6 +375,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
             : target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY
                 ? "const char*" : xl6IrCgenType(module, physicalResult);
     }
+    if (output) returnType = "int";
     if ( returnType == NULL )
         return xl6IrCgenDiag(diags, module, target->declaration, "XLIR C emitter does not support extern return ABI");
     xl6OutputPrintf(out, "extern %s ", returnType);
@@ -383,21 +386,27 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
         return xl6IrCgenDiag(diags, module, target->declaration,
                              "cannot collect bounded C extern header binding");
     xl6OutputPutc('(', out);
-    if ( target->parameterCount == 0 ) xl6OutputPuts("void", out);
-    for ( i = 0; i < target->parameterCount; ++i ) {
+    if ( target->parameterCount == 0 && !output ) xl6OutputPuts("void", out);
+    for ( i = 0; i < target->parameterCount + (output != 0); ++i ) {
         const char* type;
         if ( i > 0 ) xl6OutputPuts(", ", out);
-        if ( target->parameterPhysicalAbis[i] ==
+        if (output && i + 1 == output) {
+            xl6OutputPrintf(out, "%s*", xl6IrCgenType(module, target->returnType)); continue;
+        }
+        size_t parameter = i - (output && i + 1 > output);
+        if ( target->parameterPhysicalAbis[parameter] ==
                  XL6_IR_CALL_PARAMETER_PHYSICAL_RAW_C_CALLBACK ) {
             xl6OutputPrintf(out, "xlir_raw_callback_t%u",
-                (unsigned int)target->parameterTypes[i]);
+                (unsigned int)target->parameterTypes[parameter]);
             continue;
         }
-        type = xl6IrCgenExternParameterType(module, target, i);
+        type = xl6IrCgenExternParameterType(module, target, parameter);
         if ( type == NULL )
             return xl6IrCgenDiag(diags, module, target->declaration, "XLIR C emitter does not support extern parameter ABI");
-        xl6OutputPuts(type, out);
-        if ( xl6IrCgenParameterAbiIsIndirect(target->parameterAbis[i]) )
+        if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS)
+            xl6OutputPrintf(out, "const %s*", type);
+        else xl6OutputPuts(type, out);
+        if ( xl6IrCgenParameterAbiIsIndirect(target->parameterAbis[parameter]) )
             xl6OutputPuts("*", out);
     }
     if ( target->variadicAbi == XL6_IR_CALL_VARIADIC_C )

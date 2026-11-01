@@ -10,6 +10,7 @@
 #include "src/diag/xl6_diag.h"
 #include "src/ast/xl6_ast.h"
 #include "src/type/xl6_type_id.h"
+#include "src/type/xl6_foreign_call_contract.h"
 #include "src/type/xl6_native_value_ids.h"
 #include "src/runtime/xl6_value_admission_abi.h"
 #include "src/runtime/xl6_value_default_abi.h"
@@ -1212,7 +1213,10 @@ typedef enum XL6_IrInstructionKind {
      * and all entries to their block must be its true successor. */
     XL6_IR_INSTR_C_ARRAY_BOUNDS,
     XL6_IR_INSTR_C_ARRAY_GET,
-    XL6_IR_INSTR_C_ARRAY_SET
+    XL6_IR_INSTR_C_ARRAY_SET,
+    /* One C int-returning call with one initialized pointer output. The pair
+     * is (sign-extended status, raw output); admission/rollback stay in CFG. */
+    XL6_IR_INSTR_NATIVE_STATUS_OUT
 } XL6_IrInstructionKind;
 
 typedef enum XL6_IrGeneratorClosePointAbi {
@@ -3222,6 +3226,7 @@ typedef enum XL6_IrLoopResourceAbi {
 typedef struct XL6_IrNode {
     XL6_IrNodeKind kind;
     XL6_AstKind sourceKind;
+    XL6_ForeignCallFacts foreignCall;
     /* Exact nominal owner of a class declaration or its direct callable member.
      * Templates retain the declared parameter vector, including unused type
      * parameters. Monomorphic clones substitute this identity with the body;
@@ -4149,7 +4154,8 @@ typedef enum XL6_IrCallParameterPhysicalAbi {
     /* Exact nullary checked result-slot adapter + its code owner, borrowed
      * only for this call. The resident producer owns both leases separately. */
     XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW,
-    XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW
+    XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW,
+    XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS
 } XL6_IrCallParameterPhysicalAbi;
 
 /* A raw C callback may cross ordinary language wrapper functions before it
@@ -7889,6 +7895,7 @@ XL6_IrModuleRetirementAbi xl6IrModuleRetirementRequirement(const XL6_IrModule* m
 XL6_IrFutureAggregateAbi xl6IrModuleFutureAggregateRequirement(const XL6_IrModule* module);
 XL6_IrNativeFutureMapAbi xl6IrModuleNativeFutureMapRequirement(const XL6_IrModule* module);
 int xl6IrModuleHasFinalizerWork(const XL6_IrModule* module);
+int xl6IrForeignConstRecordParameter(const struct XL6_IrModule*, const XL6_IrCallTarget*, size_t);
 const XL6_IrCallTarget* xl6IrCallTargetGet(const XL6_IrModule* module, XL6_SymbolId symbol);
 XL6_IrCallResultConversionAbi xl6IrCallResultConversionForTarget(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);

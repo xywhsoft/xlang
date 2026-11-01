@@ -16,6 +16,7 @@ static int xl6IrCgenVerifyInstructions(
              xl6IrCgenType(module, instruction->type) == NULL )
             return xl6IrCgenDiag(diags, module, instruction->origin, "XLIR C emitter does not support a value ABI");
         switch ( instruction->kind ) {
+        case XL6_IR_INSTR_NATIVE_STATUS_OUT:
         case XL6_IR_INSTR_C_ARRAY_BOUNDS:
         case XL6_IR_INSTR_C_ARRAY_GET:
         case XL6_IR_INSTR_C_ARRAY_SET:
