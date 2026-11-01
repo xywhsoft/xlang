@@ -47,6 +47,25 @@ sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
     -o "$work/xrt_runtime.o"
 "$cc" "${flags[@]}" -c release/extlibs/redis/redis_native.c \
     -o "$work/redis_native.o"
+oracle=release/extlibs/redis/test/resp_oracle_cli.c
+oracle_script=release/extlibs/redis/test/resp_oracle.py
+"$cc" "${flags[@]}" "$oracle" "$work/xrt_runtime.o" -lm -ldl -o "$work/oracle"
+timeout 150s python3 -B "$oracle_script" --cli "$work/oracle"
+timeout 150s python3 -B "$oracle_script" --xl ./release/xl --source "$oracle"
+timeout 120s ./release/xl build "$oracle" -o "$work/oracle_aot"
+timeout 150s python3 -B "$oracle_script" --cli "$work/oracle_aot"
+"$cc" "${flags[@]}" release/extlibs/redis/examples/frame_headers_c.c \
+    "$work/xrt_runtime.o" -lm -ldl -o "$work/headers"
+sed 's/\r$//' release/extlibs/redis/examples/frame_headers.expected.txt > "$work/headers.expected"
+timeout 30s "$work/headers" > "$work/headers.txt"
+diff -u "$work/headers.expected" "$work/headers.txt"
+for source in frame_headers_c.c frame_headers.xl; do
+    timeout 90s ./release/xl run "release/extlibs/redis/examples/$source" > "$work/$source.jit.txt"
+    diff -u "$work/headers.expected" "$work/$source.jit.txt"
+    timeout 120s ./release/xl build "release/extlibs/redis/examples/$source" -o "$work/$source.aot"
+    timeout 30s "$work/$source.aot" > "$work/$source.aot.txt"
+    diff -u "$work/headers.expected" "$work/$source.aot.txt"
+done
 for name in test_redis test_redis_alloc test_redis_threads test_pending_budget; do
     "$cc" "${flags[@]}" "release/extlibs/redis/test/$name.c" \
         "$work/redis_native.o" "$work/xrt_runtime.o" -lm -ldl -o "$work/$name"

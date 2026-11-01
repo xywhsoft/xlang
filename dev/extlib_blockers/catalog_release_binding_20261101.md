@@ -105,6 +105,14 @@ Semver元数据存储阶段候选`build/test/semver_metadata_20261102/catalog/`
 它不替代绑定验收。完整包级结果见
 `docs/reports/extlib-semver-metadata-20261102.json`。
 
+Redis长度头修复阶段最终候选
+`build/test/redis_resp_20261102/catalog-final/`包含最新README/coverage，
+207包/17598项、公开项增删0，新鲜度通过；严格绑定仍报
+`Catalog compiler changed: xl.dll`，未安装、未改写基础编译器身份。
+初次候选在最终验收文字补齐前生成，已明确由最终候选替代，不冒充
+来源仍新鲜。官网源有隔离副本，609份运行原始Git字节审计通过；
+包级结果与原R风险见`docs/reports/extlib-redis-lengths-20261102.json`。
+
 1. 主线维护者完成稳定XRT同步、相匹配的编译器发布物和验收记录。
 2. 如标准库/主线绑定改变，先按当前正式验收报告重生成基础命令目录。
 3. 再刷新扩展资料候选，运行真实前端声明检查及严格覆盖/新鲜度检查。

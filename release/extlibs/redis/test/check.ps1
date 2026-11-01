@@ -6,6 +6,7 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 $release = Join-Path $root 'release'
 $xl = Join-Path $release 'xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+$python = (Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $workRoot = Join-Path $root 'build/test'
 $work = Join-Path $workRoot ('redis_guard_' + [guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($work)
@@ -22,7 +23,7 @@ $inputs = @('release/xl.exe', 'release/xl.dll', 'release/xlc.dll',
     'release/examples/extlibs/redis_c.c') | ForEach-Object { Join-Path $root $_ }
 $inputs += @(Get-ChildItem (Join-Path $release 'extlibs/redis') -Recurse -File |
     ForEach-Object FullName)
-$inputs += @($gcc, $shell, (Join-Path $root 'tools/extlib_smoke_process.ps1'),
+$inputs += @($gcc, $python, $shell, (Join-Path $root 'tools/extlib_smoke_process.ps1'),
     (Join-Path $root 'tools/xlir_native_process.ps1'))
 $hashes = @{}
 
@@ -87,6 +88,32 @@ try {
     $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror', '-Ilib/xrt')
     $null = Run 'GCC runtime build' $gcc ($flags + @('-DXRT_MODULE_MEMORY_DEBUG', '-c',
         'release/extlibs/redis/test/live_runtime.c', '-o', $runtime))
+    $oracleSource='release/extlibs/redis/test/resp_oracle_cli.c'
+    $oracleScript='release/extlibs/redis/test/resp_oracle.py'
+    $oracle=Join-Path $work 'resp_oracle.exe'
+    $null=Run 'GCC RESP oracle build' $gcc ($flags+@($oracleSource,$runtime,
+        '-lws2_32','-ladvapi32','-lm','-o',$oracle))
+    $null=Run 'independent GCC RESP oracle' $python @('-B',$oracleScript,'--cli',$oracle)
+    $null=Run 'independent TCC RESP oracle' $python @('-B',$oracleScript,'--xl',$xl,'--source',$oracleSource)
+    $headersGolden=[IO.File]::ReadAllText((Join-Path $root 'release/extlibs/redis/examples/frame_headers.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    $headers=Join-Path $work 'headers.exe'
+    $null=Run 'GCC headers example build' $gcc ($flags+@('release/extlibs/redis/examples/frame_headers_c.c',
+        $runtime,'-lws2_32','-ladvapi32','-lm','-o',$headers))
+    if((Run 'GCC headers example' $headers @()) -cne $headersGolden){throw 'C header golden differs'}
+    foreach($source in @('frame_headers_c.c','frame_headers.xl')){
+        $path='release/extlibs/redis/examples/'+$source
+        if((Run "$source JIT" $xl @('run',$path)) -cne $headersGolden){throw 'Header example differs'}
+        if(!$SkipAot){
+            $binary=Join-Path $work ($source+'.exe')
+            $null=Run "$source build" $xl @('build',$path,'-o',$binary)
+            if((Run "$source AOT" $binary @()) -cne $headersGolden){throw 'Header AOT differs'}
+        }
+    }
+    if(!$SkipAot){
+        $binary=Join-Path $work 'resp_oracle_aot.exe'
+        $null=Run 'RESP oracle AOT build' $xl @('build',$oracleSource,'-o',$binary)
+        $null=Run 'independent AOT RESP oracle' $python @('-B',$oracleScript,'--cli',$binary)
+    }
     $pending = Join-Path $work 'redis_pending.exe'
     $null = Run 'GCC pending budget build' $gcc ($flags + @(
         'release/extlibs/redis/test/test_pending_budget.c', 'release/extlibs/redis/redis_native.c',

@@ -1,0 +1,2354 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-02T03:47:48.9381071+08:00",
+  "package": "redis",
+  "maturity": "R",
+  "status": "strict-resp-lengths-and-independent-oracle-verified-prior-filesystem-risk-and-release-binding-open",
+  "sourceParent": "2b45473a95177d8dec0f51e6b7832a3696224714",
+  "previousNativeGitBlob": "d314d7084103140646f1d000ccc7b9c2b0facc9a",
+  "objectiveScope": {
+    "states": {
+      "G": 30,
+      "M": 56,
+      "R": 10,
+      "X": 4
+    },
+    "ordinaryPackages": 100,
+    "goalComplete": false
+  },
+  "bug": {
+    "compilerRuntimeXrtTccIdeNotModified": true,
+    "limitsOwnershipAndDeadlineUnchanged": true,
+    "description": "Bulk/array length headers reused signed-integer syntax, accepting plus signs, negative zero and non-exact null aliases",
+    "newBodyCopiesAllocationsOrRoundTrips": false,
+    "fix": "Shared length validator: decimal digits or exact -1; keep signed int64 integer replies unchanged",
+    "oldBehavior": "Wait for a body after an invalid header, or return an empty/null container",
+    "publicApiAbiUnchanged": true,
+    "minimalHeader": "$+1\\r\\n",
+    "rejectedWhen": "Header terminating CRLF arrives",
+    "leadingZeroDecimalLengthPreserved": true,
+    "otherControls": [
+      "*-0\\r\\n",
+      "$-01\\r\\n",
+      "*1\\r\\n$-01\\r\\n"
+    ],
+    "compatibilityAliasesAdded": false
+  },
+  "standard": {
+    "scope": "RESP2 integer/bulk/array headers; not RESP3",
+    "mapping": "One or more decimal length digits; exact -1 null sentinel; integer reply has optional +/- sign",
+    "source": "https://redis.io/docs/latest/develop/reference/protocol-spec/"
+  },
+  "production": {
+    "old": {
+      "path": "build/test/redis_resp_20261102/before_native.c",
+      "bytes": 18559,
+      "sha256": "74be49438a67ca5cea2907d2efac4e47d1e2adf9e08edc652dfc4970be5d52b4"
+    },
+    "current": {
+      "path": "release/extlibs/redis/redis_native.c",
+      "bytes": 19116,
+      "sha256": "1deeafc75ad4b892f80d4c9da93661ab390252b9a791f67ce6a8e4591aa47b82"
+    }
+  },
+  "independentOracle": {
+    "testProcessInput": "Hex lines over stdin; 4096-byte fixture limit, not a new production limit",
+    "frames": 957,
+    "seed": "0x5245535032",
+    "fullMismatchingFrames": [
+      {
+        "kind": "old",
+        "frames": 957,
+        "mismatchingFrames": 26,
+        "failures": [
+          {
+            "inputHex": "242b300d0a610d0a",
+            "actual": "IIIIIIIEE\tIIIIIIIEE\t-",
+            "expected": [
+              "IIIIIEEEE",
+              "IIIIIEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a320d0a3a370d0a242b300d0a610d0a",
+            "actual": "IIIIIIIIIIIIIIIEE\tIIIIIIIIIIIIIIIEE\t-",
+            "expected": [
+              "IIIIIIIIIIIIIEEEE",
+              "IIIIIIIIIIIIIEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a2b300d0a3a310d0a",
+            "actual": "IIIIICCCCC\tIIIIICCCCC\t[]|S3a310d0a",
+            "expected": [
+              "IIIIIEEEEE",
+              "IIIIIEEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a320d0a3a370d0a2a2b300d0a3a310d0a",
+            "actual": "IIIIIIIIIIIIICCCCC\tIIIIIIIIIIIIICCCCC\t[I7;[];]|S3a310d0a",
+            "expected": [
+              "IIIIIIIIIIIIIEEEEE",
+              "IIIIIIIIIIIIIEEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "242d300d0a610d0a",
+            "actual": "IIIIIIIEE\tIIIIIIIEE\t-",
+            "expected": [
+              "IIIIIEEEE",
+              "IIIIIEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a320d0a3a370d0a242d300d0a610d0a",
+            "actual": "IIIIIIIIIIIIIIIEE\tIIIIIIIIIIIIIIIEE\t-",
+            "expected": [
+              "IIIIIIIIIIIIIEEEE",
+              "IIIIIIIIIIIIIEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a2d300d0a3a310d0a",
+            "actual": "IIIIICCCCC\tIIIIICCCCC\t[]|S3a310d0a",
+            "expected": [
+              "IIIIIEEEEE",
+              "IIIIIEEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a320d0a3a370d0a2a2d300d0a3a310d0a",
+            "actual": "IIIIIIIIIIIIICCCCC\tIIIIIIIIIIIIICCCCC\t[I7;[];]|S3a310d0a",
+            "expected": [
+              "IIIIIIIIIIIIIEEEEE",
+              "IIIIIIIIIIIIIEEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "242b30310d0a610d0a",
+            "actual": "IIIIIIIIIC\tIIIIIIIIIC\t$S61|S",
+            "expected": [
+              "IIIIIIEEEE",
+              "IIIIIIEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a320d0a3a370d0a242b30310d0a610d0a",
+            "actual": "IIIIIIIIIIIIIIIIIC\tIIIIIIIIIIIIIIIIIC\t[I7;$S61;]|S",
+            "expected": [
+              "IIIIIIIIIIIIIIEEEE",
+              "IIIIIIIIIIIIIIEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a2b30310d0a3a310d0a",
+            "actual": "IIIIIIIIIIC\tIIIIIIIIIIC\t[I1;]|S",
+            "expected": [
+              "IIIIIIEEEEE",
+              "IIIIIIEEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a320d0a3a370d0a2a2b30310d0a3a310d0a",
+            "actual": "IIIIIIIIIIIIIIIIIIC\tIIIIIIIIIIIIIIIIIIC\t[I7;[I1;];]|S",
+            "expected": [
+              "IIIIIIIIIIIIIIEEEEE",
+              "IIIIIIIIIIIIIIEEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "242d30310d0a610d0a",
+            "actual": "IIIIIICCCC\tIIIIIICCCC\tN|S610d0a",
+            "expected": [
+              "IIIIIIEEEE",
+              "IIIIIIEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a320d0a3a370d0a242d30310d0a610d0a",
+            "actual": "IIIIIIIIIIIIIICCCC\tIIIIIIIIIIIIIICCCC\t[I7;N;]|S610d0a",
+            "expected": [
+              "IIIIIIIIIIIIIIEEEE",
+              "IIIIIIIIIIIIIIEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a2d30310d0a3a310d0a",
+            "actual": "IIIIIICCCCC\tIIIIIICCCCC\tN|S3a310d0a",
+            "expected": [
+              "IIIIIIEEEEE",
+              "IIIIIIEEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a320d0a3a370d0a2a2d30310d0a3a310d0a",
+            "actual": "IIIIIIIIIIIIIICCCCC\tIIIIIIIIIIIIIICCCCC\t[I7;N;]|S3a310d0a",
+            "expected": [
+              "IIIIIIIIIIIIIIEEEEE",
+              "IIIIIIIIIIIIIIEEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "242d3030310d0a610d0a",
+            "actual": "IIIIIIICCCC\tIIIIIIICCCC\tN|S610d0a",
+            "expected": [
+              "IIIIIIIEEEE",
+              "IIIIIIIEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a320d0a3a370d0a242d3030310d0a610d0a",
+            "actual": "IIIIIIIIIIIIIIICCCC\tIIIIIIIIIIIIIIICCCC\t[I7;N;]|S610d0a",
+            "expected": [
+              "IIIIIIIIIIIIIIIEEEE",
+              "IIIIIIIIIIIIIIIEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a2d3030310d0a3a310d0a",
+            "actual": "IIIIIIICCCCC\tIIIIIIICCCCC\tN|S3a310d0a",
+            "expected": [
+              "IIIIIIIEEEEE",
+              "IIIIIIIEEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a320d0a3a370d0a2a2d3030310d0a3a310d0a",
+            "actual": "IIIIIIIIIIIIIIICCCCC\tIIIIIIIIIIIIIIICCCCC\t[I7;N;]|S3a310d0a",
+            "expected": [
+              "IIIIIIIIIIIIIIIEEEEE",
+              "IIIIIIIIIIIIIIIEEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "242b310d0a610d0a",
+            "actual": "IIIIIIIIC\tIIIIIIIIC\t$S61|S",
+            "expected": [
+              "IIIIIEEEE",
+              "IIIIIEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a320d0a3a370d0a242b310d0a610d0a",
+            "actual": "IIIIIIIIIIIIIIIIC\tIIIIIIIIIIIIIIIIC\t[I7;$S61;]|S",
+            "expected": [
+              "IIIIIIIIIIIIIEEEE",
+              "IIIIIIIIIIIIIEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a2b310d0a3a310d0a",
+            "actual": "IIIIIIIIIC\tIIIIIIIIIC\t[I1;]|S",
+            "expected": [
+              "IIIIIEEEEE",
+              "IIIIIEEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "2a320d0a3a370d0a2a2b310d0a3a310d0a",
+            "actual": "IIIIIIIIIIIIIIIIIC\tIIIIIIIIIIIIIIIIIC\t[I7;[I1;];]|S",
+            "expected": [
+              "IIIIIIIIIIIIIEEEEE",
+              "IIIIIIIIIIIIIEEEEE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "242b310d0a",
+            "actual": "IIIIII\tIIIIII\t-",
+            "expected": [
+              "IIIIIE",
+              "IIIIIE",
+              "-"
+            ]
+          },
+          {
+            "inputHex": "242d300d0a",
+            "actual": "IIIIII\tIIIIII\t-",
+            "expected": [
+              "IIIIIE",
+              "IIIIIE",
+              "-"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "new",
+        "frames": 957,
+        "mismatchingFrames": 0,
+        "failures": []
+      }
+    ],
+    "prefixes": 16549,
+    "memoryFieldsPerCFrame": [
+      "LiveCount",
+      "LiveBytes",
+      "InvalidFreeCount",
+      "DoubleFreeCount",
+      "OverflowCount",
+      "UnderflowCount",
+      "UseAfterFreeCount"
+    ],
+    "expectedGeneratedWithoutPackageEncoderOrParser": true,
+    "c": {
+      "path": "release/extlibs/redis/test/resp_oracle_cli.c",
+      "bytes": 5269,
+      "sha256": "359e24f9af40fc8add2403b9b204814623c07756bec497e05723ecb8d3022a1e"
+    },
+    "python": {
+      "path": "release/extlibs/redis/test/resp_oracle.py",
+      "bytes": 6401,
+      "sha256": "ba9268a361b8848a2c72fe479c5a68ea5aaba852f539d7c66ece43fdc5e4e989"
+    },
+    "pythonRuntimeDependency": false,
+    "oldWindows": [
+      {
+        "name": "old-cli",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 504
+        }
+      },
+      {
+        "name": "old-oracle",
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\resp_oracle.py\", line 168, in <module>\r\n    main()\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\resp_oracle.py\", line 154, in main\r\n    checks = check(frames, process.stdout)\r\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\resp_oracle.py\", line 138, in check\r\n    raise AssertionError(mismatches)\r\nAssertionError: [('242b300d0a610d0a', 'IIIIIIIEE\\tIIIIIIIEE\\t-', ['IIIIIEEEE', 'IIIIIEEEE', '-']), ('2a320d0a3a370d0a242b300d0a610d0a', 'IIIIIIIIIIIIIIIEE\\tIIIIIIIIIIIIIIIEE\\t-', ['IIIIIIIIIIIIIEEEE', 'IIIIIIIIIIIIIEEEE', '-']), ('2a2b300d0a3a310d0a', 'IIIIICCCCC\\tIIIIICCCCC\\t[]|S3a310d0a', ['IIIIIEEEEE', 'IIIIIEEEEE', '-']), ('2a320d0a3a370d0a2a2b300d0a3a310d0a', 'IIIIIIIIIIIIICCCCC\\tIIIIIIIIIIIIICCCCC\\t[I7;[];]|S3a310d0a', ['IIIIIIIIIIIIIEEEEE', 'IIIIIIIIIIIIIEEEEE', '-']), ('242d300d0a610d0a', 'IIIIIIIEE\\tIIIIIIIEE\\t-', ['IIIIIEEEE', 'IIIIIEEEE', '-']), ('2a320d0a3a370d0a242d300d0a610d0a', 'IIIIIIIIIIIIIIIEE\\tIIIIIIIIIIIIIIIEE\\t-', ['IIIIIIIIIIIIIEEEE', 'IIIIIIIIIIIIIEEEE', '-']), ('2a2d300d0a3a310d0a', 'IIIIICCCCC\\tIIIIICCCCC\\t[]|S3a310d0a', ['IIIIIEEEEE', 'IIIIIEEEEE', '-']), ('2a320d0a3a370d0a2a2d300d0a3a310d0a', 'IIIIIIIIIIIIICCCCC\\tIIIIIIIIIIIIICCCCC\\t[I7;[];]|S3a310d0a', ['IIIIIIIIIIIIIEEEEE', 'IIIIIIIIIIIIIEEEEE', '-'])]\r\n",
+          "elapsedMs": 210
+        }
+      }
+    ],
+    "negativeControls": [
+      "prefix status",
+      "payload byte",
+      "rest string/bytes kind"
+    ],
+    "newWindows": [
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 515
+        },
+        "name": "new-cli"
+      },
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis independent RESP: 957 frames, 16549 prefixes, 3 negative controls PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 540
+        },
+        "name": "new-oracle"
+      },
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis independent RESP: 957 frames, 16549 prefixes, 3 negative controls PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 596
+        },
+        "name": "tcc-oracle"
+      }
+    ],
+    "finalValues": [
+      "tags",
+      "signed int64",
+      "UTF8 string or exact bytes",
+      "null and arrays",
+      "exact pipeline rest including NUL and non-UTF8"
+    ],
+    "prefixStreams": [
+      "stateless completeness",
+      "stateful completeness with relocated append-only buffers"
+    ]
+  },
+  "examples": {
+    "golden": {
+      "path": "release/extlibs/redis/examples/frame_headers.expected.txt",
+      "bytes": 75,
+      "sha256": "2b7f37d12ba26b89200cf76ebaa33715b94cd54c9e153d1e8d0793976f2fd74e"
+    },
+    "invalidHeaders": 8,
+    "xlang": "release/extlibs/redis/examples/frame_headers.xl",
+    "c": "release/extlibs/redis/examples/frame_headers_c.c",
+    "defaultNetworkOrFilesystemWrites": false,
+    "gccTccXlangAndBothLanguagesAotGoldenPassed": true,
+    "checks": [
+      "integer signs",
+      "empty numeric length",
+      "exact null",
+      "invalid length header",
+      "independent call recovery"
+    ]
+  },
+  "networkBoundary": {
+    "verifies": "Reject before waiting for body, preserve exact malformed error and actively abort unsynchronized stream",
+    "priorFragmentationErrorReuseDeadlinesPartialCloseAndLimitsRetained": true,
+    "newInvalidHeaders": [
+      "$+1\\r\\n",
+      "*+0\\r\\n",
+      "$-0\\r\\n",
+      "*-01\\r\\n",
+      "*1\\r\\n$-01\\r\\n"
+    ],
+    "source": {
+      "path": "release/extlibs/redis/test/command_loopback.xl",
+      "bytes": 11326,
+      "sha256": "d17d188a6c22a47324f4663d73a801d90f6ab6196437e5f135580729c0a6900c"
+    }
+  },
+  "windows": {
+    "checks": [
+      {
+        "label": "GCC version",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "--version"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "stderr": "",
+          "elapsedMs": 38
+        }
+      },
+      {
+        "label": "GCC cc1 path",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-print-prog-name=cc1"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe\r\n",
+          "stderr": "",
+          "elapsedMs": 24
+        }
+      },
+      {
+        "label": "process diagnostics",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\check_gate_diagnostics.ps1"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "[redis] probe compile: PASS\n[redis] expected nonzero: PASS\n[redis] null arguments: PASS\n[redis] separate streams: PASS\n[redis] preserve bare CR: PASS\n[redis] relative cwd: PASS\nRedis gate diagnostics: PASS (11 child results)\n",
+          "stderr": "",
+          "elapsedMs": 2655
+        }
+      },
+      {
+        "label": "strict C syntax",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-fsyntax-only",
+          "-Ilib/xrt",
+          "release/extlibs/redis/redis_native.c",
+          "release/extlibs/redis/test/test_redis.c",
+          "release/extlibs/redis/test/test_redis_alloc.c",
+          "release/extlibs/redis/test/test_redis_threads.c",
+          "release/extlibs/redis/test/test_pending_budget.c",
+          "release/extlibs/redis/test/test_example_lifetime.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 826
+        }
+      },
+      {
+        "label": "C boundaries",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1",
+          "redis",
+          "release/extlibs/redis/test/test_redis.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis C boundaries: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 6823
+        }
+      },
+      {
+        "label": "C allocation failures",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1",
+          "redis",
+          "release/extlibs/redis/test/test_redis_alloc.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis allocation: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 370
+        }
+      },
+      {
+        "label": "C threads",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1",
+          "redis",
+          "release/extlibs/redis/test/test_redis_threads.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis threads: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 373
+        }
+      },
+      {
+        "label": "C pending-byte budget",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1",
+          "redis",
+          "release/extlibs/redis/test/test_pending_budget.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis pending-byte budget: 85 cases, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 422
+        }
+      },
+      {
+        "label": "C example ownership contract",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/redis/test/test_example_lifetime.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "encoded bytes: 33\r\nbulk value bytes: 3\r\narray reply: 2 items\r\nbinary request bytes: 29\r\nbinary decode: true\r\nredis C/XL example: PASS\r\nredis C example lifetime: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 94
+        }
+      },
+      {
+        "label": "GCC runtime build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-DXRT_MODULE_MEMORY_DEBUG",
+          "-c",
+          "release/extlibs/redis/test/live_runtime.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\xrt.o"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 6033
+        }
+      },
+      {
+        "label": "GCC RESP oracle build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "release/extlibs/redis/test/resp_oracle_cli.c",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\xrt.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\resp_oracle.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 501
+        }
+      },
+      {
+        "label": "independent GCC RESP oracle",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "release/extlibs/redis/test/resp_oracle.py",
+          "--cli",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\resp_oracle.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis independent RESP: 957 frames, 16549 prefixes, 3 negative controls PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 543
+        }
+      },
+      {
+        "label": "independent TCC RESP oracle",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "release/extlibs/redis/test/resp_oracle.py",
+          "--xl",
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "--source",
+          "release/extlibs/redis/test/resp_oracle_cli.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis independent RESP: 957 frames, 16549 prefixes, 3 negative controls PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 591
+        }
+      },
+      {
+        "label": "GCC headers example build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "release/extlibs/redis/examples/frame_headers_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\xrt.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\headers.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 399
+        }
+      },
+      {
+        "label": "GCC headers example",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\headers.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "integer signs: true\r\nempty and null: true\r\ninvalid lengths: 8\r\nrecovery: true\r\n",
+          "stderr": "",
+          "elapsedMs": 24
+        }
+      },
+      {
+        "label": "frame_headers_c.c JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/redis/examples/frame_headers_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "integer signs: true\r\nempty and null: true\r\ninvalid lengths: 8\r\nrecovery: true\r\n",
+          "stderr": "",
+          "elapsedMs": 67
+        }
+      },
+      {
+        "label": "frame_headers_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/redis/examples/frame_headers_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\frame_headers_c.c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 116
+        }
+      },
+      {
+        "label": "frame_headers_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\frame_headers_c.c.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "integer signs: true\r\nempty and null: true\r\ninvalid lengths: 8\r\nrecovery: true\r\n",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "label": "frame_headers.xl JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/redis/examples/frame_headers.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "integer signs: true\nempty and null: true\ninvalid lengths: 8\nrecovery: true\n",
+          "stderr": "",
+          "elapsedMs": 963
+        }
+      },
+      {
+        "label": "frame_headers.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/redis/examples/frame_headers.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\frame_headers.xl.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1628
+        }
+      },
+      {
+        "label": "frame_headers.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\frame_headers.xl.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "integer signs: true\nempty and null: true\ninvalid lengths: 8\nrecovery: true\n",
+          "stderr": "",
+          "elapsedMs": 37
+        }
+      },
+      {
+        "label": "RESP oracle AOT build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/redis/test/resp_oracle_cli.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\resp_oracle_aot.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 130
+        }
+      },
+      {
+        "label": "independent AOT RESP oracle",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "release/extlibs/redis/test/resp_oracle.py",
+          "--cli",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\resp_oracle_aot.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis independent RESP: 957 frames, 16549 prefixes, 3 negative controls PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 566
+        }
+      },
+      {
+        "label": "GCC pending budget build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "release/extlibs/redis/test/test_pending_budget.c",
+          "release/extlibs/redis/redis_native.c",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\xrt.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\redis_pending.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 517
+        }
+      },
+      {
+        "label": "GCC pending budget",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\redis_pending.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis pending-byte budget: 85 cases, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 95
+        }
+      },
+      {
+        "label": "GCC budget example build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "release/extlibs/redis/examples/response_budget_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\xrt.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\redis_budget_example.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 428
+        }
+      },
+      {
+        "label": "GCC budget example",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\redis_budget_example.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "single_pending=waiting\r\nsiblings_pending=waiting\r\nsiblings_overflow=rejected\r\nnested_overflow=rejected\r\n",
+          "stderr": "",
+          "elapsedMs": 35
+        }
+      },
+      {
+        "label": "direct C budget example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/redis/examples/response_budget_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "single_pending=waiting\r\nsiblings_pending=waiting\r\nsiblings_overflow=rejected\r\nnested_overflow=rejected\r\n",
+          "stderr": "",
+          "elapsedMs": 82
+        }
+      },
+      {
+        "label": "XLang budget example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/redis/examples/response_budget.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "single_pending=waiting\nsiblings_pending=waiting\nsiblings_overflow=rejected\nnested_overflow=rejected\n",
+          "stderr": "",
+          "elapsedMs": 850
+        }
+      },
+      {
+        "label": "release/extlibs/redis/test/test_pending_budget.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/redis/test/test_pending_budget.c",
+          "release/extlibs/redis/redis_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\test_pending_budget.c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 138
+        }
+      },
+      {
+        "label": "release/extlibs/redis/test/test_pending_budget.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\test_pending_budget.c.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis pending-byte budget: 85 cases, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 143
+        }
+      },
+      {
+        "label": "release/extlibs/redis/examples/response_budget_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/redis/examples/response_budget_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\response_budget_c.c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 132
+        }
+      },
+      {
+        "label": "release/extlibs/redis/examples/response_budget_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\response_budget_c.c.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "single_pending=waiting\r\nsiblings_pending=waiting\r\nsiblings_overflow=rejected\r\nnested_overflow=rejected\r\n",
+          "stderr": "",
+          "elapsedMs": 40
+        }
+      },
+      {
+        "label": "release/extlibs/redis/examples/response_budget.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/redis/examples/response_budget.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\response_budget.xl.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1442
+        }
+      },
+      {
+        "label": "release/extlibs/redis/examples/response_budget.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\response_budget.xl.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "single_pending=waiting\nsiblings_pending=waiting\nsiblings_overflow=rejected\nnested_overflow=rejected\n",
+          "stderr": "",
+          "elapsedMs": 29
+        }
+      },
+      {
+        "label": "GCC C example build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "release/examples/extlibs/redis_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\xrt.o",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\redis_gcc_example.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 496
+        }
+      },
+      {
+        "label": "GCC C example",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\redis_gcc_example.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "encoded bytes: 33\r\nbulk value bytes: 3\r\narray reply: 2 items\r\nbinary request bytes: 29\r\nbinary decode: true\r\nredis C/XL example: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 25
+        }
+      },
+      {
+        "label": "C example",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1",
+          "redis",
+          "release/examples/extlibs/redis_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "encoded bytes: 33\r\nbulk value bytes: 3\r\narray reply: 2 items\r\nbinary request bytes: 29\r\nbinary decode: true\r\nredis C/XL example: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 342
+        }
+      },
+      {
+        "label": "C example xl run",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/examples/extlibs/redis_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "encoded bytes: 33\r\nbulk value bytes: 3\r\narray reply: 2 items\r\nbinary request bytes: 29\r\nbinary decode: true\r\nredis C/XL example: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 77
+        }
+      },
+      {
+        "label": "XLang central case",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "../test/cases/extlib_redis.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1372
+        }
+      },
+      {
+        "label": "XLang boundaries",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/redis/test/boundaries.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis boundaries: ok\n",
+          "stderr": "",
+          "elapsedMs": 1619
+        }
+      },
+      {
+        "label": "XLang allocation failures",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/redis/test/allocations.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis allocation: PASS\n",
+          "stderr": "",
+          "elapsedMs": 938
+        }
+      },
+      {
+        "label": "TCP preflight",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/redis/test/preflight_repro.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis preflight: ok\n",
+          "stderr": "",
+          "elapsedMs": 1152
+        }
+      },
+      {
+        "label": "TCP current API",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "../test/cases/xlir_extlib_redis_current_tcp.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "Redis current TCP: fragments/NUL, logical error, connection reuse and deadline\n",
+          "stderr": "",
+          "elapsedMs": 1351
+        }
+      },
+      {
+        "label": "TCP reuse",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/redis/test/reuse_loopback.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis reuse loopback: 500\n",
+          "stderr": "",
+          "elapsedMs": 1369
+        }
+      },
+      {
+        "label": "TCP fragmented/error/deadline",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/redis/test/command_loopback.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis command loopback: ok\n",
+          "stderr": "",
+          "elapsedMs": 26586
+        }
+      },
+      {
+        "label": "XLang example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "examples/extlibs/redis.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "encoded bytes: 33\nbulk value bytes: 3\narray reply: 2 items\nbinary request bytes: 29\nbinary decode: true\nredis C/XL example: PASS\n",
+          "stderr": "",
+          "elapsedMs": 1056
+        }
+      },
+      {
+        "label": "XLang core build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/redis/test/aot_core.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\redis_core.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1391
+        }
+      },
+      {
+        "label": "XLang core AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\redis_core.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 31
+        }
+      },
+      {
+        "label": "TCP preflight_repro build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/redis/test/preflight_repro.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\preflight_repro.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1835
+        }
+      },
+      {
+        "label": "TCP preflight_repro AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\preflight_repro.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis preflight: ok\n",
+          "stderr": "",
+          "elapsedMs": 59
+        }
+      },
+      {
+        "label": "TCP command_loopback build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/redis/test/command_loopback.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\command_loopback.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 12333
+        }
+      },
+      {
+        "label": "TCP command_loopback AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\command_loopback.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis command loopback: ok\n",
+          "stderr": "",
+          "elapsedMs": 18998
+        }
+      },
+      {
+        "label": "TCP reuse_loopback build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/redis/test/reuse_loopback.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\reuse_loopback.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 2205
+        }
+      },
+      {
+        "label": "TCP reuse_loopback AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\reuse_loopback.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis reuse loopback: 500\n",
+          "stderr": "",
+          "elapsedMs": 170
+        }
+      },
+      {
+        "label": "XLang example build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "examples/extlibs/redis.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\redis_example.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1815
+        }
+      },
+      {
+        "label": "XLang example AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\redis_example.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "encoded bytes: 33\nbulk value bytes: 3\narray reply: 2 items\nbinary request bytes: 29\nbinary decode: true\nredis C/XL example: PASS\n",
+          "stderr": "",
+          "elapsedMs": 29
+        }
+      },
+      {
+        "label": "C example AOT build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "examples/extlibs/redis_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\redis_c_example.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 131
+        }
+      },
+      {
+        "label": "C example AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_775770fecefb452a98f978a60668c996\\redis_c_example.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "encoded bytes: 33\r\nbulk value bytes: 3\r\narray reply: 2 items\r\nbinary request bytes: 29\r\nbinary decode: true\r\nredis C/XL example: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 30
+        }
+      }
+    ],
+    "passed": true,
+    "parent": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "[redis] GCC version: PASS\n[redis] GCC cc1 path: PASS\n[redis] process diagnostics: PASS\n[redis] strict C syntax: PASS\n[redis] C boundaries: PASS\n[redis] C allocation failures: PASS\n[redis] C threads: PASS\n[redis] C pending-byte budget: PASS\n[redis] C example ownership contract: PASS\n[redis] GCC runtime build: PASS\n[redis] GCC RESP oracle build: PASS\n[redis] independent GCC RESP oracle: PASS\n[redis] independent TCC RESP oracle: PASS\n[redis] GCC headers example build: PASS\n[redis] GCC headers example: PASS\n[redis] frame_headers_c.c JIT: PASS\n[redis] frame_headers_c.c build: PASS\n[redis] frame_headers_c.c AOT: PASS\n[redis] frame_headers.xl JIT: PASS\n[redis] frame_headers.xl build: PASS\n[redis] frame_headers.xl AOT: PASS\n[redis] RESP oracle AOT build: PASS\n[redis] independent AOT RESP oracle: PASS\n[redis] GCC pending budget build: PASS\n[redis] GCC pending budget: PASS\n[redis] GCC budget example build: PASS\n[redis] GCC budget example: PASS\n[redis] direct C budget example: PASS\n[redis] XLang budget example: PASS\n[redis] release/extlibs/redis/test/test_pending_budget.c build: PASS\n[redis] release/extlibs/redis/test/test_pending_budget.c AOT: PASS\n[redis] release/extlibs/redis/examples/response_budget_c.c build: PASS\n[redis] release/extlibs/redis/examples/response_budget_c.c AOT: PASS\n[redis] release/extlibs/redis/examples/response_budget.xl build: PASS\n[redis] release/extlibs/redis/examples/response_budget.xl AOT: PASS\n[redis] GCC C example build: PASS\n[redis] GCC C example: PASS\n[redis] C example: PASS\n[redis] C example xl run: PASS\n[redis] XLang central case: PASS\n[redis] XLang boundaries: PASS\n[redis] XLang allocation failures: PASS\n[redis] TCP preflight: PASS\n[redis] TCP current API: PASS\n[redis] TCP reuse: PASS\n[redis] TCP fragmented/error/deadline: PASS\n[redis] XLang example: PASS\n[redis] XLang core build: PASS\n[redis] XLang core AOT: PASS\n[redis] TCP preflight_repro build: PASS\n[redis] TCP preflight_repro AOT: PASS\n[redis] TCP command_loopback build: PASS\n[redis] TCP command_loopback AOT: PASS\n[redis] TCP reuse_loopback build: PASS\n[redis] TCP reuse_loopback AOT: PASS\n[redis] XLang example build: PASS\n[redis] XLang example AOT: PASS\n[redis] C example AOT build: PASS\n[redis] C example AOT: PASS\n[redis] C/XLang example parity: PASS\n",
+      "stderr": "",
+      "elapsedMs": 103667
+    },
+    "realRedisThisTurn": false,
+    "inputAndToolCount": 54,
+    "offlineAotPrograms": 12,
+    "inputs": {
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\include\\redis_native.h": "81B2ECD5825A4E726251EC459944182831BA8E55CDD5AD2AF4EBC982BD578308",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\gate_probe_c.c": "C9BB14E9A08DFE0FE2152E9A42908661D2ED7D1E8FAA740073E9D548B0555793",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\aot_core.xl": "97D564E1154975BA6B144609FD891A9F598C0C255AE1A2CE64F4B25BFAA0BCF2",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\check.sh": "AD526B2083C9C2556050260A875CDD90C5AB37F74778C3E52B399742F113602D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\live_server_c.c": "4DC646AE9986DFB8381543BA56799AEA1989BA9DA78BA404660DA43F8611B758",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\README.md": "B85794F1516E58DB9B7B821CEE0EFD41183BD5011FD5BBFF8F554FDA9675A835",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\live_server.xl": "C14330D7CEB8F7405451D893C9CF0A7B02A0E0BB03DD2204A6E1B6CEC170E0BA",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\command_loopback.xl": "D17D188A6C22A47324F4663D73A801D90F6AB6196437E5F135580729C0A6900C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\boundaries.xl": "7ED710C3E6658EBCCDBDAB3238D55ABADB8014139751AC36AD81E5DBD557425F",
+      "D:\\GIT\\x-lang\\test\\cases\\xlir_extlib_redis_current_tcp.xl": "DCC445C6452D5E528686E685BCE98DD69F93A10BEC6E8E05367DCF74FDD9C58E",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_redis.xl": "9B8D1EB72D47440027893EEAA5FB3F40C06DE7494ABE49549138975B0D77EE59",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\.gitattributes": "1D5D71DCC6CCD28AB46A335349ECC74742CA4B81F4FCAD212F8D134F70F1F13E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\examples\\frame_headers.xl": "1E5BA1145284CA587642E2DA9CBA45644D3A1163308A60B1EF276BC334EC8FFF",
+      "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe": "9785001B0DCF755EDDB8AF294A373C0B87B2498660F724E76C4D53F9C217C7A3",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "E:\\software\\w64devkit\\libexec\\gcc\\x86_64-w64-mingw32\\16.2.0\\cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\resp_oracle_cli.c": "359E24F9AF40FC8ADD2403B9B204814623C07756BEC497E05723ECB8D3022A1E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\examples\\response_budget.expected.txt": "00501418BBC3BAEB7565835B0FA5B33C704FB9163B7466064675B2BD80DB8268",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\redis_c.c": "993AB9BFFEAB846A0166258DF42A2C407A6C7317C19444C7ED2B08997D37C774",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\allocations.xl": "42F4AC6782DCCED3FF0DD45F6BA6DD21035B4EDB149DEE6848BF5DBDD5573C0F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\redis_native.c": "1DEEAFC75AD4B892F80D4C9DA93661AB390252B9A791F67CE6A8E4591AA47B82",
+      "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\check.ps1": "9BC2B4885515120CBD90FC62F2398C55F68926459A7EACB7DBECA1BFFF1FFB71",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\examples\\response_budget_c.c": "DC5CCFC1AEF85A7E1B75A0CA18F0887D42443786E0ECDEA417A386C884557505",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\check_gate_diagnostics.ps1": "8D61543E934A0199FF518CC0160A1E292FF69E5874C299360F94C6C04A65624C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\docs\\site.html": "D579CE955DB23F670FC107AD281782C621B237D8F19458EE244BB07E3E91115D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\concurrent_server.xl": "E15A0038C5A26941093F233A78D6984F7D499560123088F4948A76AF91445591",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\reuse_loopback.xl": "BEE805C1300F5356FAD73587200D5D5A386C2E384FE07D7C7B0DF13ADB9E84F6",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1": "5183F14DBF4444B47D8832B60A0D6A6B570C8E933874785BEF85DD1ECB024A44",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\live_runtime.c": "0BB34BEA1244C7DFC127FECDD42D2A917FEF959B82B21F22A5F43BA4F661F028",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\examples\\frame_headers.expected.txt": "2B7F37D12BA26B89200CF76EBAA33715B94CD54C9E153D1E8D0793976F2FD74E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\test_redis_threads.c": "D196FB82CD52DEFF708C5D905A70B52046F27EF0F9591D822152D8F2F94D8B04",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\examples\\frame_headers_c.c": "C99FB09DAF4EEB79F56B10A6A90C68B43FD84E36922FD9177055CAEC082DF6DD",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\redis.xl": "CC4343B8CE3C0C33C99CB0E804B245DF2E3D8E986ADB91D8D22236322100D216",
+      "C:\\Program Files\\Python312\\python.exe": "4D6F5F81A4BCA11191C4C7C6B43632694D0A4CE74E068619D8FDC161D469859A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\test_redis_alloc.c": "AFADD685656C741CFFFA20F8418E0BF1EB4C5CF96DAEBEE985D532ABB3D01745",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\xlang.package.json": "0EB2748080215C6184D0A4EBCB52003BDCDFAE6D4D8A9A23218D13AF1A680E48",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\check_live.sh": "A93EB4B09EE364302D7D1072AA7736EDCA1CF933923018E10A40E7FA4495784A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\test_pending_budget.c": "B24F4B597226828E1510240B25F83A02AC443E1808E8D335EBE8BEF60CDB6D10",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\resp_oracle.py": "BA9268A361B8848A2C72FE479C5A68EA5AABA852F539D7C66ECE43FDC5E4E989",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\examples\\response_budget.xl": "04FFBA22B3A4A89EDE41258092A7EDF67E280D39459A7668B763F53ADBEE0BD0",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\test_example_lifetime.c": "A6E1F47F9DB2207936E11E8E14A46A7B7057B062F60D592547F956A705A9E3E2",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\src\\redis.xl": "288FA8A40171843167BE5DC4B155E6FAD2832FA033B01164CA81FE99162EC795",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\test_redis.c": "C28CEFBE08BF73ED5DE7B06BA428E0BF7768BAC2437DAECEF1AA850681C9139E",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\preflight_repro.xl": "FB49FBF373C7048C42880EDB4394E7F08BFE477C9445D05633A7EBF368282F04"
+    },
+    "checkCount": 59,
+    "postGateChangedInputs": [
+      "release/extlibs/redis/README.md",
+      "release/extlibs/redis/docs/site.html"
+    ],
+    "rawReport": {
+      "path": "build/test/redis_guard_775770fecefb452a98f978a60668c996.report.json",
+      "bytes": 71034,
+      "sha256": "ddd81e74c95aef2ccbc1324c414e4484e35cc74d1d06827be1fa230e7a65346e"
+    },
+    "postGateChangeReason": "Final README/site evidence only; production/tests/examples/manifest remain the tested inputs",
+    "note": "Windows real Redis is prior evidence, not re-run or claimed in this phase"
+  },
+  "linux": {
+    "frozenSourceManifestAfter": [
+      "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h",
+      "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h",
+      "cc4343b8ce3c0c33c99cb0e804b245df2e3d8e986adb91d8d22236322100d216  ./release/examples/extlibs/redis.xl",
+      "993ab9bffeab846a0166258df42a2c407a6c7317c19444c7ed2b08997d37c774  ./release/examples/extlibs/redis_c.c",
+      "1151f6d26524c2cd2bbb4f1a51ecf1d2be41a303e1b3725cd48f3d79a9787184  ./release/examples/extlibs/redis_live.xl",
+      "aeca5efe790961e7e299e2b7c06351831afae4038ebaa2777def1e6f209fa1c3  ./release/examples/extlibs/redis_live_c.c",
+      "1d5d71dcc6ccd28ab46a335349ecc74742ca4b81f4fcad212f8d134f70f1f13e  ./release/extlibs/redis/.gitattributes",
+      "b85794f1516e58db9b7b821cee0efd41183bd5011fd5bbff8f554fda9675a835  ./release/extlibs/redis/README.md",
+      "d579ce955db23f670fc107ad281782c621b237d8f19458ee244bb07e3e91115d  ./release/extlibs/redis/docs/site.html",
+      "2b7f37d12ba26b89200cf76ebaa33715b94cd54c9e153d1e8d0793976f2fd74e  ./release/extlibs/redis/examples/frame_headers.expected.txt",
+      "1e5ba1145284ca587642e2da9cba45644d3a1163308a60b1ef276bc334ec8fff  ./release/extlibs/redis/examples/frame_headers.xl",
+      "c99fb09daf4eeb79f56b10a6a90c68b43fd84e36922fd9177055caec082df6dd  ./release/extlibs/redis/examples/frame_headers_c.c",
+      "00501418bbc3baeb7565835b0fa5b33c704fb9163b7466064675b2bd80db8268  ./release/extlibs/redis/examples/response_budget.expected.txt",
+      "04ffba22b3a4a89ede41258092a7edf67e280d39459a7668b763f53adbee0bd0  ./release/extlibs/redis/examples/response_budget.xl",
+      "dc5ccfc1aef85a7e1b75a0ca18f0887d42443786e0ecdea417a386c884557505  ./release/extlibs/redis/examples/response_budget_c.c",
+      "81b2ecd5825a4e726251ec459944182831ba8e55cdd5ad2af4ebc982bd578308  ./release/extlibs/redis/include/redis_native.h",
+      "1deeafc75ad4b892f80d4c9da93661ab390252b9a791f67ce6a8e4591aa47b82  ./release/extlibs/redis/redis_native.c",
+      "288fa8a40171843167be5dc4b155e6fad2832fa033b01164ca81fe99162ec795  ./release/extlibs/redis/src/redis.xl",
+      "42f4ac6782dcced3ff0dd45f6ba6dd21035b4edb149dee6848bf5dbdd5573c0f  ./release/extlibs/redis/test/allocations.xl",
+      "97d564e1154975ba6b144609fd891a9f598c0c255ae1a2ce64f4b25bfaa0bcf2  ./release/extlibs/redis/test/aot_core.xl",
+      "7ed710c3e6658ebccdbdab3238d55abadb8014139751ac36ad81e5dbd557425f  ./release/extlibs/redis/test/boundaries.xl",
+      "9bc2b4885515120cbd90fc62f2398c55f68926459a7eacb7dbeca1bfff1ffb71  ./release/extlibs/redis/test/check.ps1",
+      "ad526b2083c9c2556050260a875cdd90c5ab37f74778c3e52b399742f113602d  ./release/extlibs/redis/test/check.sh",
+      "8d61543e934a0199ff518cc0160a1e292ff69e5874c299360f94c6c04a65624c  ./release/extlibs/redis/test/check_gate_diagnostics.ps1",
+      "a93eb4b09ee364302d7d1072aa7736edca1cf933923018e10a40e7fa4495784a  ./release/extlibs/redis/test/check_live.sh",
+      "d17d188a6c22a47324f4663d73a801d90f6ab6196437e5f135580729c0a6900c  ./release/extlibs/redis/test/command_loopback.xl",
+      "e15a0038c5a26941093f233a78d6984f7d499560123088f4948a76af91445591  ./release/extlibs/redis/test/concurrent_server.xl",
+      "c9bb14e9a08dfe0fe2152e9a42908661d2ed7d1e8faa740073e9d548b0555793  ./release/extlibs/redis/test/gate_probe_c.c",
+      "0bb34bea1244c7dfc127fecdd42d2a917fef959b82b21f22a5f43ba4f661f028  ./release/extlibs/redis/test/live_runtime.c",
+      "c14330d7ceb8f7405451d893c9cf0a7b02a0e0bb03dd2204a6e1b6cec170e0ba  ./release/extlibs/redis/test/live_server.xl",
+      "4dc646ae9986dfb8381543ba56799aea1989ba9da78ba404660da43f8611b758  ./release/extlibs/redis/test/live_server_c.c",
+      "fb49fbf373c7048c42880edb4394e7f08bfe477c9445d05633a7ebf368282f04  ./release/extlibs/redis/test/preflight_repro.xl",
+      "ba9268a361b8848a2c72fe479c5a68ea5aaba852f539d7c66ece43fdc5e4e989  ./release/extlibs/redis/test/resp_oracle.py",
+      "359e24f9af40fc8add2403b9b204814623c07756bec497e05723ecb8d3022a1e  ./release/extlibs/redis/test/resp_oracle_cli.c",
+      "bee805c1300f5356fad73587200d5d5a386c2e384fe07d7c7b0df13adb9e84f6  ./release/extlibs/redis/test/reuse_loopback.xl",
+      "a6e1f47f9db2207936e11e8e14a46a7b7057b062f60d592547f956a705a9e3e2  ./release/extlibs/redis/test/test_example_lifetime.c",
+      "b24f4b597226828e1510240b25f83a02ac443e1808e8d335ebe8bef60cdb6d10  ./release/extlibs/redis/test/test_pending_budget.c",
+      "c28cefbe08bf73ed5de7b06ba428e0bf7768bac2437daecef1aa850681c9139e  ./release/extlibs/redis/test/test_redis.c",
+      "afadd685656c741cfffa20f8418e0bf1eb4c5cf96daebee985d532abb3d01745  ./release/extlibs/redis/test/test_redis_alloc.c",
+      "d196fb82cd52deff708c5d905a70b52046f27ef0f9591d822152d8f2f94d8b04  ./release/extlibs/redis/test/test_redis_threads.c",
+      "0eb2748080215c6184d0a4ebcb52003bdcdfae6d4d8a9a23218d13af1a680e48  ./release/extlibs/redis/xlang.package.json",
+      "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md",
+      "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h",
+      "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h",
+      "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h",
+      "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h",
+      "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h",
+      "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h",
+      "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h",
+      "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h",
+      "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h",
+      "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h",
+      "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h",
+      "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h",
+      "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h",
+      "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h",
+      "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h",
+      "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so",
+      "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so",
+      "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl",
+      "9b8d1eb72d47440027893eeaa5fb3f40c06de7494abe49549138975b0d77ee59  ./test/cases/extlib_redis.xl",
+      "dcc445c6452d5e528686e685bce98dd69f93a10bec6e8e05367dcf74fdd9c58e  ./test/cases/xlir_extlib_redis_current_tcp.xl"
+    ],
+    "initialAuditParent": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "Linux Redis gate=0 live=0 runtime=0 old-compile=1 source-change=0 tool-change=0 snapshot=/var/tmp/xlang-redis-resp-nbiMLe6B\nredis command loopback: ok\nredis reuse loopback: 500\n[redis] Linux core AOT: PASS\n[redis] Linux preflight_repro AOT build\n[redis] Linux preflight_repro AOT ran\n[redis] Linux command_loopback AOT build\n[redis] Linux command_loopback AOT ran\n[redis] Linux reuse_loopback AOT build\n[redis] Linux reuse_loopback AOT ran\nredis Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n[redis] Linux preflight_repro AOT build\n[redis] Linux preflight_repro AOT ran\n[redis] Linux command_loopback AOT build\n[redis] Linux command_loopback AOT ran\n[redis] Linux reuse_loopback AOT build\n[redis] Linux reuse_loopback AOT ran\nredis Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n   text\t   data\t    bss\t    dec\t    hex\tfilename\n   9189\t      0\t      0\t   9189\t   23e5\t/var/tmp/xlang-redis-resp-nbiMLe6B/old.o\n   9397\t      0\t      0\t   9397\t   24b5\t/var/tmp/xlang-redis-resp-nbiMLe6B/new.o\n",
+      "stderr": "",
+      "elapsedMs": 249503
+    },
+    "stdout": "redis independent RESP: 957 frames, 16549 prefixes, 3 negative controls PASS\nredis independent RESP: 957 frames, 16549 prefixes, 3 negative controls PASS\nredis independent RESP: 957 frames, 16549 prefixes, 3 negative controls PASS\nredis C boundaries: PASS\nredis allocation: PASS\nredis threads: PASS\nredis pending-byte budget: 85 cases, 0 failures\nencoded bytes: 33\nbulk value bytes: 3\narray reply: 2 items\nbinary request bytes: 29\nbinary decode: true\nredis C/XL example: PASS\nredis C example lifetime: PASS\nredis boundaries: ok\nredis allocation: PASS\nredis preflight: ok\nredis command loopback: ok\nredis reuse loopback: 500\n[redis] Linux core AOT: PASS\n[redis] Linux preflight_repro AOT build\n[redis] Linux preflight_repro AOT ran\n[redis] Linux command_loopback AOT build\n[redis] Linux command_loopback AOT ran\n[redis] Linux reuse_loopback AOT build\n[redis] Linux reuse_loopback AOT ran\nredis Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n",
+    "snapshot": "/var/tmp/xlang-redis-resp-nbiMLe6B",
+    "liveFullGateRerunsOfflinePlusRealService": true,
+    "toolsAfter": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc\n30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1\n52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41  /usr/bin/python3\n3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash\n0f3f5d696b7dabd9af484c2d8844dbb0c9bc7722ddf794f63b911a9795509293  /usr/bin/redis-server\n789252561d7147f0a5ffd14fffba27abfd846afbd920745e52cdcad8fac617dc  /usr/bin/redis-cli\n",
+    "noSanitizerClaimForTccXlang": true,
+    "liveAdditionalExampleAotPrograms": 1,
+    "cSanitizers": [
+      "address",
+      "undefined",
+      "leaks"
+    ],
+    "nativeFilesystem": true,
+    "liveExit": 0,
+    "offlineAotPrograms": 12,
+    "liveStdout": "redis independent RESP: 957 frames, 16549 prefixes, 3 negative controls PASS\nredis independent RESP: 957 frames, 16549 prefixes, 3 negative controls PASS\nredis independent RESP: 957 frames, 16549 prefixes, 3 negative controls PASS\nredis C boundaries: PASS\nredis allocation: PASS\nredis threads: PASS\nredis pending-byte budget: 85 cases, 0 failures\nencoded bytes: 33\nbulk value bytes: 3\narray reply: 2 items\nbinary request bytes: 29\nbinary decode: true\nredis C/XL example: PASS\nredis C example lifetime: PASS\nredis real server C: ok\nredis live server C gate: PASS\nredis boundaries: ok\nredis allocation: PASS\nredis preflight: ok\nredis command loopback: ok\nredis reuse loopback: 500\nredis real server: ok\nredis concurrent server: 50 rounds ok\nredis live server C/XLang gate: PASS\n[redis] Linux core AOT: PASS\n[redis] Linux preflight_repro AOT build\n[redis] Linux preflight_repro AOT ran\n[redis] Linux command_loopback AOT build\n[redis] Linux command_loopback AOT ran\n[redis] Linux reuse_loopback AOT build\n[redis] Linux reuse_loopback AOT ran\nredis Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n",
+    "frozenSourceManifestBefore": [
+      "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h",
+      "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h",
+      "cc4343b8ce3c0c33c99cb0e804b245df2e3d8e986adb91d8d22236322100d216  ./release/examples/extlibs/redis.xl",
+      "993ab9bffeab846a0166258df42a2c407a6c7317c19444c7ed2b08997d37c774  ./release/examples/extlibs/redis_c.c",
+      "1151f6d26524c2cd2bbb4f1a51ecf1d2be41a303e1b3725cd48f3d79a9787184  ./release/examples/extlibs/redis_live.xl",
+      "aeca5efe790961e7e299e2b7c06351831afae4038ebaa2777def1e6f209fa1c3  ./release/examples/extlibs/redis_live_c.c",
+      "1d5d71dcc6ccd28ab46a335349ecc74742ca4b81f4fcad212f8d134f70f1f13e  ./release/extlibs/redis/.gitattributes",
+      "b85794f1516e58db9b7b821cee0efd41183bd5011fd5bbff8f554fda9675a835  ./release/extlibs/redis/README.md",
+      "d579ce955db23f670fc107ad281782c621b237d8f19458ee244bb07e3e91115d  ./release/extlibs/redis/docs/site.html",
+      "2b7f37d12ba26b89200cf76ebaa33715b94cd54c9e153d1e8d0793976f2fd74e  ./release/extlibs/redis/examples/frame_headers.expected.txt",
+      "1e5ba1145284ca587642e2da9cba45644d3a1163308a60b1ef276bc334ec8fff  ./release/extlibs/redis/examples/frame_headers.xl",
+      "c99fb09daf4eeb79f56b10a6a90c68b43fd84e36922fd9177055caec082df6dd  ./release/extlibs/redis/examples/frame_headers_c.c",
+      "00501418bbc3baeb7565835b0fa5b33c704fb9163b7466064675b2bd80db8268  ./release/extlibs/redis/examples/response_budget.expected.txt",
+      "04ffba22b3a4a89ede41258092a7edf67e280d39459a7668b763f53adbee0bd0  ./release/extlibs/redis/examples/response_budget.xl",
+      "dc5ccfc1aef85a7e1b75a0ca18f0887d42443786e0ecdea417a386c884557505  ./release/extlibs/redis/examples/response_budget_c.c",
+      "81b2ecd5825a4e726251ec459944182831ba8e55cdd5ad2af4ebc982bd578308  ./release/extlibs/redis/include/redis_native.h",
+      "1deeafc75ad4b892f80d4c9da93661ab390252b9a791f67ce6a8e4591aa47b82  ./release/extlibs/redis/redis_native.c",
+      "288fa8a40171843167be5dc4b155e6fad2832fa033b01164ca81fe99162ec795  ./release/extlibs/redis/src/redis.xl",
+      "42f4ac6782dcced3ff0dd45f6ba6dd21035b4edb149dee6848bf5dbdd5573c0f  ./release/extlibs/redis/test/allocations.xl",
+      "97d564e1154975ba6b144609fd891a9f598c0c255ae1a2ce64f4b25bfaa0bcf2  ./release/extlibs/redis/test/aot_core.xl",
+      "7ed710c3e6658ebccdbdab3238d55abadb8014139751ac36ad81e5dbd557425f  ./release/extlibs/redis/test/boundaries.xl",
+      "9bc2b4885515120cbd90fc62f2398c55f68926459a7eacb7dbeca1bfff1ffb71  ./release/extlibs/redis/test/check.ps1",
+      "ad526b2083c9c2556050260a875cdd90c5ab37f74778c3e52b399742f113602d  ./release/extlibs/redis/test/check.sh",
+      "8d61543e934a0199ff518cc0160a1e292ff69e5874c299360f94c6c04a65624c  ./release/extlibs/redis/test/check_gate_diagnostics.ps1",
+      "a93eb4b09ee364302d7d1072aa7736edca1cf933923018e10a40e7fa4495784a  ./release/extlibs/redis/test/check_live.sh",
+      "d17d188a6c22a47324f4663d73a801d90f6ab6196437e5f135580729c0a6900c  ./release/extlibs/redis/test/command_loopback.xl",
+      "e15a0038c5a26941093f233a78d6984f7d499560123088f4948a76af91445591  ./release/extlibs/redis/test/concurrent_server.xl",
+      "c9bb14e9a08dfe0fe2152e9a42908661d2ed7d1e8faa740073e9d548b0555793  ./release/extlibs/redis/test/gate_probe_c.c",
+      "0bb34bea1244c7dfc127fecdd42d2a917fef959b82b21f22a5f43ba4f661f028  ./release/extlibs/redis/test/live_runtime.c",
+      "c14330d7ceb8f7405451d893c9cf0a7b02a0e0bb03dd2204a6e1b6cec170e0ba  ./release/extlibs/redis/test/live_server.xl",
+      "4dc646ae9986dfb8381543ba56799aea1989ba9da78ba404660da43f8611b758  ./release/extlibs/redis/test/live_server_c.c",
+      "fb49fbf373c7048c42880edb4394e7f08bfe477c9445d05633a7ebf368282f04  ./release/extlibs/redis/test/preflight_repro.xl",
+      "ba9268a361b8848a2c72fe479c5a68ea5aaba852f539d7c66ece43fdc5e4e989  ./release/extlibs/redis/test/resp_oracle.py",
+      "359e24f9af40fc8add2403b9b204814623c07756bec497e05723ecb8d3022a1e  ./release/extlibs/redis/test/resp_oracle_cli.c",
+      "bee805c1300f5356fad73587200d5d5a386c2e384fe07d7c7b0df13adb9e84f6  ./release/extlibs/redis/test/reuse_loopback.xl",
+      "a6e1f47f9db2207936e11e8e14a46a7b7057b062f60d592547f956a705a9e3e2  ./release/extlibs/redis/test/test_example_lifetime.c",
+      "b24f4b597226828e1510240b25f83a02ac443e1808e8d335ebe8bef60cdb6d10  ./release/extlibs/redis/test/test_pending_budget.c",
+      "c28cefbe08bf73ed5de7b06ba428e0bf7768bac2437daecef1aa850681c9139e  ./release/extlibs/redis/test/test_redis.c",
+      "afadd685656c741cfffa20f8418e0bf1eb4c5cf96daebee985d532abb3d01745  ./release/extlibs/redis/test/test_redis_alloc.c",
+      "d196fb82cd52deff708c5d905a70b52046f27ef0f9591d822152d8f2f94d8b04  ./release/extlibs/redis/test/test_redis_threads.c",
+      "0eb2748080215c6184d0a4ebcb52003bdcdfae6d4d8a9a23218d13af1a680e48  ./release/extlibs/redis/xlang.package.json",
+      "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md",
+      "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h",
+      "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h",
+      "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h",
+      "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h",
+      "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h",
+      "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h",
+      "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h",
+      "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h",
+      "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h",
+      "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h",
+      "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h",
+      "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h",
+      "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h",
+      "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h",
+      "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h",
+      "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so",
+      "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so",
+      "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl",
+      "9b8d1eb72d47440027893eeaa5fb3f40c06de7494abe49549138975b0d77ee59  ./test/cases/extlib_redis.xl",
+      "dcc445c6452d5e528686e685bce98dd69f93a10bec6e8e05367dcf74fdd9c58e  ./test/cases/xlir_extlib_redis_current_tcp.xl"
+    ],
+    "frozenFiles": 62,
+    "frozenToolBinaries": 6,
+    "service": {
+      "port": 49064,
+      "binaryDataErrorReuseExplicitReconnectAndLiveCAndXlangExamplesPassed": true,
+      "selfManaged": true,
+      "cleanupKillAndWaitInTrace": true,
+      "roundsEach": 50,
+      "version": "8.0.5",
+      "ownedPid": 795,
+      "concurrentConnections": 4
+    },
+    "bootUnchanged": true,
+    "sourceAndToolsUnchanged": true,
+    "offlineExit": 0,
+    "tools": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc\n30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1\n52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41  /usr/bin/python3\n3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash\n0f3f5d696b7dabd9af484c2d8844dbb0c9bc7722ddf794f63b911a9795509293  /usr/bin/redis-server\n789252561d7147f0a5ffd14fffba27abfd846afbd920745e52cdcad8fac617dc  /usr/bin/redis-cli\n",
+    "auxiliaryFailure": {
+      "kind": "Audit command duplicated XRT_MODULE_MEMORY_DEBUG and -Werror rejected macro redefinition",
+      "correctedFocusedOnly": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "Focused old compile=0 expected-red-oracle=1 source-change=0 tools-change=0\nAssertionError: [('242b300d0a610d0a', 'IIIIIIIEE\\tIIIIIIIEE\\t-', ['IIIIIEEEE', 'IIIIIEEEE', '-']), ('2a320d0a3a370d0a242b300d0a610d0a', 'IIIIIIIIIIIIIIIEE\\tIIIIIIIIIIIIIIIEE\\t-', ['IIIIIIIIIIIIIEEEE', 'IIIIIIIIIIIIIEEEE', '-']), ('2a2b300d0a3a310d0a', 'IIIIICCCCC\\tIIIIICCCCC\\t[]|S3a310d0a', ['IIIIIEEEEE', 'IIIIIEEEEE', '-']), ('2a320d0a3a370d0a2a2b300d0a3a310d0a', 'IIIIIIIIIIIIICCCCC\\tIIIIIIIIIIIIICCCCC\\t[I7;[];]|S3a310d0a', ['IIIIIIIIIIIIIEEEEE', 'IIIIIIIIIIIIIEEEEE', '-']), ('242d300d0a610d0a', 'IIIIIIIEE\\tIIIIIIIEE\\t-', ['IIIIIEEEE', 'IIIIIEEEE', '-']), ('2a320d0a3a370d0a242d300d0a610d0a', 'IIIIIIIIIIIIIIIEE\\tIIIIIIIIIIIIIIIEE\\t-', ['IIIIIIIIIIIIIEEEE', 'IIIIIIIIIIIIIEEEE', '-']), ('2a2d300d0a3a310d0a', 'IIIIICCCCC\\tIIIIICCCCC\\t[]|S3a310d0a', ['IIIIIEEEEE', 'IIIIIEEEEE', '-']), ('2a320d0a3a370d0a2a2d300d0a3a310d0a', 'IIIIIIIIIIIIICCCCC\\tIIIIIIIIIIIIICCCCC\\t[I7;[];]|S3a310d0a', ['IIIIIIIIIIIIIEEEEE', 'IIIIIIIIIIIIIEEEEE', '-'])]\nRedis server v=8.0.5 sha=00000000:0 malloc=jemalloc-5.3.0 bits=64 build=d47fc40702b1fad8\n",
+        "stderr": "",
+        "elapsedMs": 1393
+      },
+      "entireGateNotRepeatedToFixThisAuditIssue": true,
+      "productGatesWereAlreadyZero": true,
+      "oldCompileExit": 0,
+      "oldStderr": "Traceback (most recent call last):\n  File \"/var/tmp/xlang-redis-resp-nbiMLe6B/stage/release/extlibs/redis/test/resp_oracle.py\", line 168, in <module>\n    main()\n    ~~~~^^\n  File \"/var/tmp/xlang-redis-resp-nbiMLe6B/stage/release/extlibs/redis/test/resp_oracle.py\", line 154, in main\n    checks = check(frames, process.stdout)\n  File \"/var/tmp/xlang-redis-resp-nbiMLe6B/stage/release/extlibs/redis/test/resp_oracle.py\", line 138, in check\n    raise AssertionError(mismatches)\nAssertionError: [('242b300d0a610d0a', 'IIIIIIIEE\\tIIIIIIIEE\\t-', ['IIIIIEEEE', 'IIIIIEEEE', '-']), ('2a320d0a3a370d0a242b300d0a610d0a', 'IIIIIIIIIIIIIIIEE\\tIIIIIIIIIIIIIIIEE\\t-', ['IIIIIIIIIIIIIEEEE', 'IIIIIIIIIIIIIEEEE', '-']), ('2a2b300d0a3a310d0a', 'IIIIICCCCC\\tIIIIICCCCC\\t[]|S3a310d0a', ['IIIIIEEEEE', 'IIIIIEEEEE', '-']), ('2a320d0a3a370d0a2a2b300d0a3a310d0a', 'IIIIIIIIIIIIICCCCC\\tIIIIIIIIIIIIICCCCC\\t[I7;[];]|S3a310d0a', ['IIIIIIIIIIIIIEEEEE', 'IIIIIIIIIIIIIEEEEE', '-']), ('242d300d0a610d0a', 'IIIIIIIEE\\tIIIIIIIEE\\t-', ['IIIIIEEEE', 'IIIIIEEEE', '-']), ('2a320d0a3a370d0a242d300d0a610d0a', 'IIIIIIIIIIIIIIIEE\\tIIIIIIIIIIIIIIIEE\\t-', ['IIIIIIIIIIIIIEEEE', 'IIIIIIIIIIIIIEEEE', '-']), ('2a2d300d0a3a310d0a', 'IIIIICCCCC\\tIIIIICCCCC\\t[]|S3a310d0a', ['IIIIIEEEEE', 'IIIIIEEEEE', '-']), ('2a320d0a3a370d0a2a2d300d0a3a310d0a', 'IIIIIIIIIIIIICCCCC\\tIIIIIIIIIIIIICCCCC\\t[I7;[];]|S3a310d0a', ['IIIIIIIIIIIIIEEEEE', 'IIIIIIIIIIIIIEEEEE', '-'])]\n",
+      "originalCompileStderr": "release/extlibs/redis/test/resp_oracle_cli.c:2:9: error: ‘XRT_MODULE_MEMORY_DEBUG’ redefined [-Werror]\n    2 | #define XRT_MODULE_MEMORY_DEBUG\n      |         ^~~~~~~~~~~~~~~~~~~~~~~\n<command-line>: note: this is the location of the previous definition\ncc1: all warnings being treated as errors\n",
+      "oldExpectedRedExit": 1
+    }
+  },
+  "cost": {
+    "linux": {
+      "gnuSize": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n   9189\t      0\t      0\t   9189\t   23e5\t/var/tmp/xlang-redis-resp-nbiMLe6B/old.o\n   9397\t      0\t      0\t   9397\t   24b5\t/var/tmp/xlang-redis-resp-nbiMLe6B/new.o\n",
+      "textOld": 9189,
+      "gcc": "Ubuntu 15.2.0",
+      "textDelta": 208,
+      "textNew": 9397
+    },
+    "finalExecutableSizeClaim": false,
+    "compilerMode": "GCC -O2 same flags per platform, native object only",
+    "dataAndBssBothZero": true,
+    "windows": {
+      "raw": [
+        {
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 358
+          },
+          "kind": "old"
+        },
+        {
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 346
+          },
+          "kind": "new"
+        },
+        {
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n   7464\t      0\t      0\t   7464\t   1d28\tD:\\GIT\\x-lang\\build\\test\\redis_resp_20261102\\old-native.o\r\n   7580\t      0\t      0\t   7580\t   1d9c\tD:\\GIT\\x-lang\\build\\test\\redis_resp_20261102\\new-native.o\r\n",
+            "stderr": "",
+            "elapsedMs": 23
+          },
+          "kind": "size"
+        }
+      ],
+      "textOld": 7464,
+      "gcc": "16.2.0",
+      "textDelta": 116,
+      "textNew": 7580
+    },
+    "throughputMeasured": false
+  },
+  "catalog": {
+    "finalSummary": {
+      "status": "passed",
+      "catalogSha256": "3d88fba57f2b235d6aac604ea474c17d08db6bf782b30eb07477277a19178ae1",
+      "sourceIndexSha256": "2a88079213e0acdb394b731e86866bda6fbce30118cc0dbb3987ea5575898e22",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42",
+      "inputsUnchanged": true
+    },
+    "strictBinding": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "Catalog compiler changed: xl.dll\r\n",
+      "elapsedMs": 317
+    },
+    "finalGeneration": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"passed\", \"catalogSha256\": \"3d88fba57f2b235d6aac604ea474c17d08db6bf782b30eb07477277a19178ae1\", \"sourceIndexSha256\": \"2a88079213e0acdb394b731e86866bda6fbce30118cc0dbb3987ea5575898e22\", \"preservedNonExtensionEntries\": 6156, \"publicPackages\": 207, \"excludedPrivate\": [\"_bzip2\", \"_expat\", \"_libzip\", \"_tomlc17\", \"_xge_native\", \"_zlib\"], \"extensionEntries\": 11442, \"addedEntries\": 0, \"removedEntries\": 0, \"documents\": 145, \"availableSources\": 593, \"extensionExporterSha256\": \"5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42\", \"inputsUnchanged\": true}\r\n",
+      "stderr": "",
+      "elapsedMs": 11919
+    },
+    "initialCandidateSupersededAfterFinalReadmeUpdate": true,
+    "candidate": "build/test/redis_resp_20261102/catalog-final",
+    "freshness": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+      "stderr": "",
+      "elapsedMs": 1032
+    },
+    "baseIdentityChanged": false,
+    "installed": false,
+    "initialGeneration": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"passed\", \"catalogSha256\": \"4119c95be85a7892feaa70f399821862400d9c950f4754039f12388438d60a7b\", \"sourceIndexSha256\": \"82c734ed1af51f04e7e104a13601aa2269371a73ad1e9f4bf8487a5f04314339\", \"preservedNonExtensionEntries\": 6156, \"publicPackages\": 207, \"excludedPrivate\": [\"_bzip2\", \"_expat\", \"_libzip\", \"_tomlc17\", \"_xge_native\", \"_zlib\"], \"extensionEntries\": 11442, \"addedEntries\": 0, \"removedEntries\": 0, \"documents\": 145, \"availableSources\": 593, \"extensionExporterSha256\": \"5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42\", \"inputsUnchanged\": true}\r\n",
+      "stderr": "",
+      "elapsedMs": 16638
+    }
+  },
+  "website": {
+    "isolatedCopy": {
+      "path": "build/test/redis_resp_20261102/site/extlibs/redis.html",
+      "bytes": 11962,
+      "sha256": "627b81ba9942aaed7fe6e959f7981fed15ed519d6f7f5af4417fe5089242c235"
+    },
+    "deployed": false,
+    "source": {
+      "path": "release/extlibs/redis/docs/site.html",
+      "bytes": 11962,
+      "sha256": "627b81ba9942aaed7fe6e959f7981fed15ed519d6f7f5af4417fe5089242c235"
+    }
+  },
+  "deliveryAudit": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+    "stderr": "",
+    "elapsedMs": 1048
+  },
+  "packageFiles": [
+    {
+      "path": "release/extlibs/redis/.gitattributes",
+      "bytes": 17,
+      "sha256": "1d5d71dcc6ccd28ab46a335349ecc74742ca4b81f4fcad212f8d134f70f1f13e"
+    },
+    {
+      "path": "release/extlibs/redis/docs/site.html",
+      "bytes": 11962,
+      "sha256": "627b81ba9942aaed7fe6e959f7981fed15ed519d6f7f5af4417fe5089242c235"
+    },
+    {
+      "path": "release/extlibs/redis/examples/frame_headers_c.c",
+      "bytes": 2231,
+      "sha256": "c99fb09daf4eeb79f56b10a6a90c68b43fd84e36922fd9177055caec082df6dd"
+    },
+    {
+      "path": "release/extlibs/redis/examples/frame_headers.expected.txt",
+      "bytes": 75,
+      "sha256": "2b7f37d12ba26b89200cf76ebaa33715b94cd54c9e153d1e8d0793976f2fd74e"
+    },
+    {
+      "path": "release/extlibs/redis/examples/frame_headers.xl",
+      "bytes": 1141,
+      "sha256": "1e5ba1145284ca587642e2da9cba45644d3a1163308a60b1ef276bc334ec8fff"
+    },
+    {
+      "path": "release/extlibs/redis/examples/response_budget_c.c",
+      "bytes": 1362,
+      "sha256": "dc5ccfc1aef85a7e1b75a0ca18f0887d42443786e0ecdea417a386c884557505"
+    },
+    {
+      "path": "release/extlibs/redis/examples/response_budget.expected.txt",
+      "bytes": 100,
+      "sha256": "00501418bbc3baeb7565835b0fa5b33c704fb9163b7466064675b2bd80db8268"
+    },
+    {
+      "path": "release/extlibs/redis/examples/response_budget.xl",
+      "bytes": 743,
+      "sha256": "04ffba22b3a4a89ede41258092a7edf67e280d39459a7668b763f53adbee0bd0"
+    },
+    {
+      "path": "release/extlibs/redis/include/redis_native.h",
+      "bytes": 1561,
+      "sha256": "81b2ecd5825a4e726251ec459944182831ba8e55cdd5ad2af4ebc982bd578308"
+    },
+    {
+      "path": "release/extlibs/redis/README.md",
+      "bytes": 30192,
+      "sha256": "dff7c7efcef78e4f2e001429f8389888694a5b0cd65cb2739e99c4890cbf6a2a"
+    },
+    {
+      "path": "release/extlibs/redis/redis_native.c",
+      "bytes": 19116,
+      "sha256": "1deeafc75ad4b892f80d4c9da93661ab390252b9a791f67ce6a8e4591aa47b82"
+    },
+    {
+      "path": "release/extlibs/redis/src/redis.xl",
+      "bytes": 7394,
+      "sha256": "288fa8a40171843167be5dc4b155e6fad2832fa033b01164ca81fe99162ec795"
+    },
+    {
+      "path": "release/extlibs/redis/test/allocations.xl",
+      "bytes": 1693,
+      "sha256": "42f4ac6782dcced3ff0dd45f6ba6dd21035b4edb149dee6848bf5dbdd5573c0f"
+    },
+    {
+      "path": "release/extlibs/redis/test/aot_core.xl",
+      "bytes": 180,
+      "sha256": "97d564e1154975ba6b144609fd891a9f598c0c255ae1a2ce64f4b25bfaa0bcf2"
+    },
+    {
+      "path": "release/extlibs/redis/test/boundaries.xl",
+      "bytes": 3651,
+      "sha256": "7ed710c3e6658ebccdbdab3238d55abadb8014139751ac36ad81e5dbd557425f"
+    },
+    {
+      "path": "release/extlibs/redis/test/check_gate_diagnostics.ps1",
+      "bytes": 5466,
+      "sha256": "8d61543e934a0199ff518cc0160a1e292ff69e5874c299360f94c6c04a65624c"
+    },
+    {
+      "path": "release/extlibs/redis/test/check_live.sh",
+      "bytes": 3942,
+      "sha256": "a93eb4b09ee364302d7d1072aa7736edca1cf933923018e10a40e7fa4495784a"
+    },
+    {
+      "path": "release/extlibs/redis/test/check.ps1",
+      "bytes": 14246,
+      "sha256": "9bc2b4885515120cbd90fc62f2398c55f68926459a7eacb7dbeca1bfff1ffb71"
+    },
+    {
+      "path": "release/extlibs/redis/test/check.sh",
+      "bytes": 8835,
+      "sha256": "ad526b2083c9c2556050260a875cdd90c5ab37f74778c3e52b399742f113602d"
+    },
+    {
+      "path": "release/extlibs/redis/test/command_loopback.xl",
+      "bytes": 11326,
+      "sha256": "d17d188a6c22a47324f4663d73a801d90f6ab6196437e5f135580729c0a6900c"
+    },
+    {
+      "path": "release/extlibs/redis/test/concurrent_server.xl",
+      "bytes": 1857,
+      "sha256": "e15a0038c5a26941093f233a78d6984f7d499560123088f4948a76af91445591"
+    },
+    {
+      "path": "release/extlibs/redis/test/gate_probe_c.c",
+      "bytes": 1078,
+      "sha256": "c9bb14e9a08dfe0fe2152e9a42908661d2ed7d1e8faa740073e9d548b0555793"
+    },
+    {
+      "path": "release/extlibs/redis/test/live_runtime.c",
+      "bytes": 162,
+      "sha256": "0bb34bea1244c7dfc127fecdd42d2a917fef959b82b21f22a5f43ba4f661f028"
+    },
+    {
+      "path": "release/extlibs/redis/test/live_server_c.c",
+      "bytes": 6410,
+      "sha256": "4dc646ae9986dfb8381543ba56799aea1989ba9da78ba404660da43f8611b758"
+    },
+    {
+      "path": "release/extlibs/redis/test/live_server.xl",
+      "bytes": 2277,
+      "sha256": "c14330d7ceb8f7405451d893c9cf0a7b02a0e0bb03dd2204a6e1b6cec170e0ba"
+    },
+    {
+      "path": "release/extlibs/redis/test/preflight_repro.xl",
+      "bytes": 1329,
+      "sha256": "fb49fbf373c7048c42880edb4394e7f08bfe477c9445d05633a7ebf368282f04"
+    },
+    {
+      "path": "release/extlibs/redis/test/resp_oracle_cli.c",
+      "bytes": 5269,
+      "sha256": "359e24f9af40fc8add2403b9b204814623c07756bec497e05723ecb8d3022a1e"
+    },
+    {
+      "path": "release/extlibs/redis/test/resp_oracle.py",
+      "bytes": 6401,
+      "sha256": "ba9268a361b8848a2c72fe479c5a68ea5aaba852f539d7c66ece43fdc5e4e989"
+    },
+    {
+      "path": "release/extlibs/redis/test/reuse_loopback.xl",
+      "bytes": 2137,
+      "sha256": "bee805c1300f5356fad73587200d5d5a386c2e384fe07d7c7b0df13adb9e84f6"
+    },
+    {
+      "path": "release/extlibs/redis/test/test_example_lifetime.c",
+      "bytes": 1668,
+      "sha256": "a6e1f47f9db2207936e11e8e14a46a7b7057b062f60d592547f956a705a9e3e2"
+    },
+    {
+      "path": "release/extlibs/redis/test/test_pending_budget.c",
+      "bytes": 4474,
+      "sha256": "b24f4b597226828e1510240b25f83a02ac443e1808e8d335ebe8bef60cdb6d10"
+    },
+    {
+      "path": "release/extlibs/redis/test/test_redis_alloc.c",
+      "bytes": 4079,
+      "sha256": "afadd685656c741cfffa20f8418e0bf1eb4c5cf96daebee985d532abb3d01745"
+    },
+    {
+      "path": "release/extlibs/redis/test/test_redis_threads.c",
+      "bytes": 1604,
+      "sha256": "d196fb82cd52deff708c5d905a70b52046f27ef0f9591d822152d8f2f94d8b04"
+    },
+    {
+      "path": "release/extlibs/redis/test/test_redis.c",
+      "bytes": 23115,
+      "sha256": "c28cefbe08bf73ed5de7b06ba428e0bf7768bac2437daecef1aa850681c9139e"
+    },
+    {
+      "path": "release/extlibs/redis/xlang.package.json",
+      "bytes": 716,
+      "sha256": "0eb2748080215c6184d0a4ebcb52003bdcdfae6d4d8a9a23218d13af1a680e48"
+    }
+  ],
+  "rawArtifacts": [
+    {
+      "path": "build/test/redis_resp_20261102/before.json",
+      "bytes": 1791,
+      "sha256": "9f3fa2d5fb0b7e37beb2df09cfc39b6fc8b7b17296897d07d6e453f014c7d5b6"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/after.json",
+      "bytes": 685,
+      "sha256": "e4454f5a5958bfdb069742fff6873ca32c1b845d1640d2c5c22c0b54bc1591c6"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/old-new-vectors.json",
+      "bytes": 4089,
+      "sha256": "236a3b6a0a64d06877359c7299be5e074b58a1d8698cdc478166510f66ded9f7"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/old-new-result.json",
+      "bytes": 4676,
+      "sha256": "0349adba3b294b26a9e4b540cca7979fe87b9c13d5d899e0ae3e9b711d28ae8d"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/windows-size.json",
+      "bytes": 788,
+      "sha256": "da6bb81b2dde7f64cca615febbffa737b0f7acbd55c928a5fc72638c4576358c"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/windows.json",
+      "bytes": 2429,
+      "sha256": "9044c3eb9c6ff19afaf746188892a46b6493b0348b00382c5e2599e047650c25"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-parent.json",
+      "bytes": 1145,
+      "sha256": "5edb147bc7ebccb57d2ba7c9e6855acfe3caa0ef10629f36839d3d51ee22e3cd"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-old-recheck.json",
+      "bytes": 1226,
+      "sha256": "57730574c5aff691b4242f414830a8e62f9ef1c65d62dd6aeaa36f1d43f81739"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/source.tar",
+      "bytes": 48742400,
+      "sha256": "2762ccfe0dc9d8054bab915c1f4f54be87c9cdb372096dd5a845d8c64a7ad9c7"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/run_linux.sh",
+      "bytes": 3493,
+      "sha256": "0489ea5c1b458461fc5ee5bafeb58385f9ef0ef285aa0b98cc6af5427e68f2d8"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/recheck_old_linux.sh",
+      "bytes": 1861,
+      "sha256": "0b34d7f64b724b5ccae244bedee8484f7b69d15169516ad0aff46124787c90b8"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/catalog-generation.json",
+      "bytes": 722,
+      "sha256": "06b2713d77ac747b95e361558cc2dc1a32923581b58988fbac7ed94bc9b42c70"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/catalog-final-generation.json",
+      "bytes": 722,
+      "sha256": "4cd8731a983df46879efe2c339bb46a3e63270ae1ca1a8d940d3491e7de35676"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/catalog-freshness.json",
+      "bytes": 175,
+      "sha256": "508022b2cd2babfe1cb82a610b9b9e03150215807e4b31640647b9fcc7a2e043"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/catalog-binding.json",
+      "bytes": 133,
+      "sha256": "80f9f579d9f335a8c273e07f92b196e865e7fd8e9fd8570b02da94f601351f3b"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/delivery.json",
+      "bytes": 193,
+      "sha256": "281f60d0c7c8a728f4cc4c0b8d4dc6dd411a7c4ce9fa319da5b3d4aeae265537"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/after.sha256",
+      "bytes": 6548,
+      "sha256": "0d209e6ea54af7f90218760ecf640067c4317829accf060755dc2b045c3b2a10"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/before.sha256",
+      "bytes": 6548,
+      "sha256": "0d209e6ea54af7f90218760ecf640067c4317829accf060755dc2b045c3b2a10"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/boot.after",
+      "bytes": 37,
+      "sha256": "aabc98eea3125d22e18c7ce7b1dd9984566d312de7351e4609055179f043012d"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/boot.before",
+      "bytes": 37,
+      "sha256": "aabc98eea3125d22e18c7ce7b1dd9984566d312de7351e4609055179f043012d"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/changes.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/compile.stderr",
+      "bytes": 299,
+      "sha256": "ff14052c5b103dc25380de94ebaba5579a7aff5b2a9fd12bcf58fc2c72a247c4"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/gate.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/live.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/live.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/live.stdout",
+      "bytes": 1101,
+      "sha256": "70eb849dae350a70f2476f328f62eff31c5cb070a7edb8bd873f6ae74acdaa01"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/old-fixed-compile.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/old-fixed-compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/old-fixed-compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/old-fixed.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/old-fixed.stderr",
+      "bytes": 1420,
+      "sha256": "55fda8c31cb1869cc31404a5114210d90ee71db10da915bfa0b70cb1c66a5c57"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/old-fixed.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/old.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/old.stderr",
+      "bytes": 1881,
+      "sha256": "5e72dd66bc8f9e7bb2420b480c54fa2d08f8017fb9b4d1396114e77fb86ed3bb"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/old.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/recheck-changes.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/recheck-tool-changes.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/recheck-tools.sha256",
+      "bytes": 522,
+      "sha256": "c760a60afa35718c811ac37d2a13a7eb0138cc35981c93511ec069338318166d"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/recheck.after.sha256",
+      "bytes": 6548,
+      "sha256": "0d209e6ea54af7f90218760ecf640067c4317829accf060755dc2b045c3b2a10"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/recheck.boot",
+      "bytes": 37,
+      "sha256": "aabc98eea3125d22e18c7ce7b1dd9984566d312de7351e4609055179f043012d"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/size.txt",
+      "bytes": 211,
+      "sha256": "7b8922bf85e5464e02408c683a113f0d22242a296bff61eb157b77c2154d7e14"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/stdout",
+      "bytes": 949,
+      "sha256": "e68a2aef58ab9c82eab00106ff16fa496778b3c08ae5fd65ecaa409d54a89711"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/tool-changes.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/tools.after.sha256",
+      "bytes": 522,
+      "sha256": "c760a60afa35718c811ac37d2a13a7eb0138cc35981c93511ec069338318166d"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/tools.before.sha256",
+      "bytes": 522,
+      "sha256": "c760a60afa35718c811ac37d2a13a7eb0138cc35981c93511ec069338318166d"
+    },
+    {
+      "path": "build/test/redis_resp_20261102/linux-evidence/trace.txt",
+      "bytes": 20491,
+      "sha256": "983f1e0165ba05b2dae44798646b61a8b1030669bcb24b5341fb17dfce2161e0"
+    }
+  ],
+  "qualifications": [
+    "Prior WSL-mounted-filesystem AOT timeout risk is not closed",
+    "Strict release catalog binding still fails for xl.dll; no candidate installation",
+    "Not a 100-package rerun, long endurance, cluster, PubSub, automatic reconnect or RESP3 certification",
+    "Counts remain G30/R10/M56/X4; package remains R; full long-term goal active"
+  ],
+  "formalRelease": false
+}

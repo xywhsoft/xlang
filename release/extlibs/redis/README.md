@@ -1,5 +1,50 @@
 # redis
 
+## 2026-11-02 RESP2 长度头与独立参照
+
+bulk/array 的长度头不再复用整数值的有符号语法：长度接受一个或多个
+十进制数字，或精确的 `-1` 空值标记；`$+1`、`*-0`、`$-01` 等头
+在 CRLF 到齐后立即报 `RESP reply is malformed`，不再等待正文或
+误解为空数组/空值。整数值 `:+7`、`:-7` 仍合法，`$00` 表示零长度
+正文的既有行为也不变；不增加新协议版本或兼容分支。
+规则参照 [Redis RESP 规范](https://redis.io/docs/latest/develop/reference/protocol-spec/)。
+
+同一长度校验由无状态解析和有状态扫描共用；节点/深度/64MiB预算、
+公开API/ABI、结果所有权及客户端总期限不变。网络收到非法头后应
+中止失同步连接，而不是把它当作可恢复的完整Redis error回复。
+修复只增加头部字节判断，不新增正文复制、分配或网络往返。
+
+新增测试专用独立Python语法/值参照，不调用本包编码器反推预期。
+固定957个有效/畸变/截断/流水线帧，分别核对16549个前缀的有状态/
+无状态结果、解码标签、int64、UTF8/string与原始bytes、完整剩余字节；
+增量缓冲每次交替地址。C夹具逐帧检查七项内存计数；三种损坏输出
+负对照验证判据确实能发现状态、正文和余量变化。
+Python只用于测试，不是扩展库运行依赖。
+
+新增 `examples/frame_headers.xl` / `frame_headers_c.c` 展示有符号整数、
+空与null、八种非法长度及错误后继续独立解码，默认无网络、无文件，
+同一四行golden可直接运行：
+
+```text
+release/xl.exe run release/extlibs/redis/examples/frame_headers.xl
+release/xl.exe run release/extlibs/redis/examples/frame_headers_c.c
+```
+
+Linux将 `xl.exe` 换为 `xl`。默认门禁包含独立参照和新双语例的
+GCC/TCC/独立程序路径；原有分片、真实服务、节点/字节限额和错误恢复
+测试不被替代。当前包仍保留原WSL挂载盘构建风险，不据该协议修复
+宣称整个扩展库或完整发行版已经签收。
+
+本轮Windows完整门禁59阶段/54输入工具指纹通过；Linux原生冻结
+62文件/六工具与boot前后保持，离线及自管理Redis 8.0.5完整门禁
+含ASan/UBSan/泄漏检查通过，各12条离线AOT，真服务另含范例AOT。
+同一最终语料旧实现26帧的结果或拒绝时机不符，新为零，不算26个BUG。
+附加Linux旧对照首次编译重复定义测试宏，修正审计参数后仅定向重验，
+没有把这个夹具问题说成产品故障，也没有重复整套回归来修它。
+GCC-O2原生对象text分别增加116/208字节，data/bss不变；没有做吞吐
+测量，不宣称普遍提速。完整证据见仓库
+`docs/reports/extlib-redis-lengths-20261102.json`。IDE资料发布绑定另行验收。
+
 `redis` 提供 RESP2 编解码和基于标准库 `TcpStream` 的单命令客户端。
 原生层不管理连接；C 可以直接使用长度感知的编解码接口，XL 则持有
 `TcpStream`，由 `command` 组合 `send`、`wait`、`recv` 完成命令调用。

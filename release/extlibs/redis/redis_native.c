@@ -172,6 +172,17 @@ static bool xr_integer(const char* Data, size_t Size, int64* Result)
     return true;
 }
 
+/* 长度不是有符号整数：只接受十进制数字，或精确的null标记-1。 */
+static bool xr_length(const char* Data, size_t Size, int64* Result)
+{
+    if (Size == 2u && Data[0] == '-' && Data[1] == '1') {
+        *Result = -1;
+        return true;
+    }
+    return Size != 0u && Data[0] >= '0' && Data[0] <= '9' &&
+        xr_integer(Data, Size, Result);
+}
+
 static xrstatus xr_line(xrreader* Reader, const char** Data, size_t* Size)
 {
     size_t i;
@@ -249,7 +260,8 @@ static xrstatus xr_parse(xrreader* Reader, unsigned Depth, size_t Following, boo
         Name = Type == '+' ? "simple" : "error";
         if (Build) Payload = xr_blob(Line, LineSize);
     } else {
-        if (!xr_integer(Line, LineSize, &Number)) return XR_INVALID;
+        if (!(Type == ':' ? xr_integer(Line, LineSize, &Number) :
+              xr_length(Line, LineSize, &Number))) return XR_INVALID;
         if (Type == ':') {
             Name = "integer";
             if (Build) Payload = xrtValueInt(Number);
@@ -469,8 +481,9 @@ bool xr_frame_check(void* Handle, void* Data, size_t Size)
             if (Frame->Type == '+' || Frame->Type == '-') {
                 xr_frame_finish(Frame);
             } else {
-                if (!xr_integer(Bytes + Frame->LineStart,
-                        End - Frame->LineStart, &Number))
+                if (!(Frame->Type == ':' ?
+                        xr_integer(Bytes + Frame->LineStart, End - Frame->LineStart, &Number) :
+                        xr_length(Bytes + Frame->LineStart, End - Frame->LineStart, &Number)))
                     return xr_frame_invalid(Frame);
                 if (Frame->Type == ':') {
                     xr_frame_finish(Frame);

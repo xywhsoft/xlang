@@ -1,0 +1,30 @@
+import redis
+
+func main(...) as int
+    // 整数的符号合法；长度字段不是整数值，不能复用有符号语法。
+    assert redis.decode(":+7\r\n")["value"]["value"] == 7
+    assert redis.decode(":-7\r\n")["value"]["value"] == -7
+    println("integer signs: true")
+    assert redis.decode("$00\r\n\r\n")["value"]["value"] == ""
+    assert redis.decode("$-1\r\n")["value"]["value"] == null
+    assert redis.decode("*-1\r\n")["value"]["value"] == null
+    println("empty and null: true")
+
+    int rejected = 0
+    for header in ["$+1\r\n", "*+1\r\n", "$-0\r\n", "*-0\r\n",
+        "$-01\r\n", "*-01\r\n", "$-001\r\n", "*1\r\n$-01\r\n"]
+        try
+            redis.isComplete(header)
+        catch ValueError error
+            assert error.message == "RESP reply is malformed"
+            rejected += 1
+        end
+        // 不完整与畸形严格区分；失败不会污染下一次独立解码。
+        assert not redis.isComplete("$1\r\n")
+        assert redis.decode("+OK\r\n")["value"]["value"] == "OK"
+    end
+    assert rejected == 8
+    println("invalid lengths: 8")
+    println("recovery: true")
+    return 0
+end
