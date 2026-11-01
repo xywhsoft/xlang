@@ -27,7 +27,7 @@
     "links": [],
     "loadlibs": [],
     "dependencies": [],
-    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/named_type.xl", "test/allocations.xl", "test/resource_limits.xl", "examples/bounded_credentials.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/named_type.xl", "test/allocations.xl", "test/resource_limits.xl", "test/quoted_tokens.xl", "examples/bounded_credentials.xl", "examples/escaped_credentials.xl"] },
     "native": {
         "singleton": false,
         "loadName": "",

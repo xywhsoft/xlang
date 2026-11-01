@@ -32,6 +32,8 @@ function InputPaths {
 }
 foreach ($path in @(InputPaths | Sort-Object -Unique)) { $hashes[$path]=(Get-FileHash -LiteralPath $path).Hash }
 function Run([string]$name,[string]$program,[string[]]$arguments,[int]$seconds=120,[string]$directory=$root) {
+    # 条件分支的空输出是null参数表，不是向被测程序传入一个空路径。
+    if ($null -eq $arguments) { $arguments=@() }
     $result=Invoke-ExtlibSmokeProcess $program $arguments $directory $seconds $environment
     $checks.Add([ordered]@{name=$name;program=$program;arguments=$arguments;directory=$directory;result=$result})
     if ($result.status -ne 'pass') { throw "${name}: $($result.status) exit=$($result.exitCode)`n$($result.stderr)`n$($result.stdout)" }
@@ -41,6 +43,8 @@ function Run([string]$name,[string]$program,[string[]]$arguments,[int]$seconds=1
 Push-Location $root
 try {
     $null=Run 'compiler version' $gcc @('--version')
+    $cc1=Run 'compiler frontend' $gcc @('-print-prog-name=cc1')
+    $hashes[$cc1]=(Get-FileHash -LiteralPath $cc1).Hash
     $null=Run 'Python version' $python @('--version')
     $null=Run 'public header' $gcc ($flags+@('-x','c','-fsyntax-only','release/extlibs/netrc/include/xrt_netrc.h'))
     $manifest=Get-Content -LiteralPath (Join-Path $pkg 'xlang.package.json') -Raw|ConvertFrom-Json
@@ -53,21 +57,27 @@ try {
     $runtime=Join-Path $work 'runtime.o'
     $null=Run 'XRT compile' $gcc ($flags+@('-c','release/extlibs/netrc/test/xrt_runtime.c','-o',$runtime)) 180
     $expectedChecks=@{resource_limits_c='netrc resource budgets: 285 checks, 0 failures';
-        stream_errors_c='netrc stream first cause: 126 checks, 0 failures'}
-    foreach ($name in @('test_netrc','test_netrc_boundaries','test_native_tls','resource_limits_c','stream_errors_c')) {
+        stream_errors_c='netrc stream first cause: 126 checks, 0 failures';
+        quoted_tokens_c='netrc quoted tokens: 396 vectors, 37 allocation faults, 0 failures'}
+    $corpus=Join-Path $work 'quoted_corpus'
+    [void][IO.Directory]::CreateDirectory($corpus)
+    foreach ($name in @('test_netrc','test_netrc_boundaries','test_native_tls','resource_limits_c','stream_errors_c','quoted_tokens_c')) {
         $source="release/extlibs/netrc/test/$name.c"
         $binary=Join-Path $work ($name+'.exe')
         $null=Run "$name compile" $gcc ($flags+@($source,$runtime)+$links+@('-o',$binary))
-        $output=Run $name $binary @() 120 $work
+        $arguments=if ($name -eq 'quoted_tokens_c') { @($corpus) } else { @() }
+        $output=Run $name $binary $arguments 120 $work
         if ($expectedChecks.ContainsKey($name) -and $output -cne $expectedChecks[$name]) { throw 'Incomplete netrc regression checks' }
     }
-    foreach ($name in @('resource_limits_c','stream_errors_c')) {
+    $null=Run 'independent quoted bytes and Python values' $python @('-B','release/extlibs/netrc/test/quoted_oracle.py',$corpus)
+    foreach ($name in @('resource_limits_c','stream_errors_c','quoted_tokens_c')) {
         $source="release/extlibs/netrc/test/$name.c"
         $output=Run "$name direct C" $xl @('run',$source)
         if ($output -cne $expectedChecks[$name]) { throw 'TCC regression output differs' }
     }
     $examples=@(@('release/extlibs/netrc/examples/basic.c','release/examples/extlibs/netrc.xl','basic'),
-        @('release/extlibs/netrc/examples/bounded_credentials_c.c','release/extlibs/netrc/examples/bounded_credentials.xl','bounded_credentials'))
+        @('release/extlibs/netrc/examples/bounded_credentials_c.c','release/extlibs/netrc/examples/bounded_credentials.xl','bounded_credentials'),
+        @('release/extlibs/netrc/examples/escaped_credentials_c.c','release/extlibs/netrc/examples/escaped_credentials.xl','escaped_credentials'))
     $goldens=@{}
     foreach ($pair in $examples) {
         $expected=Normalize ([IO.File]::ReadAllText((Join-Path $pkg ("examples/$($pair[2]).expected.txt"))))
@@ -106,18 +116,25 @@ try {
     [IO.File]::WriteAllText($abi,"#include `"netrc_native.c`"`n"+($decls -join "`n"),$utf8)
     $null=Run 'nine actual prototypes' $gcc ($flags+@('-fsyntax-only',$abi))
     $languageSources=@('test/cases/extlib_netrc.xl','release/extlibs/netrc/test/boundaries.xl',
-        'release/extlibs/netrc/test/resource_limits.xl','release/extlibs/netrc/test/allocations.xl',$owned)
+        'release/extlibs/netrc/test/resource_limits.xl','release/extlibs/netrc/test/allocations.xl',
+        'release/extlibs/netrc/test/quoted_tokens.xl',$owned)
     foreach ($source in $languageSources) { $null=Run "$source JIT" $xl @('run',$source) }
+    if ((Run 'quoted corpus complete JIT' $xl @('run','release/extlibs/netrc/test/quoted_tokens.xl','--',$corpus)) -cne
+        "netrc quoted memory: PASS`nnetrc quoted corpus: 396 files PASS") { throw 'Incomplete quoted language corpus' }
     if (-not $SkipAot) {
-        $sources=@('release/extlibs/netrc/test/resource_limits_c.c','release/extlibs/netrc/test/stream_errors_c.c',$central)+$languageSources
+        $sources=@('release/extlibs/netrc/test/resource_limits_c.c','release/extlibs/netrc/test/stream_errors_c.c',
+            'release/extlibs/netrc/test/quoted_tokens_c.c',$central)+$languageSources
         foreach ($pair in $examples) { $sources+=@($pair[0],$pair[1]) }
         foreach ($source in $sources) {
             $binary=Join-Path $work (([guid]::NewGuid().ToString('N'))+'.exe')
             $null=Run "$source build" $xl @('build',$source,'-o',$binary)
-            $output=Run "$source AOT" $binary @()
+            $arguments=if ($source -eq 'release/extlibs/netrc/test/quoted_tokens.xl') { @($corpus) } else { @() }
+            $output=Run "$source AOT" $binary $arguments
             $name=[IO.Path]::GetFileNameWithoutExtension($source)
             if ($goldens.ContainsKey($source) -and $output -cne $goldens[$source]) { throw 'AOT golden differs' }
             if ($expectedChecks.ContainsKey($name) -and $output -cne $expectedChecks[$name]) { throw 'AOT regressions incomplete' }
+            if ($source -eq 'release/extlibs/netrc/test/quoted_tokens.xl' -and $output -cne
+                "netrc quoted memory: PASS`nnetrc quoted corpus: 396 files PASS") { throw 'Incomplete AOT quoted corpus' }
         }
     }
     # M1 是必过正例，留在最后便于收集不依赖语言字典构造的完整验证。

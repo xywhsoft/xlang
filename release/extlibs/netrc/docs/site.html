@@ -49,6 +49,9 @@ println(auth["login"])</code></pre>
   </section>
   <section id="verify">
     <h2>验证与边界</h2>
+    <p>引号字段按连续片段追加到 XRT Buffer，引号和反斜杠一次写入一对转义字节；无新增文本中转，原编码、输出限额与公开 ABI 不变。新增396个字段/长度组合、逐点 OOM、完整语言语料和双语 <code>escaped_credentials</code> 范例，默认不写文件、不输出密码。</p>
+    <p>396份编码均有独立字节参照；当前 Python 标准解析器对引号宏名的换行有独立限制，因此仅345份计作完整 Python 值互通，另外51份仍通过本包C/XLang往返而不冒称外部互通。详见 README，未削减本包既定语法。</p>
+    <p>2026-11-02：Windows84/Linux83阶段完成可运行前置、Linux含C sanitizer、各16份普通独立程序及新396文件语言语料通过。默认门禁最后仍因原语言字典直接构造 <code>Netrc</code> 的 M1 失败，独立复现也失败，不以新解析文本范例替代整包验收。局部计时与代码尺寸代价见README，不承诺普遍提速。</p>
     <p>资源预算在解析和写出两侧生效：主机、宏定义、非 null 凭据字段与宏行分别计节点；条目只计主机、宏定义和宏行。单项按 UTF-8 字节计，宏行超限报告 <code>LIMIT</code>，非法 UTF-8 报告 <code>UTF8</code>，不会误报内存不足或字段类型错误。关闭、删除的后续错误不会覆盖正文首因。新增 C285 项资源边界、126 项复合 I/O 故障，以及语言限额用例；这些定向检查不替代完整包验收。</p>
     <p><code>examples/bounded_credentials.xl</code> 与 <code>bounded_credentials_c.c</code> 使用同一组有限预算，展示主机/default 选择、宏与凭据往返、超限恢复，输出与共同黄金文件一致；不打印密码、不读取真实凭据。门禁要求 GCC、Python 3 和对应平台发布物，记录输入指纹与完整输出，失败现场保留。</p>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/netrc/test/check.ps1

@@ -1,0 +1,2883 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-02T03:00:42.2990696+08:00",
+  "package": "netrc",
+  "maturity": "M",
+  "status": "quoted-token-batching-verified-literal-M1-and-release-binding-open",
+  "sourceParent": "d8d0f8a3f236a2c7c835b0e2105af81c1aec905d",
+  "integrationParent": "d8d0f8a3f236a2c7c835b0e2105af81c1aec905d",
+  "objectiveScope": {
+    "states": {
+      "X": 4,
+      "M": 56,
+      "G": 30,
+      "R": 10
+    },
+    "goalComplete": false,
+    "ordinaryPackages": 100
+  },
+  "changes": {
+    "remainingCosts": [
+      "validation scans",
+      "necessary output bytes",
+      "same-document mutation synchronization"
+    ],
+    "quoteGrammarAndResourceContractUnchanged": true,
+    "newHeapTemporaryStrings": false,
+    "body": "Append contiguous quoted spans through existing bounded XRT Buffer helper; emit each escape as one two-byte pair",
+    "unquotedPathUnchanged": true,
+    "newDocumentCopies": false,
+    "kind": "Optimization, not correction of old valid output semantics",
+    "netProductionLines": 5,
+    "compilerRuntimeXrtTccIdeNotModified": true,
+    "publicABIUnchanged": true
+  },
+  "production": {
+    "old": {
+      "path": "build/test/netrc_quoted_20261102/before_writer.c",
+      "bytes": 14691,
+      "sha256": "20e3b1c2cf1e591ede72bf5032a54aee6771e45d879ea624d6c42f56768b7548"
+    },
+    "current": {
+      "path": "release/extlibs/netrc/xrt_netrc_writer.c",
+      "bytes": 14991,
+      "sha256": "c5a8ca58339a3acc38886e16c79b76277cbdfece9a714b2b401d64ec6160ab8d"
+    }
+  },
+  "regression": {
+    "currentWindows": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "netrc quoted tokens: 396 vectors, 37 allocation faults, 0 failures\r\n",
+      "stderr": "",
+      "elapsedMs": 155
+    },
+    "fields": [
+      "host",
+      "login",
+      "account",
+      "password",
+      "macro name"
+    ],
+    "xlang": {
+      "path": "release/extlibs/netrc/test/quoted_tokens.xl",
+      "bytes": 1820,
+      "sha256": "59b743658b13ef62bf20310d717a48a78f989e5fcfa3a9d5a66829bb796376b8"
+    },
+    "c": {
+      "path": "release/extlibs/netrc/test/quoted_tokens_c.c",
+      "bytes": 8478,
+      "sha256": "20f4e7fafa6879af5000d39e885d8438e033a68df46da2487b1223732520035b"
+    },
+    "allocationFaultsBefore": 56,
+    "faultScenarios": 9,
+    "memoryFieldsChecked": 7,
+    "encodedOutputLimitDeltas": [
+      -1,
+      0,
+      1
+    ],
+    "oldWindows": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "netrc quoted tokens: 396 vectors, 56 allocation faults, 0 failures\r\n",
+      "stderr": "",
+      "elapsedMs": 112
+    },
+    "allocationFaultsAfter": 37,
+    "repeats": [
+      0,
+      1,
+      31,
+      127,
+      128,
+      129,
+      1024
+    ],
+    "immediateRecoveryAndCanonicalRoundtrip": true,
+    "vectors": 396,
+    "patterns": 12,
+    "oldNewLinuxBytes": {
+      "files": 396,
+      "different": []
+    },
+    "oldNewWindowsBytes": {
+      "corpusFiles": 396,
+      "different": []
+    }
+  },
+  "independentOracle": {
+    "limitation": "Python quoted macdef name leaves closing newline in stream; following echo becomes a top-level token",
+    "notCountedAsPythonValueInterop": true,
+    "linuxOldStdout": "netrc independent quoted bytes: 396 files PASS; Python values: 345; quoted-macro parser limit: 51\n",
+    "onlyAllowedException": "Quoted macro name, NetrcParseError.msg exactly bad toplevel token 'echo'",
+    "linuxStdlibSource": {
+      "path": "/usr/lib/python3.14/netrc.py",
+      "version": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+      "sha256": "3ddc67d7599759d745525af7e00ef1bf2d6bb958129698169b7548f17b81cbe8"
+    },
+    "windowsStdlibSource": {
+      "recordedAfterTests": true,
+      "sha256": "55ece174054d22e0f71aed62ee01be43dfafbea62171e3b8f3559e5984a506ad",
+      "path": "C:/Program Files/Python312/Lib/netrc.py"
+    },
+    "ownCAndXlangQuotedMacroContractRetained": true,
+    "pythonValueCases": 345,
+    "exactByteCases": 396,
+    "source": {
+      "path": "release/extlibs/netrc/test/quoted_oracle.py",
+      "bytes": 2962,
+      "sha256": "e955d0c012a80e2b248c5cf60a1460e80498a9934411d80930fedd3d9fa76e8d"
+    },
+    "windows": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "netrc independent quoted bytes: 396 files PASS; Python values: 345; quoted-macro parser limit: 51\r\n",
+      "stderr": "",
+      "elapsedMs": 241
+    },
+    "quotedMacroParserLimitCases": 51
+  },
+  "windows": {
+    "checks": [
+      {
+        "name": "compiler version",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "--version"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "stderr": "",
+          "elapsedMs": 37
+        }
+      },
+      {
+        "name": "compiler frontend",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-print-prog-name=cc1"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe\r\n",
+          "stderr": "",
+          "elapsedMs": 24
+        }
+      },
+      {
+        "name": "Python version",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "--version"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "Python 3.12.10\r\n",
+          "stderr": "",
+          "elapsedMs": 25
+        }
+      },
+      {
+        "name": "public header",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/netrc",
+          "-x",
+          "c",
+          "-fsyntax-only",
+          "release/extlibs/netrc/include/xrt_netrc.h"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 116
+        }
+      },
+      {
+        "name": "manifest syntax xrt_netrc_common.c",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/netrc",
+          "-DXRT_MODULE_BUFFER",
+          "-DXRT_MODULE_FILE_WHOLE",
+          "-DXRT_MODULE_IO_BUFFER",
+          "-DXRT_MODULE_IO_FILE",
+          "-DXRT_MODULE_ONCE",
+          "-DXRT_MODULE_THREAD_KEY",
+          "-DXRT_MODULE_UNICODE",
+          "-DXRT_MODULE_VALUE_CONTAINER",
+          "-fsyntax-only",
+          "release/extlibs/netrc/xrt_netrc_common.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 183
+        }
+      },
+      {
+        "name": "manifest syntax xrt_netrc_parser.c",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/netrc",
+          "-DXRT_MODULE_BUFFER",
+          "-DXRT_MODULE_FILE_WHOLE",
+          "-DXRT_MODULE_IO_BUFFER",
+          "-DXRT_MODULE_IO_FILE",
+          "-DXRT_MODULE_ONCE",
+          "-DXRT_MODULE_THREAD_KEY",
+          "-DXRT_MODULE_UNICODE",
+          "-DXRT_MODULE_VALUE_CONTAINER",
+          "-fsyntax-only",
+          "release/extlibs/netrc/xrt_netrc_parser.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 185
+        }
+      },
+      {
+        "name": "manifest syntax xrt_netrc_writer.c",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/netrc",
+          "-DXRT_MODULE_BUFFER",
+          "-DXRT_MODULE_FILE_WHOLE",
+          "-DXRT_MODULE_IO_BUFFER",
+          "-DXRT_MODULE_IO_FILE",
+          "-DXRT_MODULE_ONCE",
+          "-DXRT_MODULE_THREAD_KEY",
+          "-DXRT_MODULE_UNICODE",
+          "-DXRT_MODULE_VALUE_CONTAINER",
+          "-fsyntax-only",
+          "release/extlibs/netrc/xrt_netrc_writer.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 204
+        }
+      },
+      {
+        "name": "manifest syntax netrc_native.c",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/netrc",
+          "-DXRT_MODULE_BUFFER",
+          "-DXRT_MODULE_FILE_WHOLE",
+          "-DXRT_MODULE_IO_BUFFER",
+          "-DXRT_MODULE_IO_FILE",
+          "-DXRT_MODULE_ONCE",
+          "-DXRT_MODULE_THREAD_KEY",
+          "-DXRT_MODULE_UNICODE",
+          "-DXRT_MODULE_VALUE_CONTAINER",
+          "-fsyntax-only",
+          "release/extlibs/netrc/netrc_native.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 201
+        }
+      },
+      {
+        "name": "XRT compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/netrc",
+          "-c",
+          "release/extlibs/netrc/test/xrt_runtime.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\runtime.o"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 67670
+        }
+      },
+      {
+        "name": "test_netrc compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/netrc",
+          "release/extlibs/netrc/test/test_netrc.c",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\test_netrc.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 766
+        }
+      },
+      {
+        "name": "test_netrc",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\test_netrc.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "test_netrc: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 30
+        }
+      },
+      {
+        "name": "test_netrc_boundaries compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/netrc",
+          "release/extlibs/netrc/test/test_netrc_boundaries.c",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\test_netrc_boundaries.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1016
+        }
+      },
+      {
+        "name": "test_netrc_boundaries",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\test_netrc_boundaries.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "test_netrc_boundaries: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 67
+        }
+      },
+      {
+        "name": "test_native_tls compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/netrc",
+          "release/extlibs/netrc/test/test_native_tls.c",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\test_native_tls.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 879
+        }
+      },
+      {
+        "name": "test_native_tls",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\test_native_tls.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "test_native_tls: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 32
+        }
+      },
+      {
+        "name": "resource_limits_c compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/netrc",
+          "release/extlibs/netrc/test/resource_limits_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\resource_limits_c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 752
+        }
+      },
+      {
+        "name": "resource_limits_c",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\resource_limits_c.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc resource budgets: 285 checks, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 32
+        }
+      },
+      {
+        "name": "stream_errors_c compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/netrc",
+          "release/extlibs/netrc/test/stream_errors_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\stream_errors_c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 790
+        }
+      },
+      {
+        "name": "stream_errors_c",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\stream_errors_c.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc stream first cause: 126 checks, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 32
+        }
+      },
+      {
+        "name": "quoted_tokens_c compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/netrc",
+          "release/extlibs/netrc/test/quoted_tokens_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\quoted_tokens_c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 836
+        }
+      },
+      {
+        "name": "quoted_tokens_c",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\quoted_tokens_c.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\quoted_corpus"
+        ],
+        "directory": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted tokens: 396 vectors, 37 allocation faults, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 157
+        }
+      },
+      {
+        "name": "independent quoted bytes and Python values",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "release/extlibs/netrc/test/quoted_oracle.py",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\quoted_corpus"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc independent quoted bytes: 396 files PASS; Python values: 345; quoted-macro parser limit: 51\r\n",
+          "stderr": "",
+          "elapsedMs": 243
+        }
+      },
+      {
+        "name": "resource_limits_c direct C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/netrc/test/resource_limits_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc resource budgets: 285 checks, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 86
+        }
+      },
+      {
+        "name": "stream_errors_c direct C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/netrc/test/stream_errors_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc stream first cause: 126 checks, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 81
+        }
+      },
+      {
+        "name": "quoted_tokens_c direct C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/netrc/test/quoted_tokens_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted tokens: 396 vectors, 37 allocation faults, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 133
+        }
+      },
+      {
+        "name": "basic C compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/netrc",
+          "release/extlibs/netrc/examples/basic.c",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\basic_c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 822
+        }
+      },
+      {
+        "name": "basic C",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\basic_c.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc: alice@api.example.com\r\nnetrc fallback: guest\r\nnetrc entries: 2 hosts, 1 macro\r\nnetrc syntax: code=2 line=1 column=17 offset=16\r\n",
+          "stderr": "",
+          "elapsedMs": 29
+        }
+      },
+      {
+        "name": "basic direct C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/netrc/examples/basic.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc: alice@api.example.com\r\nnetrc fallback: guest\r\nnetrc entries: 2 hosts, 1 macro\r\nnetrc syntax: code=2 line=1 column=17 offset=16\r\n",
+          "stderr": "",
+          "elapsedMs": 93
+        }
+      },
+      {
+        "name": "basic XLang",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/examples/extlibs/netrc.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc: alice@api.example.com\nnetrc fallback: guest\nnetrc entries: 2 hosts, 1 macro\nnetrc syntax: code=2 line=1 column=17 offset=16\n",
+          "stderr": "",
+          "elapsedMs": 589
+        }
+      },
+      {
+        "name": "bounded_credentials C compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/netrc",
+          "release/extlibs/netrc/examples/bounded_credentials_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\bounded_credentials_c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 690
+        }
+      },
+      {
+        "name": "bounded_credentials C",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\bounded_credentials_c.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "hosts: 2\r\nmacros: 1\r\nselected login: build\r\nfallback login: guest\r\nbounded roundtrip: true\r\nmacro limit: true\r\nsource unchanged: true\r\n",
+          "stderr": "",
+          "elapsedMs": 30
+        }
+      },
+      {
+        "name": "bounded_credentials direct C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/netrc/examples/bounded_credentials_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "hosts: 2\r\nmacros: 1\r\nselected login: build\r\nfallback login: guest\r\nbounded roundtrip: true\r\nmacro limit: true\r\nsource unchanged: true\r\n",
+          "stderr": "",
+          "elapsedMs": 91
+        }
+      },
+      {
+        "name": "bounded_credentials XLang",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/netrc/examples/bounded_credentials.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "hosts: 2\nmacros: 1\nselected login: build\nfallback login: guest\nbounded roundtrip: true\nmacro limit: true\nsource unchanged: true\n",
+          "stderr": "",
+          "elapsedMs": 409
+        }
+      },
+      {
+        "name": "escaped_credentials C compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/netrc",
+          "release/extlibs/netrc/examples/escaped_credentials_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\escaped_credentials_c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 673
+        }
+      },
+      {
+        "name": "escaped_credentials C",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\escaped_credentials_c.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "quoted host: true\r\nquoted account: true\r\npassword roundtrip: true\r\nquoted macro: true\r\noutput limit: true\r\n",
+          "stderr": "",
+          "elapsedMs": 31
+        }
+      },
+      {
+        "name": "escaped_credentials direct C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/netrc/examples/escaped_credentials_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "quoted host: true\r\nquoted account: true\r\npassword roundtrip: true\r\nquoted macro: true\r\noutput limit: true\r\n",
+          "stderr": "",
+          "elapsedMs": 83
+        }
+      },
+      {
+        "name": "escaped_credentials XLang",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/netrc/examples/escaped_credentials.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "quoted host: true\nquoted account: true\npassword roundtrip: true\nquoted macro: true\noutput limit: true\n",
+          "stderr": "",
+          "elapsedMs": 400
+        }
+      },
+      {
+        "name": "central C example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/examples/extlibs/netrc_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc: alice@api.example.com\r\nnetrc fallback: guest\r\nnetrc entries: 2 hosts, 1 macro\r\nnetrc syntax: code=2 line=1 column=17 offset=16\r\n",
+          "stderr": "",
+          "elapsedMs": 107
+        }
+      },
+      {
+        "name": "C file example",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\basic_c.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\c.netrc"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc: alice@api.example.com\r\nnetrc fallback: guest\r\nnetrc entries: 2 hosts, 1 macro\r\nnetrc syntax: code=2 line=1 column=17 offset=16\r\n",
+          "stderr": "",
+          "elapsedMs": 27
+        }
+      },
+      {
+        "name": "XLang UTF-8 file example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/examples/extlibs/netrc.xl",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\凭据.netrc"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc: alice@api.example.com\nnetrc fallback: guest\nnetrc entries: 2 hosts, 1 macro\nnetrc syntax: code=2 line=1 column=17 offset=16\n",
+          "stderr": "",
+          "elapsedMs": 782
+        }
+      },
+      {
+        "name": "Python netrc interop",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "release/extlibs/netrc/test/interop.py",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\c.netrc",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\凭据.netrc"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc Python/C/XLang file interop: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 70
+        }
+      },
+      {
+        "name": "owned text JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/netrc/test/owned_text.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 420
+        }
+      },
+      {
+        "name": "complete API cgen",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "release/examples/extlibs/netrc.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\probe.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 319
+        }
+      },
+      {
+        "name": "nine actual prototypes",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/netrc",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\abi.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 239
+        }
+      },
+      {
+        "name": "test/cases/extlib_netrc.xl JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "test/cases/extlib_netrc.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 511
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/boundaries.xl JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/netrc/test/boundaries.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1379
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/resource_limits.xl JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/netrc/test/resource_limits.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc resource budgets: PASS\n",
+          "stderr": "",
+          "elapsedMs": 457
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/allocations.xl JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/netrc/test/allocations.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc allocations: PASS\n",
+          "stderr": "",
+          "elapsedMs": 511
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/quoted_tokens.xl JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/netrc/test/quoted_tokens.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted memory: PASS\n",
+          "stderr": "",
+          "elapsedMs": 622
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/owned_text.xl JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/netrc/test/owned_text.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 446
+        }
+      },
+      {
+        "name": "quoted corpus complete JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/netrc/test/quoted_tokens.xl",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\quoted_corpus"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted memory: PASS\nnetrc quoted corpus: 396 files PASS\n",
+          "stderr": "",
+          "elapsedMs": 716
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/resource_limits_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/netrc/test/resource_limits_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\12eacb575182427996f6b0e5304e9b76.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 151
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/resource_limits_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\12eacb575182427996f6b0e5304e9b76.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc resource budgets: 285 checks, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 35
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/stream_errors_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/netrc/test/stream_errors_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\b1847cc07d754e4d9913cd6605e82815.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 144
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/stream_errors_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\b1847cc07d754e4d9913cd6605e82815.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc stream first cause: 126 checks, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 35
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/quoted_tokens_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/netrc/test/quoted_tokens_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\1f180c4e55d24b9f9907ccb66581e6ac.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 148
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/quoted_tokens_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\1f180c4e55d24b9f9907ccb66581e6ac.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted tokens: 396 vectors, 37 allocation faults, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 173
+        }
+      },
+      {
+        "name": "release/examples/extlibs/netrc_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/examples/extlibs/netrc_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\7a5436226206474f957017a46e2cfbb5.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 173
+        }
+      },
+      {
+        "name": "release/examples/extlibs/netrc_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\7a5436226206474f957017a46e2cfbb5.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc: alice@api.example.com\r\nnetrc fallback: guest\r\nnetrc entries: 2 hosts, 1 macro\r\nnetrc syntax: code=2 line=1 column=17 offset=16\r\n",
+          "stderr": "",
+          "elapsedMs": 38
+        }
+      },
+      {
+        "name": "test/cases/extlib_netrc.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "test/cases/extlib_netrc.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\46f648ccb956441794ef04005de9f1c3.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 712
+        }
+      },
+      {
+        "name": "test/cases/extlib_netrc.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\46f648ccb956441794ef04005de9f1c3.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 33
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/boundaries.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/netrc/test/boundaries.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\ebf03227ee0b40b2b140ec924e6a93c0.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1390
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/boundaries.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\ebf03227ee0b40b2b140ec924e6a93c0.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1207
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/resource_limits.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/netrc/test/resource_limits.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\462e3aadf6cc4dbd9272d761e05fc6c3.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 627
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/resource_limits.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\462e3aadf6cc4dbd9272d761e05fc6c3.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc resource budgets: PASS\n",
+          "stderr": "",
+          "elapsedMs": 29
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/allocations.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/netrc/test/allocations.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\ded04a863af84cfd9b8f209d61a9172e.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 572
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/allocations.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\ded04a863af84cfd9b8f209d61a9172e.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc allocations: PASS\n",
+          "stderr": "",
+          "elapsedMs": 36
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/quoted_tokens.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/netrc/test/quoted_tokens.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\42c838ce39ec4e4db2f7619c0eea98d5.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 716
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/quoted_tokens.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\42c838ce39ec4e4db2f7619c0eea98d5.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\quoted_corpus"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted memory: PASS\nnetrc quoted corpus: 396 files PASS\n",
+          "stderr": "",
+          "elapsedMs": 201
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/owned_text.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/netrc/test/owned_text.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\a6b420e7e8d842b585fde803aa618594.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 538
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/test/owned_text.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\a6b420e7e8d842b585fde803aa618594.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/examples/basic.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/netrc/examples/basic.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\4cc2e8078a8b4f54bd9aa453c332d8cb.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 164
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/examples/basic.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\4cc2e8078a8b4f54bd9aa453c332d8cb.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc: alice@api.example.com\r\nnetrc fallback: guest\r\nnetrc entries: 2 hosts, 1 macro\r\nnetrc syntax: code=2 line=1 column=17 offset=16\r\n",
+          "stderr": "",
+          "elapsedMs": 30
+        }
+      },
+      {
+        "name": "release/examples/extlibs/netrc.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/examples/extlibs/netrc.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\b3f981e4cc4949ce991d084ee0342fef.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 987
+        }
+      },
+      {
+        "name": "release/examples/extlibs/netrc.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\b3f981e4cc4949ce991d084ee0342fef.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc: alice@api.example.com\nnetrc fallback: guest\nnetrc entries: 2 hosts, 1 macro\nnetrc syntax: code=2 line=1 column=17 offset=16\n",
+          "stderr": "",
+          "elapsedMs": 34
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/examples/bounded_credentials_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/netrc/examples/bounded_credentials_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\9137facf0bbb4e8cb4d68b05724ce8db.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 158
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/examples/bounded_credentials_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\9137facf0bbb4e8cb4d68b05724ce8db.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "hosts: 2\r\nmacros: 1\r\nselected login: build\r\nfallback login: guest\r\nbounded roundtrip: true\r\nmacro limit: true\r\nsource unchanged: true\r\n",
+          "stderr": "",
+          "elapsedMs": 34
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/examples/bounded_credentials.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/netrc/examples/bounded_credentials.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\7aaaefec3f734d4e89a73b7a66f24616.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 692
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/examples/bounded_credentials.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\7aaaefec3f734d4e89a73b7a66f24616.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "hosts: 2\nmacros: 1\nselected login: build\nfallback login: guest\nbounded roundtrip: true\nmacro limit: true\nsource unchanged: true\n",
+          "stderr": "",
+          "elapsedMs": 38
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/examples/escaped_credentials_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/netrc/examples/escaped_credentials_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\779aa4db23534c819246dcb7b5d3dff0.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 153
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/examples/escaped_credentials_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\779aa4db23534c819246dcb7b5d3dff0.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "quoted host: true\r\nquoted account: true\r\npassword roundtrip: true\r\nquoted macro: true\r\noutput limit: true\r\n",
+          "stderr": "",
+          "elapsedMs": 31
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/examples/escaped_credentials.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/netrc/examples/escaped_credentials.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\51ba54eae9df4f779627b627831eb183.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 663
+        }
+      },
+      {
+        "name": "release/extlibs/netrc/examples/escaped_credentials.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb\\51ba54eae9df4f779627b627831eb183.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "quoted host: true\nquoted account: true\npassword roundtrip: true\nquoted macro: true\noutput limit: true\n",
+          "stderr": "",
+          "elapsedMs": 46
+        }
+      },
+      {
+        "name": "named type complete JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/netrc/test/named_type.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: ConfigError: netrc document must be a dict\nuncaught xlang error: netrc document must be a dict\n",
+          "elapsedMs": 427
+        }
+      }
+    ],
+    "outcome": "failed",
+    "rawReport": {
+      "path": "build/test/netrc_guard/run_8242bd670f5a4498a5b1ae39f1677cbb.json",
+      "bytes": 98819,
+      "sha256": "14c8abf1e13a635a76303bfa6aa3f44fac4ef662fb59537e46807590232d37d7"
+    },
+    "stages": 84,
+    "inputs": {
+      "C:\\Program Files\\Python312\\python.exe": "4D6F5F81A4BCA11191C4C7C6B43632694D0A4CE74E068619D8FDC161D469859A",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\netrc.xl": "A80E62CC41921FB82F9E09E4EA00544F771D568DB905E43CC019244D82B7782E",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\netrc_c.c": "55C43BED4839D01098F5AB975ED3DC80AFDFF0849759AE2B4E4203590C534779",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\docs\\site.html": "D58B118F036A7A03E4DB250FB07B3CE2D7F628E8E0986E8F36DC27ABD75CA87C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\examples\\basic.c": "F2A8FB85557F9F8C248F18EF77EF8B97DD0BDBF1C20F866AADA7FC437AAE4710",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\examples\\basic.expected.txt": "67C3EE281F4A8601E6EC84F51C0F56BAC55CFF78855DEBBF95A05C1CDD72BB81",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\examples\\bounded_credentials.expected.txt": "41FF65A2A4BB40ECB092FC0C271AFF8EF4E6344B79FEF9F56A75BB23F594E140",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\examples\\bounded_credentials.xl": "23663E5E946CBF19D7CF585C105EAF0B5B6066177AEED202A6E25FF61EDBF306",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\examples\\bounded_credentials_c.c": "0D35A89AE128A718F0A49F20DA69C69F9CE8DC8DDD354903D5141A5B2ECBEB61",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\examples\\escaped_credentials.expected.txt": "69E22D1C0F3DA5775351F4A6A9F86F29CA8A052B4B6E341759E6C646456112DF",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\examples\\escaped_credentials.xl": "A7805B7DA6EF7310275E078ABC074690EAD21C09EB1FF7A29EB97F1FE44DD356",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\examples\\escaped_credentials_c.c": "8763B5BD165C485D7A3F1DD00B6777EF74FE0A01303F688B392A6C98C64391E8",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\include\\xrt_netrc.h": "32AB77055A4B8CEB895DEF37686DC71AEB9F383877F4A0425A0BC908931B222F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\netrc_native.c": "CD1A7CD736E37A7D12F5F89292680CA231F657FEFD401EF39D93744C697DF6D7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\README.md": "04BA8FED179669F73FFCF9C6F7A03837E452330ECD6D9F1E6676F146786C39CC",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\src\\netrc.xl": "4B3715928DA4305E4DC4F87B9BEFC7C66635C3B412F917567920901695B5B37A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\allocations.xl": "BBA10B82A3772F82469BD54ADB9DB8B16E8F7703466DA6ED44C1F788AE938FA8",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\boundaries.xl": "0FF5D4C67C69EC3F2A8345F48E3CBEC50D7E59B5FEF1831142885A24DB19567A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\check.ps1": "7F47DFD0C5559AE0236C94461149D02FAD7766783A5A22F24059488BD4304AAC",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\check.sh": "AD240A86D821374B8C770EE1AFFF74423F9F3DCB0FED6D936B38DF12562250F1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\interop.py": "4C7340FCAFB6C105DE56793479685EAAC60E8349ED33DD190714DC6B6002FF73",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\named_type.xl": "09163064885A3B110A57A966D92145C16AC2854289DD67EF3330410CA001CB72",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\owned_text.xl": "912AB4AD21D3D447B4144B7CD7A94526D3BBFF072E0F1E2355CA3DE321796541",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\quoted_oracle.py": "E955D0C012A80E2B248C5CF60A1460E80498A9934411D80930FEDD3D9FA76E8D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\quoted_tokens.xl": "59B743658B13EF62BF20310D717A48A78F989E5FCFA3A9D5A66829BB796376B8",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\quoted_tokens_c.c": "20F4E7FAFA6879AF5000D39E885D8438E033A68DF46DA2487B1223732520035B",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\resource_limits.xl": "26E1CBD84F29DEC112AC077A1FB3C63628585DF686716623073DE47C99704E37",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\resource_limits_c.c": "3F533A7820A1BA5D0EE6E159608C64287C6C2BD932E23875B2725BFB8A3A9F3A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\stream_errors_c.c": "26C6DC3A1519209D7A9322CBE80081A20E1C4E57B9D007C300F18DD433748596",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\test_native_tls.c": "171725DF6BBCA522011DE4A9B7478D170A544C27889A0E70B12B25A2F8F54A26",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\test_netrc.c": "A36E1B0418BF6DDD457F787E9B492DCF8DE9F0505265F6B2149B048E5069E264",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\test_netrc_boundaries.c": "BCE5E5F1F073C6F7360E257386C11EF0FBA747435D9F36C92C4950E45D181C4E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\xrt_runtime.c": "30EB3BA380D65C1A0A14AE0A1C160BDF4938301FD2B069A5E4EF8DD51C86E51E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\xlang.package.json": "9FFA8954C570716D57AD3F6112694B4C84AEA02A24FB1CA555B297EA25FF0294",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\xrt_netrc_common.c": "3D05DC84E202B3A2AC474FDE7BBD7B8C9E4014722E78663A43FAC855B96F173E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\xrt_netrc_internal.h": "0C3001329D5CF1ACA19D82E1EC57E30A5E5D325A42990363EAF54A221E7C95BA",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\xrt_netrc_parser.c": "B549969CEE0C6916EC5EE320EB0EECB225422462DA6469585CA518751B31466E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\xrt_netrc_writer.c": "C5A8CA58339A3ACC38886E16C79B76277CBDFECE9A714B2B401D64EC6160AB8D",
+      "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+      "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+      "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+      "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+      "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+      "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+      "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+      "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+      "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+      "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_netrc.xl": "C662945CBF108D699ED709AFD9AAD53030F77EEA0A9D542EC17C5FCC230F434B",
+      "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+      "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012"
+    },
+    "minimalAot": {
+      "build": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 558
+      },
+      "run": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "uncaught xlang error: ConfigError: netrc document must be a dict\n",
+        "elapsedMs": 28
+      }
+    },
+    "failure": "named type complete JIT: fail exit=1\nuncaught xlang error: ConfigError: netrc document must be a dict\nuncaught xlang error: netrc document must be a dict\n\n",
+    "postGateReason": "README and site result descriptions only",
+    "changedDuringGate": [],
+    "requiredNamedJitFailed": true,
+    "inputCount": 63,
+    "postGateChanges": [
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\docs\\site.html",
+      "D:\\GIT\\x-lang\\release\\extlibs\\netrc\\README.md"
+    ],
+    "aotPassed": 16,
+    "parent": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "[netrc] compiler version: PASS\n[netrc] compiler frontend: PASS\n[netrc] Python version: PASS\n[netrc] public header: PASS\n[netrc] manifest syntax xrt_netrc_common.c: PASS\n[netrc] manifest syntax xrt_netrc_parser.c: PASS\n[netrc] manifest syntax xrt_netrc_writer.c: PASS\n[netrc] manifest syntax netrc_native.c: PASS\n[netrc] XRT compile: PASS\n[netrc] test_netrc compile: PASS\n[netrc] test_netrc: PASS\n[netrc] test_netrc_boundaries compile: PASS\n[netrc] test_netrc_boundaries: PASS\n[netrc] test_native_tls compile: PASS\n[netrc] test_native_tls: PASS\n[netrc] resource_limits_c compile: PASS\n[netrc] resource_limits_c: PASS\n[netrc] stream_errors_c compile: PASS\n[netrc] stream_errors_c: PASS\n[netrc] quoted_tokens_c compile: PASS\n[netrc] quoted_tokens_c: PASS\n[netrc] independent quoted bytes and Python values: PASS\n[netrc] resource_limits_c direct C: PASS\n[netrc] stream_errors_c direct C: PASS\n[netrc] quoted_tokens_c direct C: PASS\n[netrc] basic C compile: PASS\n[netrc] basic C: PASS\n[netrc] basic direct C: PASS\n[netrc] basic XLang: PASS\n[netrc] bounded_credentials C compile: PASS\n[netrc] bounded_credentials C: PASS\n[netrc] bounded_credentials direct C: PASS\n[netrc] bounded_credentials XLang: PASS\n[netrc] escaped_credentials C compile: PASS\n[netrc] escaped_credentials C: PASS\n[netrc] escaped_credentials direct C: PASS\n[netrc] escaped_credentials XLang: PASS\n[netrc] central C example: PASS\n[netrc] C file example: PASS\n[netrc] XLang UTF-8 file example: PASS\n[netrc] Python netrc interop: PASS\n[netrc] owned text JIT: PASS\n[netrc] complete API cgen: PASS\n[netrc] nine actual prototypes: PASS\n[netrc] test/cases/extlib_netrc.xl JIT: PASS\n[netrc] release/extlibs/netrc/test/boundaries.xl JIT: PASS\n[netrc] release/extlibs/netrc/test/resource_limits.xl JIT: PASS\n[netrc] release/extlibs/netrc/test/allocations.xl JIT: PASS\n[netrc] release/extlibs/netrc/test/quoted_tokens.xl JIT: PASS\n[netrc] release/extlibs/netrc/test/owned_text.xl JIT: PASS\n[netrc] quoted corpus complete JIT: PASS\n[netrc] release/extlibs/netrc/test/resource_limits_c.c build: PASS\n[netrc] release/extlibs/netrc/test/resource_limits_c.c AOT: PASS\n[netrc] release/extlibs/netrc/test/stream_errors_c.c build: PASS\n[netrc] release/extlibs/netrc/test/stream_errors_c.c AOT: PASS\n[netrc] release/extlibs/netrc/test/quoted_tokens_c.c build: PASS\n[netrc] release/extlibs/netrc/test/quoted_tokens_c.c AOT: PASS\n[netrc] release/examples/extlibs/netrc_c.c build: PASS\n[netrc] release/examples/extlibs/netrc_c.c AOT: PASS\n[netrc] test/cases/extlib_netrc.xl build: PASS\n[netrc] test/cases/extlib_netrc.xl AOT: PASS\n[netrc] release/extlibs/netrc/test/boundaries.xl build: PASS\n[netrc] release/extlibs/netrc/test/boundaries.xl AOT: PASS\n[netrc] release/extlibs/netrc/test/resource_limits.xl build: PASS\n[netrc] release/extlibs/netrc/test/resource_limits.xl AOT: PASS\n[netrc] release/extlibs/netrc/test/allocations.xl build: PASS\n[netrc] release/extlibs/netrc/test/allocations.xl AOT: PASS\n[netrc] release/extlibs/netrc/test/quoted_tokens.xl build: PASS\n[netrc] release/extlibs/netrc/test/quoted_tokens.xl AOT: PASS\n[netrc] release/extlibs/netrc/test/owned_text.xl build: PASS\n[netrc] release/extlibs/netrc/test/owned_text.xl AOT: PASS\n[netrc] release/extlibs/netrc/examples/basic.c build: PASS\n[netrc] release/extlibs/netrc/examples/basic.c AOT: PASS\n[netrc] release/examples/extlibs/netrc.xl build: PASS\n[netrc] release/examples/extlibs/netrc.xl AOT: PASS\n[netrc] release/extlibs/netrc/examples/bounded_credentials_c.c build: PASS\n[netrc] release/extlibs/netrc/examples/bounded_credentials_c.c AOT: PASS\n[netrc] release/extlibs/netrc/examples/bounded_credentials.xl build: PASS\n[netrc] release/extlibs/netrc/examples/bounded_credentials.xl AOT: PASS\n[netrc] release/extlibs/netrc/examples/escaped_credentials_c.c build: PASS\n[netrc] release/extlibs/netrc/examples/escaped_credentials_c.c AOT: PASS\n[netrc] release/extlibs/netrc/examples/escaped_credentials.xl build: PASS\n[netrc] release/extlibs/netrc/examples/escaped_credentials.xl AOT: PASS\n[netrc] report: D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_8242bd670f5a4498a5b1ae39f1677cbb.json\n",
+      "stderr": "named type complete JIT: fail exit=1\r\nuncaught xlang error: ConfigError: netrc document must be a dict\r\nuncaught xlang error: netrc document must be a dict\r\n����λ�� D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\check.ps1:39 �ַ�: 38\r\n+ ... e 'pass') { throw \"${name}: $($result.status) exit=$($result.exitCode ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : OperationStopped: (named type comp...ust be a dict\r\n:String) [], RuntimeException\r\n    + FullyQualifiedErrorId : named type complete JIT: fail exit=1\r\nuncaught xlang error: ConfigError: netrc document must be a dict\r\nuncaught xlang error: netrc document must be a dict\r\n \r\n",
+      "elapsedMs": 96907
+    }
+  },
+  "linux": {
+    "oldCStderr": null,
+    "oldCStdout": "netrc quoted tokens: 396 vectors, 56 allocation faults, 0 failures\n",
+    "bootBefore": "3b697511-cd51-4ae3-a302-0895ac5cdfa0",
+    "gateExit": 1,
+    "gateInputCount": 61,
+    "stderr": "uncaught xlang error: ConfigError: netrc document must be a dict\nuncaught xlang error: netrc document must be a dict\n[netrc] FAIL exit=1 artifacts=/var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE\n",
+    "sourcesUnchangedWithinGate": true,
+    "sanitizers": [
+      "address",
+      "undefined",
+      "leak checks"
+    ],
+    "requiredNamedJitFailed": true,
+    "additionalNamedBuildExit": 0,
+    "parent": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "Linux netrc gate=1 source-change=0 tools-change=0 snapshot=/var/tmp/xlang-netrc-quoted-gMdZbyea\nnetrc stream first cause: 126 checks, 0 failures\nnetrc quoted tokens: 396 vectors, 37 allocation faults, 0 failures\nnetrc independent quoted bytes: 396 files PASS; Python values: 345; quoted-macro parser limit: 51\nnetrc Python/C/XLang file interop: PASS\nnetrc resource budgets: PASS\nnetrc allocations: PASS\nnetrc quoted memory: PASS\n[netrc] report: /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE.report.txt\nuncaught xlang error: ConfigError: netrc document must be a dict\nuncaught xlang error: netrc document must be a dict\n[netrc] FAIL exit=1 artifacts=/var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE\nnetrc quoted tokens: 396 vectors, 56 allocation faults, 0 failures\nnetrc independent quoted bytes: 396 files PASS; Python values: 345; quoted-macro parser limit: 51\n",
+      "stderr": "",
+      "elapsedMs": 120024
+    },
+    "tools": [
+      "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc",
+      "30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1",
+      "52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41  /usr/bin/python3",
+      "3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash"
+    ],
+    "stages": 83,
+    "aotPassed": 16,
+    "additionalNamedStderr": "uncaught xlang error: ConfigError: netrc document must be a dict\n",
+    "snapshot": "/var/tmp/xlang-netrc-quoted-gMdZbyea",
+    "oldCExit": 0,
+    "frozenFiles": [
+      {
+        "sha256": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+        "path": "lib/xrt/xrt.h"
+      },
+      {
+        "sha256": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+        "path": "lib/xruntime/xruntime.h"
+      },
+      {
+        "sha256": "a80e62cc41921fb82f9e09e4ea00544f771d568db905e43cc019244d82b7782e",
+        "path": "release/examples/extlibs/netrc.xl"
+      },
+      {
+        "sha256": "55c43bed4839d01098f5ab975ed3dc80afdff0849759ae2b4e4203590c534779",
+        "path": "release/examples/extlibs/netrc_c.c"
+      },
+      {
+        "sha256": "04ba8fed179669f73ffcf9c6f7a03837e452330ecd6d9f1e6676f146786c39cc",
+        "path": "release/extlibs/netrc/README.md"
+      },
+      {
+        "sha256": "d58b118f036a7a03e4db250fb07b3ce2d7f628e8e0986e8f36dc27abd75ca87c",
+        "path": "release/extlibs/netrc/docs/site.html"
+      },
+      {
+        "sha256": "f2a8fb85557f9f8c248f18ef77ef8b97dd0bdbf1c20f866aada7fc437aae4710",
+        "path": "release/extlibs/netrc/examples/basic.c"
+      },
+      {
+        "sha256": "67c3ee281f4a8601e6ec84f51c0f56bac55cff78855debbf95a05c1cdd72bb81",
+        "path": "release/extlibs/netrc/examples/basic.expected.txt"
+      },
+      {
+        "sha256": "41ff65a2a4bb40ecb092fc0c271aff8ef4e6344b79fef9f56a75bb23f594e140",
+        "path": "release/extlibs/netrc/examples/bounded_credentials.expected.txt"
+      },
+      {
+        "sha256": "23663e5e946cbf19d7cf585c105eaf0b5b6066177aeed202a6e25ff61edbf306",
+        "path": "release/extlibs/netrc/examples/bounded_credentials.xl"
+      },
+      {
+        "sha256": "0d35a89ae128a718f0a49f20da69c69f9ce8dc8ddd354903d5141a5b2ecbeb61",
+        "path": "release/extlibs/netrc/examples/bounded_credentials_c.c"
+      },
+      {
+        "sha256": "69e22d1c0f3da5775351f4a6a9f86f29ca8a052b4b6e341759e6c646456112df",
+        "path": "release/extlibs/netrc/examples/escaped_credentials.expected.txt"
+      },
+      {
+        "sha256": "a7805b7da6ef7310275e078abc074690ead21c09eb1ff7a29eb97f1fe44dd356",
+        "path": "release/extlibs/netrc/examples/escaped_credentials.xl"
+      },
+      {
+        "sha256": "8763b5bd165c485d7a3f1dd00b6777ef74fe0a01303f688b392a6c98c64391e8",
+        "path": "release/extlibs/netrc/examples/escaped_credentials_c.c"
+      },
+      {
+        "sha256": "32ab77055a4b8ceb895def37686dc71aeb9f383877f4a0425a0bc908931b222f",
+        "path": "release/extlibs/netrc/include/xrt_netrc.h"
+      },
+      {
+        "sha256": "cd1a7cd736e37a7d12f5f89292680ca231f657fefd401ef39d93744c697df6d7",
+        "path": "release/extlibs/netrc/netrc_native.c"
+      },
+      {
+        "sha256": "4b3715928da4305e4dc4f87b9befc7c66635c3b412f917567920901695b5b37a",
+        "path": "release/extlibs/netrc/src/netrc.xl"
+      },
+      {
+        "sha256": "bba10b82a3772f82469bd54adb9db8b16e8f7703466da6ed44c1f788ae938fa8",
+        "path": "release/extlibs/netrc/test/allocations.xl"
+      },
+      {
+        "sha256": "0ff5d4c67c69ec3f2a8345f48e3cbec50d7e59b5fef1831142885a24db19567a",
+        "path": "release/extlibs/netrc/test/boundaries.xl"
+      },
+      {
+        "sha256": "1f4bb4135e8b891857bc210fca111fd07d3a9592602884a0e4158bbe26649950",
+        "path": "release/extlibs/netrc/test/check.ps1"
+      },
+      {
+        "sha256": "ad240a86d821374b8c770ee1afff74423f9f3dcb0fed6d936b38df12562250f1",
+        "path": "release/extlibs/netrc/test/check.sh"
+      },
+      {
+        "sha256": "4c7340fcafb6c105de56793479685eaac60e8349ed33dd190714dc6b6002ff73",
+        "path": "release/extlibs/netrc/test/interop.py"
+      },
+      {
+        "sha256": "09163064885a3b110a57a966d92145c16ac2854289dd67ef3330410ca001cb72",
+        "path": "release/extlibs/netrc/test/named_type.xl"
+      },
+      {
+        "sha256": "912ab4ad21d3d447b4144b7cd7a94526d3bbff072e0f1e2355ca3de321796541",
+        "path": "release/extlibs/netrc/test/owned_text.xl"
+      },
+      {
+        "sha256": "e955d0c012a80e2b248c5cf60a1460e80498a9934411d80930fedd3d9fa76e8d",
+        "path": "release/extlibs/netrc/test/quoted_oracle.py"
+      },
+      {
+        "sha256": "59b743658b13ef62bf20310d717a48a78f989e5fcfa3a9d5a66829bb796376b8",
+        "path": "release/extlibs/netrc/test/quoted_tokens.xl"
+      },
+      {
+        "sha256": "20f4e7fafa6879af5000d39e885d8438e033a68df46da2487b1223732520035b",
+        "path": "release/extlibs/netrc/test/quoted_tokens_c.c"
+      },
+      {
+        "sha256": "26e1cbd84f29dec112ac077a1fb3c63628585df686716623073de47c99704e37",
+        "path": "release/extlibs/netrc/test/resource_limits.xl"
+      },
+      {
+        "sha256": "3f533a7820a1ba5d0ee6e159608c64287c6c2bd932e23875b2725bfb8a3a9f3a",
+        "path": "release/extlibs/netrc/test/resource_limits_c.c"
+      },
+      {
+        "sha256": "26c6dc3a1519209d7a9322cbe80081a20e1c4e57b9d007c300f18dd433748596",
+        "path": "release/extlibs/netrc/test/stream_errors_c.c"
+      },
+      {
+        "sha256": "171725df6bbca522011de4a9b7478d170a544c27889a0e70b12b25a2f8f54a26",
+        "path": "release/extlibs/netrc/test/test_native_tls.c"
+      },
+      {
+        "sha256": "a36e1b0418bf6ddd457f787e9b492dcf8de9f0505265f6b2149b048e5069e264",
+        "path": "release/extlibs/netrc/test/test_netrc.c"
+      },
+      {
+        "sha256": "bce5e5f1f073c6f7360e257386c11ef0fba747435d9f36c92c4950e45d181c4e",
+        "path": "release/extlibs/netrc/test/test_netrc_boundaries.c"
+      },
+      {
+        "sha256": "30eb3ba380d65c1a0a14ae0a1c160bdf4938301fd2b069a5e4ef8dd51c86e51e",
+        "path": "release/extlibs/netrc/test/xrt_runtime.c"
+      },
+      {
+        "sha256": "9ffa8954c570716d57ad3f6112694b4c84aea02a24fb1ca555b297ea25ff0294",
+        "path": "release/extlibs/netrc/xlang.package.json"
+      },
+      {
+        "sha256": "3d05dc84e202b3a2ac474fde7bbd7b8c9e4014722e78663a43fac855b96f173e",
+        "path": "release/extlibs/netrc/xrt_netrc_common.c"
+      },
+      {
+        "sha256": "0c3001329d5cf1aca19d82e1ec57e30a5e5d325a42990363eaf54a221e7c95ba",
+        "path": "release/extlibs/netrc/xrt_netrc_internal.h"
+      },
+      {
+        "sha256": "b549969cee0c6916ec5ee320eb0eecb225422462da6469585ca518751b31466e",
+        "path": "release/extlibs/netrc/xrt_netrc_parser.c"
+      },
+      {
+        "sha256": "c5a8ca58339a3acc38886e16c79b76277cbdfece9a714b2b401d64ec6160ab8d",
+        "path": "release/extlibs/netrc/xrt_netrc_writer.c"
+      },
+      {
+        "sha256": "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770",
+        "path": "release/include/README.md"
+      },
+      {
+        "sha256": "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab",
+        "path": "release/include/libtcc.h"
+      },
+      {
+        "sha256": "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2",
+        "path": "release/include/tcc_builtin_vfs.h"
+      },
+      {
+        "sha256": "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4",
+        "path": "release/include/xl.h"
+      },
+      {
+        "sha256": "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad",
+        "path": "release/include/xl_cancellation_retirement.h"
+      },
+      {
+        "sha256": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18",
+        "path": "release/include/xl_clock.h"
+      },
+      {
+        "sha256": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445",
+        "path": "release/include/xl_extlib_abi.h"
+      },
+      {
+        "sha256": "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f",
+        "path": "release/include/xl_foreign_graph.h"
+      },
+      {
+        "sha256": "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a",
+        "path": "release/include/xl_foreign_net.h"
+      },
+      {
+        "sha256": "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1",
+        "path": "release/include/xl_package.h"
+      },
+      {
+        "sha256": "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2",
+        "path": "release/include/xl_runtime.h"
+      },
+      {
+        "sha256": "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e",
+        "path": "release/include/xl_sync_retirement.h"
+      },
+      {
+        "sha256": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992",
+        "path": "release/include/xl_version.h"
+      },
+      {
+        "sha256": "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f",
+        "path": "release/include/xlc.h"
+      },
+      {
+        "sha256": "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d",
+        "path": "release/include/xrt_decl.h"
+      },
+      {
+        "sha256": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+        "path": "release/include/xruntime_decl.h"
+      },
+      {
+        "sha256": "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad",
+        "path": "release/libxl.so"
+      },
+      {
+        "sha256": "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386",
+        "path": "release/libxlc.so"
+      },
+      {
+        "sha256": "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb",
+        "path": "release/xl"
+      },
+      {
+        "sha256": "c662945cbf108d699ed709afd9aad53030f77eea0a9d542ec17c5fcc230f434b",
+        "path": "test/cases/extlib_netrc.xl"
+      }
+    ],
+    "stdout": "Python 3.14.4\ntest_netrc: PASS\ntest_netrc_boundaries: PASS\ntest_native_tls: PASS\nnetrc resource budgets: 285 checks, 0 failures\nnetrc stream first cause: 126 checks, 0 failures\nnetrc quoted tokens: 396 vectors, 37 allocation faults, 0 failures\nnetrc independent quoted bytes: 396 files PASS; Python values: 345; quoted-macro parser limit: 51\nnetrc Python/C/XLang file interop: PASS\nnetrc resource budgets: PASS\nnetrc allocations: PASS\nnetrc quoted memory: PASS\n[netrc] report: /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE.report.txt\n",
+    "wrapperExitIsNotPackagePass": true,
+    "postGateChanges": [
+      "release/extlibs/netrc/README.md",
+      "release/extlibs/netrc/docs/site.html",
+      "release/extlibs/netrc/test/check.ps1"
+    ],
+    "gateInputs": {
+      "path": "build/test/netrc_quoted_20261102/linux/gate.inputs.sha256",
+      "bytes": 6268,
+      "sha256": "dc8d6d3b4e787f4a7777abc223c249de2fce349b54e25edb3c8f7a5533d3899f"
+    },
+    "gateReport": "exit=1\nphases=83\n\n$ timeout 10s gcc --version\nexit=0\ngcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n\n$ timeout 10s python3 --version\nexit=0\nPython 3.14.4\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/netrc -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -x c -fsyntax-only release/extlibs/netrc/include/xrt_netrc.h\nexit=0\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/netrc -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DXRT_MODULE_BUFFER -DXRT_MODULE_FILE_WHOLE -DXRT_MODULE_IO_BUFFER -DXRT_MODULE_IO_FILE -DXRT_MODULE_ONCE -DXRT_MODULE_THREAD_KEY -DXRT_MODULE_UNICODE -DXRT_MODULE_VALUE_CONTAINER -fsyntax-only release/extlibs/netrc/xrt_netrc_common.c\nexit=0\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/netrc -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DXRT_MODULE_BUFFER -DXRT_MODULE_FILE_WHOLE -DXRT_MODULE_IO_BUFFER -DXRT_MODULE_IO_FILE -DXRT_MODULE_ONCE -DXRT_MODULE_THREAD_KEY -DXRT_MODULE_UNICODE -DXRT_MODULE_VALUE_CONTAINER -fsyntax-only release/extlibs/netrc/xrt_netrc_parser.c\nexit=0\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/netrc -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DXRT_MODULE_BUFFER -DXRT_MODULE_FILE_WHOLE -DXRT_MODULE_IO_BUFFER -DXRT_MODULE_IO_FILE -DXRT_MODULE_ONCE -DXRT_MODULE_THREAD_KEY -DXRT_MODULE_UNICODE -DXRT_MODULE_VALUE_CONTAINER -fsyntax-only release/extlibs/netrc/xrt_netrc_writer.c\nexit=0\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/netrc -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DXRT_MODULE_BUFFER -DXRT_MODULE_FILE_WHOLE -DXRT_MODULE_IO_BUFFER -DXRT_MODULE_IO_FILE -DXRT_MODULE_ONCE -DXRT_MODULE_THREAD_KEY -DXRT_MODULE_UNICODE -DXRT_MODULE_VALUE_CONTAINER -fsyntax-only release/extlibs/netrc/netrc_native.c\nexit=0\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/netrc -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/netrc/test/xrt_runtime.c -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/runtime.o\nexit=0\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/netrc -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/netrc/test/test_netrc.c /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/test_netrc\nexit=0\n\n$ timeout 120s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/test_netrc\nexit=0\ntest_netrc: PASS\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/netrc -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/netrc/test/test_netrc_boundaries.c /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/test_netrc_boundaries\nexit=0\n\n$ timeout 120s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/test_netrc_boundaries\nexit=0\ntest_netrc_boundaries: PASS\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/netrc -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/netrc/test/test_native_tls.c /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/test_native_tls\nexit=0\n\n$ timeout 120s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/test_native_tls\nexit=0\ntest_native_tls: PASS\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/netrc -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/netrc/test/resource_limits_c.c /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/resource_limits_c\nexit=0\n\n$ timeout 120s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/resource_limits_c\nexit=0\nnetrc resource budgets: 285 checks, 0 failures\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/netrc -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/netrc/test/stream_errors_c.c /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/stream_errors_c\nexit=0\n\n$ timeout 120s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/stream_errors_c\nexit=0\nnetrc stream first cause: 126 checks, 0 failures\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/netrc -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/netrc/test/quoted_tokens_c.c /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/quoted_tokens_c\nexit=0\n\n$ timeout 120s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/quoted_tokens_c /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/quoted_corpus\nexit=0\nnetrc quoted tokens: 396 vectors, 37 allocation faults, 0 failures\n\n$ timeout 30s python3 -B release/extlibs/netrc/test/quoted_oracle.py /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/quoted_corpus\nexit=0\nnetrc independent quoted bytes: 396 files PASS; Python values: 345; quoted-macro parser limit: 51\n\n$ timeout 120s ./release/xl run release/extlibs/netrc/test/resource_limits_c.c\nexit=0\nnetrc resource budgets: 285 checks, 0 failures\n\n$ timeout 120s ./release/xl run release/extlibs/netrc/test/stream_errors_c.c\nexit=0\nnetrc stream first cause: 126 checks, 0 failures\n\n$ timeout 120s ./release/xl run release/extlibs/netrc/test/quoted_tokens_c.c\nexit=0\nnetrc quoted tokens: 396 vectors, 37 allocation faults, 0 failures\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/netrc -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/netrc/examples/basic.c /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/basic\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/basic\nexit=0\nnetrc: alice@api.example.com\nnetrc fallback: guest\nnetrc entries: 2 hosts, 1 macro\nnetrc syntax: code=2 line=1 column=17 offset=16\n\n$ timeout 90s ./release/xl run release/extlibs/netrc/examples/basic.c\nexit=0\nnetrc: alice@api.example.com\nnetrc fallback: guest\nnetrc entries: 2 hosts, 1 macro\nnetrc syntax: code=2 line=1 column=17 offset=16\n\n$ timeout 90s ./release/xl run release/examples/extlibs/netrc.xl\nexit=0\nnetrc: alice@api.example.com\nnetrc fallback: guest\nnetrc entries: 2 hosts, 1 macro\nnetrc syntax: code=2 line=1 column=17 offset=16\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/netrc -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/netrc/examples/bounded_credentials_c.c /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/bounded_credentials\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/bounded_credentials\nexit=0\nhosts: 2\nmacros: 1\nselected login: build\nfallback login: guest\nbounded roundtrip: true\nmacro limit: true\nsource unchanged: true\n\n$ timeout 90s ./release/xl run release/extlibs/netrc/examples/bounded_credentials_c.c\nexit=0\nhosts: 2\nmacros: 1\nselected login: build\nfallback login: guest\nbounded roundtrip: true\nmacro limit: true\nsource unchanged: true\n\n$ timeout 90s ./release/xl run release/extlibs/netrc/examples/bounded_credentials.xl\nexit=0\nhosts: 2\nmacros: 1\nselected login: build\nfallback login: guest\nbounded roundtrip: true\nmacro limit: true\nsource unchanged: true\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/netrc -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/netrc/examples/escaped_credentials_c.c /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/escaped_credentials\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/escaped_credentials\nexit=0\nquoted host: true\nquoted account: true\npassword roundtrip: true\nquoted macro: true\noutput limit: true\n\n$ timeout 90s ./release/xl run release/extlibs/netrc/examples/escaped_credentials_c.c\nexit=0\nquoted host: true\nquoted account: true\npassword roundtrip: true\nquoted macro: true\noutput limit: true\n\n$ timeout 90s ./release/xl run release/extlibs/netrc/examples/escaped_credentials.xl\nexit=0\nquoted host: true\nquoted account: true\npassword roundtrip: true\nquoted macro: true\noutput limit: true\n\n$ timeout 90s ./release/xl run release/examples/extlibs/netrc_c.c\nexit=0\nnetrc: alice@api.example.com\nnetrc fallback: guest\nnetrc entries: 2 hosts, 1 macro\nnetrc syntax: code=2 line=1 column=17 offset=16\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/basic /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/c.netrc\nexit=0\nnetrc: alice@api.example.com\nnetrc fallback: guest\nnetrc entries: 2 hosts, 1 macro\nnetrc syntax: code=2 line=1 column=17 offset=16\n\n$ timeout 90s ./release/xl run release/examples/extlibs/netrc.xl -- /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/xl.netrc\nexit=0\nnetrc: alice@api.example.com\nnetrc fallback: guest\nnetrc entries: 2 hosts, 1 macro\nnetrc syntax: code=2 line=1 column=17 offset=16\n\n$ timeout 30s python3 release/extlibs/netrc/test/interop.py /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/c.netrc /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/xl.netrc\nexit=0\nnetrc Python/C/XLang file interop: PASS\n\n$ timeout 90s ./release/xl run release/extlibs/netrc/test/owned_text.xl\nexit=0\n\n$ timeout 90s ./release/xl cgen release/examples/extlibs/netrc.xl --emit /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/probe.c\nexit=0\n\n$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/netrc -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -fsyntax-only /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/abi.c\nexit=0\n\n$ timeout 120s ./release/xl run test/cases/extlib_netrc.xl\nexit=0\n\n$ timeout 120s ./release/xl run release/extlibs/netrc/test/boundaries.xl\nexit=0\n\n$ timeout 120s ./release/xl run release/extlibs/netrc/test/resource_limits.xl\nexit=0\nnetrc resource budgets: PASS\n\n$ timeout 120s ./release/xl run release/extlibs/netrc/test/allocations.xl\nexit=0\nnetrc allocations: PASS\n\n$ timeout 120s ./release/xl run release/extlibs/netrc/test/quoted_tokens.xl\nexit=0\nnetrc quoted memory: PASS\n\n$ timeout 120s ./release/xl run release/extlibs/netrc/test/owned_text.xl\nexit=0\n\n$ timeout 120s ./release/xl run release/extlibs/netrc/test/quoted_tokens.xl -- /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/quoted_corpus\nexit=0\nnetrc quoted memory: PASS\nnetrc quoted corpus: 396 files PASS\n\n$ timeout 120s ./release/xl build release/extlibs/netrc/test/resource_limits_c.c -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-1\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-1\nexit=0\nnetrc resource budgets: 285 checks, 0 failures\n\n$ timeout 120s ./release/xl build release/extlibs/netrc/test/stream_errors_c.c -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-2\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-2\nexit=0\nnetrc stream first cause: 126 checks, 0 failures\n\n$ timeout 120s ./release/xl build release/extlibs/netrc/test/quoted_tokens_c.c -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-3\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-3\nexit=0\nnetrc quoted tokens: 396 vectors, 37 allocation faults, 0 failures\n\n$ timeout 120s ./release/xl build release/examples/extlibs/netrc_c.c -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-4\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-4\nexit=0\nnetrc: alice@api.example.com\nnetrc fallback: guest\nnetrc entries: 2 hosts, 1 macro\nnetrc syntax: code=2 line=1 column=17 offset=16\n\n$ timeout 120s ./release/xl build test/cases/extlib_netrc.xl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-5\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-5\nexit=0\n\n$ timeout 120s ./release/xl build release/extlibs/netrc/test/boundaries.xl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-6\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-6\nexit=0\n\n$ timeout 120s ./release/xl build release/extlibs/netrc/test/resource_limits.xl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-7\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-7\nexit=0\nnetrc resource budgets: PASS\n\n$ timeout 120s ./release/xl build release/extlibs/netrc/test/allocations.xl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-8\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-8\nexit=0\nnetrc allocations: PASS\n\n$ timeout 120s ./release/xl build release/extlibs/netrc/test/quoted_tokens.xl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-9\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-9 /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/quoted_corpus\nexit=0\nnetrc quoted memory: PASS\nnetrc quoted corpus: 396 files PASS\n\n$ timeout 120s ./release/xl build release/extlibs/netrc/test/owned_text.xl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-10\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-10\nexit=0\n\n$ timeout 120s ./release/xl build release/extlibs/netrc/examples/basic.c -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-11\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-11\nexit=0\nnetrc: alice@api.example.com\nnetrc fallback: guest\nnetrc entries: 2 hosts, 1 macro\nnetrc syntax: code=2 line=1 column=17 offset=16\n\n$ timeout 120s ./release/xl build release/examples/extlibs/netrc.xl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-12\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-12\nexit=0\nnetrc: alice@api.example.com\nnetrc fallback: guest\nnetrc entries: 2 hosts, 1 macro\nnetrc syntax: code=2 line=1 column=17 offset=16\n\n$ timeout 120s ./release/xl build release/extlibs/netrc/examples/bounded_credentials_c.c -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-13\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-13\nexit=0\nhosts: 2\nmacros: 1\nselected login: build\nfallback login: guest\nbounded roundtrip: true\nmacro limit: true\nsource unchanged: true\n\n$ timeout 120s ./release/xl build release/extlibs/netrc/examples/bounded_credentials.xl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-14\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-14\nexit=0\nhosts: 2\nmacros: 1\nselected login: build\nfallback login: guest\nbounded roundtrip: true\nmacro limit: true\nsource unchanged: true\n\n$ timeout 120s ./release/xl build release/extlibs/netrc/examples/escaped_credentials_c.c -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-15\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-15\nexit=0\nquoted host: true\nquoted account: true\npassword roundtrip: true\nquoted macro: true\noutput limit: true\n\n$ timeout 120s ./release/xl build release/extlibs/netrc/examples/escaped_credentials.xl -o /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-16\nexit=0\n\n$ timeout 90s /var/tmp/xlang-netrc-quoted-gMdZbyea/tmp/xlang-netrc-Pj6YtE/aot-16\nexit=0\nquoted host: true\nquoted account: true\npassword roundtrip: true\nquoted macro: true\noutput limit: true\n\n$ timeout 120s ./release/xl run release/extlibs/netrc/test/named_type.xl\nexit=1\nuncaught xlang error: ConfigError: netrc document must be a dict\nuncaught xlang error: netrc document must be a dict\n",
+    "frozenFileCount": 59,
+    "bootAfter": "3b697511-cd51-4ae3-a302-0895ac5cdfa0",
+    "additionalNamedRunExit": 1,
+    "toolsUnchanged": true,
+    "postGateReason": "README/site descriptions and Windows-only check.ps1 null-argv correction; corrected PS script not executed on Linux; no native or Linux test source changed"
+  },
+  "windowsGateCorrection": {
+    "issue": "PowerShell conditional empty output yielded null arguments, serialized as one empty path",
+    "initialFailure": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "[netrc] compiler version: PASS\n[netrc] compiler frontend: PASS\n[netrc] Python version: PASS\n[netrc] public header: PASS\n[netrc] manifest syntax xrt_netrc_common.c: PASS\n[netrc] manifest syntax xrt_netrc_parser.c: PASS\n[netrc] manifest syntax xrt_netrc_writer.c: PASS\n[netrc] manifest syntax netrc_native.c: PASS\n[netrc] XRT compile: PASS\n[netrc] test_netrc compile: PASS\n[netrc] test_netrc: PASS\n[netrc] test_netrc_boundaries compile: PASS\n[netrc] test_netrc_boundaries: PASS\n[netrc] test_native_tls compile: PASS\n[netrc] test_native_tls: PASS\n[netrc] resource_limits_c compile: PASS\n[netrc] resource_limits_c: PASS\n[netrc] stream_errors_c compile: PASS\n[netrc] stream_errors_c: PASS\n[netrc] quoted_tokens_c compile: PASS\n[netrc] quoted_tokens_c: PASS\n[netrc] independent quoted bytes and Python values: PASS\n[netrc] resource_limits_c direct C: PASS\n[netrc] stream_errors_c direct C: PASS\n[netrc] quoted_tokens_c direct C: PASS\n[netrc] basic C compile: PASS\n[netrc] basic C: PASS\n[netrc] basic direct C: PASS\n[netrc] basic XLang: PASS\n[netrc] bounded_credentials C compile: PASS\n[netrc] bounded_credentials C: PASS\n[netrc] bounded_credentials direct C: PASS\n[netrc] bounded_credentials XLang: PASS\n[netrc] escaped_credentials C compile: PASS\n[netrc] escaped_credentials C: PASS\n[netrc] escaped_credentials direct C: PASS\n[netrc] escaped_credentials XLang: PASS\n[netrc] central C example: PASS\n[netrc] C file example: PASS\n[netrc] XLang UTF-8 file example: PASS\n[netrc] Python netrc interop: PASS\n[netrc] owned text JIT: PASS\n[netrc] complete API cgen: PASS\n[netrc] nine actual prototypes: PASS\n[netrc] test/cases/extlib_netrc.xl JIT: PASS\n[netrc] release/extlibs/netrc/test/boundaries.xl JIT: PASS\n[netrc] release/extlibs/netrc/test/resource_limits.xl JIT: PASS\n[netrc] release/extlibs/netrc/test/allocations.xl JIT: PASS\n[netrc] release/extlibs/netrc/test/quoted_tokens.xl JIT: PASS\n[netrc] release/extlibs/netrc/test/owned_text.xl JIT: PASS\n[netrc] quoted corpus complete JIT: PASS\n[netrc] release/extlibs/netrc/test/resource_limits_c.c build: PASS\n[netrc] release/extlibs/netrc/test/resource_limits_c.c AOT: PASS\n[netrc] release/extlibs/netrc/test/stream_errors_c.c build: PASS\n[netrc] release/extlibs/netrc/test/stream_errors_c.c AOT: PASS\n[netrc] release/extlibs/netrc/test/quoted_tokens_c.c build: PASS\n[netrc] release/extlibs/netrc/test/quoted_tokens_c.c AOT: PASS\n[netrc] release/examples/extlibs/netrc_c.c build: PASS\n[netrc] report: D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_289601524cd148c1bcf70018bc80fe3b.json\n",
+      "stderr": "release/examples/extlibs/netrc_c.c AOT: fail exit=1\r\nnetrc example: parse or round-trip failed\r\n����λ�� D:\\GIT\\x-lang\\release\\extlibs\\netrc\\test\\check.ps1:37 �ַ�: 38\r\n+ ... e 'pass') { throw \"${name}: $($result.status) exit=$($result.exitCode ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : OperationStopped: (release/example...-trip failed\r\n:String) [], RuntimeException\r\n    + FullyQualifiedErrorId : release/examples/extlibs/netrc_c.c AOT: fail exit=1\r\nnetrc example: parse or round-trip failed\r\n \r\n",
+      "elapsedMs": 91882
+    },
+    "libraryNotPatchedToHideIssue": true,
+    "sameExeControl": {
+      "sameFailedExe": "D:\\GIT\\x-lang\\build\\test\\netrc_guard\\run_289601524cd148c1bcf70018bc80fe3b\\7735a445ed924b88ae3b2373693e4d2d.exe",
+      "zeroArgs": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "netrc: alice@api.example.com\r\nnetrc fallback: guest\r\nnetrc entries: 2 hosts, 1 macro\r\nnetrc syntax: code=2 line=1 column=17 offset=16\r\n",
+        "stderr": "",
+        "elapsedMs": 42
+      },
+      "oneEmptyArg": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "netrc example: parse or round-trip failed\r\n",
+        "elapsedMs": 25
+      }
+    },
+    "sameExeExplicitZeroArgsPasses": true
+  },
+  "benchmark": {
+    "scope": "Whole GCC-O2 process including initialization/input construction, 2000 encodes and memcmp to own baseline each iteration",
+    "medians": [
+      {
+        "windowsOldMs": 47,
+        "linuxRatio": 1.1137886574926072,
+        "linuxOldMs": 17.651101,
+        "windowsNewMs": 48,
+        "windowsRatio": 0.9791666666666666,
+        "scenario": 0,
+        "linuxNewMs": 15.847801
+      },
+      {
+        "windowsOldMs": 481,
+        "linuxRatio": 11.776671450476938,
+        "linuxOldMs": 343.557315,
+        "windowsNewMs": 62,
+        "windowsRatio": 7.758064516129032,
+        "scenario": 1,
+        "linuxNewMs": 29.172701
+      },
+      {
+        "windowsOldMs": 223,
+        "linuxRatio": 1.762006598270502,
+        "linuxOldMs": 145.898206,
+        "windowsNewMs": 125,
+        "windowsRatio": 1.784,
+        "scenario": 2,
+        "linuxNewMs": 82.802304
+      }
+    ],
+    "roundsPerImplementationPerScenario": 3,
+    "linux": [
+      {
+        "kind": "old",
+        "round": 1,
+        "scenario": 0,
+        "elapsedMs": 17.651101,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 0: 2000 encodes, 5190 bytes\n",
+        "stderr": ""
+      },
+      {
+        "kind": "new",
+        "round": 1,
+        "scenario": 0,
+        "elapsedMs": 15.8514,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 0: 2000 encodes, 5190 bytes\n",
+        "stderr": ""
+      },
+      {
+        "kind": "old",
+        "round": 1,
+        "scenario": 1,
+        "elapsedMs": 339.368615,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 1: 2000 encodes, 10312 bytes\n",
+        "stderr": ""
+      },
+      {
+        "kind": "new",
+        "round": 1,
+        "scenario": 1,
+        "elapsedMs": 29.172701,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 1: 2000 encodes, 10312 bytes\n",
+        "stderr": ""
+      },
+      {
+        "kind": "old",
+        "round": 1,
+        "scenario": 2,
+        "elapsedMs": 145.898206,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 2: 2000 encodes, 4168 bytes\n",
+        "stderr": ""
+      },
+      {
+        "kind": "new",
+        "round": 1,
+        "scenario": 2,
+        "elapsedMs": 74.675103,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 2: 2000 encodes, 4168 bytes\n",
+        "stderr": ""
+      },
+      {
+        "kind": "old",
+        "round": 2,
+        "scenario": 0,
+        "elapsedMs": 18.924101,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 0: 2000 encodes, 5190 bytes\n",
+        "stderr": ""
+      },
+      {
+        "kind": "new",
+        "round": 2,
+        "scenario": 0,
+        "elapsedMs": 15.847801,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 0: 2000 encodes, 5190 bytes\n",
+        "stderr": ""
+      },
+      {
+        "kind": "old",
+        "round": 2,
+        "scenario": 1,
+        "elapsedMs": 353.561915,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 1: 2000 encodes, 10312 bytes\n",
+        "stderr": ""
+      },
+      {
+        "kind": "new",
+        "round": 2,
+        "scenario": 1,
+        "elapsedMs": 29.783401,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 1: 2000 encodes, 10312 bytes\n",
+        "stderr": ""
+      },
+      {
+        "kind": "old",
+        "round": 2,
+        "scenario": 2,
+        "elapsedMs": 141.614006,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 2: 2000 encodes, 4168 bytes\n",
+        "stderr": ""
+      },
+      {
+        "kind": "new",
+        "round": 2,
+        "scenario": 2,
+        "elapsedMs": 82.802304,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 2: 2000 encodes, 4168 bytes\n",
+        "stderr": ""
+      },
+      {
+        "kind": "old",
+        "round": 3,
+        "scenario": 0,
+        "elapsedMs": 15.750301,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 0: 2000 encodes, 5190 bytes\n",
+        "stderr": ""
+      },
+      {
+        "kind": "new",
+        "round": 3,
+        "scenario": 0,
+        "elapsedMs": 15.3146,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 0: 2000 encodes, 5190 bytes\n",
+        "stderr": ""
+      },
+      {
+        "kind": "old",
+        "round": 3,
+        "scenario": 1,
+        "elapsedMs": 343.557315,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 1: 2000 encodes, 10312 bytes\n",
+        "stderr": ""
+      },
+      {
+        "kind": "new",
+        "round": 3,
+        "scenario": 1,
+        "elapsedMs": 26.925501,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 1: 2000 encodes, 10312 bytes\n",
+        "stderr": ""
+      },
+      {
+        "kind": "old",
+        "round": 3,
+        "scenario": 2,
+        "elapsedMs": 151.579007,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 2: 2000 encodes, 4168 bytes\n",
+        "stderr": ""
+      },
+      {
+        "kind": "new",
+        "round": 3,
+        "scenario": 2,
+        "elapsedMs": 84.409403,
+        "exit": 0,
+        "stdout": "netrc quoted benchmark 2: 2000 encodes, 4168 bytes\n",
+        "stderr": ""
+      }
+    ],
+    "noDefaultTimingThreshold": true,
+    "postprocessInitialFailure": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "old 0 1 17.651101\nnew 0 1 15.8514\nold 1 1 339.368615\nnew 1 1 29.172701\nold 2 1 145.898206\nnew 2 1 74.675103\nold 0 2 18.924101\nnew 0 2 15.847801\nold 1 2 353.561915\nnew 1 2 29.783401\nold 2 2 141.614006\nnew 2 2 82.802304\nold 0 3 15.750301\nnew 0 3 15.3146\nold 1 3 343.557315\nnew 1 3 26.925501\nold 2 3 151.579007\nnew 2 3 84.409403\n",
+      "stderr": "Traceback (most recent call last):\n  File \"<stdin>\", line 23, in <module>\nValueError: too many values to unpack (expected 1)\nError in sys.excepthook:\nTraceback (most recent call last):\n  File \"/usr/lib/python3/dist-packages/apport_python_hook.py\", line 238, in partial_apport_excepthook\n    return apport_excepthook(binary, exc_type, exc_obj, exc_tb)\n  File \"/usr/lib/python3/dist-packages/apport_python_hook.py\", line 122, in apport_excepthook\n    report[\"ExecutableTimestamp\"] = str(int(os.stat(binary).st_mtime))\n                                            ~~~~~~~^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/var/tmp/xlang-netrc-quoted-gMdZbyea/stage/-'\n\nOriginal exception was:\nTraceback (most recent call last):\n  File \"<stdin>\", line 23, in <module>\nValueError: too many values to unpack (expected 1)\n",
+      "elapsedMs": 15144
+    },
+    "noUniversalThroughputClaim": true,
+    "postprocessIssue": "Glob included sibling report files; all 18 measurements saved before error",
+    "windowsUnquoted47To48NotClaimedSpeedup": true,
+    "windows": [
+      {
+        "scenario": 0,
+        "kind": "old",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 0: 2000 encodes, 5190 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 61
+        },
+        "round": 1
+      },
+      {
+        "scenario": 0,
+        "kind": "new",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 0: 2000 encodes, 5190 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 55
+        },
+        "round": 1
+      },
+      {
+        "scenario": 1,
+        "kind": "old",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 1: 2000 encodes, 10312 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 550
+        },
+        "round": 1
+      },
+      {
+        "scenario": 1,
+        "kind": "new",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 1: 2000 encodes, 10312 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 89
+        },
+        "round": 1
+      },
+      {
+        "scenario": 2,
+        "kind": "old",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 2: 2000 encodes, 4168 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 266
+        },
+        "round": 1
+      },
+      {
+        "scenario": 2,
+        "kind": "new",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 2: 2000 encodes, 4168 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 147
+        },
+        "round": 1
+      },
+      {
+        "scenario": 0,
+        "kind": "old",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 0: 2000 encodes, 5190 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 45
+        },
+        "round": 2
+      },
+      {
+        "scenario": 0,
+        "kind": "new",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 0: 2000 encodes, 5190 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 42
+        },
+        "round": 2
+      },
+      {
+        "scenario": 1,
+        "kind": "old",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 1: 2000 encodes, 10312 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 468
+        },
+        "round": 2
+      },
+      {
+        "scenario": 1,
+        "kind": "new",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 1: 2000 encodes, 10312 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 62
+        },
+        "round": 2
+      },
+      {
+        "scenario": 2,
+        "kind": "old",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 2: 2000 encodes, 4168 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 223
+        },
+        "round": 2
+      },
+      {
+        "scenario": 2,
+        "kind": "new",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 2: 2000 encodes, 4168 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 125
+        },
+        "round": 2
+      },
+      {
+        "scenario": 0,
+        "kind": "old",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 0: 2000 encodes, 5190 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 47
+        },
+        "round": 3
+      },
+      {
+        "scenario": 0,
+        "kind": "new",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 0: 2000 encodes, 5190 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 48
+        },
+        "round": 3
+      },
+      {
+        "scenario": 1,
+        "kind": "old",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 1: 2000 encodes, 10312 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 481
+        },
+        "round": 3
+      },
+      {
+        "scenario": 1,
+        "kind": "new",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 1: 2000 encodes, 10312 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 60
+        },
+        "round": 3
+      },
+      {
+        "scenario": 2,
+        "kind": "old",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 2: 2000 encodes, 4168 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 184
+        },
+        "round": 3
+      },
+      {
+        "scenario": 2,
+        "kind": "new",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "netrc quoted benchmark 2: 2000 encodes, 4168 bytes\r\n",
+          "stderr": "",
+          "elapsedMs": 120
+        },
+        "round": 3
+      }
+    ],
+    "recoveredWithoutRerunningBenchmarks": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "",
+      "elapsedMs": 984
+    },
+    "scenarios": [
+      "unquoted control",
+      "long quoted body",
+      "dense escapes"
+    ]
+  },
+  "codeSize": {
+    "measurement": {
+      "compilations": [
+        {
+          "kind": "old",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/netrc",
+            "-c",
+            "D:\\GIT\\x-lang\\build\\test\\netrc_quoted_20261102\\before_writer.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\netrc_quoted_20261102\\old-writer.o"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 610
+          }
+        },
+        {
+          "kind": "new",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/netrc",
+            "-c",
+            "release/extlibs/netrc/xrt_netrc_writer.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\netrc_quoted_20261102\\new-writer.o"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 395
+          }
+        }
+      ],
+      "size": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n   6792\t      0\t      0\t   6792\t   1a88\tD:\\GIT\\x-lang\\build\\test\\netrc_quoted_20261102\\old-writer.o\r\n   6888\t      0\t      0\t   6888\t   1ae8\tD:\\GIT\\x-lang\\build\\test\\netrc_quoted_20261102\\new-writer.o\r\n",
+        "stderr": "",
+        "elapsedMs": 27
+      }
+    },
+    "newTextBytes": 6888,
+    "oldTextBytes": 6792,
+    "dataAndBssUnchanged": true,
+    "scope": "GCC -O2 COFF writer object, not full binary",
+    "deltaTextBytes": 96
+  },
+  "examples": {
+    "defaultFileIO": false,
+    "syntheticCredentialsOnly": true,
+    "covers": [
+      "whitespace host",
+      "quoted account",
+      "backslash and UTF8 password",
+      "quoted macro",
+      "output byte limit and recovery"
+    ],
+    "xlang": {
+      "path": "release/extlibs/netrc/examples/escaped_credentials.xl",
+      "bytes": 1186,
+      "sha256": "a7805b7da6ef7310275e078abc074690ead21c09eb1ff7a29eb97f1fe44dd356"
+    },
+    "c": {
+      "path": "release/extlibs/netrc/examples/escaped_credentials_c.c",
+      "bytes": 2464,
+      "sha256": "8763b5bd165c485d7a3f1dd00b6777ef74fe0a01303f688b392a6c98c64391e8"
+    },
+    "expected": {
+      "path": "release/extlibs/netrc/examples/escaped_credentials.expected.txt",
+      "bytes": 102,
+      "sha256": "69e22d1c0f3da5775351f4a6a9f86f29ca8a052b4b6e341759e6c646456112df"
+    },
+    "printsPasswordsOrFullDocument": false
+  },
+  "mainlineM1": {
+    "notReplacedBySuccessfulParseValues": true,
+    "diagnostic": "ConfigError: netrc document must be a dict",
+    "jitExit": 1,
+    "open": true,
+    "record": "dev/extlib_blockers/foreign_var_container_projection.md",
+    "minimal": "dev/extlib_blockers/netrc_constructor_literal.xl",
+    "positive": "release/extlibs/netrc/test/named_type.xl",
+    "buildExit": 0,
+    "suggestion": "Audit language dict classification, constructor boxing and foreign projection; do not teach packages private handles",
+    "aotExit": 1
+  },
+  "ideCatalog": {
+    "report": {
+      "status": "passed",
+      "catalogSha256": "76e22298a291fe5d6953b2ab167ead8ed84395eee2c0b69c7acb6dffe0d1363b",
+      "sourceIndexSha256": "9bb3938075ed8bba5fa93dca37636da7e46888fba8cc109bfc364071fbe51ea0",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42",
+      "inputsUnchanged": true
+    },
+    "generation": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"passed\", \"catalogSha256\": \"76e22298a291fe5d6953b2ab167ead8ed84395eee2c0b69c7acb6dffe0d1363b\", \"sourceIndexSha256\": \"9bb3938075ed8bba5fa93dca37636da7e46888fba8cc109bfc364071fbe51ea0\", \"preservedNonExtensionEntries\": 6156, \"publicPackages\": 207, \"excludedPrivate\": [\"_bzip2\", \"_expat\", \"_libzip\", \"_tomlc17\", \"_xge_native\", \"_zlib\"], \"extensionEntries\": 11442, \"addedEntries\": 0, \"removedEntries\": 0, \"documents\": 145, \"availableSources\": 593, \"extensionExporterSha256\": \"5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42\", \"inputsUnchanged\": true}\r\n",
+      "stderr": "",
+      "elapsedMs": 12283
+    },
+    "strictBinding": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "Catalog compiler changed: xl.dll\r\n",
+      "elapsedMs": 321
+    },
+    "installed": false,
+    "freshness": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+      "stderr": "",
+      "elapsedMs": 970
+    }
+  },
+  "website": {
+    "preview": {
+      "path": "build/test/netrc_quoted_20261102/site/extlibs/netrc.html",
+      "bytes": 8352,
+      "sha256": "4c4fec0bf966781b0da9eb8d6ad0a8d05071341c572eb1f311358217b45b8095"
+    },
+    "externalDeployment": false,
+    "source": {
+      "path": "release/extlibs/netrc/docs/site.html",
+      "bytes": 8352,
+      "sha256": "4c4fec0bf966781b0da9eb8d6ad0a8d05071341c572eb1f311358217b45b8095"
+    }
+  },
+  "deliveryByteAudit": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+    "stderr": "",
+    "elapsedMs": 954
+  },
+  "packageFiles": [
+    {
+      "path": "release/extlibs/netrc/docs/site.html",
+      "bytes": 8352,
+      "sha256": "4c4fec0bf966781b0da9eb8d6ad0a8d05071341c572eb1f311358217b45b8095"
+    },
+    {
+      "path": "release/extlibs/netrc/examples/basic.c",
+      "bytes": 4793,
+      "sha256": "f2a8fb85557f9f8c248f18ef77ef8b97dd0bdbf1c20f866aada7fc437aae4710"
+    },
+    {
+      "path": "release/extlibs/netrc/examples/basic.expected.txt",
+      "bytes": 131,
+      "sha256": "67c3ee281f4a8601e6ec84f51c0f56bac55cff78855debbf95a05c1cdd72bb81"
+    },
+    {
+      "path": "release/extlibs/netrc/examples/bounded_credentials_c.c",
+      "bytes": 3448,
+      "sha256": "0d35a89ae128a718f0a49f20da69c69f9ce8dc8ddd354903d5141a5b2ecbeb61"
+    },
+    {
+      "path": "release/extlibs/netrc/examples/bounded_credentials.expected.txt",
+      "bytes": 128,
+      "sha256": "41ff65a2a4bb40ecb092fc0c271aff8ef4e6344b79fef9f56a75bb23f594e140"
+    },
+    {
+      "path": "release/extlibs/netrc/examples/bounded_credentials.xl",
+      "bytes": 1418,
+      "sha256": "23663e5e946cbf19d7cf585c105eaf0b5b6066177aeed202a6e25ff61edbf306"
+    },
+    {
+      "path": "release/extlibs/netrc/examples/escaped_credentials_c.c",
+      "bytes": 2464,
+      "sha256": "8763b5bd165c485d7a3f1dd00b6777ef74fe0a01303f688b392a6c98c64391e8"
+    },
+    {
+      "path": "release/extlibs/netrc/examples/escaped_credentials.expected.txt",
+      "bytes": 102,
+      "sha256": "69e22d1c0f3da5775351f4a6a9f86f29ca8a052b4b6e341759e6c646456112df"
+    },
+    {
+      "path": "release/extlibs/netrc/examples/escaped_credentials.xl",
+      "bytes": 1186,
+      "sha256": "a7805b7da6ef7310275e078abc074690ead21c09eb1ff7a29eb97f1fe44dd356"
+    },
+    {
+      "path": "release/extlibs/netrc/include/xrt_netrc.h",
+      "bytes": 2064,
+      "sha256": "32ab77055a4b8ceb895def37686dc71aeb9f383877f4a0425a0bc908931b222f"
+    },
+    {
+      "path": "release/extlibs/netrc/netrc_native.c",
+      "bytes": 5362,
+      "sha256": "cd1a7cd736e37a7d12f5f89292680ca231f657fefd401ef39d93744c697df6d7"
+    },
+    {
+      "path": "release/extlibs/netrc/README.md",
+      "bytes": 25982,
+      "sha256": "15ac7690d590c5f0a141070742308266b80e6620129bf913126eb6e55d3260e6"
+    },
+    {
+      "path": "release/extlibs/netrc/src/netrc.xl",
+      "bytes": 5235,
+      "sha256": "4b3715928da4305e4dc4f87b9befc7c66635c3b412f917567920901695b5b37a"
+    },
+    {
+      "path": "release/extlibs/netrc/test/allocations.xl",
+      "bytes": 1413,
+      "sha256": "bba10b82a3772f82469bd54adb9db8b16e8f7703466da6ed44c1f788ae938fa8"
+    },
+    {
+      "path": "release/extlibs/netrc/test/boundaries.xl",
+      "bytes": 6542,
+      "sha256": "0ff5d4c67c69ec3f2a8345f48e3cbec50d7e59b5fef1831142885a24db19567a"
+    },
+    {
+      "path": "release/extlibs/netrc/test/check.ps1",
+      "bytes": 11551,
+      "sha256": "7f47dfd0c5559ae0236c94461149d02fad7766783a5a22f24059488bd4304aac"
+    },
+    {
+      "path": "release/extlibs/netrc/test/check.sh",
+      "bytes": 9344,
+      "sha256": "ad240a86d821374b8c770ee1afff74423f9f3dcb0fed6d936b38df12562250f1"
+    },
+    {
+      "path": "release/extlibs/netrc/test/interop.py",
+      "bytes": 861,
+      "sha256": "4c7340fcafb6c105de56793479685eaac60e8349ed33dd190714dc6b6002ff73"
+    },
+    {
+      "path": "release/extlibs/netrc/test/named_type.xl",
+      "bytes": 890,
+      "sha256": "09163064885a3b110a57a966d92145c16ac2854289dd67ef3330410ca001cb72"
+    },
+    {
+      "path": "release/extlibs/netrc/test/owned_text.xl",
+      "bytes": 581,
+      "sha256": "912ab4ad21d3d447b4144b7cd7a94526d3bbff072e0f1e2355ca3de321796541"
+    },
+    {
+      "path": "release/extlibs/netrc/test/quoted_oracle.py",
+      "bytes": 2962,
+      "sha256": "e955d0c012a80e2b248c5cf60a1460e80498a9934411d80930fedd3d9fa76e8d"
+    },
+    {
+      "path": "release/extlibs/netrc/test/quoted_tokens_c.c",
+      "bytes": 8478,
+      "sha256": "20f4e7fafa6879af5000d39e885d8438e033a68df46da2487b1223732520035b"
+    },
+    {
+      "path": "release/extlibs/netrc/test/quoted_tokens.xl",
+      "bytes": 1820,
+      "sha256": "59b743658b13ef62bf20310d717a48a78f989e5fcfa3a9d5a66829bb796376b8"
+    },
+    {
+      "path": "release/extlibs/netrc/test/resource_limits_c.c",
+      "bytes": 6390,
+      "sha256": "3f533a7820a1ba5d0ee6e159608c64287c6c2bd932e23875b2725bfb8a3a9f3a"
+    },
+    {
+      "path": "release/extlibs/netrc/test/resource_limits.xl",
+      "bytes": 1835,
+      "sha256": "26e1cbd84f29dec112ac077a1fb3c63628585df686716623073de47c99704e37"
+    },
+    {
+      "path": "release/extlibs/netrc/test/stream_errors_c.c",
+      "bytes": 7951,
+      "sha256": "26c6dc3a1519209d7a9322cbe80081a20e1c4e57b9d007c300f18dd433748596"
+    },
+    {
+      "path": "release/extlibs/netrc/test/test_native_tls.c",
+      "bytes": 2692,
+      "sha256": "171725df6bbca522011de4a9b7478d170a544c27889a0e70b12b25a2f8f54a26"
+    },
+    {
+      "path": "release/extlibs/netrc/test/test_netrc_boundaries.c",
+      "bytes": 43390,
+      "sha256": "bce5e5f1f073c6f7360e257386c11ef0fba747435d9f36c92c4950e45d181c4e"
+    },
+    {
+      "path": "release/extlibs/netrc/test/test_netrc.c",
+      "bytes": 2532,
+      "sha256": "a36e1b0418bf6ddd457f787e9b492dcf8de9f0505265f6b2149b048e5069e264"
+    },
+    {
+      "path": "release/extlibs/netrc/test/xrt_runtime.c",
+      "bytes": 132,
+      "sha256": "30eb3ba380d65c1a0a14ae0a1c160bdf4938301fd2b069a5e4ef8dd51c86e51e"
+    },
+    {
+      "path": "release/extlibs/netrc/xlang.package.json",
+      "bytes": 1098,
+      "sha256": "9ffa8954c570716d57ad3f6112694b4c84aea02a24fb1ca555b297ea25ff0294"
+    },
+    {
+      "path": "release/extlibs/netrc/xrt_netrc_common.c",
+      "bytes": 3486,
+      "sha256": "3d05dc84e202b3a2ac474fde7bbd7b8c9e4014722e78663a43fac855b96f173e"
+    },
+    {
+      "path": "release/extlibs/netrc/xrt_netrc_internal.h",
+      "bytes": 1371,
+      "sha256": "0c3001329d5cf1aca19d82e1ec57e30a5e5d325a42990363eaf54a221e7c95ba"
+    },
+    {
+      "path": "release/extlibs/netrc/xrt_netrc_parser.c",
+      "bytes": 23572,
+      "sha256": "b549969cee0c6916ec5ee320eb0eecb225422462da6469585ca518751b31466e"
+    },
+    {
+      "path": "release/extlibs/netrc/xrt_netrc_writer.c",
+      "bytes": 14991,
+      "sha256": "c5a8ca58339a3acc38886e16c79b76277cbdfece9a714b2b401d64ec6160ab8d"
+    }
+  ],
+  "replay": {
+    "candidateCheck": "python -B -X utf8 ide/tools/refresh_extensions.py --root D:/GIT/x-lang --data build/test/<new-candidate> --check",
+    "oracle": "Compile quoted_tokens_c with one XRT implementation, run <corpus-directory>, then python -B release/extlibs/netrc/test/quoted_oracle.py <corpus-directory>",
+    "xlang": "xl run release/extlibs/netrc/test/quoted_tokens.xl",
+    "c": "xl run release/extlibs/netrc/test/quoted_tokens_c.c",
+    "benchmark": "GCC -O2 quoted_tokens_c --bench 0|1|2; select old writer via XNETRC_TEST_WRITER and include path to package",
+    "catalog": "python -B -X utf8 ide/tools/refresh_extensions.py --root D:/GIT/x-lang --output build/test/<new-candidate> --gcc E:/software/w64devkit/bin/gcc.exe",
+    "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/netrc/test/check.ps1",
+    "linux": "bash release/extlibs/netrc/test/check.sh"
+  },
+  "limitations": [
+    "Required M1 constructor positive fails",
+    "Strict IDE release binding failed; candidate not installed",
+    "51 quoted macro files are not Python value interop",
+    "Current Windows/Linux x64 only; no TSan, 32-bit or big-endian qualification",
+    "No general application speedup or whole binary size claim",
+    "100-package goal remains active"
+  ],
+  "formalRelease": false
+}

@@ -1,0 +1,45 @@
+import netrc
+
+func main(...) as int
+    // 含引号、反斜杠、中文、空白的合成凭据；不输出密码。
+    string source = r"""machine "api host"
+ login "build bot"
+ account "team\"A"
+ password "folder\\test # 你好"
+macdef "deploy job"
+ echo ok
+
+"""
+    auto config = netrc.parse(source)
+    string wire = config.stringify()
+    auto restored = netrc.parse(wire)
+    assert restored.authenticators("api host")["login"] == "build bot"
+    assert restored.authenticators("api host")["account"] == "team\"A"
+    assert restored.authenticators("api host")["password"] == r"folder\test # 你好"
+    assert restored.macros["deploy job"][0] == " echo ok"
+    assert restored.stringify() == wire
+    println("netrc quoted memory: PASS")
+
+    // 门禁传入C生成的完整语料；缺任何文件、值或正文差异都必须失败。
+    if arg.length == 2 then
+        int checked = 0
+        for p in range(12)
+            for n in range(7)
+                for field in range(5)
+                    if n == 0 and (field == 0 or field == 4) then continue end
+                    string filename = path.join(string(arg[1]), f"p{p}-n{n}-f{field}.netrc")
+                    string input = file.readText(filename)
+                    auto loaded = netrc.load(filename)
+                    assert loaded.stringify() == input, "load/stringify differs: " + filename
+                    assert netrc.parse(input).stringify() == input, "parse/stringify differs: " + filename
+                    checked += 1
+                end
+            end
+        end
+        assert checked == 396, f"incomplete corpus: {checked}"
+        println("netrc quoted corpus: 396 files PASS")
+    else
+        assert arg.length == 1, f"expected program name and optional corpus directory, got {arg.length}"
+    end
+    return 0
+end

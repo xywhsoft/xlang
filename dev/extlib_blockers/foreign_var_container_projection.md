@@ -2,6 +2,16 @@
 
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-11-02 Netrc分段写出复验：Windows84/Linux83阶段的默认门禁先完成
+原资源/I/O首因/线程/权限、396引用编码与公开语料、九实际原型及各16
+普通AOT，最后原named_type仍因语言字典直接构造Netrc而失败。Windows
+最小`netrc_constructor_literal.xl`及Linux原named_type的独立程序也构建0、
+运行1，ConfigError为`netrc document must be a dict`。这次只证明该边界仍
+存在，不以文本parse正常推断语言字典已修，也不把所有M1强行归为同根。
+报告`docs/reports/extlib-netrc-quoted-20261102.json`保存当前发布物身份与
+退出码；建议主线联查语言容器类型分类、构造实参装箱和foreign投影，
+修后重跑原最小源与完整默认门，不在包内认识私有句柄或增加兼容分支。
+
 2026-11-01 MessagePack随后完成两平台各65项完整门禁、各12份AOT，
 原中央字典/数组及双语往返已通过，旧M1在本包解除。沿用既有正式
 数据快照入口，没有新增私有表示转换。独立真实CLI解析仍在C正对照

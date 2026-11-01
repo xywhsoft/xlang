@@ -64,27 +64,33 @@ for source in xrt_netrc_common xrt_netrc_parser xrt_netrc_writer netrc_native; d
     compile "${modules[@]}" -fsyntax-only "release/extlibs/netrc/$source.c"
 done
 compile -c release/extlibs/netrc/test/xrt_runtime.c -o "$work/runtime.o"
-for name in test_netrc test_netrc_boundaries test_native_tls resource_limits_c stream_errors_c; do
+mkdir "$work/quoted_corpus"
+for name in test_netrc test_netrc_boundaries test_native_tls resource_limits_c stream_errors_c quoted_tokens_c; do
     compile "release/extlibs/netrc/test/$name.c" "$work/runtime.o" -no-pie -lm -ldl -o "$work/$name"
     pushd "$work" >/dev/null
-    run 120 "$work/$name" > "$work/$name.txt"
+    arguments=()
+    if [[ $name == quoted_tokens_c ]]; then arguments=("$work/quoted_corpus"); fi
+    run 120 "$work/$name" "${arguments[@]}" > "$work/$name.txt"
     popd >/dev/null
     cat "$work/$name.txt"
 done
 printf 'netrc resource budgets: 285 checks, 0 failures\n' > "$work/resources.expected"
 printf 'netrc stream first cause: 126 checks, 0 failures\n' > "$work/streams.expected"
+printf 'netrc quoted tokens: 396 vectors, 37 allocation faults, 0 failures\n' > "$work/quoted.expected"
 diff -u "$work/resources.expected" "$work/resource_limits_c.txt"
 diff -u "$work/streams.expected" "$work/stream_errors_c.txt"
-for pair in 'resource_limits_c resources' 'stream_errors_c streams'; do
+diff -u "$work/quoted.expected" "$work/quoted_tokens_c.txt"
+run 30 "$python" -B release/extlibs/netrc/test/quoted_oracle.py "$work/quoted_corpus"
+for pair in 'resource_limits_c resources' 'stream_errors_c streams' 'quoted_tokens_c quoted'; do
     read -r name expected <<< "$pair"
     run 120 ./release/xl run "release/extlibs/netrc/test/$name.c" > "$work/$name.direct"
     diff -u "$work/$expected.expected" "$work/$name.direct"
 done
-for name in basic bounded_credentials; do
+for name in basic bounded_credentials escaped_credentials; do
     c=release/extlibs/netrc/examples/basic.c; language=release/examples/extlibs/netrc.xl
     if [[ $name != basic ]]; then
-        c=release/extlibs/netrc/examples/bounded_credentials_c.c
-        language=release/extlibs/netrc/examples/bounded_credentials.xl
+        c="release/extlibs/netrc/examples/${name}_c.c"
+        language="release/extlibs/netrc/examples/$name.xl"
     fi
     sed 's/\r$//' "release/extlibs/netrc/examples/$name.expected.txt" > "$work/$name.expected"
     compile "$c" "$work/runtime.o" -no-pie -lm -ldl -o "$work/$name"
@@ -120,24 +126,35 @@ printf '#include "netrc_native.c"\n' > "$work/abi.c"
 cat "$work/abi.decls" >> "$work/abi.c"
 compile -fsyntax-only "$work/abi.c"
 languages=(test/cases/extlib_netrc.xl release/extlibs/netrc/test/boundaries.xl
-           release/extlibs/netrc/test/resource_limits.xl release/extlibs/netrc/test/allocations.xl "$owned")
+           release/extlibs/netrc/test/resource_limits.xl release/extlibs/netrc/test/allocations.xl
+           release/extlibs/netrc/test/quoted_tokens.xl "$owned")
 for source in "${languages[@]}"; do run 120 ./release/xl run "$source"; done
+printf 'netrc quoted memory: PASS\nnetrc quoted corpus: 396 files PASS\n' > "$work/quoted-xl.expected"
+run 120 ./release/xl run release/extlibs/netrc/test/quoted_tokens.xl -- "$work/quoted_corpus" > "$work/quoted-xl.txt"
+diff -u "$work/quoted-xl.expected" "$work/quoted-xl.txt"
 sources=(release/extlibs/netrc/test/resource_limits_c.c release/extlibs/netrc/test/stream_errors_c.c
+         release/extlibs/netrc/test/quoted_tokens_c.c
          release/examples/extlibs/netrc_c.c "${languages[@]}" release/extlibs/netrc/examples/basic.c
          release/examples/extlibs/netrc.xl release/extlibs/netrc/examples/bounded_credentials_c.c
-         release/extlibs/netrc/examples/bounded_credentials.xl)
+         release/extlibs/netrc/examples/bounded_credentials.xl release/extlibs/netrc/examples/escaped_credentials_c.c
+         release/extlibs/netrc/examples/escaped_credentials.xl)
 index=0
 for source in "${sources[@]}"; do
     index=$((index+1))
     binary="$work/aot-$index"
     run 120 ./release/xl build "$source" -o "$binary"
-    run 90 "$binary" > "$work/aot-$index.txt"
+    arguments=()
+    if [[ $source == */test/quoted_tokens.xl ]]; then arguments=("$work/quoted_corpus"); fi
+    run 90 "$binary" "${arguments[@]}" > "$work/aot-$index.txt"
     expected=''
     case "$source" in
         */resource_limits_c.c) expected=resources ;;
         */stream_errors_c.c) expected=streams ;;
+        */quoted_tokens_c.c) expected=quoted ;;
+        */test/quoted_tokens.xl) expected=quoted-xl ;;
         */basic.c|release/examples/extlibs/netrc.xl|release/examples/extlibs/netrc_c.c) expected=basic ;;
         */bounded_credentials_c.c|*/bounded_credentials.xl) expected=bounded_credentials ;;
+        */escaped_credentials_c.c|*/escaped_credentials.xl) expected=escaped_credentials ;;
     esac
     if [[ -n "$expected" ]]; then diff -u "$work/$expected.expected" "$work/aot-$index.txt"; fi
 done

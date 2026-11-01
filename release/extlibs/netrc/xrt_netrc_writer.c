@@ -55,7 +55,7 @@ static bool __xrtNetrcMacroLineBlank(const char* sText, size_t iSize)
 static bool __xrtNetrcAppendToken(xbuffer* pOutput, const char* sText,
 	size_t iSize, xrt_netrc_context* pContext)
 {
-	size_t i;
+	size_t i, iStart = 0u;
 	if ( sText == NULL || memchr(sText, '\0', iSize) != NULL ||
 		memchr(sText, '\r', iSize) != NULL ||
 		memchr(sText, '\n', iSize) != NULL ) {
@@ -78,12 +78,17 @@ static bool __xrtNetrcAppendToken(xbuffer* pOutput, const char* sText,
 		return __xrtNetrcAppend(pOutput, sText, iSize, pContext);
 	}
 	if ( !__xrtNetrcAppendText(pOutput, "\"", pContext) ) { return false; }
+	/* 连续正文整段追加；转义只写一对字节，不逐字调用缓冲接口。 */
 	for ( i = 0u; i < iSize; ++i ) {
-		if ( (sText[i] == '"' || sText[i] == '\\') &&
-			!__xrtNetrcAppendText(pOutput, "\\", pContext) ) { return false; }
-		if ( !__xrtNetrcAppend(pOutput, &sText[i], 1u, pContext) ) { return false; }
+		if ( sText[i] != '"' && sText[i] != '\\' ) { continue; }
+		char Escaped[2] = { '\\', sText[i] };
+		if ( (i > iStart && !__xrtNetrcAppend(pOutput, sText + iStart,
+			i - iStart, pContext)) ||
+			!__xrtNetrcAppend(pOutput, Escaped, sizeof(Escaped), pContext) ) { return false; }
+		iStart = i + 1u;
 	}
-	return __xrtNetrcAppendText(pOutput, "\"", pContext);
+	return (iStart == iSize || __xrtNetrcAppend(pOutput, sText + iStart,
+		iSize - iStart, pContext)) && __xrtNetrcAppendText(pOutput, "\"", pContext);
 }
 
 static bool __xrtNetrcAppendAuthField(xbuffer* pOutput, xvalue* pAuth,

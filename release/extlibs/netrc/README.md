@@ -1,5 +1,62 @@
 # netrc
 
+## 2026-11-02 引号字段批量写出
+
+写出器将带引号 token 的连续正文整段交给 XRT Buffer，仅在 `"`、`\`
+处拆分并一次写入两个转义字节。未转义的普通 token 路径不变，不
+新建临时字符串或文档副本，不改变编码、限额、所有权或公开 ABI。
+同一文档仍需由调用方同步并发修改；校验及最终输出复制仍有成本。
+
+新增 `test/quoted_tokens_c.c` 的 396 个字段/长度组合：主机、login、
+account、password、宏名，涵盖空字段、关键字、空白、引号、反斜杠、
+UTF-8 以及缓冲扩容边界。每组核对编码字节上限前一字节/恰好/后一
+字节、规范化往返；长字段另逐点注入 OOM，检查错误分类、即时恢复
+和七项内存计数。`test/quoted_tokens.xl` 接受可选语料目录，以公开
+`load/parse/stringify` 逐个核对全部文件；默认只运行内存引号用例。
+
+独立 `test/quoted_oracle.py` 用 Python 字符串操作构造每份完整预期
+编码，并用其标准 `netrc` 读取器检查共同语义。当前 Python 对引号
+宏名有独立限制：结束引号后的换行被误作宏的空行终止，随后把宏
+正文 `echo` 当作顶层 token。该分支只承认这一个明确诊断，不忽略
+其他错误。396 份均核对字节及本包自往返，其中 345 份完整通过
+Python 值对照、51 份不计作 Python 互通；不因此删除本包引号宏名
+能力，也不宣称所有 netrc 实现支持同一语法。
+
+新增双语 `examples/escaped_credentials.xl` / `escaped_credentials_c.c`，
+演示空白名称、引号、反斜杠、中文及按编码字节的输出限额恢复。
+示例仅用合成凭据，默认不落盘、不打印密码或完整序列化结果：
+
+```text
+release/xl.exe run release/extlibs/netrc/examples/escaped_credentials.xl
+release/xl.exe run release/extlibs/netrc/examples/escaped_credentials_c.c
+```
+
+Linux 使用 `release/xl`。可选局部成本夹具为编译后的
+`quoted_tokens_c --bench 0|1|2`，分别测试普通无引号、长连续引号正文
+和密集转义；夹具含初始化/建输入与每次结果核对，不进入默认计时
+门禁，也不作为整体应用加速承诺。原语言字典构造 M1 正例仍必须
+通过后才能签收整包，不以解析已有文本成功替代。
+
+最终 Windows84阶段/63指纹、Linux83阶段/59份冻结源及四工具前后
+保持；原 C285 资源边界/126复合 I/O、线程错误槽、文件权限/双语
+互通、新旧396编码与逐点OOM、九实际原型、三组双语固定输出通过。
+两平台各16份可运行AOT（含新396文件语言语料）通过，最后原具名
+类型语言字典构造仍抛 `ConfigError: netrc document must be a dict`；
+其独立程序也构建成功、运行失败。整包保持 M1，不签收发布。
+
+三轮 GCC-O2 同负载整进程中位数：长引号正文 Windows481→62ms、
+Linux约343.6→29.2ms；密集转义223→125ms、145.9→82.8ms。无引号
+对照Windows47→48ms，Linux约17.7→15.8ms；短时波动不称算法收益。
+夹具每进程2000次编码并核对本次输出，不是纯写出器计时或全应用
+承诺。九条长字段故障扫描总分配故障点56→37；GCC-O2写出器COFF
+对象text6792→6888（+96B），data/bss不变，不推算整包大小。
+
+Windows门禁同时修正条件表达式产生null参数表被传成空路径的测试
+错误；同一失败EXE无参0、一个空参数1，未改范例或库来掩盖。
+Linux原生快照的Windows脚本仍为修正前字节，未参与Linux执行；这
+一差异与结果文档的后续变化单列，不伪称当前全目录逐字节相同。
+详见仓库 `docs/reports/extlib-netrc-quoted-20261102.json`。
+
 ## 2026-10-29 资源预算与复合 I/O 首因
 
 修复宏行超过 `maxItem` 误报 `MEMORY/TYPE`、宏字符串非法 UTF-8
