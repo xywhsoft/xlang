@@ -75,7 +75,7 @@ run vendor-compile 240 "$cc" "${flags[@]}" -c "$pkg/third_party/sqlite3.c" -o "$
 run native-compile 120 "$cc" "${flags[@]}" "${strict[@]}" -Wmissing-prototypes -c "$pkg/sqlite_native.c" -o "$work/native.o"
 run runtime-compile 120 "$cc" "${flags[@]}" "${strict[@]}" -c test/support/extlib_sqlite_runtime.c -o "$work/runtime.o"
 objects=("$work/sqlite3.o" "$work/native.o" "$work/runtime.o")
-for name in test_sqlite test_sqlite_alloc test_sqlite_threads test_sqlite_error_priority; do
+for name in test_sqlite test_sqlite_alloc test_sqlite_threads test_sqlite_error_priority test_wal_example_cleanup; do
     test_flags=()
     if [[ $name == test_sqlite_threads ]]; then test_flags=(-DNDEBUG); fi
     run "$name-compile" 120 "$cc" "${flags[@]}" "${strict[@]}" "${test_flags[@]}" "$pkg/test/$name.c" "${objects[@]}" -lm -ldl -o "$work/$name"
@@ -124,13 +124,14 @@ run basic-c-aot-build 120 "$xl" build "$pkg/examples/basic.c" -o "$work/basic_c_
 run basic-c-aot 45 "$work/basic_c_aot"
 golden release/examples/extlibs/sqlite_basic.expected.txt "$work/basic-c-aot.stdout"
 
-for name in text_bytes column_storage transactions; do
+for name in text_bytes column_storage transactions wal_snapshots; do
     run "$name-c-compile" 120 "$cc" "${flags[@]}" "${strict[@]}" -DNDEBUG "$pkg/examples/${name}_c.c" "${objects[@]}" -lm -ldl -o "$work/$name-gcc"
     run "$name-c-run" 90 "$work/$name-gcc"
     case "$name" in
         text_bytes) printf 'TEXT: 3 bytes\nBLOB: 3 bytes\nmiddle byte: 0\n' ;;
         column_storage) printf 'text: 你好\ninteger: 9223372036854775807\nutf8 bytes: 6\nzero blob: 4096\n' ;;
         transactions) sed 's/\r$//' "$pkg/examples/transactions.expected.txt" ;;
+        wal_snapshots) sed 's/\r$//' "$pkg/examples/wal_snapshots.expected.txt" ;;
     esac > "$work/$name.expected"
     golden "$work/$name.expected" "$work/$name-c-run.stdout"
     for language in c xl; do
