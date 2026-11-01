@@ -1,0 +1,5 @@
+signed mean: 8/3
+several scales: 4
+negative tail: -8/3
+same-sign mean: 12/7
+undefined: rejected

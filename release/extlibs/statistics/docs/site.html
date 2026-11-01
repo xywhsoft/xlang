@@ -75,6 +75,12 @@ int main(void)
 bash release/extlibs/statistics/test/check.sh</code></pre>
     <p>三份 C 范例可直接使用 <code>xl run release/extlibs/statistics/examples/statistics_c.c</code>、<code>xl run release/extlibs/statistics/examples/trend_c.c</code> 和 <code>xl run release/extlibs/statistics/examples/distribution_c.c</code> 运行；第三组展示众数、离散度、几何/调和平均数与协方差。Windows/Linux 门禁设计为将其输出与 GCC 编译运行及 XLang 范例逐字对照；本轮 Windows 测试尚未走到双语对照。Linux 门禁还运行 C ASan/UBSan、XLang 数值与分配边界。<code>count</code> 结果与 <code>histogram</code> 箱数使用跨平台 <code>int64_t</code> ABI，C 范例用 <code>PRId64</code> 可移植打印。极值方差、标准差、平均绝对偏差、次正规数求和/均值/插值、大数抵消、极小调和平均数及分配失败分类均有定向测试；另用 512 组有符号整数数组的独立模型对照聚合、分位数、众数与直方图。当前语言数组投影失败，完整 AOT 未执行，尚未签收发布门禁。</p>
   </section>
+  <section id="signed-harmonic">
+    <h2>混合符号调和平均数</h2>
+    <p>2026-11-02：修复倒数项共同缩放下溢及多组正负数抵消时丢失尾项。例如 <code>[1e-300,-1e-300,1,2]</code> 的结果为 <code>8/3</code>。同号数据保留线性路径；混合符号仅排序既有临时副本，将尾数和二进制指数分开累加，必要时归一化。API、ABI、输入及错误合同不变；混合路径增加排序与指数处理，不承诺等速或任意病态输入的正确舍入。</p>
+    <p>新 C 专项含 2019 场景、14217 检查、2 个实际 XRT OOM、恢复与七项内存指标；旧 1146 项失败转零。3043 条 binary64 输入/输出记录由独立 Fraction 倒数和参照核验，另含三个负控。基准单独提供，不反复混入默认回归。</p>
+    <p>C 范例 <code>extlibs/statistics/examples/harmonic_scales_c.c</code> 和同名 XLang 范例使用相同数据与五行预期，默认不写文件。现行 Windows 的 statistics 与 math.abs 同用会触发原有 CRT 符号冲突；Linux 仍受语言数组投影问题阻断。XLang 范例尚未签收，不用 C 成功替代完整双语验收，也不宣称整包发布级。</p>
+  </section>
 </main>
 <script src="../main.js"></script>
 </body>

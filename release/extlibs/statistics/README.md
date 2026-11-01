@@ -1,5 +1,57 @@
 # statistics
 
+## 2026-11-02：混合符号调和平均数
+
+修复统一缩放的倒数项在极端量纲下提前下溢，以及多组不同量纲正负项
+抵消时丢失尾项的问题。`[1e-300,-1e-300,1,2]` 的调和平均数为 `8/3`，
+不是无定义；增加一对 `[1e-100,-1e-100]` 后六项结果为 `4`。
+
+同号输入仍走线性缩放补偿累加。混合符号输入只对已有临时副本按绝对值
+排序，再将倒数尾数和二进制指数分开累加；抵消或增长后重新定标，安全
+范围内不重复归一化。不改变公开 API/ABI、输入或非零/有限结果合同。
+没有新增显式 XRT 分配或整份数据复制；混合符号路径增加 `O(n log n)`
+排序和指数处理，CRT `qsort` 自身可能使用工作区，不能宣称零额外分配
+或原有速度。`test/bench_harmonic_c.c` 是独立手动基准，不加入默认回归。
+
+新增 C 专项有 2019 场景、14217 检查、2 个实际 XRT OOM、同输入恢复
+及七项内存指标；同夹具旧实现 1146 项失败，修复后归零，不是 1146 个
+独立 BUG。另输出 3043 条真实 binary64 记录，由 Python `Fraction`
+独立计算精确倒数和与最终舍入结果，含 1024 组打乱的多尺度数据和
+三个验证器负控。容差 `2e-13`，不以 C 自算预期代替独立参照。
+本改动不承诺任意病态输入的精确有理数运算或正确舍入；倒数除法本身
+仍按 float64 舍入，极端非精确倒数抵消仍可能放大其误差。
+
+### 双语范例与当前限制
+
+在 `release` 目录运行：
+
+```text
+xl run extlibs/statistics/examples/harmonic_scales_c.c
+xl run extlibs/statistics/examples/harmonic_scales.xl
+```
+
+两份代码使用相同数据、预期和错误合同，默认不写文件。C 期望输出：
+
+```text
+signed mean: 8/3
+several scales: 4
+negative tail: -8/3
+same-sign mean: 12/7
+undefined: rejected
+```
+
+**XLang 闭环仍未签收**：现行 Windows 发布物中，导入含 C 实现的
+statistics 后再使用 `math.abs`，即使不调用统计 API，也会在 JIT/build
+报 `fabs defined twice`。隔离旧版 native 的同用法也复现，纯 math 正常，
+不能归因于本轮算法修改。Linux 未复现该冲突，但真实语言数组仍受 M1
+投影阻断；Windows 不调用 math 的原数组最小源也仍在 JIT/AOT 失败。
+不删除原正例或制造 C 数组工厂绕过。完整门禁、C/GCC/TCC/AOT、独立
+参照、基准成本及未签收项见根目录
+`docs/reports/extlib-statistics-harmonic-20261102.json` 和
+`dev/extlib_blockers/statistics_math_native_collision.md`。
+
+## 前轮平移稳定性记录
+
 2026-10-29 大基数小波动审计：修复共享中心化先将均值舍入、再从大
 输入相减造成的系统性精度损失。例如 `[1e16,1e16+2,1e16+2]` 的总体
 方差应为 `8/9`，旧实现得到 `4/3`；对完全线性的 `[0,1,1]` 响应，

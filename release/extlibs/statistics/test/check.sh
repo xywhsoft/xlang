@@ -62,7 +62,7 @@ compile -DXRT_MODULE_VALUE_CONTAINER -fsyntax-only release/extlibs/statistics/st
 compile -fsyntax-only release/extlibs/statistics/test/abi_contract.c
 compile -c release/extlibs/statistics/test/xrt_runtime.c -o "$work/runtime.o"
 compile -c release/extlibs/statistics/statistics_native.c -o "$work/native.o"
-for name in test_statistics size_guard translation_c; do
+for name in test_statistics size_guard translation_c harmonic_c; do
     objects=("$work/runtime.o")
     if [[ $name != size_guard ]]; then objects+=("$work/native.o"); fi
     compile -DNDEBUG "release/extlibs/statistics/test/$name.c" "${objects[@]}" -no-pie -lm -ldl -o "$work/$name"
@@ -75,12 +75,20 @@ run 90 "$work/translation_c" --records > "$work/gcc.tsv"
 run 60 "$python" release/extlibs/statistics/test/check_translation.py "$work/gcc.tsv"
 run 90 ./release/xl run release/extlibs/statistics/test/translation_c.c > "$work/translation.direct"
 diff -u "$work/translation.expected" "$work/translation.direct"
-names=(statistics_c trend_c distribution_c measurement_offsets_c)
-languages=(basic trend distribution measurement_offsets)
+printf 'statistics harmonic: 2019 cases, 14217 checks, 2 OOM, 0 failures\n' > "$work/harmonic.expected"
+diff -u "$work/harmonic.expected" "$work/harmonic_c.txt"
+run 90 "$work/harmonic_c" --records > "$work/harmonic-gcc.tsv"
+run 60 "$python" release/extlibs/statistics/test/check_harmonic.py "$work/harmonic-gcc.tsv"
+run 90 ./release/xl run release/extlibs/statistics/test/harmonic_c.c > "$work/harmonic.direct"
+diff -u "$work/harmonic.expected" "$work/harmonic.direct"
+run 90 ./release/xl run release/extlibs/statistics/test/harmonic_c.c -- --records > "$work/harmonic-tcc.tsv"
+run 60 "$python" release/extlibs/statistics/test/check_harmonic.py "$work/harmonic-tcc.tsv"
+names=(statistics_c trend_c distribution_c measurement_offsets_c harmonic_scales_c)
+languages=(basic trend distribution measurement_offsets harmonic_scales)
 for index in "${!names[@]}"; do
     name=${names[$index]}; language=${languages[$index]}
     objects=("$work/runtime.o")
-    if [[ $name == measurement_offsets_c ]]; then objects+=("$work/native.o"); fi
+    if [[ $name == measurement_offsets_c || $name == harmonic_scales_c ]]; then objects+=("$work/native.o"); fi
     compile -DNDEBUG "release/extlibs/statistics/examples/$name.c" "${objects[@]}" -no-pie -lm -ldl -o "$work/$name"
     sed 's/\r$//' "release/extlibs/statistics/examples/$language.expected.txt" > "$work/$name.expected"
     run 90 "$work/$name" > "$work/$name.c.txt"
@@ -98,9 +106,10 @@ diff -u "$work/abi.expected" "$work/abi.actual"
 printf '#include "statistics_native.h"\n' > "$work/abi.c"
 cat "$work/abi.decls" >> "$work/abi.c"
 compile -fsyntax-only "$work/abi.c"
-for source in release/extlibs/statistics/test/translation_c.c release/extlibs/statistics/test/size_guard.c \
+for source in release/extlibs/statistics/test/translation_c.c release/extlibs/statistics/test/size_guard.c release/extlibs/statistics/test/harmonic_c.c \
     release/extlibs/statistics/examples/statistics_c.c release/extlibs/statistics/examples/trend_c.c \
-    release/extlibs/statistics/examples/distribution_c.c release/extlibs/statistics/examples/measurement_offsets_c.c; do
+    release/extlibs/statistics/examples/distribution_c.c release/extlibs/statistics/examples/measurement_offsets_c.c \
+    release/extlibs/statistics/examples/harmonic_scales_c.c; do
     name=$(basename "${source%.*}")
     target="$work/$name-aot"
     run 180 ./release/xl build "$source" -o "$target"
@@ -111,12 +120,18 @@ for source in release/extlibs/statistics/test/translation_c.c release/extlibs/st
         run 90 "$target" --records > "$work/tcc.tsv"
         run 60 "$python" release/extlibs/statistics/test/check_translation.py "$work/tcc.tsv"
     fi
+    if [[ $name == harmonic_c ]]; then
+        diff -u "$work/harmonic.expected" "$target.out"
+        run 90 "$target" --records > "$work/harmonic-aot.tsv"
+        run 60 "$python" release/extlibs/statistics/test/check_harmonic.py "$work/harmonic-aot.tsv"
+    fi
 done
 # 正常语言数组仍为必过路径，不用C工厂制造一条替代调用来绕过M1。
 for source in release/extlibs/statistics/examples/measurement_offsets.xl test/cases/extlib_statistics.xl \
     release/extlibs/statistics/test/boundaries.xl release/extlibs/statistics/test/allocations.xl \
     release/extlibs/statistics/examples/basic.xl release/extlibs/statistics/examples/trend.xl \
-    release/extlibs/statistics/examples/distribution.xl release/examples/extlibs/statistics.xl; do
+    release/extlibs/statistics/examples/distribution.xl release/examples/extlibs/statistics.xl \
+    release/extlibs/statistics/examples/harmonic_scales.xl; do
     run 120 ./release/xl run "$source" > "$work/full.txt"
     for index in "${!languages[@]}"; do
         if [[ $source == "release/extlibs/statistics/examples/${languages[$index]}.xl" ]]; then

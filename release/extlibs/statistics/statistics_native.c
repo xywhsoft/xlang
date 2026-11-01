@@ -534,6 +534,39 @@ xvalue *xstat_geomean(xvalue *values) {
     return xstat_number(result);
 }
 
+static int xstat_compare_magnitude(const void *a, const void *b) {
+    double x = fabs(*(const double *)a), y = fabs(*(const double *)b);
+    return x < y ? -1 : x > y;
+}
+
+/* 混合正负数按倒数绝对值降序累加，
+   尾数与二进制指数分开保存；抵消后重新归一化，不让后续尾项提前下溢。 */
+static double xstat_reciprocals_signed(double *a, size_t n, int *exponent) {
+    double sum = 0, correction = 0;
+    qsort(a, n, sizeof(*a), xstat_compare_magnitude);
+    *exponent = 0;
+    for (size_t i = 0; i < n; ++i) {
+        int termExponent, shift;
+        double term = 1.0 / frexp(a[i], &termExponent);
+        termExponent = -termExponent;
+        if (sum == 0 && correction == 0) *exponent = termExponent;
+        if (termExponent > *exponent) {
+            sum = ldexp(sum, *exponent - termExponent);
+            correction = ldexp(correction, *exponent - termExponent);
+            *exponent = termExponent;
+        }
+        xstat_add_compensated(ldexp(term, termExponent - *exponent), &sum, &correction);
+        if (sum + correction == 0) { sum = correction = 0; continue; }
+        /* 尾数已在安全范围时不重复调用 frexp/ldexp；抵消或增长后才重新定标。 */
+        if (fabs(sum + correction) < 0.5 || fabs(sum + correction) >= 2.0) {
+            (void)frexp(sum + correction, &shift);
+            sum = ldexp(sum, -shift); correction = ldexp(correction, -shift);
+            *exponent += shift;
+        }
+    }
+    return sum + correction;
+}
+
 xvalue *xstat_harmmean(xvalue *values) {
     double *a;
     size_t n;
@@ -542,6 +575,8 @@ xvalue *xstat_harmmean(xvalue *values) {
     double acc = 0;
     double correction = 0;
     double result;
+    int exponent = 0;
+    bool mixedSigns = false;
     if (!xstat_collect(values, &a, &n)) return xrtValueNull();
     scale = fabs(a[0]);
     for (i = 0; i < n; ++i) {
@@ -550,16 +585,21 @@ xvalue *xstat_harmmean(xvalue *values) {
             return xstat_fail("harmonic mean requires non-zero values");
         }
         if (fabs(a[i]) < scale) scale = fabs(a[i]);
+        if ((a[i] < 0) != (a[0] < 0)) mixedSigns = true;
     }
-    /* 缩放避免倒数溢出；补偿求和保留大项抵消后的小余项。 */
-    for (i = 0; i < n; ++i) {
-        xstat_add_compensated(scale / a[i], &acc, &correction);
+    if (mixedSigns) {
+        acc = xstat_reciprocals_signed(a, n, &exponent);
+    } else {
+        /* 同号数据没有抵消，仍走线性缩放；排序仅修改混合符号的临时副本。 */
+        for (i = 0; i < n; ++i)
+            xstat_add_compensated(scale / a[i], &acc, &correction);
+        acc += correction;
     }
     xrtFree(a);
-    acc += correction;
     if (!isfinite(acc) || acc == 0) {
         return xstat_fail("harmonic mean is undefined for these values");
     }
+    if (mixedSigns) return xstat_number(ldexp((double)n / acc, -exponent));
     result = scale * ((double)n / acc);
     if (!isfinite(result)) result = (scale / acc) * (double)n;
     return xstat_number(result);

@@ -53,7 +53,7 @@ try {
     $native=Join-Path $work 'native.o'
     $null=Run 'selected XRT compile' $gcc ($flags+@('-c','release/extlibs/statistics/test/xrt_runtime.c','-o',$runtime))
     $null=Run 'native compile' $gcc ($flags+@('-c','release/extlibs/statistics/statistics_native.c','-o',$native))
-    foreach ($name in @('test_statistics','size_guard','translation_c')) {
+    foreach ($name in @('test_statistics','size_guard','translation_c','harmonic_c')) {
         $binary=Join-Path $work ($name+'.exe')
         $source="release/extlibs/statistics/test/$name.c"
         $objects=@($runtime)
@@ -61,6 +61,7 @@ try {
         $null=Run "$name compile" $gcc ($flags+@('-DNDEBUG',$source)+$objects+$links+@('-o',$binary))
         $output=Run $name $binary @()
         if ($name -eq 'translation_c' -and $output -cne 'statistics translation: 160 checks, 0 failures') { throw 'Incomplete translation checks' }
+        if ($name -eq 'harmonic_c' -and $output -cne 'statistics harmonic: 2019 cases, 14217 checks, 2 OOM, 0 failures') { throw 'Incomplete harmonic checks' }
     }
     $records=Run 'Fraction input/output records' (Join-Path $work 'translation_c.exe') @('--records')
     $path=Join-Path $work 'gcc.tsv'
@@ -68,7 +69,17 @@ try {
     $null=Run 'Fraction/Decimal oracle' $python @('release/extlibs/statistics/test/check_translation.py',$path)
     $output=Run 'translation direct C' $xl @('run','release/extlibs/statistics/test/translation_c.c')
     if ($output -cne 'statistics translation: 160 checks, 0 failures') { throw 'TCC translation differs' }
-    $examples=@(@('statistics_c','basic'),@('trend_c','trend'),@('distribution_c','distribution'),@('measurement_offsets_c','measurement_offsets'))
+    $harmonic=Run 'harmonic Fraction records' (Join-Path $work 'harmonic_c.exe') @('--records')
+    $path=Join-Path $work 'harmonic-gcc.tsv'
+    [IO.File]::WriteAllText($path,$harmonic+"`n",$utf8)
+    $null=Run 'harmonic Fraction oracle' $python @('release/extlibs/statistics/test/check_harmonic.py',$path)
+    $output=Run 'harmonic direct C' $xl @('run','release/extlibs/statistics/test/harmonic_c.c')
+    if ($output -cne 'statistics harmonic: 2019 cases, 14217 checks, 2 OOM, 0 failures') { throw 'TCC harmonic differs' }
+    $records=Run 'harmonic TCC records' $xl @('run','release/extlibs/statistics/test/harmonic_c.c','--','--records')
+    $path=Join-Path $work 'harmonic-tcc.tsv'
+    [IO.File]::WriteAllText($path,$records+"`n",$utf8)
+    $null=Run 'harmonic TCC oracle' $python @('release/extlibs/statistics/test/check_harmonic.py',$path)
+    $examples=@(@('statistics_c','basic'),@('trend_c','trend'),@('distribution_c','distribution'),@('measurement_offsets_c','measurement_offsets'),@('harmonic_scales_c','harmonic_scales'))
     $goldens=@{}
     foreach ($pair in $examples) {
         $expected=Normalize ([IO.File]::ReadAllText((Join-Path $PSScriptRoot "../examples/$($pair[1]).expected.txt")))
@@ -76,7 +87,7 @@ try {
         $source="release/extlibs/statistics/examples/$($pair[0]).c"
         $binary=Join-Path $work ($pair[0]+'.exe')
         $objects=@($runtime)
-        if ($pair[0] -eq 'measurement_offsets_c') { $objects+=$native }
+        if ($pair[0] -in @('measurement_offsets_c','harmonic_scales_c')) { $objects+=$native }
         $null=Run "$($pair[0]) compile" $gcc ($flags+@('-DNDEBUG',$source)+$objects+$links+@('-o',$binary))
         $c=Run "$($pair[0]) GCC" $binary @()
         $direct=Run "$($pair[0]) direct" $xl @('run',$source)
@@ -94,7 +105,7 @@ try {
     [IO.File]::WriteAllText($abi,"#include `"statistics_native.h`"`n"+($decls -join "`n"),$utf8)
     $null=Run '23 actual prototypes' $gcc ($flags+@('-fsyntax-only',$abi))
     if (-not $SkipAot) {
-        $sources=@('release/extlibs/statistics/test/translation_c.c','release/extlibs/statistics/test/size_guard.c')
+        $sources=@('release/extlibs/statistics/test/translation_c.c','release/extlibs/statistics/test/size_guard.c','release/extlibs/statistics/test/harmonic_c.c')
         $sources+=@($examples|ForEach-Object{"release/extlibs/statistics/examples/$($_[0]).c"})
         foreach ($source in $sources) {
             $binary=Join-Path $work (([guid]::NewGuid().ToString('N'))+'.exe')
@@ -109,13 +120,21 @@ try {
                 [IO.File]::WriteAllText($path,$records+"`n",$utf8)
                 $null=Run 'TCC AOT Fraction oracle' $python @('release/extlibs/statistics/test/check_translation.py',$path)
             }
+            if ($name -eq 'harmonic_c') {
+                if ($output -cne 'statistics harmonic: 2019 cases, 14217 checks, 2 OOM, 0 failures') { throw 'AOT harmonic differs' }
+                $records=Run 'harmonic AOT records' $binary @('--records')
+                $path=Join-Path $work 'harmonic-aot.tsv'
+                [IO.File]::WriteAllText($path,$records+"`n",$utf8)
+                $null=Run 'harmonic AOT oracle' $python @('release/extlibs/statistics/test/check_harmonic.py',$path)
+            }
         }
     }
     # 真正的语言数组仍是必过正例；M1不得以C工厂或忽略退出码绕过。
     $full=@('release/extlibs/statistics/examples/measurement_offsets.xl','test/cases/extlib_statistics.xl',
         'release/extlibs/statistics/test/boundaries.xl','release/extlibs/statistics/test/allocations.xl',
         'release/extlibs/statistics/examples/basic.xl','release/extlibs/statistics/examples/trend.xl',
-        'release/extlibs/statistics/examples/distribution.xl','release/examples/extlibs/statistics.xl')
+        'release/extlibs/statistics/examples/distribution.xl','release/examples/extlibs/statistics.xl',
+        'release/extlibs/statistics/examples/harmonic_scales.xl')
     foreach ($source in $full) {
         $output=Run "$source complete JIT" $xl @('run',$source)
         foreach ($pair in $examples) { if ($source -eq "release/extlibs/statistics/examples/$($pair[1]).xl" -and $output -cne $goldens[$pair[0]]) { throw 'Bilingual example differs' } }

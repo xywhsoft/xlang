@@ -1,0 +1,6 @@
+import statistics
+
+func main(...) as int
+    assert math.abs(-1.0) == 1.0
+    return 0
+end

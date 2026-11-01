@@ -13,6 +13,6 @@
     "links": [],
     "loadlibs": [],
     "dependencies": [],
-    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl", "examples/measurement_offsets.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl", "examples/measurement_offsets.xl", "examples/harmonic_scales.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }
