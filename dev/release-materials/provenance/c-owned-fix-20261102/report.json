@@ -1,0 +1,101 @@
+{
+  "complete": true,
+  "date": "2026-11-02",
+  "fixCommits": [
+    "9d09e136a",
+    "5c0f86142"
+  ],
+  "validatedCompilerCommit": "769eb53e6b224651d88b62d64dd1cd2159478d74",
+  "mergedUpstreamCompilerCommit": "9e7198a3d",
+  "compilerTreeMatchesBuildCommit": "55219ae4f",
+  "checks": {
+    "windows": {
+      "sourceUnits": 1397,
+      "acceptance": 291,
+      "independent": 61,
+      "delivery": 9,
+      "review": 112
+    },
+    "linux": {
+      "sourceUnits": 1396,
+      "acceptance": 291,
+      "independent": 61,
+      "delivery": 7,
+      "review": 112
+    }
+  },
+  "sourceComparison": {
+    "commonInputs": 2719,
+    "mismatches": []
+  },
+  "scope": "Fixes and merged native factory support validated from source. All shipping binaries remain unchanged. Original receipt bytes and paths are preserved. Linux merged cohort rebuilt all 48 compiler/API/TCC/tool units; 1348 runtime objects are reused only with unchanged include closures and flags.",
+  "safety": [
+    "Alias AST shapes remain unchanged on successful and rejected adaptation.",
+    "Exact owner invocation bodies contain no CString/Bytes copy.",
+    "Generic target selection and closed C input ABI mutations are rejected before C/header emission.",
+    "Alias runtime regression scans 256 synchronous OOM prefixes; generic factory regression scans 320. All require successful and failing samples and balanced XRT/foreign allocations."
+  ],
+  "performance": "Changes are compile-time alias resolution and generic inference/ranking. Original owner signatures keep original foreign payloads. Explicit ordinary results, xcall and Future boundaries retain their existing conversion/closure/publication costs; no XRT layout or ordinary string read branch is added.",
+  "runtimeLayoutChanged": false,
+  "shippingBinariesRebuilt": false,
+  "artifacts": {
+    "dev/release-materials/provenance/c-owned-fix-20261102/windows-build.json": {
+      "sha256": "93b4bbe7626fab25bcf5502224c195b6f74d7b2ff165ad61827167015d715c68",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-fix-20261102\\windows-merged\\build.json",
+      "originalSha256": "93b4bbe7626fab25bcf5502224c195b6f74d7b2ff165ad61827167015d715c68"
+    },
+    "dev/release-materials/provenance/c-owned-fix-20261102/windows-acceptance.json": {
+      "sha256": "82c0365cab6a694daedc4277959ac041eb87d5efd4610068ef70960249da5a55",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-fix-20261102\\windows-merged-acceptance\\result.json",
+      "originalSha256": "82c0365cab6a694daedc4277959ac041eb87d5efd4610068ef70960249da5a55"
+    },
+    "dev/release-materials/provenance/c-owned-fix-20261102/windows-independent.json": {
+      "sha256": "00e2e2edfed4e162b608828d39b5b834575930d5e8058f8f77e8f2766a7df788",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-fix-20261102\\windows-merged-acceptance\\independent-C\\result.json",
+      "originalSha256": "00e2e2edfed4e162b608828d39b5b834575930d5e8058f8f77e8f2766a7df788"
+    },
+    "dev/release-materials/provenance/c-owned-fix-20261102/windows-delivery.json": {
+      "sha256": "9eb7ad273407bb70e9532945e14cad0d43d9f675727bcf12f10135c84fa2e705",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-fix-20261102\\windows-merged-delivery\\result.json",
+      "originalSha256": "9eb7ad273407bb70e9532945e14cad0d43d9f675727bcf12f10135c84fa2e705"
+    },
+    "dev/release-materials/provenance/c-owned-fix-20261102/windows-review.json": {
+      "sha256": "ea9c656ca43a7d4ca55f34c960e5aedcdfea7d07e54219ad1e7e91606fee2a3a",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-fix-20261102\\windows-merged-review\\result.json",
+      "originalSha256": "ea9c656ca43a7d4ca55f34c960e5aedcdfea7d07e54219ad1e7e91606fee2a3a"
+    },
+    "dev/release-materials/provenance/c-owned-fix-20261102/linux-build.json": {
+      "sha256": "1ffddc681d28b47a916f758cb9359f5f173a7218ae4e6a2461e765a9c0526147",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-fix-20261102\\linux-merged-verified\\build.json",
+      "originalSha256": "1ffddc681d28b47a916f758cb9359f5f173a7218ae4e6a2461e765a9c0526147"
+    },
+    "dev/release-materials/provenance/c-owned-fix-20261102/linux-acceptance.json": {
+      "sha256": "4a5b71f99cd31b1bef71c4997714c4b46e8ef64718fe51044b75c2a0bf9037fe",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-fix-20261102\\linux-merged-acceptance\\result.json",
+      "originalSha256": "4a5b71f99cd31b1bef71c4997714c4b46e8ef64718fe51044b75c2a0bf9037fe"
+    },
+    "dev/release-materials/provenance/c-owned-fix-20261102/linux-independent.json": {
+      "sha256": "bd27070d6769af1a7198cc5be33ea8890702d07ff4370fde99060e90bad7e8eb",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-fix-20261102\\linux-merged-acceptance\\independent-C\\result.json",
+      "originalSha256": "bd27070d6769af1a7198cc5be33ea8890702d07ff4370fde99060e90bad7e8eb"
+    },
+    "dev/release-materials/provenance/c-owned-fix-20261102/linux-delivery.json": {
+      "sha256": "0a79eae5a34e3df5b135dd6b1886ac344e240c73d202d69c2b9c47061dcecdb1",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-fix-20261102\\linux-merged-delivery\\result.json",
+      "originalSha256": "0a79eae5a34e3df5b135dd6b1886ac344e240c73d202d69c2b9c47061dcecdb1"
+    },
+    "dev/release-materials/provenance/c-owned-fix-20261102/linux-review.json": {
+      "sha256": "67b59e43520769d4ea569fa223236de389e09a65e614c9e1cd149a11e416a89e",
+      "original": "D:\\GIT\\x-lang\\build\\c-owned-fix-20261102\\linux-merged-review\\result.json",
+      "originalSha256": "67b59e43520769d4ea569fa223236de389e09a65e614c9e1cd149a11e416a89e"
+    },
+    "dev/release-materials/sources/c-owned-fix-20261102/source.tar.gz": {
+      "sha256": "bc53f620711fd8031157b5db6d3e889cdae43f90830a8352960ee41819148b9a",
+      "bytes": 46859407
+    },
+    "dev/release-materials/sources/c-owned-fix-20261102/merged-source.tar.gz": {
+      "sha256": "4e327ca241bf52477880d06b28c3bca15efb50e447ea1794b79674e576da8421",
+      "bytes": 46874627
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "complete": true,
+  "checks": [
+    {
+      "name": "emit",
+      "exit": 0
+    },
+    {
+      "name": "jit",
+      "exit": 0
+    },
+    {
+      "name": "aot-build",
+      "exit": 0
+    },
+    {
+      "name": "aot",
+      "exit": 0
+    },
+    {
+      "name": "shared-build",
+      "exit": 0
+    },
+    {
+      "name": "shared-call",
+      "exit": 0
+    },
+    {
+      "name": "nested-jit",
+      "exit": 0
+    },
+    {
+      "name": "nested-aot-build",
+      "exit": 0
+    },
+    {
+      "name": "nested-aot",
+      "exit": 0
+    }
+  ],
+  "inputs": {
+    "D:\\GIT\\x-lang\\build\\c-owned-fix-20261102\\windows-merged\\build.json": "93b4bbe7626fab25bcf5502224c195b6f74d7b2ff165ad61827167015d715c68",
+    "D:\\GIT\\x-lang\\build\\c-owned-fix-20261102\\windows-merged\\public_source.exe": "2ff9b4f4149984502f33123e8b9120fd1b8ee7997467222eff4e6c5ced6cc87f",
+    "D:\\GIT\\x-lang\\build\\c-owned-fix-20261102\\windows-merged\\xlc.dll": "27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\tools\\check_source_driver_delivery.py": "71090395bd96740018c4101f263751963a56d4d3f09a616ab89318969f68c968"
+  }
+}

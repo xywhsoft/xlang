@@ -1,0 +1,707 @@
+{
+  "complete": true,
+  "checks": [
+    {
+      "name": "alias-erasure-plain",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "alias-erasure-plain",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "alias-erasure-plain",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "alias-erasure-plain",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "binary-owner-alias-spawn-cleanup",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "binary-owner-alias-spawn-cleanup",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "binary-owner-alias-spawn-cleanup",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "binary-owner-alias-spawn-cleanup",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "binary-owner-alias-spawn",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "binary-owner-alias-spawn",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "binary-owner-alias-spawn",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "binary-owner-alias-spawn",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "binary-owner-structural-spawn",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "binary-owner-structural-spawn",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "binary-owner-structural-spawn",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "binary-owner-structural-spawn",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-body-throw",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-body-throw",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-body-throw",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-body-throw",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-erasure-structural",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-erasure-structural",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-erasure-structural",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-erasure-structural",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-erasure",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-erasure",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-erasure",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-erasure",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-future",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-future",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-future",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-future",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-argument-exact",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-argument-exact",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-argument-exact",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-argument-exact",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-argument-plain",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-argument-plain",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-argument-plain",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-argument-plain",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-argument",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-argument",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-argument",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-argument",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-exact",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-exact",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-exact",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-exact",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-plain",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-plain",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-plain",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-plain",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-prebound",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-prebound",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-prebound",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-prebound",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-result",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-result",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-result",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-generic-result",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-inner-product",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-inner-product",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-inner-product",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-inner-product",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-metadata-structural",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-metadata-structural",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-metadata-structural",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-metadata-structural",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-multiple-callables",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-multiple-callables",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-multiple-callables",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-multiple-callables",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-null-result",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-null-result",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-null-result",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-null-result",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-optional-fields",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-optional-fields",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-optional-fields",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-optional-fields",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-outer-erasure",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-outer-erasure",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-outer-erasure",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-outer-erasure",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-overload",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-overload",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-overload",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "nested-overload",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-alias-erasure",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-alias-erasure",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-alias-erasure",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-alias-erasure",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-alias-spawn-before",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-alias-spawn-before",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-alias-spawn-before",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-alias-spawn-before",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-alias-spawn-cleanup",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-alias-spawn-cleanup",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-alias-spawn-cleanup",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-alias-spawn-cleanup",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-alias-spawn",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-alias-spawn",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-alias-spawn",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-alias-spawn",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-structural-erasure",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-structural-erasure",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-structural-erasure",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-structural-erasure",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-structural-spawn",
+      "mode": "emit",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-structural-spawn",
+      "mode": "run",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-structural-spawn",
+      "mode": "exe",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "owner-structural-spawn",
+      "mode": "aot",
+      "exit": 0,
+      "passed": true
+    }
+  ],
+  "sourceHashes": {
+    "alias-erasure-plain.xl": "4870a88b528fda71b631337e5b58006c374976d26e6ae0821d822657afb2304f",
+    "binary-owner-alias-spawn-cleanup.xl": "1094857237755d399e59400732883397f600beb144dbb9c32a8f6caca13291d7",
+    "binary-owner-alias-spawn.xl": "1094857237755d399e59400732883397f600beb144dbb9c32a8f6caca13291d7",
+    "binary-owner-structural-spawn.xl": "4632098afeed50a8ebe8417cf5dc32986b394640687cc67b1f1fd185c3fe0352",
+    "nested-body-throw.xl": "4c041a01681ce17a8797b8a20101e39ebed88791453b7adf9ade363274bdc785",
+    "nested-erasure-structural.xl": "336cc7706d2b7e94a50c04cc48f55f2c9c280961caabfefe311778e807847055",
+    "nested-erasure.xl": "68dcf990bb8746de1b58879fdf6d5b4b5e2a8f9a4164770a7b8dd3671cba5b44",
+    "nested-future.xl": "b946267ef388e6735d33319ccd8631840045ab34413699e4e514e4cb7afb319d",
+    "nested-generic-argument-exact.xl": "9e58da9507547d44e3fb7da0a1b891725f026d6ac0d5699f3ea3fa0f286ddf37",
+    "nested-generic-argument-plain.xl": "265afe11b21a69639d30d1173797683cfe7175d410afb6f41d9b27441d0bdd62",
+    "nested-generic-argument.xl": "dd29068c2803b74f44d8aeadb3901c010c1b16d0c4a15c0e30b617180fa16abf",
+    "nested-generic-exact.xl": "08dc9af35baf86383e55dee12ac7e18c0632d9adc1fc6774928bf92e925164c2",
+    "nested-generic-plain.xl": "93ab9e5af18b697090f55c2a312ccc5939651c756f9220071a8a5242ab98ee56",
+    "nested-generic-prebound.xl": "6579f030853d25e6b56f803d11b83eddcc5351c2fb9dc66f0e9bc360270ece69",
+    "nested-generic-result.xl": "79a609b0e7a2cee8a0b06b97201e0afebdf2aff42be58623ba961564f8b435a8",
+    "nested-inner-product.xl": "861d41b7600dd177a454336b2f264a97580abeec4b82207c7646345aa4a9f089",
+    "nested-metadata-structural.xl": "cba6eca39b4a3e107df4e7ef38942f436747b5c3ec0e2a43b00ea0d59f5b2adf",
+    "nested-multiple-callables.xl": "91e11831c6874c47f0f63c4937cca57e8c46b7a7996c7259e415d05ab94f4177",
+    "nested-null-result.xl": "1663313281028bae202270e39465bbfac7268cdb23c619e928dbb921fd0cffd7",
+    "nested-optional-fields.xl": "045d83bebf744953d82e4a961b54b0a467f34d6efa49918810fe6d14ff3fdf0a",
+    "nested-outer-erasure.xl": "35d1280aff26e8de5cd4e5e093473e07fe3efbbf16d5f88bda9ea806c4935974",
+    "nested-overload.xl": "08892ed9790e0757d8900a9661a2de7783eee56e18cc63951d42fbcc70c2826c",
+    "owner-alias-erasure.xl": "eb248cea86df0c701b6b2d6c9890897e1c8b3c0d2177ba8caac9e69742d4b00a",
+    "owner-alias-spawn-before.xl": "494cc83905e13c95b722181bd2693fb98e4b423d818de2b674f5de38ed8eb0cc",
+    "owner-alias-spawn-cleanup.xl": "9f6619a44666112a12771a37edad6c2f54c5e314db51618bcff9573bf586419c",
+    "owner-alias-spawn.xl": "9f6619a44666112a12771a37edad6c2f54c5e314db51618bcff9573bf586419c",
+    "owner-structural-erasure.xl": "23b54109854736ebf9b7512e1670d84fd17ac54fca10a6f228266aa4f74e2cdb",
+    "owner-structural-spawn.xl": "b2e6b52ae49432f15400c2c942665a3ad58d30f8fc8c21ab31dce3bc30d7745f"
+  }
+}
