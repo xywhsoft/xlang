@@ -1335,6 +1335,18 @@ static int xl6SemCheckInternalClassHandleType(XL6_SemContext* ctx, XL6_AstNode* 
     return xl6SemCheckType(ctx, target);
 }
 
+static int xl6SemEnsureForeignArrayType(XL6_SemContext* ctx, const XL6_AstNode* type)
+{
+    uint64 extent;
+    if (!type || !xl6ForeignArrayExtent(type->text, &extent)) return 1;
+    char abi[64];
+    snprintf(abi, sizeof(abi), "xlang.native_array.%llu", (unsigned long long)extent);
+    const XL6_TypeInfo* info = xl6TypeRegistryFind(&ctx->types, type->text);
+    if (info) return info->kind == XL6_TYPE_BUILTIN && info->allowGeneric &&
+        info->genericArity == 1 && info->abiId == xl6TypeAbiIdText(abi);
+    return xl6TypeRegistryAdd(&ctx->types, type->text, abi, XL6_TYPE_BUILTIN, 1, 1, NULL);
+}
+
 static int xl6SemCheckType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
 {
     const XL6_TypeInfo* typeInfo;
@@ -1459,6 +1471,10 @@ static int xl6SemCheckType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
         genericCount = (int)typeNode->children[0]->childCount;
     }
 
+    if (!xl6SemEnsureForeignArrayType(ctx, typeNode)) {
+        xl6SemErrorNode(ctx, typeNode, "cannot register the exact fixed C array extent");
+        return 0;
+    }
     typeInfo = xl6TypeRegistryFind(&ctx->types, typeNode->text);
     if ( typeInfo == NULL ) {
         str message = xrtFormat("未知类型: %s", typeNode->text != NULL ? typeNode->text : "");
@@ -14272,7 +14288,8 @@ static XL6_AstNode* xl6SemCloneContainerItemType(XL6_SemContext* ctx, const XL6_
     const XL6_AstNode* itemType;
 
     concreteType = xl6SemResolveAliasType(ctx, typeNode);
-    if ( concreteType == NULL || !xl6SemIsContainerBaseTypeName(concreteType->text) ) {
+    if ( concreteType == NULL || (!xl6SemIsContainerBaseTypeName(concreteType->text) &&
+         !xl6ForeignArrayExtent(concreteType->text, NULL)) ) {
         return NULL;
     }
 
@@ -14526,6 +14543,10 @@ static void xl6SemBindInferredTypeIdentity(
     if ( typeNode->kind == XL6_AST_TYPE && typeNode->text != NULL ) {
         XL6_AstNode* typeParam = typeNode->childCount == 0 ?
             xl6SemFindTypeParamNode(ctx, typeNode->text) : NULL;
+        if (!xl6SemEnsureForeignArrayType(ctx, typeNode)) {
+            xl6SemErrorNode(ctx, typeNode, "cannot register fixed C array type identity");
+            return;
+        }
         const XL6_TypeInfo* typeInfo = xl6TypeRegistryFind(&ctx->types, typeNode->text);
 
         if ( typeParam != NULL ) {
@@ -16386,7 +16407,12 @@ static int xl6SemCheckIndexExpr(XL6_SemContext* ctx, XL6_AstNode* node)
             xl6SemErrorNode(ctx, index, "dict 索引键必须是 string");
             ok = 0;
         }
-    } else if ( xl6SemIsArrayTypeName(receiverType) || xl6SemIsListTypeName(receiverType) ) {
+    } else if ( xl6SemIsArrayTypeName(receiverType) || xl6SemIsListTypeName(receiverType) ||
+                xl6ForeignArrayExtent(receiverType, NULL) ) {
+        if (xl6ForeignArrayExtent(receiverType, NULL) && node->kind == XL6_AST_SAFE_INDEX) {
+            xl6SemErrorNode(ctx, node, "fixed C array uses checked ordinary indexing");
+            ok = 0;
+        }
         if ( argCount != 1 ) {
             xl6SemErrorNode(ctx, node, "array/list index supports exactly one key");
             return 0;
@@ -16866,6 +16892,19 @@ static int xl6SemCheckMemberExpr(XL6_SemContext* ctx, XL6_AstNode* node)
     ok = xl6SemCheckChildrenExpr(ctx, node);
     receiver = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
     receiverType = receiver != NULL ? xl6SemInferAutoTypeNode(ctx, receiver) : NULL;
+    if (receiverType && xl6ForeignArrayExtent(receiverType->text, NULL)) {
+        if (!xl6TextEquals(node->text, "length")) {
+            xl6SemErrorNode(ctx, node, "fixed C array exposes length and indexed elements");
+            xl6AstFree(receiverType);
+            return 0;
+        }
+        XL6_AstNode* type = xl6AstNewText(XL6_AST_TYPE, "int", 3, NULL);
+        xl6SemBindInferredTypeIdentity(ctx, type);
+        xl6AstFree(node->inferredType);
+        node->inferredType = type;
+        xl6AstFree(receiverType);
+        return ok && type != NULL;
+    }
     if ( xl6SemNullableInnerType(xl6SemResolveAliasType(ctx, receiverType)) != NULL ) {
         xl6SemErrorNode(
             ctx,
@@ -18611,6 +18650,24 @@ static int xl6SemCheckAssign(XL6_SemContext* ctx, XL6_AstNode* node)
         }
     }
     unionInitSymbol = xl6SemUnionFieldInitSymbol(ctx, left, op);
+    if (left && left->kind == XL6_AST_INDEX && left->childCount) {
+        XL6_AstNode* receiver = left->children[0];
+        XL6_AstNode* type = xl6SemInferAutoTypeNode(ctx, receiver);
+        if (type && xl6ForeignArrayExtent(type->text, NULL)) {
+            XL6_AstNode* root = receiver;
+            while (root && root->kind == XL6_AST_MEMBER && root->childCount == 1) root = root->children[0];
+            XL6_Symbol* binding = root && root->kind == XL6_AST_NAME ? xl6ScopeFind(ctx->scope, root->text) : NULL;
+            if (!binding) {
+                xl6SemErrorNode(ctx, left, "fixed C array mutation needs addressable variable storage");
+                ok = 0;
+            } else if (xl6SemSymbolIsConst(binding) &&
+                !xl6SemTypeUsesClassReferenceSemantics(ctx, binding->type)) {
+                xl6SemErrorNode(ctx, left, "const fixed C array value cannot be modified");
+                ok = 0;
+            }
+        }
+        xl6AstFree(type);
+    }
     readOnlyLengthTarget = 0;
     dynamicMemberTarget = 0;
     rightIsMultiReturn = right != NULL && xl6SemExprIsMultiReturnCall(ctx, right);
@@ -18625,7 +18682,8 @@ static int xl6SemCheckAssign(XL6_SemContext* ctx, XL6_AstNode* node)
 
         readOnlyLengthTarget =
             xl6SemSafeMemberLengthReceiverIsContainer(ctx, receiverType) ||
-            xl6SemSafeMemberKeyReceiverIsDynamic(ctx, receiverType);
+            xl6SemSafeMemberKeyReceiverIsDynamic(ctx, receiverType) ||
+            (receiverType && xl6ForeignArrayExtent(receiverType->text, NULL));
         dynamicMemberTarget = xl6SemSafeMemberKeyReceiverIsDynamic(ctx, receiverType);
         xl6AstFree(receiverType);
     } else if ( left != NULL && left->kind == XL6_AST_MEMBER && left->childCount > 0 ) {
@@ -21740,6 +21798,11 @@ static int xl6SemCheckField(XL6_SemContext* ctx, XL6_AstNode* field, const XL6_A
 
     ok = 1;
     defaultExpr = xl6SemFieldDefaultExpr(field);
+    if (field->childCount && xl6ForeignArrayExtent(field->children[0]->text, NULL) &&
+        (!owner || owner->kind != XL6_AST_C_RECORD)) {
+        xl6SemErrorNode(ctx, field, "fixed C array fields require an external C record");
+        return 0;
+    }
     if ( xl6SemIsSpecialName(field->text) ) {
         xl6SemErrorNode(ctx, field, "字段名不能使用 create 或 destroy");
         ok = 0;
@@ -22359,6 +22422,11 @@ static int xl6SemUnionFieldTypeIsPlainDepth(XL6_SemContext* ctx, const XL6_AstNo
     typeInfo = xl6TypeRegistryFind(&ctx->types, typeNode->text);
     if ( typeInfo == NULL ) {
         return 1;
+    }
+    if (xl6ForeignArrayExtent(typeNode->text, NULL)) {
+        const XL6_AstNode* args = xl6SemTypeNodeGenericArgs(typeNode);
+        return args && args->childCount == 1 &&
+            xl6SemUnionFieldTypeIsPlainDepth(ctx, args->children[0], depth + 1);
     }
     if ( typeInfo->kind == XL6_TYPE_BUILTIN ) {
         return 1;
@@ -23011,7 +23079,7 @@ static int xl6SemCheckUnion(XL6_SemContext* ctx, XL6_AstNode* node)
             xl6SemErrorNode(ctx, field, "union fields do not support default values");
             ok = 0;
         }
-        if ( !xl6SemCheckField(ctx, field, NULL) ) {
+        if ( !xl6SemCheckField(ctx, field, node->kind == XL6_AST_C_RECORD ? node : NULL) ) {
             ok = 0;
         }
         if ( field->childCount > 0 && !xl6SemUnionFieldTypeIsPlainDepth(ctx, field->children[0], 0) ) {

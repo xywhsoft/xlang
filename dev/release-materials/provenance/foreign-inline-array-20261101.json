@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "scope": "Windows canonical source checkpoint; no release/SDK update or full eight-item completion",
+  "buildUnits": 1397,
+  "inputsUnchanged": true,
+  "arrayStages": 30,
+  "invalidIrRejections": 29,
+  "zeroOutputRejections": 58,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\source-r5\\build.json",
+      "sha256": "c44477a6172f2fb11ad3b7d10061170be8349a37c731b7bf9a0c3f720a468555"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\array-source-r5\\stages.json",
+      "sha256": "8b2a33b5071aa77287856b476add2985e8e0a90eed47b1d056f370ddf2433e5f"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\array-source-r5\\ir-contract-O0-run.log",
+      "sha256": "b2014259a9b9843c457fba1d51d2320ba2f9a8ca56f9d03116ca54d8ee3ca3bf"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\array-source-r5\\ir-contract-O2-run.log",
+      "sha256": "b2014259a9b9843c457fba1d51d2320ba2f9a8ca56f9d03116ca54d8ee3ca3bf"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\handle-source-r5\\stages.json",
+      "sha256": "e248540ce7d31309827d87ca348195ea01c0316a8f3dcc25e6e2eb3a10744865"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\record-source-r5\\stages.json",
+      "sha256": "ff81200040bd241df94c4438bf61e015fb2f69f15a3bb8c91d9150c49ab1a585"
+    }
+  ]
+}

@@ -47,6 +47,67 @@ static int xl6IrCgenTypeSelected(
            (size_t)type <= module->types.count && selectedTypes[type - 1] != 0;
 }
 
+static int xl6IrCgenEmitForeignArrayType(XL6_Output* out, const XL6_IrModule* module,
+    XL6_IrTypeId id, unsigned char* states, XL6_DiagList* diags)
+{
+    const XL6_IrType* type = xl6IrTypeGet(&module->types, id);
+    if (!type || type->cAbi != XL6_IR_C_ABI_C_ARRAY) return 1;
+    if (states[id - 1] == 2) return 1;
+    if (states[id - 1] == 1) return xl6IrCgenDiag(diags, module, 0, "recursive fixed C array value");
+    states[id - 1] = 1;
+    if (!xl6IrCgenEmitForeignArrayType(out, module, type->params[0], states, diags)) return 0;
+    const char* element = xl6IrCgenType(module, type->params[0]);
+    if (!element) return xl6IrCgenDiag(diags, module, 0, "fixed C array has no exact element type");
+    xl6OutputPrintf(out, "#ifndef XL6_C_ARRAY_DEFINED_%s\n#define XL6_C_ARRAY_DEFINED_%s 1\n"
+        "typedef struct { %s Elements[%llu]; } %s;\n#endif\n",
+        type->cName, type->cName, element, (unsigned long long)type->nativeArrayExtent, type->cName);
+    states[id - 1] = 2;
+    return !xl6OutputHasFailed(out);
+}
+
+static int xl6IrCgenEmitForeignArrayTypes(XL6_Output* out, const XL6_IrModule* module,
+    const unsigned char* selectedTypes, XL6_DiagList* diags)
+{
+    int needed = 0;
+    for (size_t i = 0; i < module->types.count; ++i)
+        if (module->types.items[i].cAbi == XL6_IR_C_ABI_C_ARRAY &&
+            xl6IrCgenTypeSelected(module, (XL6_IrTypeId)(i + 1), selectedTypes)) needed = 1;
+    if (!needed) return 1;
+    /* Authority headers define the C record elements before any inline-array
+     * value carrier is instantiated. No second definition of those records. */
+    for (size_t i = 0; i < module->types.count; ++i) {
+        const XL6_IrType* type = &module->types.items[i];
+        if (type->foreignHeader && xl6IrCgenTypeSelected(module, (XL6_IrTypeId)(i + 1), selectedTypes))
+            xl6OutputPrintf(out, "#include <%s>\n", type->foreignHeader);
+    }
+    unsigned char* states = xrtCalloc(module->types.count, 1);
+    if (!states) return xl6IrCgenDiag(diags, module, 0, "cannot order fixed C array declarations");
+    int okay = 1;
+    for (size_t i = 0; okay && i < module->types.count; ++i)
+        if (xl6IrCgenTypeSelected(module, (XL6_IrTypeId)(i + 1), selectedTypes))
+            okay = xl6IrCgenEmitForeignArrayType(out, module, (XL6_IrTypeId)(i + 1), states, diags);
+    xrtFree(states);
+    return okay;
+}
+
+static int xl6IrCgenEmitForeignFieldSchema(XL6_Output* out, const XL6_IrModule* module,
+    const XL6_IrAggregateField* field, XL6_DiagList* diags)
+{
+    const XL6_IrType* type = xl6IrTypeGet(&module->types, field->type);
+    uint64 extents[64]; size_t count = 0;
+    while (type && type->cAbi == XL6_IR_C_ABI_C_ARRAY) {
+        if (count == 64) return xl6IrCgenDiag(diags, module, field->declaration, "C array rank exceeds the verified type depth");
+        extents[count++] = type->nativeArrayExtent;
+        type = xl6IrTypeGet(&module->types, type->params[0]);
+    }
+    const char* name = type ? xl6IrCgenType(module, (XL6_IrTypeId)(type - module->types.items + 1)) : NULL;
+    if (!name) return xl6IrCgenDiag(diags, module, field->declaration, "C field has no exact native element");
+    xl6OutputPrintf(out, "    %s %s", name, field->cName);
+    for (size_t i = 0; i < count; ++i) xl6OutputPrintf(out, "[%llu]", (unsigned long long)extents[i]);
+    xl6OutputPuts(";\n", out);
+    return !xl6OutputHasFailed(out);
+}
+
 static int xl6IrCgenEmitUnionTypes(
     XL6_Output* out, const XL6_IrModule* module,
     const unsigned char* selectedTypes, XL6_DiagList* diags,
@@ -57,6 +118,7 @@ static int xl6IrCgenEmitUnionTypes(
     size_t requiredCount = 0;
     size_t pass;
     size_t layoutIndex;
+    if (!xl6IrCgenEmitForeignArrayTypes(out, module, selectedTypes, diags)) return 0;
     for ( layoutIndex = 0; layoutIndex < module->aggregateLayoutCount; ++layoutIndex )
         if ( xl6IrCgenTypeSelected(
                  module, module->aggregateLayouts[layoutIndex].type, selectedTypes) )
@@ -121,7 +183,7 @@ static int xl6IrCgenEmitUnionTypes(
                         return xl6IrCgenDiag(diags, module, field->declaration,
                             "C record field has no exact physical type");
                     }
-                    xl6OutputPrintf(out, "    %s %s;\n", cType, field->cName);
+                    if (!xl6IrCgenEmitForeignFieldSchema(out, module, field, diags)) { xrtFree(emitted); return 0; }
                 }
                 xl6OutputPrintf(out, "} xlir_record_schema_%s;\n"
                     "_Static_assert(sizeof(%s) == sizeof(xlir_record_schema_%s), \"C record size\");\n"
@@ -133,9 +195,19 @@ static int xl6IrCgenEmitUnionTypes(
                         &module->aggregateFields[layout->firstField + fieldOffset];
                     const char* cType = xl6IrCgenType(module, field->type);
                     xl6OutputPrintf(out,
-                        "_Static_assert(offsetof(%s, %s) == offsetof(xlir_record_schema_%s, %s), \"C record field offset\");\n"
+                        "_Static_assert(offsetof(%s, %s) == offsetof(xlir_record_schema_%s, %s), \"C record field offset\");\n",
+                        unionType->cName, field->cName, unionType->cName, field->cName);
+                    const XL6_IrType* fieldType = xl6IrTypeGet(&module->types, field->type);
+                    if (fieldType->cAbi == XL6_IR_C_ABI_C_ARRAY) {
+                        const char* element = xl6IrCgenType(module, fieldType->params[0]);
+                        xl6OutputPrintf(out,
+                            "_Static_assert(sizeof(((%s*)0)->%s) / sizeof(((%s*)0)->%s[0]) == %llu, \"C array extent\");\n"
+                            "_Static_assert(_Generic(&((%s*)0)->%s[0], %s*:1, default:0), \"C array element type\");\n",
+                            unionType->cName, field->cName, unionType->cName, field->cName,
+                            (unsigned long long)fieldType->nativeArrayExtent,
+                            unionType->cName, field->cName, element);
+                    } else xl6OutputPrintf(out,
                         "_Static_assert(_Generic(((%s*)0)->%s, %s:1, default:0), \"C record field type\");\n",
-                        unionType->cName, field->cName, unionType->cName, field->cName,
                         unionType->cName, field->cName, cType);
                 }
                 xl6OutputPuts("#endif\n", out);
@@ -343,6 +415,7 @@ static int xl6IrCgenEmitStructuralErrorResultTypes(
         if(xl6IrTypeIsCOwned(type) && !emitCOwned)continue;
         if ( type->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE &&
              type->cAbi != XL6_IR_C_ABI_PRODUCT &&
+             type->cAbi != XL6_IR_C_ABI_C_ARRAY &&
              !xl6IrCAbiIsAggregate(type->cAbi) && !xl6IrTypeIsCOwned(type) &&
              !(type->foreignHeader && type->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE)) continue;
         valueType = xl6IrCgenType(module, (XL6_IrTypeId)(typeIndex + 1));

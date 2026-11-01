@@ -24,6 +24,7 @@
 #include "src/cgen/xl6_ir_cgen_type_definitions.c"
 #include "src/cgen/xl6_ir_cgen_type_call.c"
 #include "src/cgen/xl6_ir_cgen_instruction_contract.c"
+#include "src/cgen/xl6_ir_cgen_aggregate_value.c"
 #include "src/cgen/xl6_ir_cgen_scalar_conversion.c"
 #include "src/cgen/xl6_ir_cgen_shared_value.c"
 #include "src/cgen/xl6_ir_cgen_concurrency_contract.c"

@@ -21,6 +21,7 @@
 %include {
 #include "src/parser/xl6_parser_api.h"
 #include "src/lexer/xl6_literal_span.h"
+#include "src/type/xl6_foreign_decl.h"
 
 static XL6_AstNode* xl6PList(void)
 {
@@ -1554,6 +1555,27 @@ field_decl(A) ::= var_type_ref(T) name_tok(N) field_attrs_opt(R) field_default(D
         xl6AstMoveChildren(A, R);
         xl6AstFree(R);
     }
+}
+
+field_decl(A) ::= var_type_ref(T) name_tok(N) LBRACKET INT(I) RBRACKET field_attrs_opt(R) field_default(D) need_sep. {
+    uint64 extent = 0;
+    int valid = I.len > 0;
+    for (size_t i = 0; i < I.len; ++i) {
+        unsigned char c = (unsigned char)I.text[i];
+        if (c < '0' || c > '9' || extent > (UINT32_MAX - (c - '0')) / 10u) { valid = 0; break; }
+        extent = extent * 10u + (c - '0');
+    }
+    if (!valid || !extent) xl6PDiag(ctx, &I, "fixed C array extent must be a positive decimal integer no greater than UINT32_MAX");
+    char name[64];
+    snprintf(name, sizeof(name), "c_array$%llu", (unsigned long long)extent);
+    XL6_AstNode* type = xl6AstNewText(XL6_AST_TYPE, name, strlen(name), &I);
+    XL6_AstNode* args = xl6PList();
+    xl6AstAddChild(args, T);
+    xl6AstAddChild(type, args);
+    A = xl6AstNew(XL6_AST_FIELD, &N);
+    xl6AstAddChild(A, type);
+    if (D) xl6AstAddChild(A, D);
+    if (R) { xl6AstMoveChildren(A, R); xl6AstFree(R); }
 }
 
 native_field_decl(A) ::= KW_NATIVE(K) native_type_ref(T) name_tok(N) field_attrs_opt(R) field_default(D) need_sep. {

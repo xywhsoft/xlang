@@ -1,0 +1,81 @@
+extern "foreign_decl_matrix" struct Matrix @header("test/cases/foreign_decl_array.h")
+    c_float m[16]
+end
+extern "foreign_decl_vertices" struct Vertices @header("test/cases/foreign_decl_array.h")
+    Matrix transforms[3]
+end
+extern "foreign_decl_matrix_data" @no_raise @nonblocking func data() as Matrix
+extern "foreign_decl_matrix_sum" @pure @no_raise @nonblocking func sum(Matrix value) as c_int
+extern "foreign_decl_array_expect" @no_raise @nonblocking func expect(c_int actual, c_int expected)
+
+async func matrixAfter(future<int> ready, Matrix input) as Matrix
+    auto elements = input.m
+    int index = await ready
+    elements[index] = c_float(99.0)
+    input.m = elements
+    return input
+end
+
+async func readyIndex() as int
+    return 2
+end
+
+func matrixStream(Matrix input) as generator<int>
+    auto elements = input.m
+    yield int(elements[0])
+    elements[1] = c_float(99.0)
+    yield int(elements[1])
+    Matrix output = Matrix()
+    output.m = elements
+    yield int(output.m[15])
+end
+
+func main(...) as int
+    Matrix original = data()
+    assert original.m.length == 16
+    assert original.m[0] == c_float(1.0) and original.m[15] == c_float(16.0)
+    auto elements = original.m
+    elements[2] = c_float(99.0)
+    assert original.m[2] == c_float(3.0)
+    Matrix independent = Matrix()
+    independent.m = elements
+    expect(sum(independent), 232)
+    independent.m[2] = c_float(3.0)
+    expect(sum(independent), 136)
+    independent.m = Matrix().m
+    expect(sum(independent), 0)
+    expect(sum(original), 136)
+    Vertices vertices = Vertices()
+    auto transforms = vertices.transforms
+    transforms[1] = original
+    vertices.transforms = transforms
+    expect(sum(vertices.transforms[1]), 136)
+    bool caught = false
+    try
+        auto invalid = original.m[16]
+    catch error
+        caught = true
+    end
+    assert caught
+    caught = false
+    try
+        independent.m[-1] = c_float(7.0)
+    catch error
+        caught = true
+    end
+    assert caught and independent.m[0] == c_float(0.0)
+    int count = 0
+    for value in matrixStream(original)
+        if count == 0 then assert value == 1 end
+        if count == 1 then assert value == 99 end
+        if count == 2 then assert value == 16 end
+        count += 1
+    end
+    assert count == 3
+    return 0
+end
+
+Matrix asynchronousInput = data()
+Matrix resumed = await matrixAfter(readyIndex(), asynchronousInput)
+expect(sum(resumed), 232)
+expect(sum(asynchronousInput), 136)

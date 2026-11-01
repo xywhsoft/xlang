@@ -107,10 +107,17 @@ static int xl6IrCgenGeneratorMachineProgramSupported(
                 if (xl6IrCgenGeneratorFrameStorageSlot(module, machine, instruction->targetSymbol) == SIZE_MAX &&
                     xl6IrCgenGeneratorLocalStorage(module, machine, function, instruction->targetSymbol) == NULL) return 0;
                 break;
+            case XL6_IR_INSTR_SCALAR_CONVERT:
             case XL6_IR_INSTR_BINARY:
             case XL6_IR_INSTR_UNARY:
             case XL6_IR_INSTR_VALUE:
             case XL6_IR_INSTR_DISCARD:
+            case XL6_IR_INSTR_C_ARRAY_BOUNDS:
+            case XL6_IR_INSTR_C_ARRAY_GET:
+            case XL6_IR_INSTR_C_ARRAY_SET:
+            case XL6_IR_INSTR_AGGREGATE_ZERO:
+            case XL6_IR_INSTR_AGGREGATE_GET:
+            case XL6_IR_INSTR_AGGREGATE_SET:
             case XL6_IR_INSTR_GENERATOR_PREPARE_YIELD:
             case XL6_IR_INSTR_NULL:
             case XL6_IR_INSTR_NULL_TEST:
@@ -255,6 +262,17 @@ static int xl6IrCgenEmitGeneratorInstruction(
     case XL6_IR_INSTR_PRODUCT_TAKE:
     case XL6_IR_INSTR_PRODUCT_DROP:
         if (!xl6IrCgenEmitProductInstruction(out, module, instruction, diags)) return 0;
+        break;
+    case XL6_IR_INSTR_C_ARRAY_BOUNDS:
+    case XL6_IR_INSTR_C_ARRAY_GET:
+    case XL6_IR_INSTR_C_ARRAY_SET:
+    case XL6_IR_INSTR_AGGREGATE_ZERO:
+    case XL6_IR_INSTR_AGGREGATE_GET:
+    case XL6_IR_INSTR_AGGREGATE_SET:
+        if (!xl6IrCgenEmitAggregateValueInstruction(out, module, instruction, diags)) return 0;
+        break;
+    case XL6_IR_INSTR_SCALAR_CONVERT:
+        if (!xl6IrCgenEmitScalarConversion(out, module, instruction, diags)) return 0;
         break;
     case XL6_IR_INSTR_CONST:
         if (xl6IrCgenResultStorageOmitted(module, instruction)) break;

@@ -16,6 +16,12 @@ static int xl6IrCgenVerifyInstructions(
              xl6IrCgenType(module, instruction->type) == NULL )
             return xl6IrCgenDiag(diags, module, instruction->origin, "XLIR C emitter does not support a value ABI");
         switch ( instruction->kind ) {
+        case XL6_IR_INSTR_C_ARRAY_BOUNDS:
+        case XL6_IR_INSTR_C_ARRAY_GET:
+        case XL6_IR_INSTR_C_ARRAY_SET:
+            /* The module verifier proves the exact element/extent and the
+             * only incoming true edge. No backend alias/layout inference. */
+            break;
         case XL6_IR_INSTR_CONST:
             if ( instruction->immediateText == NULL ) return xl6IrCgenDiag(diags, module, instruction->origin, "XLIR constant has no canonical immediate payload");
             break;

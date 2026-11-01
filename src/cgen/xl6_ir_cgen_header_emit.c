@@ -43,6 +43,7 @@ static void xl6IrCgenHeaderMarkType(
     size_t parameter;
     if ( item == NULL || needs == NULL ) return;
     if ( !item->foreignHeader && item->cAbi != XL6_IR_C_ABI_PRODUCT &&
+         item->cAbi != XL6_IR_C_ABI_C_ARRAY &&
          item->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE &&
          !xl6IrCAbiIsAggregate(item->cAbi) ) {
         xl6IrCgenHeaderNeedType(module, type, needs);
