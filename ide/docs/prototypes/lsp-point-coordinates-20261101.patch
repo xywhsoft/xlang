@@ -1,0 +1,254 @@
+--- a/ide/src/analysis/text.c
++++ b/ide/src/analysis/text.c
+@@ -5 +5,4 @@
+-struct xls_text { xatomic32 references; xstrbuf bytes; xarray lines; };
++typedef struct text_line { size_t start,asciiEnd; } text_line;
++typedef struct text_column { size_t offset,scalars,units; } text_column;
++struct xls_text { xatomic32 references; xstrbuf bytes; xarray lines,columns; };
++#define COLUMN_STRIDE 256u
+@@ -23 +26,2 @@
+-    if(!text || text->bytes.Capacity==SIZE_MAX || text->lines.Capacity>SIZE_MAX/sizeof(size_t)) return 0;
++    if(!text || text->bytes.Capacity==SIZE_MAX || text->lines.Capacity>SIZE_MAX/sizeof(text_line) ||
++       text->columns.Capacity>SIZE_MAX/sizeof(text_column)) return 0;
+@@ -25,3 +29,4 @@
+-    size_t lines=text->lines.Capacity*sizeof(size_t);
+-    if(data>SIZE_MAX-bytes || lines>SIZE_MAX-bytes-data) return 0;
+-    return bytes+data+lines;
++    size_t lines=text->lines.Capacity*sizeof(text_line);
++    size_t columns=text->columns.Capacity*sizeof(text_column);
++    if(data>SIZE_MAX-bytes || lines>SIZE_MAX-bytes-data || columns>SIZE_MAX-bytes-data-lines) return 0;
++    return bytes+data+lines+columns;
+@@ -37 +42,3 @@
+-    if(!xrtArrayInit(&text->lines,sizeof(size_t))) { xrtFree(text); return NULL; }
++    if(!xrtArrayInit(&text->lines,sizeof(text_line)) || !xrtArrayInit(&text->columns,sizeof(text_column))) {
++        xrtArrayUnit(&text->lines);xrtArrayUnit(&text->columns);xrtFree(text);return NULL;
++    }
+@@ -50,0 +58 @@
++        xrtArrayUnit(&text->columns);
+@@ -61 +69,2 @@
+-    size_t at=0, start=0;
++    size_t at=0,scalars=0,units=0,checkpoint=0;
++    text_line line={0,SIZE_MAX};
+@@ -63 +71,0 @@
+-    if(!xrtArrayPush(&text->lines,&start)) return 0;
+@@ -65,6 +73,19 @@
+-        char c=bytes[at++];
+-        if(c!='\r' && c!='\n') continue;
+-        if(c=='\r' && at<text->bytes.Size && bytes[at]=='\n') ++at;
+-        if(!xrtArrayPush(&text->lines,&at)) return 0;
+-    }
+-    return 1;
++        unsigned char c=(unsigned char)bytes[at];
++        if(line.asciiEnd==SIZE_MAX && (c>=128 || c=='\r' || c=='\n')){line.asciiEnd=at;checkpoint=at;}
++        if(c=='\r' || c=='\n') {
++            ++at;if(c=='\r' && at<text->bytes.Size && bytes[at]=='\n') ++at;
++            if(!xrtArrayPush(&text->lines,&line)) return 0;
++            line=(text_line){at,SIZE_MAX};scalars=units=0;continue;
++        }
++        /* Already validated UTF-8: record scalar-aligned checkpoints only
++         * beyond a line's first non-ASCII byte. ASCII prefixes need none. */
++        if(line.asciiEnd!=SIZE_MAX && at-checkpoint>=COLUMN_STRIDE){
++            text_column column={at,scalars,units};
++            if(!xrtArrayPush(&text->columns,&column))return 0;
++            checkpoint=at;
++        }
++        size_t width=c<128 ? 1 : c<0xe0 ? 2 : c<0xf0 ? 3 : 4;
++        at+=width;++scalars;units+=width==4 ? 2u : 1u;
++    }
++    if(line.asciiEnd==SIZE_MAX)line.asciiEnd=at;
++    return xrtArrayPush(&text->lines,&line);
+@@ -101,2 +122,36 @@
+-    const size_t* start=xrtArrayConstGet(&text->lines,position.line);
+-    return columnOffset(xlsTextData(text),text->bytes.Size,*start,position.character,offset);
++    const text_line* line=xrtArrayConstGet(&text->lines,position.line);
++    return columnOffset(xlsTextData(text),text->bytes.Size,line->start,position.character,offset);
++}
++
++static int indexedColumn(const xls_text* text,const text_line* line,size_t offset,
++                         size_t* units,size_t* scalars)
++{
++    if(offset<line->start || offset>text->bytes.Size)return 0;
++    size_t at=offset<line->asciiEnd ? offset : line->asciiEnd;
++    *units=*scalars=at-line->start;
++    if(at<offset && text->columns.Count){
++        const text_column* columns=(const text_column*)text->columns.Data;
++        size_t low=0,high=text->columns.Count;
++        while(low<high){size_t mid=low+(high-low)/2;if(columns[mid].offset<=offset)low=mid+1;else high=mid;}
++        if(low && columns[low-1].offset>=at){
++            const text_column* column=columns+low-1;at=column->offset;*units=column->units;*scalars=column->scalars;
++        }
++    }
++    const char* bytes=xlsTextData(text);
++    while(at<offset) {
++        if(bytes[at]=='\r' || bytes[at]=='\n')return 0;
++        uint32 scalar=0;size_t read=0;
++        if(xrtUtf8Decode((xstrview){bytes+at,text->bytes.Size-at},&scalar,&read)!=XUTF_OK || read>offset-at)return 0;
++        *units+=scalar>0xffff ? 2u : 1u;++*scalars;at+=read;
++    }
++    return 1;
++}
++
++int xlsTextSourcePosition(const xls_text* text,size_t offset,size_t line,size_t column,xls_position* position)
++{
++    if(!text || !position || !line || line>text->lines.Count || !column)return 0;
++    if(line<text->lines.Count && offset>=((const text_line*)xrtArrayConstGet(&text->lines,line))->start)return 0;
++    const text_line* row=xrtArrayConstGet(&text->lines,line-1);
++    size_t units=0,scalars=0;
++    if(!indexedColumn(text,row,offset,&units,&scalars) || scalars!=column-1)return 0;
++    *position=(xls_position){line-1,units};return 1;
+@@ -111,11 +166,5 @@
+-        const size_t* start=xrtArrayConstGet(&text->lines,middle);
+-        if(*start<=offset) first=middle+1; else last=middle;
+-    }
+-    size_t line=first-1,at=*(const size_t*)xrtArrayConstGet(&text->lines,line),units=0;
+-    const char* bytes=xlsTextData(text);
+-    while(at<offset) {
+-        if(bytes[at]=='\r' || bytes[at]=='\n') return 0;
+-        uint32 scalar=0; size_t read=0;
+-        if(xrtUtf8Decode((xstrview){bytes+at,text->bytes.Size-at},&scalar,&read)!=XUTF_OK || read>offset-at) return 0;
+-        units+=scalar>0xffff ? 2u : 1u; at+=read;
+-    }
++        const text_line* row=xrtArrayConstGet(&text->lines,middle);
++        if(row->start<=offset) first=middle+1; else last=middle;
++    }
++    size_t line=first-1,units=0,scalars=0;
++    if(!indexedColumn(text,xrtArrayConstGet(&text->lines,line),offset,&units,&scalars))return 0;
+--- a/ide/src/analysis/text.h
++++ b/ide/src/analysis/text.h
+@@ -33,0 +34,6 @@
++/* Verify a compiler's one-based scalar line/column against the exact byte
++ * offset, returning UTF-16. Uses the immutable line index and ASCII prefix;
++ * rejects mismatched coordinates, scalar/CRLF interiors and out-of-range
++ * offsets without clamping. Output is unchanged on failure. */
++int xlsTextSourcePosition(const xls_text* text, size_t offset, size_t line,
++                          size_t column, xls_position* position);
+--- a/ide/src/services/semantic_native_points.inc
++++ b/ide/src/services/semantic_native_points.inc
+@@ -10 +9,0 @@
+-typedef struct native_spans {span full,token,selection;} native_spans;
+@@ -40 +39,5 @@
+- if(!source || source>p->sourcesCount || !xlsTextPosition(p->texts[source-1],r.startOffset,&a) || !xlsTextPosition(p->texts[source-1],r.endOffset,&b) ||
++ if(!source || source>p->sourcesCount || !(p->sources[source-1].kind&1) ||
++    r.startOffset>INT_MAX || r.endOffset<r.startOffset || r.endOffset>INT_MAX ||
++    r.startLine<1 || r.startColumn<1 || r.endLine<1 || r.endColumn<1 ||
++    !xlsTextSourcePosition(p->texts[source-1],r.startOffset,(size_t)r.startLine,(size_t)r.startColumn,&a) ||
++    !xlsTextSourcePosition(p->texts[source-1],r.endOffset,(size_t)r.endLine,(size_t)r.endColumn,&b) ||
+@@ -67 +70 @@
+- size_t nodes=xlsSemanticIndexCount(index),budget=0,used=0,textCharge=0;
++ size_t nodes=xlsSemanticIndexCount(index),budget=0,textCharge=0;
+@@ -69 +72 @@
+- xide_semantic_definitions* d=calloc(1,sizeof(*d));native_spans* spans=NULL;endpoint* ends=NULL;unsigned char* selections=NULL;int invalid=0;
++ xide_semantic_definitions* d=calloc(1,sizeof(*d));int invalid=0;
+@@ -92 +94,0 @@
+- size_t temporary=(nodes+1)*sizeof(*spans)+(nodes*6+1)*sizeof(*ends)+nodes+1;
+@@ -94,17 +96 @@
+- if(resident>TYPED_DEFINITION_BYTES || temporary>TYPED_DEFINITION_BYTES-resident || cursorBudget>TYPED_DEFINITION_BYTES-resident-temporary)goto done;
+- if(budget>TYPED_DEFINITION_BYTES-resident-temporary-cursorBudget)budget=TYPED_DEFINITION_BYTES-resident-temporary-cursorBudget;
+- spans=calloc(nodes+1,sizeof(*spans));ends=calloc(nodes*6+1,sizeof(*ends));selections=calloc(nodes+1,1);if(!spans || !ends || !selections)goto done;
+- for(size_t i=0;i<nodes;++i){
+-  node n={0};xls_index_fact f;
+-  if(!nativeShape(d,i,&f,&n) || !typedRange(f.range,(int)f.source,sources,count,&spans[i].full,ends,&used) ||
+-     !typedRange(f.tokenRange,(int)f.source,sources,count,&spans[i].token,ends,&used) ||
+-     !typedRange(f.selectionRange,(int)f.selectionSource,sources,count,&spans[i].selection,ends,&used)){invalid=1;goto done;}
+-  p->shapes[i]=(uint16_t)(n.depth|(n.typeParams ? 512u : 0)|(n.typeConstraint ? 1024u : 0)|(n.kind==5 ? 2048u : 0));
+-  selections[i]=(unsigned char)(n.declared || n.declaredType);
+-  if(f.canonical && !nativeTextCharge(&textCharge,strlen(f.canonical),8192)){invalid=1;goto done;}
+-  if(spans[i].token.source && spans[i].full.source && (spans[i].token.startOffset<spans[i].full.startOffset || spans[i].token.endOffset>spans[i].full.endOffset)){invalid=1;goto done;}
+-  if(n.declared)d->declarations[d->declCount++]=(declaration){n.declared,i};
+-  if(n.declaredType)d->typeDeclarations[d->typeCount++]=(declaration){n.declaredType,i};
+- }
+- int fast=budget ? convertDense(ends,used,sources,count,budget) : -1;
+- if(!(fast<0 ? convert(ends,used,sources) : fast)){invalid=1;goto done;}
++ if(resident>TYPED_DEFINITION_BYTES || cursorBudget>TYPED_DEFINITION_BYTES-resident)goto done;
+@@ -114 +100,13 @@
+-  node n={0};xstrview name,header;n.full=spans[i].full;n.token=spans[i].token;n.selection=spans[i].selection;
++  node n={0};xls_index_fact f;
++  /* The text index verifies the compiler's scalar coordinates and produces
++   * UTF-16 together. No second endpoint array, dense bucket allocation or
++   * sorted whole-source conversion is needed for this optional point view. */
++  if(!nativeShape(d,i,&f,&n) || !nativePointRange(d,f.range,f.source,&n.full) ||
++     !nativePointRange(d,f.tokenRange,f.source,&n.token) ||
++     !nativePointRange(d,f.selectionRange,f.selectionSource,&n.selection)){invalid=1;goto done;}
++  p->shapes[i]=(uint16_t)(n.depth|(n.typeParams ? 512u : 0)|(n.typeConstraint ? 1024u : 0)|(n.kind==5 ? 2048u : 0));
++  if(f.canonical && !nativeTextCharge(&textCharge,strlen(f.canonical),8192)){invalid=1;goto done;}
++  if(n.token.source && n.full.source && (n.token.startOffset<n.full.startOffset || n.token.endOffset>n.full.endOffset)){invalid=1;goto done;}
++  if(n.declared)d->declarations[d->declCount++]=(declaration){n.declared,i};
++  if(n.declaredType)d->typeDeclarations[d->typeCount++]=(declaration){n.declaredType,i};
++  xstrview name,header;
+@@ -116 +114 @@
+-  int selection=selections[i];
++  int selection=n.declared || n.declaredType;
+@@ -135 +133 @@
+- free(spans);free(ends);free(selections);return d;
++ return d;
+@@ -137 +135 @@
+- free(spans);free(ends);free(selections);xideSemanticDefinitionsDestroy(d);
++ xideSemanticDefinitionsDestroy(d);
+--- a/ide/tests/analysis_text_test.c
++++ b/ide/tests/analysis_text_test.c
+@@ -4,0 +5 @@
++#include <stdlib.h>
+@@ -14,0 +16,45 @@
++/* Independent flat scalar walk: compare every byte, including invalid UTF-8
++ * and CRLF interior offsets, against both indexed coordinate entry points. */
++static int positionsText(xls_text* text)
++{
++    CHECK(text);
++    const char* source=xlsTextData(text);
++    size_t size=xlsTextSize(text),at=0,line=1,column=1,units=0;
++    CHECK(xlsTextStorageBytes(text)>0 && xlsTextStorageBytes(text)<=32*size+1024);
++    for(;;){
++        xls_position a={SIZE_MAX,SIZE_MAX},b=a;
++        CHECK(xlsTextPosition(text,at,&a) && a.line==line-1 && a.character==units);
++        CHECK(xlsTextSourcePosition(text,at,line,column,&b) && b.line==a.line && b.character==a.character);
++        b=(xls_position){SIZE_MAX,SIZE_MAX};
++        CHECK(!xlsTextSourcePosition(text,at,line,column+1,&b) && b.line==SIZE_MAX && b.character==SIZE_MAX);
++        CHECK(!xlsTextSourcePosition(text,at,line+1,column,&b) && b.line==SIZE_MAX && b.character==SIZE_MAX);
++        if(line>1)CHECK(!xlsTextSourcePosition(text,at,line-1,column,&b) && b.line==SIZE_MAX && b.character==SIZE_MAX);
++        CHECK(!xlsTextSourcePosition(text,at,0,column,&b));
++        CHECK(!xlsTextSourcePosition(text,at,line,0,&b));
++        if(at==size)break;
++        unsigned char c=(unsigned char)source[at];
++        size_t width=c<128 ? 1 : c<224 ? 2 : c<240 ? 3 : 4;
++        if(c=='\r' && source[at+1]=='\n')width=2;
++        for(size_t i=1;i<width;++i){
++            CHECK(!xlsTextPosition(text,at+i,&b));
++            CHECK(!xlsTextSourcePosition(text,at+i,line,column,&b));
++        }
++        if(c=='\r' || c=='\n'){++line;column=1;units=0;}
++        else{++column;units+=width==4 ? 2 : 1;}
++        at+=width;
++    }
++    CHECK(!xlsTextSourcePosition(text,SIZE_MAX,1,1,&(xls_position){0}));
++    CHECK(!xlsTextSourcePosition(text,size+1,line,column,&(xls_position){0}));
++    CHECK(!xlsTextSourcePosition(text,0,SIZE_MAX,1,&(xls_position){0}));
++    CHECK(!xlsTextSourcePosition(text,0,1,SIZE_MAX,&(xls_position){0}));
++    CHECK(!xlsTextSourcePosition(text,0,1,1,NULL));
++    CHECK(!xlsTextSourcePosition(NULL,0,1,1,&(xls_position){0}));
++    return 0;
++}
++static int positions(const char* source)
++{
++    size_t size=strlen(source);
++    xls_text* text=xlsTextCreate(source,size,size,NULL);
++    int result=positionsText(text);xlsTextRelease(text);return result;
++}
++
+@@ -16,0 +63,17 @@
++    const char* coordinates[]={"","\r\n\n\r","plain ASCII","a😀中\r\nxy\n",
++        "\xef\xbb\xbf中文\rASCII😀tail\n\nlast","😀\r\n中\nα\r終"};
++    for(size_t i=0;i<sizeof(coordinates)/sizeof(*coordinates);++i)CHECK(!positions(coordinates[i]));
++    char* longLine=malloc(131200);CHECK(longLine);
++    memset(longLine,'x',65536);strcpy(longLine+65536,"中😀tail\r\nend\r");
++    CHECK(!positions(longLine));
++    strcpy(longLine,"中😀");memset(longLine+7,'x',65536);strcpy(longLine+65543,"\r\n😀");
++    memset(longLine+65549,'x',512);strcpy(longLine+66061,"中\nend");CHECK(!positions(longLine));
++    for(size_t i=0;i<16384;++i)memcpy(longLine+i*4,"😀",4);
++    strcpy(longLine+65536,"\r\n中");CHECK(!positions(longLine));
++    memset(longLine,'\n',65536);longLine[65536]=0;CHECK(!positions(longLine));
++    strcpy(longLine,"😀");memset(longLine+4,'x',4096);strcpy(longLine+4100,"\r\n中");
++    xls_text* snapshot=xlsTextCreate(longLine,strlen(longLine),8192,NULL);CHECK(snapshot);
++    xls_text_edit split=edit(0,257,0,259,"中\n😀");
++    xls_text* revision=xlsTextApply(snapshot,&split,1,8192,NULL);
++    CHECK(revision && !positionsText(revision) && !positionsText(snapshot));
++    CHECK(!strcmp(xlsTextData(snapshot),longLine));xlsTextRelease(revision);xlsTextRelease(snapshot);free(longLine);
