@@ -148,8 +148,8 @@ static void xl6IrCgenCollectHeaderTypeNeeds(
                 module, xl6IrCgenPhysicalResultType(module, target), needs,
                 structuralTypes);
         for ( parameter = 0; parameter < target->parameterCount; ++parameter )
-            if ( target->parameterPhysicalAbis[parameter] ==
-                     XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT )
+            if ( target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
+                 target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS )
                 xl6IrCgenHeaderMarkType(
                     module, target->parameterTypes[parameter], needs,
                     structuralTypes);

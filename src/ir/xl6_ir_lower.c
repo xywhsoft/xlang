@@ -10456,27 +10456,41 @@ static XL6_IrValueId xl6IrLowerEmitImplicitStringArgument(
  * converts that physical boolean into explicit XLIR control flow and error
  * state.  Cgen therefore emits only BRANCH/ERROR_RAISE/JUMP and never decides
  * that a particular container helper ought to throw. */
+static int xl6IrLowerRaiseBoundaryFailure(XL6_IrLowerContext* ctx, XL6_IrNodeId origin,
+    const char* errorKind, const char* messageText)
+{
+    const XL6_IrNode* node = xl6IrNodeGet(ctx->module, origin);
+    const XL6_IrExitPlan* errorPlan = xl6IrLowerExitPlan(ctx, origin, XL6_SEM_EXIT_THROW);
+    XL6_IrTypeId stringType = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_MANAGED_STRING);
+    XL6_IrValueId message;
+    XL6_IrInstruction* raise;
+    if (!node || !errorPlan || !stringType) return 0;
+    message = xl6IrLowerEmitImplicitStringArgument(
+        ctx, origin, stringType, messageText);
+    if ( message == XL6_IR_VALUE_INVALID ||
+         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_ERROR_RAISE, origin,
+                          XL6_IR_TYPE_INVALID, 0, &message, 1, NULL) )
+        return 0;
+    raise = &ctx->module->instructions[ctx->module->instructionCount - 1];
+    raise->immediateText = xl6IrCanonicalCStringBytes(errorKind);
+    if ( raise->immediateText == NULL ||
+         !xl6IrLowerEmitExceptionTransfer(
+              ctx, origin, node, errorPlan, 0) ) return 0;
+    return 1;
+}
+
 static int xl6IrLowerEmitCheckedWrite(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin,
     XL6_IrValueId committed, const char* errorKind, const char* messageText)
 {
     const XL6_IrNode* node = xl6IrNodeGet(ctx != NULL ? ctx->module : NULL, origin);
-    const XL6_IrExitPlan* errorPlan;
-    XL6_IrTypeId stringType;
     XL6_IrBlockId successBlock;
     XL6_IrBlockId failureBlock;
-    XL6_IrValueId message;
     XL6_IrInstruction* branch;
-    XL6_IrInstruction* raise;
     if ( ctx == NULL || node == NULL ||
          committed == XL6_IR_VALUE_INVALID ||
          !xl6IrLowerTypeIsBool(
               ctx->module, xl6IrLowerValueType(ctx, committed)) ||
-         (errorPlan = xl6IrLowerExitPlan(
-              ctx, origin, XL6_SEM_EXIT_THROW)) == NULL ||
-         (stringType = xl6IrLowerFindTypeByCAbi(
-              ctx->module, XL6_IR_C_ABI_MANAGED_STRING)) ==
-              XL6_IR_TYPE_INVALID ||
          !xl6IrLowerNewBlock(ctx, &successBlock) ||
          !xl6IrLowerNewBlock(ctx, &failureBlock) ||
          !xl6IrLowerEmit(ctx, XL6_IR_INSTR_BRANCH, origin,
@@ -10489,18 +10503,54 @@ static int xl6IrLowerEmitCheckedWrite(
     branch->trueTarget = successBlock;
     branch->falseTarget = failureBlock;
     xl6IrLowerEnterBlock(ctx, failureBlock);
-    message = xl6IrLowerEmitImplicitStringArgument(
-        ctx, origin, stringType, messageText);
-    if ( message == XL6_IR_VALUE_INVALID ||
-         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_ERROR_RAISE, origin,
-                          XL6_IR_TYPE_INVALID, 0, &message, 1, NULL) )
-        return 0;
-    raise = &ctx->module->instructions[ctx->module->instructionCount - 1];
-    raise->immediateText = xl6IrCanonicalCStringBytes(errorKind);
-    if ( raise->immediateText == NULL ||
-         !xl6IrLowerEmitExceptionTransfer(
-              ctx, origin, node, errorPlan, 0) ) return 0;
+    if (!xl6IrLowerRaiseBoundaryFailure(ctx, origin, errorKind, messageText)) return 0;
     xl6IrLowerEnterBlock(ctx, successBlock);
+    return 1;
+}
+
+/* The C producer returns a physical status/output pair. Its output is not
+ * published until this explicit success branch; partial failure is rolled
+ * back before creating diagnostics or entering any language handler. */
+static int xl6IrLowerForeignFactory(XL6_IrLowerContext* ctx, XL6_IrNodeId origin,
+    const XL6_IrCallTarget* target, const XL6_IrValueId* operands, size_t count,
+    XL6_IrValueId* result)
+{
+    const XL6_IrNode* declaration = xl6IrNodeGet(ctx->module, target->declaration);
+    XL6_ForeignCallFacts facts = declaration->foreignCall;
+    XL6_IrTypeId integer = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_I64);
+    XL6_IrTypeId boolean = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_BOOL);
+    XL6_IrTypeId elements[2] = {integer, target->returnType};
+    XL6_IrTypeId pairType = xl6IrTypeInternTuple(ctx->module, elements, 2);
+    XL6_IrValueId pair, status, raw, isNull, code, accepted;
+    XL6_IrBlockId statusBlock, successBlock, failureBlock;
+    if (!pairType || !boolean || !xl6IrLowerEmit(ctx, XL6_IR_INSTR_NATIVE_STATUS_OUT,
+        origin, pairType, target->symbol, operands, count, &pair)) return 0;
+    if (!xl6IrLowerEmit(ctx, XL6_IR_INSTR_PRODUCT_GET, origin, integer, 0, &pair, 1, &status)) return 0;
+    ctx->module->instructions[ctx->module->instructionCount - 1].elementIndex = 0;
+    if (!xl6IrLowerEmit(ctx, XL6_IR_INSTR_PRODUCT_GET, origin, target->returnType, 0, &pair, 1, &raw)) return 0;
+    ctx->module->instructions[ctx->module->instructionCount - 1].elementIndex = 1;
+    char text[40]; snprintf(text, sizeof(text), "%dLL", facts.successCode);
+    if (!xl6IrLowerEmit(ctx, XL6_IR_INSTR_CONST, origin, integer, 0, NULL, 0, &code)) return 0;
+    ctx->module->instructions[ctx->module->instructionCount - 1].immediateText = xrtStrDup(text);
+    accepted = xl6IrLowerEmitBinary(ctx, origin, boolean, XL6_IR_OPCODE_EQ, status, code);
+    if (!accepted || !xl6IrLowerEmit(ctx, XL6_IR_INSTR_NULL_TEST, origin, boolean, 0, &raw, 1, &isNull) ||
+        !xl6IrLowerNewBlock(ctx, &statusBlock) || !xl6IrLowerNewBlock(ctx, &successBlock) ||
+        !xl6IrLowerNewBlock(ctx, &failureBlock) ||
+        !xl6IrLowerEmit(ctx, XL6_IR_INSTR_BRANCH, origin, 0, 0, &accepted, 1, NULL)) return 0;
+    XL6_IrInstruction* branch = &ctx->module->instructions[ctx->module->instructionCount - 1];
+    branch->trueTarget = statusBlock; branch->falseTarget = failureBlock;
+    xl6IrLowerEnterBlock(ctx, statusBlock);
+    if (!xl6IrLowerEmit(ctx, XL6_IR_INSTR_BRANCH, origin, 0, 0, &isNull, 1, NULL)) return 0;
+    branch = &ctx->module->instructions[ctx->module->instructionCount - 1];
+    branch->trueTarget = failureBlock; branch->falseTarget = successBlock;
+    xl6IrLowerEnterBlock(ctx, failureBlock);
+    XL6_SymbolId temporary = xl6IrLowerNewTempStorage(ctx, target->returnType, origin);
+    if (!temporary || !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, origin, target->returnType,
+            temporary, &raw, 1, NULL) ||
+        !xl6IrLowerEmitNativeDestroyIfNotNull(ctx, origin, target->returnType, temporary, facts.rollbackSymbol) ||
+        !xl6IrLowerRaiseBoundaryFailure(ctx, origin, "NativeError", "native factory failed or returned a null object")) return 0;
+    xl6IrLowerEnterBlock(ctx, successBlock);
+    *result = raw;
     return 1;
 }
 
@@ -13520,6 +13570,10 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
         }
     }
     if ( !xl6IrLowerResolveRuntimeBridge(ctx, target) ) return 0;
+    for (i = 0; i < target->parameterCount; ++i) {
+        if (xl6IrForeignConstRecordParameter(module, target, i))
+            target->parameterPhysicalAbis[i] = XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS;
+    }
     target->resultConversionAbi = xl6IrCallResultConversionForTarget(module, target);
     target->resultCAbi=xl6IrCallResultCAbiForTarget(target);
     if (!xl6IrCallResultCAbiMatches(module,target))
@@ -31864,7 +31918,10 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 xrtFree(operands); xrtFree(borrowedTemps);
                 return XL6_IR_VALUE_INVALID;
             }
-            callEmitted = xl6IrLowerEmit(ctx,
+            const XL6_IrNode* foreignDeclaration = xl6IrNodeGet(ctx->module, target->declaration);
+            if (foreignDeclaration && foreignDeclaration->foreignCall.outputIndexPlusOne)
+                callEmitted = xl6IrLowerForeignFactory(ctx, id, target, operands, operandCount, &result);
+            else callEmitted = xl6IrLowerEmit(ctx,
                 dispatchSlot != SIZE_MAX ? XL6_IR_INSTR_VIRTUAL_CALL :
                     (target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC ? XL6_IR_INSTR_ASYNC_START :
                      target->kind == XL6_IR_CALL_TARGET_INTERNAL_GENERATOR ? XL6_IR_INSTR_GENERATOR_START : XL6_IR_INSTR_CALL),
@@ -31878,7 +31935,15 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
             xrtFree(operands); xrtFree(borrowedTemps);
             if(callEmitted) {
                 XL6_IrLowerCallCleanup cleanup={cleanupOwners,cleanupCount,cleanupDestroys,0,0};
-                callEmitted=xl6IrLowerCompleteCall(ctx,id,node,target,&result,errorPlan,&cleanup);
+                if (foreignDeclaration && foreignDeclaration->foreignCall.outputIndexPlusOne) {
+                    /* A raw caller-owned result cannot be abandoned during a
+                     * fallible cleanup. Refuse until that owner transaction is
+                     * representable, rather than emit a leaking success path. */
+                    if (xl6IrLowerCallCleanupMayRaise(ctx, &cleanup) != 0)
+                        callEmitted = xl6IrLowerDiag(ctx, id, "native factory argument cleanup requires a guarded result owner");
+                    else callEmitted = xl6IrLowerCompleteOwnedCleanup(ctx, id, node,
+                        &result, target->returnType, errorPlan, &cleanup);
+                } else callEmitted=xl6IrLowerCompleteCall(ctx,id,node,target,&result,errorPlan,&cleanup);
             }
             xrtFree(cleanupOwners); xrtFree(cleanupDestroys);
             if ( callEmitted && returnType != XL6_IR_TYPE_INVALID && node->storageType != returnType ) {

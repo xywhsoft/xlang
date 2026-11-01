@@ -54,6 +54,10 @@ static int xl6IrCgenVerifyDeclarations(
                       (parameterType->kind == XL6_IR_TYPE_FUNCTION || xl6IrTypeIsCOwned(parameterType))) )
                     return xl6IrCgenCallParameterDiag(diags, module, target,
                         parameter, "uses a direct closure at an extern boundary");
+            } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS) {
+                if (!xl6IrForeignConstRecordParameter(module, target, parameter) ||
+                    parameterType->cAbi != XL6_IR_C_ABI_C_RECORD)
+                    return xl6IrCgenCallParameterDiag(diags, module, target, parameter, "has no exact C record address");
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW) {
                 if((target->kind!=XL6_IR_CALL_TARGET_EXTERN_C && target->kind!=XL6_IR_CALL_TARGET_NATIVE_FACTORY) || !xl6IrTypeIsCOwned(parameterType) || parameterType->kind!=XL6_IR_TYPE_BUILTIN ||
                     target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||

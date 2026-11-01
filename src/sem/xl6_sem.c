@@ -1,4 +1,4 @@
-﻿#include "src/sem/xl6_sem.h"
+#include "src/sem/xl6_sem.h"
 #include "src/sem/xl6_completion.h"
 #include "src/sem/xl6_sem_docs.h"
 #include "src/sem/xl6_sem_field_attrs.h"
@@ -9038,6 +9038,10 @@ static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* 
         return 0;
     }
     if ( a->kind == XL6_AST_EXTERN_FUNC ) {
+        XL6_ForeignCallFacts left, right;
+        if (!xl6ForeignFunctionRead(a, &left) || !xl6ForeignFunctionRead(b, &right) ||
+            left.constRecordAddresses != right.constRecordAddresses ||
+            left.outputIndexPlusOne != right.outputIndexPlusOne || left.successCode != right.successCode) return 0;
         return ((a->flags ^ b->flags) & XL6_AST_FLAG_FOREIGN_OWNED_STRING) == 0 &&
                xl6SemTypeListEquals(ctx, xl6SemExternFuncParams(a), xl6SemExternFuncParams(b), 1) &&
                xl6SemTypeListEquals(ctx, xl6SemExternFuncReturns(a), xl6SemExternFuncReturns(b), 0);
@@ -21194,6 +21198,73 @@ static int xl6SemDeclaredNativeValueExternType(XL6_SemContext* ctx,
     return 0;
 }
 
+static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNode* node)
+{
+    XL6_ForeignCallFacts facts;
+    const XL6_AstNode* attrs = xl6ForeignFunctionAttributes(node);
+    if (!attrs) return 1;
+    if (!xl6ForeignFunctionRead(node, &facts) ||
+        (node->kind != XL6_AST_EXTERN_FUNC && node->kind != XL6_AST_NATIVE_EXTERN_FUNC)) {
+        xl6SemErrorNode(ctx, node, "invalid declarative C call; expected @c_ref(index) or @factory(outputIndex, successCode, rollback)");
+        return 0;
+    }
+    XL6_AstNode* params = node->childCount > 1 ? node->children[1] : NULL;
+    size_t count = params ? params->childCount : 0;
+    if (count < 64 && (facts.constRecordAddresses >> count)) {
+        xl6SemErrorNode(ctx, node, "C record address parameter index is outside the declared signature"); return 0;
+    }
+    for (size_t i = 0; i < count && i < 64; ++i) {
+        XL6_AstNode* parameter = params->children[i];
+        XL6_AstNode* type = parameter && parameter->childCount ? parameter->children[0] : NULL;
+        if ((facts.constRecordAddresses & (UINT64_C(1) << i)) && !xl6SemIsCAbiRecordType(ctx, type)) {
+            xl6SemErrorNode(ctx, parameter, "@c_ref requires an exact trivial C record value"); return 0;
+        }
+    }
+    if (facts.outputIndexPlusOne) {
+        const XL6_AstNode* returns = node->childCount > 2 ? node->children[2] : NULL;
+        const XL6_AstNode* result = returns && returns->childCount == 1 ? xl6SemResolveAliasType(ctx, returns->children[0]) : NULL;
+        const XL6_AstNode* view = xl6SemClassValueType(ctx, result);
+        const XL6_AstNode* typeDecl = view && view->text ? xl6SemFindTypeDecl(ctx, view->text) : NULL;
+        if (facts.outputIndexPlusOne > count + 1) {
+            xl6SemErrorNode(ctx, node, "factory output index is outside the physical signature"); return 0;
+        }
+        if (!result || xl6ForeignClassRead(typeDecl, NULL, NULL) != 1) {
+            xl6SemErrorNode(ctx, node, "factory result must be an exact non-null external native view"); return 0;
+        }
+        if (!(node->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE)) {
+            xl6SemErrorNode(ctx, node, "factory producer requires an explicit @no_raise callee contract"); return 0;
+        }
+        if ((node->flags & (XL6_AST_FLAG_FOREIGN_PURE | XL6_AST_FLAG_FOREIGN_OWNED_STRING)) ||
+            (node->kind == XL6_AST_NATIVE_EXTERN_FUNC && !(node->flags & XL6_AST_FLAG_STATIC))) {
+            xl6SemErrorNode(ctx, node, "factory requires a static/free producer without @pure or @owned"); return 0;
+        }
+        XL6_AstNode* rollbackName = NULL;
+        for (size_t i = 0; i < attrs->childCount; ++i)
+            if (!strcmp(attrs->children[i]->text, "factory")) rollbackName = attrs->children[i]->children[2];
+        const XL6_AstNode* rollback = NULL;
+        size_t matches = 0;
+        for (size_t i = 0; ctx->root && i < ctx->root->childCount; ++i) {
+            const XL6_AstNode* decl = ctx->root->children[i];
+            if (!decl || decl == node || decl->kind != XL6_AST_EXTERN_FUNC ||
+                !xl6TextEquals(xl6SemFuncName(decl), rollbackName->text) ||
+                !(decl->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE) || xl6ForeignFunctionAttributes(decl) ||
+                xl6SemFuncIsGeneric(decl)) continue;
+            const XL6_AstNode* args = decl->childCount > 1 ? decl->children[1] : NULL;
+            const XL6_AstNode* ret = decl->childCount > 2 ? decl->children[2] : NULL;
+            const XL6_AstNode* argument = args && args->childCount == 1 && args->children[0]->childCount
+                ? args->children[0]->children[0] : NULL;
+            if (!ret || ret->childCount || !argument ||
+                !xl6SemTypeEquals(ctx, view, xl6SemClassValueType(ctx, argument))) continue;
+            rollback = decl; ++matches;
+        }
+        if (matches != 1 || !rollback->semanticSymbolId) {
+            xl6SemErrorNode(ctx, node, "factory rollback must resolve to one declared @no_raise C function accepting the exact result and returning void"); return 0;
+        }
+        rollbackName->semanticSymbolId = rollback->semanticSymbolId;
+    }
+    return 1;
+}
+
 static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     XL6_AstNode* params;
@@ -21202,6 +21273,8 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
     int ok;
 
     ok = 1;
+
+    if (!xl6SemCheckForeignFunctionDeclaration(ctx, node)) return 0;
 
     /* A declared generic value input has no concrete C value ABI until
      * specialization. Its closed descriptor selects a const slot-address
