@@ -30,6 +30,7 @@ bool xr_args_native(xvalue* args);
 
 /* 增量检查首个 RESP 帧；data 必须是同一缓冲的追加前缀，允许重新分配地址。
    根值与未到达的数组子项均计入节点预算；帧头与结束 CRLF 计入字节预算。
+   所有祖先数组尚未到达的兄弟值各预留至少三个字节，不可能补齐时立即报错。
    返回 false 且无 XRT 错误表示数据未到齐；失败时销毁状态，不再继续追加。 */
 void* xr_frame_create(void);
 bool xr_frame_check(void* frame, void* data, size_t size);

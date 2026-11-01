@@ -48,11 +48,13 @@ func main(...) as int
     assert not redis.isComplete("$5\r\nabc")
 
     // 上限包含根节点、帧头与结束换行；仍可能补齐的前缀保持未完成。
-    for header in ["*99999\r\n", "*2\r\n*99997\r\n", "$67108851\r\n", "*1\r\n$67108847\r\n"]
+    for header in ["*99999\r\n", "*2\r\n*99997\r\n", "$67108851\r\n", "*1\r\n$67108847\r\n",
+        "*2\r\n$67108844\r\n", "*2\r\n*2\r\n$67108837\r\n"]
         assert not redis.isComplete(header)
     end
     for header in ["*100000\r\n", "*2\r\n*99998\r\n", "*99999\r\n*1\r\n",
-        "$67108852\r\n", "*1\r\n$67108848\r\n"]
+        "$67108852\r\n", "*1\r\n$67108848\r\n",
+        "*2\r\n$67108845\r\n", "*2\r\n*2\r\n$67108838\r\n"]
         rejected = false
         try
             redis.isComplete(header)

@@ -47,10 +47,26 @@ sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
     -o "$work/xrt_runtime.o"
 "$cc" "${flags[@]}" -c release/extlibs/redis/redis_native.c \
     -o "$work/redis_native.o"
-for name in test_redis test_redis_alloc test_redis_threads; do
+for name in test_redis test_redis_alloc test_redis_threads test_pending_budget; do
     "$cc" "${flags[@]}" "release/extlibs/redis/test/$name.c" \
         "$work/redis_native.o" "$work/xrt_runtime.o" -lm -ldl -o "$work/$name"
     timeout 90s "$work/$name"
+done
+"$cc" "${flags[@]}" release/extlibs/redis/examples/response_budget_c.c \
+    "$work/xrt_runtime.o" -lm -ldl -o "$work/budget_example"
+timeout 30s "$work/budget_example" > "$work/budget.c.txt"
+timeout 90s ./release/xl run release/extlibs/redis/examples/response_budget_c.c > "$work/budget.direct.txt"
+timeout 90s ./release/xl run release/extlibs/redis/examples/response_budget.xl > "$work/budget.xl.txt"
+tr -d '\r' < release/extlibs/redis/examples/response_budget.expected.txt > "$work/budget.expected"
+for output in c direct xl; do diff -u "$work/budget.expected" "$work/budget.$output.txt"; done
+timeout 120s ./release/xl build release/extlibs/redis/test/test_pending_budget.c \
+    release/extlibs/redis/redis_native.c -o "$work/pending_aot"
+timeout 90s "$work/pending_aot" > "$work/pending.txt"
+diff -u <(printf 'redis pending-byte budget: 85 cases, 0 failures\n') "$work/pending.txt"
+for source in response_budget_c.c response_budget.xl; do
+    timeout 120s ./release/xl build "release/extlibs/redis/examples/$source" -o "$work/$source.aot"
+    timeout 30s "$work/$source.aot" > "$work/$source.txt"
+    diff -u "$work/budget.expected" "$work/$source.txt"
 done
 "$cc" "${flags[@]}" release/extlibs/redis/test/test_example_lifetime.c \
     "$work/xrt_runtime.o" -lm -ldl -o "$work/example_lifetime"

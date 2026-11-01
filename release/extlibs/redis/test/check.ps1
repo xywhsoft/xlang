@@ -1,4 +1,4 @@
-param([switch]$Stress, [switch]$SkipAot)
+﻿param([switch]$Stress, [switch]$SkipAot)
 
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
@@ -66,6 +66,7 @@ try {
         'release/extlibs/redis/test/test_redis.c',
         'release/extlibs/redis/test/test_redis_alloc.c',
         'release/extlibs/redis/test/test_redis_threads.c',
+        'release/extlibs/redis/test/test_pending_budget.c',
         'release/extlibs/redis/test/test_example_lifetime.c')
     $null = Run 'C boundaries' (Join-Path $root 'tools/run_extlib_c.ps1') @(
         'redis', 'release/extlibs/redis/test/test_redis.c')
@@ -73,6 +74,11 @@ try {
         'redis', 'release/extlibs/redis/test/test_redis_alloc.c')
     $null = Run 'C threads' (Join-Path $root 'tools/run_extlib_c.ps1') @(
         'redis', 'release/extlibs/redis/test/test_redis_threads.c')
+    $pendingExpected = 'redis pending-byte budget: 85 cases, 0 failures'
+    if ((Run 'C pending-byte budget' (Join-Path $root 'tools/run_extlib_c.ps1') @(
+        'redis', 'release/extlibs/redis/test/test_pending_budget.c')) -cne $pendingExpected) {
+        throw 'Incomplete pending-byte budget matrix'
+    }
     $null = Run 'C example ownership contract' $xl @('run',
         'release/extlibs/redis/test/test_example_lifetime.c')
     # 真正用 GCC 构建/运行 C 范例，不能把 C 运行器的 TCC 输出称为 GCC。
@@ -81,6 +87,33 @@ try {
     $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror', '-Ilib/xrt')
     $null = Run 'GCC runtime build' $gcc ($flags + @('-DXRT_MODULE_MEMORY_DEBUG', '-c',
         'release/extlibs/redis/test/live_runtime.c', '-o', $runtime))
+    $pending = Join-Path $work 'redis_pending.exe'
+    $null = Run 'GCC pending budget build' $gcc ($flags + @(
+        'release/extlibs/redis/test/test_pending_budget.c', 'release/extlibs/redis/redis_native.c',
+        $runtime, '-lws2_32', '-ladvapi32', '-lm', '-o', $pending))
+    if ((Run 'GCC pending budget' $pending @()) -cne $pendingExpected) { throw 'GCC pending matrix differs' }
+    $budget = Join-Path $work 'redis_budget_example.exe'
+    $null = Run 'GCC budget example build' $gcc ($flags + @(
+        'release/extlibs/redis/examples/response_budget_c.c', $runtime,
+        '-lws2_32', '-ladvapi32', '-lm', '-o', $budget))
+    $budgetExpected = [IO.File]::ReadAllText((Join-Path $root 'release/extlibs/redis/examples/response_budget.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    if ((Run 'GCC budget example' $budget @()) -cne $budgetExpected -or
+        (Run 'direct C budget example' $xl @('run','release/extlibs/redis/examples/response_budget_c.c')) -cne $budgetExpected -or
+        (Run 'XLang budget example' $xl @('run','release/extlibs/redis/examples/response_budget.xl')) -cne $budgetExpected) {
+        throw 'C/XLang budget examples differ'
+    }
+    if (-not $SkipAot) {
+        foreach ($source in @('release/extlibs/redis/test/test_pending_budget.c',
+            'release/extlibs/redis/examples/response_budget_c.c','release/extlibs/redis/examples/response_budget.xl')) {
+            $target = Join-Path $work (([IO.Path]::GetFileName($source))+'.exe')
+            $arguments = @('build',$source)
+            if ($source -like '*/test_pending_budget.c') { $arguments += 'release/extlibs/redis/redis_native.c' }
+            $null = Run "$source build" $xl ($arguments + @('-o',$target))
+            $output = Run "$source AOT" $target @()
+            $expected = if ($source -like '*/test_pending_budget.c') { $pendingExpected } else { $budgetExpected }
+            if ($output -cne $expected) { throw 'AOT budget output differs' }
+        }
+    }
     $null = Run 'GCC C example build' $gcc ($flags + @(
         'release/examples/extlibs/redis_c.c', $runtime, '-o', $gccExample,
         '-lws2_32', '-lbcrypt', '-lshlwapi', '-liphlpapi'))

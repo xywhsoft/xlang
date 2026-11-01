@@ -1,0 +1,1259 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-01T21:38:01.1854898+08:00",
+  "package": "redis",
+  "maturity": "R",
+  "status": "protocol-fix-and-functional-gates-passed-prior-filesystem-risk-open",
+  "sourceParent": "bdd8e280cad542e33a06a6a5dc7e897c1ae850bb",
+  "root": "D:\\GIT\\x-lang",
+  "bug": {
+    "description": "A bulk header consumed the whole 64 MiB allowance while ancestor arrays still required more values. Old scanners waited for an impossible body.",
+    "minimalPrefix": "*2\\r\\n$67108845\\r\\n",
+    "validControl": "*2\\r\\n$67108844\\r\\n",
+    "minimumRemainingValueBytes": 3,
+    "fix": "Reserve the minimum bytes for all known following siblings. Static recursion passes their count; incremental scanning keeps one counter. No public API change."
+  },
+  "model": {
+    "cases": 85,
+    "depths": [
+      1,
+      2,
+      3,
+      8,
+      32,
+      62,
+      63
+    ],
+    "widths": [
+      1,
+      2,
+      3,
+      127
+    ],
+    "deltas": [
+      -1,
+      0,
+      1
+    ],
+    "fullFrameBytes": 67108864,
+    "paths": [
+      "stateless completeness",
+      "full decode malformed/incomplete distinction",
+      "whole-buffer incremental",
+      "bytewise incremental"
+    ],
+    "oldFailures": 27,
+    "newFailures": 0
+  },
+  "windowsRedGreen": {
+    "before": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "redis pending-byte budget: 85 cases, 27 failures\r\n",
+      "stderr": "pending budget depth=1 width=2 delta=1\r\npending budget depth=1 width=3 delta=1\r\npending budget depth=1 width=127 delta=1\r\npending budget depth=2 width=1 delta=1\r\npending budget depth=2 width=2 delta=1\r\npending budget depth=2 width=3 delta=1\r\npending budget depth=2 width=127 delta=1\r\npending budget depth=3 width=1 delta=1\r\n",
+      "elapsedMs": 117
+    },
+    "after": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "redis pending-byte budget: 85 cases, 0 failures\r\n",
+      "stderr": "",
+      "elapsedMs": 108
+    },
+    "test": {
+      "path": "release/extlibs/redis/test/test_pending_budget.c",
+      "bytes": 4474,
+      "sha256": "b24f4b597226828e1510240b25f83a02ac443e1808e8d335ebe8bef60cdb6d10"
+    },
+    "oldNative": {
+      "path": "D:\\GIT\\x-lang\\build\\test\\redis_pending_20261101/before_native.c",
+      "bytes": 17702,
+      "sha256": "988b1b7c202669a4620195c7e1db36cb68d855ff6118a60cdf01643f5fcdf02b"
+    },
+    "newNative": {
+      "path": "release/extlibs/redis/redis_native.c",
+      "bytes": 18559,
+      "sha256": "74be49438a67ca5cea2907d2efac4e47d1e2adf9e08edc652dfc4970be5d52b4"
+    }
+  },
+  "linuxRedGreen": {
+    "beforeExit": 1,
+    "beforeStdout": "redis pending-byte budget: 85 cases, 27 failures",
+    "beforeStderr": "pending budget depth=1 width=2 delta=1\npending budget depth=1 width=3 delta=1\npending budget depth=1 width=127 delta=1\npending budget depth=2 width=1 delta=1\npending budget depth=2 width=2 delta=1\npending budget depth=2 width=3 delta=1\npending budget depth=2 width=127 delta=1\npending budget depth=3 width=1 delta=1",
+    "afterExit": 0,
+    "afterStdout": "redis pending-byte budget: 85 cases, 0 failures",
+    "afterStderr": "",
+    "sanitizers": [
+      "ASan",
+      "UBSan",
+      "leak detection"
+    ]
+  },
+  "nativeCosts": {
+    "frameBytesBefore": 576,
+    "frameBytesAfter": 584,
+    "platform": "Windows x64 GCC 16.2.0",
+    "probe": [
+      {
+        "version": "before",
+        "phase": "compile",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 414
+        }
+      },
+      {
+        "version": "before",
+        "phase": "size",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "frame_bytes=576\r\n",
+          "stderr": "",
+          "elapsedMs": 27
+        }
+      },
+      {
+        "version": "after",
+        "phase": "compile",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 410
+        }
+      },
+      {
+        "version": "after",
+        "phase": "size",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "frame_bytes=584\r\n",
+          "stderr": "",
+          "elapsedMs": 38
+        }
+      }
+    ],
+    "additionalPublicAbiFields": 0,
+    "newProductionAllocationSites": 0,
+    "newPayloadCopies": 0,
+    "ancestorStackRescansAdded": 0,
+    "extraWork": "One pending-count update and constant-time budget arithmetic; one extra count argument in recursive decoding.",
+    "allocatorBucketAndColdCostsBenchmarked": false,
+    "speedupClaim": false,
+    "wholeChainZeroOverheadClaim": false
+  },
+  "timingFixtureFix": {
+    "normativeSource": {
+      "path": "docs/time-milliseconds.md",
+      "bytes": 1171,
+      "sha256": "c9c924669fcebf7b27430aa53b48fb7d5fc705f2583a64139f4cd45e4db5d30a"
+    },
+    "runtimeSource": {
+      "path": "src/runtime/xl6_time_core.c",
+      "bytes": 4542,
+      "sha256": "e486242185d986d8c76a58a7a4520442e28cbb86d984faa44286e4092e51ae47"
+    },
+    "currentClockUnit": "milliseconds",
+    "oldSlowAssertion": [
+      4000000,
+      6000000
+    ],
+    "newSlowAssertion": [
+      4000,
+      6000
+    ],
+    "oldShortUpperBound": 1000000,
+    "newShortBounds": [
+      60,
+      1000
+    ],
+    "productionTimeoutAlgorithmChanged": false,
+    "deadlinesRelaxed": false,
+    "note": "The dated general stdlib document still says microseconds. The explicit current time contract and runtime agree on milliseconds; core documentation was not edited by this task."
+  },
+  "windows": {
+    "passed": true,
+    "checks": 46,
+    "offlineAotPrograms": 9,
+    "inputCount": 48,
+    "inputs": {
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05",
+      "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294fcc133c2e4f3e5786080d6dcfedd3bfbc51656af892433cce08bb3eaf635f",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\include\\redis_native.h": "81b2ecd5825a4e726251ec459944182831ba8e55cdd5ad2af4ebc982bd578308",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\gate_probe_c.c": "c9bb14e9a08dfe0fe2152e9a42908661d2ed7d1e8faa740073e9d548b0555793",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\aot_core.xl": "97d564e1154975ba6b144609fd891a9f598c0c255ae1a2ce64f4b25bfaa0bcf2",
+      "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "c010a2ee726375ca627d3c161e65ed3fce84189810259f6a93bf8eb277caf219",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\live_server_c.c": "4dc646ae9986dfb8381543ba56799aea1989ba9da78ba404660da43f8611b758",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\README.md": "b85794f1516e58db9b7b821cee0efd41183bd5011fd5bbff8f554fda9675a835",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\live_server.xl": "c14330d7ceb8f7405451d893c9cf0a7b02a0e0bb03dd2204a6e1b6cec170e0ba",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\examples\\response_budget_c.c": "dc5ccfc1aef85a7e1b75a0ca18f0887d42443786e0ecdea417a386c884557505",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\command_loopback.xl": "feaac9d3215dc24301d9ab54db74cf680ef610b57a49f1e5138c179d847da614",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\boundaries.xl": "7ed710c3e6658ebccdbdab3238d55abadb8014139751ac36ad81e5dbd557425f",
+      "D:\\GIT\\x-lang\\test\\cases\\xlir_extlib_redis_current_tcp.xl": "dcc445c6452d5e528686e685bce98dd69f93a10bec6e8e05367dcf74fdd9c58e",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_redis.xl": "9b8d1eb72d47440027893eeaa5fb3f40c06de7494abe49549138975b0d77ee59",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\.gitattributes": "1d5d71dcc6ccd28ab46a335349ecc74742ca4b81f4fcad212f8d134f70f1f13e",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\check.sh": "427ae19054a1bbcdcce0ed47dd4714d02ba6b8eb3ee6e81b57785f60f33bd697",
+      "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe": "9785001b0dcf755eddb8af294a373c0b87b2498660f724e76c4d53f9c217c7a3",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\examples\\response_budget.expected.txt": "00501418bbc3baeb7565835b0fa5b33c704fb9163b7466064675b2bd80db8268",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\redis_c.c": "993ab9bffeab846a0166258df42a2c407a6c7317c19444c7ed2b08997d37c774",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\redis_native.c": "74be49438a67ca5cea2907d2efac4e47d1e2adf9e08edc652dfc4970be5d52b4",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9a52de3e3af8f4896e963c4b68ed159f049954775decb20e421cd75d51aab6ed",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\check.ps1": "de6a81370ac890239fb2771eb38c93603dc870cc49b304ba76f6fa2c8cd6a63b",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\allocations.xl": "42f4ac6782dcced3ff0dd45f6ba6dd21035b4edb149dee6848bf5dbdd5573c0f",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\docs\\site.html": "d579ce955db23f670fc107ad281782c621b237d8f19458ee244bb07e3e91115d",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\concurrent_server.xl": "e15a0038c5a26941093f233a78d6984f7d499560123088f4948a76af91445591",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\reuse_loopback.xl": "bee805c1300f5356fad73587200d5d5a386c2e384fe07d7c7b0df13adb9e84f6",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445",
+      "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1": "5183f14dbf4444b47d8832b60a0d6a6b570c8e933874785bef85dd1ecb024a44",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\live_runtime.c": "0bb34bea1244c7dfc127fecdd42d2a917fef959b82b21f22a5f43ba4f661f028",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\check_gate_diagnostics.ps1": "8d61543e934a0199ff518cc0160a1e292ff69e5874c299360f94c6c04a65624c",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\test_redis_threads.c": "d196fb82cd52deff708c5d905a70b52046f27ef0f9591d822152d8f2f94d8b04",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+      "E:\\software\\w64devkit\\libexec\\gcc\\x86_64-w64-mingw32\\16.2.0\\cc1.exe": "b5536be9710fb9eece19de8cc9469d5ecd96d8282418e61d529a1394a8921012",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\redis.xl": "cc4343b8ce3c0c33c99cb0e804b245df2e3d8e986adb91d8d22236322100d216",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\test_redis_alloc.c": "afadd685656c741cfffa20f8418e0bf1eb4c5cf96daebee985d532abb3d01745",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\xlang.package.json": "dfe3e1f4da21376efae0f082898fcd83cadc90300047e8050232720ed70d0df7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\check_live.sh": "a93eb4b09ee364302d7d1072aa7736edca1cf933923018e10a40e7fa4495784a",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\test_pending_budget.c": "b24f4b597226828e1510240b25f83a02ac443e1808e8d335ebe8bef60cdb6d10",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\examples\\response_budget.xl": "04ffba22b3a4a89ede41258092a7edf67e280d39459a7668b763f53adbee0bd0",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\test_example_lifetime.c": "a6e1f47f9db2207936e11e8e14a46a7b7057b062f60d592547f956a705a9e3e2",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\src\\redis.xl": "288fa8a40171843167be5dc4b155e6fad2832fa033b01164ca81fe99162ec795",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\test_redis.c": "c28cefbe08bf73ed5de7b06ba428e0bf7768bac2437daecef1aa850681c9139e",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334",
+      "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\preflight_repro.xl": "fb49fbf373c7048c42880edb4394e7f08bfe477c9445d05633a7ebf368282f04"
+    },
+    "rawReport": {
+      "path": "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e.report.json",
+      "bytes": 55880,
+      "sha256": "e082f86430821a8da4f073e64520ae3b9a36bfe26894663c8d7ab103bea25951"
+    },
+    "checksDetail": [
+      {
+        "label": "GCC version",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "--version"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "stderr": "",
+          "elapsedMs": 47
+        }
+      },
+      {
+        "label": "GCC cc1 path",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-print-prog-name=cc1"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe\r\n",
+          "stderr": "",
+          "elapsedMs": 25
+        }
+      },
+      {
+        "label": "process diagnostics",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\release\\extlibs\\redis\\test\\check_gate_diagnostics.ps1"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "[redis] probe compile: PASS\n[redis] expected nonzero: PASS\n[redis] null arguments: PASS\n[redis] separate streams: PASS\n[redis] preserve bare CR: PASS\n[redis] relative cwd: PASS\nRedis gate diagnostics: PASS (11 child results)\n",
+          "stderr": "",
+          "elapsedMs": 2779
+        }
+      },
+      {
+        "label": "strict C syntax",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-fsyntax-only",
+          "-Ilib/xrt",
+          "release/extlibs/redis/redis_native.c",
+          "release/extlibs/redis/test/test_redis.c",
+          "release/extlibs/redis/test/test_redis_alloc.c",
+          "release/extlibs/redis/test/test_redis_threads.c",
+          "release/extlibs/redis/test/test_pending_budget.c",
+          "release/extlibs/redis/test/test_example_lifetime.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 901
+        }
+      },
+      {
+        "label": "C boundaries",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1",
+          "redis",
+          "release/extlibs/redis/test/test_redis.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis C boundaries: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 7508
+        }
+      },
+      {
+        "label": "C allocation failures",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1",
+          "redis",
+          "release/extlibs/redis/test/test_redis_alloc.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis allocation: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 386
+        }
+      },
+      {
+        "label": "C threads",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1",
+          "redis",
+          "release/extlibs/redis/test/test_redis_threads.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis threads: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 401
+        }
+      },
+      {
+        "label": "C pending-byte budget",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1",
+          "redis",
+          "release/extlibs/redis/test/test_pending_budget.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis pending-byte budget: 85 cases, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 459
+        }
+      },
+      {
+        "label": "C example ownership contract",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/redis/test/test_example_lifetime.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "encoded bytes: 33\r\nbulk value bytes: 3\r\narray reply: 2 items\r\nbinary request bytes: 29\r\nbinary decode: true\r\nredis C/XL example: PASS\r\nredis C example lifetime: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 96
+        }
+      },
+      {
+        "label": "GCC runtime build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-DXRT_MODULE_MEMORY_DEBUG",
+          "-c",
+          "release/extlibs/redis/test/live_runtime.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\xrt.o"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 6927
+        }
+      },
+      {
+        "label": "GCC pending budget build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "release/extlibs/redis/test/test_pending_budget.c",
+          "release/extlibs/redis/redis_native.c",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\xrt.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\redis_pending.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 559
+        }
+      },
+      {
+        "label": "GCC pending budget",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\redis_pending.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis pending-byte budget: 85 cases, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 97
+        }
+      },
+      {
+        "label": "GCC budget example build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "release/extlibs/redis/examples/response_budget_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\xrt.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\redis_budget_example.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 462
+        }
+      },
+      {
+        "label": "GCC budget example",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\redis_budget_example.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "single_pending=waiting\r\nsiblings_pending=waiting\r\nsiblings_overflow=rejected\r\nnested_overflow=rejected\r\n",
+          "stderr": "",
+          "elapsedMs": 27
+        }
+      },
+      {
+        "label": "direct C budget example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/redis/examples/response_budget_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "single_pending=waiting\r\nsiblings_pending=waiting\r\nsiblings_overflow=rejected\r\nnested_overflow=rejected\r\n",
+          "stderr": "",
+          "elapsedMs": 98
+        }
+      },
+      {
+        "label": "XLang budget example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/redis/examples/response_budget.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "single_pending=waiting\nsiblings_pending=waiting\nsiblings_overflow=rejected\nnested_overflow=rejected\n",
+          "stderr": "",
+          "elapsedMs": 981
+        }
+      },
+      {
+        "label": "release/extlibs/redis/test/test_pending_budget.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/redis/test/test_pending_budget.c",
+          "release/extlibs/redis/redis_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\test_pending_budget.c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 156
+        }
+      },
+      {
+        "label": "release/extlibs/redis/test/test_pending_budget.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\test_pending_budget.c.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis pending-byte budget: 85 cases, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 172
+        }
+      },
+      {
+        "label": "release/extlibs/redis/examples/response_budget_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/redis/examples/response_budget_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\response_budget_c.c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 141
+        }
+      },
+      {
+        "label": "release/extlibs/redis/examples/response_budget_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\response_budget_c.c.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "single_pending=waiting\r\nsiblings_pending=waiting\r\nsiblings_overflow=rejected\r\nnested_overflow=rejected\r\n",
+          "stderr": "",
+          "elapsedMs": 40
+        }
+      },
+      {
+        "label": "release/extlibs/redis/examples/response_budget.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/redis/examples/response_budget.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\response_budget.xl.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1604
+        }
+      },
+      {
+        "label": "release/extlibs/redis/examples/response_budget.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\response_budget.xl.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "single_pending=waiting\nsiblings_pending=waiting\nsiblings_overflow=rejected\nnested_overflow=rejected\n",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "label": "GCC C example build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "release/examples/extlibs/redis_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\xrt.o",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\redis_gcc_example.exe",
+          "-lws2_32",
+          "-lbcrypt",
+          "-lshlwapi",
+          "-liphlpapi"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 528
+        }
+      },
+      {
+        "label": "GCC C example",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\redis_gcc_example.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "encoded bytes: 33\r\nbulk value bytes: 3\r\narray reply: 2 items\r\nbinary request bytes: 29\r\nbinary decode: true\r\nredis C/XL example: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 26
+        }
+      },
+      {
+        "label": "C example",
+        "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1",
+          "redis",
+          "release/examples/extlibs/redis_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "encoded bytes: 33\r\nbulk value bytes: 3\r\narray reply: 2 items\r\nbinary request bytes: 29\r\nbinary decode: true\r\nredis C/XL example: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 383
+        }
+      },
+      {
+        "label": "C example xl run",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/examples/extlibs/redis_c.c"
+        ],
+        "directory": "D:\\GIT\\x-lang",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "encoded bytes: 33\r\nbulk value bytes: 3\r\narray reply: 2 items\r\nbinary request bytes: 29\r\nbinary decode: true\r\nredis C/XL example: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 82
+        }
+      },
+      {
+        "label": "XLang central case",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "../test/cases/extlib_redis.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1576
+        }
+      },
+      {
+        "label": "XLang boundaries",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/redis/test/boundaries.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis boundaries: ok\n",
+          "stderr": "",
+          "elapsedMs": 1824
+        }
+      },
+      {
+        "label": "XLang allocation failures",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/redis/test/allocations.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis allocation: PASS\n",
+          "stderr": "",
+          "elapsedMs": 1030
+        }
+      },
+      {
+        "label": "TCP preflight",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/redis/test/preflight_repro.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis preflight: ok\n",
+          "stderr": "",
+          "elapsedMs": 1255
+        }
+      },
+      {
+        "label": "TCP current API",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "../test/cases/xlir_extlib_redis_current_tcp.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "Redis current TCP: fragments/NUL, logical error, connection reuse and deadline\n",
+          "stderr": "",
+          "elapsedMs": 1602
+        }
+      },
+      {
+        "label": "TCP reuse",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/redis/test/reuse_loopback.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis reuse loopback: 500\n",
+          "stderr": "",
+          "elapsedMs": 1692
+        }
+      },
+      {
+        "label": "TCP fragmented/error/deadline",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/redis/test/command_loopback.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis command loopback: ok\n",
+          "stderr": "",
+          "elapsedMs": 22190
+        }
+      },
+      {
+        "label": "XLang example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "examples/extlibs/redis.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "encoded bytes: 33\nbulk value bytes: 3\narray reply: 2 items\nbinary request bytes: 29\nbinary decode: true\nredis C/XL example: PASS\n",
+          "stderr": "",
+          "elapsedMs": 1327
+        }
+      },
+      {
+        "label": "XLang core build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/redis/test/aot_core.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\redis_core.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1634
+        }
+      },
+      {
+        "label": "XLang core AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\redis_core.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 30
+        }
+      },
+      {
+        "label": "TCP preflight_repro build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/redis/test/preflight_repro.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\preflight_repro.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 2225
+        }
+      },
+      {
+        "label": "TCP preflight_repro AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\preflight_repro.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis preflight: ok\n",
+          "stderr": "",
+          "elapsedMs": 60
+        }
+      },
+      {
+        "label": "TCP command_loopback build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/redis/test/command_loopback.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\command_loopback.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 14346
+        }
+      },
+      {
+        "label": "TCP command_loopback AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\command_loopback.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis command loopback: ok\n",
+          "stderr": "",
+          "elapsedMs": 13966
+        }
+      },
+      {
+        "label": "TCP reuse_loopback build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/redis/test/reuse_loopback.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\reuse_loopback.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 2488
+        }
+      },
+      {
+        "label": "TCP reuse_loopback AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\reuse_loopback.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "redis reuse loopback: 500\n",
+          "stderr": "",
+          "elapsedMs": 217
+        }
+      },
+      {
+        "label": "XLang example build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "examples/extlibs/redis.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\redis_example.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 2192
+        }
+      },
+      {
+        "label": "XLang example AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\redis_example.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "encoded bytes: 33\nbulk value bytes: 3\narray reply: 2 items\nbinary request bytes: 29\nbinary decode: true\nredis C/XL example: PASS\n",
+          "stderr": "",
+          "elapsedMs": 31
+        }
+      },
+      {
+        "label": "C example AOT build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "examples/extlibs/redis_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\redis_c_example.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 142
+        }
+      },
+      {
+        "label": "C example AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\redis_guard_0e9762eb446a49b382fbcc7ed5092a9e\\redis_c_example.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\release",
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "encoded bytes: 33\r\nbulk value bytes: 3\r\narray reply: 2 items\r\nbinary request bytes: 29\r\nbinary decode: true\r\nredis C/XL example: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 34
+        }
+      }
+    ],
+    "inputChanges": []
+  },
+  "linux": {
+    "passed": true,
+    "snapshot": "/var/tmp/xlang-redis-pending-h4LZECX4",
+    "sourceArchive": {
+      "path": "D:\\GIT\\x-lang\\build\\test\\redis_pending_20261101/source.tar",
+      "bytes": 48718848,
+      "sha256": "9940369cfd52ed3e6d579191c404ffdae1b5eb699d884609f59cd5f2672bbad9"
+    },
+    "inputs": {
+      "./lib/xrt/xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+      "./lib/xruntime/xruntime.h": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+      "./release/examples/extlibs/redis.xl": "cc4343b8ce3c0c33c99cb0e804b245df2e3d8e986adb91d8d22236322100d216",
+      "./release/examples/extlibs/redis_c.c": "993ab9bffeab846a0166258df42a2c407a6c7317c19444c7ed2b08997d37c774",
+      "./release/examples/extlibs/redis_live.xl": "1151f6d26524c2cd2bbb4f1a51ecf1d2be41a303e1b3725cd48f3d79a9787184",
+      "./release/examples/extlibs/redis_live_c.c": "aeca5efe790961e7e299e2b7c06351831afae4038ebaa2777def1e6f209fa1c3",
+      "./release/extlibs/redis/.gitattributes": "1d5d71dcc6ccd28ab46a335349ecc74742ca4b81f4fcad212f8d134f70f1f13e",
+      "./release/extlibs/redis/README.md": "b85794f1516e58db9b7b821cee0efd41183bd5011fd5bbff8f554fda9675a835",
+      "./release/extlibs/redis/docs/site.html": "d579ce955db23f670fc107ad281782c621b237d8f19458ee244bb07e3e91115d",
+      "./release/extlibs/redis/examples/response_budget.expected.txt": "00501418bbc3baeb7565835b0fa5b33c704fb9163b7466064675b2bd80db8268",
+      "./release/extlibs/redis/examples/response_budget.xl": "04ffba22b3a4a89ede41258092a7edf67e280d39459a7668b763f53adbee0bd0",
+      "./release/extlibs/redis/examples/response_budget_c.c": "dc5ccfc1aef85a7e1b75a0ca18f0887d42443786e0ecdea417a386c884557505",
+      "./release/extlibs/redis/include/redis_native.h": "81b2ecd5825a4e726251ec459944182831ba8e55cdd5ad2af4ebc982bd578308",
+      "./release/extlibs/redis/redis_native.c": "74be49438a67ca5cea2907d2efac4e47d1e2adf9e08edc652dfc4970be5d52b4",
+      "./release/extlibs/redis/src/redis.xl": "288fa8a40171843167be5dc4b155e6fad2832fa033b01164ca81fe99162ec795",
+      "./release/extlibs/redis/test/allocations.xl": "42f4ac6782dcced3ff0dd45f6ba6dd21035b4edb149dee6848bf5dbdd5573c0f",
+      "./release/extlibs/redis/test/aot_core.xl": "97d564e1154975ba6b144609fd891a9f598c0c255ae1a2ce64f4b25bfaa0bcf2",
+      "./release/extlibs/redis/test/boundaries.xl": "7ed710c3e6658ebccdbdab3238d55abadb8014139751ac36ad81e5dbd557425f",
+      "./release/extlibs/redis/test/check.ps1": "de6a81370ac890239fb2771eb38c93603dc870cc49b304ba76f6fa2c8cd6a63b",
+      "./release/extlibs/redis/test/check.sh": "427ae19054a1bbcdcce0ed47dd4714d02ba6b8eb3ee6e81b57785f60f33bd697",
+      "./release/extlibs/redis/test/check_gate_diagnostics.ps1": "8d61543e934a0199ff518cc0160a1e292ff69e5874c299360f94c6c04a65624c",
+      "./release/extlibs/redis/test/check_live.sh": "a93eb4b09ee364302d7d1072aa7736edca1cf933923018e10a40e7fa4495784a",
+      "./release/extlibs/redis/test/command_loopback.xl": "feaac9d3215dc24301d9ab54db74cf680ef610b57a49f1e5138c179d847da614",
+      "./release/extlibs/redis/test/concurrent_server.xl": "e15a0038c5a26941093f233a78d6984f7d499560123088f4948a76af91445591",
+      "./release/extlibs/redis/test/gate_probe_c.c": "c9bb14e9a08dfe0fe2152e9a42908661d2ed7d1e8faa740073e9d548b0555793",
+      "./release/extlibs/redis/test/live_runtime.c": "0bb34bea1244c7dfc127fecdd42d2a917fef959b82b21f22a5f43ba4f661f028",
+      "./release/extlibs/redis/test/live_server.xl": "c14330d7ceb8f7405451d893c9cf0a7b02a0e0bb03dd2204a6e1b6cec170e0ba",
+      "./release/extlibs/redis/test/live_server_c.c": "4dc646ae9986dfb8381543ba56799aea1989ba9da78ba404660da43f8611b758",
+      "./release/extlibs/redis/test/preflight_repro.xl": "fb49fbf373c7048c42880edb4394e7f08bfe477c9445d05633a7ebf368282f04",
+      "./release/extlibs/redis/test/reuse_loopback.xl": "bee805c1300f5356fad73587200d5d5a386c2e384fe07d7c7b0df13adb9e84f6",
+      "./release/extlibs/redis/test/test_example_lifetime.c": "a6e1f47f9db2207936e11e8e14a46a7b7057b062f60d592547f956a705a9e3e2",
+      "./release/extlibs/redis/test/test_pending_budget.c": "b24f4b597226828e1510240b25f83a02ac443e1808e8d335ebe8bef60cdb6d10",
+      "./release/extlibs/redis/test/test_redis.c": "c28cefbe08bf73ed5de7b06ba428e0bf7768bac2437daecef1aa850681c9139e",
+      "./release/extlibs/redis/test/test_redis_alloc.c": "afadd685656c741cfffa20f8418e0bf1eb4c5cf96daebee985d532abb3d01745",
+      "./release/extlibs/redis/test/test_redis_threads.c": "d196fb82cd52deff708c5d905a70b52046f27ef0f9591d822152d8f2f94d8b04",
+      "./release/extlibs/redis/xlang.package.json": "dfe3e1f4da21376efae0f082898fcd83cadc90300047e8050232720ed70d0df7",
+      "./release/include/README.md": "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770",
+      "./release/include/libtcc.h": "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab",
+      "./release/include/tcc_builtin_vfs.h": "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2",
+      "./release/include/xl.h": "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4",
+      "./release/include/xl_cancellation_retirement.h": "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad",
+      "./release/include/xl_clock.h": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18",
+      "./release/include/xl_extlib_abi.h": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445",
+      "./release/include/xl_foreign_graph.h": "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f",
+      "./release/include/xl_foreign_net.h": "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a",
+      "./release/include/xl_package.h": "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1",
+      "./release/include/xl_runtime.h": "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2",
+      "./release/include/xl_sync_retirement.h": "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e",
+      "./release/include/xl_version.h": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992",
+      "./release/include/xlc.h": "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f",
+      "./release/include/xrt_decl.h": "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d",
+      "./release/include/xruntime_decl.h": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+      "./release/libxl.so": "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad",
+      "./release/libxlc.so": "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386",
+      "./release/xl": "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb",
+      "./test/cases/extlib_redis.xl": "9b8d1eb72d47440027893eeaa5fb3f40c06de7494abe49549138975b0d77ee59",
+      "./test/cases/xlir_extlib_redis_current_tcp.xl": "dcc445c6452d5e528686e685bce98dd69f93a10bec6e8e05367dcf74fdd9c58e"
+    },
+    "inputChanges": [],
+    "fullStageUnchanged": true,
+    "defaultAndLiveGate": true,
+    "offlineAotPrograms": 9,
+    "liveAotPrograms": 1,
+    "aotBuildCommands": [
+      "+ timeout 120s ./release/xl build release/extlibs/redis/test/test_pending_budget.c release/extlibs/redis/redis_native.c -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/pending_aot",
+      "+ timeout 120s ./release/xl build release/extlibs/redis/examples/response_budget_c.c -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/response_budget_c.c.aot",
+      "+ timeout 120s ./release/xl build release/extlibs/redis/examples/response_budget.xl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/response_budget.xl.aot",
+      "+ timeout 120s ./release/xl build release/extlibs/redis/test/aot_core.xl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_core",
+      "+ timeout 120s ./release/xl build release/extlibs/redis/test/preflight_repro.xl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_preflight_repro",
+      "+ timeout 600s ./release/xl build release/extlibs/redis/test/command_loopback.xl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_command_loopback",
+      "+ timeout 600s ./release/xl build release/extlibs/redis/test/reuse_loopback.xl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_reuse_loopback",
+      "+ timeout 240s ./release/xl build release/examples/extlibs/redis.xl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_example",
+      "+ timeout 240s ./release/xl build release/examples/extlibs/redis_c.c -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_c_example",
+      "+ timeout 240s ./release/xl build release/examples/extlibs/redis_live.xl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_live_example"
+    ],
+    "commandTraceSha256LfNormalized": "8bf9696dd190aeb799d9dc7f60b746540e0a470b4e71a1170818759b0d2b002f",
+    "commandTrace": "+ export SHELLOPTS\n+ bash release/extlibs/redis/test/check_live.sh\n+ set -euo pipefail\n+++ dirname -- release/extlibs/redis/test/check_live.sh\n++ cd -- release/extlibs/redis/test/../../../..\n++ pwd\n+ root=/var/tmp/xlang-redis-pending-h4LZECX4/stage\n+ cd /var/tmp/xlang-redis-pending-h4LZECX4/stage\n+ mode=\n+ [[ -n '' ]]\n+ command -v redis-server\n+ command -v redis-cli\n+ [[ '' == --windows-xl ]]\n++ mktemp -d /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-live-XXXXXX\n+ work=/var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-live-KXxIwr\n+ pid=\n+ binaryWork=\n+ trap cleanup EXIT\n+ ready=0\n+ for attempt in {1..10}\n+ port=44939\n+ redis-cli -h 127.0.0.1 -p 44939 ping\n+ grep -Fxq PONG\n+ pid=474\n+ for probe in {1..30}\n+ kill -0 474\n+ redis-server --bind 127.0.0.1 --port 44939 --save '' --appendonly no\n+ redis-cli --raw -h 127.0.0.1 -p 44939 INFO server\n+ tr -d '\\r'\n+ grep -Fxq process_id:474\n+ kill -0 474\n+ sleep 0.1\n+ for probe in {1..30}\n+ kill -0 474\n+ redis-cli --raw -h 127.0.0.1 -p 44939 INFO server\n+ tr -d '\\r'\n+ grep -Fxq process_id:474\n+ ready=1\n+ break\n+ [[ 1 == 1 ]]\n+ break\n+ [[ 1 != 1 ]]\n+ kill -0 474\n+ [[ '' == --windows-xl ]]\n+ REDIS_LIVE=1\n+ REDIS_LIVE_PORT=44939\n+ bash release/extlibs/redis/test/check.sh\n+ set -euo pipefail\n+++ dirname -- release/extlibs/redis/test/check.sh\n++ cd -- release/extlibs/redis/test/../../../..\n++ pwd\n+ root=/var/tmp/xlang-redis-pending-h4LZECX4/stage\n+ cd /var/tmp/xlang-redis-pending-h4LZECX4/stage\n++ mktemp -d /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-XXXXXX\n+ work=/var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP\n+ trap cleanup EXIT\n+ trap 'record_failure \"$?\" \"$LINENO\" \"$BASH_COMMAND\" \"${PIPESTATUS[*]}\"' ERR\n+ cc=gcc\n+ flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/redis -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread)\n+ export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1\n+ ASAN_OPTIONS=detect_leaks=1:halt_on_error=1\n+ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1\n+ UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1\n+ mapfile -d '' inputs\n++ find release/extlibs/redis -type f -print0\n++ sort -zu\n++ printf '%s\\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxlc.so release/include/xrt_decl.h release/include/xruntime_decl.h release/include/xl_extlib_abi.h test/cases/extlib_redis.xl release/examples/extlibs/redis.xl release/examples/extlibs/redis_c.c release/examples/extlibs/redis_live.xl release/examples/extlibs/redis_live_c.c\n+ sha256sum lib/xrt/xrt.h lib/xruntime/xruntime.h release/examples/extlibs/redis.xl release/examples/extlibs/redis_c.c release/examples/extlibs/redis_live.xl release/examples/extlibs/redis_live_c.c release/extlibs/redis/.gitattributes release/extlibs/redis/README.md release/extlibs/redis/docs/site.html release/extlibs/redis/examples/response_budget.expected.txt release/extlibs/redis/examples/response_budget.xl release/extlibs/redis/examples/response_budget_c.c release/extlibs/redis/include/redis_native.h release/extlibs/redis/redis_native.c release/extlibs/redis/src/redis.xl release/extlibs/redis/test/allocations.xl release/extlibs/redis/test/aot_core.xl release/extlibs/redis/test/boundaries.xl release/extlibs/redis/test/check.ps1 release/extlibs/redis/test/check.sh release/extlibs/redis/test/check_gate_diagnostics.ps1 release/extlibs/redis/test/check_live.sh release/extlibs/redis/test/command_loopback.xl release/extlibs/redis/test/concurrent_server.xl release/extlibs/redis/test/gate_probe_c.c release/extlibs/redis/test/live_runtime.c release/extlibs/redis/test/live_server.xl release/extlibs/redis/test/live_server_c.c release/extlibs/redis/test/preflight_repro.xl release/extlibs/redis/test/reuse_loopback.xl release/extlibs/redis/test/test_example_lifetime.c release/extlibs/redis/test/test_pending_budget.c release/extlibs/redis/test/test_redis.c release/extlibs/redis/test/test_redis_alloc.c release/extlibs/redis/test/test_redis_threads.c release/extlibs/redis/xlang.package.json release/include/xl_extlib_abi.h release/include/xrt_decl.h release/include/xruntime_decl.h release/libxlc.so release/xl test/cases/extlib_redis.xl\n+ gcc --version\n+ gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/redis -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -DXRT_MODULE_THREAD -DXRT_MODULE_MEMORY_DEBUG -c release/extlibs/redis/test/live_runtime.c -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/xrt_runtime.o\n+ gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/redis -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -c release/extlibs/redis/redis_native.c -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_native.o\n+ for name in test_redis test_redis_alloc test_redis_threads test_pending_budget\n+ gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/redis -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/redis/test/test_redis.c /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_native.o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/xrt_runtime.o -lm -ldl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/test_redis\n+ timeout 90s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/test_redis\n+ for name in test_redis test_redis_alloc test_redis_threads test_pending_budget\n+ gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/redis -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/redis/test/test_redis_alloc.c /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_native.o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/xrt_runtime.o -lm -ldl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/test_redis_alloc\n+ timeout 90s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/test_redis_alloc\n+ for name in test_redis test_redis_alloc test_redis_threads test_pending_budget\n+ gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/redis -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/redis/test/test_redis_threads.c /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_native.o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/xrt_runtime.o -lm -ldl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/test_redis_threads\n+ timeout 90s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/test_redis_threads\n+ for name in test_redis test_redis_alloc test_redis_threads test_pending_budget\n+ gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/redis -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/redis/test/test_pending_budget.c /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_native.o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/xrt_runtime.o -lm -ldl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/test_pending_budget\n+ timeout 90s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/test_pending_budget\n+ gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/redis -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/redis/examples/response_budget_c.c /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/xrt_runtime.o -lm -ldl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/budget_example\n+ timeout 30s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/budget_example\n+ timeout 90s ./release/xl run release/extlibs/redis/examples/response_budget_c.c\n+ timeout 90s ./release/xl run release/extlibs/redis/examples/response_budget.xl\n+ tr -d '\\r'\n+ for output in c direct xl\n+ diff -u /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/budget.expected /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/budget.c.txt\n+ for output in c direct xl\n+ diff -u /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/budget.expected /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/budget.direct.txt\n+ for output in c direct xl\n+ diff -u /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/budget.expected /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/budget.xl.txt\n+ timeout 120s ./release/xl build release/extlibs/redis/test/test_pending_budget.c release/extlibs/redis/redis_native.c -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/pending_aot\n+ timeout 90s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/pending_aot\n+ diff -u /dev/fd/63 /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/pending.txt\n++ printf 'redis pending-byte budget: 85 cases, 0 failures\\n'\n+ for source in response_budget_c.c response_budget.xl\n+ timeout 120s ./release/xl build release/extlibs/redis/examples/response_budget_c.c -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/response_budget_c.c.aot\n+ timeout 30s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/response_budget_c.c.aot\n+ diff -u /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/budget.expected /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/response_budget_c.c.txt\n+ for source in response_budget_c.c response_budget.xl\n+ timeout 120s ./release/xl build release/extlibs/redis/examples/response_budget.xl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/response_budget.xl.aot\n+ timeout 30s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/response_budget.xl.aot\n+ diff -u /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/budget.expected /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/response_budget.xl.txt\n+ gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/redis -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/redis/test/test_example_lifetime.c /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/xrt_runtime.o -lm -ldl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/example_lifetime\n+ timeout 90s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/example_lifetime\n+ gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/redis -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/examples/extlibs/redis_c.c /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/xrt_runtime.o -lm -ldl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/example\n+ timeout 30s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/example\n+ timeout 30s ./release/xl run release/examples/extlibs/redis_c.c\n+ diff -u /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/c.txt /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/c_direct.txt\n+ [[ 1 == 1 ]]\n+ gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/redis -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/examples/extlibs/redis_live_c.c /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/xrt_runtime.o -lm -ldl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/live_example_c\n+ timeout 30s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/live_example_c\n+ gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/redis -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/redis/test/live_server_c.c /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_native.o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/xrt_runtime.o -lm -ldl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/live_server_c\n+ timeout 60s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/live_server_c\n+ printf 'redis live server C gate: PASS\\n'\n+ timeout 60s ./release/xl run release/extlibs/redis/test/boundaries.xl\n+ timeout 60s ./release/xl run release/extlibs/redis/test/allocations.xl\n+ timeout 60s ./release/xl run release/extlibs/redis/test/preflight_repro.xl\n+ timeout 60s ./release/xl run test/cases/extlib_redis.xl\n+ timeout 90s ./release/xl run release/extlibs/redis/test/command_loopback.xl\n+ timeout 60s ./release/xl run release/extlibs/redis/test/reuse_loopback.xl\n+ timeout 60s ./release/xl run release/examples/extlibs/redis.xl\n+ diff -u /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/c.txt /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/xl.txt\n+ [[ 1 == 1 ]]\n+ cd release\n+ timeout 30s ./xl run examples/extlibs/redis_live.xl\n+ cd release\n+ timeout 30s ./xl run examples/extlibs/redis_live_c.c\n+ diff -u /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/live_c.txt /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/live_xl.txt\n+ diff -u /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/live_c.txt /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/live_tcc.txt\n+ cd release\n+ timeout 60s ./xl run extlibs/redis/test/live_server.xl\n+ [[ 0 == 1 ]]\n+ cd release\n+ timeout 60s ./xl run extlibs/redis/test/concurrent_server.xl\n+ printf 'redis live server C/XLang gate: PASS\\n'\n+ timeout 120s ./release/xl build release/extlibs/redis/test/aot_core.xl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_core\n+ timeout 45s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_core\n+ printf '[redis] Linux core AOT: PASS\\n'\n+ for name in preflight_repro command_loopback reuse_loopback\n+ printf '[redis] Linux %s AOT build\\n' preflight_repro\n+ build_timeout=120s\n+ [[ preflight_repro == command_loopback ]]\n+ [[ preflight_repro == reuse_loopback ]]\n+ timeout 120s ./release/xl build release/extlibs/redis/test/preflight_repro.xl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_preflight_repro\n+ :\n+ timeout 90s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_preflight_repro\n+ printf '[redis] Linux %s AOT ran\\n' preflight_repro\n+ for name in preflight_repro command_loopback reuse_loopback\n+ printf '[redis] Linux %s AOT build\\n' command_loopback\n+ build_timeout=120s\n+ [[ command_loopback == command_loopback ]]\n+ build_timeout=600s\n+ timeout 600s ./release/xl build release/extlibs/redis/test/command_loopback.xl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_command_loopback\n+ :\n+ timeout 90s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_command_loopback\n+ printf '[redis] Linux %s AOT ran\\n' command_loopback\n+ for name in preflight_repro command_loopback reuse_loopback\n+ printf '[redis] Linux %s AOT build\\n' reuse_loopback\n+ build_timeout=120s\n+ [[ reuse_loopback == command_loopback ]]\n+ [[ reuse_loopback == reuse_loopback ]]\n+ build_timeout=600s\n+ timeout 600s ./release/xl build release/extlibs/redis/test/reuse_loopback.xl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_reuse_loopback\n+ :\n+ timeout 90s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_reuse_loopback\n+ printf '[redis] Linux %s AOT ran\\n' reuse_loopback\n+ diff -u /dev/fd/63 /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/preflight_repro.txt\n++ printf 'redis preflight: ok\\n'\n+ diff -u /dev/fd/63 /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/command_loopback.txt\n++ printf 'redis command loopback: ok\\n'\n+ diff -u /dev/fd/63 /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/reuse_loopback.txt\n++ printf 'redis reuse loopback: 500\\n'\n+ timeout 240s ./release/xl build release/examples/extlibs/redis.xl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_example\n+ timeout 45s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_example\n+ diff -u /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/c.txt /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/example_aot.txt\n+ timeout 240s ./release/xl build release/examples/extlibs/redis_c.c -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_c_example\n+ timeout 45s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_c_example\n+ diff -u /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/c.txt /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/c_example_aot.txt\n+ [[ 1 == 1 ]]\n+ timeout 240s ./release/xl build release/examples/extlibs/redis_live.xl -o /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_live_example\n+ timeout 45s /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/redis_live_example\n+ diff -u /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/live_c.txt /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/live_aot.txt\n+ sha256sum lib/xrt/xrt.h lib/xruntime/xruntime.h release/examples/extlibs/redis.xl release/examples/extlibs/redis_c.c release/examples/extlibs/redis_live.xl release/examples/extlibs/redis_live_c.c release/extlibs/redis/.gitattributes release/extlibs/redis/README.md release/extlibs/redis/docs/site.html release/extlibs/redis/examples/response_budget.expected.txt release/extlibs/redis/examples/response_budget.xl release/extlibs/redis/examples/response_budget_c.c release/extlibs/redis/include/redis_native.h release/extlibs/redis/redis_native.c release/extlibs/redis/src/redis.xl release/extlibs/redis/test/allocations.xl release/extlibs/redis/test/aot_core.xl release/extlibs/redis/test/boundaries.xl release/extlibs/redis/test/check.ps1 release/extlibs/redis/test/check.sh release/extlibs/redis/test/check_gate_diagnostics.ps1 release/extlibs/redis/test/check_live.sh release/extlibs/redis/test/command_loopback.xl release/extlibs/redis/test/concurrent_server.xl release/extlibs/redis/test/gate_probe_c.c release/extlibs/redis/test/live_runtime.c release/extlibs/redis/test/live_server.xl release/extlibs/redis/test/live_server_c.c release/extlibs/redis/test/preflight_repro.xl release/extlibs/redis/test/reuse_loopback.xl release/extlibs/redis/test/test_example_lifetime.c release/extlibs/redis/test/test_pending_budget.c release/extlibs/redis/test/test_redis.c release/extlibs/redis/test/test_redis_alloc.c release/extlibs/redis/test/test_redis_threads.c release/extlibs/redis/xlang.package.json release/include/xl_extlib_abi.h release/include/xrt_decl.h release/include/xruntime_decl.h release/libxlc.so release/xl test/cases/extlib_redis.xl\n+ diff -u /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/inputs.before.sha256 /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP/inputs.after.sha256\n+ printf 'redis Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\\n'\n+ cleanup\n+ result=0\n+ trap - EXIT\n+ set +e\n+ (( result == 0 ))\n+ rm -rf -- /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-q0nIjP\n+ exit 0\n+ cleanup\n+ [[ -n 474 ]]\n+ kill 474\n+ wait 474\n+ [[ -n '' ]]\n+ rm -rf -- /var/tmp/xlang-redis-pending-h4LZECX4/tmp/xlang-redis-live-KXxIwr",
+    "stdout": "redis C boundaries: PASS\nredis allocation: PASS\nredis threads: PASS\nredis pending-byte budget: 85 cases, 0 failures\nencoded bytes: 33\nbulk value bytes: 3\narray reply: 2 items\nbinary request bytes: 29\nbinary decode: true\nredis C/XL example: PASS\nredis C example lifetime: PASS\nredis real server C: ok\nredis live server C gate: PASS\nredis boundaries: ok\nredis allocation: PASS\nredis preflight: ok\nredis command loopback: ok\nredis reuse loopback: 500\nredis real server: ok\nredis concurrent server: 50 rounds ok\nredis live server C/XLang gate: PASS\n[redis] Linux core AOT: PASS\n[redis] Linux preflight_repro AOT build\n[redis] Linux preflight_repro AOT ran\n[redis] Linux command_loopback AOT build\n[redis] Linux command_loopback AOT ran\n[redis] Linux reuse_loopback AOT build\n[redis] Linux reuse_loopback AOT ran\nredis Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS",
+    "elapsedMs": 120693,
+    "ownedServer": {
+      "pid": 474,
+      "infoProcessIdMatched": true,
+      "killRecorded": true,
+      "waitRecorded": true
+    },
+    "verification": "Strict GCC, ASan/UBSan/leaks, original and new C/XL examples, malformed-prefix stream abort, total deadline, 500-round reuse, real Redis and 4x50 rounds."
+  },
+  "windowsLive": {
+    "result": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "redis Windows xl.exe / WSL live server gate: PASS\n",
+      "stderr": "+ set -euo pipefail\n+++ dirname -- release/extlibs/redis/test/check_live.sh\n++ cd -- release/extlibs/redis/test/../../../..\n++ pwd\n+ root=/mnt/d/GIT/x-lang\n+ cd /mnt/d/GIT/x-lang\n+ mode=--windows-xl\n+ [[ -n --windows-xl ]]\n+ [[ --windows-xl != --windows-xl ]]\n+ command -v redis-server\n+ command -v redis-cli\n+ [[ --windows-xl == --windows-xl ]]\n+ command -v cmd.exe\n+ [[ -f release/xl.exe ]]\n++ mktemp -d /tmp/xlang-redis-live-XXXXXX\n+ work=/tmp/xlang-redis-live-QNCIZb\n+ pid=\n+ binaryWork=\n+ trap cleanup EXIT\n+ ready=0\n+ for attempt in {1..10}\n+ port=52640\n+ redis-cli -h 127.0.0.1 -p 52640 ping\n+ grep -Fxq PONG\n+ pid=426\n+ for probe in {1..30}\n+ kill -0 426\n+ redis-server --bind 127.0.0.1 --port 52640 --save '' --appendonly no\n+ redis-cli --raw -h 127.0.0.1 -p 52640 INFO server\n+ tr -d '\\r'\n+ grep -Fxq process_id:426\n+ kill -0 426\n+ sleep 0.1\n+ for probe in {1..30}\n+ kill -0 426\n+ redis-cli --raw -h 127.0.0.1 -p 52640 INFO server\n+ tr -d '\\r'\n+ grep -Fxq process_id:426\n+ ready=1\n+ break\n+ [[ 1 == 1 ]]\n+ break\n+ [[ 1 != 1 ]]\n+ kill -0 426\n+ [[ --windows-xl == --windows-xl ]]\n+ export REDIS_LIVE_PORT=52640\n+ REDIS_LIVE_PORT=52640\n+ export WSLENV=REDIS_LIVE_PORT/w\n+ WSLENV=REDIS_LIVE_PORT/w\n+ cd /mnt/d/GIT/x-lang/release\n+ ./xl.exe run examples/extlibs/redis_live.xl\n+ tr -d '\\r'\n+ ./xl.exe run examples/extlibs/redis_live_c.c\n+ tr -d '\\r'\n+ diff -u /tmp/xlang-redis-live-QNCIZb/example_c.txt /tmp/xlang-redis-live-QNCIZb/example_xl.txt\n+ [[ PING: PONG\nGET: hello\nEXISTS: 1\nINCR: 1\nEXISTS after DEL: 0 == PING\\: PONG\nGET\\: hello\nEXISTS\\: 1\nINCR\\: 1\nEXISTS after DEL\\: 0 ]]\n+ mkdir -p /mnt/d/GIT/x-lang/build/test\n++ mktemp -d /mnt/d/GIT/x-lang/build/test/redis-live-XXXXXX\n+ binaryWork=/mnt/d/GIT/x-lang/build/test/redis-live-PKZtio\n++ basename /mnt/d/GIT/x-lang/build/test/redis-live-PKZtio\n+ ./xl.exe build examples/extlibs/redis_live.xl -o ../build/test/redis-live-PKZtio/redis_live.exe\n+ /mnt/d/GIT/x-lang/build/test/redis-live-PKZtio/redis_live.exe\n+ tr -d '\\r'\n+ diff -u /tmp/xlang-redis-live-QNCIZb/example_xl.txt /tmp/xlang-redis-live-QNCIZb/example_aot.txt\n++ ./xl.exe run extlibs/redis/test/live_server.xl\n+ [[ redis real server: ok == redis real server\\: ok ]]\n++ ./xl.exe run extlibs/redis/test/live_server_c.c extlibs/redis/redis_native.c\n++ tr -d '\\r'\n+ [[ redis real server C: ok == redis real server C\\: ok ]]\n++ ./xl.exe run extlibs/redis/test/concurrent_server.xl\n++ tr -d '\\r'\n+ [[ redis concurrent server: 50 rounds ok == redis concurrent server\\: 50 rounds ok ]]\n+ [[ 0 == 1 ]]\n+ printf 'redis Windows xl.exe / WSL live server gate: PASS\\n'\n+ cleanup\n+ [[ -n 426 ]]\n+ kill 426\n+ wait 426\n+ [[ -n /mnt/d/GIT/x-lang/build/test/redis-live-PKZtio ]]\n+ case \"$binaryWork\" in\n+ rm -f -- /mnt/d/GIT/x-lang/build/test/redis-live-PKZtio/redis_live.exe\n+ rmdir -- /mnt/d/GIT/x-lang/build/test/redis-live-PKZtio\n+ rm -rf -- /tmp/xlang-redis-live-QNCIZb\n",
+      "elapsedMs": 8879
+    },
+    "ownedServer": {
+      "pid": 426,
+      "infoProcessIdMatched": true,
+      "killRecorded": true,
+      "waitRecorded": true
+    },
+    "liveAotPrograms": 1,
+    "roundsPerConnection": 50,
+    "connections": 4
+  },
+  "redisServer": {
+    "version": "8.0.5",
+    "path": "/usr/bin/redis-server",
+    "sha256AtCollection": "0f3f5d696b7dabd9af484c2d8844dbb0c9bc7722ddf794f63b911a9795509293",
+    "scope": "Tests own a loopback-only temporary server, match INFO process_id, and kill/wait it. Not Redis algorithm certification or hours-long endurance."
+  },
+  "catalog": {
+    "generation": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "Catalog frontend build failed: D:\\GIT\\x-lang\\src\\parser\\xl6_parser_api.c: In function 'xl6ParserTokenKind':\r\nD:\\GIT\\x-lang\\src\\parser\\xl6_parser_api.c:73:32: error: 'XL6PG_KW_STRUCT' undeclared (first use in this function); did you mean 'XL6_KW_STRUCT'?\r\n   73 |     case XL6_KW_STRUCT: return XL6PG_KW_STRUCT;\r\n      |                                ^~~~~~~~~~~~~~~\r\n      |                                XL6_KW_STRUCT\r\nD:\\GIT\\x-lang\\src\\parser\\xl6_parser_api.c:73:32: note: each undeclared identifier is reported only once for each function it appears in\r\n\r\n",
+      "elapsedMs": 2633
+    },
+    "candidateCompleted": false,
+    "installed": false,
+    "blocker": "dev/extlib_blockers/catalog_release_binding_20261101.md",
+    "action": "Let the parallel mainline finish parser/token generation and qualified base catalog binding, then regenerate. No copied old header or compatibility macro."
+  },
+  "website": {
+    "source": {
+      "path": "release/extlibs/redis/docs/site.html",
+      "bytes": 9920,
+      "sha256": "d579ce955db23f670fc107ad281782c621b237d8f19458ee244bb07e3e91115d"
+    },
+    "generated": {
+      "path": "D:\\GIT\\x-lang\\build\\test\\redis_pending_20261101/site/extlibs/redis.html",
+      "bytes": 9920,
+      "sha256": "d579ce955db23f670fc107ad281782c621b237d8f19458ee244bb07e3e91115d"
+    },
+    "externalWebsitePublished": false
+  },
+  "scope": {
+    "ordinaryPackages": 100,
+    "statuses": {
+      "G": 30,
+      "M": 56,
+      "R": 10,
+      "X": 4
+    },
+    "allOtherPackagesRetested": false,
+    "compilerRuntimeXrtOrIdeSourceModified": false,
+    "formalRelease": false,
+    "goalComplete": false,
+    "remaining": [
+      "Previous WSL mounted-filesystem AOT timeout risk remains open; native-filesystem success is not a fix for it.",
+      "Catalog generation and qualified source/runtime/base binding remain pending.",
+      "This phase does not repeat 100000 rounds or certify hours-long endurance, pooling, automatic reconnect, Pub/Sub or cluster support."
+    ]
+  }
+}

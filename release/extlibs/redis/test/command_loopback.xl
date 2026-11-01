@@ -184,7 +184,7 @@ func main(...) as int
         deep = deep + "*1\r\n"
     end
     for header in [deep, "*100000\r\n", "*99999\r\n*1\r\n", "$67108852\r\n",
-        "*1\r\n$67108848\r\n"]
+        "*1\r\n$67108848\r\n", "*2\r\n$67108845\r\n", "*2\r\n*2\r\n$67108838\r\n"]
         auto budgetClient = TcpStream(engine, server.localAddress())
         assert budgetClient.wait(TcpWait.open, 5000) == NetStatus.ok
         auto budgetPeer = server.accept(5000)
@@ -243,7 +243,9 @@ func main(...) as int
         shortTimedOut = error.message == "redis: command timed out"
     end
     assert shortTimedOut, "configured deadline was not enforced"
-    assert time.monotonic() - shortStarted < 1_000_000
+    // 当前单调时钟与 timeoutMs 均按毫秒计，不沿用旧微秒断言。
+    uint64 shortElapsed = time.monotonic() - shortStarted
+    assert shortElapsed >= 60 and shortElapsed < 1000
     assertAborted(stalledClient, "deadline must abort the stream")
     assert stalledJob.wait()
     stalledClient.close()
@@ -271,7 +273,7 @@ func main(...) as int
     end
     uint64 elapsed = time.monotonic() - started
     assert timedOut, "slow RESP reply must hit the total deadline"
-    assert elapsed >= 4_000_000 and elapsed < 6_000_000, "redis deadline is not bounded"
+    assert elapsed >= 4000 and elapsed < 6000, "redis deadline is not bounded"
     assertAborted(slowClient, "timed out command must abort the stream")
     assert slowJob.wait(), "slow server task failed"
     slowClient.close()
