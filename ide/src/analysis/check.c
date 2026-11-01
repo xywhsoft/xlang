@@ -417,6 +417,22 @@ int xlsSemanticCheckSource(const xls_semantic_check* r,size_t index,xls_check_so
 {
     return xlsInputReportSource(r && !invalid(r) ? &r->report : NULL,index,out);
 }
+xls_text* xlsSemanticCheckRetainSourceText(const xls_semantic_check* r,size_t index,size_t* bomBytes)
+{
+    if(bomBytes)*bomBytes=0;
+    xls_check_source row;
+    if(!bomBytes || !xlsSemanticCheckSource(r,index,&row) || !(row.kind&1) || !r->inputOwner)return NULL;
+    for(size_t i=0;;++i){
+        const xls_analysis_document* document=xlsInputBatchAt(r->inputOwner,i);
+        if(!document)return NULL;
+        if(strcmp(document->path,row.path))continue;
+        xls_text* text=document->text;size_t size=xlsTextSize(text),skip=0;
+        const char* data=xlsTextData(text);
+        if(size>=3 && !memcmp(data,"\xef\xbb\xbf",3))skip=3;
+        if(size-skip!=row.size || memcmp(data+skip,row.text,row.size) || invalid(r))return NULL;
+        *bomBytes=skip;return xlsTextRetain(text);
+    }
+}
 int xlsSemanticCheckProbe(const xls_semantic_check* r,size_t index,xls_check_probe* out)
 {
     return xlsInputReportProbe(r && !invalid(r) ? &r->report : NULL,index,out);
