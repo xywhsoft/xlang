@@ -2,6 +2,41 @@
 
 # CLI：os.args 的运行时符号缺失
 
+## 2026-11-01 已关闭原缺符号边界
+
+当前主目录发布物不再复现`xl6_xrt_os_args`缺符号。Windows/Linux的
+无包调用、CLI最小导入及其独立程序均已实际通过。
+`cli_os_args_contents.xl`补查UTF-8、空串、带空格参数及返回数组独立性。
+`cli_os_args_contexts.c`只使用同一个DLL/SO导出的XRT，不编译第二份运行库；
+分别对两种提供者创建两个上下文，按A/B/A传入不同数组并检查caller输入
+仍存活、main参数正确、宿主向量与真实C argc/argv逐项相同。
+
+旧文关于“os.args不得读取宿主参数”的建议不符合现行规范，撤销此假设，
+不能当成新的BUG。权威口径见`docs/标准库设计.md`的os接口与补充说明：
+**os.args返回宿主OS进程向量（含argv[0]），脚本main形参独立**。
+因此JIT本次为宿主8项/main5项，独立程序为5/5；DLL/SO宿主3项，
+A/B/A的main分别4/2/4项，正是预期区别，不应该强行让两者相等。
+
+从仓库根运行：
+
+```powershell
+./release/xl.exe run dev/extlib_blockers/cli_os_args_contents.xl -- alpha "" 中文 "two words"
+gcc -std=c11 -O2 -Wall -Wextra -Werror -finput-charset=UTF-8 -fexec-charset=UTF-8 -Irelease/include dev/extlib_blockers/cli_os_args_contexts.c release/xl.dll -o build/test/cli-context-args.exe
+$env:PATH = (Resolve-Path release).Path + ';' + $env:PATH
+./build/test/cli-context-args.exe (Resolve-Path .).Path (Resolve-Path build/test).Path
+```
+
+同一C源也已分别链接`xlc.dll`、`libxl.so`和`libxlc.so`验证。每次检查
+真实执行状态和main返回码，不把成功编译或executed=1直接当作运行正确。
+记录见`docs/reports/extlib-cli-os-args-20261101.json`。
+
+这不等于CLI整包验收完成：`cli_args_projection.xl`的C正对照通过后，
+原字面量数组/声明对象仍在Windows/Linux报ValueError，M1保持开放。
+`parseOs`仍按已声明的`parse(os.args(), spec)`语义，不在本轮改成读取
+main参数或移除公开入口，也不通过私有表示转换把M1变绿。
+
+## 以下为历史冻结记录
+
 2026-10-28 在扩展库工作树的既有发布物上复验。编译器源码基线为
 `d64672903`，扩展库整理起点为 `bb7c6b45e`；不等同于尚未合入并
 重建的最新 master。二进制哈希见
