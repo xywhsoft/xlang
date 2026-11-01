@@ -19,7 +19,7 @@ def main():
     assert build['Complete'] and build['InputsUnchanged']
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     sources=[root/'test/support/foreign_view_storage.c']+[root/('src/runtime/'+n+'.c') for n in (
-        'xl6_cell','xl6_native_future_payload','xl6_foreign_view','xl6_foreign_callback_scope',
+        'xl6_cell','xl6_native_future_payload','xl6_foreign_view','xl6_foreign_callback_scope','xl6_foreign_context',
         'xl6_native_capture_graph','xl6_foreign_view_capture','xl6_capture_v3','xl6_closure_capture_v4',
         'xl6_cell_native_graph','xl6_native_graph_future_payload','xl6_ownership_domain_native_graph_future_payload')]
     base_root=next(Path(row['Source']).parents[2] for row in build['Objects'] if Path(row['Source']).name=='xl_api.c')

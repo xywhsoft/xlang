@@ -5,6 +5,7 @@
 #include "xl6_code_lease.h"
 #include "xl6_ownership_catalog.h"
 #include "xl6_foreign_callback_scope.h"
+#include "xl6_foreign_context.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -60,6 +61,7 @@ typedef struct XL6_ForeignViewCallV1 {
     XL6_ForeignView* root;
     void* raw;
     void* nativeStorage;
+    XL6_ForeignCallContextV1 execution;
 } XL6_ForeignViewCallV1;
 
 /* Failure never consumes raw. BorrowChild requires a current successful call

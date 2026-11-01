@@ -16,7 +16,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_code_lease.c", NULL, 0, {"XRT_MODULE_MEMORY", "XRT_MODULE_ATOMIC", "XRT_MODULE_THREAD"}},
     {"src/runtime/xl6_closure.c", D(R(CODE_LEASE),R(CELL),R(FOREIGN_ERROR)),
         {"XRT_MODULE_FUTURE", "XRUNTIME_MODULE_RUNTIME_CALL", "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"}},
-    {"src/runtime/xl6_cell.c", NULL, 0, {"XRT_MODULE_MEMORY", "XRT_MODULE_ATOMIC", "XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_cell.c", D(R(FOREIGN_ERROR)), {"XRT_MODULE_MEMORY", "XRT_MODULE_ATOMIC", "XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_frame_storage.c", NULL, 0, {"XRT_MODULE_MEMORY"}},
     {"src/runtime/xl6_task.c", D(R(TASK_POOL),R(TASK_FRAME)), {"XRT_MODULE_TASK_POOL"}},
     {"src/runtime/xl6_continuation_queue.c", D(R(CODE_LEASE)),
