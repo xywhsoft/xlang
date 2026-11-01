@@ -1,6 +1,6 @@
 """Check the actual private timer runtime, cancellation wrapper and signature path.
 
-No test image is installed. Three real C omissions must fail the same oracle.
+No test image is installed. Four real C omissions must fail the same oracle.
 """
 from pathlib import Path
 import argparse
@@ -83,7 +83,7 @@ int main(void){
         diagnostic=(profile/'diagnostic.c').read_text('utf8')
         variants={
             'overwrite-parent':('memset(frames[depth],0,sizeof(frames[depth]))','memset(frames[0],0,sizeof(frames[0]))'),
-            'zero-sequence':('++sequence','(sequence=0)'),
+            'zero-sequence':('xrtAtomic64FetchAdd(&sequence,1,XMEMORY_RELAXED)+1','xrtAtomic64FetchAdd(&sequence,0,XMEMORY_RELAXED)'),
         }
         for name,(old,new) in variants.items():
             if diagnostic.count(old)!=1:raise ValueError('runtime mutation seam changed: '+name)
@@ -91,6 +91,41 @@ int main(void){
             try:runtime_oracle(value.stderr.decode('utf8'))
             except ValueError as error:report['cases'].append(dict(name=name,passed=True,actualCMutantRejected=True,reason=str(error)))
             else:raise ValueError('actual runtime omission was accepted: '+name)
+        # Deterministic OS-ID reuse: distinct, sequential native threads emit
+        # the same synthetic ID. TLS is recreated on every thread; a TLS-only
+        # sequence therefore repeats even when the OS does not happen to reuse
+        # an ID during this test. No concurrent writer ordering is assumed.
+        reused='''#include "profile.h"
+static int32 task(ptr ignored){
+ (void)ignored;xlsLifecycleBegin();double begin=xrtTimer();
+ xlsLifecycleAdd(WORKER,begin);xlsLifecycleEmit("check");return 0;
+}
+int main(void){
+ for(unsigned i=0;i<16;++i){xthread* thread=xrtThreadCreate(task,NULL,0);
+  if(!thread)return 75;
+  if(xrtThreadWaitFor(thread,10000)!=XWAIT_OK)return 76;
+  xrtThreadDestroy(thread);
+ }return 0;
+}
+'''.replace('WORKER',str(worker))
+        obj=compile_file(reused,'reused-id')
+        old='(unsigned long long)xrtThreadCurrentId()'
+        if diagnostic.count(old)!=1:raise ValueError('thread identity injection seam changed')
+        reused_diagnostic=diagnostic.replace(old,'1ULL')
+        def reused_oracle(stderr):
+            records=frames(stderr,set(labels))
+            if len(records)!=16 or {r['thread'] for r in records}!={1} or [r['sequence'] for r in records]!=list(range(1,17)):
+                raise ValueError('thread-lifetime sequence lost continuity')
+        identity=compile_file(reused_diagnostic,'reused-id-diagnostic');exe=executable(obj,'reused-id',identity)
+        value=run([str(exe)],'reused-id-run');reused_oracle(value.stderr.decode('utf8'))
+        report['cases'].append(dict(name='sixteen-sequential-native-threads-reuse-one-synthetic-id',passed=True))
+        old='static xatomic64 sequence;'
+        if reused_diagnostic.count(old)!=1:raise ValueError('sequence lifetime injection seam changed')
+        identity=compile_file(reused_diagnostic.replace(old,'static _Thread_local xatomic64 sequence;'),'reused-id-tls-sequence')
+        exe=executable(obj,'reused-id-tls-sequence',identity);value=run([str(exe)],'reused-id-tls-sequence-run')
+        try:reused_oracle(value.stderr.decode('utf8'))
+        except ValueError as error:report['cases'].append(dict(name='thread-local-sequence-reset-on-reused-id',passed=True,actualCMutantRejected=True,reason=str(error)))
+        else:raise ValueError('TLS sequence reset across thread lifetimes was accepted')
         cancelled='''#include "WORKER_SOURCE"
 int main(void){
  xls_worker worker={0};query_input input={.worker=&worker};xtaskvalue output={0};
