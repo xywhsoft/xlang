@@ -1,0 +1,4076 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-02T06:31:15.4142032+08:00",
+  "package": "statistics",
+  "maturity": "M",
+  "formalRelease": false,
+  "status": "signed-harmonic-scaled-reciprocal-loss-fixed-original-array-projection-and-newly-confirmed-windows-native-math-collision-open",
+  "sourceParent": "3eb5b3deb7d72da8c40055c7a2944368d18df116",
+  "originalNativeGitBlob": "58d2cc5676282ab435127be36e90aa9418f6176f",
+  "originalNativeSha256": "b5fa2a054af0e7402017f8b4037dde54560a8fd9ca2267fb17ec3fc98b1b531e",
+  "objectiveScope": {
+    "ordinaryPackages": 100,
+    "states": {
+      "G": 30,
+      "R": 10,
+      "M": 56,
+      "X": 4
+    },
+    "goalComplete": false,
+    "goalStatus": "active",
+    "acmeAbsent": true,
+    "xbotRetainedOutsideScope": true
+  },
+  "change": {
+    "kind": "Confirmed package numerical defect",
+    "causes": [
+      "Uniform scaling underflows reciprocal tail terms",
+      "Several differently scaled cancellations can lose the small remainder even without literal underflow"
+    ],
+    "solution": "Same-sign linear compensated path; mixed signs sort only the existing copied array, use mantissa/exponent compensated accumulation and normalize only outside safe range",
+    "netProductionLines": 40,
+    "publicApiAbiModulesOwnershipUnchanged": true,
+    "noNewExplicitXrtAllocationOrInputCopy": true,
+    "crtQsortWorkspaceNotClaimedAllocationFree": true,
+    "compilerRuntimeXrtTccIdeNotModifiedByThisTask": true,
+    "parallelWorkPreserved": true
+  },
+  "quality": {
+    "fixedCases": 2019,
+    "checks": 14217,
+    "oldFailedAssertions": 1146,
+    "newFailedAssertions": 0,
+    "assertionsAreNotIndependentBugCount": true,
+    "xrtActualOom": 2,
+    "sevenCountersAndSameInputRecovery": true,
+    "inputBitsPreserved": true,
+    "independentBinary64Records": 3043,
+    "finiteExpected": 3040,
+    "expectedRejections": 3,
+    "shuffledMultiscaleRecords": 1024,
+    "independent": "Python Fraction from actual binary64 input bits and reciprocal rational sum",
+    "oracleNegativeControls": 3,
+    "relativeTolerance": 2E-13,
+    "correctRoundingForArbitraryIllConditionedInputsNotClaimed": true,
+    "limitations": "Division itself rounds to float64; nonexact reciprocal cancellation remains condition-sensitive",
+    "oldTranslationChecks": 160,
+    "oldFractionDecimalResults": 10240,
+    "oldAllocationAndSizeGuardsRetained": true
+  },
+  "productionAndFixtures": [
+    {
+      "path": "release/extlibs/statistics/statistics_native.c",
+      "bytes": 25660,
+      "sha256": "dc02e0cfbe7aa42da65fc183dce31d0becd3c002cb433fd0e3ddc9873fc9e1e5"
+    },
+    {
+      "path": "release/extlibs/statistics/statistics_native.h",
+      "bytes": 1239,
+      "sha256": "0684161d76478b585e62e6cc2fbe61a30d2d2b739ecaa3f1d31dd4615a4288d2"
+    },
+    {
+      "path": "release/extlibs/statistics/xlang.package.json",
+      "bytes": 619,
+      "sha256": "5f40cb6cc58df409c52215d383971b2dbe7c47ad6336ddadda1627e5d7dcbec3"
+    },
+    {
+      "path": "release/extlibs/statistics/test/harmonic_c.c",
+      "bytes": 8053,
+      "sha256": "670518e9beb42ec53c979875b26ed9767e1a9b51eb7179cd82939c8e120d0b97"
+    },
+    {
+      "path": "release/extlibs/statistics/test/check_harmonic.py",
+      "bytes": 2732,
+      "sha256": "f5d4c48f67f39fd43af4e6b25579c6cbbc2d73a726f11156f7b13029b726b558"
+    },
+    {
+      "path": "release/extlibs/statistics/test/bench_harmonic_c.c",
+      "bytes": 1593,
+      "sha256": "49c56b39d8ff85c8168bd5d73dbe539f79e12317f27286f33db2355cdb635b1e"
+    },
+    {
+      "path": "release/extlibs/statistics/test/check.ps1",
+      "bytes": 11778,
+      "sha256": "e297bf308f4eb1971bfd0db4b4765d49b6b39a60d4ee9014a1e5a18a82f0add1"
+    },
+    {
+      "path": "release/extlibs/statistics/test/check.sh",
+      "bytes": 8650,
+      "sha256": "8bd4a8de27c8ed8d096c26c672475f686fd892d941d5e4e1fee31f3e65dd0e1d"
+    },
+    {
+      "path": "release/extlibs/statistics/examples/harmonic_scales.xl",
+      "bytes": 916,
+      "sha256": "61b7b97c3c7a595ce8500083b8239fa10e9d2f377ca694056755b985c653afaa"
+    },
+    {
+      "path": "release/extlibs/statistics/examples/harmonic_scales_c.c",
+      "bytes": 1657,
+      "sha256": "fdc53c5668168b18d546baf3123d23204747f96c01951b831b060f8ce5dec8df"
+    },
+    {
+      "path": "release/extlibs/statistics/examples/harmonic_scales.expected.txt",
+      "bytes": 96,
+      "sha256": "deef6978244831863b5a25aa957c5ac9fbf774f2e179310fee00c5a1d8c84268"
+    }
+  ],
+  "examples": {
+    "xlang": "release/extlibs/statistics/examples/harmonic_scales.xl",
+    "c": "release/extlibs/statistics/examples/harmonic_scales_c.c",
+    "expected": "signed mean: 8/3\nseveral scales: 4\nnegative tail: -8/3\nsame-sign mean: 12/7\nundefined: rejected\n",
+    "normalOperationWritesNoFiles": true,
+    "sameInputsAndAssertions": true,
+    "cGccTccAotBothPlatforms": true,
+    "xlangClosedLoopAccepted": false,
+    "windowsCheck": 0,
+    "windowsJitAndBuild": 1,
+    "windowsFailure": "M13 fabs defined twice",
+    "linuxJit": 1,
+    "linuxBuild": 0,
+    "linuxAot": 1,
+    "linuxFailure": "M1 input is not an array",
+    "languageExamplesNotReplacedByNativeFactories": true
+  },
+  "windows": {
+    "gateExit": 1,
+    "phases": 61,
+    "passedPrefix": 60,
+    "fingerprints": 63,
+    "changedInputs": [],
+    "normalCAotProgramsBuiltAndRun": 8,
+    "actualNativePrototypes": 23,
+    "newOracleEngines": [
+      "GCC",
+      "TCC",
+      "AOT"
+    ],
+    "gateOutcome": "failed",
+    "failure": "release/extlibs/statistics/examples/measurement_offsets.xl complete JIT: fail exit=1\ntcc: __xlvfs__/csrc_0.c:143: error: 'fabs' defined twice\n\n",
+    "inputs": {
+      "C:\\Program Files\\Python312\\python.exe": "4D6F5F81A4BCA11191C4C7C6B43632694D0A4CE74E068619D8FDC161D469859A",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\statistics.xl": "F375E7A567D531722A665241EFC2A5C0C9693F667B6F460163CB4F698589E3F3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\docs\\site.html": "4C7B4D60B50D7C2AB50AA1B59C4A22E10212847DB1D9AB48ECCDA5B11139341C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\basic.expected.txt": "311120FE5D75328355EE9480B5DF557CE7D0F4B70AB78A6F1BC0332948FF9DB6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\basic.xl": "208EB281BB5C3DFFE9FA3830A5354B6DAFE6C25B4E78C308AA1B3CCD047D2EAD",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\distribution.expected.txt": "267176BE7B96F06020EA3E3041CAFDB189158EF76733D8393E89BC31CA9F8F8B",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\distribution.xl": "92DA13B4B372998A868A19C1763B1A72B812ADDB6EAD4B6023F736DAAC77D3CE",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\distribution_c.c": "27A697829927EF707CA322145AA4BB66F5229C2C1F4C2FEF7899023D7B023480",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\harmonic_scales.expected.txt": "DEEF6978244831863B5A25AA957C5AC9FBF774F2E179310FEE00C5A1D8C84268",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\harmonic_scales.xl": "61B7B97C3C7A595CE8500083B8239FA10E9D2F377CA694056755B985C653AFAA",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\harmonic_scales_c.c": "FDC53C5668168B18D546BAF3123D23204747F96C01951B831B060F8CE5DEC8DF",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\measurement_offsets.expected.txt": "DD26DFDF8D9835C793730E1CC764F37D6723C558E41F9E826CB03A7D2094DC86",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\measurement_offsets.xl": "D69B7D77F77EDE882F54A2B060EB6F41B326D6F2821293DE35A5B5A5832FC683",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\measurement_offsets_c.c": "B4D3F179D9BF86CB644706DDD2B361AC3ACDD93162A4071D56C4F9B78DB39247",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\statistics_c.c": "B63666E2ACD5F7571001F28BF005C61CAD6DAFA3FA152662EFECCC5793A765E6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\trend.expected.txt": "985AF74C62AB7C47C55F5006E83B755D3B7BC7237323D91FA6FC6229381ADCD1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\trend.xl": "E95D30E265803DA28CB509BBCCC5FF5BD8A306D997873B72A7D0B36F26EB9CFF",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\trend_c.c": "24D876FD9BCC9A0082069DC2903FFB710D4B733E37B9084566DF7EC51E59A3F6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\README.md": "BB45195364D1F1DC24CB4DA3AE05BD287E12A61E9279ADFE3DCC76B5433E2699",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\src\\statistics.xl": "A31688404BECD97AD7F71422BFBFBC53394BA6FDA5910EB01D8901EC4CC69C8B",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\statistics_native.c": "DC02E0CFBE7AA42DA65FC183DCE31D0BECD3C002CB433FD0E3DDC9873FC9E1E5",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\statistics_native.h": "0684161D76478B585E62E6CC2FBE61A30D2D2B739ECAA3F1D31DD4615A4288D2",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\abi_contract.c": "481C48ECC9C274487763CF61A2A531153D115B762BC08810095414972457123F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\allocations.xl": "3DA2766D44962E89C6477CC9B7536F2032BF4930CC16D5D93FBDDBF601323AC9",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\aot_stdev.xl": "3A767EBDD694CA077218C5B880AD471302F05C3FEC42961FE901CF44542767CC",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\array_var_projection_repro.xl": "1166AC96EF966403719ED5D2AC8BC66C3CCF353A72EEF068E61A69AEEA473BC6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\bench_harmonic_c.c": "49C56B39D8FF85C8168BD5D73DBE539F79E12317F27286F33DB2355CDB635B1E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\boundaries.xl": "971CE4E201FBBC6AF1EF66AEFE28B97BDDC5AF08614F006DDC55BDB7E6966193",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\check.ps1": "E297BF308F4EB1971BFD0DB4B4765D49B6B39A60D4EE9014A1E5A18A82F0ADD1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\check.sh": "8BD4A8DE27C8ED8D096C26C672475F686FD892D941D5E4E1FEE31F3E65DD0E1D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\check_harmonic.py": "F5D4C48F67F39FD43AF4E6B25579C6CBBC2D73A726F11156F7B13029B726B558",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\check_translation.py": "8383F7A233F71336F9D885296C105A567E081F9638BE5E3DFE4A23B3D7EF2A9B",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\harmonic_c.c": "670518E9BEB42EC53C979875B26ED9767E1A9B51EB7179CD82939C8E120D0B97",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\size_guard.c": "E2DE56606C7527DD5883436EE56E97016593FC7D3D8E06C66B87E4A9A0A4F7E1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\test_statistics.c": "C742009D148FA3218074B46848E880A233B3C6E5A9D05C96FF2B3FA4FEFB46E4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\translation_c.c": "A096A77BCEC42DCD3DD6C735393D9864C71878CB494CFF5DB998AD1E3804CC10",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\xrt_runtime.c": "45D698F91C66663E9699E72F4484D8860CEB928BC3393B360F77A240F4CF0D44",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\xlang.package.json": "5F40CB6CC58DF409C52215D383971B2DBE7C47AD6336DDADDA1627E5D7DCBEC3",
+      "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+      "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+      "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+      "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+      "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+      "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+      "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+      "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+      "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+      "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_statistics.xl": "D11107F865AEC74B92E63B6A064624AF1C19E1FF33FD0F22335EAAEE6DBED5B9",
+      "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED"
+    },
+    "calls": [
+      {
+        "name": "compiler version",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "--version"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 43,
+          "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "Python version",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "--version"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 26,
+          "stdout": "Python 3.12.10\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "public header",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-x",
+          "c",
+          "-fsyntax-only",
+          "release/extlibs/statistics/statistics_native.h"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 43,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "manifest syntax",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-DXRT_MODULE_VALUE_CONTAINER",
+          "-fsyntax-only",
+          "release/extlibs/statistics/statistics_native.c"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 136,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "C ABI contract",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-fsyntax-only",
+          "release/extlibs/statistics/test/abi_contract.c"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 54,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "selected XRT compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-c",
+          "release/extlibs/statistics/test/xrt_runtime.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\runtime.o"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 4989,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "native compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-c",
+          "release/extlibs/statistics/statistics_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\native.o"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 440,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_statistics compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-DNDEBUG",
+          "release/extlibs/statistics/test/test_statistics.c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\runtime.o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\native.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\test_statistics.exe"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 570,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_statistics",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\test_statistics.exe",
+        "arguments": [],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 38,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "size_guard compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-DNDEBUG",
+          "release/extlibs/statistics/test/size_guard.c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\size_guard.exe"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 521,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "size_guard",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\size_guard.exe",
+        "arguments": [],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 25,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "translation_c compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-DNDEBUG",
+          "release/extlibs/statistics/test/translation_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\runtime.o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\native.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\translation_c.exe"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 270,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "translation_c",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\translation_c.exe",
+        "arguments": [],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 32,
+          "stdout": "statistics translation: 160 checks, 0 failures\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "harmonic_c compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-DNDEBUG",
+          "release/extlibs/statistics/test/harmonic_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\runtime.o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\native.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\harmonic_c.exe"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 309,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "harmonic_c",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\harmonic_c.exe",
+        "arguments": [],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 28,
+          "stdout": "statistics harmonic: 2019 cases, 14217 checks, 2 OOM, 0 failures\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "Fraction input/output records",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\translation_c.exe",
+        "arguments": [
+          "--records"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 41,
+          "stdout": {
+            "bytes": 405418,
+            "sha256": "4248b38320f1512b6ee15b81119ea4fd8f6af02cbb2cc7aea1aec916f61561bc",
+            "lineCount": 1025,
+            "firstLines": [
+              "0\t2470000000000000,2470000000000010,246fffffffffffc0\t2470000000000000,2470000000000010,246fffffffffff00\t02f8e38e38e38e38\t0302aaaaaaaaaaab\t2173f49c0b9ad4db\t217870be4c1c28b2\t2171c71c71c71c72\t03138e38e38e38e4\t031d555555555555\t3fef24a3ef4e420a\t4009249249249248\ta481249249249252",
+              "1\t39b0000000000000,39b0000000000008,39afffffffffffc0,39b0000000000038\t2470000000000000,2470000000000010,246fffffffffff00,2470000000000080\t2d8f000000000000\t2d94aaaaaaaaaaab\t36bf7efbeb8d4f12\t36c22f2a803c9d06\t36b8000000000000\t1866000000000001\t186d555555555557\t3fef84b1386cf1ef\t2ac6b5ad6b5ad6b6\ta47d6b5ad6b5ad7f",
+              "2\t3ff0000000000000,3ff0000000000004,3fefffffffffffc8,3feffffffffffff0,3ff000000000001c\t2470000000000000,2470000000000010,2470000000000050,246fffffffffff60,2470000000000050\t39f48f5c28f5c290\t39f9b33333333333\t3cf223231c06457a\t3cf4472f659a084b\t3ceb851eb851eb85\t1e63851eb851eb86\t1e68666666666668\t3fc2918f62c089ed\t245e619e619e61a1\t2460cf30cf30cf57"
+            ],
+            "lastLines": [
+              "1022\td8f0000000000000,d8effffffffffff8,d8f0000000000020,d8efffffffffffd8,d8efffffffffffc0,d8effffffffffff0,d8efffffffffffe0,d8f0000000000018,d8efffffffffffc8\te1b0000000000000,e1affffffffffffe,e1b0000000000000,e1affffffffffffc,e1affffffffffff8,e1b0000000000006,e1b0000000000003,e1b0000000000007,e1affffffffffffc\t6bfab0fcd6e9e066\t6bfe071c71c71c73\t55f4aa5c5d9fa9e5\t55f5eb466650b3cf\t55f0b0fcd6e9e065\t7482e9e06522c3f3\t7485471c71c71c71\t3fe07d7c95520715\t4876ace080d4304f\te1ad2a63efe579f9",
+              "1023\te1b0000000000000,e1affffffffffffc,e1b0000000000004,e1afffffffffffe4,e1b0000000000002,e1affffffffffff4,e1affffffffffffc,e1affffffffffffc,e1b000000000000c,e1b0000000000002\te1b0000000000000,e1affffffffffffe,e1b0000000000002,e1b0000000000004,e1b0000000000008,e1affffffffffff8,e1affffffffffff6,e1affffffffffff6,e1b0000000000000,e1affffffffffff2\t7d446b851eb851eb\t7d46b05b05b05b05\t5e998ffe3286153b\t5e9af1f9683ef0d1\t5e92666666666666\tfcdeb851eb851ebb\tfce1111111111113\tbf917aec6b08c970\tbf88120d8a279db9\te1b030241b144f3a"
+            ],
+            "fullRawOutputRetainedInLocalAudit": true
+          },
+          "stderr": ""
+        }
+      },
+      {
+        "name": "Fraction/Decimal oracle",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "release/extlibs/statistics/test/check_translation.py",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\gcc.tsv"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 272,
+          "stdout": "statistics Fraction oracle: 1024 cases, 10240 results, 0 failures\r\nmax scaled error: variance=4.29e-16, varianceSample=4.71e-16, stdev=2.75e-16, stdevSample=3.55e-16, mad=2.31e-16, covariance=1.87e-14, covarianceSample=1.86e-14, correlation=1.87e-14, slope=1.86e-14, intercept=6.61e-16\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "translation direct C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/statistics/test/translation_c.c"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 100,
+          "stdout": "statistics translation: 160 checks, 0 failures\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "harmonic Fraction records",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\harmonic_c.exe",
+        "arguments": [
+          "--records"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 40,
+          "stdout": {
+            "bytes": 311692,
+            "sha256": "3a3d2c014a59630c111bbddeaa782ff542e9482f07fbcdf20f8d35703abd4f20",
+            "lineCount": 3044,
+            "firstLines": [
+              "0\t0000000000000001,8000000000000001,beb0000000000000,bec0000000000000\tbec5555555555555",
+              "1\t0000000000000001,8000000000000001,bec0000000000000,beb0000000000000\tbec5555555555555",
+              "2\t0000000000000001,beb0000000000000,8000000000000001,bec0000000000000\tbec5555555555555"
+            ],
+            "lastLines": [
+              "3041\t1810000000000000,4000000000000000,8830000000000000,9810000000000000,9020000000000000,4008000000000000,0830000000000000,1020000000000000\t4023333333333334",
+              "3042\tc02a000000000000,8a20000000000000,0a20000000000000,c028000000000000,c018000000000000\tc02e969696969696"
+            ],
+            "fullRawOutputRetainedInLocalAudit": true
+          },
+          "stderr": ""
+        }
+      },
+      {
+        "name": "harmonic Fraction oracle",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "release/extlibs/statistics/test/check_harmonic.py",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\harmonic-gcc.tsv"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 155,
+          "stdout": "statistics harmonic oracle: 3043 records, 3040 finite, 3 rejected, 3 controls, PASS\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "harmonic direct C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/statistics/test/harmonic_c.c"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 93,
+          "stdout": "statistics harmonic: 2019 cases, 14217 checks, 2 OOM, 0 failures\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "harmonic TCC records",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/statistics/test/harmonic_c.c",
+          "--",
+          "--records"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 97,
+          "stdout": {
+            "bytes": 311692,
+            "sha256": "3a3d2c014a59630c111bbddeaa782ff542e9482f07fbcdf20f8d35703abd4f20",
+            "lineCount": 3044,
+            "firstLines": [
+              "0\t0000000000000001,8000000000000001,beb0000000000000,bec0000000000000\tbec5555555555555",
+              "1\t0000000000000001,8000000000000001,bec0000000000000,beb0000000000000\tbec5555555555555",
+              "2\t0000000000000001,beb0000000000000,8000000000000001,bec0000000000000\tbec5555555555555"
+            ],
+            "lastLines": [
+              "3041\t1810000000000000,4000000000000000,8830000000000000,9810000000000000,9020000000000000,4008000000000000,0830000000000000,1020000000000000\t4023333333333334",
+              "3042\tc02a000000000000,8a20000000000000,0a20000000000000,c028000000000000,c018000000000000\tc02e969696969696"
+            ],
+            "fullRawOutputRetainedInLocalAudit": true
+          },
+          "stderr": ""
+        }
+      },
+      {
+        "name": "harmonic TCC oracle",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "release/extlibs/statistics/test/check_harmonic.py",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\harmonic-tcc.tsv"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 142,
+          "stdout": "statistics harmonic oracle: 3043 records, 3040 finite, 3 rejected, 3 controls, PASS\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "statistics_c compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-DNDEBUG",
+          "release/extlibs/statistics/examples/statistics_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\statistics_c.exe"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 652,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "statistics_c GCC",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\statistics_c.exe",
+        "arguments": [],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 27,
+          "stdout": "count: 8\r\nsum: 40.0\r\nmean: 5.0\r\nmedian: 4.5\r\nmin: 2.0\r\nmax: 9.0\r\nrange: 7.0\r\nstdev: 2.0\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "statistics_c direct",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/statistics/examples/statistics_c.c"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 87,
+          "stdout": "count: 8\r\nsum: 40.0\r\nmean: 5.0\r\nmedian: 4.5\r\nmin: 2.0\r\nmax: 9.0\r\nrange: 7.0\r\nstdev: 2.0\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "trend_c compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-DNDEBUG",
+          "release/extlibs/statistics/examples/trend_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\trend_c.exe"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 573,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "trend_c GCC",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\trend_c.exe",
+        "arguments": [],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 31,
+          "stdout": "quartiles: 5.0 7.0 9.0\r\nlinearFit: 2.0 1.0\r\ncorrelation: 1.0\r\nhistogram: 1 1 1 2\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "trend_c direct",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/statistics/examples/trend_c.c"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 80,
+          "stdout": "quartiles: 5.0 7.0 9.0\r\nlinearFit: 2.0 1.0\r\ncorrelation: 1.0\r\nhistogram: 1 1 1 2\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "distribution_c compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-DNDEBUG",
+          "release/extlibs/statistics/examples/distribution_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\distribution_c.exe"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 616,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "distribution_c GCC",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\distribution_c.exe",
+        "arguments": [],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 32,
+          "stdout": "mode: 4.0\r\nvariance: 1.0\r\nvarianceSample: 1.33\r\nstdevSample: 1.15\r\nmad: 1.0\r\niqr: 2.0\r\npercentile25: 4.0\r\ngeomean: 2.0\r\nharmmean: 1.6\r\ncovariance: 1.33\r\ncovarianceSample: 2.0\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "distribution_c direct",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/statistics/examples/distribution_c.c"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 82,
+          "stdout": "mode: 4.0\r\nvariance: 1.0\r\nvarianceSample: 1.33\r\nstdevSample: 1.15\r\nmad: 1.0\r\niqr: 2.0\r\npercentile25: 4.0\r\ngeomean: 2.0\r\nharmmean: 1.6\r\ncovariance: 1.33\r\ncovarianceSample: 2.0\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "measurement_offsets_c compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-DNDEBUG",
+          "release/extlibs/statistics/examples/measurement_offsets_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\runtime.o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\native.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\measurement_offsets_c.exe"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 227,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "measurement_offsets_c GCC",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\measurement_offsets_c.exe",
+        "arguments": [],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 34,
+          "stdout": "variance: 8/9\r\nsample variance: 4/3\r\nstdev: sqrt(8)/3\r\nMAD: 8/9\r\ntrend: slope=0.5 correlation=1\r\nstatistics offset example: PASS\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "measurement_offsets_c direct",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/statistics/examples/measurement_offsets_c.c"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 81,
+          "stdout": "variance: 8/9\r\nsample variance: 4/3\r\nstdev: sqrt(8)/3\r\nMAD: 8/9\r\ntrend: slope=0.5 correlation=1\r\nstatistics offset example: PASS\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "harmonic_scales_c compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-DNDEBUG",
+          "release/extlibs/statistics/examples/harmonic_scales_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\runtime.o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\native.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\harmonic_scales_c.exe"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 216,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "harmonic_scales_c GCC",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\harmonic_scales_c.exe",
+        "arguments": [],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 26,
+          "stdout": "signed mean: 8/3\r\nseveral scales: 4\r\nnegative tail: -8/3\r\nsame-sign mean: 12/7\r\nundefined: rejected\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "harmonic_scales_c direct",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/statistics/examples/harmonic_scales_c.c"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 80,
+          "stdout": "signed mean: 8/3\r\nseveral scales: 4\r\nnegative tail: -8/3\r\nsame-sign mean: 12/7\r\nundefined: rejected\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "complete language API cgen",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "release/extlibs/statistics/examples/measurement_offsets.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\probe.c"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 99,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "23 actual prototypes",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\abi.c"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 40,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/statistics/test/translation_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/statistics/test/translation_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\ebff28d790094fdb8c86ae31bd39bf09.exe"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 135,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/statistics/test/translation_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\ebff28d790094fdb8c86ae31bd39bf09.exe",
+        "arguments": [],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 47,
+          "stdout": "statistics translation: 160 checks, 0 failures\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "TCC AOT Fraction records",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\ebff28d790094fdb8c86ae31bd39bf09.exe",
+        "arguments": [
+          "--records"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 70,
+          "stdout": {
+            "bytes": 405418,
+            "sha256": "e758ba92c32536e5e30b3bb93403ccaddf8f4c3b1fdc8c47a334b3edeb1f3b07",
+            "lineCount": 1025,
+            "firstLines": [
+              "0\t2470000000000000,2470000000000010,246fffffffffffc0\t2470000000000000,2470000000000010,246fffffffffff00\t02f8e38e38e38e38\t0302aaaaaaaaaaab\t2173f49c0b9ad4db\t217870be4c1c28b2\t2171c71c71c71c72\t03138e38e38e38e4\t031d555555555555\t3fef24a3ef4e420a\t4009249249249248\ta481249249249252",
+              "1\t39b0000000000000,39b0000000000008,39afffffffffffc0,39b0000000000038\t2470000000000000,2470000000000010,246fffffffffff00,2470000000000080\t2d8f000000000000\t2d94aaaaaaaaaaab\t36bf7efbeb8d4f12\t36c22f2a803c9d06\t36b8000000000000\t1866000000000001\t186d555555555557\t3fef84b1386cf1ef\t2ac6b5ad6b5ad6b6\ta47d6b5ad6b5ad7f",
+              "2\t3ff0000000000000,3ff0000000000004,3fefffffffffffc8,3feffffffffffff0,3ff000000000001c\t2470000000000000,2470000000000010,2470000000000050,246fffffffffff60,2470000000000050\t39f48f5c28f5c290\t39f9b33333333333\t3cf223231c06457a\t3cf4472f659a084b\t3ceb851eb851eb85\t1e63851eb851eb86\t1e68666666666668\t3fc2918f62c089ed\t245e619e619e61a1\t2460cf30cf30cf56"
+            ],
+            "lastLines": [
+              "1022\td8f0000000000000,d8effffffffffff8,d8f0000000000020,d8efffffffffffd8,d8efffffffffffc0,d8effffffffffff0,d8efffffffffffe0,d8f0000000000018,d8efffffffffffc8\te1b0000000000000,e1affffffffffffe,e1b0000000000000,e1affffffffffffc,e1affffffffffff8,e1b0000000000006,e1b0000000000003,e1b0000000000007,e1affffffffffffc\t6bfab0fcd6e9e066\t6bfe071c71c71c73\t55f4aa5c5d9fa9e5\t55f5eb466650b3cf\t55f0b0fcd6e9e065\t7482e9e06522c3f3\t7485471c71c71c71\t3fe07d7c95520715\t4876ace080d4304f\te1ad2a63efe579f9",
+              "1023\te1b0000000000000,e1affffffffffffc,e1b0000000000004,e1afffffffffffe4,e1b0000000000002,e1affffffffffff4,e1affffffffffffc,e1affffffffffffc,e1b000000000000c,e1b0000000000002\te1b0000000000000,e1affffffffffffe,e1b0000000000002,e1b0000000000004,e1b0000000000008,e1affffffffffff8,e1affffffffffff6,e1affffffffffff6,e1b0000000000000,e1affffffffffff2\t7d446b851eb851eb\t7d46b05b05b05b05\t5e998ffe3286153b\t5e9af1f9683ef0d1\t5e92666666666666\tfcdeb851eb851ebb\tfce1111111111113\tbf917aec6b08c970\tbf88120d8a279db9\te1b030241b144f3a"
+            ],
+            "fullRawOutputRetainedInLocalAudit": true
+          },
+          "stderr": ""
+        }
+      },
+      {
+        "name": "TCC AOT Fraction oracle",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "release/extlibs/statistics/test/check_translation.py",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\tcc.tsv"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 267,
+          "stdout": "statistics Fraction oracle: 1024 cases, 10240 results, 0 failures\r\nmax scaled error: variance=4.29e-16, varianceSample=4.71e-16, stdev=2.75e-16, stdevSample=3.55e-16, mad=2.31e-16, covariance=1.87e-14, covarianceSample=1.86e-14, correlation=1.87e-14, slope=1.86e-14, intercept=6.61e-16\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/statistics/test/size_guard.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/statistics/test/size_guard.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\8c29e741065740f79efa7282c3a172c7.exe"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 128,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/statistics/test/size_guard.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\8c29e741065740f79efa7282c3a172c7.exe",
+        "arguments": [],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 70,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/statistics/test/harmonic_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/statistics/test/harmonic_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\f4b2f97082ff4c57b35fc8f6e794501b.exe"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 134,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/statistics/test/harmonic_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\f4b2f97082ff4c57b35fc8f6e794501b.exe",
+        "arguments": [],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 44,
+          "stdout": "statistics harmonic: 2019 cases, 14217 checks, 2 OOM, 0 failures\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "harmonic AOT records",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\f4b2f97082ff4c57b35fc8f6e794501b.exe",
+        "arguments": [
+          "--records"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 53,
+          "stdout": {
+            "bytes": 311692,
+            "sha256": "3a3d2c014a59630c111bbddeaa782ff542e9482f07fbcdf20f8d35703abd4f20",
+            "lineCount": 3044,
+            "firstLines": [
+              "0\t0000000000000001,8000000000000001,beb0000000000000,bec0000000000000\tbec5555555555555",
+              "1\t0000000000000001,8000000000000001,bec0000000000000,beb0000000000000\tbec5555555555555",
+              "2\t0000000000000001,beb0000000000000,8000000000000001,bec0000000000000\tbec5555555555555"
+            ],
+            "lastLines": [
+              "3041\t1810000000000000,4000000000000000,8830000000000000,9810000000000000,9020000000000000,4008000000000000,0830000000000000,1020000000000000\t4023333333333334",
+              "3042\tc02a000000000000,8a20000000000000,0a20000000000000,c028000000000000,c018000000000000\tc02e969696969696"
+            ],
+            "fullRawOutputRetainedInLocalAudit": true
+          },
+          "stderr": ""
+        }
+      },
+      {
+        "name": "harmonic AOT oracle",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "release/extlibs/statistics/test/check_harmonic.py",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\harmonic-aot.tsv"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 139,
+          "stdout": "statistics harmonic oracle: 3043 records, 3040 finite, 3 rejected, 3 controls, PASS\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/statistics/examples/statistics_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/statistics/examples/statistics_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\724d8a9344c24e25a255429e4f9d6647.exe"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 141,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/statistics/examples/statistics_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\724d8a9344c24e25a255429e4f9d6647.exe",
+        "arguments": [],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 45,
+          "stdout": "count: 8\r\nsum: 40.0\r\nmean: 5.0\r\nmedian: 4.5\r\nmin: 2.0\r\nmax: 9.0\r\nrange: 7.0\r\nstdev: 2.0\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/statistics/examples/trend_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/statistics/examples/trend_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\3e8d45f43dc04736bba24ea63585bd34.exe"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 143,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/statistics/examples/trend_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\3e8d45f43dc04736bba24ea63585bd34.exe",
+        "arguments": [],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 28,
+          "stdout": "quartiles: 5.0 7.0 9.0\r\nlinearFit: 2.0 1.0\r\ncorrelation: 1.0\r\nhistogram: 1 1 1 2\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/statistics/examples/distribution_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/statistics/examples/distribution_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\0c2c21b199814029bbe09282720f13fb.exe"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 137,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/statistics/examples/distribution_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\0c2c21b199814029bbe09282720f13fb.exe",
+        "arguments": [],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 28,
+          "stdout": "mode: 4.0\r\nvariance: 1.0\r\nvarianceSample: 1.33\r\nstdevSample: 1.15\r\nmad: 1.0\r\niqr: 2.0\r\npercentile25: 4.0\r\ngeomean: 2.0\r\nharmmean: 1.6\r\ncovariance: 1.33\r\ncovarianceSample: 2.0\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/statistics/examples/measurement_offsets_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/statistics/examples/measurement_offsets_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\ef8741ac923344278f3a47b2c5ff69be.exe"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 142,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/statistics/examples/measurement_offsets_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\ef8741ac923344278f3a47b2c5ff69be.exe",
+        "arguments": [],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 29,
+          "stdout": "variance: 8/9\r\nsample variance: 4/3\r\nstdev: sqrt(8)/3\r\nMAD: 8/9\r\ntrend: slope=0.5 correlation=1\r\nstatistics offset example: PASS\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/statistics/examples/harmonic_scales_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/statistics/examples/harmonic_scales_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\11fa16f14e60435eb43c05a3ef822f18.exe"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 138,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/statistics/examples/harmonic_scales_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_382da8f72c6b4b74b5b66d9f91247604\\11fa16f14e60435eb43c05a3ef822f18.exe",
+        "arguments": [],
+        "expectedExit": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 27,
+          "stdout": "signed mean: 8/3\r\nseveral scales: 4\r\nnegative tail: -8/3\r\nsame-sign mean: 12/7\r\nundefined: rejected\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/statistics/examples/measurement_offsets.xl complete JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/statistics/examples/measurement_offsets.xl"
+        ],
+        "expectedExit": null,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 206,
+          "stdout": "",
+          "stderr": "tcc: __xlvfs__/csrc_0.c:143: error: 'fabs' defined twice\n"
+        }
+      }
+    ],
+    "focusedInputs": {
+      "C:/Program Files/Python312/python.exe": "4D6F5F81A4BCA11191C4C7C6B43632694D0A4CE74E068619D8FDC161D469859A",
+      "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102\\old_native.c": "B5FA2A054AF0E7402017F8B4037DDE54560A8FD9CA2267FB17EC3FC98B1B531E",
+      "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102\\runtime_bench.c": "883B7C584B511E07FEFA35A5F39BF565A847621A2BF98DC5979D64F810E55564",
+      "D:\\GIT\\x-lang\\dev\\extlib_blockers\\statistics_math_native_collision.xl": "4C0395F1FE168E24746C10718D878ECD8B34A4EED4A5BB5172E3C0C0DE6EC3AD",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\docs\\site.html": "4C7B4D60B50D7C2AB50AA1B59C4A22E10212847DB1D9AB48ECCDA5B11139341C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\basic.expected.txt": "311120FE5D75328355EE9480B5DF557CE7D0F4B70AB78A6F1BC0332948FF9DB6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\basic.xl": "208EB281BB5C3DFFE9FA3830A5354B6DAFE6C25B4E78C308AA1B3CCD047D2EAD",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\distribution_c.c": "27A697829927EF707CA322145AA4BB66F5229C2C1F4C2FEF7899023D7B023480",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\distribution.expected.txt": "267176BE7B96F06020EA3E3041CAFDB189158EF76733D8393E89BC31CA9F8F8B",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\distribution.xl": "92DA13B4B372998A868A19C1763B1A72B812ADDB6EAD4B6023F736DAAC77D3CE",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\harmonic_scales_c.c": "FDC53C5668168B18D546BAF3123D23204747F96C01951B831B060F8CE5DEC8DF",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\harmonic_scales.expected.txt": "DEEF6978244831863B5A25AA957C5AC9FBF774F2E179310FEE00C5A1D8C84268",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\harmonic_scales.xl": "61B7B97C3C7A595CE8500083B8239FA10E9D2F377CA694056755B985C653AFAA",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\measurement_offsets_c.c": "B4D3F179D9BF86CB644706DDD2B361AC3ACDD93162A4071D56C4F9B78DB39247",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\measurement_offsets.expected.txt": "DD26DFDF8D9835C793730E1CC764F37D6723C558E41F9E826CB03A7D2094DC86",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\measurement_offsets.xl": "D69B7D77F77EDE882F54A2B060EB6F41B326D6F2821293DE35A5B5A5832FC683",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\statistics_c.c": "B63666E2ACD5F7571001F28BF005C61CAD6DAFA3FA152662EFECCC5793A765E6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\trend_c.c": "24D876FD9BCC9A0082069DC2903FFB710D4B733E37B9084566DF7EC51E59A3F6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\trend.expected.txt": "985AF74C62AB7C47C55F5006E83B755D3B7BC7237323D91FA6FC6229381ADCD1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\examples\\trend.xl": "E95D30E265803DA28CB509BBCCC5FF5BD8A306D997873B72A7D0B36F26EB9CFF",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\README.md": "BB45195364D1F1DC24CB4DA3AE05BD287E12A61E9279ADFE3DCC76B5433E2699",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\src\\statistics.xl": "A31688404BECD97AD7F71422BFBFBC53394BA6FDA5910EB01D8901EC4CC69C8B",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\statistics_native.c": "DC02E0CFBE7AA42DA65FC183DCE31D0BECD3C002CB433FD0E3DDC9873FC9E1E5",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\statistics_native.h": "0684161D76478B585E62E6CC2FBE61A30D2D2B739ECAA3F1D31DD4615A4288D2",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\abi_contract.c": "481C48ECC9C274487763CF61A2A531153D115B762BC08810095414972457123F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\allocations.xl": "3DA2766D44962E89C6477CC9B7536F2032BF4930CC16D5D93FBDDBF601323AC9",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\aot_stdev.xl": "3A767EBDD694CA077218C5B880AD471302F05C3FEC42961FE901CF44542767CC",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\array_var_projection_repro.xl": "1166AC96EF966403719ED5D2AC8BC66C3CCF353A72EEF068E61A69AEEA473BC6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\bench_harmonic_c.c": "49C56B39D8FF85C8168BD5D73DBE539F79E12317F27286F33DB2355CDB635B1E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\boundaries.xl": "971CE4E201FBBC6AF1EF66AEFE28B97BDDC5AF08614F006DDC55BDB7E6966193",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\check_harmonic.py": "F5D4C48F67F39FD43AF4E6B25579C6CBBC2D73A726F11156F7B13029B726B558",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\check_translation.py": "8383F7A233F71336F9D885296C105A567E081F9638BE5E3DFE4A23B3D7EF2A9B",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\check.ps1": "E297BF308F4EB1971BFD0DB4B4765D49B6B39A60D4EE9014A1E5A18A82F0ADD1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\check.sh": "8BD4A8DE27C8ED8D096C26C672475F686FD892D941D5E4E1FEE31F3E65DD0E1D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\harmonic_c.c": "670518E9BEB42EC53C979875B26ED9767E1A9B51EB7179CD82939C8E120D0B97",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\size_guard.c": "E2DE56606C7527DD5883436EE56E97016593FC7D3D8E06C66B87E4A9A0A4F7E1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\test_statistics.c": "C742009D148FA3218074B46848E880A233B3C6E5A9D05C96FF2B3FA4FEFB46E4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\translation_c.c": "A096A77BCEC42DCD3DD6C735393D9864C71878CB494CFF5DB998AD1E3804CC10",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\xrt_runtime.c": "45D698F91C66663E9699E72F4484D8860CEB928BC3393B360F77A240F4CF0D44",
+      "D:\\GIT\\x-lang\\release\\extlibs\\statistics\\xlang.package.json": "5F40CB6CC58DF409C52215D383971B2DBE7C47AD6336DDADDA1627E5D7DCBEC3",
+      "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+      "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+      "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+      "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+      "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+      "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+      "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+      "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+      "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012",
+      "E:/software/w64devkit/bin/gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED"
+    },
+    "focusedChangedInputs": [],
+    "focusedCalls": [
+      {
+        "name": "old native object",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.o"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 534,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "old final fixture compile",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "release/extlibs/statistics/test/harmonic_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/runtime.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-liphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 366,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "old final fixture",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.exe",
+        "arguments": [],
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 28,
+          "stdout": "statistics harmonic: 2019 cases, 14217 checks, 2 OOM, 1146 failures\r\n",
+          "stderr": "statistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\n"
+        }
+      },
+      {
+        "name": "old final records",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.exe",
+        "arguments": [
+          "--records"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 33,
+          "stdout": {
+            "bytes": 302307,
+            "sha256": "56e143d7f382680e89d6d1af2aa1846b6895d96a8975ca187331fd955ee99f4c",
+            "lineCount": 3044,
+            "firstLines": [
+              "0\t0000000000000001,8000000000000001,beb0000000000000,bec0000000000000\tbec5555555555555",
+              "1\t0000000000000001,8000000000000001,bec0000000000000,beb0000000000000\tbec5555555555555",
+              "2\t0000000000000001,beb0000000000000,8000000000000001,bec0000000000000\tbec5555555555555"
+            ],
+            "lastLines": [
+              "3041\t1810000000000000,4000000000000000,8830000000000000,9810000000000000,9020000000000000,4008000000000000,0830000000000000,1020000000000000\terror:value",
+              "3042\tc02a000000000000,8a20000000000000,0a20000000000000,c028000000000000,c018000000000000\tc02e969696969696"
+            ],
+            "fullRawOutputRetainedInLocalAudit": true
+          },
+          "stderr": ""
+        }
+      },
+      {
+        "name": "old independent oracle",
+        "program": "C:/Program Files/Python312/python.exe",
+        "arguments": [
+          "-B",
+          "release/extlibs/statistics/test/check_harmonic.py",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.tsv"
+        ],
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 75,
+          "stdout": "",
+          "stderr": "54: -0x1.0000000000000p+2 != rational -0x1.5555555555555p+1\r\n"
+        }
+      },
+      {
+        "name": "new native object",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-c",
+          "release/extlibs/statistics/statistics_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.o"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 488,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new final fixture compile",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "release/extlibs/statistics/test/harmonic_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/runtime.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-liphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 328,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new final fixture",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 30,
+          "stdout": "statistics harmonic: 2019 cases, 14217 checks, 2 OOM, 0 failures\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new final records",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.exe",
+        "arguments": [
+          "--records"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 41,
+          "stdout": {
+            "bytes": 311692,
+            "sha256": "3a3d2c014a59630c111bbddeaa782ff542e9482f07fbcdf20f8d35703abd4f20",
+            "lineCount": 3044,
+            "firstLines": [
+              "0\t0000000000000001,8000000000000001,beb0000000000000,bec0000000000000\tbec5555555555555",
+              "1\t0000000000000001,8000000000000001,bec0000000000000,beb0000000000000\tbec5555555555555",
+              "2\t0000000000000001,beb0000000000000,8000000000000001,bec0000000000000\tbec5555555555555"
+            ],
+            "lastLines": [
+              "3041\t1810000000000000,4000000000000000,8830000000000000,9810000000000000,9020000000000000,4008000000000000,0830000000000000,1020000000000000\t4023333333333334",
+              "3042\tc02a000000000000,8a20000000000000,0a20000000000000,c028000000000000,c018000000000000\tc02e969696969696"
+            ],
+            "fullRawOutputRetainedInLocalAudit": true
+          },
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new independent oracle",
+        "program": "C:/Program Files/Python312/python.exe",
+        "arguments": [
+          "-B",
+          "release/extlibs/statistics/test/check_harmonic.py",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.tsv"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 139,
+          "stdout": "statistics harmonic oracle: 3043 records, 3040 finite, 3 rejected, 3 controls, PASS\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "object sizes",
+        "program": "E:/software/w64devkit/bin/size.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.o"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 23,
+          "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n  13084\t      0\t      0\t  13084\t   331c\tD:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.o\r\n  13896\t      0\t      0\t  13896\t   3648\tD:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.o\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "M1 minimal check",
+        "program": "D:/GIT/x-lang/release/xl.exe",
+        "arguments": [
+          "check",
+          "release/extlibs/statistics/test/array_var_projection_repro.xl"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 43,
+          "stdout": "ok\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "M1 minimal JIT",
+        "program": "D:/GIT/x-lang/release/xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/statistics/test/array_var_projection_repro.xl"
+        ],
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 187,
+          "stdout": "",
+          "stderr": "uncaught xlang error: AssertionError: array must reach C var as an array\nuncaught xlang error: array must reach C var as an array\n"
+        }
+      },
+      {
+        "name": "M1 minimal build",
+        "program": "D:/GIT/x-lang/release/xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/statistics/test/array_var_projection_repro.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/m1.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 369,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "M1 minimal AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/m1.exe",
+        "arguments": [],
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 30,
+          "stdout": "",
+          "stderr": "uncaught xlang error: AssertionError: array must reach C var as an array\n"
+        }
+      },
+      {
+        "name": "new language example check",
+        "program": "D:/GIT/x-lang/release/xl.exe",
+        "arguments": [
+          "check",
+          "release/extlibs/statistics/examples/harmonic_scales.xl"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 44,
+          "stdout": "ok\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new language example JIT",
+        "program": "D:/GIT/x-lang/release/xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/statistics/examples/harmonic_scales.xl"
+        ],
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 224,
+          "stdout": "",
+          "stderr": "tcc: __xlvfs__/csrc_0.c:142: error: 'fabs' defined twice\n"
+        }
+      },
+      {
+        "name": "new language example build",
+        "program": "D:/GIT/x-lang/release/xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/statistics/examples/harmonic_scales.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/example.exe"
+        ],
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 248,
+          "stdout": "",
+          "stderr": "tcc: __xlvfs__/csrc_0.c:142: error: 'fabs' defined twice\n"
+        }
+      },
+      {
+        "name": "production-profile XRT compile",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/runtime_bench.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/runtime-bench.o"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 4955,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "old benchmark compile",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "release/extlibs/statistics/test/bench_harmonic_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/runtime-bench.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-liphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/bench-old.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 221,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new benchmark compile",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "release/extlibs/statistics/test/bench_harmonic_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/runtime-bench.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-liphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/bench-new.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 215,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "old benchmark 1",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/bench-old.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 123,
+          "stdout": "same\t32\t20000\t12.000\t4.7327070676310319\r\nmixed\t32\t20000\t11.000\t24.13739547248009\r\nsame\t1024\t1000\t18.000\t4.7327070676310319\r\nmixed\t1024\t1000\t18.000\t24.13739547248009\r\nsame\t8192\t150\t18.000\t4.7327070676310319\r\nmixed\t8192\t150\t19.000\t24.13739547248009\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new benchmark 1",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/bench-new.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 225,
+          "stdout": "same\t32\t20000\t11.000\t4.7327070676310319\r\nmixed\t32\t20000\t39.000\t24.13739547248009\r\nsame\t1024\t1000\t17.000\t4.7327070676310319\r\nmixed\t1024\t1000\t48.000\t24.13739547248009\r\nsame\t8192\t150\t21.000\t4.7327070676310319\r\nmixed\t8192\t150\t63.000\t24.13739547248009\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "old benchmark 2",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/bench-old.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 116,
+          "stdout": "same\t32\t20000\t13.000\t4.7327070676310319\r\nmixed\t32\t20000\t11.000\t24.13739547248009\r\nsame\t1024\t1000\t14.000\t4.7327070676310319\r\nmixed\t1024\t1000\t15.000\t24.13739547248009\r\nsame\t8192\t150\t18.000\t4.7327070676310319\r\nmixed\t8192\t150\t20.000\t24.13739547248009\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new benchmark 2",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/bench-new.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 240,
+          "stdout": "same\t32\t20000\t19.000\t4.7327070676310319\r\nmixed\t32\t20000\t37.000\t24.13739547248009\r\nsame\t1024\t1000\t15.000\t4.7327070676310319\r\nmixed\t1024\t1000\t53.000\t24.13739547248009\r\nsame\t8192\t150\t19.000\t4.7327070676310319\r\nmixed\t8192\t150\t71.000\t24.13739547248009\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "old benchmark 3",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/bench-old.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 109,
+          "stdout": "same\t32\t20000\t11.000\t4.7327070676310319\r\nmixed\t32\t20000\t11.000\t24.13739547248009\r\nsame\t1024\t1000\t15.000\t4.7327070676310319\r\nmixed\t1024\t1000\t15.000\t24.13739547248009\r\nsame\t8192\t150\t17.000\t4.7327070676310319\r\nmixed\t8192\t150\t18.000\t24.13739547248009\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new benchmark 3",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/bench-new.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 225,
+          "stdout": "same\t32\t20000\t12.000\t4.7327070676310319\r\nmixed\t32\t20000\t33.000\t24.13739547248009\r\nsame\t1024\t1000\t15.000\t4.7327070676310319\r\nmixed\t1024\t1000\t50.000\t24.13739547248009\r\nsame\t8192\t150\t25.000\t4.7327070676310319\r\nmixed\t8192\t150\t66.000\t24.13739547248009\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "catalog generation",
+        "program": "C:/Program Files/Python312/python.exe",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/refresh_extensions.py",
+          "--root",
+          "D:/GIT/x-lang",
+          "--data",
+          "release/data",
+          "--output",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/catalog",
+          "--gcc",
+          "E:/software/w64devkit/bin/gcc.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 98,
+          "stdout": "",
+          "stderr": "Output directory already exists: D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102\\catalog\r\n"
+        }
+      }
+    ],
+    "preNormalizationModel": [
+      {
+        "name": "old native object",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.o"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 457,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "old final fixture compile",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "release/extlibs/statistics/test/harmonic_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/runtime.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-liphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 298,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "old final fixture",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.exe",
+        "arguments": [],
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 31,
+          "stdout": "statistics harmonic: 2019 cases, 14217 checks, 2 OOM, 1146 failures\r\n",
+          "stderr": "statistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\nstatistics harmonic: finite signed harmonic result\r\n"
+        }
+      },
+      {
+        "name": "old final records",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.exe",
+        "arguments": [
+          "--records"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 31,
+          "stdout": {
+            "bytes": 302307,
+            "sha256": "56e143d7f382680e89d6d1af2aa1846b6895d96a8975ca187331fd955ee99f4c",
+            "lineCount": 3044,
+            "firstLines": [
+              "0\t0000000000000001,8000000000000001,beb0000000000000,bec0000000000000\tbec5555555555555",
+              "1\t0000000000000001,8000000000000001,bec0000000000000,beb0000000000000\tbec5555555555555",
+              "2\t0000000000000001,beb0000000000000,8000000000000001,bec0000000000000\tbec5555555555555"
+            ],
+            "lastLines": [
+              "3041\t1810000000000000,4000000000000000,8830000000000000,9810000000000000,9020000000000000,4008000000000000,0830000000000000,1020000000000000\terror:value",
+              "3042\tc02a000000000000,8a20000000000000,0a20000000000000,c028000000000000,c018000000000000\tc02e969696969696"
+            ],
+            "fullRawOutputRetainedInLocalAudit": true
+          },
+          "stderr": ""
+        }
+      },
+      {
+        "name": "old independent oracle",
+        "program": "C:/Program Files/Python312/python.exe",
+        "arguments": [
+          "-B",
+          "release/extlibs/statistics/test/check_harmonic.py",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.tsv"
+        ],
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 72,
+          "stdout": "",
+          "stderr": "54: -0x1.0000000000000p+2 != rational -0x1.5555555555555p+1\r\n"
+        }
+      },
+      {
+        "name": "new native object",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-c",
+          "release/extlibs/statistics/statistics_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.o"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 477,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new final fixture compile",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "release/extlibs/statistics/test/harmonic_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/runtime.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-liphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 302,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new final fixture",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 28,
+          "stdout": "statistics harmonic: 2019 cases, 14217 checks, 2 OOM, 0 failures\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new final records",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.exe",
+        "arguments": [
+          "--records"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 31,
+          "stdout": {
+            "bytes": 311692,
+            "sha256": "3a3d2c014a59630c111bbddeaa782ff542e9482f07fbcdf20f8d35703abd4f20",
+            "lineCount": 3044,
+            "firstLines": [
+              "0\t0000000000000001,8000000000000001,beb0000000000000,bec0000000000000\tbec5555555555555",
+              "1\t0000000000000001,8000000000000001,bec0000000000000,beb0000000000000\tbec5555555555555",
+              "2\t0000000000000001,beb0000000000000,8000000000000001,bec0000000000000\tbec5555555555555"
+            ],
+            "lastLines": [
+              "3041\t1810000000000000,4000000000000000,8830000000000000,9810000000000000,9020000000000000,4008000000000000,0830000000000000,1020000000000000\t4023333333333334",
+              "3042\tc02a000000000000,8a20000000000000,0a20000000000000,c028000000000000,c018000000000000\tc02e969696969696"
+            ],
+            "fullRawOutputRetainedInLocalAudit": true
+          },
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new independent oracle",
+        "program": "C:/Program Files/Python312/python.exe",
+        "arguments": [
+          "-B",
+          "release/extlibs/statistics/test/check_harmonic.py",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.tsv"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 139,
+          "stdout": "statistics harmonic oracle: 3043 records, 3040 finite, 3 rejected, 3 controls, PASS\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "object sizes",
+        "program": "E:/software/w64devkit/bin/size.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.o"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 22,
+          "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n  13084\t      0\t      0\t  13084\t   331c\tD:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.o\r\n  13832\t      0\t      0\t  13832\t   3608\tD:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.o\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "M1 minimal check",
+        "program": "D:/GIT/x-lang/release/xl.exe",
+        "arguments": [
+          "check",
+          "release/extlibs/statistics/test/array_var_projection_repro.xl"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 46,
+          "stdout": "ok\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "M1 minimal JIT",
+        "program": "D:/GIT/x-lang/release/xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/statistics/test/array_var_projection_repro.xl"
+        ],
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 170,
+          "stdout": "",
+          "stderr": "uncaught xlang error: AssertionError: array must reach C var as an array\nuncaught xlang error: array must reach C var as an array\n"
+        }
+      },
+      {
+        "name": "M1 minimal build",
+        "program": "D:/GIT/x-lang/release/xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/statistics/test/array_var_projection_repro.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/m1.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 340,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "M1 minimal AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/m1.exe",
+        "arguments": [],
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 29,
+          "stdout": "",
+          "stderr": "uncaught xlang error: AssertionError: array must reach C var as an array\n"
+        }
+      },
+      {
+        "name": "new language example check",
+        "program": "D:/GIT/x-lang/release/xl.exe",
+        "arguments": [
+          "check",
+          "release/extlibs/statistics/examples/harmonic_scales.xl"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 42,
+          "stdout": "ok\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new language example JIT",
+        "program": "D:/GIT/x-lang/release/xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/statistics/examples/harmonic_scales.xl"
+        ],
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 208,
+          "stdout": "",
+          "stderr": "tcc: __xlvfs__/csrc_0.c:142: error: 'fabs' defined twice\n"
+        }
+      },
+      {
+        "name": "new language example build",
+        "program": "D:/GIT/x-lang/release/xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/statistics/examples/harmonic_scales.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/example.exe"
+        ],
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 245,
+          "stdout": "",
+          "stderr": "tcc: __xlvfs__/csrc_0.c:142: error: 'fabs' defined twice\n"
+        }
+      },
+      {
+        "name": "production-profile XRT compile",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "-c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/runtime_bench.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/runtime-bench.o"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 4455,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "old benchmark compile",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "release/extlibs/statistics/test/bench_harmonic_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/runtime-bench.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-liphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/bench-old.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 207,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new benchmark compile",
+        "program": "E:/software/w64devkit/bin/gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/statistics",
+          "release/extlibs/statistics/test/bench_harmonic_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/runtime-bench.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-liphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/bench-new.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 207,
+          "stdout": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "old benchmark 1",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/bench-old.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 111,
+          "stdout": "same\t32\t20000\t11.000\t4.7327070676310319\r\nmixed\t32\t20000\t12.000\t24.13739547248009\r\nsame\t1024\t1000\t14.000\t4.7327070676310319\r\nmixed\t1024\t1000\t14.000\t24.13739547248009\r\nsame\t8192\t150\t19.000\t4.7327070676310319\r\nmixed\t8192\t150\t17.000\t24.13739547248009\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new benchmark 1",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/bench-new.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 273,
+          "stdout": "same\t32\t20000\t20.000\t4.7327070676310319\r\nmixed\t32\t20000\t43.000\t24.13739547248009\r\nsame\t1024\t1000\t15.000\t4.7327070676310319\r\nmixed\t1024\t1000\t63.000\t24.13739547248009\r\nsame\t8192\t150\t19.000\t4.7327070676310319\r\nmixed\t8192\t150\t84.000\t24.13739547248009\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "old benchmark 2",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/bench-old.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 107,
+          "stdout": "same\t32\t20000\t10.000\t4.7327070676310319\r\nmixed\t32\t20000\t12.000\t24.13739547248009\r\nsame\t1024\t1000\t15.000\t4.7327070676310319\r\nmixed\t1024\t1000\t15.000\t24.13739547248009\r\nsame\t8192\t150\t18.000\t4.7327070676310319\r\nmixed\t8192\t150\t17.000\t24.13739547248009\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new benchmark 2",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/bench-new.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 259,
+          "stdout": "same\t32\t20000\t11.000\t4.7327070676310319\r\nmixed\t32\t20000\t44.000\t24.13739547248009\r\nsame\t1024\t1000\t15.000\t4.7327070676310319\r\nmixed\t1024\t1000\t65.000\t24.13739547248009\r\nsame\t8192\t150\t18.000\t4.7327070676310319\r\nmixed\t8192\t150\t85.000\t24.13739547248009\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "old benchmark 3",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/bench-old.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 109,
+          "stdout": "same\t32\t20000\t10.000\t4.7327070676310319\r\nmixed\t32\t20000\t13.000\t24.13739547248009\r\nsame\t1024\t1000\t15.000\t4.7327070676310319\r\nmixed\t1024\t1000\t15.000\t24.13739547248009\r\nsame\t8192\t150\t17.000\t4.7327070676310319\r\nmixed\t8192\t150\t17.000\t24.13739547248009\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "new benchmark 3",
+        "program": "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/bench-new.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 260,
+          "stdout": "same\t32\t20000\t11.000\t4.7327070676310319\r\nmixed\t32\t20000\t44.000\t24.13739547248009\r\nsame\t1024\t1000\t15.000\t4.7327070676310319\r\nmixed\t1024\t1000\t65.000\t24.13739547248009\r\nsame\t8192\t150\t18.000\t4.7327070676310319\r\nmixed\t8192\t150\t85.000\t24.13739547248009\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "catalog generation",
+        "program": "C:/Program Files/Python312/python.exe",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/refresh_extensions.py",
+          "--root",
+          "D:/GIT/x-lang",
+          "--data",
+          "release/data",
+          "--output",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/catalog",
+          "--gcc",
+          "E:/software/w64devkit/bin/gcc.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 12701,
+          "stdout": "{\"status\": \"passed\", \"catalogSha256\": \"9c849544e1f0750b90b177f85d017af92db66f4ac2578a2d0a34fcb8cd2d4363\", \"sourceIndexSha256\": \"74b130baa6c5950cd8cc602265365ef17a808881e980d26534c80155c12dfa11\", \"preservedNonExtensionEntries\": 6156, \"publicPackages\": 207, \"excludedPrivate\": [\"_bzip2\", \"_expat\", \"_libzip\", \"_tomlc17\", \"_xge_native\", \"_zlib\"], \"extensionEntries\": 11442, \"addedEntries\": 0, \"removedEntries\": 0, \"documents\": 145, \"availableSources\": 593, \"extensionExporterSha256\": \"5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42\", \"inputsUnchanged\": true}\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "catalog freshness",
+        "program": "C:/Program Files/Python312/python.exe",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/refresh_extensions.py",
+          "--root",
+          "D:/GIT/x-lang",
+          "--data",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/catalog",
+          "--check"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 1385,
+          "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "catalog binding",
+        "program": "C:/Program Files/Python312/python.exe",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/check_catalog_coverage.py",
+          "--root",
+          "D:/GIT/x-lang",
+          "--catalog",
+          "D:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/catalog/commands.json"
+        ],
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 461,
+          "stdout": "",
+          "stderr": "Catalog compiler changed: xl.dll\r\n"
+        }
+      },
+      {
+        "name": "delivery committed bytes",
+        "program": "C:/Program Files/Python312/python.exe",
+        "arguments": [
+          "-B",
+          "tools/check_release_committed.py",
+          "--root",
+          "D:/GIT/x-lang"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 1229,
+          "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+          "stderr": ""
+        }
+      }
+    ]
+  },
+  "linux": {
+    "gateExit": 1,
+    "phases": 61,
+    "passedPrefix": 60,
+    "normalCAotProgramsBuiltAndRun": 8,
+    "sourceResourceFingerprints": 60,
+    "toolFingerprints": 4,
+    "sourceToolsAndBootUnchangedIncludingSupplement": true,
+    "snapshot": "/var/tmp/xlang-stat-harmonic-JEO1Ue8R",
+    "bootIdentity": "5ae89117-9d2a-4800-ae61-90436a1cebb4",
+    "asanUbsanAndLeakDetectionEnabled": true,
+    "privatePoolLeaksAdditionallyCheckedBySevenCounters": true,
+    "outerSuccessIsEvidenceCollectionNotGreenPackage": true,
+    "calls": [
+      {
+        "command": "timeout 10s gcc --version",
+        "exit": 0,
+        "output": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n\n"
+      },
+      {
+        "command": "timeout 10s python3 --version",
+        "exit": 0,
+        "output": "Python 3.14.4\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/statistics -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -x c -fsyntax-only release/extlibs/statistics/statistics_native.h",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/statistics -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DXRT_MODULE_VALUE_CONTAINER -fsyntax-only release/extlibs/statistics/statistics_native.c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/statistics -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -fsyntax-only release/extlibs/statistics/test/abi_contract.c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/statistics -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/statistics/test/xrt_runtime.c -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/runtime.o",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/statistics -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/statistics/statistics_native.c -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/native.o",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/statistics -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/statistics/test/test_statistics.c /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/runtime.o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/native.o -no-pie -lm -ldl -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/test_statistics",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/test_statistics",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/statistics -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/statistics/test/size_guard.c /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/size_guard",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/size_guard",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/statistics -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/statistics/test/translation_c.c /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/runtime.o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/native.o -no-pie -lm -ldl -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/translation_c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/translation_c",
+        "exit": 0,
+        "output": "statistics translation: 160 checks, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/statistics -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/statistics/test/harmonic_c.c /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/runtime.o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/native.o -no-pie -lm -ldl -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/harmonic_c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/harmonic_c",
+        "exit": 0,
+        "output": "statistics harmonic: 2019 cases, 14217 checks, 2 OOM, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/translation_c --records",
+        "exit": 0,
+        "output": {
+          "bytes": 404395,
+          "sha256": "ec272ac482586c1436f3bdd20d11d95217389b1ee7819dab28e88b17c4f0564f",
+          "lineCount": 1026,
+          "firstLines": [
+            "0\t2470000000000000,2470000000000010,246fffffffffffc0\t2470000000000000,2470000000000010,246fffffffffff00\t02f8e38e38e38e38\t0302aaaaaaaaaaab\t2173f49c0b9ad4db\t217870be4c1c28b2\t2171c71c71c71c72\t03138e38e38e38e4\t031d555555555555\t3fef24a3ef4e420a\t4009249249249248\ta481249249249252",
+            "1\t39b0000000000000,39b0000000000008,39afffffffffffc0,39b0000000000038\t2470000000000000,2470000000000010,246fffffffffff00,2470000000000080\t2d8f000000000000\t2d94aaaaaaaaaaab\t36bf7efbeb8d4f12\t36c22f2a803c9d06\t36b8000000000000\t1866000000000001\t186d555555555557\t3fef84b1386cf1ef\t2ac6b5ad6b5ad6b6\ta47d6b5ad6b5ad7f",
+            "2\t3ff0000000000000,3ff0000000000004,3fefffffffffffc8,3feffffffffffff0,3ff000000000001c\t2470000000000000,2470000000000010,2470000000000050,246fffffffffff60,2470000000000050\t39f48f5c28f5c290\t39f9b33333333333\t3cf223231c06457a\t3cf4472f659a084b\t3ceb851eb851eb85\t1e63851eb851eb86\t1e68666666666668\t3fc2918f62c089ed\t245e619e619e61a1\t2460cf30cf30cf56"
+          ],
+          "lastLines": [
+            "1022\td8f0000000000000,d8effffffffffff8,d8f0000000000020,d8efffffffffffd8,d8efffffffffffc0,d8effffffffffff0,d8efffffffffffe0,d8f0000000000018,d8efffffffffffc8\te1b0000000000000,e1affffffffffffe,e1b0000000000000,e1affffffffffffc,e1affffffffffff8,e1b0000000000006,e1b0000000000003,e1b0000000000007,e1affffffffffffc\t6bfab0fcd6e9e066\t6bfe071c71c71c73\t55f4aa5c5d9fa9e5\t55f5eb466650b3cf\t55f0b0fcd6e9e065\t7482e9e06522c3f3\t7485471c71c71c71\t3fe07d7c95520715\t4876ace080d4304f\te1ad2a63efe579f9",
+            "1023\te1b0000000000000,e1affffffffffffc,e1b0000000000004,e1afffffffffffe4,e1b0000000000002,e1affffffffffff4,e1affffffffffffc,e1affffffffffffc,e1b000000000000c,e1b0000000000002\te1b0000000000000,e1affffffffffffe,e1b0000000000002,e1b0000000000004,e1b0000000000008,e1affffffffffff8,e1affffffffffff6,e1affffffffffff6,e1b0000000000000,e1affffffffffff2\t7d446b851eb851eb\t7d46b05b05b05b05\t5e998ffe3286153b\t5e9af1f9683ef0d1\t5e92666666666666\tfcdeb851eb851ebb\tfce1111111111113\tbf917aec6b08c970\tbf88120d8a279db9\te1b030241b144f3a"
+          ],
+          "fullRawOutputRetainedInLocalAudit": true
+        }
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/statistics/test/check_translation.py /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/gcc.tsv",
+        "exit": 0,
+        "output": "statistics Fraction oracle: 1024 cases, 10240 results, 0 failures\nmax scaled error: variance=4.29e-16, varianceSample=4.71e-16, stdev=2.75e-16, stdevSample=3.55e-16, mad=2.31e-16, covariance=1.87e-14, covarianceSample=1.86e-14, correlation=1.87e-14, slope=1.86e-14, intercept=6.61e-16\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/statistics/test/translation_c.c",
+        "exit": 0,
+        "output": "statistics translation: 160 checks, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/harmonic_c --records",
+        "exit": 0,
+        "output": {
+          "bytes": 308650,
+          "sha256": "5f9b10bff5829bb13500a4d71b7352ba8135ad290ec458e39c32f4aa56b2633a",
+          "lineCount": 3045,
+          "firstLines": [
+            "0\t0000000000000001,8000000000000001,beb0000000000000,bec0000000000000\tbec5555555555555",
+            "1\t0000000000000001,8000000000000001,bec0000000000000,beb0000000000000\tbec5555555555555",
+            "2\t0000000000000001,beb0000000000000,8000000000000001,bec0000000000000\tbec5555555555555"
+          ],
+          "lastLines": [
+            "3041\t1810000000000000,4000000000000000,8830000000000000,9810000000000000,9020000000000000,4008000000000000,0830000000000000,1020000000000000\t4023333333333334",
+            "3042\tc02a000000000000,8a20000000000000,0a20000000000000,c028000000000000,c018000000000000\tc02e969696969696"
+          ],
+          "fullRawOutputRetainedInLocalAudit": true
+        }
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/statistics/test/check_harmonic.py /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/harmonic-gcc.tsv",
+        "exit": 0,
+        "output": "statistics harmonic oracle: 3043 records, 3040 finite, 3 rejected, 3 controls, PASS\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/statistics/test/harmonic_c.c",
+        "exit": 0,
+        "output": "statistics harmonic: 2019 cases, 14217 checks, 2 OOM, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/statistics/test/harmonic_c.c -- --records",
+        "exit": 0,
+        "output": {
+          "bytes": 308650,
+          "sha256": "5f9b10bff5829bb13500a4d71b7352ba8135ad290ec458e39c32f4aa56b2633a",
+          "lineCount": 3045,
+          "firstLines": [
+            "0\t0000000000000001,8000000000000001,beb0000000000000,bec0000000000000\tbec5555555555555",
+            "1\t0000000000000001,8000000000000001,bec0000000000000,beb0000000000000\tbec5555555555555",
+            "2\t0000000000000001,beb0000000000000,8000000000000001,bec0000000000000\tbec5555555555555"
+          ],
+          "lastLines": [
+            "3041\t1810000000000000,4000000000000000,8830000000000000,9810000000000000,9020000000000000,4008000000000000,0830000000000000,1020000000000000\t4023333333333334",
+            "3042\tc02a000000000000,8a20000000000000,0a20000000000000,c028000000000000,c018000000000000\tc02e969696969696"
+          ],
+          "fullRawOutputRetainedInLocalAudit": true
+        }
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/statistics/test/check_harmonic.py /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/harmonic-tcc.tsv",
+        "exit": 0,
+        "output": "statistics harmonic oracle: 3043 records, 3040 finite, 3 rejected, 3 controls, PASS\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/statistics -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/statistics/examples/statistics_c.c /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/statistics_c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/statistics_c",
+        "exit": 0,
+        "output": "count: 8\nsum: 40.0\nmean: 5.0\nmedian: 4.5\nmin: 2.0\nmax: 9.0\nrange: 7.0\nstdev: 2.0\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/statistics/examples/statistics_c.c",
+        "exit": 0,
+        "output": "count: 8\nsum: 40.0\nmean: 5.0\nmedian: 4.5\nmin: 2.0\nmax: 9.0\nrange: 7.0\nstdev: 2.0\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/statistics -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/statistics/examples/trend_c.c /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/trend_c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/trend_c",
+        "exit": 0,
+        "output": "quartiles: 5.0 7.0 9.0\nlinearFit: 2.0 1.0\ncorrelation: 1.0\nhistogram: 1 1 1 2\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/statistics/examples/trend_c.c",
+        "exit": 0,
+        "output": "quartiles: 5.0 7.0 9.0\nlinearFit: 2.0 1.0\ncorrelation: 1.0\nhistogram: 1 1 1 2\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/statistics -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/statistics/examples/distribution_c.c /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/distribution_c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/distribution_c",
+        "exit": 0,
+        "output": "mode: 4.0\nvariance: 1.0\nvarianceSample: 1.33\nstdevSample: 1.15\nmad: 1.0\niqr: 2.0\npercentile25: 4.0\ngeomean: 2.0\nharmmean: 1.6\ncovariance: 1.33\ncovarianceSample: 2.0\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/statistics/examples/distribution_c.c",
+        "exit": 0,
+        "output": "mode: 4.0\nvariance: 1.0\nvarianceSample: 1.33\nstdevSample: 1.15\nmad: 1.0\niqr: 2.0\npercentile25: 4.0\ngeomean: 2.0\nharmmean: 1.6\ncovariance: 1.33\ncovarianceSample: 2.0\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/statistics -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/statistics/examples/measurement_offsets_c.c /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/runtime.o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/native.o -no-pie -lm -ldl -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/measurement_offsets_c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/measurement_offsets_c",
+        "exit": 0,
+        "output": "variance: 8/9\nsample variance: 4/3\nstdev: sqrt(8)/3\nMAD: 8/9\ntrend: slope=0.5 correlation=1\nstatistics offset example: PASS\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/statistics/examples/measurement_offsets_c.c",
+        "exit": 0,
+        "output": "variance: 8/9\nsample variance: 4/3\nstdev: sqrt(8)/3\nMAD: 8/9\ntrend: slope=0.5 correlation=1\nstatistics offset example: PASS\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/statistics -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/statistics/examples/harmonic_scales_c.c /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/runtime.o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/native.o -no-pie -lm -ldl -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/harmonic_scales_c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/harmonic_scales_c",
+        "exit": 0,
+        "output": "signed mean: 8/3\nseveral scales: 4\nnegative tail: -8/3\nsame-sign mean: 12/7\nundefined: rejected\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/statistics/examples/harmonic_scales_c.c",
+        "exit": 0,
+        "output": "signed mean: 8/3\nseveral scales: 4\nnegative tail: -8/3\nsame-sign mean: 12/7\nundefined: rejected\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl cgen release/extlibs/statistics/examples/measurement_offsets.xl --emit /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/probe.c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/statistics -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -fsyntax-only /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/abi.c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/statistics/test/translation_c.c -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/translation_c-aot",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/translation_c-aot",
+        "exit": 0,
+        "output": "statistics translation: 160 checks, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/translation_c-aot --records",
+        "exit": 0,
+        "output": {
+          "bytes": 404395,
+          "sha256": "ec272ac482586c1436f3bdd20d11d95217389b1ee7819dab28e88b17c4f0564f",
+          "lineCount": 1026,
+          "firstLines": [
+            "0\t2470000000000000,2470000000000010,246fffffffffffc0\t2470000000000000,2470000000000010,246fffffffffff00\t02f8e38e38e38e38\t0302aaaaaaaaaaab\t2173f49c0b9ad4db\t217870be4c1c28b2\t2171c71c71c71c72\t03138e38e38e38e4\t031d555555555555\t3fef24a3ef4e420a\t4009249249249248\ta481249249249252",
+            "1\t39b0000000000000,39b0000000000008,39afffffffffffc0,39b0000000000038\t2470000000000000,2470000000000010,246fffffffffff00,2470000000000080\t2d8f000000000000\t2d94aaaaaaaaaaab\t36bf7efbeb8d4f12\t36c22f2a803c9d06\t36b8000000000000\t1866000000000001\t186d555555555557\t3fef84b1386cf1ef\t2ac6b5ad6b5ad6b6\ta47d6b5ad6b5ad7f",
+            "2\t3ff0000000000000,3ff0000000000004,3fefffffffffffc8,3feffffffffffff0,3ff000000000001c\t2470000000000000,2470000000000010,2470000000000050,246fffffffffff60,2470000000000050\t39f48f5c28f5c290\t39f9b33333333333\t3cf223231c06457a\t3cf4472f659a084b\t3ceb851eb851eb85\t1e63851eb851eb86\t1e68666666666668\t3fc2918f62c089ed\t245e619e619e61a1\t2460cf30cf30cf56"
+          ],
+          "lastLines": [
+            "1022\td8f0000000000000,d8effffffffffff8,d8f0000000000020,d8efffffffffffd8,d8efffffffffffc0,d8effffffffffff0,d8efffffffffffe0,d8f0000000000018,d8efffffffffffc8\te1b0000000000000,e1affffffffffffe,e1b0000000000000,e1affffffffffffc,e1affffffffffff8,e1b0000000000006,e1b0000000000003,e1b0000000000007,e1affffffffffffc\t6bfab0fcd6e9e066\t6bfe071c71c71c73\t55f4aa5c5d9fa9e5\t55f5eb466650b3cf\t55f0b0fcd6e9e065\t7482e9e06522c3f3\t7485471c71c71c71\t3fe07d7c95520715\t4876ace080d4304f\te1ad2a63efe579f9",
+            "1023\te1b0000000000000,e1affffffffffffc,e1b0000000000004,e1afffffffffffe4,e1b0000000000002,e1affffffffffff4,e1affffffffffffc,e1affffffffffffc,e1b000000000000c,e1b0000000000002\te1b0000000000000,e1affffffffffffe,e1b0000000000002,e1b0000000000004,e1b0000000000008,e1affffffffffff8,e1affffffffffff6,e1affffffffffff6,e1b0000000000000,e1affffffffffff2\t7d446b851eb851eb\t7d46b05b05b05b05\t5e998ffe3286153b\t5e9af1f9683ef0d1\t5e92666666666666\tfcdeb851eb851ebb\tfce1111111111113\tbf917aec6b08c970\tbf88120d8a279db9\te1b030241b144f3a"
+          ],
+          "fullRawOutputRetainedInLocalAudit": true
+        }
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/statistics/test/check_translation.py /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/tcc.tsv",
+        "exit": 0,
+        "output": "statistics Fraction oracle: 1024 cases, 10240 results, 0 failures\nmax scaled error: variance=4.29e-16, varianceSample=4.71e-16, stdev=2.75e-16, stdevSample=3.55e-16, mad=2.31e-16, covariance=1.87e-14, covarianceSample=1.86e-14, correlation=1.87e-14, slope=1.86e-14, intercept=6.61e-16\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/statistics/test/size_guard.c -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/size_guard-aot",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/size_guard-aot",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/statistics/test/harmonic_c.c -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/harmonic_c-aot",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/harmonic_c-aot",
+        "exit": 0,
+        "output": "statistics harmonic: 2019 cases, 14217 checks, 2 OOM, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/harmonic_c-aot --records",
+        "exit": 0,
+        "output": {
+          "bytes": 308650,
+          "sha256": "5f9b10bff5829bb13500a4d71b7352ba8135ad290ec458e39c32f4aa56b2633a",
+          "lineCount": 3045,
+          "firstLines": [
+            "0\t0000000000000001,8000000000000001,beb0000000000000,bec0000000000000\tbec5555555555555",
+            "1\t0000000000000001,8000000000000001,bec0000000000000,beb0000000000000\tbec5555555555555",
+            "2\t0000000000000001,beb0000000000000,8000000000000001,bec0000000000000\tbec5555555555555"
+          ],
+          "lastLines": [
+            "3041\t1810000000000000,4000000000000000,8830000000000000,9810000000000000,9020000000000000,4008000000000000,0830000000000000,1020000000000000\t4023333333333334",
+            "3042\tc02a000000000000,8a20000000000000,0a20000000000000,c028000000000000,c018000000000000\tc02e969696969696"
+          ],
+          "fullRawOutputRetainedInLocalAudit": true
+        }
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/statistics/test/check_harmonic.py /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/harmonic-aot.tsv",
+        "exit": 0,
+        "output": "statistics harmonic oracle: 3043 records, 3040 finite, 3 rejected, 3 controls, PASS\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/statistics/examples/statistics_c.c -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/statistics_c-aot",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/statistics_c-aot",
+        "exit": 0,
+        "output": "count: 8\nsum: 40.0\nmean: 5.0\nmedian: 4.5\nmin: 2.0\nmax: 9.0\nrange: 7.0\nstdev: 2.0\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/statistics/examples/trend_c.c -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/trend_c-aot",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/trend_c-aot",
+        "exit": 0,
+        "output": "quartiles: 5.0 7.0 9.0\nlinearFit: 2.0 1.0\ncorrelation: 1.0\nhistogram: 1 1 1 2\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/statistics/examples/distribution_c.c -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/distribution_c-aot",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/distribution_c-aot",
+        "exit": 0,
+        "output": "mode: 4.0\nvariance: 1.0\nvarianceSample: 1.33\nstdevSample: 1.15\nmad: 1.0\niqr: 2.0\npercentile25: 4.0\ngeomean: 2.0\nharmmean: 1.6\ncovariance: 1.33\ncovarianceSample: 2.0\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/statistics/examples/measurement_offsets_c.c -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/measurement_offsets_c-aot",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/measurement_offsets_c-aot",
+        "exit": 0,
+        "output": "variance: 8/9\nsample variance: 4/3\nstdev: sqrt(8)/3\nMAD: 8/9\ntrend: slope=0.5 correlation=1\nstatistics offset example: PASS\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/statistics/examples/harmonic_scales_c.c -o /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/harmonic_scales_c-aot",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-stat-harmonic-JEO1Ue8R/tmp/xlang-statistics-WCDU07/harmonic_scales_c-aot",
+        "exit": 0,
+        "output": "signed mean: 8/3\nseveral scales: 4\nnegative tail: -8/3\nsame-sign mean: 12/7\nundefined: rejected\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/statistics/examples/measurement_offsets.xl",
+        "exit": 1,
+        "output": "uncaught xlang error: ValueError: input is not an array\nuncaught xlang error: input is not an array\n"
+      }
+    ],
+    "sourceManifest": "b5fa2a054af0e7402017f8b4037dde54560a8fd9ca2267fb17ec3fc98b1b531e  ./build/test/statistics-harmonic-20261102/old_native.c\n20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h\ne202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h\nf375e7a567d531722a665241efc2a5c0c9693f667b6f460163cb4f698589e3f3  ./release/examples/extlibs/statistics.xl\nbb45195364d1f1dc24cb4da3ae05bd287e12a61e9279adfe3dcc76b5433e2699  ./release/extlibs/statistics/README.md\n4c7b4d60b50d7c2ab50aa1b59c4a22e10212847db1d9ab48eccda5b11139341c  ./release/extlibs/statistics/docs/site.html\n311120fe5d75328355ee9480b5df557ce7d0f4b70ab78a6f1bc0332948ff9db6  ./release/extlibs/statistics/examples/basic.expected.txt\n208eb281bb5c3dffe9fa3830a5354b6dafe6c25b4e78c308aa1b3ccd047d2ead  ./release/extlibs/statistics/examples/basic.xl\n267176be7b96f06020ea3e3041cafdb189158ef76733d8393e89bc31ca9f8f8b  ./release/extlibs/statistics/examples/distribution.expected.txt\n92da13b4b372998a868a19c1763b1a72b812addb6ead4b6023f736daac77d3ce  ./release/extlibs/statistics/examples/distribution.xl\n27a697829927ef707ca322145aa4bb66f5229c2c1f4c2fef7899023d7b023480  ./release/extlibs/statistics/examples/distribution_c.c\ndeef6978244831863b5a25aa957c5ac9fbf774f2e179310fee00c5a1d8c84268  ./release/extlibs/statistics/examples/harmonic_scales.expected.txt\n61b7b97c3c7a595ce8500083b8239fa10e9d2f377ca694056755b985c653afaa  ./release/extlibs/statistics/examples/harmonic_scales.xl\nfdc53c5668168b18d546baf3123d23204747f96c01951b831b060f8ce5dec8df  ./release/extlibs/statistics/examples/harmonic_scales_c.c\ndd26dfdf8d9835c793730e1cc764f37d6723c558e41f9e826cb03a7d2094dc86  ./release/extlibs/statistics/examples/measurement_offsets.expected.txt\nd69b7d77f77ede882f54a2b060eb6f41b326d6f2821293de35a5b5a5832fc683  ./release/extlibs/statistics/examples/measurement_offsets.xl\nb4d3f179d9bf86cb644706ddd2b361ac3acdd93162a4071d56c4f9b78db39247  ./release/extlibs/statistics/examples/measurement_offsets_c.c\nb63666e2acd5f7571001f28bf005c61cad6dafa3fa152662efeccc5793a765e6  ./release/extlibs/statistics/examples/statistics_c.c\n985af74c62ab7c47c55f5006e83b755d3b7bc7237323d91fa6fc6229381adcd1  ./release/extlibs/statistics/examples/trend.expected.txt\ne95d30e265803da28cb509bbccc5ff5bd8a306d997873b72a7d0b36f26eb9cff  ./release/extlibs/statistics/examples/trend.xl\n24d876fd9bcc9a0082069dc2903ffb710d4b733e37b9084566df7ec51e59a3f6  ./release/extlibs/statistics/examples/trend_c.c\na31688404becd97ad7f71422bfbfbc53394ba6fda5910eb01d8901ec4cc69c8b  ./release/extlibs/statistics/src/statistics.xl\ndc02e0cfbe7aa42da65fc183dce31d0becd3c002cb433fd0e3ddc9873fc9e1e5  ./release/extlibs/statistics/statistics_native.c\n0684161d76478b585e62e6cc2fbe61a30d2d2b739ecaa3f1d31dd4615a4288d2  ./release/extlibs/statistics/statistics_native.h\n481c48ecc9c274487763cf61a2a531153d115b762bc08810095414972457123f  ./release/extlibs/statistics/test/abi_contract.c\n3da2766d44962e89c6477cc9b7536f2032bf4930cc16d5d93fbddbf601323ac9  ./release/extlibs/statistics/test/allocations.xl\n3a767ebdd694ca077218c5b880ad471302f05c3fec42961fe901cf44542767cc  ./release/extlibs/statistics/test/aot_stdev.xl\n1166ac96ef966403719ed5d2ac8bc66c3ccf353a72eef068e61a69aeea473bc6  ./release/extlibs/statistics/test/array_var_projection_repro.xl\n49c56b39d8ff85c8168bd5d73dbe539f79e12317f27286f33db2355cdb635b1e  ./release/extlibs/statistics/test/bench_harmonic_c.c\n971ce4e201fbbc6af1ef66aefe28b97bddc5af08614f006ddc55bdb7e6966193  ./release/extlibs/statistics/test/boundaries.xl\ne297bf308f4eb1971bfd0db4b4765d49b6b39a60d4ee9014a1e5a18a82f0add1  ./release/extlibs/statistics/test/check.ps1\n8bd4a8de27c8ed8d096c26c672475f686fd892d941d5e4e1fee31f3e65dd0e1d  ./release/extlibs/statistics/test/check.sh\nf5d4c48f67f39fd43af4e6b25579c6cbbc2d73a726f11156f7b13029b726b558  ./release/extlibs/statistics/test/check_harmonic.py\n8383f7a233f71336f9d885296c105a567e081f9638be5e3dfe4a23b3d7ef2a9b  ./release/extlibs/statistics/test/check_translation.py\n670518e9beb42ec53c979875b26ed9767e1a9b51eb7179cd82939c8e120d0b97  ./release/extlibs/statistics/test/harmonic_c.c\ne2de56606c7527dd5883436ee56e97016593fc7d3d8e06c66b87e4a9a0a4f7e1  ./release/extlibs/statistics/test/size_guard.c\nc742009d148fa3218074b46848e880a233b3c6e5a9d05c96ff2b3fa4fefb46e4  ./release/extlibs/statistics/test/test_statistics.c\na096a77bcec42dcd3dd6c735393d9864c71878cb494cff5db998ad1e3804cc10  ./release/extlibs/statistics/test/translation_c.c\n45d698f91c66663e9699e72f4484d8860ceb928bc3393b360f77a240f4cf0d44  ./release/extlibs/statistics/test/xrt_runtime.c\n5f40cb6cc58df409c52215d383971b2dbe7c47ad6336ddadda1627e5d7dcbec3  ./release/extlibs/statistics/xlang.package.json\n513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md\nfc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h\nfe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h\nede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h\nab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h\na203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h\ndb381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h\n8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h\nec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h\n4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h\n4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h\n931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h\n136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h\n073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h\nc519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h\n1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h\n4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so\n0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so\ndd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl\nd11107f865aec74b92e63b6a064624af1c19e1ff33fd0f22335eaaee6dbed5b9  ./test/cases/extlib_statistics.xl\n",
+    "toolManifest": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc\n30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1\n52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41  /usr/bin/python3\n3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash\n",
+    "benchmarkInputManifest": "49c56b39d8ff85c8168bd5d73dbe539f79e12317f27286f33db2355cdb635b1e  /var/tmp/xlang-stat-harmonic-JEO1Ue8R/bench.c\n883b7c584b511e07fefa35a5f39bf565a847621a2bf98dc5979d64f810e55564  /var/tmp/xlang-stat-harmonic-JEO1Ue8R/runtime_bench.c\n20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  lib/xrt/xrt.h\n",
+    "oldStdout": "statistics harmonic: 2019 cases, 14217 checks, 2 OOM, 1146 failures\n",
+    "oldOracleError": "54: -0x1.0000000000000p+2 != rational -0x1.5555555555555p+1\n",
+    "languageExitCodes": "0\n1\n0\n1\n",
+    "newLanguageJitError": "uncaught xlang error: ValueError: input is not an array\nuncaught xlang error: input is not an array\n",
+    "newLanguageAotError": "uncaught xlang error: ValueError: input is not an array\n"
+  },
+  "cost": {
+    "benchmarkProfile": "GCC -O2, one production VALUE_CONTAINER XRT, no MEMORY_DEBUG; 3 alternating old/new CPU-clock rounds",
+    "rows": [
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 1,
+        "signs": "same",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 12.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 1,
+        "signs": "mixed",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 11.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 1,
+        "signs": "same",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 18.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 1,
+        "signs": "mixed",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 18.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 1,
+        "signs": "same",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 18.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 1,
+        "signs": "mixed",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 19.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 1,
+        "signs": "same",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 10.892,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 1,
+        "signs": "mixed",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 12.348,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 1,
+        "signs": "same",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 13.622,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 1,
+        "signs": "mixed",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 16.056,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 1,
+        "signs": "same",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 17.121,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 1,
+        "signs": "mixed",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 17.286,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 2,
+        "signs": "same",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 13.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 2,
+        "signs": "mixed",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 11.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 2,
+        "signs": "same",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 14.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 2,
+        "signs": "mixed",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 15.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 2,
+        "signs": "same",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 18.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 2,
+        "signs": "mixed",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 20.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 2,
+        "signs": "same",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 9.954,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 2,
+        "signs": "mixed",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 12.638,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 2,
+        "signs": "same",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 16.343,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 2,
+        "signs": "mixed",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 13.364,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 2,
+        "signs": "same",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 17.895,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 2,
+        "signs": "mixed",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 16.342,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 3,
+        "signs": "same",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 11.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 3,
+        "signs": "mixed",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 11.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 3,
+        "signs": "same",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 15.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 3,
+        "signs": "mixed",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 15.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 3,
+        "signs": "same",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 17.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "old",
+        "round": 3,
+        "signs": "mixed",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 18.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 3,
+        "signs": "same",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 10.726,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 3,
+        "signs": "mixed",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 10.838,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 3,
+        "signs": "same",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 19.517,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 3,
+        "signs": "mixed",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 13.95,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 3,
+        "signs": "same",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 16.524,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "old",
+        "round": 3,
+        "signs": "mixed",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 16.607,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 1,
+        "signs": "same",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 11.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 1,
+        "signs": "mixed",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 39.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 1,
+        "signs": "same",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 17.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 1,
+        "signs": "mixed",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 48.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 1,
+        "signs": "same",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 21.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 1,
+        "signs": "mixed",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 63.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 1,
+        "signs": "same",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 10.729,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 1,
+        "signs": "mixed",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 22.625,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 1,
+        "signs": "same",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 13.38,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 1,
+        "signs": "mixed",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 48.492,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 1,
+        "signs": "same",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 17.056,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 1,
+        "signs": "mixed",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 74.912,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 2,
+        "signs": "same",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 19.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 2,
+        "signs": "mixed",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 37.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 2,
+        "signs": "same",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 15.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 2,
+        "signs": "mixed",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 53.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 2,
+        "signs": "same",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 19.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 2,
+        "signs": "mixed",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 71.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 2,
+        "signs": "same",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 15.884,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 2,
+        "signs": "mixed",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 25.703,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 2,
+        "signs": "same",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 13.485,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 2,
+        "signs": "mixed",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 47.541,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 2,
+        "signs": "same",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 15.963,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 2,
+        "signs": "mixed",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 70.144,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 3,
+        "signs": "same",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 12.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 3,
+        "signs": "mixed",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 33.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 3,
+        "signs": "same",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 15.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 3,
+        "signs": "mixed",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 50.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 3,
+        "signs": "same",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 25.0,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Windows",
+        "kind": "new",
+        "round": 3,
+        "signs": "mixed",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 66.0,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 3,
+        "signs": "same",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 10.674,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 3,
+        "signs": "mixed",
+        "size": 32,
+        "repeats": 20000,
+        "milliseconds": 23.501,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 3,
+        "signs": "same",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 17.382,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 3,
+        "signs": "mixed",
+        "size": 1024,
+        "repeats": 1000,
+        "milliseconds": 56.804,
+        "value": "24.13739547248009"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 3,
+        "signs": "same",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 20.058,
+        "value": "4.7327070676310319"
+      },
+      {
+        "platform": "Linux",
+        "kind": "new",
+        "round": 3,
+        "signs": "mixed",
+        "size": 8192,
+        "repeats": 150,
+        "milliseconds": 74.968,
+        "value": "24.13739547248009"
+      }
+    ],
+    "medians": [
+      {
+        "platform": "Windows",
+        "signs": "same",
+        "size": 32,
+        "repeats": 20000,
+        "oldMedianMs": 13.0,
+        "newMedianMs": 19.0,
+        "newOverOld": 1.4615384615384615
+      },
+      {
+        "platform": "Windows",
+        "signs": "same",
+        "size": 1024,
+        "repeats": 1000,
+        "oldMedianMs": 14.0,
+        "newMedianMs": 15.0,
+        "newOverOld": 1.0714285714285714
+      },
+      {
+        "platform": "Windows",
+        "signs": "same",
+        "size": 8192,
+        "repeats": 150,
+        "oldMedianMs": 18.0,
+        "newMedianMs": 19.0,
+        "newOverOld": 1.0555555555555556
+      },
+      {
+        "platform": "Windows",
+        "signs": "mixed",
+        "size": 32,
+        "repeats": 20000,
+        "oldMedianMs": 11.0,
+        "newMedianMs": 37.0,
+        "newOverOld": 3.3636363636363638
+      },
+      {
+        "platform": "Windows",
+        "signs": "mixed",
+        "size": 1024,
+        "repeats": 1000,
+        "oldMedianMs": 15.0,
+        "newMedianMs": 53.0,
+        "newOverOld": 3.533333333333333
+      },
+      {
+        "platform": "Windows",
+        "signs": "mixed",
+        "size": 8192,
+        "repeats": 150,
+        "oldMedianMs": 20.0,
+        "newMedianMs": 71.0,
+        "newOverOld": 3.55
+      },
+      {
+        "platform": "Linux",
+        "signs": "same",
+        "size": 32,
+        "repeats": 20000,
+        "oldMedianMs": 9.954,
+        "newMedianMs": 15.884,
+        "newOverOld": 1.5957404058669882
+      },
+      {
+        "platform": "Linux",
+        "signs": "same",
+        "size": 1024,
+        "repeats": 1000,
+        "oldMedianMs": 16.343,
+        "newMedianMs": 13.485,
+        "newOverOld": 0.8251239062595607
+      },
+      {
+        "platform": "Linux",
+        "signs": "same",
+        "size": 8192,
+        "repeats": 150,
+        "oldMedianMs": 17.895,
+        "newMedianMs": 15.963,
+        "newOverOld": 0.8920368818105616
+      },
+      {
+        "platform": "Linux",
+        "signs": "mixed",
+        "size": 32,
+        "repeats": 20000,
+        "oldMedianMs": 12.638,
+        "newMedianMs": 25.703,
+        "newOverOld": 2.033786991612597
+      },
+      {
+        "platform": "Linux",
+        "signs": "mixed",
+        "size": 1024,
+        "repeats": 1000,
+        "oldMedianMs": 13.364,
+        "newMedianMs": 47.541,
+        "newOverOld": 3.5573929961089488
+      },
+      {
+        "platform": "Linux",
+        "signs": "mixed",
+        "size": 8192,
+        "repeats": 150,
+        "oldMedianMs": 16.342,
+        "newMedianMs": 70.144,
+        "newOverOld": 4.292253090197039
+      }
+    ],
+    "windowsObjectSizes": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n  13084\t      0\t      0\t  13084\t   331c\tD:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/old.o\r\n  13896\t      0\t      0\t  13896\t   3648\tD:\\GIT\\x-lang\\build\\test\\statistics-harmonic-20261102/new.o\r\n",
+    "linuxObjectSizes": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n  15766\t      0\t      0\t  15766\t   3d96\t/var/tmp/xlang-stat-harmonic-JEO1Ue8R/old.o\n  16694\t      0\t      0\t  16694\t   4136\t/var/tmp/xlang-stat-harmonic-JEO1Ue8R/new.o\n",
+    "windowsTextDelta": 812,
+    "linuxTextDelta": 928,
+    "dataBssDelta": 0,
+    "moreAccurateMixedSignsHaveSortAndExponentCost": true,
+    "normalizationSkippedOnlyWhenAlreadyInSafeRange": true,
+    "additionalBenchmarkNotInDefaultGate": true,
+    "windowsClockMillisecondsAndBackgroundLoadNotControlled": true,
+    "notUniversalSpeedupOrWholeProgramSizeClaim": true
+  },
+  "blockers": {
+    "M1": "Original array projection still fails independently; Windows minimal check/build0 JIT/AOT1, Linux default ValueError",
+    "M13": "Windows import statistics plus math.abs without statistics calls: check0, JIT/build1; pure math0, old-native isolated package also fails; Linux minimal0",
+    "m13Proof": [
+      {
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "ok\n",
+          "stderr": "",
+          "elapsedMs": 66
+        },
+        "arguments": [
+          "check",
+          "dev/extlib_blockers/statistics_math_native_collision.xl"
+        ]
+      },
+      {
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "tcc: __xlvfs__/csrc_0.c:142: error: 'fabs' defined twice\n",
+          "elapsedMs": 209
+        },
+        "arguments": [
+          "run",
+          "dev/extlib_blockers/statistics_math_native_collision.xl"
+        ]
+      },
+      {
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "tcc: __xlvfs__/csrc_0.c:142: error: 'fabs' defined twice\n",
+          "elapsedMs": 226
+        },
+        "arguments": [
+          "build",
+          "dev/extlib_blockers/statistics_math_native_collision.xl",
+          "-o",
+          "D:/GIT/x-lang/build/test/statistics-harmonic-20261102/math-collision.exe"
+        ]
+      }
+    ],
+    "pureMath": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "",
+      "elapsedMs": 97
+    },
+    "isolatedOldNative": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "tcc: __xlvfs__/csrc_0.c:143: error: 'fabs' defined twice\n",
+      "elapsedMs": 198
+    },
+    "isolatedSearchPathNegativeControl": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "tcc: In file included from __xlvfs__/csrc_0.c:142:\nD:/GIT/x-lang/build/test/statistics-harmonic-20261102/old-extlibs/statistics/statistics_native.c:1: error: #error AUDIT_OLD_PACKAGE_SELECTED\n",
+      "elapsedMs": 204
+    },
+    "record": "dev/extlib_blockers/statistics_math_native_collision.md",
+    "minimal": "dev/extlib_blockers/statistics_math_native_collision.xl",
+    "recommendation": "Mainline must audit generated C ABI declarations, CRT symbol injection and TCC symbol ownership; retain original positives, then separately close foreign-var projection",
+    "notAutomaticallyAppliedToOtherPackages": true,
+    "defaultGatesStopAtFirstOriginalLanguageFailure": true,
+    "laterLanguageAndBilingualEndToEndNotAccepted": true
+  },
+  "catalog": {
+    "checks": [
+      {
+        "name": "generation",
+        "expectedExit": 0,
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/refresh_extensions.py",
+          "--root",
+          "D:/GIT/x-lang",
+          "--data",
+          "release/data",
+          "--output",
+          "D:/GIT/x-lang/build/test/statistics-harmonic-20261102/catalog-final",
+          "--gcc",
+          "E:/software/w64devkit/bin/gcc.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "{\"status\": \"passed\", \"catalogSha256\": \"eec523219a5d146a6cafe11112a996cc69ca252181e53830462e5a0af05d94f1\", \"sourceIndexSha256\": \"247f67ef7248dcba36d7d2ad416bd7475c243a4865ecfce106303f036c1ed042\", \"preservedNonExtensionEntries\": 6156, \"publicPackages\": 207, \"excludedPrivate\": [\"_bzip2\", \"_expat\", \"_libzip\", \"_tomlc17\", \"_xge_native\", \"_zlib\"], \"extensionEntries\": 11442, \"addedEntries\": 0, \"removedEntries\": 0, \"documents\": 145, \"availableSources\": 593, \"extensionExporterSha256\": \"5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42\", \"inputsUnchanged\": true}\r\n",
+          "stderr": "",
+          "elapsedMs": 12371
+        }
+      },
+      {
+        "name": "freshness",
+        "expectedExit": 0,
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/refresh_extensions.py",
+          "--root",
+          "D:/GIT/x-lang",
+          "--data",
+          "D:/GIT/x-lang/build/test/statistics-harmonic-20261102/catalog-final",
+          "--check"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+          "stderr": "",
+          "elapsedMs": 1012
+        }
+      },
+      {
+        "name": "binding",
+        "expectedExit": 1,
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/check_catalog_coverage.py",
+          "--root",
+          "D:/GIT/x-lang",
+          "--catalog",
+          "D:/GIT/x-lang/build/test/statistics-harmonic-20261102/catalog-final/commands.json"
+        ],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Catalog compiler changed: xl.dll\r\n",
+          "elapsedMs": 317
+        }
+      },
+      {
+        "name": "delivery",
+        "expectedExit": 0,
+        "arguments": [
+          "-B",
+          "tools/check_release_committed.py",
+          "--root",
+          "D:/GIT/x-lang"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+          "stderr": "",
+          "elapsedMs": 1011
+        }
+      }
+    ],
+    "candidate": "build/test/statistics-harmonic-20261102/catalog-final",
+    "installed": false,
+    "runtimePairNotOverwritten": true,
+    "bindingNotRewritten": true,
+    "initialFinalAttemptRefusedExistingCandidateDirectory": true,
+    "continuedOnlyCatalogAtFreshPath": true,
+    "websiteSource": "release/extlibs/statistics/docs/site.html",
+    "externalDeploymentPerformed": false
+  },
+  "delivery": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+    "stderr": "",
+    "elapsedMs": 1011
+  },
+  "evidenceQualification": {
+    "firstWindowsFixtureFailure": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "[statistics] compiler version: PASS\n[statistics] Python version: PASS\n[statistics] public header: PASS\n[statistics] manifest syntax: PASS\n[statistics] C ABI contract: PASS\n[statistics] selected XRT compile: PASS\n[statistics] native compile: PASS\n[statistics] test_statistics compile: PASS\n[statistics] test_statistics: PASS\n[statistics] size_guard compile: PASS\n[statistics] size_guard: PASS\n[statistics] translation_c compile: PASS\n[statistics] translation_c: PASS\n[statistics] harmonic_c compile: PASS\n[statistics] harmonic_c: PASS\n[statistics] Fraction input/output records: PASS\n[statistics] Fraction/Decimal oracle: PASS\n[statistics] translation direct C: PASS\n[statistics] harmonic Fraction records: PASS\n[statistics] harmonic Fraction oracle: PASS\n[statistics] report: D:\\GIT\\x-lang\\build\\test\\statistics_guard\\run_6c1e1698b05b431cb89e1d43f7e842c0.json\n",
+      "stderr": "harmonic direct C: fail exit=1\r\ntcc: release/extlibs/statistics/test/harmonic_c.c:102: error: 'DBL_TRUE_MIN' undeclared\r\n����λ�� D:\\GIT\\x-lang\\release\\extlibs\\statistics\\test\\check.ps1:38 �ַ�: 38\r\n+ ... e 'pass') { throw \"${name}: $($result.status) exit=$($result.exitCode ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : OperationStopped: (harmonic direct...N' undeclared\r\n:String) [], RuntimeException\r\n    + FullyQualifiedErrorId : harmonic direct C: fail exit=1\r\ntcc: release/extlibs/statistics/test/harmonic_c.c:102: error: 'DBL_TRUE_MIN' undeclared\r\n \r\n",
+      "elapsedMs": 8875
+    },
+    "fixtureCorrection": "Use nextafter(0,1) instead of unavailable TCC DBL_TRUE_MIN; no compatibility macro and no TCC/header change",
+    "preNormalizationSourceReplacedByFinalGuardAndBothFullGatesRerun": true,
+    "allProductionTestsExamplesDocsAndGatesCapturedInFinalFingerprints": true,
+    "longRecordOutputsCompactedToHashesAndSamplesInThisReport": true,
+    "rawLogsRemainLocalAndMayBeReproducedByCommittedDeterministicTests": true,
+    "originalFullObjectiveNotSignedOff": true,
+    "otherPackagesNotReclassified": true
+  },
+  "reproduce": [
+    "powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/statistics/test/check.ps1",
+    "bash release/extlibs/statistics/test/check.sh",
+    "release/xl.exe run release/extlibs/statistics/test/harmonic_c.c",
+    "release/xl.exe run release/extlibs/statistics/examples/harmonic_scales_c.c",
+    "release/xl.exe run dev/extlib_blockers/statistics_math_native_collision.xl"
+  ]
+}
