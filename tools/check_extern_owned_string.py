@@ -112,6 +112,8 @@ def main():
         ('bound-match','test/cases/extern_owned_bound_match.xl',
             ['test/cases/extern_owned_bound_c_owners_host.c','test/cases/extern_owned_string_host.c',
              'test/cases/extern_owned_typed_bound_native_host.c'],[]),
+        ('match-values','test/cases/extern_owned_match_values.xl',
+            ['test/cases/extern_owned_bound_c_owners_host.c','test/cases/extern_owned_string_host.c'],[]),
         ('generic-nullable-order','test/cases/extern_owned_generic_nullable_order.xl',[],[]),
         ('bound-base-dispatch','test/cases/extern_owned_bound_base_dispatch.xl',[],[]),
         ('bound-async-generic','test/cases/extern_owned_bound_async_generic.xl',
