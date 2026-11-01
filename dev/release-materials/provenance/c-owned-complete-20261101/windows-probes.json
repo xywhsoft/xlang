@@ -1,0 +1,482 @@
+[
+  {
+    "name": "nested-direct-F",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "nested-direct-F",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "nested-direct-F",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "nested-direct-F",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "nested-direct-P",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "nested-direct-P",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "nested-direct-P",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "nested-direct-P",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "nested-condition-F",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "nested-condition-F",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "nested-condition-F",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "nested-condition-F",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "nested-condition-P",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "nested-condition-P",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "nested-condition-P",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "nested-condition-P",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "nested-control-call-copy",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "nested-control-call-copy",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "nested-control-call-copy",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "nested-control-call-copy",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "nested-control-prebind-copy",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "nested-control-prebind-copy",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "nested-control-prebind-copy",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "nested-control-prebind-copy",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "nested-control-named-copy",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "nested-control-named-copy",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "nested-control-named-copy",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "nested-control-named-copy",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "nested-control-explicit-method-cast",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "nested-control-explicit-method-cast",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "nested-control-explicit-method-cast",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "nested-control-explicit-method-cast",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "callback-assignment",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "callback-assignment",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "callback-assignment",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "callback-assignment",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "callback-optional-alias",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "callback-optional-alias",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "callback-optional-alias",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "callback-optional-alias",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "nested-match-payload",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "nested-match-payload",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "nested-match-payload",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "nested-match-payload",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "value-overload-string-owner",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "value-overload-string-owner",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "value-overload-string-owner",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "value-overload-string-owner",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "value-overload-string-plain",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "value-overload-string-plain",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "value-overload-string-plain",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "value-overload-string-plain",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "value-overload-bytes-owner",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "value-overload-bytes-owner",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "value-overload-bytes-owner",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "value-overload-bytes-owner",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "value-overload-bytes-plain",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "value-overload-bytes-plain",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "value-overload-bytes-plain",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "value-overload-bytes-plain",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "bytes-codec-owner",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "bytes-codec-owner",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "bytes-codec-owner",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "bytes-codec-owner",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "bytes-codec-plain",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "bytes-codec-plain",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "bytes-codec-plain",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "bytes-codec-plain",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-direct-F",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-direct-F",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-direct-F",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-direct-F",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-direct-P",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-direct-P",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-direct-P",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-direct-P",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-condition-F",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-condition-F",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-condition-F",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-condition-F",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-condition-P",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-condition-P",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-condition-P",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-condition-P",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-control-call-copy",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-control-call-copy",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-control-call-copy",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-control-call-copy",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-control-prebind-copy",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-control-prebind-copy",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-control-prebind-copy",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-control-prebind-copy",
+    "mode": "aot",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-control-named-copy",
+    "mode": "emit",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-control-named-copy",
+    "mode": "run",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-control-named-copy",
+    "mode": "exe",
+    "passed": true
+  },
+  {
+    "name": "binary-nested-control-named-copy",
+    "mode": "aot",
+    "passed": true
+  }
+]
