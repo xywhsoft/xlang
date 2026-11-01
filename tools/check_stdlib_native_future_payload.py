@@ -7,6 +7,7 @@ Not native callback/task captures, Future element iteration or full53/shipping.
 from pathlib import Path
 import argparse,hashlib,json,os,re,shutil,subprocess
 from check_stdlib_slot_map import stage_private_sdk
+from compiler_response import command_with_response
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -19,8 +20,8 @@ def main():
     host=root/'test/cases/stdlib_native_future_payload_host.c';planner=root/'test/cases/xlir_native_future_payload_plan.c'
     source=root/'test/cases/stdlib_slot_map_future_keys.xl';languageHost=root/'test/cases/stdlib_native_future_payload_language_host.c'
     contract=root/'test/cases/xlir_native_future_payload_contract.c';artifact=root/'test/cases/xlir_artifact_runtime_contract.c';memory=root/'test/support/module_product_memory.c'
-    manifest,sdk,skipped=stage_private_sdk(root)
-    files={Path(__file__).resolve(),root/'tools/check_stdlib_slot_map.py',Path(cc),Path(nm),public/'build.json',runtime,driver,host,planner,source,languageHost,contract,artifact,memory,manifest}
+    manifest,sdk,skipped=stage_private_sdk(root,public/'include')
+    files={Path(__file__).resolve(),root/'tools/check_stdlib_slot_map.py',root/'tools/compiler_response.py',Path(cc),Path(nm),public/'build.json',runtime,driver,host,planner,source,languageHost,contract,artifact,memory,manifest}
     files.update(Path(r[k]) for r in sdk for k in ('Source','Path'))
     for r in build['Inputs']+build['Headers']+build['Objects']:
         assert sha(r['Path'])==r['Sha256'].lower(),r['Path'];files.add(Path(r['Path']))
@@ -41,8 +42,9 @@ def main():
     objects=[r['Path'] for r in build['Objects'] if Path(r['Path']).stem not in ('xlir_public_source_driver','xlir_public_source_linux_driver')]
     def product(f):products.append(dict(Path=str(f),Sha256=sha(f)))
     def run(name,cmd,bad=False):
-        r=subprocess.run(list(map(str,cmd)),cwd=root,env=env,capture_output=True,timeout=600);log=out/(name+'.log');log.write_bytes(r.stdout+r.stderr)
-        rows.append(dict(Name=name,Exit=r.returncode,ExpectedRejection=bad,Log=str(log),LogSha256=sha(log)))
+        actual=command_with_response(cmd,cc,out/(name+'.rsp'))
+        r=subprocess.run(actual,cwd=root,env=env,capture_output=True,timeout=600);log=out/(name+'.log');log.write_bytes(r.stdout+r.stderr)
+        rows.append(dict(Name=name,Command=list(map(str,cmd)),ActualCommand=actual,Exit=r.returncode,ExpectedRejection=bad,Log=str(log),LogSha256=sha(log)))
         assert (r.returncode!=0 if bad else r.returncode==0),(name,(r.stdout+r.stderr)[-6000:])
         if bad:assert b'assert' in (r.stdout+r.stderr).lower(),(name,r.returncode)
         return (r.stdout+r.stderr).decode(errors='replace')
@@ -76,7 +78,11 @@ def main():
             controls.append(name)
         generated=out/'language-program.c';repeat=out/'language-repeat.c'
         run('language-generate',[driver,source,'cgen-default',generated]);run('language-repeat',[driver,source,'cgen-default',repeat]);assert sha(generated)==sha(repeat);product(generated);product(repeat)
-        body=generated.read_text(encoding='utf-8-sig');assert 'XL6_CAPTURE_NATIVE_LEAF_V2' in body and 'xl6NativeFuturePayloadRuntimeV1Get()->Copy' in body and 'xl6TaskSubmitOwnedPolicyV1' in body
+        body=generated.read_text(encoding='utf-8-sig')
+        # Async functions use the current continuation machine rather than
+        # the retired task submission launcher. Check its actual native result
+        # transport; the IR mutation contract below remains authoritative.
+        assert 'XL6_CAPTURE_NATIVE_LEAF_V2' in body and 'xl6NativeFuturePayloadRuntimeV1Get()->Copy' in body and 'xl6ContinuationFrameLaunchV1' in body
         # Array literals may use their established projection bridge. Future
         # transport itself uses only the typed resident allocation/acquisition;
         # the separate minimal native closure proves it needs no erasure codec.

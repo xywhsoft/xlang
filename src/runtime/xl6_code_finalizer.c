@@ -4,6 +4,7 @@
 #include "src/common/xl6_xrt.h"
 #include "xl6_code_lease.h"
 #include "xl6_ownership_scope.h"
+#include "xl6_foreign_callback_scope.h"
 #include "src/api/xl_foreign_error.h"
 #include <string.h>
 
@@ -27,13 +28,16 @@ static xl6_error_result code_finalizer_run(xvalue* value, void* data)
 {
     XL6_CodeFinalizer* record = (XL6_CodeFinalizer*)data;
     XL6_CodeScope scope = {0};
+    XL6_ForeignCallbackScopeV1 callback={0};
     xl6_error_scope outcome = {0};
     if (!xl6ErrorScopeBegin(&outcome)) abort();
+    if (!xl6ForeignCallbackEnterV1(&callback)) abort();
     xl6CodeScopeEnter(&scope, record->lease);
     if (record->checked != NULL) {
         if (!record->checked(value, record->context)) xl6ErrorScopeCaptureFailure(&outcome);
     } else record->finalize(value, record->context);
     xl6CodeScopeLeave(&scope);
+    if (!xl6ForeignCallbackLeaveV1(&callback)) abort();
     /* Do not free the context or lease here. Backing fields may still execute
      * generated Drop, and a cursor may outlive this finalizer invocation. */
     return xl6ErrorScopeEnd(&outcome);
@@ -52,8 +56,12 @@ static bool code_finalizer_checked(xvalue* value, void* data)
     }
     return outcome.ok;
 }
-static void xl6OwnershipBody_code_finalizer_release(void* data)
+static void code_finalizer_release(void* data)
 {
+    XL6_ForeignCallbackScopeV1 callback={0};
+    if (!xl6ForeignCallbackEnterV1(&callback)) abort();
+    xrtownershipscope mutation={0};
+    if (!xrtOwnershipMutationBegin(&mutation)) abort();
     XL6_CodeFinalizer* record = (XL6_CodeFinalizer*)data;
     XL6_CodeLease* lease = record->lease;
     XL6_CodeContextRelease release = record->release;
@@ -62,14 +70,12 @@ static void xl6OwnershipBody_code_finalizer_release(void* data)
     XL6_CodeScope scope = {0};
     xl6CodeScopeEnter(&scope, lease);
     xrtFree(record);
+    if (!xrtOwnershipScopeEnd(&mutation)) abort();
     if (release != NULL) release(context);
     /* Nothing from the generated callback/descriptor is accessed past here. */
     if (ownsLease) xl6CodeLeaseRelease(lease);
     xl6CodeScopeLeave(&scope);
-}
-static void code_finalizer_release(void* data)
-{
-    XL6_OWNERSHIP_RETURN_VOID(xl6OwnershipBody_code_finalizer_release(data));
+    if (!xl6ForeignCallbackLeaveV1(&callback)) abort();
 }
 static bool xl6OwnershipBody_code_finalizer_bind(xvalue* value, XL6_CodeLease* parent,
     XL6_CodeFinalizeProc finalize, void* context,
@@ -79,6 +85,7 @@ static bool xl6OwnershipBody_code_finalizer_bind(xvalue* value, XL6_CodeLease* p
     XL6_CodeFinalizer* record; xerror* prior; bool accepted = false;
     if (value == NULL || (finalize == NULL && checked == NULL) ||
         (context != NULL && (trace == NULL || release == NULL))) return false;
+    if (!xl6ForeignContextReadyV1()) return false;
     prior = xrtTakeError();
     record = (XL6_CodeFinalizer*)xrtMalloc(sizeof(*record));
     if (record != NULL) {

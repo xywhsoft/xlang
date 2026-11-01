@@ -11,6 +11,9 @@ int main(int argc,char** argv)
     assert(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_TASK));
     FILE* out=fopen(argv[1],"wb");assert(out);
     for(size_t i=0;i<plan.nativeModuleCount;++i)fprintf(out,"#define %s\n",plan.nativeModules[i]);
-    fputs("#define XRT_MODULE_MEMORY_DEBUG\n#define XRT_MODULE_MEMORY_STATS\n#define XRUNTIME_IMPLEMENTATION\n#include \"lib/xruntime/xruntime.h\"\n",out);
+    fputs("#define XRT_MODULE_MEMORY_DEBUG\n#define XRT_MODULE_MEMORY_STATS\n"
+        "#include \"lib/xruntime/xruntime_features.h\"\n"
+        "#define XRT_IMPLEMENTATION\n#include \"lib/xrt/xrt.h\"\n"
+        "#define XRUNTIME_IMPLEMENTATION\n#include \"lib/xruntime/xruntime.h\"\n",out);
     assert(!fclose(out));for(size_t i=0;i<plan.sourceCount;++i)puts(plan.sources[i]);return 0;
 }

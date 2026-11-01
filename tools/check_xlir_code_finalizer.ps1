@@ -1,6 +1,8 @@
 param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -14,18 +16,21 @@ try {
     $runtime=@($build.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -eq 'xrt_single_header_impl.o' })
     if ($runtime.Count -ne 1 -or (Get-FileHash -LiteralPath $runtime[0].Path).Hash -ne $runtime[0].Sha256) { throw 'Source runtime object mismatch' }
     $files=@(Get-Item src/runtime/xl6_code_owner.h,src/runtime/xl6_code_lease.h,src/runtime/xl6_code_lease.c,src/runtime/xl6_code_finalizer.c,
+        src/runtime/xl6_foreign_callback_scope.c,src/runtime/xl6_foreign_callback_scope.h,src/runtime/xl6_foreign_context.c,src/runtime/xl6_foreign_context.h,
         test/cases/xlir_code_finalizer_drop.h,test/cases/xlir_code_finalizer_drop.c,test/cases/xlir_code_finalizer_contract.c,
         test/cases/xlir_class_finalizer_cursor.xl,test/cases/xlir_class_finalizer_cursor_native.c,
         lib/xrt/xrt.h,lib/xruntime/xruntime.h,$PSCommandPath)
     $inputs=@($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
-    $flags=@('-std=c11','-Wall','-Wextra','-Werror','-I.')
+    $flags=@('-std=c11','-Wall','-Wextra','-Werror','-I.','-Irelease','-Irelease/include')
+    $closure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/resident-closure" -Sources @('src/runtime/xl6_code_finalizer.c','src/runtime/xl6_code_lease.c') -NativeProvider 'tools/xrt_single_header_impl.c'
+    $resident=@($closure.Sources);$inputs+=@($closure.Inputs)
     $dll=Join-Path $outputPath 'xlir_code_finalizer_drop.dll'
     & gcc @flags -O0 -shared test/cases/xlir_code_finalizer_drop.c -o $dll *> "$outputPath/dll.log"
     if ($LASTEXITCODE -ne 0) { throw 'Unloadable callback DLL build failed' }
     $lanes=@()
     foreach ($level in @(0,2)) {
         $prefix=Join-Path $outputPath "O$level"
-        & gcc @flags "-O$level" test/cases/xlir_code_finalizer_contract.c src/runtime/xl6_code_finalizer.c src/runtime/xl6_code_lease.c `
+        & gcc @flags "-O$level" test/cases/xlir_code_finalizer_contract.c @resident `
             $runtime[0].Path -lWs2_32 -lIPHLPAPI -lShell32 -lOle32 -lAdvapi32 -o "$prefix.exe" *> "$prefix.build.log"
         if ($LASTEXITCODE -ne 0) { Get-Content "$prefix.build.log" -Tail 20; throw 'Resident finalizer host build failed' }
 $process=Start-Process -FilePath "$prefix.exe" -ArgumentList @('"'+$dll+'"') -WindowStyle Hidden -PassThru -RedirectStandardOutput "$prefix.out.log" -RedirectStandardError "$prefix.err.log"

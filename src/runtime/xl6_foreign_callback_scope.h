@@ -1,6 +1,7 @@
 #ifndef XL6_FOREIGN_CALLBACK_SCOPE_H
 #define XL6_FOREIGN_CALLBACK_SCOPE_H
 #include "xl6_code_lease.h"
+#include "xl6_foreign_context.h"
 #include <stdint.h>
 
 /* Native-to-language execution marker. Caller independently owns code and

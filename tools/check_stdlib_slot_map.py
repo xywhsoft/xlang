@@ -6,15 +6,18 @@ from pathlib import Path
 import argparse,fnmatch,hashlib,json,os,re,shutil,subprocess
 def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
-def stage_private_sdk(root):
+def stage_private_sdk(root, directory=None):
     """Expand tracked private-source VFS entries for an unbundled source driver.
 
     This is a physical test SDK, not a regenerated shipping VFS. Compiler-import
     resource blobs use a separate build output and are deliberately not staged.
     Existing files must already match; never overwrite another SDK generation.
+    A source cohort's include directory can be reused as directory, keeping
+    validation snapshots away from the repository's runtime/root directories.
     """
     manifest=root/'tools'/('tcc_vfs_manifest_win64_xlc.txt' if os.name=='nt' else 'tcc_vfs_manifest_linux_xlc.txt')
-    private=(root/'__xl_compiler').resolve(); rows=[]; skipped=[]; seen=set()
+    destination=Path(directory).resolve() if directory is not None else root
+    private=(destination/'__xl_compiler').resolve(); rows=[]; skipped=[]; seen=set()
     for line in manifest.read_text(encoding='utf-8-sig').splitlines():
         if not line.strip() or line.lstrip().startswith('#'): continue
         fields=line.split('|'); assert len(fields) in (3,4),line
@@ -32,7 +35,7 @@ def stage_private_sdk(root):
         for origin in candidates:
             assert origin.resolve().is_relative_to(root),origin
             relative=Path(prefix)/(origin.relative_to(source_path) if kind=='dir' else Path())
-            target=(root/relative).resolve()
+            target=(destination/relative).resolve()
             assert target.is_relative_to(private) and target!=private and target not in seen,target
             seen.add(target); target.parent.mkdir(parents=True,exist_ok=True)
             if target.exists(): assert sha(target)==sha(origin),target
