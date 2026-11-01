@@ -7,6 +7,7 @@ $workRoot = Join-Path $root 'build/test'
 $work = Join-Path $workRoot ('dotenv_guard_' + [guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+$cc1 = (& $gcc -print-prog-name=cc1).Trim()
 $xl = Join-Path $root 'release/xl.exe'
 . (Join-Path $root 'tools/extlib_smoke_process.ps1')
 $checks = [Collections.Generic.List[object]]::new()
@@ -33,10 +34,12 @@ function InputPaths {
         Join-Path $root $path
     }
     $gcc
+    $cc1
 }
 foreach ($path in @(InputPaths | Sort-Object -Unique)) { $hashes[$path] = (Get-FileHash -LiteralPath $path).Hash }
 
 function Run([string]$name, [string]$program, [string[]]$arguments, [int]$seconds = 120) {
+    if ($null -eq $arguments) { $arguments = @() }
     $result = Invoke-ExtlibSmokeProcess $program $arguments $root $seconds $environment
     $checks.Add([ordered]@{name=$name;program=$program;arguments=$arguments;result=$result})
     if ($result.status -ne 'pass') { throw "${name}: $($result.status) exit=$($result.exitCode)`n$($result.stderr)`n$($result.stdout)" }
@@ -58,6 +61,25 @@ try {
     $null = Run 'C test compile' $gcc ($flags + @('release/extlibs/dotenv/test/test_dotenv.c') +
         @($core,$runtime) + $links + @('-o', $testExe))
     $null = Run 'C test' $testExe @()
+
+    $grammarExe = Join-Path $work 'grammar.exe'
+    $null = Run 'grammar C compile' $gcc ($flags + @('release/extlibs/dotenv/test/grammar_c.c',
+        $core,$runtime) + $links + @('-o',$grammarExe))
+    $grammar = Run 'grammar C matrix' $grammarExe @()
+    $directGrammar = Run 'grammar C xl run' $xl @('run','release/extlibs/dotenv/test/grammar_c.c')
+    if ($grammar -notmatch '^dotenv grammar: 3585 valid, 72 invalid, 144 fault runs, [1-9][0-9]* OOM, 0 failures$' -or
+        $directGrammar -cne $grammar) { throw 'Incomplete dotenv grammar matrix' }
+    $null = Run 'grammar XLang' $xl @('run','release/extlibs/dotenv/test/grammar.xl')
+
+    $literalGolden = [IO.File]::ReadAllText((Join-Path $pkg 'examples/literal_values.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    $literalExe = Join-Path $work 'literal-c.exe'
+    $null = Run 'literal C compile' $gcc ($flags + @('release/extlibs/dotenv/examples/literal_values_c.c',$runtime) + $links + @('-o',$literalExe))
+    $literalC = Run 'literal C' $literalExe @()
+    $literalDirect = Run 'literal C xl run' $xl @('run','release/extlibs/dotenv/examples/literal_values_c.c')
+    $literalXL = Run 'literal XLang' $xl @('run','release/extlibs/dotenv/examples/literal_values.xl')
+    if ($literalC -cne $literalGolden -or $literalDirect -cne $literalGolden -or $literalXL -cne $literalGolden) {
+        throw 'Literal examples differ from the common golden file'
+    }
 
     $exampleExe = Join-Path $work 'dotenv_c_example.exe'
     $null = Run 'C example compile' $gcc ($flags + @('release/extlibs/dotenv/examples/basic.c',
@@ -105,6 +127,13 @@ try {
     [IO.File]::WriteAllText($abi,"#include `"dotenv_native.c`"`n" + ($decls -join "`n"),$utf8)
     $null = Run 'generated C prototypes' $gcc ($flags + @('-Irelease/extlibs/dotenv','-fsyntax-only',$abi))
     if (-not $SkipAot) {
+        foreach ($source in @('test/grammar_c.c','test/grammar.xl','examples/literal_values_c.c','examples/literal_values.xl')) {
+            $target = Join-Path $work ([IO.Path]::GetFileNameWithoutExtension($source)+'.aot.exe')
+            $null = Run "$source build" $xl @('build',"release/extlibs/dotenv/$source",'-o',$target)
+            $text = Run "$source AOT" $target @()
+            $expected = if ($source -eq 'test/grammar_c.c') { $grammar } elseif ($source -eq 'test/grammar.xl') { 'dotenv language grammar: PASS' } else { $literalGolden }
+            if ($text -cne $expected) { throw "Grammar/literal AOT differs: $source" }
+        }
         $testAot = Join-Path $work 'dotenv_xl_test.exe'
         $null = Run 'XLang test build' $xl @('build', 'test/cases/extlib_dotenv.xl', '-o', $testAot)
         $null = Run 'XLang test AOT' $testAot @()

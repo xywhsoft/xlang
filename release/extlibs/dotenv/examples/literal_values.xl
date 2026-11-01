@@ -1,0 +1,26 @@
+import dotenv
+
+func main(...) as int
+    // raw多行字符串保留.env原文；双引号转义只由dotenv解析一次。
+    string source = r"""export SERVICE = demo
+SERVICE=worker
+PATH='c:\tools\bin'
+TOKEN=${USER}
+HASH=a#b
+EMPTY= # intentional empty
+ESCAPED="row\tvalue"
+export = ordinary-key
+"""
+    dotenv.Config config = dotenv.parse(source)
+    assert config.count == 7 and config.get("EMPTY") == ""
+    assert config.get("ESCAPED") == "row\tvalue"
+    // 没有调用apply，${USER}保持字面量，不读取宿主环境。
+    println(f"service: {config.get("SERVICE")}")
+    println(f"path: {config.get("PATH")}")
+    println(f"literal: {config.get("TOKEN")}")
+    println(f"hash: {config.get("HASH")}")
+    println("empty: true")
+    println(f"tab bytes: {string.byteLen(config.get("ESCAPED"))}")
+    println(f"export key: {config.get("export")}")
+    return 0
+end

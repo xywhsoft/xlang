@@ -1,0 +1,7 @@
+service: worker
+path: c:\tools\bin
+literal: ${USER}
+hash: a#b
+empty: true
+tab bytes: 9
+export key: ordinary-key

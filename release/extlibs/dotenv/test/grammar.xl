@@ -1,0 +1,44 @@
+import dotenv
+
+func good(string source, string key, string expected)
+    dotenv.Config config = dotenv.parse(source)
+    assert config.count == 1 and config.get(key) == expected
+end
+
+func bad(string source, int line)
+    dotenv.Config config = dotenv.parse("KEEP=old\n")
+    bool rejected = false
+    try
+        config.parse(source)
+    catch ConfigError error
+        rejected = true
+    end
+    assert rejected and config.errorLine == line
+    assert config.count == 1 and config.get("KEEP") == "old"
+    config.parse("A=recovered\n")
+    assert config.count == 1 and config.get("A") == "recovered"
+    assert config.errorCode == 0 and config.errorLine == 0
+end
+
+func main(...) as int
+    good("A=#attached", "A", "#attached")
+    good("A= #comment", "A", "")
+    good("A=a#b  #comment\r\n", "A", "a#b")
+    good("A=${HOST}", "A", "${HOST}")
+    good("export\tA = 'a # b\\q' #comment", "A", "a # b\\q")
+    good("A=\"row\\tvalue\\nnext\\r\\\"\\\\z\"", "A", "row\tvalue\nnext\r\"\\z")
+    good("export=first\nexport=last", "export", "last")
+    good("export = first\nexport\t=last", "export", "last")
+    good("export export \t= worker", "export", "worker")
+    good("\t export _=你好\r\n", "_", "你好")
+    good("A=''", "A", "")
+    good("A=\"\"", "A", "")
+    bad("B=partial\nA='open", 2)
+    bad("# note\nB=partial\nA=\"bad\\q\"", 3)
+    bad("A='x'junk", 1)
+    bad("A=x\ry", 1)
+    bad("# comment\r", 1)
+    bad("中文=x", 1)
+    println("dotenv language grammar: PASS")
+    return 0
+end

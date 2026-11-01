@@ -206,8 +206,10 @@ static bool dotenv_line(xrtdotenv* config, const char* start, const char* end,
 	while (p < end && dotenv_space(*p)) ++p;
 	if (p == end || *p == '#') return true;
 	if (end - p >= 7 && memcmp(p, "export", 6) == 0 && dotenv_space(p[6])) {
-		p += 7;
-		while (p < end && dotenv_space(*p)) ++p;
+		const char* next = p + 7;
+		while (next < end && dotenv_space(*next)) ++next;
+		/* export也是合法键；遇到等号时不能把键和其后的空白当成前缀。 */
+		if (next == end || *next != '=') p = next;
 	}
 	nameStart = p;
 	if (p == end || !((*p >= 'A' && *p <= 'Z') ||
