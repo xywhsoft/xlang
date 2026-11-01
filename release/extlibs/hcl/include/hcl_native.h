@@ -14,6 +14,8 @@ extern "C" {
 /* 表达式内部的 #、//、块注释均保留原文，其中引号和转义不作为语法解释。 */
 char* xhcl_get(const char* hcl, const char* key);
 char* xhcl_get_raw(const char* hcl, const char* key);
+/* 标量缺失返回 0/false；已存在的空串或无效标量报 XERR_VALUE，不当作缺失。 */
+/* 整数/浮点解析的内存错误保持 XERR_MEMORY，调用方须检查 XRT 错误通道。 */
 int64_t xhcl_get_int(const char* hcl, const char* key);
 double xhcl_get_float(const char* hcl, const char* key);
 bool xhcl_get_bool(const char* hcl, const char* key);

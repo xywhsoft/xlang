@@ -590,7 +590,7 @@ done:
 	return bOk;
 }
 
-/* PAX 值由记录长度界定；值末尾的换行不是 GNU 长名称终止符。 */
+/* PAX 值由记录长度界定；GNU 名称以 NUL 终止，两者都须保留值中的换行。 */
 static int testPaxTrailingNewline(void)
 {
 	static const char sPax[] =
@@ -638,8 +638,17 @@ static int testPaxTrailingNewline(void)
 	updateHeaderChecksum(pPacked->Data);
 	pReader = xrtTarReaderOpenMemory(pPacked->Data, pPacked->Size, NULL);
 	if ( pReader == NULL || !xrtTarReaderNext(pReader, &Entry) ||
-		strcmp(Entry.sName, "gnu/name") != 0 ) {
-		fprintf(stderr, "GNU long name terminator was not removed\n");
+		strcmp(Entry.sName, "gnu/name\n") != 0 ||
+		__xrtTarEntryPathSafe(Entry.sName, false, NULL, 0u) ) {
+		fprintf(stderr, "GNU long name newline was removed or accepted as a safe path\n");
+		bOk = 0;
+	}
+	xrtTarReaderDestroy(pReader);
+	pReader = xrtTarReaderOpenMemory(pPacked->Data, pPacked->Size, NULL);
+	if ( pReader == NULL || xrtTarReaderExtractAll(pReader, "gnu_extract", false) ||
+		xrtTarReaderError(pReader)->iCode != XRT_TAR_ERROR_UNSAFE_PATH ||
+		xrtFileExists("gnu_extract/gnu/name") ) {
+		fprintf(stderr, "unsafe GNU name was extracted under a changed filename\n");
 		bOk = 0;
 	}
 done:

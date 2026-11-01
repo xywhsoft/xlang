@@ -1,0 +1,20 @@
+import tar
+
+func main(...) as int
+    // 普通头中的用户/组名是 C 字符串，尾空格是真实数据，不是数值字段的填充。
+    for suffix in ["", " ", "  ", "\n", "\r\n", "\t", "名称 "]
+        string user = "owner" + suffix
+        string group = "group" + suffix
+        auto writer = tar.create()
+        writer.add("entry", "data", userName = user, groupName = group)
+        auto reader = tar.open(writer.finish())
+        assert reader.next()
+        tar.TarInfo entry = reader.info()
+        assert entry.name == "entry" and entry.userName == user and entry.groupName == group
+        assert reader.readText() == "data"
+        assert not reader.next() and reader.eof
+        assert entry.userName == user and entry.groupName == group
+    end
+    println("TAR text metadata: PASS")
+    return 0
+end

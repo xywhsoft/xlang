@@ -1,0 +1,19 @@
+import tar
+
+// 与 C 范例相同的只读审计：按原始 UTF-8 字节显示，绝不解压未知路径。
+func main(...) as int
+    if arg.length < 2 then
+        println("usage: metadata_hex ARCHIVE...")
+        return 2
+    end
+    for index in range(1, arg.length)
+        auto reader = tar.open(string(arg[index]))
+        while reader.next()
+            tar.TarInfo entry = reader.info()
+            println(codec.hexEncode(entry.name) + ";" + codec.hexEncode(entry.linkName) +
+                ";" + codec.hexEncode(entry.userName) + ";" + codec.hexEncode(entry.groupName))
+        end
+        assert reader.eof
+    end
+    return 0
+end

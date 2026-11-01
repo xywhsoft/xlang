@@ -31,6 +31,7 @@ export func getRaw(string hcl, string key) as string
     return __get_raw(hcl, key)
 end
 
+// 标量缺失返回零值；已存在的空字符串或无效值抛 ValueError，OOM 保持 MemoryError。
 export func getInt(string hcl, string key) as int
     __hcl_cstr(hcl)
     __hcl_cstr(key)

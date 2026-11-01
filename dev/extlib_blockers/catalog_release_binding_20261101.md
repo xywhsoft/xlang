@@ -67,6 +67,17 @@ ZIP解压修复阶段再次生成207包/17598项候选，生成期间输入不�
 `Catalog compiler changed: xl.dll`，未安装。完整结果在
 `docs/reports/extlib-ini-depth-20261102.json`，未替主线改基线或复制旧资料。
 
+11月2日HCL标量修复阶段生成`build/test/hcl_scalar_20261102/catalog/`，
+207公共包、17598条目，新增/删除公开项均0，包含最新HCL声明/README/
+coverage。新鲜度通过，严格绑定仍报`Catalog compiler changed: xl.dll`，
+未安装。609份运行文件/资料的原始Git字节审计通过，不将它替代发布绑定。
+完整结果见`docs/reports/extlib-hcl-scalars-20261102.json`。
+
+同日TAR文本保真阶段最新候选为`build/test/tar_text_20261102/catalog/`，
+207包/17598条目，公开项增删均0；README/coverage已捕获，新鲜度过，
+严格绑定仍报xl.dll，未安装。官网仅隔离预览，609份运行原始字节审计过。
+包内及保留的M1/RFS实测见`docs/reports/extlib-tar-text-20261102.json`。
+
 1. 主线维护者完成稳定XRT同步、相匹配的编译器发布物和验收记录。
 2. 如标准库/主线绑定改变，先按当前正式验收报告重生成基础命令目录。
 3. 再刷新扩展资料候选，运行真实前端声明检查及严格覆盖/新鲜度检查。

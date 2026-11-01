@@ -1,4 +1,4 @@
-param([switch]$SkipAot)
+﻿param([switch]$SkipAot)
 
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
@@ -28,6 +28,8 @@ try {
         'release/extlibs/hcl/test/test_hcl.c',
         'release/extlibs/hcl/test/test_hcl_threads.c',
         'release/extlibs/hcl/test/test_expression_strings.c',
+        'release/extlibs/hcl/test/test_scalar_values.c',
+        'release/extlibs/hcl/examples/scalar_defaults_c.c',
         'release/examples/extlibs/hcl_c.c'
     )) {
         & gcc -std=c11 -Wall -Wextra -Werror -fsyntax-only `
@@ -63,6 +65,28 @@ try {
     & $xl run release/extlibs/hcl/test/test_expression_strings.c
     if ($LASTEXITCODE -ne 0) { throw 'hcl C expression direct run failed' }
 
+    $scalarGolden = [IO.File]::ReadAllText((Join-Path $root 'release/extlibs/hcl/examples/scalar_defaults.expected.txt')).Replace("`r`n", "`n").TrimEnd("`n")
+    foreach ($source in @('test/test_scalar_values.c', 'examples/scalar_defaults_c.c')) {
+        $target = Join-Path $work ([IO.Path]::GetFileName($source) + '.gcc.exe')
+        & gcc -std=c11 -O2 -Wall -Wextra -Werror -DXRT_IMPLEMENTATION -Ilib/xrt `
+            "release/extlibs/hcl/$source" -o $target -lws2_32 -lbcrypt -lshlwapi -liphlpapi
+        if ($LASTEXITCODE -ne 0) { throw "hcl scalar GCC build failed: $source" }
+        $output = & $target
+        if ($LASTEXITCODE -ne 0) { throw "hcl scalar GCC run failed: $source" }
+        if ($source.StartsWith('examples/') -and ($output -join "`n") -cne $scalarGolden) {
+            throw 'hcl scalar C example differs from golden'
+        }
+        Write-Output $output
+    }
+    & $xl run release/extlibs/hcl/test/test_scalar_values.c
+    if ($LASTEXITCODE -ne 0) { throw 'hcl scalar direct C run failed' }
+    foreach ($source in @('scalar_defaults.xl', 'scalar_defaults_c.c')) {
+        $output = & $xl run "release/extlibs/hcl/examples/$source"
+        if ($LASTEXITCODE -ne 0 -or ($output -join "`n") -cne $scalarGolden) {
+            throw "hcl scalar direct example differs from golden: $source"
+        }
+    }
+
     foreach ($source in @(
         'release/extlibs/hcl/test/test_hcl.c',
         'release/extlibs/hcl/test/test_hcl_threads.c'
@@ -74,7 +98,8 @@ try {
         'test/cases/extlib_hcl.xl',
         'release/extlibs/hcl/test/boundaries.xl',
         'release/extlibs/hcl/test/allocations.xl',
-        'release/extlibs/hcl/test/expression_strings.xl'
+        'release/extlibs/hcl/test/expression_strings.xl',
+        'release/extlibs/hcl/test/scalar_values.xl'
     )) {
         & $xl run $source
         if ($LASTEXITCODE -ne 0) { throw "hcl XLang test failed: $source" }
@@ -179,6 +204,18 @@ try {
             if ($LASTEXITCODE -ne 0 -or ($queryOutput -join "`n") -cne $queryGolden) {
                 throw "hcl $source AOT differs from golden"
             }
+        }
+        foreach ($source in @('test/scalar_values.xl', 'test/test_scalar_values.c',
+                'examples/scalar_defaults.xl', 'examples/scalar_defaults_c.c')) {
+            $target = Join-Path $work ([IO.Path]::GetFileName($source) + '.exe')
+            & $xl build "release/extlibs/hcl/$source" -o $target
+            if ($LASTEXITCODE -ne 0) { throw "hcl scalar AOT build failed: $source" }
+            $output = & $target
+            if ($LASTEXITCODE -ne 0) { throw "hcl scalar AOT run failed: $source" }
+            if ($source.StartsWith('examples/') -and ($output -join "`n") -cne $scalarGolden) {
+                throw "hcl scalar AOT example differs from golden: $source"
+            }
+            Write-Output $output
         }
     }
     foreach ($path in $inputs) {

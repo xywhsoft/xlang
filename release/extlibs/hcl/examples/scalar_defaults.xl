@@ -1,0 +1,27 @@
+import hcl
+
+// 缺失的标量沿用默认值；空字符串是合法文本，却不是有效的数字或布尔值。
+func main(...) as int
+    string config = "port = 0\nenabled = false\nratio = 1.25\nnote = \"\"\n"
+    assert hcl.has(config, "port")
+    assert hcl.getInt(config, "port") == 0
+    assert hcl.getInt(config, "missing") == 0
+    assert not hcl.has(config, "missing")
+    assert not hcl.getBool(config, "enabled")
+    assert hcl.getFloat(config, "ratio") == 1.25
+    bool rejected = false
+    try
+        hcl.getInt(config, "note")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    assert hcl.has(config, "note") and hcl.get(config, "note") == ""
+    println("port: 0")
+    println("missing port: 0")
+    println("enabled: false")
+    println("ratio: 1.25")
+    println("empty scalar: rejected")
+    println("text stays empty: true")
+    return 0
+end

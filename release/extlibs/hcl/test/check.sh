@@ -65,6 +65,13 @@ run c-test-run timeout 90s "$work/test_hcl"
 run c-expression-compile "$cc" "${flags[@]}" -DXRT_IMPLEMENTATION -no-pie \
     "$pkg/test/test_expression_strings.c" -lm -ldl -o "$work/hcl_expressions"
 run c-expression-run timeout 90s "$work/hcl_expressions"
+run c-scalar-compile "$cc" "${flags[@]}" -DXRT_IMPLEMENTATION -no-pie \
+    "$pkg/test/test_scalar_values.c" -lm -ldl -o "$work/hcl_scalars"
+run c-scalar-run timeout 90s "$work/hcl_scalars"
+run c-scalar-example-compile "$cc" "${flags[@]}" -DXRT_IMPLEMENTATION -no-pie \
+    "$pkg/examples/scalar_defaults_c.c" -lm -ldl -o "$work/hcl_scalar_example"
+run c-scalar-example-run timeout 90s "$work/hcl_scalar_example" > "$work/scalar.c.txt"
+run parity-scalar-gcc diff -u "$pkg/examples/scalar_defaults.expected.txt" "$work/scalar.c.txt"
 run c-query-compile "$cc" "${flags[@]}" -DXRT_IMPLEMENTATION -no-pie \
     "$pkg/examples/query_comments_c.c" -lm -ldl -o "$work/hcl_query"
 printf 'port: 8080\n[\n  "api.example", // note: "retired\n  "admin.example"\n]\nHCL query comments: OK\n' > "$work/query.golden"
@@ -96,6 +103,8 @@ run jit-boundaries timeout 90s "$xl" run release/extlibs/hcl/test/boundaries.xl
 run jit-allocations timeout 90s "$xl" run release/extlibs/hcl/test/allocations.xl
 run jit-expressions timeout 90s "$xl" run "$pkg/test/expression_strings.xl"
 run jit-c-expressions timeout 90s "$xl" run "$pkg/test/test_expression_strings.c"
+run jit-scalars timeout 90s "$xl" run "$pkg/test/scalar_values.xl"
+run jit-c-scalars timeout 90s "$xl" run "$pkg/test/test_scalar_values.c"
 run generated-c timeout 90s "$xl" cgen "$pkg/test/boundaries.xl" --emit "$work/generated.c"
 grep -E '^extern .*\bxhcl_[a-z_]+\([^;]*\);$' "$work/generated.c" > "$work/generated.prototypes"
 if [[ $(wc -l < "$work/generated.prototypes") -ne 12 ]]; then
@@ -107,6 +116,10 @@ run generated-abi "$cc" "${flags[@]}" -I"$pkg/include" -fsyntax-only "$work/gene
 for source in query_comments.xl query_comments_c.c; do
     run "jit-$source" timeout 90s "$xl" run "$pkg/examples/$source" > "$work/$source.jit.txt"
     run "parity-jit-$source" diff -u "$work/query.golden" "$work/$source.jit.txt"
+done
+for source in scalar_defaults.xl scalar_defaults_c.c; do
+    run "jit-$source" timeout 90s "$xl" run "$pkg/examples/$source" > "$work/$source.jit.txt"
+    run "parity-jit-$source" diff -u "$pkg/examples/scalar_defaults.expected.txt" "$work/$source.jit.txt"
 done
 run jit-example timeout 90s "$xl" run release/examples/extlibs/hcl.xl > "$work/hcl_xl.txt"
 run jit-c-example timeout 90s "$xl" run release/examples/extlibs/hcl_c.c > "$work/hcl_direct_c.txt"
@@ -132,6 +145,14 @@ for source in query_comments.xl query_comments_c.c; do
     run "aot-$source-build" timeout 120s "$xl" build "$pkg/examples/$source" -o "$work/$source.exe"
     run "aot-$source-run" timeout 90s "$work/$source.exe" > "$work/$source.aot.txt"
     run "parity-aot-$source" diff -u "$work/query.golden" "$work/$source.aot.txt"
+done
+for source in test/scalar_values.xl test/test_scalar_values.c examples/scalar_defaults.xl examples/scalar_defaults_c.c; do
+    name=${source##*/}
+    run "aot-$name-build" timeout 120s "$xl" build "$pkg/$source" -o "$work/$name.exe"
+    run "aot-$name-run" timeout 90s "$work/$name.exe" > "$work/$name.aot.txt"
+    if [[ $source == examples/* ]]; then
+        run "parity-aot-$name" diff -u "$pkg/examples/scalar_defaults.expected.txt" "$work/$name.aot.txt"
+    fi
 done
 run fingerprint-after sha256sum "${inputs[@]}" > /dev/null
 run inputs-unchanged diff -u "$work/fingerprint.stdout" "$work/fingerprint-after.stdout"

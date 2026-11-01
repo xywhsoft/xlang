@@ -26,6 +26,7 @@ $passed = $false
 try {
     Push-Location $root
     $rootPushed = $true
+    & (Join-Path $PSScriptRoot 'check_text.ps1') -SkipAot:$SkipAot
     & (Join-Path $PSScriptRoot 'check_numeric.ps1') -SkipAot:$SkipAot
     & (Join-Path $PSScriptRoot 'check_reader.ps1') -SkipAot:$SkipAot
     & (Join-Path $PSScriptRoot 'check_writer.ps1') -SkipAot:$SkipAot

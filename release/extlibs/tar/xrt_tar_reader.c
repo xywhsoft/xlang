@@ -19,7 +19,6 @@ static str __xrtTarFieldString(const unsigned char* pField, size_t iLength)
 {
 	size_t iSize = 0u;
 	while ( iSize < iLength && pField[iSize] != 0u ) { ++iSize; }
-	while ( iSize != 0u && pField[iSize - 1u] == ' ' ) { --iSize; }
 	return xrtStrDupN((const char*)pField, iSize);
 }
 
@@ -133,10 +132,10 @@ static bool __xrtTarSetString(str* pTarget, const unsigned char* pValue, size_t 
 	return true;
 }
 
-/* GNU 长名称以 NUL 或换行结尾；PAX 值则由记录长度精确界定。 */
+/* GNU 长名称/链接只去尾部 NUL；换行与空格属于元数据，不能改写为其他路径。 */
 static bool __xrtTarSetGnuString(str* pTarget, const unsigned char* pValue, size_t iLength)
 {
-	while ( iLength != 0u && (pValue[iLength - 1u] == 0u || pValue[iLength - 1u] == '\n') ) {
+	while ( iLength != 0u && pValue[iLength - 1u] == 0u ) {
 		--iLength;
 	}
 	return __xrtTarSetString(pTarget, pValue, iLength);

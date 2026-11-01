@@ -1,5 +1,34 @@
 # tar 扩展库
 
+2026-11-02 文本元数据收口：普通头的名称、USTAR 前缀、链接和用户/组名
+按 NUL 界定，末尾空格是数据；GNU L/K 扩展仅移除尾部 NUL，不再删除
+名称/链接中的末尾换行。此前普通字段会丢失空格，GNU 会把不安全的
+`name\n` 改写成另一个名称；旧回归也误将该行为当作正确终止规则，现已纠正。
+读取保留原始 UTF-8 文本，是否可提取仍由现有路径检查决定，不能靠改名
+使危险名称通过。PAX 长度规则、公开 API/ABI、正文处理和内存所有权不变。
+格式独立参照为 [CPython tarfile 的字段和 GNU 长头实现](https://github.com/python/cpython/blob/v3.12.7/Lib/tarfile.py#L1071-L1084)。
+
+`test/test_text_metadata.c` 的88组覆盖五种普通字段及 GNU L/K 的八类
+文本与三种 NUL 尾部，逐分配点检查失败、立即恢复和活动内存。
+`test/text_metadata.py` 用 Python tarfile 独立生成/读回 USTAR、前缀、
+GNU、GNU 长名称/链接和 PAX 的归档，另含空归档及多条目连续遍历；
+不从被测解析器取得预期，也不把输出中的空格或换行规范化后比较。
+
+新增只读审计范例 `examples/metadata_hex.xl` / `metadata_hex_c.c`，支持
+一个或多个归档，每条输出 `name;linkName;userName;groupName` 的 UTF-8
+十六进制字节。不提取归档内容，空归档不输出记录，读取错误返回失败。
+从 `release` 执行 `./xl run extlibs/tar/examples/metadata_hex.xl -- sample.tar`，
+或换成 `metadata_hex_c.c`；不提供归档参数时显示用法并返回2。
+独立专题门禁为 `test/check_text.ps1` / `test/check_text.sh`，由默认整包
+门禁首先调用，保留输入指纹和有界子进程的原始结果在各自报告目录。
+这不是对名称数组 M1 或覆盖/已关闭事务回滚 RFS 的签收。
+Windows 本专题14阶段、Linux原生17阶段通过，后者含ASan/UBSan和泄漏
+检查。88组矩阵在同一最终夹具下旧实现34组元数据错误，修复后为0，
+并完成816个分配故障点及立即恢复；旧实现失败的组未继续做OOM扫描，
+因此不能把其480个故障点与修复后的816个解释为新增产品分配。
+Python独立42份归档/43条记录在GCC C、C内存运行、XLang内存运行和
+两种独立程序间一致。本专题没有增加正文复制、分配、扫描或公开接口。
+
 2026-10-29 Writer 低内存与回滚收口：内存构造、流式添加/复制、来源
 文件读取、事务创建、追加预检/打开及提交改名的 OOM 不再统一误报
 普通 I/O。未提交且仍打开的文件改用现有 `xrtFileDeleteOpen` 回滚，
