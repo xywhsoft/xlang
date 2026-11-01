@@ -1,0 +1,207 @@
+{
+  "schema": 1,
+  "utc": "2026-11-01T15:17:04.661305+00:00",
+  "status": "diagnostic-tools-and-profiling-verified",
+  "performanceAccepted": false,
+  "goalComplete": false,
+  "installedPrograms": false,
+  "scope": "Current unified eb61b68f frontend cohort only; diagnostic instrumentation and standard-result comparisons, not whole current compiler or LSP/IDE acceptance",
+  "sourceParent": "93894ad66fa4b6fbe299d3511386d2e708db983c",
+  "tools": {
+    "ide/tools/build_lsp_lifecycle_profile.py": "c6ee5861fcda4b634bafb358d845265d7ed8f9fa8c8322231309bd60ae3e14cf",
+    "ide/tools/check_lsp_lifecycle_profile.py": "5937798e1374856fc249d48701bf2cf6955085d2a36a03f6ab4bc8158178b9e0",
+    "ide/tools/profile_lsp_lifecycle.py": "575b2d5269d559f85a0e843f72d3ff1f3c5e86541a05fa5bdd981e89315a5583"
+  },
+  "normalBuild": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-frontend-alignment-20261101\\full-v2",
+    "inputs": 772,
+    "outputs": 128,
+    "executable": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-frontend-alignment-20261101\\full-v2\\xlang-ls.exe",
+      "sha256": "be2a0dc204631ff28478a3df56560e937231dd685b3d584678b1ecfba87e3e71"
+    }
+  },
+  "profile": {
+    "recompiledTranslationUnits": 10,
+    "labels": 96,
+    "irLabels": 34,
+    "commands": 19,
+    "program": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-incremental-production-20261101\\profile-v7\\profile-ls.exe",
+      "sha256": "aa3a092c5a705ca640500940f7203e377d071d05382a282918b54f30195dea48"
+    }
+  },
+  "correctness": {
+    "cases": 11,
+    "actualCMutantsRejected": [
+      "overwrite-parent",
+      "zero-sequence",
+      "thread-local-sequence-reset-on-reused-id",
+      "omit-worker-final-frame"
+    ],
+    "nativeThreads": {
+      "concurrent": 8,
+      "nestedFrames": 1600,
+      "sequentialWithOneSyntheticId": 16
+    },
+    "signatureEarlyReturn": true,
+    "cancelledWorker": true
+  },
+  "stdio": {
+    "processes": 8,
+    "checks": 120,
+    "functions": 512,
+    "pairs": 1,
+    "generations": 14,
+    "exactRepeat": 1,
+    "preservedAllSamples": true,
+    "standardResultComparisonExcludes": [
+      "analysis",
+      "durationMs",
+      "checkId validated separately"
+    ],
+    "allProcessesExitedZero": true,
+    "noReaderCleanupErrors": true,
+    "diagnosticResults": [
+      {
+        "case": "512-single-literal",
+        "diagnosticMedianMs": {
+          "worker.total": 329.235050012,
+          "body.semantic": 106.8592499945,
+          "body.index": 35.3569500145,
+          "body.ir-and-finish": 121.91035001899999,
+          "ir.xl6IrBuildAstNode": 34.601249994,
+          "ir.xl6IrVerifyModule": 33.405199996,
+          "ir.xl6IrRefreshExitPlans": 12.1682500175
+        },
+        "checkFrames": 15,
+        "allFrames": 45
+      },
+      {
+        "case": "512-single-declaration",
+        "diagnosticMedianMs": {
+          "worker.total": 332.435999997,
+          "body.semantic": 107.96255001349999,
+          "body.index": 33.541050012,
+          "body.ir-and-finish": 116.66079997700001,
+          "ir.xl6IrBuildAstNode": 33.0981000155,
+          "ir.xl6IrVerifyModule": 33.503200015000004,
+          "ir.xl6IrRefreshExitPlans": 10.271250008500001
+        },
+        "checkFrames": 15,
+        "allFrames": 45
+      },
+      {
+        "case": "512-imported-literal",
+        "diagnosticMedianMs": {
+          "worker.total": 273.07070003,
+          "body.semantic": 84.818499978,
+          "body.index": 32.050500013000004,
+          "body.ir-and-finish": 102.27174998699999,
+          "ir.xl6IrBuildAstNode": 30.041300022,
+          "ir.xl6IrVerifyModule": 30.292250012,
+          "ir.xl6IrRefreshExitPlans": 8.884250011999999
+        },
+        "checkFrames": 15,
+        "allFrames": 45
+      },
+      {
+        "case": "512-imported-declaration",
+        "diagnosticMedianMs": {
+          "worker.total": 340.71925000199997,
+          "body.semantic": 116.47150001950001,
+          "body.index": 36.934750009,
+          "body.ir-and-finish": 116.5979999935,
+          "ir.xl6IrBuildAstNode": 33.794000017,
+          "ir.xl6IrVerifyModule": 32.9647499895,
+          "ir.xl6IrRefreshExitPlans": 10.972100018999999
+        },
+        "checkFrames": 15,
+        "allFrames": 45
+      }
+    ]
+  },
+  "runtimePrograms": {
+    "xlang_ide.exe": "7161917bc86ab1675577e90397620014f18c4326bc53eec27d00c32f8b7c8c29",
+    "xlang-ls.exe": "8bc80fe50cc4a5856630003eb47a59426a5225e4b2d8d076a6486f56dab4339d",
+    "xge.dll": "faf58673f831ba8a58d6e3c2166094f76fbb71548469724fa5a11eca011782a0"
+  },
+  "sourceAudit": {
+    "ide/src/analysis/frontend_index.inc": "b3120ff81a1f71c44a82a50cd83bd3ed64942cb7bff026e0ee1b5e046ba51077",
+    "ide/src/analysis/frontend_entities.inc": "afceb0cb8f5c9a8b0f942760c369cfd57802e51b64f6876367ba81d34bcfc90f",
+    "ide/src/analysis/check.c": "861397f2ea3a6f54373e82d5e140c49b839731b2316b9584e9401ca6f0d5ebc3"
+  },
+  "evidence": [
+    {
+      "path": "ide/build/Release/lsp-incremental-production-20261101/profile-v7/result.json",
+      "sha256": "051f2a5209229c72a6e9a5a7ddb22498977b82691b820b27f8410e0fe3dbff7b",
+      "bytes": 34626
+    },
+    {
+      "path": "ide/build/Release/lsp-incremental-production-20261101/profile-checks/result.json",
+      "sha256": "608da7bc8783b45c87d03e80af74485dd579ae30c96f3016594e6a7173e800e2",
+      "bytes": 36381
+    },
+    {
+      "path": "ide/build/Release/lsp-incremental-production-20261101/ir-lifecycle/result.json",
+      "sha256": "9586648df02532feb5501eb63592817b166bdecd894ad421fd9d0a0c5aef9011",
+      "bytes": 761749
+    },
+    {
+      "path": "ide/build/Release/lsp-incremental-production-20261101/ir-lifecycle/review.json",
+      "sha256": "f8ce67c6bd076bb3309593273666b5f7343aa661d080edfe1882bc534432952e",
+      "bytes": 741611
+    },
+    {
+      "path": "ide/build/Release/lsp-incremental-production-20261101/lifecycle-v2/result.json",
+      "sha256": "15e72468d4177ae6826e917f883591b2ea38ccd2713d032809c36d397c06b4bb",
+      "bytes": 761779
+    },
+    {
+      "path": "ide/build/Release/lsp-incremental-production-20261101/interruption-audit.json",
+      "sha256": "fd08cc3d539840e8fbeee260146b469ca31636d1322ccca133e8fea3cbaa6857",
+      "bytes": 731
+    },
+    {
+      "path": "ide/build/Release/lsp-incremental-production-20261101/profile/result.json",
+      "sha256": "64f3cb7f95863fc78ac4f80a50dae885883651ca01310ff2643d245101422bad",
+      "bytes": 2032
+    },
+    {
+      "path": "ide/build/Release/lsp-incremental-production-20261101/profile-v2/result.json",
+      "sha256": "17beabfb03a1f897b0636e517b3381646e1009c61454b5bd01272f50e1ab0ca2",
+      "bytes": 18923
+    },
+    {
+      "path": "ide/build/Release/lsp-incremental-production-20261101/profile-v3/result.json",
+      "sha256": "42f05970cd8a944f48411d4eb97a2b9c7d160e757b5959838e25e36651f7c414",
+      "bytes": 30672
+    },
+    {
+      "path": "ide/build/Release/lsp-incremental-production-20261101/profile-v4/result.json",
+      "sha256": "6b005e11e5d7f65f005cd8bea05b11bf9171113f7a74fa8bceca2bc31db836f5",
+      "bytes": 30672
+    },
+    {
+      "path": "ide/build/Release/lsp-incremental-production-20261101/profile-v5/result.json",
+      "sha256": "5ccc1cb39c1ef2cb3ec3429a568db65e5f175635873c9695f8d7ca07c1e581bd",
+      "bytes": 23612
+    },
+    {
+      "path": "ide/build/Release/lsp-incremental-production-20261101/profile-v6/result.json",
+      "sha256": "619b8de03db633dae0122b75dfaeab6379f3229cd881bd9ded2652a474f2b10e",
+      "bytes": 19999
+    },
+    {
+      "path": "ide/build/Release/lsp-incremental-production-20261101/lifecycle/result.json",
+      "sha256": "bd4a96e2f9e6edb81bac9c2493320218c7f45ffceae3fc33e110959eb83f39b1",
+      "bytes": 759982
+    }
+  ],
+  "remaining": [
+    "True final typed function/module and final IR local production",
+    "Separate identity/dependency construction from navigation display facts while preserving entity keys, limits and correctness",
+    "Current whole compiler/SDK/catalog and GUI alignment",
+    "Full applicable LSP, global resources, scale, soak and UI-tail gates"
+  ]
+}
