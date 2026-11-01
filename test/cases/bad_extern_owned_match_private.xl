@@ -1,0 +1,15 @@
+class Reader
+    private func Hidden() as int
+        return 7
+    end
+    func Visible() as int
+        return 7
+    end
+end
+func check(bool choose)
+    Reader reader=Reader()
+    func() as int callback=match choose
+    case true then reader.Visible
+    case false then reader.Hidden
+    end
+end
