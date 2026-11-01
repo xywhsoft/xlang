@@ -1,0 +1,10 @@
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_release" @no_raise func release(point data)
+typedef Blocked=func(channel<int>) as cstring
+func read(channel<int> input) as cstring
+    return cstring.take(rawText(),release)
+end
+func invalid()
+    Blocked callback=read
+    var erased=xcall(callback)
+end

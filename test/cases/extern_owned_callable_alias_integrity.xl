@@ -1,0 +1,144 @@
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point data)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+extern "bound_c_owners_one_record" @no_raise func oneRecord() as bool
+extern "owned_reset" @no_raise func reset()
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int prefix)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+// Adapting a value must never change the shared typedef or another binding.
+typedef Text=func() as cstring
+typedef TextAlias=Text
+typedef OptionalText=TextAlias?
+typedef Data=func() as cbytes
+typedef Plain=func() as string
+typedef PlainAlias=Plain
+typedef Outer=func() as TextAlias
+typedef Args=func(...) as cstring
+typedef Options=func(***) as cbytes
+class Reader
+    func Text() as cstring
+        return cstring.take(rawText(),release)
+    end
+    func Data() as cbytes
+        return cbytes.take(rawBytes(),4,release)
+    end
+    func Factory() as TextAlias
+        return self.Text
+    end
+    func Args(...) as cstring
+        assert arg.length==1 and arg[0]==7
+        return self.Text()
+    end
+    func Options(***) as cbytes
+        assert arg["key"]==7
+        return self.Data()
+    end
+end
+func ordinary() as string
+    return "ordinary"
+end
+func synchronous()
+    Reader reader=Reader()
+    TextAlias originalText=reader.Text
+    Data originalData=reader.Data
+    reset()
+    string before=originalText()
+    assert original(before) and oneRecord()
+    var erased=xcall(originalText)
+    var binary=xcall(originalData)
+    assert erased()=="hello" and binary()==b"\0\xff\x11*"
+    reset()
+    string after=originalText()
+    assert original(after) and oneRecord()
+    reset()
+    bytes afterData=originalData()
+    assert originalBytes(afterData) and oneRecord()
+    // Fresh uses of the typedef remain owner signatures too.
+    TextAlias again=reader.Text
+    string newValue=again()
+    assert original(newValue)
+    PlainAlias plain=ordinary
+    var plainCall=xcall(plain)
+    assert plainCall()=="ordinary"
+    OptionalText optional=originalText
+    if optional!=null
+        var narrowed=xcall(optional)
+        assert narrowed()=="hello"
+        string value=optional()
+        assert original(value)
+    end
+    Outer factory=reader.Factory
+    var erasedFactory=xcall(factory)
+    var callback=erasedFactory()
+    assert callback()=="hello"
+    TextAlias exact=factory()
+    string exactValue=exact()
+    assert original(exactValue)
+    Args args=reader.Args
+    Options options=reader.Options
+    var arrayCall=xcall(args)
+    var dictCall=xcall(options)
+    assert arrayCall(7)=="hello" and dictCall(key=7)==b"\0\xff\x11*"
+    string argsValue=args(7)
+    assert original(argsValue)
+    bytes optionsValue=options(key=7)
+    assert originalBytes(optionsValue)
+end
+async func workers()
+    Reader reader=Reader()
+    TextAlias text=reader.Text
+    Data data=reader.Data
+    string before=text()
+    assert original(before)
+    string copied=await task.spawn(text)
+    bytes binary=await task.spawn(data)
+    assert copied=="hello" and binary==b"\0\xff\x11*"
+    reset()
+    string after=text()
+    assert original(after)
+    reset()
+    bytes afterData=data()
+    assert originalBytes(afterData)
+    Outer factory=reader.Factory
+    Plain callback=await task.spawn(factory)
+    assert callback()=="hello"
+    TextAlias exact=factory()
+    string exactValue=exact()
+    assert original(exactValue)
+    Args args=reader.Args
+    Options options=reader.Options
+    assert await task.spawn(args,7)=="hello"
+    bytes optionsResult=await task.spawn(options,key=7)
+    assert optionsResult==b"\0\xff\x11*"
+    string argsValue=args(7)
+    assert original(argsValue)
+    bytes optionsValue=options(key=7)
+    assert originalBytes(optionsValue)
+end
+assert debug()
+synchronous()
+assert balanced()
+int accepted=0
+int rejected=0
+for prefix in range(256)
+    int before=live()
+    failAfter(prefix)
+    try
+        synchronous()
+        accepted+=1
+    catch problem
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before and balanced()
+end
+assert accepted>0 and rejected>0
+// Run workers after the synchronous heap snapshots: awaiting a result does
+// not require that the worker has retired its final execution frame yet.
+await workers()
+assert balanced()

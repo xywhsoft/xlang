@@ -8278,6 +8278,11 @@ static int xl6SemCheckXCallConversion(XL6_SemContext* ctx, XL6_AstNode* node)
     if(ok && !xl6SemCOwnedAdaptCallableExpr(ctx,arg,NULL))return 0;
 
     functionType = xl6SemInferAutoTypeNode(ctx, arg);
+    const XL6_AstNode* resolvedFunctionType=xl6SemResolveAliasType(ctx,functionType);
+    if(resolvedFunctionType!=functionType) {
+        XL6_AstNode* resolvedCopy=xl6SemCloneTypeNode(resolvedFunctionType);
+        xl6AstFree(functionType);functionType=resolvedCopy;
+    }
     if ( functionType == NULL || !xl6TextEquals(functionType->text, "function") ||
          functionType->childCount != 2 ) {
         xl6SemErrorNode(ctx, arg, "xcall 参数必须具有完整的 func 签名");
