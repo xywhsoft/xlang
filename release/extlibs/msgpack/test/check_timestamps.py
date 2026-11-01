@@ -1,15 +1,18 @@
 """Independent integer/struct reference for timestamp payloads and all ext length headers."""
 
 import argparse
+from datetime import datetime
 from pathlib import Path
 import struct
 
 
 def ticks():
-    yield from (-(1 << 63), -(1 << 63) + 1, -1000001, -1000000, -999999, -1,
-                0, 1, 999999, 1000000, 1000001, ((1 << 32) - 1) * 1000000,
-                (1 << 32) * 1000000 - 1, (1 << 32) * 1000000,
-                (1 << 34) * 1000000 - 1, (1 << 34) * 1000000, (1 << 63) - 2, (1 << 63) - 1)
+    epoch = (datetime(1970, 1, 1) - datetime(1, 1, 1)).days * 86400000
+    yield from (-(1 << 63), -(1 << 63) + 1,
+                epoch-1001, epoch-1000, epoch-999, epoch-1, epoch, epoch+1,
+                epoch+999, epoch+1000, epoch+1001, epoch+((1 << 32)-1)*1000,
+                epoch+(1 << 32)*1000-1, epoch+(1 << 32)*1000,
+                epoch+(1 << 34)*1000-1, epoch+(1 << 34)*1000, (1 << 63)-2, (1 << 63)-1)
     seed = 0x9E3779B97F4A7C15
     for _ in range(512):
         seed = (seed * 6364136223846793005 + 1) & ((1 << 64) - 1)
@@ -17,9 +20,10 @@ def ticks():
 
 
 def expected():
+    epoch = (datetime(1970, 1, 1) - datetime(1, 1, 1)).days * 86400000
     for index, time in enumerate(ticks()):
-        seconds, micros = divmod(time, 1000000)
-        nanos = micros * 1000
+        seconds, millis = divmod(time - epoch, 1000)
+        nanos = millis * 1000000
         if 0 <= seconds < (1 << 32) and nanos == 0:
             payload = struct.pack(">I", seconds)
             canonical = b"\xd6\xff" + payload

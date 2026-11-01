@@ -1,0 +1,58 @@
+import msgpack
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+// HEX 结果拥有自己的正文，不借用输入或共享下一次调用的缓冲区。
+Buffer source = msgpack.fromHex("00ff41")
+string retained = msgpack.toHex(source)
+source.clear()
+assert retained == "00ff41"
+assert msgpack.toHex(source) == ""
+Buffer next = msgpack.fromHex("0102")
+for i in range(128)
+    assert msgpack.toHex(next) == "0102"
+end
+assert retained == "00ff41"
+
+// 两种长度都必须扫描到无故障成功；每次故障后清除注入并立即恢复。
+for operation in range(2)
+    int failures = 0
+    bool completed = false
+    for allocation in range(128)
+        bool memoryCaught = false
+        bool wrongCaught = false
+        assert failAfter(uint64(allocation))
+        try
+            if operation == 0 then
+                assert msgpack.toHex(next) == "0102"
+            else
+                assert msgpack.toHex(source) == ""
+            end
+        catch MemoryError error
+            memoryCaught = true
+        catch RuntimeError error
+            wrongCaught = true
+        catch ValueError error
+            wrongCaught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert not wrongCaught and memoryCaught == triggered
+        assert msgpack.toHex(next) == "0102"
+        assert msgpack.toHex(source) == ""
+        assert retained == "00ff41"
+        if triggered then
+            failures += 1
+        else
+            completed = true
+            break
+        end
+    end
+    assert completed
+    if operation == 0 then
+        assert failures > 0
+    end
+end
+println("msgpack owned text: empty/retained results, OOM recovery, PASS")

@@ -5,6 +5,7 @@
 #define XRT_MODULE_STRING
 #define XRT_MODULE_UNICODE
 #define XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_TIME
 #include "../msgpack_native.h"
 #include <stdio.h>
 
@@ -26,9 +27,9 @@ static bool timestamp(cstr label, cstr hex, xtime expected)
 
 int main(void)
 {
-    if (!timestamp("epoch", "c80004ff00000000", 0) ||
-        !timestamp("micro", "c900000008ff00000fa000000000", 1) ||
-        !timestamp("negative", "c8000cff1dcd6500ffffffffffffffff", -500000)) return 1;
+    if (!timestamp("epoch", "c80004ff00000000", XRT_TIME_UNIX_EPOCH) ||
+        !timestamp("millis", "c900000008ff003d090000000000", XRT_TIME_UNIX_EPOCH+1) ||
+        !timestamp("negative", "c8000cff1dcd6500ffffffffffffffff", XRT_TIME_UNIX_EPOCH-500)) return 1;
 
     xbuffer* raw = xmsgpack_from_hex("00ff41");
     xbuffer* binary = raw != NULL ? xmsgpack_encode_bytes(raw->Data, raw->Size) : NULL;

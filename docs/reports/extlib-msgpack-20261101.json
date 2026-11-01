@@ -1,0 +1,2495 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-01T20:54:37.6744332+08:00",
+  "package": "msgpack",
+  "maturity": "R",
+  "status": "functional-gates-passed-release-catalog-pending",
+  "sourceParent": "eb61b68f14f3f05bfb52dcad830ef79a1f70ce82",
+  "root": "D:\\GIT\\x-lang",
+  "changes": [
+    "Declare the existing owned char* HEX result directly; retain the const-void-input point ABI adapter. Both old and new paths adopt the payload.",
+    "Declare TIME in the manifest, selected runtime, public-header-first fixtures and both platform gates.",
+    "Correct the Unix-microsecond test model to XRT AD milliseconds. Preserve RangeError and the xrt.time error domain; no codec algorithm rewrite.",
+    "Use 1ms and negative 500ms paired examples; reject 1us in all header/context/ABI combinations."
+  ],
+  "ownershipCosts": {
+    "newPayloadCopies": 0,
+    "oldPayloadCopies": 0,
+    "argumentAdapterRetained": true,
+    "lengthScanRetained": true,
+    "ffiErrorScopeRetained": true,
+    "fullDataSnapshotRetained": true,
+    "wholeChainZeroOverheadClaim": false
+  },
+  "timestampModel": {
+    "epochAdMilliseconds": "62135596800000",
+    "precision": "millisecond",
+    "fixedBoundaryTimes": 18,
+    "seededTimes": 512,
+    "uniqueTimes": 530,
+    "frames": 1599,
+    "extensionChecks": 50675,
+    "oomPaths": 18,
+    "submillisecondRefusalsAdded": 24,
+    "reference": "Python datetime-derived epoch, arbitrary-precision integer divmod and struct; official msgpack 1.2.3 cross-check.",
+    "previous36Failures": "Incorrect fixture assertions: XRT time RangeError already correctly retained its xrt.time domain."
+  },
+  "snapshotBoundaryAudit": {
+    "runtime": "src/runtime/xl6_array_graph.c",
+    "xrt": "lib/xrt/xrt.h",
+    "xrtGraphDepthLimit": 256,
+    "packageDepthLimit": 64,
+    "smallerNodeBudgetFound": false,
+    "scope": "Source audit only, not a proof of every possible graph."
+  },
+  "windows": {
+    "outcome": "passed",
+    "date": "2026-11-01T20:51:03.6374319+08:00",
+    "rawReport": {
+      "path": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86.json",
+      "bytes": 670841,
+      "sha256": "bd32559a4b1b8c83a5b95a9664fc508450dc5566877604c0a374f11d64023b3b"
+    },
+    "checks": 65,
+    "aotPrograms": 12,
+    "expectedNonzeroChecks": 2,
+    "inputCount": 57,
+    "inputs": {
+      "C:\\Program Files\\Python312\\python.exe": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\msgpack.xl": "0237df716a814fc5130c86cab8b15e282f9cd7121a5b86e739e4df652468b3e3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\docs\\site.html": "547b6df3894335e8c3ab2ff68c8f723f8adeaf3c0fbd0e910a8c537e075435d6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\examples\\basic.expected.txt": "14446125c7c398d95a0d3e3834f1a7e95d5c64c629b4fe47f937ece2a1a372d3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\examples\\msgpack.xl": "5c06a99f7ba3965d9d84d7521a8003577dd241a88c22687cd22e7575a3a7ed89",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\examples\\msgpack_c.c": "f5c3e9b4b27d75749e7ea8114277ee97a97093fa5c6dd7f15adc1248aa3a4c58",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\examples\\timestamp_frames.expected.txt": "a381e1c707ff5230634dade7b802a7946ae01890fd77ce9265ec7710bc9204c0",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\examples\\timestamp_frames.xl": "834850e9447ea9f750257cbc8ae4388789488dd5237fae9ff34e0e6fd8e733d2",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\examples\\timestamp_frames_c.c": "1aea79c65d255012d65a5bc578aaeb91537883c2f012418d92d92916e040fde7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\msgpack_native.c": "573e828f3e9aca9818358d7649df7f1e0f5cf1692f1bd4bffe8c640a5a19ece3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\msgpack_native.h": "a3cf0393101a5bdf52d9cf0cb416a176a1db0628b9127677d39295de41c18e2e",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\README.md": "fd420dd19d9fa71011dd237cf7178450d1ce73e6cad7d2c33ebf18b6515830ac",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\src\\msgpack.xl": "c0a2c763ae2e6da4feb75a092c64220cad3394b3c296d6115379b9956b4162e4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\allocations.xl": "bff0ad386c2477b72038e345b12a66d7826447bc263ccb85b83fc5dbec6185b4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\aot_core.xl": "dec85abdd16154d4221c96ca0a7cc0cb2b3b92aa6d8444ce7ad46a96fcf9f648",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\boundaries.xl": "43778eeba76335e46da21254359b1985375f74e99cad07b7e557bf6e1ec33a72",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check.ps1": "ee862f85244566ab04e7c7ede45f3fc59a9e6f3ec2e66f68fbb049dcb4239352",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check.sh": "4ff882b6549f3349be350f30b374c3cc411f08f17b5b720cbd5e5a6999596bfb",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_external.py": "a30ec3f7cfb0d87b9fd1db73db354462e705543ed30e85e3b0b18ae70c5a4ad5",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_owned_codegen.py": "7b4fb72cd258769a998c58cd3c5e8facade7ed66b67cdd92b8cd06bf8e5ecece",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_timestamps.py": "322fc541cd6785ea486be78bc6fbd9506d198d0204f571bc476daf8015d67dd1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\extensions.xl": "29326cd036d7c0a4c3542fb17a4919612cd1a3bd2e41da40d90f377ec7b81206",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\extensions_c.c": "e27727d67dd45f7a8650262d0e121dc901c2ec967128ffe5da84f9d79c40ccf6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\external_python.xl": "0f8f080e3cd227ddd05ecb21d4b76220fe29258e205820518366d6807be5c8d6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\external_python_c.c": "df997cc5f4e041997b98aeef5d15cb76cb5b1bb19fb8c5d25835444b5922ae10",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\owned_text.xl": "5e1935a5755f3dce0798277be206d0314cd1addde44d712a55e1a221eba31236",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\requirements-external.txt": "02665c9c938d63b9891eaf2daa5ca589d05ba994a47941190467be2e8ff9326f",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\test_allocations.c": "df2e5f511f6ecb08d6cf298961cfb8a07f692117c6ec57965719a755e6a4bb8d",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\test_boundaries.c": "3420ada4a863ce80bffc57a92cc1da59c113b36813e8d188dbbcaf8fb7bfa5f6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\test_msgpack.c": "e5715a2b750f1015975a69fc3fc5c2717340cbe56ac69b6c1d7e4ecbd0ff25c0",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\xrt_runtime.c": "995d236f5132800e857480a0ba95d999330e07a15b5c120a70a6dab002900003",
+      "D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\xlang.package.json": "f27eb7e614944d3c50e69eeb46e5c31dd00cfa717e9c18a7d63427bc92788100",
+      "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab",
+      "D:\\GIT\\x-lang\\release\\include\\README.md": "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770",
+      "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2",
+      "D:\\GIT\\x-lang\\release\\include\\xl.h": "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4",
+      "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad",
+      "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a",
+      "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1",
+      "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e",
+      "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992",
+      "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930",
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_msgpack.xl": "59a5d8822bd44d5b88b6769d41b35df2e8fc188904dea715d29700d374a570ae",
+      "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294fcc133c2e4f3e5786080d6dcfedd3bfbc51656af892433cce08bb3eaf635f",
+      "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "c010a2ee726375ca627d3c161e65ed3fce84189810259f6a93bf8eb277caf219",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9a52de3e3af8f4896e963c4b68ed159f049954775decb20e421cd75d51aab6ed"
+    },
+    "changedInputs": [],
+    "checksDetail": [
+      {
+        "name": "compiler version",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "--version"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 38,
+          "stdoutSha256": "87438b7ee2429bf0a85f172c569d3ae10e611821ed289ef1f83e20a19663d877",
+          "stdoutPreview": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "Python version",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "--version"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 28,
+          "stdoutSha256": "6a5d9f6462ca5dfc6788cfd216ba579fffd7875776ab9d9b35659be78858f73a",
+          "stdoutPreview": "Python 3.12.10\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "public header",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/msgpack",
+          "-DXRT_MODULE_BUFFER",
+          "-DXRT_MODULE_BUFFER_HEX",
+          "-DXRT_MODULE_CODEC_HEX",
+          "-DXRT_MODULE_STRING",
+          "-DXRT_MODULE_UNICODE",
+          "-DXRT_MODULE_VALUE_CONTAINER",
+          "-DXRT_MODULE_TIME",
+          "-x",
+          "c",
+          "-fsyntax-only",
+          "release/extlibs/msgpack/msgpack_native.h"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 135,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "manifest syntax",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/msgpack",
+          "-DXRT_MODULE_BUFFER",
+          "-DXRT_MODULE_BUFFER_HEX",
+          "-DXRT_MODULE_CODEC_HEX",
+          "-DXRT_MODULE_STRING",
+          "-DXRT_MODULE_UNICODE",
+          "-DXRT_MODULE_VALUE_CONTAINER",
+          "-DXRT_MODULE_TIME",
+          "-fsyntax-only",
+          "release/extlibs/msgpack/msgpack_native.c"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 223,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "selected XRT compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/msgpack",
+          "-c",
+          "release/extlibs/msgpack/test/xrt_runtime.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\runtime.o"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 8176,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "native compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/msgpack",
+          "-c",
+          "release/extlibs/msgpack/msgpack_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\native.o"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 484,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_msgpack compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/msgpack",
+          "release/extlibs/msgpack/test/test_msgpack.c",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\runtime.o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\native.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\test_msgpack.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 333,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_msgpack",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\test_msgpack.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 29,
+          "stdoutSha256": "918b8b881eb80fe15376a7a78f14e72b56531e7e18d049d6a48dde467c4b97d8",
+          "stdoutPreview": "msgpack C smoke: PASS\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_boundaries compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/msgpack",
+          "release/extlibs/msgpack/test/test_boundaries.c",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\runtime.o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\native.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\test_boundaries.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 548,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_boundaries",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\test_boundaries.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 428,
+          "stdoutSha256": "68693774654330a69a3e01e9b06c7a99d2848f38c1588562fa9f17a81f1d7306",
+          "stdoutPreview": "msgpack boundaries: ok\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_allocations compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/msgpack",
+          "release/extlibs/msgpack/test/test_allocations.c",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\runtime.o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\native.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\test_allocations.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 326,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test_allocations",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\test_allocations.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 26,
+          "stdoutSha256": "022a31196fb1462b7d966fee238d4dcc64c6267716c20a1d6e754a3e3581ab30",
+          "stdoutPreview": "msgpack allocation failures: PASS\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "extensions_c compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/msgpack",
+          "release/extlibs/msgpack/test/extensions_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\extensions_c.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 665,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "extensions_c",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\extensions_c.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 56,
+          "stdoutSha256": "ac85209dec5c7519217ce193a6bb9477598a035adb9834983c7dc0137f29522c",
+          "stdoutPreview": "msgpack extension framing: 50675 checks, 18 OOM paths, 0 failures\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "GCC timestamp records",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\extensions_c.exe",
+        "arguments": [
+          "--records"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 34,
+          "stdoutSha256": "264708b8fcac05a61febab10881d2ffa1cb44cdb188b16dea76a13dd59243373",
+          "stdoutPreview": "0\t-9223372036854775808\tc7\tc70cff0b71b000ffdf3b55e28ab508\ttime:-9223372036854775808\tc70cff0b71b000ffdf3b55e28ab508\r\n0\t-9223372036854775808\tc8\tc8000cff0b71b000ffdf3b55e28ab508\ttime:-9223372036854775808\tc70cff0b71b000ffdf3b55e28ab508\r\n0\t-92233",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "GCC independent timestamp oracle",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "release/extlibs/msgpack/test/check_timestamps.py",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\gcc.tsv"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 93,
+          "stdoutSha256": "105403fcc29f791369c912cd10cc20b3934b48e4b39008aa030016ad561d347d",
+          "stdoutPreview": "msgpack timestamp oracle: 530 times, 1599 frames, 0 failures\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "extension matrix direct C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/msgpack/test/extensions_c.c"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 144,
+          "stdoutSha256": "ac85209dec5c7519217ce193a6bb9477598a035adb9834983c7dc0137f29522c",
+          "stdoutPreview": "msgpack extension framing: 50675 checks, 18 OOM paths, 0 failures\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "TCC timestamp records",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/msgpack/test/extensions_c.c",
+          "--",
+          "--records"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 91,
+          "stdoutSha256": "264708b8fcac05a61febab10881d2ffa1cb44cdb188b16dea76a13dd59243373",
+          "stdoutPreview": "0\t-9223372036854775808\tc7\tc70cff0b71b000ffdf3b55e28ab508\ttime:-9223372036854775808\tc70cff0b71b000ffdf3b55e28ab508\r\n0\t-9223372036854775808\tc8\tc8000cff0b71b000ffdf3b55e28ab508\ttime:-9223372036854775808\tc70cff0b71b000ffdf3b55e28ab508\r\n0\t-92233",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "TCC independent timestamp oracle",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "release/extlibs/msgpack/test/check_timestamps.py",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\tcc.tsv"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 83,
+          "stdoutSha256": "105403fcc29f791369c912cd10cc20b3934b48e4b39008aa030016ad561d347d",
+          "stdoutPreview": "msgpack timestamp oracle: 530 times, 1599 frames, 0 failures\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "basic C compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/msgpack",
+          "release/extlibs/msgpack/examples/msgpack_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\basic.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 719,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "basic GCC",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\basic.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 25,
+          "stdoutSha256": "5ded723908174098ba292f19c040f7bb8dcc10ed6bf078bea5913c8a85848dcd",
+          "stdoutPreview": "name=xlang\r\ncount=7\r\nmaximum=18446744073709551615\r\nwhen=1\r\nbytes=51\r\nbinary=00ff41\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "basic direct C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/msgpack/examples/msgpack_c.c"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 101,
+          "stdoutSha256": "5ded723908174098ba292f19c040f7bb8dcc10ed6bf078bea5913c8a85848dcd",
+          "stdoutPreview": "name=xlang\r\ncount=7\r\nmaximum=18446744073709551615\r\nwhen=1\r\nbytes=51\r\nbinary=00ff41\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "timestamp_frames C compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/msgpack",
+          "release/extlibs/msgpack/examples/timestamp_frames_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\timestamp_frames.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 561,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "timestamp_frames GCC",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\timestamp_frames.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 24,
+          "stdoutSha256": "4acf542a68d8f2ccb2edf0ac1e498d266f2a5731fa064882b7c5395f49592e90",
+          "stdoutPreview": "epoch=d6ff00000000\r\nmillis=d7ff003d090000000000\r\nnegative=c70cff1dcd6500ffffffffffffffff\r\nbinary=c40300ff41\r\nbytes=00ff41\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "timestamp_frames direct C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/msgpack/examples/timestamp_frames_c.c"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 88,
+          "stdoutSha256": "4acf542a68d8f2ccb2edf0ac1e498d266f2a5731fa064882b7c5395f49592e90",
+          "stdoutPreview": "epoch=d6ff00000000\r\nmillis=d7ff003d090000000000\r\nnegative=c70cff1dcd6500ffffffffffffffff\r\nbinary=c40300ff41\r\nbytes=00ff41\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "C example argument failure",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\basic.exe",
+        "arguments": [
+          "extra",
+          "extra"
+        ],
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 22,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "C example write failure",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\basic.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\missing\\output.bin"
+        ],
+        "expectedExit": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 22,
+          "stdoutSha256": "5ded723908174098ba292f19c040f7bb8dcc10ed6bf078bea5913c8a85848dcd",
+          "stdoutPreview": "name=xlang\r\ncount=7\r\nmaximum=18446744073709551615\r\nwhen=1\r\nbytes=51\r\nbinary=00ff41\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "timestamp XLang example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/msgpack/examples/timestamp_frames.xl"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 248,
+          "stdoutSha256": "a381e1c707ff5230634dade7b802a7946ae01890fd77ce9265ec7710bc9204c0",
+          "stdoutPreview": "epoch=d6ff00000000\nmillis=d7ff003d090000000000\nnegative=c70cff1dcd6500ffffffffffffffff\nbinary=c40300ff41\nbytes=00ff41\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "XLang extension boundaries",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/msgpack/test/extensions.xl"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 339,
+          "stdoutSha256": "ed61ebe503a9a35ec97039c0429df78123547e8b216c788c21fb883e5756ccd0",
+          "stdoutPreview": "msgpack extension paths: PASS\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "XLang owned text",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/msgpack/test/owned_text.xl"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 266,
+          "stdoutSha256": "a5c38dc94a5d18f32de0a2f82ab19e96ef71dbe2aa4ba0fb1756445a609dbb7c",
+          "stdoutPreview": "msgpack owned text: empty/retained results, OOM recovery, PASS\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "complete API cgen",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "release/extlibs/msgpack/examples/timestamp_frames.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\probe.c"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 107,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "direct owned result path",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "release/extlibs/msgpack/test/check_owned_codegen.py",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\probe.c"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 68,
+          "stdoutSha256": "e764725fa6eea67e4dad6eda4485b0e41584652bcd20575ddc817b61931826d1",
+          "stdoutPreview": "MessagePack owned codegen: direct char* adoption, no payload copy, PASS\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "eight actual prototypes",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/msgpack",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\abi.c"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 191,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/test/extensions_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/msgpack/test/extensions_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\619f557c0e80470fa805dd617ff11f2e.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 136,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/test/extensions_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\619f557c0e80470fa805dd617ff11f2e.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 165,
+          "stdoutSha256": "ac85209dec5c7519217ce193a6bb9477598a035adb9834983c7dc0137f29522c",
+          "stdoutPreview": "msgpack extension framing: 50675 checks, 18 OOM paths, 0 failures\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "AOT timestamp records",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\619f557c0e80470fa805dd617ff11f2e.exe",
+        "arguments": [
+          "--records"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 32,
+          "stdoutSha256": "264708b8fcac05a61febab10881d2ffa1cb44cdb188b16dea76a13dd59243373",
+          "stdoutPreview": "0\t-9223372036854775808\tc7\tc70cff0b71b000ffdf3b55e28ab508\ttime:-9223372036854775808\tc70cff0b71b000ffdf3b55e28ab508\r\n0\t-9223372036854775808\tc8\tc8000cff0b71b000ffdf3b55e28ab508\ttime:-9223372036854775808\tc70cff0b71b000ffdf3b55e28ab508\r\n0\t-92233",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "AOT independent timestamp oracle",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "release/extlibs/msgpack/test/check_timestamps.py",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\aot.tsv"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 83,
+          "stdoutSha256": "105403fcc29f791369c912cd10cc20b3934b48e4b39008aa030016ad561d347d",
+          "stdoutPreview": "msgpack timestamp oracle: 530 times, 1599 frames, 0 failures\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/test/extensions.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/msgpack/test/extensions.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\e5dde5ccbbac488bac7a7b2ab142b1bd.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 510,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/test/extensions.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\e5dde5ccbbac488bac7a7b2ab142b1bd.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 28,
+          "stdoutSha256": "ed61ebe503a9a35ec97039c0429df78123547e8b216c788c21fb883e5756ccd0",
+          "stdoutPreview": "msgpack extension paths: PASS\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/examples/timestamp_frames.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/msgpack/examples/timestamp_frames.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\46b264d9b5ed46909597daeda17a9c02.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 429,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/examples/timestamp_frames.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\46b264d9b5ed46909597daeda17a9c02.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 29,
+          "stdoutSha256": "a381e1c707ff5230634dade7b802a7946ae01890fd77ce9265ec7710bc9204c0",
+          "stdoutPreview": "epoch=d6ff00000000\nmillis=d7ff003d090000000000\nnegative=c70cff1dcd6500ffffffffffffffff\nbinary=c40300ff41\nbytes=00ff41\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/test/owned_text.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/msgpack/test/owned_text.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\a71b68ab60b942918d2a2f966de9466a.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 457,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/test/owned_text.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\a71b68ab60b942918d2a2f966de9466a.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 29,
+          "stdoutSha256": "a5c38dc94a5d18f32de0a2f82ab19e96ef71dbe2aa4ba0fb1756445a609dbb7c",
+          "stdoutPreview": "msgpack owned text: empty/retained results, OOM recovery, PASS\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/examples/msgpack_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/msgpack/examples/msgpack_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\41a5a3b88c4b41f5b14f9bd9479dd7da.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 154,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/examples/msgpack_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\41a5a3b88c4b41f5b14f9bd9479dd7da.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 29,
+          "stdoutSha256": "5ded723908174098ba292f19c040f7bb8dcc10ed6bf078bea5913c8a85848dcd",
+          "stdoutPreview": "name=xlang\r\ncount=7\r\nmaximum=18446744073709551615\r\nwhen=1\r\nbytes=51\r\nbinary=00ff41\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/examples/timestamp_frames_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/msgpack/examples/timestamp_frames_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\f786be26372a40d3a8ae8884d3598257.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 140,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/examples/timestamp_frames_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\f786be26372a40d3a8ae8884d3598257.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 30,
+          "stdoutSha256": "4acf542a68d8f2ccb2edf0ac1e498d266f2a5731fa064882b7c5395f49592e90",
+          "stdoutPreview": "epoch=d6ff00000000\r\nmillis=d7ff003d090000000000\r\nnegative=c70cff1dcd6500ffffffffffffffff\r\nbinary=c40300ff41\r\nbytes=00ff41\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test/cases/extlib_msgpack.xl complete JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "test/cases/extlib_msgpack.xl"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 313,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test/cases/extlib_msgpack.xl complete build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "test/cases/extlib_msgpack.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\c5679ce700fd4416b20bb17cb1dde05c.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 518,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "test/cases/extlib_msgpack.xl complete AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\c5679ce700fd4416b20bb17cb1dde05c.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 33,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/test/aot_core.xl complete JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/msgpack/test/aot_core.xl"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 210,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/test/aot_core.xl complete build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/msgpack/test/aot_core.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\4f80068a88604d749fb8378dc4fb8c26.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 442,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/test/aot_core.xl complete AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\4f80068a88604d749fb8378dc4fb8c26.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 30,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/test/boundaries.xl complete JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/msgpack/test/boundaries.xl"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 405,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/test/boundaries.xl complete build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/msgpack/test/boundaries.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\1c7adaf279934e4bb13074fde543661f.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 731,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/test/boundaries.xl complete AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\1c7adaf279934e4bb13074fde543661f.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 32,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/test/allocations.xl complete JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/msgpack/test/allocations.xl"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 268,
+          "stdoutSha256": "0c8f0b31baa3e2a364d922f2d0cf8a3b5723ee5eb361fec7a0cdd0d6ae2db0f1",
+          "stdoutPreview": "msgpack allocation: PASS\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/test/allocations.xl complete build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/msgpack/test/allocations.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\396aedd39f574c22a1f40d15e7ec55af.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 603,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/test/allocations.xl complete AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\396aedd39f574c22a1f40d15e7ec55af.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 45,
+          "stdoutSha256": "0c8f0b31baa3e2a364d922f2d0cf8a3b5723ee5eb361fec7a0cdd0d6ae2db0f1",
+          "stdoutPreview": "msgpack allocation: PASS\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/examples/msgpack.xl complete JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/msgpack/examples/msgpack.xl"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 390,
+          "stdoutSha256": "14446125c7c398d95a0d3e3834f1a7e95d5c64c629b4fe47f937ece2a1a372d3",
+          "stdoutPreview": "name=xlang\ncount=7\nmaximum=18446744073709551615\nwhen=1\nbytes=51\nbinary=00ff41\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/examples/msgpack.xl complete build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/msgpack/examples/msgpack.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\3c7eaba4ed5a4c52bd8925c29d0b3c37.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 667,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/extlibs/msgpack/examples/msgpack.xl complete AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\3c7eaba4ed5a4c52bd8925c29d0b3c37.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 99,
+          "stdoutSha256": "14446125c7c398d95a0d3e3834f1a7e95d5c64c629b4fe47f937ece2a1a372d3",
+          "stdoutPreview": "name=xlang\ncount=7\nmaximum=18446744073709551615\nwhen=1\nbytes=51\nbinary=00ff41\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/examples/extlibs/msgpack.xl complete JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/examples/extlibs/msgpack.xl"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 308,
+          "stdoutSha256": "3dfd25bfd24baadc7b7329d70d3eb460d974e5cb876d0f240544fce3d8650031",
+          "stdoutPreview": "MessagePack hex:  84a773657276696365a5786c616e67a776657273696f6e06a47461677392a662696e617279a7636f6d70616374a7656e61626c6564c3\nservice:  xlang\nsecond tag:  compact\nbinary MessagePack:  c402cafe\nbinary payload:  cafe\nmsgpack example: PASS\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/examples/extlibs/msgpack.xl complete build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/examples/extlibs/msgpack.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\544dfa5e056a484dac2ee79104dd9467.exe"
+        ],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 548,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "release/examples/extlibs/msgpack.xl complete AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\msgpack_guard\\run_559077e63656427287e8689c58f8ad86\\544dfa5e056a484dac2ee79104dd9467.exe",
+        "arguments": [],
+        "expectedExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 36,
+          "stdoutSha256": "3dfd25bfd24baadc7b7329d70d3eb460d974e5cb876d0f240544fce3d8650031",
+          "stdoutPreview": "MessagePack hex:  84a773657276696365a5786c616e67a776657273696f6e06a47461677392a662696e617279a7636f6d70616374a7656e61626c6564c3\nservice:  xlang\nsecond tag:  compact\nbinary MessagePack:  c402cafe\nbinary payload:  cafe\nmsgpack example: PASS\n",
+          "stderr": ""
+        }
+      }
+    ]
+  },
+  "linux": {
+    "outcome": "passed",
+    "snapshot": "/var/tmp/xlang-msgpack-native-nodHet58",
+    "rawReport": "/var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p.report.txt",
+    "rawReportSha256LfNormalized": "7530edd23d8a77e8f33ddd7da685a163ee858fe9329bff45dac1fb2bbe37c7f0",
+    "checks": 65,
+    "aotPrograms": 12,
+    "expectedNonzeroChecks": 2,
+    "sanitizers": [
+      "ASan",
+      "UBSan",
+      "leak detection"
+    ],
+    "frozenStageInputsUnchanged": true,
+    "inputs": {
+      "/usr/bin/gcc": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88",
+      "/usr/bin/python3": "52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41",
+      "lib/xrt/xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+      "lib/xruntime/xruntime.h": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+      "release/examples/extlibs/msgpack.xl": "0237df716a814fc5130c86cab8b15e282f9cd7121a5b86e739e4df652468b3e3",
+      "release/extlibs/msgpack/README.md": "fd420dd19d9fa71011dd237cf7178450d1ce73e6cad7d2c33ebf18b6515830ac",
+      "release/extlibs/msgpack/docs/site.html": "547b6df3894335e8c3ab2ff68c8f723f8adeaf3c0fbd0e910a8c537e075435d6",
+      "release/extlibs/msgpack/examples/basic.expected.txt": "14446125c7c398d95a0d3e3834f1a7e95d5c64c629b4fe47f937ece2a1a372d3",
+      "release/extlibs/msgpack/examples/msgpack.xl": "5c06a99f7ba3965d9d84d7521a8003577dd241a88c22687cd22e7575a3a7ed89",
+      "release/extlibs/msgpack/examples/msgpack_c.c": "f5c3e9b4b27d75749e7ea8114277ee97a97093fa5c6dd7f15adc1248aa3a4c58",
+      "release/extlibs/msgpack/examples/timestamp_frames.expected.txt": "a381e1c707ff5230634dade7b802a7946ae01890fd77ce9265ec7710bc9204c0",
+      "release/extlibs/msgpack/examples/timestamp_frames.xl": "834850e9447ea9f750257cbc8ae4388789488dd5237fae9ff34e0e6fd8e733d2",
+      "release/extlibs/msgpack/examples/timestamp_frames_c.c": "1aea79c65d255012d65a5bc578aaeb91537883c2f012418d92d92916e040fde7",
+      "release/extlibs/msgpack/msgpack_native.c": "573e828f3e9aca9818358d7649df7f1e0f5cf1692f1bd4bffe8c640a5a19ece3",
+      "release/extlibs/msgpack/msgpack_native.h": "a3cf0393101a5bdf52d9cf0cb416a176a1db0628b9127677d39295de41c18e2e",
+      "release/extlibs/msgpack/src/msgpack.xl": "c0a2c763ae2e6da4feb75a092c64220cad3394b3c296d6115379b9956b4162e4",
+      "release/extlibs/msgpack/test/allocations.xl": "bff0ad386c2477b72038e345b12a66d7826447bc263ccb85b83fc5dbec6185b4",
+      "release/extlibs/msgpack/test/aot_core.xl": "dec85abdd16154d4221c96ca0a7cc0cb2b3b92aa6d8444ce7ad46a96fcf9f648",
+      "release/extlibs/msgpack/test/boundaries.xl": "43778eeba76335e46da21254359b1985375f74e99cad07b7e557bf6e1ec33a72",
+      "release/extlibs/msgpack/test/check.ps1": "ee862f85244566ab04e7c7ede45f3fc59a9e6f3ec2e66f68fbb049dcb4239352",
+      "release/extlibs/msgpack/test/check.sh": "4ff882b6549f3349be350f30b374c3cc411f08f17b5b720cbd5e5a6999596bfb",
+      "release/extlibs/msgpack/test/check_external.py": "a30ec3f7cfb0d87b9fd1db73db354462e705543ed30e85e3b0b18ae70c5a4ad5",
+      "release/extlibs/msgpack/test/check_owned_codegen.py": "7b4fb72cd258769a998c58cd3c5e8facade7ed66b67cdd92b8cd06bf8e5ecece",
+      "release/extlibs/msgpack/test/check_timestamps.py": "322fc541cd6785ea486be78bc6fbd9506d198d0204f571bc476daf8015d67dd1",
+      "release/extlibs/msgpack/test/extensions.xl": "29326cd036d7c0a4c3542fb17a4919612cd1a3bd2e41da40d90f377ec7b81206",
+      "release/extlibs/msgpack/test/extensions_c.c": "e27727d67dd45f7a8650262d0e121dc901c2ec967128ffe5da84f9d79c40ccf6",
+      "release/extlibs/msgpack/test/external_python.xl": "0f8f080e3cd227ddd05ecb21d4b76220fe29258e205820518366d6807be5c8d6",
+      "release/extlibs/msgpack/test/external_python_c.c": "df997cc5f4e041997b98aeef5d15cb76cb5b1bb19fb8c5d25835444b5922ae10",
+      "release/extlibs/msgpack/test/owned_text.xl": "5e1935a5755f3dce0798277be206d0314cd1addde44d712a55e1a221eba31236",
+      "release/extlibs/msgpack/test/requirements-external.txt": "02665c9c938d63b9891eaf2daa5ca589d05ba994a47941190467be2e8ff9326f",
+      "release/extlibs/msgpack/test/test_allocations.c": "df2e5f511f6ecb08d6cf298961cfb8a07f692117c6ec57965719a755e6a4bb8d",
+      "release/extlibs/msgpack/test/test_boundaries.c": "3420ada4a863ce80bffc57a92cc1da59c113b36813e8d188dbbcaf8fb7bfa5f6",
+      "release/extlibs/msgpack/test/test_msgpack.c": "e5715a2b750f1015975a69fc3fc5c2717340cbe56ac69b6c1d7e4ecbd0ff25c0",
+      "release/extlibs/msgpack/test/xrt_runtime.c": "995d236f5132800e857480a0ba95d999330e07a15b5c120a70a6dab002900003",
+      "release/extlibs/msgpack/xlang.package.json": "f27eb7e614944d3c50e69eeb46e5c31dd00cfa717e9c18a7d63427bc92788100",
+      "release/include/README.md": "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770",
+      "release/include/libtcc.h": "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab",
+      "release/include/tcc_builtin_vfs.h": "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2",
+      "release/include/xl.h": "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4",
+      "release/include/xl_cancellation_retirement.h": "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad",
+      "release/include/xl_clock.h": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18",
+      "release/include/xl_extlib_abi.h": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445",
+      "release/include/xl_foreign_graph.h": "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f",
+      "release/include/xl_foreign_net.h": "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a",
+      "release/include/xl_package.h": "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1",
+      "release/include/xl_runtime.h": "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2",
+      "release/include/xl_sync_retirement.h": "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e",
+      "release/include/xl_version.h": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992",
+      "release/include/xlc.h": "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f",
+      "release/include/xrt_decl.h": "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d",
+      "release/include/xruntime_decl.h": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+      "release/libxl.so": "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad",
+      "release/libxlc.so": "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386",
+      "release/xl": "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb",
+      "test/cases/extlib_msgpack.xl": "59a5d8822bd44d5b88b6769d41b35df2e8fc188904dea715d29700d374a570ae"
+    },
+    "checksDetail": [
+      {
+        "command": "timeout 10s gcc --version",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "8c25a94209b149cff424925e8a212864e5d086f8523d25cc285af2b89a78f2d7",
+        "outputPreview": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PA"
+      },
+      {
+        "command": "timeout 10s python3 --version",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "6588278383a8d24d8fc465aeadebee435452dcd40e11a957176622cc1505cffd",
+        "outputPreview": "Python 3.14.4\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/msgpack -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DXRT_MODULE_BUFFER -DXRT_MODULE_BUFFER_HEX -DXRT_MODULE_CODEC_HEX -DXRT_MODULE_STRING -DXRT_MODULE_UNICODE -DXRT_MODULE_VALUE_CONTAINER -DXRT_MODULE_TIME -x c -fsyntax-only release/extlibs/msgpack/msgpack_native.h",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/msgpack -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DXRT_MODULE_BUFFER -DXRT_MODULE_BUFFER_HEX -DXRT_MODULE_CODEC_HEX -DXRT_MODULE_STRING -DXRT_MODULE_UNICODE -DXRT_MODULE_VALUE_CONTAINER -DXRT_MODULE_TIME -fsyntax-only release/extlibs/msgpack/msgpack_native.c",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/msgpack -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/msgpack/test/xrt_runtime.c -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/runtime.o",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/msgpack -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/msgpack/msgpack_native.c -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/native.o",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/msgpack -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/msgpack/test/test_msgpack.c /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/runtime.o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/native.o -no-pie -lm -ldl -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/test_msgpack",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/test_msgpack",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "ec486756859853ca1a9f9eb75d34d04a1c4b47aa215597409e00c129a725a6a7",
+        "outputPreview": "msgpack C smoke: PASS\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/msgpack -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/msgpack/test/test_boundaries.c /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/runtime.o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/native.o -no-pie -lm -ldl -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/test_boundaries",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/test_boundaries",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "b8dcf427c8449842896bec9735ebcaf99eaed671230c30390c2decb6ce689afc",
+        "outputPreview": "msgpack boundaries: ok\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/msgpack -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/msgpack/test/test_allocations.c /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/runtime.o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/native.o -no-pie -lm -ldl -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/test_allocations",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/test_allocations",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "ebea2a57f14c7d15d72954ab203c9e4a73efe9b2cd2efce468bfcb17b0fe1833",
+        "outputPreview": "msgpack allocation failures: PASS\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/msgpack -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/msgpack/test/extensions_c.c /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/extensions_c",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/extensions_c",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "3f72cce19b7b0dfe3fff70484bdde62beb01353265b146e1c09be89b50e34686",
+        "outputPreview": "msgpack extension framing: 50675 checks, 18 OOM paths, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/extensions_c --records",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "115c280d036dbafef96cd9bfaed7f8c8900c40fadefc1d9bf81360f7200ca25a",
+        "outputPreview": "0\t-9223372036854775808\tc7\tc70cff0b71b000ffdf3b55e28ab508\ttime:-9223372036854775808\tc70cff0b71b000ffdf3b55e28ab508\n0\t-9223372036854775808\tc8\tc8000cff0b71b000ffdf3b55e28ab508\ttime:-9223372036854775808\tc70cff0b71b000ffdf3b5"
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/msgpack/test/check_timestamps.py /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/gcc.tsv",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "c00c01f5764225fcb92f583da280f959266af35f76c7dd78664b21437b481dce",
+        "outputPreview": "msgpack timestamp oracle: 530 times, 1599 frames, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/msgpack/test/extensions_c.c",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "3f72cce19b7b0dfe3fff70484bdde62beb01353265b146e1c09be89b50e34686",
+        "outputPreview": "msgpack extension framing: 50675 checks, 18 OOM paths, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/msgpack/test/extensions_c.c -- --records",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "115c280d036dbafef96cd9bfaed7f8c8900c40fadefc1d9bf81360f7200ca25a",
+        "outputPreview": "0\t-9223372036854775808\tc7\tc70cff0b71b000ffdf3b55e28ab508\ttime:-9223372036854775808\tc70cff0b71b000ffdf3b55e28ab508\n0\t-9223372036854775808\tc8\tc8000cff0b71b000ffdf3b55e28ab508\ttime:-9223372036854775808\tc70cff0b71b000ffdf3b5"
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/msgpack/test/check_timestamps.py /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/tcc.tsv",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "c00c01f5764225fcb92f583da280f959266af35f76c7dd78664b21437b481dce",
+        "outputPreview": "msgpack timestamp oracle: 530 times, 1599 frames, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/msgpack -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/msgpack/examples/msgpack_c.c /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/msgpack",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/msgpack",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "0ad22de170cb7cd4531252685ba5099d8073b99e68646113fd464d79eba56c54",
+        "outputPreview": "name=xlang\ncount=7\nmaximum=18446744073709551615\nwhen=1\nbytes=51\nbinary=00ff41\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/msgpack/examples/msgpack_c.c",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "0ad22de170cb7cd4531252685ba5099d8073b99e68646113fd464d79eba56c54",
+        "outputPreview": "name=xlang\ncount=7\nmaximum=18446744073709551615\nwhen=1\nbytes=51\nbinary=00ff41\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/msgpack -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/msgpack/examples/timestamp_frames_c.c /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/timestamp_frames",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/timestamp_frames",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "7bb61381c02020d243fdd84522bf48464e63f7ff18745fbcc91f80da1888f42a",
+        "outputPreview": "epoch=d6ff00000000\nmillis=d7ff003d090000000000\nnegative=c70cff1dcd6500ffffffffffffffff\nbinary=c40300ff41\nbytes=00ff41\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/msgpack/examples/timestamp_frames_c.c",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "7bb61381c02020d243fdd84522bf48464e63f7ff18745fbcc91f80da1888f42a",
+        "outputPreview": "epoch=d6ff00000000\nmillis=d7ff003d090000000000\nnegative=c70cff1dcd6500ffffffffffffffff\nbinary=c40300ff41\nbytes=00ff41\n\n"
+      },
+      {
+        "command": "timeout 30s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/msgpack extra extra",
+        "expectedExit": 1,
+        "exitCode": 1,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 30s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/msgpack /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/missing/output.bin",
+        "expectedExit": 1,
+        "exitCode": 1,
+        "outputSha256LfNormalized": "0ad22de170cb7cd4531252685ba5099d8073b99e68646113fd464d79eba56c54",
+        "outputPreview": "name=xlang\ncount=7\nmaximum=18446744073709551615\nwhen=1\nbytes=51\nbinary=00ff41\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/msgpack/examples/timestamp_frames.xl",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "7bb61381c02020d243fdd84522bf48464e63f7ff18745fbcc91f80da1888f42a",
+        "outputPreview": "epoch=d6ff00000000\nmillis=d7ff003d090000000000\nnegative=c70cff1dcd6500ffffffffffffffff\nbinary=c40300ff41\nbytes=00ff41\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/msgpack/test/extensions.xl",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "48a14848422d0bc6ed0d2355e101bb3cea066ce21ed9b3bd7e78f2f20e973737",
+        "outputPreview": "msgpack extension paths: PASS\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/msgpack/test/owned_text.xl",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "b321a5114ccfaf08cac5f22a6dbc916399a17d2764df71e4fb67e81c0b1d14ba",
+        "outputPreview": "msgpack owned text: empty/retained results, OOM recovery, PASS\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl cgen release/extlibs/msgpack/examples/timestamp_frames.xl --emit /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/probe.c",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 30s python3 release/extlibs/msgpack/test/check_owned_codegen.py /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/probe.c",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "3aa7a614cf6635ac8100ac845479574152d7239b4b7b80a23933c46129fa334b",
+        "outputPreview": "MessagePack owned codegen: direct char* adoption, no payload copy, PASS\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/msgpack -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -fsyntax-only /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/abi.c",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/msgpack/test/extensions_c.c -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/aot-1",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/aot-1",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "3f72cce19b7b0dfe3fff70484bdde62beb01353265b146e1c09be89b50e34686",
+        "outputPreview": "msgpack extension framing: 50675 checks, 18 OOM paths, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/aot-1 --records",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "115c280d036dbafef96cd9bfaed7f8c8900c40fadefc1d9bf81360f7200ca25a",
+        "outputPreview": "0\t-9223372036854775808\tc7\tc70cff0b71b000ffdf3b55e28ab508\ttime:-9223372036854775808\tc70cff0b71b000ffdf3b55e28ab508\n0\t-9223372036854775808\tc8\tc8000cff0b71b000ffdf3b55e28ab508\ttime:-9223372036854775808\tc70cff0b71b000ffdf3b5"
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/msgpack/test/check_timestamps.py /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/aot.tsv",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "c00c01f5764225fcb92f583da280f959266af35f76c7dd78664b21437b481dce",
+        "outputPreview": "msgpack timestamp oracle: 530 times, 1599 frames, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/msgpack/test/extensions.xl -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/aot-2",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/aot-2",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "48a14848422d0bc6ed0d2355e101bb3cea066ce21ed9b3bd7e78f2f20e973737",
+        "outputPreview": "msgpack extension paths: PASS\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/msgpack/examples/timestamp_frames.xl -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/aot-3",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/aot-3",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "7bb61381c02020d243fdd84522bf48464e63f7ff18745fbcc91f80da1888f42a",
+        "outputPreview": "epoch=d6ff00000000\nmillis=d7ff003d090000000000\nnegative=c70cff1dcd6500ffffffffffffffff\nbinary=c40300ff41\nbytes=00ff41\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/msgpack/test/owned_text.xl -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/aot-4",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/aot-4",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "b321a5114ccfaf08cac5f22a6dbc916399a17d2764df71e4fb67e81c0b1d14ba",
+        "outputPreview": "msgpack owned text: empty/retained results, OOM recovery, PASS\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/msgpack/examples/msgpack_c.c -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/aot-5",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/aot-5",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "0ad22de170cb7cd4531252685ba5099d8073b99e68646113fd464d79eba56c54",
+        "outputPreview": "name=xlang\ncount=7\nmaximum=18446744073709551615\nwhen=1\nbytes=51\nbinary=00ff41\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/msgpack/examples/timestamp_frames_c.c -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/aot-6",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/aot-6",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "7bb61381c02020d243fdd84522bf48464e63f7ff18745fbcc91f80da1888f42a",
+        "outputPreview": "epoch=d6ff00000000\nmillis=d7ff003d090000000000\nnegative=c70cff1dcd6500ffffffffffffffff\nbinary=c40300ff41\nbytes=00ff41\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run test/cases/extlib_msgpack.xl",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build test/cases/extlib_msgpack.xl -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/complete",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/complete",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/msgpack/test/aot_core.xl",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/msgpack/test/aot_core.xl -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/complete",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/complete",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/msgpack/test/boundaries.xl",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/msgpack/test/boundaries.xl -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/complete",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/complete",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/msgpack/test/allocations.xl",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "cc7fdd10c8a1bb4966c7ecd7182dee75a1960b20ab0b225327770f8792323bb9",
+        "outputPreview": "msgpack allocation: PASS\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/msgpack/test/allocations.xl -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/complete",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/complete",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "cc7fdd10c8a1bb4966c7ecd7182dee75a1960b20ab0b225327770f8792323bb9",
+        "outputPreview": "msgpack allocation: PASS\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/msgpack/examples/msgpack.xl",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "0ad22de170cb7cd4531252685ba5099d8073b99e68646113fd464d79eba56c54",
+        "outputPreview": "name=xlang\ncount=7\nmaximum=18446744073709551615\nwhen=1\nbytes=51\nbinary=00ff41\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/msgpack/examples/msgpack.xl -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/complete",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/complete",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "0ad22de170cb7cd4531252685ba5099d8073b99e68646113fd464d79eba56c54",
+        "outputPreview": "name=xlang\ncount=7\nmaximum=18446744073709551615\nwhen=1\nbytes=51\nbinary=00ff41\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/examples/extlibs/msgpack.xl",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "2c4ba4b5ae48a4f3b2c15a3fc82e748978164cb8dfab43050c51e4df00a0fb0f",
+        "outputPreview": "MessagePack hex:  84a773657276696365a5786c616e67a776657273696f6e06a47461677392a662696e617279a7636f6d70616374a7656e61626c6564c3\nservice:  xlang\nsecond tag:  compact\nbinary MessagePack:  c402cafe\nbinary payload:  cafe\nmsgp"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/examples/extlibs/msgpack.xl -o /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/complete",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-msgpack-native-nodHet58/tmp/xlang-msgpack-pQYI9p/complete",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "6177ce5eb3cbd7bb21ba5e37ffce33971e6937c4226686f9cffbcd2ba9eb2360",
+        "outputPreview": "MessagePack hex:  84a773657276696365a5786c616e67a776657273696f6e06a47461677392a662696e617279a7636f6d70616374a7656e61626c6564c3\nservice:  xlang\nsecond tag:  compact\nbinary MessagePack:  c402cafe\nbinary payload:  cafe\nmsgp"
+      }
+    ]
+  },
+  "controls": [
+    {
+      "suite": "codegen-controls.json",
+      "name": "after.c",
+      "expectedExit": 0,
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 86,
+        "stdoutSha256": "e764725fa6eea67e4dad6eda4485b0e41584652bcd20575ddc817b61931826d1",
+        "stdoutPreview": "MessagePack owned codegen: direct char* adoption, no payload copy, PASS\r\n",
+        "stderr": ""
+      }
+    },
+    {
+      "suite": "codegen-controls.json",
+      "name": "before.c",
+      "expectedExit": 1,
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "elapsedMs": 68,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdoutPreview": "",
+        "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_owned_codegen.py\", line 26, in <module>\r\n    check(Path(sys.argv[1]).read_text(encoding='utf-8-sig'))\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_owned_codegen.py\", line 9, in check\r\n    raise ValueError('Obsolete pointer adoption path remains')\r\nValueError: Obsolete pointer adoption path remains\r\n"
+      }
+    },
+    {
+      "suite": "codegen-controls.json",
+      "name": "with-copy.c",
+      "expectedExit": 1,
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "elapsedMs": 71,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdoutPreview": "",
+        "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_owned_codegen.py\", line 26, in <module>\r\n    check(Path(sys.argv[1]).read_text(encoding='utf-8-sig'))\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_owned_codegen.py\", line 19, in check\r\n    raise ValueError('Payload copy in owned wrapper')\r\nValueError: Payload copy in owned wrapper\r\n"
+      }
+    },
+    {
+      "suite": "codegen-controls.json",
+      "name": "with-repeat.c",
+      "expectedExit": 1,
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "elapsedMs": 71,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdoutPreview": "",
+        "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_owned_codegen.py\", line 26, in <module>\r\n    check(Path(sys.argv[1]).read_text(encoding='utf-8-sig'))\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_owned_codegen.py\", line 14, in check\r\n    raise ValueError('Missing, repeated or ambiguous native result call')\r\nValueError: Missing, repeated or ambiguous native result call\r\n"
+      }
+    },
+    {
+      "suite": "oracle-controls.json",
+      "name": "independent good",
+      "expectedExit": 0,
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 91,
+        "stdoutSha256": "105403fcc29f791369c912cd10cc20b3934b48e4b39008aa030016ad561d347d",
+        "stdoutPreview": "msgpack timestamp oracle: 530 times, 1599 frames, 0 failures\r\n",
+        "stderr": ""
+      }
+    },
+    {
+      "suite": "oracle-controls.json",
+      "name": "official good",
+      "expectedExit": 0,
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 79,
+        "stdoutSha256": "e1b0a6323b3b14806d8497d5f8175de4c1c9d96f72a1bc3b9712c1eba4d44425",
+        "stdoutPreview": "Python MessagePack write/read fixture: PASS\r\nOfficial MessagePack timestamp interop: 530 times, 1599 frames, PASS\r\n",
+        "stderr": ""
+      }
+    },
+    {
+      "suite": "oracle-controls.json",
+      "name": "independent missing",
+      "expectedExit": 1,
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "elapsedMs": 80,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdoutPreview": "",
+        "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_timestamps.py\", line 67, in <module>\r\n    main()\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_timestamps.py\", line 50, in main\r\n    raise ValueError(f\"timestamp records incomplete: {len(rows)}/{len(model)}\")\r\nValueError: timestamp records incomplete: 1598/1599\r\n"
+      }
+    },
+    {
+      "suite": "oracle-controls.json",
+      "name": "official missing",
+      "expectedExit": 1,
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "elapsedMs": 87,
+        "stdoutSha256": "070825b0449ed6f74e01bf01c2a4de23ab11bd7688a4ce3159e75c97dc289a53",
+        "stdoutPreview": "Python MessagePack write/read fixture: PASS\r\n",
+        "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_external.py\", line 67, in <module>\r\n    main()\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_external.py\", line 63, in main\r\n    timestamp_records(sys.argv[4])\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_external.py\", line 36, in timestamp_records\r\n    raise ValueError('Incomplete official codec timestamp matrix')\r\nValueError: Incomplete official codec timestamp matrix\r\n"
+      }
+    },
+    {
+      "suite": "oracle-controls.json",
+      "name": "independent duplicate",
+      "expectedExit": 1,
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "elapsedMs": 80,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdoutPreview": "",
+        "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_timestamps.py\", line 67, in <module>\r\n    main()\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_timestamps.py\", line 56, in main\r\n    raise ValueError(f\"timestamp corpus/encoding differs at {index}/{head:02x}\")\r\nValueError: timestamp corpus/encoding differs at 0/c8\r\n"
+      }
+    },
+    {
+      "suite": "oracle-controls.json",
+      "name": "official duplicate",
+      "expectedExit": 1,
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "elapsedMs": 74,
+        "stdoutSha256": "070825b0449ed6f74e01bf01c2a4de23ab11bd7688a4ce3159e75c97dc289a53",
+        "stdoutPreview": "Python MessagePack write/read fixture: PASS\r\n",
+        "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_external.py\", line 67, in <module>\r\n    main()\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_external.py\", line 63, in main\r\n    timestamp_records(sys.argv[4])\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_external.py\", line 17, in timestamp_records\r\n    raise ValueError('Repeated or unknown timestamp record')\r\nValueError: Repeated or unknown timestamp record\r\n"
+      }
+    },
+    {
+      "suite": "oracle-controls.json",
+      "name": "independent observed",
+      "expectedExit": 1,
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "elapsedMs": 84,
+        "stdoutSha256": "ddd3b2b2620cb09d1ed7237ddf98eceb34c7eda34b617fe7b179ceb4d3f9c915",
+        "stdoutPreview": "timestamp decode differs at 0/c7: time:0\r\nmsgpack timestamp oracle: 530 times, 1599 frames, 1 failures\r\n",
+        "stderr": ""
+      }
+    },
+    {
+      "suite": "oracle-controls.json",
+      "name": "official observed",
+      "expectedExit": 1,
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "elapsedMs": 74,
+        "stdoutSha256": "070825b0449ed6f74e01bf01c2a4de23ab11bd7688a4ce3159e75c97dc289a53",
+        "stdoutPreview": "Python MessagePack write/read fixture: PASS\r\n",
+        "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_external.py\", line 67, in <module>\r\n    main()\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_external.py\", line 63, in main\r\n    timestamp_records(sys.argv[4])\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_external.py\", line 19, in timestamp_records\r\n    raise ValueError('Inconsistent native timestamp result')\r\nValueError: Inconsistent native timestamp result\r\n"
+      }
+    },
+    {
+      "suite": "oracle-controls.json",
+      "name": "independent wire",
+      "expectedExit": 1,
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "elapsedMs": 83,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdoutPreview": "",
+        "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_timestamps.py\", line 67, in <module>\r\n    main()\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_timestamps.py\", line 56, in main\r\n    raise ValueError(f\"timestamp corpus/encoding differs at {index}/{head:02x}\")\r\nValueError: timestamp corpus/encoding differs at 0/c7\r\n"
+      }
+    },
+    {
+      "suite": "oracle-controls.json",
+      "name": "official wire",
+      "expectedExit": 1,
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "elapsedMs": 74,
+        "stdoutSha256": "070825b0449ed6f74e01bf01c2a4de23ab11bd7688a4ce3159e75c97dc289a53",
+        "stdoutPreview": "Python MessagePack write/read fixture: PASS\r\n",
+        "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_external.py\", line 67, in <module>\r\n    main()\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_external.py\", line 63, in main\r\n    timestamp_records(sys.argv[4])\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_external.py\", line 25, in timestamp_records\r\n    raise ValueError('Official codec timestamp differs')\r\nValueError: Official codec timestamp differs\r\n"
+      }
+    },
+    {
+      "suite": "oracle-controls.json",
+      "name": "independent canonical",
+      "expectedExit": 1,
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "elapsedMs": 87,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdoutPreview": "",
+        "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_timestamps.py\", line 67, in <module>\r\n    main()\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_timestamps.py\", line 56, in main\r\n    raise ValueError(f\"timestamp corpus/encoding differs at {index}/{head:02x}\")\r\nValueError: timestamp corpus/encoding differs at 0/c7\r\n"
+      }
+    },
+    {
+      "suite": "oracle-controls.json",
+      "name": "official canonical",
+      "expectedExit": 1,
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "elapsedMs": 75,
+        "stdoutSha256": "070825b0449ed6f74e01bf01c2a4de23ab11bd7688a4ce3159e75c97dc289a53",
+        "stdoutPreview": "Python MessagePack write/read fixture: PASS\r\n",
+        "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_external.py\", line 67, in <module>\r\n    main()\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_external.py\", line 63, in main\r\n    timestamp_records(sys.argv[4])\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\msgpack\\test\\check_external.py\", line 28, in timestamp_records\r\n    raise ValueError('Official codec shortest timestamp encoding differs')\r\nValueError: Official codec shortest timestamp encoding differs\r\n"
+      }
+    }
+  ],
+  "officialInterop": {
+    "version": "1.2.3",
+    "wheels": [
+      {
+        "path": "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101\\linux-deps\\msgpack-1.2.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "bytes": 462562,
+        "sha256": "d8ef3a66e4b52d2d7fdd90df2984670124b2ff7546d76bb25dcf68ef47f7df58"
+      }
+    ],
+    "globalInstallation": false,
+    "runtimeDependency": false,
+    "windowsSteps": [
+      {
+        "name": "complete timestamp records",
+        "arguments": [
+          "run",
+          "release/extlibs/msgpack/test/extensions_c.c",
+          "--",
+          "--records"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 131,
+          "stdoutSha256": "264708b8fcac05a61febab10881d2ffa1cb44cdb188b16dea76a13dd59243373",
+          "stdoutPreview": "0\t-9223372036854775808\tc7\tc70cff0b71b000ffdf3b55e28ab508\ttime:-9223372036854775808\tc70cff0b71b000ffdf3b55e28ab508\r\n0\t-9223372036854775808\tc8\tc8000cff0b71b000ffdf3b55e28ab508\ttime:-9223372036854775808\tc70cff0b71b000ffdf3b55e28ab508\r\n0\t-92233",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "C writer",
+        "arguments": [
+          "run",
+          "release/extlibs/msgpack/examples/msgpack_c.c",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101\\C.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 131,
+          "stdoutSha256": "5ded723908174098ba292f19c040f7bb8dcc10ed6bf078bea5913c8a85848dcd",
+          "stdoutPreview": "name=xlang\r\ncount=7\r\nmaximum=18446744073709551615\r\nwhen=1\r\nbytes=51\r\nbinary=00ff41\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "XLang writer",
+        "arguments": [
+          "run",
+          "release/extlibs/msgpack/examples/msgpack.xl",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101\\XL.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 324,
+          "stdoutSha256": "14446125c7c398d95a0d3e3834f1a7e95d5c64c629b4fe47f937ece2a1a372d3",
+          "stdoutPreview": "name=xlang\ncount=7\nmaximum=18446744073709551615\nwhen=1\nbytes=51\nbinary=00ff41\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "official msgpack 1.2.3 interop",
+        "arguments": [
+          "-B",
+          "release/extlibs/msgpack/test/check_external.py",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101\\C.bin",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101\\XL.bin",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101\\PY.bin",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101\\interop-timestamps.tsv"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 82,
+          "stdoutSha256": "e1b0a6323b3b14806d8497d5f8175de4c1c9d96f72a1bc3b9712c1eba4d44425",
+          "stdoutPreview": "Python MessagePack write/read fixture: PASS\r\nOfficial MessagePack timestamp interop: 530 times, 1599 frames, PASS\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "GCC reader build",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "release/extlibs/msgpack/test/external_python_c.c",
+          "release/extlibs/msgpack/msgpack_native.c",
+          "release/extlibs/msgpack/test/xrt_runtime.c",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101\\external-reader.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 9806,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "GCC reader",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101\\PY.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 32,
+          "stdoutSha256": "facb74619410ada95017748a4c3318b779489e5b23c122573d3efb2dd1f79ac9",
+          "stdoutPreview": "Python to C MessagePack: PASS\r\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "XLang JIT reader",
+        "arguments": [
+          "run",
+          "release/extlibs/msgpack/test/external_python.xl",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101\\PY.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 355,
+          "stdoutSha256": "9bf86f08d83e90a9995a7847ec924e1f92496785202ecd2db2b784f440d3c9d2",
+          "stdoutPreview": "Python to XLang MessagePack: PASS\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "XLang AOT build",
+        "arguments": [
+          "build",
+          "release/extlibs/msgpack/test/external_python.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101\\external-reader-xl.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 592,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "XLang AOT reader",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101\\PY.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 32,
+          "stdoutSha256": "9bf86f08d83e90a9995a7847ec924e1f92496785202ecd2db2b784f440d3c9d2",
+          "stdoutPreview": "Python to XLang MessagePack: PASS\n",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "C AOT build",
+        "arguments": [
+          "build",
+          "release/extlibs/msgpack/test/external_python_c.c",
+          "release/extlibs/msgpack/msgpack_native.c",
+          "--inc-path",
+          "lib/xrt",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101\\external-reader-c.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 214,
+          "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdoutPreview": "",
+          "stderr": ""
+        }
+      },
+      {
+        "name": "C AOT reader",
+        "arguments": [
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101\\PY.bin"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 33,
+          "stdoutSha256": "facb74619410ada95017748a4c3318b779489e5b23c122573d3efb2dd1f79ac9",
+          "stdoutPreview": "Python to C MessagePack: PASS\r\n",
+          "stderr": ""
+        }
+      }
+    ],
+    "linuxLog": "/var/tmp/xlang-msgpack-native-sIrBY4Mj/interop/commands.log",
+    "linuxSteps": [
+      {
+        "command": "./release/xl run release/extlibs/msgpack/examples/msgpack_c.c -- /var/tmp/xlang-msgpack-native-sIrBY4Mj/interop/C.bin",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "0ad22de170cb7cd4531252685ba5099d8073b99e68646113fd464d79eba56c54",
+        "outputPreview": "name=xlang\ncount=7\nmaximum=18446744073709551615\nwhen=1\nbytes=51\nbinary=00ff41\n\n"
+      },
+      {
+        "command": "./release/xl run release/extlibs/msgpack/examples/msgpack.xl -- /var/tmp/xlang-msgpack-native-sIrBY4Mj/interop/XL.bin",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "0ad22de170cb7cd4531252685ba5099d8073b99e68646113fd464d79eba56c54",
+        "outputPreview": "name=xlang\ncount=7\nmaximum=18446744073709551615\nwhen=1\nbytes=51\nbinary=00ff41\n\n"
+      },
+      {
+        "command": "./release/xl run release/extlibs/msgpack/test/extensions_c.c -- --records",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "115c280d036dbafef96cd9bfaed7f8c8900c40fadefc1d9bf81360f7200ca25a",
+        "outputPreview": "0\t-9223372036854775808\tc7\tc70cff0b71b000ffdf3b55e28ab508\ttime:-9223372036854775808\tc70cff0b71b000ffdf3b55e28ab508\n0\t-9223372036854775808\tc8\tc8000cff0b71b000ffdf3b55e28ab508\ttime:-9223372036854775808\tc70cff0b71b000ffdf3b5"
+      },
+      {
+        "command": "python3 release/extlibs/msgpack/test/check_external.py /var/tmp/xlang-msgpack-native-sIrBY4Mj/interop/C.bin /var/tmp/xlang-msgpack-native-sIrBY4Mj/interop/XL.bin /var/tmp/xlang-msgpack-native-sIrBY4Mj/interop/PY.bin /var/tmp/xlang-msgpack-native-sIrBY4Mj/interop/timestamps.tsv",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "a3d7826325e66ce0fb5e59c108f02585cf886cb48a862713364134c88b9dee1c",
+        "outputPreview": "Python MessagePack write/read fixture: PASS\nOfficial MessagePack timestamp interop: 530 times, 1599 frames, PASS\n\n"
+      },
+      {
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -fno-pie -no-pie -fsanitize=address\\,undefined -fno-omit-frame-pointer -Ilib/xrt release/extlibs/msgpack/test/external_python_c.c release/extlibs/msgpack/msgpack_native.c release/extlibs/msgpack/test/xrt_runtime.c -pthread -lm -ldl -o /var/tmp/xlang-msgpack-native-sIrBY4Mj/interop/external-reader",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "/var/tmp/xlang-msgpack-native-sIrBY4Mj/interop/external-reader /var/tmp/xlang-msgpack-native-sIrBY4Mj/interop/PY.bin",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "d68abf9fd30e2a30ca5dfcae8847ca21fef55eb9aa4f20ef05074602e93a8ddf",
+        "outputPreview": "Python to C MessagePack: PASS\n\n"
+      },
+      {
+        "command": "./release/xl run release/extlibs/msgpack/test/external_python.xl -- /var/tmp/xlang-msgpack-native-sIrBY4Mj/interop/PY.bin",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "1579711fe299ee71237e71420d68634b552dbb7bb9a672ff9e0cd288f38c35f3",
+        "outputPreview": "Python to XLang MessagePack: PASS\n\n"
+      },
+      {
+        "command": "./release/xl build release/extlibs/msgpack/test/external_python.xl -o /var/tmp/xlang-msgpack-native-sIrBY4Mj/interop/external-reader-xl",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "/var/tmp/xlang-msgpack-native-sIrBY4Mj/interop/external-reader-xl /var/tmp/xlang-msgpack-native-sIrBY4Mj/interop/PY.bin",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "1579711fe299ee71237e71420d68634b552dbb7bb9a672ff9e0cd288f38c35f3",
+        "outputPreview": "Python to XLang MessagePack: PASS\n\n"
+      },
+      {
+        "command": "./release/xl build release/extlibs/msgpack/test/external_python_c.c release/extlibs/msgpack/msgpack_native.c --inc-path lib/xrt -o /var/tmp/xlang-msgpack-native-sIrBY4Mj/interop/external-reader-c",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "outputPreview": "\n"
+      },
+      {
+        "command": "/var/tmp/xlang-msgpack-native-sIrBY4Mj/interop/external-reader-c /var/tmp/xlang-msgpack-native-sIrBY4Mj/interop/PY.bin",
+        "expectedExit": 0,
+        "exitCode": 0,
+        "outputSha256LfNormalized": "89731aa2b998ada2fa3cd27e47eb9dd28be080b80674a9055485439f3bd2e32f",
+        "outputPreview": "Python to C MessagePack: PASS"
+      }
+    ],
+    "linuxSummary": {
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 11353,
+      "stdoutSha256": "6ef4c8c1c27b124146c3e5133a8f0ae847b807f09c866a562fe72bc1e054f46f",
+      "stdoutPreview": "name=xlang\ncount=7\nmaximum=18446744073709551615\nwhen=1\nbytes=51\nbinary=00ff41\nname=xlang\ncount=7\nmaximum=18446744073709551615\nwhen=1\nbytes=51\nbinary=00ff41\nPython MessagePack write/read fixture: PASS\nOfficial MessagePack timestamp interop: ",
+      "stderr": ""
+    },
+    "windowsFixtures": [
+      {
+        "path": "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101/C.bin",
+        "bytes": 51,
+        "sha256": "187030d4a564bc551d44095f0b5b5a9c01420cdb0dafeaee48c28e2bcd5d6863"
+      },
+      {
+        "path": "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101/XL.bin",
+        "bytes": 51,
+        "sha256": "187030d4a564bc551d44095f0b5b5a9c01420cdb0dafeaee48c28e2bcd5d6863"
+      },
+      {
+        "path": "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101/PY.bin",
+        "bytes": 102,
+        "sha256": "2a05cc525aad4759ce745ca955554eea64b9fbc7738ff98178f2cd4c5b536722"
+      }
+    ],
+    "cXlangBytesIdentical": true,
+    "reverseFixture": "UTF-8, nested values, binary, uint64 maximum and negative 500ms; GCC, TCC JIT and C/XLang AOT readers."
+  },
+  "catalog": {
+    "candidate": "build/test/msgpack_current_20261101/catalog-final-2",
+    "generation": {
+      "status": "passed",
+      "catalogSha256": "700cbcd35ca113cf4432f1ca6802ff6b69924e7eff93b50f697f46a02ecc923c",
+      "sourceIndexSha256": "8dcfa01c12527e890842b467ffbb3b5e1dfd3c4188454ea084e237d8a4e9902b",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "4ee80b1355412b6a13a5862f581bbbe41cb9d2d9f2ba21baaf419242092b4723",
+      "inputsUnchanged": true
+    },
+    "checks": [
+      {
+        "name": "candidate freshness",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/refresh_extensions.py",
+          "--check",
+          "--root",
+          "D:\\GIT\\x-lang",
+          "--data",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101/catalog-final-2"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+          "stderr": "",
+          "elapsedMs": 1081
+        }
+      },
+      {
+        "name": "strict compiler binding",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/check_catalog_coverage.py",
+          "--root",
+          "D:\\GIT\\x-lang",
+          "--catalog",
+          "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101/catalog-final-2/commands.json"
+        ],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Catalog compiler changed: xl.dll\r\n",
+          "elapsedMs": 352
+        }
+      },
+      {
+        "name": "existing runtime commit audit",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "tools/check_release_committed.py"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+          "stderr": "",
+          "elapsedMs": 1048
+        }
+      }
+    ],
+    "installed": false,
+    "blocker": "dev/extlib_blockers/catalog_release_binding_20261101.md"
+  },
+  "website": {
+    "source": {
+      "path": "release/extlibs/msgpack/docs/site.html",
+      "bytes": 9250,
+      "sha256": "547b6df3894335e8c3ab2ff68c8f723f8adeaf3c0fbd0e910a8c537e075435d6"
+    },
+    "generated": {
+      "path": "D:\\GIT\\x-lang\\build\\test\\msgpack_current_20261101/site/extlibs/msgpack.html",
+      "bytes": 9250,
+      "sha256": "547b6df3894335e8c3ab2ff68c8f723f8adeaf3c0fbd0e910a8c537e075435d6"
+    },
+    "externalWebsitePublished": false
+  },
+  "scope": {
+    "compilerRuntimeOrXrtSourceModifiedByThisTask": false,
+    "ideSourceModified": false,
+    "ordinaryPackages": 100,
+    "statuses": {
+      "G": 30,
+      "M": 56,
+      "R": 10,
+      "X": 4
+    },
+    "registeredForeignContainerPackages": 18,
+    "allOtherPackagesRetested": false,
+    "goalComplete": false,
+    "formalRelease": false,
+    "remaining": [
+      "Qualified core source, runtime products and base catalog bindings must converge before installing the generated pair.",
+      "MessagePack M1 is resolved only for this package. Other foreign-container boundaries remain registered."
+    ]
+  }
+}

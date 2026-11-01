@@ -53,7 +53,7 @@ try {
     $native=Join-Path $work 'native.o'
     $null=Run 'selected XRT compile' $gcc ($flags+@('-c','release/extlibs/msgpack/test/xrt_runtime.c','-o',$runtime))
     $null=Run 'native compile' $gcc ($flags+@('-c',$nativeSource,'-o',$native))
-    $extensionExpected='msgpack extension framing: 50651 checks, 18 OOM paths, 0 failures'
+    $extensionExpected='msgpack extension framing: 50675 checks, 18 OOM paths, 0 failures'
     foreach($name in @('test_msgpack','test_boundaries','test_allocations','extensions_c')){
         $source="release/extlibs/msgpack/test/$name.c"
         $binary=Join-Path $work ($name+'.exe')
@@ -96,20 +96,23 @@ try {
     if($output -cne $goldens[$language]){throw 'Bilingual timestamp golden differs'}
     $paths='release/extlibs/msgpack/test/extensions.xl'
     $null=Run 'XLang extension boundaries' $xl @('run',$paths)
+    $owned='release/extlibs/msgpack/test/owned_text.xl'
+    $null=Run 'XLang owned text' $xl @('run',$owned)
     $probe=Join-Path $work 'probe.c'
     $null=Run 'complete API cgen' $xl @('cgen',$language,'--emit',$probe)
     $text=[IO.File]::ReadAllText($probe)
-    if($text -cnotmatch 'xl6_xrt_take_cstr\('){throw 'Owned HEX output is no longer adopted'}
+    $null=Run 'direct owned result path' $python @('release/extlibs/msgpack/test/check_owned_codegen.py',$probe)
     $decls=@($text -split "`r?`n"|Where-Object{$_ -match '^extern .*\bxmsgpack_[a-z_]+\('}|Sort-Object -Unique)
     $actual=@([regex]::Matches(($decls -join "`n"),'\bxmsgpack_[a-z_]+(?=\()')|ForEach-Object Value|Sort-Object -Unique)
     $binding=[IO.File]::ReadAllText((Join-Path $pkg 'src/msgpack.xl'))
-    $expected=@([regex]::Matches($binding,'extern "([A-Za-z0-9_]+)"')|ForEach-Object{$_.Groups[1].Value}|Sort-Object -Unique)
+    # 编译器的正式数据快照入口不属于本包的八条 C 原型。
+    $expected=@([regex]::Matches($binding,'extern "(xmsgpack_[A-Za-z0-9_]+)"')|ForEach-Object{$_.Groups[1].Value}|Sort-Object -Unique)
     if($decls.Count -ne 8 -or @(Compare-Object $expected $actual).Count){throw 'Incomplete generated API prototypes'}
     $abi=Join-Path $work 'abi.c'
     [IO.File]::WriteAllText($abi,"#include `"msgpack_native.c`"`n"+($decls -join "`n"),$utf8)
     $null=Run 'eight actual prototypes' $gcc ($flags+@('-fsyntax-only',$abi))
     if(-not $SkipAot){
-        $sources=@($extensionSource,$paths,$language)
+        $sources=@($extensionSource,$paths,$language,$owned)
         foreach($pair in $examples){$sources+='release/extlibs/msgpack/examples/'+$pair[0]}
         foreach($source in $sources){
             $binary=Join-Path $work (([guid]::NewGuid().ToString('N'))+'.exe')

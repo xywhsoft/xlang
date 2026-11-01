@@ -1,5 +1,31 @@
 # MessagePack 扩展库
 
+## 2026-11-01 主目录复验与毫秒口径
+
+现行发布物的原字典最小例已经恢复；不在本包新增容器兼容分支，也不
+据此外推其他包。完整门禁及产品哈希见
+`docs/reports/extlib-msgpack-20261101.json`，以下冻结版本故障只作历史。
+
+- 补齐生产manifest、测试实现与先包含公开头的测试/范例的TIME声明；
+  编码器本来已经调用TIME函数，不能靠其他模块偶然传递依赖。
+- XRT时间是AD毫秒。测试、独立参照与范例不再将原始time(0)当Unix纪元，
+  也不把1微秒当作可表示的精度。双语范例改为1毫秒、负500毫秒，并保留
+  1微秒必须拒绝的正交回归；纳秒载荷不做静默舍入。
+- 扩展矩阵增加24条微秒拒绝上下文/ABI检查，共50675项与18条OOM路径。
+  极限转换的RangeError及xrt.time原错误域必须保留，不为了让旧断言通过
+  在本包覆盖XRT首因。530个AD时间点/1599帧按Python日期与整数模型核对，
+  覆盖32/34位Unix秒布局阈值、负时间和整个有符号xtime范围。
+- HEX改为拥有型char*直接接管，保留匹配const输入的原point薄适配。
+  旧路径也未复制正文，本轮仅简化返回链路，不宣称全FFI零成本。
+  空结果、保留结果寿命、逐点OOM/恢复和生成代码检查加入默认门禁。
+- 八条包级C原型与编译器正式数据快照入口分开核对；后者不是第九条
+  本包C API。原六API、语言容器、双语文件往返及全部独立程序仍须通过。
+
+官网详情源与命令目录候选随本阶段更新；主线发布绑定未统一前，不跳过
+校验安装目录候选，也不将旧发布物的通过记录移作新产品证明。
+
+## 历史冻结发布物记录
+
 2026-10-29 当前冻结发布版复验：Windows/Linux 默认门禁均完成前 43
 阶段，包含严格 C、边界、分配故障、独立时间戳参照、双语范例和 5 个
 独立程序；第 44 阶段中央 XLang 正例在语言字典传给
@@ -24,14 +50,14 @@ stderr/退出码，运行前后核对输入指纹；成功时只清理本次独�
 | --- | --- | --- |
 | 保留标记 `c1`、截断头部/类型/载荷、时间戳长度错误 | `XERR_VALUE` | `ValueError` |
 | 完整但未建模的扩展类型 | `XERR_UNSUPPORTED` | `NotImplementedError` |
-| 非整微秒或纳秒部分超过 999999999 | `XERR_VALUE` | `ValueError` |
-| 时间范围或声明载荷长度超过本包预算 | `XERR_RANGE` | `ValueError` |
+| 非整毫秒或纳秒部分超过 999999999 | `XERR_VALUE` | `ValueError` |
+| 时间范围或声明载荷长度超过本包预算 | `XERR_RANGE` | `RangeError` |
 
 超出资源预算的长度先报范围错误；预算内的未知类型也必须先验证帧完整，
 不能把缺字节误报成不支持。零字节公开输入仍是缺失参数 `XERR_ARGUMENT`。
-新扩展测试包含 50,650 项帧/截断/错误分类检查、18 条逐点 OOM/恢复
+扩展测试包含50,675项帧/截断/错误分类及聚合检查、18条逐点OOM/恢复
 路径和所有权计数。另以 Python 标准库整数/`struct` 独立核对 530 个
-时间点的 1,599 帧，覆盖完整有符号微秒范围、负秒数和编码布局阈值；
+时间点的1,599帧，覆盖完整有符号AD毫秒范围、负秒数和编码布局阈值；
 GCC、TCC 直跑、TCC 独立程序的帧、值及最短编码逐字一致。
 此参照不依赖第三方 Python 包，也不是仅由本库编码后再自行解码。
 
@@ -39,8 +65,8 @@ GCC、TCC 直跑、TCC 独立程序的帧、值及最短编码逐字一致。
 全部六个入口，接受 ext16/ext32 时间戳后写回最短布局，并处理含 NUL/
 非 UTF-8 的二进制。五行输出与 `timestamp_frames.expected.txt` 对照。
 语言字典完整范例和原边界/故障用例继续保留，不以该标量例子绕过 M1。
-测试 XRT 实现仅启用 manifest 六模块以及文件范例/故障注入所需的两模块，
-没有携带另一份全模块运行库；包 manifest 的生产依赖未增加。
+测试 XRT 实现仅启用 manifest 七模块以及文件范例/故障注入所需的两模块，
+没有携带另一份全模块运行库；新增的TIME声明是补齐编码器本来已使用的生产依赖。
 
 从仓库根目录运行：
 
@@ -50,8 +76,8 @@ GCC、TCC 直跑、TCC 独立程序的帧、值及最短编码逐字一致。
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/msgpack/test/check.ps1
 ```
 
-默认门禁先跑 C、标量/扩展和五个独立程序，再验收原语言容器正例；
-当前最后一项的非零退出仍是未解决的主线阻断，不属于预期成功。
+默认门禁先跑C、标量/扩展和拥有型字符串，再验收原语言容器正例；
+任何非零退出都必须保留，不得将旧M1失败改成预期成功。
 Python 3 与 C 编译器缺失时明确失败，不跳过独立参照；`CC`、`PYTHON`
 可指定工具路径。Windows 报告与失败目录保留于 `build/test/msgpack_guard`，
 Linux 保留于本次 `TMPDIR` 下。超时会失败并保留日志。
@@ -82,7 +108,7 @@ println(document["name"])
 | `time` | 标准 timestamp 扩展类型 `-1`（32/64/96 位） |
 | `array`、`dict` | array、map（只接受 UTF-8 字符串键） |
 
-解码接受 float32 并转换成 XLang 浮点数；时间以 XRT 微秒精度表示，编码选最短标准布局。外部时间戳的纳秒部分若不是整微秒，或时间超出 XRT `time` 范围，会明确报错，不做静默舍入。整数可覆盖标准线格式的有符号 int64 和无符号 uint64；解码值不超过 `INT64_MAX` 时沿用 `int`，超过时用 XRT `uint64` 保存。线格式无法保留较小正整数在输入端的有符号类型区别。其他未建模的 ext 类型仍明确拒绝。编码不支持的 `var` 类型也明确失败。文本键和值都按显式长度处理，允许内嵌 NUL，不会在第一个 NUL 处截断；HEX 文本入口则拒绝内嵌 NUL。二进制输入/输出上限 64 MiB；调试用 HEX 文本最多 128 MiB。C 入口将缺失输入报为 `XERR_ARGUMENT`，超限报为 `XERR_RANGE`；这些输入错误在 XLang 层抛 `ValueError`，分配故障另抛 `MemoryError`。整个文档的数组项和字典项合计最多 100 万，嵌套深度最多 64；编解码均采用相同预算。重复 map 键、非法 UTF-8、截断与尾随字节都拒绝。范围遵循 [MessagePack 规范](https://github.com/msgpack/msgpack/blob/master/spec.md)允许应用层约束 map 键和扩展类型的设计。
+解码接受 float32 并转换成 XLang 浮点数；时间以 XRT AD毫秒精度表示，编码选最短标准布局。外部时间戳的纳秒部分若不是整毫秒，或时间超出 XRT `time` 范围，会明确报错，不做静默舍入。整数可覆盖标准线格式的有符号 int64 和无符号 uint64；解码值不超过 `INT64_MAX` 时沿用 `int`，超过时用 XRT `uint64` 保存。线格式无法保留较小正整数在输入端的有符号类型区别。其他未建模的 ext 类型仍明确拒绝。编码不支持的 `var` 类型也明确失败。文本键和值都按显式长度处理，允许内嵌 NUL，不会在第一个 NUL 处截断；HEX 文本入口则拒绝内嵌 NUL。二进制输入/输出上限 64 MiB；调试用 HEX 文本最多 128 MiB。C 入口将缺失输入报为 `XERR_ARGUMENT`，超限报为 `XERR_RANGE`；缺失/格式错误在XLang层抛`ValueError`，超限抛`RangeError`，分配故障另抛 `MemoryError`。整个文档的数组项和字典项合计最多 100 万，嵌套深度最多 64；编解码均采用相同预算。重复 map 键、非法 UTF-8、截断与尾随字节都拒绝。范围遵循 [MessagePack 规范](https://github.com/msgpack/msgpack/blob/master/spec.md)允许应用层约束 map 键和扩展类型的设计。
 
 浮点特殊值按 IEEE-754 位型保存：float64 负零、正负无穷与 NaN 的固定 wire 可重编码为同一字节序列；float32 负零提升到 float64 后仍保留符号位。包内 C 与 XLang 边界用例同时固定这些结果。
 2026-10-24 的 Windows 严格 C/XLang 聚焦门禁和 Linux C ASan/UBSan、XLang 联合门禁均通过；完整 AOT 仍按下文的共享链接阻断处理。
@@ -107,13 +133,13 @@ manifest 单独编译该实现。范例在参数错误、解码失败或文件�
 
 Linux 包级门禁：`bash release/extlibs/msgpack/test/check.sh`，对 C 核心和边界用例
 启用 ASan/UBSan 与泄漏检查，执行同等独立时间戳参照、实际生成 C 原型、
-双语范例及五个独立程序，再验收完整语言容器正例。
+双语范例及完整语言容器正例，共构建运行十二个独立程序。
 2026-10-13 复现并修复 map 键分配失败被误报为
 类型错误，以及截断的 uint64 被误报为范围错误；故障注入、严格 GCC、
 C/XLang 边界和 Linux sanitizer 均通过。
 
 `-SkipAot` 只用于 Windows 的快速 C/JIT 检查，不代表完整验收。早期构建缺少 `xl6NativeHandleTraceLeaf` 的记录见 `dev/extlib_blockers/native_handle_trace_aot.md`，不能作为当前首阻断。C/XLang 对照范例在 `examples/`。
-与 [MessagePack 官方 Python 实现](https://github.com/msgpack/msgpack-python) 的双向互操作可选验证：C/xlang 保存的文件字节一致且 Python 可解码；Python 写出的 UTF-8、64 位整数、嵌套值及 `bin` 原始字节，C/xlang 均可读取。此为旧构建上的独立验证；当前字典投影阻断修复前不能声称重新通过。Python 包只安装在 `build/test` 的隔离环境，不进入发布包。从仓库根目录运行：
+与 [MessagePack 官方 Python 实现](https://github.com/msgpack/msgpack-python) 的双向互操作可选验证：C/xlang 保存的文件字节一致且 Python 可解码；Python 写出的 UTF-8、64 位整数、嵌套值及 `bin` 原始字节，C/xlang 均可读取。可加第四个记录文件参数，额外与官方实现逐条核对530个时间点的1599帧；最终实跑结果见本轮报告。Python 包只安装在 `build/test` 的隔离环境，不进入发布包。从仓库根目录运行：
 
 ```powershell
 python -m venv build\test\msgpack\venv
@@ -127,12 +153,12 @@ python -m venv build\test\msgpack\venv
 .\build\test\msgpack_external_c.exe build\test\msgpack_python.bin
 ```
 
-范例的文件路径参数只用于保留互操作产物；不传路径时输出示例字段。双语范例写出微秒时间，Python 独立实现读取；Python 写出的负时间戳又由 C/XLang 读回。此项只验收上述公开子集，不意味着支持其他 MessagePack ext。
+范例的文件路径参数只用于保留互操作产物；不传路径时输出示例字段。双语范例写出毫秒时间，Python 独立实现读取；Python 写出的负时间戳又由 C/XLang 读回。此项只验收上述公开子集，不意味着支持其他 MessagePack ext。
 
 本轮固定种子随机输入发现超限 `str32` 以及过深嵌套曾返回失败却未设置错误；
 现已给这两条路径设置诊断并加入最小回归。当前 C/JIT 门禁通过；完整门禁
 在核心 AOT 缺少 `xl6NativeHandleTraceLeaf` 处停止，未签收全部发布形态。
-包 manifest 现与原生源码的六项 XRT 模块声明一致；同一
+早期manifest只记录了六项模块；本轮已补齐为七项，与实际TIME依赖一致。此前同一
 `test/aot_core.xl` 从 3,639,296 缩至 663,552 字节并执行通过。
 边界 AOT 的历史结果与 C/XLang 对照通过；当前完整 AOT 仍受上述共享链接阻断。
 2026-10-15 追加标准 timestamp 32/64/96 编解码：Python `msgpack` 1.2.3 生成的固定向量覆盖零点、负时间、64 位秒数及 XRT 时间上下界；外部 Python 双向互操作、Windows C/XL 门禁与 Linux ASan/UBSan 通过。完整带输出 AOT 仍等待共享缺符号修复。

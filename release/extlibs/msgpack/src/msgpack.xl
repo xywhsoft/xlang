@@ -4,7 +4,7 @@ extern "xmsgpack_encode_abi" func __encode(var value) as point
 extern "xmsgpack_decode_abi" func __decode(point data, c_size size) as var
 extern "xmsgpack_encode_bytes_abi" func __encode_bytes(point data, c_size size) as point
 extern "xmsgpack_decode_bytes_abi" func __decode_bytes(point data, c_size size) as point
-extern "xmsgpack_to_hex_abi" func __to_hex(point data, c_size size) as point
+extern "xmsgpack_to_hex_abi" @owned func __to_hex(point data, c_size size) as string
 extern "xmsgpack_from_hex_abi" func __from_hex(string text) as point
 extern "xmsgpack_error_message" func __error() as string
 extern "xmsgpack_has_error" func __has_error() as bool
@@ -42,11 +42,7 @@ export func decodeBytes(Buffer data) as Buffer
 end
 
 export func toHex(Buffer data) as string
-    point result = __to_hex(data.data(), c_size(data.len()))
-    if result == null then
-        throw ValueError __error()
-    end
-    return __xl_runtime.takeCstr(result)
+    return __to_hex(data.data(), c_size(data.len()))
 end
 
 export func fromHex(string text) as Buffer

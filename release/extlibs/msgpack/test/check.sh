@@ -58,7 +58,7 @@ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 export PYTHONDONTWRITEBYTECODE=1
 export XLANG_PACKAGE_PATH="$root/release/extlibs"
 modules=(-DXRT_MODULE_BUFFER -DXRT_MODULE_BUFFER_HEX -DXRT_MODULE_CODEC_HEX
-         -DXRT_MODULE_STRING -DXRT_MODULE_UNICODE -DXRT_MODULE_VALUE_CONTAINER)
+         -DXRT_MODULE_STRING -DXRT_MODULE_UNICODE -DXRT_MODULE_VALUE_CONTAINER -DXRT_MODULE_TIME)
 compile "${modules[@]}" -x c -fsyntax-only release/extlibs/msgpack/msgpack_native.h
 compile "${modules[@]}" -fsyntax-only release/extlibs/msgpack/msgpack_native.c
 compile -c release/extlibs/msgpack/test/xrt_runtime.c -o "$work/runtime.o"
@@ -70,7 +70,7 @@ for name in test_msgpack test_boundaries test_allocations extensions_c; do
     run 120 "$work/$name" > "$work/$name.txt"
     cat "$work/$name.txt"
 done
-printf 'msgpack extension framing: 50651 checks, 18 OOM paths, 0 failures\n' > "$work/extensions.expected"
+printf 'msgpack extension framing: 50675 checks, 18 OOM paths, 0 failures\n' > "$work/extensions.expected"
 diff -u "$work/extensions.expected" "$work/extensions_c.txt"
 run 90 "$work/extensions_c" --records > "$work/gcc.tsv"
 run 60 "$python" release/extlibs/msgpack/test/check_timestamps.py "$work/gcc.tsv"
@@ -98,17 +98,19 @@ run 90 ./release/xl run "$language" > "$work/timestamp_frames.xl.txt"
 diff -u "$work/timestamp_frames.expected" "$work/timestamp_frames.xl.txt"
 paths=release/extlibs/msgpack/test/extensions.xl
 run 120 ./release/xl run "$paths"
+owned=release/extlibs/msgpack/test/owned_text.xl
+run 120 ./release/xl run "$owned"
 run 90 ./release/xl cgen "$language" --emit "$work/probe.c"
-grep -Eq 'xl6_xrt_take_cstr\(' "$work/probe.c"
+run 30 "$python" release/extlibs/msgpack/test/check_owned_codegen.py "$work/probe.c"
 grep -E '^extern .*xmsgpack_[a-z_]+[(]' "$work/probe.c" | sort -u > "$work/abi.decls"
 grep -oE 'xmsgpack_[a-z_]+[(]' "$work/abi.decls" | tr -d '(' | sort -u > "$work/abi.actual"
-sed -nE 's/^extern "([A-Za-z0-9_]+)".*/\1/p' release/extlibs/msgpack/src/msgpack.xl | sort -u > "$work/abi.expected"
+sed -nE 's/^extern "(xmsgpack_[A-Za-z0-9_]+)".*/\1/p' release/extlibs/msgpack/src/msgpack.xl | sort -u > "$work/abi.expected"
 test "$(wc -l < "$work/abi.decls")" -eq 8
 diff -u "$work/abi.expected" "$work/abi.actual"
 printf '#include "msgpack_native.c"\n' > "$work/abi.c"
 cat "$work/abi.decls" >> "$work/abi.c"
 compile -fsyntax-only "$work/abi.c"
-sources=(release/extlibs/msgpack/test/extensions_c.c "$paths" "$language"
+sources=(release/extlibs/msgpack/test/extensions_c.c "$paths" "$language" "$owned"
          release/extlibs/msgpack/examples/msgpack_c.c release/extlibs/msgpack/examples/timestamp_frames_c.c)
 index=0
 for source in "${sources[@]}"; do

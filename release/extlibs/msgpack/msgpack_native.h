@@ -19,7 +19,7 @@ void* xmsgpack_encode_abi(xvalue* value);
 xvalue* xmsgpack_decode_abi(void* data, size_t size);
 void* xmsgpack_encode_bytes_abi(void* data, size_t size);
 void* xmsgpack_decode_bytes_abi(void* data, size_t size);
-void* xmsgpack_to_hex_abi(void* data, size_t size);
+str xmsgpack_to_hex_abi(void* data, size_t size);
 void* xmsgpack_from_hex_abi(cstr text);
 
 #endif

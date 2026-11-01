@@ -42,7 +42,7 @@ assert msgpack.decode(msgpack.fromHex("c0")) == null</code></pre>
 var epoch = msgpack.decode(msgpack.fromHex("c80004ff00000000"))
 assert epoch == time(0)
 assert msgpack.toHex(msgpack.encode(epoch)) == "d6ff00000000"</code></pre>
-    <p>时间戳类型 -1 按 4/8/12 字节载荷解释，不受 ext8/ext16/ext32 头部宽度影响；编码仍使用最短 timestamp32/64/96。其他完整但未建模的扩展类型抛 <code>NotImplementedError</code>；保留标记 <code>c1</code>、截断帧、非法时间戳长度和非整微秒抛 <code>ValueError</code>。超过载荷预算先报范围错误，不分配超限载荷。依据 <a href="https://github.com/msgpack/msgpack/blob/master/spec.md">MessagePack 官方规范</a>。</p>
+    <p>时间戳类型 -1 按 4/8/12 字节载荷解释，不受 ext8/ext16/ext32 头部宽度影响；编码仍使用最短 timestamp32/64/96。其他完整但未建模的扩展类型抛 <code>NotImplementedError</code>；保留标记 <code>c1</code>、截断帧、非法时间戳长度和非整毫秒抛 <code>ValueError</code>。超过载荷预算先报范围错误，不分配超限载荷。依据 <a href="https://github.com/msgpack/msgpack/blob/master/spec.md">MessagePack 官方规范</a>。</p>
     <p>成对 <code>examples/timestamp_frames.xl</code> 与 <code>timestamp_frames_c.c</code> 覆盖六入口和五行固定输出，包含非最短时间戳头、负时间、NUL 与非 UTF-8 二进制。新的 50,650 项帧/截断/分类检查和 18 条分配失败恢复路径通过；Python 标准库独立核对 530 个时间点、1,599 帧，GCC、TCC 直跑与独立程序逐字一致。此例不替换原语言字典正例。</p>
   </section>
   <section id="api">
@@ -52,7 +52,7 @@ assert msgpack.toHex(msgpack.encode(epoch)) == "d6ff00000000"</code></pre>
       <tr><td><code>encodeBytes(Buffer) / decodeBytes(Buffer)</code></td><td>直接处理 bin 字节串。</td></tr>
       <tr><td><code>toHex(Buffer) / fromHex(text)</code></td><td>诊断或固定测试向量；HEX 文本拒绝内嵌 NUL，C 文本入口按 128 MiB 限界扫描。</td></tr>
     </tbody></table>
-    <p>映射 null、bool、int、uint64、float、UTF-8 字符串、字节、时间、数组和文本键字典。标准 uint64 可编码至 2^64-1；解码时不超过 INT64_MAX 的正整数沿用 int，超过时用 uint64，线格式不保留较小正整数的原始有符号类型。文本键和值均按显式长度处理，内嵌 NUL 不会截断；HEX 文本入口拒绝 NUL。time 使用标准 timestamp 扩展类型 -1 的 32/64/96 位布局；解码 float32 后转换为 xlang 浮点。时间精度为微秒，外部非整微秒纳秒值与超界时间报错，不静默舍入。其他 ext 类型及非文本映射键不在本包模型内。重复键、坏 UTF-8、截断和尾随字节报错。二进制输入/输出上限 64 MiB，调试用 HEX 文本上限 128 MiB；C 入口将缺失输入报为参数错误、超限报为范围错误；这些输入错误在 XLang 层抛 ValueError，分配故障另抛 MemoryError。整个文档的数组项与字典项合计最多 100 万，编解码采用相同预算；深度最多 64。</p>
+    <p>映射 null、bool、int、uint64、float、UTF-8 字符串、字节、时间、数组和文本键字典。标准 uint64 可编码至 2^64-1；解码时不超过 INT64_MAX 的正整数沿用 int，超过时用 uint64，线格式不保留较小正整数的原始有符号类型。文本键和值均按显式长度处理，内嵌 NUL 不会截断；HEX 文本入口拒绝 NUL。time 使用标准 timestamp 扩展类型 -1 的 32/64/96 位布局；解码 float32 后转换为 xlang 浮点。时间精度为毫秒，外部非整毫秒纳秒值与超界时间报错，不静默舍入。其他 ext 类型及非文本映射键不在本包模型内。重复键、坏 UTF-8、截断和尾随字节报错。二进制输入/输出上限 64 MiB，调试用 HEX 文本上限 128 MiB；C 入口将缺失输入报为参数错误、超限报为范围错误；缺失/格式错误在 XLang 层抛 ValueError，超限抛 RangeError，分配故障另抛 MemoryError。整个文档的数组项与字典项合计最多 100 万，编解码采用相同预算；深度最多 64。</p>
   </section>
   <section id="c-api">
     <h2>C 对照</h2>
@@ -74,6 +74,7 @@ int main(void)
   </section>
   <section id="verify">
     <h2>验证状态</h2>
+    <p>2026-11-01：原字典最小例在主目录发布物上已恢复。补齐TIME模块声明，并将测试、独立参照及双语范例统一到XRT AD毫秒；1微秒输入明确拒绝，XRT时间溢出的RangeError及原错误域保留。新版扩展矩阵为50675项与18条OOM路径；530个时间点/1599帧按独立日期/整数模型核对。HEX以拥有型char*直接接管，并补空/保留结果、OOM恢复与生成代码检查；旧路径也没有正文复制。最终两平台证据见仓库 <code>docs/reports/extlib-msgpack-20261101.json</code>，不将下面旧M1记录自动用于当前版本。命令目录候选仍需通过统一发布绑定后才能安装，未部署外部网站。</p>
     <p>2026-10-21 XLang 六个公开入口的分配故障用例改为逐入口扫描到首次成功，并在每次失败后立即清除故障、重试。Windows/Linux 正式运行器均通过；包实现及线格式未改，完整 AOT 的共享阻断未变。</p>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/msgpack/test/check.ps1
 bash release/extlibs/msgpack/test/check.sh</code></pre>

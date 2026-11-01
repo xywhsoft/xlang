@@ -6,6 +6,7 @@
 #define XRT_MODULE_STRING
 #define XRT_MODULE_UNICODE
 #define XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_TIME
 #include "../msgpack_native.h"
 #include <stdio.h>
 #include <string.h>
@@ -42,7 +43,8 @@ static xvalue* payload_value(xvalue* value, unsigned context)
         xrtValueObjectGet(value, XRT_STR_LITERAL("x")));
 }
 
-static void verify(const uint8* data, size_t size, unsigned context, bool abi, xerrkind kind)
+static void verify_domain(const uint8* data, size_t size, unsigned context, bool abi,
+    xerrkind kind, cstr domain)
 {
     xmemdebugsnapshot before, after;
     xrtClearError();
@@ -53,11 +55,11 @@ static void verify(const uint8* data, size_t size, unsigned context, bool abi, x
     if (kind == XERR_NONE) {
         xtime time;
         ok = value != NULL && error == NULL &&
-            xrtValueGetTime(payload_value(value, context), &time) && time == 0;
+            xrtValueGetTime(payload_value(value, context), &time) && time == XRT_TIME_UNIX_EPOCH;
     } else {
         ok = (abi ? value != NULL && xrtValueType(value) == XVALUE_NULL : value == NULL) &&
             error != NULL && xrtErrorKind(error) == kind &&
-            strcmp(xrtErrorDomain(error), "xlang.extlib.msgpack") == 0;
+            strcmp(xrtErrorDomain(error), domain) == 0;
     }
     if (!ok && failures < 8) fprintf(stderr, "extension head=%02x size=%zu context=%u abi=%d expected=%d actual=%d\n",
         size != 0 ? data[0] : 0, size, context, (int)abi, (int)kind,
@@ -69,6 +71,11 @@ static void verify(const uint8* data, size_t size, unsigned context, bool abi, x
         before.DoubleFreeCount == after.DoubleFreeCount && before.InvalidFreeCount == after.InvalidFreeCount;
     ++checks;
     if (!ok) ++failures;
+}
+
+static void verify(const uint8* data, size_t size, unsigned context, bool abi, xerrkind kind)
+{
+    verify_domain(data, size, context, abi, kind, "xlang.extlib.msgpack");
 }
 
 static void matrix(void)
@@ -110,11 +117,12 @@ static void matrix(void)
     verify(oversized, sizeof(oversized), 0, true, XERR_RANGE);
 }
 
-/* 非整微秒、非法纳秒和溢出在所有可容纳该载荷的头部中含义相同。 */
+/* 非整毫秒、非法纳秒和溢出在所有可容纳该载荷的头部中含义相同。 */
 static void invalid_times(void)
 {
     static const struct { size_t size; uint8 payload[12]; xerrkind kind; } cases[] = {
         {8, {0,0,0,4,0,0,0,0}, XERR_VALUE},
+        {8, {0,0,0x0f,0xa0,0,0,0,0}, XERR_VALUE},
         {8, {0xee,0x6b,0x28,0,0,0,0,0}, XERR_VALUE},
         {12, {0,0,0,1,0,0,0,0,0,0,0,0}, XERR_VALUE},
         {12, {0x3b,0x9a,0xca,0,0,0,0,0,0,0,0,0}, XERR_VALUE},
@@ -128,7 +136,8 @@ static void invalid_times(void)
             size_t size = frame(data, heads[h], 0xff, cases[c].size, cases[c].payload);
             for (unsigned context = 0; context != 3; ++context)
                 for (unsigned abi = 0; abi != 2; ++abi)
-                    verify(wrapped, wrap(wrapped, data, size, context), context, abi != 0, cases[c].kind);
+                    verify_domain(wrapped, wrap(wrapped, data, size, context), context, abi != 0,
+                        cases[c].kind, cases[c].kind == XERR_RANGE ? "xrt.time" : "xlang.extlib.msgpack");
         }
 }
 
@@ -150,7 +159,7 @@ static bool oom(void)
                 xtime time;
                 bool ok = triggered ? (abi ? xrtValueType(value) == XVALUE_NULL : value == NULL) &&
                     xrtErrorKind(xrtGetError()) == XERR_MEMORY : value != NULL && xrtGetError() == NULL &&
-                    xrtValueGetTime(payload_value(value, context), &time) && time == 0;
+                    xrtValueGetTime(payload_value(value, context), &time) && time == XRT_TIME_UNIX_EPOCH;
                 failed = failed || triggered;
                 xrtValueRelease(value); xrtClearError(); xrtMemDebugSnapshot(&after);
                 if (!ok || before.LiveCount != after.LiveCount || before.LiveBytes != after.LiveBytes ||
@@ -158,7 +167,7 @@ static bool oom(void)
                 if (triggered) {
                     value = xmsgpack_decode(wrapped, size);
                     ok = value != NULL && xrtGetError() == NULL &&
-                        xrtValueGetTime(payload_value(value, context), &time) && time == 0;
+                        xrtValueGetTime(payload_value(value, context), &time) && time == XRT_TIME_UNIX_EPOCH;
                     xrtValueRelease(value); xrtClearError(); xrtMemDebugSnapshot(&after);
                     if (!ok || before.LiveCount != after.LiveCount || before.LiveBytes != after.LiveBytes) return false;
                 }
@@ -176,10 +185,16 @@ static void hex(const uint8* data, size_t size)
 
 static bool time_records(void)
 {
-    static const xtime fixed[] = {INT64_MIN,INT64_MIN+1,-1000001,-1000000,-999999,-1,
-        0,1,999999,1000000,1000001,INT64_C(4294967295)*1000000,
-        INT64_C(4294967296)*1000000-1,INT64_C(4294967296)*1000000,
-        INT64_C(17179869184)*1000000-1,INT64_C(17179869184)*1000000,INT64_MAX-1,INT64_MAX};
+    /* 原始 xtime 极限与 Unix 纪元/32位、34位秒边界都必须经过同一编码器。 */
+    static const xtime fixed[] = {INT64_MIN,INT64_MIN+1,
+        XRT_TIME_UNIX_EPOCH-1001,XRT_TIME_UNIX_EPOCH-1000,XRT_TIME_UNIX_EPOCH-999,
+        XRT_TIME_UNIX_EPOCH-1,XRT_TIME_UNIX_EPOCH,XRT_TIME_UNIX_EPOCH+1,
+        XRT_TIME_UNIX_EPOCH+999,XRT_TIME_UNIX_EPOCH+1000,XRT_TIME_UNIX_EPOCH+1001,
+        XRT_TIME_UNIX_EPOCH+INT64_C(4294967295)*1000,
+        XRT_TIME_UNIX_EPOCH+INT64_C(4294967296)*1000-1,
+        XRT_TIME_UNIX_EPOCH+INT64_C(4294967296)*1000,
+        XRT_TIME_UNIX_EPOCH+INT64_C(17179869184)*1000-1,
+        XRT_TIME_UNIX_EPOCH+INT64_C(17179869184)*1000,INT64_MAX-1,INT64_MAX};
     uint64 seed = UINT64_C(0x9e3779b97f4a7c15);
     for (unsigned i = 0; i != sizeof(fixed)/sizeof(fixed[0])+512; ++i) {
         xtime time;

@@ -3,11 +3,11 @@ import msgpack
 func main(...) as int
     // 接受不同宽度的 ext 头，写出时仍使用最短的标准 timestamp。
     var epoch = msgpack.decode(msgpack.fromHex("c80004ff00000000"))
-    var micro = msgpack.decode(msgpack.fromHex("c900000008ff00000fa000000000"))
+    var millis = msgpack.decode(msgpack.fromHex("c900000008ff003d090000000000"))
     var negative = msgpack.decode(msgpack.fromHex("c8000cff1dcd6500ffffffffffffffff"))
-    assert epoch == time(0) and micro == time(1) and negative == time(-500000)
+    assert epoch == time.fromUnixMs(0) and millis == time.fromUnixMs(1) and negative == time.fromUnixMs(-500)
     println("epoch=" + msgpack.toHex(msgpack.encode(epoch)))
-    println("micro=" + msgpack.toHex(msgpack.encode(micro)))
+    println("millis=" + msgpack.toHex(msgpack.encode(millis)))
     println("negative=" + msgpack.toHex(msgpack.encode(negative)))
 
     // 二进制含 NUL 和非 UTF-8 字节；不能当作普通字符串传输。
