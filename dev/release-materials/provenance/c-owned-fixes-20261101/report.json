@@ -1,0 +1,168 @@
+{
+  "complete": true,
+  "codeRevision": "3685bc979b0227aa128551b13d397d32b172a13a",
+  "validationRevision": "6f6b76cf8",
+  "mainBaseline": "0a12a07b0",
+  "validatedAt": "2026-11-01T20:26:55.906585+08:00",
+  "scope": "compiler source, static C-owned match/callback boundaries and public source-driver validation; shipping products not replaced or recertified",
+  "fixes": [
+    {
+      "id": "F1",
+      "commit": "ab085b40c",
+      "change": "expected callable ABI reaches every match arm in its original pattern scope; stable binding identities"
+    },
+    {
+      "id": "F2",
+      "commit": "6c9b372da",
+      "change": "mixed string/bytes match joins preserve owner payloads independently of arm order; idempotent nullable joins"
+    },
+    {
+      "id": "F3",
+      "commit": "92992274a",
+      "change": "bound result-copy and nullable-lift costs rank before omitted defaults; aliased callable adapters use the resolved function shape"
+    },
+    {
+      "id": "F4",
+      "commit": "34f05b7f6",
+      "followup": "6f6b76cf8",
+      "change": "CLI build and execution use the same AOT artifact path, including Windows .exe"
+    }
+  ],
+  "platforms": {
+    "windows": {
+      "sourceUnits": 1397,
+      "optimization": "O0",
+      "functionalStages": 271,
+      "independentCAndIrStages": 55,
+      "sourceDeliveryStages": 9,
+      "pointerAndCControlStages": 8,
+      "foreignFailurePrefixes": {
+        "matchCallbacks": 512,
+        "matchValues": 384,
+        "conversionRanking": 512
+      }
+    },
+    "linux": {
+      "sourceUnits": 1396,
+      "optimization": "O0",
+      "functionalStages": 271,
+      "independentCAndIrStages": 55,
+      "sourceDeliveryStages": 7,
+      "pointerAndCControlStages": 8,
+      "foreignFailurePrefixes": {
+        "matchCallbacks": 512,
+        "matchValues": 384,
+        "conversionRanking": 512
+      }
+    }
+  },
+  "crossPlatformTestInputsIdentical": 114,
+  "costs": {
+    "nativeOwnedInvocation": {
+      "xrtMalloc": 1,
+      "calloc": 0,
+      "realloc": 0,
+      "memdup": 0,
+      "freeBeforeRelease": 0,
+      "originalPointer": true,
+      "controls": "JIT/AOT, implicit match vs explicit arm casts vs handwritten C using the same producer; binding construction excluded"
+    },
+    "foreignOwned": "existing C allocator payload plus one XRT owner record; cstring still determines NUL-terminated length",
+    "mixedOrdinaryBytes": {
+      "standaloneLiteralXrtAllocations": 1,
+      "mixedMatchXrtAllocations": 2,
+      "existingConditionalXrtAllocations": 2,
+      "additionalPayloadCopy": false,
+      "reason": "one existing owner record retains the ordinary bytes value; eliminating it requires separate carrier/lifetime design"
+    },
+    "mixedOrdinaryString": {
+      "xrtAllocations": 1,
+      "additionalOwnerRecord": false
+    },
+    "existingBindingCosts": "closure/capture, receiver references and code lifetime remain; no whole-call zero-overhead or timing claim"
+  },
+  "stagingAttempts": [
+    {
+      "directory": "linux-integrated",
+      "outcome": "example absent from staging; both example files restored; excluded from acceptance"
+    },
+    {
+      "directory": "linux-integrated-complete",
+      "outcome": "functional stages passed; independent C subprocess hit 300-second NTFS object-read timeout; excluded from final acceptance"
+    },
+    {
+      "directory": "linux-final-native",
+      "outcome": "byte-identical native mirror, but the parent 300-second aggregate watchdog remained too short; excluded"
+    },
+    {
+      "directory": "linux-accepted",
+      "outcome": "fresh complete gate with native mirror and a separate 1800-second total independent-C budget; each child command keeps its own bound"
+    }
+  ],
+  "artifacts": {
+    "windows": {
+      "originalPath": "D:\\GIT\\x-lang\\build\\c-owned-fixes-20261101\\windows-accepted\\result.json",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\c-owned-fixes-20261101\\artifacts\\windows.json",
+      "sha256": "10fe60a0c04e3bfe485eab94879230333bdb28c40431e4c4325d13afe69238dd"
+    },
+    "windows-c": {
+      "originalPath": "D:\\GIT\\x-lang\\build\\c-owned-fixes-20261101\\windows-accepted\\independent-C\\result.json",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\c-owned-fixes-20261101\\artifacts\\windows-c.json",
+      "sha256": "302aa821ee5393c56a7d402cee2ec6cae388f47325cf3ce873545e91f222e18e"
+    },
+    "windows-delivery": {
+      "originalPath": "D:\\GIT\\x-lang\\build\\c-owned-fixes-20261101\\windows-integrated-delivery\\result.json",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\c-owned-fixes-20261101\\artifacts\\windows-delivery.json",
+      "sha256": "46df9ac6084e0096020e2df6deea6aea03e3728983c105c5340e9ac3d1f892ac"
+    },
+    "windows-cost": {
+      "originalPath": "D:\\GIT\\x-lang\\build\\c-owned-fixes-20261101\\windows-integrated-cost\\result.json",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\c-owned-fixes-20261101\\artifacts\\windows-cost.json",
+      "sha256": "31b7849f98f319e3a1574d58915e4ddeab4930237b35a62a1ea252cb97cb2f55"
+    },
+    "linux": {
+      "originalPath": "D:\\GIT\\x-lang\\build\\c-owned-fixes-20261101\\linux-accepted\\result.json",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\c-owned-fixes-20261101\\artifacts\\linux.json",
+      "sha256": "f5b2835f148ff4acea26edbdef23d85f7cad549d85b3df6516f14ddb5010f106"
+    },
+    "linux-c": {
+      "originalPath": "D:\\GIT\\x-lang\\build\\c-owned-fixes-20261101\\linux-accepted\\independent-C\\result.json",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\c-owned-fixes-20261101\\artifacts\\linux-c.json",
+      "sha256": "5409130d0b5895396d07292a20be80c11c2cf5ef6548cb911905856548cf4c45"
+    },
+    "linux-delivery": {
+      "originalPath": "D:\\GIT\\x-lang\\build\\c-owned-fixes-20261101\\linux-final-delivery\\result.json",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\c-owned-fixes-20261101\\artifacts\\linux-delivery.json",
+      "sha256": "7ef6ad5bf4279990ecd3907a83c75262d70a9f9ff2626bdae79dff10b2b0309b"
+    },
+    "linux-cost": {
+      "originalPath": "D:\\GIT\\x-lang\\build\\c-owned-fixes-20261101\\linux-final-cost\\result.json",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\c-owned-fixes-20261101\\artifacts\\linux-cost.json",
+      "sha256": "b3a6dd930c24b54fae5fdedd1579d7cf621a12f258341e58da1222da432927a8"
+    },
+    "value-cost-windows": {
+      "originalPath": "D:\\GIT\\x-lang\\build\\c-owned-fixes-20261101\\value-carrier-cost\\result.json",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\c-owned-fixes-20261101\\artifacts\\value-cost-windows.json",
+      "sha256": "9383bc543c6391c0e95d9338edbe3225f92475bd6484faccc09d4f8e0f35ed54"
+    },
+    "value-cost-linux": {
+      "originalPath": "D:\\GIT\\x-lang\\build\\c-owned-fixes-20261101\\value-carrier-cost-linux\\result.json",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\c-owned-fixes-20261101\\artifacts\\value-cost-linux.json",
+      "sha256": "a165904c3012f0ba9b2e47ffc4240108c12b4719f092586cd7b136f51036b845"
+    },
+    "cli-path": {
+      "originalPath": "D:\\GIT\\x-lang\\build\\c-owned-fixes-20261101\\gate-cli-before\\result.json",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\c-owned-fixes-20261101\\artifacts\\cli-path.json",
+      "sha256": "5a1b17b4ff790ed6c17f150cf880f11ede01b7ffcf8eecb19ee2fc5aa0a08bed"
+    }
+  },
+  "integrationReceipt": "D:/GIT/x-lang/dev/release-materials/provenance/c-owned-fixes-20261101/integration/after.json",
+  "sourceMaterials": "D:/GIT/x-lang/dev/release-materials/sources/c-owned-fixes-20261101/manifest.json",
+  "productDeliveryIndexUnchangedByThisTask": true,
+  "cliPathStages": 256,
+  "testWiring": "3796 automated files, 1 manual probe, 53 prefixes; PASS",
+  "laterMainSync": {
+    "revision": "d57559d67",
+    "compilerInputsChanged": false
+  }
+}
