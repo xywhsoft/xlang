@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "date": "2026-11-02",
+  "scope": "Private affine native view runtime checkpoint; language and package integration not enabled",
+  "releaseProductsUpdated": false,
+  "languageSchemaEnabled": false,
+  "xgeCallScopeCommit": "79423767",
+  "windows": "F:/xlang-validation/xge-lifetime-20261102/private-view-win-r3/results.json",
+  "linux": "/home/ubuntu/xlang-validation/foreign-view-live-20261102-r3/results.json",
+  "realXuiWithXl": "F:/xlang-validation/xge-lifetime-20261102/real-view-xl-r6/results.json",
+  "realXuiWithXlc": "F:/xlang-validation/xge-lifetime-20261102/real-view-xlc-r6/results.json",
+  "realEngineBuild": "F:/xlang-validation/xge-host-xrt-20261102/profile-win-r2/build-report.json",
+  "optimizations": ["O0", "O2"],
+  "privateBatchStagesPerPlatform": 20,
+  "allocationFailurePrefixes": 6,
+  "existingInstanceExposureAllocations": 0,
+  "tested": ["canonical child identity", "native invalidation", "copied scope refusal", "creator-thread calls and queued worker last release", "native stack code residency", "first NULL-diagnostic failure", "checked consuming release and retry", "self and child-root graph cycles", "fault rollback", "real XUI allocator slot reuse and context shutdown"],
+  "linuxSanitizers": {"newRuntimeSources": ["ASan", "UBSan", "LSan"], "sharedBaseRuntimeRebuiltWithSanitizers": false},
+  "nativePayloadLimit": "Real XUI fixture uses only base widgets without value models or retained language callbacks; NULL TraceRaw is not a general XUI leaf policy",
+  "remaining": ["all native-to-language adapter callback markers", "captured owned storage schema", "full native payload ownership declarations", "XLIR lifecycle and cleanup effects", "guarded factory results", "text and spans", "SDK packages IDE and release migration"],
+  "networkTests": false
+}
