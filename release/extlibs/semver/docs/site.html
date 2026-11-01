@@ -23,6 +23,7 @@
     <p class="extlib-lead">严格解析 SemVer 2.0.0 版本，比较优先级，并匹配常用依赖范围。</p>
     <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
     <p>2026-10-29 修复复合范围的预发布上界与通配边界。Windows/Linux 完整门禁、C/XLang 双语范例和八条独立程序路径通过，Linux 另通过 ASan/UBSan；Windows 对固定 node-semver 7.8.5 的 738,115 组共同语义对照零差异。</p>
+    <p>2026-11-02 内部存储优化：范围比较器不再保存不参与排序的 build 元数据，但仍完整校验。Windows 57 阶段完整门禁、Linux ASan/UBSan/泄漏检查及两平台各 13 条独立程序路径通过；公开 API、ABI 和语法上限不变。</p>
   </header>
   <section id="start">
     <h2>快速开始</h2>
@@ -51,9 +52,13 @@ assert semver.satisfies("1.2.2", "&lt;=1.2.3")</code></pre>
     <pre><code>xl run release/extlibs/semver/examples/semver_c.c
 xl run release/extlibs/semver/examples/ranges.xl
 xl run release/extlibs/semver/examples/ranges_c.c
+xl run release/extlibs/semver/examples/artifact_versions.xl
+xl run release/extlibs/semver/examples/artifact_versions_c.c
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/semver/test/check.ps1
 bash release/extlibs/semver/test/check.sh</code></pre>
     <p>严格版本与范围解析在格式上限内检查 C 字符串终止符；超限输入不会继续无界扫描。C/XLang 验证了范围长度和元数据字段的恰好上限；C 范例可直接用 xl 单文件运行。三个文本入口的生成 C 直接保存字符串指针，仅扫描一次长度，不经 <code>takeCstr</code> 包装。2026-10-29 默认门禁补齐 9 个实际生成原型、42 组复合范围边界及范围筛选双语黄金对照；Windows 35 阶段、Linux C ASan/UBSan 与两平台八条独立程序路径全部通过。独立对照固定官方 npm 的 node-semver 7.8.5，738,115 组零差异，404 组本包专有区间交集写法跳过；普通使用和日常门禁不依赖 Node.js。验收限本包声明的 SemVer 语法、实现上限与上述平台，不扩大称为完整上游 API 认证。</p>
+    <p>11 月 2 日新增 C 96 组合、XLang 72 组合、三文本入口分配故障与独立所有权测试，Python 独立核对 523 个版本的 4707 个公开结果；旧新实现均一致。32/33 比较器与 255/256 字段边界不变。两个元数据字段均合法的完整版本可能超过 511 字节范围上限，版本有效不等于可将整串当作范围。新双语产物版本范例输出同一 golden，默认不写文件。</p>
+    <p>当前 x64 私有比较器集合从 17416 降为 9224 字节。GCC -O2 下 satisfies 静态栈帧 Windows 20528→12080、Linux 20816→12368 字节；这不是完整调用链的最小栈承诺。原生对象 text 分别增加 64/32 字节，build() 多一次定位加号的有界输入扫描；不宣称所有调用更快或零成本。固定 node-semver 7.8.5 的共同语义矩阵旧新各 738,115 组零差异，404 专有范围跳过。IDE 候选、官网部署和整版发布另行验收。</p>
   </section>
 </main>
 <script src="../main.js"></script>

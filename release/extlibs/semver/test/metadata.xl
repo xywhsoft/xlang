@@ -1,0 +1,47 @@
+import semver
+
+func main(...) as int
+    int checked = 0
+    for large in range(2)
+        string core = "1.2.3"
+        int major = 1
+        int minor = 2
+        int patch = 3
+        if large == 1 then
+            core = "9223372036854775807.9223372036854775807.9223372036854775807"
+            major = 9223372036854775807
+            minor = major
+            patch = major
+        end
+        for p in [0, 1, 31, 254, 255, 256]
+            for b in [0, 1, 31, 254, 255, 256]
+                string pre = string.repeat("a", p)
+                string build = string.repeat("0", b)
+                string version = core
+                if p > 0 then version += "-" + pre end
+                if b > 0 then version += "+" + build end
+                bool valid = p <= 255 and b <= 255
+                assert semver.valid(version) == valid
+                if valid then
+                    assert semver.major(version) == major and semver.minor(version) == minor
+                    assert semver.patch(version) == patch
+                    assert semver.prerelease(version) == pre and semver.build(version) == build
+                    assert semver.clean(version) == version and semver.compare(version, version) == 0
+                    assert semver.satisfies(version, ">=0.0.0") == (p == 0)
+                else
+                    assert semver.major(version) == -1 and semver.compare(version, version) == -2
+                    assert semver.build(version) == "" and semver.prerelease(version) == ""
+                    assert semver.clean(version) == "" and not semver.satisfies(version, "*")
+                end
+                checked += 1
+            end
+        end
+    end
+    // build不参与优先级；32条基本比较器仍合法，33条超出既定上限。
+    string rangeText = ">=1.0.0" + string.repeat(" >=1.0.0", 31)
+    assert semver.satisfies("1.2.3+meta.000", rangeText)
+    assert not semver.satisfies("1.2.3+meta.000", rangeText + " >=1.0.0")
+    assert checked == 72
+    println("semver metadata language: 72 cases PASS")
+    return 0
+end

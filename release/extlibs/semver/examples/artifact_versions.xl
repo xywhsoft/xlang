@@ -1,0 +1,20 @@
+import semver
+
+func main(...) as int
+    // 平台和流水号放在build元数据中，不用它们决定版本升级次序。
+    string linux = "2.4.0-rc.1+linux.x64.0007"
+    string windows = "2.4.0-rc.1+windows.x64.0008"
+    assert semver.valid(linux) and semver.valid(windows)
+    assert semver.compare(linux, windows) == 0
+    string saved = semver.build(linux)
+    println("same precedence: true")
+    println("linux build: " + saved)
+    println("windows build: " + semver.build(windows))
+    assert semver.satisfies(linux, ">=2.4.0-rc.1 <2.4.0")
+    assert semver.satisfies(windows, ">=2.4.0-rc.1 <2.4.0")
+    println("release range: true")
+    linux = "3.0.0+later"
+    assert saved == "linux.x64.0007"
+    println("owned snapshot: true")
+    return 0
+end

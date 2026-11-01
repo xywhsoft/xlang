@@ -1,0 +1,36 @@
+import semver
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func readText(int operation, string version) as string
+    if operation == 0 then return semver.prerelease(version) end
+    if operation == 1 then return semver.build(version) end
+    return semver.clean(version)
+end
+
+func main(...) as int
+    string version = "1.2.3-" + string.repeat("a", 255) + "+" + string.repeat("0", 255)
+    for operation in range(3)
+        string expected = readText(operation, version)
+        // 已准备输入和基线；公开路径仍有NUL针串和拥有型结果两次分配。
+        for budget in range(3)
+            bool caught = false
+            string result = "unchanged"
+            assert failAfter(uint64(budget))
+            try
+                result = readText(operation, version)
+            catch MemoryError error
+                caught = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert caught == (budget < 2) and triggered == caught
+            if not caught then assert result == expected end
+            assert readText(operation, version) == expected
+        end
+    end
+    println("semver metadata ownership: 9 cases PASS")
+    return 0
+end

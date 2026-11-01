@@ -5,6 +5,7 @@ $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $testRoot = [IO.Path]::GetFullPath((Join-Path $root 'build/test'))
 $work = Join-Path $testRoot ('semver_guard_' + [guid]::NewGuid().ToString('N'))
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+$python = (Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $xl = Join-Path $root 'release/xl.exe'
 $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror', '-Ilib/xrt',
     '-Irelease/extlibs/semver')
@@ -25,10 +26,12 @@ function InputPaths {
         Join-Path $root $path
     }
     $gcc
+    $python
 }
 foreach ($path in @(InputPaths | Sort-Object -Unique)) { $hashes[$path] = (Get-FileHash -LiteralPath $path).Hash }
 
 function Run([string]$name, [string]$program, [string[]]$arguments, [int]$seconds = 120) {
+    if ($null -eq $arguments) { $arguments=@() }
     $result = Invoke-ExtlibSmokeProcess $program $arguments (Get-Location).Path $seconds $environment
     $checks.Add([ordered]@{name=$name;program=$program;arguments=$arguments;result=$result})
     if ($result.status -ne 'pass') { throw "${name}: $($result.status) exit=$($result.exitCode)`n$($result.stderr)`n$($result.stdout)" }
@@ -40,6 +43,8 @@ Push-Location $root
 try {
     [IO.Directory]::CreateDirectory($work) | Out-Null
     $null = Run 'compiler version' $gcc @('--version')
+    $cc1 = Run 'compiler frontend' $gcc @('-print-prog-name=cc1')
+    $hashes[$cc1] = (Get-FileHash -LiteralPath $cc1).Hash
     $null = Run 'C ABI contract' $gcc ($flags + @('-fsyntax-only',
         'release/extlibs/semver/test/abi_contract.c'))
     $runtime = Join-Path $work 'xrt_runtime.o'
@@ -52,6 +57,14 @@ try {
         'release/extlibs/semver/test/test_semver.c', $runtime) +
         $links + @('-o', $test))
     $null = Run 'C test' $test @()
+    $metadata = Join-Path $work 'metadata.exe'
+    $null = Run 'metadata C compile' $gcc ($flags + @('release/extlibs/semver/test/metadata_c.c',$runtime) + $links + @('-o',$metadata))
+    $null = Run 'metadata C' $metadata @()
+    $null = Run 'metadata direct C' $xl @('run','release/extlibs/semver/test/metadata_c.c')
+    $cli = Join-Path $work 'metadata_cli.exe'
+    $null = Run 'metadata oracle compile' $gcc ($flags + @($native,
+        'release/extlibs/semver/test/semver_oracle_cli.c',$runtime) + $links + @('-o',$cli))
+    $null = Run 'independent metadata values' $python @('-B','release/extlibs/semver/test/metadata_oracle.py',$cli)
 
     $example = Join-Path $work 'semver_example.exe'
     $null = Run 'C example compile' $gcc ($flags + @(
@@ -69,6 +82,13 @@ try {
     $rangesOutput = Run 'C ranges example' $rangesC @()
     $rangesDirect = Run 'C ranges direct xl run' $xl @('run','release/extlibs/semver/examples/ranges_c.c')
     if ($rangesOutput -cne $rangesGolden -or $rangesDirect -cne $rangesGolden) { throw 'C range filtering example output differs' }
+    $artifactGolden = [IO.File]::ReadAllText((Join-Path $root 'release/extlibs/semver/examples/artifact_versions.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    $artifact = Join-Path $work 'artifact.exe'
+    $null = Run 'artifact C compile' $gcc ($flags + @('release/extlibs/semver/examples/artifact_versions_c.c',$runtime) + $links + @('-o',$artifact))
+    if ((Run 'artifact C' $artifact @()) -cne $artifactGolden -or
+        (Run 'artifact C direct' $xl @('run','release/extlibs/semver/examples/artifact_versions_c.c')) -cne $artifactGolden) {
+        throw 'Artifact C example differs from golden'
+    }
 
     $module = Join-Path $work 'module.c'
     $null = Run 'generated ABI source' $xl @('cgen','release/extlibs/semver/examples/basic.xl','--emit',$module)
@@ -86,6 +106,11 @@ try {
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/semver/test/boundaries.xl')
         $null = Run 'XLang allocation failures' $xl @('run', 'extlibs/semver/test/allocations.xl')
         $null = Run 'XLang prerelease ranges' $xl @('run','extlibs/semver/test/prerelease_ranges.xl')
+        $null = Run 'XLang metadata' $xl @('run','extlibs/semver/test/metadata.xl')
+        $null = Run 'XLang metadata ownership' $xl @('run','extlibs/semver/test/metadata_ownership.xl')
+        if ((Run 'XLang artifact example' $xl @('run','extlibs/semver/examples/artifact_versions.xl')) -cne $artifactGolden) {
+            throw 'Artifact language example differs from golden'
+        }
         $rangesXL = Run 'XLang ranges example' $xl @('run','extlibs/semver/examples/ranges.xl')
         if ($rangesXL -cne $rangesGolden) { throw 'XLang range filtering output differs from C' }
         $xlOutput = Run 'XLang example' $xl @('run', 'extlibs/semver/examples/basic.xl')
@@ -131,6 +156,13 @@ try {
                 $null = Run "$source build" $xl @('build',"extlibs/semver/examples/$source",'-o',$binary)
                 $text = Run "$source AOT" $binary @()
                 if ($text -cne $rangesGolden) { throw "$source AOT output differs from C" }
+            }
+            foreach ($source in @('test/metadata_c.c','test/metadata.xl','test/metadata_ownership.xl',
+                'examples/artifact_versions.xl','examples/artifact_versions_c.c')) {
+                $binary = Join-Path $work ([IO.Path]::GetFileName($source)+'.exe')
+                $null = Run "$source build" $xl @('build',"extlibs/semver/$source",'-o',$binary)
+                $output = Run "$source AOT" $binary @()
+                if ($source -like 'examples/*' -and $output -cne $artifactGolden) { throw 'Artifact AOT golden differs' }
             }
         }
     } finally {

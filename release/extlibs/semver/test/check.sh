@@ -45,6 +45,12 @@ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
     release/extlibs/semver/test/test_semver.c "$work/xrt_runtime.o" \
     -lm -ldl -o "$work/test_semver"
 timeout 90s "$work/test_semver"
+"$cc" "${flags[@]}" release/extlibs/semver/test/metadata_c.c "$work/xrt_runtime.o" \
+    -lm -ldl -o "$work/metadata"
+timeout 90s "$work/metadata"
+"$cc" "${flags[@]}" release/extlibs/semver/semver_native.c \
+    release/extlibs/semver/test/semver_oracle_cli.c "$work/xrt_runtime.o" -lm -ldl -o "$work/oracle_cli"
+timeout 90s python3 -B release/extlibs/semver/test/metadata_oracle.py "$work/oracle_cli"
 "$cc" "${flags[@]}" release/extlibs/semver/examples/semver_c.c \
     "$work/xrt_runtime.o" \
     -lm -ldl -o "$work/example"
@@ -53,6 +59,10 @@ golden_output release/extlibs/semver/examples/basic.expected.txt "$work/example.
 "$cc" "${flags[@]}" release/extlibs/semver/examples/ranges_c.c "$work/xrt_runtime.o" -lm -ldl -o "$work/ranges-c"
 timeout 30s "$work/ranges-c" > "$work/ranges-c.txt"
 golden_output release/extlibs/semver/examples/ranges.expected.txt "$work/ranges-c.txt"
+"$cc" "${flags[@]}" release/extlibs/semver/examples/artifact_versions_c.c \
+    "$work/xrt_runtime.o" -lm -ldl -o "$work/artifact"
+timeout 30s "$work/artifact" > "$work/artifact.txt"
+golden_output release/extlibs/semver/examples/artifact_versions.expected.txt "$work/artifact.txt"
 
 if [[ ! -x ./release/xl ]]; then
     printf 'semver: Linux release/xl is missing\n' >&2
@@ -65,6 +75,13 @@ timeout 45s ./release/xl run test/cases/extlib_semver.xl
 timeout 45s ./release/xl run release/extlibs/semver/test/boundaries.xl
 timeout 45s ./release/xl run release/extlibs/semver/test/allocations.xl
 timeout 45s ./release/xl run release/extlibs/semver/test/prerelease_ranges.xl
+timeout 45s ./release/xl run release/extlibs/semver/test/metadata_c.c
+timeout 45s ./release/xl run release/extlibs/semver/test/metadata.xl
+timeout 45s ./release/xl run release/extlibs/semver/test/metadata_ownership.xl
+for source in artifact_versions.xl artifact_versions_c.c; do
+    timeout 45s ./release/xl run "release/extlibs/semver/examples/$source" > "$work/$source-jit.txt"
+    golden_output release/extlibs/semver/examples/artifact_versions.expected.txt "$work/$source-jit.txt"
+done
 for source in ranges.xl ranges_c.c; do
     timeout 45s ./release/xl run "release/extlibs/semver/examples/$source" > "$work/$source-jit.txt"
     golden_output release/extlibs/semver/examples/ranges.expected.txt "$work/$source-jit.txt"
@@ -106,5 +123,14 @@ for source in ranges.xl ranges_c.c; do
     timeout 120s ./release/xl build "release/extlibs/semver/examples/$source" -o "$binary"
     timeout 45s "$binary" > "$work/$source-aot.txt"
     golden_output release/extlibs/semver/examples/ranges.expected.txt "$work/$source-aot.txt"
+done
+for source in test/metadata_c.c test/metadata.xl test/metadata_ownership.xl \
+              examples/artifact_versions.xl examples/artifact_versions_c.c; do
+    binary="$work/$(basename "$source").exe"
+    timeout 120s ./release/xl build "release/extlibs/semver/$source" -o "$binary"
+    timeout 45s "$binary" > "$work/$(basename "$source").aot.txt"
+    if [[ $source == examples/* ]]; then
+        golden_output release/extlibs/semver/examples/artifact_versions.expected.txt "$work/$(basename "$source").aot.txt"
+    fi
 done
 printf 'semver Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'

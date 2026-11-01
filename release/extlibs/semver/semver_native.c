@@ -29,7 +29,6 @@ typedef struct {
     long long minor;
     long long patch;
     char pre[XSEMVER_MAX_FIELD];
-    char build[XSEMVER_MAX_FIELD];
 } SemVer;
 
 static int semver_is_digit(int c) {
@@ -218,13 +217,9 @@ static int semver_parse(const char *v, SemVer *out) {
     }
     if (plus) {
         size_t build_len = input_len - (size_t)(plus + 1 - p);
-        if (build_len == 0) {
-            return 0;
-        }
-        if (!semver_copy_part(out->build, plus + 1, build_len)) {
-            return 0;
-        }
-        if (!semver_valid_identifiers(out->build, 1)) {
+        /* build不影响优先级，原位校验即可，避免每个比较器保存无用的256字节。 */
+        if (build_len == 0 || build_len >= XSEMVER_MAX_FIELD ||
+            !semver_valid_identifiers(plus + 1, 1)) {
             return 0;
         }
     }
@@ -340,8 +335,11 @@ char *xsemver_prerelease(const char *v) {
 
 char *xsemver_build(const char *v) {
     SemVer parsed;
+    const char *plus;
     xrtClearError();
-    return semver_dup(semver_parse(v, &parsed) ? parsed.build : "");
+    if (!semver_parse(v, &parsed)) return semver_dup("");
+    plus = strchr(v, '+');
+    return semver_dup(plus != NULL ? plus + 1 : "");
 }
 
 char *xsemver_clean(const char *v) {

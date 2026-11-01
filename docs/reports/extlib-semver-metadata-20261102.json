@@ -1,0 +1,1817 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-02T03:28:52.4533838+08:00",
+  "package": "semver",
+  "maturity": "G",
+  "status": "metadata-storage-and-declared-package-gates-verified-release-binding-open",
+  "sourceParent": "0cae4b16b",
+  "integrationParent": "ca9011d89740b547a07cbb0ba8982e191fecdd5b",
+  "previousNativeGitBlob": "f8aadefcd5b4f629a12b3179163dd66edb620c70",
+  "objectiveScope": {
+    "goalComplete": false,
+    "ordinaryPackages": 100,
+    "states": {
+      "X": 4,
+      "R": 10,
+      "M": 56,
+      "G": 30
+    }
+  },
+  "changes": {
+    "universalSpeedupClaim": false,
+    "publicApiAbiGrammarBoundsAndOwnershipUnchanged": true,
+    "newHeapCachesOrTemporaryStrings": false,
+    "kind": "Internal storage optimization; old valid results are not a functional regression",
+    "compilerRuntimeXrtTccIdeNotModified": true,
+    "remainingCosts": [
+      "existing input validation scans",
+      "one additional strchr in build getter",
+      "one owned output allocation for each C text getter",
+      "existing XLang NUL-input conversion"
+    ],
+    "body": "Remove build[256] from private SemVer; validate metadata in original input; build getter duplicates its validated suffix"
+  },
+  "production": {
+    "old": {
+      "path": "build/test/semver_metadata_20261102/before_native.c",
+      "bytes": 24068,
+      "sha256": "566091b42853d324839507c7adf681ce700684bd8b7a3f23d8d2afb8a4f2aa95"
+    },
+    "current": {
+      "path": "release/extlibs/semver/semver_native.c",
+      "bytes": 24136,
+      "sha256": "d673ccc564362d157c60ce0f685dc3e1d121e91b8c8ddb8fad13ec3bebad88f9"
+    }
+  },
+  "metadata": {
+    "xlangAllocationContract": "Prepared long input; budget 0/1 MemoryError, budget 2 succeeds; immediate retry",
+    "independentOldAndNew": [
+      {
+        "kind": "old",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "semver independent metadata: 523 versions, 4707 values PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 96
+        }
+      },
+      {
+        "kind": "new",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "semver independent metadata: 523 versions, 4707 values PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 98
+        }
+      }
+    ],
+    "range32ZeroXrtAllocation": true,
+    "cBudgets": [
+      0,
+      1
+    ],
+    "versionAndRangeBoundsDistinct": "Each prerelease/build up to 255 bytes; full version may exceed the separate 511-byte range limit",
+    "cFaults": 3,
+    "memoryFields": [
+      "LiveCount",
+      "LiveBytes",
+      "InvalidFreeCount",
+      "DoubleFreeCount",
+      "OverflowCount",
+      "UnderflowCount",
+      "UseAfterFreeCount"
+    ],
+    "cOwnership": "Caller owns independent output and frees with xrtFree; input unchanged across fault/success",
+    "xlangOwnershipBudgets": 9,
+    "rangeComparators": [
+      32,
+      33
+    ],
+    "independentVersions": 523,
+    "cOutputs": [
+      "valid",
+      "major",
+      "minor",
+      "patch",
+      "self compare",
+      "prerelease",
+      "build",
+      "clean"
+    ],
+    "cCases": 96,
+    "independentValues": 4707,
+    "cores": [
+      "1.2.3",
+      "INT64_MAX.INT64_MAX.INT64_MAX"
+    ],
+    "independentPublicOperations": 9,
+    "lengths": [
+      0,
+      1,
+      31,
+      254,
+      255,
+      256
+    ],
+    "xlangCases": 72,
+    "cTextGetters": 3
+  },
+  "oldNewQuality": {
+    "linuxOldStderr": "semver metadata: range scratch retains unused metadata\n",
+    "windowsOld": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "semver metadata: 96 cases, 3 allocation faults, 1 failures\r\nsemver private layout: version=536 comparator-set=17416\r\n",
+      "stderr": "semver metadata: range scratch retains unused metadata\r\n",
+      "elapsedMs": 27
+    },
+    "failedOldRequirement": "sizeof(ComparatorSet) <= 12 KiB; not an old wrong metadata result",
+    "linuxOldStdout": "semver metadata: 96 cases, 3 allocation faults, 1 failures\nsemver private layout: version=536 comparator-set=17416\n",
+    "windowsNew": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "semver metadata: 96 cases, 3 allocation faults, 0 failures\r\nsemver private layout: version=280 comparator-set=9224\r\n",
+      "stderr": "",
+      "elapsedMs": 31
+    },
+    "linuxOldSanitizerDiagnostics": false,
+    "linuxOldExit": 1
+  },
+  "nodeSemver": {
+    "fullUpstreamApiOrAllInt64DomainClaim": false,
+    "version": "7.8.5",
+    "node": "C:\\Users\\Administrator\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe",
+    "packageOnlyRangesSkippedEach": 404,
+    "dependencyRequiredForNormalUseOrDefaultGate": false,
+    "commonCasesEach": 738115,
+    "registry": "https://registry.npmjs.org/semver/7.8.5",
+    "integrity": "sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==",
+    "oldAndNew": [
+      {
+        "comparison": {
+          "compared": 738115,
+          "skipped": 404,
+          "mismatches": 0,
+          "failures": []
+        },
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "semver oracle: 738115 compared, 404 xlang-only range cases skipped, 0 mismatches\n",
+          "stderr": "",
+          "elapsedMs": 5692
+        },
+        "kind": "old"
+      },
+      {
+        "comparison": {
+          "compared": 738115,
+          "skipped": 404,
+          "mismatches": 0,
+          "failures": []
+        },
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "semver oracle: 738115 compared, 404 xlang-only range cases skipped, 0 mismatches\n",
+          "stderr": "",
+          "elapsedMs": 5672
+        },
+        "kind": "new"
+      }
+    ],
+    "nodeSha256": "3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237"
+  },
+  "windows": {
+    "postGateChangeReason": "Final evidence paragraphs/site only; production, examples, tests and manifest unchanged",
+    "postGateChangedInputs": [
+      "release/extlibs/semver/docs/site.html",
+      "release/extlibs/semver/README.md"
+    ],
+    "changedInputs": [],
+    "checks": [
+      {
+        "name": "compiler version",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "--version"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "stderr": "",
+          "elapsedMs": 36
+        }
+      },
+      {
+        "name": "compiler frontend",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-print-prog-name=cc1"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe\r\n",
+          "stderr": "",
+          "elapsedMs": 25
+        }
+      },
+      {
+        "name": "C ABI contract",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/semver",
+          "-fsyntax-only",
+          "release/extlibs/semver/test/abi_contract.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 40
+        }
+      },
+      {
+        "name": "XRT compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/semver",
+          "-c",
+          "release/extlibs/semver/test/xrt_runtime.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\xrt_runtime.o"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 64224
+        }
+      },
+      {
+        "name": "C test compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/semver",
+          "release/extlibs/semver/semver_native.c",
+          "release/extlibs/semver/test/test_semver.c",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\xrt_runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\semver_test.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 747
+        }
+      },
+      {
+        "name": "C test",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\semver_test.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 36
+        }
+      },
+      {
+        "name": "metadata C compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/semver",
+          "release/extlibs/semver/test/metadata_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\xrt_runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\metadata.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 697
+        }
+      },
+      {
+        "name": "metadata C",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\metadata.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "semver metadata: 96 cases, 3 allocation faults, 0 failures\r\nsemver private layout: version=280 comparator-set=9224\r\n",
+          "stderr": "",
+          "elapsedMs": 93
+        }
+      },
+      {
+        "name": "metadata direct C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/semver/test/metadata_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "semver metadata: 96 cases, 3 allocation faults, 0 failures\r\nsemver private layout: version=280 comparator-set=9224\r\n",
+          "stderr": "",
+          "elapsedMs": 95
+        }
+      },
+      {
+        "name": "metadata oracle compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/semver",
+          "release/extlibs/semver/semver_native.c",
+          "release/extlibs/semver/test/semver_oracle_cli.c",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\xrt_runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\metadata_cli.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 677
+        }
+      },
+      {
+        "name": "independent metadata values",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "release/extlibs/semver/test/metadata_oracle.py",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\metadata_cli.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "semver independent metadata: 523 versions, 4707 values PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 102
+        }
+      },
+      {
+        "name": "C example compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/semver",
+          "release/extlibs/semver/examples/semver_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\xrt_runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\semver_example.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 630
+        }
+      },
+      {
+        "name": "C example",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\semver_example.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "version: 2.4.1-beta.2+build-5\r\nvalid: true\r\nmajor: 2\r\nminor: 4\r\npatch: 1\r\nprerelease: beta.2\r\nbuild: build-5\r\nclean: 2.4.1\r\ncompare: -1\r\ncompatible: yes\r\nupper-bound: yes\r\ninterval: yes\r\nintersection: yes\r\n",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "name": "C example direct xl run",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/semver/examples/semver_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "version: 2.4.1-beta.2+build-5\r\nvalid: true\r\nmajor: 2\r\nminor: 4\r\npatch: 1\r\nprerelease: beta.2\r\nbuild: build-5\r\nclean: 2.4.1\r\ncompare: -1\r\ncompatible: yes\r\nupper-bound: yes\r\ninterval: yes\r\nintersection: yes\r\n",
+          "stderr": "",
+          "elapsedMs": 83
+        }
+      },
+      {
+        "name": "C ranges example compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/semver",
+          "release/extlibs/semver/examples/ranges_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\xrt_runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\ranges-c.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 580
+        }
+      },
+      {
+        "name": "C ranges example",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\ranges-c.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stable 1.2: 1.2.9\r\nbeta channel: 1.3.0\r\nnext major: none\r\nzero prerelease: 0.0.0-alpha\r\nwildcard upper: 1.3.0\r\nempty branch union: 1.2.9\r\nopen range: 1.3.0\r\n",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "name": "C ranges direct xl run",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/semver/examples/ranges_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stable 1.2: 1.2.9\r\nbeta channel: 1.3.0\r\nnext major: none\r\nzero prerelease: 0.0.0-alpha\r\nwildcard upper: 1.3.0\r\nempty branch union: 1.2.9\r\nopen range: 1.3.0\r\n",
+          "stderr": "",
+          "elapsedMs": 72
+        }
+      },
+      {
+        "name": "artifact C compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/semver",
+          "release/extlibs/semver/examples/artifact_versions_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\xrt_runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\artifact.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 571
+        }
+      },
+      {
+        "name": "artifact C",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\artifact.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "same precedence: true\r\nlinux build: linux.x64.0007\r\nwindows build: windows.x64.0008\r\nrelease range: true\r\nowned snapshot: true\r\n",
+          "stderr": "",
+          "elapsedMs": 32
+        }
+      },
+      {
+        "name": "artifact C direct",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/semver/examples/artifact_versions_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "same precedence: true\r\nlinux build: linux.x64.0007\r\nwindows build: windows.x64.0008\r\nrelease range: true\r\nowned snapshot: true\r\n",
+          "stderr": "",
+          "elapsedMs": 70
+        }
+      },
+      {
+        "name": "generated ABI source",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "release/extlibs/semver/examples/basic.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\module.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 70
+        }
+      },
+      {
+        "name": "generated C prototypes",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/semver",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\abi.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 44
+        }
+      },
+      {
+        "name": "XLang existing test",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "../test/cases/extlib_semver.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 314
+        }
+      },
+      {
+        "name": "XLang boundaries",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/semver/test/boundaries.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 304
+        }
+      },
+      {
+        "name": "XLang allocation failures",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/semver/test/allocations.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 145
+        }
+      },
+      {
+        "name": "XLang prerelease ranges",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/semver/test/prerelease_ranges.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "semver prerelease ranges: PASS\n",
+          "stderr": "",
+          "elapsedMs": 181
+        }
+      },
+      {
+        "name": "XLang metadata",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/semver/test/metadata.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "semver metadata language: 72 cases PASS\n",
+          "stderr": "",
+          "elapsedMs": 189
+        }
+      },
+      {
+        "name": "XLang metadata ownership",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/semver/test/metadata_ownership.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "semver metadata ownership: 9 cases PASS\n",
+          "stderr": "",
+          "elapsedMs": 150
+        }
+      },
+      {
+        "name": "XLang artifact example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/semver/examples/artifact_versions.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "same precedence: true\nlinux build: linux.x64.0007\nwindows build: windows.x64.0008\nrelease range: true\nowned snapshot: true\n",
+          "stderr": "",
+          "elapsedMs": 143
+        }
+      },
+      {
+        "name": "XLang ranges example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/semver/examples/ranges.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stable 1.2: 1.2.9\nbeta channel: 1.3.0\nnext major: none\nzero prerelease: 0.0.0-alpha\nwildcard upper: 1.3.0\nempty branch union: 1.2.9\nopen range: 1.3.0\n",
+          "stderr": "",
+          "elapsedMs": 180
+        }
+      },
+      {
+        "name": "XLang example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/semver/examples/basic.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "version: 2.4.1-beta.2+build-5\nvalid: true\nmajor: 2\nminor: 4\npatch: 1\nprerelease: beta.2\nbuild: build-5\nclean: 2.4.1\ncompare: -1\ncompatible: yes\nupper-bound: yes\ninterval: yes\nintersection: yes\n",
+          "stderr": "",
+          "elapsedMs": 180
+        }
+      },
+      {
+        "name": "XLang central build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "../test/cases/extlib_semver.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\semver_central.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 571
+        }
+      },
+      {
+        "name": "XLang central AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\semver_central.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 40
+        }
+      },
+      {
+        "name": "XLang boundaries build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/semver/test/boundaries.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\semver_xl_test.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 500
+        }
+      },
+      {
+        "name": "XLang boundaries AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\semver_xl_test.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 32
+        }
+      },
+      {
+        "name": "XLang allocation failures build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/semver/test/allocations.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\semver_allocations.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 290
+        }
+      },
+      {
+        "name": "XLang allocation failures AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\semver_allocations.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 27
+        }
+      },
+      {
+        "name": "XLang example build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/semver/examples/basic.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\semver_xl_example.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 313
+        }
+      },
+      {
+        "name": "XLang example AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\semver_xl_example.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "version: 2.4.1-beta.2+build-5\nvalid: true\nmajor: 2\nminor: 4\npatch: 1\nprerelease: beta.2\nbuild: build-5\nclean: 2.4.1\ncompare: -1\ncompatible: yes\nupper-bound: yes\ninterval: yes\nintersection: yes\n",
+          "stderr": "",
+          "elapsedMs": 39
+        }
+      },
+      {
+        "name": "C example build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/semver/examples/semver_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\semver_c_example.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 148
+        }
+      },
+      {
+        "name": "C example AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\semver_c_example.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "version: 2.4.1-beta.2+build-5\r\nvalid: true\r\nmajor: 2\r\nminor: 4\r\npatch: 1\r\nprerelease: beta.2\r\nbuild: build-5\r\nclean: 2.4.1\r\ncompare: -1\r\ncompatible: yes\r\nupper-bound: yes\r\ninterval: yes\r\nintersection: yes\r\n",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "name": "prerelease ranges build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/semver/test/prerelease_ranges.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\prerelease-ranges.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 351
+        }
+      },
+      {
+        "name": "prerelease ranges AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\prerelease-ranges.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "semver prerelease ranges: PASS\n",
+          "stderr": "",
+          "elapsedMs": 31
+        }
+      },
+      {
+        "name": "ranges.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/semver/examples/ranges.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\ranges-xl.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 310
+        }
+      },
+      {
+        "name": "ranges.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\ranges-xl.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stable 1.2: 1.2.9\nbeta channel: 1.3.0\nnext major: none\nzero prerelease: 0.0.0-alpha\nwildcard upper: 1.3.0\nempty branch union: 1.2.9\nopen range: 1.3.0\n",
+          "stderr": "",
+          "elapsedMs": 37
+        }
+      },
+      {
+        "name": "ranges_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/semver/examples/ranges_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\ranges_c-c.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 122
+        }
+      },
+      {
+        "name": "ranges_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\ranges_c-c.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stable 1.2: 1.2.9\r\nbeta channel: 1.3.0\r\nnext major: none\r\nzero prerelease: 0.0.0-alpha\r\nwildcard upper: 1.3.0\r\nempty branch union: 1.2.9\r\nopen range: 1.3.0\r\n",
+          "stderr": "",
+          "elapsedMs": 31
+        }
+      },
+      {
+        "name": "test/metadata_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/semver/test/metadata_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\metadata_c.c.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 136
+        }
+      },
+      {
+        "name": "test/metadata_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\metadata_c.c.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "semver metadata: 96 cases, 3 allocation faults, 0 failures\r\nsemver private layout: version=280 comparator-set=9224\r\n",
+          "stderr": "",
+          "elapsedMs": 30
+        }
+      },
+      {
+        "name": "test/metadata.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/semver/test/metadata.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\metadata.xl.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 367
+        }
+      },
+      {
+        "name": "test/metadata.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\metadata.xl.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "semver metadata language: 72 cases PASS\n",
+          "stderr": "",
+          "elapsedMs": 38
+        }
+      },
+      {
+        "name": "test/metadata_ownership.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/semver/test/metadata_ownership.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\metadata_ownership.xl.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 309
+        }
+      },
+      {
+        "name": "test/metadata_ownership.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\metadata_ownership.xl.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "semver metadata ownership: 9 cases PASS\n",
+          "stderr": "",
+          "elapsedMs": 30
+        }
+      },
+      {
+        "name": "examples/artifact_versions.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/semver/examples/artifact_versions.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\artifact_versions.xl.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 293
+        }
+      },
+      {
+        "name": "examples/artifact_versions.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\artifact_versions.xl.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "same precedence: true\nlinux build: linux.x64.0007\nwindows build: windows.x64.0008\nrelease range: true\nowned snapshot: true\n",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "name": "examples/artifact_versions_c.c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/semver/examples/artifact_versions_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\artifact_versions_c.c.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 127
+        }
+      },
+      {
+        "name": "examples/artifact_versions_c.c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8\\artifact_versions_c.c.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "same precedence: true\r\nlinux build: linux.x64.0007\r\nwindows build: windows.x64.0008\r\nrelease range: true\r\nowned snapshot: true\r\n",
+          "stderr": "",
+          "elapsedMs": 31
+        }
+      }
+    ],
+    "checkCount": 57,
+    "aotPrograms": 13,
+    "inputAndToolCount": 57,
+    "rawReport": {
+      "path": "build/test/semver_guard_fcb46121afc84da2996fe7c451f1b3e8.json",
+      "bytes": 62739,
+      "sha256": "628e64acc1c59938e6cccf6a77cf1299442bd26941eb0e3e716a6462ec6e3d74"
+    },
+    "outcome": "passed",
+    "parent": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "[semver] compiler version: PASS\n[semver] compiler frontend: PASS\n[semver] C ABI contract: PASS\n[semver] XRT compile: PASS\n[semver] C test compile: PASS\n[semver] C test: PASS\n[semver] metadata C compile: PASS\n[semver] metadata C: PASS\n[semver] metadata direct C: PASS\n[semver] metadata oracle compile: PASS\n[semver] independent metadata values: PASS\n[semver] C example compile: PASS\n[semver] C example: PASS\n[semver] C example direct xl run: PASS\n[semver] C ranges example compile: PASS\n[semver] C ranges example: PASS\n[semver] C ranges direct xl run: PASS\n[semver] artifact C compile: PASS\n[semver] artifact C: PASS\n[semver] artifact C direct: PASS\n[semver] generated ABI source: PASS\n[semver] generated C prototypes: PASS\n[semver] XLang existing test: PASS\n[semver] XLang boundaries: PASS\n[semver] XLang allocation failures: PASS\n[semver] XLang prerelease ranges: PASS\n[semver] XLang metadata: PASS\n[semver] XLang metadata ownership: PASS\n[semver] XLang artifact example: PASS\n[semver] XLang ranges example: PASS\n[semver] XLang example: PASS\n[semver] C/XLang golden: PASS\n[semver] XLang central build: PASS\n[semver] XLang central AOT: PASS\n[semver] XLang boundaries build: PASS\n[semver] XLang boundaries AOT: PASS\n[semver] XLang allocation failures build: PASS\n[semver] XLang allocation failures AOT: PASS\n[semver] XLang example build: PASS\n[semver] XLang example AOT: PASS\n[semver] C example build: PASS\n[semver] C example AOT: PASS\n[semver] prerelease ranges build: PASS\n[semver] prerelease ranges AOT: PASS\n[semver] ranges.xl build: PASS\n[semver] ranges.xl AOT: PASS\n[semver] ranges_c.c build: PASS\n[semver] ranges_c.c AOT: PASS\n[semver] test/metadata_c.c build: PASS\n[semver] test/metadata_c.c AOT: PASS\n[semver] test/metadata.xl build: PASS\n[semver] test/metadata.xl AOT: PASS\n[semver] test/metadata_ownership.xl build: PASS\n[semver] test/metadata_ownership.xl AOT: PASS\n[semver] examples/artifact_versions.xl build: PASS\n[semver] examples/artifact_versions.xl AOT: PASS\n[semver] examples/artifact_versions_c.c build: PASS\n[semver] examples/artifact_versions_c.c AOT: PASS\n[semver] report: D:\\GIT\\x-lang\\build\\test\\semver_guard_fcb46121afc84da2996fe7c451f1b3e8.json\n",
+      "stderr": "",
+      "elapsedMs": 75990
+    },
+    "inputs": {
+      "C:\\Program Files\\Python312\\python.exe": "4D6F5F81A4BCA11191C4C7C6B43632694D0A4CE74E068619D8FDC161D469859A",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\docs\\site.html": "935331E71AE797482EAFCC743C06B7276A1E7EF5121325167C8A601BEE0B5556",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\examples\\artifact_versions.expected.txt": "6875C55101A215B8B68F85B847FF5AF42F7E0B897E7A70F30EEEB1B0BD5E6D3A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\examples\\artifact_versions.xl": "4A7E8AB92610523B28DAB0D9CDAC089E7708B9173F55A632E67D7AA5959CAEBE",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\examples\\artifact_versions_c.c": "EEBDF321A1617BDA4B52438F4FDAC5E49324CBE7C9CEE65333C9213176CA3A4F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\examples\\basic.expected.txt": "82DFFF658B6B8C831B8C57504069239D446AEB9ADF6791931913B6C03F44BDA9",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\examples\\basic.xl": "55B9627F69F2B5ECAD3D42849170158ABBE7E8FD86EFDB294E182D6E8FDC2B5A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\examples\\ranges.expected.txt": "4F3295CC86E4FC549B82326779E159B93FA1B65D10C81FF1A5A5CA7918813CA5",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\examples\\ranges.xl": "982F2C30568D9F81A5AC6E8B56585DFBC4D0E742C05C6377DF86785874FEB39D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\examples\\ranges_c.c": "0789674E0F307232EB8F2206A13BCFC0BCBED0E50C6E7EFE7C666C09CCE62177",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\examples\\semver_c.c": "7E2EAB5ED7D388426EF7CB8AFCE75E31D4407908DE8768E8D181FEA58FCE8C45",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\README.md": "CCFBCA09B4EFBDF1F2117DF68355C79D0308BA924C7ECD295B985827D1B7A1BA",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\semver_native.c": "D673CCC564362D157C60CE0F685DC3E1D121E91B8C8DDB8FAD13EC3BEBAD88F9",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\semver_native.h": "C4EC461364C33DFA89F85499E119EFE8907ACF13DD4AC467FC638E7C7758138C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\src\\semver.xl": "62BDA34F6BBF7A83189ABE45DB35A56A6587C9B04B7EEAF8E157F07F88A2E9AC",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\test\\abi_contract.c": "FDB920CB7E8D4D67420B277A5DC89EC7EF86426575C5EEF2E9AD79DC7B90625F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\test\\allocations.xl": "B6FEFFD589C7B07863EC9899908D23B62C6D2C43236836EA9BE4264AC1A9CABE",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\test\\boundaries.xl": "D0FB70D8D00C2C477FECE83F558016895F66BC56C09AA80AFC713EEA8888D4B4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\test\\check.ps1": "4C69466ADB0F662F6C250AAAEF6485C371FD24E36F4EB9D6FE681E4B8D172E80",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\test\\check.sh": "54EC33C96830A9D69C828D440DC732A0C19D050B86E2A6859633006B782CCEAA",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\test\\check_oracle.ps1": "A0B04AB2162138B1B1E9F27482AEF6F360EB091A7D7C00CA411C94C5CB130D73",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\test\\compare_node_semver.js": "52A3D098C7FA8FC44C5FF9B454CD08DA02BA0880870050254D00A1DDBE6DE017",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\test\\metadata.xl": "61C1F6214D1A2B59496E87CEAF9D664A8ED342589467A0D8FD95A6BDAB044DB7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\test\\metadata_c.c": "ABCE41E17F1DDF74E824D0AFB955626A37B02D639ED275BA78F796C20645337A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\test\\metadata_oracle.py": "63FA5490D0E9C2FCD2ABBE4D3A72545BEEDB25A8C28B621D5F9FCC4C332BDF0F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\test\\metadata_ownership.xl": "CD8C4D9A2635BEE2A67ECA063DACE7C96AE170DB5A840D2E367264434FDE543D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\test\\prerelease_ranges.xl": "A2456E1EEEC6329CAEB414C5885EC9CB8595BA9138B9F14729C02758C649B526",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\test\\semver_oracle_cli.c": "FF2F3F136ED260193CD856C1FD4BC951A2F1CFD34C481D58DA311B1D52DE40C3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\test\\test_semver.c": "B39111B75A8B8F3F094F2992EACC5720282070ECABACAFD418D046B97EB88599",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\test\\xrt_runtime.c": "21317C3EC4EF6116161A62B9CF1E11084BC8D8B0C254CDD9FAB0DDB249949487",
+      "D:\\GIT\\x-lang\\release\\extlibs\\semver\\xlang.package.json": "552BA608986382FA8C6EFEC76AE8554D4F730F21E89D9874472A0E28F313E126",
+      "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+      "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+      "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+      "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+      "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+      "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+      "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+      "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+      "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+      "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_semver.xl": "B27C22F6B410750F6F7AB345AA52A4C6D00FC4BA15EE8FF292474A5660BE18C4",
+      "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+      "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012"
+    }
+  },
+  "linux": {
+    "stdout": "semver metadata: 96 cases, 3 allocation faults, 0 failures\nsemver private layout: version=280 comparator-set=9224\nsemver independent metadata: 523 versions, 4707 values PASS\nsemver prerelease ranges: PASS\nsemver metadata: 96 cases, 3 allocation faults, 0 failures\nsemver private layout: version=280 comparator-set=9224\nsemver metadata language: 72 cases PASS\nsemver metadata ownership: 9 cases PASS\nsemver prerelease ranges: PASS\nsemver Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n",
+    "cSanitizers": [
+      "address",
+      "undefined",
+      "leaks"
+    ],
+    "toolsBefore": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc\n30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1\n52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41  /usr/bin/python3\n3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash\n",
+    "parent": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "Linux semver gate=0 source-change=0 tools-change=0 snapshot=/var/tmp/xlang-semver-metadata-A94iC1rY\nsemver private layout: version=280 comparator-set=9224\nsemver independent metadata: 523 versions, 4707 values PASS\nsemver prerelease ranges: PASS\nsemver metadata: 96 cases, 3 allocation faults, 0 failures\nsemver private layout: version=280 comparator-set=9224\nsemver metadata language: 72 cases PASS\nsemver metadata ownership: 9 cases PASS\nsemver prerelease ranges: PASS\nsemver Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\nsemver metadata: 96 cases, 3 allocation faults, 1 failures\nsemver private layout: version=536 comparator-set=17416\n/var/tmp/xlang-semver-metadata-A94iC1rY/old-native.su:/var/tmp/xlang-semver-metadata-A94iC1rY/before_native.c:775:6:xsemver_satisfies\t20816\tstatic\n/var/tmp/xlang-semver-metadata-A94iC1rY/new-native.su:release/extlibs/semver/semver_native.c:773:6:xsemver_satisfies\t12368\tstatic\n",
+      "stderr": "",
+      "elapsedMs": 92754
+    },
+    "snapshot": "/var/tmp/xlang-semver-metadata-A94iC1rY",
+    "noSanitizerClaimForTccOrXlang": true,
+    "frozenTools": 4,
+    "sourceAndToolsUnchanged": true,
+    "aotPrograms": 13,
+    "nativeFilesystem": true,
+    "stderr": null,
+    "frozenFiles": 52,
+    "bootUnchanged": true
+  },
+  "measurement": {
+    "notTotalCallChainStackOr12KiBThreadSafety": true,
+    "windows": {
+      "textNew": 10088,
+      "dataOld": 0,
+      "dataNew": 0,
+      "satisfiesStaticFrameOld": 20528,
+      "raw": {
+        "compilations": [
+          {
+            "stack": [
+              "D:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\before_native.c:139:12:semver_parse_number\t80\tstatic",
+              "D:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\before_native.c:496:12:semver_add\t80\tstatic",
+              "D:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\before_native.c:496:12:semver_add.constprop\t80\tstatic",
+              "D:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\before_native.c:236:12:semver_cmp_prerelease\t96\tstatic",
+              "D:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\before_native.c:90:12:semver_valid_identifiers.part.0\t80\tstatic",
+              "D:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\before_native.c:156:12:semver_parse\t640\tstatic",
+              "D:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\before_native.c:420:12:semver_parse_partial.part.0\t1152\tstatic",
+              "D:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\before_native.c:302:6:xsemver_valid\t592\tstatic",
+              "D:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\before_native.c:308:9:xsemver_major\t592\tstatic",
+              "D:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\before_native.c:317:9:xsemver_minor\t592\tstatic",
+              "D:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\before_native.c:326:9:xsemver_patch\t592\tstatic",
+              "D:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\before_native.c:335:7:xsemver_prerelease\t608\tstatic",
+              "D:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\before_native.c:341:7:xsemver_build\t608\tstatic",
+              "D:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\before_native.c:347:7:xsemver_clean\t608\tstatic",
+              "D:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\before_native.c:380:9:xsemver_compare\t1152\tstatic",
+              "D:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\before_native.c:775:6:xsemver_satisfies\t20528\tstatic"
+            ],
+            "result": {
+              "status": "pass",
+              "exitCode": 0,
+              "stdout": "",
+              "stderr": "",
+              "elapsedMs": 513
+            },
+            "kind": "old"
+          },
+          {
+            "stack": [
+              "release/extlibs/semver/semver_native.c:138:12:semver_parse_number\t80\tstatic",
+              "release/extlibs/semver/semver_native.c:494:12:semver_add\t80\tstatic",
+              "release/extlibs/semver/semver_native.c:494:12:semver_add.constprop\t80\tstatic",
+              "release/extlibs/semver/semver_native.c:231:12:semver_cmp_prerelease\t96\tstatic",
+              "release/extlibs/semver/semver_native.c:89:12:semver_valid_identifiers.part.0\t80\tstatic",
+              "release/extlibs/semver/semver_native.c:155:12:semver_parse\t640\tstatic",
+              "release/extlibs/semver/semver_native.c:418:12:semver_parse_partial.part.0\t896\tstatic",
+              "release/extlibs/semver/semver_native.c:297:6:xsemver_valid\t336\tstatic",
+              "release/extlibs/semver/semver_native.c:303:9:xsemver_major\t336\tstatic",
+              "release/extlibs/semver/semver_native.c:312:9:xsemver_minor\t336\tstatic",
+              "release/extlibs/semver/semver_native.c:321:9:xsemver_patch\t336\tstatic",
+              "release/extlibs/semver/semver_native.c:330:7:xsemver_prerelease\t352\tstatic",
+              "release/extlibs/semver/semver_native.c:336:7:xsemver_build\t352\tstatic",
+              "release/extlibs/semver/semver_native.c:345:7:xsemver_clean\t352\tstatic",
+              "release/extlibs/semver/semver_native.c:378:9:xsemver_compare\t640\tstatic",
+              "release/extlibs/semver/semver_native.c:773:6:xsemver_satisfies\t12080\tstatic"
+            ],
+            "result": {
+              "status": "pass",
+              "exitCode": 0,
+              "stdout": "",
+              "stderr": "",
+              "elapsedMs": 544
+            },
+            "kind": "new"
+          }
+        ],
+        "size": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n  10024\t      0\t      0\t  10024\t   2728\tD:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\old-native.o\r\n  10088\t      0\t      0\t  10088\t   2768\tD:\\GIT\\x-lang\\build\\test\\semver_metadata_20261102\\new-native.o\r\n",
+          "stderr": "",
+          "elapsedMs": 26
+        }
+      },
+      "gcc": "16.2.0",
+      "bssNew": 0,
+      "satisfiesStaticFrameNew": 12080,
+      "textOld": 10024,
+      "bssOld": 0
+    },
+    "architecture": "x86_64",
+    "note": "Same compiler/flags per platform, native object only, not final executable size; old and new getter ownership unchanged",
+    "privateSemVerBytes": {
+      "old": 536,
+      "new": 280
+    },
+    "linux": {
+      "gcc": "Ubuntu 15.2.0",
+      "satisfiesStaticFrameOld": 20816,
+      "gnuSize": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n  10304\t      0\t      0\t  10304\t   2840\t/var/tmp/xlang-semver-metadata-A94iC1rY/old-native.o\n  10336\t      0\t      0\t  10336\t   2860\t/var/tmp/xlang-semver-metadata-A94iC1rY/new-native.o\n",
+      "dataOld": 0,
+      "dataNew": 0,
+      "textNew": 10336,
+      "satisfiesStaticFrameNew": 12368,
+      "newStack": [
+        "release/extlibs/semver/semver_native.c:138:12:semver_parse_number\t48\tstatic",
+        "release/extlibs/semver/semver_native.c:145:14:semver_dup\t32\tstatic",
+        "release/extlibs/semver/semver_native.c:494:12:semver_add\t48\tstatic",
+        "release/extlibs/semver/semver_native.c:231:12:semver_cmp_prerelease\t64\tstatic",
+        "release/extlibs/semver/semver_native.c:89:12:semver_valid_identifiers\t32\tstatic",
+        "release/extlibs/semver/semver_native.c:155:12:semver_parse\t640\tstatic",
+        "release/extlibs/semver/semver_native.c:418:12:semver_parse_partial\t880\tstatic",
+        "release/extlibs/semver/semver_native.c:297:6:xsemver_valid\t320\tstatic",
+        "release/extlibs/semver/semver_native.c:303:9:xsemver_major\t320\tstatic",
+        "release/extlibs/semver/semver_native.c:312:9:xsemver_minor\t320\tstatic",
+        "release/extlibs/semver/semver_native.c:321:9:xsemver_patch\t320\tstatic",
+        "release/extlibs/semver/semver_native.c:330:7:xsemver_prerelease\t320\tstatic",
+        "release/extlibs/semver/semver_native.c:336:7:xsemver_build\t304\tstatic",
+        "release/extlibs/semver/semver_native.c:345:7:xsemver_clean\t336\tstatic",
+        "release/extlibs/semver/semver_native.c:378:9:xsemver_compare\t608\tstatic",
+        "release/extlibs/semver/semver_native.c:773:6:xsemver_satisfies\t12368\tstatic"
+      ],
+      "textOld": 10304,
+      "additionalFlag": "-D_GNU_SOURCE",
+      "bssNew": 0,
+      "bssOld": 0,
+      "oldStack": [
+        "/var/tmp/xlang-semver-metadata-A94iC1rY/before_native.c:139:12:semver_parse_number\t48\tstatic",
+        "/var/tmp/xlang-semver-metadata-A94iC1rY/before_native.c:146:14:semver_dup\t32\tstatic",
+        "/var/tmp/xlang-semver-metadata-A94iC1rY/before_native.c:496:12:semver_add\t48\tstatic",
+        "/var/tmp/xlang-semver-metadata-A94iC1rY/before_native.c:236:12:semver_cmp_prerelease\t64\tstatic",
+        "/var/tmp/xlang-semver-metadata-A94iC1rY/before_native.c:90:12:semver_valid_identifiers\t32\tstatic",
+        "/var/tmp/xlang-semver-metadata-A94iC1rY/before_native.c:156:12:semver_parse\t640\tstatic",
+        "/var/tmp/xlang-semver-metadata-A94iC1rY/before_native.c:420:12:semver_parse_partial\t1136\tstatic",
+        "/var/tmp/xlang-semver-metadata-A94iC1rY/before_native.c:302:6:xsemver_valid\t576\tstatic",
+        "/var/tmp/xlang-semver-metadata-A94iC1rY/before_native.c:308:9:xsemver_major\t576\tstatic",
+        "/var/tmp/xlang-semver-metadata-A94iC1rY/before_native.c:317:9:xsemver_minor\t576\tstatic",
+        "/var/tmp/xlang-semver-metadata-A94iC1rY/before_native.c:326:9:xsemver_patch\t576\tstatic",
+        "/var/tmp/xlang-semver-metadata-A94iC1rY/before_native.c:335:7:xsemver_prerelease\t576\tstatic",
+        "/var/tmp/xlang-semver-metadata-A94iC1rY/before_native.c:341:7:xsemver_build\t576\tstatic",
+        "/var/tmp/xlang-semver-metadata-A94iC1rY/before_native.c:347:7:xsemver_clean\t592\tstatic",
+        "/var/tmp/xlang-semver-metadata-A94iC1rY/before_native.c:380:9:xsemver_compare\t1120\tstatic",
+        "/var/tmp/xlang-semver-metadata-A94iC1rY/before_native.c:775:6:xsemver_satisfies\t20816\tstatic"
+      ]
+    },
+    "compilerFlags": [
+      "-std=c11",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-fstack-usage",
+      "-Ilib/xrt",
+      "-Irelease/extlibs/semver",
+      "-c"
+    ],
+    "privateComparatorSetBytes": {
+      "old": 17416,
+      "new": 9224
+    },
+    "throughputMeasured": false,
+    "staticFrameDeltaBytes": -8448
+  },
+  "examples": {
+    "verifies": [
+      "build metadata not precedence",
+      "prerelease range opt-in",
+      "owned result independent of source mutation/rebinding"
+    ],
+    "gccTccXlangAndBothLanguagesAotGolden": true,
+    "c": "release/extlibs/semver/examples/artifact_versions_c.c",
+    "golden": {
+      "path": "release/extlibs/semver/examples/artifact_versions.expected.txt",
+      "bytes": 123,
+      "sha256": "6875c55101a215b8b68f85b847ff5af42f7e0b897e7a70f30eeeb1b0bd5e6d3a"
+    },
+    "xlang": "release/extlibs/semver/examples/artifact_versions.xl",
+    "defaultFilesystemWrites": false
+  },
+  "catalog": {
+    "candidateInstalled": false,
+    "strictBinding": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "Catalog compiler changed: xl.dll\r\n",
+      "elapsedMs": 371
+    },
+    "pending": "Mainline release/compiler/source binding must be reconciled before installation",
+    "freshness": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+      "stderr": "",
+      "elapsedMs": 1246
+    },
+    "generation": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"passed\", \"catalogSha256\": \"8c4ca78cc0ed8565f71e7b8ba2d3f2fee21d5fdd491084f0c73cb90dc9775f20\", \"sourceIndexSha256\": \"789cd1107dc4cbecdba1eb8ee5ac9b28070c196bf02c503241810b77d3aa3600\", \"preservedNonExtensionEntries\": 6156, \"publicPackages\": 207, \"excludedPrivate\": [\"_bzip2\", \"_expat\", \"_libzip\", \"_tomlc17\", \"_xge_native\", \"_zlib\"], \"extensionEntries\": 11442, \"addedEntries\": 0, \"removedEntries\": 0, \"documents\": 145, \"availableSources\": 593, \"extensionExporterSha256\": \"5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42\", \"inputsUnchanged\": true}\r\n",
+      "stderr": "",
+      "elapsedMs": 13965
+    },
+    "baseCompilerIdentityChanged": false,
+    "generationSummary": {
+      "status": "passed",
+      "catalogSha256": "8c4ca78cc0ed8565f71e7b8ba2d3f2fee21d5fdd491084f0c73cb90dc9775f20",
+      "sourceIndexSha256": "789cd1107dc4cbecdba1eb8ee5ac9b28070c196bf02c503241810b77d3aa3600",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42",
+      "inputsUnchanged": true
+    }
+  },
+  "website": {
+    "isolatedCopy": {
+      "path": "build/test/semver_metadata_20261102/site/extlibs/semver.html",
+      "bytes": 8173,
+      "sha256": "68915937705b8cb6cee4540c0dc8a52fc23f167578a4d4d1d0a3533f28eb147e"
+    },
+    "source": {
+      "path": "release/extlibs/semver/docs/site.html",
+      "bytes": 8173,
+      "sha256": "68915937705b8cb6cee4540c0dc8a52fc23f167578a4d4d1d0a3533f28eb147e"
+    },
+    "deployed": false
+  },
+  "deliveryAudit": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+    "stderr": "",
+    "elapsedMs": 1252
+  },
+  "packageFiles": [
+    {
+      "path": "release/extlibs/semver/docs/site.html",
+      "bytes": 8173,
+      "sha256": "68915937705b8cb6cee4540c0dc8a52fc23f167578a4d4d1d0a3533f28eb147e"
+    },
+    {
+      "path": "release/extlibs/semver/examples/artifact_versions_c.c",
+      "bytes": 1169,
+      "sha256": "eebdf321a1617bda4b52438f4fdac5e49324cbe7c9cee65333c9213176ca3a4f"
+    },
+    {
+      "path": "release/extlibs/semver/examples/artifact_versions.expected.txt",
+      "bytes": 123,
+      "sha256": "6875c55101a215b8b68f85b847ff5af42f7e0b897e7a70f30eeeb1b0bd5e6d3a"
+    },
+    {
+      "path": "release/extlibs/semver/examples/artifact_versions.xl",
+      "bytes": 767,
+      "sha256": "4a7e8ab92610523b28dab0d9cdac089e7708b9173f55a632e67d7aa5959caebe"
+    },
+    {
+      "path": "release/extlibs/semver/examples/basic.expected.txt",
+      "bytes": 193,
+      "sha256": "82dfff658b6b8c831b8c57504069239d446aeb9adf6791931913b6c03f44bda9"
+    },
+    {
+      "path": "release/extlibs/semver/examples/basic.xl",
+      "bytes": 1143,
+      "sha256": "55b9627f69f2b5ecad3d42849170158abbe7e8fd86efdb294e182d6e8fdc2b5a"
+    },
+    {
+      "path": "release/extlibs/semver/examples/ranges_c.c",
+      "bytes": 1393,
+      "sha256": "0789674e0f307232eb8f2206a13bcfc0bcbed0e50c6e7efe7c666c09cce62177"
+    },
+    {
+      "path": "release/extlibs/semver/examples/ranges.expected.txt",
+      "bytes": 150,
+      "sha256": "4f3295cc86e4fc549b82326779e159b93fa1b65d10c81ff1a5a5ca7918813ca5"
+    },
+    {
+      "path": "release/extlibs/semver/examples/ranges.xl",
+      "bytes": 1088,
+      "sha256": "982f2c30568d9f81a5ac6e8b56585dfbc4d0e742c05c6377df86785874feb39d"
+    },
+    {
+      "path": "release/extlibs/semver/examples/semver_c.c",
+      "bytes": 1449,
+      "sha256": "7e2eab5ed7d388426ef7cb8afce75e31d4407908de8768e8d181fea58fce8c45"
+    },
+    {
+      "path": "release/extlibs/semver/README.md",
+      "bytes": 21573,
+      "sha256": "7a9fa935839fbec42b89a03beaed411c1b9bf4b1fed720585fa4bebb7e18a2c9"
+    },
+    {
+      "path": "release/extlibs/semver/semver_native.c",
+      "bytes": 24136,
+      "sha256": "d673ccc564362d157c60ce0f685dc3e1d121e91b8c8ddb8fad13ec3bebad88f9"
+    },
+    {
+      "path": "release/extlibs/semver/semver_native.h",
+      "bytes": 697,
+      "sha256": "c4ec461364c33dfa89f85499e119efe8907acf13dd4ac467fc638e7c7758138c"
+    },
+    {
+      "path": "release/extlibs/semver/src/semver.xl",
+      "bytes": 2891,
+      "sha256": "62bda34f6bbf7a83189abe45db35a56a6587c9b04b7eeaf8e157f07f88a2e9ac"
+    },
+    {
+      "path": "release/extlibs/semver/test/abi_contract.c",
+      "bytes": 357,
+      "sha256": "fdb920cb7e8d4d67420b277a5dc89ec7ef86426575c5eef2e9ad79dc7b90625f"
+    },
+    {
+      "path": "release/extlibs/semver/test/allocations.xl",
+      "bytes": 859,
+      "sha256": "b6feffd589c7b07863ec9899908d23b62c6d2c43236836ea9be4264ac1a9cabe"
+    },
+    {
+      "path": "release/extlibs/semver/test/boundaries.xl",
+      "bytes": 5681,
+      "sha256": "d0fb70d8d00c2c477fece83f558016895f66bc56c09aa80afc713eea8888d4b4"
+    },
+    {
+      "path": "release/extlibs/semver/test/check_oracle.ps1",
+      "bytes": 4803,
+      "sha256": "a0b04ab2162138b1b1e9f27482aef6f360eb091a7d7c00ca411c94c5cb130d73"
+    },
+    {
+      "path": "release/extlibs/semver/test/check.ps1",
+      "bytes": 11965,
+      "sha256": "4c69466adb0f662f6c250aaaef6485c371fd24e36f4eb9d6fe681e4b8d172e80"
+    },
+    {
+      "path": "release/extlibs/semver/test/check.sh",
+      "bytes": 7216,
+      "sha256": "54ec33c96830a9d69c828d440dc732a0c19d050b86e2a6859633006b782cceaa"
+    },
+    {
+      "path": "release/extlibs/semver/test/compare_node_semver.js",
+      "bytes": 5253,
+      "sha256": "52a3d098c7fa8fc44c5ff9b454cd08da02ba0880870050254d00a1ddbe6de017"
+    },
+    {
+      "path": "release/extlibs/semver/test/metadata_c.c",
+      "bytes": 6574,
+      "sha256": "abce41e17f1ddf74e824d0afb955626a37b02d639ed275ba78f796c20645337a"
+    },
+    {
+      "path": "release/extlibs/semver/test/metadata_oracle.py",
+      "bytes": 3091,
+      "sha256": "63fa5490d0e9c2fcd2abbe4d3a72545beedb25a8c28b621d5f9fcc4c332bdf0f"
+    },
+    {
+      "path": "release/extlibs/semver/test/metadata_ownership.xl",
+      "bytes": 1357,
+      "sha256": "cd8c4d9a2635bee2a67eca063dace7c96ae170db5a840d2e367264434fde543d"
+    },
+    {
+      "path": "release/extlibs/semver/test/metadata.xl",
+      "bytes": 2070,
+      "sha256": "61c1f6214d1a2b59496e87ceaf9d664a8ed342589467a0d8fd95a6bdab044db7"
+    },
+    {
+      "path": "release/extlibs/semver/test/prerelease_ranges.xl",
+      "bytes": 3184,
+      "sha256": "a2456e1eeec6329caeb414c5885ec9cb8595ba9138b9f14729c02758c649b526"
+    },
+    {
+      "path": "release/extlibs/semver/test/semver_oracle_cli.c",
+      "bytes": 1844,
+      "sha256": "ff2f3f136ed260193cd856c1fd4bc951a2f1cfd34c481d58da311b1d52de40c3"
+    },
+    {
+      "path": "release/extlibs/semver/test/test_semver.c",
+      "bytes": 14882,
+      "sha256": "b39111b75a8b8f3f094f2992eacc5720282070ecabacafd418d046b97eb88599"
+    },
+    {
+      "path": "release/extlibs/semver/test/xrt_runtime.c",
+      "bytes": 129,
+      "sha256": "21317c3ec4ef6116161a62b9cf1e11084bc8d8b0c254cdd9fab0ddb249949487"
+    },
+    {
+      "path": "release/extlibs/semver/xlang.package.json",
+      "bytes": 592,
+      "sha256": "552ba608986382fa8c6efec76ae8554d4f730f21e89d9874472a0e28f313e126"
+    }
+  ],
+  "rawArtifacts": [
+    {
+      "path": "build/test/semver_metadata_20261102/before.json",
+      "bytes": 277,
+      "sha256": "841aaf56478999fff463e1b4231e2fc0bbc2de70f95d590f83804066993d2fee"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/after.json",
+      "bytes": 218,
+      "sha256": "5ab327ae990e1f6ba317f614abd0f6cca60e2d58733ea9c044aeb49c34677d66"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/before-compile.json",
+      "bytes": 100,
+      "sha256": "56908fc92871e6ff48440545654334f2be293af8407fa84e64b24e123e62a680"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/after-compile.json",
+      "bytes": 100,
+      "sha256": "dd39a1f68d99b509f10bee1ad51f9210164541bada056048577adda7b522d75a"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/metadata-oracle.json",
+      "bytes": 465,
+      "sha256": "0ee263b0ea37e054faa22edf646fa2439b3447b23256df68459f8e1425933ef8"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/node-oracle.json",
+      "bytes": 1250,
+      "sha256": "ad380b91add6dbdee2c29194aae55dbe28456f6c62395ce2967b119f07b887f7"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/node-comparison-old.json",
+      "bytes": 80,
+      "sha256": "1ed61bfa21895a0a9a60b8d65d28649fad89828541f8f020e6bd48cb51562ecb"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/node-comparison-new.json",
+      "bytes": 80,
+      "sha256": "1ed61bfa21895a0a9a60b8d65d28649fad89828541f8f020e6bd48cb51562ecb"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/layout-size.json",
+      "bytes": 4217,
+      "sha256": "7bccab1c9a65918668453d5b479046cf48cb0062961a16928f1c215c01522586"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/windows.json",
+      "bytes": 2337,
+      "sha256": "b40721a24100468b9582e1665c1e25fc9e8dc384f4143c472c99429fc89ba7c7"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-parent.json",
+      "bytes": 1045,
+      "sha256": "17afe4ba690f5bcc85be13d4e70cf5dc5efdafb695ab3f81388a6e2092acea0a"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/source.tar",
+      "bytes": 48672256,
+      "sha256": "2f1b780955f25490eeaf09868541c963c4bc88f94c972d5cb14f48c25135b801"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/run_linux.sh",
+      "bytes": 3224,
+      "sha256": "efbb2efefcabe1ba5eda84026b5e1c8582b5b42cf5c110316e8512648f3e98ff"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/catalog-generation.json",
+      "bytes": 722,
+      "sha256": "01b950341cf6635e782ea60dab6473317aa6b1601cc6e8aaac9615f2013abf5b"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/catalog-freshness.json",
+      "bytes": 175,
+      "sha256": "289b1110bcb281d25cff51bf572fe55c0edcb833873e8f3f8cf39869da41a7d7"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/catalog-binding.json",
+      "bytes": 133,
+      "sha256": "6def8e3a51dbf6916b9437b8176511328d53ea342288e03f9fbe945c069d276f"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/delivery-committed.json",
+      "bytes": 193,
+      "sha256": "b8afa36d9ada2dcb5ed80b92370bd5007a4fe36d28f2760028a8df467b780bfb"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/after.sha256",
+      "bytes": 5459,
+      "sha256": "c9c0dfcbc0a726ab517749a5a2f7ae2ea913c0b01720e5ce9158377ba2901143"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/before.sha256",
+      "bytes": 5459,
+      "sha256": "c9c0dfcbc0a726ab517749a5a2f7ae2ea913c0b01720e5ce9158377ba2901143"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/boot.after",
+      "bytes": 37,
+      "sha256": "551ef71a6752b4298c9882e12902cc3870f15dcbd243b32fbcc1579d07cc23fa"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/boot.before",
+      "bytes": 37,
+      "sha256": "551ef71a6752b4298c9882e12902cc3870f15dcbd243b32fbcc1579d07cc23fa"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/changes.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/gate.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/new-native.su",
+      "bytes": 1159,
+      "sha256": "b2649a0875bb9e3e128ca71ea065b40f86788b46d137647d6304ed1f7d02c4ee"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/old-compile.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/old-compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/old-compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/old-native.su",
+      "bytes": 1433,
+      "sha256": "75dac3925a9c0356d516d1d61f9fa108b407985a484fcb54b29b4d4976d37d2f"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/old.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/old.stderr",
+      "bytes": 55,
+      "sha256": "e37f7748c5a49aeef93e4e102b31455391c5b284bdd265de4fd727ebad2d59cd"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/old.stdout",
+      "bytes": 115,
+      "sha256": "31da58ba35508b31e412151d46c737f6fb8ff7a0881a70408b787bafd4a509f2"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/size.txt",
+      "bytes": 235,
+      "sha256": "cc74c7db9483c7305c2e8cb9b6511a1114e87efbee63f16aecaf76730ec5a8bf"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/stdout",
+      "bytes": 493,
+      "sha256": "830637b1c9dd850c555289583dbe3ba865742597126b9dae7b07c1dd39a34c6e"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/tool-changes.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/tools.after.sha256",
+      "bytes": 349,
+      "sha256": "e2a2ae67f5016ac2c9020393b25a79580560a99cf2d506d98265ac52994e5882"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/tools.before.sha256",
+      "bytes": 349,
+      "sha256": "e2a2ae67f5016ac2c9020393b25a79580560a99cf2d506d98265ac52994e5882"
+    },
+    {
+      "path": "build/test/semver_metadata_20261102/linux-evidence/trace.txt",
+      "bytes": 22166,
+      "sha256": "91e07160397e8f37e234a23a09b515deb8f10d47640540517ebc932861f4228e"
+    }
+  ],
+  "qualifications": [
+    "Semver stays G only for its declared bounded API and measured platforms",
+    "No whole 100-package regression claim; counts unchanged",
+    "No compiler/runtime/XRT/TCC/IDE mainline edits or package-side workaround",
+    "IDE candidate not installed because xl.dll release binding fails",
+    "Long-term objective remains active; formalRelease=false"
+  ],
+  "formalRelease": false
+}

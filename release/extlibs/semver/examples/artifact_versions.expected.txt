@@ -1,0 +1,5 @@
+same precedence: true
+linux build: linux.x64.0007
+windows build: windows.x64.0008
+release range: true
+owned snapshot: true
