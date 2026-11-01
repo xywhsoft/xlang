@@ -1,0 +1,86 @@
+// Nullable lifting participates in the rank before omitted defaults.
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point data)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+typedef Text=string
+func pickText(string? value) as bool
+    return false
+end
+func pickText(string value,int omitted=7) as bool
+    return original(value)
+end
+func aliasText(Text value) as int
+    return 1
+end
+func aliasText(Text? value) as int
+    return 2
+end
+class ReaderText
+    func Read(string? value) as bool
+        return false
+    end
+    func Read(string value,int omitted=7) as bool
+        return original(value)
+    end
+end
+func checkText(bool choose)
+    string value=cstring.take(rawText(),release)
+    assert pickText(value) and pickText(value=value)
+    assert aliasText(value)==1
+    ReaderText reader=ReaderText()
+    assert reader.Read(value)
+    auto selected=choose ? value : value
+    assert pickText(selected)
+    auto matched=match choose
+    case true then value
+    case false then value
+    end
+    assert pickText(matched)
+    string? optional=choose ? value : null
+    if optional!=null then assert pickText(optional) end
+end
+checkText(true)
+checkText(false)
+typedef Data=bytes
+func pickData(bytes? value) as bool
+    return false
+end
+func pickData(bytes value,int omitted=7) as bool
+    return originalBytes(value)
+end
+func aliasData(Data value) as int
+    return 1
+end
+func aliasData(Data? value) as int
+    return 2
+end
+class ReaderData
+    func Read(bytes? value) as bool
+        return false
+    end
+    func Read(bytes value,int omitted=7) as bool
+        return originalBytes(value)
+    end
+end
+func checkData(bool choose)
+    bytes value=cbytes.take(rawBytes(),4,release)
+    assert pickData(value) and pickData(value=value)
+    assert aliasData(value)==1
+    ReaderData reader=ReaderData()
+    assert reader.Read(value)
+    auto selected=choose ? value : value
+    assert pickData(selected)
+    auto matched=match choose
+    case true then value
+    case false then value
+    end
+    assert pickData(matched)
+    bytes? optional=choose ? value : null
+    if optional!=null then assert pickData(optional) end
+end
+checkData(true)
+checkData(false)
+assert balanced()

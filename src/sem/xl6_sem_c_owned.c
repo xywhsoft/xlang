@@ -65,9 +65,12 @@ static int xl6SemCOwnedTypeMatchCost(const XL6_AstNode* actual,const XL6_AstNode
     if(sourceOptional && !targetOptional)return -1;
     const char* from=xl6COwnedBaseName(a->text),*to=xl6COwnedBaseName(b->text);
     if(!from && !to)return -1;
-    if(xl6TextEquals(a->text,b->text))return sourceOptional==targetOptional ? 0 : 1;
-    if(to && xl6TextEquals(a->text,to))return 1;
-    if(from && xl6TextEquals(from,b->text))return 10;
+    /* Preserve the ordinary nullable-lift rank even when the payload also
+     * crosses the C-owner/base boundary. Defaults break ties afterwards. */
+    int lift=!sourceOptional && targetOptional ? 5 : 0;
+    if(xl6TextEquals(a->text,b->text))return lift;
+    if(to && xl6TextEquals(a->text,to))return 1+lift;
+    if(from && xl6TextEquals(from,b->text))return 10+lift;
     return -1;
 }
 static int xl6SemCheckCOwnedTake(XL6_SemContext*,XL6_AstNode*);
