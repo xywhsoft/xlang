@@ -1,0 +1,257 @@
+{
+  "schema": "xlang-extlib-boundary-1",
+  "date": "2026-11-01T20:28:27.8404100+08:00",
+  "package": "cli",
+  "sourceParent": "d57559d67e5f9bf57770f60d99063552bed6b2b3",
+  "status": "M7-resolved-M1-still-open",
+  "packageMaturity": "M",
+  "normativeSource": "docs/标准库设计.md:718,1771",
+  "contract": "os.args returns an independent host OS process argument array, including argv[0]. Script main arguments are a separate call contract.",
+  "incorrectHistoricalAssumptionWithdrawn": "os.args must equal the script main arg or DLL-supplied xvalue vector.",
+  "testedFileHashes": {
+    "release/xl.exe": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05",
+    "release/xl.dll": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930",
+    "release/xlc.dll": "27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334",
+    "release/xl": "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb",
+    "release/libxl.so": "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad",
+    "release/libxlc.so": "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386",
+    "lib/xrt/xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+    "docs/标准库设计.md": "064a11a6bc90e67d98f1f517ac0db57f7ea50821cb889ff5b682af8bf543cfc5",
+    "dev/extlib_blockers/cli_os_args_contents.xl": "279c3e586c88f05863c27f9b31b998ed7e0ee7f245de742036eb57dbc2e15a40",
+    "dev/extlib_blockers/cli_os_args_contexts.c": "3354f39bc4e86df377c97ba440002fe857915d7a25ec129800a1afee58c6e27b",
+    "dev/extlib_blockers/cli_args_projection.xl": "6edce573f7b585cc9e2d9e02e7525b6250d4448eac4047e749f7c4f6cf2fb066",
+    "dev/extlib_blockers/cli_args_projection.c": "af4600cdc5f4b341116ae21aca20dca8734fb499e9af35e4615e475bf82b9617",
+    "release/extlibs/cli/src/cli.xl": "0d1e9d6aa07e7b7efd8ca1fed0bc19358b558d28a786598a8b59297f0354c861",
+    "release/extlibs/cli/xlang.package.json": "0ee7433f2a98d9414baffb63e868977e4dc9144fc95b9856af6d30b7477b0b55"
+  },
+  "windows": [
+    {
+      "name": "JIT exact host args",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "os.args contents: host= 8  main= 5  UTF-8/empty/spaces, PASS\n",
+        "stderr": "",
+        "elapsedMs": 129
+      }
+    },
+    {
+      "name": "AOT build",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 270
+      }
+    },
+    {
+      "name": "AOT exact host args",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "os.args contents: host= 5  main= 5  UTF-8/empty/spaces, PASS\n",
+        "stderr": "",
+        "elapsedMs": 29
+      }
+    },
+    {
+      "name": "xl contexts build",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 203
+      }
+    },
+    {
+      "name": "xl host/context A-B-A",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "context args count: os= 3  main= 4\nA first: executed=1 exit=0 args=4\r\ncontext args count: os= 3  main= 2\nB first: executed=1 exit=0 args=2\r\ncontext args count: os= 3  main= 4\nA repeat: executed=1 exit=0 args=4\r\n",
+        "stderr": "",
+        "elapsedMs": 300
+      }
+    },
+    {
+      "name": "xlc contexts build",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 192
+      }
+    },
+    {
+      "name": "xlc host/context A-B-A",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "context args count: os= 3  main= 4\nA first: executed=1 exit=0 args=4\r\ncontext args count: os= 3  main= 2\nB first: executed=1 exit=0 args=2\r\ncontext args count: os= 3  main= 4\nA repeat: executed=1 exit=0 args=4\r\n",
+        "stderr": "",
+        "elapsedMs": 332
+      }
+    }
+  ],
+  "linux": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "os.args contents: host= 8  main= 5  UTF-8/empty/spaces, PASS\nos.args contents: host= 5  main= 5  UTF-8/empty/spaces, PASS\ncontext args count: os= 3  main= 4\nA first: executed=1 exit=0 args=4\ncontext args count: os= 3  main= 2\nB first: executed=1 exit=0 args=2\ncontext args count: os= 3  main= 4\nA repeat: executed=1 exit=0 args=4\ncontext args count: os= 3  main= 4\nA first: executed=1 exit=0 args=4\ncontext args count: os= 3  main= 2\nB first: executed=1 exit=0 args=2\ncontext args count: os= 3  main= 4\nA repeat: executed=1 exit=0 args=4\nLinux os.args host/context separation: JIT/AOT and both SO providers, PASS\n",
+    "stderr": "",
+    "elapsedMs": 1660
+  },
+  "windowsImport": [
+    {
+      "arguments": [
+        "run",
+        "dev/extlib_blockers/cli_import_os_args.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 161
+      }
+    },
+    {
+      "arguments": [
+        "build",
+        "dev/extlib_blockers/cli_import_os_args.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\test\\cli_os_args_current_20261101\\cli-import.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 346
+      }
+    },
+    {
+      "arguments": [
+        "D:\\GIT\\x-lang\\build\\test\\cli_os_args_current_20261101\\cli-import.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 35
+      }
+    }
+  ],
+  "linuxImport": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "cli native control: PASS\nuncaught xlang error: ValueError: parse requires an args array and a spec object\nuncaught xlang error: parse requires an args array and a spec object\nCLI import JIT/AOT restored; projection remains ValueError exit=1\n",
+    "stderr": "",
+    "elapsedMs": 762
+  },
+  "currentPriorityProbes": {
+    "date": "2026-11-01T19:43:45.4929596+08:00",
+    "products": {
+      "release/xl.exe": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05",
+      "release/xl.dll": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930",
+      "release/xlc.dll": "27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334",
+      "lib/xrt/xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06"
+    },
+    "changedInputs": [],
+    "checks": [
+      {
+        "source": "dev/extlib_blockers/cli_import_os_args.xl",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 193
+        }
+      },
+      {
+        "source": "dev/extlib_blockers/cli_os_args_symbol.xl",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 105
+        }
+      },
+      {
+        "source": "dev/extlib_blockers/cli_args_projection.xl",
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "cli native control: PASS\n",
+          "stderr": "uncaught xlang error: ValueError: parse requires an args array and a spec object\nuncaught xlang error: parse requires an args array and a spec object\n",
+          "elapsedMs": 148
+        }
+      },
+      {
+        "source": "dev/extlib_blockers/msgpack_var_dict_projection.xl",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 227
+        }
+      },
+      {
+        "source": "dev/extlib_blockers/netrc_constructor_literal.xl",
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: ConfigError: netrc document must be a dict\nuncaught xlang error: netrc document must be a dict\n",
+          "elapsedMs": 407
+        }
+      },
+      {
+        "source": "dev/extlib_blockers/fix_var_array_projection.xl",
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: ValueError: FIX build needs a BeginString and an array of field objects\nuncaught xlang error: FIX build needs a BeginString and an array of field objects\n",
+          "elapsedMs": 158
+        }
+      },
+      {
+        "source": "dev/extlib_blockers/json_patch_source_var_array.xl",
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: ValueError: apply requires a document and a patch array\nuncaught xlang error: apply requires a document and a patch array\n",
+          "elapsedMs": 163
+        }
+      }
+    ]
+  },
+  "scope": {
+    "compilerRuntimeOrXrtEdited": false,
+    "cliImplementationEdited": false,
+    "fullCliGateRerun": false,
+    "fullCliAcceptance": false,
+    "unicodeEmptyAndSpacedArguments": true,
+    "callerReturnArrayMutationIsIndependent": true,
+    "twoContextsPerProvider": true,
+    "providers": [
+      "xl.dll",
+      "xlc.dll",
+      "libxl.so",
+      "libxlc.so"
+    ],
+    "callerXvalueArrayRetainedAcrossCalls": true,
+    "knownM1Error": "ValueError: parse requires an args array and a spec object",
+    "goalComplete": false,
+    "cliSnapshotLinux": "build/test/msgpack_current_20261101/linux-location.txt",
+    "mainRuntimeDeliveryPending": true
+  }
+}

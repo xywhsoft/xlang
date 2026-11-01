@@ -1,0 +1,17 @@
+// os.args是宿主进程向量；main参数独立，调用者提供的尾部参数应保持一致。
+func main(...) as int
+    var actual = os.args()
+    assert type(actual) == array, "os.args must return an array"
+    assert actual.length >= arg.length
+    for index in range(1, arg.length)
+        assert actual[actual.length - arg.length + index] == arg[index]
+    end
+    assert arg.length == 5
+    assert arg[1] == "alpha" and arg[2] == ""
+    assert arg[3] == "中文" and arg[4] == "two words"
+    int hostCount = actual.length
+    actual[hostCount - 1] = "caller modification"
+    assert os.args()[hostCount - 1] == "two words"
+    println("os.args contents: host=", hostCount, " main=", arg.length, " UTF-8/empty/spaces, PASS")
+    return 0
+end
