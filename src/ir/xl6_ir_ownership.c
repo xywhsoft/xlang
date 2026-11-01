@@ -580,6 +580,9 @@ XL6_IrOperandOwnership xl6IrInstructionOperandOwnership(
     case XL6_IR_INSTR_SWITCH:
     case XL6_IR_INSTR_AGGREGATE_GET:
     case XL6_IR_INSTR_AGGREGATE_SET:
+    case XL6_IR_INSTR_C_ARRAY_BOUNDS:
+    case XL6_IR_INSTR_C_ARRAY_GET:
+    case XL6_IR_INSTR_C_ARRAY_SET:
     case XL6_IR_INSTR_FOREIGN_RESULT_ROLLBACK:
         return XL6_IR_OPERAND_OWNERSHIP_OBSERVE;
     default:
@@ -718,7 +721,10 @@ int xl6IrVerifyOwnerConsumption(const XL6_IrModule* module, XL6_DiagList* diags)
                 XL6_IrValueId value = module->operands[instruction->firstOperand + p];
                 const XL6_IrInstruction* definition = xl6IrValueDefinition(module, value, NULL);
                 const XL6_IrType* type = definition != NULL ? xl6IrTypeGet(&module->types, definition->type) : NULL;
-                if (effect == XL6_IR_OPERAND_OWNERSHIP_INVALID) goto done;
+                if (effect == XL6_IR_OPERAND_OWNERSHIP_INVALID) {
+                    reason = "instruction operand has no ownership effect";
+                    goto done;
+                }
                 if (type == NULL || type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
                     (effect != XL6_IR_OPERAND_OWNERSHIP_CONSUME &&
                      effect != XL6_IR_OPERAND_OWNERSHIP_CONSUME_FIELD &&

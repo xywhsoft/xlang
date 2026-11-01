@@ -64,7 +64,8 @@ typedef enum XL6_IrTypeKind {
     /* Owned data snapshot for exactly one persistence format and logical
      * source TypeId (params[0]). Never a source-language value or alias. */
     XL6_IR_TYPE_PERSISTENCE_WIRE,
-    XL6_IR_TYPE_C_RECORD
+    XL6_IR_TYPE_C_RECORD,
+    XL6_IR_TYPE_C_ARRAY
 } XL6_IrTypeKind;
 
 static inline int xl6IrTypeKindIsAggregate(XL6_IrTypeKind kind)
@@ -488,7 +489,8 @@ typedef enum XL6_IrCAbi {
     XL6_IR_C_ABI_NATIVE_VALUE,
     XL6_IR_C_ABI_C_STRING,
     XL6_IR_C_ABI_C_BYTES,
-    XL6_IR_C_ABI_C_RECORD
+    XL6_IR_C_ABI_C_RECORD,
+    XL6_IR_C_ABI_C_ARRAY
 } XL6_IrCAbi;
 
 static inline int xl6IrCAbiIsAggregate(XL6_IrCAbi abi)
@@ -857,6 +859,9 @@ typedef struct XL6_IrType {
      * Backends must use this closed identity rather than inspect source AST. */
     char* foreignHeader;
     XL6_IrTypeId foreignBase;
+    /* Fixed C array value, with params[0] as its exact trivial element ABI.
+     * The parser-owned extent spelling is gone at this backend boundary. */
+    uint64 nativeArrayExtent;
     /* Canonical C result-carrier spelling for a MAY_RAISE callable returning
      * this type.  Empty means that no error-result ABI is admitted.  This is
      * a type-pool fact so Cgen never reconstructs carriers from cAbi. */
@@ -1201,7 +1206,13 @@ typedef enum XL6_IrInstructionKind {
      * independent SSA frame residents. The bool result is authoritative and
      * must be consumed by an immediate ERROR_TEST. Only its success edge may
      * execute YIELD, which commits the item owner and suspends infallibly. */
-    XL6_IR_INSTR_GENERATOR_PREPARE_YIELD
+    XL6_IR_INSTR_GENERATOR_PREPARE_YIELD,
+    /* BOUNDS observes [fixed-array value, i64 index] and returns bool. The
+     * GET/SET proof operand must be this exact test on their exact inputs,
+     * and all entries to their block must be its true successor. */
+    XL6_IR_INSTR_C_ARRAY_BOUNDS,
+    XL6_IR_INSTR_C_ARRAY_GET,
+    XL6_IR_INSTR_C_ARRAY_SET
 } XL6_IrInstructionKind;
 
 typedef enum XL6_IrGeneratorClosePointAbi {
@@ -2983,7 +2994,8 @@ typedef enum XL6_IrMemberAbi {
     /* A declared value field without a specialized physical getter. Borrow
      * its erased slot, then apply the canonical exact-TypeId projection.
      * The result is an independent scalar/value, never a slot reference. */
-    XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE
+    XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE,
+    XL6_IR_MEMBER_ABI_C_ARRAY_LENGTH
 } XL6_IrMemberAbi;
 
 /* Safe builtin indexing evaluates its key only on the present successor.
@@ -3008,7 +3020,8 @@ typedef enum XL6_IrIndexWriteAbi {
     /* Value-sequence mutation computes a fresh owner and commits it back to
      * addressable receiver storage; it never mutates an aliased carrier. */
     XL6_IR_INDEX_WRITE_STRING_SCALAR_SET_COPY,
-    XL6_IR_INDEX_WRITE_BYTES_SET_COPY
+    XL6_IR_INDEX_WRITE_BYTES_SET_COPY,
+    XL6_IR_INDEX_WRITE_C_ARRAY_SET_COPY
 } XL6_IrIndexWriteAbi;
 
 /* Canonical target layout for a source loop.  A range descriptor does not

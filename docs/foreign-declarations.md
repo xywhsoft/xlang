@@ -89,5 +89,32 @@ XLIR 的 C record 与 union 保持不同类型／物理 ABI，共用明确的 ag
 数量必须被拒绝。`tools/check_foreign_parser_corpus.py` 为新旧解析器各自使用
 匹配的生成 token 头和 lexer，避免新增 token 后错误地比较混装的旧解析器。
 
-当前记录基础仍不代表整个第二项已完成：矩阵的内联 C 数组尚未接入。拥有构造、
-回调环境、XUI 生命周期及整个 XGE/XUI 包迁移也仍在后续步骤中。
+## 内联 C 数组
+
+```xlang
+extern "xge_mat4_t" struct Matrix @header("xge.h")
+    c_float m[16]
+end
+Matrix value = Matrix()
+value.m[0] = c_float(1.0)
+auto copy = value.m
+copy[0] = c_float(2.0) // value 的内容不变
+value.m = copy
+```
+
+数组是内联、固定长度的平凡值，不分配堆对象。字段仍采用权威 C 定义的原生数组
+布局；独立数组值用等长内联载体保存，复制后相互独立。当前接受一维、正整数
+长度的字段，元素可以是精确 C 标量、指针或 C 记录。禁止语言资源元素和普通类
+中的 C 数组字段。读取 `length` 不扫描数据。
+
+普通索引显式检查上下界，失败抛出 RangeError；XLIR 的实际读写指令必须携带
+同一数组和索引的成功分支证明。C/header 输出前会重新验证该证明，不依靠
+“前端已检查”的假设。常量值、临时返回值和只读 length 不能修改。安全索引
+尚未定义，语义检查明确拒绝。异步帧和生成器保存相同的平凡值，使用统一的
+aggregate 渲染实现。
+
+`tools/check_foreign_arrays.py` 检查矩阵、记录数组、副本、越界、异步和生成器，
+也以错误的 C 字段长度／元素类型验证权威 ABI。传入 `--source-build` 时，还
+执行破坏性 IR 测试，要求不合法的证明、分支和类型在输出任何 C/header 前拒绝。
+
+拥有构造、回调环境、XUI 生命周期及整个 XGE/XUI 包迁移仍在后续步骤中。

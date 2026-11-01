@@ -10513,6 +10513,48 @@ static int xl6IrLowerEmitCheckedIndexWrite(
     return xl6IrLowerEmitCheckedWrite(ctx, origin, committed, "RangeError", "container index assignment failed");
 }
 
+static XL6_IrValueId xl6IrLowerNativeArrayAccess(XL6_IrLowerContext* ctx,
+    XL6_IrNodeId origin, const XL6_IrNode* index, XL6_IrValueId value)
+{
+    if (!index || index->kind != XL6_IR_NODE_INDEX || index->childCount != 2) return 0;
+    XL6_IrNodeId receiverId = ctx->module->children[index->firstChild];
+    XL6_IrNodeId keyId = ctx->module->children[index->firstChild + 1];
+    const XL6_IrNode* receiver = xl6IrNodeGet(ctx->module, receiverId);
+    const XL6_IrNode* key = xl6IrNodeGet(ctx->module, keyId);
+    const XL6_IrType* type = receiver ? xl6IrTypeGet(&ctx->module->types, receiver->storageType) : NULL;
+    if (!type || type->cAbi != XL6_IR_C_ABI_C_ARRAY) return 0;
+    int writing = value != XL6_IR_VALUE_INVALID;
+    XL6_IrValueId array = 0;
+    if (writing && receiver->kind == XL6_IR_NODE_MEMBER) {
+        XL6_IrNode read = *receiver;
+        read.memberAbi = XL6_IR_MEMBER_ABI_UNION_FIELD;
+        array = xl6IrLowerUnionFieldProject(ctx, origin, &read);
+    } else array = xl6IrLowerNode(ctx, receiverId);
+    XL6_IrTypeId integer = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_I64);
+    XL6_IrTypeId boolean = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_BOOL);
+    XL6_IrValueId operands[4] = {array, 0, 0, 0}, proof = 0, result = 0;
+    operands[1] = xl6IrLowerNodeAsType(ctx, origin, keyId, key, integer);
+    if (!array || !operands[1] || !boolean ||
+        !xl6IrLowerEmit(ctx, XL6_IR_INSTR_C_ARRAY_BOUNDS, origin, boolean, 0, operands, 2, &proof) ||
+        !xl6IrLowerEmitCheckedWrite(ctx, origin, proof, "RangeError", "fixed C array index is out of bounds"))
+        return XL6_IR_VALUE_INVALID;
+    if (writing) {
+        operands[2] = value; operands[3] = proof;
+        if (!xl6IrLowerEmit(ctx, XL6_IR_INSTR_C_ARRAY_SET, origin,
+                receiver->storageType, 0, operands, 4, &result)) return 0;
+        if (receiver->kind == XL6_IR_NODE_NAME) {
+            const XL6_IrStorage* storage = xl6IrStorageGet(ctx->module, receiver->targetSymbol);
+            if (!storage || storage->type != receiver->storageType ||
+                !xl6IrLowerReplaceStorageValue(ctx, origin, storage->symbol, storage->type, result)) return 0;
+        } else if (receiver->kind != XL6_IR_NODE_MEMBER ||
+            xl6IrLowerUnionFieldSet(ctx, origin, receiver, result) <= 0) return 0;
+        return result;
+    }
+    operands[2] = proof;
+    return xl6IrLowerEmit(ctx, XL6_IR_INSTR_C_ARRAY_GET, origin,
+        index->storageType, 0, operands, 3, &result) ? result : XL6_IR_VALUE_INVALID;
+}
+
 /* Call completion is independent of the syntax which produced the operands.
  * These are caller-owned storage identities in acquisition order. A closure
  * receiver precedes its arguments; a constructed result is rolled back only
@@ -30766,6 +30808,11 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                         "XLIR index compound assignment bypassed its explicit read-modify-write plan");
                     return XL6_IR_VALUE_INVALID;
                 }
+                if (lhs->indexWriteAbi == XL6_IR_INDEX_WRITE_C_ARRAY_SET_COPY) {
+                    if (!xl6IrLowerNativeArrayAccess(ctx, id, lhs, values[0]))
+                        return XL6_IR_VALUE_INVALID;
+                    return 0;
+                }
                 if ( lhs->indexWriteAbi ==
                          XL6_IR_INDEX_WRITE_STRING_SCALAR_SET_COPY ||
                      lhs->indexWriteAbi ==
@@ -30808,6 +30855,12 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
         }
     case XL6_IR_NODE_INDEX:
         if(node->callKind==XL6_SEM_CALL_C_OWNED_READ)return xl6IrLowerCOwnedRead(ctx,id,node);
+        if (node->sourceKind == XL6_AST_INDEX && node->childCount == 2) {
+            const XL6_IrNode* receiver = xl6IrNodeGet(ctx->module, ctx->module->children[node->firstChild]);
+            const XL6_IrType* type = receiver ? xl6IrTypeGet(&ctx->module->types, receiver->storageType) : NULL;
+            if (type && type->cAbi == XL6_IR_C_ABI_C_ARRAY)
+                return xl6IrLowerNativeArrayAccess(ctx, id, node, XL6_IR_VALUE_INVALID);
+        }
         if (node->indexReceiverGate != XL6_IR_INDEX_RECEIVER_UNCONDITIONAL)
             return xl6IrLowerSafeIndexReceiverGate(ctx, id, node);
         if (node->sourceKind == XL6_AST_SAFE_INDEX && node->childCount == 2) {
@@ -30849,6 +30902,16 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
         return xl6IrLowerRuntimeXValueIndexI64(ctx, id, node, XL6_IR_VALUE_INVALID);
     case XL6_IR_NODE_MEMBER:
         if(node->callKind==XL6_SEM_CALL_C_OWNED_READ)return xl6IrLowerCOwnedRead(ctx,id,node);
+        if (node->memberAbi == XL6_IR_MEMBER_ABI_C_ARRAY_LENGTH) {
+            const XL6_IrNode* receiver = node->childCount == 1
+                ? xl6IrNodeGet(ctx->module, ctx->module->children[node->firstChild]) : NULL;
+            const XL6_IrType* type = receiver ? xl6IrTypeGet(&ctx->module->types, receiver->storageType) : NULL;
+            if (!type || type->cAbi != XL6_IR_C_ABI_C_ARRAY ||
+                !xl6IrLowerNode(ctx, ctx->module->children[node->firstChild])) return XL6_IR_VALUE_INVALID;
+            char extent[64];
+            snprintf(extent, sizeof(extent), "%llu", (unsigned long long)type->nativeArrayExtent);
+            return xl6IrLowerEmitIntConst(ctx, id, node->storageType, extent);
+        }
         {
             const XL6_IrCallSite* memberSite = xl6IrCallSiteGet(ctx->module, id);
             if (memberSite != NULL && memberSite->receiverGate == XL6_IR_CALL_RECEIVER_NULLABLE_GETTER)

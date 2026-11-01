@@ -839,3 +839,18 @@ static int xl6IrCgenEmitCheckedIntegerArithmetic(
  * enums here keeps generated C mechanical: no source spelling or generic type
  * recovery reaches the emitter.  Zero is reserved as "unsupported" for these
  * two non-null tag partitions. */
+
+/* Scalar conversion has one physical operation in every execution machine. */
+static int xl6IrCgenEmitScalarConversion(XL6_Output* out,
+    const XL6_IrModule* module, const XL6_IrInstruction* instruction, XL6_DiagList* diags)
+{
+    const char* resultType = xl6IrCgenType(module, instruction->type);
+    if (!resultType || !instruction->result || instruction->operandCount != 1 ||
+        instruction->scalarConversionAbi <= XL6_IR_SCALAR_CONVERSION_INVALID ||
+        instruction->scalarConversionAbi > XL6_IR_SCALAR_CONVERSION_OPERATOR_I64_TO_U64)
+        return xl6IrCgenDiag(diags, module, instruction->origin,
+            "XLIR scalar conversion has no exact ABI");
+    xl6OutputPrintf(out, "    v%u = (%s)v%u;\n", (unsigned)instruction->result,
+        resultType, (unsigned)module->operands[instruction->firstOperand]);
+    return !xl6OutputHasFailed(out);
+}

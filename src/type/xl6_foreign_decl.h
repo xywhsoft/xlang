@@ -12,6 +12,26 @@ typedef struct XL6_ForeignClassDecl {
     char header[256];
 } XL6_ForeignClassDecl;
 
+/* Parser-owned fixed C array vocabulary. '$' is not a source identifier, so
+ * the family is introduced only by a checked field declarator, not by an
+ * arbitrary user spelling. Extents remain ordinary exact type identities in
+ * the frontend; XLIR stores the decoded extent as a closed numeric fact. */
+static inline int xl6ForeignArrayExtent(const char* name, uint64* extent)
+{
+    static const char prefix[] = "c_array$";
+    uint64 value = 0;
+    if (!name || strncmp(name, prefix, sizeof(prefix)-1)) return 0;
+    const unsigned char* p = (const unsigned char*)name + sizeof(prefix)-1;
+    if (!*p || *p == '0') return 0;
+    for (; *p; ++p) {
+        if (*p < '0' || *p > '9' || value > (UINT32_MAX - (*p - '0')) / 10u) return 0;
+        value = value * 10u + (*p - '0');
+    }
+    if (!value) return 0;
+    if (extent) *extent = value;
+    return 1;
+}
+
 static inline int xl6ForeignIdentifier(const char* text)
 {
     const unsigned char* p = (const unsigned char*)text;

@@ -522,6 +522,7 @@ static const char* xl6IrTypeExpectedErrorResultCName(
     case XL6_IR_C_ABI_C_BYTES:
     case XL6_IR_C_ABI_TAGGED_NULLABLE:
     case XL6_IR_C_ABI_PRODUCT:
+    case XL6_IR_C_ABI_C_ARRAY:
     case XL6_IR_C_ABI_C_RECORD:
     case XL6_IR_C_ABI_UNION:
         if ( structuralName == NULL || structuralNameSize == 0 ||
@@ -1606,6 +1607,25 @@ int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type)
     const XL6_IrType* element;
     size_t i;
     if ( pool == NULL || type == NULL ) return 0;
+    if (type->kind == XL6_IR_TYPE_C_ARRAY) {
+        const XL6_IrType* item = type->paramCount == 1 && type->params
+            ? xl6IrTypeGet(pool, type->params[0]) : NULL;
+        if (!type->nativeArrayExtent || type->nativeArrayExtent > UINT32_MAX ||
+            type->returnCount || !item ||
+            item->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+            item->cAbi == XL6_IR_C_ABI_UNSUPPORTED || item->cAbi == XL6_IR_C_ABI_VOID ||
+            item->cAbi == XL6_IR_C_ABI_PRODUCT || item->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ||
+            item->cAbi == XL6_IR_C_ABI_UNION || item->cAbi == XL6_IR_C_ABI_C_ARRAY) return 0;
+        type->nativeProductAbi = XL6_IR_NATIVE_PRODUCT_NONE;
+        type->nativeValueAbi = XL6_IR_NATIVE_VALUE_NONE;
+        type->cAbi = XL6_IR_C_ABI_C_ARRAY;
+        type->ownershipAbi = XL6_IR_OWNERSHIP_ABI_TRIVIAL;
+        type->nullAbi = XL6_IR_NULL_ABI_NONE;
+        int written = snprintf(type->cName, sizeof(type->cName), "xlir_c_array_t%lu",
+            (unsigned long)(type - pool->items + 1));
+        return written > 0 && (size_t)written < sizeof(type->cName) &&
+            xl6IrTypeFinalizeErrorResultCName(pool, type);
+    }
     type->nativeProductAbi = XL6_IR_NATIVE_PRODUCT_NONE;
     type->nativeValueAbi = xl6IrNativeValueAbiFromType(type);
     if (type->kind!=XL6_IR_TYPE_NULLABLE && type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE && !xl6IrNativeValuePlanForType(type)) return 0;
@@ -2756,6 +2776,7 @@ static const XL6_AstNode* xl6IrFindTypeDecl(const XL6_AstNode* root, const XL6_A
 
 static XL6_IrTypeKind xl6IrTypeKindFromAst(const XL6_AstNode* root, const XL6_AstNode* type, size_t paramCount)
 {
+    if (type && xl6ForeignArrayExtent(type->text, NULL)) return XL6_IR_TYPE_C_ARRAY;
     const XL6_AstNode* declaration;
     if ( strcmp(type->text, "function") == 0 ) return XL6_IR_TYPE_FUNCTION;
     if ( strcmp(type->text, "__tuple") == 0 ) return XL6_IR_TYPE_TUPLE;
@@ -2977,6 +2998,8 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
         ? XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
         : kind == XL6_IR_TYPE_TUPLE
         ? xl6IrTupleCAbiForItems(&module->types, params, paramCount)
+        : kind == XL6_IR_TYPE_C_ARRAY
+        ? XL6_IR_C_ABI_C_ARRAY
         : xl6IrTypeKindIsAggregate(kind)
         ? (kind == XL6_IR_TYPE_C_RECORD ? XL6_IR_C_ABI_C_RECORD : XL6_IR_C_ABI_UNION)
         : kind == XL6_IR_TYPE_NULLABLE && paramCount == 1
@@ -3056,6 +3079,11 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
      * mutable open function variable from being invoked through stale
      * initializer provenance. */
     item->cAbi = expectedCAbi;
+    if (kind == XL6_IR_TYPE_C_ARRAY &&
+        !xl6ForeignArrayExtent(type->text, &item->nativeArrayExtent)) {
+        xrtFree(params); xrtFree(parameterModes); xrtFree(parameterAbis);
+        xrtFree(returns); memset(item, 0, sizeof(*item)); return XL6_IR_TYPE_INVALID;
+    }
     if ((kind == XL6_IR_TYPE_CLASS || kind == XL6_IR_TYPE_C_RECORD) && nominalDeclaration &&
         (nominalDeclaration->flags & XL6_AST_FLAG_EXTERN)) {
         XL6_ForeignClassDecl contract;
@@ -18216,6 +18244,13 @@ static int xl6IrMemberIsPlainAssignmentTarget(
          member < module->nodes || member >= module->nodes + module->nodeCount ) return 0;
     parent = xl6IrNodeGet(module, member->parent);
     memberId = (XL6_IrNodeId)(member - module->nodes + 1);
+    const XL6_IrType* memberType = xl6IrTypeGet(&module->types, member->storageType);
+    if (memberType && memberType->cAbi == XL6_IR_C_ABI_C_ARRAY && parent &&
+        parent->kind == XL6_IR_NODE_INDEX && parent->lvalueKind == XL6_SEM_LVALUE_INDEX &&
+        parent->childCount == 2 && module->children[parent->firstChild] == memberId) {
+        memberId = (XL6_IrNodeId)(parent - module->nodes + 1);
+        parent = xl6IrNodeGet(module, parent->parent);
+    }
     return parent != NULL && parent->kind == XL6_IR_NODE_ASSIGN &&
            parent->sourceKind == XL6_AST_ASSIGN && parent->childCount == 2 &&
            parent->text != NULL && strcmp(parent->text, "=") == 0 &&
@@ -18385,6 +18420,9 @@ static XL6_IrMemberAbi xl6IrClassifyMemberAbi(
     nullableElement = resultType != NULL && resultType->paramCount == 1 &&
         resultType->params != NULL
             ? xl6IrTypeGet(&module->types, resultType->params[0]) : NULL;
+    if (receiverType && receiverType->cAbi == XL6_IR_C_ABI_C_ARRAY &&
+        resultType && resultType->cAbi == XL6_IR_C_ABI_I64 && member->text &&
+        !strcmp(member->text, "length")) return XL6_IR_MEMBER_ABI_C_ARRAY_LENGTH;
     {
         XL6_IrMemberAbi errorAbi = xl6IrClassifyErrorMemberAbi(
             member, receiverType, resultType);
@@ -18472,6 +18510,12 @@ static XL6_IrErrorAbi xl6IrClassifyOperatorErrorAbi(
     XL6_IrTypeId operatorType;
     int operatorNode;
     if ( module == NULL || node == NULL ) return XL6_IR_ERROR_ABI_INVALID;
+    if (node->kind == XL6_IR_NODE_INDEX && node->sourceKind == XL6_AST_INDEX &&
+        node->lvalueKind != XL6_SEM_LVALUE_INDEX && node->childCount == 2) {
+        const XL6_IrNode* receiver = xl6IrNodeGet(module, module->children[node->firstChild]);
+        const XL6_IrType* type = receiver ? xl6IrTypeGet(&module->types, receiver->storageType) : NULL;
+        if (type && type->cAbi == XL6_IR_C_ABI_C_ARRAY) return XL6_IR_ERROR_ABI_MAY_RAISE;
+    }
     operatorNode = node->sourceKind == XL6_AST_BINARY ||
                    node->sourceKind == XL6_AST_UNARY ||
                    (node->sourceKind == XL6_AST_ASSIGN &&
@@ -19697,6 +19741,15 @@ static XL6_IrIndexWriteAbi xl6IrClassifyIndexWriteAbi(
     itemType = xl6IrTypeGet(&module->types, indexNode->storageType);
     if ( receiverType == NULL || keyType == NULL || itemType == NULL )
         return XL6_IR_INDEX_WRITE_NONE;
+    if (receiverType->cAbi == XL6_IR_C_ABI_C_ARRAY && receiverType->paramCount == 1 &&
+        receiverType->params[0] == indexNode->storageType &&
+        (keyType->integerTarget != XL6_IR_INTEGER_TARGET_INVALID ||
+         (keyType->cAbi >= XL6_IR_C_ABI_C_CHAR && keyType->cAbi <= XL6_IR_C_ABI_C_UINTPTR)) &&
+        ((receiver->kind == XL6_IR_NODE_NAME && receiver->targetSymbol) ||
+         (receiver->kind == XL6_IR_NODE_MEMBER &&
+          (receiver->memberAbi == XL6_IR_MEMBER_ABI_UNION_FIELD_DIRECT_STORAGE_WRITE ||
+           receiver->memberAbi == XL6_IR_MEMBER_ABI_UNION_FIELD_CLASS_FIELD_WRITE))))
+        return XL6_IR_INDEX_WRITE_C_ARRAY_SET_COPY;
     if ( receiver->kind == XL6_IR_NODE_NAME && receiver->targetSymbol != 0 &&
          keyType->cAbi == XL6_IR_C_ABI_I64 &&
          (receiverType->cAbi == XL6_IR_C_ABI_MANAGED_STRING || receiverType->cAbi==XL6_IR_C_ABI_C_STRING) &&
@@ -23824,6 +23877,25 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
     for ( i = 0; i < pool->count; ++i ) {
         const XL6_IrType* type = &pool->items[i];
         if (invalidIndex) *invalidIndex = i;
+        if (type->kind == XL6_IR_TYPE_C_ARRAY) {
+            uint64 extent = 0;
+            char name[64], abi[64];
+            const XL6_IrType* element = type->paramCount == 1 && type->params
+                ? xl6IrTypeGet(pool, type->params[0]) : NULL;
+            snprintf(name, sizeof(name), "xlir_c_array_t%lu", (unsigned long)(i + 1));
+            snprintf(abi, sizeof(abi), "xlang.native_array.%llu", (unsigned long long)type->nativeArrayExtent);
+            if (!xl6ForeignArrayExtent(type->name, &extent) || extent != type->nativeArrayExtent ||
+                type->abiId != xl6TypeAbiIdText(abi) || type->cAbi != XL6_IR_C_ABI_C_ARRAY ||
+                type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+                type->nullAbi != XL6_IR_NULL_ABI_NONE || type->foreignHeader || type->foreignBase ||
+                type->nominalSymbol || type->returnCount || !element ||
+                element->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+                element->cAbi == XL6_IR_C_ABI_UNSUPPORTED || element->cAbi == XL6_IR_C_ABI_VOID ||
+                element->cAbi == XL6_IR_C_ABI_PRODUCT || element->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ||
+                element->cAbi == XL6_IR_C_ABI_UNION || element->cAbi == XL6_IR_C_ABI_C_ARRAY ||
+                type->nativeProductAbi != XL6_IR_NATIVE_PRODUCT_NONE ||
+                type->nativeValueAbi != XL6_IR_NATIVE_VALUE_NONE || strcmp(type->cName, name)) return 0;
+        } else if (type->nativeArrayExtent || type->cAbi == XL6_IR_C_ABI_C_ARRAY) return 0;
         if (type->foreignBase && (!type->foreignHeader || type->kind != XL6_IR_TYPE_CLASS)) return 0;
         if (type->foreignHeader) {
             const XL6_IrType* element = type->kind == XL6_IR_TYPE_NULLABLE &&
@@ -23856,7 +23928,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
         const char* expectedResultName;
         size_t j;
          if ( type->kind < XL6_IR_TYPE_BUILTIN ||
-              type->kind > XL6_IR_TYPE_C_RECORD ||
+              type->kind > XL6_IR_TYPE_C_ARRAY ||
                type->collectionAbi < XL6_IR_COLLECTION_NONE ||
                type->collectionAbi > XL6_IR_COLLECTION_DICT ||
                type->persistenceValueAbi < XL6_IR_PERSISTENCE_VALUE_NONE ||
@@ -23865,7 +23937,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
                type->runtimeResourceAbi < XL6_IR_RUNTIME_RESOURCE_NONE ||
               type->runtimeResourceAbi > XL6_IR_RUNTIME_RESOURCE_SLOT_MAP ||
               type->cAbi < XL6_IR_C_ABI_UNSUPPORTED ||
-             type->cAbi > XL6_IR_C_ABI_C_RECORD ||
+             type->cAbi > XL6_IR_C_ABI_C_ARRAY ||
              type->ownershipAbi < XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
              type->ownershipAbi > XL6_IR_OWNERSHIP_ABI_MANAGED ||
              type->callableErasureAbi < XL6_IR_CALLABLE_ERASURE_INVALID ||
@@ -24221,7 +24293,8 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
         } else if ( type->cAbi == XL6_IR_C_ABI_PRODUCT ||
                      (type->cName[0] != '\0' && !type->foreignHeader &&
                      type->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE &&
-                     !xl6IrCAbiIsAggregate(type->cAbi)) ) return 0;
+                     !xl6IrCAbiIsAggregate(type->cAbi) &&
+                     type->cAbi != XL6_IR_C_ABI_C_ARRAY) ) return 0;
         if ( type->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE &&
              ((type->kind != XL6_IR_TYPE_CLASS && type->kind != XL6_IR_TYPE_NULLABLE) ||
                type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL) ) return 0;
@@ -26584,6 +26657,60 @@ static const XL6_IrBlock* xl6IrFunctionInstructionBlock(
             return block;
     }
     return NULL;
+}
+
+/* Fixed-array access consumes an exact bounds fact, never an unchecked index.
+ * Its block is entered only through the true edge of that same fact. This
+ * local CFG proof survives ordinary SSA copies and needs no runtime token. */
+static int xl6IrVerifyNativeArrayInstruction(const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction, const XL6_IrBlock* block)
+{
+    size_t expected = instruction->kind == XL6_IR_INSTR_C_ARRAY_BOUNDS ? 2u
+        : instruction->kind == XL6_IR_INSTR_C_ARRAY_GET ? 3u : 4u;
+    if (instruction->operandCount != expected || instruction->result == 0 ||
+        instruction->targetSymbol || instruction->targetValue || instruction->calleeType ||
+        instruction->runtimeOp || instruction->opcode || instruction->payloadType ||
+        instruction->sourcePayloadType || instruction->runtimeIdentityType ||
+        instruction->immediateText || instruction->elementIndex != SIZE_MAX) return 0;
+    const XL6_IrValueId* operands = module->operands + instruction->firstOperand;
+    const XL6_IrInstruction* array = xl6IrValueDefinition(module, operands[0], NULL);
+    const XL6_IrInstruction* index = xl6IrValueDefinition(module, operands[1], NULL);
+    const XL6_IrType* type = array ? xl6IrTypeGet(&module->types, array->type) : NULL;
+    const XL6_IrType* key = index ? xl6IrTypeGet(&module->types, index->type) : NULL;
+    const XL6_IrType* result = xl6IrTypeGet(&module->types, instruction->type);
+    if (!type || type->cAbi != XL6_IR_C_ABI_C_ARRAY || !key ||
+        key->cAbi != XL6_IR_C_ABI_I64 || key->integerTarget != XL6_IR_INTEGER_TARGET_SIGNED_64 || !result) return 0;
+    if (instruction->kind == XL6_IR_INSTR_C_ARRAY_BOUNDS)
+        return result->cAbi == XL6_IR_C_ABI_BOOL;
+    if (instruction->kind == XL6_IR_INSTR_C_ARRAY_GET) {
+        if (instruction->type != type->params[0]) return 0;
+    } else {
+        const XL6_IrInstruction* value = xl6IrValueDefinition(module, operands[2], NULL);
+        if (instruction->type != array->type || !value || value->type != type->params[0]) return 0;
+    }
+    const XL6_IrInstruction* proof = xl6IrValueDefinition(module, operands[expected - 1u], NULL);
+    if (!proof || proof->kind != XL6_IR_INSTR_C_ARRAY_BOUNDS || proof->operandCount != 2 ||
+        proof->firstOperand > module->operandCount || 2u > module->operandCount - proof->firstOperand ||
+        module->operands[proof->firstOperand] != operands[0] ||
+        module->operands[proof->firstOperand + 1] != operands[1]) return 0;
+    XL6_IrBlockId id = (XL6_IrBlockId)(block - module->blocks + 1);
+    if (id == module->entryBlock) return 0;
+    for (size_t i = 0; i < module->functionCount; ++i)
+        if (module->functions[i].entryBlock == id) return 0;
+    unsigned entries = 0;
+    for (size_t i = 0; i < module->blockCount; ++i) {
+        const XL6_IrBlock* prior = &module->blocks[i];
+        if (prior->firstInstruction > module->instructionCount ||
+            prior->instructionCount > module->instructionCount - prior->firstInstruction) return 0;
+        if (!prior->instructionCount) continue;
+        const XL6_IrInstruction* edge = &module->instructions[prior->firstInstruction + prior->instructionCount - 1];
+        if (edge->trueTarget != id && edge->falseTarget != id) continue;
+        if (edge->kind != XL6_IR_INSTR_BRANCH || edge->trueTarget != id || edge->falseTarget == id ||
+            edge->operandCount != 1 || edge->firstOperand >= module->operandCount ||
+            module->operands[edge->firstOperand] != proof->result) return 0;
+        ++entries;
+    }
+    return entries != 0;
 }
 
 /* Independently re-prove every constrained raw callback at the consuming
@@ -40287,7 +40414,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 "typed XLIR named callable has no exact declaration and signature ABI");
         }
         if ( node->memberAbi < XL6_IR_MEMBER_ABI_NONE ||
-             node->memberAbi > XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE ||
+             node->memberAbi > XL6_IR_MEMBER_ABI_C_ARRAY_LENGTH ||
              node->memberAbi != expectedMemberAbi ||
              node->unionField != expectedUnionField ) {
             xrtFree(incoming);
@@ -40301,7 +40428,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         }
          if ( node->indexWriteAbi < XL6_IR_INDEX_WRITE_NONE ||
               node->indexWriteAbi >
-                  XL6_IR_INDEX_WRITE_BYTES_SET_COPY ||
+                  XL6_IR_INDEX_WRITE_C_ARRAY_SET_COPY ||
               node->indexWriteAbi != expectedIndexWriteAbi ||
               node->indexWriteErrorAbi != expectedIndexWriteErrorAbi ) {
              xrtFree(incoming);
@@ -41125,7 +41252,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      instruction->pendingFailure > module->valueCount))
                     return xl6IrDiag(diags, instructionOrigin, "XLIR pending exception restoration has no cleanup outcome");
                  if ( instruction->kind <= XL6_IR_INSTR_INVALID ||
-                instruction->kind > XL6_IR_INSTR_GENERATOR_PREPARE_YIELD ||
+                instruction->kind > XL6_IR_INSTR_C_ARRAY_SET ||
                        instructionOrigin == NULL ||
                        instruction->firstOperand > module->operandCount ||
                       instruction->operandCount > module->operandCount - instruction->firstOperand ||
@@ -47207,7 +47334,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         return xl6IrDiag(diags, NULL,
                                          "XLIR product projection has no exact element ABI");
                 }
+                if (instruction->kind >= XL6_IR_INSTR_C_ARRAY_BOUNDS &&
+                    instruction->kind <= XL6_IR_INSTR_C_ARRAY_SET &&
+                    !xl6IrVerifyNativeArrayInstruction(module, instruction, block))
+                    return xl6IrDiag(diags, instructionOrigin,
+                        "fixed C array access has no exact value, index and true-edge bounds proof");
                 if ( instruction->kind == XL6_IR_INSTR_AGGREGATE_ZERO ) {
+                    /* Source record/union zero remains a separate operation
+                     * from checked fixed-array element access below. */
                     const XL6_IrType* unionType =
                         xl6IrTypeGet(&module->types, instruction->type);
                     if ( unionType == NULL || !xl6IrTypeKindIsAggregate(unionType->kind) ||
@@ -49512,6 +49646,9 @@ static const char* xl6IrInstructionKindName(XL6_IrInstructionKind kind)
     case XL6_IR_INSTR_AGGREGATE_ZERO: return "union-zero";
     case XL6_IR_INSTR_AGGREGATE_GET: return "union-get";
     case XL6_IR_INSTR_AGGREGATE_SET: return "union-set";
+    case XL6_IR_INSTR_C_ARRAY_BOUNDS: return "c-array-bounds";
+    case XL6_IR_INSTR_C_ARRAY_GET: return "c-array-get";
+    case XL6_IR_INSTR_C_ARRAY_SET: return "c-array-set";
     case XL6_IR_INSTR_STORAGE_ADDRESS: return "storage-address";
     case XL6_IR_INSTR_RUNTIME_CALL: return "runtime-call";
     case XL6_IR_INSTR_TRAP_IF_FALSE: return "trap-if-false";
@@ -49660,6 +49797,7 @@ static const char* xl6IrMemberAbiName(XL6_IrMemberAbi abi)
     case XL6_IR_MEMBER_ABI_SAFE_CLASS_FIELD_NULLABLE:
         return "safe-class-field-nullable";
     case XL6_IR_MEMBER_ABI_BYTES_LENGTH: return "bytes-length";
+    case XL6_IR_MEMBER_ABI_C_ARRAY_LENGTH: return "c-array-length";
     case XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE: return "class-field-exact-value";
     default: return "invalid";
     }
@@ -49703,6 +49841,7 @@ static const char* xl6IrIndexWriteAbiName(XL6_IrIndexWriteAbi abi)
         return "string-scalar-set-copy";
     case XL6_IR_INDEX_WRITE_BYTES_SET_COPY:
         return "bytes-set-copy";
+    case XL6_IR_INDEX_WRITE_C_ARRAY_SET_COPY: return "c-array-set-copy";
     default: return "invalid";
     }
 }

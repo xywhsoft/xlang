@@ -22,39 +22,14 @@ static int xl6IrCgenEmitInstruction(
                 if ( !xl6IrCgenEmitNullableInstruction(
                         out, module, instruction, diags) ) return 0;
                 break;
+            case XL6_IR_INSTR_C_ARRAY_BOUNDS:
+            case XL6_IR_INSTR_C_ARRAY_GET:
+            case XL6_IR_INSTR_C_ARRAY_SET:
             case XL6_IR_INSTR_AGGREGATE_ZERO:
-                xl6OutputPrintf(out, "    v%u = (%s){0};\n",
-                    (unsigned int)instruction->result,
-                    xl6IrCgenType(module, instruction->type));
+            case XL6_IR_INSTR_AGGREGATE_GET:
+            case XL6_IR_INSTR_AGGREGATE_SET:
+                if (!xl6IrCgenEmitAggregateValueInstruction(out, module, instruction, diags)) return 0;
                 break;
-            case XL6_IR_INSTR_AGGREGATE_GET: {
-                const XL6_IrAggregateField* field =
-                    instruction->elementIndex < module->aggregateFieldCount
-                        ? &module->aggregateFields[instruction->elementIndex] : NULL;
-                if ( field == NULL || field->cName[0] == '\0' )
-                    return xl6IrCgenDiag(diags, module, instruction->origin,
-                        "XLIR union read has no exact C member ABI");
-                xl6OutputPrintf(out, "    v%u = v%u.%s;\n",
-                    (unsigned int)instruction->result,
-                    (unsigned int)module->operands[instruction->firstOperand],
-                    field->cName);
-                break;
-            }
-            case XL6_IR_INSTR_AGGREGATE_SET: {
-                const XL6_IrAggregateField* field =
-                    instruction->elementIndex < module->aggregateFieldCount
-                        ? &module->aggregateFields[instruction->elementIndex] : NULL;
-                if ( field == NULL || field->cName[0] == '\0' )
-                    return xl6IrCgenDiag(diags, module, instruction->origin,
-                        "XLIR union write has no exact C member ABI");
-                xl6OutputPrintf(out, "    v%u = v%u;\n    v%u.%s = v%u;\n",
-                    (unsigned int)instruction->result,
-                    (unsigned int)module->operands[instruction->firstOperand],
-                    (unsigned int)instruction->result,
-                    field->cName,
-                    (unsigned int)module->operands[instruction->firstOperand + 1]);
-                break;
-            }
             case XL6_IR_INSTR_LOAD:
                 {
                     const XL6_IrStorage* storage = xl6IrStorageGet(module, instruction->targetSymbol);
@@ -123,20 +98,7 @@ static int xl6IrCgenEmitInstruction(
                         out, module, instruction, instructionIndex, diags) ) return 0;
                 break;
             case XL6_IR_INSTR_SCALAR_CONVERT:
-                {
-                    const char* resultType = xl6IrCgenType(module, instruction->type);
-                    if ( resultType == NULL || instruction->result == XL6_IR_VALUE_INVALID ||
-                         instruction->operandCount != 1 ||
-                         instruction->scalarConversionAbi <=
-                             XL6_IR_SCALAR_CONVERSION_INVALID ||
-                         instruction->scalarConversionAbi >
-                             XL6_IR_SCALAR_CONVERSION_OPERATOR_I64_TO_U64 )
-                        return xl6IrCgenDiag(diags, module, instruction->origin,
-                                             "XLIR C emitter scalar conversion ABI is unresolved");
-                    xl6OutputPrintf(out, "    v%u = (%s)v%u;\n",
-                                    (unsigned int)instruction->result, resultType,
-                                    (unsigned int)module->operands[instruction->firstOperand]);
-                }
+                if (!xl6IrCgenEmitScalarConversion(out, module, instruction, diags)) return 0;
                 break;
             case XL6_IR_INSTR_NATIVE_HANDLE_BIND:
                 if ( instruction->result == XL6_IR_VALUE_INVALID ||
