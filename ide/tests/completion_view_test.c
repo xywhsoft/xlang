@@ -12,7 +12,14 @@
 /* Include the actual adapter to test malformed and late response rejection. */
 #include "../src/ui/completion_view.c"
 typedef struct fixture { const char *directory,*compiler,*legacy; HDESK desktop; int started,failed,checks; } fixture;
-#define CHECK(v) do { if(!(v)) { fprintf(stderr,"completion_view_test:%d: %s; %s\n",__LINE__,#v,error.message); if(app.activeDocument) fprintf(stderr,"current text [%s]; completion wanted=%d ready=%d count=%d open=%d\n",xuiCodeEditGetText(app.activeDocument->editor),app.completionView->wanted,app.completionView->ready,app.completionView->count,xuiCodeEditIsCompletionOpen(app.activeDocument->editor)); fprintf(stderr,"focus editor=%d modal=%d check busy=%d check message=%s\n",app.activeDocument && xuiGetFocusWidget(app.context)==app.activeDocument->editor,xideActionsHasModal(&app),xideLanguageViewBusy(&app),xideLanguageViewMessage(&app)); f->failed=1; goto cleanup; } ++f->checks; } while(0)
+static void dumpCompletionItems(const xide_app* app)
+{
+ const xide_completion_view* v=app->completionView;
+ if(!v)return;
+ fprintf(stderr,"completion item count=%d widget count=%d\n",v->count,app->activeDocument ? xuiCodeEditGetCompletionCount(app->activeDocument->editor) : -1);
+ for(int i=0;i<v->count && i<4;++i)fprintf(stderr,"item %d label=[%s] detail=[%s] identity=%lld\n",i,v->items[i].sLabel ? v->items[i].sLabel : "",v->items[i].sDetail ? v->items[i].sDetail : "",(long long)v->items[i].iUserData);
+}
+#define CHECK(v) do { if(!(v)) { dumpCompletionItems(&app); fprintf(stderr,"completion_view_test:%d: %s; %s\n",__LINE__,#v,error.message); if(app.activeDocument) fprintf(stderr,"current text [%s]; completion wanted=%d ready=%d count=%d open=%d\n",xuiCodeEditGetText(app.activeDocument->editor),app.completionView->wanted,app.completionView->ready,app.completionView->count,xuiCodeEditIsCompletionOpen(app.activeDocument->editor)); fprintf(stderr,"focus editor=%d modal=%d check busy=%d check message=%s\n",app.activeDocument && xuiGetFocusWidget(app.context)==app.activeDocument->editor,xideActionsHasModal(&app),xideLanguageViewBusy(&app),xideLanguageViewMessage(&app)); f->failed=1; goto cleanup; } ++f->checks; } while(0)
 static int writeText(const char* path,const char* text) { return xrtFileWriteAtomic(path,(xbytesview){(const unsigned char*)text,strlen(text)}); }
 static int settle(xide_app* a) { if(xuiDispatchPendingEvents(a->context)!=XUI_OK) return 0; xideEditorPoll(a); xideTaskViewPoll(a); xideLanguageViewPoll(a); xideWorkbenchLayout(a); return xuiLayout(a->context)==XUI_OK && !a->frameError; }
 static int waitReady(xide_app* a) { uint64_t until=GetTickCount64()+20000; do { if(!settle(a)) return 0; if(a->completionView->ready) return 1; Sleep(5); } while(GetTickCount64()<until); return 0; }
