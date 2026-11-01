@@ -103,7 +103,7 @@ if (-not $FrontendRoot) {
 }
 if ($GuiOnly) {
     Assert-XideBuildInputs $buildInputs
-    # 界面与分析服务分开构建；正式 CLI 服务必须显式指定，不暗中替换成开发后端。
+    # Build the GUI independently; require the explicitly qualified CLI server.
     $serverTarget=Join-Path $releaseRoot 'xlang-ls.exe'
     if ([IO.Path]::GetFullPath($serverTarget) -ne $LanguageServerPath) {
         Copy-Item -LiteralPath $LanguageServerPath -Destination $serverTarget -Force
