@@ -26,7 +26,7 @@
     "dependencies": [],
     "coverage": {
         "mode": "suite",
-        "tests": ["test/boundaries.xl", "test/files.xl"]
+        "tests": ["test/boundaries.xl", "test/files.xl", "test/bom_values.xl"]
     },
     "native": {
         "singleton": false,

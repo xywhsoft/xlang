@@ -1,0 +1,5 @@
+plain bytes: 11
+first byte: 34
+value bytes: 8
+with BOM bytes: 12
+roundtrip: preserved

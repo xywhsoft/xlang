@@ -99,7 +99,8 @@ XRT_API xrtcsvwriter* xrtCsvWriterCreateMemory(const xrtcsvdialect* pDialect);
 /* 使用同目录临时文件，只有 Close 成功才替换目标；Destroy 不自动提交。 */
 XRT_API xrtcsvwriter* xrtCsvWriterOpenFile(cstr sPath, const xrtcsvdialect* pDialect);
 XRT_API const xrtcsverror* xrtCsvWriterError(const xrtcsvwriter* pWriter);
-/* 字段为 NUL 结尾的 UTF-8，NULL 字段按空字符串处理；不保留输入。 */
+/* 字段为 NUL 结尾的 UTF-8，NULL 字段按空字符串处理；不保留输入。
+ * 无文件BOM时，首行首字段开头的U+FEFF数据自动引用，避免回读时被剥掉。 */
 XRT_API bool xrtCsvWriterWrite(xrtcsvwriter* pWriter, uint32 iCount, const str* pFields);
 XRT_API bool xrtCsvWriterClose(xrtcsvwriter* pWriter);
 /* 仅限内存 Writer：先 Close，再取一次结果；调用者负责 xrtBufferDestroy。 */

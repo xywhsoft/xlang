@@ -144,6 +144,13 @@ FIX校验不物化阶段候选`build/test/fix_validate_20261102/catalog/`
 继续失败，未以九普通AOT或合法谓词不分配替代发布签收。详见
 `docs/reports/extlib-fix-validate-20261102.json`。
 
+CSV数据BOM阶段候选`build/test/csv_bom_values_20261102/catalog/`
+生成并通过自身新鲜度：207包/17598项，公开项增删0，145文档/593来源，
+最新README/coverage已捕获。严格绑定仍报xl.dll变化，未安装、未改写
+基础身份或交付索引。官网源有隔离副本，609运行原始Git字节审计通过。
+本包M2/M3/M5及Windows RFS仍开放，不以数据BOM修复替代发布签收；
+完整记录见`docs/reports/extlib-csv-bom-values-20261102.json`。
+
 1. 主线维护者完成稳定XRT同步、相匹配的编译器发布物和验收记录。
 2. 如标准库/主线绑定改变，先按当前正式验收报告重生成基础命令目录。
 3. 再刷新扩展资料候选，运行真实前端声明检查及严格覆盖/新鲜度检查。

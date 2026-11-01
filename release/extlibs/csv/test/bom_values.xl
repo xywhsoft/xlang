@@ -1,0 +1,31 @@
+import csv
+
+func main(...) as int
+    string value = "\xef\xbb\xbf" + "title"
+    int checked = 0
+    for all in [false, true]
+        for marked in [false, true]
+            csv.Writer output = csv.create(quoteAll=all, writeBOM=marked)
+            output.write([value])
+            csv.Reader input = csv.open(output.finish())
+            assert input.next() and input.field(0) == value
+            assert not input.next() and input.eof
+            input.close()
+            checked += 1
+        end
+    end
+    // 默认方言需要首尾引号，输出配额必须包含这两个字节。
+    csv.Writer exact = csv.create(maxOutput=11)
+    exact.write([value])
+    assert exact.finish().len() == 11
+    csv.Writer short = csv.create(maxOutput=10)
+    bool rejected = false
+    try
+        short.write([value])
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected and checked == 4
+    println("CSV language BOM values: PASS")
+    return 0
+end

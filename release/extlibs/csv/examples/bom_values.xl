@@ -1,0 +1,28 @@
+import csv
+
+func main(...) as int
+    // U+FEFF是字段数据，不是要求写入器输出文件BOM的选项。
+    string value = "\xef\xbb\xbf" + "title"
+    csv.Writer output = csv.create()
+    output.write([value])
+    Buffer data = output.finish()
+    assert data.len() == 11 and data.byteAt(0) == 34
+    csv.Reader input = csv.open(data)
+    assert input.next() and input.field(0) == value
+    assert not input.next() and input.eof
+    input.close()
+
+    csv.Writer markedOutput = csv.create(writeBOM=true)
+    markedOutput.write([value])
+    Buffer marked = markedOutput.finish()
+    assert marked.len() == 12 and marked.byteAt(0) == 239
+    csv.Reader markedInput = csv.open(marked)
+    assert markedInput.next() and markedInput.field(0) == value
+    markedInput.close()
+    println("plain bytes: 11")
+    println("first byte: 34")
+    println("value bytes: 8")
+    println("with BOM bytes: 12")
+    println("roundtrip: preserved")
+    return 0
+end

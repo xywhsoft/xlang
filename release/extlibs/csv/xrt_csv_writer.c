@@ -215,10 +215,14 @@ static bool __xrtCsvWriterWrite(xrtcsvwriter* pWriter, uint32 iCount, const str*
 	}
 	for ( i = 0u; i < iCount; ++i ) {
 		unsigned char iDelimiter = (unsigned char)pWriter->Dialect.iDelimiter;
+		/* 首字段的数据BOM须引用，避免回读时被当成文档编码标记剥掉。 */
+		bool bProtectBOM = i == 0u && pWriter->RowNumber == 0u &&
+			!pWriter->Dialect.bWriteBOM && pFields[i] != NULL &&
+			strncmp(pFields[i], "\xef\xbb\xbf", 3u) == 0;
 		if ( i != 0u && !__xrtCsvWriterWriteAll(pWriter, &iDelimiter, 1u) ) { return false; }
 		/* 单个空字段必须带引号，才能与零字段的空行区分。 */
 		if ( !__xrtCsvWriteField(pWriter, (const char*)pFields[i],
-			iCount == 1u && (pFields[i] == NULL || pFields[i][0] == 0)) ) { return false; }
+			bProtectBOM || (iCount == 1u && (pFields[i] == NULL || pFields[i][0] == 0))) ) { return false; }
 	}
 	sNewline = pWriter->Dialect.iNewline == XRT_CSV_NEWLINE_CRLF ? "\r\n" : "\n";
 	iNewline = pWriter->Dialect.iNewline == XRT_CSV_NEWLINE_CRLF ? 2u : 1u;

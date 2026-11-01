@@ -31,7 +31,10 @@
   <header class="extlib-head">
     <p><a href="../extlibs.html">扩展库</a> / csv</p>
     <div class="extlib-title-row"><h1>csv</h1><span class="extlib-cat-badge">数据格式</span></div>
+    <p>2026-11-02：修复默认首行首字段以U+FEFF数据开头时，回读被当文件BOM而丢失的缺陷。无显式文件BOM时自动引用该字段；有BOM、已有引用及后续行/列不改。两个引号计入配额，可能触发既有缓冲扩容或增加外部流写入，不承诺零额外成本；API/ABI/所有权不变，读取器不猜测裸输入作者意图。</p>
+    <p><code>examples/bom_values.xl</code> 与 <code>bom_values_c.c</code> 对照同一五行输出，默认不读写文件。新2016形状对照完整预期字节、限额/回读/七内存指标，独立Python csv/utf-8-sig再检查全部记录及三种坏输出。矩阵旧240条断言失败，独立60份往返不符，新0；加入实际容量探针后最终旧241条失败、新0，非241个独立BUG。四条逐点OOM/恢复路径覆盖必要引号跨过实际几何容量的扩容，不把Reserve(4096)当作精确容量。</p>
     <p class="extlib-lead">基于 XRT 的 UTF-8 CSV/TSV 读写。按行处理大文件，按表头读写字典，显式提交文件输出。</p>
+    <p>本轮最终Windows109阶段98符合要求，Linux原生97阶段91符合要求；新增BOM/容量/OOM、原454互通/线程、19实际原型和各13份普通AOT过。Win63指纹、Linux74来源/四工具/boot保持，C含ASan/UBSan/泄漏。原M5/M3/M2及Windows关闭态回滚RFS仍开放，默认门禁仍1，私有构造器负例不执行。写入器GCC-O2对象text增加112/128B，不宣称零成本或生产吞吐收益。后续旧日期为对应冻结版本的历史证据。</p>
     <p>2026-10-30 冻结工具链：Windows/Linux 综合门禁分别执行 88/77 阶段，77/71 符合要求，仍真实退出 1。
     八组基础 C、20 组首错组合、454 项 Python 互通、线程、19 个原型及新增流式双语 JIT/AOT 通过；
     仍有 M5 嵌套数组、M3 私有构造器、M2 顶层 AOT 退役阻断，Windows 另有关闭态事务回滚 OOM 残留。
