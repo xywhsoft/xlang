@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "date": "2026-11-02",
+  "scope": "Private explicit native graph capture and closure storage; compiler and native retained callback registration remain disabled",
+  "releaseProductsUpdated": false,
+  "languageSchemaEnabled": false,
+  "windows": "F:/xlang-validation/xge-lifetime-20261102/view-capture-win-r2/results.json",
+  "linux": "/home/ubuntu/xlang-validation/foreign-view-capture-20261102-r2/results.json",
+  "baseFixtureRegression": "F:/xlang-validation/xge-lifetime-20261102/private-view-fixture-win-r1/results.json",
+  "stagesPerPlatform": 18,
+  "optimizations": ["O0", "O2"],
+  "newStorage": ["tagged permanent native graph profile", "Capture V3 compact layouts", "sparse activation V3", "Closure V4 environment"],
+  "legacyLeafConsumersRejectGraph": ["Capture V2", "native Cell V2", "native Future payload V1"],
+  "tested": ["mixed legacy string and native graph slots", "sparse initialized flags", "malformed schema and overlapping metadata refusal", "reverse cleanup preserving first NULL diagnostic", "incoming failure preservation", "native payload closure view cycle retirement", "allocation-free typed closure invocation", "two closure admission allocation failure prefixes"],
+  "linuxSanitizers": {"newRuntimeSources": ["ASan", "UBSan", "LSan"], "sharedBaseRuntimeRebuiltWithSanitizers": false},
+  "remaining": ["shared graph cell and Future payload", "class field storage", "native callback owner slots and callback return-tail residency", "compiler lifecycle/effect schema", "factory guards", "text spans", "packages SDK IDE and release"],
+  "networkTests": false
+}

@@ -23,3 +23,7 @@ XUI 的 context 全实例登记、弱销毁通知和 `xuiCallScopeBegin/End` 已
 Windows O0/O2 的 8 组独立测试及合并测试均通过；Linux 对这两份新运行时源码启用 ASan/UBSan/泄漏检查，也全部通过。共享 XRT／基础运行库未由这轮 sanitizer 重新编译，不能扩大该检查的覆盖声明。验证包括自引用与 Child→Root 循环、错误线程最后释放、native 通知栈上的代码依赖保留、空诊断首错、6 个分配失败位置和零分配重复曝光。
 
 完整默认 XUI 引擎与发布 `xl.dll`／`xlc.dll` 分别验证通过，包含同一实例复用、native 侧销毁、64 次控件槽位复用、context 关闭后旧值拒绝以及全部分配恢复。该夹具只创建没有持有值模型／语言回调的 base widget；它的空 TraceRaw 不能作为完整 XUI context 的拥有策略。接入其余控件模型、捕获 schema 和所有 native→语言适配器后，才能启用语言和 SDK 接口。
+
+捕获检查点：新增显式 native graph profile、Capture V3 和 Closure V4；沿用紧凑的现有物理 slot 布局，通过独立版本入口准入有拥有边的存储。graph profile 的较大、带 tag 前缀刻意不满足旧 leaf 合同，旧 capture／cell／Future 入口会拒绝，不能跳过追踪。通用捕获引擎不依赖 View／Map，具体视图 profile 单独发布，后续组件选择按需引入。
+
+这组 Windows O0/O2 与 Linux 新源码 ASan/UBSan 共 18 个阶段分别通过，包含 mixed string/view 清理、稀疏 live flag、重叠元数据／错误 schema 拒绝、空诊断首错、2 个闭包创建分配失败位置，以及 native payload→closure→view 的完整循环回收。类型化 closure entry 经真实 Capture V3 环境调用，分配／释放／realloc 计数均不变化；该结果不是生成后的 C-native 捕获回调性能验收。共享 cell、Future、类字段及 native owned callback 槽仍在继续接入，语言语法尚未开放。
