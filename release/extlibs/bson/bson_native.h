@@ -19,8 +19,6 @@ int64_t xbson_save(const char* path, xvalue* document);
 /* 返回字符串由调用方 xrtFree；失败返回 NULL。 */
 char* xbson_to_hex(xvalue* data);
 char* xbson_gen_oid(void);
-void* xbson_to_hex_abi(xvalue* data);
-void* xbson_gen_oid_abi(void);
 int64_t xbson_doc_length(xvalue* data);
 int64_t xbson_oid_time(const char* hex24);
 
@@ -29,7 +27,6 @@ xvalue* xbson_decode_span(xbytesview data);
 xvalue* xbson_decode_all_span(xbytesview data);
 xvalue* xbson_concat_span(xbytesview a, xbytesview b);
 char* xbson_to_hex_span(xbytesview data);
-void* xbson_to_hex_span_abi(xbytesview data);
 int64_t xbson_doc_length_span(xbytesview data);
 
 #endif

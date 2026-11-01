@@ -6,12 +6,15 @@ cd "$root"
 work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-bson-XXXXXX")
 cc=${CC:-gcc}
 cc_path=$(command -v "$cc" || true)
+python=${PYTHON:-python3}
+python_path=$(command -v "$python" || true)
 sequence=0
 input_paths() {
     find release/extlibs/bson release/include -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so \
         test/cases/extlib_bson.xl release/examples/extlibs/bson.xl
     if [[ -n "$cc_path" ]]; then printf '%s\0' "$cc_path"; fi
+    if [[ -n "$python_path" ]]; then printf '%s\0' "$python_path"; fi
 }
 cleanup() {
     result=$?
@@ -60,9 +63,9 @@ compile -DXRT_MODULE_VALUE_CONTAINER -DXRT_MODULE_FILE_WHOLE -DXRT_MODULE_TIME -
     -DXRT_MODULE_RANDOM_SECURE -fsyntax-only release/extlibs/bson/bson_native.c
 compile -c release/extlibs/bson/test/xrt_runtime.c -o "$work/runtime.o"
 compile -c release/extlibs/bson/bson_native.c -o "$work/native.o"
-for name in test_bson_smoke test_boundaries numeric_reads_c; do
+for name in test_bson_smoke test_boundaries numeric_reads_c date_epochs_c; do
     objects=("$work/runtime.o"); links=(); arguments=()
-    if [[ $name != numeric_reads_c ]]; then objects+=("$work/native.o"); fi
+    if [[ $name != numeric_reads_c && $name != date_epochs_c ]]; then objects+=("$work/native.o"); fi
     if [[ $name == test_boundaries ]]; then links+=(-Wl,--wrap=clock_gettime); arguments=("$work"); fi
     compile "release/extlibs/bson/test/$name.c" "${objects[@]}" "${links[@]}" -no-pie -lm -ldl -o "$work/$name"
     run 120 "$work/$name" "${arguments[@]}" > "$work/$name.txt"
@@ -70,6 +73,11 @@ for name in test_bson_smoke test_boundaries numeric_reads_c; do
 done
 printf 'bson numeric reads: 1080 vectors, 72 OOM paths, 0 failures\n' > "$work/numeric.expected"
 diff -u "$work/numeric.expected" "$work/numeric_reads_c.txt"
+run 30 "$python" release/extlibs/bson/test/check_date_epochs.py "$work/date_epochs_c.txt"
+date_source=release/extlibs/bson/test/date_epochs_c.c
+run 120 ./release/xl run "$date_source" > "$work/dates.direct"
+run 30 "$python" release/extlibs/bson/test/check_date_epochs.py "$work/dates.direct"
+diff -u "$work/date_epochs_c.txt" "$work/dates.direct"
 numeric=release/extlibs/bson/test/numeric_reads_c.c
 run 120 ./release/xl run "$numeric" > "$work/numeric.direct"
 diff -u "$work/numeric.expected" "$work/numeric.direct"
@@ -95,7 +103,7 @@ diff -u "$work/numeric_fields.expected" "$work/numeric_fields.xl.txt"
 paths=release/extlibs/bson/test/numeric_reads.xl
 run 120 ./release/xl run "$paths"
 run 90 ./release/xl cgen "$language" --emit "$work/probe.c"
-grep -Eq 'xl6_xrt_take_cstr\(' "$work/probe.c"
+run 30 "$python" release/extlibs/bson/test/check_owned_codegen.py "$work/probe.c"
 grep -E '^extern .*xbson_[a-z_]+[(]' "$work/probe.c" | sort -u > "$work/abi.decls"
 grep -oE 'xbson_[a-z_]+[(]' "$work/abi.decls" | tr -d '(' | sort -u > "$work/abi.actual"
 sed -nE 's/^extern "(xbson_[A-Za-z0-9_]+)".*/\1/p' release/extlibs/bson/src/bson.xl | sort -u > "$work/abi.expected"
@@ -104,7 +112,7 @@ diff -u "$work/abi.expected" "$work/abi.actual"
 printf '#include "bson_native.c"\n' > "$work/abi.c"
 cat "$work/abi.decls" >> "$work/abi.c"
 compile -fsyntax-only "$work/abi.c"
-sources=("$numeric" "$paths" "$language" release/extlibs/bson/examples/bson_c.c release/extlibs/bson/examples/numeric_fields_c.c)
+sources=("$numeric" "$date_source" "$paths" "$language" release/extlibs/bson/examples/bson_c.c release/extlibs/bson/examples/numeric_fields_c.c)
 index=0
 for source in "${sources[@]}"; do
     index=$((index+1))
@@ -113,6 +121,7 @@ for source in "${sources[@]}"; do
     run 90 "$binary" > "$work/aot-$index.txt"
     case "$source" in
         */numeric_reads_c.c) diff -u "$work/numeric.expected" "$work/aot-$index.txt" ;;
+        */date_epochs_c.c) diff -u "$work/date_epochs_c.txt" "$work/aot-$index.txt" ;;
         */bson_c.c) diff -u "$work/bson.expected" "$work/aot-$index.txt" ;;
         */numeric_fields_c.c|*/numeric_fields.xl) diff -u "$work/numeric_fields.expected" "$work/aot-$index.txt" ;;
     esac
@@ -120,7 +129,8 @@ done
 # 原始语言字典编码、完整范例和双语文件比较保留为必过正例，不降为预期失败。
 for source in test/cases/extlib_bson.xl release/extlibs/bson/test/aot_core.xl \
     release/extlibs/bson/test/boundaries.xl release/extlibs/bson/test/bson_test.xl \
-    release/extlibs/bson/test/allocations.xl release/extlibs/bson/examples/bson.xl release/examples/extlibs/bson.xl; do
+    release/extlibs/bson/test/allocations.xl release/extlibs/bson/test/owned_text.xl \
+    release/extlibs/bson/test/date_epochs.xl release/extlibs/bson/examples/bson.xl release/examples/extlibs/bson.xl; do
     run 120 ./release/xl run "$source" > "$work/complete.txt"
     if [[ $source == release/extlibs/bson/examples/bson.xl ]]; then diff -u "$work/bson.expected" "$work/complete.txt"; fi
     run 120 ./release/xl build "$source" -o "$work/complete"
@@ -129,4 +139,11 @@ done
 run 120 ./release/xl run release/extlibs/bson/examples/bson.xl -- "$work/xlang.bson" > "$work/xl-file.txt"
 diff -u "$work/file.expected" "$work/xl-file.txt"
 cmp "$work/c.bson" "$work/xlang.bson"
+mkdir "$work/empty-cwd"
+run 90 bash -c 'cd -- "$1" || exit 125; exec "$2" run "$3"' _ \
+    "$work/empty-cwd" "$root/release/xl" "$root/release/examples/extlibs/bson.xl" > "$work/empty-cwd.txt"
+test "$(tail -n 1 "$work/empty-cwd.txt")" = 'bson example: PASS'
+test -z "$(find "$work/empty-cwd" -mindepth 1 -print -quit)"
+compile release/extlibs/bson/test/save_cleanup_c.c "$work/runtime.o" -no-pie -lm -ldl -o "$work/save-cleanup"
+run 90 "$work/save-cleanup"
 printf 'bson Linux sanitizer, numeric framing, actual ABI and bilingual JIT/AOT: PASS\n'

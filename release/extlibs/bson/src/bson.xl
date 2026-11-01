@@ -11,8 +11,8 @@ extern "xbson_concat" func _bson_concat(var a, var b) as var
 extern "xbson_encode" func _bson_encode(var doc) as var
 extern "xbson_load" func _bson_load(string path) as var
 extern "xbson_save" func _bson_save(string path, var doc) as int
-extern "xbson_to_hex_abi" func _bson_to_hex(var data) as point
-extern "xbson_gen_oid_abi" func _bson_gen_oid() as point
+extern "xbson_to_hex" @owned func _bson_to_hex(var data) as string
+extern "xbson_gen_oid" @owned func _bson_gen_oid() as string
 extern "xbson_doc_length" func _bson_doc_len(var data) as int
 extern "xbson_oid_time" func _bson_oid_time(string hex24) as int
 extern "xl6_xrt_last_error_text" func __bson_error() as string
@@ -91,20 +91,12 @@ end
 
 // BSON bytes → hex 字符串 (调试用)
 export func toHex(var data) as string
-    point result = _bson_to_hex(data)
-    if result == null then
-        throw ValueError __bson_error()
-    end
-    return __xl_runtime.takeCstr(result)
+    return _bson_to_hex(data)
 end
 
 // 生成新的 ObjectId (24 字符 hex)
 export func objectId() as string
-    point result = _bson_gen_oid()
-    if result == null then
-        throw ValueError __bson_error()
-    end
-    return __xl_runtime.takeCstr(result)
+    return _bson_gen_oid()
 end
 
 // 获取 BSON 文档字节长度
@@ -143,14 +135,10 @@ export func decodeAll(bytes data) as var
     return result
 end
 
-extern "xbson_to_hex_span_abi" func _bson_to_hex_span(cbytes data) as point
+extern "xbson_to_hex_span" @owned func _bson_to_hex_span(cbytes data) as string
 
 export func toHex(bytes data) as string
-    point result = _bson_to_hex_span(data)
-    if result == null then
-        throw ValueError __bson_error()
-    end
-    return __xl_runtime.takeCstr(result)
+    return _bson_to_hex_span(data)
 end
 
 extern "xbson_doc_length_span" func _bson_doc_len_span(cbytes data) as int

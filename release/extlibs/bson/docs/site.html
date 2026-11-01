@@ -22,7 +22,7 @@
     <h1>bson</h1>
     <p class="extlib-lead">在 BSON 文档与 XLang 字典之间转换；C 端可直接操作 XRT xvalue。</p>
     <p>版本 3.0.0 · C / xlang · 无扩展库依赖</p>
-    <p>当前冻结发布版的语言字典进入 <code>encode(var)</code> 仍报“encode requires a table”，下方字典编码例子受共享 M1 阻断。2026-10-29 Windows 前36阶段满足预期，含新数值边界、15个真实原型和五个独立程序，第37阶段仍失败；外部 bytes 解码成功不代替完整双向能力。最新双平台证据以包 README 和发布验收矩阵为准。</p>
+    <p>2026-11-01现行0.6.0复验：语言字典与嵌套容器往返已恢复，完整双语文件、15份JIT/AOT和15个实际C原型通过；当前状态为R。Windows最终76阶段只有新增“共享拒绝发布 + OOM”回滚正例失败，其余75阶段符合预期；Linux75阶段含sanitizer通过。该共享XRT问题会残留临时文件，旧目标不变，不按普通路径通过签收整包。详情见包README和发布验收矩阵。</p>
   </header>
   <section id="start">
     <h2>快速开始</h2>
@@ -44,7 +44,7 @@ println(bson.docLength(wire))</code></pre>
       <tr><td><code>toHex(data) / docLength(data)</code></td><td>诊断十六进制和读取文档长度。</td></tr>
     </tbody></table>
     <p>支持嵌套字典、连续数组/列表、UTF-8 字符串、<code>bytes</code>（Binary subtype 0）、int32/int64、double、bool、null 和 BSON Date。二进制字段可原样往返。ObjectId 解码为十六进制字符串，再编码不会保留 ObjectId 类型。其余 BSON 特殊类型不在公开模型内。重复键、非连续数组索引、无效 UTF-8、截断及尾随数据报错。单次数据上限 64 MiB；<code>toHex</code> 的输出翻倍，输入最多 32 MiB，超限在分配前拒绝。文档层数上限 64（根文档计一层）；整份文档的字段/数组项合计最多 100 万，连续流 decodeAll 对全部文档累计计数。编解码、concat 和 toHex 的资源超限对应 C <code>XERR_RANGE</code> / XLang <code>RangeError</code>，畸形格式仍报值错误。<code>docLength</code> 只检查外层头部长度、总字节数和结束字节；检查不通过返回 0，正文是否有效仍须由 <code>decode</code> 验证。</p>
-    <p>BSON Date 仅有毫秒精度；微秒时间不能整除 1000 时拒绝编码，不会静默丢精度。超出 XRT 时间范围的 BSON Date 也拒绝解码。</p>
+    <p>BSON Date和当前XRT time均为有符号毫秒，但分别以Unix和AD为纪元；使用<code>time.fromUnixMs</code>/<code>time.toUnixMs</code>明确转换，不做微秒整除或精度截断。原始值不限制为四位年份；纪元换算溢出时拒绝，不静默回绕。新增56条四入口日期记录由独立Python模型核对，14个线格式另与固定PyMongo 4.10.1双向一致。</p>
     <p>路径和 ObjectId 文本不允许内嵌 NUL；错误不会按截断后的名称读写文件。生成的 ObjectId 使用时间戳及安全随机字节，不承诺顺序递增。</p>
   </section>
   <section id="c-api">
@@ -64,7 +64,7 @@ int main(void)
     xrtValueRelease(document);
     return ok ? 0 : 1;
 }</code></pre>
-    <p>C 动态值结果由调用方 <code>xrtValueRelease</code>；失败返回 null 值并设置 XRT 错误。<code>xbson_to_hex</code> 与 <code>xbson_gen_oid</code> 的结果用 <code>xrtFree</code> 释放。双语对照范例在 <code>release/extlibs/bson/examples/</code>，覆盖单文档、连续文档流、HEX、ObjectId 与显式路径的保存/载入；输出有独立预期，保存文件逐字节对照。从发布目录运行 <code>./xl run extlibs/bson/examples/bson_c.c</code> 即可执行 C 范例。此单文件范例包含原生实现，正式包构建仍独立编译。</p>
+    <p>C 动态值结果由调用方 <code>xrtValueRelease</code>；失败返回 null 值并设置 XRT 错误。<code>xbson_to_hex</code> 与 <code>xbson_gen_oid</code> 的结果用 <code>xrtFree</code> 释放；语言三条文本出口直接用<code>@owned string</code>接管，不经point/Buffer或正文复制。双语对照范例在 <code>release/extlibs/bson/examples/</code>，覆盖单文档、连续文档流、HEX、ObjectId 与显式路径的保存/载入；输出有独立预期，保存文件逐字节对照。从发布目录运行 <code>./xl run extlibs/bson/examples/bson_c.c</code> 即可执行 C 范例。综合教学例在独占临时目录中读写并finally清理，不再依赖调用目录里存在build。</p>
   </section>
   <section id="numeric-fields">
     <h2>数值载荷与错误边界</h2>
@@ -76,7 +76,7 @@ int main(void)
     <h2>验证状态</h2>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/bson/test/check.ps1
 bash release/extlibs/bson/test/check.sh</code></pre>
-    <p>从仓库根目录执行。Linux C 路径使用 ASan/UBSan 与泄漏检查；所有子进程有限时，运行前后核对输入指纹，失败保留独占目录、命令及真实输出。CC工具缺失明确失败，不静默跳过。包内详情源已更新，不代表外部官网已经部署。下方旧日期结果是历史证据，不能推翻当前 M1。</p>
+    <p>从仓库根目录执行。Linux C 路径使用 ASan/UBSan 与泄漏检查；所有子进程有限时，运行前后核对输入指纹，失败保留独占目录、命令及真实输出。CC工具缺失明确失败，不静默跳过。拥有型返回、错误/OOM、12个语言时间往返和空工作目录已覆盖；Windows新增锁定回滚保持必须通过的红项，不改成预期失败换取绿灯。包内详情源已更新，不代表外部官网已经部署。下方旧日期结果仅为冻结版本的历史证据，不能覆盖本文当前状态。</p>
     <p>2026-10-21 保存链路新增 C/XLang 逐点分配故障回归：编码或原子写入失败保留内存错误及已有文件，清除故障后可保存并读回。Windows 严格 GCC、C/XLang 和核心 AOT 快测与 Linux C ASan/UBSan、XLang 联合门禁通过；完整 AOT 共享阻断未变。</p>
     <p>2026-10-26 当前 Windows 发布版默认门禁先通过严格 C、原生边界和 C 范例，但语言字典传入 <code>encode(var)</code> 时报告 <code>bson: encode requires a table (var dict)</code>；Windows/Linux 最小复现均失败。当前首要阻断是共享 foreign var 字典投影，完整语言与 AOT 尚未验收，不签收发布级。旧 AOT 缺符号属于历史发布物状态。公开 C 头直接使用 XRT <code>xvalue</code>，整数结果为 <code>int64_t</code>；包内固定畸形文档与分配故障测试的范围见 README。</p>
     <p>NUL 路径负例使用独占系统临时目录，不再覆盖或删除固定 <code>build/test</code> 文件。2026-10-20 Windows 聚焦门禁及 Linux C ASan/UBSan、XLang 门禁复跑通过；完整带输出 AOT 的共享阻断不变。</p>
