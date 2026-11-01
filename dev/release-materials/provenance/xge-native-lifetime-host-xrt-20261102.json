@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "date": "2026-11-02",
+  "scope": "Native lifetime and single host XRT prerequisites; language managed views and package migration remain",
+  "releaseProductsUpdated": false,
+  "xrtRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
+  "xrtCanonicalHeaderSha256": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+  "xgeCommits": ["a382e6b8", "6f064f53", "eb13f054"],
+  "lifetime": {
+    "windows": "F:/xlang-validation/xge-lifetime-20261102/observer-win-r2/results.json",
+    "linux": "/home/ubuntu/xlang-validation/xge-lifetime-20261102-observer-r1/observer-asan-r1/results.json",
+    "optimizations": ["O0", "O2"],
+    "linuxSanitizers": ["ASan", "UBSan", "LSan"],
+    "covers": ["unattached context-owned widgets", "initialization reentry and failed initialization", "logical invalidation before destructors", "callback reentry", "freeing own and peer observer storage", "allocation-free attach and detach", "47 existing drag/drop cases per configuration"]
+  },
+  "hostRuntime": {
+    "windows": "F:/xlang-validation/xge-host-xrt-20261102/native-win-r3/results.json",
+    "linux": "/home/ubuntu/xlang-validation/xge-host-xrt-20261102-r1/host-asan-r1/results.json",
+    "actualXl": "F:/xlang-validation/xge-host-xrt-20261102/actual-xl-r2/results.json",
+    "actualXlc": "F:/xlang-validation/xge-host-xrt-20261102/actual-xlc-r2/results.json",
+    "nativeXrtDefinitions": 0,
+    "fullDefaultEngineImports": 174,
+    "actualRuntimeFunctionIdentityEqual": true,
+    "actualHostAllocationAndCleanupObserved": true,
+    "tccJitNativeCalls": true,
+    "sameSourceAndFeaturesO2Size": {
+      "embeddedBytes": 9224256,
+      "hostedBytes": 8661099,
+      "netSavedBytes": 563157,
+      "hostBuild": "F:/xlang-validation/xge-host-xrt-20261102/profile-win-r1/build-report.json",
+      "embeddedBuild": "F:/xlang-validation/xge-host-xrt-20261102/profile-embedded-win-r1/build-report.json"
+    },
+    "costLimit": "Typed indirect XRT call, no forwarding body; same-unit inlining may be lost. This is not overall zero-overhead certification."
+  },
+  "networkTests": false,
+  "remaining": ["language managed native views and owned graph", "captured retained callback userdata and reentrant retirement", "factory result protection through fallible cleanup", "text and dynamic spans", "complete effect contracts", "declarative package SDK IDE examples and delivery migration"]
+}
