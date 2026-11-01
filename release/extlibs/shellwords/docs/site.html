@@ -46,6 +46,7 @@ println(shellwords.quoteWindows("a b\\"))</code></pre>
   </section>
   <section id="verify">
     <h2>验证与边界</h2>
+    <p>Split 按引号状态扫描连续片段后一次追加，不新增正文副本。直接输入矩阵19851条（含19531种短词法穷举、所有非 NUL 单字节及长片段），由独立 Python shlex 和显式续行合同核对，13546条非法输入必须拒绝；另有9条逐分配点OOM/恢复与七项内存指标，不以本包 quote 自证。新 <code>examples/lexical_text.xl</code> 和 <code>lexical_text_c.c</code> 共享七行输出，展示邻接引号、空参数、字面反斜杠和换行规则。短文本/密集边界不保证与长片段相同的收益，局部基准不外推。</p>
     <p>POSIX 编码按连续正文片段追加，单引号转义规则及公开 API 不变；不为每字节追加或每个 Join 参数另建临时字符串。新增126组长度/引号/任意非 NUL 字节对照、8条逐点内存故障路径，以及393条由 Python shlex 独立解析的记录；Linux 另用真实 shell 逐字节核对 argv。微基准独立运行，局部速度改善不外推为整个语言或所有负载的保证。</p>
     <p><code>examples/command_plan.xl</code> 与 <code>command_plan_c.c</code> 展示单引号、中文、参数规范化和 Windows CRT 引用，共享六行黄金输出，不执行命令。默认门禁核对输入指纹，设置进程超时并在失败时留存现场；新文本路径测试不替代原语言数组 Join 正例。</p>
     <pre><code>xl run release/extlibs/shellwords/examples/basic.c

@@ -1,0 +1,28 @@
+import shellwords
+
+func main(...) as int
+    // 相邻的普通、单引号和双引号片段属于同一个参数；引号可以保留空参数。
+    var words = shellwords.split("tool pre' two'\" parts\" '' \"a\\qb\" a\\\nb 'x\\\ny'")
+    assert words.length == 6
+    assert words[1] == "pre two parts" and words[2] == ""
+    // 双引号内的反斜杠只转义 $、`、双引号、反斜杠和换行。
+    assert words[3] == "a\\qb" and words[4] == "ab" and words[5] == "x\\\ny"
+    println("argc:", words.length)
+    println("merged:", words[1])
+    println("empty:", words[2] == "")
+    println("literal slash:", words[3] == "a\\qb")
+    println("continuation:", words[4])
+    println("single quoted newline:", words[5] == "x\\\ny")
+    // 错误后可继续正常解析；本例不执行文本中的任何内容。
+    int rejected = 0
+    for text in ["'unfinished", "tail\\"]
+        try
+            shellwords.split(text)
+        catch ValueError error
+            rejected += 1
+        end
+    end
+    assert rejected == 2 and shellwords.split("recovered")[0] == "recovered"
+    println("recovery:", rejected == 2)
+    return 0
+end

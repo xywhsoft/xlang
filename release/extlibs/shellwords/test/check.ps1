@@ -50,7 +50,7 @@ try {
     $native=Join-Path $work 'native.o'
     $null=Run 'selected XRT compile' $gcc ($flags+@('-c','release/extlibs/shellwords/test/xrt_runtime.c','-o',$runtime))
     $null=Run 'native compile' $gcc ($flags+@('-c',$nativeSource,'-o',$native))
-    foreach($name in @('test_shellwords','quote_runs_c')){
+    foreach($name in @('test_shellwords','quote_runs_c','split_matrix_c')){
         $source="release/extlibs/shellwords/test/$name.c"
         $binary=Join-Path $work ($name+'.exe')
         $objects=@($runtime)
@@ -58,6 +58,7 @@ try {
         $null=Run "$name compile" $gcc ($flags+@($source)+$objects+$links+@('-o',$binary))
         $output=Run $name $binary @()
         if($name -eq 'quote_runs_c' -and $output -cne 'shellwords quote runs: 126 vectors, 8 OOM paths, PASS'){throw 'Incomplete quote vectors'}
+        if($name -eq 'split_matrix_c' -and $output -cnotmatch '^shellwords split matrix: 19851 vectors, 9 OOM paths, [0-9]+ OOM, 0 failures$'){throw 'Incomplete split matrix'}
     }
     $argv=Join-Path $work 'windows-argv.exe'
     $null=Run 'Windows argv compile' $gcc ($flags+@('-municode','release/extlibs/shellwords/test/windows_argv.c',$native,$runtime)+$links+@('-o',$argv))
@@ -74,8 +75,21 @@ try {
     $directPath=Join-Path $work 'tcc.tsv'
     [IO.File]::WriteAllText($directPath,$direct+"`n",$utf8)
     $null=Run 'TCC independent quote oracle' $python @('release/extlibs/shellwords/test/check_quote_records.py',$directPath)
+    $splitSource='release/extlibs/shellwords/test/split_matrix_c.c'
+    $splitOutput=Run 'direct input matrix TCC' $xl @('run',$splitSource)
+    if($splitOutput -cnotmatch '^shellwords split matrix: 19851 vectors, 9 OOM paths, [0-9]+ OOM, 0 failures$'){throw 'TCC split matrix incomplete'}
+    $splitRecords=Run 'GCC split records' (Join-Path $work 'split_matrix_c.exe') @('--records')
+    $path=Join-Path $work 'split-gcc.tsv'
+    [IO.File]::WriteAllText($path,$splitRecords+"`n",$utf8)
+    $null=Run 'GCC independent split oracle' $python @('release/extlibs/shellwords/test/check_split_records.py',$path)
+    $direct=Run 'TCC split records' $xl @('run',$splitSource,'--','--records')
+    if($direct -cne $splitRecords){throw 'GCC/TCC split records differ'}
+    $path=Join-Path $work 'split-tcc.tsv'
+    [IO.File]::WriteAllText($path,$direct+"`n",$utf8)
+    $null=Run 'TCC independent split oracle' $python @('release/extlibs/shellwords/test/check_split_records.py',$path)
     $examples=@(@('release/extlibs/shellwords/examples/basic.c','release/examples/extlibs/shellwords.xl','basic'),
-        @('release/extlibs/shellwords/examples/command_plan_c.c','release/extlibs/shellwords/examples/command_plan.xl','command_plan'))
+        @('release/extlibs/shellwords/examples/command_plan_c.c','release/extlibs/shellwords/examples/command_plan.xl','command_plan'),
+        @('release/extlibs/shellwords/examples/lexical_text_c.c','release/extlibs/shellwords/examples/lexical_text.xl','lexical_text'))
     $goldens=@{}
     foreach($pair in $examples){
         $expected=Normalize ([IO.File]::ReadAllText((Join-Path $pkg ("examples/$($pair[2]).expected.txt"))))
@@ -102,7 +116,7 @@ try {
     [IO.File]::WriteAllText($abi,"#include `"shellwords_native.c`"`n"+($decls -join "`n"),$utf8)
     $null=Run 'four actual prototypes' $gcc ($flags+@('-fsyntax-only',$abi))
     if(-not $SkipAot){
-        $sources=@($quoteSource,$texts)
+        $sources=@($quoteSource,$splitSource,$texts)
         foreach($pair in $examples){$sources+=@($pair[0],$pair[1])}
         foreach($source in $sources){
             $binary=Join-Path $work (([guid]::NewGuid().ToString('N'))+'.exe')
@@ -116,6 +130,14 @@ try {
                 $path=Join-Path $work 'aot.tsv'
                 [IO.File]::WriteAllText($path,$aotRecords+"`n",$utf8)
                 $null=Run 'AOT independent quote oracle' $python @('release/extlibs/shellwords/test/check_quote_records.py',$path)
+            }
+            if($source -eq $splitSource){
+                if($output -cnotmatch '^shellwords split matrix: 19851 vectors, 9 OOM paths, [0-9]+ OOM, 0 failures$'){throw 'AOT split matrix incomplete'}
+                $aotRecords=Run 'AOT split records' $binary @('--records')
+                if($aotRecords -cne $splitRecords){throw 'AOT split records differ'}
+                $path=Join-Path $work 'split-aot.tsv'
+                [IO.File]::WriteAllText($path,$aotRecords+"`n",$utf8)
+                $null=Run 'AOT independent split oracle' $python @('release/extlibs/shellwords/test/check_split_records.py',$path)
             }
         }
     }

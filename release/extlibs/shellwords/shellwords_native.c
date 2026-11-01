@@ -48,42 +48,38 @@ xvalue* xrtShellwordsSplit(cstr sLine)
 	for ( p = sLine; *p != 0; ++p ) {
 		char c = *p;
 		if ( cQuote == '\'' ) {
-			if ( c == '\'' ) { cQuote = 0; }
-			else if ( !xrtBufferAppendByte(pWord, (uint8)c) ) { goto fail; }
-			continue;
-		}
-		if ( cQuote == '"' ) {
+			if ( c == '\'' ) { cQuote = 0; continue; }
+		} else if ( cQuote == '"' ) {
 			if ( c == '"' ) { cQuote = 0; continue; }
 			if ( c == '\\' && p[1] != 0 &&
 				(p[1] == '$' || p[1] == '`' || p[1] == '"' ||
 				p[1] == '\\' || p[1] == '\n') ) {
 				++p;
 				if ( *p == '\n' ) { continue; }
-				c = *p;
 			}
-			if ( !xrtBufferAppendByte(pWord, (uint8)c) ) { goto fail; }
-			continue;
-		}
-		if ( __xswSpace(c) ) {
+		} else if ( __xswSpace(c) ) {
 			if ( bStarted && !__xswPush(pWords, pWord) ) { goto fail; }
 			bStarted = false;
 			continue;
-		}
-		if ( c == '\'' || c == '"' ) {
+		} else if ( c == '\'' || c == '"' ) {
 			cQuote = c;
 			bStarted = true;
 			continue;
-		}
-		if ( c == '\\' ) {
+		} else if ( c == '\\' ) {
 			if ( p[1] == 0 ) {
 				__xswError("shellwords ends with an escape character");
 				goto fail;
 			}
 			++p;
 			if ( *p == '\n' ) { continue; }
-			c = *p;
 		}
-		if ( !xrtBufferAppendByte(pWord, (uint8)c) ) { goto fail; }
+		/* 当前字节已完成转义；其后只扫描本状态真正改变词法的边界。 */
+		{
+			size_t iSize = 1u + strcspn(p + 1,
+				cQuote == '\'' ? "'" : cQuote == '"' ? "\"\\" : " \t\r\n'\"\\");
+			if ( !xrtBufferAppend(pWord, (xbytesview){ (cbytes)p, iSize }) ) { goto fail; }
+			p += iSize - 1u;
+		}
 		bStarted = true;
 	}
 	if ( cQuote != 0 ) {

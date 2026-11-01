@@ -2,6 +2,16 @@
 
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-11-02 Shellwords直接词法压实：Windows62/Linux60项默认门禁完成
+新增19851词法/九OOM、全部旧编码/真实argv或shell、四生成原型、各九
+普通独立程序后，仍在原`test/cases/extlib_shellwords.xl`的语言数组
+Join失败。原最小`dev/extlib_blockers/shellwords_join_var_array_projection.xl`
+在两平台均check/build0、JIT/AOT1，报`shellwords join requires an array`。
+Split返回的原生数组可以Join，不代表语言字面量数组已投影；本轮不加
+包内私有句柄识别/序列化绕行，也不据相似报错断言全部M1完全同根。
+建议主线联查extern参数容器表示、完整元素/所有权及失败回滚，然后
+复跑原最小源和完整门。记录见`docs/reports/extlib-shellwords-split-20261102.json`。
+
 2026-11-02 Netrc分段写出复验：Windows84/Linux83阶段的默认门禁先完成
 原资源/I/O首因/线程/权限、396引用编码与公开语料、九实际原型及各16
 普通AOT，最后原named_type仍因语言字典直接构造Netrc而失败。Windows

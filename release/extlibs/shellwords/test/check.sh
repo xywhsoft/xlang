@@ -61,13 +61,14 @@ compile -x c -fsyntax-only release/extlibs/shellwords/include/xrt_shellwords.h
 compile -DXRT_MODULE_BUFFER -DXRT_MODULE_VALUE_CONTAINER -fsyntax-only release/extlibs/shellwords/shellwords_native.c
 compile -c release/extlibs/shellwords/test/xrt_runtime.c -o "$work/runtime.o"
 compile -c release/extlibs/shellwords/shellwords_native.c -o "$work/native.o"
-for name in test_shellwords quote_runs_c; do
+for name in test_shellwords quote_runs_c split_matrix_c; do
     objects=("$work/runtime.o")
     if [[ $name == test_shellwords ]]; then objects+=("$work/native.o"); fi
     compile "release/extlibs/shellwords/test/$name.c" "${objects[@]}" -no-pie -lm -ldl -o "$work/$name"
     run 120 "$work/$name" > "$work/$name.txt"
     cat "$work/$name.txt"
 done
+grep -Eq '^shellwords split matrix: 19851 vectors, 9 OOM paths, [0-9]+ OOM, 0 failures$' "$work/split_matrix_c.txt"
 printf 'shellwords quote runs: 126 vectors, 8 OOM paths, PASS\n' > "$work/quote.expected"
 diff -u "$work/quote.expected" "$work/quote_runs_c.txt"
 run 90 "$work/quote_runs_c" --records > "$work/gcc.tsv"
@@ -78,11 +79,19 @@ diff -u "$work/quote.expected" "$work/quote.direct"
 run 90 ./release/xl run "$source" -- --records > "$work/tcc.tsv"
 cmp "$work/gcc.tsv" "$work/tcc.tsv"
 run 60 "$python" release/extlibs/shellwords/test/check_quote_records.py "$work/tcc.tsv" --shell
-for name in basic command_plan; do
+split_source=release/extlibs/shellwords/test/split_matrix_c.c
+run 120 ./release/xl run "$split_source" > "$work/split.direct"
+grep -Eq '^shellwords split matrix: 19851 vectors, 9 OOM paths, [0-9]+ OOM, 0 failures$' "$work/split.direct"
+run 90 "$work/split_matrix_c" --records > "$work/split-gcc.tsv"
+run 90 ./release/xl run "$split_source" -- --records > "$work/split-tcc.tsv"
+cmp "$work/split-gcc.tsv" "$work/split-tcc.tsv"
+run 60 "$python" release/extlibs/shellwords/test/check_split_records.py "$work/split-gcc.tsv"
+run 60 "$python" release/extlibs/shellwords/test/check_split_records.py "$work/split-tcc.tsv"
+for name in basic command_plan lexical_text; do
     c=release/extlibs/shellwords/examples/basic.c; language=release/examples/extlibs/shellwords.xl
     if [[ $name != basic ]]; then
-        c=release/extlibs/shellwords/examples/command_plan_c.c
-        language=release/extlibs/shellwords/examples/command_plan.xl
+        c="release/extlibs/shellwords/examples/${name}_c.c"
+        language="release/extlibs/shellwords/examples/$name.xl"
     fi
     sed 's/\r$//' "release/extlibs/shellwords/examples/$name.expected.txt" > "$work/$name.expected"
     compile "$c" "$work/runtime.o" -no-pie -lm -ldl -o "$work/$name"
@@ -107,7 +116,8 @@ cat "$work/abi.decls" >> "$work/abi.c"
 compile -fsyntax-only "$work/abi.c"
 sources=(release/extlibs/shellwords/test/quote_runs_c.c "$texts" release/extlibs/shellwords/examples/basic.c
          release/examples/extlibs/shellwords.xl release/extlibs/shellwords/examples/command_plan_c.c
-         release/extlibs/shellwords/examples/command_plan.xl)
+         release/extlibs/shellwords/examples/command_plan.xl "$split_source"
+         release/extlibs/shellwords/examples/lexical_text_c.c release/extlibs/shellwords/examples/lexical_text.xl)
 index=0
 for source in "${sources[@]}"; do
     index=$((index+1))
@@ -120,8 +130,14 @@ for source in "${sources[@]}"; do
             run 90 "$binary" --records > "$work/aot.tsv"
             cmp "$work/gcc.tsv" "$work/aot.tsv"
             run 60 "$python" release/extlibs/shellwords/test/check_quote_records.py "$work/aot.tsv" --shell ;;
+        */split_matrix_c.c)
+            grep -Eq '^shellwords split matrix: 19851 vectors, 9 OOM paths, [0-9]+ OOM, 0 failures$' "$work/aot-$index.txt"
+            run 90 "$binary" --records > "$work/split-aot.tsv"
+            cmp "$work/split-gcc.tsv" "$work/split-aot.tsv"
+            run 60 "$python" release/extlibs/shellwords/test/check_split_records.py "$work/split-aot.tsv" ;;
         */basic.c|release/examples/extlibs/shellwords.xl) diff -u "$work/basic.expected" "$work/aot-$index.txt" ;;
         */command_plan_c.c|*/command_plan.xl) diff -u "$work/command_plan.expected" "$work/aot-$index.txt" ;;
+        */lexical_text_c.c|*/lexical_text.xl) diff -u "$work/lexical_text.expected" "$work/aot-$index.txt" ;;
     esac
 done
 # 真实语言数组依旧必须通过，不以 split 的原生数组结果绕过 M1。

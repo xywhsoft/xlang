@@ -1,0 +1,7 @@
+argc: 6
+merged: pre two parts
+empty: true
+literal slash: true
+continuation: ab
+single quoted newline: true
+recovery: true
