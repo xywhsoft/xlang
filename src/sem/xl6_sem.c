@@ -9,6 +9,7 @@
 #include "src/type/xl6_call_rank.h"
 #include "src/type/xl6_constructor_flow.h"
 #include "src/type/xl6_c_owned_type.h"
+#include "src/type/xl6_foreign_decl.h"
 #include "src/abi/xl6_native_generic.h"
 
 #include <limits.h>
@@ -24250,6 +24251,60 @@ static int xl6SemCheckClassBaseCreateRule(XL6_SemContext* ctx, XL6_AstNode* clas
 
 #include "src/sem/xl6_sem_constructor.inc"
 
+static int xl6SemCheckForeignClass(XL6_SemContext* ctx, XL6_AstNode* node)
+{
+    XL6_ForeignClassDecl contract;
+    const char* error = NULL;
+    int state = xl6ForeignClassRead(node, &contract, &error);
+    if (!state) {
+        const XL6_AstNode* base = node->childCount ? node->children[0] : NULL;
+        const XL6_AstNode* parent = base && base->kind == XL6_AST_NAME
+            ? xl6SemFindTypeDecl(ctx, base->text) : NULL;
+        if (parent && parent->kind == XL6_AST_CLASS && (parent->flags & XL6_AST_FLAG_EXTERN)) {
+            xl6SemErrorNode(ctx, node, "ordinary class cannot inherit an external C view");
+            return 0;
+        }
+        return 1;
+    }
+    if (state < 0) { xl6SemErrorNode(ctx, node, error); return 0; }
+    const XL6_AstNode* body = node->children[1];
+    const XL6_AstNode* base = node->children[0];
+    if (base && base->kind == XL6_AST_NAME) {
+        XL6_ForeignClassDecl parent;
+        const XL6_AstNode* owner = xl6SemFindTypeDecl(ctx, base->text);
+        if (xl6ForeignClassRead(owner, &parent, NULL) != 1 ||
+            strcmp(contract.cName, parent.cName) || strcmp(contract.header, parent.header)) {
+            xl6SemErrorNode(ctx, node,
+                "external class base must have the same C handle and header contract");
+            return 0;
+        }
+    }
+    if (!xl6SemClassDeclHasNativeHandle(ctx, node)) {
+        xl6SemErrorNode(ctx, node, "external class needs one native point handle field");
+        return 0;
+    }
+    for (size_t i = 0; body && i < body->childCount; ++i) {
+        const XL6_AstNode* member = body->children[i];
+        if (!member) continue;
+        if (member->flags & (XL6_AST_FLAG_VIRTUAL | XL6_AST_FLAG_OVERRIDE)) {
+            xl6SemErrorNode(ctx, member, "external C view does not add a language virtual dispatch table");
+            return 0;
+        }
+        if ((member->kind == XL6_AST_FIELD &&
+             (member->flags & XL6_AST_FLAG_NATIVE) &&
+             !(member->flags & XL6_AST_FLAG_STATIC) && member->childCount == 1 &&
+             member->children[0] && member->children[0]->kind == XL6_AST_TYPE &&
+             member->children[0]->text && !strcmp(member->children[0]->text, "point")) ||
+            member->kind == XL6_AST_NATIVE_EXTERN_FUNC ||
+            ((member->kind == XL6_AST_GET || member->kind == XL6_AST_LET) &&
+             (member->flags & XL6_AST_FLAG_EXTERN))) continue;
+        xl6SemErrorNode(ctx, member,
+            "caller-owned external class admits only its native point field and declared C members");
+        return 0;
+    }
+    return 1;
+}
+
 static int xl6SemCheckClass(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     XL6_TypeParamScope typeParamScope;
@@ -24265,6 +24320,7 @@ static int xl6SemCheckClass(XL6_SemContext* ctx, XL6_AstNode* node)
     int oldInClassCreate;
 
     ok = xl6SemCheckTypeDeclName(ctx, node);
+    if (!xl6SemCheckForeignClass(ctx, node)) ok = 0;
     pushedTypeParams = 0;
     baseDecl = NULL;
     base = node->childCount > 0 ? node->children[0] : NULL;

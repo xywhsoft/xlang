@@ -18,6 +18,7 @@ _Static_assert((int)XL6_IR_NOMINAL_IDENTITY_CLASS_RUNTIME_TAG==(int)XL6_NOMINAL_
     "Verified nominal identity data must use the resident schema ABI");
 #include "src/type/xl6_type_model.h"
 #include "src/type/xl6_constructor_flow.h"
+#include "src/type/xl6_foreign_decl.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -441,7 +442,7 @@ static XL6_IrCAbi xl6IrNullableCAbiForElement(const XL6_IrType* element)
      * NULL handle is therefore a valid present payload and cannot double as
      * nullable's absence sentinel.  Keep the boxed xvalue so presence and the
      * exact nominal TypeId survive independently. */
-    if ( element->kind == XL6_IR_TYPE_CLASS &&
+    if ( element->kind == XL6_IR_TYPE_CLASS && !element->foreignHeader &&
          element->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE )
         return XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
     if ( element->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL ||
@@ -1649,12 +1650,23 @@ int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type)
         return xl6IrTypeFinalizeErrorResultCName(pool, type);
     }
     if ( type->kind != XL6_IR_TYPE_NULLABLE ) {
-        type->cName[0] = '\0';
+        if (type->foreignHeader) {
+            if (type->kind != XL6_IR_TYPE_CLASS ||
+                type->cAbi != XL6_IR_C_ABI_NATIVE_HANDLE ||
+                !xl6ForeignIdentifier(type->cName) ||
+                !xl6ForeignHeaderName(type->foreignHeader)) return 0;
+        } else type->cName[0] = '\0';
         type->nullAbi = xl6IrNullAbiFromCAbi(type->cAbi);
         return xl6IrTypeFinalizeErrorResultCName(pool, type);
     }
     if ( type->paramCount != 1 || type->params == NULL || type->returnCount != 0 ||
          (element = xl6IrTypeGet(pool, type->params[0])) == NULL ) return 0;
+    if (element->foreignHeader) {
+        if (element->cAbi != XL6_IR_C_ABI_NATIVE_HANDLE ||
+            (type->foreignHeader && strcmp(type->foreignHeader, element->foreignHeader))) return 0;
+        if (!type->foreignHeader && !(type->foreignHeader = xrtStrDup(element->foreignHeader))) return 0;
+        memcpy(type->cName, element->cName, strlen(element->cName) + 1);
+    }
     if(xl6IrTypeIsCOwned(element) && element->kind==XL6_IR_TYPE_BUILTIN) {
         type->cAbi=element->cAbi;type->ownershipAbi=XL6_IR_OWNERSHIP_ABI_MANAGED;
         type->nullAbi=XL6_IR_NULL_ABI_TAGGED_VALUE;
@@ -2369,6 +2381,7 @@ void xl6IrModuleFree(XL6_IrModule* module)
     }
     for ( i = 0; i < module->types.count; ++i ) {
         xrtFree(module->types.items[i].name);
+        xrtFree(module->types.items[i].foreignHeader);
         xrtFree(module->types.items[i].displayName);
         xrtFree(module->types.items[i].params);
         xrtFree(module->types.items[i].parameterModes);
@@ -2953,7 +2966,8 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
         ? xl6IrNullableCAbiForElement(
             xl6IrTypeGet(&module->types, params[0]))
         : kind == XL6_IR_TYPE_CLASS
-        ? XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
+        ? (nominalDeclaration && (nominalDeclaration->flags & XL6_AST_FLAG_EXTERN)
+            ? XL6_IR_C_ABI_NATIVE_HANDLE : XL6_IR_C_ABI_RUNTIME_XVALUE_PTR)
         : (kind == XL6_IR_TYPE_PROTOCOL ||
            (kind == XL6_IR_TYPE_GENERIC_INSTANCE &&
             xl6IrFindTypeDecl(root, type) != NULL &&
@@ -3025,6 +3039,17 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
      * mutable open function variable from being invoked through stale
      * initializer provenance. */
     item->cAbi = expectedCAbi;
+    if (kind == XL6_IR_TYPE_CLASS && nominalDeclaration &&
+        (nominalDeclaration->flags & XL6_AST_FLAG_EXTERN)) {
+        XL6_ForeignClassDecl contract;
+        if (xl6ForeignClassRead(nominalDeclaration, &contract, NULL) != 1 ||
+            !(item->foreignHeader = xrtStrDup(contract.header))) {
+            xrtFree(params); xrtFree(parameterModes); xrtFree(parameterAbis);
+            xrtFree(returns); memset(item, 0, sizeof(*item));
+            return XL6_IR_TYPE_INVALID;
+        }
+        memcpy(item->cName, contract.cName, strlen(contract.cName) + 1);
+    }
     item->integerTarget = expectedIntegerTarget;
     item->ownershipAbi = item->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
         ? XL6_IR_OWNERSHIP_ABI_MANAGED
@@ -3037,7 +3062,7 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
          !xl6IrTypeFinalizeRepresentation(&module->types, item) ||
          !xl6IrTypeInitParameterAbis(&module->types, item) ||
          !xl6IrTypeFinalizeTypeValueId(&module->types, item) ) {
-        xrtFree(item->name); xrtFree(item->displayName);
+        xrtFree(item->name); xrtFree(item->displayName); xrtFree(item->foreignHeader);
         xrtFree(params); xrtFree(item->parameterModes); xrtFree(item->parameterAbis);
         xrtFree(returns);
         memset(item, 0, sizeof(*item)); return XL6_IR_TYPE_INVALID;
@@ -4256,11 +4281,20 @@ static XL6_IrNodeId xl6IrBuildAstNode(
     XL6_IrNodeId* children = NULL;
     const XL6_AstNode* declared;
     size_t i;
+    size_t sourceChildCount = source ? source->childCount : 0;
     if ( source == NULL || module->nodeCount >= (size_t)UINT32_MAX ||
          !xl6IrGrow((void**)&module->nodes, &module->nodeCapacity, module->nodeCount, sizeof(*module->nodes)) ) {
         xl6DiagAdd(diags, source != NULL ? source->line : 0, source != NULL ? source->column : 0,
                    "typed XLIR node arena is out of memory");
         *ok = 0; return XL6_IR_NODE_INVALID;
+    }
+    /* Declaration attributes have already become verified type facts. Do
+     * not publish their spellings as untyped executable string expressions. */
+    if (source->kind == XL6_AST_CLASS && (source->flags & XL6_AST_FLAG_EXTERN)) {
+        if (xl6ForeignClassRead(source, NULL, NULL) != 1) {
+            *ok = 0; return XL6_IR_NODE_INVALID;
+        }
+        sourceChildCount = 3;
     }
     id = (XL6_IrNodeId)(module->nodeCount + 1);
     node = &module->nodes[module->nodeCount++];
@@ -4326,7 +4360,7 @@ static XL6_IrNodeId xl6IrBuildAstNode(
         if ( declaration != NULL && declaration != node ) type = declaration->type != XL6_IR_TYPE_INVALID ? declaration->type : declaration->storageType;
     }
     if ( xl6IrAstNodeRequiresType(source, parent, childIndex) && type == XL6_IR_TYPE_INVALID ) {
-        const XL6_AstNode* callee = source->childCount != 0
+        const XL6_AstNode* callee = sourceChildCount != 0
             ? source->children[0] : NULL;
         char message[384];
         snprintf(message, sizeof(message),
@@ -4392,10 +4426,10 @@ static XL6_IrNodeId xl6IrBuildAstNode(
         node->valueCategory = XL6_IR_VALUE_RVALUE;
         if ( node->ownership == XL6_IR_OWNERSHIP_NONE ) node->ownership = XL6_IR_OWNERSHIP_COPY;
     }
-    if ( source->childCount > 0 && (children = (XL6_IrNodeId*)xrtCalloc(source->childCount, sizeof(*children))) == NULL ) {
+    if ( sourceChildCount > 0 && (children = (XL6_IrNodeId*)xrtCalloc(sourceChildCount, sizeof(*children))) == NULL ) {
         xl6DiagAdd(diags, source->line, source->column, "typed XLIR child list is out of memory"); *ok = 0;
     }
-    for ( i = 0; children != NULL && i < source->childCount; ++i ) {
+    for ( i = 0; children != NULL && i < sourceChildCount; ++i ) {
         children[i] = xl6IrBuildAstNode(module, root, source->children[i], source, i, diags, ok);
         if ( children[i] != XL6_IR_NODE_INVALID ) {
             XL6_IrNode* child = (XL6_IrNode*)xl6IrNodeGet(module, children[i]);
@@ -4410,7 +4444,7 @@ static XL6_IrNodeId xl6IrBuildAstNode(
      * use such as `auto seed = 7; identity(seed)` would carry a resolved name
      * type while its sole storage declaration remained type-less. */
     if ( node->kind == XL6_IR_NODE_VALUE_DECL && node->storageType == XL6_IR_TYPE_INVALID ) {
-        for ( i = 0; i < source->childCount; ++i ) {
+        for ( i = 0; i < sourceChildCount; ++i ) {
             const XL6_AstNode* childSource = source->children[i];
             const XL6_IrNode* child = children != NULL ? xl6IrNodeGet(module, children[i]) : NULL;
             if ( childSource != NULL && childSource->kind != XL6_AST_TYPE && child != NULL &&
@@ -4426,7 +4460,7 @@ static XL6_IrNodeId xl6IrBuildAstNode(
      * not that metadata node, before later references are built. */
     if ( node->kind == XL6_IR_NODE_VALUE_DECL &&
          (node->sourceKind == XL6_AST_EXTERN_VAR || node->sourceKind == XL6_AST_EXPORT_VAR ||
-          node->sourceKind == XL6_AST_EXPORT_CONST) && source->childCount > 0 && children != NULL ) {
+          node->sourceKind == XL6_AST_EXPORT_CONST) && sourceChildCount > 0 && children != NULL ) {
         const XL6_IrNode* binding = xl6IrNodeGet(module, children[0]);
         if ( binding != NULL && binding->kind == XL6_IR_NODE_NAME && binding->symbol != 0 &&
              xl6IrEnsureSymbolSlot(module, binding->symbol) )
@@ -4437,29 +4471,29 @@ static XL6_IrNodeId xl6IrBuildAstNode(
      * closure capture analysis and every later symbol query need the structural
      * declaration NAME, independent of import traversal order. */
     if ( node->kind == XL6_IR_NODE_FUNC_DECL &&
-         source->childCount > 0 && children != NULL ) {
+         sourceChildCount > 0 && children != NULL ) {
         const XL6_IrNode* binding = xl6IrNodeGet(module, children[0]);
         if ( binding != NULL && binding->kind == XL6_IR_NODE_NAME &&
              binding->symbol != 0 &&
              xl6IrEnsureSymbolSlot(module, binding->symbol) )
             module->symbolNodes[binding->symbol] = children[0];
     }
-    node->firstChild = module->childCount; node->childCount = source->childCount;
-    if ( source->childCount > 0 && children != NULL ) {
+    node->firstChild = module->childCount; node->childCount = sourceChildCount;
+    if ( sourceChildCount > 0 && children != NULL ) {
         /* xl6IrGrow guarantees room for the index passed as `count`; passing
          * only the current count is insufficient when exactly one slot is
          * free but this AST node contributes two or more children.  In that
          * case it reports success without growing and this loop never makes
          * progress.  Ask for the final required index instead. */
-        while ( module->childCount + source->childCount > module->childCapacity &&
+        while ( module->childCount + sourceChildCount > module->childCapacity &&
                 xl6IrGrow((void**)&module->children, &module->childCapacity,
-                          module->childCount + source->childCount - 1,
+                          module->childCount + sourceChildCount - 1,
                           sizeof(*module->children)) ) { }
-        if ( module->childCount + source->childCount > module->childCapacity ) {
+        if ( module->childCount + sourceChildCount > module->childCapacity ) {
             xl6DiagAdd(diags, source->line, source->column, "typed XLIR child arena is out of memory"); *ok = 0;
         } else {
-            memcpy(module->children + module->childCount, children, source->childCount * sizeof(*children));
-            module->childCount += source->childCount;
+            memcpy(module->children + module->childCount, children, sourceChildCount * sizeof(*children));
+            module->childCount += sourceChildCount;
         }
     }
     xrtFree(children);
@@ -7879,6 +7913,7 @@ static int xl6IrBuildClassDerivesFrom(
     const XL6_IrModule* module, XL6_IrTypeId type, XL6_IrTypeId ancestor)
 {
     size_t depth = 0;
+    if (xl6IrForeignHandleAssignable(module, ancestor, type)) return 1;
     while ( type != XL6_IR_TYPE_INVALID && depth++ <= module->classLayoutCount ) {
         const XL6_IrClassLayout* layout;
         if ( type == ancestor ) return 1;
@@ -11177,10 +11212,48 @@ static int xl6IrBuildCanRawPointerNullConvert(
            result->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL;
 }
 
+int xl6IrForeignHandleAssignable(const XL6_IrModule* module,
+    XL6_IrTypeId expected, XL6_IrTypeId actual)
+{
+    const XL6_IrType* target = module ? xl6IrTypeGet(&module->types, expected) : NULL;
+    if (!target || target->kind != XL6_IR_TYPE_CLASS || !target->foreignHeader) return 0;
+    for (size_t depth = 0; actual && depth < module->types.count; ++depth) {
+        const XL6_IrType* source = xl6IrTypeGet(&module->types, actual);
+        if (!source || source->kind != XL6_IR_TYPE_CLASS ||
+            source->cAbi != XL6_IR_C_ABI_NATIVE_HANDLE || !source->foreignHeader ||
+            strcmp(source->foreignHeader, target->foreignHeader) ||
+            strcmp(source->cName, target->cName)) return 0;
+        if (actual == expected) return 1;
+        actual = source->foreignBase;
+    }
+    return 0;
+}
+
+static int xl6IrBuildForeignClassBases(XL6_IrModule* module)
+{
+    for (size_t i = 0; i < module->types.count; ++i) {
+        XL6_IrType* type = &module->types.items[i];
+        if (!type->foreignHeader || type->kind != XL6_IR_TYPE_CLASS) continue;
+        const XL6_IrNode* declaration = xl6IrSymbolNodeGet(module, type->nominalSymbol);
+        if (!declaration || declaration->sourceKind != XL6_AST_CLASS ||
+            !(declaration->flags & XL6_AST_FLAG_EXTERN) || declaration->childCount != 3) return 0;
+        const XL6_IrNode* base = xl6IrNodeGet(module, module->children[declaration->firstChild]);
+        if (base && base->kind == XL6_IR_NODE_NAME) {
+            type->foreignBase = xl6IrClassTypeByDeclaration(module,
+                xl6IrClassDeclarationByName(module, base->text));
+            const XL6_IrType* parent = xl6IrTypeGet(&module->types, type->foreignBase);
+            if (!parent || !parent->foreignHeader || strcmp(parent->cName, type->cName) ||
+                strcmp(parent->foreignHeader, type->foreignHeader)) return 0;
+        }
+    }
+    return 1;
+}
+
 static int xl6IrBuildClassAssignableTo(
     const XL6_IrModule* module, XL6_IrTypeId expected, XL6_IrTypeId actual)
 {
     size_t depth;
+    if (xl6IrForeignHandleAssignable(module, expected, actual)) return 1;
     if ( expected == XL6_IR_TYPE_INVALID || actual == XL6_IR_TYPE_INVALID ) return 0;
     if ( expected == actual ) return 1;
     for ( depth = 0; depth < module->classLayoutCount; ++depth ) {
@@ -21192,7 +21265,9 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
     if ( !ok || module->root == XL6_IR_NODE_INVALID ) {
         xl6IrModuleFree(module); return 0;
     }
-    if ( !xl6IrInternAsyncInvocationTypes(module, root, root) )
+    if (!xl6IrBuildForeignClassBases(module))
+        buildFailure = "cannot close external class base representations";
+    else if ( !xl6IrInternAsyncInvocationTypes(module, root, root) )
         buildFailure = "cannot intern XLIR async declaration invocation types";
     else if ( !xl6IrBuildNamedCallableAbis(module) )
         buildFailure = "cannot build XLIR named-callable ABIs";
@@ -23697,6 +23772,29 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
     for ( i = 0; i < pool->count; ++i ) {
         const XL6_IrType* type = &pool->items[i];
         if (invalidIndex) *invalidIndex = i;
+        if (type->foreignBase && (!type->foreignHeader || type->kind != XL6_IR_TYPE_CLASS)) return 0;
+        if (type->foreignHeader) {
+            const XL6_IrType* element = type->kind == XL6_IR_TYPE_NULLABLE &&
+                type->paramCount == 1 && type->params ? xl6IrTypeGet(pool, type->params[0]) : NULL;
+            if (type->cAbi != XL6_IR_C_ABI_NATIVE_HANDLE ||
+                type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+                !memchr(type->cName, 0, sizeof(type->cName)) ||
+                !xl6ForeignIdentifier(type->cName) || strlen(type->foreignHeader) >= 256 ||
+                !xl6ForeignHeaderName(type->foreignHeader) ||
+                (type->kind != XL6_IR_TYPE_CLASS &&
+                 (!element || !element->foreignHeader ||
+                  strcmp(type->cName, element->cName) ||
+                  strcmp(type->foreignHeader, element->foreignHeader)))) return 0;
+            XL6_IrTypeId ancestor = type->foreignBase;
+            for (size_t depth = 0; ancestor; ++depth) {
+                const XL6_IrType* parent = xl6IrTypeGet(pool, ancestor);
+                if (depth >= pool->count || ancestor == i + 1 || !parent ||
+                    parent->kind != XL6_IR_TYPE_CLASS || !parent->foreignHeader ||
+                    strcmp(parent->cName, type->cName) ||
+                    strcmp(parent->foreignHeader, type->foreignHeader)) return 0;
+                ancestor = parent->foreignBase;
+            }
+        }
         XL6_IrType expectedTypeValue;
         XL6_IrIntegerTarget expectedIntegerTarget;
         char structuralResultName[48];
@@ -24065,7 +24163,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
                      type->cName[0] == '\0' ) return 0;
             } else if ( type->cAbi == XL6_IR_C_ABI_PRODUCT || type->cName[0] != '\0' ) return 0;
         } else if ( type->cAbi == XL6_IR_C_ABI_PRODUCT ||
-                    (type->cName[0] != '\0' &&
+                     (type->cName[0] != '\0' && !type->foreignHeader &&
                      type->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE &&
                      type->cAbi != XL6_IR_C_ABI_UNION) ) return 0;
         if ( type->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE &&

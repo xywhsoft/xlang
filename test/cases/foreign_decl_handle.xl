@@ -1,0 +1,31 @@
+extern "foreign_decl_widget" class Widget @header("test/cases/foreign_decl_handle.h") @lifetime("caller")
+    native point handle
+    extern "foreign_decl_child_count" @no_raise @nonblocking get childCount() as c_int
+    extern "foreign_decl_add_child" @no_raise @nonblocking func addChild(Widget child) as c_int
+end
+
+extern "foreign_decl_widget" class Child @header("test/cases/foreign_decl_handle.h") @lifetime("caller") extends Widget
+end
+
+typedef WidgetAlias = Widget
+
+extern "foreign_decl_widget_at" @no_raise @nonblocking func widgetAt(c_int index) as point
+extern "foreign_decl_identity" @no_raise @nonblocking func identity(Widget value) as Widget
+extern "foreign_decl_expect" @no_raise @nonblocking func expect(c_int actual, c_int expected)
+
+func readCount(Widget value) as c_int
+    return value.childCount
+end
+
+func main(...) as int
+    WidgetAlias root = Widget(widgetAt(0))
+    Child child = Child(widgetAt(1))
+    expect(child.childCount, 0)
+    expect(readCount(root), 0)
+    expect(root.addChild(child), 1)
+    expect(readCount(identity(root)), 1)
+    Widget? optional = identity(root)
+    Widget? absent = null
+    assert optional != null and absent == null
+    return 0
+end
