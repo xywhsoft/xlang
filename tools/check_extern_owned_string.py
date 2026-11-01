@@ -118,6 +118,8 @@ def main():
         ('bound-base-dispatch','test/cases/extern_owned_bound_base_dispatch.xl',[],[]),
         ('bound-async-generic','test/cases/extern_owned_bound_async_generic.xl',
             ['test/cases/extern_owned_string_host.c'],[]),
+        ('bound-conversion-rank','test/cases/extern_owned_bound_conversion_rank.xl',
+            ['test/cases/extern_owned_bound_c_owners_host.c','test/cases/extern_owned_string_host.c'],[]),
         ('bound-overload-rank','test/cases/extern_owned_bound_overload_rank.xl',[],[]),
         ('bound-nullable-callable','test/cases/extern_owned_bound_nullable_callable.xl',
             ['test/cases/extern_owned_string_host.c','test/cases/extern_owned_typed_bound_native_host.c'],[]),

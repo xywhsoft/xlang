@@ -1,0 +1,153 @@
+// Match arms keep their original pattern bindings. Only the selected receiver
+// is evaluated; an escaped callback retains it after the subject is released.
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point data)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+extern "bound_c_owners_one_record" @no_raise func oneRecord() as bool
+extern "owned_original" @no_raise func nativeOriginal(string value) as bool
+extern "owned_one_allocation" @no_raise func oneAllocation(string value) as bool
+extern "owned_reset" @no_raise func reset()
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int prefix)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+// Exact owner callbacks win before omitted defaults. Probe candidates may
+// account for a copy/lift, but must not rewrite a losing receiver expression.
+typedef Text=func() as cstring
+typedef Data=func() as cbytes
+typedef Plain=func() as string
+class Reader
+    func Text() as cstring
+        return cstring.take(rawText(),release)
+    end
+    func Data() as cbytes
+        return cbytes.take(rawBytes(),4,release)
+    end
+    func Generic<T>(T value) as cstring
+        return self.Text()
+    end
+    func Pair() as (cstring,cbytes)
+        return self.Text(),self.Data()
+    end
+    func Maybe(bool present) as cstring?
+        return present ? self.Text() : null
+    end
+end
+func chooseText(Text callback,int omitted=7) as bool
+    reset()
+    string value=callback()
+    return original(value) and oneRecord()
+end
+func chooseText(Plain callback) as bool
+    return false
+end
+// Deliberately reverse the declaration order for the bytes version.
+func chooseData(func() as bytes callback) as bool
+    return false
+end
+func chooseData(Data callback,int omitted=7) as bool
+    reset()
+    bytes value=callback()
+    return originalBytes(value) and oneRecord()
+end
+func chooseOptional(Text? callback) as int
+    return 2
+end
+func chooseOptional(Text callback) as int
+    return 1
+end
+func chooseCopiedOptional(Plain? callback) as int
+    return 2
+end
+func chooseCopiedOptional(Plain callback) as int
+    return 1
+end
+// Ordinary result signatures still perform the explicitly requested copy.
+// Both aliases and optional aliases must reach the resolved function shape.
+func requireCopy(Plain callback) as bool
+    string value=callback()
+    return value=="hello" and not original(value)
+end
+func requireMaybeCopy(Plain? callback) as bool
+    if callback!=null then return requireCopy(callback) end
+    return true
+end
+func chooseGeneric(func(int) as string callback) as bool
+    return false
+end
+func chooseGeneric(func(int) as cstring callback,int omitted=7) as bool
+    string value=callback(7)
+    return original(value)
+end
+func choosePair(func() as (string,cbytes) callback) as bool
+    return false
+end
+func choosePair(func() as (cstring,cbytes) callback,int omitted=7) as bool
+    auto text,binary=callback()
+    return original(text) and originalBytes(binary)
+end
+func chooseMaybe(func(bool) as string? callback) as bool
+    return false
+end
+func chooseMaybe(func(bool) as cstring? callback,int omitted=7) as bool
+    auto value=callback(true)
+    if value!=null then return original(value) end
+    return false
+end
+int evaluated=0
+func receiver() as Reader
+    evaluated+=1
+    return Reader()
+end
+func exercise(bool choose)
+    Reader left=Reader()
+    Reader right=Reader()
+    evaluated=0
+    assert chooseText(receiver().Text) and evaluated==1
+    assert chooseData(receiver().Data) and evaluated==2
+    assert chooseText(choose ? receiver().Text : receiver().Text) and evaluated==3
+    assert chooseData(choose ? receiver().Data : receiver().Data) and evaluated==4
+    Text stored=left.Text
+    Data storedData=left.Data
+    assert chooseText(stored) and chooseData(storedData)
+    assert chooseText(choose ? stored : right.Text)
+    assert chooseData(choose ? storedData : right.Data)
+    assert chooseOptional(left.Text)==1
+    assert chooseOptional(choose ? left.Text : right.Text)==1
+    assert chooseOptional(choose ? stored : right.Text)==1
+    assert chooseCopiedOptional(left.Text)==1
+    assert chooseCopiedOptional(choose ? left.Text : right.Text)==1
+    assert chooseCopiedOptional(stored)==1
+    assert chooseCopiedOptional(choose ? stored : right.Text)==1
+    Text? maybe=choose ? left.Text : null
+    assert chooseText(maybe ?? right.Text)
+    assert requireCopy(stored)
+    assert requireCopy(choose ? stored : right.Text)
+    assert requireMaybeCopy(maybe)
+    assert chooseGeneric(left.Generic)
+    assert chooseGeneric(choose ? left.Generic : right.Generic)
+    assert choosePair(left.Pair)
+    assert chooseMaybe(left.Maybe)
+end
+assert debug()
+exercise(true)
+exercise(false)
+assert balanced()
+int accepted=0
+int rejected=0
+for prefix in range(512)
+    int before=live()
+    failAfter(prefix)
+    try
+        exercise(prefix%2==0)
+        accepted+=1
+    catch problem
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before and balanced()
+end
+assert accepted>0 and rejected>0
