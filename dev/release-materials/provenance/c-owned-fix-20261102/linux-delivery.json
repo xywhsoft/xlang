@@ -1,0 +1,39 @@
+{
+  "complete": true,
+  "checks": [
+    {
+      "name": "emit",
+      "exit": 0
+    },
+    {
+      "name": "jit",
+      "exit": 0
+    },
+    {
+      "name": "aot-build",
+      "exit": 0
+    },
+    {
+      "name": "aot",
+      "exit": 0
+    },
+    {
+      "name": "nested-jit",
+      "exit": 0
+    },
+    {
+      "name": "nested-aot-build",
+      "exit": 0
+    },
+    {
+      "name": "nested-aot",
+      "exit": 0
+    }
+  ],
+  "inputs": {
+    "/mnt/d/GIT/x-lang/build/c-owned-fix-20261102/linux-merged-verified/build.json": "1ffddc681d28b47a916f758cb9359f5f173a7218ae4e6a2461e765a9c0526147",
+    "/mnt/d/GIT/x-lang/build/c-owned-fix-20261102/linux-merged-verified/public_source": "5e14f7ac760130e4f9b02e57da90deb89a9ad7d503937a2f66e4e64ef2971805",
+    "/var/tmp/xlang-fixes207.vg7YgI/native/release/libxlc.so": "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386",
+    "/mnt/d/GIT/x-lang/build/c-owned-fix-20261102/linux-root/tools/check_source_driver_delivery.py": "71090395bd96740018c4101f263751963a56d4d3f09a616ab89318969f68c968"
+  }
+}
