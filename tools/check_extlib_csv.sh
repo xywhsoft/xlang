@@ -83,17 +83,23 @@ for source in "${sources[@]}"; do
     run "${source%.c}-compile" 120 "$cc" "${flags[@]}" -Wmissing-prototypes -c "$pkg/$source" -o "$object"
     objects+=("$object")
 done
-for name in test_csv test_csv_boundary test_csv_stream test_csv_error_cause test_csv_alloc test_csv_files test_csv_contracts test_csv_threads; do
+for name in test_csv test_csv_boundary test_csv_stream test_csv_error_cause test_csv_alloc test_csv_files test_csv_contracts test_csv_threads test_csv_bom_values; do
     run "$name-compile" 120 "$cc" "${flags[@]}" "$pkg/test/$name.c" "${objects[@]}" -lm -ldl -o "$work/$name"
     run "$name-run" 90 "$work/$name"
 done
+run bom-independent-gcc 150 python3 "$pkg/test/check_bom_records.py" --driver "$work/test_csv_bom_values" --records-out "$work/bom-gcc.tsv"
+run bom-direct-c 120 "$xl" run "$pkg/test/test_csv_bom_values.c"
+run bom-independent-tcc 150 python3 "$pkg/test/check_bom_records.py" --xl "$xl" --source "$pkg/test/test_csv_bom_values.c" --records-out "$work/bom-tcc.tsv"
+run bom-c-aot-build 180 "$xl" build "$pkg/test/test_csv_bom_values.c" -o "$work/bom-c-aot"
+run bom-c-aot 120 "$work/bom-c-aot"
+run bom-independent-aot 150 python3 "$pkg/test/check_bom_records.py" --driver "$work/bom-c-aot" --records-out "$work/bom-aot.tsv"
 run interop-compile 120 "$cc" "${flags[@]}" "$pkg/test/csv_interop.c" "${objects[@]}" -lm -ldl -o "$work/interop"
 run python-interop 180 python3 tools/check_extlib_csv_interop.py "$work/interop" "$work/interop-data"
 run closed-rollback-compile 120 "$cc" "${flags[@]}" "$pkg/test/file_rollback_closed.c" "${objects[@]}" -lm -ldl -o "$work/file_rollback_closed"
 observe closed-rollback 90 "$work/file_rollback_closed" "$work"
 
 # 原始语言正例分别执行；某项失败不掩盖后续独立边界，最终仍返回非零。
-for name in central full boundaries files aot_core global_lifecycle; do
+for name in central full boundaries files aot_core global_lifecycle bom_values; do
     source="$pkg/test/$name.xl"
     [[ $name != central ]] || source=test/cases/extlib_csv.xl
     [[ $name != full ]] || source=release/examples/extlibs/csv.xl
@@ -117,14 +123,14 @@ for name in native constructor; do
         failures=$((failures + 1))
     elif [[ $name == native ]]; then grep -Fq fieldNative "$work/private-$name.txt"; fi
 done
-for name in basic files streaming; do
+for name in basic files streaming bom_values; do
     c_source="$pkg/examples/$name.c"
     xl_source="release/examples/extlibs/csv_$name.xl"
     expected="release/examples/extlibs/csv_$name.expected.txt"
-    if [[ $name == streaming ]]; then
-        c_source="$pkg/examples/streaming_c.c"
-        xl_source="$pkg/examples/streaming.xl"
-        expected="$pkg/examples/streaming.expected.txt"
+    if [[ $name == streaming || $name == bom_values ]]; then
+        c_source="$pkg/examples/${name}_c.c"
+        xl_source="$pkg/examples/$name.xl"
+        expected="$pkg/examples/$name.expected.txt"
     fi
     run "$name-c-compile" 120 "$cc" "${flags[@]}" "$c_source" "$work/runtime.o" -lm -ldl -o "$work/$name"
     run "$name-c-run" 90 "$work/$name"

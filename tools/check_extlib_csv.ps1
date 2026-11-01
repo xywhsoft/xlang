@@ -4,6 +4,7 @@ if (!$Root) { $Root=Split-Path -Parent $PSScriptRoot }
 $Root=(Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
 $gcc=(Get-Command gcc -CommandType Application -ErrorAction Stop|Select-Object -First 1).Source
+$cc1=(& $gcc -print-prog-name=cc1).Trim()
 $xl=Join-Path $Root 'release/xl.exe'
 $python=(Get-Command python -CommandType Application -ErrorAction Stop|Select-Object -First 1).Source
 $compiler=$null
@@ -53,6 +54,7 @@ function InputPaths {
         'release/xl.exe','release/xl.dll','release/xlc.dll','release/include/xrt_decl.h',
         'release/include/xruntime_decl.h','release/include/xl_extlib_abi.h')){Join-Path $Root $p}
     $gcc
+    $cc1
     $python
     if($compiler){
         $compiler.Driver
@@ -122,10 +124,20 @@ try {
         $null=Check "source-$index" $gcc ($flags+@('-Wmissing-prototypes','-c',$source,'-o',$object))
         $objects+=$object;++$index
     }
-    foreach($name in @('test_csv','test_csv_boundary','test_csv_stream','test_csv_error_cause','test_csv_alloc','test_csv_files','test_csv_contracts','test_csv_threads')) {
+    foreach($name in @('test_csv','test_csv_boundary','test_csv_stream','test_csv_error_cause','test_csv_alloc','test_csv_files','test_csv_contracts','test_csv_threads','test_csv_bom_values')) {
         $exe=Join-Path $work "$name.exe"
         $null=Check "$name-build" $gcc ($flags+@("release/extlibs/csv/test/$name.c")+$objects+@('-lws2_32','-ladvapi32','-lm','-o',$exe))
         $null=Check $name $exe @()
+    }
+    $bomOracle='release/extlibs/csv/test/check_bom_records.py'
+    $null=Check 'bom-independent-gcc' $python @($bomOracle,'--driver',(Join-Path $work 'test_csv_bom_values.exe'),'--records-out',(Join-Path $work 'bom-gcc.tsv')) 150
+    $null=Check 'bom-direct-c' $xl @('run','release/extlibs/csv/test/test_csv_bom_values.c')
+    $null=Check 'bom-independent-tcc' $python @($bomOracle,'--xl',$xl,'--source','release/extlibs/csv/test/test_csv_bom_values.c','--records-out',(Join-Path $work 'bom-tcc.tsv')) 150
+    if(!$SkipAot){
+        $bomAot=Join-Path $work 'bom-c-aot.exe'
+        $null=Check 'bom-c-aot-build' $xl @('build','release/extlibs/csv/test/test_csv_bom_values.c','-o',$bomAot)
+        $null=Check 'bom-c-aot' $bomAot @()
+        $null=Check 'bom-independent-aot' $python @($bomOracle,'--driver',$bomAot,'--records-out',(Join-Path $work 'bom-aot.tsv')) 150
     }
     $interop=Join-Path $work 'interop.exe'
     $null=Check 'interop-build' $gcc ($flags+@('release/extlibs/csv/test/csv_interop.c')+$objects+@('-lws2_32','-ladvapi32','-lm','-o',$interop))
@@ -162,18 +174,18 @@ try {
     $abi=Join-Path $work 'abi.c'
     [IO.File]::WriteAllText($abi,"#include <stdint.h>`n#include `"csv_native.h`"`n"+($decls -join "`n"),$utf8)
     $null=Check "generated-$($expected.Count)-prototypes" $gcc ($flags+@('-Irelease/extlibs/csv/include','-fsyntax-only',$abi))
-    foreach($name in @('basic','files','streaming')) {
+    foreach($name in @('basic','files','streaming','bom_values')) {
         $prefix=Join-Path $work "example-$name"
-        $golden=if($name -eq 'streaming'){'release/extlibs/csv/examples/streaming.expected.txt'}else{"release/examples/extlibs/csv_$name.expected.txt"}
+        $golden=if($name -in @('streaming','bom_values')){"release/extlibs/csv/examples/$name.expected.txt"}else{"release/examples/extlibs/csv_$name.expected.txt"}
         $expected=[IO.File]::ReadAllText((Join-Path $Root $golden)).Replace("`r`n","`n").TrimEnd("`n")
-        $case=if($name -eq 'streaming'){'release/extlibs/csv/examples/streaming.xl'}else{"release/examples/extlibs/csv_$name.xl"}
+        $case=if($name -in @('streaming','bom_values')){"release/extlibs/csv/examples/$name.xl"}else{"release/examples/extlibs/csv_$name.xl"}
         $jit=Observe { Language "example-$name-jit" $case 'run' $prefix }
         $aot=$null
         if(!$SkipAot){
             $built=Observe { $null=Language "example-$name-build" $case 'build' $prefix; $true }
             if($built){$aot=Observe { Check "example-$name-aot" "$prefix.exe" @() }}
         }
-        $c=if($name -eq 'streaming'){'release/extlibs/csv/examples/streaming_c.c'}else{"release/extlibs/csv/examples/$name.c"}
+        $c=if($name -in @('streaming','bom_values')){"release/extlibs/csv/examples/${name}_c.c"}else{"release/extlibs/csv/examples/$name.c"}
         $null=Check "example-$name-c-build" $gcc ($flags+@($c,$runtime,'-lws2_32','-ladvapi32','-lm','-o',"$prefix-c.exe"))
         $native=Check "example-$name-c" "$prefix-c.exe" @()
         $cjit=Check "example-$name-c-jit" $xl @('run',$c)
