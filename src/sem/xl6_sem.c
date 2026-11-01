@@ -1,4 +1,4 @@
-#include "src/sem/xl6_sem.h"
+﻿#include "src/sem/xl6_sem.h"
 #include "src/sem/xl6_completion.h"
 #include "src/sem/xl6_sem_docs.h"
 #include "src/sem/xl6_sem_field_attrs.h"
@@ -757,7 +757,8 @@ static int xl6SemQueryTypeBudget(XL6_SemContext* ctx, const XL6_AstNode* type, s
     return 1;
 }
 
-static int xl6ScopeAddTyped(XL6_SemContext* ctx, XL6_AstNode* node, XL6_SymbolKind kind, XL6_AstNode* typeNode)
+static int xl6ScopeAddTypedIdentity(XL6_SemContext* ctx, XL6_AstNode* node,
+    XL6_SymbolKind kind, XL6_AstNode* typeNode, XL6_SymbolId identity)
 {
     XL6_Symbol* oldSym;
     XL6_Symbol* newItems;
@@ -768,7 +769,7 @@ static int xl6ScopeAddTyped(XL6_SemContext* ctx, XL6_AstNode* node, XL6_SymbolKi
     if ( (ctx == NULL) || (ctx->scope == NULL) || (node == NULL) || (node->text == NULL) ) {
         return 0;
     }
-    if ( ctx->nextSymbolId == XL6_SYMBOL_ID_INVALID ) {
+    if ( !identity && ctx->nextSymbolId == XL6_SYMBOL_ID_INVALID ) {
         xl6SemErrorNode(ctx, node, "符号数量超过编译器限制");
         return 0;
     }
@@ -803,7 +804,7 @@ static int xl6ScopeAddTyped(XL6_SemContext* ctx, XL6_AstNode* node, XL6_SymbolKi
         xl6SemErrorNode(ctx, node, "符号名称内存不足");
         return 0;
     }
-    symbol->id = xl6SemReserveSymbolId(ctx, node);
+    symbol->id = identity ? identity : xl6SemReserveSymbolId(ctx, node);
     if ( symbol->id == XL6_SYMBOL_ID_INVALID ) {
         xrtFree(symbol->name);
         memset(symbol, 0, sizeof(*symbol));
@@ -815,10 +816,10 @@ static int xl6ScopeAddTyped(XL6_SemContext* ctx, XL6_AstNode* node, XL6_SymbolKi
     symbol->definitelyAssigned = 1;
     symbol->line = node->line;
     symbol->column = node->column;
-    node->semanticSymbolId = symbol->id;
+    if(!identity)node->semanticSymbolId = symbol->id;
     scope->count += 1;
     xl6ScopeIndexLastSymbol(scope);
-    if (ctx->captureIndex) {
+    if (ctx->captureIndex && !identity) {
         node->semanticDeclaredSymbolId = symbol->id;
         /* Implicit self uses a stack node without source, so do not attach
          * an owned allocation to it. Source declarations retain true types. */
@@ -837,6 +838,10 @@ static int xl6ScopeAddTyped(XL6_SemContext* ctx, XL6_AstNode* node, XL6_SymbolKi
     }
     return 1;
 }
+
+static int xl6ScopeAddTyped(XL6_SemContext* ctx,XL6_AstNode* node,
+    XL6_SymbolKind kind,XL6_AstNode* typeNode)
+{ return xl6ScopeAddTypedIdentity(ctx,node,kind,typeNode,XL6_SYMBOL_ID_INVALID); }
 
 static int xl6ScopeAdd(XL6_SemContext* ctx, XL6_AstNode* node, XL6_SymbolKind kind)
 {
@@ -1580,6 +1585,7 @@ static int xl6SemTypeEquals(XL6_SemContext* ctx, const XL6_AstNode* a, const XL6
 static int xl6SemExprCanMatchFunctionTypeEx(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode, int reportError);
 static int xl6SemConstrainedBoundMethod(XL6_SemContext*,const XL6_AstNode*,const XL6_AstNode*,int);
 static int xl6SemContextualCallableCost(XL6_SemContext*,XL6_AstNode*,const XL6_AstNode*,int,int*);
+static int xl6SemContextualMatchCallableCost(XL6_SemContext*,XL6_AstNode*,const XL6_AstNode*,int,int*);
 static int xl6SemFuncHasVararg(const XL6_AstNode* params);
 static int xl6SemIsContainerBaseTypeName(const char* name);
 static int xl6SemFixedParamCount(const XL6_AstNode* params);
@@ -8446,6 +8452,18 @@ static int xl6SemBindCallableDefault(XL6_SemContext* ctx,XL6_AstNode* parameter)
 }
 
 /* -2: no compound callable context, -1: mismatch, otherwise match cost. */
+static int xl6SemContextualCallableBranchCost(XL6_SemContext* ctx,XL6_AstNode* branch,
+    const XL6_AstNode* type,int report,int* changed)
+{
+    type=xl6SemResolveAliasType(ctx,type);
+    const XL6_AstNode* inner=xl6SemNullableInnerType(type);
+    const XL6_AstNode* signature=xl6SemResolveAliasType(ctx,inner ? inner : type);
+    int bound=xl6SemBindContextualMethod(ctx,branch,signature,report,changed);
+    int cost=bound>=0 ? (bound ? 0 : -1) :
+        xl6SemContextualCallableCost(ctx,branch,type,report,changed);
+    return cost==-2 ? xl6SemExprParamMatchCostEx(ctx,branch,type,report) : cost;
+}
+
 static int xl6SemContextualCallableCost(XL6_SemContext* ctx,XL6_AstNode* expr,
     const XL6_AstNode* type,int report,int* changed)
 {
@@ -8454,8 +8472,11 @@ static int xl6SemContextualCallableCost(XL6_SemContext* ctx,XL6_AstNode* expr,
     const XL6_AstNode* signature=xl6SemResolveAliasType(ctx,inner ? inner : type);
     int conditional=expr && expr->kind==XL6_AST_CONDITIONAL && expr->childCount==3;
     int coalesce=expr && expr->kind==XL6_AST_BINARY && expr->childCount==2 && xl6TextEquals(expr->text,"??");
+    int match=expr && expr->kind==XL6_AST_MATCH && expr->childCount==2 &&
+        (expr->flags&XL6_AST_FLAG_MATCH_EXPR);
     if(!signature || !xl6TextEquals(signature->text,"function") || signature->childCount!=2 ||
-       (!conditional && !coalesce))return -2;
+       (!conditional && !coalesce && !match))return -2;
+    if(match)return xl6SemContextualMatchCallableCost(ctx,expr,type,report,changed);
     int cost=0,ok=1;
     size_t mark=ctx->flowFactCount;
     for(size_t b=conditional ? 1 : 0;b<expr->childCount;++b){
@@ -8464,10 +8485,7 @@ static int xl6SemContextualCallableCost(XL6_SemContext* ctx,XL6_AstNode* expr,
         const XL6_AstNode* expected=lifted ? lifted : type;
         if(coalesce && b==0 && !lifted){ok=0;break;}
         if(conditional && !xl6SemApplyConditionFlow(ctx,expr->children[0],b==1))ok=0;
-        int bound=ok ? xl6SemBindContextualMethod(ctx,branch,signature,report,changed) : 0;
-        int branchCost=bound>=0 ? (bound ? 0 : -1) :
-            xl6SemContextualCallableCost(ctx,branch,expected,report,changed);
-        if(branchCost==-2)branchCost=xl6SemExprParamMatchCostEx(ctx,branch,expected,report);
+        int branchCost=ok ? xl6SemContextualCallableBranchCost(ctx,branch,expected,report,changed) : -1;
         if(branchCost<0)ok=0;else if(branchCost>cost)cost=branchCost;
         xl6AstFree(lifted);xl6SemRestoreFlowFacts(ctx,mark);
         if(!ok)break;
@@ -24766,7 +24784,8 @@ static int xl6SemDeclareMatchBindings(
     XL6_AstNode* pattern,
     XL6_AstNode* enumDecl,
     const XL6_AstNode* enumType,
-    XL6_AstNode* variant)
+    XL6_AstNode* variant,
+    int reuseIdentity)
 {
     XL6_AstNode* params;
     XL6_AstNode* typeParams;
@@ -24814,7 +24833,9 @@ static int xl6SemDeclareMatchBindings(
             ok = 0;
             continue;
         }
-        if ( !xl6ScopeAddTyped(ctx, binding, XL6_SYM_VALUE, bindingType) ) {
+        if ( (reuseIdentity && !binding->semanticSymbolId) ||
+             !xl6ScopeAddTypedIdentity(ctx,binding,XL6_SYM_VALUE,bindingType,
+                 reuseIdentity ? binding->semanticSymbolId : XL6_SYMBOL_ID_INVALID) ) {
             ok = 0;
         }
     }
@@ -24854,6 +24875,18 @@ static XL6_AstNode* xl6SemMergeMatchResultType(
         xl6AstFree(branch);
         result = xl6SemNewNullableType(common, at);
         return result;
+    }
+    /* An unbound method group is provisionally var. Keep this join open
+     * until the expected callable ABI is applied to all arms in their scope. */
+    const XL6_AstNode* commonInner=xl6SemNullableInnerType(commonConcrete);
+    const XL6_AstNode* branchInner=xl6SemNullableInnerType(branchConcrete);
+    const XL6_AstNode* a=commonInner ? commonInner : commonConcrete;
+    const XL6_AstNode* b=branchInner ? branchInner : branchConcrete;
+    if(a && b && xl6TextEquals(a->text,"var") && xl6TextEquals(b->text,"function")){
+        xl6AstFree(branch);return common;
+    }
+    if(a && b && xl6TextEquals(b->text,"var") && xl6TextEquals(a->text,"function")){
+        xl6AstFree(common);return branch;
     }
     if ( xl6SemTypeCanAssignFromType(ctx, branch, common) ) {
         xl6AstFree(branch);
@@ -25070,7 +25103,7 @@ static int xl6SemCheckMatch(XL6_SemContext* ctx, XL6_AstNode* node)
                  pattern,
                  enumDecl,
                  concreteType,
-                 variant) ) {
+                 variant,0) ) {
             ok = 0;
         }
         bodyMark = ctx->flowFactCount;
@@ -25154,6 +25187,46 @@ static int xl6SemCheckMatch(XL6_SemContext* ctx, XL6_AstNode* node)
     xl6AstFree(valueType);
     (void)seenNull;
     return ok;
+}
+
+/* Re-enter each checked pattern's lexical scope with its original identities.
+ * Candidate probes must not rename payload bindings or publish a method cast.
+ * The selected signature then uses the same exact binding as a typed local. */
+static int xl6SemContextualMatchCallableCost(XL6_SemContext* ctx,XL6_AstNode* node,
+    const XL6_AstNode* expected,int report,int* changed)
+{
+    XL6_AstNode* subject=xl6SemInferAutoTypeNode(ctx,node->children[0]);
+    const XL6_AstNode* concrete=xl6SemResolveAliasType(ctx,subject);
+    const XL6_TypeInfo* info=concrete ? xl6TypeRegistryFind(&ctx->types,concrete->text) : NULL;
+    XL6_AstNode* decl=info && info->kind==XL6_TYPE_TAGGED_ENUM ? info->decl : NULL;
+    const XL6_AstNode* cases=node->children[1];
+    XL6_AstNode* result=NULL;
+    int cost=0,ok=cases && cases->childCount;
+    size_t mark=ctx->flowFactCount;
+    for(size_t i=0;ok && i<cases->childCount;++i){
+        const XL6_AstNode* arm=cases->children[i];
+        XL6_AstNode* pattern=arm && arm->childCount==2 ? arm->children[0] : NULL;
+        XL6_AstNode* branch=pattern ? arm->children[1] : NULL;
+        XL6_Scope scope;xl6SemPushScope(ctx,&scope);
+        if(!pattern || !branch)ok=0;
+        if(ok && pattern->kind==XL6_AST_PATTERN_VARIANT && decl){
+            XL6_AstNode* variant=xl6SemFindEnumVariant(decl,pattern->text);
+            ok=variant && pattern->semanticTargetSymbolId==variant->semanticSymbolId &&
+                xl6SemDeclareMatchBindings(ctx,pattern,decl,concrete,variant,1);
+        }
+        int armCost=ok ? xl6SemContextualCallableBranchCost(ctx,branch,expected,report,changed) : -1;
+        if(armCost<0)ok=0;else if(armCost>cost)cost=armCost;
+        if(ok && report){
+            XL6_AstNode* type=xl6SemInferAutoTypeNode(ctx,branch);
+            result=xl6SemMergeMatchResultType(ctx,result,type,branch,&ok);
+            if(!result)ok=0;
+        }
+        xl6SemPopScope(ctx,&scope);xl6SemRestoreFlowFacts(ctx,mark);
+    }
+    if(ok && report){
+        xl6AstFree(node->inferredType);node->inferredType=result;result=NULL;
+    }
+    xl6AstFree(result);xl6AstFree(subject);return ok ? cost : -1;
 }
 
 static int xl6SemCheckStmt(XL6_SemContext* ctx, XL6_AstNode* node)

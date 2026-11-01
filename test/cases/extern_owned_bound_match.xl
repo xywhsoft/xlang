@@ -1,0 +1,185 @@
+// Match arms keep their original pattern bindings. Only the selected receiver
+// is evaluated; an escaped callback retains it after the subject is released.
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point data)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+extern "bound_c_owners_one_record" @no_raise func oneRecord() as bool
+extern "owned_original" @no_raise func nativeOriginal(string value) as bool
+extern "owned_one_allocation" @no_raise func oneAllocation(string value) as bool
+extern "owned_reset" @no_raise func reset()
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int prefix)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+extern "typed_bound_handles" @no_raise func handles() as int
+typedef Text=func() as cstring
+typedef Data=func() as cbytes
+int expected=0
+int receivers=0
+class Reader
+    int number
+    create(int number)
+        self.number=number
+    end
+    func Text() as cstring
+        assert self.number==expected
+        return cstring.take(rawText(),release)
+    end
+    func Data() as cbytes
+        assert self.number==expected
+        return cbytes.take(rawBytes(),4,release)
+    end
+    func Args(...) as cstring
+        assert arg.length==1
+        return self.Text()
+    end
+    func Options(***) as cbytes
+        assert arg["key"]==7
+        return self.Data()
+    end
+    private func Hidden() as cstring
+        return self.Text()
+    end
+    func Private(bool choose) as Text
+        return match choose
+        case true then self.Hidden
+        case false then self.Hidden
+        end
+    end
+end
+class Native
+    private native point handle
+    extern "typed_bound_open" create()
+    extern "typed_bound_close" destroy()
+    extern "typed_bound_text" @owned func Read(c_int mode=c_int(7)) as string
+end
+class Box<K>
+    func Echo<T>(T value) as T
+        return value
+    end
+end
+enum Choice<T>
+    one(T value)
+    none
+end
+func receiver(int number) as Reader
+    receivers+=1
+    return Reader(number)
+end
+func saved(bool choose) as Text
+    return match choose
+    case true then receiver(1).Text
+    case false then receiver(2).Text
+    end
+end
+func payload(bool choose) as Text
+    Choice<Reader> subject=choose ? Choice::<Reader>.one(Reader(3)) : Choice::<Reader>.none()
+    Reader value=Reader(4) // deliberately shadowed by the one(value) pattern
+    return match subject
+    case one(value) then value.Text
+    case none then value.Text
+    end
+end
+func consume(Text callback) as cstring
+    return callback()
+end
+func exercise(bool choose)
+    expected=choose ? 1 : 2
+    receivers=0
+    Text text=saved(choose)
+    assert receivers==1
+    reset()
+    string value=text()
+    assert original(value) and oneRecord() and receivers==1
+    expected=choose ? 3 : 4
+    Text fromPayload=payload(choose)
+    string payloadValue=fromPayload()
+    assert original(payloadValue)
+    Reader left=Reader(5)
+    Reader right=Reader(6)
+    expected=choose ? 5 : 6
+    Data data=match choose
+    case true then left.Data
+    case false then right.Data
+    end
+    reset()
+    bytes binary=data()
+    assert originalBytes(binary) and oneRecord()
+    Text argument=choose ? left.Text : right.Text
+    Text selected=match choose
+    case true then argument
+    case false then right.Text
+    end
+    string argumentValue=consume(selected)
+    assert original(argumentValue)
+    Text? optional=match choose
+    case true then left.Text
+    case false then right.Text
+    end
+    assert optional!=null
+    if optional!=null
+        string optionalValue=optional()
+        assert original(optionalValue)
+    end
+    func(...) as cstring args=match choose
+    case true then left.Args
+    case false then right.Args
+    end
+    string arrayValue=args(7)
+    assert original(arrayValue)
+    func(***) as cbytes options=match choose
+    case true then left.Options
+    case false then right.Options
+    end
+    bytes dictValue=options(key=7)
+    assert originalBytes(dictValue)
+    expected=5
+    Text secret=left.Private(choose)
+    string privateValue=secret()
+    assert original(privateValue)
+    Box<string> a=Box::<string>()
+    Box<string> b=Box::<string>()
+    func(int) as int generic=match choose
+    case true then a.Echo
+    case false then b.Echo
+    end
+    assert generic(7)==7
+    Native first=Native()
+    Native second=Native()
+    func() as string short=match choose
+    case true then first.Read
+    case false then second.Read
+    end
+    reset()
+    string shortValue=short()
+    assert nativeOriginal(shortValue) and oneAllocation(shortValue)
+    func(c_int) as string full=match choose
+    case true then first.Read
+    case false then second.Read
+    end
+    reset()
+    string fullValue=full(c_int(7))
+    assert nativeOriginal(fullValue) and oneAllocation(fullValue)
+end
+assert debug()
+exercise(true)
+exercise(false)
+assert balanced() and handles()==0
+int accepted=0
+int rejected=0
+for prefix in range(512)
+    int before=live()
+    failAfter(prefix)
+    try
+        exercise(prefix%2==0)
+        accepted+=1
+    catch problem
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before and balanced() and handles()==0
+end
+assert accepted>0 and rejected>0

@@ -1,0 +1,14 @@
+class Base
+end
+class Reader
+    func Echo<T is Base>(T value) as T
+        return value
+    end
+end
+func check(bool choose)
+    Reader reader=Reader()
+    func(int) as int callback=match choose
+    case true then reader.Echo
+    case false then reader.Echo
+    end
+end
