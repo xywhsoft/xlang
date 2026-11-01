@@ -10,7 +10,7 @@ typedef struct xlir_cell XL6_Cell;
 typedef enum XL6_CellKind {
     XL6_CELL_BOOL, XL6_CELL_I64, XL6_CELL_F64, XL6_CELL_STRING,
     XL6_CELL_XVALUE, XL6_CELL_U64, XL6_CELL_TRIVIAL_BYTES, XL6_CELL_TYPE_ID,
-    XL6_CELL_CHAR, XL6_CELL_NATIVE_LEAF_V2
+    XL6_CELL_CHAR, XL6_CELL_NATIVE_LEAF_V2, XL6_CELL_NATIVE_GRAPH_V3
 } XL6_CellKind;
 typedef struct XL6_CellRuntimeV1 {
     /* Create is fallible and owns no input. Trivial bytes are a closed,
@@ -45,4 +45,13 @@ typedef struct XL6_CellLeafOpsV1 {
     void (*Destroy)(const void*,void*);
 } XL6_CellLeafOpsV1;
 XL6_CODE_LEASE_API XL6_Cell* xl6CellCreateLeafV1(size_t,const XL6_CellLeafOpsV1*,const void*);
+/* Permanent resident strategy with explicit owning edges. All-zero storage is
+ * empty. Trace extracts immediate references only; checked Destroy consumes
+ * even on failure, after detaching the cell payload and outside mutation. */
+typedef struct XL6_CellGraphOpsV1 {
+    bool (*Validate)(const void*,size_t);
+    bool (*Destroy)(const void*,void*);
+    bool (*Trace)(const void*,const void*,XL6_ModuleOwnershipVisit,void*);
+} XL6_CellGraphOpsV1;
+XL6_CODE_LEASE_API XL6_Cell* xl6CellCreateGraphV1(size_t,const XL6_CellGraphOpsV1*,const void*);
 #endif

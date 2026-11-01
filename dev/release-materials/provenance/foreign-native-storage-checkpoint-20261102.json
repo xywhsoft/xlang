@@ -1,0 +1,29 @@
+{
+  "scope": "Private native graph storage checkpoint; language and shipping integration incomplete",
+  "complete": true,
+  "networkTests": false,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\view-storage-win-r5\\results.json",
+      "sha256": "1bce4b23ffe10faf08a4a079736586c538f40ac15dc625fe7074523f545fd2a3",
+      "stages": 40,
+      "sourceSanitizers": false,
+      "canonicalFullRebuild": false,
+      "baseOptimization": "O0"
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-view-storage-20261102-r3\\results.json",
+      "sha256": "85867cb980a0863b7924d0211439a439bd1150bda68d90edbd29a9686a53412a",
+      "stages": 40,
+      "sourceSanitizers": true,
+      "canonicalFullRebuild": false,
+      "baseOptimization": "O0"
+    }
+  ],
+  "remaining": [
+    "native callback owned slots and return-tail residency",
+    "class field and complete callback boundaries",
+    "compiler ownership, factory guard, text/span and effects",
+    "packages, SDK, IDE and final source/shipping acceptance"
+  ]
+}

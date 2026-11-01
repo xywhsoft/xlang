@@ -1,0 +1,85 @@
+"""Private native storage checks using one consistently linked opaque Cell core.
+
+Incremental mode verifies a prior canonical source build's object bytes,
+replaces modified core units, and links all resident implementation calls locally.
+It is an exploratory gate, never a replacement for final canonical compilation.
+"""
+from pathlib import Path
+import argparse,hashlib,json,os,shutil,subprocess,time
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1])
+    p.add_argument('--base',type=Path,required=True)
+    p.add_argument('--out',type=Path,required=True)
+    p.add_argument('--sanitize',action='store_true')
+    a=p.parse_args();root,base,out=[v.resolve() for v in (a.root,a.base,a.out)]
+    cc=shutil.which('gcc');assert cc
+    build=json.loads((base/'build.json').read_text(encoding='utf-8-sig'))
+    assert build['Complete'] and build['InputsUnchanged']
+    sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    sources=[root/'test/support/foreign_view_storage.c']+[root/('src/runtime/'+n+'.c') for n in (
+        'xl6_cell','xl6_native_future_payload','xl6_foreign_view','xl6_foreign_callback_scope',
+        'xl6_native_capture_graph','xl6_foreign_view_capture','xl6_capture_v3','xl6_closure_capture_v4',
+        'xl6_cell_native_graph','xl6_native_graph_future_payload','xl6_ownership_domain_native_graph_future_payload')]
+    base_root=next(Path(row['Source']).parents[2] for row in build['Objects'] if Path(row['Source']).name=='xl_api.c')
+    replaced={str(path.relative_to(root)).lower() for path in sources}
+    driver=('xlir_public_runtime_driver.c' if build['RuntimeOnly'] else 'xlir_public_source_driver.c') if os.name=='nt' else 'xlir_public_source_linux_driver.c'
+    replaced.add(str(Path('test/cases')/driver).lower())
+    reused=[row for row in build['Objects'] if str(Path(row['Source']).relative_to(base_root)).lower() not in replaced]
+    assert all(sha(row['Path']).lower()==row['Sha256'].lower() for row in reused)
+    out.mkdir(parents=True,exist_ok=False);(out/'tmp').mkdir()
+    inputs={str(path):sha(path) for path in [Path(__file__).resolve(),base/'build.json',*sources,
+        root/'test/support/foreign_view_native_fixture.h',*sorted((root/'src/runtime').glob('*.h')),
+        *sorted((root/'src/api').glob('*.h')),*sorted((root/'src/common').glob('*.h'))]}
+    report=dict(complete=False,passed=False,scope=__doc__,networkTests=False,
+        canonicalFullRebuild=False,sourceSanitizers=a.sanitize,unchangedCoreInstrumented=False,
+        baseOptimization=build['Optimization'],baseObjectCount=len(reused),
+        reusedObjectBytesVerified=True,inputs=inputs,rows=[])
+    env=dict(os.environ,TEMP=str(out/'tmp'),TMP=str(out/'tmp'))
+    env['PATH']=str(root/'release')+os.pathsep+env.get('PATH','')
+    if a.sanitize:
+        assert os.name!='nt'
+        env.update(ASAN_OPTIONS='detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1')
+    def save(): (out/'results.json').write_bytes((json.dumps(report,indent=2)+'\n').encode())
+    def run(name,command):
+        started=time.monotonic();r=subprocess.run(list(map(str,command)),cwd=root,env=env,capture_output=True,timeout=180)
+        log=out/(name+'.log');log.write_bytes(r.stdout+r.stderr)
+        report['rows'].append(dict(name=name,command=list(map(str,command)),exitCode=r.returncode,
+            seconds=round(time.monotonic()-started,3),logSha256=sha(log)))
+        save();print(name,r.returncode,flush=True);return r.returncode==0
+    baseflags=next(row['Flags'] for row in build['Objects'] if Path(row['Source']).name=='xl6_cell.c') if os.name=='nt' else [f.replace(str(base_root),str(root)) for f in build['CompileFlags']]
+    # The fixture contains deliberately unused helper descriptors; no warning
+    # about real type/signature mismatches is disabled.
+    if os.name!='nt':baseflags+=['-Wno-unused-function','-Wno-unused-const-variable']
+    if a.sanitize:baseflags+=['-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie']
+    for opt in ('O0','O2'):
+        compiled=[]
+        for source in sources:
+            obj=out/(opt+'-'+source.stem+'.o')
+            flags=[('-'+opt if f in ('-O0','-O2') else f) for f in baseflags]
+            if not run(opt+'-'+source.stem,[cc,*flags,'-c',source,'-o',obj]):break
+            compiled.append(obj)
+        if len(compiled)!=len(sources):continue
+        # Replace the original driver main by the storage test main, keeping
+        # all other exact core objects.
+        old_response=[line.strip('"') for line in (base/'link.rsp').read_text(encoding='utf-8-sig').splitlines()] if os.name=='nt' else next(row['Command'][1:] for row in build['Rows'] if row['Name']=='link')
+        allowed={str(Path(row['Path']).resolve()).lower() for row in reused}
+        response=[];skip_output=False
+        for item in old_response:
+            if skip_output:skip_output=False;continue
+            if item=='-o':skip_output=True;continue
+            if item.endswith('.o') and str(Path(item).resolve()).lower() not in allowed:continue
+            response.append(item)
+        exe=out/(opt+('.exe' if os.name=='nt' else '.out'));response += [str(obj) for obj in compiled]+['-o',str(exe)]
+        if a.sanitize:response+=['-fsanitize=address,undefined','-no-pie']
+        rsp=out/(opt+'.rsp');rsp.write_bytes(('\n'.join('"'+item.replace('\\','/')+'"' for item in response)+'\n').encode())
+        if run(opt+'-link',[cc,'@'+str(rsp)]):
+            for case in ('cells','cell-cycle','futures','future-cycle','cleanup','allocation','all'):
+                run(opt+'-'+case,[exe,*([] if case=='all' else [case])])
+    report['inputsUnchanged']=all(sha(path)==value for path,value in inputs.items())
+    report['complete']=True
+    report['passed']=report['inputsUnchanged'] and len(report['rows'])==2*(len(sources)+1+7) and all(row['exitCode']==0 for row in report['rows'])
+    save();assert report['passed'],out/'results.json'
+
+if __name__=='__main__':main()

@@ -57,7 +57,9 @@ static bool copy(const void* data,const XL6_NativeCaptureProfileV1* expected,voi
     if(!xl6ErrorScopeBegin(&scope)) {
         xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});return false;
     }
-    const NativePayload* p=data ? header(data) : NULL;
+    /* Reject another profile ABI before interpreting this allocator's private
+     * prefix. In particular a graph profile is not a legacy leaf payload. */
+    const NativePayload* p=data && expected && expected->size==sizeof(*expected) ? header(data) : NULL;
     if(!p || !valid(p) || p->profile!=expected || !output ||
         (uintptr_t)output%p->type->Align ||
         xrtMemRangesOverlap(p,offsetof(NativePayload,data)+p->bytes,output,p->bytes) ||

@@ -4,6 +4,7 @@
 #include "src/common/xl6_xrt.h"
 #include "xl6_cell.h"
 #include "xl6_ownership_scope.h"
+#include "src/api/xl_foreign_error.h"
 #include <string.h>
 
 struct xlir_cell {
@@ -14,14 +15,14 @@ struct xlir_cell {
     const void* claim;
     void* retired;
     size_t size;
-    const XL6_CellLeafOpsV1* leaf;
+    union { const XL6_CellLeafOpsV1* leaf; const XL6_CellGraphOpsV1* graph; } strategy;
     const void* metadata;
     union { bool b; uint32_t character; int64_t i64; uint64_t u64; double f64; xstrview string; xvalue* value; void* bytes; } payload;
 };
 static bool cell_owning(const XL6_Cell* cell)
-{ return cell->kind==XL6_CELL_STRING || cell->kind==XL6_CELL_XVALUE || cell->kind==XL6_CELL_NATIVE_LEAF_V2; }
+{ return cell->kind==XL6_CELL_STRING || cell->kind==XL6_CELL_XVALUE || cell->kind==XL6_CELL_NATIVE_LEAF_V2 || cell->kind==XL6_CELL_NATIVE_GRAPH_V3; }
 static void* cell_data(const XL6_Cell* cell)
-{ return cell->kind==XL6_CELL_TRIVIAL_BYTES || cell->kind==XL6_CELL_NATIVE_LEAF_V2 ? cell->payload.bytes : (void*)&cell->payload; }
+{ return cell->kind==XL6_CELL_TRIVIAL_BYTES || cell->kind==XL6_CELL_NATIVE_LEAF_V2 || cell->kind==XL6_CELL_NATIVE_GRAPH_V3 ? cell->payload.bytes : (void*)&cell->payload; }
 static bool cell_size_valid(XL6_CellKind kind, size_t size)
 {
     switch(kind) {
@@ -52,9 +53,12 @@ static XL6_Cell* cell_create_body(XL6_CellKind kind, size_t size)
 static bool cell_valid(const XL6_Cell* cell)
 {
     return cell && (cell->kind==XL6_CELL_NATIVE_LEAF_V2
-        ? cell->leaf && cell->metadata && cell->leaf->Validate && cell->leaf->Destroy &&
-          cell->leaf->Validate(cell->metadata,cell->size)
-        : !cell->leaf && !cell->metadata && cell_size_valid(cell->kind,cell->size));
+        ? cell->strategy.leaf && cell->metadata && cell->strategy.leaf->Validate && cell->strategy.leaf->Destroy &&
+          cell->strategy.leaf->Validate(cell->metadata,cell->size)
+        : cell->kind==XL6_CELL_NATIVE_GRAPH_V3
+        ? cell->strategy.graph && cell->metadata && cell->strategy.graph->Validate && cell->strategy.graph->Destroy && cell->strategy.graph->Trace &&
+          cell->strategy.graph->Validate(cell->metadata,cell->size)
+        : !cell->strategy.leaf && !cell->metadata && cell_size_valid(cell->kind,cell->size));
 }
 static XL6_Cell* cell_create_leaf_body(size_t size,const XL6_CellLeafOpsV1* ops,const void* metadata)
 {
@@ -64,11 +68,24 @@ static XL6_Cell* cell_create_leaf_body(size_t size,const XL6_CellLeafOpsV1* ops,
     XL6_Cell* cell=xrtCalloc(1,sizeof(*cell));if(!cell)return NULL;
     cell->payload.bytes=xrtCalloc(1,size);
     if(!cell->payload.bytes){xrtFree(cell);return NULL;}
-    cell->refs=1;cell->kind=XL6_CELL_NATIVE_LEAF_V2;cell->size=size;cell->leaf=ops;cell->metadata=metadata;
+    cell->refs=1;cell->kind=XL6_CELL_NATIVE_LEAF_V2;cell->size=size;cell->strategy.leaf=ops;cell->metadata=metadata;
     return cell;
 }
 XL6_Cell* xl6CellCreateLeafV1(size_t size,const XL6_CellLeafOpsV1* ops,const void* metadata)
 {XL6_OWNERSHIP_RETURN(XL6_Cell*,cell_create_leaf_body(size,ops,metadata));}
+static XL6_Cell* cell_create_graph_body(size_t size,const XL6_CellGraphOpsV1* ops,const void* metadata)
+{
+    if(!size || !ops || !ops->Validate || !ops->Destroy || !ops->Trace || !metadata || !ops->Validate(metadata,size)){
+        xrtSetErrorKind(XERR_ARGUMENT);return NULL;
+    }
+    XL6_Cell* cell=xrtCalloc(1,sizeof(*cell));if(!cell)return NULL;
+    cell->payload.bytes=xrtCalloc(1,size);
+    if(!cell->payload.bytes){xrtFree(cell);return NULL;}
+    cell->refs=1;cell->kind=XL6_CELL_NATIVE_GRAPH_V3;cell->size=size;cell->strategy.graph=ops;cell->metadata=metadata;
+    return cell;
+}
+XL6_Cell* xl6CellCreateGraphV1(size_t size,const XL6_CellGraphOpsV1* ops,const void* metadata)
+{XL6_OWNERSHIP_RETURN(XL6_Cell*,cell_create_graph_body(size,ops,metadata));}
 static XL6_Cell* cell_create(XL6_CellKind kind, size_t size)
 { XL6_OWNERSHIP_RETURN(XL6_Cell*,cell_create_body(kind,size)); }
 static void cell_initialize_body(XL6_Cell* cell, const void* value, size_t size)
@@ -102,6 +119,15 @@ static XL6_Cell* cell_retain_body(XL6_Cell* cell)
 { if(cell && xrtRefRetain(&cell->refs)<0) abort(); return cell; }
 static XL6_Cell* cell_retain(XL6_Cell* cell)
 { XL6_OWNERSHIP_RETURN(XL6_Cell*,cell_retain_body(cell)); }
+static bool cell_destroy_graph(XL6_Cell* cell,void* payload)
+{
+    xl6_error_scope scope={0};
+    if(!xl6ErrorScopeBeginCleanup(&scope,false))abort();
+    if(!cell->strategy.graph->Destroy(cell->metadata,payload))xl6ErrorScopeCaptureFailure(&scope);
+    xl6_error_result result=xl6ErrorScopeEnd(&scope);
+    if(!result.ok)xrtSetErrorTake(result.error);
+    return result.ok;
+}
 static void cell_release(XL6_Cell* cell)
 {
     int32_t refs;
@@ -117,7 +143,13 @@ static void cell_release(XL6_Cell* cell)
     if(cell->kind==XL6_CELL_STRING) xrtFree((void*)cell->payload.string.Data);
     else if(cell->kind==XL6_CELL_XVALUE) xrtValueRelease(cell->payload.value);
     else if(cell->kind==XL6_CELL_NATIVE_LEAF_V2){
-        if(cell->payload.bytes){cell->leaf->Destroy(cell->metadata,cell->payload.bytes);xrtFree(cell->payload.bytes);}
+        if(cell->payload.bytes){cell->strategy.leaf->Destroy(cell->metadata,cell->payload.bytes);xrtFree(cell->payload.bytes);}
+    }
+    else if(cell->kind==XL6_CELL_NATIVE_GRAPH_V3){
+        void* payload=cell->payload.bytes;cell->payload.bytes=NULL;
+        bool ok=!payload || cell_destroy_graph(cell,payload);
+        xrtFree(payload);
+        if(!ok)xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});
     }
     else if(cell->kind==XL6_CELL_TRIVIAL_BYTES) xrtFree(cell->payload.bytes);
     xrtFree(cell);
@@ -132,6 +164,8 @@ static bool cell_trace(const void* data, xrtownershipvisitor visit, void* contex
 {
     const XL6_Cell* cell=data;
     if(!cell || cell->cleared || !visit || !cell_valid(cell)) return false;
+    if(cell->kind==XL6_CELL_NATIVE_GRAPH_V3)
+        return cell->strategy.graph->Trace(cell->metadata,cell->payload.bytes,visit,context);
     return cell->kind!=XL6_CELL_XVALUE || visit(xrtValueOwnership(cell->payload.value),context);
 }
 static const xrtownershipops cell_ops={cell_count,cell_trace};
@@ -167,7 +201,7 @@ static void cell_clear(const void* data,const void* token)
     if(cell->claim!=token || cell->cleared) abort();
     if(cell->kind==XL6_CELL_XVALUE) { cell->retired=cell->payload.value; cell->payload.value=NULL; }
     else if(cell->kind==XL6_CELL_STRING) { cell->retired=(void*)cell->payload.string.Data; cell->payload.string=(xstrview){0}; }
-    else if(cell->kind==XL6_CELL_TRIVIAL_BYTES || cell->kind==XL6_CELL_NATIVE_LEAF_V2) { cell->retired=cell->payload.bytes; cell->payload.bytes=NULL; }
+    else if(cell->kind==XL6_CELL_TRIVIAL_BYTES || cell->kind==XL6_CELL_NATIVE_LEAF_V2 || cell->kind==XL6_CELL_NATIVE_GRAPH_V3) { cell->retired=cell->payload.bytes; cell->payload.bytes=NULL; }
     cell->cleared=true;
 }
 static bool cell_finish(const void* data,const void* token)
@@ -175,10 +209,12 @@ static bool cell_finish(const void* data,const void* token)
     XL6_Cell* cell=(XL6_Cell*)data; void* retired;
     if(cell->claim!=token || !cell->cleared) abort();
     retired=cell->retired; cell->retired=NULL;
+    bool ok=true;
     if(cell->kind==XL6_CELL_XVALUE) xrtValueRelease(retired);
-    else if(cell->kind==XL6_CELL_NATIVE_LEAF_V2 && retired){cell->leaf->Destroy(cell->metadata,retired);xrtFree(retired);}
+    else if(cell->kind==XL6_CELL_NATIVE_LEAF_V2 && retired){cell->strategy.leaf->Destroy(cell->metadata,retired);xrtFree(retired);}
+    else if(cell->kind==XL6_CELL_NATIVE_GRAPH_V3 && retired){ok=cell_destroy_graph(cell,retired);xrtFree(retired);}
     else xrtFree(retired);
-    return true;
+    return ok;
 }
 const xrtownershipadapterv1* xl6CellOwnershipAdapterV1(xrtownershipref ref)
 {

@@ -6,6 +6,7 @@
  * V1 prefix (with NULL Type/DetachCleanup) is rejected by every legacy leaf
  * consumer. The profile is metadata, not a code-residency acquisition.
  *
+ * All-zero storage is a typed empty value, safe for Trace and repeated Drop.
  * CopyFresh writes into a typed empty destination, owns independently, and
  * leaves it empty on failure. Trace extracts EACH actual owning reference
  * from the private slot; it does not inspect child state or call its graph

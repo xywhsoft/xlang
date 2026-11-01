@@ -3,6 +3,7 @@
 #include "src/runtime/xl6_foreign_view.h"
 #include "src/runtime/xl6_ownership_plan.h"
 #include "src/runtime/xl6_closure.h"
+#include "src/runtime/xl6_cell.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -20,6 +21,8 @@ struct Native {
     Native* next;
     XL6_ForeignView* capture;
     XL6_Closure* callback;
+    XL6_Cell* cell;
+    xfuture* future;
     unsigned depth, failures;
     bool closing, failWithoutDiagnostic, failEnd;
 };
@@ -70,9 +73,13 @@ static void flush_native(Native* root)
     if (root->closing) {
         XL6_ForeignView* capture=root->capture;
         XL6_Closure* callback=root->callback;
+        XL6_Cell* cell=root->cell;
+        xfuture* future=root->future;
         root->capture=NULL; ++nativeDestroyed; xrtFree(root);
         xl6ForeignViewReleaseV1(capture);
         xl6ClosureRuntimeV1Get()->Release(callback);
+        xl6CellRuntimeV1Get()->Release(cell);
+        xrtFutureDestroy(future);
     }
 }
 static bool scope_begin(void* raw,void* storage)
@@ -106,7 +113,9 @@ static bool trace_native(const void* raw,xrtownershipvisitor visit,void* context
 {
     const Native* n=raw;
     return (!n->capture || visit(xl6ForeignViewOwnershipV1(n->capture),context)) &&
-        (!n->callback || visit(xl6ClosureRuntimeV1Get()->Ownership(n->callback),context));
+        (!n->callback || visit(xl6ClosureRuntimeV1Get()->Ownership(n->callback),context)) &&
+        (!n->cell || visit(xl6CellRuntimeV1Get()->Ownership(n->cell),context)) &&
+        (!n->future || visit(xrtFutureOwnership(n->future),context));
 }
 static const XL6_ForeignViewDescriptorV1 rootDescriptor={
     sizeof(rootDescriptor),XL6_FOREIGN_VIEW_V1_TAG,"native.test.root",
