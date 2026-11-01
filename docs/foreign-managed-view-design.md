@@ -27,3 +27,7 @@ Windows O0/O2 的 8 组独立测试及合并测试均通过；Linux 对这两份
 捕获检查点：新增显式 native graph profile、Capture V3 和 Closure V4；沿用紧凑的现有物理 slot 布局，通过独立版本入口准入有拥有边的存储。graph profile 的较大、带 tag 前缀刻意不满足旧 leaf 合同，旧 capture／cell／Future 入口会拒绝，不能跳过追踪。通用捕获引擎不依赖 View／Map，具体视图 profile 单独发布，后续组件选择按需引入。
 
 这组 Windows O0/O2 与 Linux 新源码 ASan/UBSan 共 18 个阶段分别通过，包含 mixed string/view 清理、稀疏 live flag、重叠元数据／错误 schema 拒绝、空诊断首错、2 个闭包创建分配失败位置，以及 native payload→closure→view 的完整循环回收。类型化 closure entry 经真实 Capture V3 环境调用，分配／释放／realloc 计数均不变化；该结果不是生成后的 C-native 捕获回调性能验收。共享 cell、Future、类字段及 native owned callback 槽仍在继续接入，语言语法尚未开放。
+
+共享存储检查点：同一个 opaque Cell 核心增加显式 graph strategy，与 leaf strategy 共用一个指针槽；普通 Cell 的布局没有为此增大。新建和交换仍采用现有 consuming transfer 合同，拥有图逐项读取真正的 native owning slot，清理先移出 payload、退出 mutation，再执行 checked destructor。已有 Cell capture kind 可以捕获它，无须另加装箱层。Future 使用独立的 graph payload policy，验证精确 profile 身份，并在完成失败时保留生产者的 payload 拥有权。两个 checked 返回入口不把失败预先传播穿过上层 catch；void 清理适配器传播独立失败位。
+
+`check_foreign_view_storage.py` 的 Windows、Linux 检查各 40 个阶段通过，包括 cell→closure→view 与 Future→view 循环、零分配的 cell exchange／Future Copy、两个 cell 与一个 payload 创建分配失败位置、复制失败回滚、重叠拒绝，以及空诊断首错不被后续清理错误覆盖。这是校验已有源码构建对象后替换修改单元的增量内部验收；修改单元分别用 O0/O2，Linux 对这些单元启用 ASan/UBSan/泄漏检查。复用的基础对象不由此变成 O2 或 sanitizer 构建，最终仍需完整源码验收。语言、类字段、原生 callback 槽和产品接线尚未完成。
