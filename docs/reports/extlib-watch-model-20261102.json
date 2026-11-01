@@ -1,0 +1,1877 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-02T07:18:36.9835565+08:00",
+  "package": "watch",
+  "maturity": "M",
+  "formalRelease": false,
+  "status": "multientry-state-model-and-real-round-robin-examples-verified-original-native-global-retirement-and-catalog-binding-open",
+  "sourceParent": "b276c5efdffa6c950a424f8c09b9e78c12566c41",
+  "objectiveScope": {
+    "ordinaryPackages": 100,
+    "states": {
+      "G": 30,
+      "R": 10,
+      "M": 56,
+      "X": 4
+    },
+    "goalComplete": false,
+    "goalStatus": "active",
+    "acmeAbsent": true,
+    "xbotRetainedOutsideScope": true
+  },
+  "change": {
+    "kind": "Coverage hardening, no newly confirmed production defect",
+    "productionAlgorithmApiAbiOwnershipModulesUnchanged": true,
+    "compilerRuntimeXrtTccIdeNotModifiedByThisTask": true,
+    "parallelWorkPreserved": true,
+    "newRuntimeBridgeIntroduced": false,
+    "throughputOrSizeImprovementClaimed": false,
+    "noOverallZeroOverheadClaim": true
+  },
+  "production": [
+    {
+      "path": "release/extlibs/watch/watch_native.c",
+      "bytes": 9951,
+      "sha256": "8da992512a758e23f9b9cca5ce5cabfee22e37af3351867fa98182f871b3340d",
+      "gitBlob": "6a8554bc16c6ba05c09d4973a3829a6d32e4005a"
+    },
+    {
+      "path": "release/extlibs/watch/watch_native.h",
+      "bytes": 675,
+      "sha256": "1b772ed69e401136873abbfee9765dc400ab36615bdfe01f1b9a5087d07e1472",
+      "gitBlob": "984a7543d688d833d034f416d02b25a2d9ffbf30"
+    },
+    {
+      "path": "release/extlibs/watch/src/watch.xl",
+      "bytes": 2359,
+      "sha256": "da065b4a33d6a54a843c693e7100eaa736111b987cb96d88ee46d70ae76a5d8d",
+      "gitBlob": "bdc9597b3a604fc11736b13a1324406c6b11d276"
+    }
+  ],
+  "model": {
+    "source": "release/extlibs/watch/test/model_c.c",
+    "sha256": "aa3d9117f32b7004577750e582d1918794b4da4af08e82e5a6862c73f65a3962",
+    "sequences": 64,
+    "generatedStepsPerSequence": 128,
+    "totalGeneratedSteps": 8192,
+    "maximumActiveSlots": 32,
+    "logicalUtf8Paths": 16,
+    "onlySamplingIsStubbed": true,
+    "referenceDoesNotInspectPrivateStateOrUseProductionComparator": true,
+    "checks": [
+      "empty handle state",
+      "growth",
+      "duplicate paths",
+      "stable first-free slot reuse",
+      "borrowed path identity and bytes",
+      "round-robin fairness",
+      "creation modification deletion",
+      "OOM and IO rollback",
+      "retry after failure",
+      "input absence while metadata changes",
+      "seven memory counters per sequence",
+      "fixture error-owner retirement"
+    ],
+    "countsNotDifferentAllocationSitesOrRealOsFailureCount": true,
+    "countsArePerEngineAndPlatformNotGoldenContract": true,
+    "windows": [
+      {
+        "name": "state model",
+        "counters": {
+          "seeds": 64,
+          "steps": 8192,
+          "commands": 10393,
+          "checks": 149902,
+          "actualOomTriggers": 840,
+          "controlledIoReturns": 2294,
+          "failures": 0
+        }
+      },
+      {
+        "name": "state model direct xl run",
+        "counters": {
+          "seeds": 64,
+          "steps": 8192,
+          "commands": 10393,
+          "checks": 149902,
+          "actualOomTriggers": 840,
+          "controlledIoReturns": 2294,
+          "failures": 0
+        }
+      },
+      {
+        "name": "release/extlibs/watch/test/model_c.c AOT",
+        "counters": {
+          "seeds": 64,
+          "steps": 8192,
+          "commands": 10393,
+          "checks": 149902,
+          "actualOomTriggers": 840,
+          "controlledIoReturns": 2294,
+          "failures": 0
+        }
+      }
+    ],
+    "linux": [
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/model",
+        "counters": {
+          "seeds": 64,
+          "steps": 8192,
+          "commands": 10497,
+          "checks": 159231,
+          "actualOomTriggers": 541,
+          "controlledIoReturns": 2398,
+          "failures": 0
+        }
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/watch/test/model_c.c",
+        "counters": {
+          "seeds": 64,
+          "steps": 8192,
+          "commands": 10497,
+          "checks": 159231,
+          "actualOomTriggers": 541,
+          "controlledIoReturns": 2398,
+          "failures": 0
+        }
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/model_c",
+        "counters": {
+          "seeds": 64,
+          "steps": 8192,
+          "commands": 10497,
+          "checks": 159231,
+          "actualOomTriggers": 541,
+          "controlledIoReturns": 2398,
+          "failures": 0
+        }
+      }
+    ],
+    "actualOsTestsRemainRequired": true,
+    "instanceConcurrentUseNotClaimed": true,
+    "allFilesystemRacesNotClaimed": true
+  },
+  "negativeControls": {
+    "count": 3,
+    "notNewProductBugs": true,
+    "notInDefaultGate": true,
+    "sourceNeedle": "if (!event) return NULL;",
+    "mutations": [
+      "Confirm exists/info/children/child_count even when event allocation fails",
+      "Advance cursor when event allocation fails",
+      "Keep cursor on delivered slot instead of advancing"
+    ],
+    "fixtureOnlyIncludesRelocated": true,
+    "originalProductionNotModified": true,
+    "windows": [
+      {
+        "name": "ack-before-delivery compile",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 493
+        }
+      },
+      {
+        "name": "ack-before-delivery",
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "watch model: 3 seeds, 256 steps, 273 commands, 962 checks, 27 OOM, 61 IO, 4 failures\r\n",
+          "stderr": "watch model seed=2 step=0: round-robin event matches model\r\nwatch model seed=2 step=0: round-robin event matches model\r\nwatch model seed=2 step=0: round-robin event matches model\r\nwatch model seed=2 step=0: all generated sequences completed\r\n",
+          "elapsedMs": 26
+        }
+      },
+      {
+        "name": "advance-on-failure compile",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 486
+        }
+      },
+      {
+        "name": "advance-on-failure",
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "watch model: 3 seeds, 256 steps, 273 commands, 962 checks, 27 OOM, 61 IO, 4 failures\r\n",
+          "stderr": "watch model seed=2 step=0: round-robin event matches model\r\nwatch model seed=2 step=0: round-robin event matches model\r\nwatch model seed=2 step=0: round-robin event matches model\r\nwatch model seed=2 step=0: all generated sequences completed\r\n",
+          "elapsedMs": 41
+        }
+      },
+      {
+        "name": "no-round-robin compile",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 503
+        }
+      },
+      {
+        "name": "no-round-robin",
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "watch model: 3 seeds, 256 steps, 273 commands, 962 checks, 27 OOM, 61 IO, 3 failures\r\n",
+          "stderr": "watch model seed=2 step=0: round-robin event matches model\r\nwatch model seed=2 step=0: round-robin event matches model\r\nwatch model seed=2 step=0: all generated sequences completed\r\n",
+          "elapsedMs": 35
+        }
+      }
+    ],
+    "linux": [
+      {
+        "name": "ack-before-delivery",
+        "compileExit": 0,
+        "runExit": 1,
+        "stdout": "watch model: 1 seeds, 54 steps, 54 commands, 212 checks, 5 OOM, 2 IO, 2 failures\n",
+        "stderr": "watch model seed=0 step=53: round-robin event matches model\nwatch model seed=0 step=54: all generated sequences completed\n",
+        "negativeSourceSha256": "033998506ced72856d13c4f394e9ee76060a8ddb54db2a8ba41a7373438fc4ab",
+        "relocatedFixtureSha256": "db90854c0a72847b22877faf7269de2cbbf5f4228500b32c08e8061b0c016777"
+      },
+      {
+        "name": "advance-on-failure",
+        "compileExit": 0,
+        "runExit": 1,
+        "stdout": "watch model: 1 seeds, 54 steps, 54 commands, 212 checks, 5 OOM, 2 IO, 2 failures\n",
+        "stderr": "watch model seed=0 step=53: round-robin event matches model\nwatch model seed=0 step=54: all generated sequences completed\n",
+        "negativeSourceSha256": "f11720af35527ba954384ef744f0a00e26e4433c25f633d7730773d74bdbc28f",
+        "relocatedFixtureSha256": "44bc87f4440e8619cb2ac0dc0b346b2ba5452b0df94aaa5ea2e38747eb164b2f"
+      },
+      {
+        "name": "no-round-robin",
+        "compileExit": 0,
+        "runExit": 1,
+        "stdout": "watch model: 1 seeds, 46 steps, 46 commands, 156 checks, 4 OOM, 1 IO, 2 failures\n",
+        "stderr": "watch model seed=0 step=45: round-robin event matches model\nwatch model seed=0 step=46: all generated sequences completed\n",
+        "negativeSourceSha256": "9aac5be47e728d29d8491fe5aaeb1b825a1546462cb1471cf67f0a7dd4299d52",
+        "relocatedFixtureSha256": "51339a484d1005375dafbfaa1819293c3747f7c552616abef2cc8faa7f323b46"
+      }
+    ],
+    "reproduction": "Create isolated copies of watch_native.c and model_c.c; replace the single failed-event return or successful cursor assignment as described, relocate only includes, compile with same selected XRT runtime. Require event-model diagnostic and exit1; do not execute or ship these copies as normal library code."
+  },
+  "examples": {
+    "xlang": "release/extlibs/watch/examples/round_robin.xl",
+    "c": "release/extlibs/watch/examples/round_robin_c.c",
+    "expected": "first: a\nbusy path: b\nnext: c\ncatch up: a\nslot reused: true\ndeleted: b\nno repeats: true\n",
+    "realThreeFiles": true,
+    "exclusiveTemporaryDirectoryAndCleanup": true,
+    "usesSizeChangeNotSleep": true,
+    "cBorrowedPathPreservationAsserted": true,
+    "cGccTccAndXlangJitAotBothPlatforms": true,
+    "doesNotClaimOsNotificationQueueSemantics": true
+  },
+  "windows": {
+    "gateExit": 1,
+    "phases": 62,
+    "positivePasses": 60,
+    "expectedPrivateRejection": 1,
+    "requirementsSatisfied": 61,
+    "requiredFailures": 1,
+    "fingerprints": 53,
+    "changedInputs": [],
+    "normalAotProgramsBuiltAndRun": 13,
+    "globalBuildExit": 0,
+    "globalRunExit": 1,
+    "actualGeneratedNativePrototypes": 8,
+    "existingTestsAndStringAdoptionRetained": true,
+    "rawGate": {
+      "date": "2026-11-02T07:04:16.5368326+08:00",
+      "outcome": "failed",
+      "failure": "native global AOT retirement: fail exit=1\nuncaught xlang error: RuntimeError: operation is not valid in the current state\n\nwatch top-level: PASS\n",
+      "aotSkipped": false,
+      "inputs": {
+        "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+        "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+        "D:\\GIT\\x-lang\\release\\examples\\extlibs\\watch.xl": "C95405E467EF825F66BA917C8DC1815427FDA558C6B6A5A84D74FEA511F259A4",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\docs\\site.html": "E58927AAE1B4304AD0B9A4C41C0B074C5BCD1E9BFCDFF270557BEB650A8AAA20",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\examples\\directory.expected.txt": "0DD2DB9243F7F287047A6C5584D8BE41560D905D69C27F3D16006CD7A04C9767",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\examples\\directory.xl": "5A8847653097AAA7C017F5BA3FB3D93B50F06CB0093EDF73F49C028BF0F4F719",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\examples\\directory_c.c": "51A45DE0FE0F2AC5155DEB0016C12580F0638CE9E9A26EB2E349A06238ADFBE2",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\examples\\round_robin.expected.txt": "DC615E098C36AB7AC8619EA36EF4AEB5E3FFAD0D0BC76E56885E01858311F07B",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\examples\\round_robin.xl": "DBA1DAD075F47533C45B31DB0CD64E5C3A65A0C96E88D7588FEF3A66CFBE5D34",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\examples\\round_robin_c.c": "2D7973DED5CC407164FCCB02F81A68D2383345A117634FE7DBE41ECE59EA3BC1",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\examples\\watch.xl": "A8B7A3B126AA46AFA0D561B83C893D1BB869248ED8DED98267AA1E32CF7D4EE9",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\examples\\watch_c.c": "29E17C092151C6FA13B86477D5E53D5BB860481687F01DBFA285BA4E11F4D467",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\README.md": "BACDA194D589E483FC6BCFC3255E039A8A570C6F47964CEB1388F29FE278F4A1",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\src\\watch.xl": "DA065B4A33D6A54A843C693E7100EAA736111B987CB96D88EE46D70AE76A5D8D",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\allocations.xl": "F6F55B7C94FA74A4E814AB17B9FDAAA59FC7B1CAD860C25E0FA3312101A56E48",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\boundaries.xl": "1AE9EF6BA983756A30108A24889B1DA7854D5F6C85C951F4B18C52F80966894F",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\check.ps1": "D3BFB9F55C41218A63461BDEA1E6CE2B6CF6200338D6EF0AE79CFED29B5AD5EB",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\check.sh": "2B7B4DAB652FA77C3FB9B81D74FAA4B7A31033FEB241530A225A2D9A18EFAC92",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\cwd_snapshot.xl": "3AFCB64ABF1318B0CDFD9F99C6FDC59A2EFD5A9A828C81F60D31E1A41EDA631C",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\directory_digest_c.c": "3987818664D9C7CAE1D6E46BC42E1EA33672A6DBA6BD3461D4362CEDEACB7BE9",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\model_c.c": "AA3D9117F32B7004577750E582D1918794B4DA4AF08E82E5A6862C73F65A3962",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\owned_events.xl": "ADBDB0E9BB4737C59D5781419098F5083095E78295A659EA2C9547A8227CE443",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\private_native.xl": "5E8869A3430A347097FF703CEC07AB0564341123D954E97A6568831AF4589A4A",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\test_directory_race.c": "0DBC1EFF30A615A661910CA7F28EB7D0FAED61B0B79C015EB89770C9AB1A0F30",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\test_watch.c": "CC7A12BB69C279DBDD21C36AE57D5949CB0FABD7489AC7298638F89049605C44",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\top_level.xl": "992745886FBE965BFD07146B23CBD1F6B812620F2F31B749CF04EB266ADEC98C",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\workdir.h": "9BBF41D164332714D52E481976E9B3CBE786C09345C1482A2C679B0C6677B1CF",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\xrt_runtime.c": "5BAFDC783DA46AF4A85F296B8F865E5BEA31866679AA568B6B8CA1FB69903D1A",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\watch_native.c": "8DA992512A758E23F9B9CCA5CE5CABFEE22E37AF3351867FA98182F871B3340D",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\watch_native.h": "1B772ED69E401136873ABBFEE9765DC400AB36615BDFE01F1B9A5087D07E1472",
+        "D:\\GIT\\x-lang\\release\\extlibs\\watch\\xlang.package.json": "02B92A31D5E01157C9A19A1FFDD21FCAAC184F9951BE1775CC93EDDC4E48B5FA",
+        "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+        "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+        "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+        "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+        "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+        "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+        "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+        "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+        "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+        "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+        "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+        "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+        "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+        "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+        "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+        "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+        "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+        "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+        "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+        "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+        "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+        "E:/software/w64devkit/bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED"
+      },
+      "changedInputs": [],
+      "checks": [
+        {
+          "name": "compiler version",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "--version"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+            "stderr": "",
+            "elapsedMs": 40
+          }
+        },
+        {
+          "name": "manifest C syntax",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/watch",
+            "-DXRT_MODULE_DIR",
+            "-DXRT_MODULE_PATH",
+            "-DXRT_MODULE_HASH64",
+            "-fsyntax-only",
+            "release/extlibs/watch/watch_native.c"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 143
+          }
+        },
+        {
+          "name": "XRT compile",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/watch",
+            "-c",
+            "release/extlibs/watch/test/xrt_runtime.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\xrt_runtime.o"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 4736
+          }
+        },
+        {
+          "name": "C test compile",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/watch",
+            "release/extlibs/watch/watch_native.c",
+            "release/extlibs/watch/test/test_watch.c",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\xrt_runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lIphlpapi",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_test.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 557
+          }
+        },
+        {
+          "name": "C test",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_test.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 36
+          }
+        },
+        {
+          "name": "directory digest compile",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/watch",
+            "-DNDEBUG",
+            "release/extlibs/watch/test/directory_digest_c.c",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\xrt_runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lIphlpapi",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\digest.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 416
+          }
+        },
+        {
+          "name": "directory digest",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\digest.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "watch directory digest: 15 cases, 0 failures\r\n",
+            "stderr": "",
+            "elapsedMs": 34
+          }
+        },
+        {
+          "name": "directory digest direct xl run",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/watch/test/directory_digest_c.c"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "watch directory digest: 15 cases, 0 failures\r\n",
+            "stderr": "",
+            "elapsedMs": 81
+          }
+        },
+        {
+          "name": "state model compile",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/watch",
+            "release/extlibs/watch/test/model_c.c",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\xrt_runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lIphlpapi",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\model.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 470
+          }
+        },
+        {
+          "name": "state model",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\model.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "watch model: 64 seeds, 8192 steps, 10393 commands, 149902 checks, 840 OOM, 2294 IO, 0 failures\r\n",
+            "stderr": "",
+            "elapsedMs": 62
+          }
+        },
+        {
+          "name": "state model direct xl run",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/watch/test/model_c.c"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "watch model: 64 seeds, 8192 steps, 10393 commands, 149902 checks, 840 OOM, 2294 IO, 0 failures\r\n",
+            "stderr": "",
+            "elapsedMs": 96
+          }
+        },
+        {
+          "name": "directory race compile",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/watch",
+            "release/extlibs/watch/watch_native.c",
+            "release/extlibs/watch/test/test_directory_race.c",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\xrt_runtime.o",
+            "-Wl,--wrap=xrtDirOpen",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lIphlpapi",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_race_test.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 450
+          }
+        },
+        {
+          "name": "directory race",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_race_test.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 29
+          }
+        },
+        {
+          "name": "C example compile",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/watch",
+            "release/extlibs/watch/examples/watch_c.c",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\xrt_runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lIphlpapi",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_example.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 357
+          }
+        },
+        {
+          "name": "C example",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_example.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "count: 1\r\nexists: true\r\npath matches: true\r\nafter remove: 0\r\nslot reused: true\r\ncreated: true\r\nmodified: true\r\ndeleted: true\r\n",
+            "stderr": "",
+            "elapsedMs": 25
+          }
+        },
+        {
+          "name": "C example xl run",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/watch/examples/watch_c.c"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "count: 1\r\nexists: true\r\npath matches: true\r\nafter remove: 0\r\nslot reused: true\r\ncreated: true\r\nmodified: true\r\ndeleted: true\r\n",
+            "stderr": "",
+            "elapsedMs": 81
+          }
+        },
+        {
+          "name": "C directory compile",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/watch",
+            "release/extlibs/watch/examples/directory_c.c",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\xrt_runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lIphlpapi",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\directory-c.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 361
+          }
+        },
+        {
+          "name": "C directory example",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\directory-c.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "same size: true\r\ndirectory modified: true\r\nno repeated event: true\r\n",
+            "stderr": "",
+            "elapsedMs": 27
+          }
+        },
+        {
+          "name": "C directory direct xl run",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/watch/examples/directory_c.c"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "same size: true\r\ndirectory modified: true\r\nno repeated event: true\r\n",
+            "stderr": "",
+            "elapsedMs": 80
+          }
+        },
+        {
+          "name": "XLang directory example",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/watch/examples/directory.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "same size: true\ndirectory modified: true\nno repeated event: true\n",
+            "stderr": "",
+            "elapsedMs": 521
+          }
+        },
+        {
+          "name": "round-robin C compile",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/watch",
+            "release/extlibs/watch/examples/round_robin_c.c",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\xrt_runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lIphlpapi",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\round-robin.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 360
+          }
+        },
+        {
+          "name": "round-robin C",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\round-robin.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "first: a\r\nbusy path: b\r\nnext: c\r\ncatch up: a\r\nslot reused: true\r\ndeleted: b\r\nno repeats: true\r\n",
+            "stderr": "",
+            "elapsedMs": 28
+          }
+        },
+        {
+          "name": "round-robin direct C",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/watch/examples/round_robin_c.c"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "first: a\r\nbusy path: b\r\nnext: c\r\ncatch up: a\r\nslot reused: true\r\ndeleted: b\r\nno repeats: true\r\n",
+            "stderr": "",
+            "elapsedMs": 83
+          }
+        },
+        {
+          "name": "round-robin XLang",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/watch/examples/round_robin.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "first: a\nbusy path: b\nnext: c\ncatch up: a\nslot reused: true\ndeleted: b\nno repeats: true\n",
+            "stderr": "",
+            "elapsedMs": 247
+          }
+        },
+        {
+          "name": "XLang boundaries",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\boundaries.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 346
+          }
+        },
+        {
+          "name": "XLang cwd snapshot",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\cwd_snapshot.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 210
+          }
+        },
+        {
+          "name": "XLang allocation failures",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\allocations.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 176
+          }
+        },
+        {
+          "name": "XLang owned events",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\owned_events.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "watch owned event delivery: PASS\n",
+            "stderr": "",
+            "elapsedMs": 222
+          }
+        },
+        {
+          "name": "private Native rejection",
+          "result": {
+            "status": "fail",
+            "exitCode": 1,
+            "stdout": "",
+            "stderr": "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\private_native.xl:4:9: [sem] unknown class/union field\nD:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\private_native.xl:4:18: [sem] no matching callable class member '__xl6_import_watch_Watcher.addNative': check argument count, types and access\n",
+            "elapsedMs": 33
+          },
+          "expectedFailure": true
+        },
+        {
+          "name": "direct-event cgen",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "cgen",
+            "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\boundaries.xl",
+            "--emit",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\owned_event.c"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 186
+          }
+        },
+        {
+          "name": "generated eight prototypes",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/watch",
+            "-fsyntax-only",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\abi.c"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 46
+          }
+        },
+        {
+          "name": "XLang boundaries build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\boundaries.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_xl_test.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 614
+          }
+        },
+        {
+          "name": "XLang boundaries AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_xl_test.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 44
+          }
+        },
+        {
+          "name": "XLang cwd snapshot build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\cwd_snapshot.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_cwd_snapshot.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 376
+          }
+        },
+        {
+          "name": "XLang cwd snapshot AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_cwd_snapshot.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 32
+          }
+        },
+        {
+          "name": "XLang allocations build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\allocations.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_allocations.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 331
+          }
+        },
+        {
+          "name": "XLang allocations AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_allocations.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 34
+          }
+        },
+        {
+          "name": "XLang owned events build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\owned_events.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_owned_events.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 412
+          }
+        },
+        {
+          "name": "XLang owned events AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_owned_events.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "watch owned event delivery: PASS\n",
+            "stderr": "",
+            "elapsedMs": 39
+          }
+        },
+        {
+          "name": "XLang example",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "extlibs/watch/examples/watch.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "count: 1\nexists: true\npath matches: true\nafter remove: 0\nslot reused: true\ncreated: true\nmodified: true\ndeleted: true\n",
+            "stderr": "",
+            "elapsedMs": 233
+          }
+        },
+        {
+          "name": "Public XLang example",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "examples/extlibs/watch.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "watching index:  0\npath:  extlibs/watch/src/watch.xl\nactive watches:  1\nno changes detected\nexists:  true\nwatch example: PASS\n",
+            "stderr": "",
+            "elapsedMs": 167
+          }
+        },
+        {
+          "name": "XLang example build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "extlibs/watch/examples/watch.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_xl_example.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 439
+          }
+        },
+        {
+          "name": "XLang example AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_xl_example.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "count: 1\nexists: true\npath matches: true\nafter remove: 0\nslot reused: true\ncreated: true\nmodified: true\ndeleted: true\n",
+            "stderr": "",
+            "elapsedMs": 44
+          }
+        },
+        {
+          "name": "Public XLang example build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "examples/extlibs/watch.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_public_example.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 322
+          }
+        },
+        {
+          "name": "Public XLang example AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_public_example.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "watching index:  0\npath:  extlibs/watch/src/watch.xl\nactive watches:  1\nno changes detected\nexists:  true\nwatch example: PASS\n",
+            "stderr": "",
+            "elapsedMs": 40
+          }
+        },
+        {
+          "name": "C example build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "extlibs/watch/examples/watch_c.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_c_example.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 138
+          }
+        },
+        {
+          "name": "C example AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\watch_c_example.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "count: 1\r\nexists: true\r\npath matches: true\r\nafter remove: 0\r\nslot reused: true\r\ncreated: true\r\nmodified: true\r\ndeleted: true\r\n",
+            "stderr": "",
+            "elapsedMs": 30
+          }
+        },
+        {
+          "name": "release/extlibs/watch/test/directory_digest_c.c build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/watch/test/directory_digest_c.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\directory_digest_c.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 131
+          }
+        },
+        {
+          "name": "release/extlibs/watch/test/directory_digest_c.c AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\directory_digest_c.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "watch directory digest: 15 cases, 0 failures\r\n",
+            "stderr": "",
+            "elapsedMs": 29
+          }
+        },
+        {
+          "name": "release/extlibs/watch/examples/directory.xl build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/watch/examples/directory.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\directory.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 887
+          }
+        },
+        {
+          "name": "release/extlibs/watch/examples/directory.xl AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\directory.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "same size: true\ndirectory modified: true\nno repeated event: true\n",
+            "stderr": "",
+            "elapsedMs": 33
+          }
+        },
+        {
+          "name": "release/extlibs/watch/examples/directory_c.c build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/watch/examples/directory_c.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\directory_c.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 130
+          }
+        },
+        {
+          "name": "release/extlibs/watch/examples/directory_c.c AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\directory_c.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "same size: true\r\ndirectory modified: true\r\nno repeated event: true\r\n",
+            "stderr": "",
+            "elapsedMs": 35
+          }
+        },
+        {
+          "name": "release/extlibs/watch/test/model_c.c build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/watch/test/model_c.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\model_c.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 132
+          }
+        },
+        {
+          "name": "release/extlibs/watch/test/model_c.c AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\model_c.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "watch model: 64 seeds, 8192 steps, 10393 commands, 149902 checks, 840 OOM, 2294 IO, 0 failures\r\n",
+            "stderr": "",
+            "elapsedMs": 58
+          }
+        },
+        {
+          "name": "release/extlibs/watch/examples/round_robin_c.c build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/watch/examples/round_robin_c.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\round_robin_c.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 142
+          }
+        },
+        {
+          "name": "release/extlibs/watch/examples/round_robin_c.c AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\round_robin_c.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "first: a\r\nbusy path: b\r\nnext: c\r\ncatch up: a\r\nslot reused: true\r\ndeleted: b\r\nno repeats: true\r\n",
+            "stderr": "",
+            "elapsedMs": 35
+          }
+        },
+        {
+          "name": "release/extlibs/watch/examples/round_robin.xl build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/watch/examples/round_robin.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\round_robin.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 430
+          }
+        },
+        {
+          "name": "release/extlibs/watch/examples/round_robin.xl AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\round_robin.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "first: a\nbusy path: b\nnext: c\ncatch up: a\nslot reused: true\ndeleted: b\nno repeats: true\n",
+            "stderr": "",
+            "elapsedMs": 41
+          }
+        },
+        {
+          "name": "native global JIT",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/watch/test/top_level.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "watch top-level: PASS\n",
+            "stderr": "",
+            "elapsedMs": 150
+          }
+        },
+        {
+          "name": "native global build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/watch/test/top_level.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\global.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 307
+          }
+        },
+        {
+          "name": "native global AOT retirement",
+          "program": "D:\\GIT\\x-lang\\build\\test\\watch_guard\\run_44b22e12906c4e7a9786530f30f8757e\\global.exe",
+          "arguments": [],
+          "result": {
+            "status": "fail",
+            "exitCode": 1,
+            "stdout": "watch top-level: PASS\n",
+            "stderr": "uncaught xlang error: RuntimeError: operation is not valid in the current state\n",
+            "elapsedMs": 37
+          }
+        }
+      ]
+    }
+  },
+  "linux": {
+    "gateExit": 1,
+    "phases": 63,
+    "positivePasses": 61,
+    "expectedPrivateRejection": 1,
+    "requirementsSatisfied": 62,
+    "requiredFailures": 1,
+    "normalAotProgramsBuiltAndRun": 13,
+    "actualNativePrototypes": 8,
+    "sourceResourceFingerprints": 56,
+    "toolFingerprints": 3,
+    "sourceToolsBootUnchanged": true,
+    "asanUbsanAndLeakDetectionEnabled": true,
+    "privatePoolLeaksAdditionallyCheckedBySevenCounters": true,
+    "outerSuccessIsEvidenceCollectionNotGreenPackage": true,
+    "snapshot": "/var/tmp/xlang-watch-model-F9JFdFeG",
+    "bootIdentity": "410c45c6-5b85-485c-98eb-3cf579c29e90",
+    "sourceManifest": "db90854c0a72847b22877faf7269de2cbbf5f4228500b32c08e8061b0c016777  ./build/test/watch-model-20261102/ack-before-delivery-fixture.c\n033998506ced72856d13c4f394e9ee76060a8ddb54db2a8ba41a7373438fc4ab  ./build/test/watch-model-20261102/ack-before-delivery.c\n44bc87f4440e8619cb2ac0dc0b346b2ba5452b0df94aaa5ea2e38747eb164b2f  ./build/test/watch-model-20261102/advance-on-failure-fixture.c\nf11720af35527ba954384ef744f0a00e26e4433c25f633d7730773d74bdbc28f  ./build/test/watch-model-20261102/advance-on-failure.c\n51339a484d1005375dafbfaa1819293c3747f7c552616abef2cc8faa7f323b46  ./build/test/watch-model-20261102/no-round-robin-fixture.c\n9aac5be47e728d29d8491fe5aaeb1b825a1546462cb1471cf67f0a7dd4299d52  ./build/test/watch-model-20261102/no-round-robin.c\n20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h\ne202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h\nc95405e467ef825f66ba917c8dc1815427fda558c6b6a5a84d74fea511f259a4  ./release/examples/extlibs/watch.xl\nbacda194d589e483fc6bcfc3255e039a8a570c6f47964ceb1388f29fe278f4a1  ./release/extlibs/watch/README.md\ne58927aae1b4304ad0b9a4c41c0b074c5bcd1e9bfcdff270557beb650a8aaa20  ./release/extlibs/watch/docs/site.html\n0dd2db9243f7f287047a6c5584d8be41560d905d69c27f3d16006cd7a04c9767  ./release/extlibs/watch/examples/directory.expected.txt\n5a8847653097aaa7c017f5ba3fb3d93b50f06cb0093edf73f49c028bf0f4f719  ./release/extlibs/watch/examples/directory.xl\n51a45de0fe0f2ac5155deb0016c12580f0638ce9e9a26eb2e349a06238adfbe2  ./release/extlibs/watch/examples/directory_c.c\ndc615e098c36ab7ac8619ea36ef4aeb5e3ffad0d0bc76e56885e01858311f07b  ./release/extlibs/watch/examples/round_robin.expected.txt\ndba1dad075f47533c45b31db0cd64e5c3a65a0c96e88d7588fef3a66cfbe5d34  ./release/extlibs/watch/examples/round_robin.xl\n2d7973ded5cc407164fccb02f81a68d2383345a117634fe7dbe41ece59ea3bc1  ./release/extlibs/watch/examples/round_robin_c.c\na8b7a3b126aa46afa0d561b83c893d1bb869248ed8ded98267aa1e32cf7d4ee9  ./release/extlibs/watch/examples/watch.xl\n29e17c092151c6fa13b86477d5e53d5bb860481687f01dbfa285ba4e11f4d467  ./release/extlibs/watch/examples/watch_c.c\nda065b4a33d6a54a843c693e7100eaa736111b987cb96d88ee46d70ae76a5d8d  ./release/extlibs/watch/src/watch.xl\nf6f55b7c94fa74a4e814ab17b9fdaaa59fc7b1cad860c25e0fa3312101a56e48  ./release/extlibs/watch/test/allocations.xl\n1ae9ef6ba983756a30108a24889b1da7854d5f6c85c951f4b18c52f80966894f  ./release/extlibs/watch/test/boundaries.xl\nd3bfb9f55c41218a63461bdea1e6ce2b6cf6200338d6ef0ae79cfed29b5ad5eb  ./release/extlibs/watch/test/check.ps1\n2b7b4dab652fa77c3fb9b81d74faa4b7a31033feb241530a225a2d9a18efac92  ./release/extlibs/watch/test/check.sh\n3afcb64abf1318b0cdfd9f99c6fdc59a2efd5a9a828c81f60d31e1a41eda631c  ./release/extlibs/watch/test/cwd_snapshot.xl\n3987818664d9c7cae1d6e46bc42e1ea33672a6dba6bd3461d4362cedeacb7be9  ./release/extlibs/watch/test/directory_digest_c.c\naa3d9117f32b7004577750e582d1918794b4da4af08e82e5a6862c73f65a3962  ./release/extlibs/watch/test/model_c.c\nadbdb0e9bb4737c59d5781419098f5083095e78295a659ea2c9547a8227ce443  ./release/extlibs/watch/test/owned_events.xl\n5e8869a3430a347097ff703cec07ab0564341123d954e97a6568831af4589a4a  ./release/extlibs/watch/test/private_native.xl\n0dbc1eff30a615a661910ca7f28eb7d0faed61b0b79c015eb89770c9ab1a0f30  ./release/extlibs/watch/test/test_directory_race.c\ncc7a12bb69c279dbdd21c36ae57d5949cb0fabd7489ac7298638f89049605c44  ./release/extlibs/watch/test/test_watch.c\n992745886fbe965bfd07146b23cbd1f6b812620f2f31b749cf04eb266adec98c  ./release/extlibs/watch/test/top_level.xl\n9bbf41d164332714d52e481976e9b3cbe786c09345c1482a2c679b0c6677b1cf  ./release/extlibs/watch/test/workdir.h\n5bafdc783da46af4a85f296b8f865e5bea31866679aa568b6b8ca1fb69903d1a  ./release/extlibs/watch/test/xrt_runtime.c\n8da992512a758e23f9b9cca5ce5cabfee22e37af3351867fa98182f871b3340d  ./release/extlibs/watch/watch_native.c\n1b772ed69e401136873abbfee9765dc400ab36615bdfe01f1b9a5087d07e1472  ./release/extlibs/watch/watch_native.h\n02b92a31d5e01157c9a19a1ffdd21fcaac184f9951be1775cc93eddc4e48b5fa  ./release/extlibs/watch/xlang.package.json\n513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md\nfc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h\nfe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h\nede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h\nab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h\na203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h\ndb381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h\n8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h\nec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h\n4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h\n4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h\n931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h\n136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h\n073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h\nc519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h\n1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h\n4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so\n0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so\ndd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl\n",
+    "toolManifest": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc\n30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1\n3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash\n",
+    "calls": [
+      {
+        "command": "timeout 10s gcc --version",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/watch -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DXRT_MODULE_DIR -DXRT_MODULE_PATH -DXRT_MODULE_HASH64 -fsyntax-only release/extlibs/watch/watch_native.c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s ./release/xl cgen release/extlibs/watch/test/boundaries.xl --emit /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/owned_event.c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/watch -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -fsyntax-only /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/abi.c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/watch -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/watch/test/xrt_runtime.c -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/xrt.o",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/watch -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/watch/watch_native.c -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/native.o",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/watch -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/watch/test/test_watch.c /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/native.o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/xrt.o -no-pie -lm -ldl -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/test_watch",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/test_watch",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/case",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/watch -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/watch/test/test_directory_race.c /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/native.o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/xrt.o -Wl\\,--wrap=xrtDirOpen -no-pie -lm -ldl -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/test_directory_race",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 30s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/test_directory_race",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/case",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/watch -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/watch/test/directory_digest_c.c /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/xrt.o -no-pie -lm -ldl -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/digest",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/digest",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "watch directory digest: 15 cases, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/watch/test/directory_digest_c.c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "watch directory digest: 15 cases, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/watch -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/watch/test/model_c.c /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/xrt.o -no-pie -lm -ldl -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/model",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/model",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "watch model: 64 seeds, 8192 steps, 10497 commands, 159231 checks, 541 OOM, 2398 IO, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/watch/test/model_c.c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "watch model: 64 seeds, 8192 steps, 10497 commands, 159231 checks, 541 OOM, 2398 IO, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/watch -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/watch/examples/watch_c.c /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/xrt.o -no-pie -lm -ldl -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/example",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 30s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/example",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "count: 1\nexists: true\npath matches: true\nafter remove: 0\nslot reused: true\ncreated: true\nmodified: true\ndeleted: true\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/watch/examples/watch_c.c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "count: 1\nexists: true\npath matches: true\nafter remove: 0\nslot reused: true\ncreated: true\nmodified: true\ndeleted: true\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/watch -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/watch/examples/directory_c.c /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/xrt.o -no-pie -lm -ldl -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/directory_c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 30s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/directory_c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "same size: true\ndirectory modified: true\nno repeated event: true\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/watch/examples/directory_c.c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "same size: true\ndirectory modified: true\nno repeated event: true\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/watch/examples/directory.xl",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "same size: true\ndirectory modified: true\nno repeated event: true\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/watch -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/watch/examples/round_robin_c.c /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/xrt.o -no-pie -lm -ldl -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/round-c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/round-c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "first: a\nbusy path: b\nnext: c\ncatch up: a\nslot reused: true\ndeleted: b\nno repeats: true\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/watch/examples/round_robin_c.c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "first: a\nbusy path: b\nnext: c\ncatch up: a\nslot reused: true\ndeleted: b\nno repeats: true\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/watch/examples/round_robin.xl",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "first: a\nbusy path: b\nnext: c\ncatch up: a\nslot reused: true\ndeleted: b\nno repeats: true\n\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/stage/release/xl run /var/tmp/xlang-watch-model-F9JFdFeG/stage/release/extlibs/watch/test/boundaries.xl",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/case",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/stage/release/xl run /var/tmp/xlang-watch-model-F9JFdFeG/stage/release/extlibs/watch/test/cwd_snapshot.xl",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/case",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/stage/release/xl run /var/tmp/xlang-watch-model-F9JFdFeG/stage/release/extlibs/watch/test/allocations.xl",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/case",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/stage/release/xl run /var/tmp/xlang-watch-model-F9JFdFeG/stage/release/extlibs/watch/test/owned_events.xl",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/case",
+        "exit": 0,
+        "output": "watch owned event delivery: PASS\n\n"
+      },
+      {
+        "command": "timeout 90s ./xl run extlibs/watch/examples/watch.xl",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage/release",
+        "exit": 0,
+        "output": "count: 1\nexists: true\npath matches: true\nafter remove: 0\nslot reused: true\ncreated: true\nmodified: true\ndeleted: true\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl check release/extlibs/watch/test/private_native.xl",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 1,
+        "output": "release/extlibs/watch/test/private_native.xl:4:9: [sem] unknown class/union field\nrelease/extlibs/watch/test/private_native.xl:4:18: [sem] no matching callable class member '__xl6_import_watch_Watcher.addNative': check argument count, types and access\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/watch/test/boundaries.xl -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/watch_boundaries",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/watch_boundaries",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/case",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/watch/test/cwd_snapshot.xl -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/watch_cwd_snapshot",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/watch_cwd_snapshot",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/case",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/watch/test/allocations.xl -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/watch_allocations",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/watch_allocations",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/case",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/watch/test/owned_events.xl -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/watch_owned_events",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/watch_owned_events",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/case",
+        "exit": 0,
+        "output": "watch owned event delivery: PASS\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/watch/examples/watch.xl -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/watch_example_xl",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/watch_example_xl",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage/release",
+        "exit": 0,
+        "output": "count: 1\nexists: true\npath matches: true\nafter remove: 0\nslot reused: true\ncreated: true\nmodified: true\ndeleted: true\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/examples/extlibs/watch.xl -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/watch_public_xl",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/watch_public_xl",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage/release",
+        "exit": 0,
+        "output": "watching index:  0\npath:  extlibs/watch/src/watch.xl\nactive watches:  1\nno changes detected\nexists:  true\nwatch example: PASS\n\n"
+      },
+      {
+        "command": "timeout 90s ./xl run examples/extlibs/watch.xl",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage/release",
+        "exit": 0,
+        "output": "watching index:  0\npath:  extlibs/watch/src/watch.xl\nactive watches:  1\nno changes detected\nexists:  true\nwatch example: PASS\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/watch/examples/watch_c.c -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/watch_example_c_aot",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/watch_example_c_aot",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "count: 1\nexists: true\npath matches: true\nafter remove: 0\nslot reused: true\ncreated: true\nmodified: true\ndeleted: true\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/watch/test/directory_digest_c.c -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/directory_digest_c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/directory_digest_c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "watch directory digest: 15 cases, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/watch/examples/directory.xl -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/directory",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/directory",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "same size: true\ndirectory modified: true\nno repeated event: true\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/watch/examples/directory_c.c -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/directory_c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/directory_c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "same size: true\ndirectory modified: true\nno repeated event: true\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/watch/test/model_c.c -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/model_c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/model_c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "watch model: 64 seeds, 8192 steps, 10497 commands, 159231 checks, 541 OOM, 2398 IO, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/watch/examples/round_robin_c.c -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/round_robin_c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/round_robin_c",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "first: a\nbusy path: b\nnext: c\ncatch up: a\nslot reused: true\ndeleted: b\nno repeats: true\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/watch/examples/round_robin.xl -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/round_robin",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/round_robin",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "first: a\nbusy path: b\nnext: c\ncatch up: a\nslot reused: true\ndeleted: b\nno repeats: true\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/watch/test/top_level.xl",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": "watch top-level: PASS\n\n"
+      },
+      {
+        "command": "timeout 180s ./release/xl build release/extlibs/watch/test/top_level.xl -o /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/global",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-watch-model-F9JFdFeG/tmp/xlang-watch-XgWOpl/global",
+        "cwd": "/var/tmp/xlang-watch-model-F9JFdFeG/stage",
+        "exit": 1,
+        "output": "watch top-level: PASS\nuncaught xlang error: RuntimeError: operation is not valid in the current state\n"
+      }
+    ]
+  },
+  "blocker": {
+    "id": "M2",
+    "source": "release/extlibs/watch/test/top_level.xl",
+    "record": "dev/extlib_blockers/global_native_class_aot_fini.md",
+    "jitExit": 0,
+    "buildExit": 0,
+    "aotExit": 1,
+    "bodyPrintsPassBeforeNaturalRetirementFailure": true,
+    "noEarlyDestroyMoveIntoMainOrSwallowedFailure": true,
+    "recommendation": "Mainline must repair module/object/code/error-scope retirement order. Then rerun the original top-level positive and complete package gates.",
+    "completePackageNotAccepted": true
+  },
+  "catalog": {
+    "candidate": "D:\\GIT\\x-lang\\build\\test\\watch-model-20261102\\catalog-4d4d5981fa0d45dcabee08e3fd29b5eb",
+    "generation": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"passed\", \"catalogSha256\": \"22933a9594782d75f1c273f2bfcf0368edb6c6ddb6f50831c3e17ec54981b7e6\", \"sourceIndexSha256\": \"00d1a448421077fbb643c40bbb75de1e7ddb9e5612230423e98286270b025e88\", \"preservedNonExtensionEntries\": 6156, \"publicPackages\": 207, \"excludedPrivate\": [\"_bzip2\", \"_expat\", \"_libzip\", \"_tomlc17\", \"_xge_native\", \"_zlib\"], \"extensionEntries\": 11442, \"addedEntries\": 0, \"removedEntries\": 0, \"documents\": 145, \"availableSources\": 593, \"extensionExporterSha256\": \"5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42\", \"inputsUnchanged\": true}\r\n",
+      "stderr": "",
+      "elapsedMs": 12407
+    },
+    "freshness": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+      "stderr": "",
+      "elapsedMs": 1169
+    },
+    "binding": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "Catalog compiler changed: xl.dll\r\n",
+      "elapsedMs": 403
+    },
+    "installed": false,
+    "compilerIdentityBindingNotRewritten": true,
+    "runtimePairNotOverwritten": true,
+    "websiteSource": "release/extlibs/watch/docs/site.html",
+    "externalDeploymentPerformed": false
+  },
+  "delivery": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+    "stderr": "",
+    "elapsedMs": 1143
+  },
+  "evidenceQualification": {
+    "firstLinuxCounterGuardFailure": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "watch gate=1 controls=3 source-change=0 tools-change=0 snapshot=/var/tmp/xlang-watch-model-VEV5J7Mf\nexit=1\nphases=16\nwatch directory digest: 15 cases, 0 failures\nwatch directory digest: 15 cases, 0 failures\n--- /var/tmp/xlang-watch-model-VEV5J7Mf/tmp/xlang-watch-Kb3YY9/model.expected\t2026-11-02 06:59:08.659799717 +0800\n+++ /var/tmp/xlang-watch-model-VEV5J7Mf/tmp/xlang-watch-Kb3YY9/model.txt\t2026-11-02 06:59:08.772473627 +0800\n@@ -1 +1 @@\n-watch model: 10393 commands, 149901 checks, 840 OOM, 2294 IO, 0 failures\n+watch model: 10497 commands, 159230 checks, 541 OOM, 2398 IO, 0 failures\n[watch] report: /var/tmp/xlang-watch-model-VEV5J7Mf/tmp/xlang-watch-Kb3YY9.report.txt\nexit=1\nline=99\ncommand=diff -u \"$work/model.expected\" \"$work/model.txt\"\npipeline=1\n[watch] FAIL exit=1 artifacts=/var/tmp/xlang-watch-model-VEV5J7Mf/tmp/xlang-watch-Kb3YY9\n",
+      "stderr": "",
+      "elapsedMs": 33151
+    },
+    "firstLinuxSnapshot": "/var/tmp/xlang-watch-model-VEV5J7Mf",
+    "firstModelReportedZeroFailuresButWindowsCountsWereNotPortable": true,
+    "correctedOneSharedGuardNotPlatformHardcodedBranches": true,
+    "selfCheckNowRequiresAllSeedsAndSteps": true,
+    "bothFinalDefaultGatesRerunAfterFixtureAndGuardCorrection": true,
+    "defaultGatesRetainOneCorrectPrivateAccessFailureAndRealM2Failure": true,
+    "finalSourcesTestsExamplesDocsAndGatesFingerprinted": true,
+    "finalCatalogInputs": {
+      "C:/Program Files/Python312/python.exe": "4D6F5F81A4BCA11191C4C7C6B43632694D0A4CE74E068619D8FDC161D469859A",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\docs\\site.html": "E58927AAE1B4304AD0B9A4C41C0B074C5BCD1E9BFCDFF270557BEB650A8AAA20",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\examples\\directory_c.c": "51A45DE0FE0F2AC5155DEB0016C12580F0638CE9E9A26EB2E349A06238ADFBE2",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\examples\\directory.expected.txt": "0DD2DB9243F7F287047A6C5584D8BE41560D905D69C27F3D16006CD7A04C9767",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\examples\\directory.xl": "5A8847653097AAA7C017F5BA3FB3D93B50F06CB0093EDF73F49C028BF0F4F719",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\examples\\round_robin_c.c": "2D7973DED5CC407164FCCB02F81A68D2383345A117634FE7DBE41ECE59EA3BC1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\examples\\round_robin.expected.txt": "DC615E098C36AB7AC8619EA36EF4AEB5E3FFAD0D0BC76E56885E01858311F07B",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\examples\\round_robin.xl": "DBA1DAD075F47533C45B31DB0CD64E5C3A65A0C96E88D7588FEF3A66CFBE5D34",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\examples\\watch_c.c": "29E17C092151C6FA13B86477D5E53D5BB860481687F01DBFA285BA4E11F4D467",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\examples\\watch.xl": "A8B7A3B126AA46AFA0D561B83C893D1BB869248ED8DED98267AA1E32CF7D4EE9",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\README.md": "BACDA194D589E483FC6BCFC3255E039A8A570C6F47964CEB1388F29FE278F4A1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\src\\watch.xl": "DA065B4A33D6A54A843C693E7100EAA736111B987CB96D88EE46D70AE76A5D8D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\allocations.xl": "F6F55B7C94FA74A4E814AB17B9FDAAA59FC7B1CAD860C25E0FA3312101A56E48",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\boundaries.xl": "1AE9EF6BA983756A30108A24889B1DA7854D5F6C85C951F4B18C52F80966894F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\check.ps1": "D3BFB9F55C41218A63461BDEA1E6CE2B6CF6200338D6EF0AE79CFED29B5AD5EB",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\check.sh": "2B7B4DAB652FA77C3FB9B81D74FAA4B7A31033FEB241530A225A2D9A18EFAC92",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\cwd_snapshot.xl": "3AFCB64ABF1318B0CDFD9F99C6FDC59A2EFD5A9A828C81F60D31E1A41EDA631C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\directory_digest_c.c": "3987818664D9C7CAE1D6E46BC42E1EA33672A6DBA6BD3461D4362CEDEACB7BE9",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\model_c.c": "AA3D9117F32B7004577750E582D1918794B4DA4AF08E82E5A6862C73F65A3962",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\owned_events.xl": "ADBDB0E9BB4737C59D5781419098F5083095E78295A659EA2C9547A8227CE443",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\private_native.xl": "5E8869A3430A347097FF703CEC07AB0564341123D954E97A6568831AF4589A4A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\test_directory_race.c": "0DBC1EFF30A615A661910CA7F28EB7D0FAED61B0B79C015EB89770C9AB1A0F30",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\test_watch.c": "CC7A12BB69C279DBDD21C36AE57D5949CB0FABD7489AC7298638F89049605C44",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\top_level.xl": "992745886FBE965BFD07146B23CBD1F6B812620F2F31B749CF04EB266ADEC98C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\workdir.h": "9BBF41D164332714D52E481976E9B3CBE786C09345C1482A2C679B0C6677B1CF",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\test\\xrt_runtime.c": "5BAFDC783DA46AF4A85F296B8F865E5BEA31866679AA568B6B8CA1FB69903D1A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\watch_native.c": "8DA992512A758E23F9B9CCA5CE5CABFEE22E37AF3351867FA98182F871B3340D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\watch_native.h": "1B772ED69E401136873ABBFEE9765DC400AB36615BDFE01F1B9A5087D07E1472",
+      "D:\\GIT\\x-lang\\release\\extlibs\\watch\\xlang.package.json": "02B92A31D5E01157C9A19A1FFDD21FCAAC184F9951BE1775CC93EDDC4E48B5FA",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012",
+      "E:/software/w64devkit/bin/gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED"
+    },
+    "finalCatalogChangedInputs": [],
+    "fullOriginalObjectiveNotAccepted": true,
+    "otherPackagesNotReclassified": true
+  },
+  "reproduce": [
+    "powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/watch/test/check.ps1",
+    "bash release/extlibs/watch/test/check.sh",
+    "release/xl.exe run release/extlibs/watch/test/model_c.c",
+    "release/xl.exe run release/extlibs/watch/examples/round_robin.xl",
+    "release/xl.exe run release/extlibs/watch/examples/round_robin_c.c"
+  ]
+}

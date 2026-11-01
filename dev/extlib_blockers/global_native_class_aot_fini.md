@@ -2,6 +2,25 @@
 
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+## 2026-11-02 Watch 多路径模型后复验
+
+本轮未改监视器生产实现。64组/8192步独立模型、真实三文件轮转
+双语例、原目录竞态/分配恢复/直接字符串接管与八实际原型均过，
+Windows/Linux各13普通独立程序正常。默认门Win62项61符合要求、
+Linux63项62符合要求；各含一项正确的私有访问拒绝。
+
+唯一必过失败仍为原 `release/extlibs/watch/test/top_level.xl`：两平台
+JIT0、build0，独立程序打印 `watch top-level: PASS` 后在自然退役时报
+`RuntimeError: operation is not valid in the current state`，退出1。
+没有把真实顶层对象挪入main、提前释放或把退出错误当成正常结果。
+
+模型最初Linux零失败却被Windows精确分配次数守门误拒绝；门禁已改
+为完整序列/步数、零失败与逐引擎记录实际计数，并重跑完整两平台门。
+这个测试夹具问题与M2分开记录，不把修正计数比较解释为修复主线。
+现行发布物、来源和所有退出结果见
+`docs/reports/extlib-watch-model-20261102.json`。M2保持开放；主线修复
+方向沿用后文，修后必须重跑原全局正例及完整包门。
+
 ## 2026-11-02 Dotenv export键修复后复验
 
 本包普通export键解析缺陷已独立修复，Windows/Linux默认各58阶段
