@@ -382,6 +382,9 @@ static int xl6IrCgenEmitAsyncMachineInstruction(
     case XL6_IR_INSTR_FOREIGN_RESULT_ROLLBACK:
         if (!xl6IrCgenEmitForeignResultRollback(out, module, instruction)) return 0;
         break;
+    case XL6_IR_INSTR_NATIVE_STATUS_OUT:
+        if (!xl6IrCgenEmitNativeStatusOut(out, module, instruction, diags)) return 0;
+        break;
     case XL6_IR_INSTR_CALL:
         {
             size_t instructionIndex = (size_t)(instruction - module->instructions);

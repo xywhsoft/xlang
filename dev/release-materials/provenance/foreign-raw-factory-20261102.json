@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "date": "2026-11-02",
+  "scope": "Raw caller-lifetime factory source checkpoint, not eight-item completion or release acceptance",
+  "sourceBuildUnits": 1397,
+  "sourceBuildInputsUnchanged": true,
+  "stages": 32,
+  "invalidIrRejections": 47,
+  "zeroOutputRejections": 94,
+  "privateContractHeader": "Final declaration-only header isolation rebuilt all non-runtime source units and rechecked TCC JIT/module/EXE, including record function values. Canonical cohort remains source-r6 before that include-only isolation.",
+  "remaining": [
+    "Factory function values",
+    "Guarded result during fallible argument cleanup",
+    "Owning/context lifetime integration"
+  ],
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\source-r6\\build.json",
+      "sha256": "59415a7f1e62c6a44645b25bef5ec3c1daf67ab623405a9dbfa424ce18bbeedc"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\factory-source-r6-r3\\stages.json",
+      "sha256": "24f9a061406ea6e030e395f0b176c9278f445be85da19bd2d582590e75f06206"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\factory-source-r6-r3\\IR-O0-run.log",
+      "sha256": "d26afc04d16864c6f00869b1eae421ecb211a3b103f0a312d41717b549538822"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\factory-source-r6-r3\\IR-O2-run.log",
+      "sha256": "d26afc04d16864c6f00869b1eae421ecb211a3b103f0a312d41717b549538822"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\parser-factory-r1\\results.json",
+      "sha256": "9f00fb4def8a218467a03916b52a4bbce827e48b7f9ae91579341e659eefbc9f"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\factory-r14\\iteration.json",
+      "sha256": "a8e223cc3558844456b3f84ced97e580f3e00b9e5b5e1e6726681560870ccba1"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\array-source-r6\\stages.json",
+      "sha256": "18124a6975ef37bb9347d95c7645961a7e18a0b3feafbcebd0ff3178ac451593"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\handle-source-r6\\stages.json",
+      "sha256": "72a899705094b9dcf21062e3b90f18afe217af0099fc37787805a8bf1773a3cb"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\record-source-r6\\stages.json",
+      "sha256": "6a78bfe8141b0a5d7713538b19367e972e054b5564b5b0c50d0b3d2b17388fa5"
+    }
+  ]
+}
