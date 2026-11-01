@@ -2,6 +2,24 @@
 
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+## 2026-11-02 Dotenv export键修复后复验
+
+本包普通export键解析缺陷已独立修复，Windows/Linux默认各58阶段
+前57符合要求，13普通AOT及新旧双语例过；最后原top_level.xl仍
+JIT0、build0，AOT打印dotenv top-level: PASS后状态RuntimeError/1。
+没有挪入main、提前销毁或把顶层正例改成预期失败。
+
+Windows父现场`build/test/dotenv_guard_2dedb22cb00c45309e10394cdad4a185.json`，
+专项`build/test/native_globals_b070d00a32af49d0ae3347e197f1dc26`；
+Linux冻结现场`/var/tmp/xlang-dotenv-grammar-c8DU17Aq`，原始专项退出码
+0/0/1已复制到`build/test/dotenv_grammar_20261102/linux-evidence/global/`。
+Win58输入/工具及Linux57来源三工具/boot保持；C ASan/UBSan/泄漏
+和解析回滚测试通过不代表主线退役顺序正确。M2仍开放，修复责任
+和建议沿用下文；不因本次只复验dotenv重计涉及包数。
+
+报告`docs/reports/extlib-dotenv-grammar-20261102.json`保留两层状态：
+独立语法缺陷已修，完整默认门禁仍1。
+
 ## 2026-11-02 Tabulate 当前发布物复验
 
 本包输出预算/拥有型返回优化后，Windows45阶段与Linux原生完整门禁

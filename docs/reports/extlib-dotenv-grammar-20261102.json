@@ -1,0 +1,2809 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-02T04:51:37.2391529+08:00",
+  "package": "dotenv",
+  "maturity": "M",
+  "status": "export-key-whitespace-fixed-original-global-retirement-and-release-binding-open",
+  "sourceParent": "3312d1f60b209e97ee673cabdc447105b28d9931",
+  "objectiveScope": {
+    "ordinaryPackages": 100,
+    "goalComplete": false,
+    "states": {
+      "X": 4,
+      "G": 30,
+      "M": 56,
+      "R": 10
+    }
+  },
+  "formalRelease": false,
+  "change": {
+    "newAllocations": false,
+    "solution": "Look ahead past whitespace; = means ordinary key, otherwise optional prefix",
+    "parallelChangesPreserved": true,
+    "netProductionLines": 2,
+    "examples": [
+      "export=worker",
+      "export = worker",
+      "export export = worker",
+      "export NAME=value"
+    ],
+    "publicApiAbiOwnershipAndDependenciesUnchanged": true,
+    "defect": "Ordinary export key with whitespace before = misread as optional export prefix",
+    "compilerRuntimeXrtTccIdeNotModifiedByThisTask": true
+  },
+  "production": [
+    {
+      "path": "release/extlibs/dotenv/xrt_dotenv.c",
+      "bytes": 11149,
+      "sha256": "1ab20c8a4d357243b41def329eabb5a21bb54fb359662365b18f27908c038e28"
+    },
+    {
+      "path": "release/extlibs/dotenv/dotenv_native.c",
+      "bytes": 1715,
+      "sha256": "6dbdfd53be0ec5152c7c1f5aa5acffd255fa9e786485312bf204f7213a68644b"
+    },
+    {
+      "path": "release/extlibs/dotenv/include/xrt_dotenv.h",
+      "bytes": 1244,
+      "sha256": "cc9f23bf2bd4dc6ca6b531729d499e69b75e62d5a2bc4e6e9aa6965314da4fa2"
+    },
+    {
+      "path": "release/extlibs/dotenv/src/dotenv.xl",
+      "bytes": 4861,
+      "sha256": "878f30861edaf38599c35b9ac82eec197d8054d5d910a7d73a5ff5fe68103061"
+    }
+  ],
+  "grammar": {
+    "combinationCases": 3564,
+    "construction": "Explicit encoded input/expected values, not a second copy of parser",
+    "coverage": [
+      "4 legal keys including export",
+      "3 leading spaces x 3 optional prefixes x 3 assignment spaces x 3 endings x 11 values",
+      "quoted/raw/UTF8/NUL/CR/unknown escapes",
+      "limit before content validation",
+      "failed input retains original borrowed pointer",
+      "retry clears object and XRT errors",
+      "seven memory counters for every invocation"
+    ],
+    "oldNewWindows": [
+      {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 495
+      },
+      {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "dotenv grammar: 3585 valid, 72 invalid, 144 fault runs, 24 OOM, 217 failures\r\n",
+        "stderr": "dotenv grammar: key=export size=17 code=2 line=1\r\ndotenv grammar: parse status/code/line\r\ndotenv grammar: key=export size=22 code=2 line=1\r\ndotenv grammar: parse status/code/line\r\ndotenv grammar: key=export size=20 code=2 line=1\r\ndotenv grammar: parse status/code/line\r\ndotenv grammar: key=export size=24 code=2 line=1\r\ndotenv grammar: parse status/code/line\r\ndotenv grammar: key=export size=28 code=2 line=1\r\ndotenv grammar: parse status/code/line\r\ndotenv grammar: key=export size=26 code=2 line=1\r\ndotenv grammar: parse status/code/line\r\ndotenv grammar: key=export size=42 code=2 line=1\r\ndotenv grammar: parse status/code/line\r\ndotenv grammar: key=export size=19 code=2 line=1\r\ndotenv grammar: parse status/code/line\r\ndotenv grammar: key=export size=19 code=2 line=1\r\ndotenv grammar: parse status/code/line\r\ndotenv grammar: key=export size=23 code=2 line=1\r\ndotenv grammar: parse status/code/line\r\ndotenv grammar: key=export size=29 code=2 line=1\r\ndotenv grammar: parse status/code/line\r\ndotenv grammar: key=export size=18 code=2 line=1\r\ndotenv grammar: parse status/code/line\r\n",
+        "elapsedMs": 32
+      },
+      {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 495
+      },
+      {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "dotenv grammar: 3585 valid, 72 invalid, 144 fault runs, 28 OOM, 0 failures\r\n",
+        "stderr": "",
+        "elapsedMs": 50
+      }
+    ],
+    "matrixOldFailures": 198,
+    "faultBudgets": 144,
+    "finalInvalidChecks": 72,
+    "oldFinalFailedAssertions": 217,
+    "note": "Counts are checks/budgets, not independent defects; do not multiply them by platforms or engines. Old rejects valid export keys before some allocation points.",
+    "actualOldFaults": 24,
+    "actualNewFaults": 28,
+    "oldLinuxOutput": "dotenv grammar: 3585 valid, 72 invalid, 144 fault runs, 24 OOM, 217 failures\n",
+    "newFinalFailedAssertions": 0,
+    "safety": "No environment or file operations in new grammar fixtures/examples",
+    "finalValidChecks": 3585
+  },
+  "examples": {
+    "sources": [
+      "release/extlibs/dotenv/examples/literal_values.xl",
+      "release/extlibs/dotenv/examples/literal_values_c.c"
+    ],
+    "lineCount": 7,
+    "gccDirectTccJitAndAotPassed": true,
+    "golden": {
+      "path": "release/extlibs/dotenv/examples/literal_values.expected.txt",
+      "bytes": 112,
+      "sha256": "c3e1ccd1bb1f4fc12c1f8d1f08b4f349b37e896c043bfb70f0cbc178ed5bd232"
+    }
+  },
+  "windows": {
+    "changedDuringGate": [],
+    "globalSubgate": {
+      "date": "2026-11-02T04:46:25.4094391+08:00",
+      "outcome": "failed",
+      "failure": "Native global lifetime checks failed; see individual results",
+      "scope": "Native-backed class global creation, validity and natural retirement; not algorithm recertification",
+      "aotSkipped": false,
+      "packages": [
+        "dotenv"
+      ],
+      "runtimeDirectory": "D:\\GIT\\x-lang\\release",
+      "environment": {
+        "XLANG_PACKAGE_PATH": "D:\\GIT\\x-lang\\release\\extlibs"
+      },
+      "inputSnapshotComplete": true,
+      "inputs": {
+        "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+        "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\docs\\site.html": "D9EAFCC7F9E0FFB0A2B84F52BD7C956807344F3C1923FFC1B0B3CAA7679B4F2F",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\dotenv_native.c": "6DBDFD53BE0EC5152C7C1F5AA5ACFFD255FA9E786485312BF204F7213A68644B",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\examples\\basic.c": "3FABBC96007B287569EEDB8E3C408108930D279E2C7480602DC04383F5F07C6B",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\examples\\basic.expected.txt": "F5B975AD810320D7DA6A727C7D634ABD99127320C27936E2B5A24F2B7E77F42E",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\examples\\literal_values.expected.txt": "C3E1CCD1BB1F4FC12C1F8D1F08B4F349B37E896C043BFB70F0CBC178ED5BD232",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\examples\\literal_values.xl": "B11EA7D61F95711170D5F20D44454AF589DEE0E615239E21DD33CE0F3540272A",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\examples\\literal_values_c.c": "CB02598652228F934580762D0FB65C2DC26A2CC0EA7A23F4EB9375D952744AAA",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\examples\\reload.expected.txt": "382C1D8203C08B454F45B47CBEFF9081790E532814BCBE2D0667815977955A31",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\examples\\reload.xl": "DF3A66884DA4848F7D8C0AB8E5C124E15551C759FB05707BC90FB6202E0BCE21",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\examples\\reload_c.c": "D3DD0D69B78A01BA34A77AB2E49CF3222690F79C608D78BFB9FCD05DAEC5F7C4",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\include\\xrt_dotenv.h": "CC9F23BF2BD4DC6CA6B531729D499E69B75E62D5A2BC4E6E9AA6965314DA4FA2",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\README.md": "F87F063DF1338F378168606652C751464538412F636F5F0A46606CDCA096DDFA",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\src\\dotenv.xl": "878F30861EDAF38599C35B9AC82EEC197D8054D5D910A7D73A5FF5FE68103061",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\apply_oom.xl": "38CB7CE4F2DA5AA3EA452BF9EEA610A3FFA21A2C3615EC36E737CBB0E553CE9A",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\bench_dotenv.c": "B1D00E3EDE5145A72F15D7763CCB95C02C609FC80F5F17901BC8344358A150AA",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\check.ps1": "F2C886F911E269463318869105956D90C2D6BA6195E4143B0EE672FC605F43C9",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\check.sh": "B3049C07CCC5C58BF4D2C30746F646D2848589955E89795FF60CF4969E11FE6E",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\create_oom.xl": "D5E77990353A4619A76F49E131F3E55AE1007FD336D48DBD984EE4DE883A2F19",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\grammar.xl": "265099F02DD9A0DF1DFC24EBEE3EB23925CEE4621FD821F9F2C3A0133E30D178",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\grammar_c.c": "7DA0C5E45583B80EE6ABA221527B287B49F334E78D33B2D7A5076B1E6BA75BF7",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\limits.xl": "F1C01C9755E95CF2C1436C005651A5C5AA23A371ED34C92FF625B927D113E8CB",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\private_native.xl": "3A6FC29E84C5AA66F1963CC5E0869FBDFB4877CA1C1DEFCF481F497B1A90AFE7",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\replace.xl": "30060AAB3102AE0535F4BF9614D696A049097F116D4BFA503B9343A58E6F7FBC",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\test_dotenv.c": "D77D75FF40B26A69C6D375572FA371E44F888C1908B9438DB55120981C0DEF93",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\top_level.xl": "55114D6091B08AD936A25AEE480449AF4E3BC4EA37BBBF71D542ED7F4A43BE5B",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\xrt_runtime.c": "457F17DE185CF8B29AB9A871829A85877F78A50EBBDACA83B9F70282F33F379B",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\xlang.package.json": "828E210934DEB7DE5949217706942138D41A467E4F6754C7535308126EA76981",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\xrt_dotenv.c": "1AB20C8A4D357243B41DEF329EABB5A21BB54FB359662365B18F27908C038E28",
+        "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+        "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+        "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+        "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+        "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+        "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+        "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+        "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+        "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+        "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+        "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+        "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+        "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+        "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+        "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+        "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+        "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+        "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+        "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+        "D:\\GIT\\x-lang\\tools\\check_extlib_native_globals.ps1": "9E1BA6572A7AED210C8DDFF0FF9C7A86FC91BCF36D4A92CDA2D0347893669FFC",
+        "D:\\GIT\\x-lang\\tools\\check_extlib_native_globals.sh": "411D86A52E77DD84CE7879DCDA208140652EE16555D24688DED41EC33A44226E",
+        "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+        "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219"
+      },
+      "changedInputs": [],
+      "checks": [
+        {
+          "name": "dotenv-jit",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/dotenv/test/top_level.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "dotenv top-level: PASS\n",
+            "stderr": "",
+            "elapsedMs": 227
+          }
+        },
+        {
+          "name": "dotenv-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/dotenv/test/top_level.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\native_globals_b070d00a32af49d0ae3347e197f1dc26\\dotenv.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 360
+          }
+        },
+        {
+          "name": "dotenv-aot",
+          "program": "D:\\GIT\\x-lang\\build\\test\\native_globals_b070d00a32af49d0ae3347e197f1dc26\\dotenv.exe",
+          "arguments": [],
+          "result": {
+            "status": "fail",
+            "exitCode": 1,
+            "stdout": "dotenv top-level: PASS\n",
+            "stderr": "uncaught xlang error: RuntimeError: operation is not valid in the current state\n",
+            "elapsedMs": 26
+          }
+        }
+      ]
+    },
+    "ordinaryAotPassed": 13,
+    "checkCount": 58,
+    "fullGate": {
+      "date": "2026-11-02T04:46:25.6429699+08:00",
+      "outcome": "failed",
+      "failure": "top-level lifecycle: fail exit=1\nNative global lifetime checks failed; see individual results\r\n所在位置 D:\\GIT\\x-lang\\tools\\check_extlib_native_globals.ps1:80 字符: 20\r\n+ ... ($failed) { throw 'Native global lifetime checks failed; see individu ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : OperationStopped: (Native global l...ividual results:String) [], RuntimeException\r\n    + FullyQualifiedErrorId : Native global lifetime checks failed; see individual results\r\n \r\n\n[native-globals] dotenv-jit: pass exit=0\ndotenv top-level: PASS\n[native-globals] dotenv-build: pass exit=0\n[native-globals] dotenv-aot: fail exit=1\ndotenv top-level: PASS\nuncaught xlang error: RuntimeError: operation is not valid in the current state\n[native-globals] report: D:\\GIT\\x-lang\\build\\test\\native_globals_b070d00a32af49d0ae3347e197f1dc26\n",
+      "aotSkipped": false,
+      "inputs": {
+        "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+        "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+        "D:\\GIT\\x-lang\\release\\examples\\extlibs\\dotenv.xl": "BB84F8279FDC9865B8B0140F79C98AC9A5E773D49C5957A6CB06910EB8CD6D18",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\docs\\site.html": "D9EAFCC7F9E0FFB0A2B84F52BD7C956807344F3C1923FFC1B0B3CAA7679B4F2F",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\dotenv_native.c": "6DBDFD53BE0EC5152C7C1F5AA5ACFFD255FA9E786485312BF204F7213A68644B",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\examples\\basic.c": "3FABBC96007B287569EEDB8E3C408108930D279E2C7480602DC04383F5F07C6B",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\examples\\basic.expected.txt": "F5B975AD810320D7DA6A727C7D634ABD99127320C27936E2B5A24F2B7E77F42E",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\examples\\literal_values.expected.txt": "C3E1CCD1BB1F4FC12C1F8D1F08B4F349B37E896C043BFB70F0CBC178ED5BD232",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\examples\\literal_values.xl": "B11EA7D61F95711170D5F20D44454AF589DEE0E615239E21DD33CE0F3540272A",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\examples\\literal_values_c.c": "CB02598652228F934580762D0FB65C2DC26A2CC0EA7A23F4EB9375D952744AAA",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\examples\\reload.expected.txt": "382C1D8203C08B454F45B47CBEFF9081790E532814BCBE2D0667815977955A31",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\examples\\reload.xl": "DF3A66884DA4848F7D8C0AB8E5C124E15551C759FB05707BC90FB6202E0BCE21",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\examples\\reload_c.c": "D3DD0D69B78A01BA34A77AB2E49CF3222690F79C608D78BFB9FCD05DAEC5F7C4",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\include\\xrt_dotenv.h": "CC9F23BF2BD4DC6CA6B531729D499E69B75E62D5A2BC4E6E9AA6965314DA4FA2",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\README.md": "F87F063DF1338F378168606652C751464538412F636F5F0A46606CDCA096DDFA",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\src\\dotenv.xl": "878F30861EDAF38599C35B9AC82EEC197D8054D5D910A7D73A5FF5FE68103061",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\apply_oom.xl": "38CB7CE4F2DA5AA3EA452BF9EEA610A3FFA21A2C3615EC36E737CBB0E553CE9A",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\bench_dotenv.c": "B1D00E3EDE5145A72F15D7763CCB95C02C609FC80F5F17901BC8344358A150AA",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\check.ps1": "F2C886F911E269463318869105956D90C2D6BA6195E4143B0EE672FC605F43C9",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\check.sh": "B3049C07CCC5C58BF4D2C30746F646D2848589955E89795FF60CF4969E11FE6E",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\create_oom.xl": "D5E77990353A4619A76F49E131F3E55AE1007FD336D48DBD984EE4DE883A2F19",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\grammar.xl": "265099F02DD9A0DF1DFC24EBEE3EB23925CEE4621FD821F9F2C3A0133E30D178",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\grammar_c.c": "7DA0C5E45583B80EE6ABA221527B287B49F334E78D33B2D7A5076B1E6BA75BF7",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\limits.xl": "F1C01C9755E95CF2C1436C005651A5C5AA23A371ED34C92FF625B927D113E8CB",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\private_native.xl": "3A6FC29E84C5AA66F1963CC5E0869FBDFB4877CA1C1DEFCF481F497B1A90AFE7",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\replace.xl": "30060AAB3102AE0535F4BF9614D696A049097F116D4BFA503B9343A58E6F7FBC",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\test_dotenv.c": "D77D75FF40B26A69C6D375572FA371E44F888C1908B9438DB55120981C0DEF93",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\top_level.xl": "55114D6091B08AD936A25AEE480449AF4E3BC4EA37BBBF71D542ED7F4A43BE5B",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\test\\xrt_runtime.c": "457F17DE185CF8B29AB9A871829A85877F78A50EBBDACA83B9F70282F33F379B",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\xlang.package.json": "828E210934DEB7DE5949217706942138D41A467E4F6754C7535308126EA76981",
+        "D:\\GIT\\x-lang\\release\\extlibs\\dotenv\\xrt_dotenv.c": "1AB20C8A4D357243B41DEF329EABB5A21BB54FB359662365B18F27908C038E28",
+        "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+        "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+        "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+        "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+        "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+        "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+        "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+        "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+        "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+        "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+        "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+        "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+        "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+        "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+        "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+        "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+        "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+        "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+        "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+        "D:\\GIT\\x-lang\\test\\cases\\extlib_dotenv.xl": "A857771FCF1D44A11A36AA4C55AE752DFC48E1D1124AF6DBEDC3A897AD3302A2",
+        "D:\\GIT\\x-lang\\test\\data\\dotenv_test.env": "F7BC327E4216100906EA5B830BC8D0896EE7F59F4E546771395F5C8ABA12E1E7",
+        "D:\\GIT\\x-lang\\tools\\check_extlib_native_globals.ps1": "9E1BA6572A7AED210C8DDFF0FF9C7A86FC91BCF36D4A92CDA2D0347893669FFC",
+        "D:\\GIT\\x-lang\\tools\\check_extlib_native_globals.sh": "411D86A52E77DD84CE7879DCDA208140652EE16555D24688DED41EC33A44226E",
+        "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+        "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+        "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012",
+        "E:/software/w64devkit/bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED"
+      },
+      "changedInputs": [],
+      "checks": [
+        {
+          "name": "compiler version",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "--version"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+            "stderr": "",
+            "elapsedMs": 38
+          }
+        },
+        {
+          "name": "C runtime compile",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-DXRT_MODULE_ENVIRONMENT",
+            "-DXRT_MODULE_FILE_WHOLE",
+            "-DXRT_MODULE_DIR_TEMP",
+            "-DXRT_MODULE_MAP",
+            "-DXRT_MODULE_STRING",
+            "-DXRT_MODULE_UNICODE",
+            "-DXRT_MODULE_MEMORY_DEBUG",
+            "-c",
+            "release/extlibs/dotenv/test/xrt_runtime.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\runtime.o"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 4090
+          }
+        },
+        {
+          "name": "C core compile",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-DXRT_MODULE_ENVIRONMENT",
+            "-DXRT_MODULE_FILE_WHOLE",
+            "-DXRT_MODULE_DIR_TEMP",
+            "-DXRT_MODULE_MAP",
+            "-DXRT_MODULE_STRING",
+            "-DXRT_MODULE_UNICODE",
+            "-DXRT_MODULE_MEMORY_DEBUG",
+            "-c",
+            "release/extlibs/dotenv/xrt_dotenv.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\core.o"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 254
+          }
+        },
+        {
+          "name": "C native compile",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-DXRT_MODULE_ENVIRONMENT",
+            "-DXRT_MODULE_FILE_WHOLE",
+            "-DXRT_MODULE_DIR_TEMP",
+            "-DXRT_MODULE_MAP",
+            "-DXRT_MODULE_STRING",
+            "-DXRT_MODULE_UNICODE",
+            "-DXRT_MODULE_MEMORY_DEBUG",
+            "-c",
+            "release/extlibs/dotenv/dotenv_native.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\native.o"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 141
+          }
+        },
+        {
+          "name": "C test compile",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-DXRT_MODULE_ENVIRONMENT",
+            "-DXRT_MODULE_FILE_WHOLE",
+            "-DXRT_MODULE_DIR_TEMP",
+            "-DXRT_MODULE_MAP",
+            "-DXRT_MODULE_STRING",
+            "-DXRT_MODULE_UNICODE",
+            "-DXRT_MODULE_MEMORY_DEBUG",
+            "release/extlibs/dotenv/test/test_dotenv.c",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\core.o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_c_test.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 363
+          }
+        },
+        {
+          "name": "C test",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_c_test.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "test_dotenv: PASS\r\n",
+            "stderr": "",
+            "elapsedMs": 26
+          }
+        },
+        {
+          "name": "grammar C compile",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-DXRT_MODULE_ENVIRONMENT",
+            "-DXRT_MODULE_FILE_WHOLE",
+            "-DXRT_MODULE_DIR_TEMP",
+            "-DXRT_MODULE_MAP",
+            "-DXRT_MODULE_STRING",
+            "-DXRT_MODULE_UNICODE",
+            "-DXRT_MODULE_MEMORY_DEBUG",
+            "release/extlibs/dotenv/test/grammar_c.c",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\core.o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\grammar.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 269
+          }
+        },
+        {
+          "name": "grammar C matrix",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\grammar.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "dotenv grammar: 3585 valid, 72 invalid, 144 fault runs, 28 OOM, 0 failures\r\n",
+            "stderr": "",
+            "elapsedMs": 35
+          }
+        },
+        {
+          "name": "grammar C xl run",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/dotenv/test/grammar_c.c"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "dotenv grammar: 3585 valid, 72 invalid, 144 fault runs, 28 OOM, 0 failures\r\n",
+            "stderr": "",
+            "elapsedMs": 90
+          }
+        },
+        {
+          "name": "grammar XLang",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/dotenv/test/grammar.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "dotenv language grammar: PASS\n",
+            "stderr": "",
+            "elapsedMs": 263
+          }
+        },
+        {
+          "name": "literal C compile",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-DXRT_MODULE_ENVIRONMENT",
+            "-DXRT_MODULE_FILE_WHOLE",
+            "-DXRT_MODULE_DIR_TEMP",
+            "-DXRT_MODULE_MAP",
+            "-DXRT_MODULE_STRING",
+            "-DXRT_MODULE_UNICODE",
+            "-DXRT_MODULE_MEMORY_DEBUG",
+            "release/extlibs/dotenv/examples/literal_values_c.c",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\literal-c.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 368
+          }
+        },
+        {
+          "name": "literal C",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\literal-c.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "service: worker\r\npath: c:\\tools\\bin\r\nliteral: ${USER}\r\nhash: a#b\r\nempty: true\r\ntab bytes: 9\r\nexport key: ordinary-key\r\n",
+            "stderr": "",
+            "elapsedMs": 39
+          }
+        },
+        {
+          "name": "literal C xl run",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/dotenv/examples/literal_values_c.c"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "service: worker\r\npath: c:\\tools\\bin\r\nliteral: ${USER}\r\nhash: a#b\r\nempty: true\r\ntab bytes: 9\r\nexport key: ordinary-key\r\n",
+            "stderr": "",
+            "elapsedMs": 75
+          }
+        },
+        {
+          "name": "literal XLang",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/dotenv/examples/literal_values.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "service: worker\npath: c:\\tools\\bin\nliteral: ${USER}\nhash: a#b\nempty: true\ntab bytes: 9\nexport key: ordinary-key\n",
+            "stderr": "",
+            "elapsedMs": 235
+          }
+        },
+        {
+          "name": "C example compile",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-DXRT_MODULE_ENVIRONMENT",
+            "-DXRT_MODULE_FILE_WHOLE",
+            "-DXRT_MODULE_DIR_TEMP",
+            "-DXRT_MODULE_MAP",
+            "-DXRT_MODULE_STRING",
+            "-DXRT_MODULE_UNICODE",
+            "-DXRT_MODULE_MEMORY_DEBUG",
+            "release/extlibs/dotenv/examples/basic.c",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_c_example.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 385
+          }
+        },
+        {
+          "name": "C example",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_c_example.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "localhost:6432\r\n你好, world\r\nreplace: 1\r\napply default: original\r\napply overwrite: new\r\nclear: 0\r\ndotenv example: PASS\r\n",
+            "stderr": "",
+            "elapsedMs": 25
+          }
+        },
+        {
+          "name": "C example xl run",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/dotenv/examples/basic.c"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "localhost:6432\r\n你好, world\r\nreplace: 1\r\napply default: original\r\napply overwrite: new\r\nclear: 0\r\ndotenv example: PASS\r\n",
+            "stderr": "",
+            "elapsedMs": 78
+          }
+        },
+        {
+          "name": "XLang example",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/examples/extlibs/dotenv.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "localhost:6432\n你好, world\nreplace: 1\napply default: original\napply overwrite: new\nclear: 0\ndotenv example: PASS\n",
+            "stderr": "",
+            "elapsedMs": 303
+          }
+        },
+        {
+          "name": "reload C compile",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-DXRT_MODULE_ENVIRONMENT",
+            "-DXRT_MODULE_FILE_WHOLE",
+            "-DXRT_MODULE_DIR_TEMP",
+            "-DXRT_MODULE_MAP",
+            "-DXRT_MODULE_STRING",
+            "-DXRT_MODULE_UNICODE",
+            "-DXRT_MODULE_MEMORY_DEBUG",
+            "release/extlibs/dotenv/examples/reload_c.c",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\reload-c.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 368
+          }
+        },
+        {
+          "name": "reload C",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\reload-c.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "initial: app.local:8080\r\nbad reload kept: app.local:8080\r\nreloaded: api.local:9090\r\nsaved host: app.local\r\nclear count: 0\r\n",
+            "stderr": "",
+            "elapsedMs": 44
+          }
+        },
+        {
+          "name": "reload C xl run",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/dotenv/examples/reload_c.c"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "initial: app.local:8080\r\nbad reload kept: app.local:8080\r\nreloaded: api.local:9090\r\nsaved host: app.local\r\nclear count: 0\r\n",
+            "stderr": "",
+            "elapsedMs": 76
+          }
+        },
+        {
+          "name": "reload XLang",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/dotenv/examples/reload.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "initial: app.local:8080\nbad reload kept: app.local:8080\nreloaded: api.local:9090\nsaved host: app.local\nclear count: 0\n",
+            "stderr": "",
+            "elapsedMs": 250
+          }
+        },
+        {
+          "name": "XLang boundaries",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "test/cases/extlib_dotenv.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 428
+          }
+        },
+        {
+          "name": "XLang limit priority",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/dotenv/test/limits.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "dotenv limit priority: PASS\n",
+            "stderr": "",
+            "elapsedMs": 215
+          }
+        },
+        {
+          "name": "XLang apply OOM",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/dotenv/test/apply_oom.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "dotenv apply OOM: PASS\n",
+            "stderr": "",
+            "elapsedMs": 218
+          }
+        },
+        {
+          "name": "XLang factory OOM",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/dotenv/test/create_oom.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 224
+          }
+        },
+        {
+          "name": "XLang replace",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/dotenv/test/replace.xl"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "dotenv replace: PASS\n",
+            "stderr": "",
+            "elapsedMs": 314
+          }
+        },
+        {
+          "name": "private native rejection",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "check",
+            "release/extlibs/dotenv/test/private_native.xl"
+          ],
+          "result": {
+            "status": "fail",
+            "exitCode": 1,
+            "stdout": "",
+            "stderr": "release/extlibs/dotenv/test/private_native.xl:4:8: [sem] unknown class/union field\nrelease/extlibs/dotenv/test/private_native.xl:4:19: [sem] no matching callable class member '__xl6_import_dotenv_Config.parseNative': check argument count, types and access\n",
+            "elapsedMs": 39
+          }
+        },
+        {
+          "name": "cgen test/cases/extlib_dotenv.xl",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "cgen",
+            "test/cases/extlib_dotenv.xl",
+            "--emit",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\extlib_dotenv.c"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 239
+          }
+        },
+        {
+          "name": "cgen release/extlibs/dotenv/examples/reload.xl",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "cgen",
+            "release/extlibs/dotenv/examples/reload.xl",
+            "--emit",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\reload.c"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 134
+          }
+        },
+        {
+          "name": "generated C prototypes",
+          "program": "E:/software/w64devkit/bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-DXRT_MODULE_ENVIRONMENT",
+            "-DXRT_MODULE_FILE_WHOLE",
+            "-DXRT_MODULE_DIR_TEMP",
+            "-DXRT_MODULE_MAP",
+            "-DXRT_MODULE_STRING",
+            "-DXRT_MODULE_UNICODE",
+            "-DXRT_MODULE_MEMORY_DEBUG",
+            "-Irelease/extlibs/dotenv",
+            "-fsyntax-only",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\abi.c"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 113
+          }
+        },
+        {
+          "name": "test/grammar_c.c build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/dotenv/test/grammar_c.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\grammar_c.aot.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 135
+          }
+        },
+        {
+          "name": "test/grammar_c.c AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\grammar_c.aot.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "dotenv grammar: 3585 valid, 72 invalid, 144 fault runs, 28 OOM, 0 failures\r\n",
+            "stderr": "",
+            "elapsedMs": 68
+          }
+        },
+        {
+          "name": "test/grammar.xl build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/dotenv/test/grammar.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\grammar.aot.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 439
+          }
+        },
+        {
+          "name": "test/grammar.xl AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\grammar.aot.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "dotenv language grammar: PASS\n",
+            "stderr": "",
+            "elapsedMs": 28
+          }
+        },
+        {
+          "name": "examples/literal_values_c.c build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/dotenv/examples/literal_values_c.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\literal_values_c.aot.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 127
+          }
+        },
+        {
+          "name": "examples/literal_values_c.c AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\literal_values_c.aot.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "service: worker\r\npath: c:\\tools\\bin\r\nliteral: ${USER}\r\nhash: a#b\r\nempty: true\r\ntab bytes: 9\r\nexport key: ordinary-key\r\n",
+            "stderr": "",
+            "elapsedMs": 27
+          }
+        },
+        {
+          "name": "examples/literal_values.xl build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/dotenv/examples/literal_values.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\literal_values.aot.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 426
+          }
+        },
+        {
+          "name": "examples/literal_values.xl AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\literal_values.aot.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "service: worker\npath: c:\\tools\\bin\nliteral: ${USER}\nhash: a#b\nempty: true\ntab bytes: 9\nexport key: ordinary-key\n",
+            "stderr": "",
+            "elapsedMs": 29
+          }
+        },
+        {
+          "name": "XLang test build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "test/cases/extlib_dotenv.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_xl_test.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 705
+          }
+        },
+        {
+          "name": "XLang test AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_xl_test.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 28
+          }
+        },
+        {
+          "name": "limits AOT build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/dotenv/test/limits.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_limits.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 406
+          }
+        },
+        {
+          "name": "limits AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_limits.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "dotenv limit priority: PASS\n",
+            "stderr": "",
+            "elapsedMs": 28
+          }
+        },
+        {
+          "name": "apply_oom AOT build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/dotenv/test/apply_oom.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_apply_oom.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 390
+          }
+        },
+        {
+          "name": "apply_oom AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_apply_oom.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "dotenv apply OOM: PASS\n",
+            "stderr": "",
+            "elapsedMs": 26
+          }
+        },
+        {
+          "name": "create_oom AOT build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/dotenv/test/create_oom.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_create_oom.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 388
+          }
+        },
+        {
+          "name": "create_oom AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_create_oom.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 39
+          }
+        },
+        {
+          "name": "replace AOT build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/dotenv/test/replace.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_replace.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 548
+          }
+        },
+        {
+          "name": "replace AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_replace.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "dotenv replace: PASS\n",
+            "stderr": "",
+            "elapsedMs": 50
+          }
+        },
+        {
+          "name": "XLang example build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/examples/extlibs/dotenv.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_xl_example.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 512
+          }
+        },
+        {
+          "name": "XLang example AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_xl_example.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "localhost:6432\n你好, world\nreplace: 1\napply default: original\napply overwrite: new\nclear: 0\ndotenv example: PASS\n",
+            "stderr": "",
+            "elapsedMs": 31
+          }
+        },
+        {
+          "name": "C example AOT build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/dotenv/examples/basic.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_c_example_aot.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 126
+          }
+        },
+        {
+          "name": "C example AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\dotenv_c_example_aot.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "localhost:6432\r\n你好, world\r\nreplace: 1\r\napply default: original\r\napply overwrite: new\r\nclear: 0\r\ndotenv example: PASS\r\n",
+            "stderr": "",
+            "elapsedMs": 37
+          }
+        },
+        {
+          "name": "reload c build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/dotenv/examples/reload_c.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\reload-c.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 131
+          }
+        },
+        {
+          "name": "reload c AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\reload-c.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "initial: app.local:8080\r\nbad reload kept: app.local:8080\r\nreloaded: api.local:9090\r\nsaved host: app.local\r\nclear count: 0\r\n",
+            "stderr": "",
+            "elapsedMs": 24
+          }
+        },
+        {
+          "name": "reload xl build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/dotenv/examples/reload.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\reload-xl.exe"
+          ],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 431
+          }
+        },
+        {
+          "name": "reload xl AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\dotenv_guard_2dedb22cb00c45309e10394cdad4a185\\reload-xl.exe",
+          "arguments": [],
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "initial: app.local:8080\nbad reload kept: app.local:8080\nreloaded: api.local:9090\nsaved host: app.local\nclear count: 0\n",
+            "stderr": "",
+            "elapsedMs": 36
+          }
+        },
+        {
+          "name": "top-level lifecycle",
+          "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "arguments": [
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            "D:\\GIT\\x-lang\\tools\\check_extlib_native_globals.ps1",
+            "-Root",
+            "D:\\GIT\\x-lang",
+            "-Package",
+            "dotenv"
+          ],
+          "result": {
+            "status": "fail",
+            "exitCode": 1,
+            "stdout": "[native-globals] dotenv-jit: pass exit=0\ndotenv top-level: PASS\n[native-globals] dotenv-build: pass exit=0\n[native-globals] dotenv-aot: fail exit=1\ndotenv top-level: PASS\nuncaught xlang error: RuntimeError: operation is not valid in the current state\n[native-globals] report: D:\\GIT\\x-lang\\build\\test\\native_globals_b070d00a32af49d0ae3347e197f1dc26\n",
+            "stderr": "Native global lifetime checks failed; see individual results\r\n所在位置 D:\\GIT\\x-lang\\tools\\check_extlib_native_globals.ps1:80 字符: 20\r\n+ ... ($failed) { throw 'Native global lifetime checks failed; see individu ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : OperationStopped: (Native global l...ividual results:String) [], RuntimeException\r\n    + FullyQualifiedErrorId : Native global lifetime checks failed; see individual results\r\n \r\n",
+            "elapsedMs": 1228
+          }
+        }
+      ]
+    },
+    "postGateMaterialChanges": [
+      {
+        "path": "release/extlibs/dotenv/docs/site.html",
+        "atGate": "d9eafcc7f9e0ffb0a2b84f52bd7c956807344f3c1923ffc1b0b3caa7679b4f2f",
+        "current": {
+          "path": "release/extlibs/dotenv/docs/site.html",
+          "bytes": 9719,
+          "sha256": "fc3ea9bb246cd6163ab119872e1f3305cb82f9a15f1091211fb38d13481fcfe7"
+        },
+        "reason": "Final verification text only"
+      },
+      {
+        "path": "release/extlibs/dotenv/README.md",
+        "atGate": "f87f063df1338f378168606652c751464538412f636f5f0a46606cdca096ddfa",
+        "current": {
+          "path": "release/extlibs/dotenv/README.md",
+          "bytes": 18373,
+          "sha256": "5bc81b2fe595b7973d22f71efdc610f8e8d1a5cf680702c37d9552ff227df2f4"
+        },
+        "reason": "Final verification text only"
+      }
+    ],
+    "defaultGateExit": 1,
+    "inputCount": 58,
+    "fullGatePassed": false,
+    "expectedPrefixCount": 57,
+    "actualPrototypeCount": 13
+  },
+  "linux": {
+    "snapshot": "/var/tmp/xlang-dotenv-grammar-c8DU17Aq",
+    "toolHashes": [
+      "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc",
+      "30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1",
+      "3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash"
+    ],
+    "postGateMaterialChanges": [
+      {
+        "path": "release/extlibs/dotenv/README.md",
+        "atGate": "f87f063df1338f378168606652c751464538412f636f5f0a46606cdca096ddfa",
+        "current": {
+          "path": "release/extlibs/dotenv/README.md",
+          "bytes": 18373,
+          "sha256": "5bc81b2fe595b7973d22f71efdc610f8e8d1a5cf680702c37d9552ff227df2f4"
+        },
+        "reason": "Final verification text only"
+      },
+      {
+        "path": "release/extlibs/dotenv/docs/site.html",
+        "atGate": "d9eafcc7f9e0ffb0a2b84f52bd7c956807344f3c1923ffc1b0b3caa7679b4f2f",
+        "current": {
+          "path": "release/extlibs/dotenv/docs/site.html",
+          "bytes": 9719,
+          "sha256": "fc3ea9bb246cd6163ab119872e1f3305cb82f9a15f1091211fb38d13481fcfe7"
+        },
+        "reason": "Final verification text only"
+      }
+    ],
+    "sourceHashes": [
+      "675e66a60f44fb86fce7a3e85a3ef15892f045f9bd5575b0fae1b4a5470262e0  ./build/test/dotenv_grammar_20261102/old_core.c",
+      "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h",
+      "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h",
+      "bb84f8279fdc9865b8b0140f79c98ac9a5e773d49c5957a6cb06910eb8cd6d18  ./release/examples/extlibs/dotenv.xl",
+      "f87f063df1338f378168606652c751464538412f636f5f0a46606cdca096ddfa  ./release/extlibs/dotenv/README.md",
+      "d9eafcc7f9e0ffb0a2b84f52bd7c956807344f3c1923ffc1b0b3caa7679b4f2f  ./release/extlibs/dotenv/docs/site.html",
+      "6dbdfd53be0ec5152c7c1f5aa5acffd255fa9e786485312bf204f7213a68644b  ./release/extlibs/dotenv/dotenv_native.c",
+      "3fabbc96007b287569eedb8e3c408108930d279e2c7480602dc04383f5f07c6b  ./release/extlibs/dotenv/examples/basic.c",
+      "f5b975ad810320d7da6a727c7d634abd99127320c27936e2b5a24f2b7e77f42e  ./release/extlibs/dotenv/examples/basic.expected.txt",
+      "c3e1ccd1bb1f4fc12c1f8d1f08b4f349b37e896c043bfb70f0cbc178ed5bd232  ./release/extlibs/dotenv/examples/literal_values.expected.txt",
+      "b11ea7d61f95711170d5f20d44454af589dee0e615239e21dd33ce0f3540272a  ./release/extlibs/dotenv/examples/literal_values.xl",
+      "cb02598652228f934580762d0fb65c2dc26a2cc0ea7a23f4eb9375d952744aaa  ./release/extlibs/dotenv/examples/literal_values_c.c",
+      "382c1d8203c08b454f45b47cbeff9081790e532814bcbe2d0667815977955a31  ./release/extlibs/dotenv/examples/reload.expected.txt",
+      "df3a66884da4848f7d8c0ab8e5c124e15551c759fb05707bc90fb6202e0bce21  ./release/extlibs/dotenv/examples/reload.xl",
+      "d3dd0d69b78a01ba34a77ab2e49cf3222690f79c608d78bfb9fcd05daec5f7c4  ./release/extlibs/dotenv/examples/reload_c.c",
+      "cc9f23bf2bd4dc6ca6b531729d499e69b75e62d5a2bc4e6e9aa6965314da4fa2  ./release/extlibs/dotenv/include/xrt_dotenv.h",
+      "878f30861edaf38599c35b9ac82eec197d8054d5d910a7d73a5ff5fe68103061  ./release/extlibs/dotenv/src/dotenv.xl",
+      "38cb7ce4f2da5aa3ea452bf9eea610a3ffa21a2c3615ec36e737cbb0e553ce9a  ./release/extlibs/dotenv/test/apply_oom.xl",
+      "b1d00e3ede5145a72f15d7763ccb95c02c609fc80f5f17901bc8344358a150aa  ./release/extlibs/dotenv/test/bench_dotenv.c",
+      "f2c886f911e269463318869105956d90c2d6ba6195e4143b0ee672fc605f43c9  ./release/extlibs/dotenv/test/check.ps1",
+      "b3049c07ccc5c58bf4d2c30746f646d2848589955e89795ff60cf4969e11fe6e  ./release/extlibs/dotenv/test/check.sh",
+      "d5e77990353a4619a76f49e131f3e55ae1007fd336d48dbd984ee4de883a2f19  ./release/extlibs/dotenv/test/create_oom.xl",
+      "265099f02dd9a0df1dfc24ebee3eb23925cee4621fd821f9f2c3a0133e30d178  ./release/extlibs/dotenv/test/grammar.xl",
+      "7da0c5e45583b80ee6aba221527b287b49f334e78d33b2d7a5076b1e6ba75bf7  ./release/extlibs/dotenv/test/grammar_c.c",
+      "f1c01c9755e95cf2c1436c005651a5c5aa23a371ed34c92ff625b927d113e8cb  ./release/extlibs/dotenv/test/limits.xl",
+      "3a6fc29e84c5aa66f1963cc5e0869fbdfb4877ca1c1defcf481f497b1a90afe7  ./release/extlibs/dotenv/test/private_native.xl",
+      "30060aab3102ae0535f4bf9614d696a049097f116d4bfa503b9343a58e6f7fbc  ./release/extlibs/dotenv/test/replace.xl",
+      "d77d75ff40b26a69c6d375572fa371e44f888c1908b9438db55120981c0def93  ./release/extlibs/dotenv/test/test_dotenv.c",
+      "55114d6091b08ad936a25aee480449af4e3bc4ea37bbbf71d542ed7f4a43be5b  ./release/extlibs/dotenv/test/top_level.xl",
+      "457f17de185cf8b29ab9a871829a85877f78a50ebbdaca83b9f70282f33f379b  ./release/extlibs/dotenv/test/xrt_runtime.c",
+      "828e210934deb7de5949217706942138d41a467e4f6754c7535308126ea76981  ./release/extlibs/dotenv/xlang.package.json",
+      "1ab20c8a4d357243b41def329eabb5a21bb54fb359662365b18f27908c038e28  ./release/extlibs/dotenv/xrt_dotenv.c",
+      "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md",
+      "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h",
+      "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h",
+      "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h",
+      "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h",
+      "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h",
+      "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h",
+      "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h",
+      "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h",
+      "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h",
+      "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h",
+      "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h",
+      "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h",
+      "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h",
+      "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h",
+      "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h",
+      "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so",
+      "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so",
+      "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl",
+      "a857771fcf1d44a11a36aa4c55ae752dfc48e1d1124af6dbedc3a897ad3302a2  ./test/cases/extlib_dotenv.xl",
+      "f7bc327e4216100906ea5b830bc8d0896ee7f59f4e546771395f5c8aba12e1e7  ./test/data/dotenv_test.env",
+      "9e1ba6572a7aed210c8ddff0ff9c7a86fc91bcf36d4a92cda2d0347893669ffc  ./tools/check_extlib_native_globals.ps1",
+      "411d86a52e77dd84ce7879dcda208140652ee16555d24688ded41ec33a44226e  ./tools/check_extlib_native_globals.sh",
+      "294fcc133c2e4f3e5786080d6dcfedd3bfbc51656af892433cce08bb3eaf635f  ./tools/extlib_smoke_process.ps1",
+      "c010a2ee726375ca627d3c161e65ed3fce84189810259f6a93bf8eb277caf219  ./tools/xlir_native_process.ps1"
+    ],
+    "sanitizers": [
+      "address",
+      "undefined",
+      "leak detection"
+    ],
+    "frozenSourceResourceCount": 57,
+    "expectedPrefixCount": 57,
+    "globalResult": "phase\texit\ndotenv-jit\t0\ndotenv-build\t0\ndotenv-aot\t1\n",
+    "actualPrototypeCount": 13,
+    "bootUnchanged": true,
+    "defaultGateExit": 1,
+    "phaseCount": 58,
+    "toolCount": 3,
+    "sourceAndToolUnchanged": true,
+    "fullGatePassed": false,
+    "ordinaryAotPassed": 13,
+    "phases": [
+      {
+        "command": "timeout 10s gcc --version",
+        "exitCode": 0,
+        "output": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -DXRT_MODULE_ENVIRONMENT -DXRT_MODULE_FILE_WHOLE -DXRT_MODULE_DIR_TEMP -DXRT_MODULE_MAP -DXRT_MODULE_STRING -DXRT_MODULE_UNICODE -DXRT_MODULE_MEMORY_DEBUG -Ilib/xrt -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -c release/extlibs/dotenv/test/xrt_runtime.c -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/runtime.o",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -DXRT_MODULE_ENVIRONMENT -DXRT_MODULE_FILE_WHOLE -DXRT_MODULE_DIR_TEMP -DXRT_MODULE_MAP -DXRT_MODULE_STRING -DXRT_MODULE_UNICODE -DXRT_MODULE_MEMORY_DEBUG -Ilib/xrt -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -c release/extlibs/dotenv/xrt_dotenv.c -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/core.o",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -DXRT_MODULE_ENVIRONMENT -DXRT_MODULE_FILE_WHOLE -DXRT_MODULE_DIR_TEMP -DXRT_MODULE_MAP -DXRT_MODULE_STRING -DXRT_MODULE_UNICODE -DXRT_MODULE_MEMORY_DEBUG -Ilib/xrt -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -c release/extlibs/dotenv/dotenv_native.c -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/native.o",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -DXRT_MODULE_ENVIRONMENT -DXRT_MODULE_FILE_WHOLE -DXRT_MODULE_DIR_TEMP -DXRT_MODULE_MAP -DXRT_MODULE_STRING -DXRT_MODULE_UNICODE -DXRT_MODULE_MEMORY_DEBUG -Ilib/xrt -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/dotenv/test/test_dotenv.c /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/core.o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/runtime.o -lm -ldl -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/test_dotenv",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/test_dotenv",
+        "exitCode": 0,
+        "output": "test_dotenv: PASS"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -DXRT_MODULE_ENVIRONMENT -DXRT_MODULE_FILE_WHOLE -DXRT_MODULE_DIR_TEMP -DXRT_MODULE_MAP -DXRT_MODULE_STRING -DXRT_MODULE_UNICODE -DXRT_MODULE_MEMORY_DEBUG -Ilib/xrt -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/dotenv/test/grammar_c.c /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/core.o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/runtime.o -lm -ldl -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/grammar",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/grammar",
+        "exitCode": 0,
+        "output": "dotenv grammar: 3585 valid, 72 invalid, 144 fault runs, 28 OOM, 0 failures"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -DXRT_MODULE_ENVIRONMENT -DXRT_MODULE_FILE_WHOLE -DXRT_MODULE_DIR_TEMP -DXRT_MODULE_MAP -DXRT_MODULE_STRING -DXRT_MODULE_UNICODE -DXRT_MODULE_MEMORY_DEBUG -Ilib/xrt -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/dotenv/examples/literal_values_c.c /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/runtime.o -lm -ldl -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/literal",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 30s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/literal",
+        "exitCode": 0,
+        "output": "service: worker\npath: c:\\tools\\bin\nliteral: ${USER}\nhash: a#b\nempty: true\ntab bytes: 9\nexport key: ordinary-key"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -DXRT_MODULE_ENVIRONMENT -DXRT_MODULE_FILE_WHOLE -DXRT_MODULE_DIR_TEMP -DXRT_MODULE_MAP -DXRT_MODULE_STRING -DXRT_MODULE_UNICODE -DXRT_MODULE_MEMORY_DEBUG -Ilib/xrt -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/dotenv/examples/basic.c /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/runtime.o -lm -ldl -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/example",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 30s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/example",
+        "exitCode": 0,
+        "output": "localhost:6432\n你好, world\nreplace: 1\napply default: original\napply overwrite: new\nclear: 0\ndotenv example: PASS"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -DXRT_MODULE_ENVIRONMENT -DXRT_MODULE_FILE_WHOLE -DXRT_MODULE_DIR_TEMP -DXRT_MODULE_MAP -DXRT_MODULE_STRING -DXRT_MODULE_UNICODE -DXRT_MODULE_MEMORY_DEBUG -Ilib/xrt -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/dotenv/examples/reload_c.c /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/runtime.o -lm -ldl -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/reload",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 30s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/reload",
+        "exitCode": 0,
+        "output": "initial: app.local:8080\nbad reload kept: app.local:8080\nreloaded: api.local:9090\nsaved host: app.local\nclear count: 0"
+      },
+      {
+        "command": "timeout 90s release/xl run release/extlibs/dotenv/test/grammar_c.c",
+        "exitCode": 0,
+        "output": "dotenv grammar: 3585 valid, 72 invalid, 144 fault runs, 28 OOM, 0 failures"
+      },
+      {
+        "command": "timeout 90s release/xl run release/extlibs/dotenv/test/grammar.xl",
+        "exitCode": 0,
+        "output": "dotenv language grammar: PASS"
+      },
+      {
+        "command": "timeout 180s release/xl build release/extlibs/dotenv/test/grammar_c.c -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/grammar_c-aot",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/grammar_c-aot",
+        "exitCode": 0,
+        "output": "dotenv grammar: 3585 valid, 72 invalid, 144 fault runs, 28 OOM, 0 failures"
+      },
+      {
+        "command": "timeout 180s release/xl build release/extlibs/dotenv/test/grammar.xl -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/grammar-aot",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/grammar-aot",
+        "exitCode": 0,
+        "output": "dotenv language grammar: PASS"
+      },
+      {
+        "command": "timeout 90s release/xl run release/extlibs/dotenv/examples/literal_values_c.c",
+        "exitCode": 0,
+        "output": "service: worker\npath: c:\\tools\\bin\nliteral: ${USER}\nhash: a#b\nempty: true\ntab bytes: 9\nexport key: ordinary-key"
+      },
+      {
+        "command": "timeout 180s release/xl build release/extlibs/dotenv/examples/literal_values_c.c -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/literal_values_c-aot",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/literal_values_c-aot",
+        "exitCode": 0,
+        "output": "service: worker\npath: c:\\tools\\bin\nliteral: ${USER}\nhash: a#b\nempty: true\ntab bytes: 9\nexport key: ordinary-key"
+      },
+      {
+        "command": "timeout 90s release/xl run release/extlibs/dotenv/examples/literal_values.xl",
+        "exitCode": 0,
+        "output": "service: worker\npath: c:\\tools\\bin\nliteral: ${USER}\nhash: a#b\nempty: true\ntab bytes: 9\nexport key: ordinary-key"
+      },
+      {
+        "command": "timeout 180s release/xl build release/extlibs/dotenv/examples/literal_values.xl -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/literal_values-aot",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/literal_values-aot",
+        "exitCode": 0,
+        "output": "service: worker\npath: c:\\tools\\bin\nliteral: ${USER}\nhash: a#b\nempty: true\ntab bytes: 9\nexport key: ordinary-key"
+      },
+      {
+        "command": "timeout 90s release/xl run release/extlibs/dotenv/examples/basic.c",
+        "exitCode": 0,
+        "output": "localhost:6432\n你好, world\nreplace: 1\napply default: original\napply overwrite: new\nclear: 0\ndotenv example: PASS"
+      },
+      {
+        "command": "timeout 90s release/xl run release/extlibs/dotenv/examples/reload_c.c",
+        "exitCode": 0,
+        "output": "initial: app.local:8080\nbad reload kept: app.local:8080\nreloaded: api.local:9090\nsaved host: app.local\nclear count: 0"
+      },
+      {
+        "command": "timeout 90s release/xl run release/extlibs/dotenv/examples/reload.xl",
+        "exitCode": 0,
+        "output": "initial: app.local:8080\nbad reload kept: app.local:8080\nreloaded: api.local:9090\nsaved host: app.local\nclear count: 0"
+      },
+      {
+        "command": "timeout 90s release/xl run test/cases/extlib_dotenv.xl",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s release/xl run release/extlibs/dotenv/test/limits.xl",
+        "exitCode": 0,
+        "output": "dotenv limit priority: PASS"
+      },
+      {
+        "command": "timeout 90s release/xl run release/extlibs/dotenv/test/apply_oom.xl",
+        "exitCode": 0,
+        "output": "dotenv apply OOM: PASS"
+      },
+      {
+        "command": "timeout 90s release/xl run release/extlibs/dotenv/test/create_oom.xl",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s release/xl run release/extlibs/dotenv/test/replace.xl",
+        "exitCode": 0,
+        "output": "dotenv replace: PASS"
+      },
+      {
+        "command": "timeout 90s release/xl check release/extlibs/dotenv/test/private_native.xl",
+        "exitCode": 1,
+        "output": "release/extlibs/dotenv/test/private_native.xl:4:8: [sem] unknown class/union field\nrelease/extlibs/dotenv/test/private_native.xl:4:19: [sem] no matching callable class member '__xl6_import_dotenv_Config.parseNative': check argument count, types and access"
+      },
+      {
+        "command": "timeout 90s release/xl run release/examples/extlibs/dotenv.xl",
+        "exitCode": 0,
+        "output": "localhost:6432\n你好, world\nreplace: 1\napply default: original\napply overwrite: new\nclear: 0\ndotenv example: PASS"
+      },
+      {
+        "command": "timeout 90s release/xl cgen test/cases/extlib_dotenv.xl --emit /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/abi-core.c",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s release/xl cgen release/extlibs/dotenv/examples/reload.xl --emit /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/abi-reload.c",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -DXRT_MODULE_ENVIRONMENT -DXRT_MODULE_FILE_WHOLE -DXRT_MODULE_DIR_TEMP -DXRT_MODULE_MAP -DXRT_MODULE_STRING -DXRT_MODULE_UNICODE -DXRT_MODULE_MEMORY_DEBUG -Ilib/xrt -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -Irelease/extlibs/dotenv -fsyntax-only /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/abi.c",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s release/xl build test/cases/extlib_dotenv.xl -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/dotenv_core",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/dotenv_core",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s release/xl build release/extlibs/dotenv/test/limits.xl -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/dotenv_limits",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/dotenv_limits",
+        "exitCode": 0,
+        "output": "dotenv limit priority: PASS"
+      },
+      {
+        "command": "timeout 120s release/xl build release/extlibs/dotenv/test/apply_oom.xl -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/dotenv_apply_oom",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/dotenv_apply_oom",
+        "exitCode": 0,
+        "output": "dotenv apply OOM: PASS"
+      },
+      {
+        "command": "timeout 120s release/xl build release/extlibs/dotenv/test/create_oom.xl -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/dotenv_create_oom",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/dotenv_create_oom",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s release/xl build release/extlibs/dotenv/test/replace.xl -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/dotenv_replace",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/dotenv_replace",
+        "exitCode": 0,
+        "output": "dotenv replace: PASS"
+      },
+      {
+        "command": "timeout 120s release/xl build release/examples/extlibs/dotenv.xl -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/dotenv_example",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 45s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/dotenv_example",
+        "exitCode": 0,
+        "output": "localhost:6432\n你好, world\nreplace: 1\napply default: original\napply overwrite: new\nclear: 0\ndotenv example: PASS"
+      },
+      {
+        "command": "timeout 120s release/xl build release/extlibs/dotenv/examples/basic.c -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/basic-c-aot",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 45s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/basic-c-aot",
+        "exitCode": 0,
+        "output": "localhost:6432\n你好, world\nreplace: 1\napply default: original\napply overwrite: new\nclear: 0\ndotenv example: PASS"
+      },
+      {
+        "command": "timeout 120s release/xl build release/extlibs/dotenv/examples/reload_c.c -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/reload-c",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 45s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/reload-c",
+        "exitCode": 0,
+        "output": "initial: app.local:8080\nbad reload kept: app.local:8080\nreloaded: api.local:9090\nsaved host: app.local\nclear count: 0"
+      },
+      {
+        "command": "timeout 120s release/xl build release/extlibs/dotenv/examples/reload.xl -o /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/reload-xl",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 45s /var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-dotenv-0yZg4g/reload-xl",
+        "exitCode": 0,
+        "output": "initial: app.local:8080\nbad reload kept: app.local:8080\nreloaded: api.local:9090\nsaved host: app.local\nclear count: 0"
+      },
+      {
+        "command": "timeout 360s bash tools/check_extlib_native_globals.sh dotenv",
+        "exitCode": 1,
+        "output": "[native-globals] dotenv-jit: exit=0\ndotenv top-level: PASS\n[native-globals] dotenv-build: exit=0\n[native-globals] dotenv-aot: exit=1\ndotenv top-level: PASS\nuncaught xlang error: RuntimeError: operation is not valid in the current state\n[native-globals] FAIL exit=1 artifacts=/var/tmp/xlang-dotenv-grammar-c8DU17Aq/tmp/xlang-native-globals-T6cS73"
+      }
+    ]
+  },
+  "cost": {
+    "dataBssDelta": 0,
+    "noWholeProductSizeClaim": true,
+    "throughputNotMeasured": true,
+    "model": "GCC-O2 core object only, same selected XRT declarations per platform",
+    "textDelta": {
+      "linux": 16,
+      "windows": 32
+    },
+    "windows": [
+      {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 271
+      },
+      {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 243
+      },
+      {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n   5032\t      0\t      0\t   5032\t   13a8\tbuild/test/dotenv_grammar_20261102/old.o\r\n   5064\t      0\t      0\t   5064\t   13c8\tbuild/test/dotenv_grammar_20261102/new.o\r\n",
+        "stderr": "",
+        "elapsedMs": 22
+      }
+    ],
+    "linux": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n   5668\t      0\t      0\t   5668\t   1624\t/var/tmp/xlang-dotenv-grammar-c8DU17Aq/old.o\n   5684\t      0\t      0\t   5684\t   1634\t/var/tmp/xlang-dotenv-grammar-c8DU17Aq/new.o\n"
+  },
+  "materials": {
+    "strictBinding": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "Catalog compiler changed: xl.dll\r\n",
+      "elapsedMs": 303
+    },
+    "freshness": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+      "stderr": "",
+      "elapsedMs": 971
+    },
+    "websiteSource": {
+      "path": "release/extlibs/dotenv/docs/site.html",
+      "bytes": 9719,
+      "sha256": "fc3ea9bb246cd6163ab119872e1f3305cb82f9a15f1091211fb38d13481fcfe7"
+    },
+    "isolatedSiteCopy": {
+      "path": "build/test/dotenv_grammar_20261102/site/extlibs/dotenv.html",
+      "bytes": 9719,
+      "sha256": "fc3ea9bb246cd6163ab119872e1f3305cb82f9a15f1091211fb38d13481fcfe7"
+    },
+    "baselineIdentityNotRewritten": true,
+    "externalDeployment": false,
+    "delivery": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+      "stderr": "",
+      "elapsedMs": 978
+    },
+    "installed": false,
+    "generation": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"passed\", \"catalogSha256\": \"879aaec5441799ce7d9e8d23d5b057b329ea4652f02822291f6806b3e35bcb1e\", \"sourceIndexSha256\": \"a9e24bb4d30ff9246042e6827a8026b57bc1c2505d597b50a2fb579439ee4f73\", \"preservedNonExtensionEntries\": 6156, \"publicPackages\": 207, \"excludedPrivate\": [\"_bzip2\", \"_expat\", \"_libzip\", \"_tomlc17\", \"_xge_native\", \"_zlib\"], \"extensionEntries\": 11442, \"addedEntries\": 0, \"removedEntries\": 0, \"documents\": 145, \"availableSources\": 593, \"extensionExporterSha256\": \"5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42\", \"inputsUnchanged\": true}\r\n",
+      "stderr": "",
+      "elapsedMs": 11224
+    }
+  },
+  "remaining": [
+    "M2: valid original top-level Config JIT/build 0, AOT prints PASS then RuntimeError/1 on both platforms",
+    "Strict IDE compiler binding xl.dll remains red; candidate not installed",
+    "100-package release acceptance is not complete"
+  ],
+  "evidence": {
+    "windowsGlobal": {
+      "path": "build/test/native_globals_b070d00a32af49d0ae3347e197f1dc26/results.json",
+      "bytes": 10976,
+      "sha256": "04ae1870fe16367ab59ed81b8f16176f9da97944344241de9d75c91f3c371121"
+    },
+    "windowsGate": {
+      "path": "build/test/dotenv_guard_2dedb22cb00c45309e10394cdad4a185.json",
+      "bytes": 68427,
+      "sha256": "90c399e175d58d60db9abdbdd1cd40d7317702e9e1d13e36cdab4906ba3f22d7"
+    },
+    "artifacts": [
+      {
+        "path": "build/test/dotenv_grammar_20261102/focused.json",
+        "bytes": 2085,
+        "sha256": "60e315d00c90895bc50c950f43d5bb3e64e39ec40b23d56d08504115a7929934"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/focused-final.json",
+        "bytes": 2562,
+        "sha256": "8fce195189cd9dd2133cb810623097ef14d8f47a4cdb97cdeac153e2c59a1d54"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/old-new-final.json",
+        "bytes": 1743,
+        "sha256": "dc74c56d8414475adbbd5221780a9ceede4f76067434c485abd542181b55aef8"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/windows.json",
+        "bytes": 4426,
+        "sha256": "7f724a72471c7419d354ab34bdf6c07594d8558c3a25664d85ef2fb56f8e13b2"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-parent.json",
+        "bytes": 1002,
+        "sha256": "cb3cc58225c0cd2956fa3f50d3c00cb56e019ba0e6c88379d72781a06cce83bb"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/run_linux.sh",
+        "bytes": 3355,
+        "sha256": "9b4bb2c524d14e9526df93401dac7f41fc9ba199a865b6e4d02e6b5b9fc5d5ce"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/collect_linux.sh",
+        "bytes": 1103,
+        "sha256": "f1891002ce2e6b836f29f72e7eb101c35aecdc77391b8a9752a1682e6634134d"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/source.tar",
+        "bytes": 48688128,
+        "sha256": "a748d63ac6366e31df8051dbc512cdd309970ccc8ba0e415c1807c29437f7712"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/old_core.c",
+        "bytes": 10984,
+        "sha256": "675e66a60f44fb86fce7a3e85a3ef15892f045f9bd5575b0fae1b4a5470262e0"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/size-windows.json",
+        "bytes": 579,
+        "sha256": "477749d2de20725a98c8279f13a5adf595312647db88b6a7c90c8e4b3a392ae8"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/catalog-generation.json",
+        "bytes": 722,
+        "sha256": "b08269ce52bb1c792df13b10976220b3e0d9adcb659f8118d159e247fdc99d54"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/catalog-freshness.json",
+        "bytes": 174,
+        "sha256": "eba93f31a71f120b3747214c01eaa52a8c15bcf917fafea9c3a82b45f912e771"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/catalog-binding.json",
+        "bytes": 133,
+        "sha256": "8285d1f1272bb6952bf2c295a7d9803d02b26965355ff5905f6593bb59f3630e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/delivery.json",
+        "bytes": 192,
+        "sha256": "3043de1bf19b538178fc59dc96c46c0b43416b59ff8efe4a26ec4659511a2214"
+      }
+    ],
+    "linux": [
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/after.sha256",
+        "bytes": 5900,
+        "sha256": "411abcbbd37e2d4af7b9d2cfe2ed9af1919bcc01aacd88a587e9ca7987dcd21b"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/before.sha256",
+        "bytes": 5900,
+        "sha256": "411abcbbd37e2d4af7b9d2cfe2ed9af1919bcc01aacd88a587e9ca7987dcd21b"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/boot.after",
+        "bytes": 37,
+        "sha256": "77cbda9a8f8d8d29732f93fa2567a852227918da9c17c03c05d3b337a1cf144a"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/boot.before",
+        "bytes": 37,
+        "sha256": "77cbda9a8f8d8d29732f93fa2567a852227918da9c17c03c05d3b337a1cf144a"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/changes.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate-location.txt",
+        "bytes": 63,
+        "sha256": "5ead009d4156a2ff314299e96f3725ad65cce746952819ce64d9704f4b8324c1"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate.exit",
+        "bytes": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/old-compile.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/old-compile.stdout",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/old.exit",
+        "bytes": 4,
+        "sha256": "82c1315e6c757f33c4a77ca58b2a184f5a88614470c05ec77f3d28918db6b8ae"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/old.stderr",
+        "bytes": 1056,
+        "sha256": "80f31bee1c7d17ebf658f87d59478e95a20130a2509dff25d6dee7d5770900c0"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/old.stdout",
+        "bytes": 77,
+        "sha256": "985127015e67352e99d5ec315c8808c0e59324e067caf4200b21dcb1fbe5aa91"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/size.txt",
+        "bytes": 219,
+        "sha256": "d72229303092232a125743b8674e19cf217afbf9302bf4985ca94bb90d4973f2"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/stderr",
+        "bytes": 204,
+        "sha256": "6a3b6225b04d33098aa9c56429be70f3b5c578a9b7c1f8ba531655dc615ddab3"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/stdout",
+        "bytes": 398,
+        "sha256": "b16e490acfab9015f8a153631cdafb5df08cdc85fa835c00c64c5b7ac43f2bf9"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/tool-changes.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/tools.after.sha256",
+        "bytes": 266,
+        "sha256": "bb6c1f92264abe1a1052ce6c10a9794dc6e51102f957c7e6cd465388f88fba20"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/tools.before.sha256",
+        "bytes": 266,
+        "sha256": "bb6c1f92264abe1a1052ce6c10a9794dc6e51102f957c7e6cd465388f88fba20"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/1.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/1.out",
+        "bytes": 239,
+        "sha256": "6e876a25bb7fdb71ab2914e8f1eeaa00cc61d20a36a6c2981ab7d4d7ceab42f8"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/10.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/10.out",
+        "bytes": 112,
+        "sha256": "c3e1ccd1bb1f4fc12c1f8d1f08b4f349b37e896c043bfb70f0cbc178ed5bd232"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/11.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/11.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/12.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/12.out",
+        "bytes": 115,
+        "sha256": "f5b975ad810320d7da6a727c7d634abd99127320c27936e2b5a24f2b7e77f42e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/13.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/13.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/14.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/14.out",
+        "bytes": 118,
+        "sha256": "382c1d8203c08b454f45b47cbeff9081790e532814bcbe2d0667815977955a31"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/15.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/15.out",
+        "bytes": 75,
+        "sha256": "427bc3ba1c18de73c2bfa6bb4285a9080aa7057bd2fa88fde3019855400abe9b"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/16.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/16.out",
+        "bytes": 30,
+        "sha256": "0d65a54ca4132a047f5abb7692ca8d6ba2dbfd69aea5bf43fee0ee2c5ec1041e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/17.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/17.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/18.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/18.out",
+        "bytes": 75,
+        "sha256": "427bc3ba1c18de73c2bfa6bb4285a9080aa7057bd2fa88fde3019855400abe9b"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/19.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/19.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/2.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/2.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/20.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/20.out",
+        "bytes": 30,
+        "sha256": "0d65a54ca4132a047f5abb7692ca8d6ba2dbfd69aea5bf43fee0ee2c5ec1041e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/21.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/21.out",
+        "bytes": 112,
+        "sha256": "c3e1ccd1bb1f4fc12c1f8d1f08b4f349b37e896c043bfb70f0cbc178ed5bd232"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/22.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/22.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/23.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/23.out",
+        "bytes": 112,
+        "sha256": "c3e1ccd1bb1f4fc12c1f8d1f08b4f349b37e896c043bfb70f0cbc178ed5bd232"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/24.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/24.out",
+        "bytes": 112,
+        "sha256": "c3e1ccd1bb1f4fc12c1f8d1f08b4f349b37e896c043bfb70f0cbc178ed5bd232"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/25.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/25.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/26.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/26.out",
+        "bytes": 112,
+        "sha256": "c3e1ccd1bb1f4fc12c1f8d1f08b4f349b37e896c043bfb70f0cbc178ed5bd232"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/27.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/27.out",
+        "bytes": 115,
+        "sha256": "f5b975ad810320d7da6a727c7d634abd99127320c27936e2b5a24f2b7e77f42e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/28.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/28.out",
+        "bytes": 118,
+        "sha256": "382c1d8203c08b454f45b47cbeff9081790e532814bcbe2d0667815977955a31"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/29.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/29.out",
+        "bytes": 118,
+        "sha256": "382c1d8203c08b454f45b47cbeff9081790e532814bcbe2d0667815977955a31"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/3.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/3.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/30.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/30.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/31.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/31.out",
+        "bytes": 28,
+        "sha256": "68f04351b99f993daf0e8c9f2d6fdc7dfa3d1b8df0d294e6cc8d95561c5afa54"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/32.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/32.out",
+        "bytes": 23,
+        "sha256": "96f47a1269e537fc32e6c45a10d25744da095cefcbe400280ac166835def86fd"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/33.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/33.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/34.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/34.out",
+        "bytes": 21,
+        "sha256": "ac34aa5ba462d4d26888a65d5b2f9fd44e10450a52b6044c3cfb23b66dbcaf3e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/35.err",
+        "bytes": 256,
+        "sha256": "8e1072cfd0b3fda33535a2525bd0e46966008dd6af00342aeef5236f6b5e0e7b"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/35.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/36.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/36.out",
+        "bytes": 115,
+        "sha256": "f5b975ad810320d7da6a727c7d634abd99127320c27936e2b5a24f2b7e77f42e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/37.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/37.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/38.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/38.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/39.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/39.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/4.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/4.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/40.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/40.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/41.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/41.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/42.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/42.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/43.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/43.out",
+        "bytes": 28,
+        "sha256": "68f04351b99f993daf0e8c9f2d6fdc7dfa3d1b8df0d294e6cc8d95561c5afa54"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/44.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/44.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/45.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/45.out",
+        "bytes": 23,
+        "sha256": "96f47a1269e537fc32e6c45a10d25744da095cefcbe400280ac166835def86fd"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/46.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/46.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/47.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/47.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/48.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/48.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/49.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/49.out",
+        "bytes": 21,
+        "sha256": "ac34aa5ba462d4d26888a65d5b2f9fd44e10450a52b6044c3cfb23b66dbcaf3e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/5.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/5.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/50.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/50.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/51.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/51.out",
+        "bytes": 115,
+        "sha256": "f5b975ad810320d7da6a727c7d634abd99127320c27936e2b5a24f2b7e77f42e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/52.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/52.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/53.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/53.out",
+        "bytes": 115,
+        "sha256": "f5b975ad810320d7da6a727c7d634abd99127320c27936e2b5a24f2b7e77f42e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/54.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/54.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/55.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/55.out",
+        "bytes": 118,
+        "sha256": "382c1d8203c08b454f45b47cbeff9081790e532814bcbe2d0667815977955a31"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/56.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/56.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/57.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/57.out",
+        "bytes": 118,
+        "sha256": "382c1d8203c08b454f45b47cbeff9081790e532814bcbe2d0667815977955a31"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/58.err",
+        "bytes": 110,
+        "sha256": "706c8312016b0313880b5421b8faacd126029234bd258c004d608bd02fd0a928"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/58.out",
+        "bytes": 236,
+        "sha256": "10401aac178131a258902e96c1682ef55a508b6ff35c1e0b5b06481ef44939fd"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/6.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/6.out",
+        "bytes": 18,
+        "sha256": "05349bd91f903b43c2de1a796bdb5589371880a075de68180ee7622703a744e0"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/7.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/7.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/8.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/8.out",
+        "bytes": 75,
+        "sha256": "427bc3ba1c18de73c2bfa6bb4285a9080aa7057bd2fa88fde3019855400abe9b"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/9.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/9.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/basic-c-aot.txt",
+        "bytes": 115,
+        "sha256": "f5b975ad810320d7da6a727c7d634abd99127320c27936e2b5a24f2b7e77f42e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/commands.log",
+        "bytes": 12893,
+        "sha256": "44b35c4e5cbb5298dd224d947ad059f689c467057f239762c903398036651c40"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/compiler.txt",
+        "bytes": 239,
+        "sha256": "6e876a25bb7fdb71ab2914e8f1eeaa00cc61d20a36a6c2981ab7d4d7ceab42f8"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/example_aot.txt",
+        "bytes": 115,
+        "sha256": "f5b975ad810320d7da6a727c7d634abd99127320c27936e2b5a24f2b7e77f42e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/example_direct.txt",
+        "bytes": 115,
+        "sha256": "f5b975ad810320d7da6a727c7d634abd99127320c27936e2b5a24f2b7e77f42e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/example_xl.txt",
+        "bytes": 115,
+        "sha256": "f5b975ad810320d7da6a727c7d634abd99127320c27936e2b5a24f2b7e77f42e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/example.txt",
+        "bytes": 115,
+        "sha256": "f5b975ad810320d7da6a727c7d634abd99127320c27936e2b5a24f2b7e77f42e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/exit-code.txt",
+        "bytes": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/expected.txt",
+        "bytes": 115,
+        "sha256": "f5b975ad810320d7da6a727c7d634abd99127320c27936e2b5a24f2b7e77f42e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/failure.txt",
+        "bytes": 41,
+        "sha256": "f92f2ce237dc31751e6bf3c748e401adc51899a314806ad6ddd2ada3af08ca55"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/grammar_c-aot.txt",
+        "bytes": 75,
+        "sha256": "427bc3ba1c18de73c2bfa6bb4285a9080aa7057bd2fa88fde3019855400abe9b"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/grammar-aot.txt",
+        "bytes": 30,
+        "sha256": "0d65a54ca4132a047f5abb7692ca8d6ba2dbfd69aea5bf43fee0ee2c5ec1041e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/grammar-direct.txt",
+        "bytes": 75,
+        "sha256": "427bc3ba1c18de73c2bfa6bb4285a9080aa7057bd2fa88fde3019855400abe9b"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/grammar-xl.expected.txt",
+        "bytes": 30,
+        "sha256": "0d65a54ca4132a047f5abb7692ca8d6ba2dbfd69aea5bf43fee0ee2c5ec1041e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/grammar-xl.txt",
+        "bytes": 30,
+        "sha256": "0d65a54ca4132a047f5abb7692ca8d6ba2dbfd69aea5bf43fee0ee2c5ec1041e"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/grammar.txt",
+        "bytes": 75,
+        "sha256": "427bc3ba1c18de73c2bfa6bb4285a9080aa7057bd2fa88fde3019855400abe9b"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/inputs.after.sha256",
+        "bytes": 5747,
+        "sha256": "04627d5af650cf78f1eb0eabbcb5f7e89c545ff2d81b9c49416d77802acefb03"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/inputs.before.sha256",
+        "bytes": 5747,
+        "sha256": "04627d5af650cf78f1eb0eabbcb5f7e89c545ff2d81b9c49416d77802acefb03"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/literal_values_c-aot.txt",
+        "bytes": 112,
+        "sha256": "c3e1ccd1bb1f4fc12c1f8d1f08b4f349b37e896c043bfb70f0cbc178ed5bd232"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/literal_values_c-jit.txt",
+        "bytes": 112,
+        "sha256": "c3e1ccd1bb1f4fc12c1f8d1f08b4f349b37e896c043bfb70f0cbc178ed5bd232"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/literal_values-aot.txt",
+        "bytes": 112,
+        "sha256": "c3e1ccd1bb1f4fc12c1f8d1f08b4f349b37e896c043bfb70f0cbc178ed5bd232"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/literal_values-jit.txt",
+        "bytes": 112,
+        "sha256": "c3e1ccd1bb1f4fc12c1f8d1f08b4f349b37e896c043bfb70f0cbc178ed5bd232"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/literal.expected.txt",
+        "bytes": 112,
+        "sha256": "c3e1ccd1bb1f4fc12c1f8d1f08b4f349b37e896c043bfb70f0cbc178ed5bd232"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/literal.txt",
+        "bytes": 112,
+        "sha256": "c3e1ccd1bb1f4fc12c1f8d1f08b4f349b37e896c043bfb70f0cbc178ed5bd232"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/phase-count.txt",
+        "bytes": 3,
+        "sha256": "1a62e878f334291869f88f4b71f8c157ee774b6bdb11d2ca86cccf2b48cef87b"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/private_native.txt",
+        "bytes": 256,
+        "sha256": "8e1072cfd0b3fda33535a2525bd0e46966008dd6af00342aeef5236f6b5e0e7b"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/reload-c-aot.txt",
+        "bytes": 118,
+        "sha256": "382c1d8203c08b454f45b47cbeff9081790e532814bcbe2d0667815977955a31"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/reload-c-jit.txt",
+        "bytes": 118,
+        "sha256": "382c1d8203c08b454f45b47cbeff9081790e532814bcbe2d0667815977955a31"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/reload-c.txt",
+        "bytes": 118,
+        "sha256": "382c1d8203c08b454f45b47cbeff9081790e532814bcbe2d0667815977955a31"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/reload-xl-aot.txt",
+        "bytes": 118,
+        "sha256": "382c1d8203c08b454f45b47cbeff9081790e532814bcbe2d0667815977955a31"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/reload-xl-jit.txt",
+        "bytes": 118,
+        "sha256": "382c1d8203c08b454f45b47cbeff9081790e532814bcbe2d0667815977955a31"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/gate/reload.expected.txt",
+        "bytes": 118,
+        "sha256": "382c1d8203c08b454f45b47cbeff9081790e532814bcbe2d0667815977955a31"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/global/dotenv-aot.command",
+        "bytes": 91,
+        "sha256": "7ed2e14405b4fc4d5d9d79241c60b0dda4a117fbce7bbb39aec7ac50fafc537a"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/global/dotenv-aot.stderr",
+        "bytes": 80,
+        "sha256": "1fa92339f5652e088855d10f3e076eb4803e351386dc7c2620467a144a5bcd6d"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/global/dotenv-aot.stdout",
+        "bytes": 23,
+        "sha256": "4d6ce3a76faa703de30a5e5be182f244311ac5d2e897b920aef1bd3fc3e7e6c3"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/global/dotenv-build.command",
+        "bytes": 155,
+        "sha256": "c694e95e8de2cc119bed38e336e5fb312a6f9ebe1670665c16a4abb11b6297c0"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/global/dotenv-build.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/global/dotenv-build.stdout",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/global/dotenv-jit.command",
+        "bytes": 71,
+        "sha256": "7c730ef42b06d61f6f480e3c7b04a0569d4c1a5ac48bdf8db9286f2d161bc99d"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/global/dotenv-jit.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/global/dotenv-jit.stdout",
+        "bytes": 23,
+        "sha256": "4d6ce3a76faa703de30a5e5be182f244311ac5d2e897b920aef1bd3fc3e7e6c3"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/global/environment.txt",
+        "bytes": 104,
+        "sha256": "5ab7438d8853e49e739009c0d5f2ff6d7f5a9830bb5d7d3192788fee720725bf"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/global/exit-code.txt",
+        "bytes": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/global/inputs.after.sha256",
+        "bytes": 5194,
+        "sha256": "3bd3feabd193d365806a3f71f040e51840c8baf582314dad79accf3505be2ee1"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/global/inputs.before.sha256",
+        "bytes": 5194,
+        "sha256": "3bd3feabd193d365806a3f71f040e51840c8baf582314dad79accf3505be2ee1"
+      },
+      {
+        "path": "build/test/dotenv_grammar_20261102/linux-evidence/global/results.tsv",
+        "bytes": 52,
+        "sha256": "6b3853a931c0e0667a8c969e7ce62738ee8e3bdd065e7fb246b0473ce6d28d63"
+      }
+    ]
+  }
+}
