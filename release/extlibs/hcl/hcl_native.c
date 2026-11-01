@@ -657,11 +657,13 @@ static void xhcl_count_attribute_visit(xhclinput Input, xhclspan Name,
 
 
 
-char* xhcl_get(cstr sHcl, cstr sKey)
+/* 同一次整文档遍历携带存在性，空字符串不能充当缺失标记。 */
+static char* xhcl_get_value(cstr sHcl, cstr sKey, bool* pFound)
 {
     xhclinput Input = xhcl_input(sHcl);
     xhclattributecontext Context;
 
+    if (pFound != NULL) *pFound = false;
     if (sKey == NULL || sKey[0] == 0) {
         xhcl_error(XERR_ARGUMENT, "HCL attribute name is required");
         return NULL;
@@ -675,9 +677,14 @@ char* xhcl_get(cstr sHcl, cstr sKey)
         return xhcl_empty();
     }
     xrtClearError();
+    if (pFound != NULL) *pFound = true;
     return xhcl_store(Input, Context.Value, true);
 }
 
+char* xhcl_get(cstr sHcl, cstr sKey)
+{
+    return xhcl_get_value(sHcl, sKey, NULL);
+}
 
 
 char* xhcl_get_raw(cstr sHcl, cstr sKey)
@@ -705,11 +712,12 @@ char* xhcl_get_raw(cstr sHcl, cstr sKey)
 
 int64_t xhcl_get_int(cstr sHcl, cstr sKey)
 {
-    cstr sValue = xhcl_get(sHcl, sKey);
+    bool bFound;
+    cstr sValue = xhcl_get_value(sHcl, sKey, &bFound);
     int64 iValue;
     bool bInvalid;
 
-    if (sValue == NULL || xrtGetError() != NULL || sValue[0] == 0) {
+    if (sValue == NULL || xrtGetError() != NULL || !bFound) {
         xrtFree((ptr)sValue);
         return 0;
     }
@@ -717,7 +725,9 @@ int64_t xhcl_get_int(cstr sHcl, cstr sKey)
         10u, 0u, &iValue);
     xrtFree((ptr)sValue);
     if (bInvalid) {
-        xhcl_error(XERR_VALUE, "HCL attribute is not an integer");
+        /* 数值解析本身的内存首错不能被类型诊断覆盖。 */
+        if (xrtErrorKind(xrtGetError()) != XERR_MEMORY)
+            xhcl_error(XERR_VALUE, "HCL attribute is not an integer");
         return 0;
     }
     return iValue;
@@ -727,18 +737,20 @@ int64_t xhcl_get_int(cstr sHcl, cstr sKey)
 
 double xhcl_get_float(cstr sHcl, cstr sKey)
 {
-    cstr sValue = xhcl_get(sHcl, sKey);
+    bool bFound;
+    cstr sValue = xhcl_get_value(sHcl, sKey, &bFound);
     double fValue;
     bool bInvalid;
 
-    if (sValue == NULL || xrtGetError() != NULL || sValue[0] == 0) {
+    if (sValue == NULL || xrtGetError() != NULL || !bFound) {
         xrtFree((ptr)sValue);
         return 0.0;
     }
     bInvalid = !xrtNumParse((xstrview){sValue, strlen(sValue)}, 0, &fValue);
     xrtFree((ptr)sValue);
     if (bInvalid) {
-        xhcl_error(XERR_VALUE, "HCL attribute is not a float");
+        if (xrtErrorKind(xrtGetError()) != XERR_MEMORY)
+            xhcl_error(XERR_VALUE, "HCL attribute is not a float");
         return 0.0;
     }
     return fValue;
@@ -748,10 +760,11 @@ double xhcl_get_float(cstr sHcl, cstr sKey)
 
 bool xhcl_get_bool(cstr sHcl, cstr sKey)
 {
-    cstr sValue = xhcl_get(sHcl, sKey);
+    bool bFound;
+    cstr sValue = xhcl_get_value(sHcl, sKey, &bFound);
     bool bValue;
 
-    if (sValue == NULL || xrtGetError() != NULL || sValue[0] == 0) {
+    if (sValue == NULL || xrtGetError() != NULL || !bFound) {
         xrtFree((ptr)sValue);
         return false;
     }

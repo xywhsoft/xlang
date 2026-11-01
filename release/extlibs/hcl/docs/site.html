@@ -25,6 +25,7 @@
     <p>嵌套表达式内部的 <code>#</code>、<code>//</code> 行注释和块注释保持原文。注释中的引号、转义和括号只是文本，<code>get</code> 不会再次解释它们。包内 <code>examples/query_comments.xl</code> / <code>query_comments_c.c</code> 演示含运维注释的列表表达式、端口及块标签查询；二者各自断言并输出相同六行，不把列表表达式求值为容器。</p>
     <p>2026-10-30：修复行注释的二次解释，原17组字符串边界扩为77组，新增60组行注释、括号和LF/CRLF组合及逐分配点恢复。两平台同一最终C回归旧60组取值错误→修复后全部通过；Windows默认完整门禁、Linux原生57阶段含ASan/UBSan、四线程与各9份独立程序通过，新增双语范例使用同一六行golden。实际生成的12个函数声明与公开C头一致，故意改错bool返回时两平台均拒绝。源与工具指纹保持，不增加分配或扫描轮次。历史Linux偶发退出根因仍未知，保持R，不扩大为完整HCL或Terraform能力。</p>
   </header>
+  <p>2026-11-02：标量查询区分缺失和空值：<code>getInt/getFloat/getBool</code> 对缺失属性沿用 <code>0/false</code>，已存在的 <code>value = ""</code> 则报 <code>ValueError</code>（C 为 <code>XERR_VALUE</code>），不会静默采用默认值；真正的 <code>0/false</code> 和 <code>get</code> 的空文本仍合法。用 <code>has</code> 区分缺失与真实零值。整数/浮点解析的内存故障保持 <code>MemoryError/XERR_MEMORY</code>。包内 <code>examples/scalar_defaults.xl</code> 与 <code>scalar_defaults_c.c</code> 以同一六行输出演示这套合同。新 C 回归 188 次检查、40 个分配故障点通过；Windows 默认完整门禁和 Linux 原生 78 阶段含 sanitizer、四线程及各 13 份独立程序通过，历史偶发退出风险仍保留。</p>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
       <tr><td><code>get / getRaw</code></td><td>读取属性文本或原始表达式</td></tr>

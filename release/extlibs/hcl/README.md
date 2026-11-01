@@ -1,5 +1,25 @@
 # hcl
 
+2026-11-02：标量查询不再把已存在的空字符串当作缺失属性。
+`getInt`、`getFloat`、`getBool` 对缺失属性仍返回 `0`/`false`，
+但 `value = ""` 报 `ValueError` / `XERR_VALUE`；合法的 `0`、
+`false` 与文本查询的空字符串不受影响。需要区分缺失和合法零值时使用
+`has`。沿用单次整文档遍历传递存在性，不额外查询或复制正文，公开 ABI 不变。
+同时保留整数/浮点解析的内存首错，不再用类型错误覆盖 `XERR_MEMORY`。
+
+`test/test_scalar_values.c` / `scalar_values.xl` 覆盖根/嵌套/尾注释空值、
+缺失、真实零值、类型不符、坏文档及故障后恢复；C 还核对活动内存和
+非法/重复释放等计数。`examples/scalar_defaults.xl` / `scalar_defaults_c.c`
+分别断言同一合同，并对照 `scalar_defaults.expected.txt` 的六行输出。
+例如从仓库根目录执行 `release/xl.exe run release/extlibs/hcl/examples/scalar_defaults.xl`；
+换为 `scalar_defaults_c.c` 可运行 C 版本，Linux 使用 `release/xl`。
+两平台默认门禁都登记了新回归及双语范例的 JIT/AOT，不依赖人工单独发现。
+本轮 Windows 默认完整门禁通过，Linux 原生快照完整 78 阶段含 ASan/UBSan、
+泄漏检查、四线程与两平台各 13 份独立程序通过；新 C 用例完成 188 次检查、
+40 个分配故障点及即时恢复。相同夹具对旧实现失败，对修复后实现通过。
+GCC `-O2` 的原生对象 text 增加 148 字节，data/bss 不变；这不是整包体积
+或整体性能结论。历史 Linux 偶发退出根因仍未知，保持 R，不扩大查询器范围。
+
 2026-10-30：修复复合表达式内部行注释被 get 再次解释的问题。解析器已
 跳过 `#` / `//`，但尾注释扫描只跳过块注释，导致注释里的引号、非法
 转义或 `/*` 使合法配置报错或返回截断文本。现在复用同一个注释扫描，

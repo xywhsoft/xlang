@@ -1,0 +1,73 @@
+import hcl
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func readScalar(string source, int operation)
+    if operation == 0 then
+        hcl.getInt(source, "value")
+    elseif operation == 1 then
+        hcl.getFloat(source, "value")
+    else
+        hcl.getBool(source, "value")
+    end
+end
+
+func rejectEmpty(string source)
+    for operation in range(3)
+        bool rejected = false
+        try
+            readScalar(source, operation)
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected, "present empty scalar must not mean absent"
+    end
+end
+
+func main(...) as int
+    rejectEmpty("value = \"\"")
+    rejectEmpty("scope { value = \"\" }")
+    rejectEmpty("value = \"\" /* tail */\nother = 1")
+    rejectEmpty("value = \"\" // tail\r\n")
+    rejectEmpty("value = \" \"")
+    assert hcl.get("value = \"\"", "value") == ""
+    assert hcl.getRaw("value = \"\"", "value") == "\"\""
+    assert hcl.has("value = \"\"", "value")
+    assert hcl.getInt("other = 1", "value") == 0
+    assert hcl.getFloat("", "value") == 0.0
+    assert not hcl.getBool("scope { other = 1 }", "value")
+    assert hcl.getInt("value = 0", "value") == 0
+    assert hcl.getFloat("value = 1.25", "value") == 1.25
+    assert not hcl.getBool("value = false", "value")
+
+    // 保留原生内存首错，不能把分配失败伪装成无效值或成功的零值。
+    for source in ["value = \"\"", "value = \" \""]
+        for operation in range(3)
+            int failures = 0
+            int successes = 0
+            for budget in range(16)
+                bool memoryCaught = false
+                bool valueCaught = false
+                assert failAfter(uint64(budget))
+                try
+                    readScalar(source, operation)
+                catch MemoryError error
+                    memoryCaught = true
+                catch ValueError error
+                    valueCaught = true
+                end
+                bool triggered = failTriggered()
+                failClear()
+                assert memoryCaught == triggered
+                assert valueCaught != triggered
+                if triggered then failures += 1 else successes += 1 end
+                rejectEmpty(source)
+            end
+            assert failures > 0 and successes > 0
+        end
+    end
+    println("HCL scalar values: PASS")
+    return 0
+end
