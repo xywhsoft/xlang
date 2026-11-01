@@ -16,12 +16,16 @@ end
 func identity(Widget? widget) as Widget?
     return widget
 end
+extern "foreign_callback_allocation_begin" @no_raise @nonblocking func beginAllocationCheck()
+extern "foreign_callback_allocation_unchanged" @no_raise @nonblocking func allocationUnchanged() as c_int
 func main(...) as int
     Record input = Record()
     input.scale = c_double(2.5)
+    beginAllocationCheck()
     Record output = applyRecord(transform, input)
     assert output.number == 71 and output.scale == c_double(2.5)
     assert input.number == 0
     assert applyPointer(identity) == 1
+    assert allocationUnchanged() == 1
     return 0
 end
