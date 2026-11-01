@@ -219,3 +219,5 @@ from native_current_retirement_profile import PINS as RETIREMENT_PINS
 PROFILES['current-ed78373d'] = {**PROFILES['current-003dd48e'],**RETIREMENT_PINS}
 from native_current_unified_profile import COHORT as UNIFIED_COHORT, PINS as UNIFIED_PINS
 PROFILES[UNIFIED_COHORT] = {**PROFILES['current-ed78373d'],**UNIFIED_PINS}
+from native_c_interop_profile import COHORT as C_INTEROP_COHORT, PINS as C_INTEROP_PINS
+PROFILES[C_INTEROP_COHORT] = C_INTEROP_PINS

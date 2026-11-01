@@ -147,9 +147,16 @@ static void xlsIrDerivedInputPatch(const XL6_IrModule* module,size_t at)
 }
 static xls_ir_derived_context* xlsIrDerivedContextBuild(const XL6_IrModule* module,size_t limit)
 {
+#ifdef XLS_NATIVE_IR_FOREIGN_FIELDS
+    size_t layoutCount=module->aggregateLayoutCount,layoutCapacity=module->aggregateLayoutCapacity;
+    const XL6_IrAggregateLayout* layouts=module->aggregateLayouts;
+#else
+    size_t layoutCount=module->unionLayoutCount,layoutCapacity=module->unionLayoutCapacity;
+    const XL6_IrUnionLayout* layouts=module->unionLayouts;
+#endif
     if(limit<sizeof(xls_ir_derived_context) || module->types.count>module->types.capacity ||
-       (module->types.count && !module->types.items) || module->unionLayoutCount>module->unionLayoutCapacity ||
-       (module->unionLayoutCount && !module->unionLayouts))return NULL;
+       (module->types.count && !module->types.items) || layoutCount>layoutCapacity ||
+       (layoutCount && !layouts))return NULL;
     xls_ir_derived_context* context=xrtCalloc(1,sizeof(*context));if(!context)return NULL;
     xrtAtomic32Init(&context->references,1);size_t bytes=limit-sizeof(*context);
     /* The native runtime map is pointer-free; include its complete current
@@ -157,12 +164,28 @@ static xls_ir_derived_context* xlsIrDerivedContextBuild(const XL6_IrModule* modu
      * the existing exact interner-prefix encoder,not a content hash. */
     if(!xlsIrMemoTypes(&module->types,&context->key,bytes) ||
        !xlsIrMemoData(&context->key,&module->runtimeTypeMap,sizeof(module->runtimeTypeMap),bytes) ||
-       !xlsIrMemoNumber(&context->key,module->unionLayoutCount,bytes))goto failed;
-    for(size_t i=0;i<module->unionLayoutCount;++i){
-        const XL6_IrUnionLayout* layout=&module->unionLayouts[i];
+       !xlsIrMemoNumber(&context->key,layoutCount,bytes))goto failed;
+    for(size_t i=0;i<layoutCount;++i){
+#ifdef XLS_NATIVE_IR_FOREIGN_FIELDS
+        const XL6_IrAggregateLayout* layout=&layouts[i];
+#else
+        const XL6_IrUnionLayout* layout=&layouts[i];
+#endif
         uint64_t fields[]={layout->type,layout->declaration,layout->firstField,layout->fieldCount};
         if(!xlsIrMemoData(&context->key,fields,sizeof(fields),bytes))goto failed;
     }
+#ifdef XLS_NATIVE_IR_FOREIGN_FIELDS
+    if(module->aggregateFieldCount>module->aggregateFieldCapacity ||
+       (module->aggregateFieldCount && !module->aggregateFields) ||
+       !xlsIrMemoNumber(&context->key,module->aggregateFieldCount,bytes))goto failed;
+    for(size_t i=0;i<module->aggregateFieldCount;++i){
+        const XL6_IrAggregateField* field=&module->aggregateFields[i];
+        uint64_t fields[]={field->ownerType,field->type,field->declaration};
+        if(!xlsIrMemoData(&context->key,fields,sizeof(fields),bytes) ||
+           !xlsIrMemoString(&context->key,field->name,bytes) ||
+           !xlsIrMemoData(&context->key,field->cName,sizeof(field->cName),bytes))goto failed;
+    }
+#endif
     context->bytes=sizeof(*context)+context->key.Capacity;return context;
 failed:xlsIrDerivedContextRelease(context);return NULL;
 }

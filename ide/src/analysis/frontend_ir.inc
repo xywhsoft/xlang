@@ -79,7 +79,11 @@ static _Thread_local xls_ir_type_lookup_work xlsIrTypeLookupWork;
 static int xlsIrNominalCandidate(const XL6_AstNode* node)
 {
     return node && (node->kind==XL6_AST_CLASS || node->kind==XL6_AST_PROTOCOL ||
-        node->kind==XL6_AST_UNION || node->kind==XL6_AST_ENUM);
+        node->kind==XL6_AST_UNION || node->kind==XL6_AST_ENUM
+#ifdef XLS_NATIVE_AST_C_RECORD
+        || node->kind==XL6_AST_C_RECORD
+#endif
+        );
 }
 static void xlsIrTypeLookupBegin(xls_ir_type_lookup* scan,const XL6_AstNode* root,size_t bytes)
 {

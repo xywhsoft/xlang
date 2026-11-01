@@ -8,10 +8,12 @@ when this cohort changes; a raw memo identity alone is never a final-IR proof.
 from pathlib import Path
 import hashlib
 from check_native_bridge_catalog import function
+from native_c_interop_profile import PINS as C_INTEROP_PINS
 
 # The reviewed current retirement cohort,including its exact LF checkout.
 # Other already-supported compiler cohorts keep their original pure passes.
 COHORTS={
+    (C_INTEROP_PINS['src/ir/xl6_ir.c'],C_INTEROP_PINS['src/ir/xl6_ir.h']),
     ('a5cb13b8ea19560a592717c5799c9a2e89ebb74fe331a6f5918d1ca46e8f7b53','2673e4889b4cd4cd68a49f0d87b9991a01959addc005136df4cd18e10997f2b4'),
     ('10ebdce6803d96609ea7aac51e9b395b0d04a15fb8190d39b8d285295c2975d4','1e77f92bffbd498d676077921a872444b934f78cf1b6f1a8ee33b33982ff40c0'),
 }
@@ -33,7 +35,9 @@ def derive(source: str, output: Path, source_digest: str, header_digest: str):
         body=body.replace(signature,'static int '+renamed+'(XL6_IrModule* module)',1)
         body=body.replace(loop,'for ( i = xlsIrDerivedNext(module,XLS_IR_DERIVED_'+phase+',0); i < module->nodeCount && (XLS_IR_DERIVED_BODY_HIT(XLS_IR_DERIVED_'+phase+'),1); i = xlsIrDerivedNext(module,XLS_IR_DERIVED_'+phase+',i+1) )')
         source=source.replace(original,body,1);bodies[name]=hashlib.sha256(original.encode()).hexdigest()
-    point='    if ( xlsFrontendCancelPoint(XLS_CANCEL_IR_PHASE,1) || !xl6IrInternAsyncInvocationTypes(module, root, root) )'
+    foreign=source_digest==C_INTEROP_PINS['src/ir/xl6_ir.c']
+    point=('    if ( xlsFrontendCancelPoint(XLS_CANCEL_IR_PHASE,1) || !xl6IrBuildForeignClassBases(module) )' if foreign else
+           '    if ( xlsFrontendCancelPoint(XLS_CANCEL_IR_PHASE,1) || !xl6IrInternAsyncInvocationTypes(module, root, root) )')
     if source.count(point)!=1:raise ValueError('native complete raw-module fence changed')
     source=source.replace(point,'    xlsIrDerivedActivate(module);\n'+point,1)
     point='''        if ( node->type == XL6_IR_TYPE_INVALID ) node->type = signature;

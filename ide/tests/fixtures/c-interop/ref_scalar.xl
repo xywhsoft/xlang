@@ -1,0 +1,1 @@
+extern "read" @no_raise @c_ref(0) func read(c_int value) as c_int

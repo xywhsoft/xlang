@@ -12,7 +12,9 @@
  X(GENERIC_CONSTRAINT,"generic_constraint") X(MEMBER,"member") X(SAFE_MEMBER,"safe_member")
 /* Legacy string exports may use this name;the current native AST has no
  * VARIANT kind. Preserve compatibility without inventing a native enum. */
-#define XLS_INDEX_POINT_KINDS(X) XLS_INDEX_POINT_NATIVE_KINDS(X) X(VARIANT,"variant")
+/* Append new query categories independently of the selected native AST ABI;
+ * every consumer sees the same enum, including compatibility-only hosts. */
+#define XLS_INDEX_POINT_KINDS(X) XLS_INDEX_POINT_NATIVE_KINDS(X) X(VARIANT,"variant") X(C_RECORD,"C record")
 enum xls_index_point_kind {
  XLS_INDEX_POINT_OTHER,
 #define XLS_INDEX_KIND_ENUM(name,text) XLS_INDEX_POINT_##name,

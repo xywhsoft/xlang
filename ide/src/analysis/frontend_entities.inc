@@ -63,7 +63,11 @@ static int xlsEntityOriginalHeader(xstrbuf* key,const XL6_IndexBuild* b,const XL
 static int xlsEntityCallable(const XL6_AstNode* n)
 {return n && (n->kind==XL6_AST_FUNC || n->kind==XL6_AST_ASYNC_FUNC || n->kind==XL6_AST_EXPORT_FUNC || n->kind==XL6_AST_EXTERN_FUNC || n->kind==XL6_AST_NATIVE_EXTERN_FUNC || n->kind==XL6_AST_ANON_FUNC);}
 static int xlsEntityContainer(const XL6_AstNode* n)
-{return n && (n->kind==XL6_AST_CLASS || n->kind==XL6_AST_PROTOCOL || n->kind==XL6_AST_ENUM || n->kind==XL6_AST_UNION);}
+{return n && (n->kind==XL6_AST_CLASS || n->kind==XL6_AST_PROTOCOL || n->kind==XL6_AST_ENUM || n->kind==XL6_AST_UNION
+#ifdef XLS_NATIVE_AST_C_RECORD
+ || n->kind==XL6_AST_C_RECORD
+#endif
+ );}
 static int xlsEntityMember(const XL6_AstNode* n)
 {return n && (xlsEntityCallable(n) || xlsEntityContainer(n) || n->kind==XL6_AST_FIELD || n->kind==XL6_AST_ENUM_VARIANT || n->kind==XL6_AST_VAR_DECL || n->kind==XL6_AST_CONST_DECL || n->kind==XL6_AST_EXPORT_VAR || n->kind==XL6_AST_EXTERN_VAR || n->kind==XL6_AST_EXPORT_CONST || n->kind==XL6_AST_TYPE_ALIAS || n->kind==XL6_AST_EXTERN_TYPE_ALIAS || n->kind==XL6_AST_GET || n->kind==XL6_AST_LET || n->kind==XL6_AST_CREATE);}
 static int xlsEntityHeader(xstrbuf* key,const XL6_IndexBuild* b,const XL6_AstNode* n,size_t depth)

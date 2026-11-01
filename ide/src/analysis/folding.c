@@ -8,6 +8,9 @@ static int structural(XL6_AstKind kind)
     switch(kind) {
     case XL6_AST_FUNC: case XL6_AST_ASYNC_FUNC: case XL6_AST_ANON_FUNC:
     case XL6_AST_CLASS: case XL6_AST_PROTOCOL: case XL6_AST_ENUM: case XL6_AST_UNION:
+#ifdef XLS_NATIVE_AST_C_RECORD
+    case XL6_AST_C_RECORD:
+#endif
     case XL6_AST_GET: case XL6_AST_LET: case XL6_AST_IF: case XL6_AST_ELSEIF:
     case XL6_AST_WHILE: case XL6_AST_DO_WHILE: case XL6_AST_FOR: case XL6_AST_MATCH:
     case XL6_AST_MATCH_CASE: case XL6_AST_TRY: case XL6_AST_CATCH: return 1;

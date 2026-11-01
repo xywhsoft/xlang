@@ -6,6 +6,7 @@ from pathlib import Path
 import hashlib
 from native_signature_overlay import profile as parser_profile, PROFILES as PARSER_PROFILES
 from native_current_unified_profile import updated_pins
+from native_c_interop_profile import COHORT as C_INTEROP_COHORT, PINS as C_INTEROP_PINS
 
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
 
@@ -38,6 +39,8 @@ PROFILES = {
         "src/common/xl6_path_identity.h": "48fd7456ad348c974da20aefa87f32862daeab664a341cfa144e2817d03c2683"
     }
 }
+
+PROFILES[C_INTEROP_COHORT]={key:C_INTEROP_PINS[key] for key in PROFILES['current-9192a99f']}
 
 def profile(frontend: Path) -> dict[str,str]:
     audited = parser_profile(frontend)

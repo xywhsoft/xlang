@@ -6,6 +6,7 @@ from native_ir_memo_overlay import derive as raw_memo
 from native_current_retirement_profile import PINS as RETIREMENT_PINS,IR_DIGESTS as RETIREMENT_IR_DIGESTS
 from native_current_unified_profile import updated_pins
 from native_current_ir_profile import PINS as IR_DEPENDENCIES,PROFILES as IR_PROFILES
+from native_c_interop_profile import PINS as C_INTEROP_PINS, selected as c_interop_selected
 
 PINS={
     'src/ir/xl6_ir.c':'fb1c73cb62d95540fac8f524b74b518f928e1668f531c87f7cd37f31e3f0353e',
@@ -20,13 +21,15 @@ PHASE_IR_SHA256='e1ea31c336278b6729369e9f6a1bb4d86a4e945018a88f8c672c0a643e08962
 # Git archive's configured checkout conversion produces this exact CRLF copy.
 # Both constants name the same committed correction; arbitrary normalization
 # must not admit otherwise unknown source contents.
-PHASE_IR_DIGESTS=(PHASE_IR_SHA256,'5c7a46e13b8f774c0fd27c3d66fc9c064aafc73b20386d2e9a448e9df7d78e6a')+RETIREMENT_IR_DIGESTS
+PHASE_IR_DIGESTS=(PHASE_IR_SHA256,'5c7a46e13b8f774c0fd27c3d66fc9c064aafc73b20386d2e9a448e9df7d78e6a',C_INTEROP_PINS['src/ir/xl6_ir.c'])+RETIREMENT_IR_DIGESTS
 
 
 def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
     audited=index_profile(frontend)
     ast=frontend/'src/ast/xl6_ast.h'
-    if audited[str(ast)]!='5ebb5cc003e51d954d02ad229307406a4990142d7813f755e0df3bbc9838fbb1':
+    expected_ast=(C_INTEROP_PINS['src/ast/xl6_ast.h'] if c_interop_selected(frontend)
+                  else '5ebb5cc003e51d954d02ad229307406a4990142d7813f755e0df3bbc9838fbb1')
+    if audited[str(ast)]!=expected_ast:
         raise ValueError('current IR unit requires its current AST/parser/type/XRT cohort')
     selected_pins={**PINS,**RETIREMENT_PINS} if hashlib.sha256((frontend/'src/ir/xl6_ir.c').read_bytes()).hexdigest() in RETIREMENT_IR_DIGESTS else PINS
     selected_pins=updated_pins(frontend,selected_pins)
@@ -62,7 +65,7 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
         from native_initializer_overlay import derive as initializers
         from native_ir_derived_overlay import derive as derived
         source,seams=scans(source,current=True)
-        source=ir_cancellation(source,current=True)
+        source=ir_cancellation(source,current=True,foreign=c_interop_selected(frontend))
         source=initializers(source)
         source,derived_overlay=derived(source,output,hashlib.sha256(selected.read_bytes()).hexdigest(),audited[str(frontend/'src/ir/xl6_ir.h')])
         for name in ('native_ir_derived_overlay.py','check_native_bridge_catalog.py'):
