@@ -62,6 +62,7 @@ CORE_TESTS = ("analysis_cursor_source_memo_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_annotations_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_dependency_capture_test", "analysis_ast_tree_test", "analysis_ast_leaf_failure_test", "analysis_ast_leaf_test", "analysis_ast_storage_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_body_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_source_text_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_plan_direct_test", "analysis_check_materialize_test", "analysis_ast_materialize_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_call_context_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_signature_test", *CORE_TESTS)
@@ -822,6 +823,7 @@ def main() -> None:
         for name in (() if args.skip_tests else tests):
             program = output / (name + suffix)
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
+            if name == "analysis_source_text_test":extra.append("-Wl,--wrap=xlsInputBatchAt")
             if name=='analysis_current_provider_test' and ir_overlay.get('irDependencyCohort')=='current-ed78373d':extra+=[str(objects['xl6_ir_lower'])]
             if name=='analysis_current_loader_test' and loader_references:
                 extra += [str(objects[p.stem]) for p in loader_references]+['-Wl,--wrap=xrtMalloc']

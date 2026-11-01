@@ -3,6 +3,7 @@
 #include "analysis/semantic.h"
 #include "analysis/index.h"
 #include "analysis/context.h"
+#include "analysis/text.h"
 
 typedef struct xls_semantic_check xls_semantic_check;
 #define XLS_CHECK_REPORT_BYTES (36u * 1024u * 1024u)
@@ -30,6 +31,15 @@ typedef xls_inputs xls_check_inputs;
  * but cannot prove current inputs. Validate again before publishing/using facts. */
 int xlsSemanticCheckInputs(const xls_semantic_check* result,xls_check_inputs* inputs);
 int xlsSemanticCheckSource(const xls_semantic_check* result,size_t index,xls_check_source* source);
+/* Optional owned reference to an existing immutable captured overlay text.
+ * Exact path and normalized bytes must match this source report ordinal.
+ * No allocation, parsing, hashing or I/O; NULL means unavailable, not invalid
+ * language input. Disk/raw-input checks keep their existing copy fallback.
+ * Required bomBytes receives 0 or 3: compiler offsets address Data+bomBytes;
+ * text positions address the original editor body, including an optional BOM.
+ * Clear on failure. A returned reference outlives check/session destruction
+ * and invalidation; it is storage, never a freshness or publication proof. */
+xls_text* xlsSemanticCheckRetainSourceText(const xls_semantic_check* result,size_t index,size_t* bomBytes);
 int xlsSemanticCheckProbe(const xls_semantic_check* result,size_t index,xls_check_probe* probe);
 typedef struct xls_check_semantic_work { uint64_t functionsChecked,functionsReused,contextHits,memoBytes; } xls_check_semantic_work;
 /* Work captured by the opt-in retained-entry path. The independent fresh
