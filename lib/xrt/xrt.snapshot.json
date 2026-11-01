@@ -3,8 +3,8 @@
   "product": "xrt",
   "implementation": {
     "source": "xrt/single/xrt.h",
-    "sha256": "05E8C00FB0EEF0215F4D0C9291D240438CB37782DF5DE1C0E9BA8699B0DCD5EB",
-    "bytes": 9109066
+    "sha256": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+    "bytes": 9109200
   },
   "declarations": {
     "source": "xrt/single/xrt_decl.h",
@@ -12,5 +12,5 @@
     "bytes": 1480258
   },
   "publicApiCount": 3454,
-  "upstreamSha256": "85C8320D5FE4375599720B60068224573148C07ACB57741E53108BCB0CB70FD9"
+  "upstreamSha256": "9C74D8E77E1A6AEA9466818A5667854F46EE61D5B0919EEAA0FDF574C5617D1B"
 }
