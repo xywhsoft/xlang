@@ -1,0 +1,3608 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-02T07:38:01.6770753+08:00",
+  "package": "shellwords",
+  "maturity": "M",
+  "formalRelease": false,
+  "status": "direct-lexical-matrix-and-span-split-verified-original-language-array-join-and-catalog-binding-open",
+  "sourceParent": "e8c7ccfc0d5c2454470bb94b6271189bff42e433",
+  "objectiveScope": {
+    "ordinaryPackages": 100,
+    "states": {
+      "G": 30,
+      "R": 10,
+      "M": 56,
+      "X": 4
+    },
+    "goalStatus": "active",
+    "goalComplete": false,
+    "acmeAbsent": true,
+    "xbotRetainedOutsideScope": true
+  },
+  "change": {
+    "kind": "Coverage and performance hardening; no newly confirmed production lexical defect",
+    "productionNetLines": -4,
+    "implementation": "CRT strcspn finds current-quote-state boundaries; append the already-decoded leading byte and following run together to the existing XRT buffer",
+    "publicApiAbiOwnershipModulesUnchanged": true,
+    "newRuntimeBridgeIntroduced": false,
+    "newBodyCopiesIntroduced": false,
+    "compilerRuntimeXrtTccIdeNotModifiedByThisTask": true,
+    "parallelWorkPreserved": true,
+    "noOverallZeroOverheadClaim": true
+  },
+  "production": [
+    {
+      "path": "release/extlibs/shellwords/shellwords_native.c",
+      "bytes": 8167,
+      "sha256": "d27450688f0943c8e5a0a4d874e4ab4f86141aee392110b6f6becef2d8852f23",
+      "parentGitBlob": "a3d67258cee263e5962ff1eb00678561791bca78"
+    },
+    {
+      "path": "release/extlibs/shellwords/include/xrt_shellwords.h",
+      "bytes": 512,
+      "sha256": "adc9675c27d5829e9cf315ba7b53d20d66143874e9064bb74d092079438c1e34",
+      "parentGitBlob": "9a318a5f1a7e920902e78d71af5eb5e4925c5f76"
+    },
+    {
+      "path": "release/extlibs/shellwords/src/shellwords.xl",
+      "bytes": 1227,
+      "sha256": "ebde9dd0016b4b2a7edbfb46d1a08e50a27305e889fb17f9681c3d9a795638e4",
+      "parentGitBlob": "9547b8577505b87752e73a448e2da481995ece34"
+    }
+  ],
+  "directCorpus": {
+    "source": "release/extlibs/shellwords/test/split_matrix_c.c",
+    "oracle": "release/extlibs/shellwords/test/check_split_records.py",
+    "vectors": 19851,
+    "exhaustiveFiveSymbolLengthsZeroThroughSix": 19531,
+    "allNonNulSingleBytes": 255,
+    "fixedContracts": 17,
+    "longFragmentCases": 48,
+    "malformed": 13546,
+    "valid": 6305,
+    "notProducedByPackageQuote": true,
+    "usualLexingIndependentPythonShlex": true,
+    "shlexDifferencesUseExplicitExpectedValues": [
+      "backslash LF outside quotes",
+      "backslash LF inside double quotes",
+      "escaped dollar and backtick inside double quotes"
+    ],
+    "normalWhitespace": "space TAB CR LF, not vertical tab or form feed",
+    "commentAndShellOperatorsAreLiteralText": true,
+    "arbitraryNonUtf8BytesOnlyCContractNotLanguageSourceEncoding": true,
+    "expectedNormalizedRecordsSha256": "f732f30f393f6bd43227e46a0c80a25f3d66a0add5d434c22f32b4133e70fc82",
+    "damagedRecordControls": 3,
+    "windows": [
+      {
+        "name": "split_matrix_c",
+        "stdout": "shellwords split matrix: 19851 vectors, 9 OOM paths, 180 OOM, 0 failures\r\n"
+      },
+      {
+        "name": "direct input matrix TCC",
+        "stdout": "shellwords split matrix: 19851 vectors, 9 OOM paths, 180 OOM, 0 failures\r\n"
+      },
+      {
+        "name": "release/extlibs/shellwords/test/split_matrix_c.c AOT",
+        "stdout": "shellwords split matrix: 19851 vectors, 9 OOM paths, 180 OOM, 0 failures\r\n"
+      }
+    ],
+    "linux": [
+      {
+        "command": "timeout 120s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/split_matrix_c",
+        "exit": 0,
+        "output": "shellwords split matrix: 19851 vectors, 9 OOM paths, 180 OOM, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/shellwords/test/split_matrix_c.c",
+        "exit": 0,
+        "output": "shellwords split matrix: 19851 vectors, 9 OOM paths, 180 OOM, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-7",
+        "exit": 0,
+        "output": "shellwords split matrix: 19851 vectors, 9 OOM paths, 180 OOM, 0 failures\n\n"
+      }
+    ],
+    "oldImplementationPassedAllNewVectors": true,
+    "oldBaselineCalls": [
+      {
+        "name": "baseline compile",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/shellwords",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords-split-20261102/old-fixture.c",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords-split-20261102/runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords-split-20261102/old.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 336
+        }
+      },
+      {
+        "name": "baseline matrix",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords split matrix: 19851 vectors, 9 OOM paths, 233 OOM, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 70
+        }
+      },
+      {
+        "name": "baseline records",
+        "arguments": [
+          "--records"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": {
+            "compacted": true,
+            "utf8Bytes": 874757,
+            "sha256": "69862971915054c290599e935cddfb69b6c61579835a2f25a6b78a6c70962eb1",
+            "lines": 19851,
+            "head": "0\t\tO\r\n1\t61\tO\t61\r\n2\t20\tO\r\n3\t27\tE\r\n4\t22\tE\r\n5\t5c\tE\r\n6\t6161\tO\t6161\r\n7\t2061\tO\t61\r\n8\t2761\tE\r\n9\t2261\tE\r\n10\t5c61\tO\t61\r\n11\t6120\tO\t61\r\n12\t2020\tO\r\n13\t2720\tE\r\n14\t2220\tE\r\n15\t5c20\tO\t20\r\n16\t6127\tE\r\n17\t2027\tE\r\n18\t2727\tO\t\r\n19\t2227\tE\r\n20\t5c27\tO\t27\r\n21\t6122\tE\r\n22\t2022\tE\r\n23\t2722\tE\r\n24\t2222\tO\t\r\n25\t5c22\tO\t22\r\n26\t615c\tE\r",
+            "tail": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616127\tE\r\n",
+            "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+            "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+          },
+          "stderr": "",
+          "elapsedMs": 93
+        }
+      },
+      {
+        "name": "baseline independent oracle",
+        "arguments": [
+          "-B",
+          "release/extlibs/shellwords/test/check_split_records.py",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords-split-20261102/old.tsv"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords independent split oracle: 19851 records, 13546 malformed, 3 controls, PASS (f732f30f393f6bd43227e46a0c80a25f3d66a0add5d434c22f32b4133e70fc82)\r\n",
+          "stderr": "",
+          "elapsedMs": 656
+        }
+      }
+    ]
+  },
+  "allocation": {
+    "paths": 9,
+    "budgetsEnumeratedUntilUntriggeredCompletion": true,
+    "maximumBudgetGuard": 512,
+    "oldActualTriggersPerPlatform": 233,
+    "newActualTriggersPerEnginePerPlatform": 180,
+    "pathsNotAllocationSitesAndCountsNotFixedAbi": true,
+    "malformedPartialResultFailureMustPreserveMemoryError": true,
+    "successCallClearsPreviousError": true,
+    "sevenBalancedMetrics": [
+      "LiveCount",
+      "LiveBytes",
+      "InvalidFreeCount",
+      "DoubleFreeCount",
+      "OverflowCount",
+      "UnderflowCount",
+      "UseAfterFreeCount"
+    ],
+    "noFixedInputLimitAdded": true,
+    "largeInputsStillDependOnSuccessfulAllocation": true,
+    "oldLinuxMatrix": "shellwords split matrix: 19851 vectors, 9 OOM paths, 233 OOM, 0 failures\n"
+  },
+  "negativeControls": {
+    "notProductBugFixes": true,
+    "notDefaultRuntimeDependencies": true,
+    "mutations": [
+      "clear bStarted when opening quote so empty quoted arguments disappear",
+      "keep escaped LF instead of continuation deletion",
+      "consume all backslash escapes inside double quotes"
+    ],
+    "onlyIsolatedSourceCopiesAltered": true,
+    "windows": [
+      {
+        "name": "drop-empty compile",
+        "arguments": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 355
+        }
+      },
+      {
+        "name": "drop-empty records",
+        "arguments": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": {
+            "compacted": true,
+            "utf8Bytes": 872335,
+            "sha256": "cd0630e4cdafe5c315050aee8f83c9eb612ab9046a4ab2b6bbf820992d9f5c29",
+            "lines": 19851,
+            "head": "0\t\tO\r\n1\t61\tO\t61\r\n2\t20\tO\r\n3\t27\tE\r\n4\t22\tE\r\n5\t5c\tE\r\n6\t6161\tO\t6161\r\n7\t2061\tO\t61\r\n8\t2761\tE\r\n9\t2261\tE\r\n10\t5c61\tO\t61\r\n11\t6120\tO\t61\r\n12\t2020\tO\r\n13\t2720\tE\r\n14\t2220\tE\r\n15\t5c20\tO\t20\r\n16\t6127\tE\r\n17\t2027\tE\r\n18\t2727\tO\r\n19\t2227\tE\r\n20\t5c27\tO\t27\r\n21\t6122\tE\r\n22\t2022\tE\r\n23\t2722\tE\r\n24\t2222\tO\r\n25\t5c22\tO\t22\r\n26\t615c\tE\r\n2",
+            "tail": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616127\tE\r\n",
+            "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+            "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+          },
+          "stderr": "",
+          "elapsedMs": 94
+        }
+      },
+      {
+        "name": "drop-empty oracle",
+        "arguments": null,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\check_split_records.py\", line 90, in <module>\r\n    main()\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\check_split_records.py\", line 76, in main\r\n    invalid, digest = verify(lines)\r\n                      ^^^^^^^^^^^^^\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\check_split_records.py\", line 66, in verify\r\n    raise ValueError(f\"split words differ at {index}\")\r\nValueError: split words differ at 18\r\n",
+          "elapsedMs": 245
+        }
+      },
+      {
+        "name": "keep-continuation compile",
+        "arguments": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 330
+        }
+      },
+      {
+        "name": "keep-continuation records",
+        "arguments": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": {
+            "compacted": true,
+            "utf8Bytes": 874769,
+            "sha256": "8da718192bd6ad90adbb44f663af899681875edee98fd3985c9891fda76ef5a4",
+            "lines": 19851,
+            "head": "0\t\tO\r\n1\t61\tO\t61\r\n2\t20\tO\r\n3\t27\tE\r\n4\t22\tE\r\n5\t5c\tE\r\n6\t6161\tO\t6161\r\n7\t2061\tO\t61\r\n8\t2761\tE\r\n9\t2261\tE\r\n10\t5c61\tO\t61\r\n11\t6120\tO\t61\r\n12\t2020\tO\r\n13\t2720\tE\r\n14\t2220\tE\r\n15\t5c20\tO\t20\r\n16\t6127\tE\r\n17\t2027\tE\r\n18\t2727\tO\t\r\n19\t2227\tE\r\n20\t5c27\tO\t27\r\n21\t6122\tE\r\n22\t2022\tE\r\n23\t2722\tE\r\n24\t2222\tO\t\r\n25\t5c22\tO\t22\r\n26\t615c\tE\r",
+            "tail": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616127\tE\r\n",
+            "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+            "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+          },
+          "stderr": "",
+          "elapsedMs": 92
+        }
+      },
+      {
+        "name": "keep-continuation oracle",
+        "arguments": null,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\check_split_records.py\", line 90, in <module>\r\n    main()\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\check_split_records.py\", line 76, in main\r\n    invalid, digest = verify(lines)\r\n                      ^^^^^^^^^^^^^\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\check_split_records.py\", line 66, in verify\r\n    raise ValueError(f\"split words differ at {index}\")\r\nValueError: split words differ at 19786\r\n",
+          "elapsedMs": 240
+        }
+      },
+      {
+        "name": "escape-everything compile",
+        "arguments": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 333
+        }
+      },
+      {
+        "name": "escape-everything records",
+        "arguments": null,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": {
+            "compacted": true,
+            "utf8Bytes": 874167,
+            "sha256": "5979844a233c08db5e6524a63f7c510389ede285d760128dda08a5dff7c4f04d",
+            "lines": 19851,
+            "head": "0\t\tO\r\n1\t61\tO\t61\r\n2\t20\tO\r\n3\t27\tE\r\n4\t22\tE\r\n5\t5c\tE\r\n6\t6161\tO\t6161\r\n7\t2061\tO\t61\r\n8\t2761\tE\r\n9\t2261\tE\r\n10\t5c61\tO\t61\r\n11\t6120\tO\t61\r\n12\t2020\tO\r\n13\t2720\tE\r\n14\t2220\tE\r\n15\t5c20\tO\t20\r\n16\t6127\tE\r\n17\t2027\tE\r\n18\t2727\tO\t\r\n19\t2227\tE\r\n20\t5c27\tO\t27\r\n21\t6122\tE\r\n22\t2022\tE\r\n23\t2722\tE\r\n24\t2222\tO\t\r\n25\t5c22\tO\t22\r\n26\t615c\tE\r",
+            "tail": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616127\tE\r\n",
+            "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+            "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+          },
+          "stderr": "",
+          "elapsedMs": 95
+        }
+      },
+      {
+        "name": "escape-everything oracle",
+        "arguments": null,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\check_split_records.py\", line 90, in <module>\r\n    main()\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\check_split_records.py\", line 76, in main\r\n    invalid, digest = verify(lines)\r\n                      ^^^^^^^^^^^^^\r\n  File \"D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\check_split_records.py\", line 66, in verify\r\n    raise ValueError(f\"split words differ at {index}\")\r\nValueError: split words differ at 554\r\n",
+          "elapsedMs": 239
+        }
+      }
+    ],
+    "linux": [
+      {
+        "name": "drop-empty",
+        "compileExit": 0,
+        "recordProducerExit": 0,
+        "independentOracleExit": 1,
+        "stderr": "Traceback (most recent call last):\n  File \"/var/tmp/xlang-shellwords-split-zbjzIQ4r/stage/release/extlibs/shellwords/test/check_split_records.py\", line 90, in <module>\n    main()\n    ~~~~^^\n  File \"/var/tmp/xlang-shellwords-split-zbjzIQ4r/stage/release/extlibs/shellwords/test/check_split_records.py\", line 76, in main\n    invalid, digest = verify(lines)\n                      ~~~~~~^^^^^^^\n  File \"/var/tmp/xlang-shellwords-split-zbjzIQ4r/stage/release/extlibs/shellwords/test/check_split_records.py\", line 66, in verify\n    raise ValueError(f\"split words differ at {index}\")\nValueError: split words differ at 18\n",
+        "sourceSha256": "dc15f4c3ec59d55659798dce3554fb12a83f80b443d1af84a7167c9dadd521d0"
+      },
+      {
+        "name": "keep-continuation",
+        "compileExit": 0,
+        "recordProducerExit": 0,
+        "independentOracleExit": 1,
+        "stderr": "Traceback (most recent call last):\n  File \"/var/tmp/xlang-shellwords-split-zbjzIQ4r/stage/release/extlibs/shellwords/test/check_split_records.py\", line 90, in <module>\n    main()\n    ~~~~^^\n  File \"/var/tmp/xlang-shellwords-split-zbjzIQ4r/stage/release/extlibs/shellwords/test/check_split_records.py\", line 76, in main\n    invalid, digest = verify(lines)\n                      ~~~~~~^^^^^^^\n  File \"/var/tmp/xlang-shellwords-split-zbjzIQ4r/stage/release/extlibs/shellwords/test/check_split_records.py\", line 66, in verify\n    raise ValueError(f\"split words differ at {index}\")\nValueError: split words differ at 19786\n",
+        "sourceSha256": "906811de093bdfef29456c4fb018ec2b6b47fe5d2c64911603e6ec0de307e346"
+      },
+      {
+        "name": "escape-everything",
+        "compileExit": 0,
+        "recordProducerExit": 0,
+        "independentOracleExit": 1,
+        "stderr": "Traceback (most recent call last):\n  File \"/var/tmp/xlang-shellwords-split-zbjzIQ4r/stage/release/extlibs/shellwords/test/check_split_records.py\", line 90, in <module>\n    main()\n    ~~~~^^\n  File \"/var/tmp/xlang-shellwords-split-zbjzIQ4r/stage/release/extlibs/shellwords/test/check_split_records.py\", line 76, in main\n    invalid, digest = verify(lines)\n                      ~~~~~~^^^^^^^\n  File \"/var/tmp/xlang-shellwords-split-zbjzIQ4r/stage/release/extlibs/shellwords/test/check_split_records.py\", line 66, in verify\n    raise ValueError(f\"split words differ at {index}\")\nValueError: split words differ at 554\n",
+        "sourceSha256": "f03dfa5e40d229bb10617d05486c5e38357c0798756a612c7a4f95104d7c8b68"
+      }
+    ],
+    "reproduction": "Relocate only fixture includes into an isolated directory; alter the named quote-start/continuation/double-quote escape predicate in a copy of the native source. Compile with the same selected XRT runtime. The record producer must exit0 and the independent oracle must exit1 for word mismatch, not a sanitizer crash."
+  },
+  "examples": {
+    "xlang": "release/extlibs/shellwords/examples/lexical_text.xl",
+    "c": "release/extlibs/shellwords/examples/lexical_text_c.c",
+    "golden": "argc: 6\nmerged: pre two parts\nempty: true\nliteral slash: true\ncontinuation: ab\nsingle quoted newline: true\nrecovery: true\n",
+    "cGccTccAndXlangJitAotBothPlatforms": true,
+    "doesNotExecuteCommands": true,
+    "notSubstituteForOriginalLanguageArrayJoin": true
+  },
+  "windows": {
+    "rawGatePath": "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305.json",
+    "gateExit": 1,
+    "phases": 62,
+    "positivePasses": 61,
+    "requiredFailures": 1,
+    "normalAotPrograms": 9,
+    "fingerprints": 54,
+    "changedInputsDuringGate": [],
+    "actualGeneratedNativePrototypes": 4,
+    "inputHashes": {
+      "C:\\Program Files\\Python312\\python.exe": "4D6F5F81A4BCA11191C4C7C6B43632694D0A4CE74E068619D8FDC161D469859A",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\shellwords.xl": "ECF06E0410BC592E16360A8DAABCCCE9BCB3B3CE7F889CA5A87B9ABCE85886EE",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\docs\\site.html": "1FFD5085B2F770627BDB31DB47F4B63652F88B24AC987B4A4BA339476205F0E8",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\examples\\basic.c": "5B1B0A7C37B612DAD43AFA4FEDAA481FC5A48D60B4023440125E31FFCE9C27EB",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\examples\\basic.expected.txt": "190C8614B3F46F506D142AF811DF4142EE3FCA2FEBEE54B716965AB31D60DAD7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\examples\\command_plan.expected.txt": "F2E20DD650EA49B54E6422812F244AA5CE3AF1ACF675267160A587AC897C8B60",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\examples\\command_plan.xl": "46B64C60084BCB3D96B7624A14E8B47072C9E73C39E518AB280428282E9D45A0",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\examples\\command_plan_c.c": "1D6E4FA657B46CBAA363FF8E32183E99B8DB1B745ADE889FCDA925530BF45CA6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\examples\\lexical_text.expected.txt": "5A1E38B5B2C802AF2C612CED6B000836BDB70F151305CADAADC7F45A9D7FFD49",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\examples\\lexical_text.xl": "1BEF73CD0022A1A31667F7ED12F73112AD6001DFB34D98F686A4DD8FE626EB8D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\examples\\lexical_text_c.c": "DBF420BBE2E78A4B6F089E1515C1E0088917391738589432F29778D344642A79",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\include\\xrt_shellwords.h": "ADC9675C27D5829E9CF315BA7B53D20D66143874E9064BB74D092079438C1E34",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\README.md": "19C5E2219556725C0856D27F4D416A02B14D6D1C550EBA53F527A77708312E3F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\shellwords_native.c": "D27450688F0943C8E5A0A4D874E4AB4F86141AEE392110B6F6BECEF2D8852F23",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\src\\shellwords.xl": "EBDE9DD0016B4B2A7EDBFB46D1A08E50A27305E889FB17F9681C3D9A795638E4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\allocations.xl": "47D238B2ECAF2D2FBB7DFBAD7D2FABAD39B2214BC704B274627F1CEE8DF09B38",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\bench_quote.c": "359E6EA307C46BC1639CF14B070043BA5163F5DDACE11BEE678123106AD44721",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\bench_split_c.c": "32E95FCCD2130F8633940BF815A254A85FCEC42A4E6D440E1CD9C728F70DF508",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\boundaries.xl": "192DDF8E2DF422A3CA840597091AFF17AE72C2C965459E6FE3518535352BC9ED",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\check.ps1": "9151D60D543C164E727921DBE9E168385D071F360AFBD7EC27160B603CACDE30",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\check.sh": "31C1B49E6D2DF4AD79660219DC0A7241F057762FC061A4C4CB45C7D066F77C57",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\check_quote_records.py": "EEF2B6AF6E146DE8FFE4C206F409779ABA251E6B31E15D3AEE0C341D8671925A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\check_split_records.py": "FF94A7269FF139DABDAA8F77B1B3D83FAF6D1DB6462D191B5B6FF217F0BC0543",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\quote_runs_c.c": "335ED89A631829D0765D5E24262D30D1F7A617D02D7ACE209DEAB1A61B8173FF",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\split_matrix_c.c": "CC1D5FCEFF47BAC50F4BFC0BD6072FB403115E5FDAB4B543EA08F5BDD5CDD963",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\test_shellwords.c": "2BB7174B1DE8EFEA0536D92C7E7D07AF6D6B7A7A885FCBF575EC7AEAF2855DC4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\text_paths.xl": "ECBD25AB0F627DF535D0765A6E592D833816FF06608B503C868E18844FEC2C5A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\windows_argv.c": "6CCEB57C96C369EACCBD229EF8EA9C8DDBBA5ACF9955CD415555751E09231ABB",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\xrt_runtime.c": "376DD1308AFB9F9D6946457240B6A49F29E646E2D5FEF057E67B76388901910D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\xlang.package.json": "B691FCFF769F8BAEA6550A83480B5AE6C55578B8CE9BF02D8A1F7A07ECC5DC48",
+      "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+      "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+      "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+      "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+      "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+      "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+      "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+      "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+      "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+      "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_shellwords.xl": "02FC9AD7E8B49A236FE0C461A7550869655F491765C049029A54241A7EAE08D7",
+      "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED"
+    },
+    "calls": [
+      {
+        "name": "compiler version",
+        "arguments": [
+          "--version"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "stderr": "",
+          "elapsedMs": 35
+        }
+      },
+      {
+        "name": "Python version",
+        "arguments": [
+          "--version"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "Python 3.12.10\r\n",
+          "stderr": "",
+          "elapsedMs": 22
+        }
+      },
+      {
+        "name": "public header",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/shellwords",
+          "-x",
+          "c",
+          "-fsyntax-only",
+          "release/extlibs/shellwords/include/xrt_shellwords.h"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 108
+        }
+      },
+      {
+        "name": "manifest syntax",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/shellwords",
+          "-DXRT_MODULE_BUFFER",
+          "-DXRT_MODULE_VALUE_CONTAINER",
+          "-fsyntax-only",
+          "release/extlibs/shellwords/shellwords_native.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 111
+        }
+      },
+      {
+        "name": "selected XRT compile",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/shellwords",
+          "-c",
+          "release/extlibs/shellwords/test/xrt_runtime.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\runtime.o"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 4645
+        }
+      },
+      {
+        "name": "native compile",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/shellwords",
+          "-c",
+          "release/extlibs/shellwords/shellwords_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\native.o"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 210
+        }
+      },
+      {
+        "name": "test_shellwords compile",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/shellwords",
+          "release/extlibs/shellwords/test/test_shellwords.c",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\runtime.o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\native.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\test_shellwords.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 271
+        }
+      },
+      {
+        "name": "test_shellwords",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "test_shellwords: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 24
+        }
+      },
+      {
+        "name": "quote_runs_c compile",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/shellwords",
+          "release/extlibs/shellwords/test/quote_runs_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\quote_runs_c.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 341
+        }
+      },
+      {
+        "name": "quote_runs_c",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords quote runs: 126 vectors, 8 OOM paths, PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 29
+        }
+      },
+      {
+        "name": "split_matrix_c compile",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/shellwords",
+          "release/extlibs/shellwords/test/split_matrix_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\split_matrix_c.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 353
+        }
+      },
+      {
+        "name": "split_matrix_c",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords split matrix: 19851 vectors, 9 OOM paths, 180 OOM, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 67
+        }
+      },
+      {
+        "name": "Windows argv compile",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/shellwords",
+          "-municode",
+          "release/extlibs/shellwords/test/windows_argv.c",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\native.o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\windows-argv.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 789
+        }
+      },
+      {
+        "name": "Windows actual argv",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 360
+        }
+      },
+      {
+        "name": "GCC quote records",
+        "arguments": [
+          "--records"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": {
+            "compacted": true,
+            "utf8Bytes": 765013,
+            "sha256": "4e2719c7289d9a4564d5331345072f3449e5908b68048ecd061bd8e76a9ae61a",
+            "lines": 393,
+            "head": "0\t\t2727\r\n1\t20\t272027\r\n2\t2020\t27202027\r\n3\t202020\t2720202027\r\n4\t20202020202020\t272020202020202027\r\n5\t202020202020202020202020202020\t2720202020202020202020202020202027\r\n6\t20202020202020202020202020202020202020202020202020202020202020\t272020202020202020202020202020202020202020202020202020202020202027\r\n7",
+            "tail": "\t413d42\t27413d4227\r\n385\t412b3d42\t27412b3d4227\r\n386\t6c6162656c3a\t276c6162656c3a27\r\n387\t72617780ff\t2772617780ff27\r\n388\t612d623d65\t612d623d65\r\n389\t613a62\t613a62\r\n390\t74776f20776f726473\t2774776f20776f72647327\r\n391\t242865786974203729\t2724286578697420372927\r\n392\t6c696e650a6e657874\t276c696e650a6e65787427\r\n",
+            "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+            "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+          },
+          "stderr": "",
+          "elapsedMs": 30
+        }
+      },
+      {
+        "name": "GCC independent quote oracle",
+        "arguments": [
+          "release/extlibs/shellwords/test/check_quote_records.py",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\gcc.tsv"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords independent quote oracle: 393 records, PASS (5d5f97875416e883f4fcac24595375cd25afe1a858f6108daa6f4d2ee7768e56)\r\n",
+          "stderr": "",
+          "elapsedMs": 181
+        }
+      },
+      {
+        "name": "quote vectors direct C",
+        "arguments": [
+          "run",
+          "release/extlibs/shellwords/test/quote_runs_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords quote runs: 126 vectors, 8 OOM paths, PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 73
+        }
+      },
+      {
+        "name": "TCC quote records",
+        "arguments": [
+          "run",
+          "release/extlibs/shellwords/test/quote_runs_c.c",
+          "--",
+          "--records"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": {
+            "compacted": true,
+            "utf8Bytes": 765013,
+            "sha256": "4e2719c7289d9a4564d5331345072f3449e5908b68048ecd061bd8e76a9ae61a",
+            "lines": 393,
+            "head": "0\t\t2727\r\n1\t20\t272027\r\n2\t2020\t27202027\r\n3\t202020\t2720202027\r\n4\t20202020202020\t272020202020202027\r\n5\t202020202020202020202020202020\t2720202020202020202020202020202027\r\n6\t20202020202020202020202020202020202020202020202020202020202020\t272020202020202020202020202020202020202020202020202020202020202027\r\n7",
+            "tail": "\t413d42\t27413d4227\r\n385\t412b3d42\t27412b3d4227\r\n386\t6c6162656c3a\t276c6162656c3a27\r\n387\t72617780ff\t2772617780ff27\r\n388\t612d623d65\t612d623d65\r\n389\t613a62\t613a62\r\n390\t74776f20776f726473\t2774776f20776f72647327\r\n391\t242865786974203729\t2724286578697420372927\r\n392\t6c696e650a6e657874\t276c696e650a6e65787427\r\n",
+            "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+            "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+          },
+          "stderr": "",
+          "elapsedMs": 73
+        }
+      },
+      {
+        "name": "TCC independent quote oracle",
+        "arguments": [
+          "release/extlibs/shellwords/test/check_quote_records.py",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\tcc.tsv"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords independent quote oracle: 393 records, PASS (5d5f97875416e883f4fcac24595375cd25afe1a858f6108daa6f4d2ee7768e56)\r\n",
+          "stderr": "",
+          "elapsedMs": 184
+        }
+      },
+      {
+        "name": "direct input matrix TCC",
+        "arguments": [
+          "run",
+          "release/extlibs/shellwords/test/split_matrix_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords split matrix: 19851 vectors, 9 OOM paths, 180 OOM, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 114
+        }
+      },
+      {
+        "name": "GCC split records",
+        "arguments": [
+          "--records"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": {
+            "compacted": true,
+            "utf8Bytes": 874757,
+            "sha256": "69862971915054c290599e935cddfb69b6c61579835a2f25a6b78a6c70962eb1",
+            "lines": 19851,
+            "head": "0\t\tO\r\n1\t61\tO\t61\r\n2\t20\tO\r\n3\t27\tE\r\n4\t22\tE\r\n5\t5c\tE\r\n6\t6161\tO\t6161\r\n7\t2061\tO\t61\r\n8\t2761\tE\r\n9\t2261\tE\r\n10\t5c61\tO\t61\r\n11\t6120\tO\t61\r\n12\t2020\tO\r\n13\t2720\tE\r\n14\t2220\tE\r\n15\t5c20\tO\t20\r\n16\t6127\tE\r\n17\t2027\tE\r\n18\t2727\tO\t\r\n19\t2227\tE\r\n20\t5c27\tO\t27\r\n21\t6122\tE\r\n22\t2022\tE\r\n23\t2722\tE\r\n24\t2222\tO\t\r\n25\t5c22\tO\t22\r\n26\t615c\tE\r",
+            "tail": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616127\tE\r\n",
+            "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+            "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+          },
+          "stderr": "",
+          "elapsedMs": 91
+        }
+      },
+      {
+        "name": "GCC independent split oracle",
+        "arguments": [
+          "release/extlibs/shellwords/test/check_split_records.py",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\split-gcc.tsv"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords independent split oracle: 19851 records, 13546 malformed, 3 controls, PASS (f732f30f393f6bd43227e46a0c80a25f3d66a0add5d434c22f32b4133e70fc82)\r\n",
+          "stderr": "",
+          "elapsedMs": 651
+        }
+      },
+      {
+        "name": "TCC split records",
+        "arguments": [
+          "run",
+          "release/extlibs/shellwords/test/split_matrix_c.c",
+          "--",
+          "--records"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": {
+            "compacted": true,
+            "utf8Bytes": 874757,
+            "sha256": "69862971915054c290599e935cddfb69b6c61579835a2f25a6b78a6c70962eb1",
+            "lines": 19851,
+            "head": "0\t\tO\r\n1\t61\tO\t61\r\n2\t20\tO\r\n3\t27\tE\r\n4\t22\tE\r\n5\t5c\tE\r\n6\t6161\tO\t6161\r\n7\t2061\tO\t61\r\n8\t2761\tE\r\n9\t2261\tE\r\n10\t5c61\tO\t61\r\n11\t6120\tO\t61\r\n12\t2020\tO\r\n13\t2720\tE\r\n14\t2220\tE\r\n15\t5c20\tO\t20\r\n16\t6127\tE\r\n17\t2027\tE\r\n18\t2727\tO\t\r\n19\t2227\tE\r\n20\t5c27\tO\t27\r\n21\t6122\tE\r\n22\t2022\tE\r\n23\t2722\tE\r\n24\t2222\tO\t\r\n25\t5c22\tO\t22\r\n26\t615c\tE\r",
+            "tail": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616127\tE\r\n",
+            "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+            "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+          },
+          "stderr": "",
+          "elapsedMs": 132
+        }
+      },
+      {
+        "name": "TCC independent split oracle",
+        "arguments": [
+          "release/extlibs/shellwords/test/check_split_records.py",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\split-tcc.tsv"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords independent split oracle: 19851 records, 13546 malformed, 3 controls, PASS (f732f30f393f6bd43227e46a0c80a25f3d66a0add5d434c22f32b4133e70fc82)\r\n",
+          "stderr": "",
+          "elapsedMs": 661
+        }
+      },
+      {
+        "name": "basic C compile",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/shellwords",
+          "release/extlibs/shellwords/examples/basic.c",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\basic.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 295
+        }
+      },
+      {
+        "name": "basic GCC",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords: 3 two words 你好\r\nquote: 'A=B'\r\njoin: tool 'two words' '你好'\r\nwindows: \"a b\\\\\"\r\n",
+          "stderr": "",
+          "elapsedMs": 32
+        }
+      },
+      {
+        "name": "basic direct C",
+        "arguments": [
+          "run",
+          "release/extlibs/shellwords/examples/basic.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords: 3 two words 你好\r\nquote: 'A=B'\r\njoin: tool 'two words' '你好'\r\nwindows: \"a b\\\\\"\r\n",
+          "stderr": "",
+          "elapsedMs": 88
+        }
+      },
+      {
+        "name": "basic XLang",
+        "arguments": [
+          "run",
+          "release/examples/extlibs/shellwords.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords: 3 two words 你好\nquote: 'A=B'\njoin: tool 'two words' '你好'\nwindows: \"a b\\\\\"\n",
+          "stderr": "",
+          "elapsedMs": 159
+        }
+      },
+      {
+        "name": "command_plan C compile",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/shellwords",
+          "release/extlibs/shellwords/examples/command_plan_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\command_plan.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 273
+        }
+      },
+      {
+        "name": "command_plan GCC",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "argc: 5\r\noutput: report 'final'.txt\r\nlabel: 你好 世界\r\ncanonical: agent --output 'report '\\''final'\\''.txt' --label '你好 世界'\r\nwindows: \"C:\\saved files\\\\\"\r\nroundtrip: true\r\n",
+          "stderr": "",
+          "elapsedMs": 23
+        }
+      },
+      {
+        "name": "command_plan direct C",
+        "arguments": [
+          "run",
+          "release/extlibs/shellwords/examples/command_plan_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "argc: 5\r\noutput: report 'final'.txt\r\nlabel: 你好 世界\r\ncanonical: agent --output 'report '\\''final'\\''.txt' --label '你好 世界'\r\nwindows: \"C:\\saved files\\\\\"\r\nroundtrip: true\r\n",
+          "stderr": "",
+          "elapsedMs": 64
+        }
+      },
+      {
+        "name": "command_plan XLang",
+        "arguments": [
+          "run",
+          "release/extlibs/shellwords/examples/command_plan.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "argc: 5\noutput: report 'final'.txt\nlabel: 你好 世界\ncanonical: agent --output 'report '\\''final'\\''.txt' --label '你好 世界'\nwindows: \"C:\\saved files\\\\\"\nroundtrip: true\n",
+          "stderr": "",
+          "elapsedMs": 156
+        }
+      },
+      {
+        "name": "lexical_text C compile",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/shellwords",
+          "release/extlibs/shellwords/examples/lexical_text_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\lexical_text.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 291
+        }
+      },
+      {
+        "name": "lexical_text GCC",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "argc: 6\r\nmerged: pre two parts\r\nempty: true\r\nliteral slash: true\r\ncontinuation: ab\r\nsingle quoted newline: true\r\nrecovery: true\r\n",
+          "stderr": "",
+          "elapsedMs": 24
+        }
+      },
+      {
+        "name": "lexical_text direct C",
+        "arguments": [
+          "run",
+          "release/extlibs/shellwords/examples/lexical_text_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "argc: 6\r\nmerged: pre two parts\r\nempty: true\r\nliteral slash: true\r\ncontinuation: ab\r\nsingle quoted newline: true\r\nrecovery: true\r\n",
+          "stderr": "",
+          "elapsedMs": 62
+        }
+      },
+      {
+        "name": "lexical_text XLang",
+        "arguments": [
+          "run",
+          "release/extlibs/shellwords/examples/lexical_text.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "argc: 6\nmerged: pre two parts\nempty: true\nliteral slash: true\ncontinuation: ab\nsingle quoted newline: true\nrecovery: true\n",
+          "stderr": "",
+          "elapsedMs": 172
+        }
+      },
+      {
+        "name": "text-only boundary/OOM JIT",
+        "arguments": [
+          "run",
+          "release/extlibs/shellwords/test/text_paths.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords text paths: PASS\n",
+          "stderr": "",
+          "elapsedMs": 160
+        }
+      },
+      {
+        "name": "complete API cgen",
+        "arguments": [
+          "cgen",
+          "release/extlibs/shellwords/examples/command_plan.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\probe.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 57
+        }
+      },
+      {
+        "name": "four actual prototypes",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/shellwords",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\abi.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 113
+        }
+      },
+      {
+        "name": "release/extlibs/shellwords/test/quote_runs_c.c build",
+        "arguments": [
+          "build",
+          "release/extlibs/shellwords/test/quote_runs_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\75eed8296e824151ace5166fade80e5b.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 113
+        }
+      },
+      {
+        "name": "release/extlibs/shellwords/test/quote_runs_c.c AOT",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords quote runs: 126 vectors, 8 OOM paths, PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 42
+        }
+      },
+      {
+        "name": "AOT quote records",
+        "arguments": [
+          "--records"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": {
+            "compacted": true,
+            "utf8Bytes": 765013,
+            "sha256": "4e2719c7289d9a4564d5331345072f3449e5908b68048ecd061bd8e76a9ae61a",
+            "lines": 393,
+            "head": "0\t\t2727\r\n1\t20\t272027\r\n2\t2020\t27202027\r\n3\t202020\t2720202027\r\n4\t20202020202020\t272020202020202027\r\n5\t202020202020202020202020202020\t2720202020202020202020202020202027\r\n6\t20202020202020202020202020202020202020202020202020202020202020\t272020202020202020202020202020202020202020202020202020202020202027\r\n7",
+            "tail": "\t413d42\t27413d4227\r\n385\t412b3d42\t27412b3d4227\r\n386\t6c6162656c3a\t276c6162656c3a27\r\n387\t72617780ff\t2772617780ff27\r\n388\t612d623d65\t612d623d65\r\n389\t613a62\t613a62\r\n390\t74776f20776f726473\t2774776f20776f72647327\r\n391\t242865786974203729\t2724286578697420372927\r\n392\t6c696e650a6e657874\t276c696e650a6e65787427\r\n",
+            "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+            "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+          },
+          "stderr": "",
+          "elapsedMs": 39
+        }
+      },
+      {
+        "name": "AOT independent quote oracle",
+        "arguments": [
+          "release/extlibs/shellwords/test/check_quote_records.py",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\aot.tsv"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords independent quote oracle: 393 records, PASS (5d5f97875416e883f4fcac24595375cd25afe1a858f6108daa6f4d2ee7768e56)\r\n",
+          "stderr": "",
+          "elapsedMs": 181
+        }
+      },
+      {
+        "name": "release/extlibs/shellwords/test/split_matrix_c.c build",
+        "arguments": [
+          "build",
+          "release/extlibs/shellwords/test/split_matrix_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\a94019e2481b4f6bb7d51e027cea2b7f.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 115
+        }
+      },
+      {
+        "name": "release/extlibs/shellwords/test/split_matrix_c.c AOT",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords split matrix: 19851 vectors, 9 OOM paths, 180 OOM, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 204
+        }
+      },
+      {
+        "name": "AOT split records",
+        "arguments": [
+          "--records"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": {
+            "compacted": true,
+            "utf8Bytes": 874757,
+            "sha256": "69862971915054c290599e935cddfb69b6c61579835a2f25a6b78a6c70962eb1",
+            "lines": 19851,
+            "head": "0\t\tO\r\n1\t61\tO\t61\r\n2\t20\tO\r\n3\t27\tE\r\n4\t22\tE\r\n5\t5c\tE\r\n6\t6161\tO\t6161\r\n7\t2061\tO\t61\r\n8\t2761\tE\r\n9\t2261\tE\r\n10\t5c61\tO\t61\r\n11\t6120\tO\t61\r\n12\t2020\tO\r\n13\t2720\tE\r\n14\t2220\tE\r\n15\t5c20\tO\t20\r\n16\t6127\tE\r\n17\t2027\tE\r\n18\t2727\tO\t\r\n19\t2227\tE\r\n20\t5c27\tO\t27\r\n21\t6122\tE\r\n22\t2022\tE\r\n23\t2722\tE\r\n24\t2222\tO\t\r\n25\t5c22\tO\t22\r\n26\t615c\tE\r",
+            "tail": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616127\tE\r\n",
+            "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+            "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+          },
+          "stderr": "",
+          "elapsedMs": 212
+        }
+      },
+      {
+        "name": "AOT independent split oracle",
+        "arguments": [
+          "release/extlibs/shellwords/test/check_split_records.py",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\split-aot.tsv"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords independent split oracle: 19851 records, 13546 malformed, 3 controls, PASS (f732f30f393f6bd43227e46a0c80a25f3d66a0add5d434c22f32b4133e70fc82)\r\n",
+          "stderr": "",
+          "elapsedMs": 688
+        }
+      },
+      {
+        "name": "release/extlibs/shellwords/test/text_paths.xl build",
+        "arguments": [
+          "build",
+          "release/extlibs/shellwords/test/text_paths.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\b52454607dee4bc9864d96d34cd8b50d.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 314
+        }
+      },
+      {
+        "name": "release/extlibs/shellwords/test/text_paths.xl AOT",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords text paths: PASS\n",
+          "stderr": "",
+          "elapsedMs": 65
+        }
+      },
+      {
+        "name": "release/extlibs/shellwords/examples/basic.c build",
+        "arguments": [
+          "build",
+          "release/extlibs/shellwords/examples/basic.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\cd17e68654814623ba44b683bf18258a.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 113
+        }
+      },
+      {
+        "name": "release/extlibs/shellwords/examples/basic.c AOT",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords: 3 two words 你好\r\nquote: 'A=B'\r\njoin: tool 'two words' '你好'\r\nwindows: \"a b\\\\\"\r\n",
+          "stderr": "",
+          "elapsedMs": 29
+        }
+      },
+      {
+        "name": "release/examples/extlibs/shellwords.xl build",
+        "arguments": [
+          "build",
+          "release/examples/extlibs/shellwords.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\f61aa00264194fdf9c9e9cf728703b86.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 326
+        }
+      },
+      {
+        "name": "release/examples/extlibs/shellwords.xl AOT",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "shellwords: 3 two words 你好\nquote: 'A=B'\njoin: tool 'two words' '你好'\nwindows: \"a b\\\\\"\n",
+          "stderr": "",
+          "elapsedMs": 31
+        }
+      },
+      {
+        "name": "release/extlibs/shellwords/examples/command_plan_c.c build",
+        "arguments": [
+          "build",
+          "release/extlibs/shellwords/examples/command_plan_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\403e66cdb8034fddb8b0e8bb423db2db.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 116
+        }
+      },
+      {
+        "name": "release/extlibs/shellwords/examples/command_plan_c.c AOT",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "argc: 5\r\noutput: report 'final'.txt\r\nlabel: 你好 世界\r\ncanonical: agent --output 'report '\\''final'\\''.txt' --label '你好 世界'\r\nwindows: \"C:\\saved files\\\\\"\r\nroundtrip: true\r\n",
+          "stderr": "",
+          "elapsedMs": 37
+        }
+      },
+      {
+        "name": "release/extlibs/shellwords/examples/command_plan.xl build",
+        "arguments": [
+          "build",
+          "release/extlibs/shellwords/examples/command_plan.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\f1ce6ff8383e4a6d8a175912b27744cf.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 312
+        }
+      },
+      {
+        "name": "release/extlibs/shellwords/examples/command_plan.xl AOT",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "argc: 5\noutput: report 'final'.txt\nlabel: 你好 世界\ncanonical: agent --output 'report '\\''final'\\''.txt' --label '你好 世界'\nwindows: \"C:\\saved files\\\\\"\nroundtrip: true\n",
+          "stderr": "",
+          "elapsedMs": 30
+        }
+      },
+      {
+        "name": "release/extlibs/shellwords/examples/lexical_text_c.c build",
+        "arguments": [
+          "build",
+          "release/extlibs/shellwords/examples/lexical_text_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\3b7930b82edf402f9e8611edc9c86d82.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 115
+        }
+      },
+      {
+        "name": "release/extlibs/shellwords/examples/lexical_text_c.c AOT",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "argc: 6\r\nmerged: pre two parts\r\nempty: true\r\nliteral slash: true\r\ncontinuation: ab\r\nsingle quoted newline: true\r\nrecovery: true\r\n",
+          "stderr": "",
+          "elapsedMs": 27
+        }
+      },
+      {
+        "name": "release/extlibs/shellwords/examples/lexical_text.xl build",
+        "arguments": [
+          "build",
+          "release/extlibs/shellwords/examples/lexical_text.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords_guard\\run_39817508563d47dc9c2af72252ab0305\\3ad1a95b575a491a87bbf2c68ae6e38d.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 325
+        }
+      },
+      {
+        "name": "release/extlibs/shellwords/examples/lexical_text.xl AOT",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "argc: 6\nmerged: pre two parts\nempty: true\nliteral slash: true\ncontinuation: ab\nsingle quoted newline: true\nrecovery: true\n",
+          "stderr": "",
+          "elapsedMs": 27
+        }
+      },
+      {
+        "name": "test/cases/extlib_shellwords.xl complete JIT",
+        "arguments": [
+          "run",
+          "test/cases/extlib_shellwords.xl"
+        ],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: ValueError: shellwords join requires an array\nuncaught xlang error: shellwords join requires an array\n",
+          "elapsedMs": 236
+        }
+      }
+    ]
+  },
+  "linux": {
+    "snapshot": "/var/tmp/xlang-shellwords-split-zbjzIQ4r",
+    "gateExit": 1,
+    "phases": 60,
+    "positivePasses": 59,
+    "requiredFailures": 1,
+    "normalAotPrograms": 9,
+    "actualGeneratedNativePrototypes": 4,
+    "sourceResourceFingerprints": 62,
+    "toolFingerprints": 4,
+    "bootIdentity": "d5a6175e-6c73-47f1-8dc0-59d5d5f858dc",
+    "sourceToolsBootUnchanged": true,
+    "sourceManifest": "87033607e862d221c309fbc5754968c7360485b05605900bd9c057d74abc31ec  ./build/test/shellwords-split-20261102/bench-runtime.c\n0af7209ff119b9b7c564ba7a4433f4627c8bdd13085efbc99a46b7f5517b2b1b  ./build/test/shellwords-split-20261102/bench.c\n63226b20e4c57986e9868b536f1357fb8c16af01c4bb14d39fd3af9ece479a7a  ./build/test/shellwords-split-20261102/drop-empty-fixture.c\ndc15f4c3ec59d55659798dce3554fb12a83f80b443d1af84a7167c9dadd521d0  ./build/test/shellwords-split-20261102/drop-empty.c\n3d67b11d9a93c211796ab030a2e573172d18d733a91aa5e61943f61b1ca86265  ./build/test/shellwords-split-20261102/escape-everything-fixture.c\nf03dfa5e40d229bb10617d05486c5e38357c0798756a612c7a4f95104d7c8b68  ./build/test/shellwords-split-20261102/escape-everything.c\n5a636d0644c2e6d56b36e388112e29918314e48ef23c12e3066911aebca4d872  ./build/test/shellwords-split-20261102/keep-continuation-fixture.c\n906811de093bdfef29456c4fb018ec2b6b47fe5d2c64911603e6ec0de307e346  ./build/test/shellwords-split-20261102/keep-continuation.c\n0fb70dc04a85e03f2f2c70ba7cd9b5584edf1964eae6bec8aa4bb1865b9c0086  ./build/test/shellwords-split-20261102/old-fixture.c\n59c03bf13895c94945b36fd4c17860921d3d70fdf224e7ce00230a80f797f063  ./build/test/shellwords-split-20261102/old-native.c\n2b7b6af9cc7ec8d524103f963505493f5571a1f21e87ebe47caed588d19751be  ./dev/extlib_blockers/shellwords_join_var_array_projection.xl\n20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h\ne202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h\necf06e0410bc592e16360a8daabccce9bcb3b3ce7f889ca5a87b9abce85886ee  ./release/examples/extlibs/shellwords.xl\n19c5e2219556725c0856d27f4d416a02b14d6d1c550eba53f527a77708312e3f  ./release/extlibs/shellwords/README.md\n1ffd5085b2f770627bdb31db47f4b63652f88b24ac987b4a4ba339476205f0e8  ./release/extlibs/shellwords/docs/site.html\n5b1b0a7c37b612dad43afa4fedaa481fc5a48d60b4023440125e31ffce9c27eb  ./release/extlibs/shellwords/examples/basic.c\n190c8614b3f46f506d142af811df4142ee3fca2febee54b716965ab31d60dad7  ./release/extlibs/shellwords/examples/basic.expected.txt\nf2e20dd650ea49b54e6422812f244aa5ce3af1acf675267160a587ac897c8b60  ./release/extlibs/shellwords/examples/command_plan.expected.txt\n46b64c60084bcb3d96b7624a14e8b47072c9e73c39e518ab280428282e9d45a0  ./release/extlibs/shellwords/examples/command_plan.xl\n1d6e4fa657b46cbaa363ff8e32183e99b8db1b745ade889fcda925530bf45ca6  ./release/extlibs/shellwords/examples/command_plan_c.c\n5a1e38b5b2c802af2c612ced6b000836bdb70f151305cadaadc7f45a9d7ffd49  ./release/extlibs/shellwords/examples/lexical_text.expected.txt\n1bef73cd0022a1a31667f7ed12f73112ad6001dfb34d98f686a4dd8fe626eb8d  ./release/extlibs/shellwords/examples/lexical_text.xl\ndbf420bbe2e78a4b6f089e1515c1e0088917391738589432f29778d344642a79  ./release/extlibs/shellwords/examples/lexical_text_c.c\nadc9675c27d5829e9cf315ba7b53d20d66143874e9064bb74d092079438c1e34  ./release/extlibs/shellwords/include/xrt_shellwords.h\nd27450688f0943c8e5a0a4d874e4ab4f86141aee392110b6f6becef2d8852f23  ./release/extlibs/shellwords/shellwords_native.c\nebde9dd0016b4b2a7edbfb46d1a08e50a27305e889fb17f9681c3d9a795638e4  ./release/extlibs/shellwords/src/shellwords.xl\n47d238b2ecaf2d2fbb7dfbad7d2fabad39b2214bc704b274627f1cee8df09b38  ./release/extlibs/shellwords/test/allocations.xl\n359e6ea307c46bc1639cf14b070043ba5163f5ddace11bee678123106ad44721  ./release/extlibs/shellwords/test/bench_quote.c\n32e95fccd2130f8633940bf815a254a85fcec42a4e6d440e1cd9c728f70df508  ./release/extlibs/shellwords/test/bench_split_c.c\n192ddf8e2df422a3ca840597091aff17ae72c2c965459e6fe3518535352bc9ed  ./release/extlibs/shellwords/test/boundaries.xl\n9151d60d543c164e727921dbe9e168385d071f360afbd7ec27160b603cacde30  ./release/extlibs/shellwords/test/check.ps1\n31c1b49e6d2df4ad79660219dc0a7241f057762fc061a4c4cb45c7d066f77c57  ./release/extlibs/shellwords/test/check.sh\neef2b6af6e146de8ffe4c206f409779aba251e6b31e15d3aee0c341d8671925a  ./release/extlibs/shellwords/test/check_quote_records.py\nff94a7269ff139dabdaa8f77b1b3d83faf6d1db6462d191b5b6ff217f0bc0543  ./release/extlibs/shellwords/test/check_split_records.py\n335ed89a631829d0765d5e24262d30d1f7a617d02d7ace209deab1a61b8173ff  ./release/extlibs/shellwords/test/quote_runs_c.c\ncc1d5fceff47bac50f4bfc0bd6072fb403115e5fdab4b543ea08f5bdd5cdd963  ./release/extlibs/shellwords/test/split_matrix_c.c\n2bb7174b1de8efea0536d92c7e7d07af6d6b7a7a885fcbf575ec7aeaf2855dc4  ./release/extlibs/shellwords/test/test_shellwords.c\necbd25ab0f627df535d0765a6e592d833816ff06608b503c868e18844fec2c5a  ./release/extlibs/shellwords/test/text_paths.xl\n6cceb57c96c369eaccbd229ef8ea9c8ddbba5acf9955cd415555751e09231abb  ./release/extlibs/shellwords/test/windows_argv.c\n376dd1308afb9f9d6946457240b6a49f29e646e2d5fef057e67b76388901910d  ./release/extlibs/shellwords/test/xrt_runtime.c\nb691fcff769f8baea6550a83480b5ae6c55578b8ce9bf02d8a1f7a07ecc5dc48  ./release/extlibs/shellwords/xlang.package.json\n513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md\nfc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h\nfe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h\nede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h\nab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h\na203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h\ndb381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h\n8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h\nec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h\n4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h\n4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h\n931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h\n136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h\n073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h\nc519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h\n1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h\n4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so\n0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so\ndd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl\n02fc9ad7e8b49a236fe0c461a7550869655f491765c049029a54241a7eae08d7  ./test/cases/extlib_shellwords.xl\n",
+    "toolManifest": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc\n30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1\n3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash\n52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41  /usr/bin/python3\n",
+    "asanUbsanAndLeakDetectionEnabled": true,
+    "privatePoolMemoryAlsoChecked": true,
+    "outerCollectorExitZeroNotGreenPackage": true,
+    "calls": [
+      {
+        "command": "timeout 10s gcc --version",
+        "exit": 0,
+        "output": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n\n"
+      },
+      {
+        "command": "timeout 10s python3 --version",
+        "exit": 0,
+        "output": "Python 3.14.4\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -x c -fsyntax-only release/extlibs/shellwords/include/xrt_shellwords.h",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DXRT_MODULE_BUFFER -DXRT_MODULE_VALUE_CONTAINER -fsyntax-only release/extlibs/shellwords/shellwords_native.c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/shellwords/test/xrt_runtime.c -o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/runtime.o",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/shellwords/shellwords_native.c -o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/native.o",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/shellwords/test/test_shellwords.c /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/runtime.o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/native.o -no-pie -lm -ldl -o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/test_shellwords",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/test_shellwords",
+        "exit": 0,
+        "output": "test_shellwords: PASS\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/shellwords/test/quote_runs_c.c /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/quote_runs_c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/quote_runs_c",
+        "exit": 0,
+        "output": "shellwords quote runs: 126 vectors, 8 OOM paths, PASS\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/shellwords/test/split_matrix_c.c /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/split_matrix_c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/split_matrix_c",
+        "exit": 0,
+        "output": "shellwords split matrix: 19851 vectors, 9 OOM paths, 180 OOM, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/quote_runs_c --records",
+        "exit": 0,
+        "output": {
+          "compacted": true,
+          "utf8Bytes": 764621,
+          "sha256": "582f8b2ad7424c7a1181119b05955a9404641df87660d1aa17219b80457ae4ff",
+          "lines": 393,
+          "head": "0\t\t2727\n1\t20\t272027\n2\t2020\t27202027\n3\t202020\t2720202027\n4\t20202020202020\t272020202020202027\n5\t202020202020202020202020202020\t2720202020202020202020202020202027\n6\t20202020202020202020202020202020202020202020202020202020202020\t272020202020202020202020202020202020202020202020202020202020202027\n7\t202020",
+          "tail": "6627\n384\t413d42\t27413d4227\n385\t412b3d42\t27412b3d4227\n386\t6c6162656c3a\t276c6162656c3a27\n387\t72617780ff\t2772617780ff27\n388\t612d623d65\t612d623d65\n389\t613a62\t613a62\n390\t74776f20776f726473\t2774776f20776f72647327\n391\t242865786974203729\t2724286578697420372927\n392\t6c696e650a6e657874\t276c696e650a6e65787427\n\n",
+          "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+          "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+        }
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/shellwords/test/check_quote_records.py /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/gcc.tsv --shell",
+        "exit": 0,
+        "output": "shellwords independent quote oracle: 393 records, PASS (5d5f97875416e883f4fcac24595375cd25afe1a858f6108daa6f4d2ee7768e56)\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/shellwords/test/quote_runs_c.c",
+        "exit": 0,
+        "output": "shellwords quote runs: 126 vectors, 8 OOM paths, PASS\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/shellwords/test/quote_runs_c.c -- --records",
+        "exit": 0,
+        "output": {
+          "compacted": true,
+          "utf8Bytes": 764621,
+          "sha256": "582f8b2ad7424c7a1181119b05955a9404641df87660d1aa17219b80457ae4ff",
+          "lines": 393,
+          "head": "0\t\t2727\n1\t20\t272027\n2\t2020\t27202027\n3\t202020\t2720202027\n4\t20202020202020\t272020202020202027\n5\t202020202020202020202020202020\t2720202020202020202020202020202027\n6\t20202020202020202020202020202020202020202020202020202020202020\t272020202020202020202020202020202020202020202020202020202020202027\n7\t202020",
+          "tail": "6627\n384\t413d42\t27413d4227\n385\t412b3d42\t27412b3d4227\n386\t6c6162656c3a\t276c6162656c3a27\n387\t72617780ff\t2772617780ff27\n388\t612d623d65\t612d623d65\n389\t613a62\t613a62\n390\t74776f20776f726473\t2774776f20776f72647327\n391\t242865786974203729\t2724286578697420372927\n392\t6c696e650a6e657874\t276c696e650a6e65787427\n\n",
+          "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+          "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+        }
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/shellwords/test/check_quote_records.py /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/tcc.tsv --shell",
+        "exit": 0,
+        "output": "shellwords independent quote oracle: 393 records, PASS (5d5f97875416e883f4fcac24595375cd25afe1a858f6108daa6f4d2ee7768e56)\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/shellwords/test/split_matrix_c.c",
+        "exit": 0,
+        "output": "shellwords split matrix: 19851 vectors, 9 OOM paths, 180 OOM, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/split_matrix_c --records",
+        "exit": 0,
+        "output": {
+          "compacted": true,
+          "utf8Bytes": 854907,
+          "sha256": "c4799feebb3bcc8a39fce4172a4cba3956edf2b641c5f524b70debdd36be15c6",
+          "lines": 19851,
+          "head": "0\t\tO\n1\t61\tO\t61\n2\t20\tO\n3\t27\tE\n4\t22\tE\n5\t5c\tE\n6\t6161\tO\t6161\n7\t2061\tO\t61\n8\t2761\tE\n9\t2261\tE\n10\t5c61\tO\t61\n11\t6120\tO\t61\n12\t2020\tO\n13\t2720\tE\n14\t2220\tE\n15\t5c20\tO\t20\n16\t6127\tE\n17\t2027\tE\n18\t2727\tO\t\n19\t2227\tE\n20\t5c27\tO\t27\n21\t6122\tE\n22\t2022\tE\n23\t2722\tE\n24\t2222\tO\t\n25\t5c22\tO\t22\n26\t615c\tE\n27\t205c\tE\n28\t275c\tE\n29\t225",
+          "tail": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616127\tE\n\n",
+          "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+          "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+        }
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/shellwords/test/split_matrix_c.c -- --records",
+        "exit": 0,
+        "output": {
+          "compacted": true,
+          "utf8Bytes": 854907,
+          "sha256": "c4799feebb3bcc8a39fce4172a4cba3956edf2b641c5f524b70debdd36be15c6",
+          "lines": 19851,
+          "head": "0\t\tO\n1\t61\tO\t61\n2\t20\tO\n3\t27\tE\n4\t22\tE\n5\t5c\tE\n6\t6161\tO\t6161\n7\t2061\tO\t61\n8\t2761\tE\n9\t2261\tE\n10\t5c61\tO\t61\n11\t6120\tO\t61\n12\t2020\tO\n13\t2720\tE\n14\t2220\tE\n15\t5c20\tO\t20\n16\t6127\tE\n17\t2027\tE\n18\t2727\tO\t\n19\t2227\tE\n20\t5c27\tO\t27\n21\t6122\tE\n22\t2022\tE\n23\t2722\tE\n24\t2222\tO\t\n25\t5c22\tO\t22\n26\t615c\tE\n27\t205c\tE\n28\t275c\tE\n29\t225",
+          "tail": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616127\tE\n\n",
+          "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+          "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+        }
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/shellwords/test/check_split_records.py /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/split-gcc.tsv",
+        "exit": 0,
+        "output": "shellwords independent split oracle: 19851 records, 13546 malformed, 3 controls, PASS (f732f30f393f6bd43227e46a0c80a25f3d66a0add5d434c22f32b4133e70fc82)\n\n"
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/shellwords/test/check_split_records.py /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/split-tcc.tsv",
+        "exit": 0,
+        "output": "shellwords independent split oracle: 19851 records, 13546 malformed, 3 controls, PASS (f732f30f393f6bd43227e46a0c80a25f3d66a0add5d434c22f32b4133e70fc82)\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/shellwords/examples/basic.c /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/basic",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/basic",
+        "exit": 0,
+        "output": "shellwords: 3 two words 你好\nquote: 'A=B'\njoin: tool 'two words' '你好'\nwindows: \"a b\\\\\"\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/shellwords/examples/basic.c",
+        "exit": 0,
+        "output": "shellwords: 3 two words 你好\nquote: 'A=B'\njoin: tool 'two words' '你好'\nwindows: \"a b\\\\\"\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/examples/extlibs/shellwords.xl",
+        "exit": 0,
+        "output": "shellwords: 3 two words 你好\nquote: 'A=B'\njoin: tool 'two words' '你好'\nwindows: \"a b\\\\\"\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/shellwords/examples/command_plan_c.c /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/command_plan",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/command_plan",
+        "exit": 0,
+        "output": "argc: 5\noutput: report 'final'.txt\nlabel: 你好 世界\ncanonical: agent --output 'report '\\''final'\\''.txt' --label '你好 世界'\nwindows: \"C:\\saved files\\\\\"\nroundtrip: true\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/shellwords/examples/command_plan_c.c",
+        "exit": 0,
+        "output": "argc: 5\noutput: report 'final'.txt\nlabel: 你好 世界\ncanonical: agent --output 'report '\\''final'\\''.txt' --label '你好 世界'\nwindows: \"C:\\saved files\\\\\"\nroundtrip: true\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/shellwords/examples/command_plan.xl",
+        "exit": 0,
+        "output": "argc: 5\noutput: report 'final'.txt\nlabel: 你好 世界\ncanonical: agent --output 'report '\\''final'\\''.txt' --label '你好 世界'\nwindows: \"C:\\saved files\\\\\"\nroundtrip: true\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/shellwords/examples/lexical_text_c.c /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/lexical_text",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/lexical_text",
+        "exit": 0,
+        "output": "argc: 6\nmerged: pre two parts\nempty: true\nliteral slash: true\ncontinuation: ab\nsingle quoted newline: true\nrecovery: true\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/shellwords/examples/lexical_text_c.c",
+        "exit": 0,
+        "output": "argc: 6\nmerged: pre two parts\nempty: true\nliteral slash: true\ncontinuation: ab\nsingle quoted newline: true\nrecovery: true\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/shellwords/examples/lexical_text.xl",
+        "exit": 0,
+        "output": "argc: 6\nmerged: pre two parts\nempty: true\nliteral slash: true\ncontinuation: ab\nsingle quoted newline: true\nrecovery: true\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/shellwords/test/text_paths.xl",
+        "exit": 0,
+        "output": "shellwords text paths: PASS\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl cgen release/extlibs/shellwords/examples/command_plan.xl --emit /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/probe.c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -fsyntax-only /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/abi.c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/shellwords/test/quote_runs_c.c -o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-1",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-1",
+        "exit": 0,
+        "output": "shellwords quote runs: 126 vectors, 8 OOM paths, PASS\n\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-1 --records",
+        "exit": 0,
+        "output": {
+          "compacted": true,
+          "utf8Bytes": 764621,
+          "sha256": "582f8b2ad7424c7a1181119b05955a9404641df87660d1aa17219b80457ae4ff",
+          "lines": 393,
+          "head": "0\t\t2727\n1\t20\t272027\n2\t2020\t27202027\n3\t202020\t2720202027\n4\t20202020202020\t272020202020202027\n5\t202020202020202020202020202020\t2720202020202020202020202020202027\n6\t20202020202020202020202020202020202020202020202020202020202020\t272020202020202020202020202020202020202020202020202020202020202027\n7\t202020",
+          "tail": "6627\n384\t413d42\t27413d4227\n385\t412b3d42\t27412b3d4227\n386\t6c6162656c3a\t276c6162656c3a27\n387\t72617780ff\t2772617780ff27\n388\t612d623d65\t612d623d65\n389\t613a62\t613a62\n390\t74776f20776f726473\t2774776f20776f72647327\n391\t242865786974203729\t2724286578697420372927\n392\t6c696e650a6e657874\t276c696e650a6e65787427\n\n",
+          "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+          "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+        }
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/shellwords/test/check_quote_records.py /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot.tsv --shell",
+        "exit": 0,
+        "output": "shellwords independent quote oracle: 393 records, PASS (5d5f97875416e883f4fcac24595375cd25afe1a858f6108daa6f4d2ee7768e56)\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/shellwords/test/text_paths.xl -o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-2",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-2",
+        "exit": 0,
+        "output": "shellwords text paths: PASS\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/shellwords/examples/basic.c -o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-3",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-3",
+        "exit": 0,
+        "output": "shellwords: 3 two words 你好\nquote: 'A=B'\njoin: tool 'two words' '你好'\nwindows: \"a b\\\\\"\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/examples/extlibs/shellwords.xl -o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-4",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-4",
+        "exit": 0,
+        "output": "shellwords: 3 two words 你好\nquote: 'A=B'\njoin: tool 'two words' '你好'\nwindows: \"a b\\\\\"\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/shellwords/examples/command_plan_c.c -o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-5",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-5",
+        "exit": 0,
+        "output": "argc: 5\noutput: report 'final'.txt\nlabel: 你好 世界\ncanonical: agent --output 'report '\\''final'\\''.txt' --label '你好 世界'\nwindows: \"C:\\saved files\\\\\"\nroundtrip: true\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/shellwords/examples/command_plan.xl -o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-6",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-6",
+        "exit": 0,
+        "output": "argc: 5\noutput: report 'final'.txt\nlabel: 你好 世界\ncanonical: agent --output 'report '\\''final'\\''.txt' --label '你好 世界'\nwindows: \"C:\\saved files\\\\\"\nroundtrip: true\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/shellwords/test/split_matrix_c.c -o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-7",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-7",
+        "exit": 0,
+        "output": "shellwords split matrix: 19851 vectors, 9 OOM paths, 180 OOM, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-7 --records",
+        "exit": 0,
+        "output": {
+          "compacted": true,
+          "utf8Bytes": 854907,
+          "sha256": "c4799feebb3bcc8a39fce4172a4cba3956edf2b641c5f524b70debdd36be15c6",
+          "lines": 19851,
+          "head": "0\t\tO\n1\t61\tO\t61\n2\t20\tO\n3\t27\tE\n4\t22\tE\n5\t5c\tE\n6\t6161\tO\t6161\n7\t2061\tO\t61\n8\t2761\tE\n9\t2261\tE\n10\t5c61\tO\t61\n11\t6120\tO\t61\n12\t2020\tO\n13\t2720\tE\n14\t2220\tE\n15\t5c20\tO\t20\n16\t6127\tE\n17\t2027\tE\n18\t2727\tO\t\n19\t2227\tE\n20\t5c27\tO\t27\n21\t6122\tE\n22\t2022\tE\n23\t2722\tE\n24\t2222\tO\t\n25\t5c22\tO\t22\n26\t615c\tE\n27\t205c\tE\n28\t275c\tE\n29\t225",
+          "tail": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616127\tE\n\n",
+          "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+          "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+        }
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/shellwords/test/check_split_records.py /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/split-aot.tsv",
+        "exit": 0,
+        "output": "shellwords independent split oracle: 19851 records, 13546 malformed, 3 controls, PASS (f732f30f393f6bd43227e46a0c80a25f3d66a0add5d434c22f32b4133e70fc82)\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/shellwords/examples/lexical_text_c.c -o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-8",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-8",
+        "exit": 0,
+        "output": "argc: 6\nmerged: pre two parts\nempty: true\nliteral slash: true\ncontinuation: ab\nsingle quoted newline: true\nrecovery: true\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl build release/extlibs/shellwords/examples/lexical_text.xl -o /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-9",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-zbjzIQ4r/tmp/xlang-shellwords-QV0vs3/aot-9",
+        "exit": 0,
+        "output": "argc: 6\nmerged: pre two parts\nempty: true\nliteral slash: true\ncontinuation: ab\nsingle quoted newline: true\nrecovery: true\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run test/cases/extlib_shellwords.xl",
+        "exit": 1,
+        "output": "uncaught xlang error: ValueError: shellwords join requires an array\nuncaught xlang error: shellwords join requires an array\n"
+      }
+    ]
+  },
+  "performance": {
+    "manualSource": "release/extlibs/shellwords/test/bench_split_c.c",
+    "notInDefaultGate": true,
+    "configuration": "GCC -O2; same selected BUFFER/VALUE_CONTAINER XRT without MEMORY_DEBUG; seven alternating old/new rounds per platform",
+    "oldNativeSha256": "59c03bf13895c94945b36fd4c17860921d3d70fdf224e7ce00230a80f797f063",
+    "newNativeSha256": "d27450688f0943c8e5a0a4d874e4ab4f86141aee392110b6f6becef2d8852f23",
+    "windows": [
+      {
+        "run": "benchmark 0 old",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.248,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.245,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.232,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.182,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.023,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.018,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "benchmark 0 new",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.009,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.009,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.008,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.153,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.022,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.016,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "benchmark 1 new",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.009,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.009,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.008,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.162,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.023,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.015,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "benchmark 1 old",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.245,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.258,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.239,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.178,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.024,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.018,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "benchmark 2 old",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.244,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.228,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.237,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.181,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.023,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.018,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "benchmark 2 new",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.009,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.008,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.009,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.152,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.023,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.015,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "benchmark 3 new",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.008,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.008,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.009,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.155,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.022,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.015,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "benchmark 3 old",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.24,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.237,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.249,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.177,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.023,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.018,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "benchmark 4 old",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.241,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.24,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.229,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.179,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.024,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.018,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "benchmark 4 new",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.008,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.008,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.009,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.153,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.023,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.014,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "benchmark 5 new",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.009,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.008,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.009,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.153,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.023,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.015,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "benchmark 5 old",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.237,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.234,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.24,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.187,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.023,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.017,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "benchmark 6 old",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.245,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.256,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.238,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.184,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.023,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.018,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "benchmark 6 new",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.009,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.009,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.008,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.154,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.023,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.015,
+            "checksum": 60000
+          }
+        ]
+      }
+    ],
+    "linux": [
+      {
+        "run": "bench-0-new",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.001384,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.001239,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.001237,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.073543,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.019112,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.012873,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "bench-0-old",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.239265,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.231936,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.231273,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.18035,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.022259,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.017488,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "bench-1-new",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.001359,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.001274,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.001268,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.077547,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.019059,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.012732,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "bench-1-old",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.255594,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.262565,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.231923,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.179027,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.022039,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.017304,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "bench-2-new",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.00137,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.001237,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.001271,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.072624,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.018757,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.01262,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "bench-2-old",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.239604,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.23301,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.235842,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.186379,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.022095,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.017183,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "bench-3-new",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.001366,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.001261,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.001264,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.073323,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.018988,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.012816,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "bench-3-old",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.240858,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.233216,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.234923,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.179913,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.022355,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.017297,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "bench-4-new",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.001281,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.001239,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.001278,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.073351,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.019879,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.01287,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "bench-4-old",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.239255,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.236159,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.230308,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.180131,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.022742,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.017335,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "bench-5-new",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.00141,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.001246,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.001261,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.07404,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.019358,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.012836,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "bench-5-old",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.238612,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.230302,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.233506,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.180323,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.022804,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.018728,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "bench-6-new",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.001329,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.001246,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.001268,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.071921,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.019517,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.012759,
+            "checksum": 60000
+          }
+        ]
+      },
+      {
+        "run": "bench-6-old",
+        "measurements": [
+          {
+            "load": "plain",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.238367,
+            "checksum": 1000
+          },
+          {
+            "load": "single",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.234542,
+            "checksum": 1000
+          },
+          {
+            "load": "double",
+            "inputBytes": 16386,
+            "iterations": 1000,
+            "seconds": 0.232109,
+            "checksum": 1000
+          },
+          {
+            "load": "escapes",
+            "inputBytes": 16384,
+            "iterations": 1000,
+            "seconds": 0.181499,
+            "checksum": 1000
+          },
+          {
+            "load": "many",
+            "inputBytes": 512,
+            "iterations": 1000,
+            "seconds": 0.02262,
+            "checksum": 128000
+          },
+          {
+            "load": "short",
+            "inputBytes": 21,
+            "iterations": 20000,
+            "seconds": 0.017678,
+            "checksum": 60000
+          }
+        ]
+      }
+    ],
+    "windowsMedianOldOverNew": {
+      "short": 1.2,
+      "single": 30.0,
+      "escapes": 1.183,
+      "many": 1.0,
+      "double": 26.444,
+      "plain": 27.111
+    },
+    "linuxFinalMedianOldOverNew": {
+      "short": 1.353,
+      "single": 187.172,
+      "escapes": 2.458,
+      "many": 1.17,
+      "double": 183.051,
+      "plain": 175.157
+    },
+    "firstLinuxMedianOldOverNew": {
+      "short": 1.362,
+      "single": 183.908,
+      "escapes": 2.444,
+      "many": 1.172,
+      "double": 185.911,
+      "plain": 174.314
+    },
+    "readmeLinuxRangeFromFirstNativeBenchmarkNotFirstFullGate": true,
+    "platformCrtAndBufferCallCostsMatter": true,
+    "shortTimesHaveClockGranularityAndNoise": true,
+    "notWholeLanguageOrAllInputsGuarantee": true,
+    "windowsObjectText": {
+      "dataDelta": 0,
+      "bssDelta": 0,
+      "old": 3404,
+      "new": 3452,
+      "delta": 48
+    },
+    "linuxObjectText": {
+      "dataDelta": 0,
+      "bssDelta": 0,
+      "old": 3505,
+      "new": 3566,
+      "delta": 61
+    },
+    "windowsRawObjectSize": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n   3404\t      0\t      0\t   3404\t    d4c\tD:\\GIT\\x-lang\\build\\test\\shellwords-split-20261102/old-native.o\r\n   3452\t      0\t      0\t   3452\t    d7c\tD:\\GIT\\x-lang\\build\\test\\shellwords-split-20261102/new-native.o\r\n",
+    "linuxRawObjectSize": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n   3505\t    144\t      0\t   3649\t    e41\t/var/tmp/xlang-shellwords-split-zbjzIQ4r/old-native.o\n   3566\t    144\t      0\t   3710\t    e7e\t/var/tmp/xlang-shellwords-split-zbjzIQ4r/new-native.o\n"
+  },
+  "blocker": {
+    "id": "M1",
+    "source": "dev/extlib_blockers/shellwords_join_var_array_projection.xl",
+    "record": "dev/extlib_blockers/foreign_var_container_projection.md",
+    "checkExit": 0,
+    "jitExit": 1,
+    "buildExit": 0,
+    "aotExit": 1,
+    "windows": [
+      {
+        "name": "check",
+        "arguments": [
+          "check",
+          "dev/extlib_blockers/shellwords_join_var_array_projection.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "ok\n",
+          "stderr": "",
+          "elapsedMs": 53
+        }
+      },
+      {
+        "name": "jit",
+        "arguments": [
+          "run",
+          "dev/extlib_blockers/shellwords_join_var_array_projection.xl"
+        ],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: ValueError: shellwords join requires an array\nuncaught xlang error: shellwords join requires an array\n",
+          "elapsedMs": 123
+        }
+      },
+      {
+        "name": "build",
+        "arguments": [
+          "build",
+          "dev/extlib_blockers/shellwords_join_var_array_projection.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\shellwords-split-20261102/minimal.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 259
+        }
+      },
+      {
+        "name": "aot",
+        "arguments": [],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: ValueError: shellwords join requires an array\n",
+          "elapsedMs": 27
+        }
+      }
+    ],
+    "linuxExitCodes": [
+      "0",
+      "1",
+      "0",
+      "1"
+    ],
+    "linuxJitStderr": "uncaught xlang error: ValueError: shellwords join requires an array\nuncaught xlang error: shellwords join requires an array\n",
+    "linuxAotStderr": "uncaught xlang error: ValueError: shellwords join requires an array\n",
+    "notReachedAfterMandatoryCentralJitFailure": [
+      "original central test build and AOT",
+      "test/boundaries.xl JIT/build/AOT",
+      "test/allocations.xl JIT/build/AOT"
+    ],
+    "minimalAotFailureIsNotClaimOfFullCentralAotExecution": true,
+    "recommendation": "Mainline must project extern language-array arguments to the public XRT container representation with complete elements/ownership and failure rollback. Rerun original minimal and full gates; package must not recognize compiler-private handles or serialize around the defect.",
+    "completePackageNotAccepted": true
+  },
+  "catalog": {
+    "candidate": "D:\\GIT\\x-lang\\build\\test\\shellwords-split-20261102\\catalog-7b7dc7485a544491965b9d61f0889f38",
+    "generation": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"passed\", \"catalogSha256\": \"96227e27d7f3adb6b48db47ebe8546bcfe535c5754bcdda0a8b7a9160d528516\", \"sourceIndexSha256\": \"4a2ba74e8ee606465fc7d0ab8d1b82d3e05b5663f60fd7d517444a87972a574d\", \"preservedNonExtensionEntries\": 6156, \"publicPackages\": 207, \"excludedPrivate\": [\"_bzip2\", \"_expat\", \"_libzip\", \"_tomlc17\", \"_xge_native\", \"_zlib\"], \"extensionEntries\": 11442, \"addedEntries\": 0, \"removedEntries\": 0, \"documents\": 145, \"availableSources\": 593, \"extensionExporterSha256\": \"5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42\", \"inputsUnchanged\": true}\r\n",
+      "stderr": "",
+      "elapsedMs": 11025
+    },
+    "freshness": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+      "stderr": "",
+      "elapsedMs": 929
+    },
+    "strictBinding": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "Catalog compiler changed: xl.dll\r\n",
+      "elapsedMs": 301
+    },
+    "installed": false,
+    "bindingIdentityNotRewritten": true,
+    "apiAdditions": 0,
+    "apiRemovals": 0,
+    "websiteSource": "release/extlibs/shellwords/docs/site.html",
+    "websiteExternalDeployment": false
+  },
+  "delivery": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+    "stderr": "",
+    "elapsedMs": 957
+  },
+  "evidenceQualification": {
+    "firstLinuxGateExit": 1,
+    "firstLinuxPhases": 34,
+    "firstLinuxIncorrectlyReusedCommandPlanForThirdExample": true,
+    "firstLinuxNotFullPackageAcceptance": true,
+    "firstLinuxCalls": [
+      {
+        "command": "timeout 10s gcc --version",
+        "exit": 0,
+        "output": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n\n"
+      },
+      {
+        "command": "timeout 10s python3 --version",
+        "exit": 0,
+        "output": "Python 3.14.4\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -x c -fsyntax-only release/extlibs/shellwords/include/xrt_shellwords.h",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DXRT_MODULE_BUFFER -DXRT_MODULE_VALUE_CONTAINER -fsyntax-only release/extlibs/shellwords/shellwords_native.c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/shellwords/test/xrt_runtime.c -o /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/runtime.o",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/shellwords/shellwords_native.c -o /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/native.o",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/shellwords/test/test_shellwords.c /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/runtime.o /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/native.o -no-pie -lm -ldl -o /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/test_shellwords",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/test_shellwords",
+        "exit": 0,
+        "output": "test_shellwords: PASS\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/shellwords/test/quote_runs_c.c /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/quote_runs_c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/quote_runs_c",
+        "exit": 0,
+        "output": "shellwords quote runs: 126 vectors, 8 OOM paths, PASS\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/shellwords/test/split_matrix_c.c /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/split_matrix_c",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 120s /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/split_matrix_c",
+        "exit": 0,
+        "output": "shellwords split matrix: 19851 vectors, 9 OOM paths, 180 OOM, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/quote_runs_c --records",
+        "exit": 0,
+        "output": {
+          "compacted": true,
+          "utf8Bytes": 764621,
+          "sha256": "582f8b2ad7424c7a1181119b05955a9404641df87660d1aa17219b80457ae4ff",
+          "lines": 393,
+          "head": "0\t\t2727\n1\t20\t272027\n2\t2020\t27202027\n3\t202020\t2720202027\n4\t20202020202020\t272020202020202027\n5\t202020202020202020202020202020\t2720202020202020202020202020202027\n6\t20202020202020202020202020202020202020202020202020202020202020\t272020202020202020202020202020202020202020202020202020202020202027\n7\t202020",
+          "tail": "6627\n384\t413d42\t27413d4227\n385\t412b3d42\t27412b3d4227\n386\t6c6162656c3a\t276c6162656c3a27\n387\t72617780ff\t2772617780ff27\n388\t612d623d65\t612d623d65\n389\t613a62\t613a62\n390\t74776f20776f726473\t2774776f20776f72647327\n391\t242865786974203729\t2724286578697420372927\n392\t6c696e650a6e657874\t276c696e650a6e65787427\n\n",
+          "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+          "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+        }
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/shellwords/test/check_quote_records.py /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/gcc.tsv --shell",
+        "exit": 0,
+        "output": "shellwords independent quote oracle: 393 records, PASS (5d5f97875416e883f4fcac24595375cd25afe1a858f6108daa6f4d2ee7768e56)\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/shellwords/test/quote_runs_c.c",
+        "exit": 0,
+        "output": "shellwords quote runs: 126 vectors, 8 OOM paths, PASS\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/shellwords/test/quote_runs_c.c -- --records",
+        "exit": 0,
+        "output": {
+          "compacted": true,
+          "utf8Bytes": 764621,
+          "sha256": "582f8b2ad7424c7a1181119b05955a9404641df87660d1aa17219b80457ae4ff",
+          "lines": 393,
+          "head": "0\t\t2727\n1\t20\t272027\n2\t2020\t27202027\n3\t202020\t2720202027\n4\t20202020202020\t272020202020202027\n5\t202020202020202020202020202020\t2720202020202020202020202020202027\n6\t20202020202020202020202020202020202020202020202020202020202020\t272020202020202020202020202020202020202020202020202020202020202027\n7\t202020",
+          "tail": "6627\n384\t413d42\t27413d4227\n385\t412b3d42\t27412b3d4227\n386\t6c6162656c3a\t276c6162656c3a27\n387\t72617780ff\t2772617780ff27\n388\t612d623d65\t612d623d65\n389\t613a62\t613a62\n390\t74776f20776f726473\t2774776f20776f72647327\n391\t242865786974203729\t2724286578697420372927\n392\t6c696e650a6e657874\t276c696e650a6e65787427\n\n",
+          "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+          "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+        }
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/shellwords/test/check_quote_records.py /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/tcc.tsv --shell",
+        "exit": 0,
+        "output": "shellwords independent quote oracle: 393 records, PASS (5d5f97875416e883f4fcac24595375cd25afe1a858f6108daa6f4d2ee7768e56)\n\n"
+      },
+      {
+        "command": "timeout 120s ./release/xl run release/extlibs/shellwords/test/split_matrix_c.c",
+        "exit": 0,
+        "output": "shellwords split matrix: 19851 vectors, 9 OOM paths, 180 OOM, 0 failures\n\n"
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/split_matrix_c --records",
+        "exit": 0,
+        "output": {
+          "compacted": true,
+          "utf8Bytes": 854907,
+          "sha256": "c4799feebb3bcc8a39fce4172a4cba3956edf2b641c5f524b70debdd36be15c6",
+          "lines": 19851,
+          "head": "0\t\tO\n1\t61\tO\t61\n2\t20\tO\n3\t27\tE\n4\t22\tE\n5\t5c\tE\n6\t6161\tO\t6161\n7\t2061\tO\t61\n8\t2761\tE\n9\t2261\tE\n10\t5c61\tO\t61\n11\t6120\tO\t61\n12\t2020\tO\n13\t2720\tE\n14\t2220\tE\n15\t5c20\tO\t20\n16\t6127\tE\n17\t2027\tE\n18\t2727\tO\t\n19\t2227\tE\n20\t5c27\tO\t27\n21\t6122\tE\n22\t2022\tE\n23\t2722\tE\n24\t2222\tO\t\n25\t5c22\tO\t22\n26\t615c\tE\n27\t205c\tE\n28\t275c\tE\n29\t225",
+          "tail": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616127\tE\n\n",
+          "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+          "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+        }
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/shellwords/test/split_matrix_c.c -- --records",
+        "exit": 0,
+        "output": {
+          "compacted": true,
+          "utf8Bytes": 854907,
+          "sha256": "c4799feebb3bcc8a39fce4172a4cba3956edf2b641c5f524b70debdd36be15c6",
+          "lines": 19851,
+          "head": "0\t\tO\n1\t61\tO\t61\n2\t20\tO\n3\t27\tE\n4\t22\tE\n5\t5c\tE\n6\t6161\tO\t6161\n7\t2061\tO\t61\n8\t2761\tE\n9\t2261\tE\n10\t5c61\tO\t61\n11\t6120\tO\t61\n12\t2020\tO\n13\t2720\tE\n14\t2220\tE\n15\t5c20\tO\t20\n16\t6127\tE\n17\t2027\tE\n18\t2727\tO\t\n19\t2227\tE\n20\t5c27\tO\t27\n21\t6122\tE\n22\t2022\tE\n23\t2722\tE\n24\t2222\tO\t\n25\t5c22\tO\t22\n26\t615c\tE\n27\t205c\tE\n28\t275c\tE\n29\t225",
+          "tail": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616127\tE\n\n",
+          "completeDeterministicCorpusSource": "release/extlibs/shellwords/test/split_matrix_c.c",
+          "independentOracle": "release/extlibs/shellwords/test/check_split_records.py"
+        }
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/shellwords/test/check_split_records.py /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/split-gcc.tsv",
+        "exit": 0,
+        "output": "shellwords independent split oracle: 19851 records, 13546 malformed, 3 controls, PASS (f732f30f393f6bd43227e46a0c80a25f3d66a0add5d434c22f32b4133e70fc82)\n\n"
+      },
+      {
+        "command": "timeout 60s python3 release/extlibs/shellwords/test/check_split_records.py /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/split-tcc.tsv",
+        "exit": 0,
+        "output": "shellwords independent split oracle: 19851 records, 13546 malformed, 3 controls, PASS (f732f30f393f6bd43227e46a0c80a25f3d66a0add5d434c22f32b4133e70fc82)\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/shellwords/examples/basic.c /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/basic",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/basic",
+        "exit": 0,
+        "output": "shellwords: 3 two words 你好\nquote: 'A=B'\njoin: tool 'two words' '你好'\nwindows: \"a b\\\\\"\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/shellwords/examples/basic.c",
+        "exit": 0,
+        "output": "shellwords: 3 two words 你好\nquote: 'A=B'\njoin: tool 'two words' '你好'\nwindows: \"a b\\\\\"\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/examples/extlibs/shellwords.xl",
+        "exit": 0,
+        "output": "shellwords: 3 two words 你好\nquote: 'A=B'\njoin: tool 'two words' '你好'\nwindows: \"a b\\\\\"\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/shellwords/examples/command_plan_c.c /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/command_plan",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/command_plan",
+        "exit": 0,
+        "output": "argc: 5\noutput: report 'final'.txt\nlabel: 你好 世界\ncanonical: agent --output 'report '\\''final'\\''.txt' --label '你好 世界'\nwindows: \"C:\\saved files\\\\\"\nroundtrip: true\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/shellwords/examples/command_plan_c.c",
+        "exit": 0,
+        "output": "argc: 5\noutput: report 'final'.txt\nlabel: 你好 世界\ncanonical: agent --output 'report '\\''final'\\''.txt' --label '你好 世界'\nwindows: \"C:\\saved files\\\\\"\nroundtrip: true\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/shellwords/examples/command_plan.xl",
+        "exit": 0,
+        "output": "argc: 5\noutput: report 'final'.txt\nlabel: 你好 世界\ncanonical: agent --output 'report '\\''final'\\''.txt' --label '你好 世界'\nwindows: \"C:\\saved files\\\\\"\nroundtrip: true\n\n"
+      },
+      {
+        "command": "timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/shellwords -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/shellwords/examples/command_plan_c.c /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/runtime.o -no-pie -lm -ldl -o /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/lexical_text",
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": "timeout 90s /var/tmp/xlang-shellwords-split-WlFLETFj/tmp/xlang-shellwords-8VGwX2/lexical_text",
+        "exit": 0,
+        "output": "argc: 5\noutput: report 'final'.txt\nlabel: 你好 世界\ncanonical: agent --output 'report '\\''final'\\''.txt' --label '你好 世界'\nwindows: \"C:\\saved files\\\\\"\nroundtrip: true\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/shellwords/examples/command_plan_c.c",
+        "exit": 0,
+        "output": "argc: 5\noutput: report 'final'.txt\nlabel: 你好 世界\ncanonical: agent --output 'report '\\''final'\\''.txt' --label '你好 世界'\nwindows: \"C:\\saved files\\\\\"\nroundtrip: true\n\n"
+      },
+      {
+        "command": "timeout 90s ./release/xl run release/extlibs/shellwords/examples/command_plan.xl",
+        "exit": 0,
+        "output": "argc: 5\noutput: report 'final'.txt\nlabel: 你好 世界\ncanonical: agent --output 'report '\\''final'\\''.txt' --label '你好 世界'\nwindows: \"C:\\saved files\\\\\"\nroundtrip: true\n"
+      }
+    ],
+    "finalCompleteGatesRerunAfterLoopFix": true,
+    "duringGatesInputsStable": true,
+    "postGateCommentOnlyChange": {
+      "path": "release/extlibs/shellwords/test/split_matrix_c.c",
+      "oldText": "4096字节混合模式在单引号中途结束。",
+      "newText": "4096字节混合模式在引号中途结束。",
+      "preprocessedBeforeSha256": "3ce898cc816505dc6fd151ee3acd17e4e72f47ea6957815da1c500091542cc83",
+      "preprocessedAfterSha256": "3ce898cc816505dc6fd151ee3acd17e4e72f47ea6957815da1c500091542cc83",
+      "identicalGccPreprocessedTest": true
+    },
+    "noFunctionalChangesAfterGates": true,
+    "finalCatalogInputHashes": {
+      "C:/Program Files/Python312/python.exe": "4D6F5F81A4BCA11191C4C7C6B43632694D0A4CE74E068619D8FDC161D469859A",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\docs\\site.html": "1FFD5085B2F770627BDB31DB47F4B63652F88B24AC987B4A4BA339476205F0E8",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\examples\\basic.c": "5B1B0A7C37B612DAD43AFA4FEDAA481FC5A48D60B4023440125E31FFCE9C27EB",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\examples\\basic.expected.txt": "190C8614B3F46F506D142AF811DF4142EE3FCA2FEBEE54B716965AB31D60DAD7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\examples\\command_plan_c.c": "1D6E4FA657B46CBAA363FF8E32183E99B8DB1B745ADE889FCDA925530BF45CA6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\examples\\command_plan.expected.txt": "F2E20DD650EA49B54E6422812F244AA5CE3AF1ACF675267160A587AC897C8B60",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\examples\\command_plan.xl": "46B64C60084BCB3D96B7624A14E8B47072C9E73C39E518AB280428282E9D45A0",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\examples\\lexical_text_c.c": "DBF420BBE2E78A4B6F089E1515C1E0088917391738589432F29778D344642A79",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\examples\\lexical_text.expected.txt": "5A1E38B5B2C802AF2C612CED6B000836BDB70F151305CADAADC7F45A9D7FFD49",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\examples\\lexical_text.xl": "1BEF73CD0022A1A31667F7ED12F73112AD6001DFB34D98F686A4DD8FE626EB8D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\include\\xrt_shellwords.h": "ADC9675C27D5829E9CF315BA7B53D20D66143874E9064BB74D092079438C1E34",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\README.md": "19C5E2219556725C0856D27F4D416A02B14D6D1C550EBA53F527A77708312E3F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\shellwords_native.c": "D27450688F0943C8E5A0A4D874E4AB4F86141AEE392110B6F6BECEF2D8852F23",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\src\\shellwords.xl": "EBDE9DD0016B4B2A7EDBFB46D1A08E50A27305E889FB17F9681C3D9A795638E4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\allocations.xl": "47D238B2ECAF2D2FBB7DFBAD7D2FABAD39B2214BC704B274627F1CEE8DF09B38",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\bench_quote.c": "359E6EA307C46BC1639CF14B070043BA5163F5DDACE11BEE678123106AD44721",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\bench_split_c.c": "32E95FCCD2130F8633940BF815A254A85FCEC42A4E6D440E1CD9C728F70DF508",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\boundaries.xl": "192DDF8E2DF422A3CA840597091AFF17AE72C2C965459E6FE3518535352BC9ED",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\check_quote_records.py": "EEF2B6AF6E146DE8FFE4C206F409779ABA251E6B31E15D3AEE0C341D8671925A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\check_split_records.py": "FF94A7269FF139DABDAA8F77B1B3D83FAF6D1DB6462D191B5B6FF217F0BC0543",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\check.ps1": "9151D60D543C164E727921DBE9E168385D071F360AFBD7EC27160B603CACDE30",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\check.sh": "31C1B49E6D2DF4AD79660219DC0A7241F057762FC061A4C4CB45C7D066F77C57",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\quote_runs_c.c": "335ED89A631829D0765D5E24262D30D1F7A617D02D7ACE209DEAB1A61B8173FF",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\split_matrix_c.c": "BB39E1FB61BE4051B82BEEDC8334A66010A6F59BA1B9ED2E04E2C107FB7D0DEA",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\test_shellwords.c": "2BB7174B1DE8EFEA0536D92C7E7D07AF6D6B7A7A885FCBF575EC7AEAF2855DC4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\text_paths.xl": "ECBD25AB0F627DF535D0765A6E592D833816FF06608B503C868E18844FEC2C5A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\windows_argv.c": "6CCEB57C96C369EACCBD229EF8EA9C8DDBBA5ACF9955CD415555751E09231ABB",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\test\\xrt_runtime.c": "376DD1308AFB9F9D6946457240B6A49F29E646E2D5FEF057E67B76388901910D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\shellwords\\xlang.package.json": "B691FCFF769F8BAEA6550A83480B5AE6C55578B8CE9BF02D8A1F7A07ECC5DC48",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012",
+      "E:/software/w64devkit/bin/gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED"
+    },
+    "finalCatalogChangedInputs": [],
+    "fullOriginalObjectiveNotAccepted": true,
+    "otherPackagesNotReclassified": true,
+    "largeRecordOutputCompactedWithHashLengthAndSamples": true
+  },
+  "reproduce": [
+    "powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/shellwords/test/check.ps1",
+    "bash release/extlibs/shellwords/test/check.sh",
+    "release/xl.exe run release/extlibs/shellwords/test/split_matrix_c.c",
+    "release/xl.exe run release/extlibs/shellwords/examples/lexical_text.xl",
+    "release/xl.exe run release/extlibs/shellwords/examples/lexical_text_c.c"
+  ]
+}
