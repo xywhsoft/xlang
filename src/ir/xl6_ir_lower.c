@@ -4634,6 +4634,12 @@ static XL6_IrValueId xl6IrLowerNodeAsType(
         return XL6_IR_VALUE_INVALID;
     }
     const XL6_IrType* cSource=xl6IrTypeGet(&ctx->module->types,source->storageType);
+    if (source->storageType != targetType &&
+        xl6IrForeignHandleAssignable(ctx->module, targetType, source->storageType)) {
+        XL6_IrValueId value = xl6IrLowerNode(ctx, sourceId);
+        return value && xl6IrLowerEmit(ctx, XL6_IR_INSTR_VALUE, origin, targetType,
+            0, &value, 1, &result) ? result : XL6_IR_VALUE_INVALID;
+    }
     if(xl6IrTypeIsCOwned(target) && !xl6IrTypeIsCOwned(cSource) && source->sourceKind!=XL6_AST_NULL &&
         (target->kind==XL6_IR_TYPE_BUILTIN || (cSource && cSource->kind==XL6_IR_TYPE_NULLABLE))) {
         XL6_IrRuntimeOp convert=target->cAbi==XL6_IR_C_ABI_C_STRING && cSource->cAbi==XL6_IR_C_ABI_MANAGED_STRING

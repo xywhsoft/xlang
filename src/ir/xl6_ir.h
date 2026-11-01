@@ -840,6 +840,11 @@ typedef struct XL6_IrType {
     /* Exact, verified backend spelling for nominal public and compiler-owned
      * structural ABIs. Empty for source/runtime types fixed by cAbi. */
     char cName[64];
+    /* Explicit C view contract. Non-NULL only on a caller-owned external
+     * handle; aliases share the canonical type, not another owning wrapper.
+     * Backends must use this closed identity rather than inspect source AST. */
+    char* foreignHeader;
+    XL6_IrTypeId foreignBase;
     /* Canonical C result-carrier spelling for a MAY_RAISE callable returning
      * this type.  Empty means that no error-result ABI is admitted.  This is
      * a type-pool fact so Cgen never reconstructs carriers from cAbi. */
@@ -6937,6 +6942,9 @@ int xl6IrBuildModuleFromAst(
     XL6_DiagList* diags
 );
 int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags);
+/* Statically declared, representation-identical external handle upcast.
+ * Does not grant downcasts or conversions between unrelated C identities. */
+int xl6IrForeignHandleAssignable(const XL6_IrModule*, XL6_IrTypeId, XL6_IrTypeId);
 XL6_IrAsyncFrameTransferAbi xl6IrParameterFrameTransfer(
     const XL6_IrModule* module, XL6_IrTypeId type, XL6_IrParameterAbi parameterAbi);
 XL6_IrAsyncCaptureAbi xl6IrAsyncParameterCapture(

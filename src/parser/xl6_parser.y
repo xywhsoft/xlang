@@ -1345,6 +1345,21 @@ class_decl(A) ::= KW_CLASS(C) name_tok(N) generic_params_opt(G) class_extends(E)
     (void)C;
 }
 
+/* An explicit external view has a C identity and lifetime contract. Ordinary
+ * classes, including native-backed managed classes, keep their old meaning. */
+class_decl(A) ::= KW_EXTERN(X) STRING(S) KW_CLASS name_tok(N) field_attrs_opt(H) class_extends(E) need_sep class_body(B) KW_END. {
+    A = xl6AstNew(XL6_AST_CLASS, &N);
+    A->flags |= XL6_AST_FLAG_EXTERN;
+    xl6AstAddChild(A, E);
+    xl6AstAddChild(A, B);
+    xl6AstAddChild(A, xl6PList());
+    XL6_AstNode* C = xl6AstNewText(XL6_AST_FIELD_ATTR, "c_type", 6, &S);
+    xl6AstAddChild(C, xl6AstNew(XL6_AST_STRING, &S));
+    if (H != NULL) { xl6AstMoveChildren(C, H); xl6AstFree(H); }
+    xl6AstAddChild(A, C);
+    (void)X;
+}
+
 export_class_decl(A) ::= KW_EXPORT(E) class_decl(C). {
     A = xl6PWithFlags(C, XL6_AST_FLAG_PUBLIC);
     (void)E;

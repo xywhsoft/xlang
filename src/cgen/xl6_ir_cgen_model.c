@@ -77,7 +77,8 @@ static const char* xl6IrCgenType(const XL6_IrModule* module, XL6_IrTypeId type)
         return plan ? plan->cName : NULL;
     }
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: return "xvalue*";
-    case XL6_IR_C_ABI_NATIVE_HANDLE: return "void*";
+    case XL6_IR_C_ABI_NATIVE_HANDLE:
+        return item->foreignHeader ? item->cName : "void*";
     case XL6_IR_C_ABI_RAW_POINTER: return "void*";
     case XL6_IR_C_ABI_RUNTIME_ERROR_PTR: return "xerror*";
     case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: return "xfuture*";

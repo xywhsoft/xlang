@@ -182,6 +182,33 @@ static int xl6IrCgenEmitProductTypes(
     size_t typeIndex;
     int emitted = 0;
     int scalarCarriersIncluded = 0;
+    /* C owns the representation of declared external handles. Only selected
+     * physical types bring in their authoritative declaration header. */
+    for (typeIndex = 0; typeIndex < module->types.count; ++typeIndex) {
+        const XL6_IrType* type = &module->types.items[typeIndex];
+        if (!type->foreignHeader || !xl6IrCgenTypeSelected(module,
+                (XL6_IrTypeId)(typeIndex + 1), selectedTypes)) continue;
+        int seen = 0, seenType = 0;
+        for (size_t earlier = 0; earlier < typeIndex; ++earlier) {
+            const XL6_IrType* previous = &module->types.items[earlier];
+            if (previous->foreignHeader && xl6IrCgenTypeSelected(module,
+                    (XL6_IrTypeId)(earlier + 1), selectedTypes) &&
+                !strcmp(previous->foreignHeader, type->foreignHeader)) {
+                seen = 1;
+                if (!strcmp(previous->cName, type->cName)) { seenType = 1; break; }
+            }
+        }
+        if (!seen) xl6OutputPrintf(out, "#include <%s>\n", type->foreignHeader);
+        if (seenType) continue;
+        xl6OutputPrintf(out,
+            "_Static_assert(sizeof(%s) == sizeof(void*), \"external handle width\");\n",
+            type->cName);
+        xl6OutputPrintf(out,
+            "_Static_assert(_Generic((%s)0, bool:0, char:0, signed char:0, unsigned char:0, "
+            "short:0, unsigned short:0, int:0, unsigned int:0, long:0, unsigned long:0, "
+            "long long:0, unsigned long long:0, float:0, double:0, long double:0, default:1), "
+            "\"external handle must be a C pointer type\");\n", type->cName);
+    }
     /* Native record declarations precede every product which may contain one.
      * The native header owns layout and checked-result ABI; no duplicate body. */
     for (typeIndex=0;typeIndex<module->types.count;++typeIndex) {

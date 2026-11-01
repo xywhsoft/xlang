@@ -42,7 +42,7 @@ static void xl6IrCgenHeaderMarkType(
     const XL6_IrType* item = xl6IrTypeGet(&module->types, type);
     size_t parameter;
     if ( item == NULL || needs == NULL ) return;
-    if ( item->cAbi != XL6_IR_C_ABI_PRODUCT &&
+    if ( !item->foreignHeader && item->cAbi != XL6_IR_C_ABI_PRODUCT &&
          item->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE &&
          item->cAbi != XL6_IR_C_ABI_UNION ) {
         xl6IrCgenHeaderNeedType(module, type, needs);
