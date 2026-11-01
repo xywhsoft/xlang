@@ -1,0 +1,356 @@
+{
+  "schema": 1,
+  "date": "2026-11-01",
+  "status": "passed-targeted-validation",
+  "task": "Unify XRT source versions in XGE and xlang",
+  "xrt": {
+    "revision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
+    "sourceRepository": "D:/GIT/xrt",
+    "sourceRepositoryModified": false,
+    "canonicalTextEol": "LF",
+    "coreApiCount": 3454,
+    "xruntimeApiCount": 465,
+    "totalApiCount": 3919,
+    "implementation": {
+      "source": "xrt/single/xrt.h",
+      "sha256": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "bytes": 9109200
+    },
+    "declarations": {
+      "source": "xrt/single/xrt_decl.h",
+      "sha256": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "bytes": 1480258
+    }
+  },
+  "sources": {
+    "xlangCommit": "44ac8a20b5e3a2e6a85bd9e7d71999c39a422633",
+    "xgeCommit": "2857ea208c7891110564dfc79caffed1e6379601",
+    "windowsCapturedBase": "44e35cba7b1f43a4c270e6abf769c367a1539a71",
+    "linuxExportedBase": "e93bb60c6823c3fdf3a6df7e6d75db064a6f0bf2",
+    "linuxTaskOverlays": {
+      "lib/xrt/xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+      "lib/xrt/upstream.json": "9c74d8e77e1a6aea9466818a5667854f46ee61d5b0919eeaa0fdf574c5617d1b",
+      "lib/xrt/xrt.snapshot.json": "5ef60cdca57c115e23d2cd2b6a9000d2823e8640a405aff7181c69e9e468b9c2",
+      "lib/xruntime/xruntime.snapshot.json": "981daf9c0eead00999e116a6262884d7f48c0e9644d18f72ddae52d5ca48f1bc",
+      "tools/check_xrt_alignment.py": "107c4588bad049fd17d98b88d74526a4532807f702694ed8d87c6f1323167c67",
+      "tools/test_xrt_alignment.py": "8b029a157d263eef928a30aba603082fb051dfc5dbfec4c863233e12fc69b741"
+    },
+    "normalizedInputsVerifiedPerPlatform": 3893,
+    "sourceEquivalence": {
+      "status": "passed",
+      "equivalentSourceRevision": "44ac8a20b5e3a2e6a85bd9e7d71999c39a422633",
+      "capturedBuildBase": "44e35cba7b1f43a4c270e6abf769c367a1539a71",
+      "inputCount": 3893,
+      "differentInputs": [],
+      "missingCommittedInputs": [],
+      "comparison": "CRLF/LF-normalized source bytes; build captured separate raw digests"
+    },
+    "linuxSourceEquivalence": {
+      "status": "passed",
+      "inputCount": 3893,
+      "differentInputs": [],
+      "missingInputs": [],
+      "comparison": "Normalized source bytes in the Linux isolated tree versus captured Windows build inputs"
+    }
+  },
+  "changes": [
+    "Updated XGE core and modular headers plus dependency-owned source metadata to clean XRT HEAD.",
+    "Applied the three upstream HTTP/proxy implementation changes to xlang without changing public declarations or xruntime implementation.",
+    "Made XGE snapshot generation and verification use canonical LF bytes and exact hashes.",
+    "Added a cross-repository pin/byte/digest checker with seven mismatch controls.",
+    "Rebuilt precompiled objects, embedded VFS packs and Windows/Linux engine libraries using the ordinary O2 build paths."
+  ],
+  "builds": {
+    "windows": {
+      "status": "passed",
+      "seconds": 982.094,
+      "optimization": "-O2",
+      "precompiledObjects": 1545,
+      "inputsUnchangedDuringBuild": true,
+      "manifest": {
+        "path": "F:\\xlang-validation\\xrt-unify-20261101\\xlang-build-r2.json",
+        "bytes": 916045,
+        "sha256": "09cb493d4e95abd44f353ff1159a90005d0195d8e7bae52502d5d2d70fee986f"
+      }
+    },
+    "linux": {
+      "status": "passed",
+      "seconds": 1295.204,
+      "optimization": "-O2",
+      "precompiledObjects": 1543,
+      "manifest": {
+        "path": "F:\\xlang-validation\\xrt-unify-20261101\\linux-build-r3.json",
+        "bytes": 1456,
+        "sha256": "73575ef82a0cc397f89e70331b9f52a067f8189cb7b643ea71f2edca6446e766"
+      }
+    },
+    "xge": [
+      {
+        "profile": "xge-build",
+        "status": "passed",
+        "seconds": 224.61236829997506,
+        "optimization": "-O2",
+        "runtimeBytes": 9222720
+      },
+      {
+        "profile": "xge-ide-build",
+        "status": "passed",
+        "seconds": 253.8861205999856,
+        "optimization": "-O2",
+        "runtimeBytes": 10684862
+      }
+    ]
+  },
+  "validation": {
+    "sourceAlignment": "passed: equal revision, exact implementation/declaration bytes and recorded hashes; no source overlays or obsolete vendored files",
+    "alignmentTests": 7,
+    "headerAbiIncludeOrders": 3,
+    "snapshotGuard": "passed: 3454 core and 465 xruntime APIs",
+    "windows": {
+      "passedStages": 38,
+      "tests": [
+        "xl.dll-exports",
+        "xlc.dll-exports",
+        "runtime-embed-build",
+        "runtime-embed",
+        "compiler-embed-build",
+        "compiler-embed",
+        "runtime-xvalue",
+        "version",
+        "basic-jit",
+        "basic-build",
+        "basic-aot",
+        "c-jit",
+        "c-build",
+        "c-aot",
+        "class-persistence-jit",
+        "class-persistence-build",
+        "class-persistence-aot",
+        "random-jit",
+        "random-build",
+        "random-aot",
+        "async-success-jit",
+        "async-success-build",
+        "async-success-aot",
+        "http-headers-jit",
+        "http-headers-build",
+        "http-headers-aot",
+        "http-core-jit",
+        "http-core-build",
+        "http-core-aot",
+        "foreign-ownership-jit",
+        "foreign-ownership-build",
+        "foreign-ownership-aot",
+        "nested-c-jit",
+        "nested-c-build",
+        "nested-c-aot",
+        "nested-xlang-jit",
+        "nested-xlang-build",
+        "nested-xlang-aot"
+      ]
+    },
+    "linux": {
+      "passedStages": 38,
+      "tests": [
+        "exports-build",
+        "libxl.so-exports",
+        "libxlc.so-exports",
+        "runtime-embed-build",
+        "runtime-embed",
+        "compiler-embed-build",
+        "compiler-embed",
+        "version",
+        "basic-jit",
+        "basic-build",
+        "basic-aot",
+        "c-jit",
+        "c-build",
+        "c-aot",
+        "class-persistence-jit",
+        "class-persistence-build",
+        "class-persistence-aot",
+        "random-jit",
+        "random-build",
+        "random-aot",
+        "async-success-jit",
+        "async-success-build",
+        "async-success-aot",
+        "http-headers-jit",
+        "http-headers-build",
+        "http-headers-aot",
+        "http-core-jit",
+        "http-core-build",
+        "http-core-aot",
+        "foreign-ownership-jit",
+        "foreign-ownership-build",
+        "foreign-ownership-aot",
+        "nested-c-jit",
+        "nested-c-build",
+        "nested-c-aot",
+        "nested-xlang-jit",
+        "nested-xlang-build",
+        "nested-xlang-aot"
+      ]
+    },
+    "publicExports": {
+      "symbolsPerLibrary": 3919,
+      "libraries": [
+        "xl.dll",
+        "xlc.dll",
+        "libxl.so",
+        "libxlc.so"
+      ],
+      "allResolved": true,
+      "missingNameNegativeControlRejected": true
+    },
+    "xge": {
+      "passed": [
+        "core",
+        "context",
+        "widget",
+        "layout",
+        "input",
+        "text",
+        "particle"
+      ],
+      "coreQualifiedRun": {
+        "name": "core",
+        "status": "passed",
+        "exitCode": 0,
+        "cwd": "D:/GIT/xge",
+        "seconds": 0.062,
+        "log": "F:\\xlang-validation\\xrt-unify-20261101\\xge-core-run-r3.log"
+      }
+    },
+    "networkConnectionsTested": false,
+    "securityTestsRun": false,
+    "fullReleaseSuiteRun": false
+  },
+  "products": [
+    {
+      "path": "release/xl.exe",
+      "bytes": 71168,
+      "sha256": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05"
+    },
+    {
+      "path": "release/xl.dll",
+      "bytes": 14188544,
+      "sha256": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930"
+    },
+    {
+      "path": "release/xlc.dll",
+      "bytes": 19489280,
+      "sha256": "27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334"
+    },
+    {
+      "path": "release/xl",
+      "bytes": 47224,
+      "sha256": "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb"
+    },
+    {
+      "path": "release/libxl.so",
+      "bytes": 15595216,
+      "sha256": "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad"
+    },
+    {
+      "path": "release/libxlc.so",
+      "bytes": 21022672,
+      "sha256": "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386"
+    }
+  ],
+  "xgeLocalProducts": [
+    {
+      "profile": "default",
+      "path": "D:\\GIT\\xge\\build\\xge.dll",
+      "bytes": 9222720,
+      "sha256": "58780a902494c8b00ef4dda16ae5f69cabc78b8b19bc334f380bd5966231d175"
+    },
+    {
+      "profile": "default",
+      "path": "D:\\GIT\\xge\\build\\xge.lib",
+      "bytes": 3551104,
+      "sha256": "3d12733938bd1199b31dc8b477b3211a3cd6718644f05a604ec3abd6ef5414a1"
+    },
+    {
+      "profile": "default",
+      "path": "D:\\GIT\\xge\\build\\xge.unstripped.dll",
+      "bytes": 11188044,
+      "sha256": "3c1f1b9798c12f130a6f055da87e0b2058796c400675d6c1f545a30b8828abd8"
+    },
+    {
+      "profile": "default",
+      "path": "D:\\GIT\\xge\\build\\xge_build_config.h",
+      "bytes": 3258,
+      "sha256": "f0532927c99db95e2c3dd7856c7584ebc3e3bae67214a23483bdae12590d3887"
+    },
+    {
+      "profile": "default",
+      "path": "D:\\GIT\\xge\\build\\build-report.json",
+      "bytes": 15161,
+      "sha256": "02cfc47029bf492ee061ff8c0402c743fbd4541a7c1362edd6abc9171a7053dd"
+    },
+    {
+      "profile": "ide",
+      "path": "D:\\GIT\\xge\\build\\ide\\xge.dll",
+      "bytes": 10684862,
+      "sha256": "926376a5cb5f1305bba7ed2da2ee17cfb07773de5d067a3cfad474f5fab6e6a3"
+    },
+    {
+      "profile": "ide",
+      "path": "D:\\GIT\\xge\\build\\ide\\xge.lib",
+      "bytes": 4396794,
+      "sha256": "775f76840cbe81b3eeb3b058c55a900fc76c74b2d432d44c745e71c0c94b8e49"
+    },
+    {
+      "profile": "ide",
+      "path": "D:\\GIT\\xge\\build\\ide\\xge.unstripped.dll",
+      "bytes": 12869131,
+      "sha256": "c24b0625fc002ce99019661ceffbcdb43ece241cc35c3d5b6c63fb7da5b7d684"
+    },
+    {
+      "profile": "ide",
+      "path": "D:\\GIT\\xge\\build\\ide\\xge_build_config.h",
+      "bytes": 3287,
+      "sha256": "c78180cd083f55841fb0c081c25cc39eb79daaeefe04ea7d3d6fa573df6a67f5"
+    },
+    {
+      "profile": "ide",
+      "path": "D:\\GIT\\xge\\build\\ide\\build-report.json",
+      "bytes": 18907,
+      "sha256": "5426d62757fe0114fe1c614eee3b57c951c0b39e43708c6cf80ea3ea5579f028"
+    }
+  ],
+  "qualifiedExceptions": [
+    {
+      "case": "release/examples/async_task_wait.xl standalone exit status",
+      "classification": "pre-existing behavior; no regression",
+      "comparison": {
+        "generatedCIdentical": true,
+        "baselineExit": 1,
+        "note": "Existing example deliberately waits on a failed future; record the pre-existing AOT exit status separately from the successful asynchronous ownership probe."
+      }
+    },
+    {
+      "case": "Initial XGE core test run",
+      "classification": "fixture working directory did not contain relative resources; rerun from D:/GIT/xge passed"
+    },
+    {
+      "case": "Superseded build/validation setup attempts",
+      "classification": "bootstrap path, CRLF shell driver, missing exported build scripts, and legacy C boundary-test environment setup; retained in external evidence; not counted as passing acceptance"
+    }
+  ],
+  "scope": {
+    "versionUnificationComplete": true,
+    "runtimeProviderDeduplicationComplete": false,
+    "xlangIdeMatchedSdkChanged": false,
+    "xlangReleaseXgeDllChanged": false,
+    "xlangReleaseXgeDll": {
+      "bytes": 10559422,
+      "sha256": "faf58673f831ba8a58d6e3c2166094f76fbb71548469724fa5a11eca011782a0"
+    },
+    "concurrentCompilerIdeAndExtensionChangesPreserved": true,
+    "externalPublicationPerformed": false,
+    "nextPhase": "Introduce XGE host-XRT provider and deploy XGE with its matching xlang IDE SDK; current IDE/XGE matched delivery remains unchanged in this phase."
+  },
+  "evidenceDirectory": "F:\\xlang-validation\\xrt-unify-20261101"
+}
