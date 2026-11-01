@@ -58,16 +58,16 @@ XLIR 类型保存 C 名称、声明头及精确父类型。子类型传参产生
 
 ```xlang
 extern "xui_rect_t" struct Rect @header("xui.h")
-    c_int x
-    c_int y
-    c_int width
-    c_int height
+    c_int fX
+    c_int fY
+    c_int fW
+    c_int fH
 end
 
 Rect rect = Rect()
-rect.width = 640
+rect.fW = 640
 Rect copy = rect
-copy.width = 320
+copy.fW = 320
 ```
 
 这是独立的按值记录类型，`Rect()` 按 C 的 `{0}` 规则初始化。赋值复制内容，
@@ -154,3 +154,34 @@ error scope。声明属性不作为可执行表达式跨入后端；IR 仅保留
 名称重写，验证 GCC O0/O2、TCC JIT／模块／独立 EXE 和完整状态码范围。
 其 IR 破坏性测试要求状态比较、非空分支、回滚身份、入口及记录地址被修改后，
 验证器在输出任何 C/header 前拒绝。
+
+## 精确 C 回调与静态函数地址
+
+`c_callback` 可以按真实 C ABI 传递 caller-lifetime 指针视图和按值 C 记录，
+包括可空指针结果。普通回调继续使用现行代码活动保护和 checked 错误合同。
+
+```xlang
+extern "apply" @no_raise @nonblocking @c_static_callback(0) func apply(c_callback func(Widget, Rect) as Rect callback, Rect input) as Rect
+func adjust(Widget widget, Rect input) as Rect
+    input.fW = 640
+    return input
+end
+auto output = apply(adjust, Rect())
+```
+
+`@c_static_callback(index)` 按零起始显式参数序号声明：原生 API 接收的是
+精确、无捕获、不会抛错的 C 函数地址。声明作者负责保证该函数的模块代码及
+它访问的全局状态存活至最后一次原生调用。此合同不会自动保活模块，不能替代
+需要运行时管理的回调订阅。函数变量、捕获闭包、需要参数转换、可能抛错或
+签名不匹配的函数均拒绝。
+
+XLIR 使用私有 C 函数指针类型和 C_FUNCTION_ADDRESS，不先创建语言闭包再
+提取入口。验证器复核来源、精确类型和 no-raise 合同，并限制其只能进入相同
+声明的静态 C 回调参数；该指针不能装箱、保存到语言变量或伪装成普通函数值。
+Cgen 直接传递已有函数地址，不生成额外回调入口或闭包分配。
+
+`tools/check_foreign_callbacks.py` 检查 GCC O0/O2、TCC JIT／模块／独立 EXE，
+并覆盖坏签名、错误参数序号和 fallible／间接函数来源。提供 `--source-build`
+时另行破坏 IR，要求在输出任何 C/header 之前拒绝。带捕获 userdata、长期
+注册的拥有边和原生退役后的回调清理仍须使用独立的受管合同，不能套用静态
+地址声明后声称已解决。

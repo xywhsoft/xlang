@@ -9041,6 +9041,7 @@ static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* 
         XL6_ForeignCallFacts left, right;
         if (!xl6ForeignFunctionRead(a, &left) || !xl6ForeignFunctionRead(b, &right) ||
             left.constRecordAddresses != right.constRecordAddresses ||
+            left.staticCallbackAddresses != right.staticCallbackAddresses ||
             left.outputIndexPlusOne != right.outputIndexPlusOne || left.successCode != right.successCode) return 0;
         return ((a->flags ^ b->flags) & XL6_AST_FLAG_FOREIGN_OWNED_STRING) == 0 &&
                xl6SemTypeListEquals(ctx, xl6SemExternFuncParams(a), xl6SemExternFuncParams(b), 1) &&
@@ -20860,6 +20861,11 @@ static int xl6SemIsCAbiCallbackValueType(
     int isReturn)
 {
     typeNode = xl6SemResolveAliasType(ctx, typeNode);
+    const XL6_AstNode* inner = xl6SemNullableInnerType(typeNode);
+    const XL6_AstNode* value = xl6SemClassValueType(ctx, inner ? inner : typeNode);
+    const XL6_AstNode* declaration = value && value->text ? xl6SemFindTypeDecl(ctx, value->text) : NULL;
+    if (xl6ForeignClassRead(declaration, NULL, NULL) == 1 ||
+        (!inner && declaration && declaration->kind == XL6_AST_C_RECORD)) return 1;
     if ( typeNode == NULL || typeNode->text == NULL || typeNode->childCount != 0 ) {
         return 0;
     }
@@ -21205,12 +21211,12 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
     if (!attrs) return 1;
     if (!xl6ForeignFunctionRead(node, &facts) ||
         (node->kind != XL6_AST_EXTERN_FUNC && node->kind != XL6_AST_NATIVE_EXTERN_FUNC)) {
-        xl6SemErrorNode(ctx, node, "invalid declarative C call; expected @c_ref(index) or @factory(outputIndex, successCode, rollback)");
+        xl6SemErrorNode(ctx, node, "invalid declarative C call; expected @c_ref(index), @c_static_callback(index), or @factory(outputIndex, successCode, rollback)");
         return 0;
     }
     XL6_AstNode* params = node->childCount > 1 ? node->children[1] : NULL;
     size_t count = params ? params->childCount : 0;
-    if (count < 64 && (facts.constRecordAddresses >> count)) {
+    if (count < 64 && ((facts.constRecordAddresses | facts.staticCallbackAddresses) >> count)) {
         xl6SemErrorNode(ctx, node, "C record address parameter index is outside the declared signature"); return 0;
     }
     for (size_t i = 0; i < count && i < 64; ++i) {
@@ -21219,6 +21225,14 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         if ((facts.constRecordAddresses & (UINT64_C(1) << i)) && !xl6SemIsCAbiRecordType(ctx, type)) {
             xl6SemErrorNode(ctx, parameter, "@c_ref requires an exact trivial C record value"); return 0;
         }
+        if (facts.staticCallbackAddresses & (UINT64_C(1) << i)) {
+            const XL6_AstNode* signature = xl6SemResolveAliasType(ctx, type);
+            if (!(parameter->flags & XL6_AST_FLAG_C_CALLBACK) || !signature ||
+                !xl6TextEquals(signature->text, "function")) {
+                xl6SemErrorNode(ctx, parameter, "@c_static_callback requires an exact c_callback function parameter"); return 0;
+            }
+        }
+
     }
     if (facts.outputIndexPlusOne) {
         const XL6_AstNode* returns = node->childCount > 2 ? node->children[2] : NULL;

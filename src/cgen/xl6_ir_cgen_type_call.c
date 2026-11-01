@@ -383,6 +383,9 @@ static int xl6IrCgenEmitCallOperand(
 {
     if ( target == NULL || parameter >= target->parameterCount ||
          target->parameterPhysicalAbis == NULL ) return 0;
+    if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK) {
+        xl6OutputPrintf(out, "v%u", (unsigned)value); return !xl6OutputHasFailed(out);
+    }
     if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS) {
         xl6OutputPrintf(out, "&v%u", (unsigned)value); return !xl6OutputHasFailed(out);
     }
@@ -438,6 +441,19 @@ static int xl6IrCgenEmitCallOperand(
         xl6OutputPrintf(out, "v%u%s", (unsigned int)value,
             xl6IrCgenDirectPlaceSuffix(module, target, parameter));
     }
+    return !xl6OutputHasFailed(out);
+}
+
+static int xl6IrCgenEmitCFunctionAddress(XL6_Output* out, const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction, XL6_DiagList* diags)
+{
+    if (!xl6IrCFunctionAddressTargetMatches(module, instruction->type, instruction->targetSymbol))
+        return xl6IrCgenDiag(diags, module, instruction->origin, "C function address has no exact native entry");
+    const XL6_IrCallTarget* target = xl6IrCallTargetGet(module, instruction->targetSymbol);
+    if (!target) xl6OutputPrintf(out, "    v%u = NULL;\n", (unsigned)instruction->result);
+    else if (target->kind == XL6_IR_CALL_TARGET_INTERNAL)
+        xl6OutputPrintf(out, "    v%u = xlir_fn_%u;\n", (unsigned)instruction->result, (unsigned)target->symbol);
+    else xl6OutputPrintf(out, "    v%u = %s;\n", (unsigned)instruction->result, target->cName);
     return !xl6OutputHasFailed(out);
 }
 

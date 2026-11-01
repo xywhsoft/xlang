@@ -135,8 +135,8 @@ static void xl6IrCgenCollectHeaderTypeNeeds(
               target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) ||
              target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE ) continue;
         for ( parameter = 0; parameter < target->parameterCount; ++parameter )
-            if ( target->parameterPhysicalAbis[parameter] ==
-                     XL6_IR_CALL_PARAMETER_PHYSICAL_RAW_C_CALLBACK )
+            if ( target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_RAW_C_CALLBACK ||
+                 target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK )
                 xl6IrCgenHeaderMarkRawCallbackTypes(
                     module, target->parameterTypes[parameter], needs,
                     structuralTypes);

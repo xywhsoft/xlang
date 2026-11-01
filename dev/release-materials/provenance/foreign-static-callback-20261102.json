@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "date": "2026-11-02",
+  "status": "windows-source-checkpoint",
+  "scope": "Native record/pointer callbacks and explicit caller-resident static C addresses; retained captured callbacks remain pending.",
+  "releaseProductsUpdated": false,
+  "functionalStages": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\callback-functional-r2\\stages.json",
+  "independentIr": {
+    "optimization": [
+      "O0",
+      "O2"
+    ],
+    "mutationsPerRun": 36,
+    "zeroCOrHeaderOutputsPerRun": 72,
+    "compiler": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\callback-r6\\iteration.json"
+  },
+  "canonicalBuild": {
+    "status": "failed-environment-memory-exhaustion",
+    "log": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\source-r7-build.log",
+    "detail": "cc1 failed allocating 21780 bytes during unchanged runtime preprocessing; incremental source build and independent IR checks passed, fresh canonical rebuild remains required."
+  },
+  "costs": {
+    "generatedStaticPath": "Existing C function address, no closure creation or extra callback entry.",
+    "allocationCounters": "Not qualified: the delivered runtime disables memory-debug counters; no dynamic zero-allocation measurement is claimed.",
+    "remaining": [
+      "TCC generic SSA temporary overhead",
+      "Captured userdata and retained ownership",
+      "Code residency for managed registrations",
+      "Linux and shipping-product validation"
+    ]
+  }
+}

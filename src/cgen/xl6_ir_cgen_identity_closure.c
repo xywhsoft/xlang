@@ -394,8 +394,8 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
             xl6OutputPrintf(out, "%s*", xl6IrCgenType(module, target->returnType)); continue;
         }
         size_t parameter = i - (output && i + 1 > output);
-        if ( target->parameterPhysicalAbis[parameter] ==
-                 XL6_IR_CALL_PARAMETER_PHYSICAL_RAW_C_CALLBACK ) {
+        if ( target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_RAW_C_CALLBACK ||
+             target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK ) {
             xl6OutputPrintf(out, "xlir_raw_callback_t%u",
                 (unsigned int)target->parameterTypes[parameter]);
             continue;

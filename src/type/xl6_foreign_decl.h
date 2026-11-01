@@ -50,6 +50,10 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             uint64 bit = UINT64_C(1) << index;
             if (attr->childCount != 1 || (facts.constRecordAddresses & bit)) return 0;
             facts.constRecordAddresses |= bit;
+        } else if (!strcmp(attr->text, "c_static_callback")) {
+            uint64 bit = UINT64_C(1) << index;
+            if (attr->childCount != 1 || (facts.staticCallbackAddresses & bit)) return 0;
+            facts.staticCallbackAddresses |= bit;
         } else if (!strcmp(attr->text, "factory")) {
             if (facts.outputIndexPlusOne || attr->childCount != 3 ||
                 !xl6ForeignDecimalInt(attr->children[1], &facts.successCode) ||

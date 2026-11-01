@@ -116,6 +116,7 @@ static int xl6IrCgenEmitRuntimePrelude(
         xl6OutputPuts("\n", out);
     }
     if ( needs->needsRawCallbackRuntime ) {
+        if (!needs->needsClosureRuntime) xl6OutputPuts("typedef struct xlir_closure xlir_closure;\n", out);
         if ( !xl6IrCgenEmitCallbackTypes(out, module, 0, diags) ) return 0;
         xl6OutputPuts("\n", out);
     }
