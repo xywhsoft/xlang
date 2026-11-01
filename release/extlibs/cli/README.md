@@ -1,5 +1,50 @@
 # cli
 
+## 2026-11-02 复用结果字典查询旗标
+
+解析前已经把全部声明旗标初始化到结果字典，长旗标和隐式单字符短
+旗标现直接查询该字典，不再每遇一个参数就线性扫描声明数组。
+字典中的 `false` 也是已声明的非空值，不能用真假值判断名称是否存在。
+别名/名称/冲突校验、首错即停、默认值、结果所有权及公开API/ABI不变；
+不增加索引对象、缓存、副本或分配，生产净增一行说明注释。
+这是内部优化，没有把旧解析正确的结果误报为BUG。
+
+新 `test/flag_lookup.c` 固定0/1/2/8/64/256个声明和八种输入，共48组：
+未选择的false、首尾/逆序/重复命中、直接短旗标组合、中文名称、未知
+长短名、非法旗标赋值及首错后的旗标不生效。三条路径枚举83个分配
+失败点，立即恢复、旧结果/释放全部输入后的寿命与七项内存计数通过；
+旧新48组解析分配次数逐项相同，GCC/TCC/独立程序也按同表核对。
+原36组默认值的882故障点和完整C边界仍保留。
+
+新双语 `examples/flag_selection.xl` / `flag_selection_c.c` 展示大小写
+精确选择、直接短旗标、中文、未选择状态和首错，匹配同一五行golden，
+默认无文件、无子进程。XLang示例读取JSON配置值；这不代替原语言
+数组/字典字面量的必过正例，更没有在包中增加容器投影兼容层。
+
+```text
+release/xl.exe run release/extlibs/cli/examples/flag_selection.xl
+release/xl.exe run release/extlibs/cli/examples/flag_selection_c.c
+```
+
+Linux将 `xl.exe` 换为 `xl`。本轮Windows完整门禁62阶段中54符合要求，
+Linux原生61阶段中53符合，均剩同八条M1运行正例失败；没有把默认门禁
+的退出1改成通过。两平台各十条独立程序成功构建，六条运行过，四条
+原字面量/投影运行仍失败；新双语和故障测试独立程序均过。Windows
+50输入工具指纹、Linux47文件/三工具及boot保持，Linux C另含
+ASan/UBSan/泄漏检查。manifest补记原basic/options及新范例的coverage，
+不只登记可运行范例来隐藏旧红项。当前包保持M，M7不回退、M1不关闭。
+
+单独 `test/bench_flags.c` 是固定200次完整parse/验证/结果释放的局部
+基准，使用同平台GCC-O2与同一带MEMORY_DEBUG的测试运行库，三轮交替
+旧/新。32旗标/512参数中位数Win54→16ms、Linux60.626→14.126ms；
+256/512为466→105、405.265→99.649。单参数不宣称收益：Win256/1
+为96→97、Linux32/1为4.424→4.549ms；其他原始数据也保留。数字来自
+各平台CRT clock，仅作平台内部比较，不外推真实命令行、发布程序或
+所有负载。声明重复校验、结果构建和必要输出仍存在，没有零开销承诺。
+原生对象text Win减少28B、Linux减少156B，data/bss不变；这不是最终
+程序大小。完整记录见仓库 `docs/reports/extlib-cli-flags-20261102.json`。
+IDE资料候选仍按独立发布绑定门验收，不用包内结果替代整版交付。
+
 ## 2026-11-01 当前状态
 
 原M7缺符号已解除：两平台的无包os.args、CLI最小导入和独立程序通过，
@@ -43,9 +88,9 @@ C 使用 `include/cli_native.h`，调用方以 `xrtValueRelease` 释放 `xcli_pa
 ```xlang
 import cli
 
-var spec = {"flags": ["verbose"], "options": {"output": "o"},
-    "positional": ["src"]}
-var result = cli.parse(["--verbose", "--output=out.txt", "in.txt"], spec)
+var spec = json.parse(r"""{"flags":["quiet","Quiet","q","Z","开关","pending"]}""")
+var args = json.parse(r"""["--Quiet","-qZ","--开关"]""")
+var result = cli.parse(args, spec)
 assert result["ok"] == true
 ```
 

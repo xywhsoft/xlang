@@ -13,5 +13,6 @@
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["examples/basic.xl", "examples/options.xl", "examples/flag_selection.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

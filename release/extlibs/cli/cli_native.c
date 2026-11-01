@@ -404,6 +404,7 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
         ? xrtValueCount(positionalSpec) : 0;
     n = xrtValueCount(args);
 
+    /* flagsOut已包含全部声明；false值也非NULL，可直接查键而不反复扫数组。 */
     for (i = 0; i < n; ++i) {
         xstrview token;
         if (!xcli_arg_view(args, i, &token)) {
@@ -457,7 +458,7 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
                         "missing value for --", name, "")) goto fail;
                     break;
                 }
-            } else if (xcli_flags_has_view(flagsSpec, name)) {
+            } else if (xrtValueObjectGet(flagsOut, name) != NULL) {
                 if (hasInline) {
                     if (!xcli_fail_long_result(result, "flag --", name,
                         " does not take a value")) goto fail;
@@ -509,7 +510,7 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
                     if (!xcli_set_bool_view(flagsOut, longName, 1)) goto fail;
                 } else {
                     xstrview flagName = { &letter, 1u };
-                    if (xcli_flags_has_view(flagsSpec, flagName)) {
+                    if (xrtValueObjectGet(flagsOut, flagName) != NULL) {
                         if (!xcli_set_bool_view(flagsOut, flagName, 1)) goto fail;
                     } else {
                         char message[80];

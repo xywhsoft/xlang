@@ -22,18 +22,16 @@
     <h1>cli</h1>
     <p class="extlib-lead">将参数数组解析为旗标、选项和位置参数，使用同一份声明提供默认值。</p>
     <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
-    <p>当前未签收：公开语言导入受 os.args 缺符号 M7 阻断；独立调用真实 C 解析器的语言字面量
-    另有 M1 容器投影错误。C 解析成功不代表 XLang 已可运行，修复其中一项也不能自动关闭另一项。</p>
-    <p>2026-10-30 冻结工具链：两平台默认各39阶段、29符合要求，10条语言路径仍失败，整体返回1。
-    C原边界、36组合/882故障、两份C范例的GCC/直接TCC/独立EXE及真实ABI通过；Linux C含ASan/UBSan/泄漏检查。</p>
+    <p>当前未签收：os.args 缺符号 M7 已于 11 月 1 日解除，原语言数组/对象字面量仍有 M1 投影错误。JSON 配置值可用不代表字面量闭环通过，原正例和失败现场继续保留。</p>
+    <p>2026-11-02 复用已经初始化的结果字典查找旗标，不再逐参数扫描声明数组；false 也是已声明值。公开 API/ABI、校验、分配和所有权不变。Windows 62 阶段中 54 符合、Linux 61 阶段中 53 符合，默认仍退出 1，均保留同八条 M1 运行失败。</p>
   </header>
   <section id="start">
     <h2>快速开始</h2>
     <pre><code>import cli
 
-var spec = {"flags": ["verbose"], "options": {"output": "o"},
-    "positional": ["src"]}
-var result = cli.parse(["--verbose", "--output=out.txt", "in.txt"], spec)
+var spec = json.parse(r"""{"flags":["quiet","Quiet","q","Z","开关","pending"]}""")
+var args = json.parse(r"""["--Quiet","-qZ","--开关"]""")
+var result = cli.parse(args, spec)
 assert result["ok"] == true</code></pre>
   </section>
   <section id="api">
@@ -48,6 +46,8 @@ assert result["ok"] == true</code></pre>
   </section>
   <section id="verify">
     <h2>验证状态</h2>
+    <p>11 月 2 日新增 48 组旗标选择、83 个分配故障点与立即恢复、释放输入后的结果寿命、七项内存计数；旧新语义与全部 48 组分配次数一致。GCC/TCC/独立程序按同一矩阵核对；原 36 组默认值/882 故障、C 边界和真实 ABI 仍保留。双语 flag_selection 五行 golden 展示精确大小写、短旗标、中文、未选 false 和首错停止，可直接 xl run，无默认文件/进程副作用。</p>
+    <p>Windows 50 输入工具指纹、Linux 原生 47 文件/三工具和 boot 保持，C 含 ASan/UBSan/泄漏检查。两平台各十条独立程序构建成功，六条运行通过、四条原 M1 仍失败，不把六条通过冒充完整十条签收。局部三轮固定 200 次 parse 的 32 旗标/512 参数中位数 Win54→16ms、Linux60.626→14.126ms；单参数没有一致改善。使用带 MEMORY_DEBUG 的同一测试运行库与各平台 CRT clock，不外推所有场景。原生对象 text 减少 28/156 字节，非整程序大小。详见仓库 docs/reports/extlib-cli-flags-20261102.json。</p>
     <p>2026-11-01：原os.args缺符号已解除，Windows/Linux无包调用、CLI最小导入和独立程序通过；两种DLL/SO各两个上下文A/B/A交替调用，UTF-8、空串、空格与返回数组独立性也通过。现行规范中os.args返回宿主进程向量（含argv[0]），main的arg独立，不能把差异误报成BUG。CLI原生容器投影M1仍重现，整包未签收；证据见仓库 <code>docs/reports/extlib-cli-os-args-20261101.json</code>。</p>
     <pre><code>release/extlibs/cli/test/check_c.ps1
 bash release/extlibs/cli/test/check_c.sh</code></pre>

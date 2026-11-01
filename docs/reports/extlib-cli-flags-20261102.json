@@ -1,0 +1,4091 @@
+{
+  "schema": "xlang-extlib-acceptance-1",
+  "date": "2026-11-02T04:06:19.9545109+08:00",
+  "package": "cli",
+  "maturity": "M",
+  "status": "flag-lookup-reuse-verified-original-literal-projection-and-release-binding-open",
+  "sourceParent": "8339ee726c2aa5eb063f2938b34d1f39068638f9",
+  "previousNativeGitBlob": "3325deca55334b46d1f87959c55132dcb4b4608d",
+  "objectiveScope": {
+    "ordinaryPackages": 100,
+    "goalComplete": false,
+    "states": {
+      "M": 56,
+      "R": 10,
+      "X": 4,
+      "G": 30
+    }
+  },
+  "changes": {
+    "kind": "Internal optimization, no newly confirmed wrong parser result",
+    "productionCodeReplacements": 2,
+    "compilerRuntimeXrtTccIdeNotModified": true,
+    "netProductionLines": 1,
+    "newCachesIndexesCopiesAllocationsOrProjectionCompatibility": false,
+    "publicApiAbiAndOwnershipUnchanged": true,
+    "invariant": "A false xvalue is non-NULL and still means the flag name was declared",
+    "body": "Use the existing initialized flagsOut dictionary for long/direct-single-character flag membership instead of rescanning flagsSpec",
+    "remainingCosts": [
+      "name and duplicate/alias validation",
+      "output construction",
+      "borrowed input inspection",
+      "necessary string results",
+      "explicit alias lookup"
+    ]
+  },
+  "production": {
+    "old": {
+      "path": "build/test/cli_flags_20261102/before_native.c",
+      "bytes": 19938,
+      "sha256": "6756ce8bde591d558b1146db3578a58280dacbf658823a94ece0e0efa6b9137e"
+    },
+    "current": {
+      "path": "release/extlibs/cli/cli_native.c",
+      "bytes": 20051,
+      "sha256": "ff65abe527e1467f911c6c482cdd34a0f82423beaec66e1a82a61032ed5109b0"
+    }
+  },
+  "regression": {
+    "all48AllocationCountsEqual": true,
+    "cases": 48,
+    "allocationFaults": 83,
+    "immediateRetry": true,
+    "patternsPerCount": 8,
+    "newWindows": [
+      {
+        "name": "new-compile",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 592
+        }
+      },
+      {
+        "name": "new-0",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "cli flag lookup: 48 cases, 83 allocation faults, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 44
+        }
+      },
+      {
+        "name": "new-1",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "0\t0\t18\r\n0\t1\t18\r\n0\t2\t18\r\n0\t3\t18\r\n0\t4\t18\r\n0\t5\t18\r\n0\t6\t19\r\n0\t7\t19\r\n1\t0\t20\r\n1\t1\t20\r\n1\t2\t20\r\n1\t3\t20\r\n1\t4\t20\r\n1\t5\t20\r\n1\t6\t21\r\n1\t7\t21\r\n2\t0\t21\r\n2\t1\t21\r\n2\t2\t21\r\n2\t3\t21\r\n2\t4\t21\r\n2\t5\t21\r\n2\t6\t22\r\n2\t7\t22\r\n8\t0\t27\r\n8\t1\t27\r\n8\t2\t27\r\n8\t3\t27\r\n8\t4\t27\r\n8\t5\t27\r\n8\t6\t28\r\n8\t7\t28\r\n64\t0\t86\r\n64\t1\t86\r\n64\t2\t86\r\n64\t3\t86\r\n64\t4\t86\r\n64\t5\t86\r\n64\t6\t87\r\n64\t7\t87\r\n256\t0\t280\r\n256\t1\t280\r\n256\t2\t280\r\n256\t3\t280\r\n256\t4\t280\r\n256\t5\t280\r\n256\t6\t281\r\n256\t7\t281\r\n",
+          "stderr": "",
+          "elapsedMs": 27
+        }
+      }
+    ],
+    "currentDefaultFaultTest": "cli defaults: 36 combinations, 882 fault points, immediate recovery and lifetime passed\n",
+    "oldWindows": [
+      {
+        "name": "runtime",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 5159
+        }
+      },
+      {
+        "name": "old-compile",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 426
+        }
+      },
+      {
+        "name": "old-0",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "cli flag lookup: 48 cases, 83 allocation faults, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 31
+        }
+      },
+      {
+        "name": "old-1",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "0\t0\t18\r\n0\t1\t18\r\n0\t2\t18\r\n0\t3\t18\r\n0\t4\t18\r\n0\t5\t18\r\n0\t6\t19\r\n0\t7\t19\r\n1\t0\t20\r\n1\t1\t20\r\n1\t2\t20\r\n1\t3\t20\r\n1\t4\t20\r\n1\t5\t20\r\n1\t6\t21\r\n1\t7\t21\r\n2\t0\t21\r\n2\t1\t21\r\n2\t2\t21\r\n2\t3\t21\r\n2\t4\t21\r\n2\t5\t21\r\n2\t6\t22\r\n2\t7\t22\r\n8\t0\t27\r\n8\t1\t27\r\n8\t2\t27\r\n8\t3\t27\r\n8\t4\t27\r\n8\t5\t27\r\n8\t6\t28\r\n8\t7\t28\r\n64\t0\t86\r\n64\t1\t86\r\n64\t2\t86\r\n64\t3\t86\r\n64\t4\t86\r\n64\t5\t86\r\n64\t6\t87\r\n64\t7\t87\r\n256\t0\t280\r\n256\t1\t280\r\n256\t2\t280\r\n256\t3\t280\r\n256\t4\t280\r\n256\t5\t280\r\n256\t6\t281\r\n256\t7\t281\r\n",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      }
+    ],
+    "linuxOldStdout": "cli flag lookup: 48 cases, 83 allocation faults, 0 failures\n",
+    "gccTccAndAotAllocationTablesEqual": true,
+    "fixture": {
+      "path": "release/extlibs/cli/test/flag_lookup.c",
+      "bytes": 7298,
+      "sha256": "6f651b4a2349685ab645b11d5be20e35dc30f7b52ce8eb241a5bc57b762fd512"
+    },
+    "memoryFields": [
+      "LiveCount",
+      "LiveBytes",
+      "InvalidFreeCount",
+      "DoubleFreeCount",
+      "OverflowCount",
+      "UnderflowCount",
+      "UseAfterFreeCount"
+    ],
+    "heldResultAndReleasedInputLifetime": true,
+    "linuxOldCosts": "0\t0\t18\n0\t1\t18\n0\t2\t18\n0\t3\t18\n0\t4\t18\n0\t5\t18\n0\t6\t19\n0\t7\t19\n1\t0\t20\n1\t1\t20\n1\t2\t20\n1\t3\t20\n1\t4\t20\n1\t5\t20\n1\t6\t21\n1\t7\t21\n2\t0\t21\n2\t1\t21\n2\t2\t21\n2\t3\t21\n2\t4\t21\n2\t5\t21\n2\t6\t22\n2\t7\t22\n8\t0\t27\n8\t1\t27\n8\t2\t27\n8\t3\t27\n8\t4\t27\n8\t5\t27\n8\t6\t28\n8\t7\t28\n64\t0\t86\n64\t1\t86\n64\t2\t86\n64\t3\t86\n64\t4\t86\n64\t5\t86\n64\t6\t87\n64\t7\t87\n256\t0\t280\n256\t1\t280\n256\t2\t280\n256\t3\t280\n256\t4\t280\n256\t5\t280\n256\t6\t281\n256\t7\t281\n",
+    "semantics": [
+      "unselected false exists",
+      "first/last/reverse/repeated hits",
+      "direct short cluster",
+      "UTF8 names",
+      "unknown long/short",
+      "flag assignment rejected",
+      "first-error stop"
+    ],
+    "allocationRows": "0\t0\t18\n0\t1\t18\n0\t2\t18\n0\t3\t18\n0\t4\t18\n0\t5\t18\n0\t6\t19\n0\t7\t19\n1\t0\t20\n1\t1\t20\n1\t2\t20\n1\t3\t20\n1\t4\t20\n1\t5\t20\n1\t6\t21\n1\t7\t21\n2\t0\t21\n2\t1\t21\n2\t2\t21\n2\t3\t21\n2\t4\t21\n2\t5\t21\n2\t6\t22\n2\t7\t22\n8\t0\t27\n8\t1\t27\n8\t2\t27\n8\t3\t27\n8\t4\t27\n8\t5\t27\n8\t6\t28\n8\t7\t28\n64\t0\t86\n64\t1\t86\n64\t2\t86\n64\t3\t86\n64\t4\t86\n64\t5\t86\n64\t6\t87\n64\t7\t87\n256\t0\t280\n256\t1\t280\n256\t2\t280\n256\t3\t280\n256\t4\t280\n256\t5\t280\n256\t6\t281\n256\t7\t281\n",
+    "flagCounts": [
+      0,
+      1,
+      2,
+      8,
+      64,
+      256
+    ]
+  },
+  "examples": {
+    "golden": {
+      "path": "release/extlibs/cli/examples/flag_selection.expected.txt",
+      "bytes": 94,
+      "sha256": "2bd4e6b61b1556409b4e8827f56299f911a19140c361aafd49a92410f2593e87"
+    },
+    "defaultFileOrChildProcessWrites": false,
+    "initialDraftError": "Used single-quoted raw text; current language design reserves single quotes for char. Changed example to triple-double raw string, not a mainline fix",
+    "c": "release/extlibs/cli/examples/flag_selection_c.c",
+    "coverageMetadata": "Includes original basic/options and new flag_selection; does not hide original failed paths",
+    "xlangInput": "Standard JSON configuration values; original language literal cases unchanged and still required",
+    "xlang": "release/extlibs/cli/examples/flag_selection.xl",
+    "verifies": [
+      "case-sensitive flags",
+      "direct short flags",
+      "UTF8",
+      "unselected false",
+      "first error and retained old result"
+    ]
+  },
+  "windows": {
+    "parent": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "[cli] compiler-info: PASS\n[cli] compiler-frontend: PASS\n[cli] runtime-compile: PASS\n[cli] native-compile: PASS\n[cli] flag-lookup-compile: PASS\n[cli] flag-lookup-native: PASS\n[cli] flag-lookup-direct: PASS\n[cli] flag-lookup-costs: PASS\n[cli] flag-lookup-direct-costs: PASS\n[cli] flag-lookup-build: PASS\n[cli] flag-lookup-aot: PASS\n[cli] flag-lookup-aot-costs: PASS\n[cli] test_cli-compile: PASS\n[cli] test_cli-run: PASS\n[cli] test_defaults-compile: PASS\n[cli] test_defaults-run: PASS\n[cli] basic-c-compile: PASS\n[cli] basic-c-run: PASS\n[cli] basic-c-direct: PASS\n[cli] basic-c-aot-build: PASS\n[cli] basic-c-aot-run: PASS\n[cli] options-c-compile: PASS\n[cli] options-c-run: PASS\n[cli] options-c-direct: PASS\n[cli] options-c-aot-build: PASS\n[cli] options-c-aot-run: PASS\n[cli] flag_selection-c-compile: PASS\n[cli] flag_selection-c-run: PASS\n[cli] flag_selection-c-direct: PASS\n[cli] flag_selection-c-aot-build: PASS\n[cli] flag_selection-c-aot-run: PASS\n[cli] central-check: PASS\n[cli] FAIL: central-jit failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\nuncaught xlang error: parse requires an args array and a spec object\n\r\n\n[cli] central-build: PASS\n[cli] FAIL: central-aot failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\n\r\n\n[cli] central-cgen: PASS\n[cli] basic-check: PASS\n[cli] FAIL: basic-jit failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\nuncaught xlang error: parse requires an args array and a spec object\n\r\n\n[cli] basic-build: PASS\n[cli] FAIL: basic-aot failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\n\r\n\n[cli] basic-cgen: PASS\n[cli] options-check: PASS\n[cli] FAIL: options-jit failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\nuncaught xlang error: parse requires an args array and a spec object\n\r\n\n[cli] options-build: PASS\n[cli] FAIL: options-aot failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\n\r\n\n[cli] options-cgen: PASS\n[cli] flag-selection-check: PASS\n[cli] flag-selection-jit: PASS\n[cli] flag-selection-build: PASS\n[cli] flag-selection-aot: PASS\n[cli] flag-selection-cgen: PASS\n[cli] os-args-check: PASS\n[cli] os-args-jit: PASS\n[cli] os-args-build: PASS\n[cli] os-args-aot: PASS\n[cli] os-args-cgen: PASS\n[cli] projection-check: PASS\n[cli] FAIL: projection-jit failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\nuncaught xlang error: parse requires an args array and a spec object\n\r\ncli native control: PASS\n\n[cli] projection-build: PASS\n[cli] FAIL: projection-aot failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\n\r\ncli native control: PASS\n\n[cli] projection-cgen: PASS\n[cli] generated-abi: PASS\n[cli] retained artifacts: D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\n",
+      "stderr": "central-jit failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\r\nuncaught xlang error: parse requires an args array and a spec object\r\ncentral-aot failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\r\nbasic-jit failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\r\nuncaught xlang error: parse requires an args array and a spec object\r\nbasic-aot failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\r\noptions-jit failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\r\nuncaught xlang error: parse requires an args array and a spec object\r\noptions-aot failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\r\nprojection-jit failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\r\nuncaught xlang error: parse requires an args array and a spec object\r\ncli native control: PASS\r\nprojection-aot failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\r\ncli native control: PASS\r\n����λ�� D:\\GIT\\x-lang\\release\\extlibs\\cli\\test\\check_c.ps1:108 �ַ�: 25\r\n+     if($problems.Count){throw ($problems -join \"`n\")}\r\n+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : OperationStopped: (central-jit fai... control: PASS\r\n:String) [], RuntimeException\r\n    + FullyQualifiedErrorId : central-jit failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\r\nuncaught xlang error: parse requires an args array and a spec object\r\ncentral-aot failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\r\nbasic-jit failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\r\nuncaught xlang error: parse requires an args array and a spec object\r\nbasic-aot failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\r\noptions-jit failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\r\nuncaught xlang error: parse requires an args array and a spec object\r\noptions-aot failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\r\nprojection-jit failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\r\nuncaught xlang error: parse requires an args array and a spec object\r\ncli native control: PASS\r\nprojection-aot failed: status=fail, exit=1\r\nuncaught xlang error: ValueError: parse requires an args array and a spec object\r\ncli native control: PASS\r\n \r\n",
+      "elapsedMs": 16920
+    },
+    "changedDuringGate": [],
+    "postGateChanges": [
+      "release/extlibs/cli/docs/site.html",
+      "release/extlibs/cli/README.md",
+      "release/extlibs/cli/xlang.package.json"
+    ],
+    "checkCount": 62,
+    "packageComplete": false,
+    "failed": [
+      "basic-aot",
+      "basic-jit",
+      "central-aot",
+      "central-jit",
+      "options-aot",
+      "options-jit",
+      "projection-aot",
+      "projection-jit"
+    ],
+    "aotBuilt": 10,
+    "aotRunFail": 4,
+    "checks": [
+      {
+        "name": "compiler-info",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "--version"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "stderr": "",
+          "elapsedMs": 36
+        }
+      },
+      {
+        "name": "compiler-frontend",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-print-prog-name=cc1"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe\r\n",
+          "stderr": "",
+          "elapsedMs": 24
+        }
+      },
+      {
+        "name": "runtime-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-DNDEBUG",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-c",
+          "release/extlibs/cli/test/xrt_runtime.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\runtime.o"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 5554
+        }
+      },
+      {
+        "name": "native-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-DNDEBUG",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Wmissing-prototypes",
+          "-c",
+          "release/extlibs/cli/cli_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\native.o"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 322
+        }
+      },
+      {
+        "name": "flag-lookup-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-DNDEBUG",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "release/extlibs/cli/test/flag_lookup.c",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\runtime.o",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\flag_lookup.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 448
+        }
+      },
+      {
+        "name": "flag-lookup-native",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\flag_lookup.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "cli flag lookup: 48 cases, 83 allocation faults, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 32
+        }
+      },
+      {
+        "name": "flag-lookup-direct",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/cli/test/flag_lookup.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "cli flag lookup: 48 cases, 83 allocation faults, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 81
+        }
+      },
+      {
+        "name": "flag-lookup-costs",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\flag_lookup.exe",
+        "arguments": [
+          "--costs"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "0\t0\t18\r\n0\t1\t18\r\n0\t2\t18\r\n0\t3\t18\r\n0\t4\t18\r\n0\t5\t18\r\n0\t6\t19\r\n0\t7\t19\r\n1\t0\t20\r\n1\t1\t20\r\n1\t2\t20\r\n1\t3\t20\r\n1\t4\t20\r\n1\t5\t20\r\n1\t6\t21\r\n1\t7\t21\r\n2\t0\t21\r\n2\t1\t21\r\n2\t2\t21\r\n2\t3\t21\r\n2\t4\t21\r\n2\t5\t21\r\n2\t6\t22\r\n2\t7\t22\r\n8\t0\t27\r\n8\t1\t27\r\n8\t2\t27\r\n8\t3\t27\r\n8\t4\t27\r\n8\t5\t27\r\n8\t6\t28\r\n8\t7\t28\r\n64\t0\t86\r\n64\t1\t86\r\n64\t2\t86\r\n64\t3\t86\r\n64\t4\t86\r\n64\t5\t86\r\n64\t6\t87\r\n64\t7\t87\r\n256\t0\t280\r\n256\t1\t280\r\n256\t2\t280\r\n256\t3\t280\r\n256\t4\t280\r\n256\t5\t280\r\n256\t6\t281\r\n256\t7\t281\r\n",
+          "stderr": "",
+          "elapsedMs": 30
+        }
+      },
+      {
+        "name": "flag-lookup-direct-costs",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/cli/test/flag_lookup.c",
+          "--",
+          "--costs"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "0\t0\t18\r\n0\t1\t18\r\n0\t2\t18\r\n0\t3\t18\r\n0\t4\t18\r\n0\t5\t18\r\n0\t6\t19\r\n0\t7\t19\r\n1\t0\t20\r\n1\t1\t20\r\n1\t2\t20\r\n1\t3\t20\r\n1\t4\t20\r\n1\t5\t20\r\n1\t6\t21\r\n1\t7\t21\r\n2\t0\t21\r\n2\t1\t21\r\n2\t2\t21\r\n2\t3\t21\r\n2\t4\t21\r\n2\t5\t21\r\n2\t6\t22\r\n2\t7\t22\r\n8\t0\t27\r\n8\t1\t27\r\n8\t2\t27\r\n8\t3\t27\r\n8\t4\t27\r\n8\t5\t27\r\n8\t6\t28\r\n8\t7\t28\r\n64\t0\t86\r\n64\t1\t86\r\n64\t2\t86\r\n64\t3\t86\r\n64\t4\t86\r\n64\t5\t86\r\n64\t6\t87\r\n64\t7\t87\r\n256\t0\t280\r\n256\t1\t280\r\n256\t2\t280\r\n256\t3\t280\r\n256\t4\t280\r\n256\t5\t280\r\n256\t6\t281\r\n256\t7\t281\r\n",
+          "stderr": "",
+          "elapsedMs": 86
+        }
+      },
+      {
+        "name": "flag-lookup-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/cli/test/flag_lookup.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\flag_lookup_aot.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 122
+        }
+      },
+      {
+        "name": "flag-lookup-aot",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\flag_lookup_aot.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "cli flag lookup: 48 cases, 83 allocation faults, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 69
+        }
+      },
+      {
+        "name": "flag-lookup-aot-costs",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\flag_lookup_aot.exe",
+        "arguments": [
+          "--costs"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "0\t0\t18\r\n0\t1\t18\r\n0\t2\t18\r\n0\t3\t18\r\n0\t4\t18\r\n0\t5\t18\r\n0\t6\t19\r\n0\t7\t19\r\n1\t0\t20\r\n1\t1\t20\r\n1\t2\t20\r\n1\t3\t20\r\n1\t4\t20\r\n1\t5\t20\r\n1\t6\t21\r\n1\t7\t21\r\n2\t0\t21\r\n2\t1\t21\r\n2\t2\t21\r\n2\t3\t21\r\n2\t4\t21\r\n2\t5\t21\r\n2\t6\t22\r\n2\t7\t22\r\n8\t0\t27\r\n8\t1\t27\r\n8\t2\t27\r\n8\t3\t27\r\n8\t4\t27\r\n8\t5\t27\r\n8\t6\t28\r\n8\t7\t28\r\n64\t0\t86\r\n64\t1\t86\r\n64\t2\t86\r\n64\t3\t86\r\n64\t4\t86\r\n64\t5\t86\r\n64\t6\t87\r\n64\t7\t87\r\n256\t0\t280\r\n256\t1\t280\r\n256\t2\t280\r\n256\t3\t280\r\n256\t4\t280\r\n256\t5\t280\r\n256\t6\t281\r\n256\t7\t281\r\n",
+          "stderr": "",
+          "elapsedMs": 68
+        }
+      },
+      {
+        "name": "test_cli-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-DNDEBUG",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "release/extlibs/cli/test/test_cli.c",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\runtime.o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\native.o",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\test_cli.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 638
+        }
+      },
+      {
+        "name": "test_cli-run",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\test_cli.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "test_cli: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 128
+        }
+      },
+      {
+        "name": "test_defaults-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-DNDEBUG",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "release/extlibs/cli/test/test_defaults.c",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\runtime.o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\native.o",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\test_defaults.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 235
+        }
+      },
+      {
+        "name": "test_defaults-run",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\test_defaults.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "cli defaults: 36 combinations, 882 fault points, immediate recovery and lifetime passed\r\n",
+          "stderr": "",
+          "elapsedMs": 62
+        }
+      },
+      {
+        "name": "basic-c-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-DNDEBUG",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "release/extlibs/cli/examples/basic_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\runtime.o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\native.o",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\basic-c.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 200
+        }
+      },
+      {
+        "name": "basic-c-run",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\basic-c.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "verbose=true output=out.txt src=in.txt\r\n",
+          "stderr": "",
+          "elapsedMs": 22
+        }
+      },
+      {
+        "name": "basic-c-direct",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/cli/examples/basic_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "verbose=true output=out.txt src=in.txt\r\n",
+          "stderr": "",
+          "elapsedMs": 65
+        }
+      },
+      {
+        "name": "basic-c-aot-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/cli/examples/basic_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\basic-c-aot.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 118
+        }
+      },
+      {
+        "name": "basic-c-aot-run",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\basic-c-aot.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "verbose=true output=out.txt src=in.txt\r\n",
+          "stderr": "",
+          "elapsedMs": 27
+        }
+      },
+      {
+        "name": "options-c-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-DNDEBUG",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "release/extlibs/cli/examples/options_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\runtime.o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\native.o",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\options-c.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 217
+        }
+      },
+      {
+        "name": "options-c-run",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\options-c.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "flags: verbose=true force=true\r\noutput: 报告.csv\r\nlevel: 5\r\nsource: -input\r\nrest: --literal\r\nfirst-error: unknown short option -z\r\n",
+          "stderr": "",
+          "elapsedMs": 23
+        }
+      },
+      {
+        "name": "options-c-direct",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/cli/examples/options_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "flags: verbose=true force=true\r\noutput: 报告.csv\r\nlevel: 5\r\nsource: -input\r\nrest: --literal\r\nfirst-error: unknown short option -z\r\n",
+          "stderr": "",
+          "elapsedMs": 65
+        }
+      },
+      {
+        "name": "options-c-aot-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/cli/examples/options_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\options-c-aot.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 125
+        }
+      },
+      {
+        "name": "options-c-aot-run",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\options-c-aot.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "flags: verbose=true force=true\r\noutput: 报告.csv\r\nlevel: 5\r\nsource: -input\r\nrest: --literal\r\nfirst-error: unknown short option -z\r\n",
+          "stderr": "",
+          "elapsedMs": 29
+        }
+      },
+      {
+        "name": "flag_selection-c-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-DNDEBUG",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "release/extlibs/cli/examples/flag_selection_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\runtime.o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\native.o",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\flag_selection-c.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 195
+        }
+      },
+      {
+        "name": "flag_selection-c-run",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\flag_selection-c.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "case sensitive: true\r\nshort flags: true\r\nunicode flag: true\r\nunselected: false\r\nfirst error: true\r\n",
+          "stderr": "",
+          "elapsedMs": 21
+        }
+      },
+      {
+        "name": "flag_selection-c-direct",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/cli/examples/flag_selection_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "case sensitive: true\r\nshort flags: true\r\nunicode flag: true\r\nunselected: false\r\nfirst error: true\r\n",
+          "stderr": "",
+          "elapsedMs": 72
+        }
+      },
+      {
+        "name": "flag_selection-c-aot-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/cli/examples/flag_selection_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\flag_selection-c-aot.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 116
+        }
+      },
+      {
+        "name": "flag_selection-c-aot-run",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\flag_selection-c-aot.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "case sensitive: true\r\nshort flags: true\r\nunicode flag: true\r\nunselected: false\r\nfirst error: true\r\n",
+          "stderr": "",
+          "elapsedMs": 27
+        }
+      },
+      {
+        "name": "central-check",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "check",
+          "test/cases/extlib_cli.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "ok\n",
+          "stderr": "",
+          "elapsedMs": 35
+        }
+      },
+      {
+        "name": "central-jit",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "test/cases/extlib_cli.xl"
+        ],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: ValueError: parse requires an args array and a spec object\nuncaught xlang error: parse requires an args array and a spec object\n",
+          "elapsedMs": 718
+        }
+      },
+      {
+        "name": "central-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "test/cases/extlib_cli.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\lang-central.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1214
+        }
+      },
+      {
+        "name": "central-aot",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\lang-central.exe",
+        "arguments": [],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: ValueError: parse requires an args array and a spec object\n",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "name": "central-cgen",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "test/cases/extlib_cli.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\module-central.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 465
+        }
+      },
+      {
+        "name": "basic-check",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "check",
+          "release/extlibs/cli/examples/basic.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "ok\n",
+          "stderr": "",
+          "elapsedMs": 30
+        }
+      },
+      {
+        "name": "basic-jit",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/cli/examples/basic.xl"
+        ],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: ValueError: parse requires an args array and a spec object\nuncaught xlang error: parse requires an args array and a spec object\n",
+          "elapsedMs": 165
+        }
+      },
+      {
+        "name": "basic-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/cli/examples/basic.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\lang-basic.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 342
+        }
+      },
+      {
+        "name": "basic-aot",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\lang-basic.exe",
+        "arguments": [],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: ValueError: parse requires an args array and a spec object\n",
+          "elapsedMs": 31
+        }
+      },
+      {
+        "name": "basic-cgen",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "release/extlibs/cli/examples/basic.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\module-basic.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 63
+        }
+      },
+      {
+        "name": "options-check",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "check",
+          "release/extlibs/cli/examples/options.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "ok\n",
+          "stderr": "",
+          "elapsedMs": 32
+        }
+      },
+      {
+        "name": "options-jit",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/cli/examples/options.xl"
+        ],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: ValueError: parse requires an args array and a spec object\nuncaught xlang error: parse requires an args array and a spec object\n",
+          "elapsedMs": 291
+        }
+      },
+      {
+        "name": "options-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/cli/examples/options.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\lang-options.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 542
+        }
+      },
+      {
+        "name": "options-aot",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\lang-options.exe",
+        "arguments": [],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: ValueError: parse requires an args array and a spec object\n",
+          "elapsedMs": 38
+        }
+      },
+      {
+        "name": "options-cgen",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "release/extlibs/cli/examples/options.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\module-options.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 141
+        }
+      },
+      {
+        "name": "flag-selection-check",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "check",
+          "release/extlibs/cli/examples/flag_selection.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "ok\n",
+          "stderr": "",
+          "elapsedMs": 31
+        }
+      },
+      {
+        "name": "flag-selection-jit",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/cli/examples/flag_selection.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "case sensitive: true\nshort flags: true\nunicode flag: true\nunselected: false\nfirst error: true\n",
+          "stderr": "",
+          "elapsedMs": 201
+        }
+      },
+      {
+        "name": "flag-selection-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/cli/examples/flag_selection.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\lang-flag-selection.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 367
+        }
+      },
+      {
+        "name": "flag-selection-aot",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\lang-flag-selection.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "case sensitive: true\nshort flags: true\nunicode flag: true\nunselected: false\nfirst error: true\n",
+          "stderr": "",
+          "elapsedMs": 37
+        }
+      },
+      {
+        "name": "flag-selection-cgen",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "release/extlibs/cli/examples/flag_selection.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\module-flag-selection.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 81
+        }
+      },
+      {
+        "name": "os-args-check",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "check",
+          "dev/extlib_blockers/cli_os_args_symbol.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "ok\n",
+          "stderr": "",
+          "elapsedMs": 27
+        }
+      },
+      {
+        "name": "os-args-jit",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "dev/extlib_blockers/cli_os_args_symbol.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 87
+        }
+      },
+      {
+        "name": "os-args-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "dev/extlib_blockers/cli_os_args_symbol.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\lang-os-args.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 227
+        }
+      },
+      {
+        "name": "os-args-aot",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\lang-os-args.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 33
+        }
+      },
+      {
+        "name": "os-args-cgen",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "dev/extlib_blockers/cli_os_args_symbol.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\module-os-args.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 27
+        }
+      },
+      {
+        "name": "projection-check",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "check",
+          "dev/extlib_blockers/cli_args_projection.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "ok\n",
+          "stderr": "",
+          "elapsedMs": 29
+        }
+      },
+      {
+        "name": "projection-jit",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "dev/extlib_blockers/cli_args_projection.xl"
+        ],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "cli native control: PASS\n",
+          "stderr": "uncaught xlang error: ValueError: parse requires an args array and a spec object\nuncaught xlang error: parse requires an args array and a spec object\n",
+          "elapsedMs": 127
+        }
+      },
+      {
+        "name": "projection-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "dev/extlib_blockers/cli_args_projection.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\lang-projection.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 195
+        }
+      },
+      {
+        "name": "projection-aot",
+        "program": "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\lang-projection.exe",
+        "arguments": [],
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "cli native control: PASS\n",
+          "stderr": "uncaught xlang error: ValueError: parse requires an args array and a spec object\n",
+          "elapsedMs": 29
+        }
+      },
+      {
+        "name": "projection-cgen",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "dev/extlib_blockers/cli_args_projection.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\module-projection.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 36
+        }
+      },
+      {
+        "name": "generated-abi",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-DNDEBUG",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/cli/include",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\build\\test\\cli_guard\\run_c2a4571f3b5649ab901c0347eeead9e2\\abi.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 122
+        }
+      }
+    ],
+    "inputAndToolCount": 50,
+    "passed": 54,
+    "aotRunPass": 6,
+    "rawReport": {
+      "path": "build/test/cli_guard/run_c2a4571f3b5649ab901c0347eeead9e2.json",
+      "bytes": 67628,
+      "sha256": "9940743796a08e9ae5eaf3b03dfbe3afd03dd6b82e3da3647307f00587ccb879"
+    },
+    "inputs": {
+      "D:\\GIT\\x-lang\\dev\\extlib_blockers\\cli_args_projection.c": "AF4600CDC5F4B341116AE21ACA20DCA8734FB499E9AF35E4615E475BF82B9617",
+      "D:\\GIT\\x-lang\\dev\\extlib_blockers\\cli_args_projection.xl": "6EDCE573F7B585CC9E2D9E02E7525B6250D4448EAC4047E749F7C4F6CF2FB066",
+      "D:\\GIT\\x-lang\\dev\\extlib_blockers\\cli_os_args_symbol.xl": "543D67FA35694D0DCC650A5481FCB29E62312F4AE5358E6DE4FE402FA9EA9F75",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\cli_native.c": "FF65ABE527E1467F911C6C482CDD34A0F82423BEAEC66E1A82A61032ED5109B0",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\docs\\site.html": "E20810D171389E97CE5135B20AB09B172020331833FC7A21C3162F6A2E90859F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\examples\\basic.expected.txt": "AF6AB7982B5E8299E1506CDA0904D6C5A7DAE27CD117C90AF43BBC48BFD72995",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\examples\\basic.xl": "634B103C205D1283B6E224E493FF41FCFF078122950F9F0FA4AF481E431FFCE2",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\examples\\basic_c.c": "C27F71E83CEA466F56088597791AAF7434BA2169435E5570BF2C530FC0A80BE4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\examples\\flag_selection.expected.txt": "2BD4E6B61B1556409B4E8827F56299F911A19140C361AAFD49A92410F2593E87",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\examples\\flag_selection.xl": "3E97805028233C341EF8CC3E542ED4574143C9CA0682AD89EF8B7858157B0BAC",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\examples\\flag_selection_c.c": "1B077ADF72025093209DB98D4C26CEDE398D81E8862C3552ADE1223A3B74B93B",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\examples\\options.expected.txt": "D54A71370C70D60EF320E7250B3667E4C495DE07BF3DF76D9C7F741430896CEE",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\examples\\options.xl": "B9C87F8973400313473820DDD0BE4F609B144DCB8FDE4116DB5F4A04C81EBDB6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\examples\\options_c.c": "5C53178F32B3FA61B14144F00ADD33995BBC170DE3C0B694418B34B2B83E2B12",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\include\\cli_native.h": "BD4360A99302ACFFED8CEB728ABA52CC1EDE248F44D0B61AA073899E0BAFD35C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\README.md": "0AFDB15CCF30DB957484708B12673F00CBCB30E9DDC313FAA88FAE0CA598D6CD",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\src\\cli.xl": "0D1E9D6AA07E7B7EFD8CA1FED0BC19358B558D28A786598A8B59297F0354C861",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\test\\bench_flags.c": "DA083B97ED1B2C79CC309F0C98E8135C86A23F61ADFFE99CF75213704AB0AC1E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\test\\check_c.ps1": "23C889384FA5DD0131EFD9FB4A61B8D5A7D7D94B7A77EA3BAD1E87CBD765ED65",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\test\\check_c.sh": "4725CC393292020D684E9A266FA4EC87E2B6538871C7B0E987CAD5B65EF79F70",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\test\\flag_lookup.c": "6F651B4A2349685AB645B11D5BE20E35DC30F7B52CE8EB241A5BC57B762FD512",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\test\\test_cli.c": "0A5549E20C352811B02C72F96C251E3E3D9191B627203C20536E8413A4B54E5A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\test\\test_defaults.c": "F2217D7BF5C44A2C5189D87E873FEF0B9F511AA4B6E8AA34ECFADE00DE01C9A3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\test\\xrt_runtime.c": "B6800D17E65EA951E2F840F4C2C2F4F9DD3C3329FBB24603F62B1628C0C9F7B5",
+      "D:\\GIT\\x-lang\\release\\extlibs\\cli\\xlang.package.json": "0EE7433F2A98D9414BAFFB63E868977E4DC9144FC95B9856AF6D30B7477B0B55",
+      "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+      "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+      "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+      "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+      "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+      "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+      "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+      "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+      "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+      "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_cli.xl": "D7FC59E6DA18B78AA421EDF339FF2A30738CE5581B35FB53E80EF1B5E65CB16B",
+      "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+      "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012"
+    },
+    "gateExit": 1,
+    "allBuildsSucceedDoesNotMeanAllProgramsPass": true,
+    "postGateChangeReason": "Final README/site and passive coverage metadata only; source/tests/examples remain the tested bytes"
+  },
+  "linux": {
+    "phaseCount": 61,
+    "nativeFilesystem": true,
+    "snapshot": "/var/tmp/xlang-cli-flags-tKErzEBy",
+    "packageComplete": false,
+    "toolsBefore": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc\n30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1\n3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash\n",
+    "cSanitizers": [
+      "address",
+      "undefined",
+      "leaks"
+    ],
+    "stderr": "uncaught xlang error: ValueError: parse requires an args array and a spec object\nuncaught xlang error: parse requires an args array and a spec object\nuncaught xlang error: ValueError: parse requires an args array and a spec object\nuncaught xlang error: ValueError: parse requires an args array and a spec object\nuncaught xlang error: parse requires an args array and a spec object\nuncaught xlang error: ValueError: parse requires an args array and a spec object\nuncaught xlang error: ValueError: parse requires an args array and a spec object\nuncaught xlang error: parse requires an args array and a spec object\nuncaught xlang error: ValueError: parse requires an args array and a spec object\nuncaught xlang error: ValueError: parse requires an args array and a spec object\nuncaught xlang error: parse requires an args array and a spec object\nuncaught xlang error: ValueError: parse requires an args array and a spec object\nCLI language boundary failures: 8\n[cli] FAIL phase=language-summary exit=1 artifacts=/var/tmp/xlang-cli-flags-tKErzEBy/tmp/xlang-cli-oP9WkJ\n",
+    "phases": [
+      {
+        "name": "compiler-info",
+        "exit": 0
+      },
+      {
+        "name": "runtime-compile",
+        "exit": 0
+      },
+      {
+        "name": "native-compile",
+        "exit": 0
+      },
+      {
+        "name": "flag-lookup-compile",
+        "exit": 0
+      },
+      {
+        "name": "flag-lookup-native",
+        "exit": 0
+      },
+      {
+        "name": "flag-lookup-direct",
+        "exit": 0
+      },
+      {
+        "name": "flag-lookup-costs",
+        "exit": 0
+      },
+      {
+        "name": "flag-lookup-direct-costs",
+        "exit": 0
+      },
+      {
+        "name": "flag-lookup-build",
+        "exit": 0
+      },
+      {
+        "name": "flag-lookup-aot",
+        "exit": 0
+      },
+      {
+        "name": "flag-lookup-aot-costs",
+        "exit": 0
+      },
+      {
+        "name": "test_cli-compile",
+        "exit": 0
+      },
+      {
+        "name": "test_cli-run",
+        "exit": 0
+      },
+      {
+        "name": "test_defaults-compile",
+        "exit": 0
+      },
+      {
+        "name": "test_defaults-run",
+        "exit": 0
+      },
+      {
+        "name": "basic-c-compile",
+        "exit": 0
+      },
+      {
+        "name": "basic-c-run",
+        "exit": 0
+      },
+      {
+        "name": "basic-c-direct",
+        "exit": 0
+      },
+      {
+        "name": "basic-c-aot-build",
+        "exit": 0
+      },
+      {
+        "name": "basic-c-aot-run",
+        "exit": 0
+      },
+      {
+        "name": "options-c-compile",
+        "exit": 0
+      },
+      {
+        "name": "options-c-run",
+        "exit": 0
+      },
+      {
+        "name": "options-c-direct",
+        "exit": 0
+      },
+      {
+        "name": "options-c-aot-build",
+        "exit": 0
+      },
+      {
+        "name": "options-c-aot-run",
+        "exit": 0
+      },
+      {
+        "name": "flag_selection-c-compile",
+        "exit": 0
+      },
+      {
+        "name": "flag_selection-c-run",
+        "exit": 0
+      },
+      {
+        "name": "flag_selection-c-direct",
+        "exit": 0
+      },
+      {
+        "name": "flag_selection-c-aot-build",
+        "exit": 0
+      },
+      {
+        "name": "flag_selection-c-aot-run",
+        "exit": 0
+      },
+      {
+        "name": "central-check",
+        "exit": 0
+      },
+      {
+        "name": "central-jit",
+        "exit": 1
+      },
+      {
+        "name": "central-build",
+        "exit": 0
+      },
+      {
+        "name": "central-aot",
+        "exit": 1
+      },
+      {
+        "name": "central-cgen",
+        "exit": 0
+      },
+      {
+        "name": "basic-check",
+        "exit": 0
+      },
+      {
+        "name": "basic-jit",
+        "exit": 1
+      },
+      {
+        "name": "basic-build",
+        "exit": 0
+      },
+      {
+        "name": "basic-aot",
+        "exit": 1
+      },
+      {
+        "name": "basic-cgen",
+        "exit": 0
+      },
+      {
+        "name": "options-check",
+        "exit": 0
+      },
+      {
+        "name": "options-jit",
+        "exit": 1
+      },
+      {
+        "name": "options-build",
+        "exit": 0
+      },
+      {
+        "name": "options-aot",
+        "exit": 1
+      },
+      {
+        "name": "options-cgen",
+        "exit": 0
+      },
+      {
+        "name": "flag_selection-check",
+        "exit": 0
+      },
+      {
+        "name": "flag_selection-jit",
+        "exit": 0
+      },
+      {
+        "name": "flag_selection-build",
+        "exit": 0
+      },
+      {
+        "name": "flag_selection-aot",
+        "exit": 0
+      },
+      {
+        "name": "flag_selection-cgen",
+        "exit": 0
+      },
+      {
+        "name": "os-args-check",
+        "exit": 0
+      },
+      {
+        "name": "os-args-jit",
+        "exit": 0
+      },
+      {
+        "name": "os-args-build",
+        "exit": 0
+      },
+      {
+        "name": "os-args-aot",
+        "exit": 0
+      },
+      {
+        "name": "os-args-cgen",
+        "exit": 0
+      },
+      {
+        "name": "projection-check",
+        "exit": 0
+      },
+      {
+        "name": "projection-jit",
+        "exit": 1
+      },
+      {
+        "name": "projection-build",
+        "exit": 0
+      },
+      {
+        "name": "projection-aot",
+        "exit": 1
+      },
+      {
+        "name": "projection-cgen",
+        "exit": 0
+      },
+      {
+        "name": "generated-abi",
+        "exit": 0
+      }
+    ],
+    "noSanitizerClaimForTccXlang": true,
+    "aotBuilt": 10,
+    "toolsAfter": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc\n30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1\n3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash\n",
+    "wrapperPassOnlyMeansExpectedOpenFailuresAndFrozenInputs": true,
+    "failedPhases": [
+      "central-jit",
+      "central-aot",
+      "basic-jit",
+      "basic-aot",
+      "options-jit",
+      "options-aot",
+      "projection-jit",
+      "projection-aot"
+    ],
+    "sourceToolsAndBootUnchanged": true,
+    "rawGateExit": 1,
+    "toolBinaries": 3,
+    "aotRunPass": 6,
+    "parent": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "CLI gate=1 expected-fail-difference=0 old-compile=0 old=0 old-costs=0 cost-difference=0 source-change=0 tools-change=0 snapshot=/var/tmp/xlang-cli-flags-tKErzEBy\ncli flag lookup: 48 cases, 83 allocation faults, 0 failures\n   text\t   data\t    bss\t    dec\t    hex\tfilename\n   7547\t     40\t      0\t   7587\t   1da3\t/var/tmp/xlang-cli-flags-tKErzEBy/old.o\n   7391\t     40\t      0\t   7431\t   1d07\t/var/tmp/xlang-cli-flags-tKErzEBy/new.o\n[cli] projection-aot\ncli native control: PASS\n[cli] projection-cgen\n[cli] generated-abi\nuncaught xlang error: ValueError: parse requires an args array and a spec object\nCLI language boundary failures: 8\n[cli] FAIL phase=language-summary exit=1 artifacts=/var/tmp/xlang-cli-flags-tKErzEBy/tmp/xlang-cli-oP9WkJ\n",
+      "stderr": "",
+      "elapsedMs": 31701
+    },
+    "sourceManifestBefore": [
+      "af4600cdc5f4b341116ae21aca20dca8734fb499e9af35e4615e475bf82b9617  ./dev/extlib_blockers/cli_args_projection.c",
+      "6edce573f7b585cc9e2d9e02e7525b6250d4448eac4047e749f7c4f6cf2fb066  ./dev/extlib_blockers/cli_args_projection.xl",
+      "543d67fa35694d0dcc650a5481fcb29e62312f4ae5358e6de4fe402fa9ea9f75  ./dev/extlib_blockers/cli_os_args_symbol.xl",
+      "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h",
+      "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h",
+      "0afdb15ccf30db957484708b12673f00cbcb30e9ddc313faa88fae0ca598d6cd  ./release/extlibs/cli/README.md",
+      "ff65abe527e1467f911c6c482cdd34a0f82423beaec66e1a82a61032ed5109b0  ./release/extlibs/cli/cli_native.c",
+      "e20810d171389e97ce5135b20ab09b172020331833fc7a21c3162f6a2e90859f  ./release/extlibs/cli/docs/site.html",
+      "af6ab7982b5e8299e1506cda0904d6c5a7dae27cd117c90af43bbc48bfd72995  ./release/extlibs/cli/examples/basic.expected.txt",
+      "634b103c205d1283b6e224e493ff41fcff078122950f9f0fa4af481e431ffce2  ./release/extlibs/cli/examples/basic.xl",
+      "c27f71e83cea466f56088597791aaf7434ba2169435e5570bf2c530fc0a80be4  ./release/extlibs/cli/examples/basic_c.c",
+      "2bd4e6b61b1556409b4e8827f56299f911a19140c361aafd49a92410f2593e87  ./release/extlibs/cli/examples/flag_selection.expected.txt",
+      "3e97805028233c341ef8cc3e542ed4574143c9ca0682ad89ef8b7858157b0bac  ./release/extlibs/cli/examples/flag_selection.xl",
+      "1b077adf72025093209db98d4c26cede398d81e8862c3552ade1223a3b74b93b  ./release/extlibs/cli/examples/flag_selection_c.c",
+      "d54a71370c70d60ef320e7250b3667e4c495de07bf3df76d9c7f741430896cee  ./release/extlibs/cli/examples/options.expected.txt",
+      "b9c87f8973400313473820ddd0be4f609b144dcb8fde4116db5f4a04c81ebdb6  ./release/extlibs/cli/examples/options.xl",
+      "5c53178f32b3fa61b14144f00add33995bbc170de3c0b694418b34b2b83e2b12  ./release/extlibs/cli/examples/options_c.c",
+      "bd4360a99302acffed8ceb728aba52cc1ede248f44d0b61aa073899e0bafd35c  ./release/extlibs/cli/include/cli_native.h",
+      "0d1e9d6aa07e7b7efd8ca1fed0bc19358b558d28a786598a8b59297f0354c861  ./release/extlibs/cli/src/cli.xl",
+      "da083b97ed1b2c79cc309f0c98e8135c86a23f61adffe99cf75213704ab0ac1e  ./release/extlibs/cli/test/bench_flags.c",
+      "23c889384fa5dd0131efd9fb4a61b8d5a7d7d94b7a77ea3bad1e87cbd765ed65  ./release/extlibs/cli/test/check_c.ps1",
+      "4725cc393292020d684e9a266fa4ec87e2b6538871c7b0e987cad5b65ef79f70  ./release/extlibs/cli/test/check_c.sh",
+      "6f651b4a2349685ab645b11d5be20e35dc30f7b52ce8eb241a5bc57b762fd512  ./release/extlibs/cli/test/flag_lookup.c",
+      "0a5549e20c352811b02c72f96c251e3e3d9191b627203c20536e8413a4b54e5a  ./release/extlibs/cli/test/test_cli.c",
+      "f2217d7bf5c44a2c5189d87e873fef0b9f511aa4b6e8aa34ecfade00de01c9a3  ./release/extlibs/cli/test/test_defaults.c",
+      "b6800d17e65ea951e2f840f4c2c2f4f9dd3c3329fbb24603f62b1628c0c9f7b5  ./release/extlibs/cli/test/xrt_runtime.c",
+      "dfbc7bbfc6f1bd56fee8a6b2be967ab975f4128797bc009531db8af3f03a54fb  ./release/extlibs/cli/xlang.package.json",
+      "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md",
+      "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h",
+      "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h",
+      "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h",
+      "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h",
+      "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h",
+      "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h",
+      "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h",
+      "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h",
+      "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h",
+      "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h",
+      "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h",
+      "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h",
+      "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h",
+      "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h",
+      "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h",
+      "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so",
+      "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so",
+      "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl",
+      "d7fc59e6da18b78aa421edf339ff2a30738ce5581b35fb53e80ef1b5e65cb16b  ./test/cases/extlib_cli.xl"
+    ],
+    "passed": 53,
+    "aotRunFail": 4,
+    "sourceFiles": 47,
+    "stdout": "[cli] compiler-info\ngcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n[cli] runtime-compile\n[cli] native-compile\n[cli] flag-lookup-compile\n[cli] flag-lookup-native\ncli flag lookup: 48 cases, 83 allocation faults, 0 failures\n[cli] flag-lookup-direct\ncli flag lookup: 48 cases, 83 allocation faults, 0 failures\n[cli] flag-lookup-costs\n0\t0\t18\n0\t1\t18\n0\t2\t18\n0\t3\t18\n0\t4\t18\n0\t5\t18\n0\t6\t19\n0\t7\t19\n1\t0\t20\n1\t1\t20\n1\t2\t20\n1\t3\t20\n1\t4\t20\n1\t5\t20\n1\t6\t21\n1\t7\t21\n2\t0\t21\n2\t1\t21\n2\t2\t21\n2\t3\t21\n2\t4\t21\n2\t5\t21\n2\t6\t22\n2\t7\t22\n8\t0\t27\n8\t1\t27\n8\t2\t27\n8\t3\t27\n8\t4\t27\n8\t5\t27\n8\t6\t28\n8\t7\t28\n64\t0\t86\n64\t1\t86\n64\t2\t86\n64\t3\t86\n64\t4\t86\n64\t5\t86\n64\t6\t87\n64\t7\t87\n256\t0\t280\n256\t1\t280\n256\t2\t280\n256\t3\t280\n256\t4\t280\n256\t5\t280\n256\t6\t281\n256\t7\t281\n[cli] flag-lookup-direct-costs\n0\t0\t18\n0\t1\t18\n0\t2\t18\n0\t3\t18\n0\t4\t18\n0\t5\t18\n0\t6\t19\n0\t7\t19\n1\t0\t20\n1\t1\t20\n1\t2\t20\n1\t3\t20\n1\t4\t20\n1\t5\t20\n1\t6\t21\n1\t7\t21\n2\t0\t21\n2\t1\t21\n2\t2\t21\n2\t3\t21\n2\t4\t21\n2\t5\t21\n2\t6\t22\n2\t7\t22\n8\t0\t27\n8\t1\t27\n8\t2\t27\n8\t3\t27\n8\t4\t27\n8\t5\t27\n8\t6\t28\n8\t7\t28\n64\t0\t86\n64\t1\t86\n64\t2\t86\n64\t3\t86\n64\t4\t86\n64\t5\t86\n64\t6\t87\n64\t7\t87\n256\t0\t280\n256\t1\t280\n256\t2\t280\n256\t3\t280\n256\t4\t280\n256\t5\t280\n256\t6\t281\n256\t7\t281\n[cli] flag-lookup-build\n[cli] flag-lookup-aot\ncli flag lookup: 48 cases, 83 allocation faults, 0 failures\n[cli] flag-lookup-aot-costs\n0\t0\t18\n0\t1\t18\n0\t2\t18\n0\t3\t18\n0\t4\t18\n0\t5\t18\n0\t6\t19\n0\t7\t19\n1\t0\t20\n1\t1\t20\n1\t2\t20\n1\t3\t20\n1\t4\t20\n1\t5\t20\n1\t6\t21\n1\t7\t21\n2\t0\t21\n2\t1\t21\n2\t2\t21\n2\t3\t21\n2\t4\t21\n2\t5\t21\n2\t6\t22\n2\t7\t22\n8\t0\t27\n8\t1\t27\n8\t2\t27\n8\t3\t27\n8\t4\t27\n8\t5\t27\n8\t6\t28\n8\t7\t28\n64\t0\t86\n64\t1\t86\n64\t2\t86\n64\t3\t86\n64\t4\t86\n64\t5\t86\n64\t6\t87\n64\t7\t87\n256\t0\t280\n256\t1\t280\n256\t2\t280\n256\t3\t280\n256\t4\t280\n256\t5\t280\n256\t6\t281\n256\t7\t281\n[cli] test_cli-compile\n[cli] test_cli-run\ntest_cli: PASS\n[cli] test_defaults-compile\n[cli] test_defaults-run\ncli defaults: 36 combinations, 882 fault points, immediate recovery and lifetime passed\n[cli] basic-c-compile\n[cli] basic-c-run\nverbose=true output=out.txt src=in.txt\n[cli] basic-c-direct\nverbose=true output=out.txt src=in.txt\n[cli] basic-c-aot-build\n[cli] basic-c-aot-run\nverbose=true output=out.txt src=in.txt\n[cli] options-c-compile\n[cli] options-c-run\nflags: verbose=true force=true\noutput: 报告.csv\nlevel: 5\nsource: -input\nrest: --literal\nfirst-error: unknown short option -z\n[cli] options-c-direct\nflags: verbose=true force=true\noutput: 报告.csv\nlevel: 5\nsource: -input\nrest: --literal\nfirst-error: unknown short option -z\n[cli] options-c-aot-build\n[cli] options-c-aot-run\nflags: verbose=true force=true\noutput: 报告.csv\nlevel: 5\nsource: -input\nrest: --literal\nfirst-error: unknown short option -z\n[cli] flag_selection-c-compile\n[cli] flag_selection-c-run\ncase sensitive: true\nshort flags: true\nunicode flag: true\nunselected: false\nfirst error: true\n[cli] flag_selection-c-direct\ncase sensitive: true\nshort flags: true\nunicode flag: true\nunselected: false\nfirst error: true\n[cli] flag_selection-c-aot-build\n[cli] flag_selection-c-aot-run\ncase sensitive: true\nshort flags: true\nunicode flag: true\nunselected: false\nfirst error: true\n[cli] central-check\nok\n[cli] central-jit\n[cli] central-build\n[cli] central-aot\n[cli] central-cgen\n[cli] basic-check\nok\n[cli] basic-jit\n[cli] basic-build\n[cli] basic-aot\n[cli] basic-cgen\n[cli] options-check\nok\n[cli] options-jit\n[cli] options-build\n[cli] options-aot\n[cli] options-cgen\n[cli] flag_selection-check\nok\n[cli] flag_selection-jit\ncase sensitive: true\nshort flags: true\nunicode flag: true\nunselected: false\nfirst error: true\n[cli] flag_selection-build\n[cli] flag_selection-aot\ncase sensitive: true\nshort flags: true\nunicode flag: true\nunselected: false\nfirst error: true\n[cli] flag_selection-cgen\n[cli] os-args-check\nok\n[cli] os-args-jit\n[cli] os-args-build\n[cli] os-args-aot\n[cli] os-args-cgen\n[cli] projection-check\nok\n[cli] projection-jit\ncli native control: PASS\n[cli] projection-build\n[cli] projection-aot\ncli native control: PASS\n[cli] projection-cgen\n[cli] generated-abi\n",
+    "sourceManifestAfter": [
+      "af4600cdc5f4b341116ae21aca20dca8734fb499e9af35e4615e475bf82b9617  ./dev/extlib_blockers/cli_args_projection.c",
+      "6edce573f7b585cc9e2d9e02e7525b6250d4448eac4047e749f7c4f6cf2fb066  ./dev/extlib_blockers/cli_args_projection.xl",
+      "543d67fa35694d0dcc650a5481fcb29e62312f4ae5358e6de4fe402fa9ea9f75  ./dev/extlib_blockers/cli_os_args_symbol.xl",
+      "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h",
+      "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h",
+      "0afdb15ccf30db957484708b12673f00cbcb30e9ddc313faa88fae0ca598d6cd  ./release/extlibs/cli/README.md",
+      "ff65abe527e1467f911c6c482cdd34a0f82423beaec66e1a82a61032ed5109b0  ./release/extlibs/cli/cli_native.c",
+      "e20810d171389e97ce5135b20ab09b172020331833fc7a21c3162f6a2e90859f  ./release/extlibs/cli/docs/site.html",
+      "af6ab7982b5e8299e1506cda0904d6c5a7dae27cd117c90af43bbc48bfd72995  ./release/extlibs/cli/examples/basic.expected.txt",
+      "634b103c205d1283b6e224e493ff41fcff078122950f9f0fa4af481e431ffce2  ./release/extlibs/cli/examples/basic.xl",
+      "c27f71e83cea466f56088597791aaf7434ba2169435e5570bf2c530fc0a80be4  ./release/extlibs/cli/examples/basic_c.c",
+      "2bd4e6b61b1556409b4e8827f56299f911a19140c361aafd49a92410f2593e87  ./release/extlibs/cli/examples/flag_selection.expected.txt",
+      "3e97805028233c341ef8cc3e542ed4574143c9ca0682ad89ef8b7858157b0bac  ./release/extlibs/cli/examples/flag_selection.xl",
+      "1b077adf72025093209db98d4c26cede398d81e8862c3552ade1223a3b74b93b  ./release/extlibs/cli/examples/flag_selection_c.c",
+      "d54a71370c70d60ef320e7250b3667e4c495de07bf3df76d9c7f741430896cee  ./release/extlibs/cli/examples/options.expected.txt",
+      "b9c87f8973400313473820ddd0be4f609b144dcb8fde4116db5f4a04c81ebdb6  ./release/extlibs/cli/examples/options.xl",
+      "5c53178f32b3fa61b14144f00add33995bbc170de3c0b694418b34b2b83e2b12  ./release/extlibs/cli/examples/options_c.c",
+      "bd4360a99302acffed8ceb728aba52cc1ede248f44d0b61aa073899e0bafd35c  ./release/extlibs/cli/include/cli_native.h",
+      "0d1e9d6aa07e7b7efd8ca1fed0bc19358b558d28a786598a8b59297f0354c861  ./release/extlibs/cli/src/cli.xl",
+      "da083b97ed1b2c79cc309f0c98e8135c86a23f61adffe99cf75213704ab0ac1e  ./release/extlibs/cli/test/bench_flags.c",
+      "23c889384fa5dd0131efd9fb4a61b8d5a7d7d94b7a77ea3bad1e87cbd765ed65  ./release/extlibs/cli/test/check_c.ps1",
+      "4725cc393292020d684e9a266fa4ec87e2b6538871c7b0e987cad5b65ef79f70  ./release/extlibs/cli/test/check_c.sh",
+      "6f651b4a2349685ab645b11d5be20e35dc30f7b52ce8eb241a5bc57b762fd512  ./release/extlibs/cli/test/flag_lookup.c",
+      "0a5549e20c352811b02c72f96c251e3e3d9191b627203c20536e8413a4b54e5a  ./release/extlibs/cli/test/test_cli.c",
+      "f2217d7bf5c44a2c5189d87e873fef0b9f511aa4b6e8aa34ecfade00de01c9a3  ./release/extlibs/cli/test/test_defaults.c",
+      "b6800d17e65ea951e2f840f4c2c2f4f9dd3c3329fbb24603f62b1628c0c9f7b5  ./release/extlibs/cli/test/xrt_runtime.c",
+      "dfbc7bbfc6f1bd56fee8a6b2be967ab975f4128797bc009531db8af3f03a54fb  ./release/extlibs/cli/xlang.package.json",
+      "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md",
+      "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h",
+      "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h",
+      "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h",
+      "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h",
+      "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h",
+      "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h",
+      "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h",
+      "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h",
+      "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h",
+      "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h",
+      "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h",
+      "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h",
+      "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h",
+      "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h",
+      "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h",
+      "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so",
+      "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so",
+      "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl",
+      "d7fc59e6da18b78aa421edf339ff2a30738ce5581b35fb53e80ef1b5e65cb16b  ./test/cases/extlib_cli.xl"
+    ]
+  },
+  "performance": {
+    "universalSpeedupOrReleaseProductClaim": false,
+    "windowsRaw": [
+      {
+        "arguments": 1,
+        "flags": 4,
+        "kind": "old",
+        "round": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "4\t1\t200\t0.000\r\n",
+          "stderr": "",
+          "elapsedMs": 31
+        }
+      },
+      {
+        "arguments": 1,
+        "flags": 4,
+        "kind": "new",
+        "round": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "4\t1\t200\t1.000\r\n",
+          "stderr": "",
+          "elapsedMs": 26
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 4,
+        "kind": "old",
+        "round": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "4\t512\t200\t16.000\r\n",
+          "stderr": "",
+          "elapsedMs": 41
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 4,
+        "kind": "new",
+        "round": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "4\t512\t200\t12.000\r\n",
+          "stderr": "",
+          "elapsedMs": 34
+        }
+      },
+      {
+        "arguments": 1,
+        "flags": 32,
+        "kind": "old",
+        "round": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "32\t1\t200\t3.000\r\n",
+          "stderr": "",
+          "elapsedMs": 25
+        }
+      },
+      {
+        "arguments": 1,
+        "flags": 32,
+        "kind": "new",
+        "round": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "32\t1\t200\t3.000\r\n",
+          "stderr": "",
+          "elapsedMs": 24
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 32,
+        "kind": "old",
+        "round": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "32\t512\t200\t55.000\r\n",
+          "stderr": "",
+          "elapsedMs": 76
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 32,
+        "kind": "new",
+        "round": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "32\t512\t200\t16.000\r\n",
+          "stderr": "",
+          "elapsedMs": 39
+        }
+      },
+      {
+        "arguments": 1,
+        "flags": 256,
+        "kind": "old",
+        "round": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "256\t1\t200\t96.000\r\n",
+          "stderr": "",
+          "elapsedMs": 119
+        }
+      },
+      {
+        "arguments": 1,
+        "flags": 256,
+        "kind": "new",
+        "round": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "256\t1\t200\t109.000\r\n",
+          "stderr": "",
+          "elapsedMs": 132
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 256,
+        "kind": "old",
+        "round": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "256\t512\t200\t492.000\r\n",
+          "stderr": "",
+          "elapsedMs": 514
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 256,
+        "kind": "new",
+        "round": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "256\t512\t200\t105.000\r\n",
+          "stderr": "",
+          "elapsedMs": 127
+        }
+      },
+      {
+        "arguments": 1,
+        "flags": 4,
+        "kind": "new",
+        "round": 1,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "4\t1\t200\t1.000\r\n",
+          "stderr": "",
+          "elapsedMs": 20
+        }
+      },
+      {
+        "arguments": 1,
+        "flags": 4,
+        "kind": "old",
+        "round": 1,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "4\t1\t200\t1.000\r\n",
+          "stderr": "",
+          "elapsedMs": 19
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 4,
+        "kind": "new",
+        "round": 1,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "4\t512\t200\t10.000\r\n",
+          "stderr": "",
+          "elapsedMs": 31
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 4,
+        "kind": "old",
+        "round": 1,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "4\t512\t200\t15.000\r\n",
+          "stderr": "",
+          "elapsedMs": 33
+        }
+      },
+      {
+        "arguments": 1,
+        "flags": 32,
+        "kind": "new",
+        "round": 1,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "32\t1\t200\t4.000\r\n",
+          "stderr": "",
+          "elapsedMs": 21
+        }
+      },
+      {
+        "arguments": 1,
+        "flags": 32,
+        "kind": "old",
+        "round": 1,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "32\t1\t200\t4.000\r\n",
+          "stderr": "",
+          "elapsedMs": 24
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 32,
+        "kind": "new",
+        "round": 1,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "32\t512\t200\t18.000\r\n",
+          "stderr": "",
+          "elapsedMs": 36
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 32,
+        "kind": "old",
+        "round": 1,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "32\t512\t200\t54.000\r\n",
+          "stderr": "",
+          "elapsedMs": 75
+        }
+      },
+      {
+        "arguments": 1,
+        "flags": 256,
+        "kind": "new",
+        "round": 1,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "256\t1\t200\t97.000\r\n",
+          "stderr": "",
+          "elapsedMs": 117
+        }
+      },
+      {
+        "arguments": 1,
+        "flags": 256,
+        "kind": "old",
+        "round": 1,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "256\t1\t200\t95.000\r\n",
+          "stderr": "",
+          "elapsedMs": 113
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 256,
+        "kind": "new",
+        "round": 1,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "256\t512\t200\t107.000\r\n",
+          "stderr": "",
+          "elapsedMs": 127
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 256,
+        "kind": "old",
+        "round": 1,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "256\t512\t200\t465.000\r\n",
+          "stderr": "",
+          "elapsedMs": 485
+        }
+      },
+      {
+        "arguments": 1,
+        "flags": 4,
+        "kind": "old",
+        "round": 2,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "4\t1\t200\t1.000\r\n",
+          "stderr": "",
+          "elapsedMs": 19
+        }
+      },
+      {
+        "arguments": 1,
+        "flags": 4,
+        "kind": "new",
+        "round": 2,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "4\t1\t200\t0.000\r\n",
+          "stderr": "",
+          "elapsedMs": 18
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 4,
+        "kind": "old",
+        "round": 2,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "4\t512\t200\t14.000\r\n",
+          "stderr": "",
+          "elapsedMs": 33
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 4,
+        "kind": "new",
+        "round": 2,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "4\t512\t200\t19.000\r\n",
+          "stderr": "",
+          "elapsedMs": 37
+        }
+      },
+      {
+        "arguments": 1,
+        "flags": 32,
+        "kind": "old",
+        "round": 2,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "32\t1\t200\t5.000\r\n",
+          "stderr": "",
+          "elapsedMs": 23
+        }
+      },
+      {
+        "arguments": 1,
+        "flags": 32,
+        "kind": "new",
+        "round": 2,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "32\t1\t200\t3.000\r\n",
+          "stderr": "",
+          "elapsedMs": 21
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 32,
+        "kind": "old",
+        "round": 2,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "32\t512\t200\t54.000\r\n",
+          "stderr": "",
+          "elapsedMs": 73
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 32,
+        "kind": "new",
+        "round": 2,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "32\t512\t200\t14.000\r\n",
+          "stderr": "",
+          "elapsedMs": 34
+        }
+      },
+      {
+        "arguments": 1,
+        "flags": 256,
+        "kind": "old",
+        "round": 2,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "256\t1\t200\t104.000\r\n",
+          "stderr": "",
+          "elapsedMs": 121
+        }
+      },
+      {
+        "arguments": 1,
+        "flags": 256,
+        "kind": "new",
+        "round": 2,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "256\t1\t200\t94.000\r\n",
+          "stderr": "",
+          "elapsedMs": 113
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 256,
+        "kind": "old",
+        "round": 2,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "256\t512\t200\t466.000\r\n",
+          "stderr": "",
+          "elapsedMs": 487
+        }
+      },
+      {
+        "arguments": 512,
+        "flags": 256,
+        "kind": "new",
+        "round": 2,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "256\t512\t200\t103.000\r\n",
+          "stderr": "",
+          "elapsedMs": 123
+        }
+      }
+    ],
+    "regressionsAndNoBenefitDisclosed": [
+      "Windows 256 flags/1 argument 96 -> 97 ms median",
+      "Linux 32/1 4.424 -> 4.549 ms median",
+      "Windows 4/1 both 1 ms; no resolution-based speed claim"
+    ],
+    "linuxSummary": [
+      {
+        "key": "4, 1, new",
+        "median": 0.94,
+        "times": [
+          0.924,
+          0.94,
+          1.076
+        ]
+      },
+      {
+        "key": "4, 1, old",
+        "median": 1.041,
+        "times": [
+          0.977,
+          1.041,
+          1.181
+        ]
+      },
+      {
+        "key": "4, 512, new",
+        "median": 10.974,
+        "times": [
+          10.932,
+          10.974,
+          11.396
+        ]
+      },
+      {
+        "key": "4, 512, old",
+        "median": 15.086,
+        "times": [
+          14.562,
+          15.086,
+          15.828
+        ]
+      },
+      {
+        "key": "32, 1, new",
+        "median": 4.549,
+        "times": [
+          3.7,
+          4.549,
+          5.333
+        ]
+      },
+      {
+        "key": "32, 1, old",
+        "median": 4.424,
+        "times": [
+          3.706,
+          4.424,
+          4.793
+        ]
+      },
+      {
+        "key": "32, 512, new",
+        "median": 14.126,
+        "times": [
+          13.757,
+          14.126,
+          18.479
+        ]
+      },
+      {
+        "key": "32, 512, old",
+        "median": 60.626,
+        "times": [
+          50.003,
+          60.626,
+          62.977
+        ]
+      },
+      {
+        "key": "256, 1, new",
+        "median": 89.449,
+        "times": [
+          89.398,
+          89.449,
+          90.679
+        ]
+      },
+      {
+        "key": "256, 1, old",
+        "median": 92.027,
+        "times": [
+          90.844,
+          92.027,
+          143.777
+        ]
+      },
+      {
+        "key": "256, 512, new",
+        "median": 99.649,
+        "times": [
+          99.369,
+          99.649,
+          105.576
+        ]
+      },
+      {
+        "key": "256, 512, old",
+        "median": 405.265,
+        "times": [
+          390.201,
+          405.265,
+          411.265
+        ]
+      }
+    ],
+    "oldNewOrderAlternates": true,
+    "rounds": 3,
+    "windowsSummary": [
+      {
+        "key": "4, 1, new",
+        "median": 1.0,
+        "times": [
+          0.0,
+          1.0,
+          1.0
+        ]
+      },
+      {
+        "key": "4, 1, old",
+        "median": 1.0,
+        "times": [
+          0.0,
+          1.0,
+          1.0
+        ]
+      },
+      {
+        "key": "4, 512, new",
+        "median": 12.0,
+        "times": [
+          10.0,
+          12.0,
+          19.0
+        ]
+      },
+      {
+        "key": "4, 512, old",
+        "median": 15.0,
+        "times": [
+          14.0,
+          15.0,
+          16.0
+        ]
+      },
+      {
+        "key": "32, 1, new",
+        "median": 3.0,
+        "times": [
+          3.0,
+          3.0,
+          4.0
+        ]
+      },
+      {
+        "key": "32, 1, old",
+        "median": 4.0,
+        "times": [
+          3.0,
+          4.0,
+          5.0
+        ]
+      },
+      {
+        "key": "32, 512, new",
+        "median": 16.0,
+        "times": [
+          14.0,
+          16.0,
+          18.0
+        ]
+      },
+      {
+        "key": "32, 512, old",
+        "median": 54.0,
+        "times": [
+          54.0,
+          54.0,
+          55.0
+        ]
+      },
+      {
+        "key": "256, 1, new",
+        "median": 97.0,
+        "times": [
+          94.0,
+          97.0,
+          109.0
+        ]
+      },
+      {
+        "key": "256, 1, old",
+        "median": 96.0,
+        "times": [
+          95.0,
+          96.0,
+          104.0
+        ]
+      },
+      {
+        "key": "256, 512, new",
+        "median": 105.0,
+        "times": [
+          103.0,
+          105.0,
+          107.0
+        ]
+      },
+      {
+        "key": "256, 512, old",
+        "median": 466.0,
+        "times": [
+          465.0,
+          466.0,
+          492.0
+        ]
+      }
+    ],
+    "zeroBridgeOverheadClaim": false,
+    "clock": "Platform CRT clock expressed as ms; compare only within platform, not cross-platform absolute values",
+    "compilerMode": "Same-platform GCC -O2, same MEMORY_DEBUG-enabled test runtime",
+    "arguments": [
+      1,
+      512
+    ],
+    "iterationsEach": 200,
+    "measuredRegion": "Complete xcli_parse, spec validation, result checks and release; input preparation outside timing",
+    "flags": [
+      4,
+      32,
+      256
+    ],
+    "fixture": {
+      "path": "release/extlibs/cli/test/bench_flags.c",
+      "bytes": 1936,
+      "sha256": "da083b97ed1b2c79cc309f0c98e8135c86a23f61adffe99cf75213704ab0ac1e"
+    },
+    "linuxRaw": "0\told\t4\t1\t200\t0.977\n0\tnew\t4\t1\t200\t0.924\n0\told\t4\t512\t200\t15.828\n0\tnew\t4\t512\t200\t10.932\n0\told\t32\t1\t200\t4.793\n0\tnew\t32\t1\t200\t5.333\n0\told\t32\t512\t200\t60.626\n0\tnew\t32\t512\t200\t18.479\n0\told\t256\t1\t200\t143.777\n0\tnew\t256\t1\t200\t89.449\n0\told\t256\t512\t200\t405.265\n0\tnew\t256\t512\t200\t99.649\n1\tnew\t4\t1\t200\t1.076\n1\told\t4\t1\t200\t1.041\n1\tnew\t4\t512\t200\t10.974\n1\told\t4\t512\t200\t15.086\n1\tnew\t32\t1\t200\t4.549\n1\told\t32\t1\t200\t4.424\n1\tnew\t32\t512\t200\t14.126\n1\told\t32\t512\t200\t62.977\n1\tnew\t256\t1\t200\t90.679\n1\told\t256\t1\t200\t90.844\n1\tnew\t256\t512\t200\t105.576\n1\told\t256\t512\t200\t411.265\n2\told\t4\t1\t200\t1.181\n2\tnew\t4\t1\t200\t0.940\n2\told\t4\t512\t200\t14.562\n2\tnew\t4\t512\t200\t11.396\n2\told\t32\t1\t200\t3.706\n2\tnew\t32\t1\t200\t3.700\n2\told\t32\t512\t200\t50.003\n2\tnew\t32\t512\t200\t13.757\n2\told\t256\t1\t200\t92.027\n2\tnew\t256\t1\t200\t89.398\n2\told\t256\t512\t200\t390.201\n2\tnew\t256\t512\t200\t99.369\n"
+  },
+  "size": {
+    "nativeObjectOnly": true,
+    "linux": {
+      "dataOld": 40,
+      "bssNew": 0,
+      "dataNew": 40,
+      "textNew": 7391,
+      "bssOld": 0,
+      "gcc": "Ubuntu 15.2.0",
+      "textOld": 7547,
+      "gnuSize": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n   7547\t     40\t      0\t   7587\t   1da3\t/var/tmp/xlang-cli-flags-tKErzEBy/old.o\n   7391\t     40\t      0\t   7431\t   1d07\t/var/tmp/xlang-cli-flags-tKErzEBy/new.o\n"
+    },
+    "finalExecutableSizeClaim": false,
+    "windows": {
+      "dataOld": 0,
+      "bssNew": 0,
+      "dataNew": 0,
+      "textNew": 7532,
+      "bssOld": 0,
+      "gcc": "16.2.0",
+      "textOld": 7560,
+      "raw": [
+        {
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 297
+          },
+          "kind": "old"
+        },
+        {
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 285
+          },
+          "kind": "new"
+        },
+        {
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n   7560\t      0\t      0\t   7560\t   1d88\tD:\\GIT\\x-lang\\build\\test\\cli_flags_20261102\\old-native.o\r\n   7532\t      0\t      0\t   7532\t   1d6c\tD:\\GIT\\x-lang\\build\\test\\cli_flags_20261102\\new-native.o\r\n",
+            "stderr": "",
+            "elapsedMs": 20
+          },
+          "kind": "size"
+        }
+      ]
+    }
+  },
+  "catalog": {
+    "freshness": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+      "stderr": "",
+      "elapsedMs": 1007
+    },
+    "summary": {
+      "status": "passed",
+      "catalogSha256": "1a731301dd4b922a11b32b22134fca525e50c638be2291967a761637cd893e67",
+      "sourceIndexSha256": "6a21c054a3e98ca7ff3c48fa1fc709ad5b25a25a5df7385875e3e13b3d0488b5",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42",
+      "inputsUnchanged": true
+    },
+    "baseCompilerIdentityChanged": false,
+    "strictBinding": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "Catalog compiler changed: xl.dll\r\n",
+      "elapsedMs": 313
+    },
+    "installed": false,
+    "generation": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "{\"status\": \"passed\", \"catalogSha256\": \"1a731301dd4b922a11b32b22134fca525e50c638be2291967a761637cd893e67\", \"sourceIndexSha256\": \"6a21c054a3e98ca7ff3c48fa1fc709ad5b25a25a5df7385875e3e13b3d0488b5\", \"preservedNonExtensionEntries\": 6156, \"publicPackages\": 207, \"excludedPrivate\": [\"_bzip2\", \"_expat\", \"_libzip\", \"_tomlc17\", \"_xge_native\", \"_zlib\"], \"extensionEntries\": 11442, \"addedEntries\": 0, \"removedEntries\": 0, \"documents\": 145, \"availableSources\": 593, \"extensionExporterSha256\": \"5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42\", \"inputsUnchanged\": true}\r\n",
+      "stderr": "",
+      "elapsedMs": 12160
+    }
+  },
+  "website": {
+    "deployed": false,
+    "correctedStaleTopM7Claim": true,
+    "isolatedCopy": {
+      "path": "build/test/cli_flags_20261102/site/extlibs/cli.html",
+      "bytes": 8022,
+      "sha256": "0c7ef29e3cdb076149fca929fa1e6dbb1185dd91f7ad4ab1ea8027db1de73695"
+    },
+    "source": {
+      "path": "release/extlibs/cli/docs/site.html",
+      "bytes": 8022,
+      "sha256": "0c7ef29e3cdb076149fca929fa1e6dbb1185dd91f7ad4ab1ea8027db1de73695"
+    },
+    "quickstartMatchesVerifiedJsonConfigurationExample": true
+  },
+  "deliveryAudit": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+    "stderr": "",
+    "elapsedMs": 987
+  },
+  "packageFiles": [
+    {
+      "path": "release/extlibs/cli/cli_native.c",
+      "bytes": 20051,
+      "sha256": "ff65abe527e1467f911c6c482cdd34a0f82423beaec66e1a82a61032ed5109b0"
+    },
+    {
+      "path": "release/extlibs/cli/docs/site.html",
+      "bytes": 8022,
+      "sha256": "0c7ef29e3cdb076149fca929fa1e6dbb1185dd91f7ad4ab1ea8027db1de73695"
+    },
+    {
+      "path": "release/extlibs/cli/examples/basic_c.c",
+      "bytes": 2036,
+      "sha256": "c27f71e83cea466f56088597791aaf7434ba2169435e5570bf2c530fc0a80be4"
+    },
+    {
+      "path": "release/extlibs/cli/examples/basic.expected.txt",
+      "bytes": 39,
+      "sha256": "af6ab7982b5e8299e1506cda0904d6c5a7dae27cd117c90af43bbc48bfd72995"
+    },
+    {
+      "path": "release/extlibs/cli/examples/basic.xl",
+      "bytes": 419,
+      "sha256": "634b103c205d1283b6e224e493ff41fcff078122950f9f0fa4af481e431ffce2"
+    },
+    {
+      "path": "release/extlibs/cli/examples/flag_selection_c.c",
+      "bytes": 2461,
+      "sha256": "1b077adf72025093209db98d4c26cede398d81e8862c3552ade1223a3b74b93b"
+    },
+    {
+      "path": "release/extlibs/cli/examples/flag_selection.expected.txt",
+      "bytes": 94,
+      "sha256": "2bd4e6b61b1556409b4e8827f56299f911a19140c361aafd49a92410f2593e87"
+    },
+    {
+      "path": "release/extlibs/cli/examples/flag_selection.xl",
+      "bytes": 1023,
+      "sha256": "3e97805028233c341ef8cc3e542ed4574143c9ca0682ad89ef8b7858157b0bac"
+    },
+    {
+      "path": "release/extlibs/cli/examples/options_c.c",
+      "bytes": 3872,
+      "sha256": "5c53178f32b3fa61b14144f00add33995bbc170de3c0b694418b34b2b83e2b12"
+    },
+    {
+      "path": "release/extlibs/cli/examples/options.expected.txt",
+      "bytes": 127,
+      "sha256": "d54a71370c70d60ef320e7250b3667e4c495de07bf3df76d9c7f741430896cee"
+    },
+    {
+      "path": "release/extlibs/cli/examples/options.xl",
+      "bytes": 1285,
+      "sha256": "b9c87f8973400313473820ddd0be4f609b144dcb8fde4116db5f4a04c81ebdb6"
+    },
+    {
+      "path": "release/extlibs/cli/include/cli_native.h",
+      "bytes": 408,
+      "sha256": "bd4360a99302acffed8ceb728aba52cc1ede248f44d0b61aa073899e0bafd35c"
+    },
+    {
+      "path": "release/extlibs/cli/README.md",
+      "bytes": 17650,
+      "sha256": "bd187ea5290de173fe04aa83f6c92afe4fe3be14516c6930829dc3b5effc7217"
+    },
+    {
+      "path": "release/extlibs/cli/src/cli.xl",
+      "bytes": 1702,
+      "sha256": "0d1e9d6aa07e7b7efd8ca1fed0bc19358b558d28a786598a8b59297f0354c861"
+    },
+    {
+      "path": "release/extlibs/cli/test/bench_flags.c",
+      "bytes": 1936,
+      "sha256": "da083b97ed1b2c79cc309f0c98e8135c86a23f61adffe99cf75213704ab0ac1e"
+    },
+    {
+      "path": "release/extlibs/cli/test/check_c.ps1",
+      "bytes": 8220,
+      "sha256": "23c889384fa5dd0131efd9fb4a61b8d5a7d7d94b7a77ea3bad1e87cbd765ed65"
+    },
+    {
+      "path": "release/extlibs/cli/test/check_c.sh",
+      "bytes": 6130,
+      "sha256": "4725cc393292020d684e9a266fa4ec87e2b6538871c7b0e987cad5b65ef79f70"
+    },
+    {
+      "path": "release/extlibs/cli/test/flag_lookup.c",
+      "bytes": 7298,
+      "sha256": "6f651b4a2349685ab645b11d5be20e35dc30f7b52ce8eb241a5bc57b762fd512"
+    },
+    {
+      "path": "release/extlibs/cli/test/test_cli.c",
+      "bytes": 28274,
+      "sha256": "0a5549e20c352811b02c72f96c251e3e3d9191b627203c20536e8413a4b54e5a"
+    },
+    {
+      "path": "release/extlibs/cli/test/test_defaults.c",
+      "bytes": 7237,
+      "sha256": "f2217d7bf5c44a2c5189d87e873fef0b9f511aa4b6e8aa34ecfade00de01c9a3"
+    },
+    {
+      "path": "release/extlibs/cli/test/xrt_runtime.c",
+      "bytes": 314,
+      "sha256": "b6800d17e65ea951e2f840f4c2c2f4f9dd3c3329fbb24603f62b1628c0c9f7b5"
+    },
+    {
+      "path": "release/extlibs/cli/xlang.package.json",
+      "bytes": 583,
+      "sha256": "dfbc7bbfc6f1bd56fee8a6b2be967ab975f4128797bc009531db8af3f03a54fb"
+    }
+  ],
+  "rawArtifacts": [
+    {
+      "path": "build/test/cli_flags_20261102/before.json",
+      "bytes": 1361,
+      "sha256": "39dece0560b8d27e856f7c08137567b1f2d231a407d015aca71f6f7bf7e6b998"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/after.json",
+      "bytes": 1188,
+      "sha256": "69725a684a9cf73fec457f109954e3b4cbe5f8ef35d9be7b9174981daafd0629"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/windows.json",
+      "bytes": 6401,
+      "sha256": "6711004950eea4d9b7f2613f6e5939adad320d428ce9f763ca8d8b85da300126"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/focused-jit.json",
+      "bytes": 879,
+      "sha256": "9906a8d918ca911932ebd755566295aa090b6e35c0638800294da5f5ae66b457"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/focused-language.json",
+      "bytes": 196,
+      "sha256": "305e89b84bb6ac45fa7c9761989df8fce9de504a2267e4ddeeedd483e82e408c"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/windows-size.json",
+      "bytes": 786,
+      "sha256": "67bebba0c043df888fc84fe564dbacf6a8c1d6ecc473de34e3264791e9b9a84a"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/benchmark-compiles.json",
+      "bytes": 339,
+      "sha256": "12f78d576bf089788c73b022d6da9f2edadcb226406cc229dd1a0e278b0c6e81"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/windows-benchmark.json",
+      "bytes": 8903,
+      "sha256": "f364fcb37e869c5f80e91f5ad3f84a1b249f42c8f23f1d629ce44b5804d7d370"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-benchmark-summary.json",
+      "bytes": 1525,
+      "sha256": "1094f9ea84ae778806c8676a56e10ce08efc56b628c7f70baa8d3977518dae3f"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-parent.json",
+      "bytes": 866,
+      "sha256": "1e0b1bdd4c3dc54e3f411de3612b43f859802cf9b0f9e1ae914d49c7a18fc01c"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/run_linux.sh",
+      "bytes": 4508,
+      "sha256": "23ee9eeee0c91594953a554ccd6174a011a96ccaea4f8eec43bf158b17491c85"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/source.tar",
+      "bytes": 48648192,
+      "sha256": "7e4b4c3baa6b4384d23d46a60a40cc6bf212d54b02290a01ba82b0016bcce104"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/catalog-generation.json",
+      "bytes": 722,
+      "sha256": "d3543fc31e7ff3de1388918a3097406c4777214a519c8a9b224257240d76e432"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/catalog-freshness.json",
+      "bytes": 175,
+      "sha256": "153f8b007266e90681ee920f3975fc3b32fdd4203db95f108983b8f76caf8c42"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/catalog-binding.json",
+      "bytes": 133,
+      "sha256": "0eeec1a217c1868fa7f849065541c191b19b5ec0b60f040bbf865fdd597cd17b"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/delivery.json",
+      "bytes": 192,
+      "sha256": "156c4c62f48f315ae7d11fd8824feb85fc5f4d806ed93852e4ad9d65ec5981e7"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/actual-failures.txt",
+      "bytes": 98,
+      "sha256": "4aef29dd8a90bf10c01ae02c161b8e092da257b431b5d8ae6e5315c0984a35ce"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/after.sha256",
+      "bytes": 4799,
+      "sha256": "9922d20ee67f614f5b880ca8fda9612226b9cbc033c9713ded0f3f133c07dbd7"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/before.sha256",
+      "bytes": 4799,
+      "sha256": "9922d20ee67f614f5b880ca8fda9612226b9cbc033c9713ded0f3f133c07dbd7"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/benchmark.tsv",
+      "bytes": 821,
+      "sha256": "9d5b988faa1ae23321ea5806441e52d3036601fe0e617d04e5e44d96cd5d15f3"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/boot.after",
+      "bytes": 37,
+      "sha256": "63cadb500163468818d47675ffc1faa57280b80c24211a761d015dab22dadbfd"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/boot.before",
+      "bytes": 37,
+      "sha256": "63cadb500163468818d47675ffc1faa57280b80c24211a761d015dab22dadbfd"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/changes.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/expected-failures.txt",
+      "bytes": 98,
+      "sha256": "4aef29dd8a90bf10c01ae02c161b8e092da257b431b5d8ae6e5315c0984a35ce"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/failed-phases.txt",
+      "bytes": 98,
+      "sha256": "64d1f431997360262d24d839f2c8eb6d84eadb3c0f2b5948930e08e39faa7d34"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/failure-difference.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate-location.txt",
+      "bytes": 55,
+      "sha256": "0b44c4bde8093cc4095194b517dbb2ba19554132e6bb8fe89c7a673648d83e55"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/abi.c",
+      "bytes": 69,
+      "sha256": "1f45e9cc388089a8f54bb8737bfd31a3c6565c4e3229648f5de748afab725dc7"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-aot.command",
+      "bytes": 67,
+      "sha256": "dae8520ce1461c61db4a35b7f044b5a35ed61db3d6001dddd07888d9f45d04a4"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-aot.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-aot.stderr",
+      "bytes": 81,
+      "sha256": "fb7cd63d34a92eb059a9a977720463d3857ff936427fcb4f9c5a94b788ea9a0a"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-aot.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-build.command",
+      "bytes": 125,
+      "sha256": "f9176cc899ccc6a0d661b9156092c9b4ce31005490725b3930271c51f3231111"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-build.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-build.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-build.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-aot-build.command",
+      "bytes": 125,
+      "sha256": "2624577f0c1c746dbd349f0bff8190ca30afad06f95b6e7d05bb1b317da77e6a"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-aot-build.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-aot-build.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-aot-build.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-aot-run.command",
+      "bytes": 66,
+      "sha256": "be14fd5d45b4085b16c6da76e2a1fb552315f7f513b25c29c91967a74075dfdf"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-aot-run.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-aot-run.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-aot-run.stdout",
+      "bytes": 39,
+      "sha256": "af6ab7982b5e8299e1506cda0904d6c5a7dae27cd117c90af43bbc48bfd72995"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-compile.command",
+      "bytes": 427,
+      "sha256": "84ddb300b03062508f7c5b24d89a0ff6bf4f72578449175a857f0e39d6d682f9"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-compile.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-direct.command",
+      "bytes": 55,
+      "sha256": "d35056f2cc2e9efb6991f75548f4cdc72d653b8d05dfe5a5fb45332e0232b412"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-direct.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-direct.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-direct.stdout",
+      "bytes": 39,
+      "sha256": "af6ab7982b5e8299e1506cda0904d6c5a7dae27cd117c90af43bbc48bfd72995"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-run.command",
+      "bytes": 62,
+      "sha256": "2b04e1247381c9f18f113cd150f1db4ac4160a801f56b092a26a5fed6e96ca88"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-run.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-run.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-c-run.stdout",
+      "bytes": 39,
+      "sha256": "af6ab7982b5e8299e1506cda0904d6c5a7dae27cd117c90af43bbc48bfd72995"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-cgen.command",
+      "bytes": 132,
+      "sha256": "718dea99f008f5643ae88262b7554c07f9857164faf000eb5c8e46f1b98dc839"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-cgen.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-cgen.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-cgen.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-check.command",
+      "bytes": 56,
+      "sha256": "835c41702187669ce744987da1eab31709a6cb52d41b96cddd7bd7f4f0f52e8c"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-check.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-check.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-check.stdout",
+      "bytes": 3,
+      "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-jit.command",
+      "bytes": 54,
+      "sha256": "42b418e2e0518cb43c225a3bbab481f6a2c4f8f3bcb3de24aef3d0d10b58c43e"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-jit.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-jit.stderr",
+      "bytes": 150,
+      "sha256": "55c296293e0c8735fc37913ef62143308bc2c1e8f2d8cb80ae62d99b3a93a215"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/basic-jit.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-aot.command",
+      "bytes": 69,
+      "sha256": "43db4479fdfdedf938609c9beffdacae265c9b4e2a90126b6d86d93fc4c1c86a"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-aot.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-aot.stderr",
+      "bytes": 81,
+      "sha256": "fb7cd63d34a92eb059a9a977720463d3857ff936427fcb4f9c5a94b788ea9a0a"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-aot.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-build.command",
+      "bytes": 114,
+      "sha256": "df0b3031cb7d380d13f50e284f0daea739d84d3a8728f44f35e478576b715f28"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-build.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-build.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-build.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-cgen.command",
+      "bytes": 121,
+      "sha256": "bd7fe59cf9a7f5b2d7bc692f0e7c821e0dd1a96f0f040e7c3259277bd1855fb1"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-cgen.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-cgen.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-cgen.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-check.command",
+      "bytes": 43,
+      "sha256": "ad01ca685e6efc0fd011557e3d23f705a2aa6becd64aa9915a8d94de454ee08e"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-check.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-check.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-check.stdout",
+      "bytes": 3,
+      "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-jit.command",
+      "bytes": 41,
+      "sha256": "94556b0c1df98d25362aee2678acbe6a645c4f83e63acc4c7bda6ab958791d21"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-jit.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-jit.stderr",
+      "bytes": 150,
+      "sha256": "55c296293e0c8735fc37913ef62143308bc2c1e8f2d8cb80ae62d99b3a93a215"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/central-jit.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/compiler-info.command",
+      "bytes": 15,
+      "sha256": "3ef1be947990c36575d234e82ff4dbe64a55f0cf056591f7ceed214dcc3d88be"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/compiler-info.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/compiler-info.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/compiler-info.stdout",
+      "bytes": 239,
+      "sha256": "6e876a25bb7fdb71ab2914e8f1eeaa00cc61d20a36a6c2981ab7d4d7ceab42f8"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/decls.txt",
+      "bytes": 45,
+      "sha256": "41dfee705a1997537e1153260ddad3287eaed10ffe6312f7fd3b67df3ba9d2ed"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/expected.txt",
+      "bytes": 94,
+      "sha256": "2bd4e6b61b1556409b4e8827f56299f911a19140c361aafd49a92410f2593e87"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-aot.command",
+      "bytes": 76,
+      "sha256": "f7a56f7015140951564b20e439f31ca5a8fd0e1a2b54fe9bbb37a0dbf428e37c"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-aot.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-aot.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-aot.stdout",
+      "bytes": 94,
+      "sha256": "2bd4e6b61b1556409b4e8827f56299f911a19140c361aafd49a92410f2593e87"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-build.command",
+      "bytes": 143,
+      "sha256": "193ae8f7e5444d0fb0262af5c76da28e3af760e0e7e0665ddced58dd3e3de9f4"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-build.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-build.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-build.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-aot-build.command",
+      "bytes": 143,
+      "sha256": "fbfa0c295b8cb1d71bcbd7798b925e6f509830d89945477803436eac5273c99a"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-aot-build.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-aot-build.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-aot-build.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-aot-run.command",
+      "bytes": 75,
+      "sha256": "8c00afa4633f4223db2f58ca982559d9f6ad00d7c0c1c73d260b80372965c6dc"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-aot-run.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-aot-run.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-aot-run.stdout",
+      "bytes": 94,
+      "sha256": "2bd4e6b61b1556409b4e8827f56299f911a19140c361aafd49a92410f2593e87"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-compile.command",
+      "bytes": 445,
+      "sha256": "3278e1300f91ccb984ea2ac2e8621d4b1700c26fc26e13947397a012bf722da7"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-compile.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-direct.command",
+      "bytes": 64,
+      "sha256": "0e8f6165405e721653f27a33264a3d3d7a81a7c6ef7d164ca46582f5fb058413"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-direct.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-direct.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-direct.stdout",
+      "bytes": 94,
+      "sha256": "2bd4e6b61b1556409b4e8827f56299f911a19140c361aafd49a92410f2593e87"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-run.command",
+      "bytes": 71,
+      "sha256": "5aedbe631ef9d8c46a97812a3f8293547a8e8f06eae15e743d2bb16f5dc5f5cd"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-run.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-run.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-c-run.stdout",
+      "bytes": 94,
+      "sha256": "2bd4e6b61b1556409b4e8827f56299f911a19140c361aafd49a92410f2593e87"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-cgen.command",
+      "bytes": 150,
+      "sha256": "0e238077178e0ffd167567fecac6b6dcc92b7cd43831a0ca8f3c281e728d5419"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-cgen.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-cgen.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-cgen.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-check.command",
+      "bytes": 65,
+      "sha256": "968ab66fb27a308969ae2f883613e1dd117c10a5838514c630eba3f1a637302e"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-check.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-check.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-check.stdout",
+      "bytes": 3,
+      "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-jit.command",
+      "bytes": 63,
+      "sha256": "f3857ac9d6d9ede6b8a3b4bf328c8028405a077ab51f76b08b3d544e029692dc"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-jit.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-jit.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag_selection-jit.stdout",
+      "bytes": 94,
+      "sha256": "2bd4e6b61b1556409b4e8827f56299f911a19140c361aafd49a92410f2593e87"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-aot-costs.command",
+      "bytes": 75,
+      "sha256": "506cf2a090214deea478bab1c55ac9aae5c8226de9ec368a7c05dd194f2fd4d0"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-aot-costs.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-aot-costs.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-aot-costs.stdout",
+      "bytes": 368,
+      "sha256": "66103e591fb2f43df1e79a964133d5f2631b1e189d56506c9ec7795475e6c416"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-aot.command",
+      "bytes": 67,
+      "sha256": "a744283e6c04c17e4063e6c9abf986232318aa287bec524bc88ccd481bdf9798"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-aot.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-aot.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-aot.stdout",
+      "bytes": 60,
+      "sha256": "9ba3032cd79fa1f2fc786ed93dc65d4e6c8dd7206d26b5556aeef9684c70ea8f"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-build.command",
+      "bytes": 126,
+      "sha256": "e4f0f889e492d5803c54aabf5c28ad88effdb48269499bb18ba7bcd966b0da90"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-build.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-build.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-build.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-compile.command",
+      "bytes": 364,
+      "sha256": "1ab5960127bd55742683fa5a055a4b19358b1254a23c7449082b96cd4b0b218f"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-compile.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-costs.command",
+      "bytes": 71,
+      "sha256": "1e94d84ce820b3df159480305737fc219ca54d4580aab19e0ec5dff24ef191d8"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-costs.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-costs.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-costs.stdout",
+      "bytes": 368,
+      "sha256": "66103e591fb2f43df1e79a964133d5f2631b1e189d56506c9ec7795475e6c416"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-direct-costs.command",
+      "bytes": 66,
+      "sha256": "7bb24b776725b3f392cc914140059f0e14990aab3c90a9bb9409596cb9ae3f2d"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-direct-costs.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-direct-costs.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-direct-costs.stdout",
+      "bytes": 368,
+      "sha256": "66103e591fb2f43df1e79a964133d5f2631b1e189d56506c9ec7795475e6c416"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-direct.command",
+      "bytes": 55,
+      "sha256": "d059e64c87c4fb21f374bc311692e4b95d7d30efe5c1b837efe942b9caa1e3e8"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-direct.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-direct.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-direct.stdout",
+      "bytes": 60,
+      "sha256": "9ba3032cd79fa1f2fc786ed93dc65d4e6c8dd7206d26b5556aeef9684c70ea8f"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-native.command",
+      "bytes": 63,
+      "sha256": "a824b48e863bb18b7131d092db3479ddf946323d36927ea04c723d2c4b70cb67"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-native.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-native.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/flag-lookup-native.stdout",
+      "bytes": 60,
+      "sha256": "9ba3032cd79fa1f2fc786ed93dc65d4e6c8dd7206d26b5556aeef9684c70ea8f"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/generated-abi.command",
+      "bytes": 261,
+      "sha256": "632e4cd76e8e852411318d313345cf7e0291960e7ba96b858241000640fbf277"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/generated-abi.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/generated-abi.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/generated-abi.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/input-changes.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/inputs.after.sha256",
+      "bytes": 4784,
+      "sha256": "2c3fc8e4f8949c30666b08a08f26acfc9f699f29b5fdaf8aeb5b2e14fe317cf3"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/inputs.before.sha256",
+      "bytes": 4784,
+      "sha256": "2c3fc8e4f8949c30666b08a08f26acfc9f699f29b5fdaf8aeb5b2e14fe317cf3"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/native-compile.command",
+      "bytes": 310,
+      "sha256": "90a47e90c24b65af19fdb5fccd213de549f56269dd60d210a12d8bb3ddbc9bb3"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/native-compile.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/native-compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/native-compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-aot.command",
+      "bytes": 69,
+      "sha256": "606af51a62fff8af0864825d2305d1ea8287566a8babd7341eae4c0193a63da0"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-aot.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-aot.stderr",
+      "bytes": 81,
+      "sha256": "fb7cd63d34a92eb059a9a977720463d3857ff936427fcb4f9c5a94b788ea9a0a"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-aot.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-build.command",
+      "bytes": 129,
+      "sha256": "b89610fe355a73459fd30c88d710af2e939795a675e1deb5046da17b96827b05"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-build.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-build.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-build.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-aot-build.command",
+      "bytes": 129,
+      "sha256": "49546fbcd9f61e965be50d6d40449dd4319d4de1bd49ecf0ea89fcb463d76b5a"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-aot-build.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-aot-build.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-aot-build.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-aot-run.command",
+      "bytes": 68,
+      "sha256": "44bd1d25586df2a9f16b5a5e507b51abdbe63f369bf5ffbe387356c6bdb526a5"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-aot-run.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-aot-run.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-aot-run.stdout",
+      "bytes": 127,
+      "sha256": "d54a71370c70d60ef320e7250b3667e4c495de07bf3df76d9c7f741430896cee"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-compile.command",
+      "bytes": 431,
+      "sha256": "91b56d97f58009a09bf0651a315d468c0ecf325470adeb8d5711aeb8487bcd4f"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-compile.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-direct.command",
+      "bytes": 57,
+      "sha256": "90404f2a30b98c12c350f166b4f891edff5be69c23d9d7e60c6f03508f0648d3"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-direct.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-direct.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-direct.stdout",
+      "bytes": 127,
+      "sha256": "d54a71370c70d60ef320e7250b3667e4c495de07bf3df76d9c7f741430896cee"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-run.command",
+      "bytes": 64,
+      "sha256": "f383b6a94065a0f731bfaf9dccd0cee94a4da6673a8207e94002225483e6c6c2"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-run.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-run.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-c-run.stdout",
+      "bytes": 127,
+      "sha256": "d54a71370c70d60ef320e7250b3667e4c495de07bf3df76d9c7f741430896cee"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-cgen.command",
+      "bytes": 136,
+      "sha256": "e50fb212bc2b11b12e14358e2f27e3e70d7b40feddfefd0169ea568416244586"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-cgen.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-cgen.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-cgen.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-check.command",
+      "bytes": 58,
+      "sha256": "03e09dc173837db26c82780360f5de21fca9e4c45021e5eb37bb8776d3095512"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-check.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-check.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-check.stdout",
+      "bytes": 3,
+      "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-jit.command",
+      "bytes": 56,
+      "sha256": "353471f9697692f34ea8de522f85b886c568507a0c34668470b618c9c1ab7647"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-jit.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-jit.stderr",
+      "bytes": 150,
+      "sha256": "55c296293e0c8735fc37913ef62143308bc2c1e8f2d8cb80ae62d99b3a93a215"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/options-jit.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-aot.command",
+      "bytes": 69,
+      "sha256": "7787dc2e1804c2d895c125b2e258811b22c708e89fdeec089c4231a95dfdce56"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-aot.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-aot.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-aot.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-build.command",
+      "bytes": 131,
+      "sha256": "a1ab68b59205e37fe52d50b0b041abcc43bb15609a3cef12050f57b0af4945b6"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-build.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-build.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-build.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-cgen.command",
+      "bytes": 138,
+      "sha256": "429f78ee913ac7f17e456b04c1d9dabcbb501a3d73f74acc030cdf6c44c0964e"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-cgen.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-cgen.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-cgen.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-check.command",
+      "bytes": 60,
+      "sha256": "039aea3d9ffae5ebe2decbef0c10fbe5f166d09ca06f67e43faadb27a6478e49"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-check.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-check.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-check.stdout",
+      "bytes": 3,
+      "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-jit.command",
+      "bytes": 58,
+      "sha256": "27ae59ddc47111bab35ea31cc2c5d21cc9e04b75eab8c40d554e1e6f1b77465c"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-jit.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-jit.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/os-args-jit.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/phases.tsv",
+      "bytes": 1124,
+      "sha256": "b4f7ff095e3c9257ed8a182ffb9a8693043f7deb3e5ad8e43669043f711ce630"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-aot.command",
+      "bytes": 72,
+      "sha256": "fa5375cd375d527731cbe7aee192af5398470a41d90f6a3096439b8c2624d6d1"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-aot.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-aot.stderr",
+      "bytes": 81,
+      "sha256": "fb7cd63d34a92eb059a9a977720463d3857ff936427fcb4f9c5a94b788ea9a0a"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-aot.stdout",
+      "bytes": 25,
+      "sha256": "36582d3357797c6ccb218405a4fe188c79a63597bfbdd5b1488a4ed960cfae0b"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-build.command",
+      "bytes": 135,
+      "sha256": "5bb2db9b1a77bf2a72670e988e87bfd6006dd4907555e45328fcdd064dc0b8d5"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-build.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-build.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-build.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-cgen.command",
+      "bytes": 142,
+      "sha256": "050158b3c849958672d01fc555bf151b7171119e83fac56b7b435c8859709aa3"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-cgen.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-cgen.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-cgen.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-check.command",
+      "bytes": 61,
+      "sha256": "9c4f5ec4b4b4ee51f4a934fdb7a2e09f9128eaec4670a7f7f0cf907921cc2966"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-check.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-check.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-check.stdout",
+      "bytes": 3,
+      "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-jit.command",
+      "bytes": 59,
+      "sha256": "72b5b4f091e884c78e230e1768388165230df2f928fd9926e854b05546e11c3b"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-jit.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-jit.stderr",
+      "bytes": 150,
+      "sha256": "55c296293e0c8735fc37913ef62143308bc2c1e8f2d8cb80ae62d99b3a93a215"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/projection-jit.stdout",
+      "bytes": 25,
+      "sha256": "36582d3357797c6ccb218405a4fe188c79a63597bfbdd5b1488a4ed960cfae0b"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/runtime-compile.command",
+      "bytes": 296,
+      "sha256": "7f8092c891753a830c22129edfc47d83d59fd28077f09fc83890a2a5aa7b06b5"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/runtime-compile.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/runtime-compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/runtime-compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/test_cli-compile.command",
+      "bytes": 427,
+      "sha256": "984b1975200fb1e02793f0e53c9418a79c5b08df93f3e55b763b87bb564fb785"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/test_cli-compile.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/test_cli-compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/test_cli-compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/test_cli-run.command",
+      "bytes": 65,
+      "sha256": "e120687b953f50e4053c288ee18e8b76b494e67831c5fb020d60d8dc3600aa19"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/test_cli-run.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/test_cli-run.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/test_cli-run.stdout",
+      "bytes": 15,
+      "sha256": "311541f7e1f2c25577221c3b42d5f792480e7988d76efa17daeea2c07f3204ba"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/test_defaults-compile.command",
+      "bytes": 437,
+      "sha256": "34371ad6ba634bb0c5e1739aec37635cbd4aae7a3d0a5c0a7450e68a7bc0bd7e"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/test_defaults-compile.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/test_defaults-compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/test_defaults-compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/test_defaults-run.command",
+      "bytes": 70,
+      "sha256": "f2bb6156d2c08cb429deac3b27845e2df6b3f091c2348d23721760aff1ee15ba"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/test_defaults-run.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/test_defaults-run.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/gate/test_defaults-run.stdout",
+      "bytes": 88,
+      "sha256": "e0f404a7930819a44383d60ea792353deab94dbb919baffce6cfde9b61332cba"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/old-compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/old-compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/old-costs.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/old-costs.tsv",
+      "bytes": 368,
+      "sha256": "66103e591fb2f43df1e79a964133d5f2631b1e189d56506c9ec7795475e6c416"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/old.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/old.stdout",
+      "bytes": 60,
+      "sha256": "9ba3032cd79fa1f2fc786ed93dc65d4e6c8dd7206d26b5556aeef9684c70ea8f"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/size.txt",
+      "bytes": 209,
+      "sha256": "ced5e9270920a485ecaa1871264d1a783fdc389cf503dffd696f4082ec9c40c9"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/stderr",
+      "bytes": 1064,
+      "sha256": "5ac319f14bc23d627ecbb50f176c749837d10bbff18a963ead74aa18feea158a"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/stdout",
+      "bytes": 4030,
+      "sha256": "44952a4a0212f2df980dadbe2fa7f6c7d5f3cc9dd90008ab8ceb1d9bd41118d3"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/tool-changes.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/tools.after.sha256",
+      "bytes": 266,
+      "sha256": "bb6c1f92264abe1a1052ce6c10a9794dc6e51102f957c7e6cd465388f88fba20"
+    },
+    {
+      "path": "build/test/cli_flags_20261102/linux-evidence/tools.before.sha256",
+      "bytes": 266,
+      "sha256": "bb6c1f92264abe1a1052ce6c10a9794dc6e51102f957c7e6cd465388f88fba20"
+    }
+  ],
+  "qualifications": [
+    "M1 literal container projection stays open, original default suites exit 1",
+    "M7 remains closed; import/os.args success does not close M1",
+    "No compiler/runtime/XRT/TCC/IDE mainline edit or package-side private projection workaround",
+    "Release catalog binding still fails for xl.dll; no installation",
+    "100-package objective unchanged and active; no whole-ecosystem rerun or final release claim"
+  ],
+  "formalRelease": false
+}

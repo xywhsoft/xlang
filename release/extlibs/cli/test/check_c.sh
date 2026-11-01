@@ -59,11 +59,26 @@ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 run compiler-info 120 "$cc" --version
 run runtime-compile 120 "$cc" "${flags[@]}" -c release/extlibs/cli/test/xrt_runtime.c -o "$work/runtime.o"
 run native-compile 120 "$cc" "${flags[@]}" -Wmissing-prototypes -c release/extlibs/cli/cli_native.c -o "$work/native.o"
+source=release/extlibs/cli/test/flag_lookup.c
+run flag-lookup-compile 120 "$cc" "${flags[@]}" "$source" "$work/runtime.o" -lm -ldl -o "$work/lookup"
+run flag-lookup-native 90 "$work/lookup"
+run flag-lookup-direct 90 "$xl" run "$source"
+printf 'cli flag lookup: 48 cases, 83 allocation faults, 0 failures\n' > "$work/lookup.expected"
+diff -u "$work/lookup.expected" "$work/flag-lookup-native.stdout"
+diff -u "$work/lookup.expected" "$work/flag-lookup-direct.stdout"
+run flag-lookup-costs 90 "$work/lookup" --costs
+run flag-lookup-direct-costs 90 "$xl" run "$source" -- --costs
+diff -u "$work/flag-lookup-costs.stdout" "$work/flag-lookup-direct-costs.stdout"
+run flag-lookup-build 120 "$xl" build "$source" -o "$work/lookup-aot"
+run flag-lookup-aot 90 "$work/lookup-aot"
+run flag-lookup-aot-costs 90 "$work/lookup-aot" --costs
+diff -u "$work/lookup.expected" "$work/flag-lookup-aot.stdout"
+diff -u "$work/flag-lookup-costs.stdout" "$work/flag-lookup-aot-costs.stdout"
 for name in test_cli test_defaults; do
     run "$name-compile" 120 "$cc" "${flags[@]}" "release/extlibs/cli/test/$name.c" "$work/runtime.o" "$work/native.o" -lm -ldl -o "$work/$name"
     run "$name-run" 90 "$work/$name"
 done
-for name in basic options; do
+for name in basic options flag_selection; do
     source="release/extlibs/cli/examples/${name}_c.c"
     expected="release/extlibs/cli/examples/$name.expected.txt"
     run "$name-c-compile" 120 "$cc" "${flags[@]}" "$source" "$work/runtime.o" "$work/native.o" -lm -ldl -o "$work/$name"
@@ -76,7 +91,7 @@ for name in basic options; do
     golden "$expected" "$work/$name-c-aot-run.stdout"
 done
 # 原始语言路径逐项要求0，不能靠去掉parseOs或改用C容器工厂换绿灯。
-for name in central basic options os-args projection; do
+for name in central basic options flag_selection os-args projection; do
     source="release/extlibs/cli/examples/$name.xl"
     [[ $name != central ]] || source=test/cases/extlib_cli.xl
     [[ $name != os-args ]] || source=dev/extlib_blockers/cli_os_args_symbol.xl
@@ -85,11 +100,11 @@ for name in central basic options os-args projection; do
     observe "$name-jit" 90 "$xl" run "$source"
     if run "$name-build" 120 "$xl" build "$source" -o "$work/lang-$name"; then
         observe "$name-aot" 45 "$work/lang-$name"
-        if [[ $name == basic || $name == options ]] && [[ $(< "$work/$name-aot.exit") == 0 ]]; then
+        if [[ $name == basic || $name == options || $name == flag_selection ]] && [[ $(< "$work/$name-aot.exit") == 0 ]]; then
             golden "release/extlibs/cli/examples/$name.expected.txt" "$work/$name-aot.stdout"
         fi
     else failures=$((failures + 1)); fi
-    if [[ $name == basic || $name == options ]] && [[ $(< "$work/$name-jit.exit") == 0 ]]; then
+    if [[ $name == basic || $name == options || $name == flag_selection ]] && [[ $(< "$work/$name-jit.exit") == 0 ]]; then
         golden "release/extlibs/cli/examples/$name.expected.txt" "$work/$name-jit.stdout"
     fi
     run "$name-cgen" 90 "$xl" cgen "$source" --emit "$work/module-$name.c"

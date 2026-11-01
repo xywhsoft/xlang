@@ -40,16 +40,30 @@ $flags=@('-std=c11','-O2','-DNDEBUG','-Wall','-Wextra','-Werror','-Ilib/xrt')
 $outcome='failed';$failure=''
 try {
     $null=Run compiler-info $gcc @('--version')
+    $cc1=Run compiler-frontend $gcc @('-print-prog-name=cc1')
+    $inputs[$cc1]=(Get-FileHash -LiteralPath $cc1).Hash
     $runtime=Join-Path $work 'runtime.o'
     $native=Join-Path $work 'native.o'
     $null=Run runtime-compile $gcc ($flags+@('-c','release/extlibs/cli/test/xrt_runtime.c','-o',$runtime))
     $null=Run native-compile $gcc ($flags+@('-Wmissing-prototypes','-c','release/extlibs/cli/cli_native.c','-o',$native))
+    $lookup=Join-Path $work 'flag_lookup.exe'
+    $lookupSource='release/extlibs/cli/test/flag_lookup.c'
+    $null=Run flag-lookup-compile $gcc ($flags+@($lookupSource,$runtime,'-lm','-o',$lookup))
+    $expected='cli flag lookup: 48 cases, 83 allocation faults, 0 failures'
+    if((Run flag-lookup-native $lookup @()) -cne $expected -or
+        (Run flag-lookup-direct $xl @('run',$lookupSource)) -cne $expected){throw 'Flag lookup matrix differs'}
+    $costs=Run flag-lookup-costs $lookup @('--costs')
+    if((Run flag-lookup-direct-costs $xl @('run',$lookupSource,'--','--costs')) -cne $costs){throw 'Direct flag allocation costs differ'}
+    $lookupAot=Join-Path $work 'flag_lookup_aot.exe'
+    $null=Run flag-lookup-build $xl @('build',$lookupSource,'-o',$lookupAot)
+    if((Run flag-lookup-aot $lookupAot @()) -cne $expected -or
+        (Run flag-lookup-aot-costs $lookupAot @('--costs')) -cne $costs){throw 'AOT flag lookup differs'}
     foreach($name in @('test_cli','test_defaults')){
         $exe=Join-Path $work "$name.exe"
         $null=Run "$name-compile" $gcc ($flags+@("release/extlibs/cli/test/$name.c",$runtime,$native,'-lm','-o',$exe))
         $null=Run "$name-run" $exe @()
     }
-    foreach($name in @('basic','options')){
+    foreach($name in @('basic','options','flag_selection')){
         $source="release/extlibs/cli/examples/${name}_c.c"
         $golden="release/extlibs/cli/examples/$name.expected.txt"
         $exe=Join-Path $work "$name-c.exe"
@@ -64,6 +78,7 @@ try {
         @{name='central';path='test/cases/extlib_cli.xl'},
         @{name='basic';path='release/extlibs/cli/examples/basic.xl';golden='release/extlibs/cli/examples/basic.expected.txt'},
         @{name='options';path='release/extlibs/cli/examples/options.xl';golden='release/extlibs/cli/examples/options.expected.txt'},
+        @{name='flag-selection';path='release/extlibs/cli/examples/flag_selection.xl';golden='release/extlibs/cli/examples/flag_selection.expected.txt'},
         @{name='os-args';path='dev/extlib_blockers/cli_os_args_symbol.xl'},
         @{name='projection';path='dev/extlib_blockers/cli_args_projection.xl'}
     )

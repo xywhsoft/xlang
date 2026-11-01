@@ -1,0 +1,26 @@
+import cli
+
+func main(...) as int
+    // 声明来自JSON配置，大小写精确匹配；单字母名称可直接用短旗标。
+    var spec = json.parse(r"""{"flags":["quiet","Quiet","q","Z","开关","pending"]}""")
+    var args = json.parse(r"""["--Quiet","-qZ","--开关"]""")
+    var result = cli.parse(args, spec)
+    assert result["ok"]
+    var flags = result["flags"]
+    assert not flags["quiet"] and flags["Quiet"]
+    println("case sensitive: true")
+    assert flags["q"] and flags["Z"]
+    println("short flags: true")
+    assert flags["开关"]
+    println("unicode flag: true")
+    assert not flags["pending"]
+    println("unselected: false")
+
+    var invalid = json.parse(r"""["--Quiet","--missing","--quiet"]""")
+    var rejected = cli.parse(invalid, spec)
+    assert not rejected["ok"] and rejected["error"] == "unknown option --missing"
+    assert rejected["flags"]["Quiet"] and not rejected["flags"]["quiet"]
+    assert result["ok"] and flags["开关"]
+    println("first error: true")
+    return 0
+end
