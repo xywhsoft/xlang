@@ -8,6 +8,7 @@ extern "foreign_decl_widget" class Child @header("test/cases/foreign_decl_handle
 end
 
 typedef WidgetAlias = Widget
+typedef WidgetAliasChain = WidgetAlias
 
 extern "foreign_decl_widget_at" @no_raise @nonblocking func widgetAt(c_int index) as point
 extern "foreign_decl_identity" @no_raise @nonblocking func identity(Widget value) as Widget
@@ -18,7 +19,7 @@ func readCount(Widget value) as c_int
 end
 
 func main(...) as int
-    WidgetAlias root = Widget(widgetAt(0))
+    WidgetAlias root = WidgetAliasChain(widgetAt(0))
     point raw = root.handle
     Widget restored = Widget(raw)
     expect(readCount(restored), 0)

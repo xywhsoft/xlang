@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "date": "2026-11-02",
+  "status": "foundation-checkpoint-not-complete",
+  "releaseProductsUpdated": false,
+  "allEightCapabilitiesComplete": false,
+  "windows": {
+    "sourceBuild": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\source-r10\\build.json",
+    "sourceBuildSha256": "cc7e94e36e8f7f22b3a1a9cd625cde3d7a537815da31ab324b9307ae108f6cdd",
+    "translationUnits": 1397,
+    "inputsUnchanged": true,
+    "batch": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\foundation-batch-r10\\results.json",
+    "batchSha256": "b88ef5db065202efde60fd0d14090c5e0088d75dc48dd33e8dc50db62187bb7c",
+    "allElevenStagesPassed": true,
+    "groups": {
+      "declarations": 24,
+      "records": 21,
+      "arrays": 30,
+      "factories": 32,
+      "callbacks": 32
+    },
+    "mutationsPerOptimization": {
+      "arrays": 29,
+      "factories": 62,
+      "callbacks": 36
+    },
+    "zeroCOrHeaderRefusalsPerOptimization": 254,
+    "unsafeForwardingPlansRefusedPerOptimization": 8
+  },
+  "linux": {
+    "canonicalBuild": "/home/ubuntu/xlang-validation/xge-declarative-20261102-r2/source-r2/build.json",
+    "translationUnits": 1396,
+    "foundationLog": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\linux-gates-r2.log",
+    "handleRecordLog": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\linux-gates-r4.log",
+    "forwardingLog": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\linux-forwarding-r2.log",
+    "lastAliasFix": {
+      "scope": "Single semantic-source overlay; no IR layout changes",
+      "record": "/home/ubuntu/xlang-validation/xge-declarative-20261102-r2/alias-source-r2/overlay.json",
+      "log": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\linux-alias-r2.log"
+    }
+  },
+  "lexerRegeneration": {
+    "report": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\lexer-regenerated\\normalized-comparison.json",
+    "detail": "Flex outputs identical after removing line directives and blank/leading/trailing whitespace"
+  },
+  "remaining": [
+    "Safe dynamic contiguous spans",
+    "Managed factory results and fallible operand cleanup result guard",
+    "Captured/retained callback userdata ownership and reentrant retirement",
+    "Text borrow/materialization and length/NUL contracts",
+    "Owner/transfer/context and escaped native view invalidation",
+    "Complete effects and cost qualification",
+    "XGE/XUI declarative package migration, one host XRT instance, SDK/examples/shipping products"
+  ]
+}

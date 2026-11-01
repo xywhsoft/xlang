@@ -18,6 +18,7 @@ def main():
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--driver', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--source', type=Path, help='Explicit fixture; headers/provider remain under --root')
     args = parser.parse_args()
     root, driver, out = args.root.resolve(), args.driver.resolve(), args.out.resolve()
     out.mkdir(parents=True, exist_ok=False)
@@ -39,7 +40,7 @@ def main():
             assert diagnostic in log.read_text(encoding='utf-8-sig', errors='replace'), (name, log)
         print(name, process.returncode, flush=True)
 
-    source = root / 'test/cases/foreign_decl_handle.xl'
+    source = args.source.resolve() if args.source else root / 'test/cases/foreign_decl_handle.xl'
     generated = out / 'handle.c'
     run('handle-cgen', [driver, source, 'cgen-default', generated])
     text = generated.read_text(encoding='utf-8-sig')
@@ -71,6 +72,8 @@ def main():
 
     base = source.read_text(encoding='utf-8-sig')
     negatives = {
+        'alias-non-pointer': (base.replace('WidgetAliasChain(widgetAt(0))', 'WidgetAliasChain(17)'),
+                              'native-backed class handle binding argument must be point'),
         'missing-header': (base.replace('@header("test/cases/foreign_decl_handle.h") ', ''),
                            'external class requires'),
         'missing-lifetime': (base.replace(' @lifetime("caller")', ''), 'external class requires'),
