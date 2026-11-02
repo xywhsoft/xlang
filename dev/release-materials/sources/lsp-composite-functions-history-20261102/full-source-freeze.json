@@ -1,0 +1,10 @@
+{
+  "ide/src/analysis/typed_module.c": "3c18ed29f86b0d232100f9c037ecda21e6d418d9cb649e53173364852f720096",
+  "ide/src/analysis/typed_module_internal.h": "f25a6059e271c0a30a53b56bae447719a5817125cf08a24e61fc9baa806e696b",
+  "ide/src/analysis/frontend_function_index.h": "61ba3ccd05668539d8735ca0095564ded46c24d99edc83e038329d3094258b1e",
+  "ide/src/analysis/frontend_function_index.inc": "a83cea51ef09d9415bd417a90e900c512a7aab7da8fdd1faafd1f7fe25483b9e",
+  "ide/src/analysis/function_unit.c": "a0e6f79b619cd4bdc4e9d75bd940e9563913dc7e578986c8df1f6509368d9581",
+  "ide/tests/analysis_typed_function_test.c": "2082893073ea7c2cf5034be09977f54bfaadd475641ab77a6d50daac0ba8dcc2",
+  "ide/tools/build_lsp_core.py": "5d30887dbaf7caeeb9a32d1deae0085f4193c3c4be0c6d3b33870c8b369a2225",
+  "ide\\tests\\analysis_composite_function_test.c": "3f1e056c41d4c208a0a08af17e16e37d2c80d31cff86f4c3e68bae7f486b5c10"
+}

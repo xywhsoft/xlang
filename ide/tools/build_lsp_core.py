@@ -96,7 +96,7 @@ CORE_TESTS = ("analysis_selection_test", "analysis_selection_projection_test", *
 CORE_TESTS = ("analysis_semantic_read_front_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_sparse_decode_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_typed_identity_test", *CORE_TESTS)
-CORE_TESTS = ("analysis_typed_function_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_composite_function_test", "analysis_typed_function_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_function_index_asset_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_final_input_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_input_test", *CORE_TESTS)
@@ -921,7 +921,7 @@ def main() -> None:
                 extra += ["-Wl,--wrap=xl6AstFree", "-Wl,--wrap=xlsTypedModuleTake"]
             if name == "analysis_typed_identity_test":
                 extra += ["-Wl,--wrap=xrtCalloc", "-Wl,--wrap=xrtFree", "-Wl,--wrap=xl6AstFree"]
-            if name == "analysis_typed_function_test":
+            if name in ("analysis_composite_function_test", "analysis_typed_function_test"):
                 extra += ["-Wl,--wrap="+function for function in (
                     "xrtMalloc","xrtCalloc","xrtRealloc","xrtFree","xrtStrDup","xrtArrayPush","xrtArrayResize",
                     "xrtArrayReserve","xrtArrayUnit","xrtMapSet","xrtMutexInit","xrtMutexLock","xlsAstClone","xl6AstFree")]

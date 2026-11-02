@@ -1,0 +1,153 @@
+{
+  "schema": 1,
+  "phase": "M7a2b111",
+  "entries": [
+    {
+      "role": "exact pre-edit matching M110 input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module.c",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/previous-ide-inputs/ide/src/analysis/typed_module.c",
+      "sha256": "1122c7fb53e249370b7951ed403b8f90f53dc03ca9597830389f5c595d8c513b",
+      "bytes": 5572
+    },
+    {
+      "role": "exact pre-edit matching M110 input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module_internal.h",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/previous-ide-inputs/ide/src/analysis/typed_module_internal.h",
+      "sha256": "c99e271796c223713cea551b9b1d8c08a6e4f85115c92c90743cff34580190e7",
+      "bytes": 2089
+    },
+    {
+      "role": "exact pre-edit matching M110 input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_function_index.h",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/previous-ide-inputs/ide/src/analysis/frontend_function_index.h",
+      "sha256": "7ee9307f3fef7907042c1df19b2c92331f9ec2befe56c78383ac5537e5d9277b",
+      "bytes": 2089
+    },
+    {
+      "role": "exact pre-edit matching M110 input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_function_index.inc",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/previous-ide-inputs/ide/src/analysis/frontend_function_index.inc",
+      "sha256": "9854572edc3f74534036b71a1f866ffd2112d88fd037dcd65b008e8cdb5d9116",
+      "bytes": 6557
+    },
+    {
+      "role": "exact pre-edit matching M110 input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\function_unit.c",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/previous-ide-inputs/ide/src/analysis/function_unit.c",
+      "sha256": "690e0fac6ae81f0ab429a121f557147f45e93f344b75a75306e1a8a534d76922",
+      "bytes": 24892
+    },
+    {
+      "role": "exact pre-edit matching M110 input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_typed_function_test.c",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/previous-ide-inputs/ide/tests/analysis_typed_function_test.c",
+      "sha256": "2082893073ea7c2cf5034be09977f54bfaadd475641ab77a6d50daac0ba8dcc2",
+      "bytes": 16581
+    },
+    {
+      "role": "exact pre-edit matching M110 input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\build_lsp_core.py",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/previous-ide-inputs/ide/tools/build_lsp_core.py",
+      "sha256": "2add838b32d80f8ad521cfd29901009e441d9f40b0082d57b325f1bc2c5b140e",
+      "bytes": 76985
+    },
+    {
+      "role": "captured actual intermediate diagnostic input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\history\\focused-v1\\ide\\build\\Release\\lsp-composite-functions-20261102\\run-focused-v1.py",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/history/focused-v1/ide/build/Release/lsp-composite-functions-20261102/run-focused-v1.py",
+      "sha256": "6f81e29ee6459d6a1b247a82fa10421ffa9c03f2b268b16e0f9a4622abaddf24",
+      "bytes": 2451
+    },
+    {
+      "role": "captured actual intermediate diagnostic input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\history\\focused-v1\\ide\\tests\\analysis_composite_function_test.c",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/history/focused-v1/ide/tests/analysis_composite_function_test.c",
+      "sha256": "fdfeacbcd554dde963b4c7123380a14a82a4002a0e6247e3e980a4465225dc3f",
+      "bytes": 7831
+    },
+    {
+      "role": "captured actual intermediate diagnostic input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\history\\focused-v2\\ide\\build\\Release\\lsp-composite-functions-20261102\\run-focused-v2.py",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/history/focused-v2/ide/build/Release/lsp-composite-functions-20261102/run-focused-v2.py",
+      "sha256": "b3a379f7cae80da9173a3f3bf605d06dd2e058d934fa98a94f5a4fb401bc7f1d",
+      "bytes": 2451
+    },
+    {
+      "role": "captured actual intermediate diagnostic input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\history\\focused-v2\\ide\\tests\\analysis_composite_function_test.c",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/history/focused-v2/ide/tests/analysis_composite_function_test.c",
+      "sha256": "9e51c07c0698628db094dc6d31f81a1510e62a77b09b6de332605b65cb416eaf",
+      "bytes": 8090
+    },
+    {
+      "role": "captured actual intermediate diagnostic input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\history\\focused-v3\\ide\\build\\Release\\lsp-composite-functions-20261102\\run-focused-v3.py",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/history/focused-v3/ide/build/Release/lsp-composite-functions-20261102/run-focused-v3.py",
+      "sha256": "234f8122da7b8cfba77a58d0050c37d6272291dff2f7c6afa6abadaea27cfcda",
+      "bytes": 2554
+    },
+    {
+      "role": "captured actual intermediate diagnostic input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\history\\focused-v3\\ide\\tests\\analysis_composite_function_test.c",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/history/focused-v3/ide/tests/analysis_composite_function_test.c",
+      "sha256": "4565c9535bb824f40df83621042dfb9cd1be31364c3ebc71be21425e7668d628",
+      "bytes": 14038
+    },
+    {
+      "role": "fixed controller or input capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\capture.json",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/capture.json",
+      "sha256": "e53ca8eb6f34c9bfacfbc0bfc836654ce8d1bd06282db5d3ce545ae2d98426da",
+      "bytes": 2115
+    },
+    {
+      "role": "fixed controller or input capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\full-source-freeze.json",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/full-source-freeze.json",
+      "sha256": "7ac21ea9e59a47aeba9e37374c2bf3f2b28e5a934f1621fdd1685bbebba3d01c",
+      "bytes": 907
+    },
+    {
+      "role": "fixed controller or input capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\run-focused-v1.py",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/run-focused-v1.py",
+      "sha256": "6f81e29ee6459d6a1b247a82fa10421ffa9c03f2b268b16e0f9a4622abaddf24",
+      "bytes": 2451
+    },
+    {
+      "role": "fixed controller or input capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\run-focused-v2.py",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/run-focused-v2.py",
+      "sha256": "b3a379f7cae80da9173a3f3bf605d06dd2e058d934fa98a94f5a4fb401bc7f1d",
+      "bytes": 2451
+    },
+    {
+      "role": "fixed controller or input capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\run-focused-v3.py",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/run-focused-v3.py",
+      "sha256": "234f8122da7b8cfba77a58d0050c37d6272291dff2f7c6afa6abadaea27cfcda",
+      "bytes": 2554
+    },
+    {
+      "role": "fixed controller or input capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\run-focused-v4.py",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/run-focused-v4.py",
+      "sha256": "0d9f5d14a04e331f32d65f50bb4342e50b7dc48ae9bf4a3686c7cfd70073423b",
+      "bytes": 2554
+    },
+    {
+      "role": "fixed controller or input capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\run-validation-v1.py",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/run-validation-v1.py",
+      "sha256": "4abb66853b683b4b1c794d635d03ee7aa724b5ff20050894cfec6d0a88e763e6",
+      "bytes": 4892
+    },
+    {
+      "role": "fixed controller or input capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\assemble-evidence.py",
+      "archivedPath": "dev/release-materials/sources/lsp-composite-functions-history-20261102/assemble-evidence.py",
+      "sha256": "f11c7fee92ce0047714ff0e78ae072bf4fe93e594df29fba4448f5cee26017b6",
+      "bytes": 7815
+    }
+  ]
+}
