@@ -1,5 +1,6 @@
 #include "platform/startup_stage.h"
 #include <bcrypt.h>
+#include <xrt.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
@@ -29,21 +30,18 @@ static HANDLE readFile(const wchar_t* path)
 }
 static int hash(HANDLE file,wchar_t hex[65],HANDLE output)
 {
-    BCRYPT_ALG_HANDLE algorithm=NULL;BCRYPT_HASH_HANDLE context=NULL;DWORD size=0,returned=0;
-    unsigned char *object=NULL,*bytes=NULL,digest[32];LARGE_INTEGER zero={0};int okay=SetFilePointerEx(file,zero,NULL,FILE_BEGIN)!=0;
-    okay=okay && BCryptOpenAlgorithmProvider(&algorithm,BCRYPT_SHA256_ALGORITHM,NULL,0)>=0 && BCryptGetProperty(algorithm,BCRYPT_OBJECT_LENGTH,(PUCHAR)&size,sizeof(size),&returned,0)>=0 && size && size<=65536;
-    if(okay) {object=malloc(size);bytes=malloc(65536);okay=object && bytes && BCryptCreateHash(algorithm,&context,object,size,NULL,0,0)>=0;}
+    xsha256 context;xrtSha256Init(&context);
+    unsigned char *bytes=NULL,digest[32];LARGE_INTEGER zero={0};int okay=SetFilePointerEx(file,zero,NULL,FILE_BEGIN)!=0;
+    if(okay) {bytes=malloc(65536);okay=bytes!=NULL;}
     size_t total=0;
     while(okay) {
         DWORD count=0,written=0;okay=ReadFile(file,bytes,65536,&count,NULL)!=0;if(!okay || !count)break;
-        total+=count;okay=total<=STARTUP_BINARY_LIMIT && BCryptHashData(context,bytes,count,0)>=0;
+        total+=count;okay=total<=STARTUP_BINARY_LIMIT && xrtSha256Update(&context,bytes,count);
         if(okay && output!=INVALID_HANDLE_VALUE)okay=WriteFile(output,bytes,count,&written,NULL) && written==count;
     }
-    okay=okay && BCryptFinishHash(context,digest,sizeof(digest),0)>=0;
+    okay=okay && xrtSha256Final(&context,digest);
     if(okay)for(int i=0;i<32;++i)swprintf(hex+2*i,3,L"%02x",digest[i]);
-    if(context)BCryptDestroyHash(context);
-    if(algorithm)BCryptCloseAlgorithmProvider(algorithm,0);
-    free(object);free(bytes);
+    free(bytes);
     if(!okay)SetLastError(ERROR_INVALID_DATA);
     return okay;
 }

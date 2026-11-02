@@ -1,0 +1,108 @@
+{
+  "schema": 1,
+  "scope": "Exact targeted SHA-256 inputs/controllers,not an entire compiler or SDK bundle. Original failed reports and recorded paths preserved.",
+  "entries": [
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\services\\catalog_sources.c",
+      "archivedPath": "inputs/ide/src/services/catalog_sources.c",
+      "bytes": 4087,
+      "sha256": "9966dcfd1370adc42bfc5d62b94c2bdf3a7b92b7e95c39ac7c561667fa42164c"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\services\\build_inputs.c",
+      "archivedPath": "inputs/ide/src/services/build_inputs.c",
+      "bytes": 14146,
+      "sha256": "9cad7450d0ef45d8bf7241c94ac73f3ec0515f494123f3d99566e190786148db"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\services\\rename_journal.c",
+      "archivedPath": "inputs/ide/src/services/rename_journal.c",
+      "bytes": 77313,
+      "sha256": "da04fc25dcffb8b8dae38cdf7de02c98c1a4158701d754767d2615148041c8e3"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\platform\\file_rename.c",
+      "archivedPath": "inputs/ide/src/platform/file_rename.c",
+      "bytes": 15064,
+      "sha256": "62ff0b79eb18551d526e3f04c7193b4a811a646a65f8966951282062ab377994"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\platform\\state_repair.c",
+      "archivedPath": "inputs/ide/src/platform/state_repair.c",
+      "bytes": 10503,
+      "sha256": "57cb13e520bf58346e645b5daf6cf83e618c9ca605400ab086b40b5e51e1f69f"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\platform\\startup_stage.c",
+      "archivedPath": "inputs/ide/src/platform/startup_stage.c",
+      "bytes": 11530,
+      "sha256": "7be159e5297e82554b2da2acab269b5748dc5c704b90d8fd78875caf59cefe2b"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\platform\\startup_cache.c",
+      "archivedPath": "inputs/ide/src/platform/startup_cache.c",
+      "bytes": 15621,
+      "sha256": "7b4cf7413c21e0cc6be6674030fbf5720df1d8df8321c5728cc57ace046a7e4b"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\sha256_test.c",
+      "archivedPath": "inputs/ide/tests/sha256_test.c",
+      "bytes": 2683,
+      "sha256": "1f88667d30dc834ee15412003c5031bd51cd6e5a12f87e515e468bdc720a2840"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\build.ps1",
+      "archivedPath": "inputs/ide/tools/build.ps1",
+      "bytes": 24617,
+      "sha256": "bda3d57918ae495706a1f90ec6f16673f07496bf3232fde8db5eb9373c010d64"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\xrt-sha256-20261102\\rebuild-gui.py",
+      "archivedPath": "controllers/rebuild-gui.py",
+      "bytes": 3418,
+      "sha256": "6c65780af4bf185e7a4fa44fd67d3bc02661fd005b52e528c3703a477a8d6832"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\xrt-sha256-20261102\\validate.py",
+      "archivedPath": "controllers/validate.py",
+      "bytes": 3735,
+      "sha256": "e348c30ffac9c7b03c98971eb6c4681f877b79941223cc3faf0921c4a9d5ba68"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\xrt-sha256-20261102\\validate-runtime.py",
+      "archivedPath": "controllers/validate-runtime.py",
+      "bytes": 4047,
+      "sha256": "4965b19134de9d61bdb5227714296f3e124e405de9871f5920bc79d8e23a9fbc"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\xrt-sha256-20261102\\validate-runtime-v3.py",
+      "archivedPath": "controllers/validate-runtime-v3.py",
+      "bytes": 4419,
+      "sha256": "5f6d1ad50e944547d4f620fc503ff7d9e52f0ee83573fea95c1e01270a099fa2"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\xrt-sha256-20261102\\publish-gui.py",
+      "archivedPath": "controllers/publish-gui.py",
+      "bytes": 2158,
+      "sha256": "c72634442d0dae62b451da85d916db67d00ae536187de6b318477e79ca5d87bd"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\xrt-sha256-20261102\\assemble-evidence.py",
+      "archivedPath": "controllers/assemble-evidence.py",
+      "bytes": 7367,
+      "sha256": "a31706007f5b02b5cf4aad9b13ff72ecf19f8b9c823618b33160edec750f31fb"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\xrt-sha256-20261102\\baseline.json",
+      "archivedPath": "controllers/baseline.json",
+      "bytes": 924,
+      "sha256": "eb79fae44cb2c899159100086d12f0ae3029ee982a8a7f4a7ecd9923224efb4b"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\xrt-sha256-20261102\\gui-build-inputs.before.json",
+      "archivedPath": "controllers/gui-build-inputs.before.json",
+      "bytes": 75494,
+      "sha256": "571e7f5d1c78edf63c169b4f898beb4c8246f552bb2062950dfd4684156ccab0"
+    }
+  ]
+}

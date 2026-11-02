@@ -4,7 +4,6 @@
 #include "platform/file_rename.h"
 #include "platform/path.h"
 #include <windows.h>
-#include <bcrypt.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,18 +60,15 @@ static int snapshotHandle(HANDLE file,xide_file_snapshot* out,xide_model_error* 
  if(!GetFileInformationByHandle(file,&first)) return fail(e,XIDE_MODEL_IO,"无法查询源文件基线",GetLastError());
  if((first.dwFileAttributes&(FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_REPARSE_POINT)) || (!inspect && (first.dwFileAttributes&FILE_ATTRIBUTE_READONLY))) return fail(e,XIDE_MODEL_IO,"源文件不是可改名的普通非只读文件",ERROR_ACCESS_DENIED);
  metadata(&snapshot,&first); if(inspect && snapshot.length>512u*1024u*1024u) return fail(e,XIDE_MODEL_INVALID,"工具链检查文件超过 512 MiB 上限",0); LARGE_INTEGER beginning={0}; if(!SetFilePointerEx(file,beginning,NULL,FILE_BEGIN)) return fail(e,XIDE_MODEL_IO,"无法读取文件基线",GetLastError());
- BCRYPT_ALG_HANDLE algorithm=NULL; BCRYPT_HASH_HANDLE hash=NULL; unsigned char* object=NULL; DWORD length=0,returned=0; NTSTATUS status=BCryptOpenAlgorithmProvider(&algorithm,BCRYPT_SHA256_ALGORITHM,NULL,0);
- if(status==0) status=BCryptGetProperty(algorithm,BCRYPT_OBJECT_LENGTH,(PUCHAR)&length,sizeof(length),&returned,0);
- if(status==0) { object=malloc(length); if(!object) { BCryptCloseAlgorithmProvider(algorithm,0); return fail(e,XIDE_MODEL_MEMORY,"无法准备 SHA-256 文件基线",0); } status=BCryptCreateHash(algorithm,&hash,object,length,NULL,0,0); }
+ xsha256 hash; xrtSha256Init(&hash); int okay=1;
  unsigned char block[65536]; uint64_t at=0; DWORD os=0;
- while(status==0 && at<snapshot.length) {
+ while(okay && at<snapshot.length) {
   DWORD read=0,want=snapshot.length-at>sizeof(block) ? (DWORD)sizeof(block) : (DWORD)(snapshot.length-at);
   if(!ReadFile(file,block,want,&read,NULL) || read!=want) { os=GetLastError(); if(!os) os=ERROR_HANDLE_EOF; break; }
-  status=BCryptHashData(hash,block,read,0); at+=read;
+  okay=xrtSha256Update(&hash,block,read); at+=read;
  }
- if(status==0 && !os) status=BCryptFinishHash(hash,snapshot.sha256,sizeof(snapshot.sha256),0);
- if(hash) { BCryptDestroyHash(hash); } free(object); if(algorithm) { BCryptCloseAlgorithmProvider(algorithm,0); }
- if(status!=0 || os) return fail(e,XIDE_MODEL_IO,"无法完成源文件 SHA-256 基线",os ? os : (DWORD)status);
+ if(okay && !os) okay=xrtSha256Final(&hash,snapshot.sha256);
+ if(!okay || os) return fail(e,XIDE_MODEL_IO,"无法完成源文件 SHA-256 基线",os ? os : ERROR_INVALID_DATA);
  if(!GetFileInformationByHandle(file,&last)) return fail(e,XIDE_MODEL_IO,"无法复核文件基线",GetLastError());
  metadata(&after,&last); if(!sameMetadata(&snapshot,&after)) return fail(e,XIDE_MODEL_CONFLICT,"读取期间源文件已变化，请重新打开重命名窗口",ERROR_FILE_INVALID);
  *out=snapshot; return 1;
