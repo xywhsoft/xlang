@@ -1,0 +1,506 @@
+{
+  "phase": "M7a2b113",
+  "scope": "Raw source/controller snapshots and lossless gzip copies of reports;original files and recorded paths retained. Not a runtime package.",
+  "files": [
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\ast_size.c",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\current\\ide\\src\\analysis\\ast_size.c",
+      "sha256": "be542682a89c66819a17f88395190913665027c4d4c2a19d9e41cff53ebf94f1",
+      "bytes": 2627
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\ast_size.h",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\current\\ide\\src\\analysis\\ast_size.h",
+      "sha256": "53c4e54cd2cd841950319e7f5f858832485edb66edf81f093e0117558171e473",
+      "bytes": 779
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module.c",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\current\\ide\\src\\analysis\\typed_module.c",
+      "sha256": "3300b559d4cf5375f827dc3a7d26197ca51a475eff815e26b305e2e5db9ab0db",
+      "bytes": 9000
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module_internal.h",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\current\\ide\\src\\analysis\\typed_module_internal.h",
+      "sha256": "0f7b2de00869f3dde72eb1798167c77df31ac07e921f75ad4cb4cf4b87132177",
+      "bytes": 3666
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem_native.inc",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\current\\ide\\src\\analysis\\frontend_sem_native.inc",
+      "sha256": "2d0cb2866353576db5859233a9adecaf470a862c0b58a7c515449d41daef8f2d",
+      "bytes": 5301
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_native_borrow_test.c",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\current\\ide\\tests\\analysis_native_borrow_test.c",
+      "sha256": "65b009cc8d00113e9d285777c0ddfa831d8727dee5d6eb3e8851a677bebe2a17",
+      "bytes": 18580
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_memo_types.py",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\current\\ide\\tools\\check_lsp_memo_types.py",
+      "sha256": "f4e4159890e0e1b028a540ae8f2029eaa634e0cde623cbeb59a7e1c25933cc4e",
+      "bytes": 6544
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\build-decline-probe-v2.py",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\controllers\\build-decline-probe-v2.py",
+      "sha256": "ae3a71f064d708d26a6d4fc7782a31edc91af7481ba9fe44e2fe877390168d11",
+      "bytes": 2527
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\build-decline-probe-v3.py",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\controllers\\build-decline-probe-v3.py",
+      "sha256": "c74324033473232fea39b07e3941c94adde4350ce2b0544da9d8fd825a3963c5",
+      "bytes": 3103
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\build-decline-probe.py",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\controllers\\build-decline-probe.py",
+      "sha256": "5ef6117daa3ae150348d4c9e52da6018101c4627941fab86c7920ad37ca7ff9f",
+      "bytes": 2144
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\build-native-diagnostic.py",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\controllers\\build-native-diagnostic.py",
+      "sha256": "cb3d18b839d4d5776b49ec1b6d0d15cdf24ed073ab5708a5849d403b2dfb189a",
+      "bytes": 5412
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\finalize.py",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\controllers\\finalize.py",
+      "sha256": "1b7ea7249fe3fec5f11459437b6ecdee7959730f27aa712d353743cf64d9bb8f",
+      "bytes": 8990
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\run-performance.py",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\controllers\\run-performance.py",
+      "sha256": "897a86ce7537cacda2744e424c58c5cc62cf933608db4b4ef75f9c24962c60da",
+      "bytes": 2674
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\run-validation.py",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\controllers\\run-validation.py",
+      "sha256": "8e01fd3f69b763369c7a9a904f47a06cf65d18c6e683324a9d9999da1fb81ba2",
+      "bytes": 2933
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\large-oracle-diagnostic-v1\\analysis_native_borrow_test.c",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\large-oracle-diagnostic\\analysis_native_borrow_test.c",
+      "sha256": "5406ebfc4c4fadd1b38983008c692dc2e87e3dd9076298c0869f28d7df0d5f42",
+      "bytes": 16000
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\large-oracle-diagnostic-v1\\analysis_semantic_memo_test.c",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\large-oracle-diagnostic\\analysis_semantic_memo_test.c",
+      "sha256": "ca64a90b4045c86c6bbd0475d9970d98a4e465e0be98d507204a7e820cbc8129",
+      "bytes": 25596
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-inputs\\ide\\src\\analysis\\typed_module_internal.h",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\baseline-inputs\\ide\\src\\analysis\\typed_module_internal.h",
+      "sha256": "eb6b36f19d9155341f4ef71d6c0fe76402a0c3b3c2ed9ac32923ac553b3359e2",
+      "bytes": 3447
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-inputs\\ide\\src\\analysis\\frontend_sem_native.inc",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\baseline-inputs\\ide\\src\\analysis\\frontend_sem_native.inc",
+      "sha256": "57e09d30cf789ad9b3e6ca41a1564ba0d326bb1c10a9f91bbc0c99ea014d559d",
+      "bytes": 4876
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-inputs\\ide\\src\\analysis\\ast_size.c",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\baseline-inputs\\ide\\src\\analysis\\ast_size.c",
+      "sha256": "9c8d0d0abf94d7a7c4b0561161280ec2e22c028f2cb4b40f4070be9fed4c72d0",
+      "bytes": 2608
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-inputs\\ide\\src\\analysis\\ast_size.h",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\baseline-inputs\\ide\\src\\analysis\\ast_size.h",
+      "sha256": "6e0f0bc96923c9bdba624354b39725646cd082e281ab34f225f71d2088ffdef1",
+      "bytes": 770
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-inputs\\ide\\src\\analysis\\typed_module.c",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\baseline-inputs\\ide\\src\\analysis\\typed_module.c",
+      "sha256": "4a521e47c969705a503230fbddfccd796102f9fd2e86eee131b473e508baa2df",
+      "bytes": 8475
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\full-v1-sources\\frontend_sem_native.inc",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\full-v1-inputs\\ide\\src\\analysis\\frontend_sem_native.inc",
+      "sha256": "ae9f3164e534b85e9927992daf82458383521a2c37dce6b78e7aa72bd403d50b",
+      "bytes": 5217
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\large-oracle-diagnostic-v1\\analysis_native_borrow_test.c",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\full-v1-inputs\\ide\\tests\\analysis_native_borrow_test.c",
+      "sha256": "5406ebfc4c4fadd1b38983008c692dc2e87e3dd9076298c0869f28d7df0d5f42",
+      "bytes": 16000
+    }
+  ],
+  "reports": [
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\frontend-recovery.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\frontend-recovery.json.gz",
+      "originalSha256": "074c033de54f98ac13a4c222f7f76676d1ee8acf50d84ccaf9d36ef96b172824",
+      "originalBytes": 94923,
+      "storedSha256": "47c3511ce6584af2d4dee4f1c6a00d0fc6322bdce2234db5bf2b4ab626d84333",
+      "storedBytes": 17949
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\source-base.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\source-base.json.gz",
+      "originalSha256": "d32e4ec64f770f8abe789ff3401266700a53f5e226bef1f0acb012b0bcd6b152",
+      "originalBytes": 883,
+      "storedSha256": "ea68c739abf197f9d23e6de029ca79458e87c7b86ae0202b848cebbb15ff0419",
+      "storedBytes": 464
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-closure.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\baseline-closure.json.gz",
+      "originalSha256": "9662b270066b79ff4f467c92c3f7b473b22c69edf37322ad78b6ddbe4071c1ad",
+      "originalBytes": 1863,
+      "storedSha256": "a99b8aa7de3ad6e9d87522bbac425b0fe3e32ec91d77c455803e1006235002f1",
+      "storedBytes": 544
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-v2\\build-result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\baseline-v2__build-result.json.gz",
+      "originalSha256": "12394924f6ced820addef10138bc826951aed8c7eff0d7231e3092bc167cf31f",
+      "originalBytes": 1577534,
+      "storedSha256": "8984387935391751034ebc7b0edf3664a0bcff8042935f1f698c8ec7383128ec",
+      "storedBytes": 317243
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\full-v1\\build-result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\full-v1__build-result.json.gz",
+      "originalSha256": "e50d1c54a52c23ef8aaa9895a9d7ae94c792746d68c1fff6a0223cb34fc0529b",
+      "originalBytes": 2196802,
+      "storedSha256": "08f1444289e687bfb86c1d638ad6439a4ddf11f3a71646eaf17c6698b7fd23b2",
+      "storedBytes": 347548
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\full-v1\\analysis_native_borrow_test-run.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\full-v1__analysis_native_borrow_test-run.log.gz",
+      "originalSha256": "1e4966b1a56d67c5c5c2f03d39fd8ae65f3971bc8edb5fec4014fca031ebd2ab",
+      "originalBytes": 870,
+      "storedSha256": "bb67e1a122b066e27f7ffdfa36cb01959402165d5024554e6a653ecfff8eb3a4",
+      "storedBytes": 333
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\full-v2\\build-result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\full-v2__build-result.json.gz",
+      "originalSha256": "28f26bec29eab91901534978b1dd6f7f6f2b51c6bc03869b7fd5262f0a3d92f5",
+      "originalBytes": 2361514,
+      "storedSha256": "e181649ea0a84e696ac9beb55ee19b5e450a43d4b7826e69dea6d2d27193c6cb",
+      "storedBytes": 358655
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\full-v2\\analysis_native_borrow_test-run.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\full-v2__analysis_native_borrow_test-run.log.gz",
+      "originalSha256": "237cf585fec2ccb29525b62ff9cdedf064d56bda38233fbf4632a0e4b520a0f1",
+      "originalBytes": 1243,
+      "storedSha256": "92a6adca51d27371a43890ed713a7c930d10c26c2132c40eda9da6cd302ff7e0",
+      "storedBytes": 408
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-diagnostic-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-diagnostic-v1__result.json.gz",
+      "originalSha256": "d3746b5fe139857d09e5d25774fbf477e4dafecc7df7aa5f7d03ffb16d5e5423",
+      "originalBytes": 20447,
+      "storedSha256": "4fdcf22c20802ad6bc8ef6997a5c05632d97bc8dcb833adc4a8f50e5482acb02",
+      "storedBytes": 2297
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__result.json.gz",
+      "originalSha256": "1af337bdce2653ec7af5d421b4de9560c234b1c90464a15a64517f767b6a6a67",
+      "originalBytes": 526982,
+      "storedSha256": "e6373b969942caf343189253fddeda5d5263dda380cca303e18dbf9bf50337c9",
+      "storedBytes": 19666
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\candidate-fast-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\candidate-fast-v1__result.json.gz",
+      "originalSha256": "9bbabb3c960f0f2e1a505a03bc5ed231eef8c83ee9e0ee4881d933f671c50fe0",
+      "originalBytes": 126210,
+      "storedSha256": "79b363b9db7cbc1969f2dedb552237a1ca772078222322543313e9a00473a8b3",
+      "storedBytes": 32079
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\partial-metrics-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\partial-metrics-v1__result.json.gz",
+      "originalSha256": "9f6ae59f46fe69e64b7b0ba0a32477af824ab4fd6872b0925f51a235a2ea62cf",
+      "originalBytes": 527356,
+      "storedSha256": "b30ff426da9440c115c1bbd8047dcfae6485995eeadbbc4f8b67ba6b6c4a92ca",
+      "storedBytes": 19598
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\large-oracle-diagnostic-v1\\run.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\large-oracle-diagnostic-v1__run.log.gz",
+      "originalSha256": "6225cffd015cdf798d57c39d088fdec7c08aa18f2de56962bd4e1e70e6ec72e9",
+      "originalBytes": 992,
+      "storedSha256": "25949e4389b4abf563f802f47f7da32addbde86d16b3b6d48e53e78012ed03ba",
+      "storedBytes": 380
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\focused-v2\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\focused-v2__result.json.gz",
+      "originalSha256": "4394c34a688983ddbcee24c4d5c28d2d63264d158313dc7981e92d81cd88ee3b",
+      "originalBytes": 5138,
+      "storedSha256": "d7944f22bb02963db1324079f44f7f6859e371ca3448ab72f08f729bc72f1515",
+      "storedBytes": 760
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\focused-v2\\native-test.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\focused-v2__native-test.log.gz",
+      "originalSha256": "28716bef9c48f21f582ca550da99a8fce2a7ff8725c5a0cc212c483ffd0c56d1",
+      "originalBytes": 1243,
+      "storedSha256": "8bd4265b7b8e5d21fe22e5633a64bfa46dae3bd013a5f4a1d2f5d27c435c8df1",
+      "storedBytes": 409
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\validation-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\validation-v1__result.json.gz",
+      "originalSha256": "01a5e007fcae4f5166805e43cc81cc9a47378933f481b60a52875474bb89faea",
+      "originalBytes": 49295,
+      "storedSha256": "f21160e6112036d05d5f7d3d52a71076e7458057bfb7bc715638f0cbfc65c8ae",
+      "storedBytes": 5399
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\omissions-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\omissions-v1__result.json.gz",
+      "originalSha256": "9227b8ed3fcefa6ada71633b3fe618a0c57cf8b564c7e7cea09b62e3c71f2cc0",
+      "originalBytes": 211622,
+      "storedSha256": "aed0444672a7613191a5d50170e0bf3cf525ee335b7d779501d64fef4ef0d9f4",
+      "storedBytes": 48517
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\wire-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\wire-v1__result.json.gz",
+      "originalSha256": "e67fdac1f9e0fd0f555b87df1525a7dd8e8a5a964065ffe32298c535c3e05bb3",
+      "originalBytes": 2284444,
+      "storedSha256": "e9d7392794b8a74b385f5d77da995f99324a2813c4a7feb24e1e53b9d445fa85",
+      "storedBytes": 56092
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\performance-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\performance-v1__result.json.gz",
+      "originalSha256": "282547f5e56ba25a0d0b497399351dbed03eabf40726bf37a7b8453df3e252cf",
+      "originalBytes": 3977,
+      "storedSha256": "bced552ab926fe041c6f65b51a065c3e15324ec6422cdbde8b5f2e1287e79d3f",
+      "storedBytes": 1299
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\performance-v1\\aa\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\performance-v1__aa__result.json.gz",
+      "originalSha256": "f947bf9cb641ec653a611a8c0fe6f7a56279d798f11381509e090a5612b6926a",
+      "originalBytes": 6220557,
+      "storedSha256": "41259b41b204b25dce5e01420b78ea42171c8dad302d5fb51010e9ec5fafdb9c",
+      "storedBytes": 160799
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\performance-v1\\aa\\plan.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\performance-v1__aa__plan.json.gz",
+      "originalSha256": "b0a95ebe4da60030f34deb1daa1079250b66973989a0d5116593af95f6b0989d",
+      "originalBytes": 6005,
+      "storedSha256": "644c58a6c7a09d6c38d730e10918bf65e62028aa7502d0baf450288647dfd875",
+      "storedBytes": 1844
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\performance-v1\\ab\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\performance-v1__ab__result.json.gz",
+      "originalSha256": "1d1bd60cd0464c82f9a01d0826aab26760c62bb8e6b9fe8d50d8107081de74ed",
+      "originalBytes": 12397651,
+      "storedSha256": "b199c811c0eef9a79e7ccdd8396bced54053e08abf2dff27ad5f8b4991c3232f",
+      "storedBytes": 317065
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\performance-v1\\ab\\plan.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\performance-v1__ab__plan.json.gz",
+      "originalSha256": "88e13e7526e7c3b6b37b415a35c0ae792ece76eb8cc2e39f1842aba4a4ef7684",
+      "originalBytes": 6172,
+      "storedSha256": "b5ca80ecb72bc0a3f001ca3decfa1ca49ae46b2a7bec86a75f9fb6f1494c83b2",
+      "storedBytes": 1896
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\declaration-cause.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\declaration-cause.json.gz",
+      "originalSha256": "2406e78e27ee0715c164870c53a0776b857529a6e1967412eed6213d8ccca362",
+      "originalBytes": 979,
+      "storedSha256": "9d1060271c59cdc2a085875ab272f1cfffabfae36324ef4a9c6e80e78a568dd3",
+      "storedBytes": 516
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v1__result.json.gz",
+      "originalSha256": "5b0e29bab49e84d63d8e1c0d30a1779719d8be9d08e075403eab7c3c5d66ac36",
+      "originalBytes": 271438,
+      "storedSha256": "1e3b08dda92743af5008f3d824d3ed22c36795ac83df5ad12c2b708f377ce45f",
+      "storedBytes": 10609
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v1\\32-imported-declaration\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v1__32-imported-declaration__0-candidate-stderr.log.gz",
+      "originalSha256": "26a5d5c4eb5f17fb76dbd0898879b09a1bd3bd895db78608210b2c6044394dcc",
+      "originalBytes": 276,
+      "storedSha256": "369028286bf379cd5a27391126378bec91ffd6f343fad593e3de0b77125d5551",
+      "storedBytes": 109
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v1\\32-imported-declaration\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v1__32-imported-declaration__1-candidate-stderr.log.gz",
+      "originalSha256": "26a5d5c4eb5f17fb76dbd0898879b09a1bd3bd895db78608210b2c6044394dcc",
+      "originalBytes": 276,
+      "storedSha256": "369028286bf379cd5a27391126378bec91ffd6f343fad593e3de0b77125d5551",
+      "storedBytes": 109
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v1\\32-single-declaration\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v1__32-single-declaration__0-candidate-stderr.log.gz",
+      "originalSha256": "9df7ae1adfbf7c9e6e93289d34d12536a84ea72bba8cd3cbf4f805048ddcd0bc",
+      "originalBytes": 184,
+      "storedSha256": "c22211231a1ea54a3f5b620debac07ef0e940781ea575d354c757469a1e78818",
+      "storedBytes": 100
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v1\\32-single-declaration\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v1__32-single-declaration__1-candidate-stderr.log.gz",
+      "originalSha256": "9df7ae1adfbf7c9e6e93289d34d12536a84ea72bba8cd3cbf4f805048ddcd0bc",
+      "originalBytes": 184,
+      "storedSha256": "c22211231a1ea54a3f5b620debac07ef0e940781ea575d354c757469a1e78818",
+      "storedBytes": 100
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v2\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v2__result.json.gz",
+      "originalSha256": "af0b516c5d500393d0aee17a0778370f1b3dbda410d9ef466981f5a255582379",
+      "originalBytes": 271429,
+      "storedSha256": "3156e1658583fbce5acb01ee568115598c7d5064882f8214cf232001b3157c2e",
+      "storedBytes": 10639
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v2\\32-imported-declaration\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v2__32-imported-declaration__0-candidate-stderr.log.gz",
+      "originalSha256": "47d8d8cf57f2ce3ab6b183e1b035508d20c856b86e8f63876eb0b4fe4ed20e04",
+      "originalBytes": 358,
+      "storedSha256": "8cf46c642bda9ce5281beca9676dfc7af5ec6395e743dc901f139062f4de9a45",
+      "storedBytes": 134
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v2\\32-imported-declaration\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v2__32-imported-declaration__1-candidate-stderr.log.gz",
+      "originalSha256": "47d8d8cf57f2ce3ab6b183e1b035508d20c856b86e8f63876eb0b4fe4ed20e04",
+      "originalBytes": 358,
+      "storedSha256": "8cf46c642bda9ce5281beca9676dfc7af5ec6395e743dc901f139062f4de9a45",
+      "storedBytes": 134
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v2\\32-single-declaration\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v2__32-single-declaration__0-candidate-stderr.log.gz",
+      "originalSha256": "5693def7ae93904c4488449b641b8699c7610cb8607e339a8b9da797c43fff52",
+      "originalBytes": 266,
+      "storedSha256": "f30169d895052a69aec9f9b49435409f303180076641ef2dea22174bd58b3141",
+      "storedBytes": 124
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v2\\32-single-declaration\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v2__32-single-declaration__1-candidate-stderr.log.gz",
+      "originalSha256": "5693def7ae93904c4488449b641b8699c7610cb8607e339a8b9da797c43fff52",
+      "originalBytes": 266,
+      "storedSha256": "f30169d895052a69aec9f9b49435409f303180076641ef2dea22174bd58b3141",
+      "storedBytes": 124
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v3\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v3__result.json.gz",
+      "originalSha256": "4bb5586edcb8a9f920e2ce6a30d0f4a103b1411aca318eb6e20d27dbd9ca68ea",
+      "originalBytes": 132167,
+      "storedSha256": "044b7f1228ad36e8c7171a7c5bf13f1e3f7c0985c026bfbb666882470f679971",
+      "storedBytes": 6310
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v3\\32-single-declaration\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v3__32-single-declaration__0-candidate-stderr.log.gz",
+      "originalSha256": "5c69b128cebff3608c2623790a758e2f0ce43448f38fc59298d3725151411f5d",
+      "originalBytes": 1834,
+      "storedSha256": "d09ca9fdad09209e6c07603d08b2151405eec88f6bf6ef67474504fd15ecae11",
+      "storedBytes": 294
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v3\\32-single-declaration\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v3__32-single-declaration__1-candidate-stderr.log.gz",
+      "originalSha256": "5c69b128cebff3608c2623790a758e2f0ce43448f38fc59298d3725151411f5d",
+      "originalBytes": 1834,
+      "storedSha256": "d09ca9fdad09209e6c07603d08b2151405eec88f6bf6ef67474504fd15ecae11",
+      "storedBytes": 294
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\32-single-declaration\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__32-single-declaration__0-candidate-stderr.log.gz",
+      "originalSha256": "f7cdc070a48e8b4dd32bbb60bcc878a4d47bc9c627dc0382f683a53350d91406",
+      "originalBytes": 907,
+      "storedSha256": "2c78fba91f424496987d1c554f41a4b31af360dc529ad455931cc9c4f6945b46",
+      "storedBytes": 288
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\32-single-declaration\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__32-single-declaration__1-candidate-stderr.log.gz",
+      "originalSha256": "451557a0611c78a43487b8e6ef8783e8bf4ba76c5fadaab7e0fdcf5409a54717",
+      "originalBytes": 906,
+      "storedSha256": "868deeb6e8a4b5c1b3846f7dd2fba06bd34dc046b8b5e21e2dbaa1ef59cd72b2",
+      "storedBytes": 284
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\32-single-literal\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__32-single-literal__0-candidate-stderr.log.gz",
+      "originalSha256": "6858443ab5455f6d18c3a90993867f1215c6d6d846d889dc7d9acbca202798d0",
+      "originalBytes": 894,
+      "storedSha256": "ad2f111a51e260f6289d69afba0eefba93e92a5a225e535ce36efdc2cc2f5363",
+      "storedBytes": 284
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\32-single-literal\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__32-single-literal__1-candidate-stderr.log.gz",
+      "originalSha256": "57a20aca26f446b7ed0b8ca6d353457947acfab699a7ca8a3d1ee9d4810e0ea3",
+      "originalBytes": 894,
+      "storedSha256": "b1a35824891ad02e5db2f3bef1400fe95e9badbeef05ddc2e06bc318b662a9ee",
+      "storedBytes": 282
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\512-single-declaration\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__512-single-declaration__0-candidate-stderr.log.gz",
+      "originalSha256": "c886576672490029d8ce1dc2d6339b7f29e7bca2059762f72288e9bfe11d8119",
+      "originalBytes": 939,
+      "storedSha256": "32184eb135d5eef2e6db0457a15f22457809c0d9e2e9f975f3f18bec828d58cc",
+      "storedBytes": 297
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\512-single-declaration\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__512-single-declaration__1-candidate-stderr.log.gz",
+      "originalSha256": "b3091b6504308cdbaf08501e65c463699fea2951f6b9367931dae09cdc5fa3fe",
+      "originalBytes": 940,
+      "storedSha256": "ec1d66862e380e32083778dda5114a4723cf5fb218f1a447d1405c2406cd34e9",
+      "storedBytes": 291
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\512-single-literal\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__512-single-literal__0-candidate-stderr.log.gz",
+      "originalSha256": "71575aacea24c3e369d75e43da98a1b10c026917cd57682ba17a465056ff7aa5",
+      "originalBytes": 938,
+      "storedSha256": "c40a6b7523c9412bcf548ec373fbb2e2faec3e9ecbbe0fa7dbdfbe5ee9bb84f8",
+      "storedBytes": 289
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\512-single-literal\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__512-single-literal__1-candidate-stderr.log.gz",
+      "originalSha256": "71b3ff6138fb5274d898696c32a1fec5de2e7eb6a35b100cea3a62e6777f2ba9",
+      "originalBytes": 938,
+      "storedSha256": "43118f1a04c0ba5bcc57fb5573ff958c56bf102e0adb8c0f3fa1a00f0aa4ec89",
+      "storedBytes": 289
+    }
+  ]
+}

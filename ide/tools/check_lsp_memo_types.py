@@ -12,7 +12,7 @@ from check_language_definitions import position
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--server',type=Path,required=True);parser.add_argument('--baseline',type=Path,required=True);parser.add_argument('--output',type=Path,required=True)
-    parser.add_argument('--baseline-version',choices=['0.53','0.54','0.55','0.56','0.57','0.58','0.59','0.60','0.61','0.62','0.63','0.64','0.65','0.66','0.67','0.68','0.69','0.70','0.71','0.72','0.73','0.74','0.75','0.76','0.77','0.78','0.79','0.80','0.81','0.82','0.83','0.84','0.85','0.87','0.88','0.89','0.90','0.91','0.92','0.93','0.94','0.95','0.96','0.97','0.98'],default='0.98')
+    parser.add_argument('--baseline-version',default='0.98',help='Exact serverInfo.version of the reference image')
     args=parser.parse_args();server=args.server.resolve(strict=True);baseline=args.baseline.resolve(strict=True);out=args.output.resolve();out.mkdir(parents=True,exist_ok=False)
     sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
     body=source(16,0,True).split('export func compute(')[0]+('func choose(int left,string right) as int\r\n return left\r\nend\r\n'

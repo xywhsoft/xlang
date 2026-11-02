@@ -7,7 +7,7 @@ struct xls_typed_function {xatomic32 references;XL6_AstNode* root;xls_typed_fore
 /* Only teardown is serialized. Original non-atomic source references and XRT
  * pools can span sibling subtrees. This record owns no module/root/check and
  * retains no sibling payload after that sibling's last function reference. */
-struct xls_typed_forest {xatomic32 references;xmutex lock;size_t slots,bytes,knownBytes;xls_typed_function functions[];};
+struct xls_typed_forest {xatomic32 references;xmutex lock;size_t slots,bytes,knownBytes,knownSlots;xls_typed_function functions[];};
 struct xls_typed_module {
     xatomic32 references;XL6_AstNode* root;xls_typed_input_identity* identity;xls_typed_forest* forest;
     xls_typed_function** borrowed;size_t borrowedSlots;
@@ -46,7 +46,8 @@ void xlsTypedFunctionRelease(xls_typed_function* f)
 const XL6_AstNode* xlsTypedFunctionRoot(const xls_typed_function* f){return f ? f->root : NULL;}
 size_t xlsTypedFunctionMetadataBytes(const xls_typed_function* f){return f ? f->forest->bytes : 0;}
 const void* xlsTypedFunctionMetadataOwner(const xls_typed_function* f){return f ? f->forest : NULL;}
-size_t xlsTypedFunctionKnownBytes(const xls_typed_function* f){return f ? f->forest->knownBytes : 0;}
+size_t xlsTypedFunctionKnownBytes(const xls_typed_function* f)
+{return f && (size_t)(f-f->forest->functions)<f->forest->knownSlots ? f->forest->knownBytes : 0;}
 int xlsTypedModuleMeasureFunctions(xls_typed_module* module,size_t limit,int (*cancelled)(void*),void* user)
 {
     xls_typed_forest* forest=module ? module->forest : NULL;
@@ -54,11 +55,21 @@ int xlsTypedModuleMeasureFunctions(xls_typed_module* module,size_t limit,int (*c
     if(!forest)return 1;
     if(forest->knownBytes)return forest->knownBytes<=limit;
     if(forest->bytes>limit)return 0;
-    xls_ast_size size={0};int okay=xlsAstSizeBegin(&size,limit-forest->bytes,1);
-    for(size_t i=0;okay && i<forest->slots;++i)
-        if(forest->functions[i].root)okay=xlsAstSizeTree(&size,forest->functions[i].root,0,cancelled,user);
-    if(okay)forest->knownBytes=forest->bytes+size.bytes;
-    xlsAstSizeEnd(&size);return okay;
+    xls_ast_size size={0};size_t slots=0,bytes=0;
+    int okay=xlsAstSizeBegin(&size,limit-forest->bytes,1);
+    for(size_t i=0;okay && i<forest->slots;++i){
+        if(!forest->functions[i].root)continue;
+        if(!xlsAstSizeTree(&size,forest->functions[i].root,0,cancelled,user)){
+            /* Only a pure budget stop can keep earlier complete functions.
+             * The failed tree may have charged new pools/sources: its partial
+             * counter and maps are discarded,never installed in the receipt. */
+            if(!size.exceeded || (cancelled && cancelled(user)))slots=0;
+            break;
+        }
+        slots=i+1;bytes=size.bytes;
+    }
+    if(slots){forest->knownBytes=forest->bytes+bytes;forest->knownSlots=slots;}
+    xlsAstSizeEnd(&size);return slots!=0;
 }
 size_t xlsTypedFunctionRootSlot(const xls_typed_function* f){return f ? (size_t)(f-f->forest->functions) : SIZE_MAX;}
 xls_typed_function* xlsTypedModuleFunction(const xls_typed_module* module,size_t slot)

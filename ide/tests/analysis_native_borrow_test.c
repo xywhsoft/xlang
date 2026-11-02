@@ -111,6 +111,91 @@ static int budgets(void)
     }
     return 1;
 }
+static int alwaysCancelled(void* unused){(void)unused;return 1;}
+static int partial(void)
+{
+    for(unsigned mode=0;mode<7;++mode){
+        xls_ast_storage* storage=xlsAstStorageCreate(1024u*1024u);CHECK(storage);
+        XL6_AstNode* root=xl6AstNew(XL6_AST_MODULE,NULL);CHECK(root);
+        XL6_AstNode* nodes[3];xls_typed_function* owners[3];
+        for(size_t i=0;i<3;++i){
+            nodes[i]=xlsAstStorageNode(storage,SIZE_MAX);CHECK(nodes[i]);nodes[i]->kind=XL6_AST_FUNC;
+            xl6AstAddChild(root,nodes[i]);CHECK(root->childCount==i+1);
+        }
+        nodes[1]->text=xrtMalloc(4097);CHECK(nodes[1]->text);memset(nodes[1]->text,'x',4096);nodes[1]->text[4096]=0;
+        xls_typed_module* module=xlsTypedModuleTake(root);CHECK(module);
+        for(size_t i=0;i<3;++i){owners[i]=xlsTypedModuleFunction(module,i);CHECK(owners[i]);}
+        size_t prefix=xlsTypedFunctionMetadataBytes(owners[0])+(size_t)xlsAstStorageWork(storage).bytes;
+        size_t limit=mode==0 ? 0 : mode==1 ? prefix-1 : mode==3 ? prefix+4096 : mode==4 ? prefix+4097 : prefix;
+        if(mode==5)nodes[1]->childCount=1; /* malformed,not a quota stop */
+        int okay=xlsTypedModuleMeasureFunctions(module,limit,mode==6 ? alwaysCancelled : NULL,NULL);
+        nodes[1]->childCount=0;
+        int admitted=mode>=2 && mode<=4;CHECK(okay==admitted);
+        CHECK(xlsTypedFunctionKnownBytes(owners[0])==(admitted ? mode==4 ? prefix+4097 : prefix : 0));
+        CHECK(xlsTypedFunctionKnownBytes(owners[1])==(mode==4 ? prefix+4097 : 0));
+        CHECK(xlsTypedFunctionKnownBytes(owners[2])==(mode==4 ? prefix+4097 : 0));
+        xlsAstStorageUnpin(storage);xlsTypedModuleRelease(module);
+        CHECK(xlsTypedFunctionRoot(owners[0])==nodes[0] && xlsTypedFunctionRoot(owners[1])==nodes[1]);
+        xlsTypedFunctionRelease(owners[1]);xlsTypedFunctionRelease(owners[2]);
+        CHECK(xlsTypedFunctionKnownBytes(owners[0])==(admitted ? mode==4 ? prefix+4097 : prefix : 0));
+        xlsTypedFunctionRelease(owners[0]);
+    }
+    return 1;
+}
+static int indexRange(xls_index_range a,xls_index_range b)
+{return a.known==b.known && a.startOffset==b.startOffset && a.endOffset==b.endOffset && a.startLine==b.startLine && a.startColumn==b.startColumn && a.endLine==b.endLine && a.endColumn==b.endColumn;}
+static int largeComplete(xls_semantic_check* result,const xls_analysis_document* doc)
+{
+    /* The compatibility JSON index exceeds its original 32MiB output quota
+     * here. Compare every native fact directly,without enlarging that quota
+     * or treating two failed JSON exports as evidence of equality. */
+    xls_semantic_input input={doc->path,xlsTextData(doc->text),xlsTextSize(doc->text)};
+    xls_semantic_check* fresh=xlsSemanticCheckCreate(doc->path,&input,1,1,NULL,NULL,NULL,0);CHECK(fresh && xlsSemanticCheckInfo(fresh).accepted);
+    CHECK(sameAst(xlsSemanticCheckAst(result),xlsSemanticCheckAst(fresh)) && extras(xlsSemanticCheckAst(result),xlsSemanticCheckAst(fresh)));
+    char *a=xlsSemanticCheckReportJson(result,NULL),*b=xlsSemanticCheckReportJson(fresh,NULL);CHECK(a && b && !strcmp(a,b));xlsSemanticStringFree(a);xlsSemanticStringFree(b);
+    const xls_semantic_index *left=xlsSemanticCheckTypedIndex(result),*right=xlsSemanticCheckTypedIndex(fresh);
+    size_t count=xlsSemanticIndexCount(left);CHECK(left && right && count>90000 && count==xlsSemanticIndexCount(right));
+    for(size_t i=0;i<count;++i){
+        xls_index_point_fact p,q;CHECK(xlsSemanticIndexPointFact(left,i,&p) && xlsSemanticIndexPointFact(right,i,&q) && p.kind==q.kind);
+        const xls_index_fact *x=&p.fact,*y=&q.fact;
+        CHECK(sameText(x->kind,y->kind) && sameText(x->canonical,y->canonical));
+        uint64_t xv[]={x->id,x->parent,x->source,x->selectionSource,x->declaredSymbol,x->symbol,x->targetSymbol,x->compoundOperatorSymbol,
+            x->declaredType,x->referencedType,x->typeId,x->typeObjectId,x->typeAbi,x->typeObjectAbi,(uint64_t)x->typeOrigin};
+        uint64_t yv[]={y->id,y->parent,y->source,y->selectionSource,y->declaredSymbol,y->symbol,y->targetSymbol,y->compoundOperatorSymbol,
+            y->declaredType,y->referencedType,y->typeId,y->typeObjectId,y->typeAbi,y->typeObjectAbi,(uint64_t)y->typeOrigin};
+        CHECK(!memcmp(xv,yv,sizeof(xv)) && indexRange(x->range,y->range) && indexRange(x->tokenRange,y->tokenRange) && indexRange(x->selectionRange,y->selectionRange));
+    }
+    a=irJson(result);b=irJson(fresh);CHECK(a && b && !strcmp(a,b));xrtFree(a);xrtFree(b);
+    CHECK(xlsSemanticCheckValidate(result) && xlsSemanticCheckValidate(fresh));xlsSemanticCheckDestroy(fresh);return 1;
+}
+static int large(void)
+{
+    char* path=xrtPathAbs("native-partial-中文😀.xl");xls_check_session* session=xlsCheckSessionCreate(NULL);CHECK(path && session);
+    xls_analysis_document doc={"entry",path,NULL,1,1};xls_semantic_check* previous=NULL;uint64_t full=0;
+    for(unsigned v=0;v<3;++v){
+        xstrbuf text={0};CHECK(xrtStrBufAppend(&text,xrtStrView("\xef\xbb\xbf" "func identity(int value) as int\r\n return value\r\nend\r\n")));
+        for(unsigned i=0;i<512;++i){
+            CHECK(xrtStrBufAppendFormat(&text,"func work_%u(int value) as int\r\n int local=value+%u\r\n if local>0 then\r\n",i,i));
+            const char* expression=i%2 ? "identity(local)" : "local";
+            for(unsigned j=0;j<12;++j)CHECK(xrtStrBufAppendFormat(&text," local=%s+1\r\n",expression));
+            CHECK(xrtStrBufAppend(&text,xrtStrView(" else\r\n")));
+            for(unsigned j=0;j<12;++j)CHECK(xrtStrBufAppendFormat(&text," local=%s-1\r\n",expression));
+            CHECK(xrtStrBufAppend(&text,xrtStrView(" end\r\n return local\r\nend\r\n")));
+        }
+        CHECK(xrtStrBufAppendFormat(&text,"export func compute(int value) as int\r\n return identity(value)+%u\r\nend\r\n",v));
+        xls_semantic_check* result=update(session,&doc,1,text.Data);xrtStrBufFree(&text);
+        CHECK(result && xlsSemanticCheckInfo(result).accepted && largeComplete(result,&doc));
+        xls_sem_native_work work=xlsSemanticCheckNativeWork(result);xls_ast_materialize_work copies=xlsSemanticCheckMaterializationWork(result);
+        CHECK(work.retained>0 && work.retained<512 && work.bytes<=32u*1024u*1024u && !work.retries);
+        if(!v){full=copies.nodes;CHECK(!work.reused);}
+        else CHECK(work.reused>0 && copies.nodes<full && equalFunctions(xlsSemanticCheckAst(previous),xlsSemanticCheckAst(result))==work.reused);
+        printf("partial-512-v%u retained=%llu reused=%llu bytes=%zu copied=%llu\n",v,
+            (unsigned long long)work.retained,(unsigned long long)work.reused,work.bytes,(unsigned long long)copies.nodes);
+        xlsSemanticCheckDestroy(previous);previous=result;
+    }
+    xlsCheckSessionDestroy(session);CHECK(xlsSemanticCheckValidate(previous) && largeComplete(previous,&doc));
+    xlsSemanticCheckDestroy(previous);xlsTextRelease(doc.text);xrtFree(path);return 1;
+}
 static const XL6_AstNode* named(const XL6_AstNode* root,const char* name)
 {
     for(size_t i=0;root && i<root->childCount;++i){const XL6_AstNode* n=root->children[i];
@@ -146,7 +231,7 @@ int main(int argc,char** argv)
     if(argc>2 || (argc==2 && strcmp(argv[1],"--expect-eager")))return 2;
     expectEager=argc==2;
     xrtAtomic32Init(&checks,0);if(!editing())return 1;
-    if(!expectEager && (!backing() || !budgets() || !interop(0) || !interop(1)))return 1;
+    if(!expectEager && (!backing() || !budgets() || !partial() || !large() || !interop(0) || !interop(1)))return 1;
     printf("analysis_native_borrow_test passed:%u checks;actual ordinary native root identity,complete fresh AST/index/IR parity,region/symbol eager retries,lifetime\n",xrtAtomic32Load(&checks,XMEMORY_RELAXED));return 0;
 }
 #else
