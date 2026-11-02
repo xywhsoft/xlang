@@ -463,6 +463,8 @@ int xlsSemanticCheckValidate(xls_semantic_check* r)
     if(!r || !xrtMutexLock(&r->lock)) return 0;
     int okay=validateLocked(r); xrtMutexUnlock(&r->lock); return okay;
 }
+const xls_typed_module* xlsFrontendCheckFunctionModule(const xls_semantic_check* r)
+{return r && !invalid(r) && r->accepted ? r->typedModule : NULL;}
 int xlsFrontendCheckFunctionInputs(const xls_semantic_check* r,XL6_SourceReport* out)
 {
     if(out)*out=(XL6_SourceReport){0};

@@ -72,7 +72,14 @@ static int source(clone_context* c,const XL6_AstSource* in,XL6_AstNode* out)
     if(!value) {
         if(!charge(c,sizeof(*value))) return 0;
         value=xrtCalloc(1,sizeof(*value)); if(!value) return 0;
-        *value=*in; value->references=0; value->path=duplicate(c,in->path);
+        /* Copy logical source values only. Independent final functions can
+         * share this source record while sibling teardown changes its native
+         * non-atomic reference count under their common forest lock. Reading
+         * that ownership counter,even to immediately overwrite it,is a race.
+         * Complete source fields are bound by the audited native AST profile. */
+        value->completionQuery=in->completionQuery;
+        value->completionStart=in->completionStart;value->completionEnd=in->completionEnd;
+        value->path=duplicate(c,in->path);
         if((in->path && !value->path) || !xrtMapSet(&c->sources,key,&value)) { xrtFree(value->path); xrtFree(value); return 0; }
     }
     out->source=value; ++value->references; return 1;

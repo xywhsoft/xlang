@@ -14,7 +14,8 @@ struct xls_function_origin {
 };
 struct xls_function_unit {
     xatomic32 references;XL6_AstNode* root;xls_function_origin* origin;
-    xarray nodes,children,facts;size_t limit,treeBytes,stringBytes,bytes;
+    xls_typed_function* ownedFunction;xmap sizingSources;
+    xarray nodes,children,facts;size_t limit,treeBytes,stringBytes,ownerBytes,bytes;
 };
 static int stopped(const function_stop* stop){return stop->cancelled && stop->cancelled(stop->user);}
 static int copyNode(const XL6_AstNode* input,XL6_AstNode* output,void* user)
@@ -67,17 +68,42 @@ failed:xlsFunctionOriginRelease(o);return NULL;
 static int unitBytes(xls_function_unit* u)
 {
     size_t total=sizeof(*u);
-    if(!charge(&total,u->limit,u->treeBytes) || !charge(&total,u->limit,u->stringBytes) ||
+    if(!charge(&total,u->limit,u->treeBytes) || !charge(&total,u->limit,u->stringBytes) || !charge(&total,u->limit,u->ownerBytes) ||
        !charge(&total,u->limit,u->nodes.Capacity*sizeof(function_row)) ||
        !charge(&total,u->limit,u->children.Capacity*sizeof(uint32_t)) ||
        !charge(&total,u->limit,u->facts.Capacity*sizeof(xls_index_fact)))return 0;
     u->bytes=total;return 1;
 }
+static int ownedNodeBytes(xls_function_unit* u,const XL6_AstNode* node)
+{
+    if(!u->ownedFunction)return 1;
+    if(node->childCapacity<node->childCount || node->childCapacity>SIZE_MAX/sizeof(*node->children) ||
+       !charge(&u->treeBytes,u->limit,sizeof(*node)) ||
+       !charge(&u->treeBytes,u->limit,node->childCapacity*sizeof(*node->children)))return 0;
+    const char* strings[]={node->text,node->doc
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        ,node->compiledPackageLink
+#endif
+    };
+    for(size_t i=0;i<sizeof(strings)/sizeof(*strings);++i)
+        if(strings[i] && !charge(&u->treeBytes,u->limit,strlen(strings[i])+1))return 0;
+    if(node->literalData && (node->literalSize==SIZE_MAX || !charge(&u->treeBytes,u->limit,node->literalSize+1)))return 0;
+    if(node->source){
+        const XL6_AstSource* source=node->source;unsigned char yes=1;
+        xbytesview key={(const unsigned char*)&source,sizeof(source)};
+        if(!xrtMapHas(&u->sizingSources,key)){
+            if(!charge(&u->treeBytes,u->limit,sizeof(*source)) ||
+               (source->path && !charge(&u->treeBytes,u->limit,strlen(source->path)+1)) ||
+               !xrtMapSet(&u->sizingSources,key,&yes))return 0;
+        }
+    }
+    return 1;
+}
 static int rows(xls_function_unit* u,const XL6_AstNode* node,uint32_t parent,size_t depth,uint32_t* id,function_stop* stop)
 {
     *id=0;if(!node)return 1;
     if(stopped(stop) || depth>512 || u->nodes.Count>=FUNCTION_NODES || node->childCount>FUNCTION_NODES ||
-       node->childCount>FUNCTION_NODES-u->children.Count || (node->childCount && !node->children))return 0;
+       node->childCount>FUNCTION_NODES-u->children.Count || (node->childCount && !node->children) || !ownedNodeBytes(u,node))return 0;
     function_row row={.node=node,.parent=parent,.first=u->children.Count};
     if(!xrtArrayPush(&u->nodes,&row) || !xrtArrayResize(&u->children,u->children.Count+node->childCount) || !unitBytes(u))return 0;
     *id=(uint32_t)u->nodes.Count;
@@ -92,16 +118,21 @@ void xlsFunctionUnitRelease(xls_function_unit* u)
 {
     if(!u || xrtAtomic32FetchSub(&u->references,1,XMEMORY_ACQ_REL)!=1)return;
     for(size_t i=0;i<u->facts.Count;++i)xrtFree((char*)((xls_index_fact*)xrtArrayGet(&u->facts,i))->canonical);
-    xrtArrayUnit(&u->nodes);xrtArrayUnit(&u->children);xrtArrayUnit(&u->facts);xl6AstFree(u->root);xlsFunctionOriginRelease(u->origin);xrtFree(u);
+    xrtArrayUnit(&u->nodes);xrtArrayUnit(&u->children);xrtArrayUnit(&u->facts);xrtMapUnit(&u->sizingSources);
+    if(u->ownedFunction)xlsTypedFunctionRelease(u->ownedFunction);else xl6AstFree(u->root);
+    xlsFunctionOriginRelease(u->origin);xrtFree(u);
 }
-xls_function_unit* xlsFrontendFunctionUnitCapture(const XL6_AstNode* root,const xls_semantic_index* index,
+static xls_function_unit* capture(const XL6_AstNode* root,xls_typed_function* owned,const xls_semantic_index* index,
     xls_function_origin* origin,size_t bytes,int (*cancelled)(void*),void* user)
 {
     if(!xlsFrontendFunctionDefinition(root) || !origin)return NULL;
     if(bytes>FUNCTION_BYTES)bytes=FUNCTION_BYTES;
     function_stop stop={cancelled,user};if(bytes<=sizeof(xls_function_unit) || stopped(&stop))return NULL;
     xls_function_unit* u=xrtCalloc(1,sizeof(*u));if(!u)return NULL;xrtAtomic32Init(&u->references,1);u->limit=bytes;
-    u->root=xlsAstClone(root,&(xls_ast_clone_options){copyNode,&stop,bytes-sizeof(*u),0,NULL},&u->treeBytes);
+    if(owned){
+        if(xlsTypedFunctionRoot(owned)!=root || !xrtMapInit(&u->sizingSources,sizeof(unsigned char)))goto failed;
+        u->ownedFunction=xlsTypedFunctionRetain(owned);u->root=(XL6_AstNode*)root;u->ownerBytes=xlsTypedFunctionMetadataBytes(owned);
+    }else u->root=xlsAstClone(root,&(xls_ast_clone_options){copyNode,&stop,bytes-sizeof(*u),0,NULL},&u->treeBytes);
     if(!u->root || !xrtArrayInit(&u->nodes,sizeof(function_row)) || !xrtArrayInit(&u->children,sizeof(uint32_t)) || !xrtArrayInit(&u->facts,sizeof(xls_index_fact)))goto failed;
     uint32_t id;if(!rows(u,u->root,0,0,&id,&stop) || id!=1)goto failed;
     size_t first=0,count=0;
@@ -114,9 +145,15 @@ xls_function_unit* xlsFrontendFunctionUnitCapture(const XL6_AstNode* root,const 
         if(!duplicate(&out->canonical,fact.canonical,&u->stringBytes,bytes) || !unitBytes(u))goto failed;
     }
     if(stopped(&stop))goto failed;
-    u->origin=originRetain(origin);return u;
+    xrtMapUnit(&u->sizingSources);u->origin=originRetain(origin);return u;
 failed:xlsFunctionUnitRelease(u);return NULL;
 }
+xls_function_unit* xlsFrontendFunctionUnitCapture(const XL6_AstNode* root,const xls_semantic_index* index,
+    xls_function_origin* origin,size_t bytes,int (*cancelled)(void*),void* user)
+{return capture(root,NULL,index,origin,bytes,cancelled,user);}
+xls_function_unit* xlsFrontendFunctionUnitCaptureOwned(xls_typed_function* owned,const xls_semantic_index* index,
+    xls_function_origin* origin,size_t bytes,int (*cancelled)(void*),void* user)
+{return owned ? capture(xlsTypedFunctionRoot(owned),owned,index,origin,bytes,cancelled,user) : NULL;}
 static xls_index_range range(XL6_AstRange r)
 {return (xls_index_range){r.startOffset,r.endOffset,r.startLine,r.startColumn,r.endLine,r.endColumn,r.known};}
 int xlsFunctionUnitNode(const xls_function_unit* u,uint32_t id,xls_function_node* out)
@@ -167,7 +204,7 @@ XL6_AstNode* xlsFrontendFunctionUnitMaterialize(const xls_function_unit* u,size_
 #define FUNCTION_SET_BYTES (256u*1024u*1024u)
 struct xls_function_set {
     xatomic32 references;xarray units;xls_function_origin* origin;
-    size_t built,unitBytes,bytes,limit;
+    size_t built,unitBytes,bytes,limit,ownerBytes;
 };
 static int setBytes(xls_function_set* set)
 {
@@ -197,26 +234,50 @@ void xlsFunctionSetRelease(xls_function_set* set)
     for(size_t i=0;i<set->built;++i)xlsFunctionUnitRelease((xls_function_unit*)*(const void* const*)xrtArrayConstGet(&set->units,i));
     xrtArrayUnit(&set->units);xlsFunctionOriginRelease(set->origin);xrtFree(set);
 }
-xls_function_set* xlsFrontendFunctionSetCapture(const XL6_AstNode* root,const xls_semantic_index* index,
+xls_function_set* xlsFrontendFunctionSetCaptureOwned(const xls_typed_module* module,const XL6_AstNode* root,const xls_semantic_index* index,
     xls_function_origin* origin,size_t bytes,int (*cancelled)(void*),void* user)
 {
     if(bytes>FUNCTION_SET_BYTES)bytes=FUNCTION_SET_BYTES;
     if(!root || !origin || bytes<=sizeof(xls_function_set) || origin->bytes>bytes-sizeof(xls_function_set))return NULL;
     function_stop stop={cancelled,user};if(stopped(&stop))return NULL;
-    xls_function_set* set=xrtCalloc(1,sizeof(*set));if(!set)return NULL;
+    xls_function_set* set=xrtCalloc(1,sizeof(*set));if(!set)return NULL;xmap owned={0};
     xrtAtomic32Init(&set->references,1);set->origin=originRetain(origin);set->limit=bytes;
     if(!xrtArrayInit(&set->units,sizeof(void*)) || !setBytes(set) || !collectFunctions(set,root,0,&stop))goto failed;
+    /* Build a demand-only address lookup once. Normal checking constructs no
+     * map and performs no body walk. Its entries borrow the retained module;
+     * successful units independently retain their native function owners. */
+    int indexed=module && xlsTypedModuleRoot(module)==root && xrtMapInit(&owned,sizeof(xls_typed_function*));
+    if(indexed){
+        for(size_t i=0;i<root->childCount;++i){
+            xls_typed_function* f=xlsTypedModuleFunction(module,i);if(!f)continue;
+            const XL6_AstNode* node=xlsTypedFunctionRoot(f);
+            int okay=xrtMapSet(&owned,(xbytesview){(const unsigned char*)&node,sizeof(node)},&f);
+            xlsTypedFunctionRelease(f);if(!okay){xrtMapUnit(&owned);indexed=0;break;}
+        }
+    }
     for(size_t i=0;i<set->units.Count;++i){
         const XL6_AstNode* node=*(const void* const*)xrtArrayConstGet(&set->units,i);
-        xls_function_unit* unit=xlsFrontendFunctionUnitCapture(node,index,origin,bytes-set->bytes,cancelled,user);
+        xls_typed_function* const* found=indexed ? xrtMapConstGet(&owned,(xbytesview){(const unsigned char*)&node,sizeof(node)}) : NULL;
+        size_t available=bytes-set->bytes;
+        /* Every owned entry comes from this one module's forest. Its metadata
+         * has already been charged once to the set; standalone units still
+         * charge it in full. Final setBytes enforces the original total cap. */
+        if(found && set->ownerBytes && set->ownerBytes<=SIZE_MAX-available)available+=set->ownerBytes;
+        xls_function_unit* unit=found ? xlsFrontendFunctionUnitCaptureOwned(*found,index,origin,available,cancelled,user) :
+            xlsFrontendFunctionUnitCapture(node,index,origin,available,cancelled,user);
         if(!unit)goto failed;
-        *(const void**)xrtArrayGet(&set->units,i)=unit;++set->built;set->unitBytes+=unit->bytes;
+        *(const void**)xrtArrayGet(&set->units,i)=unit;++set->built;
+        set->unitBytes+=unit->bytes-(unit->ownerBytes && set->ownerBytes ? unit->ownerBytes : 0);
+        if(unit->ownerBytes)set->ownerBytes=unit->ownerBytes;
         if(!setBytes(set))goto failed;
     }
     if(stopped(&stop))goto failed;
-    return set;
-failed:xlsFunctionSetRelease(set);return NULL;
+    xrtMapUnit(&owned);return set;
+failed:xrtMapUnit(&owned);xlsFunctionSetRelease(set);return NULL;
 }
+xls_function_set* xlsFrontendFunctionSetCapture(const XL6_AstNode* root,const xls_semantic_index* index,
+    xls_function_origin* origin,size_t bytes,int (*cancelled)(void*),void* user)
+{return xlsFrontendFunctionSetCaptureOwned(NULL,root,index,origin,bytes,cancelled,user);}
 xls_function_set_info xlsFunctionSetInfo(const xls_function_set* set)
 {
     if(!set)return(xls_function_set_info){0};
@@ -269,7 +330,14 @@ xls_function_unit* xlsSemanticCheckFunctionCapture(xls_semantic_check* check,siz
     if(stopped(&stop) || !xlsSemanticCheckValidate(check) || !xlsSemanticCheckInfo(check).accepted ||
        !scanFunctions(xlsSemanticCheckAst(check),ordinal,&count,&selected,0,&stop) || !selected)goto done;
     origin=checkOrigin(check,&stop);
-    if(origin)unit=xlsFrontendFunctionUnitCapture(selected,xlsSemanticCheckTypedIndex(check),origin,bytes,cancelled,user);
+    if(origin){
+        const xls_typed_module* module=xlsFrontendCheckFunctionModule(check);xls_typed_function* owned=NULL;
+        const XL6_AstNode* root=module ? xlsTypedModuleRoot(module) : NULL;
+        for(size_t i=0;root && i<root->childCount;++i)if(root->children[i]==selected){owned=xlsTypedModuleFunction(module,i);break;}
+        unit=owned ? xlsFrontendFunctionUnitCaptureOwned(owned,xlsSemanticCheckTypedIndex(check),origin,bytes,cancelled,user) :
+            xlsFrontendFunctionUnitCapture(selected,xlsSemanticCheckTypedIndex(check),origin,bytes,cancelled,user);
+        xlsTypedFunctionRelease(owned);
+    }
     if(unit && (stopped(&stop) || !xlsSemanticCheckValidate(check))){xlsFunctionUnitRelease(unit);unit=NULL;}
 done:
     xlsFunctionOriginRelease(origin);xlsSemanticCheckDestroy(check);
@@ -285,7 +353,7 @@ xls_function_set* xlsSemanticCheckFunctionsCapture(xls_semantic_check* check,siz
     xlsSemanticCheckRetain(check);xls_function_set* set=NULL;xls_function_origin* origin=NULL;
     if(stopped(&stop) || !xlsSemanticCheckValidate(check) || !xlsSemanticCheckInfo(check).accepted)goto done;
     origin=checkOrigin(check,&stop);
-    if(origin)set=xlsFrontendFunctionSetCapture(xlsSemanticCheckAst(check),xlsSemanticCheckTypedIndex(check),origin,bytes,cancelled,user);
+    if(origin)set=xlsFrontendFunctionSetCaptureOwned(xlsFrontendCheckFunctionModule(check),xlsSemanticCheckAst(check),xlsSemanticCheckTypedIndex(check),origin,bytes,cancelled,user);
     if(set && (stopped(&stop) || !xlsSemanticCheckValidate(check))){xlsFunctionSetRelease(set);set=NULL;}
 done:
     xlsFunctionOriginRelease(origin);xlsSemanticCheckDestroy(check);
