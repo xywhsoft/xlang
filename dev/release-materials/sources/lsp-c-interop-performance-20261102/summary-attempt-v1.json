@@ -1,0 +1,7 @@
+{
+  "status": "failed",
+  "scope": "Post-timing summary status allowlist only;raw measurements untouched",
+  "script": "ide\\build\\Release\\lsp-c-interop-alignment-20261102\\formal-v3\\summarize-before-status-fix.py",
+  "sha256": "104ae6a45407bb9b0c35101ae242cc0dabef12f80dccd677d179c378191d906b",
+  "cause": "A/A calibration retains its own status spelling and accepted semantics;strict allowlist inspected before retry"
+}
