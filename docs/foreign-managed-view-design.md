@@ -53,3 +53,9 @@ View 的公开声明头移除了源树 XRT 依赖；拥有图 Count／Trace 和�
 View 描述符现在要求受观察 Root 提供独立 native Busy 探针，防止外部 C 事件循环活动尚未进入 resident active 计数时过早读取 payload。真实宿主 XUI base widget＋owned event 的组合已验证捕获视图、回调内解绑／关闭、空诊断失败及 Context→event→Closure→Widget→Context 循环。该 trace 只覆盖夹具实际创建的 base widget/event；完整控件模型与其他回调仍不能据此获得准入。
 
 当前 1,408 单元源码构建及 1,556 个预编译对象完成；隔离 VFS 的驻留 API 连接已通过实际语言声明发起的 JIT／模块／独立程序，独立复制的头在 C/C++ 中通过语法检查。八项功能和产品迁移仍未全部完成，发布目录未由本批更新。
+
+普通类存储检查点：`ForeignViewValue V1` 在真实 `xvalue` 字段边界分配一个 Handle 外壳，持有原有控制指针；没有第二份原生 payload 或控制记录。类型化局部、闭包捕获和 C 方法调用均不走此装箱入口。Box／Unbox 先认证实际 resident Ops／Trace，再检查声明的存储身份，不能由一个 TypeId 授权未知 Handle 的回调。字段复制、COW、深复制仍引用同一原生实例；关闭后的视图可复制，访问原生状态仍需准入。普通类→Handle→View→普通类的完整循环已回收，掉最后一个字段引用时的默认关闭由完整 native 调用之外的 checked drain 执行。
+
+`BorrowRoot V1` 对 `Widget.context` 一类结果要求原生返回值就是当前调用的同一个存活 Root，直接取得已有 Root 控制记录的语言引用，不再创建一个 Child 记录来包装相同 context。正确路径在分配失败注入下仍零分配；错误线程／错误上下文及错误原生结果被拒绝。
+
+本阶段 Windows 与 Linux 修改单元 O0/O2 各 46 阶段通过，Linux 修改单元有 ASan/UBSan/泄漏检查；包括真实 resident Class 字段、clone/COW/deep clone、关闭值、无诊断清理重试、OOM、未知 Ops 拒绝及输入诊断保留。随后 1,409 单元源码构建和 1,557 个 TCC 对象完成，当前 VFS 的 JIT／模块／独立程序与独立 SDK 头 7 阶段、声明式基础 11 组通过。这仍是私有物理存储能力；语言字段／容器 schema、受管类型和 XLIR 尚未开放，不能将本阶段视作产品已支持受管视图类字段。

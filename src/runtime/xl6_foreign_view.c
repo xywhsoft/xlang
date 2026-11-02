@@ -234,6 +234,17 @@ XL6_ForeignView* xl6ForeignViewBorrowChildV1(void* raw,XL6_ForeignView* owner,
     viewMutationEnd(&mutation);
     return view;
 }
+XL6_ForeignView* xl6ForeignViewBorrowRootV1(void* raw,XL6_ForeignView* source)
+{
+    if(!raw || !source){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    XL6_ForeignView* root=viewRoot(source);
+    if(root->thread!=xrtThreadCurrentId() || !xl6ForeignContextCallOwnsV1(root) ||
+        !root->raw || raw!=root->raw || root->claim || root->cleared ||
+        xrtAtomic32Load(&root->closing,XMEMORY_ACQUIRE)){
+        xrtSetErrorKind(XERR_STATE);return NULL;
+    }
+    return xl6ForeignViewRetainV1(root);
+}
 static void viewDrop(const void* raw)
 {
     XL6_ForeignView* view=(XL6_ForeignView*)raw;

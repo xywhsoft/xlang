@@ -73,6 +73,10 @@ typedef struct XL6_ForeignViewCallV1 {
  * All language owning references keep the root/context alive. */
 XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewCreateRootV1(void*,const XL6_ForeignViewDescriptorV1*,const XL6_CodeOwner*);
 XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewBorrowChildV1(void*,XL6_ForeignView*,const XL6_ForeignViewDescriptorV1*,const XL6_CodeOwner*);
+/* Exact owner-result projection during a live native call. The closed IR
+ * proves the nominal root type. raw must equal that same live native root;
+ * no second control record/watch is created for e.g. Widget.context. */
+XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewBorrowRootV1(void* raw,XL6_ForeignView* source);
 XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewRetainV1(XL6_ForeignView*);
 /* Consumes its language reference on success AND checked cleanup failure.
  * A void native drop adapter must propagate a false result's separate failure

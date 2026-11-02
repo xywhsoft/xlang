@@ -1,0 +1,76 @@
+{
+  "recordedAt": "2026-11-02",
+  "scope": "Private ordinary Class/xvalue storage for native views and exact live-root projection; no managed language schema or package activation",
+  "complete": true,
+  "overallEightCapabilitiesComplete": false,
+  "networkTests": false,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\view-value-win-r4\\results.json",
+      "sha256": "1540af5c7ba59683577ea3abf044b59efadc3f51e3be3381b4a849ac013e576b",
+      "stages": 46
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-view-value-20261102-r2\\results.json",
+      "sha256": "9b120ab36fcc666fca03464ea4a239d3d3f527f159dfe9cc3b21228dccdd6975",
+      "stages": 46
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\view-root-projection-win-r1\\results.json",
+      "sha256": "611c536df26a4278d258f127c7e437ed97a085b52f1060ccecc03925825aa61d",
+      "stages": 20
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\component-view-value-win-r1\\results.json",
+      "sha256": "6ed65329d9781189c5a097906dfc1350b968c44b458ffd769b843321f23cf1c9",
+      "stages": 4
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\source-r13\\build.json",
+      "sha256": "ec9bea8da2b79c42ef3cf150b87a3eadae8f6305ce9ddbec377245c4ecbcacb2",
+      "stages": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\source-r13-current-vfs\\provider.json",
+      "sha256": "90de333b3e12b5205f9f441b8011ea565f4af4258b988eb6a54ed2d950ae343f",
+      "stages": 7
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\native-callback-artifacts-r2\\results.json",
+      "sha256": "c106c5636ab78f2c1ab0ea50a572c3f04706f7480cf653d15086e06a9ac9d77c",
+      "stages": 7
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\foundation-batch-r13-current-vfs\\results.json",
+      "sha256": "e30f0e123c9b3a9ddd1e51865e85e48603d22bfef32a36cbd149b6c45ceaefb3",
+      "stages": 11
+    }
+  ],
+  "sourceTranslationUnits": 1409,
+  "tccPrecompiledObjects": 1557,
+  "contracts": [
+    "one xvalue shell owns one existing View control reference; no second raw/native control allocation",
+    "nominal storage projection requires actual resident Ops/Trace before TypeId checks",
+    "clone/COW/deep clone retain the same native instance with actual traced references",
+    "closed controls remain copyable; native access still refuses",
+    "native Class -> Handle -> View -> Class cycle retires completely",
+    "terminal native cleanup defers physical close until checked creator-thread drain",
+    "root-return projection reuses the exact root only during its active physical call",
+    "wrong raw result, unknown Handle policy, occupied output and mismatched type refuse"
+  ],
+  "costs": {
+    "nonNullBoxColdXrtAllocations": 1,
+    "unboxSteadyXrtAllocations": 0,
+    "rootProjectionSteadyXrtAllocations": 0,
+    "directNativeCallsUseBox": false,
+    "captureSlotsUseBox": false,
+    "referenceAndExecutionBookkeepingRemains": true
+  },
+  "limits": [
+    "language managed classes/field schemas are not enabled by these private C tests",
+    "typed native containers and the remaining native callback/full-XUI graph still require their own contracts",
+    "Linux sanitizer instruments replacement runtime units, not the reused compiler/XRT core",
+    "C/C++ SDK check is syntax isolation, not a C++ linker compatibility certificate",
+    "release products and mutable delivery index are unchanged"
+  ]
+}

@@ -24,6 +24,7 @@ struct Native {
     XL6_Closure* callback;
     XL6_Cell* cell;
     xfuture* future;
+    xvalue* object;
     unsigned depth, failures;
     bool closing, failWithoutDiagnostic, failEnd;
 };
@@ -76,11 +77,13 @@ static void flush_native(Native* root)
         XL6_Closure* callback=root->callback;
         XL6_Cell* cell=root->cell;
         xfuture* future=root->future;
+        xvalue* object=root->object;
         root->capture=NULL; ++nativeDestroyed; xrtFree(root);
         xl6ForeignViewReleaseV1(capture);
         xl6ClosureRuntimeV1Get()->Release(callback);
         xl6CellRuntimeV1Get()->Release(cell);
         xrtFutureDestroy(future);
+        xrtValueRelease(object);
     }
 }
 static bool scope_begin(void* raw,void* storage)
@@ -116,7 +119,8 @@ static bool trace_native(const void* raw,xrtownershipvisitor visit,void* context
     return (!n->capture || visit(xl6ForeignViewOwnershipV1(n->capture),context)) &&
         (!n->callback || visit(xl6ClosureRuntimeV1Get()->Ownership(n->callback),context)) &&
         (!n->cell || visit(xl6CellRuntimeV1Get()->Ownership(n->cell),context)) &&
-        (!n->future || visit(xrtFutureOwnership(n->future),context));
+        (!n->future || visit(xrtFutureOwnership(n->future),context)) &&
+        (!n->object || visit(xrtValueOwnership(n->object),context));
 }
 static bool busy_native(const void* raw)
 {return ((const Native*)raw)->depth!=0;}
