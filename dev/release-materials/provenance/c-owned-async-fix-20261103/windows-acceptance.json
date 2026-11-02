@@ -1,0 +1,1712 @@
+{
+  "complete": true,
+  "platform": "win32",
+  "compiler": "D:\\GIT\\x-lang\\build\\c-owned-async-fix-20261103\\windows-final-provider\\public_source.exe",
+  "compilerSha256": "5c52bf20eda5f5708208460fe0c743a290f64504b3873dffec75cd6ffabf32c3",
+  "independentCConsumer": true,
+  "checks": [
+    {
+      "name": "async-named-results-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "async-named-results-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "async-named-results-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "async-named-results-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "async-open-callers-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "async-open-callers-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "async-open-callers-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "async-open-callers-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "async-deep-dispatch-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "async-deep-dispatch-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "async-deep-dispatch-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "async-deep-dispatch-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "async-callable-results-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "async-callable-results-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "async-callable-results-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "async-callable-results-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "inferred-result-variables-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "inferred-result-variables-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "inferred-result-variables-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "inferred-result-variables-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "generic-callable-results-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "generic-callable-results-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "generic-callable-results-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "generic-callable-results-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "callable-alias-integrity-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "callable-alias-integrity-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "callable-alias-integrity-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "callable-alias-integrity-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "nested-callable-result-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "nested-callable-result-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "nested-callable-result-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "nested-callable-result-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "extern_owned_string-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "extern_owned_string-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "extern_owned_string-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "extern_owned_string-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "extern_owned_string_package-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "extern_owned_string_package-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "extern_owned_string_package-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "extern_owned_string_package-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "extern_owned_string_export-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "extern_owned_string_export-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "extern_owned_string_export-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "extern_owned_string_export-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "export-C-consumer-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "export-C-consumer-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "export-C-consumer-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "extern_owned_string_forward-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "extern_owned_string_forward-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "extern_owned_string_forward-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "extern_owned_string_forward-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "example-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "example-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "example-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "example-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "cstring-regression-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "cstring-regression-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "cstring-regression-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "cstring-regression-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "cstring-package-regression-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "cstring-package-regression-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "cstring-package-regression-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "cstring-package-regression-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "ordinary-string-export-regression-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "ordinary-string-export-regression-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "ordinary-string-export-regression-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "ordinary-string-export-regression-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "C-variadic-no-raise-text-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "C-variadic-no-raise-text-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "C-variadic-no-raise-text-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "C-variadic-no-raise-text-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "C-variadic-function-value-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "C-variadic-function-value-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "C-variadic-function-value-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "C-variadic-function-value-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "borrowed-string-failure-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "borrowed-string-failure-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "borrowed-string-failure-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "borrowed-string-failure-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "static-method-function-value-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "static-method-function-value-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "static-method-function-value-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "static-method-function-value-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-C-scalar-parameters-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-C-scalar-parameters-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-C-scalar-parameters-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-C-scalar-parameters-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-extern-defaults-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-extern-defaults-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-extern-defaults-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-extern-defaults-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-generic-composition-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-generic-composition-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-generic-composition-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-generic-composition-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-nullable-flow-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-nullable-flow-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-nullable-flow-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-nullable-flow-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-all-C-scalars-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-all-C-scalars-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-all-C-scalars-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-all-C-scalars-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-nullable-capture-all-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-nullable-capture-all-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-nullable-capture-all-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-nullable-capture-all-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-nullable-C-scalars-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-nullable-C-scalars-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-nullable-C-scalars-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-nullable-C-scalars-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-generic-continuations-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-generic-continuations-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-generic-continuations-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-generic-continuations-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-generic-function-values-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-generic-function-values-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-generic-function-values-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-generic-function-values-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-nullable-callbacks-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-nullable-callbacks-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-nullable-callbacks-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-nullable-callbacks-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-dependent-defaults-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-dependent-defaults-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-dependent-defaults-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-dependent-defaults-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-error-arrays-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-error-arrays-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-error-arrays-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "task-error-arrays-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "default-capture-oom-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "default-capture-oom-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "default-capture-oom-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "default-capture-oom-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "error-safe-index-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "error-safe-index-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "error-safe-index-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "error-safe-index-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "error-transports-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "error-transports-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "error-transports-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "error-transports-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "error-channel-receive-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "error-channel-receive-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "error-channel-receive-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "error-channel-receive-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "method-receiver-defaults-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "method-receiver-defaults-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "method-receiver-defaults-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "method-receiver-defaults-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "foreign-prefix-defaults-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "foreign-prefix-defaults-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "foreign-prefix-defaults-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "foreign-prefix-defaults-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-method-defaults-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-method-defaults-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-method-defaults-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-method-defaults-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "native-bound-defaults-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "native-bound-defaults-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "native-bound-defaults-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "native-bound-defaults-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "nullable-generic-channel-arguments-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "nullable-generic-channel-arguments-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "nullable-generic-channel-arguments-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "nullable-generic-channel-arguments-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "error-array-extract-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "error-array-extract-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "error-array-extract-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "error-array-extract-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-generic-constraints-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-generic-constraints-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-generic-constraints-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-generic-constraints-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-constraint-casts-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-constraint-casts-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-constraint-casts-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-constraint-casts-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nonpublic-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nonpublic-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nonpublic-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nonpublic-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-c-owners-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-c-owners-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-c-owners-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-c-owners-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nested-generics-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nested-generics-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nested-generics-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nested-generics-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-callback-arguments-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-callback-arguments-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-callback-arguments-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-callback-arguments-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nullable-generic-arguments-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nullable-generic-arguments-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nullable-generic-arguments-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nullable-generic-arguments-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nullable-casts-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nullable-casts-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nullable-casts-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nullable-casts-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-variadic-owners-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-variadic-owners-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-variadic-owners-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-variadic-owners-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-compound-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-compound-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-compound-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-compound-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-callback-defaults-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-callback-defaults-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-callback-defaults-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-callback-defaults-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-callable-contexts-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-callable-contexts-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-callable-contexts-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-callable-contexts-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-match-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-match-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-match-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-match-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "match-values-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "match-values-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "match-values-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "match-values-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "generic-nullable-order-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "generic-nullable-order-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "generic-nullable-order-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "generic-nullable-order-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-base-dispatch-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-base-dispatch-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-base-dispatch-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-base-dispatch-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-async-generic-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-async-generic-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-async-generic-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-async-generic-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "value-lift-rank-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "value-lift-rank-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "value-lift-rank-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "value-lift-rank-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-conversion-rank-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-conversion-rank-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-conversion-rank-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-conversion-rank-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-overload-rank-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-overload-rank-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-overload-rank-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-overload-rank-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nullable-callable-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nullable-callable-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nullable-callable-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "bound-nullable-callable-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "typed-bound-methods-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "typed-bound-methods-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "typed-bound-methods-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "typed-bound-methods-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "typed-bound-native-jit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "typed-bound-native-aot-build",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "typed-bound-native-aot",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "typed-bound-native-emit",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "reject-async_future_invariant",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-inferred_result_container",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-inferred_result_input",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-generic_result_constraint",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-generic_result_input",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-generic_result_container",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-generic_result_kind",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-match_constraint",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-match_private",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_compound_dynamic",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_callback_default_constraint",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_callback_default_private",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_compound_constraint",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_compound_private",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_constraint",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_nested_constraint",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_generic_argument",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_nullable_generic_args",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_nullable_cast_private",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_nullable_cast_constraint",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_variadic_pack",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_variadic_constraint",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_private",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_c_owner_kind",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_c_owner_dynamic",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_protected",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_constraint_cast",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_async_constraint_cast",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_constraint_nullable_cast",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_async_constraint",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-nullable_derived_invariant",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-bound_ambiguous",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-integer",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-product",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-constructor",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-no_raise",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-conflict",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-member_conflict",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-registered",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-unknown",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-variadic_tail",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-variadic_signature",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-static_private",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-static_ambiguous",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-static_instance",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-task_variadic",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-task_nullable",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-task_nullable_invalidated",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-nullable_invariant",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "reject-raw-C-callback-string",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "independent-C-public-header",
+      "passed": true,
+      "exitCode": 0
+    }
+  ],
+  "inputs": {
+    "test\\cases\\extern_owned_async_named_results.xl": "bd37fad7bb1c8d1c01d159dcdf41ea11b513e4d2042ebe9d8f5d15529dbe210a",
+    "test\\cases\\extern_owned_async_open_callers.xl": "32d8a6af0668f8ec1b24f240e92c909291bc447ee5f2899c8054a0b0d64c297a",
+    "test\\cases\\extern_owned_async_deep_dispatch.xl": "5bf4a5de2b1a3ed250cba08c3b3ed25ea62325a3b348dcfedc23bf76f2a60bb0",
+    "test\\cases\\extern_owned_async_callable_results.xl": "21e416c2f74153b03ce69090674bc3c99d638cf487c888aa61820d1d49082bdb",
+    "test\\cases\\extern_owned_inferred_result_variables.xl": "f9bc61fb99e2f6a1da79ce21e85f0a2c1f456027ab27ac49fee8266e79c87fda",
+    "test\\cases\\extern_owned_generic_callable_results.xl": "ae81efa89b623c78c9fbae209e3d4f7c397d9688d2361cb94fe73a2f2df7f4f1",
+    "test\\cases\\extern_owned_callable_alias_integrity.xl": "47bb2afd50de769cb3b7d139197cd502d7cd8fb903a8bc5b0d813aec44f3a779",
+    "test\\cases\\extern_owned_nested_result.xl": "95d5b4d0682c8aa135047f3ecdbb6d3d2c109487919c1cd24e3121986a97d548",
+    "test\\cases\\extern_owned_string.xl": "ac384920b30e1a9aa239be14716b3f2253b388ccd9bec315ea2701b1c07bca5e",
+    "test\\cases\\extern_owned_string_package.xl": "ee2902f2ab73426aff0f9dc1b8d28a47979dc9ca6b0fe5a29bd7fca6f93d8e14",
+    "test\\cases\\extern_owned_string_export.xl": "896a1b13f09bfe72380b877e1de085b29b5f74be3dcb1d97dd1b7ddcae2d6d48",
+    "test\\cases\\extern_owned_string_forward.xl": "0edfdcef4e3009734b29054857c061c36f618c7784e073a374a33464607518f9",
+    "release\\examples\\extern_owned_string.xl": "fa72d5ea7a219bed1af5108f0c17f1b594dbe64b12100cde0126d0b8e5464447",
+    "test\\cases\\xlir_c_owned_basic.xl": "604db15f408679d10672bc64c565a680a9e6f15323fa22581f0d3723bb884380",
+    "test\\cases\\xlir_c_owned_import_exports.xl": "0ddbdaeaf0da861d95a44230240c941b0bd13321e31f07266655aa0c4fc9eb0c",
+    "test\\cases\\sem_export_string_return.xl": "98c42d951bda8e27725656b44d612a89ba04bd21738bbcbc7cdab06287758d95",
+    "test\\cases\\extern_c_variadic_text.xl": "600d3fba9b264c06a8fec0d706fbaac5ee29b911756b2c02d9b3930099d3f2e8",
+    "test\\cases\\extern_c_variadic_value.xl": "91b07182530622c0f13bbbfca64a686c0c3ef185fe3e0633bdaa0c5433525b7c",
+    "test\\cases\\extern_borrowed_string_failure.xl": "b9be4c68d68b11007e091e72cbcd0ae1bb2b16b4b132f2d8d303f8f8ba5ec9ed",
+    "test\\cases\\extern_owned_static_callable.xl": "7356ea63598b7f746d49175ccfc6fbe96e4e4fb1ffc2ae5b4f1f285d5d11cd68",
+    "test\\cases\\extern_owned_task_scalars.xl": "bf1dae11e0dc753b1f0cdc762b6ce17e1f66efa9acd01ca6fe555f839e1b9f9f",
+    "test\\cases\\extern_owned_task_defaults.xl": "4d7bff0529c9ac74c47e190b6345b349bb8788d01c5af56019292505553096cc",
+    "test\\cases\\extern_owned_task_generic.xl": "284a852e4509062955145bd5e6c5527e458871ecd2867435ec728ab02163a127",
+    "test\\cases\\extern_owned_task_nullable.xl": "7311d1847840432c1c4769704f10dce3efa21f02c5235cbc088635f14b86b7e1",
+    "test\\cases\\extern_owned_task_all_scalars.xl": "10d6c435a2f16035ab346bf7b1a7473682e049561c6a72a937c29abc79f16a3a",
+    "test\\cases\\extern_owned_task_optional.xl": "837846dbf704bbd9a37058d3db556c93ea3bfc591bef2d13e3ff3c4e5361d769",
+    "test\\cases\\extern_owned_task_optional_scalars.xl": "3d3356c4e31884079285dc21aab87efa67f7f2474e9ad7c5d11fcba76d5c9acf",
+    "test\\cases\\extern_owned_task_continuations.xl": "3d174d03f63a7d121c5276b26cec72e267bb7a8b414a502d77562e04b1e4ffbc",
+    "test\\cases\\extern_owned_task_generic_callable.xl": "0fea154ed7edb320caedf9eece62aae94d1a5a298037f2b4b7d3d43f71af5fab",
+    "test\\cases\\extern_owned_task_nullable_callbacks.xl": "3ebe3718a5620d0bf71785c527b36913b4dc17f6e8ece39a9b74f9ba8415e326",
+    "test\\cases\\extern_owned_task_dependent_defaults.xl": "22f36e29907ccede83ecd338d36f39e12f32ce231c9778ffa011cbe90e55ed4f",
+    "test\\cases\\extern_owned_task_error_arrays.xl": "97b4d4af2b363b74bce4d5c6b736480fd3cca821ad2f780ec4fe333258246b74",
+    "test\\cases\\extern_owned_default_capture_oom.xl": "72273c23d1cb7e559916aa67f98787994d8378de28d028ac243b4712f0e782c6",
+    "test\\cases\\extern_owned_error_safe_index.xl": "e1732b1a19161e44eb1d59df73dd375566d5db55455a7fc7b93fa856c110f02d",
+    "test\\cases\\extern_owned_error_transports.xl": "e25b3e2b223ec8a98930831d05ca4ff55135b1b68329b4d0c51f4b07d219760a",
+    "test\\cases\\extern_owned_error_channel_receive.xl": "de3e09ea35a2de73c97d40ef5e57484c29d948ad08135de91d7c37d2f899d95e",
+    "test\\cases\\extern_owned_method_receiver_defaults.xl": "d25ce1cbe3d36145686b4173cca3a61e86f365c0ae0327c9af083208c3833149",
+    "test\\cases\\extern_owned_foreign_prefix_defaults.xl": "e7159df564d29019c631f82bb25333347f0824eb40d651e629aa942685218def",
+    "test\\cases\\extern_owned_bound_method_defaults.xl": "da4552a745514eddbdd99bc1ec24b1af9c7fd01ec621ea1d558e6b9a24cbb09c",
+    "test\\cases\\extern_owned_native_bound_defaults.xl": "45b5c62757d657de570acc5676b8b3d3538bbfdfc99bb92f88aa2a2016182faa",
+    "test\\cases\\extern_owned_nullable_channel_arguments.xl": "815867a2a14dd5c49f75d7858bbb95c6704388b321b0daf040de5f3643849061",
+    "test\\cases\\extern_owned_error_array_extract.xl": "f6996f0cb010ee44311e9e399160758a83036386981e4fe31b0f36d86ce549e2",
+    "test\\cases\\extern_owned_bound_generic_constraints.xl": "dec76aab7155c8ec5ca2aca7f74dd92a8a785480219da9f03927a92407ab0761",
+    "test\\cases\\extern_owned_bound_constraint_casts.xl": "46a58478c6be3631fbcd53cc940c3f3ca788c1fa8b2d314e31c0f1ad193d79eb",
+    "test\\cases\\extern_owned_bound_nonpublic.xl": "8ffb03912cad15237109d88ee03910217b89c9d1bd46b495e560e69fa2159e35",
+    "test\\cases\\extern_owned_bound_c_owners.xl": "012f0dce6aefa54cbccea68169fcb3a7cb1033af7cf5d71a4651649a885ba4c5",
+    "test\\cases\\extern_owned_bound_nested_generics.xl": "a8e4d9d1d059650c10abf13b9a1ad050eece2624886df2bdde61d803c52c8af2",
+    "test\\cases\\extern_owned_bound_callback_arguments.xl": "fa3ef49b90562e4bf0d7bd380c3d54b2fa3c1eee04279c832cb4ad1509197858",
+    "test\\cases\\extern_owned_bound_nullable_generic_args.xl": "d97615ba3bbf9ecc0e554e55d2475ac3344cb0196190f2bfe6b8ff81631c4331",
+    "test\\cases\\extern_owned_bound_nullable_casts.xl": "e13b6d62cc5239e169537a3822c1f1eb128ecef322c030b51506c3f1f453b725",
+    "test\\cases\\extern_owned_bound_variadic_owners.xl": "fd438a2edf8198caaec4989a5bbd51dfa0b432e0d76ff05510d0d39c64cab59f",
+    "test\\cases\\extern_owned_bound_compound.xl": "0212e9f30d85896edbf434ce952d98f6b01c49fc5f09e6a67643e7ee7acd26ab",
+    "test\\cases\\extern_owned_bound_callback_defaults.xl": "1ce4d28b59cc99755c23543fb4949dcc765b0a4845ee65b23745944d73a8304c",
+    "test\\cases\\extern_owned_bound_callable_contexts.xl": "82a6d3a2b421b9456d49ae00cf036a29e26b32e7c75381bf5d43aa5761455f99",
+    "test\\cases\\extern_owned_bound_match.xl": "773c47d2a2d0c915965af97d687d0ced228a82adf53de818ff56df0d57f082fe",
+    "test\\cases\\extern_owned_match_values.xl": "a75a032f55864454ab7f92aac4813356e9b16e09c1eecb17238b434572e27da0",
+    "test\\cases\\extern_owned_generic_nullable_order.xl": "3f66a26986694b19737deadfa3a2087ffc0cd47affda23821db943bb730a40f8",
+    "test\\cases\\extern_owned_bound_base_dispatch.xl": "bb648f166ba8d2d45898fd9fb525e715e0f92e195b92a576eefe659f5c62bde2",
+    "test\\cases\\extern_owned_bound_async_generic.xl": "761e7afc2a486eb55fe513fec9e80fe14f5897ae001d09305c6d190763fafd03",
+    "test\\cases\\extern_owned_value_lift_rank.xl": "f20ba035040ab2d067daa53cbcf62312092e66a85cb1b9119195033feef2fa17",
+    "test\\cases\\extern_owned_bound_conversion_rank.xl": "7509bdca70bb2dde784dfc694af68edae47bc2637e187e099eac14238cc8b5e3",
+    "test\\cases\\extern_owned_bound_overload_rank.xl": "16ed60cb404baaf4e02523818259eae7eef169ad6efb3b735600154a49008d44",
+    "test\\cases\\extern_owned_bound_nullable_callable.xl": "74fcc7921806d90ba5245d29028e54e002a37ebe54a86cb30c50c7674f32269d",
+    "test\\cases\\extern_owned_typed_bound_methods.xl": "7f18d2d65a85c069a5bc9c831f6869fc3e4636bcf3a9f271e334d67bb6059aa9",
+    "test\\cases\\extern_owned_typed_bound_native.xl": "2f5e7deb36c811bc619a4b14aa7746921c498c18bb19ff66a88fa74a82ac4d85",
+    "test\\cases\\extern_owned_bound_c_owners_host.c": "9663f91a0eff14f721cefe4698379d3f209b7e949daa752b865e195e855ab20a",
+    "test\\cases\\extern_owned_string_host.c": "18bc0351a0cd46d82389f1aa36b82a755ad559e8d0d177b91540e03c277639d2",
+    "release\\examples\\extern_owned_string_native.c": "3254b1b94b9a49dcdb9f96f261c0f592963f44584d1a8cf663df831a68b2a5b9",
+    "test\\cases\\xlir_c_owned_native.c": "58ae432274b59926a0e119b38a094509ec78fec1dce2f0f48b1c4e47ad2f923a",
+    "test\\cases\\extern_c_variadic_text_host.c": "41c683759a0d6ceccf16a6ec9673e21e2392c95fe0e8b1e65dc5a506f86d23d7",
+    "test\\cases\\extern_borrowed_string_failure_host.c": "6ebf6cc20d7f8e51cd10f0665eaa40815f9496b19c6688362477feb26396afe6",
+    "test\\cases\\extern_owned_static_callable_host.c": "88bbdab8195034550e1d3542ace230d6c8e6178952f79879e9b60bc5daa2abbe",
+    "test\\cases\\extern_owned_task_scalars_host.c": "d233b5a40fecb8d9ab538416761ce96c51ab6beb1065bffb2858b20ea3a039e4",
+    "test\\cases\\extern_owned_task_composition_host.c": "0e50ce0f3caadf1133c9f22bf61bd2d123b3368efc61ea27cf198849fb7e522a",
+    "test\\cases\\extern_owned_native_bound_defaults_host.c": "a7176aa0cf95c2c224d144ce650525b2a2a2bdb5c45f395a21c4f01ebe6c569d",
+    "test\\cases\\extern_owned_typed_bound_native_host.c": "bab49e68756c3e7d00987307c98807e5068d06534731b1fde4f8e09df528277b",
+    "tools\\check_extern_owned_string.py": "d9b021d7669e917f6c7aec233efa04b4e8651101a5ad6dea300b388ab26e9b28",
+    "test\\fixtures\\extern_owned_string\\api.xl": "a4a2917685412b5cab596dd90ba0772b37d2a6192d2f1068e9e6075f2eb8d9d5",
+    "test\\fixtures\\extern_owned_string\\native.c": "4e6ad802b3ef982bba3d6408149a16a43779c64d82000defb814fd16d87b3e1b",
+    "test\\fixtures\\extern_owned_string\\xlang.package.json": "aa467d060af1640853725f4749166ab738fd314ebce96e198afec2e1dbf5dfcf",
+    "test\\cases\\bad_extern_owned_alias_channel.xl": "d17b4c7e72ad7455f6bb65d938f51799b12924038d8ea8236e5adff1a4fae6cd",
+    "test\\cases\\bad_extern_owned_async_future_invariant.xl": "e45f0d1f844846f65c58de990f2a94ad8df9dd7271074b47dc39a7b48916fdaf",
+    "test\\cases\\bad_extern_owned_bound_ambiguous.xl": "9f6ae0c29d776a12ce365c2c522b8f3b3379b37080c425946743f43e4001600e",
+    "test\\cases\\bad_extern_owned_bound_async_constraint.xl": "a10df66e70828543cf67895c85afa1b4f4220d340d24e7491e8366bcc141805e",
+    "test\\cases\\bad_extern_owned_bound_async_constraint_cast.xl": "26ea4f380d17eb6b1dfc2eeca762c8123de974f5e978ca5f2a341d1f90fab604",
+    "test\\cases\\bad_extern_owned_bound_c_owner_dynamic.xl": "543fd2900b87b4816e60d94f8715ec99d46c2ddf4b4c5a686ceebd94f9dec7bf",
+    "test\\cases\\bad_extern_owned_bound_c_owner_kind.xl": "2aa81fb111a1d706613a8f080dc3bcd5555c23ee0aa29058e2a1fa7e149a090e",
+    "test\\cases\\bad_extern_owned_bound_callback_default_constraint.xl": "a277c3042c24918f9ac50d3c469e372efde32b17fe88f353f3b76a1b3e3ab6a0",
+    "test\\cases\\bad_extern_owned_bound_callback_default_private.xl": "6732b6c3ce2e162109d4976e63720221e10abf7f9981ec20cda0db5dc90c7a85",
+    "test\\cases\\bad_extern_owned_bound_compound_constraint.xl": "13baf7bfb8c7781be74c4a447d53879b30134e2e83325cfa35e54dcb209e7dce",
+    "test\\cases\\bad_extern_owned_bound_compound_dynamic.xl": "3a0081bad7f7b4fef893d8ab2640d74310c9256756b617fe690ef546c1ae0b69",
+    "test\\cases\\bad_extern_owned_bound_compound_private.xl": "e36b96e4a0bea47884bb74249bd33daae72e0de07a99fa14bb1c17077c1c5b80",
+    "test\\cases\\bad_extern_owned_bound_constraint.xl": "cc5b3b9b1a33ad0ea6949b3ec007a34d20e13fe617478eaefc0429803c766f7c",
+    "test\\cases\\bad_extern_owned_bound_constraint_cast.xl": "501bbdc607202c38ee2b71ba06dc65889c8d387166b1f9588f4ad2e917c18c8a",
+    "test\\cases\\bad_extern_owned_bound_constraint_nullable_cast.xl": "a8450bb871aa49ae79916439146a2ef8c684914382df77531f18f26d737fc905",
+    "test\\cases\\bad_extern_owned_bound_generic_argument.xl": "b6280b9f9de25103aabf28b9347fd1cfce591b9873073780f426307dfb353306",
+    "test\\cases\\bad_extern_owned_bound_nested_constraint.xl": "be40967c25e48765b63bed778d55bab4fb939ed9a5f70cedc8f9ff8e8bdbcced",
+    "test\\cases\\bad_extern_owned_bound_nullable_cast_constraint.xl": "463153733f43f62f6ad513c6d6841c4a8d31df0c63758a323a61ce27cd0ebeb9",
+    "test\\cases\\bad_extern_owned_bound_nullable_cast_private.xl": "bfb84c602e781894a890b825fb75f49e0719a7dbc84c2b3607e9d01505091dd9",
+    "test\\cases\\bad_extern_owned_bound_nullable_generic_args.xl": "e477e26750542745ea12a18011c3bdd60af349da28d83d72a8fb38c0720f87ac",
+    "test\\cases\\bad_extern_owned_bound_private.xl": "4fb6657bde166939be75bf9702c490536319546eeff5c43abfb2ec9515013c7f",
+    "test\\cases\\bad_extern_owned_bound_protected.xl": "ed113e542a37679ed890d87e0d4b1c2d3b74f4cfbc87b952a6fd778acf7d9516",
+    "test\\cases\\bad_extern_owned_bound_variadic_constraint.xl": "4db09278f18cef68dbd641dfae59917cce69f0870b4ddab96985f2395f2d31c9",
+    "test\\cases\\bad_extern_owned_bound_variadic_pack.xl": "e2fb36b0c78aa0bfc2e65a4350ddb2606bf4163ba4b08f9acf5eb32a0216d2e3",
+    "test\\cases\\bad_extern_owned_conflict.xl": "3d20be7dd8a31ba078a1e04fe1eae8c6e3c031ab5ff0429f9fcdc8940f61461d",
+    "test\\cases\\bad_extern_owned_constructor.xl": "374e8768abc5c8917d1c20e64d56e607fcca8937685236dd65d9ba24f27996b2",
+    "test\\cases\\bad_extern_owned_generic_result_constraint.xl": "d1c5cd106cea9e043c757d18507ca6e416c472ac65d603cace2e333e001f62f8",
+    "test\\cases\\bad_extern_owned_generic_result_container.xl": "be2fc6420f6d02c67e471fce62b45f33c16e43520453265e74143b854e48eb45",
+    "test\\cases\\bad_extern_owned_generic_result_input.xl": "51d8c18b9e8029d59621a793abfedb5ca374943274f4840f838e4a793a3c344d",
+    "test\\cases\\bad_extern_owned_generic_result_kind.xl": "c5e1e88f969dfbf17a4334ab3377f76044c85258cb8b01fe8736459ee09817e4",
+    "test\\cases\\bad_extern_owned_inferred_result_container.xl": "a757c4940b854d21170a7fb3a5e455392519ac142d7c832d638a1c9e4c2f1c28",
+    "test\\cases\\bad_extern_owned_inferred_result_input.xl": "c422b5b5205b1cc1d04dfe87a0fbeb37d7b8416cbdaa4c7c924e487e7595be84",
+    "test\\cases\\bad_extern_owned_integer.xl": "fd692bf6c14687d8e14c981dbc4350fcb3baa6cce778bdeedecd8ec1e7c1b9ff",
+    "test\\cases\\bad_extern_owned_match_constraint.xl": "55e9c11e2e7fb0cc30877c8bfd0a20ae94533dff8c378ec3a3eabda00919cd91",
+    "test\\cases\\bad_extern_owned_match_private.xl": "c731350a8ce1e45a3ab97ea61adfb8ae39d0bc4284ad1425af604003e7ba87bd",
+    "test\\cases\\bad_extern_owned_member_conflict.xl": "cde7de196b3f0ec87f9e85db17026811536b690c189574be96641c505e7ab365",
+    "test\\cases\\bad_extern_owned_no_raise.xl": "ecd8471bf937b3f08a9b7eaf9fe0e7135c9266a155a16412c5459ee97d9cd589",
+    "test\\cases\\bad_extern_owned_nullable_derived_invariant.xl": "27962eb9ae08b987d47622e04a788685fcd92145e864cbf6d3b5c12a5c60dbf3",
+    "test\\cases\\bad_extern_owned_nullable_invariant.xl": "2d988c3ebcd1a6a36f5a553abd3f8d8b8aa353ff0de94506ea800b8dfb46aa75",
+    "test\\cases\\bad_extern_owned_product.xl": "d00929d89d9271381997468de2e1e4e045705ba41d8c979849aff7357502391f",
+    "test\\cases\\bad_extern_owned_registered.xl": "d7f4e4abd61605b902302ba0ad685e5f24da9fc4d327c366f79f20269bbba187",
+    "test\\cases\\bad_extern_owned_static_ambiguous.xl": "25c325ef9013945d61544a940fd2bee0acbc13c7baeda756c505accad88b0cf6",
+    "test\\cases\\bad_extern_owned_static_instance.xl": "af694ab4d61dfa66d1ede671af23f8d86f009b320be63a62ea02fa82d86bd74e",
+    "test\\cases\\bad_extern_owned_static_private.xl": "fd786110d8631cb9ec5d3332a74b5bee16603d39d70ff764b408e681cbaf5c35",
+    "test\\cases\\bad_extern_owned_task_nullable.xl": "d47a85e2e85c099cad466f5d7e0f97134b188caeb56db635c94290b873a5676e",
+    "test\\cases\\bad_extern_owned_task_nullable_invalidated.xl": "61981523a6660e8fd02a1aa0066c2cd7e3b6c57868dfdfb71a764ca00136bd9e",
+    "test\\cases\\bad_extern_owned_task_variadic.xl": "0b33e3df00a5eb60111dea42b363f3f4edb2c2c12d4fb0df288d405697b0152d",
+    "test\\cases\\bad_extern_owned_unknown.xl": "a8727d3c7ee402c476457701c7fae45611343617a1462e1a7cf6e4114d48ad2b",
+    "test\\cases\\bad_extern_owned_variadic_signature.xl": "6ddf69af11bd6724153192e75daf57cc18ed440e112bcd0e8ae15b0b414a24c3",
+    "test\\cases\\bad_extern_owned_variadic_tail.xl": "1d430e539ae6eec7aa87c29b6c304b578f2412d0b7c8cb477b89f96cfba5b3a4",
+    "test\\cases\\sem_c_callback_string_return_invalid.xl": "af4ab2045c2b29e97331b44063d51ed40f464aa063bb95d87749546f0a29ca20"
+  }
+}
