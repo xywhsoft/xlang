@@ -42,7 +42,7 @@ function InputPaths {
 foreach ($path in @(InputPaths | Sort-Object -Unique)) { $inputs[$path]=(Get-FileHash -LiteralPath $path).Hash }
 function Check([string]$name,[string]$program,[string[]]$arguments) {
     if($null -eq $arguments){$arguments=@()}
-    $r = Invoke-ExtlibSmokeProcess $program $arguments $Root 120 @{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/extlibs');PYTHONDONTWRITEBYTECODE='1'}
+    $r = Invoke-ExtlibSmokeProcess $program $arguments $Root 120 @{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/extlibs');PYTHONDONTWRITEBYTECODE='1';TEMP=$work;TMP=$work}
     $checks.Add([ordered]@{name=$name;program=$program;arguments=$arguments;result=$r})
     Write-Host "[graph] ${name}: $($r.status)"
     if ($r.status -ne 'pass') {throw "$name failed: $($r.stderr)`n$($r.stdout)"}
@@ -53,6 +53,8 @@ $decls=@()
 $hostExes=@{}
 try {
     $null=Check 'compiler-version' $gcc @('--version')
+    $cc1=Check 'compiler-cc1' $gcc @('-print-prog-name=cc1')
+    $inputs[$cc1]=(Get-FileHash -LiteralPath $cc1).Hash
     $null=Check 'python-version' $python @('-c','import sys; print(sys.version)')
     $modules=@($manifest.artifact.xrtModules|ForEach-Object{"-D$_"})
     $minimal=Join-Path $work 'minimal.exe'
@@ -80,6 +82,14 @@ try {
     [IO.File]::WriteAllText($recordPath,$records+"`n",$utf8)
     $null=Check 'Bellman-Ford-oracle' $python @("$pkg/test/check_weighted_records.py",$recordPath)
     if((Check 'weighted-direct-C' $xl @('run',"$pkg/test/weighted_records_c.c",'--','--records')) -cne $records){throw 'GCC/TCC weighted records differ'}
+    $ordered=Join-Path $work 'ordered.exe'
+    $null=Check 'ordered-build' $gcc ($flags+@('-DNDEBUG',"$pkg/test/ordered_records_c.c",$runtime,'-lws2_32','-ladvapi32','-lm','-o',$ordered))
+    if((Check 'ordered' $ordered @()) -cne 'graph ordered records: 1152 graphs, 27776 records, PASS'){throw 'Ordered corpus incomplete'}
+    $orderedRecords=Check 'ordered-records' $ordered @('--records')
+    $orderedPath=Join-Path $work 'ordered.jsonl'
+    [IO.File]::WriteAllText($orderedPath,$orderedRecords+"`n",$utf8)
+    $null=Check 'ordered-oracle' $python @("$pkg/test/check_ordered_records.py",$orderedPath)
+    if((Check 'ordered-direct-C' $xl @('run',"$pkg/test/ordered_records_c.c",'--','--records')) -cne $orderedRecords){throw 'GCC/TCC ordered records differ'}
     $golden=(Get-Content (Join-Path $Root 'release/examples/extlibs/graph_basic.expected.txt') -Raw).Replace("`r`n","`n").TrimEnd("`n")
     $language="$pkg/examples/from_json.xl"
     if((Check 'from-json-jit' $xl @('run',$language)) -cne $golden){throw 'JSON input golden differs'}
@@ -99,7 +109,7 @@ try {
     $cJit=Check 'c-example-jit' $xl @('run',$example)
     if($cOutput -cne $golden -or $cJit -cne $golden){throw 'C graph golden differs'}
     if(-not $SkipAot){
-        foreach($input in @($language,"$pkg/test/weighted_records_c.c",$example)){
+        foreach($input in @($language,"$pkg/test/weighted_records_c.c","$pkg/test/ordered_records_c.c",$example)){
             $target=Join-Path $work ([guid]::NewGuid().ToString('N')+'.exe')
             $null=Check "$input initial-build" $xl @('build',$input,'-o',$target)
             $output=Check "$input initial-aot" $target @()
@@ -110,6 +120,13 @@ try {
                 $aotPath=Join-Path $work 'weighted-aot.tsv'
                 [IO.File]::WriteAllText($aotPath,$aotRecords+"`n",$utf8)
                 $null=Check 'AOT-Bellman-Ford-oracle' $python @("$pkg/test/check_weighted_records.py",$aotPath)
+            }elseif($input -like '*/ordered_records_c.c'){
+                $aotRecords=Check 'ordered-aot-records' $target @('--records')
+                if($output -cne 'graph ordered records: 1152 graphs, 27776 records, PASS' -or
+                    $aotRecords -cne $orderedRecords){throw 'AOT ordered corpus differs'}
+                $aotPath=Join-Path $work 'ordered-aot.jsonl'
+                [IO.File]::WriteAllText($aotPath,$aotRecords+"`n",$utf8)
+                $null=Check 'AOT-ordered-oracle' $python @("$pkg/test/check_ordered_records.py",$aotPath)
             }elseif($output -cne $golden){throw 'Initial AOT golden differs'}
         }
     }

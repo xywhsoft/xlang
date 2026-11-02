@@ -7,7 +7,7 @@ if [[ -n ${GRAPH_WORK_DIR:-} ]]; then work=$GRAPH_WORK_DIR; mkdir -p -- "$work";
 else work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-graph-XXXXXX"); fi
 pkg=release/extlibs/graph
 cc=${CC:-gcc}; python=${PYTHON:-python3}; sequence=0
-cc_path=$(command -v "$cc" || true); python_path=$(command -v "$python" || true)
+cc_path=$(command -v "$cc" || true); python_path=$(command -v "$python" || true); cc1_path=''
 input_paths() {
     find "$pkg" release/include -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so \
@@ -15,6 +15,7 @@ input_paths() {
         release/examples/extlibs/graph.xl release/examples/extlibs/graph_basic.xl release/examples/extlibs/graph_basic.expected.txt
     if [[ -n $cc_path ]]; then printf '%s\0' "$cc_path"; fi
     if [[ -n $python_path ]]; then printf '%s\0' "$python_path"; fi
+    if [[ -n $cc1_path ]]; then printf '%s\0' "$cc1_path"; fi
     if [[ -n ${GRAPH_DECLARATIONS:-} ]]; then printf '%s\0' "$GRAPH_DECLARATIONS"; fi
 }
 cleanup() {
@@ -43,6 +44,10 @@ run() {
     return "$result"
 }
 run 10 "$cc" --version > "$work/compiler.txt"
+run 10 "$cc" -print-prog-name=cc1 > "$work/cc1.txt"
+cc1_path=$(cat "$work/cc1.txt")
+mapfile -d '' inputs < <(input_paths | sort -zu)
+sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
 export PYTHONDONTWRITEBYTECODE=1 XLANG_PACKAGE_PATH="$root/release/extlibs"
 run 10 "$python" -c 'import json,sys; p=json.load(open("release/extlibs/graph/xlang.package.json")); assert sorted(p["artifact"]["xrtModules"])==["XRT_MODULE_ARRAY","XRT_MODULE_MAP","XRT_MODULE_VALUE_CONTAINER"]; print(sys.version)'
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -I"$pkg/include"
@@ -72,6 +77,15 @@ run 120 "$work/weighted" --records > "$work/weighted.tsv"
 run 60 "$python" "$pkg/test/check_weighted_records.py" "$work/weighted.tsv"
 run 120 ./release/xl run "$weighted" -- --records > "$work/weighted-direct.tsv"
 cmp "$work/weighted.tsv" "$work/weighted-direct.tsv"
+ordered="$pkg/test/ordered_records_c.c"
+compile -DNDEBUG "$ordered" "$work/runtime.o" -no-pie -lm -ldl -o "$work/ordered"
+run 120 "$work/ordered" > "$work/ordered.txt"
+printf 'graph ordered records: 1152 graphs, 27776 records, PASS\n' > "$work/ordered.expected"
+diff -u "$work/ordered.expected" "$work/ordered.txt"
+run 120 "$work/ordered" --records > "$work/ordered.jsonl"
+run 60 "$python" "$pkg/test/check_ordered_records.py" "$work/ordered.jsonl"
+run 120 ./release/xl run "$ordered" -- --records > "$work/ordered-direct.jsonl"
+cmp "$work/ordered.jsonl" "$work/ordered-direct.jsonl"
 example="$pkg/examples/basic.c"
 compile -DNDEBUG "$example" "$work/runtime.o" -no-pie -lm -ldl -o "$work/basic"
 run 90 "$work/basic" > "$work/basic.log"
@@ -89,13 +103,17 @@ printf '#include "graph.h"\n' > "$work/abi.c"; cat "$work/declarations.inc" >> "
 compile -fsyntax-only "$work/abi.c"
 if [[ -n ${GRAPH_DECLARATIONS:-} ]]; then compile -include "$pkg/include/graph.h" -x c -fsyntax-only "$GRAPH_DECLARATIONS"; fi
 index=0
-for source in "$language" "$weighted" "$example"; do
+for source in "$language" "$weighted" "$ordered" "$example"; do
     index=$((index+1)); binary="$work/aot-$index"
     run 120 ./release/xl build "$source" -o "$binary"; run 120 "$binary" > "$work/aot-$index.txt"
     if [[ $source == "$weighted" ]]; then
         diff -u "$work/weighted.expected" "$work/aot-$index.txt"
         run 120 "$binary" --records > "$work/weighted-aot.tsv"; cmp "$work/weighted.tsv" "$work/weighted-aot.tsv"
         run 60 "$python" "$pkg/test/check_weighted_records.py" "$work/weighted-aot.tsv"
+    elif [[ $source == "$ordered" ]]; then
+        diff -u "$work/ordered.expected" "$work/aot-$index.txt"
+        run 120 "$binary" --records > "$work/ordered-aot.jsonl"; cmp "$work/ordered.jsonl" "$work/ordered-aot.jsonl"
+        run 60 "$python" "$pkg/test/check_ordered_records.py" "$work/ordered-aot.jsonl"
     else diff -u "$work/basic.expected" "$work/aot-$index.txt"; fi
 done
 cat "$work/basic.expected" "$work/basic.expected" "$work/basic.expected" > "$work/context.expected"
