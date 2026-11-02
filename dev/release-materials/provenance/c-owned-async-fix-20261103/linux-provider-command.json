@@ -1,0 +1,26 @@
+{
+  "command": [
+    "/usr/bin/gcc",
+    "-std=c11",
+    "-D_GNU_SOURCE",
+    "-O2",
+    "-fPIC",
+    "-DCONFIG_TCC_BUILTIN_VFS=1",
+    "-DLIBTCC_AS_DLL",
+    "-DCONFIG_TCCDIR=\"/var/tmp/xlang-async-fix-20261103-final/native/build/linux/tcc-dist\"",
+    "-I/var/tmp/xlang-result-fix-20261102-v2/native/build/linux/tcc-source",
+    "-I/var/tmp/xlang-async-fix-20261103-final/source/lib/lzma",
+    "-shared",
+    "/var/tmp/xlang-result-fix-20261102-v2/native/build/linux/tcc-source/libtcc.c",
+    "/var/tmp/xlang-result-fix-20261102-v2/native/build/linux/tcc-source/tcctools.c",
+    "/var/tmp/xlang-result-fix-20261102-v2/native/build/linux/tcc-source/tcc_builtin_vfs.c",
+    "/var/tmp/xlang-async-fix-20261103-final/source/lib/lzma/LzmaDec.c",
+    "/var/tmp/xlang-async-fix-20261103-final/tcc_builtin_resources.c",
+    "-ldl",
+    "-lm",
+    "-pthread",
+    "-o",
+    "/var/tmp/xlang-async-fix-20261103-final/native/release/libxlc.so"
+  ],
+  "note": "The raw receipt ProviderBuildCommand field repeats IncrementalCompileCommand due controller variable reuse. This attestation records the actual provider command from the frozen executed controller. Raw receipt bytes and all verified binaries/inputs are unchanged."
+}

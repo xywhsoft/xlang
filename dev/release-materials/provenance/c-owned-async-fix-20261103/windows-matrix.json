@@ -1,0 +1,1035 @@
+{
+  "complete": true,
+  "passed": true,
+  "driver": "D:\\GIT\\x-lang\\build\\c-owned-async-fix-20261103\\windows-final-provider\\public_source.exe",
+  "driverSha256": "5c52bf20eda5f5708208460fe0c743a290f64504b3873dffec75cd6ffabf32c3",
+  "rows": [
+    {
+      "name": "async-default-cstring",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "async-default-cstring",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "async-default-cstring",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "async-default-cstring",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "async-default-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "async-default-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "async-default-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "async-default-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "deep-dispatch-3-cstring-cstring",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "deep-dispatch-3-cstring-cstring",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "687d582f158f106686733b3bd4ff308a3814d9836a74e979dcea88b4496c3ba2"
+    },
+    {
+      "name": "deep-dispatch-3-cstring-cstring",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "deep-dispatch-3-cstring-cstring",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2"
+    },
+    {
+      "name": "deep-dispatch-3-cstring-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "deep-dispatch-3-cstring-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "687d582f158f106686733b3bd4ff308a3814d9836a74e979dcea88b4496c3ba2"
+    },
+    {
+      "name": "deep-dispatch-3-cstring-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "deep-dispatch-3-cstring-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2"
+    },
+    {
+      "name": "deep-dispatch-3-string-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "deep-dispatch-3-string-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "687d582f158f106686733b3bd4ff308a3814d9836a74e979dcea88b4496c3ba2"
+    },
+    {
+      "name": "deep-dispatch-3-string-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "deep-dispatch-3-string-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2"
+    },
+    {
+      "name": "deep-dispatch-32-cstring-cstring",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "deep-dispatch-32-cstring-cstring",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "f7ba443d26706e19bb2523b3550ebe54d7e4da89194c0f106200d14f0abd7a19"
+    },
+    {
+      "name": "deep-dispatch-32-cstring-cstring",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "deep-dispatch-32-cstring-cstring",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "2115cdb6bfcfb008eb2bab2bb79347cb064a48e4e7c4115ccbe4469c787bb6c4"
+    },
+    {
+      "name": "deep-dispatch-32-cstring-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "deep-dispatch-32-cstring-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "f7ba443d26706e19bb2523b3550ebe54d7e4da89194c0f106200d14f0abd7a19"
+    },
+    {
+      "name": "deep-dispatch-32-cstring-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "deep-dispatch-32-cstring-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "2115cdb6bfcfb008eb2bab2bb79347cb064a48e4e7c4115ccbe4469c787bb6c4"
+    },
+    {
+      "name": "deep-dispatch-32-string-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "deep-dispatch-32-string-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "f7ba443d26706e19bb2523b3550ebe54d7e4da89194c0f106200d14f0abd7a19"
+    },
+    {
+      "name": "deep-dispatch-32-string-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "deep-dispatch-32-string-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "2115cdb6bfcfb008eb2bab2bb79347cb064a48e4e7c4115ccbe4469c787bb6c4"
+    },
+    {
+      "name": "deep-dispatch-33-cstring-cstring",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "deep-dispatch-33-cstring-cstring",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "741689c71cec6a5d41c2eb4001a6c60d78969adfa3d0fb440313ca9c00c9c3c8"
+    },
+    {
+      "name": "deep-dispatch-33-cstring-cstring",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "deep-dispatch-33-cstring-cstring",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "19b8d5c59e421f037fe563007c7254eb8d98bc221b278c3db3e5fdbbfd52e273"
+    },
+    {
+      "name": "deep-dispatch-33-cstring-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "deep-dispatch-33-cstring-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "741689c71cec6a5d41c2eb4001a6c60d78969adfa3d0fb440313ca9c00c9c3c8"
+    },
+    {
+      "name": "deep-dispatch-33-cstring-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "deep-dispatch-33-cstring-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "19b8d5c59e421f037fe563007c7254eb8d98bc221b278c3db3e5fdbbfd52e273"
+    },
+    {
+      "name": "deep-dispatch-33-string-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "deep-dispatch-33-string-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "741689c71cec6a5d41c2eb4001a6c60d78969adfa3d0fb440313ca9c00c9c3c8"
+    },
+    {
+      "name": "deep-dispatch-33-string-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "deep-dispatch-33-string-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "19b8d5c59e421f037fe563007c7254eb8d98bc221b278c3db3e5fdbbfd52e273"
+    },
+    {
+      "name": "deep-dispatch-40-cstring-cstring",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "deep-dispatch-40-cstring-cstring",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "84a6ccca11d7fd56887b26b8e29f475576362bd168d4d2539f23c87447c543ea"
+    },
+    {
+      "name": "deep-dispatch-40-cstring-cstring",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "deep-dispatch-40-cstring-cstring",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "673650f936cb3b0a2f93ce09d81be10748b1b203c19e8176b4eefc1964a0cf3a"
+    },
+    {
+      "name": "deep-dispatch-40-cstring-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "deep-dispatch-40-cstring-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "84a6ccca11d7fd56887b26b8e29f475576362bd168d4d2539f23c87447c543ea"
+    },
+    {
+      "name": "deep-dispatch-40-cstring-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "deep-dispatch-40-cstring-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "673650f936cb3b0a2f93ce09d81be10748b1b203c19e8176b4eefc1964a0cf3a"
+    },
+    {
+      "name": "deep-dispatch-40-string-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "deep-dispatch-40-string-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "84a6ccca11d7fd56887b26b8e29f475576362bd168d4d2539f23c87447c543ea"
+    },
+    {
+      "name": "deep-dispatch-40-string-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "deep-dispatch-40-string-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "673650f936cb3b0a2f93ce09d81be10748b1b203c19e8176b4eefc1964a0cf3a"
+    },
+    {
+      "name": "generic-caller-class-cbytes-bytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-caller-class-cbytes-bytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-caller-class-cbytes-bytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-caller-class-cbytes-bytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-caller-class-cbytes-cbytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-caller-class-cbytes-cbytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-caller-class-cbytes-cbytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-caller-class-cbytes-cbytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-caller-class-cstring-cstring",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-caller-class-cstring-cstring",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-caller-class-cstring-cstring",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-caller-class-cstring-cstring",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-caller-class-cstring-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-caller-class-cstring-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-caller-class-cstring-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-caller-class-cstring-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-caller-class-string-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-caller-class-string-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-caller-class-string-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-caller-class-string-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-caller-global-cbytes-bytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-caller-global-cbytes-bytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-caller-global-cbytes-bytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-caller-global-cbytes-bytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-caller-global-cbytes-cbytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-caller-global-cbytes-cbytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-caller-global-cbytes-cbytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-caller-global-cbytes-cbytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-caller-global-cstring-cstring",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-caller-global-cstring-cstring",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-caller-global-cstring-cstring",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-caller-global-cstring-cstring",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-caller-global-cstring-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-caller-global-cstring-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-caller-global-cstring-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-caller-global-cstring-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-caller-global-string-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-caller-global-string-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-caller-global-string-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-caller-global-string-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-caller-method-cbytes-bytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-caller-method-cbytes-bytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-caller-method-cbytes-bytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-caller-method-cbytes-bytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-caller-method-cbytes-cbytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-caller-method-cbytes-cbytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-caller-method-cbytes-cbytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-caller-method-cbytes-cbytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-caller-method-cstring-cstring",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-caller-method-cstring-cstring",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-caller-method-cstring-cstring",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-caller-method-cstring-cstring",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-caller-method-cstring-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-caller-method-cstring-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-caller-method-cstring-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-caller-method-cstring-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-caller-method-string-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-caller-method-string-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-caller-method-string-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-caller-method-string-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "global-async-bytes-bytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "global-async-bytes-bytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "global-async-bytes-bytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "global-async-bytes-bytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "global-async-cbytes-bytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "global-async-cbytes-bytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "global-async-cbytes-bytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "global-async-cbytes-bytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "global-async-cbytes-cbytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "global-async-cbytes-cbytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "global-async-cbytes-cbytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "global-async-cbytes-cbytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "global-async-cstring-cstring",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "global-async-cstring-cstring",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "global-async-cstring-cstring",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "global-async-cstring-cstring",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "global-async-cstring-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "global-async-cstring-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "global-async-cstring-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "global-async-cstring-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "global-async-string-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "global-async-string-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "global-async-string-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "global-async-string-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "static-async-bytes-bytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "static-async-bytes-bytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "static-async-bytes-bytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "static-async-bytes-bytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "static-async-cbytes-bytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "static-async-cbytes-bytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "static-async-cbytes-bytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "static-async-cbytes-bytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "static-async-cbytes-cbytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "static-async-cbytes-cbytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "static-async-cbytes-cbytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "static-async-cbytes-cbytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "static-async-cstring-cstring",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "static-async-cstring-cstring",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "static-async-cstring-cstring",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "static-async-cstring-cstring",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "static-async-cstring-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "static-async-cstring-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "static-async-cstring-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "static-async-cstring-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "static-async-string-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "static-async-string-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "static-async-string-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "static-async-string-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "inputs": {
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\async-default-cstring.xl": "d8b142fcd358c88d0ef2139e0399b5d6a4717ddac5d41b156fd01bb057645e99",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\async-default-string.xl": "77cca95064d5ad910e85d655f109dc7e8846f48b5ad8f47d7bb5f0f6b452e12c",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\deep-dispatch-3-cstring-cstring.xl": "5e0bd8e913a0fb6cb14a79bb31a8e824d338f04583240839638b8aa2f5d0f189",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\deep-dispatch-3-cstring-string.xl": "ab4044dd51d370cfee7693de5936d6bef20b8db776f3bb3081ef3b95d728cfef",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\deep-dispatch-3-string-string.xl": "d69e9e6340d4c5fdc7d32c891149fb33745e7ffa0ba8de6726d7190aa4cd2414",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\deep-dispatch-32-cstring-cstring.xl": "11bd3816c9e4b174c80ffcd2420630c23dbbfd8bb6dd17318a0b1471fd1f7351",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\deep-dispatch-32-cstring-string.xl": "3f073159b829bddf6a78a7eb66d90e40129d6d6da29c227409d943083ac5159c",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\deep-dispatch-32-string-string.xl": "1a5da98f053103753dd809c5d8b5b12e198e8cef74a7ed2a6ac0001aa762f838",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\deep-dispatch-33-cstring-cstring.xl": "8ced4f12e3a39154b9482e8217385e8d23550761c663f3359e3506badec0d3b8",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\deep-dispatch-33-cstring-string.xl": "4ea04860804d4a5dfb975026c3c80b422498c0358e7afdc50033595bb1ada7f4",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\deep-dispatch-33-string-string.xl": "04df9ca01f6bae59030b251b567bf318829bb1e526a9be78e26a0c796f5016e9",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\deep-dispatch-40-cstring-cstring.xl": "bab369600c1c8333ce270db2f5939ec682a9c40de3654ed90810f4c12a0e7570",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\deep-dispatch-40-cstring-string.xl": "1d192a0845648d3eeb0093b268b3f039f9b03e4c258fbdce5c7c115550833cdf",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\deep-dispatch-40-string-string.xl": "6a3d6acb13bad465e3861875d59d1a79ba6fd9805d1ae2cadfefd6e758c748b6",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\generic-caller-class-cbytes-bytes.xl": "585e779b355c3866e961f2893076c538e645765b8431d9b892b473d6302594d5",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\generic-caller-class-cbytes-cbytes.xl": "547fb6bea89e2a4149a7cd6c741c2e942c105976869d8854da7bc4fbed3a86ac",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\generic-caller-class-cstring-cstring.xl": "b0e0a6069850af000f644e42ca9eb759a9fcabae4eac5766f334bedb54ae2c82",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\generic-caller-class-cstring-string.xl": "bed0f1b264bb8ea148b95eda24fbd444246e2b2f5fc8b82de17a53811b1eb1dc",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\generic-caller-class-string-string.xl": "adefdf4563effc24d038b4dd121bcc5f15118bfe06cc5c40edbaa5e03d888dd1",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\generic-caller-global-cbytes-bytes.xl": "f05a5d10f8591b1f38e95c361c2f2b6c3f38243a890dbda22efeb93e428ca8fe",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\generic-caller-global-cbytes-cbytes.xl": "276a8f1a4553c624c798c3c3a0fb74d65cc601c4f4dcc8479d76289c2715441f",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\generic-caller-global-cstring-cstring.xl": "ca0f9b4c1a856abfc9e4c105c0813097568652035cbade3a2cb945fdec2c0142",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\generic-caller-global-cstring-string.xl": "2512efc30737f958c49b77c5b0667648ca7f7f593b7f00680eaf823a77c75147",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\generic-caller-global-string-string.xl": "3aea8712b81a0a698405d44fc8c6d290ec2bbfd6b11f36344f868ee090d3ed13",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\generic-caller-method-cbytes-bytes.xl": "8add7f3e14ae86e73a3e607f2ea5e1676c34ff4b8d74085c33407b00d0e4a710",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\generic-caller-method-cbytes-cbytes.xl": "1170b96e6a2fb3055c5470d416c3b9b1d5257aee6bb3f65615163f371ecef68c",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\generic-caller-method-cstring-cstring.xl": "11d1418a2165f76c340f416c65fd54b401de95f41052360261065dd455c108be",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\generic-caller-method-cstring-string.xl": "7bf10d2f03789f2eb253ea060719d3324043329994406212ed703a03f3e22bbd",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\generic-caller-method-string-string.xl": "e7cef3c96a6f66c73d206e247ef1628a798c6860acbe0f92efe0e3780f965613",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\global-async-bytes-bytes.xl": "fbdb2a45ee9bf7246cf9f0135b1a444f02f8e1a7267ada105a8d9e4a98cd5cf4",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\global-async-cbytes-bytes.xl": "7b51bdb9f70ef9b43c6b1516cc2d16f032dfb5e0ab1b3745e3c5c69a6f7c5827",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\global-async-cbytes-cbytes.xl": "9549e036ec871166338027f048a7bd390f31be015a5d68e938995a5b461e899e",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\global-async-cstring-cstring.xl": "128ab24172f88aec3c5ddc6da1224d520aeb4acaab3791c26d5e9758041f3e0a",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\global-async-cstring-string.xl": "606aee2fe85167194753fe474fc1dd66f1da2183ab510bd9a3606cb36411973b",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\global-async-string-string.xl": "ac45f13cc394e7af76dec6cf6c55aeb47c347df5644678e9c937f26bf671c539",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\static-async-bytes-bytes.xl": "3e0a161593bbb6294f8fe4fabcc8955b10ca1524a4ddba8cb6c1b76f3ef7b669",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\static-async-cbytes-bytes.xl": "8b4667cf6a49fc1a3d1d4d128263f5363730cd98a8ea3badeca7339c94f7f9f2",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\static-async-cbytes-cbytes.xl": "8accd0240cf9d5116917568b18c14c6c056eeae8cd7520ab07b983d0fb1efc15",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\static-async-cstring-cstring.xl": "cf09d2c73fbf7431190b54e1cd232f8e63533afdd3eeed51f49fd329e4f9e0c3",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\static-async-cstring-string.xl": "1487a5ca35e1a7d3b5121715085d9e221aa0e4879d2494f2b8dd984c8e8bd966",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\c-owned-string-bytes\\x-lang\\build\\owned-result-review-20261102\\cases\\static-async-string-string.xl": "f4b2700ac8f0cfca97afac48ccd0b7452ab97df504799c92a7ce5ed6a53b6ed5"
+  }
+}
