@@ -82,7 +82,7 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
     const xls_semantic_input* inputs,size_t count,int dependenciesOnly,int captureIndex,const xls_syntax* syntax,
     xls_semantic_check* previous,int memoEnabled,xls_module_graph_scope* moduleScope,int (*cancelled)(void*),void* user,char* error,size_t capacity,const xls_input_batch* batch,int allowBorrow,int* retry)
 {
-    xls_semantic_check* r=NULL;const xls_ir_result* irBaseline=NULL;
+    xls_semantic_check* r=NULL;const xls_ir_result* irBaseline=NULL;const xls_semantic_check* indexBaseline=NULL;
     if(error && capacity) *error=0;
     if(xlsSyntaxIsCursor(syntax)) { fail(error,capacity,"ordinary check cannot consume cursor syntax"); return NULL; }
     if(!entry || !xrtPathIsAbs(entry) || count>XL6_SOURCE_OVERLAY_FILES ||
@@ -173,7 +173,7 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
              * Membership is exact or differences have a complete original
              * lookup absence proof. Disk/probe/environment validity still
              * precedes every borrowed per-function semantic/IR fact. */
-            if(compatible) {baseline=previous->memo;irBaseline=previous->cachedIr;}
+            if(compatible) {baseline=previous->memo;irBaseline=previous->cachedIr;indexBaseline=previous;}
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
             okay=xlsFrontendSemCheckMemoFinal(r->parse.root,&r->parse.diags,module,captureIndex,r->path,
                 &r->report,baseline ? &previous->report : NULL,baseline,&r->memo,&r->semanticWork,32u*1024u*1024u);
@@ -191,7 +191,8 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
      * external identities to THIS compilation. Delay index resource errors
      * until after original IR diagnostics;neither changes their precedence. */
     char indexError[256]={0};
-    if(okay && captureIndex)r->typedIndex=xlsFrontendIndexCreate(r->parse.root,&r->report,indexError,sizeof(indexError));
+    if(okay && captureIndex)r->typedIndex=xlsFrontendIndexCreateCached(r->parse.root,&r->report,r->memo,
+        indexBaseline ? indexBaseline->typedIndex : NULL,indexBaseline ? indexBaseline->memo : NULL,indexError,sizeof(indexError));
     r->modules=xlsModuleGraphEnd(moduleScope,&r->report);
     xlsFrontendIndexAttachModules(r->typedIndex,r->modules);
     if(stopped(cancelled,user)) goto cancel;
@@ -428,6 +429,8 @@ xls_semantic_check* xlsSemanticCheckCreateParsed(const char* entry,
 { return xlsSemanticCheckCreateIncremental(entry,inputs,count,captureIndex,syntax,NULL,cancelled,user,error,capacity); }
 xls_check_semantic_work xlsSemanticCheckWork(const xls_semantic_check* r)
 { return r ? (xls_check_semantic_work){r->semanticWork.checked,r->semanticWork.reused,r->semanticWork.contextHits,r->semanticWork.bytes} : (xls_check_semantic_work){0}; }
+xls_index_canonical_work xlsSemanticCheckCanonicalWork(const xls_semantic_check* r)
+{return r && !invalid(r) && r->accepted ? xlsFrontendIndexCanonicalWork(r->typedIndex) : (xls_index_canonical_work){0};}
 xls_sem_read_work xlsSemanticCheckReads(const xls_semantic_check* r)
 {return r && !invalid(r) && r->accepted ? xlsFrontendSemMemoReads(r->memo) : (xls_sem_read_work){0};}
 const XL6_IrModule* xlsSemanticCheckIr(const xls_semantic_check* r)

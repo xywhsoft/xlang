@@ -4,7 +4,7 @@
 #include "analysis/index_modules.h"
 #include "analysis/index_entities.h"
 #include "analysis/frontend_types.h"
-struct xls_semantic_index { XL6_IndexBuild build;xls_module_graph* modules;xls_entity_view* entities; };
+struct xls_semantic_index { XL6_IndexBuild build;xls_module_graph* modules;xls_entity_view* entities;xls_index_canonical_work canonicalWork; };
 #include "analysis/frontend_entities.inc"
 
 void xlsFrontendIndexDestroy(xls_semantic_index* index)
@@ -30,8 +30,9 @@ const xls_module_graph* xlsSemanticIndexModules(const xls_semantic_index* index)
 {return index ? index->modules : NULL;}
 uint64_t xlsSemanticIndexModuleIdentity(const xls_semantic_index* index,size_t source)
 {return xlsModuleGraphSource(index ? index->modules : NULL,source);}
-xls_semantic_index* xlsFrontendIndexCreate(const XL6_AstNode* root,
-    const XL6_SourceReport* report,char* error,size_t capacity)
+static xls_semantic_index* xlsIndexCreate(const XL6_AstNode* root,const XL6_SourceReport* report,
+    const xls_sem_memo* memo,const xls_semantic_index* previous,const xls_sem_memo* previousMemo,
+    xls_index_canonical_work* discarded,char* error,size_t capacity)
 {
     if(error && capacity) *error=0;
     const char* failure="cannot allocate semantic index";
@@ -45,8 +46,15 @@ xls_semantic_index* xlsFrontendIndexCreate(const XL6_AstNode* root,
                     b->storage=xlsIndexStorageCreate(b);
                     xls_type_alias_scope aliases;
                     xlsFrontendTypeAliasBegin(&aliases,root,8u*1024u*1024u);
-                    XL6_IndexBuild* previous=xlsTypedIndexBuild; xlsTypedIndexBuild=b;
-                    int okay=xl6IndexVisit(b,root,0,1); xlsTypedIndexBuild=previous;
+                    xls_index_canonical_scope canonical={.previous=xlsIndexCanonicalScope,.build=b,
+                        .baseline=previous ? previous->build.storage : NULL,.memo=memo,.previousMemo=previousMemo,
+                        .previousRoot=previous ? previous->build.root : NULL,.limit=memo ? xlsIndexCanonicalBudget() : 0};
+                    xlsIndexCanonicalScope=&canonical;
+                    XL6_IndexBuild* previousBuild=xlsTypedIndexBuild; xlsTypedIndexBuild=b;
+                    int okay=xl6IndexVisit(b,root,0,1);
+                    if(okay)okay=xlsIndexCanonicalSeal(&canonical);
+                    xlsTypedIndexBuild=previousBuild;xlsIndexCanonicalScope=canonical.previous;
+                    index->canonicalWork=canonical.work;
                     xlsFrontendTypeAliasEnd(&aliases);
                     if(okay) return index;
             }
@@ -54,8 +62,26 @@ xls_semantic_index* xlsFrontendIndexCreate(const XL6_AstNode* root,
         }
     }
     if(error && capacity) snprintf(error,capacity,"%s",failure);
+    if(discarded && index)*discarded=index->canonicalWork;
     xlsFrontendIndexDestroy(index); return NULL;
 }
+xls_semantic_index* xlsFrontendIndexCreate(const XL6_AstNode* root,
+    const XL6_SourceReport* report,char* error,size_t capacity)
+{return xlsIndexCreate(root,report,NULL,NULL,NULL,NULL,error,capacity);}
+xls_semantic_index* xlsFrontendIndexCreateCached(const XL6_AstNode* root,const XL6_SourceReport* report,
+    const xls_sem_memo* memo,const xls_semantic_index* previous,const xls_sem_memo* previousMemo,char* error,size_t capacity)
+{
+    if(!memo)return xlsFrontendIndexCreate(root,report,error,capacity);
+    xls_index_canonical_work discarded={0};
+    xls_semantic_index* index=xlsIndexCreate(root,report,memo,previous,previousMemo,&discarded,error,capacity);
+    if(index)return index;
+    index=xlsFrontendIndexCreate(root,report,error,capacity);
+    if(index){++index->canonicalWork.fallbacks;index->canonicalWork.calls+=discarded.calls;
+        index->canonicalWork.valuesReused+=discarded.valuesReused;index->canonicalWork.declined+=discarded.declined;}
+    return index;
+}
+xls_index_canonical_work xlsFrontendIndexCanonicalWork(const xls_semantic_index* index)
+{return index ? index->canonicalWork : (xls_index_canonical_work){0};}
 size_t xlsFrontendIndexBudgetUsed(const xls_semantic_index* index)
 { return index ? index->build.budget : 0; }
 int xlsFrontendIndexFunctionSpan(const xls_semantic_index* index,const XL6_AstNode* root,size_t* first,size_t* count)

@@ -191,6 +191,26 @@ int xlsFrontendSemMemoBindIrInput(xls_sem_memo* memo,const xls_typed_module* inp
     if(memo->inputOwner)return memo->inputOwner==owner;
     memo->inputOwner=xlsTypedInputIdentityRetain(owner);return 1;
 }
+int xlsFrontendSemMemoIndexEquivalent(const xls_sem_memo* memo,const XL6_AstNode* root,
+    const xls_sem_memo* previous,const XL6_AstNode* previousRoot,size_t slot,size_t* count)
+{
+    if(count)*count=0;
+    if(!previous && previousRoot)return 0;
+    if(!memo || !root || !count || !memo->trackInputs || memo->finalizedRoot!=root || !memo->finalContext ||
+       slot>=root->childCount || slot>=memo->entries.Count || !xlsSemFunction(root->children[slot]))return 0;
+    const xls_sem_entry* entry=xrtArrayConstGet(&memo->entries,slot);
+    if(!entry->unit || entry->unit->cursor.path || !entry->finalInput ||
+       entry->finalInput->nodes!=entry->unit->facts.Count)return 0;
+    if(previous){
+        if(!previousRoot || previous->finalizedRoot!=previousRoot || !previous->trackInputs ||
+           previous->finalContext!=memo->finalContext || previous->entries.Count!=memo->entries.Count ||
+           previousRoot->childCount!=root->childCount || !entry->finalCandidate || !entry->finalReplayed)return 0;
+        const xls_sem_entry* old=xrtArrayConstGet(&previous->entries,slot);
+        if(entry->unit!=old->unit || entry->finalInput!=old->finalInput || entry->start!=old->start ||
+           entry->end!=old->end || entry->typeStart!=old->typeStart || entry->typeEnd!=old->typeEnd)return 0;
+    }
+    *count=entry->unit->facts.Count;return *count!=0;
+}
 xls_typed_input_identity* xlsFrontendSemMemoIrIdentity(
     const xls_sem_memo* memo,const xls_typed_module* input,size_t index)
 {

@@ -98,6 +98,8 @@ CORE_TESTS = ("analysis_ir_sparse_decode_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_typed_identity_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_composite_function_test", "analysis_typed_function_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_function_index_asset_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_index_canonical_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_index_canonical_guards_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_final_input_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_input_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_alias_reads_test", *CORE_TESTS)
@@ -689,7 +691,7 @@ def main() -> None:
         # their native warning profile. Their objects never enter core/server.
         sources += [(ide / "tests" / (name + ".c"), name not in
                      ("analysis_semantic_read_front_test", "analysis_ir_sparse_decode_test",
-                      "analysis_semantic_final_input_test", "analysis_ir_input_test", "analysis_final_environment_test",
+                      "analysis_semantic_final_input_test", "analysis_ir_input_test", "analysis_final_environment_test", "analysis_index_canonical_guards_test",
                       "analysis_semantic_alias_reads_test", "analysis_type_constructor_test", "analysis_ir_derived_test")) for name in tests]
     if args.server:
         if os.name != "nt":
@@ -935,7 +937,9 @@ def main() -> None:
                     "xrtArrayReserve","xrtArrayUnit","xrtMapSet","xrtMutexInit","xrtMutexLock","xlsAstClone","xl6AstFree")]
             if name == "analysis_function_index_asset_test":
                 extra += ["-Wl,--wrap="+function for function in (
-                    "xrtRealloc","xrtFree","xrtCalloc","xlsFrontendIndexCreate","xlsFrontendIndexBindFunctions")]
+                    "xrtRealloc","xrtFree","xrtCalloc","xlsFrontendIndexCreate","xlsFrontendIndexCreateCached","xlsFrontendIndexBindFunctions")]
+            if name == "analysis_index_canonical_test":
+                extra += ["-Wl,--wrap=xl6AstFree"]
             if name == "analysis_semantic_final_input_test":
                 extra += ["-Wl,--wrap=xrtCalloc", "-Wl,--wrap=xrtFree",
                           "-Wl,--wrap=xrtStrBufReserve", "-Wl,--wrap=xrtStrBufFree"]

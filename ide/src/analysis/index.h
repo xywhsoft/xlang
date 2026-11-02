@@ -8,6 +8,10 @@
  * GUI runtime types escape this boundary. All pointers borrow the owning
  * semantic check; obtain a fresh view after validating that check. */
 typedef struct xls_semantic_index xls_semantic_index;
+typedef struct xls_index_canonical_work {
+    uint64_t captured,reused,valuesReused,calls,declined,fallbacks;
+    size_t retainedBytes;
+} xls_index_canonical_work;
 typedef struct xls_index_range {
     size_t startOffset,endOffset;
     int startLine,startColumn,endLine,endColumn,known;

@@ -15,7 +15,8 @@ void xlsFunctionIndexAssetRelease(xls_function_index_asset* asset)
 {
     if(!asset || xrtAtomic32FetchSub(&asset->references,1,XMEMORY_ACQ_REL)!=1)return;
     xls_index_storage* storage=asset->storage;
-    for(size_t i=0;i<asset->count;++i)xrtFree(asset->facts[i].canonical);
+    if(asset->canonical)xlsIndexCanonicalRelease(asset->canonical);
+    else for(size_t i=0;i<asset->count;++i)xrtFree(asset->facts[i].canonical);
     xrtFree(asset->facts);asset->facts=NULL;
     xlsTypedFunctionRelease(asset->function);asset->function=NULL;
     xlsIndexStorageRelease(storage);
@@ -82,7 +83,9 @@ xls_function_index_asset* xlsFrontendIndexFunctionAsset(const xls_semantic_index
 xls_function_index_info xlsFunctionIndexAssetInfo(const xls_function_index_asset* asset)
 {
     if(!asset)return (xls_function_index_info){0};
-    return (xls_function_index_info){asset->first,asset->count,asset->capacity*sizeof(XL6_IndexFact),asset->canonicalBytes,
+    size_t metadata=asset->canonical ? sizeof(*asset->canonical)+asset->canonical->rows.Capacity*sizeof(xls_index_canonical_row) : 0;
+    size_t canonical=asset->canonical ? asset->canonical->bytes-metadata : asset->canonicalBytes;
+    return (xls_function_index_info){asset->first,asset->count,asset->capacity*sizeof(XL6_IndexFact)+metadata,canonical,
         asset->storage->metadataBytes+asset->storage->sourceBytes};
 }
 static xls_index_range xlsFunctionIndexRange(XL6_AstRange value)

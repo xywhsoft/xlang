@@ -42,6 +42,10 @@ void* __wrap_xrtCalloc(size_t n,size_t size)
 xls_semantic_index* __real_xlsFrontendIndexCreate(const XL6_AstNode*,const XL6_SourceReport*,char*,size_t);
 xls_semantic_index* __wrap_xlsFrontendIndexCreate(const XL6_AstNode* root,const XL6_SourceReport* report,char* error,size_t size)
 {int previous=recordingIndex;recordingIndex=1;xls_semantic_index* result=__real_xlsFrontendIndexCreate(root,report,error,size);recordingIndex=previous;return result;}
+xls_semantic_index* __real_xlsFrontendIndexCreateCached(const XL6_AstNode*,const XL6_SourceReport*,const struct xls_sem_memo*,const xls_semantic_index*,const struct xls_sem_memo*,char*,size_t);
+xls_semantic_index* __wrap_xlsFrontendIndexCreateCached(const XL6_AstNode* root,const XL6_SourceReport* report,
+    const struct xls_sem_memo* memo,const xls_semantic_index* old,const struct xls_sem_memo* oldMemo,char* error,size_t size)
+{int previous=recordingIndex;recordingIndex=1;xls_semantic_index* result=__real_xlsFrontendIndexCreateCached(root,report,memo,old,oldMemo,error,size);recordingIndex=previous;return result;}
 int __real_xlsFrontendIndexBindFunctions(xls_semantic_index*,const xls_typed_module*);
 int __wrap_xlsFrontendIndexBindFunctions(xls_semantic_index* index,const xls_typed_module* module)
 {inBind=1;int result=__real_xlsFrontendIndexBindFunctions(index,module);inBind=0;return result;}

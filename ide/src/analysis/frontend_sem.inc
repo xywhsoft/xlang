@@ -748,6 +748,10 @@ static void xlsSemUnitRelease(xls_sem_unit* unit)
 
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
 #include "analysis/frontend_sem_ir.inc"
+#else
+int xlsFrontendSemMemoIndexEquivalent(const xls_sem_memo* memo,const XL6_AstNode* root,
+    const xls_sem_memo* previous,const XL6_AstNode* previousRoot,size_t slot,size_t* count)
+{(void)memo;(void)root;(void)previous;(void)previousRoot;(void)slot;if(count)*count=0;return 0;}
 #endif
 #include "analysis/frontend_sem_view.inc"
 typedef struct xls_sem_type_copy {

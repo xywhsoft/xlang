@@ -9,9 +9,11 @@
 #include "analysis/frontend_function_index.h"
 #include "analysis/typed_module_internal.h"
 typedef struct xls_index_storage xls_index_storage;
+typedef struct xls_index_canonical xls_index_canonical;
 struct xls_function_index_asset {
     xatomic32 references;xls_index_storage* storage;XL6_IndexFact* facts;
     size_t first,count,capacity,canonicalBytes;xls_typed_function* function;
+    xls_index_canonical* canonical;size_t canonicalCount;int canonicalChecked;
 };
 struct xls_index_storage {
     xatomic32 references;size_t slots,active,metadataBytes,sourceBytes,sourceCount;
@@ -27,6 +29,7 @@ void xlsFrontendIndexStorageEnd(xls_index_storage_control* control)
 static _Thread_local XL6_IndexBuild* xlsTypedIndexBuild;
 static int xl6IndexBudget(XL6_IndexBuild*,size_t);
 static void xlsIndexStorageParentRelease(xls_index_storage*);
+#include "analysis/frontend_index_canonical.inc"
 static XL6_IndexFact* xlsIndexFactAt(const XL6_IndexBuild* build,size_t at)
 {return build->storage ? build->storage->rows[at] : &build->facts[at];}
 static xls_index_storage* xlsIndexStorageCreate(XL6_IndexBuild* build)

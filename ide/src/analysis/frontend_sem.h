@@ -9,6 +9,11 @@
 #include "analysis/frontend_symbols.h"
 struct XL6_CompletionQuery;
 typedef struct xls_sem_memo xls_sem_memo;
+/* Finalized same-result association is mandatory. With no prior memo this
+ * admits capture only. With a prior memo,prove exact shared input unit and
+ * final output/type environment;opaque owner addresses alone prove nothing. */
+int xlsFrontendSemMemoIndexEquivalent(const xls_sem_memo*,const XL6_AstNode*,
+    const xls_sem_memo*,const XL6_AstNode*,size_t,size_t*);
 /* Exact non-coordinate AST identity for private raw IR fragments. Native
  * process-local sparse scalar batches;ordinary semantic key bytes unchanged.
  * Completion-source provenance is unsupported and declines caching. */
