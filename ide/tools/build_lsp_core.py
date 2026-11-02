@@ -96,6 +96,7 @@ CORE_TESTS = ("analysis_semantic_read_front_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_sparse_decode_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_typed_identity_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_typed_function_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_function_index_asset_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_final_input_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_input_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_alias_reads_test", *CORE_TESTS)
@@ -893,6 +894,9 @@ def main() -> None:
                 extra += ["-Wl,--wrap="+function for function in (
                     "xrtMalloc","xrtCalloc","xrtRealloc","xrtFree","xrtStrDup","xrtArrayPush","xrtArrayResize",
                     "xrtArrayReserve","xrtArrayUnit","xrtMapSet","xrtMutexInit","xrtMutexLock","xlsAstClone","xl6AstFree")]
+            if name == "analysis_function_index_asset_test":
+                extra += ["-Wl,--wrap="+function for function in (
+                    "xrtRealloc","xrtFree","xrtCalloc","xlsFrontendIndexCreate","xlsFrontendIndexBindFunctions")]
             if name == "analysis_semantic_final_input_test":
                 extra += ["-Wl,--wrap=xrtCalloc", "-Wl,--wrap=xrtFree",
                           "-Wl,--wrap=xrtStrBufReserve", "-Wl,--wrap=xrtStrBufFree"]

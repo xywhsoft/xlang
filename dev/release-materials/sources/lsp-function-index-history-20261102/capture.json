@@ -1,0 +1,20 @@
+{
+  "status": "captured-before-function-index-assets",
+  "head": "1d65e009a75ce56344f67a8948c5a03eff2ad72d",
+  "files": {
+    "ide/src/analysis/frontend_index.inc": "de7675bd9bb90d9d3b7cd1172c8aff4106f7507bcfe07055d6b0538d1cfeeb0e",
+    "ide/src/analysis/frontend_index_budget.inc": "f7aefb5972d65e1d23717ef5c79e3d164a1185d13759beff20c3ad63ab264393",
+    "ide/src/analysis/frontend_index.h": "398c03a11b1e0cc5c8519ec98d49f416f7e2a07825320602880be855629034e6",
+    "ide/src/analysis/frontend_entities.inc": "c8f9843175c39096b29ac541cd6f06cf4ba96921735df1d3fdb7fc025bb0910b",
+    "ide/src/analysis/frontend_entity_versions.inc": "d2679aa7e3e372dbe4d4d9aa524e343fc9559f451806fccf0408d9187e6fa58e",
+    "ide/tools/native_index_overlay.py": "ce86daa98faaa26657cc055dfc33b81d16e8f109a05390e1b28588ed121bc175",
+    "ide/src/analysis/function_unit.c": "42f450d008133a8c659516e46de16766acd2a00fe33738835dd7bd3a065152a8",
+    "ide/src/analysis/function_unit_internal.h": "68376d54d6f32ffcca35a08c6bd65bb9e0c3731284473e33a637a44dcf47c847",
+    "ide/src/analysis/typed_module.c": "30290efaf9620f059e2cf53c0e34335111ac81a1a0c20fcc3bb760b4d3b34c19",
+    "ide/src/analysis/typed_module_internal.h": "f12ee5442742655c4aeeafa59998e54ac789f64dbf9262051ff0338a9d36b34e",
+    "ide/src/analysis/check.c": "fbf1f5c6971da86328c4421e01949bc04a41d4f19ba68071bc42f6264b827307",
+    "ide/tools/build_lsp_core.py": "00eb1432d107171c154c96a297b13a3c2ec3359bff1cd6eeb6a24e77d8f03988",
+    "ide/src/analysis/function_unit.h": "58910e1c9c1db1f95598b2fc6610c0afa029d927005ac8ebd61dd50baf321a17"
+  },
+  "scope": "Preserve the M108 source/header/controller baseline while producing independent native function index segments. Working release remains protected."
+}

@@ -1,0 +1,208 @@
+{
+  "schema": 1,
+  "phase": "M7a2b109",
+  "status": "exact-known-history-preserved",
+  "scope": "13 complete baseline aliases and 5 explicitly captured intermediate source bytes;diagnostic revisions are not asserted to be a complete product closure. Original reports stay at their recorded paths.",
+  "entries": [
+    {
+      "role": "exact M108 baseline input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_index.inc",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_index.inc",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/previous-ide-inputs/ide/src/analysis/frontend_index.inc",
+      "sha256": "de7675bd9bb90d9d3b7cd1172c8aff4106f7507bcfe07055d6b0538d1cfeeb0e",
+      "bytes": 7006
+    },
+    {
+      "role": "exact M108 baseline input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_index_budget.inc",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_index_budget.inc",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/previous-ide-inputs/ide/src/analysis/frontend_index_budget.inc",
+      "sha256": "f7aefb5972d65e1d23717ef5c79e3d164a1185d13759beff20c3ad63ab264393",
+      "bytes": 2610
+    },
+    {
+      "role": "exact M108 baseline input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_index.h",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_index.h",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/previous-ide-inputs/ide/src/analysis/frontend_index.h",
+      "sha256": "398c03a11b1e0cc5c8519ec98d49f416f7e2a07825320602880be855629034e6",
+      "bytes": 885
+    },
+    {
+      "role": "exact M108 baseline input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_entities.inc",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_entities.inc",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/previous-ide-inputs/ide/src/analysis/frontend_entities.inc",
+      "sha256": "c8f9843175c39096b29ac541cd6f06cf4ba96921735df1d3fdb7fc025bb0910b",
+      "bytes": 14643
+    },
+    {
+      "role": "exact M108 baseline input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_entity_versions.inc",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_entity_versions.inc",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/previous-ide-inputs/ide/src/analysis/frontend_entity_versions.inc",
+      "sha256": "d2679aa7e3e372dbe4d4d9aa524e343fc9559f451806fccf0408d9187e6fa58e",
+      "bytes": 10242
+    },
+    {
+      "role": "exact M108 baseline input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\native_index_overlay.py",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\previous-ide-inputs\\ide\\tools\\native_index_overlay.py",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/previous-ide-inputs/ide/tools/native_index_overlay.py",
+      "sha256": "ce86daa98faaa26657cc055dfc33b81d16e8f109a05390e1b28588ed121bc175",
+      "bytes": 6978
+    },
+    {
+      "role": "exact M108 baseline input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\function_unit.c",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\previous-ide-inputs\\ide\\src\\analysis\\function_unit.c",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/previous-ide-inputs/ide/src/analysis/function_unit.c",
+      "sha256": "42f450d008133a8c659516e46de16766acd2a00fe33738835dd7bd3a065152a8",
+      "bytes": 24143
+    },
+    {
+      "role": "exact M108 baseline input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\function_unit_internal.h",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\previous-ide-inputs\\ide\\src\\analysis\\function_unit_internal.h",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/previous-ide-inputs/ide/src/analysis/function_unit_internal.h",
+      "sha256": "68376d54d6f32ffcca35a08c6bd65bb9e0c3731284473e33a637a44dcf47c847",
+      "bytes": 2390
+    },
+    {
+      "role": "exact M108 baseline input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module.c",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\previous-ide-inputs\\ide\\src\\analysis\\typed_module.c",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/previous-ide-inputs/ide/src/analysis/typed_module.c",
+      "sha256": "30290efaf9620f059e2cf53c0e34335111ac81a1a0c20fcc3bb760b4d3b34c19",
+      "bytes": 5454
+    },
+    {
+      "role": "exact M108 baseline input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module_internal.h",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\previous-ide-inputs\\ide\\src\\analysis\\typed_module_internal.h",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/previous-ide-inputs/ide/src/analysis/typed_module_internal.h",
+      "sha256": "f12ee5442742655c4aeeafa59998e54ac789f64dbf9262051ff0338a9d36b34e",
+      "bytes": 1952
+    },
+    {
+      "role": "exact M108 baseline input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\check.c",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\previous-ide-inputs\\ide\\src\\analysis\\check.c",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/previous-ide-inputs/ide/src/analysis/check.c",
+      "sha256": "fbf1f5c6971da86328c4421e01949bc04a41d4f19ba68071bc42f6264b827307",
+      "bytes": 31069
+    },
+    {
+      "role": "exact M108 baseline input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\build_lsp_core.py",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\previous-ide-inputs\\ide\\tools\\build_lsp_core.py",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/previous-ide-inputs/ide/tools/build_lsp_core.py",
+      "sha256": "00eb1432d107171c154c96a297b13a3c2ec3359bff1cd6eeb6a24e77d8f03988",
+      "bytes": 74470
+    },
+    {
+      "role": "exact M108 baseline input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\function_unit.h",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\previous-ide-inputs\\ide\\src\\analysis\\function_unit.h",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/previous-ide-inputs/ide/src/analysis/function_unit.h",
+      "sha256": "58910e1c9c1db1f95598b2fc6610c0afa029d927005ac8ebd61dd50baf321a17",
+      "bytes": 5725
+    },
+    {
+      "role": "captured intermediate diagnostic input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_function_index_asset_test.c",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\focused-v1-inputs\\analysis_function_index_asset_test.c",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/focused-v1-inputs/analysis_function_index_asset_test.c",
+      "sha256": "405f34a3b452e865547ff1b3062563b490eedf85ab4fa92182e0568a66c0d62b",
+      "bytes": 11684
+    },
+    {
+      "role": "original intermediate capture manifest",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\focused-v1-inputs\\manifest.json",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\focused-v1-inputs\\manifest.json",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/focused-v1-inputs/manifest.json",
+      "sha256": "399660ce6cd8b65ebf1ea880be2ef012d9d102c6cab131fa28356226e9b362ad",
+      "bytes": 321
+    },
+    {
+      "role": "captured intermediate diagnostic input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_function_index_asset_test.c",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\focused-v2-inputs\\analysis_function_index_asset_test.c",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/focused-v2-inputs/analysis_function_index_asset_test.c",
+      "sha256": "0ec9bd636101c7573e16baf49bc44c51cadfa0eed4475d8a6a07f9785d360b5d",
+      "bytes": 13190
+    },
+    {
+      "role": "original intermediate capture manifest",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\focused-v2-inputs\\manifest.json",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\focused-v2-inputs\\manifest.json",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/focused-v2-inputs/manifest.json",
+      "sha256": "e4e1bea4b29d022daf0aa15dc64dde8bb57451d8fd7e233b64fccef3128ba8c0",
+      "bytes": 321
+    },
+    {
+      "role": "captured intermediate diagnostic input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_function_index.inc",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\pre-v4-inputs\\ide\\src\\analysis\\frontend_function_index.inc",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/pre-v4-inputs/ide/src/analysis/frontend_function_index.inc",
+      "sha256": "0723e5ea108951b53e281cf1105a844663a46ef750e386a42d1857ab1a3553b4",
+      "bytes": 6539
+    },
+    {
+      "role": "captured intermediate diagnostic input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_index_budget.inc",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\pre-v4-inputs\\ide\\src\\analysis\\frontend_index_budget.inc",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/pre-v4-inputs/ide/src/analysis/frontend_index_budget.inc",
+      "sha256": "eaa9d88c0e38d43051570480c9460cd706be18fb5288b427334f75967caeb378",
+      "bytes": 6547
+    },
+    {
+      "role": "captured intermediate diagnostic input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_function_index_asset_test.c",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\pre-v4-inputs\\ide\\tests\\analysis_function_index_asset_test.c",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/pre-v4-inputs/ide/tests/analysis_function_index_asset_test.c",
+      "sha256": "8964d6293e33329a659fb8d1f1f8836e3ef1201465072e1dafedeb99956c7034",
+      "bytes": 13391
+    },
+    {
+      "role": "original intermediate capture manifest",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\pre-v4-inputs\\manifest.json",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\pre-v4-inputs\\manifest.json",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/pre-v4-inputs/manifest.json",
+      "sha256": "eb29ed0ee6477f65f1f96f0a66f43b34368a2729fdd079eae7f9064d2a5965a2",
+      "bytes": 969
+    },
+    {
+      "role": "original capture or validation controller",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\capture.json",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\capture.json",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/capture.json",
+      "sha256": "fd04348e41fee2e3f2b97d01d46b597a793fe7037842f28b6be4adb27eaa674f",
+      "bytes": 1749
+    },
+    {
+      "role": "original capture or validation controller",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\full-v1-inputs.json",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\full-v1-inputs.json",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/full-v1-inputs.json",
+      "sha256": "12dcd69a5421bda715c71db366dcc47620723e26610b354c0f6baa8f761f6296",
+      "bytes": 2251
+    },
+    {
+      "role": "original capture or validation controller",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\run-focused-v4.py",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\run-focused-v4.py",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/run-focused-v4.py",
+      "sha256": "81130a8ff836bf4376b02fcbd3b89347dbe153ea9fa331863e5538d21773ef7e",
+      "bytes": 3648
+    },
+    {
+      "role": "original capture or validation controller",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\run-validation-v1.py",
+      "preservedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\run-validation-v1.py",
+      "archivedPath": "dev/release-materials/sources/lsp-function-index-history-20261102/run-validation-v1.py",
+      "sha256": "a44182d863107dd5f185cbc16077d10e2afb2601d53998cb3a2435b474716170",
+      "bytes": 4815
+    }
+  ]
+}

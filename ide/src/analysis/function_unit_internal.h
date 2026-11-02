@@ -7,6 +7,7 @@
 #include "analysis/check.h"
 #include "analysis/frontend_internal.h"
 #include "analysis/typed_module_internal.h"
+#include "analysis/frontend_function_index.h"
 typedef struct xls_function_origin xls_function_origin;
 /* Borrow immutable captured rows only during a retained check. This report
  * VALUE excludes mutable validation/error fields;final owner validation still

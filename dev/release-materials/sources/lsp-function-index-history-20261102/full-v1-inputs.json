@@ -1,0 +1,22 @@
+{
+  "status": "fixed-before-full-v1",
+  "head": "bf24e6e47887e208665f49cb26d0ee03fea96424",
+  "inputs": {
+    "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_index.inc": "586deac2b5cb30c46e9af79a69c811ee8afe29d2bd2020f94bf7b7c683ffad82",
+    "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_index_budget.inc": "52f99c570a23a1e2e6ca2d2f999afce2c502b1d5b9ca4231fe2d05fd0040278f",
+    "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_index.h": "f80ba93a59a0bb907c953f244eeb6c278142c6a036aa77380d402ee949787319",
+    "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_entities.inc": "27179400b5474f2bcd61c573d17b9f8e33378566a96667d629c6583f7fd643e8",
+    "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_entity_versions.inc": "6a75d34034ec83ebcf26e9d2d55b86501cbfaf42e1aceccc8ba9b50c73b552f1",
+    "D:\\GIT\\x-lang\\ide\\tools\\native_index_overlay.py": "32cb5294742eb844558ad0a5f0866ddb7e670ec83432fe25711154688afa363c",
+    "D:\\GIT\\x-lang\\ide\\src\\analysis\\function_unit.c": "690e0fac6ae81f0ab429a121f557147f45e93f344b75a75306e1a8a534d76922",
+    "D:\\GIT\\x-lang\\ide\\src\\analysis\\function_unit_internal.h": "b7a1d5f43c9ab19cb3f1f24cb841d6f231ed74d542a09b50776889fd08a02676",
+    "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module.c": "1122c7fb53e249370b7951ed403b8f90f53dc03ca9597830389f5c595d8c513b",
+    "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module_internal.h": "c99e271796c223713cea551b9b1d8c08a6e4f85115c92c90743cff34580190e7",
+    "D:\\GIT\\x-lang\\ide\\src\\analysis\\check.c": "325467ab067be3180c6d61fa720a69a890c70f14772d9dd8087483004c1599d0",
+    "D:\\GIT\\x-lang\\ide\\tools\\build_lsp_core.py": "16ee3271fa1fd2720d992dbd9afaa6f82516101614180b4efd0a79442531b730",
+    "D:\\GIT\\x-lang\\ide\\src\\analysis\\function_unit.h": "0478a355d627815c43377d654ae4a00b485333e01a84a183c2bdacb54c5e3322",
+    "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_function_index.h": "7ee9307f3fef7907042c1df19b2c92331f9ec2befe56c78383ac5537e5d9277b",
+    "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_function_index.inc": "9854572edc3f74534036b71a1f866ffd2112d88fd037dcd65b008e8cdb5d9116",
+    "D:\\GIT\\x-lang\\ide\\tests\\analysis_function_index_asset_test.c": "2ff79a1e951030519c9165e41290d4b0361996accb2e753dd00945073a0409a5"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_function_index.inc": {
+    "archivedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\pre-v4-inputs\\ide\\src\\analysis\\frontend_function_index.inc",
+    "sha256": "0723e5ea108951b53e281cf1105a844663a46ef750e386a42d1857ab1a3553b4"
+  },
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_index_budget.inc": {
+    "archivedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\pre-v4-inputs\\ide\\src\\analysis\\frontend_index_budget.inc",
+    "sha256": "eaa9d88c0e38d43051570480c9460cd706be18fb5288b427334f75967caeb378"
+  },
+  "D:\\GIT\\x-lang\\ide\\tests\\analysis_function_index_asset_test.c": {
+    "archivedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\pre-v4-inputs\\ide\\tests\\analysis_function_index_asset_test.c",
+    "sha256": "8964d6293e33329a659fb8d1f1f8836e3ef1201465072e1dafedeb99956c7034"
+  }
+}

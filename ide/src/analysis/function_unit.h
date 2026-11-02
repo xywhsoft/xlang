@@ -55,7 +55,10 @@ typedef struct xls_function_source {
  * without cloning it or retaining that check/module. Other functions retain
  * the original independent clone path. Node/fact vectors remain demand-only;
  * ordinary completion/signature paths construct no such vectors.
- * byteLimit bounds known function AST plus unit vectors/canonical strings
+ * Original collector fact segments can also transfer without fact/string
+ * copies. Retained segment capacity and shared source metadata are charged;
+ * unrelated fact buffers,complete index directories and reports retire.
+ * byteLimit bounds known function AST plus unit vectors/fact storage/strings
  * and shared-owner metadata (conservatively charged in full to one unit);
  * max64MiB. Shared origin metadata has a separate max16MiB allowance.
  * Retained context/module/entity stores, native pool backing, allocator and transient maps

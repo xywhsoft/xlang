@@ -14,8 +14,8 @@ struct xls_function_origin {
 };
 struct xls_function_unit {
     xatomic32 references;XL6_AstNode* root;xls_function_origin* origin;
-    xls_typed_function* ownedFunction;xmap sizingSources;
-    xarray nodes,children,facts;size_t limit,treeBytes,stringBytes,ownerBytes,bytes;
+    xls_typed_function* ownedFunction;xls_function_index_asset* indexAsset;xmap sizingSources;
+    xarray nodes,children,facts;size_t limit,treeBytes,stringBytes,ownerBytes,factBytes,bytes;
 };
 static int stopped(const function_stop* stop){return stop->cancelled && stop->cancelled(stop->user);}
 static int copyNode(const XL6_AstNode* input,XL6_AstNode* output,void* user)
@@ -68,7 +68,7 @@ failed:xlsFunctionOriginRelease(o);return NULL;
 static int unitBytes(xls_function_unit* u)
 {
     size_t total=sizeof(*u);
-    if(!charge(&total,u->limit,u->treeBytes) || !charge(&total,u->limit,u->stringBytes) || !charge(&total,u->limit,u->ownerBytes) ||
+    if(!charge(&total,u->limit,u->treeBytes) || !charge(&total,u->limit,u->stringBytes) || !charge(&total,u->limit,u->ownerBytes) || !charge(&total,u->limit,u->factBytes) ||
        !charge(&total,u->limit,u->nodes.Capacity*sizeof(function_row)) ||
        !charge(&total,u->limit,u->children.Capacity*sizeof(uint32_t)) ||
        !charge(&total,u->limit,u->facts.Capacity*sizeof(xls_index_fact)))return 0;
@@ -119,6 +119,7 @@ void xlsFunctionUnitRelease(xls_function_unit* u)
     if(!u || xrtAtomic32FetchSub(&u->references,1,XMEMORY_ACQ_REL)!=1)return;
     for(size_t i=0;i<u->facts.Count;++i)xrtFree((char*)((xls_index_fact*)xrtArrayGet(&u->facts,i))->canonical);
     xrtArrayUnit(&u->nodes);xrtArrayUnit(&u->children);xrtArrayUnit(&u->facts);xrtMapUnit(&u->sizingSources);
+    xlsFunctionIndexAssetRelease(u->indexAsset);
     if(u->ownedFunction)xlsTypedFunctionRelease(u->ownedFunction);else xl6AstFree(u->root);
     xlsFunctionOriginRelease(u->origin);xrtFree(u);
 }
@@ -132,11 +133,17 @@ static xls_function_unit* capture(const XL6_AstNode* root,xls_typed_function* ow
     if(owned){
         if(xlsTypedFunctionRoot(owned)!=root || !xrtMapInit(&u->sizingSources,sizeof(unsigned char)))goto failed;
         u->ownedFunction=xlsTypedFunctionRetain(owned);u->root=(XL6_AstNode*)root;u->ownerBytes=xlsTypedFunctionMetadataBytes(owned);
+        u->indexAsset=xlsFrontendIndexFunctionAsset(index,owned);
+        if(u->indexAsset){
+            xls_function_index_info info=xlsFunctionIndexAssetInfo(u->indexAsset);
+            if(info.sharedBytes>SIZE_MAX-u->ownerBytes || info.canonicalBytes>SIZE_MAX-info.recordBytes)goto failed;
+            u->ownerBytes+=info.sharedBytes;u->factBytes=info.recordBytes+info.canonicalBytes;
+        }
     }else u->root=xlsAstClone(root,&(xls_ast_clone_options){copyNode,&stop,bytes-sizeof(*u),0,NULL},&u->treeBytes);
     if(!u->root || !xrtArrayInit(&u->nodes,sizeof(function_row)) || !xrtArrayInit(&u->children,sizeof(uint32_t)) || !xrtArrayInit(&u->facts,sizeof(xls_index_fact)))goto failed;
     uint32_t id;if(!rows(u,u->root,0,0,&id,&stop) || id!=1)goto failed;
     size_t first=0,count=0;
-    if(index && (!xlsFrontendIndexFunctionSpan(index,root,&first,&count) ||
+    if(index && !u->indexAsset && (!xlsFrontendIndexFunctionSpan(index,root,&first,&count) ||
        !xrtArrayResize(&u->facts,count) || !unitBytes(u)))goto failed;
     for(size_t i=0;i<count;++i){
         if(stopped(&stop))goto failed;
@@ -182,10 +189,17 @@ xls_function_info xlsFunctionUnitInfo(const xls_function_unit* u)
     if(!u)return(xls_function_info){0};
     xls_entity_view_info entities=xlsEntityViewInfo(u->origin->entities);
     const char* name=u->root->childCount && u->root->children[0] ? u->root->children[0]->text : NULL;
-    return(xls_function_info){name,xl6AstSourcePath(u->root),u->nodes.Count,u->facts.Count,u->treeBytes,u->bytes,u->origin->bytes,entities.domain,u->root->semanticSymbolId};
+    size_t facts=u->indexAsset ? xlsFunctionIndexAssetInfo(u->indexAsset).facts : u->facts.Count;
+    return(xls_function_info){name,xl6AstSourcePath(u->root),u->nodes.Count,facts,u->treeBytes,u->bytes,u->origin->bytes,entities.domain,u->root->semanticSymbolId};
 }
 int xlsFunctionUnitFact(const xls_function_unit* u,size_t at,xls_index_fact* out)
-{if(out)*out=(xls_index_fact){0};if(!u || !out || at>=u->facts.Count)return 0;*out=*(const xls_index_fact*)xrtArrayConstGet(&u->facts,at);return 1;}
+{
+    if(out)*out=(xls_index_fact){0};
+    if(!u || !out)return 0;
+    if(u->indexAsset)return xlsFunctionIndexAssetFact(u->indexAsset,at,out);
+    if(at>=u->facts.Count)return 0;
+    *out=*(const xls_index_fact*)xrtArrayConstGet(&u->facts,at);return 1;
+}
 int xlsFunctionUnitInputs(const xls_function_unit* u,xls_inputs* out)
 {if(out)*out=(xls_inputs){0};if(!u || !out)return 0;xls_function_origin* o=u->origin;*out=(xls_inputs){o->sources.Count,o->probes.Count,o->packagePath,o->packagePathObserved};return 1;}
 int xlsFunctionUnitSource(const xls_function_unit* u,size_t at,xls_function_source* out)

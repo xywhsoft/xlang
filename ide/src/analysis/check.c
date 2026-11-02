@@ -183,6 +183,7 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
              * for a failed attempt as well as the independent fresh API. */
             XL6_DiagList attempted;xl6DiagInit(&attempted);
             r->typedModule=xlsTypedModuleTake(r->parse.root);
+            if(r->typedModule)xlsFrontendIndexBindFunctions(r->typedIndex,r->typedModule);
             int prepared=0;
             if(r->typedModule && irBaseline && r->semanticWork.contextHits && xlsFrontendSemMemoInputCandidate(r->memo))
                 prepared=xlsFrontendIrResultPreparePersistent((xls_ir_result*)irBaseline,32u*1024u*1024u);
