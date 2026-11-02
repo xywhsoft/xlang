@@ -177,7 +177,9 @@ static void xlsSemIrFinalizeMemo(xls_sem_memo* memo,const XL6_AstNode* root,
         const xls_sem_ir_receipt* before=old && old->unit==entry->unit ? old->finalInput : NULL;
         size_t left=memo->bytes<=XLS_SEM_MEMO_BYTES ? XLS_SEM_MEMO_BYTES-memo->bytes : 0;
         if(left>budget-retained)left=budget-retained;
-        entry->finalInput=xlsSemIrReceipt(root->children[i],entry->unit,before,left);
+        if(entry->nativePlaced && before && before->bytes<=left &&
+           root->children[i]==xlsTypedFunctionRoot(entry->native))entry->finalInput=xlsSemIrReceiptRetain((xls_sem_ir_receipt*)before);
+        else entry->finalInput=xlsSemIrReceipt(root->children[i],entry->unit,before,left);
         if(entry->finalInput){memo->bytes+=entry->finalInput->bytes;retained+=entry->finalInput->bytes;}
     }
     if(!xlsFrontendCancelObserved())memo->finalizedRoot=root;

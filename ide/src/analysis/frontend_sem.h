@@ -63,6 +63,17 @@ void xlsFrontendSemFinalEnd(xls_sem_final_control*);
 xls_sem_final_work xlsFrontendSemMemoFinalWork(const xls_sem_memo*);
 struct xls_semantic_check;
 xls_sem_final_work xlsSemanticCheckFinalWork(const struct xls_semantic_check*);
+typedef struct xls_sem_native_control {struct xls_sem_native_control* previous;size_t bytes;} xls_sem_native_control;
+typedef struct xls_sem_native_work {uint64_t retained,owners,reused,retries,readonlyDeclined;size_t bytes;} xls_sem_native_work;
+void xlsFrontendSemNativeBegin(xls_sem_native_control*,size_t bytes);
+void xlsFrontendSemNativeEnd(xls_sem_native_control*);
+size_t xlsFrontendSemNativeBudget(void);
+/* Construction-only owner binding;no check/report/old module retention. */
+void xlsFrontendSemMemoBindFunctions(xls_sem_memo*,struct xls_typed_module*);
+struct xls_typed_module* xlsFrontendSemMemoTakeModule(xls_sem_memo*,XL6_AstNode*);
+void xlsFrontendSemMemoDetachNative(xls_sem_memo*,XL6_AstNode*);
+xls_sem_native_work xlsFrontendSemMemoNativeWork(const xls_sem_memo*);
+xls_sem_native_work xlsSemanticCheckNativeWork(const struct xls_semantic_check*);
 #endif
 typedef struct xls_sem_storage_work { uint64_t nodes,pages,chargedBytes,heapFallbacks; } xls_sem_storage_work;
 typedef struct xls_sem_storage_control {

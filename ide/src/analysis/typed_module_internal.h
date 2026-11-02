@@ -25,6 +25,14 @@ size_t xlsTypedFunctionMetadataBytes(const xls_typed_function*);
 /* Stable while a function reference lives. Deduplicate known metadata only;
  * never use this opaque owner identity as an input or semantic equality key. */
 const void* xlsTypedFunctionMetadataOwner(const xls_typed_function*);
+/* Construction-private,once before publication. Snapshot fresh native forests
+ * with full known shared pool backing upper bounds,children/strings/sources.
+ * No reads/writes of source lifetime counters. Borrowed forests keep their
+ * original snapshot. Failure declines retention,never the semantic tree. */
+int xlsTypedModuleMeasureFunctions(xls_typed_module*,size_t limit,int (*cancelled)(void*),void*);
+/* Conservative known bytes for the ENTIRE original native forest group.
+ * Zero means unmeasured. Immutable after publication;not a freshness proof. */
+size_t xlsTypedFunctionKnownBytes(const xls_typed_function*);
 /* Original module child slot;SIZE_MAX for NULL. Ownership identity only. */
 size_t xlsTypedFunctionRootSlot(const xls_typed_function*);
 /* Optional independent owner identity. Borrowed while the module lives;

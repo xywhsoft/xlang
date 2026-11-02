@@ -1,0 +1,1190 @@
+{
+  "schema": 1,
+  "phase": "M7a2b112",
+  "scope": "Raw source history and fixed controllers,not a runtime or complete product closure. Existing failed reports retain bytes and recorded paths.",
+  "entries": [
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\ast_storage.c",
+      "archivedPath": "previous-ide-inputs/ide/src/analysis/ast_storage.c",
+      "sha256": "276d337114d7714b1ca5dd320104549e8364d342fc29d138ed7755b0afe85d63",
+      "bytes": 3021
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\ast_storage.h",
+      "archivedPath": "previous-ide-inputs/ide/src/analysis/ast_storage.h",
+      "sha256": "a9fe1dfb837569d74ab3206cb8b7d0b1b01806b05577bd3c78e63be19f15ba7f",
+      "bytes": 1492
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\check.c",
+      "archivedPath": "previous-ide-inputs/ide/src/analysis/check.c",
+      "sha256": "20a610856ef0ac3e3513ceeb4212f2946d27b62428c4515a231a590c616540da",
+      "bytes": 31351
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_raw_body.c",
+      "archivedPath": "previous-ide-inputs/ide/src/analysis/frontend_raw_body.c",
+      "sha256": "b8f87801bca9cdd328c9148f20597cc914de32f9e67721bb8097ad86957fedc2",
+      "bytes": 5493
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_raw_body.h",
+      "archivedPath": "previous-ide-inputs/ide/src/analysis/frontend_raw_body.h",
+      "sha256": "2a52786d2377546a89dfb1b25f6d927ea597c95f5e7e96cfe7a2226d7b9cefd6",
+      "bytes": 2997
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_sem.h",
+      "archivedPath": "previous-ide-inputs/ide/src/analysis/frontend_sem.h",
+      "sha256": "04125af95bb2758b8dca7911dc7cb908bee74823fe95cba0d22e67f4fb49f174",
+      "bytes": 16104
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_sem.inc",
+      "archivedPath": "previous-ide-inputs/ide/src/analysis/frontend_sem.inc",
+      "sha256": "d6641c1e8de1eb4f3f7a432cab5a2858fa0da375fdbb7000c32c4fb80aeab94e",
+      "bytes": 79267
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_sem_final.inc",
+      "archivedPath": "previous-ide-inputs/ide/src/analysis/frontend_sem_final.inc",
+      "sha256": "962754d2009fe1a8559871986e8d0f525ed4eba3dfa43cf7167edefd209a3d9e",
+      "bytes": 11070
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_sem_ir.inc",
+      "archivedPath": "previous-ide-inputs/ide/src/analysis/frontend_sem_ir.inc",
+      "sha256": "baa5d71ecd46b812a9264a3886394e73c19ee54a1ce7f8ac9d679390ed947659",
+      "bytes": 10780
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_sem_raw.inc",
+      "archivedPath": "previous-ide-inputs/ide/src/analysis/frontend_sem_raw.inc",
+      "sha256": "25e09e69350a706c22881981086e2806db564b3f9300bc4ca149308944187087",
+      "bytes": 15960
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_sem_tail.inc",
+      "archivedPath": "previous-ide-inputs/ide/src/analysis/frontend_sem_tail.inc",
+      "sha256": "df499ce0ed55f45a46866b1b57c2bee9f35e52a8f3996646c9e6fce5b911f5e2",
+      "bytes": 6161
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\function_unit.c",
+      "archivedPath": "previous-ide-inputs/ide/src/analysis/function_unit.c",
+      "sha256": "a0e6f79b619cd4bdc4e9d75bd940e9563913dc7e578986c8df1f6509368d9581",
+      "bytes": 26743
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\typed_module.c",
+      "archivedPath": "previous-ide-inputs/ide/src/analysis/typed_module.c",
+      "sha256": "3c18ed29f86b0d232100f9c037ecda21e6d418d9cb649e53173364852f720096",
+      "bytes": 7678
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\typed_module_internal.h",
+      "archivedPath": "previous-ide-inputs/ide/src/analysis/typed_module_internal.h",
+      "sha256": "f25a6059e271c0a30a53b56bae447719a5817125cf08a24e61fc9baa806e696b",
+      "bytes": 2824
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\tests\\analysis_check_materialize_test.c",
+      "archivedPath": "previous-ide-inputs/ide/tests/analysis_check_materialize_test.c",
+      "sha256": "7aa833291e31450a384bbf0c0f5148b49e05bd7c243f4e85b3db896a45d91c48",
+      "bytes": 9567
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\tools\\build_lsp_core.py",
+      "archivedPath": "previous-ide-inputs/ide/tools/build_lsp_core.py",
+      "sha256": "5d30887dbaf7caeeb9a32d1deae0085f4193c3c4be0c6d3b33870c8b369a2225",
+      "bytes": 77059
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\build\\Release\\lsp-native-borrow-20261102\\run-focused-v1.py",
+      "archivedPath": "diagnostic-history/focused-v1/ide/build/Release/lsp-native-borrow-20261102/run-focused-v1.py",
+      "sha256": "9dc2d09718cec85ee8531a39e01e76ad9c6258ab337a17e6d41e2cf865b7bc34",
+      "bytes": 3250
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\src\\analysis\\ast_size.c",
+      "archivedPath": "diagnostic-history/focused-v1/ide/src/analysis/ast_size.c",
+      "sha256": "9c8d0d0abf94d7a7c4b0561161280ec2e22c028f2cb4b40f4070be9fed4c72d0",
+      "bytes": 2608
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\src\\analysis\\ast_size.h",
+      "archivedPath": "diagnostic-history/focused-v1/ide/src/analysis/ast_size.h",
+      "sha256": "6e0f0bc96923c9bdba624354b39725646cd082e281ab34f225f71d2088ffdef1",
+      "bytes": 770
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\src\\analysis\\ast_storage.c",
+      "archivedPath": "diagnostic-history/focused-v1/ide/src/analysis/ast_storage.c",
+      "sha256": "276d337114d7714b1ca5dd320104549e8364d342fc29d138ed7755b0afe85d63",
+      "bytes": 3021
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\src\\analysis\\ast_storage.h",
+      "archivedPath": "diagnostic-history/focused-v1/ide/src/analysis/ast_storage.h",
+      "sha256": "a9fe1dfb837569d74ab3206cb8b7d0b1b01806b05577bd3c78e63be19f15ba7f",
+      "bytes": 1492
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\src\\analysis\\check.c",
+      "archivedPath": "diagnostic-history/focused-v1/ide/src/analysis/check.c",
+      "sha256": "8b60a841ace3a7afe1a09612fac2fb6a0ddbab17b6c3125841747245488ac930",
+      "bytes": 33999
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\src\\analysis\\frontend_raw_body.c",
+      "archivedPath": "diagnostic-history/focused-v1/ide/src/analysis/frontend_raw_body.c",
+      "sha256": "b8f87801bca9cdd328c9148f20597cc914de32f9e67721bb8097ad86957fedc2",
+      "bytes": 5493
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\src\\analysis\\frontend_raw_body.h",
+      "archivedPath": "diagnostic-history/focused-v1/ide/src/analysis/frontend_raw_body.h",
+      "sha256": "76bd4ea21973c0dfc3b04ba4a0be6c835b58d27d4c23fc84920628c0d10eeb86",
+      "bytes": 3006
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\src\\analysis\\frontend_sem.h",
+      "archivedPath": "diagnostic-history/focused-v1/ide/src/analysis/frontend_sem.h",
+      "sha256": "ec9844f88ed2b32f1c016493c111cde7aa8fadaff4594f80aca90f861790f654",
+      "bytes": 16955
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\src\\analysis\\frontend_sem.inc",
+      "archivedPath": "diagnostic-history/focused-v1/ide/src/analysis/frontend_sem.inc",
+      "sha256": "83a10e1d2422cb16a24ebaf8421b5abf2acec3dfcd51665ce2a2dcd0738627c9",
+      "bytes": 80445
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\src\\analysis\\frontend_sem_final.inc",
+      "archivedPath": "diagnostic-history/focused-v1/ide/src/analysis/frontend_sem_final.inc",
+      "sha256": "32fdc7ba53cf31b15dd01cce1322c2774b47451bd439f455c8653c096ad4f270",
+      "bytes": 13523
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\src\\analysis\\frontend_sem_ir.inc",
+      "archivedPath": "diagnostic-history/focused-v1/ide/src/analysis/frontend_sem_ir.inc",
+      "sha256": "e82688b1223b59912cabfc6d3f746670f75eefb2059d1f96c3e0ae04f2be2a85",
+      "bytes": 10988
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\src\\analysis\\frontend_sem_native.inc",
+      "archivedPath": "diagnostic-history/focused-v1/ide/src/analysis/frontend_sem_native.inc",
+      "sha256": "e1c2ee11876cde75abc013eb04f6bf11be1c94090aafe4f67264bcb5e2fd8427",
+      "bytes": 4771
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\src\\analysis\\frontend_sem_raw.inc",
+      "archivedPath": "diagnostic-history/focused-v1/ide/src/analysis/frontend_sem_raw.inc",
+      "sha256": "2400099d222f8959f87dc2ad4905787f91276b43b328d0b774d161a69f82ebd4",
+      "bytes": 17510
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\src\\analysis\\frontend_sem_tail.inc",
+      "archivedPath": "diagnostic-history/focused-v1/ide/src/analysis/frontend_sem_tail.inc",
+      "sha256": "642700e984f2c207e9c91f86cc477a491c5192e03c3502fcd44fe28e5f797a69",
+      "bytes": 6179
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\src\\analysis\\function_unit.c",
+      "archivedPath": "diagnostic-history/focused-v1/ide/src/analysis/function_unit.c",
+      "sha256": "7d8eb09cd9c2465af42b77a5723d63ab76b4037ad9f62c5248470cb5e7832aff",
+      "bytes": 25727
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\src\\analysis\\typed_module.c",
+      "archivedPath": "diagnostic-history/focused-v1/ide/src/analysis/typed_module.c",
+      "sha256": "4a521e47c969705a503230fbddfccd796102f9fd2e86eee131b473e508baa2df",
+      "bytes": 8475
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\src\\analysis\\typed_module_internal.h",
+      "archivedPath": "diagnostic-history/focused-v1/ide/src/analysis/typed_module_internal.h",
+      "sha256": "eb6b36f19d9155341f4ef71d6c0fe76402a0c3b3c2ed9ac32923ac553b3359e2",
+      "bytes": 3447
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\tests\\analysis_native_borrow_test.c",
+      "archivedPath": "diagnostic-history/focused-v1/ide/tests/analysis_native_borrow_test.c",
+      "sha256": "62b08798d1fcbeee77a8a2f2a04f722a508dc65eb730b9b29420b32cb5ca0be3",
+      "bytes": 4620
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\ide\\tools\\build_lsp_core.py",
+      "archivedPath": "diagnostic-history/focused-v1/ide/tools/build_lsp_core.py",
+      "sha256": "350c14b95f86fa83918a32c07b60fd55a55f95e6c77fe402eb058da23707827b",
+      "bytes": 77567
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v1\\manifest.json",
+      "archivedPath": "diagnostic-history/focused-v1/manifest.json",
+      "sha256": "e7218a3bef41e69e41426265d5eda3986335e78e0a321d9ed8bd30ccf71e4dc4",
+      "bytes": 5523
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\build\\Release\\lsp-native-borrow-20261102\\run-focused-v2.py",
+      "archivedPath": "diagnostic-history/focused-v2/ide/build/Release/lsp-native-borrow-20261102/run-focused-v2.py",
+      "sha256": "a61cc9d9cf3d8f3abac285903b324c82bef674e3c3a2c43a9b4f0d9d5ed60149",
+      "bytes": 3319
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\src\\analysis\\ast_size.c",
+      "archivedPath": "diagnostic-history/focused-v2/ide/src/analysis/ast_size.c",
+      "sha256": "9c8d0d0abf94d7a7c4b0561161280ec2e22c028f2cb4b40f4070be9fed4c72d0",
+      "bytes": 2608
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\src\\analysis\\ast_size.h",
+      "archivedPath": "diagnostic-history/focused-v2/ide/src/analysis/ast_size.h",
+      "sha256": "6e0f0bc96923c9bdba624354b39725646cd082e281ab34f225f71d2088ffdef1",
+      "bytes": 770
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\src\\analysis\\ast_storage.c",
+      "archivedPath": "diagnostic-history/focused-v2/ide/src/analysis/ast_storage.c",
+      "sha256": "276d337114d7714b1ca5dd320104549e8364d342fc29d138ed7755b0afe85d63",
+      "bytes": 3021
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\src\\analysis\\ast_storage.h",
+      "archivedPath": "diagnostic-history/focused-v2/ide/src/analysis/ast_storage.h",
+      "sha256": "a9fe1dfb837569d74ab3206cb8b7d0b1b01806b05577bd3c78e63be19f15ba7f",
+      "bytes": 1492
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\src\\analysis\\check.c",
+      "archivedPath": "diagnostic-history/focused-v2/ide/src/analysis/check.c",
+      "sha256": "8b60a841ace3a7afe1a09612fac2fb6a0ddbab17b6c3125841747245488ac930",
+      "bytes": 33999
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\src\\analysis\\frontend_raw_body.c",
+      "archivedPath": "diagnostic-history/focused-v2/ide/src/analysis/frontend_raw_body.c",
+      "sha256": "b8f87801bca9cdd328c9148f20597cc914de32f9e67721bb8097ad86957fedc2",
+      "bytes": 5493
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\src\\analysis\\frontend_raw_body.h",
+      "archivedPath": "diagnostic-history/focused-v2/ide/src/analysis/frontend_raw_body.h",
+      "sha256": "76bd4ea21973c0dfc3b04ba4a0be6c835b58d27d4c23fc84920628c0d10eeb86",
+      "bytes": 3006
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\src\\analysis\\frontend_sem.h",
+      "archivedPath": "diagnostic-history/focused-v2/ide/src/analysis/frontend_sem.h",
+      "sha256": "ec9844f88ed2b32f1c016493c111cde7aa8fadaff4594f80aca90f861790f654",
+      "bytes": 16955
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\src\\analysis\\frontend_sem.inc",
+      "archivedPath": "diagnostic-history/focused-v2/ide/src/analysis/frontend_sem.inc",
+      "sha256": "83a10e1d2422cb16a24ebaf8421b5abf2acec3dfcd51665ce2a2dcd0738627c9",
+      "bytes": 80445
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\src\\analysis\\frontend_sem_final.inc",
+      "archivedPath": "diagnostic-history/focused-v2/ide/src/analysis/frontend_sem_final.inc",
+      "sha256": "32fdc7ba53cf31b15dd01cce1322c2774b47451bd439f455c8653c096ad4f270",
+      "bytes": 13523
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\src\\analysis\\frontend_sem_ir.inc",
+      "archivedPath": "diagnostic-history/focused-v2/ide/src/analysis/frontend_sem_ir.inc",
+      "sha256": "e82688b1223b59912cabfc6d3f746670f75eefb2059d1f96c3e0ae04f2be2a85",
+      "bytes": 10988
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\src\\analysis\\frontend_sem_native.inc",
+      "archivedPath": "diagnostic-history/focused-v2/ide/src/analysis/frontend_sem_native.inc",
+      "sha256": "e1c2ee11876cde75abc013eb04f6bf11be1c94090aafe4f67264bcb5e2fd8427",
+      "bytes": 4771
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\src\\analysis\\frontend_sem_raw.inc",
+      "archivedPath": "diagnostic-history/focused-v2/ide/src/analysis/frontend_sem_raw.inc",
+      "sha256": "2400099d222f8959f87dc2ad4905787f91276b43b328d0b774d161a69f82ebd4",
+      "bytes": 17510
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\src\\analysis\\frontend_sem_tail.inc",
+      "archivedPath": "diagnostic-history/focused-v2/ide/src/analysis/frontend_sem_tail.inc",
+      "sha256": "642700e984f2c207e9c91f86cc477a491c5192e03c3502fcd44fe28e5f797a69",
+      "bytes": 6179
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\src\\analysis\\function_unit.c",
+      "archivedPath": "diagnostic-history/focused-v2/ide/src/analysis/function_unit.c",
+      "sha256": "7d8eb09cd9c2465af42b77a5723d63ab76b4037ad9f62c5248470cb5e7832aff",
+      "bytes": 25727
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\src\\analysis\\typed_module.c",
+      "archivedPath": "diagnostic-history/focused-v2/ide/src/analysis/typed_module.c",
+      "sha256": "4a521e47c969705a503230fbddfccd796102f9fd2e86eee131b473e508baa2df",
+      "bytes": 8475
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\src\\analysis\\typed_module_internal.h",
+      "archivedPath": "diagnostic-history/focused-v2/ide/src/analysis/typed_module_internal.h",
+      "sha256": "eb6b36f19d9155341f4ef71d6c0fe76402a0c3b3c2ed9ac32923ac553b3359e2",
+      "bytes": 3447
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\tests\\analysis_native_borrow_test.c",
+      "archivedPath": "diagnostic-history/focused-v2/ide/tests/analysis_native_borrow_test.c",
+      "sha256": "4cce9650421cfb0e5b4a1d1932e27e10ef26a0266b9756e83cb94b9005a65ea7",
+      "bytes": 5679
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\ide\\tools\\build_lsp_core.py",
+      "archivedPath": "diagnostic-history/focused-v2/ide/tools/build_lsp_core.py",
+      "sha256": "57806825763ab8da70bea7d72a67886ba2d2937e5da2d2fe1b227d975df30db7",
+      "bytes": 77673
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v2\\manifest.json",
+      "archivedPath": "diagnostic-history/focused-v2/manifest.json",
+      "sha256": "a3ad926f89a2dd8d28c568c66c1e9823e42bbab268c4b095c2f64fd074d777e1",
+      "bytes": 5523
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\build\\Release\\lsp-native-borrow-20261102\\run-focused-v3.py",
+      "archivedPath": "diagnostic-history/focused-v3/ide/build/Release/lsp-native-borrow-20261102/run-focused-v3.py",
+      "sha256": "863dc57f20828611b8993bb029c47bb1bb96ae591ef925c0db01c0d791b58d31",
+      "bytes": 3319
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\ast_size.c",
+      "archivedPath": "diagnostic-history/focused-v3/ide/src/analysis/ast_size.c",
+      "sha256": "9c8d0d0abf94d7a7c4b0561161280ec2e22c028f2cb4b40f4070be9fed4c72d0",
+      "bytes": 2608
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\ast_size.h",
+      "archivedPath": "diagnostic-history/focused-v3/ide/src/analysis/ast_size.h",
+      "sha256": "6e0f0bc96923c9bdba624354b39725646cd082e281ab34f225f71d2088ffdef1",
+      "bytes": 770
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\ast_storage.c",
+      "archivedPath": "diagnostic-history/focused-v3/ide/src/analysis/ast_storage.c",
+      "sha256": "276d337114d7714b1ca5dd320104549e8364d342fc29d138ed7755b0afe85d63",
+      "bytes": 3021
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\ast_storage.h",
+      "archivedPath": "diagnostic-history/focused-v3/ide/src/analysis/ast_storage.h",
+      "sha256": "a9fe1dfb837569d74ab3206cb8b7d0b1b01806b05577bd3c78e63be19f15ba7f",
+      "bytes": 1492
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\check.c",
+      "archivedPath": "diagnostic-history/focused-v3/ide/src/analysis/check.c",
+      "sha256": "8b60a841ace3a7afe1a09612fac2fb6a0ddbab17b6c3125841747245488ac930",
+      "bytes": 33999
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_raw_body.c",
+      "archivedPath": "diagnostic-history/focused-v3/ide/src/analysis/frontend_raw_body.c",
+      "sha256": "b8f87801bca9cdd328c9148f20597cc914de32f9e67721bb8097ad86957fedc2",
+      "bytes": 5493
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_raw_body.h",
+      "archivedPath": "diagnostic-history/focused-v3/ide/src/analysis/frontend_raw_body.h",
+      "sha256": "76bd4ea21973c0dfc3b04ba4a0be6c835b58d27d4c23fc84920628c0d10eeb86",
+      "bytes": 3006
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_sem.h",
+      "archivedPath": "diagnostic-history/focused-v3/ide/src/analysis/frontend_sem.h",
+      "sha256": "fb7a6cb2d59ff8c46b7679c4fba5f5a916a83901493726980ce7b4e14bde67b0",
+      "bytes": 16972
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_sem.inc",
+      "archivedPath": "diagnostic-history/focused-v3/ide/src/analysis/frontend_sem.inc",
+      "sha256": "83a10e1d2422cb16a24ebaf8421b5abf2acec3dfcd51665ce2a2dcd0738627c9",
+      "bytes": 80445
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_sem_final.inc",
+      "archivedPath": "diagnostic-history/focused-v3/ide/src/analysis/frontend_sem_final.inc",
+      "sha256": "32fdc7ba53cf31b15dd01cce1322c2774b47451bd439f455c8653c096ad4f270",
+      "bytes": 13523
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_sem_ir.inc",
+      "archivedPath": "diagnostic-history/focused-v3/ide/src/analysis/frontend_sem_ir.inc",
+      "sha256": "e82688b1223b59912cabfc6d3f746670f75eefb2059d1f96c3e0ae04f2be2a85",
+      "bytes": 10988
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_sem_native.inc",
+      "archivedPath": "diagnostic-history/focused-v3/ide/src/analysis/frontend_sem_native.inc",
+      "sha256": "57e09d30cf789ad9b3e6ca41a1564ba0d326bb1c10a9f91bbc0c99ea014d559d",
+      "bytes": 4876
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_sem_raw.inc",
+      "archivedPath": "diagnostic-history/focused-v3/ide/src/analysis/frontend_sem_raw.inc",
+      "sha256": "2400099d222f8959f87dc2ad4905787f91276b43b328d0b774d161a69f82ebd4",
+      "bytes": 17510
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_sem_tail.inc",
+      "archivedPath": "diagnostic-history/focused-v3/ide/src/analysis/frontend_sem_tail.inc",
+      "sha256": "642700e984f2c207e9c91f86cc477a491c5192e03c3502fcd44fe28e5f797a69",
+      "bytes": 6179
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\function_unit.c",
+      "archivedPath": "diagnostic-history/focused-v3/ide/src/analysis/function_unit.c",
+      "sha256": "7d8eb09cd9c2465af42b77a5723d63ab76b4037ad9f62c5248470cb5e7832aff",
+      "bytes": 25727
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\typed_module.c",
+      "archivedPath": "diagnostic-history/focused-v3/ide/src/analysis/typed_module.c",
+      "sha256": "4a521e47c969705a503230fbddfccd796102f9fd2e86eee131b473e508baa2df",
+      "bytes": 8475
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\typed_module_internal.h",
+      "archivedPath": "diagnostic-history/focused-v3/ide/src/analysis/typed_module_internal.h",
+      "sha256": "eb6b36f19d9155341f4ef71d6c0fe76402a0c3b3c2ed9ac32923ac553b3359e2",
+      "bytes": 3447
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\tests\\analysis_native_borrow_test.c",
+      "archivedPath": "diagnostic-history/focused-v3/ide/tests/analysis_native_borrow_test.c",
+      "sha256": "6e8a94cf116ccb4fce65774d6cd8a4febc57279105ebe97efd99958a0d4f23dc",
+      "bytes": 11652
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\tools\\build_lsp_core.py",
+      "archivedPath": "diagnostic-history/focused-v3/ide/tools/build_lsp_core.py",
+      "sha256": "57806825763ab8da70bea7d72a67886ba2d2937e5da2d2fe1b227d975df30db7",
+      "bytes": 77673
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\manifest.json",
+      "archivedPath": "diagnostic-history/focused-v3/manifest.json",
+      "sha256": "cdce4a7aa603023c181e91f92a1034cbb1b3428b3ac23d920f35cd2790f0258f",
+      "bytes": 5523
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\src\\analysis\\ast_size.c",
+      "archivedPath": "diagnostic-history/full-v1/ide/src/analysis/ast_size.c",
+      "sha256": "9c8d0d0abf94d7a7c4b0561161280ec2e22c028f2cb4b40f4070be9fed4c72d0",
+      "bytes": 2608
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\src\\analysis\\ast_size.h",
+      "archivedPath": "diagnostic-history/full-v1/ide/src/analysis/ast_size.h",
+      "sha256": "6e0f0bc96923c9bdba624354b39725646cd082e281ab34f225f71d2088ffdef1",
+      "bytes": 770
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\src\\analysis\\ast_storage.c",
+      "archivedPath": "diagnostic-history/full-v1/ide/src/analysis/ast_storage.c",
+      "sha256": "276d337114d7714b1ca5dd320104549e8364d342fc29d138ed7755b0afe85d63",
+      "bytes": 3021
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\src\\analysis\\ast_storage.h",
+      "archivedPath": "diagnostic-history/full-v1/ide/src/analysis/ast_storage.h",
+      "sha256": "a9fe1dfb837569d74ab3206cb8b7d0b1b01806b05577bd3c78e63be19f15ba7f",
+      "bytes": 1492
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\src\\analysis\\check.c",
+      "archivedPath": "diagnostic-history/full-v1/ide/src/analysis/check.c",
+      "sha256": "8b60a841ace3a7afe1a09612fac2fb6a0ddbab17b6c3125841747245488ac930",
+      "bytes": 33999
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\src\\analysis\\frontend_raw_body.c",
+      "archivedPath": "diagnostic-history/full-v1/ide/src/analysis/frontend_raw_body.c",
+      "sha256": "b8f87801bca9cdd328c9148f20597cc914de32f9e67721bb8097ad86957fedc2",
+      "bytes": 5493
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\src\\analysis\\frontend_raw_body.h",
+      "archivedPath": "diagnostic-history/full-v1/ide/src/analysis/frontend_raw_body.h",
+      "sha256": "76bd4ea21973c0dfc3b04ba4a0be6c835b58d27d4c23fc84920628c0d10eeb86",
+      "bytes": 3006
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\src\\analysis\\frontend_sem.h",
+      "archivedPath": "diagnostic-history/full-v1/ide/src/analysis/frontend_sem.h",
+      "sha256": "fb7a6cb2d59ff8c46b7679c4fba5f5a916a83901493726980ce7b4e14bde67b0",
+      "bytes": 16972
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\src\\analysis\\frontend_sem.inc",
+      "archivedPath": "diagnostic-history/full-v1/ide/src/analysis/frontend_sem.inc",
+      "sha256": "83a10e1d2422cb16a24ebaf8421b5abf2acec3dfcd51665ce2a2dcd0738627c9",
+      "bytes": 80445
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\src\\analysis\\frontend_sem_final.inc",
+      "archivedPath": "diagnostic-history/full-v1/ide/src/analysis/frontend_sem_final.inc",
+      "sha256": "32fdc7ba53cf31b15dd01cce1322c2774b47451bd439f455c8653c096ad4f270",
+      "bytes": 13523
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\src\\analysis\\frontend_sem_ir.inc",
+      "archivedPath": "diagnostic-history/full-v1/ide/src/analysis/frontend_sem_ir.inc",
+      "sha256": "e82688b1223b59912cabfc6d3f746670f75eefb2059d1f96c3e0ae04f2be2a85",
+      "bytes": 10988
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\src\\analysis\\frontend_sem_native.inc",
+      "archivedPath": "diagnostic-history/full-v1/ide/src/analysis/frontend_sem_native.inc",
+      "sha256": "57e09d30cf789ad9b3e6ca41a1564ba0d326bb1c10a9f91bbc0c99ea014d559d",
+      "bytes": 4876
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\src\\analysis\\frontend_sem_raw.inc",
+      "archivedPath": "diagnostic-history/full-v1/ide/src/analysis/frontend_sem_raw.inc",
+      "sha256": "2400099d222f8959f87dc2ad4905787f91276b43b328d0b774d161a69f82ebd4",
+      "bytes": 17510
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\src\\analysis\\frontend_sem_tail.inc",
+      "archivedPath": "diagnostic-history/full-v1/ide/src/analysis/frontend_sem_tail.inc",
+      "sha256": "642700e984f2c207e9c91f86cc477a491c5192e03c3502fcd44fe28e5f797a69",
+      "bytes": 6179
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\src\\analysis\\function_unit.c",
+      "archivedPath": "diagnostic-history/full-v1/ide/src/analysis/function_unit.c",
+      "sha256": "7d8eb09cd9c2465af42b77a5723d63ab76b4037ad9f62c5248470cb5e7832aff",
+      "bytes": 25727
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\src\\analysis\\typed_module.c",
+      "archivedPath": "diagnostic-history/full-v1/ide/src/analysis/typed_module.c",
+      "sha256": "4a521e47c969705a503230fbddfccd796102f9fd2e86eee131b473e508baa2df",
+      "bytes": 8475
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\src\\analysis\\typed_module_internal.h",
+      "archivedPath": "diagnostic-history/full-v1/ide/src/analysis/typed_module_internal.h",
+      "sha256": "eb6b36f19d9155341f4ef71d6c0fe76402a0c3b3c2ed9ac32923ac553b3359e2",
+      "bytes": 3447
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\tests\\analysis_native_borrow_test.c",
+      "archivedPath": "diagnostic-history/full-v1/ide/tests/analysis_native_borrow_test.c",
+      "sha256": "f2c985091f80af551c4c9c54aa3d422313313415ff074d9ef5e7d1892de42aaa",
+      "bytes": 11666
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\ide\\tools\\build_lsp_core.py",
+      "archivedPath": "diagnostic-history/full-v1/ide/tools/build_lsp_core.py",
+      "sha256": "57806825763ab8da70bea7d72a67886ba2d2937e5da2d2fe1b227d975df30db7",
+      "bytes": 77673
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v1\\manifest.json",
+      "archivedPath": "diagnostic-history/full-v1/manifest.json",
+      "sha256": "e1be5f24e437cd8a0ccac356fb08cfc5195c024f1bce1dc0cec401e62ad69feb",
+      "bytes": 5466
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\src\\analysis\\ast_size.c",
+      "archivedPath": "diagnostic-history/full-v2/ide/src/analysis/ast_size.c",
+      "sha256": "9c8d0d0abf94d7a7c4b0561161280ec2e22c028f2cb4b40f4070be9fed4c72d0",
+      "bytes": 2608
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\src\\analysis\\ast_size.h",
+      "archivedPath": "diagnostic-history/full-v2/ide/src/analysis/ast_size.h",
+      "sha256": "6e0f0bc96923c9bdba624354b39725646cd082e281ab34f225f71d2088ffdef1",
+      "bytes": 770
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\src\\analysis\\ast_storage.c",
+      "archivedPath": "diagnostic-history/full-v2/ide/src/analysis/ast_storage.c",
+      "sha256": "276d337114d7714b1ca5dd320104549e8364d342fc29d138ed7755b0afe85d63",
+      "bytes": 3021
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\src\\analysis\\ast_storage.h",
+      "archivedPath": "diagnostic-history/full-v2/ide/src/analysis/ast_storage.h",
+      "sha256": "a9fe1dfb837569d74ab3206cb8b7d0b1b01806b05577bd3c78e63be19f15ba7f",
+      "bytes": 1492
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\src\\analysis\\check.c",
+      "archivedPath": "diagnostic-history/full-v2/ide/src/analysis/check.c",
+      "sha256": "364cda9bce167656d2b2555e334ff0a263db273b9dbf829d451fd4ad4d55a876",
+      "bytes": 34056
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\src\\analysis\\frontend_raw_body.c",
+      "archivedPath": "diagnostic-history/full-v2/ide/src/analysis/frontend_raw_body.c",
+      "sha256": "f946973f9a1368467503eb40e71e0410ffd0fbc9017ed42a11ba463732a5899e",
+      "bytes": 5475
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\src\\analysis\\frontend_raw_body.h",
+      "archivedPath": "diagnostic-history/full-v2/ide/src/analysis/frontend_raw_body.h",
+      "sha256": "e4493f8de1982271186e1aa2b592f395c6ed0f3459f3ac33ec869376ca8e427f",
+      "bytes": 3236
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\src\\analysis\\frontend_sem.h",
+      "archivedPath": "diagnostic-history/full-v2/ide/src/analysis/frontend_sem.h",
+      "sha256": "fb7a6cb2d59ff8c46b7679c4fba5f5a916a83901493726980ce7b4e14bde67b0",
+      "bytes": 16972
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\src\\analysis\\frontend_sem.inc",
+      "archivedPath": "diagnostic-history/full-v2/ide/src/analysis/frontend_sem.inc",
+      "sha256": "83a10e1d2422cb16a24ebaf8421b5abf2acec3dfcd51665ce2a2dcd0738627c9",
+      "bytes": 80445
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\src\\analysis\\frontend_sem_final.inc",
+      "archivedPath": "diagnostic-history/full-v2/ide/src/analysis/frontend_sem_final.inc",
+      "sha256": "32fdc7ba53cf31b15dd01cce1322c2774b47451bd439f455c8653c096ad4f270",
+      "bytes": 13523
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\src\\analysis\\frontend_sem_ir.inc",
+      "archivedPath": "diagnostic-history/full-v2/ide/src/analysis/frontend_sem_ir.inc",
+      "sha256": "e82688b1223b59912cabfc6d3f746670f75eefb2059d1f96c3e0ae04f2be2a85",
+      "bytes": 10988
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\src\\analysis\\frontend_sem_native.inc",
+      "archivedPath": "diagnostic-history/full-v2/ide/src/analysis/frontend_sem_native.inc",
+      "sha256": "57e09d30cf789ad9b3e6ca41a1564ba0d326bb1c10a9f91bbc0c99ea014d559d",
+      "bytes": 4876
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\src\\analysis\\frontend_sem_raw.inc",
+      "archivedPath": "diagnostic-history/full-v2/ide/src/analysis/frontend_sem_raw.inc",
+      "sha256": "5e7ed33e11bb5f34e9d64f8fcc159bbeac4000368ea7bc06cc405bb13cf645ea",
+      "bytes": 17939
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\src\\analysis\\frontend_sem_tail.inc",
+      "archivedPath": "diagnostic-history/full-v2/ide/src/analysis/frontend_sem_tail.inc",
+      "sha256": "642700e984f2c207e9c91f86cc477a491c5192e03c3502fcd44fe28e5f797a69",
+      "bytes": 6179
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\src\\analysis\\function_unit.c",
+      "archivedPath": "diagnostic-history/full-v2/ide/src/analysis/function_unit.c",
+      "sha256": "7d8eb09cd9c2465af42b77a5723d63ab76b4037ad9f62c5248470cb5e7832aff",
+      "bytes": 25727
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\src\\analysis\\typed_module.c",
+      "archivedPath": "diagnostic-history/full-v2/ide/src/analysis/typed_module.c",
+      "sha256": "4a521e47c969705a503230fbddfccd796102f9fd2e86eee131b473e508baa2df",
+      "bytes": 8475
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\src\\analysis\\typed_module_internal.h",
+      "archivedPath": "diagnostic-history/full-v2/ide/src/analysis/typed_module_internal.h",
+      "sha256": "eb6b36f19d9155341f4ef71d6c0fe76402a0c3b3c2ed9ac32923ac553b3359e2",
+      "bytes": 3447
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\tests\\analysis_native_borrow_test.c",
+      "archivedPath": "diagnostic-history/full-v2/ide/tests/analysis_native_borrow_test.c",
+      "sha256": "f2c985091f80af551c4c9c54aa3d422313313415ff074d9ef5e7d1892de42aaa",
+      "bytes": 11666
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\ide\\tools\\build_lsp_core.py",
+      "archivedPath": "diagnostic-history/full-v2/ide/tools/build_lsp_core.py",
+      "sha256": "20a79430561e9490ba4cb68af3bc6317b101e2c1017bc8befb4a1d115808959d",
+      "bytes": 77685
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\full-v2\\manifest.json",
+      "archivedPath": "diagnostic-history/full-v2/manifest.json",
+      "sha256": "c2c01f772b011763bd5c93af428836f0fab7e2c48270d8d9297db089bb486a8b",
+      "bytes": 5466
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\native-diagnostic-v2\\ide\\build\\Release\\lsp-native-borrow-20261102\\run-native-diagnostic-v2.py",
+      "archivedPath": "diagnostic-history/native-diagnostic-v2/ide/build/Release/lsp-native-borrow-20261102/run-native-diagnostic-v2.py",
+      "sha256": "608c31be497a1c545142e607e9b80a94e4d69300e3b099b52fedb269c4fded1b",
+      "bytes": 3569
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\native-diagnostic-v2\\ide\\src\\analysis\\check.c",
+      "archivedPath": "diagnostic-history/native-diagnostic-v2/ide/src/analysis/check.c",
+      "sha256": "bcc911db9af05a7d44f58900f18313771def98a772c6b82a1638097773ff2835",
+      "bytes": 34463
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\native-diagnostic-v2\\ide\\tests\\analysis_check_materialize_test.c",
+      "archivedPath": "diagnostic-history/native-diagnostic-v2/ide/tests/analysis_check_materialize_test.c",
+      "sha256": "d5cc86e34316950f80f00fe2be77e4c5d7d03e0b20061627e1f04cf09efa8cef",
+      "bytes": 10520
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\native-diagnostic-v2\\manifest.json",
+      "archivedPath": "diagnostic-history/native-diagnostic-v2/manifest.json",
+      "sha256": "5bbefd6736b21b083398d7ba1aa4d23558639b55ebdec7ca7f5fea5ff1463c7c",
+      "bytes": 985
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "E:\\codex-builds-xlang-lsp-20261102-native-borrow\\history\\controller-paths-v1\\run-analysis-v1.py",
+      "archivedPath": "e-controller-history/controller-paths-v1/run-analysis-v1.py",
+      "sha256": "a909e2a2744a3effde09e9c7472de1acac6d57eb01a181290d04699898d002bf",
+      "bytes": 3526
+    },
+    {
+      "role": "raw captured historical source/controller; original report paths unchanged",
+      "recordedPath": "E:\\codex-builds-xlang-lsp-20261102-native-borrow\\history\\controller-paths-v1\\run-native-rule-proof.py",
+      "archivedPath": "e-controller-history/controller-paths-v1/run-native-rule-proof.py",
+      "sha256": "879023826835927853c064487c820421c4ca9d2a55ca5e5ebabdac83c0b10552",
+      "bytes": 1434
+    },
+    {
+      "role": "original D controller or fixed capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\capture.json",
+      "archivedPath": "d-controllers/capture.json",
+      "sha256": "13ce4c78482e8c875c486b722ea5d8773e511010eaae623506d37d4f6ea6bd63",
+      "bytes": 4555
+    },
+    {
+      "role": "original D controller or fixed capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\full-source-freeze-v2.json",
+      "archivedPath": "d-controllers/full-source-freeze-v2.json",
+      "sha256": "4df994a43620cd48f25daee5d1e2e4449facbf323e5e1384cbb0ff45e99fb934",
+      "bytes": 2063
+    },
+    {
+      "role": "original D controller or fixed capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\full-source-freeze-v3.json",
+      "archivedPath": "d-controllers/full-source-freeze-v3.json",
+      "sha256": "95e96f6def44ec60e28c2a37a92e61212563cf10aa7ae1fba22ca387072b3099",
+      "bytes": 2181
+    },
+    {
+      "role": "original D controller or fixed capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\full-source-freeze.json",
+      "archivedPath": "d-controllers/full-source-freeze.json",
+      "sha256": "5e06d11a62f336304a61e97c4deaf0bff3ecf15e9ea90eaa5806340ef5156797",
+      "bytes": 2063
+    },
+    {
+      "role": "original D controller or fixed capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\native-rule-proof-v1.json",
+      "archivedPath": "d-controllers/native-rule-proof-v1.json",
+      "sha256": "ce6f8cabb8b81138316ec45f3e54ec1b8cc7156c68814f3fc7e29553d0028d68",
+      "bytes": 794
+    },
+    {
+      "role": "original D controller or fixed capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\run-analysis-v1.py",
+      "archivedPath": "d-controllers/run-analysis-v1.py",
+      "sha256": "3b52d1f9ebc4907abd5caaee224c25dd76a1abc3473bd7704b2114d6da0ffecd",
+      "bytes": 3540
+    },
+    {
+      "role": "original D controller or fixed capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\run-focused-v1.py",
+      "archivedPath": "d-controllers/run-focused-v1.py",
+      "sha256": "9dc2d09718cec85ee8531a39e01e76ad9c6258ab337a17e6d41e2cf865b7bc34",
+      "bytes": 3250
+    },
+    {
+      "role": "original D controller or fixed capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\run-focused-v2.py",
+      "archivedPath": "d-controllers/run-focused-v2.py",
+      "sha256": "a61cc9d9cf3d8f3abac285903b324c82bef674e3c3a2c43a9b4f0d9d5ed60149",
+      "bytes": 3319
+    },
+    {
+      "role": "original D controller or fixed capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\run-focused-v3.py",
+      "archivedPath": "d-controllers/run-focused-v3.py",
+      "sha256": "863dc57f20828611b8993bb029c47bb1bb96ae591ef925c0db01c0d791b58d31",
+      "bytes": 3319
+    },
+    {
+      "role": "original D controller or fixed capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\run-focused-v4.py",
+      "archivedPath": "d-controllers/run-focused-v4.py",
+      "sha256": "af9c398a38766e2a17ff69eac9a21a9c053f5f2b9d78cc80f0e2cc2352311272",
+      "bytes": 3319
+    },
+    {
+      "role": "original D controller or fixed capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\run-focused-v5.py",
+      "archivedPath": "d-controllers/run-focused-v5.py",
+      "sha256": "75ee9a413930088c1f7b5322c5e75d2211130a1216557b09267e948e61762d03",
+      "bytes": 3319
+    },
+    {
+      "role": "original D controller or fixed capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\run-native-diagnostic-v1.py",
+      "archivedPath": "d-controllers/run-native-diagnostic-v1.py",
+      "sha256": "81fa4fa1be1ad15bd38d1896f7ea93f8f45d1e956f821cc5fb7e66b3676b6dbf",
+      "bytes": 3260
+    },
+    {
+      "role": "original D controller or fixed capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\run-native-diagnostic-v2.py",
+      "archivedPath": "d-controllers/run-native-diagnostic-v2.py",
+      "sha256": "608c31be497a1c545142e607e9b80a94e4d69300e3b099b52fedb269c4fded1b",
+      "bytes": 3569
+    },
+    {
+      "role": "original D controller or fixed capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\run-native-diagnostic-v3.py",
+      "archivedPath": "d-controllers/run-native-diagnostic-v3.py",
+      "sha256": "9dd2534c8fe2806c0365d0c56b06fb9b3fb9667b55fa4dfa36719d8fe78df454",
+      "bytes": 3609
+    },
+    {
+      "role": "original D controller or fixed capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\run-native-rule-proof.py",
+      "archivedPath": "d-controllers/run-native-rule-proof.py",
+      "sha256": "9b57817e39b0311fb120f7bffc522e6f782f9e3ecdf5db255ab669f9808663eb",
+      "bytes": 1448
+    },
+    {
+      "role": "original D controller or fixed capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\run-validation-v1.py",
+      "archivedPath": "d-controllers/run-validation-v1.py",
+      "sha256": "49e6e53d167680735be16a7d2df13e0cde4fd95c9bcd95243d467ff9ed19b64a",
+      "bytes": 4874
+    },
+    {
+      "role": "executed E controller or source/rule capture",
+      "recordedPath": "E:\\codex-builds-xlang-lsp-20261102-native-borrow\\assemble-evidence.py",
+      "archivedPath": "e-controllers/assemble-evidence.py",
+      "sha256": "b9e32951d19f9b1ee41e3e50b3c6c1c91b34cf6d16918d9c75b95b1a8b857341",
+      "bytes": 11341
+    },
+    {
+      "role": "executed E controller or source/rule capture",
+      "recordedPath": "E:\\codex-builds-xlang-lsp-20261102-native-borrow\\capture.json",
+      "archivedPath": "e-controllers/capture.json",
+      "sha256": "13ce4c78482e8c875c486b722ea5d8773e511010eaae623506d37d4f6ea6bd63",
+      "bytes": 4555
+    },
+    {
+      "role": "executed E controller or source/rule capture",
+      "recordedPath": "E:\\codex-builds-xlang-lsp-20261102-native-borrow\\full-source-freeze-v3.json",
+      "archivedPath": "e-controllers/full-source-freeze-v3.json",
+      "sha256": "95e96f6def44ec60e28c2a37a92e61212563cf10aa7ae1fba22ca387072b3099",
+      "bytes": 2181
+    },
+    {
+      "role": "executed E controller or source/rule capture",
+      "recordedPath": "E:\\codex-builds-xlang-lsp-20261102-native-borrow\\native-rule-proof-v1.json",
+      "archivedPath": "e-controllers/native-rule-proof-v1.json",
+      "sha256": "ce6f8cabb8b81138316ec45f3e54ec1b8cc7156c68814f3fc7e29553d0028d68",
+      "bytes": 794
+    },
+    {
+      "role": "executed E controller or source/rule capture",
+      "recordedPath": "E:\\codex-builds-xlang-lsp-20261102-native-borrow\\run-analysis-v1.py",
+      "archivedPath": "e-controllers/run-analysis-v1.py",
+      "sha256": "596b6152dc0e26bbe6e7d43fd26006dc529379792503d5ca7fc819f1d2a1cdf3",
+      "bytes": 3540
+    },
+    {
+      "role": "executed E controller or source/rule capture",
+      "recordedPath": "E:\\codex-builds-xlang-lsp-20261102-native-borrow\\run-native-rule-proof.py",
+      "archivedPath": "e-controllers/run-native-rule-proof.py",
+      "sha256": "682dcd4cd33ad718751590dd65dcdaf15152f758d17efad8003e1055e9c1c418",
+      "bytes": 1445
+    },
+    {
+      "role": "executed E controller or source/rule capture",
+      "recordedPath": "E:\\codex-builds-xlang-lsp-20261102-native-borrow\\run-validation-v1.py",
+      "archivedPath": "e-controllers/run-validation-v1.py",
+      "sha256": "2c53a8c4851d0acdd1111f55f3af7abfdadd2598ccb2e036ba3c9839e3962967",
+      "bytes": 4860
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\ast_storage.c",
+      "archivedPath": "final-ide-inputs/ide/src/analysis/ast_storage.c",
+      "sha256": "276d337114d7714b1ca5dd320104549e8364d342fc29d138ed7755b0afe85d63",
+      "bytes": 3021
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\ast_storage.h",
+      "archivedPath": "final-ide-inputs/ide/src/analysis/ast_storage.h",
+      "sha256": "a9fe1dfb837569d74ab3206cb8b7d0b1b01806b05577bd3c78e63be19f15ba7f",
+      "bytes": 1492
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\function_unit.c",
+      "archivedPath": "final-ide-inputs/ide/src/analysis/function_unit.c",
+      "sha256": "7d8eb09cd9c2465af42b77a5723d63ab76b4037ad9f62c5248470cb5e7832aff",
+      "bytes": 25727
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module.c",
+      "archivedPath": "final-ide-inputs/ide/src/analysis/typed_module.c",
+      "sha256": "4a521e47c969705a503230fbddfccd796102f9fd2e86eee131b473e508baa2df",
+      "bytes": 8475
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module_internal.h",
+      "archivedPath": "final-ide-inputs/ide/src/analysis/typed_module_internal.h",
+      "sha256": "eb6b36f19d9155341f4ef71d6c0fe76402a0c3b3c2ed9ac32923ac553b3359e2",
+      "bytes": 3447
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_raw_body.h",
+      "archivedPath": "final-ide-inputs/ide/src/analysis/frontend_raw_body.h",
+      "sha256": "e4493f8de1982271186e1aa2b592f395c6ed0f3459f3ac33ec869376ca8e427f",
+      "bytes": 3236
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_raw_body.c",
+      "archivedPath": "final-ide-inputs/ide/src/analysis/frontend_raw_body.c",
+      "sha256": "f946973f9a1368467503eb40e71e0410ffd0fbc9017ed42a11ba463732a5899e",
+      "bytes": 5475
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem.inc",
+      "archivedPath": "final-ide-inputs/ide/src/analysis/frontend_sem.inc",
+      "sha256": "83a10e1d2422cb16a24ebaf8421b5abf2acec3dfcd51665ce2a2dcd0738627c9",
+      "bytes": 80445
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem.h",
+      "archivedPath": "final-ide-inputs/ide/src/analysis/frontend_sem.h",
+      "sha256": "fb7a6cb2d59ff8c46b7679c4fba5f5a916a83901493726980ce7b4e14bde67b0",
+      "bytes": 16972
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem_raw.inc",
+      "archivedPath": "final-ide-inputs/ide/src/analysis/frontend_sem_raw.inc",
+      "sha256": "5e7ed33e11bb5f34e9d64f8fcc159bbeac4000368ea7bc06cc405bb13cf645ea",
+      "bytes": 17939
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem_final.inc",
+      "archivedPath": "final-ide-inputs/ide/src/analysis/frontend_sem_final.inc",
+      "sha256": "32fdc7ba53cf31b15dd01cce1322c2774b47451bd439f455c8653c096ad4f270",
+      "bytes": 13523
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem_tail.inc",
+      "archivedPath": "final-ide-inputs/ide/src/analysis/frontend_sem_tail.inc",
+      "sha256": "642700e984f2c207e9c91f86cc477a491c5192e03c3502fcd44fe28e5f797a69",
+      "bytes": 6179
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem_ir.inc",
+      "archivedPath": "final-ide-inputs/ide/src/analysis/frontend_sem_ir.inc",
+      "sha256": "e82688b1223b59912cabfc6d3f746670f75eefb2059d1f96c3e0ae04f2be2a85",
+      "bytes": 10988
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\check.c",
+      "archivedPath": "final-ide-inputs/ide/src/analysis/check.c",
+      "sha256": "d0f89a031b4fba173a48398ed2ae89f81cd3f64cc9dc554a15ec03eba4c7ab21",
+      "bytes": 34484
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\build_lsp_core.py",
+      "archivedPath": "final-ide-inputs/ide/tools/build_lsp_core.py",
+      "sha256": "20a79430561e9490ba4cb68af3bc6317b101e2c1017bc8befb4a1d115808959d",
+      "bytes": 77685
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_check_materialize_test.c",
+      "archivedPath": "final-ide-inputs/ide/tests/analysis_check_materialize_test.c",
+      "sha256": "f52eb4788f8aaaee3ea1ee5e31446388a0b26e092039b2c03504fd2ce59b8464",
+      "bytes": 11177
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\ast_size.c",
+      "archivedPath": "final-ide-inputs/ide/src/analysis/ast_size.c",
+      "sha256": "9c8d0d0abf94d7a7c4b0561161280ec2e22c028f2cb4b40f4070be9fed4c72d0",
+      "bytes": 2608
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\ast_size.h",
+      "archivedPath": "final-ide-inputs/ide/src/analysis/ast_size.h",
+      "sha256": "6e0f0bc96923c9bdba624354b39725646cd082e281ab34f225f71d2088ffdef1",
+      "bytes": 770
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem_native.inc",
+      "archivedPath": "final-ide-inputs/ide/src/analysis/frontend_sem_native.inc",
+      "sha256": "57e09d30cf789ad9b3e6ca41a1564ba0d326bb1c10a9f91bbc0c99ea014d559d",
+      "bytes": 4876
+    },
+    {
+      "role": "exact final frozen build input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_native_borrow_test.c",
+      "archivedPath": "final-ide-inputs/ide/tests/analysis_native_borrow_test.c",
+      "sha256": "f2c985091f80af551c4c9c54aa3d422313313415ff074d9ef5e7d1892de42aaa",
+      "bytes": 11666
+    },
+    {
+      "role": "executed omission/allocation controller",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\check_native_borrow.py",
+      "archivedPath": "final-ide-inputs/ide/tools/check_native_borrow.py",
+      "sha256": "a8eeb74e9b26957589a11a13af15fedf01934a6df8c940f2aa2fe8ae0cf7df09",
+      "bytes": 10080
+    }
+  ]
+}

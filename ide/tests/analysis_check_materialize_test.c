@@ -28,14 +28,18 @@ static int32 cmRead(void* user)
     reader->passed=cmPooled(xlsSemanticCheckAst(reader->result)) && fresh(reader->result,reader->docs,2);
     xlsSemanticCheckDestroy(reader->result);return 0;
 }
-static int cmSequence(size_t budget)
+static int cmSequence(size_t budget,int native)
 {
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xls_sem_native_control nativeControl;
+    if(!native)xlsFrontendSemNativeBegin(&nativeControl,0);
+#endif
     uint64 startLive=cmLive();
     char *entry=xrtPathAbs("materialize-main.xl"),*dep=xrtPathAbs("materialize-dep.xl");CHECK(entry && dep);
     const char* main="import \"materialize-dep.xl\" as dep\r\nfunc main(...) as int\r\n return dep.compute(7)\r\nend\r\n";
     xls_analysis_document docs[2]={{"entry",entry,xlsTextCreate(main,strlen(main),4u*1024u*1024u,NULL),1,1},{"dep",dep,NULL,1,1}};CHECK(docs[0].text);
     xls_check_session* session=xlsCheckSessionCreate(NULL);xls_module_store* store=xlsModuleStoreCreate(NULL);CHECK(session && store);xls_module_scope bank;xlsModuleScopeBegin(&bank,store);xls_semantic_check* held=NULL;
-    xls_ast_materialize_work previousWork={0};
+    xls_ast_materialize_work previousWork={0};xls_semantic_check* previous=NULL;
     for(unsigned version=0;version<8;++version){
         xstrbuf body={0};CHECK(cmBody(&body,version));xlsTextRelease(docs[1].text);docs[1].text=xlsTextCreate(body.Data,body.Size,4u*1024u*1024u,NULL);CHECK(docs[1].text);++docs[1].revision;
         xls_ast_materialize_scope scope;xlsAstMaterializeBegin(&scope,budget);
@@ -47,26 +51,49 @@ static int cmSequence(size_t budget)
         if(version==7)CHECK(!outer.calls && !outer.chargedBytes && !memcmp(&work,&previousWork,sizeof(work)));
         else CHECK(outer.calls==work.calls && outer.chargedBytes==work.chargedBytes);
         previousWork=work;
-        size_t pooled=cmPooled(xlsSemanticCheckAst(result));CHECK(pooled<=work.nodes);
+        size_t pooled=cmPooled(xlsSemanticCheckAst(result)),sharedPooled=0,sharedFunctions=0;
+        const XL6_AstNode* currentRoot=xlsSemanticCheckAst(result);const XL6_AstNode* oldRoot=previous ? xlsSemanticCheckAst(previous) : NULL;
+        for(size_t i=0;currentRoot && i<currentRoot->childCount;++i){const XL6_AstNode* child=currentRoot->children[i];
+            if(!child || child->kind!=XL6_AST_FUNC)continue;
+            for(size_t j=0;oldRoot && j<oldRoot->childCount;++j)if(child==oldRoot->children[j]){sharedPooled+=cmPooled(child);++sharedFunctions;break;}
+        }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        if(version==7)CHECK(result==previous);
+        else CHECK(sharedFunctions==xlsSemanticCheckNativeWork(result).reused);
+#else
+        CHECK(!sharedFunctions);
+#endif
+        CHECK(pooled<=work.nodes+sharedPooled);
         if(budget==131072)printf("partial budget version=%u copies=%llu/%llu fallback=%llu nodes=%llu live=%zu bytes=%llu AST=%zu\n",version,(unsigned long long)work.pooledCopies,(unsigned long long)work.heapCopies,(unsigned long long)work.poolFallbacks,(unsigned long long)work.nodes,pooled,(unsigned long long)work.chargedBytes,sizeof(XL6_AstNode));
         if(!budget)CHECK(!pooled && !work.nodes && work.heapCopies==work.calls && !work.poolFallbacks);
         if(budget==1)CHECK(!pooled && !work.nodes && work.poolFallbacks==work.calls && work.heapCopies==work.calls);
-        if(budget==131072 && (version==1 || version==2 || version==5))CHECK(pooled && work.pooledCopies && work.heapCopies && work.poolFallbacks);
+        if(budget==131072 && (version==1 || version==2 || version==5)){
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+            if(xlsSemanticCheckNativeWork(result).retries)CHECK(work.pooledCopies && work.heapCopies);
+            else if(sharedFunctions)CHECK(work.pooledCopies);
+            else
+#endif
+                CHECK(pooled && work.pooledCopies && work.heapCopies && work.poolFallbacks);
+        }
         if(budget==64u*1024u*1024u)CHECK(pooled && work.pooledCopies==work.calls && !work.heapCopies && !work.poolFallbacks);
         xls_semantic_input inputs[2]={{entry,xlsTextData(docs[0].text),xlsTextSize(docs[0].text)},{dep,body.Data,body.Size}};
         xls_ast_materialize_scope freshScope;xlsAstMaterializeBegin(&freshScope,64u*1024u*1024u);
         xls_semantic_check* reference=xlsSemanticCheckCreate(entry,inputs,2,1,NULL,NULL,NULL,0);xlsAstMaterializeEnd(&freshScope,NULL);
         CHECK(reference && !cmPooled(xlsSemanticCheckAst(reference)) && !xlsSemanticCheckMaterializationWork(reference).nodes);xlsSemanticCheckDestroy(reference);
         if(version==7)held=xlsSemanticCheckRetain(result);
+        xlsSemanticCheckDestroy(previous);previous=xlsSemanticCheckRetain(result);
         xlsSemanticCheckDestroy(result);xrtStrBufFree(&body);
     }
-    xlsModuleScopeEnd(&bank);xlsModuleStoreRelease(store);xlsCheckSessionDestroy(session);
+    xlsSemanticCheckDestroy(previous);xlsModuleScopeEnd(&bank);xlsModuleStoreRelease(store);xlsCheckSessionDestroy(session);
     CHECK(held && fresh(held,docs,2));
     if(budget==64u*1024u*1024u){cm_reader readers[4];xthread* threads[4];
         for(unsigned i=0;i<4;++i){readers[i]=(cm_reader){xlsSemanticCheckRetain(held),docs,0};threads[i]=xrtThreadCreate(cmRead,&readers[i],0);CHECK(threads[i]);}
         for(unsigned i=0;i<4;++i){CHECK(xrtThreadWait(threads[i])==XWAIT_OK && readers[i].passed);xrtThreadDestroy(threads[i]);}
     }
     xlsSemanticCheckDestroy(held);xlsTextRelease(docs[0].text);xlsTextRelease(docs[1].text);xrtFree(entry);xrtFree(dep);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(!native)xlsFrontendSemNativeEnd(&nativeControl);
+#endif
     printf("check materialization budget=%zu live before=%llu after=%llu\n",budget,(unsigned long long)startLive,(unsigned long long)cmLive());return 1;
 }
 typedef struct cm_cancel {unsigned calls,at;} cm_cancel;
@@ -112,9 +139,12 @@ static int cmParserPrefixes(void)
 int main(void)
 {
     xrtAtomic32Init(&checks,0);xrtMemStatsEnable(true);
-    if(!cmSequence(0))return 1;
+    if(!cmSequence(0,0))return 1;
     uint64 before=cmLive();
-    for(unsigned i=0;i<2;++i)if(!cmSequence(0) || !cmSequence(1) || !cmSequence(131072) || !cmSequence(64u*1024u*1024u))return 1;
+    for(unsigned i=0;i<2;++i)if(!cmSequence(0,0) || !cmSequence(1,0) || !cmSequence(131072,0) || !cmSequence(64u*1024u*1024u,0))return 1;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(!cmSequence(0,1) || !cmSequence(1,1) || !cmSequence(131072,1) || !cmSequence(64u*1024u*1024u,1))return 1;
+#endif
     if(!cmCancellation() || !cmParserPrefixes())return 1;
     CHECK(cmLive()==before);
     printf("analysis_check_materialize_test passed: %u checks;real imported/header/body/global/repair checks,zero/tiny/partial/full pool budgets,fresh AST/index/report/IR parity,retained concurrent readers,cancellation and balanced live storage.\n",(unsigned)xrtAtomic32Load(&checks,XMEMORY_RELAXED));return 0;

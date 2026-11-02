@@ -12,6 +12,7 @@
 #include "analysis/frontend_index.h"
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_sem.h"
+#include "analysis/frontend_raw_body.h"
 #include "analysis/frontend_cancel.h"
 #include "analysis/frontend_ir_memo.h"
 #include "analysis/typed_module_internal.h"
@@ -45,6 +46,9 @@ struct xls_semantic_check {
     xls_entry_parse_work entryWork,moduleWork;
     xls_parse_work moduleSyntaxWork;
     xls_ast_materialize_work materializationWork;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xls_sem_native_work nativeWork;
+#endif
     const char* phase;
     int accepted,captureIndex,dependenciesExpanded;
     uint64_t usedInputs;int usageKnown;
@@ -62,6 +66,9 @@ xls_semantic_check* xlsSemanticCheckRetain(xls_semantic_check* r)
 void xlsSemanticCheckDestroy(xls_semantic_check* r)
 {
     if(!r || xrtAtomic32FetchSub(&r->references,1,XMEMORY_ACQ_REL)!=1) return;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(!r->typedModule)xlsFrontendSemMemoDetachNative(r->memo,r->parse.root);
+#endif
     xrtFree(r->index); xlsFrontendIndexDestroy(r->typedIndex); xlsFrontendSemMemoDestroy(r->memo);
     xlsInputTopologyDestroy(r->topology);
     xlsModuleGraphRelease(r->modules);
@@ -73,7 +80,7 @@ void xlsSemanticCheckDestroy(xls_semantic_check* r)
 }
 static xls_semantic_check* createBody(xls_context* context,const char* entry,
     const xls_semantic_input* inputs,size_t count,int dependenciesOnly,int captureIndex,const xls_syntax* syntax,
-    xls_semantic_check* previous,int memoEnabled,xls_module_graph_scope* moduleScope,int (*cancelled)(void*),void* user,char* error,size_t capacity,const xls_input_batch* batch)
+    xls_semantic_check* previous,int memoEnabled,xls_module_graph_scope* moduleScope,int (*cancelled)(void*),void* user,char* error,size_t capacity,const xls_input_batch* batch,int allowBorrow,int* retry)
 {
     xls_semantic_check* r=NULL;const xls_ir_result* irBaseline=NULL;
     if(error && capacity) *error=0;
@@ -106,6 +113,12 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
     }
     xlsFrontendInputUsageBind(&r->overlay,r->overlay.count);
     r->overlay.report=&r->report; r->overlay.semanticIndex=captureIndex; r->deps.sourceOverlay=&r->overlay;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xls_raw_scope* raw=xlsRawBodyScopeCurrent();
+    if(raw && raw->ordinary && allowBorrow && previous && previous->accepted && previous->memo && xlsFrontendSemMemoNativeWork(previous->memo).retained &&
+       previous->captureIndex==captureIndex && !strcmp(previous->path,r->path) && xlsFrontendContextsEqual(previous->context,context) &&
+       xlsSemanticCheckValidate(previous) && xlsInputTopologyOverlayCompatible(xlsSemanticCheckTopology(previous),&previous->overlay,&r->overlay))raw->baseline=previous->memo;
+#endif
     r->phase="parse"; int okay;
     if(syntax) {
         /* Keep exactly the overlay/report contract used by the shared parser.
@@ -117,7 +130,7 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
         if(!item || !text || strcmp(item->path,xlsSyntaxPath(syntax)) ||
            item->size!=xlsTextSize(text)-skip || memcmp(item->text,xlsTextData(text)+skip,item->size)) goto invalid;
         if(!xl6SourceReportText(&r->report,item->path,item->text,item->size,"overlay") ||
-           !xlsSyntaxCopyParse(syntax,&r->parse)) {
+           !xlsRawBodyCopyParse(syntax,&r->parse)) {
             fail(error,capacity,"cannot own parsed entry or source report"); xlsSemanticCheckDestroy(r); return NULL;
         }
         okay=xlsSyntaxAccepted(syntax);
@@ -127,6 +140,10 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
     if(stopped(cancelled,user)) goto cancel;
     if(okay) { r->phase="stdlib"; okay=xl6StdlibExpandModule(r->parse.root,&r->parse.diags); }
     if(stopped(cancelled,user)) goto cancel;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(!dependenciesOnly && !xlsRawBodySealPreprocess(&r->report) && raw && raw->deferred)goto nativeRetry;
+    if(raw && raw->ordinary && raw->deferred && (!okay || r->parse.diags.count))goto nativeRetry;
+#endif
 
     if(dependenciesOnly){
         /* Same original prefix;no semantic/index/IR entry point is called.
@@ -166,6 +183,9 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
 #endif
         } else okay=xl6SemCheckModuleWithIndex(r->parse.root,&r->parse.diags,module,captureIndex);
     }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(okay<0 || (raw && raw->ordinary && raw->deferred && (!okay || r->parse.diags.count)))goto nativeRetry;
+#endif
     if(stopped(cancelled,user)) goto cancel;
     /* Collect checked facts before raw IR so the optional cache can bind
      * external identities to THIS compilation. Delay index resource errors
@@ -182,7 +202,12 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
              * Keep attempts private;the original builder remains authoritative
              * for a failed attempt as well as the independent fresh API. */
             XL6_DiagList attempted;xl6DiagInit(&attempted);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+            r->typedModule=xlsFrontendSemMemoTakeModule(r->memo,r->parse.root);
+            if(!r->typedModule && xlsFrontendSemMemoNativeWork(r->memo).reused){xl6DiagFree(&attempted);goto nativeRetry;}
+#else
             r->typedModule=xlsTypedModuleTake(r->parse.root);
+#endif
             if(r->typedModule)xlsFrontendIndexBindFunctions(r->typedIndex,r->typedModule);
             int prepared=0;
             if(r->typedModule && irBaseline && r->semanticWork.contextHits && xlsFrontendSemMemoInputCandidate(r->memo))
@@ -204,6 +229,9 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
     }
     if(stopped(cancelled,user)) goto cancel;
     r->accepted=okay && !r->parse.diags.count;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(raw && raw->ordinary && raw->deferred && !r->accepted)goto nativeRetry;
+#endif
     if(r->accepted && captureIndex) {
         if(!r->typedIndex) {
             /* An index budget/allocation failure is infrastructure failure,
@@ -219,7 +247,16 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
         xlsSemanticCheckDestroy(r); return NULL;
     }
     if(r->accepted) r->phase="checked";
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(r->accepted)xlsFrontendSemMemoBindFunctions(r->memo,r->typedModule);
+    r->nativeWork=xlsFrontendSemMemoNativeWork(r->memo);
+#endif
     return r;
+nativeRetry:
+    if(stopped(cancelled,user))goto cancel;
+    if(retry)*retry=1;
+    fail(error,capacity,"native function reuse proof declined;retry original complete input");
+    xlsSemanticCheckDestroy(r);return NULL;
 invalid:
     fail(error,capacity,"invalid semantic check overlay, path or capacity");
     xlsSemanticCheckDestroy(r); return NULL;
@@ -231,8 +268,18 @@ static xls_semantic_check* createConfiguredInContext(xls_context* context,xls_en
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
     xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity,int dependenciesOnly,const xls_input_batch* batch)
 {
+    int retried=0;
+    xls_ast_materialize_work totalMaterialization={0};
+    for(int attempt=0;attempt<2;++attempt){
     if(!xlsFrontendContextValid(context,entry,error,capacity)) return NULL;
     xls_frontend_context_scope scope; xlsFrontendContextBegin(&scope,context);
+    xls_raw_scope raw;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xlsRawBodyScopeBegin(&raw,NULL,!dependenciesOnly && (cache || syntax) && xlsFrontendSemNativeBudget() ? 32u*1024u*1024u : 0);
+#else
+    xlsRawBodyScopeBegin(&raw,NULL,0);
+#endif
+    raw.ordinary=1;
     xls_ast_materialize_scope materialization;
     xlsAstMaterializeBegin(&materialization,(cache || syntax) ? xlsAstMaterializeBudget() : 0);
     xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,cache,context,entry);
@@ -240,23 +287,35 @@ static xls_semantic_check* createConfiguredInContext(xls_context* context,xls_en
     xls_input_topology_scope topology;xlsInputTopologyBegin(&topology,(cache || syntax) ? 8u*1024u*1024u : 0);
     xls_module_graph_scope modules;xlsModuleGraphBegin(&modules,(cache || syntax) ? xlsModuleScopeCurrent() : NULL,context,8u*1024u*1024u);
     xls_frontend_cancel_scope cancellation;xlsFrontendCancelBegin(&cancellation,cancelled,user);
-    xls_semantic_check* result=createBody(context,entry,inputs,count,dependenciesOnly,captureIndex,syntax,previous,cache || syntax,&modules,cancelled,user,error,capacity,batch);
+    int retry=0;
+    xls_semantic_check* result=createBody(context,entry,inputs,count,dependenciesOnly,captureIndex,syntax,previous,cache || syntax,&modules,cancelled,user,error,capacity,batch,attempt==0,&retry);
     uint64_t used=0;int known=xlsFrontendInputUsageEnd(&usage,&used);
     xls_input_topology* captured=xlsInputTopologyEnd(&topology);
     if(result && known)result->topology=captured;else xlsInputTopologyDestroy(captured);
     /* Early invalid/cancelled creation may leave the capture active. Ordinary
      * success already ended it after semantics,before the read-only IR phase. */
     xlsModuleGraphRelease(xlsModuleGraphEnd(&modules,NULL));
-    if(result && stopped(cancelled,user)) {xlsSemanticCheckDestroy(result);result=NULL;fail(error,capacity,"semantic check cancelled");}
+    if((result || retry) && stopped(cancelled,user)) {xlsSemanticCheckDestroy(result);result=NULL;retry=0;fail(error,capacity,"semantic check cancelled");}
     xlsFrontendCancelEnd(&cancellation,NULL);
+    xlsRawBodyScopeEnd(&raw);
     int scoped=xlsFrontendContextEnd(&scope);
     xls_entry_parse_work work=xlsFrontendEntryEnd(&entryScope,result && scoped);
     xls_ast_materialize_work materializationWork;xlsAstMaterializeEnd(&materialization,&materializationWork);
+#define XLS_MATERIALIZED_ADD(field) totalMaterialization.field+=materializationWork.field
+    XLS_MATERIALIZED_ADD(calls);XLS_MATERIALIZED_ADD(pooledCopies);XLS_MATERIALIZED_ADD(heapCopies);
+    XLS_MATERIALIZED_ADD(poolFallbacks);XLS_MATERIALIZED_ADD(nodes);XLS_MATERIALIZED_ADD(pages);XLS_MATERIALIZED_ADD(chargedBytes);
+#undef XLS_MATERIALIZED_ADD
     if(!scoped) {
         xlsSemanticCheckDestroy(result); fail(error,capacity,(scope.failed&2) ? "cannot retain bounded completion namespace" : "cannot resolve native context path or package environment"); return NULL;
     }
-    if(result) {result->entryWork=work;result->moduleWork=entryScope.moduleWork;result->moduleSyntaxWork=entryScope.moduleSyntaxWork;result->materializationWork=materializationWork;result->usedInputs=used;result->usageKnown=known && result->report.complete && result->report.count && result->overlay.count==count;}
+    if(result) {result->entryWork=work;result->moduleWork=entryScope.moduleWork;result->moduleSyntaxWork=entryScope.moduleSyntaxWork;result->materializationWork=totalMaterialization;result->usedInputs=used;result->usageKnown=known && result->report.complete && result->report.count && result->overlay.count==count;}
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(result)result->nativeWork.retries=retried;
+#endif
+    if(retry && !attempt){retried=1;continue;}
     return result;
+    }
+    return NULL;
 }
 
 xls_semantic_check* xlsSemanticCheckCreateCachedInContext(xls_context* context,xls_entry_cache* cache,const char* entry,
@@ -344,6 +403,8 @@ xls_ast_intern_work xlsSemanticCheckMemoTypes(const xls_semantic_check* result)
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
 xls_sem_final_work xlsSemanticCheckFinalWork(const xls_semantic_check* result)
 {return xlsFrontendSemMemoFinalWork(result ? result->memo : NULL);}
+xls_sem_native_work xlsSemanticCheckNativeWork(const xls_semantic_check* result)
+{return result ? result->nativeWork : (xls_sem_native_work){0};}
 #endif
 xls_semantic_check* xlsSemanticCheckCreateIncremental(const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,

@@ -38,6 +38,7 @@ static int xlsSemFinalRegionCount(const XL6_AstNode* node,size_t depth,uint32_t*
 static void xlsSemFinalBegin(XL6_SemContext* ctx,XL6_AstNode* root)
 {
     xls_sem_build* build=xlsActiveSemBuild;xls_sem_memo* memo=build ? build->memo : NULL;
+    if(memo && memo->nativeFinalPrepared)return;
     size_t limit=xlsActiveFinalControl ? xlsActiveFinalControl->bytes : XLS_FINAL_CONTEXT_BYTES;
     if(limit>XLS_FINAL_CONTEXT_BYTES)limit=XLS_FINAL_CONTEXT_BYTES;
     if(!ctx || !memo || !build->enabled || build->deferredQuery || !memo->trackInputs || ctx->root!=root ||
@@ -74,6 +75,39 @@ static void xlsSemFinalBegin(XL6_SemContext* ctx,XL6_AstNode* root)
         entry->finalPredictedStart=next;entry->finalPredictedEnd=next+count;entry->finalCandidate=candidate;next+=count;
     }
     memo->finalPrepared=1;
+}
+static int xlsSemNativeFailure(xls_sem_build* build)
+{
+    if(build)build->bodyFailure=1;
+    xls_raw_scope* raw=xlsRawBodyScopeCurrent();if(raw)raw->failed=1;return 0;
+}
+/* After its original private-header walk;the original C-owned validator runs
+ * again over the COMPLETE composed tree on success. Detached headers must stay
+ * alive until the original context/registry has retired;global declarations
+ * can still point at them. No borrowed AST is ever written. */
+static int xlsSemPrepareNative(XL6_SemContext* ctx,XL6_AstNode* root)
+{
+    xls_raw_scope* raw=xlsRawBodyScopeCurrent();if(!raw || !raw->ordinary || !raw->deferred)return 1;
+    xls_sem_build* build=xlsActiveSemBuild;xls_sem_memo* memo=build ? build->memo : NULL;
+    if(!memo || !build->baseline || raw->failed || raw->consumed!=raw->deferred)return xlsSemNativeFailure(build);
+    xlsSemFinalBegin(ctx,root);memo->nativeFinalPrepared=1;
+    if(!memo->finalPrepared || !memo->finalWork.contextHits)return xlsSemNativeFailure(build);
+    size_t count=0;
+    for(size_t i=0;i<memo->entries.Count;++i){const xls_sem_entry* entry=xrtArrayConstGet(&memo->entries,i);
+        if(!entry->native)continue;
+        const xls_sem_entry* old=xrtArrayConstGet(&build->baseline->entries,i);
+        if(!entry->finalCandidate || !old || entry->native!=old->native || entry->unit!=old->unit ||
+           entry->finalPredictedStart!=old->finalRegionStart || entry->finalPredictedEnd!=old->finalRegionEnd ||
+           !old->finalInput || !old->finalPlanValid || xlsFrontendCancelPoll())return xlsSemNativeFailure(build);
+        ++count;
+    }
+    if(count!=raw->deferred)return xlsSemNativeFailure(build);
+    for(size_t i=0;i<memo->entries.Count;++i){xls_sem_entry* entry=xrtArrayGet(&memo->entries,i);
+        if(!entry->native)continue;
+        entry->nativeStub=root->children[i];root->children[i]=(XL6_AstNode*)xlsTypedFunctionRoot(entry->native);
+        entry->nativePlaced=entry->finalReplayed=1;++memo->nativeWork.reused;
+    }
+    return 2;
 }
 typedef struct xls_sem_final_reader {
     const xls_sem_ir_receipt* receipt;
@@ -131,6 +165,7 @@ static int xlsSemFinalTypeApply(XL6_SemContext* ctx,size_t slot)
     if(!memo || !memo->finalPrepared || !memo->finalContext || !build->baseline || slot>=memo->entries.Count)return 0;
     xls_sem_entry* entry=xrtArrayGet(&memo->entries,slot);const xls_sem_entry* old=xrtArrayConstGet(&build->baseline->entries,slot);
     XL6_AstNode* node=ctx->root->children[slot];
+    if(entry->nativePlaced){++memo->finalWork.typeReused;return 1;}
     if(!entry->finalCandidate || !xlsSemFunction(node) || !entry->unit || entry->unit!=old->unit ||
        !old->finalInput || !old->finalPlanValid || old->finalRegionEnd<=old->finalRegionStart ||
        entry->finalPredictedEnd-entry->finalPredictedStart!=old->finalRegionEnd-old->finalRegionStart ||
@@ -155,8 +190,14 @@ static int xlsSemFinalRootState(const XL6_SemPlanWalkState* state)
 static int xlsSemFinalPlanBefore(XL6_SemContext* ctx,size_t slot,const XL6_SemPlanWalkState* state)
 {
     (void)ctx;xls_sem_build* build=xlsActiveSemBuild;xls_sem_memo* memo=build ? build->memo : NULL;
-    if(!memo || !memo->finalContext || slot>=memo->entries.Count || !xlsSemFinalRootState(state))return 0;
-    xls_sem_entry* entry=xrtArrayGet(&memo->entries,slot);entry->finalRegionStart=*state->nextRegion;
+    if(!memo || slot>=memo->entries.Count)return 0;
+    xls_sem_entry* entry=xrtArrayGet(&memo->entries,slot);
+    if(entry->nativePlaced && (!memo->finalPrepared || !xlsSemFinalRootState(state) ||
+       entry->finalPredictedStart!=*state->nextRegion || entry->finalPredictedEnd<entry->finalPredictedStart)){
+        xlsSemNativeFailure(build);return 1; /* protect immutable input even in a rejected attempt */
+    }
+    if(!memo->finalContext || !xlsSemFinalRootState(state))return 0;
+    entry->finalRegionStart=*state->nextRegion;
     if(!memo->finalPrepared || !entry->finalReplayed || entry->finalPredictedStart!=*state->nextRegion ||
        entry->finalPredictedEnd<entry->finalPredictedStart)return 0;
     *state->nextRegion=entry->finalPredictedEnd;++memo->finalWork.planReused;return 1;
