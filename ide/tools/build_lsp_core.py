@@ -980,7 +980,10 @@ def main() -> None:
                     "xrtMalloc", "xrtCalloc", "xrtFree", "xrtArrayInit",
                     "xrtArrayReserve", "xrtArrayPush", "xrtArrayUnit")]
             run([str(cc), str(objects[name]), *extra, str(core), "-Wl,--gc-sections", *libraries, "-o", str(program)], name + "-link")
-            result = run([str(program)], name + "-run", 180 if name == "analysis_ir_persistent_fault_test" else 120 if name == "analysis_ir_scan_test" else 30, working_directory=output)
+            # The dense canonical matrix compares full fresh AST/index/IR
+            # across repeated512-function single/imported edits. Its total
+            # fixture duration is separate from per-request performance gates.
+            result = run([str(program)], name + "-run", 180 if name == "analysis_ir_persistent_fault_test" else 120 if name in ("analysis_ir_scan_test", "analysis_index_canonical_test") else 30, working_directory=output)
             if b"passed:" not in result.stdout:
                 raise RuntimeError(f"missing test completion receipt: {name}")
             runs.append(dict(name=name,stdout=result.stdout.decode("utf-8")))

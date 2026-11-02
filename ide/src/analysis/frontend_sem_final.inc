@@ -116,6 +116,15 @@ typedef struct xls_sem_final_reader {
     int write;
 } xls_sem_final_reader;
 #define XLS_FINAL_PATCH_MASK ((UINT32_C(1)<<0)|(UINT32_C(1)<<1)|(UINT32_C(1)<<2)|(UINT32_C(1)<<9)|(UINT32_C(1)<<10)|(UINT32_C(1)<<11)|(UINT32_C(1)<<12)|(UINT32_C(1)<<13)|(UINT32_C(1)<<14))
+#define XLS_FINAL_SCALAR_MASK ((UINT32_C(1)<<XLS_SEM_IR_FIELDS)-1)
+static int xlsSemFinalFixedMatches(const XL6_AstNode* node,unsigned field,uint64_t value)
+{
+    /* The original encoder keeps enum and signed package fields as exact
+     * uint32 bit patterns. Current symbol restoration can already have
+     * produced these final values from an older immutable unit's origin. */
+    uint64_t fields[XLS_SEM_IR_FIELDS];xlsSemIrNodeFields(node,fields);
+    return fields[field]==value;
+}
 static void xlsSemFinalSet(XL6_AstNode* node,unsigned field,uint64_t value)
 {
     switch(field){
@@ -140,7 +149,7 @@ static int xlsSemFinalVisit(xls_sem_final_reader* reader,XL6_AstNode* node,size_
     if(reader->nodes>receipt->nodes || reader->types>receipt->types ||
        (!reader->write && ((reader->nodes+reader->types)&63u)==0 && xlsFrontendCancelPoll()))return 0;
     uint32_t mask=0;memcpy(&mask,receipt->data.Data+reader->at,sizeof(mask));reader->at+=sizeof(mask);
-    if(mask&~XLS_FINAL_PATCH_MASK)return 0;
+    if(mask&~XLS_FINAL_SCALAR_MASK)return 0;
     for(unsigned field=0;field<XLS_SEM_IR_FIELDS;++field)if(mask&(UINT32_C(1)<<field)){
         size_t bytes=field==2 ? 8 : 4;uint64_t value=0;
         if(reader->at>receipt->data.Size || bytes>receipt->data.Size-reader->at)return 0;
@@ -151,7 +160,13 @@ static int xlsSemFinalVisit(xls_sem_final_reader* reader,XL6_AstNode* node,size_
                 if(value>=reader->end || value>UINT32_MAX)return 0;
             }else if(value!=1)return 0; /* original module target remains exact */
         }
-        if(reader->write)xlsSemFinalSet(node,field,value);
+        /* Only the original final-pass write set can be replayed. Other
+         * encoded scalars must ALREADY equal this complete prior output;
+         * changing native IDs still declines and runs the original passes.
+         * Validation and commit have no intervening callback or mutation. */
+        if(!(XLS_FINAL_PATCH_MASK&(UINT32_C(1)<<field)) && !reader->write &&
+           !xlsSemFinalFixedMatches(node,field,value))return 0;
+        if(reader->write && (XLS_FINAL_PATCH_MASK&(UINT32_C(1)<<field)))xlsSemFinalSet(node,field,value);
     }
     if(!xlsSemFinalVisit(reader,node->inferredType,depth+1,1) ||
        !xlsSemFinalVisit(reader,node->semanticDeclaredType,depth+1,1))return 0;

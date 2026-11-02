@@ -67,6 +67,7 @@ def main():
         program=(R/'ide/tests/analysis_index_canonical_test.c').read_text(encoding='utf8')
         seam='for(unsigned scenario=0;scenario<5;++scenario)if(!editingCanonical(scenario,60,0))return 1;\n    if(!editingCanonical(2,60,1) || !editingCanonical(2,512,0))return 1;'
         assert program.count(seam)==1;program=program.replace(seam,'if(!editingCanonical(4,60,0))return 1;',1)
+        seam='    if(!denseCanonical(0) || !denseCanonical(1))return 1;';assert program.count(seam)==1;program=program.replace(seam,'    (void)denseCanonical;',1)
         seam=' %s local=value+%u\\r\\n",i,type,type,type,i);';assert program.count(seam)==1
         program=program.replace(seam,' %s local=value\\r\\n",i,type,type,type);',1).replace(' local=local+1\\r\\n',' local=local\\r\\n')
         fixture=O/'alias-without-coercion.c';fixture.write_text(program,encoding='utf8',newline='\n');protected[str(fixture)]=sha(fixture)
