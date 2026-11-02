@@ -4,6 +4,22 @@
 
 状态：blocked-upstream。普通扩展库任务不修改 XLang 主线。
 
+2026-11-02：修复DOM非法挂接并重跑三包联合门后，Windows373阶段、
+Linux原生冻结快照360阶段均在末项Reader公开类型正例真实失败；三个
+最小源在两平台分别check1，仍为缺少导出类型。各22普通AOT、原边界/
+冷启动/线程/深树和新DOM模型/67实际调用原型的通过，不替代这项要求。
+Windows共享`sharedmem/test/private_constructor_negative.xl`另check0，
+仍错误接受私有原生构造；没有运行任何伪造句柄，也不据此证明每个
+XML构造器完全同根。导出前需共享安全构造能力闭环，M9/M3不关闭。
+
+同轮确认Windows门禁自身的遗漏：原HEAD无BOM中文PS1在PS5中，末尾
+Reader调用进入注释、AST无该命令；PS7正常。本轮首次371项退出0但
+缺Reader记录，不能当作M9恢复。现固定UTF-8 BOM并增加独立编码与
+必跑调用检查（两个损坏副本负控）、尾部记录守门，PS5/7均过，再次
+完整门禁恢复正确失败。详细首轮/最终退出与发布物指纹见
+`docs/reports/extlib-xml-dom-mutation-20261102.json`；不借此推翻其他
+历史功能证据，也不把门禁修复说成主线类型导出已实现。
+
 当前发布版从仓库根目录运行以下三个最小文件的 `xl check`，均非零退出，
 报告 `[import] import package has no such exported type`：
 
