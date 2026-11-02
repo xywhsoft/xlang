@@ -71,6 +71,8 @@ def index(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         '    f = &b->facts[b->count++];': '    if (!xlsIndexReserveFact(b)) return 0;\n    f = xlsIndexAppendFact(b);if(!f)return 0;',
         '    xl6IndexTypeFacts(f, parent ? b->facts[parent - 1].node : NULL);':
             '    xl6IndexTypeFacts(f, parent ? xlsIndexFactAt(b,parent - 1)->node : NULL);',
+        '    if (f->type) {\n        f->canonical = xl6TypeToCanonicalStringLimited(b->root, f->type, 8192, 128, 8192);':
+            '    if (!xlsIndexCanonicalPrepare(b,f)) return 0;\n    if (f->type) {\n        f->canonical = xlsIndexCanonicalValue(b,f);',
         '    for (i = 0; i < n->childCount; ++i)\n        if (!xl6IndexVisit(b, n->children[i], id, depth + 1)) return 0;':
             '    for (i = 0; i < n->childCount; ++i) {\n        if(b->storage && n==b->root)b->storage->active=i+1;\n        if (!xl6IndexVisit(b, n->children[i], id, depth + 1)) return 0;\n    }',
         '    if (b->sourceCount >= XL6_INDEX_NODES) {': '    if (!xlsIndexReserveSource(b)) {',
@@ -88,7 +90,7 @@ def index(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
         change="preserve shared collector; typed declaration segments and global pointer directory grow within original byte budget; legacy JSON retains fixed node/record limits", indexBytes=NATIVE_INDEX_BYTES,
-        auditedSeams=11, nativeRecordBytes=64, legacyJsonRecordBytes=1536,
+        auditedSeams=12, nativeRecordBytes=64, legacyJsonRecordBytes=1536,
         auditedDependencies={path:digest for path,digest in audited.items() if path!=str(original)})
 
 
