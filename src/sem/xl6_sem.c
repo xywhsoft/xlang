@@ -153,6 +153,7 @@ static XL6_AstNode* xl6SemCOwnedOrdinaryFunction(XL6_SemContext*,XL6_AstNode*);
 static XL6_AstNode* xl6SemCOwnedFunctionWithResults(XL6_SemContext*,XL6_AstNode*,const XL6_AstNode*);
 static XL6_AstNode* xl6SemCOwnedAsyncResultMethod(XL6_SemContext*,XL6_AstNode*,XL6_AstNode*,
     const XL6_AstNode*,const XL6_AstNode*,const XL6_AstNode*);
+static const XL6_AstNode* xl6SemCOwnedAsyncResultPayload(XL6_SemContext*,const XL6_AstNode*,const XL6_AstNode*);
 static int xl6SemCOwnedAdaptCallableExpr(XL6_SemContext*,XL6_AstNode*,const XL6_AstNode*);
 static int xl6SemCOwnedCallableResultCost(XL6_SemContext*,const XL6_AstNode*,const XL6_AstNode*);
 static int xl6SemCOwnedAdaptCallArguments(XL6_SemContext*,XL6_AstNode*,const XL6_AstNode*);
@@ -3961,7 +3962,15 @@ static int xl6SemExprParamMatchCostEx(
         int boundCost=0;
         int bound=xl6SemConstrainedBoundMethodCost(ctx,expr,typeNode,reportError,&boundCost);
         if(bound>=0)return bound ? boundCost : -1;
-        return xl6SemExprCanMatchFunctionTypeEx(ctx, expr, typeNode, reportError) ? 0 : -1;
+        int asyncCost=0;
+        XL6_Symbol* named=expr->kind==XL6_AST_NAME ? xl6ScopeFind(ctx->scope,expr->text) : NULL;
+        if((named && named->kind==XL6_SYM_FUNC) ||
+           (expr->kind==XL6_AST_MEMBER && xl6SemClassDeclFromTypeMemberReceiver(ctx,(XL6_AstNode*)expr))) {
+            const XL6_AstNode* selected=xl6SemFindFunctionValueFunc(ctx,expr->text,typeNode,expr,0);
+            if(selected && selected->kind==XL6_AST_ASYNC_FUNC && typeNode->childCount==2 &&
+               xl6SemCOwnedAsyncResultPayload(ctx,typeNode->children[1],xl6SemCallableReturns(selected)))asyncCost=10;
+        }
+        return xl6SemExprCanMatchFunctionTypeEx(ctx, expr, typeNode, reportError) ? asyncCost : -1;
     }
     if ( xl6TextEquals(targetType, "type") ) {
         return exprType != NULL && xl6TextEquals(exprType, "type") ? 0 : -1;
@@ -8041,6 +8050,7 @@ static XL6_AstNode* xl6SemFindFunctionValueFunc(XL6_SemContext* ctx, const char*
     selected = NULL;
     candidateCount = 0;
     matchCount = 0;
+    int bestCost=INT_MAX;
     if ( ctx == NULL || ctx->root == NULL || name == NULL || functionType == NULL ||
          !xl6TextEquals(functionType->text, "function") ) {
         return NULL;
@@ -8065,18 +8075,19 @@ static XL6_AstNode* xl6SemFindFunctionValueFunc(XL6_SemContext* ctx, const char*
             XL6_AstNode* invocationReturns=func->kind==XL6_AST_ASYNC_FUNC ?
                 xl6SemCloneInvocationReturnTypes(ctx,NULL,NULL,func,NULL,atNode) : NULL;
             if (func->kind==XL6_AST_ASYNC_FUNC && !invocationReturns) return NULL;
-            int matches=functionType->childCount == 0 ||
-                 xl6SemFunctionTypeMatchesParts(ctx,
-                                                 functionType,
-                                                 func->childCount > 1 ? func->children[1] : NULL,
-                                                 invocationReturns ? invocationReturns : func->childCount > 2 ? func->children[2] : NULL) ||
-                 (functionType->childCount==2 && func->kind!=XL6_AST_ASYNC_FUNC &&
-                  xl6SemCallableParamListMatchesFunctionParams(ctx,functionType->children[0],xl6SemCallableParams(func)) &&
-                  xl6SemCOwnedResultListMatches(ctx,functionType->children[1],xl6SemCallableReturns(func)));
+            int exact=functionType->childCount == 0 ||
+                 xl6SemFunctionTypeMatchesParts(ctx,functionType,xl6SemCallableParams(func),
+                    invocationReturns ? invocationReturns : xl6SemCallableReturns(func));
+            int adapted=!exact && functionType->childCount==2 &&
+                 xl6SemCallableParamListMatchesFunctionParams(ctx,functionType->children[0],xl6SemCallableParams(func)) &&
+                 (func->kind==XL6_AST_ASYNC_FUNC
+                    ? xl6SemCOwnedAsyncResultPayload(ctx,functionType->children[1],xl6SemCallableReturns(func))!=NULL
+                    : xl6SemCOwnedResultListMatches(ctx,functionType->children[1],xl6SemCallableReturns(func)));
             xl6AstFree(invocationReturns);
-            if (matches) {
-                selected = func;
-                matchCount += 1;
+            int cost=exact ? 0 : 10;
+            if ((exact || adapted) && cost<=bestCost) {
+                if(cost<bestCost){matchCount=0;bestCost=cost;}
+                selected=func;++matchCount;
             }
         }
         if (!owner || matchCount) break;
@@ -8165,7 +8176,23 @@ static int xl6SemBindResolvedFunctionValue(
         return 0;
     }
     mutableExpr = (XL6_AstNode*)expr;
-    if(functionType->childCount==2 &&
+    const XL6_AstNode* asyncPayload=selected->kind==XL6_AST_ASYNC_FUNC && functionType->childCount==2
+        ? xl6SemCOwnedAsyncResultPayload(ctx,functionType->children[1],xl6SemCallableReturns(selected)) : NULL;
+    if(asyncPayload) {
+        if(!reportError)return 1; /* Overload probes cannot publish a worker. */
+        XL6_AstNode* owner=NULL;
+        for(size_t c=0;ctx->root && c<ctx->root->childCount && !owner;++c) {
+            XL6_AstNode* cls=ctx->root->children[c];
+            const XL6_AstNode* body=cls->kind==XL6_AST_CLASS && cls->childCount>1 ? cls->children[1] : NULL;
+            for(size_t m=0;body && m<body->childCount;++m)
+                if(body->children[m]==selected){owner=cls;break;}
+        }
+        selected=xl6SemCOwnedAsyncResultMethod(ctx,owner,(XL6_AstNode*)selected,NULL,NULL,asyncPayload);
+        if(!selected)return 0;
+        char* name=xrtStrDup(xl6SemFuncName(selected));
+        if(!name)return 0;
+        xrtFree(mutableExpr->text);mutableExpr->text=name;
+    } else if(functionType->childCount==2 &&
        !xl6SemCallableTypeListEquals(ctx,functionType->children[1],xl6SemCallableReturns(selected)) &&
        xl6SemCOwnedResultListMatches(ctx,functionType->children[1],xl6SemCallableReturns(selected))) {
         selected=xl6SemCOwnedFunctionWithResults(ctx,(XL6_AstNode*)selected,functionType->children[1]);

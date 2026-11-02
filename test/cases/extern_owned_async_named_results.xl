@@ -1,0 +1,71 @@
+// Named global/static factories publish the adapted callback in their own worker.
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point value)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+int defaults=0
+func tag() as int
+    defaults+=1
+    return 7
+end
+func text() as cstring
+    return cstring.take(rawText(),release)
+end
+func data() as cbytes
+    return cbytes.take(rawBytes(),4,release)
+end
+async func factory(int witness=tag()) as func() as cstring
+    assert witness==7
+    return text
+end
+async func binary() as func() as cbytes
+    return data
+end
+async func maybe(bool present) as (func() as cstring)?
+    return present ? text : null
+end
+class Factory
+    static async func Text(int witness=tag()) as func() as cstring
+        assert witness==7
+        return text
+    end
+    static async func Data() as func() as cbytes
+        return data
+    end
+end
+class Inherited extends Factory
+end
+// Exact owner overloads win even when the ordinary candidate omits no defaults.
+func choose(func() as future<func() as string> producer) as bool
+    return false
+end
+func choose(func() as future<func() as cstring> producer,int omitted=7) as bool
+    return true
+end
+async func check()
+    func() as future<func() as string> a=factory
+    func() as future<func() as bytes> b=binary
+    func() as future<func() as string> c=Inherited.Text
+    func() as future<func() as bytes> d=Factory.Data
+    auto aa=await a()
+    auto bb=await b()
+    auto cc=await c()
+    auto dd=await d()
+    assert defaults==2
+    assert aa()=="hello" and cc()=="hello"
+    assert bb()==b"\0\xff\x11*" and dd()==b"\0\xff\x11*"
+    func(bool) as future<(func() as string)?> optional=maybe
+    assert await optional(false)==null
+    auto present=await optional(true)
+    if present!=null then assert present()=="hello" end
+    assert choose(factory) and choose(Factory.Text)
+    // The original declaration retains its exact owner ABI after adaptation.
+    func() as future<func() as cstring> exact=factory
+    auto owner=await exact()
+    string adopted=owner()
+    assert original(adopted)
+    assert defaults==3
+end
+await check()
+assert balanced()

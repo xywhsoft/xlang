@@ -616,6 +616,15 @@ static XL6_AstNode* xl6SemCOwnedTemplateResult(XL6_SemContext* ctx,const XL6_Ast
     if(result)xl6SemBindInferredTypeIdentity(ctx,result);
     return result;
 }
+/* Match the logical worker result; Future values themselves stay invariant. */
+static const XL6_AstNode* xl6SemCOwnedAsyncResultPayload(XL6_SemContext* ctx,
+    const XL6_AstNode* expected,const XL6_AstNode* worker)
+{
+    const XL6_AstNode* future=expected && expected->childCount==1 ? xl6SemResolveAliasType(ctx,expected->children[0]) : NULL;
+    const XL6_AstNode* payload=future && xl6TextEquals(future->text,"future") ? xl6SemTypeNodeFirstGenericArg(future) : NULL;
+    return payload && worker && worker->childCount==1 &&
+        xl6SemCOwnedResultMatchDepth(ctx,payload,worker->children[0],0)>0 ? payload : NULL;
+}
 /* Close producer parameters without importing the caller's lexical scope.
  * Referenced free parameters become private generic parameters, with their
  * constraints and a distinct name. This also handles a caller variable nested
@@ -703,7 +712,7 @@ static XL6_AstNode* xl6SemCOwnedAsyncResultMethodOne(XL6_SemContext* ctx,XL6_Ast
     hash=xl6SemCOwnedSignatureHash(classArgs,hash);
     char name[96];snprintf(name,sizeof(name),"__xl_c_owned_async_%u_%llx",method->semanticSymbolId,(unsigned long long)hash);
     if(familyName)snprintf(name,sizeof(name),"%s",familyName);
-    XL6_AstNode* body=owner->children[1];
+    XL6_AstNode* body=owner ? owner->children[1] : ctx->root;
     for(size_t m=0;m<body->childCount;++m)
         if(body->children[m]->kind==XL6_AST_ASYNC_FUNC && xl6TextEquals(xl6SemFuncName(body->children[m]),name)) {
             xl6AstFree(copy);return body->children[m];
@@ -713,14 +722,19 @@ static XL6_AstNode* xl6SemCOwnedAsyncResultMethodOne(XL6_SemContext* ctx,XL6_Ast
     xrtFree(copy->children[0]->text);copy->children[0]->text=text;
     copy->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
     if(!xl6SemAssignEntitySymbolIds(ctx,copy)){xl6AstFree(copy);return NULL;}
+    XL6_Scope* declarationScope=ctx->scope;
+    while(declarationScope->parent)declarationScope=declarationScope->parent;
+    XL6_Scope* callerScope=ctx->scope;ctx->scope=declarationScope;
+    int declared=owner || xl6SemDeclareGlobalFuncName(ctx,copy->children[0]);ctx->scope=callerScope;
+    if(!declared){xl6AstFree(copy);return NULL;}
     size_t count=body->childCount;xl6AstAddChild(body,copy);
     if(body->childCount==count){xl6AstFree(copy);return NULL;}
     XL6_Scope* savedScope=ctx->scope;XL6_AstNode* savedClass=ctx->currentClass;
     const char* savedSelf=ctx->implicitSelfName;XL6_TypeParamScope* savedTypes=ctx->typeParams;
     int savedCreate=ctx->inClassCreate,savedLoop=ctx->loopDepth,savedCatch=ctx->catchDepth,savedGenerator=ctx->generatorDepth;
-    XL6_TypeParamScope classTypes={owner->childCount>2 ? owner->children[2] : NULL,NULL};
+    XL6_TypeParamScope classTypes={owner && owner->childCount>2 ? owner->children[2] : NULL,NULL};
     while(ctx->scope->parent)ctx->scope=ctx->scope->parent;
-    ctx->currentClass=owner;ctx->implicitSelfName="self";ctx->typeParams=&classTypes;
+    ctx->currentClass=owner;ctx->implicitSelfName=owner && !(copy->flags & XL6_AST_FLAG_STATIC) ? "self" : NULL;ctx->typeParams=&classTypes;
     ctx->inClassCreate=ctx->loopDepth=ctx->catchDepth=ctx->generatorDepth=0;
     int checked=xl6SemCheckFunc(ctx,copy);
     ctx->scope=savedScope;ctx->currentClass=savedClass;ctx->implicitSelfName=savedSelf;ctx->typeParams=savedTypes;
