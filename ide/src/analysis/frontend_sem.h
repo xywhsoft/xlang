@@ -74,6 +74,17 @@ struct xls_typed_module* xlsFrontendSemMemoTakeModule(xls_sem_memo*,XL6_AstNode*
 void xlsFrontendSemMemoDetachNative(xls_sem_memo*,XL6_AstNode*);
 xls_sem_native_work xlsFrontendSemMemoNativeWork(const xls_sem_memo*);
 xls_sem_native_work xlsSemanticCheckNativeWork(const struct xls_semantic_check*);
+typedef struct xls_sem_geometry_control {struct xls_sem_geometry_control* previous;size_t bytes;} xls_sem_geometry_control;
+typedef struct xls_sem_geometry_work {uint64_t captured,reused,mapped,declined;size_t bytes;} xls_sem_geometry_work;
+/* Optional immutable coordinates collected by the existing module-key walk.
+ * Coordinate correspondence additionally requires the COMPLETE current
+ * semantic environment key. No old AST/source/report is retained. Limits only
+ * shrink the8MiB snapshot allowance;zero uses the original coordinate rules.
+ * Counters describe the returned memo,not discarded attempts or total work. */
+void xlsFrontendSemGeometryBegin(xls_sem_geometry_control*,size_t bytes);
+void xlsFrontendSemGeometryEnd(xls_sem_geometry_control*);
+xls_sem_geometry_work xlsFrontendSemMemoGeometryWork(const xls_sem_memo*);
+xls_sem_geometry_work xlsSemanticCheckGeometryWork(const struct xls_semantic_check*);
 #endif
 typedef struct xls_sem_storage_work { uint64_t nodes,pages,chargedBytes,heapFallbacks; } xls_sem_storage_work;
 typedef struct xls_sem_storage_control {

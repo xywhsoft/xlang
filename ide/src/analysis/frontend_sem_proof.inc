@@ -25,8 +25,8 @@ static int xlsSemProofFits(xls_sem_proof* proof,size_t limit)
 {
     if(limit<sizeof(*proof) || proof->sources.Capacity>(limit-sizeof(*proof))/sizeof(const XL6_AstSource*))return 0;
     size_t bytes=sizeof(*proof)+proof->sources.Capacity*sizeof(const XL6_AstSource*);
-    if(proof->located.Capacity>(limit-bytes)/sizeof(const XL6_AstNode*))return 0;
-    proof->bytes=bytes+proof->located.Capacity*sizeof(const XL6_AstNode*);return 1;
+    if(proof->located.Capacity>(limit-bytes)/sizeof(xls_sem_location))return 0;
+    proof->bytes=bytes+proof->located.Capacity*sizeof(xls_sem_location);return 1;
 }
 static int xlsSemProofCharge(xls_sem_proof* proof,size_t bytes)
 {
@@ -39,7 +39,7 @@ static void xlsSemProofSymbol(xls_sem_proof* proof,const xls_sem_symbol_span* sp
        (!span->local || symbol<span->start || symbol>=span->end))proof->shiftSafe=0;
 }
 static int xlsSemProofType(xls_sem_proof* proof,const xls_sem_symbol_span* span,
-    const XL6_AstNode* node,size_t depth,size_t limit)
+    const XL6_AstNode* node,size_t depth,size_t limit,XL6_SymbolId origin)
 {
     if(!node)return 1;
     if(depth>512 ||
@@ -54,8 +54,10 @@ static int xlsSemProofType(xls_sem_proof* proof,const xls_sem_symbol_span* span,
     xlsSemProofSymbol(proof,span,node->semanticReceiverSymbolId);
 #endif
     ++proof->nodes;
-    if((node->line || node->column || node->range.known || node->tokenRange.known) &&
-       (!xrtArrayPush(&proof->located,&node) || !xlsSemProofFits(proof,limit)))return 0;
+    if(node->line || node->column || node->range.known || node->tokenRange.known){
+        xls_sem_location located={node,origin};
+        if(!xrtArrayPush(&proof->located,&located) || !xlsSemProofFits(proof,limit))return 0;
+    }
     XL6_SymbolId ids[]={node->semanticSymbolId,node->semanticDeclaredSymbolId,
         node->semanticTargetSymbolId,node->semanticCompoundOperatorSymbolId};
     for(size_t i=0;i<4;++i)xlsSemProofSymbol(proof,span,ids[i]);
@@ -71,9 +73,33 @@ static int xlsSemProofType(xls_sem_proof* proof,const xls_sem_symbol_span* span,
         }
     }
     for(size_t i=0;i<node->childCount;++i)
-        if(!xlsSemProofType(proof,span,node->children[i],depth+1,limit))return 0;
-    return xlsSemProofType(proof,span,node->inferredType,depth+1,limit) &&
-        xlsSemProofType(proof,span,node->semanticDeclaredType,depth+1,limit);
+        if(!xlsSemProofType(proof,span,node->children[i],depth+1,limit,origin))return 0;
+    return xlsSemProofType(proof,span,node->inferredType,depth+1,limit,0) &&
+        xlsSemProofType(proof,span,node->semanticDeclaredType,depth+1,limit,0);
+}
+static XL6_SymbolId xlsSemProofOrigin(const xls_sem_unit* unit,size_t at)
+{
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xls_sem_build* build=xlsActiveSemBuild;
+    if(!build || !build->memo || !build->proofRaw || build->proofRaw->Count!=unit->facts.Count)return 0;
+    const xls_sem_raw* raw=xrtArrayConstGet(build->proofRaw,at);const XL6_AstNode* node=raw ? raw->node : NULL;
+    if(!node || !node->semanticTargetSymbolId || node->semanticTargetSymbolId>=unit->symbols.floor)return 0;
+    /* Original bound global calls and their direct callee names clone the
+     * declared signature. For-target/name-flow/alias/member-derived types
+     * have no such certificate here. Every located EDGE carries its own
+     * producer,even when interning merged it with an uncertified type. */
+    const xls_sem_raw* parent=at ? xrtArrayConstGet(build->proofRaw,at-1) : NULL;
+    const XL6_AstNode* call=parent ? parent->node : NULL;
+    int boundName=node->kind==XL6_AST_NAME && node->semanticSymbolId && node->semanticSymbolId<unit->symbols.floor &&
+        call && call->kind==XL6_AST_CALL && call->semanticCallKind==XL6_SEM_CALL_DIRECT && call->childCount &&
+        call->children[0]==node && call->semanticTargetSymbolId==node->semanticTargetSymbolId;
+    int directCall=node->kind==XL6_AST_CALL && node->semanticCallKind==XL6_SEM_CALL_DIRECT && node->childCount &&
+        node->children[0] && node->children[0]->kind==XL6_AST_NAME;
+    if((boundName || directCall) && xlsSemGeometryCallable(build->memo->geometry,node->semanticTargetSymbolId))return node->semanticTargetSymbolId;
+#else
+    (void)unit;(void)at;
+#endif
+    return 0;
 }
 static xls_sem_proof* xlsSemProofCreate(const xls_sem_unit* unit,size_t limit)
 {
@@ -82,7 +108,7 @@ static xls_sem_proof* xlsSemProofCreate(const xls_sem_unit* unit,size_t limit)
        unit->facts.Count>XLS_SEM_MEMO_BYTES/(2*sizeof(XL6_AstNode*)))return NULL;
     xls_sem_proof* proof=xrtCalloc(1,sizeof(*proof));if(!proof)return NULL;
     proof->shiftSafe=1;proof->facts=unit->facts.Count;proof->cloneBytes=sizeof(XL6_AstNode);
-    if(!xrtArrayInit(&proof->sources,sizeof(const XL6_AstSource*)) || !xrtArrayInit(&proof->located,sizeof(const XL6_AstNode*)) ||
+    if(!xrtArrayInit(&proof->sources,sizeof(const XL6_AstSource*)) || !xrtArrayInit(&proof->located,sizeof(xls_sem_location)) ||
        !xlsSemProofCharge(proof,2*unit->facts.Count*sizeof(XL6_AstNode*)))goto failed;
     for(size_t i=0;i<unit->facts.Count;++i){
         const xls_sem_fact* fact=xrtArrayConstGet(&unit->facts,i);
@@ -92,8 +118,8 @@ static xls_sem_proof* xlsSemProofCreate(const xls_sem_unit* unit,size_t limit)
         xlsSemProofSymbol(proof,&unit->symbols,fact->receiver);
         if(fact->packageLink && !xlsSemProofCharge(proof,strlen(fact->packageLink)+1))goto failed;
 #endif
-        if(!xlsSemProofType(proof,&unit->symbols,fact->inferred,1,limit) ||
-           !xlsSemProofType(proof,&unit->symbols,fact->declaredType,1,limit))goto failed;
+        if(!xlsSemProofType(proof,&unit->symbols,fact->inferred,1,limit,xlsSemProofOrigin(unit,i)) ||
+           !xlsSemProofType(proof,&unit->symbols,fact->declaredType,1,limit,0))goto failed;
     }
     if(!xlsSemProofFits(proof,limit))goto failed;
     return proof;

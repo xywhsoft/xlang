@@ -5,7 +5,7 @@
 #include "analysis/function_unit_internal.h"
 #include "analysis/ast_size.h"
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
-static int expectEager,expectNoPlacement,unexpectedPlacement;
+static int expectEager,expectNoGeometry,expectNoPlacement,unexpectedPlacement;
 int __real_xlsFrontendSemCheckMemoFinal(XL6_AstNode*,XL6_DiagList*,const char*,int,const char*,const XL6_SourceReport*,const XL6_SourceReport*,const xls_sem_memo*,xls_sem_memo**,xls_sem_work*,size_t);
 int __wrap_xlsFrontendSemCheckMemoFinal(XL6_AstNode* root,XL6_DiagList* diags,const char* module,int index,const char* path,
     const XL6_SourceReport* sources,const XL6_SourceReport* oldSources,const xls_sem_memo* old,xls_sem_memo** memo,xls_sem_work* work,size_t bytes)
@@ -226,12 +226,47 @@ static int interop(int owned)
     }
     xlsSemanticCheckDestroy(previous);xlsCheckSessionDestroy(session);xlsTextRelease(doc.text);xrtFree(path);return 1;
 }
+static int geometryEdits(unsigned mode)
+{
+    char* path=xrtPathAbs("native-type-origin-中文😀.xl");xls_check_session* session=xlsCheckSessionCreate(NULL);CHECK(path && session);
+    xls_analysis_document doc={"entry",path,NULL,1,1};xls_semantic_check* previous=NULL;
+    xls_sem_geometry_control control;if(mode==1)xlsFrontendSemGeometryBegin(&control,0);
+    uint64_t full=0;
+    for(unsigned v=0;v<3;++v){
+        xstrbuf text={0};CHECK(xrtStrBufAppendFormat(&text,"\xef\xbb\xbf" "func changedStart() as int\r\n return %u\r\nend\r\n",v));
+        for(unsigned i=0;i<60;++i){
+            CHECK(xrtStrBufAppendFormat(&text,"func helper_%u(int value) as int\r\n int local=value+%u\r\n",i,i));
+            for(unsigned j=0;j<12;++j)CHECK(xrtStrBufAppend(&text,xrtStrView(" local=local+1\r\n")));
+            CHECK(xrtStrBufAppend(&text,xrtStrView(" return local\r\nend\r\n")));
+        }
+        CHECK(xrtStrBufAppendFormat(&text,"func compute(int value=%u) as int\r\n return value+%u\r\nend\r\nfunc main(...) as int\r\n return compute()\r\nend\r\n",mode==2 ? v : 0,v));
+        expectNoPlacement=mode || expectNoGeometry;unexpectedPlacement=0;
+        xls_semantic_check* result=update(session,&doc,1,text.Data);xrtStrBufFree(&text);
+        CHECK(result && xlsSemanticCheckInfo(result).accepted && complete(result,&doc,1) && !unexpectedPlacement);
+        xls_sem_native_work native=xlsSemanticCheckNativeWork(result);xls_sem_geometry_work geometry=xlsSemanticCheckGeometryWork(result);
+        xls_ast_materialize_work copied=xlsSemanticCheckMaterializationWork(result);
+        if(!v){full=copied.nodes;CHECK(!native.reused && !geometry.mapped);}
+        else if(!mode && !expectNoGeometry){
+            CHECK(native.reused>=61 && !native.retries && geometry.mapped>0 && geometry.reused==1 && !geometry.captured && geometry.bytes>0);
+            CHECK(copied.nodes<full && equalFunctions(xlsSemanticCheckAst(previous),xlsSemanticCheckAst(result))==native.reused);
+        }else CHECK(!native.reused && native.retries==1 && !geometry.mapped);
+        if(mode==1 || expectNoGeometry)CHECK(!geometry.bytes);
+        printf("geometry-mode%u-v%u mapped=%llu asset-reused=%llu native=%llu retries=%llu copied=%llu\n",mode,v,
+            (unsigned long long)geometry.mapped,(unsigned long long)geometry.reused,(unsigned long long)native.reused,
+            (unsigned long long)native.retries,(unsigned long long)copied.nodes);
+        xlsSemanticCheckDestroy(previous);previous=result;
+    }
+    if(mode==1)xlsFrontendSemGeometryEnd(&control);
+    xlsCheckSessionDestroy(session);CHECK(xlsSemanticCheckValidate(previous) && complete(previous,&doc,1));
+    xlsSemanticCheckDestroy(previous);xlsTextRelease(doc.text);xrtFree(path);return 1;
+}
 int main(int argc,char** argv)
 {
-    if(argc>2 || (argc==2 && strcmp(argv[1],"--expect-eager")))return 2;
-    expectEager=argc==2;
+    if(argc>2 || (argc==2 && strcmp(argv[1],"--expect-eager") && strcmp(argv[1],"--expect-no-geometry")))return 2;
+    expectEager=argc==2 && !strcmp(argv[1],"--expect-eager");expectNoGeometry=argc==2 && !strcmp(argv[1],"--expect-no-geometry");
     xrtAtomic32Init(&checks,0);if(!editing())return 1;
     if(!expectEager && (!backing() || !budgets() || !partial() || !large() || !interop(0) || !interop(1)))return 1;
+    if(!expectEager && (!geometryEdits(0) || !geometryEdits(1) || !geometryEdits(2)))return 1;
     printf("analysis_native_borrow_test passed:%u checks;actual ordinary native root identity,complete fresh AST/index/IR parity,region/symbol eager retries,lifetime\n",xrtAtomic32Load(&checks,XMEMORY_RELAXED));return 0;
 }
 #else
