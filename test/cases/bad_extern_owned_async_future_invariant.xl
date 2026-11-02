@@ -1,0 +1,6 @@
+typedef Native=func() as cstring
+typedef Plain=func() as string
+func copy(future<Native> source) as future<Plain>
+    // Existing Future values do not gain covariance from worker specialization.
+    return source
+end

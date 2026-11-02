@@ -109,6 +109,8 @@ static int xl6SemCheckType(XL6_SemContext* ctx, XL6_AstNode* typeNode);
 static int xl6SemCheckBoundarySymbolUse(XL6_SemContext* ctx, const XL6_AstNode* node, XL6_Symbol* sym, int writeAccess);
 static XL6_AstNode* xl6SemFindTypeDecl(XL6_SemContext* ctx, const char* name);
 static XL6_AstNode* xl6SemBaseClassDecl(XL6_SemContext* ctx, const XL6_AstNode* classNode);
+static const XL6_AstNode* xl6SemFindBaseOverrideTarget(XL6_SemContext*,const XL6_AstNode*,
+    const XL6_AstNode*,const XL6_AstNode**);
 static const char* xl6SemExprStaticTypeName(XL6_SemContext* ctx, XL6_AstNode* expr);
 static XL6_AstNode* xl6SemInferAutoTypeNode(XL6_SemContext* ctx, XL6_AstNode* expr);
 static XL6_AstNode* xl6SemInferAutoTypeNodeRaw(XL6_SemContext* ctx, XL6_AstNode* expr);
@@ -149,6 +151,8 @@ static int xl6SemCOwnedResultHasOwner(XL6_SemContext*,const XL6_AstNode*);
 static int xl6SemCOwnedResultMatchDepth(XL6_SemContext*,const XL6_AstNode*,const XL6_AstNode*,unsigned);
 static XL6_AstNode* xl6SemCOwnedOrdinaryFunction(XL6_SemContext*,XL6_AstNode*);
 static XL6_AstNode* xl6SemCOwnedFunctionWithResults(XL6_SemContext*,XL6_AstNode*,const XL6_AstNode*);
+static XL6_AstNode* xl6SemCOwnedAsyncResultMethod(XL6_SemContext*,XL6_AstNode*,XL6_AstNode*,
+    const XL6_AstNode*,const XL6_AstNode*,const XL6_AstNode*);
 static int xl6SemCOwnedAdaptCallableExpr(XL6_SemContext*,XL6_AstNode*,const XL6_AstNode*);
 static int xl6SemCOwnedCallableResultCost(XL6_SemContext*,const XL6_AstNode*,const XL6_AstNode*);
 static int xl6SemCOwnedAdaptCallArguments(XL6_SemContext*,XL6_AstNode*,const XL6_AstNode*);
@@ -8404,6 +8408,7 @@ static int xl6SemConstrainedBoundMethodCost(XL6_SemContext* ctx,const XL6_AstNod
     if(!constrained){xl6AstFree(receiver);return -1;}
     const XL6_AstNode* expectedReturns=signature->children[1];
     XL6_AstNode* selected=NULL;
+    XL6_AstNode* selectedOwner=NULL,*selectedArgs=NULL,*selectedClassArgs=NULL;
     int selectedCost=0;
     uint64_t best=UINT64_MAX;size_t matches=0;
     for(XL6_AstNode* cls=owner;cls && !matches;cls=xl6SemBaseClassDecl(ctx,cls)){
@@ -8476,12 +8481,20 @@ static int xl6SemConstrainedBoundMethodCost(XL6_SemContext* ctx,const XL6_AstNod
             }
             XL6_AstNode* closed=ok ? xl6SemSubstituteGenericTypeArgs(typeParams,args,params) : NULL;
             XL6_AstNode* returns=ok ? xl6SemCloneInvocationReturnTypes(ctx,cls,classArgs,method,args,expr) : NULL;
+            const XL6_AstNode* future=returns && returns->childCount==1 ? xl6SemResolveAliasType(ctx,returns->children[0]) : NULL;
+            const XL6_AstNode* payload=asyncResult && future && xl6TextEquals(future->text,"future") ? xl6SemTypeNodeFirstGenericArg(future) : NULL;
+            int asyncCopy=payload && xl6SemCOwnedResultMatchDepth(ctx,asyncResult,payload,0)>0;
             ok=ok && closed && returns && (xl6SemFunctionTypeMatchesParts(ctx,signature,closed,returns) ||
-                (xl6SemCOwnedResultListMatches(ctx,expectedReturns,returns) &&
+                ((asyncCopy || xl6SemCOwnedResultListMatches(ctx,expectedReturns,returns)) &&
                  xl6SemCallableParamListMatchesFunctionParams(ctx,expected,closed)));
             if(ok && rank<best){
                 selected=(XL6_AstNode*)method;best=rank;matches=1;
-                selectedCost=xl6SemCOwnedResultListMatches(ctx,expectedReturns,returns) ? 10 : 0;
+                selectedCost=asyncCopy || xl6SemCOwnedResultListMatches(ctx,expectedReturns,returns) ? 10 : 0;
+                xl6AstFree(selectedArgs);xl6AstFree(selectedClassArgs);
+                selectedArgs=asyncCopy ? xl6SemCloneTypeNode(args) : NULL;
+                selectedClassArgs=asyncCopy && classArgs ? xl6SemCloneTypeNode(classArgs) : NULL;
+                selectedOwner=cls;
+                if(asyncCopy && (!selectedArgs || (classArgs && !selectedClassArgs)))selected=NULL;
             }
             else if(ok && rank==best)++matches;
             for(size_t t=0;inferred && typeParams && t<typeParams->childCount;++t)xl6AstFree(inferred[t]);
@@ -8491,10 +8504,23 @@ static int xl6SemConstrainedBoundMethodCost(XL6_SemContext* ctx,const XL6_AstNod
     }
     xl6AstFree(receiver);
     if(matches==1){
+        if(report && selectedArgs) {
+            const XL6_AstNode* future=xl6SemResolveAliasType(ctx,expectedReturns->children[0]);
+            selected=xl6SemCOwnedAsyncResultMethod(ctx,selectedOwner,selected,selectedClassArgs,
+                selectedArgs,xl6SemTypeNodeFirstGenericArg(future));
+            if(selected) {
+                char* name=xrtStrDup(xl6SemFuncName(selected));
+                if(!name)selected=NULL;
+                else{xrtFree(((XL6_AstNode*)expr)->text);((XL6_AstNode*)expr)->text=name;}
+            }
+        }
+        xl6AstFree(selectedArgs);xl6AstFree(selectedClassArgs);
+        if(!selected)return 0;
         if(report)((XL6_AstNode*)expr)->semanticTargetSymbolId=selected->semanticSymbolId;
         if(conversionCost)*conversionCost=selectedCost;
         return 1;
     }
+    xl6AstFree(selectedArgs);xl6AstFree(selectedClassArgs);
     if(report)xl6SemErrorNode(ctx,expr,matches ? "typed bound method requires one exact overload" :
         "typed bound method violates generic constraints or its exact signature");
     return 0;

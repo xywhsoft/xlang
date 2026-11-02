@@ -1,0 +1,152 @@
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point value)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int prefix)
+extern "owned_clear_failure" @no_raise func clearFailure()
+typedef Text=func(c_int) as cstring
+typedef Plain=func(c_int) as string
+typedef Data=func(c_int) as cbytes
+typedef PlainData=func(c_int) as bytes
+int dispatched=0
+class Reader
+    func Text<T>(T number) as cstring
+        return cstring.take(rawText(),release)
+    end
+    func Data<T>(T number) as cbytes
+        return cbytes.take(rawBytes(),4,release)
+    end
+    async func Factory(c_int witness) as Text
+        return self.Text
+    end
+    async func Generic<T>(T witness) as func(T) as cstring
+        return self.Text
+    end
+    async func Binary<T>(T witness) as func(T) as cbytes
+        return self.Data
+    end
+    async func Maybe<T>(T witness,bool present) as (func(T) as cstring)?
+        return present ? self.Text : null
+    end
+    async func Packed<T>(T witness,... ) as func(T) as cstring
+        assert arg.length==1 and arg[0]==7
+        return self.Text
+    end
+    async func Failing(c_int prefix) as Text
+        Text saved=self.Text
+        failAfter(int(prefix))
+        return saved
+    end
+end
+class Identity
+    async func Echo<T>(T value) as T
+        return value
+    end
+end
+class Box<K>
+    func Read(K value) as cstring
+        return cstring.take(rawText(),release)
+    end
+    async func Factory<T>(T witness) as func(K) as cstring
+        return self.Read
+    end
+end
+class VirtualReader
+    virtual async func Factory(c_int witness) as Text
+        dispatched=1
+        return Reader().Text
+    end
+end
+class DerivedReader extends VirtualReader
+    override async func Factory(c_int witness) as Text
+        dispatched=2
+        return Reader().Text
+    end
+end
+async func choose(func(c_int) as future<Plain> callback) as bool
+    return false
+end
+async func choose(func(c_int) as future<Text> callback,int omitted=7) as bool
+    Text exact=await callback(c_int(1))
+    string value=exact(c_int(7))
+    return original(value)
+end
+async func check(bool choose)
+    Reader reader=Reader()
+    Reader other=Reader()
+    func(c_int) as future<Plain> fixed=reader.Factory
+    Plain first=await fixed(c_int(1))
+    string copied=first(c_int(7))
+    assert copied=="hello" and not original(copied)
+    func(c_int) as future<Plain> generic=reader.Generic
+    Plain second=await generic(c_int(1))
+    assert second(c_int(7))=="hello"
+    func(c_int) as future<PlainData> binary=reader.Binary
+    PlainData data=await binary(c_int(1))
+    bytes copiedBytes=data(c_int(7))
+    assert copiedBytes==b"\0\xff\x11*" and not originalBytes(copiedBytes)
+    func(c_int,bool) as future<Plain?> maybe=reader.Maybe
+    assert await maybe(c_int(1),false)==null
+    Plain? present=await maybe(c_int(1),true)
+    if present!=null then assert present(c_int(7))=="hello" end
+    func(c_int,...) as future<Plain> packed=reader.Packed
+    Plain packedResult=await packed(c_int(1),7)
+    assert packedResult(c_int(7))=="hello"
+    func(c_int) as future<Plain> selected=choose ? reader.Generic : other.Generic
+    Plain chosen=await selected(c_int(1))
+    assert chosen(c_int(7))=="hello"
+    auto cast=reader.Generic as func(c_int) as future<Plain>
+    Plain castResult=await cast(c_int(1))
+    assert castResult(c_int(7))=="hello"
+    Identity identity=Identity()
+    Text originalText=reader.Text
+    func(Text) as future<Plain> echo=identity.Echo
+    Plain echoed=await echo(originalText)
+    assert echoed(c_int(7))=="hello"
+    Box<c_int> box=Box::<c_int>()
+    func(int) as future<Plain> boxFactory=box.Factory
+    Plain boxed=await boxFactory(7)
+    assert boxed(c_int(7))=="hello"
+    Box<c_long> wide=Box::<c_long>()
+    func(int) as future<func(c_long) as string> wideFactory=wide.Factory
+    func(c_long) as string wideResult=await wideFactory(7)
+    assert wideResult(c_long(7))=="hello"
+    VirtualReader dynamic=DerivedReader()
+    func(c_int) as future<Plain> dispatchedFactory=dynamic.Factory
+    Plain dispatchedResult=await dispatchedFactory(c_int(1))
+    assert dispatched==2 and dispatchedResult(c_int(7))=="hello"
+    // Specialization never changes the original Future's owner signature.
+    func(c_int) as future<Text> exact=reader.Factory
+    Text unchanged=await exact(c_int(1))
+    string originalValue=unchanged(c_int(7))
+    assert original(originalValue)
+    // A losing ordinary-Future overload must not rewrite the original method.
+    assert await choose(reader.Factory)
+end
+async func failures()
+    Reader reader=Reader()
+    func(c_int) as future<Plain> callback=reader.Failing
+    int accepted=0
+    int rejected=0
+    for prefix in range(32)
+        try
+            Plain value=await callback(c_int(prefix))
+            clearFailure()
+            assert value(c_int(7))=="hello"
+            accepted+=1
+        catch problem
+            clearFailure()
+            rejected+=1
+        end
+        assert balanced()
+    end
+    assert accepted>0 and rejected>0
+end
+assert debug()
+await check(true)
+await check(false)
+await failures()
+assert balanced()
