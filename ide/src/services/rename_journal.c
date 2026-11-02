@@ -7,7 +7,6 @@
 #include "platform/path.h"
 #include "lang/languages.h"
 #include <windows.h>
-#include <bcrypt.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -98,12 +97,7 @@ static unsigned char* readBlob(xide_rename_journal* j,const xvalue* root,const c
 static unsigned char* readOwnedBody(xide_rename_journal* j,const xvalue* row,const char* ref,size_t* length,xide_model_error* e);
 static int bodyHash(const unsigned char* body,size_t n,unsigned char hash[32])
 {
- BCRYPT_ALG_HANDLE algorithm=NULL; BCRYPT_HASH_HANDLE handle=NULL; DWORD size=0,got=0; unsigned char* object=NULL;
- int okay=BCryptOpenAlgorithmProvider(&algorithm,BCRYPT_SHA256_ALGORITHM,NULL,0)>=0 && BCryptGetProperty(algorithm,BCRYPT_OBJECT_LENGTH,(PUCHAR)&size,sizeof(size),&got,0)>=0;
- if(okay) { object=malloc(size); okay=object && BCryptCreateHash(algorithm,&handle,object,size,NULL,0,0)>=0 && BCryptHashData(handle,(PUCHAR)body,(ULONG)n,0)>=0 && BCryptFinishHash(handle,hash,32,0)>=0; }
- if(handle) BCryptDestroyHash(handle);
- if(algorithm) BCryptCloseAlgorithmProvider(algorithm,0);
- free(object); return okay;
+ return xrtSha256(body,n,hash);
 }
 /* Charge every ordinary child, including unrecognized files, to this store.
    The caller holds its recovery lock; limits never authorize deleting a file. */

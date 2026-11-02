@@ -3,7 +3,6 @@
 #include "platform/file_io.h"
 #include "platform/receipt_time.h"
 #include <windows.h>
-#include <bcrypt.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -60,21 +59,17 @@ static int stopped(xide_build_inputs* r,xide_model_error* e) { if(r->cancel && r
    before close. No second XRT implementation is linked into the IDE. */
 static int verifyFile(xide_build_inputs* r,const input* expected,const char* path,int identity,xide_model_error* e) {
  xfile file=NULL; xfileinfo first,last,named; unsigned char block[65536],digest[32],extra; size_t n=0;
- BCRYPT_ALG_HANDLE algorithm=NULL; BCRYPT_HASH_HANDLE hash=NULL; unsigned char* object=NULL; DWORD bytes=0,returned=0;
+ xsha256 hash; xrtSha256Init(&hash);
  int okay=!stopped(r,e) && (file=xideIoOpen(path,XFILE_READ)) && xideIoReceiptFileStat(file,&first) && infoEqual(&first,&first) && first.Size==expected->info.Size;
  if(okay && identity) { xfileinfo wire=xideReceiptInfo(&first,expected->schema); okay=infoEqual(&wire,&expected->info); }
- NTSTATUS status=okay ? BCryptOpenAlgorithmProvider(&algorithm,BCRYPT_SHA256_ALGORITHM,NULL,0) : -1;
- if(status==0) status=BCryptGetProperty(algorithm,BCRYPT_OBJECT_LENGTH,(PUCHAR)&bytes,sizeof(bytes),&returned,0);
- if(status==0) { object=malloc(bytes); if(object) status=BCryptCreateHash(algorithm,&hash,object,bytes,NULL,0,0); else status=-1; }
  uint64 at=0;
- while(status==0 && at<first.Size) {
+ while(okay && at<first.Size) {
   size_t want=first.Size-at>sizeof(block) ? sizeof(block) : (size_t)(first.Size-at),done=0;
-  if(stopped(r,e) || !xrtReadFull(file,block,want,&done) || done!=want) { status=-1; break; }
-  status=BCryptHashData(hash,block,(ULONG)done,0); at+=done;
+  if(stopped(r,e) || !xrtReadFull(file,block,want,&done) || done!=want) { okay=0; break; }
+  okay=xrtSha256Update(&hash,block,done); at+=done;
  }
- if(status==0) status=BCryptFinishHash(hash,digest,sizeof(digest),0);
- okay=okay && status==0 && !memcmp(digest,expected->hash,32) && xrtRead(file,&extra,1,&n) && !n && xideIoReceiptFileStat(file,&last) && infoEqual(&first,&last) && xideIoReceiptStat(path,&named) && infoEqual(&first,&named);
- if(hash) { BCryptDestroyHash(hash); } free(object); if(algorithm) { BCryptCloseAlgorithmProvider(algorithm,0); } if(file && !xrtClose(file)) okay=0;
+ okay=okay && xrtSha256Final(&hash,digest) && !memcmp(digest,expected->hash,32) && xrtRead(file,&extra,1,&n) && !n && xideIoReceiptFileStat(file,&last) && infoEqual(&first,&last) && xideIoReceiptStat(path,&named) && infoEqual(&first,&named);
+ if(file && !xrtClose(file)) okay=0;
  return okay ? 1 : fail(e,"Build input or artifact differs from compiler receipt",path);
 }
 static int missing(const char* path) { wchar_t* w=xidePathNativeWide(path); if(!w) return 0; DWORD flags=GetFileAttributesW(w),code=GetLastError(); free(w); return flags==INVALID_FILE_ATTRIBUTES && (code==ERROR_FILE_NOT_FOUND || code==ERROR_PATH_NOT_FOUND); }

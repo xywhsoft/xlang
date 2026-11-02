@@ -175,7 +175,7 @@ GUI 中唯一的 XRT 实现由匹配的 XGE IDE 配置 DLL 提供。GUI 首版�
 
 物理文件重命名通过 ui/rename_view 保存独立草稿基线，editor/documents 预分配元数据并调用 platform/file_rename，成功后复用同一引用补丁事务。文件字节与编辑器正文分离，未保存修改及撤销保留；旧任务失效，监视和会话使用新路径。原生菜单、F2 与模态/字体保护见 [文件物理重命名](file-rename.md)。
 
-工程树重命名由稳定 FileEntry ID 解析当前路径。ui/rename_view 对未打开文件直接采集流式磁盘基线并调用 platform/file_rename，经 ui/editor_view 共用 prepare/finish 路径事务；已有 Document 使用指定源路径重命名，保证移动实际选中的硬链接。模型与磁盘基线都独立保存，不为二进制资源创建 CodeEdit，其他活动标签保持。SHA-256 使用 Windows BCrypt，SDK 未改动。
+工程树重命名由稳定 FileEntry ID 解析当前路径。ui/rename_view 对未打开文件直接采集流式磁盘基线并调用 platform/file_rename，经 ui/editor_view 共用 prepare/finish 路径事务；已有 Document 使用指定源路径重命名，保证移动实际选中的硬链接。模型与磁盘基线都独立保存，不为二进制资源创建 CodeEdit，其他活动标签保持。SHA-256 统一调用匹配 XGE SDK 的 XRT 接口；文件按块读取，SDK 未改动，见 [SHA-256 与系统兼容](sha256-compatibility.md)。
 
 项目迁移后端由 services/project_migration 保存独立模型/集合基线与预分配路径补丁，清单移动和整目录移动分别使用平台文件摘要及目录身份保护。磁盘成功后只应用准备好的模型路径，保留 ID 与原 JSON 保存基线；整个目录中的未知文件由单次目录移动保留。现已通过项目菜单接入文档预分配批量绑定、监视 epoch、旧任务失效和默认/外置会话迁移，事务及已执行验收见 [项目清单与目录迁移](project-migration.md)。
 

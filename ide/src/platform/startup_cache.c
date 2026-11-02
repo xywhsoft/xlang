@@ -1,6 +1,6 @@
 #include "platform/startup_cache.h"
 #include <aclapi.h>
-#include <bcrypt.h>
+#include <xrt.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -72,16 +72,14 @@ static HANDLE ordinary(const wchar_t* path,DWORD access,int directory,BY_HANDLE_
 static int digest(HANDLE file,const BY_HANDLE_FILE_INFORMATION* info,cache_file* value,ULONGLONG* budget)
 {
     if(info->nFileSizeHigh || info->nFileSizeLow>BINARY_LIMIT || (budget && *budget+info->nFileSizeLow>HASH_BUDGET))return 0;
-    BCRYPT_ALG_HANDLE algorithm=NULL;BCRYPT_HASH_HANDLE context=NULL;DWORD size=0,n=0;unsigned char* object=NULL;unsigned char* data=NULL;LARGE_INTEGER zero={0};
-    int okay=SetFilePointerEx(file,zero,NULL,FILE_BEGIN) && BCryptOpenAlgorithmProvider(&algorithm,BCRYPT_SHA256_ALGORITHM,NULL,0)>=0 && BCryptGetProperty(algorithm,BCRYPT_OBJECT_LENGTH,(PUCHAR)&size,sizeof(size),&n,0)>=0 && size && size<=65536;
-    if(okay){object=malloc(size);data=malloc(65536);okay=object && data && BCryptCreateHash(algorithm,&context,object,size,NULL,0,0)>=0;}
+    xsha256 context;xrtSha256Init(&context);unsigned char* data=NULL;LARGE_INTEGER zero={0};
+    int okay=SetFilePointerEx(file,zero,NULL,FILE_BEGIN)!=0;
+    if(okay){data=malloc(65536);okay=data!=NULL;}
     ULONGLONG total=0;
-    while(okay){DWORD count=0;okay=ReadFile(file,data,65536,&count,NULL);if(!okay || !count)break;total+=count;if(budget)*budget+=count;okay=total<=BINARY_LIMIT && BCryptHashData(context,data,count,0)>=0;}
-    okay=okay && total==info->nFileSizeLow && BCryptFinishHash(context,value->digest,sizeof(value->digest),0)>=0;
+    while(okay){DWORD count=0;okay=ReadFile(file,data,65536,&count,NULL);if(!okay || !count)break;total+=count;if(budget)*budget+=count;okay=total<=BINARY_LIMIT && xrtSha256Update(&context,data,count);}
+    okay=okay && total==info->nFileSizeLow && xrtSha256Final(&context,value->digest);
     if(okay){value->volume=info->dwVolumeSerialNumber;value->high=info->nFileIndexHigh;value->low=info->nFileIndexLow;value->size=info->nFileSizeLow;value->created=ticks(info->ftCreationTime);value->written=ticks(info->ftLastWriteTime);}
-    if(context)BCryptDestroyHash(context);
-    if(algorithm)BCryptCloseAlgorithmProvider(algorithm,0);
-    free(object);free(data);return okay;
+    free(data);return okay;
 }
 void xideStartupCacheRelease(xide_startup_cache_lease* lease)
 {
