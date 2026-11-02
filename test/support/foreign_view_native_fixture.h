@@ -118,13 +118,15 @@ static bool trace_native(const void* raw,xrtownershipvisitor visit,void* context
         (!n->cell || visit(xl6CellRuntimeV1Get()->Ownership(n->cell),context)) &&
         (!n->future || visit(xrtFutureOwnership(n->future),context));
 }
+static bool busy_native(const void* raw)
+{return ((const Native*)raw)->depth!=0;}
 static const XL6_ForeignViewDescriptorV1 rootDescriptor={
     sizeof(rootDescriptor),XL6_FOREIGN_VIEW_V1_TAG,"native.test.root",
     sizeof(Watch),_Alignof(Watch),watch,unwatch,destroy_native,
-    sizeof(NativeScope),_Alignof(NativeScope),scope_begin,scope_end,trace_native};
+    sizeof(NativeScope),_Alignof(NativeScope),scope_begin,scope_end,trace_native,busy_native};
 static const XL6_ForeignViewDescriptorV1 childDescriptor={
     sizeof(childDescriptor),XL6_FOREIGN_VIEW_V1_TAG,"native.test.child",
-    sizeof(Watch),_Alignof(Watch),watch,unwatch,destroy_native,0,1,NULL,NULL,NULL};
+    sizeof(Watch),_Alignof(Watch),watch,unwatch,destroy_native,0,1,NULL,NULL,NULL,NULL};
 
 
 #endif

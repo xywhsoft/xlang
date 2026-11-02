@@ -111,8 +111,8 @@ static bool viewDescriptorValid(const XL6_ForeignViewDescriptorV1* d,bool root)
         (d->Watch ? !d->watchBytes : d->watchBytes!=0) ||
         !!d->CallBegin!=!!d->CallEnd || !viewAlignment(d->callBytes,d->callAlignment) ||
         (d->CallBegin ? !d->callBytes : d->callBytes!=0)) return false;
-    if (root) return !d->Watch || d->CallBegin;
-    return d->Watch && !d->CallBegin && !d->TraceRaw;
+    if (root) return !d->Watch || (d->CallBegin && d->Busy);
+    return d->Watch && !d->CallBegin && !d->TraceRaw && !d->Busy;
 }
 static bool viewAppendStorage(size_t* bytes,size_t size,size_t alignment,size_t* offset)
 {
@@ -487,7 +487,8 @@ static bool viewBusy(const void* raw)
     /* Freeze excludes resident mutations, not arbitrary native UI writes.
      * Creator-affine raw payloads may only be inspected on their thread. */
     return root->thread!=xrtThreadCurrentId() ||
-        xrtAtomic32Load(&root->active,XMEMORY_ACQUIRE)!=0;
+        xrtAtomic32Load(&root->active,XMEMORY_ACQUIRE)!=0 ||
+        (root->raw && root->descriptor.Busy && root->descriptor.Busy(root->raw));
 }
 static bool viewReadCount(const void* raw,size_t* count)
 {

@@ -51,7 +51,7 @@ static bool callback_trace(const void* raw,xrtownershipvisitor visit,void* user)
 static const XL6_ForeignViewDescriptorV1 callbackDescriptor={
     sizeof(callbackDescriptor),XL6_FOREIGN_VIEW_V1_TAG,"native.test.root",
     sizeof(Watch),_Alignof(Watch),watch,unwatch,callback_destroy,
-    sizeof(NativeScope),_Alignof(NativeScope),scope_begin,callback_end,callback_trace};
+    sizeof(NativeScope),_Alignof(NativeScope),scope_begin,callback_end,callback_trace,busy_native};
 static XL6_ForeignView* context(NativePayload** output)
 {
     NativePayload* native=xrtCalloc(1,sizeof(*native));assert(native);native->native.root=&native->native;

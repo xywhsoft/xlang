@@ -1,0 +1,103 @@
+{
+  "scope": "Private native XUI event and resident callback integration checkpoint, not completed language/package migration",
+  "complete": true,
+  "overallEightCapabilitiesComplete": false,
+  "networkTests": false,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\source-r12\\build.json",
+      "sha256": "a7c0cbccb4c359b852d5c8a6b284000fbac596f1f3f66cb8797b09032b8730dd",
+      "stages": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\source-r12-current-vfs\\provider.json",
+      "sha256": "f6c1f207ace883aad274d9202407754a650956aad9cf12993feb9aec0e4f4d43",
+      "stages": 7
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\foundation-batch-r12-current-vfs\\results.json",
+      "sha256": "17cc122bbc31932454aabaa07ed0c2f2d08ca4eb2e2e599995d56bf03c274207",
+      "stages": 11
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\native-callback-artifacts-r1\\results.json",
+      "sha256": "e7809b60e51ce18ec9297c737ca06ffd4cc53aa94e15f61058c0f739c39d5ebe",
+      "stages": 7
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\native-userdata-busy-win-r1\\results.json",
+      "sha256": "e3fd3695223a23e942e94f17efa1d812760d69f0cef525ae58a6fe98beadf9d3",
+      "stages": 58
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\view-native-busy-win-r1\\results.json",
+      "sha256": "1ac229bd7581c0ebc66f0036571fbf60990a06228c4dc17fb9f495572bacec60",
+      "stages": 20
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\native-userdata-xui-win-r2\\results.json",
+      "sha256": "22060ec41bcdc2279a6e275873f0e0022efcc45f978bf8f9ef1f7378660b05e2",
+      "stages": 36
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-owned-events-20261102\\win-r3\\results.json",
+      "sha256": "8a9f333949ac10bea05c062297e95b2cd2d80ae61faeb9c798ce3e84b21c6ed8",
+      "stages": 80
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-owned-events-20261102\\actual-xl-r2\\results.json",
+      "sha256": "27c178c9494e9d7ecd997438bb975ba3174db47ddd1e80660f66c1f5c5887c51",
+      "stages": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-owned-events-20261102\\actual-xlc-r2\\results.json",
+      "sha256": "605c4f7440046fa8676045e357b772d3630f8699bce68f04947292097881cb19",
+      "stages": 0
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-userdata-busy-20261102-r1\\results.json",
+      "sha256": "87d45bab2773f33794105004da0c2deabb6fb09217f753c7985944cea595718d",
+      "stages": 58
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\xge-owned-events-20261102-r2\\results.json",
+      "sha256": "d02112b6b167d4f2cd0df6553bb44b3db33dc66ecea5092f768b55b7b38c0f05",
+      "stages": 80
+    }
+  ],
+  "xrtCommit": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
+  "xgeCommits": [
+    "9ed440a482dfe2c83b0af12c854b535fb0eae442",
+    "b0533295"
+  ],
+  "engine": {
+    "path": "F:\\xlang-validation\\xge-owned-events-20261102\\profile-win-r2\\xge.dll",
+    "sha256": "10eefbd74b874ac26e28265adff8a33ea5e060a9e7f880c37c7f38b813ee0407",
+    "bytes": 8663659,
+    "optimization": "O2",
+    "hostXrtSymbols": 176,
+    "residentXrtCopies": 0
+  },
+  "costs": {
+    "primaryMetadataBefore": 1568,
+    "primaryMetadataAfter": 40,
+    "handlerTableBytes": 1536,
+    "handlerTableExtraColdAllocations": 1,
+    "widgetExtraPointerBytes": 8,
+    "steadyNativeXrtAllocations": 0,
+    "bookkeeping": "Actual code, reference, execution and physical-native scopes remain; no blanket zero-overhead claim"
+  },
+  "limits": [
+    "native XUI tests use base widgets and owned event slots, not every control or model",
+    "Linux sanitizer covers modified runtime units and native XUI CPU closure, not the whole reused compiler core",
+    "caller-lifetime declarations in API-table fixture name resident immutable tables, not managed language values",
+    "no shipping DLL/SDK/IDE/package or delivery-index update"
+  ],
+  "remaining": [
+    "remaining native retained callback and full raw payload graph contracts",
+    "managed type/owner/transfer, class field schema and closed XLIR/Cgen",
+    "factory guard through argument cleanup",
+    "text borrow/materialize and contiguous spans, complete effects",
+    "full package/SDK/IDE/examples replacement and final acceptance"
+  ]
+}

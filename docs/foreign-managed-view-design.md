@@ -47,3 +47,9 @@ retained userdata 检查点：驻留 `NativeCallback V1` 同时拥有类型化 C
 Windows 和 Linux 修改单元 O0/O2 各 58 阶段通过，Linux 对这些修改单元启用 ASan/UBSan/泄漏检查，复用核心未重新插桩。每个优化等级分别跑过 50 对实际可卸载 body／adapter 共享库；回调内部删除原生槽后，两份库仍驻留到 thunk 完整返回。还覆盖 checked 空诊断失败、首错保留、错误线程释放后由创建线程 drain、循环图和两个创建 OOM 位置。重复嵌套调用没有 XRT 分配、释放或 realloc，但仍有 RC、代码活动和执行上下文登记，不能称整个绑定零成本。
 
 View 的公开声明头移除了源树 XRT 依赖；拥有图 Count／Trace 和独立 Read 准入在检查 native payload 前拒绝错误线程。上述仅为私有组件和测试合同；XUI 原生 retained 槽、完整 payload 图、语言 schema／IR 及发布 SDK 仍需后续接入。
+
+原生事件组合检查点：XGE `9ed440a4` 提供主事件／分类事件 owned 槽与完整返回尾部 snapshot，`b0533295` 将 64 位主事件拥有元数据由 1,568 字节降到 40 字节；48 项分类表仅在确实注册 owned handler 时另行分配。普通 C 借用入口不创建元数据；owned 分类表复用，主事件／分类事件稳定调用均无 XRT 堆分配。额外分类表意味着其首次绑定多一次冷分配，不能把此优化描述成所有绑定都更便宜。
+
+View 描述符现在要求受观察 Root 提供独立 native Busy 探针，防止外部 C 事件循环活动尚未进入 resident active 计数时过早读取 payload。真实宿主 XUI base widget＋owned event 的组合已验证捕获视图、回调内解绑／关闭、空诊断失败及 Context→event→Closure→Widget→Context 循环。该 trace 只覆盖夹具实际创建的 base widget/event；完整控件模型与其他回调仍不能据此获得准入。
+
+当前 1,408 单元源码构建及 1,556 个预编译对象完成；隔离 VFS 的驻留 API 连接已通过实际语言声明发起的 JIT／模块／独立程序，独立复制的头在 C/C++ 中通过语法检查。八项功能和产品迁移仍未全部完成，发布目录未由本批更新。
