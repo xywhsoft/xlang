@@ -9,6 +9,16 @@
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
 #include "analysis/typed_module_internal.h"
 typedef struct xls_sem_ir_receipt xls_sem_ir_receipt;
+typedef struct xls_sem_final_context {
+    xatomic32 references;xstrbuf key;size_t bytes;
+} xls_sem_final_context;
+static void xlsSemFinalContextRelease(xls_sem_final_context* context)
+{if(context && xrtAtomic32FetchSub(&context->references,1,XMEMORY_ACQ_REL)==1){xrtStrBufFree(&context->key);xrtFree(context);}}
+static _Thread_local xls_sem_final_control* xlsActiveFinalControl;
+void xlsFrontendSemFinalBegin(xls_sem_final_control* control,size_t bytes)
+{if(control){size_t limit=xlsActiveFinalControl ? xlsActiveFinalControl->bytes : 8u*1024u*1024u;*control=(xls_sem_final_control){xlsActiveFinalControl,bytes<limit ? bytes : limit};xlsActiveFinalControl=control;}}
+void xlsFrontendSemFinalEnd(xls_sem_final_control* control)
+{if(control && xlsActiveFinalControl==control)xlsActiveFinalControl=control->previous;}
 #endif
 struct xls_raw_memo;
 static struct xls_raw_memo* xlsRawMemoCreate(size_t);
@@ -132,6 +142,8 @@ typedef struct xls_sem_entry {
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     size_t effectCount;
     xls_sem_ir_receipt* finalInput;
+    uint32_t finalRegionStart,finalRegionEnd,finalPredictedStart,finalPredictedEnd;
+    unsigned finalPlanValid,finalCandidate,finalReplayed;
 #endif
 } xls_sem_entry;
 
@@ -159,6 +171,9 @@ struct xls_sem_memo {
     int effectsComplete;
     const XL6_AstNode* finalizedRoot; /* borrowed;owner binding is separate */
     xls_typed_input_identity* inputOwner;
+    xls_sem_final_context* finalContext;
+    xls_sem_final_work finalWork;
+    int finalPrepared;
 #endif
 };
 typedef struct xls_sem_move {
@@ -203,6 +218,13 @@ typedef struct xls_sem_build {
 } xls_sem_build;
 static _Thread_local xls_sem_build* xlsActiveSemBuild;
 static int xlsSemCheckFuncOriginal(XL6_SemContext*,XL6_AstNode*);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+struct XL6_SemPlanWalkState;
+static void xlsSemFinalBegin(XL6_SemContext*,XL6_AstNode*);
+static int xlsSemFinalTypeApply(XL6_SemContext*,size_t);
+static int xlsSemFinalPlanBefore(XL6_SemContext*,size_t,const struct XL6_SemPlanWalkState*);
+static void xlsSemFinalPlanAfter(XL6_SemContext*,size_t,const struct XL6_SemPlanWalkState*);
+#endif
 
 static int xlsSemKeyBytes(xstrbuf* key,const void* data,size_t size)
 {
@@ -1172,6 +1194,7 @@ void xlsFrontendSemMemoDestroy(xls_sem_memo* memo)
     xlsSemEffectsFree(memo);
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     xlsTypedInputIdentityRelease(memo->inputOwner);
+    xlsSemFinalContextRelease(memo->finalContext);
 #endif
     xlsRawMemoDestroy(memo->raw);xrtArrayUnit(&memo->entries); xrtStrBufFree(&memo->context);xlsSemReadContextRelease(memo->readContext);xrtFree(memo->path); xrtFree(memo);
 }
@@ -1195,6 +1218,10 @@ size_t xlsFrontendSemMemoOwnedBytes(const xls_sem_memo* memo)
 }
 xls_ast_intern_work xlsFrontendSemMemoTypes(const xls_sem_memo* memo)
 {return memo ? memo->typeWork : (xls_ast_intern_work){0};}
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+xls_sem_final_work xlsFrontendSemMemoFinalWork(const xls_sem_memo* memo)
+{return memo ? memo->finalWork : (xls_sem_final_work){0};}
+#endif
 static void xlsSemMoveFree(xbytesview key,void* value,void* user)
 {
     (void)key; (void)user; xls_sem_move* move=value;

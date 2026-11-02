@@ -1,0 +1,20 @@
+{
+  "status": "passed",
+  "scope": "Exact post-composition native type/plan body comparison;only one root-child hook per original function;not whole AST/IR locality or performance",
+  "oldGenerated": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-index-assets-20261102\\full-v1\\frontend\\xl6_sem.c",
+  "oldSha256": "63f3ffa4c88910232f761c2d4f3b7210d3df751725f90ab10627da171be64a02",
+  "newGenerated": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-final-annotations-20261102\\focused-v3\\frontend\\xl6_sem.c",
+  "newSha256": "be6592e4213494d4338a9731f84ea5992d016a5b7cab5e16d1d11efb980111d7",
+  "functions": [
+    {
+      "function": "xl6SemAnnotateTypeIdentities",
+      "originalBodySha256": "ce855857f368ac157505dbcaab045fac64f0e7824554863dca39a0720f99131e",
+      "unchangedOutsideOneRootChildHook": true
+    },
+    {
+      "function": "xl6SemAnnotateExecutionPlans",
+      "originalBodySha256": "fcf5561308fd284d4550d940483aa0de22a49948e0c9180fe6fcba28e531cb54",
+      "unchangedOutsideOneRootChildHook": true
+    }
+  ]
+}

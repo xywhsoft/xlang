@@ -50,6 +50,19 @@ int xlsFrontendSemCheckMemoFinal(XL6_AstNode*,XL6_DiagList*,const char*,int,
 int xlsFrontendSemMemoBindIrInput(xls_sem_memo*,const struct xls_typed_module*);
 struct xls_typed_input_identity* xlsFrontendSemMemoIrIdentity(
     const xls_sem_memo*,const struct xls_typed_module*,size_t);
+typedef struct xls_sem_final_work {
+    uint64_t contexts,contextHits,contextBytes,typeReused,planReused,declined;
+    uint64_t predictionNodes,validatedNodes,replayedNodes;
+} xls_sem_final_work;
+typedef struct xls_sem_final_control {struct xls_sem_final_control* previous;size_t bytes;} xls_sem_final_control;
+/* Exact whole final-type environment plus the existing native final-output
+ * receipt. Ordinary original C-owned validation and complete IR verification
+ * still run. Zero allowance preserves both original annotation walks. */
+void xlsFrontendSemFinalBegin(xls_sem_final_control*,size_t bytes);
+void xlsFrontendSemFinalEnd(xls_sem_final_control*);
+xls_sem_final_work xlsFrontendSemMemoFinalWork(const xls_sem_memo*);
+struct xls_semantic_check;
+xls_sem_final_work xlsSemanticCheckFinalWork(const struct xls_semantic_check*);
 #endif
 typedef struct xls_sem_storage_work { uint64_t nodes,pages,chargedBytes,heapFallbacks; } xls_sem_storage_work;
 typedef struct xls_sem_storage_control {

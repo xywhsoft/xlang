@@ -1,0 +1,11 @@
+{
+  "D:\\GIT\\x-lang\\ide\\tests\\analysis_final_annotations_test.c": {
+    "archivedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-final-annotations-20261102\\focused-v1-inputs\\analysis_final_annotations_test.c",
+    "sha256": "56a7746eed1e70a3e3e44a712c74b4b7956782fdccdf84d05ed0d7d356316099"
+  },
+  "D:\\GIT\\x-lang\\ide\\tools\\build_lsp_core.py": {
+    "archivedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-final-annotations-20261102\\focused-v1-inputs\\build_lsp_core.py",
+    "sha256": "fc9211898dc1ddc7693f1d0745d5c45fc9a6982d7fa4e785f20be4cff89b508d",
+    "recovery": "Inverse of the two later fixture-registration changes;verified against the existing focused-v1 pre-run source hash"
+  }
+}

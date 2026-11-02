@@ -1,0 +1,7 @@
+{
+  "D:\\GIT\\x-lang\\ide\\tests\\analysis_final_annotations_test.c": {
+    "archivedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-final-annotations-20261102\\focused-v2-inputs\\analysis_final_annotations_test.c",
+    "sha256": "71135760d14eca2bbdb44c1078b3c95aae986bb5a03b84447eb8d338778ffe79",
+    "recovery": "Exact previous capture plus single BOM patch;verified against the existing focused-v2 pre-run source hash"
+  }
+}
