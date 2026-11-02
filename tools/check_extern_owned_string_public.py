@@ -111,6 +111,9 @@ def main():
     generic_result_contract = ROOT/'test/cases/xlir_generic_callable_result_contract.c'
     async_result_contract = ROOT/'test/cases/xlir_async_callable_result_contract.c'
     inputs[async_result_contract] = sha(async_result_contract)
+    for name in ('extern_owned_async_open_callers.xl','extern_owned_async_named_results.xl','extern_owned_async_deep_dispatch.xl'):
+        path=ROOT/'test/cases'/name
+        inputs[path]=sha(path)
     inputs[ROOT/'test/cases/extern_owned_async_callable_results.xl'] = sha(ROOT/'test/cases/extern_owned_async_callable_results.xl')
     inputs[ROOT/'test/cases/extern_owned_inferred_result_variables.xl'] = sha(ROOT/'test/cases/extern_owned_inferred_result_variables.xl')
     callable_alias_contract = ROOT/'test/cases/xlir_callable_alias_integrity_contract.c'
