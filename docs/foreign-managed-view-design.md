@@ -59,3 +59,13 @@ View 描述符现在要求受观察 Root 提供独立 native Busy 探针，防�
 `BorrowRoot V1` 对 `Widget.context` 一类结果要求原生返回值就是当前调用的同一个存活 Root，直接取得已有 Root 控制记录的语言引用，不再创建一个 Child 记录来包装相同 context。正确路径在分配失败注入下仍零分配；错误线程／错误上下文及错误原生结果被拒绝。
 
 本阶段 Windows 与 Linux 修改单元 O0/O2 各 46 阶段通过，Linux 修改单元有 ASan/UBSan/泄漏检查；包括真实 resident Class 字段、clone/COW/deep clone、关闭值、无诊断清理重试、OOM、未知 Ops 拒绝及输入诊断保留。随后 1,409 单元源码构建和 1,557 个 TCC 对象完成，当前 VFS 的 JIT／模块／独立程序与独立 SDK 头 7 阶段、声明式基础 11 组通过。这仍是私有物理存储能力；语言字段／容器 schema、受管类型和 XLIR 尚未开放，不能将本阶段视作产品已支持受管视图类字段。
+
+容器存储检查点：`ForeignViewSequence V1` 复用 Sequence 的 transfer 5 拥有记录槽，元素物理宽度为一个控制指针。它有独立 resident admission ops 和图策略，旧 immutable native-leaf profile 不获得此权限；每个非空元素均追踪实际 View 引用，包括重复元素。policy 只保存不可变数字身份与 nullable 规则，不保存生成代码或模块上下文，clone 独立拥有该元数据。XRT 类型描述符只规定物理存储，名义身份和 nullable 准入仍来自闭合 schema。
+
+类型化 Array／Stack 的追加、复制读取和移动取出不装箱；在已预留容量、分配失败注入下，200 轮操作没有 XRT 分配／realloc。原生引用复制、Sequence BUSY pin、graph mutation 和读取时的 policy Retain／Drop 仍是实际成本。空容器在当前 64 位配置实测 4 次分配、408 字节请求存活量；这包含 policy、Sequence、原生存储和 Value 外壳，不包含容量及 View 本身。不能据此宣称裸 C 数组的零成本。
+
+动态 Array／Stack 投影复用同一容器。只有读取到 `value` 时才创建一个 Handle 外壳；私有转换器产生的 identity-0 外壳必须在当前 pin 内绑定已声明身份并重新准入，不能直接发布。输入先核对名义身份，再认证 resident Ops／Trace，错误 Handle 即使伪造相同 TypeId 也不会执行其回调。转换失败不移除元素；非空元素类型拒绝 null 与默认增长，可空元素明确允许 null。关闭的 View 保留复制与身份相等，原生访问准入不放宽。
+
+Windows／Linux O0/O2 的容器专项各 50 阶段通过，Linux 对修改单元启用 ASan/UBSan/泄漏检查，复用核心未重新插桩。覆盖 Array／Stack、clone、默认增长、动态装箱失败、错误域／未知 Ops、所有构造 OOM 前缀，以及 native payload→Sequence→八个相同 View 引用的完整循环回收。语言 `Array<Widget>`／`Stack<Widget>` 尚未开放；这里验证的是供后续 XLIR schema 使用的私有存储能力。
+
+本批最终 1,410 单元源码构建完成，7 个修改单元重编，其余预处理内容／对象字节校验后复用；1,558 个当前 TCC 预编译对象及隔离 VFS 已完成。扩展后的真实驻留入口在 JIT／模块／独立程序中创建、持有及释放受管视图容器，独立 SDK C/C++ 头和产品 7 阶段通过；声明式基础批量 11 组通过。发布包及其 SDK／IDE 没有由此迁移。

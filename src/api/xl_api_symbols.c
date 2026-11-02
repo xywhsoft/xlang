@@ -158,6 +158,8 @@
 #include "src/runtime/xl6_foreign_callback_scope.h"
 #include "src/runtime/xl6_foreign_view.h"
 #include "src/runtime/xl6_foreign_view_value.h"
+#include "src/runtime/xl6_foreign_view_value_storage.h"
+#include "src/runtime/xl6_foreign_view_sequence.h"
 #include "src/runtime/xl6_native_callback.h"
 #include "src/runtime/xl6_native_capture_graph.h"
 #include "src/runtime/xl6_foreign_view_capture.h"
@@ -370,6 +372,14 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6ForeignViewBoxV1", (const void*)xl6ForeignViewBoxV1)) return 0;
     if (!visit(user, "xl6ForeignViewUnboxV1", (const void*)xl6ForeignViewUnboxV1)) return 0;
     if (!visit(user, "xl6OwnershipDomainForeignViewValueV1Get", (const void*)xl6OwnershipDomainForeignViewValueV1Get)) return 0;
+    if (!visit(user, "xl6ForeignViewStorageBoxV1", (const void*)xl6ForeignViewStorageBoxV1)) return 0;
+    if (!visit(user, "xl6ForeignViewStorageUnboxV1", (const void*)xl6ForeignViewStorageUnboxV1)) return 0;
+    if (!visit(user, "xl6ForeignViewValueAdmitsV1", (const void*)xl6ForeignViewValueAdmitsV1)) return 0;
+    if (!visit(user, "xl6ForeignViewStorageTypeV1", (const void*)xl6ForeignViewStorageTypeV1)) return 0;
+    if (!visit(user, "xl6ForeignViewSequenceCreateV1", (const void*)xl6ForeignViewSequenceCreateV1)) return 0;
+    if (!visit(user, "xl6ForeignViewSequenceConverterV1", (const void*)xl6ForeignViewSequenceConverterV1)) return 0;
+    if (!visit(user, "xl6ForeignViewSequenceAdmissionV1", (const void*)xl6ForeignViewSequenceAdmissionV1)) return 0;
+    if (!visit(user, "xl6OwnershipDomainSequenceForeignViewV1Get", (const void*)xl6OwnershipDomainSequenceForeignViewV1Get)) return 0;
 
     if (!visit(user, "xl6SlotRuntimeV1Get", (const void*)xl6SlotRuntimeV1Get)) return 0;
     if (!visit(user, "xl6GeneratorRuntimeV1Get", (const void*)xl6GeneratorRuntimeV1Get)) return 0;

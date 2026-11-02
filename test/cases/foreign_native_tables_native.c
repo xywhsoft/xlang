@@ -5,14 +5,16 @@
 #include "src/runtime/xl6_foreign_view_capture.h"
 #include "src/runtime/xl6_native_graph_future_payload.h"
 #include "src/runtime/xl6_foreign_view_value.h"
+#include "src/runtime/xl6_foreign_view_sequence.h"
+#include "src/runtime/xl6_sequence.h"
 #include <assert.h>
 static int body(void* environment,int value){return *(const unsigned char*)environment+value;}
 static bool destroy_root(void* raw){xrtFree(raw);return true;}
 int foreign_native_tables_probe(const XL6_NativeCallbackRuntimeV1* callbacks,
     const XL6_ClosureRuntimeV3* closures,const XL6_NativeCaptureProfileV1* view,
-    const XL6_NativeFuturePayloadRuntimeV1* futures,const XL6_OwnershipDomainV1* values)
+    const XL6_NativeFuturePayloadRuntimeV1* futures,const XL6_OwnershipDomainV1* values,const XL6_OwnershipDomainV1* sequences)
 {
-    assert(callbacks && closures && view && futures && futures->Allocate && futures->Copy && values && values->Resolve);
+    assert(callbacks && closures && view && futures && futures->Allocate && futures->Copy && values && values->Resolve && sequences && sequences->Load);
     assert(view->size>sizeof(*view) && !view->Type && !view->DetachCleanup);
     static const XL6_CaptureSlotV2 slot={{XL6_CAPTURE_TRIVIAL,0,1},NULL};
     static const XL6_CaptureLayoutV2 layout={sizeof(layout),1,1,&slot};
@@ -34,6 +36,12 @@ int foreign_native_tables_probe(const XL6_NativeCallbackRuntimeV1* callbacks,
     XL6_ForeignView* owner=xl6ForeignViewBorrowRootV1(raw,root);assert(owner==root);
     xvalue* boxed=xl6ForeignViewBoxV1(root,778);assert(boxed);
     XL6_ForeignView* copy=NULL;assert(xl6ForeignViewUnboxV1(boxed,778,false,&copy) && copy==root);
+    xvalue* array=xl6ForeignViewSequenceCreateV1(XL6_SEQUENCE_ARRAY_V1,779,780,778,false);assert(array);
+    const xrttype* type=xl6ForeignViewStorageTypeV1();
+    XL6_Sequence* pin=xl6SequenceBeginRoleV1(array,XL6_SEQUENCE_ARRAY_V1,779,780,
+        XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1,sizeof(root),type);assert(pin);
+    assert(xrtTypedArrayPush(xl6SequenceStorageV1(pin),&root));xl6SequenceEndV1(pin);
+    xrtValueRelease(array);
     assert(xl6ForeignViewCallEndV1(&call) && xl6ForeignViewReleaseV1(copy) && xl6ForeignViewReleaseV1(owner));
     assert(xl6ForeignViewReleaseV1(root));xrtValueRelease(boxed);assert(xl6ForeignViewDrainV1());return 0;
 }
