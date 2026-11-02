@@ -1,0 +1,20 @@
+{
+  "status": "applied",
+  "files": [
+    {
+      "path": "src/xge/core/xge_impl.c",
+      "beforeSha256": "a52ca344a5878c04a85849f03f6f68210a83c9a82bc1f41e36b0450779ef41b8",
+      "afterSha256": "c69ab08084e8fbf188735400ec1f388387a09a0f75f67a5ab4bc1c5f6bd33e5d"
+    },
+    {
+      "path": "src/xge/core/xge_core.c",
+      "beforeSha256": "67e6d695381b03ce5e5acb1d02c68d8d2edfb5a09db62a6b179a5e9fce632def",
+      "afterSha256": "0f6bb3e59688533ef2260a8bfac77fa48ba0e488fe94f15e9effb622d45a2b37"
+    },
+    {
+      "path": "extlibs/sokol/sokol_app.h",
+      "beforeSha256": "43d69d2dd52a8a6f52d57ccafb00967742ac499b7fcf5bdcdd6d978c869aa1ad",
+      "afterSha256": "0dd612d8f7ef1c6c606dc75e6dcfeb391896122bfbcef9a240fdd5af6ea833f7"
+    }
+  ]
+}
