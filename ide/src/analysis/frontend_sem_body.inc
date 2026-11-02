@@ -71,7 +71,8 @@ static int xlsSemBodyPrepareCount(const xls_sem_entry* old,size_t nodeCount,cons
         }
         if(!okay)return 0;
         for(size_t i=0;i<proof->located.Count;++i){
-            const XL6_AstNode* node=*(const XL6_AstNode* const*)xrtArrayConstGet(&proof->located,i);
+            const xls_sem_location* location=xrtArrayConstGet(&proof->located,i);
+            const XL6_AstNode* node=location->node;apply.geometryOrigin=location->header;
             XL6_AstNode positioned=*node;
             if(!xlsSemApplyPosition(node,&positioned,&apply))return 0;
         }

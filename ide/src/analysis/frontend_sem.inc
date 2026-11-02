@@ -97,9 +97,10 @@ typedef struct xls_sem_cursor {
 } xls_sem_cursor;
 typedef struct xls_sem_reads xls_sem_reads;
 typedef struct xls_sem_read_context xls_sem_read_context;
+typedef struct xls_sem_location {const XL6_AstNode* node;XL6_SymbolId header;} xls_sem_location;
 typedef struct xls_sem_proof {
     xarray sources; /* borrowed from this owning immutable unit */
-    xarray located; /* every located type edge in exact clone preorder */
+    xarray located; /* every type edge and its own certified producer */
     size_t bytes,cloneBytes,facts;
     uint64_t nodes;
     int shiftSafe;
@@ -121,6 +122,10 @@ typedef struct xls_sem_unit {
     xls_sem_proof* proof;
 } xls_sem_unit;
 typedef struct xls_sem_position { XL6_AstRange range,token; int line,column; } xls_sem_position;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+static int xl6SemFuncIsGeneric(const XL6_AstNode*);
+#include "analysis/frontend_sem_geometry.inc"
+#endif
 
 /* One immutable coordinate view owns its unit independently of any result or
  * earlier memo. Entry aliases below never own the view's unit/array twice. */
@@ -179,6 +184,8 @@ struct xls_sem_memo {
     int finalPrepared;
     xmap nativeOwners;int nativeOwnersReady,nativeFinalPrepared;
     xls_sem_native_work nativeWork;
+    xls_sem_geometry* geometry;
+    xls_sem_geometry_work geometryWork;
 #endif
 };
 typedef struct xls_sem_move {
@@ -204,6 +211,7 @@ typedef struct xls_sem_build {
     xmap slots,sources;
     xls_sem_work work;
     xls_sem_moves moves;
+    const xarray* proofRaw;
     xls_sem_cursor queryCursor;
     xls_sem_tail** deferred;
     const XL6_AstNode* deferredRoot;
@@ -323,7 +331,11 @@ static inline void xlsSemKeyScalars(const XL6_AstNode* node,uint64_t* fields)
     _Static_assert(sizeof(values)/sizeof(*values)==XLS_SEM_KEY_FIELDS,"audit complete AST scalar identity");
     memcpy(fields,values,sizeof(values));
 }
-typedef struct xls_sem_key_paths { xmap paths; size_t next,lastId; const char* last;xarray* raw; } xls_sem_key_paths;
+typedef struct xls_sem_key_paths { xmap paths; size_t next,lastId; const char* last;xarray* raw;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xls_sem_geometry_capture* geometry;
+#endif
+} xls_sem_key_paths;
 static int xlsSemKeySource(xstrbuf* key,const char* path,xls_sem_key_paths* paths)
 {
     if(!path) return xlsSemKeyNumber(key,0) && xlsSemKeyNumber(key,0);
@@ -332,7 +344,11 @@ static int xlsSemKeySource(xstrbuf* key,const char* path,xls_sem_key_paths* path
     if(old) { paths->last=path; paths->lastId=*old; return xlsSemKeyNumber(key,0) && xlsSemKeyNumber(key,*old); }
     size_t id=++paths->next;
     paths->last=path; paths->lastId=id;
-    return xrtMapSet(&paths->paths,name,&id) && xlsSemKeyNumber(key,1) && xlsSemKeyNumber(key,id) && xlsSemKeyText(key,path);
+    if(!xrtMapSet(&paths->paths,name,&id) || !xlsSemKeyNumber(key,1) || !xlsSemKeyNumber(key,id) || !xlsSemKeyText(key,path))return 0;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(paths->geometry)xlsSemGeometryPath(paths->geometry,path,id);
+#endif
+    return 1;
 }
 static int xlsSemKeyNodePaths(xstrbuf* key,const XL6_AstNode* node,size_t depth,int module,xls_sem_key_paths* paths,int lexical)
 {
@@ -354,8 +370,18 @@ static int xlsSemKeyNodePaths(xstrbuf* key,const XL6_AstNode* node,size_t depth,
 #endif
     if(!xlsSemKeyTextAt(key,node->text,raw) || !xlsSemKeyText(key,node->doc) ||
        !xlsSemKeySource(key,xl6AstSourcePath(node),paths) || !xlsSemKeyNumber(key,node->literalData!=NULL) ||
-       (node->literalData && !xlsSemKeyBytes(key,node->literalData,node->literalSize)) ||
-       !xlsSemKeyNodePaths(key,node->inferredType,depth+1,0,paths,0) || !xlsSemKeyNodePaths(key,node->semanticDeclaredType,depth+1,0,paths,0)) return 0;
+       (node->literalData && !xlsSemKeyBytes(key,node->literalData,node->literalSize)))return 0;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(paths->geometry){
+        XL6_SymbolId callable=0;
+        if(module==1 && depth==1 && lexical){
+            paths->geometry->owner=xlsSemFunction(node) ? node->semanticSymbolId : 0;
+            if((node->kind==XL6_AST_FUNC || node->kind==XL6_AST_EXPORT_FUNC) && !xl6SemFuncIsGeneric(node))callable=node->semanticSymbolId;
+        }
+        xlsSemGeometryRecord(paths->geometry,node,xl6AstSourcePath(node) ? paths->lastId : 0,callable);
+    }
+#endif
+    if(!xlsSemKeyNodePaths(key,node->inferredType,depth+1,0,paths,0) || !xlsSemKeyNodePaths(key,node->semanticDeclaredType,depth+1,0,paths,0))return 0;
     for(size_t i=0;i<node->childCount;++i) {
         /* Only direct module functions omit their bodies in this environment
          * key. Classes, aliases, globals and default expressions stay exact. */
@@ -369,6 +395,24 @@ static int xlsSemKeyNode(xstrbuf* key,const XL6_AstNode* node,size_t depth,int m
     xls_sem_key_paths paths={0}; if(!xrtMapInit(&paths.paths,sizeof(size_t))) return 0;
     int okay=xlsSemKeyNodePaths(key,node,depth,module,&paths,1); xrtMapUnit(&paths.paths); return okay;
 }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+static int xlsSemKeyGeometry(xls_sem_memo* memo,const XL6_AstNode* root,const xls_sem_memo* previous,int enabled)
+{
+    size_t limit=enabled ? xlsSemGeometryBudget() : 0;
+    if(limit<sizeof(xls_sem_geometry))return xlsSemKeyNode(&memo->context,root,0,1);
+    xls_sem_geometry_capture capture={.previous=previous ? previous->geometry : NULL,.limit=limit,.pathsSame=1};
+    xls_sem_key_paths paths={.geometry=&capture};
+    if(!xrtMapInit(&paths.paths,sizeof(size_t)))return 0;
+    int okay=xlsSemKeyNodePaths(&memo->context,root,0,1,&paths,1);
+    if(okay)memo->geometry=xlsSemGeometryFinish(&capture,&paths.paths,paths.next);
+    else xlsSemGeometryRelease(capture.fresh);
+    xrtMapUnit(&paths.paths);
+    if(memo->geometry){memo->geometryWork.bytes=memo->geometry->bytes;
+        if(previous && memo->geometry==previous->geometry)++memo->geometryWork.reused;else ++memo->geometryWork.captured;
+    }else ++memo->geometryWork.declined;
+    return okay;
+}
+#endif
 static int xlsSemKeyNodeRaw(xstrbuf* key,const XL6_AstNode* node,xarray* raw)
 {
     xls_sem_key_paths paths={.raw=raw};if(!xrtMapInit(&paths.paths,sizeof(size_t)))return 0;
@@ -574,12 +618,23 @@ static void xlsSemMemoBegin(XL6_SemContext* ctx)
     if(!xrtArrayResize(&m->entries,ctx->root->childCount) || m->entries.Capacity>XLS_SEM_MEMO_BYTES/sizeof(xls_sem_entry)) return;
     m->bytes=m->entries.Capacity*sizeof(xls_sem_entry);
     if(!xlsSemKeyText(&m->context,ctx->moduleName) || !xlsSemKeyNumber(&m->context,ctx->captureIndex) ||
-       !xlsSemKeyNumber(&m->context,ctx->nextSymbolId) || !xlsSemKeyNumber(&m->context,ctx->types.nextId) || !xlsSemKeyNode(&m->context,ctx->root,0,1) ||
+       !xlsSemKeyNumber(&m->context,ctx->nextSymbolId) || !xlsSemKeyNumber(&m->context,ctx->types.nextId) ||
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+       !xlsSemKeyGeometry(m,ctx->root,build->baseline,!ctx->completionQuery && !build->deferredQuery) ||
+#else
+       !xlsSemKeyNode(&m->context,ctx->root,0,1) ||
+#endif
        !xlsSemGlobalState(ctx,&m->context) ||
        !xlsSemKeyNumber(&m->context,ctx->completionQuery!=NULL) ||
        (ctx->completionQuery && !xlsSemKeyText(&m->context,ctx->completionQuery->path)) ||
        m->context.Capacity>XLS_SEM_MEMO_BYTES-m->bytes) return;
     m->bytes+=m->context.Capacity;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(m->geometry){
+        if(m->geometry->bytes<=XLS_SEM_MEMO_BYTES-m->bytes)m->bytes+=m->geometry->bytes;
+        else{xlsSemGeometryRelease(m->geometry);m->geometry=NULL;m->geometryWork.bytes=0;++m->geometryWork.declined;}
+    }
+#endif
     if(!xlsSemSourcePool(ctx->root,&build->sources,0)) return;
     if(ctx->completionQuery && ctx->completionQuery->parsed==1 && ctx->completionQuery->replacement.known &&
        ctx->completionQuery->replacement.endOffset>=ctx->completionQuery->replacement.startOffset) {
@@ -833,6 +888,7 @@ typedef struct xls_sem_apply {
     const xls_sem_symbol_span* symbols;
     XL6_SymbolId symbolStart;
     int symbolsChanged;
+    XL6_SymbolId geometryOrigin;
 } xls_sem_apply;
 static int xlsSemInsideRange(XL6_AstRange range,XL6_AstRange outer)
 { return !range.known || (range.startOffset>=outer.startOffset && range.endOffset>=range.startOffset && range.endOffset<=outer.endOffset); }
@@ -892,7 +948,21 @@ static int xlsSemApplyPosition(const XL6_AstNode* in,XL6_AstNode* out,void* user
             if(apply->anchor.path && !strcmp(path,apply->anchor.path) &&
                (positioned.range.known || positioned.tokenRange.known) &&
                xlsSemInsideRange(positioned.range,apply->anchoredRange) && xlsSemInsideRange(positioned.tokenRange,apply->anchoredRange)) move=&apply->anchor;
-            if(!xlsSemMoveNode(&positioned,out,(void*)move)) return 0;
+            if(!xlsSemMoveNode(&positioned,out,(void*)move)){
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+                xls_sem_build* build=xlsActiveSemBuild;xls_sem_position mapped;
+                /* The same original context encoder proves ALL header values
+                 * and traversal ordering. Geometry alone proves no semantic
+                 * identity. The old type's full tuple must name an unambiguous
+                 * lexical header origin,including source and native kind. */
+                if(!build || !build->compatible || !build->memo->trackInputs || !build->baseline || !apply->geometryOrigin ||
+                   !xlsSemGeometryPosition(build->baseline->geometry,build->memo->geometry,&positioned,apply->geometryOrigin,&mapped))return 0;
+                out->range=mapped.range;out->tokenRange=mapped.token;out->line=mapped.line;out->column=mapped.column;
+                ++build->memo->geometryWork.mapped;
+#else
+                return 0;
+#endif
+            }
         }
     }
     xls_sem_position next={out->range,out->tokenRange,out->line,out->column};
@@ -1184,7 +1254,9 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
                    xlsSemCaptureFacts(&raw,unit,XLS_SEM_MEMO_BYTES-m->bytes-sizeof(*unit)-markerBytes,&owned,build->deferredQuery==NULL)) {
                     unit->bytes=owned+sizeof(*unit)+markerBytes;
                     if(build->deferredQuery || m->raw){
+                        const xarray* savedProofRaw=build->proofRaw;build->proofRaw=&raw;
                         unit->proof=xlsSemProofCreate(unit,XLS_SEM_MEMO_BYTES-m->bytes-unit->bytes);
+                        build->proofRaw=savedProofRaw;
                         if(unit->proof)unit->bytes+=unit->proof->bytes;
                     }
                     if(capturedReads && capturedReads->complete && capturedReads->bytes<=XLS_SEM_MEMO_BYTES-m->bytes-unit->bytes){unit->reads=capturedReads;unit->bytes+=capturedReads->bytes;capturedReads=NULL;}
@@ -1210,12 +1282,17 @@ void xlsFrontendSemMemoDestroy(xls_sem_memo* memo)
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     xlsTypedInputIdentityRelease(memo->inputOwner);
     xlsSemFinalContextRelease(memo->finalContext);
+    xlsSemGeometryRelease(memo->geometry);
     xrtMapUnit(&memo->nativeOwners);
 #endif
     xlsRawMemoDestroy(memo->raw);xrtArrayUnit(&memo->entries); xrtStrBufFree(&memo->context);xlsSemReadContextRelease(memo->readContext);xrtFree(memo->path); xrtFree(memo);
 }
 xls_sem_memo* xlsFrontendSemMemoRetain(xls_sem_memo* memo)
 {if(memo)xrtAtomic32FetchAdd(&memo->references,1,XMEMORY_RELAXED);return memo;}
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+xls_sem_geometry_work xlsFrontendSemMemoGeometryWork(const xls_sem_memo* memo)
+{return memo ? memo->geometryWork : (xls_sem_geometry_work){0};}
+#endif
 int xlsFrontendSemMemoInputCandidate(const xls_sem_memo* memo)
 {return memo && memo->trackInputs && memo->inputSame;}
 size_t xlsFrontendSemMemoOwnedBytes(const xls_sem_memo* memo)

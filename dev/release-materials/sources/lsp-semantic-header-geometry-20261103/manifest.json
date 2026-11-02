@@ -1,0 +1,2148 @@
+{
+  "phase": "M7a2b114",
+  "scope": "Raw source/controller inputs and lossless original report archives;not a runtime package.",
+  "files": [
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\check.c",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/after/ide/src/analysis/check.c",
+      "sha256": "4e10a70af2ded1472d0104f45dc36aade4e962ab3ac7f86944b4fab0770f6af0",
+      "bytes": 34640
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem.h",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/after/ide/src/analysis/frontend_sem.h",
+      "sha256": "d2aa6dfdbd6660598adca4cdd5d4b2743c155158e37b6a49d372a64e9a2e79b4",
+      "bytes": 18163
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem.inc",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/after/ide/src/analysis/frontend_sem.inc",
+      "sha256": "e0e3b9d94325a40cf6085d22988e72b9408c99197366a04ec49d7d7689d9f732",
+      "bytes": 85732
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem_body.inc",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/after/ide/src/analysis/frontend_sem_body.inc",
+      "sha256": "2298dc0827d4a5ee48abd28a0235519e5b64b6f007472376a344bfdc5fbc891e",
+      "bytes": 13229
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem_proof.inc",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/after/ide/src/analysis/frontend_sem_proof.inc",
+      "sha256": "88d9c4f83f50fe056d2b25715418464b4005bd78b42e9c4df105b93e132b7415",
+      "bytes": 7451
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem_geometry.inc",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/after/ide/src/analysis/frontend_sem_geometry.inc",
+      "sha256": "a42b3e6e348c0bc2bc7329d97bfec93d3b504e1d34b6caeade51a49f3871561d",
+      "bytes": 10104
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_native_borrow_test.c",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/after/ide/tests/analysis_native_borrow_test.c",
+      "sha256": "422d61fb8b2c3d79c8a0a988dd774552fbdc1efb06fed12f4ef0fa486cccfe26",
+      "bytes": 21580
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_final_environment_test.c",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/after/ide/tests/analysis_final_environment_test.c",
+      "sha256": "11cebd371b420154e2e3f3625fc7e7bf1a64250fffb1961f00e1ffa7f1c099e2",
+      "bytes": 15820
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\check_semantic_geometry.py",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/after/ide/tools/check_semantic_geometry.py",
+      "sha256": "7c9d5316261eaca53cf67f2e664b193da98e90a0cc56badbb16d396b7d2a63e6",
+      "bytes": 5748
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\check_semantic_geometry_moving.py",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/after/ide/tools/check_semantic_geometry_moving.py",
+      "sha256": "2020455df066fbf22feea5ea7668cb2428cd6e83c208492c4ab4c22e2da2ac1d",
+      "bytes": 4892
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\baseline-inputs\\ide\\src\\analysis\\frontend_sem.inc",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/before/ide/src/analysis/frontend_sem.inc",
+      "sha256": "83a10e1d2422cb16a24ebaf8421b5abf2acec3dfcd51665ce2a2dcd0738627c9",
+      "bytes": 80445
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\baseline-inputs\\ide\\src\\analysis\\frontend_sem.h",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/before/ide/src/analysis/frontend_sem.h",
+      "sha256": "fb7a6cb2d59ff8c46b7679c4fba5f5a916a83901493726980ce7b4e14bde67b0",
+      "bytes": 16972
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\baseline-inputs\\ide\\src\\analysis\\check.c",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/before/ide/src/analysis/check.c",
+      "sha256": "d0f89a031b4fba173a48398ed2ae89f81cd3f64cc9dc554a15ec03eba4c7ab21",
+      "bytes": 34484
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\baseline-inputs\\ide\\tests\\analysis_native_borrow_test.c",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/before/ide/tests/analysis_native_borrow_test.c",
+      "sha256": "65b009cc8d00113e9d285777c0ddfa831d8727dee5d6eb3e8851a677bebe2a17",
+      "bytes": 18580
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\baseline-inputs\\ide\\tests\\analysis_final_environment_test.c",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/before/ide/tests/analysis_final_environment_test.c",
+      "sha256": "09eacddb5b2ba7d74f3f3bcce9d1d2954fd8c85cf9226131973a7df5bd8de043",
+      "bytes": 6393
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\baseline-inputs\\ide\\src\\analysis\\frontend_sem_proof.inc",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/before/ide/src/analysis/frontend_sem_proof.inc",
+      "sha256": "4bee46ecd83345f37b807ff9d86648ba841036f45918dc6eca1af5d0164c7988",
+      "bytes": 5713
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\baseline-inputs\\ide\\src\\analysis\\frontend_sem_body.inc",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/before/ide/src/analysis/frontend_sem_body.inc",
+      "sha256": "5167726acfb5dfa0dcec20d97333d3051a5e48b193d78a06a12529300fd81268",
+      "bytes": 13158
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\build-focused.py",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/controllers/build-focused.py",
+      "sha256": "d3eb953139b9a0b747c75fe4c7307f4e80539fcae9f0f1f420b7d8f243f04433",
+      "bytes": 2609
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\finalize.py",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/controllers/finalize.py",
+      "sha256": "7429ce574eb3c8d33b1f9c6a2816567b54b01cdec065cf355aa202ebdef19e5d",
+      "bytes": 10462
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\moving-controller-v1.py",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/controllers/moving-controller-v1.py",
+      "sha256": "27cd7a25c6667063a7feaebb1a0ceb31da9a6afc40c0d8dfe6200fa83612677d",
+      "bytes": 4292
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\post-commit-verify.py",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/controllers/post-commit-verify.py",
+      "sha256": "f5901a48fe3558b2b13e84420478caafc87464a7793ac844f6e606f61e759393",
+      "bytes": 2407
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\probe-producers-v2.py",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/controllers/probe-producers-v2.py",
+      "sha256": "7aaa480894750df1266905a9acd7eb757bc98d0576e2864ee8f1a83bb07a4de5",
+      "bytes": 2858
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\probe-producers.py",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/controllers/probe-producers.py",
+      "sha256": "750caaf9d1b92324711f33d2a843466f3d79f847511a30bc2595febc745ca1a7",
+      "bytes": 2822
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\run-performance.py",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/controllers/run-performance.py",
+      "sha256": "b102ce7fe221f42c94a6d9b1fec6bf1eac4a20982dca5c2116c11b289ad2ed64",
+      "bytes": 2711
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\run-validation.py",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/controllers/run-validation.py",
+      "sha256": "8f2040f9fea3fa555b3b65e76c3630bb6246707bbf1ea10ecc9e711884f16fd0",
+      "bytes": 3778
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\prototype-v1-inputs\\ide\\tests\\analysis_final_environment_test.c",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/prototype/ide/tests/analysis_final_environment_test.c",
+      "sha256": "a1f41b9e24738de7319755b21502099b74562c465cdea080912e3fc89f02bb2c",
+      "bytes": 12084
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\prototype-v1-inputs\\ide\\tests\\analysis_native_borrow_test.c",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/prototype/ide/tests/analysis_native_borrow_test.c",
+      "sha256": "422d61fb8b2c3d79c8a0a988dd774552fbdc1efb06fed12f4ef0fa486cccfe26",
+      "bytes": 21580
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\prototype-v1-inputs\\ide\\src\\analysis\\check.c",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/prototype/ide/src/analysis/check.c",
+      "sha256": "4e10a70af2ded1472d0104f45dc36aade4e962ab3ac7f86944b4fab0770f6af0",
+      "bytes": 34640
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\prototype-v1-inputs\\ide\\src\\analysis\\frontend_sem.h",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/prototype/ide/src/analysis/frontend_sem.h",
+      "sha256": "d2aa6dfdbd6660598adca4cdd5d4b2743c155158e37b6a49d372a64e9a2e79b4",
+      "bytes": 18163
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\prototype-v1-inputs\\ide\\src\\analysis\\frontend_sem.inc",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/prototype/ide/src/analysis/frontend_sem.inc",
+      "sha256": "e75e9a62a306cfc2fa7c1f98239875d287f38b49712c0d87b68c69cf3f8072b7",
+      "bytes": 84977
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\prototype-v1-inputs\\ide\\src\\analysis\\frontend_sem_geometry.inc",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/prototype/ide/src/analysis/frontend_sem_geometry.inc",
+      "sha256": "8279ec0cec0c09075137a62008a0fe24817249069b44faaa18d32b149fb10ef0",
+      "bytes": 8643
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\moving-v1\\moving.c",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/fixtures/moving-v1/moving.c",
+      "sha256": "867ab2ebbd7588a9d5c5250bc9de3f18e4bf7f5cd55df00d2a38a7321779e526",
+      "bytes": 24466
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\moving-v2\\moving.c",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/fixtures/moving-v2/moving.c",
+      "sha256": "d133d8c0c6d769b3170a1db60b4162f1a5c1342943fe8ad9d863d2fe50304d64",
+      "bytes": 24463
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\moving-diagnostic-v1\\moving.c",
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/fixtures/moving-diagnostic-v1/moving.c",
+      "sha256": "969296910e863c2ec229498e5a979b32c633f8ab42e3f6d57988f720d5cc03ae",
+      "bytes": 24924
+    }
+  ],
+  "reports": [
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\failed-full-v1-closure.json",
+      "originalSha256": "c87889c73553667938e15a8f1a2935a5b95df5c837f467f695895c36928b780a",
+      "originalBytes": 1974,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/failed-full-v1-closure.json.gz",
+      "archiveSha256": "61752527318065529dbf07c53c79811937f083d7f4935aa1887da368cbfd55d2",
+      "archiveBytes": 620
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\focused-v1\\result.json",
+      "originalSha256": "7d46f54d4f51a51106f39d9015e5ecea05767cb14387b5a665c8aac00b625883",
+      "originalBytes": 2007,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/focused-v1/result.json.gz",
+      "archiveSha256": "bb0fd7a171f7dec92c38777db6521e5c7e2baaa43d8270469151a4057c63c082",
+      "archiveBytes": 595
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\focused-v1\\xl6_sem.log",
+      "originalSha256": "2319ffb7100cd8561013eb750f4ce406730f07fef5f8532ef487da1438fcdef8",
+      "originalBytes": 18437,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/focused-v1/xl6_sem.log.gz",
+      "archiveSha256": "38f461287528a463f5a5b7a5dd638e91525a6388ee319214f89cba340b9aef53",
+      "archiveBytes": 2529
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\focused-v2\\analysis_final_environment_test-run.log",
+      "originalSha256": "2c615151009ae1af8ed82d427f315e3cd6b1a539430d9ff2e46f16e34c09afa3",
+      "originalBytes": 173,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/focused-v2/analysis_final_environment_test-run.log.gz",
+      "archiveSha256": "66257ff5a197b66a6425a2d6b7a340664c1fa23526f1998b597415a16f1e98e7",
+      "archiveBytes": 153
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\focused-v2\\analysis_native_borrow_test-run.log",
+      "originalSha256": "19189852504249f0e4d61a769c0206ae03a8329927d2094e07dc03fc19b4fcc4",
+      "originalBytes": 1243,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/focused-v2/analysis_native_borrow_test-run.log.gz",
+      "archiveSha256": "ea3f6f5c7e681682e8fa9cfa79f20e4997ff64b97b96e360043f41cb26338381",
+      "archiveBytes": 407
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\focused-v2\\result.json",
+      "originalSha256": "e7697bad5498789d5d648115ee52c014779314840e23ff433e7e3d46e0caef2b",
+      "originalBytes": 15510,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/focused-v2/result.json.gz",
+      "archiveSha256": "327c699bd99f735041ebe0ca66a96d2a4b1cb2cc2581a9bb54e2787244447d36",
+      "archiveBytes": 2150
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\focused-v3\\analysis_final_environment_test-run.log",
+      "originalSha256": "a6a1be497308a8f6705029bf832454b544112ba4e7f0769ff79feaca29546a70",
+      "originalBytes": 173,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/focused-v3/analysis_final_environment_test-run.log.gz",
+      "archiveSha256": "51564fd385906100baff5220fb7720ffecc0cf7e0ce253d2b5b672d429a0ac83",
+      "archiveBytes": 152
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\focused-v3\\analysis_native_borrow_test-run.log",
+      "originalSha256": "6729fb8bb9ca1e0f647f276bcf8e54526a83c0dde395036810fb8d0675adcda0",
+      "originalBytes": 1909,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/focused-v3/analysis_native_borrow_test-run.log.gz",
+      "archiveSha256": "b0580d29abd2f1b71b0e8ed2391a6c3af432bd09935fba4a9d22ecea8289f715",
+      "archiveBytes": 488
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\focused-v3\\result.json",
+      "originalSha256": "b5fa1dc99043067b8b725bd09b013084b3971b6029982814a606694ca5346826",
+      "originalBytes": 15510,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/focused-v3/result.json.gz",
+      "archiveSha256": "7b26fbbd6d8f7f9ee34800ff1c9653943215ca3fedff1d1ef31ee6c2d28ed020",
+      "archiveBytes": 2150
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\focused-v4\\analysis_final_environment_test-run.log",
+      "originalSha256": "b0120b4e7baffd3f726522990d3e9fa058c23412d9d31e9372a9a449faa05578",
+      "originalBytes": 173,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/focused-v4/analysis_final_environment_test-run.log.gz",
+      "archiveSha256": "b2ecd9f77c8660eee2685b6da12b18a8b5a9ab4776e2a6248ad3c4d7145e5c09",
+      "archiveBytes": 151
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\focused-v4\\analysis_native_borrow_test-run.log",
+      "originalSha256": "fbe9f700c6ea819bf239830787d4cb9e6f964d41f1be17969f974693488ebc2b",
+      "originalBytes": 1313,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/focused-v4/analysis_native_borrow_test-run.log.gz",
+      "archiveSha256": "847139f2d0a1a26810b9acf16c62957abf98aedf8949b53fbbea327b7357060f",
+      "archiveBytes": 399
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\focused-v4\\result.json",
+      "originalSha256": "336958dad88f13ec8966d65f23f3ac25977bb563d026244a198f4eba59a0408d",
+      "originalBytes": 13961,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/focused-v4/result.json.gz",
+      "archiveSha256": "489ea12d2c085f9efd4feb883263bb22da0afdeb5df4a2911fc285abd817f208",
+      "archiveBytes": 1618
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\focused-v5\\analysis_final_environment_test-run.log",
+      "originalSha256": "b4bf2c031dd4c55b5e79e67b1c5fbab5f6bfaba3a53a3a467124bc8a7f497d51",
+      "originalBytes": 174,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/focused-v5/analysis_final_environment_test-run.log.gz",
+      "archiveSha256": "b5ba63b47529e7270b70f4c195828a63980ccb48f84920a788bca59659b885d5",
+      "archiveBytes": 154
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\focused-v5\\analysis_native_borrow_test-run.log",
+      "originalSha256": "6729fb8bb9ca1e0f647f276bcf8e54526a83c0dde395036810fb8d0675adcda0",
+      "originalBytes": 1909,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/focused-v5/analysis_native_borrow_test-run.log.gz",
+      "archiveSha256": "b0580d29abd2f1b71b0e8ed2391a6c3af432bd09935fba4a9d22ecea8289f715",
+      "archiveBytes": 488
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\focused-v5\\analysis_semantic_headers_test-run.log",
+      "originalSha256": "93b110564b48da3fb604acb6e9f19dea85e1f4c832c0ad9e07fec647b12f717c",
+      "originalBytes": 548,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/focused-v5/analysis_semantic_headers_test-run.log.gz",
+      "archiveSha256": "aaa714b12219fe93200f57a5ded52dc0887d3aeedb2a851522d1edea45c6bb9c",
+      "archiveBytes": 277
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\focused-v5\\analysis_semantic_proof_test-run.log",
+      "originalSha256": "db21ac6099bdbcfc63423abfdb62e76c7f374769286ea19b000c20951a2120f6",
+      "originalBytes": 207,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/focused-v5/analysis_semantic_proof_test-run.log.gz",
+      "archiveSha256": "de458ded36561b7f92505b7804ea4f07c8f39b61f9cacbe9e254b2d95bdd9bd5",
+      "archiveBytes": 175
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\focused-v5\\result.json",
+      "originalSha256": "deb9cb23be3d4abac2b9931fbf040222270337aa574e61d68aa810d2f44ea740",
+      "originalBytes": 22682,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/focused-v5/result.json.gz",
+      "archiveSha256": "c6a8e983b3a7f20b2e8a4893d2a7105cd98bcfbd291cb7f569f330812e1822c1",
+      "archiveBytes": 2632
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v1\\analysis_semantic_headers_test-deps.log",
+      "originalSha256": "35c67a8075158839f8ee75779e29a8ed65dc630ed1d58088b79cd72582aca5ce",
+      "originalBytes": 10544,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v1/analysis_semantic_headers_test-deps.log.gz",
+      "archiveSha256": "c059cf131fe6c22832695d56b16c804816ad479d45d3dbc92306a80db31c5558",
+      "archiveBytes": 1169
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v1\\analysis_semantic_headers_test.log",
+      "originalSha256": "a220a19ebb83317bb2a6eecad6bcefbef20b61cc6d7d88d9c16de21a6a6a3bd1",
+      "originalBytes": 880,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v1/analysis_semantic_headers_test.log.gz",
+      "archiveSha256": "1c6c35960824caa519c8475c6b73bb49582f3acc1105896ccdedb930e4b9a08c",
+      "archiveBytes": 411
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v1\\build-result.json",
+      "originalSha256": "d123cf8bb32a01a9ef1b3267608ed9fe99aa0dde420ad5650d0f1918ff1743b0",
+      "originalBytes": 1854039,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v1/build-result.json.gz",
+      "archiveSha256": "978592b8fe929b957bc742954be693a492cd59b642880dbc9e6f5d13ffbe9b26",
+      "archiveBytes": 329687
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v1\\runtime-deps.log",
+      "originalSha256": "2c16108b9d330c65d8abe830369a9f14845390a92631fdc2aac8853419b6a17b",
+      "originalBytes": 241,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v1/runtime-deps.log.gz",
+      "archiveSha256": "c473fd1a4ef05ad99ebfbf389678fbf003a74f169681b8a423c426aa172c0e7d",
+      "archiveBytes": 148
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v1\\runtime-runtime-features.log",
+      "originalSha256": "3a3d287a32c250086e3575f1efdfe77bcf00ffbb277dd2d2f941db23cdb0100d",
+      "originalBytes": 1618878,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v1/runtime-runtime-features.log.gz",
+      "archiveSha256": "524fd6d6221a125118948f3678362601d4431b7310e80e25def3ed7186efd716",
+      "archiveBytes": 518569
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v1\\xl6_ast-runtime-features.log",
+      "originalSha256": "7fdb011e2331cea83e807ad67603d091698ec0a0d5bc7eb1c88ebc4922def105",
+      "originalBytes": 79891,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v1/xl6_ast-runtime-features.log.gz",
+      "archiveSha256": "45c42ad7a949b936569d7000aa4597929ffdc77d56432b833a325b0a01d4833e",
+      "archiveBytes": 18323
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v1\\xlang_ls-runtime-features.log",
+      "originalSha256": "f48f37282e9a0c874a4cac671895537e886af6a3eecc1115926a2f837bbac67f",
+      "originalBytes": 1386815,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v1/xlang_ls-runtime-features.log.gz",
+      "archiveSha256": "9ad3fe6f02ed1719df4e6aab1e5e3d2f73652be27d464246857e9082c88f777a",
+      "archiveBytes": 434122
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ast_clone_test-run.log",
+      "originalSha256": "8d9956c84adbb08415d7609428e48babb7a39343805f9959160578dfd869b34e",
+      "originalBytes": 179,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ast_clone_test-run.log.gz",
+      "archiveSha256": "a43353d55a58858910020021f10ce1e73fa60e0d281615b686d993ee83aa247c",
+      "archiveBytes": 159
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ast_intern_test-run.log",
+      "originalSha256": "c70bef8840a614904c3c3438457cc14bfc02c906aafbe35a179fe344d56cf014",
+      "originalBytes": 222,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ast_intern_test-run.log.gz",
+      "archiveSha256": "64c10b626b98ce76d0d6199aafba87cc3b2b04dbef1f4d46af7422e03ddee7c1",
+      "archiveBytes": 182
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ast_leaf_failure_test-run.log",
+      "originalSha256": "49074d5714ff477f5affb986f20a9b4ae37efaad388a6930d11064a6bc828a73",
+      "originalBytes": 189,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ast_leaf_failure_test-run.log.gz",
+      "archiveSha256": "15a56944bda9514fff150facee487fd395787ba6ddb37f97f5319c37c2bb9d02",
+      "archiveBytes": 160
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ast_leaf_test-run.log",
+      "originalSha256": "cc3778ea52b5dbf360891d6f86db5004ee2b3888508405f58b2bde3749b4bb5f",
+      "originalBytes": 258,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ast_leaf_test-run.log.gz",
+      "archiveSha256": "264f726427a8d564b22029825ee8cf2a438e24179c30537b8c344aeca022394c",
+      "archiveBytes": 204
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ast_materialize_test-run.log",
+      "originalSha256": "b3556ed687521299c8598d0cb8af18c81d30d6357c99448d941acda36cfe53dd",
+      "originalBytes": 231,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ast_materialize_test-run.log.gz",
+      "archiveSha256": "2ec2c7865b954bbedfa73ed491553e4e93823314353da4e9f037b277aa587fc3",
+      "archiveBytes": 197
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ast_storage_test-run.log",
+      "originalSha256": "dd4ae002d1c4578f2545d6127acd788bf55605ce97693fe439b46f9864f71994",
+      "originalBytes": 185,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ast_storage_test-run.log.gz",
+      "archiveSha256": "ec117729695e5e6ef0966de325162b49bde819416f0859f178f4c9e48c84937d",
+      "archiveBytes": 162
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ast_tree_test-run.log",
+      "originalSha256": "7ca29864443c73e0a463107f4e2031e65da7fea06122b146453ce07720c623da",
+      "originalBytes": 258,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ast_tree_test-run.log.gz",
+      "archiveSha256": "46f7136239efd2525333dcc59cdaa6c602f23a9c8625eef32aa312d9df209945",
+      "archiveBytes": 196
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_call_candidates_test-run.log",
+      "originalSha256": "57b31ddf80aea519d967cba646df2a79f2dacecd06dc85cfc613293e756c7779",
+      "originalBytes": 190,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_call_candidates_test-run.log.gz",
+      "archiveSha256": "b3aa5e64dacf574c357c81da0effb64b32079bc7c76060ffe5cd0449f6d5c7fb",
+      "archiveBytes": 163
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_call_context_test-run.log",
+      "originalSha256": "ea60eb64712ed1553b2082c72b0f7426ec9f15f5f09d4ebec2281c5e0fcc54b8",
+      "originalBytes": 120,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_call_context_test-run.log.gz",
+      "archiveSha256": "6072e85bf0ef8c8551a6c8c3fc28b7b0aa2d3fd2f59c20ac81f73253d875d29c",
+      "archiveBytes": 123
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_catalog_test-run.log",
+      "originalSha256": "65d14bafd01ad051eb7f5f4c93561287b1a1ec49dfe4ed3104dd99149085a730",
+      "originalBytes": 174,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_catalog_test-run.log.gz",
+      "archiveSha256": "24673e046d4e1f7303e16c358e755aac7ec091ce94b2f755dbaf4ed02efa7938",
+      "archiveBytes": 150
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_check_materialize_test-run.log",
+      "originalSha256": "9da87e65b563d1561cf847cf42090dfc8113984604fffe2840b75790d4193169",
+      "originalBytes": 3153,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_check_materialize_test-run.log.gz",
+      "archiveSha256": "b4068f5ea61cf395e07a284531ab0b57b7696561196da31007ad608b2060e683",
+      "archiveBytes": 499
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_check_session_test-run.log",
+      "originalSha256": "39cbe4a5f923dc9543318775cb11f72ebb030123bbfc3ba4fda9f5738e86256c",
+      "originalBytes": 166,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_check_session_test-run.log.gz",
+      "archiveSha256": "e2a394ed63aee84ebe013fd7d5ed174e86fa102d32973da222e235987d663d6b",
+      "archiveBytes": 150
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_check_test-run.log",
+      "originalSha256": "55e001ed66fe74c66d0d65463ced05ab9e0c00a9fc77ed2e8044c46ff84329eb",
+      "originalBytes": 177,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_check_test-run.log.gz",
+      "archiveSha256": "b2a1335b1b453c0fb72ff58eb972d30995ed6fe4e439922191d999a2e6e56098",
+      "archiveBytes": 160
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_check_worker_test-run.log",
+      "originalSha256": "2e5fb6ef160ff45a33acbb9d0fae463877572ced39f9749df4578998b5ae4006",
+      "originalBytes": 227,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_check_worker_test-run.log.gz",
+      "archiveSha256": "ad3fbbe60946d5628f155ef16a8bbd3c1c35b4c77f627f7a857e31152526c0e4",
+      "archiveBytes": 189
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_completion_annotations_test-run.log",
+      "originalSha256": "71b2db0ec331354efe86a7b94aff8c31862c8930ea5ab5080eb3e3cc14071573",
+      "originalBytes": 57,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_completion_annotations_test-run.log.gz",
+      "archiveSha256": "f06acb1ba15484113ccd4c5648152275a3bbae48c38e0982e41c1b161b278529",
+      "archiveBytes": 74
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_completion_body_failure_test-run.log",
+      "originalSha256": "7a6809dfc97ea7ee40243cad99dd2b6d3639ea77e9be903d182baad363f56f29",
+      "originalBytes": 218,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_completion_body_failure_test-run.log.gz",
+      "archiveSha256": "f4d0377180dbfe4e12f82a98d494a908edebbe0ad5eb0f48bffaf04e44c7a8f8",
+      "archiveBytes": 182
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_completion_body_test-run.log",
+      "originalSha256": "4c4977ef854650da259d6f506a6ea1a60e6ff574e6937f2e557020559e6be1ac",
+      "originalBytes": 336,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_completion_body_test-run.log.gz",
+      "archiveSha256": "de70834419e7e8df2a4360ef1e20c48b098e92a4c8ff9f8d04ab52215927033d",
+      "archiveBytes": 219
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_completion_candidates_test-run.log",
+      "originalSha256": "d6a20b0e5c0b71902056c621a2bb4de6e77af6813c38def8470a0d1c6ea11799",
+      "originalBytes": 171,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_completion_candidates_test-run.log.gz",
+      "archiveSha256": "54e8ca0451965bedae7b04acc4baed4aa7e5ed426949306fe5d24ad36cb61639",
+      "archiveBytes": 145
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_completion_pool_fault_test-run.log",
+      "originalSha256": "f74fc63494a8b97ce61ae3cc4f91385352b52b64d51f6dba64e55ed8e52f533d",
+      "originalBytes": 251,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_completion_pool_fault_test-run.log.gz",
+      "archiveSha256": "25b2c01a0bd4a1dde2a2ed765f62f82748e5661ca5cc29b19d3be9b29ace3770",
+      "archiveBytes": 196
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_completion_session_test-run.log",
+      "originalSha256": "c8cab358aa6f73bbf7b2e574ceff54d53713038427234af8ff6d886b790d336b",
+      "originalBytes": 271,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_completion_session_test-run.log.gz",
+      "archiveSha256": "27d17021b68e89ab3c98ec55eb1bc488aabd2dfdeb02d80ff9cbe56574201e84",
+      "archiveBytes": 212
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_completion_unit_fault_test-run.log",
+      "originalSha256": "f58a22d83948289ba27ea774eacd38b75e732dc8938cbaf11702dbbc3c7d93a2",
+      "originalBytes": 100,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_completion_unit_fault_test-run.log.gz",
+      "archiveSha256": "2f13ffd13e8b6fc04b2cb31e4bb3cea0119b239d978f001223bef47cc40caf2f",
+      "archiveBytes": 106
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_completion_unit_test-run.log",
+      "originalSha256": "15cdcc3a060f606eaa72d6a9db1f866305fdd528d17deec8611f7656094a178e",
+      "originalBytes": 2464,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_completion_unit_test-run.log.gz",
+      "archiveSha256": "17518af73a1c65c54903817bc96e4d5d296ec9b6d2f87004c405472ac5c7130c",
+      "archiveBytes": 251
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_composite_function_test-run.log",
+      "originalSha256": "a3f414a35b51e3a34a53838f09b0dc3e9d9999ce429ecf23f50435a7de1318f0",
+      "originalBytes": 1000,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_composite_function_test-run.log.gz",
+      "archiveSha256": "eedac0c4ab0549229b7fef0444070efa270e358b9ee39df5d77541b00dec26e2",
+      "archiveBytes": 415
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_context_fault_test-run.log",
+      "originalSha256": "735d761bfcac8ee7ce98ac7df4133fbbe0c8b0b7540fcdb8784e96d6255f1446",
+      "originalBytes": 136,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_context_fault_test-run.log.gz",
+      "archiveSha256": "f87770994028e3953b3466fa89394ca4d8bf5d4e508068b2ebd9526d57e8b050",
+      "archiveBytes": 128
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_context_resolution_test-run.log",
+      "originalSha256": "1ddc33ee73d10c9656ff75c7c4aab4b9f2db98a9aec4cdf7454b781885b06bcc",
+      "originalBytes": 184,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_context_resolution_test-run.log.gz",
+      "archiveSha256": "ba815db9fc36cdca88b61801fc2a94dbf66b372cc223292363c40966ec47f414",
+      "archiveBytes": 158
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_context_test-run.log",
+      "originalSha256": "423dcfd8dfb8dacb3b8d3750b28196b850c0244eb233bec649f1039f1861f6a2",
+      "originalBytes": 104,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_context_test-run.log.gz",
+      "archiveSha256": "eea01242f90f96ab994ac8706a8178812f82abee27cf917cb4d4ce5dc195b07a",
+      "archiveBytes": 108
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_current_loader_test-run.log",
+      "originalSha256": "ba30eb8ca4556550b64eaa3339022f8c802ab0eef0634cb6efc7547fef23fa28",
+      "originalBytes": 180,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_current_loader_test-run.log.gz",
+      "archiveSha256": "fe5ec707fbff8cea4a68242e0b0585215b0c431aa0b8e92402b7c32412f95373",
+      "archiveBytes": 157
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_current_provider_test-run.log",
+      "originalSha256": "c5f13d2688ccabdb2f4f25fa75f2033c9ee954ccf62dc8ecf068073d6beb50c3",
+      "originalBytes": 150,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_current_provider_test-run.log.gz",
+      "archiveSha256": "b63d6daa75ea1a5aed66eb5ff6f50d9709bce90bdd4d04f654d0422730a40a95",
+      "archiveBytes": 140
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_cursor_memo_test-run.log",
+      "originalSha256": "af5186e7144f2bc60f64056496e83ae9a93f2527c7bda154954ff6e555d5ccb1",
+      "originalBytes": 46,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_cursor_memo_test-run.log.gz",
+      "archiveSha256": "42ce38e13dce616bea42a6caf6605b708c1b82501f3b3ff3c7c3b74ef982ffd1",
+      "archiveBytes": 66
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_cursor_source_memo_test-run.log",
+      "originalSha256": "56cd55bc1d00af0f66f45413e349c8307f079891c5d32c0c6de7637d1c4cd0ce",
+      "originalBytes": 54,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_cursor_source_memo_test-run.log.gz",
+      "archiveSha256": "dd1c1770c314420f7e59226fb1d1bcf58eb0c2017f8a2da97176c5f0b3f945a6",
+      "archiveBytes": 74
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_cursor_syntax_test-run.log",
+      "originalSha256": "d69f768a8858305dde94a08101c51de171bd3a0668d9f70ecc087e6ff5a7939c",
+      "originalBytes": 116,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_cursor_syntax_test-run.log.gz",
+      "archiveSha256": "1e012bf9ebc58e27698e3d4f14e7f7d67e71cda8907853a0ffd93e211255d9bd",
+      "archiveBytes": 118
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_dependency_capture_test-run.log",
+      "originalSha256": "2f1e2f1ff1a6c2e74aca9b3a2923dda2fa65049b3a0d659ae286c88eba7f370c",
+      "originalBytes": 298,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_dependency_capture_test-run.log.gz",
+      "archiveSha256": "11b7e580d2659c0f41a8e54f56ca9a3119489b5ee7edda6ea6ee6f460459d6e0",
+      "archiveBytes": 221
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_dependency_graph_test-run.log",
+      "originalSha256": "2be1a1b9983d34461758c7bb6fcd5fafc380476bb87acc3260d4512c7b7605c0",
+      "originalBytes": 292,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_dependency_graph_test-run.log.gz",
+      "archiveSha256": "24d13833227e9ac69c1f803d98c2b09851de859c692902bfae05e146b2273ebd",
+      "archiveBytes": 222
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_dependency_session_test-run.log",
+      "originalSha256": "5c020950e4434657091fd3af08478b269840c6b02c7183d3fc2cc598afbf6ec6",
+      "originalBytes": 236,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_dependency_session_test-run.log.gz",
+      "archiveSha256": "34ab5d34b6f726b67fd84488905f47ff7f4da42e5f1fb7c87ac75f5cff7cbb87",
+      "archiveBytes": 192
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_dependency_worker_test-run.log",
+      "originalSha256": "f0eccdf08788dad9cbf286ac9855e70258c8a88bcb8a9255529965a10ba92d6a",
+      "originalBytes": 365,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_dependency_worker_test-run.log.gz",
+      "archiveSha256": "2c948900fd3a2f3aecc5cdb32c09e9594245e68cf81c56d41a2764fae0427695",
+      "archiveBytes": 268
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_entity_binding_test-run.log",
+      "originalSha256": "aaa8ff799dcb392da78340a9fce7a58915f4c26917e29642ae6c9f1345ae95f8",
+      "originalBytes": 282,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_entity_binding_test-run.log.gz",
+      "archiveSha256": "d56e1556a46415137231370916fe73b4dab6114eabdf429156eaecff1b7b850f",
+      "archiveBytes": 217
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_entity_store_test-run.log",
+      "originalSha256": "6bbdd1240a03f7b0c21f0e7b2a58239650681a8e24a2d5b00cb41d061132e5cf",
+      "originalBytes": 162,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_entity_store_test-run.log.gz",
+      "archiveSha256": "1df829b6de87aab4182de135308cda027eff3d24e3eae98c4ddfd700e5c882a1",
+      "archiveBytes": 144
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_entity_versions_test-run.log",
+      "originalSha256": "ee75377deeb86087c8e980b041f379ad7106bf87078ac43b9dda354503ad9c67",
+      "originalBytes": 1503,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_entity_versions_test-run.log.gz",
+      "archiveSha256": "28c0c166c21ccf94b24e9668144b4f912f55b16d69996c031b5e60fc651abb49",
+      "archiveBytes": 435
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_entry_cache_test-run.log",
+      "originalSha256": "dbedea994ba34c92894962e43d21b994388893bf448089bb647c2bd7b1323645",
+      "originalBytes": 277,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_entry_cache_test-run.log.gz",
+      "archiveSha256": "2d854b29eea629a663ca7d2d6f818bc3536aa510b9dbbe2fd28ee18acda74f10",
+      "archiveBytes": 217
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_final_annotations_test-run.log",
+      "originalSha256": "c968f7d9ab78e54f2449c147a6375ca70a5926f1986b9898917abb2606d0e6a1",
+      "originalBytes": 650,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_final_annotations_test-run.log.gz",
+      "archiveSha256": "3c7c76238bedb269abeb2decd3bc8e8fc1831d4aa4c4e4d5ea9aabda6dd4e7d1",
+      "archiveBytes": 243
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_final_environment_test-run.log",
+      "originalSha256": "b4bf2c031dd4c55b5e79e67b1c5fbab5f6bfaba3a53a3a467124bc8a7f497d51",
+      "originalBytes": 174,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_final_environment_test-run.log.gz",
+      "archiveSha256": "b5ba63b47529e7270b70f4c195828a63980ccb48f84920a788bca59659b885d5",
+      "archiveBytes": 154
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_folding_test-run.log",
+      "originalSha256": "ca439ca2ca5518e05c3967a1174e6e89187ed4f8be1faf7c6279c85e499eb4cb",
+      "originalBytes": 185,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_folding_test-run.log.gz",
+      "archiveSha256": "d594395304d072a227e0a4d4e031b69dc99a937f24b890a3a388337b97f2aa15",
+      "archiveBytes": 169
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_frontend_cancel_test-run.log",
+      "originalSha256": "e1ee77d765d858548f0cccc460fec70a89f4c35f847240b708217157e77184fa",
+      "originalBytes": 191,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_frontend_cancel_test-run.log.gz",
+      "archiveSha256": "d7dfc9d1bf30ab0cc562a7247554c43190145c3ad8249152255606f24f367a17",
+      "archiveBytes": 173
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_function_index_asset_test-run.log",
+      "originalSha256": "1b5d78c956b885dd803eab465d36246eb5b34f130c9f1837b63d1e2d57c0ffb0",
+      "originalBytes": 504,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_function_index_asset_test-run.log.gz",
+      "archiveSha256": "8cf74cb0eb4b4a8bc5ced0aa75d642963d92f6201fe19a3bf4d18c3abf63e4c9",
+      "archiveBytes": 218
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_function_unit_fault_test-run.log",
+      "originalSha256": "6da8df086bbafec0778451a554d485a6083fede6879daacb5c0ecc89f8824ae6",
+      "originalBytes": 162,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_function_unit_fault_test-run.log.gz",
+      "archiveSha256": "80af5025ce217540f9693d1e1b1a6b7c0140a34e32446e9e8ceb784936c371f5",
+      "archiveBytes": 141
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_function_unit_test-run.log",
+      "originalSha256": "f5fbcd60271443705510e83615cddf2a6c6da00b08a6122470ac06fb4d3663db",
+      "originalBytes": 434,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_function_unit_test-run.log.gz",
+      "archiveSha256": "644bc7c1e3ed9d2da2fd7284c3a3bab32dbd28ff861f843bcafb8f7882f843a3",
+      "archiveBytes": 275
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_header_syntax_test-run.log",
+      "originalSha256": "2771f58938505bfd7e5830f02d92a09486681db931a9567d793ba1c040422cb4",
+      "originalBytes": 473,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_header_syntax_test-run.log.gz",
+      "archiveSha256": "bfec4b0e0bd2f5f05a1f851617480fc4a87d79bdfebbafab4ad153406349699a",
+      "archiveBytes": 262
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_import_names_test-run.log",
+      "originalSha256": "97c4ee4a18b4e359a7f890e8d7fd97780a9ba409253ab2b76d86cc98c7454e83",
+      "originalBytes": 194,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_import_names_test-run.log.gz",
+      "archiveSha256": "02fe50940271e696bbcb438a0a7e80f06ac7f62bc3bf9b3d3da2118d0eef0e38",
+      "archiveBytes": 177
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_incremental_check_test-run.log",
+      "originalSha256": "e4246e3fd5c9e2a4630a821b80ac6096c6ba9b4a933ae5f1e3cf045dfa117fdb",
+      "originalBytes": 151,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_incremental_check_test-run.log.gz",
+      "archiveSha256": "ff1a2c3f8506718d2d829ba9b086ce029cd50f778157a04591a7bc6191c3f14a",
+      "archiveBytes": 136
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_incremental_syntax_test-run.log",
+      "originalSha256": "63d958bf3d853c6c334f39bf1369fcf669ddf56c269fbb64ac1d8b42e11cd409",
+      "originalBytes": 208,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_incremental_syntax_test-run.log.gz",
+      "archiveSha256": "7aa8f948bbfb10c295f2d41c72174d60bdea671cd193c893e4c080f81a4c3605",
+      "archiveBytes": 175
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_index_limit_test-run.log",
+      "originalSha256": "320ef91585f8d77642f102592b95d2d88b0fe44b26327ec516d1599d3e331a69",
+      "originalBytes": 129,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_index_limit_test-run.log.gz",
+      "archiveSha256": "a9e8000f09e2ed688e962d583c77f13a45faabe271bebaa91ac5b2446aa9a3bc",
+      "archiveBytes": 112
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_index_storage_test-run.log",
+      "originalSha256": "4b24e843606f23c63e6a6edea80eeeed7ccc60c23207f039e152e75ee0cd8353",
+      "originalBytes": 280,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_index_storage_test-run.log.gz",
+      "archiveSha256": "457f56e62abe709d527d837fcaec9b07a7b8a89444ac898de656dc5377fddbe4",
+      "archiveBytes": 228
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_index_test-run.log",
+      "originalSha256": "b89a5c4caf26e04f64274df970f4cd67e32f7e7fe70152ed3180961c03f1f2c4",
+      "originalBytes": 292,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_index_test-run.log.gz",
+      "archiveSha256": "0a7a4b181fa8d0b7a380f70a4895aecf371c0623a4217dc2a4f97b9ace7e3eaa",
+      "archiveBytes": 235
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_index_view_test-run.log",
+      "originalSha256": "fa271657e0d24a67ad008c1b5a7a67b2e1f56a30bdce66e42dbac30fc842a4fc",
+      "originalBytes": 132,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_index_view_test-run.log.gz",
+      "archiveSha256": "9fdafae77f87b89b975a5fbc6ab810381c60fecf48216bea87014834d9a6fa56",
+      "archiveBytes": 135
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_input_topology_test-run.log",
+      "originalSha256": "1e3877620090262f2536428b243324d00fb451e79fabeb09141743af374c2746",
+      "originalBytes": 257,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_input_topology_test-run.log.gz",
+      "archiveSha256": "25c148b435d133a716393e18b923dddeb00e98fa33d85855640d67faf76020ca",
+      "archiveBytes": 204
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_input_usage_test-run.log",
+      "originalSha256": "7a35d296510341215fa81b224e9c07f307264d13c8e01f03a6045a95225d9798",
+      "originalBytes": 46,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_input_usage_test-run.log.gz",
+      "archiveSha256": "bf19de0544c5220960e2f51aed25f92ea81a2f71faec122aeab68abd68cb7f50",
+      "archiveBytes": 66
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_input_view_test-run.log",
+      "originalSha256": "ae2ce4b5b4ac5bb0829f25e9ff4522b41e208bc1721aba5da9a8d1bf6aa2403d",
+      "originalBytes": 198,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_input_view_test-run.log.gz",
+      "archiveSha256": "63c064db567edabc73114c2fe60ceb7f3eba6799d1e5cf24ccf165f6125bb505",
+      "archiveBytes": 172
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ir_callsite_test-run.log",
+      "originalSha256": "a6b9c461f144fd043ab9e8b19852add1760358105d343e48872779df395f0fbb",
+      "originalBytes": 221,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ir_callsite_test-run.log.gz",
+      "archiveSha256": "077f039f807c14f0e155540c0a2b73fe888b7e3e4551302a4b532c94579d4614",
+      "archiveBytes": 176
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ir_derived_test-run.log",
+      "originalSha256": "7d3ae435bf2847b12b606946190a64c55667d1f830f4bfd554b1459a486e0b71",
+      "originalBytes": 3968,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ir_derived_test-run.log.gz",
+      "archiveSha256": "eca62241c8f16c375748a2b5492f0c46081578eb72a55c8b0d23bb45a792682c",
+      "archiveBytes": 411
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ir_entity_test-run.log",
+      "originalSha256": "45b8368804f722321dbf91be6c04c81b18f15e1cf8ff61dc17cee104b3d8b8cd",
+      "originalBytes": 544,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ir_entity_test-run.log.gz",
+      "archiveSha256": "0192a60277848aa7ea83f2a75ae5161c69e833bfffaeb75c466fae3a1971c466",
+      "archiveBytes": 285
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ir_input_test-run.log",
+      "originalSha256": "2d66655ec3004c4a5a2a35365ede3c2fb70378d031518137841d5fa77ac0c254",
+      "originalBytes": 852,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ir_input_test-run.log.gz",
+      "archiveSha256": "27297ccc182371128fbf58889798214719342fb71203d9ac84d6257e33527a56",
+      "archiveBytes": 340
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ir_memo_test-run.log",
+      "originalSha256": "a9eff73a3c5a6f451ad73d76f8980f712901ecd163d3e84ef0622f7005236bbb",
+      "originalBytes": 2988,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ir_memo_test-run.log.gz",
+      "archiveSha256": "32baefbcf1a21574e7778481e38012b325703280dd9b47733d3704c0760d229e",
+      "archiveBytes": 483
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ir_persistent_fault_test-run.log",
+      "originalSha256": "06f3c5e40e166c4c43d1309164ec47ea184cdb73fca0046583bc463f32221017",
+      "originalBytes": 167,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ir_persistent_fault_test-run.log.gz",
+      "archiveSha256": "501b1db8265df84bd38f94d2ad9c6e380a00eb9fd40f103ccb20c245ffbf5803",
+      "archiveBytes": 145
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ir_persistent_test-run.log",
+      "originalSha256": "3bfb4be9ed254c8ad56404754c16685c9ab32030140c394ce65b7fdfc99943b3",
+      "originalBytes": 2987,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ir_persistent_test-run.log.gz",
+      "archiveSha256": "fb455641f68fef485883e6a551623bb772b734f10ebc7055d3e28734f9450f43",
+      "archiveBytes": 479
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ir_plan_direct_test-run.log",
+      "originalSha256": "fb29936f88df2b4d91f3087dd5ef643468e57c0cfde2b917aa884a15c2501b04",
+      "originalBytes": 1865,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ir_plan_direct_test-run.log.gz",
+      "archiveSha256": "fb8d912d2c09414cf16b10adb07504f7d4e8b36008e83e264ed96e65db0bdd90",
+      "archiveBytes": 335
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ir_regions_test-run.log",
+      "originalSha256": "cc957fba1b3332529739854f30c875fb5dafeaa9ea4d43fa76b5ae0c74560489",
+      "originalBytes": 241,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ir_regions_test-run.log.gz",
+      "archiveSha256": "65972f127833d42acdbc7d84422f4e6c685b258042fa96d495df04173125aa4a",
+      "archiveBytes": 198
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ir_scan_test-run.log",
+      "originalSha256": "b50fcd86f095f18bc9a974dfce6c6f78655a8a047ead3fe4f590a0ceb67fd0b3",
+      "originalBytes": 1103,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ir_scan_test-run.log.gz",
+      "archiveSha256": "d928f91dda9a6c70d51dd4a0d1880b7f5b8bb3774bf42a44c19901c12fcc0904",
+      "archiveBytes": 497
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_ir_sparse_decode_test-run.log",
+      "originalSha256": "22fb139d74039ac922bc997f28a26c246079e8ba3d39cd4e2692a9d0c6a0226d",
+      "originalBytes": 205,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_ir_sparse_decode_test-run.log.gz",
+      "archiveSha256": "af571fad366ad0194bce627c96a99f09a47e888d39055c59c8c999d8764c2cae",
+      "archiveBytes": 173
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_module_graph_test-run.log",
+      "originalSha256": "a1dc79e28fb04a4fe884682da09b02a091e2ff43477bf937c6acceb5994b3dff",
+      "originalBytes": 227,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_module_graph_test-run.log.gz",
+      "archiveSha256": "d31226c8c888810756da59eb5291210cc4f78070bd2a65ca1e84918740cd9f31",
+      "archiveBytes": 188
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_module_store_test-run.log",
+      "originalSha256": "7225d70db510a73dddf6af80e8d1e1cb40cb922aef3e2daf9ec8f3b9100d1611",
+      "originalBytes": 232,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_module_store_test-run.log.gz",
+      "archiveSha256": "39780f1a0655b4b4d0aafa6adb50ebc59eb21aec50627f0663edd7f1dd8407fa",
+      "archiveBytes": 201
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_multifunction_fault_test-run.log",
+      "originalSha256": "24cfe45887d39bc34f36ff2796dfb0eb8003c60c6919aa494ddc5e97aac70fb5",
+      "originalBytes": 270,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_multifunction_fault_test-run.log.gz",
+      "archiveSha256": "ed0c2b51aa87481e1cecade21b6cf2b5b43cb506b894c20d576f74108ee47d4c",
+      "archiveBytes": 204
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_multifunction_syntax_test-run.log",
+      "originalSha256": "df2f9187aef464bf5134aea1c8ba08080d1b7ca249c2f6b4639f114ce8b24d58",
+      "originalBytes": 1810,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_multifunction_syntax_test-run.log.gz",
+      "archiveSha256": "f458d62f258e3c81f0990f678c022e6d6977784261a641ff0547961bc7fd8c9a",
+      "archiveBytes": 333
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_native_borrow_test-run.log",
+      "originalSha256": "b91b73147ff8452ea21ce457595e864d47dec0f5bafe9e477b963da9850e0f15",
+      "originalBytes": 1909,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_native_borrow_test-run.log.gz",
+      "archiveSha256": "8d3cf270e711634b1f24d654f16d57b3687b765c50890c2be1c13abe8710184d",
+      "archiveBytes": 488
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_overlay_owner_test-run.log",
+      "originalSha256": "37c253893d058cde73d549f52a4dc09281b7df2fbe690681daf4101900873ba4",
+      "originalBytes": 220,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_overlay_owner_test-run.log.gz",
+      "archiveSha256": "df3ce69bd9c64c8f7a95e11089f2b8fd985673361e5f857e2552336d4a03700c",
+      "archiveBytes": 191
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_overload_scan_test-run.log",
+      "originalSha256": "4cf0f6dd669f13ded6a8af5b65c5f0133c2febefa2430c3dba7c9e412c62f908",
+      "originalBytes": 142,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_overload_scan_test-run.log.gz",
+      "archiveSha256": "ad8827b3410274a25e0a63f22ded423e5a6e790cfcef215d4fe2234f077a89b8",
+      "archiveBytes": 137
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_process_tree_test-run.log",
+      "originalSha256": "81b3e0d3c1babaa20071442f9dd5edbb8bf5787bd620fc9bbb94bdd9457db293",
+      "originalBytes": 153,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_process_tree_test-run.log.gz",
+      "archiveSha256": "fba21885ae6cee14e05360dce0d85e1f5181811f6d9d6729670f0b12f0c97aa6",
+      "archiveBytes": 142
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_projection_test-run.log",
+      "originalSha256": "f75fd8669d62ed456f8dcc5277674033b0a7a5d9ceda9c0fcf60774a845b5a0c",
+      "originalBytes": 217,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_projection_test-run.log.gz",
+      "archiveSha256": "f3a34700a441d93a8035824371dbc16a5e25438d54ad204fbf94439bcdc34288",
+      "archiveBytes": 179
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_raw_body_projection_test-run.log",
+      "originalSha256": "55c9b2602644fa140936aa73eb828c16f873f25bafabe93eee38355a8e93adf9",
+      "originalBytes": 501,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_raw_body_projection_test-run.log.gz",
+      "archiveSha256": "b4b7cf507b13ff891f3b65cef81766bfd9471459bb69eee8f76429ef9ba94dfe",
+      "archiveBytes": 235
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_raw_native_test-run.log",
+      "originalSha256": "a8224c04121f83a4adb5e2d2d0f9cea51309fcfa1407008db9f4c342acd69349",
+      "originalBytes": 586,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_raw_native_test-run.log.gz",
+      "archiveSha256": "3843752c3858e9ebdb957a82a937bcf2e0ab17ab791603b93f00d6241a7bfa2b",
+      "archiveBytes": 158
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_raw_signature_test-run.log",
+      "originalSha256": "4264492a5a9917cc85602bc7c084d968c82633e9d69878cdd9d8f7b28e9a148a",
+      "originalBytes": 2757,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_raw_signature_test-run.log.gz",
+      "archiveSha256": "d9655b0f2975a964ec8a7295a04ec3f60c96b2cc1efd0b5fa7d02c91ad7d8c28",
+      "archiveBytes": 285
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_selection_projection_test-run.log",
+      "originalSha256": "8ac7ec50f64b855fb61bee2de310cc87e9bf7bdff9ee31ee6793594d3ab4f542",
+      "originalBytes": 147,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_selection_projection_test-run.log.gz",
+      "archiveSha256": "323f0006de92d981514a51e6c5b5b570a3b02dda8cc3632c2940d4d680c35c57",
+      "archiveBytes": 129
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_selection_test-run.log",
+      "originalSha256": "d09e259489d7a219774c459f6428bce8c61e893fe63ac6a77dbf6267c7cb3209",
+      "originalBytes": 206,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_selection_test-run.log.gz",
+      "archiveSha256": "06b8a33c822dc98ea4ac7fb136aca82a557c3d3cb8f588c608aa59c84ed5ecd4",
+      "archiveBytes": 180
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_semantic_alias_reads_test-run.log",
+      "originalSha256": "9871709e3a753898e03d7368eb3018edfdb851d4219bb161dd0f7b92fbb4cb94",
+      "originalBytes": 259,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_semantic_alias_reads_test-run.log.gz",
+      "archiveSha256": "a7324cb688113204ad7611b35cbe059930ebec8d00041c8af325991ee21aea41",
+      "archiveBytes": 190
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_semantic_final_input_test-run.log",
+      "originalSha256": "b7b60b981ea0725b56d77826c638840a875ce6502083097f07ea0bb0e1a65477",
+      "originalBytes": 226,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_semantic_final_input_test-run.log.gz",
+      "archiveSha256": "3e616ebc170ca40036dad63f37a56482eae9638d78a1804b6c550e0ce9e7582c",
+      "archiveBytes": 185
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_semantic_headers_test-run.log",
+      "originalSha256": "a86c032545da19dcda9c8c6a64aff4225f4e2609992cef21313421d37f770ccc",
+      "originalBytes": 548,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_semantic_headers_test-run.log.gz",
+      "archiveSha256": "053683a8e65c5c9210c695f7898c2ab9a323f5c1386e824a4502aefb10b43e36",
+      "archiveBytes": 277
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_semantic_memo_test-run.log",
+      "originalSha256": "79874e7ab43f46fb7abe2a52375dbf2d730e5ecfd281e5a44768c7d94c17bf72",
+      "originalBytes": 197,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_semantic_memo_test-run.log.gz",
+      "archiveSha256": "f13a43bbc0e12bdb9d91e7126e4b9211f8e184860a0d59a45d2187140b0308d8",
+      "archiveBytes": 171
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_semantic_proof_test-run.log",
+      "originalSha256": "db21ac6099bdbcfc63423abfdb62e76c7f374769286ea19b000c20951a2120f6",
+      "originalBytes": 207,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_semantic_proof_test-run.log.gz",
+      "archiveSha256": "de458ded36561b7f92505b7804ea4f07c8f39b61f9cacbe9e254b2d95bdd9bd5",
+      "archiveBytes": 175
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_semantic_read_front_test-run.log",
+      "originalSha256": "e62e66547ca33b542bcc420c67f538dd34f5b49275a69bccb9c9dcbfd4660480",
+      "originalBytes": 273,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_semantic_read_front_test-run.log.gz",
+      "archiveSha256": "658618a3ffae1a2b9e4dfa0fa94f010a063ce2a26cf0e8b8116fcccd138adde5",
+      "archiveBytes": 212
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_semantic_read_values_test-run.log",
+      "originalSha256": "f2246bb9f28b06f2cfe040584864892f22c5a417f5d49aacb1b6ae6f5cc5d1ab",
+      "originalBytes": 3224,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_semantic_read_values_test-run.log.gz",
+      "archiveSha256": "3e3e604d363414f6e3724f0410a7081c13bc4b39fbc95eca5776c98a4a98c841",
+      "archiveBytes": 532
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_semantic_reads_test-run.log",
+      "originalSha256": "5ee011f9c9e55015ce71b6d8a80f7ad3bf8093f05d65cf9e9c591a85079db2dc",
+      "originalBytes": 1497,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_semantic_reads_test-run.log.gz",
+      "archiveSha256": "947c7eacbbe812f098aba57bab9a1718f41c7595003b5c45fd350fab5e26e4f5",
+      "archiveBytes": 394
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_semantic_test-run.log",
+      "originalSha256": "aef4b10d10b93745cff41e7ec83171e98528a1b1d3d55c28901693d57e9aceac",
+      "originalBytes": 42,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_semantic_test-run.log.gz",
+      "archiveSha256": "952451f41ae8b090e5000fe2227e056d1eaa931a42887d9eea435ec386d44046",
+      "archiveBytes": 62
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_session_test-run.log",
+      "originalSha256": "845e789e44763784a9866a89d765ddd9ad5c7d374617114c4b22660cd3e49579",
+      "originalBytes": 226,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_session_test-run.log.gz",
+      "archiveSha256": "9f8ae202291bf665f117ca5c5cb641f5e5cb947d55f2325877d3642f8e83dc67",
+      "archiveBytes": 184
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_signature_test-run.log",
+      "originalSha256": "10245cd802a4c466eae1df1b53a7d3ad02b7a8a16417f654519e288d26b4f95b",
+      "originalBytes": 244,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_signature_test-run.log.gz",
+      "archiveSha256": "18d277a3e1bb07334724adf24638b8a288b9f746b5462a216673ced341ab12ca",
+      "archiveBytes": 186
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_source_text_test-run.log",
+      "originalSha256": "0fdc653d2f26231ef290daec71471888c944d2aa411b86389dff065a6ecee0dc",
+      "originalBytes": 46,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_source_text_test-run.log.gz",
+      "archiveSha256": "220368c1c905293d7d6cccb209c0aabe4def44e1952ef481efb913cb04cc1a4c",
+      "archiveBytes": 64
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_stdlib_scan_test-run.log",
+      "originalSha256": "9c02f994572047b8a08d5d5e2bd04264771a6fad80b07efff50b368be99f5d16",
+      "originalBytes": 604,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_stdlib_scan_test-run.log.gz",
+      "archiveSha256": "a1d8ecbe75b30331f5547303a9a5d5ad0ec588ee09b4eb1b9461085c3869f3ad",
+      "archiveBytes": 319
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_syntax_storage_test-run.log",
+      "originalSha256": "aa3eb736b77714df77378b5dc5512f57766d890869c07405f510e506ceb7080a",
+      "originalBytes": 243,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_syntax_storage_test-run.log.gz",
+      "archiveSha256": "62738a43af5c079c33fcbcbab5e5f8103024506e848b6f7756f07958fdcfa6b0",
+      "archiveBytes": 189
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_text_test-run.log",
+      "originalSha256": "1de1b2c764d9c3f1ea3d678bbc030c6ec12975da7288b97cf06b774c02f60933",
+      "originalBytes": 159,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_text_test-run.log.gz",
+      "archiveSha256": "2ac9eb5f67fa9296271cee1e7a0cfd351e588bed25e754ff13b821b79e4853b3",
+      "archiveBytes": 158
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_topology_clone_fault_test-run.log",
+      "originalSha256": "761a2050326e12d0b6c6b3830cd2aa4f4d20330785cd1e06313abc7949571816",
+      "originalBytes": 132,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_topology_clone_fault_test-run.log.gz",
+      "archiveSha256": "e4322053113a91dd8dfd7abd56faf4c7607f681deb3a7b8ea516056b07039538",
+      "archiveBytes": 122
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_type_constructor_test-run.log",
+      "originalSha256": "b61c8b86861812dcc69f7854bc6dc1fb43937821589eb4bed5242caf25603782",
+      "originalBytes": 231,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_type_constructor_test-run.log.gz",
+      "archiveSha256": "0943d7a364c85935451cfe659b5d1a3fb3e6e88fa1e5765f0eeb430d4cbae267",
+      "archiveBytes": 184
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_typed_function_test-run.log",
+      "originalSha256": "ad61f64ae62ebb39f9fb47c136b9b01769c4ba04e1d075c9d895bdd09d24087c",
+      "originalBytes": 405,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_typed_function_test-run.log.gz",
+      "archiveSha256": "41a424c98b955a1a8eb6a00eeef9f8539185c8a30f0e8b40af5ee42aac318de1",
+      "archiveBytes": 210
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_typed_identity_test-run.log",
+      "originalSha256": "0563f12780d76b8948c4f2c070df607511ef1197b750b5fac235b9331cf92672",
+      "originalBytes": 164,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_typed_identity_test-run.log.gz",
+      "archiveSha256": "8f7c6153eb60fc1a79f284bc903bc39f805098ac977eaf61937afc872072b6dc",
+      "archiveBytes": 140
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_typed_module_fault_test-run.log",
+      "originalSha256": "a3823b9b11e3ba00101de4e394e2275a40eba275d9df1d94e6c61c6a28c4fa7f",
+      "originalBytes": 197,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_typed_module_fault_test-run.log.gz",
+      "archiveSha256": "e2c124220a9262afb58c65cd29e3e874af8be75d6ba83631b0d3ef8b70647319",
+      "archiveBytes": 164
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_typed_module_test-run.log",
+      "originalSha256": "58f670ea5b36b2450f44091522239d330e8b37cebef15520985b5e23cf609145",
+      "originalBytes": 1062,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_typed_module_test-run.log.gz",
+      "archiveSha256": "303e3bec489ccafe93530d6baf09d06a2f97d399119de0e6278f0c1dc07addef",
+      "archiveBytes": 236
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_unified_semantic_test-run.log",
+      "originalSha256": "237e088d73e24d69614cbd0ba302649e29880ac1c856d769bbc85ca226415fbe",
+      "originalBytes": 1240,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_unified_semantic_test-run.log.gz",
+      "archiveSha256": "d677b90d7f60dc81e0cfec5e0ba5dbbcfb955ccf9a6aefe4255260234538fc64",
+      "archiveBytes": 348
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_worker_cache_fault_test-run.log",
+      "originalSha256": "cee965f2fb88a12d7d8630990760fe563add50934487b4d33004e03d91372dde",
+      "originalBytes": 327,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_worker_cache_fault_test-run.log.gz",
+      "archiveSha256": "8d5e513949b437e6b08ff0236b0577b829bd57d65dbc983d4d706f38ded545e2",
+      "archiveBytes": 232
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_worker_cache_test-run.log",
+      "originalSha256": "d7d8133d5e2232fe6bf170653495fa32bb6516c2f3d50ec7af15d141796a3cdd",
+      "originalBytes": 202,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_worker_cache_test-run.log.gz",
+      "archiveSha256": "25556a7f11f7895560ef8c36a3169ccbed49e19be5579b3a165bc2080a24a73a",
+      "archiveBytes": 184
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\analysis_worker_test-run.log",
+      "originalSha256": "8fd2f526113fb02ad60d8e8e6cc51995dfe77f2202fcfd7b39cf09aaa30d9533",
+      "originalBytes": 207,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/analysis_worker_test-run.log.gz",
+      "archiveSha256": "507e835a966ebdcb3a392889b375dc43360cd1533ba35d19bb1716e2c2f564d4",
+      "archiveBytes": 178
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\build-result.json",
+      "originalSha256": "a7ad490a89f534482cb539464b3824d621157522e1c59c238eb7d78e848eb8b4",
+      "originalBytes": 2371613,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/build-result.json.gz",
+      "archiveSha256": "e6acae26f48090d54e0c7f68ff58a7b2bb4687f187d1b9ff32f737d475cc3da5",
+      "archiveBytes": 358895
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\diagnostic_dependencies_test-run.log",
+      "originalSha256": "abadc5d3ea69739bb67c3de6b4e88d4fd9757c79f3403d2a878aeca1701a8e28",
+      "originalBytes": 271,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/diagnostic_dependencies_test-run.log.gz",
+      "archiveSha256": "f87aef0c60d27db7e51dea2bf42c6a5289d56ab2f07c5ee193d22cf0333f3f21",
+      "archiveBytes": 207
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\diagnostic_notice_test-run.log",
+      "originalSha256": "46de50c3e657cac7b34403cc5d70ae50eec65da83eb90282d94d85975d5f3be2",
+      "originalBytes": 285,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/diagnostic_notice_test-run.log.gz",
+      "archiveSha256": "4f266cb4cdc0340cdf5a02de4d750c26c016571772cea75640af46e473ee680e",
+      "archiveBytes": 226
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\diagnostic_paths_test-run.log",
+      "originalSha256": "97ff879347f9e867a173e90b1481f794087dfcccf9b1e4e202ca919569a1e38a",
+      "originalBytes": 159,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/diagnostic_paths_test-run.log.gz",
+      "archiveSha256": "a9475bcf6eb3196cc2d5d4447d1b544c855441b5355d1a54b1e00ca3ca699a1a",
+      "archiveBytes": 148
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\diagnostic_reverse_fault_test-run.log",
+      "originalSha256": "76773beb84e2103c9a5308acee0f22dddf4903bb53d6eb381fab5cb831db2aea",
+      "originalBytes": 181,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/diagnostic_reverse_fault_test-run.log.gz",
+      "archiveSha256": "4877d417a933865381b5174b5a46247c8f234777e97e795851748e3b44792038",
+      "archiveBytes": 154
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\diagnostic_store_test-run.log",
+      "originalSha256": "280b25f1d10ea2dff339751fa45eb460c2f646ebac7331ea3cacf02a3127902d",
+      "originalBytes": 479,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/diagnostic_store_test-run.log.gz",
+      "archiveSha256": "9bdce463a2ce3eb5713ae105dc6f2381b8144deb05a84df876d4ba247a4bb66b",
+      "archiveBytes": 256
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\diagnostic_stream_test-run.log",
+      "originalSha256": "a358561e27bcc68df7579faedd0b9cdd55aa9549fbea3ad689d86bbeb272de8b",
+      "originalBytes": 295,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/diagnostic_stream_test-run.log.gz",
+      "archiveSha256": "78758f4b9f37de2ddf3c56293ed682a69c0a527607d1f27c34bc257881ac5be7",
+      "archiveBytes": 225
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\document_sync_test-run.log",
+      "originalSha256": "9a5db845187bc436bd8617166cbaed150d528bd2dff86473a16c50dfaca743fa",
+      "originalBytes": 201,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/document_sync_test-run.log.gz",
+      "archiveSha256": "8fe68eabdd134fd1ec9434bf572ba43c43acca28ae99c3d628a36a63bc84c35b",
+      "archiveBytes": 173
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\language_context_test-run.log",
+      "originalSha256": "3174ce791ef2978b1c95c4c39aa4c2c834fe8080d2aae1553c13181ce8b03de8",
+      "originalBytes": 353,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/language_context_test-run.log.gz",
+      "archiveSha256": "8b35028948baa339f9429b52d01add471cafefe24014658eb3ce8f157edbe487",
+      "archiveBytes": 233
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\language_definition_proof_test-run.log",
+      "originalSha256": "c32f987ad32c0609949c31bf0325ff413b7dd110778252a48ee936659255f0f6",
+      "originalBytes": 205,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/language_definition_proof_test-run.log.gz",
+      "archiveSha256": "cc9a9824f09e588d612401a3154f41f52f148ad8b035f6cfc67957e370ec05fb",
+      "archiveBytes": 184
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\language_input_guard_test-run.log",
+      "originalSha256": "7edb19116f6a7d3b43cef3ce9459a8d945013788475a10427d83fea9afa3ce8d",
+      "originalBytes": 219,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/language_input_guard_test-run.log.gz",
+      "archiveSha256": "9302899b03cd38d2deaa37feff8133696dcb09b2524e28d9d1385a90fe1cc968",
+      "archiveBytes": 180
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\navigation_cache_test-run.log",
+      "originalSha256": "32fee2bbef0ed2b6d97aa24bc0290152f25cad125d7ea427c0b5f208ad97eacf",
+      "originalBytes": 856,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/navigation_cache_test-run.log.gz",
+      "archiveSha256": "a229e7ed419e5bad14e9a288e411a9728f1afcb1600cdad4db1aa84c7cd4c46a",
+      "archiveBytes": 332
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\path_identity_batch_test-run.log",
+      "originalSha256": "684c9eb7a756554e59e920185fd5e967375931f76d5f346be11db6c2175da0bb",
+      "originalBytes": 174,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/path_identity_batch_test-run.log.gz",
+      "archiveSha256": "ffba08d0846e6b73bfd34877fb9813f2470970165a5d46eeae13c2f027f3d0c9",
+      "archiveBytes": 153
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\project_reference_budget_test-run.log",
+      "originalSha256": "02fa4bfc9a07cb49ddd029e2f4bcafc5eb6430a6a61fb6c7395a0a0d2615b5ce",
+      "originalBytes": 162,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/project_reference_budget_test-run.log.gz",
+      "archiveSha256": "3de30637421aca855504ac08f4dbd90270de75946199dc876dc85665056e2e7c",
+      "archiveBytes": 151
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\project_reference_owner_fault_test-run.log",
+      "originalSha256": "7d2e9fae353c30e2391d6524a51b27b2b9bdb9fb9a010849e7b0c1a8bbf429c2",
+      "originalBytes": 636,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/project_reference_owner_fault_test-run.log.gz",
+      "archiveSha256": "7e66f2e98299751fe6f5196e64c3b288e6083e981a4527b57889e59d7fbd4e9b",
+      "archiveBytes": 256
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\project_reference_owner_test-run.log",
+      "originalSha256": "a6633fd6c4a59aa3a341efa88396ca503fd354cf67e24448b6e3fadcd2945689",
+      "originalBytes": 1283,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/project_reference_owner_test-run.log.gz",
+      "archiveSha256": "d97e2eeecad9af1b516c127a357680dc63cdfad3547f884df8be832bf6be22bb",
+      "archiveBytes": 323
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\project_reference_parallel_test-run.log",
+      "originalSha256": "f95a7046a47e335f83d4c4f9b6eededfb7e6da6eea35ef7a8d3cf1f4f2321ca1",
+      "originalBytes": 273,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/project_reference_parallel_test-run.log.gz",
+      "archiveSha256": "f63d5779ce73431ef4364fe71dbc2131d8d822b0864891dfffb3adf63b61eade",
+      "archiveBytes": 205
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\project_references_test-run.log",
+      "originalSha256": "cd3a10384d9d1af71ec6c269823d52ad4b82f24bdde3e689b7066fe621b08b4c",
+      "originalBytes": 204,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/project_references_test-run.log.gz",
+      "archiveSha256": "e7e968cd5daf1c52dbf7af1a634193744af32c1df2f6899287893a3c129d27ef",
+      "archiveBytes": 169
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\reference_capture_test-run.log",
+      "originalSha256": "bd496ce73795d97836ca2bbcc94262c9ad2ac80665ff33c0ba09ccc63678092c",
+      "originalBytes": 191,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/reference_capture_test-run.log.gz",
+      "archiveSha256": "c258ab195181a98ebdc3512f91ad56993b8b3ae4153d7d7d7daa9220fa430c2b",
+      "archiveBytes": 162
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\reference_path_index_test-run.log",
+      "originalSha256": "03d77ec0f777c83d105138a5afad566da943eabc18932c22a96183f9e3438774",
+      "originalBytes": 252,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/reference_path_index_test-run.log.gz",
+      "archiveSha256": "2743cb47292e1daa2adae94817a6c5f0905016db8c30162543a4e15c462a7a01",
+      "archiveBytes": 201
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\reference_results_test-run.log",
+      "originalSha256": "ad8e5b424b09977446c804d2f92183738751afd30bea217e599faec8d8567e8c",
+      "originalBytes": 202,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/reference_results_test-run.log.gz",
+      "archiveSha256": "859cb1c3cb8ea75b061d67005e2c8317045b926ed4b4ee2240f00be1752533a4",
+      "archiveBytes": 175
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\runtime-deps.log",
+      "originalSha256": "e1c8473f283a753f817383de59e90304bf67b2cb29b3d71c9fb419f7db49ea28",
+      "originalBytes": 241,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/runtime-deps.log.gz",
+      "archiveSha256": "9f7bcd2fd0f4527d017f4ebd9d3a4269130ce9fba0b369bec4ee847c426f9fba",
+      "archiveBytes": 148
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\runtime-runtime-features.log",
+      "originalSha256": "3a3d287a32c250086e3575f1efdfe77bcf00ffbb277dd2d2f941db23cdb0100d",
+      "originalBytes": 1618878,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/runtime-runtime-features.log.gz",
+      "archiveSha256": "524fd6d6221a125118948f3678362601d4431b7310e80e25def3ed7186efd716",
+      "archiveBytes": 518569
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\semantic_coordinates_test-run.log",
+      "originalSha256": "70e13745016e5a2f20299a3e9230f0ada6e35b47e78eb514a8ee6d1288458cd6",
+      "originalBytes": 205,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/semantic_coordinates_test-run.log.gz",
+      "archiveSha256": "88a609aaba0e48d8698556facbc7c88981412f36758c55726f5cf94e50025d7c",
+      "archiveBytes": 187
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\semantic_lookup_test-run.log",
+      "originalSha256": "9d2f2e97a7f2c2717f4a0bd0484a6366f7af4f9b80e234b06c90bb2118b7dea5",
+      "originalBytes": 645,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/semantic_lookup_test-run.log.gz",
+      "archiveSha256": "b8a76d4be206272c61d235b53a93d4f1d94c024d36129d6327003b3eb8b5f937",
+      "archiveBytes": 312
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\semantic_reference_shard_test-run.log",
+      "originalSha256": "0b7d91f79a8bd326fe921667326c646f2e20497066c9274eb59f57f5e533da53",
+      "originalBytes": 198,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/semantic_reference_shard_test-run.log.gz",
+      "archiveSha256": "072eec77cac2684fd86738a227418fe9fa92c8a28faf481b63fbb0fd2bffaa0d",
+      "archiveBytes": 165
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\signature_help_test-run.log",
+      "originalSha256": "0adb50a5fb51c42079d46f92eeb9beb081d43a1075c7f8e699ce751244fe52fb",
+      "originalBytes": 39,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/signature_help_test-run.log.gz",
+      "archiveSha256": "549d66e003d874a59fe781fcc1a74b8c609fee3c3a382a007e145f973221b7fa",
+      "archiveBytes": 59
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\snapshot_report_test-run.log",
+      "originalSha256": "5e9dc50ba2ab92cb61096fd0e296f78d0dad93e0e6eb39b7a8fdea43ac9a7527",
+      "originalBytes": 241,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/snapshot_report_test-run.log.gz",
+      "archiveSha256": "b7e1cab43d9c842ed23d737b1f47bf1f6917f04a1164781d1262c926d6818993",
+      "archiveBytes": 210
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\xl6_ast-runtime-features.log",
+      "originalSha256": "7fdb011e2331cea83e807ad67603d091698ec0a0d5bc7eb1c88ebc4922def105",
+      "originalBytes": 79891,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/xl6_ast-runtime-features.log.gz",
+      "archiveSha256": "45c42ad7a949b936569d7000aa4597929ffdc77d56432b833a325b0a01d4833e",
+      "archiveBytes": 18323
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\full-v2\\xlang_ls-runtime-features.log",
+      "originalSha256": "f48f37282e9a0c874a4cac671895537e886af6a3eecc1115926a2f837bbac67f",
+      "originalBytes": 1386815,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/full-v2/xlang_ls-runtime-features.log.gz",
+      "archiveSha256": "9ad3fe6f02ed1719df4e6aab1e5e3d2f73652be27d464246857e9082c88f777a",
+      "archiveBytes": 434122
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\functional-v1\\plan.json",
+      "originalSha256": "5b484e83fda367d5d29ae386c20313da2d4e979cd16363e3a4c8996047e1b292",
+      "originalBytes": 6077,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/functional-v1/plan.json.gz",
+      "archiveSha256": "50b958999356b373ee9c888384a6dfc6d1a8657629be41807bb565f2c45aac3c",
+      "archiveBytes": 1882
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\functional-v1\\result.json",
+      "originalSha256": "5ebb318825e6ff31ba37dc6f62acfdd9389a8b9934ecddd568d6806a6c31e01d",
+      "originalBytes": 1083768,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/functional-v1/result.json.gz",
+      "archiveSha256": "e4b7ba23465209a7e7f92fdccd0625ae8c9e76b8f6c349ccda4cc828e9fa1ca6",
+      "archiveBytes": 37287
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\geometry-faults-v1\\result.json",
+      "originalSha256": "f4fc0038bdee70c7ab9724da0f048033111db43e7cde9114d82c7609a1c7d64f",
+      "originalBytes": 172378,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/geometry-faults-v1/result.json.gz",
+      "archiveSha256": "3896a82dbbed26cf46e2f740950efddf040913308199be586199e11a394ac7a3",
+      "archiveBytes": 41633
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\moving-diagnostic-v1\\result.json",
+      "originalSha256": "6394164570744c144e098021de72207434e33d9be1f7d7c9bdad5c08c0f25a77",
+      "originalBytes": 2772,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/moving-diagnostic-v1/result.json.gz",
+      "archiveSha256": "a398130d40b8912c5297d1eb27ab9e1bacbc03999a0e1910d8cff84619c81b58",
+      "archiveBytes": 657
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\moving-diagnostic-v1\\run.log",
+      "originalSha256": "9b16a2432e94710efc2d7295cc7d7d8b9d4b5c5c89cdc9a5cb17fe0b0c4a677e",
+      "originalBytes": 424,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/moving-diagnostic-v1/run.log.gz",
+      "archiveSha256": "817168f9c1c802df083c686abdf3b54afc346b42a317f8a4f5b8b4a6e6809894",
+      "archiveBytes": 215
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\moving-v1\\result.json",
+      "originalSha256": "7fe871cf9d4537b7bfc7c2d0ba8b832dae31493c43860b7d54905025664917c2",
+      "originalBytes": 138711,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/moving-v1/result.json.gz",
+      "archiveSha256": "5c1214490cc1e899bc70e5f292fc63a9382aa7b1a96f3c493dd3d236e09383a7",
+      "archiveBytes": 39734
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\moving-v1\\run.stderr.log",
+      "originalSha256": "5f18125f45fe5e32ba999f688262a67e4b78a16560b364bd1a9b15d3e0963578",
+      "originalBytes": 156,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/moving-v1/run.stderr.log.gz",
+      "archiveSha256": "1dc7e39f0098f1b27921278a67c3c72cfae0e9dbd6c0d4a93ae193e40e182345",
+      "archiveBytes": 126
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\moving-v1\\run.stdout.log",
+      "originalSha256": "05c4f8de3b9f851d4356fb75152a8fb63b3c582ca28c3eb0d134740e1d734b9f",
+      "originalBytes": 1823,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/moving-v1/run.stdout.log.gz",
+      "archiveSha256": "cfd3ed252bd241d4e0434d02b42baf0dcbdd3238c6bf28813715cbfc087a1251",
+      "archiveBytes": 374
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\moving-v2\\result.json",
+      "originalSha256": "9f9824b9e0bf3afe453a95cc000967d87299980a9000d8cea5753001b77967a6",
+      "originalBytes": 138880,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/moving-v2/result.json.gz",
+      "archiveSha256": "8c849dcada26853664b733e748f9106957d5e00c98ff9f6dc5faabba78eedd53",
+      "archiveBytes": 39659
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\moving-v2\\run.stdout.log",
+      "originalSha256": "1c34ca692b4046321c2e75e41bd4444043cc96c095ff35f656997d40942f22e2",
+      "originalBytes": 2137,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/moving-v2/run.stdout.log.gz",
+      "archiveSha256": "fa0f8bbb734a44d72b20a888698b31f1670ef026bdb8f8c7255d952407c0913a",
+      "archiveBytes": 495
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\omissions-v1\\result.json",
+      "originalSha256": "653990b6a5cc368c724f8952eb7b21539259ff66c65eab1c1b510d7bc2002dee",
+      "originalBytes": 212885,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/omissions-v1/result.json.gz",
+      "archiveSha256": "78d32a741fc1c9af1d73db16b6feed31c3ae1004439c3a59b6a9ac0f367b6b80",
+      "archiveBytes": 48585
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\performance-v1\\aa\\plan.json",
+      "originalSha256": "d78aa99fec45f43776630c41fd2a97a811d0c290f63c254c285c672aa1537774",
+      "originalBytes": 6037,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/performance-v1/aa/plan.json.gz",
+      "archiveSha256": "6a7bf956416ac92a70258521c6922fe900d1712afd9cc1be12fa76297d87cd44",
+      "archiveBytes": 1864
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\performance-v1\\aa\\result.json",
+      "originalSha256": "f8c7d014559b908e9069e4bc21a5c22ed5fa8229b0a21fb335ec12bb1743db1f",
+      "originalBytes": 6233852,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/performance-v1/aa/result.json.gz",
+      "archiveSha256": "39b8744f756237c3d63f0af7b6c184df388aa2868cf1f2f9d3a960f1bcaa79cd",
+      "archiveBytes": 163702
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\performance-v1\\ab\\plan.json",
+      "originalSha256": "c6818c2395458994953be4479af6e6a6654da34854173f7d61352f89f1983bf0",
+      "originalBytes": 6207,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/performance-v1/ab/plan.json.gz",
+      "archiveSha256": "c42fed2c64ed45b147d72ec4784fc14f32c7919f2c3696942c353ef2efce7016",
+      "archiveBytes": 1910
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\performance-v1\\ab\\result.json",
+      "originalSha256": "7529c59363a9840f89b85d7087a0afb4d77ad9dd00b9814c4054e6d3c35a7d79",
+      "originalBytes": 12423523,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/performance-v1/ab/result.json.gz",
+      "archiveSha256": "4fd811b9bb14c6337ed1f65315361642f02c6aa10e0659bd1dd4d34a94dbbaa8",
+      "archiveBytes": 327385
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\performance-v1\\result.json",
+      "originalSha256": "076e86a9b79bd29bab2021a6b36e8fcf508ebb594ba6c424b6bb96fc61e5eac4",
+      "originalBytes": 4115,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/performance-v1/result.json.gz",
+      "archiveSha256": "01685cd5fae7469192bf4a2c6206417a2655a3a276252b48b0ac3c2491d53e4b",
+      "archiveBytes": 1366
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\producer-audit-prototype-v1.json",
+      "originalSha256": "cab232e21102ac9077bafc1bc0d532cd9ddbe1019f7449b7ce79f0e96e8096d8",
+      "originalBytes": 11019,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/producer-audit-prototype-v1.json.gz",
+      "archiveSha256": "3ed0374da763574ffc1ba833c529320e558e7b8e808567a539ba72881e1614b8",
+      "archiveBytes": 1873
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\producer-audit.json",
+      "originalSha256": "53db7d5c248965dc6f941948d90302c579870c3d6e4eadeb2c009fc7ea68d027",
+      "originalBytes": 11637,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/producer-audit.json.gz",
+      "archiveSha256": "39d8efc3a6b92afe4470617359b61fae36a8c25ad72b79c4dcf13d5502878a2d",
+      "archiveBytes": 2184
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\producer-probe-v1\\result.json",
+      "originalSha256": "8c7b0b1bf0de20fc0497434e86ecf0e6df231a2feaedd8908c0897e9da1efb39",
+      "originalBytes": 3625,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/producer-probe-v1/result.json.gz",
+      "archiveSha256": "6a62f65ac46499a1dc747aac3081334bc51ae3f7d8261de45860365fdcbe9f9c",
+      "archiveBytes": 612
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\producer-probe-v1\\test.log",
+      "originalSha256": "ea372d818904bdcd1ece159bfbe59a06865b9688516db618cc8c9f01e73c8687",
+      "originalBytes": 289,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/producer-probe-v1/test.log.gz",
+      "archiveSha256": "06524a17776b870d239dd5f98b75b4c6737092de038718f16338fd288fd77f23",
+      "archiveBytes": 206
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\producer-probe-v2\\result.json",
+      "originalSha256": "fd36987b7082bcc15ce3dc08d65fe1115c28158a82c88861b985f98baff092ba",
+      "originalBytes": 3665,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/producer-probe-v2/result.json.gz",
+      "archiveSha256": "9362d54e6cb20aa27577540bca7e7a631dd3cb9c6887e235f9fd77575886ccaa",
+      "archiveBytes": 614
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\producer-probe-v2\\resume-v2.json",
+      "originalSha256": "f19e60620c141f861f170a502b7c281b163a6ae4fcfacd55130f55d38c45c380",
+      "originalBytes": 2861,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/producer-probe-v2/resume-v2.json.gz",
+      "archiveSha256": "36162b4a2b0b4471145a6cbb0b58c111dc267d20b42989caa7363b6130efbb69",
+      "archiveBytes": 692
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\producer-probe-v2\\resume.json",
+      "originalSha256": "4f24afb5d6f85653a8b2b702b67b646eaa35093ca3c9f148657667a0445c7553",
+      "originalBytes": 1770,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/producer-probe-v2/resume.json.gz",
+      "archiveSha256": "3f7b8c4d5a055583512fb2146ed482708936cc2027795708760cc93178b6d2b5",
+      "archiveBytes": 517
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\producer-probe-v2\\run.log",
+      "originalSha256": "d81a04c2cf7188fa7870a6b694f755fd5ac65b8f2d3bbd7c067b04b45996ab4e",
+      "originalBytes": 1098,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/producer-probe-v2/run.log.gz",
+      "archiveSha256": "f0369d1b6ff515c45320fa681a3c08da718857bb71de52d3469ead76bc39bb90",
+      "archiveBytes": 394
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\producer-probe-v2\\test-resume.log",
+      "originalSha256": "b6f8a9801725caa1c52beda0a9f4579c482e00dd8014d3da423e7e387837a596",
+      "originalBytes": 289,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/producer-probe-v2/test-resume.log.gz",
+      "archiveSha256": "00154525518d11c1db3be9588b8e3028c2d7c254285c9a2aef7a6ce518d71736",
+      "archiveBytes": 206
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\producer-probe-v2\\test.log",
+      "originalSha256": "de135eedae6d051999643e9a61c64d26363b48f5c6926683139997808da40d2a",
+      "originalBytes": 1374,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/producer-probe-v2/test.log.gz",
+      "archiveSha256": "acdbc13f910254088968431888d4538eb15800e4cdca3d2fd89d6367b445e259",
+      "archiveBytes": 330
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\prototype-v1-inputs.json",
+      "originalSha256": "9c3e1cd824bb57c9928900bbb74a9672c082e3fc9d75ab6f73eaec52797ab87b",
+      "originalBytes": 2149,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/prototype-v1-inputs.json.gz",
+      "archiveSha256": "08afa39a60eb85807543bb7c559896103f0c1d35983800f832bf38e5ebbe0411",
+      "archiveBytes": 633
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\source-base.json",
+      "originalSha256": "b44ee3ba002ed6ea81ac3ef267a3dbdbef6d1025047651bb8e01e4d29549f52c",
+      "originalBytes": 3590,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/source-base.json.gz",
+      "archiveSha256": "40b47e7acf981e69aae575bc810fc954fa58f9f9e53ed8b37ca286aaa60e5102",
+      "archiveBytes": 1147
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\analysis-configuration\\result.json",
+      "originalSha256": "909d1c2fea9ba114bf77373382639e06f0d4a4f960cf29099af23e6d6790adf1",
+      "originalBytes": 1267252,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/analysis-configuration/result.json.gz",
+      "archiveSha256": "ea7a15a05beb66bf7a5182dacf673398730e3092c8806855c61d955652752a5c",
+      "archiveBytes": 64275
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\automatic\\result.json",
+      "originalSha256": "847a28c3bdf89f3da69216cb187edb2892a09ccb0adcaffc2a0a65e753c6b1b1",
+      "originalBytes": 6890,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/automatic/result.json.gz",
+      "archiveSha256": "67cd29f964c1d73cc3660c17b9900203785a1ef9a14d144d8a6cab50b6a32445",
+      "archiveBytes": 1926
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\automatic-diagnostics\\result.json",
+      "originalSha256": "a7013e9afce881fd80c7a4ced484a639d820a4bfb5b7a13fb3c23867492aaab5",
+      "originalBytes": 16851,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/automatic-diagnostics/result.json.gz",
+      "archiveSha256": "f1af9c19378c410fb0cc4819ee13a6f49e03986b91cd507a77eba0874d7f423f",
+      "archiveBytes": 2792
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\call-candidates\\result.json",
+      "originalSha256": "492d1f132606d808d1ba22c0d38697b5807b3fcfab7d4da2d6597d7ab5f22afe",
+      "originalBytes": 59202,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/call-candidates/result.json.gz",
+      "archiveSha256": "11b3e7ef56e71a5c9b3335876dfddb1c5f28c6d17ff64794c8d80da7f69ca751",
+      "archiveBytes": 2818
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\capacity\\result.json",
+      "originalSha256": "3201b504a76a756e0babd366385ae9e5b367b69142b5dd12b4520fd5587c940d",
+      "originalBytes": 10467,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/capacity/result.json.gz",
+      "archiveSha256": "224e43ac8487b96c7bd0c3c3e6f783fd2958356bc07a91c9abc8f4a1bfc8e963",
+      "archiveBytes": 2083
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\check-storage\\result.json",
+      "originalSha256": "02639557e6c5a6ec552b160158f846ca54dc446baaa211ded86d4ef7eb9f534f",
+      "originalBytes": 22694,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/check-storage/result.json.gz",
+      "archiveSha256": "87a5630050a6a4de210f7bd7409ae0e0753f51c103b707b4f3b3c4e9e54814c0",
+      "archiveBytes": 1826
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\completion\\result.json",
+      "originalSha256": "d78c726a26908f1e738cd787e9c68ab4a00d8dccf913330d420bf50271f51834",
+      "originalBytes": 260914,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/completion/result.json.gz",
+      "archiveSha256": "c9114a1dc2e1592f98ae6b78145a4df92ea8c447e5ee436081ad64f23f106dd0",
+      "archiveBytes": 15052
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\completion-units\\result.json",
+      "originalSha256": "7e20bc3d7571f6c560c5529e885ade31b413d3d627fc769ef2a8bc61ac7221a6",
+      "originalBytes": 2661093,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/completion-units/result.json.gz",
+      "archiveSha256": "49e0f1472283f842d241b2f86a1cc05aedaafe522de73ecf6fbde7f06be7b2ab",
+      "archiveBytes": 49277
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\cursor-memo\\result.json",
+      "originalSha256": "6b0429fc15322f149d42196ed88bae2adac6ec0ef4f5257ab9f8a91e89c5ca68",
+      "originalBytes": 47351,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/cursor-memo/result.json.gz",
+      "archiveSha256": "336a357e1d1fa21e0b0ab031d2431acca418219d5f32f41261c34df4d99c5156",
+      "archiveBytes": 2491
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\cursor-source-memo\\result.json",
+      "originalSha256": "13ea896fa609b168c63dc22665409abd4cf701fcb402e3ae4b0831c919f1aaa6",
+      "originalBytes": 79913,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/cursor-source-memo/result.json.gz",
+      "archiveSha256": "b6d49b20768d5290227ffc08822c5e3a382d8a9a9a1a3a867acdd70e581e2bbe",
+      "archiveBytes": 3139
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\cursor-syntax\\result.json",
+      "originalSha256": "2f23c7a603e5e3b3351fb2b52f77f46d56185b94436d1818e12cdf413fb6f34a",
+      "originalBytes": 5399,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/cursor-syntax/result.json.gz",
+      "archiveSha256": "4c6c1eec7cd7c235aa0c8d47fec08927123213d5c6e02aec19bf1e73f3b969a9",
+      "archiveBytes": 1693
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\definition-proofs\\result.json",
+      "originalSha256": "dd7f98fa0f248c999f20280000b5eed41ee6ee8ac51e46cbda8d2e21646c9317",
+      "originalBytes": 32329,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/definition-proofs/result.json.gz",
+      "archiveSha256": "c36e9b51250fbb410c71150aab4b3079948e3a52a2dd9b5a33ad480fbdf204b1",
+      "archiveBytes": 1718
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\dependency-graph\\result.json",
+      "originalSha256": "415ff3f8be59e006e4c6cf76f264b360ba537240099395ceab053fd855ce0ff5",
+      "originalBytes": 61138,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/dependency-graph/result.json.gz",
+      "archiveSha256": "ceb0256c46f9036afd21fa178a9a406d570f39d429cdf311a3f33ce8b675fb75",
+      "archiveBytes": 3456
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\diagnostic-dependencies\\result.json",
+      "originalSha256": "d13ed6fe95ce442393dd089e2f50bcd4dfac5d7a3187d8ec1d84bdb84ba56cd2",
+      "originalBytes": 17578,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/diagnostic-dependencies/result.json.gz",
+      "archiveSha256": "b1a3f4b2d0ec3110b0c4ca0116bdb9eab16ec32abceab1297172448c7d69afb3",
+      "archiveBytes": 2139
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\diagnostic-proofs\\result.json",
+      "originalSha256": "3e47852b83f9a6b99237e4408cb80c6beba19c4cb11ebaf46c86d7008eb07ba1",
+      "originalBytes": 3875,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/diagnostic-proofs/result.json.gz",
+      "archiveSha256": "ee7b602d445347088004759562871a610b4c000bca0838eaaeda77bb02401b7c",
+      "archiveBytes": 1078
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\entity-store\\result.json",
+      "originalSha256": "b2c9854ce64f6aadb2924a5f38e848f1ec231fce39e1686a36ebed7ff8b2d8bc",
+      "originalBytes": 5602,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/entity-store/result.json.gz",
+      "archiveSha256": "3770d474b24bc800e7ba8927181ad74b69a23307f9ad4b6a2ac91c91bede7c19",
+      "archiveBytes": 1073
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\entity-versions\\result.json",
+      "originalSha256": "e89a2ffb8863acf193e9efc80aa28eea8d9bb5e6a17d7072d1b0b029195aeb3b",
+      "originalBytes": 3670,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/entity-versions/result.json.gz",
+      "archiveSha256": "85762809f715dfd7465992d04993a977ee32296d0bcaabe9c389ce96404b771b",
+      "archiveBytes": 757
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\folding\\result.json",
+      "originalSha256": "86b2faa0561bb18ae3252c8e6b6bbd98d037228b3a8c6cb487a6a4ca7ce654f8",
+      "originalBytes": 2869,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/folding/result.json.gz",
+      "archiveSha256": "2a71adfffaffaded26340b9f70e9346c8d6bcfa176a0553536720b3499c752ef",
+      "archiveBytes": 1046
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\frontend-cancel\\result.json",
+      "originalSha256": "e401724100186ebc39d208d65eb5971bb0ef1651a132ebafaaf9544cd2c06884",
+      "originalBytes": 30636,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/frontend-cancel/result.json.gz",
+      "archiveSha256": "f9deb5be4cffa8361561506d0292b134d8938ae532e624113a1b36ed485ac58b",
+      "archiveBytes": 2544
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\header-syntax\\result.json",
+      "originalSha256": "a4f01f00af7599ff9d853434c8e9136fee90fbf87296e147be4facd713b54a36",
+      "originalBytes": 110140,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/header-syntax/result.json.gz",
+      "archiveSha256": "ea541453228979505536a247bcdfdae91d1ca789c2645db4827c7c2ab0fe8fd7",
+      "archiveBytes": 3947
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\highlights\\result.json",
+      "originalSha256": "2983f86b42ab6653db816dee70abc440169fa887ace760928561df13b95e2174",
+      "originalBytes": 4628,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/highlights/result.json.gz",
+      "archiveSha256": "a200e3b6e9ef33e2e57d7e1b1bb12f470bb698f0c0d802cd1b0e953c0eef4487",
+      "archiveBytes": 1197
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\imported-cursor-syntax\\result.json",
+      "originalSha256": "a540219871d0a07499b5679ca821b243d2865780ba4b26db369fc91e1ab8edf2",
+      "originalBytes": 25386,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/imported-cursor-syntax/result.json.gz",
+      "archiveSha256": "a8d62219eb106bd6fad2ca4533c7703db76ac4d250dd09566704328bb854f98a",
+      "archiveBytes": 2099
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\incremental\\result.json",
+      "originalSha256": "9e46536871e44154009e066a73dc37cfcaaef78da83e6b027504fb7183920830",
+      "originalBytes": 1889,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/incremental/result.json.gz",
+      "archiveSha256": "6a6ad1636007455888c3c66f5c0091547b664d6a63450ddbe716726164bc4ba7",
+      "archiveBytes": 702
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\input-scope\\result.json",
+      "originalSha256": "9cf69113ff9190daf4d5991a53da35f1344525e135ffd2d341923323ad2d5205",
+      "originalBytes": 338696,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/input-scope/result.json.gz",
+      "archiveSha256": "ffeba121944a2abcdbda51f7174c94d3f0c752b31b52c5a9cb1ee71b59469926",
+      "archiveBytes": 8948
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\input-state\\result.json",
+      "originalSha256": "54b832ea1fdf34091d3812a26a626b275e1df9441c7ab80a7c4c42193154b18d",
+      "originalBytes": 3050,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/input-state/result.json.gz",
+      "archiveSha256": "47e1eb72be7d076c729252f59f77c78acfa8775eb76b508fde44b50cfba4ee2b",
+      "archiveBytes": 1092
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\input-topology\\result.json",
+      "originalSha256": "8f4f41d2fecae36171599f408e966def8f5811f4635e38e4fff78800a29a53f1",
+      "originalBytes": 54445,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/input-topology/result.json.gz",
+      "archiveSha256": "0f7379c604010e7491ff5577031ac200e63168d282506a667cd94fb593536df7",
+      "archiveBytes": 3113
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\ir-derived\\result.json",
+      "originalSha256": "f397dce9f9e09eec71bc09670ff775cb9d0aa9ba2469dae75f4fb51398ad596b",
+      "originalBytes": 29440,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/ir-derived/result.json.gz",
+      "archiveSha256": "adae6ccd4b2e403ce6cb6dcbfbe6516b639ec96643f5a5e2f6b6cba1962bede3",
+      "archiveBytes": 1789
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\ir-entities\\result.json",
+      "originalSha256": "017c3ce40ced7206f1362e561751312c0f87b867ae8417284883878517ed8447",
+      "originalBytes": 6212,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/ir-entities/result.json.gz",
+      "archiveSha256": "33ae7006ee7f5aea167a1952a02cbe87bd021041ac577733a70405c092387adb",
+      "archiveBytes": 1039
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\ir-fragments\\result.json",
+      "originalSha256": "973fce1e2ee19a2ec6db3211fb2950932109629a02b97b494273aa61d9911187",
+      "originalBytes": 75855,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/ir-fragments/result.json.gz",
+      "archiveSha256": "9a2bbd2cfdac87d2a7782354b8399c09b46fd601d1c316fcb8f77c571cdc1db6",
+      "archiveBytes": 3786
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\memo-types\\result.json",
+      "originalSha256": "a27998b2e3cdc951dfce47276109f3603eef0ed127cf37e15e8fa3c98f09841a",
+      "originalBytes": 139584,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/memo-types/result.json.gz",
+      "archiveSha256": "1966f78a1ff5790c4689f0f5e03832210e289bf9520091cbe8458703d9fdd74d",
+      "archiveBytes": 4297
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\module-semantics\\result.json",
+      "originalSha256": "97ff6fc5d7f4a0ea8f728829813351fb83392e89e9f572fe5c0f5d01b06437bc",
+      "originalBytes": 33152,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/module-semantics/result.json.gz",
+      "archiveSha256": "354b288f4f792bc5761718144289f194b57f0fb1fe7dc3c49424df61dbe200ca",
+      "archiveBytes": 2620
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\module-store\\result.json",
+      "originalSha256": "d95c7b2def27f02e600806eeb98c998c89c8abce3321860750498bd47322e801",
+      "originalBytes": 8441,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/module-store/result.json.gz",
+      "archiveSha256": "8b105ded57bd649387e72ee37f43ca35ca7fb994a8c02e162ff8d3336cc1c57e",
+      "archiveBytes": 1199
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\multi-function-syntax\\result.json",
+      "originalSha256": "051f5d76e88245ad0afccf61b5800fab6a1abfbb3f62753351e188426ef17ec3",
+      "originalBytes": 954539,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/multi-function-syntax/result.json.gz",
+      "archiveSha256": "782cec6e7dca0694f81b9c88794bab7e3dad0a318353fa2bac8b76ddf1453c34",
+      "archiveBytes": 26808
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\namespace-completion\\result.json",
+      "originalSha256": "b9a6187571cc2eac7d92d589673429916bcc43da3c1e8ef8df347fe378ab948e",
+      "originalBytes": 148324,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/namespace-completion/result.json.gz",
+      "archiveSha256": "5289fbaa80950891b3db4ba9d6d5bb4d517aad4da3c067d10cf14358b37e0909",
+      "archiveBytes": 6347
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\native\\result.json",
+      "originalSha256": "d3d884e06ead46e0429ce186203f6863cff2c94ac8592fab99889051eac6a12c",
+      "originalBytes": 309541,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/native/result.json.gz",
+      "archiveSha256": "dbe4e335f19404013703d447c44c6205f72175ce49954c211dc46140fe79f816",
+      "archiveBytes": 22607
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\navigation-cache\\result.json",
+      "originalSha256": "7c9f08349d91c24e1efe7107d38765651023dfed2a36e1cbdd99caf0f8ba0bad",
+      "originalBytes": 4646,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/navigation-cache/result.json.gz",
+      "archiveSha256": "3bdb30b23834f517f672dbd278ecfe2ce8d7d87f8d4e752badfb99499e919f04",
+      "archiveBytes": 1075
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\navigation-worker\\result.json",
+      "originalSha256": "dad0810decf7974647bc714cc1e24232594ae9711f5cdecdc40c2464b63ad5c3",
+      "originalBytes": 9986,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/navigation-worker/result.json.gz",
+      "archiveSha256": "c597e5b0a6409c8ea3d61320e83e05739c4cb29f681556126e5090214b123e3b",
+      "archiveBytes": 1966
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\overlay-proofs\\result.json",
+      "originalSha256": "4f91b5db0655844c2c0e1d881ae3ecaa5d1f85c65f1be00a88044c7d0192a200",
+      "originalBytes": 2400,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/overlay-proofs/result.json.gz",
+      "archiveSha256": "1180567ca55b3e590e3aeab10798e47e8922404412cec33dd35d8088e067e902",
+      "archiveBytes": 1046
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\persistent-ir\\result.json",
+      "originalSha256": "8d1a44bfd139ef86598807663fb0a4016d55152f0c2db79242637a3f41f4be64",
+      "originalBytes": 412284,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/persistent-ir/result.json.gz",
+      "archiveSha256": "8d4deba926f0be32eef2f4816b8482aca4dc33d4d63eb2119047cbb11def8926",
+      "archiveBytes": 15153
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\project-owners\\result.json",
+      "originalSha256": "b52eff27b5297644786f7b4ba4bfe0b741bcee87d1fd8669a151dc07a379072e",
+      "originalBytes": 5020,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/project-owners/result.json.gz",
+      "archiveSha256": "a7b153e4fb2e7ee9903dbeb6e28da6617f4e3d2d7194468805ec08860cf0f1a9",
+      "archiveBytes": 1116
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\raw-bodies\\result.json",
+      "originalSha256": "11935abac63306966e042bf3b37af6250476cc3114f4f2277d783ed44db1523e",
+      "originalBytes": 21553,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/raw-bodies/result.json.gz",
+      "archiveSha256": "f02e4f92e1b73b577506541b67ab52c706646eb9e1942282e5005cb552ebb06c",
+      "archiveBytes": 2446
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\raw-signature\\result.json",
+      "originalSha256": "5fd9e6bb8aaf57b5bc459dea4adcbd8f6bd993be83c930ee3cce395b60a49ec3",
+      "originalBytes": 20788,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/raw-signature/result.json.gz",
+      "archiveSha256": "8938054153b4122f8e31ae56bd2e629f9780c3c9605c4b7324dc78e1b288cc04",
+      "archiveBytes": 2366
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\raw-signature-open\\result.json",
+      "originalSha256": "4cc3680ea01a31dc344182e1be4b6c4078ed05c6622057bfec870256c0f11fe0",
+      "originalBytes": 21073,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/raw-signature-open/result.json.gz",
+      "archiveSha256": "0c8df77db03c093709aa8faed2244c833a0247a7d8e2189c680e24c7bc1e5fcb",
+      "archiveBytes": 2359
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\reference-proofs\\result.json",
+      "originalSha256": "5ecbc425c91a4033860b0ef6e256e0a27551785c13ce8b4f40bacf07f1538dd5",
+      "originalBytes": 2797,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/reference-proofs/result.json.gz",
+      "archiveSha256": "d46983ba2dc2cb9ae20fe578050c43ef63b51f54766d19d555e7de07b3ac0b91",
+      "archiveBytes": 960
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\references\\result.json",
+      "originalSha256": "2f35b93b7f84a0bbc2395f546b243c6e16d3189cd3d54665f7dddee2de88ca40",
+      "originalBytes": 9210,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/references/result.json.gz",
+      "archiveSha256": "1535cb18ae83041f7a508248076ec7129164e2b9cef9be314e62fb05ce2ce396",
+      "archiveBytes": 1509
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\retained\\result.json",
+      "originalSha256": "c00dceb1b2aafb7dc8a9319e6de58680777933f5d36da4de1d62f6807018b62a",
+      "originalBytes": 9906,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/retained/result.json.gz",
+      "archiveSha256": "a828bbd5d09a8f47c9e7caf017766ccf760ff8ca17f0daa7389f6a03700b0df5",
+      "archiveBytes": 2086
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\retained-completion\\result.json",
+      "originalSha256": "f753bc6a031a3b7dcaead61b9e113810a3c8667d7285fe3f4b1c822f45a20449",
+      "originalBytes": 2647,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/retained-completion/result.json.gz",
+      "archiveSha256": "1ccc623397c00921af6bb75112c4d765aa558e9be77eacbd10c9005bfc3b9e3c",
+      "archiveBytes": 994
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\selection-ranges\\result.json",
+      "originalSha256": "3e0358428baf141cf3ce4ca52a566304a30d0b672a19b4e0fd41fbce70ed3965",
+      "originalBytes": 1924,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/selection-ranges/result.json.gz",
+      "archiveSha256": "202e0597c16dd0158ba60570724167d3bc55c2f3d560c86a4837a2c316f9bb84",
+      "archiveBytes": 844
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\semantic-reads\\result.json",
+      "originalSha256": "f3cc8fbc569d81c1b2898230d47e036df36411b7de8383fb9ff4036daf330509",
+      "originalBytes": 171931,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/semantic-reads/result.json.gz",
+      "archiveSha256": "80fa54591597f86ecdc29b15296e6908ad43a4b609e35b1fe264ddeeff1f281e",
+      "archiveBytes": 5823
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\session-cache\\result.json",
+      "originalSha256": "334db6b1225df0f5355ac040170f5bf905cb9bf769ca74de1242383bea584599",
+      "originalBytes": 440116,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/session-cache/result.json.gz",
+      "archiveSha256": "63d7e3d81f73ae42e321c9374da4496f7345d6aff5d0b8b6869b14663556cd1a",
+      "archiveBytes": 8667
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\protocol\\signature-help\\result.json",
+      "originalSha256": "f3a4ae55350e597094757ca130e5be10f1d0c0eb50d8f0ab68ea8d1504dd8d3b",
+      "originalBytes": 52986,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/protocol/signature-help/result.json.gz",
+      "archiveSha256": "9332badcf49bd9edb2c736468711c8d6cbd28fd6e2b24b9574cb472a801f6d0e",
+      "archiveBytes": 3002
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\validation-v1\\result.json",
+      "originalSha256": "a1e1f784229c73caa0e28540319ca99879ede401a43ab4fc205f957a2357d40c",
+      "originalBytes": 50690,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/validation-v1/result.json.gz",
+      "archiveSha256": "d4b5c8072bd91a540e8143bece85e00e4169c27b92c8b4e90589207557d29407",
+      "archiveBytes": 5631
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-type-header-anchors-20261103\\wire-v1\\result.json",
+      "originalSha256": "714d6d91dd6978c59420a898ac720f1370554e95c65487609cb9cd1445522f6e",
+      "originalBytes": 2290815,
+      "archivePath": "dev/release-materials/sources/lsp-semantic-header-geometry-20261103/reports/wire-v1/result.json.gz",
+      "archiveSha256": "092ddd45e6094b36f20d4e67b59cf97d50375eeab670882aedf6d413d89fb959",
+      "archiveBytes": 56194
+    }
+  ]
+}

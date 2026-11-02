@@ -405,6 +405,8 @@ xls_sem_final_work xlsSemanticCheckFinalWork(const xls_semantic_check* result)
 {return xlsFrontendSemMemoFinalWork(result ? result->memo : NULL);}
 xls_sem_native_work xlsSemanticCheckNativeWork(const xls_semantic_check* result)
 {return result ? result->nativeWork : (xls_sem_native_work){0};}
+xls_sem_geometry_work xlsSemanticCheckGeometryWork(const xls_semantic_check* result)
+{return xlsFrontendSemMemoGeometryWork(result ? result->memo : NULL);}
 #endif
 xls_semantic_check* xlsSemanticCheckCreateIncremental(const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
