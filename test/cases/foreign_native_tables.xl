@@ -13,14 +13,18 @@ end
 extern "const XL6_OwnershipDomainV1*" class ViewValueDomain @header("__xl_runtime/xl6_foreign_view_value.h") @lifetime("caller")
     native point handle
 end
+extern "const XL6_OwnershipDomainV1*" class ViewSequenceDomain @header("__xl_runtime/xl6_foreign_view_sequence.h") @lifetime("caller")
+    native point handle
+end
 
 extern "xl6NativeCallbackRuntimeV1Get" @no_raise @nonblocking func callbackRuntime() as CallbackRuntime
 extern "xl6ClosureRuntimeV4Get" @no_raise @nonblocking func closureRuntime() as ClosureRuntime
 extern "xl6ForeignViewCaptureProfileV1Get" @no_raise @nonblocking func viewProfile() as ViewProfile
 extern "xl6NativeGraphFuturePayloadRuntimeV1Get" @no_raise @nonblocking func graphFutureRuntime() as GraphFutureRuntime
 extern "xl6OwnershipDomainForeignViewValueV1Get" @no_raise @nonblocking func viewValueDomain() as ViewValueDomain
-extern "foreign_native_tables_probe" @no_raise @nonblocking func probe(CallbackRuntime callbacks, ClosureRuntime closures, ViewProfile view, GraphFutureRuntime futures, ViewValueDomain values) as c_int
+extern "xl6OwnershipDomainSequenceForeignViewV1Get" @no_raise @nonblocking func viewSequenceDomain() as ViewSequenceDomain
+extern "foreign_native_tables_probe" @no_raise @nonblocking func probe(CallbackRuntime callbacks, ClosureRuntime closures, ViewProfile view, GraphFutureRuntime futures, ViewValueDomain values, ViewSequenceDomain sequences) as c_int
 
 func main(...) as int
-    return probe(callbackRuntime(), closureRuntime(), viewProfile(), graphFutureRuntime(), viewValueDomain())
+    return probe(callbackRuntime(), closureRuntime(), viewProfile(), graphFutureRuntime(), viewValueDomain(), viewSequenceDomain())
 end

@@ -20,6 +20,9 @@ int main(void)
         {"xl6ForeignViewCallBeginV1",XL6_ARTIFACT_FOREIGN_VIEW},
         {"xl6ForeignViewBorrowRootV1",XL6_ARTIFACT_FOREIGN_VIEW},
         {"xl6ForeignViewBoxV1",XL6_ARTIFACT_FOREIGN_VIEW_VALUE},
+        {"xl6ForeignViewStorageBoxV1",XL6_ARTIFACT_FOREIGN_VIEW_VALUE},
+        {"xl6ForeignViewSequenceCreateV1",XL6_ARTIFACT_FOREIGN_VIEW_SEQUENCE},
+        {"xl6OwnershipDomainSequenceForeignViewV1Get",XL6_ARTIFACT_FOREIGN_VIEW_SEQUENCE},
         {"xl6OwnershipDomainForeignViewValueV1Get",XL6_ARTIFACT_FOREIGN_VIEW_VALUE},
         {"xl6ForeignViewNativePinV1",XL6_ARTIFACT_FOREIGN_VIEW},
         {"xl6NativeCallbackRuntimeV1Get",XL6_ARTIFACT_NATIVE_CALLBACK},
@@ -42,6 +45,8 @@ int main(void)
     require(XL6_ARTIFACT_NATIVE_CALLBACK,XL6_ARTIFACT_FOREIGN_VIEW,true);
     require(XL6_ARTIFACT_NATIVE_CALLBACK,XL6_ARTIFACT_CLOSURE,true);
     require(XL6_ARTIFACT_FOREIGN_VIEW_VALUE,XL6_ARTIFACT_FOREIGN_VIEW,true);
+    require(XL6_ARTIFACT_FOREIGN_VIEW_SEQUENCE,XL6_ARTIFACT_FOREIGN_VIEW_VALUE,true);
+    require(XL6_ARTIFACT_FOREIGN_VIEW_SEQUENCE,XL6_ARTIFACT_SEQUENCE,true);
     require(XL6_ARTIFACT_CLOSURE,XL6_ARTIFACT_FOREIGN_CALLBACK_SCOPE,true);
     require(XL6_ARTIFACT_CODE_FINALIZER,XL6_ARTIFACT_FOREIGN_CALLBACK_SCOPE,true);
     require(XL6_ARTIFACT_FOREIGN_CALLBACK_SCOPE,XL6_ARTIFACT_FOREIGN_CONTEXT,true);
@@ -56,5 +61,6 @@ int main(void)
         XL6_ARTIFACT_NATIVE_CAPTURE_GRAPH,XL6_ARTIFACT_CAPTURE_V3,XL6_ARTIFACT_CLOSURE_CAPTURE_V4,
         XL6_ARTIFACT_CELL_NATIVE_GRAPH,XL6_ARTIFACT_NATIVE_GRAPH_FUTURE_PAYLOAD};
     for(size_t i=0;i<sizeof(generic)/sizeof(generic[0]);++i)require(generic[i],XL6_ARTIFACT_FOREIGN_VIEW,false);
+    require(XL6_ARTIFACT_SEQUENCE,XL6_ARTIFACT_FOREIGN_VIEW_SEQUENCE,false);
     puts("native component catalog: exact symbol owners, complete callback dependencies, unique sources and generic/view separation passed");return 0;
 }

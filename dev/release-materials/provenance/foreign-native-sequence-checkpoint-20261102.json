@@ -1,0 +1,83 @@
+{
+  "recordedAt": "2026-11-02",
+  "scope": "Private owning native View slots in Array/Stack, exact dynamic projection and native ownership graph; managed language schema and XGE/XUI packages remain pending",
+  "complete": true,
+  "overallEightCapabilitiesComplete": false,
+  "networkTests": false,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\view-sequences-r5\\results.json",
+      "sha256": "cdea90156bad9a795786f0aa57c1a0be63f2e034c17d81b29ae4a830d74aa09f",
+      "stages": 50
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\xge-view-sequences-20261102-r2\\results.json",
+      "sha256": "a9b71229c87386c4192fdff62566a614417c6032837245752254badc0d986c77",
+      "stages": 50
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\view-sequence-value-regression-r1\\results.json",
+      "sha256": "2e22396f4d6a6a4af262bc49e37572d127e6c29917adc9eda2b3279b54597d1e",
+      "stages": 46
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\view-sequence-catalog-r1\\results.json",
+      "sha256": "87b96bd71fd1954a1d997489f35166aea966a6202601c420cd04978d5ad23fb7",
+      "stages": 4
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\source-r14\\build.json",
+      "sha256": "bbe163d30999cbbc3caa11a331eb997078f0bcb381de0e761ad6409d12cb6626",
+      "stages": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\source-r14-current-vfs\\provider.json",
+      "sha256": "f86dd2c979ba5d3e123c5cbb98c8a7aae2bfcfb96cc9b9fb2e195ea9dcd475de",
+      "stages": 7
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\native-sequence-artifacts-r1\\results.json",
+      "sha256": "2fb2898732ff341b055728d1b2632c3b8e9b323449e5934ed5d2bd038bbe9de1",
+      "stages": 7
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-declarative-implementation-20261101\\foundation-batch-r14-current-vfs\\results.json",
+      "sha256": "e76e370081ba462d783c6a72f4c323b45de74e8efcf51ab3b51b95f0c1b13a87",
+      "stages": 11
+    }
+  ],
+  "sourceTranslationUnits": 1410,
+  "sourceUnitsRecompiled": 7,
+  "tccPrecompiledObjects": 1558,
+  "sourceBuildOptimization": "O0",
+  "modifiedRuntimeOptimizations": [
+    "O0",
+    "O2"
+  ],
+  "linuxModifiedRuntimeSanitizers": [
+    "ASan",
+    "UBSan",
+    "LeakSanitizer"
+  ],
+  "reusedCoreSanitized": false,
+  "measuredCosts": {
+    "slotBytes": 8,
+    "emptySequenceAllocations": 4,
+    "emptySequenceRequestedLiveBytes": 408,
+    "typedReservedOperationRounds": 200,
+    "typedSteadyAllocations": 0,
+    "typedSteadyReallocations": 0,
+    "eraseAliasAllocations": 0,
+    "dynamicReadShellAllocations": 1,
+    "bookkeeping": "Retain/release of View control and root external count; Sequence pin/CAS and participating graph mutation; policy RC for typed reads; callback marker on retirement. No blanket zero-overhead claim."
+  },
+  "shippingProductsUpdated": false,
+  "remaining": [
+    "Managed declaration and closed XLIR ownership/call/capture/container schemas",
+    "Remaining native owned callbacks and complete XUI payload graph",
+    "Guard factory result during fallible argument cleanup",
+    "Borrow/materialize text and safe dynamic C spans",
+    "Complete preparation/result/cleanup effect contracts",
+    "Package, SDK, IDE and example migration and delivery acceptance"
+  ]
+}

@@ -1,5 +1,5 @@
 #include "src/common/xl6_xrt.h"
-#include "xl6_foreign_view_value.h"
+#include "xl6_foreign_view_value_storage.h"
 #include "src/api/xl_foreign_error.h"
 #include <stdlib.h>
 
@@ -37,16 +37,16 @@ static bool finish(xl6_error_scope* errors,bool success)
     if(!result.ok)xrtSetErrorTake(result.error);
     return result.ok;
 }
-xvalue* xl6ForeignViewBoxV1(XL6_ForeignView* view,uint64_t identity)
+static xvalue* box(XL6_ForeignView* view,uint64_t identity)
 {
     xl6_error_scope errors={0};if(!xl6ErrorScopeBegin(&errors))return NULL;
     xvalue* value=NULL;XL6_ForeignView* copy=NULL;
-    if(!identity)xrtSetErrorKind(XERR_ARGUMENT);
-    else if(!view)value=xrtValueNull();
+    if(!view)value=xrtValueNull();
     else if((copy=xl6ForeignViewRetainV1(view))!=NULL){
         void* slot=copy;
         value=xrtValueHandleTake(&slot,&operations,NULL);copy=slot;
-        if(value && (!xrtValueHandleOwnershipBindPhased(value,trace_view) || !xrtValueTypeIdBind(value,identity))){
+        if(value && (!xrtValueHandleOwnershipBindPhased(value,trace_view) ||
+            (identity && !xrtValueTypeIdBind(value,identity)))){
             xl6ErrorScopeCaptureFailure(&errors);xrtValueRelease(value);value=NULL;
         }
     }
@@ -54,6 +54,29 @@ xvalue* xl6ForeignViewBoxV1(XL6_ForeignView* view,uint64_t identity)
     if(copy && !xl6ForeignViewReleaseV1(copy))xl6ErrorScopeCaptureFailure(&errors);
     if(errors.failed){xrtValueRelease(value);value=NULL;}
     return finish(&errors,value!=NULL)?value:NULL;
+}
+xvalue* xl6ForeignViewBoxV1(XL6_ForeignView* view,uint64_t identity)
+{
+    if(!identity){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    return box(view,identity);
+}
+xvalue* xl6ForeignViewStorageBoxV1(XL6_ForeignView* view){return box(view,0);}
+bool xl6ForeignViewValueAdmitsV1(const xvalue* value,uint64_t identity,bool nullable)
+{
+    if(!identity)return false;
+    if(!value || xrtValueType(value)==XVALUE_NULL)return nullable;
+    return xrtValueTypeId(value)==identity && adapter(xrtValueOwnership(value));
+}
+bool xl6ForeignViewStorageUnboxV1(const xvalue* value,XL6_ForeignView** output)
+{
+    if(!output || *output){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    if(!value || xrtValueType(value)==XVALUE_NULL)return true;
+    if(!adapter(xrtValueOwnership(value))){xrtSetErrorKind(XERR_TYPE);return false;}
+    void* raw=NULL;void* context=NULL;const xvaluehandleops* actual=NULL;
+    if(!xrtValueGetHandle(value,&raw,&actual,&context)){xrtSetErrorKind(XERR_TYPE);return false;}
+    XL6_ForeignView* copy=xl6ForeignViewRetainV1(raw);
+    if(!copy)return false;
+    *output=copy;return true;
 }
 bool xl6ForeignViewUnboxV1(const xvalue* value,uint64_t identity,bool nullable,XL6_ForeignView** output)
 {

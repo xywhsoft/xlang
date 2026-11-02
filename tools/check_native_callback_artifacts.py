@@ -31,7 +31,7 @@ def main():
     for path in (root/'src/runtime').glob('*.h'):shutil.copy2(path,sdk/path.name)
     shutil.copy2(root/'src/api/xl_foreign_error.h',sdk/'xl_foreign_error.h')
     unit=out/'headers.c';unit.write_text('#include "xl_foreign_error.h"\n#include "xl6_native_callback.h"\n'
-        '#include "xl6_foreign_view_capture.h"\n#include "xl6_foreign_view_value.h"\n#include "xl6_native_graph_future_payload.h"\nint main(void){return 0;}\n')
+        '#include "xl6_foreign_view_capture.h"\n#include "xl6_foreign_view_value.h"\n#include "xl6_foreign_view_sequence.h"\n#include "xl6_native_graph_future_payload.h"\nint main(void){return 0;}\n')
     for language,standard in (('c','c11'),('c++','c++11')):
         run('headers-'+language.replace('+','p'),[cc,'-x',language,'-std='+standard,'-Wall','-Wextra','-Werror',
             '-fsyntax-only','-I'+str(sdk),unit],out)
