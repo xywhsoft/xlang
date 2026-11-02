@@ -1,0 +1,1926 @@
+{
+  "schema": 1,
+  "date": "2026-11-02",
+  "root": "D:/GIT/x-lang",
+  "package": "singleinstance",
+  "sourceBase": "8411e3db9",
+  "status": "package-cleanup-fixed-real-context-M8-open",
+  "goal": "active",
+  "mainlineModified": false,
+  "runtimeXrtTccIdeModified": false,
+  "publicApiAbiChanged": false,
+  "wholePackageReleaseApproved": false,
+  "defects": [
+    "Close failure overwrites earlier acquire/unlock/native-handle cause",
+    "Contended acquire returns0 even when retiring temporary file fails",
+    "POSIX release uses invalid fd after xrtFileNative fails, replacing original cause",
+    "Windows gate omits actual XL_Context concurrency requirement; original direct process runner unbounded and deletes failed artifacts"
+  ],
+  "implementation": {
+    "helper": "xsi_close_file",
+    "newBodyCopies": 0,
+    "removedNativeLines": 3,
+    "newMetadataSyscalls": 0,
+    "noZeroOverheadClaim": true,
+    "newSuccessAllocations": 0,
+    "behavior": "Take original XRT error owner, close actual file regardless, restore prior owner without constructing new message. Return -1 on acquire cleanup failure. Consume package file on release failure. Reject negative POSIX native handle before flock.",
+    "addedNativeLines": 14,
+    "netNativeLines": 11
+  },
+  "cleanupContract": {
+    "modes": [
+      "contention plus close failure",
+      "lock error plus close failure",
+      "release close failure",
+      "unlock error plus close failure",
+      "POSIX release native query error plus close failure",
+      "POSIX acquire native query error plus close failure"
+    ],
+    "nativeErrno": "POSIX lock/unlock actual core builds EIO diagnostic, not custom original owner identity; repeated metadata variants are not distinct OS errno codes",
+    "actualOom": "Warm once/mutex, directories and existing same-name file; sweep until successful acquire. Not cold initialization or all kernel faults.",
+    "close": "Hook really retires XRT/native file then publishes error; not a simulated successful close",
+    "windows": {
+      "oldFailedAssertions": 54,
+      "actualOomBudgets": 44,
+      "newFailedAssertions": 0,
+      "checks": 935,
+      "actualOom": 43,
+      "cases": 72
+    },
+    "precreatedMetadata": {
+      "messageBytes": [
+        0,
+        300
+      ],
+      "codes": [
+        "-2147483648",
+        "-17",
+        "2147483647"
+      ],
+      "kinds": [
+        "IO",
+        "MEMORY",
+        "VALUE"
+      ]
+    },
+    "checksScope": [
+      "return status distinguishes error from contention",
+      "original cause identity or actual errno fields",
+      "exactly one actual close",
+      "package state consumed",
+      "same name retry",
+      "idempotent release",
+      "seven XRT memory metrics"
+    ],
+    "guard": "Enable FailAfter0 only after precreated cause publication, do not reset at second publication; assert no attempted allocation at return. POSIX initial errno diagnostic construction precedes guard.",
+    "linux": {
+      "oldFailedAssertions": 108,
+      "actualOomBudgets": 10,
+      "newFailedAssertions": 0,
+      "checks": 1177,
+      "actualOom": 9,
+      "cases": 108
+    }
+  },
+  "interop": {
+    "directWindowsHostExplicitlyNotCrossProcess": true,
+    "exactNamesComparedWithSource": true,
+    "nativeMissingPrototypeCheckLinux": true,
+    "realProcessWindowsGccAndTccAot": true,
+    "strictPublicHeaderCompile": true,
+    "actualGeneratedPrototypes": 3,
+    "staticIndependentModulesStillRun": true
+  },
+  "realContexts": {
+    "windowsOldCoverageOmitted": true,
+    "probeWindowMs": 10000,
+    "platforms": [
+      "Windows",
+      "Linux"
+    ],
+    "outerTimeoutSeconds": 120,
+    "hostHasNoSecondXrt": true,
+    "diagnosis": "Second context does not return during first script; then after release probe assertion fails. Not proof of lock bug or successful concurrency. M8 still open.",
+    "actualPublicXlDll": true,
+    "requiredExit": 0,
+    "standaloneWrapperUpdatedButNotSeparatelyRerun": true,
+    "readyWindowMs": 10000,
+    "notStaticModuleSubstitute": true,
+    "normalHostExit": 2,
+    "contexts": 2,
+    "protocol": "Set environment before threads, first script writes ready file, holds lock until done file, second tries acquire; if no completion in10s signal done and join both workers before destroying contexts",
+    "gateExit": 1,
+    "threads": 2
+  },
+  "baseline": {
+    "sourceSha256": "11C7742BB9D51533891C291445324B8536E4B24646E4DF71AED26DC755B72DF6",
+    "changedDuringWindowsControls": [],
+    "originalRevision": "8411e3db9",
+    "fixtureChange": "Final same fixture, only include redirects to saved old native source",
+    "windowsControls": [
+      {
+        "name": "runtime",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/singleinstance",
+          "-c",
+          "release/extlibs/singleinstance/test/runtime.c",
+          "-o",
+          "build/test/singleinstance-cleanup-20261102/final-runtime.o"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "stdout": "",
+        "stderr": "",
+        "status": "pass"
+      },
+      {
+        "name": "old-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/singleinstance",
+          "build/test/singleinstance-cleanup-20261102/old-contract.c",
+          "build/test/singleinstance-cleanup-20261102/final-runtime.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-liphlpapi",
+          "-lm",
+          "-o",
+          "build/test/singleinstance-cleanup-20261102/old-contract.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "stdout": "",
+        "stderr": "",
+        "status": "pass"
+      },
+      {
+        "name": "old-contract",
+        "program": "D:\\GIT\\x-lang\\build\\test\\singleinstance-cleanup-20261102\\old-contract.exe",
+        "arguments": [],
+        "expected": 1,
+        "actual": 1,
+        "stdout": "singleinstance cleanup: 72 cases, 935 checks, 43 actual OOM/44 budgets, 54 failures\r\n",
+        "stderr": "singleinstance cleanup: cleanup failure must be an error, not normal contention\r\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\r\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\r\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\r\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\r\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\r\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\r\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\r\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\r\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\r\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\r\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\r\n",
+        "status": "fail"
+      },
+      {
+        "name": "size-old-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/singleinstance",
+          "-c",
+          "D:/GIT/x-lang/build/test/singleinstance-cleanup-20261102/old-singleinstance_native.c",
+          "-o",
+          "build/test/singleinstance-cleanup-20261102/size-old.o"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "stdout": "",
+        "stderr": "",
+        "status": "pass"
+      },
+      {
+        "name": "size-old",
+        "program": "E:\\software\\w64devkit\\bin\\size.exe",
+        "arguments": [
+          "build/test/singleinstance-cleanup-20261102/size-old.o"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n   1560\t      0\t     64\t   1624\t    658\tbuild/test/singleinstance-cleanup-20261102/size-old.o\r\n",
+        "stderr": "",
+        "status": "pass"
+      },
+      {
+        "name": "size-new-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/singleinstance",
+          "-c",
+          "release/extlibs/singleinstance/singleinstance_native.c",
+          "-o",
+          "build/test/singleinstance-cleanup-20261102/size-new.o"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "stdout": "",
+        "stderr": "",
+        "status": "pass"
+      },
+      {
+        "name": "size-new",
+        "program": "E:\\software\\w64devkit\\bin\\size.exe",
+        "arguments": [
+          "build/test/singleinstance-cleanup-20261102/size-new.o"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n   1660\t      0\t     64\t   1724\t    6bc\tbuild/test/singleinstance-cleanup-20261102/size-new.o\r\n",
+        "stderr": "",
+        "status": "pass"
+      }
+    ],
+    "originalNormalizedMatches": true
+  },
+  "windows": {
+    "changedDuringGate": [],
+    "inputs": {
+      "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe": "9785001B0DCF755EDDB8AF294A373C0B87B2498660F724E76C4D53F9C217C7A3",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\singleinstance.xl": "59592DE35E0D24E258CD3E964BCEB303D291877714B8554719A3006E22E960E2",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\docs\\site.html": "7601E0899EBB8BE585F5B14D80C0304E9792978D240E97C848AD3E648E72B357",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\examples\\recovery.expected.txt": "0A140AD9D001A9939B938D6F70797F4811BAA23E5A645567F5AC35F4CEF17935",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\examples\\recovery.xl": "FF5064A0B1DB110B38C1A288B2318BAF13FC4E9D58CD0D9517792A60DB976327",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\examples\\recovery_c.c": "51CFDA78DCE819AD178CA1D26728F77C0DFDEA5AC9388DC2EE57C02526E7C84F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\examples\\singleinstance_c.c": "3B5EFA1231C33AFE29AD6F90FC1A954C96683EA1CD4B27BE4C3D2AD9A69D4318",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\include\\singleinstance_native.h": "30EC2BB60D94DE16373BC7D2F55DED1266645EB66F5D45F593B6ABF37AD2DD79",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\README.md": "A67805CFAEB35DCE24A6FABEDDF8713412613D7F879C3EF516CDCDC65CE0E1B3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\singleinstance_native.c": "1C9AE599A392D7B8B67C873A0E6746E679617C336CF474748E33E8AA4A84D4DF",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\src\\singleinstance.xl": "D66BFBB024C212B22258E2CB03BA27C885DA04872311C8A33B9C5226D414786B",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\test\\boundaries.xl": "6ACF1F1C23082BDD06F626710F7A7BF3B2FB333AF27387DE959BE181CF285FB1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\test\\check.ps1": "8BE8AC05AD6F7B47B6B19D8405E1A932FEB4C1E2DA3C99ADF26ED52F4C040238",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\test\\check.sh": "ABAD60B5A8C071CB6CEC371F35A252528EB2552A1390EB9D4FE481446E153F68",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\test\\check_contexts.sh": "9C43FB6276CD96B3E1A378DCEFEA7C84A2AA787414B634FD24FD83B0F69E2A03",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\test\\cleanup_contract_c.c": "B85C32506C7120412AA2D383910B329CD8CA75EC55CEC256B2017328806DE8AB",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\test\\context_after.xl": "9128C01B926B2C7E101FBC3BD4F5CA53D36FCDB22BC85278FBF73C71F154A6E6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\test\\context_hold.xl": "F96218E22673C24B94FFF5FD1459501A302AA8B4996352D1838C4BB10A642145",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\test\\context_probe.xl": "3AFC45ADD8454B30BEDFD9B0033DF4AD0761CF68C3BC2B311A96FEF59708E6A6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\test\\runtime.c": "A278D63BD24011E2E36A4C9E4CBD06FD58A1A2B401C95292C8E1B2ADBB2A641E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\test\\singleinstance.expected.txt": "217AB9B1BAE8D36F6DA55E5C84BF1C8B1DA36210FD45EB080D66A3EC422164B0",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\test\\test_contexts.c": "C227700CAE6A00CD9C1C4E79FB8747033F2904F493D3C93D1CF910B1A7C8AC7F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\test\\test_multiple_modules.c": "74A8177A34DCEED10CB5B42568B42FE8BEE8DD3C70474A267525D087DDCFC47F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\test\\test_singleinstance.c": "8A8DDB89A6B4CA0D83B6EF820408FC73682732EFE45F03E3802E62159910014D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\xlang.package.json": "2464840F23259CFAC0B88DC5FD8903F519E5082CA2FCAB6AD125D9E2333C5760",
+      "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+      "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+      "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+      "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+      "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+      "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+      "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+      "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+      "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+      "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_singleinstance.xl": "D2B4C3FB440EE00803C3B9C0904E2589DDCF84FE51C15C49A2AB681690DE20B5",
+      "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+      "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012"
+    },
+    "matchingStages": 42,
+    "checks": [
+      {
+        "name": "compiler",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "--version"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "stderr": "",
+          "elapsedMs": 35
+        }
+      },
+      {
+        "name": "cc1",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-print-prog-name=cc1"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe\r\n",
+          "stderr": "",
+          "elapsedMs": 25
+        }
+      },
+      {
+        "name": "XRT compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/singleinstance",
+          "-c",
+          "release/extlibs/singleinstance/test/runtime.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\runtime.o"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 3621
+        }
+      },
+      {
+        "name": "native compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/singleinstance",
+          "-c",
+          "release/extlibs/singleinstance/singleinstance_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\native.o"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 175
+        }
+      },
+      {
+        "name": "C test compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/singleinstance",
+          "release/extlibs/singleinstance/test/test_singleinstance.c",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\native.o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\boundaries.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 827
+        }
+      },
+      {
+        "name": "C cross-process boundaries",
+        "program": "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\boundaries.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "singleinstance cross-process: real child\r\nsingleinstance C boundaries: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 104
+        }
+      },
+      {
+        "name": "C core build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/singleinstance/test/test_singleinstance.c",
+          "release/extlibs/singleinstance/singleinstance_native.c",
+          "--inc-path",
+          "lib/xrt",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\core-aot.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 156
+        }
+      },
+      {
+        "name": "C core AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\core-aot.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "singleinstance cross-process: real child\r\nsingleinstance C boundaries: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 114
+        }
+      },
+      {
+        "name": "cleanup compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/singleinstance",
+          "release/extlibs/singleinstance/test/cleanup_contract_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\contract.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 333
+        }
+      },
+      {
+        "name": "cleanup GCC",
+        "program": "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\contract.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "singleinstance cleanup: 72 cases, 935 checks, 43 actual OOM/44 budgets, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 79
+        }
+      },
+      {
+        "name": "cleanup TCC",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/singleinstance/test/cleanup_contract_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "singleinstance cleanup: 72 cases, 935 checks, 43 actual OOM/44 budgets, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 131
+        }
+      },
+      {
+        "name": "cleanup build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/singleinstance/test/cleanup_contract_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\cleanup-aot.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 129
+        }
+      },
+      {
+        "name": "cleanup AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\cleanup-aot.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "singleinstance cleanup: 72 cases, 935 checks, 43 actual OOM/44 budgets, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 107
+        }
+      },
+      {
+        "name": "independent module a compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/singleinstance",
+          "-Dxsi_acquire=xsi_a_acquire",
+          "-Dxsi_release=xsi_a_release",
+          "-Dxsi_is_acquired=xsi_a_is_acquired",
+          "-c",
+          "release/extlibs/singleinstance/singleinstance_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\module_a.o"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 157
+        }
+      },
+      {
+        "name": "independent module b compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/singleinstance",
+          "-Dxsi_acquire=xsi_b_acquire",
+          "-Dxsi_release=xsi_b_release",
+          "-Dxsi_is_acquired=xsi_b_is_acquired",
+          "-c",
+          "release/extlibs/singleinstance/singleinstance_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\module_b.o"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 158
+        }
+      },
+      {
+        "name": "independent modules test compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/singleinstance",
+          "-DNDEBUG",
+          "release/extlibs/singleinstance/test/test_multiple_modules.c",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\module_a.o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\module_b.o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\modules.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 694
+        }
+      },
+      {
+        "name": "independent modules same-process boundaries",
+        "program": "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\modules.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "singleinstance independent module state: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 35
+        }
+      },
+      {
+        "name": "C example compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/singleinstance",
+          "release/extlibs/singleinstance/examples/singleinstance_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\native.o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\example.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 176
+        }
+      },
+      {
+        "name": "C example",
+        "program": "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\example.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "Acquired single instance lock\r\nisAcquired: true\r\nReleased lock\r\nsingleinstance example: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 21
+        }
+      },
+      {
+        "name": "C example direct xl run",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/singleinstance/examples/singleinstance_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "Acquired single instance lock\r\nisAcquired: true\r\nReleased lock\r\nsingleinstance example: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 75
+        }
+      },
+      {
+        "name": "C example direct xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/singleinstance/examples/singleinstance_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\example-direct.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 125
+        }
+      },
+      {
+        "name": "C example direct xl executable",
+        "program": "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\example-direct.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "Acquired single instance lock\r\nisAcquired: true\r\nReleased lock\r\nsingleinstance example: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "name": "central XLang test",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "test/cases/extlib_singleinstance.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 123
+        }
+      },
+      {
+        "name": "XLang boundaries",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/singleinstance/test/boundaries.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "singleinstance boundaries: PASS\n",
+          "stderr": "",
+          "elapsedMs": 131
+        }
+      },
+      {
+        "name": "XLang example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/examples/extlibs/singleinstance.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "Acquired single instance lock\nisAcquired: true\nReleased lock\nsingleinstance example: PASS\n",
+          "stderr": "",
+          "elapsedMs": 121
+        }
+      },
+      {
+        "name": "C recovery compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/singleinstance",
+          "release/extlibs/singleinstance/examples/recovery_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\native.o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\recovery-c.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 186
+        }
+      },
+      {
+        "name": "C recovery",
+        "program": "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\recovery-c.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "acquired: true\r\nrejected reacquire keeps owner: true\r\nreleased: true\r\nretry and repeated release: true\r\n",
+          "stderr": "",
+          "elapsedMs": 23
+        }
+      },
+      {
+        "name": "C recovery direct",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/singleinstance/examples/recovery_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "acquired: true\r\nrejected reacquire keeps owner: true\r\nreleased: true\r\nretry and repeated release: true\r\n",
+          "stderr": "",
+          "elapsedMs": 76
+        }
+      },
+      {
+        "name": "XL recovery",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/singleinstance/examples/recovery.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "acquired: true\nrejected reacquire keeps owner: true\nreleased: true\nretry and repeated release: true\n",
+          "stderr": "",
+          "elapsedMs": 122
+        }
+      },
+      {
+        "name": "extlib_singleinstance build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "test/cases/extlib_singleinstance.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\extlib_singleinstance.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 273
+        }
+      },
+      {
+        "name": "extlib_singleinstance AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\extlib_singleinstance.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 30
+        }
+      },
+      {
+        "name": "boundaries build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/singleinstance/test/boundaries.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\boundaries.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 276
+        }
+      },
+      {
+        "name": "boundaries AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\boundaries.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "singleinstance boundaries: PASS\n",
+          "stderr": "",
+          "elapsedMs": 33
+        }
+      },
+      {
+        "name": "XLang example build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/examples/extlibs/singleinstance.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\singleinstance.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 274
+        }
+      },
+      {
+        "name": "XLang example AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\singleinstance.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "Acquired single instance lock\nisAcquired: true\nReleased lock\nsingleinstance example: PASS\n",
+          "stderr": "",
+          "elapsedMs": 26
+        }
+      },
+      {
+        "name": "recovery_c build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/singleinstance/examples/recovery_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\recovery_c.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 131
+        }
+      },
+      {
+        "name": "recovery_c AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\recovery_c.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "acquired: true\r\nrejected reacquire keeps owner: true\r\nreleased: true\r\nretry and repeated release: true\r\n",
+          "stderr": "",
+          "elapsedMs": 30
+        }
+      },
+      {
+        "name": "recovery build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/singleinstance/examples/recovery.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\recovery.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 289
+        }
+      },
+      {
+        "name": "recovery AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\recovery.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "acquired: true\nrejected reacquire keeps owner: true\nreleased: true\nretry and repeated release: true\n",
+          "stderr": "",
+          "elapsedMs": 30
+        }
+      },
+      {
+        "name": "generated source",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "release/extlibs/singleinstance/test/boundaries.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\module.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 39
+        }
+      },
+      {
+        "name": "generated ABI",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/singleinstance",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\abi.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 37
+        }
+      },
+      {
+        "name": "contexts compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Irelease/include",
+          "-Ilib/xrt",
+          "release/extlibs/singleinstance/test/test_contexts.c",
+          "-Lrelease",
+          "-lxl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\context.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 819
+        }
+      },
+      {
+        "name": "real contexts",
+        "program": "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\context.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\release",
+          "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\test\\context_hold.xl",
+          "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\test\\context_probe.xl",
+          "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\test\\context_after.xl",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\ready",
+          "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b\\done"
+        ],
+        "result": {
+          "status": "fail",
+          "exitCode": 2,
+          "stdout": "",
+          "stderr": "uncaught xlang error: AssertionError: AssertionError\nblocked-upstream: second XL_Context did not execute during first context's script\r\n",
+          "elapsedMs": 15983
+        }
+      }
+    ],
+    "ordinaryAot": 8,
+    "rawReportSha256": "aa2074e9d00a56ac9c0c8f539a805bff03240d7010468f1086d80a6d64955828",
+    "inputCount": 51,
+    "report": "D:\\GIT\\x-lang\\build\\test\\si_7037102f4c8b.json",
+    "stages": 43
+  },
+  "linux": {
+    "sanitizers": [
+      "ASan",
+      "UBSan",
+      "leaks"
+    ],
+    "checks": [
+      {
+        "name": "compiler",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc --version",
+        "stdout": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+        "stderr": ""
+      },
+      {
+        "name": "runtime",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_DEFAULT_SOURCE -DNDEBUG -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/singleinstance -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -c release/extlibs/singleinstance/test/runtime.c -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/runtime.o",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "native",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_DEFAULT_SOURCE -DNDEBUG -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/singleinstance -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -Wmissing-prototypes -c release/extlibs/singleinstance/singleinstance_native.c -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/native.o",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "core-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_DEFAULT_SOURCE -DNDEBUG -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/singleinstance -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/singleinstance/test/test_singleinstance.c /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/native.o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/runtime.o -ldl -lm -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/core",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "core-real-process",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/core",
+        "stdout": "singleinstance cross-process: real child\nsingleinstance C boundaries: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "core-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/singleinstance/test/test_singleinstance.c release/extlibs/singleinstance/singleinstance_native.c --inc-path lib/xrt -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/core.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "core-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/core.aot",
+        "stdout": "singleinstance cross-process: real child\nsingleinstance C boundaries: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "cleanup-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_DEFAULT_SOURCE -DNDEBUG -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/singleinstance -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/singleinstance/test/cleanup_contract_c.c /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/runtime.o -ldl -lm -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/cleanup",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "cleanup-GCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/cleanup",
+        "stdout": "singleinstance cleanup: 108 cases, 1177 checks, 9 actual OOM/10 budgets, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "cleanup-TCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/singleinstance/test/cleanup_contract_c.c",
+        "stdout": "singleinstance cleanup: 108 cases, 1177 checks, 9 actual OOM/10 budgets, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "cleanup-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/singleinstance/test/cleanup_contract_c.c -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/cleanup.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "cleanup-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/cleanup.aot",
+        "stdout": "singleinstance cleanup: 108 cases, 1177 checks, 9 actual OOM/10 budgets, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "unsafe-leaf",
+        "expected": 0,
+        "actual": 0,
+        "command": "env HOME=/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/unsafe-home /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/core --unsafe-dir",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "unsafe-parent",
+        "expected": 0,
+        "actual": 0,
+        "command": "env HOME=/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/unsafe-home /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/core --unsafe-dir",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "unsafe-symlink",
+        "expected": 0,
+        "actual": 0,
+        "command": "env HOME=/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/link-home /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/core --unsafe-dir",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "module-a",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_DEFAULT_SOURCE -DNDEBUG -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/singleinstance -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -Dxsi_acquire=xsi_a_acquire -Dxsi_release=xsi_a_release -Dxsi_is_acquired=xsi_a_is_acquired -c release/extlibs/singleinstance/singleinstance_native.c -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/a.o",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "module-b",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_DEFAULT_SOURCE -DNDEBUG -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/singleinstance -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -Dxsi_acquire=xsi_b_acquire -Dxsi_release=xsi_b_release -Dxsi_is_acquired=xsi_b_is_acquired -c release/extlibs/singleinstance/singleinstance_native.c -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/b.o",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "modules-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_DEFAULT_SOURCE -DNDEBUG -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/singleinstance -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/singleinstance/test/test_multiple_modules.c /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/a.o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/b.o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/runtime.o -ldl -lm -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/modules",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "modules",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/modules",
+        "stdout": "singleinstance independent module state: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "singleinstance_c-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_DEFAULT_SOURCE -DNDEBUG -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/singleinstance -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/singleinstance/examples/singleinstance_c.c /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/native.o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/runtime.o -ldl -lm -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/singleinstance_c",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "singleinstance_c-GCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/singleinstance_c",
+        "stdout": "Acquired single instance lock\nisAcquired: true\nReleased lock\nsingleinstance example: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "singleinstance_c-TCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/singleinstance/examples/singleinstance_c.c",
+        "stdout": "Acquired single instance lock\nisAcquired: true\nReleased lock\nsingleinstance example: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "singleinstance_c-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/singleinstance/examples/singleinstance_c.c -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/singleinstance_c.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "singleinstance_c-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/singleinstance_c.aot",
+        "stdout": "Acquired single instance lock\nisAcquired: true\nReleased lock\nsingleinstance example: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "recovery_c-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_DEFAULT_SOURCE -DNDEBUG -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/singleinstance -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/singleinstance/examples/recovery_c.c /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/native.o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/runtime.o -ldl -lm -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/recovery_c",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "recovery_c-GCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/recovery_c",
+        "stdout": "acquired: true\nrejected reacquire keeps owner: true\nreleased: true\nretry and repeated release: true\n",
+        "stderr": ""
+      },
+      {
+        "name": "recovery_c-TCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/singleinstance/examples/recovery_c.c",
+        "stdout": "acquired: true\nrejected reacquire keeps owner: true\nreleased: true\nretry and repeated release: true\n",
+        "stderr": ""
+      },
+      {
+        "name": "recovery_c-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/singleinstance/examples/recovery_c.c -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/recovery_c.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "recovery_c-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/recovery_c.aot",
+        "stdout": "acquired: true\nrejected reacquire keeps owner: true\nreleased: true\nretry and repeated release: true\n",
+        "stderr": ""
+      },
+      {
+        "name": "extlib_singleinstance-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run test/cases/extlib_singleinstance.xl",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "extlib_singleinstance-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build test/cases/extlib_singleinstance.xl -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/extlib_singleinstance.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "extlib_singleinstance-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/extlib_singleinstance.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "boundaries-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/singleinstance/test/boundaries.xl",
+        "stdout": "singleinstance boundaries: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "boundaries-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/singleinstance/test/boundaries.xl -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/boundaries.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "boundaries-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/boundaries.aot",
+        "stdout": "singleinstance boundaries: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "singleinstance-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/examples/extlibs/singleinstance.xl",
+        "stdout": "Acquired single instance lock\nisAcquired: true\nReleased lock\nsingleinstance example: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "singleinstance-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/examples/extlibs/singleinstance.xl -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/singleinstance.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "singleinstance-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/singleinstance.aot",
+        "stdout": "Acquired single instance lock\nisAcquired: true\nReleased lock\nsingleinstance example: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "recovery-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/singleinstance/examples/recovery.xl",
+        "stdout": "acquired: true\nrejected reacquire keeps owner: true\nreleased: true\nretry and repeated release: true\n",
+        "stderr": ""
+      },
+      {
+        "name": "recovery-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/singleinstance/examples/recovery.xl -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/recovery.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "recovery-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/recovery.aot",
+        "stdout": "acquired: true\nrejected reacquire keeps owner: true\nreleased: true\nretry and repeated release: true\n",
+        "stderr": ""
+      },
+      {
+        "name": "cgen",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl cgen release/extlibs/singleinstance/test/boundaries.xl --emit /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/module.c",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "generated-ABI",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_DEFAULT_SOURCE -DNDEBUG -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/singleinstance -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -fsyntax-only /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/abi.c",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "contexts-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -O2 -Wall -Wextra -Werror -Irelease/include -Ilib/xrt release/extlibs/singleinstance/test/test_contexts.c -Lrelease -lxl -Wl\\,-rpath\\,/var/tmp/xlang-singleinstance-audit-ixsoTguk/stage/release -pthread -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/context",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "real-contexts",
+        "expected": 0,
+        "actual": 2,
+        "command": "/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/context /var/tmp/xlang-singleinstance-audit-ixsoTguk/stage/release /var/tmp/xlang-singleinstance-audit-ixsoTguk/stage/release/extlibs/singleinstance/test/context_hold.xl /var/tmp/xlang-singleinstance-audit-ixsoTguk/stage/release/extlibs/singleinstance/test/context_probe.xl /var/tmp/xlang-singleinstance-audit-ixsoTguk/stage/release/extlibs/singleinstance/test/context_after.xl /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/ready /var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq/done",
+        "stdout": "",
+        "stderr": "uncaught xlang error: AssertionError: AssertionError\nblocked-upstream: second XL_Context did not execute during first context's script\n"
+      }
+    ],
+    "matchingStages": 44,
+    "proof": {
+      "inputs.before.sha256": {
+        "sha256": "790fde245c4917be09fb068ef5a6fc9df3f1c90d89a7ad27078dacb2d697c529",
+        "lines": [
+          "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h",
+          "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h",
+          "59592de35e0d24e258cd3e964bceb303d291877714b8554719a3006e22e960e2  ./release/examples/extlibs/singleinstance.xl",
+          "a67805cfaeb35dce24a6fabeddf8713412613d7f879c3ef516cdcdc65ce0e1b3  ./release/extlibs/singleinstance/README.md",
+          "7601e0899ebb8be585f5b14d80c0304e9792978d240e97c848ad3e648e72b357  ./release/extlibs/singleinstance/docs/site.html",
+          "0a140ad9d001a9939b938d6f70797f4811baa23e5a645567f5ac35f4cef17935  ./release/extlibs/singleinstance/examples/recovery.expected.txt",
+          "ff5064a0b1db110b38c1a288b2318baf13fc4e9d58cd0d9517792a60db976327  ./release/extlibs/singleinstance/examples/recovery.xl",
+          "51cfda78dce819ad178ca1d26728f77c0dfdea5ac9388dc2ee57c02526e7c84f  ./release/extlibs/singleinstance/examples/recovery_c.c",
+          "3b5efa1231c33afe29ad6f90fc1a954c96683ea1cd4b27be4c3d2ad9a69d4318  ./release/extlibs/singleinstance/examples/singleinstance_c.c",
+          "30ec2bb60d94de16373bc7d2f55ded1266645eb66f5d45f593b6abf37ad2dd79  ./release/extlibs/singleinstance/include/singleinstance_native.h",
+          "1c9ae599a392d7b8b67c873a0e6746e679617c336cf474748e33e8aa4a84d4df  ./release/extlibs/singleinstance/singleinstance_native.c",
+          "d66bfbb024c212b22258e2cb03ba27c885da04872311c8a33b9c5226d414786b  ./release/extlibs/singleinstance/src/singleinstance.xl",
+          "6acf1f1c23082bdd06f626710f7a7bf3b2fb333af27387de959be181cf285fb1  ./release/extlibs/singleinstance/test/boundaries.xl",
+          "8be8ac05ad6f7b47b6b19d8405e1a932feb4c1e2da3c99adf26ed52f4c040238  ./release/extlibs/singleinstance/test/check.ps1",
+          "abad60b5a8c071cb6cec371f35a252528eb2552a1390eb9d4fe481446e153f68  ./release/extlibs/singleinstance/test/check.sh",
+          "9c43fb6276cd96b3e1a378dcefea7c84a2aa787414b634fd24fd83b0f69e2a03  ./release/extlibs/singleinstance/test/check_contexts.sh",
+          "b85c32506c7120412aa2d383910b329cd8ca75ec55cec256b2017328806de8ab  ./release/extlibs/singleinstance/test/cleanup_contract_c.c",
+          "9128c01b926b2c7e101fbc3bd4f5ca53d36fcdb22bc85278fbf73c71f154a6e6  ./release/extlibs/singleinstance/test/context_after.xl",
+          "f96218e22673c24b94fff5fd1459501a302aa8b4996352d1838c4bb10a642145  ./release/extlibs/singleinstance/test/context_hold.xl",
+          "3afc45add8454b30bedfd9b0033df4ad0761cf68c3bc2b311a96fef59708e6a6  ./release/extlibs/singleinstance/test/context_probe.xl",
+          "a278d63bd24011e2e36a4c9e4cbd06fd58a1a2b401c95292c8e1b2adbb2a641e  ./release/extlibs/singleinstance/test/runtime.c",
+          "217ab9b1bae8d36f6da55e5c84bf1c8b1da36210fd45eb080d66a3ec422164b0  ./release/extlibs/singleinstance/test/singleinstance.expected.txt",
+          "c227700cae6a00cd9c1c4e79fb8747033f2904f493d3c93d1cf910b1a7c8ac7f  ./release/extlibs/singleinstance/test/test_contexts.c",
+          "74a8177a34dceed10cb5b42568b42fe8bee8dd3c70474a267525d087ddcfc47f  ./release/extlibs/singleinstance/test/test_multiple_modules.c",
+          "8a8ddb89a6b4ca0d83b6ef820408fc73682732efe45f03e3802e62159910014d  ./release/extlibs/singleinstance/test/test_singleinstance.c",
+          "2464840f23259cfac0b88dc5fd8903f519e5082ca2fcab6ad125d9e2333c5760  ./release/extlibs/singleinstance/xlang.package.json",
+          "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md",
+          "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h",
+          "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h",
+          "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h",
+          "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h",
+          "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h",
+          "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h",
+          "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h",
+          "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h",
+          "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h",
+          "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h",
+          "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h",
+          "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h",
+          "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h",
+          "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h",
+          "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h",
+          "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so",
+          "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so",
+          "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl",
+          "d2b4c3fb440ee00803c3b9c0904e2589ddcf84fe51c15c49a2ab681690de20b5  ./test/cases/extlib_singleinstance.xl"
+        ]
+      },
+      "inputs.after.sha256": {
+        "sha256": "790fde245c4917be09fb068ef5a6fc9df3f1c90d89a7ad27078dacb2d697c529",
+        "lines": [
+          "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h",
+          "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h",
+          "59592de35e0d24e258cd3e964bceb303d291877714b8554719a3006e22e960e2  ./release/examples/extlibs/singleinstance.xl",
+          "a67805cfaeb35dce24a6fabeddf8713412613d7f879c3ef516cdcdc65ce0e1b3  ./release/extlibs/singleinstance/README.md",
+          "7601e0899ebb8be585f5b14d80c0304e9792978d240e97c848ad3e648e72b357  ./release/extlibs/singleinstance/docs/site.html",
+          "0a140ad9d001a9939b938d6f70797f4811baa23e5a645567f5ac35f4cef17935  ./release/extlibs/singleinstance/examples/recovery.expected.txt",
+          "ff5064a0b1db110b38c1a288b2318baf13fc4e9d58cd0d9517792a60db976327  ./release/extlibs/singleinstance/examples/recovery.xl",
+          "51cfda78dce819ad178ca1d26728f77c0dfdea5ac9388dc2ee57c02526e7c84f  ./release/extlibs/singleinstance/examples/recovery_c.c",
+          "3b5efa1231c33afe29ad6f90fc1a954c96683ea1cd4b27be4c3d2ad9a69d4318  ./release/extlibs/singleinstance/examples/singleinstance_c.c",
+          "30ec2bb60d94de16373bc7d2f55ded1266645eb66f5d45f593b6abf37ad2dd79  ./release/extlibs/singleinstance/include/singleinstance_native.h",
+          "1c9ae599a392d7b8b67c873a0e6746e679617c336cf474748e33e8aa4a84d4df  ./release/extlibs/singleinstance/singleinstance_native.c",
+          "d66bfbb024c212b22258e2cb03ba27c885da04872311c8a33b9c5226d414786b  ./release/extlibs/singleinstance/src/singleinstance.xl",
+          "6acf1f1c23082bdd06f626710f7a7bf3b2fb333af27387de959be181cf285fb1  ./release/extlibs/singleinstance/test/boundaries.xl",
+          "8be8ac05ad6f7b47b6b19d8405e1a932feb4c1e2da3c99adf26ed52f4c040238  ./release/extlibs/singleinstance/test/check.ps1",
+          "abad60b5a8c071cb6cec371f35a252528eb2552a1390eb9d4fe481446e153f68  ./release/extlibs/singleinstance/test/check.sh",
+          "9c43fb6276cd96b3e1a378dcefea7c84a2aa787414b634fd24fd83b0f69e2a03  ./release/extlibs/singleinstance/test/check_contexts.sh",
+          "b85c32506c7120412aa2d383910b329cd8ca75ec55cec256b2017328806de8ab  ./release/extlibs/singleinstance/test/cleanup_contract_c.c",
+          "9128c01b926b2c7e101fbc3bd4f5ca53d36fcdb22bc85278fbf73c71f154a6e6  ./release/extlibs/singleinstance/test/context_after.xl",
+          "f96218e22673c24b94fff5fd1459501a302aa8b4996352d1838c4bb10a642145  ./release/extlibs/singleinstance/test/context_hold.xl",
+          "3afc45add8454b30bedfd9b0033df4ad0761cf68c3bc2b311a96fef59708e6a6  ./release/extlibs/singleinstance/test/context_probe.xl",
+          "a278d63bd24011e2e36a4c9e4cbd06fd58a1a2b401c95292c8e1b2adbb2a641e  ./release/extlibs/singleinstance/test/runtime.c",
+          "217ab9b1bae8d36f6da55e5c84bf1c8b1da36210fd45eb080d66a3ec422164b0  ./release/extlibs/singleinstance/test/singleinstance.expected.txt",
+          "c227700cae6a00cd9c1c4e79fb8747033f2904f493d3c93d1cf910b1a7c8ac7f  ./release/extlibs/singleinstance/test/test_contexts.c",
+          "74a8177a34dceed10cb5b42568b42fe8bee8dd3c70474a267525d087ddcfc47f  ./release/extlibs/singleinstance/test/test_multiple_modules.c",
+          "8a8ddb89a6b4ca0d83b6ef820408fc73682732efe45f03e3802e62159910014d  ./release/extlibs/singleinstance/test/test_singleinstance.c",
+          "2464840f23259cfac0b88dc5fd8903f519e5082ca2fcab6ad125d9e2333c5760  ./release/extlibs/singleinstance/xlang.package.json",
+          "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md",
+          "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h",
+          "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h",
+          "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h",
+          "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h",
+          "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h",
+          "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h",
+          "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h",
+          "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h",
+          "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h",
+          "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h",
+          "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h",
+          "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h",
+          "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h",
+          "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h",
+          "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h",
+          "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so",
+          "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so",
+          "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl",
+          "d2b4c3fb440ee00803c3b9c0904e2589ddcf84fe51c15c49a2ab681690de20b5  ./test/cases/extlib_singleinstance.xl"
+        ]
+      },
+      "tools.before.sha256": {
+        "sha256": "bb6c1f92264abe1a1052ce6c10a9794dc6e51102f957c7e6cd465388f88fba20",
+        "lines": [
+          "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc",
+          "30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1",
+          "3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash"
+        ]
+      },
+      "tools.after.sha256": {
+        "sha256": "bb6c1f92264abe1a1052ce6c10a9794dc6e51102f957c7e6cd465388f88fba20",
+        "lines": [
+          "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc",
+          "30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1",
+          "3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash"
+        ]
+      },
+      "boot.before": {
+        "sha256": "2db1ad4ab6b863f5981c49c7d7f17a15cc868f42d87b811093763d01fc868a5d",
+        "lines": [
+          "11ba7d8a-1a2b-4f97-948c-95cd2c8e3ffc"
+        ]
+      },
+      "boot.after": {
+        "sha256": "2db1ad4ab6b863f5981c49c7d7f17a15cc868f42d87b811093763d01fc868a5d",
+        "lines": [
+          "11ba7d8a-1a2b-4f97-948c-95cd2c8e3ffc"
+        ]
+      }
+    },
+    "sourceFileCount": 46,
+    "ordinaryAot": 8,
+    "toolCount": 3,
+    "sourceAndToolsUnchanged": true,
+    "frozenDirectory": "/var/tmp/xlang-singleinstance-audit-ixsoTguk",
+    "bootUnchanged": true,
+    "stages": 45,
+    "controls": [
+      {
+        "name": "default-gate",
+        "expected": 1,
+        "actual": 1,
+        "command": "bash release/extlibs/singleinstance/test/check.sh",
+        "stdout": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n[singleinstance] compiler exit=0 required=0\n[singleinstance] runtime exit=0 required=0\n[singleinstance] native exit=0 required=0\n[singleinstance] core-compile exit=0 required=0\nsingleinstance cross-process: real child\nsingleinstance C boundaries: PASS\n[singleinstance] core-real-process exit=0 required=0\n[singleinstance] core-build exit=0 required=0\nsingleinstance cross-process: real child\nsingleinstance C boundaries: PASS\n[singleinstance] core-AOT exit=0 required=0\n[singleinstance] cleanup-compile exit=0 required=0\nsingleinstance cleanup: 108 cases, 1177 checks, 9 actual OOM/10 budgets, 0 failures\n[singleinstance] cleanup-GCC exit=0 required=0\nsingleinstance cleanup: 108 cases, 1177 checks, 9 actual OOM/10 budgets, 0 failures\n[singleinstance] cleanup-TCC exit=0 required=0\n[singleinstance] cleanup-build exit=0 required=0\nsingleinstance cleanup: 108 cases, 1177 checks, 9 actual OOM/10 budgets, 0 failures\n[singleinstance] cleanup-AOT exit=0 required=0\n[singleinstance] unsafe-leaf exit=0 required=0\n[singleinstance] unsafe-parent exit=0 required=0\n[singleinstance] unsafe-symlink exit=0 required=0\n[singleinstance] module-a exit=0 required=0\n[singleinstance] module-b exit=0 required=0\n[singleinstance] modules-compile exit=0 required=0\nsingleinstance independent module state: PASS\n[singleinstance] modules exit=0 required=0\n[singleinstance] singleinstance_c-compile exit=0 required=0\nAcquired single instance lock\nisAcquired: true\nReleased lock\nsingleinstance example: PASS\n[singleinstance] singleinstance_c-GCC exit=0 required=0\nAcquired single instance lock\nisAcquired: true\nReleased lock\nsingleinstance example: PASS\n[singleinstance] singleinstance_c-TCC exit=0 required=0\n[singleinstance] singleinstance_c-build exit=0 required=0\nAcquired single instance lock\nisAcquired: true\nReleased lock\nsingleinstance example: PASS\n[singleinstance] singleinstance_c-AOT exit=0 required=0\n[singleinstance] recovery_c-compile exit=0 required=0\nacquired: true\nrejected reacquire keeps owner: true\nreleased: true\nretry and repeated release: true\n[singleinstance] recovery_c-GCC exit=0 required=0\nacquired: true\nrejected reacquire keeps owner: true\nreleased: true\nretry and repeated release: true\n[singleinstance] recovery_c-TCC exit=0 required=0\n[singleinstance] recovery_c-build exit=0 required=0\nacquired: true\nrejected reacquire keeps owner: true\nreleased: true\nretry and repeated release: true\n[singleinstance] recovery_c-AOT exit=0 required=0\n[singleinstance] extlib_singleinstance-JIT exit=0 required=0\n[singleinstance] extlib_singleinstance-build exit=0 required=0\n[singleinstance] extlib_singleinstance-AOT exit=0 required=0\nsingleinstance boundaries: PASS\n[singleinstance] boundaries-JIT exit=0 required=0\n[singleinstance] boundaries-build exit=0 required=0\nsingleinstance boundaries: PASS\n[singleinstance] boundaries-AOT exit=0 required=0\nAcquired single instance lock\nisAcquired: true\nReleased lock\nsingleinstance example: PASS\n[singleinstance] singleinstance-JIT exit=0 required=0\n[singleinstance] singleinstance-build exit=0 required=0\nAcquired single instance lock\nisAcquired: true\nReleased lock\nsingleinstance example: PASS\n[singleinstance] singleinstance-AOT exit=0 required=0\nacquired: true\nrejected reacquire keeps owner: true\nreleased: true\nretry and repeated release: true\n[singleinstance] recovery-JIT exit=0 required=0\n[singleinstance] recovery-build exit=0 required=0\nacquired: true\nrejected reacquire keeps owner: true\nreleased: true\nretry and repeated release: true\n[singleinstance] recovery-AOT exit=0 required=0\n[singleinstance] cgen exit=0 required=0\n[singleinstance] generated-ABI exit=0 required=0\n[singleinstance] contexts-compile exit=0 required=0\n[singleinstance] real-contexts exit=2 required=0\n",
+        "stderr": "uncaught xlang error: AssertionError: AssertionError\nblocked-upstream: second XL_Context did not execute during first context's script\n[singleinstance] FAIL exit=1 artifacts=/var/tmp/xlang-singleinstance-audit-ixsoTguk/tmp/xlang-singleinstance-4rRpmMrq\n"
+      },
+      {
+        "name": "runtime",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_DEFAULT_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/singleinstance -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -c release/extlibs/singleinstance/test/runtime.c -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/runtime.o",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "old-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_DEFAULT_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/singleinstance -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread /var/tmp/xlang-singleinstance-audit-ixsoTguk/old-contract.c /var/tmp/xlang-singleinstance-audit-ixsoTguk/runtime.o -ldl -lm -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/old-contract",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "old-contract",
+        "expected": 1,
+        "actual": 1,
+        "command": "/var/tmp/xlang-singleinstance-audit-ixsoTguk/old-contract",
+        "stdout": "singleinstance cleanup: 108 cases, 1177 checks, 9 actual OOM/10 budgets, 108 failures\n",
+        "stderr": "singleinstance cleanup: cleanup failure must be an error, not normal contention\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\nsingleinstance cleanup: cleanup failure must be an error, not normal contention\n"
+      },
+      {
+        "name": "size-old-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_DEFAULT_SOURCE -O2 -Ilib/xrt -Irelease/extlibs/singleinstance -c /var/tmp/xlang-singleinstance-audit-ixsoTguk/old-singleinstance_native.c -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/old.o",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "size-old",
+        "expected": 0,
+        "actual": 0,
+        "command": "size /var/tmp/xlang-singleinstance-audit-ixsoTguk/old.o",
+        "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n   1862\t      0\t    144\t   2006\t    7d6\t/var/tmp/xlang-singleinstance-audit-ixsoTguk/old.o\n",
+        "stderr": ""
+      },
+      {
+        "name": "size-new-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_DEFAULT_SOURCE -O2 -Ilib/xrt -Irelease/extlibs/singleinstance -c release/extlibs/singleinstance/singleinstance_native.c -o /var/tmp/xlang-singleinstance-audit-ixsoTguk/new.o",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "size-new",
+        "expected": 0,
+        "actual": 0,
+        "command": "size /var/tmp/xlang-singleinstance-audit-ixsoTguk/new.o",
+        "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n   2030\t      0\t    144\t   2174\t    87e\t/var/tmp/xlang-singleinstance-audit-ixsoTguk/new.o\n",
+        "stderr": ""
+      }
+    ]
+  },
+  "objectSize": {
+    "windows": {
+      "bss": 64,
+      "data": 0,
+      "oldText": 1560,
+      "newText": 1660,
+      "deltaText": 100
+    },
+    "scope": "GCC -O2 native object, not whole program",
+    "throughputMeasured": false,
+    "linux": {
+      "bss": 144,
+      "data": 0,
+      "oldText": 1862,
+      "newText": 2030,
+      "deltaText": 168
+    }
+  },
+  "examples": {
+    "manifestOriginalBoundaryPreserved": true,
+    "golden": "examples/recovery.expected.txt",
+    "new": [
+      "examples/recovery.xl",
+      "examples/recovery_c.c"
+    ],
+    "behavior": "Rejected duplicate acquire preserves owner; finally/explicit release, same-name retry and idempotent release",
+    "fiveExecutionFormsBothPlatforms": true,
+    "parallelSameNameInstanceExpectedToContend": true,
+    "fixedApplicationName": true
+  },
+  "postGateDocumentationChanges": [
+    {
+      "path": "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\docs\\site.html",
+      "before": "7601E0899EBB8BE585F5B14D80C0304E9792978D240E97C848AD3E648E72B357",
+      "after": "b483c43ab36dc4c0374ebc243989d9ca047dab984180f7979b0b04225ad41e3a",
+      "documentationOnly": true
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\release\\extlibs\\singleinstance\\README.md",
+      "before": "A67805CFAEB35DCE24A6FABEDDF8713412613D7F879C3EF516CDCDC65CE0E1B3",
+      "after": "da9cc2655360afd0907806c0886d6f2702787d1daaaf1f74c15d170ce0936f19",
+      "documentationOnly": true
+    }
+  ],
+  "newDocumentationAfterGate": [
+    "release/extlibs/singleinstance/examples/README.md"
+  ],
+  "finalPackageFiles": [
+    {
+      "path": "release/extlibs/singleinstance/docs/site.html",
+      "sha256": "b483c43ab36dc4c0374ebc243989d9ca047dab984180f7979b0b04225ad41e3a",
+      "bytes": 3574
+    },
+    {
+      "path": "release/extlibs/singleinstance/examples/README.md",
+      "sha256": "c9edb2d61208b4cf156e289c793095cdb10d9bf977786c37baf421090003264b",
+      "bytes": 2929
+    },
+    {
+      "path": "release/extlibs/singleinstance/examples/recovery_c.c",
+      "sha256": "51cfda78dce819ad178ca1d26728f77c0dfdea5ac9388dc2ee57c02526e7c84f",
+      "bytes": 853
+    },
+    {
+      "path": "release/extlibs/singleinstance/examples/recovery.expected.txt",
+      "sha256": "0a140ad9d001a9939b938d6f70797f4811baa23e5a645567f5ac35f4cef17935",
+      "bytes": 100
+    },
+    {
+      "path": "release/extlibs/singleinstance/examples/recovery.xl",
+      "sha256": "ff5064a0b1db110b38c1a288b2318baf13fc4e9d58cd0d9517792a60db976327",
+      "bytes": 945
+    },
+    {
+      "path": "release/extlibs/singleinstance/examples/singleinstance_c.c",
+      "sha256": "3b5efa1231c33afe29ad6f90fc1a954c96683ea1cd4b27be4c3d2ad9a69d4318",
+      "bytes": 650
+    },
+    {
+      "path": "release/extlibs/singleinstance/include/singleinstance_native.h",
+      "sha256": "30ec2bb60d94de16373bc7d2f55ded1266645eb66f5d45f593b6abf37ad2dd79",
+      "bytes": 291
+    },
+    {
+      "path": "release/extlibs/singleinstance/README.md",
+      "sha256": "da9cc2655360afd0907806c0886d6f2702787d1daaaf1f74c15d170ce0936f19",
+      "bytes": 12163
+    },
+    {
+      "path": "release/extlibs/singleinstance/singleinstance_native.c",
+      "sha256": "1c9ae599a392d7b8b67c873a0e6746e679617c336cf474748e33e8aa4a84d4df",
+      "bytes": 5743
+    },
+    {
+      "path": "release/extlibs/singleinstance/src/singleinstance.xl",
+      "sha256": "d66bfbb024c212b22258e2cb03ba27c885da04872311c8a33b9c5226d414786b",
+      "bytes": 812
+    },
+    {
+      "path": "release/extlibs/singleinstance/test/boundaries.xl",
+      "sha256": "6acf1f1c23082bdd06f626710f7a7bf3b2fb333af27387de959be181cf285fb1",
+      "bytes": 1002
+    },
+    {
+      "path": "release/extlibs/singleinstance/test/check_contexts.sh",
+      "sha256": "9c43fb6276cd96b3e1a378dcefea7c84a2aa787414b634fd24fd83b0f69e2a03",
+      "bytes": 955
+    },
+    {
+      "path": "release/extlibs/singleinstance/test/check.ps1",
+      "sha256": "8be8ac05ad6f7b47b6b19d8405e1a932feb4c1e2da3c99adf26ed52f4c040238",
+      "bytes": 11059
+    },
+    {
+      "path": "release/extlibs/singleinstance/test/check.sh",
+      "sha256": "abad60b5a8c071cb6cec371f35a252528eb2552a1390eb9d4fe481446e153f68",
+      "bytes": 6781
+    },
+    {
+      "path": "release/extlibs/singleinstance/test/cleanup_contract_c.c",
+      "sha256": "b85c32506c7120412aa2d383910b329cd8ca75ec55cec256b2017328806de8ab",
+      "bytes": 7842
+    },
+    {
+      "path": "release/extlibs/singleinstance/test/context_after.xl",
+      "sha256": "9128c01b926b2c7e101fbc3bd4f5ca53d36fcdb22bc85278fbf73c71f154a6e6",
+      "bytes": 185
+    },
+    {
+      "path": "release/extlibs/singleinstance/test/context_hold.xl",
+      "sha256": "f96218e22673c24b94fff5fd1459501a302aa8b4996352d1838c4bb10a642145",
+      "bytes": 419
+    },
+    {
+      "path": "release/extlibs/singleinstance/test/context_probe.xl",
+      "sha256": "3afc45add8454b30bedfd9b0033df4ad0761cf68c3bc2b311a96fef59708e6a6",
+      "bytes": 160
+    },
+    {
+      "path": "release/extlibs/singleinstance/test/runtime.c",
+      "sha256": "a278d63bd24011e2e36a4c9e4cbd06fd58a1a2b401c95292c8e1b2adbb2a641e",
+      "bytes": 260
+    },
+    {
+      "path": "release/extlibs/singleinstance/test/singleinstance.expected.txt",
+      "sha256": "217ab9b1bae8d36f6da55e5c84bf1c8b1da36210fd45eb080d66a3ec422164b0",
+      "bytes": 90
+    },
+    {
+      "path": "release/extlibs/singleinstance/test/test_contexts.c",
+      "sha256": "c227700cae6a00cd9c1c4e79fb8747033f2904f493d3c93d1cf910b1a7c8ac7f",
+      "bytes": 4725
+    },
+    {
+      "path": "release/extlibs/singleinstance/test/test_multiple_modules.c",
+      "sha256": "74a8177a34dceed10cb5b42568b42fe8bee8dd3c70474a267525d087ddcfc47f",
+      "bytes": 1573
+    },
+    {
+      "path": "release/extlibs/singleinstance/test/test_singleinstance.c",
+      "sha256": "8a8ddb89a6b4ca0d83b6ef820408fc73682732efe45f03e3802e62159910014d",
+      "bytes": 5751
+    },
+    {
+      "path": "release/extlibs/singleinstance/xlang.package.json",
+      "sha256": "2464840f23259cfac0b88dc5fd8903f519e5082ca2fcab6ad125d9e2333c5760",
+      "bytes": 703
+    }
+  ],
+  "website": {
+    "sourceSha256": "b483c43ab36dc4c0374ebc243989d9ca047dab984180f7979b0b04225ad41e3a",
+    "generatedSourceMatches": true,
+    "externalDeployment": false
+  },
+  "catalog": {
+    "reason": "Existing strict xl.dll binding mismatch, never install candidate or falsify identity",
+    "requiredCompilerBindingRed": true,
+    "checks": [
+      {
+        "name": "freshness",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/refresh_extensions.py",
+          "--root",
+          "D:/GIT/x-lang",
+          "--data",
+          "build/test/singleinstance-cleanup-20261102/catalog-final",
+          "--check"
+        ],
+        "requiredExit": 0,
+        "actual": 0,
+        "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+        "stderr": "",
+        "status": "pass"
+      },
+      {
+        "name": "binding",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/check_catalog_coverage.py",
+          "--root",
+          "D:/GIT/x-lang",
+          "--catalog",
+          "build/test/singleinstance-cleanup-20261102/catalog-final/commands.json"
+        ],
+        "requiredExit": 0,
+        "actual": 1,
+        "stdout": "",
+        "stderr": "Catalog compiler changed: xl.dll\r\n",
+        "status": "fail"
+      },
+      {
+        "name": "delivery",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "tools/check_release_committed.py",
+          "--root",
+          "D:/GIT/x-lang"
+        ],
+        "requiredExit": 0,
+        "actual": 0,
+        "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+        "stderr": "",
+        "status": "pass"
+      }
+    ],
+    "generation": {
+      "status": "passed",
+      "catalogSha256": "582f743f3aa71c9682b11bf084ac036ba643431fc66ad363a0511b7f2e560aaf",
+      "sourceIndexSha256": "b1e8b7cf3bcdc91894f981286dfea7a25505a4a8c05e5560496aef301cf21429",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42",
+      "inputsUnchanged": true
+    },
+    "candidate": "build/test/singleinstance-cleanup-20261102/catalog-final",
+    "installed": false
+  },
+  "invalidAttempts": [
+    "First probe used wrong xfilelock typedef, corrected before tests",
+    "Initial fixture used Destroy on inline mutex instead of Unit, causing test-owned invalid-free counter; corrected, not a product bug",
+    "First manual Windows runner tried assigning PowerShell read-only HOME; probe used current user profile and may have left ordinary cleanup-contract lock file. Never delete unknown preexisting user lock files. Final all gates and old/new controls use validated exclusive profileDir",
+    "Early gate reports predate final explicit allocation-trigger assertion; Windows si_7037102f4c8b and Linux ixsoTguk are final functional evidence"
+  ],
+  "residualRisks": [
+    "M8 remains on actual both DLLs; this task does not change context concurrency or TCC/execute lock granularity",
+    "Known deep Windows USERPROFILE/128-byte-name boundary not rerun or closed",
+    "No full native multithread stress, many-user permission/ACL matrix, hostile same-user lock-file replacement, long duration, 32bit/ARM/macOS or kernel close failure certification",
+    "OS close fault and unlock fault are controlled API seams; real close still executes, but not a physical faulty-disk test"
+  ],
+  "maturity": {
+    "total": 100,
+    "G": 30,
+    "X": 4,
+    "wholeGoalComplete": false,
+    "M": 56,
+    "R": 10
+  }
+}
