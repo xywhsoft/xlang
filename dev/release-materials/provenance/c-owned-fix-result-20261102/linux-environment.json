@@ -1,0 +1,11 @@
+{
+  "root": "/var/tmp/xlang-result-fix-20261102-v2/source",
+  "nativeRoot": "/var/tmp/xlang-result-fix-20261102-v2/native-vfs2",
+  "driverBuild": "/var/tmp/xlang-result-fix-20261102-v2/driver-vfs2/build.json",
+  "acceptance": "/var/tmp/xlang-result-fix-20261102-v2/acceptance-vfs2/result.json",
+  "matrix": "/var/tmp/xlang-result-fix-20261102-v2/matrix/result.json",
+  "provider": "/var/tmp/xlang-result-fix-20261102-v2/native-vfs2/release/libxlc.so",
+  "providerSha256": "da9df6471c99bd6b9b6b5ec968fc316df42c0b364d8461cadca1f8e07d99b174",
+  "sourceArchiveSha256": "4b20f14ae9c68d34a043fea56279ba06943476fa7a4aca78da2a52c64037514b",
+  "complete": true
+}

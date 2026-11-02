@@ -1,0 +1,1036 @@
+{
+  "complete": true,
+  "programs": 41,
+  "phases": 164,
+  "rows": [
+    {
+      "name": "bound-cstring-cstring-infer",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "bound-cstring-cstring-infer",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "bound-cstring-cstring-infer",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "bound-cstring-cstring-infer",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "bound-cstring-string-infer",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "bound-cstring-string-infer",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "bound-cstring-string-infer",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "bound-cstring-string-infer",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "bound-string-string-infer",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "bound-string-string-infer",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "bound-string-string-infer",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "bound-string-string-infer",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "global-alias-result-erasure",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "global-alias-result-erasure",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "global-alias-result-erasure",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "global-alias-result-erasure",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-result-variable-fixed-cstring-cstring",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-result-variable-fixed-cstring-cstring",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-result-variable-fixed-cstring-cstring",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-result-variable-fixed-cstring-cstring",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-result-variable-fixed-cstring-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-result-variable-fixed-cstring-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-result-variable-fixed-cstring-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-result-variable-fixed-cstring-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-result-variable-fixed-string-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-result-variable-fixed-string-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-result-variable-fixed-string-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-result-variable-fixed-string-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-result-variable-fixed-cbytes-cbytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-result-variable-fixed-cbytes-cbytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-result-variable-fixed-cbytes-cbytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-result-variable-fixed-cbytes-cbytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-result-variable-fixed-cbytes-bytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-result-variable-fixed-cbytes-bytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-result-variable-fixed-cbytes-bytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-result-variable-fixed-cbytes-bytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-result-variable-generic-cstring-cstring",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-result-variable-generic-cstring-cstring",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-result-variable-generic-cstring-cstring",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-result-variable-generic-cstring-cstring",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-result-variable-generic-cstring-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-result-variable-generic-cstring-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-result-variable-generic-cstring-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-result-variable-generic-cstring-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-result-variable-generic-string-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-result-variable-generic-string-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-result-variable-generic-string-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-result-variable-generic-string-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-result-variable-generic-cbytes-cbytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-result-variable-generic-cbytes-cbytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-result-variable-generic-cbytes-cbytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-result-variable-generic-cbytes-cbytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-result-variable-generic-cbytes-bytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-result-variable-generic-cbytes-bytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-result-variable-generic-cbytes-bytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-result-variable-generic-cbytes-bytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-cstring-cstring",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-cstring-cstring",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-cstring-cstring",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-cstring-cstring",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-cstring-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-cstring-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-cstring-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-cstring-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-string-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-string-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-string-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-string-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-cbytes-cbytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-cbytes-cbytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-cbytes-cbytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-cbytes-cbytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-cbytes-bytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-cbytes-bytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-cbytes-bytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-nested-result-variable-fixed-cbytes-bytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-cstring-cstring",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-cstring-cstring",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-cstring-cstring",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-cstring-cstring",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-cstring-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-cstring-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-cstring-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-cstring-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-string-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-string-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-string-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-string-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-cbytes-cbytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-cbytes-cbytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-cbytes-cbytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-cbytes-cbytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-cbytes-bytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-cbytes-bytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-cbytes-bytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "inferred-nested-result-variable-generic-cbytes-bytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "fixed-cstring-nullable-callback",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "fixed-cstring-nullable-callback",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "fixed-cstring-nullable-callback",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "fixed-cstring-nullable-callback",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "fixed-cstring-nullable-leaf",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "fixed-cstring-nullable-leaf",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "fixed-cstring-nullable-leaf",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "fixed-cstring-nullable-leaf",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "fixed-string-nullable-callback",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "fixed-string-nullable-callback",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "fixed-string-nullable-callback",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "fixed-string-nullable-callback",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "fixed-string-nullable-leaf",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "fixed-string-nullable-leaf",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "fixed-string-nullable-leaf",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "fixed-string-nullable-leaf",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-cstring-nullable-callback",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-cstring-nullable-callback",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-cstring-nullable-callback",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-cstring-nullable-callback",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-cstring-nullable-leaf",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-cstring-nullable-leaf",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-cstring-nullable-leaf",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-cstring-nullable-leaf",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-string-nullable-callback",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-string-nullable-callback",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-string-nullable-callback",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-string-nullable-callback",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-string-nullable-leaf",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-string-nullable-leaf",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-string-nullable-leaf",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-string-nullable-leaf",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "fixed-async-cstring-to-cstring",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "fixed-async-cstring-to-cstring",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "fixed-async-cstring-to-cstring",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "fixed-async-cstring-to-cstring",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "fixed-async-cstring-to-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "fixed-async-cstring-to-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "fixed-async-cstring-to-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "fixed-async-cstring-to-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-async-cstring-to-cstring",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-async-cstring-to-cstring",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-async-cstring-to-cstring",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-async-cstring-to-cstring",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-async-cstring-to-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-async-cstring-to-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-async-cstring-to-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-async-cstring-to-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "async-factory-string",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "async-factory-string",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "async-factory-string",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "async-factory-string",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "fixed-async-cbytes-to-cbytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "fixed-async-cbytes-to-cbytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "fixed-async-cbytes-to-cbytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "fixed-async-cbytes-to-cbytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "fixed-async-cbytes-to-bytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "fixed-async-cbytes-to-bytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "fixed-async-cbytes-to-bytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "fixed-async-cbytes-to-bytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-async-cbytes-to-cbytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-async-cbytes-to-cbytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-async-cbytes-to-cbytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-async-cbytes-to-cbytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generic-async-cbytes-to-bytes",
+      "mode": "emit",
+      "exit": 0,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "generic-async-cbytes-to-bytes",
+      "mode": "run",
+      "exit": 0,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "generic-async-cbytes-to-bytes",
+      "mode": "exe",
+      "exit": 0,
+      "logSha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31"
+    },
+    {
+      "name": "generic-async-cbytes-to-bytes",
+      "mode": "aot",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "sourceHashes": {
+    "bound-cstring-cstring-infer": "c84766eafd0d20877c79686b5df593f04bdcb7157331cf11a9a9c025d732b01d",
+    "bound-cstring-string-infer": "11fdf03162cdd4e4bdcb96e369446794caa7f27d79d3ed98a158033789ae29e7",
+    "bound-string-string-infer": "3b98c3baf360651ad1fa135f68e85d648f83ed9b33f641831d3234bf6eff01ce",
+    "global-alias-result-erasure": "9952e6687988d050d1a79385a6977a8650d2f4b4398d8d565b3b8e32cfff022a",
+    "inferred-result-variable-fixed-cstring-cstring": "3f52239d6d464c82a82b316e7e916d82eaefc19f88c9222b170a54598b4ef8db",
+    "inferred-result-variable-fixed-cstring-string": "8341e368dc64e284d0043b51cd051479be901a3888c2878bf011cca8db5a6ae1",
+    "inferred-result-variable-fixed-string-string": "de8f1a94c1dd02ece6de9d051eabff8caf7d3def66b48a733a0bb647b7d74668",
+    "inferred-result-variable-fixed-cbytes-cbytes": "a1db725b1b872153a988fb1293696570ce363740a95ac040bcd2828ee8878540",
+    "inferred-result-variable-fixed-cbytes-bytes": "7b6ccbb893e326b93ef3cde253c428935d2df454752aeeedc581e97b71083cf6",
+    "inferred-result-variable-generic-cstring-cstring": "866e4646cde7ca16567424b2e1f51b8069dc8f110d8875f8f23d665b087eabd9",
+    "inferred-result-variable-generic-cstring-string": "64233262e4cb0451504286e5f46877fd351acdab9a84988d71c997de07130bd8",
+    "inferred-result-variable-generic-string-string": "6c0845b85d45800c23271fcba1cda7a99e91619c192a3ac591021fb545cacd63",
+    "inferred-result-variable-generic-cbytes-cbytes": "c854168c25c8a90a606abdeb3c3cb52389ba36c111478ad9fa208d8cfc01b4bd",
+    "inferred-result-variable-generic-cbytes-bytes": "17ee514c4326593eefbb6aa1681b9bec1edfdb36c0b756c65390dc1c7973c186",
+    "inferred-nested-result-variable-fixed-cstring-cstring": "c8d1e054730338dd7e7a5df5d4f80a7619d921787c5f61f0c41df39d603dd5f9",
+    "inferred-nested-result-variable-fixed-cstring-string": "f3fd29f441b4fe4dbb55301e9f23b7c94b998f2908d6342054503543d0fe6a16",
+    "inferred-nested-result-variable-fixed-string-string": "06e8490f81be98e26ff96220afb850f03775727570f93a9ae4b4557bcbc24150",
+    "inferred-nested-result-variable-fixed-cbytes-cbytes": "bab808b2fdc9ac97a639bfdbc1e58b2f01237485b6963b4991402af5906c41ab",
+    "inferred-nested-result-variable-fixed-cbytes-bytes": "344990b226b08d70d8a3651f942c51ef41e4a5f12c7c54dc6c2437eed6283e19",
+    "inferred-nested-result-variable-generic-cstring-cstring": "b32f580caf26eb4952c539ef3f923f62e0ffbc9080d0e2194e290aaede174e61",
+    "inferred-nested-result-variable-generic-cstring-string": "a1066ee284ddbc39efc4bca2a95a129d9eeb8207304be25d04457c4230042bc1",
+    "inferred-nested-result-variable-generic-string-string": "a07334dfd97b3da91b473aadb7d990d85be3777da64947731bfba2f3f2c00a1a",
+    "inferred-nested-result-variable-generic-cbytes-cbytes": "a813508a6faf49b8f0c9ca3dd0c63f0f0c5b7a7bd273700cc1b0ace8317149f5",
+    "inferred-nested-result-variable-generic-cbytes-bytes": "cc9fb984db19be87f5620a04c0e10bff2ad54ae10cb15d4dded9d76dd82a71c9",
+    "fixed-cstring-nullable-callback": "24643637022796096b17fbc00b4ad22ef254755d3739caac5f9166e59ef3888d",
+    "fixed-cstring-nullable-leaf": "c00f7664727cfd79ec654adf1c44ca16a7f3f78009766b69d15f5ef7a95ba0cf",
+    "fixed-string-nullable-callback": "1eaa931706d3c7e29df1f381b9a810d2dd6115778be54ca4ff5dc3eb1e2e9dc6",
+    "fixed-string-nullable-leaf": "18bba48cc81e45f54bbf6eeffd9ad8b9414dbba71a3df94300901807a5a11e53",
+    "generic-cstring-nullable-callback": "4f5684dac69f0b94bdf15d0eb92e56c03ba2fc9f10192cdfc92ebfbaa6f82c1f",
+    "generic-cstring-nullable-leaf": "9a2084241348e6c551ab176d3572a5971e44a0bc86e5657952d8fd1b40cbb955",
+    "generic-string-nullable-callback": "65c580a0a3e1832d0052ffcdd2456be3dc101dfb933c6d5d5b0ab330b7201ffc",
+    "generic-string-nullable-leaf": "b5c41427d2cfbaf19e3299bd9ae1d0431d9e393a2864b441278f40320d3e7587",
+    "fixed-async-cstring-to-cstring": "6b141587fdea009bcac4c12998152031336c0e7f87c1abdd81641c14e00b8595",
+    "fixed-async-cstring-to-string": "d52ea04830fdb7328c5a2631b9f23d2840399764db455d86bd244eca28615afd",
+    "generic-async-cstring-to-cstring": "cf50b4118567c92cedaf6d67ad94d1ed25a3b3c13c30170b7e8493c30ac76a1e",
+    "generic-async-cstring-to-string": "8ccf36cdaea227951f5e1b916a9420f88649a61fb1829525d20aba32616a833c",
+    "async-factory-string": "2c473cdb61029c0272e76513916c56dd22f6d9d57556f330ea0b7c9589319910",
+    "fixed-async-cbytes-to-cbytes": "5d475c2604d76320b2b4a27eecbd9199cab7594579a3f9789ecc582a6552b70d",
+    "fixed-async-cbytes-to-bytes": "e5d3f89952ddb3885bafc0ed05a60b9543a7831b6984d7a323e69e4de7b9802e",
+    "generic-async-cbytes-to-cbytes": "a74dab74f960f1d34f1864d18ab6824476131b3472bb44a0906cbed3f3ab90a5",
+    "generic-async-cbytes-to-bytes": "dd71563f0604c1f55edd0dc437eca3953172cce8271ce19c662faaa5ba1f2156"
+  },
+  "driver": "D:\\GIT\\x-lang\\build\\c-owned-fix-result-20261102\\windows-provider\\public_source.exe",
+  "driverSha256": "9ca9fb51804c2f5d2e29173dd2512b2d675ed7fb8dd40dec1bb766f2a33b4885"
+}

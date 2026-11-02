@@ -1,0 +1,102 @@
+{
+  "complete": true,
+  "date": "2026-11-02",
+  "fixCommits": [
+    "62c58b76b",
+    "2e4a6a51b"
+  ],
+  "validatedSourceCommit": "d50e509a163a8564ecf3b8232240a43bc71b9a69",
+  "scope": "Compiler-only fixes for the two audited result-conversion defects. Source acceptance uses actual XRT, native C consumers and current TinyCC/VFS. Shipping compiler binaries are not replaced. Concurrent IDE changes excluded and preserved.",
+  "verification": {
+    "windows": {
+      "sourceUnits": 1410,
+      "mainChecks": 302,
+      "independentCAndIRChecks": 63,
+      "reviewPrograms": 41,
+      "reviewPhases": 164
+    },
+    "linux": {
+      "sourceUnits": 1409,
+      "mainChecks": 302,
+      "independentCAndIRChecks": 63,
+      "reviewPrograms": 41,
+      "reviewPhases": 164
+    }
+  },
+  "sourceComparison": {
+    "commonProjectCInputs": 2540,
+    "lineEndingsOnlyNormalized": true,
+    "mismatches": []
+  },
+  "fixed": [
+    "Previously inferred T is reused at recursive result conversion boundaries in both semantic and IR inference.",
+    "Async method result conversion specializes the actual worker before publication; exact owner Future signatures and virtual overrides remain intact."
+  ],
+  "safety": [
+    "Invariant callback inputs, parameter modes, containers and existing Future values remain invariant.",
+    "A 256-prefix synchronous OOM scan checks both allocator balances; async worker return allocation failures and ordinary callback invocation are exercised separately.",
+    "Independent IR mutations authenticate selected targets, closed input ABIs and direct worker state plans."
+  ],
+  "performance": {
+    "runtimeLayoutChanged": false,
+    "xrtChanged": false,
+    "extraForwardingFuture": false,
+    "extraStringReadBranch": false,
+    "costs": [
+      "Private worker code and corresponding virtual-family slot metadata are generated for adapted signatures.",
+      "Existing bound/result-adapter closure costs remain. Ordinary callback result signatures still materialize their C payload on invocation; exact owner callbacks retain the foreign allocation."
+    ],
+    "claim": "No additional Future forwarding layer. This is not a whole-call zero-overhead benchmark claim."
+  },
+  "testEnvironment": {
+    "linuxProvider": "Current source TinyCC and serialized current target objects only; real dlopen, VFS enabled, configured to its actual SDK prefix. No resident replacement xlang/XRT implementation.",
+    "correctedAcceptanceAttempts": [
+      "Initial Linux test provider used CONFIG_TCC_STATIC profiling dlopen stubs; replaced by normal Linux dynamic loader configuration.",
+      "The next provider retained an obsolete default SDK prefix; rebuilt with the actual prefix and all acceptance rerun."
+    ],
+    "sources": "/mnt/d/GIT/x-lang/dev/release-materials/sources/c-owned-fix-result-20261102",
+    "sourceArchiveSha256": "ba34142479adf7ad51fd91fe70108f4e7785ec55762454ad8aa4a58cb513490d"
+  },
+  "artifacts": {
+    "windows-build.json": {
+      "original": "/mnt/d/GIT/x-lang/build/c-owned-fix-result-20261102/windows-provider/build.json",
+      "sha256": "fd99808ebc4aa277a51c3137afbab5a9705053732aeda2f99aa11bfad4eaaabc"
+    },
+    "windows-provider.json": {
+      "original": "/mnt/d/GIT/x-lang/build/c-owned-fix-result-20261102/windows-provider/provider.json",
+      "sha256": "96b929209d5fd04352fd2e18fbbb482413b37dc9eba7325034cedf69839c96ca"
+    },
+    "windows-acceptance.json": {
+      "original": "/mnt/c/Users/Administrator/.codex/worktrees/c-owned-string-bytes/x-lang/build/owned-result-fix/windows-acceptance/result.json",
+      "sha256": "7934287371fb8d3d29866c3ee0796ce4479df519f25aec8c5265b1242d4da9c4"
+    },
+    "windows-independent.json": {
+      "original": "/mnt/c/Users/Administrator/.codex/worktrees/c-owned-string-bytes/x-lang/build/owned-result-fix/windows-acceptance/independent-C/result.json",
+      "sha256": "3e3427d8cc85f28432f39b06a8c812ea1162f3e28fb65a575bba70e1cb7ea461"
+    },
+    "windows-matrix.json": {
+      "original": "/mnt/c/Users/Administrator/.codex/worktrees/c-owned-string-bytes/x-lang/build/owned-result-fix/windows-matrix/result.json",
+      "sha256": "652b4eef15047fda3efea38ff1da0490bb1bfed8ba5244746d204df6928ed759"
+    },
+    "linux-build.json": {
+      "original": "/var/tmp/xlang-result-fix-20261102-v2/driver-vfs2/build.json",
+      "sha256": "9d926caf27976281808e63922cfd017dddf3c136a764ca045b521a0a537a02a2"
+    },
+    "linux-acceptance.json": {
+      "original": "/var/tmp/xlang-result-fix-20261102-v2/acceptance-vfs2/result.json",
+      "sha256": "1d03c6542b8e4e6f9bbf2fcc210e571add3702cf01bbfce05f320cd7e5e573ba"
+    },
+    "linux-independent.json": {
+      "original": "/var/tmp/xlang-result-fix-20261102-v2/acceptance-vfs2/independent-C/result.json",
+      "sha256": "34776cd941c78cfa24a5880eac101c271625dc3d2e435282b9337eccc83d2052"
+    },
+    "linux-matrix.json": {
+      "original": "/var/tmp/xlang-result-fix-20261102-v2/matrix/result.json",
+      "sha256": "32d99b857bca1d5886cb5a5371081f23cb320cdf5f9103f742deb43b5a6f9af0"
+    },
+    "linux-environment.json": {
+      "original": "/mnt/d/GIT/x-lang/build/c-owned-fix-result-20261102/linux-environment.json",
+      "sha256": "c29b586431b3ccea0221623c53383efdc8f673419f4c257c6c46b1a4068b65ef"
+    }
+  }
+}
