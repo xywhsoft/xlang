@@ -1,5 +1,39 @@
 # singleinstance
 
+## 当前复验：2026-11-02
+
+本次修复清理阶段的三类问题：获取锁失败后的关闭错误覆盖原锁首因；
+正常争用后关闭也失败却仍返回 C 的 `0`；POSIX 释放前获取原生句柄失败后
+还用无效 fd 解锁，覆盖了原始错误。现在关闭始终退休文件，并保留已有
+首因；争用只有在临时文件成功关闭时才返回 `0`，关闭失败为 `-1`。
+`release()` 即使报错也消耗本包持有的文件，下次可显式重试；不要以重复
+释放来取回先前错误，公开调用开始会清理旧诊断。
+
+同一最终 C 回归在 Windows 执行 72 场景/935 检查，旧 54 条断言失败、
+新 0；Linux 为 108 场景/1177 检查，旧 108 条断言失败、新 0。预置
+错误后禁止额外分配，检查原始身份/分类/域/后端码/空或 300 字节消息、
+实际句柄只关闭一次、同名恢复和七项内存指标。POSIX 的锁/解锁失败使用
+真实 errno 转诊断，不把它们说成可保留自定义错误身份；初始系统诊断
+仍有正常构造成本。另有真实的已预热 acquire 分配扫描：Windows
+44 预算/43 失败，Linux 10/9，直到成功；不外推为冷启动全部故障点。
+
+完整默认门禁 Windows 43 阶段、Linux 45 阶段，分别前 42/44 符合，
+Linux C 包含 ASan/UBSan/泄漏检查。真实 C 子进程、独立双包实例、
+三条实际生成原型、新旧双语输出及每平台八份普通 AOT 通过；唯一失败
+均为最后的真实双 `XL_Context` 并发执行（M8，宿主退出 2，门禁退出 1）。
+Windows 原门禁没有这项，现已补入，不能再用旧 Windows 通过记录
+表示完整跨上下文验收。没有修改主线、DLL、XRT 或 TCC。
+
+新增[双语恢复范例](examples/README.md)，用 `try/finally` 展示重复获取
+被拒绝后原锁仍存活、显式释放、重新获取及幂等释放。测试全部在独占
+主目录内完成；失败保留命令、输出和输入/工具指纹。真实上下文测试
+改用就绪/完成文件，不再由一个线程修改 CRT 环境表、另一个线程轮询它。
+原生本体净增 11 行，GCC-O2 对象 text Windows +100B/Linux +168B，
+不新增公开 API、正常路径分配、正文复制或元数据系统调用；未测吞吐。
+详细证据见 `docs/reports/extlib-singleinstance-cleanup-20261102.json`。
+本包仍为 M，长主目录风险及 M8 不因普通路径通过而关闭。以下日期是
+历史复验范围，不能替代本节结论。
+
 2026-10-26 当前 Windows 默认门禁的严格 C、双模块互斥、中央/边界
 语言 JIT 与 AOT、C/XLang 范例独立 EXE 和固定输出全部通过。
 Linux 门禁也通过 C ASan/UBSan、中文名称跨进程/双模块和相同
@@ -60,7 +94,7 @@ C API 在 `include/singleinstance_native.h`：`xsi_acquire` 返回 1=成功、
 聚焦验证（在仓库根目录）：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/singleinstance/test/check.ps1 -SkipAot
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/singleinstance/test/check.ps1
 ```
 
 Windows 门禁独立编译严格 GCC 程序，验证 ASCII 与中文 UTF-8 名称的
@@ -80,7 +114,7 @@ Windows 深 `USERPROFILE` 配合 128 字节名称还可能在 XRT 文件打开�
 失败，短隔离目录通过；复现及主线修复建议见
 `dev/extlib_blockers/singleinstance_windows_long_home.md`。
 
-Linux 聚焦门禁：`sh release/extlibs/singleinstance/test/check.sh`。
+Linux 聚焦门禁：`bash release/extlibs/singleinstance/test/check.sh`。
 它增加了两个独立静态包实例的同进程互斥及释放隔离检查，
 覆盖原 POSIX `fcntl` 错误；所有普通用例运行在临时 HOME，且使用
 独立隔离目录检查已有目录的宽权限和符号链接拒绝。门禁还运行中央和

@@ -1,5 +1,36 @@
 # singleinstance 跨 XL_Context 同时执行的验收阻断
 
+## 当前复验：2026-11-02
+
+Windows 与 Linux 当前发布 DLL 均复现 M8。新的跨平台公开 `xl.h` 宿主
+使用两个真实上下文和两个自有线程：第一个持锁并写就绪文件；第二个
+执行争锁脚本，十秒内不能完成；宿主再写完成文件，使前者释放并退出。
+随后第二个才继续且争锁断言失败，宿主报告 blocked-upstream 并退出 2。
+它先 join 两线程再销毁上下文；门禁进程外另有 120 秒超时，不以串行
+完成当作并发验收。没有修改主线的执行锁或把双上下文改成静态模拟。
+
+原 Windows 门禁未执行真实上下文，本次补入为最后必过正例；Windows
+43 阶段前 42、Linux 45 阶段前 44 符合，最终门禁都真实退出 1。普通
+C 子进程、两个独立静态包实例和各八份普通 AOT 通过不替代这一要求。
+测试就绪通知不再使用一线程写 CRT 环境表、另一线程并发 getenv；
+只在启动线程前设环境，两脚本用门禁独占目录内的就绪/完成文件交接。
+
+在仓库根目录运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/singleinstance/test/check.ps1
+```
+
+```sh
+bash release/extlibs/singleinstance/test/check.sh
+sh release/extlibs/singleinstance/test/check_contexts.sh
+```
+
+前两条是本轮实际完整执行的入口；独立 wrapper 的参数已同步，但本轮
+没有另一次重复 wrapper 验收。证据与诊断见
+`docs/reports/extlib-singleinstance-cleanup-20261102.json`。下面旧日期和
+旧工作目录留作历史，不是当前命令或退出码来源。
+
 2026-10-26 当前 Linux 发布版复验：独立 C ASan/UBSan、双模块
 争锁、中央与顶层语言边界、C/XLang 双语 AOT 和固定输出先全部
 通过；单独 `test/check_contexts.sh` 仍在约 10 秒有界观察后输出

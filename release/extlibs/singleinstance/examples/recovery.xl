@@ -1,0 +1,29 @@
+import singleinstance
+
+func main(...) as int
+    if not singleinstance.acquire("xlang_recovery_example") then
+        println("another instance is running")
+        return 1
+    end
+    try
+        println("acquired: " + string(singleinstance.isAcquired()))
+        // 重复获取是本包实例的使用错误，不应破坏已经持有的锁。
+        bool rejected = false
+        try
+            singleinstance.acquire("xlang_recovery_example")
+        catch RuntimeError error
+            rejected = true
+        end
+        assert rejected and singleinstance.isAcquired()
+        println("rejected reacquire keeps owner: true")
+    finally
+        singleinstance.release()
+    end
+    assert not singleinstance.isAcquired()
+    println("released: true")
+    assert singleinstance.acquire("xlang_recovery_example")
+    singleinstance.release()
+    singleinstance.release()
+    println("retry and repeated release: true")
+    return 0
+end

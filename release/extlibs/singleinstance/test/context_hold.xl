@@ -3,8 +3,9 @@ import singleinstance
 func main(...) as int
     string name = env.get("XLANG_SI_TEST_NAME") ?? ""
     string donePath = env.get("XLANG_SI_TEST_DONE_PATH") ?? ""
+    string readyPath = env.get("XLANG_SI_TEST_READY_PATH") ?? ""
     assert singleinstance.acquire(name)
-    env.set("XLANG_SI_TEST_READY", "1")
+    file.writeText(readyPath, "ready")
     while not file.exists(donePath)
         time.sleep(10)
     end

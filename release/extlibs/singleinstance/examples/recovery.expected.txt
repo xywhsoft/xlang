@@ -1,0 +1,4 @@
+acquired: true
+rejected reacquire keeps owner: true
+released: true
+retry and repeated release: true

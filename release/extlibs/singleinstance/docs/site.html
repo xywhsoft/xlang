@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / singleinstance</p><h1>singleinstance</h1>
     <p class="extlib-lead">按名称互斥的实例锁；同名进程与同进程的独立包实例不能同时持有。</p>
-    <p>支持 UTF-8 名称与进程退出自动解锁。Windows 使用 XRT 文件锁，POSIX 使用按打开句柄隔离的文件锁。2026-10-26 Windows/Linux 的严格 C、中文名称子进程互斥、Linux 独立包实例及双语范例独立 EXE AOT 均通过固定输出门禁；测试使用隔离主目录。但真实双 XL_Context 并发执行在 Linux 有界测试中仍被共享 DLL 执行边界阻断，Linux 默认门禁保持红色，整包不签收发布级。深主目录长路径也尚待收口。</p>
+    <p>支持 UTF-8 名称与进程退出自动解锁。2026-11-02 修复清理首因覆盖、关闭失败误作普通争用及 POSIX 无效句柄继续解锁。Windows 43/Linux 45 阶段分别前 42/44 符合，含实际 C 子进程、独立双包实例、三生成原型和每平台八份普通 AOT；最后真实双 XL_Context 仍因 M8 失败，两平台默认门禁均保持红色。深主目录长路径也尚待收口，不签收整包发布级。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
@@ -34,6 +34,7 @@ end
 // 应用工作
 singleinstance.release()</code></pre>
     <h2 id="c-api">C 与生命周期</h2>
+    <p>新增 <code>examples/recovery.xl</code> 与 <code>recovery_c.c</code>，展示拒绝重复获取不破坏原锁、finally/显式释放和同名恢复，五种执行形态逐字对照。关闭始终退休文件，若已有锁错误则保留原首因；只有争用且关闭成功才返回 C 的 0。预置失败合同 Windows 72/Linux 108 场景通过，另有真实已预热获取分配故障扫描；不将预置错误数当作真实 OOM 次数或全线程压力认证。</p>
     <p>C 头文件 <code>include/singleinstance_native.h</code>；<code>xsi_acquire</code> 用 1/0/-1 区分取得/占用/错误。每个包实例只能持有一个锁；释放脚本上下文前应显式 <code>release()</code>。锁文件保留在用户主目录，不能以文件存在判断是否持锁。已有锁目录若为符号链接或 POSIX 权限过宽，获取锁会报错；Windows 继承 ACL 不做完整审计。完整路径规则与验证范围见包内 README。</p>
   </section>
 </main>

@@ -48,6 +48,15 @@ static void xsi_leave(void)
     xrtMutexUnlock(&xsi_guard);
 }
 
+/* 关闭始终退休句柄，但不能覆盖此前的锁/句柄查询首因。 */
+static bool xsi_close_file(xfile file)
+{
+    xerror* failure = xrtTakeError();
+    bool closed = xrtClose(file);
+    if (failure != NULL) xrtSetErrorTake(failure);
+    return closed;
+}
+
 static bool xsi_name_valid(const char* name)
 {
     size_t length;
@@ -149,7 +158,7 @@ int xsi_acquire(const char* name)
     result = 1;
 
 done:
-    if (file != NULL) xrtClose(file);
+    if (file != NULL && !xsi_close_file(file)) result = -1;
     xrtFree(path);
     xrtFree(encoded);
     xrtFree(directory);
@@ -168,13 +177,15 @@ int xsi_release(void)
 #ifdef _WIN32
         success = xrtFileUnlock(xsi_file) ? 1 : 0;
 #else
-        if (flock((int)xrtFileNative(xsi_file), LOCK_UN) != 0) {
+        intptr_t native = xrtFileNative(xsi_file);
+        if (native < 0) success = 0;
+        else if (flock((int)native, LOCK_UN) != 0) {
             xrtSetErrorInfo(XERR_IO, "xlang.extlib.singleinstance", errno,
                 "could not unlock instance file");
             success = 0;
         }
 #endif
-        if (!xrtClose(xsi_file)) success = 0;
+        if (!xsi_close_file(xsi_file)) success = 0;
         xsi_file = NULL;
     }
     xsi_leave();

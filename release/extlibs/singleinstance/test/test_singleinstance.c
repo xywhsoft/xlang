@@ -34,21 +34,29 @@ static int run_child(const char* self, const char* name, int expected, int unico
     PROCESS_INFORMATION process = {0};
     DWORD code = 1;
     (void)self;
-    if (!GetModuleFileNameW(NULL, path, 512)) return 1;
+    DWORD length=GetModuleFileNameW(NULL,path,512);
+    if (!length || length>=512) return 1;
     base = wcsrchr(path, L'\\');
     if (base != NULL && _wcsicmp(base + 1, L"xl.exe") == 0) return 2;
-    if (!MultiByteToWideChar(CP_UTF8, 0, name, -1, wide_name, 160)) return 1;
-    if (swprintf(command, 768, L"\"%ls\" %ls %ls %d",
-        path, unicode ? L"--child-unicode" : L"--child", wide_name,
-        expected) < 0) return 1;
+    int count=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,name,-1,wide_name,160);
+    if(count<=0)return 1;
+    /* 测试只传入固定模式、生成的无引号名称和单个0/1参数。 */
+    const wchar_t* middle=unicode ? L"\" --child-unicode \"" : L"\" --child \"";
+    size_t used=1u+length+wcslen(middle)+(size_t)count-1u;
+    if(used+5u>sizeof(command)/sizeof(command[0]))return 1;
+    command[0]=L'"';memcpy(command+1,path,length*sizeof(wchar_t));
+    memcpy(command+1+length,middle,wcslen(middle)*sizeof(wchar_t));
+    memcpy(command+1+length+wcslen(middle),wide_name,(size_t)(count-1)*sizeof(wchar_t));
+    command[used++]=L'"';command[used++]=L' ';command[used++]=expected ? L'1' : L'0';command[used]=0;
     startup.cb = sizeof(startup);
-    if (!CreateProcessW(path, command, NULL, NULL, FALSE, 0, NULL, NULL,
+    if (!CreateProcessW(path, command, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL,
         &startup, &process)) return 1;
-    WaitForSingleObject(process.hProcess, INFINITE);
-    GetExitCodeProcess(process.hProcess, &code);
+    DWORD waited=WaitForSingleObject(process.hProcess,20000);
+    if(waited!=WAIT_OBJECT_0){TerminateProcess(process.hProcess,1);WaitForSingleObject(process.hProcess,10000);}
+    else if(!GetExitCodeProcess(process.hProcess,&code))code=1;
     CloseHandle(process.hThread);
     CloseHandle(process.hProcess);
-    return code == 0 ? 0 : 1;
+    return waited==WAIT_OBJECT_0 && code==0 ? 0 : 1;
 #else
     pid_t pid = fork();
     int status;
@@ -127,6 +135,7 @@ int main(int argc, char** argv)
     if (child_status != 2) CHECK(run_child(argv[0], name, 0, 1) == 0);
     CHECK(xsi_release() == 1);
     if (child_status != 2) CHECK(run_child(argv[0], name, 1, 1) == 0);
+    puts(child_status==2 ? "singleinstance cross-process: not run inside xl.exe host" : "singleinstance cross-process: real child");
     puts("singleinstance C boundaries: PASS");
     return 0;
 }
