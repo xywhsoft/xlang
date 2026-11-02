@@ -584,6 +584,129 @@ static XL6_AstNode* xl6SemCOwnedFunctionWithResults(XL6_SemContext* ctx,XL6_AstN
 }
 static XL6_AstNode* xl6SemCOwnedOrdinaryFunction(XL6_SemContext* ctx,XL6_AstNode* function)
 { return xl6SemCOwnedFunctionWithResults(ctx,function,NULL); }
+static int xl6SemCOwnedSubstituteTypes(XL6_AstNode**,const XL6_AstNode*,const XL6_AstNode*);
+/* Keep open owner parameters in the declaration while closing method arguments.
+ * Only proven result leaves change; callable inputs remain in their old ABI. */
+static XL6_AstNode* xl6SemCOwnedTemplateResult(XL6_SemContext* ctx,const XL6_AstNode* formal,
+    const XL6_AstNode* closed,const XL6_AstNode* target,unsigned depth)
+{
+    if(!formal || !closed || !target || depth>32)return NULL;
+    if(xl6SemTypeEquals(ctx,closed,target))return xl6SemCloneTypeNode(formal);
+    formal=xl6SemResolveAliasType(ctx,formal);closed=xl6SemResolveAliasType(ctx,closed);
+    target=xl6SemResolveAliasType(ctx,target);
+    XL6_AstNode* result=xl6SemCloneTypeNode(formal);
+    if(!result)return NULL;
+    const XL6_AstNode* inner=xl6SemNullableInnerType(formal);
+    if(inner && xl6SemNullableInnerType(closed) && xl6SemNullableInnerType(target)) {
+        XL6_AstNode* converted=xl6SemCOwnedTemplateResult(ctx,inner,xl6SemNullableInnerType(closed),
+            xl6SemNullableInnerType(target),depth+1);
+        if(!converted){xl6AstFree(result);return NULL;}
+        xl6AstFree(result->children[0]->children[0]);result->children[0]->children[0]=converted;
+    } else if(xl6TextEquals(formal->text,"function") && formal->childCount==2 &&
+        xl6TextEquals(closed->text,"function") && xl6TextEquals(target->text,"function")) {
+        for(size_t r=0;r<formal->children[1]->childCount;++r) {
+            XL6_AstNode* converted=xl6SemCOwnedTemplateResult(ctx,formal->children[1]->children[r],
+                closed->children[1]->children[r],target->children[1]->children[r],depth+1);
+            if(!converted){xl6AstFree(result);return NULL;}
+            xl6AstFree(result->children[1]->children[r]);result->children[1]->children[r]=converted;
+        }
+    } else {
+        xl6AstFree(result);result=xl6SemCloneTypeNode(target);
+    }
+    if(result)xl6SemBindInferredTypeIdentity(ctx,result);
+    return result;
+}
+/* Clone the async worker itself. It publishes the adapted callback once;
+ * neither an existing Future nor its consumer gains a forwarding task. */
+static XL6_AstNode* xl6SemCOwnedAsyncResultMethodOne(XL6_SemContext* ctx,XL6_AstNode* owner,
+    XL6_AstNode* method,const XL6_AstNode* classArgs,const XL6_AstNode* methodArgs,
+    const XL6_AstNode* target,const char* familyName)
+{
+    XL6_AstNode* copy=xl6SemCOwnedClone(method);
+    if(!copy || !xl6SemCOwnedSubstituteTypes(&copy,xl6SemFuncTypeParams(method),methodArgs)) {
+        xl6AstFree(copy);return NULL;
+    }
+    XL6_AstNode* params=xl6SemFuncTypeParams(copy);
+    for(size_t p=0;params && p<params->childCount;++p)xl6AstFree(params->children[p]);
+    if(params)params->childCount=0;
+    const XL6_AstNode* formal=copy->children[2]->children[0];
+    XL6_AstNode* closed=classArgs ? xl6SemSubstituteClassType(owner,classArgs,formal) : xl6SemCloneTypeNode(formal);
+    XL6_AstNode* result=closed && xl6SemCOwnedResultMatchDepth(ctx,target,closed,0)>0
+        ? xl6SemCOwnedTemplateResult(ctx,formal,closed,target,0) : NULL;
+    xl6AstFree(closed);
+    if(!result){xl6AstFree(copy);return NULL;}
+    xl6AstFree(copy->children[2]->children[0]);copy->children[2]->children[0]=result;
+    uint64 hash=xl6SemCOwnedSignatureHash(copy->children[1],UINT64_C(14695981039346656037));
+    hash=xl6SemCOwnedSignatureHash(copy->children[2],hash);
+    hash=xl6SemCOwnedSignatureHash(classArgs,hash);
+    char name[96];snprintf(name,sizeof(name),"__xl_c_owned_async_%u_%llx",method->semanticSymbolId,(unsigned long long)hash);
+    if(familyName)snprintf(name,sizeof(name),"%s",familyName);
+    XL6_AstNode* body=owner->children[1];
+    for(size_t m=0;m<body->childCount;++m)
+        if(body->children[m]->kind==XL6_AST_ASYNC_FUNC && xl6TextEquals(xl6SemFuncName(body->children[m]),name)) {
+            xl6AstFree(copy);return body->children[m];
+        }
+    char* text=xrtStrDup(name);
+    if(!text){xl6AstFree(copy);return NULL;}
+    xrtFree(copy->children[0]->text);copy->children[0]->text=text;
+    copy->flags|=XL6_AST_FLAG_C_OWNED_SPECIALIZATION;
+    if(!xl6SemAssignEntitySymbolIds(ctx,copy)){xl6AstFree(copy);return NULL;}
+    size_t count=body->childCount;xl6AstAddChild(body,copy);
+    if(body->childCount==count){xl6AstFree(copy);return NULL;}
+    XL6_Scope* savedScope=ctx->scope;XL6_AstNode* savedClass=ctx->currentClass;
+    const char* savedSelf=ctx->implicitSelfName;XL6_TypeParamScope* savedTypes=ctx->typeParams;
+    int savedCreate=ctx->inClassCreate,savedLoop=ctx->loopDepth,savedCatch=ctx->catchDepth,savedGenerator=ctx->generatorDepth;
+    XL6_TypeParamScope classTypes={owner->childCount>2 ? owner->children[2] : NULL,NULL};
+    while(ctx->scope->parent)ctx->scope=ctx->scope->parent;
+    ctx->currentClass=owner;ctx->implicitSelfName="self";ctx->typeParams=&classTypes;
+    ctx->inClassCreate=ctx->loopDepth=ctx->catchDepth=ctx->generatorDepth=0;
+    int checked=xl6SemCheckFunc(ctx,copy);
+    ctx->scope=savedScope;ctx->currentClass=savedClass;ctx->implicitSelfName=savedSelf;ctx->typeParams=savedTypes;
+    ctx->inClassCreate=savedCreate;ctx->loopDepth=savedLoop;ctx->catchDepth=savedCatch;ctx->generatorDepth=savedGenerator;
+    return checked ? copy : NULL;
+}
+static const XL6_AstNode* xl6SemCOwnedAsyncSlotRoot(XL6_SemContext* ctx,
+    const XL6_AstNode** owner,const XL6_AstNode* method)
+{
+    for(unsigned depth=0;(method->flags & XL6_AST_FLAG_OVERRIDE) && depth<32;++depth) {
+        const XL6_AstNode* parentOwner=NULL;
+        const XL6_AstNode* parent=xl6SemFindBaseOverrideTarget(ctx,xl6SemBaseClassDecl(ctx,*owner),method,&parentOwner);
+        if(!parent)return NULL;
+        method=parent;*owner=parentOwner;
+    }
+    return method;
+}
+static XL6_AstNode* xl6SemCOwnedAsyncResultMethod(XL6_SemContext* ctx,XL6_AstNode* owner,
+    XL6_AstNode* method,const XL6_AstNode* classArgs,const XL6_AstNode* methodArgs,
+    const XL6_AstNode* target)
+{
+    if(!(method->flags & (XL6_AST_FLAG_VIRTUAL|XL6_AST_FLAG_OVERRIDE)))
+        return xl6SemCOwnedAsyncResultMethodOne(ctx,owner,method,classArgs,methodArgs,target,NULL);
+    const XL6_AstNode* rootOwner=owner;
+    const XL6_AstNode* root=xl6SemCOwnedAsyncSlotRoot(ctx,&rootOwner,method);
+    if(!root)return NULL;
+    XL6_AstNode* base=xl6SemCOwnedAsyncResultMethodOne(ctx,(XL6_AstNode*)rootOwner,
+        (XL6_AstNode*)root,rootOwner==owner ? classArgs : NULL,methodArgs,target,NULL);
+    if(!base)return NULL;
+    XL6_AstNode* result=root==method ? base : NULL;
+    /* A parallel private slot keeps the original dispatch family. Cloning
+     * only the selected base body would silently skip derived overrides. */
+    for(size_t c=0;ctx->root && c<ctx->root->childCount;++c) {
+        XL6_AstNode* cls=ctx->root->children[c];
+        XL6_AstNode* body=cls->kind==XL6_AST_CLASS && cls->childCount>1 ? cls->children[1] : NULL;
+        size_t count=body ? body->childCount : 0;
+        for(size_t m=0;m<count;++m) {
+            XL6_AstNode* item=body->children[m];const XL6_AstNode* itemOwner=cls;
+            if(item->kind!=XL6_AST_ASYNC_FUNC || !(item->flags & XL6_AST_FLAG_OVERRIDE) ||
+                !xl6TextEquals(xl6SemFuncName(item),xl6SemFuncName(root)) ||
+                xl6SemCOwnedAsyncSlotRoot(ctx,&itemOwner,item)!=root)continue;
+            XL6_AstNode* adapted=xl6SemCOwnedAsyncResultMethodOne(ctx,cls,item,NULL,methodArgs,target,xl6SemFuncName(base));
+            if(!adapted)return NULL;
+            if(item==method)result=adapted;
+        }
+    }
+    return result;
+}
 static XL6_AstNode* xl6SemCOwnedAppendNode(XL6_AstNode* parent,XL6_AstNode* child)
 {
     if(!parent || !child){xl6AstFree(child);return NULL;}

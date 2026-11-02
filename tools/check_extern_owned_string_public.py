@@ -109,6 +109,9 @@ def main():
     bound_nullable_cast_contract = ROOT/'test/cases/xlir_bound_nullable_cast_contract.c'
     bound_variadic_owner_contract = ROOT/'test/cases/xlir_bound_variadic_owner_contract.c'
     generic_result_contract = ROOT/'test/cases/xlir_generic_callable_result_contract.c'
+    async_result_contract = ROOT/'test/cases/xlir_async_callable_result_contract.c'
+    inputs[async_result_contract] = sha(async_result_contract)
+    inputs[ROOT/'test/cases/extern_owned_async_callable_results.xl'] = sha(ROOT/'test/cases/extern_owned_async_callable_results.xl')
     inputs[ROOT/'test/cases/extern_owned_inferred_result_variables.xl'] = sha(ROOT/'test/cases/extern_owned_inferred_result_variables.xl')
     callable_alias_contract = ROOT/'test/cases/xlir_callable_alias_integrity_contract.c'
     callable_result_contract = ROOT/'test/cases/xlir_bound_callable_result_contract.c'
@@ -213,6 +216,7 @@ def main():
     run('task-optional-contract-build', [cc, '@'+str(response)])
     assert '10 mutations rejected' in run('task-optional-contract', [output])
     for name,unit,message in [
+            ('async-callable-result-contract',async_result_contract,'direct worker publication, no forwarding Future'),
             ('generic-callable-result-contract',generic_result_contract,'closed input ABI and selected generic target authenticated'),
             ('callable-alias-contract',callable_alias_contract,'immutable on success and rejection, exact owner reads contain no copy'),
             ('callable-result-contract',callable_result_contract,'retained source, invariant inputs, exact conversion and error edges authenticated'),
