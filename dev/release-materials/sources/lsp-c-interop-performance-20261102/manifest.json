@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "phase": "M7a2b107-performance-completion",
+  "scope": "Exact fixed tools and post-timing status-summary correction;original report bytes/paths unchanged",
+  "entries": [
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\run-formal-v3.py",
+      "archivedPath": "dev/release-materials/sources/lsp-c-interop-performance-20261102/run-formal-v3.py",
+      "sha256": "b357284f3190b2a7ad5b5e301069a5a7667a0a3f99f0830f8962c17ae123ee15",
+      "bytes": 4697
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-index-display-20261101\\benchmark_symbols.py",
+      "archivedPath": "dev/release-materials/sources/lsp-c-interop-performance-20261102/benchmark_symbols.py",
+      "sha256": "1b13f02bf013c36d27dc54362d1b6fed4e6636d1915d3d603bc316ab64abcbc7",
+      "bytes": 12632
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\summarize-formal-v3.py",
+      "archivedPath": "dev/release-materials/sources/lsp-c-interop-performance-20261102/summarize-formal-v3.py",
+      "sha256": "887379d11bda1b1c11adceed30dd716504f57e21bf0f2aa55045d90ebfd7178f",
+      "bytes": 3917
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\formal-v3\\summarize-before-status-fix.py",
+      "archivedPath": "dev/release-materials/sources/lsp-c-interop-performance-20261102/summarize-before-status-fix.py",
+      "sha256": "104ae6a45407bb9b0c35101ae242cc0dabef12f80dccd677d179c378191d906b",
+      "bytes": 3909
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-c-interop-alignment-20261102\\formal-v3\\summary-attempt-v1.json",
+      "archivedPath": "dev/release-materials/sources/lsp-c-interop-performance-20261102/summary-attempt-v1.json",
+      "sha256": "8eaaabe37b61f2533ca8f2f28865274f84917c990a0fcc71e45a2764c6f9b0d2",
+      "bytes": 432
+    }
+  ]
+}
