@@ -153,6 +153,8 @@ if (Test-Path -LiteralPath $guiExe) { [IO.File]::Replace($guiStaging,$guiExe,(Jo
 if ($nativeBuildReceipt) { $nativeBuildReceipt | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $objectRoot 'language-server-build.json') -Encoding utf8 }
 @{configuration=$Configuration;cLspEnabled=[bool]$EnableCLsp;compiler=$compiler;resourceCompiler=$resourceCompiler;flags=$flags;libraries=$libraries;objects=$objects;resources=@($appResources);inputs=$buildInputs;release=$releaseRoot;outputs=@{xlang_ide=(Get-XideSha256 $guiExe);xlang_ls=(Get-XideSha256 $serverTarget);xge=(Get-XideSha256 $releaseDll)}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $objectRoot 'gui-build-inputs.json') -Encoding utf8
 if ($Tests) {
+    & $compiler @flags (Join-Path $ideRoot 'tests\sha256_test.c') @objects @libraries -o (Join-Path $releaseRoot 'sha256_test.exe')
+    if ($LASTEXITCODE -ne 0) { throw 'XRT SHA-256 integration test link failed.' }
     foreach ($fixture in @('diagnostic_dependencies_test','diagnostic_notice_test')) {
         & $compiler @flags (Join-Path $ideRoot ('tests\'+$fixture+'.c')) @objects @libraries -o (Join-Path $releaseRoot ($fixture+'.exe'))
         if ($LASTEXITCODE -ne 0) { throw "$fixture link failed." }

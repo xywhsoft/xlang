@@ -1,7 +1,6 @@
 #define _WIN32_WINNT 0x0601
 #include "platform/state_repair.h"
 #include "platform/path.h"
-#include <bcrypt.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -55,21 +54,18 @@ static int renameHandle(HANDLE h,const char* destination)
 }
 static int copyRaw(HANDLE source,const char* target,volatile LONG* cancel,uint64_t* bytes,char digest[65])
 {
-    BCRYPT_ALG_HANDLE algorithm=NULL; BCRYPT_HASH_HANDLE hash=NULL; unsigned char *object=NULL,*buffer=NULL,raw[32]; DWORD length=0,returned=0;
-    HANDLE dest=createNew(target); int okay=dest!=INVALID_HANDLE_VALUE && BCryptOpenAlgorithmProvider(&algorithm,BCRYPT_SHA256_ALGORITHM,NULL,0)==0;
-    if(okay) okay=BCryptGetProperty(algorithm,BCRYPT_OBJECT_LENGTH,(PUCHAR)&length,sizeof(length),&returned,0)==0;
-    if(okay) { object=malloc(length); buffer=malloc(65536); okay=object && buffer && BCryptCreateHash(algorithm,&hash,object,length,NULL,0,0)==0; }
+    xsha256 hash; xrtSha256Init(&hash); unsigned char *buffer=NULL,raw[32];
+    HANDLE dest=createNew(target); int okay=dest!=INVALID_HANDLE_VALUE;
+    if(okay) { buffer=malloc(65536); okay=buffer!=NULL; }
     *bytes=0;
     while(okay) {
         DWORD n=0; if(cancelled(cancel) || !ReadFile(source,buffer,65536,&n,NULL)) { okay=0; break; } if(!n) break;
-        okay=writeBytes(dest,buffer,n) && BCryptHashData(hash,buffer,n,0)==0; *bytes+=n;
+        okay=writeBytes(dest,buffer,n) && xrtSha256Update(&hash,buffer,n); *bytes+=n;
     }
-    if(okay) okay=FlushFileBuffers(dest) && BCryptFinishHash(hash,raw,sizeof(raw),0)==0;
+    if(okay) okay=FlushFileBuffers(dest) && xrtSha256Final(&hash,raw);
     if(okay) for(int i=0;i<32;++i) snprintf(digest+i*2,3,"%02x",raw[i]);
-    if(hash) BCryptDestroyHash(hash);
-    if(algorithm) BCryptCloseAlgorithmProvider(algorithm,0);
     if(dest!=INVALID_HANDLE_VALUE) CloseHandle(dest);
-    free(buffer); free(object); return okay;
+    free(buffer); return okay;
 }
 static int writeJson(const char* path,xvalue* root)
 {
