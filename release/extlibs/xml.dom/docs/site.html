@@ -19,6 +19,8 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / xml.dom</p><h1>xml.dom</h1>
     <p class="extlib-lead">解析、编辑和序列化 XML 文档树。</p>
     <p>基于 XRT/Expat；支持元素、文本、注释、属性和父子节点操作。DTD 与外部实体默认拒绝。解析文本按显式字节长度直接传入，不创建整份输入的 Buffer 副本。</p>
+    <p>2026-11-02：修复游离元素接收Document、Document直属文本两类非法挂接，失败不改变原树，不增加API或分配。75组类型/所属文档、32序列4096操作模型验证顺序/身份/循环拒绝与OOM移动回滚；50组以Python minidom独立对照，另25组按本包不自动跨文档收养的合同核对。新 <code>examples/move_nodes.xl</code> / <code>move_nodes_c.c</code> 展示中文节点跨父移动、重复挂接不复制与序列化往返，五行共同输出；不替代M9/M3公开类型验收，也不扩展成完整浏览器DOM。</p>
+    <p>本轮修正Windows门禁的PS5.1编码假绿灯：中文脚本无BOM时会遗漏末尾Reader正例；现固定UTF-8 BOM并加入必跑调用记录与损坏副本控制。首次缺项的退出0不作签收；旧通过记录也不能替代公开类型边界的实际复验。</p>
     <p>2026-10-30：parse/load/stringify/save 在每线程错误状态初始化失败时立即保留 MemoryError，不继续操作或改写原目标。三包 15 入口 Windows 270 / Linux 257 场景通过，换旧桥接各 60 场景失败；四线程 144 诊断的 GCC/TCC JIT/AOT、各 19 份普通独立 AOT、58 实际 C 原型与 Linux ASan/UBSan 通过。公开 ABI、类声明、Expat 和冻结 XRT 未改。</p>
     <p>整包仍待 M9/M3：默认门禁现在保留公开 Reader 正例，运行部分通过后在该项失败；Node/Element 另验同样失败。不能用工厂路径通过代替公开类型与原生构造器边界，旧全通过记录不覆盖新正例。完整证据见 SAX 共用审查记录和包 README。</p>
     <p>2026-10-26 当前 Windows/Linux 三包联合默认门禁均通过：严格 C、Linux ASan/UBSan、语言 JIT、中央/边界/分配与公开双语范例独立 EXE，以及 DOM/ElementTree 往返。旧 VFS 和共享快照缺失不再复现。<code>Node</code> 尚不能在包外命名；原生句柄构造器的安全边界修复前，本包仍待签收。</p>

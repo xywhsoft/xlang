@@ -1,6 +1,20 @@
 # xml.etree
 
-## 当前验收状态（2026-10-30）
+## 当前验收状态（2026-11-02）
+
+本轮ElementTree生产实现、API和Expat未改，随DOM挂接修复做联合回归：
+Windows373阶段372符合要求、Linux原生360阶段359符合要求，均含
+五条正确访问/未导出负例；各22联合普通AOT、67实际调用原型及旧冷启动、
+线程、限额、深树、往返通过。新增DOM模型不计作ElementTree新能力。
+
+原Windows中文PS1无BOM时在PS5.1漏Reader正例的假绿灯已修，编码/
+必跑结构与损坏副本控制在PS5/7均过；修后默认门仍在公开Reader类型
+失败，Element/Node最小正例另验仍失败，M9/M3不关闭。完整证据见
+[DOM本轮记录](../xml.dom/README.md)与仓库
+`docs/reports/extlib-xml-dom-mutation-20261102.json`；不以工厂推断
+对象可用替代安全的公开类型导出。
+
+## 2026-10-30 阶段记录
 
 **M9 / M3 仍未关闭，不是整包绿灯。** 修复 parse、load、stringify、
 save 在每线程错误状态初始化失败后清错并继续执行；文本 stringify

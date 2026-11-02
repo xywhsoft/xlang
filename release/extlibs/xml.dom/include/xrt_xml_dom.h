@@ -66,6 +66,8 @@ XRT_API uint32 xrtXmlDomNodeChildCount(const xrtxmldomnode* pNode);
 XRT_API xrtxmldomnode* xrtXmlDomNodeChild(const xrtxmldomnode* pNode,
 	uint32 iIndex);
 XRT_API xrtxmldomnode* xrtXmlDomDocumentElement(const xrtxmldomnode* pDocument);
+/* 不跨文档收养；Document 不能作子节点，其直属内容不能是 Text。
+   同父挂接移动到末尾而不重复；目标扩容失败时原父子关系保持不变。 */
 XRT_API bool xrtXmlDomAppendChild(xrtxmldomnode* pParent,
 	xrtxmldomnode* pChild);
 XRT_API bool xrtXmlDomRemoveChild(xrtxmldomnode* pParent,

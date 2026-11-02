@@ -1,0 +1,45 @@
+import xml.dom
+
+func main(...) as int
+    auto document = xml.dom.createDocument()
+    auto catalog = document.createElement("catalog")
+    auto text = document.createText("你好")
+    int rejected = 0
+    // Document 是所属文档，不是可挂接的内容；文本应放在元素内。
+    try
+        catalog.appendChild(document)
+    catch XmlError error
+        rejected += 1
+    end
+    try
+        document.appendChild(text)
+    catch XmlError error
+        rejected += 1
+    end
+    assert rejected == 2 and not document.parent.valid
+    assert document.childCount == 0 and catalog.childCount == 0
+    document.appendChild(catalog)
+    auto active = document.createElement("active")
+    auto archive = document.createElement("archive")
+    auto item = document.createElement("item")
+    catalog.appendChild(active)
+    catalog.appendChild(archive)
+    item.appendChild(text)
+    active.appendChild(item)
+    // 挂到新父节点即移动，不需要复制节点，也不在旧位置留下副本。
+    archive.appendChild(item)
+    assert active.childCount == 0 and archive.childCount == 1
+    assert item.parent.name == "archive" and item.textContent == "你好"
+    archive.appendChild(item)
+    assert archive.childCount == 1
+    string encoded = document.stringify()
+    assert encoded == "<catalog><active/><archive><item>你好</item></archive></catalog>"
+    auto restored = xml.dom.parse(encoded)
+    assert restored.documentElement.child(1).child(0).textContent == "你好"
+    println("rejected:", rejected)
+    println("moved: true")
+    println("same parent:", archive.childCount)
+    println("xml:", encoded)
+    println("roundtrip: true")
+    return 0
+end

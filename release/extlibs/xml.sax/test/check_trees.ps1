@@ -1,4 +1,4 @@
-param([switch]$SkipAot)
+﻿param([switch]$SkipAot)
 
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
@@ -61,12 +61,69 @@ try {
     $inputs += $gcc, (Get-Process -Id $PID).Path
     foreach ($path in $inputs) { $hashes[$path] = (Get-FileHash -LiteralPath $path).Hash }
     $hashes | ConvertTo-Json | Set-Content (Join-Path $work 'inputs.before.json') -Encoding UTF8
+    $null = Run 'PowerShell mandatory gate structure' (Get-Process -Id $PID).Path @('-NoProfile','-ExecutionPolicy','Bypass','-File','release/extlibs/xml.sax/test/check_gate_encoding.ps1')
     $null = Run 'GCC version' $gcc @('--version')
     $cc1 = Run 'GCC cc1 path' $gcc @('-print-prog-name=cc1')
     $hashes[$cc1] = (Get-FileHash -LiteralPath $cc1).Hash
     $runtime = Join-Path $work 'xrt_runtime.o'
     $null = Run 'XRT compile' $gcc ($flags + @('-c',
         'release/extlibs/xml.sax/test/xrt_runtime.c', '-o', $runtime))
+    $python=(Get-Command $(if($env:PYTHON){$env:PYTHON}else{'python'}) -CommandType Application -ErrorAction Stop|Select-Object -First 1).Source
+    $hashes[$python]=(Get-FileHash -LiteralPath $python).Hash
+    $mutationSource='release/extlibs/xml.dom/test/mutations_c.c'
+    $mutation=Join-Path $work 'mutations.exe'
+    $null=Run 'DOM mutation compile' $gcc ($flags+@($mutationSource,$runtime)+$links+@('-o',$mutation))
+    $summary=Run 'DOM mutation C model' $mutation @()
+    if($summary -cnotmatch '^XML DOM mutation: 75 matrix, 32 seeds, 4096 steps, [0-9]+ checks, [0-9]+ OOM, [0-9]+ refusals, 0 failures$'){throw 'Incomplete DOM model'}
+    $records=Run 'DOM mutation C records' $mutation @('--types')
+    $recordPath=Join-Path $work 'mutation-c.tsv'
+    [IO.File]::WriteAllText($recordPath,$records+"`n",[Text.UTF8Encoding]::new($false))
+    $null=Run 'DOM independent C types' $python @('-B','release/extlibs/xml.dom/test/check_mutation_types.py',$recordPath)
+    $summary=Run 'DOM mutation TCC model' $xl @('run',$mutationSource)
+    if($summary -cnotmatch '^XML DOM mutation: 75 matrix, 32 seeds, 4096 steps, [0-9]+ checks, [0-9]+ OOM, [0-9]+ refusals, 0 failures$'){throw 'Incomplete TCC DOM model'}
+    $direct=Run 'DOM mutation TCC records' $xl @('run',$mutationSource,'--','--types')
+    if($direct -cne $records){throw 'C/TCC DOM type records differ'}
+    $path=Join-Path $work 'mutation-tcc.tsv'
+    [IO.File]::WriteAllText($path,$direct+"`n",[Text.UTF8Encoding]::new($false))
+    $null=Run 'DOM independent TCC types' $python @('-B','release/extlibs/xml.dom/test/check_mutation_types.py',$path)
+    if(!$SkipAot){
+        $target=Join-Path $work 'mutations-aot.exe'
+        $null=Run 'DOM mutation AOT build' $xl @('build',$mutationSource,'-o',$target)
+        $summary=Run 'DOM mutation AOT model' $target @()
+        if($summary -cnotmatch '^XML DOM mutation: 75 matrix, 32 seeds, 4096 steps, [0-9]+ checks, [0-9]+ OOM, [0-9]+ refusals, 0 failures$'){throw 'Incomplete AOT DOM model'}
+        $direct=Run 'DOM mutation AOT records' $target @('--types')
+        if($direct -cne $records){throw 'C/AOT DOM type records differ'}
+        $path=Join-Path $work 'mutation-aot.tsv'
+        [IO.File]::WriteAllText($path,$direct+"`n",[Text.UTF8Encoding]::new($false))
+        $null=Run 'DOM independent AOT types' $python @('-B','release/extlibs/xml.dom/test/check_mutation_types.py',$path)
+    }
+    $mutationGolden=[IO.File]::ReadAllText((Join-Path $root 'release/extlibs/xml.dom/examples/move_nodes.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    $target=Join-Path $work 'move-nodes-c.exe'
+    $null=Run 'DOM move C compile' $gcc ($flags+@('release/extlibs/xml.dom/examples/move_nodes_c.c',$runtime)+$links+@('-o',$target))
+    if((Run 'DOM move GCC golden' $target @()) -cne $mutationGolden){throw 'DOM C move golden differs'}
+    foreach($source in @('move_nodes_c.c','move_nodes.xl')){
+        $path="release/extlibs/xml.dom/examples/$source"
+        if((Run "DOM move JIT $source" $xl @('run',$path)) -cne $mutationGolden){throw 'DOM JIT move golden differs'}
+        if(!$SkipAot){
+            $target=Join-Path $work ($source+'.exe')
+            $null=Run "DOM move build $source" $xl @('build',$path,'-o',$target)
+            if((Run "DOM move AOT $source" $target @()) -cne $mutationGolden){throw 'DOM AOT move golden differs'}
+        }
+    }
+    $decls=@()
+    foreach($kind in @('sax','dom','etree')){
+        foreach($source in @("test/cases/extlib_xml_$kind.xl","release/extlibs/xml.$kind/test/boundaries.xl")){
+            $probe=Join-Path $work ([guid]::NewGuid().ToString('N')+'.c')
+            $null=Run "actual prototypes $source" $xl @('cgen',$source,'--emit',$probe)
+            $decls+=@([IO.File]::ReadAllLines($probe)|Where-Object {$_ -match '^extern .*\b(x(?:sax|dom|etree)_[A-Za-z0-9_]+)\('})
+        }
+    }
+    $decls=@($decls|Sort-Object -Unique)
+    if($decls.Count -lt 58){throw 'Existing actual prototype coverage shrank'}
+    $abi=Join-Path $work 'actual-abi.c'
+    $prefix="#define XRT_MODULE_ALL`n#include `"release/extlibs/xml.sax/xml_sax_native.c`"`n#include `"release/extlibs/xml.dom/xml_dom_native.c`"`n#include `"release/extlibs/xml.etree/xml_etree_native.c`"`n"
+    [IO.File]::WriteAllText($abi,$prefix+($decls -join "`n"),[Text.UTF8Encoding]::new($false))
+    $null=Run "actual C ABI ($($decls.Count) declarations)" $gcc ($flags+@('-I.','-fsyntax-only',$abi))
     $cold = Join-Path $work 'bridge_state.exe'
     $null = Run 'C bridge state compile' $gcc ($flags + @(
         'release/extlibs/xml.sax/test/test_bridge_state.c',$runtime) + $links + @('-o',$cold))
@@ -195,6 +252,9 @@ try {
     }
     # 这是应当通过的公开类型正例；未导出不能被既有工厂路径的通过掩盖。
     $null = Run 'SAX public Reader type' $xl @('check','dev/extlib_blockers/xml_sax_reader_type.xl')
+    if ($checks.Count -eq 0 -or $checks[$checks.Count-1].name -cne 'SAX public Reader type') {
+        throw 'mandatory public type check was not executed'
+    }
     $passed = $true
 } catch {
     [IO.File]::WriteAllText((Join-Path $work 'failure.txt'),$_.Exception.Message,[Text.UTF8Encoding]::new($false))

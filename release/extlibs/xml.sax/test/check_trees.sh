@@ -8,6 +8,9 @@ cleanup() {
     result=$?
     trap - EXIT
     set +e
+    printf 'exit=%s\nphases=%s\n' "$result" "$(cat "$work/sequence" 2>/dev/null || printf 0)" > "$work.report.txt"
+    if [[ -f "$work/commands.log" ]]; then cat "$work/commands.log" >> "$work.report.txt"; fi
+    if [[ -f "$work/inputs.before.sha256" ]]; then cp -- "$work/inputs.before.sha256" "$work.inputs.sha256"; fi
     if ((result == 0)); then rm -rf -- "$work" || result=$?
     else printf 'XML FAIL exit=%s artifacts=%s\n' "$result" "$work" >&2; fi
     exit "$result"
@@ -15,6 +18,21 @@ cleanup() {
 trap cleanup EXIT
 trap 'printf "exit=%s\nline=%s\ncommand=%s\npipeline=%s\n" "$?" "$LINENO" "$BASH_COMMAND" "${PIPESTATUS[*]}" > "$work/failure.txt"' ERR
 exec > >(tee "$work/output.log") 2>&1
+printf '0\n' > "$work/sequence"
+# 每次调用保留 cwd、真实退出及两路输出；子 shell 也使用同一个序号文件。
+timeout() {
+    local sequence status
+    read -r sequence < "$work/sequence"
+    sequence=$((sequence+1)); printf '%s\n' "$sequence" > "$work/sequence"
+    printf '\n$ timeout' >> "$work/commands.log"
+    printf ' %q' "$@" >> "$work/commands.log"
+    printf '\ncwd=%s\n' "$PWD" >> "$work/commands.log"
+    if command timeout "$@" > "$work/$sequence.stdout" 2> "$work/$sequence.stderr"; then status=0; else status=$?; fi
+    printf 'exit=%s\n' "$status" >> "$work/commands.log"
+    cat "$work/$sequence.stdout" "$work/$sequence.stderr" >> "$work/commands.log"
+    cat "$work/$sequence.stdout"; cat "$work/$sequence.stderr" >&2
+    return "$status"
+}
 cc=${CC:-gcc}
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror
        -Ilib/xrt -Irelease/extlibs/xml.sax/include
@@ -39,6 +57,49 @@ timeout 30s "$cc" --version > "$work/compiler.txt"
 
 timeout 120s "$cc" "${flags[@]}" -c release/extlibs/xml.sax/test/xrt_runtime.c \
     -o "$work/xrt_runtime.o"
+python=${PYTHON:-python3}
+mutation_source=release/extlibs/xml.dom/test/mutations_c.c
+timeout 120s "$cc" "${flags[@]}" "$mutation_source" "$work/xrt_runtime.o" -lm -ldl -o "$work/mutations"
+timeout 90s "$work/mutations" > "$work/mutation.txt"
+cat "$work/mutation.txt"
+grep -Eq '^XML DOM mutation: 75 matrix, 32 seeds, 4096 steps, [0-9]+ checks, [0-9]+ OOM, [0-9]+ refusals, 0 failures$' "$work/mutation.txt"
+timeout 90s "$work/mutations" --types > "$work/mutation-c.tsv"
+timeout 60s "$python" -B release/extlibs/xml.dom/test/check_mutation_types.py "$work/mutation-c.tsv"
+timeout 90s release/xl run "$mutation_source" > "$work/mutation-tcc.txt"
+cat "$work/mutation-tcc.txt"
+grep -Eq '^XML DOM mutation: 75 matrix, 32 seeds, 4096 steps, [0-9]+ checks, [0-9]+ OOM, [0-9]+ refusals, 0 failures$' "$work/mutation-tcc.txt"
+timeout 90s release/xl run "$mutation_source" -- --types > "$work/mutation-tcc.tsv"
+cmp "$work/mutation-c.tsv" "$work/mutation-tcc.tsv"
+timeout 60s "$python" -B release/extlibs/xml.dom/test/check_mutation_types.py "$work/mutation-tcc.tsv"
+timeout 120s release/xl build "$mutation_source" -o "$work/mutations-aot"
+timeout 90s "$work/mutations-aot" > "$work/mutation-aot.txt"
+cat "$work/mutation-aot.txt"
+grep -Eq '^XML DOM mutation: 75 matrix, 32 seeds, 4096 steps, [0-9]+ checks, [0-9]+ OOM, [0-9]+ refusals, 0 failures$' "$work/mutation-aot.txt"
+timeout 90s "$work/mutations-aot" --types > "$work/mutation-aot.tsv"
+cmp "$work/mutation-c.tsv" "$work/mutation-aot.tsv"
+timeout 60s "$python" -B release/extlibs/xml.dom/test/check_mutation_types.py "$work/mutation-aot.tsv"
+timeout 120s "$cc" "${flags[@]}" release/extlibs/xml.dom/examples/move_nodes_c.c "$work/xrt_runtime.o" -lm -ldl -o "$work/move-nodes"
+timeout 45s "$work/move-nodes" > "$work/move-nodes.txt"
+diff -u release/extlibs/xml.dom/examples/move_nodes.expected.txt "$work/move-nodes.txt"
+for source in move_nodes_c.c move_nodes.xl; do
+    timeout 90s release/xl run "release/extlibs/xml.dom/examples/$source" > "$work/$source.jit.txt"
+    timeout 120s release/xl build "release/extlibs/xml.dom/examples/$source" -o "$work/$source.exe"
+    timeout 45s "$work/$source.exe" > "$work/$source.aot.txt"
+    diff -u release/extlibs/xml.dom/examples/move_nodes.expected.txt "$work/$source.jit.txt"
+    diff -u "$work/$source.jit.txt" "$work/$source.aot.txt"
+done
+for kind in sax dom etree; do
+    for source in "test/cases/extlib_xml_$kind.xl" "release/extlibs/xml.$kind/test/boundaries.xl"; do
+        timeout 90s release/xl cgen "$source" --emit "$work/abi-$kind.c"
+        grep -E '^extern .*\b(x(sax|dom|etree)_[A-Za-z0-9_]+)\(' "$work/abi-$kind.c" >> "$work/abi.decls"
+    done
+done
+sort -u "$work/abi.decls" > "$work/abi.unique"
+test "$(wc -l < "$work/abi.unique")" -ge 58
+printf '#define XRT_MODULE_ALL\n#include "release/extlibs/xml.sax/xml_sax_native.c"\n#include "release/extlibs/xml.dom/xml_dom_native.c"\n#include "release/extlibs/xml.etree/xml_etree_native.c"\n' > "$work/actual-abi.c"
+cat "$work/abi.unique" >> "$work/actual-abi.c"
+timeout 90s "$cc" "${flags[@]}" -I. -fsyntax-only "$work/actual-abi.c"
+printf 'XML actual native ABI: %s declarations, PASS\n' "$(wc -l < "$work/abi.unique")"
 timeout 120s "$cc" "${flags[@]}" release/extlibs/xml.sax/test/test_bridge_state.c \
     "$work/xrt_runtime.o" -lm -ldl -o "$work/bridge_state"
 timeout 90s "$work/bridge_state" threads
@@ -70,7 +131,7 @@ done
 for package in xml.sax xml.dom xml.etree; do
     source="release/extlibs/$package/test/test_${package/xml./xml_}.c"
     binary="$work/test_${package/xml./xml_}"
-    "$cc" "${flags[@]}" "$source" "$work/xrt_runtime.o" \
+    timeout 120s "$cc" "${flags[@]}" "$source" "$work/xrt_runtime.o" \
         -lm -ldl -o "$binary"
     timeout 90s "$binary"
 done

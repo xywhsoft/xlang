@@ -1,0 +1,5 @@
+rejected: 2
+moved: true
+same parent: 1
+xml: <catalog><active/><archive><item>你好</item></archive></catalog>
+roundtrip: true

@@ -299,8 +299,12 @@ XRT_API bool xrtXmlDomAppendChild(xrtxmldomnode* pParent,
 	xrtxmldomnode** pItems;
 	uint32 iCapacity;
 	uint32 i;
+	/* 文档只能作为树根；文档层只接受元素、注释和处理指令。 */
 	if ( pParent == NULL || pChild == NULL ||
 		pParent->pDocument != pChild->pDocument ||
+		pChild->iType == XRT_XML_DOM_DOCUMENT_NODE ||
+		(pParent->iType == XRT_XML_DOM_DOCUMENT_NODE &&
+		 pChild->iType == XRT_XML_DOM_TEXT_NODE) ||
 		pParent->iType == XRT_XML_DOM_TEXT_NODE ||
 		pParent->iType == XRT_XML_DOM_COMMENT_NODE ||
 		pParent->iType == XRT_XML_DOM_PROCESSING_INSTRUCTION_NODE ||

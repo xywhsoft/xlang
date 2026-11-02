@@ -1,6 +1,63 @@
 # xml.dom
 
-## 当前验收状态（2026-10-30）
+## 2026-11-02 挂接规则与移动回滚
+
+修复两个实际的树结构错误：游离元素可以接收所属 `Document`，导致文档
+不再是根；`Document` 可以直接接收 `Text`，写出不合法的文档层内容。
+现在在现有挂接检查中统一拒绝，两种 C 调用都返回 false，XLang
+`appendChild` 沿用 `XmlError`；失败不改变原树。没有增加公开 API、
+节点类型、分配、正文复制或所有权层；空文档仍可逐步构建，文本节点
+本身仍可创建和序列化，不能将这条限制扩大为禁止文本片段。
+
+`test/mutations_c.c` 通过公开 API 驱动独立树模型，不读取生产节点、
+容量或引用计数：75组类型/所属文档、32序列4096操作，验证父子身份、
+顺序、单根元素、同父重排不重复、循环拒绝、移除/跨父移动、借用名称
+寿命及错误后复用。四种满容量目标的逐点故障还固定“先扩容再摘除”的
+事务性：失败后旧父和新父都不变，再次执行同一挂接成功；每组及最终
+退役比较七项内存指标。旧代码同一最终夹具127项断言失败，并在状态
+分歧后停止相应随机序列；新代码完成全部序列且零失败，不把127当作
+127个产品BUG。实际OOM次数不是不同分配点或跨平台固定预算。
+
+`test/check_mutation_types.py` 用 Python minidom 独立核对50组同文档
+类型组合；另25组核对本包不自动跨文档收养的明确合同，不宣称它与
+minidom 的跨文档行为相同。该表及模型进入三引擎联合门禁；三个损坏
+记录负控防止参照只检查条目数量。另有隔离生产源负控分别放开两条
+错误规则、把摘除提前到扩容前，证明语义及回滚检查能发现偏差。
+规则依据 [DOM 插入合法性](https://dom.spec.whatwg.org/#concept-node-ensure-pre-insertion-validity)，
+但本包不因此承诺 DocumentFragment、跨文档自动收养或完整浏览器DOM。
+
+新增 `examples/move_nodes.xl` 与 `move_nodes_c.c`：先拒绝错误的文档
+挂接，再把带中文文本的 item 从 active 移到 archive，重复挂接不复制，
+序列化后重新解析，五行共同黄金输出，不产生文件。
+
+```text
+release/xl.exe run release/extlibs/xml.dom/examples/move_nodes.xl
+release/xl.exe run release/extlibs/xml.dom/examples/move_nodes_c.c
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/xml.sax/test/check_trees.ps1
+bash release/extlibs/xml.sax/test/check_trees.sh
+```
+
+门禁同时回归 SAX、DOM 与 ElementTree 的既有解析/写出、冷错误状态、
+线程、深树、限额、内存故障、实际生成原型和双语独立程序；Python
+仅为测试依赖。Linux命令也保存cwd、真实退出与两路输出，失败留现场。
+包外可命名类型和原生构造安全边界仍须分别验收，不能以新增工厂范例
+通过替代 M9/M3；完整证据及未运行项见仓库
+`docs/reports/extlib-xml-dom-mutation-20261102.json`。
+
+本轮还确认原 Windows 门禁的假绿灯：无 BOM 的中文 PowerShell 脚本
+在 PS5.1 下将末尾 Reader 调用吞入注释，原仓库脚本的 AST 即有这个
+缺口；PS7 不会漏掉。现在明确保存 UTF-8 BOM，新增独立编码/必跑调用
+检查及两个损坏副本负控，并在尾部核对调用记录。PS5/7 的结构检查均
+通过；首次 Windows 退出0却缺末项的报告保留为无效签收，不据此关闭M9。
+编码检查只处理本门禁，不修改语言源编码或 xlang 主线。
+
+最终联合门：Windows373项372符合要求、Linux360项359符合要求（均含
+五项正确访问/未导出负例），各22普通独立程序与67条实际调用原型通过；唯一
+必过红项仍是Reader公开类型。Node/Element最小正例另验也失败。
+新增模型各引擎487883检查、206实际OOM、1866逻辑拒绝且零失败。
+这些不是三个包都已发布签收；同一文档并发编辑不在本轮认证范围。
+
+## 2026-10-30 阶段记录
 
 **M9 / M3 仍未关闭，不是整包绿灯。** 修复 parse、load、stringify、
 save 的每线程错误状态初始化失败后被清错并继续执行；文本 stringify
