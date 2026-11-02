@@ -16,7 +16,7 @@ pkg=release/extlibs/xxhash
 input_paths() {
     find "$pkg" -type f -print0
     printf '%s\0' .gitattributes lib/xrt/xrt.h lib/xruntime/xruntime.h \
-        test/support/extlib_codec_runtime.c tools/check_extlib_xxhash.sh \
+        test/support/extlib_codec_runtime.c test/support/extlib_hash_reader_contract.h tools/check_extlib_xxhash.sh \
         tools/check_extlib_native_globals.ps1 tools/check_extlib_native_globals.sh \
         release/xl release/libxlc.so test/cases/extlib_xxhash.xl \
         test/cases/extlib_xxhash_boundaries.xl \
@@ -33,6 +33,9 @@ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
 "$cc" --version > "$work/compiler.txt"
 "$cc" "${flags[@]}" -DXRT_MODULE_THREAD -c test/support/extlib_codec_runtime.c -o "$work/runtime.o"
+timeout 120s "$cc" "${flags[@]}" "$pkg/test/reader_contract_c.c" "$work/runtime.o" -lm -ldl -o "$work/reader-contract"
+timeout 60s "$work/reader-contract" | tee "$work/reader-contract.log"
+grep -Eq '^xxhash reader contract: 1 variants, 448 cases, [0-9]+ checks, 436 guarded failures, 4 real OOM, 0 failures$' "$work/reader-contract.log"
 objects=()
 for source in xrt_xxhash.c xxhash_native.c third_party/xxhash.c; do
     object="$work/native-${#objects[@]}.o"
@@ -55,7 +58,8 @@ if [[ ! -x release/xl ]]; then
 fi
 # 保留相同发布输入，在原生临时目录执行语言阶段，避开 WSL 挂载盘 I/O 超时。
 stage="$work/stage"
-mkdir -p "$stage/release/extlibs" "$stage/release/examples/extlibs" "$stage/test/cases"
+mkdir -p "$stage/release/extlibs" "$stage/release/examples/extlibs" "$stage/test/cases" "$stage/test/support"
+cp -a test/support/extlib_hash_reader_contract.h "$stage/test/support/"
 cp -a release/xl release/libxlc.so "$stage/release/"
 cp -a "$pkg" "$stage/release/extlibs/"
 cp -a test/cases/extlib_xxhash.xl test/cases/extlib_xxhash_boundaries.xl \
@@ -111,6 +115,11 @@ for name in extlib_xxhash extlib_xxhash_boundaries extlib_xxhash_progress seeded
 done
 diff -u "$work/basic.log" "$work/xxhash_basic_aot.log"
 diff -u "$work/full_jit.log" "$work/xxhash_aot.log"
+timeout 90s ./release/xl run "$pkg/test/reader_contract_c.c" > "$work/reader-contract.jit.txt"
+timeout 180s ./release/xl build "$pkg/test/reader_contract_c.c" -o "$work/reader-contract.aot"
+timeout 90s "$work/reader-contract.aot" > "$work/reader-contract.aot.txt"
+diff -u "$work/reader-contract.log" "$work/reader-contract.jit.txt"
+diff -u "$work/reader-contract.log" "$work/reader-contract.aot.txt"
 cd "$root"
 bash "$root/tools/check_extlib_native_globals.sh" xxhash
 mapfile -d '' after < <(input_paths | sort -z)

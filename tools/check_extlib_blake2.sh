@@ -12,7 +12,7 @@ issues=0
 input_paths() {
     { find "$pkg" release/include -type f -print0
       printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so \
-        test/support/extlib_codec_runtime.c tools/check_extlib_blake2.sh \
+        test/support/extlib_codec_runtime.c test/support/extlib_hash_reader_contract.h tools/check_extlib_blake2.sh \
         test/cases/extlib_blake2.xl test/cases/extlib_blake2_boundaries.xl test/cases/extlib_blake2_progress.xl \
         release/examples/extlibs/blake2.xl release/examples/extlibs/blake2_basic.xl release/examples/extlibs/blake2_basic.expected.txt
       compiler=$(command -v "$cc" || true)
@@ -149,6 +149,14 @@ for language in c xl; do
     golden "$pkg/examples/file_progress.expected.txt" "$work/file-progress-$language-jit.stdout"
     golden "$pkg/examples/file_progress.expected.txt" "$work/file-progress-$language-aot.stdout"
 done
+run reader-contract-compile 120 "$cc" "${flags[@]}" "$pkg/test/reader_contract_c.c" "$work/runtime.o" -lm -ldl -o "$work/reader-contract"
+run reader-contract-GCC 60 "$work/reader-contract"
+grep -Eq '^blake2 reader contract: 2 variants, 896 cases, [0-9]+ checks, 872 guarded failures, 8 real OOM, 0 failures$' "$work/reader-contract-GCC.stdout"
+run reader-contract-TCC 90 "$xl" run "$pkg/test/reader_contract_c.c"
+run reader-contract-build 180 "$xl" build "$pkg/test/reader_contract_c.c" -o "$work/reader-contract.aot"
+run reader-contract-AOT 90 "$work/reader-contract.aot"
+diff -u "$work/reader-contract-GCC.stdout" "$work/reader-contract-TCC.stdout"
+diff -u "$work/reader-contract-GCC.stdout" "$work/reader-contract-AOT.stdout"
 # 负例只检查，不执行伪造句柄；全局对象正例不得改为局部对象来换绿灯。
 reject private_adopt_constructor_negative 'access|private'
 run global-lifecycle-jit 90 "$xl" run "$pkg/test/global_lifecycle.xl"

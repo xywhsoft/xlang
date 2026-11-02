@@ -1,9 +1,10 @@
 # 普通扩展库的共享阻断索引
 
-本页只汇总 2026-10-27 重建发布版后仍可复现、会阻断普通扩展库发布验收的边界。完整症状、最小源和修复建议以链接的单项记录为准。包内正例通过不等于对应共享边界已经修复；本任务不修改 XLang 主线，也不为这些问题增加包内兼容回退。
+本页汇总在固定发布物中复现、会阻断普通扩展库发布验收的边界，具体日期和产物以单项记录为准。完整症状、最小源和修复建议以链接的单项记录为准。包内正例通过不等于对应共享边界已经修复；本任务不修改 XLang 主线，也不为这些问题增加包内兼容回退。
 
 | 边界 | 当前最小证据 | 受影响包及解除条件 |
 | --- | --- | --- |
+| [M14：Windows C99 snprintf 截断](c99_snprintf_termination.md) | 无XRT/扩展的4字节缓冲最小源：GCC退出0；`xl run`及独立EXE退出1，`snprintf`未终止且返回-1；同源`vsnprintf`对照正确。 | 本轮确认xxhash、BLAKE2、BLAKE3的长C错误快照受影响。主线统一用户C环境声明/绑定后复验，不为各包添加格式化回退。 |
 | [外部 `var` 容器投影](foreign_var_container_projection.md) | `release/xl.exe run dev/extlib_blockers/foreign_var_array_container.xl` 报 `input is not an array`；语言数组抵达 C 时不是预期的 XRT 数组。 | 至少阻断 `statistics`，另有 BSON、CBOR、TOML 等同形报告。主线须明确外部调用的容器类型、嵌套元素和所有权投影，再逐包复验。 |
 | [类型化嵌套数组写入](nested_array_append_runtime.md) | `release/xl.exe run dev/extlib_blockers/csv_nested_array_value.xl` 报 `value has an incompatible type`，复现源不导入 CSV。 | `csv` 的语言门禁。先修复并复验纯语言最小源的 JIT/AOT，再跑 CSV 全包门禁。 |
 | [私有原生句柄构造器](blake2_private_adopt_constructor.md) | `release/xl.exe check release/extlibs/blake2/test/private_adopt_constructor_negative.xl` 仍输出 `ok`。只编译负例，**绝不运行伪造句柄**。 | `blake2`、`blake3` 等导出 native-backed class。包外必须被访问控制拒绝，然后复验各包安全负例和完整门禁。 |

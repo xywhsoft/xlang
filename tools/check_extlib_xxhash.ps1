@@ -17,7 +17,7 @@ $sources = @($manifest.artifact.cSources | ForEach-Object { "release/extlibs/xxh
 $cases = @('extlib_xxhash','extlib_xxhash_boundaries','extlib_xxhash_progress')
 function Inputs {
     @('.gitattributes','release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
-      'release/include/xrt_decl.h','release/include/xruntime_decl.h','test/support/extlib_codec_runtime.c',
+      'release/include/xrt_decl.h','release/include/xruntime_decl.h','test/support/extlib_codec_runtime.c','test/support/extlib_hash_reader_contract.h',
       'tools/check_extlib_xxhash.ps1','tools/check_extlib_xxhash.sh','tools/extlib_smoke_process.ps1',
       'tools/check_extlib_native_globals.ps1','tools/check_extlib_native_globals.sh',
       'tools/xlir_native_process.ps1','tools/run_extlib_c.ps1','test/featured_extlibs.json','test/suites/11_featured_extlibs_rc.bat',
@@ -76,6 +76,11 @@ try {
         $objects += $obj
     }
     $links = @($runtime,'-lWs2_32','-lAdvapi32','-lm')
+    $readerContract='release/extlibs/xxhash/test/reader_contract_c.c'
+    $readerBinary=Join-Path $work 'reader-contract.exe'
+    $null=Check 'reader-contract-compile' $gcc ($flags+@($readerContract)+$links+@('-o',$readerBinary))
+    $readerSummary=Check 'reader-contract-GCC' $readerBinary @()
+    if($readerSummary -cnotmatch '^xxhash reader contract: 1 variants, 448 cases, [0-9]+ checks, 436 guarded failures, 4 real OOM, 0 failures$'){throw 'Incomplete reader contract'}
     foreach ($name in @('test_xxhash','test_xxhash_native')) {
         $selected = if ($name -eq 'test_xxhash') { @($objects[2]) } else { $objects }
         $binary = Join-Path $work "$name.exe"
@@ -134,7 +139,7 @@ try {
     $actual = @([regex]::Matches(($decls -join "`n"),'\bxxxhash_[a-z0-9_]+(?=\()') | ForEach-Object Value | Sort-Object -Unique)
     if (@(Compare-Object $expected $actual).Count -or $decls.Count -ne $expected.Count) { throw 'Generated ABI coverage incomplete' }
     $abi = Join-Path $work 'abi.c'
-    [IO.File]::WriteAllText($abi,"#define XRT_MODULE_VALUE`n#include <stdint.h>`n#include `"xxhash_native.h`"`n"+($decls -join "`n"),$utf8)
+    [IO.File]::WriteAllText($abi,"#include <stdint.h>`n#include `"xxhash_native.h`"`n"+($decls -join "`n"),$utf8)
     $null = Check 'generated-prototypes' $gcc ($flags + @('-Irelease/extlibs/xxhash/include','-fsyntax-only',$abi))
 
     # 负数或超宽种子必须在语义阶段拒绝，而不是依赖 C 截断。
@@ -169,6 +174,13 @@ try {
     }
     if ($c -cne $golden -or $jit -cne $golden) { throw 'C/XL golden output mismatch' }
     if (@(Compare-Object @($hashes.Keys) @(Inputs)).Count) { throw 'Input file set changed' }
+    $readerSummary=Check 'reader-contract-TCC' $xl @('run',$readerContract)
+    if($readerSummary -cnotmatch '^xxhash reader contract: 1 variants, 448 cases, [0-9]+ checks, 436 guarded failures, 4 real OOM, 0 failures$'){throw 'Incomplete TCC reader contract'}
+    if(!$SkipAot){
+        $target=Join-Path $work 'reader-contract-aot.exe'
+        $null=Check 'reader-contract-build' $xl @('build',$readerContract,'-o',$target)
+        $null=Check 'reader-contract-AOT' $target @()
+    }
     $lifecycle = @('-NoProfile','-ExecutionPolicy','Bypass','-File','tools/check_extlib_native_globals.ps1',
         '-Root',$Root,'-Package','xxhash')
     if ($SkipAot) { $lifecycle += '-SkipAot' }
