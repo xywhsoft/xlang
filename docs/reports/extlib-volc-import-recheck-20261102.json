@@ -1,0 +1,62 @@
+{
+  "schema": "xlang-volc-import-recheck-1",
+  "dateUtc": "2026-11-02T05:15:15.5582254Z",
+  "status": "blocked-by-independent-http-dependency",
+  "requiredExit": 0,
+  "cases": [
+    {
+      "source": "release/extlibs/volc.core/src/volc_core.xl",
+      "sourceSha256": "82e87ffd84f8af5a330ae571f97c4db73d429a6fc24fab109b8c67e8b3cc7c72",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "D:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:889:25: [sem] 没有匹配的 create 重载\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:903:25: [sem] 没有匹配的 create 重载\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:946:20: [sem] unknown class/union field\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:946:32: [sem] no matching callable class member 'NetEngine.nativeHandle': check argument count, types and access\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:956:3: [sem] 未知类型: TlsConfig\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:963:3: [sem] 未知类型: TlsConfig\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:969:11: [sem] unknown class/union field\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:969:23: [sem] no matching callable class member 'NetEngine.nativeHandle': check argument count, types and access\n",
+        "elapsedMs": 1209
+      }
+    },
+    {
+      "source": "dev/extlib_blockers/volc_phone_import_chain.xl",
+      "sourceSha256": "ff3addb82523e4c4ab2cf1ebc67a3f9faf5352b0bbcbdfcc293acb98c9277e73",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "D:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:889:25: [sem] 没有匹配的 create 重载\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:903:25: [sem] 没有匹配的 create 重载\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:946:20: [sem] unknown class/union field\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:946:32: [sem] no matching callable class member 'NetEngine.nativeHandle': check argument count, types and access\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:956:3: [sem] 未知类型: TlsConfig\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:963:3: [sem] 未知类型: TlsConfig\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:969:11: [sem] unknown class/union field\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:969:23: [sem] no matching callable class member 'NetEngine.nativeHandle': check argument count, types and access\n",
+        "elapsedMs": 1081
+      }
+    },
+    {
+      "source": "release/examples/extlibs/volc_sts.xl",
+      "sourceSha256": "db2764231760d7df81092daee993184830334ae76d4b13d426b7f01dfb90889c",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "D:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:889:25: [sem] 没有匹配的 create 重载\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:903:25: [sem] 没有匹配的 create 重载\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:946:20: [sem] unknown class/union field\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:946:32: [sem] no matching callable class member 'NetEngine.nativeHandle': check argument count, types and access\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:956:3: [sem] 未知类型: TlsConfig\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:963:3: [sem] 未知类型: TlsConfig\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:969:11: [sem] unknown class/union field\nD:\\GIT\\x-lang\\release\\extlibs\\xhttp.client\\src\\xlang\\xhttp_client.xl:969:23: [sem] no matching callable class member 'NetEngine.nativeHandle': check argument count, types and access\n",
+        "elapsedMs": 884
+      }
+    }
+  ],
+  "inputs": {
+    "release/xl.exe": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05",
+    "release/xl.dll": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930",
+    "release/xlc.dll": "27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334",
+    "lib/xrt/xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+    "lib/xruntime/xruntime.h": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+    "release/extlibs/xhttp.client/src/xlang/xhttp_client.xl": "cb5d2fab0877bd5e502760a96ce31070886265a114103959764ea886625b965c",
+    "release/extlibs/volc.core/xlang.package.json": "25c5830015ada5ce94fac8843b3025a69d808567b1f807c1b0aa3bae4a044887",
+    "release/extlibs/volc.phone/xlang.package.json": "435650b13abc7890f8bcf050c3adb6f7e3ca03f230c43f64bba6c8d40b90cb81",
+    "release/extlibs/volc.sts/xlang.package.json": "ab1d65d854f261691ec17549ad801200fa1499f7411e0fe63d5dc4cd817d257d"
+  },
+  "performed": "Static checks only; no HTTP request, credentials, dependency edits or mainline changes",
+  "firstBlockingSource": "release/extlibs/xhttp.client/src/xlang/xhttp_client.xl",
+  "affected": [
+    "volc.core",
+    "volc.phone",
+    "volc.sts"
+  ],
+  "recovery": "Synchronize HTTP client against the current native network constructors, handle access and TLS configuration; require clean import xhttp.client and all three packages before their full network/mock/C-XLang acceptance",
+  "maturityChanged": false,
+  "goalStatus": "active"
+}

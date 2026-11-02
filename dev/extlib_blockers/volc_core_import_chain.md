@@ -1,4 +1,19 @@
-# volc.core 导入链被 xhttp.multipart 阻断
+# volc.core HTTP 导入链阻断
+
+2026-11-02 用当前已发布的 `release/xl.exe` 再验：检查
+`release/extlibs/volc.core/src/volc_core.xl`、最小 `import volc.phone`
+及公开 `volc_sts.xl`，三条路径均退出1，仍停在独立维护的
+`xhttp.client/src/xlang/xhttp_client.xl`。首组诊断为889/903行构造
+重载、946/969行 `NetEngine.nativeHandle`、956/963行 `TlsConfig`。
+没有进入三个包的网络请求，不能以离线签名/响应成功替代完整导入。
+原始命令、输出与发布物指纹见
+[`extlib-volc-import-recheck-20261102.json`](../../docs/reports/extlib-volc-import-recheck-20261102.json)。
+
+恢复条件：由HTTP维护上下文按当前网络类型的真实构造、句柄访问和TLS
+配置声明同步客户端，回归 `import xhttp.client` 与三个上层包，然后
+补齐包级 mock HTTP、超时/失败、C/XLang对照。普通包不添加旧接口别名，
+不换私有实现或绕过导入。以下multipart诊断保留为旧发布物历史记录，
+不是2026-11-02的第一阻断。
 
 最小复现：从 `demo6` 目录运行：
 
