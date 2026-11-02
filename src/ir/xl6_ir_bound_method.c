@@ -18,6 +18,10 @@ static int xl6IrLowerUnifyBoundResult(const XL6_IrModule* module,XL6_IrTypeId fo
     XL6_IrTypeId actualId,const XL6_IrTypeId* parameters,size_t count,XL6_IrTypeId* resolved,size_t depth)
 {
     if(xl6IrBoundMethodResultMatches(module,formalId,actualId))return 1;
+    /* Reuse invariant input inference before considering result covariance. */
+    for(size_t p=0;p<count;++p)
+        if(formalId==parameters[p] && resolved[p])
+            return xl6IrBoundMethodResultMatches(module,resolved[p],actualId);
     const XL6_IrType* formal=xl6IrTypeGet(&module->types,formalId);
     const XL6_IrType* actual=xl6IrTypeGet(&module->types,actualId);
     if(!formal || !actual || depth>module->types.count)return 0;

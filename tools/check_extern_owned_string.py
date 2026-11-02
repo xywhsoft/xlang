@@ -29,6 +29,8 @@ def main():
         if not passed:raise RuntimeError(name+'\n'+log[-5000:])
         print(name+': PASS',flush=True)
     cases=[
+        ('inferred-result-variables','test/cases/extern_owned_inferred_result_variables.xl',
+            ['test/cases/extern_owned_bound_c_owners_host.c','test/cases/extern_owned_string_host.c'],[]),
         ('generic-callable-results','test/cases/extern_owned_generic_callable_results.xl',
             ['test/cases/extern_owned_bound_c_owners_host.c','test/cases/extern_owned_string_host.c'],[]),
         ('callable-alias-integrity','test/cases/extern_owned_callable_alias_integrity.xl',
@@ -211,6 +213,8 @@ def main():
                 if args.cli else [binary,entry,'exe',work/'consumer-aot',*extra])
             run('export-C-consumer-aot',[consumer_executable])
     negatives={
+        'test/cases/bad_extern_owned_inferred_result_container.xl':'typed bound method violates generic constraints',
+        'test/cases/bad_extern_owned_inferred_result_input.xl':'typed bound method violates generic constraints',
         'test/cases/bad_extern_owned_generic_result_constraint.xl':'typed bound method violates generic constraints',
         'test/cases/bad_extern_owned_generic_result_input.xl':'typed bound method violates generic constraints',
         'test/cases/bad_extern_owned_generic_result_container.xl':'typed bound method violates generic constraints',

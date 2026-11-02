@@ -8339,6 +8339,11 @@ static int xl6SemInferBoundResultTypes(XL6_SemContext* ctx,const XL6_AstNode* ty
 {
     formal=xl6SemResolveAliasType(ctx,formal);actual=xl6SemResolveAliasType(ctx,actual);
     if(!formal || !actual || depth>32)return 0;
+    /* Inputs may already have fixed T to an owner-bearing callable. A result
+     * uses that binding; it must not try to re-infer T from its copied ABI. */
+    int parameter=formal->childCount ? -1 : xl6SemTypeParamIndexIn(typeParams,formal->text);
+    if(parameter>=0 && inferred[parameter])
+        return xl6SemCOwnedResultMatchDepth(ctx,actual,inferred[parameter],depth)>=0;
     if(!xl6SemTypeContainsTypeParam(typeParams,formal))
         return xl6SemCOwnedResultMatchDepth(ctx,actual,formal,depth)>=0;
     const XL6_AstNode* fromInner=xl6SemNullableInnerType(formal);

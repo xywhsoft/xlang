@@ -1,0 +1,80 @@
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point data)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int prefix)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+typedef Text=func() as cstring
+typedef CopyText=func() as string
+typedef Data=func() as cbytes
+typedef CopyData=func() as bytes
+class Reader
+    func Text() as cstring
+        return cstring.take(rawText(),release)
+    end
+    func Data() as cbytes
+        return cbytes.take(rawBytes(),4,release)
+    end
+end
+class Identity
+    func Echo<T>(T value) as T
+        return value
+    end
+    func Factory<T>(T witness) as func(T) as T
+        return self.Echo
+    end
+end
+func check(bool choose)
+    Reader reader=Reader()
+    Identity identity=Identity()
+    Identity other=Identity()
+    Text text=reader.Text
+    Data data=reader.Data
+    // Input T is already Text/Data. Only the returned callback may adapt.
+    func(Text) as CopyText copied=identity.Echo
+    func(Data) as CopyData binary=identity.Echo
+    CopyText copy=copied(text)
+    string value=copy()
+    assert value=="hello" and not original(value)
+    CopyData dataCopy=binary(data)
+    bytes bytesValue=dataCopy()
+    assert bytesValue==b"\0\xff\x11*" and not originalBytes(bytesValue)
+    func(Text) as func(Text) as CopyText factory=identity.Factory
+    func(Data) as func(Data) as CopyData dataFactory=identity.Factory
+    assert factory(text)(text)()=="hello"
+    assert dataFactory(data)(data)()==b"\0\xff\x11*"
+    func(Text) as CopyText selected=choose ? identity.Echo : other.Echo
+    assert selected(text)()=="hello"
+    auto cast=identity.Echo as func(Text) as CopyText
+    assert cast(text)()=="hello"
+    // The original signature and callback still return the foreign payload.
+    func(Text) as Text exact=identity.Echo
+    string unchanged=exact(text)()
+    assert original(unchanged)
+    func(Data) as Data exactData=identity.Echo
+    bytes unchangedData=exactData(data)()
+    assert originalBytes(unchangedData)
+end
+assert debug()
+check(true)
+check(false)
+assert balanced()
+int accepted=0
+int rejected=0
+for prefix in range(256)
+    int before=live()
+    failAfter(prefix)
+    try
+        check(prefix%2==0)
+        accepted+=1
+    catch problem
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before and balanced()
+end
+assert accepted>0 and rejected>0

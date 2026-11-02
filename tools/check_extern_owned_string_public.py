@@ -109,6 +109,7 @@ def main():
     bound_nullable_cast_contract = ROOT/'test/cases/xlir_bound_nullable_cast_contract.c'
     bound_variadic_owner_contract = ROOT/'test/cases/xlir_bound_variadic_owner_contract.c'
     generic_result_contract = ROOT/'test/cases/xlir_generic_callable_result_contract.c'
+    inputs[ROOT/'test/cases/extern_owned_inferred_result_variables.xl'] = sha(ROOT/'test/cases/extern_owned_inferred_result_variables.xl')
     callable_alias_contract = ROOT/'test/cases/xlir_callable_alias_integrity_contract.c'
     callable_result_contract = ROOT/'test/cases/xlir_bound_callable_result_contract.c'
     bound_compound_contract = ROOT/'test/cases/xlir_bound_compound_contract.c'
