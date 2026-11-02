@@ -60,14 +60,20 @@ void xlsFrontendSemMemoBindFunctions(xls_sem_memo* memo,xls_typed_module* module
     for(size_t i=0;i<memo->entries.Count && !candidate;++i){const xls_sem_entry* entry=xrtArrayConstGet(&memo->entries,i);
         candidate=entry->unit && entry->unit->proof && entry->finalInput && entry->finalPlanValid;
     }
-    if(candidate && xlsTypedModuleMeasureFunctions(module,xlsFrontendSemNativeBudget(),xlsSemNativeCancelled,NULL)){
+    size_t limit=xlsFrontendSemNativeBudget(),left=memo->nativeWork.bytes<=limit ? limit-memo->nativeWork.bytes : 0;
+    /* Existing owners have already consumed their union cost. Reserve the
+     * new forest's ledger before measuring;never certify a prefix that cannot
+     * be retained,or charge a shared pool as just its visible live nodes. */
+    if(candidate && left>128 && xlsTypedModuleMeasureFunctions(module,left-128,xlsSemNativeCancelled,NULL)){
         for(size_t i=0;i<memo->entries.Count;++i){xls_sem_entry* entry=xrtArrayGet(&memo->entries,i);
             if(entry->native || !entry->unit || !entry->unit->proof || !entry->finalInput || !entry->finalPlanValid ||
                i>=memo->raw->entries.Count || !*(xls_raw_fact* const*)xrtArrayConstGet(&memo->raw->entries,i))continue;
             xls_typed_function* function=xlsTypedModuleFunction(module,i);
             if(function){
-                if(xlsSemNativeCOwnedReadOnly(xlsTypedFunctionRoot(function),0))xlsSemNativeRetain(memo,entry,function);
-                else ++memo->nativeWork.readonlyDeclined;
+                if(xlsTypedFunctionKnownBytes(function)){
+                    if(xlsSemNativeCOwnedReadOnly(xlsTypedFunctionRoot(function),0))xlsSemNativeRetain(memo,entry,function);
+                    else ++memo->nativeWork.readonlyDeclined;
+                }
                 xlsTypedFunctionRelease(function);
             }
         }

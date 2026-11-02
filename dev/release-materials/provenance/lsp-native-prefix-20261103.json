@@ -1,0 +1,3514 @@
+{
+  "phase": "M7a2b113",
+  "date": "2026-11-03",
+  "status": "correctness-passed-performance-not-admitted",
+  "accepted": false,
+  "scope": "Bounded native function prefix receipts and reuse;not full LSP,GUI,or release delivery.",
+  "sourceBase": "a82489753",
+  "implementation": {
+    "defaultNativeRetainBytes": 33554432,
+    "fullPoolBackingCharged": true,
+    "forestMetadataChargedInFull": true,
+    "ledgerBytes": 128,
+    "prefixFailureCountersNotCommitted": true,
+    "outsidePrefixKnownBytes": 0,
+    "semanticAdmissionUnchanged": true,
+    "skipReadonlyScanWithoutReceipt": true
+  },
+  "build": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\full-v2",
+    "reportSha256": "28f26bec29eab91901534978b1dd6f7f6f2b51c6bc03869b7fd5262f0a3d92f5",
+    "status": "passed",
+    "translationUnits": 230,
+    "nativePrograms": 132,
+    "privateAstConsumers": 138,
+    "inputs": 812,
+    "outputs": 134,
+    "compilerSha256": "9a52de3e3af8f4896e963c4b68ed159f049954775decb20e421cd75d51aab6ed",
+    "headerSha256": "1869fdaea4d9216974f8b1d93981fe3a6841d42a9df51aa67536ea755ad0282f",
+    "ruleSourceIdentity": [
+      {
+        "path": "frontend/xl6_sem.c",
+        "sha256": "39aa0b34418e45df2b14b6be48127370db6dc87841bb971c56106f0504201729",
+        "identicalToBaseline": true
+      },
+      {
+        "path": "frontend/xl6_sem_c_owned.effects.c",
+        "sha256": "ebfb37923c07919c06fcac6d898902fb45158106551f2fbdacf3aebc1b11c4bc",
+        "identicalToBaseline": true
+      }
+    ]
+  },
+  "correctness": {
+    "nativePrefixChecks": 1216291,
+    "largeFunctions": 512,
+    "largeGenerations": 3,
+    "retainedAndReused": 85,
+    "copiedNodesCold": 97820,
+    "copiedNodesHot": 82398,
+    "knownRetainBytes": 33487635,
+    "fullAstExtendedFieldsNativeFactsAndIrParity": true,
+    "partialBudgetMalformedCancellationAndRetirement": true,
+    "omissionCases": 9,
+    "omissionCommands": 29,
+    "validationCommands": 58,
+    "protocolSuites": 56,
+    "wireSummary": {
+      "status": "passed",
+      "processes": 131,
+      "checks": 168,
+      "navigation": 336,
+      "completions": 26
+    }
+  },
+  "baseline": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-v2",
+    "reportSha256": "12394924f6ced820addef10138bc826951aed8c7eff0d7231e3092bc167cf31f",
+    "status": "passed",
+    "testsBuilt": false,
+    "scope": "Fresh build-only comparison image at current host SHA implementation;not a full native-test build.",
+    "inputCount": 622,
+    "outputCount": 2,
+    "archivedChangedInputs": [
+      {
+        "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module_internal.h",
+        "archivedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-inputs\\ide\\src\\analysis\\typed_module_internal.h",
+        "sha256": "eb6b36f19d9155341f4ef71d6c0fe76402a0c3b3c2ed9ac32923ac553b3359e2"
+      },
+      {
+        "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem_native.inc",
+        "archivedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-inputs\\ide\\src\\analysis\\frontend_sem_native.inc",
+        "sha256": "57e09d30cf789ad9b3e6ca41a1564ba0d326bb1c10a9f91bbc0c99ea014d559d"
+      },
+      {
+        "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\ast_size.c",
+        "archivedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-inputs\\ide\\src\\analysis\\ast_size.c",
+        "sha256": "9c8d0d0abf94d7a7c4b0561161280ec2e22c028f2cb4b40f4070be9fed4c72d0"
+      },
+      {
+        "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\ast_size.h",
+        "archivedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-inputs\\ide\\src\\analysis\\ast_size.h",
+        "sha256": "6e0f0bc96923c9bdba624354b39725646cd082e281ab34f225f71d2088ffdef1"
+      },
+      {
+        "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module.c",
+        "archivedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-inputs\\ide\\src\\analysis\\typed_module.c",
+        "sha256": "4a521e47c969705a503230fbddfccd796102f9fd2e86eee131b473e508baa2df"
+      }
+    ]
+  },
+  "performance": {
+    "aa": {
+      "status": "calibration-failed",
+      "queries": 960,
+      "processes": 64,
+      "gates": 64,
+      "failedGates": [
+        {
+          "name": "32-single-declaration/hot/wireP95",
+          "actual": 27.2215,
+          "limit": 27.046005,
+          "passed": false,
+          "baseline": 25.7581
+        },
+        {
+          "name": "32-imported-literal/cold/wireP50",
+          "actual": 48.2883,
+          "limit": 47.57634,
+          "passed": false,
+          "baseline": 45.3108,
+          "ratio": 1.05
+        },
+        {
+          "name": "512-single-declaration/hot/wireP95",
+          "actual": 506.5285,
+          "limit": 482.37441,
+          "passed": false,
+          "baseline": 459.4042
+        }
+      ],
+      "summary": {
+        "32-single-literal": {
+          "cold": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 44.2403,
+                "p95": 53.6693,
+                "maximum": 53.6693
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 46.875,
+                "p95": 46.875,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 152763450,
+                "p95": 185149790,
+                "maximum": 185149790
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 44.1658,
+                "p95": 91.11,
+                "maximum": 91.11
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 46.875,
+                "p95": 62.5,
+                "maximum": 62.5
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 152528530,
+                "p95": 247373140,
+                "maximum": 247373140
+              }
+            }
+          },
+          "first": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 12.2948,
+                "p95": 21.7955,
+                "maximum": 21.7955
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 42186515,
+                "p95": 70884170,
+                "maximum": 70884170
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 12.3182,
+                "p95": 20.3632,
+                "maximum": 20.3632
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 15.625,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 42293895,
+                "p95": 66881325,
+                "maximum": 66881325
+              }
+            }
+          },
+          "hot": {
+            "baseline": {
+              "ms": {
+                "samples": 48,
+                "p50": 12.5609,
+                "p95": 17.1353,
+                "maximum": 26.4965
+              },
+              "cpuMs": {
+                "samples": 48,
+                "p50": 15.625,
+                "p95": 15.625,
+                "maximum": 31.25
+              },
+              "cycles": {
+                "samples": 48,
+                "p50": 43060010,
+                "p95": 58696470,
+                "maximum": 68760195
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 48,
+                "p50": 12.9324,
+                "p95": 17.8012,
+                "maximum": 23.5999
+              },
+              "cpuMs": {
+                "samples": 48,
+                "p50": 15.625,
+                "p95": 31.25,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 48,
+                "p50": 44359490,
+                "p95": 59951290,
+                "maximum": 77520415
+              }
+            }
+          },
+          "exact": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 0.7698,
+                "p95": 0.9704,
+                "maximum": 0.9704
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 0.0,
+                "p95": 0.0,
+                "maximum": 0.0
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 2568300,
+                "p95": 3712415,
+                "maximum": 3712415
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 0.7524,
+                "p95": 0.9018,
+                "maximum": 0.9018
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 0.0,
+                "p95": 0.0,
+                "maximum": 0.0
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 2859010,
+                "p95": 3107510,
+                "maximum": 3107510
+              }
+            }
+          }
+        },
+        "32-single-declaration": {
+          "cold": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 43.0904,
+                "p95": 47.4285,
+                "maximum": 47.4285
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 46.875,
+                "p95": 46.875,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 148715735,
+                "p95": 164327135,
+                "maximum": 164327135
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 44.7995,
+                "p95": 53.1483,
+                "maximum": 53.1483
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 46.875,
+                "p95": 46.875,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 155285305,
+                "p95": 184209305,
+                "maximum": 184209305
+              }
+            }
+          },
+          "first": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 21.8685,
+                "p95": 24.7911,
+                "maximum": 24.7911
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 15.625,
+                "p95": 31.25,
+                "maximum": 31.25
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 74847045,
+                "p95": 85971970,
+                "maximum": 85971970
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 20.5948,
+                "p95": 26.6221,
+                "maximum": 26.6221
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 15.625,
+                "p95": 31.25,
+                "maximum": 31.25
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 71321040,
+                "p95": 92023155,
+                "maximum": 92023155
+              }
+            }
+          },
+          "hot": {
+            "baseline": {
+              "ms": {
+                "samples": 48,
+                "p50": 22.5616,
+                "p95": 25.7581,
+                "maximum": 29.0882
+              },
+              "cpuMs": {
+                "samples": 48,
+                "p50": 15.625,
+                "p95": 31.25,
+                "maximum": 31.25
+              },
+              "cycles": {
+                "samples": 48,
+                "p50": 77913640,
+                "p95": 89395110,
+                "maximum": 100768185
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 48,
+                "p50": 23.0808,
+                "p95": 27.2215,
+                "maximum": 28.1232
+              },
+              "cpuMs": {
+                "samples": 48,
+                "p50": 15.625,
+                "p95": 31.25,
+                "maximum": 31.25
+              },
+              "cycles": {
+                "samples": 48,
+                "p50": 79491335,
+                "p95": 94445820,
+                "maximum": 97521900
+              }
+            }
+          },
+          "exact": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 0.6933,
+                "p95": 0.8673,
+                "maximum": 0.8673
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 2623705,
+                "p95": 3149265,
+                "maximum": 3149265
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 0.7387,
+                "p95": 0.8692,
+                "maximum": 0.8692
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 0.0,
+                "p95": 0.0,
+                "maximum": 0.0
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 2658985,
+                "p95": 3483480,
+                "maximum": 3483480
+              }
+            }
+          }
+        },
+        "32-imported-literal": {
+          "cold": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 45.3108,
+                "p95": 55.5112,
+                "maximum": 55.5112
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 46.875,
+                "p95": 62.5,
+                "maximum": 62.5
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 157271800,
+                "p95": 192245970,
+                "maximum": 192245970
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 48.2883,
+                "p95": 53.738,
+                "maximum": 53.738
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 46.875,
+                "p95": 62.5,
+                "maximum": 62.5
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 166671295,
+                "p95": 186313435,
+                "maximum": 186313435
+              }
+            }
+          },
+          "first": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 15.3561,
+                "p95": 15.665,
+                "maximum": 15.665
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 15.625,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 53160870,
+                "p95": 53822090,
+                "maximum": 53822090
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 15.3166,
+                "p95": 19.3003,
+                "maximum": 19.3003
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 15.625,
+                "p95": 31.25,
+                "maximum": 31.25
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 53043445,
+                "p95": 66389155,
+                "maximum": 66389155
+              }
+            }
+          },
+          "hot": {
+            "baseline": {
+              "ms": {
+                "samples": 48,
+                "p50": 15.1088,
+                "p95": 20.4819,
+                "maximum": 22.5662
+              },
+              "cpuMs": {
+                "samples": 48,
+                "p50": 15.625,
+                "p95": 15.625,
+                "maximum": 31.25
+              },
+              "cycles": {
+                "samples": 48,
+                "p50": 51608410,
+                "p95": 70729540,
+                "maximum": 78311415
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 48,
+                "p50": 14.91,
+                "p95": 17.4075,
+                "maximum": 27.8748
+              },
+              "cpuMs": {
+                "samples": 48,
+                "p50": 15.625,
+                "p95": 31.25,
+                "maximum": 31.25
+              },
+              "cycles": {
+                "samples": 48,
+                "p50": 51670465,
+                "p95": 58903671,
+                "maximum": 95555460
+              }
+            }
+          },
+          "exact": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 1.63,
+                "p95": 1.9393,
+                "maximum": 1.9393
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 0.0,
+                "p95": 0.0,
+                "maximum": 0.0
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 5923505,
+                "p95": 6828535,
+                "maximum": 6828535
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 1.6465,
+                "p95": 2.1055,
+                "maximum": 2.1055
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 0.0,
+                "p95": 0.0,
+                "maximum": 0.0
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 5744200,
+                "p95": 7695555,
+                "maximum": 7695555
+              }
+            }
+          }
+        },
+        "32-imported-declaration": {
+          "cold": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 45.9701,
+                "p95": 46.9857,
+                "maximum": 46.9857
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 46.875,
+                "p95": 46.875,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 159132855,
+                "p95": 162966125,
+                "maximum": 162966125
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 45.8522,
+                "p95": 47.1666,
+                "maximum": 47.1666
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 46.875,
+                "p95": 46.875,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 159032405,
+                "p95": 163788625,
+                "maximum": 163788625
+              }
+            }
+          },
+          "first": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 30.1137,
+                "p95": 38.3759,
+                "maximum": 38.3759
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 31.25,
+                "p95": 31.25,
+                "maximum": 31.25
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 104297410,
+                "p95": 132468560,
+                "maximum": 132468560
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 30.4982,
+                "p95": 35.7906,
+                "maximum": 35.7906
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 31.25,
+                "p95": 46.875,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 105872480,
+                "p95": 124520935,
+                "maximum": 124520935
+              }
+            }
+          },
+          "hot": {
+            "baseline": {
+              "ms": {
+                "samples": 48,
+                "p50": 25.4971,
+                "p95": 30.1198,
+                "maximum": 32.199
+              },
+              "cpuMs": {
+                "samples": 48,
+                "p50": 31.25,
+                "p95": 31.25,
+                "maximum": 31.25
+              },
+              "cycles": {
+                "samples": 48,
+                "p50": 88573030,
+                "p95": 104192305,
+                "maximum": 111755840
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 48,
+                "p50": 25.4343,
+                "p95": 31.0149,
+                "maximum": 31.9703
+              },
+              "cpuMs": {
+                "samples": 48,
+                "p50": 31.25,
+                "p95": 46.875,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 48,
+                "p50": 87831800,
+                "p95": 107414090,
+                "maximum": 111062980
+              }
+            }
+          },
+          "exact": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 1.6825,
+                "p95": 1.8775,
+                "maximum": 1.8775
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 5855080,
+                "p95": 6797910,
+                "maximum": 6797910
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 1.6591,
+                "p95": 1.7071,
+                "maximum": 1.7071
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 0.0,
+                "p95": 0.0,
+                "maximum": 0.0
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 5865265,
+                "p95": 6385995,
+                "maximum": 6385995
+              }
+            }
+          }
+        },
+        "512-single-literal": {
+          "cold": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 772.5374,
+                "p95": 803.7607,
+                "maximum": 803.7607
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 765.625,
+                "p95": 796.875,
+                "maximum": 796.875
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 2681950390,
+                "p95": 2790102770,
+                "maximum": 2790102770
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 725.9829,
+                "p95": 754.5592,
+                "maximum": 754.5592
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 734.375,
+                "p95": 765.625,
+                "maximum": 765.625
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 2526534325,
+                "p95": 2621862565,
+                "maximum": 2621862565
+              }
+            }
+          },
+          "first": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 327.1852,
+                "p95": 359.8599,
+                "maximum": 359.8599
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 328.125,
+                "p95": 359.375,
+                "maximum": 359.375
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 1134553980,
+                "p95": 1245642020,
+                "maximum": 1245642020
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 318.1262,
+                "p95": 330.5869,
+                "maximum": 330.5869
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 312.5,
+                "p95": 328.125,
+                "maximum": 328.125
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 1101920785,
+                "p95": 1142655150,
+                "maximum": 1142655150
+              }
+            }
+          },
+          "hot": {
+            "baseline": {
+              "ms": {
+                "samples": 48,
+                "p50": 355.8061,
+                "p95": 437.711,
+                "maximum": 455.2135
+              },
+              "cpuMs": {
+                "samples": 48,
+                "p50": 359.375,
+                "p95": 437.5,
+                "maximum": 437.5
+              },
+              "cycles": {
+                "samples": 48,
+                "p50": 1233783075,
+                "p95": 1517769820,
+                "maximum": 1575020265
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 48,
+                "p50": 359.5655,
+                "p95": 439.287,
+                "maximum": 481.0444
+              },
+              "cpuMs": {
+                "samples": 48,
+                "p50": 359.375,
+                "p95": 437.5,
+                "maximum": 453.125
+              },
+              "cycles": {
+                "samples": 48,
+                "p50": 1248255225,
+                "p95": 1522269630,
+                "maximum": 1659776265
+              }
+            }
+          },
+          "exact": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 2.7841,
+                "p95": 3.5161,
+                "maximum": 3.5161
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 0.0,
+                "p95": 0.0,
+                "maximum": 0.0
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 9920050,
+                "p95": 12466965,
+                "maximum": 12466965
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 2.3419,
+                "p95": 2.9453,
+                "maximum": 2.9453
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 8440775,
+                "p95": 10248035,
+                "maximum": 10248035
+              }
+            }
+          }
+        },
+        "512-single-declaration": {
+          "cold": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 790.0761,
+                "p95": 1008.2525,
+                "maximum": 1008.2525
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 781.25,
+                "p95": 1000.0,
+                "maximum": 1000.0
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 2739741760,
+                "p95": 3452510354,
+                "maximum": 3452510354
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 820.5121,
+                "p95": 924.8871,
+                "maximum": 924.8871
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 828.125,
+                "p95": 921.875,
+                "maximum": 921.875
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 2842648130,
+                "p95": 3199539315,
+                "maximum": 3199539315
+              }
+            }
+          },
+          "first": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 364.1858,
+                "p95": 385.1198,
+                "maximum": 385.1198
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 359.375,
+                "p95": 390.625,
+                "maximum": 390.625
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 1263541615,
+                "p95": 1333318070,
+                "maximum": 1333318070
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 361.2675,
+                "p95": 471.3683,
+                "maximum": 471.3683
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 359.375,
+                "p95": 437.5,
+                "maximum": 437.5
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 1251825330,
+                "p95": 1622021275,
+                "maximum": 1622021275
+              }
+            }
+          },
+          "hot": {
+            "baseline": {
+              "ms": {
+                "samples": 48,
+                "p50": 386.7368,
+                "p95": 459.4042,
+                "maximum": 500.9233
+              },
+              "cpuMs": {
+                "samples": 48,
+                "p50": 390.625,
+                "p95": 453.125,
+                "maximum": 500.0
+              },
+              "cycles": {
+                "samples": 48,
+                "p50": 1341880120,
+                "p95": 1591416190,
+                "maximum": 1727418035
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 48,
+                "p50": 392.4592,
+                "p95": 506.5285,
+                "maximum": 664.8433
+              },
+              "cpuMs": {
+                "samples": 48,
+                "p50": 390.625,
+                "p95": 500.0,
+                "maximum": 625.0
+              },
+              "cycles": {
+                "samples": 48,
+                "p50": 1361003245,
+                "p95": 1740485075,
+                "maximum": 2154267185
+              }
+            }
+          },
+          "exact": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 2.3065,
+                "p95": 2.6482,
+                "maximum": 2.6482
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 8222830,
+                "p95": 9514190,
+                "maximum": 9514190
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 2.369,
+                "p95": 2.7718,
+                "maximum": 2.7718
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 8586340,
+                "p95": 9888235,
+                "maximum": 9888235
+              }
+            }
+          }
+        },
+        "512-imported-literal": {
+          "cold": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 879.4588,
+                "p95": 982.9338,
+                "maximum": 982.9338
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 875.0,
+                "p95": 984.375,
+                "maximum": 984.375
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 3055929625,
+                "p95": 3413500265,
+                "maximum": 3413500265
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 897.0684,
+                "p95": 1000.9278,
+                "maximum": 1000.9278
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 906.25,
+                "p95": 1000.0,
+                "maximum": 1000.0
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 3119032840,
+                "p95": 3464518155,
+                "maximum": 3464518155
+              }
+            }
+          },
+          "first": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 357.8562,
+                "p95": 441.9223,
+                "maximum": 441.9223
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 359.375,
+                "p95": 421.875,
+                "maximum": 421.875
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 1239917000,
+                "p95": 1521821175,
+                "maximum": 1521821175
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 348.8396,
+                "p95": 390.5928,
+                "maximum": 390.5928
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 343.75,
+                "p95": 390.625,
+                "maximum": 390.625
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 1206788240,
+                "p95": 1340147024,
+                "maximum": 1340147024
+              }
+            }
+          },
+          "hot": {
+            "baseline": {
+              "ms": {
+                "samples": 48,
+                "p50": 400.5038,
+                "p95": 485.2263,
+                "maximum": 496.9904
+              },
+              "cpuMs": {
+                "samples": 48,
+                "p50": 390.625,
+                "p95": 484.375,
+                "maximum": 500.0
+              },
+              "cycles": {
+                "samples": 48,
+                "p50": 1386447020,
+                "p95": 1664458145,
+                "maximum": 1708319550
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 48,
+                "p50": 401.5682,
+                "p95": 461.5011,
+                "maximum": 472.0884
+              },
+              "cpuMs": {
+                "samples": 48,
+                "p50": 390.625,
+                "p95": 453.125,
+                "maximum": 468.75
+              },
+              "cycles": {
+                "samples": 48,
+                "p50": 1392862765,
+                "p95": 1594866385,
+                "maximum": 1626158800
+              }
+            }
+          },
+          "exact": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 3.425,
+                "p95": 5.0211,
+                "maximum": 5.0211
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 12253955,
+                "p95": 17503325,
+                "maximum": 17503325
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 3.2607,
+                "p95": 3.9811,
+                "maximum": 3.9811
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 11670680,
+                "p95": 13767005,
+                "maximum": 13767005
+              }
+            }
+          }
+        },
+        "512-imported-declaration": {
+          "cold": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 899.5965,
+                "p95": 1320.1391,
+                "maximum": 1320.1391
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 906.25,
+                "p95": 1296.875,
+                "maximum": 1296.875
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 3120182660,
+                "p95": 4505716880,
+                "maximum": 4505716880
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 877.1443,
+                "p95": 921.0606,
+                "maximum": 921.0606
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 875.0,
+                "p95": 921.875,
+                "maximum": 921.875
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 3054351300,
+                "p95": 3206208915,
+                "maximum": 3206208915
+              }
+            }
+          },
+          "first": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 366.3288,
+                "p95": 734.8823,
+                "maximum": 734.8823
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 359.375,
+                "p95": 687.5,
+                "maximum": 687.5
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 1270201170,
+                "p95": 2408571200,
+                "maximum": 2408571200
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 381.3542,
+                "p95": 628.9694,
+                "maximum": 628.9694
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 390.625,
+                "p95": 625.0,
+                "maximum": 625.0
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 1318583945,
+                "p95": 2157871905,
+                "maximum": 2157871905
+              }
+            }
+          },
+          "hot": {
+            "baseline": {
+              "ms": {
+                "samples": 48,
+                "p50": 393.7906,
+                "p95": 508.41,
+                "maximum": 520.0436
+              },
+              "cpuMs": {
+                "samples": 48,
+                "p50": 390.625,
+                "p95": 500.0,
+                "maximum": 531.25
+              },
+              "cycles": {
+                "samples": 48,
+                "p50": 1366624490,
+                "p95": 1755643751,
+                "maximum": 1795896131
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 48,
+                "p50": 396.8048,
+                "p95": 506.7733,
+                "maximum": 554.1559
+              },
+              "cpuMs": {
+                "samples": 48,
+                "p50": 390.625,
+                "p95": 484.375,
+                "maximum": 515.625
+              },
+              "cycles": {
+                "samples": 48,
+                "p50": 1376732245,
+                "p95": 1740014955,
+                "maximum": 1858886820
+              }
+            }
+          },
+          "exact": {
+            "baseline": {
+              "ms": {
+                "samples": 4,
+                "p50": 3.4204,
+                "p95": 3.6229,
+                "maximum": 3.6229
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 12217905,
+                "p95": 12759110,
+                "maximum": 12759110
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 4,
+                "p50": 3.2613,
+                "p95": 3.4485,
+                "maximum": 3.4485
+              },
+              "cpuMs": {
+                "samples": 4,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 4,
+                "p50": 11573590,
+                "p95": 12005280,
+                "maximum": 12005280
+              }
+            }
+          }
+        }
+      },
+      "minimumCommitGiB": 15.621379852294922,
+      "minimumPhysicalGiB": 15.91549301147461,
+      "allProcessesExitZero": true,
+      "cleanupErrors": 0
+    },
+    "ab": {
+      "status": "gates-failed",
+      "queries": 1920,
+      "processes": 128,
+      "gates": 64,
+      "failedGates": [
+        {
+          "name": "32-single-literal/hot/wireP95",
+          "actual": 15.758,
+          "limit": 15.5547,
+          "passed": false,
+          "baseline": 14.814
+        },
+        {
+          "name": "32-imported-literal/hot/wireP95",
+          "actual": 17.9067,
+          "limit": 16.609635,
+          "passed": false,
+          "baseline": 15.8187
+        },
+        {
+          "name": "32-imported-declaration/hot/wireP95",
+          "actual": 34.461,
+          "limit": 31.74024,
+          "passed": false,
+          "baseline": 30.2288
+        },
+        {
+          "name": "512-imported-literal/cold/wireP50",
+          "actual": 1069.9444,
+          "limit": 1055.60427,
+          "passed": false,
+          "baseline": 1005.3374,
+          "ratio": 1.05
+        },
+        {
+          "name": "512-imported-declaration/hot/wireP95",
+          "actual": 643.6208,
+          "limit": 637.2248400000001,
+          "passed": false,
+          "baseline": 606.8808
+        },
+        {
+          "name": "512-imported-declaration/exact/wireP50",
+          "actual": 3.9377,
+          "limit": 3.8776,
+          "passed": false,
+          "baseline": 3.3776,
+          "ratio": 1.05
+        }
+      ],
+      "summary": {
+        "32-single-literal": {
+          "cold": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 41.7622,
+                "p95": 50.5915,
+                "maximum": 50.5915
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 46.875,
+                "p95": 62.5,
+                "maximum": 62.5
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 144558085,
+                "p95": 175033110,
+                "maximum": 175033110
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 41.3757,
+                "p95": 54.6372,
+                "maximum": 54.6372
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 46.875,
+                "p95": 46.875,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 143217305,
+                "p95": 189595105,
+                "maximum": 189595105
+              }
+            }
+          },
+          "first": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 12.6851,
+                "p95": 13.8737,
+                "maximum": 13.8737
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 15.625,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 43261330,
+                "p95": 47588275,
+                "maximum": 47588275
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 12.2268,
+                "p95": 15.5982,
+                "maximum": 15.5982
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 15.625,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 42041510,
+                "p95": 52494190,
+                "maximum": 52494190
+              }
+            }
+          },
+          "hot": {
+            "baseline": {
+              "ms": {
+                "samples": 96,
+                "p50": 12.2596,
+                "p95": 14.814,
+                "maximum": 15.8902
+              },
+              "cpuMs": {
+                "samples": 96,
+                "p50": 15.625,
+                "p95": 15.625,
+                "maximum": 31.25
+              },
+              "cycles": {
+                "samples": 96,
+                "p50": 42260435,
+                "p95": 50833720,
+                "maximum": 54819870
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 96,
+                "p50": 12.0747,
+                "p95": 15.758,
+                "maximum": 18.0625
+              },
+              "cpuMs": {
+                "samples": 96,
+                "p50": 15.625,
+                "p95": 15.625,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 96,
+                "p50": 41413225,
+                "p95": 53938780,
+                "maximum": 61001395
+              }
+            }
+          },
+          "exact": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 0.773,
+                "p95": 0.8887,
+                "maximum": 0.8887
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 0.0,
+                "p95": 0.0,
+                "maximum": 0.0
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 2850015,
+                "p95": 3111080,
+                "maximum": 3111080
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 0.7486,
+                "p95": 0.9219,
+                "maximum": 0.9219
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 2650795,
+                "p95": 3507980,
+                "maximum": 3507980
+              }
+            }
+          }
+        },
+        "32-single-declaration": {
+          "cold": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 42.1252,
+                "p95": 47.4486,
+                "maximum": 47.4486
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 31.25,
+                "p95": 46.875,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 146019125,
+                "p95": 164490270,
+                "maximum": 164490270
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 42.1194,
+                "p95": 53.2038,
+                "maximum": 53.2038
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 46.875,
+                "p95": 62.5,
+                "maximum": 62.5
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 146038130,
+                "p95": 183811425,
+                "maximum": 183811425
+              }
+            }
+          },
+          "first": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 21.586,
+                "p95": 29.4,
+                "maximum": 29.4
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 15.625,
+                "p95": 31.25,
+                "maximum": 31.25
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 74613770,
+                "p95": 101097465,
+                "maximum": 101097465
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 21.0608,
+                "p95": 26.1613,
+                "maximum": 26.1613
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 31.25,
+                "p95": 31.25,
+                "maximum": 31.25
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 72862720,
+                "p95": 89861695,
+                "maximum": 89861695
+              }
+            }
+          },
+          "hot": {
+            "baseline": {
+              "ms": {
+                "samples": 96,
+                "p50": 22.9393,
+                "p95": 32.4949,
+                "maximum": 38.1817
+              },
+              "cpuMs": {
+                "samples": 96,
+                "p50": 31.25,
+                "p95": 31.25,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 96,
+                "p50": 79431905,
+                "p95": 112816480,
+                "maximum": 127898610
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 96,
+                "p50": 22.6027,
+                "p95": 31.7004,
+                "maximum": 36.8171
+              },
+              "cpuMs": {
+                "samples": 96,
+                "p50": 15.625,
+                "p95": 31.25,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 96,
+                "p50": 78057175,
+                "p95": 109424735,
+                "maximum": 122534300
+              }
+            }
+          },
+          "exact": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 0.7674,
+                "p95": 0.8417,
+                "maximum": 0.8417
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 0.0,
+                "p95": 0.0,
+                "maximum": 0.0
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 2674735,
+                "p95": 3255525,
+                "maximum": 3255525
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 0.7702,
+                "p95": 0.8523,
+                "maximum": 0.8523
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 0.0,
+                "p95": 0.0,
+                "maximum": 0.0
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 2686915,
+                "p95": 3288985,
+                "maximum": 3288985
+              }
+            }
+          }
+        },
+        "32-imported-literal": {
+          "cold": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 45.6622,
+                "p95": 52.028,
+                "maximum": 52.028
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 46.875,
+                "p95": 46.875,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 158222645,
+                "p95": 180389545,
+                "maximum": 180389545
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 44.9733,
+                "p95": 48.7553,
+                "maximum": 48.7553
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 46.875,
+                "p95": 46.875,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 155932875,
+                "p95": 168556220,
+                "maximum": 168556220
+              }
+            }
+          },
+          "first": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 14.6622,
+                "p95": 15.2168,
+                "maximum": 15.2168
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 15.625,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 50598205,
+                "p95": 52634295,
+                "maximum": 52634295
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 14.6113,
+                "p95": 15.2206,
+                "maximum": 15.2206
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 15.625,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 50572025,
+                "p95": 52659880,
+                "maximum": 52659880
+              }
+            }
+          },
+          "hot": {
+            "baseline": {
+              "ms": {
+                "samples": 96,
+                "p50": 14.6428,
+                "p95": 15.8187,
+                "maximum": 17.5504
+              },
+              "cpuMs": {
+                "samples": 96,
+                "p50": 15.625,
+                "p95": 31.25,
+                "maximum": 31.25
+              },
+              "cycles": {
+                "samples": 96,
+                "p50": 50603805,
+                "p95": 54416040,
+                "maximum": 60617305
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 96,
+                "p50": 14.4783,
+                "p95": 17.9067,
+                "maximum": 19.2292
+              },
+              "cpuMs": {
+                "samples": 96,
+                "p50": 15.625,
+                "p95": 31.25,
+                "maximum": 31.25
+              },
+              "cycles": {
+                "samples": 96,
+                "p50": 49975380,
+                "p95": 62110020,
+                "maximum": 65723070
+              }
+            }
+          },
+          "exact": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 1.6632,
+                "p95": 4.4371,
+                "maximum": 4.4371
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 0.0,
+                "p95": 0.0,
+                "maximum": 0.0
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 5839960,
+                "p95": 8232525,
+                "maximum": 8232525
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 1.6459,
+                "p95": 1.9248,
+                "maximum": 1.9248
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 5697965,
+                "p95": 6429570,
+                "maximum": 6429570
+              }
+            }
+          }
+        },
+        "32-imported-declaration": {
+          "cold": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 46.66,
+                "p95": 54.3274,
+                "maximum": 54.3274
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 46.875,
+                "p95": 46.875,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 161709030,
+                "p95": 187382195,
+                "maximum": 187382195
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 46.3072,
+                "p95": 50.3362,
+                "maximum": 50.3362
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 46.875,
+                "p95": 62.5,
+                "maximum": 62.5
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 160489245,
+                "p95": 174662705,
+                "maximum": 174662705
+              }
+            }
+          },
+          "first": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 30.4916,
+                "p95": 32.5613,
+                "maximum": 32.5613
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 31.25,
+                "p95": 46.875,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 105817495,
+                "p95": 112139020,
+                "maximum": 112139020
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 30.3528,
+                "p95": 36.1581,
+                "maximum": 36.1581
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 31.25,
+                "p95": 31.25,
+                "maximum": 31.25
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 105154035,
+                "p95": 125564740,
+                "maximum": 125564740
+              }
+            }
+          },
+          "hot": {
+            "baseline": {
+              "ms": {
+                "samples": 96,
+                "p50": 25.2626,
+                "p95": 30.2288,
+                "maximum": 36.7091
+              },
+              "cpuMs": {
+                "samples": 96,
+                "p50": 31.25,
+                "p95": 31.25,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 96,
+                "p50": 87454780,
+                "p95": 105169085,
+                "maximum": 127886745
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 96,
+                "p50": 25.208,
+                "p95": 34.461,
+                "maximum": 48.3649
+              },
+              "cpuMs": {
+                "samples": 96,
+                "p50": 31.25,
+                "p95": 31.25,
+                "maximum": 46.875
+              },
+              "cycles": {
+                "samples": 96,
+                "p50": 87486000,
+                "p95": 119888685,
+                "maximum": 166955180
+              }
+            }
+          },
+          "exact": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 1.9461,
+                "p95": 2.3239,
+                "maximum": 2.3239
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 7071540,
+                "p95": 7771050,
+                "maximum": 7771050
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 1.823,
+                "p95": 2.0376,
+                "maximum": 2.0376
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 0.0,
+                "p95": 0.0,
+                "maximum": 0.0
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 6515110,
+                "p95": 7446145,
+                "maximum": 7446145
+              }
+            }
+          }
+        },
+        "512-single-literal": {
+          "cold": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 711.8931,
+                "p95": 838.3508,
+                "maximum": 838.3508
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 703.125,
+                "p95": 843.75,
+                "maximum": 843.75
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 2478035525,
+                "p95": 2903754280,
+                "maximum": 2903754280
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 732.7427,
+                "p95": 960.9736,
+                "maximum": 960.9736
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 718.75,
+                "p95": 953.125,
+                "maximum": 953.125
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 2550699725,
+                "p95": 3280299960,
+                "maximum": 3280299960
+              }
+            }
+          },
+          "first": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 316.1208,
+                "p95": 398.327,
+                "maximum": 398.327
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 328.125,
+                "p95": 406.25,
+                "maximum": 406.25
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 1095364130,
+                "p95": 1376056815,
+                "maximum": 1376056815
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 292.4001,
+                "p95": 373.7214,
+                "maximum": 373.7214
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 296.875,
+                "p95": 375.0,
+                "maximum": 375.0
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 1014188490,
+                "p95": 1292005329,
+                "maximum": 1292005329
+              }
+            }
+          },
+          "hot": {
+            "baseline": {
+              "ms": {
+                "samples": 96,
+                "p50": 341.5572,
+                "p95": 423.3035,
+                "maximum": 468.966
+              },
+              "cpuMs": {
+                "samples": 96,
+                "p50": 343.75,
+                "p95": 421.875,
+                "maximum": 468.75
+              },
+              "cycles": {
+                "samples": 96,
+                "p50": 1183550095,
+                "p95": 1458296560,
+                "maximum": 1611327304
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 96,
+                "p50": 317.2757,
+                "p95": 386.0045,
+                "maximum": 506.1621
+              },
+              "cpuMs": {
+                "samples": 96,
+                "p50": 312.5,
+                "p95": 390.625,
+                "maximum": 515.625
+              },
+              "cycles": {
+                "samples": 96,
+                "p50": 1099547295,
+                "p95": 1335909960,
+                "maximum": 1690344145
+              }
+            }
+          },
+          "exact": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 2.4538,
+                "p95": 9.7712,
+                "maximum": 9.7712
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 0.0,
+                "p95": 0.0,
+                "maximum": 0.0
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 8814015,
+                "p95": 13327650,
+                "maximum": 13327650
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 2.3472,
+                "p95": 3.6534,
+                "maximum": 3.6534
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 8518090,
+                "p95": 12933060,
+                "maximum": 12933060
+              }
+            }
+          }
+        },
+        "512-single-declaration": {
+          "cold": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 717.9243,
+                "p95": 880.4733,
+                "maximum": 880.4733
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 718.75,
+                "p95": 875.0,
+                "maximum": 875.0
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 2498751815,
+                "p95": 3051183485,
+                "maximum": 3051183485
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 721.7251,
+                "p95": 1036.9749,
+                "maximum": 1036.9749
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 718.75,
+                "p95": 1031.25,
+                "maximum": 1031.25
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 2510941300,
+                "p95": 3482499191,
+                "maximum": 3482499191
+              }
+            }
+          },
+          "first": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 347.0669,
+                "p95": 390.0053,
+                "maximum": 390.0053
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 343.75,
+                "p95": 390.625,
+                "maximum": 390.625
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 1203987050,
+                "p95": 1347980094,
+                "maximum": 1347980094
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 350.6608,
+                "p95": 373.3534,
+                "maximum": 373.3534
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 359.375,
+                "p95": 375.0,
+                "maximum": 375.0
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 1217588085,
+                "p95": 1295029295,
+                "maximum": 1295029295
+              }
+            }
+          },
+          "hot": {
+            "baseline": {
+              "ms": {
+                "samples": 96,
+                "p50": 361.9535,
+                "p95": 479.4181,
+                "maximum": 529.6966
+              },
+              "cpuMs": {
+                "samples": 96,
+                "p50": 359.375,
+                "p95": 468.75,
+                "maximum": 515.625
+              },
+              "cycles": {
+                "samples": 96,
+                "p50": 1255028600,
+                "p95": 1642865945,
+                "maximum": 1807743140
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 96,
+                "p50": 338.9326,
+                "p95": 418.8707,
+                "maximum": 621.8298
+              },
+              "cpuMs": {
+                "samples": 96,
+                "p50": 328.125,
+                "p95": 406.25,
+                "maximum": 609.375
+              },
+              "cycles": {
+                "samples": 96,
+                "p50": 1177073205,
+                "p95": 1437521295,
+                "maximum": 2102061360
+              }
+            }
+          },
+          "exact": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 2.4762,
+                "p95": 3.8299,
+                "maximum": 3.8299
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 8768235,
+                "p95": 13172740,
+                "maximum": 13172740
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 2.4582,
+                "p95": 3.6887,
+                "maximum": 3.6887
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 8859340,
+                "p95": 13071870,
+                "maximum": 13071870
+              }
+            }
+          }
+        },
+        "512-imported-literal": {
+          "cold": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 1005.3374,
+                "p95": 1141.1019,
+                "maximum": 1141.1019
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 1000.0,
+                "p95": 1109.375,
+                "maximum": 1109.375
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 3481688385,
+                "p95": 3942872570,
+                "maximum": 3942872570
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 1069.9444,
+                "p95": 1240.0618,
+                "maximum": 1240.0618
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 1062.5,
+                "p95": 1203.125,
+                "maximum": 1203.125
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 3716423235,
+                "p95": 4237872065,
+                "maximum": 4237872065
+              }
+            }
+          },
+          "first": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 396.4736,
+                "p95": 472.3916,
+                "maximum": 472.3916
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 390.625,
+                "p95": 453.125,
+                "maximum": 453.125
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 1373348270,
+                "p95": 1611688995,
+                "maximum": 1611688995
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 320.0553,
+                "p95": 396.8138,
+                "maximum": 396.8138
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 312.5,
+                "p95": 375.0,
+                "maximum": 375.0
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 1107416310,
+                "p95": 1370424615,
+                "maximum": 1370424615
+              }
+            }
+          },
+          "hot": {
+            "baseline": {
+              "ms": {
+                "samples": 96,
+                "p50": 447.0471,
+                "p95": 608.0819,
+                "maximum": 701.0216
+              },
+              "cpuMs": {
+                "samples": 96,
+                "p50": 437.5,
+                "p95": 578.125,
+                "maximum": 656.25
+              },
+              "cycles": {
+                "samples": 96,
+                "p50": 1549946930,
+                "p95": 2086255325,
+                "maximum": 2331790510
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 96,
+                "p50": 355.7138,
+                "p95": 459.129,
+                "maximum": 557.5519
+              },
+              "cpuMs": {
+                "samples": 96,
+                "p50": 359.375,
+                "p95": 453.125,
+                "maximum": 484.375
+              },
+              "cycles": {
+                "samples": 96,
+                "p50": 1228414635,
+                "p95": 1564335990,
+                "maximum": 1685606300
+              }
+            }
+          },
+          "exact": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 3.3714,
+                "p95": 5.2958,
+                "maximum": 5.2958
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 11745160,
+                "p95": 18293100,
+                "maximum": 18293100
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 3.2209,
+                "p95": 3.7066,
+                "maximum": 3.7066
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 11610550,
+                "p95": 13416375,
+                "maximum": 13416375
+              }
+            }
+          }
+        },
+        "512-imported-declaration": {
+          "cold": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 992.3055,
+                "p95": 1326.1917,
+                "maximum": 1326.1917
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 984.375,
+                "p95": 1281.25,
+                "maximum": 1281.25
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 3447198405,
+                "p95": 4494588560,
+                "maximum": 4494588560
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 1037.6471,
+                "p95": 1209.9426,
+                "maximum": 1209.9426
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 1031.25,
+                "p95": 1187.5,
+                "maximum": 1187.5
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 3605163765,
+                "p95": 4169065460,
+                "maximum": 4169065460
+              }
+            }
+          },
+          "first": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 471.9385,
+                "p95": 538.5444,
+                "maximum": 538.5444
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 468.75,
+                "p95": 531.25,
+                "maximum": 531.25
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 1631364140,
+                "p95": 1840197240,
+                "maximum": 1840197240
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 423.961,
+                "p95": 570.5457,
+                "maximum": 570.5457
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 421.875,
+                "p95": 562.5,
+                "maximum": 562.5
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 1471366295,
+                "p95": 1921197110,
+                "maximum": 1921197110
+              }
+            }
+          },
+          "hot": {
+            "baseline": {
+              "ms": {
+                "samples": 96,
+                "p50": 480.8778,
+                "p95": 606.8808,
+                "maximum": 662.7698
+              },
+              "cpuMs": {
+                "samples": 96,
+                "p50": 468.75,
+                "p95": 593.75,
+                "maximum": 656.25
+              },
+              "cycles": {
+                "samples": 96,
+                "p50": 1661982140,
+                "p95": 2092993175,
+                "maximum": 2255448685
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 96,
+                "p50": 414.8415,
+                "p95": 643.6208,
+                "maximum": 715.8549
+              },
+              "cpuMs": {
+                "samples": 96,
+                "p50": 406.25,
+                "p95": 609.375,
+                "maximum": 640.625
+              },
+              "cycles": {
+                "samples": 96,
+                "p50": 1439335170,
+                "p95": 2101202355,
+                "maximum": 2282388605
+              }
+            }
+          },
+          "exact": {
+            "baseline": {
+              "ms": {
+                "samples": 8,
+                "p50": 3.3776,
+                "p95": 6.0037,
+                "maximum": 6.0037
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 12103175,
+                "p95": 21461265,
+                "maximum": 21461265
+              }
+            },
+            "candidate": {
+              "ms": {
+                "samples": 8,
+                "p50": 3.9377,
+                "p95": 5.0867,
+                "maximum": 5.0867
+              },
+              "cpuMs": {
+                "samples": 8,
+                "p50": 0.0,
+                "p95": 15.625,
+                "maximum": 15.625
+              },
+              "cycles": {
+                "samples": 8,
+                "p50": 13664105,
+                "p95": 17763865,
+                "maximum": 17763865
+              }
+            }
+          }
+        }
+      },
+      "minimumCommitGiB": 14.992229461669922,
+      "minimumPhysicalGiB": 16.058429718017578,
+      "allProcessesExitZero": true,
+      "cleanupErrors": 0,
+      "observedProcessMemory": {
+        "baseline": {
+          "workingSet": 358555648,
+          "peakWorkingSet": 425070592,
+          "private": 382693376,
+          "peakPagefile": 473509888
+        },
+        "candidate": {
+          "workingSet": 356302848,
+          "peakWorkingSet": 422469632,
+          "private": 379625472,
+          "peakPagefile": 470306816
+        }
+      }
+    }
+  },
+  "hotP50": [
+    {
+      "case": "32-single-literal",
+      "baselineMs": 12.2596,
+      "candidateMs": 12.0747,
+      "changePercent": -1.5082058142190657
+    },
+    {
+      "case": "32-single-declaration",
+      "baselineMs": 22.9393,
+      "candidateMs": 22.6027,
+      "changePercent": -1.467350791000599
+    },
+    {
+      "case": "32-imported-literal",
+      "baselineMs": 14.6428,
+      "candidateMs": 14.4783,
+      "changePercent": -1.1234190182205506
+    },
+    {
+      "case": "32-imported-declaration",
+      "baselineMs": 25.2626,
+      "candidateMs": 25.208,
+      "changePercent": -0.21612977286582513
+    },
+    {
+      "case": "512-single-literal",
+      "baselineMs": 341.5572,
+      "candidateMs": 317.2757,
+      "changePercent": -7.109058160682913
+    },
+    {
+      "case": "512-single-declaration",
+      "baselineMs": 361.9535,
+      "candidateMs": 338.9326,
+      "changePercent": -6.3601816255403065
+    },
+    {
+      "case": "512-imported-literal",
+      "baselineMs": 447.0471,
+      "candidateMs": 355.7138,
+      "changePercent": -20.430352864384982
+    },
+    {
+      "case": "512-imported-declaration",
+      "baselineMs": 480.8778,
+      "candidateMs": 414.8415,
+      "changePercent": -13.732449283373027
+    }
+  ],
+  "history": {
+    "fullV1": {
+      "status": "failed",
+      "translationUnits": 230,
+      "passedNativePrograms": 80,
+      "cause": "Both large compatibility JSON index exports hit the original32MiB byte limit;native oracle now compares every fact,all AST fields,report and IR without raising quota.",
+      "inputClosureWithArchivedBytesPassed": true
+    },
+    "interruptedBaselineV1": "Process handle missing and no final report;not counted as a completed build. Fresh baseline-v2 built afterward.",
+    "diagnostics": "Diagnostic timings are not formal admission. The first probe patched semantic.o rather than the xl6_sem.o owner of BindFunctions;its size/result counters remain recorded,missing bind output is not evidence."
+  },
+  "protectedRuntime": {
+    "D:\\GIT\\x-lang\\release\\xlang_ide.exe": "93500bab01cda5fe6e8b88b0bfe6284cb8016e4095a8c5ef1a5bf74961a0e6ea",
+    "D:\\GIT\\x-lang\\release\\xlang-ls.exe": "8bc80fe50cc4a5856630003eb47a59426a5225e4b2d8d076a6486f56dab4339d",
+    "D:\\GIT\\x-lang\\release\\xge.dll": "2ff1ed234bd2e7e7b756700da1de550d39935be0cbb9e5af886138090ae65ec6",
+    "D:\\GIT\\x-lang\\release\\xl.exe": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05",
+    "D:\\GIT\\x-lang\\release\\xl.dll": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930",
+    "D:\\GIT\\x-lang\\release\\xlc.dll": "27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334",
+    "D:\\GIT\\x-lang\\release\\option\\settings.json": "8b5a5151212487910ae88a7385fc6574f08e1ba3f1b8cb20885c4421dc5eff65"
+  },
+  "delivery": {
+    "rootReleaseChanged": false,
+    "guiRebuilt": false,
+    "guiInputAdmission": false,
+    "currentDeliveryIndexChanged": false
+  },
+  "remaining": [
+    "No performance admission:AA3 and AB6 original gates failed,all retained without reruns.",
+    "Current foreign type origin/header coordinate proof across multi-site edits;32 declaration retries remain.",
+    "Pool granularity and retention beyond a prefix.",
+    "Ordinary index reuse,local final IR production,methods/nested binding and full applicable LSP/IDE/performance/scale acceptance."
+  ],
+  "reportArchives": [
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\frontend-recovery.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\frontend-recovery.json.gz",
+      "originalSha256": "074c033de54f98ac13a4c222f7f76676d1ee8acf50d84ccaf9d36ef96b172824",
+      "originalBytes": 94923,
+      "storedSha256": "47c3511ce6584af2d4dee4f1c6a00d0fc6322bdce2234db5bf2b4ab626d84333",
+      "storedBytes": 17949
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\source-base.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\source-base.json.gz",
+      "originalSha256": "d32e4ec64f770f8abe789ff3401266700a53f5e226bef1f0acb012b0bcd6b152",
+      "originalBytes": 883,
+      "storedSha256": "ea68c739abf197f9d23e6de029ca79458e87c7b86ae0202b848cebbb15ff0419",
+      "storedBytes": 464
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-closure.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\baseline-closure.json.gz",
+      "originalSha256": "9662b270066b79ff4f467c92c3f7b473b22c69edf37322ad78b6ddbe4071c1ad",
+      "originalBytes": 1863,
+      "storedSha256": "a99b8aa7de3ad6e9d87522bbac425b0fe3e32ec91d77c455803e1006235002f1",
+      "storedBytes": 544
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-v2\\build-result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\baseline-v2__build-result.json.gz",
+      "originalSha256": "12394924f6ced820addef10138bc826951aed8c7eff0d7231e3092bc167cf31f",
+      "originalBytes": 1577534,
+      "storedSha256": "8984387935391751034ebc7b0edf3664a0bcff8042935f1f698c8ec7383128ec",
+      "storedBytes": 317243
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\full-v1\\build-result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\full-v1__build-result.json.gz",
+      "originalSha256": "e50d1c54a52c23ef8aaa9895a9d7ae94c792746d68c1fff6a0223cb34fc0529b",
+      "originalBytes": 2196802,
+      "storedSha256": "08f1444289e687bfb86c1d638ad6439a4ddf11f3a71646eaf17c6698b7fd23b2",
+      "storedBytes": 347548
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\full-v1\\analysis_native_borrow_test-run.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\full-v1__analysis_native_borrow_test-run.log.gz",
+      "originalSha256": "1e4966b1a56d67c5c5c2f03d39fd8ae65f3971bc8edb5fec4014fca031ebd2ab",
+      "originalBytes": 870,
+      "storedSha256": "bb67e1a122b066e27f7ffdfa36cb01959402165d5024554e6a653ecfff8eb3a4",
+      "storedBytes": 333
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\full-v2\\build-result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\full-v2__build-result.json.gz",
+      "originalSha256": "28f26bec29eab91901534978b1dd6f7f6f2b51c6bc03869b7fd5262f0a3d92f5",
+      "originalBytes": 2361514,
+      "storedSha256": "e181649ea0a84e696ac9beb55ee19b5e450a43d4b7826e69dea6d2d27193c6cb",
+      "storedBytes": 358655
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\full-v2\\analysis_native_borrow_test-run.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\full-v2__analysis_native_borrow_test-run.log.gz",
+      "originalSha256": "237cf585fec2ccb29525b62ff9cdedf064d56bda38233fbf4632a0e4b520a0f1",
+      "originalBytes": 1243,
+      "storedSha256": "92a6adca51d27371a43890ed713a7c930d10c26c2132c40eda9da6cd302ff7e0",
+      "storedBytes": 408
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-diagnostic-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-diagnostic-v1__result.json.gz",
+      "originalSha256": "d3746b5fe139857d09e5d25774fbf477e4dafecc7df7aa5f7d03ffb16d5e5423",
+      "originalBytes": 20447,
+      "storedSha256": "4fdcf22c20802ad6bc8ef6997a5c05632d97bc8dcb833adc4a8f50e5482acb02",
+      "storedBytes": 2297
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__result.json.gz",
+      "originalSha256": "1af337bdce2653ec7af5d421b4de9560c234b1c90464a15a64517f767b6a6a67",
+      "originalBytes": 526982,
+      "storedSha256": "e6373b969942caf343189253fddeda5d5263dda380cca303e18dbf9bf50337c9",
+      "storedBytes": 19666
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\candidate-fast-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\candidate-fast-v1__result.json.gz",
+      "originalSha256": "9bbabb3c960f0f2e1a505a03bc5ed231eef8c83ee9e0ee4881d933f671c50fe0",
+      "originalBytes": 126210,
+      "storedSha256": "79b363b9db7cbc1969f2dedb552237a1ca772078222322543313e9a00473a8b3",
+      "storedBytes": 32079
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\partial-metrics-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\partial-metrics-v1__result.json.gz",
+      "originalSha256": "9f6ae59f46fe69e64b7b0ba0a32477af824ab4fd6872b0925f51a235a2ea62cf",
+      "originalBytes": 527356,
+      "storedSha256": "b30ff426da9440c115c1bbd8047dcfae6485995eeadbbc4f8b67ba6b6c4a92ca",
+      "storedBytes": 19598
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\large-oracle-diagnostic-v1\\run.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\large-oracle-diagnostic-v1__run.log.gz",
+      "originalSha256": "6225cffd015cdf798d57c39d088fdec7c08aa18f2de56962bd4e1e70e6ec72e9",
+      "originalBytes": 992,
+      "storedSha256": "25949e4389b4abf563f802f47f7da32addbde86d16b3b6d48e53e78012ed03ba",
+      "storedBytes": 380
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\focused-v2\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\focused-v2__result.json.gz",
+      "originalSha256": "4394c34a688983ddbcee24c4d5c28d2d63264d158313dc7981e92d81cd88ee3b",
+      "originalBytes": 5138,
+      "storedSha256": "d7944f22bb02963db1324079f44f7f6859e371ca3448ab72f08f729bc72f1515",
+      "storedBytes": 760
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\focused-v2\\native-test.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\focused-v2__native-test.log.gz",
+      "originalSha256": "28716bef9c48f21f582ca550da99a8fce2a7ff8725c5a0cc212c483ffd0c56d1",
+      "originalBytes": 1243,
+      "storedSha256": "8bd4265b7b8e5d21fe22e5633a64bfa46dae3bd013a5f4a1d2f5d27c435c8df1",
+      "storedBytes": 409
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\validation-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\validation-v1__result.json.gz",
+      "originalSha256": "01a5e007fcae4f5166805e43cc81cc9a47378933f481b60a52875474bb89faea",
+      "originalBytes": 49295,
+      "storedSha256": "f21160e6112036d05d5f7d3d52a71076e7458057bfb7bc715638f0cbfc65c8ae",
+      "storedBytes": 5399
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\omissions-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\omissions-v1__result.json.gz",
+      "originalSha256": "9227b8ed3fcefa6ada71633b3fe618a0c57cf8b564c7e7cea09b62e3c71f2cc0",
+      "originalBytes": 211622,
+      "storedSha256": "aed0444672a7613191a5d50170e0bf3cf525ee335b7d779501d64fef4ef0d9f4",
+      "storedBytes": 48517
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\wire-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\wire-v1__result.json.gz",
+      "originalSha256": "e67fdac1f9e0fd0f555b87df1525a7dd8e8a5a964065ffe32298c535c3e05bb3",
+      "originalBytes": 2284444,
+      "storedSha256": "e9d7392794b8a74b385f5d77da995f99324a2813c4a7feb24e1e53b9d445fa85",
+      "storedBytes": 56092
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\performance-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\performance-v1__result.json.gz",
+      "originalSha256": "282547f5e56ba25a0d0b497399351dbed03eabf40726bf37a7b8453df3e252cf",
+      "originalBytes": 3977,
+      "storedSha256": "bced552ab926fe041c6f65b51a065c3e15324ec6422cdbde8b5f2e1287e79d3f",
+      "storedBytes": 1299
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\performance-v1\\aa\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\performance-v1__aa__result.json.gz",
+      "originalSha256": "f947bf9cb641ec653a611a8c0fe6f7a56279d798f11381509e090a5612b6926a",
+      "originalBytes": 6220557,
+      "storedSha256": "41259b41b204b25dce5e01420b78ea42171c8dad302d5fb51010e9ec5fafdb9c",
+      "storedBytes": 160799
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\performance-v1\\aa\\plan.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\performance-v1__aa__plan.json.gz",
+      "originalSha256": "b0a95ebe4da60030f34deb1daa1079250b66973989a0d5116593af95f6b0989d",
+      "originalBytes": 6005,
+      "storedSha256": "644c58a6c7a09d6c38d730e10918bf65e62028aa7502d0baf450288647dfd875",
+      "storedBytes": 1844
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\performance-v1\\ab\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\performance-v1__ab__result.json.gz",
+      "originalSha256": "1d1bd60cd0464c82f9a01d0826aab26760c62bb8e6b9fe8d50d8107081de74ed",
+      "originalBytes": 12397651,
+      "storedSha256": "b199c811c0eef9a79e7ccdd8396bced54053e08abf2dff27ad5f8b4991c3232f",
+      "storedBytes": 317065
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\performance-v1\\ab\\plan.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\performance-v1__ab__plan.json.gz",
+      "originalSha256": "88e13e7526e7c3b6b37b415a35c0ae792ece76eb8cc2e39f1842aba4a4ef7684",
+      "originalBytes": 6172,
+      "storedSha256": "b5ca80ecb72bc0a3f001ca3decfa1ca49ae46b2a7bec86a75f9fb6f1494c83b2",
+      "storedBytes": 1896
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\declaration-cause.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\declaration-cause.json.gz",
+      "originalSha256": "2406e78e27ee0715c164870c53a0776b857529a6e1967412eed6213d8ccca362",
+      "originalBytes": 979,
+      "storedSha256": "9d1060271c59cdc2a085875ab272f1cfffabfae36324ef4a9c6e80e78a568dd3",
+      "storedBytes": 516
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v1\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v1__result.json.gz",
+      "originalSha256": "5b0e29bab49e84d63d8e1c0d30a1779719d8be9d08e075403eab7c3c5d66ac36",
+      "originalBytes": 271438,
+      "storedSha256": "1e3b08dda92743af5008f3d824d3ed22c36795ac83df5ad12c2b708f377ce45f",
+      "storedBytes": 10609
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v1\\32-imported-declaration\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v1__32-imported-declaration__0-candidate-stderr.log.gz",
+      "originalSha256": "26a5d5c4eb5f17fb76dbd0898879b09a1bd3bd895db78608210b2c6044394dcc",
+      "originalBytes": 276,
+      "storedSha256": "369028286bf379cd5a27391126378bec91ffd6f343fad593e3de0b77125d5551",
+      "storedBytes": 109
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v1\\32-imported-declaration\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v1__32-imported-declaration__1-candidate-stderr.log.gz",
+      "originalSha256": "26a5d5c4eb5f17fb76dbd0898879b09a1bd3bd895db78608210b2c6044394dcc",
+      "originalBytes": 276,
+      "storedSha256": "369028286bf379cd5a27391126378bec91ffd6f343fad593e3de0b77125d5551",
+      "storedBytes": 109
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v1\\32-single-declaration\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v1__32-single-declaration__0-candidate-stderr.log.gz",
+      "originalSha256": "9df7ae1adfbf7c9e6e93289d34d12536a84ea72bba8cd3cbf4f805048ddcd0bc",
+      "originalBytes": 184,
+      "storedSha256": "c22211231a1ea54a3f5b620debac07ef0e940781ea575d354c757469a1e78818",
+      "storedBytes": 100
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v1\\32-single-declaration\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v1__32-single-declaration__1-candidate-stderr.log.gz",
+      "originalSha256": "9df7ae1adfbf7c9e6e93289d34d12536a84ea72bba8cd3cbf4f805048ddcd0bc",
+      "originalBytes": 184,
+      "storedSha256": "c22211231a1ea54a3f5b620debac07ef0e940781ea575d354c757469a1e78818",
+      "storedBytes": 100
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v2\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v2__result.json.gz",
+      "originalSha256": "af0b516c5d500393d0aee17a0778370f1b3dbda410d9ef466981f5a255582379",
+      "originalBytes": 271429,
+      "storedSha256": "3156e1658583fbce5acb01ee568115598c7d5064882f8214cf232001b3157c2e",
+      "storedBytes": 10639
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v2\\32-imported-declaration\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v2__32-imported-declaration__0-candidate-stderr.log.gz",
+      "originalSha256": "47d8d8cf57f2ce3ab6b183e1b035508d20c856b86e8f63876eb0b4fe4ed20e04",
+      "originalBytes": 358,
+      "storedSha256": "8cf46c642bda9ce5281beca9676dfc7af5ec6395e743dc901f139062f4de9a45",
+      "storedBytes": 134
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v2\\32-imported-declaration\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v2__32-imported-declaration__1-candidate-stderr.log.gz",
+      "originalSha256": "47d8d8cf57f2ce3ab6b183e1b035508d20c856b86e8f63876eb0b4fe4ed20e04",
+      "originalBytes": 358,
+      "storedSha256": "8cf46c642bda9ce5281beca9676dfc7af5ec6395e743dc901f139062f4de9a45",
+      "storedBytes": 134
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v2\\32-single-declaration\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v2__32-single-declaration__0-candidate-stderr.log.gz",
+      "originalSha256": "5693def7ae93904c4488449b641b8699c7610cb8607e339a8b9da797c43fff52",
+      "originalBytes": 266,
+      "storedSha256": "f30169d895052a69aec9f9b49435409f303180076641ef2dea22174bd58b3141",
+      "storedBytes": 124
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v2\\32-single-declaration\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v2__32-single-declaration__1-candidate-stderr.log.gz",
+      "originalSha256": "5693def7ae93904c4488449b641b8699c7610cb8607e339a8b9da797c43fff52",
+      "originalBytes": 266,
+      "storedSha256": "f30169d895052a69aec9f9b49435409f303180076641ef2dea22174bd58b3141",
+      "storedBytes": 124
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v3\\result.json",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v3__result.json.gz",
+      "originalSha256": "4bb5586edcb8a9f920e2ce6a30d0f4a103b1411aca318eb6e20d27dbd9ca68ea",
+      "originalBytes": 132167,
+      "storedSha256": "044b7f1228ad36e8c7171a7c5bf13f1e3f7c0985c026bfbb666882470f679971",
+      "storedBytes": 6310
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v3\\32-single-declaration\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v3__32-single-declaration__0-candidate-stderr.log.gz",
+      "originalSha256": "5c69b128cebff3608c2623790a758e2f0ce43448f38fc59298d3725151411f5d",
+      "originalBytes": 1834,
+      "storedSha256": "d09ca9fdad09209e6c07603d08b2151405eec88f6bf6ef67474504fd15ecae11",
+      "storedBytes": 294
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\decline-metrics-v3\\32-single-declaration\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\decline-metrics-v3__32-single-declaration__1-candidate-stderr.log.gz",
+      "originalSha256": "5c69b128cebff3608c2623790a758e2f0ce43448f38fc59298d3725151411f5d",
+      "originalBytes": 1834,
+      "storedSha256": "d09ca9fdad09209e6c07603d08b2151405eec88f6bf6ef67474504fd15ecae11",
+      "storedBytes": 294
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\32-single-declaration\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__32-single-declaration__0-candidate-stderr.log.gz",
+      "originalSha256": "f7cdc070a48e8b4dd32bbb60bcc878a4d47bc9c627dc0382f683a53350d91406",
+      "originalBytes": 907,
+      "storedSha256": "2c78fba91f424496987d1c554f41a4b31af360dc529ad455931cc9c4f6945b46",
+      "storedBytes": 288
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\32-single-declaration\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__32-single-declaration__1-candidate-stderr.log.gz",
+      "originalSha256": "451557a0611c78a43487b8e6ef8783e8bf4ba76c5fadaab7e0fdcf5409a54717",
+      "originalBytes": 906,
+      "storedSha256": "868deeb6e8a4b5c1b3846f7dd2fba06bd34dc046b8b5e21e2dbaa1ef59cd72b2",
+      "storedBytes": 284
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\32-single-literal\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__32-single-literal__0-candidate-stderr.log.gz",
+      "originalSha256": "6858443ab5455f6d18c3a90993867f1215c6d6d846d889dc7d9acbca202798d0",
+      "originalBytes": 894,
+      "storedSha256": "ad2f111a51e260f6289d69afba0eefba93e92a5a225e535ce36efdc2cc2f5363",
+      "storedBytes": 284
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\32-single-literal\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__32-single-literal__1-candidate-stderr.log.gz",
+      "originalSha256": "57a20aca26f446b7ed0b8ca6d353457947acfab699a7ca8a3d1ee9d4810e0ea3",
+      "originalBytes": 894,
+      "storedSha256": "b1a35824891ad02e5db2f3bef1400fe95e9badbeef05ddc2e06bc318b662a9ee",
+      "storedBytes": 282
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\512-single-declaration\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__512-single-declaration__0-candidate-stderr.log.gz",
+      "originalSha256": "c886576672490029d8ce1dc2d6339b7f29e7bca2059762f72288e9bfe11d8119",
+      "originalBytes": 939,
+      "storedSha256": "32184eb135d5eef2e6db0457a15f22457809c0d9e2e9f975f3f18bec828d58cc",
+      "storedBytes": 297
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\512-single-declaration\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__512-single-declaration__1-candidate-stderr.log.gz",
+      "originalSha256": "b3091b6504308cdbaf08501e65c463699fea2951f6b9367931dae09cdc5fa3fe",
+      "originalBytes": 940,
+      "storedSha256": "ec1d66862e380e32083778dda5114a4723cf5fb218f1a447d1405c2406cd34e9",
+      "storedBytes": 291
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\512-single-literal\\0-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__512-single-literal__0-candidate-stderr.log.gz",
+      "originalSha256": "71575aacea24c3e369d75e43da98a1b10c026917cd57682ba17a465056ff7aa5",
+      "originalBytes": 938,
+      "storedSha256": "c40a6b7523c9412bcf548ec373fbb2e2faec3e9ecbbe0fa7dbdfbe5ee9bb84f8",
+      "storedBytes": 289
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\native-metrics-v1\\512-single-literal\\1-candidate-stderr.log",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\reports\\native-metrics-v1__512-single-literal__1-candidate-stderr.log.gz",
+      "originalSha256": "71b3ff6138fb5274d898696c32a1fec5de2e7eb6a35b100cea3a62e6777f2ba9",
+      "originalBytes": 938,
+      "storedSha256": "43118f1a04c0ba5bcc57fb5573ff958c56bf102e0adb8c0f3fa1a00f0aa4ec89",
+      "storedBytes": 289
+    }
+  ],
+  "sourceSnapshots": [
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\ast_size.c",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\current\\ide\\src\\analysis\\ast_size.c",
+      "sha256": "be542682a89c66819a17f88395190913665027c4d4c2a19d9e41cff53ebf94f1",
+      "bytes": 2627
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\ast_size.h",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\current\\ide\\src\\analysis\\ast_size.h",
+      "sha256": "53c4e54cd2cd841950319e7f5f858832485edb66edf81f093e0117558171e473",
+      "bytes": 779
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module.c",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\current\\ide\\src\\analysis\\typed_module.c",
+      "sha256": "3300b559d4cf5375f827dc3a7d26197ca51a475eff815e26b305e2e5db9ab0db",
+      "bytes": 9000
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module_internal.h",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\current\\ide\\src\\analysis\\typed_module_internal.h",
+      "sha256": "0f7b2de00869f3dde72eb1798167c77df31ac07e921f75ad4cb4cf4b87132177",
+      "bytes": 3666
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem_native.inc",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\current\\ide\\src\\analysis\\frontend_sem_native.inc",
+      "sha256": "2d0cb2866353576db5859233a9adecaf470a862c0b58a7c515449d41daef8f2d",
+      "bytes": 5301
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_native_borrow_test.c",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\current\\ide\\tests\\analysis_native_borrow_test.c",
+      "sha256": "65b009cc8d00113e9d285777c0ddfa831d8727dee5d6eb3e8851a677bebe2a17",
+      "bytes": 18580
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_memo_types.py",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\current\\ide\\tools\\check_lsp_memo_types.py",
+      "sha256": "f4e4159890e0e1b028a540ae8f2029eaa634e0cde623cbeb59a7e1c25933cc4e",
+      "bytes": 6544
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\build-decline-probe-v2.py",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\controllers\\build-decline-probe-v2.py",
+      "sha256": "ae3a71f064d708d26a6d4fc7782a31edc91af7481ba9fe44e2fe877390168d11",
+      "bytes": 2527
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\build-decline-probe-v3.py",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\controllers\\build-decline-probe-v3.py",
+      "sha256": "c74324033473232fea39b07e3941c94adde4350ce2b0544da9d8fd825a3963c5",
+      "bytes": 3103
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\build-decline-probe.py",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\controllers\\build-decline-probe.py",
+      "sha256": "5ef6117daa3ae150348d4c9e52da6018101c4627941fab86c7920ad37ca7ff9f",
+      "bytes": 2144
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\build-native-diagnostic.py",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\controllers\\build-native-diagnostic.py",
+      "sha256": "cb3d18b839d4d5776b49ec1b6d0d15cdf24ed073ab5708a5849d403b2dfb189a",
+      "bytes": 5412
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\finalize.py",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\controllers\\finalize.py",
+      "sha256": "1b7ea7249fe3fec5f11459437b6ecdee7959730f27aa712d353743cf64d9bb8f",
+      "bytes": 8990
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\run-performance.py",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\controllers\\run-performance.py",
+      "sha256": "897a86ce7537cacda2744e424c58c5cc62cf933608db4b4ef75f9c24962c60da",
+      "bytes": 2674
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\run-validation.py",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\controllers\\run-validation.py",
+      "sha256": "8e01fd3f69b763369c7a9a904f47a06cf65d18c6e683324a9d9999da1fb81ba2",
+      "bytes": 2933
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\large-oracle-diagnostic-v1\\analysis_native_borrow_test.c",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\large-oracle-diagnostic\\analysis_native_borrow_test.c",
+      "sha256": "5406ebfc4c4fadd1b38983008c692dc2e87e3dd9076298c0869f28d7df0d5f42",
+      "bytes": 16000
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\large-oracle-diagnostic-v1\\analysis_semantic_memo_test.c",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\large-oracle-diagnostic\\analysis_semantic_memo_test.c",
+      "sha256": "ca64a90b4045c86c6bbd0475d9970d98a4e465e0be98d507204a7e820cbc8129",
+      "bytes": 25596
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-inputs\\ide\\src\\analysis\\typed_module_internal.h",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\baseline-inputs\\ide\\src\\analysis\\typed_module_internal.h",
+      "sha256": "eb6b36f19d9155341f4ef71d6c0fe76402a0c3b3c2ed9ac32923ac553b3359e2",
+      "bytes": 3447
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-inputs\\ide\\src\\analysis\\frontend_sem_native.inc",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\baseline-inputs\\ide\\src\\analysis\\frontend_sem_native.inc",
+      "sha256": "57e09d30cf789ad9b3e6ca41a1564ba0d326bb1c10a9f91bbc0c99ea014d559d",
+      "bytes": 4876
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-inputs\\ide\\src\\analysis\\ast_size.c",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\baseline-inputs\\ide\\src\\analysis\\ast_size.c",
+      "sha256": "9c8d0d0abf94d7a7c4b0561161280ec2e22c028f2cb4b40f4070be9fed4c72d0",
+      "bytes": 2608
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-inputs\\ide\\src\\analysis\\ast_size.h",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\baseline-inputs\\ide\\src\\analysis\\ast_size.h",
+      "sha256": "6e0f0bc96923c9bdba624354b39725646cd082e281ab34f225f71d2088ffdef1",
+      "bytes": 770
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\baseline-inputs\\ide\\src\\analysis\\typed_module.c",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\baseline-inputs\\ide\\src\\analysis\\typed_module.c",
+      "sha256": "4a521e47c969705a503230fbddfccd796102f9fd2e86eee131b473e508baa2df",
+      "bytes": 8475
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\full-v1-sources\\frontend_sem_native.inc",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\full-v1-inputs\\ide\\src\\analysis\\frontend_sem_native.inc",
+      "sha256": "ae9f3164e534b85e9927992daf82458383521a2c37dce6b78e7aa72bd403d50b",
+      "bytes": 5217
+    },
+    {
+      "originalPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-preflight-20261103\\large-oracle-diagnostic-v1\\analysis_native_borrow_test.c",
+      "storedPath": "dev\\release-materials\\sources\\lsp-native-prefix-20261103\\full-v1-inputs\\ide\\tests\\analysis_native_borrow_test.c",
+      "sha256": "5406ebfc4c4fadd1b38983008c692dc2e87e3dd9076298c0869f28d7df0d5f42",
+      "bytes": 16000
+    }
+  ]
+}

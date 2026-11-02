@@ -1,7 +1,7 @@
 #include "analysis/ast_size.h"
 #include <string.h>
 static int charge(xls_ast_size* size,size_t bytes)
-{if(size->bytes>size->limit || bytes>size->limit-size->bytes)return 0;size->bytes+=bytes;return 1;}
+{if(size->bytes>size->limit || bytes>size->limit-size->bytes){size->exceeded=1;return 0;}size->bytes+=bytes;return 1;}
 int xlsAstSizeBegin(xls_ast_size* size,size_t limit,int backing)
 {
     *size=(xls_ast_size){.limit=limit,.backing=backing};
