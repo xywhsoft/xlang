@@ -1,0 +1,78 @@
+// Free caller types stay generic in the private producer, including constraints.
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point value)
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+class Base
+    int number=7
+end
+class Child extends Base
+end
+class Reader
+    func Read<T>(T value) as cstring
+        return cstring.take(rawText(),release)
+    end
+    func Data<T>(T value) as cbytes
+        return cbytes.take(rawBytes(),4,release)
+    end
+    async func Factory<T>(T witness) as func(T) as cstring
+        return self.Read
+    end
+    async func Binary<T>(T witness) as func(T) as cbytes
+        return self.Data
+    end
+    async func Echo<T>(T value) as T
+        return value
+    end
+end
+func bind<U>(Reader reader,U witness) as func(U) as future<func(U) as string>
+    return reader.Factory
+end
+class Binder
+    func Bind<U>(Reader reader,U witness) as func(U) as future<func(U) as string>
+        return reader.Factory
+    end
+    func Binary<U>(Reader reader,U witness) as func(U) as future<func(U) as bytes>
+        return reader.Binary
+    end
+end
+class ClassBinder<U>
+    func Bind(Reader reader) as func(U) as future<func(U) as string>
+        return reader.Factory
+    end
+    func Binary(Reader reader) as func(U) as future<func(U) as bytes>
+        return reader.Binary
+    end
+end
+func constrained<U is Base>(Reader reader,U witness) as func(U) as future<func(U) as string>
+    return reader.Factory
+end
+// A nested caller variable cannot be solved merely by keeping the old T.
+func nested<U>(Reader reader,U witness) as func(func(U) as cstring) as future<func(U) as string>
+    return reader.Echo
+end
+async func check()
+    Reader reader=Reader()
+    auto a=bind(reader,c_int(1))
+    auto b=Binder().Bind(reader,c_long(1))
+    auto c=ClassBinder::<c_int>().Bind(reader)
+    auto d=Binder().Binary(reader,c_int(1))
+    auto e=ClassBinder::<c_long>().Binary(reader)
+    auto aa=await a(c_int(1))
+    auto bb=await b(c_long(1))
+    auto cc=await c(c_int(1))
+    auto dd=await d(c_int(1))
+    auto ee=await e(c_long(1))
+    assert aa(c_int(7))=="hello" and bb(c_long(7))=="hello" and cc(c_int(7))=="hello"
+    assert dd(c_int(7))==b"\0\xff\x11*" and ee(c_long(7))==b"\0\xff\x11*"
+    Child child=Child()
+    auto strict=constrained(reader,child)
+    auto strictResult=await strict(child)
+    assert strictResult(child)=="hello"
+    func(c_int) as cstring original=reader.Read
+    auto echo=nested(reader,c_int(1))
+    auto echoed=await echo(original)
+    assert echoed(c_int(7))=="hello"
+end
+await check()
+assert balanced()

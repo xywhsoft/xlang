@@ -16281,7 +16281,9 @@ static int xl6IrLowerSpecializationCloneCallSites(
                 ? build->nodes[source.preparedGetter] : XL6_IR_NODE_INVALID;
         if (source.preparedGetter != XL6_IR_NODE_INVALID && target->preparedGetter == XL6_IR_NODE_INVALID) return 0;
         target->firstArgument = module->callArgumentCount;
-        if ( target->targetSymbol == 0 ||
+        /* Callable-value sites bind through their cloned receiver rather
+         * than a declaration symbol. Their exact signature remains verified. */
+        if ( (target->targetSymbol == 0 && source.callKind != XL6_SEM_CALL_FUNCTION_VALUE) ||
              (source.resultType != XL6_IR_TYPE_INVALID &&
               target->resultType == XL6_IR_TYPE_INVALID) ||
              (source.receiver != XL6_IR_NODE_INVALID && target->receiver == XL6_IR_NODE_INVALID) ) return 0;
