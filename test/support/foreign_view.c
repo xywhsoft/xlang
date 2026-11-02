@@ -186,13 +186,14 @@ static void exclusive_root(void)
 }
 static void metadata_and_admission(void)
 {
-    for (unsigned fault=0;fault<5;++fault) {
+    for (unsigned fault=0;fault<6;++fault) {
         Native* raw=native_create(); XL6_ForeignViewDescriptorV1 d=rootDescriptor;
         if (fault==0) d.size--;
         if (fault==1) d.abiTag=0;
         if (fault==2) d.watchAlignment=3;
         if (fault==3) d.Unwatch=NULL;
         if (fault==4) { d.CallBegin=NULL; d.CallEnd=NULL; d.callBytes=0; d.callAlignment=1; }
+        if (fault==5) d.Busy=NULL;
         assert(!xl6ForeignViewCreateRootV1(raw,&d,&codeOwner));
         assert(!raw->watch && codeReferences==1); xrtClearError(); assert(destroy_native(raw));
     }
@@ -211,8 +212,14 @@ static void metadata_and_admission(void)
     const XL6_OwnershipFinishV1* finish=NULL;
     assert(xl6OwnershipCatalogProbeV1(xl6ForeignViewOwnershipV1(root),catalog,&adapter,&prepare,&finish)==XL6_OWNERSHIP_ADMISSION_BUSY);
     assert(!adapter && !prepare && !finish);
+    assert(xl6ForeignViewCallEndV1(&call));
+    /* External native C activity is not in the resident view's active list. */
+    assert(scope_begin(raw,&native));
+    assert(xl6OwnershipCatalogProbeV1(xl6ForeignViewOwnershipV1(root),catalog,&adapter,&prepare,&finish)==XL6_OWNERSHIP_ADMISSION_BUSY);
+    assert(!xl6OwnershipCatalogAdmitsReadV1(xl6ForeignViewOwnershipV1(root),catalog));
+    assert(scope_end(&native));
     xl6OwnershipCatalogDestroyV1(catalog);
-    assert(xl6ForeignViewCallEndV1(&call)); xl6ForeignViewReleaseV1(view); xl6ForeignViewReleaseV1(root);
+    xl6ForeignViewReleaseV1(view); xl6ForeignViewReleaseV1(root);
     assert(codeReferences==1);
 }
 int main(int argc,char** argv)

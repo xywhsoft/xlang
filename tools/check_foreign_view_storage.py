@@ -15,19 +15,21 @@ def main():
     p.add_argument('--sanitize',action='store_true')
     p.add_argument('--callbacks',action='store_true')
     p.add_argument('--userdata',action='store_true')
+    p.add_argument('--xui-build',type=Path,help='exercise actual hosted XUI event slots with the same resident core')
+    p.add_argument('--xui-root',type=Path,default=Path('D:/GIT/xge'))
     a=p.parse_args();root,base,out=[v.resolve() for v in (a.root,a.base,a.out)]
     cc=shutil.which('gcc');assert cc
     build=json.loads((base/'build.json').read_text(encoding='utf-8-sig'))
     assert build['Complete'] and build['InputsUnchanged']
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
-    assert not(a.callbacks and a.userdata)
-    fixture='foreign_native_userdata.c' if a.userdata else 'foreign_view_callbacks.c' if a.callbacks else 'foreign_view_storage.c'
+    assert sum(map(bool,(a.callbacks,a.userdata,a.xui_build)))<=1
+    fixture='foreign_native_xui_callback.c' if a.xui_build else 'foreign_native_userdata.c' if a.userdata else 'foreign_view_callbacks.c' if a.callbacks else 'foreign_view_storage.c'
     sources=[root/('test/support/'+fixture)]+[root/('src/runtime/'+n+'.c') for n in (
         'xl6_cell','xl6_native_future_payload','xl6_foreign_view','xl6_foreign_callback_scope','xl6_foreign_context',
         'xl6_closure','xl6_code_finalizer',
         'xl6_native_capture_graph','xl6_foreign_view_capture','xl6_capture_v3','xl6_closure_capture_v4',
         'xl6_cell_native_graph','xl6_native_graph_future_payload','xl6_ownership_domain_native_graph_future_payload')]
-    if a.userdata:sources.append(root/'src/runtime/xl6_native_callback.c')
+    if a.userdata or a.xui_build:sources.append(root/'src/runtime/xl6_native_callback.c')
     base_root=next(Path(row['Source']).parents[2] for row in build['Objects'] if Path(row['Source']).name=='xl_api.c')
     replaced={str(path.relative_to(root)).lower() for path in sources}
     driver=('xlir_public_runtime_driver.c' if build['RuntimeOnly'] else 'xlir_public_source_driver.c') if os.name=='nt' else 'xlir_public_source_linux_driver.c'
@@ -39,12 +41,22 @@ def main():
     inputs={str(path):sha(path) for path in [Path(__file__).resolve(),base/'build.json',*sources,*module_sources,
         root/'test/support/foreign_view_native_fixture.h',*sorted((root/'src/runtime').glob('*.h')),
         *sorted((root/'src/api').glob('*.h')),*sorted((root/'src/common').glob('*.h'))]}
+    engine=None
+    if a.xui_build:
+        a.xui_build=a.xui_build.resolve();a.xui_root=a.xui_root.resolve()
+        engine=a.xui_build/('xge.dll' if os.name=='nt' else 'libxge.so')
+        metadata=json.loads((a.xui_build/'build-report.json').read_text());assert metadata['xrt_mode']=='host'
+        assert metadata['xrt_host_header_sha256']==hashlib.sha256((root/'lib/xrt/xrt.h').read_bytes().replace(b'\r\n',b'\n')).hexdigest()
+        for path in (engine,a.xui_build/'build-report.json',a.xui_root/'include/xui.h',a.xui_build/'xge_build_config.h',
+            *sorted((a.xui_build/'host-xrt').glob('*'))):
+            if path.is_file():inputs[str(path)]=sha(path)
     report=dict(complete=False,passed=False,scope=__doc__,networkTests=False,
         canonicalFullRebuild=False,sourceSanitizers=a.sanitize,unchangedCoreInstrumented=False,
         baseOptimization=build['Optimization'],baseObjectCount=len(reused),
         reusedObjectBytesVerified=True,inputs=inputs,rows=[])
     env=dict(os.environ,TEMP=str(out/'tmp'),TMP=str(out/'tmp'))
     env['PATH']=str(root/'release')+os.pathsep+env.get('PATH','')
+    if engine:env['PATH']=str(engine.parent)+os.pathsep+env['PATH']
     if a.sanitize:
         assert os.name!='nt'
         env.update(ASAN_OPTIONS='detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1')
@@ -60,7 +72,11 @@ def main():
     # about real type/signature mismatches is disabled.
     if os.name!='nt':baseflags+=['-Wno-unused-function','-Wno-unused-const-variable']
     if a.sanitize:baseflags+=['-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie']
-    cases=('replacement','nested','binding','cycle','errors','cleanup','affinity','allocation','all') if a.userdata else ('finalizer','context-release','box-invoke','box-drop','all') if a.callbacks else ('cells','cell-cycle','futures','future-cycle','cleanup','allocation','all')
+    if engine:
+        baseflags+=['-DXGE_DLL','-DXUI_DLL','-DXGE_XRT_HOST=1','-Wno-cast-function-type',
+            '-I'+str(a.xui_root),'-I'+str(a.xui_root/'include'),'-I'+str(a.xui_build/'host-xrt'),
+            '-include',str(a.xui_build/'xge_build_config.h')]
+    cases=('all',) if engine else ('replacement','nested','binding','cycle','errors','cleanup','affinity','allocation','all') if a.userdata else ('finalizer','context-release','box-invoke','box-drop','all') if a.callbacks else ('cells','cell-cycle','futures','future-cycle','cleanup','allocation','all')
     for opt in ('O0','O2'):
         modules=[]
         if a.userdata:
@@ -89,6 +105,7 @@ def main():
             if item.endswith('.o') and str(Path(item).resolve()).lower() not in allowed:continue
             response.append(item)
         exe=out/(opt+('.exe' if os.name=='nt' else '.out'));response += [str(obj) for obj in compiled]+['-o',str(exe)]
+        if engine:response+=[str(engine),*(['-Wl,-rpath,'+str(engine.parent)] if os.name!='nt' else [])]
         if a.sanitize:response+=['-fsanitize=address,undefined','-no-pie']
         rsp=out/(opt+'.rsp');rsp.write_bytes(('\n'.join('"'+item.replace('\\','/')+'"' for item in response)+'\n').encode())
         if run(opt+'-link',[cc,'@'+str(rsp)]):

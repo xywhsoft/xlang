@@ -34,15 +34,16 @@ static bool destroy_context(void* raw) { xuiDestroy(raw); return true; }
 static bool destroy_widget(void* raw) { xuiWidgetDestroy(raw); return true; }
 static bool native_begin(void* root,void* storage) { return xuiCallScopeBegin(root,storage)==XUI_OK; }
 static bool native_end(void* storage) { return xuiCallScopeEnd(storage)==XUI_OK; }
+static bool native_busy(const void* root) { return xuiContextOwnershipBusy((xui_context)root); }
 /* This CPU fixture creates only base widgets, with no value models or retained
  * language callbacks. NULL TraceRaw is NOT a general XUI context leaf policy. */
 static const XL6_ForeignViewDescriptorV1 contextDescriptor={
     sizeof(contextDescriptor),XL6_FOREIGN_VIEW_V1_TAG,"xui_context",
     sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_context,unwatch,destroy_context,
-    sizeof(xui_call_scope_t),_Alignof(xui_call_scope_t),native_begin,native_end,NULL};
+    sizeof(xui_call_scope_t),_Alignof(xui_call_scope_t),native_begin,native_end,NULL,native_busy};
 static const XL6_ForeignViewDescriptorV1 widgetDescriptor={
     sizeof(widgetDescriptor),XL6_FOREIGN_VIEW_V1_TAG,"xui_widget",
-    sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_widget,unwatch,destroy_widget,0,1,NULL,NULL,NULL};
+    sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_widget,unwatch,destroy_widget,0,1,NULL,NULL,NULL,NULL};
 
 static void real_context_lifetime(void)
 {

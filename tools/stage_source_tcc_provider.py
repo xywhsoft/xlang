@@ -2,7 +2,8 @@
 
 Compiler/runtime objects and driver bytes are reused unchanged from a completed
 source cohort. Only the dynamically loaded TinyCC provider changes; this DLL
-contains no xlang/XRT implementation. This is isolated acceptance material,
+contains no resident xlang/XRT machine-code implementation (target objects
+remain serialized VFS resources). This is isolated acceptance material,
 not a replacement of release products or a new full compiler compilation.
 """
 from pathlib import Path
@@ -62,7 +63,7 @@ def main():
     staged.update(Driver=str(out/'public_source.exe'),DriverSha256=sha(out/'public_source.exe'),
         TccCore=str(provider),TccCoreSha256=sha(provider),
         ParentSourceBuild=str(base/'build.json'),ParentSourceBuildSha256=sha(base/'build.json'),
-        TccProviderRole='TinyCC and current VFS only; no xlang/XRT implementation',
+        TccProviderRole='TinyCC and current VFS only; target objects are resources, no resident xlang/XRT machine code',
         Scope=__doc__)
     for row in staged['Headers']:
         path=Path(row['Path'])
@@ -74,8 +75,10 @@ def main():
     run('source-driver-aot',[out/'public_source.exe',root/'test/cases/cgen_basic.xl','exe',out/'smoke'])
     run('source-aot-run',[out/'smoke.exe'])
     report['inputsUnchanged']=all(sha(path)==value for path,value in inputs.items())
+    report['parentCohortUnchanged']=all(sha(row['Path']).lower()==row['Sha256'].lower()
+        for row in original['Inputs']+original['Headers']+original['Objects'])
     report['driverUnchanged']=sha(out/'public_source.exe').lower()==original['DriverSha256'].lower()
     report['providerSha256']=sha(provider);report['sourceCohort']=str(out/'build.json')
-    report['complete']=True;report['passed']=report['inputsUnchanged'] and report['driverUnchanged'];save()
+    report['complete']=True;report['passed']=report['inputsUnchanged'] and report['driverUnchanged'] and report['parentCohortUnchanged'];save()
     assert report['passed']
 if __name__=='__main__':main()

@@ -1,0 +1,22 @@
+extern "const XL6_NativeCallbackRuntimeV1*" class CallbackRuntime @header("__xl_runtime/xl6_native_callback.h") @lifetime("caller")
+    native point handle
+end
+extern "const XL6_ClosureRuntimeV3*" class ClosureRuntime @header("__xl_runtime/xl6_closure_capture_v4.h") @lifetime("caller")
+    native point handle
+end
+extern "const XL6_NativeCaptureProfileV1*" class ViewProfile @header("__xl_runtime/xl6_foreign_view_capture.h") @lifetime("caller")
+    native point handle
+end
+extern "const XL6_NativeFuturePayloadRuntimeV1*" class GraphFutureRuntime @header("__xl_runtime/xl6_native_graph_future_payload.h") @lifetime("caller")
+    native point handle
+end
+
+extern "xl6NativeCallbackRuntimeV1Get" @no_raise @nonblocking func callbackRuntime() as CallbackRuntime
+extern "xl6ClosureRuntimeV4Get" @no_raise @nonblocking func closureRuntime() as ClosureRuntime
+extern "xl6ForeignViewCaptureProfileV1Get" @no_raise @nonblocking func viewProfile() as ViewProfile
+extern "xl6NativeGraphFuturePayloadRuntimeV1Get" @no_raise @nonblocking func graphFutureRuntime() as GraphFutureRuntime
+extern "foreign_native_tables_probe" @no_raise @nonblocking func probe(CallbackRuntime callbacks, ClosureRuntime closures, ViewProfile view, GraphFutureRuntime futures) as c_int
+
+func main(...) as int
+    return probe(callbackRuntime(), closureRuntime(), viewProfile(), graphFutureRuntime())
+end

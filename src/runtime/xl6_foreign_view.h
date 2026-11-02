@@ -34,7 +34,10 @@ typedef struct XL6_ForeignView XL6_ForeignView;
  * shared native nodes remain separate references and need their own admission.
  * Child views borrow this payload; they do not duplicate its owning edges.
  * TraceRaw is read-only under whole-domain Freeze, with no allocation, locks,
- * language invocation, reference transitions or policy guessing. */
+ * language invocation, reference transitions or policy guessing.
+ * Busy is a creator-thread, frozen read-only probe of independent native
+ * activity. An observed root requires it: the resident active count alone
+ * cannot see operations begun by an external C event loop. */
 typedef struct XL6_ForeignViewDescriptorV1 {
     size_t size;
     uint64_t abiTag;
@@ -47,6 +50,7 @@ typedef struct XL6_ForeignViewDescriptorV1 {
     bool (*CallBegin)(void* root,void* storage);
     bool (*CallEnd)(void* storage);
     bool (*TraceRaw)(const void*,XL6_ModuleOwnershipVisit,void*);
+    bool (*Busy)(const void*);
 } XL6_ForeignViewDescriptorV1;
 #define XL6_FOREIGN_VIEW_V1_TAG UINT64_C(0x584C364656494531)
 
