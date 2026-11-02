@@ -1,0 +1,33 @@
+{
+  "head": "4697c246d3b2140be20a1e0e4e74b574fa1242f6",
+  "files": {
+    "ide/src/analysis/typed_module.c": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\previous-ide-inputs\\ide\\src\\analysis\\typed_module.c",
+      "sha256": "1122c7fb53e249370b7951ed403b8f90f53dc03ca9597830389f5c595d8c513b"
+    },
+    "ide/src/analysis/typed_module_internal.h": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\previous-ide-inputs\\ide\\src\\analysis\\typed_module_internal.h",
+      "sha256": "c99e271796c223713cea551b9b1d8c08a6e4f85115c92c90743cff34580190e7"
+    },
+    "ide/src/analysis/frontend_function_index.h": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_function_index.h",
+      "sha256": "7ee9307f3fef7907042c1df19b2c92331f9ec2befe56c78383ac5537e5d9277b"
+    },
+    "ide/src/analysis/frontend_function_index.inc": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_function_index.inc",
+      "sha256": "9854572edc3f74534036b71a1f866ffd2112d88fd037dcd65b008e8cdb5d9116"
+    },
+    "ide/src/analysis/function_unit.c": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\previous-ide-inputs\\ide\\src\\analysis\\function_unit.c",
+      "sha256": "690e0fac6ae81f0ab429a121f557147f45e93f344b75a75306e1a8a534d76922"
+    },
+    "ide/tests/analysis_typed_function_test.c": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\previous-ide-inputs\\ide\\tests\\analysis_typed_function_test.c",
+      "sha256": "2082893073ea7c2cf5034be09977f54bfaadd475641ab77a6d50daac0ba8dcc2"
+    },
+    "ide/tools/build_lsp_core.py": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-composite-functions-20261102\\previous-ide-inputs\\ide\\tools\\build_lsp_core.py",
+      "sha256": "2add838b32d80f8ad521cfd29901009e441d9f40b0082d57b325f1bc2c5b140e"
+    }
+  }
+}

@@ -5,6 +5,12 @@
 /* Takes root ownership only on success. Caller may keep a borrowed alias;
  * it must not mutate/free the root and must hold this module while reading. */
 xls_typed_module* xlsTypedModuleTake(XL6_AstNode* root);
+/* Construction-private composition. owners has exactly root->childCount slots;
+ * NULL slots transfer exclusively owned fresh children,non-NULL slots borrow
+ * precisely that immutable function root. Success retains each borrowed owner
+ * independently;failure changes/takes nothing. No freshness/semantic proof is
+ * supplied here. The caller must establish that before composing a result. */
+xls_typed_module* xlsTypedModuleTakeBorrowed(XL6_AstNode* root,xls_typed_function* const* owners,size_t count);
 const XL6_AstNode* xlsTypedModuleRoot(const xls_typed_module*);
 /* Optional ownership partition of immediate module function declarations.
  * rootSlot is the ORIGINAL module child slot,not a new function ordinal.
@@ -16,6 +22,9 @@ const XL6_AstNode* xlsTypedFunctionRoot(const xls_typed_function*);
 /* Known metadata shared by siblings;conservatively charge it in FULL to a
  * retained function. Native XRT pool backing is outside this local count. */
 size_t xlsTypedFunctionMetadataBytes(const xls_typed_function*);
+/* Stable while a function reference lives. Deduplicate known metadata only;
+ * never use this opaque owner identity as an input or semantic equality key. */
+const void* xlsTypedFunctionMetadataOwner(const xls_typed_function*);
 /* Original module child slot;SIZE_MAX for NULL. Ownership identity only. */
 size_t xlsTypedFunctionRootSlot(const xls_typed_function*);
 /* Optional independent owner identity. Borrowed while the module lives;

@@ -9,6 +9,8 @@ static void xlsIndexStorageRelease(xls_index_storage* storage)
 }
 xls_function_index_asset* xlsFunctionIndexAssetRetain(xls_function_index_asset* asset)
 {if(asset)xrtAtomic32FetchAdd(&asset->references,1,XMEMORY_RELAXED);return asset;}
+const void* xlsFunctionIndexAssetMetadataOwner(const xls_function_index_asset* asset)
+{return asset ? asset->storage : NULL;}
 void xlsFunctionIndexAssetRelease(xls_function_index_asset* asset)
 {
     if(!asset || xrtAtomic32FetchSub(&asset->references,1,XMEMORY_ACQ_REL)!=1)return;

@@ -21,6 +21,9 @@ xls_function_index_asset* xlsFrontendIndexFunctionAsset(const xls_semantic_index
 xls_function_index_asset* xlsFunctionIndexAssetRetain(xls_function_index_asset*);
 void xlsFunctionIndexAssetRelease(xls_function_index_asset*);
 xls_function_index_info xlsFunctionIndexAssetInfo(const xls_function_index_asset*);
+/* Known shared slot/source-catalog metadata identity. Borrowed while the asset
+ * lives;for quota deduplication only,not provenance or semantic equivalence. */
+const void* xlsFunctionIndexAssetMetadataOwner(const xls_function_index_asset*);
 /* Original collector IDs/parent/source domains. These are NOT automatically
  * valid in a later compilation. Returned values borrow the retained asset.
  * Unrelated fact buffers and the old index/check/report/text are not retained. */

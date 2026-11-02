@@ -218,8 +218,37 @@ XL6_AstNode* xlsFrontendFunctionUnitMaterialize(const xls_function_unit* u,size_
 #define FUNCTION_SET_BYTES (256u*1024u*1024u)
 struct xls_function_set {
     xatomic32 references;xarray units;xls_function_origin* origin;
-    size_t built,unitBytes,bytes,limit,ownerBytes;
+    size_t built,unitBytes,bytes,limit;
 };
+typedef struct owner_group {const void* identity;size_t bytes;unsigned char kind;} owner_group;
+static size_t ownerGroups(xls_typed_function* function,const xls_function_index_asset* asset,owner_group groups[2])
+{
+    size_t count=0;
+    if(function)groups[count++]=(owner_group){xlsTypedFunctionMetadataOwner(function),xlsTypedFunctionMetadataBytes(function),0};
+    if(asset)groups[count++]=(owner_group){xlsFunctionIndexAssetMetadataOwner(asset),xlsFunctionIndexAssetInfo(asset).sharedBytes,1};
+    return count;
+}
+static xbytesview groupKey(const owner_group* group,unsigned char key[sizeof(void*)+1])
+{
+    memcpy(key,&group->identity,sizeof(group->identity));key[sizeof(void*)]=group->kind;
+    return (xbytesview){key,sizeof(void*)+1};
+}
+static size_t chargedGroups(const xmap* charged,const owner_group* groups,size_t count)
+{
+    size_t bytes=0;
+    for(size_t i=0;i<count;++i){unsigned char key[sizeof(void*)+1];
+        if(xrtMapHas(charged,groupKey(&groups[i],key)))bytes+=groups[i].bytes;
+    }
+    return bytes;
+}
+static int rememberGroups(xmap* charged,const owner_group* groups,size_t count)
+{
+    for(size_t i=0;i<count;++i){unsigned char key[sizeof(void*)+1],yes=1;
+        xbytesview view=groupKey(&groups[i],key);
+        if(!groups[i].identity || (!xrtMapHas(charged,view) && !xrtMapSet(charged,view,&yes)))return 0;
+    }
+    return 1;
+}
 static int setBytes(xls_function_set* set)
 {
     size_t total=sizeof(*set);
@@ -254,9 +283,10 @@ xls_function_set* xlsFrontendFunctionSetCaptureOwned(const xls_typed_module* mod
     if(bytes>FUNCTION_SET_BYTES)bytes=FUNCTION_SET_BYTES;
     if(!root || !origin || bytes<=sizeof(xls_function_set) || origin->bytes>bytes-sizeof(xls_function_set))return NULL;
     function_stop stop={cancelled,user};if(stopped(&stop))return NULL;
-    xls_function_set* set=xrtCalloc(1,sizeof(*set));if(!set)return NULL;xmap owned={0};
+    xls_function_set* set=xrtCalloc(1,sizeof(*set));if(!set)return NULL;xmap owned={0},charged={0};
     xrtAtomic32Init(&set->references,1);set->origin=originRetain(origin);set->limit=bytes;
-    if(!xrtArrayInit(&set->units,sizeof(void*)) || !setBytes(set) || !collectFunctions(set,root,0,&stop))goto failed;
+    if(!xrtArrayInit(&set->units,sizeof(void*)) || !xrtMapInit(&charged,sizeof(unsigned char)) ||
+       !setBytes(set) || !collectFunctions(set,root,0,&stop))goto failed;
     /* Build a demand-only address lookup once. Normal checking constructs no
      * map and performs no body walk. Its entries borrow the retained module;
      * successful units independently retain their native function owners. */
@@ -273,21 +303,29 @@ xls_function_set* xlsFrontendFunctionSetCaptureOwned(const xls_typed_module* mod
         const XL6_AstNode* node=*(const void* const*)xrtArrayConstGet(&set->units,i);
         xls_typed_function* const* found=indexed ? xrtMapConstGet(&owned,(xbytesview){(const unsigned char*)&node,sizeof(node)}) : NULL;
         size_t available=bytes-set->bytes;
-        /* Every owned entry comes from this one module's forest. Its metadata
-         * has already been charged once to the set; standalone units still
-         * charge it in full. Final setBytes enforces the original total cap. */
-        if(found && set->ownerBytes && set->ownerBytes<=SIZE_MAX-available)available+=set->ownerBytes;
+        /* Composite modules can span several native forests and one current
+         * index catalog. Credit only groups already charged to THIS set.
+         * Standalone units continue charging each known owner in full. Both
+         * demand-only lookup maps retire before the explicit set is returned. */
+        owner_group groups[2];size_t count=0,credit=0;
+        if(found){
+            xls_function_index_asset* asset=xlsFrontendIndexFunctionAsset(index,*found);
+            count=ownerGroups(*found,asset,groups);credit=chargedGroups(&charged,groups,count);
+            xlsFunctionIndexAssetRelease(asset);
+            if(credit>SIZE_MAX-available)goto failed;
+            available+=credit;
+        }
         xls_function_unit* unit=found ? xlsFrontendFunctionUnitCaptureOwned(*found,index,origin,available,cancelled,user) :
             xlsFrontendFunctionUnitCapture(node,index,origin,available,cancelled,user);
         if(!unit)goto failed;
         *(const void**)xrtArrayGet(&set->units,i)=unit;++set->built;
-        set->unitBytes+=unit->bytes-(unit->ownerBytes && set->ownerBytes ? unit->ownerBytes : 0);
-        if(unit->ownerBytes)set->ownerBytes=unit->ownerBytes;
+        if(credit>unit->ownerBytes || unit->bytes-credit>SIZE_MAX-set->unitBytes || !rememberGroups(&charged,groups,count))goto failed;
+        set->unitBytes+=unit->bytes-credit;
         if(!setBytes(set))goto failed;
     }
     if(stopped(&stop))goto failed;
-    xrtMapUnit(&owned);return set;
-failed:xrtMapUnit(&owned);xlsFunctionSetRelease(set);return NULL;
+    xrtMapUnit(&charged);xrtMapUnit(&owned);return set;
+failed:xrtMapUnit(&charged);xrtMapUnit(&owned);xlsFunctionSetRelease(set);return NULL;
 }
 xls_function_set* xlsFrontendFunctionSetCapture(const XL6_AstNode* root,const xls_semantic_index* index,
     xls_function_origin* origin,size_t bytes,int (*cancelled)(void*),void* user)
