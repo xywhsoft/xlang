@@ -63,10 +63,52 @@ static int receipts(void)
     size_t bytes=receipt.data.Size;receipt.data.Size=3;read=reader(&receipt,0);CHECK(!xlsSemFinalVisit(&read,&node,0,0));receipt.data.Size=bytes;
     uint32_t mask=0;memcpy(&mask,receipt.data.Data,4);uint32_t invalid=mask|(UINT32_C(1)<<3);memcpy(receipt.data.Data,&invalid,4);
     read=reader(&receipt,0);CHECK(!xlsSemFinalVisit(&read,&node,0,0));memcpy(receipt.data.Data,&mask,4);
+    invalid=mask|(UINT32_C(1)<<31);memcpy(receipt.data.Data,&invalid,4);
+    read=reader(&receipt,0);CHECK(!xlsSemFinalVisit(&read,&node,0,0));memcpy(receipt.data.Data,&mask,4);
     read=reader(&receipt,0);read.oldEnd=2;CHECK(!xlsSemFinalVisit(&read,&node,0,0));
     read=reader(&receipt,0);read.end=11;CHECK(!xlsSemFinalVisit(&read,&node,0,0));
     receipt.nodes=0;read=reader(&receipt,0);CHECK(!xlsSemFinalVisit(&read,&node,0,0));receipt.nodes=1;
     xrtStrBufFree(&writer.data);return 1;
+}
+static void fixedScalar(XL6_AstNode* node,unsigned field,uint32_t value)
+{
+    switch(field){
+        case 3:node->semanticSymbolId=value;break;
+        case 4:node->semanticDeclaredSymbolId=value;break;
+        case 5:node->semanticTargetSymbolId=value;break;
+        case 6:node->semanticCompoundOperatorSymbolId=value;break;
+        case 7:node->semanticCallKind=(XL6_SemCallKind)value;break;
+        case 8:node->semanticLvalueKind=(XL6_SemLvalueKind)value;break;
+        case 15:node->semanticReceiverSymbolId=value;break;
+        case 16:node->compiledPackageError=value;break;
+        case 17:node->compiledPackageRoot=(int)value;break;
+    }
+}
+static int fixedReceipts(void)
+{
+    const unsigned fields[]={3,4,5,6,7,8,15,16,17};
+    for(size_t i=0;i<sizeof(fields)/sizeof(*fields);++i){
+        unsigned field=fields[i];uint32_t value=UINT32_C(0xfffffffd)-field;
+        XL6_AstNode output={.kind=XL6_AST_NAME,.semanticTypeId=17,
+            .semanticTypeAbiId=UINT64_C(0xfedcba9876543210),.semanticRegionId=2};
+        fixedScalar(&output,field,value);uint64_t before[XLS_SEM_IR_FIELDS]={0};
+        xls_sem_ir_writer writer={.limit=8192};CHECK(xlsSemIrRecord(&writer,&output,before,NULL));
+        xls_sem_ir_receipt receipt={.data=writer.data,.nodes=1};XL6_AstNode node={.kind=XL6_AST_NAME};
+        fixedScalar(&node,field,value);xls_sem_final_reader read=reader(&receipt,0);
+        CHECK(xlsSemFinalVisit(&read,&node,0,0) && read.at==receipt.data.Size && !node.semanticTypeId);
+        fixedScalar(&node,field,value^1u);read=reader(&receipt,0);
+        CHECK(!xlsSemFinalVisit(&read,&node,0,0) && !node.semanticTypeId);
+        fixedScalar(&node,field,value);read=reader(&receipt,0);CHECK(xlsSemFinalVisit(&read,&node,0,0));
+        read=reader(&receipt,1);CHECK(xlsSemFinalVisit(&read,&node,0,0) && node.semanticTypeId==17 &&
+            node.semanticTypeAbiId==output.semanticTypeAbiId && node.semanticRegionId==11);
+        CHECK(xlsSemFinalFixedMatches(&node,field,value));
+        /* Write-permission test only:production forbids this mutation between
+         * validation and commit. Even a direct commit cannot write this ID. */
+        fixedScalar(&node,field,value^1u);read=reader(&receipt,1);CHECK(xlsSemFinalVisit(&read,&node,0,0));
+        CHECK(xlsSemFinalFixedMatches(&node,field,value^1u));
+        xrtStrBufFree(&writer.data);
+    }
+    return 1;
 }
 static int geometrySnapshot(xls_sem_memo* memo,const XL6_AstNode* root,const xls_sem_memo* previous)
 {
@@ -176,7 +218,7 @@ static int geometry(void)
 }
 int main(void)
 {
-    if(!environment() || !planState() || !receipts() || !geometry())return 1;
+    if(!environment() || !planState() || !receipts() || !fixedReceipts() || !geometry())return 1;
     printf("analysis_final_environment_test passed:%u checks;all native TypeInfo fields,registry sequence,exact declarations,complete root plan frame,and real final receipt boundaries\n",checks);return 0;
 }
 #else
