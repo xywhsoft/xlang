@@ -40,14 +40,11 @@ static char *xsys_copy(const char *text)
 #ifdef _WIN32
 static char *xsys_utf8(const WCHAR *text)
 {
-    int size = WideCharToMultiByte(CP_UTF8, 0, text, -1, NULL, 0, NULL, NULL);
-    char *result;
-    if (size <= 0) return NULL;
-    result = xrtMalloc((size_t)size);
-    if (!result) return NULL;
-    if (WideCharToMultiByte(CP_UTF8, 0, text, -1, result, size, NULL, NULL) != size) {
-        xrtFree(result);
-        return NULL;
+    char *result = xrtUtf16To8((const uint16*)text, NULL);
+    /* 非法系统文本按既有合同视为不可用；分配或其他真实错误仍传播。 */
+    if (result == NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE) {
+        xrtClearError();
+        return xsys_copy("unknown");
     }
     return result;
 }

@@ -57,18 +57,27 @@ FILE *__wrap_fopen(const char *path, const char *mode)
     return fmemopen(cpu_info, sizeof(cpu_info) - 1u, mode);
 }
 
+static char* query_text(char* (*query)(void), int* clean)
+{
+    xrtSetErrorInfo(XERR_IO, "sysinfo.test.old", 3, "old diagnostic");
+    char* result = query();
+    if (xrtGetError() != NULL) *clean = 0;
+    return result;
+}
+
 int main(void)
 {
-    char *host = xsysinfo_hostname();
-    char *os = xsysinfo_os_name();
-    char *version = xsysinfo_os_version();
-    char *arch = xsysinfo_arch();
-    char *cpu = xsysinfo_cpu_name();
-    char *empty_host = xsysinfo_hostname();
-    char *empty_os = xsysinfo_os_name();
-    char *empty_version = xsysinfo_os_version();
-    char *empty_arch = xsysinfo_arch();
-    int ok = host_calls == 2 && uname_calls == 6 && cpu_calls > 0 &&
+    int clean = 1;
+    char *host = query_text(xsysinfo_hostname, &clean);
+    char *os = query_text(xsysinfo_os_name, &clean);
+    char *version = query_text(xsysinfo_os_version, &clean);
+    char *arch = query_text(xsysinfo_arch, &clean);
+    char *cpu = query_text(xsysinfo_cpu_name, &clean);
+    char *empty_host = query_text(xsysinfo_hostname, &clean);
+    char *empty_os = query_text(xsysinfo_os_name, &clean);
+    char *empty_version = query_text(xsysinfo_os_version, &clean);
+    char *empty_arch = query_text(xsysinfo_arch, &clean);
+    int ok = clean && host_calls == 2 && uname_calls == 6 && cpu_calls > 0 &&
         host && os && version && arch && cpu &&
         empty_host && empty_os && empty_version && empty_arch &&
         strcmp(host, "unknown") == 0 && strcmp(os, "unknown") == 0 &&

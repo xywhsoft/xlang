@@ -15,7 +15,7 @@ $links = @('-lWs2_32', '-lAdvapi32', '-lIphlpapi', '-lm')
 $checks = [Collections.Generic.List[object]]::new()
 $hashes = [ordered]@{}
 $utf8 = [Text.UTF8Encoding]::new($false)
-$environment = @{XLANG_PACKAGE_PATH = Join-Path $root 'release/extlibs'}
+$environment = @{XLANG_PACKAGE_PATH = Join-Path $root 'release/extlibs'; TEMP=$work; TMP=$work}
 $outcome = 'failed'
 $failure = ''
 
@@ -30,6 +30,7 @@ function InputPaths {
 foreach ($path in @(InputPaths | Sort-Object -Unique)) { $hashes[$path] = (Get-FileHash -LiteralPath $path).Hash }
 
 function Run([string]$name, [string]$program, [string[]]$arguments) {
+    if ($null -eq $arguments) { $arguments = @() }
     $result = Invoke-ExtlibSmokeProcess $program $arguments (Get-Location).Path 120 $environment
     $checks.Add([ordered]@{name=$name;program=$program;arguments=$arguments;result=$result})
     if ($result.status -ne 'pass') { throw "${name}: $($result.status) exit=$($result.exitCode)`n$($result.stderr)`n$($result.stdout)" }
@@ -47,6 +48,8 @@ function CheckMetrics([string]$name, [string]$output) {
 Push-Location $root
 try {
     $null = Run 'compiler version' $gcc @('--version')
+    $cc1 = Run 'compiler cc1 path' $gcc @('-print-prog-name=cc1')
+    $hashes[$cc1] = (Get-FileHash -LiteralPath $cc1).Hash
     $null = Run 'manifest C syntax' $gcc ($flags + @('-DXRT_MODULE_UNICODE',
         '-DXRT_MODULE_NUMBER_INTEGER','-fsyntax-only','release/extlibs/sysinfo/sysinfo_native.c'))
     $null = Run 'ABI contract' $gcc ($flags + @('-fsyntax-only',
@@ -67,6 +70,28 @@ try {
         'release/extlibs/sysinfo/test/registry_name.c', $runtime) +
         $links + @('-o', $registry))
     $null = Run 'C registry fixture' $registry @()
+
+    $threads = Join-Path $work 'threads.exe'
+    $threadSource = 'release/extlibs/sysinfo/test/threads_c.c'
+    $null = Run 'C thread fixture compile' $gcc ($flags + @($native,$threadSource,$runtime) + $links + @('-o',$threads))
+    $null = Run 'C thread fixture' $threads @()
+    $null = Run 'C thread fixture TCC' $xl @('run',$threadSource)
+    if (-not $SkipAot) {
+        $threadAot = Join-Path $work 'threads-aot.exe'
+        $null = Run 'C thread fixture build' $xl @('build',$threadSource,'-o',$threadAot)
+        $null = Run 'C thread fixture AOT' $threadAot @()
+    }
+
+    $unicode = Join-Path $work 'windows-unicode.exe'
+    $unicodeSource = 'release/extlibs/sysinfo/test/windows_unicode_c.c'
+    $null = Run 'C Windows Unicode compile' $gcc ($flags + @($unicodeSource,$runtime) + $links + @('-o',$unicode))
+    $null = Run 'C Windows Unicode' $unicode @()
+    $null = Run 'C Windows Unicode TCC' $xl @('run',$unicodeSource)
+    if (-not $SkipAot) {
+        $unicodeAot = Join-Path $work 'windows-unicode-aot.exe'
+        $null = Run 'C Windows Unicode build' $xl @('build',$unicodeSource,'-o',$unicodeAot)
+        $null = Run 'C Windows Unicode AOT' $unicodeAot @()
+    }
 
     $example = Join-Path $work 'sysinfo_example.exe'
     $null = Run 'C example compile' $gcc ($flags + @(

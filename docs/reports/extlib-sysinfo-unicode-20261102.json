@@ -1,0 +1,1332 @@
+{
+  "schema": "xlang-extlib-sysinfo-unicode-1",
+  "date": "2026-11-02T05:24:51.043611+00:00",
+  "root": "D:\\GIT\\x-lang",
+  "sourceBase": "bf24e6e47",
+  "package": "sysinfo",
+  "status": "scoped C/XLang gates passed; complete release and goal not approved",
+  "mainlineModified": false,
+  "xrtModified": false,
+  "vendorModified": false,
+  "publicApiAbiChanged": false,
+  "publicDependencyManifestChanged": false,
+  "defect": {
+    "platform": "Windows",
+    "affected": [
+      "hostname",
+      "cpuName"
+    ],
+    "cause": "WideCharToMultiByte with default flags silently replaced malformed UTF-16 by U+FFFD",
+    "observedOldBytes": "ef bf bd",
+    "expected": "Invalid system text follows the existing unavailable contract: owned unknown string and no stale error; actual allocation failure remains MemoryError",
+    "notClaimed": "No claim that Windows APIs normally return malformed host names or that the real registry was modified"
+  },
+  "implementation": {
+    "change": "Use the existing strict xrtUtf16To8; only XERR_VALUE maps to the documented unavailable value, preserving memory and unexpected errors",
+    "removed": "Package-local WinAPI length/allocation/conversion implementation",
+    "normalBodyCopiesAdded": 0,
+    "generatedStringHandoffCopiesAdded": 0,
+    "resultLengthScanStillPresent": true,
+    "linuxProductionChanged": false
+  },
+  "contract": {
+    "publicFunctions": 11,
+    "platforms": [
+      "Windows x64",
+      "Linux x86_64 / WSL"
+    ],
+    "inputSystemEncoding": [
+      "UTF-16 Windows",
+      "UTF-8 checked Linux"
+    ],
+    "ownedStrings": true,
+    "cRelease": "xrtFree",
+    "unavailableText": "unknown",
+    "unavailableNumber": 0,
+    "unavailableDistinguishableFromRealZero": false,
+    "oldDiagnosticsClearedAtEntry": true,
+    "hostNotContainerQuota": true
+  },
+  "baseline": {
+    "sourceMatchesGitAfterLfNormalization": true,
+    "oldSourceSha256": "f63a34242857a4f6ae1ad19a177e6bdc42d4e4515d3589964c5a341d85ee4b22",
+    "sameFinalFixtureExceptIncludeRouting": true,
+    "results": [
+      {
+        "name": "old",
+        "expected": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "sysinfo Windows Unicode: 39 cases, 508 checks, 39 actual OOM/78 budgets, 48 failures\r\n",
+          "stderr": "sysinfo Unicode unexpected bytes: ef bf bd\r\nsysinfo Unicode: complete text or documented unknown; old error cleared\r\nsysinfo Unicode: same query recovers immediately\r\nsysinfo Unicode: allocation scan reaches the correct result\r\nsysinfo Unicode: same query recovers immediately\r\nsysinfo Unicode unexpected bytes: ef bf bd\r\nsysinfo Unicode: complete text or documented unknown; old error cleared\r\nsysinfo Unicode: same query recovers immediately\r\nsysinfo Unicode: allocation scan reaches the correct result\r\nsysinfo Unicode: same query recovers immediately\r\nsysinfo Unicode unexpected bytes: ef bf bd\r\nsysinfo Unicode: complete text or documented unknown; old error cleared\r\nsysinfo Unicode: same query recovers immediately\r\nsysinfo Unicode: allocation scan reaches the correct result\r\nsysinfo Unicode: same query recovers immediately\r\n",
+          "elapsedMs": 56
+        }
+      },
+      {
+        "name": "new",
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "sysinfo Windows Unicode: 39 cases, 568 checks, 51 actual OOM/90 budgets, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 27
+        }
+      }
+    ],
+    "finalCases": 39,
+    "oldChecks": 508,
+    "oldFailures": 48,
+    "newChecks": 568,
+    "newFailures": 0,
+    "oldActualOom": 39,
+    "newActualOom": 51,
+    "oldBudgets": 78,
+    "newBudgets": 90,
+    "explanation": "Extra allocation points are the temporary strict-conversion diagnostic for 12 malformed inputs; not new output-copy allocations or 51 different allocation sites"
+  },
+  "coverage": {
+    "unicode": [
+      "ASCII and Chinese",
+      "supplementary codepoints and U+10000/U+10FFFF",
+      "U+D7FF/U+E000 and noncharacter",
+      "BOM as field data",
+      "isolated/swapped/doubled/broken surrogate sequences",
+      "empty/blank text",
+      "exact API capacities",
+      "unterminated registry text",
+      "probe unavailable",
+      "same-query immediate recovery",
+      "seven memory metrics",
+      "one registry close per successful open"
+    ],
+    "threads": {
+      "workers": 4,
+      "roundsPerWorker": 64,
+      "totalQueries": 2816,
+      "simultaneousOwnedResults": 5,
+      "allPublicFunctions": true,
+      "platformRuns": [
+        "GCC",
+        "TCC memory",
+        "C standalone AOT"
+      ],
+      "limits": "Short native-thread check only; not a long soak, TSAN proof or guarantee of every scheduler interleaving"
+    },
+    "linuxInvalidUtf8StaleErrorChecksAdded": true,
+    "existingPreserved": [
+      "MemAvailable record and overflow fixtures",
+      "long CPU names",
+      "uptime conversion limits",
+      "registry width",
+      "language OOM",
+      "eleven generated prototypes",
+      "five direct owned returns",
+      "bilingual stable fields and dynamic metric ranges"
+    ]
+  },
+  "windows": {
+    "date": "2026-11-02T13:06:25.9725330+08:00",
+    "outcome": "passed",
+    "failure": "",
+    "aotSkipped": false,
+    "inputs": {
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\sysinfo.xl": "7FF17D91C03BC2D97E578BB4E65B9DEF49C3ADF56A49167B8DD0E5A68C91FD42",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\docs\\site.html": "43A40F4E4F83B417E8338DC4C3C6C9CCF091C57B48965360432DCA80EE312CDA",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\examples\\basic.xl": "DF2E89109A1EAE3B60EB750A092048E1744A9834E8DB2F3AF30DDF64B8E936EE",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\examples\\metrics.xl": "A7E1B09AA7449C0344F8083E9A97298AAA5F87E1A35B6E8CD3B791C4140A1E80",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\examples\\metrics_c.c": "BA30B075412D6B785A771F218152FC6BE2BC3242ABAA4F3BD930C117430923BC",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\examples\\README.md": "AF5099EF16E06FEC9ACBF01A31253565B3D224E2683D5E332C539F036879FA1D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\examples\\sysinfo_c.c": "8B318CC7C9214B05E3CA97A8BD55C40CED4678A4908FD0E8D956A6D129169838",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\README.md": "2C083050D4CEC6F0A0DFC9C0D281A56B7830FBB845C295B77074F7496DA9C917",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\src\\sysinfo.xl": "6A1C278E09FD794CF7719F5DEBEBA59BE9B401EE0188586373F4EB2FF215CA57",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\sysinfo_native.c": "EC8B00B3C8C389C820C44AF2ED88DDBE1DD5B5AA830E5C3A53255AE6A8250910",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\sysinfo_native.h": "DB37EADDB0340B94CA78B6D9756826ACF2FF63618B6D4A000A3EADAE5D9CF469",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\test\\abi_contract.c": "537CE2AB4320E0C4FA7E7D8F5BF40A1347F8805B32F6BFC4C9145B26ACA52696",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\test\\allocations.xl": "4172E934A772890C0A347742F793D33452EEFB6754E1A1CEF5599A0B905E68FD",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\test\\boundaries.xl": "2B518D0CE6C44117D7B8407E2FD8B5DE8EA3C111A610A06176ED82071FD05A11",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\test\\check.ps1": "B4E9900BF2CF04B2C20263B03BE54E030133EFE3D5B01A87E13B61FE12D4E398",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\test\\check.sh": "918EB010D59AB99924DE840349E69874BB1779516F9E24FEA4FBE108F7614D2B",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\test\\long_cpu_name.c": "1B8D9CD4991F1350E1A3AAF8C4864E9711B28656F5DFC56FFBB57E943B0571C3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\test\\meminfo_malformed.c": "5AD0A6FDC9BEDB04DC79CC131D24759F036866F98808F5587CF827464C7B7B47",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\test\\meminfo_unavailable.c": "456887F26DACBC344FF4BBC10ABA753DB84E2B915C481C5AD99E682BF0E63065",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\test\\non_utf8_system_text.c": "638A51A63858231DD838BE37E840C873790011D521BA69200F071EEF134D5C36",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\test\\registry_name.c": "4EE25CF4B4309EE5EFF410CC1BEB555898C1FF69DD5E928A34FA70C0C5E01915",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\test\\test_sysinfo.c": "27B3752754166B6B1E6E39A949E3D88B157E9636802B4219912B5D7A21F81E95",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\test\\threads_c.c": "0072D607AB97E367973EF17F333126ECCFF4A9A39B61ABC8902AEF9E529585B0",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\test\\uptime_overflow.c": "1390B360B9DC06186539303E4AC6CF6DC678F0A987D0F6C2F62911C790E51120",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\test\\windows_unicode_c.c": "909A652B268B54692AA8DC781A44873CC4F7F82BB57CA34DA0AFE4BBAF214B28",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\test\\xrt_runtime.c": "C575E616ACC7B652B7F3C7BBDE0CC82F01F0DA6184CD35FC7FA8C179C727652A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\xlang.package.json": "1AE1C49513A44B1E60D88DAAC112263279FBF5676A3FE096CA27F67A991A9A03",
+      "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+      "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+      "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+      "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+      "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+      "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+      "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+      "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+      "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+      "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_sysinfo.xl": "8DAF0882191615E1FE1EAECB073B72D031362C747C4E1687FE44497D7FACC765",
+      "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+      "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012"
+    },
+    "changedInputs": [],
+    "checks": [
+      {
+        "name": "compiler version",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "--version"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "stderr": "",
+          "elapsedMs": 59
+        }
+      },
+      {
+        "name": "compiler cc1 path",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-print-prog-name=cc1"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe\r\n",
+          "stderr": "",
+          "elapsedMs": 32
+        }
+      },
+      {
+        "name": "manifest C syntax",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sysinfo",
+          "-DXRT_MODULE_UNICODE",
+          "-DXRT_MODULE_NUMBER_INTEGER",
+          "-fsyntax-only",
+          "release/extlibs/sysinfo/sysinfo_native.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1436
+        }
+      },
+      {
+        "name": "ABI contract",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sysinfo",
+          "-fsyntax-only",
+          "release/extlibs/sysinfo/test/abi_contract.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 54
+        }
+      },
+      {
+        "name": "XRT compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sysinfo",
+          "-c",
+          "D:\\GIT\\x-lang\\release\\extlibs\\sysinfo\\test\\xrt_runtime.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\xrt_runtime.o"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 4268
+        }
+      },
+      {
+        "name": "C test compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sysinfo",
+          "release/extlibs/sysinfo/sysinfo_native.c",
+          "release/extlibs/sysinfo/test/test_sysinfo.c",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\xrt_runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_test.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 2963
+        }
+      },
+      {
+        "name": "C test",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_test.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 37
+        }
+      },
+      {
+        "name": "C registry fixture compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sysinfo",
+          "release/extlibs/sysinfo/test/registry_name.c",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\xrt_runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_registry.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1971
+        }
+      },
+      {
+        "name": "C registry fixture",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_registry.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 56
+        }
+      },
+      {
+        "name": "C thread fixture compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sysinfo",
+          "release/extlibs/sysinfo/sysinfo_native.c",
+          "release/extlibs/sysinfo/test/threads_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\xrt_runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\threads.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 2671
+        }
+      },
+      {
+        "name": "C thread fixture",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\threads.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "sysinfo threads: 4 workers, 64 rounds, 2816 queries, PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 59
+        }
+      },
+      {
+        "name": "C thread fixture TCC",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/sysinfo/test/threads_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "sysinfo threads: 4 workers, 64 rounds, 2816 queries, PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 290
+        }
+      },
+      {
+        "name": "C thread fixture build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/sysinfo/test/threads_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\threads-aot.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 460
+        }
+      },
+      {
+        "name": "C thread fixture AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\threads-aot.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "sysinfo threads: 4 workers, 64 rounds, 2816 queries, PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 193
+        }
+      },
+      {
+        "name": "C Windows Unicode compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sysinfo",
+          "release/extlibs/sysinfo/test/windows_unicode_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\xrt_runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\windows-unicode.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 2214
+        }
+      },
+      {
+        "name": "C Windows Unicode",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\windows-unicode.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "sysinfo Windows Unicode: 39 cases, 568 checks, 51 actual OOM/90 budgets, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 72
+        }
+      },
+      {
+        "name": "C Windows Unicode TCC",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/sysinfo/test/windows_unicode_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "sysinfo Windows Unicode: 39 cases, 568 checks, 51 actual OOM/90 budgets, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 265
+        }
+      },
+      {
+        "name": "C Windows Unicode build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/sysinfo/test/windows_unicode_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\windows-unicode-aot.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 276
+        }
+      },
+      {
+        "name": "C Windows Unicode AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\windows-unicode-aot.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "sysinfo Windows Unicode: 39 cases, 568 checks, 51 actual OOM/90 budgets, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 54
+        }
+      },
+      {
+        "name": "C example compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sysinfo",
+          "release/extlibs/sysinfo/examples/sysinfo_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\xrt_runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_example.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 2040
+        }
+      },
+      {
+        "name": "C example",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_example.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "os: Windows\r\nversion: 10.0.19045\r\narch: x86_64\r\nhost: DESKTOP-DQCMPS1\r\ncpu: AMD Ryzen 5 5600 6-Core Processor              \r\ncpus: 12\r\nmemory: 34303627264\r\npage: 4096\r\n",
+          "stderr": "",
+          "elapsedMs": 43
+        }
+      },
+      {
+        "name": "C metrics compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sysinfo",
+          "release/extlibs/sysinfo/examples/metrics_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\xrt_runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_metrics.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1617
+        }
+      },
+      {
+        "name": "C metrics",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_metrics.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "available: 11945553920\r\nusage: 65\r\nuptime: 558747\r\n",
+          "stderr": "",
+          "elapsedMs": 43
+        }
+      },
+      {
+        "name": "XLang existing test",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "../test/cases/extlib_sysinfo.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 273
+        }
+      },
+      {
+        "name": "XLang boundaries",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/sysinfo/test/boundaries.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 262
+        }
+      },
+      {
+        "name": "XLang allocations",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/sysinfo/test/allocations.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "sysinfo allocations: PASS\n",
+          "stderr": "",
+          "elapsedMs": 281
+        }
+      },
+      {
+        "name": "direct-text cgen",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "extlibs/sysinfo/test/boundaries.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\owned_text.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 65
+        }
+      },
+      {
+        "name": "generated eleven prototypes",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sysinfo",
+          "-I../lib/xrt",
+          "-Iextlibs/sysinfo",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\abi.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 98
+        }
+      },
+      {
+        "name": "XLang example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/sysinfo/examples/basic.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "os: Windows\nversion: 10.0.19045\narch: x86_64\nhost: DESKTOP-DQCMPS1\ncpu: AMD Ryzen 5 5600 6-Core Processor              \ncpus: 12\nmemory: 34303627264\npage: 4096\n",
+          "stderr": "",
+          "elapsedMs": 269
+        }
+      },
+      {
+        "name": "C example xl run",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/sysinfo/examples/sysinfo_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "os: Windows\r\nversion: 10.0.19045\r\narch: x86_64\r\nhost: DESKTOP-DQCMPS1\r\ncpu: AMD Ryzen 5 5600 6-Core Processor              \r\ncpus: 12\r\nmemory: 34303627264\r\npage: 4096\r\n",
+          "stderr": "",
+          "elapsedMs": 185
+        }
+      },
+      {
+        "name": "XLang metrics",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/sysinfo/examples/metrics.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "available: 11867078656\nusage: 65\nuptime: 558749\n",
+          "stderr": "",
+          "elapsedMs": 218
+        }
+      },
+      {
+        "name": "C metrics xl run",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "extlibs/sysinfo/examples/metrics_c.c"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "available: 11881066496\r\nusage: 65\r\nuptime: 558749\r\n",
+          "stderr": "",
+          "elapsedMs": 164
+        }
+      },
+      {
+        "name": "public XLang example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "examples/extlibs/sysinfo.xl"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "OS:  Windows   10.0.19045\nArch:  x86_64\nHostname:  DESKTOP-DQCMPS1\nCPU:  AMD Ryzen 5 5600 6-Core Processor              \nCores:  12\nMemory total:  32714  MB\nMemory available:  11312  MB\nMemory usage:  65 %\nPage size:  4096\nUptime:  558750  seconds\nsysinfo example: PASS\n",
+          "stderr": "",
+          "elapsedMs": 316
+        }
+      },
+      {
+        "name": "XLang boundaries build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/sysinfo/test/boundaries.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_xl_test.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 444
+        }
+      },
+      {
+        "name": "XLang boundaries AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_xl_test.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 38
+        }
+      },
+      {
+        "name": "XLang allocations build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/sysinfo/test/allocations.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_xl_allocations.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 440
+        }
+      },
+      {
+        "name": "XLang allocations AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_xl_allocations.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "sysinfo allocations: PASS\n",
+          "stderr": "",
+          "elapsedMs": 67
+        }
+      },
+      {
+        "name": "XLang example build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/sysinfo/examples/basic.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_xl_example.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 466
+        }
+      },
+      {
+        "name": "XLang example AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_xl_example.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "os: Windows\nversion: 10.0.19045\narch: x86_64\nhost: DESKTOP-DQCMPS1\ncpu: AMD Ryzen 5 5600 6-Core Processor              \ncpus: 12\nmemory: 34303627264\npage: 4096\n",
+          "stderr": "",
+          "elapsedMs": 45
+        }
+      },
+      {
+        "name": "XLang metrics build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/sysinfo/examples/metrics.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_xl_metrics.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 415
+        }
+      },
+      {
+        "name": "XLang metrics AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_xl_metrics.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "available: 11848634368\nusage: 65\nuptime: 558752\n",
+          "stderr": "",
+          "elapsedMs": 37
+        }
+      },
+      {
+        "name": "C example build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/sysinfo/examples/sysinfo_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_c_example.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 242
+        }
+      },
+      {
+        "name": "C example AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_c_example.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "os: Windows\r\nversion: 10.0.19045\r\narch: x86_64\r\nhost: DESKTOP-DQCMPS1\r\ncpu: AMD Ryzen 5 5600 6-Core Processor              \r\ncpus: 12\r\nmemory: 34303627264\r\npage: 4096\r\n",
+          "stderr": "",
+          "elapsedMs": 72
+        }
+      },
+      {
+        "name": "C metrics build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "extlibs/sysinfo/examples/metrics_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_c_metrics.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 317
+        }
+      },
+      {
+        "name": "C metrics AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo_c_metrics.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "available: 11901722624\r\nusage: 65\r\nuptime: 558752\r\n",
+          "stderr": "",
+          "elapsedMs": 40
+        }
+      },
+      {
+        "name": "examples/extlibs/sysinfo.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "examples/extlibs/sysinfo.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 506
+        }
+      },
+      {
+        "name": "examples/extlibs/sysinfo.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\sysinfo.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "OS:  Windows   10.0.19045\nArch:  x86_64\nHostname:  DESKTOP-DQCMPS1\nCPU:  AMD Ryzen 5 5600 6-Core Processor              \nCores:  12\nMemory total:  32714  MB\nMemory available:  11322  MB\nMemory usage:  65 %\nPage size:  4096\nUptime:  558753  seconds\nsysinfo example: PASS\n",
+          "stderr": "",
+          "elapsedMs": 52
+        }
+      },
+      {
+        "name": "../test/cases/extlib_sysinfo.xl build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "../test/cases/extlib_sysinfo.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\extlib_sysinfo.exe"
+        ],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 442
+        }
+      },
+      {
+        "name": "../test/cases/extlib_sysinfo.xl AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sysinfo_guard_e232fa649d0249998604c82240994c70\\extlib_sysinfo.exe",
+        "arguments": [],
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 37
+        }
+      }
+    ]
+  },
+  "linux": {
+    "audit": "/run/xlang-sysinfo-audit-wMTJxd",
+    "fileSystem": "native /run tmpfs, independent ordinary file copies",
+    "frozenBefore": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  lib/xrt/xrt.h\ne202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  lib/xruntime/xruntime.h\n7ff17d91c03bc2d97e578bb4e65b9def49c3adf56a49167b8dd0e5a68c91fd42  release/examples/extlibs/sysinfo.xl\n2c083050d4cec6f0a0dfc9c0d281a56b7830fbb845c295b77074f7496da9c917  release/extlibs/sysinfo/README.md\n43a40f4e4f83b417e8338dc4c3c6c9ccf091c57b48965360432dca80ee312cda  release/extlibs/sysinfo/docs/site.html\naf5099ef16e06fec9acbf01a31253565b3d224e2683d5e332c539f036879fa1d  release/extlibs/sysinfo/examples/README.md\ndf2e89109a1eae3b60eb750a092048e1744a9834e8db2f3af30ddf64b8e936ee  release/extlibs/sysinfo/examples/basic.xl\na7e1b09aa7449c0344f8083e9a97298aaa5f87e1a35b6e8cd3b791c4140a1e80  release/extlibs/sysinfo/examples/metrics.xl\nba30b075412d6b785a771f218152fc6be2bc3242abaa4f3bd930c117430923bc  release/extlibs/sysinfo/examples/metrics_c.c\n8b318cc7c9214b05e3ca97a8bd55c40ced4678a4908fd0e8d956a6d129169838  release/extlibs/sysinfo/examples/sysinfo_c.c\n6a1c278e09fd794cf7719f5debeba59be9b401ee0188586373f4eb2ff215ca57  release/extlibs/sysinfo/src/sysinfo.xl\nec8b00b3c8c389c820c44af2ed88ddbe1dd5b5aa830e5c3a53255ae6a8250910  release/extlibs/sysinfo/sysinfo_native.c\ndb37eaddb0340b94ca78b6d9756826acf2ff63618b6d4a000a3eadae5d9cf469  release/extlibs/sysinfo/sysinfo_native.h\n537ce2ab4320e0c4fa7e7d8f5bf40a1347f8805b32f6bfc4c9145b26aca52696  release/extlibs/sysinfo/test/abi_contract.c\n4172e934a772890c0a347742f793d33452eefb6754e1a1cef5599a0b905e68fd  release/extlibs/sysinfo/test/allocations.xl\n2b518d0ce6c44117d7b8407e2fd8b5de8ea3c111a610a06176ed82071fd05a11  release/extlibs/sysinfo/test/boundaries.xl\nb4e9900bf2cf04b2c20263b03be54e030133efe3d5b01a87e13b61fe12d4e398  release/extlibs/sysinfo/test/check.ps1\n918eb010d59ab99924de840349e69874bb1779516f9e24fea4fbe108f7614d2b  release/extlibs/sysinfo/test/check.sh\n1b8d9cd4991f1350e1a3aaf8c4864e9711b28656f5dfc56ffbb57e943b0571c3  release/extlibs/sysinfo/test/long_cpu_name.c\n5ad0a6fdc9bedb04dc79cc131d24759f036866f98808f5587cf827464c7b7b47  release/extlibs/sysinfo/test/meminfo_malformed.c\n456887f26dacbc344ff4bbc10aba753db84e2b915c481c5ad99e682bf0e63065  release/extlibs/sysinfo/test/meminfo_unavailable.c\n638a51a63858231dd838be37e840c873790011d521ba69200f071eef134d5c36  release/extlibs/sysinfo/test/non_utf8_system_text.c\n4ee25cf4b4309ee5eff410cc1beb555898c1ff69dd5e928a34fa70c0c5e01915  release/extlibs/sysinfo/test/registry_name.c\n27b3752754166b6b1e6e39a949e3d88b157e9636802b4219912b5d7a21f81e95  release/extlibs/sysinfo/test/test_sysinfo.c\n0072d607ab97e367973ef17f333126eccff4a9a39b61abc8902aef9e529585b0  release/extlibs/sysinfo/test/threads_c.c\n1390b360b9dc06186539303e4ac6cf6dc678f0a987d0f6c2f62911c790e51120  release/extlibs/sysinfo/test/uptime_overflow.c\n909a652b268b54692aa8dc781a44873cc4f7f82bb57ca34da0afe4bbaf214b28  release/extlibs/sysinfo/test/windows_unicode_c.c\nc575e616acc7b652b7f3c7bbde0cc82f01f0da6184cd35fc7fa8c179c727652a  release/extlibs/sysinfo/test/xrt_runtime.c\n1ae1c49513a44b1e60d88daac112263279fbf5676a3fe096ca27f67a991a9a03  release/extlibs/sysinfo/xlang.package.json\n513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  release/include/README.md\nfc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  release/include/libtcc.h\nfe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  release/include/tcc_builtin_vfs.h\nede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  release/include/xl.h\nab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  release/include/xl_cancellation_retirement.h\na203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  release/include/xl_clock.h\ndb381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  release/include/xl_extlib_abi.h\n8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  release/include/xl_foreign_graph.h\nec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  release/include/xl_foreign_net.h\n4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  release/include/xl_package.h\n4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  release/include/xl_runtime.h\n931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  release/include/xl_sync_retirement.h\n136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  release/include/xl_version.h\n073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  release/include/xlc.h\nc519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  release/include/xrt_decl.h\n1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  release/include/xruntime_decl.h\n4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  release/libxl.so\n0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  release/libxlc.so\ndd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  release/xl\n8daf0882191615e1fe1eaecb073b72d031362c747c4e1687fe44497d7facc765  test/cases/extlib_sysinfo.xl\n",
+    "frozenAfter": "lib/xrt/xrt.h: OK\nlib/xruntime/xruntime.h: OK\nrelease/examples/extlibs/sysinfo.xl: OK\nrelease/extlibs/sysinfo/README.md: OK\nrelease/extlibs/sysinfo/docs/site.html: OK\nrelease/extlibs/sysinfo/examples/README.md: OK\nrelease/extlibs/sysinfo/examples/basic.xl: OK\nrelease/extlibs/sysinfo/examples/metrics.xl: OK\nrelease/extlibs/sysinfo/examples/metrics_c.c: OK\nrelease/extlibs/sysinfo/examples/sysinfo_c.c: OK\nrelease/extlibs/sysinfo/src/sysinfo.xl: OK\nrelease/extlibs/sysinfo/sysinfo_native.c: OK\nrelease/extlibs/sysinfo/sysinfo_native.h: OK\nrelease/extlibs/sysinfo/test/abi_contract.c: OK\nrelease/extlibs/sysinfo/test/allocations.xl: OK\nrelease/extlibs/sysinfo/test/boundaries.xl: OK\nrelease/extlibs/sysinfo/test/check.ps1: OK\nrelease/extlibs/sysinfo/test/check.sh: OK\nrelease/extlibs/sysinfo/test/long_cpu_name.c: OK\nrelease/extlibs/sysinfo/test/meminfo_malformed.c: OK\nrelease/extlibs/sysinfo/test/meminfo_unavailable.c: OK\nrelease/extlibs/sysinfo/test/non_utf8_system_text.c: OK\nrelease/extlibs/sysinfo/test/registry_name.c: OK\nrelease/extlibs/sysinfo/test/test_sysinfo.c: OK\nrelease/extlibs/sysinfo/test/threads_c.c: OK\nrelease/extlibs/sysinfo/test/uptime_overflow.c: OK\nrelease/extlibs/sysinfo/test/windows_unicode_c.c: OK\nrelease/extlibs/sysinfo/test/xrt_runtime.c: OK\nrelease/extlibs/sysinfo/xlang.package.json: OK\nrelease/include/README.md: OK\nrelease/include/libtcc.h: OK\nrelease/include/tcc_builtin_vfs.h: OK\nrelease/include/xl.h: OK\nrelease/include/xl_cancellation_retirement.h: OK\nrelease/include/xl_clock.h: OK\nrelease/include/xl_extlib_abi.h: OK\nrelease/include/xl_foreign_graph.h: OK\nrelease/include/xl_foreign_net.h: OK\nrelease/include/xl_package.h: OK\nrelease/include/xl_runtime.h: OK\nrelease/include/xl_sync_retirement.h: OK\nrelease/include/xl_version.h: OK\nrelease/include/xlc.h: OK\nrelease/include/xrt_decl.h: OK\nrelease/include/xruntime_decl.h: OK\nrelease/libxl.so: OK\nrelease/libxlc.so: OK\nrelease/xl: OK\ntest/cases/extlib_sysinfo.xl: OK\n",
+    "bootId": "16bf5451-fa62-4fb2-8b64-fdd52300f2b0",
+    "exit": 0,
+    "sourceFingerprint": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc\n30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1\n20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  lib/xrt/xrt.h\ne202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  lib/xruntime/xruntime.h\n7ff17d91c03bc2d97e578bb4e65b9def49c3adf56a49167b8dd0e5a68c91fd42  release/examples/extlibs/sysinfo.xl\n2c083050d4cec6f0a0dfc9c0d281a56b7830fbb845c295b77074f7496da9c917  release/extlibs/sysinfo/README.md\n43a40f4e4f83b417e8338dc4c3c6c9ccf091c57b48965360432dca80ee312cda  release/extlibs/sysinfo/docs/site.html\naf5099ef16e06fec9acbf01a31253565b3d224e2683d5e332c539f036879fa1d  release/extlibs/sysinfo/examples/README.md\ndf2e89109a1eae3b60eb750a092048e1744a9834e8db2f3af30ddf64b8e936ee  release/extlibs/sysinfo/examples/basic.xl\na7e1b09aa7449c0344f8083e9a97298aaa5f87e1a35b6e8cd3b791c4140a1e80  release/extlibs/sysinfo/examples/metrics.xl\nba30b075412d6b785a771f218152fc6be2bc3242abaa4f3bd930c117430923bc  release/extlibs/sysinfo/examples/metrics_c.c\n8b318cc7c9214b05e3ca97a8bd55c40ced4678a4908fd0e8d956a6d129169838  release/extlibs/sysinfo/examples/sysinfo_c.c\n6a1c278e09fd794cf7719f5debeba59be9b401ee0188586373f4eb2ff215ca57  release/extlibs/sysinfo/src/sysinfo.xl\nec8b00b3c8c389c820c44af2ed88ddbe1dd5b5aa830e5c3a53255ae6a8250910  release/extlibs/sysinfo/sysinfo_native.c\ndb37eaddb0340b94ca78b6d9756826acf2ff63618b6d4a000a3eadae5d9cf469  release/extlibs/sysinfo/sysinfo_native.h\n537ce2ab4320e0c4fa7e7d8f5bf40a1347f8805b32f6bfc4c9145b26aca52696  release/extlibs/sysinfo/test/abi_contract.c\n4172e934a772890c0a347742f793d33452eefb6754e1a1cef5599a0b905e68fd  release/extlibs/sysinfo/test/allocations.xl\n2b518d0ce6c44117d7b8407e2fd8b5de8ea3c111a610a06176ed82071fd05a11  release/extlibs/sysinfo/test/boundaries.xl\nb4e9900bf2cf04b2c20263b03be54e030133efe3d5b01a87e13b61fe12d4e398  release/extlibs/sysinfo/test/check.ps1\n918eb010d59ab99924de840349e69874bb1779516f9e24fea4fbe108f7614d2b  release/extlibs/sysinfo/test/check.sh\n1b8d9cd4991f1350e1a3aaf8c4864e9711b28656f5dfc56ffbb57e943b0571c3  release/extlibs/sysinfo/test/long_cpu_name.c\n5ad0a6fdc9bedb04dc79cc131d24759f036866f98808f5587cf827464c7b7b47  release/extlibs/sysinfo/test/meminfo_malformed.c\n456887f26dacbc344ff4bbc10aba753db84e2b915c481c5ad99e682bf0e63065  release/extlibs/sysinfo/test/meminfo_unavailable.c\n638a51a63858231dd838be37e840c873790011d521ba69200f071eef134d5c36  release/extlibs/sysinfo/test/non_utf8_system_text.c\n4ee25cf4b4309ee5eff410cc1beb555898c1ff69dd5e928a34fa70c0c5e01915  release/extlibs/sysinfo/test/registry_name.c\n27b3752754166b6b1e6e39a949e3d88b157e9636802b4219912b5d7a21f81e95  release/extlibs/sysinfo/test/test_sysinfo.c\n0072d607ab97e367973ef17f333126eccff4a9a39b61abc8902aef9e529585b0  release/extlibs/sysinfo/test/threads_c.c\n1390b360b9dc06186539303e4ac6cf6dc678f0a987d0f6c2f62911c790e51120  release/extlibs/sysinfo/test/uptime_overflow.c\n909a652b268b54692aa8dc781a44873cc4f7f82bb57ca34da0afe4bbaf214b28  release/extlibs/sysinfo/test/windows_unicode_c.c\nc575e616acc7b652b7f3c7bbde0cc82f01f0da6184cd35fc7fa8c179c727652a  release/extlibs/sysinfo/test/xrt_runtime.c\n1ae1c49513a44b1e60d88daac112263279fbf5676a3fe096ca27f67a991a9a03  release/extlibs/sysinfo/xlang.package.json\n513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  release/include/README.md\nfc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  release/include/libtcc.h\nfe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  release/include/tcc_builtin_vfs.h\nede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  release/include/xl.h\nab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  release/include/xl_cancellation_retirement.h\na203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  release/include/xl_clock.h\ndb381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  release/include/xl_extlib_abi.h\n8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  release/include/xl_foreign_graph.h\nec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  release/include/xl_foreign_net.h\n4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  release/include/xl_package.h\n4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  release/include/xl_runtime.h\n931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  release/include/xl_sync_retirement.h\n136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  release/include/xl_version.h\n073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  release/include/xlc.h\nc519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  release/include/xrt_decl.h\n1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  release/include/xruntime_decl.h\n4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  release/libxl.so\n0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  release/libxlc.so\ndd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  release/xl\n8daf0882191615e1fe1eaecb073b72d031362c747c4e1687fe44497d7facc765  test/cases/extlib_sysinfo.xl\n",
+    "report": "exit=0\n",
+    "log": "+ set -euo pipefail\n+++ dirname -- release/extlibs/sysinfo/test/check.sh\n++ cd -- release/extlibs/sysinfo/test/../../../..\n++ pwd\n+ root=/run/xlang-sysinfo-audit-wMTJxd/stage\n+ cd /run/xlang-sysinfo-audit-wMTJxd/stage\n++ mktemp -d /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-XXXXXX\n+ work=/run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9\n+ trap cleanup EXIT\n+ trap 'record_failure \"$?\" \"$LINENO\" \"$BASH_COMMAND\" \"${PIPESTATUS[*]}\"' ERR\n+ cc=gcc\n++ command -v gcc\n+ cc_path=/usr/bin/gcc\n+ cc1_path=\n+ flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sysinfo -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -pthread)\n+ export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1\n+ ASAN_OPTIONS=detect_leaks=1:halt_on_error=1\n+ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1\n+ UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1\n+ export XLANG_PACKAGE_PATH=/run/xlang-sysinfo-audit-wMTJxd/stage/release/extlibs\n+ XLANG_PACKAGE_PATH=/run/xlang-sysinfo-audit-wMTJxd/stage/release/extlibs\n+ mapfile -d '' inputs\n++ input_paths\n++ find release/extlibs/sysinfo release/include -type f -print0\n++ sort -zu\n++ printf '%s\\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so test/cases/extlib_sysinfo.xl release/examples/extlibs/sysinfo.xl\n++ [[ -n /usr/bin/gcc ]]\n++ printf '%s\\0' /usr/bin/gcc\n++ [[ -n '' ]]\n+ sha256sum /usr/bin/gcc lib/xrt/xrt.h lib/xruntime/xruntime.h release/examples/extlibs/sysinfo.xl release/extlibs/sysinfo/README.md release/extlibs/sysinfo/docs/site.html release/extlibs/sysinfo/examples/README.md release/extlibs/sysinfo/examples/basic.xl release/extlibs/sysinfo/examples/metrics.xl release/extlibs/sysinfo/examples/metrics_c.c release/extlibs/sysinfo/examples/sysinfo_c.c release/extlibs/sysinfo/src/sysinfo.xl release/extlibs/sysinfo/sysinfo_native.c release/extlibs/sysinfo/sysinfo_native.h release/extlibs/sysinfo/test/abi_contract.c release/extlibs/sysinfo/test/allocations.xl release/extlibs/sysinfo/test/boundaries.xl release/extlibs/sysinfo/test/check.ps1 release/extlibs/sysinfo/test/check.sh release/extlibs/sysinfo/test/long_cpu_name.c release/extlibs/sysinfo/test/meminfo_malformed.c release/extlibs/sysinfo/test/meminfo_unavailable.c release/extlibs/sysinfo/test/non_utf8_system_text.c release/extlibs/sysinfo/test/registry_name.c release/extlibs/sysinfo/test/test_sysinfo.c release/extlibs/sysinfo/test/threads_c.c release/extlibs/sysinfo/test/uptime_overflow.c release/extlibs/sysinfo/test/windows_unicode_c.c release/extlibs/sysinfo/test/xrt_runtime.c release/extlibs/sysinfo/xlang.package.json release/include/README.md release/include/libtcc.h release/include/tcc_builtin_vfs.h release/include/xl.h release/include/xl_cancellation_retirement.h release/include/xl_clock.h release/include/xl_extlib_abi.h release/include/xl_foreign_graph.h release/include/xl_foreign_net.h release/include/xl_package.h release/include/xl_runtime.h release/include/xl_sync_retirement.h release/include/xl_version.h release/include/xlc.h release/include/xrt_decl.h release/include/xruntime_decl.h release/libxl.so release/libxlc.so release/xl test/cases/extlib_sysinfo.xl\n+ gcc --version\n++ gcc -print-prog-name=cc1\n+ cc1_path=/usr/libexec/gcc/x86_64-linux-gnu/15/cc1\n+ mapfile -d '' inputs\n++ input_paths\n++ find release/extlibs/sysinfo release/include -type f -print0\n++ sort -zu\n++ printf '%s\\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so test/cases/extlib_sysinfo.xl release/examples/extlibs/sysinfo.xl\n++ [[ -n /usr/bin/gcc ]]\n++ printf '%s\\0' /usr/bin/gcc\n++ [[ -n /usr/libexec/gcc/x86_64-linux-gnu/15/cc1 ]]\n++ printf '%s\\0' /usr/libexec/gcc/x86_64-linux-gnu/15/cc1\n+ sha256sum /usr/bin/gcc /usr/libexec/gcc/x86_64-linux-gnu/15/cc1 lib/xrt/xrt.h lib/xruntime/xruntime.h release/examples/extlibs/sysinfo.xl release/extlibs/sysinfo/README.md release/extlibs/sysinfo/docs/site.html release/extlibs/sysinfo/examples/README.md release/extlibs/sysinfo/examples/basic.xl release/extlibs/sysinfo/examples/metrics.xl release/extlibs/sysinfo/examples/metrics_c.c release/extlibs/sysinfo/examples/sysinfo_c.c release/extlibs/sysinfo/src/sysinfo.xl release/extlibs/sysinfo/sysinfo_native.c release/extlibs/sysinfo/sysinfo_native.h release/extlibs/sysinfo/test/abi_contract.c release/extlibs/sysinfo/test/allocations.xl release/extlibs/sysinfo/test/boundaries.xl release/extlibs/sysinfo/test/check.ps1 release/extlibs/sysinfo/test/check.sh release/extlibs/sysinfo/test/long_cpu_name.c release/extlibs/sysinfo/test/meminfo_malformed.c release/extlibs/sysinfo/test/meminfo_unavailable.c release/extlibs/sysinfo/test/non_utf8_system_text.c release/extlibs/sysinfo/test/registry_name.c release/extlibs/sysinfo/test/test_sysinfo.c release/extlibs/sysinfo/test/threads_c.c release/extlibs/sysinfo/test/uptime_overflow.c release/extlibs/sysinfo/test/windows_unicode_c.c release/extlibs/sysinfo/test/xrt_runtime.c release/extlibs/sysinfo/xlang.package.json release/include/README.md release/include/libtcc.h release/include/tcc_builtin_vfs.h release/include/xl.h release/include/xl_cancellation_retirement.h release/include/xl_clock.h release/include/xl_extlib_abi.h release/include/xl_foreign_graph.h release/include/xl_foreign_net.h release/include/xl_package.h release/include/xl_runtime.h release/include/xl_sync_retirement.h release/include/xl_version.h release/include/xlc.h release/include/xrt_decl.h release/include/xruntime_decl.h release/libxl.so release/libxlc.so release/xl test/cases/extlib_sysinfo.xl\n+ compile -DXRT_MODULE_UNICODE -DXRT_MODULE_NUMBER_INTEGER -fsyntax-only release/extlibs/sysinfo/sysinfo_native.c\n+ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sysinfo -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -pthread -DXRT_MODULE_UNICODE -DXRT_MODULE_NUMBER_INTEGER -fsyntax-only release/extlibs/sysinfo/sysinfo_native.c\n+ compile -fsyntax-only release/extlibs/sysinfo/test/abi_contract.c\n+ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sysinfo -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -pthread -fsyntax-only release/extlibs/sysinfo/test/abi_contract.c\n+ timeout 90s ./release/xl cgen release/extlibs/sysinfo/test/boundaries.xl --emit /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/owned_text.c\n+ grep -E '^extern .*xsysinfo_[a-z0-9_]+[(]' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/owned_text.c\n+ sort -u\n+ grep -oE '\"xsysinfo_[a-z0-9_]+\"' release/extlibs/sysinfo/src/sysinfo.xl\n+ tr -d '\"'\n+ sort -u\n+ grep -oE 'xsysinfo_[a-z0-9_]+[(]' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/abi.decls\n+ tr -d '('\n+ sort -u\n++ wc -l\n+ test 11 -eq 11\n+ diff -u /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/abi.expected /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/abi.actual\n+ printf '#include \"sysinfo_native.h\"\\n'\n+ cat /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/abi.decls\n+ compile -fsyntax-only /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/abi.c\n+ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sysinfo -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -pthread -fsyntax-only /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/abi.c\n+ for name in os_name os_version arch hostname cpu_name\n+ grep -Eq '[.]Data[[:space:]]*=[[:space:]]*xsysinfo_os_name[[:space:]]*[(]' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/owned_text.c\n+ for name in os_name os_version arch hostname cpu_name\n+ grep -Eq '[.]Data[[:space:]]*=[[:space:]]*xsysinfo_os_version[[:space:]]*[(]' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/owned_text.c\n+ for name in os_name os_version arch hostname cpu_name\n+ grep -Eq '[.]Data[[:space:]]*=[[:space:]]*xsysinfo_arch[[:space:]]*[(]' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/owned_text.c\n+ for name in os_name os_version arch hostname cpu_name\n+ grep -Eq '[.]Data[[:space:]]*=[[:space:]]*xsysinfo_hostname[[:space:]]*[(]' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/owned_text.c\n+ for name in os_name os_version arch hostname cpu_name\n+ grep -Eq '[.]Data[[:space:]]*=[[:space:]]*xsysinfo_cpu_name[[:space:]]*[(]' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/owned_text.c\n+ grep -Eq 'xl6_xrt_take_cstr\\(|xl6CStringCopyV1' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/owned_text.c\n+ compile -c release/extlibs/sysinfo/test/xrt_runtime.c -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o\n+ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sysinfo -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/sysinfo/test/xrt_runtime.c -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o\n+ compile -c release/extlibs/sysinfo/sysinfo_native.c -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/native.o\n+ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sysinfo -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/sysinfo/sysinfo_native.c -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/native.o\n+ objects=(\"$work/native.o\" \"$work/xrt.o\")\n+ compile release/extlibs/sysinfo/test/test_sysinfo.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/native.o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/test_sysinfo\n+ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sysinfo -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/sysinfo/test/test_sysinfo.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/native.o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/test_sysinfo\n+ timeout 90s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/test_sysinfo\n+ compile release/extlibs/sysinfo/test/threads_c.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/native.o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/threads\n+ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sysinfo -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/sysinfo/test/threads_c.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/native.o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/threads\n+ timeout 90s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/threads\nsysinfo threads: 4 workers, 64 rounds, 2816 queries, PASS\n+ timeout 90s ./release/xl run release/extlibs/sysinfo/test/threads_c.c\nsysinfo threads: 4 workers, 64 rounds, 2816 queries, PASS\n+ timeout 180s ./release/xl build release/extlibs/sysinfo/test/threads_c.c -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/threads_aot\n+ timeout 90s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/threads_aot\nsysinfo threads: 4 workers, 64 rounds, 2816 queries, PASS\n+ compile release/extlibs/sysinfo/test/non_utf8_system_text.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/native.o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -Wl,--wrap=gethostname -Wl,--wrap=__gethostname_chk -Wl,--wrap=uname -Wl,--wrap=fopen -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/non_utf8_system_text\n+ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sysinfo -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/sysinfo/test/non_utf8_system_text.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/native.o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -Wl,--wrap=gethostname -Wl,--wrap=__gethostname_chk -Wl,--wrap=uname -Wl,--wrap=fopen -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/non_utf8_system_text\n+ timeout 90s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/non_utf8_system_text\n+ for name in long_cpu_name meminfo_unavailable meminfo_malformed uptime_overflow\n+ compile release/extlibs/sysinfo/test/long_cpu_name.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/native.o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -Wl,--wrap=fopen -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/long_cpu_name\n+ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sysinfo -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/sysinfo/test/long_cpu_name.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/native.o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -Wl,--wrap=fopen -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/long_cpu_name\n+ timeout 90s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/long_cpu_name\n+ for name in long_cpu_name meminfo_unavailable meminfo_malformed uptime_overflow\n+ compile release/extlibs/sysinfo/test/meminfo_unavailable.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/native.o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -Wl,--wrap=fopen -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/meminfo_unavailable\n+ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sysinfo -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/sysinfo/test/meminfo_unavailable.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/native.o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -Wl,--wrap=fopen -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/meminfo_unavailable\n+ timeout 90s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/meminfo_unavailable\n+ for name in long_cpu_name meminfo_unavailable meminfo_malformed uptime_overflow\n+ compile release/extlibs/sysinfo/test/meminfo_malformed.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/native.o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -Wl,--wrap=fopen -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/meminfo_malformed\n+ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sysinfo -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/sysinfo/test/meminfo_malformed.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/native.o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -Wl,--wrap=fopen -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/meminfo_malformed\n+ timeout 90s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/meminfo_malformed\nsysinfo meminfo records: 23 cases, 0 failures\n+ for name in long_cpu_name meminfo_unavailable meminfo_malformed uptime_overflow\n+ compile release/extlibs/sysinfo/test/uptime_overflow.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/native.o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -Wl,--wrap=fopen -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/uptime_overflow\n+ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sysinfo -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/sysinfo/test/uptime_overflow.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/native.o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -Wl,--wrap=fopen -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/uptime_overflow\n+ timeout 90s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/uptime_overflow\n+ compile release/extlibs/sysinfo/examples/sysinfo_c.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/example\n+ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sysinfo -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/sysinfo/examples/sysinfo_c.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/example\n+ timeout 30s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/example\n+ compile release/extlibs/sysinfo/examples/metrics_c.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics\n+ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sysinfo -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -pthread release/extlibs/sysinfo/examples/metrics_c.c /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xrt.o -no-pie -lm -ldl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics\n+ timeout 30s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics\n+ for name in boundaries allocations\n+ timeout 90s ./release/xl run release/extlibs/sysinfo/test/boundaries.xl\n+ for name in boundaries allocations\n+ timeout 90s ./release/xl run release/extlibs/sysinfo/test/allocations.xl\nsysinfo allocations: PASS\n+ timeout 90s ./release/xl run test/cases/extlib_sysinfo.xl\n+ timeout 90s ./release/xl run release/examples/extlibs/sysinfo.xl\nOS:  Linux   6.18.33.2-microsoft-standard-WSL2\nArch:  x86_64\nHostname:  DESKTOP-DQCMPS1\nCPU:  AMD Ryzen 5 5600 6-Core Processor\nCores:  12\nMemory total:  15964  MB\nMemory available:  15247  MB\nMemory usage:  4 %\nPage size:  4096\nUptime:  224  seconds\nsysinfo example: PASS\n+ timeout 90s ./release/xl run release/extlibs/sysinfo/examples/basic.xl\n+ diff -u /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/c.txt /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/xl.txt\n+ timeout 90s ./release/xl run release/extlibs/sysinfo/examples/sysinfo_c.c\n+ diff -u /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/c.txt /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/c_direct.txt\n+ timeout 90s ./release/xl run release/extlibs/sysinfo/examples/metrics.xl\n+ timeout 90s ./release/xl run release/extlibs/sysinfo/examples/metrics_c.c\n+ for output in \"$work/metrics_c.txt\" \"$work/metrics_xl.txt\" \"$work/metrics_c_direct.txt\"\n+ check_metrics /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_c.txt\n++ wc -l\n+ test 3 -eq 3\n+ grep -Eq '^available: [0-9]+$' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_c.txt\n+ grep -Eq '^usage: ([0-9]|[1-9][0-9]|100)$' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_c.txt\n+ grep -Eq '^uptime: [0-9]+$' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_c.txt\n+ for output in \"$work/metrics_c.txt\" \"$work/metrics_xl.txt\" \"$work/metrics_c_direct.txt\"\n+ check_metrics /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_xl.txt\n++ wc -l\n+ test 3 -eq 3\n+ grep -Eq '^available: [0-9]+$' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_xl.txt\n+ grep -Eq '^usage: ([0-9]|[1-9][0-9]|100)$' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_xl.txt\n+ grep -Eq '^uptime: [0-9]+$' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_xl.txt\n+ for output in \"$work/metrics_c.txt\" \"$work/metrics_xl.txt\" \"$work/metrics_c_direct.txt\"\n+ check_metrics /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_c_direct.txt\n++ wc -l\n+ test 3 -eq 3\n+ grep -Eq '^available: [0-9]+$' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_c_direct.txt\n+ grep -Eq '^usage: ([0-9]|[1-9][0-9]|100)$' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_c_direct.txt\n+ grep -Eq '^uptime: [0-9]+$' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_c_direct.txt\n+ for name in boundaries allocations\n+ timeout 180s ./release/xl build release/extlibs/sysinfo/test/boundaries.xl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/sysinfo_boundaries\n+ timeout 90s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/sysinfo_boundaries\n+ for name in boundaries allocations\n+ timeout 180s ./release/xl build release/extlibs/sysinfo/test/allocations.xl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/sysinfo_allocations\n+ timeout 90s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/sysinfo_allocations\n+ grep -Fxq 'sysinfo allocations: PASS' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/allocations.aot.txt\n+ timeout 180s ./release/xl build release/extlibs/sysinfo/examples/basic.xl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/sysinfo_basic\n+ timeout 90s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/sysinfo_basic\n+ diff -u /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/c.txt /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/basic.aot.txt\n+ timeout 180s ./release/xl build release/extlibs/sysinfo/examples/metrics.xl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/sysinfo_metrics\n+ timeout 90s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/sysinfo_metrics\n+ check_metrics /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_aot.txt\n++ wc -l\n+ test 3 -eq 3\n+ grep -Eq '^available: [0-9]+$' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_aot.txt\n+ grep -Eq '^usage: ([0-9]|[1-9][0-9]|100)$' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_aot.txt\n+ grep -Eq '^uptime: [0-9]+$' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_aot.txt\n+ timeout 180s ./release/xl build release/extlibs/sysinfo/examples/sysinfo_c.c -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/sysinfo_c_aot\n+ timeout 90s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/sysinfo_c_aot\n+ diff -u /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/c.txt /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/c_aot.txt\n+ timeout 180s ./release/xl build release/extlibs/sysinfo/examples/metrics_c.c -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/sysinfo_metrics_c_aot\n+ timeout 90s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/sysinfo_metrics_c_aot\n+ check_metrics /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_c_aot.txt\n++ wc -l\n+ test 3 -eq 3\n+ grep -Eq '^available: [0-9]+$' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_c_aot.txt\n+ grep -Eq '^usage: ([0-9]|[1-9][0-9]|100)$' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_c_aot.txt\n+ grep -Eq '^uptime: [0-9]+$' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/metrics_c_aot.txt\n+ for source in release/examples/extlibs/sysinfo.xl test/cases/extlib_sysinfo.xl\n++ basename release/examples/extlibs/sysinfo\n+ target=/run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/sysinfo\n+ timeout 180s ./release/xl build release/examples/extlibs/sysinfo.xl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/sysinfo\n+ timeout 90s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/sysinfo\nOS:  Linux   6.18.33.2-microsoft-standard-WSL2\nArch:  x86_64\nHostname:  DESKTOP-DQCMPS1\nCPU:  AMD Ryzen 5 5600 6-Core Processor\nCores:  12\nMemory total:  15964  MB\nMemory available:  15225  MB\nMemory usage:  4 %\nPage size:  4096\nUptime:  228  seconds\nsysinfo example: PASS\n+ for source in release/examples/extlibs/sysinfo.xl test/cases/extlib_sysinfo.xl\n++ basename test/cases/extlib_sysinfo\n+ target=/run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/extlib_sysinfo\n+ timeout 180s ./release/xl build test/cases/extlib_sysinfo.xl -o /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/extlib_sysinfo\n+ timeout 90s /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/extlib_sysinfo\n+ printf 'sysinfo Linux C ASan/UBSan, eleven ABI prototypes, XLang JIT/AOT and parity gate: PASS\\n'\nsysinfo Linux C ASan/UBSan, eleven ABI prototypes, XLang JIT/AOT and parity gate: PASS\n+ cleanup\n+ result=0\n+ trap - EXIT\n+ set +e\n+ cd /run/xlang-sysinfo-audit-wMTJxd/stage\n+ mapfile -d '' after\n++ input_paths\n++ find release/extlibs/sysinfo release/include -type f -print0\n++ sort -zu\n++ printf '%s\\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so test/cases/extlib_sysinfo.xl release/examples/extlibs/sysinfo.xl\n++ [[ -n /usr/bin/gcc ]]\n++ printf '%s\\0' /usr/bin/gcc\n++ [[ -n /usr/libexec/gcc/x86_64-linux-gnu/15/cc1 ]]\n++ printf '%s\\0' /usr/libexec/gcc/x86_64-linux-gnu/15/cc1\n+ sha256sum /usr/bin/gcc /usr/libexec/gcc/x86_64-linux-gnu/15/cc1 lib/xrt/xrt.h lib/xruntime/xruntime.h release/examples/extlibs/sysinfo.xl release/extlibs/sysinfo/README.md release/extlibs/sysinfo/docs/site.html release/extlibs/sysinfo/examples/README.md release/extlibs/sysinfo/examples/basic.xl release/extlibs/sysinfo/examples/metrics.xl release/extlibs/sysinfo/examples/metrics_c.c release/extlibs/sysinfo/examples/sysinfo_c.c release/extlibs/sysinfo/src/sysinfo.xl release/extlibs/sysinfo/sysinfo_native.c release/extlibs/sysinfo/sysinfo_native.h release/extlibs/sysinfo/test/abi_contract.c release/extlibs/sysinfo/test/allocations.xl release/extlibs/sysinfo/test/boundaries.xl release/extlibs/sysinfo/test/check.ps1 release/extlibs/sysinfo/test/check.sh release/extlibs/sysinfo/test/long_cpu_name.c release/extlibs/sysinfo/test/meminfo_malformed.c release/extlibs/sysinfo/test/meminfo_unavailable.c release/extlibs/sysinfo/test/non_utf8_system_text.c release/extlibs/sysinfo/test/registry_name.c release/extlibs/sysinfo/test/test_sysinfo.c release/extlibs/sysinfo/test/threads_c.c release/extlibs/sysinfo/test/uptime_overflow.c release/extlibs/sysinfo/test/windows_unicode_c.c release/extlibs/sysinfo/test/xrt_runtime.c release/extlibs/sysinfo/xlang.package.json release/include/README.md release/include/libtcc.h release/include/tcc_builtin_vfs.h release/include/xl.h release/include/xl_cancellation_retirement.h release/include/xl_clock.h release/include/xl_extlib_abi.h release/include/xl_foreign_graph.h release/include/xl_foreign_net.h release/include/xl_package.h release/include/xl_runtime.h release/include/xl_sync_retirement.h release/include/xl_version.h release/include/xlc.h release/include/xrt_decl.h release/include/xruntime_decl.h release/libxl.so release/libxlc.so release/xl test/cases/extlib_sysinfo.xl\n+ diff -u /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/inputs.before.sha256 /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/inputs.after.sha256\n+ printf 'exit=%s\\n' 0\n+ cp -- /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9/inputs.before.sha256 /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9.inputs.sha256\n+ (( result == 0 ))\n+ rm -rf -- /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9\n+ printf '[sysinfo] report: %s.report.txt\\n' /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9\n[sysinfo] report: /run/xlang-sysinfo-audit-wMTJxd/tmp/xlang-sysinfo-20zki9.report.txt\n+ exit 0\n",
+    "objectCommands": [
+      {
+        "command": [
+          "gcc",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-I/run/xlang-sysinfo-audit-wMTJxd/stage/lib/xrt",
+          "-I/run/xlang-sysinfo-audit-wMTJxd/stage/release/extlibs/sysinfo",
+          "-c",
+          "/run/xlang-sysinfo-audit-wMTJxd/cost/old.c",
+          "-o",
+          "/run/xlang-sysinfo-audit-wMTJxd/cost/old.o"
+        ],
+        "exit": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "gcc",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-I/run/xlang-sysinfo-audit-wMTJxd/stage/lib/xrt",
+          "-I/run/xlang-sysinfo-audit-wMTJxd/stage/release/extlibs/sysinfo",
+          "-c",
+          "/run/xlang-sysinfo-audit-wMTJxd/stage/release/extlibs/sysinfo/sysinfo_native.c",
+          "-o",
+          "/run/xlang-sysinfo-audit-wMTJxd/cost/new.o"
+        ],
+        "exit": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    ],
+    "objectSize": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n   3268\t      0\t      0\t   3268\t    cc4\t/run/xlang-sysinfo-audit-wMTJxd/cost/old.o\n   3268\t      0\t      0\t   3268\t    cc4\t/run/xlang-sysinfo-audit-wMTJxd/cost/new.o\n"
+  },
+  "acceptance": {
+    "windowsPhases": 49,
+    "windowsInputs": 53,
+    "windowsAot": 10,
+    "linuxFrozenFiles": 49,
+    "linuxSourceAndToolFingerprints": 51,
+    "linuxAot": 9,
+    "linuxSanitizers": [
+      "address",
+      "undefined",
+      "leak detection"
+    ],
+    "linuxWindowsOnlyFixtureExecuted": false,
+    "sourceBytesEqualToFinalPrimary": true,
+    "independentSnapshot": "Ordinary file copies on native executable /run tmpfs; raw log and source/tool fingerprints persisted in this report before snapshot disposal"
+  },
+  "costs": {
+    "windowsObjectTextOld": 2460,
+    "windowsObjectTextNew": 2352,
+    "windowsObjectTextDelta": -108,
+    "linuxObjectTextOld": 3268,
+    "linuxObjectTextNew": 3268,
+    "linuxObjectTextDelta": 0,
+    "objectDataBssUnchanged": true,
+    "flags": "GCC -std=c11 -O2 -Wall -Wextra -Werror, same headers within each platform, no LTO",
+    "warmValidQueryLogicalAllocations": 1,
+    "warmMalformedUtf16OldAllocations": 1,
+    "warmMalformedUtf16NewAllocations": 2,
+    "allocationScope": "Prewarmed diagnostic state in the actual query-only fail-after scan; XRT logical allocations, not OS malloc/VirtualAlloc counts or cold-start guarantees",
+    "testRuntimeExtraModules": [
+      "THREAD",
+      "MEMORY_DEBUG"
+    ],
+    "productionExtraModules": [],
+    "throughputMeasured": false,
+    "zeroOverheadClaim": false
+  },
+  "examples": {
+    "added": "release/extlibs/sysinfo/examples/README.md",
+    "stablePair": [
+      "examples/basic.xl",
+      "examples/sysinfo_c.c"
+    ],
+    "metricsPair": [
+      "examples/metrics.xl",
+      "examples/metrics_c.c"
+    ],
+    "all11Functions": true,
+    "newDuplicateApplicationExamples": false,
+    "comparison": "Stable fields byte-equal on same host; instantaneous metrics checked for format and range, not equality at different times"
+  },
+  "website": {
+    "source": "release/extlibs/sysinfo/docs/site.html",
+    "sourceSha256": "43a40f4e4f83b417e8338dc4c3c6c9ccf091c57b48965360432dca80ee312cda",
+    "generatedSha256": "43a40f4e4f83b417e8338dc4c3c6c9ccf091c57b48965360432dca80ee312cda",
+    "deployedExternally": false
+  },
+  "catalog": {
+    "generation": {
+      "status": "passed",
+      "catalogSha256": "8b19fa9dd7b576f908559771a7aff19cc923fb0a901b9a56f8a1e73ef57cd045",
+      "sourceIndexSha256": "171038dc5a815f6c1dc3214024ccef476b07e5549c6209f5b3fe715772208e8e",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42",
+      "inputsUnchanged": true
+    },
+    "checks": [
+      {
+        "name": "freshness",
+        "requiredExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+          "stderr": "",
+          "elapsedMs": 1255
+        }
+      },
+      {
+        "name": "binding",
+        "requiredExit": 0,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Catalog compiler changed: xl.dll\r\n",
+          "elapsedMs": 378
+        }
+      },
+      {
+        "name": "delivery",
+        "requiredExit": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+          "stderr": "",
+          "elapsedMs": 1221
+        }
+      }
+    ],
+    "candidate": "build/test/sysinfo-unicode-20261102/catalog-final",
+    "installed": false,
+    "reason": "Existing xl.dll strict source/product binding remains red; do not falsify binding or replace installed paired data"
+  },
+  "invalidAttempts": [
+    "First test draft declared Unicode modules after including xrt.h; strict GCC compilation failed before execution. Module declarations were moved before the header.",
+    "First new Windows full gate reached the Unicode TCC step and failed on the LSTATUS alias absent in the bundled header. The test now uses the underlying LONG ABI type, without adding a compatibility typedef or changing provider headers; full final gate passed."
+  ],
+  "precedingDependencyAudit": "docs/reports/extlib-volc-import-recheck-20261102.json",
+  "maturity": {
+    "packages": 100,
+    "G": 30,
+    "R": 10,
+    "M": 56,
+    "X": 4,
+    "sysinfo": "G within its stated host-query contract",
+    "goalActive": true,
+    "entireQueueComplete": false
+  },
+  "finalPackageFiles": [
+    {
+      "path": "release/extlibs/sysinfo/docs/site.html",
+      "bytes": 7909,
+      "sha256": "43a40f4e4f83b417e8338dc4c3c6c9ccf091c57b48965360432dca80ee312cda"
+    },
+    {
+      "path": "release/extlibs/sysinfo/examples/basic.xl",
+      "bytes": 465,
+      "sha256": "df2e89109a1eae3b60eb750a092048e1744a9834e8db2f3af30ddf64b8e936ee"
+    },
+    {
+      "path": "release/extlibs/sysinfo/examples/metrics.xl",
+      "bytes": 421,
+      "sha256": "a7e1b09aa7449c0344f8083e9a97298aaa5f87e1a35b6e8cd3b791c4140a1e80"
+    },
+    {
+      "path": "release/extlibs/sysinfo/examples/metrics_c.c",
+      "bytes": 435,
+      "sha256": "ba30b075412d6b785a771f218152fc6be2bc3242abaa4f3bd930c117430923bc"
+    },
+    {
+      "path": "release/extlibs/sysinfo/examples/README.md",
+      "bytes": 1582,
+      "sha256": "af5099ef16e06fec9acbf01a31253565b3d224e2683d5e332c539f036879fa1d"
+    },
+    {
+      "path": "release/extlibs/sysinfo/examples/sysinfo_c.c",
+      "bytes": 890,
+      "sha256": "8b318cc7c9214b05e3ca97a8bd55c40ced4678a4908fd0e8d956a6d129169838"
+    },
+    {
+      "path": "release/extlibs/sysinfo/README.md",
+      "bytes": 13350,
+      "sha256": "2c083050d4cec6f0a0dfc9c0d281a56b7830fbb845c295b77074f7496da9c917"
+    },
+    {
+      "path": "release/extlibs/sysinfo/src/sysinfo.xl",
+      "bytes": 1358,
+      "sha256": "6a1c278e09fd794cf7719f5debeba59be9b401ee0188586373f4eb2ff215ca57"
+    },
+    {
+      "path": "release/extlibs/sysinfo/sysinfo_native.c",
+      "bytes": 11147,
+      "sha256": "ec8b00b3c8c389c820c44af2ed88ddbe1dd5b5aa830e5c3a53255ae6a8250910"
+    },
+    {
+      "path": "release/extlibs/sysinfo/sysinfo_native.h",
+      "bytes": 590,
+      "sha256": "db37eaddb0340b94ca78b6d9756826acf2ff63618b6d4a000a3eadae5d9cf469"
+    },
+    {
+      "path": "release/extlibs/sysinfo/test/abi_contract.c",
+      "bytes": 635,
+      "sha256": "537ce2ab4320e0c4fa7e7d8f5bf40a1347f8805b32f6bfc4c9145b26aca52696"
+    },
+    {
+      "path": "release/extlibs/sysinfo/test/allocations.xl",
+      "bytes": 1509,
+      "sha256": "4172e934a772890c0a347742f793d33452eefb6754e1a1cef5599a0b905e68fd"
+    },
+    {
+      "path": "release/extlibs/sysinfo/test/boundaries.xl",
+      "bytes": 930,
+      "sha256": "2b518d0ce6c44117d7b8407e2fd8b5de8ea3c111a610a06176ed82071fd05a11"
+    },
+    {
+      "path": "release/extlibs/sysinfo/test/check.ps1",
+      "bytes": 11900,
+      "sha256": "b4e9900bf2cf04b2c20263b03be54e030133efe3d5b01a87e13b61fe12d4e398"
+    },
+    {
+      "path": "release/extlibs/sysinfo/test/check.sh",
+      "bytes": 7267,
+      "sha256": "918eb010d59ab99924de840349e69874bb1779516f9e24fea4fbe108f7614d2b"
+    },
+    {
+      "path": "release/extlibs/sysinfo/test/long_cpu_name.c",
+      "bytes": 2185,
+      "sha256": "1b8d9cd4991f1350e1a3aaf8c4864e9711b28656f5dfc56ffbb57e943b0571c3"
+    },
+    {
+      "path": "release/extlibs/sysinfo/test/meminfo_malformed.c",
+      "bytes": 2980,
+      "sha256": "5ad0a6fdc9bedb04dc79cc131d24759f036866f98808f5587cf827464c7b7b47"
+    },
+    {
+      "path": "release/extlibs/sysinfo/test/meminfo_unavailable.c",
+      "bytes": 518,
+      "sha256": "456887f26dacbc344ff4bbc10aba753db84e2b915c481c5ad99e682bf0e63065"
+    },
+    {
+      "path": "release/extlibs/sysinfo/test/non_utf8_system_text.c",
+      "bytes": 3412,
+      "sha256": "638a51a63858231dd838be37e840c873790011d521ba69200f071eef134d5c36"
+    },
+    {
+      "path": "release/extlibs/sysinfo/test/registry_name.c",
+      "bytes": 2926,
+      "sha256": "4ee25cf4b4309ee5eff410cc1beb555898c1ff69dd5e928a34fa70c0c5e01915"
+    },
+    {
+      "path": "release/extlibs/sysinfo/test/test_sysinfo.c",
+      "bytes": 5006,
+      "sha256": "27b3752754166b6b1e6e39a949e3d88b157e9636802b4219912b5d7a21f81e95"
+    },
+    {
+      "path": "release/extlibs/sysinfo/test/threads_c.c",
+      "bytes": 3101,
+      "sha256": "0072d607ab97e367973ef17f333126eccff4a9a39b61abc8902aef9e529585b0"
+    },
+    {
+      "path": "release/extlibs/sysinfo/test/uptime_overflow.c",
+      "bytes": 826,
+      "sha256": "1390b360b9dc06186539303e4ac6cf6dc678f0a987d0f6c2f62911c790e51120"
+    },
+    {
+      "path": "release/extlibs/sysinfo/test/windows_unicode_c.c",
+      "bytes": 8144,
+      "sha256": "909a652b268b54692aa8dc781a44873cc4f7f82bb57ca34da0afe4bbaf214b28"
+    },
+    {
+      "path": "release/extlibs/sysinfo/test/xrt_runtime.c",
+      "bytes": 246,
+      "sha256": "c575e616acc7b652b7f3c7bbde0cc82f01f0da6184cd35fc7fa8c179c727652a"
+    },
+    {
+      "path": "release/extlibs/sysinfo/xlang.package.json",
+      "bytes": 583,
+      "sha256": "1ae1c49513a44b1e60d88daac112263279fbf5676a3fe096ca27f67a991a9a03"
+    }
+  ]
+}

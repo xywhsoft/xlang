@@ -27,6 +27,7 @@ record_failure() {
 trap 'record_failure "$?" "$LINENO" "$BASH_COMMAND" "${PIPESTATUS[*]}"' ERR
 cc=${CC:-gcc}
 cc_path=$(command -v "$cc" || true)
+cc1_path=''
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt
        -Irelease/extlibs/sysinfo -fsanitize=address,undefined
        -fno-omit-frame-pointer -fno-pie -pthread)
@@ -38,11 +39,15 @@ input_paths() {
       printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so \
           release/libxlc.so test/cases/extlib_sysinfo.xl release/examples/extlibs/sysinfo.xl
       if [[ -n "$cc_path" ]]; then printf '%s\0' "$cc_path"; fi
+      if [[ -n "$cc1_path" ]]; then printf '%s\0' "$cc1_path"; fi
     }
 }
 mapfile -d '' inputs < <(input_paths | sort -zu)
 sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
 "$cc" --version > "$work/compiler.txt"
+cc1_path=$("$cc" -print-prog-name=cc1)
+mapfile -d '' inputs < <(input_paths | sort -zu)
+sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
 compile() { timeout 180s "$cc" "${flags[@]}" "$@"; }
 
 compile -DXRT_MODULE_UNICODE -DXRT_MODULE_NUMBER_INTEGER \
@@ -71,6 +76,12 @@ compile -c release/extlibs/sysinfo/sysinfo_native.c -o "$work/native.o"
 objects=("$work/native.o" "$work/xrt.o")
 compile release/extlibs/sysinfo/test/test_sysinfo.c "${objects[@]}" -no-pie -lm -ldl -o "$work/test_sysinfo"
 timeout 90s "$work/test_sysinfo"
+compile release/extlibs/sysinfo/test/threads_c.c "${objects[@]}" \
+    -no-pie -lm -ldl -o "$work/threads"
+timeout 90s "$work/threads"
+timeout 90s ./release/xl run release/extlibs/sysinfo/test/threads_c.c
+timeout 180s ./release/xl build release/extlibs/sysinfo/test/threads_c.c -o "$work/threads_aot"
+timeout 90s "$work/threads_aot"
 compile release/extlibs/sysinfo/test/non_utf8_system_text.c "${objects[@]}" \
     -Wl,--wrap=gethostname -Wl,--wrap=__gethostname_chk -Wl,--wrap=uname -Wl,--wrap=fopen \
     -no-pie -lm -ldl -o "$work/non_utf8_system_text"

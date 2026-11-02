@@ -22,6 +22,7 @@
     <h1>sysinfo</h1>
     <p class="extlib-lead">读取 Windows 和 Linux 主机的系统标识、CPU、内存与运行时间。</p>
     <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
+    <p>2026-11-02：Windows主机名和CPU名统一使用XRT严格UTF-16转换；孤立代理项按既有合同返回 <code>unknown</code>，不再静默替换为U+FFFD。真实分配失败仍传播，合法中文、补充平面字符、BOM数据和容量末端均保留。39组隔离系统API用例的旧48条断言失败已修复，包含逐点OOM、错误恢复、内存平衡和注册表句柄关闭；测试不修改真实系统配置。</p>
   </header>
   <section id="start">
     <h2>快速开始</h2>
