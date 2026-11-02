@@ -1,0 +1,273 @@
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point value)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+typedef Native=func() as cstring
+typedef Result=func() as string
+int dispatched=-1
+func read() as cstring
+    return cstring.take(rawText(),release)
+end
+class Level0
+    virtual async func Factory() as Native
+        dispatched=0
+        return read
+    end
+end
+class Level1 extends Level0
+    override async func Factory() as Native
+        dispatched=1
+        return read
+    end
+end
+class Level2 extends Level1
+    override async func Factory() as Native
+        dispatched=2
+        return read
+    end
+end
+class Level3 extends Level2
+    override async func Factory() as Native
+        dispatched=3
+        return read
+    end
+end
+class Level4 extends Level3
+    override async func Factory() as Native
+        dispatched=4
+        return read
+    end
+end
+class Level5 extends Level4
+    override async func Factory() as Native
+        dispatched=5
+        return read
+    end
+end
+class Level6 extends Level5
+    override async func Factory() as Native
+        dispatched=6
+        return read
+    end
+end
+class Level7 extends Level6
+    override async func Factory() as Native
+        dispatched=7
+        return read
+    end
+end
+class Level8 extends Level7
+    override async func Factory() as Native
+        dispatched=8
+        return read
+    end
+end
+class Level9 extends Level8
+    override async func Factory() as Native
+        dispatched=9
+        return read
+    end
+end
+class Level10 extends Level9
+    override async func Factory() as Native
+        dispatched=10
+        return read
+    end
+end
+class Level11 extends Level10
+    override async func Factory() as Native
+        dispatched=11
+        return read
+    end
+end
+class Level12 extends Level11
+    override async func Factory() as Native
+        dispatched=12
+        return read
+    end
+end
+class Level13 extends Level12
+    override async func Factory() as Native
+        dispatched=13
+        return read
+    end
+end
+class Level14 extends Level13
+    override async func Factory() as Native
+        dispatched=14
+        return read
+    end
+end
+class Level15 extends Level14
+    override async func Factory() as Native
+        dispatched=15
+        return read
+    end
+end
+class Level16 extends Level15
+    override async func Factory() as Native
+        dispatched=16
+        return read
+    end
+end
+class Level17 extends Level16
+    override async func Factory() as Native
+        dispatched=17
+        return read
+    end
+end
+class Level18 extends Level17
+    override async func Factory() as Native
+        dispatched=18
+        return read
+    end
+end
+class Level19 extends Level18
+    override async func Factory() as Native
+        dispatched=19
+        return read
+    end
+end
+class Level20 extends Level19
+    override async func Factory() as Native
+        dispatched=20
+        return read
+    end
+end
+class Level21 extends Level20
+    override async func Factory() as Native
+        dispatched=21
+        return read
+    end
+end
+class Level22 extends Level21
+    override async func Factory() as Native
+        dispatched=22
+        return read
+    end
+end
+class Level23 extends Level22
+    override async func Factory() as Native
+        dispatched=23
+        return read
+    end
+end
+class Level24 extends Level23
+    override async func Factory() as Native
+        dispatched=24
+        return read
+    end
+end
+class Level25 extends Level24
+    override async func Factory() as Native
+        dispatched=25
+        return read
+    end
+end
+class Level26 extends Level25
+    override async func Factory() as Native
+        dispatched=26
+        return read
+    end
+end
+class Level27 extends Level26
+    override async func Factory() as Native
+        dispatched=27
+        return read
+    end
+end
+class Level28 extends Level27
+    override async func Factory() as Native
+        dispatched=28
+        return read
+    end
+end
+class Level29 extends Level28
+    override async func Factory() as Native
+        dispatched=29
+        return read
+    end
+end
+class Level30 extends Level29
+    override async func Factory() as Native
+        dispatched=30
+        return read
+    end
+end
+class Level31 extends Level30
+    override async func Factory() as Native
+        dispatched=31
+        return read
+    end
+end
+class Level32 extends Level31
+    override async func Factory() as Native
+        dispatched=32
+        return read
+    end
+end
+class Level33 extends Level32
+    override async func Factory() as Native
+        dispatched=33
+        return read
+    end
+end
+class Level34 extends Level33
+    override async func Factory() as Native
+        dispatched=34
+        return read
+    end
+end
+class Level35 extends Level34
+    override async func Factory() as Native
+        dispatched=35
+        return read
+    end
+end
+class Level36 extends Level35
+    override async func Factory() as Native
+        dispatched=36
+        return read
+    end
+end
+class Level37 extends Level36
+    override async func Factory() as Native
+        dispatched=37
+        return read
+    end
+end
+class Level38 extends Level37
+    override async func Factory() as Native
+        dispatched=38
+        return read
+    end
+end
+class Level39 extends Level38
+    override async func Factory() as Native
+        dispatched=39
+        return read
+    end
+end
+class Level40 extends Level39
+    override async func Factory() as Native
+        dispatched=40
+        return read
+    end
+end
+// Check base-typed and derived-typed bindings beyond the old 32-step limit.
+Level0 receiver=Level33()
+func() as future<Result> callback=receiver.Factory
+Result value=await callback()
+println(dispatched)
+assert dispatched==33 and value()=="hello"
+receiver=Level40()
+callback=receiver.Factory
+value=await callback()
+assert dispatched==40 and value()=="hello"
+Level40 deepest=Level40()
+func() as future<Result> direct=deepest.Factory
+value=await direct()
+assert dispatched==40 and value()=="hello"
+
+assert balanced()

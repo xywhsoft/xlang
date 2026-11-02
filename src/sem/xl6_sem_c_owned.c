@@ -668,7 +668,14 @@ static XL6_AstNode* xl6SemCOwnedAsyncResultMethodOne(XL6_SemContext* ctx,XL6_Ast
 static const XL6_AstNode* xl6SemCOwnedAsyncSlotRoot(XL6_SemContext* ctx,
     const XL6_AstNode** owner,const XL6_AstNode* method)
 {
-    for(unsigned depth=0;(method->flags & XL6_AST_FLAG_OVERRIDE) && depth<32;++depth) {
+    /* Each step must consume a distinct declaration in this module. Exceeding
+     * that budget indicates a cycle, never a usable intermediate slot root. */
+    size_t remaining=ctx->root ? ctx->root->childCount : 0;
+    while(method->flags & XL6_AST_FLAG_OVERRIDE) {
+        if(!remaining--) {
+            xl6SemErrorNode(ctx,method,"cyclic async override family");
+            return NULL;
+        }
         const XL6_AstNode* parentOwner=NULL;
         const XL6_AstNode* parent=xl6SemFindBaseOverrideTarget(ctx,xl6SemBaseClassDecl(ctx,*owner),method,&parentOwner);
         if(!parent)return NULL;

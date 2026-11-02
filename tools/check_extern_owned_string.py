@@ -29,6 +29,8 @@ def main():
         if not passed:raise RuntimeError(name+'\n'+log[-5000:])
         print(name+': PASS',flush=True)
     cases=[
+        ('async-deep-dispatch','test/cases/extern_owned_async_deep_dispatch.xl',
+            ['test/cases/extern_owned_bound_c_owners_host.c','test/cases/extern_owned_string_host.c'],[]),
         ('async-callable-results','test/cases/extern_owned_async_callable_results.xl',
             ['test/cases/extern_owned_bound_c_owners_host.c','test/cases/extern_owned_string_host.c'],[]),
         ('inferred-result-variables','test/cases/extern_owned_inferred_result_variables.xl',
