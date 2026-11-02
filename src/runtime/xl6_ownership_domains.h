@@ -2,6 +2,7 @@
 #define XL6_OWNERSHIP_DOMAINS_H
 #include "xl6_ownership_catalog.h"
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainForeignViewV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainForeignViewValueV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNativeCallbackV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNativeGraphFuturePayloadV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainTlsDialOptionsV1Get(void);

@@ -20,6 +20,11 @@ static void views_and_scopes(void)
     assert(xl6ForeignViewCallEndV1(&call));
     assert(xl6ForeignViewCallEndV1(&call));
     assert(xl6ForeignViewCallBeginV1(a,&call,&native,sizeof(native)));
+    xrtMemDebugSnapshot(&before);assert(xrtMemDebugFailAfter(0));
+    XL6_ForeignView* owner=xl6ForeignViewBorrowRootV1(raw,a);assert(owner==root && xl6ForeignViewReleaseV1(owner));
+    assert(xrtMemDebugFailAfter(-1));xrtMemDebugSnapshot(&after);
+    assert(before.AllocCount==after.AllocCount && before.FreeCount==after.FreeCount && before.ReallocCount==after.ReallocCount);
+    assert(!xl6ForeignViewBorrowRootV1(child,a));xrtClearError();
     unsigned destroyed=childDestroyed;
     assert(xl6ForeignViewCloseV1(a));
     assert(childDestroyed==destroyed && child->closing);
