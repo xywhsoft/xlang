@@ -1,0 +1,2269 @@
+{
+  "schema": 1,
+  "date": "2026-11-02",
+  "root": "D:/GIT/x-lang",
+  "package": "stb_truetype",
+  "sourceBase": "22281f1aa",
+  "goal": "active",
+  "status": "discovery-and-error-contract-fixed-M3-open",
+  "mainlineModified": false,
+  "xrtModified": false,
+  "vendorModified": false,
+  "publicApiAbiChanged": false,
+  "wholePackageReleaseApproved": false,
+  "actualInitialReproducer": {
+    "source": "build/test/stbtt-discovery-20261102/probe.c",
+    "result": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "discovery old-error: owned=1 error=test.previous\r\n",
+      "stderr": "",
+      "elapsedMs": 41
+    },
+    "scope": "No injected fault: previous IO error remains despite owned lookup result"
+  },
+  "defects": [
+    "Default discovery returns owned result with stale previous error",
+    "Environment/path/probe failures continue to later candidates and may lose cause or allocation result",
+    "Three font/bitmap allocation exits replace allocator cause"
+  ],
+  "implementation": {
+    "nativeAddedLines": 33,
+    "ownership": "Owned empty UTF-8 result means not found; NULL plus error means failure; chosen path still xrtFree-owned",
+    "error": "Only construct package diagnostic when no XRT cause exists",
+    "nativeNetLines": 22,
+    "metadata": "XRT PathStat follows links as old FileExists did; missing NotFound is cleared, non-file skipped, real failure stops",
+    "environment": "XRT EnvLookup separates missing from failed read; priority WINDIR then SystemRoot unchanged",
+    "nativeRemovedLines": 11
+  },
+  "contract": {
+    "not560DistinctBugs": true,
+    "newChecksBothPlatforms": 2209,
+    "errorKinds": [
+      "IO",
+      "MEMORY",
+      "PERMISSION"
+    ],
+    "allocationErrorKind": "MEMORY only",
+    "messageBytes": [
+      0,
+      300
+    ],
+    "codes": [
+      "-2147483648",
+      "-17",
+      "2147483647"
+    ],
+    "noLaterCandidateOrAllocationAfterPublication": true,
+    "fullIdentityDomainCodeKindMessage": true,
+    "cases": 306,
+    "guardedCases": 234,
+    "normalCases": 72,
+    "boundaries": [
+      "WINDIR lookup",
+      "SystemRoot lookup",
+      "three relative PathJoin calls",
+      "six candidate metadata probes",
+      "final absolute/empty result duplicate",
+      "font handle calloc",
+      "font input malloc",
+      "bitmap handle calloc"
+    ],
+    "oldChecksBothPlatforms": 2320,
+    "sevenMemoryMetrics": true,
+    "oldFailedAssertionsBothPlatforms": 560,
+    "newFailedAssertions": 0,
+    "oldPhysicalFileFontRasterCAndXlSweepsRetained": true,
+    "providerScope": "Deterministic environment/metadata providers, real XRT paths/strings/allocators, real trusted font for object allocation exits. Not306 real OS faults.",
+    "actualAllocatorSweep": {
+      "scope": "Real XRT allocations within model providers; not the entire native system-font query allocation path",
+      "failures": 2,
+      "budgets": 3
+    }
+  },
+  "interop": {
+    "actualGeneratedPrototypes": 25,
+    "allDeclaredNamesCompared": true,
+    "wrongReturnControl": "Change generated font_scale double to int, strict C must fail",
+    "privateFontAndBitmapConstructorsStillAccepted": true,
+    "privateBitmapMethodCorrectlyRejected": true,
+    "realCHeaderCompared": true
+  },
+  "windows": {
+    "inputCount": 53,
+    "rawReportSha256": "0e48d9b6be46aad0dd2434677b8f85e727090eb4bd8e2dc8dce523a074daecdf",
+    "changedDuringGate": [],
+    "stages": 45,
+    "ordinaryAot": 9,
+    "checks": [
+      {
+        "name": "compiler",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "--version"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "stderr": "",
+          "elapsedMs": 38
+        }
+      },
+      {
+        "name": "cc1",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-print-prog-name=cc1"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe\r\n",
+          "stderr": "",
+          "elapsedMs": 23
+        }
+      },
+      {
+        "name": "runtime",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/stb_truetype/include",
+          "-c",
+          "release/extlibs/stb_truetype/test/xrt_runtime.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\runtime.o"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 4371
+        }
+      },
+      {
+        "name": "native",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/stb_truetype/include",
+          "-Wmissing-prototypes",
+          "-c",
+          "release/extlibs/stb_truetype/stb_truetype_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\native.o"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1469
+        }
+      },
+      {
+        "name": "test_stb_truetype-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/stb_truetype/include",
+          "release/extlibs/stb_truetype/test/test_stb_truetype.c",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\native.o",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\runtime.o",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\test_stb_truetype.exe"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 336
+        }
+      },
+      {
+        "name": "test_stb_truetype-GCC",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\test_stb_truetype.exe",
+        "arguments": [],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb_truetype C boundaries: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 41
+        }
+      },
+      {
+        "name": "discovery_contract_c-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/stb_truetype/include",
+          "release/extlibs/stb_truetype/test/discovery_contract_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\runtime.o",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\discovery_contract_c.exe"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1671
+        }
+      },
+      {
+        "name": "discovery_contract_c-GCC",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\discovery_contract_c.exe",
+        "arguments": [],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stbtt discovery: 306 cases, 2209 checks, 2 actual OOM/3 budgets, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 43
+        }
+      },
+      {
+        "name": "discovery_contract_c-TCC",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/stb_truetype/test/discovery_contract_c.c"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stbtt discovery: 306 cases, 2209 checks, 2 actual OOM/3 budgets, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 85
+        }
+      },
+      {
+        "name": "discovery_contract_c-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/stb_truetype/test/discovery_contract_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\discovery_contract_c-aot.exe"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 131
+        }
+      },
+      {
+        "name": "discovery_contract_c-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\discovery_contract_c-aot.exe",
+        "arguments": [],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stbtt discovery: 306 cases, 2209 checks, 2 actual OOM/3 budgets, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "name": "old C example compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/stb_truetype/include",
+          "release/examples/extlibs/stb_truetype_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\runtime.o",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\example.exe"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1810
+        }
+      },
+      {
+        "name": "old C example",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\example.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\assets\\DejaVuSans-test.ttf"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "glyph A bytes:  224\r\nstb_truetype C/XL example: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 24
+        }
+      },
+      {
+        "name": "old C direct",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/examples/extlibs/stb_truetype_c.c",
+          "--",
+          "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\assets\\DejaVuSans-test.ttf"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "glyph A bytes:  224\r\nstb_truetype C/XL example: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 82
+        }
+      },
+      {
+        "name": "old XL example",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/examples/extlibs/stb_truetype.xl",
+          "--",
+          "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\assets\\DejaVuSans-test.ttf"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "glyph A bytes:  224\nstb_truetype C/XL example: PASS\n",
+          "stderr": "",
+          "elapsedMs": 221
+        }
+      },
+      {
+        "name": "mask compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/stb_truetype/include",
+          "release/extlibs/stb_truetype/examples/mask_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\native.o",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\runtime.o",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\mask.exe"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 214
+        }
+      },
+      {
+        "name": "mask GCC",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\mask.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\assets\\DejaVuSans-test.ttf"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "glyph A mask\r\n..+#+..\r\n..+#+..\r\n..#+#+.\r\n.+#.#+.\r\n.#+.+#.\r\n+#####+\r\n+#+++#+\r\n#+...+#\r\nindependent snapshot: true\r\n",
+          "stderr": "",
+          "elapsedMs": 24
+        }
+      },
+      {
+        "name": "mask TCC",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/stb_truetype/examples/mask_c.c",
+          "--",
+          "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\assets\\DejaVuSans-test.ttf"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "glyph A mask\r\n..+#+..\r\n..+#+..\r\n..#+#+.\r\n.+#.#+.\r\n.#+.+#.\r\n+#####+\r\n+#+++#+\r\n#+...+#\r\nindependent snapshot: true\r\n",
+          "stderr": "",
+          "elapsedMs": 83
+        }
+      },
+      {
+        "name": "extlib_stb_truetype-JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "test/cases/extlib_stb_truetype.xl"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 182
+        }
+      },
+      {
+        "name": "extlib_stb_truetype-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "test/cases/extlib_stb_truetype.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\extlib_stb_truetype.exe"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 373
+        }
+      },
+      {
+        "name": "extlib_stb_truetype-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\extlib_stb_truetype.exe",
+        "arguments": [],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "name": "boundaries-JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/stb_truetype/test/boundaries.xl"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb_truetype XL boundaries: PASS\n",
+          "stderr": "",
+          "elapsedMs": 336
+        }
+      },
+      {
+        "name": "boundaries-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/stb_truetype/test/boundaries.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\boundaries.exe"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 623
+        }
+      },
+      {
+        "name": "boundaries-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\boundaries.exe",
+        "arguments": [],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb_truetype XL boundaries: PASS\n",
+          "stderr": "",
+          "elapsedMs": 32
+        }
+      },
+      {
+        "name": "allocations-JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/stb_truetype/test/allocations.xl"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb_truetype allocations: PASS\n",
+          "stderr": "",
+          "elapsedMs": 315
+        }
+      },
+      {
+        "name": "allocations-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/stb_truetype/test/allocations.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\allocations.exe"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 460
+        }
+      },
+      {
+        "name": "allocations-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\allocations.exe",
+        "arguments": [],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stb_truetype allocations: PASS\n",
+          "stderr": "",
+          "elapsedMs": 111
+        }
+      },
+      {
+        "name": "api_surface-JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/stb_truetype/test/api_surface.xl"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stbtt public surface: PASS\n",
+          "stderr": "",
+          "elapsedMs": 291
+        }
+      },
+      {
+        "name": "api_surface-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/stb_truetype/test/api_surface.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\api_surface.exe"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 531
+        }
+      },
+      {
+        "name": "api_surface-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\api_surface.exe",
+        "arguments": [],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "stbtt public surface: PASS\n",
+          "stderr": "",
+          "elapsedMs": 30
+        }
+      },
+      {
+        "name": "mask-JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/stb_truetype/examples/mask.xl"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "glyph A mask\n..+#+..\n..+#+..\n..#+#+.\n.+#.#+.\n.#+.+#.\n+#####+\n+#+++#+\n#+...+#\nindependent snapshot: true\n",
+          "stderr": "",
+          "elapsedMs": 225
+        }
+      },
+      {
+        "name": "mask-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/stb_truetype/examples/mask.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\mask.exe"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 449
+        }
+      },
+      {
+        "name": "mask-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\mask.exe",
+        "arguments": [],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "glyph A mask\n..+#+..\n..+#+..\n..#+#+.\n.+#.#+.\n.#+.+#.\n+#####+\n+#+++#+\n#+...+#\nindependent snapshot: true\n",
+          "stderr": "",
+          "elapsedMs": 38
+        }
+      },
+      {
+        "name": "stb_truetype_c-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/examples/extlibs/stb_truetype_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\stb_truetype_c.exe"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 132
+        }
+      },
+      {
+        "name": "stb_truetype_c-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\stb_truetype_c.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\assets\\DejaVuSans-test.ttf"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "glyph A bytes:  224\r\nstb_truetype C/XL example: PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 30
+        }
+      },
+      {
+        "name": "stb_truetype-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/examples/extlibs/stb_truetype.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\stb_truetype.exe"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 468
+        }
+      },
+      {
+        "name": "stb_truetype-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\stb_truetype.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\assets\\DejaVuSans-test.ttf"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "glyph A bytes:  224\nstb_truetype C/XL example: PASS\n",
+          "stderr": "",
+          "elapsedMs": 29
+        }
+      },
+      {
+        "name": "mask_c-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/stb_truetype/examples/mask_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\mask_c.exe"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 136
+        }
+      },
+      {
+        "name": "mask_c-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\mask_c.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\assets\\DejaVuSans-test.ttf"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "glyph A mask\r\n..+#+..\r\n..+#+..\r\n..#+#+.\r\n.+#.#+.\r\n.#+.+#.\r\n+#####+\r\n+#+++#+\r\n#+...+#\r\nindependent snapshot: true\r\n",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "name": "cgen",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "release/extlibs/stb_truetype/test/api_surface.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\module.c"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 158
+        }
+      },
+      {
+        "name": "generated ABI",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/stb_truetype/include",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\abi.c"
+        ],
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 42
+        }
+      },
+      {
+        "name": "wrong-return control",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/stb_truetype/include",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\abi.c"
+        ],
+        "expected": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\abi.c:3:12: error: conflicting types for 'xstbtt_font_scale'; have 'int(void *, double)'\n    3 | extern int xstbtt_font_scale(void*, double);\n      |            ^~~~~~~~~~~~~~~~~\nIn file included from D:\\GIT\\x-lang\\build\\test\\stbtt_guard_5304365454fd407fbfdad69f11d37c1e\\abi.c:1:\nrelease/extlibs/stb_truetype/include/stb_truetype_native.h:21:8: note: previous declaration of 'xstbtt_font_scale' with type 'double(void *, double)'\n   21 | double xstbtt_font_scale(void* Font, double Height);\n      |        ^~~~~~~~~~~~~~~~~\n",
+          "elapsedMs": 38
+        }
+      },
+      {
+        "name": "private bitmap method",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "check",
+          "release/extlibs/stb_truetype/test/private_bitmap_negative.xl"
+        ],
+        "expected": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "release/extlibs/stb_truetype/test/private_bitmap_negative.xl:5:20: [sem] unknown class/union field\nrelease/extlibs/stb_truetype/test/private_bitmap_negative.xl:5:32: [sem] no matching callable class member '__xl6_import_stb_truetype_Font.bitmapNative': check argument count, types and access\n",
+          "elapsedMs": 35
+        }
+      },
+      {
+        "name": "private font constructor",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "check",
+          "release/extlibs/stb_truetype/test/private_font_constructor_negative.xl"
+        ],
+        "expected": 1,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "ok\n",
+          "stderr": "",
+          "elapsedMs": 42
+        }
+      },
+      {
+        "name": "private bitmap constructor",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "check",
+          "release/extlibs/stb_truetype/test/private_bitmap_constructor_negative.xl"
+        ],
+        "expected": 1,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "ok\n",
+          "stderr": "",
+          "elapsedMs": 51
+        }
+      }
+    ],
+    "matchingStages": 43,
+    "inputs": {
+      "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe": "9785001B0DCF755EDDB8AF294A373C0B87B2498660F724E76C4D53F9C217C7A3",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\stb_truetype.xl": "B2D091134CD1AD91F0CB0C7A369A2C05BF52AB4797E75DD269AEDB505AFCDEB1",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\stb_truetype_c.c": "5C9CA125701DCCDEFFCF648AF5B20FD62694DB93FAE5D33B60AAF46D3690E378",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\docs\\site.html": "4F061B696F3F292724792C9E079C124DF4D376FEE53050EFD2FFD919E0510202",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\examples\\mask.expected.txt": "6F837F75CB1EECB9331EDED35E58E33C612CD047FB3BA6A7927085109A66F83E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\examples\\mask.xl": "C54936580A21BBB46E0FB4ED8B2CC914933587DA14D89FBA4187643B8E2E0916",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\examples\\mask_c.c": "98AE579A248D5B7382F0516581CB1480A8B5D22278C872658EF208DE5DB549EE",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\include\\stb_truetype_native.h": "F5DD7EFDB6D72242360F2526DAC4381013B103E688BF36E7BFD7C77228CD3630",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\LICENSE.stb.txt": "11A52726410FACD5BCB97F4EE5910ED2D39E4BE110D75ABBCD60128D3832B1AE",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\README.md": "C85CAD9E6E69CA06AE2FE90CEF35C7E6100DAB17C734496FA3BE902E7695A877",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\src\\stb_truetype.xl": "9EE58757CE00A2C57D1E0350B1B42CDE8C5413D6F1C990AE7A5B7FAD42C76702",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\stb_truetype_native.c": "7CE85FD5DA3AD10F8C764947CBB47936550D7ACF6E29F76678CA460229D84C0F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\allocations.xl": "F020304BF7739777ADC5346C84B2B8DD6643EE8B3D5377BCED4A35FB358628BA",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\api_surface.xl": "30F04177586BFDB2701FA7AF716DDC67A2CA54D5AD67D4B012716B3EF7BBC44C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\assets\\DejaVuSans-test.ttf": "AEE828A65795DCD4FDC07D38E129EE5225C833CF975415C2417E117F01CAC1ED",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\assets\\LICENSE.dejavu.txt": "6E7A43ADB0B5E7DFFA2C27383FDB1E0F9BF04EBCF2D824EEC3350A747505A633",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\boundaries.xl": "AE8DA853A2A00BED94E18F445E584925B2CA662E0E5585BE84F5581C0EDBD85E",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\check.ps1": "D69A77F8E3C4CD2FD13ADB633C63930C57156DCB3B3C073E9A8C806F2B9A251C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\check.sh": "10AFB31E878C39D0A1CBC5880317E22BADBC0DCE981E1C4523B56FBC060836A4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\discovery_contract_c.c": "17E1FF2D7F28ED70F7ED7C4E0C4D507D2A097C690CA819D66C9D9893AF1ADCCF",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\private_bitmap_constructor_negative.xl": "F1EF6A94E2BA2A452D4136A7C960394A988AE44CB4408AFB642D284A943D6CDE",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\private_bitmap_negative.xl": "DBB0B6CAD1A5B20AC86F5BE75C660A2CBA789F4775A857FCD5049246B2410153",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\private_font_constructor_negative.xl": "A6300A0F1DA8F60E288BCE5C8D249CCC16266DCA9A4500E466912B2651ED55C3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\test_stb_truetype.c": "55A2A291C47C4A3A4BFD9D1D3CCACE2B93381BAC507F24554C2C6F3C68B39D86",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\test\\xrt_runtime.c": "66CDE46D8BE73233AB42672B4E699DF9670EFDAE9CC7CAC1C05355A9E89FEC90",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\third_party\\stb_truetype.h": "ACD3E8AA0333F3F10C347F587F0FE42310A392E58B250D461078DDED5D9B9295",
+      "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\xlang.package.json": "31B9355CC65C05DB3E0C505D3D0742FAF4849D3449AC5EA2F42192ECD0B15687",
+      "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+      "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+      "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+      "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+      "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+      "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+      "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+      "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+      "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+      "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_stb_truetype.xl": "9254E998537564E7CDA6C7AC0945A2830AF0212E6F23A79FAB7CC7F68E3E7C60",
+      "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+      "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012"
+    },
+    "rawReport": "build/test/stbtt_guard_5304365454fd407fbfdad69f11d37c1e.json",
+    "baseline": {
+      "sourceRevision": "22281f1aa",
+      "oldNormalizedMatches": true,
+      "oldSourceSha256": "D1CF31A13693C9002CEC0F6DD8CD1D797B22BEF5D7D4C02669BF25E4B5309FB7",
+      "gatePath": "build/test/stbtt_guard_5304365454fd407fbfdad69f11d37c1e.json",
+      "checks": [
+        {
+          "name": "runtime",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/stb_truetype",
+            "-Irelease/extlibs/stb_truetype/include",
+            "-c",
+            "release/extlibs/stb_truetype/test/xrt_runtime.c",
+            "-o",
+            "build/test/stbtt-discovery-20261102/final-runtime.o"
+          ],
+          "environment": {},
+          "expected": 0,
+          "actual": 0,
+          "stdout": "",
+          "stderr": "",
+          "status": "pass"
+        },
+        {
+          "name": "old-compile",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/stb_truetype",
+            "-Irelease/extlibs/stb_truetype/include",
+            "build/test/stbtt-discovery-20261102/old-contract.c",
+            "build/test/stbtt-discovery-20261102/final-runtime.o",
+            "-lm",
+            "-o",
+            "build/test/stbtt-discovery-20261102/old-contract.exe"
+          ],
+          "environment": {},
+          "expected": 0,
+          "actual": 0,
+          "stdout": "",
+          "stderr": "",
+          "status": "pass"
+        },
+        {
+          "name": "old-contract",
+          "program": "D:\\GIT\\x-lang\\build\\test\\stbtt-discovery-20261102\\old-contract.exe",
+          "arguments": [],
+          "environment": {},
+          "expected": 1,
+          "actual": 1,
+          "stdout": "stbtt discovery: 306 cases, 2320 checks, 2 actual OOM/3 budgets, 560 failures\r\n",
+          "stderr": "stbtt discovery: successful or empty result clears previous error\r\nstbtt discovery: successful or empty result clears previous error\r\nstbtt discovery: successful or empty result clears previous error\r\nstbtt discovery: successful or empty result clears previous error\r\nstbtt discovery: successful or empty result clears previous error\r\nstbtt discovery: successful or empty result clears previous error\r\nstbtt discovery: successful or empty result clears previous error\r\nstbtt discovery: successful or empty result clears previous error\r\nstbtt discovery: successful or empty result clears previous error\r\nstbtt discovery: successful or empty result clears previous error\r\nstbtt discovery: successful or empty result clears previous error\r\nstbtt discovery: successful or empty result clears previous error\r\n",
+          "status": "fail"
+        },
+        {
+          "name": "size-old-compile",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/stb_truetype",
+            "-Irelease/extlibs/stb_truetype/include",
+            "-c",
+            "D:/GIT/x-lang/build/test/stbtt-discovery-20261102/old-stb_truetype_native.c",
+            "-o",
+            "build/test/stbtt-discovery-20261102/old.o"
+          ],
+          "environment": {},
+          "expected": 0,
+          "actual": 0,
+          "stdout": "",
+          "stderr": "",
+          "status": "pass"
+        },
+        {
+          "name": "size-old",
+          "program": "E:\\software\\w64devkit\\bin\\size.exe",
+          "arguments": [
+            "build/test/stbtt-discovery-20261102/old.o"
+          ],
+          "environment": {},
+          "expected": 0,
+          "actual": 0,
+          "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n  52464\t      0\t      0\t  52464\t   ccf0\tbuild/test/stbtt-discovery-20261102/old.o\r\n",
+          "stderr": "",
+          "status": "pass"
+        },
+        {
+          "name": "cost-old-compile",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/stb_truetype",
+            "-Irelease/extlibs/stb_truetype/include",
+            "build/test/stbtt-discovery-20261102/cost.c",
+            "build/test/stbtt-discovery-20261102/old.o",
+            "build/test/stbtt-discovery-20261102/final-runtime.o",
+            "-lm",
+            "-o",
+            "build/test/stbtt-discovery-20261102/cost-old.exe"
+          ],
+          "environment": {},
+          "expected": 0,
+          "actual": 0,
+          "stdout": "",
+          "stderr": "",
+          "status": "pass"
+        },
+        {
+          "name": "cost-old-normal",
+          "program": "D:\\GIT\\x-lang\\build\\test\\stbtt-discovery-20261102\\cost-old.exe",
+          "arguments": [],
+          "environment": {},
+          "expected": 0,
+          "actual": 0,
+          "stdout": "discovery cost: found=1 alloc=5 realloc=0\r\ndiscovery cost: found=1 alloc=5 realloc=0\r\ndiscovery cost: found=1 alloc=5 realloc=0\r\ndiscovery cost: found=1 alloc=5 realloc=0\r\n",
+          "stderr": "",
+          "status": "pass"
+        },
+        {
+          "name": "cost-old-missing",
+          "program": "D:\\GIT\\x-lang\\build\\test\\stbtt-discovery-20261102\\cost-old.exe",
+          "arguments": [],
+          "environment": {
+            "WINDIR": "D:\\GIT\\x-lang\\build\\test\\stbtt-discovery-20261102\\empty-root",
+            "SystemRoot": "D:\\GIT\\x-lang\\build\\test\\stbtt-discovery-20261102\\empty-root"
+          },
+          "expected": 0,
+          "actual": 0,
+          "stdout": "discovery cost: found=0 alloc=16 realloc=3\r\ndiscovery cost: found=0 alloc=16 realloc=3\r\ndiscovery cost: found=0 alloc=16 realloc=3\r\ndiscovery cost: found=0 alloc=16 realloc=3\r\n",
+          "stderr": "",
+          "status": "pass"
+        },
+        {
+          "name": "size-new-compile",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/stb_truetype",
+            "-Irelease/extlibs/stb_truetype/include",
+            "-c",
+            "release/extlibs/stb_truetype/stb_truetype_native.c",
+            "-o",
+            "build/test/stbtt-discovery-20261102/new.o"
+          ],
+          "environment": {},
+          "expected": 0,
+          "actual": 0,
+          "stdout": "",
+          "stderr": "",
+          "status": "pass"
+        },
+        {
+          "name": "size-new",
+          "program": "E:\\software\\w64devkit\\bin\\size.exe",
+          "arguments": [
+            "build/test/stbtt-discovery-20261102/new.o"
+          ],
+          "environment": {},
+          "expected": 0,
+          "actual": 0,
+          "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n  52848\t      0\t      0\t  52848\t   ce70\tbuild/test/stbtt-discovery-20261102/new.o\r\n",
+          "stderr": "",
+          "status": "pass"
+        },
+        {
+          "name": "cost-new-compile",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/stb_truetype",
+            "-Irelease/extlibs/stb_truetype/include",
+            "build/test/stbtt-discovery-20261102/cost.c",
+            "build/test/stbtt-discovery-20261102/new.o",
+            "build/test/stbtt-discovery-20261102/final-runtime.o",
+            "-lm",
+            "-o",
+            "build/test/stbtt-discovery-20261102/cost-new.exe"
+          ],
+          "environment": {},
+          "expected": 0,
+          "actual": 0,
+          "stdout": "",
+          "stderr": "",
+          "status": "pass"
+        },
+        {
+          "name": "cost-new-normal",
+          "program": "D:\\GIT\\x-lang\\build\\test\\stbtt-discovery-20261102\\cost-new.exe",
+          "arguments": [],
+          "environment": {},
+          "expected": 0,
+          "actual": 0,
+          "stdout": "discovery cost: found=1 alloc=5 realloc=0\r\ndiscovery cost: found=1 alloc=5 realloc=0\r\ndiscovery cost: found=1 alloc=5 realloc=0\r\ndiscovery cost: found=1 alloc=5 realloc=0\r\n",
+          "stderr": "",
+          "status": "pass"
+        },
+        {
+          "name": "cost-new-missing",
+          "program": "D:\\GIT\\x-lang\\build\\test\\stbtt-discovery-20261102\\cost-new.exe",
+          "arguments": [],
+          "environment": {
+            "WINDIR": "D:\\GIT\\x-lang\\build\\test\\stbtt-discovery-20261102\\empty-root",
+            "SystemRoot": "D:\\GIT\\x-lang\\build\\test\\stbtt-discovery-20261102\\empty-root"
+          },
+          "expected": 0,
+          "actual": 0,
+          "stdout": "discovery cost: found=0 alloc=22 realloc=3\r\ndiscovery cost: found=0 alloc=22 realloc=3\r\ndiscovery cost: found=0 alloc=22 realloc=3\r\ndiscovery cost: found=0 alloc=22 realloc=3\r\n",
+          "stderr": "",
+          "status": "pass"
+        }
+      ],
+      "changedInputs": []
+    }
+  },
+  "linux": {
+    "sourceAndToolsUnchanged": true,
+    "toolCount": 3,
+    "bootUnchanged": true,
+    "frozenDirectory": "/var/tmp/xlang-stbtt-audit-kOesL6xT",
+    "controls": [
+      {
+        "name": "default-gate",
+        "expected": 1,
+        "actual": 1,
+        "command": "bash release/extlibs/stb_truetype/test/check.sh",
+        "stdout": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n[stbtt] compiler exit=0 expected=0\n[stbtt] runtime exit=0 expected=0\n[stbtt] native exit=0 expected=0\n[stbtt] core-compile exit=0 expected=0\nstb_truetype C boundaries: PASS\n[stbtt] core exit=0 expected=0\n[stbtt] discovery-compile exit=0 expected=0\nstbtt discovery: 306 cases, 2209 checks, 2 actual OOM/3 budgets, 0 failures\n[stbtt] discovery-GCC exit=0 expected=0\nstbtt discovery: 306 cases, 2209 checks, 2 actual OOM/3 budgets, 0 failures\n[stbtt] discovery-TCC exit=0 expected=0\n[stbtt] discovery-build exit=0 expected=0\nstbtt discovery: 306 cases, 2209 checks, 2 actual OOM/3 budgets, 0 failures\n[stbtt] discovery-AOT exit=0 expected=0\n[stbtt] old-C-compile exit=0 expected=0\nglyph A bytes:  224\nstb_truetype C/XL example: PASS\n[stbtt] old-C-GCC exit=0 expected=0\nglyph A bytes:  224\nstb_truetype C/XL example: PASS\n[stbtt] old-C-TCC exit=0 expected=0\nglyph A bytes:  224\nstb_truetype C/XL example: PASS\n[stbtt] old-XL-JIT exit=0 expected=0\n[stbtt] mask-compile exit=0 expected=0\nglyph A mask\n..+#+..\n..+#+..\n..#+#+.\n.+#.#+.\n.#+.+#.\n+#####+\n+#+++#+\n#+...+#\nindependent snapshot: true\n[stbtt] mask-GCC exit=0 expected=0\nglyph A mask\n..+#+..\n..+#+..\n..#+#+.\n.+#.#+.\n.#+.+#.\n+#####+\n+#+++#+\n#+...+#\nindependent snapshot: true\n[stbtt] mask-TCC exit=0 expected=0\n[stbtt] extlib_stb_truetype-JIT exit=0 expected=0\n[stbtt] extlib_stb_truetype-build exit=0 expected=0\n[stbtt] extlib_stb_truetype-AOT exit=0 expected=0\nstb_truetype XL boundaries: PASS\n[stbtt] boundaries-JIT exit=0 expected=0\n[stbtt] boundaries-build exit=0 expected=0\nstb_truetype XL boundaries: PASS\n[stbtt] boundaries-AOT exit=0 expected=0\nstb_truetype allocations: PASS\n[stbtt] allocations-JIT exit=0 expected=0\n[stbtt] allocations-build exit=0 expected=0\nstb_truetype allocations: PASS\n[stbtt] allocations-AOT exit=0 expected=0\nstbtt public surface: PASS\n[stbtt] api_surface-JIT exit=0 expected=0\n[stbtt] api_surface-build exit=0 expected=0\nstbtt public surface: PASS\n[stbtt] api_surface-AOT exit=0 expected=0\nglyph A mask\n..+#+..\n..+#+..\n..#+#+.\n.+#.#+.\n.#+.+#.\n+#####+\n+#+++#+\n#+...+#\nindependent snapshot: true\n[stbtt] mask-JIT exit=0 expected=0\n[stbtt] mask-build exit=0 expected=0\nglyph A mask\n..+#+..\n..+#+..\n..#+#+.\n.+#.#+.\n.#+.+#.\n+#####+\n+#+++#+\n#+...+#\nindependent snapshot: true\n[stbtt] mask-AOT exit=0 expected=0\n[stbtt] stb_truetype_c-build exit=0 expected=0\nglyph A bytes:  224\nstb_truetype C/XL example: PASS\n[stbtt] stb_truetype_c-AOT exit=0 expected=0\n[stbtt] stb_truetype-build exit=0 expected=0\nglyph A bytes:  224\nstb_truetype C/XL example: PASS\n[stbtt] stb_truetype-AOT exit=0 expected=0\n[stbtt] mask_c-build exit=0 expected=0\nglyph A mask\n..+#+..\n..+#+..\n..#+#+.\n.+#.#+.\n.#+.+#.\n+#####+\n+#+++#+\n#+...+#\nindependent snapshot: true\n[stbtt] mask_c-AOT exit=0 expected=0\n[stbtt] cgen exit=0 expected=0\n[stbtt] generated-ABI exit=0 expected=0\n[stbtt] wrong-return-control exit=1 expected=1\n[stbtt] private-method exit=1 expected=1\nok\n[stbtt] private-font-constructor exit=0 expected=1\nok\n[stbtt] private-bitmap-constructor exit=0 expected=1\n",
+        "stderr": "/var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/bad-abi.c:3:12: error: conflicting types for ‘xstbtt_font_scale’; have ‘int(void *, double)’\n    3 | extern int xstbtt_font_scale(void*, double);\n      |            ^~~~~~~~~~~~~~~~~\nIn file included from /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/bad-abi.c:1:\nrelease/extlibs/stb_truetype/include/stb_truetype_native.h:21:8: note: previous declaration of ‘xstbtt_font_scale’ with type ‘double(void *, double)’\n   21 | double xstbtt_font_scale(void* Font, double Height);\n      |        ^~~~~~~~~~~~~~~~~\nrelease/extlibs/stb_truetype/test/private_bitmap_negative.xl:5:20: [sem] unknown class/union field\nrelease/extlibs/stb_truetype/test/private_bitmap_negative.xl:5:32: [sem] no matching callable class member '__xl6_import_stb_truetype_Font.bitmapNative': check argument count, types and access\nstbtt private constructor blockers: 2\n[stbtt] FAIL exit=1 artifacts=/var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc\n"
+      },
+      {
+        "name": "runtime",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/stb_truetype -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -c release/extlibs/stb_truetype/test/xrt_runtime.c -o /var/tmp/xlang-stbtt-audit-kOesL6xT/runtime.o",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "old-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/stb_truetype -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread /var/tmp/xlang-stbtt-audit-kOesL6xT/old-contract.c /var/tmp/xlang-stbtt-audit-kOesL6xT/runtime.o -lm -ldl -o /var/tmp/xlang-stbtt-audit-kOesL6xT/old-contract",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "old-contract",
+        "expected": 1,
+        "actual": 1,
+        "command": "/var/tmp/xlang-stbtt-audit-kOesL6xT/old-contract",
+        "stdout": "stbtt discovery: 306 cases, 2320 checks, 2 actual OOM/3 budgets, 560 failures\n",
+        "stderr": "stbtt discovery: successful or empty result clears previous error\nstbtt discovery: successful or empty result clears previous error\nstbtt discovery: successful or empty result clears previous error\nstbtt discovery: successful or empty result clears previous error\nstbtt discovery: successful or empty result clears previous error\nstbtt discovery: successful or empty result clears previous error\nstbtt discovery: successful or empty result clears previous error\nstbtt discovery: successful or empty result clears previous error\nstbtt discovery: successful or empty result clears previous error\nstbtt discovery: successful or empty result clears previous error\nstbtt discovery: successful or empty result clears previous error\nstbtt discovery: successful or empty result clears previous error\n"
+      },
+      {
+        "name": "size-old-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O2 -Ilib/xrt -Irelease/extlibs/stb_truetype -c /var/tmp/xlang-stbtt-audit-kOesL6xT/old-stb_truetype_native.c -o /var/tmp/xlang-stbtt-audit-kOesL6xT/old.o",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "size-old",
+        "expected": 0,
+        "actual": 0,
+        "command": "size /var/tmp/xlang-stbtt-audit-kOesL6xT/old.o",
+        "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n  55880\t     56\t      0\t  55936\t   da80\t/var/tmp/xlang-stbtt-audit-kOesL6xT/old.o\n",
+        "stderr": ""
+      },
+      {
+        "name": "size-new-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O2 -Ilib/xrt -Irelease/extlibs/stb_truetype -c release/extlibs/stb_truetype/stb_truetype_native.c -o /var/tmp/xlang-stbtt-audit-kOesL6xT/new.o",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "size-new",
+        "expected": 0,
+        "actual": 0,
+        "command": "size /var/tmp/xlang-stbtt-audit-kOesL6xT/new.o",
+        "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n  56256\t     56\t      0\t  56312\t   dbf8\t/var/tmp/xlang-stbtt-audit-kOesL6xT/new.o\n",
+        "stderr": ""
+      }
+    ],
+    "ordinaryAot": 9,
+    "proof": {
+      "inputs.before.sha256": {
+        "sha256": "fbcc4b4590d48a9d57af6155b477dc5b2be99b02cef420ec9b9eb98bcd8deacd",
+        "lines": [
+          "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h",
+          "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h",
+          "b2d091134cd1ad91f0cb0c7a369a2c05bf52ab4797e75dd269aedb505afcdeb1  ./release/examples/extlibs/stb_truetype.xl",
+          "5c9ca125701dccdeffcf648af5b20fd62694db93fae5d33b60aaf46d3690e378  ./release/examples/extlibs/stb_truetype_c.c",
+          "11a52726410facd5bcb97f4ee5910ed2d39e4be110d75abbcd60128d3832b1ae  ./release/extlibs/stb_truetype/LICENSE.stb.txt",
+          "c85cad9e6e69ca06ae2fe90cef35c7e6100dab17c734496fa3be902e7695a877  ./release/extlibs/stb_truetype/README.md",
+          "4f061b696f3f292724792c9e079c124df4d376fee53050efd2ffd919e0510202  ./release/extlibs/stb_truetype/docs/site.html",
+          "6f837f75cb1eecb9331eded35e58e33c612cd047fb3ba6a7927085109a66f83e  ./release/extlibs/stb_truetype/examples/mask.expected.txt",
+          "c54936580a21bbb46e0fb4ed8b2cc914933587da14d89fba4187643b8e2e0916  ./release/extlibs/stb_truetype/examples/mask.xl",
+          "98ae579a248d5b7382f0516581cb1480a8b5d22278c872658ef208de5db549ee  ./release/extlibs/stb_truetype/examples/mask_c.c",
+          "f5dd7efdb6d72242360f2526dac4381013b103e688bf36e7bfd7c77228cd3630  ./release/extlibs/stb_truetype/include/stb_truetype_native.h",
+          "9ee58757ce00a2c57d1e0350b1b42cde8c5413d6f1c990ae7a5b7fad42c76702  ./release/extlibs/stb_truetype/src/stb_truetype.xl",
+          "7ce85fd5da3ad10f8c764947cbb47936550d7acf6e29f76678ca460229d84c0f  ./release/extlibs/stb_truetype/stb_truetype_native.c",
+          "f020304bf7739777adc5346c84b2b8dd6643ee8b3d5377bced4a35fb358628ba  ./release/extlibs/stb_truetype/test/allocations.xl",
+          "30f04177586bfdb2701fa7af716ddc67a2ca54d5ad67d4b012716b3ef7bbc44c  ./release/extlibs/stb_truetype/test/api_surface.xl",
+          "aee828a65795dcd4fdc07d38e129ee5225c833cf975415c2417e117f01cac1ed  ./release/extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf",
+          "6e7a43adb0b5e7dffa2c27383fdb1e0f9bf04ebcf2d824eec3350a747505a633  ./release/extlibs/stb_truetype/test/assets/LICENSE.dejavu.txt",
+          "ae8da853a2a00bed94e18f445e584925b2ca662e0e5585be84f5581c0edbd85e  ./release/extlibs/stb_truetype/test/boundaries.xl",
+          "d69a77f8e3c4cd2fd13adb633c63930c57156dcb3b3c073e9a8c806f2b9a251c  ./release/extlibs/stb_truetype/test/check.ps1",
+          "10afb31e878c39d0a1cbc5880317e22badbc0dce981e1c4523b56fbc060836a4  ./release/extlibs/stb_truetype/test/check.sh",
+          "17e1ff2d7f28ed70f7ed7c4e0c4d507d2a097c690ca819d66c9d9893af1adccf  ./release/extlibs/stb_truetype/test/discovery_contract_c.c",
+          "f1ef6a94e2ba2a452d4136a7c960394a988ae44cb4408afb642d284a943d6cde  ./release/extlibs/stb_truetype/test/private_bitmap_constructor_negative.xl",
+          "dbb0b6cad1a5b20ac86f5be75c660a2cba789f4775a857fcd5049246b2410153  ./release/extlibs/stb_truetype/test/private_bitmap_negative.xl",
+          "a6300a0f1da8f60e288bce5c8d249ccc16266dca9a4500e466912b2651ed55c3  ./release/extlibs/stb_truetype/test/private_font_constructor_negative.xl",
+          "55a2a291c47c4a3a4bfd9d1d3ccace2b93381bac507f24554c2c6f3c68b39d86  ./release/extlibs/stb_truetype/test/test_stb_truetype.c",
+          "66cde46d8be73233ab42672b4e699df9670efdae9cc7cac1c05355a9e89fec90  ./release/extlibs/stb_truetype/test/xrt_runtime.c",
+          "acd3e8aa0333f3f10c347f587f0fe42310a392e58b250d461078dded5d9b9295  ./release/extlibs/stb_truetype/third_party/stb_truetype.h",
+          "31b9355cc65c05db3e0c505d3d0742faf4849d3449ac5ea2f42192ecd0b15687  ./release/extlibs/stb_truetype/xlang.package.json",
+          "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md",
+          "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h",
+          "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h",
+          "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h",
+          "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h",
+          "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h",
+          "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h",
+          "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h",
+          "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h",
+          "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h",
+          "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h",
+          "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h",
+          "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h",
+          "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h",
+          "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h",
+          "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h",
+          "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so",
+          "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so",
+          "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl",
+          "9254e998537564e7cda6c7ac0945a2830af0212e6f23a79fab7cc7f68e3e7c60  ./test/cases/extlib_stb_truetype.xl"
+        ]
+      },
+      "inputs.after.sha256": {
+        "sha256": "fbcc4b4590d48a9d57af6155b477dc5b2be99b02cef420ec9b9eb98bcd8deacd",
+        "lines": [
+          "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h",
+          "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h",
+          "b2d091134cd1ad91f0cb0c7a369a2c05bf52ab4797e75dd269aedb505afcdeb1  ./release/examples/extlibs/stb_truetype.xl",
+          "5c9ca125701dccdeffcf648af5b20fd62694db93fae5d33b60aaf46d3690e378  ./release/examples/extlibs/stb_truetype_c.c",
+          "11a52726410facd5bcb97f4ee5910ed2d39e4be110d75abbcd60128d3832b1ae  ./release/extlibs/stb_truetype/LICENSE.stb.txt",
+          "c85cad9e6e69ca06ae2fe90cef35c7e6100dab17c734496fa3be902e7695a877  ./release/extlibs/stb_truetype/README.md",
+          "4f061b696f3f292724792c9e079c124df4d376fee53050efd2ffd919e0510202  ./release/extlibs/stb_truetype/docs/site.html",
+          "6f837f75cb1eecb9331eded35e58e33c612cd047fb3ba6a7927085109a66f83e  ./release/extlibs/stb_truetype/examples/mask.expected.txt",
+          "c54936580a21bbb46e0fb4ed8b2cc914933587da14d89fba4187643b8e2e0916  ./release/extlibs/stb_truetype/examples/mask.xl",
+          "98ae579a248d5b7382f0516581cb1480a8b5d22278c872658ef208de5db549ee  ./release/extlibs/stb_truetype/examples/mask_c.c",
+          "f5dd7efdb6d72242360f2526dac4381013b103e688bf36e7bfd7c77228cd3630  ./release/extlibs/stb_truetype/include/stb_truetype_native.h",
+          "9ee58757ce00a2c57d1e0350b1b42cde8c5413d6f1c990ae7a5b7fad42c76702  ./release/extlibs/stb_truetype/src/stb_truetype.xl",
+          "7ce85fd5da3ad10f8c764947cbb47936550d7acf6e29f76678ca460229d84c0f  ./release/extlibs/stb_truetype/stb_truetype_native.c",
+          "f020304bf7739777adc5346c84b2b8dd6643ee8b3d5377bced4a35fb358628ba  ./release/extlibs/stb_truetype/test/allocations.xl",
+          "30f04177586bfdb2701fa7af716ddc67a2ca54d5ad67d4b012716b3ef7bbc44c  ./release/extlibs/stb_truetype/test/api_surface.xl",
+          "aee828a65795dcd4fdc07d38e129ee5225c833cf975415c2417e117f01cac1ed  ./release/extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf",
+          "6e7a43adb0b5e7dffa2c27383fdb1e0f9bf04ebcf2d824eec3350a747505a633  ./release/extlibs/stb_truetype/test/assets/LICENSE.dejavu.txt",
+          "ae8da853a2a00bed94e18f445e584925b2ca662e0e5585be84f5581c0edbd85e  ./release/extlibs/stb_truetype/test/boundaries.xl",
+          "d69a77f8e3c4cd2fd13adb633c63930c57156dcb3b3c073e9a8c806f2b9a251c  ./release/extlibs/stb_truetype/test/check.ps1",
+          "10afb31e878c39d0a1cbc5880317e22badbc0dce981e1c4523b56fbc060836a4  ./release/extlibs/stb_truetype/test/check.sh",
+          "17e1ff2d7f28ed70f7ed7c4e0c4d507d2a097c690ca819d66c9d9893af1adccf  ./release/extlibs/stb_truetype/test/discovery_contract_c.c",
+          "f1ef6a94e2ba2a452d4136a7c960394a988ae44cb4408afb642d284a943d6cde  ./release/extlibs/stb_truetype/test/private_bitmap_constructor_negative.xl",
+          "dbb0b6cad1a5b20ac86f5be75c660a2cba789f4775a857fcd5049246b2410153  ./release/extlibs/stb_truetype/test/private_bitmap_negative.xl",
+          "a6300a0f1da8f60e288bce5c8d249ccc16266dca9a4500e466912b2651ed55c3  ./release/extlibs/stb_truetype/test/private_font_constructor_negative.xl",
+          "55a2a291c47c4a3a4bfd9d1d3ccace2b93381bac507f24554c2c6f3c68b39d86  ./release/extlibs/stb_truetype/test/test_stb_truetype.c",
+          "66cde46d8be73233ab42672b4e699df9670efdae9cc7cac1c05355a9e89fec90  ./release/extlibs/stb_truetype/test/xrt_runtime.c",
+          "acd3e8aa0333f3f10c347f587f0fe42310a392e58b250d461078dded5d9b9295  ./release/extlibs/stb_truetype/third_party/stb_truetype.h",
+          "31b9355cc65c05db3e0c505d3d0742faf4849d3449ac5ea2f42192ecd0b15687  ./release/extlibs/stb_truetype/xlang.package.json",
+          "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md",
+          "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h",
+          "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h",
+          "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h",
+          "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h",
+          "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h",
+          "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h",
+          "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h",
+          "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h",
+          "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h",
+          "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h",
+          "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h",
+          "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h",
+          "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h",
+          "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h",
+          "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h",
+          "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so",
+          "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so",
+          "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl",
+          "9254e998537564e7cda6c7ac0945a2830af0212e6f23a79fab7cc7f68e3e7c60  ./test/cases/extlib_stb_truetype.xl"
+        ]
+      },
+      "tools.before.sha256": {
+        "sha256": "bb6c1f92264abe1a1052ce6c10a9794dc6e51102f957c7e6cd465388f88fba20",
+        "lines": [
+          "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc",
+          "30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1",
+          "3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash"
+        ]
+      },
+      "tools.after.sha256": {
+        "sha256": "bb6c1f92264abe1a1052ce6c10a9794dc6e51102f957c7e6cd465388f88fba20",
+        "lines": [
+          "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc",
+          "30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1",
+          "3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash"
+        ]
+      },
+      "boot.before": {
+        "sha256": "034780d6e094e8186ec04730e6214dca86af381e680a56886e10833e4b99f771",
+        "lines": [
+          "e9242b9c-02a7-4a9f-9813-5abfc0c83623"
+        ]
+      },
+      "boot.after": {
+        "sha256": "034780d6e094e8186ec04730e6214dca86af381e680a56886e10833e4b99f771",
+        "lines": [
+          "e9242b9c-02a7-4a9f-9813-5abfc0c83623"
+        ]
+      }
+    },
+    "stages": 44,
+    "matchingStages": 42,
+    "sourceCount": 48,
+    "checks": [
+      {
+        "name": "compiler",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc --version",
+        "stdout": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+        "stderr": ""
+      },
+      {
+        "name": "runtime",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/stb_truetype/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -c release/extlibs/stb_truetype/test/xrt_runtime.c -o /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/runtime.o",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "native",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/stb_truetype/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -Wmissing-prototypes -c release/extlibs/stb_truetype/stb_truetype_native.c -o /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/native.o",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "core-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/stb_truetype/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/stb_truetype/test/test_stb_truetype.c /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/native.o /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/runtime.o -lm -ldl -o /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/core",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "core",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/core",
+        "stdout": "stb_truetype C boundaries: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "discovery-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/stb_truetype/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/stb_truetype/test/discovery_contract_c.c /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/runtime.o -lm -ldl -o /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/discovery",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "discovery-GCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/discovery",
+        "stdout": "stbtt discovery: 306 cases, 2209 checks, 2 actual OOM/3 budgets, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "discovery-TCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/stb_truetype/test/discovery_contract_c.c",
+        "stdout": "stbtt discovery: 306 cases, 2209 checks, 2 actual OOM/3 budgets, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "discovery-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/stb_truetype/test/discovery_contract_c.c -o /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/discovery.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "discovery-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/discovery.aot",
+        "stdout": "stbtt discovery: 306 cases, 2209 checks, 2 actual OOM/3 budgets, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "old-C-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/stb_truetype/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/examples/extlibs/stb_truetype_c.c /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/runtime.o -lm -ldl -o /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/old-example",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "old-C-GCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/old-example /var/tmp/xlang-stbtt-audit-kOesL6xT/stage/release/extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf",
+        "stdout": "glyph A bytes:  224\nstb_truetype C/XL example: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "old-C-TCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/examples/extlibs/stb_truetype_c.c -- /var/tmp/xlang-stbtt-audit-kOesL6xT/stage/release/extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf",
+        "stdout": "glyph A bytes:  224\nstb_truetype C/XL example: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "old-XL-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/examples/extlibs/stb_truetype.xl -- /var/tmp/xlang-stbtt-audit-kOesL6xT/stage/release/extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf",
+        "stdout": "glyph A bytes:  224\nstb_truetype C/XL example: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "mask-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/stb_truetype/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/stb_truetype/examples/mask_c.c /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/native.o /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/runtime.o -lm -ldl -o /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/mask",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "mask-GCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/mask /var/tmp/xlang-stbtt-audit-kOesL6xT/stage/release/extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf",
+        "stdout": "glyph A mask\n..+#+..\n..+#+..\n..#+#+.\n.+#.#+.\n.#+.+#.\n+#####+\n+#+++#+\n#+...+#\nindependent snapshot: true\n",
+        "stderr": ""
+      },
+      {
+        "name": "mask-TCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/stb_truetype/examples/mask_c.c -- /var/tmp/xlang-stbtt-audit-kOesL6xT/stage/release/extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf",
+        "stdout": "glyph A mask\n..+#+..\n..+#+..\n..#+#+.\n.+#.#+.\n.#+.+#.\n+#####+\n+#+++#+\n#+...+#\nindependent snapshot: true\n",
+        "stderr": ""
+      },
+      {
+        "name": "extlib_stb_truetype-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run test/cases/extlib_stb_truetype.xl",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "extlib_stb_truetype-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build test/cases/extlib_stb_truetype.xl -o /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/extlib_stb_truetype.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "extlib_stb_truetype-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/extlib_stb_truetype.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "boundaries-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/stb_truetype/test/boundaries.xl",
+        "stdout": "stb_truetype XL boundaries: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "boundaries-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/stb_truetype/test/boundaries.xl -o /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/boundaries.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "boundaries-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/boundaries.aot",
+        "stdout": "stb_truetype XL boundaries: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "allocations-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/stb_truetype/test/allocations.xl",
+        "stdout": "stb_truetype allocations: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "allocations-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/stb_truetype/test/allocations.xl -o /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/allocations.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "allocations-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/allocations.aot",
+        "stdout": "stb_truetype allocations: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "api_surface-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/stb_truetype/test/api_surface.xl",
+        "stdout": "stbtt public surface: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "api_surface-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/stb_truetype/test/api_surface.xl -o /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/api_surface.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "api_surface-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/api_surface.aot",
+        "stdout": "stbtt public surface: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "mask-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/stb_truetype/examples/mask.xl",
+        "stdout": "glyph A mask\n..+#+..\n..+#+..\n..#+#+.\n.+#.#+.\n.#+.+#.\n+#####+\n+#+++#+\n#+...+#\nindependent snapshot: true\n",
+        "stderr": ""
+      },
+      {
+        "name": "mask-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/stb_truetype/examples/mask.xl -o /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/mask.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "mask-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/mask.aot",
+        "stdout": "glyph A mask\n..+#+..\n..+#+..\n..#+#+.\n.+#.#+.\n.#+.+#.\n+#####+\n+#+++#+\n#+...+#\nindependent snapshot: true\n",
+        "stderr": ""
+      },
+      {
+        "name": "stb_truetype_c-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/examples/extlibs/stb_truetype_c.c -o /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/stb_truetype_c.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "stb_truetype_c-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/stb_truetype_c.aot /var/tmp/xlang-stbtt-audit-kOesL6xT/stage/release/extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf",
+        "stdout": "glyph A bytes:  224\nstb_truetype C/XL example: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "stb_truetype-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/examples/extlibs/stb_truetype.xl -o /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/stb_truetype.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "stb_truetype-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/stb_truetype.aot /var/tmp/xlang-stbtt-audit-kOesL6xT/stage/release/extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf",
+        "stdout": "glyph A bytes:  224\nstb_truetype C/XL example: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "mask_c-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/stb_truetype/examples/mask_c.c -o /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/mask_c.aot",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "mask_c-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/mask_c.aot /var/tmp/xlang-stbtt-audit-kOesL6xT/stage/release/extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf",
+        "stdout": "glyph A mask\n..+#+..\n..+#+..\n..#+#+.\n.+#.#+.\n.#+.+#.\n+#####+\n+#+++#+\n#+...+#\nindependent snapshot: true\n",
+        "stderr": ""
+      },
+      {
+        "name": "cgen",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl cgen release/extlibs/stb_truetype/test/api_surface.xl --emit /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/module.c",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "generated-ABI",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/stb_truetype/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -fsyntax-only /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/abi.c",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "wrong-return-control",
+        "expected": 1,
+        "actual": 1,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/stb_truetype/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -fsyntax-only /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/bad-abi.c",
+        "stdout": "",
+        "stderr": "/var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/bad-abi.c:3:12: error: conflicting types for ‘xstbtt_font_scale’; have ‘int(void *, double)’\n    3 | extern int xstbtt_font_scale(void*, double);\n      |            ^~~~~~~~~~~~~~~~~\nIn file included from /var/tmp/xlang-stbtt-audit-kOesL6xT/tmp/xlang-stbtt-UrnCharc/bad-abi.c:1:\nrelease/extlibs/stb_truetype/include/stb_truetype_native.h:21:8: note: previous declaration of ‘xstbtt_font_scale’ with type ‘double(void *, double)’\n   21 | double xstbtt_font_scale(void* Font, double Height);\n      |        ^~~~~~~~~~~~~~~~~\n"
+      },
+      {
+        "name": "private-method",
+        "expected": 1,
+        "actual": 1,
+        "command": "./release/xl check release/extlibs/stb_truetype/test/private_bitmap_negative.xl",
+        "stdout": "",
+        "stderr": "release/extlibs/stb_truetype/test/private_bitmap_negative.xl:5:20: [sem] unknown class/union field\nrelease/extlibs/stb_truetype/test/private_bitmap_negative.xl:5:32: [sem] no matching callable class member '__xl6_import_stb_truetype_Font.bitmapNative': check argument count, types and access\n"
+      },
+      {
+        "name": "private-font-constructor",
+        "expected": 1,
+        "actual": 0,
+        "command": "./release/xl check release/extlibs/stb_truetype/test/private_font_constructor_negative.xl",
+        "stdout": "ok\n",
+        "stderr": ""
+      },
+      {
+        "name": "private-bitmap-constructor",
+        "expected": 1,
+        "actual": 0,
+        "command": "./release/xl check release/extlibs/stb_truetype/test/private_bitmap_constructor_negative.xl",
+        "stdout": "ok\n",
+        "stderr": ""
+      }
+    ],
+    "sanitizers": [
+      "ASan",
+      "UBSan",
+      "leaks"
+    ]
+  },
+  "costs": {
+    "noSpeedOrZeroOverheadClaim": true,
+    "normalFirstHit": {
+      "linuxOldAlloc": 1,
+      "windowsNewAlloc": 5,
+      "realloc": 0,
+      "windowsOldAlloc": 5,
+      "linuxNewAlloc": 1
+    },
+    "fixtureSha256": "51a02646f371a3d955adac2b1f8d989c78950452deb3d438da0235da5a1568d8",
+    "scope": "Actual native system lookup, four repeated observations per configuration; logical XRT AllocCount/ReallocCount, not CRT system allocations or latency",
+    "separateFromDefaultGate": true,
+    "fixture": "release/extlibs/stb_truetype/test/discovery_cost_c.c",
+    "forcedRelativeMissing": {
+      "windowsOldAlloc": 16,
+      "windowsFound": false,
+      "linuxFound": true,
+      "windowsRealloc": 3,
+      "windowsNewAlloc": 22,
+      "linuxRealloc": 0,
+      "linuxNewAlloc": 8,
+      "linuxOldAlloc": 5
+    },
+    "windowsSupplement": {
+      "inputs": {
+        "release/extlibs/stb_truetype/test/discovery_cost_c.c": "51A02646F371A3D955ADAC2B1F8D989C78950452DEB3D438DA0235DA5A1568D8",
+        "build/test/stbtt-discovery-20261102/old.o": "BDEFD1145059A34523611188E829082ECAE61DA2484F1612ADDCE29B62042EB6",
+        "build/test/stbtt-discovery-20261102/new.o": "4B6E7AC451B02C3D74CA8AE775B4F64FE48D12895D3B88D8463458394D27D93B",
+        "build/test/stbtt-discovery-20261102/final-runtime.o": "155B19BB59277D4287C3BEC8C8A1B0680A8A3BB20383F47ED0864486264ED188",
+        "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED"
+      },
+      "changed": [],
+      "checks": [
+        {
+          "name": "compile-old",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "release/extlibs/stb_truetype/test/discovery_cost_c.c",
+            "build/test/stbtt-discovery-20261102/old.o",
+            "build/test/stbtt-discovery-20261102/final-runtime.o",
+            "-lm",
+            "-o",
+            "build/test/stbtt-discovery-20261102/cost-final-old.exe"
+          ],
+          "environment": {},
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 202
+          }
+        },
+        {
+          "name": "old-normal",
+          "program": "D:\\GIT\\x-lang\\build\\test\\stbtt-discovery-20261102\\cost-final-old.exe",
+          "arguments": [],
+          "environment": {},
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "discovery cost: found=1 alloc=5 realloc=0\r\ndiscovery cost: found=1 alloc=5 realloc=0\r\ndiscovery cost: found=1 alloc=5 realloc=0\r\ndiscovery cost: found=1 alloc=5 realloc=0\r\n",
+            "stderr": "",
+            "elapsedMs": 25
+          }
+        },
+        {
+          "name": "old-missing",
+          "program": "D:\\GIT\\x-lang\\build\\test\\stbtt-discovery-20261102\\cost-final-old.exe",
+          "arguments": [],
+          "environment": {
+            "WINDIR": "D:\\GIT\\x-lang\\build\\test\\stbtt-discovery-20261102\\empty-root",
+            "SystemRoot": "D:\\GIT\\x-lang\\build\\test\\stbtt-discovery-20261102\\empty-root"
+          },
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "discovery cost: found=0 alloc=16 realloc=3\r\ndiscovery cost: found=0 alloc=16 realloc=3\r\ndiscovery cost: found=0 alloc=16 realloc=3\r\ndiscovery cost: found=0 alloc=16 realloc=3\r\n",
+            "stderr": "",
+            "elapsedMs": 18
+          }
+        },
+        {
+          "name": "compile-new",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "release/extlibs/stb_truetype/test/discovery_cost_c.c",
+            "build/test/stbtt-discovery-20261102/new.o",
+            "build/test/stbtt-discovery-20261102/final-runtime.o",
+            "-lm",
+            "-o",
+            "build/test/stbtt-discovery-20261102/cost-final-new.exe"
+          ],
+          "environment": {},
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "elapsedMs": 184
+          }
+        },
+        {
+          "name": "new-normal",
+          "program": "D:\\GIT\\x-lang\\build\\test\\stbtt-discovery-20261102\\cost-final-new.exe",
+          "arguments": [],
+          "environment": {},
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "discovery cost: found=1 alloc=5 realloc=0\r\ndiscovery cost: found=1 alloc=5 realloc=0\r\ndiscovery cost: found=1 alloc=5 realloc=0\r\ndiscovery cost: found=1 alloc=5 realloc=0\r\n",
+            "stderr": "",
+            "elapsedMs": 23
+          }
+        },
+        {
+          "name": "new-missing",
+          "program": "D:\\GIT\\x-lang\\build\\test\\stbtt-discovery-20261102\\cost-final-new.exe",
+          "arguments": [],
+          "environment": {
+            "WINDIR": "D:\\GIT\\x-lang\\build\\test\\stbtt-discovery-20261102\\empty-root",
+            "SystemRoot": "D:\\GIT\\x-lang\\build\\test\\stbtt-discovery-20261102\\empty-root"
+          },
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "discovery cost: found=0 alloc=22 realloc=3\r\ndiscovery cost: found=0 alloc=22 realloc=3\r\ndiscovery cost: found=0 alloc=22 realloc=3\r\ndiscovery cost: found=0 alloc=22 realloc=3\r\n",
+            "stderr": "",
+            "elapsedMs": 19
+          }
+        },
+        {
+          "name": "cost-TCC",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/stb_truetype/test/discovery_cost_c.c"
+          ],
+          "environment": {},
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "discovery cost: found=1 alloc=5 realloc=0\r\ndiscovery cost: found=1 alloc=5 realloc=0\r\ndiscovery cost: found=1 alloc=5 realloc=0\r\ndiscovery cost: found=1 alloc=5 realloc=0\r\n",
+            "stderr": "",
+            "elapsedMs": 88
+          }
+        }
+      ]
+    },
+    "linuxSupplement": [
+      {
+        "name": "cost-final-old-normal",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-stbtt-audit-kOesL6xT/cost-final-old",
+        "stdout": "discovery cost: found=1 alloc=1 realloc=0\ndiscovery cost: found=1 alloc=1 realloc=0\ndiscovery cost: found=1 alloc=1 realloc=0\ndiscovery cost: found=1 alloc=1 realloc=0\n",
+        "stderr": ""
+      },
+      {
+        "name": "cost-final-old-missing-relative",
+        "expected": 0,
+        "actual": 0,
+        "command": "env WINDIR=/var/tmp/xlang-stbtt-audit-kOesL6xT/empty-root SystemRoot=/var/tmp/xlang-stbtt-audit-kOesL6xT/empty-root /var/tmp/xlang-stbtt-audit-kOesL6xT/cost-final-old",
+        "stdout": "discovery cost: found=1 alloc=5 realloc=0\ndiscovery cost: found=1 alloc=5 realloc=0\ndiscovery cost: found=1 alloc=5 realloc=0\ndiscovery cost: found=1 alloc=5 realloc=0\n",
+        "stderr": ""
+      },
+      {
+        "name": "cost-final-new-normal",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-stbtt-audit-kOesL6xT/cost-final-new",
+        "stdout": "discovery cost: found=1 alloc=1 realloc=0\ndiscovery cost: found=1 alloc=1 realloc=0\ndiscovery cost: found=1 alloc=1 realloc=0\ndiscovery cost: found=1 alloc=1 realloc=0\n",
+        "stderr": ""
+      },
+      {
+        "name": "cost-final-new-missing-relative",
+        "expected": 0,
+        "actual": 0,
+        "command": "env WINDIR=/var/tmp/xlang-stbtt-audit-kOesL6xT/empty-root SystemRoot=/var/tmp/xlang-stbtt-audit-kOesL6xT/empty-root /var/tmp/xlang-stbtt-audit-kOesL6xT/cost-final-new",
+        "stdout": "discovery cost: found=1 alloc=8 realloc=0\ndiscovery cost: found=1 alloc=8 realloc=0\ndiscovery cost: found=1 alloc=8 realloc=0\ndiscovery cost: found=1 alloc=8 realloc=0\n",
+        "stderr": ""
+      }
+    ],
+    "addedAfterGateButIndependentlyVerified": true,
+    "why": "New PathStat diagnostics for missing candidates now construct and clear a not-found cause; real error propagation has this explicit cost. Use explicit font asset paths, not discovery per frame."
+  },
+  "objectSize": {
+    "windows": {
+      "deltaText": 384,
+      "oldText": 52464,
+      "data": 0,
+      "bss": 0,
+      "newText": 52848
+    },
+    "scope": "GCC -O2 native object only",
+    "linux": {
+      "deltaText": 376,
+      "oldText": 55880,
+      "data": 56,
+      "bss": 0,
+      "newText": 56256
+    }
+  },
+  "examples": {
+    "trustedFontBytes": 1724,
+    "requiredCopies": "One font input copy plus one bitmap-to-independent-Buffer copy. Not zero-copy.",
+    "golden": "examples/mask.expected.txt",
+    "new": [
+      "examples/mask.xl",
+      "examples/mask_c.c"
+    ],
+    "noTemporaryOutputFiles": true,
+    "fiveExecutionFormsBothPlatforms": true,
+    "behavior": "Clear input Buffer after loadBytes; render A at12; independent pixel Buffer survives Font and Bitmap retirement; alpha thresholds128/nonzero/zero"
+  },
+  "postGateDocumentationChanges": [
+    {
+      "path": "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\docs\\site.html",
+      "before": "4F061B696F3F292724792C9E079C124DF4D376FEE53050EFD2FFD919E0510202",
+      "after": "53cfe9cbc8bc9e5dddb95309a1e94cbd7380d2e3d4b8a3ae3c069376782719ef",
+      "documentationOnly": true
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\release\\extlibs\\stb_truetype\\README.md",
+      "before": "C85CAD9E6E69CA06AE2FE90CEF35C7E6100DAB17C734496FA3BE902E7695A877",
+      "after": "54259877fcffe2f0886e8444946a5ed157deafbde2622401d4ed54986b032be6",
+      "documentationOnly": true
+    }
+  ],
+  "newDocumentationAfterGate": [
+    "release/extlibs/stb_truetype/examples/README.md"
+  ],
+  "finalPackageFiles": [
+    {
+      "path": "release/extlibs/stb_truetype/docs/site.html",
+      "sha256": "53cfe9cbc8bc9e5dddb95309a1e94cbd7380d2e3d4b8a3ae3c069376782719ef",
+      "bytes": 3834
+    },
+    {
+      "path": "release/extlibs/stb_truetype/examples/mask_c.c",
+      "sha256": "98ae579a248d5b7382f0516581cb1480a8b5d22278c872658ef208de5db549ee",
+      "bytes": 1663
+    },
+    {
+      "path": "release/extlibs/stb_truetype/examples/mask.expected.txt",
+      "sha256": "6f837f75cb1eecb9331eded35e58e33c612cd047fb3ba6a7927085109a66f83e",
+      "bytes": 104
+    },
+    {
+      "path": "release/extlibs/stb_truetype/examples/mask.xl",
+      "sha256": "c54936580a21bbb46e0fb4ed8b2cc914933587da14d89fba4187643b8e2e0916",
+      "bytes": 1165
+    },
+    {
+      "path": "release/extlibs/stb_truetype/examples/README.md",
+      "sha256": "37e695bb2c46f366bd80b5006018b55cf0afcd04a03cf0fea20d12a95b0f2be0",
+      "bytes": 2820
+    },
+    {
+      "path": "release/extlibs/stb_truetype/include/stb_truetype_native.h",
+      "sha256": "f5dd7efdb6d72242360f2526dac4381013b103e688bf36e7bfd7c77228cd3630",
+      "bytes": 1398
+    },
+    {
+      "path": "release/extlibs/stb_truetype/LICENSE.stb.txt",
+      "sha256": "11a52726410facd5bcb97f4ee5910ed2d39e4be110d75abbcd60128d3832b1ae",
+      "bytes": 229
+    },
+    {
+      "path": "release/extlibs/stb_truetype/README.md",
+      "sha256": "54259877fcffe2f0886e8444946a5ed157deafbde2622401d4ed54986b032be6",
+      "bytes": 12511
+    },
+    {
+      "path": "release/extlibs/stb_truetype/src/stb_truetype.xl",
+      "sha256": "9ee58757ce00a2c57d1e0350b1b42cde8c5413d6f1c990ae7a5b7fad42c76702",
+      "bytes": 4232
+    },
+    {
+      "path": "release/extlibs/stb_truetype/stb_truetype_native.c",
+      "sha256": "7ce85fd5da3ad10f8c764947cbb47936550d7acf6e29f76678ca460229d84c0f",
+      "bytes": 11694
+    },
+    {
+      "path": "release/extlibs/stb_truetype/test/allocations.xl",
+      "sha256": "f020304bf7739777adc5346c84b2b8dd6643ee8b3d5377bced4a35fb358628ba",
+      "bytes": 2327
+    },
+    {
+      "path": "release/extlibs/stb_truetype/test/api_surface.xl",
+      "sha256": "30f04177586bfdb2701fa7af716ddc67a2ca54d5ad67d4b012716b3ef7bbc44c",
+      "bytes": 1610
+    },
+    {
+      "path": "release/extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf",
+      "sha256": "aee828a65795dcd4fdc07d38e129ee5225c833cf975415c2417e117f01cac1ed",
+      "bytes": 1724
+    },
+    {
+      "path": "release/extlibs/stb_truetype/test/assets/LICENSE.dejavu.txt",
+      "sha256": "6e7a43adb0b5e7dffa2c27383fdb1e0f9bf04ebcf2d824eec3350a747505a633",
+      "bytes": 2598
+    },
+    {
+      "path": "release/extlibs/stb_truetype/test/boundaries.xl",
+      "sha256": "ae8da853a2a00bed94e18f445e584925b2ca662e0e5585be84f5581c0edbd85e",
+      "bytes": 2173
+    },
+    {
+      "path": "release/extlibs/stb_truetype/test/check.ps1",
+      "sha256": "d69a77f8e3c4cd2fd13adb633c63930c57156dcb3b3c073e9a8c806f2b9a251c",
+      "bytes": 8491
+    },
+    {
+      "path": "release/extlibs/stb_truetype/test/check.sh",
+      "sha256": "10afb31e878c39d0a1cbc5880317e22badbc0dce981e1c4523b56fbc060836a4",
+      "bytes": 6332
+    },
+    {
+      "path": "release/extlibs/stb_truetype/test/discovery_contract_c.c",
+      "sha256": "17e1ff2d7f28ed70f7ed7c4e0c4d507d2a097c690ca819d66c9d9893af1adccf",
+      "bytes": 9844
+    },
+    {
+      "path": "release/extlibs/stb_truetype/test/discovery_cost_c.c",
+      "sha256": "51a02646f371a3d955adac2b1f8d989c78950452deb3d438da0235da5a1568d8",
+      "bytes": 1275
+    },
+    {
+      "path": "release/extlibs/stb_truetype/test/private_bitmap_constructor_negative.xl",
+      "sha256": "f1ef6a94e2ba2a452d4136a7c960394a988ae44cb4408afb642d284a943d6cde",
+      "bytes": 139
+    },
+    {
+      "path": "release/extlibs/stb_truetype/test/private_bitmap_negative.xl",
+      "sha256": "dbb0b6cad1a5b20ac86f5be75c660a2cba789f4775a857fcd5049246b2410153",
+      "bytes": 200
+    },
+    {
+      "path": "release/extlibs/stb_truetype/test/private_font_constructor_negative.xl",
+      "sha256": "a6300a0f1da8f60e288bce5c8d249ccc16266dca9a4500e466912b2651ed55c3",
+      "bytes": 136
+    },
+    {
+      "path": "release/extlibs/stb_truetype/test/test_stb_truetype.c",
+      "sha256": "55a2a291c47c4a3a4bfd9d1d3ccace2b93381bac507f24554c2c6f3c68b39d86",
+      "bytes": 6586
+    },
+    {
+      "path": "release/extlibs/stb_truetype/test/xrt_runtime.c",
+      "sha256": "66cde46d8be73233ab42672b4e699df9670efdae9cc7cac1c05355a9e89fec90",
+      "bytes": 265
+    },
+    {
+      "path": "release/extlibs/stb_truetype/third_party/stb_truetype.h",
+      "sha256": "acd3e8aa0333f3f10c347f587f0fe42310a392e58b250d461078dded5d9b9295",
+      "bytes": 204285
+    },
+    {
+      "path": "release/extlibs/stb_truetype/xlang.package.json",
+      "sha256": "31b9355cc65c05db3e0c505d3d0742faf4849d3449ac5ea2f42192ecd0b15687",
+      "bytes": 1260
+    }
+  ],
+  "website": {
+    "generatedCopyMatches": true,
+    "externalDeployment": false,
+    "sourceSha256": "53cfe9cbc8bc9e5dddb95309a1e94cbd7380d2e3d4b8a3ae3c069376782719ef"
+  },
+  "catalog": {
+    "reason": "Existing required xl.dll compiler binding remains red; never install candidate or fake identity",
+    "installed": false,
+    "generation": {
+      "status": "passed",
+      "catalogSha256": "e6842c42016554c0bbf1062459d078eb58416fd9da423893779d39db1727c772",
+      "sourceIndexSha256": "7fa2d389fd4f9a8ac223bb0c290f7702baf07e20a241403990110b5360dbc7a1",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42",
+      "inputsUnchanged": true
+    },
+    "candidate": "build/test/stbtt-discovery-20261102/catalog-final",
+    "checks": [
+      {
+        "name": "freshness",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/refresh_extensions.py",
+          "--root",
+          "D:/GIT/x-lang",
+          "--data",
+          "build/test/stbtt-discovery-20261102/catalog-final",
+          "--check"
+        ],
+        "requiredExit": 0,
+        "actual": 0,
+        "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+        "stderr": ""
+      },
+      {
+        "name": "binding",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/check_catalog_coverage.py",
+          "--root",
+          "D:/GIT/x-lang",
+          "--catalog",
+          "build/test/stbtt-discovery-20261102/catalog-final/commands.json"
+        ],
+        "requiredExit": 0,
+        "actual": 1,
+        "stdout": "",
+        "stderr": "Catalog compiler changed: xl.dll\r\n"
+      },
+      {
+        "name": "delivery",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "tools/check_release_committed.py",
+          "--root",
+          "D:/GIT/x-lang"
+        ],
+        "requiredExit": 0,
+        "actual": 0,
+        "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+        "stderr": ""
+      }
+    ]
+  },
+  "baselineComparison": "Same final contract fixture, only native core include mechanically redirects to saved 22281f1aa source; original normalized comparison passes Windows audit",
+  "incompleteObservations": {
+    "windowsFileSetSize": {
+      "rootCause": "Unknown; old check lacked XRT diagnostic. Standalone diagnostic recheck passed, not proof of fix.",
+      "operation": "Extend temp file to32MiB+1",
+      "sourceLineBeforeDiagnostic": 60,
+      "exit": 2,
+      "diagnosticRecheck": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "stb_truetype C boundaries: PASS\r\n",
+        "stderr": "",
+        "elapsedMs": 67
+      },
+      "mitigation": "Final Windows gate gives every child exclusive work/temp via TEMP and TMP; actual C check now records XRT domain/code/message",
+      "resourceSnapshot": "C drive about203MiB free, D about3.6GiB at inspection; does not prove disk-full cause",
+      "stage": "test_stb_truetype-GCC",
+      "riskClosed": false,
+      "report": "build/test/stbtt_guard_628bb9af4f0d48a1be0491b7c15652ee.json"
+    }
+  },
+  "invalidAttempts": [
+    "First mask C compile lacked FILE_WHOLE declaration macro; fixed before full gates",
+    "First golden third mask row hand-transcribed incorrectly; corrected to actual pinned glyph mask, not a production bug",
+    "First Windows gate overlapped this task Linux script edit and recorded changed input; not final frozen evidence",
+    "Initial Linux1cNz stage stops at same incorrect golden; not accepted full gate",
+    "Full Windows530436 and LinuxkOesL6xT are final default-gate source snapshots. Separate cost fixture added afterward has explicit current-source Windows and Linux supplemental runs.",
+    "After docs update, a redundant old audit invocation correctly refused stale site input; original frozen audit remains, later independent cost supplement has its own source/object hashes"
+  ],
+  "residualRisks": [
+    "M3 private raw-handle constructors accepted outside package; negative sources checked only, never execute forged handles",
+    "Unclassified transient Windows32MiB temp resize failure is not closed by a later pass",
+    "Trusted application fonts only; no adversarial font parser audit, full font-family/complex-script matrix,32bit/ARM/macOS or long soak certification",
+    "Controlled discovery metadata failures do not certify actual permission/device failure matrix",
+    "No overall throughput or full script-bridge zero-overhead certification"
+  ],
+  "maturity": {
+    "R": 10,
+    "total": 100,
+    "M": 56,
+    "G": 30,
+    "wholeGoalComplete": false,
+    "X": 4
+  }
+}

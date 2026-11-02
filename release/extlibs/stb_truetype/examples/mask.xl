@@ -1,0 +1,35 @@
+import stb_truetype
+
+func mask(string fontPath) as (int, int, Buffer)
+    Buffer encoded = Buffer(file.readBytes(fontPath))
+    auto font = stb_truetype.loadBytes(encoded)
+    // 字体拥有自己的输入副本，随后清空原始文件缓冲不影响渲染。
+    encoded.clear()
+    auto glyph = font.bitmap(65, 12.0)
+    return int(glyph.width()), int(glyph.height()), glyph.pixels()
+end
+
+func main(...) as int
+    string fontPath = "release/extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf"
+    if arg.length > 1 then fontPath = string(arg[1]) end
+    auto width, height, pixels = mask(fontPath)
+    // Font 和 Bitmap 均已退役；Buffer 保存独立像素快照。
+    assert pixels.len() == width * height
+    println("glyph A mask")
+    for y in range(height)
+        string row = ""
+        for x in range(width)
+            int alpha = pixels.byteAt(y * width + x)
+            if alpha >= 128 then
+                row += "#"
+            elseif alpha > 0 then
+                row += "+"
+            else
+                row += "."
+            end
+        end
+        println(row)
+    end
+    println("independent snapshot: true")
+    return 0
+end

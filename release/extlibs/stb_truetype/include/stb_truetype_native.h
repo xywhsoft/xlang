@@ -10,7 +10,8 @@ extern "C" {
 int xstbtt_available(void);
 const char* xstbtt_version(void);
 int xstbtt_error_is_memory(void);
-/* 返回由调用方 xrtFree 的 UTF-8 路径；空串表示未找到示例字体。 */
+/* 返回由调用方 xrtFree 的 UTF-8 路径；空串表示未找到示例字体。
+ * NULL 是查询/分配失败并保留XRT首因，不与“未找到”混同。 */
 void* xstbtt_default_font_path(void);
 
 void* xstbtt_load(const char* Path, int Index);

@@ -8,7 +8,10 @@
 
 #define CHECK(expr) do { if (!(expr)) { \
     fprintf(stderr, "stb_truetype C test failed at line %d: %s\n", \
-        __LINE__, #expr); return 2; \
+        __LINE__, #expr); \
+    if (xrtGetError()) fprintf(stderr, "XRT: %s code=%d message=%s\n", \
+        xrtErrorDomain(xrtGetError()), xrtErrorCode(xrtGetError()), \
+        xrtErrorMessage(xrtGetError())); return 2; \
 } } while (0)
 
 int main(void)

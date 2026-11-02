@@ -1,0 +1,34 @@
+import stb_truetype
+
+func main(...) as int
+    string path = "release/extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf"
+    assert stb_truetype.available()
+    assert stb_truetype.version() == "stb_truetype 1.26"
+    string defaultPath = stb_truetype.defaultFontPath()
+    assert defaultPath == "" or file.exists(defaultPath)
+    Buffer encoded = Buffer(file.readBytes(path))
+    auto fromFile = stb_truetype.load(path)
+    auto fromBytes = stb_truetype.loadBytes(encoded)
+    encoded.clear()
+    c_int a = c_int(65)
+    c_int v = c_int(86)
+    assert fromFile.scale(c_double(24.0)) == fromBytes.scale(c_double(24.0))
+    assert fromBytes.scale(c_double(24.0)) > 0.0
+    assert fromFile.ascent() == fromBytes.ascent()
+    assert fromFile.descent() == fromBytes.descent()
+    assert fromFile.lineGap() == fromBytes.lineGap()
+    assert fromFile.glyphIndex(a) == fromBytes.glyphIndex(a)
+    assert fromFile.advance(a) == fromBytes.advance(a)
+    assert fromFile.leftBearing(a) == fromBytes.leftBearing(a)
+    assert fromFile.kernAdvance(a, v) == fromBytes.kernAdvance(a, v)
+    auto glyph = fromBytes.bitmap(65, 24.0)
+    auto other = fromFile.bitmap(65, 24.0)
+    assert glyph.width() == other.width() and glyph.height() == other.height()
+    assert glyph.xoff() == other.xoff() and glyph.yoff() == other.yoff()
+    assert glyph.data() != null and glyph.byteSize() == other.byteSize()
+    assert glyph.pixels().hex() == other.pixels().hex()
+    auto blank = fromBytes.bitmap(32, 24.0)
+    assert blank.byteSize() == 0 and blank.pixels().len() == 0
+    println("stbtt public surface: PASS")
+    return 0
+end

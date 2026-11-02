@@ -43,7 +43,8 @@ typedef struct xstbtt_bitmap {
 
 static void xstbtt_error(xerrkind Kind, const char* Message)
 {
-    xrtSetErrorInfo(Kind, XSTBTT_DOMAIN, 0, Message);
+    if (xrtGetError() == NULL)
+        xrtSetErrorInfo(Kind, XSTBTT_DOMAIN, 0, Message);
 }
 
 static uint32_t xstbtt_u32(const uint8_t* Data)
@@ -115,6 +116,18 @@ int xstbtt_error_is_memory(void)
     return Error != NULL && xrtErrorKind(Error) == XERR_MEMORY;
 }
 
+/* 缺失和非普通文件可继续查找；实际查询失败必须保留并返回。 */
+static int xstbtt_font_file(const char* Path)
+{
+    xfileinfo Info;
+    if (xrtPathStat(Path, true, &Info)) return Info.Type == XFILE_TYPE_FILE;
+    if (xrtErrorKind(xrtGetError()) == XERR_NOT_FOUND) {
+        xrtClearError();
+        return 0;
+    }
+    return -1;
+}
+
 void* xstbtt_default_font_path(void)
 {
     static const char* Candidates[] = {
@@ -122,26 +135,35 @@ void* xstbtt_default_font_path(void)
         "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
         "/System/Library/Fonts/Supplemental/Arial.ttf"
     };
-    str Root = xrtEnvGet("WINDIR");
+    str Root = NULL, Result = NULL;
     size_t i;
-    if (Root == NULL) Root = xrtEnvGet("SystemRoot");
+
+    xrtClearError();
+    if (!xrtEnvLookup("WINDIR", &Root) ||
+        (Root == NULL && !xrtEnvLookup("SystemRoot", &Root))) return NULL;
     if (Root != NULL) {
         static const char* Names[] = {
             "Fonts/arial.ttf", "Fonts/segoeui.ttf", "Fonts/tahoma.ttf"
         };
         for (i = 0u; i < sizeof(Names) / sizeof(Names[0]); ++i) {
             str Path = xrtPathJoin(Root, Names[i]);
-            if (Path != NULL && xrtFileExists(Path)) {
-                xrtFree(Root);
-                return Path;
-            }
+            int Found;
+            if (Path == NULL) goto done;
+            Found = xstbtt_font_file(Path);
+            if (Found > 0) { Result = Path; goto done; }
             xrtFree(Path);
+            if (Found < 0) goto done;
         }
-        xrtFree(Root);
     }
-    for (i = 0u; i < sizeof(Candidates) / sizeof(Candidates[0]); ++i)
-        if (xrtFileExists(Candidates[i])) return xrtStrDup(Candidates[i]);
-    return xrtStrDup("");
+    for (i = 0u; i < sizeof(Candidates) / sizeof(Candidates[0]); ++i) {
+        int Found = xstbtt_font_file(Candidates[i]);
+        if (Found > 0) { Result = xrtStrDup(Candidates[i]); goto done; }
+        if (Found < 0) goto done;
+    }
+    Result = xrtStrDup("");
+done:
+    xrtFree(Root);
+    return Result;
 }
 
 void* xstbtt_load_memory(void* Data, size_t Size, int Index)
