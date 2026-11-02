@@ -14,7 +14,9 @@ compiler and typed XLIR. Runtime tags, XRT layouts and read access are unchanged
 * Named global and static async factories use logical Future payload matching
   and the same private-worker publication as bound instance methods. Exact
   signatures rank ahead of ownership conversion; overload probing does not
-  publish a converted worker. Inherited static methods retain declaration scope,
+  publish a converted worker. Explicit generic global type applications retain
+  their closed arguments or forward lifted free parameters through normal
+  monomorphization. Inherited static methods retain declaration scope,
   access flags, effects and defaults.
 
 Existing Future values remain invariant. Callable inputs and containers remain

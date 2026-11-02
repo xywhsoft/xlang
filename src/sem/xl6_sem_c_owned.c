@@ -790,6 +790,55 @@ static XL6_AstNode* xl6SemCOwnedAsyncResultMethod(XL6_SemContext* ctx,XL6_AstNod
     }
     return result;
 }
+/* Explicit global type applications keep only the lifted free arguments.
+ * Closed producers become ordinary private names; an open caller still uses
+ * the existing explicit generic instantiation and XLIR monomorphization path. */
+static XL6_AstNode* xl6SemCOwnedBindAsyncGeneric(XL6_SemContext* ctx,XL6_AstNode* expr,
+    XL6_AstNode* function,const XL6_AstNode* target)
+{
+    XL6_AstNode* selected=xl6SemCOwnedAsyncResultMethod(ctx,NULL,function,NULL,expr->children[1],target);
+    if(!selected)return NULL;
+    XL6_AstNode* name=xl6AstNewText(XL6_AST_NAME,xl6SemFuncName(selected),strlen(xl6SemFuncName(selected)),NULL);
+    XL6_AstNode* arguments=xl6AstNew(XL6_AST_LIST,NULL);
+    XL6_AstNode* replacement=NULL,*previous=NULL;
+    const XL6_AstNode* params=xl6SemFuncTypeParams(selected);
+    if(!name || !arguments)goto failure;
+    name->semanticTargetSymbolId=selected->semanticSymbolId;
+    for(size_t p=0;params && p<params->childCount;++p) {
+        XL6_AstNode* original=NULL;
+        for(XL6_TypeParamScope* scope=ctx->typeParams;scope && !original;scope=scope->parent)
+            for(size_t t=0;scope->params && t<scope->params->childCount;++t) {
+                XL6_AstNode* candidate=scope->params->children[t];char privateName[80];
+                snprintf(privateName,sizeof(privateName),"__xl_c_owned_type_%u",candidate->semanticTypeId);
+                if(xl6SemFindTypeParamNode(ctx,candidate->text)==candidate &&
+                   xl6TextEquals(privateName,params->children[p]->text)){original=candidate;break;}
+            }
+        if(!original)goto failure;
+        XL6_AstNode* type=xl6AstNewText(XL6_AST_TYPE,original->text,strlen(original->text),NULL);
+        if(!type)goto failure;
+        xl6SemBindInferredTypeIdentity(ctx,type);
+        size_t count=arguments->childCount;xl6AstAddChild(arguments,type);
+        if(arguments->childCount==count){xl6AstFree(type);goto failure;}
+    }
+    if(arguments->childCount) {
+        replacement=xl6AstNew(XL6_AST_GENERIC_INSTANT,NULL);
+        if(!replacement)goto failure;
+        xl6AstAddChild(replacement,name);
+        if(replacement->childCount!=1)goto failure;
+        name=NULL;xl6AstAddChild(replacement,arguments);
+        if(replacement->childCount!=2)goto failure;
+        arguments=NULL;
+    }else {replacement=name;name=NULL;}
+    previous=xrtMalloc(sizeof(*previous));
+    if(!previous)goto failure;
+    xl6AstCopySource(replacement,expr);replacement->line=expr->line;replacement->column=expr->column;
+    replacement->range=expr->range;replacement->tokenRange=expr->tokenRange;
+    replacement->semanticTargetSymbolId=selected->semanticSymbolId;
+    *previous=*expr;*expr=*replacement;xrtFree(replacement);xl6AstFree(previous);xl6AstFree(arguments);
+    return selected;
+ failure:
+    xl6AstFree(name);xl6AstFree(arguments);xl6AstFree(replacement);xrtFree(previous);return NULL;
+}
 static XL6_AstNode* xl6SemCOwnedAppendNode(XL6_AstNode* parent,XL6_AstNode* child)
 {
     if(!parent || !child){xl6AstFree(child);return NULL;}

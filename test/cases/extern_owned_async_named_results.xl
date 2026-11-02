@@ -25,6 +25,15 @@ end
 async func maybe(bool present) as (func() as cstring)?
     return present ? text : null
 end
+async func generic<T>(T witness) as func() as cstring
+    return text
+end
+async func genericBinary<T>(T witness) as func() as cbytes
+    return data
+end
+func bind<U>(U witness) as func(U) as future<func() as string>
+    return generic::<U>
+end
 class Factory
     static async func Text(int witness=tag()) as func() as cstring
         assert witness==7
@@ -60,6 +69,14 @@ async func check()
     auto present=await optional(true)
     if present!=null then assert present()=="hello" end
     assert choose(factory) and choose(Factory.Text)
+    func(c_int) as future<func() as string> explicit=generic::<c_int>
+    func(c_long) as future<func() as bytes> explicitBinary=genericBinary::<c_long>
+    auto open=bind(c_int(1))
+    auto explicitResult=await explicit(c_int(1))
+    auto explicitData=await explicitBinary(c_long(1))
+    auto openResult=await open(c_int(1))
+    assert explicitResult()=="hello" and openResult()=="hello"
+    assert explicitData()==b"\0\xff\x11*"
     // The original declaration retains its exact owner ABI after adaptation.
     func() as future<func() as cstring> exact=factory
     auto owner=await exact()
