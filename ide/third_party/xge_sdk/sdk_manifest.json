@@ -120,8 +120,10 @@
         }
       ]
     },
-    "sourceBuildReportSha256": "0fbd0a39bd646f45b8ca032b3e341397c1c3821632ad4e88c2a46a0fd549b248",
-    "sourceBuildManifestSha256": "d46e4a963c1b7349d46504f4c5d768658d39254b70f9933b335d5b9cd6b922b3"
+    "sourceBuildReportSha256": "fec79c648a1a5f55dc9d5f5ad86b67311903cd19be3c77c71bcc272bb92b1f8c",
+    "sourceBuildManifestSha256": "908d5a067047b45249c0cf8368203279d0eb6d118bf8dc7cc0996bb1527d395d",
+    "wglContextOverlay": "provenance/wgl-context-v1/overlay.json",
+    "currentCompiler": "gcc.EXE (GCC) 16.2.0\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
   },
   "files": [
     {
@@ -242,19 +244,63 @@
     },
     {
       "path": "provenance/source-build-manifest.json",
-      "sha256": "d46e4a963c1b7349d46504f4c5d768658d39254b70f9933b335d5b9cd6b922b3"
+      "sha256": "908d5a067047b45249c0cf8368203279d0eb6d118bf8dc7cc0996bb1527d395d"
     },
     {
       "path": "provenance/source-build-report.json",
-      "sha256": "0fbd0a39bd646f45b8ca032b3e341397c1c3821632ad4e88c2a46a0fd549b248"
+      "sha256": "fec79c648a1a5f55dc9d5f5ad86b67311903cd19be3c77c71bcc272bb92b1f8c"
     },
     {
-      "path": "xge-source-files.json",
+      "path": "provenance/wgl-context-v1/overlay.json",
+      "sha256": "74eff350628fd5be9c302198d46127d89d4be842257b64179170cb02e7fbe4a2"
+    },
+    {
+      "path": "provenance/wgl-context-v1/parent-sdk_manifest.json",
+      "sha256": "2d540fd86eabc6ba5f2012fbecfa0f10d60d2e482eb6c2c72d0cf1cc39a1ae4c"
+    },
+    {
+      "path": "provenance/wgl-context-v1/parent-source-build-manifest.json",
       "sha256": "d46e4a963c1b7349d46504f4c5d768658d39254b70f9933b335d5b9cd6b922b3"
     },
     {
+      "path": "provenance/wgl-context-v1/parent-source-build-report.json",
+      "sha256": "0fbd0a39bd646f45b8ca032b3e341397c1c3821632ad4e88c2a46a0fd549b248"
+    },
+    {
+      "path": "provenance/wgl-context-v1/parent-xge-source-files.json",
+      "sha256": "d46e4a963c1b7349d46504f4c5d768658d39254b70f9933b335d5b9cd6b922b3"
+    },
+    {
+      "path": "provenance/wgl-context-v1/sokol_app.h.patch",
+      "sha256": "098d66ee4a6d90f714e686122f34af611ae16a7ba28ff469a166d95a4354d9a5"
+    },
+    {
+      "path": "provenance/wgl-context-v1/source-freeze.json",
+      "sha256": "b15be9bc5f0ed55f75105b9d64bd8a477353da7163fcfdbe577f6e8ae3658efd"
+    },
+    {
+      "path": "provenance/wgl-context-v1/upstream-build-report.json",
+      "sha256": "9fd16eb1fd3340ff678bcc8af1b97da7d5502996d3fbddf8a904e7f458fe9d7e"
+    },
+    {
+      "path": "provenance/wgl-context-v1/wgl_context_overlay.py",
+      "sha256": "eebaa6a0cd79e9130188e0451193413120c2ca8ec7cb34cc19cfdc5cb4580469"
+    },
+    {
+      "path": "provenance/wgl-context-v1/xge_core.c.patch",
+      "sha256": "51813d71334522269d11301ab5b1fc0c4afcd25fcb8eeafabb78a44b9918c87c"
+    },
+    {
+      "path": "provenance/wgl-context-v1/xge_impl.c.patch",
+      "sha256": "2b8d18bbc012c9601c0058580f5accbd5d91ec55c23e12645c4319be02c2afac"
+    },
+    {
+      "path": "xge-source-files.json",
+      "sha256": "908d5a067047b45249c0cf8368203279d0eb6d118bf8dc7cc0996bb1527d395d"
+    },
+    {
       "path": "xge.dll",
-      "sha256": "faf58673f831ba8a58d6e3c2166094f76fbb71548469724fa5a11eca011782a0"
+      "sha256": "2ff1ed234bd2e7e7b756700da1de550d39935be0cbb9e5af886138090ae65ec6"
     },
     {
       "path": "xge.h",
@@ -262,11 +308,11 @@
     },
     {
       "path": "xge.lib",
-      "sha256": "744096c7ff00d925dacfcc96679a90e897bf70f10efe90c05b388236edfcafc3"
+      "sha256": "855690a42f50fbb282371e2ac053da5ac1ffebd58ace50e19790450fc6b2672a"
     },
     {
       "path": "xge_build_config.h",
-      "sha256": "6713605108036db38860a5b509a553dbaa84d534b35510f8ea7556bc3056e365"
+      "sha256": "2e9714db7f7d61dadb56eaf2c5535409acda3eca5c1312e1e3834cb9e4c19fce"
     },
     {
       "path": "xge_config.h",

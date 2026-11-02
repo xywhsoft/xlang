@@ -1,0 +1,160 @@
+{
+  "schema": 1,
+  "scope": "Exact changed SDK/IDE source and fixed controllers; original build/fault/GUI reports retain paths and bytes. Not a complete SDK/engine product bundle.",
+  "entries": [
+    {
+      "recordedPath": "F:\\xge-help-20261031\\source\\src\\xge\\core\\xge_impl.c",
+      "archivedPath": "before/src/xge/core/xge_impl.c",
+      "role": "exact pinned original XGE/Sokol source",
+      "bytes": 70206,
+      "sha256": "a52ca344a5878c04a85849f03f6f68210a83c9a82bc1f41e36b0450779ef41b8"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\wgl-compat-20261102\\source\\src\\xge\\core\\xge_impl.c",
+      "archivedPath": "after/src/xge/core/xge_impl.c",
+      "role": "exact compiled patched XGE/Sokol source",
+      "bytes": 70768,
+      "sha256": "c69ab08084e8fbf188735400ec1f388387a09a0f75f67a5ab4bc1c5f6bd33e5d"
+    },
+    {
+      "recordedPath": "F:\\xge-help-20261031\\source\\src\\xge\\core\\xge_core.c",
+      "archivedPath": "before/src/xge/core/xge_core.c",
+      "role": "exact pinned original XGE/Sokol source",
+      "bytes": 40334,
+      "sha256": "67e6d695381b03ce5e5acb1d02c68d8d2edfb5a09db62a6b179a5e9fce632def"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\wgl-compat-20261102\\source\\src\\xge\\core\\xge_core.c",
+      "archivedPath": "after/src/xge/core/xge_core.c",
+      "role": "exact compiled patched XGE/Sokol source",
+      "bytes": 40390,
+      "sha256": "0f6bb3e59688533ef2260a8bfac77fa48ba0e488fe94f15e9effb622d45a2b37"
+    },
+    {
+      "recordedPath": "F:\\xge-help-20261031\\source\\extlibs\\sokol\\sokol_app.h",
+      "archivedPath": "before/extlibs/sokol/sokol_app.h",
+      "role": "exact pinned original XGE/Sokol source",
+      "bytes": 580426,
+      "sha256": "43d69d2dd52a8a6f52d57ccafb00967742ac499b7fcf5bdcdd6d978c869aa1ad"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\wgl-compat-20261102\\source\\extlibs\\sokol\\sokol_app.h",
+      "archivedPath": "after/extlibs/sokol/sokol_app.h",
+      "role": "exact compiled patched XGE/Sokol source",
+      "bytes": 582384,
+      "sha256": "0dd612d8f7ef1c6c606dc75e6dcfeb391896122bfbcef9a240fdd5af6ea833f7"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\main.c",
+      "archivedPath": "ide-inputs/ide/src/main.c",
+      "role": "IDE change or test-only WGL boundary fixture",
+      "bytes": 11589,
+      "sha256": "30372407bae2a8c63357bb50abc8d04215fe2efa2fcdced0f7379db596e15888"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\wgl_context_overlay.py",
+      "archivedPath": "ide-inputs/ide/tools/wgl_context_overlay.py",
+      "role": "IDE change or test-only WGL boundary fixture",
+      "bytes": 7575,
+      "sha256": "eebaa6a0cd79e9130188e0451193413120c2ca8ec7cb34cc19cfdc5cb4580469"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\wgl_fault_hooks.c",
+      "archivedPath": "ide-inputs/ide/tests/wgl_fault_hooks.c",
+      "role": "IDE change or test-only WGL boundary fixture",
+      "bytes": 2618,
+      "sha256": "78876d2961c24e03b16b2aa47263c7c4a6172d99e8dcd4dcb50447da805f985e"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\wgl_fault_hooks.h",
+      "archivedPath": "ide-inputs/ide/tests/wgl_fault_hooks.h",
+      "role": "IDE change or test-only WGL boundary fixture",
+      "bytes": 613,
+      "sha256": "99df3255cb3f315f405e367becc5e73c6ae4fcc009681c2c7b69ec8fc65da186"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\wgl_startup_test.c",
+      "archivedPath": "ide-inputs/ide/tests/wgl_startup_test.c",
+      "role": "IDE change or test-only WGL boundary fixture",
+      "bytes": 1406,
+      "sha256": "884d01240278b6d6ff66f5adf245d67ea0117c7361d0041fcb4574d71bae5a88"
+    },
+    {
+      "recordedPath": "E:\\codex-builds-xlang-wgl-compat-20261102\\assemble-evidence.py",
+      "archivedPath": "controllers/assemble-evidence.py",
+      "role": "actual fixed build or validation controller",
+      "bytes": 9073,
+      "sha256": "d34a53dc153bbcdaf75b0944b8d0cc264bc39ef0b36833e2fb48a81c96baa2a1"
+    },
+    {
+      "recordedPath": "E:\\codex-builds-xlang-wgl-compat-20261102\\build-gui.py",
+      "archivedPath": "controllers/build-gui.py",
+      "role": "actual fixed build or validation controller",
+      "bytes": 3197,
+      "sha256": "19111dda534719f4e3783f90823892529cd89215366ce75864892e9ddac41041"
+    },
+    {
+      "recordedPath": "E:\\codex-builds-xlang-wgl-compat-20261102\\check-wgl.py",
+      "archivedPath": "controllers/check-wgl.py",
+      "role": "actual fixed build or validation controller",
+      "bytes": 3126,
+      "sha256": "cebb7a886af31766324bcee9662564383c2eff2a2c4a43fd563b74af4a491720"
+    },
+    {
+      "recordedPath": "E:\\codex-builds-xlang-wgl-compat-20261102\\publish-pair.py",
+      "archivedPath": "controllers/publish-pair.py",
+      "role": "actual fixed build or validation controller",
+      "bytes": 2897,
+      "sha256": "bdd96d78eff1befdce110f06cfcbf7d50fda89803e767b0f10b7def742373176"
+    },
+    {
+      "recordedPath": "E:\\codex-builds-xlang-wgl-compat-20261102\\validate-gui-v2.py",
+      "archivedPath": "controllers/validate-gui-v2.py",
+      "role": "actual fixed build or validation controller",
+      "bytes": 4072,
+      "sha256": "ec5e84539fedfb2cc605c1d72ea65b9c7bd955b964ff6dc48d3dce04aab89716"
+    },
+    {
+      "recordedPath": "E:\\codex-builds-xlang-wgl-compat-20261102\\validate-gui.py",
+      "archivedPath": "controllers/validate-gui.py",
+      "role": "actual fixed build or validation controller",
+      "bytes": 4168,
+      "sha256": "ab621a08efb971592df695d714bfeedde1561a43157ff2354dfbb9a5c2bd1e13"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\wgl-compat-20261102\\prepare-candidate.py",
+      "archivedPath": "controllers/prepare-candidate.py",
+      "role": "actual fixed build or validation controller",
+      "bytes": 3784,
+      "sha256": "16f023e12987e638daca9423da1b141c3e967b52a9a76db77555a93b1c47fe8d"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\wgl-compat-20261102\\source-freeze.json",
+      "archivedPath": "captures/source-freeze.json",
+      "role": "original source capture",
+      "bytes": 135638,
+      "sha256": "b15be9bc5f0ed55f75105b9d64bd8a477353da7163fcfdbe577f6e8ae3658efd"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\wgl-compat-20261102\\overlay.json",
+      "archivedPath": "captures/overlay.json",
+      "role": "original source capture",
+      "bytes": 761,
+      "sha256": "74eff350628fd5be9c302198d46127d89d4be842257b64179170cb02e7fbe4a2"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\wgl-compat-20261102\\parent-source-descriptor.json",
+      "archivedPath": "captures/parent-source-descriptor.json",
+      "role": "original source capture",
+      "bytes": 137795,
+      "sha256": "d46e4a963c1b7349d46504f4c5d768658d39254b70f9933b335d5b9cd6b922b3"
+    },
+    {
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\wgl-compat-20261102\\parent-sdk-manifest.json",
+      "archivedPath": "captures/parent-sdk-manifest.json",
+      "role": "original source capture",
+      "bytes": 11638,
+      "sha256": "2d540fd86eabc6ba5f2012fbecfa0f10d60d2e482eb6c2c72d0cf1cc39a1ae4c"
+    }
+  ]
+}

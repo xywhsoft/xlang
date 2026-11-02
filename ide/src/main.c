@@ -85,6 +85,12 @@ static char** utf8Arguments(int* count)
     }
     LocalFree(wide); return args;
 }
+static void graphicsFailure(const xge_error_info_t* error,void* user)
+{
+    xide_app* app=user;
+    if(!app || !error || error->bRecoverable || !error->sSubsystem || strcmp(error->sSubsystem,"graphics") || !error->sOperation || strcmp(error->sOperation,"sapp/wgl"))return;
+    xideFailureSet(&app->failure,app->frames ? XIDE_FAILURE_RENDER : XIDE_FAILURE_WINDOW,"graphics",error->iCode,error->sMessage,error->sOperation);
+}
 int main(void)
 {
     xide_app app = {0};int argc=0,automated=0,exitCode=0;char** argv=utf8Arguments(&argc);
@@ -109,14 +115,14 @@ int main(void)
         desc.iRunMode = XGE_RUN_GAME_LOOP; desc.iTargetFPS = app.maxFrames ? 60 : 30;
         int result = xgeInit(&desc);
         if(result!=XGE_OK)xideFailureSet(&app.failure,XIDE_FAILURE_WINDOW,"XGE",result,"Unable to initialize the window and graphics environment.","xgeInit");
-        if (result == XGE_OK) { xideWindowSetApplicationIcon(xgePlatformNativeHandle()); xgeRenderRequest(); result = xgeRun(xideAppFrame, &app); }
+        if (result == XGE_OK) { xgeSetErrorCallback(graphicsFailure,&app); xideWindowSetApplicationIcon(xgePlatformNativeHandle()); xgeRenderRequest(); result = xgeRun(xideAppFrame, &app); }
         if (app.frameError) result = app.frameError;
         if (result == XGE_OK && (app.frames == 0 || (app.maxFrames && app.frames < app.maxFrames))) result = XGE_ERROR;
         if (result != XGE_OK) {
             xideFailureSet(&app.failure,app.frames ? XIDE_FAILURE_RENDER : XIDE_FAILURE_STARTUP,"XGE",result,"The IDE stopped before rendering completed.","xgeRun");
             xideAppFailureRecovery(&app);fprintf(stderr, "xlang IDE startup/render failed: %d\n", result);
         }
-        xideAppDestroy(&app); xgeSetQuitRequestCallback(NULL,NULL); xgeUnit(); exitCode=result==XGE_OK && !app.taskExit ? 0 : 1;
+        xideAppDestroy(&app); xgeSetQuitRequestCallback(NULL,NULL); xgeSetErrorCallback(NULL,NULL); xgeUnit(); exitCode=result==XGE_OK && !app.taskExit ? 0 : 1;
     }
 report:
     if(app.failure.kind) {
