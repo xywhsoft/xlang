@@ -1,16 +1,13 @@
 #include "services/catalog_sources.h"
 #include "platform/path.h"
 #include "platform/file_io.h"
-#include <windows.h>
-#include <bcrypt.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <limits.h>
 int xideCatalogDigest(const void* bytes,size_t size,char digest[65])
 {
     unsigned char raw[32]; static const char hex[]="0123456789abcdef";
-    if(!digest || (!bytes && size) || size>ULONG_MAX || BCryptHash(BCRYPT_SHA256_ALG_HANDLE,NULL,0,(PUCHAR)bytes,(ULONG)size,raw,sizeof(raw))<0) return 0;
+    if(!digest || (!bytes && size) || !xrtSha256(bytes,size,raw)) return 0;
     for(int i=0;i<32;++i) { digest[2*i]=hex[raw[i]>>4]; digest[2*i+1]=hex[raw[i]&15]; } digest[64]=0; return 1;
 }
 static int fail(xide_model_error* e,const char* message)

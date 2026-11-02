@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "date": "2026-11-01",
+  "date": "2026-11-02",
   "primaryDirectory": "D:/GIT/x-lang",
   "deliveryDirectory": "release",
   "externalPublishPerformed": false,
@@ -46,7 +46,7 @@
   },
   "ide": {
     "languageServer": "Native xlang-ls 0.100 is unchanged. The default IDE disables C LSP and excludes clangd; see dev/release-materials/provenance/ide-c-lsp-disabled-20261031.json.",
-    "guiTranslationUnits": 100,
+    "guiTranslationUnits": 101,
     "compiler": "GCC 16.2.0",
     "warnings": [
       "-Wall",
@@ -55,8 +55,8 @@
     ],
     "optimization": "-O2",
     "configuration": "Release",
-    "buildRunnerSha256": "c411b6bb9fc0c167cf1e106a82cfe2222238a9258e7bda01d62eaf0b641c5183",
-    "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release",
+    "buildRunnerSha256": "6c65780af4bf185e7a4fa44fd67d3bc02661fd005b52e528c3703a477a8d6832",
+    "buildCommand": "python -X utf8 -B ide/build/Release/xrt-sha256-20261102/rebuild-gui.py",
     "defaultFont": {
       "path": "Consolas-with-Yahei_Nerd_Font.ttf",
       "sha256": "35a7074585fe4af3763db2aaa7635aabffb8995b6f52e61cd46c0a53e560b16b",
@@ -69,8 +69,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentSourceRevision": "75efc805bbe4999d0f6b40ff514a3e72a8627e8a",
-    "currentBuildProvenance": "docs/reports/release-materials-migration-20261031.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-xrt-sha256-20261102.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -78,7 +77,25 @@
       "embedded": true
     },
     "resourceCompiler": "E:\\software\\w64devkit\\bin\\windres.exe",
-    "consoleFrontend": false
+    "consoleFrontend": false,
+    "previousGuiBuild": {
+      "sourceRevision": "75efc805bbe4999d0f6b40ff514a3e72a8627e8a",
+      "provenance": "docs/reports/release-materials-migration-20261031.json",
+      "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
+    },
+    "sha256": {
+      "provider": "matched XGE XRT",
+      "BCryptHashImported": false,
+      "remainingBCryptImports": [
+        "BCryptGenRandom"
+      ]
+    },
+    "sourceIdentity": {
+      "baseRevision": "87a7f97310a3c5ad6a7e66c6dcc71889e176a2fd",
+      "modifiedFromBase": true,
+      "exactInputManifest": "dev/release-materials/provenance/ide-xrt-sha256-20261102.json"
+    },
+    "buildScope": "Targeted GUI SHA-256 repair;existing stale catalog binding preserved,not full release admission"
   },
   "catalog": {
     "status": "passed",
@@ -3135,10 +3152,10 @@
       "origin": "xrt-unification-20261101-targeted-accepted"
     },
     {
-      "sha256": "7161917bc86ab1675577e90397620014f18c4326bc53eec27d00c32f8b7c8c29",
-      "bytes": 1792975,
+      "sha256": "eee258122f4a320e0c46bb177b3c054f5b16b4ad622394d7ce435ed49311548c",
+      "bytes": 1788253,
       "path": "release/xlang_ide.exe",
-      "origin": "rebuilt-current-gui-with-embedded-icon"
+      "origin": "ide-xrt-sha256-20261102-targeted-validated"
     },
     {
       "sha256": "8bc80fe50cc4a5856630003eb47a59426a5225e4b2d8d076a6486f56dab4339d",
@@ -3275,6 +3292,13 @@
       "windowsStages": 38,
       "linuxStages": 38,
       "xgeTests": 7
+    },
+    "ideSha256Unification": {
+      "status": "passed-targeted-validation",
+      "provenance": "dev/release-materials/provenance/ide-xrt-sha256-20261102.json",
+      "tests": 10,
+      "standardCatalogBuildGuardPassed": false,
+      "fullReleaseAdmission": false
     }
   },
   "remaining": {
