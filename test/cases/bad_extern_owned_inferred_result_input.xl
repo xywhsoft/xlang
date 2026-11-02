@@ -1,0 +1,10 @@
+typedef Native=func(c_int) as cstring
+typedef Plain=func(c_long) as string
+class Identity
+    func Echo<T>(T value) as T
+        return value
+    end
+end
+Identity identity=Identity()
+// A returned callback's input ABI must remain c_int, even after T is known.
+func(Native) as Plain callback=identity.Echo

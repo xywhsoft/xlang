@@ -1,11 +1,11 @@
 #define main original_owner_main
 #include "xlir_owner_consumption_contract.c"
 #undef main
-int main(void)
+static void checkGenericResultModule(const char* path,size_t minimum,int scalar)
 {
     XL6_ParseResult parse;XL6_IrModule ir;
     xl6ParseResultInit(&parse);xl6IrModuleInit(&ir);
-    assert(xl6ParseFile("test/cases/extern_owned_generic_callable_results.xl",&parse));
+    assert(xl6ParseFile(path,&parse));
     assert(xl6StdlibExpandModule(parse.root,&parse.diags));
     assert(xl6SemCheckModule(parse.root,&parse.diags,"generic_callable_results"));
     assert(xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags));
@@ -22,8 +22,9 @@ int main(void)
         XL6_IrCallTarget* target=NULL;
         for(size_t t=0;t<ir.callTargetCount;++t)
             if(ir.callTargets[t].symbol==closure->adaptedTargetSymbol)target=&ir.callTargets[t];
-        if(!target || target->parameterCount<2 ||
-           xl6IrTypeGet(&ir.types,target->parameterTypes[1])->cAbi!=XL6_IR_C_ABI_C_INT)continue;
+        if(!target || target->parameterCount<2)continue;
+        const XL6_IrType* input=xl6IrTypeGet(&ir.types,target->parameterTypes[1]);
+        if(scalar ? input->cAbi!=XL6_IR_C_ABI_C_INT : input->kind!=XL6_IR_TYPE_FUNCTION)continue;
         int generic=0;
         for(size_t s=0;s<ir.genericSpecializationCount;++s)
             generic|=ir.genericSpecializations[s].symbol==target->symbol;
@@ -36,7 +37,14 @@ int main(void)
         closure->adaptedTargetSymbol=selected;
         assert(xl6IrVerifyModule(&ir,&parse.diags));++checked;
     }
-    assert(checked>=7 && rejected==checked*2);
+    assert(checked>=minimum && rejected==checked*2);
+    xl6IrModuleFree(&ir);xl6ParseResultFree(&parse);
+}
+int main(void)
+{
+    checkGenericResultModule("test/cases/extern_owned_generic_callable_results.xl",7,1);
+    rejected=0;
+    checkGenericResultModule("test/cases/extern_owned_inferred_result_variables.xl",4,0);
     puts("generic callable results: closed input ABI and selected generic target authenticated");
-    xl6IrModuleFree(&ir);xl6ParseResultFree(&parse);return 0;
+    return 0;
 }

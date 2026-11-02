@@ -1,0 +1,10 @@
+typedef Native=func() as cstring
+typedef Plain=func() as string
+class Identity
+    func Echo<T>(T value) as T
+        return value
+    end
+end
+Identity identity=Identity()
+// Knowing T cannot authorize conversion of an invariant container.
+func(array<Native>) as array<Plain> callback=identity.Echo
