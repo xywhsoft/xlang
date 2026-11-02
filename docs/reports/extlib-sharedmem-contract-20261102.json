@@ -1,0 +1,3746 @@
+{
+  "schema": 1,
+  "date": "2026-11-02",
+  "status": "package-contract-fixes-verified-M2-M3-open",
+  "goal": "active",
+  "root": "D:/GIT/x-lang",
+  "package": "sharedmem",
+  "sourceBase": "e070e96b1",
+  "mainlineModified": false,
+  "xrtModified": false,
+  "ideModified": false,
+  "publicApiAbiChanged": false,
+  "wholePackageReleaseApproved": false,
+  "fixes": [
+    "Preserve original XRT cause instead of rewrapping five allocation failure paths",
+    "Publish already implemented xshm_write_text C prototype and include xrt.h for xstrview",
+    "Do not redefine caller/glibc POSIX feature level in included native source"
+  ],
+  "nativeDelta": {
+    "netLines": -6,
+    "addedLines": 4,
+    "removedLines": 10,
+    "newRuntimeAbstractions": 0,
+    "successBodyCopiesAdded": 0
+  },
+  "errors": {
+    "checks": 284,
+    "realMappingAndRecovery": true,
+    "noFurtherAllocAfterPublication": true,
+    "operations": [
+      "create calloc",
+      "open calloc",
+      "read BufferCreate",
+      "read BufferAppend",
+      "readText Malloc"
+    ],
+    "cases": 30,
+    "oldFailedAssertions": 60,
+    "codes": [
+      "-2147483648",
+      "-17",
+      "2147483647"
+    ],
+    "notThirtyRealOom": true,
+    "originalXLThirtyTwoBudgetsPerOperationStillRun": true,
+    "identityDomainKindCodeMessage": true,
+    "newFailedAssertions": 0,
+    "messages": [
+      "empty",
+      "300 bytes"
+    ],
+    "sevenMemoryMetrics": true,
+    "realCAllocatorSweep": {
+      "rejected": 5,
+      "completed": 27,
+      "budgets": 32
+    }
+  },
+  "layout": {
+    "checks": 14102,
+    "oldLayoutAlsoPasses": true,
+    "concurrentAtomicityNotClaimed": true,
+    "int64Values": 7,
+    "snapshotLifetimes": 14,
+    "records": 3367,
+    "sizes": [
+      1,
+      2,
+      7,
+      8,
+      9,
+      15,
+      16,
+      31,
+      32,
+      63,
+      64,
+      65,
+      127,
+      128
+    ],
+    "failedAssertions": 0,
+    "maximumBytes": 67108864,
+    "maximumOnlyFirstLastPagesTouched": true,
+    "sevenMemoryMetrics": true,
+    "oracleRejectedControls": [
+      "body",
+      "order",
+      "missing record"
+    ],
+    "invalidRanges": 112,
+    "independentOracle": "Python struct.pack('<q') whole frame, order and exact corpus count"
+  },
+  "cBoundary": {
+    "strictNewNativeMissingPrototypes": true,
+    "generatedXLFunctions": 13,
+    "notAllCFunctionsAreLanguageBindings": true,
+    "wrongReturnControl": "Generated xshm_size return changed to double, strict C conflict required",
+    "publicHeaderFunctions": 16,
+    "missingPrototypeControl": "Old header call of xshm_write_text fails implicit-declaration check; old header include-alone itself succeeds"
+  },
+  "process": {
+    "directWindowsHostExplicitlyNotRealProcess": true,
+    "windowsChildWaitSeconds": 20,
+    "posixRealForkAndWait": true,
+    "notGeneralWindowsArgumentEncoder": true,
+    "wholeStageTimeoutSeconds": 120,
+    "fixedCommandFragmentsAvoidKnownSwprintfAbi": true,
+    "gccAndAotRealChild": true
+  },
+  "testRuntime": {
+    "productionXrtUntouched": true,
+    "old": "XRT_MODULE_ALL",
+    "new": [
+      "BUFFER",
+      "UNICODE",
+      "RANDOM_SECURE",
+      "MEMORY_DEBUG"
+    ]
+  },
+  "baseline": {
+    "sourceSha256": "5e1568831051b1258c13c601caa7bab567c13072b814d159dd3f70b520de5526",
+    "linuxOldWarning": "Old core redefines _POSIX_C_SOURCE after new glibc headers; old behavior control uses -Wno-error only, new gate retains -Werror",
+    "normalizedMatchesOriginal": true,
+    "windowsChecks": [
+      {
+        "name": "cc1",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-print-prog-name=cc1"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "stdout": "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe\r\n",
+        "stderr": "",
+        "elapsedMs": 33
+      },
+      {
+        "name": "runtime",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sharedmem",
+          "-c",
+          "release/extlibs/sharedmem/test/xrt_runtime.c",
+          "-o",
+          "build/test/sharedmem-contract-20261102/final-runtime.o"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 2086
+      },
+      {
+        "name": "old-error_contract_c-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sharedmem",
+          "build/test/sharedmem-contract-20261102/old-error_contract_c.c",
+          "build/test/sharedmem-contract-20261102/final-runtime.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "build/test/sharedmem-contract-20261102/old-error_contract_c.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 1035
+      },
+      {
+        "name": "old-error_contract_c",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem-contract-20261102\\old-error_contract_c.exe",
+        "arguments": [],
+        "expected": 1,
+        "actual": 1,
+        "status": "fail",
+        "stdout": "sharedmem error contract: 30 cases, 284 checks, 60 failures\r\n",
+        "stderr": "sharedmem error contract: no diagnostic reallocation after failure\r\nsharedmem error contract: original identity/domain/code/message retained\r\nsharedmem error contract: no diagnostic reallocation after failure\r\nsharedmem error contract: original identity/domain/code/message retained\r\nsharedmem error contract: no diagnostic reallocation after failure\r\nsharedmem error contract: original identity/domain/code/message retained\r\nsharedmem error contract: no diagnostic reallocation after failure\r\nsharedmem error contract: original identity/domain/code/message retained\r\nsharedmem error contract: no diagnostic reallocation after failure\r\nsharedmem error contract: original identity/domain/code/message retained\r\nsharedmem error contract: no diagnostic reallocation after failure\r\nsharedmem error contract: original identity/domain/code/message retained\r\n",
+        "elapsedMs": 41
+      },
+      {
+        "name": "old-layout_contract_c-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sharedmem",
+          "build/test/sharedmem-contract-20261102/old-layout_contract_c.c",
+          "build/test/sharedmem-contract-20261102/final-runtime.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "build/test/sharedmem-contract-20261102/old-layout_contract_c.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 1104
+      },
+      {
+        "name": "old-layout_contract_c",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem-contract-20261102\\old-layout_contract_c.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "stdout": "sharedmem layout: 3367 records, 112 invalid ranges, 14 snapshot lifetimes, 14102 checks, 0 failures\r\n",
+        "stderr": "",
+        "elapsedMs": 29
+      },
+      {
+        "name": "old-header-call",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-fsyntax-only",
+          "build/test/sharedmem-contract-20261102/old-header-call.c"
+        ],
+        "expected": 1,
+        "actual": 1,
+        "status": "fail",
+        "stdout": "",
+        "stderr": "build/test/sharedmem-contract-20261102/old-header-call.c: In function 'main':\nbuild/test/sharedmem-contract-20261102/old-header-call.c:3:25: error: implicit declaration of function 'xshm_write_text'; did you mean 'xshm_read_text'? [-Wimplicit-function-declaration]\n    3 | int main(void) { return xshm_write_text(0,0,(xstrview){0,0}); }\n      |                         ^~~~~~~~~~~~~~~\n      |                         xshm_read_text\n",
+        "elapsedMs": 109
+      },
+      {
+        "name": "size-old-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sharedmem",
+          "-c",
+          "build/test/sharedmem-contract-20261102/old-sharedmem_native.c",
+          "-o",
+          "build/test/sharedmem-contract-20261102/size-old.o"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 908
+      },
+      {
+        "name": "size-old",
+        "program": "E:\\software\\w64devkit\\bin\\size.exe",
+        "arguments": [
+          "build/test/sharedmem-contract-20261102/size-old.o"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n   4008\t      0\t      0\t   4008\t    fa8\tbuild/test/sharedmem-contract-20261102/size-old.o\r\n",
+        "stderr": "",
+        "elapsedMs": 23
+      },
+      {
+        "name": "size-new-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sharedmem",
+          "-c",
+          "release/extlibs/sharedmem/sharedmem_native.c",
+          "-o",
+          "build/test/sharedmem-contract-20261102/size-new.o"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 887
+      },
+      {
+        "name": "size-new",
+        "program": "E:\\software\\w64devkit\\bin\\size.exe",
+        "arguments": [
+          "build/test/sharedmem-contract-20261102/size-new.o"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n   3744\t      0\t      0\t   3744\t    ea0\tbuild/test/sharedmem-contract-20261102/size-new.o\r\n",
+        "stderr": "",
+        "elapsedMs": 20
+      }
+    ],
+    "fixtureChange": "Only include mechanically points to saved old native source",
+    "originalRevision": "e070e96b1"
+  },
+  "windows": {
+    "expectedMismatch": [
+      "boundaries-AOT",
+      "sharedmem-AOT",
+      "global_teardown_repro-AOT",
+      "private-constructor"
+    ],
+    "inputCount": 55,
+    "changedDuringGate": [],
+    "gateOutcome": "failed",
+    "reportPath": "build/test/sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12.json",
+    "baselineChanged": [],
+    "gateReportSha256": "b61101d87d91e6de4acff7d7a86e0ca883880575fa5fb24b51ff112336f55aff",
+    "inputs": {
+      "C:\\Program Files\\Python312\\python.exe": "4D6F5F81A4BCA11191C4C7C6B43632694D0A4CE74E068619D8FDC161D469859A",
+      "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe": "9785001B0DCF755EDDB8AF294A373C0B87B2498660F724E76C4D53F9C217C7A3",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\sharedmem.xl": "F1A2618ED6241940E3A3A3E5354F8594578B23DC63FB40E9E5EBE94303B2F092",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\docs\\site.html": "A02B7A2C19372F6E2193C3D30A5B8EF99C16D9507BDCF626829EBDA9708FE62D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\examples\\basic.expected.txt": "69351AF07A99B494618CEC1403E255DE563E8189654EC67BD1704235E9C38815",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\examples\\sharedmem_c.c": "BE741864D9A715DF251AB281A1CED206A6DD50B1DFF05611CD6B6C12D26C86F1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\examples\\snapshots.expected.txt": "AB017EAC6465FB3E2610DB5529E17F406ABFC0C73F9ADFBC19AAA57D1C6EAE56",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\examples\\snapshots.xl": "53B392A39B7ABD8C44C51886EB096941930C28EED94AECABA68751BC28AD48CE",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\examples\\snapshots_c.c": "2B1EF0681F1F2E6A42B862B23420967089E2AEF2E02AFDF93D0754DF845415C4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\include\\sharedmem_native.h": "AD38CCC36AFCEDF30FE952FC0BE6B9E40375EE1A09A95A0AEE7119A03DA09192",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\README.md": "2C8C918664413F61CFA7F46EDAFC44E9441B33634F0E4FF851512F92711E8E84",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\sharedmem_native.c": "EF2C116757EE9AE1D940F55F533F87A7BC0373BFACBCA9E7E52C0A2BD70A5CD3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\src\\sharedmem.xl": "85BBB67288471E977AAB68B906CAC35DA4DC9C3174E40ACFFA8436B1C8E1E343",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\allocations.xl": "0155617F850738697695B1D6BED429B31D49379393795874A6819E2632506328",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\boundaries.xl": "D4D6986AF38C2CC860DBA255409BD251E8A5E48A626060C692F23F9BD7857CF9",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\check.ps1": "BD6BC9FE33B07559E1251D2E3632B78EE9371813113ABCFE015D24B494FEA0A7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\check.sh": "A6C501788AF09D705EFD689D3C43F21ECF81F539807311D2DC578F6646AC884C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\check_layout.py": "EA75BD73F7353C5BEF49989D9A2F1BB9A2BC6B5A92A6DD1FB6FD74F65D952745",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\error_contract_c.c": "16B20C0DD278E8718BB9CA5401E8488101096B4450A6D1D23AAD772D7D61AB72",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\global_teardown_repro.xl": "F9E7AB0BAA07BB5821805886B5358A1FFCE8295B22C23A5DA6A19695A2A81999",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\layout_contract_c.c": "821AB5E9BB8988C977CB7DACA0A328C6BEC0A244B39B2D9A6F658A8E07F13DB4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\local_teardown_control.xl": "F1A2A99BD18A833D49C81C40E10EF52556333CEDE870A496E5290E0E8ED712B7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\private_constructor_negative.xl": "FE95B0A8EC0C51E8FF08623FBAF39EFEC7ACEEE32BA2A88D557533DDB0758791",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\private_native_negative.xl": "F0DFDC27B0B80F40BF2C750834715D503BC3D529BD5E42C07B0C55D42F6FCA12",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\test_sharedmem.c": "89110F092B8763144A2E22C4D942D7906515DF78A1A033999C0FA4881E32918C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\test_sharedmem_alloc.c": "50DAA4645DFD1495E37A9779A686A8DEA157527BD40C58C96860212A8AF9DA98",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\xrt_runtime.c": "2E0F61AFF9318AABA1F0080B9363713FCF962D5DB7E51F544AC816DE5838510C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\xlang.package.json": "04582A3A6DE53BDE2AE3EE1B49CE0E420621ED9BC93A1BBD113BE2382F834C89",
+      "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+      "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+      "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+      "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+      "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+      "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+      "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+      "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+      "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+      "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_sharedmem.xl": "F0190B2F92C6F275C85E5D3AF933D0F1D4F6FA547F3A38C22DA9124374C7DC35",
+      "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1": "5183F14DBF4444B47D8832B60A0D6A6B570C8E933874785BEF85DD1ECB024A44",
+      "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+      "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012"
+    },
+    "ordinaryIndependentAotRequired": 12,
+    "ordinaryIndependentAotPass": 9,
+    "baselineAuditInputs": {
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\docs\\site.html": "A02B7A2C19372F6E2193C3D30A5B8EF99C16D9507BDCF626829EBDA9708FE62D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\examples\\basic.expected.txt": "69351AF07A99B494618CEC1403E255DE563E8189654EC67BD1704235E9C38815",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\examples\\sharedmem_c.c": "BE741864D9A715DF251AB281A1CED206A6DD50B1DFF05611CD6B6C12D26C86F1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\examples\\snapshots_c.c": "2B1EF0681F1F2E6A42B862B23420967089E2AEF2E02AFDF93D0754DF845415C4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\examples\\snapshots.expected.txt": "AB017EAC6465FB3E2610DB5529E17F406ABFC0C73F9ADFBC19AAA57D1C6EAE56",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\examples\\snapshots.xl": "53B392A39B7ABD8C44C51886EB096941930C28EED94AECABA68751BC28AD48CE",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\include\\sharedmem_native.h": "AD38CCC36AFCEDF30FE952FC0BE6B9E40375EE1A09A95A0AEE7119A03DA09192",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\README.md": "2C8C918664413F61CFA7F46EDAFC44E9441B33634F0E4FF851512F92711E8E84",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\sharedmem_native.c": "EF2C116757EE9AE1D940F55F533F87A7BC0373BFACBCA9E7E52C0A2BD70A5CD3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\src\\sharedmem.xl": "85BBB67288471E977AAB68B906CAC35DA4DC9C3174E40ACFFA8436B1C8E1E343",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\allocations.xl": "0155617F850738697695B1D6BED429B31D49379393795874A6819E2632506328",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\boundaries.xl": "D4D6986AF38C2CC860DBA255409BD251E8A5E48A626060C692F23F9BD7857CF9",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\check_layout.py": "EA75BD73F7353C5BEF49989D9A2F1BB9A2BC6B5A92A6DD1FB6FD74F65D952745",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\check.ps1": "BD6BC9FE33B07559E1251D2E3632B78EE9371813113ABCFE015D24B494FEA0A7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\check.sh": "A6C501788AF09D705EFD689D3C43F21ECF81F539807311D2DC578F6646AC884C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\error_contract_c.c": "16B20C0DD278E8718BB9CA5401E8488101096B4450A6D1D23AAD772D7D61AB72",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\global_teardown_repro.xl": "F9E7AB0BAA07BB5821805886B5358A1FFCE8295B22C23A5DA6A19695A2A81999",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\layout_contract_c.c": "821AB5E9BB8988C977CB7DACA0A328C6BEC0A244B39B2D9A6F658A8E07F13DB4",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\local_teardown_control.xl": "F1A2A99BD18A833D49C81C40E10EF52556333CEDE870A496E5290E0E8ED712B7",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\private_constructor_negative.xl": "FE95B0A8EC0C51E8FF08623FBAF39EFEC7ACEEE32BA2A88D557533DDB0758791",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\private_native_negative.xl": "F0DFDC27B0B80F40BF2C750834715D503BC3D529BD5E42C07B0C55D42F6FCA12",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\test_sharedmem_alloc.c": "50DAA4645DFD1495E37A9779A686A8DEA157527BD40C58C96860212A8AF9DA98",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\test_sharedmem.c": "89110F092B8763144A2E22C4D942D7906515DF78A1A033999C0FA4881E32918C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\test\\xrt_runtime.c": "2E0F61AFF9318AABA1F0080B9363713FCF962D5DB7E51F544AC816DE5838510C",
+      "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\xlang.package.json": "04582A3A6DE53BDE2AE3EE1B49CE0E420621ED9BC93A1BBD113BE2382F834C89",
+      "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+      "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+      "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+      "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+      "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+      "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+      "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+      "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+      "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+      "lib/xrt/xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "lib/xruntime/xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "release/examples/extlibs/sharedmem.xl": "F1A2618ED6241940E3A3A3E5354F8594578B23DC63FB40E9E5EBE94303B2F092",
+      "release/xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "release/xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "release/xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "test/cases/extlib_sharedmem.xl": "F0190B2F92C6F275C85E5D3AF933D0F1D4F6FA547F3A38C22DA9124374C7DC35",
+      "tools/extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "tools/xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+      "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012"
+    },
+    "checks": [
+      {
+        "name": "compiler",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "--version"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 40,
+        "stdout": {
+          "utf8Bytes": 228,
+          "sha256": "87438b7ee2429bf0a85f172c569d3ae10e611821ed289ef1f83e20a19663d877",
+          "text": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "cc1",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-print-prog-name=cc1"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 26,
+        "stdout": {
+          "utf8Bytes": 76,
+          "sha256": "889af4011b76563b402eb8de3513e88d5004421cccf81eb447a78639f4c7ef85",
+          "text": "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "runtime",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sharedmem",
+          "-c",
+          "release/extlibs/sharedmem/test/xrt_runtime.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\runtime.o"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 2220,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "native",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sharedmem",
+          "-Wmissing-prototypes",
+          "-c",
+          "release/extlibs/sharedmem/sharedmem_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\native.o"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 940,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "public-header",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sharedmem",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\header.c"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 117,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "core-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sharedmem",
+          "release/extlibs/sharedmem/test/test_sharedmem.c",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\native.o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\core.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 972,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "core-real-process",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\core.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 46,
+        "stdout": {
+          "utf8Bytes": 67,
+          "sha256": "c6c8975d423bd2473e79e020e5ea34f05a3df3fa298010cf57d34dac694abaa0",
+          "text": "sharedmem cross-process: real child\r\nsharedmem C boundaries: PASS\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "core-JIT-host",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/sharedmem/test/test_sharedmem.c",
+          "release/extlibs/sharedmem/sharedmem_native.c",
+          "--inc-path",
+          "lib/xrt"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 148,
+        "stdout": {
+          "utf8Bytes": 83,
+          "sha256": "45f733a07210c519a1d10cf1b198f3d8a54a10f1de908a98a1f1b791b42354e0",
+          "text": "sharedmem cross-process: not run inside xl.exe host\r\nsharedmem C boundaries: PASS\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "core-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/sharedmem/test/test_sharedmem.c",
+          "release/extlibs/sharedmem/sharedmem_native.c",
+          "--inc-path",
+          "lib/xrt",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\core-aot.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 212,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "core-AOT-real-process",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\core-aot.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 53,
+        "stdout": {
+          "utf8Bytes": 67,
+          "sha256": "c6c8975d423bd2473e79e020e5ea34f05a3df3fa298010cf57d34dac694abaa0",
+          "text": "sharedmem cross-process: real child\r\nsharedmem C boundaries: PASS\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "allocation-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sharedmem",
+          "-DNDEBUG",
+          "release/extlibs/sharedmem/test/test_sharedmem_alloc.c",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\native.o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\allocations.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 278,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "allocations",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\allocations.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 23,
+        "stdout": {
+          "utf8Bytes": 54,
+          "sha256": "587d1fd40d5a87f1910f38fefb0a9ec2562676015bd530e82840073adfa4bc2d",
+          "text": "sharedmem allocation checks: rejected=5 completed=27\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "error_contract_c-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sharedmem",
+          "release/extlibs/sharedmem/test/error_contract_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\error_contract_c.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 1072,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "error_contract_c-GCC",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\error_contract_c.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 33,
+        "stdout": {
+          "utf8Bytes": 60,
+          "sha256": "d1896f5d0bc2825b1d7d5715a74e8ade061c0d0f2ea3effb16251edeb1e0a10c",
+          "text": "sharedmem error contract: 30 cases, 284 checks, 0 failures\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "error_contract_c-TCC",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/sharedmem/test/error_contract_c.c"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 120,
+        "stdout": {
+          "utf8Bytes": 60,
+          "sha256": "d1896f5d0bc2825b1d7d5715a74e8ade061c0d0f2ea3effb16251edeb1e0a10c",
+          "text": "sharedmem error contract: 30 cases, 284 checks, 0 failures\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "error_contract_c-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/sharedmem/test/error_contract_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\error_contract_c-aot.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 166,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "error_contract_c-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\error_contract_c-aot.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 29,
+        "stdout": {
+          "utf8Bytes": 60,
+          "sha256": "d1896f5d0bc2825b1d7d5715a74e8ade061c0d0f2ea3effb16251edeb1e0a10c",
+          "text": "sharedmem error contract: 30 cases, 284 checks, 0 failures\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "layout_contract_c-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sharedmem",
+          "release/extlibs/sharedmem/test/layout_contract_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\layout_contract_c.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 1124,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "layout_contract_c-GCC",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\layout_contract_c.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 43,
+        "stdout": {
+          "utf8Bytes": 101,
+          "sha256": "322d62abe15e52dff38987cf31481480e5b872366cc772110523218318f32da8",
+          "text": "sharedmem layout: 3367 records, 112 invalid ranges, 14 snapshot lifetimes, 14102 checks, 0 failures\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "layout_contract_c-TCC",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/sharedmem/test/layout_contract_c.c"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 117,
+        "stdout": {
+          "utf8Bytes": 101,
+          "sha256": "322d62abe15e52dff38987cf31481480e5b872366cc772110523218318f32da8",
+          "text": "sharedmem layout: 3367 records, 112 invalid ranges, 14 snapshot lifetimes, 14102 checks, 0 failures\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "layout-records",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\layout_contract_c.exe",
+        "arguments": [
+          "--records"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 49,
+        "stdout": {
+          "utf8Bytes": 701926,
+          "sha256": "6379623a28f3cac5ce7d64b4d5aec2e72b1231bc0516e0b6420c156d33d954ec",
+          "text": null,
+          "omittedLongText": true
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "independent-layout",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "release/extlibs/sharedmem/test/check_layout.py",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\layout.records.tsv"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 109,
+        "stdout": {
+          "utf8Bytes": 64,
+          "sha256": "2f0443109b76acd456eda596f688080198ecd73f0249565cbcce6a4505e8450e",
+          "text": "sharedmem independent layout: 3367 frames, 3 rejected controls\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "layout_contract_c-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/sharedmem/test/layout_contract_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\layout_contract_c-aot.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 173,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "layout_contract_c-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\layout_contract_c-aot.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 35,
+        "stdout": {
+          "utf8Bytes": 101,
+          "sha256": "322d62abe15e52dff38987cf31481480e5b872366cc772110523218318f32da8",
+          "text": "sharedmem layout: 3367 records, 112 invalid ranges, 14 snapshot lifetimes, 14102 checks, 0 failures\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "sharedmem_c-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sharedmem",
+          "release/extlibs/sharedmem/examples/sharedmem_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\native.o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\sharedmem_c.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 262,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "sharedmem_c-GCC",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\sharedmem_c.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 25,
+        "stdout": {
+          "utf8Bytes": 42,
+          "sha256": "6ffc83388b562df94a15e218862d4ba2c58c3201a54dd5aeb30842c0f6f8d170",
+          "text": "text: hello\r\ninteger: 42\r\nbinary size: 3\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "sharedmem_c-TCC",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/sharedmem/examples/sharedmem_c.c"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 113,
+        "stdout": {
+          "utf8Bytes": 42,
+          "sha256": "6ffc83388b562df94a15e218862d4ba2c58c3201a54dd5aeb30842c0f6f8d170",
+          "text": "text: hello\r\ninteger: 42\r\nbinary size: 3\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "sharedmem_c-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/sharedmem/examples/sharedmem_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\sharedmem_c-aot.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 163,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "sharedmem_c-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\sharedmem_c-aot.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 28,
+        "stdout": {
+          "utf8Bytes": 42,
+          "sha256": "6ffc83388b562df94a15e218862d4ba2c58c3201a54dd5aeb30842c0f6f8d170",
+          "text": "text: hello\r\ninteger: 42\r\nbinary size: 3\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "snapshots_c-compile",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sharedmem",
+          "release/extlibs/sharedmem/examples/snapshots_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\native.o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\snapshots_c.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 263,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "snapshots_c-GCC",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\snapshots_c.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 39,
+        "stdout": {
+          "utf8Bytes": 140,
+          "sha256": "83a7bcae7300061e2108951dfccca9d6c473fd844e025ddd40dd872d480c2de6",
+          "text": "peer survives owner: true\r\nlittle endian: 0807060504030201\r\nnew data zero: true\r\nsnapshot text bytes: 8\r\nsnapshot binary: 4100e4bda0e5a5bd\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "snapshots_c-TCC",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/sharedmem/examples/snapshots_c.c"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 118,
+        "stdout": {
+          "utf8Bytes": 140,
+          "sha256": "83a7bcae7300061e2108951dfccca9d6c473fd844e025ddd40dd872d480c2de6",
+          "text": "peer survives owner: true\r\nlittle endian: 0807060504030201\r\nnew data zero: true\r\nsnapshot text bytes: 8\r\nsnapshot binary: 4100e4bda0e5a5bd\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "snapshots_c-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/sharedmem/examples/snapshots_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\snapshots_c-aot.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 195,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "snapshots_c-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\snapshots_c-aot.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 32,
+        "stdout": {
+          "utf8Bytes": 140,
+          "sha256": "83a7bcae7300061e2108951dfccca9d6c473fd844e025ddd40dd872d480c2de6",
+          "text": "peer survives owner: true\r\nlittle endian: 0807060504030201\r\nnew data zero: true\r\nsnapshot text bytes: 8\r\nsnapshot binary: 4100e4bda0e5a5bd\r\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "extlib_sharedmem-JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "test/cases/extlib_sharedmem.xl"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 268,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "extlib_sharedmem-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "test/cases/extlib_sharedmem.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\extlib_sharedmem-aot.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 425,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "extlib_sharedmem-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\extlib_sharedmem-aot.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 38,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "boundaries-JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/sharedmem/test/boundaries.xl"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 295,
+        "stdout": {
+          "utf8Bytes": 27,
+          "sha256": "83badb44b8279c7f1f15f54ff74f873f397545d00838ca5ff3f6b109ab513f97",
+          "text": "sharedmem boundaries: PASS\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "boundaries-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/sharedmem/test/boundaries.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\boundaries-aot.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 501,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "boundaries-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\boundaries-aot.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 1,
+        "status": "fail",
+        "elapsedMs": 36,
+        "stdout": {
+          "utf8Bytes": 27,
+          "sha256": "83badb44b8279c7f1f15f54ff74f873f397545d00838ca5ff3f6b109ab513f97",
+          "text": "sharedmem boundaries: PASS\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 80,
+          "sha256": "1fa92339f5652e088855d10f3e076eb4803e351386dc7c2620467a144a5bcd6d",
+          "text": "uncaught xlang error: RuntimeError: operation is not valid in the current state\n",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "allocations-JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/sharedmem/test/allocations.xl"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 288,
+        "stdout": {
+          "utf8Bytes": 28,
+          "sha256": "8ded82305af3a7aee68fb502a0312d6ac6c8a6902524dc32705bce1d4068bbcf",
+          "text": "sharedmem allocations: PASS\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "allocations-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/sharedmem/test/allocations.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\allocations-aot.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 550,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "allocations-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\allocations-aot.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 39,
+        "stdout": {
+          "utf8Bytes": 28,
+          "sha256": "8ded82305af3a7aee68fb502a0312d6ac6c8a6902524dc32705bce1d4068bbcf",
+          "text": "sharedmem allocations: PASS\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "snapshots-JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/sharedmem/examples/snapshots.xl"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 268,
+        "stdout": {
+          "utf8Bytes": 135,
+          "sha256": "ab017eac6465fb3e2610db5529e17f406abfc0c73f9adfbc19aaa57d1c6eae56",
+          "text": "peer survives owner: true\nlittle endian: 0807060504030201\nnew data zero: true\nsnapshot text bytes: 8\nsnapshot binary: 4100e4bda0e5a5bd\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "snapshots-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/sharedmem/examples/snapshots.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\snapshots-aot.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 456,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "snapshots-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\snapshots-aot.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 30,
+        "stdout": {
+          "utf8Bytes": 135,
+          "sha256": "ab017eac6465fb3e2610db5529e17f406abfc0c73f9adfbc19aaa57d1c6eae56",
+          "text": "peer survives owner: true\nlittle endian: 0807060504030201\nnew data zero: true\nsnapshot text bytes: 8\nsnapshot binary: 4100e4bda0e5a5bd\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "sharedmem-JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/examples/extlibs/sharedmem.xl"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 239,
+        "stdout": {
+          "utf8Bytes": 39,
+          "sha256": "69351af07a99b494618cec1403e255de563e8189654ec67bd1704235e9c38815",
+          "text": "text: hello\ninteger: 42\nbinary size: 3\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "sharedmem-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/examples/extlibs/sharedmem.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\sharedmem-aot.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 416,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "sharedmem-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\sharedmem-aot.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 1,
+        "status": "fail",
+        "elapsedMs": 71,
+        "stdout": {
+          "utf8Bytes": 39,
+          "sha256": "69351af07a99b494618cec1403e255de563e8189654ec67bd1704235e9c38815",
+          "text": "text: hello\ninteger: 42\nbinary size: 3\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 80,
+          "sha256": "1fa92339f5652e088855d10f3e076eb4803e351386dc7c2620467a144a5bcd6d",
+          "text": "uncaught xlang error: RuntimeError: operation is not valid in the current state\n",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "global_teardown_repro-JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/sharedmem/test/global_teardown_repro.xl"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 216,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "global_teardown_repro-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/sharedmem/test/global_teardown_repro.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\global_teardown_repro-aot.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 364,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "global_teardown_repro-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\global_teardown_repro-aot.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 1,
+        "status": "fail",
+        "elapsedMs": 54,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 80,
+          "sha256": "1fa92339f5652e088855d10f3e076eb4803e351386dc7c2620467a144a5bcd6d",
+          "text": "uncaught xlang error: RuntimeError: operation is not valid in the current state\n",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "local_teardown_control-JIT",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/sharedmem/test/local_teardown_control.xl"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 211,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "local_teardown_control-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/sharedmem/test/local_teardown_control.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\local_teardown_control-aot.exe"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 371,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "local_teardown_control-AOT",
+        "program": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\local_teardown_control-aot.exe",
+        "arguments": [],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 37,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "cgen-extlib_sharedmem",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "test/cases/extlib_sharedmem.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\extlib_sharedmem.c"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 95,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "cgen-boundaries",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "release/extlibs/sharedmem/test/boundaries.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\boundaries.c"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 135,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "generated-ABI",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sharedmem",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\abi.c"
+        ],
+        "expected": 0,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 112,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "wrong-return-control",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/sharedmem",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\abi.c"
+        ],
+        "expected": 1,
+        "actual": 1,
+        "status": "fail",
+        "elapsedMs": 111,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 553,
+          "sha256": "5240bdabafa63dbced041b65f33470fd3f8d6fe495b5f6e4b69994e2e6f793fd",
+          "text": "D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\abi.c:8:15: error: conflicting types for 'xshm_size'; have 'double(void *)'\n    8 | extern double xshm_size(void*);\n      |               ^~~~~~~~~\nIn file included from D:\\GIT\\x-lang\\build\\test\\sharedmem_guard_f764f9d0fbde4c6dbb68c1c06b81cf12\\abi.c:1:\nrelease/extlibs/sharedmem/include/sharedmem_native.h:19:9: note: previous declaration of 'xshm_size' with type 'int64_t(void *)' {aka 'long long int(void *)'}\n   19 | int64_t xshm_size(void* Shared);\n      |         ^~~~~~~~~\n",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "private-native",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "check",
+          "release/extlibs/sharedmem/test/private_native_negative.xl"
+        ],
+        "expected": 1,
+        "actual": 1,
+        "status": "fail",
+        "elapsedMs": 35,
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 289,
+          "sha256": "dc2b6fd23063e817ed0531363c74b6f428525e8f73def5c3170e2eab28626470",
+          "text": "release/extlibs/sharedmem/test/private_native_negative.xl:5:8: [sem] unknown class/union field\nrelease/extlibs/sharedmem/test/private_native_negative.xl:5:19: [sem] no matching callable class member '__xl6_import_sharedmem_SharedMemory.writeNative': check argument count, types and access\n",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "private-constructor",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "check",
+          "release/extlibs/sharedmem/test/private_constructor_negative.xl"
+        ],
+        "expected": 1,
+        "actual": 0,
+        "status": "pass",
+        "elapsedMs": 40,
+        "stdout": {
+          "utf8Bytes": 3,
+          "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+          "text": "ok\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      }
+    ],
+    "stages": 61
+  },
+  "linux": {
+    "frozenDirectory": "/var/tmp/xlang-sharedmem-audit-Uhuewddc",
+    "ordinaryIndependentAotRequired": 12,
+    "controls": [
+      {
+        "name": "compiler",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc --version",
+        "stdout": {
+          "utf8Bytes": 239,
+          "sha256": "6e876a25bb7fdb71ab2914e8f1eeaa00cc61d20a36a6c2981ab7d4d7ceab42f8",
+          "text": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "default-gate",
+        "expected": 1,
+        "actual": 1,
+        "command": "bash release/extlibs/sharedmem/test/check.sh",
+        "stdout": {
+          "utf8Bytes": 4911,
+          "sha256": "9353e3087809ccf1a3c62957510b650c388cb4db8bf1061ad3c6faa00280239b",
+          "text": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n[sharedmem] compiler exit=0 expected=0\n[sharedmem] runtime exit=0 expected=0\n[sharedmem] native exit=0 expected=0\n[sharedmem] public-header exit=0 expected=0\n[sharedmem] core-compile exit=0 expected=0\nsharedmem cross-process: real child\nsharedmem C boundaries: PASS\n[sharedmem] core-real-process exit=0 expected=0\nsharedmem cross-process: real child\nsharedmem C boundaries: PASS\n[sharedmem] core-JIT-host exit=0 expected=0\n[sharedmem] core-build exit=0 expected=0\nsharedmem cross-process: real child\nsharedmem C boundaries: PASS\n[sharedmem] core-AOT-real-process exit=0 expected=0\n[sharedmem] allocation-compile exit=0 expected=0\nsharedmem allocation checks: rejected=5 completed=27\n[sharedmem] allocations exit=0 expected=0\n[sharedmem] error_contract_c-compile exit=0 expected=0\nsharedmem error contract: 30 cases, 284 checks, 0 failures\n[sharedmem] error_contract_c-GCC exit=0 expected=0\nsharedmem error contract: 30 cases, 284 checks, 0 failures\n[sharedmem] error_contract_c-TCC exit=0 expected=0\n[sharedmem] error_contract_c-build exit=0 expected=0\nsharedmem error contract: 30 cases, 284 checks, 0 failures\n[sharedmem] error_contract_c-AOT exit=0 expected=0\n[sharedmem] layout_contract_c-compile exit=0 expected=0\nsharedmem layout: 3367 records, 112 invalid ranges, 14 snapshot lifetimes, 14102 checks, 0 failures\n[sharedmem] layout_contract_c-GCC exit=0 expected=0\nsharedmem layout: 3367 records, 112 invalid ranges, 14 snapshot lifetimes, 14102 checks, 0 failures\n[sharedmem] layout_contract_c-TCC exit=0 expected=0\n[sharedmem] layout_contract_c-build exit=0 expected=0\nsharedmem layout: 3367 records, 112 invalid ranges, 14 snapshot lifetimes, 14102 checks, 0 failures\n[sharedmem] layout_contract_c-AOT exit=0 expected=0\n[sharedmem] layout-records exit=0 expected=0\nsharedmem independent layout: 3367 frames, 3 rejected controls\n[sharedmem] independent-layout exit=0 expected=0\n[sharedmem] sharedmem_c-compile exit=0 expected=0\ntext: hello\ninteger: 42\nbinary size: 3\n[sharedmem] sharedmem_c-GCC exit=0 expected=0\ntext: hello\ninteger: 42\nbinary size: 3\n[sharedmem] sharedmem_c-TCC exit=0 expected=0\n[sharedmem] sharedmem_c-build exit=0 expected=0\ntext: hello\ninteger: 42\nbinary size: 3\n[sharedmem] sharedmem_c-AOT exit=0 expected=0\n[sharedmem] snapshots_c-compile exit=0 expected=0\npeer survives owner: true\nlittle endian: 0807060504030201\nnew data zero: true\nsnapshot text bytes: 8\nsnapshot binary: 4100e4bda0e5a5bd\n[sharedmem] snapshots_c-GCC exit=0 expected=0\npeer survives owner: true\nlittle endian: 0807060504030201\nnew data zero: true\nsnapshot text bytes: 8\nsnapshot binary: 4100e4bda0e5a5bd\n[sharedmem] snapshots_c-TCC exit=0 expected=0\n[sharedmem] snapshots_c-build exit=0 expected=0\npeer survives owner: true\nlittle endian: 0807060504030201\nnew data zero: true\nsnapshot text bytes: 8\nsnapshot binary: 4100e4bda0e5a5bd\n[sharedmem] snapshots_c-AOT exit=0 expected=0\n[sharedmem] extlib_sharedmem-JIT exit=0 expected=0\n[sharedmem] extlib_sharedmem-build exit=0 expected=0\n[sharedmem] extlib_sharedmem-AOT exit=0 expected=0\nsharedmem boundaries: PASS\n[sharedmem] boundaries-JIT exit=0 expected=0\n[sharedmem] boundaries-build exit=0 expected=0\nsharedmem boundaries: PASS\n[sharedmem] boundaries-AOT exit=1 expected=0\nsharedmem allocations: PASS\n[sharedmem] allocations-JIT exit=0 expected=0\n[sharedmem] allocations-build exit=0 expected=0\nsharedmem allocations: PASS\n[sharedmem] allocations-AOT exit=0 expected=0\npeer survives owner: true\nlittle endian: 0807060504030201\nnew data zero: true\nsnapshot text bytes: 8\nsnapshot binary: 4100e4bda0e5a5bd\n[sharedmem] snapshots-JIT exit=0 expected=0\n[sharedmem] snapshots-build exit=0 expected=0\npeer survives owner: true\nlittle endian: 0807060504030201\nnew data zero: true\nsnapshot text bytes: 8\nsnapshot binary: 4100e4bda0e5a5bd\n[sharedmem] snapshots-AOT exit=0 expected=0\ntext: hello\ninteger: 42\nbinary size: 3\n[sharedmem] sharedmem-JIT exit=0 expected=0\n[sharedmem] sharedmem-build exit=0 expected=0\ntext: hello\ninteger: 42\nbinary size: 3\n[sharedmem] sharedmem-AOT exit=1 expected=0\n[sharedmem] global_teardown_repro-JIT exit=0 expected=0\n[sharedmem] global_teardown_repro-build exit=0 expected=0\n[sharedmem] global_teardown_repro-AOT exit=1 expected=0\n[sharedmem] local_teardown_control-JIT exit=0 expected=0\n[sharedmem] local_teardown_control-build exit=0 expected=0\n[sharedmem] local_teardown_control-AOT exit=0 expected=0\n[sharedmem] cgen-extlib_sharedmem exit=0 expected=0\n[sharedmem] cgen-boundaries exit=0 expected=0\n[sharedmem] generated-ABI exit=0 expected=0\n[sharedmem] wrong-return-control exit=1 expected=1\n[sharedmem] private-native exit=1 expected=1\nok\n[sharedmem] private-constructor exit=0 expected=1\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 1235,
+          "sha256": "20b9fd8c7a4282cbaf951b4bf614b82cc93f67916caec1d512768abc6d4d3afa",
+          "text": "uncaught xlang error: RuntimeError: operation is not valid in the current state\nuncaught xlang error: RuntimeError: operation is not valid in the current state\nuncaught xlang error: RuntimeError: operation is not valid in the current state\n/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/abi-bad.c:8:15: error: conflicting types for ‘xshm_size’; have ‘double(void *)’\n    8 | extern double xshm_size(void*);\n      |               ^~~~~~~~~\nIn file included from /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/abi-bad.c:1:\nrelease/extlibs/sharedmem/include/sharedmem_native.h:19:9: note: previous declaration of ‘xshm_size’ with type ‘int64_t(void *)’ {aka ‘long int(void *)’}\n   19 | int64_t xshm_size(void* Shared);\n      |         ^~~~~~~~~\nrelease/extlibs/sharedmem/test/private_native_negative.xl:5:8: [sem] unknown class/union field\nrelease/extlibs/sharedmem/test/private_native_negative.xl:5:19: [sem] no matching callable class member '__xl6_import_sharedmem_SharedMemory.writeNative': check argument count, types and access\nsharedmem release blockers remain: 4\n[sharedmem] FAIL exit=1 artifacts=/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow\n",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "runtime",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sharedmem -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -c release/extlibs/sharedmem/test/xrt_runtime.c -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/runtime.o",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "old-error_contract_c-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sharedmem -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -Wno-error /var/tmp/xlang-sharedmem-audit-Uhuewddc/old-error_contract_c.c /var/tmp/xlang-sharedmem-audit-Uhuewddc/runtime.o -lm -ldl -lrt -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/old-error_contract_c",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 772,
+          "sha256": "c314ba3940b091fe5b9ae8203fe81b91fa27988aa02449f5e7c1512b96860c63",
+          "text": "In file included from /var/tmp/xlang-sharedmem-audit-Uhuewddc/old-error_contract_c.c:41:\n/var/tmp/xlang-sharedmem-audit-Uhuewddc/old-sharedmem_native.c:3:9: warning: ‘_POSIX_C_SOURCE’ redefined\n    3 | #define _POSIX_C_SOURCE 200809L\n      |         ^~~~~~~~~~~~~~~\nIn file included from /usr/include/x86_64-linux-gnu/bits/libc-header-start.h:33,\n                 from /usr/include/stdint.h:26,\n                 from /usr/lib/gcc/x86_64-linux-gnu/15/include/stdint.h:11,\n                 from lib/xrt/xrt.h:4908,\n                 from /var/tmp/xlang-sharedmem-audit-Uhuewddc/old-error_contract_c.c:6:\n/usr/include/features.h:319:10: note: this is the location of the previous definition\n  319 | # define _POSIX_C_SOURCE        202405L\n      |          ^~~~~~~~~~~~~~~\n",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "old-error_contract_c",
+        "expected": 1,
+        "actual": 1,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/old-error_contract_c",
+        "stdout": {
+          "utf8Bytes": 60,
+          "sha256": "049e13d6fde08c6ba2ea5c102057a73bf5de8764f016482d0a834aeb7b2fe787",
+          "text": "sharedmem error contract: 30 cases, 284 checks, 60 failures\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 840,
+          "sha256": "dde94d367ffcfe45c406c5e73ef53c1bbecc453eddc92eef6c139e43bac7254d",
+          "text": "sharedmem error contract: no diagnostic reallocation after failure\nsharedmem error contract: original identity/domain/code/message retained\nsharedmem error contract: no diagnostic reallocation after failure\nsharedmem error contract: original identity/domain/code/message retained\nsharedmem error contract: no diagnostic reallocation after failure\nsharedmem error contract: original identity/domain/code/message retained\nsharedmem error contract: no diagnostic reallocation after failure\nsharedmem error contract: original identity/domain/code/message retained\nsharedmem error contract: no diagnostic reallocation after failure\nsharedmem error contract: original identity/domain/code/message retained\nsharedmem error contract: no diagnostic reallocation after failure\nsharedmem error contract: original identity/domain/code/message retained\n",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "old-layout_contract_c-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sharedmem -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -Wno-error /var/tmp/xlang-sharedmem-audit-Uhuewddc/old-layout_contract_c.c /var/tmp/xlang-sharedmem-audit-Uhuewddc/runtime.o -lm -ldl -lrt -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/old-layout_contract_c",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 774,
+          "sha256": "667de4554985f9eb70793a08c352cf45ab3eb3e6a97f003fb9f60a4924e26a42",
+          "text": "In file included from /var/tmp/xlang-sharedmem-audit-Uhuewddc/old-layout_contract_c.c:10:\n/var/tmp/xlang-sharedmem-audit-Uhuewddc/old-sharedmem_native.c:3:9: warning: ‘_POSIX_C_SOURCE’ redefined\n    3 | #define _POSIX_C_SOURCE 200809L\n      |         ^~~~~~~~~~~~~~~\nIn file included from /usr/include/x86_64-linux-gnu/bits/libc-header-start.h:33,\n                 from /usr/include/stdint.h:26,\n                 from /usr/lib/gcc/x86_64-linux-gnu/15/include/stdint.h:11,\n                 from lib/xrt/xrt.h:4908,\n                 from /var/tmp/xlang-sharedmem-audit-Uhuewddc/old-layout_contract_c.c:6:\n/usr/include/features.h:319:10: note: this is the location of the previous definition\n  319 | # define _POSIX_C_SOURCE        202405L\n      |          ^~~~~~~~~~~~~~~\n",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "old-layout_contract_c",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/old-layout_contract_c",
+        "stdout": {
+          "utf8Bytes": 100,
+          "sha256": "be567cc052c6c862f58fd3d971b290a9cb952809029521e787a29acd5359f34d",
+          "text": "sharedmem layout: 3367 records, 112 invalid ranges, 14 snapshot lifetimes, 14102 checks, 0 failures\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "old-header-call",
+        "expected": 1,
+        "actual": 1,
+        "command": "gcc -std=c11 -Wall -Wextra -Werror -Ilib/xrt -fsyntax-only /var/tmp/xlang-sharedmem-audit-Uhuewddc/old-header-call.c",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 446,
+          "sha256": "fd7739f36ff0aa393064b91221a41c54e87442421f831c2e879260e931ad8410",
+          "text": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/old-header-call.c: In function ‘main’:\n/var/tmp/xlang-sharedmem-audit-Uhuewddc/old-header-call.c:3:25: error: implicit declaration of function ‘xshm_write_text’; did you mean ‘xshm_read_text’? [-Wimplicit-function-declaration]\n    3 | int main(void) { return xshm_write_text(0,0,(xstrview){0,0}); }\n      |                         ^~~~~~~~~~~~~~~\n      |                         xshm_read_text\n",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "size-old-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O2 -Ilib/xrt -Irelease/extlibs/sharedmem -c /var/tmp/xlang-sharedmem-audit-Uhuewddc/old-sharedmem_native.c -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/size-old.o",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "size-old",
+        "expected": 0,
+        "actual": 0,
+        "command": "size /var/tmp/xlang-sharedmem-audit-Uhuewddc/size-old.o",
+        "stdout": {
+          "utf8Bytes": 140,
+          "sha256": "fa0772c100f6887712a0a623a677bd1a8358583652cc228c431660276c4f95d4",
+          "text": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n   4841\t      0\t      0\t   4841\t   12e9\t/var/tmp/xlang-sharedmem-audit-Uhuewddc/size-old.o\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "size-new-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O2 -Ilib/xrt -Irelease/extlibs/sharedmem -c release/extlibs/sharedmem/sharedmem_native.c -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/size-new.o",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "size-new",
+        "expected": 0,
+        "actual": 0,
+        "command": "size /var/tmp/xlang-sharedmem-audit-Uhuewddc/size-new.o",
+        "stdout": {
+          "utf8Bytes": 140,
+          "sha256": "ff4208c98abc7207564c2d2928a9cf04a209f6e66aaa130bd49b4535924a308e",
+          "text": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n   4585\t      0\t      0\t   4585\t   11e9\t/var/tmp/xlang-sharedmem-audit-Uhuewddc/size-new.o\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      }
+    ],
+    "checks": [
+      {
+        "name": "compiler",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc --version",
+        "stdout": {
+          "utf8Bytes": 239,
+          "sha256": "6e876a25bb7fdb71ab2914e8f1eeaa00cc61d20a36a6c2981ab7d4d7ceab42f8",
+          "text": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "runtime",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sharedmem -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -c release/extlibs/sharedmem/test/xrt_runtime.c -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/runtime.o",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "native",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sharedmem -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -Wmissing-prototypes -c release/extlibs/sharedmem/sharedmem_native.c -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/native.o",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "public-header",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sharedmem -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -fsyntax-only /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/header.c",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "core-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sharedmem -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/sharedmem/test/test_sharedmem.c /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/native.o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/runtime.o -lm -ldl -lrt -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/core",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "core-real-process",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/core",
+        "stdout": {
+          "utf8Bytes": 65,
+          "sha256": "98356d0d3ad4fd4ea680eb0d6915daaa1baff29c5e417ebb95fff14112f00906",
+          "text": "sharedmem cross-process: real child\nsharedmem C boundaries: PASS\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "core-JIT-host",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/sharedmem/test/test_sharedmem.c release/extlibs/sharedmem/sharedmem_native.c --inc-path lib/xrt",
+        "stdout": {
+          "utf8Bytes": 65,
+          "sha256": "98356d0d3ad4fd4ea680eb0d6915daaa1baff29c5e417ebb95fff14112f00906",
+          "text": "sharedmem cross-process: real child\nsharedmem C boundaries: PASS\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "core-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/sharedmem/test/test_sharedmem.c release/extlibs/sharedmem/sharedmem_native.c --inc-path lib/xrt -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/core.aot",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "core-AOT-real-process",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/core.aot",
+        "stdout": {
+          "utf8Bytes": 65,
+          "sha256": "98356d0d3ad4fd4ea680eb0d6915daaa1baff29c5e417ebb95fff14112f00906",
+          "text": "sharedmem cross-process: real child\nsharedmem C boundaries: PASS\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "allocation-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sharedmem -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -DNDEBUG release/extlibs/sharedmem/test/test_sharedmem_alloc.c /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/native.o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/runtime.o -lm -ldl -lrt -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/allocations",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "allocations",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/allocations",
+        "stdout": {
+          "utf8Bytes": 53,
+          "sha256": "397147951a7dffc25ab1c89d10a57a94682ccd8f763e2919361c5478a1506fb4",
+          "text": "sharedmem allocation checks: rejected=5 completed=27\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "error_contract_c-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sharedmem -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/sharedmem/test/error_contract_c.c /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/runtime.o -lm -ldl -lrt -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/error_contract_c",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "error_contract_c-GCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/error_contract_c",
+        "stdout": {
+          "utf8Bytes": 59,
+          "sha256": "50f3e49a0c2fe178de10020c039b56842cbefb15d20b4c646cc5c3ded8c2360a",
+          "text": "sharedmem error contract: 30 cases, 284 checks, 0 failures\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "error_contract_c-TCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/sharedmem/test/error_contract_c.c",
+        "stdout": {
+          "utf8Bytes": 59,
+          "sha256": "50f3e49a0c2fe178de10020c039b56842cbefb15d20b4c646cc5c3ded8c2360a",
+          "text": "sharedmem error contract: 30 cases, 284 checks, 0 failures\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "error_contract_c-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/sharedmem/test/error_contract_c.c -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/error_contract_c.aot",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "error_contract_c-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/error_contract_c.aot",
+        "stdout": {
+          "utf8Bytes": 59,
+          "sha256": "50f3e49a0c2fe178de10020c039b56842cbefb15d20b4c646cc5c3ded8c2360a",
+          "text": "sharedmem error contract: 30 cases, 284 checks, 0 failures\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "layout_contract_c-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sharedmem -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/sharedmem/test/layout_contract_c.c /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/runtime.o -lm -ldl -lrt -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/layout_contract_c",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "layout_contract_c-GCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/layout_contract_c",
+        "stdout": {
+          "utf8Bytes": 100,
+          "sha256": "be567cc052c6c862f58fd3d971b290a9cb952809029521e787a29acd5359f34d",
+          "text": "sharedmem layout: 3367 records, 112 invalid ranges, 14 snapshot lifetimes, 14102 checks, 0 failures\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "layout_contract_c-TCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/sharedmem/test/layout_contract_c.c",
+        "stdout": {
+          "utf8Bytes": 100,
+          "sha256": "be567cc052c6c862f58fd3d971b290a9cb952809029521e787a29acd5359f34d",
+          "text": "sharedmem layout: 3367 records, 112 invalid ranges, 14 snapshot lifetimes, 14102 checks, 0 failures\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "layout_contract_c-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/sharedmem/test/layout_contract_c.c -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/layout_contract_c.aot",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "layout_contract_c-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/layout_contract_c.aot",
+        "stdout": {
+          "utf8Bytes": 100,
+          "sha256": "be567cc052c6c862f58fd3d971b290a9cb952809029521e787a29acd5359f34d",
+          "text": "sharedmem layout: 3367 records, 112 invalid ranges, 14 snapshot lifetimes, 14102 checks, 0 failures\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "layout-records",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/layout_contract_c --records",
+        "stdout": {
+          "utf8Bytes": 698558,
+          "sha256": "0066a83fa84ece77b985551d4e661b62d5e7d8c0226960749d3834f4652c456f",
+          "text": null,
+          "omittedLongText": true
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "independent-layout",
+        "expected": 0,
+        "actual": 0,
+        "command": "python3 -B release/extlibs/sharedmem/test/check_layout.py /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/layout-records.stdout",
+        "stdout": {
+          "utf8Bytes": 63,
+          "sha256": "1f487cd1534a57f4be94b398a5901b402fb8a263380b3bbbb8505d8dd924cb57",
+          "text": "sharedmem independent layout: 3367 frames, 3 rejected controls\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "sharedmem_c-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sharedmem -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/sharedmem/examples/sharedmem_c.c /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/native.o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/runtime.o -lm -ldl -lrt -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/sharedmem_c",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "sharedmem_c-GCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/sharedmem_c",
+        "stdout": {
+          "utf8Bytes": 39,
+          "sha256": "69351af07a99b494618cec1403e255de563e8189654ec67bd1704235e9c38815",
+          "text": "text: hello\ninteger: 42\nbinary size: 3\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "sharedmem_c-TCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/sharedmem/examples/sharedmem_c.c",
+        "stdout": {
+          "utf8Bytes": 39,
+          "sha256": "69351af07a99b494618cec1403e255de563e8189654ec67bd1704235e9c38815",
+          "text": "text: hello\ninteger: 42\nbinary size: 3\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "sharedmem_c-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/sharedmem/examples/sharedmem_c.c -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/sharedmem_c.aot",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "sharedmem_c-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/sharedmem_c.aot",
+        "stdout": {
+          "utf8Bytes": 39,
+          "sha256": "69351af07a99b494618cec1403e255de563e8189654ec67bd1704235e9c38815",
+          "text": "text: hello\ninteger: 42\nbinary size: 3\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "snapshots_c-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sharedmem -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/sharedmem/examples/snapshots_c.c /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/native.o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/runtime.o -lm -ldl -lrt -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/snapshots_c",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "snapshots_c-GCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/snapshots_c",
+        "stdout": {
+          "utf8Bytes": 135,
+          "sha256": "ab017eac6465fb3e2610db5529e17f406abfc0c73f9adfbc19aaa57d1c6eae56",
+          "text": "peer survives owner: true\nlittle endian: 0807060504030201\nnew data zero: true\nsnapshot text bytes: 8\nsnapshot binary: 4100e4bda0e5a5bd\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "snapshots_c-TCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/sharedmem/examples/snapshots_c.c",
+        "stdout": {
+          "utf8Bytes": 135,
+          "sha256": "ab017eac6465fb3e2610db5529e17f406abfc0c73f9adfbc19aaa57d1c6eae56",
+          "text": "peer survives owner: true\nlittle endian: 0807060504030201\nnew data zero: true\nsnapshot text bytes: 8\nsnapshot binary: 4100e4bda0e5a5bd\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "snapshots_c-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/sharedmem/examples/snapshots_c.c -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/snapshots_c.aot",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "snapshots_c-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/snapshots_c.aot",
+        "stdout": {
+          "utf8Bytes": 135,
+          "sha256": "ab017eac6465fb3e2610db5529e17f406abfc0c73f9adfbc19aaa57d1c6eae56",
+          "text": "peer survives owner: true\nlittle endian: 0807060504030201\nnew data zero: true\nsnapshot text bytes: 8\nsnapshot binary: 4100e4bda0e5a5bd\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "extlib_sharedmem-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run test/cases/extlib_sharedmem.xl",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "extlib_sharedmem-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build test/cases/extlib_sharedmem.xl -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/extlib_sharedmem.aot",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "extlib_sharedmem-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/extlib_sharedmem.aot",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "boundaries-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/sharedmem/test/boundaries.xl",
+        "stdout": {
+          "utf8Bytes": 27,
+          "sha256": "83badb44b8279c7f1f15f54ff74f873f397545d00838ca5ff3f6b109ab513f97",
+          "text": "sharedmem boundaries: PASS\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "boundaries-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/sharedmem/test/boundaries.xl -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/boundaries.aot",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "boundaries-AOT",
+        "expected": 0,
+        "actual": 1,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/boundaries.aot",
+        "stdout": {
+          "utf8Bytes": 27,
+          "sha256": "83badb44b8279c7f1f15f54ff74f873f397545d00838ca5ff3f6b109ab513f97",
+          "text": "sharedmem boundaries: PASS\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 80,
+          "sha256": "1fa92339f5652e088855d10f3e076eb4803e351386dc7c2620467a144a5bcd6d",
+          "text": "uncaught xlang error: RuntimeError: operation is not valid in the current state\n",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "allocations-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/sharedmem/test/allocations.xl",
+        "stdout": {
+          "utf8Bytes": 28,
+          "sha256": "8ded82305af3a7aee68fb502a0312d6ac6c8a6902524dc32705bce1d4068bbcf",
+          "text": "sharedmem allocations: PASS\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "allocations-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/sharedmem/test/allocations.xl -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/allocations.aot",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "allocations-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/allocations.aot",
+        "stdout": {
+          "utf8Bytes": 28,
+          "sha256": "8ded82305af3a7aee68fb502a0312d6ac6c8a6902524dc32705bce1d4068bbcf",
+          "text": "sharedmem allocations: PASS\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "snapshots-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/sharedmem/examples/snapshots.xl",
+        "stdout": {
+          "utf8Bytes": 135,
+          "sha256": "ab017eac6465fb3e2610db5529e17f406abfc0c73f9adfbc19aaa57d1c6eae56",
+          "text": "peer survives owner: true\nlittle endian: 0807060504030201\nnew data zero: true\nsnapshot text bytes: 8\nsnapshot binary: 4100e4bda0e5a5bd\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "snapshots-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/sharedmem/examples/snapshots.xl -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/snapshots.aot",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "snapshots-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/snapshots.aot",
+        "stdout": {
+          "utf8Bytes": 135,
+          "sha256": "ab017eac6465fb3e2610db5529e17f406abfc0c73f9adfbc19aaa57d1c6eae56",
+          "text": "peer survives owner: true\nlittle endian: 0807060504030201\nnew data zero: true\nsnapshot text bytes: 8\nsnapshot binary: 4100e4bda0e5a5bd\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "sharedmem-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/examples/extlibs/sharedmem.xl",
+        "stdout": {
+          "utf8Bytes": 39,
+          "sha256": "69351af07a99b494618cec1403e255de563e8189654ec67bd1704235e9c38815",
+          "text": "text: hello\ninteger: 42\nbinary size: 3\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "sharedmem-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/examples/extlibs/sharedmem.xl -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/sharedmem.aot",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "sharedmem-AOT",
+        "expected": 0,
+        "actual": 1,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/sharedmem.aot",
+        "stdout": {
+          "utf8Bytes": 39,
+          "sha256": "69351af07a99b494618cec1403e255de563e8189654ec67bd1704235e9c38815",
+          "text": "text: hello\ninteger: 42\nbinary size: 3\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 80,
+          "sha256": "1fa92339f5652e088855d10f3e076eb4803e351386dc7c2620467a144a5bcd6d",
+          "text": "uncaught xlang error: RuntimeError: operation is not valid in the current state\n",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "global_teardown_repro-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/sharedmem/test/global_teardown_repro.xl",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "global_teardown_repro-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/sharedmem/test/global_teardown_repro.xl -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/global_teardown_repro.aot",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "global_teardown_repro-AOT",
+        "expected": 0,
+        "actual": 1,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/global_teardown_repro.aot",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 80,
+          "sha256": "1fa92339f5652e088855d10f3e076eb4803e351386dc7c2620467a144a5bcd6d",
+          "text": "uncaught xlang error: RuntimeError: operation is not valid in the current state\n",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "local_teardown_control-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/sharedmem/test/local_teardown_control.xl",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "local_teardown_control-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/sharedmem/test/local_teardown_control.xl -o /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/local_teardown_control.aot",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "local_teardown_control-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/local_teardown_control.aot",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "cgen-extlib_sharedmem",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl cgen test/cases/extlib_sharedmem.xl --emit /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/extlib_sharedmem.c",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "cgen-boundaries",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl cgen release/extlibs/sharedmem/test/boundaries.xl --emit /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/boundaries.c",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "generated-ABI",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sharedmem -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -fsyntax-only /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/abi.c",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "wrong-return-control",
+        "expected": 1,
+        "actual": 1,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/sharedmem -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -fsyntax-only /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/abi-bad.c",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 566,
+          "sha256": "539e77c900416a8d4539dfc1a001415f7a217b6fae3784793cbde6afa599440c",
+          "text": "/var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/abi-bad.c:8:15: error: conflicting types for ‘xshm_size’; have ‘double(void *)’\n    8 | extern double xshm_size(void*);\n      |               ^~~~~~~~~\nIn file included from /var/tmp/xlang-sharedmem-audit-Uhuewddc/tmp/xlang-sharedmem-SHTg9jow/abi-bad.c:1:\nrelease/extlibs/sharedmem/include/sharedmem_native.h:19:9: note: previous declaration of ‘xshm_size’ with type ‘int64_t(void *)’ {aka ‘long int(void *)’}\n   19 | int64_t xshm_size(void* Shared);\n      |         ^~~~~~~~~\n",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "private-native",
+        "expected": 1,
+        "actual": 1,
+        "command": "./release/xl check release/extlibs/sharedmem/test/private_native_negative.xl",
+        "stdout": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 289,
+          "sha256": "dc2b6fd23063e817ed0531363c74b6f428525e8f73def5c3170e2eab28626470",
+          "text": "release/extlibs/sharedmem/test/private_native_negative.xl:5:8: [sem] unknown class/union field\nrelease/extlibs/sharedmem/test/private_native_negative.xl:5:19: [sem] no matching callable class member '__xl6_import_sharedmem_SharedMemory.writeNative': check argument count, types and access\n",
+          "omittedLongText": false
+        }
+      },
+      {
+        "name": "private-constructor",
+        "expected": 1,
+        "actual": 0,
+        "command": "./release/xl check release/extlibs/sharedmem/test/private_constructor_negative.xl",
+        "stdout": {
+          "utf8Bytes": 3,
+          "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+          "text": "ok\n",
+          "omittedLongText": false
+        },
+        "stderr": {
+          "utf8Bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": "",
+          "omittedLongText": false
+        }
+      }
+    ],
+    "gccFlags": "-O1 -g -Wall -Wextra -Werror -fno-pie -no-pie -pthread",
+    "stages": 60,
+    "evidence": {
+      "boot.after": {
+        "sha256": "a8daa170c3e4527fd6bf430ecdd5435d6526e353b68bd2985334571fbe05e150",
+        "lines": [
+          "01a5bed3-00d4-449c-8fde-850ae6632bef"
+        ]
+      },
+      "inputs.before.sha256": {
+        "sha256": "54fd96196f9a1b175be012328cae98422fc06d401b8e7c752e1fe588395d1612",
+        "lines": [
+          "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h",
+          "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h",
+          "f1a2618ed6241940e3a3a3e5354f8594578b23dc63fb40e9e5ebe94303b2f092  ./release/examples/extlibs/sharedmem.xl",
+          "2c8c918664413f61cfa7f46edafc44e9441b33634f0e4ff851512f92711e8e84  ./release/extlibs/sharedmem/README.md",
+          "a02b7a2c19372f6e2193c3d30a5b8ef99c16d9507bdcf626829ebda9708fe62d  ./release/extlibs/sharedmem/docs/site.html",
+          "69351af07a99b494618cec1403e255de563e8189654ec67bd1704235e9c38815  ./release/extlibs/sharedmem/examples/basic.expected.txt",
+          "be741864d9a715df251ab281a1ced206a6dd50b1dff05611cd6b6c12d26c86f1  ./release/extlibs/sharedmem/examples/sharedmem_c.c",
+          "ab017eac6465fb3e2610db5529e17f406abfc0c73f9adfbc19aaa57d1c6eae56  ./release/extlibs/sharedmem/examples/snapshots.expected.txt",
+          "53b392a39b7abd8c44c51886eb096941930c28eed94aecaba68751bc28ad48ce  ./release/extlibs/sharedmem/examples/snapshots.xl",
+          "2b1ef0681f1f2e6a42b862b23420967089e2aef2e02afdf93d0754df845415c4  ./release/extlibs/sharedmem/examples/snapshots_c.c",
+          "ad38ccc36afcedf30fe952fc0be6b9e40375ee1a09a95a0aee7119a03da09192  ./release/extlibs/sharedmem/include/sharedmem_native.h",
+          "ef2c116757ee9ae1d940f55f533f87a7bc0373bfacbca9e7e52c0a2bd70a5cd3  ./release/extlibs/sharedmem/sharedmem_native.c",
+          "85bbb67288471e977aab68b906cac35da4dc9c3174e40acffa8436b1c8e1e343  ./release/extlibs/sharedmem/src/sharedmem.xl",
+          "0155617f850738697695b1d6bed429b31d49379393795874a6819e2632506328  ./release/extlibs/sharedmem/test/allocations.xl",
+          "d4d6986af38c2cc860dba255409bd251e8a5e48a626060c692f23f9bd7857cf9  ./release/extlibs/sharedmem/test/boundaries.xl",
+          "bd6bc9fe33b07559e1251d2e3632b78ee9371813113abcfe015d24b494fea0a7  ./release/extlibs/sharedmem/test/check.ps1",
+          "a6c501788af09d705efd689d3c43f21ecf81f539807311d2dc578f6646ac884c  ./release/extlibs/sharedmem/test/check.sh",
+          "ea75bd73f7353c5bef49989d9a2f1bb9a2bc6b5a92a6dd1fb6fd74f65d952745  ./release/extlibs/sharedmem/test/check_layout.py",
+          "16b20c0dd278e8718bb9ca5401e8488101096b4450a6d1d23aad772d7d61ab72  ./release/extlibs/sharedmem/test/error_contract_c.c",
+          "f9e7ab0baa07bb5821805886b5358a1ffce8295b22c23a5da6a19695a2a81999  ./release/extlibs/sharedmem/test/global_teardown_repro.xl",
+          "821ab5e9bb8988c977cb7daca0a328c6bec0a244b39b2d9a6f658a8e07f13db4  ./release/extlibs/sharedmem/test/layout_contract_c.c",
+          "f1a2a99bd18a833d49c81c40e10ef52556333cede870a496e5290e0e8ed712b7  ./release/extlibs/sharedmem/test/local_teardown_control.xl",
+          "fe95b0a8ec0c51e8ff08623fbaf39efec7aceee32ba2a88d557533ddb0758791  ./release/extlibs/sharedmem/test/private_constructor_negative.xl",
+          "f0dfdc27b0b80f40bf2c750834715d503bc3d529bd5e42c07b0c55d42f6fca12  ./release/extlibs/sharedmem/test/private_native_negative.xl",
+          "89110f092b8763144a2e22c4d942d7906515df78a1a033999c0fa4881e32918c  ./release/extlibs/sharedmem/test/test_sharedmem.c",
+          "50daa4645dfd1495e37a9779a686a8dea157527bd40c58c96860212a8af9da98  ./release/extlibs/sharedmem/test/test_sharedmem_alloc.c",
+          "2e0f61aff9318aaba1f0080b9363713fcf962d5db7e51f544ac816de5838510c  ./release/extlibs/sharedmem/test/xrt_runtime.c",
+          "04582a3a6de53bde2ae3ee1b49ce0e420621ed9bc93a1bbd113be2382f834c89  ./release/extlibs/sharedmem/xlang.package.json",
+          "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md",
+          "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h",
+          "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h",
+          "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h",
+          "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h",
+          "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h",
+          "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h",
+          "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h",
+          "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h",
+          "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h",
+          "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h",
+          "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h",
+          "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h",
+          "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h",
+          "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h",
+          "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h",
+          "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so",
+          "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so",
+          "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl",
+          "f0190b2f92c6f275c85e5d3af933d0f1d4f6fa547f3a38c22da9124374c7dc35  ./test/cases/extlib_sharedmem.xl"
+        ]
+      },
+      "inputs.after.sha256": {
+        "sha256": "54fd96196f9a1b175be012328cae98422fc06d401b8e7c752e1fe588395d1612",
+        "lines": [
+          "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h",
+          "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h",
+          "f1a2618ed6241940e3a3a3e5354f8594578b23dc63fb40e9e5ebe94303b2f092  ./release/examples/extlibs/sharedmem.xl",
+          "2c8c918664413f61cfa7f46edafc44e9441b33634f0e4ff851512f92711e8e84  ./release/extlibs/sharedmem/README.md",
+          "a02b7a2c19372f6e2193c3d30a5b8ef99c16d9507bdcf626829ebda9708fe62d  ./release/extlibs/sharedmem/docs/site.html",
+          "69351af07a99b494618cec1403e255de563e8189654ec67bd1704235e9c38815  ./release/extlibs/sharedmem/examples/basic.expected.txt",
+          "be741864d9a715df251ab281a1ced206a6dd50b1dff05611cd6b6c12d26c86f1  ./release/extlibs/sharedmem/examples/sharedmem_c.c",
+          "ab017eac6465fb3e2610db5529e17f406abfc0c73f9adfbc19aaa57d1c6eae56  ./release/extlibs/sharedmem/examples/snapshots.expected.txt",
+          "53b392a39b7abd8c44c51886eb096941930c28eed94aecaba68751bc28ad48ce  ./release/extlibs/sharedmem/examples/snapshots.xl",
+          "2b1ef0681f1f2e6a42b862b23420967089e2aef2e02afdf93d0754df845415c4  ./release/extlibs/sharedmem/examples/snapshots_c.c",
+          "ad38ccc36afcedf30fe952fc0be6b9e40375ee1a09a95a0aee7119a03da09192  ./release/extlibs/sharedmem/include/sharedmem_native.h",
+          "ef2c116757ee9ae1d940f55f533f87a7bc0373bfacbca9e7e52c0a2bd70a5cd3  ./release/extlibs/sharedmem/sharedmem_native.c",
+          "85bbb67288471e977aab68b906cac35da4dc9c3174e40acffa8436b1c8e1e343  ./release/extlibs/sharedmem/src/sharedmem.xl",
+          "0155617f850738697695b1d6bed429b31d49379393795874a6819e2632506328  ./release/extlibs/sharedmem/test/allocations.xl",
+          "d4d6986af38c2cc860dba255409bd251e8a5e48a626060c692f23f9bd7857cf9  ./release/extlibs/sharedmem/test/boundaries.xl",
+          "bd6bc9fe33b07559e1251d2e3632b78ee9371813113abcfe015d24b494fea0a7  ./release/extlibs/sharedmem/test/check.ps1",
+          "a6c501788af09d705efd689d3c43f21ecf81f539807311d2dc578f6646ac884c  ./release/extlibs/sharedmem/test/check.sh",
+          "ea75bd73f7353c5bef49989d9a2f1bb9a2bc6b5a92a6dd1fb6fd74f65d952745  ./release/extlibs/sharedmem/test/check_layout.py",
+          "16b20c0dd278e8718bb9ca5401e8488101096b4450a6d1d23aad772d7d61ab72  ./release/extlibs/sharedmem/test/error_contract_c.c",
+          "f9e7ab0baa07bb5821805886b5358a1ffce8295b22c23a5da6a19695a2a81999  ./release/extlibs/sharedmem/test/global_teardown_repro.xl",
+          "821ab5e9bb8988c977cb7daca0a328c6bec0a244b39b2d9a6f658a8e07f13db4  ./release/extlibs/sharedmem/test/layout_contract_c.c",
+          "f1a2a99bd18a833d49c81c40e10ef52556333cede870a496e5290e0e8ed712b7  ./release/extlibs/sharedmem/test/local_teardown_control.xl",
+          "fe95b0a8ec0c51e8ff08623fbaf39efec7aceee32ba2a88d557533ddb0758791  ./release/extlibs/sharedmem/test/private_constructor_negative.xl",
+          "f0dfdc27b0b80f40bf2c750834715d503bc3d529bd5e42c07b0c55d42f6fca12  ./release/extlibs/sharedmem/test/private_native_negative.xl",
+          "89110f092b8763144a2e22c4d942d7906515df78a1a033999c0fa4881e32918c  ./release/extlibs/sharedmem/test/test_sharedmem.c",
+          "50daa4645dfd1495e37a9779a686a8dea157527bd40c58c96860212a8af9da98  ./release/extlibs/sharedmem/test/test_sharedmem_alloc.c",
+          "2e0f61aff9318aaba1f0080b9363713fcf962d5db7e51f544ac816de5838510c  ./release/extlibs/sharedmem/test/xrt_runtime.c",
+          "04582a3a6de53bde2ae3ee1b49ce0e420621ed9bc93a1bbd113be2382f834c89  ./release/extlibs/sharedmem/xlang.package.json",
+          "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md",
+          "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h",
+          "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h",
+          "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h",
+          "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h",
+          "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h",
+          "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h",
+          "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h",
+          "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h",
+          "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h",
+          "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h",
+          "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h",
+          "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h",
+          "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h",
+          "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h",
+          "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h",
+          "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so",
+          "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so",
+          "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl",
+          "f0190b2f92c6f275c85e5d3af933d0f1d4f6fa547f3a38c22da9124374c7dc35  ./test/cases/extlib_sharedmem.xl"
+        ]
+      },
+      "tools.before.sha256": {
+        "sha256": "dfa9b2e1683a962061323728cf4a616f4b0a44cea570485e787d0f282c583330",
+        "lines": [
+          "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc",
+          "30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1",
+          "3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash",
+          "52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41  /usr/bin/python3.14"
+        ]
+      },
+      "boot.before": {
+        "sha256": "a8daa170c3e4527fd6bf430ecdd5435d6526e353b68bd2985334571fbe05e150",
+        "lines": [
+          "01a5bed3-00d4-449c-8fde-850ae6632bef"
+        ]
+      },
+      "tools.after.sha256": {
+        "sha256": "dfa9b2e1683a962061323728cf4a616f4b0a44cea570485e787d0f282c583330",
+        "lines": [
+          "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc",
+          "30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1",
+          "3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash",
+          "52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41  /usr/bin/python3.14"
+        ]
+      }
+    },
+    "ordinaryIndependentAotPass": 9,
+    "sanitizers": [
+      "ASan",
+      "UBSan",
+      "leaks"
+    ],
+    "sourceAndToolsUnchanged": true,
+    "kernelBootUnchanged": true
+  },
+  "objectSize": {
+    "compiler": "GCC -O2 object size, not executable size or throughput",
+    "windows": {
+      "bss": 0,
+      "data": 0,
+      "oldText": 4008,
+      "newText": 3744,
+      "deltaText": -264
+    },
+    "linux": {
+      "bss": 0,
+      "data": 0,
+      "oldText": 4841,
+      "newText": 4585,
+      "deltaText": -256
+    },
+    "noSpeedOrZeroCostClaim": true
+  },
+  "examples": {
+    "sameFiveExecutionFormsBothPlatforms": true,
+    "behavior": "Unaligned little-endian, counted UTF-8 NUL, owner retires before peer, returned snapshots survive all mappings",
+    "files": [
+      "examples/snapshots.xl",
+      "examples/snapshots_c.c"
+    ],
+    "noExternalServices": true,
+    "manifestOriginalCoveragePreserved": true,
+    "golden": "examples/snapshots.expected.txt"
+  },
+  "postGateDocumentationChanges": [
+    {
+      "path": "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\docs\\site.html",
+      "before": "A02B7A2C19372F6E2193C3D30A5B8EF99C16D9507BDCF626829EBDA9708FE62D",
+      "after": "bfdda72599315255352a209b29995d405f23446fe615fa7ceef2f8f949e6cb70",
+      "documentationOnly": true
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\release\\extlibs\\sharedmem\\README.md",
+      "before": "2C8C918664413F61CFA7F46EDAFC44E9441B33634F0E4FF851512F92711E8E84",
+      "after": "36e7d0fa5dc8fca9d4c664b3b1ca8459febba9da5d6b92c8e4b821c74c27f337",
+      "documentationOnly": true
+    }
+  ],
+  "newDocumentationAfterGate": [
+    "release/extlibs/sharedmem/examples/README.md"
+  ],
+  "finalPackageFiles": [
+    {
+      "path": "release/extlibs/sharedmem/docs/site.html",
+      "sha256": "bfdda72599315255352a209b29995d405f23446fe615fa7ceef2f8f949e6cb70",
+      "bytes": 4285
+    },
+    {
+      "path": "release/extlibs/sharedmem/examples/basic.expected.txt",
+      "sha256": "69351af07a99b494618cec1403e255de563e8189654ec67bd1704235e9c38815",
+      "bytes": 39
+    },
+    {
+      "path": "release/extlibs/sharedmem/examples/README.md",
+      "sha256": "719743b7f5e65dc37bafddac0c07d1dc00b8b2cc841069a78b3ad5fef4fad42c",
+      "bytes": 3101
+    },
+    {
+      "path": "release/extlibs/sharedmem/examples/sharedmem_c.c",
+      "sha256": "be741864d9a715df251ab281a1ced206a6dd50b1dff05611cd6b6c12d26c86f1",
+      "bytes": 1473
+    },
+    {
+      "path": "release/extlibs/sharedmem/examples/snapshots_c.c",
+      "sha256": "2b1ef0681f1f2e6a42b862b23420967089e2aef2e02afdf93d0754df845415c4",
+      "bytes": 2076
+    },
+    {
+      "path": "release/extlibs/sharedmem/examples/snapshots.expected.txt",
+      "sha256": "ab017eac6465fb3e2610db5529e17f406abfc0c73f9adfbc19aaa57d1c6eae56",
+      "bytes": 135
+    },
+    {
+      "path": "release/extlibs/sharedmem/examples/snapshots.xl",
+      "sha256": "53b392a39b7abd8c44c51886eb096941930c28eed94aecaba68751bc28ad48ce",
+      "bytes": 1165
+    },
+    {
+      "path": "release/extlibs/sharedmem/include/sharedmem_native.h",
+      "sha256": "ad38ccc36afcedf30fe952fc0be6b9e40375ee1a09a95a0aee7119a03da09192",
+      "bytes": 1441
+    },
+    {
+      "path": "release/extlibs/sharedmem/README.md",
+      "sha256": "36e7d0fa5dc8fca9d4c664b3b1ca8459febba9da5d6b92c8e4b821c74c27f337",
+      "bytes": 12240
+    },
+    {
+      "path": "release/extlibs/sharedmem/sharedmem_native.c",
+      "sha256": "ef2c116757ee9ae1d940f55f533f87a7bc0373bfacbca9e7e52c0a2bd70a5cd3",
+      "bytes": 14346
+    },
+    {
+      "path": "release/extlibs/sharedmem/src/sharedmem.xl",
+      "sha256": "85bbb67288471e977aab68b906cac35da4dc9c3174e40acffa8436b1c8e1e343",
+      "bytes": 3490
+    },
+    {
+      "path": "release/extlibs/sharedmem/test/allocations.xl",
+      "sha256": "0155617f850738697695b1d6bed429b31d49379393795874a6819e2632506328",
+      "bytes": 3289
+    },
+    {
+      "path": "release/extlibs/sharedmem/test/boundaries.xl",
+      "sha256": "d4d6986af38c2cc860dba255409bd251e8a5e48a626060c692f23f9bd7857cf9",
+      "bytes": 2016
+    },
+    {
+      "path": "release/extlibs/sharedmem/test/check_layout.py",
+      "sha256": "ea75bd73f7353c5bef49989d9a2f1bb9a2bc6b5a92a6dd1fb6fd74f65d952745",
+      "bytes": 1926
+    },
+    {
+      "path": "release/extlibs/sharedmem/test/check.ps1",
+      "sha256": "bd6bc9fe33b07559e1251d2e3632b78ee9371813113abcfe015d24b494fea0a7",
+      "bytes": 9554
+    },
+    {
+      "path": "release/extlibs/sharedmem/test/check.sh",
+      "sha256": "a6c501788af09d705efd689d3c43f21ecf81f539807311d2dc578f6646ac884c",
+      "bytes": 7031
+    },
+    {
+      "path": "release/extlibs/sharedmem/test/error_contract_c.c",
+      "sha256": "16b20c0dd278e8718bb9ca5401e8488101096b4450a6d1d23aad772d7d61ab72",
+      "bytes": 5613
+    },
+    {
+      "path": "release/extlibs/sharedmem/test/global_teardown_repro.xl",
+      "sha256": "f9e7ab0baa07bb5821805886b5358a1ffce8295b22c23a5da6a19695a2a81999",
+      "bytes": 144
+    },
+    {
+      "path": "release/extlibs/sharedmem/test/layout_contract_c.c",
+      "sha256": "821ab5e9bb8988c977cb7daca0a328c6bec0a244b39b2d9a6f658a8e07f13db4",
+      "bytes": 8301
+    },
+    {
+      "path": "release/extlibs/sharedmem/test/local_teardown_control.xl",
+      "sha256": "f1a2a99bd18a833d49c81c40e10ef52556333cede870a496e5290e0e8ed712b7",
+      "bytes": 146
+    },
+    {
+      "path": "release/extlibs/sharedmem/test/private_constructor_negative.xl",
+      "sha256": "fe95b0a8ec0c51e8ff08623fbaf39efec7aceee32ba2a88d557533ddb0758791",
+      "bytes": 152
+    },
+    {
+      "path": "release/extlibs/sharedmem/test/private_native_negative.xl",
+      "sha256": "f0dfdc27b0b80f40bf2c750834715d503bc3d529bd5e42c07b0c55d42f6fca12",
+      "bytes": 208
+    },
+    {
+      "path": "release/extlibs/sharedmem/test/test_sharedmem_alloc.c",
+      "sha256": "50daa4645dfd1495e37a9779a686a8dea157527bd40c58c96860212a8af9da98",
+      "bytes": 3984
+    },
+    {
+      "path": "release/extlibs/sharedmem/test/test_sharedmem.c",
+      "sha256": "89110f092b8763144a2e22c4d942d7906515df78a1a033999c0fa4881e32918c",
+      "bytes": 8294
+    },
+    {
+      "path": "release/extlibs/sharedmem/test/xrt_runtime.c",
+      "sha256": "2e0f61aff9318aaba1f0080b9363713fcf962d5db7e51f544ac816de5838510c",
+      "bytes": 213
+    },
+    {
+      "path": "release/extlibs/sharedmem/xlang.package.json",
+      "sha256": "04582a3a6de53bde2ae3ee1b49ce0e420621ed9bc93a1bbd113be2382f834c89",
+      "bytes": 606
+    }
+  ],
+  "website": {
+    "externalDeploymentPerformed": false,
+    "sourceSha256": "bfdda72599315255352a209b29995d405f23446fe615fa7ceef2f8f949e6cb70",
+    "generatedCopyMatchesSource": true,
+    "path": "build/test/sharedmem-contract-20261102/site/extlibs/sharedmem.html"
+  },
+  "catalog": {
+    "documents": 145,
+    "reason": "xl.dll strict compiler binding differs; no replacement of installed IDE/release data",
+    "removedEntries": 0,
+    "candidate": "build/test/sharedmem-contract-20261102/catalog-final",
+    "checks": [
+      {
+        "name": "freshness",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/refresh_extensions.py",
+          "--root",
+          "D:/GIT/x-lang",
+          "--data",
+          "build/test/sharedmem-contract-20261102/catalog-final",
+          "--check"
+        ],
+        "requiredExit": 0,
+        "actual": 0,
+        "status": "pass",
+        "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+        "stderr": ""
+      },
+      {
+        "name": "binding",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/check_catalog_coverage.py",
+          "--root",
+          "D:/GIT/x-lang",
+          "--catalog",
+          "build/test/sharedmem-contract-20261102/catalog-final/commands.json"
+        ],
+        "requiredExit": 0,
+        "actual": 1,
+        "status": "fail",
+        "stdout": "",
+        "stderr": "Catalog compiler changed: xl.dll\r\n"
+      },
+      {
+        "name": "delivery",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-B",
+          "tools/check_release_committed.py",
+          "--root",
+          "D:/GIT/x-lang"
+        ],
+        "requiredExit": 0,
+        "actual": 0,
+        "status": "pass",
+        "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+        "stderr": ""
+      }
+    ],
+    "installed": false,
+    "publicPackages": 207,
+    "addedEntries": 0,
+    "preservedNonExtensionEntries": 6156,
+    "availableSources": 593,
+    "extensionEntries": 11442,
+    "requiredBindingRemainsRed": true
+  },
+  "invalidAttempts": [
+    "Initial probe macros conflicted with XRT debug allocator macros; corrected explicit undef before final tests",
+    "First snapshot example used typed multi-return declaration; corrected to auto text, binary before final gates",
+    "Initial Linux stages y7PCbiQM/QGHcboRs stopped on POSIX macro redefinition; not full gate evidence",
+    "Windows gate f764 is final functional source, supersedes d5a6 and 2d13 earlier reports"
+  ],
+  "residualRisks": [
+    "M2: three required top-level native class AOT tests still exit1 after normal execution",
+    "M3: private native handle constructor still accepted outside package; check-only negative never executed",
+    "No interprocess synchronization/atomicity guarantee; app must coordinate mapped memory access and name replacement",
+    "No long duration resource exhaustion, hostile multiuser/kernel, crash recovery, 32-bit/ARM/macOS or custom DLL host certification",
+    "No proof of allocator/pool behavior outside exercised public paths"
+  ],
+  "maturity": {
+    "X": 4,
+    "M": 56,
+    "G": 30,
+    "wholeGoalComplete": false,
+    "R": 10,
+    "total": 100
+  }
+}

@@ -1,5 +1,33 @@
 # sharedmem
 
+## 当前复验：2026-11-02
+
+本次修复 `create/open/read/readText` 五个分配失败分支重复构造错误、覆盖
+XRT 原始首因的问题；失败保留原错误身份、分类、域、后端码和完整消息。
+补上公开 C 头文件遗漏的 `xshm_write_text` 原型，并尊重调用方已设置的
+POSIX 特性宏，使包含本包实现的 C 程序也能通过新 glibc 的严格编译。
+公开 API、ABI 和成功路径的正文复制次数均未改变。
+
+Windows 完整默认门禁执行 61 阶段，Linux 原生冻结快照执行 60 阶段，
+后者包含 ASan/UBSan/泄漏检查。两平台均只有以下四项预期不符：
+`boundaries`、公开 `sharedmem` 范例和 `global_teardown_repro` 的独立
+AOT 在退出时报既有 M2；私有构造器负例被接受（M3）。其余阶段符合预期，
+包括真实 C 子进程、9 份独立 AOT、13 条实际生成的 XLang/C 原型对照、
+故意改错返回类型的负控及私有原生方法负例。默认门禁仍真实返回失败，
+本包保持 M，不据局部通过签收发布级。
+
+新增测试覆盖 30 组预置分配首因（284 检查；旧实现 60 条断言失败，
+新实现 0）、3,367 组完整小端帧、112 组非法范围、14 组快照生命周期
+及 64 MiB 上界，布局共 14,102 检查。Python `struct.pack('<q')` 独立
+核对全部帧，并拒绝三种主动损坏；不是用被测写入器生成预期。
+首因测试是在发布有效错误后禁止进一步分配，不将其称为 30 次真实 OOM；
+原有 C/XL 实际分配故障扫描仍执行。没有并发原子性或吞吐性能承诺。
+
+新增[双语快照范例](examples/README.md)，展示非对齐整数、内嵌 NUL 的
+UTF-8 文本、创建者先退役和读取快照跨所有句柄退役的完整用法。
+详细证据见 `docs/reports/extlib-sharedmem-contract-20261102.json`。
+下列日期记录保留为历史复验范围，不替代本节的当前结论。
+
 > 2026-10-24 当前 Windows 发布版复验：C 跨进程/分配、XLang 边界、
 > 私有成员负例、双语 JIT 与核心 AOT 通过。默认门禁新增公开范例
 > AOT 对照后，范例先输出正确结果，再于退出时报
@@ -74,12 +102,14 @@ C API 的 `xshm_unlink` 可用于 POSIX 显式移除名称；Windows 不支持�
 定向验证（在仓库根目录）：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/sharedmem/test/check.ps1 -SkipAot
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/sharedmem/test/check.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package sharedmem -Source release/extlibs/sharedmem/test/test_sharedmem.c
 release/xl.exe run release/extlibs/sharedmem/examples/sharedmem_c.c
 release/xl.exe run release/extlibs/sharedmem/test/boundaries.xl
 release/xl.exe run test/cases/extlib_sharedmem.xl
 release/xl.exe run release/examples/extlibs/sharedmem.xl
+release/xl.exe run release/extlibs/sharedmem/examples/snapshots.xl
+release/xl.exe run release/extlibs/sharedmem/examples/snapshots_c.c
 bash release/extlibs/sharedmem/test/check.sh
 ```
 

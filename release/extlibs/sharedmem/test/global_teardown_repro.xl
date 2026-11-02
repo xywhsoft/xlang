@@ -1,6 +1,6 @@
 import sharedmem
 
-auto memory = sharedmem.create("xlang_sharedmem_aot_teardown_repro", 16)
+auto memory = sharedmem.create("xlang_shm_aot_global_" + crypto.randomString(20), 16)
 
 func main(...) as int
     return 0

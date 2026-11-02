@@ -41,19 +41,32 @@ static int test_process(const char* name)
     STARTUPINFOW startup = {0};
     PROCESS_INFORMATION process = {0};
     DWORD code = 1;
-    if (!GetModuleFileNameW(NULL, self, 512)) return 1;
+    DWORD self_length = GetModuleFileNameW(NULL, self, 512);
+    if (!self_length || self_length >= 512) return 1;
     base = wcsrchr(self, L'\\');
     if (base != NULL && _wcsicmp(base + 1, L"xl.exe") == 0) return 2;
-    if (!MultiByteToWideChar(CP_UTF8, 0, name, -1, wide_name, 160)) return 1;
-    if (swprintf(command, 768, L"\"%ls\" --child %ls", self, wide_name) < 0) return 1;
+    int count = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, name, -1, wide_name, 160);
+    if (count <= 0) return 1;
+    /* 固定的三个参数片段，不依赖各CRT对swprintf不同的声明/入口。 */
+    static const wchar_t middle[] = L"\" --child \"";
+    size_t used = 1u + self_length + wcslen(middle) + (size_t)count;
+    if (used + 1u >= sizeof(command)/sizeof(command[0])) return 1;
+    command[0] = L'"';
+    memcpy(command + 1, self, self_length * sizeof(wchar_t));
+    memcpy(command + 1 + self_length, middle, wcslen(middle) * sizeof(wchar_t));
+    memcpy(command + 1 + self_length + wcslen(middle), wide_name, (size_t)(count - 1) * sizeof(wchar_t));
+    command[used - 1] = L'"'; command[used] = 0;
     startup.cb = sizeof(startup);
-    if (!CreateProcessW(self, command, NULL, NULL, FALSE, 0, NULL, NULL,
+    if (!CreateProcessW(self, command, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL,
         &startup, &process)) return 1;
-    WaitForSingleObject(process.hProcess, INFINITE);
-    GetExitCodeProcess(process.hProcess, &code);
+    DWORD waited = WaitForSingleObject(process.hProcess, 20000);
+    if (waited != WAIT_OBJECT_0) {
+        TerminateProcess(process.hProcess, 1);
+        WaitForSingleObject(process.hProcess, 10000);
+    } else if (!GetExitCodeProcess(process.hProcess, &code)) code = 1;
     CloseHandle(process.hThread);
     CloseHandle(process.hProcess);
-    return code == 0 ? 0 : 1;
+    return waited == WAIT_OBJECT_0 && code == 0 ? 0 : 1;
 #else
     pid_t pid = fork();
     int status;
@@ -156,6 +169,7 @@ int main(int argc, char** argv)
     CHECK(xshm_read_int64(owner, 16, &value) && value == -123456789);
     process_result = test_process(name);
     CHECK(process_result == 0 || process_result == 2);
+    printf("sharedmem cross-process: %s\n", process_result == 0 ? "real child" : "not run inside xl.exe host");
 #ifdef _WIN32
     /* xl run 下的 C 测试无法自启动；独立 GCC 可执行文件覆盖此路径。 */
     if (process_result == 2) CHECK(xshm_write(peer, 40, "child", 5));

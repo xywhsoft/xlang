@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / sharedmem</p><h1>sharedmem</h1>
     <p class="extlib-lead">Windows/Linux 命名共享内存，字节安全的双语接口。</p>
-    <p>Windows/Linux C 子进程测试、Linux sanitizer、XLang JIT 与双语范例逐字对照已通过；范例使用独立随机名称。C 范例可直接由 <code>xl run</code> 执行。核心 AOT 已验证；完整发布签收仍受主线原生类退役和私有构造器访问控制问题阻断。</p>
+    <p>2026-11-02：Windows 61 阶段、Linux 60 阶段完整复验，保留 sanitizer、真实 C 子进程、错误首因、13 条实际生成原型及双语输出对照。新增快照范例在句柄退役后仍可使用读取结果；基础范例等三个顶层 AOT 的退出问题及私有构造器访问控制负例仍失败，本包不签收完整发布级。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
@@ -28,6 +28,7 @@
       <tr><td><code>writeInt/readInt / zero</code></td><td>小端有符号 64 位整数和清零</td></tr>
     </tbody></table>
     <p>重复创建名称在 XLang 中抛 <code>ValueError</code>，打开不存在的名称抛 <code>LookupError</code>；C 侧分别保留 <code>XERR_EXISTS</code> 与 <code>XERR_NOT_FOUND</code>。</p>
+    <p>分配失败直接保留 XRT 原始首因，不重新构造消息。新增 30 组首因合同、3,367 组全帧小端记录、112 组非法范围、14 组快照生命周期及 64 MiB 上界检查；独立 Python 参照核对完整字节。测试数不代表并发原子性、长时耐久或零开销承诺。</p>
     <h2 id="example">xlang</h2>
     <pre><code>import sharedmem
 auto owner = sharedmem.create("demo_exchange", 128)
@@ -35,6 +36,7 @@ auto reader = sharedmem.open(owner.name)
 owner.writeText(0, "hello")
 println(reader.readText(0, 5))</code></pre>
     <h2 id="c-api">C 与边界</h2>
+    <p><code>examples/snapshots.xl</code> 与 <code>examples/snapshots_c.c</code> 演示非对齐整数、内嵌 NUL 的 UTF-8、创建者先退役及读取快照跨所有句柄退役；五种执行形态在两平台按固定输出对照。C 公开头已补齐 <code>xshm_write_text</code> 声明，不要求调用方自行猜测签名。</p>
     <p>头文件 <code>include/sharedmem_native.h</code>；C 调用方显式关闭句柄，<code>xshm_read</code> 的缓冲用 <code>xrtBufferDestroy</code> 释放，<code>xshm_read_text</code> 的文本用 <code>xrtFree</code> 释放。名称最长 128 UTF-8 字节，XLang 在进入 C 前拒绝内嵌 NUL；大小 1 至 64 MiB。没有内建进程间锁，应用须自行同步。POSIX 创建者关闭会 unlink；显式 unlink 后同名重建时，旧创建者不会误删新对象，但并发名称操作仍需同步。Windows 名称随最后句柄关闭而消失。Windows 与 Linux 包级门禁覆盖独立 C 子进程、分配故障、语言边界及双语范例；README 记录当前完整签收阻断。</p>
   </section>
 </main>

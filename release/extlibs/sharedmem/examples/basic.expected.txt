@@ -1,0 +1,3 @@
+text: hello
+integer: 42
+binary size: 3

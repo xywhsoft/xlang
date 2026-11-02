@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "xrt.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,6 +19,7 @@ int xshm_unlink(const char* Name);
 int64_t xshm_size(void* Shared);
 const char* xshm_name_of(void* Shared);
 int xshm_write(void* Shared, int64_t Offset, const void* Data, size_t Length);
+int xshm_write_text(void* Shared, int64_t Offset, xstrview Text);
 /* XLang point extern 不区分 const；公开 C API 仍保持只读参数。 */
 int xshm_write_abi(void* Shared, int64_t Offset, void* Data, size_t Length);
 /* 返回 xbuffer* 的独立副本，调用方用 xrtBufferDestroy 释放。 */

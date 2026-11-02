@@ -1,0 +1,35 @@
+import sharedmem
+
+// 创建者退役后，已打开的映射仍可用；不依赖平台的名称移除时机。
+func connect(string name) as sharedmem.SharedMemory
+    auto owner = sharedmem.create(name, 64)
+    owner.writeInt(1, 0x0102030405060708)
+    owner.writeText(16, "A\0你好")
+    return sharedmem.open(name)
+end
+
+func snapshots() as (cstring, Buffer)
+    auto peer = connect("xl-shm-snapshot-" + crypto.randomString(20))
+    assert peer.size == 64
+    assert peer.readInt(1) == 0x0102030405060708
+    println("peer survives owner: true")
+    Buffer wire = peer.read(1, 8)
+    assert wire.hex() == "0807060504030201"
+    println("little endian: " + wire.hex())
+    cstring text = peer.readText(16, 8)
+    Buffer binary = peer.read(16, 8)
+    peer.zero()
+    assert peer.readInt(1) == 0
+    println("new data zero: true")
+    return text, binary
+end
+
+func main(...) as int
+    auto text, binary = snapshots()
+    assert string.byteLen(text) == 8
+    assert text == "A\0你好"
+    assert binary.hex() == "4100e4bda0e5a5bd"
+    println("snapshot text bytes: " + string(string.byteLen(text)))
+    println("snapshot binary: " + binary.hex())
+    return 0
+end

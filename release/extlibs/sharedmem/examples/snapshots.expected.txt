@@ -1,0 +1,5 @@
+peer survives owner: true
+little endian: 0807060504030201
+new data zero: true
+snapshot text bytes: 8
+snapshot binary: 4100e4bda0e5a5bd

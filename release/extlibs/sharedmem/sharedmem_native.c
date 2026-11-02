@@ -1,5 +1,5 @@
 /* 命名共享内存只保存原始字节；调用方负责跨进程同步与数据协议。 */
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
 #define _POSIX_C_SOURCE 200809L
 #endif
 #include <stdint.h>
@@ -85,10 +85,8 @@ static bool xshm_native_name(const char* Name, wchar_t* Wide, size_t Capacity)
 static xshm_handle* xshm_new(const char* Name)
 {
     xshm_handle* Shared = (xshm_handle*)xrtCalloc(1u, sizeof(*Shared));
-    if (Shared == NULL) {
-        xshm_error(XERR_MEMORY, "could not allocate shared memory handle");
-        return NULL;
-    }
+    /* XRT 已提供完整内存首因，不再构造第二份诊断。 */
+    if (Shared == NULL) return NULL;
     memcpy(Shared->Name, Name, strlen(Name) + 1u);
 #ifndef _WIN32
     Shared->Descriptor = -1;
@@ -371,7 +369,6 @@ void* xshm_read(void* Handle, int64_t Offset, size_t Length)
             (xbytesview){ Shared->Mapping + sizeof(xshm_header) +
                 (size_t)Offset, Length }))) {
         xrtBufferDestroy(Result);
-        xshm_error(XERR_MEMORY, "could not copy shared memory bytes");
         return NULL;
     }
     return Result;
@@ -384,10 +381,7 @@ void* xshm_read_text(void* Handle, int64_t Offset, size_t Length)
     xrtClearError();
     if (!xshm_range(Shared, Offset, Length)) return NULL;
     Text = (char*)xrtMalloc(Length + 1u);
-    if (Text == NULL) {
-        xshm_error(XERR_MEMORY, "could not copy shared memory text");
-        return NULL;
-    }
+    if (Text == NULL) return NULL;
     /* 先复制快照，再验证；并发写入时不能直接验证可变映射。 */
     if (Length != 0u)
         memcpy(Text, Shared->Mapping + sizeof(xshm_header) + (size_t)Offset,
