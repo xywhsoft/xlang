@@ -24,6 +24,7 @@ typedef enum {
 
 typedef struct {
 	int iCode;
+	/* Reader/进度回调已有 XRT 错误时，保留其原始数字码。 */
 	int iBackendCode;
 	uint64 iInputOffset;
 	uint64 iOutputOffset;
@@ -66,6 +67,7 @@ XRT_API bool xrtXxhash3_128(const void* pData, size_t iSize, uint64 iSeed,
 	uint64* pHigh, uint64* pLow, xrtxxhasherror* pError);
 
 /* 借用 Reader 的当前游标，成功才写输出；包含空流及末尾进度通知。 */
+/* Tell/Size 不支持时按未知总长读取；真实失败不消费输入，保留原始错误。 */
 XRT_API bool xrtXxhashFile64(xreader* pReader, uint64 iSeed, const xrtresourcelimits* pLimits,
 	uint64* pHash, xrtprogressproc pProgress, ptr pUserData, xrtxxhasherror* pError);
 

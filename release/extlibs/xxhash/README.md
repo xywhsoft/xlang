@@ -1,5 +1,19 @@
 # xxhash
 
+## Reader 错误合同
+
+`xrtXxhashFile64` 借用调用方 Reader 的当前游标，不定位、不关闭。Tell/Size
+明确返回 `XERR_UNSUPPORTED` 或缺少元数据能力时，允许按未知总长读取；
+真实元数据错误立即失败，不读正文、不通知进度、不写摘要。读取及进度回调
+失败保留原始 XRT 错误对象、分类、域、数字码和文本；可选 C 错误快照保存
+包内分类、后端数字码、相对输入偏移和最多255字节文本。恢复由调用方控制。
+
+`test/reader_contract_c.c` 与 BLAKE2/3 共用仓库测试合同，包含可选快照、
+空/长消息、错误码边界、未知长度、游标超过EOF及真实元数据OOM；它不是
+运行依赖，也不向 XLang 增加原始 Reader 包装。普通双语文件/进度范例沿用。
+Windows 嵌入 C 的长诊断终止规则另见
+`dev/extlib_blockers/c99_snprintf_termination.md`，不在包内加兼容格式化层。
+
 2026-10-29 新增全局哈希器用例 `test/top_level.xl`，main 内检查对象
 有效，退出时自然析构。固定发布版 Windows/Linux JIT 均退出0；独立
 EXE 均打印 PASS 后在退出期报状态错误并退出1，确认 **M2 主线阻断**。

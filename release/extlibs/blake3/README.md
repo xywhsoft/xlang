@@ -1,5 +1,17 @@
 # blake3
 
+## Reader 错误合同
+
+`xrtBlake3File` 借用当前 Reader，不定位、不关闭。Tell/Size 只有明确
+不支持时才按未知总长继续；真实元数据错误不读正文、不通知进度、不写
+摘要。读失败和回调失败保留原始 XRT 首因，可选 C 快照保留数字码、
+相对偏移和最多255字节原文；已有错误不会再次发布或分配。恢复由调用方控制。
+
+`test/reader_contract_c.c` 使用65字节XOF输出检查错误、元数据降级与真实
+OOM，输出区及尾部哨兵均不得被失败操作修改。共享测试头不是生产依赖；
+普通双语文件/回调范例沿用。Windows 嵌入 C 的长诊断终止问题见
+`dev/extlib_blockers/c99_snprintf_termination.md`，不在包内增加格式化回退。
+
 2026-10-30：文件哈希保留 Reader/回调的线程错误对象和消息，但原来未
 填写 C 快照的 `iBackendCode`。两处直接记录原码后，同一最终 C 回归
 在 Windows/Linux 均旧36处缺失→0。96组覆盖 Reader/回调、早/晚失败、

@@ -28,6 +28,7 @@ typedef enum {
 
 typedef struct {
 	int iCode;
+	/* Reader/进度回调已有 XRT 错误时，保留其原始数字码。 */
 	int iBackendCode;
 	uint64 iInputOffset;
 	uint64 iOutputOffset;
@@ -80,6 +81,8 @@ XRT_API bool xrtBlake2sHash(const void* pData, size_t iSize, size_t iOutLen,
 	const void* pKey, size_t iKeyLen, uint8* pOut, xrtblake2error* pError);
 
 /* 文件流式哈希 */
+/* 借用当前游标；Tell/Size 不支持才退回未知总长，真实失败不消费输入。 */
+/* 失败保留 XRT 首因，输出不变；可选 C 快照保留数字码和有界消息。 */
 XRT_API bool xrtBlake2bFile(xreader* pReader, const xrtresourcelimits* pLimits,
 	size_t iOutLen, uint8* pOut, xrtprogressproc pProgress, ptr pUserData,
 	xrtblake2error* pError);

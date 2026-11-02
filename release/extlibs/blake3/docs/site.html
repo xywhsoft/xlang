@@ -128,6 +128,7 @@ println(hash.digestHex(16))</code></pre>
     <p>2026-10-20：C 单文件范例直接运行及生成可执行文件均通过官方向量对照；Windows 门禁可加 <code>-SkipAot</code> 独立复验 C/JIT，Linux ASan/UBSan 和 XLang 双语门禁通过。完整 XLang AOT 与私有接管构造器访问边界仍待主线修复。</p>
     <p>2026-10-21：完整教学范例的文件哈希改用独占临时目录并在 finally 清理；完整 XLang JIT 范例通过。Windows 门禁隔离本次工作目录，Linux 使用 mktemp；Windows -SkipAot 与 Linux C ASan/UBSan、XLang、双语对照通过。默认 Windows AOT 仍缺 xl6NativeHandleTraceLeaf，包外私有句柄构造器仍被 xl check 错误放行，不签收发布级。</p>
   </section>
+<section><h2>Reader 边界验证（2026-11-02）</h2><p>修正真实元数据故障被清掉后继续读取；448场景使用65字节XOF输出，含4次真实OOM及同一Reader恢复。Windows GCC、Linux GCC sanitizer/TCC/AOT、新旧双语范例、23条原型和35组官方向量复验。Windows长C快照仍受共享snprintf错误M14阻断，旧私有接管M3与全局AOT退役M2也未解除，不以局部正例替代发布验收。</p></section>
 </main>
 <script src="../main.js"></script>
 </body>

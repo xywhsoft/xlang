@@ -72,6 +72,8 @@ XRT_API bool xrtBlake3HashKdf(const void* pKeyMaterial, size_t iKeyMatLen,
 	xrtblake3error* pError);
 
 /* 文件流式哈希 */
+/* 借用当前游标；Tell/Size 不支持才退回未知总长，真实失败不消费输入。 */
+/* 失败保留 XRT 首因，输出不变；可选 C 快照保留数字码和有界消息。 */
 XRT_API bool xrtBlake3File(xreader* pReader, const xrtresourcelimits* pLimits,
 	uint8* pOut, size_t iOutLen, xrtprogressproc pProgress, ptr pUserData,
 	xrtblake3error* pError);

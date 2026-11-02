@@ -213,6 +213,7 @@ static void xxhash_observe(xrtxxhasherror* error, int code, uint64 offset)
 {
     if (error == NULL) return;
     error->iCode = code;
+    error->iBackendCode = xrtErrorCode(xrtGetError());
     error->iInputOffset = offset;
     snprintf(error->sMessage, sizeof(error->sMessage), "%s", xrtErrorMessage(xrtGetError()));
 }
@@ -231,8 +232,15 @@ XRT_API bool xrtXxhashFile64(xreader* reader, uint64 seed, const xrtresourcelimi
     if (!xxhash_limits(limits) || reader == NULL || hash == NULL)
         return xxhash_fail(error, XRT_XXHASH_ERROR_ARGUMENT, 0, "invalid xxhash reader, output or limits");
     if (xrtReaderCanSeek(reader)) {
-        known = xrtReaderTell(reader, &position) && xrtReaderSize(reader, &end) && end >= position;
+        bool measured = xrtReaderTell(reader, &position) && xrtReaderSize(reader, &end);
+        known = measured && end >= position;
         if (known) expected = end - position;
+        /* 不支持元数据可以按未知总长读取；真实故障必须在消费输入前返回。 */
+        else if (!measured && xrtErrorKind(xrtGetError()) != XERR_UNSUPPORTED) {
+            xxhash_observe(error, xrtErrorKind(xrtGetError()) == XERR_MEMORY ?
+                XRT_XXHASH_ERROR_MEMORY : XRT_XXHASH_ERROR_IO, 0);
+            return false;
+        }
         else xrtClearError();
     }
     if (known && !xxhash_input(0, expected, limits->iMaxInputBytes, error)) return false;

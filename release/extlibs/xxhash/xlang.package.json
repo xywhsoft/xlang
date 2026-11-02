@@ -12,7 +12,7 @@
                                       "third_party/xxhash.c"
                                   ],
                      "includeDirs": ["include"],
-                     "xrtModules": ["XRT_MODULE_IO_BUFFER", "XRT_MODULE_IO_FILE"],
+                     "xrtModules": ["XRT_MODULE_IO_BUFFER", "XRT_MODULE_IO_FILE", "XRT_MODULE_VALUE"],
                      "xlSources":  [
                                        "src/xxhash.xl"
                                    ]

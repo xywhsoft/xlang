@@ -19,7 +19,7 @@ $manifest = Get-Content (Join-Path $Root 'release/extlibs/blake3/xlang.package.j
 $sources = @($manifest.artifact.cSources | ForEach-Object { "release/extlibs/blake3/$_" })
 $paths = @('.gitattributes','release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
     'release/include/xrt_decl.h','release/include/xruntime_decl.h',
-    'test/support/extlib_codec_runtime.c','tools/check_extlib_blake3.ps1',
+    'test/support/extlib_codec_runtime.c','test/support/extlib_hash_reader_contract.h','tools/check_extlib_blake3.ps1',
     'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','tools/run_extlib_c.ps1',
     'test/featured_extlibs.json','test/suites/11_featured_extlibs_rc.bat','tools/check_extlib_blake3.sh',
     'test/cases/extlib_blake3.xl','test/cases/extlib_blake3_boundaries.xl','test/cases/extlib_blake3_progress.xl','release/examples/extlibs/blake3.xl',
@@ -35,6 +35,7 @@ foreach ($path in @(Get-Blake3InputPaths)) {
 }
 
 function Check([string]$Name, [string]$Program, [string[]]$Arguments, [int]$Seconds = 120) {
+    if ($null -eq $Arguments) { $Arguments = @() }
     $r = Invoke-ExtlibSmokeProcess $Program $Arguments $Root $Seconds
     $checks.Add([ordered]@{name=$Name;program=$Program;arguments=$Arguments;status=$r.status;exitCode=$r.exitCode;elapsedMs=$r.elapsedMs;stdout=$r.stdout;stderr=$r.stderr})
     if ($r.status -ne 'pass') { throw "$Name failed: $($r.stderr)`n$($r.stdout)" }
@@ -95,6 +96,11 @@ try {
         ++$index
     }
     $links = @($runtime,'-lWs2_32','-lAdvapi32','-lm')
+    $readerContract = 'release/extlibs/blake3/test/reader_contract_c.c'
+    $readerBinary = Join-Path $work 'reader-contract.exe'
+    $null = Check 'reader-contract-compile' $gcc ($flags + @($readerContract) + $links + @('-o',$readerBinary))
+    $readerSummary = Check 'reader-contract-GCC' $readerBinary @()
+    if ($readerSummary -cnotmatch '^blake3 reader contract: 1 variants, 448 cases, [0-9]+ checks, 436 guarded failures, 4 real OOM, 0 failures$') { throw 'Incomplete reader contract' }
     $test = 'release/extlibs/blake3/test/test_blake3.c'
     $exe = Join-Path $work 'blake3-c.exe'
     # 核心测试直接包含 core，以白盒覆盖 uint64 计数溢出，不重复链接该对象。
@@ -217,6 +223,13 @@ try {
     if ($cOutput -cne $expectedOutput -or $jitOutput -cne $expectedOutput -or $xlangOutput -cne $expectedOutput -or
         (!$SkipAot -and $cAot -cne $expectedOutput) -or $helperOutput -cne $expectedOutput) {
         throw 'C/xlang examples differ from the common golden output'
+    }
+    $readerSummary = Check 'reader-contract-TCC' $xl @('run',$readerContract)
+    if ($readerSummary -cnotmatch '^blake3 reader contract: 1 variants, 448 cases, [0-9]+ checks, 436 guarded failures, 4 real OOM, 0 failures$') { throw 'Incomplete TCC reader contract' }
+    if (!$SkipAot) {
+        $target = Join-Path $work 'reader-contract-aot.exe'
+        $null = Check 'reader-contract-build' $xl @('build',$readerContract,'-o',$target)
+        $null = Check 'reader-contract-AOT' $target @()
     }
     # 新增或删除文件同样会改变验收输入，不能只核对原有文件的内容。
     if (@(Compare-Object @($hashes.Keys) @(Get-Blake3InputPaths)).Count -ne 0) {

@@ -121,6 +121,7 @@ println(blake2.blake2bKeyedHex("你好 xlang", "密钥", 16))</code></pre>
     <p>2026-10-26 当前发布物的正例复验：Windows C/语言 JIT/AOT、216 条已知答案、分配故障、生成 ABI 与双语范例通过；Linux C ASan/UBSan、六条独立 EXE AOT 和输出对照通过，旧 AOT 缺符号不再复现。但包外仍能通过 <code>xl check</code> 调用四类哈希器的 <code>private extern create(point)</code>。默认包门禁现纳入只编译访问控制负例；该主线缺陷修复前，BLAKE2 不签收整包发布级，绝不执行危险负例。</p>
     <p>2026-10-21：完整教学范例的文件哈希改用独占临时目录并在 finally 清理；完整 XLang JIT 范例通过。Windows 门禁每次隔离本次工作目录，Linux 使用 mktemp；Windows -SkipAot 与 Linux C ASan/UBSan、XLang、双语对照通过。默认 Windows AOT 仍缺 xl6NativeHandleTraceLeaf，包外私有句柄构造器仍被 xl check 错误放行，不签收发布级。</p>
   </section>
+<section><h2>Reader 边界验证（2026-11-02）</h2><p>b/s两算法共896场景，修元数据吞错与C快照首因/数字码；8次真实元数据OOM、输出不变及同一Reader恢复通过。Windows GCC、Linux GCC sanitizer/TCC/AOT及普通双语范例、38条原型复验；Windows长快照受共享snprintf错误M14阻断，私有句柄构造M3和顶层AOT退役M2仍开放，不签收整包发布级。</p></section>
 </main>
 <script src="../main.js"></script>
 </body>

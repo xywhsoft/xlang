@@ -19,7 +19,7 @@ $sources = @($manifest.artifact.cSources | ForEach-Object { "release/extlibs/bla
 function InputPaths {
     @('release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
     'release/include/xrt_decl.h','release/include/xruntime_decl.h',
-    'test/support/extlib_codec_runtime.c','tools/check_extlib_blake2.ps1',
+    'test/support/extlib_codec_runtime.c','test/support/extlib_hash_reader_contract.h','tools/check_extlib_blake2.ps1',
     'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','tools/run_extlib_c.ps1',
     'test/featured_extlibs.json','test/suites/11_featured_extlibs_rc.bat','tools/check_extlib_blake2.sh',
     'test/cases/extlib_blake2.xl','test/cases/extlib_blake2_boundaries.xl','test/cases/extlib_blake2_progress.xl','release/examples/extlibs/blake2.xl',
@@ -60,6 +60,11 @@ try {
         ++$index
     }
     $links = @($runtime,'-lWs2_32','-lAdvapi32','-lm')
+    $readerContract = 'release/extlibs/blake2/test/reader_contract_c.c'
+    $readerBinary = Join-Path $work 'reader-contract.exe'
+    $null = Check 'reader-contract-compile' $gcc ($flags + @($readerContract) + $links + @('-o',$readerBinary))
+    $readerSummary = Check 'reader-contract-GCC' $readerBinary @()
+    if ($readerSummary -cnotmatch '^blake2 reader contract: 2 variants, 896 cases, [0-9]+ checks, 872 guarded failures, 8 real OOM, 0 failures$') { throw 'Incomplete reader contract' }
     $test = 'release/extlibs/blake2/test/test_blake2.c'
     $exe = Join-Path $work 'blake2-c.exe'
     $null = Check 'c-build' $gcc ($packageFlags + @('-DNDEBUG',$test) + $objects + $links + @('-o',$exe))
@@ -180,6 +185,13 @@ try {
             $text = Check "file-progress-$language-aot" $binary @()
             if ($text -cne $golden) { throw "$language file progress AOT differs from golden" }
         }
+    }
+    $readerSummary = Check 'reader-contract-TCC' $xl @('run',$readerContract)
+    if ($readerSummary -cnotmatch '^blake2 reader contract: 2 variants, 896 cases, [0-9]+ checks, 872 guarded failures, 8 real OOM, 0 failures$') { throw 'Incomplete TCC reader contract' }
+    if (!$SkipAot) {
+        $target = Join-Path $work 'reader-contract-aot.exe'
+        $null = Check 'reader-contract-build' $xl @('build',$readerContract,'-o',$target)
+        $null = Check 'reader-contract-AOT' $target @()
     }
     # 导出类的私有句柄构造器不能被包外代码调用；只编译，不执行。
     $privateCase = 'release/extlibs/blake2/test/private_adopt_constructor_negative.xl'

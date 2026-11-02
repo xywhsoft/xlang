@@ -91,6 +91,7 @@ h.reset()</code></pre>
     <p>后端固定为 v0.8.3 commit <code>e626a72bc2321cd320e953a0ccf1584cad60f363</code>，
       BSD-2-Clause；来源、适配层和独立向量见包内 VENDOR.md。</p>
   </section>
+<section><h2>Reader 边界验证（2026-11-02）</h2><p>修正真实Tell/Size错误被清除及C快照数字码丢失，448场景在Windows GCC和Linux GCC/TCC/AOT通过，含4次真实元数据OOM及同一Reader恢复。普通双语范例、25条生成原型和124向量复验。Windows嵌入C的snprintf长快照错误（M14）、顶层对象AOT退役（M2）仍阻断发布验收，不加包内兼容回退。</p></section>
 </main>
 <script src="../main.js"></script>
 </body>

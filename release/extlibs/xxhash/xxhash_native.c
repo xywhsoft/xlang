@@ -1,11 +1,14 @@
 #ifndef XRT_MODULE_IO_FILE
 #define XRT_MODULE_IO_FILE
 #endif
+#ifndef XRT_MODULE_VALUE
+#define XRT_MODULE_VALUE
+#endif
 #ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #endif
-#include "xruntime.h"
 #include "include/xrt_xxhash.h"
+#include "xruntime.h"
 #include "include/xxhash_native.h"
 #include "third_party/xxhash.h"
 #include <stdio.h>

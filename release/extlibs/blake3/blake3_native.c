@@ -16,8 +16,8 @@
 #ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #endif
-#include "xruntime.h"
 #include "include/xrt_blake3.h"
+#include "xruntime.h"
 #include "include/blake3_native.h"
 #include "third_party/blake3.h"
 

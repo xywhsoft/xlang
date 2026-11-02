@@ -1,5 +1,18 @@
 # blake2
 
+## Reader 错误合同
+
+`xrtBlake2bFile` / `xrtBlake2sFile` 借用当前 Reader，不定位、不关闭。
+Tell/Size 只有明确不支持时才按未知总长继续；真实元数据失败立即返回，
+不读正文、不通知进度、不写摘要。读取/回调失败保留原始 XRT 首因；
+可选 C 快照保留数字码、相对输入偏移和最多255字节原文，不另分配诊断。
+失败后是否定位及重试由调用方决定，不做隐式回滚。
+
+`test/reader_contract_c.c` 同测 b/s 两算法的错误、元数据降级和真实OOM，
+共享测试头只属于仓库测试，不是生产依赖。普通 C/XLang 文件进度范例沿用。
+Windows 嵌入 C 的长诊断终止问题独立登记为
+`dev/extlib_blockers/c99_snprintf_termination.md`，不在本包掩盖主线缺陷。
+
 BLAKE2b/BLAKE2s 一次性、增量及文件哈希。C 核心和 xlang 包使用同一份实现，
 不依赖外部 BLAKE2 DLL，不重新编译第二份宿主 XRT。
 

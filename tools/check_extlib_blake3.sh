@@ -19,7 +19,7 @@ input_paths() {
     find "$pkg" -type f \( -name '*.c' -o -name '*.h' -o -name '*.json' -o -name '*.xl' \
         -o -name '*.md' -o -name '*.html' -o -name LICENSE \) -print0
     printf '%s\0' .gitattributes lib/xrt/xrt.h lib/xruntime/xruntime.h \
-        test/support/extlib_codec_runtime.c tools/check_extlib_blake3.sh \
+        test/support/extlib_codec_runtime.c test/support/extlib_hash_reader_contract.h tools/check_extlib_blake3.sh \
         release/xl release/libxl.so release/libxlc.so tools/check_extlib_blake3.ps1 \
         test/cases/extlib_blake3.xl \
         test/cases/extlib_blake3_boundaries.xl test/cases/extlib_blake3_progress.xl \
@@ -90,6 +90,14 @@ for source in test/cases/extlib_blake3.xl test/cases/extlib_blake3_boundaries.xl
     timeout 90s "$work/$name.aot" > "$work/$name.aot.txt"
     diff -u "$work/$name.jit.txt" "$work/$name.aot.txt"
 done
+timeout 120s "$cc" "${flags[@]}" "$pkg/test/reader_contract_c.c" "$work/runtime.o" -lm -ldl -o "$work/reader-contract"
+timeout 60s "$work/reader-contract" | tee "$work/reader-contract.log"
+grep -Eq '^blake3 reader contract: 1 variants, 448 cases, [0-9]+ checks, 436 guarded failures, 4 real OOM, 0 failures$' "$work/reader-contract.log"
+timeout 90s "$xl" run "$pkg/test/reader_contract_c.c" > "$work/reader-contract.jit.txt"
+timeout 180s "$xl" build "$pkg/test/reader_contract_c.c" -o "$work/reader-contract.aot"
+timeout 90s "$work/reader-contract.aot" > "$work/reader-contract.aot.txt"
+diff -u "$work/reader-contract.log" "$work/reader-contract.jit.txt"
+diff -u "$work/reader-contract.log" "$work/reader-contract.aot.txt"
 # 重新枚举也覆盖新增、删除文件；哈希仅相同不代表输入集合未变化。
 mapfile -d '' inputs_after < <(input_paths | sort -z)
 sha256sum "${inputs_after[@]}" > "$work/inputs.after.sha256"

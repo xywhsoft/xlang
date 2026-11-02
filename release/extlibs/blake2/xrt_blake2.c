@@ -17,15 +17,17 @@ static bool blake2_fail(xrtblake2error* error, int code, uint64 input, const cha
     return false;
 }
 
-/* Reader 的内存/IO 失败保留原始分类和消息。 */
-static void blake2_reader_fail(xrtblake2error* error, uint64 input)
+/* Reader/回调首因只写栈上快照，不覆盖原始 XRT 错误或重新分配诊断。 */
+static void blake2_io_fail(xrtblake2error* error, uint64 input, bool cancelled)
 {
     const xerror* cause = xrtGetError();
     blake2_fail(error,
-        cause != NULL && xrtErrorKind(cause) == XERR_MEMORY ?
-            XRT_BLAKE2_ERROR_MEMORY : XRT_BLAKE2_ERROR_IO,
+        cancelled ? XRT_BLAKE2_ERROR_CANCELLED :
+            cause != NULL && xrtErrorKind(cause) == XERR_MEMORY ?
+                XRT_BLAKE2_ERROR_MEMORY : XRT_BLAKE2_ERROR_IO,
         input, cause != NULL ? xrtErrorMessage(cause) :
-            "cannot read blake2 input stream");
+            cancelled ? "blake2 operation cancelled" : "cannot read blake2 input stream");
+    if (error != NULL && cause != NULL) error->iBackendCode = xrtErrorCode(cause);
 }
 
 static bool blake2_parameters(size_t outlen, size_t maximum, const void* key,
@@ -237,15 +239,20 @@ XRT_API bool xrtBlake2bFile(xreader* reader, const xrtresourcelimits* limits,
         !blake2_parameters(outlen, 64, NULL, 0, error))
         return blake2_fail(error, XRT_BLAKE2_ERROR_ARGUMENT, 0, "invalid blake2 reader or options");
     if (xrtReaderCanSeek(reader)) {
-        known = xrtReaderTell(reader, &position) && xrtReaderSize(reader, &end) && end >= position;
+        bool measured = xrtReaderTell(reader, &position) && xrtReaderSize(reader, &end);
+        known = measured && end >= position;
         if (known) expected = end - position;
+        else if (!measured && xrtErrorKind(xrtGetError()) != XERR_UNSUPPORTED) {
+            blake2_io_fail(error, 0, false);
+            goto done;
+        }
         else xrtClearError();
     }
     blake2b_init(&state, outlen);
     for (;;) {
         size_t count = 0;
         if (!xrtReaderRead(reader, input, sizeof(input), &count) || count > sizeof(input)) {
-            blake2_reader_fail(error, total);
+            blake2_io_fail(error, total, false);
             goto done;
         }
         if (count == 0) break;
@@ -254,14 +261,14 @@ XRT_API bool xrtBlake2bFile(xreader* reader, const xrtresourcelimits* limits,
         total += count;
         if (!xrtProgressReport(progress, user, total, expected, 0,
             known ? XRT_PROGRESS_TOTAL_KNOWN : 0)) {
-            blake2_fail(error, XRT_BLAKE2_ERROR_CANCELLED, total, "blake2 operation cancelled");
+            blake2_io_fail(error, total, true);
             goto done;
         }
     }
     blake2b_final(&state, digest, outlen);
     if (!xrtProgressReport(progress, user, total, expected, 0,
         XRT_PROGRESS_FINAL | (known ? XRT_PROGRESS_TOTAL_KNOWN : 0))) {
-        blake2_fail(error, XRT_BLAKE2_ERROR_CANCELLED, total, "blake2 operation cancelled");
+        blake2_io_fail(error, total, true);
         goto done;
     }
     memcpy(output, digest, outlen);
@@ -421,15 +428,20 @@ XRT_API bool xrtBlake2sFile(xreader* reader, const xrtresourcelimits* limits,
         !blake2_parameters(outlen, 32, NULL, 0, error))
         return blake2_fail(error, XRT_BLAKE2_ERROR_ARGUMENT, 0, "invalid blake2 reader or options");
     if (xrtReaderCanSeek(reader)) {
-        known = xrtReaderTell(reader, &position) && xrtReaderSize(reader, &end) && end >= position;
+        bool measured = xrtReaderTell(reader, &position) && xrtReaderSize(reader, &end);
+        known = measured && end >= position;
         if (known) expected = end - position;
+        else if (!measured && xrtErrorKind(xrtGetError()) != XERR_UNSUPPORTED) {
+            blake2_io_fail(error, 0, false);
+            goto done;
+        }
         else xrtClearError();
     }
     blake2s_init(&state, outlen);
     for (;;) {
         size_t count = 0;
         if (!xrtReaderRead(reader, input, sizeof(input), &count) || count > sizeof(input)) {
-            blake2_reader_fail(error, total);
+            blake2_io_fail(error, total, false);
             goto done;
         }
         if (count == 0) break;
@@ -438,14 +450,14 @@ XRT_API bool xrtBlake2sFile(xreader* reader, const xrtresourcelimits* limits,
         total += count;
         if (!xrtProgressReport(progress, user, total, expected, 0,
             known ? XRT_PROGRESS_TOTAL_KNOWN : 0)) {
-            blake2_fail(error, XRT_BLAKE2_ERROR_CANCELLED, total, "blake2 operation cancelled");
+            blake2_io_fail(error, total, true);
             goto done;
         }
     }
     blake2s_final(&state, digest, outlen);
     if (!xrtProgressReport(progress, user, total, expected, 0,
         XRT_PROGRESS_FINAL | (known ? XRT_PROGRESS_TOTAL_KNOWN : 0))) {
-        blake2_fail(error, XRT_BLAKE2_ERROR_CANCELLED, total, "blake2 operation cancelled");
+        blake2_io_fail(error, total, true);
         goto done;
     }
     memcpy(output, digest, outlen);

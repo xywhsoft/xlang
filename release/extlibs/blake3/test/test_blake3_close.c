@@ -2,8 +2,8 @@
 #ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #endif
-#include "xruntime.h"
 #include "../include/xrt_blake3.h"
+#include "xruntime.h"
 #ifdef NDEBUG
 #undef NDEBUG
 #endif

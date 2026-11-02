@@ -40,6 +40,16 @@ static bool blake3_fail(xrtblake3error* error, int code, uint64 input, const cha
     return blake3_publish(error);
 }
 
+/* 已有首因只复制到可选快照，不重新发布异常。 */
+static void blake3_observe(xrtblake3error* error, int code, uint64 input)
+{
+    if (error == NULL) return;
+    error->iCode = code;
+    error->iBackendCode = xrtErrorCode(xrtGetError());
+    error->iInputOffset = input;
+    snprintf(error->sMessage, sizeof(error->sMessage), "%s", xrtErrorMessage(xrtGetError()));
+}
+
 static bool blake3_limits(const xrtresourcelimits* limits)
 {
     return limits->iSize == sizeof(*limits) &&
@@ -236,8 +246,14 @@ XRT_API bool xrtBlake3File(xreader* reader, const xrtresourcelimits* limits,
     if (limits->iMaxOutputBytes != 0 && outlen > limits->iMaxOutputBytes)
         return blake3_fail(error, XRT_BLAKE3_ERROR_LIMIT, 0, "blake3 output exceeds maxOutput limit");
     if (xrtReaderCanSeek(reader)) {
-        known = xrtReaderTell(reader, &position) && xrtReaderSize(reader, &end) && end >= position;
+        bool measured = xrtReaderTell(reader, &position) && xrtReaderSize(reader, &end);
+        known = measured && end >= position;
         if (known) expected = end - position;
+        else if (!measured && xrtErrorKind(xrtGetError()) != XERR_UNSUPPORTED) {
+            blake3_observe(error, xrtErrorKind(xrtGetError()) == XERR_MEMORY ?
+                XRT_BLAKE3_ERROR_MEMORY : XRT_BLAKE3_ERROR_IO, 0);
+            goto done;
+        }
         else xrtClearError();
     }
     blake3_hasher_init(&h);
@@ -248,12 +264,8 @@ XRT_API bool xrtBlake3File(xreader* reader, const xrtresourcelimits* limits,
             /* Reader 的 MemoryError/IOError 等原始诊断不能被通用读取错误覆盖。 */
             if (xrtGetError() == NULL) {
                 blake3_fail(error, XRT_BLAKE3_ERROR_IO, total, "cannot read blake3 input stream");
-            } else if (error != NULL) {
-                error->iCode = xrtErrorKind(xrtGetError()) == XERR_MEMORY ? XRT_BLAKE3_ERROR_MEMORY : XRT_BLAKE3_ERROR_IO;
-                error->iBackendCode = xrtErrorCode(xrtGetError());
-                error->iInputOffset = total;
-                snprintf(error->sMessage, sizeof(error->sMessage), "%s", xrtErrorMessage(xrtGetError()));
-            }
+            } else blake3_observe(error, xrtErrorKind(xrtGetError()) == XERR_MEMORY ?
+                XRT_BLAKE3_ERROR_MEMORY : XRT_BLAKE3_ERROR_IO, total);
             goto done;
         }
         if (!blake3_input(total, count, limits->iMaxInputBytes, error)) goto done;
@@ -264,12 +276,7 @@ XRT_API bool xrtBlake3File(xreader* reader, const xrtresourcelimits* limits,
             /* 用户异常保留类别及内容；没有用户错误时才生成取消错误。 */
             if (xrtGetError() == NULL)
                 blake3_fail(error, XRT_BLAKE3_ERROR_CANCELLED, total, "blake3 operation cancelled");
-            else if (error != NULL) {
-                error->iCode = XRT_BLAKE3_ERROR_CANCELLED;
-                error->iBackendCode = xrtErrorCode(xrtGetError());
-                error->iInputOffset = total;
-                snprintf(error->sMessage, sizeof(error->sMessage), "%s", xrtErrorMessage(xrtGetError()));
-            }
+            else blake3_observe(error, XRT_BLAKE3_ERROR_CANCELLED, total);
             goto done;
         }
         if (count == 0) break;

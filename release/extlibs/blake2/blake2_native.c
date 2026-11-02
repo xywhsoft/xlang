@@ -16,8 +16,8 @@
 #ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #endif
-#include "xruntime.h"
 #include "include/xrt_blake2.h"
+#include "xruntime.h"
 #include "include/blake2_native.h"
 
 #if defined(_WIN32)
