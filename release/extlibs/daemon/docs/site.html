@@ -36,6 +36,9 @@ assert service.writePidFile(pidPath)
 service.requestStop()
 assert service.releasePidFile()</code></pre>
     <p>XLang 服务名和路径拒绝内嵌 NUL；<code>service.name</code> 返回可独立持有的字符串，C 的 <code>xdaemon_name</code> 则只借用对象内部文本。公开 C 操作不会把上次失败的 XRT 错误带入成功重试。2026-10-26 Windows/Linux 严格 C、语言中央/FFI 边界及 C/XLang 公开范例 AOT 均通过，双语输出匹配固定黄金文件；顶层服务对象的独立 EXE 在退出期报运行时状态错误，默认门禁保持红色，尚不签收发布级。<code>-SkipAot</code> 只供 Windows C/JIT 聚焦复验。C 句柄的释放、锁作用范围及包级验证见 README。</p>
+    <h2>PID 生命周期压实（2026-11-02）</h2>
+    <p>修复删除/解锁/关闭时后错覆盖首因、Windows退出码259误判，以及Linux旧inode竞争和同路径重入。使用XRT错误所有权与文件身份，不另造运行库；新取锁及重入增加两个元数据查询，保留Unsupported/State等真实错误，不隐式重试。</p>
+    <p>两平台156组清理/写入矩阵旧118断言失败转为0；Windows实际进程34检查、Linux身份与锁交错16检查通过，旧实现分别1/3失败。双平台GCC/TCC/AOT、新旧双语黄金范例及11生成原型通过；默认门禁仍在最后M2退役失败，未签收整包发布级。新范例restart.xl/restart_c.c展示失败保持、锁交接和业务停止，结束清理独占目录。详细合同、代价及可复跑命令见包README。</p>
   </section>
 </main>
 </body>

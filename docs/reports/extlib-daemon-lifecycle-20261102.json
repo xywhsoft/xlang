@@ -1,0 +1,2013 @@
+{
+  "schema": 1,
+  "date": "2026-11-02",
+  "status": "package-fixes-verified-M2-open",
+  "goal": "active",
+  "root": "D:/GIT/x-lang",
+  "package": "daemon",
+  "sourceBase": "0df4b4f28",
+  "mainlineModified": false,
+  "xrtModified": false,
+  "publicApiAbiChanged": false,
+  "vendorModified": false,
+  "bugs": [
+    "Later cleanup failures overwrite first IO/Memory cause or pending destructor business error; path-copy failure still formats",
+    "Windows finished process with real exit259 is misread as STILL_ACTIVE",
+    "POSIX contender locks already-unlinked inode after original holder release and path replacement; same-path reentry also misses identity"
+  ],
+  "implementation": {
+    "helpers": [
+      "xdaemon_retire_file",
+      "xdaemon_current_file"
+    ],
+    "netNativeLines": 37,
+    "errorHandling": "Take/restore existing XRT error owner without new wrapper diagnostic; finish delete/unlock/close even after failure. Public methods clear old error, destroy preserves business cause.",
+    "identity": "XRT FileStat/PathStat Available/Device/Identity; query failure preserved, missing identity Unsupported, mismatch State. No hidden retry/reopen.",
+    "liveness": "WaitForSingleObject(process,0), close local process handle; preserve conservative access-denied behavior",
+    "posix": "Declare _POSIX_C_SOURCE=200809L before package system headers for strict C11 kill declaration",
+    "cost": "Two metadata queries for fresh successful lock and same-path reentry; Windows actual OOM sweep gains one failure point. No new cache or body copy; no zero-overhead or throughput claim."
+  },
+  "cleanup": {
+    "matrix": 156,
+    "releaseDestroyCases": 96,
+    "writeCases": 60,
+    "kinds": [
+      "IO",
+      "MEMORY",
+      "VALUE"
+    ],
+    "modes": [
+      "release",
+      "destroy",
+      "release with old error",
+      "destroy with business error"
+    ],
+    "faults": [
+      "delete",
+      "unlock",
+      "close",
+      "path copy",
+      "format",
+      "resize",
+      "write",
+      "flush"
+    ],
+    "sevenMemoryMetrics": true,
+    "borrowedAndOwnedErrorIdentity": true,
+    "kernelFileCalls": "Normal open/locks/delete/close are real. Close hook retires real native file before reporting failure. POSIX unlock errors arise from errno path, not a forged XRT API result.",
+    "guards": "No-allocation guard starts after precreated cause; not a claim that every POSIX errno-to-XRT initial diagnostic allocates zero bytes",
+    "realOom": {
+      "windows": {
+        "oldBudgets": 5,
+        "oldFaults": 4,
+        "newBudgets": 6,
+        "newFaults": 5
+      },
+      "linux": {
+        "oldBudgets": 4,
+        "oldFaults": 3,
+        "newBudgets": 4,
+        "newFaults": 3
+      }
+    },
+    "oldFailedAssertions": 118,
+    "newFailedAssertions": 0,
+    "not118DistinctBugs": true
+  },
+  "liveness": {
+    "windowsChecks": 34,
+    "windowsOldFailures": 1,
+    "windowsNewFailures": 0,
+    "actualExitCodes": [
+      "0",
+      "1",
+      "2",
+      "258",
+      "259",
+      "260",
+      "2147483647",
+      "4294967295"
+    ],
+    "retainedChildHandlePreventsPidReuse": true,
+    "handleMeasurement": "Immediately before/after isAlive only, not unrelated process/CRT initialization",
+    "linuxChecks": 12,
+    "linuxOldNewFailures": 0
+  },
+  "identity": {
+    "linuxChecks": 16,
+    "linuxOldFailures": 3,
+    "linuxNewFailures": 0,
+    "schedule": "Real fd opened by contender; hook invokes original owner release and replacement owner write before real flock; no fabricated file identity or successful lock",
+    "samePathReentry": "Rename held inode, replacement owns original path, stale reentry rejected; stale release does not delete replacement; explicit retry succeeds",
+    "windowsChecks": 5,
+    "windowsOldNewFailures": 0,
+    "notWindowsScheduleCertification": true
+  },
+  "oldBaseline": {
+    "sha256": "755D97A6DC80366AE5928ECCC9063482712AE3C89265B475234A35563547F22A",
+    "matchesOriginalRevisionNormalized": true,
+    "comparison": "Same final fixtures, only core include mechanically redirected to saved original source"
+  },
+  "windows": {
+    "audit": {
+      "scope": "Windows final daemon baseline and full default gate",
+      "inputs": {
+        "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe": "9785001B0DCF755EDDB8AF294A373C0B87B2498660F724E76C4D53F9C217C7A3",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\daemon_native.c": "E6B71028C43FCFFF2EEEEA906566055F3BFD48FD6B458549274DBF6BB5BAD1B2",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\docs\\site.html": "B61ECEFFA26908F4715AAA5CBDD900D1DC97DD854D38254680330680D15DE737",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\examples\\README.md": "48DF6F2C512983EEE665C2269830728A8BA11B7779B788F09AE14E1232153295",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\examples\\restart_c.c": "A7750CDA2D880A319981FBE87DF5F1E6BF3A2655B6691EE377362B452D3C7097",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\examples\\restart.expected.txt": "6AD728ACF7441C273C91962CBEC375097D94CF507847BB9222DAA265F254A702",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\examples\\restart.xl": "AF7085481BDC7A57FC15779649F6D8433087B392C25EFE6A4EF9EB9B6DB3123F",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\include\\daemon_native.h": "8A5F7ED9EE21C0C27CC9048F22EDAC2B67FA2B0B2B60B8E3117D57275503F191",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\README.md": "AB2A287528DBF44F64B63DD3A9243E69BB7FCCB825F2FEA42B2B76D27E5A5BDA",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\src\\daemon.xl": "2FEA19A4D0441A8DBECAE11D0BDC337D1F3DD5CCEDBFF68F8AF05F18DC8D72CD",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\check.ps1": "5CD980AD3D3BB87B39E1FA3AA9B109D0A53208EADE8AF8E40716C36192D206C5",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\check.sh": "52A3FF6CB950AD21B81F752C085F0E40E7E155AE2A4BB366C2261D4A6227DCEB",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\cleanup_contract_c.c": "69BD2B5034144C5F45C3A2027AD89AD70F4A735FD6AF2F4047046C505BABECA7",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\daemon.expected.txt": "A989A684C0F7CBAF724FE95D155E5EA72F30361528CB7B60757E0DE36DA969ED",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\ffi_boundaries.xl": "A75F3C37021C3108AB86EEC0DADFCBC071A8745B0DAC121CE578991730DAA818",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\pid_identity_c.c": "84EA66CA9169A66F8AD80B654E9E59535B0066E609026AA08F68F0CD4EF225AA",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\pid_liveness_c.c": "AAED5118F15A47FE2857950470DFEF18E42ECF9EC76F9E13027C037CC86C50E2",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\private_getter_negative.xl": "D679FC32396F33CD03F2659805D93F2E30B7B01DD42D5F793C6E8FB628C9C79E",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\private_native_negative.xl": "944C8C8A9618B23617E1B7376776019F37171EEA4BE50F03E5D136DCEEF0ACD5",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\private_status_negative.xl": "28503CE26AF063DB5D5318D9237E2B96518AB3530B1628BAD6DD24A2177CACF3",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\test_daemon.c": "A6857B6C0A5A1CE10EEF6A8B4F323AB8DAE275236642C69EB774568B72104AFE",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\top_level.xl": "D8D53EEDF235CDA578938D17759F6E4A63560386E1113867CBB5D5288F58E551",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\unexported_constructor_negative.xl": "65B888DA11DA7AF44DCD0A0EF5F3098CD7320DD26E36FEB36FA83CB1B780F09A",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\xrt_runtime.c": "328E47C0F1A148A5F58C4FD53FB3FF23C0DB5505E7AA56E88E8AE99274E2F39A",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\xlang.package.json": "DC3133454970DD385B4144AD1C0AF476B65E0FF2B24DD281FB0C0182DDD24F6D",
+        "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+        "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+        "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+        "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+        "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+        "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+        "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+        "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+        "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+        "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+        "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+        "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+        "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+        "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+        "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+        "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+        "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+        "lib/xrt/xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+        "lib/xruntime/xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+        "release/examples/extlibs/daemon_c.c": "18305CD3ACF139921120E292DEC6BF11EEE562829A25C71CDA4B853148BB62B8",
+        "release/examples/extlibs/daemon.xl": "98C5B5EE4F32A163561B335845CCD354A0565E5AF36ACE2475A04DF97C4AF0A4",
+        "release/xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+        "release/xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+        "release/xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+        "test/cases/extlib_daemon.xl": "FDD1A389D6B2B95BE15E7260AC44A3352453E4541ADB09FFA2EE9C5058C89422",
+        "tools/extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+        "tools/run_extlib_c.ps1": "5183F14DBF4444B47D8832B60A0D6A6B570C8E933874785BEF85DD1ECB024A44",
+        "tools/xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+        "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012"
+      },
+      "changedInputs": [],
+      "checks": [
+        {
+          "name": "cc1",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-print-prog-name=cc1"
+          ],
+          "expected": 0,
+          "actual": 0,
+          "status": "pass",
+          "stdout": "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe\r\n",
+          "stderr": "",
+          "elapsedMs": 33
+        },
+        {
+          "name": "runtime",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/daemon",
+            "-c",
+            "release/extlibs/daemon/test/xrt_runtime.c",
+            "-o",
+            "build/test/daemon-lifecycle-20261102/final-runtime.o"
+          ],
+          "expected": 0,
+          "actual": 0,
+          "status": "pass",
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 3792
+        },
+        {
+          "name": "old-cleanup_contract_c-compile",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/daemon",
+            "build/test/daemon-lifecycle-20261102/old-cleanup_contract_c.c",
+            "build/test/daemon-lifecycle-20261102/final-runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lm",
+            "-o",
+            "build/test/daemon-lifecycle-20261102/old-cleanup_contract_c.exe"
+          ],
+          "expected": 0,
+          "actual": 0,
+          "status": "pass",
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 1011
+        },
+        {
+          "name": "old-cleanup_contract_c",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon-lifecycle-20261102\\old-cleanup_contract_c.exe",
+          "arguments": [],
+          "expected": 1,
+          "actual": 1,
+          "status": "fail",
+          "stdout": "daemon cleanup contract: 156 cases, 2771 checks, 5 budgets, 4 real OOM, 118 failures\r\n",
+          "stderr": "daemon cleanup: first cleanup or pending business error retains identity\r\ndaemon cleanup: first cleanup or pending business error retains identity\r\ndaemon cleanup: first cleanup or pending business error retains identity\r\ndaemon cleanup: first cleanup or pending business error retains identity\r\ndaemon cleanup: first cleanup or pending business error retains identity\r\ndaemon cleanup: first cleanup or pending business error retains identity\r\ndaemon cleanup: first cleanup or pending business error retains identity\r\ndaemon cleanup: first cleanup or pending business error retains identity\r\ndaemon cleanup: first cleanup or pending business error retains identity\r\ndaemon cleanup: first cleanup or pending business error retains identity\r\ndaemon cleanup: first cleanup or pending business error retains identity\r\ndaemon cleanup: first cleanup or pending business error retains identity\r\n",
+          "elapsedMs": 525
+        },
+        {
+          "name": "old-pid_liveness_c-compile",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/daemon",
+            "build/test/daemon-lifecycle-20261102/old-pid_liveness_c.c",
+            "build/test/daemon-lifecycle-20261102/final-runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lm",
+            "-o",
+            "build/test/daemon-lifecycle-20261102/old-pid_liveness_c.exe"
+          ],
+          "expected": 0,
+          "actual": 0,
+          "status": "pass",
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 885
+        },
+        {
+          "name": "old-pid_liveness_c",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon-lifecycle-20261102\\old-pid_liveness_c.exe",
+          "arguments": [],
+          "expected": 1,
+          "actual": 1,
+          "status": "fail",
+          "stdout": "daemon liveness: 34 checks, 1 failures\r\n",
+          "stderr": "daemon liveness: retired child is not alive even for exit code 259\r\n",
+          "elapsedMs": 246
+        },
+        {
+          "name": "old-pid_identity_c-compile",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/daemon",
+            "build/test/daemon-lifecycle-20261102/old-pid_identity_c.c",
+            "build/test/daemon-lifecycle-20261102/final-runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lm",
+            "-o",
+            "build/test/daemon-lifecycle-20261102/old-pid_identity_c.exe"
+          ],
+          "expected": 0,
+          "actual": 0,
+          "status": "pass",
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 891
+        },
+        {
+          "name": "old-pid_identity_c",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon-lifecycle-20261102\\old-pid_identity_c.exe",
+          "arguments": [],
+          "expected": 0,
+          "actual": 0,
+          "status": "pass",
+          "stdout": "daemon PID identity: 5 checks, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 47
+        },
+        {
+          "name": "size-old-compile",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/daemon",
+            "-c",
+            "build/test/daemon-lifecycle-20261102/old-daemon_native.c",
+            "-o",
+            "build/test/daemon-lifecycle-20261102/size-old.o"
+          ],
+          "expected": 0,
+          "actual": 0,
+          "status": "pass",
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 778
+        },
+        {
+          "name": "size-old",
+          "program": "E:\\software\\w64devkit\\bin\\size.exe",
+          "arguments": [
+            "build/test/daemon-lifecycle-20261102/size-old.o"
+          ],
+          "expected": 0,
+          "actual": 0,
+          "status": "pass",
+          "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n   2344\t      0\t      0\t   2344\t    928\tbuild/test/daemon-lifecycle-20261102/size-old.o\r\n",
+          "stderr": "",
+          "elapsedMs": 107
+        },
+        {
+          "name": "size-new-compile",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/daemon",
+            "-c",
+            "release/extlibs/daemon/daemon_native.c",
+            "-o",
+            "build/test/daemon-lifecycle-20261102/size-new.o"
+          ],
+          "expected": 0,
+          "actual": 0,
+          "status": "pass",
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 782
+        },
+        {
+          "name": "size-new",
+          "program": "E:\\software\\w64devkit\\bin\\size.exe",
+          "arguments": [
+            "build/test/daemon-lifecycle-20261102/size-new.o"
+          ],
+          "expected": 0,
+          "actual": 0,
+          "status": "pass",
+          "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\r\n   2904\t      0\t      0\t   2904\t    b58\tbuild/test/daemon-lifecycle-20261102/size-new.o\r\n",
+          "stderr": "",
+          "elapsedMs": 19
+        },
+        {
+          "name": "default-gate",
+          "program": "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+          "arguments": [
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            "release/extlibs/daemon/test/check.ps1"
+          ],
+          "expected": 1,
+          "actual": 1,
+          "status": "fail",
+          "stdout": "[daemon] compiler : exit=0\n[daemon] cc1 : exit=0\n[daemon] manifest-modules : exit=0\n[daemon] runtime : exit=0\n[daemon] native : exit=0\n[daemon] C-core-compile : exit=0\n[daemon] C-core : exit=0\n[daemon] C-core-package-runner : exit=0\n[daemon] cleanup_contract_c-compile : exit=0\n[daemon] cleanup_contract_c-GCC : exit=0\n[daemon] cleanup_contract_c-TCC : exit=0\n[daemon] cleanup_contract_c-build : exit=0\n[daemon] cleanup_contract_c-AOT : exit=0\n[daemon] pid_liveness_c-compile : exit=0\n[daemon] pid_liveness_c-GCC : exit=0\n[daemon] pid_liveness_c-TCC : exit=0\n[daemon] pid_liveness_c-build : exit=0\n[daemon] pid_liveness_c-AOT : exit=0\n[daemon] pid_identity_c-compile : exit=0\n[daemon] pid_identity_c-GCC : exit=0\n[daemon] pid_identity_c-TCC : exit=0\n[daemon] pid_identity_c-build : exit=0\n[daemon] pid_identity_c-AOT : exit=0\n[daemon] extlib_daemon-JIT : exit=0\n[daemon] extlib_daemon-build : exit=0\n[daemon] extlib_daemon-AOT : exit=0\n[daemon] ffi_boundaries-JIT : exit=0\n[daemon] ffi_boundaries-build : exit=0\n[daemon] ffi_boundaries-AOT : exit=0\n[daemon] cgen : exit=0\n[daemon] generated-ABI : exit=0\n[daemon] ABI-wrong-return-control : exit=1\n[daemon] private_native_negative : exit=1\n[daemon] private_status_negative : exit=1\n[daemon] private_getter_negative : exit=1\n[daemon] unexported_constructor_negative : exit=1\n[daemon] daemon_c-compile : exit=0\n[daemon] daemon_c-GCC : exit=0\n[daemon] daemon_c-TCC : exit=0\n[daemon] daemon_c-build : exit=0\n[daemon] daemon_c-AOT : exit=0\n[daemon] restart_c-compile : exit=0\n[daemon] restart_c-GCC : exit=0\n[daemon] restart_c-TCC : exit=0\n[daemon] restart_c-build : exit=0\n[daemon] restart_c-AOT : exit=0\n[daemon] daemon-JIT : exit=0\n[daemon] daemon-build : exit=0\n[daemon] daemon-AOT : exit=0\n[daemon] restart-JIT : exit=0\n[daemon] restart-build : exit=0\n[daemon] restart-AOT : exit=0\n[daemon] top-level-JIT : exit=0\n[daemon] top-level-build : exit=0\n警告: daemon failure artifacts retained: D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\n[daemon] report: D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3.json\n",
+          "stderr": "top-level-AOT failed: status=fail exit=1\r\nuncaught xlang error: RuntimeError: operation is not valid in the current state\r\ndaemon top-level: PASS\r\n所在位置 D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\check.ps1:34 字符: 35\r\n+ ...  $Expected){throw \"$Name failed: status=$($r.status) exit=$($r.exitCo ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : OperationStopped: (top-level-AOT f...op-level: PASS\r\n:String) [], RuntimeException\r\n    + FullyQualifiedErrorId : top-level-AOT failed: status=fail exit=1\r\nuncaught xlang error: RuntimeError: operation is not valid in the current state\r\ndaemon top-level: PASS\r\n \r\n",
+          "elapsedMs": 17414
+        }
+      ],
+      "defaultReport": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3.json"
+    },
+    "defaultGate": {
+      "outcome": "failed",
+      "failure": "top-level-AOT failed: status=fail exit=1\nuncaught xlang error: RuntimeError: operation is not valid in the current state\n\ndaemon top-level: PASS\n",
+      "skipAot": false,
+      "inputs": {
+        "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe": "9785001B0DCF755EDDB8AF294A373C0B87B2498660F724E76C4D53F9C217C7A3",
+        "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+        "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+        "D:\\GIT\\x-lang\\release\\examples\\extlibs\\daemon.xl": "98C5B5EE4F32A163561B335845CCD354A0565E5AF36ACE2475A04DF97C4AF0A4",
+        "D:\\GIT\\x-lang\\release\\examples\\extlibs\\daemon_c.c": "18305CD3ACF139921120E292DEC6BF11EEE562829A25C71CDA4B853148BB62B8",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\daemon_native.c": "E6B71028C43FCFFF2EEEEA906566055F3BFD48FD6B458549274DBF6BB5BAD1B2",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\docs\\site.html": "B61ECEFFA26908F4715AAA5CBDD900D1DC97DD854D38254680330680D15DE737",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\examples\\README.md": "48DF6F2C512983EEE665C2269830728A8BA11B7779B788F09AE14E1232153295",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\examples\\restart.expected.txt": "6AD728ACF7441C273C91962CBEC375097D94CF507847BB9222DAA265F254A702",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\examples\\restart.xl": "AF7085481BDC7A57FC15779649F6D8433087B392C25EFE6A4EF9EB9B6DB3123F",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\examples\\restart_c.c": "A7750CDA2D880A319981FBE87DF5F1E6BF3A2655B6691EE377362B452D3C7097",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\include\\daemon_native.h": "8A5F7ED9EE21C0C27CC9048F22EDAC2B67FA2B0B2B60B8E3117D57275503F191",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\README.md": "AB2A287528DBF44F64B63DD3A9243E69BB7FCCB825F2FEA42B2B76D27E5A5BDA",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\src\\daemon.xl": "2FEA19A4D0441A8DBECAE11D0BDC337D1F3DD5CCEDBFF68F8AF05F18DC8D72CD",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\check.ps1": "5CD980AD3D3BB87B39E1FA3AA9B109D0A53208EADE8AF8E40716C36192D206C5",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\check.sh": "52A3FF6CB950AD21B81F752C085F0E40E7E155AE2A4BB366C2261D4A6227DCEB",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\cleanup_contract_c.c": "69BD2B5034144C5F45C3A2027AD89AD70F4A735FD6AF2F4047046C505BABECA7",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\daemon.expected.txt": "A989A684C0F7CBAF724FE95D155E5EA72F30361528CB7B60757E0DE36DA969ED",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\ffi_boundaries.xl": "A75F3C37021C3108AB86EEC0DADFCBC071A8745B0DAC121CE578991730DAA818",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\pid_identity_c.c": "84EA66CA9169A66F8AD80B654E9E59535B0066E609026AA08F68F0CD4EF225AA",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\pid_liveness_c.c": "AAED5118F15A47FE2857950470DFEF18E42ECF9EC76F9E13027C037CC86C50E2",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\private_getter_negative.xl": "D679FC32396F33CD03F2659805D93F2E30B7B01DD42D5F793C6E8FB628C9C79E",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\private_native_negative.xl": "944C8C8A9618B23617E1B7376776019F37171EEA4BE50F03E5D136DCEEF0ACD5",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\private_status_negative.xl": "28503CE26AF063DB5D5318D9237E2B96518AB3530B1628BAD6DD24A2177CACF3",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\test_daemon.c": "A6857B6C0A5A1CE10EEF6A8B4F323AB8DAE275236642C69EB774568B72104AFE",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\top_level.xl": "D8D53EEDF235CDA578938D17759F6E4A63560386E1113867CBB5D5288F58E551",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\unexported_constructor_negative.xl": "65B888DA11DA7AF44DCD0A0EF5F3098CD7320DD26E36FEB36FA83CB1B780F09A",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\test\\xrt_runtime.c": "328E47C0F1A148A5F58C4FD53FB3FF23C0DB5505E7AA56E88E8AE99274E2F39A",
+        "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\xlang.package.json": "DC3133454970DD385B4144AD1C0AF476B65E0FF2B24DD281FB0C0182DDD24F6D",
+        "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+        "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+        "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+        "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+        "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+        "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+        "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+        "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+        "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+        "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+        "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+        "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+        "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+        "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+        "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+        "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+        "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+        "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+        "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+        "D:\\GIT\\x-lang\\test\\cases\\extlib_daemon.xl": "FDD1A389D6B2B95BE15E7260AC44A3352453E4541ADB09FFA2EE9C5058C89422",
+        "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+        "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1": "5183F14DBF4444B47D8832B60A0D6A6B570C8E933874785BEF85DD1ECB024A44",
+        "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+        "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+        "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012"
+      },
+      "changedInputs": [],
+      "checks": [
+        {
+          "name": "compiler",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "--version"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 36,
+          "stdout": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "cc1",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-print-prog-name=cc1"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 24,
+          "stdout": "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "manifest-modules",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/daemon/include",
+            "-DXRT_MODULE_ATOMIC",
+            "-DXRT_MODULE_FILE_LOCK",
+            "-DXRT_MODULE_PATH",
+            "-DXRT_MODULE_STRING_FORMAT",
+            "-DXRT_MODULE_UNICODE",
+            "-fsyntax-only",
+            "release/extlibs/daemon/daemon_native.c"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 736,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "runtime",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/daemon/include",
+            "-c",
+            "release/extlibs/daemon/test/xrt_runtime.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\runtime.o"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 3993,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "native",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/daemon/include",
+            "-Wmissing-prototypes",
+            "-c",
+            "release/extlibs/daemon/daemon_native.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\native.o"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 860,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "C-core-compile",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/daemon/include",
+            "release/extlibs/daemon/test/test_daemon.c",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\native.o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\core.exe"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 220,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "C-core",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\core.exe",
+          "arguments": [],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 68,
+          "stdout": "daemon C test: PASS\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "C-core-package-runner",
+          "program": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "arguments": [
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            "tools/run_extlib_c.ps1",
+            "-Package",
+            "daemon",
+            "-Source",
+            "release/extlibs/daemon/test/test_daemon.c"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 410,
+          "stdout": "daemon C test: PASS\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "cleanup_contract_c-compile",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/daemon/include",
+            "release/extlibs/daemon/test/cleanup_contract_c.c",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\cleanup_contract_c.exe"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 987,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "cleanup_contract_c-GCC",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\cleanup_contract_c.exe",
+          "arguments": [],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 546,
+          "stdout": "daemon cleanup contract: 156 cases, 2785 checks, 6 budgets, 5 real OOM, 0 failures\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "cleanup_contract_c-TCC",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/daemon/test/cleanup_contract_c.c"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 611,
+          "stdout": "daemon cleanup contract: 156 cases, 2785 checks, 6 budgets, 5 real OOM, 0 failures\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "cleanup_contract_c-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/daemon/test/cleanup_contract_c.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\cleanup_contract_c-aot.exe"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 152,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "cleanup_contract_c-AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\cleanup_contract_c-aot.exe",
+          "arguments": [],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 528,
+          "stdout": "daemon cleanup contract: 156 cases, 2785 checks, 6 budgets, 5 real OOM, 0 failures\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "pid_liveness_c-compile",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/daemon/include",
+            "release/extlibs/daemon/test/pid_liveness_c.c",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\pid_liveness_c.exe"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 927,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "pid_liveness_c-GCC",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\pid_liveness_c.exe",
+          "arguments": [],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 238,
+          "stdout": "daemon liveness: 34 checks, 0 failures\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "pid_liveness_c-TCC",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/daemon/test/pid_liveness_c.c"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 306,
+          "stdout": "daemon liveness: 34 checks, 0 failures\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "pid_liveness_c-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/daemon/test/pid_liveness_c.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\pid_liveness_c-aot.exe"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 140,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "pid_liveness_c-AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\pid_liveness_c-aot.exe",
+          "arguments": [],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 239,
+          "stdout": "daemon liveness: 34 checks, 0 failures\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "pid_identity_c-compile",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/daemon/include",
+            "release/extlibs/daemon/test/pid_identity_c.c",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\pid_identity_c.exe"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 973,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "pid_identity_c-GCC",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\pid_identity_c.exe",
+          "arguments": [],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 43,
+          "stdout": "daemon PID identity: 5 checks, 0 failures\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "pid_identity_c-TCC",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/daemon/test/pid_identity_c.c"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 121,
+          "stdout": "daemon PID identity: 5 checks, 0 failures\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "pid_identity_c-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/daemon/test/pid_identity_c.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\pid_identity_c-aot.exe"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 166,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "pid_identity_c-AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\pid_identity_c-aot.exe",
+          "arguments": [],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 37,
+          "stdout": "daemon PID identity: 5 checks, 0 failures\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "extlib_daemon-JIT",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "test/cases/extlib_daemon.xl"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 206,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "extlib_daemon-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "test/cases/extlib_daemon.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\extlib_daemon.exe"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 337,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "extlib_daemon-AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\extlib_daemon.exe",
+          "arguments": [],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 47,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "ffi_boundaries-JIT",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/daemon/test/ffi_boundaries.xl"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 220,
+          "stdout": "daemon FFI boundaries: PASS\n",
+          "stderr": ""
+        },
+        {
+          "name": "ffi_boundaries-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/daemon/test/ffi_boundaries.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\ffi_boundaries.exe"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 344,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "ffi_boundaries-AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\ffi_boundaries.exe",
+          "arguments": [],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 36,
+          "stdout": "daemon FFI boundaries: PASS\n",
+          "stderr": ""
+        },
+        {
+          "name": "cgen",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "cgen",
+            "test/cases/extlib_daemon.xl",
+            "--emit",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\module.c"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 65,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "generated-ABI",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/daemon/include",
+            "-fsyntax-only",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\abi.c"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 39,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "ABI-wrong-return-control",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/daemon/include",
+            "-fsyntax-only",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\abi.c"
+          ],
+          "expected": 1,
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 35,
+          "stdout": "",
+          "stderr": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\abi.c:5:15: error: conflicting types for 'xdaemon_is_alive'; have 'double(int64_t)' {aka 'double(long long int)'}\n    5 | extern double xdaemon_is_alive(int64_t);\n      |               ^~~~~~~~~~~~~~~~\nIn file included from D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\abi.c:1:\nrelease/extlibs/daemon/include/daemon_native.h:18:9: note: previous declaration of 'xdaemon_is_alive' with type 'int64_t(int64_t)' {aka 'long long int(long long int)'}\n   18 | int64_t xdaemon_is_alive(int64_t pid);\n      |         ^~~~~~~~~~~~~~~~\n"
+        },
+        {
+          "name": "private_native_negative",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "check",
+            "release/extlibs/daemon/test/private_native_negative.xl"
+          ],
+          "expected": 1,
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 32,
+          "stdout": "",
+          "stderr": "release/extlibs/daemon/test/private_native_negative.xl:4:9: [sem] unknown class/union field\nrelease/extlibs/daemon/test/private_native_negative.xl:4:23: [sem] no matching callable class member '__xl6_import_daemon_Daemon.writePidNative': check argument count, types and access\n"
+        },
+        {
+          "name": "private_status_negative",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "check",
+            "release/extlibs/daemon/test/private_status_negative.xl"
+          ],
+          "expected": 1,
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 36,
+          "stdout": "",
+          "stderr": "release/extlibs/daemon/test/private_status_negative.xl:4:9: [sem] unknown class/union field\nrelease/extlibs/daemon/test/private_status_negative.xl:4:25: [sem] no matching callable class member '__xl6_import_daemon_Daemon.releasePidNative': check argument count, types and access\n"
+        },
+        {
+          "name": "private_getter_negative",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "check",
+            "release/extlibs/daemon/test/private_getter_negative.xl"
+          ],
+          "expected": 1,
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 30,
+          "stdout": "",
+          "stderr": "release/extlibs/daemon/test/private_getter_negative.xl:4:9: [sem] unknown class/union field\nrelease/extlibs/daemon/test/private_getter_negative.xl:4:18: [sem] no matching callable class member '__xl6_import_daemon_Daemon.pidNative': check argument count, types and access\n"
+        },
+        {
+          "name": "unexported_constructor_negative",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "check",
+            "release/extlibs/daemon/test/unexported_constructor_negative.xl"
+          ],
+          "expected": 1,
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 27,
+          "stdout": "",
+          "stderr": "release/extlibs/daemon/test/unexported_constructor_negative.xl:3:22: [import] import package has no such exported symbol\n"
+        },
+        {
+          "name": "daemon_c-compile",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/daemon/include",
+            "release/examples/extlibs/daemon_c.c",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\native.o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\daemon_c-gcc.exe"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 182,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "daemon_c-GCC",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\daemon_c-gcc.exe",
+          "arguments": [],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 28,
+          "stdout": "sample-service pid=31808\r\nactive=true\r\ndaemon example: PASS\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "daemon_c-TCC",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/examples/extlibs/daemon_c.c"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 105,
+          "stdout": "sample-service pid=35696\r\nactive=true\r\ndaemon example: PASS\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "daemon_c-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/examples/extlibs/daemon_c.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\daemon_c-aot.exe"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 147,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "daemon_c-AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\daemon_c-aot.exe",
+          "arguments": [],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 36,
+          "stdout": "sample-service pid=37696\r\nactive=true\r\ndaemon example: PASS\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "restart_c-compile",
+          "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "arguments": [
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-Irelease/extlibs/daemon/include",
+            "release/extlibs/daemon/examples/restart_c.c",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\native.o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\runtime.o",
+            "-lWs2_32",
+            "-lAdvapi32",
+            "-lm",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\restart_c-gcc.exe"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 195,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "restart_c-GCC",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\restart_c-gcc.exe",
+          "arguments": [],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 33,
+          "stdout": "held: true\r\ncontender: busy\r\nfailed switch: held\r\nhandoff: true\r\nstop: true\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "restart_c-TCC",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/daemon/examples/restart_c.c"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 107,
+          "stdout": "held: true\r\ncontender: busy\r\nfailed switch: held\r\nhandoff: true\r\nstop: true\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "restart_c-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/daemon/examples/restart_c.c",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\restart_c-aot.exe"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 157,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "restart_c-AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\restart_c-aot.exe",
+          "arguments": [],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 38,
+          "stdout": "held: true\r\ncontender: busy\r\nfailed switch: held\r\nhandoff: true\r\nstop: true\r\n",
+          "stderr": ""
+        },
+        {
+          "name": "daemon-JIT",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/examples/extlibs/daemon.xl"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 183,
+          "stdout": "sample-service pid=13944\nactive=true\ndaemon example: PASS\n",
+          "stderr": ""
+        },
+        {
+          "name": "daemon-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/examples/extlibs/daemon.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\daemon-aot.exe"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 315,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "daemon-AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\daemon-aot.exe",
+          "arguments": [],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 49,
+          "stdout": "sample-service pid=37416\nactive=true\ndaemon example: PASS\n",
+          "stderr": ""
+        },
+        {
+          "name": "restart-JIT",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/daemon/examples/restart.xl"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 220,
+          "stdout": "held: true\ncontender: busy\nfailed switch: held\nhandoff: true\nstop: true\n",
+          "stderr": ""
+        },
+        {
+          "name": "restart-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/daemon/examples/restart.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\restart-aot.exe"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 382,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "restart-AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\restart-aot.exe",
+          "arguments": [],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 37,
+          "stdout": "held: true\ncontender: busy\nfailed switch: held\nhandoff: true\nstop: true\n",
+          "stderr": ""
+        },
+        {
+          "name": "top-level-JIT",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "run",
+            "release/extlibs/daemon/test/top_level.xl"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 153,
+          "stdout": "daemon top-level: PASS\n",
+          "stderr": ""
+        },
+        {
+          "name": "top-level-build",
+          "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+          "arguments": [
+            "build",
+            "release/extlibs/daemon/test/top_level.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\top-level.exe"
+          ],
+          "expected": 0,
+          "status": "pass",
+          "exitCode": 0,
+          "elapsedMs": 283,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "name": "top-level-AOT",
+          "program": "D:\\GIT\\x-lang\\build\\test\\daemon_guard_aec7b489335c4d66ac065475ea3439d3\\top-level.exe",
+          "arguments": [],
+          "expected": 0,
+          "status": "fail",
+          "exitCode": 1,
+          "elapsedMs": 30,
+          "stdout": "daemon top-level: PASS\n",
+          "stderr": "uncaught xlang error: RuntimeError: operation is not valid in the current state\n"
+        }
+      ]
+    },
+    "phases": 55,
+    "expectedRejections": 5,
+    "requirementsMet": 54,
+    "ordinaryAotPrograms": 9,
+    "publicGeneratedPrototypes": 11,
+    "unchanged": true,
+    "inputAndToolFingerprints": 54
+  },
+  "linux": {
+    "audit": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y",
+    "outer": [
+      {
+        "name": "compiler",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc --version \n",
+        "stdout": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+        "stderr": ""
+      },
+      {
+        "name": "default-gate",
+        "expected": 1,
+        "actual": 1,
+        "command": "bash release/extlibs/daemon/test/check.sh \n",
+        "stdout": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n[daemon] compiler exit=0 expected=0\n[daemon] manifest-modules exit=0 expected=0\n[daemon] runtime exit=0 expected=0\n[daemon] native exit=0 expected=0\n[daemon] core-compile exit=0 expected=0\ndaemon C test: PASS\n[daemon] core exit=0 expected=0\n[daemon] cleanup_contract_c-compile exit=0 expected=0\ndaemon cleanup contract: 156 cases, 2583 checks, 4 budgets, 3 real OOM, 0 failures\n[daemon] cleanup_contract_c-GCC exit=0 expected=0\ndaemon cleanup contract: 156 cases, 2583 checks, 4 budgets, 3 real OOM, 0 failures\n[daemon] cleanup_contract_c-TCC exit=0 expected=0\n[daemon] cleanup_contract_c-build exit=0 expected=0\ndaemon cleanup contract: 156 cases, 2583 checks, 4 budgets, 3 real OOM, 0 failures\n[daemon] cleanup_contract_c-AOT exit=0 expected=0\n[daemon] pid_liveness_c-compile exit=0 expected=0\ndaemon liveness: 12 checks, 0 failures\n[daemon] pid_liveness_c-GCC exit=0 expected=0\ndaemon liveness: 12 checks, 0 failures\n[daemon] pid_liveness_c-TCC exit=0 expected=0\n[daemon] pid_liveness_c-build exit=0 expected=0\ndaemon liveness: 12 checks, 0 failures\n[daemon] pid_liveness_c-AOT exit=0 expected=0\n[daemon] pid_identity_c-compile exit=0 expected=0\ndaemon PID identity: 16 checks, 0 failures\n[daemon] pid_identity_c-GCC exit=0 expected=0\ndaemon PID identity: 16 checks, 0 failures\n[daemon] pid_identity_c-TCC exit=0 expected=0\n[daemon] pid_identity_c-build exit=0 expected=0\ndaemon PID identity: 16 checks, 0 failures\n[daemon] pid_identity_c-AOT exit=0 expected=0\n[daemon] extlib_daemon-JIT exit=0 expected=0\n[daemon] extlib_daemon-build exit=0 expected=0\n[daemon] extlib_daemon-AOT exit=0 expected=0\ndaemon FFI boundaries: PASS\n[daemon] ffi_boundaries-JIT exit=0 expected=0\n[daemon] ffi_boundaries-build exit=0 expected=0\ndaemon FFI boundaries: PASS\n[daemon] ffi_boundaries-AOT exit=0 expected=0\n[daemon] cgen exit=0 expected=0\n[daemon] generated-ABI exit=0 expected=0\n[daemon] ABI-wrong-return-control exit=1 expected=1\n[daemon] private_native_negative exit=1 expected=1\n[daemon] private_status_negative exit=1 expected=1\n[daemon] private_getter_negative exit=1 expected=1\n[daemon] unexported_constructor_negative exit=1 expected=1\n[daemon] daemon_c-compile exit=0 expected=0\nsample-service pid=3373\nactive=true\ndaemon example: PASS\n[daemon] daemon_c-GCC exit=0 expected=0\nsample-service pid=3379\nactive=true\ndaemon example: PASS\n[daemon] daemon_c-TCC exit=0 expected=0\n[daemon] daemon_c-build exit=0 expected=0\nsample-service pid=3387\nactive=true\ndaemon example: PASS\n[daemon] daemon_c-AOT exit=0 expected=0\n[daemon] restart_c-compile exit=0 expected=0\nheld: true\ncontender: busy\nfailed switch: held\nhandoff: true\nstop: true\n[daemon] restart_c-GCC exit=0 expected=0\nheld: true\ncontender: busy\nfailed switch: held\nhandoff: true\nstop: true\n[daemon] restart_c-TCC exit=0 expected=0\n[daemon] restart_c-build exit=0 expected=0\nheld: true\ncontender: busy\nfailed switch: held\nhandoff: true\nstop: true\n[daemon] restart_c-AOT exit=0 expected=0\nsample-service pid=3441\nactive=true\ndaemon example: PASS\n[daemon] daemon-JIT exit=0 expected=0\n[daemon] daemon-build exit=0 expected=0\nsample-service pid=3449\nactive=true\ndaemon example: PASS\n[daemon] daemon-AOT exit=0 expected=0\nheld: true\ncontender: busy\nfailed switch: held\nhandoff: true\nstop: true\n[daemon] restart-JIT exit=0 expected=0\n[daemon] restart-build exit=0 expected=0\nheld: true\ncontender: busy\nfailed switch: held\nhandoff: true\nstop: true\n[daemon] restart-AOT exit=0 expected=0\ndaemon top-level: PASS\n[daemon] top-level-JIT exit=0 expected=0\n[daemon] top-level-build exit=0 expected=0\ndaemon top-level: PASS\n[daemon] top-level-AOT exit=1 expected=0\n",
+        "stderr": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/abi-bad.c:5:15: error: conflicting types for ‘xdaemon_is_alive’; have ‘double(int64_t)’ {aka ‘double(long int)’}\n    5 | extern double xdaemon_is_alive(int64_t);\n      |               ^~~~~~~~~~~~~~~~\nIn file included from /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/abi-bad.c:1:\nrelease/extlibs/daemon/include/daemon_native.h:18:9: note: previous declaration of ‘xdaemon_is_alive’ with type ‘int64_t(int64_t)’ {aka ‘long int(long int)’}\n   18 | int64_t xdaemon_is_alive(int64_t pid);\n      |         ^~~~~~~~~~~~~~~~\nrelease/extlibs/daemon/test/private_native_negative.xl:4:9: [sem] unknown class/union field\nrelease/extlibs/daemon/test/private_native_negative.xl:4:23: [sem] no matching callable class member '__xl6_import_daemon_Daemon.writePidNative': check argument count, types and access\nrelease/extlibs/daemon/test/private_status_negative.xl:4:9: [sem] unknown class/union field\nrelease/extlibs/daemon/test/private_status_negative.xl:4:25: [sem] no matching callable class member '__xl6_import_daemon_Daemon.releasePidNative': check argument count, types and access\nrelease/extlibs/daemon/test/private_getter_negative.xl:4:9: [sem] unknown class/union field\nrelease/extlibs/daemon/test/private_getter_negative.xl:4:18: [sem] no matching callable class member '__xl6_import_daemon_Daemon.pidNative': check argument count, types and access\nrelease/extlibs/daemon/test/unexported_constructor_negative.xl:3:22: [import] import package has no such exported symbol\nuncaught xlang error: RuntimeError: operation is not valid in the current state\n[daemon] FAIL exit=1 artifacts=/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8\n"
+      },
+      {
+        "name": "runtime",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/daemon/include -Irelease/extlibs/daemon -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -c release/extlibs/daemon/test/xrt_runtime.c -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/runtime.o \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "old-cleanup_contract_c-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/daemon/include -Irelease/extlibs/daemon -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread /var/tmp/xlang-daemon-audit-N7vJ6q6Y/old-cleanup_contract_c.c /var/tmp/xlang-daemon-audit-N7vJ6q6Y/runtime.o -lm -ldl -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/old-cleanup_contract_c \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "old-cleanup_contract_c",
+        "expected": 1,
+        "actual": 1,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/old-cleanup_contract_c \n",
+        "stdout": "daemon cleanup contract: 156 cases, 2583 checks, 4 budgets, 3 real OOM, 118 failures\n",
+        "stderr": "daemon cleanup: first cleanup or pending business error retains identity\ndaemon cleanup: first cleanup or pending business error retains identity\ndaemon cleanup: first cleanup or pending business error retains identity\ndaemon cleanup: first cleanup or pending business error retains identity\ndaemon cleanup: first cleanup or pending business error retains identity\ndaemon cleanup: first cleanup or pending business error retains identity\ndaemon cleanup: first cleanup or pending business error retains identity\ndaemon cleanup: first cleanup or pending business error retains identity\ndaemon cleanup: first cleanup or pending business error retains identity\ndaemon cleanup: first cleanup or pending business error retains identity\ndaemon cleanup: first cleanup or pending business error retains identity\ndaemon cleanup: first POSIX unlock error survives later close error\n"
+      },
+      {
+        "name": "old-pid_liveness_c-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/daemon/include -Irelease/extlibs/daemon -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread /var/tmp/xlang-daemon-audit-N7vJ6q6Y/old-pid_liveness_c.c /var/tmp/xlang-daemon-audit-N7vJ6q6Y/runtime.o -lm -ldl -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/old-pid_liveness_c \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "old-pid_liveness_c",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/old-pid_liveness_c \n",
+        "stdout": "daemon liveness: 12 checks, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "old-pid_identity_c-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/daemon/include -Irelease/extlibs/daemon -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread /var/tmp/xlang-daemon-audit-N7vJ6q6Y/old-pid_identity_c.c /var/tmp/xlang-daemon-audit-N7vJ6q6Y/runtime.o -lm -ldl -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/old-pid_identity_c \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "old-pid_identity_c",
+        "expected": 1,
+        "actual": 1,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/old-pid_identity_c \n",
+        "stdout": "daemon PID identity: 16 checks, 3 failures\n",
+        "stderr": "daemon identity: stale opened inode rejected after acquiring its old lock\ndaemon identity: only current path owner remains held\ndaemon identity: same-path reentry cannot report a replaced file as owned\n"
+      },
+      {
+        "name": "size-old-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O2 -Ilib/xrt -Irelease/extlibs/daemon -c /var/tmp/xlang-daemon-audit-N7vJ6q6Y/old-daemon_native.c -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/size-old.o \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "size-old",
+        "expected": 0,
+        "actual": 0,
+        "command": "size /var/tmp/xlang-daemon-audit-N7vJ6q6Y/size-old.o \n",
+        "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n   2657\t      0\t      0\t   2657\t    a61\t/var/tmp/xlang-daemon-audit-N7vJ6q6Y/size-old.o\n",
+        "stderr": ""
+      },
+      {
+        "name": "size-new-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O2 -Ilib/xrt -Irelease/extlibs/daemon -c release/extlibs/daemon/daemon_native.c -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/size-new.o \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "size-new",
+        "expected": 0,
+        "actual": 0,
+        "command": "size /var/tmp/xlang-daemon-audit-N7vJ6q6Y/size-new.o \n",
+        "stdout": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n   3217\t      0\t      0\t   3217\t    c91\t/var/tmp/xlang-daemon-audit-N7vJ6q6Y/size-new.o\n",
+        "stderr": ""
+      }
+    ],
+    "defaultGate": [
+      {
+        "name": "compiler",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc --version \n",
+        "stdout": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+        "stderr": ""
+      },
+      {
+        "name": "manifest-modules",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -Wall -Wextra -Werror -fsyntax-only -Ilib/xrt -Irelease/extlibs/daemon/include -DXRT_MODULE_ATOMIC -DXRT_MODULE_FILE_LOCK -DXRT_MODULE_PATH -DXRT_MODULE_STRING_FORMAT -DXRT_MODULE_UNICODE release/extlibs/daemon/daemon_native.c \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "runtime",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/daemon/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -c release/extlibs/daemon/test/xrt_runtime.c -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/runtime.o \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "native",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/daemon/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -Wmissing-prototypes -c release/extlibs/daemon/daemon_native.c -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/native.o \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "core-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/daemon/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/daemon/test/test_daemon.c /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/native.o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/runtime.o -lm -ldl -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/core \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "core",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/core \n",
+        "stdout": "daemon C test: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "cleanup_contract_c-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/daemon/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/daemon/test/cleanup_contract_c.c /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/runtime.o -lm -ldl -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/cleanup_contract_c \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "cleanup_contract_c-GCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/cleanup_contract_c \n",
+        "stdout": "daemon cleanup contract: 156 cases, 2583 checks, 4 budgets, 3 real OOM, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "cleanup_contract_c-TCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/daemon/test/cleanup_contract_c.c \n",
+        "stdout": "daemon cleanup contract: 156 cases, 2583 checks, 4 budgets, 3 real OOM, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "cleanup_contract_c-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/daemon/test/cleanup_contract_c.c -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/cleanup_contract_c.aot \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "cleanup_contract_c-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/cleanup_contract_c.aot \n",
+        "stdout": "daemon cleanup contract: 156 cases, 2583 checks, 4 budgets, 3 real OOM, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "pid_liveness_c-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/daemon/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/daemon/test/pid_liveness_c.c /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/runtime.o -lm -ldl -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/pid_liveness_c \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "pid_liveness_c-GCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/pid_liveness_c \n",
+        "stdout": "daemon liveness: 12 checks, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "pid_liveness_c-TCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/daemon/test/pid_liveness_c.c \n",
+        "stdout": "daemon liveness: 12 checks, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "pid_liveness_c-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/daemon/test/pid_liveness_c.c -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/pid_liveness_c.aot \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "pid_liveness_c-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/pid_liveness_c.aot \n",
+        "stdout": "daemon liveness: 12 checks, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "pid_identity_c-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/daemon/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/daemon/test/pid_identity_c.c /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/runtime.o -lm -ldl -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/pid_identity_c \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "pid_identity_c-GCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/pid_identity_c \n",
+        "stdout": "daemon PID identity: 16 checks, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "pid_identity_c-TCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/daemon/test/pid_identity_c.c \n",
+        "stdout": "daemon PID identity: 16 checks, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "pid_identity_c-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/daemon/test/pid_identity_c.c -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/pid_identity_c.aot \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "pid_identity_c-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/pid_identity_c.aot \n",
+        "stdout": "daemon PID identity: 16 checks, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "extlib_daemon-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run test/cases/extlib_daemon.xl \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "extlib_daemon-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build test/cases/extlib_daemon.xl -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/extlib_daemon \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "extlib_daemon-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/extlib_daemon \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "ffi_boundaries-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/daemon/test/ffi_boundaries.xl \n",
+        "stdout": "daemon FFI boundaries: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "ffi_boundaries-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/daemon/test/ffi_boundaries.xl -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/ffi_boundaries \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "ffi_boundaries-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/ffi_boundaries \n",
+        "stdout": "daemon FFI boundaries: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "cgen",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl cgen test/cases/extlib_daemon.xl --emit /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/module.c \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "generated-ABI",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/daemon/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -fsyntax-only /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/abi.c \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "ABI-wrong-return-control",
+        "expected": 1,
+        "actual": 1,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/daemon/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread -fsyntax-only /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/abi-bad.c \n",
+        "stdout": "",
+        "stderr": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/abi-bad.c:5:15: error: conflicting types for ‘xdaemon_is_alive’; have ‘double(int64_t)’ {aka ‘double(long int)’}\n    5 | extern double xdaemon_is_alive(int64_t);\n      |               ^~~~~~~~~~~~~~~~\nIn file included from /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/abi-bad.c:1:\nrelease/extlibs/daemon/include/daemon_native.h:18:9: note: previous declaration of ‘xdaemon_is_alive’ with type ‘int64_t(int64_t)’ {aka ‘long int(long int)’}\n   18 | int64_t xdaemon_is_alive(int64_t pid);\n      |         ^~~~~~~~~~~~~~~~\n"
+      },
+      {
+        "name": "private_native_negative",
+        "expected": 1,
+        "actual": 1,
+        "command": "./release/xl check release/extlibs/daemon/test/private_native_negative.xl \n",
+        "stdout": "",
+        "stderr": "release/extlibs/daemon/test/private_native_negative.xl:4:9: [sem] unknown class/union field\nrelease/extlibs/daemon/test/private_native_negative.xl:4:23: [sem] no matching callable class member '__xl6_import_daemon_Daemon.writePidNative': check argument count, types and access\n"
+      },
+      {
+        "name": "private_status_negative",
+        "expected": 1,
+        "actual": 1,
+        "command": "./release/xl check release/extlibs/daemon/test/private_status_negative.xl \n",
+        "stdout": "",
+        "stderr": "release/extlibs/daemon/test/private_status_negative.xl:4:9: [sem] unknown class/union field\nrelease/extlibs/daemon/test/private_status_negative.xl:4:25: [sem] no matching callable class member '__xl6_import_daemon_Daemon.releasePidNative': check argument count, types and access\n"
+      },
+      {
+        "name": "private_getter_negative",
+        "expected": 1,
+        "actual": 1,
+        "command": "./release/xl check release/extlibs/daemon/test/private_getter_negative.xl \n",
+        "stdout": "",
+        "stderr": "release/extlibs/daemon/test/private_getter_negative.xl:4:9: [sem] unknown class/union field\nrelease/extlibs/daemon/test/private_getter_negative.xl:4:18: [sem] no matching callable class member '__xl6_import_daemon_Daemon.pidNative': check argument count, types and access\n"
+      },
+      {
+        "name": "unexported_constructor_negative",
+        "expected": 1,
+        "actual": 1,
+        "command": "./release/xl check release/extlibs/daemon/test/unexported_constructor_negative.xl \n",
+        "stdout": "",
+        "stderr": "release/extlibs/daemon/test/unexported_constructor_negative.xl:3:22: [import] import package has no such exported symbol\n"
+      },
+      {
+        "name": "daemon_c-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/daemon/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/examples/extlibs/daemon_c.c /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/native.o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/runtime.o -lm -ldl -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/daemon_c \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "daemon_c-GCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/daemon_c \n",
+        "stdout": "sample-service pid=3373\nactive=true\ndaemon example: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "daemon_c-TCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/examples/extlibs/daemon_c.c \n",
+        "stdout": "sample-service pid=3379\nactive=true\ndaemon example: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "daemon_c-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/examples/extlibs/daemon_c.c -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/daemon_c.aot \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "daemon_c-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/daemon_c.aot \n",
+        "stdout": "sample-service pid=3387\nactive=true\ndaemon example: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "restart_c-compile",
+        "expected": 0,
+        "actual": 0,
+        "command": "gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/daemon/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread release/extlibs/daemon/examples/restart_c.c /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/native.o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/runtime.o -lm -ldl -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/restart_c \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "restart_c-GCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/restart_c \n",
+        "stdout": "held: true\ncontender: busy\nfailed switch: held\nhandoff: true\nstop: true\n",
+        "stderr": ""
+      },
+      {
+        "name": "restart_c-TCC",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/daemon/examples/restart_c.c \n",
+        "stdout": "held: true\ncontender: busy\nfailed switch: held\nhandoff: true\nstop: true\n",
+        "stderr": ""
+      },
+      {
+        "name": "restart_c-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/daemon/examples/restart_c.c -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/restart_c.aot \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "restart_c-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/restart_c.aot \n",
+        "stdout": "held: true\ncontender: busy\nfailed switch: held\nhandoff: true\nstop: true\n",
+        "stderr": ""
+      },
+      {
+        "name": "daemon-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/examples/extlibs/daemon.xl \n",
+        "stdout": "sample-service pid=3441\nactive=true\ndaemon example: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "daemon-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/examples/extlibs/daemon.xl -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/daemon.aot \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "daemon-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/daemon.aot \n",
+        "stdout": "sample-service pid=3449\nactive=true\ndaemon example: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "restart-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/daemon/examples/restart.xl \n",
+        "stdout": "held: true\ncontender: busy\nfailed switch: held\nhandoff: true\nstop: true\n",
+        "stderr": ""
+      },
+      {
+        "name": "restart-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/daemon/examples/restart.xl -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/restart.aot \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "restart-AOT",
+        "expected": 0,
+        "actual": 0,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/restart.aot \n",
+        "stdout": "held: true\ncontender: busy\nfailed switch: held\nhandoff: true\nstop: true\n",
+        "stderr": ""
+      },
+      {
+        "name": "top-level-JIT",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl run release/extlibs/daemon/test/top_level.xl \n",
+        "stdout": "daemon top-level: PASS\n",
+        "stderr": ""
+      },
+      {
+        "name": "top-level-build",
+        "expected": 0,
+        "actual": 0,
+        "command": "./release/xl build release/extlibs/daemon/test/top_level.xl -o /var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/top-level \n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "top-level-AOT",
+        "expected": 0,
+        "actual": 1,
+        "command": "/var/tmp/xlang-daemon-audit-N7vJ6q6Y/tmp/xlang-daemon-2nJCgZs8/top-level \n",
+        "stdout": "daemon top-level: PASS\n",
+        "stderr": "uncaught xlang error: RuntimeError: operation is not valid in the current state\n"
+      }
+    ],
+    "phases": 53,
+    "expectedRejections": 5,
+    "requirementsMet": 52,
+    "ordinaryAotPrograms": 9,
+    "publicGeneratedPrototypes": 11,
+    "frozenSourceFiles": 48,
+    "inputsBefore": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h\ne202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h\n98c5b5ee4f32a163561b335845ccd354a0565e5af36ace2475a04df97c4af0a4  ./release/examples/extlibs/daemon.xl\n18305cd3acf139921120e292dec6bf11eee562829a25c71cda4b853148bb62b8  ./release/examples/extlibs/daemon_c.c\nab2a287528dbf44f64b63dd3a9243e69bb7fccb825f2fea42b2b76d27e5a5bda  ./release/extlibs/daemon/README.md\ne6b71028c43fcfff2eeeea906566055f3bfd48fd6b458549274dbf6bb5bad1b2  ./release/extlibs/daemon/daemon_native.c\nb61eceffa26908f4715aaa5cbdd900d1dc97dd854d38254680330680d15de737  ./release/extlibs/daemon/docs/site.html\n48df6f2c512983eee665c2269830728a8ba11b7779b788f09ae14e1232153295  ./release/extlibs/daemon/examples/README.md\n6ad728acf7441c273c91962cbec375097d94cf507847bb9222daa265f254a702  ./release/extlibs/daemon/examples/restart.expected.txt\naf7085481bdc7a57fc15779649f6d8433087b392c25efe6a4ef9eb9b6db3123f  ./release/extlibs/daemon/examples/restart.xl\na7750cda2d880a319981fbe87df5f1e6bf3a2655b6691ee377362b452d3c7097  ./release/extlibs/daemon/examples/restart_c.c\n8a5f7ed9ee21c0c27cc9048f22edac2b67fa2b0b2b60b8e3117d57275503f191  ./release/extlibs/daemon/include/daemon_native.h\n2fea19a4d0441a8dbecae11d0bdc337d1f3dd5ccedbff68f8af05f18dc8d72cd  ./release/extlibs/daemon/src/daemon.xl\n5cd980ad3d3bb87b39e1fa3aa9b109d0a53208eade8af8e40716c36192d206c5  ./release/extlibs/daemon/test/check.ps1\n52a3ff6cb950ad21b81f752c085f0e40e7e155ae2a4bb366c2261d4a6227dceb  ./release/extlibs/daemon/test/check.sh\n69bd2b5034144c5f45c3a2027ad89ad70f4a735fd6af2f4047046c505babeca7  ./release/extlibs/daemon/test/cleanup_contract_c.c\na989a684c0f7cbaf724fe95d155e5ea72f30361528cb7b60757e0de36da969ed  ./release/extlibs/daemon/test/daemon.expected.txt\na75f3c37021c3108ab86eec0dadfcbc071a8745b0dac121ce578991730daa818  ./release/extlibs/daemon/test/ffi_boundaries.xl\n84ea66ca9169a66f8ad80b654e9e59535b0066e609026aa08f68f0cd4ef225aa  ./release/extlibs/daemon/test/pid_identity_c.c\naaed5118f15a47fe2857950470dfef18e42ecf9ec76f9e13027c037cc86c50e2  ./release/extlibs/daemon/test/pid_liveness_c.c\nd679fc32396f33cd03f2659805d93f2e30b7b01dd42d5f793c6e8fb628c9c79e  ./release/extlibs/daemon/test/private_getter_negative.xl\n944c8c8a9618b23617e1b7376776019f37171eea4be50f03e5d136dceef0acd5  ./release/extlibs/daemon/test/private_native_negative.xl\n28503ce26af063db5d5318d9237e2b96518ab3530b1628bad6dd24a2177cacf3  ./release/extlibs/daemon/test/private_status_negative.xl\na6857b6c0a5a1ce10eef6a8b4f323ab8dae275236642c69eb774568b72104afe  ./release/extlibs/daemon/test/test_daemon.c\nd8d53eedf235cda578938d17759f6e4a63560386e1113867cbb5d5288f58e551  ./release/extlibs/daemon/test/top_level.xl\n65b888da11da7af44dcd0a0ef5f3098cd7320dd26e36feb36fa83cb1b780f09a  ./release/extlibs/daemon/test/unexported_constructor_negative.xl\n328e47c0f1a148a5f58c4fd53fb3ff23c0db5505e7aa56e88e8ae99274e2f39a  ./release/extlibs/daemon/test/xrt_runtime.c\ndc3133454970dd385b4144ad1c0af476b65e0ff2b24dd281fb0c0182ddd24f6d  ./release/extlibs/daemon/xlang.package.json\n513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md\nfc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h\nfe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h\nede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h\nab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h\na203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h\ndb381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h\n8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h\nec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h\n4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h\n4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h\n931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h\n136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h\n073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h\nc519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h\n1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h\n4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so\n0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so\ndd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl\nfdd1a389d6b2b95be15e7260ac44a3352453e4541adb09ffa2ee9c5058c89422  ./test/cases/extlib_daemon.xl\n",
+    "inputsAfter": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  ./lib/xrt/xrt.h\ne202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  ./lib/xruntime/xruntime.h\n98c5b5ee4f32a163561b335845ccd354a0565e5af36ace2475a04df97c4af0a4  ./release/examples/extlibs/daemon.xl\n18305cd3acf139921120e292dec6bf11eee562829a25c71cda4b853148bb62b8  ./release/examples/extlibs/daemon_c.c\nab2a287528dbf44f64b63dd3a9243e69bb7fccb825f2fea42b2b76d27e5a5bda  ./release/extlibs/daemon/README.md\ne6b71028c43fcfff2eeeea906566055f3bfd48fd6b458549274dbf6bb5bad1b2  ./release/extlibs/daemon/daemon_native.c\nb61eceffa26908f4715aaa5cbdd900d1dc97dd854d38254680330680d15de737  ./release/extlibs/daemon/docs/site.html\n48df6f2c512983eee665c2269830728a8ba11b7779b788f09ae14e1232153295  ./release/extlibs/daemon/examples/README.md\n6ad728acf7441c273c91962cbec375097d94cf507847bb9222daa265f254a702  ./release/extlibs/daemon/examples/restart.expected.txt\naf7085481bdc7a57fc15779649f6d8433087b392c25efe6a4ef9eb9b6db3123f  ./release/extlibs/daemon/examples/restart.xl\na7750cda2d880a319981fbe87df5f1e6bf3a2655b6691ee377362b452d3c7097  ./release/extlibs/daemon/examples/restart_c.c\n8a5f7ed9ee21c0c27cc9048f22edac2b67fa2b0b2b60b8e3117d57275503f191  ./release/extlibs/daemon/include/daemon_native.h\n2fea19a4d0441a8dbecae11d0bdc337d1f3dd5ccedbff68f8af05f18dc8d72cd  ./release/extlibs/daemon/src/daemon.xl\n5cd980ad3d3bb87b39e1fa3aa9b109d0a53208eade8af8e40716c36192d206c5  ./release/extlibs/daemon/test/check.ps1\n52a3ff6cb950ad21b81f752c085f0e40e7e155ae2a4bb366c2261d4a6227dceb  ./release/extlibs/daemon/test/check.sh\n69bd2b5034144c5f45c3a2027ad89ad70f4a735fd6af2f4047046c505babeca7  ./release/extlibs/daemon/test/cleanup_contract_c.c\na989a684c0f7cbaf724fe95d155e5ea72f30361528cb7b60757e0de36da969ed  ./release/extlibs/daemon/test/daemon.expected.txt\na75f3c37021c3108ab86eec0dadfcbc071a8745b0dac121ce578991730daa818  ./release/extlibs/daemon/test/ffi_boundaries.xl\n84ea66ca9169a66f8ad80b654e9e59535b0066e609026aa08f68f0cd4ef225aa  ./release/extlibs/daemon/test/pid_identity_c.c\naaed5118f15a47fe2857950470dfef18e42ecf9ec76f9e13027c037cc86c50e2  ./release/extlibs/daemon/test/pid_liveness_c.c\nd679fc32396f33cd03f2659805d93f2e30b7b01dd42d5f793c6e8fb628c9c79e  ./release/extlibs/daemon/test/private_getter_negative.xl\n944c8c8a9618b23617e1b7376776019f37171eea4be50f03e5d136dceef0acd5  ./release/extlibs/daemon/test/private_native_negative.xl\n28503ce26af063db5d5318d9237e2b96518ab3530b1628bad6dd24a2177cacf3  ./release/extlibs/daemon/test/private_status_negative.xl\na6857b6c0a5a1ce10eef6a8b4f323ab8dae275236642c69eb774568b72104afe  ./release/extlibs/daemon/test/test_daemon.c\nd8d53eedf235cda578938d17759f6e4a63560386e1113867cbb5d5288f58e551  ./release/extlibs/daemon/test/top_level.xl\n65b888da11da7af44dcd0a0ef5f3098cd7320dd26e36feb36fa83cb1b780f09a  ./release/extlibs/daemon/test/unexported_constructor_negative.xl\n328e47c0f1a148a5f58c4fd53fb3ff23c0db5505e7aa56e88e8ae99274e2f39a  ./release/extlibs/daemon/test/xrt_runtime.c\ndc3133454970dd385b4144ad1c0af476b65e0ff2b24dd281fb0c0182ddd24f6d  ./release/extlibs/daemon/xlang.package.json\n513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  ./release/include/README.md\nfc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  ./release/include/libtcc.h\nfe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  ./release/include/tcc_builtin_vfs.h\nede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  ./release/include/xl.h\nab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  ./release/include/xl_cancellation_retirement.h\na203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  ./release/include/xl_clock.h\ndb381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  ./release/include/xl_extlib_abi.h\n8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  ./release/include/xl_foreign_graph.h\nec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  ./release/include/xl_foreign_net.h\n4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  ./release/include/xl_package.h\n4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  ./release/include/xl_runtime.h\n931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  ./release/include/xl_sync_retirement.h\n136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  ./release/include/xl_version.h\n073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  ./release/include/xlc.h\nc519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  ./release/include/xrt_decl.h\n1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  ./release/include/xruntime_decl.h\n4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  ./release/libxl.so\n0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  ./release/libxlc.so\ndd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  ./release/xl\nfdd1a389d6b2b95be15e7260ac44a3352453e4541adb09ffa2ee9c5058c89422  ./test/cases/extlib_daemon.xl\n",
+    "tools": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc\n30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1\n3efccc187bafa75ff1e37d246270ab3e7aa559f242c7a52bf3ec2a1b5450bdbd  /usr/bin/bash\n52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41  /usr/bin/python3.14\n",
+    "boot": "4e4f0d52-a6ff-481d-b046-f82683361853\n",
+    "unchanged": true,
+    "sanitizers": "ASan/UBSan/leak checking, no findings",
+    "oldRuntimeAndPkgFlags": "same GCC15.2 selected runtime with MEMORY_DEBUG for both old and new"
+  },
+  "objectSize": {
+    "method": "GCC -std=c11 -O2, same core-only object; Linux both old/new also use -D_GNU_SOURCE",
+    "windowsText": [
+      2344,
+      2904
+    ],
+    "linuxText": [
+      2657,
+      3217
+    ],
+    "dataBssDelta": 0,
+    "notFinalExeBytes": true,
+    "notThroughputBenchmark": true
+  },
+  "examples": {
+    "new": [
+      "examples/restart.xl",
+      "examples/restart_c.c"
+    ],
+    "golden": "examples/restart.expected.txt",
+    "scope": "Real exclusive temp directory, contention, failed path switch keeps owner, explicit handoff, cooperative stop. No service registration or background daemon.",
+    "old": "Central C/XLang examples retained, normalize only numeric PID",
+    "manifestCoverage": "New example added, original top-level case retained"
+  },
+  "postGateDocumentationChanges": [
+    {
+      "path": "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\docs\\site.html",
+      "before": "B61ECEFFA26908F4715AAA5CBDD900D1DC97DD854D38254680330680D15DE737",
+      "after": "3ED069CF819957CF3C098DFB9B7C9883E2A57128B78C46BC6D4F6EAC266A5115",
+      "documentationOnly": true
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\release\\extlibs\\daemon\\README.md",
+      "before": "AB2A287528DBF44F64B63DD3A9243E69BB7FCCB825F2FEA42B2B76D27E5A5BDA",
+      "after": "B1591B8E2600EE16D5419834D59D3A86278B92EF838A6F797ACF34142050CB08",
+      "documentationOnly": true
+    }
+  ],
+  "catalog": {
+    "candidate": "build/test/daemon-lifecycle-20261102/catalog-final",
+    "installed": false,
+    "checks": [
+      {
+        "name": "freshness",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/refresh_extensions.py",
+          "--root",
+          "D:/GIT/x-lang",
+          "--data",
+          "build/test/daemon-lifecycle-20261102/catalog-final",
+          "--check"
+        ],
+        "actual": 0,
+        "expected": 0,
+        "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+        "stderr": ""
+      },
+      {
+        "name": "binding",
+        "arguments": [
+          "-B",
+          "-X",
+          "utf8",
+          "ide/tools/check_catalog_coverage.py",
+          "--root",
+          "D:/GIT/x-lang",
+          "--catalog",
+          "build/test/daemon-lifecycle-20261102/catalog-final/commands.json"
+        ],
+        "actual": 1,
+        "expected": 1,
+        "stdout": "",
+        "stderr": "Catalog compiler changed: xl.dll\r\n"
+      },
+      {
+        "name": "delivery",
+        "arguments": [
+          "-B",
+          "tools/check_release_committed.py",
+          "--root",
+          "D:/GIT/x-lang"
+        ],
+        "actual": 0,
+        "expected": 0,
+        "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+        "stderr": ""
+      }
+    ],
+    "reason": "Strict compiler binding still differs at xl.dll; no old source replacement of release data"
+  },
+  "invalidAttempts": [
+    "Initial Linux strict-C11 manifest compile lacked kill declaration; fixed source POSIX feature macro then fresh frozen gate rerun",
+    "First liveness test compared total process handles across CRT first error printing; replaced with immediate per-isAlive measurements and reran same old/new fixture",
+    "Initial restart example used unsupported single-line-if layout; corrected to ordinary if/end before gates",
+    "First Windows gate predates POSIX-only source declaration; final audit reran full gate on exact final functional inputs"
+  ],
+  "residualRisks": [
+    "Known M2: both top-level AOT programs print PASS then error/exit1; required positive remains red",
+    "Same-user malicious path replacement after metadata check is not prevented; PID writing not atomic transaction",
+    "No real disk-close fault, full OS privilege matrix, daemonization, Windows service manager, long soak, 32-bit/ARM or DLL host certification",
+    "Fault sweep covers PID write path, not every allocator site of the entire library"
+  ],
+  "maturity": {
+    "G": 30,
+    "R": 10,
+    "M": 56,
+    "X": 4,
+    "total": 100,
+    "wholeGoalComplete": false
+  }
+}

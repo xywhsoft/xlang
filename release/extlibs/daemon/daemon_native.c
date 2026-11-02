@@ -1,4 +1,7 @@
 /* 前台服务辅助：进程身份、停止请求与排他 PID 文件。 */
+#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
+#define _POSIX_C_SOURCE 200809L
+#endif
 #ifndef XRT_MODULE_ATOMIC
 #define XRT_MODULE_ATOMIC
 #endif
@@ -75,6 +78,41 @@ static int xdaemon_unlock(xfile file)
 #endif
 }
 
+/* 清理始终执行到底；已有业务错误或首个清理错误不被后续失败覆盖。 */
+static int xdaemon_retire_file(xfile file, bool locked, const char *remove_path)
+{
+    xerror *failure = xrtTakeError();
+    int okay = 1;
+    if (remove_path != NULL && !xrtFileDeleteOpen(file, remove_path)) {
+        okay = 0;
+        if (failure == NULL) failure = xrtTakeError();
+    }
+    if (locked && !xdaemon_unlock(file)) {
+        okay = 0;
+        if (failure == NULL) failure = xrtTakeError();
+    }
+    if (!xrtClose(file)) {
+        okay = 0;
+        if (failure == NULL) failure = xrtTakeError();
+    }
+    if (failure != NULL) xrtSetErrorTake(failure);
+    return okay;
+}
+
+/* 只有打开对象与当前路径身份一致，才报告持有该 PID 路径。 */
+static int xdaemon_current_file(xfile file, const char *path)
+{
+    xfileinfo opened, named;
+    if (!xrtFileStat(file, &opened) || !xrtPathStat(path, false, &named)) return 0;
+    bool known = (opened.Available & named.Available & XFILE_INFO_IDENTITY) != 0;
+    if (!known || opened.Device != named.Device || opened.Identity != named.Identity) {
+        xrtSetErrorInfo(known ? XERR_STATE : XERR_UNSUPPORTED, "xlang.extlib.daemon", 0,
+            known ? "PID path no longer identifies the locked file" : "PID file identity is unavailable");
+        return 0;
+    }
+    return 1;
+}
+
 static int xdaemon_text_valid(const char *text, size_t limit)
 {
     size_t size;
@@ -115,12 +153,10 @@ void *xdaemon_create(const char *name)
 /* 删除的必须是仍由本对象打开的同一文件，不能误删后来替换的路径。 */
 static int64_t xdaemon_release_pidfile_state(xdaemon *state)
 {
-    int okay = 1;
+    int okay;
     if (state == NULL) return 0;
     if (state->pid_file == NULL) return 1;
-    if (!xrtFileDeleteOpen(state->pid_file, state->pid_path)) okay = 0;
-    if (!xdaemon_unlock(state->pid_file)) okay = 0;
-    if (!xrtClose(state->pid_file)) okay = 0;
+    okay = xdaemon_retire_file(state->pid_file, true, state->pid_path);
     state->pid_file = NULL;
     xrtFree(state->pid_path);
     state->pid_path = NULL;
@@ -159,7 +195,7 @@ int64_t xdaemon_write_pidfile(void *handle, const char *path)
         return 0;
     }
     if (state->pid_path != NULL) {
-        if (strcmp(state->pid_path, path) == 0) return 1;
+        if (strcmp(state->pid_path, path) == 0) return xdaemon_current_file(state->pid_file, path);
         xrtSetErrorInfo(XERR_STATE, "xlang.extlib.daemon", 0,
             "release the current PID file before changing its path");
         return 0;
@@ -171,16 +207,20 @@ int64_t xdaemon_write_pidfile(void *handle, const char *path)
     file = xrtFileOpen(path, &options);
     if (file == NULL) return 0;
     if (!xdaemon_lock(file)) {
-        xrtClose(file);
+        xdaemon_retire_file(file, false, NULL);
+        return 0;
+    }
+    /* 旧持有者可能在 open 与 lock 之间删掉文件；锁住旧 inode 不等于拥有当前路径。 */
+    if (!xdaemon_current_file(file, path)) {
+        xdaemon_retire_file(file, true, NULL);
         return 0;
     }
     copy = xrtStrDup(path);
-    content = xrtFormat("%lld\n", state->pid);
-    if (copy == NULL || content == NULL) {
+    content = copy != NULL ? xrtFormat("%lld\n", state->pid) : NULL;
+    if (content == NULL) {
         xrtFree(copy);
         xrtFree(content);
-        xdaemon_unlock(file);
-        xrtClose(file);
+        xdaemon_retire_file(file, true, NULL);
         return 0;
     }
     size = strlen(content);
@@ -189,8 +229,7 @@ int64_t xdaemon_write_pidfile(void *handle, const char *path)
     xrtFree(content);
     if (!okay) {
         xrtFree(copy);
-        xdaemon_unlock(file);
-        xrtClose(file);
+        xdaemon_retire_file(file, true, NULL);
         return 0;
     }
     state->pid_file = file;
@@ -241,16 +280,14 @@ int64_t xdaemon_is_alive(int64_t pid)
     if (pid <= 0) return 0;
 #ifdef _WIN32
     HANDLE process;
-    DWORD code;
+    DWORD status;
     if ((unsigned long long)pid > UINT_MAX) return 0;
-    process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, (DWORD)pid);
+    process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, FALSE, (DWORD)pid);
     if (process == NULL) return GetLastError() == ERROR_ACCESS_DENIED;
-    if (!GetExitCodeProcess(process, &code)) {
-        CloseHandle(process);
-        return 0;
-    }
+    /* 259 也可能是真实退出码，不能将它与 STILL_ACTIVE 的数值相等当作存活。 */
+    status = WaitForSingleObject(process, 0);
     CloseHandle(process);
-    return code == STILL_ACTIVE;
+    return status == WAIT_TIMEOUT;
 #else
     if (pid > INT_MAX) return 0;
     if (kill((pid_t)pid, 0) == 0) return 1;

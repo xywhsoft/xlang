@@ -1,0 +1,5 @@
+held: true
+contender: busy
+failed switch: held
+handoff: true
+stop: true

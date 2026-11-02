@@ -1,0 +1,47 @@
+import daemon
+
+// 前台服务的锁交接；停止请求是业务状态，不向操作系统发送信号。
+func main(...) as int
+    string root = dir.temp("", "xlang-daemon-restart-", "")
+    string pidPath = path.join(root, "服务.pid")
+    auto worker = daemon.create("worker")
+    auto successor = daemon.create("successor")
+    try
+        assert worker.writePidFile(pidPath)
+        assert worker.holdsPidFile and daemon.readPidFile(pidPath) == worker.pid
+        println("held: true")
+        assert not successor.writePidFile(pidPath)
+        println("contender: busy")
+
+        bool rejected = false
+        try
+            worker.writePidFile(path.join(root, "other.pid"))
+        catch RuntimeError error
+            rejected = true
+        end
+        assert rejected and worker.holdsPidFile
+        assert daemon.readPidFile(pidPath) == worker.pid
+        println("failed switch: held")
+
+        assert worker.releasePidFile()
+        assert successor.writePidFile(pidPath)
+        assert successor.holdsPidFile
+        assert successor.releasePidFile()
+        println("handoff: true")
+        worker.requestStop()
+        assert worker.stopRequested
+        println("stop: true")
+    finally
+        if worker.holdsPidFile then
+            worker.releasePidFile()
+        end
+        if successor.holdsPidFile then
+            successor.releasePidFile()
+        end
+        if file.exists(pidPath) then
+            file.delete(pidPath)
+        end
+        assert dir.remove(root)
+    end
+    return 0
+end
