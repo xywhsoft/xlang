@@ -1,0 +1,78 @@
+{
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\ast_storage.c": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\ast_storage.c",
+    "sha256": "276d337114d7714b1ca5dd320104549e8364d342fc29d138ed7755b0afe85d63"
+  },
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\ast_storage.h": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\ast_storage.h",
+    "sha256": "a9fe1dfb837569d74ab3206cb8b7d0b1b01806b05577bd3c78e63be19f15ba7f"
+  },
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\function_unit.c": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\function_unit.c",
+    "sha256": "7d8eb09cd9c2465af42b77a5723d63ab76b4037ad9f62c5248470cb5e7832aff"
+  },
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module.c": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\typed_module.c",
+    "sha256": "4a521e47c969705a503230fbddfccd796102f9fd2e86eee131b473e508baa2df"
+  },
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module_internal.h": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\typed_module_internal.h",
+    "sha256": "eb6b36f19d9155341f4ef71d6c0fe76402a0c3b3c2ed9ac32923ac553b3359e2"
+  },
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_raw_body.h": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_raw_body.h",
+    "sha256": "76bd4ea21973c0dfc3b04ba4a0be6c835b58d27d4c23fc84920628c0d10eeb86"
+  },
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_raw_body.c": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_raw_body.c",
+    "sha256": "b8f87801bca9cdd328c9148f20597cc914de32f9e67721bb8097ad86957fedc2"
+  },
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem.inc": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_sem.inc",
+    "sha256": "83a10e1d2422cb16a24ebaf8421b5abf2acec3dfcd51665ce2a2dcd0738627c9"
+  },
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem.h": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_sem.h",
+    "sha256": "fb7a6cb2d59ff8c46b7679c4fba5f5a916a83901493726980ce7b4e14bde67b0"
+  },
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem_raw.inc": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_sem_raw.inc",
+    "sha256": "2400099d222f8959f87dc2ad4905787f91276b43b328d0b774d161a69f82ebd4"
+  },
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem_final.inc": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_sem_final.inc",
+    "sha256": "32fdc7ba53cf31b15dd01cce1322c2774b47451bd439f455c8653c096ad4f270"
+  },
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem_tail.inc": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_sem_tail.inc",
+    "sha256": "642700e984f2c207e9c91f86cc477a491c5192e03c3502fcd44fe28e5f797a69"
+  },
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem_ir.inc": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_sem_ir.inc",
+    "sha256": "e82688b1223b59912cabfc6d3f746670f75eefb2059d1f96c3e0ae04f2be2a85"
+  },
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\check.c": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\check.c",
+    "sha256": "8b60a841ace3a7afe1a09612fac2fb6a0ddbab17b6c3125841747245488ac930"
+  },
+  "D:\\GIT\\x-lang\\ide\\tools\\build_lsp_core.py": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\tools\\build_lsp_core.py",
+    "sha256": "57806825763ab8da70bea7d72a67886ba2d2937e5da2d2fe1b227d975df30db7"
+  },
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\ast_size.c": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\ast_size.c",
+    "sha256": "9c8d0d0abf94d7a7c4b0561161280ec2e22c028f2cb4b40f4070be9fed4c72d0"
+  },
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\ast_size.h": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\ast_size.h",
+    "sha256": "6e0f0bc96923c9bdba624354b39725646cd082e281ab34f225f71d2088ffdef1"
+  },
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem_native.inc": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\src\\analysis\\frontend_sem_native.inc",
+    "sha256": "57e09d30cf789ad9b3e6ca41a1564ba0d326bb1c10a9f91bbc0c99ea014d559d"
+  },
+  "D:\\GIT\\x-lang\\ide\\tests\\analysis_native_borrow_test.c": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\focused-v3\\ide\\tests\\analysis_native_borrow_test.c",
+    "sha256": "6e8a94cf116ccb4fce65774d6cd8a4febc57279105ebe97efd99958a0d4f23dc"
+  }
+}

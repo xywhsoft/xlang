@@ -1,0 +1,69 @@
+{
+  "head": "0ec1a5e7ea9b9c95a680785186b9e22145fd8a54",
+  "files": {
+    "ide/src/analysis/ast_storage.c": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\ast_storage.c",
+      "sha256": "276d337114d7714b1ca5dd320104549e8364d342fc29d138ed7755b0afe85d63"
+    },
+    "ide/src/analysis/ast_storage.h": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\ast_storage.h",
+      "sha256": "a9fe1dfb837569d74ab3206cb8b7d0b1b01806b05577bd3c78e63be19f15ba7f"
+    },
+    "ide/src/analysis/function_unit.c": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\function_unit.c",
+      "sha256": "a0e6f79b619cd4bdc4e9d75bd940e9563913dc7e578986c8df1f6509368d9581"
+    },
+    "ide/src/analysis/typed_module.c": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\typed_module.c",
+      "sha256": "3c18ed29f86b0d232100f9c037ecda21e6d418d9cb649e53173364852f720096"
+    },
+    "ide/src/analysis/typed_module_internal.h": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\typed_module_internal.h",
+      "sha256": "f25a6059e271c0a30a53b56bae447719a5817125cf08a24e61fc9baa806e696b"
+    },
+    "ide/src/analysis/frontend_raw_body.h": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_raw_body.h",
+      "sha256": "2a52786d2377546a89dfb1b25f6d927ea597c95f5e7e96cfe7a2226d7b9cefd6"
+    },
+    "ide/src/analysis/frontend_raw_body.c": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_raw_body.c",
+      "sha256": "b8f87801bca9cdd328c9148f20597cc914de32f9e67721bb8097ad86957fedc2"
+    },
+    "ide/src/analysis/frontend_sem.inc": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_sem.inc",
+      "sha256": "d6641c1e8de1eb4f3f7a432cab5a2858fa0da375fdbb7000c32c4fb80aeab94e"
+    },
+    "ide/src/analysis/frontend_sem.h": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_sem.h",
+      "sha256": "04125af95bb2758b8dca7911dc7cb908bee74823fe95cba0d22e67f4fb49f174"
+    },
+    "ide/src/analysis/frontend_sem_raw.inc": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_sem_raw.inc",
+      "sha256": "25e09e69350a706c22881981086e2806db564b3f9300bc4ca149308944187087"
+    },
+    "ide/src/analysis/frontend_sem_final.inc": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_sem_final.inc",
+      "sha256": "962754d2009fe1a8559871986e8d0f525ed4eba3dfa43cf7167edefd209a3d9e"
+    },
+    "ide/src/analysis/frontend_sem_tail.inc": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_sem_tail.inc",
+      "sha256": "df499ce0ed55f45a46866b1b57c2bee9f35e52a8f3996646c9e6fce5b911f5e2"
+    },
+    "ide/src/analysis/frontend_sem_ir.inc": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\frontend_sem_ir.inc",
+      "sha256": "baa5d71ecd46b812a9264a3886394e73c19ee54a1ce7f8ac9d679390ed947659"
+    },
+    "ide/src/analysis/check.c": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\src\\analysis\\check.c",
+      "sha256": "20a610856ef0ac3e3513ceeb4212f2946d27b62428c4515a231a590c616540da"
+    },
+    "ide/tools/build_lsp_core.py": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\tools\\build_lsp_core.py",
+      "sha256": "5d30887dbaf7caeeb9a32d1deae0085f4193c3c4be0c6d3b33870c8b369a2225"
+    },
+    "ide/tests/analysis_check_materialize_test.c": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\previous-ide-inputs\\ide\\tests\\analysis_check_materialize_test.c",
+      "sha256": "7aa833291e31450a384bbf0c0f5148b49e05bd7c243f4e85b3db896a45d91c48"
+    }
+  }
+}

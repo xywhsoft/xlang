@@ -1,0 +1,14 @@
+{
+  "D:\\GIT\\x-lang\\ide\\src\\analysis\\check.c": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\native-diagnostic-v2\\ide\\src\\analysis\\check.c",
+    "sha256": "bcc911db9af05a7d44f58900f18313771def98a772c6b82a1638097773ff2835"
+  },
+  "D:\\GIT\\x-lang\\ide\\tests\\analysis_check_materialize_test.c": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\native-diagnostic-v2\\ide\\tests\\analysis_check_materialize_test.c",
+    "sha256": "d5cc86e34316950f80f00fe2be77e4c5d7d03e0b20061627e1f04cf09efa8cef"
+  },
+  "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\run-native-diagnostic-v2.py": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-borrow-20261102\\history\\native-diagnostic-v2\\ide\\build\\Release\\lsp-native-borrow-20261102\\run-native-diagnostic-v2.py",
+    "sha256": "608c31be497a1c545142e607e9b80a94e4d69300e3b099b52fedb269c4fded1b"
+  }
+}

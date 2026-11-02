@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "scope": "Original generated type/plan bodies including unchanged M110 hooks,and complete C-owned effects producer byte-identical to M111. Ordinary native composition changes module-boundary invocation only.",
+  "rows": [
+    {
+      "name": "type",
+      "bytes": 2905,
+      "sha256": "45f33325f6fb4ea440d8b4a832f7367171bde45c9e0b5256de32dcbbae888f6f",
+      "exactlyEqualToM111": true
+    },
+    {
+      "name": "plan",
+      "bytes": 5263,
+      "sha256": "66f9af8c6d0094f9383acd0102631daf7881863b51ca841971a7fb067783aa00",
+      "exactlyEqualToM111": true
+    },
+    {
+      "name": "xl6_sem_c_owned.effects.c",
+      "bytes": 52411,
+      "sha256": "ebfb37923c07919c06fcac6d898902fb45158106551f2fbdacf3aebc1b11c4bc",
+      "exactlyEqualToM111": true
+    }
+  ]
+}

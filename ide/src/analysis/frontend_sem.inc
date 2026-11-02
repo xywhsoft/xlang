@@ -144,6 +144,9 @@ typedef struct xls_sem_entry {
     xls_sem_ir_receipt* finalInput;
     uint32_t finalRegionStart,finalRegionEnd,finalPredictedStart,finalPredictedEnd;
     unsigned finalPlanValid,finalCandidate,finalReplayed;
+    xls_typed_function* native;
+    XL6_AstNode* nativeStub;
+    int nativePlaced;
 #endif
 } xls_sem_entry;
 
@@ -174,6 +177,8 @@ struct xls_sem_memo {
     xls_sem_final_context* finalContext;
     xls_sem_final_work finalWork;
     int finalPrepared;
+    xmap nativeOwners;int nativeOwnersReady,nativeFinalPrepared;
+    xls_sem_native_work nativeWork;
 #endif
 };
 typedef struct xls_sem_move {
@@ -597,7 +602,7 @@ static void xlsSemMemoBegin(XL6_SemContext* ctx)
     m->trackInputs=!ctx->completionQuery && !build->deferredQuery;
     m->inputSame=m->trackInputs && build->compatible;
     xlsSemReadContextBegin(build,ctx);
-    if(build->deferredQuery)m->raw=xlsRawMemoCreate(m->entries.Count);
+    if(build->deferredQuery || (xlsRawBodyScopeCurrent() && xlsRawBodyScopeCurrent()->ordinary))m->raw=xlsRawMemoCreate(m->entries.Count);
 }
 static size_t xlsSemBom(const xls_text* text)
 { return xlsTextSize(text)>=3 && !memcmp(xlsTextData(text),"\xef\xbb\xbf",3) ? 3 : 0; }
@@ -1029,7 +1034,13 @@ static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const
 failed: xlsSemFactsFree(&staged); xrtArrayUnit(positions); return 0;
 }
 #include "analysis/frontend_sem_body.inc"
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+static int xlsSemNativeRetain(xls_sem_memo*,xls_sem_entry*,xls_typed_function*);
+#endif
 #include "analysis/frontend_sem_raw.inc"
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#include "analysis/frontend_sem_native.inc"
+#endif
 static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
 {
     if(xlsFrontendCancelPoint(XLS_CANCEL_SEM_FUNCTION,1))return 0;
@@ -1172,7 +1183,7 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
                 if(markerBytes<=XLS_SEM_MEMO_BYTES-m->bytes-sizeof(*unit) && (!markerBytes || unit->cursor.path) &&
                    xlsSemCaptureFacts(&raw,unit,XLS_SEM_MEMO_BYTES-m->bytes-sizeof(*unit)-markerBytes,&owned,build->deferredQuery==NULL)) {
                     unit->bytes=owned+sizeof(*unit)+markerBytes;
-                    if(build->deferredQuery){
+                    if(build->deferredQuery || m->raw){
                         unit->proof=xlsSemProofCreate(unit,XLS_SEM_MEMO_BYTES-m->bytes-unit->bytes);
                         if(unit->proof)unit->bytes+=unit->proof->bytes;
                     }
@@ -1190,11 +1201,16 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
 void xlsFrontendSemMemoDestroy(xls_sem_memo* memo)
 {
     if(!memo || xrtAtomic32FetchSub(&memo->references,1,XMEMORY_ACQ_REL)!=1) return;
-    for(size_t i=0;i<memo->entries.Count;++i) { xls_sem_entry* e=xrtArrayGet(&memo->entries,i); xrtStrBufFree(&e->key); xlsSemEntryFactsClear(e); }
+    for(size_t i=0;i<memo->entries.Count;++i) { xls_sem_entry* e=xrtArrayGet(&memo->entries,i); xrtStrBufFree(&e->key); xlsSemEntryFactsClear(e);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        xl6AstFree(e->nativeStub);xlsTypedFunctionRelease(e->native);
+#endif
+    }
     xlsSemEffectsFree(memo);
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     xlsTypedInputIdentityRelease(memo->inputOwner);
     xlsSemFinalContextRelease(memo->finalContext);
+    xrtMapUnit(&memo->nativeOwners);
 #endif
     xlsRawMemoDestroy(memo->raw);xrtArrayUnit(&memo->entries); xrtStrBufFree(&memo->context);xlsSemReadContextRelease(memo->readContext);xrtFree(memo->path); xrtFree(memo);
 }
@@ -1210,6 +1226,8 @@ size_t xlsFrontendSemMemoOwnedBytes(const xls_sem_memo* memo)
     size_t owner=xlsTypedInputIdentityOwnedBytes(memo->inputOwner);
     if(owner>SIZE_MAX-bytes)return SIZE_MAX;
     bytes+=owner;
+    if(memo->nativeWork.bytes>SIZE_MAX-bytes)return SIZE_MAX;
+    bytes+=memo->nativeWork.bytes;
 #endif
     if(memo->bytes>SIZE_MAX-bytes || path>SIZE_MAX-bytes-memo->bytes || reads>SIZE_MAX-bytes-memo->bytes-path)return SIZE_MAX;
     size_t raw=memo->raw ? memo->raw->bytes : 0;
@@ -1304,12 +1322,20 @@ static int xlsSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mod
     if(memo && build.effectPending)memo->effectsComplete=0;
 #endif
     xls_raw_scope* rawScope=xlsRawBodyScopeCurrent();
-    if(rawScope && rawScope->deferred && (rawScope->failed || rawScope->consumed!=rawScope->deferred || !deferred || !*deferred || !query || !query->available || query->error || (diags && diags->count)))build.bodyFailure=1;
+    if(rawScope && rawScope->deferred && (rawScope->failed || rawScope->consumed!=rawScope->deferred ||
+       (!rawScope->ordinary && (!deferred || !*deferred || !query || !query->available || query->error)) ||
+       (diags && diags->count)))build.bodyFailure=1;
     xlsSemBodyJobsFree(&build.bodyJobs);
     xlsActiveSemBuild=build.previous; xrtMapUnit(&build.slots); xrtMapUnit(&build.sources);
     xrtMapUnit(&build.readCache);
     xrtMapUnit(&build.moves.paths); xrtArrayUnit(&build.moves.changedSources);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(memo)for(size_t i=0;i<memo->entries.Count;++i){xls_sem_entry* entry=xrtArrayGet(&memo->entries,i);xl6AstFree(entry->nativeStub);entry->nativeStub=NULL;}
+#endif
     if(build.bodyFailure){
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        xlsFrontendSemMemoDetachNative(memo,root);
+#endif
         xlsFrontendSemMemoDestroy(memo);memo=NULL;build.memo=NULL;build.enabled=0;
         okay=-1;
     }
@@ -1329,7 +1355,12 @@ static int xlsSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mod
     }
     if(work) *work=build.work;
     if(memo){memo->readWork.bytes=memo->readContext ? memo->readContext->bytes : 0;for(size_t i=0;i<memo->entries.Count;++i){const xls_sem_entry* e=xrtArrayConstGet(&memo->entries,i);if(e->unit && e->unit->reads)memo->readWork.bytes+=e->unit->reads->bytes;}}
-    if(result && build.enabled) *result=memo; else xlsFrontendSemMemoDestroy(memo);
+    if(result && build.enabled) *result=memo; else {
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        xlsFrontendSemMemoDetachNative(memo,root);
+#endif
+        xlsFrontendSemMemoDestroy(memo);
+    }
     return okay;
 }
 int xlsFrontendSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* module,

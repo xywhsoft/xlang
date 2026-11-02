@@ -39,7 +39,7 @@ void xlsRawBodyRecord(xls_raw_unit* unit,const char* path,XL6_AstNode* function,
      * XRT map capacity has a conservative per-record allowance;this local
      * budget is neither process RSS nor a global transient allocation cap. */
     if(!path || xrtMapHas(&s->functions,address(&function)) || slot>=65536 ||
-       !(xlsRawBodyMemoAdmit(s->baseline,unit,path,&function->range,&owned) || xlsRawUnitBytes(unit,s->limit,&owned)) || s->unitBytes>s->limit || owned>s->limit-s->unitBytes ||
+       !(xlsRawBodyMemoSize(s->baseline,unit,path,&owned) || xlsRawUnitBytes(unit,s->limit,&owned)) || s->unitBytes>s->limit || owned>s->limit-s->unitBytes ||
        slot+1>(s->limit-s->unitBytes-owned)/(sizeof(xls_raw_binding)+128))goto failed;
     if(!xrtArrayReserve(&s->bindings,slot+1) || s->bindings.Capacity>(s->limit-s->unitBytes-owned)/(sizeof(xls_raw_binding)+128))goto failed;
     if(!xrtMapSet(&s->functions,address(&function),&slot))goto failed;

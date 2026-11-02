@@ -23,7 +23,7 @@ typedef struct xls_raw_scope {
     size_t limit,unitBytes,environmentBytes;
     uint64_t registered,deferred,consumed,declined;
     int ready,environmentReady,environmentInitialized,environmentStarted;
-    int failed,preprocessValid;
+    int failed,preprocessValid,ordinary;
     xls_raw_encoder encoder;
     xls_raw_stdlib_frame* stdlibFrame;
     xstrbuf preprocess;
@@ -52,6 +52,9 @@ int xlsRawBodySealPreprocess(const XL6_SourceReport*);
 int xlsRawBodyEnvironmentKey(const XL6_AstNode*,xstrbuf*);
 int xlsRawBodyPreprocessInputs(xstrbuf*,const XL6_SourceReport*);
 int xlsRawBodyMemoAdmit(const void*,xls_raw_unit*,const char*,const XL6_AstRange*,size_t*);
+/* Immutable raw unit identity sizes bytes only. No source/semantic/coordinate
+ * admission is implied;safe for a full-copy record whose placement changed. */
+int xlsRawBodyMemoSize(const void*,xls_raw_unit*,const char*,size_t*);
 int xlsRawBodyMemoPreprocessEqual(const void*,const xstrbuf*);
 /* Existing syntax translation unit owns immutable declaration layout. */
 int xlsRawBodySyntaxCopy(const xls_syntax*,struct XL6_CompletionQuery*,XL6_ParseResult*,xls_raw_scope*);

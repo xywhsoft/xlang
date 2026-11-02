@@ -43,6 +43,15 @@ static const xls_raw_fact* xlsRawMemoFind(const xls_raw_memo* memo,xls_raw_unit*
     if(slot)*slot=*found;
     return *(xls_raw_fact* const*)xrtArrayConstGet(&memo->entries,*found);
 }
+static int xlsRawRangeEqual(XL6_AstRange a,XL6_AstRange b)
+{return a.known==b.known && a.startOffset==b.startOffset && a.endOffset==b.endOffset && a.startLine==b.startLine && a.startColumn==b.startColumn && a.endLine==b.endLine && a.endColumn==b.endColumn;}
+int xlsRawBodyMemoSize(const void* opaque,xls_raw_unit* unit,const char* path,size_t* bytes)
+{
+    const xls_sem_memo* memo=opaque;const xls_raw_fact* fact=memo ? xlsRawMemoFind(memo->raw,unit,NULL) : NULL;
+    const XL6_AstNode* raw=fact ? xlsRawUnitNode(unit) : NULL;
+    if(!fact || !raw || !path || !bytes || !xl6AstSourcePath(raw) || strcmp(path,xl6AstSourcePath(raw)))return 0;
+    *bytes=fact->rawBytes;return 1;
+}
 int xlsRawBodyMemoAdmit(const void* opaque,xls_raw_unit* unit,const char* path,const XL6_AstRange* range,size_t* bytes)
 {
     const xls_sem_memo* memo=opaque;size_t slot=0;
@@ -52,6 +61,11 @@ int xlsRawBodyMemoAdmit(const void* opaque,xls_raw_unit* unit,const char* path,c
     if(!fact || !old || !old->unit || !old->unit->proof || !path || !range || !range->known ||
        !raw || !xl6AstSourcePath(raw) || strcmp(path,xl6AstSourcePath(raw)) || !xlsSemTailAllowsBodies() ||
        xlsSemBodyBudget()<sizeof(xls_sem_view) || old->unit->bytes>xlsSemBodyBudget()-sizeof(xls_sem_view))return 0;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xls_raw_scope* scope=xlsRawBodyScopeCurrent();
+    if(scope && scope->ordinary && (!old->native || !old->finalInput || !old->finalPlanValid || !memo->finalContext ||
+       !xlsRawRangeEqual(*range,old->lexicalRange) || !xlsRawRangeEqual(*range,xlsTypedFunctionRoot(old->native)->range)))return 0;
+#endif
     *bytes=fact->rawBytes;return 1;
 }
 static xls_raw_memo* xlsRawMemoCreate(size_t count)
@@ -171,14 +185,21 @@ static int xlsSemRawCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node,xls_raw_bind
     const xls_sem_entry* old=slot && build->baseline && xlsSemReadCompatible(build) ? xrtArrayConstGet(&build->baseline->entries,*slot) : NULL;
     size_t oldSlot=SIZE_MAX;const xls_raw_fact* raw=old ? xlsRawMemoFind(build->baseline->raw,binding->unit,&oldSlot) : NULL;
     xls_sem_memo* m=build ? build->memo : NULL;xls_sem_entry* entry=slot ? xrtArrayGet(&m->entries,*slot) : NULL;
+    int ordinary=scope && scope->ordinary;
     if(!scope || !scope->preprocessValid || scope->failed || !raw || !build->compatible || oldSlot!=*slot || !old->unit || !old->unit->proof ||
        binding->consumed || binding->stdlibMarks || !binding->stdlibVisited || ctx->currentClass || ctx->currentFunction ||
-       ctx->typeParams || ctx->captureBoundary || ctx->currentReturns || !build->deferred || !build->deferredQuery ||
+       ctx->typeParams || ctx->captureBoundary || ctx->currentReturns || (!ordinary && (!build->deferred || !build->deferredQuery)) ||
        !xlsSemTailAllowsBodies() || (ctx->diags && ctx->diags->count) || !m->raw || node->childCount<4 ||
        !node->children[3] || node->children[3]->kind!=XL6_AST_BLOCK || node->children[3]->childCount ||
        !xlsSemQueryNeutral(node,0,&build->queryCursor) || !xlsSemKeyNode(&header,node,0,2) || !xlsSemEqualKey(&header,&raw->header))goto done;
     binding->consumed=1;
     entry->start=ctx->nextSymbolId;entry->typeStart=ctx->types.nextId;entry->lexicalRange=node->range;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(ordinary && (!old->native || entry->start!=old->start || entry->typeStart!=old->typeStart ||
+       !xlsRawRangeEqual(entry->lexicalRange,old->lexicalRange) || !xlsSemEffectsAdmit(build,old)))goto done;
+#else
+    if(ordinary)goto done;
+#endif
     if(entry->start!=old->start)build->symbolsShifted=1;
     if(xlsSemReadCompatible(build) && build->symbolsShifted){
         if(!build->symbolsSeen)xlsSemReadDisable(build);
@@ -198,11 +219,21 @@ static int xlsSemRawCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node,xls_raw_bind
        !xrtArrayInit(&nodes,sizeof(xls_sem_raw)) || !xlsSemRawNodes(node,&nodes,0))goto done;
     uint64_t certified=0;
     if(!xlsSemBodyPrepareCount(old,raw->count,&build->moves,&build->sources,&positions,node,&build->queryCursor,entry->start,shifted,&certified))goto done;
+    if(ordinary){
+        if(symbolEnd!=old->end || positions.Count!=old->positions.Count)goto done;
+        for(size_t i=0;i<positions.Count;++i){const xls_sem_position* a=xrtArrayConstGet(&positions,i),*b=xrtArrayConstGet(&old->positions,i);
+            if(a->line!=b->line || a->column!=b->column || !xlsRawRangeEqual(a->range,b->range) || !xlsRawRangeEqual(a->token,b->token))goto done;
+        }
+    }
     size_t limit=xlsSemBodyBudget();
     view=xlsSemViewCreate(old->unit,&positions,limit);
     if(!view || entry->key.Capacity>XLS_SEM_MEMO_BYTES-m->bytes || view->bytes>XLS_SEM_MEMO_BYTES-m->bytes-entry->key.Capacity ||
        !xlsRawMemoAdd(m,*slot,(xls_raw_fact*)raw) ||
        !xlsRawSparseHeader(raw,view,&nodes,&build->sources,node,&build->queryCursor,entry->start,shifted))goto done;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(ordinary && !xlsSemNativeRetain(m,entry,old->native))goto done;
+    if(ordinary)entry->effectCount=old->effectCount;
+#endif
     entry->view=view;entry->unit=view->unit;entry->positions=view->positions;view=NULL;
     m->bytes+=entry->key.Capacity+entry->view->bytes;
     ctx->nextSymbolId=symbolEnd;ctx->types.nextId=old->typeEnd;ctx->queryTypeNodes+=old->typeNodes;ctx->queryTypeBytes+=old->typeBytes;
