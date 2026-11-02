@@ -1,0 +1,13 @@
+{
+  "status": "fixed-before-full-v1",
+  "head": "f486a27a6624b9c931605e2ccb712c69aec8ca3f",
+  "inputs": {
+    "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem.inc": "d6641c1e8de1eb4f3f7a432cab5a2858fa0da375fdbb7000c32c4fb80aeab94e",
+    "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem.h": "04125af95bb2758b8dca7911dc7cb908bee74823fe95cba0d22e67f4fb49f174",
+    "D:\\GIT\\x-lang\\ide\\src\\analysis\\check.c": "20a610856ef0ac3e3513ceeb4212f2946d27b62428c4515a231a590c616540da",
+    "D:\\GIT\\x-lang\\ide\\tools\\build_lsp_core.py": "2add838b32d80f8ad521cfd29901009e441d9f40b0082d57b325f1bc2c5b140e",
+    "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem_final.inc": "962754d2009fe1a8559871986e8d0f525ed4eba3dfa43cf7167edefd209a3d9e",
+    "D:\\GIT\\x-lang\\ide\\tests\\analysis_final_annotations_test.c": "769ead03e91e4ee2686f3667a00ac777bd8e28302e72b505416595a8094f4910",
+    "D:\\GIT\\x-lang\\ide\\tests\\analysis_final_environment_test.c": "09eacddb5b2ba7d74f3f3bcce9d1d2954fd8c85cf9226131973a7df5bd8de043"
+  }
+}

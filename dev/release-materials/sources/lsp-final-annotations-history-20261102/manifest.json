@@ -1,0 +1,154 @@
+{
+  "schema": 1,
+  "phase": "M7a2b110",
+  "scope": "Exact known source history and controllers;original report paths/bytes unchanged;diagnostics are not complete product closures",
+  "entries": [
+    {
+      "role": "complete matching M109 baseline alias",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem.inc",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/previous-ide-inputs/ide/src/analysis/frontend_sem.inc",
+      "sha256": "3c3370d447ae5dabd2acf8a6172b365d72c877ffb73df414d1086045a36f73a0",
+      "bytes": 77608
+    },
+    {
+      "role": "complete matching M109 baseline alias",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\frontend_sem.h",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/previous-ide-inputs/ide/src/analysis/frontend_sem.h",
+      "sha256": "c90fbb9976a0e77ebabcbf9289efb32d3f605dd1c3c164afd10a5d76ba651914",
+      "bytes": 15268
+    },
+    {
+      "role": "complete matching M109 baseline alias",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\check.c",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/previous-ide-inputs/ide/src/analysis/check.c",
+      "sha256": "325467ab067be3180c6d61fa720a69a890c70f14772d9dd8087483004c1599d0",
+      "bytes": 31160
+    },
+    {
+      "role": "complete matching M109 baseline alias",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\build_lsp_core.py",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/previous-ide-inputs/ide/tools/build_lsp_core.py",
+      "sha256": "16ee3271fa1fd2720d992dbd9afaa6f82516101614180b4efd0a79442531b730",
+      "bytes": 74777
+    },
+    {
+      "role": "captured or exact-hash recovered intermediate input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_final_annotations_test.c",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/focused-v1-inputs/analysis_final_annotations_test.c",
+      "sha256": "56a7746eed1e70a3e3e44a712c74b4b7956782fdccdf84d05ed0d7d356316099",
+      "bytes": 4364
+    },
+    {
+      "role": "captured or exact-hash recovered intermediate input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\build_lsp_core.py",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/focused-v1-inputs/build_lsp_core.py",
+      "sha256": "fc9211898dc1ddc7693f1d0745d5c45fc9a6982d7fa4e785f20be4cff89b508d",
+      "bytes": 76915
+    },
+    {
+      "role": "original intermediate capture manifest",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-final-annotations-20261102\\focused-v1-inputs\\manifest.json",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/focused-v1-inputs/manifest.json",
+      "sha256": "d7af16eb860003bbda737e6e36aa12300629c33e2447912510fa6e3deed28a24",
+      "bytes": 709
+    },
+    {
+      "role": "captured or exact-hash recovered intermediate input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_final_annotations_test.c",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/focused-v2-inputs/analysis_final_annotations_test.c",
+      "sha256": "71135760d14eca2bbdb44c1078b3c95aae986bb5a03b84447eb8d338778ffe79",
+      "bytes": 4468
+    },
+    {
+      "role": "original intermediate capture manifest",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-final-annotations-20261102\\focused-v2-inputs\\manifest.json",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/focused-v2-inputs/manifest.json",
+      "sha256": "fe75449484f297bc261340425fcb04b09f4476c8a4d90bf5d11e9b7cd70db83e",
+      "bytes": 437
+    },
+    {
+      "role": "captured or exact-hash recovered intermediate input",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_final_annotations_test.c",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/focused-v3-inputs/analysis_final_annotations_test.c",
+      "sha256": "793991f6f5c0dd36eb32c3c9dff17613a3e99995e85410f805c67e246c6714e2",
+      "bytes": 6737
+    },
+    {
+      "role": "original intermediate capture manifest",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-final-annotations-20261102\\focused-v3-inputs\\manifest.json",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/focused-v3-inputs/manifest.json",
+      "sha256": "adcef4268ae1919e240ed2a087b5caeeeb42b0806298b76e55acbe20c559160f",
+      "bytes": 311
+    },
+    {
+      "role": "original private diagnostic source",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-final-annotations-20261102\\source-diagnostic-v1\\analysis_final_annotations_test.c",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/source-diagnostic-v1/analysis_final_annotations_test.c",
+      "sha256": "30d0b99502f88d194f3d0eb5b2c1c8c9616b571c49ce7d1a598ea440f0da494d",
+      "bytes": 4547
+    },
+    {
+      "role": "original private diagnostic source",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-final-annotations-20261102\\source-diagnostic-v2\\analysis_final_annotations_test.c",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/source-diagnostic-v2/analysis_final_annotations_test.c",
+      "sha256": "30d0b99502f88d194f3d0eb5b2c1c8c9616b571c49ce7d1a598ea440f0da494d",
+      "bytes": 4547
+    },
+    {
+      "role": "fixed controller or original source/rule capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-final-annotations-20261102\\capture.json",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/capture.json",
+      "sha256": "c1ae1cb0e8f753cb7479aac0dd6fe6fe9f25d2ddf1ec1e741be15ece1df3e50c",
+      "bytes": 555
+    },
+    {
+      "role": "fixed controller or original source/rule capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-final-annotations-20261102\\full-v1-inputs.json",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/full-v1-inputs.json",
+      "sha256": "ffe94b0aefb020358eb6b3be9b3071d6a5f1ae7f2893bcf2cf8bee6862742215",
+      "bytes": 1020
+    },
+    {
+      "role": "fixed controller or original source/rule capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-final-annotations-20261102\\run-focused-v1.py",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/run-focused-v1.py",
+      "sha256": "88ac001f8574370d642ef32c4a443cb08bb1b404f31ec151fbf3e74572321c43",
+      "bytes": 2641
+    },
+    {
+      "role": "fixed controller or original source/rule capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-final-annotations-20261102\\run-focused-v2.py",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/run-focused-v2.py",
+      "sha256": "c77d045eb1678ea9d9a63f586e497f7299c1e7757550d0a2ecba66b8048e845d",
+      "bytes": 2969
+    },
+    {
+      "role": "fixed controller or original source/rule capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-final-annotations-20261102\\run-focused-v3.py",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/run-focused-v3.py",
+      "sha256": "e78688dd3cbed1d274f5aed52801044515467528cc976505679e8b1af2ea93d3",
+      "bytes": 3585
+    },
+    {
+      "role": "fixed controller or original source/rule capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-final-annotations-20261102\\run-validation-v1.py",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/run-validation-v1.py",
+      "sha256": "7f170914ca17b7c023eca254e43e6238759b37f64d2910b45dffa9141b27f1cd",
+      "bytes": 4871
+    },
+    {
+      "role": "fixed controller or original source/rule capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-final-annotations-20261102\\run-analysis-v1.py",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/run-analysis-v1.py",
+      "sha256": "b8e149944d955619001cfbde5e8aae8a98179e3f20b802a389210540681db63a",
+      "bytes": 3478
+    },
+    {
+      "role": "fixed controller or original source/rule capture",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-final-annotations-20261102\\native-rule-proof-v1.json",
+      "archivedPath": "dev/release-materials/sources/lsp-final-annotations-history-20261102/native-rule-proof-v1.json",
+      "sha256": "b6893a591b714556741afc1a042da7d143f6f10c10282f2be4ff1dc8b4bd8c03",
+      "bytes": 1029
+    }
+  ]
+}

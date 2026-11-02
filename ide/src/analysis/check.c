@@ -341,6 +341,10 @@ xls_ast_materialize_work xlsSemanticCheckMaterializationWork(const xls_semantic_
 { return result ? result->materializationWork : (xls_ast_materialize_work){0}; }
 xls_ast_intern_work xlsSemanticCheckMemoTypes(const xls_semantic_check* result)
 {return xlsFrontendSemMemoTypes(result ? result->memo : NULL);}
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+xls_sem_final_work xlsSemanticCheckFinalWork(const xls_semantic_check* result)
+{return xlsFrontendSemMemoFinalWork(result ? result->memo : NULL);}
+#endif
 xls_semantic_check* xlsSemanticCheckCreateIncremental(const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
     xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity)

@@ -46,6 +46,7 @@ SERVER_SOURCES = (
     "src/server/xlang_ls.c",
 )
 CORE_TESTS = ("analysis_context_fault_test", "analysis_context_resolution_test", "analysis_input_view_test", "analysis_context_test", "analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_stdlib_scan_test", "analysis_overload_scan_test", "analysis_completion_candidates_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_completion_session_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_cursor_syntax_test", "analysis_text_test", "document_sync_test")
+CORE_TESTS = ("analysis_final_annotations_test", "analysis_final_environment_test", *CORE_TESTS)
 HOST_TESTS = ("signature_help_test", "analysis_catalog_test", "language_context_test", "semantic_lookup_test", "analysis_index_view_test", "language_input_guard_test", "diagnostic_store_test", "language_definition_proof_test", "snapshot_report_test")
 CLIENT_TESTS = ("diagnostic_dependencies_test", "diagnostic_notice_test", "diagnostic_stream_test", "reference_results_test")
 CLIENT_TEST_SOURCES = ("src/services/diagnostic_dependencies.c", "src/services/diagnostic_notice.c", "src/services/diagnostic_stream.c", "src/services/reference_results.c")
@@ -349,7 +350,34 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
         if members.count(old)!=1:raise ValueError('shared signature member seam changed: '+old)
         members=members.replace(old,new)
     source=source[:start]+members+source[end:]
-    # Final annotation rules stay byte-for-byte in the audited TU. Extract
+    final_annotation_overlay = None
+    if current:
+        # Keep original native rules. Only direct MODULE child invocations may
+        # consume an exact final-unit proof;all recursive native fallbacks and
+        # the original C-owned validation remain present.
+        first = source.index('static void xl6SemAnnotateTypeIdentities(')
+        last = source.index('\ntypedef struct XL6_SemPlanLoopFrame', first)
+        native_type = source[first:last]
+        seam = '        xl6SemAnnotateTypeIdentities(ctx, node->children[i]);'
+        if native_type.count(seam) != 1:
+            raise ValueError('native final type child traversal changed; audit')
+        hooked_type = native_type.replace(seam, '        if(node!=ctx->root || !xlsSemFinalTypeApply(ctx,i))\n' + seam)
+        source = source[:first] + hooked_type + source[last:]
+        first = source.index('static void xl6SemAnnotateExecutionPlans(')
+        last = source.index('\nstatic int xl6SemCheckMainEntry(', first)
+        native_plan = source[first:last]
+        seam = '        xl6SemAnnotateExecutionPlans(ctx, node->children[i], &childState);'
+        if native_plan.count(seam) != 1:
+            raise ValueError('native final plan child traversal changed; audit')
+        hooked_plan = native_plan.replace(seam,
+            '        int xlsFinalRoot=ctx && node==ctx->root;\n'
+            '        if(!xlsFinalRoot || !xlsSemFinalPlanBefore(ctx,i,&childState))\n' + seam + '\n'
+            '        if(xlsFinalRoot)xlsSemFinalPlanAfter(ctx,i,&childState);')
+        source = source[:first] + hooked_plan + source[last:]
+        final_annotation_overlay = dict(originalTypeBodySha256=hashlib.sha256(native_type.encode()).hexdigest(),
+            originalPlanBodySha256=hashlib.sha256(native_plan.encode()).hexdigest(),
+            originalRulesPreserved=True,rootChildHooks=2,fullCOwnedValidation=True)
+    # Final annotation rules stay in the audited TU. Extract
     # their original invocation block once so eager and deferred paths call
     # exactly the same helpers with the same plan-region initialization.
     start = source.index('    xl6SemAnnotateTypeIdentities(&ctx, root);')
@@ -362,7 +390,9 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
     seam = 'int xl6SemCheckModuleWithQuery('
     if source.count(seam) != 1:
         raise ValueError('shared deferred annotation include seam changed; audit')
-    helper = ('static void xlsSemFinalizeAnnotations(XL6_SemContext* ctx, XL6_AstNode* root)\n{\n' +
+    helper = (('#include "analysis/frontend_sem_final.inc"\n' if current else '') +
+              'static void xlsSemFinalizeAnnotations(XL6_SemContext* ctx, XL6_AstNode* root)\n{\n' +
+              ('    xlsSemFinalBegin(ctx,root);\n' if current else '') +
               tail.replace('&ctx', 'ctx') + '}\n#include "analysis/frontend_sem_tail.inc"\n\n')
     source = source.replace(seam, helper + seam)
     compiled = output / 'frontend/xl6_sem.c'
@@ -388,6 +418,7 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
         observedTypeQueries=type_queries, projectedAliasQueries=1 if current else 0,
         typeConstructor=type_constructor,
         currentUnitProbe=bool(current and _current_unit_probe), declarationEffects=effect_overlay,
+        finalAnnotations=final_annotation_overlay,
         semanticCohort=C_INTEROP_COHORT if c_interop else UNIFIED_COHORT if unified else 'current-2084f8ac' if cohort_dependencies else None,
         auditedDependencies={**cohort_dependencies, str(registry): registry_sha, str(registry_header):registry_header_sha, str(ast): ast_sha})
 
@@ -651,7 +682,7 @@ def main() -> None:
         # their native warning profile. Their objects never enter core/server.
         sources += [(ide / "tests" / (name + ".c"), name not in
                      ("analysis_semantic_read_front_test", "analysis_ir_sparse_decode_test",
-                      "analysis_semantic_final_input_test", "analysis_ir_input_test",
+                      "analysis_semantic_final_input_test", "analysis_ir_input_test", "analysis_final_environment_test",
                       "analysis_semantic_alias_reads_test", "analysis_type_constructor_test", "analysis_ir_derived_test")) for name in tests]
     if args.server:
         if os.name != "nt":
