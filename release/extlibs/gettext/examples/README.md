@@ -24,7 +24,10 @@ release/xl.exe build release/extlibs/gettext/examples/layout.xl -o build/test/ge
 build/test/gettext_layout.exe release/extlibs/gettext/test/po_layout.po
 ```
 
-固定六行输出见 `layout.expected.txt`。安装 GNU `msgfmt` 后，可将同一 PO
+固定九行输出见 `layout.expected.txt`。其中 `empty id` 展示显式空上下文
+中的空消息；两个空标签分别因为 fuzzy 或未翻译而回退，打印为 `[]`。
+只有没有 `msgctxt` 的空 `msgid` 才是元数据头，空上下文不享有此特例。
+安装 GNU `msgfmt` 后，可将同一 PO
 编译成 MO，再给两份范例追加 `mo` 参数；Linux 包级门禁实际验证了该路径，
 并由 Python `GNUTranslations` 独立核对结果。
 
@@ -45,9 +48,13 @@ C 的 `*_borrowed` 查询结果只在目录/原文存活期间借用，不释放
 ```powershell
 release/xl.exe run release/extlibs/gettext/test/po_spans_c.c
 release/xl.exe run release/extlibs/gettext/test/po_spans.xl
+release/xl.exe run release/extlibs/gettext/test/po_review_c.c
+release/xl.exe run release/extlibs/gettext/test/po_review.xl
 ```
 
 可选 `-- --bench` 只用于 C 测试程序的本机基准，不进入默认正确性门禁；
 输出为 `正文模式,样本序号,微秒,校验和`，每组先丢弃一次预热。
+计时直接使用当前 XRT 的 `xrtTimer()` 单调秒数，再转换为微秒，
+不增加本包计时封装，也不重新引入已移除的旧计时符号。
 性能边界、原始对照位置及已观察到的取舍见包内
 `PO_SPAN_AUDIT_2026-10-30.md`，不能把单次本机结果当作全语言性能。

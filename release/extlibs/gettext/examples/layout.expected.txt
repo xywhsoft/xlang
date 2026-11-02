@@ -4,3 +4,6 @@ toolbar: 开启
 file(1): 文件
 file(2): 文件们
 empty context: 空上下文
+empty id: 无标签
+draft empty id: []
+untranslated empty id: []

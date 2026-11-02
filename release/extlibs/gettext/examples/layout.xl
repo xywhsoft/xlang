@@ -15,11 +15,18 @@ func main(...) as int
     assert gettext.tn(catalog, "file", "files", 1) == "文件"
     assert gettext.tn(catalog, "file", "files", 2) == "文件们"
     assert gettext.tc(catalog, "", "Open") == "空上下文"
+    // 空上下文与没有上下文不同；空消息仍受待审核、空译文规则约束。
+    assert gettext.tc(catalog, "", "") == "无标签"
+    assert gettext.tc(catalog, "menu", "") == ""
+    assert gettext.tc(catalog, "toolbar", "") == ""
     println("plain: " + gettext.t(catalog, "plain"))
     println("menu: " + gettext.tc(catalog, "menu", "Open"))
     println("toolbar: " + gettext.tc(catalog, "toolbar", "Open"))
     println("file(1): " + gettext.tn(catalog, "file", "files", 1))
     println("file(2): " + gettext.tn(catalog, "file", "files", 2))
     println("empty context: " + gettext.tc(catalog, "", "Open"))
+    println("empty id: " + gettext.tc(catalog, "", ""))
+    println("draft empty id: [" + gettext.tc(catalog, "menu", "") + "]")
+    println("untranslated empty id: [" + gettext.tc(catalog, "toolbar", "") + "]")
     return 0
 end

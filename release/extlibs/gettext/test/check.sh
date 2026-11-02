@@ -72,6 +72,10 @@ timeout 90s ./release/xl run release/extlibs/gettext/test/po_layout.xl
 timeout 90s "$work/po-spans-c"
 timeout 90s ./release/xl run release/extlibs/gettext/test/po_spans_c.c
 timeout 90s ./release/xl run release/extlibs/gettext/test/po_spans.xl
+"$cc" "${flags[@]}" release/extlibs/gettext/test/po_review_c.c "$work/xrt.o" -no-pie -lm -ldl -o "$work/po-review-c"
+timeout 90s "$work/po-review-c"
+timeout 90s ./release/xl run release/extlibs/gettext/test/po_review_c.c
+timeout 90s ./release/xl run release/extlibs/gettext/test/po_review.xl
 layout_source=release/extlibs/gettext/test/po_layout.po
 "$cc" "${flags[@]}" release/extlibs/gettext/examples/layout_c.c "$work/xrt.o" -no-pie -lm -ldl -o "$work/layout-c"
 timeout 30s "$work/layout-c" "$layout_source" > "$work/layout-c.txt"
@@ -123,7 +127,7 @@ timeout 120s ./release/xl build release/extlibs/gettext/examples/gettext_c.c \
     -o "$work/gettext_c_example"
 timeout 90s "$work/gettext_c_example" > "$work/example_c_aot.txt"
 diff -u "$work/example_c.txt" "$work/example_c_aot.txt"
-for source in test/po_layout.xl test/po_layout_c.c test/po_spans.xl test/po_spans_c.c examples/layout.xl examples/layout_c.c; do
+for source in test/po_layout.xl test/po_layout_c.c test/po_spans.xl test/po_spans_c.c test/po_review.xl test/po_review_c.c examples/layout.xl examples/layout_c.c; do
     target="$work/$(basename "${source%.*}")"
     timeout 120s ./release/xl build "release/extlibs/gettext/$source" -o "$target"
     if [[ "$source" == examples/* ]]; then
@@ -147,6 +151,9 @@ if command -v msgfmt >/dev/null 2>&1; then
     timeout 90s "$work/layout" "$work/layout.mo" mo > "$work/gnu-xl-aot.txt"
     timeout 90s "$work/layout_c" "$work/layout.mo" mo > "$work/gnu-c-aot.txt"
     for result in gnu-c gnu-xl gnu-xl-aot gnu-c-aot; do diff -u "$work/layout-c.txt" "$work/$result.txt"; done
+    if command -v python3 >/dev/null 2>&1; then
+        python3 -B release/extlibs/gettext/test/gnu_layout.py "$work/layout.mo" release/extlibs/gettext/examples/layout.expected.txt
+    else printf 'gettext Python GNU MO reader: SKIP (python3 unavailable)\n'; fi
 else
     printf 'gettext GNU msgfmt interop: SKIP (msgfmt unavailable)\n'
 fi

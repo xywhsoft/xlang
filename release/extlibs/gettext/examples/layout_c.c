@@ -8,7 +8,7 @@
 static bool emit(const char* label, const char* text, const char* expected)
 {
     if (!text || strcmp(text, expected)) return false;
-    printf("%s: %s\n", label, text);
+    printf("%s: %s\n", label, *text ? text : "[]");
     return true;
 }
 
@@ -35,7 +35,10 @@ int main(int argc, char** argv)
         emit("toolbar", xgt_tc_borrowed(catalog, "toolbar", "Open"), "开启") &&
         emit("file(1)", xgt_tn_borrowed(catalog, "file", "files", 1), "文件") &&
         emit("file(2)", xgt_tn_borrowed(catalog, "file", "files", 2), "文件们") &&
-        emit("empty context", xgt_tc_borrowed(catalog, "", "Open"), "空上下文");
+        emit("empty context", xgt_tc_borrowed(catalog, "", "Open"), "空上下文") &&
+        emit("empty id", xgt_tc_borrowed(catalog, "", ""), "无标签") &&
+        emit("draft empty id", xgt_tc_borrowed(catalog, "menu", ""), "") &&
+        emit("untranslated empty id", xgt_tc_borrowed(catalog, "toolbar", ""), "");
     xrtValueRelease(catalog);
     return ok && !ferror(stdout) ? 0 : 1;
 }

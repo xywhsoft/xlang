@@ -264,7 +264,8 @@ static int xgt_po_flush(xvalue *catalog, XgtPo *entry) {
         xgt_error("gettext context separator in message key");
         return 0;
     }
-    if (entry->id.len > 0 && (entry->fuzzy ||
+    /* 元数据键仅为无上下文的空 msgid；msgctxt "" 也属于普通消息。 */
+    if ((entry->have_context || entry->id.len > 0) && (entry->fuzzy ||
         (!entry->have_plural && entry->translation.len == 0))) {
         xgt_po_reset(entry);
         return 1;

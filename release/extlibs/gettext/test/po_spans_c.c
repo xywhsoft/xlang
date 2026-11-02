@@ -2,6 +2,7 @@
 #define XRT_MODULE_ALL
 #include "xrt.h"
 #include "../gettext_native.h"
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -134,7 +135,7 @@ static int benchmark(void) {
         xbuffer po, expected;
         if (!xrtBufferInit(&po) || !xrtBufferInit(&expected) || !make(&po, &expected, pattern, 4096, false)) return 1;
         for (sample = 0; sample < 6; ++sample) {
-            uint64 start = xrtClock();
+            double start = xrtTimer();
             size_t checksum = 0;
             for (i = 0; i < 80; ++i) {
                 xvalue *catalog = xgt_parse_po((const char *)po.Data);
@@ -145,9 +146,10 @@ static int benchmark(void) {
                 checksum += text.Size;
                 xrtValueRelease(catalog);
             }
-            uint64 elapsed = xrtClock() - start;
-            if (sample) printf("%u,%u,%llu,%llu\n", pattern, sample,
-                (unsigned long long)elapsed, (unsigned long long)checksum);
+            double elapsed = (xrtTimer() - start) * 1000000.0;
+            if (!isfinite(elapsed) || elapsed < 0 || xrtGetError()) return 1;
+            if (sample) printf("%u,%u,%.0f,%llu\n", pattern, sample,
+                elapsed, (unsigned long long)checksum);
         }
         xrtBufferUnit(&po);
         xrtBufferUnit(&expected);

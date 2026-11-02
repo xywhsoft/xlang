@@ -1,0 +1,52 @@
+import gettext
+
+func main(...) as int
+    array<string> contexts = ["", "msgctxt \"\"\n", "msgctxt \"menu\"\n"]
+    array<string> names = ["", "", "menu"]
+    array<string> ids = ["", "Open"]
+    // 没有上下文的空 msgid 是目录头，显式空上下文则是普通消息。
+    for context in range(3)
+        for id in ids
+            for state in range(4)
+                bool header = context == 0 and id == ""
+                bool skipped = not header and state != 0
+                string value = "approved"
+                if state >= 2 then value = "" end
+                string flag = ""
+                if state % 2 == 1 then flag = "#, fuzzy\n" end
+                string entry = flag + contexts[context] + "msgid \"" + id + "\"\nmsgstr \"" + value + "\"\n"
+                var catalog = gettext.parsePo(entry)
+                string expected = value
+                if skipped then expected = id end
+                string saved
+                if context == 0 then
+                    saved = gettext.t(catalog, id)
+                else
+                    saved = gettext.tc(catalog, names[context], id)
+                end
+                catalog = null
+                assert saved == expected, "translation survives catalog release"
+                bool rejected = false
+                try
+                    catalog = gettext.parsePo(entry + contexts[context] + "msgid \"" + id + "\"\nmsgstr \"replacement\"\n")
+                catch ValueError error
+                    rejected = true
+                end
+                assert rejected == not skipped, "only skipped entries may reuse the key"
+                if skipped then
+                    if context == 0 then
+                        assert gettext.t(catalog, id) == "replacement"
+                    else
+                        assert gettext.tc(catalog, names[context], id) == "replacement"
+                    end
+                end
+            end
+        end
+    end
+    // 真目录头即使带 fuzzy 标记，仍提供三种复数形式；上下文译文不是元数据。
+    var catalog = gettext.parsePo("#, fuzzy\nmsgid \"\"\nmsgstr \"Plural-Forms: nplurals=3; plural=n%3;\\n\"\nmsgctxt \"\"\nmsgid \"\"\nmsgstr \"Plural-Forms: not metadata\"\nmsgid \"file\"\nmsgid_plural \"files\"\nmsgstr[0] \"first\"\nmsgstr[1] \"second\"\nmsgstr[2] \"third\"\n")
+    assert gettext.tn(catalog, "file", "files", 5) == "third"
+    assert gettext.tc(catalog, "", "") == "Plural-Forms: not metadata"
+    println("gettext PO review: 24 states and duplicate-key pairs PASS")
+    return 0
+end

@@ -13,7 +13,7 @@ $links = @('-lWs2_32', '-lAdvapi32', '-lIphlpapi', '-lm')
 . (Join-Path $root 'tools/extlib_smoke_process.ps1')
 $checks = [Collections.Generic.List[object]]::new()
 $utf8 = [Text.UTF8Encoding]::new($false)
-$environment = @{XLANG_PACKAGE_PATH = Join-Path $root 'release/extlibs'}
+$environment = @{XLANG_PACKAGE_PATH = Join-Path $root 'release/extlibs'; TEMP = $work; TMP = $work}
 $failure = ''
 function InputPaths {
     @('release/xl.exe', 'release/xl.dll', 'release/xlc.dll',
@@ -71,6 +71,11 @@ try {
     $null = Run 'C PO spans' $spanTest @()
     $null = Run 'C PO spans direct' $xl @('run','release/extlibs/gettext/test/po_spans_c.c')
     $null = Run 'XLang PO spans' $xl @('run','release/extlibs/gettext/test/po_spans.xl')
+    $reviewTest = Join-Path $work 'po-review-c.exe'
+    $null = Run 'C PO review compile' $gcc ($flags + @('release/extlibs/gettext/test/po_review_c.c',$runtime) + $links + @('-o',$reviewTest))
+    $null = Run 'C PO review' $reviewTest @()
+    $null = Run 'C PO review direct' $xl @('run','release/extlibs/gettext/test/po_review_c.c')
+    $null = Run 'XLang PO review' $xl @('run','release/extlibs/gettext/test/po_review.xl')
     $layoutFixture = Join-Path $root 'release/extlibs/gettext/test/po_layout.po'
     $layoutGolden = [IO.File]::ReadAllText((Join-Path $root 'release/extlibs/gettext/examples/layout.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
     $layoutC = Join-Path $work 'layout-c.exe'
@@ -120,7 +125,7 @@ try {
             $null = Run "XLang $name build" $xl @('build', $case[1], '-o', $target)
             $null = Run "XLang $name AOT" $target @()
         }
-        foreach ($source in @('test/po_layout.xl','test/po_layout_c.c','test/po_spans.xl','test/po_spans_c.c','examples/layout.xl','examples/layout_c.c')) {
+        foreach ($source in @('test/po_layout.xl','test/po_layout_c.c','test/po_spans.xl','test/po_spans_c.c','test/po_review.xl','test/po_review_c.c','examples/layout.xl','examples/layout_c.c')) {
             $target = Join-Path $work ([IO.Path]::GetFileNameWithoutExtension($source)+'.exe')
             $null = Run "$source build" $xl @('build',"release/extlibs/gettext/$source",'-o',$target)
             $arguments = if ($source -like 'examples/*') { @($layoutFixture) } else { @() }
