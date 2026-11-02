@@ -616,28 +616,90 @@ static XL6_AstNode* xl6SemCOwnedTemplateResult(XL6_SemContext* ctx,const XL6_Ast
     if(result)xl6SemBindInferredTypeIdentity(ctx,result);
     return result;
 }
+/* Close producer parameters without importing the caller's lexical scope.
+ * Referenced free parameters become private generic parameters, with their
+ * constraints and a distinct name. This also handles a caller variable nested
+ * inside an argument such as func(U) as cstring. */
+static int xl6SemCOwnedAsyncTypeEnvironment(XL6_SemContext* ctx,const XL6_AstNode* arguments,
+    XL6_AstNode** sourceParams,XL6_AstNode** privateParams,XL6_AstNode** privateArgs)
+{
+    *sourceParams=xl6AstNew(XL6_AST_LIST,NULL);
+    *privateParams=xl6AstNew(XL6_AST_TYPE_PARAMS,NULL);
+    *privateArgs=xl6AstNew(XL6_AST_LIST,NULL);
+    if(!*sourceParams || !*privateParams || !*privateArgs)return 0;
+    /* Repeat for dependencies appearing in a selected parameter's constraint. */
+    size_t before;
+    do {
+        before=(*sourceParams)->childCount;
+        for(XL6_TypeParamScope* scope=ctx->typeParams;scope;scope=scope->parent)
+            for(size_t p=0;scope->params && p<scope->params->childCount;++p) {
+                const XL6_AstNode* param=scope->params->children[p];
+                if(xl6SemFindTypeParamNode(ctx,param->text)!=param ||
+                   xl6SemTypeParamIndexIn(*sourceParams,param->text)>=0)continue;
+                XL6_AstNode list={0};list.children=(XL6_AstNode**)&param;list.childCount=1;
+                if(!xl6SemTypeContainsTypeParam(&list,arguments) &&
+                   !xl6SemTypeContainsTypeParam(&list,*sourceParams))continue;
+                XL6_AstNode* copy=xl6SemCOwnedClone(param);
+                size_t count=(*sourceParams)->childCount;
+                if(copy)xl6AstAddChild(*sourceParams,copy);
+                if(!copy || (*sourceParams)->childCount!=count+1){xl6AstFree(copy);return 0;}
+            }
+    }while(before!=(*sourceParams)->childCount);
+    for(size_t p=0;p<(*sourceParams)->childCount;++p) {
+        const XL6_AstNode* param=(*sourceParams)->children[p];
+        const XL6_AstNode* original=xl6SemFindTypeParamNode(ctx,param->text);
+        char name[80];snprintf(name,sizeof(name),"__xl_c_owned_type_%u",original->semanticTypeId);
+        XL6_AstNode* arg=xl6AstNewText(XL6_AST_TYPE,name,strlen(name),NULL);
+        size_t count=(*privateArgs)->childCount;
+        if(arg)xl6AstAddChild(*privateArgs,arg);
+        if(!arg || (*privateArgs)->childCount!=count+1){xl6AstFree(arg);return 0;}
+    }
+    for(size_t p=0;p<(*sourceParams)->childCount;++p) {
+        XL6_AstNode* param=xl6SemCOwnedClone((*sourceParams)->children[p]);
+        if(!param || !xl6SemCOwnedSubstituteTypes(&param,*sourceParams,*privateArgs)) {
+            xl6AstFree(param);return 0;
+        }
+        char* name=xrtStrDup((*privateArgs)->children[p]->text);
+        if(!name){xl6AstFree(param);return 0;}
+        xrtFree(param->text);param->text=name;
+        size_t count=(*privateParams)->childCount;xl6AstAddChild(*privateParams,param);
+        if((*privateParams)->childCount!=count+1){xl6AstFree(param);return 0;}
+    }
+    return 1;
+}
 /* Clone the async worker itself. It publishes the adapted callback once;
  * neither an existing Future nor its consumer gains a forwarding task. */
 static XL6_AstNode* xl6SemCOwnedAsyncResultMethodOne(XL6_SemContext* ctx,XL6_AstNode* owner,
     XL6_AstNode* method,const XL6_AstNode* classArgs,const XL6_AstNode* methodArgs,
     const XL6_AstNode* target,const char* familyName)
 {
-    XL6_AstNode* copy=xl6SemCOwnedClone(method);
-    if(!copy || !xl6SemCOwnedSubstituteTypes(&copy,xl6SemFuncTypeParams(method),methodArgs)) {
-        xl6AstFree(copy);return NULL;
+    XL6_AstNode* sourceParams=NULL,*privateParams=NULL,*privateArgs=NULL;
+    XL6_AstNode* arguments=NULL,*expected=NULL,*ownerArgs=NULL,*copy=NULL;
+    int environment=xl6SemCOwnedAsyncTypeEnvironment(ctx,methodArgs,&sourceParams,&privateParams,&privateArgs);
+    if(environment) {
+        arguments=xl6SemSubstituteGenericTypeArgs(sourceParams,privateArgs,methodArgs);
+        expected=xl6SemSubstituteGenericTypeArgs(sourceParams,privateArgs,target);
+        ownerArgs=classArgs ? xl6SemSubstituteGenericTypeArgs(sourceParams,privateArgs,classArgs) : NULL;
+        copy=xl6SemCOwnedClone(method);
     }
-    XL6_AstNode* params=xl6SemFuncTypeParams(copy);
-    for(size_t p=0;params && p<params->childCount;++p)xl6AstFree(params->children[p]);
-    if(params)params->childCount=0;
+    if(!copy || !expected || (methodArgs && !arguments) || (classArgs && !ownerArgs) ||
+       !xl6SemCOwnedSubstituteTypes(&copy,xl6SemFuncTypeParams(method),arguments)) {
+        xl6AstFree(copy);copy=NULL;
+    }
+    xl6AstFree(sourceParams);xl6AstFree(privateArgs);xl6AstFree(arguments);
+    if(!copy){xl6AstFree(privateParams);xl6AstFree(expected);xl6AstFree(ownerArgs);return NULL;}
+    xl6AstFree(copy->children[4]);copy->children[4]=privateParams;
     const XL6_AstNode* formal=copy->children[2]->children[0];
-    XL6_AstNode* closed=classArgs ? xl6SemSubstituteClassType(owner,classArgs,formal) : xl6SemCloneTypeNode(formal);
-    XL6_AstNode* result=closed && xl6SemCOwnedResultMatchDepth(ctx,target,closed,0)>0
-        ? xl6SemCOwnedTemplateResult(ctx,formal,closed,target,0) : NULL;
-    xl6AstFree(closed);
+    XL6_AstNode* closed=ownerArgs ? xl6SemSubstituteClassType(owner,ownerArgs,formal) : xl6SemCloneTypeNode(formal);
+    xl6AstFree(ownerArgs);
+    XL6_AstNode* result=closed && xl6SemCOwnedResultMatchDepth(ctx,expected,closed,0)>0
+        ? xl6SemCOwnedTemplateResult(ctx,formal,closed,expected,0) : NULL;
+    xl6AstFree(closed);xl6AstFree(expected);
     if(!result){xl6AstFree(copy);return NULL;}
     xl6AstFree(copy->children[2]->children[0]);copy->children[2]->children[0]=result;
     uint64 hash=xl6SemCOwnedSignatureHash(copy->children[1],UINT64_C(14695981039346656037));
     hash=xl6SemCOwnedSignatureHash(copy->children[2],hash);
+    hash=xl6SemCOwnedSignatureHash(copy->children[4],hash);
     hash=xl6SemCOwnedSignatureHash(classArgs,hash);
     char name[96];snprintf(name,sizeof(name),"__xl_c_owned_async_%u_%llx",method->semanticSymbolId,(unsigned long long)hash);
     if(familyName)snprintf(name,sizeof(name),"%s",familyName);
