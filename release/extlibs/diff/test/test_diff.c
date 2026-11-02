@@ -58,7 +58,7 @@ static int test_owned_result_budget(void)
     for (operation = 0; operation < 4u; ++operation) {
         const char* left = operation < 2u ? "" : "old";
         const char* right = operation < 2u ? "" : "new";
-        unsigned needed = operation < 2u ? 3u : 5u;
+        unsigned needed = operation < 2u ? 1u : 5u;
         char* warm = operation % 2u == 0u ? xdiff_lines(left, right) : xdiff_stats(left, right);
         CHECK(same(warm, expected[operation]));
         for (attempt = 0; attempt < 2u; ++attempt) {

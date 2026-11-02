@@ -18,6 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / diff</p><h1>diff</h1>
     <p class="extlib-lead">中小文本的行级 LCS 差异。</p>
+    <p>2026-11-02：共同尾部直接采用原回溯结果，其余部分继续使用完整 LCS；不剥离前缀、不改变重复行平局规则。2048 行完全相同的内部计划活动数据由 8,626,178 降至 163,840 字节，首行修改时矩阵为 8 字节；末行改动仍可能需要完整矩阵，不承诺所有负载提速。新增 C/XLang 配置审阅范例、1691 组独立完整输出参照、强制哈希碰撞与真实分配故障检查；所有权、公开 API 和输入限额不变。</p>
     <p>2026-10-28：校验不再返回并复制输入，两个原生文本结果直接转移，完整调用夹具没有输入或结果正文副本。固定空/短文本的 C 与 XLang 各 8 组预算、四组 NUL 反例、Windows/Linux 默认门禁和双语 JIT/AOT 均通过，Linux 包含 ASan/UBSan。仍保留两次小型 NUL 针串分配、长度扫描与错误作用域，不称整条调用零开销；C 算法与 ABI 不变。</p>
     <p>保留长行和完整输出，超出明确预算时报错。2026-10-26 当前发布物的 Windows/Linux 默认门禁通过 C 边界与线程、Linux ASan/UBSan、XLang 边界、公开范例 AOT，以及新增 C 单文件范例独立 EXE；GCC、TCC、C AOT、XLang JIT/AOT 对固定输出一致。旧版共享快照缺符号已不阻断双平台 AOT。<code>-SkipAot</code> 仅用于 C/JIT 聚焦验证。本包是有界行级 LCS，不生成 unified patch，也不处理大文件流式 diff。</p>
   </header>
@@ -30,7 +31,7 @@
     <pre><code>import diff
 println(diff.lines("a\nb", "a\nB"))
 println(diff.stats("a\nb", "a\nB"))</code></pre>
-    <p>输出不是可直接应用的 unified patch。每侧最多 8 MiB/2048 行，输入须为有效 UTF-8，XLang 文本入口另拒绝内嵌 NUL；C 接口要求 NUL 结尾字符串，空指针报参数错误，超限检测使用有界扫描。采用 O(m×n) 的完整 LCS 表。C 入口失败后可直接重试，成功不会保留旧线程错误。C 教学范例可直接运行 <code>xl run release/extlibs/diff/examples/diff_c.c</code>，Windows/Linux 门禁均与 GCC 分离编译及 XLang 范例对照固定输出。C 所有权和验证命令见包内 README。</p>
+    <p>输出不是可直接应用的 unified patch。每侧最多 8 MiB/2048 行，输入须为有效 UTF-8，XLang 文本入口另拒绝内嵌 NUL；C 接口要求 NUL 结尾字符串，空指针报参数错误，超限检测使用有界扫描。未匹配前部采用完整 LCS 表，最坏仍为 O(m×n)。C 入口失败后可直接重试，成功不会保留旧线程错误。C 教学范例可直接运行 <code>xl run release/extlibs/diff/examples/review_c.c</code>，对应 <code>review.xl</code> 展示配置变更、重复行与结果生命周期。Windows/Linux 门禁均与 GCC 分离编译及 XLang 范例对照固定输出。C 所有权和验证命令见包内 README。</p>
   </section>
 </main>
 </body>

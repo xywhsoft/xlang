@@ -1,0 +1,10 @@
+configuration review
+-name=旧
++name=新
+ port=8080
+ cache=on
+ tail=same
+adds,deletes,same: 1,1,3
+repeated lines
+-a
+ a

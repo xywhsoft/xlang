@@ -1,0 +1,19 @@
+import diff
+
+func review() as (string, string)
+    string old = "name=旧\r\nport=8080\r\ncache=on\r\ntail=same"
+    string updated = "name=新\nport=8080\ncache=on\ntail=same\n"
+    return diff.lines(old, updated), diff.stats(old, updated)
+end
+
+func main(...) as int
+    // 两份结果拥有自己的文本，输入局部变量已离开作用域。
+    auto patch, stats = review()
+    println("configuration review")
+    print(patch)
+    println("adds,deletes,same: " + stats)
+    println("repeated lines")
+    print(diff.lines("a\na", "a"))
+    assert stats == "1,1,3"
+    return 0
+end

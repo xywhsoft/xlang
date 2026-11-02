@@ -102,7 +102,7 @@ static bool xdiff_equal(const xdiff_line* a, const xdiff_line* b)
 
 static bool xdiff_prepare(const char* old_text, const char* new_text, xdiff_plan* plan)
 {
-    size_t i, j, stride;
+    size_t i, j, stride, old_limit, new_limit, suffix, capacity;
     xrtClearError();
     memset(plan, 0, sizeof(*plan));
     if (old_text == NULL || new_text == NULL) {
@@ -112,15 +112,29 @@ static bool xdiff_prepare(const char* old_text, const char* new_text, xdiff_plan
     if (!xdiff_split(old_text, &plan->old_lines, &plan->old_count) ||
         !xdiff_split(new_text, &plan->new_lines, &plan->new_count)) goto fail;
 
-    stride = plan->new_count + 1u;
-    plan->table = (uint16_t*)xrtCalloc((plan->old_count + 1u) * stride,
-        sizeof(uint16_t));
-    plan->steps = (xdiff_step*)xrtMalloc((plan->old_count + plan->new_count + 1u) *
-        sizeof(xdiff_step));
-    if (plan->table == NULL || plan->steps == NULL) goto fail;
+    /* 回溯必先匹配共同尾部；不剥离前缀，避免改变重复行的平局取舍。 */
+    old_limit = plan->old_count;
+    new_limit = plan->new_count;
+    while (old_limit != 0u && new_limit != 0u &&
+        xdiff_equal(&plan->old_lines[old_limit - 1u], &plan->new_lines[new_limit - 1u])) {
+        --old_limit;
+        --new_limit;
+    }
+    suffix = plan->old_count - old_limit;
+    stride = new_limit + 1u;
+    if (old_limit != 0u && new_limit != 0u) {
+        plan->table = (uint16_t*)xrtCalloc((old_limit + 1u) * stride,
+            sizeof(uint16_t));
+        if (plan->table == NULL) goto fail;
+    }
+    capacity = old_limit + new_limit + suffix;
+    if (capacity != 0u) {
+        plan->steps = (xdiff_step*)xrtMalloc(capacity * sizeof(xdiff_step));
+        if (plan->steps == NULL) goto fail;
+    }
 
-    for (i = 1u; i <= plan->old_count; ++i) {
-        for (j = 1u; j <= plan->new_count; ++j) {
+    for (i = 1u; i <= old_limit; ++i) {
+        for (j = 1u; j <= new_limit; ++j) {
             uint16_t above = plan->table[(i - 1u) * stride + j];
             uint16_t left = plan->table[i * stride + j - 1u];
             plan->table[i * stride + j] = xdiff_equal(&plan->old_lines[i - 1u],
@@ -130,8 +144,14 @@ static bool xdiff_prepare(const char* old_text, const char* new_text, xdiff_plan
         }
     }
 
-    i = plan->old_count;
-    j = plan->new_count;
+    for (i = plan->old_count; i > old_limit; --i) {
+        xdiff_step* step = &plan->steps[plan->step_count++];
+        step->prefix = ' ';
+        step->line = plan->old_lines[i - 1u];
+    }
+    plan->unchanged = suffix;
+    i = old_limit;
+    j = new_limit;
     while (i != 0u || j != 0u) {
         xdiff_step* step = &plan->steps[plan->step_count++];
         if (i != 0u && j != 0u &&
