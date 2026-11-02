@@ -1,0 +1,3532 @@
+{
+  "schema": "xlang-extlib-diff-suffix-1",
+  "date": "2026-11-02T12:31:52.919409+08:00",
+  "root": "D:\\GIT\\x-lang",
+  "package": "diff",
+  "sourceBase": "38987ad28",
+  "status": "scoped C/XLang gates passed; overall goal remains active",
+  "mainlineModified": false,
+  "xrtModified": false,
+  "vendorModified": false,
+  "publicApiAbiChanged": false,
+  "wholeReleaseApproved": false,
+  "requirements": {
+    "maxTextBytesPerSide": 8388608,
+    "maxLinesPerSide": 2048,
+    "utf8": true,
+    "nulTerminatedC": true,
+    "embeddedNulRejectedXLang": true,
+    "oneTrailingCarriageReturnRemoved": true,
+    "unicodeNormalization": false,
+    "exactMatchBeforeBranch": true,
+    "insertionOnTie": true,
+    "inputBodyCopies": 0,
+    "resultHandoffBodyCopies": 0,
+    "nulNeedleAllocations": 2,
+    "unifiedPatch": false,
+    "streaming": false
+  },
+  "implementation": {
+    "change": "Only peel the common suffix that the original backtrace consumes first; compute the original recurrence for the remaining prefix; never peel a prefix",
+    "noTableForEmptySide": true,
+    "noStepsForEmptyPlan": true,
+    "stopAllocatingAfterEarlierFailure": true,
+    "algorithmFallbackAdded": false,
+    "worstCaseComplexityUnchanged": true
+  },
+  "independentOracle": {
+    "cases": 1691,
+    "exhaustiveBinaryPairs": 961,
+    "maxLines": 2048,
+    "maxTextBytes": 8388608,
+    "bytes": 25507277,
+    "sha256": "2af62197d715cff77da4778c02374b54c0e27716971a1426c97720a76a672eaf",
+    "seed": "0xD1FF",
+    "reference": "full matrix, bottom-right exact match first, insert on tie",
+    "smallSequenceIndependentBruteForce": true,
+    "format": "8-byte magic, u32 count, four u32 sizes, four byte strings"
+  },
+  "baseline": {
+    "commit": "38987ad28",
+    "sourceMatchesAfterLfNormalization": true,
+    "oldSourceSha256": "d5c511bb2e737d9ee75b13eb93bcfb41fc59ef39229cfe23b8f6e61e26642de7",
+    "interpretation": "Old and new public results both pass the complete independent oracle. Old planner failures are new optimization/stop-after-failure assertions, not 94 newly discovered wrong-result bugs.",
+    "oldPlanner": "25 cases, 692 checks, 98 actual OOM/123 budgets, 94 failures",
+    "newPlanner": "25 cases, 628 checks, 82 actual OOM/107 budgets, 0 failures",
+    "changedTieWrongResults": 1074,
+    "collisionWithoutByteCompareWrongResults": 972,
+    "windows": [
+      {
+        "name": "oracle-old",
+        "expected": 0,
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "diff independent oracle: 1691 cases, 5073 checks, 0 failures\r\n",
+          "stderr": "",
+          "elapsedMs": 163
+        }
+      },
+      {
+        "name": "plan-old",
+        "expected": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "plan\tempty\t0\t0\t0\t2\t34\r\nplan\tidentical\t1\t1\t1\t8\t152\r\nplan\tearly-edit\t1\t1\t0\t8\t152\r\nplan\tlate-edit\t1\t1\t0\t8\t152\r\nplan\tidentical\t16\t16\t16\t578\t2402\r\nplan\tearly-edit\t16\t16\t15\t578\t2402\r\nplan\tlate-edit\t16\t16\t0\t578\t2402\r\nplan\tdelete-first\t16\t15\t15\t544\t2312\r\nplan\tinsert-first\t15\t16\t15\t544\t2312\r\nplan\tidentical\t256\t256\t256\t132098\t160802\r\nplan\tearly-edit\t256\t256\t255\t132098\t160802\r\nplan\tlate-edit\t256\t256\t0\t132098\t160802\r\nplan\tdelete-first\t256\t255\t255\t131584\t160232\r\nplan\tinsert-first\t255\t256\t255\t131584\t160232\r\nplan\tidentical\t1024\t1024\t1024\t2101250\t2215970\r\nplan\tearly-edit\t1024\t1024\t1023\t2101250\t2215970\r\nplan\tlate-edit\t1024\t1024\t0\t2101250\t2215970\r\nplan\tdelete-first\t1024\t1023\t1023\t2099200\t2213864\r\nplan\tinsert-first\t1023\t1024\t1023\t2099200\t2213864\r\nplan\tidentical\t2048\t2048\t2048\t8396802\t8626210\r\nplan\tearly-edit\t2048\t2048\t2047\t8396802\t8626210\r\nplan\tlate-edit\t2048\t2048\t0\t8396802\t8626210\r\nplan\tdelete-first\t2048\t2047\t2047\t8392704\t8622056\r\nplan\tinsert-first\t2047\t2048\t2047\t8392704\t8622056\r\nplan\tduplicate-tie\t2\t1\t1\t12\t212\r\ndiff suffix plan: 25 cases, 692 checks, 98 actual OOM/123 budgets, 94 failures\r\n",
+          "stderr": "diff suffix plan: matrix contains only unmatched prefix\r\ndiff suffix plan: steps reserve exact safe bound, empty plan allocates nothing\r\ndiff suffix plan: prepared live bytes equal arrays plus reduced matrix/steps\r\ndiff suffix plan: never allocate steps after an earlier allocation failed\r\ndiff suffix plan: matrix contains only unmatched prefix\r\ndiff suffix plan: steps reserve exact safe bound, empty plan allocates nothing\r\ndiff suffix plan: prepared live bytes equal arrays plus reduced matrix/steps\r\ndiff suffix plan: never allocate steps after an earlier allocation failed\r\ndiff suffix plan: steps reserve exact safe bound, empty plan allocates nothing\r\ndiff suffix plan: prepared live bytes equal arrays plus reduced matrix/steps\r\ndiff suffix plan: never allocate steps after an earlier allocation failed\r\ndiff suffix plan: steps reserve exact safe bound, empty plan allocates nothing\r\n",
+          "elapsedMs": 164
+        }
+      },
+      {
+        "name": "oracle-tie",
+        "expected": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "diff independent oracle: 1691 cases, 5073 checks, 1074 failures\r\n",
+          "stderr": "diff oracle mismatch case=33 output=0 stats=1 memory=1\r\ndiff oracle mismatch case=37 output=0 stats=1 memory=1\r\ndiff oracle mismatch case=45 output=0 stats=1 memory=1\r\ndiff oracle mismatch case=61 output=0 stats=1 memory=1\r\ndiff oracle mismatch case=63 output=0 stats=1 memory=1\r\ndiff oracle mismatch case=65 output=0 stats=1 memory=1\r\ndiff oracle mismatch case=69 output=0 stats=1 memory=1\r\ndiff oracle mismatch case=77 output=0 stats=1 memory=1\r\n",
+          "elapsedMs": 95
+        }
+      },
+      {
+        "name": "oracle-collision",
+        "expected": 1,
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "diff independent oracle: 1691 cases, 5073 checks, 972 failures\r\n",
+          "stderr": "diff oracle mismatch case=33 output=0 stats=0 memory=1\r\ndiff oracle mismatch case=35 output=0 stats=1 memory=1\r\ndiff oracle mismatch case=37 output=0 stats=0 memory=1\r\ndiff oracle mismatch case=39 output=0 stats=1 memory=1\r\ndiff oracle mismatch case=41 output=0 stats=1 memory=1\r\ndiff oracle mismatch case=43 output=0 stats=1 memory=1\r\ndiff oracle mismatch case=45 output=0 stats=0 memory=1\r\ndiff oracle mismatch case=47 output=0 stats=1 memory=1\r\n",
+          "elapsedMs": 89
+        }
+      }
+    ],
+    "linux": [
+      {
+        "name": "oracle-old",
+        "stdout": "diff independent oracle: 1691 cases, 5073 checks, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "plan-old",
+        "stdout": "plan\tempty\t0\t0\t0\t2\t34\nplan\tidentical\t1\t1\t1\t8\t152\nplan\tearly-edit\t1\t1\t0\t8\t152\nplan\tlate-edit\t1\t1\t0\t8\t152\nplan\tidentical\t16\t16\t16\t578\t2402\nplan\tearly-edit\t16\t16\t15\t578\t2402\nplan\tlate-edit\t16\t16\t0\t578\t2402\nplan\tdelete-first\t16\t15\t15\t544\t2312\nplan\tinsert-first\t15\t16\t15\t544\t2312\nplan\tidentical\t256\t256\t256\t132098\t160802\nplan\tearly-edit\t256\t256\t255\t132098\t160802\nplan\tlate-edit\t256\t256\t0\t132098\t160802\nplan\tdelete-first\t256\t255\t255\t131584\t160232\nplan\tinsert-first\t255\t256\t255\t131584\t160232\nplan\tidentical\t1024\t1024\t1024\t2101250\t2215970\nplan\tearly-edit\t1024\t1024\t1023\t2101250\t2215970\nplan\tlate-edit\t1024\t1024\t0\t2101250\t2215970\nplan\tdelete-first\t1024\t1023\t1023\t2099200\t2213864\nplan\tinsert-first\t1023\t1024\t1023\t2099200\t2213864\nplan\tidentical\t2048\t2048\t2048\t8396802\t8626210\nplan\tearly-edit\t2048\t2048\t2047\t8396802\t8626210\nplan\tlate-edit\t2048\t2048\t0\t8396802\t8626210\nplan\tdelete-first\t2048\t2047\t2047\t8392704\t8622056\nplan\tinsert-first\t2047\t2048\t2047\t8392704\t8622056\nplan\tduplicate-tie\t2\t1\t1\t12\t212\ndiff suffix plan: 25 cases, 692 checks, 98 actual OOM/123 budgets, 94 failures\n",
+        "stderr": "diff suffix plan: matrix contains only unmatched prefix\ndiff suffix plan: steps reserve exact safe bound, empty plan allocates nothing\ndiff suffix plan: prepared live bytes equal arrays plus reduced matrix/steps\ndiff suffix plan: never allocate steps after an earlier allocation failed\ndiff suffix plan: matrix contains only unmatched prefix\ndiff suffix plan: steps reserve exact safe bound, empty plan allocates nothing\ndiff suffix plan: prepared live bytes equal arrays plus reduced matrix/steps\ndiff suffix plan: never allocate steps after an earlier allocation failed\ndiff suffix plan: steps reserve exact safe bound, empty plan allocates nothing\ndiff suffix plan: prepared live bytes equal arrays plus reduced matrix/steps\ndiff suffix plan: never allocate steps after an earlier allocation failed\ndiff suffix plan: steps reserve exact safe bound, empty plan allocates nothing\n"
+      },
+      {
+        "name": "oracle-tie",
+        "stdout": "diff independent oracle: 1691 cases, 5073 checks, 1074 failures\n",
+        "stderr": "diff oracle mismatch case=33 output=0 stats=1 memory=1\ndiff oracle mismatch case=37 output=0 stats=1 memory=1\ndiff oracle mismatch case=45 output=0 stats=1 memory=1\ndiff oracle mismatch case=61 output=0 stats=1 memory=1\ndiff oracle mismatch case=63 output=0 stats=1 memory=1\ndiff oracle mismatch case=65 output=0 stats=1 memory=1\ndiff oracle mismatch case=69 output=0 stats=1 memory=1\ndiff oracle mismatch case=77 output=0 stats=1 memory=1\n"
+      },
+      {
+        "name": "oracle-collision",
+        "stdout": "diff independent oracle: 1691 cases, 5073 checks, 972 failures\n",
+        "stderr": "diff oracle mismatch case=33 output=0 stats=0 memory=1\ndiff oracle mismatch case=35 output=0 stats=1 memory=1\ndiff oracle mismatch case=37 output=0 stats=0 memory=1\ndiff oracle mismatch case=39 output=0 stats=1 memory=1\ndiff oracle mismatch case=41 output=0 stats=1 memory=1\ndiff oracle mismatch case=43 output=0 stats=1 memory=1\ndiff oracle mismatch case=45 output=0 stats=0 memory=1\ndiff oracle mismatch case=47 output=0 stats=1 memory=1\n"
+      }
+    ],
+    "linuxExits": "oracle-old exit=0 expected=0\nplan-old exit=1 expected=1\noracle-tie exit=1 expected=1\noracle-collision exit=1 expected=1\n"
+  },
+  "windows": {
+    "status": "passed",
+    "work": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6",
+    "skipAot": false,
+    "phases": [
+      {
+        "name": "compiler identity",
+        "command": [
+          "E:\\software\\w64devkit\\bin\\gcc.EXE",
+          "--version"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.015999999945051968,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\00.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\00.stderr",
+        "stdoutText": "gcc.EXE (GCC) 16.2.0\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+        "stderrText": ""
+      },
+      {
+        "name": "manifest macro compile",
+        "command": [
+          "E:\\software\\w64devkit\\bin\\gcc.EXE",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-DXRT_MODULE_HASH64",
+          "-DXRT_MODULE_STRING_FORMAT",
+          "-DXRT_MODULE_UNICODE",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\diff_native.c"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.14000000001396984,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\01.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\01.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "selected test runtime",
+        "command": [
+          "E:\\software\\w64devkit\\bin\\gcc.EXE",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-c",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\runtime.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\runtime.o"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 5.172000000020489,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\02.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\02.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "production native object",
+        "command": [
+          "E:\\software\\w64devkit\\bin\\gcc.EXE",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-c",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\diff_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\native.o"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.26599999994505197,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\03.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\03.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "test_diff GCC build",
+        "command": [
+          "E:\\software\\w64devkit\\bin\\gcc.EXE",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\test_diff.c",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\native.o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\test_diff.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.5150000000139698,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\04.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\04.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "test_diff GCC",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\test_diff.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.01600000006146729,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\05.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\05.stderr",
+        "stdoutText": "diff C boundaries: PASS\n",
+        "stderrText": ""
+      },
+      {
+        "name": "test_diff TCC JIT",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "run",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\test_diff.c",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\diff_native.c"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.10899999993853271,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\06.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\06.stderr",
+        "stdoutText": "diff C boundaries: PASS\n",
+        "stderrText": ""
+      },
+      {
+        "name": "test_unterminated GCC build",
+        "command": [
+          "E:\\software\\w64devkit\\bin\\gcc.EXE",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-DNDEBUG",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\test_unterminated.c",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\native.o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\test_unterminated.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.20400000002700835,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\07.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\07.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "test_unterminated GCC",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\test_unterminated.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.030999999959021807,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\08.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\08.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "test_unterminated TCC JIT",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "run",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\test_unterminated.c",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\diff_native.c"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.15600000007543713,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\09.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\09.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "test_threads GCC build",
+        "command": [
+          "E:\\software\\w64devkit\\bin\\gcc.EXE",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\test_threads.c",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\native.o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\test_threads.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.2339999999385327,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\10.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\10.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "test_threads GCC",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\test_threads.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.01600000006146729,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\11.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\11.stderr",
+        "stdoutText": "diff threads: PASS\n",
+        "stderrText": ""
+      },
+      {
+        "name": "test_threads TCC JIT",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "run",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\test_threads.c",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\diff_native.c"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.09399999992456287,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\12.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\12.stderr",
+        "stdoutText": "diff threads: PASS\n",
+        "stderrText": ""
+      },
+      {
+        "name": "independent Python corpus",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-B",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\oracle.py",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\corpus"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 3.031000000075437,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\13.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\13.stderr",
+        "stdoutText": "{\"cases\": 1691, \"exhaustiveBinaryPairs\": 961, \"maxLines\": 2048, \"maxTextBytes\": 8388608, \"bytes\": 25507277, \"sha256\": \"2af62197d715cff77da4778c02374b54c0e27716971a1426c97720a76a672eaf\", \"seed\": \"0xD1FF\", \"reference\": \"full matrix, bottom-right exact match first, insert on tie\", \"smallSequenceIndependentBruteForce\": true, \"format\": \"8-byte magic, u32 count, four u32 sizes, four byte strings\"}\n",
+        "stderrText": ""
+      },
+      {
+        "name": "oracle GCC build",
+        "command": [
+          "E:\\software\\w64devkit\\bin\\gcc.EXE",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\oracle_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\oracle.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.39099999994505197,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\14.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\14.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "full matrix oracle",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\oracle.exe",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\corpus\\corpus.bin"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.10999999998603016,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\15.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\15.stderr",
+        "stdoutText": "diff independent oracle: 1691 cases, 5073 checks, 0 failures\n",
+        "stderrText": ""
+      },
+      {
+        "name": "collision GCC build",
+        "command": [
+          "E:\\software\\w64devkit\\bin\\gcc.EXE",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-DXDIFF_FORCE_COLLISION",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\oracle_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\collision.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.4220000000204891,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\16.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\16.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "constant hash oracle",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\collision.exe",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\corpus\\corpus.bin"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.10900000005494803,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\17.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\17.stderr",
+        "stdoutText": "diff independent oracle: 1691 cases, 5073 checks, 0 failures\n",
+        "stderrText": ""
+      },
+      {
+        "name": "oracle rejects wrong-output",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\oracle.exe",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\corpus\\wrong-output.bin"
+        ],
+        "exit": 1,
+        "expected": 1,
+        "seconds": 0.0,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\18.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\18.stderr",
+        "stdoutText": "diff independent oracle: 1 cases, 3 checks, 1 failures\n",
+        "stderrText": "diff oracle mismatch case=0 output=0 stats=1 memory=1\n"
+      },
+      {
+        "name": "oracle rejects wrong-stats",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\oracle.exe",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\corpus\\wrong-stats.bin"
+        ],
+        "exit": 1,
+        "expected": 1,
+        "seconds": 0.015999999945051968,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\19.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\19.stderr",
+        "stdoutText": "diff independent oracle: 1 cases, 3 checks, 1 failures\n",
+        "stderrText": "diff oracle mismatch case=0 output=1 stats=0 memory=1\n"
+      },
+      {
+        "name": "oracle rejects truncated",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\oracle.exe",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\corpus\\truncated.bin"
+        ],
+        "exit": 1,
+        "expected": 1,
+        "seconds": 0.0,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\20.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\20.stderr",
+        "stdoutText": "diff independent oracle: 1 cases, 0 checks, 2 failures\n",
+        "stderrText": ""
+      },
+      {
+        "name": "plan GCC build",
+        "command": [
+          "E:\\software\\w64devkit\\bin\\gcc.EXE",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\suffix_plan_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\plan.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.46799999999348074,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\21.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\21.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "suffix shape and actual OOM",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\plan.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.0470000000204891,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\22.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\22.stderr",
+        "stdoutText": "plan\tempty\t0\t0\t0\t0\t0\nplan\tidentical\t1\t1\t1\t0\t80\nplan\tearly-edit\t1\t1\t0\t8\t120\nplan\tlate-edit\t1\t1\t0\t8\t120\nplan\tidentical\t16\t16\t16\t0\t1280\nplan\tearly-edit\t16\t16\t15\t8\t1320\nplan\tlate-edit\t16\t16\t0\t578\t2370\nplan\tdelete-first\t16\t15\t15\t0\t1256\nplan\tinsert-first\t15\t16\t15\t0\t1256\nplan\tidentical\t256\t256\t256\t0\t20480\nplan\tearly-edit\t256\t256\t255\t8\t20520\nplan\tlate-edit\t256\t256\t0\t132098\t160770\nplan\tdelete-first\t256\t255\t255\t0\t20456\nplan\tinsert-first\t255\t256\t255\t0\t20456\nplan\tidentical\t1024\t1024\t1024\t0\t81920\nplan\tearly-edit\t1024\t1024\t1023\t8\t81960\nplan\tlate-edit\t1024\t1024\t0\t2101250\t2215938\nplan\tdelete-first\t1024\t1023\t1023\t0\t81896\nplan\tinsert-first\t1023\t1024\t1023\t0\t81896\nplan\tidentical\t2048\t2048\t2048\t0\t163840\nplan\tearly-edit\t2048\t2048\t2047\t8\t163880\nplan\tlate-edit\t2048\t2048\t0\t8396802\t8626178\nplan\tdelete-first\t2048\t2047\t2047\t0\t163816\nplan\tinsert-first\t2047\t2048\t2047\t0\t163816\nplan\tduplicate-tie\t2\t1\t1\t0\t136\ndiff suffix plan: 25 cases, 628 checks, 82 actual OOM/107 budgets, 0 failures\n",
+        "stderrText": ""
+      },
+      {
+        "name": "suffix TCC JIT",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "run",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\suffix_plan_c.c"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.18799999996554106,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\23.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\23.stderr",
+        "stdoutText": "plan\tempty\t0\t0\t0\t0\t0\nplan\tidentical\t1\t1\t1\t0\t80\nplan\tearly-edit\t1\t1\t0\t8\t120\nplan\tlate-edit\t1\t1\t0\t8\t120\nplan\tidentical\t16\t16\t16\t0\t1280\nplan\tearly-edit\t16\t16\t15\t8\t1320\nplan\tlate-edit\t16\t16\t0\t578\t2370\nplan\tdelete-first\t16\t15\t15\t0\t1256\nplan\tinsert-first\t15\t16\t15\t0\t1256\nplan\tidentical\t256\t256\t256\t0\t20480\nplan\tearly-edit\t256\t256\t255\t8\t20520\nplan\tlate-edit\t256\t256\t0\t132098\t160770\nplan\tdelete-first\t256\t255\t255\t0\t20456\nplan\tinsert-first\t255\t256\t255\t0\t20456\nplan\tidentical\t1024\t1024\t1024\t0\t81920\nplan\tearly-edit\t1024\t1024\t1023\t8\t81960\nplan\tlate-edit\t1024\t1024\t0\t2101250\t2215938\nplan\tdelete-first\t1024\t1023\t1023\t0\t81896\nplan\tinsert-first\t1023\t1024\t1023\t0\t81896\nplan\tidentical\t2048\t2048\t2048\t0\t163840\nplan\tearly-edit\t2048\t2048\t2047\t8\t163880\nplan\tlate-edit\t2048\t2048\t0\t8396802\t8626178\nplan\tdelete-first\t2048\t2047\t2047\t0\t163816\nplan\tinsert-first\t2047\t2048\t2047\t0\t163816\nplan\tduplicate-tie\t2\t1\t1\t0\t136\ndiff suffix plan: 25 cases, 628 checks, 82 actual OOM/107 budgets, 0 failures\n",
+        "stderrText": ""
+      },
+      {
+        "name": "oracle TCC JIT",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "run",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\oracle_c.c",
+          "--",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\corpus\\corpus.bin"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.26500000001396984,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\24.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\24.stderr",
+        "stdoutText": "diff independent oracle: 1691 cases, 5073 checks, 0 failures\n",
+        "stderrText": ""
+      },
+      {
+        "name": "test/cases/extlib_diff.xl JIT",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "run",
+          "D:\\GIT\\x-lang\\test\\cases\\extlib_diff.xl"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.15700000000651926,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\25.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\25.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "release/extlibs/diff/test/boundaries.xl JIT",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "run",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\boundaries.xl"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.17099999997299165,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\26.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\26.stderr",
+        "stdoutText": "diff boundaries: PASS\n",
+        "stderrText": ""
+      },
+      {
+        "name": "release/extlibs/diff/test/owned_results.xl JIT",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "run",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\owned_results.xl"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.1880000000819564,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\27.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\27.stderr",
+        "stdoutText": "diff borrowed inputs and owned results: PASS\n",
+        "stderrText": ""
+      },
+      {
+        "name": "whole-call ownership cgen",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "cgen",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\owned_probe.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\owned.c"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.015999999945051968,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\28.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\28.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "two actual generated C prototypes",
+        "command": [
+          "E:\\software\\w64devkit\\bin\\gcc.EXE",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\abi.c"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.030999999959021807,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\29.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\29.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "wrong C prototype negative control",
+        "command": [
+          "E:\\software\\w64devkit\\bin\\gcc.EXE",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\wrong-abi.c"
+        ],
+        "exit": 1,
+        "expected": 1,
+        "seconds": 0.03100000007543713,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\30.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\30.stderr",
+        "stdoutText": "",
+        "stderrText": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\wrong-abi.c:4:5: error: conflicting types for 'xdiff_lines'; have 'int(const char *, const char *)'\n    4 | int xdiff_lines(const char*,const char*);\n      |     ^~~~~~~~~~~\nD:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\wrong-abi.c:2:14: note: previous declaration of 'xdiff_lines' with type 'char *(const char *, const char *)'\n    2 | extern char* xdiff_lines(const char*, const char*);\n      |              ^~~~~~~~~~~\n"
+      },
+      {
+        "name": "diff GCC build",
+        "command": [
+          "E:\\software\\w64devkit\\bin\\gcc.EXE",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\diff_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\native.o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\diff.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.2029999999795109,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\31.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\31.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "diff GCC",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\diff.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.015999999945051968,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\32.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\32.stderr",
+        "stdoutText": "=== Diff ===\n-func main()\n-    println(hello)\n+func main(...) as int\n+    println(hello world)\n     return 0\n end\n\n=== Stats (adds,dels,same) ===\n2,2,2\ndiff example: PASS\n",
+        "stderrText": ""
+      },
+      {
+        "name": "diff C JIT",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "run",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\diff_c.c"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.062000000034458935,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\33.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\33.stderr",
+        "stdoutText": "=== Diff ===\n-func main()\n-    println(hello)\n+func main(...) as int\n+    println(hello world)\n     return 0\n end\n\n=== Stats (adds,dels,same) ===\n2,2,2\ndiff example: PASS\n",
+        "stderrText": ""
+      },
+      {
+        "name": "diff XL JIT",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "run",
+          "D:\\GIT\\x-lang\\release\\examples\\extlibs\\diff.xl"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.1410000000614673,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\34.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\34.stderr",
+        "stdoutText": "=== Diff ===\n-func main()\n-    println(hello)\n+func main(...) as int\n+    println(hello world)\n     return 0\n end\n\n=== Stats (adds,dels,same) ===\n2,2,2\ndiff example: PASS\n",
+        "stderrText": ""
+      },
+      {
+        "name": "review GCC build",
+        "command": [
+          "E:\\software\\w64devkit\\bin\\gcc.EXE",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\review_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\native.o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\runtime.o",
+          "-lWs2_32",
+          "-lAdvapi32",
+          "-lIphlpapi",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\review.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.2339999999385327,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\35.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\35.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "review GCC",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\review.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.01600000006146729,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\36.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\36.stderr",
+        "stdoutText": "configuration review\n-name=旧\n+name=新\n port=8080\n cache=on\n tail=same\nadds,deletes,same: 1,1,3\nrepeated lines\n-a\n a\n",
+        "stderrText": ""
+      },
+      {
+        "name": "review C JIT",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "run",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\review_c.c"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.06199999991804361,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\37.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\37.stderr",
+        "stdoutText": "configuration review\n-name=旧\n+name=新\n port=8080\n cache=on\n tail=same\nadds,deletes,same: 1,1,3\nrepeated lines\n-a\n a\n",
+        "stderrText": ""
+      },
+      {
+        "name": "review XL JIT",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "run",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\review.xl"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.1410000000614673,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\38.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\38.stderr",
+        "stdoutText": "configuration review\n-name=旧\n+name=新\n port=8080\n cache=on\n tail=same\nadds,deletes,same: 1,1,3\nrepeated lines\n-a\n a\n",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT build 0",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "build",
+          "D:\\GIT\\x-lang\\test\\cases\\extlib_diff.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-0.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.3279999999795109,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\39.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\39.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT run 0",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-0.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.015999999945051968,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\40.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\40.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT build 1",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "build",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\owned_results.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-1.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.3280000000959262,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\41.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\41.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT run 1",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-1.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.015999999945051968,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\42.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\42.stderr",
+        "stdoutText": "diff borrowed inputs and owned results: PASS\n",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT build 2",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "build",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\boundaries.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-2.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.3279999999795109,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\43.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\43.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT run 2",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-2.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.015000000013969839,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\44.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\44.stderr",
+        "stdoutText": "diff boundaries: PASS\n",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT build 3",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "build",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\suffix_plan_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-3.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.125,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\45.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\45.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT run 3",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-3.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.10999999998603016,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\46.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\46.stderr",
+        "stdoutText": "plan\tempty\t0\t0\t0\t0\t0\nplan\tidentical\t1\t1\t1\t0\t80\nplan\tearly-edit\t1\t1\t0\t8\t120\nplan\tlate-edit\t1\t1\t0\t8\t120\nplan\tidentical\t16\t16\t16\t0\t1280\nplan\tearly-edit\t16\t16\t15\t8\t1320\nplan\tlate-edit\t16\t16\t0\t578\t2370\nplan\tdelete-first\t16\t15\t15\t0\t1256\nplan\tinsert-first\t15\t16\t15\t0\t1256\nplan\tidentical\t256\t256\t256\t0\t20480\nplan\tearly-edit\t256\t256\t255\t8\t20520\nplan\tlate-edit\t256\t256\t0\t132098\t160770\nplan\tdelete-first\t256\t255\t255\t0\t20456\nplan\tinsert-first\t255\t256\t255\t0\t20456\nplan\tidentical\t1024\t1024\t1024\t0\t81920\nplan\tearly-edit\t1024\t1024\t1023\t8\t81960\nplan\tlate-edit\t1024\t1024\t0\t2101250\t2215938\nplan\tdelete-first\t1024\t1023\t1023\t0\t81896\nplan\tinsert-first\t1023\t1024\t1023\t0\t81896\nplan\tidentical\t2048\t2048\t2048\t0\t163840\nplan\tearly-edit\t2048\t2048\t2047\t8\t163880\nplan\tlate-edit\t2048\t2048\t0\t8396802\t8626178\nplan\tdelete-first\t2048\t2047\t2047\t0\t163816\nplan\tinsert-first\t2047\t2048\t2047\t0\t163816\nplan\tduplicate-tie\t2\t1\t1\t0\t136\ndiff suffix plan: 25 cases, 628 checks, 82 actual OOM/107 budgets, 0 failures\n",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT build 4",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "build",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\oracle_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-4.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.125,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\47.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\47.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT run 4",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-4.exe",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\corpus\\corpus.bin"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.21799999999348074,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\48.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\48.stderr",
+        "stdoutText": "diff independent oracle: 1691 cases, 5073 checks, 0 failures\n",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT build 5",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "build",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\diff_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-5.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.10999999998603016,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\49.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\49.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT run 5",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-5.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.015000000013969839,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\50.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\50.stderr",
+        "stdoutText": "=== Diff ===\n-func main()\n-    println(hello)\n+func main(...) as int\n+    println(hello world)\n     return 0\n end\n\n=== Stats (adds,dels,same) ===\n2,2,2\ndiff example: PASS\n",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT build 6",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "build",
+          "D:\\GIT\\x-lang\\release\\examples\\extlibs\\diff.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-6.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.28200000000651926,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\51.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\51.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT run 6",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-6.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.015000000013969839,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\52.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\52.stderr",
+        "stdoutText": "=== Diff ===\n-func main()\n-    println(hello)\n+func main(...) as int\n+    println(hello world)\n     return 0\n end\n\n=== Stats (adds,dels,same) ===\n2,2,2\ndiff example: PASS\n",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT build 7",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "build",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\review_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-7.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.10999999998603016,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\53.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\53.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT run 7",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-7.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.015000000013969839,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\54.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\54.stderr",
+        "stdoutText": "configuration review\n-name=旧\n+name=新\n port=8080\n cache=on\n tail=same\nadds,deletes,same: 1,1,3\nrepeated lines\n-a\n a\n",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT build 8",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\xl.exe",
+          "build",
+          "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\review.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-8.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.2660000000614673,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\55.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\55.stderr",
+        "stdoutText": "",
+        "stderrText": ""
+      },
+      {
+        "name": "AOT run 8",
+        "command": [
+          "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\aot-8.exe"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "seconds": 0.015999999945051968,
+        "stdout": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\56.stdout",
+        "stderr": "D:\\GIT\\x-lang\\build\\test\\diff-gate-e79gvfc6\\56.stderr",
+        "stdoutText": "configuration review\n-name=旧\n+name=新\n port=8080\n cache=on\n tail=same\nadds,deletes,same: 1,1,3\nrepeated lines\n-a\n a\n",
+        "stderrText": ""
+      }
+    ],
+    "inputsBefore": {
+      "C:\\Program Files\\Python312\\python.exe": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\diff.xl": "416232a7daaa255b63d3f82754dac1fea79974eb6afbe6fa5a7ac95c95fe08de",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\diff_native.c": "3ade4f5c03554fa5095b868e5c16440f4f83544cb004af2f7d7cb3d64ee3b93a",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\docs\\site.html": "0353706265aebd10c06966ab1db15e9d7a3fe4b71fc7208cc7e2f04c149d5fe0",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\diff_c.c": "18916c05e4ebb6884eadc6bd81fd4ddca6734ffadd42cbdfe5575d338631b0e5",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\README.md": "251480b538d540bec4780bd0e8bdccf1352e748553ea2327a9c1ef4e8f076832",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\review.expected.txt": "a4322fad4e8a0ca0265033b019f12ab1dc19efc0a4a001bd28ae1d37b9714577",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\review.xl": "10ca6d0b69dac227a00734c97c579de0a809fdfa8ce50311862d9de1d59d4687",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\review_c.c": "3dd7a2da03daad080bd391ed3fe1afb5aa3196f104cca522f12587f75e06fdd3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\include\\diff_native.h": "a27a8e778099c371169c25d48427f16e69799f60c6b278ca6d0e832f92402df2",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\README.md": "d1537f384905d4f76481ed9f406e0b4e7cdef82fa28a55e9dd59a12c2147336d",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\src\\diff.xl": "e9c5cb4d5217bfc768eb5e1960acda226a1c934fcda93373b90ec92041e28429",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\benchmark_c.c": "cd326be9f7119c318e80c08b4f78fd087d9e99c5b30420db7b3024802149030e",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\boundaries.xl": "f6b9abed448b4c89e7fec4b3035f3c12d7abd81b4e76651f315460461ae0631c",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\check.ps1": "6fed7ec2890c0168755fb30ba93f6b4401bfd72ed41bcb63f41badeba52cf923",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\check.py": "279005ccdb80874f0bc3007e2a755f2024d27adf0321b061d09c1e46dfc6b44a",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\check.sh": "d50a7f045cd1fddda807f75cd1df8586768ffef02e10e93d783ab2a707b32a94",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\diff.expected.txt": "9658900a23fb8aa14ebe91248e97eef2dae44a77b40d6fe05a13bd24791a611e",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\oracle.py": "8b34a7b1fb7e76a3124ebc1a99d6720506fe3eb31b7a16839589de5c757c3116",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\oracle_c.c": "5258d35c128c72f284f55848a83f314723021bdfbd18ce7909ee7246e697640d",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\owned_probe.xl": "5e2b34d866ca12e2eb6c36623a739c83942851a6cf48cbd568d899c623c672a5",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\owned_results.xl": "af7f28ba24f35f0d71e707def9c1494a9c955d7b50f1e68abe2b1922158f71ac",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\runtime.c": "9f1398477909b1499a9031f89cbb986ca91fe14d4ce18f9dd96552873a73b17f",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\suffix_plan_c.c": "72496ee63465029b8c7315506d23b5e5bf0c4ddf4bca417b32d62aff35a11931",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\test_diff.c": "86a88b9301112da53e232c7955b34ebaa4346318c5359a52549fca33f7476d80",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\test_threads.c": "e8f757ada9fbbc03c90df057c45ceee08b83ee83ae811d257d91a24cc58867c3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\test_unterminated.c": "7c15c2add02cd91e322d4239595578734ef77cdab56c16d78abc3604f1095901",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\xlang.package.json": "be2a370495ca03dc5280537f9a3148a244a40c8d003bb27c48376bae77f9b778",
+      "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab",
+      "D:\\GIT\\x-lang\\release\\include\\README.md": "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770",
+      "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2",
+      "D:\\GIT\\x-lang\\release\\include\\xl.h": "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4",
+      "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad",
+      "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a",
+      "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1",
+      "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e",
+      "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992",
+      "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930",
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_diff.xl": "d0ce4b9050bd94405a434c03d97cf707b4395ebceb7d676e5cf26a61cb5a93f7",
+      "E:\\software\\w64devkit\\bin\\gcc.EXE": "9a52de3e3af8f4896e963c4b68ed159f049954775decb20e421cd75d51aab6ed",
+      "E:\\software\\w64devkit\\libexec\\gcc\\x86_64-w64-mingw32\\16.2.0\\cc1.exe": "b5536be9710fb9eece19de8cc9469d5ecd96d8282418e61d529a1394a8921012"
+    },
+    "inputsAfter": {
+      "C:\\Program Files\\Python312\\python.exe": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\diff.xl": "416232a7daaa255b63d3f82754dac1fea79974eb6afbe6fa5a7ac95c95fe08de",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\diff_native.c": "3ade4f5c03554fa5095b868e5c16440f4f83544cb004af2f7d7cb3d64ee3b93a",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\docs\\site.html": "0353706265aebd10c06966ab1db15e9d7a3fe4b71fc7208cc7e2f04c149d5fe0",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\diff_c.c": "18916c05e4ebb6884eadc6bd81fd4ddca6734ffadd42cbdfe5575d338631b0e5",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\README.md": "251480b538d540bec4780bd0e8bdccf1352e748553ea2327a9c1ef4e8f076832",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\review.expected.txt": "a4322fad4e8a0ca0265033b019f12ab1dc19efc0a4a001bd28ae1d37b9714577",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\review.xl": "10ca6d0b69dac227a00734c97c579de0a809fdfa8ce50311862d9de1d59d4687",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\examples\\review_c.c": "3dd7a2da03daad080bd391ed3fe1afb5aa3196f104cca522f12587f75e06fdd3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\include\\diff_native.h": "a27a8e778099c371169c25d48427f16e69799f60c6b278ca6d0e832f92402df2",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\README.md": "d1537f384905d4f76481ed9f406e0b4e7cdef82fa28a55e9dd59a12c2147336d",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\src\\diff.xl": "e9c5cb4d5217bfc768eb5e1960acda226a1c934fcda93373b90ec92041e28429",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\benchmark_c.c": "cd326be9f7119c318e80c08b4f78fd087d9e99c5b30420db7b3024802149030e",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\boundaries.xl": "f6b9abed448b4c89e7fec4b3035f3c12d7abd81b4e76651f315460461ae0631c",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\check.ps1": "6fed7ec2890c0168755fb30ba93f6b4401bfd72ed41bcb63f41badeba52cf923",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\check.py": "279005ccdb80874f0bc3007e2a755f2024d27adf0321b061d09c1e46dfc6b44a",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\check.sh": "d50a7f045cd1fddda807f75cd1df8586768ffef02e10e93d783ab2a707b32a94",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\diff.expected.txt": "9658900a23fb8aa14ebe91248e97eef2dae44a77b40d6fe05a13bd24791a611e",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\oracle.py": "8b34a7b1fb7e76a3124ebc1a99d6720506fe3eb31b7a16839589de5c757c3116",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\oracle_c.c": "5258d35c128c72f284f55848a83f314723021bdfbd18ce7909ee7246e697640d",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\owned_probe.xl": "5e2b34d866ca12e2eb6c36623a739c83942851a6cf48cbd568d899c623c672a5",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\owned_results.xl": "af7f28ba24f35f0d71e707def9c1494a9c955d7b50f1e68abe2b1922158f71ac",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\runtime.c": "9f1398477909b1499a9031f89cbb986ca91fe14d4ce18f9dd96552873a73b17f",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\suffix_plan_c.c": "72496ee63465029b8c7315506d23b5e5bf0c4ddf4bca417b32d62aff35a11931",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\test_diff.c": "86a88b9301112da53e232c7955b34ebaa4346318c5359a52549fca33f7476d80",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\test_threads.c": "e8f757ada9fbbc03c90df057c45ceee08b83ee83ae811d257d91a24cc58867c3",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\test\\test_unterminated.c": "7c15c2add02cd91e322d4239595578734ef77cdab56c16d78abc3604f1095901",
+      "D:\\GIT\\x-lang\\release\\extlibs\\diff\\xlang.package.json": "be2a370495ca03dc5280537f9a3148a244a40c8d003bb27c48376bae77f9b778",
+      "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab",
+      "D:\\GIT\\x-lang\\release\\include\\README.md": "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770",
+      "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2",
+      "D:\\GIT\\x-lang\\release\\include\\xl.h": "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4",
+      "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad",
+      "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a",
+      "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1",
+      "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e",
+      "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992",
+      "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930",
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_diff.xl": "d0ce4b9050bd94405a434c03d97cf707b4395ebceb7d676e5cf26a61cb5a93f7",
+      "E:\\software\\w64devkit\\bin\\gcc.EXE": "9a52de3e3af8f4896e963c4b68ed159f049954775decb20e421cd75d51aab6ed",
+      "E:\\software\\w64devkit\\libexec\\gcc\\x86_64-w64-mingw32\\16.2.0\\cc1.exe": "b5536be9710fb9eece19de8cc9469d5ecd96d8282418e61d529a1394a8921012"
+    },
+    "compilerVersion": "gcc.EXE (GCC) 16.2.0\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+    "corpus": {
+      "cases": 1691,
+      "exhaustiveBinaryPairs": 961,
+      "maxLines": 2048,
+      "maxTextBytes": 8388608,
+      "bytes": 25507277,
+      "sha256": "2af62197d715cff77da4778c02374b54c0e27716971a1426c97720a76a672eaf",
+      "seed": "0xD1FF",
+      "reference": "full matrix, bottom-right exact match first, insert on tie",
+      "smallSequenceIndependentBruteForce": true,
+      "format": "8-byte magic, u32 count, four u32 sizes, four byte strings"
+    }
+  },
+  "linux": {
+    "audit": "/var/tmp/xlang-diff-audit-Zwdtbm",
+    "gate": {
+      "status": "passed",
+      "work": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_",
+      "skipAot": false,
+      "phases": [
+        {
+          "name": "compiler identity",
+          "command": [
+            "/usr/bin/gcc",
+            "--version"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.003518399999997257,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/00.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/00.stderr",
+          "stdoutText": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+          "stderrText": ""
+        },
+        {
+          "name": "manifest macro compile",
+          "command": [
+            "/usr/bin/gcc",
+            "-D_GNU_SOURCE",
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-g",
+            "-fsanitize=address,undefined",
+            "-fno-omit-frame-pointer",
+            "-fno-pie",
+            "-no-pie",
+            "-pthread",
+            "-DXRT_MODULE_HASH64",
+            "-DXRT_MODULE_STRING_FORMAT",
+            "-DXRT_MODULE_UNICODE",
+            "-fsyntax-only",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/diff_native.c"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.11385089399999515,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/01.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/01.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "selected test runtime",
+          "command": [
+            "/usr/bin/gcc",
+            "-D_GNU_SOURCE",
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-g",
+            "-fsanitize=address,undefined",
+            "-fno-omit-frame-pointer",
+            "-fno-pie",
+            "-no-pie",
+            "-pthread",
+            "-c",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/runtime.c",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/runtime.o"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 5.776758076,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/02.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/02.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "production native object",
+          "command": [
+            "/usr/bin/gcc",
+            "-D_GNU_SOURCE",
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-g",
+            "-fsanitize=address,undefined",
+            "-fno-omit-frame-pointer",
+            "-fno-pie",
+            "-no-pie",
+            "-pthread",
+            "-c",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/diff_native.c",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/native.o"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.2644224940000015,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/03.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/03.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "test_diff GCC build",
+          "command": [
+            "/usr/bin/gcc",
+            "-D_GNU_SOURCE",
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-g",
+            "-fsanitize=address,undefined",
+            "-fno-omit-frame-pointer",
+            "-fno-pie",
+            "-no-pie",
+            "-pthread",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/test_diff.c",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/native.o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/runtime.o",
+            "-lm",
+            "-ldl",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/test_diff"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.5649453990000026,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/04.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/04.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "test_diff GCC",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/test_diff"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.031822310999999104,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/05.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/05.stderr",
+          "stdoutText": "diff C boundaries: PASS\n",
+          "stderrText": ""
+        },
+        {
+          "name": "test_diff TCC JIT",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "run",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/test_diff.c",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/diff_native.c"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.06379472300000089,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/06.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/06.stderr",
+          "stdoutText": "diff C boundaries: PASS\n",
+          "stderrText": ""
+        },
+        {
+          "name": "test_unterminated GCC build",
+          "command": [
+            "/usr/bin/gcc",
+            "-D_GNU_SOURCE",
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-g",
+            "-fsanitize=address,undefined",
+            "-fno-omit-frame-pointer",
+            "-fno-pie",
+            "-no-pie",
+            "-pthread",
+            "-DNDEBUG",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/test_unterminated.c",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/native.o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/runtime.o",
+            "-lm",
+            "-ldl",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/test_unterminated"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.2642569930000036,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/07.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/07.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "test_unterminated GCC",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/test_unterminated"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.06390162299999957,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/08.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/08.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "test_unterminated TCC JIT",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "run",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/test_unterminated.c",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/diff_native.c"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.11401053999999533,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/09.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/09.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "test_threads GCC build",
+          "command": [
+            "/usr/bin/gcc",
+            "-D_GNU_SOURCE",
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-g",
+            "-fsanitize=address,undefined",
+            "-fno-omit-frame-pointer",
+            "-fno-pie",
+            "-no-pie",
+            "-pthread",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/test_threads.c",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/native.o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/runtime.o",
+            "-lm",
+            "-ldl",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/test_threads"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.3143609110000014,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/10.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/10.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "test_threads GCC",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/test_threads"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.015867606000000478,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/11.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/11.stderr",
+          "stdoutText": "diff threads: PASS\n",
+          "stderrText": ""
+        },
+        {
+          "name": "test_threads TCC JIT",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "run",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/test_threads.c",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/diff_native.c"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.11402774000000448,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/12.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/12.stderr",
+          "stdoutText": "diff threads: PASS\n",
+          "stderrText": ""
+        },
+        {
+          "name": "independent Python corpus",
+          "command": [
+            "/usr/bin/python3",
+            "-B",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/oracle.py",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/corpus"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 1.3163547139999991,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/13.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/13.stderr",
+          "stdoutText": "{\"cases\": 1691, \"exhaustiveBinaryPairs\": 961, \"maxLines\": 2048, \"maxTextBytes\": 8388608, \"bytes\": 25507277, \"sha256\": \"2af62197d715cff77da4778c02374b54c0e27716971a1426c97720a76a672eaf\", \"seed\": \"0xD1FF\", \"reference\": \"full matrix, bottom-right exact match first, insert on tie\", \"smallSequenceIndependentBruteForce\": true, \"format\": \"8-byte magic, u32 count, four u32 sizes, four byte strings\"}\n",
+          "stderrText": ""
+        },
+        {
+          "name": "oracle GCC build",
+          "command": [
+            "/usr/bin/gcc",
+            "-D_GNU_SOURCE",
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-g",
+            "-fsanitize=address,undefined",
+            "-fno-omit-frame-pointer",
+            "-fno-pie",
+            "-no-pie",
+            "-pthread",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/oracle_c.c",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/runtime.o",
+            "-lm",
+            "-ldl",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/oracle"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.5651131370000115,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/14.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/14.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "full matrix oracle",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/oracle",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/corpus/corpus.bin"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.3147411210000115,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/15.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/15.stderr",
+          "stdoutText": "diff independent oracle: 1691 cases, 5073 checks, 0 failures\n",
+          "stderrText": ""
+        },
+        {
+          "name": "collision GCC build",
+          "command": [
+            "/usr/bin/gcc",
+            "-D_GNU_SOURCE",
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-g",
+            "-fsanitize=address,undefined",
+            "-fno-omit-frame-pointer",
+            "-fno-pie",
+            "-no-pie",
+            "-pthread",
+            "-DXDIFF_FORCE_COLLISION",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/oracle_c.c",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/runtime.o",
+            "-lm",
+            "-ldl",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/collision"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.6154704409999994,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/16.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/16.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "constant hash oracle",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/collision",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/corpus/corpus.bin"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.2646643169999976,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/17.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/17.stderr",
+          "stdoutText": "diff independent oracle: 1691 cases, 5073 checks, 0 failures\n",
+          "stderrText": ""
+        },
+        {
+          "name": "oracle rejects wrong-output",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/oracle",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/corpus/wrong-output.bin"
+          ],
+          "exit": 1,
+          "expected": 1,
+          "seconds": 0.015870301000006748,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/18.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/18.stderr",
+          "stdoutText": "diff independent oracle: 1 cases, 3 checks, 1 failures\n",
+          "stderrText": "diff oracle mismatch case=0 output=0 stats=1 memory=1\n"
+        },
+        {
+          "name": "oracle rejects wrong-stats",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/oracle",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/corpus/wrong-stats.bin"
+          ],
+          "exit": 1,
+          "expected": 1,
+          "seconds": 0.01577120100000684,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/19.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/19.stderr",
+          "stdoutText": "diff independent oracle: 1 cases, 3 checks, 1 failures\n",
+          "stderrText": "diff oracle mismatch case=0 output=1 stats=0 memory=1\n"
+        },
+        {
+          "name": "oracle rejects truncated",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/oracle",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/corpus/truncated.bin"
+          ],
+          "exit": 1,
+          "expected": 1,
+          "seconds": 0.015844201000007274,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/20.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/20.stderr",
+          "stdoutText": "diff independent oracle: 1 cases, 0 checks, 2 failures\n",
+          "stderrText": ""
+        },
+        {
+          "name": "plan GCC build",
+          "command": [
+            "/usr/bin/gcc",
+            "-D_GNU_SOURCE",
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-g",
+            "-fsanitize=address,undefined",
+            "-fno-omit-frame-pointer",
+            "-fno-pie",
+            "-no-pie",
+            "-pthread",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/suffix_plan_c.c",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/runtime.o",
+            "-lm",
+            "-ldl",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/plan"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.5649744370000036,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/21.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/21.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "suffix shape and actual OOM",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/plan"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.16419881100000566,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/22.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/22.stderr",
+          "stdoutText": "plan\tempty\t0\t0\t0\t0\t0\nplan\tidentical\t1\t1\t1\t0\t80\nplan\tearly-edit\t1\t1\t0\t8\t120\nplan\tlate-edit\t1\t1\t0\t8\t120\nplan\tidentical\t16\t16\t16\t0\t1280\nplan\tearly-edit\t16\t16\t15\t8\t1320\nplan\tlate-edit\t16\t16\t0\t578\t2370\nplan\tdelete-first\t16\t15\t15\t0\t1256\nplan\tinsert-first\t15\t16\t15\t0\t1256\nplan\tidentical\t256\t256\t256\t0\t20480\nplan\tearly-edit\t256\t256\t255\t8\t20520\nplan\tlate-edit\t256\t256\t0\t132098\t160770\nplan\tdelete-first\t256\t255\t255\t0\t20456\nplan\tinsert-first\t255\t256\t255\t0\t20456\nplan\tidentical\t1024\t1024\t1024\t0\t81920\nplan\tearly-edit\t1024\t1024\t1023\t8\t81960\nplan\tlate-edit\t1024\t1024\t0\t2101250\t2215938\nplan\tdelete-first\t1024\t1023\t1023\t0\t81896\nplan\tinsert-first\t1023\t1024\t1023\t0\t81896\nplan\tidentical\t2048\t2048\t2048\t0\t163840\nplan\tearly-edit\t2048\t2048\t2047\t8\t163880\nplan\tlate-edit\t2048\t2048\t0\t8396802\t8626178\nplan\tdelete-first\t2048\t2047\t2047\t0\t163816\nplan\tinsert-first\t2047\t2048\t2047\t0\t163816\nplan\tduplicate-tie\t2\t1\t1\t0\t136\ndiff suffix plan: 25 cases, 628 checks, 82 actual OOM/107 budgets, 0 failures\n",
+          "stderrText": ""
+        },
+        {
+          "name": "suffix TCC JIT",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "run",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/suffix_plan_c.c"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.1642848110000017,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/23.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/23.stderr",
+          "stdoutText": "plan\tempty\t0\t0\t0\t0\t0\nplan\tidentical\t1\t1\t1\t0\t80\nplan\tearly-edit\t1\t1\t0\t8\t120\nplan\tlate-edit\t1\t1\t0\t8\t120\nplan\tidentical\t16\t16\t16\t0\t1280\nplan\tearly-edit\t16\t16\t15\t8\t1320\nplan\tlate-edit\t16\t16\t0\t578\t2370\nplan\tdelete-first\t16\t15\t15\t0\t1256\nplan\tinsert-first\t15\t16\t15\t0\t1256\nplan\tidentical\t256\t256\t256\t0\t20480\nplan\tearly-edit\t256\t256\t255\t8\t20520\nplan\tlate-edit\t256\t256\t0\t132098\t160770\nplan\tdelete-first\t256\t255\t255\t0\t20456\nplan\tinsert-first\t255\t256\t255\t0\t20456\nplan\tidentical\t1024\t1024\t1024\t0\t81920\nplan\tearly-edit\t1024\t1024\t1023\t8\t81960\nplan\tlate-edit\t1024\t1024\t0\t2101250\t2215938\nplan\tdelete-first\t1024\t1023\t1023\t0\t81896\nplan\tinsert-first\t1023\t1024\t1023\t0\t81896\nplan\tidentical\t2048\t2048\t2048\t0\t163840\nplan\tearly-edit\t2048\t2048\t2047\t8\t163880\nplan\tlate-edit\t2048\t2048\t0\t8396802\t8626178\nplan\tdelete-first\t2048\t2047\t2047\t0\t163816\nplan\tinsert-first\t2047\t2048\t2047\t0\t163816\nplan\tduplicate-tie\t2\t1\t1\t0\t136\ndiff suffix plan: 25 cases, 628 checks, 82 actual OOM/107 budgets, 0 failures\n",
+          "stderrText": ""
+        },
+        {
+          "name": "oracle TCC JIT",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "run",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/oracle_c.c",
+            "--",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/corpus/corpus.bin"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.21445851399998617,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/24.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/24.stderr",
+          "stdoutText": "diff independent oracle: 1691 cases, 5073 checks, 0 failures\n",
+          "stderrText": ""
+        },
+        {
+          "name": "test/cases/extlib_diff.xl JIT",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "run",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/test/cases/extlib_diff.xl"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.16424191099999064,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/25.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/25.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "release/extlibs/diff/test/boundaries.xl JIT",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "run",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/boundaries.xl"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.11397820700000239,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/26.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/26.stderr",
+          "stdoutText": "diff boundaries: PASS\n",
+          "stderrText": ""
+        },
+        {
+          "name": "release/extlibs/diff/test/owned_results.xl JIT",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "run",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/owned_results.xl"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.16406851099999642,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/27.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/27.stderr",
+          "stdoutText": "diff borrowed inputs and owned results: PASS\n",
+          "stderrText": ""
+        },
+        {
+          "name": "whole-call ownership cgen",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "cgen",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/owned_probe.xl",
+            "--emit",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/owned.c"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.01569740100001127,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/28.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/28.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "two actual generated C prototypes",
+          "command": [
+            "/usr/bin/gcc",
+            "-D_GNU_SOURCE",
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-g",
+            "-fsanitize=address,undefined",
+            "-fno-omit-frame-pointer",
+            "-fno-pie",
+            "-no-pie",
+            "-pthread",
+            "-fsyntax-only",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/abi.c"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.007550801000007823,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/29.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/29.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "wrong C prototype negative control",
+          "command": [
+            "/usr/bin/gcc",
+            "-D_GNU_SOURCE",
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-g",
+            "-fsanitize=address,undefined",
+            "-fno-omit-frame-pointer",
+            "-fno-pie",
+            "-no-pie",
+            "-pthread",
+            "-fsyntax-only",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/wrong-abi.c"
+          ],
+          "exit": 1,
+          "expected": 1,
+          "seconds": 0.00752349999999069,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/30.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/30.stderr",
+          "stdoutText": "",
+          "stderrText": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/wrong-abi.c:4:5: error: conflicting types for ‘xdiff_lines’; have ‘int(const char *, const char *)’\n    4 | int xdiff_lines(const char*,const char*);\n      |     ^~~~~~~~~~~\n/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/wrong-abi.c:2:14: note: previous declaration of ‘xdiff_lines’ with type ‘char *(const char *, const char *)’\n    2 | extern char* xdiff_lines(const char*, const char*);\n      |              ^~~~~~~~~~~\n"
+        },
+        {
+          "name": "diff GCC build",
+          "command": [
+            "/usr/bin/gcc",
+            "-D_GNU_SOURCE",
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-g",
+            "-fsanitize=address,undefined",
+            "-fno-omit-frame-pointer",
+            "-fno-pie",
+            "-no-pie",
+            "-pthread",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/diff_c.c",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/native.o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/runtime.o",
+            "-lm",
+            "-ldl",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/diff"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.26421621699999776,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/31.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/31.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "diff GCC",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/diff"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.015715900999992982,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/32.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/32.stderr",
+          "stdoutText": "=== Diff ===\n-func main()\n-    println(hello)\n+func main(...) as int\n+    println(hello world)\n     return 0\n end\n\n=== Stats (adds,dels,same) ===\n2,2,2\ndiff example: PASS\n",
+          "stderrText": ""
+        },
+        {
+          "name": "diff C JIT",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "run",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/diff_c.c"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.06383880499998895,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/33.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/33.stderr",
+          "stdoutText": "=== Diff ===\n-func main()\n-    println(hello)\n+func main(...) as int\n+    println(hello world)\n     return 0\n end\n\n=== Stats (adds,dels,same) ===\n2,2,2\ndiff example: PASS\n",
+          "stderrText": ""
+        },
+        {
+          "name": "diff XL JIT",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "run",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/examples/extlibs/diff.xl"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.1139425069999902,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/34.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/34.stderr",
+          "stdoutText": "=== Diff ===\n-func main()\n-    println(hello)\n+func main(...) as int\n+    println(hello world)\n     return 0\n end\n\n=== Stats (adds,dels,same) ===\n2,2,2\ndiff example: PASS\n",
+          "stderrText": ""
+        },
+        {
+          "name": "review GCC build",
+          "command": [
+            "/usr/bin/gcc",
+            "-D_GNU_SOURCE",
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Ilib/xrt",
+            "-g",
+            "-fsanitize=address,undefined",
+            "-fno-omit-frame-pointer",
+            "-fno-pie",
+            "-no-pie",
+            "-pthread",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/review_c.c",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/native.o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/runtime.o",
+            "-lm",
+            "-ldl",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/review"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.26424941799999146,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/35.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/35.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "review GCC",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/review"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.01570000100001323,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/36.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/36.stderr",
+          "stdoutText": "configuration review\n-name=旧\n+name=新\n port=8080\n cache=on\n tail=same\nadds,deletes,same: 1,1,3\nrepeated lines\n-a\n a\n",
+          "stderrText": ""
+        },
+        {
+          "name": "review C JIT",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "run",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/review_c.c"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.06385970399999508,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/37.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/37.stderr",
+          "stdoutText": "configuration review\n-name=旧\n+name=新\n port=8080\n cache=on\n tail=same\nadds,deletes,same: 1,1,3\nrepeated lines\n-a\n a\n",
+          "stderrText": ""
+        },
+        {
+          "name": "review XL JIT",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "run",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/review.xl"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.11402550699999381,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/38.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/38.stderr",
+          "stdoutText": "configuration review\n-name=旧\n+name=新\n port=8080\n cache=on\n tail=same\nadds,deletes,same: 1,1,3\nrepeated lines\n-a\n a\n",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT build 0",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "build",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/test/cases/extlib_diff.xl",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-0"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.2642920180000061,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/39.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/39.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT run 0",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-0"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.0014170000000035543,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/40.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/40.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT build 1",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "build",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/owned_results.xl",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-1"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.31423991999999146,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/41.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/41.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT run 1",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-1"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.0035929010000046446,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/42.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/42.stderr",
+          "stdoutText": "diff borrowed inputs and owned results: PASS\n",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT build 2",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "build",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/boundaries.xl",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-2"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.2642579169999948,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/43.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/43.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT run 2",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-2"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.0035043999999970765,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/44.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/44.stderr",
+          "stdoutText": "diff boundaries: PASS\n",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT build 3",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "build",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/suffix_plan_c.c",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-3"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.11390130800000975,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/45.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/45.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT run 3",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-3"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.11403460699999357,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/46.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/46.stderr",
+          "stdoutText": "plan\tempty\t0\t0\t0\t0\t0\nplan\tidentical\t1\t1\t1\t0\t80\nplan\tearly-edit\t1\t1\t0\t8\t120\nplan\tlate-edit\t1\t1\t0\t8\t120\nplan\tidentical\t16\t16\t16\t0\t1280\nplan\tearly-edit\t16\t16\t15\t8\t1320\nplan\tlate-edit\t16\t16\t0\t578\t2370\nplan\tdelete-first\t16\t15\t15\t0\t1256\nplan\tinsert-first\t15\t16\t15\t0\t1256\nplan\tidentical\t256\t256\t256\t0\t20480\nplan\tearly-edit\t256\t256\t255\t8\t20520\nplan\tlate-edit\t256\t256\t0\t132098\t160770\nplan\tdelete-first\t256\t255\t255\t0\t20456\nplan\tinsert-first\t255\t256\t255\t0\t20456\nplan\tidentical\t1024\t1024\t1024\t0\t81920\nplan\tearly-edit\t1024\t1024\t1023\t8\t81960\nplan\tlate-edit\t1024\t1024\t0\t2101250\t2215938\nplan\tdelete-first\t1024\t1023\t1023\t0\t81896\nplan\tinsert-first\t1023\t1024\t1023\t0\t81896\nplan\tidentical\t2048\t2048\t2048\t0\t163840\nplan\tearly-edit\t2048\t2048\t2047\t8\t163880\nplan\tlate-edit\t2048\t2048\t0\t8396802\t8626178\nplan\tdelete-first\t2048\t2047\t2047\t0\t163816\nplan\tinsert-first\t2047\t2048\t2047\t0\t163816\nplan\tduplicate-tie\t2\t1\t1\t0\t136\ndiff suffix plan: 25 cases, 628 checks, 82 actual OOM/107 budgets, 0 failures\n",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT build 4",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "build",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/oracle_c.c",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-4"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.11396190800000738,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/47.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/47.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT run 4",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-4",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/corpus/corpus.bin"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.1640923100000009,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/48.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/48.stderr",
+          "stdoutText": "diff independent oracle: 1691 cases, 5073 checks, 0 failures\n",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT build 5",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "build",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/diff_c.c",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-5"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.11398320800000761,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/49.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/49.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT run 5",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-5"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.0014622000000059643,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/50.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/50.stderr",
+          "stdoutText": "=== Diff ===\n-func main()\n-    println(hello)\n+func main(...) as int\n+    println(hello world)\n     return 0\n end\n\n=== Stats (adds,dels,same) ===\n2,2,2\ndiff example: PASS\n",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT build 6",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "build",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/examples/extlibs/diff.xl",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-6"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.2642247170000047,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/51.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/51.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT run 6",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-6"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.001473001000007912,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/52.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/52.stderr",
+          "stdoutText": "=== Diff ===\n-func main()\n-    println(hello)\n+func main(...) as int\n+    println(hello world)\n     return 0\n end\n\n=== Stats (adds,dels,same) ===\n2,2,2\ndiff example: PASS\n",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT build 7",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "build",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/review_c.c",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-7"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.11379550700000607,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/53.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/53.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT run 7",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-7"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.0014335999999985916,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/54.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/54.stderr",
+          "stdoutText": "configuration review\n-name=旧\n+name=新\n port=8080\n cache=on\n tail=same\nadds,deletes,same: 1,1,3\nrepeated lines\n-a\n a\n",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT build 8",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl",
+            "build",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/review.xl",
+            "-o",
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-8"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.264215716999999,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/55.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/55.stderr",
+          "stdoutText": "",
+          "stderrText": ""
+        },
+        {
+          "name": "AOT run 8",
+          "command": [
+            "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/aot-8"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "seconds": 0.0015377010000037217,
+          "stdout": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/56.stdout",
+          "stderr": "/var/tmp/xlang-diff-audit-Zwdtbm/stage/build/test/diff-gate-iza2elj_/56.stderr",
+          "stdoutText": "configuration review\n-name=旧\n+name=新\n port=8080\n cache=on\n tail=same\nadds,deletes,same: 1,1,3\nrepeated lines\n-a\n a\n",
+          "stderrText": ""
+        }
+      ],
+      "inputsBefore": {
+        "/usr/bin/gcc": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88",
+        "/usr/bin/python3": "52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41",
+        "/usr/libexec/gcc/x86_64-linux-gnu/15/cc1": "30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/lib/xrt/xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/lib/xruntime/xruntime.h": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/examples/extlibs/diff.xl": "416232a7daaa255b63d3f82754dac1fea79974eb6afbe6fa5a7ac95c95fe08de",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/README.md": "d1537f384905d4f76481ed9f406e0b4e7cdef82fa28a55e9dd59a12c2147336d",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/diff_native.c": "3ade4f5c03554fa5095b868e5c16440f4f83544cb004af2f7d7cb3d64ee3b93a",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/docs/site.html": "0353706265aebd10c06966ab1db15e9d7a3fe4b71fc7208cc7e2f04c149d5fe0",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/README.md": "251480b538d540bec4780bd0e8bdccf1352e748553ea2327a9c1ef4e8f076832",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/diff_c.c": "18916c05e4ebb6884eadc6bd81fd4ddca6734ffadd42cbdfe5575d338631b0e5",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/review.expected.txt": "a4322fad4e8a0ca0265033b019f12ab1dc19efc0a4a001bd28ae1d37b9714577",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/review.xl": "10ca6d0b69dac227a00734c97c579de0a809fdfa8ce50311862d9de1d59d4687",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/review_c.c": "3dd7a2da03daad080bd391ed3fe1afb5aa3196f104cca522f12587f75e06fdd3",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/include/diff_native.h": "a27a8e778099c371169c25d48427f16e69799f60c6b278ca6d0e832f92402df2",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/src/diff.xl": "e9c5cb4d5217bfc768eb5e1960acda226a1c934fcda93373b90ec92041e28429",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/benchmark_c.c": "cd326be9f7119c318e80c08b4f78fd087d9e99c5b30420db7b3024802149030e",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/boundaries.xl": "f6b9abed448b4c89e7fec4b3035f3c12d7abd81b4e76651f315460461ae0631c",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/check.ps1": "f2c6fa555da87a7c8f401fe70f5ab1c70b4c93d79c6e1a6881186081085580a9",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/check.py": "279005ccdb80874f0bc3007e2a755f2024d27adf0321b061d09c1e46dfc6b44a",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/check.sh": "d50a7f045cd1fddda807f75cd1df8586768ffef02e10e93d783ab2a707b32a94",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/diff.expected.txt": "9658900a23fb8aa14ebe91248e97eef2dae44a77b40d6fe05a13bd24791a611e",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/oracle.py": "8b34a7b1fb7e76a3124ebc1a99d6720506fe3eb31b7a16839589de5c757c3116",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/oracle_c.c": "5258d35c128c72f284f55848a83f314723021bdfbd18ce7909ee7246e697640d",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/owned_probe.xl": "5e2b34d866ca12e2eb6c36623a739c83942851a6cf48cbd568d899c623c672a5",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/owned_results.xl": "af7f28ba24f35f0d71e707def9c1494a9c955d7b50f1e68abe2b1922158f71ac",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/runtime.c": "9f1398477909b1499a9031f89cbb986ca91fe14d4ce18f9dd96552873a73b17f",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/suffix_plan_c.c": "72496ee63465029b8c7315506d23b5e5bf0c4ddf4bca417b32d62aff35a11931",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/test_diff.c": "86a88b9301112da53e232c7955b34ebaa4346318c5359a52549fca33f7476d80",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/test_threads.c": "e8f757ada9fbbc03c90df057c45ceee08b83ee83ae811d257d91a24cc58867c3",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/test_unterminated.c": "7c15c2add02cd91e322d4239595578734ef77cdab56c16d78abc3604f1095901",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/xlang.package.json": "be2a370495ca03dc5280537f9a3148a244a40c8d003bb27c48376bae77f9b778",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/README.md": "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/libtcc.h": "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/tcc_builtin_vfs.h": "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl.h": "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_cancellation_retirement.h": "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_clock.h": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_extlib_abi.h": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_foreign_graph.h": "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_foreign_net.h": "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_package.h": "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_runtime.h": "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_sync_retirement.h": "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_version.h": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xlc.h": "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xrt_decl.h": "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xruntime_decl.h": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/libxl.so": "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/libxlc.so": "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl": "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/test/cases/extlib_diff.xl": "d0ce4b9050bd94405a434c03d97cf707b4395ebceb7d676e5cf26a61cb5a93f7"
+      },
+      "inputsAfter": {
+        "/usr/bin/gcc": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88",
+        "/usr/bin/python3": "52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41",
+        "/usr/libexec/gcc/x86_64-linux-gnu/15/cc1": "30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/lib/xrt/xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/lib/xruntime/xruntime.h": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/examples/extlibs/diff.xl": "416232a7daaa255b63d3f82754dac1fea79974eb6afbe6fa5a7ac95c95fe08de",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/README.md": "d1537f384905d4f76481ed9f406e0b4e7cdef82fa28a55e9dd59a12c2147336d",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/diff_native.c": "3ade4f5c03554fa5095b868e5c16440f4f83544cb004af2f7d7cb3d64ee3b93a",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/docs/site.html": "0353706265aebd10c06966ab1db15e9d7a3fe4b71fc7208cc7e2f04c149d5fe0",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/README.md": "251480b538d540bec4780bd0e8bdccf1352e748553ea2327a9c1ef4e8f076832",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/diff_c.c": "18916c05e4ebb6884eadc6bd81fd4ddca6734ffadd42cbdfe5575d338631b0e5",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/review.expected.txt": "a4322fad4e8a0ca0265033b019f12ab1dc19efc0a4a001bd28ae1d37b9714577",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/review.xl": "10ca6d0b69dac227a00734c97c579de0a809fdfa8ce50311862d9de1d59d4687",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/examples/review_c.c": "3dd7a2da03daad080bd391ed3fe1afb5aa3196f104cca522f12587f75e06fdd3",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/include/diff_native.h": "a27a8e778099c371169c25d48427f16e69799f60c6b278ca6d0e832f92402df2",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/src/diff.xl": "e9c5cb4d5217bfc768eb5e1960acda226a1c934fcda93373b90ec92041e28429",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/benchmark_c.c": "cd326be9f7119c318e80c08b4f78fd087d9e99c5b30420db7b3024802149030e",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/boundaries.xl": "f6b9abed448b4c89e7fec4b3035f3c12d7abd81b4e76651f315460461ae0631c",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/check.ps1": "f2c6fa555da87a7c8f401fe70f5ab1c70b4c93d79c6e1a6881186081085580a9",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/check.py": "279005ccdb80874f0bc3007e2a755f2024d27adf0321b061d09c1e46dfc6b44a",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/check.sh": "d50a7f045cd1fddda807f75cd1df8586768ffef02e10e93d783ab2a707b32a94",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/diff.expected.txt": "9658900a23fb8aa14ebe91248e97eef2dae44a77b40d6fe05a13bd24791a611e",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/oracle.py": "8b34a7b1fb7e76a3124ebc1a99d6720506fe3eb31b7a16839589de5c757c3116",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/oracle_c.c": "5258d35c128c72f284f55848a83f314723021bdfbd18ce7909ee7246e697640d",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/owned_probe.xl": "5e2b34d866ca12e2eb6c36623a739c83942851a6cf48cbd568d899c623c672a5",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/owned_results.xl": "af7f28ba24f35f0d71e707def9c1494a9c955d7b50f1e68abe2b1922158f71ac",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/runtime.c": "9f1398477909b1499a9031f89cbb986ca91fe14d4ce18f9dd96552873a73b17f",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/suffix_plan_c.c": "72496ee63465029b8c7315506d23b5e5bf0c4ddf4bca417b32d62aff35a11931",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/test_diff.c": "86a88b9301112da53e232c7955b34ebaa4346318c5359a52549fca33f7476d80",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/test_threads.c": "e8f757ada9fbbc03c90df057c45ceee08b83ee83ae811d257d91a24cc58867c3",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/test/test_unterminated.c": "7c15c2add02cd91e322d4239595578734ef77cdab56c16d78abc3604f1095901",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/extlibs/diff/xlang.package.json": "be2a370495ca03dc5280537f9a3148a244a40c8d003bb27c48376bae77f9b778",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/README.md": "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/libtcc.h": "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/tcc_builtin_vfs.h": "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl.h": "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_cancellation_retirement.h": "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_clock.h": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_extlib_abi.h": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_foreign_graph.h": "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_foreign_net.h": "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_package.h": "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_runtime.h": "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_sync_retirement.h": "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xl_version.h": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xlc.h": "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xrt_decl.h": "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/include/xruntime_decl.h": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/libxl.so": "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/libxlc.so": "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/release/xl": "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb",
+        "/var/tmp/xlang-diff-audit-Zwdtbm/stage/test/cases/extlib_diff.xl": "d0ce4b9050bd94405a434c03d97cf707b4395ebceb7d676e5cf26a61cb5a93f7"
+      },
+      "compilerVersion": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+      "corpus": {
+        "cases": 1691,
+        "exhaustiveBinaryPairs": 961,
+        "maxLines": 2048,
+        "maxTextBytes": 8388608,
+        "bytes": 25507277,
+        "sha256": "2af62197d715cff77da4778c02374b54c0e27716971a1426c97720a76a672eaf",
+        "seed": "0xD1FF",
+        "reference": "full matrix, bottom-right exact match first, insert on tie",
+        "smallSequenceIndependentBruteForce": true,
+        "format": "8-byte magic, u32 count, four u32 sizes, four byte strings"
+      }
+    },
+    "controls": [
+      {
+        "name": "oracle-old",
+        "stdout": "diff independent oracle: 1691 cases, 5073 checks, 0 failures\n",
+        "stderr": ""
+      },
+      {
+        "name": "plan-old",
+        "stdout": "plan\tempty\t0\t0\t0\t2\t34\nplan\tidentical\t1\t1\t1\t8\t152\nplan\tearly-edit\t1\t1\t0\t8\t152\nplan\tlate-edit\t1\t1\t0\t8\t152\nplan\tidentical\t16\t16\t16\t578\t2402\nplan\tearly-edit\t16\t16\t15\t578\t2402\nplan\tlate-edit\t16\t16\t0\t578\t2402\nplan\tdelete-first\t16\t15\t15\t544\t2312\nplan\tinsert-first\t15\t16\t15\t544\t2312\nplan\tidentical\t256\t256\t256\t132098\t160802\nplan\tearly-edit\t256\t256\t255\t132098\t160802\nplan\tlate-edit\t256\t256\t0\t132098\t160802\nplan\tdelete-first\t256\t255\t255\t131584\t160232\nplan\tinsert-first\t255\t256\t255\t131584\t160232\nplan\tidentical\t1024\t1024\t1024\t2101250\t2215970\nplan\tearly-edit\t1024\t1024\t1023\t2101250\t2215970\nplan\tlate-edit\t1024\t1024\t0\t2101250\t2215970\nplan\tdelete-first\t1024\t1023\t1023\t2099200\t2213864\nplan\tinsert-first\t1023\t1024\t1023\t2099200\t2213864\nplan\tidentical\t2048\t2048\t2048\t8396802\t8626210\nplan\tearly-edit\t2048\t2048\t2047\t8396802\t8626210\nplan\tlate-edit\t2048\t2048\t0\t8396802\t8626210\nplan\tdelete-first\t2048\t2047\t2047\t8392704\t8622056\nplan\tinsert-first\t2047\t2048\t2047\t8392704\t8622056\nplan\tduplicate-tie\t2\t1\t1\t12\t212\ndiff suffix plan: 25 cases, 692 checks, 98 actual OOM/123 budgets, 94 failures\n",
+        "stderr": "diff suffix plan: matrix contains only unmatched prefix\ndiff suffix plan: steps reserve exact safe bound, empty plan allocates nothing\ndiff suffix plan: prepared live bytes equal arrays plus reduced matrix/steps\ndiff suffix plan: never allocate steps after an earlier allocation failed\ndiff suffix plan: matrix contains only unmatched prefix\ndiff suffix plan: steps reserve exact safe bound, empty plan allocates nothing\ndiff suffix plan: prepared live bytes equal arrays plus reduced matrix/steps\ndiff suffix plan: never allocate steps after an earlier allocation failed\ndiff suffix plan: steps reserve exact safe bound, empty plan allocates nothing\ndiff suffix plan: prepared live bytes equal arrays plus reduced matrix/steps\ndiff suffix plan: never allocate steps after an earlier allocation failed\ndiff suffix plan: steps reserve exact safe bound, empty plan allocates nothing\n"
+      },
+      {
+        "name": "oracle-tie",
+        "stdout": "diff independent oracle: 1691 cases, 5073 checks, 1074 failures\n",
+        "stderr": "diff oracle mismatch case=33 output=0 stats=1 memory=1\ndiff oracle mismatch case=37 output=0 stats=1 memory=1\ndiff oracle mismatch case=45 output=0 stats=1 memory=1\ndiff oracle mismatch case=61 output=0 stats=1 memory=1\ndiff oracle mismatch case=63 output=0 stats=1 memory=1\ndiff oracle mismatch case=65 output=0 stats=1 memory=1\ndiff oracle mismatch case=69 output=0 stats=1 memory=1\ndiff oracle mismatch case=77 output=0 stats=1 memory=1\n"
+      },
+      {
+        "name": "oracle-collision",
+        "stdout": "diff independent oracle: 1691 cases, 5073 checks, 972 failures\n",
+        "stderr": "diff oracle mismatch case=33 output=0 stats=0 memory=1\ndiff oracle mismatch case=35 output=0 stats=1 memory=1\ndiff oracle mismatch case=37 output=0 stats=0 memory=1\ndiff oracle mismatch case=39 output=0 stats=1 memory=1\ndiff oracle mismatch case=41 output=0 stats=1 memory=1\ndiff oracle mismatch case=43 output=0 stats=1 memory=1\ndiff oracle mismatch case=45 output=0 stats=0 memory=1\ndiff oracle mismatch case=47 output=0 stats=1 memory=1\n"
+      }
+    ],
+    "benchmark": [
+      {
+        "name": "bench-early-1-new.stdout",
+        "stdout": "diff bench: early rounds=150 seconds=0.008269400 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-early-1-old.stdout",
+        "stdout": "diff bench: early rounds=150 seconds=0.413808100 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-early-2-new.stdout",
+        "stdout": "diff bench: early rounds=150 seconds=0.008402900 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-early-2-old.stdout",
+        "stdout": "diff bench: early rounds=150 seconds=0.444956000 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-early-3-new.stdout",
+        "stdout": "diff bench: early rounds=150 seconds=0.008652000 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-early-3-old.stdout",
+        "stdout": "diff bench: early rounds=150 seconds=0.436991300 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-early-4-new.stdout",
+        "stdout": "diff bench: early rounds=150 seconds=0.008348100 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-early-4-old.stdout",
+        "stdout": "diff bench: early rounds=150 seconds=0.434928600 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-early-5-new.stdout",
+        "stdout": "diff bench: early rounds=150 seconds=0.008411400 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-early-5-old.stdout",
+        "stdout": "diff bench: early rounds=150 seconds=0.440793300 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-late-1-new.stdout",
+        "stdout": "diff bench: late rounds=150 seconds=0.422556200 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-late-1-old.stdout",
+        "stdout": "diff bench: late rounds=150 seconds=0.432285300 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-late-2-new.stdout",
+        "stdout": "diff bench: late rounds=150 seconds=0.424933800 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-late-2-old.stdout",
+        "stdout": "diff bench: late rounds=150 seconds=0.414380700 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-late-3-new.stdout",
+        "stdout": "diff bench: late rounds=150 seconds=0.430835900 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-late-3-old.stdout",
+        "stdout": "diff bench: late rounds=150 seconds=0.418992100 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-late-4-new.stdout",
+        "stdout": "diff bench: late rounds=150 seconds=0.427083000 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-late-4-old.stdout",
+        "stdout": "diff bench: late rounds=150 seconds=0.413298000 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-late-5-new.stdout",
+        "stdout": "diff bench: late rounds=150 seconds=0.422424700 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-late-5-old.stdout",
+        "stdout": "diff bench: late rounds=150 seconds=0.413369300 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-same-1-new.stdout",
+        "stdout": "diff bench: same rounds=150 seconds=0.009720500 bytes=1200 alloc=600\n"
+      },
+      {
+        "name": "bench-same-1-old.stdout",
+        "stdout": "diff bench: same rounds=150 seconds=0.440058400 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-same-2-new.stdout",
+        "stdout": "diff bench: same rounds=150 seconds=0.008121600 bytes=1200 alloc=600\n"
+      },
+      {
+        "name": "bench-same-2-old.stdout",
+        "stdout": "diff bench: same rounds=150 seconds=0.415860400 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-same-3-new.stdout",
+        "stdout": "diff bench: same rounds=150 seconds=0.008714500 bytes=1200 alloc=600\n"
+      },
+      {
+        "name": "bench-same-3-old.stdout",
+        "stdout": "diff bench: same rounds=150 seconds=0.417111900 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-same-4-new.stdout",
+        "stdout": "diff bench: same rounds=150 seconds=0.008198800 bytes=1200 alloc=600\n"
+      },
+      {
+        "name": "bench-same-4-old.stdout",
+        "stdout": "diff bench: same rounds=150 seconds=0.416968200 bytes=1200 alloc=750\n"
+      },
+      {
+        "name": "bench-same-5-new.stdout",
+        "stdout": "diff bench: same rounds=150 seconds=0.008485500 bytes=1200 alloc=600\n"
+      },
+      {
+        "name": "bench-same-5-old.stdout",
+        "stdout": "diff bench: same rounds=150 seconds=0.423544600 bytes=1200 alloc=750\n"
+      }
+    ],
+    "controlExits": "oracle-old exit=0 expected=0\nplan-old exit=1 expected=1\noracle-tie exit=1 expected=1\noracle-collision exit=1 expected=1\n",
+    "objectSize": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n   3017\t      0\t      0\t   3017\t    bc9\t/var/tmp/xlang-diff-audit-Zwdtbm/compare/old-native.o\n   3433\t      0\t      0\t   3433\t    d69\t/var/tmp/xlang-diff-audit-Zwdtbm/compare/new-native.o\n",
+    "frozenBefore": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  lib/xrt/xrt.h\ne202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  lib/xruntime/xruntime.h\n416232a7daaa255b63d3f82754dac1fea79974eb6afbe6fa5a7ac95c95fe08de  release/examples/extlibs/diff.xl\nd1537f384905d4f76481ed9f406e0b4e7cdef82fa28a55e9dd59a12c2147336d  release/extlibs/diff/README.md\n3ade4f5c03554fa5095b868e5c16440f4f83544cb004af2f7d7cb3d64ee3b93a  release/extlibs/diff/diff_native.c\n0353706265aebd10c06966ab1db15e9d7a3fe4b71fc7208cc7e2f04c149d5fe0  release/extlibs/diff/docs/site.html\n251480b538d540bec4780bd0e8bdccf1352e748553ea2327a9c1ef4e8f076832  release/extlibs/diff/examples/README.md\n18916c05e4ebb6884eadc6bd81fd4ddca6734ffadd42cbdfe5575d338631b0e5  release/extlibs/diff/examples/diff_c.c\na4322fad4e8a0ca0265033b019f12ab1dc19efc0a4a001bd28ae1d37b9714577  release/extlibs/diff/examples/review.expected.txt\n10ca6d0b69dac227a00734c97c579de0a809fdfa8ce50311862d9de1d59d4687  release/extlibs/diff/examples/review.xl\n3dd7a2da03daad080bd391ed3fe1afb5aa3196f104cca522f12587f75e06fdd3  release/extlibs/diff/examples/review_c.c\na27a8e778099c371169c25d48427f16e69799f60c6b278ca6d0e832f92402df2  release/extlibs/diff/include/diff_native.h\ne9c5cb4d5217bfc768eb5e1960acda226a1c934fcda93373b90ec92041e28429  release/extlibs/diff/src/diff.xl\ncd326be9f7119c318e80c08b4f78fd087d9e99c5b30420db7b3024802149030e  release/extlibs/diff/test/benchmark_c.c\nf6b9abed448b4c89e7fec4b3035f3c12d7abd81b4e76651f315460461ae0631c  release/extlibs/diff/test/boundaries.xl\nf2c6fa555da87a7c8f401fe70f5ab1c70b4c93d79c6e1a6881186081085580a9  release/extlibs/diff/test/check.ps1\n279005ccdb80874f0bc3007e2a755f2024d27adf0321b061d09c1e46dfc6b44a  release/extlibs/diff/test/check.py\nd50a7f045cd1fddda807f75cd1df8586768ffef02e10e93d783ab2a707b32a94  release/extlibs/diff/test/check.sh\n9658900a23fb8aa14ebe91248e97eef2dae44a77b40d6fe05a13bd24791a611e  release/extlibs/diff/test/diff.expected.txt\n8b34a7b1fb7e76a3124ebc1a99d6720506fe3eb31b7a16839589de5c757c3116  release/extlibs/diff/test/oracle.py\n5258d35c128c72f284f55848a83f314723021bdfbd18ce7909ee7246e697640d  release/extlibs/diff/test/oracle_c.c\n5e2b34d866ca12e2eb6c36623a739c83942851a6cf48cbd568d899c623c672a5  release/extlibs/diff/test/owned_probe.xl\naf7f28ba24f35f0d71e707def9c1494a9c955d7b50f1e68abe2b1922158f71ac  release/extlibs/diff/test/owned_results.xl\n9f1398477909b1499a9031f89cbb986ca91fe14d4ce18f9dd96552873a73b17f  release/extlibs/diff/test/runtime.c\n72496ee63465029b8c7315506d23b5e5bf0c4ddf4bca417b32d62aff35a11931  release/extlibs/diff/test/suffix_plan_c.c\n86a88b9301112da53e232c7955b34ebaa4346318c5359a52549fca33f7476d80  release/extlibs/diff/test/test_diff.c\ne8f757ada9fbbc03c90df057c45ceee08b83ee83ae811d257d91a24cc58867c3  release/extlibs/diff/test/test_threads.c\n7c15c2add02cd91e322d4239595578734ef77cdab56c16d78abc3604f1095901  release/extlibs/diff/test/test_unterminated.c\nbe2a370495ca03dc5280537f9a3148a244a40c8d003bb27c48376bae77f9b778  release/extlibs/diff/xlang.package.json\n513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  release/include/README.md\nfc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  release/include/libtcc.h\nfe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  release/include/tcc_builtin_vfs.h\nede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  release/include/xl.h\nab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  release/include/xl_cancellation_retirement.h\na203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  release/include/xl_clock.h\ndb381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  release/include/xl_extlib_abi.h\n8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  release/include/xl_foreign_graph.h\nec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  release/include/xl_foreign_net.h\n4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  release/include/xl_package.h\n4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  release/include/xl_runtime.h\n931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  release/include/xl_sync_retirement.h\n136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  release/include/xl_version.h\n073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  release/include/xlc.h\nc519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  release/include/xrt_decl.h\n1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  release/include/xruntime_decl.h\n4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  release/libxl.so\n0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  release/libxlc.so\ndd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  release/xl\nd0ce4b9050bd94405a434c03d97cf707b4395ebceb7d676e5cf26a61cb5a93f7  test/cases/extlib_diff.xl\n",
+    "frozenAfter": "lib/xrt/xrt.h: OK\nlib/xruntime/xruntime.h: OK\nrelease/examples/extlibs/diff.xl: OK\nrelease/extlibs/diff/README.md: OK\nrelease/extlibs/diff/diff_native.c: OK\nrelease/extlibs/diff/docs/site.html: OK\nrelease/extlibs/diff/examples/README.md: OK\nrelease/extlibs/diff/examples/diff_c.c: OK\nrelease/extlibs/diff/examples/review.expected.txt: OK\nrelease/extlibs/diff/examples/review.xl: OK\nrelease/extlibs/diff/examples/review_c.c: OK\nrelease/extlibs/diff/include/diff_native.h: OK\nrelease/extlibs/diff/src/diff.xl: OK\nrelease/extlibs/diff/test/benchmark_c.c: OK\nrelease/extlibs/diff/test/boundaries.xl: OK\nrelease/extlibs/diff/test/check.ps1: OK\nrelease/extlibs/diff/test/check.py: OK\nrelease/extlibs/diff/test/check.sh: OK\nrelease/extlibs/diff/test/diff.expected.txt: OK\nrelease/extlibs/diff/test/oracle.py: OK\nrelease/extlibs/diff/test/oracle_c.c: OK\nrelease/extlibs/diff/test/owned_probe.xl: OK\nrelease/extlibs/diff/test/owned_results.xl: OK\nrelease/extlibs/diff/test/runtime.c: OK\nrelease/extlibs/diff/test/suffix_plan_c.c: OK\nrelease/extlibs/diff/test/test_diff.c: OK\nrelease/extlibs/diff/test/test_threads.c: OK\nrelease/extlibs/diff/test/test_unterminated.c: OK\nrelease/extlibs/diff/xlang.package.json: OK\nrelease/include/README.md: OK\nrelease/include/libtcc.h: OK\nrelease/include/tcc_builtin_vfs.h: OK\nrelease/include/xl.h: OK\nrelease/include/xl_cancellation_retirement.h: OK\nrelease/include/xl_clock.h: OK\nrelease/include/xl_extlib_abi.h: OK\nrelease/include/xl_foreign_graph.h: OK\nrelease/include/xl_foreign_net.h: OK\nrelease/include/xl_package.h: OK\nrelease/include/xl_runtime.h: OK\nrelease/include/xl_sync_retirement.h: OK\nrelease/include/xl_version.h: OK\nrelease/include/xlc.h: OK\nrelease/include/xrt_decl.h: OK\nrelease/include/xruntime_decl.h: OK\nrelease/libxl.so: OK\nrelease/libxlc.so: OK\nrelease/xl: OK\ntest/cases/extlib_diff.xl: OK\n",
+    "exit": "0"
+  },
+  "snapshotScope": {
+    "linuxRoot": "/var/tmp/xlang-diff-audit-Zwdtbm/stage",
+    "linuxInputsMatchedPrimaryAtFreeze": true,
+    "linuxSourcesUnchangedDuringGate": true,
+    "matchingPreviouslyFrozenRuntimeFilesHardLinkedAfterByteComparison": true,
+    "finalPrimaryDifferences": [
+      "release/extlibs/diff/test/check.ps1"
+    ],
+    "explanation": "Linux gate preceded the ASCII-only Windows launcher correction; actual Bash/Python/C/XLang inputs are unchanged. Final Windows PS5 launcher and all package bytes were subsequently verified in the 57-phase gate. No claim that these two snapshots are byte-identical."
+  },
+  "costs": {
+    "method": "1024 unique 9-byte lines; public stats API, 150 calls, five alternating old/new trials, same GCC -O2 and selected memory-debug XRT within each platform; no sanitizers in timing builds",
+    "timer": "xrtTimer monotonic seconds",
+    "samples": [
+      {
+        "platform": "Windows",
+        "version": "old",
+        "trial": 1,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.3930743,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "new",
+        "trial": 1,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.0083691,
+        "outputBytes": 1200,
+        "allocations": 600
+      },
+      {
+        "platform": "Windows",
+        "version": "new",
+        "trial": 2,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.0083916,
+        "outputBytes": 1200,
+        "allocations": 600
+      },
+      {
+        "platform": "Windows",
+        "version": "old",
+        "trial": 2,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.3888393,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "old",
+        "trial": 3,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.3757519,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "new",
+        "trial": 3,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.0084028,
+        "outputBytes": 1200,
+        "allocations": 600
+      },
+      {
+        "platform": "Windows",
+        "version": "new",
+        "trial": 4,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.0085313,
+        "outputBytes": 1200,
+        "allocations": 600
+      },
+      {
+        "platform": "Windows",
+        "version": "old",
+        "trial": 4,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.3960751,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "old",
+        "trial": 5,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.375973,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "new",
+        "trial": 5,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.0102,
+        "outputBytes": 1200,
+        "allocations": 600
+      },
+      {
+        "platform": "Windows",
+        "version": "old",
+        "trial": 1,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.3811862,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "new",
+        "trial": 1,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.0107708,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "new",
+        "trial": 2,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.0099298,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "old",
+        "trial": 2,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.3971685,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "old",
+        "trial": 3,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.382423,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "new",
+        "trial": 3,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.0086475,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "new",
+        "trial": 4,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.0083617,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "old",
+        "trial": 4,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.3895924,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "old",
+        "trial": 5,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.3855455,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "new",
+        "trial": 5,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.0081981,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "old",
+        "trial": 1,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.3804818,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "new",
+        "trial": 1,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.3838735,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "new",
+        "trial": 2,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.3816499,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "old",
+        "trial": 2,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.3800346,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "old",
+        "trial": 3,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.3854076,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "new",
+        "trial": 3,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.3897777,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "new",
+        "trial": 4,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.3966876,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "old",
+        "trial": 4,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.3815243,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "old",
+        "trial": 5,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.3827782,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Windows",
+        "version": "new",
+        "trial": 5,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.3898443,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "new",
+        "trial": 1,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.0082694,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "old",
+        "trial": 1,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.4138081,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "new",
+        "trial": 2,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.0084029,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "old",
+        "trial": 2,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.444956,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "new",
+        "trial": 3,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.008652,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "old",
+        "trial": 3,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.4369913,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "new",
+        "trial": 4,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.0083481,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "old",
+        "trial": 4,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.4349286,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "new",
+        "trial": 5,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.0084114,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "old",
+        "trial": 5,
+        "mode": "early",
+        "rounds": 150,
+        "seconds": 0.4407933,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "new",
+        "trial": 1,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.4225562,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "old",
+        "trial": 1,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.4322853,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "new",
+        "trial": 2,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.4249338,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "old",
+        "trial": 2,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.4143807,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "new",
+        "trial": 3,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.4308359,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "old",
+        "trial": 3,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.4189921,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "new",
+        "trial": 4,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.427083,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "old",
+        "trial": 4,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.413298,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "new",
+        "trial": 5,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.4224247,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "old",
+        "trial": 5,
+        "mode": "late",
+        "rounds": 150,
+        "seconds": 0.4133693,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "new",
+        "trial": 1,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.0097205,
+        "outputBytes": 1200,
+        "allocations": 600
+      },
+      {
+        "platform": "Linux",
+        "version": "old",
+        "trial": 1,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.4400584,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "new",
+        "trial": 2,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.0081216,
+        "outputBytes": 1200,
+        "allocations": 600
+      },
+      {
+        "platform": "Linux",
+        "version": "old",
+        "trial": 2,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.4158604,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "new",
+        "trial": 3,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.0087145,
+        "outputBytes": 1200,
+        "allocations": 600
+      },
+      {
+        "platform": "Linux",
+        "version": "old",
+        "trial": 3,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.4171119,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "new",
+        "trial": 4,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.0081988,
+        "outputBytes": 1200,
+        "allocations": 600
+      },
+      {
+        "platform": "Linux",
+        "version": "old",
+        "trial": 4,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.4169682,
+        "outputBytes": 1200,
+        "allocations": 750
+      },
+      {
+        "platform": "Linux",
+        "version": "new",
+        "trial": 5,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.0084855,
+        "outputBytes": 1200,
+        "allocations": 600
+      },
+      {
+        "platform": "Linux",
+        "version": "old",
+        "trial": 5,
+        "mode": "same",
+        "rounds": 150,
+        "seconds": 0.4235446,
+        "outputBytes": 1200,
+        "allocations": 750
+      }
+    ],
+    "medians": [
+      {
+        "platform": "Windows",
+        "mode": "same",
+        "oldSeconds": 0.3888393,
+        "newSeconds": 0.0084028,
+        "oldDividedByNew": 46.27496786785357,
+        "newMinusOldPercent": -97.839004442195,
+        "oldAllocations": [
+          750
+        ],
+        "newAllocations": [
+          600
+        ]
+      },
+      {
+        "platform": "Windows",
+        "mode": "early",
+        "oldSeconds": 0.3855455,
+        "newSeconds": 0.0086475,
+        "oldDividedByNew": 44.58461983232147,
+        "newMinusOldPercent": -97.75707406778189,
+        "oldAllocations": [
+          750
+        ],
+        "newAllocations": [
+          750
+        ]
+      },
+      {
+        "platform": "Windows",
+        "mode": "late",
+        "oldSeconds": 0.3815243,
+        "newSeconds": 0.3897777,
+        "oldDividedByNew": 0.9788253663562589,
+        "newMinusOldPercent": 2.163269810075019,
+        "oldAllocations": [
+          750
+        ],
+        "newAllocations": [
+          750
+        ]
+      },
+      {
+        "platform": "Linux",
+        "mode": "same",
+        "oldSeconds": 0.4171119,
+        "newSeconds": 0.0084855,
+        "oldDividedByNew": 49.15584231925048,
+        "newMinusOldPercent": -97.96565382095308,
+        "oldAllocations": [
+          750
+        ],
+        "newAllocations": [
+          600
+        ]
+      },
+      {
+        "platform": "Linux",
+        "mode": "early",
+        "oldSeconds": 0.4369913,
+        "newSeconds": 0.0084029,
+        "oldDividedByNew": 52.00481976460508,
+        "newMinusOldPercent": -98.07710130613584,
+        "oldAllocations": [
+          750
+        ],
+        "newAllocations": [
+          750
+        ]
+      },
+      {
+        "platform": "Linux",
+        "mode": "late",
+        "oldSeconds": 0.4143807,
+        "newSeconds": 0.4249338,
+        "oldDividedByNew": 0.9751653081021091,
+        "newMinusOldPercent": 2.546716099470836,
+        "oldAllocations": [
+          750
+        ],
+        "newAllocations": [
+          750
+        ]
+      }
+    ],
+    "objectSize": {
+      "windowsOldText": 2868,
+      "windowsNewText": 3188,
+      "windowsDelta": 320,
+      "linuxOldText": 3017,
+      "linuxNewText": 3433,
+      "linuxDelta": 416
+    },
+    "plan2048": {
+      "oldLiveBytes": 8626178,
+      "identicalLiveBytes": 163840,
+      "firstEditLiveBytes": 163880,
+      "firstEditTableBytes": 8,
+      "lastEditTableBytes": 8396802
+    },
+    "limitation": "Bounded local microbenchmark only. Last-line edits still require the original full matrix; observed small time differences are not a guaranteed regression or improvement. No global speedup or zero-overhead claim."
+  },
+  "examples": {
+    "c": "release/extlibs/diff/examples/review_c.c",
+    "xlang": "release/extlibs/diff/examples/review.xl",
+    "expected": "release/extlibs/diff/examples/review.expected.txt",
+    "paths": [
+      "GCC separate compile",
+      "TCC direct C JIT",
+      "C AOT",
+      "XLang JIT",
+      "XLang AOT"
+    ],
+    "topics": [
+      "CRLF/LF normalization",
+      "configuration review",
+      "exact stats",
+      "duplicate tie",
+      "owned result after local input retirement"
+    ],
+    "externalPrerequisites": false
+  },
+  "website": {
+    "source": "release/extlibs/diff/docs/site.html",
+    "generated": "build/test/diff-suffix-20261102/site/extlibs/diff.html",
+    "sourceSha256": "0353706265aebd10c06966ab1db15e9d7a3fe4b71fc7208cc7e2f04c149d5fe0",
+    "generatedSha256": "0353706265aebd10c06966ab1db15e9d7a3fe4b71fc7208cc7e2f04c149d5fe0",
+    "externalDeploy": false
+  },
+  "catalog": {
+    "candidate": "build/test/diff-suffix-20261102/catalog-final",
+    "generation": {
+      "status": "passed",
+      "catalogSha256": "79df3cc887f939b8672bc8c40945b492859c9605365428c12533c42b7fee807f",
+      "sourceIndexSha256": "670509a912f7dcf7930348944a1f46f5f069027331d9b9d9a07101b48fd525de",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42",
+      "inputsUnchanged": true
+    },
+    "freshness": "passed at generation and checked separately",
+    "binding": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "Catalog compiler changed: xl.dll\r\n",
+      "elapsedMs": 303
+    },
+    "installed": false,
+    "reason": "Existing required xl.dll compiler binding remains red; do not install candidate or rewrite compiler identity"
+  },
+  "invalidAttempts": [
+    "First new Windows Python gate stopped at a too-broad prototype regex; narrowed to actual extern declarations, then reran complete gates.",
+    "An initial PS5 launcher draft returned zero from a bare Python REPL rather than running phases. Not accepted as a green gate. Final wrapper is ASCII-only and real PS5 invocation completed 57 stages.",
+    "An initial inline WSL freeze command had shell quoting errors before any gate; the separate freeze script and immutable snapshot succeeded.",
+    "First collision-mutant build command had malformed PowerShell define arguments; corrected direct argument build and actual expected mismatch were recorded."
+  ],
+  "maturity": {
+    "packages": 100,
+    "G": 30,
+    "R": 10,
+    "M": 56,
+    "X": 4,
+    "diff": "G under its bounded line-diff contract",
+    "entireQueueCompleted": false
+  },
+  "finalPackageFiles": [
+    {
+      "path": "release/extlibs/diff/diff_native.c",
+      "bytes": 6698,
+      "sha256": "3ade4f5c03554fa5095b868e5c16440f4f83544cb004af2f7d7cb3d64ee3b93a"
+    },
+    {
+      "path": "release/extlibs/diff/docs/site.html",
+      "bytes": 4000,
+      "sha256": "0353706265aebd10c06966ab1db15e9d7a3fe4b71fc7208cc7e2f04c149d5fe0"
+    },
+    {
+      "path": "release/extlibs/diff/examples/diff_c.c",
+      "bytes": 809,
+      "sha256": "18916c05e4ebb6884eadc6bd81fd4ddca6734ffadd42cbdfe5575d338631b0e5"
+    },
+    {
+      "path": "release/extlibs/diff/examples/README.md",
+      "bytes": 1335,
+      "sha256": "251480b538d540bec4780bd0e8bdccf1352e748553ea2327a9c1ef4e8f076832"
+    },
+    {
+      "path": "release/extlibs/diff/examples/review.expected.txt",
+      "bytes": 119,
+      "sha256": "a4322fad4e8a0ca0265033b019f12ab1dc19efc0a4a001bd28ae1d37b9714577"
+    },
+    {
+      "path": "release/extlibs/diff/examples/review.xl",
+      "bytes": 590,
+      "sha256": "10ca6d0b69dac227a00734c97c579de0a809fdfa8ce50311862d9de1d59d4687"
+    },
+    {
+      "path": "release/extlibs/diff/examples/review_c.c",
+      "bytes": 1126,
+      "sha256": "3dd7a2da03daad080bd391ed3fe1afb5aa3196f104cca522f12587f75e06fdd3"
+    },
+    {
+      "path": "release/extlibs/diff/include/diff_native.h",
+      "bytes": 359,
+      "sha256": "a27a8e778099c371169c25d48427f16e69799f60c6b278ca6d0e832f92402df2"
+    },
+    {
+      "path": "release/extlibs/diff/README.md",
+      "bytes": 12559,
+      "sha256": "d1537f384905d4f76481ed9f406e0b4e7cdef82fa28a55e9dd59a12c2147336d"
+    },
+    {
+      "path": "release/extlibs/diff/src/diff.xl",
+      "bytes": 746,
+      "sha256": "e9c5cb4d5217bfc768eb5e1960acda226a1c934fcda93373b90ec92041e28429"
+    },
+    {
+      "path": "release/extlibs/diff/test/benchmark_c.c",
+      "bytes": 1794,
+      "sha256": "cd326be9f7119c318e80c08b4f78fd087d9e99c5b30420db7b3024802149030e"
+    },
+    {
+      "path": "release/extlibs/diff/test/boundaries.xl",
+      "bytes": 1203,
+      "sha256": "f6b9abed448b4c89e7fec4b3035f3c12d7abd81b4e76651f315460461ae0631c"
+    },
+    {
+      "path": "release/extlibs/diff/test/check.ps1",
+      "bytes": 213,
+      "sha256": "6fed7ec2890c0168755fb30ba93f6b4401bfd72ed41bcb63f41badeba52cf923"
+    },
+    {
+      "path": "release/extlibs/diff/test/check.py",
+      "bytes": 10526,
+      "sha256": "279005ccdb80874f0bc3007e2a755f2024d27adf0321b061d09c1e46dfc6b44a"
+    },
+    {
+      "path": "release/extlibs/diff/test/check.sh",
+      "bytes": 112,
+      "sha256": "d50a7f045cd1fddda807f75cd1df8586768ffef02e10e93d783ab2a707b32a94"
+    },
+    {
+      "path": "release/extlibs/diff/test/diff.expected.txt",
+      "bytes": 171,
+      "sha256": "9658900a23fb8aa14ebe91248e97eef2dae44a77b40d6fe05a13bd24791a611e"
+    },
+    {
+      "path": "release/extlibs/diff/test/oracle.py",
+      "bytes": 5281,
+      "sha256": "8b34a7b1fb7e76a3124ebc1a99d6720506fe3eb31b7a16839589de5c757c3116"
+    },
+    {
+      "path": "release/extlibs/diff/test/oracle_c.c",
+      "bytes": 3532,
+      "sha256": "5258d35c128c72f284f55848a83f314723021bdfbd18ce7909ee7246e697640d"
+    },
+    {
+      "path": "release/extlibs/diff/test/owned_probe.xl",
+      "bytes": 203,
+      "sha256": "5e2b34d866ca12e2eb6c36623a739c83942851a6cf48cbd568d899c623c672a5"
+    },
+    {
+      "path": "release/extlibs/diff/test/owned_results.xl",
+      "bytes": 2243,
+      "sha256": "af7f28ba24f35f0d71e707def9c1494a9c955d7b50f1e68abe2b1922158f71ac"
+    },
+    {
+      "path": "release/extlibs/diff/test/runtime.c",
+      "bytes": 242,
+      "sha256": "9f1398477909b1499a9031f89cbb986ca91fe14d4ce18f9dd96552873a73b17f"
+    },
+    {
+      "path": "release/extlibs/diff/test/suffix_plan_c.c",
+      "bytes": 5249,
+      "sha256": "72496ee63465029b8c7315506d23b5e5bf0c4ddf4bca417b32d62aff35a11931"
+    },
+    {
+      "path": "release/extlibs/diff/test/test_diff.c",
+      "bytes": 9773,
+      "sha256": "86a88b9301112da53e232c7955b34ebaa4346318c5359a52549fca33f7476d80"
+    },
+    {
+      "path": "release/extlibs/diff/test/test_threads.c",
+      "bytes": 1181,
+      "sha256": "e8f757ada9fbbc03c90df057c45ceee08b83ee83ae811d257d91a24cc58867c3"
+    },
+    {
+      "path": "release/extlibs/diff/test/test_unterminated.c",
+      "bytes": 1130,
+      "sha256": "7c15c2add02cd91e322d4239595578734ef77cdab56c16d78abc3604f1095901"
+    },
+    {
+      "path": "release/extlibs/diff/xlang.package.json",
+      "bytes": 600,
+      "sha256": "be2a370495ca03dc5280537f9a3148a244a40c8d003bb27c48376bae77f9b778"
+    }
+  ],
+  "postChecks": [
+    {
+      "name": "freshness",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+        "stderr": "",
+        "elapsedMs": 1049
+      }
+    },
+    {
+      "name": "delivery",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+        "stderr": "",
+        "elapsedMs": 1133
+      }
+    }
+  ]
+}
