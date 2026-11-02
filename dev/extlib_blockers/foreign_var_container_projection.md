@@ -468,3 +468,28 @@ Windows报告 `build/test/cli_guard/run_46637af6c9454ef99d872bd788fe54f9/results
 Linux原生快照 `/var/tmp/xlang-cli-final-src-UjUpgL`，现场
 `tmp/xlang-cli-yI8zVT`。两端39阶段29符合要求，C/882故障/真实原型先通过，
 四份含os.args源的八条路径与本最小源两条路径分别失败，整体仍返回1。
+
+## 2026-11-02 graph 完整顺序参照后的复验
+
+本轮不改编译器或图算法。新增1152张图、27776条九API有序结果，
+两平台GCC/TCC/C独立程序与独立Python参照通过，旧C/OOM/线程、
+九个实际生成原型与双语JSON配置范例也通过；这不覆盖语言数组投影。
+
+原最小源 `graph_var_array_projection.xl` 不变，当前Windows实测：
+
+```powershell
+release/xl.exe check dev/extlib_blockers/graph_var_array_projection.xl
+release/xl.exe run dev/extlib_blockers/graph_var_array_projection.xl
+release/xl.exe build dev/extlib_blockers/graph_var_array_projection.xl -o build/test/graph_literal.exe
+build/test/graph_literal.exe
+```
+
+check/build退出0，JIT/独立EXE退出1，仍报
+`ValueError: graph edges must be an array`。完整默认门禁Windows/Linux均49阶段
+前48项通过，最后原中央数组正例同样失败；
+报告 `docs/reports/extlib-graph-order-20261102.json` 保留各自真实状态。
+
+建议主线统一语言容器进入声明为 `xvalue*` 的 foreign-var 入参时的
+物理投影、所有权与OOM回滚，再重跑最小源、原字面量范例和完整门禁。
+不在包内识别私有句柄，不以JSON成功取代字面量，不从错误文本推断
+所有同形M1都已逐个证明同根。按普通库任务边界，本包保留阻断并转下包。

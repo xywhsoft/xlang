@@ -1,0 +1,2734 @@
+{
+  "schema": "xlang-extlib-graph-order-1",
+  "date": "2026-11-02T06:27:18.2188567Z",
+  "root": "D:\\GIT\\x-lang",
+  "sourceBase": "547fc98d854377836f97dfc4d6fe07cc58b6b5de",
+  "package": "graph",
+  "status": "New complete-order/lifetime tests passed; package remains M1 blocked",
+  "mainlineModified": false,
+  "xrtModified": false,
+  "productionModified": false,
+  "newProductBugsConfirmed": 0,
+  "publicApiAbiChanged": false,
+  "productionDependenciesChanged": false,
+  "wholeReleaseApproved": false,
+  "coverage": {
+    "exhaustiveThreeNodeDirectedGraphs": 512,
+    "fourNodeForwardDags": 64,
+    "ordersPerGraph": 2,
+    "graphs": 1152,
+    "fullApiRecords": 27776,
+    "apiCount": 9,
+    "reverseOrder": "Reverse node declarations and edge order; duplicate alternating edges",
+    "names": [
+      "Nonalphabetic",
+      "Empty and embedded NUL prefixes",
+      "UTF8 Chinese and supplementary codepoints",
+      "Case-sensitive and NUL suffixes"
+    ],
+    "independentReference": [
+      "Enumerate all simple paths",
+      "Enumerate legal topological permutations plus declarative FIFO readiness",
+      "Directed/undirected reachability partitions",
+      "Byte-sorted names"
+    ],
+    "wrongOrderNegativeControls": [
+      "Reversed neighbors",
+      "Reversed SCC groups",
+      "Another valid equal-hop path",
+      "Another valid topological ordering"
+    ],
+    "lifetime": "Hold all results across calls; read after input release; exact-length name identities and seven memory metrics per graph",
+    "memoryMetrics": [
+      "LiveCount",
+      "LiveBytes",
+      "InvalidFreeCount",
+      "DoubleFreeCount",
+      "OverflowCount",
+      "UnderflowCount",
+      "UseAfterFreeCount"
+    ],
+    "limits": "Not all four-node directed graphs or arbitrary sizes; integer weights only here, float64 extremes remain in the existing 3072-record reference"
+  },
+  "records": {
+    "normalizedLfSha256": "6b25c526638a870d9b8b74e274ceeb6458e73bdf07f1d506a7654e0a726321ff",
+    "lines": 27776,
+    "enginesPerPlatform": [
+      "GCC",
+      "TCC run",
+      "standalone C AOT"
+    ],
+    "crossPlatformEqual": true,
+    "fullRawCorporaCommitted": false,
+    "reproducibleFromCommittedSources": true
+  },
+  "windows": {
+    "outcome": "failed",
+    "phases": 49,
+    "passedPhases": 48,
+    "failedPhases": 1,
+    "fingerprints": 63,
+    "inputs": {
+      "C:\\Program Files\\Python312\\python.exe": "4D6F5F81A4BCA11191C4C7C6B43632694D0A4CE74E068619D8FDC161D469859A",
+      "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "20B781E898C38A79A602024530313ACFFF2E558826E0039A89BBF974896EEE06",
+      "D:\\GIT\\x-lang\\lib\\xruntime\\xruntime.h": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\graph.xl": "8C6E6CE646D3190311BF20DFCD3383EB2E22454E4649D840B3296B13FBE6D538",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\graph_basic.expected.txt": "4023D2F9D9376F8D06CD56F244BA68F1CF21C67E25F4D38F0C35CE79014D86B1",
+      "D:\\GIT\\x-lang\\release\\examples\\extlibs\\graph_basic.xl": "90EF15C3CB1CC705B25EA30ABEEB85C8AB4C711F95507A8D6B416D5BE76FDBF6",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\docs\\site.html": "20EC5F43C08E00E24596B24576948710014915AF373A0B713B06ED4D7A0FE744",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\examples\\basic.c": "CD65FF5929F5A4F036B3189DD5E84BE02C71F24F2F93184CBF38CE023A6C4F9F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\examples\\from_json.xl": "AB8721BF1BF67A171DC9F05221F7D205E0AC57D059E98AE1DB914BF92388F1D9",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\graph_components.c": "BD5D0813BA6B5C3882684026F449E263863EA0B0C0DBA0A98FC7AA2C413E9113",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\graph_distance.c": "2D5979EEDB56108708E789B176D43BD5C94CE0CD202511F580D79C5426710E7F",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\graph_internal.h": "F3431C8AC1F383FFE8E662E6942E70E0A245D58026A0C112AE55D71314AB8D1D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\graph_native.c": "244F2732FD9E691B8774F01C1D7D6D1D97D987F66681766603549B51A7FC0CAC",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\graph_traversal.c": "E397A5B4CCB1E7354FDACA0BEA6BF4962BBF3C5970A82B2E02B2D79879726A8A",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\include\\graph.h": "1F02ABE5BB00304C42C646613CC812026D330A4F112AF77E6C493C3D0C733AAA",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\README.md": "250933963D1536E5904122E977834CCC042FB18D01807B561021881DFF2F838B",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\src\\graph.xl": "BA4BD82545EFC425844825D6BCFCCAEB328E444FEF399613F36AA6A4D6580959",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\test\\allocations.xl": "0106CFC3C1CB13794DDFED595C379D24A5264046F260E5A0D5F0FDBC1656B6BD",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\test\\boundaries.xl": "906E6514DD15BE42ECD66D00CCA3DB103FAEC24CB9521C6BAD32F73236C3EAC1",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\test\\check.sh": "AE53A6EFC536BE5A0AD5557907B0574D54CC353F3BD3195C4A99E52893E45EA9",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\test\\check_c.ps1": "912FA917C94B5C34B35B9920C7C88CDC5708F52F2CB316211F44C2F66D3709D8",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\test\\check_ordered_records.py": "43E6EDD08FED79280A0F353E0E2D05F8F3949AD63ACB9305F5170A7615B57FCE",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\test\\check_weighted_records.py": "18ECEDBF8F20E82C26DE018576D3732546F9E532622C4E87D2CC169CC0BA5704",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\test\\graph_test.h": "EB749D965F014D77563CFF2F725481C1F158CA6ED86C6E721BE2C6C399BE5146",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\test\\manifest_probe.c": "1746E09F352F02B55FD3F8ED6ECC255B42FE72D4EAFEADCC716D87DCB00DCD58",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\test\\ordered_records_c.c": "E8CE1CCD03643A0F82A16BD78F646F23924238E76AD389E9747C0F2A2E32C142",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\test\\test_graph.c": "652065A79848F470F6DA7D65607C44AEF634C157EE1779294B7DF75244EF1FFD",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\test\\test_graph_alloc.c": "16CF24E25AF3FC04F22F42E231D26850C8D08E1C5364EE9A541CF44B662FD30D",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\test\\test_graph_threads.c": "A558C5E47163AC3E06F745145737AACBB37907D7D8AA184433675E4FD1C92919",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\test\\weighted_records_c.c": "150096C748FFE6FC803FFDD7259022359987917A1C71D317C4C90B00453DE365",
+      "D:\\GIT\\x-lang\\release\\extlibs\\graph\\xlang.package.json": "2FED2CC02C52774A3AEDD1CA9C284D8A1DB95691ECBF7C63D64C65B020705C97",
+      "D:\\GIT\\x-lang\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+      "D:\\GIT\\x-lang\\release\\include\\README.md": "513919F6F43560DE0AAF281F0D149913DA6929BC6F8B8401B002AB50814B9770",
+      "D:\\GIT\\x-lang\\release\\include\\tcc_builtin_vfs.h": "FE65ED329EFF3560D2D33F3CAB1A8CC319A9A290FE1A95DBAAAE0E51AA3D6EA2",
+      "D:\\GIT\\x-lang\\release\\include\\xl.h": "EDE52F40D6B5EE668C3A32860F7ACF9C1DAE92BC6144D9CF6D6149076B447DF4",
+      "D:\\GIT\\x-lang\\release\\include\\xl_cancellation_retirement.h": "AB51E4C0662E83B9947052FBD6BCEF28BE49D500BAB6B5358B9673CC436BCAAD",
+      "D:\\GIT\\x-lang\\release\\include\\xl_clock.h": "A203F88A96BF8DB9A90144D628FEE5DB3E1BCB3168E28EB3E97B7F95BF69BB18",
+      "D:\\GIT\\x-lang\\release\\include\\xl_extlib_abi.h": "DB381846887D703DDEF3FE42964C4FB3DB3420DB30453A6365651E1E33E0C445",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_graph.h": "8FBBFDFE3B11B683BFF322773011650E531932546980B79FFFCE31E479E8D97F",
+      "D:\\GIT\\x-lang\\release\\include\\xl_foreign_net.h": "EC2E3A8EB8D05F8271BFA416430D2B0B6603F77FA984EC3471E26904FC1C023A",
+      "D:\\GIT\\x-lang\\release\\include\\xl_package.h": "4BD26C321E6A0E20D800D884A0AAF4DCF41068075EF56ED1D18BB81156386BD1",
+      "D:\\GIT\\x-lang\\release\\include\\xl_runtime.h": "4EC038184084F4447DE8519103FC6E4F26F6531079CB9A252554D5F372E9ECC2",
+      "D:\\GIT\\x-lang\\release\\include\\xl_sync_retirement.h": "931B5C46AD8895E4FD24A616DF6048929B6A1FACD6AB32FD3884856241D4971E",
+      "D:\\GIT\\x-lang\\release\\include\\xl_version.h": "136FB1796CA1E39BBD3924604E6F10718B331A2EEC3A4A181779127DF893C992",
+      "D:\\GIT\\x-lang\\release\\include\\xlc.h": "073E4E79790963876D07A522B40BA94A9E2C1AEF157ED817D5203ADD9BADFC5F",
+      "D:\\GIT\\x-lang\\release\\include\\xrt_decl.h": "C519D9AF13DAD826810C01026CEC3F6353F1F0DAFAD9793F477BCAC792D5AF9D",
+      "D:\\GIT\\x-lang\\release\\include\\xruntime_decl.h": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+      "D:\\GIT\\x-lang\\release\\xl.dll": "CF89BBE9757B18D56F15C10B60EECB61F51390BB4FD5B8A8667B25BDAE86C930",
+      "D:\\GIT\\x-lang\\release\\xl.exe": "2316E877B3F0076D874A4511F1E4C6F6D401724B50EF4BFD191998A594D8EC05",
+      "D:\\GIT\\x-lang\\release\\xlc.dll": "27758BD6C3689C433D9164FAEF0CBBD99B90A1B43BE92301F09B46EB3A073334",
+      "D:\\GIT\\x-lang\\test\\cases\\extlib_graph.xl": "1A37FC1F894B3286E78DDB4BFCAE22317965467E34B7B594FBB8C8FFDE2414AA",
+      "D:\\GIT\\x-lang\\test\\fixtures\\extlib_boundary_pending\\graph_nul_name.xl": "DEED4C4FB584C83A7B66E866094920B6EEC09F870912FA960A5BC8B231043DB3",
+      "D:\\GIT\\x-lang\\test\\fixtures\\extlib_boundary_pending\\string_byte_len_nul.xl": "0507E0D842E43046B4D474AC08E206FB9D4A97CBBF1F9FFEB83F2B5AA69E11F7",
+      "D:\\GIT\\x-lang\\test\\fixtures\\extlib_boundary_pending\\string_join_symbol.xl": "295C23022B210644BD715FA84B698FB18413D4B5B394AA0B970C3CAE85FDD0DB",
+      "D:\\GIT\\x-lang\\test\\support\\extlib_graph_runtime.c": "59AAE32E7FFACB976971DA26865D6C8C3EB6B74A468FCD976BEE86FBC82DA48B",
+      "D:\\GIT\\x-lang\\test\\support\\extlib_runtime_host.c": "4D93413202A04F7B984AB8D38D09E3194AFA189FAB8D0676584E316AF6CF71C5",
+      "D:\\GIT\\x-lang\\tools\\check_extlib_graph.ps1": "D28AA6564230B0C68C94B8E12C12750F5CB8769AFF81CAB23E30B58AAAA0FED1",
+      "D:\\GIT\\x-lang\\tools\\check_extlib_graph.sh": "3FE75AB2C3B98C49BDE34B2E48409A44AA900AE874FC6F02C6167419BE418596",
+      "D:\\GIT\\x-lang\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+      "D:\\GIT\\x-lang\\tools\\run_extlib_c.ps1": "5183F14DBF4444B47D8832B60A0D6A6B570C8E933874785BEF85DD1ECB024A44",
+      "D:\\GIT\\x-lang\\tools\\xlir_native_process.ps1": "C010A2EE726375CA627D3C161E65ED3FCE84189810259F6A93BF8EB277CAF219",
+      "E:\\software\\w64devkit\\bin\\gcc.exe": "9A52DE3E3AF8F4896E963C4B68ED159F049954775DECB20E421CD75D51AAB6ED",
+      "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe": "B5536BE9710FB9EECE19DE8CC9469D5ECD96D8282418E61D529A1394A8921012"
+    },
+    "changedDuringGate": [],
+    "generatedPrototypes": 9,
+    "ordinaryAot": 4,
+    "checks": [
+      {
+        "name": "compiler-version",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "--version"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 38,
+        "stdout": {
+          "utf8Sha256": "87438b7ee2429bf0a85f172c569d3ae10e611821ed289ef1f83e20a19663d877",
+          "normalizedLfSha256": "7a5c183db1809912f63471b371423e5a1ddf1db35eb7a53c9e2bf3181cee1213",
+          "lines": 4,
+          "text": "gcc.exe (GCC) 16.2.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "firstLines": [
+            "gcc.exe (GCC) 16.2.0",
+            "Copyright (C) 2026 Free Software Foundation, Inc."
+          ],
+          "lastLines": [
+            "This is free software; see the source for copying conditions.  There is NO",
+            "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "compiler-cc1",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-print-prog-name=cc1"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 24,
+        "stdout": {
+          "utf8Sha256": "889af4011b76563b402eb8de3513e88d5004421cccf81eb447a78639f4c7ef85",
+          "normalizedLfSha256": "1f0014735e7e5c634e1878d9cd1b7e264fe30ef9ec89551eb7e2314ecfc3b083",
+          "lines": 1,
+          "text": "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe\r\n",
+          "firstLines": [
+            "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe"
+          ],
+          "lastLines": [
+            "E:/software/w64devkit/bin/../libexec/gcc/x86_64-w64-mingw32/16.2.0/cc1.exe"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "python-version",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "-c",
+          "import sys; print(sys.version)"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 41,
+        "stdout": {
+          "utf8Sha256": "e0eb4603f9d93305110e89b4e9c46b0d16b76b6c092987e60de2ef9af16c8904",
+          "normalizedLfSha256": "cf755c1cd1b531c2fc6eff111c4dbddb594a5628fc115ceba8d0f352ef581ca9",
+          "lines": 1,
+          "text": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]\r\n",
+          "firstLines": [
+            "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]"
+          ],
+          "lastLines": [
+            "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "manifest-only-build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/graph/include",
+          "-DXRT_MODULE_VALUE_CONTAINER",
+          "-DXRT_MODULE_ARRAY",
+          "-DXRT_MODULE_MAP",
+          "-DXRT_IMPLEMENTATION",
+          "release/extlibs/graph/test/manifest_probe.c",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\minimal.exe"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 4751,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "manifest-only-run",
+        "program": "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\minimal.exe",
+        "arguments": [],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 25,
+        "stdout": {
+          "utf8Sha256": "9dce0f8143082cea5d77054d2fc25f0e0b6cc7950cff57ebeb3ddf1e8e2cb2c2",
+          "normalizedLfSha256": "6a11c20266f92dda398218e31e8e9444e0a67e43626fbd5ea7f7c44f3a0f760c",
+          "lines": 1,
+          "text": "graph manifest-only: PASS\r\n",
+          "firstLines": [
+            "graph manifest-only: PASS"
+          ],
+          "lastLines": [
+            "graph manifest-only: PASS"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "runtime-build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/graph/include",
+          "-c",
+          "test/support/extlib_graph_runtime.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\runtime.o"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 5136,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "native-0",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/graph/include",
+          "-c",
+          "release/extlibs/graph/graph_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\native-0.o"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 202,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "native-1",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/graph/include",
+          "-c",
+          "release/extlibs/graph/graph_traversal.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\native-1.o"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 176,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "native-2",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/graph/include",
+          "-c",
+          "release/extlibs/graph/graph_components.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\native-2.o"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 178,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "native-3",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/graph/include",
+          "-c",
+          "release/extlibs/graph/graph_distance.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\native-3.o"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 182,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "test_graph-build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/graph/include",
+          "-DNDEBUG",
+          "release/extlibs/graph/test/test_graph.c",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\native-0.o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\native-1.o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\native-2.o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\native-3.o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\runtime.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\test_graph.exe"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 420,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "test_graph",
+        "program": "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\test_graph.exe",
+        "arguments": [],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 383,
+        "stdout": {
+          "utf8Sha256": "59401f8a38b2c40a8af0ce24f42560ac7f69aca22c50415239408b725091cb31",
+          "normalizedLfSha256": "988847f93b469a365dd5f3876bd8bdcc92d1269fe53f5a5ed9e235c83bb13352",
+          "lines": 1,
+          "text": "graph: boundaries, 128 independent oracle graphs, capacity and ownership PASS\r\n",
+          "firstLines": [
+            "graph: boundaries, 128 independent oracle graphs, capacity and ownership PASS"
+          ],
+          "lastLines": [
+            "graph: boundaries, 128 independent oracle graphs, capacity and ownership PASS"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "test_graph_alloc-build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/graph/include",
+          "-DNDEBUG",
+          "release/extlibs/graph/test/test_graph_alloc.c",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\native-0.o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\native-1.o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\native-2.o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\native-3.o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\runtime.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\test_graph_alloc.exe"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 227,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "test_graph_alloc",
+        "program": "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\test_graph_alloc.exe",
+        "arguments": [],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 24,
+        "stdout": {
+          "utf8Sha256": "d785b3962ae11cf74c43b218d99598e60b7e1ea937d6950e2c1e865597f76c14",
+          "normalizedLfSha256": "7930a015f47d8e0e25f1420bc0bc5f70989f79aca367a3ea2fb55d234d5a9b18",
+          "lines": 1,
+          "text": "graph allocation: 218 failure points, all 9 APIs, success/error cleanup PASS\r\n",
+          "firstLines": [
+            "graph allocation: 218 failure points, all 9 APIs, success/error cleanup PASS"
+          ],
+          "lastLines": [
+            "graph allocation: 218 failure points, all 9 APIs, success/error cleanup PASS"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "test_graph_threads-build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/graph/include",
+          "-DNDEBUG",
+          "release/extlibs/graph/test/test_graph_threads.c",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\native-0.o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\native-1.o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\native-2.o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\native-3.o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\runtime.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\test_graph_threads.exe"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 222,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "test_graph_threads",
+        "program": "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\test_graph_threads.exe",
+        "arguments": [],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 412,
+        "stdout": {
+          "utf8Sha256": "77630602c0a7704312d54766b94e382ca243557f546d37a0fec3e681fd5e5f8b",
+          "normalizedLfSha256": "92c4465ab1a7917698bd8a442d7f261a866de42e41327685e95f66a9e27ff074",
+          "lines": 1,
+          "text": "graph threads: 4 workers, 1000 rounds, shared immutable input and TLS PASS\r\n",
+          "firstLines": [
+            "graph threads: 4 workers, 1000 rounds, shared immutable input and TLS PASS"
+          ],
+          "lastLines": [
+            "graph threads: 4 workers, 1000 rounds, shared immutable input and TLS PASS"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "weighted-build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/graph/include",
+          "-DNDEBUG",
+          "release/extlibs/graph/test/weighted_records_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\runtime.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\weighted.exe"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 456,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "weighted",
+        "program": "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\weighted.exe",
+        "arguments": [],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 64,
+        "stdout": {
+          "utf8Sha256": "ccc73796e00c45f826869951f0306a88b49af610eeb2dd9cfb273de141ead002",
+          "normalizedLfSha256": "fbece7bc58f3bb293af0297ffa900f200050c41d6ce5299a0376e01369390809",
+          "lines": 1,
+          "text": "graph weighted records: 3072 cases, PASS\r\n",
+          "firstLines": [
+            "graph weighted records: 3072 cases, PASS"
+          ],
+          "lastLines": [
+            "graph weighted records: 3072 cases, PASS"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "weighted-records",
+        "program": "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\weighted.exe",
+        "arguments": [
+          "--records"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 50,
+        "stdout": {
+          "utf8Sha256": "585ca8853d30ec7125d74f8bc241c45143361c2fcf44f728dfb01f529cf1ed63",
+          "normalizedLfSha256": "0b7b95ff79eb754a4cc3c6e965d77c936e25cbea768aa05f037585112c76179e",
+          "lines": 3072,
+          "text": "Large deterministic corpus omitted; committed generators reproduce it",
+          "firstLines": [
+            "0\t0\tok\t0000000000000000\t-\t-\t-\t-\t-",
+            "0\t1\tok\t-\t0000000000000000\t-\t-\t-\t-"
+          ],
+          "lastLines": [
+            "511\t4\tok\t43e0000000000000\t43e0040000000000\t7fefffffffffffff\t4340000000000000\t0000000000000000\t4340000000000000",
+            "511\t5\tok\t43f8000000000000\t43f8020000000000\t7fefffffffffffff\t3ff0000000000000\t43f0000000000000\t0000000000000000"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "Bellman-Ford-oracle",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "release/extlibs/graph/test/check_weighted_records.py",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\weighted.tsv"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 110,
+        "stdout": {
+          "utf8Sha256": "732a6d0ad778db36db286c0f17db2bd8fc9a6de62a06c59eeb86d377edfef636",
+          "normalizedLfSha256": "23653d2d195fd17d0bf16ed71a014dd3fffe5f12f7dd35fba2e8e117c5c9cc1e",
+          "lines": 1,
+          "text": "graph Bellman-Ford oracle: 3072 records, 123 range cases, PASS\r\n",
+          "firstLines": [
+            "graph Bellman-Ford oracle: 3072 records, 123 range cases, PASS"
+          ],
+          "lastLines": [
+            "graph Bellman-Ford oracle: 3072 records, 123 range cases, PASS"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "weighted-direct-C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/graph/test/weighted_records_c.c",
+          "--",
+          "--records"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 109,
+        "stdout": {
+          "utf8Sha256": "585ca8853d30ec7125d74f8bc241c45143361c2fcf44f728dfb01f529cf1ed63",
+          "normalizedLfSha256": "0b7b95ff79eb754a4cc3c6e965d77c936e25cbea768aa05f037585112c76179e",
+          "lines": 3072,
+          "text": "Large deterministic corpus omitted; committed generators reproduce it",
+          "firstLines": [
+            "0\t0\tok\t0000000000000000\t-\t-\t-\t-\t-",
+            "0\t1\tok\t-\t0000000000000000\t-\t-\t-\t-"
+          ],
+          "lastLines": [
+            "511\t4\tok\t43e0000000000000\t43e0040000000000\t7fefffffffffffff\t4340000000000000\t0000000000000000\t4340000000000000",
+            "511\t5\tok\t43f8000000000000\t43f8020000000000\t7fefffffffffffff\t3ff0000000000000\t43f0000000000000\t0000000000000000"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "ordered-build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/graph/include",
+          "-DNDEBUG",
+          "release/extlibs/graph/test/ordered_records_c.c",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\runtime.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\ordered.exe"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 489,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "ordered",
+        "program": "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\ordered.exe",
+        "arguments": [],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 124,
+        "stdout": {
+          "utf8Sha256": "8d0b2585cc8b4d17ad562fc424806228aacba47d3da6868ffa0e21970869a10f",
+          "normalizedLfSha256": "0be66034aece4d96873628b36eae2c5f75f0d4016934fdd3b12071423ba4a4a6",
+          "lines": 1,
+          "text": "graph ordered records: 1152 graphs, 27776 records, PASS\r\n",
+          "firstLines": [
+            "graph ordered records: 1152 graphs, 27776 records, PASS"
+          ],
+          "lastLines": [
+            "graph ordered records: 1152 graphs, 27776 records, PASS"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "ordered-records",
+        "program": "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\ordered.exe",
+        "arguments": [
+          "--records"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 115,
+        "stdout": {
+          "utf8Sha256": "b038cff271b2f321f277ca65fabc33701ae5507b9d71ebe57dd0e48b63c75279",
+          "normalizedLfSha256": "6b25c526638a870d9b8b74e274ceeb6458e73bdf07f1d506a7654e0a726321ff",
+          "lines": 27776,
+          "text": "Large deterministic corpus omitted; committed generators reproduce it",
+          "firstLines": [
+            "[0,0,\"dag\",-1,-1,true]",
+            "[0,0,\"topo\",-1,-1,[0,1,2]]"
+          ],
+          "lastLines": [
+            "[575,1,\"path\",3,2,\"value-error\"]",
+            "[575,1,\"path\",3,3,[3]]"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "ordered-oracle",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "release/extlibs/graph/test/check_ordered_records.py",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\ordered.jsonl"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 487,
+        "stdout": {
+          "utf8Sha256": "9bead368c24980cbaa14421be8899c4ac68f0c98fafb53a6767339f181c4595e",
+          "normalizedLfSha256": "bee9125af7f34b4ff90409f3288623aa73cff97f828085004b090ba3441bb281",
+          "lines": 1,
+          "text": "graph ordered oracle: 1152 graphs, 27776 records, 4 negative controls PASS\r\n",
+          "firstLines": [
+            "graph ordered oracle: 1152 graphs, 27776 records, 4 negative controls PASS"
+          ],
+          "lastLines": [
+            "graph ordered oracle: 1152 graphs, 27776 records, 4 negative controls PASS"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "ordered-direct-C",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/graph/test/ordered_records_c.c",
+          "--",
+          "--records"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 180,
+        "stdout": {
+          "utf8Sha256": "b038cff271b2f321f277ca65fabc33701ae5507b9d71ebe57dd0e48b63c75279",
+          "normalizedLfSha256": "6b25c526638a870d9b8b74e274ceeb6458e73bdf07f1d506a7654e0a726321ff",
+          "lines": 27776,
+          "text": "Large deterministic corpus omitted; committed generators reproduce it",
+          "firstLines": [
+            "[0,0,\"dag\",-1,-1,true]",
+            "[0,0,\"topo\",-1,-1,[0,1,2]]"
+          ],
+          "lastLines": [
+            "[575,1,\"path\",3,2,\"value-error\"]",
+            "[575,1,\"path\",3,3,[3]]"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "from-json-jit",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/graph/examples/from_json.xl"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 251,
+        "stdout": {
+          "utf8Sha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+          "normalizedLfSha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+          "lines": 10,
+          "text": "dag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\n",
+          "firstLines": [
+            "dag=true",
+            "topo=parse>docs>check>emit"
+          ],
+          "lastLines": [
+            "scc=2; first-size=2",
+            "cycle=rejected"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "from-json-cgen",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "cgen",
+          "release/extlibs/graph/examples/from_json.xl",
+          "--emit",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\from-json.c"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 65,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "initial-nine-prototypes",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/graph/include",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\initial-abi.c"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 111,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "c-example-build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/graph/include",
+          "-DNDEBUG",
+          "release/extlibs/graph/examples/basic.c",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\runtime.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\c-example.exe"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 430,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "c-example",
+        "program": "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\c-example.exe",
+        "arguments": [],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 54,
+        "stdout": {
+          "utf8Sha256": "0a69b068177b7a3094c596be5b547c544e185eb4b792e4a55dadd6d2af56d0f8",
+          "normalizedLfSha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+          "lines": 10,
+          "text": "dag=true\r\ntopo=parse>docs>check>emit\r\nbfs=parse>check>emit\r\nnodes=check,docs,emit,parse\r\nneighbors=check,emit\r\nfewest-edges=parse>emit\r\ncost=5\r\nweak=2; first-size=3\r\nscc=2; first-size=2\r\ncycle=rejected\r\n",
+          "firstLines": [
+            "dag=true",
+            "topo=parse>docs>check>emit"
+          ],
+          "lastLines": [
+            "scc=2; first-size=2",
+            "cycle=rejected"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "c-example-jit",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/graph/examples/basic.c"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 64,
+        "stdout": {
+          "utf8Sha256": "0a69b068177b7a3094c596be5b547c544e185eb4b792e4a55dadd6d2af56d0f8",
+          "normalizedLfSha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+          "lines": 10,
+          "text": "dag=true\r\ntopo=parse>docs>check>emit\r\nbfs=parse>check>emit\r\nnodes=check,docs,emit,parse\r\nneighbors=check,emit\r\nfewest-edges=parse>emit\r\ncost=5\r\nweak=2; first-size=3\r\nscc=2; first-size=2\r\ncycle=rejected\r\n",
+          "firstLines": [
+            "dag=true",
+            "topo=parse>docs>check>emit"
+          ],
+          "lastLines": [
+            "scc=2; first-size=2",
+            "cycle=rejected"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "release/extlibs/graph/examples/from_json.xl initial-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/graph/examples/from_json.xl",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\e6126adfc6df4f84a9151de4e3cbc92c.exe"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 418,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "release/extlibs/graph/examples/from_json.xl initial-aot",
+        "program": "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\e6126adfc6df4f84a9151de4e3cbc92c.exe",
+        "arguments": [],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 28,
+        "stdout": {
+          "utf8Sha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+          "normalizedLfSha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+          "lines": 10,
+          "text": "dag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\n",
+          "firstLines": [
+            "dag=true",
+            "topo=parse>docs>check>emit"
+          ],
+          "lastLines": [
+            "scc=2; first-size=2",
+            "cycle=rejected"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "release/extlibs/graph/test/weighted_records_c.c initial-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/graph/test/weighted_records_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\86f26d277cca43e69d10212596c14ccc.exe"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 117,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "release/extlibs/graph/test/weighted_records_c.c initial-aot",
+        "program": "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\86f26d277cca43e69d10212596c14ccc.exe",
+        "arguments": [],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 138,
+        "stdout": {
+          "utf8Sha256": "ccc73796e00c45f826869951f0306a88b49af610eeb2dd9cfb273de141ead002",
+          "normalizedLfSha256": "fbece7bc58f3bb293af0297ffa900f200050c41d6ce5299a0376e01369390809",
+          "lines": 1,
+          "text": "graph weighted records: 3072 cases, PASS\r\n",
+          "firstLines": [
+            "graph weighted records: 3072 cases, PASS"
+          ],
+          "lastLines": [
+            "graph weighted records: 3072 cases, PASS"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "weighted-aot-records",
+        "program": "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\86f26d277cca43e69d10212596c14ccc.exe",
+        "arguments": [
+          "--records"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 138,
+        "stdout": {
+          "utf8Sha256": "585ca8853d30ec7125d74f8bc241c45143361c2fcf44f728dfb01f529cf1ed63",
+          "normalizedLfSha256": "0b7b95ff79eb754a4cc3c6e965d77c936e25cbea768aa05f037585112c76179e",
+          "lines": 3072,
+          "text": "Large deterministic corpus omitted; committed generators reproduce it",
+          "firstLines": [
+            "0\t0\tok\t0000000000000000\t-\t-\t-\t-\t-",
+            "0\t1\tok\t-\t0000000000000000\t-\t-\t-\t-"
+          ],
+          "lastLines": [
+            "511\t4\tok\t43e0000000000000\t43e0040000000000\t7fefffffffffffff\t4340000000000000\t0000000000000000\t4340000000000000",
+            "511\t5\tok\t43f8000000000000\t43f8020000000000\t7fefffffffffffff\t3ff0000000000000\t43f0000000000000\t0000000000000000"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "AOT-Bellman-Ford-oracle",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "release/extlibs/graph/test/check_weighted_records.py",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\weighted-aot.tsv"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 105,
+        "stdout": {
+          "utf8Sha256": "732a6d0ad778db36db286c0f17db2bd8fc9a6de62a06c59eeb86d377edfef636",
+          "normalizedLfSha256": "23653d2d195fd17d0bf16ed71a014dd3fffe5f12f7dd35fba2e8e117c5c9cc1e",
+          "lines": 1,
+          "text": "graph Bellman-Ford oracle: 3072 records, 123 range cases, PASS\r\n",
+          "firstLines": [
+            "graph Bellman-Ford oracle: 3072 records, 123 range cases, PASS"
+          ],
+          "lastLines": [
+            "graph Bellman-Ford oracle: 3072 records, 123 range cases, PASS"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "release/extlibs/graph/test/ordered_records_c.c initial-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/graph/test/ordered_records_c.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\bc07dd0366bd46fb9c89f09c1564bae0.exe"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 116,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "release/extlibs/graph/test/ordered_records_c.c initial-aot",
+        "program": "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\bc07dd0366bd46fb9c89f09c1564bae0.exe",
+        "arguments": [],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 382,
+        "stdout": {
+          "utf8Sha256": "8d0b2585cc8b4d17ad562fc424806228aacba47d3da6868ffa0e21970869a10f",
+          "normalizedLfSha256": "0be66034aece4d96873628b36eae2c5f75f0d4016934fdd3b12071423ba4a4a6",
+          "lines": 1,
+          "text": "graph ordered records: 1152 graphs, 27776 records, PASS\r\n",
+          "firstLines": [
+            "graph ordered records: 1152 graphs, 27776 records, PASS"
+          ],
+          "lastLines": [
+            "graph ordered records: 1152 graphs, 27776 records, PASS"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "ordered-aot-records",
+        "program": "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\bc07dd0366bd46fb9c89f09c1564bae0.exe",
+        "arguments": [
+          "--records"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 405,
+        "stdout": {
+          "utf8Sha256": "b038cff271b2f321f277ca65fabc33701ae5507b9d71ebe57dd0e48b63c75279",
+          "normalizedLfSha256": "6b25c526638a870d9b8b74e274ceeb6458e73bdf07f1d506a7654e0a726321ff",
+          "lines": 27776,
+          "text": "Large deterministic corpus omitted; committed generators reproduce it",
+          "firstLines": [
+            "[0,0,\"dag\",-1,-1,true]",
+            "[0,0,\"topo\",-1,-1,[0,1,2]]"
+          ],
+          "lastLines": [
+            "[575,1,\"path\",3,2,\"value-error\"]",
+            "[575,1,\"path\",3,3,[3]]"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "AOT-ordered-oracle",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "release/extlibs/graph/test/check_ordered_records.py",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\ordered-aot.jsonl"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 486,
+        "stdout": {
+          "utf8Sha256": "9bead368c24980cbaa14421be8899c4ac68f0c98fafb53a6767339f181c4595e",
+          "normalizedLfSha256": "bee9125af7f34b4ff90409f3288623aa73cff97f828085004b090ba3441bb281",
+          "lines": 1,
+          "text": "graph ordered oracle: 1152 graphs, 27776 records, 4 negative controls PASS\r\n",
+          "firstLines": [
+            "graph ordered oracle: 1152 graphs, 27776 records, 4 negative controls PASS"
+          ],
+          "lastLines": [
+            "graph ordered oracle: 1152 graphs, 27776 records, 4 negative controls PASS"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "release/extlibs/graph/examples/basic.c initial-build",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/graph/examples/basic.c",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\066f2e7ddcb84c4fbac92deb3b7c4894.exe"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 120,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "release/extlibs/graph/examples/basic.c initial-aot",
+        "program": "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\066f2e7ddcb84c4fbac92deb3b7c4894.exe",
+        "arguments": [],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 27,
+        "stdout": {
+          "utf8Sha256": "0a69b068177b7a3094c596be5b547c544e185eb4b792e4a55dadd6d2af56d0f8",
+          "normalizedLfSha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+          "lines": 10,
+          "text": "dag=true\r\ntopo=parse>docs>check>emit\r\nbfs=parse>check>emit\r\nnodes=check,docs,emit,parse\r\nneighbors=check,emit\r\nfewest-edges=parse>emit\r\ncost=5\r\nweak=2; first-size=3\r\nscc=2; first-size=2\r\ncycle=rejected\r\n",
+          "firstLines": [
+            "dag=true",
+            "topo=parse>docs>check>emit"
+          ],
+          "lastLines": [
+            "scc=2; first-size=2",
+            "cycle=rejected"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "xl-host-build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-I",
+          "D:\\GIT\\x-lang\\release\\include",
+          "test/support/extlib_runtime_host.c",
+          "D:\\GIT\\x-lang\\release\\xl.dll",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\xl-host.exe"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 112,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "xl-json-context-reuse",
+        "program": "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\xl-host.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang",
+          "D:\\GIT\\x-lang\\release\\extlibs\\graph\\examples\\from_json.xl"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 732,
+        "stdout": {
+          "utf8Sha256": "2b2df010e7b9a5354f0741e587595fa26c026cc5a531f1ff4ca76139e7a130df",
+          "normalizedLfSha256": "2b2df010e7b9a5354f0741e587595fa26c026cc5a531f1ff4ca76139e7a130df",
+          "lines": 30,
+          "text": "dag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\ndag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\ndag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\n",
+          "firstLines": [
+            "dag=true",
+            "topo=parse>docs>check>emit"
+          ],
+          "lastLines": [
+            "scc=2; first-size=2",
+            "cycle=rejected"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "xlc-host-build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-I",
+          "D:\\GIT\\x-lang\\release\\include",
+          "test/support/extlib_runtime_host.c",
+          "D:\\GIT\\x-lang\\release\\xlc.dll",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\xlc-host.exe"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 114,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": ""
+      },
+      {
+        "name": "xlc-json-context-reuse",
+        "program": "D:\\GIT\\x-lang\\build\\test\\graph_guard_44d868c3e9ef4c3ebe9bda4c2df6b422\\xlc-host.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang",
+          "D:\\GIT\\x-lang\\release\\extlibs\\graph\\examples\\from_json.xl"
+        ],
+        "status": "pass",
+        "exitCode": 0,
+        "elapsedMs": 773,
+        "stdout": {
+          "utf8Sha256": "2b2df010e7b9a5354f0741e587595fa26c026cc5a531f1ff4ca76139e7a130df",
+          "normalizedLfSha256": "2b2df010e7b9a5354f0741e587595fa26c026cc5a531f1ff4ca76139e7a130df",
+          "lines": 30,
+          "text": "dag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\ndag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\ndag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\n",
+          "firstLines": [
+            "dag=true",
+            "topo=parse>docs>check>emit"
+          ],
+          "lastLines": [
+            "scc=2; first-size=2",
+            "cycle=rejected"
+          ]
+        },
+        "stderr": ""
+      },
+      {
+        "name": "extlib_graph-jit",
+        "program": "D:\\GIT\\x-lang\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "test/cases/extlib_graph.xl"
+        ],
+        "status": "fail",
+        "exitCode": 1,
+        "elapsedMs": 620,
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        },
+        "stderr": "uncaught xlang error: ValueError: graph edges must be an array\nuncaught xlang error: graph edges must be an array\n"
+      }
+    ],
+    "guardReportSha256": "581a1c2c10ee4db72f1ecbcf98cfc69fecf4c6ff5bac078f8474033035e14ec1"
+  },
+  "linux": {
+    "exitCode": 1,
+    "phases": 49,
+    "passedPhases": 48,
+    "failedPhases": 1,
+    "frozenFiles": 55,
+    "fileSystem": "Independent ordinary copies on native executable /run tmpfs",
+    "sourceEqualsPrimaryAtFreeze": true,
+    "frozenBefore": [
+      "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  lib/xrt/xrt.h",
+      "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  lib/xruntime/xruntime.h",
+      "8c6e6ce646d3190311bf20dfcd3383eb2e22454e4649d840b3296b13fbe6d538  release/examples/extlibs/graph.xl",
+      "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1  release/examples/extlibs/graph_basic.expected.txt",
+      "90ef15c3cb1cc705b25ea30abeeb85c8ab4c711f95507a8d6b416d5be76fdbf6  release/examples/extlibs/graph_basic.xl",
+      "33ef44d46ce7eda88ef60435f90d68f6f1dd0f4c3f0d5ca4d08d5220d30a1d1b  release/extlibs/graph/ORDER_AUDIT_2026-11-02.md",
+      "250933963d1536e5904122e977834ccc042fb18d01807b561021881dff2f838b  release/extlibs/graph/README.md",
+      "a151797299fcc0663ed3822c6cb4f762288999bc718c9b35d97b9100a01f9e8c  release/extlibs/graph/docs/site.html",
+      "25a3074127e9b6c558c252b50126d607e8483f48909da25f45793828658f3cb2  release/extlibs/graph/examples/README.md",
+      "cd65ff5929f5a4f036b3189dd5e84be02c71f24f2f93184cbf38ce023a6c4f9f  release/extlibs/graph/examples/basic.c",
+      "ab8721bf1bf67a171dc9f05221f7d205e0ac57d059e98ae1db914bf92388f1d9  release/extlibs/graph/examples/from_json.xl",
+      "bd5d0813ba6b5c3882684026f449e263863ea0b0c0dba0a98fc7aa2c413e9113  release/extlibs/graph/graph_components.c",
+      "2d5979eedb56108708e789b176d43bd5c94ce0cd202511f580d79c5426710e7f  release/extlibs/graph/graph_distance.c",
+      "f3431c8ac1f383ffe8e662e6942e70e0a245d58026a0c112ae55d71314ab8d1d  release/extlibs/graph/graph_internal.h",
+      "244f2732fd9e691b8774f01c1d7d6d1d97d987f66681766603549b51a7fc0cac  release/extlibs/graph/graph_native.c",
+      "e397a5b4ccb1e7354fdaca0bea6bf4962bbf3c5970a82b2e02b2d79879726a8a  release/extlibs/graph/graph_traversal.c",
+      "1f02abe5bb00304c42c646613cc812026d330a4f112af77e6c493c3d0c733aaa  release/extlibs/graph/include/graph.h",
+      "ba4bd82545efc425844825d6bcfccaeb328e444fef399613f36aa6a4d6580959  release/extlibs/graph/src/graph.xl",
+      "0106cfc3c1cb13794ddfed595c379d24a5264046f260e5a0d5f0fdbc1656b6bd  release/extlibs/graph/test/allocations.xl",
+      "906e6514dd15be42ecd66d00cca3db103faec24cb9521c6bad32f73236c3eac1  release/extlibs/graph/test/boundaries.xl",
+      "ae53a6efc536be5a0ad5557907b0574d54cc353f3bd3195c4a99e52893e45ea9  release/extlibs/graph/test/check.sh",
+      "912fa917c94b5c34b35b9920c7c88cdc5708f52f2cb316211f44c2f66d3709d8  release/extlibs/graph/test/check_c.ps1",
+      "43e6edd08fed79280a0f353e0e2d05f8f3949ad63acb9305f5170a7615b57fce  release/extlibs/graph/test/check_ordered_records.py",
+      "18ecedbf8f20e82c26de018576d3732546f9e532622c4e87d2cc169cc0ba5704  release/extlibs/graph/test/check_weighted_records.py",
+      "eb749d965f014d77563cff2f725481c1f158ca6ed86c6e721be2c6c399be5146  release/extlibs/graph/test/graph_test.h",
+      "1746e09f352f02b55fd3f8ed6ecc255b42fe72d4eafeadcc716d87dcb00dcd58  release/extlibs/graph/test/manifest_probe.c",
+      "e8ce1ccd03643a0f82a16bd78f646f23924238e76ad389e9747c0f2a2e32c142  release/extlibs/graph/test/ordered_records_c.c",
+      "652065a79848f470f6da7d65607c44aef634c157ee1779294b7df75244ef1ffd  release/extlibs/graph/test/test_graph.c",
+      "16cf24e25af3fc04f22f42e231d26850c8d08e1c5364ee9a541cf44b662fd30d  release/extlibs/graph/test/test_graph_alloc.c",
+      "a558c5e47163ac3e06f745145737aacbb37907d7d8aa184433675e4fd1c92919  release/extlibs/graph/test/test_graph_threads.c",
+      "150096c748ffe6fc803ffdd7259022359987917a1c71d317c4c90b00453de365  release/extlibs/graph/test/weighted_records_c.c",
+      "2fed2cc02c52774a3aedd1ca9c284d8a1db95691ecbf7c63d64c65b020705c97  release/extlibs/graph/xlang.package.json",
+      "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  release/include/README.md",
+      "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  release/include/libtcc.h",
+      "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  release/include/tcc_builtin_vfs.h",
+      "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  release/include/xl.h",
+      "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  release/include/xl_cancellation_retirement.h",
+      "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  release/include/xl_clock.h",
+      "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  release/include/xl_extlib_abi.h",
+      "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  release/include/xl_foreign_graph.h",
+      "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  release/include/xl_foreign_net.h",
+      "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  release/include/xl_package.h",
+      "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  release/include/xl_runtime.h",
+      "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  release/include/xl_sync_retirement.h",
+      "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  release/include/xl_version.h",
+      "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  release/include/xlc.h",
+      "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  release/include/xrt_decl.h",
+      "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  release/include/xruntime_decl.h",
+      "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  release/libxl.so",
+      "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  release/libxlc.so",
+      "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  release/xl",
+      "1a37fc1f894b3286e78ddb4bfcae22317965467e34b7b594fbb8c8ffde2414aa  test/cases/extlib_graph.xl",
+      "59aae32e7ffacb976971da26865d6c8c3eb6b74a468fcd976bee86fbc82da48b  test/support/extlib_graph_runtime.c",
+      "4d93413202a04f7b984ab8d38d09e3194afa189fab8d0676584e316af6cf71c5  test/support/extlib_runtime_host.c",
+      "2ea7a37454ac5a13e6089e7d2b0d7cede052e8edef84d4de823e62f937fd0250  tools/check_extlib_graph.sh"
+    ],
+    "frozenAfter": [
+      "lib/xrt/xrt.h: OK",
+      "lib/xruntime/xruntime.h: OK",
+      "release/examples/extlibs/graph.xl: OK",
+      "release/examples/extlibs/graph_basic.expected.txt: OK",
+      "release/examples/extlibs/graph_basic.xl: OK",
+      "release/extlibs/graph/ORDER_AUDIT_2026-11-02.md: OK",
+      "release/extlibs/graph/README.md: OK",
+      "release/extlibs/graph/docs/site.html: OK",
+      "release/extlibs/graph/examples/README.md: OK",
+      "release/extlibs/graph/examples/basic.c: OK",
+      "release/extlibs/graph/examples/from_json.xl: OK",
+      "release/extlibs/graph/graph_components.c: OK",
+      "release/extlibs/graph/graph_distance.c: OK",
+      "release/extlibs/graph/graph_internal.h: OK",
+      "release/extlibs/graph/graph_native.c: OK",
+      "release/extlibs/graph/graph_traversal.c: OK",
+      "release/extlibs/graph/include/graph.h: OK",
+      "release/extlibs/graph/src/graph.xl: OK",
+      "release/extlibs/graph/test/allocations.xl: OK",
+      "release/extlibs/graph/test/boundaries.xl: OK",
+      "release/extlibs/graph/test/check.sh: OK",
+      "release/extlibs/graph/test/check_c.ps1: OK",
+      "release/extlibs/graph/test/check_ordered_records.py: OK",
+      "release/extlibs/graph/test/check_weighted_records.py: OK",
+      "release/extlibs/graph/test/graph_test.h: OK",
+      "release/extlibs/graph/test/manifest_probe.c: OK",
+      "release/extlibs/graph/test/ordered_records_c.c: OK",
+      "release/extlibs/graph/test/test_graph.c: OK",
+      "release/extlibs/graph/test/test_graph_alloc.c: OK",
+      "release/extlibs/graph/test/test_graph_threads.c: OK",
+      "release/extlibs/graph/test/weighted_records_c.c: OK",
+      "release/extlibs/graph/xlang.package.json: OK",
+      "release/include/README.md: OK",
+      "release/include/libtcc.h: OK",
+      "release/include/tcc_builtin_vfs.h: OK",
+      "release/include/xl.h: OK",
+      "release/include/xl_cancellation_retirement.h: OK",
+      "release/include/xl_clock.h: OK",
+      "release/include/xl_extlib_abi.h: OK",
+      "release/include/xl_foreign_graph.h: OK",
+      "release/include/xl_foreign_net.h: OK",
+      "release/include/xl_package.h: OK",
+      "release/include/xl_runtime.h: OK",
+      "release/include/xl_sync_retirement.h: OK",
+      "release/include/xl_version.h: OK",
+      "release/include/xlc.h: OK",
+      "release/include/xrt_decl.h: OK",
+      "release/include/xruntime_decl.h: OK",
+      "release/libxl.so: OK",
+      "release/libxlc.so: OK",
+      "release/xl: OK",
+      "test/cases/extlib_graph.xl: OK",
+      "test/support/extlib_graph_runtime.c: OK",
+      "test/support/extlib_runtime_host.c: OK",
+      "tools/check_extlib_graph.sh: OK"
+    ],
+    "sourceAndToolFingerprints": [
+      "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88  /usr/bin/gcc",
+      "52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41  /usr/bin/python3",
+      "30510b346885152c4fce41d2b501751c95d3690b1c34eaa04ebb970e70eae620  /usr/libexec/gcc/x86_64-linux-gnu/15/cc1",
+      "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06  lib/xrt/xrt.h",
+      "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7  lib/xruntime/xruntime.h",
+      "8c6e6ce646d3190311bf20dfcd3383eb2e22454e4649d840b3296b13fbe6d538  release/examples/extlibs/graph.xl",
+      "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1  release/examples/extlibs/graph_basic.expected.txt",
+      "90ef15c3cb1cc705b25ea30abeeb85c8ab4c711f95507a8d6b416d5be76fdbf6  release/examples/extlibs/graph_basic.xl",
+      "33ef44d46ce7eda88ef60435f90d68f6f1dd0f4c3f0d5ca4d08d5220d30a1d1b  release/extlibs/graph/ORDER_AUDIT_2026-11-02.md",
+      "250933963d1536e5904122e977834ccc042fb18d01807b561021881dff2f838b  release/extlibs/graph/README.md",
+      "a151797299fcc0663ed3822c6cb4f762288999bc718c9b35d97b9100a01f9e8c  release/extlibs/graph/docs/site.html",
+      "25a3074127e9b6c558c252b50126d607e8483f48909da25f45793828658f3cb2  release/extlibs/graph/examples/README.md",
+      "cd65ff5929f5a4f036b3189dd5e84be02c71f24f2f93184cbf38ce023a6c4f9f  release/extlibs/graph/examples/basic.c",
+      "ab8721bf1bf67a171dc9f05221f7d205e0ac57d059e98ae1db914bf92388f1d9  release/extlibs/graph/examples/from_json.xl",
+      "bd5d0813ba6b5c3882684026f449e263863ea0b0c0dba0a98fc7aa2c413e9113  release/extlibs/graph/graph_components.c",
+      "2d5979eedb56108708e789b176d43bd5c94ce0cd202511f580d79c5426710e7f  release/extlibs/graph/graph_distance.c",
+      "f3431c8ac1f383ffe8e662e6942e70e0a245d58026a0c112ae55d71314ab8d1d  release/extlibs/graph/graph_internal.h",
+      "244f2732fd9e691b8774f01c1d7d6d1d97d987f66681766603549b51a7fc0cac  release/extlibs/graph/graph_native.c",
+      "e397a5b4ccb1e7354fdaca0bea6bf4962bbf3c5970a82b2e02b2d79879726a8a  release/extlibs/graph/graph_traversal.c",
+      "1f02abe5bb00304c42c646613cc812026d330a4f112af77e6c493c3d0c733aaa  release/extlibs/graph/include/graph.h",
+      "ba4bd82545efc425844825d6bcfccaeb328e444fef399613f36aa6a4d6580959  release/extlibs/graph/src/graph.xl",
+      "0106cfc3c1cb13794ddfed595c379d24a5264046f260e5a0d5f0fdbc1656b6bd  release/extlibs/graph/test/allocations.xl",
+      "906e6514dd15be42ecd66d00cca3db103faec24cb9521c6bad32f73236c3eac1  release/extlibs/graph/test/boundaries.xl",
+      "ae53a6efc536be5a0ad5557907b0574d54cc353f3bd3195c4a99e52893e45ea9  release/extlibs/graph/test/check.sh",
+      "912fa917c94b5c34b35b9920c7c88cdc5708f52f2cb316211f44c2f66d3709d8  release/extlibs/graph/test/check_c.ps1",
+      "43e6edd08fed79280a0f353e0e2d05f8f3949ad63acb9305f5170a7615b57fce  release/extlibs/graph/test/check_ordered_records.py",
+      "18ecedbf8f20e82c26de018576d3732546f9e532622c4e87d2cc169cc0ba5704  release/extlibs/graph/test/check_weighted_records.py",
+      "eb749d965f014d77563cff2f725481c1f158ca6ed86c6e721be2c6c399be5146  release/extlibs/graph/test/graph_test.h",
+      "1746e09f352f02b55fd3f8ed6ecc255b42fe72d4eafeadcc716d87dcb00dcd58  release/extlibs/graph/test/manifest_probe.c",
+      "e8ce1ccd03643a0f82a16bd78f646f23924238e76ad389e9747c0f2a2e32c142  release/extlibs/graph/test/ordered_records_c.c",
+      "652065a79848f470f6da7d65607c44aef634c157ee1779294b7df75244ef1ffd  release/extlibs/graph/test/test_graph.c",
+      "16cf24e25af3fc04f22f42e231d26850c8d08e1c5364ee9a541cf44b662fd30d  release/extlibs/graph/test/test_graph_alloc.c",
+      "a558c5e47163ac3e06f745145737aacbb37907d7d8aa184433675e4fd1c92919  release/extlibs/graph/test/test_graph_threads.c",
+      "150096c748ffe6fc803ffdd7259022359987917a1c71d317c4c90b00453de365  release/extlibs/graph/test/weighted_records_c.c",
+      "2fed2cc02c52774a3aedd1ca9c284d8a1db95691ecbf7c63d64c65b020705c97  release/extlibs/graph/xlang.package.json",
+      "513919f6f43560de0aaf281f0d149913da6929bc6f8b8401b002ab50814b9770  release/include/README.md",
+      "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab  release/include/libtcc.h",
+      "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2  release/include/tcc_builtin_vfs.h",
+      "ede52f40d6b5ee668c3a32860f7acf9c1dae92bc6144d9cf6d6149076b447df4  release/include/xl.h",
+      "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad  release/include/xl_cancellation_retirement.h",
+      "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18  release/include/xl_clock.h",
+      "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445  release/include/xl_extlib_abi.h",
+      "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f  release/include/xl_foreign_graph.h",
+      "ec2e3a8eb8d05f8271bfa416430d2b0b6603f77fa984ec3471e26904fc1c023a  release/include/xl_foreign_net.h",
+      "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1  release/include/xl_package.h",
+      "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2  release/include/xl_runtime.h",
+      "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e  release/include/xl_sync_retirement.h",
+      "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992  release/include/xl_version.h",
+      "073e4e79790963876d07a522b40ba94a9e2c1aef157ed817d5203add9badfc5f  release/include/xlc.h",
+      "c519d9af13dad826810c01026cec3f6353f1f0dafad9793f477bcac792d5af9d  release/include/xrt_decl.h",
+      "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd  release/include/xruntime_decl.h",
+      "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad  release/libxl.so",
+      "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386  release/libxlc.so",
+      "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb  release/xl",
+      "1a37fc1f894b3286e78ddb4bfcae22317965467e34b7b594fbb8c8ffde2414aa  test/cases/extlib_graph.xl",
+      "59aae32e7ffacb976971da26865d6c8c3eb6b74a468fcd976bee86fbc82da48b  test/support/extlib_graph_runtime.c",
+      "4d93413202a04f7b984ab8d38d09e3194afa189fab8d0676584e316af6cf71c5  test/support/extlib_runtime_host.c",
+      "2ea7a37454ac5a13e6089e7d2b0d7cede052e8edef84d4de823e62f937fd0250  tools/check_extlib_graph.sh"
+    ],
+    "toolAndSourceDrift": 0,
+    "sanitizers": [
+      "address",
+      "undefined",
+      "leak detection"
+    ],
+    "ordinaryAot": 4,
+    "checks": [
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 10s gcc --version",
+        "stdout": {
+          "utf8Sha256": "6e876a25bb7fdb71ab2914e8f1eeaa00cc61d20a36a6c2981ab7d4d7ceab42f8",
+          "normalizedLfSha256": "50ea2eee7b66cb98a6d418be449ecc1552a6f9765c47f791d83e7f4a50bc3b3a",
+          "lines": 4,
+          "text": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+          "firstLines": [
+            "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+            "Copyright (C) 2025 Free Software Foundation, Inc."
+          ],
+          "lastLines": [
+            "This is free software; see the source for copying conditions.  There is NO",
+            "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 10s gcc -print-prog-name=cc1",
+        "stdout": {
+          "utf8Sha256": "2928a6d39aa09d5b1bfd36a7f92507d7e33238f6d66ddf725aa1de1d712caf67",
+          "normalizedLfSha256": "2928a6d39aa09d5b1bfd36a7f92507d7e33238f6d66ddf725aa1de1d712caf67",
+          "lines": 1,
+          "text": "/usr/libexec/gcc/x86_64-linux-gnu/15/cc1\n",
+          "firstLines": [
+            "/usr/libexec/gcc/x86_64-linux-gnu/15/cc1"
+          ],
+          "lastLines": [
+            "/usr/libexec/gcc/x86_64-linux-gnu/15/cc1"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 10s python3 -c import\\ json\\,sys\\;\\ p=json.load\\(open\\(\\\"release/extlibs/graph/xlang.package.json\\\"\\)\\)\\;\\ assert\\ sorted\\(p\\[\\\"artifact\\\"\\]\\[\\\"xrtModules\\\"\\]\\)==\\[\\\"XRT_MODULE_ARRAY\\\"\\,\\\"XRT_MODULE_MAP\\\"\\,\\\"XRT_MODULE_VALUE_CONTAINER\\\"\\]\\;\\ print\\(sys.version\\)",
+        "stdout": {
+          "utf8Sha256": "42e904b45bbc982918f64113eccb0f8e27836174dde26074c824c45c27c5742a",
+          "normalizedLfSha256": "42e904b45bbc982918f64113eccb0f8e27836174dde26074c824c45c27c5742a",
+          "lines": 1,
+          "text": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]\n",
+          "firstLines": [
+            "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]"
+          ],
+          "lastLines": [
+            "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/graph/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DXRT_MODULE_VALUE_CONTAINER -DXRT_MODULE_ARRAY -DXRT_MODULE_MAP -DXRT_IMPLEMENTATION release/extlibs/graph/test/manifest_probe.c -no-pie -lm -ldl -o /run/xlang-graph-order-WfGQg5/gate/minimal",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s /run/xlang-graph-order-WfGQg5/gate/minimal",
+        "stdout": {
+          "utf8Sha256": "6a11c20266f92dda398218e31e8e9444e0a67e43626fbd5ea7f7c44f3a0f760c",
+          "normalizedLfSha256": "6a11c20266f92dda398218e31e8e9444e0a67e43626fbd5ea7f7c44f3a0f760c",
+          "lines": 1,
+          "text": "graph manifest-only: PASS\n",
+          "firstLines": [
+            "graph manifest-only: PASS"
+          ],
+          "lastLines": [
+            "graph manifest-only: PASS"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/graph/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c test/support/extlib_graph_runtime.c -o /run/xlang-graph-order-WfGQg5/gate/runtime.o",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/graph/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/graph/graph_native.c -o /run/xlang-graph-order-WfGQg5/gate/native-0.o",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/graph/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/graph/graph_traversal.c -o /run/xlang-graph-order-WfGQg5/gate/native-1.o",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/graph/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/graph/graph_components.c -o /run/xlang-graph-order-WfGQg5/gate/native-2.o",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/graph/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -c release/extlibs/graph/graph_distance.c -o /run/xlang-graph-order-WfGQg5/gate/native-3.o",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/graph/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/graph/test/test_graph.c /run/xlang-graph-order-WfGQg5/gate/native-0.o /run/xlang-graph-order-WfGQg5/gate/native-1.o /run/xlang-graph-order-WfGQg5/gate/native-2.o /run/xlang-graph-order-WfGQg5/gate/native-3.o /run/xlang-graph-order-WfGQg5/gate/runtime.o -no-pie -lm -ldl -o /run/xlang-graph-order-WfGQg5/gate/test_graph",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s /run/xlang-graph-order-WfGQg5/gate/test_graph",
+        "stdout": {
+          "utf8Sha256": "988847f93b469a365dd5f3876bd8bdcc92d1269fe53f5a5ed9e235c83bb13352",
+          "normalizedLfSha256": "988847f93b469a365dd5f3876bd8bdcc92d1269fe53f5a5ed9e235c83bb13352",
+          "lines": 1,
+          "text": "graph: boundaries, 128 independent oracle graphs, capacity and ownership PASS\n",
+          "firstLines": [
+            "graph: boundaries, 128 independent oracle graphs, capacity and ownership PASS"
+          ],
+          "lastLines": [
+            "graph: boundaries, 128 independent oracle graphs, capacity and ownership PASS"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/graph/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/graph/test/test_graph_alloc.c /run/xlang-graph-order-WfGQg5/gate/native-0.o /run/xlang-graph-order-WfGQg5/gate/native-1.o /run/xlang-graph-order-WfGQg5/gate/native-2.o /run/xlang-graph-order-WfGQg5/gate/native-3.o /run/xlang-graph-order-WfGQg5/gate/runtime.o -no-pie -lm -ldl -o /run/xlang-graph-order-WfGQg5/gate/test_graph_alloc",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s /run/xlang-graph-order-WfGQg5/gate/test_graph_alloc",
+        "stdout": {
+          "utf8Sha256": "7930a015f47d8e0e25f1420bc0bc5f70989f79aca367a3ea2fb55d234d5a9b18",
+          "normalizedLfSha256": "7930a015f47d8e0e25f1420bc0bc5f70989f79aca367a3ea2fb55d234d5a9b18",
+          "lines": 1,
+          "text": "graph allocation: 218 failure points, all 9 APIs, success/error cleanup PASS\n",
+          "firstLines": [
+            "graph allocation: 218 failure points, all 9 APIs, success/error cleanup PASS"
+          ],
+          "lastLines": [
+            "graph allocation: 218 failure points, all 9 APIs, success/error cleanup PASS"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/graph/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/graph/test/test_graph_threads.c /run/xlang-graph-order-WfGQg5/gate/native-0.o /run/xlang-graph-order-WfGQg5/gate/native-1.o /run/xlang-graph-order-WfGQg5/gate/native-2.o /run/xlang-graph-order-WfGQg5/gate/native-3.o /run/xlang-graph-order-WfGQg5/gate/runtime.o -no-pie -lm -ldl -o /run/xlang-graph-order-WfGQg5/gate/test_graph_threads",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s /run/xlang-graph-order-WfGQg5/gate/test_graph_threads",
+        "stdout": {
+          "utf8Sha256": "92c4465ab1a7917698bd8a442d7f261a866de42e41327685e95f66a9e27ff074",
+          "normalizedLfSha256": "92c4465ab1a7917698bd8a442d7f261a866de42e41327685e95f66a9e27ff074",
+          "lines": 1,
+          "text": "graph threads: 4 workers, 1000 rounds, shared immutable input and TLS PASS\n",
+          "firstLines": [
+            "graph threads: 4 workers, 1000 rounds, shared immutable input and TLS PASS"
+          ],
+          "lastLines": [
+            "graph threads: 4 workers, 1000 rounds, shared immutable input and TLS PASS"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/graph/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/graph/test/weighted_records_c.c /run/xlang-graph-order-WfGQg5/gate/runtime.o -no-pie -lm -ldl -o /run/xlang-graph-order-WfGQg5/gate/weighted",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s /run/xlang-graph-order-WfGQg5/gate/weighted",
+        "stdout": {
+          "utf8Sha256": "fbece7bc58f3bb293af0297ffa900f200050c41d6ce5299a0376e01369390809",
+          "normalizedLfSha256": "fbece7bc58f3bb293af0297ffa900f200050c41d6ce5299a0376e01369390809",
+          "lines": 1,
+          "text": "graph weighted records: 3072 cases, PASS\n",
+          "firstLines": [
+            "graph weighted records: 3072 cases, PASS"
+          ],
+          "lastLines": [
+            "graph weighted records: 3072 cases, PASS"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s /run/xlang-graph-order-WfGQg5/gate/weighted --records",
+        "stdout": {
+          "utf8Sha256": "0b7b95ff79eb754a4cc3c6e965d77c936e25cbea768aa05f037585112c76179e",
+          "normalizedLfSha256": "0b7b95ff79eb754a4cc3c6e965d77c936e25cbea768aa05f037585112c76179e",
+          "lines": 3072,
+          "text": "Large deterministic corpus omitted; committed generators reproduce it",
+          "firstLines": [
+            "0\t0\tok\t0000000000000000\t-\t-\t-\t-\t-",
+            "0\t1\tok\t-\t0000000000000000\t-\t-\t-\t-"
+          ],
+          "lastLines": [
+            "511\t4\tok\t43e0000000000000\t43e0040000000000\t7fefffffffffffff\t4340000000000000\t0000000000000000\t4340000000000000",
+            "511\t5\tok\t43f8000000000000\t43f8020000000000\t7fefffffffffffff\t3ff0000000000000\t43f0000000000000\t0000000000000000"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 60s python3 release/extlibs/graph/test/check_weighted_records.py /run/xlang-graph-order-WfGQg5/gate/weighted.tsv",
+        "stdout": {
+          "utf8Sha256": "23653d2d195fd17d0bf16ed71a014dd3fffe5f12f7dd35fba2e8e117c5c9cc1e",
+          "normalizedLfSha256": "23653d2d195fd17d0bf16ed71a014dd3fffe5f12f7dd35fba2e8e117c5c9cc1e",
+          "lines": 1,
+          "text": "graph Bellman-Ford oracle: 3072 records, 123 range cases, PASS\n",
+          "firstLines": [
+            "graph Bellman-Ford oracle: 3072 records, 123 range cases, PASS"
+          ],
+          "lastLines": [
+            "graph Bellman-Ford oracle: 3072 records, 123 range cases, PASS"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s ./release/xl run release/extlibs/graph/test/weighted_records_c.c -- --records",
+        "stdout": {
+          "utf8Sha256": "0b7b95ff79eb754a4cc3c6e965d77c936e25cbea768aa05f037585112c76179e",
+          "normalizedLfSha256": "0b7b95ff79eb754a4cc3c6e965d77c936e25cbea768aa05f037585112c76179e",
+          "lines": 3072,
+          "text": "Large deterministic corpus omitted; committed generators reproduce it",
+          "firstLines": [
+            "0\t0\tok\t0000000000000000\t-\t-\t-\t-\t-",
+            "0\t1\tok\t-\t0000000000000000\t-\t-\t-\t-"
+          ],
+          "lastLines": [
+            "511\t4\tok\t43e0000000000000\t43e0040000000000\t7fefffffffffffff\t4340000000000000\t0000000000000000\t4340000000000000",
+            "511\t5\tok\t43f8000000000000\t43f8020000000000\t7fefffffffffffff\t3ff0000000000000\t43f0000000000000\t0000000000000000"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/graph/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/graph/test/ordered_records_c.c /run/xlang-graph-order-WfGQg5/gate/runtime.o -no-pie -lm -ldl -o /run/xlang-graph-order-WfGQg5/gate/ordered",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s /run/xlang-graph-order-WfGQg5/gate/ordered",
+        "stdout": {
+          "utf8Sha256": "0be66034aece4d96873628b36eae2c5f75f0d4016934fdd3b12071423ba4a4a6",
+          "normalizedLfSha256": "0be66034aece4d96873628b36eae2c5f75f0d4016934fdd3b12071423ba4a4a6",
+          "lines": 1,
+          "text": "graph ordered records: 1152 graphs, 27776 records, PASS\n",
+          "firstLines": [
+            "graph ordered records: 1152 graphs, 27776 records, PASS"
+          ],
+          "lastLines": [
+            "graph ordered records: 1152 graphs, 27776 records, PASS"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s /run/xlang-graph-order-WfGQg5/gate/ordered --records",
+        "stdout": {
+          "utf8Sha256": "6b25c526638a870d9b8b74e274ceeb6458e73bdf07f1d506a7654e0a726321ff",
+          "normalizedLfSha256": "6b25c526638a870d9b8b74e274ceeb6458e73bdf07f1d506a7654e0a726321ff",
+          "lines": 27776,
+          "text": "Large deterministic corpus omitted; committed generators reproduce it",
+          "firstLines": [
+            "[0,0,\"dag\",-1,-1,true]",
+            "[0,0,\"topo\",-1,-1,[0,1,2]]"
+          ],
+          "lastLines": [
+            "[575,1,\"path\",3,2,\"value-error\"]",
+            "[575,1,\"path\",3,3,[3]]"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 60s python3 release/extlibs/graph/test/check_ordered_records.py /run/xlang-graph-order-WfGQg5/gate/ordered.jsonl",
+        "stdout": {
+          "utf8Sha256": "bee9125af7f34b4ff90409f3288623aa73cff97f828085004b090ba3441bb281",
+          "normalizedLfSha256": "bee9125af7f34b4ff90409f3288623aa73cff97f828085004b090ba3441bb281",
+          "lines": 1,
+          "text": "graph ordered oracle: 1152 graphs, 27776 records, 4 negative controls PASS\n",
+          "firstLines": [
+            "graph ordered oracle: 1152 graphs, 27776 records, 4 negative controls PASS"
+          ],
+          "lastLines": [
+            "graph ordered oracle: 1152 graphs, 27776 records, 4 negative controls PASS"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s ./release/xl run release/extlibs/graph/test/ordered_records_c.c -- --records",
+        "stdout": {
+          "utf8Sha256": "6b25c526638a870d9b8b74e274ceeb6458e73bdf07f1d506a7654e0a726321ff",
+          "normalizedLfSha256": "6b25c526638a870d9b8b74e274ceeb6458e73bdf07f1d506a7654e0a726321ff",
+          "lines": 27776,
+          "text": "Large deterministic corpus omitted; committed generators reproduce it",
+          "firstLines": [
+            "[0,0,\"dag\",-1,-1,true]",
+            "[0,0,\"topo\",-1,-1,[0,1,2]]"
+          ],
+          "lastLines": [
+            "[575,1,\"path\",3,2,\"value-error\"]",
+            "[575,1,\"path\",3,3,[3]]"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/graph/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -DNDEBUG release/extlibs/graph/examples/basic.c /run/xlang-graph-order-WfGQg5/gate/runtime.o -no-pie -lm -ldl -o /run/xlang-graph-order-WfGQg5/gate/basic",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 90s /run/xlang-graph-order-WfGQg5/gate/basic",
+        "stdout": {
+          "utf8Sha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+          "normalizedLfSha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+          "lines": 10,
+          "text": "dag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\n",
+          "firstLines": [
+            "dag=true",
+            "topo=parse>docs>check>emit"
+          ],
+          "lastLines": [
+            "scc=2; first-size=2",
+            "cycle=rejected"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 90s ./release/xl run release/extlibs/graph/examples/basic.c",
+        "stdout": {
+          "utf8Sha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+          "normalizedLfSha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+          "lines": 10,
+          "text": "dag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\n",
+          "firstLines": [
+            "dag=true",
+            "topo=parse>docs>check>emit"
+          ],
+          "lastLines": [
+            "scc=2; first-size=2",
+            "cycle=rejected"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 90s ./release/xl run release/extlibs/graph/examples/from_json.xl",
+        "stdout": {
+          "utf8Sha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+          "normalizedLfSha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+          "lines": 10,
+          "text": "dag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\n",
+          "firstLines": [
+            "dag=true",
+            "topo=parse>docs>check>emit"
+          ],
+          "lastLines": [
+            "scc=2; first-size=2",
+            "cycle=rejected"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 90s ./release/xl cgen release/extlibs/graph/examples/from_json.xl --emit /run/xlang-graph-order-WfGQg5/gate/probe.c",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 180s gcc -std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/graph/include -fsanitize=address\\,undefined -fno-omit-frame-pointer -fno-pie -pthread -fsyntax-only /run/xlang-graph-order-WfGQg5/gate/abi.c",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s ./release/xl build release/extlibs/graph/examples/from_json.xl -o /run/xlang-graph-order-WfGQg5/gate/aot-1",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s /run/xlang-graph-order-WfGQg5/gate/aot-1",
+        "stdout": {
+          "utf8Sha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+          "normalizedLfSha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+          "lines": 10,
+          "text": "dag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\n",
+          "firstLines": [
+            "dag=true",
+            "topo=parse>docs>check>emit"
+          ],
+          "lastLines": [
+            "scc=2; first-size=2",
+            "cycle=rejected"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s ./release/xl build release/extlibs/graph/test/weighted_records_c.c -o /run/xlang-graph-order-WfGQg5/gate/aot-2",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s /run/xlang-graph-order-WfGQg5/gate/aot-2",
+        "stdout": {
+          "utf8Sha256": "fbece7bc58f3bb293af0297ffa900f200050c41d6ce5299a0376e01369390809",
+          "normalizedLfSha256": "fbece7bc58f3bb293af0297ffa900f200050c41d6ce5299a0376e01369390809",
+          "lines": 1,
+          "text": "graph weighted records: 3072 cases, PASS\n",
+          "firstLines": [
+            "graph weighted records: 3072 cases, PASS"
+          ],
+          "lastLines": [
+            "graph weighted records: 3072 cases, PASS"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s /run/xlang-graph-order-WfGQg5/gate/aot-2 --records",
+        "stdout": {
+          "utf8Sha256": "0b7b95ff79eb754a4cc3c6e965d77c936e25cbea768aa05f037585112c76179e",
+          "normalizedLfSha256": "0b7b95ff79eb754a4cc3c6e965d77c936e25cbea768aa05f037585112c76179e",
+          "lines": 3072,
+          "text": "Large deterministic corpus omitted; committed generators reproduce it",
+          "firstLines": [
+            "0\t0\tok\t0000000000000000\t-\t-\t-\t-\t-",
+            "0\t1\tok\t-\t0000000000000000\t-\t-\t-\t-"
+          ],
+          "lastLines": [
+            "511\t4\tok\t43e0000000000000\t43e0040000000000\t7fefffffffffffff\t4340000000000000\t0000000000000000\t4340000000000000",
+            "511\t5\tok\t43f8000000000000\t43f8020000000000\t7fefffffffffffff\t3ff0000000000000\t43f0000000000000\t0000000000000000"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 60s python3 release/extlibs/graph/test/check_weighted_records.py /run/xlang-graph-order-WfGQg5/gate/weighted-aot.tsv",
+        "stdout": {
+          "utf8Sha256": "23653d2d195fd17d0bf16ed71a014dd3fffe5f12f7dd35fba2e8e117c5c9cc1e",
+          "normalizedLfSha256": "23653d2d195fd17d0bf16ed71a014dd3fffe5f12f7dd35fba2e8e117c5c9cc1e",
+          "lines": 1,
+          "text": "graph Bellman-Ford oracle: 3072 records, 123 range cases, PASS\n",
+          "firstLines": [
+            "graph Bellman-Ford oracle: 3072 records, 123 range cases, PASS"
+          ],
+          "lastLines": [
+            "graph Bellman-Ford oracle: 3072 records, 123 range cases, PASS"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s ./release/xl build release/extlibs/graph/test/ordered_records_c.c -o /run/xlang-graph-order-WfGQg5/gate/aot-3",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s /run/xlang-graph-order-WfGQg5/gate/aot-3",
+        "stdout": {
+          "utf8Sha256": "0be66034aece4d96873628b36eae2c5f75f0d4016934fdd3b12071423ba4a4a6",
+          "normalizedLfSha256": "0be66034aece4d96873628b36eae2c5f75f0d4016934fdd3b12071423ba4a4a6",
+          "lines": 1,
+          "text": "graph ordered records: 1152 graphs, 27776 records, PASS\n",
+          "firstLines": [
+            "graph ordered records: 1152 graphs, 27776 records, PASS"
+          ],
+          "lastLines": [
+            "graph ordered records: 1152 graphs, 27776 records, PASS"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s /run/xlang-graph-order-WfGQg5/gate/aot-3 --records",
+        "stdout": {
+          "utf8Sha256": "6b25c526638a870d9b8b74e274ceeb6458e73bdf07f1d506a7654e0a726321ff",
+          "normalizedLfSha256": "6b25c526638a870d9b8b74e274ceeb6458e73bdf07f1d506a7654e0a726321ff",
+          "lines": 27776,
+          "text": "Large deterministic corpus omitted; committed generators reproduce it",
+          "firstLines": [
+            "[0,0,\"dag\",-1,-1,true]",
+            "[0,0,\"topo\",-1,-1,[0,1,2]]"
+          ],
+          "lastLines": [
+            "[575,1,\"path\",3,2,\"value-error\"]",
+            "[575,1,\"path\",3,3,[3]]"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 60s python3 release/extlibs/graph/test/check_ordered_records.py /run/xlang-graph-order-WfGQg5/gate/ordered-aot.jsonl",
+        "stdout": {
+          "utf8Sha256": "bee9125af7f34b4ff90409f3288623aa73cff97f828085004b090ba3441bb281",
+          "normalizedLfSha256": "bee9125af7f34b4ff90409f3288623aa73cff97f828085004b090ba3441bb281",
+          "lines": 1,
+          "text": "graph ordered oracle: 1152 graphs, 27776 records, 4 negative controls PASS\n",
+          "firstLines": [
+            "graph ordered oracle: 1152 graphs, 27776 records, 4 negative controls PASS"
+          ],
+          "lastLines": [
+            "graph ordered oracle: 1152 graphs, 27776 records, 4 negative controls PASS"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s ./release/xl build release/extlibs/graph/examples/basic.c -o /run/xlang-graph-order-WfGQg5/gate/aot-4",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s /run/xlang-graph-order-WfGQg5/gate/aot-4",
+        "stdout": {
+          "utf8Sha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+          "normalizedLfSha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+          "lines": 10,
+          "text": "dag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\n",
+          "firstLines": [
+            "dag=true",
+            "topo=parse>docs>check>emit"
+          ],
+          "lastLines": [
+            "scc=2; first-size=2",
+            "cycle=rejected"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s gcc -std=c11 -O2 -Wall -Wextra -Werror -Irelease/include test/support/extlib_runtime_host.c /run/xlang-graph-order-WfGQg5/stage/release/libxl.so -Wl\\,-rpath\\,/run/xlang-graph-order-WfGQg5/stage/release -pthread -lm -ldl -o /run/xlang-graph-order-WfGQg5/gate/xl-host",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s /run/xlang-graph-order-WfGQg5/gate/xl-host /run/xlang-graph-order-WfGQg5/stage /run/xlang-graph-order-WfGQg5/stage/release/extlibs/graph/examples/from_json.xl",
+        "stdout": {
+          "utf8Sha256": "2b2df010e7b9a5354f0741e587595fa26c026cc5a531f1ff4ca76139e7a130df",
+          "normalizedLfSha256": "2b2df010e7b9a5354f0741e587595fa26c026cc5a531f1ff4ca76139e7a130df",
+          "lines": 30,
+          "text": "dag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\ndag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\ndag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\n",
+          "firstLines": [
+            "dag=true",
+            "topo=parse>docs>check>emit"
+          ],
+          "lastLines": [
+            "scc=2; first-size=2",
+            "cycle=rejected"
+          ]
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s gcc -std=c11 -O2 -Wall -Wextra -Werror -Irelease/include test/support/extlib_runtime_host.c /run/xlang-graph-order-WfGQg5/stage/release/libxlc.so -Wl\\,-rpath\\,/run/xlang-graph-order-WfGQg5/stage/release -pthread -lm -ldl -o /run/xlang-graph-order-WfGQg5/gate/xlc-host",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      },
+      {
+        "exitCode": 0,
+        "stderr": "",
+        "command": "$ timeout 120s /run/xlang-graph-order-WfGQg5/gate/xlc-host /run/xlang-graph-order-WfGQg5/stage /run/xlang-graph-order-WfGQg5/stage/release/extlibs/graph/examples/from_json.xl",
+        "stdout": {
+          "utf8Sha256": "2b2df010e7b9a5354f0741e587595fa26c026cc5a531f1ff4ca76139e7a130df",
+          "normalizedLfSha256": "2b2df010e7b9a5354f0741e587595fa26c026cc5a531f1ff4ca76139e7a130df",
+          "lines": 30,
+          "text": "dag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\ndag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\ndag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\n",
+          "firstLines": [
+            "dag=true",
+            "topo=parse>docs>check>emit"
+          ],
+          "lastLines": [
+            "scc=2; first-size=2",
+            "cycle=rejected"
+          ]
+        }
+      },
+      {
+        "exitCode": 1,
+        "stderr": "uncaught xlang error: ValueError: graph edges must be an array\nuncaught xlang error: graph edges must be an array\n",
+        "command": "$ timeout 120s ./release/xl run test/cases/extlib_graph.xl",
+        "stdout": {
+          "utf8Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalizedLfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "lines": 0,
+          "text": "",
+          "firstLines": [],
+          "lastLines": []
+        }
+      }
+    ]
+  },
+  "preserved": {
+    "floydGraphs": 128,
+    "actualOomPoints": 218,
+    "threadWorkers": 4,
+    "threadRoundsPerWorker": 1000,
+    "bellmanFordRecords": 3072,
+    "floatRangeCases": 123,
+    "realGeneratedPrototypes": 9,
+    "bilingualGoldenLines": 10,
+    "dllAndSoKinds": 2,
+    "contextSequentialRounds": 3,
+    "contextGoldenLines": 30,
+    "originalLiteralPositiveStillMandatory": true,
+    "jsonExampleDoesNotCloseProjectionDefect": true,
+    "notReachedAfterCentralM1": [
+      "Original language boundaries/allocations/literal examples and their AOT",
+      "Later full cgen and boundary DLL reuse",
+      "Additional shared string checks"
+    ]
+  },
+  "sharedBoundary": {
+    "id": "M1",
+    "minimalSource": "dev/extlib_blockers/graph_var_array_projection.xl",
+    "windowsRecheck": [
+      {
+        "name": "check",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "ok\n",
+          "stderr": "",
+          "elapsedMs": 52
+        }
+      },
+      {
+        "name": "run",
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: ValueError: graph edges must be an array\nuncaught xlang error: graph edges must be an array\n",
+          "elapsedMs": 217
+        }
+      },
+      {
+        "name": "build",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 354
+        }
+      },
+      {
+        "name": "aot",
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "uncaught xlang error: ValueError: graph edges must be an array\n",
+          "elapsedMs": 30
+        }
+      }
+    ],
+    "linuxEvidence": "Default gate original central literal case still fails; no separate Linux minimal JIT/AOT recheck claimed",
+    "advice": "Fix foreign var container projection and ownership/OOM centrally; do not recognize compiler-private handles or serialize input in graph",
+    "packageState": "M; not release-ready"
+  },
+  "source": {
+    "unchangedProduction": [
+      {
+        "path": "release/extlibs/graph/graph_native.c",
+        "gitBlob": "28fdf558279be8f7fd50c37e9f2fb6157b29cfa7",
+        "sha256": "244f2732fd9e691b8774f01c1d7d6d1d97d987f66681766603549b51a7fc0cac"
+      },
+      {
+        "path": "release/extlibs/graph/graph_traversal.c",
+        "gitBlob": "7b89086fa4fca872fba7b1132f9a34fd30746755",
+        "sha256": "e397a5b4ccb1e7354fdaca0bea6bf4962bbf3c5970a82b2e02b2d79879726a8a"
+      },
+      {
+        "path": "release/extlibs/graph/graph_components.c",
+        "gitBlob": "9db7a8c14f277465149e777a03ef5eb55da1e2f3",
+        "sha256": "bd5d0813ba6b5c3882684026f449e263863ea0b0c0dba0a98fc7aa2c413e9113"
+      },
+      {
+        "path": "release/extlibs/graph/graph_distance.c",
+        "gitBlob": "fd931cbb4170c66a87561395fc5fb473073df19c",
+        "sha256": "2d5979eedb56108708e789b176d43bd5c94ce0cd202511f580d79c5426710e7f"
+      },
+      {
+        "path": "release/extlibs/graph/graph_internal.h",
+        "gitBlob": "444f0aedd718c3791f5f936f6efc4ad6bcec0fb5",
+        "sha256": "f3431c8ac1f383ffe8e662e6942e70e0a245d58026a0c112ae55d71314ab8d1d"
+      },
+      {
+        "path": "release/extlibs/graph/include/graph.h",
+        "gitBlob": "336aea87e7f819a95431723db26c9774dbffd118",
+        "sha256": "1f02abe5bb00304c42c646613cc812026d330a4f112af77e6c493c3d0c733aaa"
+      },
+      {
+        "path": "release/extlibs/graph/src/graph.xl",
+        "gitBlob": "b1b9a47264b2dd7bb2c73fc3a4522635eefae2c7",
+        "sha256": "ba4bd82545efc425844825d6bcfccaeb328e444fef399613f36aa6a4d6580959"
+      },
+      {
+        "path": "release/extlibs/graph/xlang.package.json",
+        "gitBlob": "a57cf0b469818c2d640124616fe843fbf303da92",
+        "sha256": "2fed2cc02c52774a3aedd1ca9c284d8a1db95691ecbf7c63d64c65b020705c97"
+      }
+    ],
+    "postWindowsGateDelta": [
+      {
+        "path": "release/extlibs/graph/docs/site.html",
+        "reason": "Dated verification text finalized after gate",
+        "before": "20ec5f43c08e00e24596b24576948710014915af373a0b713b06ed4d7a0fe744",
+        "after": "a151797299fcc0663ed3822c6cb4f762288999bc718c9b35d97b9100a01f9e8c"
+      },
+      {
+        "path": "tools/check_extlib_graph.sh",
+        "reason": "Linux-only cc1 phase bookkeeping corrected; complete Linux gate rerun; Windows does not execute this script",
+        "before": "3fe75ab2c3b98c49bde34b2e48409a44aa900ae874fc6f02c6167419be418596",
+        "after": "2ea7a37454ac5a13e6089e7d2b0d7cede052e8edef84d4de823e62f937fd0250"
+      }
+    ],
+    "postWindowsGateAddedDocuments": [
+      "release/extlibs/graph/ORDER_AUDIT_2026-11-02.md",
+      "release/extlibs/graph/examples/README.md"
+    ],
+    "executedCodeChangedAfterRespectivePlatformGates": false
+  },
+  "costs": {
+    "productionChanges": 0,
+    "productionOptimizationsClaimed": 0,
+    "throughputMeasured": false,
+    "note": "Test-only result retention increases test peak memory; do not present it as new runtime overhead or a zero-overhead proof"
+  },
+  "website": {
+    "source": "release/extlibs/graph/docs/site.html",
+    "sha256": "a151797299fcc0663ed3822c6cb4f762288999bc718c9b35d97b9100a01f9e8c",
+    "generatedSha256": "a151797299fcc0663ed3822c6cb4f762288999bc718c9b35d97b9100a01f9e8c",
+    "deployedExternally": false
+  },
+  "catalog": {
+    "generation": {
+      "status": "passed",
+      "catalogSha256": "17975dde1fb51b4db293be1b5db7978b4286b55be9d94da984699d47a1b8b58c",
+      "sourceIndexSha256": "f8160c4d2b668370ea8e2fb0e0f3723ca0b2e00ea3d1c98d951eef002467666f",
+      "preservedNonExtensionEntries": 6156,
+      "publicPackages": 207,
+      "excludedPrivate": [
+        "_bzip2",
+        "_expat",
+        "_libzip",
+        "_tomlc17",
+        "_xge_native",
+        "_zlib"
+      ],
+      "extensionEntries": 11442,
+      "addedEntries": 0,
+      "removedEntries": 0,
+      "documents": 145,
+      "availableSources": 593,
+      "extensionExporterSha256": "5d6f5ec0c5c22c5b55060b6ad86ae76c5a66f54939cd44cb1912850e95046a42",
+      "inputsUnchanged": true
+    },
+    "checks": [
+      {
+        "name": "candidate-check",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "{\"status\": \"current\", \"packages\": 207, \"extensionEntries\": 11442}\r\n",
+          "stderr": "",
+          "elapsedMs": 1017
+        }
+      },
+      {
+        "name": "candidate-coverage",
+        "result": {
+          "status": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "Catalog compiler changed: xl.dll\r\n",
+          "elapsedMs": 328
+        }
+      },
+      {
+        "name": "committed-release",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "{\"status\": \"passed\", \"products\": 9, \"dataFiles\": 600, \"committedExactFiles\": 609}\r\n",
+          "stderr": "",
+          "elapsedMs": 1006
+        }
+      }
+    ],
+    "installed": false,
+    "reason": "Strict compiler binding still reports Catalog compiler changed: xl.dll; no mainline rebuild or forged metadata"
+  },
+  "invalidAttempts": [
+    "First Python reference draft used an assignment expression inside a comprehension iterable; it raised SyntaxError and was not counted; rewritten to direct loops before both final gates",
+    "Initial Linux cc1 query ran in command substitution: its sequence increment did not persist, causing 49 command entries but 48 numbered phase files; changed to parent-shell run plus cc1.txt read, reran full Linux gate and require 49 matching phase records"
+  ],
+  "maturity": {
+    "packages": 100,
+    "G": 30,
+    "R": 10,
+    "M": 56,
+    "X": 4,
+    "goalActive": true,
+    "entireQueueComplete": false
+  },
+  "finalPackageFiles": [
+    {
+      "path": "release/extlibs/graph/docs/site.html",
+      "bytes": 10588,
+      "sha256": "a151797299fcc0663ed3822c6cb4f762288999bc718c9b35d97b9100a01f9e8c"
+    },
+    {
+      "path": "release/extlibs/graph/examples/basic.c",
+      "bytes": 4254,
+      "sha256": "cd65ff5929f5a4f036b3189dd5e84be02c71f24f2f93184cbf38ce023a6c4f9f"
+    },
+    {
+      "path": "release/extlibs/graph/examples/from_json.xl",
+      "bytes": 1321,
+      "sha256": "ab8721bf1bf67a171dc9f05221f7d205e0ac57d059e98ae1db914bf92388f1d9"
+    },
+    {
+      "path": "release/extlibs/graph/examples/README.md",
+      "bytes": 1758,
+      "sha256": "25a3074127e9b6c558c252b50126d607e8483f48909da25f45793828658f3cb2"
+    },
+    {
+      "path": "release/extlibs/graph/graph_components.c",
+      "bytes": 3423,
+      "sha256": "bd5d0813ba6b5c3882684026f449e263863ea0b0c0dba0a98fc7aa2c413e9113"
+    },
+    {
+      "path": "release/extlibs/graph/graph_distance.c",
+      "bytes": 3795,
+      "sha256": "2d5979eedb56108708e789b176d43bd5c94ce0cd202511f580d79c5426710e7f"
+    },
+    {
+      "path": "release/extlibs/graph/graph_internal.h",
+      "bytes": 939,
+      "sha256": "f3431c8ac1f383ffe8e662e6942e70e0a245d58026a0c112ae55d71314ab8d1d"
+    },
+    {
+      "path": "release/extlibs/graph/graph_native.c",
+      "bytes": 7313,
+      "sha256": "244f2732fd9e691b8774f01c1d7d6d1d97d987f66681766603549b51a7fc0cac"
+    },
+    {
+      "path": "release/extlibs/graph/graph_traversal.c",
+      "bytes": 3480,
+      "sha256": "e397a5b4ccb1e7354fdaca0bea6bf4962bbf3c5970a82b2e02b2d79879726a8a"
+    },
+    {
+      "path": "release/extlibs/graph/include/graph.h",
+      "bytes": 1547,
+      "sha256": "1f02abe5bb00304c42c646613cc812026d330a4f112af77e6c493c3d0c733aaa"
+    },
+    {
+      "path": "release/extlibs/graph/ORDER_AUDIT_2026-11-02.md",
+      "bytes": 4589,
+      "sha256": "33ef44d46ce7eda88ef60435f90d68f6f1dd0f4c3f0d5ca4d08d5220d30a1d1b"
+    },
+    {
+      "path": "release/extlibs/graph/README.md",
+      "bytes": 17493,
+      "sha256": "250933963d1536e5904122e977834ccc042fb18d01807b561021881dff2f838b"
+    },
+    {
+      "path": "release/extlibs/graph/src/graph.xl",
+      "bytes": 1785,
+      "sha256": "ba4bd82545efc425844825d6bcfccaeb328e444fef399613f36aa6a4d6580959"
+    },
+    {
+      "path": "release/extlibs/graph/test/allocations.xl",
+      "bytes": 2543,
+      "sha256": "0106cfc3c1cb13794ddfed595c379d24a5264046f260e5a0d5f0fdbc1656b6bd"
+    },
+    {
+      "path": "release/extlibs/graph/test/boundaries.xl",
+      "bytes": 4582,
+      "sha256": "906e6514dd15be42ecd66d00cca3db103faec24cb9521c6bad32f73236c3eac1"
+    },
+    {
+      "path": "release/extlibs/graph/test/check_c.ps1",
+      "bytes": 2290,
+      "sha256": "912fa917c94b5c34b35b9920c7c88cdc5708f52f2cb316211f44c2f66d3709d8"
+    },
+    {
+      "path": "release/extlibs/graph/test/check_ordered_records.py",
+      "bytes": 6702,
+      "sha256": "43e6edd08fed79280a0f353e0e2d05f8f3949ad63acb9305f5170a7615b57fce"
+    },
+    {
+      "path": "release/extlibs/graph/test/check_weighted_records.py",
+      "bytes": 3368,
+      "sha256": "18ecedbf8f20e82c26de018576d3732546f9e532622c4e87d2cc169cc0ba5704"
+    },
+    {
+      "path": "release/extlibs/graph/test/check.sh",
+      "bytes": 153,
+      "sha256": "ae53a6efc536be5a0ad5557907b0574d54cc353f3bd3195c4a99e52893e45ea9"
+    },
+    {
+      "path": "release/extlibs/graph/test/graph_test.h",
+      "bytes": 1963,
+      "sha256": "eb749d965f014d77563cff2f725481c1f158ca6ed86c6e721be2c6c399be5146"
+    },
+    {
+      "path": "release/extlibs/graph/test/manifest_probe.c",
+      "bytes": 859,
+      "sha256": "1746e09f352f02b55fd3f8ed6ecc255b42fe72d4eafeadcc716d87dcb00dcd58"
+    },
+    {
+      "path": "release/extlibs/graph/test/ordered_records_c.c",
+      "bytes": 7548,
+      "sha256": "e8ce1ccd03643a0f82a16bd78f646f23924238e76ad389e9747c0f2a2e32c142"
+    },
+    {
+      "path": "release/extlibs/graph/test/test_graph_alloc.c",
+      "bytes": 1800,
+      "sha256": "16cf24e25af3fc04f22f42e231d26850c8d08e1c5364ee9a541cf44b662fd30d"
+    },
+    {
+      "path": "release/extlibs/graph/test/test_graph_threads.c",
+      "bytes": 2059,
+      "sha256": "a558c5e47163ac3e06f745145737aacbb37907d7d8aa184433675e4fd1c92919"
+    },
+    {
+      "path": "release/extlibs/graph/test/test_graph.c",
+      "bytes": 11948,
+      "sha256": "652065a79848f470f6da7d65607c44aef634c157ee1779294b7df75244ef1ffd"
+    },
+    {
+      "path": "release/extlibs/graph/test/weighted_records_c.c",
+      "bytes": 5407,
+      "sha256": "150096c748ffe6fc803ffdd7259022359987917a1c71d317c4c90b00453de365"
+    },
+    {
+      "path": "release/extlibs/graph/xlang.package.json",
+      "bytes": 675,
+      "sha256": "2fed2cc02c52774a3aedd1ca9c284d8a1db95691ecbf7c63d64c65b020705c97"
+    }
+  ]
+}

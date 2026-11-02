@@ -33,6 +33,7 @@
     <div class="extlib-title-row"><h1>graph</h1><span class="extlib-cat-badge">图算法</span></div>
     <p class="extlib-lead">用边数组表示依赖、流程和连接关系。提供拓扑排序、遍历、强弱连通分量及距离计算，C 与 xlang 使用同一套 XRT 存储和算法。</p>
     <p>当前发布版中，合法的 XLang <code>var</code> 边数组传给原生图函数仍可能被误判为非数组；已登记最小复现并等待共享容器投影修复。C 原生算法测试通过不代表语言入口已签收发布级。</p>
+    <p>2026-11-02：未确认新的生产算法错误。新增1152张图、27776条九API完整结果，以独立简单路径及拓扑排列枚举核对稳定顺序；四种成员合法但顺序错误的负控全部拒绝。保留所有结果并释放输入后验证完整名字及七项内存指标。两平台GCC/TCC/C独立程序结果一致，Linux含ASan/UBSan；旧128图、218分配失败点、线程、九原型、双语范例与DLL/SO复用仍过。默认Windows/Linux均49阶段前48项通过，末项仍为M1；Windows最小源check/build为0、JIT/AOT为1，整包不签收。见包内 <code>ORDER_AUDIT_2026-11-02.md</code> 及 <code>examples/README.md</code>，不修改生产算法或承诺吞吐提升。</p>
     <p>2026-10-30：未确认新的算法错误，四个算法单元不改。新增3072条float64加权记录，以独立Bellman-Ford逐边松弛及独立可达性核对，123条RangeError；包含次正规数、负零、极大值、整数转换、堆降距与溢出后的有限替代路径，不是任意精度距离认证。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="input">
