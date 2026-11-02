@@ -139,7 +139,7 @@ static xls_entity_view* xlsIndexEntitiesBuild(const XL6_IndexBuild* b,xls_module
  xls_entity_scope scopes[257]={{0}};size_t depth=0;
  for(size_t i=0;okay && i<b->count;++i){
   if(!(i%64) && xlsFrontendCancelPoll()){okay=0;break;}
-  const XL6_IndexFact* f=&b->facts[i];const XL6_AstNode* n=f->node;
+  const XL6_IndexFact* f=xlsIndexFactAt(b,i);const XL6_AstNode* n=f->node;
   while(depth && scopes[depth-1].fact!=f->parent)--depth;
   if((f->parent && !depth) || depth>=256){okay=0;break;}
   const xls_entity_scope* parent=depth ? &scopes[depth-1] : NULL;xls_entity_scope current={.fact=(unsigned)i+1,.node=n,.outer=parent ? parent->children : 0,.children=parent ? parent->children : 0,.function=parent ? parent->function : 0,.body=parent ? parent->body : 0,.blocked=parent ? parent->blocked : 0};

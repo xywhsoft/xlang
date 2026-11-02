@@ -1,6 +1,7 @@
 #ifndef XLANG_ANALYSIS_FRONTEND_INDEX_H
 #define XLANG_ANALYSIS_FRONTEND_INDEX_H
 #include "analysis/index.h"
+#include "analysis/frontend_function_index.h"
 #include "src/sem/xl6_sem_index.h"
 /* Private frontend boundary. Implemented in the existing collector's
  * translation unit, so collection and identity rules have one owner. */

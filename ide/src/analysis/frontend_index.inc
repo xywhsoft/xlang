@@ -11,7 +11,8 @@ void xlsFrontendIndexDestroy(xls_semantic_index* index)
 {
     if(!index) return;
     XL6_IndexBuild* b=&index->build;
-    if(b->facts) for(size_t i=0;i<b->count;++i) xrtFree(b->facts[i].canonical);
+    if(b->storage){xlsIndexStorageParentRelease(b->storage);b->facts=NULL;}
+    else if(b->facts) for(size_t i=0;i<b->count;++i) xrtFree(b->facts[i].canonical);
     xrtFree(b->facts); xrtFree(b->sources); xlsEntityViewRelease(index->entities);xlsModuleGraphRelease(index->modules);xrtFree(index);
 }
 void xlsFrontendIndexAttachModules(xls_semantic_index* index,xls_module_graph* graph)
@@ -22,7 +23,7 @@ int xlsSemanticIndexEntityFact(const xls_semantic_index* index,size_t at,xls_ent
 {
     if(out)*out=(xls_entity_fact){0};
     if(!index || !out || at>=index->build.count)return 0;
-    const XL6_IndexFact* f=&index->build.facts[at];const XL6_AstNode* n=f->node;const xls_entity_view* v=index->entities;
+    const XL6_IndexFact* f=xlsIndexFactAt(&index->build,at);const XL6_AstNode* n=f->node;const xls_entity_view* v=index->entities;
     *out=(xls_entity_fact){xlsEntityViewSymbol(v,n->semanticDeclaredSymbolId),xlsEntityViewSymbol(v,n->semanticSymbolId),xlsEntityViewSymbol(v,n->semanticTargetSymbolId),xlsEntityViewSymbol(v,n->semanticCompoundOperatorSymbolId),xlsEntityViewType(v,f->declaredType),xlsEntityViewType(v,f->referencedType),xlsEntityViewType(v,n->semanticTypeId),xlsEntityViewType(v,f->type ? f->type->semanticTypeId : 0)};return 1;
 }
 const xls_module_graph* xlsSemanticIndexModules(const xls_semantic_index* index)
@@ -41,6 +42,7 @@ xls_semantic_index* xlsFrontendIndexCreate(const XL6_AstNode* root,
         if(!root || !report || !report->complete) failure="semantic index requires a complete checked source report";
         else {
             if(xl6IndexBudget(b,sizeof(*index)+1024)) {
+                    b->storage=xlsIndexStorageCreate(b);
                     xls_type_alias_scope aliases;
                     xlsFrontendTypeAliasBegin(&aliases,root,8u*1024u*1024u);
                     XL6_IndexBuild* previous=xlsTypedIndexBuild; xlsTypedIndexBuild=b;
@@ -62,10 +64,10 @@ int xlsFrontendIndexFunctionSpan(const xls_semantic_index* index,const XL6_AstNo
     if(count)*count=0;
     if(!index || !root || !first || !count)return 0;
     const XL6_IndexBuild* b=&index->build;
-    for(size_t i=0;i<b->count;++i)if(b->facts[i].node==root){
+    for(size_t i=0;i<b->count;++i)if(xlsIndexFactAt(b,i)->node==root){
         size_t end=i+1;unsigned id=(unsigned)i+1;
-        while(end<b->count && b->facts[end].parent>=id){
-            if(b->facts[end].parent> end)return 0;
+        while(end<b->count && xlsIndexFactAt(b,end)->parent>=id){
+            if(xlsIndexFactAt(b,end)->parent> end)return 0;
             ++end;
         }
         *first=i;*count=end-i;return 1;
@@ -90,38 +92,47 @@ static xls_index_range xlsFrontendRange(const XL6_SourceReport* report,
     return (xls_index_range){range->startOffset,range->endOffset,range->startLine,
         range->startColumn,range->endLine,range->endColumn,1};
 }
-int xlsSemanticIndexFact(const xls_semantic_index* index,size_t at,xls_index_fact* out)
+static void xlsFrontendFactValues(const XL6_IndexFact* f,unsigned id,xls_index_fact* out)
 {
-    if(!index || !out || at>=index->build.count) return 0;
-    const XL6_IndexBuild* b=&index->build;
-    const XL6_IndexFact* f=&b->facts[at]; const XL6_AstNode* n=f->node;
+    const XL6_AstNode* n=f->node;
     *out=(xls_index_fact){.kind=xl6AstKindName(n->kind),.canonical=f->canonical,
-        .id=(unsigned)at+1,.parent=f->parent,.source=f->source,.selectionSource=f->selectionSource,
+        .id=id,.parent=f->parent,.source=f->source,.selectionSource=f->selectionSource,
         .declaredSymbol=n->semanticDeclaredSymbolId,.symbol=n->semanticSymbolId,
         .targetSymbol=n->semanticTargetSymbolId,.compoundOperatorSymbol=n->semanticCompoundOperatorSymbolId,
         .declaredType=f->declaredType,.referencedType=f->referencedType,
         .typeId=n->semanticTypeId,.typeAbi=n->semanticTypeAbiId,
         .typeObjectId=f->type ? f->type->semanticTypeId : 0,
         .typeObjectAbi=f->type ? f->type->semanticTypeAbiId : 0,
-        .typeOrigin=!f->type ? 0 : n->semanticDeclaredType ? 1 : n->inferredType ? 2 : 3,
-        .range=xlsFrontendRange(b->report,f->source,&n->range),
-        .tokenRange=xlsFrontendRange(b->report,f->source,&n->tokenRange),
-        .selectionRange=xlsFrontendRange(b->report,f->selectionSource,f->selection ? &f->selection->tokenRange : NULL)};
+        .typeOrigin=!f->type ? 0 : n->semanticDeclaredType ? 1 : n->inferredType ? 2 : 3};
+}
+int xlsSemanticIndexFact(const xls_semantic_index* index,size_t at,xls_index_fact* out)
+{
+    if(!index || !out || at>=index->build.count)return 0;
+    const XL6_IndexBuild* b=&index->build;const XL6_IndexFact* f=xlsIndexFactAt(b,at);const XL6_AstNode* n=f->node;
+    xlsFrontendFactValues(f,(unsigned)at+1,out);
+    out->range=xlsFrontendRange(b->report,f->source,&n->range);
+    out->tokenRange=xlsFrontendRange(b->report,f->source,&n->tokenRange);
+    out->selectionRange=xlsFrontendRange(b->report,f->selectionSource,f->selection ? &f->selection->tokenRange : NULL);
     return 1;
+}
+static enum xls_index_point_kind xlsFrontendPointKind(XL6_AstKind kind)
+{
+    switch(kind){
+#define XLS_INDEX_NATIVE_KIND(name,text) case XL6_AST_##name:return XLS_INDEX_POINT_##name;
+        XLS_INDEX_POINT_NATIVE_KINDS(XLS_INDEX_NATIVE_KIND)
+#undef XLS_INDEX_NATIVE_KIND
+#ifdef XLS_NATIVE_AST_C_RECORD
+        case XL6_AST_C_RECORD:return XLS_INDEX_POINT_C_RECORD;
+#endif
+        default:return XLS_INDEX_POINT_OTHER;
+    }
 }
 int xlsSemanticIndexPointFact(const xls_semantic_index* index,size_t at,xls_index_point_fact* out)
 {
     if(!out)return 0;
     *out=(xls_index_point_fact){0};
     if(!xlsSemanticIndexFact(index,at,&out->fact))return 0;
-    switch(index->build.facts[at].node->kind){
-#define XLS_INDEX_NATIVE_KIND(name,text) case XL6_AST_##name:out->kind=XLS_INDEX_POINT_##name;break;
-        XLS_INDEX_POINT_NATIVE_KINDS(XLS_INDEX_NATIVE_KIND)
-#undef XLS_INDEX_NATIVE_KIND
-#ifdef XLS_NATIVE_AST_C_RECORD
-        case XL6_AST_C_RECORD:out->kind=XLS_INDEX_POINT_C_RECORD;break;
-#endif
-        default:out->kind=XLS_INDEX_POINT_OTHER;break;
-    }
+    out->kind=xlsFrontendPointKind(xlsIndexFactAt(&index->build,at)->node->kind);
     return 1;
 }
+#include "analysis/frontend_function_index.inc"

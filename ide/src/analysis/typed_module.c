@@ -41,6 +41,7 @@ void xlsTypedFunctionRelease(xls_typed_function* f)
 }
 const XL6_AstNode* xlsTypedFunctionRoot(const xls_typed_function* f){return f ? f->root : NULL;}
 size_t xlsTypedFunctionMetadataBytes(const xls_typed_function* f){return f ? f->forest->bytes : 0;}
+size_t xlsTypedFunctionRootSlot(const xls_typed_function* f){return f ? (size_t)(f-f->forest->functions) : SIZE_MAX;}
 xls_typed_function* xlsTypedModuleFunction(const xls_typed_module* module,size_t slot)
 {
     xls_typed_forest* forest=module ? module->forest : NULL;

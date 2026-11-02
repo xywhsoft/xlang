@@ -16,6 +16,8 @@ const XL6_AstNode* xlsTypedFunctionRoot(const xls_typed_function*);
 /* Known metadata shared by siblings;conservatively charge it in FULL to a
  * retained function. Native XRT pool backing is outside this local count. */
 size_t xlsTypedFunctionMetadataBytes(const xls_typed_function*);
+/* Original module child slot;SIZE_MAX for NULL. Ownership identity only. */
+size_t xlsTypedFunctionRootSlot(const xls_typed_function*);
 /* Optional independent owner identity. Borrowed while the module lives;
  * retain it to compare owners after a module/root is destroyed. It retains
  * neither the AST nor a module/check and cannot prove input freshness.

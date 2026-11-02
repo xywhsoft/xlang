@@ -87,7 +87,7 @@ static void xlsEntityVersionsBuild(xls_entity_view* view,const XL6_IndexBuild* b
   * This collects declaration candidates;it never binds a reference by name. */
  for(size_t i=0;i<b->count;++i){
   if(!(i%64) && xlsFrontendCancelPoll())goto done;
-  const XL6_IndexFact* f=&b->facts[i];const XL6_AstNode* n=f->node;const XL6_AstNode* name=xlsEntityCallable(n) && n->childCount ? n->children[0] : NULL;
+  const XL6_IndexFact* f=xlsIndexFactAt(b,i);const XL6_AstNode* n=f->node;const XL6_AstNode* name=xlsEntityCallable(n) && n->childCount ? n->children[0] : NULL;
   if(!name || !name->semanticSymbolId || !xlsEntityViewSymbol(view,name->semanticSymbolId))continue;
   xstrbuf key={0};if(!xlsEntityVersionGroupKey(&key,f)){xrtStrBufFree(&key);goto done;}
   xbytesview bytes={(const unsigned char*)key.Data,key.Size};uint32_t* old=xrtMapGet(&groups,bytes);int okay=1;
@@ -97,8 +97,8 @@ static void xlsEntityVersionsBuild(xls_entity_view* view,const XL6_IndexBuild* b
  }
  for(size_t i=0;i<b->count;++i){
   if(!(i%64) && xlsFrontendCancelPoll())goto done;
-  const XL6_IndexFact* f=&b->facts[i];const XL6_AstNode* n=f->node;
-  const XL6_AstNode* parent=f->parent && f->parent<=b->count ? b->facts[f->parent-1].node : NULL;
+  const XL6_IndexFact* f=xlsIndexFactAt(b,i);const XL6_AstNode* n=f->node;
+  const XL6_AstNode* parent=f->parent && f->parent<=b->count ? xlsIndexFactAt(b,f->parent-1)->node : NULL;
   int groupName=n->kind==XL6_AST_NAME && parent && xlsEntityCallable(parent) && parent->childCount && parent->children[0]==n;
   /* Later overload NAMEs may reference the existing group without declaring
    * it again. Observe every callable's actual bound NAME, not just the one
