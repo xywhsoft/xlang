@@ -1,5 +1,13 @@
 # volc.phone 的 HTTP 导入链阻断
 
+2026-11-02 当前发布物再次检查最小导入，仍在 `xhttp.client` 的
+889/903行构造重载、946/969行 `NetEngine.nativeHandle`、956/963行
+`TlsConfig` 报错；`volc.core` 源入口和 `volc.sts` 公开范例检查同样失败。
+三包仍按XHTTP暂停完整调用链，不改独立维护的HTTP包，也不把已可检查的
+离线响应分片当成整包通过。当前命令、原始输出、工具身份与恢复条件见
+[`本轮复验`](../../docs/reports/extlib-volc-import-recheck-20261102.json)
+及 [`共同阻断`](volc_core_import_chain.md)。下文带日期的记录保留原貌。
+
 2026-10-26 当前发布物复验：从 `release` 分别执行
 `./xl.exe check ../dev/extlib_blockers/volc_phone_import_chain.xl`、
 `./xl.exe check extlibs/volc.core/src/volc_core.xl`，
