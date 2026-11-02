@@ -1,0 +1,82 @@
+{
+  "scope": "Exact historical source aliases only;not active implementation",
+  "files": [
+    {
+      "role": "previous-frontend-build",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\build_lsp_core.py",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-typed-function-ownership-20261102\\previous-ide-inputs\\ide\\tools\\build_lsp_core.py",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-typed-function-history-20261102\\previous-frontend-build\\ide\\tools\\build_lsp_core.py",
+      "sha256": "5a5b0de1107dadf9d06ef8a110c2f5de2837a48fc100c71f0e7eb964bee32856"
+    },
+    {
+      "role": "previous-frontend-build",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module_internal.h",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-typed-function-ownership-20261102\\previous-ide-inputs\\ide\\src\\analysis\\typed_module_internal.h",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-typed-function-history-20261102\\previous-frontend-build\\ide\\src\\analysis\\typed_module_internal.h",
+      "sha256": "0188d2a7b47bc7d3c53a7a5e9342a3b94a73be5275995a2b076b89e0f1f08980"
+    },
+    {
+      "role": "previous-frontend-build",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module.h",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-typed-function-ownership-20261102\\previous-ide-inputs\\ide\\src\\analysis\\typed_module.h",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-typed-function-history-20261102\\previous-frontend-build\\ide\\src\\analysis\\typed_module.h",
+      "sha256": "83e0c87ec7cd991786a92154a0f28ffeca15aea1c250ad9b4c2ae02da6060b51"
+    },
+    {
+      "role": "previous-frontend-build",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\ast_clone.c",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-typed-function-ownership-20261102\\previous-ide-inputs\\ide\\src\\analysis\\ast_clone.c",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-typed-function-history-20261102\\previous-frontend-build\\ide\\src\\analysis\\ast_clone.c",
+      "sha256": "6a63e4e206295189c721d51e44a29da3b44665e96a26a19492e52b46018c6fd5"
+    },
+    {
+      "role": "previous-frontend-build",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\function_unit.c",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-typed-function-ownership-20261102\\previous-ide-inputs\\ide\\src\\analysis\\function_unit.c",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-typed-function-history-20261102\\previous-frontend-build\\ide\\src\\analysis\\function_unit.c",
+      "sha256": "bb213ced03be53c0f90860ae99ad8101211095f56c33dbc64054b8d9d97a73c2"
+    },
+    {
+      "role": "previous-frontend-build",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\function_unit_internal.h",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-typed-function-ownership-20261102\\previous-ide-inputs\\ide\\src\\analysis\\function_unit_internal.h",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-typed-function-history-20261102\\previous-frontend-build\\ide\\src\\analysis\\function_unit_internal.h",
+      "sha256": "368cd1e5794d7912a22c3f7c517ab218d047d002aaf22ec6b5c86f4df2f3e8cd"
+    },
+    {
+      "role": "previous-frontend-build",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\function_unit.h",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-typed-function-ownership-20261102\\previous-ide-inputs\\ide\\src\\analysis\\function_unit.h",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-typed-function-history-20261102\\previous-frontend-build\\ide\\src\\analysis\\function_unit.h",
+      "sha256": "495d1022cc3f772c213c0cab875237cbfbe26e5f38023cd22b1dfdf1796b72ed"
+    },
+    {
+      "role": "previous-frontend-build",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\typed_module.c",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-typed-function-ownership-20261102\\previous-ide-inputs\\ide\\src\\analysis\\typed_module.c",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-typed-function-history-20261102\\previous-frontend-build\\ide\\src\\analysis\\typed_module.c",
+      "sha256": "25ec36cb76c5276e9763d659b1160e5ac54054fadfb9f897e2eaaac6e0a59fef"
+    },
+    {
+      "role": "previous-frontend-build",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\src\\analysis\\check.c",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-typed-function-ownership-20261102\\previous-ide-inputs\\ide\\src\\analysis\\check.c",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-typed-function-history-20261102\\previous-frontend-build\\ide\\src\\analysis\\check.c",
+      "sha256": "861397f2ea3a6f54373e82d5e140c49b839731b2316b9584e9401ca6f0d5ebc3"
+    },
+    {
+      "role": "focused-v1-inputs",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tests\\analysis_typed_function_test.c",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-typed-function-ownership-20261102\\focused-v1-inputs\\analysis_typed_function_test.c",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-typed-function-history-20261102\\focused-v1-inputs\\ide\\tests\\analysis_typed_function_test.c",
+      "sha256": "836d8a8efde67a27f54784ee5f62a6c11397b17c63a294e16917ed702d8b9ccb"
+    },
+    {
+      "role": "omissions-v1-inputs",
+      "recordedPath": "D:\\GIT\\x-lang\\ide\\tools\\check_typed_function_ownership.py",
+      "recordedArchivePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-typed-function-ownership-20261102\\omissions-v1-inputs\\check_typed_function_ownership.py",
+      "archivePath": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-typed-function-history-20261102\\omissions-v1-inputs\\ide\\tools\\check_typed_function_ownership.py",
+      "sha256": "75388944d96d6fb00d04f7ef45feb46a581cce24158153a4821c4140e87d7106"
+    }
+  ]
+}

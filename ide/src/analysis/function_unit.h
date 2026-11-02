@@ -51,10 +51,14 @@ typedef struct xls_function_source {
  * Count has no I/O/allocation and rejects known-invalid/error results.
  * Capture validates the owner before/after construction and is cancellable.
  * The producer is retained only during capture,never by a returned unit.
- * No snapshot is constructed on ordinary check/completion/signature paths.
- * byteLimit bounds cloned AST plus known unit vectors/canonical strings;
+ * A normal cached check can supply its independently owned final function,
+ * without cloning it or retaining that check/module. Other functions retain
+ * the original independent clone path. Node/fact vectors remain demand-only;
+ * ordinary completion/signature paths construct no such vectors.
+ * byteLimit bounds known function AST plus unit vectors/canonical strings
+ * and shared-owner metadata (conservatively charged in full to one unit);
  * max64MiB. Shared origin metadata has a separate max16MiB allowance.
- * Retained context/module/entity stores, allocator and transient clone maps
+ * Retained context/module/entity stores, native pool backing, allocator and transient maps
  * are outside these local quotas, NOT a whole-process memory budget. */
 int xlsSemanticCheckFunctionCount(const struct xls_semantic_check*,size_t* count);
 xls_function_unit* xlsSemanticCheckFunctionCapture(struct xls_semantic_check*,size_t ordinal,
