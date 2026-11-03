@@ -272,6 +272,9 @@ class SSH:
                 if p.is_file(): self.exe=str(p);break
         if not self.exe: raise ValueError('OpenSSH not found; configure ssh path on the publishing machine')
     def run(self,script,*,file=None,check=True):
+        # Leave room for local client arguments and quoting below legacy 8 KiB
+        # command limits. A truncated mutating command must never be executed.
+        if len(script.encode('utf-8'))>6000: raise ValueError('SSH command exceeds the safe transport limit; shorten the remote path or reduce the batch')
         command=[self.exe]+(['-F',self.config] if self.config else [])+['-oBatchMode=yes','-oConnectTimeout=15',self.host,script]
         p=subprocess.run(command,stdin=file if file else subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         if check and p.returncode: raise RuntimeError(p.stderr.decode(errors='replace').strip() or f'SSH failed ({p.returncode})')
@@ -280,12 +283,15 @@ class SSH:
         with Path(local).open('rb') as f: self.run('umask 077; cat > '+shlex.quote(remote),file=f)
     def hashes(self,directory,names):
         result={}
-        for i in range(0,len(names),100):
-            group=names[i:i+100]
+        for i in range(0,len(names),64):
+            group=names[i:i+64]
             script='cd '+shlex.quote(directory)+' && for f in '+' '.join(shlex.quote(n) for n in group)+'; do if test -f "$f" && ! test -L "$f"; then sha256sum -- "$f"; else printf "MISSING %s\\n" "$f"; fi; done'
             for line in self.run(script).splitlines():
                 if re.match(r'^[0-9a-f]{64}  ',line): result[line[66:]]=line[:64]
         return result
+    def set_read_permissions(self,directory,names):
+        for i in range(0,len(names),64):
+            self.run('cd '+shlex.quote(directory)+' && chmod 644 '+' '.join(shlex.quote(n) for n in names[i:i+64]))
 
 def fetch_public(url,limit=16*1024*1024):
     request=urllib.request.Request(url,headers={'Cache-Control':'no-cache','Accept-Encoding':'identity'})
@@ -340,8 +346,7 @@ def push(args,store):
             remote.run('chmod 644 '+q(temp)+' && mv -fT -- '+q(temp)+' '+q(root+'/update/'+name))
         actual=remote.hashes(root+'/update',names)
         if any(actual.get(n)!=specs[n]['sha256'] for n in names): raise ValueError('remote complete-object check failed')
-        for offset in range(0,len(names),100):
-            remote.run('chmod 644 '+' '.join(q(root+'/update/'+n) for n in names[offset:offset+100]))
+        remote.set_read_permissions(root+'/update',names)
         # Validate public object access BEFORE exposing the new version marker.
         for name in names:
             h=hashlib.sha256();size=0
