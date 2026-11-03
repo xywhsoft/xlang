@@ -21576,7 +21576,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         const XL6_AstNode* result = returns && returns->childCount == 1 ? xl6SemResolveAliasType(ctx, returns->children[0]) : NULL;
         const XL6_AstNode* view = xl6SemClassValueType(ctx, result);
         const XL6_AstNode* typeDecl = view && view->text ? xl6SemFindTypeDecl(ctx, view->text) : NULL;
-        if (xl6ForeignFactoryOutputLogical(&facts,count)==SIZE_MAX) {
+        if (xl6ForeignOutputLogical(&facts,count+receiver,receiver)==SIZE_MAX) {
             xl6SemErrorNode(ctx, node, "factory output index is outside the physical signature"); return 0;
         }
         if (!result || xl6ForeignClassRead(typeDecl, NULL, NULL) != 1) {
@@ -21601,9 +21601,12 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         if (!(node->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE)) {
             xl6SemErrorNode(ctx, node, "factory producer requires an explicit @no_raise callee contract"); return 0;
         }
+        XL6_ForeignClassDecl receiverContract={0};
+        int managedReceiver=receiver && xl6ForeignClassRead(ownerClass,&receiverContract,NULL)==1 &&
+            (receiverContract.lifetime==XL6_FOREIGN_LIFETIME_OWNED || receiverContract.lifetime==XL6_FOREIGN_LIFETIME_OWNER);
         if ((node->flags & (XL6_AST_FLAG_FOREIGN_PURE | XL6_AST_FLAG_FOREIGN_OWNED_STRING)) ||
-            (node->kind == XL6_AST_NATIVE_EXTERN_FUNC && !(node->flags & XL6_AST_FLAG_STATIC))) {
-            xl6SemErrorNode(ctx, node, "factory requires a static/free producer without @pure or @owned"); return 0;
+            (receiver && (!managedReceiver || factoryContract.lifetime==XL6_FOREIGN_LIFETIME_CALLER))) {
+            xl6SemErrorNode(ctx, node, "factory requires a static/free producer or a managed instance and result, without @pure or @owned"); return 0;
         }
         XL6_AstNode* rollbackName = NULL;
         for (size_t i = 0; i < attrs->childCount; ++i)

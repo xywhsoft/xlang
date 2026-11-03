@@ -1,0 +1,188 @@
+extern "xui_vec2_t" struct Vec2 @header("test/cases/foreign_xui_declarative.h")
+    c_float fX
+    c_float fY
+end
+extern "xui_rect_t" struct Rect @header("test/cases/foreign_xui_declarative.h")
+    c_int fX
+    c_int fY
+    c_int fW
+    c_int fH
+end
+typedef Action = func(Widget)
+typedef Ime = func(Widget) as Rect
+typedef Cursor = func(Widget,c_int,c_int) as c_int
+typedef Measure = func(Widget,Vec2,VecOut) as c_int
+typedef Prepare = func(Widget) as c_int
+typedef Layout = func(Widget,Rect) as c_int
+typedef EventHandler = func(Widget,Event) as c_int
+extern "xui_context_t*" class Context @header("test/cases/foreign_xui_declarative.h") @lifetime("owned") @policy("declarativeXuiContextPolicy") @scope("xui_call_scope_t") @watch("xui_lifetime_link_t")
+    native point handle
+    extern "xuiWidgetCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWidget) func widget() as Widget
+    extern "xuiSetRootWidget" @no_raise @c_result("status",0) func setRoot(Widget widget)
+    extern "xuiSetFocusWidget" @no_raise @c_result("status",0) func focus(Widget widget)
+    extern "xuiSetViewportSize" @no_raise @c_result("status",0) func viewport(c_int width,c_int height)
+    extern "xuiInputKeyDown" @no_raise @c_result("status",0) func key(c_int code,c_uint modifiers)
+    extern "xuiQueryCursor" @no_raise func cursor(c_int x,c_int y) as c_int
+    extern "xuiLayout" @no_raise @c_result("status",0) func layout()
+    extern "xuiGetImeCandidateRect" @no_raise func imeRect() as Rect
+    extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xui_widget_t*" class Widget @header("test/cases/foreign_xui_declarative.h") @lifetime("owner") @owner(Context) @policy("declarativeXuiWidgetPolicy") @watch("xui_lifetime_link_t")
+    native point handle
+    extern "xuiWidgetGetContext" @no_raise @c_result("owner_view",0) get context() as Context
+    extern "xuiWidgetSetFocusable" @no_raise @c_result("status",0) func focusable(c_int yes)
+    extern "xuiWidgetAddChild" @no_raise @c_result("status",0) func add(Widget child)
+    extern "xuiLayoutArrangeChild" @no_raise @c_result("status",0) func arrange(Widget child,Rect rect)
+    extern "xuiWidgetSetImeMode" @no_raise @c_result("status",0) func imeMode(c_int mode)
+    extern "xuiWidgetSetDefaultActionOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onDefault(Action? callback)
+    extern "xuiWidgetSetCancelActionOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onCancel(Action? callback)
+    extern "xuiWidgetSetCursorQueryCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-1) @c_result("status",0) func onCursor(Cursor? callback)
+    extern "xuiWidgetSetImeCandidateRectOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onIme(Ime? callback)
+    extern "xuiWidgetSetContentMeasureCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-1) @c_result("status",0) func onMeasure(Measure? callback)
+    extern "xuiWidgetSetLayoutPrepareCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-1) @c_result("status",0) func onPrepare(Prepare? callback)
+    extern "xuiWidgetSetLayoutChildrenCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-1) @c_result("status",0) func onChildren(Layout? callback)
+    extern "xuiWidgetSetLayoutCompleteCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-1) @c_result("status",0) func onComplete(Layout? callback)
+    extern "xuiWidgetSetEventCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-1) @c_result("status",0) func onEvent(EventHandler? callback)
+    extern "xuiWidgetMeasureContent" @no_raise @c_output(2,0) func measure(Vec2 constraint) as Vec2
+end
+extern "xui_vec2_t*" class VecOut @header("test/cases/foreign_xui_declarative.h") @lifetime("callback") @owner(Context)
+    native point handle
+    extern "fX" @c_field get x() as c_float
+    extern "fX" @c_field let x(c_float value)
+    extern "fY" @c_field get y() as c_float
+    extern "fY" @c_field let y(c_float value)
+end
+extern "const xui_event_t*" class Event @header("test/cases/foreign_xui_declarative.h") @lifetime("callback") @owner(Context)
+    native point handle
+    extern "iType" @c_field get type() as c_int
+end
+extern "xuiDestroy" @no_raise func rollback(Context context)
+extern "xuiWidgetDestroy" @no_raise func rollbackWidget(Widget widget)
+extern "xuiCreate" @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Context
+extern "declarative_xui_start" @no_raise func start()
+extern "declarative_xui_counters_begin" @no_raise func countersBegin()
+extern "declarative_xui_counters_end" @no_raise func countersEnd()
+func main(...) as int
+    start()
+    Context context=create()
+    Widget widget=context.widget()
+    context.setRoot(widget)
+    context.viewport(100,100)
+    widget.focusable(1)
+    context.focus(widget)
+    int actions=0
+    widget.onDefault(func(Widget sender)
+        actions+=1
+    end)
+    context.key(0x102,0)
+    assert actions==1
+    widget.onDefault(null)
+    context.key(0x102,0)
+    assert actions==1
+    widget.onCancel(func(Widget sender)
+        actions+=1
+    end)
+    context.key(0x103,0)
+    assert actions==2
+    widget.onCancel(null)
+    widget.onIme(func(Widget sender) as Rect
+        Rect result=Rect()
+        result.fX=1
+        result.fY=2
+        result.fW=3
+        result.fH=4
+        return result
+    end)
+    widget.imeMode(1)
+    assert context.imeRect().fH==4
+    widget.onIme(null)
+    VecOut? saved=null
+    widget.onMeasure(func(Widget sender,Vec2 constraint,VecOut output) as c_int
+        output.x=12.0
+        output.y=13.0
+        saved=output
+        return c_int(0)
+    end)
+    Vec2 size=widget.measure(Vec2())
+    assert size.fX==12.0 and size.fY==13.0
+    bool expired=false
+    try
+        auto invalid=(saved as VecOut).x
+    catch error
+        expired=true
+    end
+    assert expired
+    Widget child=context.widget()
+    widget.add(child)
+    int prepares=0
+    int children=0
+    int completes=0
+    widget.onPrepare(func(Widget sender) as c_int
+        prepares+=1
+        return c_int(0)
+    end)
+    widget.onChildren(func(Widget sender,Rect rect) as c_int
+        children+=1
+        sender.arrange(child,rect)
+        return c_int(0)
+    end)
+    widget.onComplete(func(Widget sender,Rect rect) as c_int
+        completes+=1
+        return c_int(0)
+    end)
+    context.layout()
+    assert prepares>0 and children>0 and completes>0
+    widget.onPrepare(null)
+    widget.onChildren(null)
+    widget.onComplete(null)
+    int cursors=0
+    widget.onCursor(func(Widget sender,c_int x,c_int y) as c_int
+        cursors+=1
+        return c_int(1)
+    end)
+    assert context.cursor(12,13)==1 and cursors==1
+    widget.onCursor(null)
+    widget.onMeasure(func(Widget sender,Vec2 constraint,VecOut output) as c_int
+        output.x=12.0
+        output.y=13.0
+        return c_int(0)
+    end)
+    auto warm=widget.measure(Vec2())
+    countersBegin()
+    int i=0
+    while i<200
+        Vec2 next=widget.measure(Vec2())
+        assert next.fX==12.0 and next.fY==13.0
+        i+=1
+    end
+    countersEnd()
+    widget.onMeasure(null)
+    Event? savedEvent=null
+    widget.onEvent(func(Widget sender,Event event) as c_int
+        auto code=event.type
+        savedEvent=event
+        return c_int(0)
+    end)
+    context.key(65,0)
+    assert savedEvent!=null
+    expired=false
+    try
+        auto invalid=(savedEvent as Event).type
+    catch error
+        expired=true
+    end
+    assert expired
+    widget.onEvent(null)
+    widget.onDefault(func(Widget sender)
+        sender.context.close()
+    end)
+    context.key(0x102,0)
+    expired=false
+    try
+        widget.focusable(1)
+    catch error
+        expired=true
+    end
+    assert expired
+    return 0
+end
