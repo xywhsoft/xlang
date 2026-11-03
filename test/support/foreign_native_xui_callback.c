@@ -2,6 +2,7 @@
 #include "src/api/xl_foreign_error.h"
 #include "src/runtime/xl6_native_callback.h"
 #include "src/runtime/xl6_foreign_view_capture.h"
+#include "src/runtime/xl6_foreign_view_value.h"
 #include "src/runtime/xl6_closure_capture_v4.h"
 #include "src/runtime/xl6_ownership_domains.h"
 #include <xui.h>
@@ -35,10 +36,9 @@ static bool destroy_widget(void* raw){xuiWidgetDestroy(raw);return true;}
 static bool begin(void* raw,void* storage){return xuiCallScopeBegin(raw,storage)==XUI_OK;}
 static bool end(void* storage){return xuiCallScopeEnd(storage)==XUI_OK;}
 static bool busy(const void* raw){return xuiContextOwnershipBusy((xui_context)raw);}
-/* This fixture creates ONLY base widgets and owned event slots. The event
- * trace is deliberately not claimed as a policy for arbitrary XUI controls. */
+/* Native type hooks visit actual unique payloads as well as event owners. */
 static bool trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
-{return xuiContextTraceEventOwners((xui_context)raw,visit,user);}
+{return xuiContextTraceOwnership((xui_context)raw,visit,user);}
 static const XL6_ForeignViewDescriptorV1 rootDescriptor={sizeof(rootDescriptor),XL6_FOREIGN_VIEW_V1_TAG,"xui_context",
     sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_context,unwatch,destroy_context,
     sizeof(xui_call_scope_t),_Alignof(xui_call_scope_t),begin,end,trace,busy};
@@ -126,6 +126,63 @@ static void cycle(void)
     assert(xl6OwnershipPlanFinishV2(plan)==XL6_OWNERSHIP_STEP_READY && xl6OwnershipPlanTryDestroy(plan)>0);
     xl6OwnershipCatalogDestroyV1(catalog);assert(xl6ForeignViewDrainV1());
 }
+static bool count_edge(xrtownershipref reference,void* raw)
+{assert(reference.Data && reference.Ops);++*(unsigned*)raw;return true;}
+static void payload_cycles(void)
+{
+    /* Two graphs, their current configs/history, schema/default containers,
+     * and an owned event all return to the same context control record. */
+    for(unsigned mode=0;mode<4;++mode){
+        xui_context raw=NULL;xui_widget widget=NULL;XL6_ForeignView* child=NULL;
+        XL6_ForeignView* root=create(&raw,&widget,&child);bind(widget,root,child,READ);
+        XL6_ForeignViewCallV1 call={0};xui_call_scope_t native={0};
+        assert(xl6ForeignViewCallBeginV1(root,&call,&native,sizeof(native)));
+        xui_widget canvas=NULL;xui_workflow workflow=NULL;xui_flow_graph graph=NULL;
+        if(mode&1){
+            xui_widget owner=NULL;assert(xuiWorkflowWidgetCreate(raw,&owner,NULL)==XUI_OK);
+            workflow=xuiWorkflowWidgetGetWorkflow(owner);graph=xuiWorkflowGetGraph(workflow);
+            /* The workflow's canvas and this extra canvas BOTH borrow graph. */
+            xui_flow_graph_desc_t borrowed={0};borrowed.iSize=sizeof(borrowed);borrowed.pGraph=graph;
+            assert(xuiFlowGraphWidgetCreate(raw,&canvas,&borrowed)==XUI_OK);
+        }else{
+            assert(xuiFlowGraphWidgetCreate(raw,&canvas,NULL)==XUI_OK);graph=xuiFlowGraphWidgetGetGraph(canvas);
+        }
+        assert(graph);xui_flow_node_desc_t node={0};node.iSize=sizeof(node);node.sId="cycle";
+        assert(xuiFlowGraphAddNode(graph,&node,NULL)==XUI_OK);
+        xvalue* boxed=xl6ForeignViewBoxV1(root,778);assert(boxed);
+        assert(xuiFlowGraphSetNodeConfig(graph,"cycle",boxed)==XUI_OK);
+        assert(xuiFlowGraphCommandSetNodeConfig(graph,"cycle",boxed)==XUI_OK);
+        if(mode>=2){
+            assert(xuiFlowGraphSelectNode(graph,"cycle",1)==XUI_OK && xuiFlowGraphDeleteSelection(graph)==XUI_OK);
+            assert(xuiFlowGraphUndo(graph)==XUI_OK); /* old config now survives in redo group */
+        }
+        if(workflow){
+            xvalue* schema=xrtValueObject();xvalue* copy=xrtValueClone(boxed);assert(schema && copy);
+            assert(xrtValueObjectSetTake(schema,(xstrview){"owner",5},&copy) && !copy);
+            xui_workflow_node_type_desc_t type={0};type.iSize=sizeof(type);type.sId="native-type";type.pConfigSchema=schema;
+            assert(xuiWorkflowRegisterNodeType(workflow,&type,NULL)==XUI_OK);xrtValueRelease(schema);
+            xui_workflow_variable_desc_t variable={0};variable.iSize=sizeof(variable);variable.sId="owner";variable.pDefaultValue=boxed;
+            assert(xuiWorkflowAddVariable(workflow,&variable,NULL)==XUI_OK);
+        }
+        xrtValueRelease(boxed);assert(xl6ForeignViewCallEndV1(&call));
+        unsigned edges=0;xrtownershipscope freeze={0};assert(xrtOwnershipFreezeTryBegin(&freeze));
+        assert(xuiContextTraceOwnership(raw,count_edge,&edges));
+        /* No duplicated graph slots through workflow's borrowed canvases. */
+        assert(edges==(mode==0?4u:mode==1?6u:mode==2?5u:7u));
+        assert(xrtOwnershipScopeEnd(&freeze));
+        assert(xl6ForeignViewReleaseV1(child) && xl6ForeignViewReleaseV1(root));
+        const XL6_OwnershipDomainV1* domains[]={xl6OwnershipDomainForeignViewV1Get(),xl6OwnershipDomainForeignViewValueV1Get(),
+            xl6OwnershipDomainNativeCallbackV1Get(),xl6OwnershipDomainClosureV1Get()};
+        XL6_OwnershipCatalog* catalog=xl6OwnershipCatalogCreateV1(domains,4);assert(catalog);XL6_OwnershipPlan* plan=NULL;
+        assert(xl6OwnershipPlanTryCreateV6(xl6ForeignViewOwnershipV1(root),xl6OwnershipCatalogProbeV1,discover,true,catalog,&plan)>0 && plan);
+        assert(xl6OwnershipPlanPrepare(plan)==XL6_OWNERSHIP_STEP_READY);
+        XL6_OwnershipStepResult step=XL6_OWNERSHIP_STEP_BUSY;
+        for(unsigned i=0;i<8 && step==XL6_OWNERSHIP_STEP_BUSY;++i)step=xl6OwnershipPlanFinalizeV2(plan);
+        assert(step==XL6_OWNERSHIP_STEP_READY && xl6OwnershipPlanTryCommit(plan)==XL6_OWNERSHIP_PLAN_READY);
+        assert(xl6OwnershipPlanFinishV2(plan)==XL6_OWNERSHIP_STEP_READY && xl6OwnershipPlanTryDestroy(plan)>0);
+        xl6OwnershipCatalogDestroyV1(catalog);assert(xl6ForeignViewDrainV1());
+    }
+}
 int main(void)
 {
     size_t index=0;
@@ -137,8 +194,8 @@ int main(void)
     assert(xgeHostXrtBind(&contract,resolve,NULL,NULL)==XGE_HOST_XRT_OK);
     assert(xgeHostXrtRuntimeIdentity()==(xge_host_xrt_proc)xrtVersion);
     assert(xrtMemDebugEnabled() || xrtMemDebugEnable(true));api=xl6NativeCallbackRuntimeV1Get();
-    xmemdebugsnapshot before,after;xrtMemDebugSnapshot(&before);calls();cycle();xrtClearError();xrtMemDebugSnapshot(&after);
+    xmemdebugsnapshot before,after;xrtMemDebugSnapshot(&before);calls();cycle();payload_cycles();xrtClearError();xrtMemDebugSnapshot(&after);
     assert(!xl6ForeignViewPendingV1(0) && before.LiveCount==after.LiveCount && before.LiveBytes==after.LiveBytes);
     assert(before.InvalidFreeCount==after.InvalidFreeCount && before.DoubleFreeCount==after.DoubleFreeCount);
-    puts("hosted XUI and resident userdata: typed captured events, native close, first-failure bit, exact cycle and zero steady allocations passed");return 0;
+    puts("hosted XUI and resident userdata: typed events, graph/workflow payload cycles, borrowed canvas exclusion, native close and zero steady allocations passed");return 0;
 }

@@ -19,6 +19,7 @@ def main():
     p.add_argument('--sequences',action='store_true',help='test owning typed native view slots, erasure and graph cycles')
     p.add_argument('--xui-build',type=Path,help='exercise actual hosted XUI event slots with the same resident core')
     p.add_argument('--xui-root',type=Path,default=Path('D:/GIT/xge'))
+    p.add_argument('--sdk-root',type=Path,help='Pinned runtime SDK directory containing include/xrt_decl.h')
     a=p.parse_args();root,base,out=[v.resolve() for v in (a.root,a.base,a.out)]
     cc=shutil.which('gcc');assert cc
     build=json.loads((base/'build.json').read_text(encoding='utf-8-sig'))
@@ -32,9 +33,13 @@ def main():
         'xl6_native_capture_graph','xl6_foreign_view_capture','xl6_capture_v3','xl6_closure_capture_v4',
         'xl6_cell_native_graph','xl6_native_graph_future_payload','xl6_ownership_domain_native_graph_future_payload')]
     if a.userdata or a.xui_build:sources.append(root/'src/runtime/xl6_native_callback.c')
-    if a.values or a.sequences:sources.append(root/'src/runtime/xl6_foreign_view_value.c')
+    if a.values or a.sequences or a.xui_build:sources.append(root/'src/runtime/xl6_foreign_view_value.c')
     if a.sequences:sources.append(root/'src/runtime/xl6_foreign_view_sequence.c')
     base_root=next(Path(row['Source']).parents[2] for row in build['Objects'] if Path(row['Source']).name=='xl_api.c')
+    runtime_directory=Path(build.get('RuntimeDirectory',root/('release/win_x64' if os.name=='nt' else 'release/linux_x64')))
+    sdk=(a.sdk_root or runtime_directory).resolve()
+    assert (sdk/'include/xrt_decl.h').is_file(), 'Specify --sdk-root for the matching cohort SDK'
+    assert (base_root/'lib/xrt/xrt.h').read_bytes().replace(b'\r\n',b'\n')==(root/'lib/xrt/xrt.h').read_bytes().replace(b'\r\n',b'\n')
     replaced={str(path.relative_to(root)).lower() for path in sources}
     driver=('xlir_public_runtime_driver.c' if build['RuntimeOnly'] else 'xlir_public_source_driver.c') if os.name=='nt' else 'xlir_public_source_linux_driver.c'
     replaced.add(str(Path('test/cases')/driver).lower())
@@ -44,7 +49,8 @@ def main():
     module_sources=[root/'test/support/foreign_native_userdata_module.c',root/'test/support/foreign_native_userdata_module.h'] if a.userdata else []
     inputs={str(path):sha(path) for path in [Path(__file__).resolve(),base/'build.json',*sources,*module_sources,
         root/'test/support/foreign_view_native_fixture.h',*sorted((root/'src/runtime').glob('*.h')),
-        *sorted((root/'src/api').glob('*.h')),*sorted((root/'src/common').glob('*.h'))]}
+        *sorted((root/'src/api').glob('*.h')),*sorted((root/'src/common').glob('*.h')),
+        *sorted((sdk/'include').rglob('*.h'))]}
     engine=None
     if a.xui_build:
         a.xui_build=a.xui_build.resolve();a.xui_root=a.xui_root.resolve()
@@ -57,9 +63,10 @@ def main():
     report=dict(complete=False,passed=False,scope=__doc__,networkTests=False,
         canonicalFullRebuild=False,sourceSanitizers=a.sanitize,unchangedCoreInstrumented=False,
         baseOptimization=build['Optimization'],baseObjectCount=len(reused),
+        sdkDirectory=str(sdk),xrtSourceMatchesCohort=True,
         reusedObjectBytesVerified=True,inputs=inputs,rows=[])
     env=dict(os.environ,TEMP=str(out/'tmp'),TMP=str(out/'tmp'))
-    env['PATH']=str(root/'release')+os.pathsep+env.get('PATH','')
+    env['PATH']=str(runtime_directory)+os.pathsep+env.get('PATH','')
     if engine:env['PATH']=str(engine.parent)+os.pathsep+env['PATH']
     if a.sanitize:
         assert os.name!='nt'
@@ -75,6 +82,7 @@ def main():
     # The fixture contains deliberately unused helper descriptors; no warning
     # about real type/signature mismatches is disabled.
     if os.name!='nt':baseflags+=['-Wno-unused-function','-Wno-unused-const-variable']
+    baseflags+=['-I'+str(sdk),'-I'+str(sdk/'include')]
     if a.sanitize:baseflags+=['-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie']
     if engine:
         baseflags+=['-DXGE_DLL','-DXUI_DLL','-DXGE_XRT_HOST=1','-Wno-cast-function-type',
@@ -100,7 +108,11 @@ def main():
         if len(compiled)!=len(sources):continue
         # Replace the original driver main by the storage test main, keeping
         # all other exact core objects.
-        old_response=[line.strip('"') for line in (base/'link.rsp').read_text(encoding='utf-8-sig').splitlines()] if os.name=='nt' else next(row['Command'][1:] for row in build['Rows'] if row['Name']=='link')
+        if os.name=='nt':
+            link_response=Path(build.get('LinkResponse',base/'link.rsp'))
+            if build.get('LinkResponseSha256'):assert sha(link_response).lower()==build['LinkResponseSha256'].lower()
+            old_response=[line.strip('"') for line in link_response.read_text(encoding='utf-8-sig').splitlines()]
+        else:old_response=next(row['Command'][1:] for row in build['Rows'] if row['Name']=='link')
         allowed={str(Path(row['Path']).resolve()).lower() for row in reused}
         response=[];skip_output=False
         for item in old_response:
