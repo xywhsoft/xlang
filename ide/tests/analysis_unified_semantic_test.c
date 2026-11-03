@@ -63,7 +63,11 @@ static int runCase(const struct fixture* fixture)
   xstrbuf body={0};size_t skip=size>=3 && !memcmp(bytes,"\xef\xbb\xbf",3) ? 3 : 0;
   if(generation)CHECK(xrtStrBufAppend(&body,xrtStrView("\xef\xbb\xbf// 中文 😀\r\n")));
   CHECK(xrtStrBufAppend(&body,(xstrview){(const char*)bytes+(generation ? skip : 0),size-(generation ? skip : 0)}));
-  if(generation>=2)CHECK(xrtStrBufAppendFormat(&body,"\nfunc xls_unified_anchor() as int\n return 3\nend\nfunc xls_unified_probe() as int\n return %u\nend\n",generation==2 ? 17u : 18u));
+  if(generation>=2){
+   CHECK(xrtStrBufAppend(&body,xrtStrView("\nfunc xls_unified_anchor() as int\n int total=3\n")));
+   for(unsigned i=0;i<20;++i)CHECK(xrtStrBufAppend(&body,xrtStrView(" total=total+1\n")));
+   CHECK(xrtStrBufAppendFormat(&body," return total\nend\nfunc xls_unified_probe() as int\n return %u\nend\n",generation==2 ? 17u : 18u));
+  }
   xlsTextRelease(document.text);document.text=xlsTextCreate(body.Data,body.Size,8u*1024u*1024u,NULL);xrtStrBufFree(&body);CHECK(document.text);++document.revision;
   char error[256];xls_semantic_check* actual=xlsCheckSessionCheck(session,&document,1,"entry",1,NULL,NULL,error,sizeof(error));
   if(!actual)fprintf(stderr,"%s generation%u:%s\n",fixture->name,generation,error);

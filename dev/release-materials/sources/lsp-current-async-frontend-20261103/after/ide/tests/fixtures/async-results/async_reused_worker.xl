@@ -1,0 +1,60 @@
+extern "native_text" @no_raise func nativeText() as point
+extern "native_free" @no_raise func nativeFree(point value)
+class Reader
+    func Read<T>(T value) as cstring
+        return cstring.take(nativeText(),nativeFree)
+    end
+    async func Factory<T>(T witness) as func(T) as cstring
+        return self.Read
+    end
+end
+// Both eligible callers select the same concrete native async worker. The
+// second producer lookup returns the existing declaration without emitting it.
+func first(Reader reader) as func(c_int) as future<func(c_int) as string>
+    int total=0
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    return reader.Factory
+end
+func again(Reader reader) as func(c_int) as future<func(c_int) as string>
+    int total=0
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    total=total+1
+    return reader.Factory
+end

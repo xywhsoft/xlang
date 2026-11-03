@@ -16,7 +16,7 @@ import subprocess
 import time
 from xrt_process_tree_overlay import derive as derive_process_runtime
 from native_current_unified_profile import COHORT as UNIFIED_COHORT, PINS as UNIFIED_PINS, CORPUS as UNIFIED_CORPUS
-from native_c_interop_profile import COHORT as C_INTEROP_COHORT, PINS as C_INTEROP_PINS, selected as c_interop_selected, CORPUS as C_INTEROP_CORPUS, NEGATIVE_CORPUS as C_INTEROP_NEGATIVE
+from native_c_interop_profile import COHORT as C_INTEROP_COHORT, PINS as C_INTEROP_PINS, pins_for as c_interop_pins, selected as c_interop_selected, CORPUS as C_INTEROP_CORPUS, NEGATIVE_CORPUS as C_INTEROP_NEGATIVE, async_corpus, ASYNC_RESULT_PRIVATE_CORPUS
 from native_context_overlay import derive as derive_context_runtime
 from native_cancellation_overlay import ir_cancellation, semantic_cancellation
 from native_ir_memo_overlay import derive as derive_ir_memo
@@ -64,7 +64,7 @@ CORE_TESTS = ("analysis_cursor_memo_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_call_candidates_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_cursor_source_memo_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_annotations_test", *CORE_TESTS)
-CORE_TESTS = ("analysis_dependency_capture_test", "analysis_ast_tree_test", "analysis_ast_leaf_failure_test", "analysis_ast_leaf_test", "analysis_ast_storage_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_dependency_capture_test", "analysis_ast_tree_test", "analysis_ast_leaf_failure_test", "analysis_ast_leaf_test", "analysis_ast_storage_test", "analysis_ast_replacement_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_body_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_source_text_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_plan_direct_test", "analysis_check_materialize_test", "analysis_ast_materialize_test", *CORE_TESTS)
@@ -188,7 +188,7 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
         if not _current_unit_probe:
             from native_current_semantic_profile import profile
             cohort_dependencies = profile(frontend)
-        audited = (C_INTEROP_PINS['src/sem/xl6_sem.c'] if c_interop else
+        audited = (c_interop_pins(frontend)['src/sem/xl6_sem.c'] if c_interop else
                    UNIFIED_PINS['src/sem/xl6_sem.c'] if unified else
                    '407ca4e51cbc7889b535cbe591f7f823f59131cd179aa285073c034c6796e0b0')
     if hashlib.sha256(body).hexdigest() != audited:
@@ -707,6 +707,8 @@ def main() -> None:
         corpus=[(ide.parent/'test/cases'/(name+'.xl'),name,accepted) for name,accepted in UNIFIED_CORPUS]
         if c_interop:
             corpus += [(ide.parent/'test/cases'/(name+'.xl'),name,accepted) for name,accepted in C_INTEROP_CORPUS]
+            corpus += [(ide.parent/'test/cases'/(name+'.xl'),name,accepted) for name,accepted in async_corpus(frontend)]
+            if async_corpus(frontend):corpus += [(ide/'tests/fixtures/async-results'/(name+'.xl'),name,accepted) for name,accepted in ASYNC_RESULT_PRIVATE_CORPUS]
             corpus += [(ide/'tests/fixtures/c-interop'/(name+'.xl'),'bad_c_interop_'+name,0) for name in C_INTEROP_NEGATIVE]
         for original,name,accepted in corpus:
             target=folder/(name+'.xl')
@@ -779,6 +781,7 @@ def main() -> None:
     common += ["-O2", "-DXRT_EXCLUDE_MEMORY_DEBUG="] if args.configuration == "Release" else ["-O0", "-g"]
     if ir_overlay.get('irDependencyCohort') in ('current-ed78373d',UNIFIED_COHORT,C_INTEROP_COHORT):common+=['-DXLS_NATIVE_IR_PROVIDER_FIELDS=1']
     if ir_overlay.get('irDependencyCohort')==C_INTEROP_COHORT:common+=['-DXLS_NATIVE_IR_FOREIGN_FIELDS=1']
+    if async_corpus(frontend):common+=['-DXLS_NATIVE_ASYNC_RESULTS=1']
     index_budget_flag = "-DXL6_INDEX_BYTES=" + str(NATIVE_INDEX_BYTES) + "u"
     common += [index_budget_flag]
     common += args.cflag
@@ -906,6 +909,7 @@ def main() -> None:
             program = output / (name + suffix)
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
             if name == "analysis_source_text_test":extra.append("-Wl,--wrap=xlsInputBatchAt")
+            if name == "analysis_ast_replacement_test":extra.append("-Wl,--wrap=xrtPoolFree")
             if name=='analysis_current_provider_test' and ir_overlay.get('irDependencyCohort') in ('current-ed78373d',UNIFIED_COHORT,C_INTEROP_COHORT):extra+=[str(objects['xl6_ir_lower'])]
             if name=='analysis_current_loader_test' and loader_references:
                 extra += [str(objects[p.stem]) for p in loader_references]+['-Wl,--wrap=xrtMalloc']

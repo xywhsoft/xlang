@@ -1,0 +1,56 @@
+const char* xl6StdlibTcpStreamOptionsSource=
+    "enum TcpReadMode as int\n    adaptive = 0\n    direct = 1\n    probe = 2\nend\n"
+    "class TcpStreamOptions\n    private native point handle\n"
+    "    extern \"xl6TcpStreamOptionsCreateV1\" @nonblocking create()\n"
+    "    extern \"xl6TcpStreamOptionsDestroyV1\" @no_raise destroy()\n"
+#define XL6_TCP_STREAM_SIZE(Field,Name) "    extern \"xl6TcpStreamOptions" #Field "V1\" @pure @no_raise @nonblocking get " #Name "() as uint64\n"
+#define XL6_TCP_STREAM_BOOL(Field,Name) "    extern \"xl6TcpStreamOptions" #Field "V1\" @pure @no_raise @nonblocking get " #Name "() as bool\n"
+#include "src/runtime/xl6_tcp_options_fields.inc"
+#undef XL6_TCP_STREAM_SIZE
+#undef XL6_TCP_STREAM_BOOL
+    "    extern \"xl6TcpStreamOptionsConnectTimeoutV1\" @pure @no_raise @nonblocking get connectTimeoutMillis() as int\n"
+    "    extern \"xl6TcpStreamOptionsReadModeV1\" @pure @no_raise @nonblocking get readMode() as TcpReadMode\n"
+    "    extern \"xl6TcpStreamOptionsWithReadBufferV1\" @nonblocking func withReadBuffer(uint64 chunkSize, uint64 limit) as TcpStreamOptions\n"
+    "    extern \"xl6TcpStreamOptionsWithWriteWatermarksV1\" @nonblocking func withWriteWatermarks(uint64 high, uint64 low, uint64 limit) as TcpStreamOptions\n"
+    "    extern \"xl6TcpStreamOptionsWithConnectTimeoutV1\" @nonblocking func withConnectTimeoutMillis(int millis) as TcpStreamOptions\n"
+    "    extern \"xl6TcpStreamOptionsWithReadModeV1\" @nonblocking func withReadMode(TcpReadMode mode) as TcpStreamOptions\n"
+    "    extern \"xl6TcpStreamOptionsWithNoDelayV1\" @nonblocking func withNoDelay(bool enabled) as TcpStreamOptions\n"
+    "    extern \"xl6TcpStreamOptionsWithKeepAliveV1\" @nonblocking func withKeepAlive(bool enabled) as TcpStreamOptions\nend\n";
+const char* xl6StdlibTcpDialOptionsSource=
+    "class TcpDialOptions\n    private native point handle\n"
+    "    extern \"xl6TcpDialOptionsCreateV1\" @nonblocking create()\n"
+    "    extern \"xl6TcpDialOptionsDestroyV1\" @no_raise destroy()\n"
+    "    extern \"xl6TcpDialOptionsStreamV1\" @nonblocking func streamOptions() as TcpStreamOptions\n"
+    "    extern \"xl6TcpDialOptionsWithStreamV1\" @nonblocking func withStreamOptions(TcpStreamOptions options) as TcpDialOptions\n"
+    "    extern \"xl6TcpDialOptionsFamilyV1\" @pure @no_raise @nonblocking get family() as int\n"
+    "    extern \"xl6TcpDialOptionsAffinityV1\" @pure @no_raise @nonblocking get affinity() as uint64\n"
+    "    extern \"xl6TcpDialOptionsTimeoutV1\" @pure @no_raise @nonblocking get timeoutMillis() as int\n"
+    "    extern \"xl6TcpDialOptionsFallbackDelayV1\" @pure @no_raise @nonblocking get fallbackDelayMillis() as int\n"
+    "    extern \"xl6TcpDialOptionsMaxAttemptsV1\" @pure @no_raise @nonblocking get maxAttempts() as int\n"
+    "    extern \"xl6TcpDialOptionsWithFamilyV1\" @nonblocking func withFamily(int family) as TcpDialOptions\n"
+    "    extern \"xl6TcpDialOptionsWithAffinityV1\" @nonblocking func withAffinity(uint64 affinity) as TcpDialOptions\n"
+    "    extern \"xl6TcpDialOptionsWithTimeoutV1\" @nonblocking func withTimeoutMillis(int millis) as TcpDialOptions\n"
+    "    extern \"xl6TcpDialOptionsWithFallbackDelayV1\" @nonblocking func withFallbackDelayMillis(int millis) as TcpDialOptions\n"
+    "    extern \"xl6TcpDialOptionsWithMaxAttemptsV1\" @nonblocking func withMaxAttempts(int count) as TcpDialOptions\nend\n";
+const char* xl6StdlibTcpListenOptionsSource=
+    "enum TcpAcceptDistribution as int\n    roundRobin = 0\n    local = 1\nend\n"
+    "class TcpListenOptions\n    private native point handle\n"
+    "    extern \"xl6TcpListenOptionsCreateV1\" @nonblocking create()\n"
+    "    extern \"xl6TcpListenOptionsCreateAddressV1\" @nonblocking create(NetAddress address)\n"
+    "    extern \"xl6TcpListenOptionsDestroyV1\" @no_raise destroy()\n"
+    "    extern \"xl6TcpListenOptionsAddressV1\" @nonblocking func address() as NetAddress\n"
+    "    extern \"xl6TcpListenOptionsWithAddressV1\" @nonblocking func withAddress(NetAddress address) as TcpListenOptions\n"
+    "    extern \"xl6TcpListenOptionsStreamV1\" @nonblocking func streamOptions() as TcpStreamOptions\n"
+    "    extern \"xl6TcpListenOptionsWithStreamV1\" @nonblocking func withStreamOptions(TcpStreamOptions options) as TcpListenOptions\n"
+#define XL6_TCP_LISTEN_INT(Field,Name) "    extern \"xl6TcpListenOptions" #Field "V1\" @pure @no_raise @nonblocking get " #Name "() as int\n"
+#define XL6_TCP_LISTEN_BOOL(Field,Name) "    extern \"xl6TcpListenOptions" #Field "V1\" @pure @no_raise @nonblocking get " #Name "() as bool\n"
+#include "src/runtime/xl6_tcp_options_fields.inc"
+#undef XL6_TCP_LISTEN_INT
+#undef XL6_TCP_LISTEN_BOOL
+    "    extern \"xl6TcpListenOptionsAffinityV1\" @pure @no_raise @nonblocking get affinity() as uint64\n"
+    "    extern \"xl6TcpListenOptionsDistributionV1\" @pure @no_raise @nonblocking get distribution() as TcpAcceptDistribution\n"
+    "    extern \"xl6TcpListenOptionsWithAffinityV1\" @nonblocking func withAffinity(uint64 affinity) as TcpListenOptions\n"
+    "    extern \"xl6TcpListenOptionsWithAcceptQueueV1\" @nonblocking func withAcceptQueue(int concurrency, int pendingLimit) as TcpListenOptions\n"
+    "    extern \"xl6TcpListenOptionsWithBacklogV1\" @nonblocking func withBacklog(int backlog) as TcpListenOptions\n"
+    "    extern \"xl6TcpListenOptionsWithDistributionV1\" @nonblocking func withDistribution(TcpAcceptDistribution distribution) as TcpListenOptions\n"
+    "    extern \"xl6TcpListenOptionsWithBindingV1\" @nonblocking func withBinding(bool reuseAddress, bool reusePort, bool exclusiveAddress, bool ipv6Only) as TcpListenOptions\nend\n";

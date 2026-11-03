@@ -5,7 +5,7 @@ install a runtime or establish performance,GUI or full LSP acceptance.
 """
 from pathlib import Path
 import argparse,hashlib,json,shutil,subprocess,sys
-from native_c_interop_profile import COHORT,PINS,profile
+from native_c_interop_profile import COHORT,pins_for,profile
 from native_current_semantic_profile import profile as semantic_profile
 from native_current_ir_overlay import derive
 
@@ -90,7 +90,7 @@ def main():
     a=p.parse_args();build=a.build.resolve(strict=True);out=a.output.resolve();out.mkdir(parents=True,exist_ok=False)
     manifest=build/'build-result.json';receipt=json.loads(manifest.read_text('utf-8-sig'))
     assert receipt['status']=='passed' and receipt['testsBuilt'] and receipt['configuration']=='Release'
-    frontend=Path(receipt['frontendRoot']);ide=Path(__file__).resolve().parents[1]
+    frontend=Path(receipt['frontendRoot']);ide=Path(__file__).resolve().parents[1];PINS=pins_for(frontend)
     protected={**receipt['inputs'],str(manifest):sha(manifest),str(Path(__file__).resolve()):sha(__file__)}
     for name,digest in receipt['outputs'].items():protected[str(build/name)]=digest
     report=dict(status='running',accepted=False,scope=__doc__.strip(),protected=protected,guards=[],commands=[],omissions=[])

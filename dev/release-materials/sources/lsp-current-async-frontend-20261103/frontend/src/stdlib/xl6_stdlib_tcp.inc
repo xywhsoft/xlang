@@ -1,0 +1,172 @@
+const char* xl6StdlibTcpStreamStateSource=
+    "enum TcpStreamState as int\n    connecting = 0\n    open = 1\n    closing = 2\n    closed = 3\nend\n";
+const char* xl6StdlibTcpListenerStateSource=
+    "enum TcpListenerState as int\n    open = 0\n    closing = 1\n    closed = 2\nend\n";
+const char* xl6StdlibTcpWaitSource=
+    "enum TcpWait as int\n    open = 0\n    readable = 1\n    writable = 2\n    drain = 3\n    close = 4\nend\n";
+const char* xl6StdlibTcpStreamStatsClassSource=
+    "class TcpStreamStats\n    private native point handle\n"
+    "    extern \"xl6TcpStreamStatsDestroyV1\" @no_raise destroy()\n"
+    "    extern \"xl6TcpStreamStatsStateV1\" @pure @no_raise @nonblocking get state() as TcpStreamState\n"
+#define XL6_TCP_STREAM_UINT(Field,Name) "    extern \"xl6TcpStreamStats" #Field "V1\" @pure @no_raise @nonblocking get " #Name "() as uint64\n"
+#define XL6_TCP_STREAM_BOOL(Field,Name) "    extern \"xl6TcpStreamStats" #Field "V1\" @pure @no_raise @nonblocking get " #Name "() as bool\n"
+#include "src/runtime/xl6_tcp_stats_fields.inc"
+#undef XL6_TCP_STREAM_UINT
+#undef XL6_TCP_STREAM_BOOL
+    "end\n";
+const char* xl6StdlibTcpListenerStatsClassSource=
+    "class TcpListenerStats\n    private native point handle\n"
+    "    extern \"xl6TcpListenerStatsDestroyV1\" @no_raise destroy()\n"
+    "    extern \"xl6TcpListenerStatsStateV1\" @pure @no_raise @nonblocking get state() as TcpListenerState\n"
+#define XL6_TCP_LISTENER_UINT(Field,Name) "    extern \"xl6TcpListenerStats" #Field "V1\" @pure @no_raise @nonblocking get " #Name "() as uint64\n"
+#include "src/runtime/xl6_tcp_stats_fields.inc"
+#undef XL6_TCP_LISTENER_UINT
+    "end\n";
+/* Class body is composed with optional declared method families, then closed
+ * once by the builder. TCP-only users never acquire Proxy declarations. */
+const char* xl6StdlibTcpStreamClassBodySource=
+    "class TcpStream\n    private native point handle\n"
+    "    extern \"xl6TcpStreamCreateDefaultV1\" create(NetEngine engine, NetAddress remote)\n"
+    "    extern \"xl6TcpStreamCreateV1\" create(NetEngine engine, NetAddress remote, TcpStreamOptions options, int worker = 0)\n"
+    "    extern \"xl6TcpStreamDestroyV1\" @no_raise destroy()\n"
+    "    static extern \"xl6TcpDialDefaultV1\" func dial(NetEngine engine, NetResolver resolver, string host, int port) as TcpStream\n"
+    "    static extern \"xl6TcpDialV1\" func dial(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options) as TcpStream\n"
+    "    static extern \"xl6TcpDialAddressesDefaultV1\" func dial(NetEngine engine, NetAddressList addresses) as TcpStream\n"
+    "    static extern \"xl6TcpDialAddressesV1\" func dial(NetEngine engine, NetAddressList addresses, TcpDialOptions options) as TcpStream\n"
+    "    static extern \"xl6TcpDialCancelDefaultV1\" func dialCancel(NetEngine engine, NetResolver resolver, string host, int port, CancellationToken cancel) as TcpStream\n"
+    "    static extern \"xl6TcpDialCancelV1\" func dialCancel(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, CancellationToken cancel) as TcpStream\n"
+    "    static extern \"xl6TcpDialAddressesCancelDefaultV1\" func dialCancel(NetEngine engine, NetAddressList addresses, CancellationToken cancel) as TcpStream\n"
+    "    static extern \"xl6TcpDialAddressesCancelV1\" func dialCancel(NetEngine engine, NetAddressList addresses, TcpDialOptions options, CancellationToken cancel) as TcpStream\n"
+    "    static extern \"xl6TcpDialUntilDefaultV1\" func dialUntil(NetEngine engine, NetResolver resolver, string host, int port, uint64 deadline) as TcpStream\n"
+    "    static extern \"xl6TcpDialUntilV1\" func dialUntil(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, uint64 deadline) as TcpStream\n"
+    "    static extern \"xl6TcpDialAddressesUntilDefaultV1\" func dialUntil(NetEngine engine, NetAddressList addresses, uint64 deadline) as TcpStream\n"
+    "    static extern \"xl6TcpDialAddressesUntilV1\" func dialUntil(NetEngine engine, NetAddressList addresses, TcpDialOptions options, uint64 deadline) as TcpStream\n"
+    "    static extern \"xl6TcpDialUntilCancelDefaultV1\" func dialUntilCancel(NetEngine engine, NetResolver resolver, string host, int port, uint64 deadline, CancellationToken cancel) as TcpStream\n"
+    "    static extern \"xl6TcpDialUntilCancelV1\" func dialUntilCancel(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, uint64 deadline, CancellationToken cancel) as TcpStream\n"
+    "    static extern \"xl6TcpDialAddressesUntilCancelDefaultV1\" func dialUntilCancel(NetEngine engine, NetAddressList addresses, uint64 deadline, CancellationToken cancel) as TcpStream\n"
+    "    static extern \"xl6TcpDialAddressesUntilCancelV1\" func dialUntilCancel(NetEngine engine, NetAddressList addresses, TcpDialOptions options, uint64 deadline, CancellationToken cancel) as TcpStream\n"
+    "    private static extern \"xl6TcpPrepareDialV1\" @nonblocking func prepareDialNative(NetEngine engine, NetResolver resolver) as TcpStream\n"
+    "    private static extern \"xl6TcpPrepareDialAddressesV1\" @nonblocking func prepareDialAddressesNative(NetEngine engine) as TcpStream\n"
+    "    private extern \"xl6TcpDialStartDefaultV1\" @nonblocking func startDialNative(TcpStream value, string host, int port) as future<TcpStream>\n"
+    "    private extern \"xl6TcpDialStartV1\" @nonblocking func startDialNative(TcpStream value, string host, int port, TcpDialOptions options) as future<TcpStream>\n"
+    "    private extern \"xl6TcpDialAddressesStartDefaultV1\" @nonblocking func startDialAddressesNative(TcpStream value, NetAddressList addresses) as future<TcpStream>\n"
+    "    private extern \"xl6TcpDialAddressesStartV1\" @nonblocking func startDialAddressesNative(TcpStream value, NetAddressList addresses, TcpDialOptions options) as future<TcpStream>\n"
+    "    static func dialAsync(NetEngine engine, NetResolver resolver, string host, int port) as future<TcpStream>\n"
+    "        TcpStream pending = TcpStream.prepareDialNative(engine, resolver)\n"
+    "        return pending.startDialNative(pending, host, port)\n    end\n"
+    "    static func dialAsync(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options) as future<TcpStream>\n"
+    "        TcpStream pending = TcpStream.prepareDialNative(engine, resolver)\n"
+    "        return pending.startDialNative(pending, host, port, options)\n    end\n"
+    "    static func dialAsync(NetEngine engine, NetAddressList addresses) as future<TcpStream>\n"
+    "        TcpStream pending = TcpStream.prepareDialAddressesNative(engine)\n"
+    "        return pending.startDialAddressesNative(pending, addresses)\n    end\n"
+    "    static func dialAsync(NetEngine engine, NetAddressList addresses, TcpDialOptions options) as future<TcpStream>\n"
+    "        TcpStream pending = TcpStream.prepareDialAddressesNative(engine)\n"
+    "        return pending.startDialAddressesNative(pending, addresses, options)\n    end\n"
+    "    private extern \"xl6TcpDialStartCancelDefaultV1\" @nonblocking func startDialCancelNative(TcpStream value, string host, int port, CancellationToken cancel) as future<TcpStream>\n"
+    "    static func dialAsyncCancel(NetEngine engine, NetResolver resolver, string host, int port, CancellationToken cancel) as future<TcpStream>\n        TcpStream pending = TcpStream.prepareDialNative(engine, resolver)\n        return pending.startDialCancelNative(pending, host, port, cancel)\n    end\n"
+    "    private extern \"xl6TcpDialStartCancelV1\" @nonblocking func startDialCancelNative(TcpStream value, string host, int port, TcpDialOptions options, CancellationToken cancel) as future<TcpStream>\n"
+    "    static func dialAsyncCancel(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, CancellationToken cancel) as future<TcpStream>\n        TcpStream pending = TcpStream.prepareDialNative(engine, resolver)\n        return pending.startDialCancelNative(pending, host, port, options, cancel)\n    end\n"
+    "    private extern \"xl6TcpDialAddressesStartCancelDefaultV1\" @nonblocking func startDialAddressesCancelNative(TcpStream value, NetAddressList addresses, CancellationToken cancel) as future<TcpStream>\n"
+    "    static func dialAsyncCancel(NetEngine engine, NetAddressList addresses, CancellationToken cancel) as future<TcpStream>\n        TcpStream pending = TcpStream.prepareDialAddressesNative(engine)\n        return pending.startDialAddressesCancelNative(pending, addresses, cancel)\n    end\n"
+    "    private extern \"xl6TcpDialAddressesStartCancelV1\" @nonblocking func startDialAddressesCancelNative(TcpStream value, NetAddressList addresses, TcpDialOptions options, CancellationToken cancel) as future<TcpStream>\n"
+    "    static func dialAsyncCancel(NetEngine engine, NetAddressList addresses, TcpDialOptions options, CancellationToken cancel) as future<TcpStream>\n        TcpStream pending = TcpStream.prepareDialAddressesNative(engine)\n        return pending.startDialAddressesCancelNative(pending, addresses, options, cancel)\n    end\n"
+    "    private extern \"xl6TcpDialStartUntilDefaultV1\" @nonblocking func startDialUntilNative(TcpStream value, string host, int port, uint64 deadline) as future<TcpStream>\n"
+    "    static func dialAsyncUntil(NetEngine engine, NetResolver resolver, string host, int port, uint64 deadline) as future<TcpStream>\n        TcpStream pending = TcpStream.prepareDialNative(engine, resolver)\n        return pending.startDialUntilNative(pending, host, port, deadline)\n    end\n"
+    "    private extern \"xl6TcpDialStartUntilV1\" @nonblocking func startDialUntilNative(TcpStream value, string host, int port, TcpDialOptions options, uint64 deadline) as future<TcpStream>\n"
+    "    static func dialAsyncUntil(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, uint64 deadline) as future<TcpStream>\n        TcpStream pending = TcpStream.prepareDialNative(engine, resolver)\n        return pending.startDialUntilNative(pending, host, port, options, deadline)\n    end\n"
+    "    private extern \"xl6TcpDialAddressesStartUntilDefaultV1\" @nonblocking func startDialAddressesUntilNative(TcpStream value, NetAddressList addresses, uint64 deadline) as future<TcpStream>\n"
+    "    static func dialAsyncUntil(NetEngine engine, NetAddressList addresses, uint64 deadline) as future<TcpStream>\n        TcpStream pending = TcpStream.prepareDialAddressesNative(engine)\n        return pending.startDialAddressesUntilNative(pending, addresses, deadline)\n    end\n"
+    "    private extern \"xl6TcpDialAddressesStartUntilV1\" @nonblocking func startDialAddressesUntilNative(TcpStream value, NetAddressList addresses, TcpDialOptions options, uint64 deadline) as future<TcpStream>\n"
+    "    static func dialAsyncUntil(NetEngine engine, NetAddressList addresses, TcpDialOptions options, uint64 deadline) as future<TcpStream>\n        TcpStream pending = TcpStream.prepareDialAddressesNative(engine)\n        return pending.startDialAddressesUntilNative(pending, addresses, options, deadline)\n    end\n"
+    "    private extern \"xl6TcpDialStartUntilCancelDefaultV1\" @nonblocking func startDialUntilCancelNative(TcpStream value, string host, int port, uint64 deadline, CancellationToken cancel) as future<TcpStream>\n"
+    "    static func dialAsyncUntilCancel(NetEngine engine, NetResolver resolver, string host, int port, uint64 deadline, CancellationToken cancel) as future<TcpStream>\n        TcpStream pending = TcpStream.prepareDialNative(engine, resolver)\n        return pending.startDialUntilCancelNative(pending, host, port, deadline, cancel)\n    end\n"
+    "    private extern \"xl6TcpDialStartUntilCancelV1\" @nonblocking func startDialUntilCancelNative(TcpStream value, string host, int port, TcpDialOptions options, uint64 deadline, CancellationToken cancel) as future<TcpStream>\n"
+    "    static func dialAsyncUntilCancel(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, uint64 deadline, CancellationToken cancel) as future<TcpStream>\n        TcpStream pending = TcpStream.prepareDialNative(engine, resolver)\n        return pending.startDialUntilCancelNative(pending, host, port, options, deadline, cancel)\n    end\n"
+    "    private extern \"xl6TcpDialAddressesStartUntilCancelDefaultV1\" @nonblocking func startDialAddressesUntilCancelNative(TcpStream value, NetAddressList addresses, uint64 deadline, CancellationToken cancel) as future<TcpStream>\n"
+    "    static func dialAsyncUntilCancel(NetEngine engine, NetAddressList addresses, uint64 deadline, CancellationToken cancel) as future<TcpStream>\n        TcpStream pending = TcpStream.prepareDialAddressesNative(engine)\n        return pending.startDialAddressesUntilCancelNative(pending, addresses, deadline, cancel)\n    end\n"
+    "    private extern \"xl6TcpDialAddressesStartUntilCancelV1\" @nonblocking func startDialAddressesUntilCancelNative(TcpStream value, NetAddressList addresses, TcpDialOptions options, uint64 deadline, CancellationToken cancel) as future<TcpStream>\n"
+    "    static func dialAsyncUntilCancel(NetEngine engine, NetAddressList addresses, TcpDialOptions options, uint64 deadline, CancellationToken cancel) as future<TcpStream>\n        TcpStream pending = TcpStream.prepareDialAddressesNative(engine)\n        return pending.startDialAddressesUntilCancelNative(pending, addresses, options, deadline, cancel)\n    end\n"
+    "    extern \"xl6TcpStreamCloseV1\" @nonblocking func close()\n"
+    "    extern \"xl6TcpStreamAbortV1\" @nonblocking func abort()\n"
+    "    extern \"xl6TcpStreamStateV1\" @nonblocking get state() as TcpStreamState\n"
+    "    extern \"xl6TcpStreamAvailableV1\" @nonblocking get available() as uint64\n"
+    "    extern \"xl6TcpStreamPendingSendV1\" @nonblocking get pendingSend() as uint64\n"
+    "    extern \"xl6TcpStreamWriteLimitV1\" @nonblocking get writeLimit() as uint64\n"
+    "    extern \"xl6TcpStreamWritableV1\" @nonblocking get writable() as uint64\n"
+    "    extern \"xl6TcpStreamSendTextV1\" @nonblocking func send(string data, int size = -1) as NetStatus\n"
+    "    extern \"xl6TcpStreamSendBytesV1\" @nonblocking func send(bytes data, int size = -1) as NetStatus\n"
+    "    extern \"xl6TcpStreamSendBufferV1\" @nonblocking func send(Buffer data, int size = -1) as NetStatus\n"
+    "    extern \"xl6TcpStreamShutdownWriteV1\" @nonblocking func shutdownWrite()\n"
+    "    extern \"xl6TcpStreamPauseReadV1\" @nonblocking func pauseRead()\n"
+    "    extern \"xl6TcpStreamResumeReadV1\" @nonblocking func resumeRead()\n"
+    "    extern \"xl6TcpStreamLocalV1\" @nonblocking func localAddress() as NetAddress\n"
+    "    extern \"xl6TcpStreamRemoteV1\" @nonblocking func remoteAddress() as NetAddress\n"
+    "    extern \"xl6TcpStreamRecvV1\" func recv(int maxBytes = 65536, int timeoutMillis = -1) as bytes\n"
+    "    extern \"xl6TcpStreamRecvAsyncV1\" @nonblocking func recvAsync(int maxBytes = 65536) as future<bytes>\n"
+    "    extern \"xl6TcpStreamWaitV1\" func wait(TcpWait condition, int timeoutMillis = -1) as NetStatus\n"
+    "    extern \"xl6TcpStreamWaitAsyncV1\" @nonblocking func waitAsync(TcpWait condition) as future<bool>\n"
+    "    extern \"xl6TcpStreamWaitAvailableAsyncV1\" @nonblocking func waitAvailableAsync(int minimum = 1) as future<bool>\n"
+    "    private extern \"xl6TcpConnectedStartV1\" @nonblocking func connectedNative(TcpStream value) as future<TcpStream>\n"
+    "    func connectedAsync() as future<TcpStream>\n        return self.connectedNative(self)\n    end\n"
+    "    extern \"xl6TcpStreamSnapshotV1\" @nonblocking func snapshot() as TcpStreamStats\n"
+    ;
+static const char xl6StdTcpDialAsyncBody[] =
+    "func __xl_std_tcp_dial_async(NetEngine engine, NetResolver resolver, string host, int port) as future<TcpStream>\n"
+    "    return TcpStream.dialAsync(engine, resolver, host, port)\nend\n"
+    "func __xl_std_tcp_dial_async(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options) as future<TcpStream>\n"
+    "    return TcpStream.dialAsync(engine, resolver, host, port, options)\nend\n"
+    "func __xl_std_tcp_dial_async(NetEngine engine, NetAddressList addresses) as future<TcpStream>\n"
+    "    return TcpStream.dialAsync(engine, addresses)\nend\n"
+    "func __xl_std_tcp_dial_async(NetEngine engine, NetAddressList addresses, TcpDialOptions options) as future<TcpStream>\n"
+    "    return TcpStream.dialAsync(engine, addresses, options)\nend\n";
+static const char xl6StdTcpDialAsyncCancelBody[] =
+    "func __xl_std_tcp_dial_async_cancel(NetEngine engine, NetResolver resolver, string host, int port, CancellationToken cancel) as future<TcpStream>\n    return TcpStream.dialAsyncCancel(engine, resolver, host, port, cancel)\nend\n"
+    "func __xl_std_tcp_dial_async_cancel(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, CancellationToken cancel) as future<TcpStream>\n    return TcpStream.dialAsyncCancel(engine, resolver, host, port, options, cancel)\nend\n"
+    "func __xl_std_tcp_dial_async_cancel(NetEngine engine, NetAddressList addresses, CancellationToken cancel) as future<TcpStream>\n    return TcpStream.dialAsyncCancel(engine, addresses, cancel)\nend\n"
+    "func __xl_std_tcp_dial_async_cancel(NetEngine engine, NetAddressList addresses, TcpDialOptions options, CancellationToken cancel) as future<TcpStream>\n    return TcpStream.dialAsyncCancel(engine, addresses, options, cancel)\nend\n";
+static const char xl6StdTcpDialAsyncUntilBody[] =
+    "func __xl_std_tcp_dial_async_until(NetEngine engine, NetResolver resolver, string host, int port, uint64 deadline) as future<TcpStream>\n    return TcpStream.dialAsyncUntil(engine, resolver, host, port, deadline)\nend\n"
+    "func __xl_std_tcp_dial_async_until(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, uint64 deadline) as future<TcpStream>\n    return TcpStream.dialAsyncUntil(engine, resolver, host, port, options, deadline)\nend\n"
+    "func __xl_std_tcp_dial_async_until(NetEngine engine, NetAddressList addresses, uint64 deadline) as future<TcpStream>\n    return TcpStream.dialAsyncUntil(engine, addresses, deadline)\nend\n"
+    "func __xl_std_tcp_dial_async_until(NetEngine engine, NetAddressList addresses, TcpDialOptions options, uint64 deadline) as future<TcpStream>\n    return TcpStream.dialAsyncUntil(engine, addresses, options, deadline)\nend\n";
+static const char xl6StdTcpDialAsyncUntilCancelBody[] =
+    "func __xl_std_tcp_dial_async_until_cancel(NetEngine engine, NetResolver resolver, string host, int port, uint64 deadline, CancellationToken cancel) as future<TcpStream>\n    return TcpStream.dialAsyncUntilCancel(engine, resolver, host, port, deadline, cancel)\nend\n"
+    "func __xl_std_tcp_dial_async_until_cancel(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, uint64 deadline, CancellationToken cancel) as future<TcpStream>\n    return TcpStream.dialAsyncUntilCancel(engine, resolver, host, port, options, deadline, cancel)\nend\n"
+    "func __xl_std_tcp_dial_async_until_cancel(NetEngine engine, NetAddressList addresses, uint64 deadline, CancellationToken cancel) as future<TcpStream>\n    return TcpStream.dialAsyncUntilCancel(engine, addresses, deadline, cancel)\nend\n"
+    "func __xl_std_tcp_dial_async_until_cancel(NetEngine engine, NetAddressList addresses, TcpDialOptions options, uint64 deadline, CancellationToken cancel) as future<TcpStream>\n    return TcpStream.dialAsyncUntilCancel(engine, addresses, options, deadline, cancel)\nend\n";
+static const char xl6StdTcpDialCancelBody[] =
+    "extern \"xl6TcpDialCancelDefaultV1\" func __xl_std_tcp_dial_cancel(NetEngine engine, NetResolver resolver, string host, int port, CancellationToken cancel) as TcpStream\n"
+    "extern \"xl6TcpDialCancelV1\" func __xl_std_tcp_dial_cancel(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, CancellationToken cancel) as TcpStream\n"
+    "extern \"xl6TcpDialAddressesCancelDefaultV1\" func __xl_std_tcp_dial_cancel(NetEngine engine, NetAddressList addresses, CancellationToken cancel) as TcpStream\n"
+    "extern \"xl6TcpDialAddressesCancelV1\" func __xl_std_tcp_dial_cancel(NetEngine engine, NetAddressList addresses, TcpDialOptions options, CancellationToken cancel) as TcpStream\n";
+static const char xl6StdTcpDialUntilBody[] =
+    "extern \"xl6TcpDialUntilDefaultV1\" func __xl_std_tcp_dial_until(NetEngine engine, NetResolver resolver, string host, int port, uint64 deadline) as TcpStream\n"
+    "extern \"xl6TcpDialUntilV1\" func __xl_std_tcp_dial_until(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, uint64 deadline) as TcpStream\n"
+    "extern \"xl6TcpDialAddressesUntilDefaultV1\" func __xl_std_tcp_dial_until(NetEngine engine, NetAddressList addresses, uint64 deadline) as TcpStream\n"
+    "extern \"xl6TcpDialAddressesUntilV1\" func __xl_std_tcp_dial_until(NetEngine engine, NetAddressList addresses, TcpDialOptions options, uint64 deadline) as TcpStream\n";
+static const char xl6StdTcpDialUntilCancelBody[] =
+    "extern \"xl6TcpDialUntilCancelDefaultV1\" func __xl_std_tcp_dial_until_cancel(NetEngine engine, NetResolver resolver, string host, int port, uint64 deadline, CancellationToken cancel) as TcpStream\n"
+    "extern \"xl6TcpDialUntilCancelV1\" func __xl_std_tcp_dial_until_cancel(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options, uint64 deadline, CancellationToken cancel) as TcpStream\n"
+    "extern \"xl6TcpDialAddressesUntilCancelDefaultV1\" func __xl_std_tcp_dial_until_cancel(NetEngine engine, NetAddressList addresses, uint64 deadline, CancellationToken cancel) as TcpStream\n"
+    "extern \"xl6TcpDialAddressesUntilCancelV1\" func __xl_std_tcp_dial_until_cancel(NetEngine engine, NetAddressList addresses, TcpDialOptions options, uint64 deadline, CancellationToken cancel) as TcpStream\n";
+static const char xl6StdTcpDialBody[] =
+    "extern \"xl6TcpDialDefaultV1\" func __xl_std_tcp_dial(NetEngine engine, NetResolver resolver, string host, int port) as TcpStream\n"
+    "extern \"xl6TcpDialV1\" func __xl_std_tcp_dial(NetEngine engine, NetResolver resolver, string host, int port, TcpDialOptions options) as TcpStream\n"
+    "extern \"xl6TcpDialAddressesDefaultV1\" func __xl_std_tcp_dial(NetEngine engine, NetAddressList addresses) as TcpStream\n"
+    "extern \"xl6TcpDialAddressesV1\" func __xl_std_tcp_dial(NetEngine engine, NetAddressList addresses, TcpDialOptions options) as TcpStream\n";
+const char* xl6StdlibTcpListenerClassSource=
+    "class TcpListener\n    private native point handle\n"
+    "    extern \"xl6TcpListenerCreateV1\" create(NetEngine engine, TcpListenOptions options)\n"
+    "    extern \"xl6TcpListenerDestroyV1\" @no_raise destroy()\n"
+    "    extern \"xl6TcpListenerCloseV1\" @nonblocking func close()\n"
+    "    extern \"xl6TcpListenerStateV1\" @nonblocking get state() as TcpListenerState\n"
+    "    extern \"xl6TcpListenerLocalV1\" @nonblocking func localAddress() as NetAddress\n"
+    "    extern \"xl6TcpListenerSnapshotV1\" @nonblocking func snapshot() as TcpListenerStats\n"
+    "    extern \"xl6TcpListenerAcceptV1\" func accept(int timeoutMillis = -1) as TcpStream\n"
+    "    private extern \"xl6TcpPrepareAcceptV1\" @nonblocking func prepareAcceptNative() as TcpStream\n"
+    "    private extern \"xl6TcpAcceptStartV1\" @nonblocking func startAcceptNative(TcpStream value) as future<TcpStream>\n"
+    "    func acceptAsync() as future<TcpStream>\n"
+    "        TcpStream pending = self.prepareAcceptNative()\n"
+    "        return self.startAcceptNative(pending)\n    end\n"
+    "end\n";

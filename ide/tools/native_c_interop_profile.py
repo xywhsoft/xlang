@@ -373,9 +373,48 @@ PINS = {'lib/xrt/xrt.h': '20b781e898c38a79a602024530313acfff2e558826e0039a89bbf9
  'src/type/xl6_type_model.h': 'a7605e810c8473c864cf408f87704b1690e78147596b87c28975b6ba928bc98c'}
 
 
+# Same AST/IR representation,independently pinned original checker revisions.
+# The earlier complete pin set remains usable for historical comparisons.
+ASYNC_RESULT_PINS = {
+    'src/sem/xl6_sem.c':'dac589102d435cb005ef93e0eb01775a021deb635ff101678e8cf428f889a768',
+    'src/sem/xl6_sem_c_owned.c':'c61cb12925f77cb38722d072530d9cd090d48561011cfaec5e80efd2e71dc921',
+    'src/ir/xl6_ir_bound_method.c':'9edd62ba3d222de567c91ec9c15f823139968c28f2fb7b5de00dca8d4bf919c9',
+    'src/ir/xl6_ir_lower.c':'e0ecd69c662f10059be1a5e5568ba8349f11877342b517f080512ea9e911c338',
+}
+ASYNC_RESULT_CORPUS = (
+    ('extern_owned_async_callable_results',1),('extern_owned_async_deep_dispatch',1),
+    ('extern_owned_async_named_results',1),('extern_owned_async_open_callers',1),
+    ('extern_owned_bound_async_generic',1),
+    ('bad_extern_owned_async_future_invariant',0),
+    ('bad_extern_owned_bound_async_constraint',0),
+    ('bad_extern_owned_bound_async_constraint_cast',0),
+)
+ASYNC_RESULT_PRIVATE_CORPUS = (('async_reused_worker',1),)
+
+
 def sha(path):
     with Path(path).open('rb') as stream:
         return hashlib.file_digest(stream,'sha256').hexdigest()
+
+
+def pins_for(frontend: Path):
+    # EOL counterparts select a candidate only. Preparation/profile admission
+    # still requires EVERY file to reproduce its exact registered digest.
+    path=frontend/'src/sem/xl6_sem.c'
+    if path.is_file():
+        raw=path.read_bytes();lf=raw.replace(b'\r\n',b'\n')
+        if any(hashlib.sha256(data).hexdigest()==ASYNC_RESULT_PINS['src/sem/xl6_sem.c']
+               for data in (raw,lf,lf.replace(b'\n',b'\r\n'))):
+            return {**PINS,**ASYNC_RESULT_PINS}
+    return PINS
+
+
+def revision(frontend: Path):
+    return 'async-results-20261103' if pins_for(frontend) is not PINS else 'foreign-calls-20261102'
+
+
+def async_corpus(frontend: Path):
+    return ASYNC_RESULT_CORPUS if revision(frontend)=='async-results-20261103' else ()
 
 
 def selected(frontend: Path):
@@ -388,17 +427,19 @@ def selected(frontend: Path):
 def role_pins(frontend: Path, previous):
     if not selected(frontend):
         return previous
-    missing=set(previous)-set(PINS)
+    expected=pins_for(frontend)
+    missing=set(previous)-set(expected)
     if missing:
         raise ValueError('new frontend role dependencies are not captured: '+','.join(sorted(missing)))
-    return {**previous,**PINS}
+    return {**previous,**expected}
 
 
 def profile(frontend: Path):
     if not selected(frontend):
         raise ValueError('C-interop AST/XRT cohort changed or mixed')
-    for rel,digest in PINS.items():
+    expected=pins_for(frontend)
+    for rel,digest in expected.items():
         if not (frontend/rel).is_file() or sha(frontend/rel)!=digest:
             raise ValueError('C-interop dependency changed;review semantic/ownership contracts: '+rel)
-    return {**{str(frontend/rel):digest for rel,digest in PINS.items()},
+    return {**{str(frontend/rel):digest for rel,digest in expected.items()},
             str(Path(__file__).resolve()):sha(__file__)}

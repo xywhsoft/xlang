@@ -1,0 +1,237 @@
+/* Closed resource identities and physical ABI are verified before C emission. */
+typedef enum XL6_IrVfsShape {
+    XL6_VFS_STRING, XL6_VFS_BYTES, XL6_VFS_INT, XL6_VFS_U64,
+    XL6_VFS_BOOL, XL6_VFS_HANDLE, XL6_VFS_VOID, XL6_VFS_FACTORY, XL6_VFS_POINT,
+    XL6_VFS_ARRAY_STRING, XL6_VFS_ARRAY_VAR, XL6_VFS_VISITOR, XL6_VFS_VAR,
+    XL6_VFS_FUTURE_BOOL, XL6_VFS_FUTURE_U64, XL6_VFS_FUTURE_BYTES,
+    XL6_VFS_FUTURE_STRING, XL6_VFS_FUTURE_VAR
+} XL6_IrVfsShape;
+typedef struct XL6_IrVfsContract {
+    const char* name;
+    XL6_IrRuntimeBridgeKind kind;
+    XL6_IrVfsShape result;
+    size_t count;
+    XL6_IrVfsShape parameters[7];
+    const char* parameterOwners[7];
+    const char* resultOwner;
+} XL6_IrVfsContract;
+static const XL6_IrVfsContract xl6IrVfsContracts[] = {
+#define XL6_FS_LIST(...) __VA_ARGS__
+#define XL6_FS_OPERATION(Name, Symbol, Result, Count, Params, Owners, Owner, Module) \
+    {Symbol, XL6_IR_RUNTIME_BRIDGE_FS_##Name, Result, Count, \
+        {XL6_FS_LIST Params}, {XL6_FS_LIST Owners}, Owner},
+#include "src/ir/xl6_ir_fs_operations.inc"
+#undef XL6_FS_OPERATION
+#undef XL6_FS_LIST
+    {"xl6_xrt_vfs_create", XL6_IR_RUNTIME_BRIDGE_VFS_CREATE, XL6_VFS_FACTORY,
+        0, {0},
+        {NULL}, "xl6_xrt_vfs_destroy"},
+    {"xl6_xrt_vfs_destroy", XL6_IR_RUNTIME_BRIDGE_VFS_DESTROY, XL6_VFS_VOID,
+        1, {XL6_VFS_HANDLE},
+        {"xl6_xrt_vfs_destroy"}, NULL},
+    {"xl6_xrt_vfs_read", XL6_IR_RUNTIME_BRIDGE_VFS_READ, XL6_VFS_BYTES,
+        3, {XL6_VFS_HANDLE,XL6_VFS_STRING,XL6_VFS_INT},
+        {"xl6_xrt_vfs_destroy",NULL,NULL}, NULL},
+    {"xl6_xrt_vfs_memory_create", XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_CREATE, XL6_VFS_FACTORY,
+        0, {0},
+        {NULL}, "xl6_xrt_vfs_memory_destroy"},
+    {"xl6_xrt_vfs_memory_destroy", XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_DESTROY, XL6_VFS_VOID,
+        1, {XL6_VFS_HANDLE},
+        {"xl6_xrt_vfs_memory_destroy"}, NULL},
+    {"xl6_xrt_vfs_memory_put_bytes", XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_PUT_BYTES, XL6_VFS_BOOL,
+        4, {XL6_VFS_HANDLE,XL6_VFS_STRING,XL6_VFS_BYTES,XL6_VFS_INT},
+        {"xl6_xrt_vfs_memory_destroy",NULL,NULL,NULL}, NULL},
+    {"xl6_xrt_vfs_memory_put_string", XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_PUT_STRING, XL6_VFS_BOOL,
+        4, {XL6_VFS_HANDLE,XL6_VFS_STRING,XL6_VFS_STRING,XL6_VFS_INT},
+        {"xl6_xrt_vfs_memory_destroy",NULL,NULL,NULL}, NULL},
+    {"xl6_xrt_vfs_memory_seal", XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_SEAL, XL6_VFS_BOOL,
+        1, {XL6_VFS_HANDLE},
+        {"xl6_xrt_vfs_memory_destroy"}, NULL},
+    {"xl6_xrt_vfs_disk_create", XL6_IR_RUNTIME_BRIDGE_VFS_DISK_CREATE, XL6_VFS_FACTORY,
+        2, {XL6_VFS_STRING,XL6_VFS_INT},
+        {NULL,NULL}, "xl6_xrt_vfs_disk_destroy"},
+    {"xl6_xrt_vfs_disk_destroy", XL6_IR_RUNTIME_BRIDGE_VFS_DISK_DESTROY, XL6_VFS_VOID,
+        1, {XL6_VFS_HANDLE},
+        {"xl6_xrt_vfs_disk_destroy"}, NULL},
+    {"xl6_xrt_vfs_pack_create", XL6_IR_RUNTIME_BRIDGE_VFS_PACK_CREATE, XL6_VFS_FACTORY,
+        7, {XL6_VFS_STRING,XL6_VFS_INT,XL6_VFS_INT,XL6_VFS_INT,XL6_VFS_INT,XL6_VFS_INT,XL6_VFS_INT},
+        {NULL,NULL,NULL,NULL,NULL,NULL,NULL}, "xl6_xrt_vfs_pack_destroy"},
+    {"xl6_xrt_vfs_pack_destroy", XL6_IR_RUNTIME_BRIDGE_VFS_PACK_DESTROY, XL6_VFS_VOID,
+        1, {XL6_VFS_HANDLE},
+        {"xl6_xrt_vfs_pack_destroy"}, NULL},
+    {"xl6_xrt_vfs_pack_format", XL6_IR_RUNTIME_BRIDGE_VFS_PACK_FORMAT, XL6_VFS_INT,
+        1, {XL6_VFS_HANDLE},
+        {"xl6_xrt_vfs_pack_destroy"}, NULL},
+    {"xl6_xrt_vfs_mount_memory", XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_MEMORY, XL6_VFS_FACTORY,
+        5, {XL6_VFS_HANDLE,XL6_VFS_HANDLE,XL6_VFS_STRING,XL6_VFS_INT,XL6_VFS_INT},
+        {"xl6_xrt_vfs_destroy","xl6_xrt_vfs_memory_destroy",NULL,NULL,NULL}, "xl6_xrt_vfs_mount_destroy"},
+    {"xl6_xrt_vfs_mount_disk", XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_DISK, XL6_VFS_FACTORY,
+        5, {XL6_VFS_HANDLE,XL6_VFS_HANDLE,XL6_VFS_STRING,XL6_VFS_INT,XL6_VFS_INT},
+        {"xl6_xrt_vfs_destroy","xl6_xrt_vfs_disk_destroy",NULL,NULL,NULL}, "xl6_xrt_vfs_mount_destroy"},
+    {"xl6_xrt_vfs_mount_pack", XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_PACK, XL6_VFS_FACTORY,
+        5, {XL6_VFS_HANDLE,XL6_VFS_HANDLE,XL6_VFS_STRING,XL6_VFS_INT,XL6_VFS_INT},
+        {"xl6_xrt_vfs_destroy","xl6_xrt_vfs_pack_destroy",NULL,NULL,NULL}, "xl6_xrt_vfs_mount_destroy"},
+    {"xl6_xrt_vfs_mount_destroy", XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_DESTROY, XL6_VFS_VOID,
+        1, {XL6_VFS_HANDLE},
+        {"xl6_xrt_vfs_mount_destroy"}, NULL},
+    {"xl6_xrt_vfs_unmount", XL6_IR_RUNTIME_BRIDGE_VFS_UNMOUNT, XL6_VFS_BOOL,
+        1, {XL6_VFS_HANDLE},
+        {"xl6_xrt_vfs_mount_destroy"}, NULL},
+    {"xl6_xrt_vfs_mount_id", XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_ID, XL6_VFS_U64,
+        1, {XL6_VFS_HANDLE},
+        {"xl6_xrt_vfs_mount_destroy"}, NULL},
+};
+static const XL6_IrVfsContract* xl6IrVfsContract(const char* name)
+{
+    size_t i;
+    if (name == NULL) return NULL;
+    for (i = 0; i < sizeof(xl6IrVfsContracts)/sizeof(xl6IrVfsContracts[0]); ++i)
+        if (strcmp(name, xl6IrVfsContracts[i].name) == 0) return &xl6IrVfsContracts[i];
+    return NULL;
+}
+XL6_IrRuntimeBridgeKind xl6IrRuntimeVfsBridgeKind(const char* name)
+{
+    const XL6_IrVfsContract* c = xl6IrVfsContract(name);
+    return c != NULL ? c->kind : XL6_IR_RUNTIME_BRIDGE_NONE;
+}
+int xl6IrRuntimeVfsBridgeIsFactory(const char* name)
+{
+    const XL6_IrVfsContract* c = xl6IrVfsContract(name);
+    return c != NULL && c->result == XL6_VFS_FACTORY;
+}
+XL6_IrErrorAbi xl6IrRuntimeVfsBridgeErrorAbi(const char* name)
+{
+    const XL6_IrVfsContract* c = xl6IrVfsContract(name);
+    return c != NULL && c->result == XL6_VFS_VOID
+        ? XL6_IR_ERROR_ABI_NO_RAISE : XL6_IR_ERROR_ABI_MAY_RAISE;
+}
+const char* xl6IrRuntimeFsBridgeModule(XL6_IrRuntimeBridgeKind kind)
+{
+    switch (kind) {
+#define XL6_FS_OPERATION(Name, Symbol, Result, Count, Params, Owners, Owner, Module) \
+    case XL6_IR_RUNTIME_BRIDGE_FS_##Name: return Module;
+#include "src/ir/xl6_ir_fs_operations.inc"
+#undef XL6_FS_OPERATION
+    default: return NULL;
+    }
+}
+int xl6IrRuntimeFsBridgeUsesOwner(XL6_IrRuntimeBridgeKind kind, const char* owner)
+{
+    size_t index, parameter;
+    if (owner == NULL) return 0;
+    for (index = 0; index < sizeof(xl6IrVfsContracts)/sizeof(xl6IrVfsContracts[0]); ++index) {
+        const XL6_IrVfsContract* c = &xl6IrVfsContracts[index];
+        if (c->kind != kind) continue;
+        if (c->resultOwner != NULL && strcmp(c->resultOwner, owner) == 0) return 1;
+        for (parameter = 0; parameter < c->count; ++parameter)
+            if (c->parameterOwners[parameter] != NULL && strcmp(c->parameterOwners[parameter], owner) == 0) return 1;
+        return 0;
+    }
+    return 0;
+}
+const char* xl6IrRuntimeVfsBridgeParameterOwner(const char* name, size_t parameter)
+{
+    const XL6_IrVfsContract* c = xl6IrVfsContract(name);
+    return c != NULL && parameter < c->count ? c->parameterOwners[parameter] : NULL;
+}
+static int xl6IrVfsTypeMatches(const XL6_IrModule* module, XL6_IrTypeId id, XL6_IrVfsShape shape)
+{
+    const XL6_IrType* t = xl6IrTypeGet(&module->types, id);
+    if (shape == XL6_VFS_VOID) return id == XL6_IR_TYPE_INVALID;
+    if (t == NULL) return 0;
+    if (shape >= XL6_VFS_FUTURE_BOOL && shape <= XL6_VFS_FUTURE_VAR) {
+        XL6_IrVfsShape element = shape == XL6_VFS_FUTURE_BOOL ? XL6_VFS_BOOL :
+            shape == XL6_VFS_FUTURE_U64 ? XL6_VFS_U64 : shape == XL6_VFS_FUTURE_BYTES ? XL6_VFS_BYTES :
+            shape == XL6_VFS_FUTURE_STRING ? XL6_VFS_STRING : XL6_VFS_VAR;
+        return t->kind == XL6_IR_TYPE_GENERIC_INSTANCE && t->collectionAbi == XL6_IR_COLLECTION_NONE && t->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
+            t->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED && t->paramCount == 1 && t->params != NULL &&
+            xl6IrVfsTypeMatches(module,t->params[0],element);
+    }
+    if (shape == XL6_VFS_HANDLE || shape == XL6_VFS_FACTORY)
+        return t->kind == XL6_IR_TYPE_CLASS && t->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+               t->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
+    if (shape == XL6_VFS_VISITOR) {
+        const XL6_IrType* argument;
+        const XL6_IrType* result;
+        if (!xl6IrLanguageFunctionValueSignatureSupported(module,id) || t->paramCount != 1 ||
+            t->returnCount != 1 || t->parameterAbis[0] != XL6_IR_PARAMETER_ABI_BORROW) return 0;
+        argument = xl6IrTypeGet(&module->types,t->params[0]);
+        result = xl6IrTypeGet(&module->types,t->callableResultType);
+        return argument != NULL && argument->kind == XL6_IR_TYPE_BUILTIN &&
+            argument->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && argument->collectionAbi == XL6_IR_COLLECTION_NONE &&
+            result != NULL && result->cAbi == XL6_IR_C_ABI_I64 && result->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_64;
+    }
+    if (shape == XL6_VFS_ARRAY_STRING || shape == XL6_VFS_ARRAY_VAR) {
+        const XL6_IrType* element;
+        if (t->collectionAbi != XL6_IR_COLLECTION_ARRAY || t->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+            t->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED) return 0;
+        /* Both erased array and explicit array<var> have the same runtime ABI.
+         * Explicit arrays still require an exact var element, never array<T>. */
+        if (shape == XL6_VFS_ARRAY_VAR && t->paramCount == 0) return 1;
+        if (t->paramCount != 1 || t->params == NULL) return 0;
+        element = xl6IrTypeGet(&module->types,t->params[0]);
+        return element != NULL && element->kind == XL6_IR_TYPE_BUILTIN &&
+            element->collectionAbi == XL6_IR_COLLECTION_NONE && element->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+            element->cAbi == (shape == XL6_VFS_ARRAY_STRING ? XL6_IR_C_ABI_MANAGED_STRING : XL6_IR_C_ABI_RUNTIME_XVALUE_PTR);
+    }
+    if (t->kind != XL6_IR_TYPE_BUILTIN || t->collectionAbi != XL6_IR_COLLECTION_NONE || t->paramCount != 0) return 0;
+    switch (shape) {
+    case XL6_VFS_STRING: return t->cAbi == XL6_IR_C_ABI_MANAGED_STRING && t->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
+    case XL6_VFS_BYTES: return t->cAbi == XL6_IR_C_ABI_MANAGED_BYTES && t->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
+    case XL6_VFS_INT: return t->cAbi == XL6_IR_C_ABI_I64;
+    case XL6_VFS_U64: return t->cAbi == XL6_IR_C_ABI_U64;
+    case XL6_VFS_BOOL: return t->cAbi == XL6_IR_C_ABI_BOOL;
+    case XL6_VFS_POINT: return t->cAbi == XL6_IR_C_ABI_RAW_POINTER;
+    case XL6_VFS_VAR: return t->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && t->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
+    default: return 0;
+    }
+}
+static int xl6IrVfsOwnerMatches(const XL6_IrModule* module, XL6_SymbolId symbol, const char* name)
+{
+    const XL6_IrCallTarget* destroy = xl6IrCallTargetGet(module, symbol);
+    return destroy != NULL && destroy->cName != NULL && name != NULL && strcmp(destroy->cName,name) == 0;
+}
+int xl6IrRuntimeVfsBridgeTargetMatches(const XL6_IrModule* module, const XL6_IrCallTarget* target)
+{
+    const XL6_IrVfsContract* c;
+    size_t i;
+    int factory;
+    if (module == NULL || target == NULL || (c=xl6IrVfsContract(target->cName)) == NULL) return 0;
+    factory = c->result == XL6_VFS_FACTORY;
+    if (target->runtimeBridge != c->kind ||
+        target->kind != (factory ? XL6_IR_CALL_TARGET_NATIVE_FACTORY : XL6_IR_CALL_TARGET_EXTERN_C) ||
+        target->errorAbi != (c->result == XL6_VFS_VOID ? XL6_IR_ERROR_ABI_NO_RAISE : XL6_IR_ERROR_ABI_MAY_RAISE) ||
+        (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
+         target->errorPhysicalAbi != (c->result == XL6_VFS_VOID ? XL6_IR_CALL_ERROR_PHYSICAL_NONE : XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR)) ||
+        target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE || target->parameterCount != c->count ||
+        !xl6IrVfsTypeMatches(module, target->returnType, c->result) ||
+        target->resultPhysicalAbi != (factory ? XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE : XL6_IR_CALL_RESULT_PHYSICAL_DIRECT) ||
+        (factory ? (target->resultPhysicalFieldDeclaration == XL6_IR_NODE_INVALID || target->resultPhysicalDestroySymbol == 0) :
+                   (target->resultPhysicalFieldDeclaration != XL6_IR_NODE_INVALID || target->resultPhysicalDestroySymbol != 0)) ||
+        (c->count != 0 && (target->parameterTypes == NULL || target->parameterAbis == NULL ||
+         target->parameterPhysicalAbis == NULL || target->parameterPhysicalFieldDeclarations == NULL || target->parameterConstraintAbis == NULL)))
+        return 0;
+    for (i = 0; i < c->count; ++i) {
+        XL6_IrVfsShape s = c->parameters[i];
+        int handle = s == XL6_VFS_HANDLE;
+        int visitor = s == XL6_VFS_VISITOR;
+        if (!xl6IrVfsTypeMatches(module, target->parameterTypes[i], s) ||
+            target->parameterAbis[i] != ((handle || visitor || s == XL6_VFS_STRING || s == XL6_VFS_BYTES || s == XL6_VFS_VAR || s == XL6_VFS_ARRAY_STRING || s == XL6_VFS_ARRAY_VAR) ? XL6_IR_PARAMETER_ABI_BORROW : XL6_IR_PARAMETER_ABI_VALUE) ||
+            target->parameterPhysicalAbis[i] != (handle ? XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW :
+                visitor ? XL6_IR_CALL_PARAMETER_PHYSICAL_LANGUAGE_FUNCTION_VALUE : XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ||
+            target->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
+            (handle ? target->parameterPhysicalFieldDeclarations[i] == XL6_IR_NODE_INVALID : target->parameterPhysicalFieldDeclarations[i] != XL6_IR_NODE_INVALID))
+            return 0;
+        if (handle && module->stage == XL6_IR_STAGE_LOWERED) {
+            const XL6_IrClassLayout* layout = xl6IrBuildClassLayoutByType(module, target->parameterTypes[i]);
+            const XL6_IrClassField* field;
+            if (layout == NULL || layout->fieldCount != 1) return 0;
+            field = &module->classFields[layout->firstField];
+            if (field->declaration != target->parameterPhysicalFieldDeclarations[i] ||
+                !xl6IrVfsOwnerMatches(module,field->nativeDestroySymbol,c->parameterOwners[i])) return 0;
+        }
+    }
+    if (factory && module->stage == XL6_IR_STAGE_LOWERED &&
+        !xl6IrVfsOwnerMatches(module,target->resultPhysicalDestroySymbol,c->resultOwner)) return 0;
+    return 1;
+}

@@ -6,7 +6,7 @@ from native_ir_memo_overlay import derive as raw_memo
 from native_current_retirement_profile import PINS as RETIREMENT_PINS,IR_DIGESTS as RETIREMENT_IR_DIGESTS
 from native_current_unified_profile import updated_pins
 from native_current_ir_profile import PINS as IR_DEPENDENCIES,PROFILES as IR_PROFILES
-from native_c_interop_profile import PINS as C_INTEROP_PINS, selected as c_interop_selected
+from native_c_interop_profile import COHORT as C_INTEROP_COHORT, PINS as C_INTEROP_PINS, selected as c_interop_selected
 
 PINS={
     'src/ir/xl6_ir.c':'fb1c73cb62d95540fac8f524b74b518f928e1668f531c87f7cd37f31e3f0353e',
@@ -39,10 +39,12 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
         if not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest()!=digest:
             raise ValueError('current IR asset changed; audit representation and phase contracts: '+rel)
         audited[str(p)]=digest
-    dependency_cohort=next((name for name,values in IR_PROFILES.items()
+    profiles=dict(IR_PROFILES)
+    if c_interop_selected(frontend):profiles[C_INTEROP_COHORT]=updated_pins(frontend,profiles[C_INTEROP_COHORT])
+    dependency_cohort=next((name for name,values in profiles.items()
         if all((frontend/rel).is_file() and hashlib.sha256((frontend/rel).read_bytes()).hexdigest()==digest for rel,digest in values.items())),None)
     if dependency_cohort is None:raise ValueError('current IR include cohort changed or mixed; audit phase contracts')
-    for rel,digest in IR_PROFILES[dependency_cohort].items():
+    for rel,digest in profiles[dependency_cohort].items():
         p=frontend/rel
         if not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest()!=digest:
             raise ValueError('current IR included dependency changed; audit phase contracts: '+rel)
