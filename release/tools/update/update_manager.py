@@ -331,13 +331,25 @@ def verify_public_object(url,spec):
         if size!=spec['size'] or h.hexdigest()!=spec['sha256']:raise ValueError('public object verification failed: '+url)
     public_retry(read,url)
 
+def verify_public_on_server(remote,stage,names,specs):
+    # Optional fallback for a publishing workstation with an unstable large-file
+    # route. Still fetch the public HTTPS URL with certificate validation and
+    # verify every body, not just the server's filesystem copy.
+    script='set -eu; verify=$(mktemp '+shlex.quote(stage+'/public-check.XXXXXX')+'); trap \'rm -f -- "$verify"\' EXIT; count=0; while read -r expected size url; do curl --noproxy "*" -fsS --retry 2 --retry-all-errors --connect-timeout 10 --max-time 120 --output "$verify" -- "$url"; test "$(wc -c < "$verify")" = "$size"; test "$(sha256sum -- "$verify" | cut -d " " -f 1)" = "$expected"; count=$((count+1)); done; printf "VERIFIED %s\\n" "$count"'
+    with tempfile.TemporaryFile() as inventory:
+        for name in names:inventory.write(f"{specs[name]['sha256']} {specs[name]['size']} {remote.url}/update/{name}\n".encode())
+        inventory.seek(0);result=remote.run(script,file=inventory)
+    if result.strip()!=f'VERIFIED {len(names)}':raise ValueError('server public verification inventory was incomplete')
+    print(f'VERIFY PUBLIC SERVER {len(names)}/{len(names)}',flush=True)
+
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,*args): return None
 
 def public_open(url):
     # Match the updater: a deployment must serve the configured endpoint,
     # rather than verifying a redirected endpoint the client cannot use.
-    return urllib.request.build_opener(NoRedirect()).open(url,timeout=30)
+    # Match the XRT client's direct route; do not silently use a publisher proxy.
+    return urllib.request.build_opener(urllib.request.ProxyHandler({}),NoRedirect()).open(url,timeout=30)
 
 def push(args,store):
     version=current(store)
@@ -380,9 +392,11 @@ def push(args,store):
         if any(actual.get(n)!=specs[n]['sha256'] for n in names): raise ValueError('remote complete-object check failed')
         remote.set_read_permissions(root+'/update',names)
         # Validate public object access BEFORE exposing the new version marker.
-        for index,name in enumerate(names,1):
-            verify_public_object(remote.url+'/update/'+name,specs[name])
-            if index==1 or index%64==0 or index==len(names):print(f'VERIFY PUBLIC {index}/{len(names)}',flush=True)
+        if args.verify_public_on_server:verify_public_on_server(remote,stage,names,specs)
+        else:
+            for index,name in enumerate(names,1):
+                verify_public_object(remote.url+'/update/'+name,specs[name])
+                if index==1 or index%64==0 or index==len(names):print(f'VERIFY PUBLIC {index}/{len(names)}',flush=True)
         for name in META:
             remote.upload(store/name,stage+'/'+name)
             if remote.run('sha256sum -- '+q(stage+'/'+name)).split()[0]!=digest(store/name): raise ValueError('remote metadata hash mismatch')
@@ -395,7 +409,7 @@ def push(args,store):
         remote.run('cp -- '+q(stage+'/version.txt')+' '+q(root+'/version.txt.new')+' && chmod 644 '+q(root+'/version.txt.new')+' && mv -fT -- '+q(root+'/version.txt.new')+' '+q(root+'/version.txt'))
         activated=True
         if fetch_public(remote.url+'/version.txt'+nonce)!=(store/'version.txt').read_bytes():raise ValueError('version activated; public verification pending, rerun push')
-        history=store/'.state/history'/str(version);record=read(history/'record.json');record.update(published=True,publishedAt=int(time.time()),host=remote.host,publicUrl=remote.url);write(history/'record.json',record)
+        history=store/'.state/history'/str(version);record=read(history/'record.json');record.update(published=True,publishedAt=int(time.time()),host=remote.host,publicUrl=remote.url,publicVerificationRoute='server-https' if args.verify_public_on_server else 'publisher-direct-https');write(history/'record.json',record)
         pending.unlink();print(f'PUBLISHED {args.platform} version={version} uploaded={len(missing)} reused={len(names)-len(missing)}')
     except BaseException:
         # A disconnected SSH acknowledgement may hide a completed rename.
@@ -444,6 +458,7 @@ def main(argv=None):
     parser.add_argument('--store',type=Path);parser.add_argument('--source');parser.add_argument('--version',type=int,default=0)
     parser.add_argument('--key');parser.add_argument('--crypto');parser.add_argument('--notes');parser.add_argument('--notes-file');parser.add_argument('--include-mdo',action='store_true')
     parser.add_argument('--force-update',action=argparse.BooleanOptionalAction,default=False,help='require older IDE installations to update; default is optional')
+    parser.add_argument('--verify-public-on-server',action='store_true',help='verify public bodies over HTTPS from the SSH server (requires curl 7.71+)')
     parser.add_argument('--co-sign-key',action='append',default=[],help='additional trusted rollout key; preserves the previous signature')
     parser.add_argument('--host');parser.add_argument('--remote-root');parser.add_argument('--public-url');parser.add_argument('--ssh');parser.add_argument('--ssh-config');parser.add_argument('--dry-run',action='store_true');parser.add_argument('--remote',action='store_true')
     args=parser.parse_args(argv);store=(args.store or ROOT/'ide/build/updates'/args.platform).resolve()

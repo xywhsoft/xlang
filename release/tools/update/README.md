@@ -58,6 +58,8 @@ python release/tools/update/update_manager.py status --platform win_x64 --store 
 
 可通过 `--ssh` 指定 OpenSSH 可执行文件，`--ssh-config` 指定独立 SSH 配置。`remoteRoot` 是服务器文件系统路径，必须以 `/update_<platform>` 结尾；`publicUrl` 是对应网页 URL，两者不要混淆。服务器需要 POSIX shell 和 GNU coreutils（包括 `sha256sum`、`mv -T`）；无需运行 Python 发布服务。发布用户需要写入目标目录及相邻的私有发布暂存目录。公开目录使用 755、公开文件使用 644，私有暂存保持 700；网站目录应仅允许发布账号写入。端点应直接返回文件，不使用 HTTP 跳转。
 
+公开下载校验采用直连，与 XRT 更新器保持一致，不使用发布机的系统或环境代理。
+
 推送会验证所有引用对象，而不是只假设差分之外的线上文件存在。上传到临时文件，核对远端 SHA-256 后改名，并先通过公开 HTTP(S) 地址核对全部对象。随后切换 JSON、LZMA 并核对公开清单，最后才切换版本号。激活前失败会恢复旧信息文件；激活后若最终 HTTP 复核失败，则保留新版本和待复核状态，重跑 push 完成验证，绝不静默降低已激活的版本号。重跑继续复用已完成的对象。同一平台有远端发布锁，本地保留未完成任务的令牌，进程中断后仍可继续。
 
 `--dry-run` 只展示目标、版本、对象数量和大小，不上传。版本相同时只接受字节相同的清单，并可补齐被删除的远端对象；已发布版本内容不能覆盖。网络中断按完整对象恢复，分片对象最多重新传输一个 50 MiB 分片。
@@ -71,3 +73,5 @@ python release/tools/update/update_manager.py status --platform win_x64 --store 
 首版不提供自动清理远端对象、任意历史版本自动回退或版本数据库。历史差分会积累，清理前必须保留当前版本和需要保留的历史对象；不要手动删除 `.state/push.json` 来绕过未完成的推送。
 
 各平台分别使用独立工作目录和 URL：`update_win_x64`、`update_linux_x64`、`update_linux_arm`、`update_linux_arm64`。ARM32 与 ARM64 不共用目录。
+
+当发布机的大文件网络链路不稳定时，可以加 `--verify-public-on-server`。该方式要求服务器有 curl 7.71+，从服务器访问公开 HTTPS URL，验证 TLS、每个对象的大小和 SHA-256；本机仍核对线上信息文件。它不跳过公开下载校验，也不关闭证书验证。
