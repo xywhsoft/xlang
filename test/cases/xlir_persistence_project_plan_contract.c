@@ -284,7 +284,7 @@ int main(int argc, char** argv)
                 ALTER_GRAPH(target, parameterAbis[0], XL6_IR_PARAMETER_ABI_INVALID);
                 ALTER_GRAPH(target, parameterPhysicalAbis[0], XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW);
                 ALTER_GRAPH(target, resultPhysicalAbi, XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE);
-                ALTER_GRAPH(target, resultConversionAbi, XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY);
+                ALTER_GRAPH(target, resultConversionAbi, XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY);
                 ALTER_GRAPH(target, resultCAbi, XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER);
                 ALTER_GRAPH(target, errorAbi, XL6_IR_ERROR_ABI_INVALID);
                 ALTER_GRAPH(target, errorPhysicalAbi, XL6_IR_CALL_ERROR_PHYSICAL_INVALID);

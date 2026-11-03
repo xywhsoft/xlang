@@ -36,8 +36,8 @@ int main(int argc,char** argv)
         target->resultCAbi=XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER;refused(module);*target=saved;
         target->errorAbi=XL6_IR_ERROR_ABI_NO_RAISE;refused(module);*target=saved;
         target->resultConversionAbi=XL6_IR_CALL_RESULT_CONVERSION_DIRECT;refused(module);*target=saved;
-        node->foreignCall.textViewResult=0;refused(module);node->foreignCall=facts;
-        node->foreignCall.textViewResult=2;refused(module);node->foreignCall=facts;
+        node->foreignCall.borrowedViewResult=0;refused(module);node->foreignCall=facts;
+        node->foreignCall.borrowedViewResult=2;refused(module);node->foreignCall=facts;
     }
     assert(inputs>=2 && results>=3 && xl6IrVerifyModule(module,NULL));
     printf("text view: inputs=%u results=%u mutations=%u zero-output=%u\n",inputs,results,mutations,mutations*2);

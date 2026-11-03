@@ -121,7 +121,7 @@ static void xl6IrCgenEmitPersistenceByteView(XL6_Output*, const char*, int);
 /* Emit the target's physical call. Receiver projection and result conversion
  * have already been selected in CallTarget; no declaration lookup is needed. */
 static void xl6IrCgenEmitDispatchTargetCall(
-    XL6_Output* out, const XL6_IrCallTarget* target,
+    XL6_Output* out, const XL6_IrModule* module, const XL6_IrCallTarget* target,
     const XL6_IrClassField* externReceiverField, size_t parameterCount)
 {
     size_t p;
@@ -137,8 +137,13 @@ static void xl6IrCgenEmitDispatchTargetCall(
         xl6IrCgenEmitCStringLiteral(out, externReceiverField->name);
         xl6OutputPuts("))", out);
     } else xl6OutputPrintf(out, "xlir_fn_%u(receiver", (unsigned int)target->symbol);
-    for (p = 0; p < parameterCount; ++p)
-        xl6OutputPrintf(out, ", a%lu", (unsigned long)p);
+    for (p = 0; p < parameterCount; ++p) {
+        if(target->kind==XL6_IR_CALL_TARGET_EXTERN_C &&
+            target->parameterPhysicalAbis[p+1]==XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW)
+            xl6OutputPrintf(out, ", xlir_bytes_arg_%lu", (unsigned long)(p+1));
+        else xl6OutputPrintf(out, ", a%lu%s", (unsigned long)p,
+            xl6IrCgenDirectPlaceSuffix(module,target,p+1));
+    }
     xl6OutputPuts(")", out);
 }
 
@@ -163,17 +168,19 @@ static int xl6IrCgenEmitDispatchWitness(
         if (!xl6IrCgenEmitPreparationRollback(out, module, target, NULL, 1, "outcome", diags)) return 0;
         xl6OutputPuts("        xrtSetErrorTake(outcome.error); return result;\n"
             "    }\n    ", out);
-        if (target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY)
-            xl6OutputPuts(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW ? "xstrview borrowed_raw = " : "const char* borrowed_raw = ",out);
+        int bytesPrepared=xl6IrCgenPrepareBytesViews(out,target,NULL);
+        if (target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY)
+            xl6OutputPrintf(out,"%s borrowed_raw = ",xl6IrCgenBorrowedResultCType(target));
         else if (returnType != XL6_IR_TYPE_INVALID) xl6OutputPuts(
             target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE
                 ? "result.value.Data = " : "result.value = ", out);
-        xl6IrCgenEmitDispatchTargetCall(out, target, externReceiverField, parameterCount);
+        xl6IrCgenEmitDispatchTargetCall(out, module, target, externReceiverField, parameterCount);
         xl6OutputPuts(";\n", out);
-        if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY)
-            xl6IrCgenEmitBorrowedStringAdmission(out,module,target,"result.value","borrowed_raw","scope");
+        if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY)
+            xl6IrCgenEmitBorrowedValueAdmission(out,module,target,"result.value","borrowed_raw","scope");
         if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE)
             xl6IrCgenEmitOwnedStringAdmission(out,module,target,"result.value","scope.failed");
+        if(bytesPrepared)xl6OutputPuts("    }\n",out);
         if (returnType != XL6_IR_TYPE_INVALID) {
             xl6OutputPuts("    if (scope.failed || xrtGetError() != NULL) {\n"
                 "        xl6ErrorScopeCaptureFailure(&scope);\n", out);
@@ -189,6 +196,7 @@ static int xl6IrCgenEmitDispatchWitness(
         target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER)
         return xl6IrCgenDiag(diags, module, target->declaration,
             "XLIR dispatch witness outcome adapter is unresolved");
+    int bytesPrepared=target->kind==XL6_IR_CALL_TARGET_EXTERN_C ? xl6IrCgenPrepareBytesViews(out,target,NULL) : 0;
     int owned=target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE;
     if (lift) {
         xl6OutputPrintf(out, "%s result = {true}; ", xl6IrCgenErrorResultType(module, returnType));
@@ -196,7 +204,7 @@ static int xl6IrCgenEmitDispatchWitness(
     } else if(owned) {
         xl6OutputPuts("xlir_string owned_result = {0}; owned_result.Data = ",out);
     } else if (returnType != XL6_IR_TYPE_INVALID || carrier) xl6OutputPuts("return ", out);
-    xl6IrCgenEmitDispatchTargetCall(out, target, externReceiverField, parameterCount);
+    xl6IrCgenEmitDispatchTargetCall(out, module, target, externReceiverField, parameterCount);
     xl6OutputPuts("; ", out);
     if(owned) {
         xl6IrCgenEmitOwnedStringAdmission(out,module,target,lift ? "result.value" : "owned_result",NULL);
@@ -204,6 +212,7 @@ static int xl6IrCgenEmitDispatchWitness(
     }
     if (lift) xl6OutputPuts("return result; ", out);
     else if (returnType == XL6_IR_TYPE_INVALID && !carrier) xl6OutputPuts("return; ", out);
+    if(bytesPrepared)xl6OutputPuts(" } ",out);
     return !xl6OutputHasFailed(out);
 }
 

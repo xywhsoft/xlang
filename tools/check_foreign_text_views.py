@@ -21,7 +21,8 @@ def main():
         started=time.monotonic();r=subprocess.run(list(map(str,cmd)),cwd=root,env=env,capture_output=True,timeout=240)
         log=out/(name+'.log');log.write_bytes(r.stdout+r.stderr)
         report['rows'].append(dict(name=name,exitCode=r.returncode,accepted=accepted,seconds=round(time.monotonic()-started,3),logSha256=sha(log)))
-        save();print(name,r.returncode,flush=True);assert (r.returncode==0)==accepted,log
+        save();print(name,r.returncode,flush=True);assert r.returncode==(0 if accepted else 1),log
+        if not accepted:assert b'[sem]' in (r.stdout+r.stderr),log
     generated=out/'text.c';run('cgen',[driver,source,'cgen-default',generated]);text=generated.read_text(encoding='utf-8-sig')
     assert 'extern size_t foreign_text_size(xstrview);' in text and 'extern xstrview foreign_text_echo(xstrview);' in text
     runtime_dir=Path(build.get('RuntimeDirectory',root/('release/win_x64' if os.name=='nt' else 'release/linux_x64')))
@@ -52,7 +53,8 @@ def main():
         'unknown-result':original.replace('@c_result("text_view")','@c_result("unknown")',1),
         'duplicate-result':original.replace('@c_result("text_view")','@c_result("text_view") @c_result("text_view")',1)}
     for name,content in negatives.items():
-        case=out/(name+'.xl');case.write_text(content);target=out/(name+'.c')
+        assert content != original,name
+        case=out/(name+'.xl');case.write_text(content,encoding='utf-8');target=out/(name+'.c')
         run(name,[driver,case,'cgen-default',target],False);assert not target.exists()
     objects=[row['Path'] for row in build['Objects'] if Path(row['Source']).name not in ('xlir_public_source_driver.c','xlir_public_source_linux_driver.c')]
     systems=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-Wl,--export-dynamic','-pthread','-ldl','-lm','-Wl,-rpath,'+str(runtime.parent)]

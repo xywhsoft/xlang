@@ -48,6 +48,9 @@ def main():
         run('constructor-alias-'+mode, [driver, root/'test/cases/foreign_decl_constructor_alias.xl',
             mode, out/('constructor-alias-'+mode)])
     run('constructor-alias-standalone', [out/('constructor-alias-exe.exe' if os.name == 'nt' else 'constructor-alias-exe')])
+    for gate in ('text_views', 'bytes_views', 'bound_views'):
+        run(gate, [sys.executable, '-B', root/('tools/check_foreign_'+gate+'.py'),
+            '--root', root, '--public-directory', args.source_build.resolve().parent, '--out', out/gate])
     report['complete'] = True
     report['passed'] = all(row['exitCode'] == 0 for row in report['stages'])
     (out/'results.json').write_text(json.dumps(report, indent=2)+'\n', encoding='utf-8')

@@ -390,6 +390,9 @@ static int xl6IrCgenEmitCallOperand(
     if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW) {
         xl6OutputPrintf(out, "v%u", (unsigned)value); return !xl6OutputHasFailed(out);
     }
+    if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW) {
+        xl6OutputPrintf(out, "xlir_bytes_arg_%lu", (unsigned long)parameter); return !xl6OutputHasFailed(out);
+    }
     if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS) {
         xl6OutputPrintf(out, "&v%u", (unsigned)value); return !xl6OutputHasFailed(out);
     }
@@ -705,7 +708,7 @@ static int xl6IrCgenEmitDirectCall(
     /* A failed scope entry skips the native call, so its owned physical
      * result must be empty on every invocation, not merely at function entry. */
     if ((((target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE ||
-           target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY) &&
+           target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY) &&
           errorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE) ||
          target->preparationFailureAbi == XL6_IR_CALL_PREPARATION_RETIRE_OWNED_REVERSE ||
          target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1) &&
@@ -749,9 +752,10 @@ static int xl6IrCgenEmitDirectCall(
     }
     if (!xl6IrCgenNativeCallValueBegin(out,module,&nativeValue,
             nativeValue.inputParameter?nativeInput:NULL,nativeScope)) return 0;
-    if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY)
+    int bytesPrepared=xl6IrCgenPrepareBytesViews(out,target,module->operands+instruction->firstOperand);
+    if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY)
         xl6OutputPrintf(out,"    %s borrowed_raw_%lu = ",
-            target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW ? "xstrview" : "const char*",(unsigned long)instructionIndex);
+            xl6IrCgenBorrowedResultCType(target),(unsigned long)instructionIndex);
     else if ( errorPhysicalAbi ==
              XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
         xl6OutputPrintf(out, "    %s r%lu = ",
@@ -808,11 +812,11 @@ static int xl6IrCgenEmitDirectCall(
         else xl6OutputPrintf(out,"&v%u",(unsigned)instruction->result);
     }
     xl6OutputPuts(");\n", out);
-    if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY) {
+    if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY) {
         char place[40],raw[48];
         snprintf(place,sizeof(place),"v%u",(unsigned)instruction->result);
         snprintf(raw,sizeof(raw),"borrowed_raw_%lu",(unsigned long)instructionIndex);
-        xl6IrCgenEmitBorrowedStringAdmission(out,module,target,place,raw,nativeScope);
+        xl6IrCgenEmitBorrowedValueAdmission(out,module,target,place,raw,nativeScope);
     }
     if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE) {
         char place[40],failed[64];
@@ -821,6 +825,7 @@ static int xl6IrCgenEmitDirectCall(
         xl6IrCgenEmitOwnedStringAdmission(out,module,target,place,
             errorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ? failed : NULL);
     }
+    if(bytesPrepared)xl6OutputPuts("    }\n",out);
     if (!xl6IrCgenNativeCallValueEnd(out,module,&nativeValue,nativeResult,nativeScope)) return 0;
     if (textCount != 0) xl6OutputPuts("    }\n", out);
     if ( errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ) {

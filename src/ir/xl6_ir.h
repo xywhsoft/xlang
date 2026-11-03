@@ -4160,7 +4160,8 @@ typedef enum XL6_IrCallParameterPhysicalAbi {
     XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW,
     XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS,
     XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK,
-    XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW
+    XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW,
+    XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW
 } XL6_IrCallParameterPhysicalAbi;
 
 /* A raw C callback may cross ordinary language wrapper functions before it
@@ -4192,14 +4193,15 @@ typedef enum XL6_IrCallResultPhysicalAbi {
 typedef enum XL6_IrCallResultCAbi {
     XL6_IR_CALL_RESULT_C_ABI_STORAGE = 0,
     XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER,
-    XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW
+    XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW,
+    XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW
 } XL6_IrCallResultCAbi;
 
 /* CALL 在物理调用后立即完成拥有权转换，之后才允许释放参数和接收者。
  * SSA 结果已经是语言拥有值，C 返回的借用地址不得逃出这条调用边界。 */
 typedef enum XL6_IrCallResultConversionAbi {
     XL6_IR_CALL_RESULT_CONVERSION_DIRECT = 0,
-    XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY,
+    XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY,
     XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE
 } XL6_IrCallResultConversionAbi;
 
@@ -7917,6 +7919,7 @@ XL6_IrCallResultConversionAbi xl6IrCallResultConversionForTarget(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 XL6_IrCallResultCAbi xl6IrCallResultCAbiForTarget(const XL6_IrModule*, const XL6_IrCallTarget* target);
 int xl6IrForeignTextViewParameter(const XL6_IrModule*, const XL6_IrCallTarget*, size_t);
+int xl6IrForeignBytesViewParameter(const XL6_IrModule*, const XL6_IrCallTarget*, size_t);
 int xl6IrCallResultCAbiMatches(const XL6_IrModule* module, const XL6_IrCallTarget* target);
 const XL6_IrCallSite* xl6IrCallSiteGet(const XL6_IrModule* module, XL6_IrNodeId origin);
 XL6_IrNodeId xl6IrCallParameterListGet(const XL6_IrModule* module, XL6_IrNodeId declaration);

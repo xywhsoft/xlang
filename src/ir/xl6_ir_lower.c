@@ -13573,6 +13573,8 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
     for (i = 0; i < target->parameterCount; ++i) {
         if (xl6IrForeignTextViewParameter(module, target, i))
             target->parameterPhysicalAbis[i] = XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW;
+        if (xl6IrForeignBytesViewParameter(module, target, i))
+            target->parameterPhysicalAbis[i] = XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW;
         if (xl6IrForeignConstRecordParameter(module, target, i))
             target->parameterPhysicalAbis[i] = XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS;
         if (xl6IrForeignStaticCallbackParameter(module, target, i)) {
@@ -14912,7 +14914,7 @@ static int xl6IrLowerPrecomputeCallTargetErrorAbis(XL6_IrLowerContext* ctx)
                                    declaration != NULL &&
                                    xl6IrDeclarationAllowsForeignContract(declaration->sourceKind, declaration->flags) &&
                                    (declaration->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE) != 0 &&
-                                   target->resultConversionAbi != XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY
+                                   target->resultConversionAbi != XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY
                     ? XL6_IR_ERROR_ABI_NO_RAISE : XL6_IR_ERROR_ABI_MAY_RAISE;
             }
             continue;

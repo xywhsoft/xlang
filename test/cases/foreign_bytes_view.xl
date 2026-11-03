@@ -1,0 +1,152 @@
+extern "foreign_bytes_size" @pure @no_raise @nonblocking @c_bytes_view(0) func byteSize(bytes value) as c_size
+extern "foreign_bytes_pair" @pure @no_raise @nonblocking @c_bytes_view(0) @c_bytes_view(1) func pairSize(bytes first, bytes second) as c_size
+extern "foreign_bytes_echo" @no_raise @nonblocking @c_bytes_view(0) @c_result("bytes_view") func echo(bytes value) as bytes
+extern "foreign_bytes_static" @no_raise @nonblocking @c_result("bytes_view") func byteResult(c_int mode) as bytes
+extern "foreign_bytes_optional" @no_raise @nonblocking @c_result("bytes_view") func optionalResult(c_int mode) as bytes?
+extern "foreign_bytes_begin" @no_raise @nonblocking func beginCheck()
+extern "foreign_bytes_unchanged" @no_raise @nonblocking func unchanged() as c_int
+extern "foreign_bytes_allocations" @no_raise @nonblocking func allocations() as c_int
+extern "foreign_bytes_expect" @no_raise @nonblocking func expect(c_int actual, c_int expected)
+extern "foreign_bytes_reset" @no_raise @nonblocking func resetFailures()
+extern "foreign_bytes_mutate" @no_raise @nonblocking func mutateSource()
+extern "foreign_bytes_mark_balance" @no_raise @nonblocking func markBalance()
+extern "foreign_bytes_balanced" @no_raise @nonblocking func balanced() as c_int
+extern "foreign_bytes_widget*" class Widget @header("test/cases/foreign_bytes_view.h") @lifetime("caller")
+    native point handle
+    extern "foreign_bytes_widget_echo" @no_raise @nonblocking @c_bytes_view(0) @c_result("bytes_view") func echo(bytes value) as bytes
+    extern "foreign_bytes_widget_data" @no_raise @nonblocking @c_result("bytes_view") get data() as bytes
+    extern "foreign_bytes_widget_set" @no_raise @nonblocking @c_bytes_view(0) let data(bytes value)
+end
+extern "foreign_bytes_widget_get" @no_raise @nonblocking func widget() as Widget
+protocol ByteApi
+    func echo(bytes value) as bytes
+    func textSize(string value) as c_size
+    func textViewSize(string value) as c_size
+end
+class NativeBytes
+    private native point handle
+    extern "foreign_bytes_native_open" @no_raise create()
+    extern "foreign_bytes_native_echo" @no_raise @nonblocking @c_bytes_view(0) @c_result("bytes_view") func echo(bytes value) as bytes
+    extern "foreign_bytes_native_result" @no_raise @nonblocking @c_result("bytes_view") func result(c_int mode) as bytes?
+    extern "foreign_bytes_native_text" @no_raise @nonblocking func textSize(string value) as c_size
+    extern "foreign_bytes_native_text_view" @no_raise @nonblocking @c_text_view(0) func textViewSize(string value) as c_size
+end
+func sizeWrapper(bytes value) as c_size
+    return byteSize(value)
+end
+async func ready() as int
+    return 1
+end
+async func after(future<int> pending, bytes value) as bytes
+    int index = await pending
+    assert index == 1
+    return echo(value)
+end
+func stream(bytes value) as generator<bytes>
+    yield echo(value)
+    yield echo(b"\xff\x00")
+end
+func rejectedMode(c_int mode) as bool
+    bool rejected = false
+    try
+        auto bad = optionalResult(mode)
+    catch error
+        rejected = true
+    finally
+        resetFailures()
+    end
+    return rejected
+end
+func main(...) as int
+    bytes input = b"\xff\x00\x80\x01"
+    beginCheck()
+    expect(c_int(sizeWrapper(input)), 4)
+    expect(unchanged(), 1)
+    expect(c_int(pairSize(input, b"")), 4)
+    beginCheck()
+    bytes copy = echo(input)
+    expect(allocations(), 1)
+    assert copy == input
+    copy[0] = 0
+    assert input[0] == 255
+    auto saved = echo
+    assert saved(b"\xff\x00\x80") == b"\xff\x00\x80"
+    bytes temporary = echo(b"\xff\x00" + b"\x80")
+    assert temporary == b"\xff\x00\x80"
+    bytes result = byteResult(0)
+    mutateSource()
+    assert result == input
+    mutateSource()
+    assert byteResult(1) == b""
+    assert optionalResult(2) == null
+    bytes? empty = optionalResult(1)
+    assert empty != null
+    Widget w = widget()
+    assert w.data == b"\xfe\x00\x81\x02"
+    w.data = input
+    assert w.data == input
+    assert w.echo(input) == input
+    func(bytes) as bytes bound = w.echo
+    assert bound(temporary) == temporary
+    NativeBytes object = NativeBytes()
+    ByteApi protocolView = object
+    assert protocolView.echo(input) == input
+    expect(c_int(protocolView.textSize("abc")), 3)
+    expect(c_int(protocolView.textViewSize("a\0b")), 3)
+    func(bytes) as bytes retained = object.echo
+    assert retained(input) == input
+    var erased = object
+    var dynamicResult = erased.echo(input)
+    assert dynamicResult == input
+    assert erased.result(c_int(2)) == null
+    bool rejected = false
+    try
+        auto bad = byteResult(2)
+    catch error
+        rejected = true
+    end
+    assert rejected
+    for mode in [3, 4, 5, 6]
+        markBalance()
+        assert rejectedMode(c_int(mode))
+        expect(balanced(), 1)
+    end
+    auto indirectResult = optionalResult
+    rejected = false
+    try
+        auto bad = indirectResult(c_int(6))
+    catch error
+        rejected = true
+    finally
+        resetFailures()
+    end
+    assert rejected
+    func(c_int) as bytes? retainedResult = object.result
+    rejected = false
+    try
+        auto bad = retainedResult(c_int(6))
+    catch error
+        rejected = true
+    finally
+        resetFailures()
+    end
+    assert rejected
+    rejected = false
+    try
+        auto bad = erased.result(c_int(6))
+    catch error
+        rejected = true
+    end
+    resetFailures()
+    assert rejected
+    int count = 0
+    for item in stream(input)
+        if count == 0 then assert item == input end
+        if count == 1 then assert item == b"\xff\x00" end
+        count += 1
+    end
+    assert count == 2
+    return 0
+end
+bytes resumed = await after(ready(), b"\xff\x00\x80")
+assert resumed == b"\xff\x00\x80"

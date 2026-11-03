@@ -128,7 +128,7 @@ static int testManagedOwnershipIsNotErased(void)
         if ( target->symbol != 12 ) continue;
         sawForeignOwnershipCheck = 1;
         ok = target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_DIRECT;
-        target->resultConversionAbi = XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY;
+        target->resultConversionAbi = XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY;
         ok = ok && !xl6IrVerifyModule(&ir, &diags) && diags.count > 0 &&
              strstr(diags.items[diags.count - 1].message,
                     "foreign result ownership conversion ABI") != NULL;

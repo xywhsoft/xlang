@@ -21,7 +21,7 @@ try {
         $targets = @($module.callTargets | Where-Object { $_.cName -eq $name })
         if ($targets.Count -eq 0) { throw "Missing foreign string target: $name" }
         foreach ($target in $targets) {
-            if ($target.resultConversionAbiName -ne "borrowed-string-copy") {
+            if ($target.resultConversionAbiName -ne "borrowed-value-copy") {
                 throw "Foreign string target lacks its owned-copy contract: $name"
             }
         }

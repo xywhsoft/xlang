@@ -372,8 +372,9 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
             xl6IrCgenPhysicalResultType(module, target);
         returnType = target->returnType == XL6_IR_TYPE_INVALID ? "void"
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW ? "xstrview"
+            : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW ? "xbytesview"
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER ? "char*"
-            : target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY
+            : target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY
                 ? "const char*" : xl6IrCgenType(module, physicalResult);
     }
     if (output) returnType = "int";

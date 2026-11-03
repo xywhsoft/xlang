@@ -24,11 +24,21 @@ static void xl6IrCgenEmitOwnedStringAdmission(XL6_Output* out,
 /* A no-raise C producer can still require a fallible language copy. Keep
  * the raw pointer until its outcome is known; an absent nullable result and
  * a failed nonempty copy have different outcomes, even without a diagnostic. */
-static void xl6IrCgenEmitBorrowedStringAdmission(XL6_Output* out,
+static void xl6IrCgenEmitBorrowedValueAdmission(XL6_Output* out,
     const XL6_IrModule* module, const XL6_IrCallTarget* target,
     const char* place, const char* raw, const char* scope)
 {
     const XL6_IrType* type=xl6IrTypeGet(&module->types,target->returnType);
+    if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW){
+        xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError() == NULL) {\n"
+            "        if ((%s.Data == NULL && %s.Size != 0) || %s.Size > INT64_MAX) { xrtSetErrorKind(XERR_RANGE); xl6ErrorScopeCaptureFailure(&%s); }\n"
+            "        else if (%s.Data != NULL) { %s = xrtValueBytes(%s); if (%s == NULL) xl6ErrorScopeCaptureFailure(&%s); }\n",
+            scope,raw,raw,raw,scope,raw,place,raw,place,scope);
+        if(type->kind==XL6_IR_TYPE_NULLABLE)
+            xl6OutputPrintf(out,"        else %s = xrtValueRetain(xrtValueNull());\n",place);
+        else xl6OutputPrintf(out,"        else { xrtSetErrorKind(XERR_VALUE); xl6ErrorScopeCaptureFailure(&%s); }\n",scope);
+        xl6OutputPuts("    }\n",out);return;
+    }
     if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW){
         xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError() == NULL) {\n"
             "        if ((%s.Data == NULL && %s.Size != 0) || %s.Size > INT64_MAX) { xrtSetErrorKind(XERR_RANGE); xl6ErrorScopeCaptureFailure(&%s); }\n"
@@ -45,6 +55,31 @@ static void xl6IrCgenEmitBorrowedStringAdmission(XL6_Output* out,
     if(type->kind!=XL6_IR_TYPE_NULLABLE)
         xl6OutputPrintf(out,"        else if (%s == NULL) { xrtSetErrorKind(XERR_VALUE); xl6ErrorScopeCaptureFailure(&%s); }\n",raw,scope);
     xl6OutputPuts("    }\n",out);
+}
+
+static const char* xl6IrCgenBorrowedResultCType(const XL6_IrCallTarget* target)
+{
+    return target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW ? "xstrview" :
+        target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW ? "xbytesview" : "const char*";
+}
+
+/* Read the opaque byte value once into a stack view. There is no forwarding
+ * thunk or temporary Buffer. A NULL operands slice denotes typed adapter
+ * arguments, whose implicit receiver is not a byte value. */
+static int xl6IrCgenPrepareBytesViews(XL6_Output* out,const XL6_IrCallTarget* target,
+    const XL6_IrValueId* operands)
+{
+    int present=0;
+    for(size_t p=0;p<target->parameterCount;++p)
+        if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW){
+            if(!present++)xl6OutputPuts("    {\n",out);
+            xl6OutputPrintf(out,"    xbytesview xlir_bytes_arg_%lu = {0};\n",(unsigned long)p);
+            if(operands)xl6OutputPrintf(out,"    if (!xrtValueGetBytes(v%u, &xlir_bytes_arg_%lu)) abort();\n",
+                (unsigned)operands[p],(unsigned long)p);
+            else xl6OutputPrintf(out,"    if (!xrtValueGetBytes(a%lu, &xlir_bytes_arg_%lu)) abort();\n",
+                (unsigned long)(p-1),(unsigned long)p);
+        }
+    return present;
 }
 
 static int xl6IrCgenTypeSelected(
