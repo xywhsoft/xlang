@@ -54,6 +54,13 @@ static int xl6IrCgenVerifyDeclarations(
                       (parameterType->kind == XL6_IR_TYPE_FUNCTION || xl6IrTypeIsCOwned(parameterType))) )
                     return xl6IrCgenCallParameterDiag(diags, module, target,
                         parameter, "uses a direct closure at an extern boundary");
+            } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW) {
+                if(!xl6IrForeignTextViewParameter(module,target,parameter) ||
+                    !parameterType || parameterType->kind!=XL6_IR_TYPE_BUILTIN ||
+                    parameterType->cAbi!=XL6_IR_C_ABI_MANAGED_STRING ||
+                    target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
+                    target->parameterPhysicalFieldDeclarations[parameter] || target->parameterConstraintAbis[parameter])
+                    return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no sealed text view ABI");
             } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK) {
                 if (!xl6IrForeignStaticCallbackParameter(module, target, parameter) ||
                     !xl6IrCFunctionPointerForSignature(module, target->parameterTypes[parameter]))

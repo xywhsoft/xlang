@@ -44,9 +44,19 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
         const XL6_AstNode* attr = attributes->children[i];
         int32 index;
+        if (attr && attr->text && !strcmp(attr->text, "c_result")) {
+            const XL6_AstNode* value = attr->childCount == 1 ? attr->children[0] : NULL;
+            if (facts.textViewResult || !value || value->kind != XL6_AST_STRING ||
+                !value->text || strcmp(value->text, "\"text_view\"")) return 0;
+            facts.textViewResult = 1; continue;
+        }
         if (!attr || !attr->text || !attr->childCount ||
             !xl6ForeignDecimalInt(attr->children[0], &index) || index < 0 || index >= 64) return 0;
-        if (!strcmp(attr->text, "c_ref")) {
+        if (!strcmp(attr->text, "c_text_view")) {
+            uint64 bit = UINT64_C(1) << index;
+            if (attr->childCount != 1 || (facts.textViews & bit)) return 0;
+            facts.textViews |= bit;
+        } else if (!strcmp(attr->text, "c_ref")) {
             uint64 bit = UINT64_C(1) << index;
             if (attr->childCount != 1 || (facts.constRecordAddresses & bit)) return 0;
             facts.constRecordAddresses |= bit;
@@ -63,6 +73,8 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             facts.rollbackSymbol = attr->children[2]->semanticSymbolId;
         } else return 0;
     }
+    if ((facts.textViews & (facts.constRecordAddresses | facts.staticCallbackAddresses)) ||
+        (facts.textViewResult && facts.outputIndexPlusOne)) return 0;
     if (output) *output = facts;
     return 1;
 }

@@ -1,0 +1,68 @@
+extern "foreign_text_size" @pure @no_raise @nonblocking @c_text_view(0) func textSize(string value) as c_size
+extern "foreign_text_echo" @no_raise @nonblocking @c_text_view(0) @c_result("text_view") func echo(string value) as string
+extern "foreign_text_static" @no_raise @nonblocking @c_result("text_view") func textResult(c_int mode) as string
+extern "foreign_text_optional" @no_raise @nonblocking @c_result("text_view") func optionalResult(c_int mode) as string?
+extern "foreign_text_begin" @no_raise @nonblocking func beginCheck()
+extern "foreign_text_unchanged" @no_raise @nonblocking func unchanged() as c_int
+extern "foreign_text_allocations" @no_raise @nonblocking func allocations() as c_int
+extern "foreign_text_expect" @no_raise @nonblocking func expect(c_int actual, c_int expected)
+extern "foreign_text_reset" @no_raise @nonblocking func resetFailures()
+extern "foreign_text_widget*" class Widget @header("test/cases/foreign_text_view.h") @lifetime("caller")
+    native point handle
+    extern "foreign_text_widget_echo" @no_raise @nonblocking @c_text_view(0) @c_result("text_view") func echo(string value) as string
+    extern "foreign_text_widget_text" @no_raise @nonblocking @c_result("text_view") get text() as string
+    extern "foreign_text_widget_set" @no_raise @nonblocking @c_text_view(0) let text(string value)
+end
+extern "foreign_text_widget_get" @no_raise @nonblocking func widget() as Widget
+func sizeWrapper(string value) as c_size
+    return textSize(value)
+end
+func main(...) as int
+    string input = "a\0b你"
+    beginCheck()
+    expect(c_int(sizeWrapper(input)), 6)
+    expect(unchanged(), 1)
+    beginCheck()
+    string copy = echo(input)
+    expect(allocations(), 1)
+    expect(c_int(textSize(copy)), 6)
+    auto saved = echo
+    string indirect = saved("c\0d")
+    expect(c_int(textSize(indirect)), 3)
+    string temporary = echo("a\0" + "b")
+    expect(c_int(textSize(temporary)), 3)
+    string result = textResult(0)
+    expect(c_int(textSize(result)), 3)
+    expect(c_int(textSize(textResult(1))), 0)
+    assert optionalResult(2) == null
+    Widget w = widget()
+    expect(c_int(textSize(w.text)), 3)
+    w.text = "p\0q"
+    assert w.text == "p\0q"
+    expect(c_int(textSize(w.echo("a\0b"))), 3)
+    bool rejected = false
+    try
+        auto bad = textResult(2)
+    catch error
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        auto bad = optionalResult(3)
+    catch error
+        rejected = true
+    end
+    assert rejected
+    for mode in [4, 5, 6]
+        rejected = false
+        try
+            auto bad = textResult(c_int(mode))
+        catch error
+            rejected = true
+        end
+        resetFailures()
+        assert rejected
+    end
+    return 0
+end

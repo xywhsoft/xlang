@@ -21305,18 +21305,27 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
     const XL6_AstNode* attrs = xl6ForeignFunctionAttributes(node);
     if (!attrs) return 1;
     if (!xl6ForeignFunctionRead(node, &facts) ||
-        (node->kind != XL6_AST_EXTERN_FUNC && node->kind != XL6_AST_NATIVE_EXTERN_FUNC)) {
+        (node->kind != XL6_AST_EXTERN_FUNC && node->kind != XL6_AST_NATIVE_EXTERN_FUNC &&
+         !((node->kind==XL6_AST_GET || node->kind==XL6_AST_LET) &&
+           (node->flags&XL6_AST_FLAG_EXTERN) && !facts.constRecordAddresses &&
+           !facts.staticCallbackAddresses && !facts.outputIndexPlusOne))) {
         xl6SemErrorNode(ctx, node, "invalid declarative C call; expected @c_ref(index), @c_static_callback(index), or @factory(outputIndex, successCode, rollback)");
         return 0;
     }
     XL6_AstNode* params = node->childCount > 1 ? node->children[1] : NULL;
     size_t count = params ? params->childCount : 0;
-    if (count < 64 && ((facts.constRecordAddresses | facts.staticCallbackAddresses) >> count)) {
+    if (count < 64 && ((facts.constRecordAddresses | facts.staticCallbackAddresses | facts.textViews) >> count)) {
         xl6SemErrorNode(ctx, node, "C record address parameter index is outside the declared signature"); return 0;
     }
     for (size_t i = 0; i < count && i < 64; ++i) {
         XL6_AstNode* parameter = params->children[i];
         XL6_AstNode* type = parameter && parameter->childCount ? parameter->children[0] : NULL;
+        if (facts.textViews & (UINT64_C(1) << i)) {
+            const XL6_AstNode* resolved = xl6SemResolveAliasType(ctx, type);
+            if (!resolved || resolved->childCount || !xl6TextEquals(resolved->text, "string")) {
+                xl6SemErrorNode(ctx, parameter, "@c_text_view requires a non-null string parameter"); return 0;
+            }
+        }
         if ((facts.constRecordAddresses & (UINT64_C(1) << i)) && !xl6SemIsCAbiRecordType(ctx, type)) {
             xl6SemErrorNode(ctx, parameter, "@c_ref requires an exact trivial C record value"); return 0;
         }
@@ -21328,6 +21337,16 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             }
         }
 
+    }
+    if (facts.textViewResult) {
+        const XL6_AstNode* returns = node->childCount > 2 ? node->children[2] : NULL;
+        const XL6_AstNode* result = returns && returns->childCount == 1 ? xl6SemResolveAliasType(ctx, returns->children[0]) : NULL;
+        const XL6_AstNode* inner = result ? xl6SemResolveAliasType(ctx,
+            xl6SemTypeIsNullable(result) ? xl6SemNullableInnerType(result) : result) : NULL;
+        if (!inner || inner->childCount || !xl6TextEquals(inner->text, "string") ||
+            (node->flags & XL6_AST_FLAG_FOREIGN_OWNED_STRING)) {
+            xl6SemErrorNode(ctx, node, "@c_result(\"text_view\") requires a borrowed string or nullable string result"); return 0;
+        }
     }
     if (facts.outputIndexPlusOne) {
         const XL6_AstNode* returns = node->childCount > 2 ? node->children[2] : NULL;
@@ -21487,6 +21506,9 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
     if ( returns != NULL && returns->childCount == 1 ) {
         XL6_AstNode* typeNode = returns->children[0];
         typeNode = (XL6_AstNode*)xl6SemResolveAliasType(ctx, typeNode);
+        XL6_ForeignCallFacts textFacts={0};
+        if(xl6ForeignFunctionRead(node,&textFacts) && textFacts.textViewResult)
+            return ok; /* Exact string/nullability contract checked above. */
         if ( typeNode != NULL && xl6SemIsFutureLikeTypeName(typeNode->text) ) {
             return ok;
         }

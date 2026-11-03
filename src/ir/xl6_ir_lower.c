@@ -13571,6 +13571,8 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
     }
     if ( !xl6IrLowerResolveRuntimeBridge(ctx, target) ) return 0;
     for (i = 0; i < target->parameterCount; ++i) {
+        if (xl6IrForeignTextViewParameter(module, target, i))
+            target->parameterPhysicalAbis[i] = XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW;
         if (xl6IrForeignConstRecordParameter(module, target, i))
             target->parameterPhysicalAbis[i] = XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS;
         if (xl6IrForeignStaticCallbackParameter(module, target, i)) {
@@ -13581,7 +13583,7 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
         }
     }
     target->resultConversionAbi = xl6IrCallResultConversionForTarget(module, target);
-    target->resultCAbi=xl6IrCallResultCAbiForTarget(target);
+    target->resultCAbi=xl6IrCallResultCAbiForTarget(module,target);
     if (!xl6IrCallResultCAbiMatches(module,target))
         return xl6IrLowerDiag(ctx,target->declaration,"XLIR native C result signature does not match the declared language ABI");
     if (target->parameterCount != 0) {

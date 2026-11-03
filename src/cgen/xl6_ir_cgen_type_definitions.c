@@ -29,6 +29,15 @@ static void xl6IrCgenEmitBorrowedStringAdmission(XL6_Output* out,
     const char* place, const char* raw, const char* scope)
 {
     const XL6_IrType* type=xl6IrTypeGet(&module->types,target->returnType);
+    if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW){
+        xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError() == NULL) {\n"
+            "        if ((%s.Data == NULL && %s.Size != 0) || %s.Size > INT64_MAX) { xrtSetErrorKind(XERR_RANGE); xl6ErrorScopeCaptureFailure(&%s); }\n"
+            "        else { %s = xlir_string_copy(%s); if (%s.Data != NULL && %s.Data == NULL) xl6ErrorScopeCaptureFailure(&%s);\n",
+            scope,raw,raw,raw,scope,place,raw,raw,place,scope);
+        if(type->kind!=XL6_IR_TYPE_NULLABLE)
+            xl6OutputPrintf(out,"        else if (%s.Data == NULL) { xrtSetErrorKind(XERR_VALUE); xl6ErrorScopeCaptureFailure(&%s); }\n",raw,scope);
+        xl6OutputPuts("        }\n    }\n",out);return;
+    }
     xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError() == NULL) {\n"
         "        %s = xlir_string_from_cstr(%s);\n"
         "        if (%s != NULL && %s.Data == NULL) xl6ErrorScopeCaptureFailure(&%s);\n",

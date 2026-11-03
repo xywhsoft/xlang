@@ -4159,7 +4159,8 @@ typedef enum XL6_IrCallParameterPhysicalAbi {
     XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW,
     XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW,
     XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS,
-    XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK
+    XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK,
+    XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW
 } XL6_IrCallParameterPhysicalAbi;
 
 /* A raw C callback may cross ordinary language wrapper functions before it
@@ -4190,7 +4191,8 @@ typedef enum XL6_IrCallResultPhysicalAbi {
  * erasing the C declaration to void* is not a compatible function type. */
 typedef enum XL6_IrCallResultCAbi {
     XL6_IR_CALL_RESULT_C_ABI_STORAGE = 0,
-    XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER
+    XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER,
+    XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW
 } XL6_IrCallResultCAbi;
 
 /* CALL 在物理调用后立即完成拥有权转换，之后才允许释放参数和接收者。
@@ -7912,7 +7914,8 @@ const XL6_IrInstruction* xl6IrDirectCForwardingCall(const XL6_IrModule*, const X
 XL6_SymbolId xl6IrDirectCForwardingArgument(const XL6_IrModule*, const XL6_IrInstruction*, size_t);
 XL6_IrCallResultConversionAbi xl6IrCallResultConversionForTarget(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
-XL6_IrCallResultCAbi xl6IrCallResultCAbiForTarget(const XL6_IrCallTarget* target);
+XL6_IrCallResultCAbi xl6IrCallResultCAbiForTarget(const XL6_IrModule*, const XL6_IrCallTarget* target);
+int xl6IrForeignTextViewParameter(const XL6_IrModule*, const XL6_IrCallTarget*, size_t);
 int xl6IrCallResultCAbiMatches(const XL6_IrModule* module, const XL6_IrCallTarget* target);
 const XL6_IrCallSite* xl6IrCallSiteGet(const XL6_IrModule* module, XL6_IrNodeId origin);
 XL6_IrNodeId xl6IrCallParameterListGet(const XL6_IrModule* module, XL6_IrNodeId declaration);
