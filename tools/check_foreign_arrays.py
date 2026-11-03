@@ -1,5 +1,7 @@
 """Offline native inline-array layout, value semantics and rejection checks."""
 from pathlib import Path
+from compiler_response import command_with_response
+from xlir_public_build_inputs import verify_public_build
 from runtime_layout import runtime_directory
 import argparse, hashlib, json, os, shutil, subprocess, time
 
@@ -11,6 +13,11 @@ def main():
     p.add_argument('--source-build', type=Path)
     a = p.parse_args()
     root, driver, out = a.root.resolve(), a.driver.resolve(), a.out.resolve()
+    source_build, source_inputs, _ = verify_public_build(root, driver.parent)
+    assert Path(source_build['Driver']).resolve() == driver
+    source_objects = [x['Path'] for x in source_build['Objects'] if Path(x['Source']).name not in
+                      ('xlir_public_source_driver.c', 'xlir_public_source_linux_driver.c')]
+    source_systems = ['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-Wl,--export-dynamic','-pthread','-ldl','-lm']
     out.mkdir(parents=True, exist_ok=False)
     source = root / 'test/cases/foreign_decl_array.xl'
     provider = root / 'test/cases/foreign_decl_array_native.c'
@@ -18,6 +25,8 @@ def main():
     rows = []
 
     def run(name, command, accepted=True, diagnostic=None):
+        if str(command[0]) == 'gcc' and not any(str(x).startswith('@') for x in command[1:]):
+            command = command_with_response(command, 'gcc', out/(name+'.rsp'))
         start = time.monotonic()
         result = subprocess.run(list(map(str, command)), cwd=root, env=env,
                                 capture_output=True, timeout=240)
@@ -47,9 +56,9 @@ def main():
         exe = out / (opt + ('.exe' if os.name == 'nt' else '.out'))
         run(opt+'-build', ['gcc', '-std=c11', '-Wall', '-Wextra', '-Werror',
             '-Wno-unused-function', '-Wno-unused-variable', '-Wno-unused-label',
-            '-Wno-unused-const-variable', '-Wno-unused-but-set-variable', '-'+opt,
+            '-Wno-unused-const-variable', '-Wno-unused-but-set-variable', '-DXL_STATIC_EMBED', '-'+opt,
             *includes, generated, provider, root/'test/cases/foreign_decl_module_host.c',
-            runtime, '-o', exe])
+            *source_objects, runtime, *source_systems, '-o', exe])
         run(opt+'-run', [exe])
     for mode in ('run', 'module', 'exe'):
         target = out / ('native-'+mode)
@@ -105,6 +114,9 @@ def main():
             rsp.write_text('\n'.join('"'+str(s).replace('\\', '/')+'"' for s in arguments)+'\n', encoding='utf-8')
             run('ir-contract-'+opt+'-build', ['gcc', '@'+str(rsp)])
             run('ir-contract-'+opt+'-run', [exe, source])
+
+
+    verify_public_build(root, driver.parent)
 
 
 if __name__ == '__main__':

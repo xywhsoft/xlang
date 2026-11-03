@@ -4485,7 +4485,8 @@ static XL6_IrValueId xl6IrLowerBoxEvaluatedRuntimeXValue(
     const XL6_IrType* physical = xl6IrTypeGet(
         &ctx->module->types, xl6IrLowerValueType(ctx, value));
     if (physical != NULL && xl6IrLowerValueHasOwner(ctx, value) &&
-        (physical->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
+        (xl6IrNativeValuePlanForType(physical) != NULL ||
+         physical->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
          physical->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ||
          physical->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR ||
          physical->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR)) {

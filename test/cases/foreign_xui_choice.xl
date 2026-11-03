@@ -1,0 +1,186 @@
+typedef IntChange = func(Widget,c_int)
+typedef FloatChange = func(Widget,c_float)
+typedef RangeChange = func(Widget,c_float,c_float)
+extern "const xui_button_desc_t*" class ButtonDescPtr @header("test/cases/foreign_xui_choice.h") @lifetime("caller")
+    native point handle
+end
+extern "const xui_checkbox_desc_t*" class CheckBoxDescPtr @header("test/cases/foreign_xui_choice.h") @lifetime("caller")
+    native point handle
+end
+extern "const xui_check_card_desc_t*" class CheckCardDescPtr @header("test/cases/foreign_xui_choice.h") @lifetime("caller")
+    native point handle
+end
+extern "const xui_radio_desc_t*" class RadioDescPtr @header("test/cases/foreign_xui_choice.h") @lifetime("caller")
+    native point handle
+end
+extern "const xui_toggle_desc_t*" class ToggleDescPtr @header("test/cases/foreign_xui_choice.h") @lifetime("caller")
+    native point handle
+end
+extern "const xui_slider_desc_t*" class SliderDescPtr @header("test/cases/foreign_xui_choice.h") @lifetime("caller")
+    native point handle
+end
+extern "const xui_range_slider_desc_t*" class RangeSliderDescPtr @header("test/cases/foreign_xui_choice.h") @lifetime("caller")
+    native point handle
+end
+extern "const xui_scrollbar_desc_t*" class ScrollBarDescPtr @header("test/cases/foreign_xui_choice.h") @lifetime("caller")
+    native point handle
+end
+extern "xui_vec2_t" struct Vec2 @header("test/cases/foreign_xui_choice.h")
+    c_float fX
+    c_float fY
+end
+extern "xui_rect_t" struct Rect @header("test/cases/foreign_xui_choice.h")
+    c_int fX
+    c_int fY
+    c_int fW
+    c_int fH
+end
+typedef Action = func(Widget)
+typedef Ime = func(Widget) as Rect
+typedef Cursor = func(Widget,c_int,c_int) as c_int
+typedef Measure = func(Widget,Vec2,VecOut) as c_int
+typedef Prepare = func(Widget) as c_int
+typedef Layout = func(Widget,Rect) as c_int
+typedef EventHandler = func(Widget,Event) as c_int
+extern "xui_context_t*" class Context @header("test/cases/foreign_xui_choice.h") @lifetime("owned") @policy("declarativeXuiContextPolicy") @scope("xui_call_scope_t") @watch("xui_lifetime_link_t")
+    native point handle
+    extern "xuiButtonCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWidget) func button(ButtonDescPtr? desc=null) as Widget
+    extern "xuiCheckBoxCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWidget) func checkBox(CheckBoxDescPtr? desc=null) as Widget
+    extern "xuiCheckCardCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWidget) func checkCard(CheckCardDescPtr? desc=null) as Widget
+    extern "xuiRadioCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWidget) func radio(RadioDescPtr? desc=null) as Widget
+    extern "xuiToggleCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWidget) func toggle(ToggleDescPtr? desc=null) as Widget
+    extern "xuiSliderCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWidget) func slider(SliderDescPtr? desc=null) as Widget
+    extern "xuiRangeSliderCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWidget) func rangeSlider(RangeSliderDescPtr? desc=null) as Widget
+    extern "xuiScrollBarCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWidget) func scrollBar(ScrollBarDescPtr? desc=null) as Widget
+    extern "xuiWidgetCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWidget) func widget() as Widget
+    extern "xuiSetRootWidget" @no_raise @c_result("status",0) func setRoot(Widget widget)
+    extern "xuiSetFocusWidget" @no_raise @c_result("status",0) func focus(Widget widget)
+    extern "xuiSetViewportSize" @no_raise @c_result("status",0) func viewport(c_int width,c_int height)
+    extern "xuiInputKeyDown" @no_raise @c_result("status",0) func key(c_int code,c_uint modifiers)
+    extern "xuiQueryCursor" @no_raise func cursor(c_int x,c_int y) as c_int
+    extern "xuiLayout" @no_raise @c_result("status",0) func layout()
+    extern "xuiGetImeCandidateRect" @no_raise func imeRect() as Rect
+    extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xui_widget_t*" class Widget @header("test/cases/foreign_xui_choice.h") @lifetime("owner") @owner(Context) @policy("declarativeXuiWidgetPolicy") @watch("xui_lifetime_link_t")
+    native point handle
+    extern "xuiWidgetGetContext" @no_raise @c_result("owner_view",0) get context() as Context
+    extern "xuiButtonSetClickOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onButton(Action? callback)
+    extern "xuiCheckBoxSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onCheckBox(IntChange? callback)
+    extern "xuiCheckCardSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onCheckCard(IntChange? callback)
+    extern "xuiRadioSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onRadio(IntChange? callback)
+    extern "xuiToggleSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onToggle(IntChange? callback)
+    extern "xuiSliderSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onSlider(FloatChange? callback)
+    extern "xuiRangeSliderSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onRangeSlider(RangeChange? callback)
+    extern "xuiScrollBarSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onScrollBar(FloatChange? callback)
+    extern "xuiWidgetSetFocusable" @no_raise @c_result("status",0) func focusable(c_int yes)
+    extern "xuiWidgetAddChild" @no_raise @c_result("status",0) func add(Widget child)
+    extern "xuiLayoutArrangeChild" @no_raise @c_result("status",0) func arrange(Widget child,Rect rect)
+    extern "xuiWidgetSetImeMode" @no_raise @c_result("status",0) func imeMode(c_int mode)
+    extern "xuiWidgetSetDefaultActionOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onDefault(Action? callback)
+    extern "xuiWidgetSetCancelActionOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onCancel(Action? callback)
+    extern "xuiWidgetSetCursorQueryCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-1) @c_result("status",0) func onCursor(Cursor? callback)
+    extern "xuiWidgetSetImeCandidateRectOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onIme(Ime? callback)
+    extern "xuiWidgetSetContentMeasureCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-1) @c_result("status",0) func onMeasure(Measure? callback)
+    extern "xuiWidgetSetLayoutPrepareCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-1) @c_result("status",0) func onPrepare(Prepare? callback)
+    extern "xuiWidgetSetLayoutChildrenCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-1) @c_result("status",0) func onChildren(Layout? callback)
+    extern "xuiWidgetSetLayoutCompleteCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-1) @c_result("status",0) func onComplete(Layout? callback)
+    extern "xuiWidgetSetEventCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-1) @c_result("status",0) func onEvent(EventHandler? callback)
+    extern "xuiWidgetMeasureContent" @no_raise @c_output(2,0) func measure(Vec2 constraint) as Vec2
+end
+extern "xui_vec2_t*" class VecOut @header("test/cases/foreign_xui_choice.h") @lifetime("callback") @owner(Context)
+    native point handle
+    extern "fX" @c_field get x() as c_float
+    extern "fX" @c_field let x(c_float value)
+    extern "fY" @c_field get y() as c_float
+    extern "fY" @c_field let y(c_float value)
+end
+extern "const xui_event_t*" class Event @header("test/cases/foreign_xui_choice.h") @lifetime("callback") @owner(Context)
+    native point handle
+    extern "iType" @c_field get type() as c_int
+end
+extern "xuiDestroy" @no_raise func rollback(Context context)
+extern "xuiWidgetDestroy" @no_raise func rollbackWidget(Widget widget)
+extern "xuiCreate" @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Context
+extern "declarative_xui_start" @no_raise func start()
+extern "declarative_xui_counters_begin" @no_raise func countersBegin()
+extern "declarative_xui_counters_end" @no_raise func countersEnd()
+extern "declarative_xui_choice_fire" @no_raise @c_result("status",0) func fireChoice(Widget widget,c_int kind,c_int serial)
+func main(...) as int
+    start()
+    Context context=create()
+    array<Widget> controls=[context.button(), context.checkBox(), context.checkCard(), context.radio(), context.toggle(), context.slider(), context.rangeSlider(), context.scrollBar()]
+    int calls=0
+    controls[0].onButton(func(Widget sender)
+        calls+=1
+    end)
+    controls[1].onCheckBox(func(Widget sender,c_int value)
+        assert value==0 or value==1
+        calls+=1
+    end)
+    controls[2].onCheckCard(func(Widget sender,c_int value)
+        assert value==0 or value==1
+        calls+=1
+    end)
+    controls[3].onRadio(func(Widget sender,c_int value)
+        assert value==0 or value==1
+        calls+=1
+    end)
+    controls[4].onToggle(func(Widget sender,c_int value)
+        assert value==0 or value==1
+        calls+=1
+    end)
+    controls[5].onSlider(func(Widget sender,c_float value)
+        assert value==0.25 or value==0.75
+        calls+=1
+    end)
+    controls[6].onRangeSlider(func(Widget sender,c_float start,c_float finish)
+        assert (start==0.25 or start==0.75) and finish>=start
+        calls+=1
+    end)
+    controls[7].onScrollBar(func(Widget sender,c_float value)
+        assert value==0.25 or value==0.75
+        calls+=1
+    end)
+    int kind=0
+    while kind<8
+        fireChoice(controls[kind],c_int(kind),0)
+        kind+=1
+    end
+    assert calls==8
+    // Isolate native callbacks from the existing container projection cost:
+    // indexed native-value reads currently create a temporary xvalue shell.
+    Widget button=controls[0]
+    Widget checkBox=controls[1]
+    Widget checkCard=controls[2]
+    Widget radio=controls[3]
+    Widget toggle=controls[4]
+    Widget slider=controls[5]
+    Widget rangeSlider=controls[6]
+    Widget scrollBar=controls[7]
+    countersBegin()
+    int serial=1
+    while serial<=200
+        fireChoice(button,0,c_int(serial))
+        fireChoice(checkBox,1,c_int(serial))
+        fireChoice(checkCard,2,c_int(serial))
+        fireChoice(radio,3,c_int(serial))
+        fireChoice(toggle,4,c_int(serial))
+        fireChoice(slider,5,c_int(serial))
+        fireChoice(rangeSlider,6,c_int(serial))
+        fireChoice(scrollBar,7,c_int(serial))
+        serial+=1
+    end
+    countersEnd()
+    assert calls==1608
+    controls[0].onButton(null)
+    controls[1].onCheckBox(null)
+    controls[2].onCheckCard(null)
+    controls[3].onRadio(null)
+    controls[4].onToggle(null)
+    controls[5].onSlider(null)
+    controls[6].onRangeSlider(null)
+    controls[7].onScrollBar(null)
+    context.close()
+    return 0
+end

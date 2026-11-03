@@ -522,3 +522,22 @@ that declaration with another `extern`. This preserves attributes such as
 Windows `dllimport` and adds no runtime check. Wrong return or parameter types
 fail C/header acceptance. Native declarations without supplied header-owned
 types keep their explicit C prototype.
+
+
+## Nullable caller pointers and native-value ownership
+
+A declared caller-lifetime C pointer may be an optional extern parameter.
+Absent values use the existing NULL pointer sentinel; there is no tagged
+wrapper at the C boundary. Other nullable families do not acquire that ABI.
+
+Boxing a native owning rvalue borrows it until an independent xvalue has been
+created, then releases the source on both success and failure. Container
+insertion never silently loses the original owner.
+
+Native storage Drop callbacks may still be running inside a container's
+mutation. They enqueue resident deferred cleanup and must not reenter native
+destruction there. Generated cleanup-end and completed foreign-call boundaries
+drain one detached batch, preserve the first checked failure (including a NULL
+diagnostic), and permit retries. This scheduling does not allocate. The
+ordinary error-scope End remains available for native internals that still
+hold storage addresses. These additions require the matching runtime build.

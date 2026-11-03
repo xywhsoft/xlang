@@ -157,6 +157,7 @@
 #include "src/runtime/xl6_foreign_context.h"
 #include "src/runtime/xl6_foreign_callback_scope.h"
 #include "src/runtime/xl6_foreign_view.h"
+#include "src/runtime/xl6_deferred_cleanup.h"
 #include "src/runtime/xl6_foreign_scope_view.h"
 #include "src/runtime/xl6_foreign_scope_value.h"
 #include "src/runtime/xl6_foreign_view_abi.h"
@@ -707,6 +708,8 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if ( !visit(user, "xl6ErrorScopeBegin", (const void*)xl6ErrorScopeBegin) ||
          !visit(user, "xl6ErrorScopeBeginCleanup", (const void*)xl6ErrorScopeBeginCleanup) ||
          !visit(user, "xl6ErrorScopeEnd", (const void*)xl6ErrorScopeEnd) ||
+         !visit(user, "xl6ErrorScopeEndAtSafePointV1", (const void*)xl6ErrorScopeEndAtSafePointV1) ||
+         !visit(user, "xl6DeferredCleanupScheduleV1", (const void*)xl6DeferredCleanupScheduleV1) ||
          !visit(user, "xl6ErrorScopeCaptureFailure", (const void*)xl6ErrorScopeCaptureFailure) ||
          !visit(user, "xl6ErrorScopePropagateFailure", (const void*)xl6ErrorScopePropagateFailure) ||
          !visit(user, "xl6ForeignCallBegin", (const void*)xl6ForeignCallBegin) ||

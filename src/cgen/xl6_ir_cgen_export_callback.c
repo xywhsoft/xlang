@@ -15,13 +15,14 @@ static void xl6IrCgenEmitForeignErrorDeclarations(XL6_Output* out, int publicLin
         "%sextern bool xl6ErrorScopeBegin(xl6_error_scope*);\n"
         "%sextern bool xl6ErrorScopeBeginCleanup(xl6_error_scope*, bool);\n"
         "%sextern xl6_error_result xl6ErrorScopeEnd(xl6_error_scope*);\n"
+        "%sextern xl6_error_result xl6ErrorScopeEndAtSafePointV1(xl6_error_scope*);\n"
         "%sextern bool xl6ForeignCallBegin(xl6_foreign_error_scope*);\n"
         "%sextern xl6_foreign_error_result xl6ForeignCallEnd(xl6_foreign_error_scope*);\n"
         "%sextern void xl6ErrorScopeCaptureFailure(xl6_error_scope*);\n"
         "%sextern void xl6ErrorScopePropagateFailure(xl6_error_result);\n"
         "%sextern void xl6ForeignCallbackFail(void);\n"
         "%sextern void xl6ForeignStatusFailureV1(int,const char*);\n",
-        linkage, linkage, linkage, linkage, linkage, linkage, linkage, linkage, linkage);
+        linkage, linkage, linkage, linkage, linkage, linkage, linkage, linkage, linkage, linkage);
     if (publicLinkage) xl6OutputPuts("XLIR_C_API extern void xrtErrorFree(xerror*);\n", out);
 }
 

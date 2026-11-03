@@ -1,6 +1,7 @@
 #define XRT_MODULE_ONCE
 #include "src/common/xl6_xrt.h"
 #include "xl_foreign_error.h"
+#include "src/runtime/xl6_deferred_cleanup.h"
 #include <stdlib.h>
 
 #if defined(_WIN32)
@@ -11,6 +12,17 @@ static DWORD xl6_foreign_error_key = FLS_OUT_OF_INDEXES;
 static pthread_key_t xl6_foreign_error_key;
 #endif
 static xonce xl6_foreign_error_once = XRT_ONCE_INIT;
+static xatomicptr xl6_deferred_cleanup;
+
+XL6_FOREIGN_API void xl6DeferredCleanupScheduleV1(XL6_DeferredCleanupV1* work)
+{
+    if (!work || !work->Run) abort();
+    int32 expected=0;
+    if (!xrtAtomic32CompareExchange(&work->scheduled,&expected,1,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE)) return;
+    void* head=xrtAtomicPtrLoad(&xl6_deferred_cleanup,XMEMORY_ACQUIRE);
+    do { work->next=head; }
+    while (!xrtAtomicPtrCompareExchange(&xl6_deferred_cleanup,&head,work,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE));
+}
 
 static bool xl6ForeignErrorKeyInit(void* data)
 {
@@ -120,6 +132,25 @@ XL6_FOREIGN_API bool xl6ForeignCallBegin(xl6_foreign_error_scope* scope)
 
 XL6_FOREIGN_API xl6_foreign_error_result xl6ForeignCallEnd(xl6_foreign_error_scope* scope)
 {
+    return xl6ErrorScopeEndAtSafePointV1(scope);
+}
+
+XL6_FOREIGN_API xl6_error_result xl6ErrorScopeEndAtSafePointV1(xl6_error_scope* scope)
+{
+    if (scope == NULL || xl6ForeignErrorTop() != scope) return xl6ErrorScopeEnd(scope);
+    /* Latch the primary failure before destructors can execute language code.
+     * A failed drain without a diagnostic must still fail this boundary. */
+    if (xrtGetError() != NULL) xl6ErrorScopeCaptureFailure(scope);
+    XL6_DeferredCleanupV1* work=xrtAtomicPtrLoad(&xl6_deferred_cleanup,XMEMORY_ACQUIRE)
+        ? xrtAtomicPtrExchange(&xl6_deferred_cleanup,NULL,XMEMORY_ACQ_REL) : NULL;
+    while (work) {
+        XL6_DeferredCleanupV1* next=work->next;
+        work->next=NULL;
+        /* Read next before permitting a new scheduling operation to own it. */
+        xrtAtomic32Store(&work->scheduled,0,XMEMORY_RELEASE);
+        if (!work->Run() || xrtGetError()!=NULL) xl6ErrorScopeCaptureFailure(scope);
+        work=next;
+    }
     return xl6ErrorScopeEnd(scope);
 }
 

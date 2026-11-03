@@ -5,6 +5,8 @@ header makes a wrong receiver, argument or result type a C compilation error.
 These tests do not open a window, create a socket or use a security protocol.
 """
 from pathlib import Path
+from compiler_response import command_with_response
+from xlir_public_build_inputs import verify_public_build
 from runtime_layout import runtime_directory
 import argparse
 import hashlib
@@ -22,11 +24,18 @@ def main():
     parser.add_argument('--source', type=Path, help='Explicit fixture; headers/provider remain under --root')
     args = parser.parse_args()
     root, driver, out = args.root.resolve(), args.driver.resolve(), args.out.resolve()
+    source_build, source_inputs, _ = verify_public_build(root, driver.parent)
+    assert Path(source_build['Driver']).resolve() == driver
+    source_objects = [x['Path'] for x in source_build['Objects'] if Path(x['Source']).name not in
+                      ('xlir_public_source_driver.c', 'xlir_public_source_linux_driver.c')]
+    source_systems = ['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-Wl,--export-dynamic','-pthread','-ldl','-lm']
     out.mkdir(parents=True, exist_ok=False)
     env = {**os.environ, 'XL6_SOURCE_NATIVE_ROOT': str(root)}
     rows = []
 
     def run(name, command, *, accepted=True, diagnostic=None):
+        if str(command[0]) == 'gcc' and not any(str(x).startswith('@') for x in command[1:]):
+            command = command_with_response(command, 'gcc', out/(name+'.rsp'))
         start = time.monotonic()
         process = subprocess.run(list(map(str, command)), cwd=root, env=env,
                                  capture_output=True, timeout=180)
@@ -58,10 +67,10 @@ def main():
         executable = out / ('handle-' + optimization + ('.exe' if os.name == 'nt' else ''))
         command = ['gcc', '-std=c11', '-Wall', '-Wextra', '-Werror', '-Wno-unused-function',
                    '-Wno-unused-variable', '-Wno-unused-label', '-Wno-unused-const-variable',
-                   '-Wno-unused-but-set-variable', '-' + optimization, '-I' + str(root),
+                   '-Wno-unused-but-set-variable', '-DXL_STATIC_EMBED', '-' + optimization, '-I' + str(root),
                    '-I' + str(runtime_directory(root) / 'include'), '-I' + str(driver.parent / 'include'),
                    generated, root / 'test/cases/foreign_decl_handle_native.c',
-                   root / 'test/cases/foreign_decl_module_host.c', runtime, '-o', executable]
+                   root / 'test/cases/foreign_decl_module_host.c', *source_objects, runtime, *source_systems, '-o', executable]
         run('handle-' + optimization + '-build', command)
         run('handle-' + optimization + '-run', [executable])
     provider = root / 'test/cases/foreign_decl_handle_native.c'
@@ -125,6 +134,9 @@ consume(value)
         rejected, '-o', out / 'not-a-pointer.o'], accepted=False,
         diagnostic='external handle must be a C pointer type')
     print('External handle representation, authoritative C ABI, O0/O2 and refusal checks passed.')
+
+
+    verify_public_build(root, driver.parent)
 
 
 if __name__ == '__main__':
