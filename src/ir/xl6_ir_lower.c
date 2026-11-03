@@ -15010,7 +15010,8 @@ static int xl6IrLowerPrecomputeCallTargetErrorAbis(XL6_IrLowerContext* ctx)
             const XL6_IrCallTarget* target = xl6IrCallTargetGet(module, impl->implementationSymbol);
             if (target == NULL) return xl6IrLowerDiag(ctx, impl->implementationDeclaration,
                 "XLIR protocol witness has no callable outcome");
-            if (target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE && slot->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) {
+            if ((target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE ||
+                xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,impl->ownerType))) && slot->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) {
                 slot->errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE; changed = 1;
             }
         }

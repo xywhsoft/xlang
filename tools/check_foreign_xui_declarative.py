@@ -12,18 +12,21 @@ from runtime_layout import runtime_directory
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('root','public-directory','xui-root','xui-build','out'):p.add_argument('--'+name,type=Path,required=True)
-    p.add_argument('--case',choices=('base','choice'),default='base')
+    p.add_argument('--case',choices=('base','choice','navigation'),default='base')
+    p.add_argument('--fixture-root',type=Path,help='Separate pinned fixtures against the unchanged source compiler cohort')
     a=p.parse_args();root,public,native,engine,out=[x.resolve() for x in (a.root,a.public_directory,a.xui_root,a.xui_build,a.out)]
     build,pinned,_=verify_public_build(root,public);driver=Path(build['Driver']);cc=shutil.which('gcc');assert cc
     metadata=json.loads((engine/'build-report.json').read_text());assert metadata['xrt_mode']=='host' and metadata['linked']
     sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
     assert metadata['xrt_host_header_sha256']==hashlib.sha256((root/'lib/xrt/xrt.h').read_bytes().replace(b'\r\n',b'\n')).hexdigest()
-    source=root/('test/cases/foreign_xui_'+('declarative' if a.case=='base' else 'choice')+'.xl');provider=root/'test/cases/foreign_xui_declarative_native.c'
+    fixtures=a.fixture_root.resolve() if a.fixture_root else root
+    stem='declarative' if a.case=='base' else a.case
+    source=fixtures/('test/cases/foreign_xui_'+stem+'.xl');provider=fixtures/'test/cases/foreign_xui_declarative_native.c'
     sidecars=[provider]
-    if a.case=='choice':sidecars.append(root/'test/cases/foreign_xui_choice_driver.c')
+    if a.case!='base':sidecars.append(fixtures/('test/cases/foreign_xui_'+stem+'_driver.c'))
     library=engine/('xge.lib' if os.name=='nt' else 'libxge.so');dll=engine/('xge.dll' if os.name=='nt' else 'libxge.so')
-    pinned.update([Path(__file__).resolve(),Path(cc),source,provider,root/'test/cases/foreign_xui_declarative.h',root/'test/cases/foreign_decl_module_host.c',library,dll,engine/'build-report.json',engine/'xge_build_config.h'])
-    if a.case=='choice':pinned.update([*sidecars,root/'test/cases/foreign_xui_choice.h'])
+    pinned.update([Path(__file__).resolve(),Path(cc),source,provider,fixtures/'test/cases/foreign_xui_declarative.h',root/'test/cases/foreign_decl_module_host.c',library,dll,engine/'build-report.json',engine/'xge_build_config.h'])
+    if a.case!='base':pinned.update([*sidecars,fixtures/('test/cases/foreign_xui_'+stem+'.h')])
     pinned.update(x for x in (engine/'host-xrt').iterdir() if x.is_file());pinned.update((native/'include').glob('*.h'));pinned.add(native/'extlibs/xrt/xrt_config.h')
     inputs={str(p):sha(p) for p in pinned};out.mkdir(parents=True,exist_ok=False);(out/'tmp').mkdir()
     runtime=runtime_directory(root)/'xl.dll' if os.name=='nt' else Path(build['RuntimeLibrary'])
@@ -40,9 +43,10 @@ def main():
     text=generated.read_text(encoding='utf-8-sig');assert 'declared C function ABI' in text
     if a.case=='base':assert 'xl6ForeignScopeViewMakeV1' in text
     symbols=('xuiWidgetSetDefaultActionOwned','xuiWidgetSetCancelActionOwned','xuiWidgetSetImeCandidateRectOwned','xuiWidgetSetCursorQueryCallbackOwned','xuiWidgetSetContentMeasureCallbackOwned','xuiWidgetSetLayoutPrepareCallbackOwned','xuiWidgetSetLayoutChildrenCallbackOwned','xuiWidgetSetLayoutCompleteCallbackOwned','xuiWidgetSetEventCallbackOwned') if a.case=='base' else ('xuiButtonSetClickOwned','xuiCheckBoxSetChangeOwned','xuiCheckCardSetChangeOwned','xuiRadioSetChangeOwned','xuiToggleSetChangeOwned','xuiSliderSetChangeOwned','xuiRangeSliderSetChangeOwned','xuiScrollBarSetChangeOwned')
+    if a.case=='navigation':symbols=('xuiHyperlinkSetClickOwned','xuiPageSetChangeOwned','xuiCarouselSetChangeOwned','xuiBreadcrumbSetClickOwned','xuiBreadcrumbSetContextMenuOwned')
     for symbol in symbols:
         assert symbol+'(' in text and 'extern int '+symbol+'(' not in text,symbol
-    includes=['-I'+str(x) for x in (root,public/'include',sdk,sdk/'include',native,native/'include',engine/'host-xrt')]
+    includes=['-I'+str(x) for x in (fixtures,root,public/'include',sdk,sdk/'include',native,native/'include',engine/'host-xrt')]
     common=['-std=c11','-Wall','-Wextra','-Werror','-Wno-cast-function-type','-DXL_STATIC_EMBED','-DXGE_XRT_HOST=1','-include',str(engine/'xge_build_config.h'),*includes]
     if os.name=='nt':common+=['-DXGE_DLL','-DXUI_DLL']
     run('emit-header',[driver,source,'emit',out/'public-header',*sidecars]);run('header-ABI',[cc,*common,'-x','c','-fsyntax-only',out/'public-header.h'])

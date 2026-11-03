@@ -62,6 +62,19 @@ int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTa
         target->resultPhysicalAbi==XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
         target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE;
 }
+int xl6IrForeignManagedPointeeWrite(const XL6_IrModule* module,const XL6_IrCallTarget* target)
+{
+    if(!module || !target || target->foreignOperationAbi!=XL6_IR_FOREIGN_OPERATION_DEREF_WRITE ||
+       target->parameterCount!=2 || !target->parameterTypes || target->returnType)return 0;
+    const XL6_IrType* receiver=xl6IrTypeGet(&module->types,target->parameterTypes[0]);
+    const XL6_IrType* value=xl6IrTypeGet(&module->types,target->parameterTypes[1]);
+    const XL6_IrType* root=xl6IrForeignRootType(module,target->parameterTypes[0]);
+    return receiver && value && root && receiver->kind==XL6_IR_TYPE_CLASS &&
+        receiver->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK &&
+        value->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNER &&
+        xl6IrNativeValuePlanForType(receiver) && xl6IrNativeValuePlanForType(value) &&
+        xl6IrForeignRootType(module,target->parameterTypes[1])==root;
+}
 int xl6IrForeignProjectionMatches(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
     XL6_IrForeignOperationAbi op=xl6IrForeignOperationForTarget(module,target);
@@ -84,7 +97,7 @@ int xl6IrForeignProjectionMatches(const XL6_IrModule* module,const XL6_IrCallTar
     int read=op==XL6_IR_FOREIGN_OPERATION_FIELD_READ || op==XL6_IR_FOREIGN_OPERATION_DEREF_READ;
     const XL6_IrType* value=read ? xl6IrTypeGet(&module->types,target->returnType) :
         target->parameterCount==2 ? xl6IrTypeGet(&module->types,target->parameterTypes[1]) : NULL;
-    return value && (f->borrowedViewResult || xl6IrRawCCallbackTrivialValueType(value)) &&
+    return value && (f->borrowedViewResult || xl6IrRawCCallbackTrivialValueType(value) || xl6IrForeignManagedPointeeWrite(module,target)) &&
         (read ? target->parameterCount==1 :
             !target->returnType && target->parameterCount==2 && !f->borrowedViewResult && !(node->flags&XL6_AST_FLAG_FOREIGN_PURE));
 }

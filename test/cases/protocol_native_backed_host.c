@@ -1,10 +1,11 @@
 #include <stdlib.h>
+#include <stdint.h>
 
 typedef struct protocol_native_counter {
-    long long Value;
+    int64_t Value;
 } protocol_native_counter;
 
-void* protocol_native_counter_open(long long value)
+void* protocol_native_counter_open(int64_t value)
 {
     protocol_native_counter* self =
         (protocol_native_counter*)malloc(sizeof(protocol_native_counter));
@@ -15,13 +16,13 @@ void* protocol_native_counter_open(long long value)
     return self;
 }
 
-long long protocol_native_counter_close(void* handle)
+int64_t protocol_native_counter_close(void* handle)
 {
     free(handle);
     return 0;
 }
 
-long long protocol_native_counter_value(void* handle)
+int64_t protocol_native_counter_value(void* handle)
 {
     protocol_native_counter* self = (protocol_native_counter*)handle;
     return self != NULL ? self->Value : 0;

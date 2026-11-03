@@ -137,12 +137,14 @@ XL6_FOREIGN_API xl6_foreign_error_result xl6ForeignCallEnd(xl6_foreign_error_sco
 
 XL6_FOREIGN_API xl6_error_result xl6ErrorScopeEndAtSafePointV1(xl6_error_scope* scope)
 {
+    /* The ordinary empty path adds one acquire load, without another FLS or
+     * diagnostic lookup, allocation, graph lock or callback. */
+    if (!xrtAtomicPtrLoad(&xl6_deferred_cleanup,XMEMORY_ACQUIRE)) return xl6ErrorScopeEnd(scope);
     if (scope == NULL || xl6ForeignErrorTop() != scope) return xl6ErrorScopeEnd(scope);
     /* Latch the primary failure before destructors can execute language code.
      * A failed drain without a diagnostic must still fail this boundary. */
     if (xrtGetError() != NULL) xl6ErrorScopeCaptureFailure(scope);
-    XL6_DeferredCleanupV1* work=xrtAtomicPtrLoad(&xl6_deferred_cleanup,XMEMORY_ACQUIRE)
-        ? xrtAtomicPtrExchange(&xl6_deferred_cleanup,NULL,XMEMORY_ACQ_REL) : NULL;
+    XL6_DeferredCleanupV1* work=xrtAtomicPtrExchange(&xl6_deferred_cleanup,NULL,XMEMORY_ACQ_REL);
     while (work) {
         XL6_DeferredCleanupV1* next=work->next;
         work->next=NULL;

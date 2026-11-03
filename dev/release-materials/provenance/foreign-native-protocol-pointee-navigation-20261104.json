@@ -1,0 +1,160 @@
+{
+  "complete": true,
+  "scope": "Native/object protocol witnesses, nullable foreign inputs, same-root callback pointer outputs and five actual XUI navigation callback slots",
+  "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r14",
+  "windows": {
+    "fullTranslationUnits": 1414,
+    "tccObjects": 1562,
+    "acceptedGroups": 27,
+    "tccModes": [
+      "JIT",
+      "module",
+      "standalone"
+    ]
+  },
+  "linux": {
+    "fullTranslationUnits": 1413,
+    "acceptedCompilerGroups": 13,
+    "actualXuiCases": 3,
+    "tccIncluded": false
+  },
+  "protocol": {
+    "nativeWitnessRows": 5,
+    "objectWitnessRows": 2,
+    "identitySets": 2,
+    "identityDomain": "exact nominal type id",
+    "mutationsPerOptimization": 20,
+    "zeroOutputsPerOptimization": 40,
+    "existingRuntimeRegressions": 16,
+    "nullableTarget": true,
+    "expiredCallbackViewChecked": true,
+    "callerPointerErasureRejected": true,
+    "physicalPointerAliasRequiresExactContract": true
+  },
+  "pointee": {
+    "operations": 2,
+    "mutationsPerOptimization": 20,
+    "zeroOutputsPerOptimization": 40,
+    "semanticNegatives": 6,
+    "nullableWrites": true,
+    "crossActualRootRejectedBeforeWrite": true,
+    "expiredReadWriteChecked": true,
+    "warmRounds": 200,
+    "warmXrtAllocationDelta": 0
+  },
+  "xui": {
+    "upstreamCommit": "0a682961",
+    "navigationSlots": 5,
+    "hostEngineTranslationUnits": 139,
+    "windowsEngineBytes": 8682091,
+    "sharedXrtImports": 177,
+    "linuxEngines": [
+      {
+        "path": "/home/ubuntu/xlang-validation/xge-owned-choice-host-20261104-r1/build-report.json",
+        "sha256": "18b6314e1cec1a2179334e7ec759f7f52a62c07a6c1e354b6edf3d8c57fddf95",
+        "runtimeBytes": 9400240,
+        "sources": 138,
+        "imports": 175
+      },
+      {
+        "path": "/home/ubuntu/xlang-validation/xge-owned-navigation-host-20261104-r1/build-report.json",
+        "sha256": "fa464a8ede026975564d77185419f7b8906000d04df57e0794d99df11abff3fd",
+        "runtimeBytes": 9400304,
+        "sources": 138,
+        "imports": 175
+      }
+    ],
+    "nativeOptimizationLevels": [
+      "O0",
+      "O2"
+    ],
+    "nativeSanitizers": [
+      "ASan",
+      "UBSan",
+      "leaks"
+    ],
+    "actualOptimizationLevels": [
+      "O0",
+      "O2"
+    ],
+    "actualTccIncluded": false,
+    "warmNavigationCallbacks": 1000,
+    "warmXrtAllocationDelta": 0
+  },
+  "limits": [
+    "Protocol method values and mutable captured nullable protocol cells are not certified",
+    "Indexed native-value reads still create a temporary xvalue shell",
+    "Independent nontrivial resource storage/in-place factories and other callback families remain in progress",
+    "Full declarations, automatic initialization, SDK/IDE and shipping migration remain incomplete",
+    "Actual XUI tests are GCC/headless; no TCC, GPU or desktop-input claim"
+  ],
+  "eightTasksComplete": false,
+  "shippingUpdated": false,
+  "networkTests": false,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r14.json",
+      "sha256": "cd72b13b5f164f9d98d7a31ebf529154687f50331c599315709c1314ecaaf68f"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r14\\build.json",
+      "sha256": "cbb1d315b3d99bf7755079a060b15f43ab2d4e040330458e539740718c3a2eb7"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r14-vfs\\build.json",
+      "sha256": "fb61c0bddbf68b7b15dc969479720141b7b6ce3f04630cb28c4e968072658135"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r14-vfs\\provider.json",
+      "sha256": "4b0989d2085742888cb4dfafdce229ef13cb9376728c4636aa19f9994c8ca7cb"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\precompiled-r14\\manifest.json",
+      "sha256": "aad2aa8df0cc50151e78283e8b3e29b8f57147d3f7d5de590e252abb20fb63f6"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\batch-r14\\results.json",
+      "sha256": "fdd3156ec12995f99472f692d33113bdb843fd4454f7d9f73ffd59ec99730b63"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\actual-xui-base-r14\\results.json",
+      "sha256": "f2b6f2642ccf1966c1682a220699163c85d6dbd6f0b8ae4be86be26b009ee298"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\actual-xui-choice-r14\\results.json",
+      "sha256": "00cdb4d043740f4b147b7dfe27c68cc7132a3b8a2e98b342816ba841809e54ff"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\actual-xui-navigation-r1\\results.json",
+      "sha256": "0da41aff152feff67277cefebbf878dd0a8197493a045e3bc1424a87a63cc6b5"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-gates-r10.json",
+      "sha256": "9742dad00d094ba228b3006a6e5382a309d3c2a29a99e8a5712be22b9458dfe4"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-r14-evidence.json",
+      "sha256": "78908a89a16853887f245506bfe22ee48f89c4e73e15ec590e0aaeb351de989e"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xge-owned-navigation-inputs-r1\\snapshot.json",
+      "sha256": "4e49e8e4db9c4406838248feca0069056cdcf6c9326cf07f46cdf3314f4e4e37"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xge-owned-navigation-host-r1\\build-report.json",
+      "sha256": "92a7c450730fc5ab793b35c9c41aaec93d40cd8a8546d71f7b4de1091c8e38c3"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xui-owned-navigation-r2\\results.json",
+      "sha256": "1ba65b4530180826a0d9b676c0ba3b7de1aac8d459c140bb1a79c3d16e3190d9"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-xui-owned-navigation-r1.json",
+      "sha256": "d7e26f34bc434a6cda74f74d6a0fdb54f827daa4d66f1873b7d71b0ff6b92baf"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xui-navigation-fixtures-r2\\inputs.json",
+      "sha256": "fb9b1de32e35e35045afdcda524fa55800e33dadee4a58e191248b9280922b87"
+    }
+  ]
+}

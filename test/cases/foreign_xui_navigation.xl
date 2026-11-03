@@ -1,0 +1,98 @@
+typedef Action = func(Widget)
+typedef Change = func(Widget,c_int,c_int)
+typedef ContextMenu = func(Widget,c_int,c_int,c_float,c_float) as c_int
+extern "const xui_hyperlink_desc_t*" class HyperlinkDesc @header("test/cases/foreign_xui_navigation.h") @lifetime("caller")
+ native point handle
+end
+extern "const xui_page_desc_t*" class PageDesc @header("test/cases/foreign_xui_navigation.h") @lifetime("caller")
+ native point handle
+end
+extern "const xui_carousel_desc_t*" class CarouselDesc @header("test/cases/foreign_xui_navigation.h") @lifetime("caller")
+ native point handle
+end
+extern "const xui_breadcrumb_desc_t*" class BreadcrumbDesc @header("test/cases/foreign_xui_navigation.h") @lifetime("caller")
+ native point handle
+end
+extern "xui_context_t*" class Context @header("test/cases/foreign_xui_navigation.h") @lifetime("owned") @policy("declarativeXuiContextPolicy") @scope("xui_call_scope_t") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiHyperlinkCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWidget) func hyperlink(HyperlinkDesc? desc=null) as Widget
+ extern "xuiPageCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWidget) func page(PageDesc? desc=null) as Widget
+ extern "xuiCarouselCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWidget) func carousel(CarouselDesc? desc=null) as Widget
+ extern "xuiBreadcrumbCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWidget) func breadcrumb(BreadcrumbDesc? desc=null) as Widget
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xui_widget_t*" class Widget @header("test/cases/foreign_xui_navigation.h") @lifetime("owner") @owner(Context) @policy("declarativeXuiWidgetPolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiHyperlinkSetClickOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onHyperlink(Action? callback)
+ extern "xuiPageSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onPage(Change? callback)
+ extern "xuiCarouselSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onCarousel(Change? callback)
+ extern "xuiBreadcrumbSetClickOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func onBreadcrumb(Change? callback)
+ extern "xuiBreadcrumbSetContextMenuOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-1) @c_result("status",0) func onContext(ContextMenu? callback)
+end
+extern "xuiDestroy" @no_raise func rollbackContext(Context context)
+extern "xuiWidgetDestroy" @no_raise func rollbackWidget(Widget widget)
+extern "xuiCreate" @no_raise @c_result("owned_view") @factory(0,0,rollbackContext) func createContext() as Context
+extern "declarative_xui_start" @no_raise func start()
+extern "declarative_xui_counters_begin" @no_raise func countersBegin()
+extern "declarative_xui_counters_end" @no_raise func countersEnd()
+extern "declarative_xui_navigation_setup" @no_raise @c_result("status",0) func setup(Widget widget,c_int kind)
+extern "declarative_xui_navigation_fire" @no_raise @c_result("status",0) func fire(Widget widget,c_int kind,c_int serial)
+func main(...) as int
+ start()
+ Context context=createContext()
+ Widget link=context.hyperlink()
+ Widget page=context.page()
+ Widget carousel=context.carousel()
+ Widget breadcrumb=context.breadcrumb()
+ Widget menu=context.breadcrumb()
+ setup(link,0)
+ setup(page,1)
+ setup(carousel,2)
+ setup(breadcrumb,3)
+ setup(menu,4)
+ int calls=0
+ link.onHyperlink(func(Widget sender)
+  calls+=1
+ end)
+ page.onPage(func(Widget sender,c_int oldPage,c_int newPage)
+  assert oldPage!=newPage
+  calls+=1
+ end)
+ carousel.onCarousel(func(Widget sender,c_int oldPage,c_int newPage)
+  assert oldPage!=newPage
+  calls+=1
+ end)
+ breadcrumb.onBreadcrumb(func(Widget sender,c_int index,c_int value)
+  assert index==0 and value==71
+  calls+=1
+ end)
+ menu.onContext(func(Widget sender,c_int index,c_int value,c_float x,c_float y) as c_int
+  calls+=1
+  return c_int(0)
+ end)
+ fire(link,0,0)
+ fire(page,1,0)
+ fire(carousel,2,0)
+ fire(breadcrumb,3,0)
+ fire(menu,4,0)
+ assert calls==5
+ countersBegin()
+ int serial=1
+ while serial<=200
+  fire(link,0,c_int(serial))
+  fire(page,1,c_int(serial))
+  fire(carousel,2,c_int(serial))
+  fire(breadcrumb,3,c_int(serial))
+  fire(menu,4,c_int(serial))
+  serial+=1
+ end
+ countersEnd()
+ assert calls==1005
+ link.onHyperlink(null)
+ page.onPage(null)
+ carousel.onCarousel(null)
+ breadcrumb.onBreadcrumb(null)
+ menu.onContext(null)
+ context.close()
+ return 0
+end

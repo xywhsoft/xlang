@@ -237,7 +237,17 @@ const XL6_IrNativeValuePlan* xl6IrNativeValueInstructionPlan(
         return isTry ? xl6IrNullableNativeValuePlan(&module->types,type) : xl6IrNativeValuePlanForType(type);
     }
     if (instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_BOX) {
-        if (instruction->operandCount != 1 || !xl6IrTypeIsDynamicXValueBuiltin(module,instruction->type)) return NULL;
+        XL6_IrTypeId protocolType=instruction->type;
+        const XL6_IrType* target=xl6IrTypeGet(&module->types,protocolType);
+        /* A non-null class can also enter nullable protocol storage. Its
+         * present payload keeps the concrete class identity. This does not
+         * admit a nullable source as a non-null protocol value. */
+        if(target && target->kind==XL6_IR_TYPE_NULLABLE && target->paramCount==1 && target->params &&
+           target->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && target->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED)
+            protocolType=target->params[0];
+        if (instruction->operandCount != 1 ||
+            (!xl6IrTypeIsDynamicXValueBuiltin(module,instruction->type) &&
+             !xl6IrProtocolClassImplements(module,protocolType,instruction->payloadType))) return NULL;
         left=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
         if (!left || left->type != instruction->payloadType) return NULL;
         return xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,instruction->payloadType));

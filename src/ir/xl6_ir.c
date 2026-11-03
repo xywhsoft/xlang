@@ -4839,7 +4839,8 @@ static XL6_IrNodeId xl6IrClassDeclarationByConcreteType(
     size_t i;
     if ( type == NULL || type->kind != XL6_IR_TYPE_CLASS ||
          (type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-          type->cAbi != XL6_IR_C_ABI_NATIVE_HANDLE) ||
+          type->cAbi != XL6_IR_C_ABI_NATIVE_HANDLE &&
+          !(type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE && xl6IrNativeValuePlanForType(type))) ||
          type->nominalSymbol == 0 || type->name == NULL ||
          (root = xl6IrNodeGet(module, module->root)) == NULL )
         return XL6_IR_NODE_INVALID;
@@ -8616,28 +8617,26 @@ static int xl6IrBuildProtocolFindClassMethodFrom(
  * selected implementation is declared by an ancestor.  Resolve the nearest
  * matching ancestor declaration here, before the table is frozen, so neither
  * lowering nor Cgen has to rediscover class inheritance. */
-static int xl6IrBuildProtocolFindInheritedClassMethod(
-    const XL6_IrModule* module, const XL6_IrClassLayout* layout,
-    const XL6_IrProtocolDispatchSlot* slot, XL6_IrNodeId* implementation)
+static XL6_IrTypeId xl6IrNominalClassBaseType(const XL6_IrModule* module,XL6_IrTypeId type)
 {
-    XL6_IrTypeId baseType;
-    size_t depth = 0;
-    if ( module == NULL || layout == NULL || slot == NULL || implementation == NULL ) return 0;
-    baseType = layout->baseType;
-    while ( baseType != XL6_IR_TYPE_INVALID && depth++ <= module->classLayoutCount ) {
-        const XL6_IrClassLayout* base = xl6IrBuildClassLayoutByType(module, baseType);
-        XL6_IrNodeId candidate = XL6_IR_NODE_INVALID;
-        size_t count = 0;
-        if ( base == NULL || !xl6IrBuildProtocolFindClassMethodFrom(
-                module, base->declaration, base->declaration, layout->type,
-                slot, &candidate, &count) ) return 0;
-        if ( count == 1 ) {
-            *implementation = candidate;
-            return 1;
-        }
-        baseType = base->baseType;
+    const XL6_IrClassLayout* layout=xl6IrBuildClassLayoutByType(module,type);
+    const XL6_IrType* native=xl6IrTypeGet(&module->types,type);
+    return layout ? layout->baseType : native && xl6IrNativeValuePlanForType(native) ? native->foreignBase : 0;
+}
+static int xl6IrBuildProtocolFindInheritedClassMethod(
+    const XL6_IrModule* module,XL6_IrTypeId ownerType,
+    const XL6_IrProtocolDispatchSlot* slot,XL6_IrNodeId* implementation)
+{
+    if(!module || !ownerType || !slot || !implementation)return 0;
+    XL6_IrTypeId base=xl6IrNominalClassBaseType(module,ownerType);
+    for(size_t depth=0;base && depth<module->types.count;++depth){
+        XL6_IrNodeId declaration=xl6IrClassDeclarationByConcreteType(module,base),candidate=0;
+        size_t count=0;
+        if(!declaration || !xl6IrBuildProtocolFindClassMethodFrom(module,declaration,declaration,ownerType,slot,&candidate,&count))return 0;
+        if(count==1){*implementation=candidate;return 1;}
+        base=xl6IrNominalClassBaseType(module,base);
     }
-    return 1;
+    return base==0;
 }
 
 static int xl6IrBuildProtocolDispatchAppendSlot(
@@ -8695,7 +8694,7 @@ static int xl6IrBuildProtocolDispatchAppendSlot(
 }
 
 static int xl6IrBuildProtocolDispatchAppendImpl(
-    XL6_IrModule* module, size_t slotIndex, const XL6_IrClassLayout* layout,
+    XL6_IrModule* module, size_t slotIndex, XL6_IrNodeId ownerDeclaration, XL6_IrTypeId ownerType,
     XL6_IrNodeId implementation)
 {
     const XL6_IrNode* node = xl6IrNodeGet(module, implementation);
@@ -8707,8 +8706,8 @@ static int xl6IrBuildProtocolDispatchAppendImpl(
     impl = &module->protocolDispatchImpls[module->protocolDispatchImplCount++];
     memset(impl, 0, sizeof(*impl));
     impl->slot = slotIndex;
-    impl->ownerDeclaration = layout->declaration;
-    impl->ownerType = layout->type;
+    impl->ownerDeclaration = ownerDeclaration;
+    impl->ownerType = ownerType;
     impl->implementationDeclaration = implementation;
     impl->implementationSymbol = node->symbol;
     return 1;
@@ -8783,8 +8782,13 @@ static int xl6IrBuildProtocolDispatchTables(XL6_IrModule* module)
             firstSlot = module->protocolDispatchSlotCount;
             if ( !xl6IrBuildProtocolDispatchAppendSlotsFrom(
                      module, protocolDeclaration, protocolType, protocolDeclaration) ) return 0;
-            for ( child = 0; child < module->classLayoutCount; ++child ) {
-            const XL6_IrClassLayout* layout = &module->classLayouts[child];
+            /* Nominal method ownership is independent of object storage.
+             * Native-value classes intentionally have no ClassLayout. */
+            for ( child = 0; child < module->types.count; ++child ) {
+            XL6_IrTypeId ownerType=(XL6_IrTypeId)(child+1);
+            XL6_IrNodeId ownerDeclaration=xl6IrClassDeclarationByConcreteType(module,ownerType);
+            const XL6_IrClassLayout* layout=xl6IrBuildClassLayoutByType(module,ownerType);
+            if (!ownerDeclaration || (!layout && !xl6IrNativeValuePlanForType(&module->types.items[child]))) continue;
             XL6_IrNodeId* implementations = NULL;
             size_t slot;
             int complete = 1;
@@ -8797,10 +8801,10 @@ static int xl6IrBuildProtocolDispatchTables(XL6_IrModule* module)
                 size_t count = 0;
                 implementations[slot - firstSlot] = XL6_IR_NODE_INVALID;
                 if ( !xl6IrBuildProtocolFindClassMethodFrom(
-                         module, layout->declaration, layout->declaration, layout->type,
+                         module, ownerDeclaration, ownerDeclaration, ownerType,
                          &module->protocolDispatchSlots[slot], &implementations[slot - firstSlot], &count) ||
                      (count == 0 && !xl6IrBuildProtocolFindInheritedClassMethod(
-                         module, layout, &module->protocolDispatchSlots[slot],
+                         module, ownerType, &module->protocolDispatchSlots[slot],
                          &implementations[slot - firstSlot])) ||
                      (count != 1 &&
                       implementations[slot - firstSlot] == XL6_IR_NODE_INVALID) ) {
@@ -8811,7 +8815,7 @@ static int xl6IrBuildProtocolDispatchTables(XL6_IrModule* module)
             if ( complete ) {
                 for ( slot = firstSlot; slot < module->protocolDispatchSlotCount; ++slot )
                     if ( !xl6IrBuildProtocolDispatchAppendImpl(
-                             module, slot, layout, implementations[slot - firstSlot]) ) {
+                             module, slot, ownerDeclaration, ownerType, implementations[slot - firstSlot]) ) {
                         xrtFree(implementations); return 0;
                     }
             }
@@ -8881,7 +8885,8 @@ static int xl6IrBuildClassSatisfiesProtocolType(
 
 /* Freeze nominal acceptance once, after class inheritance and protocol witness
  * tables are complete.  Tagged enums contribute a singleton exact-TypeValueId
- * set; classes and protocols contribute their closed runtime-tag sets.  Later
+ * set; class layouts contribute runtime tags and protocols exact concrete
+ * TypeIds independent of storage representation. Later
  * phases consume these identities and never rediscover a source relation. */
 int xl6IrRefreshNominalIdentitySets(XL6_IrModule* module)
 {
@@ -8910,18 +8915,14 @@ int xl6IrRefreshNominalIdentitySets(XL6_IrModule* module)
                  targetType ) { protocolType = 1; break; }
         if ( protocolType ) {
             set = xl6IrBuildAppendNominalIdentitySet(module, targetType,
-                XL6_IR_NOMINAL_IDENTITY_PROTOCOL_RUNTIME_TAG);
+                XL6_IR_NOMINAL_IDENTITY_EXACT_TYPE_ID);
             if ( set == NULL ) return 0;
             firstIdentity = set->firstIdentity;
-            for ( layoutIndex = 0; layoutIndex < module->classLayoutCount;
-                  ++layoutIndex ) {
-                const XL6_IrClassLayout* candidate =
-                    &module->classLayouts[layoutIndex];
-                if ( candidate->runtimeTypeTag != 0 &&
-                     xl6IrBuildClassSatisfiesProtocolType(
-                         module, candidate->type, targetType) &&
-                     !xl6IrBuildAppendNominalIdentity(
-                         module, candidate->runtimeTypeTag) ) return 0;
+            for ( layoutIndex = 0; layoutIndex < module->types.count; ++layoutIndex ) {
+                const XL6_IrType* candidate=&module->types.items[layoutIndex];
+                if (candidate->kind==XL6_IR_TYPE_CLASS && candidate->typeValueId &&
+                    xl6IrBuildClassSatisfiesProtocolType(module,(XL6_IrTypeId)(layoutIndex+1),targetType) &&
+                    !xl6IrBuildAppendNominalIdentity(module,candidate->typeValueId)) return 0;
             }
             set = &module->nominalIdentitySets[
                 module->nominalIdentitySetCount - 1];
@@ -28764,7 +28765,8 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
                 target = xl6IrCallTargetGet(module, impl->implementationSymbol);
                 if (target == NULL || (target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE &&
                     target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE)) return 0;
-                if (target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE) joined = XL6_IR_ERROR_ABI_MAY_RAISE;
+                if (target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE ||
+                    xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,impl->ownerType))) joined = XL6_IR_ERROR_ABI_MAY_RAISE;
             }
             if (slot->errorAbi != joined || slot->errorPhysicalAbi !=
                 (joined == XL6_IR_ERROR_ABI_MAY_RAISE ? XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER
@@ -28796,15 +28798,15 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
     for ( i = 0; i < module->protocolDispatchImplCount; ++i ) {
         const XL6_IrProtocolDispatchImpl* impl = &module->protocolDispatchImpls[i];
         const XL6_IrProtocolDispatchSlot* slot;
-        const XL6_IrClassLayout* owner;
         const XL6_IrNode* implementation;
         const XL6_IrCallTarget* target;
         size_t parameter;
         size_t other;
         if ( impl->slot >= module->protocolDispatchSlotCount ||
              (slot = &module->protocolDispatchSlots[impl->slot]) == NULL ||
-             (owner = xl6IrBuildClassLayoutByType(module, impl->ownerType)) == NULL ||
-             owner->declaration != impl->ownerDeclaration ||
+             xl6IrClassDeclarationByConcreteType(module,impl->ownerType) != impl->ownerDeclaration ||
+             (!xl6IrBuildClassLayoutByType(module,impl->ownerType) &&
+              !xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,impl->ownerType))) ||
              (implementation = xl6IrNodeGet(module, impl->implementationDeclaration)) == NULL ||
               implementation->symbol != impl->implementationSymbol ||
               !xl6IrBuildProtocolClassMethodMatchesSlot(
@@ -28812,6 +28814,8 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
         if ( module->stage == XL6_IR_STAGE_LOWERED ) {
             target = xl6IrCallTargetGet(module, impl->implementationSymbol);
             if ( target == NULL || target->declaration != impl->implementationDeclaration ||
+                  (xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,impl->ownerType)) &&
+                   target->kind!=XL6_IR_CALL_TARGET_EXTERN_C) ||
                   (target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
                    target->kind != XL6_IR_CALL_TARGET_INTERNAL_ASYNC &&
                    target->kind != XL6_IR_CALL_TARGET_INTERNAL_GENERATOR &&
@@ -28852,8 +28856,9 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
                      (target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE && target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) ||
                      target->resultPhysicalAbi !=
                          XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
-                     xl6IrCallTargetNativeResourceField(
-                         module, target, 0) == NULL ) return 0;
+                     (xl6IrCallTargetNativeResourceField(module,target,0)==NULL &&
+                      !(xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,target->parameterTypes[0])) &&
+                        xl6IrForeignPreparedParameterMatches(module,target,0))) ) return 0;
             }
         }
         for ( other = 0; other < i; ++other )
@@ -28909,21 +28914,16 @@ static int xl6IrVerifyNominalIdentitySets(const XL6_IrModule* module)
             }
         if ( protocolType ) {
             if ( set->kind !=
-                     XL6_IR_NOMINAL_IDENTITY_PROTOCOL_RUNTIME_TAG ||
+                     XL6_IR_NOMINAL_IDENTITY_EXACT_TYPE_ID ||
                  (target->kind != XL6_IR_TYPE_PROTOCOL &&
                   target->kind != XL6_IR_TYPE_GENERIC_INSTANCE) ) return 0;
-            for ( layoutIndex = 0; layoutIndex < module->classLayoutCount;
-                  ++layoutIndex ) {
-                const XL6_IrClassLayout* candidate =
-                    &module->classLayouts[layoutIndex];
-                if ( candidate->runtimeTypeTag != 0 &&
-                     xl6IrBuildClassSatisfiesProtocolType(
-                         module, candidate->type, set->targetType) ) {
-                    if ( identityOffset >= set->identityCount ||
-                         module->nominalIdentities[
-                             set->firstIdentity + identityOffset] !=
-                             candidate->runtimeTypeTag ) return 0;
-                    identityOffset += 1;
+            for (layoutIndex=0;layoutIndex<module->types.count;++layoutIndex) {
+                const XL6_IrType* candidate=&module->types.items[layoutIndex];
+                if (candidate->kind==XL6_IR_TYPE_CLASS && candidate->typeValueId &&
+                    xl6IrBuildClassSatisfiesProtocolType(module,(XL6_IrTypeId)(layoutIndex+1),set->targetType)) {
+                    if (identityOffset>=set->identityCount ||
+                        module->nominalIdentities[set->firstIdentity+identityOffset]!=candidate->typeValueId) return 0;
+                    ++identityOffset;
                 }
             }
         } else if ( target->kind == XL6_IR_TYPE_TAGGED_ENUM ) {
@@ -42249,9 +42249,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED ||
                         instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_FUTURE_CAST_CHECKED)) ||
                        instruction->kind == XL6_IR_INSTR_GENERATOR_PREPARE_YIELD) !=
-                      (instruction->payloadType != XL6_IR_TYPE_INVALID) )
-                    return xl6IrDiag(diags, NULL,
-                        "XLIR instruction has an ambiguous runtime payload TypeId");
+                      (instruction->payloadType != XL6_IR_TYPE_INVALID) ) {
+                    char message[192];
+                    snprintf(message,sizeof(message),
+                        "XLIR instruction has an ambiguous runtime payload TypeId (kind=%u op=%u type=%u payload=%u)",
+                        (unsigned)instruction->kind,(unsigned)instruction->runtimeOp,
+                        (unsigned)instruction->type,(unsigned)instruction->payloadType);
+                    return xl6IrDiag(diags,instructionOrigin,message);
+                }
                 if ( ((instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
                        (xl6IrChannelRuntimeOpIs(instruction->runtimeOp) ||
                         (instruction->runtimeOp >=

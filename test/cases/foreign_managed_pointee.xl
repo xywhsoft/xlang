@@ -1,0 +1,90 @@
+extern "ManagedRoot*" class Root @header("test/cases/foreign_managed_pointee.h") @lifetime("owned") @policy("managedRootPolicy") @scope("ManagedScope") @watch("ManagedWatch")
+    native point handle
+    extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "ManagedChild*" class Child @header("test/cases/foreign_managed_pointee.h") @lifetime("owner") @policy("managedChildPolicy") @watch("ManagedWatch") @owner(Root)
+    native point handle
+    extern "managed_child_read" @no_raise func read() as c_int
+end
+extern "ManagedChild**" class ChildOut @header("test/cases/foreign_managed_pointee.h") @lifetime("callback") @owner(Root)
+    native point handle
+    extern "value" @c_deref @c_result("owner_view",0) get value() as Child?
+    extern "value" @c_deref let value(Child? next)
+end
+extern "managed_root_destroy" @no_raise func rollbackRoot(Root root)
+extern "managed_root_create" @no_raise @c_result("owned_view") @factory(1,0,rollbackRoot) func create(c_int mode) as Root
+extern "managed_child_destroy" @no_raise func rollbackChild(Child child)
+extern "managed_child_create" @no_raise @c_result("owner_view",0) @factory(2,0,rollbackChild) func makeChild(Root root,c_int mode) as Child
+extern "managed_pointee_fire" @no_raise @c_owned_callback(1,0,"ManagedCallbackOwner",-9) func fire(Root root,func(ChildOut) as c_int callback,Child? expected) as c_int
+extern "managed_roots_live" @no_raise func rootsLive() as c_int
+extern "managed_children_live" @no_raise func childrenLive() as c_int
+extern "managed_counter_begin" @no_raise func countersBegin()
+extern "managed_counter_end" @no_raise func countersEnd()
+func exercise()
+    Root root=create(0)
+    Child a=makeChild(root,0)
+    Child b=makeChild(root,0)
+    ChildOut? saved=null
+    assert fire(root,func(ChildOut slot) as c_int
+        assert (slot.value as Child).read()==17
+        slot.value=a
+        assert (slot.value as Child).read()==17
+        slot.value=null
+        assert slot.value==null
+        slot.value=b
+        countersBegin()
+        int i=0
+        while i<200
+            slot.value=a
+            assert (slot.value as Child).read()==17
+            slot.value=null
+            assert slot.value==null
+            slot.value=b
+            i+=1
+        end
+        countersEnd()
+        saved=slot
+        return c_int(4)
+    end,b)==4
+    bool rejected=false
+    try
+        auto invalid=(saved as ChildOut).value
+    catch error
+        rejected=true
+    end
+    assert rejected
+    rejected=false
+    try
+        (saved as ChildOut).value=a
+    catch error
+        rejected=true
+    end
+    assert rejected
+    Root other=create(0)
+    Child alien=makeChild(other,0)
+    rejected=false
+    try
+        auto invalid=fire(root,func(ChildOut slot) as c_int
+            slot.value=alien
+            return c_int(0)
+        end,b)
+    catch error
+        rejected=true
+    end
+    assert rejected
+    func(ChildOut) as c_int direct=func(ChildOut slot) as c_int
+        slot.value=a
+        slot.value=b
+        return c_int(0)
+    end
+    assert fire(root,direct,b)==0
+    // Warm typed views, reads and writes add no payload allocation or copy.
+    // Retained callback registration itself has one adapter allocation per call.
+    root.close()
+    other.close()
+end
+func main(...) as int
+    exercise()
+    assert rootsLive()==0 and childrenLive()==0
+    return 0
+end

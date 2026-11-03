@@ -223,7 +223,7 @@ static int xl6IrCgenVerifyDeclarations(
              target == NULL || target->kind != XL6_IR_CALL_TARGET_EXTERN_C )
             continue;
         field = xl6IrCgenProtocolExternReceiverField(module, slot, target);
-        if ( field == NULL )
+        if ( field == NULL && xl6IrCgenProtocolNativeReceiver(module,slot,target)==NULL )
             return xl6IrCgenDiag(diags, module, impl->implementationDeclaration,
                 "XLIR protocol extern witness adapter feature set is unresolved");
     }

@@ -614,6 +614,7 @@ static int xl6SemBindNameLvalue(
     return 1;
 }
 
+
 static void xl6ScopeInit(XL6_Scope* scope, XL6_Scope* parent)
 {
     memset(scope, 0, sizeof(*scope));
@@ -5587,6 +5588,17 @@ static int xl6SemTypeSatisfiesUserProtocol(
     return 1;
 }
 
+/* Compile-time constraints can use a caller pointer directly. Runtime
+ * protocol storage additionally needs an authenticated owning value carrier. */
+static int xl6SemTypeCanEraseToUserProtocol(XL6_SemContext* ctx,
+    const XL6_AstNode* valueType,const XL6_AstNode* protocolType)
+{
+    XL6_ForeignClassDecl native={0};
+    return !(xl6SemForeignViewDeclaration(ctx,valueType,&native) && native.lifetime==XL6_FOREIGN_LIFETIME_CALLER) &&
+        xl6SemTypeSatisfiesUserProtocol(ctx,valueType,protocolType);
+}
+
+
 /*
     泛型 class 的成员签名必须先代入实例类型，再复用统一的调用匹配器。
     这样可选参数、命名参数和可变参数仍只维护一套规则。
@@ -7884,7 +7896,7 @@ static int xl6SemCheckRuntimeTypeExpr(XL6_SemContext* ctx, XL6_AstNode* node, in
             /* var 只能在运行时查询 witness。 */
         } else if ( effectiveSource == NULL ||
                     (!xl6SemTypeEquals(ctx, effectiveSource, effectiveTarget) &&
-                     !xl6SemTypeSatisfiesUserProtocol(
+                     !xl6SemTypeCanEraseToUserProtocol(
                          ctx,
                          effectiveSource,
                          effectiveTarget)) ) {
@@ -9122,6 +9134,26 @@ static int xl6SemExternParameterExpansion(const XL6_AstNode* node,size_t paramet
     }
     return 0;
 }
+/* C symbol compatibility compares physical declarations. Distinct nominal
+ * language views may name the same exact native pointer contract; admitting
+ * that alias does not make their language values implicitly interchangeable. */
+static int xl6SemExternCTypeCompatible(XL6_SemContext* ctx,const XL6_AstNode* a,const XL6_AstNode* b)
+{
+    if (xl6SemTypeEquals(ctx,a,b)) return 1;
+    XL6_ForeignClassDecl left={0},right={0};
+    return xl6SemForeignViewDeclaration(ctx,a,&left) && xl6SemForeignViewDeclaration(ctx,b,&right) &&
+        left.lifetime==right.lifetime && !strcmp(left.cName,right.cName) && !strcmp(left.header,right.header) &&
+        !strcmp(left.policy,right.policy) && !strcmp(left.scope,right.scope) &&
+        !strcmp(left.watch,right.watch) && !strcmp(left.owner,right.owner);
+}
+static int xl6SemExternCReturnsCompatible(XL6_SemContext* ctx,const XL6_AstNode* a,const XL6_AstNode* b)
+{
+    if (xl6SemTypeListEquals(ctx,a,b,0)) return 1;
+    if (!a || !b || a->childCount!=b->childCount) return 0;
+    for(size_t i=0;i<a->childCount;++i)
+        if(!xl6SemExternCTypeCompatible(ctx,a->children[i],b->children[i]))return 0;
+    return 1;
+}
 static int xl6SemExternParameterListsCompatible(XL6_SemContext* ctx,const XL6_AstNode* a,const XL6_AstNode* b)
 {
     const XL6_AstNode* left=xl6SemExternFuncParams(a);const XL6_AstNode* right=xl6SemExternFuncParams(b);
@@ -9139,7 +9171,7 @@ static int xl6SemExternParameterListsCompatible(XL6_SemContext* ctx,const XL6_As
             if(xl6SemTypeIsNullable(lt))lt=xl6SemNullableInnerType(lt);
             if(xl6SemTypeIsNullable(rt))rt=xl6SemNullableInnerType(rt);
         }
-        if(!xl6SemTypeEquals(ctx,lt,rt) || xl6SemParamMode(left->children[p])!=xl6SemParamMode(right->children[p]))return 0;
+        if(!xl6SemExternCTypeCompatible(ctx,lt,rt) || xl6SemParamMode(left->children[p])!=xl6SemParamMode(right->children[p]))return 0;
     }
     return 1;
 }
@@ -9156,7 +9188,7 @@ static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* 
             left.outputIndexPlusOne != right.outputIndexPlusOne || left.successCode != right.successCode) return 0;
         return ((a->flags ^ b->flags) & XL6_AST_FLAG_FOREIGN_OWNED_STRING) == 0 &&
                xl6SemExternParameterListsCompatible(ctx,a,b) &&
-               xl6SemTypeListEquals(ctx, xl6SemExternFuncReturns(a), xl6SemExternFuncReturns(b), 0);
+               xl6SemExternCReturnsCompatible(ctx, xl6SemExternFuncReturns(a), xl6SemExternFuncReturns(b));
     }
     if ( a->kind == XL6_AST_EXTERN_VAR ) {
         return xl6SemTypeEquals(ctx, xl6SemExternalVarTypeNode(a), xl6SemExternalVarTypeNode(b));
@@ -17941,7 +17973,7 @@ static int xl6SemTypeCanAssignFromType(XL6_SemContext* ctx, const XL6_AstNode* v
     if ( xl6SemTypeParamCanWidenTo(ctx, valueType, targetType) ) {
         return 1;
     }
-    if ( xl6SemTypeSatisfiesUserProtocol(ctx, valueType, targetType) ) {
+    if ( xl6SemTypeCanEraseToUserProtocol(ctx, valueType, targetType) ) {
         return 1;
     }
     return xl6SemTypeEquals(ctx, valueType, targetType);
@@ -21419,6 +21451,12 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         int read=node->kind==XL6_AST_GET,write=node->kind==XL6_AST_LET;
         const XL6_AstNode* value=read && returns && returns->childCount==1 ? returns->children[0] :
             write && count==1 && params->children[0]->childCount ? params->children[0]->children[0] : NULL;
+        XL6_ForeignClassDecl pointee={0};
+        const XL6_AstNode* pointeeDecl=value ? xl6SemForeignViewDeclaration(ctx,value,&pointee) : NULL;
+        bool managedWrite=write && facts.receiverDereference && ownerClass &&
+            xl6ForeignClassRead(ownerClass,&owner,NULL)==1 && owner.lifetime==XL6_FOREIGN_LIFETIME_CALLBACK &&
+            pointeeDecl && pointee.lifetime==XL6_FOREIGN_LIFETIME_OWNER &&
+            xl6SemForeignRootDeclaration(ctx,ownerClass,&owner)==xl6SemForeignRootDeclaration(ctx,pointeeDecl,&pointee);
         if(!ownerClass || xl6ForeignClassRead(ownerClass,&owner,NULL)!=1 ||
             !xl6ForeignQuotedText(&name,field,sizeof(field)) || !xl6ForeignIdentifier(field) ||
             (node->flags&(XL6_AST_FLAG_STATIC|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) ||
@@ -21428,8 +21466,8 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             facts.constRecordAddresses || facts.staticCallbackAddresses || facts.textViews || facts.bytesViews ||
             facts.terminatedStrings || facts.spanParameters || facts.retainedCallbacks || facts.controlViews || facts.outputIndexPlusOne ||
             facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE || facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS || facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS ||
-            (!facts.borrowedViewResult && !xl6SemIsCAbiCallbackValueType(ctx,value,0))){
-            xl6SemErrorNode(ctx,node,"native field/dereference projection requires a declared instance getter/setter with exact trivial value or explicit borrowed-result admission");return 0;
+            (!facts.borrowedViewResult && !managedWrite && !xl6SemIsCAbiCallbackValueType(ctx,value,0))){
+            xl6SemErrorNode(ctx,node,"native projection requires an exact trivial value, explicit borrowed result, or callback pointee owned by the same root");return 0;
         }
     }
     if (count < 64 && ((facts.constRecordAddresses | facts.staticCallbackAddresses | facts.textViews | facts.bytesViews | facts.terminatedStrings | facts.spanParameters | facts.retainedCallbacks) >> count)) {
@@ -21709,13 +21747,11 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node,const XL
                     "c_callback can only annotate a function-typed extern parameter");
                 ok = 0;
             }
-            /* An explicitly declared caller C pointer keeps its exact
-             * pointer/NULL carrier when nullable. Other nullable parameter
-             * families still require their own physical admission contract. */
-            XL6_ForeignClassDecl nullableCaller={0};
+            /* Each declared foreign pointer has a sealed nullable carrier:
+             * caller/managed views use NULL, callback views retain their
+             * tagged epoch. XLIR validates the physical preparation recipe. */
             if(xl6SemNullableInnerType(typeNode) &&
-               xl6SemForeignViewDeclaration(ctx,typeNode,&nullableCaller) &&
-               nullableCaller.lifetime==XL6_FOREIGN_LIFETIME_CALLER)continue;
+               xl6SemForeignViewDeclaration(ctx,typeNode,NULL))continue;
             if ( !xl6COwnedBaseName(typeNode->text) &&
                  !xl6SemIsCAbiClassHandleType(ctx, typeNode) &&
                  !xl6SemIsCAbiClassType(ctx, typeNode) &&

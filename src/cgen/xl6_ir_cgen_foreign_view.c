@@ -44,6 +44,9 @@ static int xl6IrCgenForeignViewsBegin(XL6_Output* out,const XL6_IrModule* module
         else xl6OutputPuts("NULL, 0",out);
         xl6OutputPrintf(out,")) { native_views_ok = false; xl6ErrorScopeCaptureFailure(&%s); } }\n",errors);
     }
+    if(xl6IrForeignManagedPointeeWrite(module,target))
+        xl6OutputPrintf(out,"    if (native_views_ok && native_view_1.raw && native_view_0.root != native_view_1.root) {\n"
+            "        native_views_ok=false; xrtSetErrorKind(XERR_ARGUMENT); xl6ErrorScopeCaptureFailure(&%s);\n    }\n",errors);
     xl6OutputPuts("    if (native_views_ok) {\n",out);return count;
 }
 static void xl6IrCgenForeignViewsEnd(XL6_Output* out,const XL6_IrCallTarget* target,const char* errors)

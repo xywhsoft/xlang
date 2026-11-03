@@ -541,3 +541,32 @@ drain one detached batch, preserve the first checked failure (including a NULL
 diagnostic), and permit retries. This scheduling does not allocate. The
 ordinary error-scope End remains available for native internals that still
 hold storage addresses. These additions require the matching runtime build.
+
+
+## Native-value protocols and callback pointer outputs
+
+Declared managed and callback native views may implement runtime protocols.
+XLIR records their exact native receiver preparation and nominal type IDs;
+ordinary object implementations use the same identity domain. Dispatch unboxes
+that sealed native value and emits the exact C operation with its checked
+preparation/result/cleanup transaction. Caller-lifetime raw pointers may satisfy
+compile-time constraints, but cannot acquire an owning runtime protocol carrier.
+A non-null implementation may enter a nullable protocol target. Nullable source
+values still require the ordinary explicit narrowing rules.
+
+Aliases of a physical C symbol are permitted only when their declared C pointer,
+header, policy, owner root, watch and scope contracts agree. This grants no
+implicit language downcast or relaxed lifetime.
+
+`@c_deref` setters on a callback-lifetime pointer may write an owner-lifetime
+native child (including null) from the same declared root. Generated C prepares
+both views and checks their ACTUAL root control identity before writing. A
+cross-context child leaves the output unchanged and reports a checked error.
+The getter uses explicit `@c_result("owner_view",0)` admission. These are exact
+pointer operations, with no per-function forwarding wrapper. Persisting the
+callback output view does not extend its native lifetime: reads and writes after
+the callback return are checked failures.
+
+Optional declared managed inputs use their existing NULL sentinel; callback
+inputs keep their tagged epoch carrier. This does not admit arbitrary nullable
+C values. The native producer remains distinct from preparation and cleanup.
