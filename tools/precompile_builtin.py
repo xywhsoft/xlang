@@ -25,7 +25,12 @@ def source_fingerprint(root):
 def source_dependencies(root, source):
     visited=set();todo=[root/source]
     while todo:
-        path=todo.pop().resolve()
+        # Keep the declared package path, as the compiler does. Resolving a
+        # directory junction would turn an installed SDK include into an
+        # unrelated external source name. Normalize '..' and require lexical
+        # containment before reading; the fingerprint still hashes file bytes.
+        path=Path(os.path.abspath(todo.pop()))
+        path.relative_to(root)
         if path in visited:continue
         visited.add(path)
         text=path.read_text(encoding="utf-8")

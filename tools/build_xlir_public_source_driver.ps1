@@ -1,9 +1,12 @@
 param([string]$Directory = 'build/test/xlir_public_source', [switch]$RuntimeOnly, [switch]$NoCache,
     [string]$CacheDirectory = '', [ValidateSet('O0','O2')][string]$Optimization = 'O0',
-    [string]$RuntimeResource = '')
+    [string]$RuntimeResource = '', [string]$RuntimeDirectory = 'release/win_x64')
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'xlir_c_object_cache.ps1')
 $rootPath = (Get-Location).Path
+$runtimePath = (Resolve-Path -LiteralPath $RuntimeDirectory).Path
+$runtimeDll = Join-Path $runtimePath 'xl.dll'
+$runtimeInclude = Join-Path $runtimePath 'include'
 $runtimeResourcePath = if($RuntimeResource){(Resolve-Path -LiteralPath $RuntimeResource).Path}else{''}
 $batchPath = if ([IO.Path]::IsPathRooted($Directory)) {
     [IO.Path]::GetFullPath($Directory)
@@ -14,7 +17,7 @@ if (Test-Path -LiteralPath $batchPath) { throw 'Choose a fresh public build dire
 $buildTimer = [Diagnostics.Stopwatch]::StartNew()
 $buildContext = New-XlirCBuildContext -Root $rootPath -Directory $batchPath -NoCache:$NoCache -CacheDirectory $CacheDirectory
 $driverSource = if ($RuntimeOnly) { 'test/cases/xlir_public_runtime_driver.c' } else { 'test/cases/xlir_public_source_driver.c' }
-$tccCore = if ($RuntimeOnly) { 'release/xl.dll' } else { 'release/xlc.dll' }
+$tccCore = Join-Path $runtimePath $(if ($RuntimeOnly) { 'xl.dll' } else { 'xlc.dll' })
 $binaryName = if ($RuntimeOnly) { 'runtime_source.exe' } else { 'public_source.exe' }
 $enableExe = if ($RuntimeOnly) { 0 } else { 1 }
 $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.c',
@@ -667,19 +670,19 @@ foreach($runtimeManifest in $runtimeManifests) {
         if($sources -notcontains $runtimeMatch.Value){$sources += $runtimeMatch.Value}
     }
 }
-$files = @(@(Get-ChildItem src,lib,release/include,res/tcc -Recurse -File) +
-    @(Get-Item $driverSource,$PSCommandPath,tools/xlir_c_object_cache.ps1,tools/xrt_single_header_impl.c,release/xl.dll,$tccCore,tools/tcc_vfs_manifest_win64_xlc.txt,tools/compiler_dll.rsp.in,build_dll.bat) +
+$files = @(@(Get-ChildItem src,lib,$runtimeInclude,res/tcc -Recurse -File) +
+    @(Get-Item $driverSource,$PSCommandPath,tools/xlir_c_object_cache.ps1,tools/xrt_single_header_impl.c,$runtimeDll,$tccCore,tools/tcc_vfs_manifest_win64_xlc.txt,tools/compiler_dll.rsp.in,build_dll.bat) +
     @(Get-Item -LiteralPath $buildContext.Toolchain.Path)) | Sort-Object FullName -Unique
 if($runtimeResourcePath){$files=@($files)+@(Get-Item -LiteralPath $runtimeResourcePath)}
 $records = @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
 New-Item -ItemType Directory -Force -Path $batchPath | Out-Null
-Copy-Item -LiteralPath release/xl.dll -Destination (Join-Path $batchPath 'xl.dll') -Force
+Copy-Item -LiteralPath $runtimeDll -Destination (Join-Path $batchPath 'xl.dll') -Force
 if(!$RuntimeOnly){Copy-Item -LiteralPath $tccCore -Destination (Join-Path $batchPath 'xlc.dll')}
 $headers = @()
 # Stage the declared package layout, not a generated VFS or a release update.
 foreach ($entry in (Get-Content -LiteralPath tools/tcc_vfs_manifest_win64_xlc.txt -Encoding UTF8)) {
     if ($entry.StartsWith('dir|include/__xl_runtime|')) {
-        $parts = $entry.Split('|'); $directory = $parts[2].Replace('%XL6_ROOT%', $rootPath)
+        $parts = $entry.Split('|'); $directory = $parts[2].Replace('/','\').Replace('%XL6_ROOT%\release\', $runtimePath+'\').Replace('%XL6_ROOT%', $rootPath)
         if ($parts.Count -ne 4 -or $parts[3] -ne '*.h') { throw 'Unsupported private runtime header directory mapping' }
         foreach ($source in (Get-ChildItem -LiteralPath $directory -File -Filter '*.h' | Sort-Object Name)) {
             $target = Join-Path $batchPath ('include/__xl_runtime/' + $source.Name)
@@ -693,7 +696,7 @@ foreach ($entry in (Get-Content -LiteralPath tools/tcc_vfs_manifest_win64_xlc.tx
         continue
     }
     if (!$entry.StartsWith('file|include/__xl_runtime/')) { continue }
-    $parts = $entry.Split('|'); $source = $parts[2].Replace('%XL6_ROOT%', $rootPath)
+    $parts = $entry.Split('|'); $source = $parts[2].Replace('/','\').Replace('%XL6_ROOT%\release\', $runtimePath+'\').Replace('%XL6_ROOT%', $rootPath)
     $target = Join-Path $batchPath $parts[1]
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
     if (Test-Path -LiteralPath $target) { throw "Duplicate header staging target: $target" }
@@ -712,7 +715,7 @@ foreach ($entry in Get-Content -LiteralPath tools/tcc_vfs_manifest_win64_xlc.txt
         $parts[2].StartsWith('%XL6_VFS_OUTPUT_DIR%')
     if(!$parts[2].StartsWith('%XL6_ROOT%') -and !($generatedRuntime -and $runtimeResourcePath)){continue}
     if ($parts[1].Contains('..')) { throw "Unsafe private source target: $entry" }
-    $sourceRoot = if($generatedRuntime){$runtimeResourcePath}else{$parts[2].Replace('%XL6_ROOT%', $rootPath)}
+    $sourceRoot = if($generatedRuntime){$runtimeResourcePath}else{$parts[2].Replace('/','\').Replace('%XL6_ROOT%\release\', $runtimePath+'\').Replace('%XL6_ROOT%', $rootPath)}
     $sourcesToStage = if ($parts[0] -eq 'dir') {
         $patterns = $parts[3].Split(';')
         @(Get-ChildItem -LiteralPath $sourceRoot -Recurse -File | Where-Object {
@@ -733,7 +736,7 @@ foreach ($entry in Get-Content -LiteralPath tools/tcc_vfs_manifest_win64_xlc.txt
 $flags = @('-std=c11','-Wall','-Wextra','-Werror',"-$Optimization",'-DXL_STATIC_EMBED',"-DXL_ENABLE_EXE_COMPILER=$enableExe",'-DTCC_DISABLE_BUILTIN_VFS',
     '-Wno-unused-function','-Wno-unused-label','-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
     '-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation',
-    "-I$rootPath","-I$rootPath/release","-I$rootPath/release/include","-I$rootPath/lib/tcc","-I$rootPath/build/test")
+    "-I$rootPath","-I$runtimePath","-I$runtimeInclude","-I$rootPath/lib/tcc","-I$rootPath/build/test")
 $objects = @($sources | ForEach-Object { Join-Path $batchPath ([IO.Path]::GetFileNameWithoutExtension($_) + '.o') })
 if (@($objects | Select-Object -Unique).Count -ne $objects.Count) { throw 'Object basename collision' }
 $objectRecords = @()
@@ -754,7 +757,7 @@ try {
     # Hundreds of absolute object paths exceed the Windows native command
     # limit in external evidence directories. GCC's response grammar owns
     # quoting; keep every argument and the actual consumed bytes in the receipt.
-    $linkArguments=@($flags)+@($objects)+@((Join-Path $rootPath 'release/xl.dll'),
+    $linkArguments=@($flags)+@($objects)+@($runtimeDll,
         '-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$binaryName)
     $linkResponse=Join-Path $batchPath 'link.rsp'
     $linkRows=@($linkArguments|ForEach-Object{'"'+$_.Replace('\','/').Replace('"','\"')+'"'})
@@ -771,7 +774,7 @@ $manifest = [pscustomobject]@{RecordedAt=(Get-Date).ToString('o');Complete=$true
     LinkResponse=$linkResponse;LinkResponseSha256=(Get-FileHash -LiteralPath $linkResponse).Hash;
     CacheHits=@($objectRecords | Where-Object CacheHit).Count;CacheMisses=@($objectRecords | Where-Object {!$_.CacheHit}).Count;
     BuildSeconds=[Math]::Round($buildTimer.Elapsed.TotalSeconds,3);
-    RuntimeSha256=(Get-FileHash release/xl.dll).Hash;
+    RuntimeSha256=(Get-FileHash -LiteralPath $runtimeDll).Hash;RuntimeDirectory=$runtimePath;
     TccCore=(Join-Path $batchPath ([IO.Path]::GetFileName($tccCore)));
     TccCoreSha256=(Get-FileHash -LiteralPath $tccCore).Hash;
     SourceXrt=$true;
