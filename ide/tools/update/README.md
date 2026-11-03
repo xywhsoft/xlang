@@ -1,6 +1,6 @@
 # xlang 更新制作与推送
 
-客户端只需要 `xlang-update.exe`（Linux 为 `xlang-update`）。本目录是发布机工具，使用 Python 3.11+ 和 OpenSSH；不把 Python、SSH 或签名私钥安装到终端用户目录。
+客户端只需要 `update.exe`（Linux 为 `update`）。本目录是发布机工具，使用 Python 3.11+ 和 OpenSSH；不把 Python、SSH 或签名私钥安装到终端用户目录。
 
 双击 `update_manager.bat` 或执行 `./update_manager.sh` 可进入简单菜单。自动化使用下面的命令；所有目录均可用绝对路径指定。
 
@@ -26,6 +26,24 @@ python release/tools/update/update_manager.py verify --platform win_x64 --store 
 首次本机初始化的 32 字节 Ed25519 私钥位于 Windows `%LOCALAPPDATA%/xlang/update-signing.key`；Linux 工具默认查找 `$HOME/.local/share/xlang/update-signing.key`。通过 `--key` 指定其他私钥文件，通过 `--crypto` 指定签名助手。**私钥应单独备份，不提交、不上传、不放进 release。** 丢失密钥不能仅靠重新生成一把密钥恢复旧客户端的信任。
 
 仓库的 `ide/update/publisher-public-key.txt` 固定发行公钥；正常重建客户端不需要私钥。更换公钥时，先发布携带新公钥的更新器，并使用 `--co-sign-key NEXT_SEED` 对同一清单追加新公钥签名；保留旧签名，使尚未更新的客户端仍能取得更新器。密钥轮换需保留足够迁移时间。
+
+## 普通更新与强制更新
+
+版本号文件仍名为 `version.txt`，内容为 JSON：
+
+```json
+{"version": 3, "forceUpdate": true}
+```
+
+普通发布默认 `forceUpdate: false`；制包时加 `--force-update` 开启强更，或在菜单中选择“强制旧版本更新”。例如：
+
+```powershell
+python release/tools/update/update_manager.py prepare --platform win_x64 --store ide/build/updates/win_x64 --version 4 --force-update --notes "必须更新的修复"
+```
+
+标记同时写入签名清单。更新器核对两次版本信息及签名策略一致后，才通知 IDE；未验证的信息不能触发强更。已发布版本不可原地修改，改变强更策略应制作更大的版本号。新更新器也可读取旧数字版本号，按非强更处理；本项目首版不维护旧文件名的自动迁移链。
+
+IDE 启动时先异步读取已验证的强更缓存，再后台查询服务器。普通更新可稍后处理；强更提供“立即更新／退出程序”，Esc、关闭提示或取消保存不能恢复 IDE 的正常使用。没有已验证强更策略时，网络故障允许离线使用；已有强更缓存时，断网仍需更新。新签名版本可以解除旧强更策略。`update.enabled: false` 仅关闭普通更新的自动提示，不能屏蔽强更检测。
 
 ## SSH 推送
 

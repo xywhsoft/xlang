@@ -201,12 +201,12 @@ static int frame(void* user)
         app->viewportWidth = width; app->viewportHeight = height;
         TRY(xuiInputViewport(app->context, (float)width, (float)height));
     }
+    xideUpdatePoll(app);
     TRY(xidePlatformHandleInput(app)); TRY(xuiDispatchPendingEvents(app->context)); xideFileDialogPoll(app); xideMessagePoll(app); xideEditorPoll(app); xideFileSyncPoll(app); xideFileChangesViewPoll(app); xideTaskViewPoll(app); xideLanguageViewPoll(app);
 #if XIDE_ENABLE_C_LSP
  xideCLanguageViewPoll(app);
 #endif
  xideToolchainViewPoll(app); xideRecoveryViewPoll(app);
-    xideUpdatePoll(app);
     xideWorkbenchLayout(app); TRY(xuiLayout(app->context)); xideCatalogViewLayout(app); TRY(xuiLayout(app->context)); TRY(xuiTerminalFit(app->panels[XIDE_TERMINAL]));
     if(app->initialChapterRequested && app->frames==0) {
         if(!xideHelpJump(xideCatalogHelpDocument(app),(size_t)app->initialChapter)) return XUI_ERROR_INVALID_ARGUMENT;

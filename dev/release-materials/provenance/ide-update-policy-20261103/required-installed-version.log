@@ -1,0 +1,8 @@
+xlang 更新器
+检查更新清单 |  | 0/0 bytes
+
+PLAN version=3 changes=0 download=0
+版本 0 -> 3
+新增独立 TUI 更新器支持签名校验、安装修复和中断恢复IDE 增加检查更新与修复入口发布工具支持 SSH 自动推送
+安装更新 |  | 0/0 bytes
+更新完成 |  | 0/0 bytes

@@ -25,7 +25,7 @@ typedef struct up_ui {
 } up_ui;
 typedef struct up_config {
     char root[UP_PATH],base[2048],offline[UP_PATH],key[65],cleanupHelper[UP_PATH];
-    int check,versionOnly,recoverOnly,noLaunch,plain,staged,allowHttp,timeout; unsigned long parent,bootstrap;
+    int check,versionOnly,cachedPolicy,recoverOnly,noLaunch,plain,staged,allowHttp,timeout; unsigned long parent,bootstrap;
 } up_config;
 extern volatile sig_atomic_t up_cancel;
 extern char up_last_error[2048];

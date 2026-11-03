@@ -23,15 +23,15 @@ def main():
     for f in manifest['files']:
         if f['path'].startswith(('extlibs/','projects/','examples/','mdo-home/')) or f['path']=='option/settings.json':raise ValueError('protected path in release')
     evidence=ROOT/'ide/build/Release/update'/('fresh-bootstrap-'+time.strftime('%Y%m%d-%H%M%S'));evidence.mkdir()
-    install=evidence/'仅更新器 安装';install.mkdir();shutil.copy2(source/'xlang-update.exe',install/'xlang-update.exe')
+    install=evidence/'仅更新器 安装';install.mkdir();shutil.copy2(source/'update.exe',install/'update.exe')
     report={'store':str(store.relative_to(ROOT)).replace('\\','/'),'version':args.version,'files':len(manifest['files']),'objects':len(manager.object_specs(manifest)),'checks':[]}
     def run(name,command,**kwargs):
         r=subprocess.run(list(map(str,command)),capture_output=True,timeout=180,**kwargs);(evidence/(name+'.log')).write_bytes(r.stdout+r.stderr)
         if r.returncode:raise RuntimeError(name+' failed: '+(r.stdout+r.stderr).decode(errors='replace')[-2500:])
         report['checks'].append(name);return r
-    run('bootstrap',[install/'xlang-update.exe','--offline',store,'--no-launch','--plain'])
+    run('bootstrap',[install/'update.exe','--offline',store,'--no-launch','--plain'])
     assert not (install/'extlibs').exists() and not (install/'option/settings.json').exists()
-    run('same-version-check',[install/'xlang-update.exe','--check','--offline',store,'--no-launch','--plain'])
+    run('same-version-check',[install/'update.exe','--check','--offline',store,'--no-launch','--plain'])
     settings=install/'option/settings.json';picture=evidence/'fresh-workbench.png'
     gui=[install/'xlang_ide.exe','--hidden','--frames','4','--no-session','--no-auto-diagnostics','--settings',settings,'--screenshot',picture]
     run('gui-no-config-no-extlibs',gui)

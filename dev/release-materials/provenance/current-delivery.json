@@ -69,7 +69,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-update-policy-20261103.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -91,12 +91,12 @@
       ]
     },
     "sourceIdentity": {
-      "baseRevision": "82ef8026741d663d6ea4a732ea065de302312c1d",
+      "baseRevision": "3fbd6755727d998b912b240ccc50a6c783372e9c",
       "modifiedFromBase": true,
-      "exactInputManifest": "dev/release-materials/provenance/ide-updater-20261103/gui-publication.json"
+      "exactInputManifest": "dev/release-materials/provenance/ide-update-policy-20261103/gui-publication.json"
     },
     "buildScope": "Targeted independent updater integration with exactly retained accepted runtime assets; not full compiler/catalog release admission",
-    "previousMatchedGuiProvenance": "dev/release-materials/provenance/ide-wgl-compat-20261102.json",
+    "previousMatchedGuiProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
     "openglStartupCompatibility": {
       "request": "3.3 core",
       "targetedValidation": "passed",
@@ -108,7 +108,11 @@
       "manualCheckAndRepair": true,
       "networkOnUiThread": false,
       "startupPreference": "update.enabled",
-      "saveAndCancelBeforeHandoff": true
+      "saveAndCancelBeforeHandoff": true,
+      "updater": "update.exe",
+      "forceUpdateSupported": true,
+      "cachedMandatoryPolicy": true,
+      "saveCancelCannotBypassRequiredUpdate": true
     }
   },
   "catalog": {
@@ -3166,10 +3170,10 @@
       "origin": "xrt-unification-20261101-targeted-accepted"
     },
     {
-      "sha256": "650b3156298e8c4f77d4af2d019640efe7957b7b8f8f4a5b3f90f8483469ff5b",
-      "bytes": 1796385,
+      "sha256": "9fe5f0a298c1cd367c4dc36a3fccaafa556a8291b7c2e2ff6a95035494024338",
+      "bytes": 1798261,
       "path": "release/win_x64/xlang_ide.exe",
-      "origin": "ide-updater-20261103-targeted-validated"
+      "origin": "ide-update-policy-20261103-targeted-validated"
     },
     {
       "sha256": "8bc80fe50cc4a5856630003eb47a59426a5225e4b2d8d076a6486f56dab4339d",
@@ -3184,16 +3188,16 @@
       "origin": "ide-wgl-compat-20261102-targeted-validated"
     },
     {
-      "path": "release/win_x64/xlang-update.exe",
-      "sha256": "ea3262611eaf2d91a2974dafe1866a651f8cd563b5378fb9beec3dd3a99932e0",
-      "bytes": 1439232,
-      "origin": "ide-updater-20261103-targeted-validated"
+      "path": "release/win_x64/update.exe",
+      "sha256": "b5af349428867c1bc59ecce602bc160e3b4ddf96d6f13a0661bd828dd0d24546",
+      "bytes": 1440768,
+      "origin": "ide-update-policy-20261103-targeted-validated"
     },
     {
-      "path": "release/linux_x64/xlang-update",
-      "sha256": "dc46eec6acb372910c398d816793305108841c06b3bf71005da4269edb14efd2",
+      "path": "release/linux_x64/update",
+      "sha256": "78109cd8a6af3e22b007d37c51ced6d08b21fb36a1976ff895ac3fd2033e05fd",
       "bytes": 986184,
-      "origin": "ide-updater-20261103-targeted-validated"
+      "origin": "ide-update-policy-20261103-targeted-validated"
     }
   ],
   "acceptance": {
@@ -3342,6 +3346,11 @@
       "sshFixturePassed": true,
       "fullBootstrapPassed": true,
       "fullReleaseAdmission": false
+    },
+    "ideUpdatePolicy": {
+      "status": "passed-targeted-validation",
+      "provenance": "dev/release-materials/provenance/ide-update-policy-20261103.json",
+      "forceUpdateEnabledOnPublicServer": false
     }
   },
   "remaining": {
@@ -3369,7 +3378,7 @@
   "developmentMaterialsDirectory": "dev/release-materials",
   "materialsMigration": "docs/reports/release-materials-migration-20261031.json",
   "updater": {
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-update-policy-20261103.json",
     "implementation": "C/XRT TUI",
     "platformsBuiltAndTested": [
       "win_x64",
@@ -3381,8 +3390,8 @@
     ],
     "publisherTools": "release/tools/update",
     "preparedStore": "ide/build/updates/win_x64",
-    "preparedVersion": 2,
-    "published": true,
+    "preparedVersion": 3,
+    "published": false,
     "privateKeyPackaged": false,
     "publicKey": "53d97e95b59ae119fe0a95d02edfe1010458e60e7b95ede3541aad1df018f6a8",
     "defaultUrl": "https://xcompiler.com/download/update_<platform>",
@@ -3393,7 +3402,8 @@
     "publishedVersion": 2,
     "publicUrl": "https://xcompiler.com/download/update_win_x64",
     "remoteRoot": "/opt/www/host/xlang/wwwroot/download/update_win_x64",
-    "localBootstrapObservedPath": "release/win_x64/update.exe"
+    "localBootstrapObservedPath": "release/win_x64/update.exe",
+    "preparedForceUpdate": false
   },
   "runtimeLayout": {
     "windows": "release/win_x64",

@@ -1,0 +1,305 @@
+{
+  "schema": 1,
+  "date": "2026-11-03",
+  "status": "passed-targeted-validation",
+  "externalPublishPerformed": false,
+  "baseRevision": "3fbd6755727d998b912b240ccc50a6c783372e9c",
+  "builds": {
+    "win_x64": {
+      "artifact": {
+        "path": "release/win_x64/update.exe",
+        "sha256": "b5af349428867c1bc59ecce602bc160e3b4ddf96d6f13a0661bd828dd0d24546",
+        "bytes": 1440768
+      },
+      "receipt": {
+        "platform": "win_x64",
+        "compiler": "gcc.exe (GCC) 16.2.0",
+        "publicKey": "53d97e95b59ae119fe0a95d02edfe1010458e60e7b95ede3541aad1df018f6a8",
+        "static": true,
+        "inputs": {
+          "ide\\update\\runtime.c": "22e2b7905304742a79b159903bce9f8331f589c038e71f24ea0574aa8f2dec17",
+          "ide\\update\\platform.c": "20e1adc6f3c7dc7523a038c89486431d575442fdef4d0b4547480af423dd0bf8",
+          "ide\\update\\tui.c": "b55515666a47c20fda292eb5979cec83eab9859e4d4e22b895161d334cf7df99",
+          "ide\\update\\net.c": "452877919719ad3189a3f4621efa0855e55cd8c33cdca3dfd115275726ca8bad",
+          "ide\\update\\decode.c": "774959cc83b9c95a3609a0d8ea49922ad924d772662df70d67dfd9482ffc4218",
+          "ide\\update\\updater.c": "e8ee3505ce890bdb42a47d6889984d48089e7d80bf9424f47058d1564e823980",
+          "lib\\lzma\\LzmaDec.c": "0b938edae2aec133d144e2ff3493ac2b82850b3bbf8a79d1e925409124d39933",
+          "ide\\update\\crypto_tool.c": "d07eb34f90ea4f84ff30c072294aa077cf1081581c4d9e0b715b5357160faf91",
+          "ide\\update\\trust_roots.h": "de0bc6d1636ec441a857546e18092c6303e0a9a87b1dd116998bc95b2e71b572",
+          "ide\\update\\update.h": "0b6955794e5ea6e8cf9372f6cf3d6751221cb7ce57c33d7a1efe3ea0393f31f5",
+          "ide\\update\\xrt_profile.h": "1845f9b7ebd37f4d4463f0105d77d1cf71bbfe2845814457f33f465feff54627",
+          "ide\\update\\publisher-public-key.txt": "0f9532388ce01e8c5dce8251854c7400b347dc4590f09c7ae8ffb54e08dd5d4a",
+          "ide\\update\\NOTICE.txt": "e884629a140e55451ae493a1d2ba2f558220886428facd541f9e2a2bbf7e380c",
+          "lib\\xrt\\xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+          "lib\\lzma\\7zTypes.h": "7123a497c26b6d3ab5bc1b95909cab3965efba2a09c6afbb197736543cb011c8",
+          "lib\\lzma\\7zWindows.h": "5eee04d25f4ac0ecb30fb083104d2b48010ad3842205040f06ecc006b65af664",
+          "lib\\lzma\\Compiler.h": "f6a87109b7eb1a7d3974b37361f39bb52e4ba06fac6602c1b79bf7866fe64bdf",
+          "lib\\lzma\\CpuArch.h": "45a4f2e83d58da909201923db73f580fe25e8fa2aaa3bf41edc4a4109cba4d10",
+          "lib\\lzma\\LzFind.h": "8851874557d312f0ead5d499fe19d72fe93f020028f1ff8ad9690d166329b1e4",
+          "lib\\lzma\\LzHash.h": "0b62b556951fe8448963dc8facc0f3c9ae9e0d00141e23133017c18a40a622f4",
+          "lib\\lzma\\LzmaDec.h": "3a3b0ece1ba58601a8265a421a91b9720b39ee92ce898fadecb22f052bc3011f",
+          "lib\\lzma\\LzmaEnc.h": "07735dae37dd441c4a65dd4747fe3b8ec2606978494c90547703feb031bc49fc",
+          "lib\\lzma\\Precomp.h": "391517fb8c2a9a112237ba5c5a68e2f241ea2616b5c9eaba058b36d7d3676343",
+          "lib\\lzma\\tcc_stub.h": "be002d3c65aa7bd112ffbc2160ab03c13e52087be44e5339a55dc57c781a16d9",
+          "ide\\build\\Release\\update\\win_x64\\public_key.h": "dbcaa480fdae70c8685815646e8fd27a0b818ed0060db97e5b1d5218b999d03e",
+          "ide\\build\\Release\\update\\win_x64\\license.h": "a97e1b77e67d8bcebad2e2ac08a31e6f68b14f37e9506d8e393ff7d5141e3a3d",
+          "ide\\tools\\build_update.py": "2bcc2effc3958904df44972283992971d0af338af705e9ccc292275995b93b1e"
+        },
+        "sha256": "b5af349428867c1bc59ecce602bc160e3b4ddf96d6f13a0661bd828dd0d24546",
+        "bytes": 1440768
+      }
+    },
+    "linux_x64": {
+      "artifact": {
+        "path": "release/linux_x64/update",
+        "sha256": "78109cd8a6af3e22b007d37c51ced6d08b21fb36a1976ff895ac3fd2033e05fd",
+        "bytes": 986184
+      },
+      "receipt": {
+        "platform": "linux_x64",
+        "compiler": "x86_64-linux-gnu-gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+        "publicKey": "53d97e95b59ae119fe0a95d02edfe1010458e60e7b95ede3541aad1df018f6a8",
+        "static": true,
+        "inputs": {
+          "ide/update/runtime.c": "22e2b7905304742a79b159903bce9f8331f589c038e71f24ea0574aa8f2dec17",
+          "ide/update/platform.c": "20e1adc6f3c7dc7523a038c89486431d575442fdef4d0b4547480af423dd0bf8",
+          "ide/update/tui.c": "b55515666a47c20fda292eb5979cec83eab9859e4d4e22b895161d334cf7df99",
+          "ide/update/net.c": "452877919719ad3189a3f4621efa0855e55cd8c33cdca3dfd115275726ca8bad",
+          "ide/update/decode.c": "774959cc83b9c95a3609a0d8ea49922ad924d772662df70d67dfd9482ffc4218",
+          "ide/update/updater.c": "e8ee3505ce890bdb42a47d6889984d48089e7d80bf9424f47058d1564e823980",
+          "lib/lzma/LzmaDec.c": "0b938edae2aec133d144e2ff3493ac2b82850b3bbf8a79d1e925409124d39933",
+          "ide/update/crypto_tool.c": "d07eb34f90ea4f84ff30c072294aa077cf1081581c4d9e0b715b5357160faf91",
+          "ide/update/trust_roots.h": "de0bc6d1636ec441a857546e18092c6303e0a9a87b1dd116998bc95b2e71b572",
+          "ide/update/update.h": "0b6955794e5ea6e8cf9372f6cf3d6751221cb7ce57c33d7a1efe3ea0393f31f5",
+          "ide/update/xrt_profile.h": "1845f9b7ebd37f4d4463f0105d77d1cf71bbfe2845814457f33f465feff54627",
+          "ide/update/publisher-public-key.txt": "0f9532388ce01e8c5dce8251854c7400b347dc4590f09c7ae8ffb54e08dd5d4a",
+          "ide/update/NOTICE.txt": "e884629a140e55451ae493a1d2ba2f558220886428facd541f9e2a2bbf7e380c",
+          "lib/xrt/xrt.h": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06",
+          "lib/lzma/7zTypes.h": "7123a497c26b6d3ab5bc1b95909cab3965efba2a09c6afbb197736543cb011c8",
+          "lib/lzma/7zWindows.h": "5eee04d25f4ac0ecb30fb083104d2b48010ad3842205040f06ecc006b65af664",
+          "lib/lzma/Compiler.h": "f6a87109b7eb1a7d3974b37361f39bb52e4ba06fac6602c1b79bf7866fe64bdf",
+          "lib/lzma/CpuArch.h": "45a4f2e83d58da909201923db73f580fe25e8fa2aaa3bf41edc4a4109cba4d10",
+          "lib/lzma/LzFind.h": "8851874557d312f0ead5d499fe19d72fe93f020028f1ff8ad9690d166329b1e4",
+          "lib/lzma/LzHash.h": "0b62b556951fe8448963dc8facc0f3c9ae9e0d00141e23133017c18a40a622f4",
+          "lib/lzma/LzmaDec.h": "3a3b0ece1ba58601a8265a421a91b9720b39ee92ce898fadecb22f052bc3011f",
+          "lib/lzma/LzmaEnc.h": "07735dae37dd441c4a65dd4747fe3b8ec2606978494c90547703feb031bc49fc",
+          "lib/lzma/Precomp.h": "391517fb8c2a9a112237ba5c5a68e2f241ea2616b5c9eaba058b36d7d3676343",
+          "lib/lzma/tcc_stub.h": "be002d3c65aa7bd112ffbc2160ab03c13e52087be44e5339a55dc57c781a16d9",
+          "ide/build/Release/update/linux_x64/public_key.h": "13a8fe174ad87e457fbf7c9774fe6edfb13e0a34dc0bd3bb498af624e1b0bd52",
+          "ide/build/Release/update/linux_x64/license.h": "d5515fdc85dfea625d4fd123c6fff3b4ddf2aa9ea2d83256d0c37a013ffeee0b",
+          "ide/tools/build_update.py": "2bcc2effc3958904df44972283992971d0af338af705e9ccc292275995b93b1e"
+        },
+        "sha256": "78109cd8a6af3e22b007d37c51ced6d08b21fb36a1976ff895ac3fd2033e05fd",
+        "bytes": 986184
+      }
+    }
+  },
+  "guiBuild": {
+    "existingCatalogRetained": true,
+    "completeCompilerCatalogReleaseAcceptance": false,
+    "sdkAbiFingerprintRebuiltTogether": true,
+    "translationUnits": 102,
+    "strictWarnings": [
+      "-Wall",
+      "-Wextra",
+      "-Werror"
+    ]
+  },
+  "publication": {
+    "products": [
+      {
+        "path": "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+        "sha256": "9fe5f0a298c1cd367c4dc36a3fccaafa556a8291b7c2e2ff6a95035494024338",
+        "bytes": 1798261
+      },
+      {
+        "path": "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll",
+        "sha256": "2ff1ed234bd2e7e7b756700da1de550d39935be0cbb9e5af886138090ae65ec6",
+        "bytes": 10559422
+      }
+    ],
+    "protectedRuntime": {
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "8bc80fe50cc4a5856630003eb47a59426a5225e4b2d8d076a6486f56dab4339d",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334",
+      "D:\\GIT\\x-lang\\release\\win_x64\\data\\commands.json": "27e17cb16f25a4b1c16714736faee0e6df2098f472b0fd393166acc2e98de30a",
+      "D:\\GIT\\x-lang\\release\\win_x64\\data\\catalog-sources\\index.json": "2ab9cd46e0179056a0357f453465a633f7d17fa2482f3a38ee5f2fc993c18546",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "2ff1ed234bd2e7e7b756700da1de550d39935be0cbb9e5af886138090ae65ec6",
+      "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json": "8b5a5151212487910ae88a7385fc6574f08e1ba3f1b8cb20885c4421dc5eff65"
+    },
+    "userSettingsPreserved": true,
+    "previousGuiSha256": "650b3156298e8c4f77d4af2d019640efe7957b7b8f8f4a5b3f90f8483469ff5b"
+  },
+  "protocol": {
+    "versionFile": "version.txt",
+    "jsonFields": [
+      "version",
+      "forceUpdate"
+    ],
+    "forceUpdateSigned": true,
+    "cachedSignedRequiredPolicy": true,
+    "legacyNumericMarkerAccepted": true,
+    "legacyClientMigrationRequired": false,
+    "userConfirmedFirstRelease": true,
+    "optionalNotificationsCanBeDisabled": true,
+    "mandatoryChecksCannotBeDisabled": true,
+    "unknownOfflinePolicyAllowsUse": true,
+    "knownRequiredPolicyBlocksOffline": true
+  },
+  "validation": {
+    "protocolChecksPassed": 58,
+    "skippedPlatformSpecific": 6,
+    "nativeInputAndUpdateGateTests": "passed",
+    "sshPublishAndMandatoryMetadata": "passed",
+    "terminalCases": 3,
+    "fullBootstrap": {
+      "store": "ide/build/updates/win_x64",
+      "version": 3,
+      "files": 640,
+      "objects": 640,
+      "checks": [
+        "bootstrap",
+        "same-version-check",
+        "gui-no-config-no-extlibs",
+        "gui-corrupt-config",
+        "c-run-no-external-toolchain",
+        "xlang-run-no-extlibs"
+      ],
+      "mainBytes": 42615180,
+      "hardlinkedObjects": 640,
+      "status": "passed"
+    },
+    "physicalWindows7Tested": false,
+    "armBuilt": false
+  },
+  "preparedVersion": 3,
+  "preparedForceUpdate": false,
+  "evidence": [
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/required-windows-build.log",
+      "sha256": "73e7ff17ea007635df038b6b6a571e6218a0c545760273176a2f4ffd8f8e734f",
+      "bytes": 4384
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/required-linux-build.log",
+      "sha256": "5ba726790f93359c6308e3abd3905fac0c0c42209ba54864ee3c140f2706db6c",
+      "bytes": 4416
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/required-windows-tests.log",
+      "sha256": "a95fa6f7e0bee963b743aacd4f56d8522cb1f776b94d3708599b7a45ffb127f5",
+      "bytes": 8972
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/required-linux-tests.log",
+      "sha256": "72aa87430c824f4201e2e31f76152a86ad85f9c439432e7980dbe599a52df70d",
+      "bytes": 7483
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/required-tui-tests.log",
+      "sha256": "e96359a47e5ef64fb29430745ea08f20f68986388d2818ed87a76272f5621c64",
+      "bytes": 583
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/required-ssh-tests.log",
+      "sha256": "785fd5132b70d1acadc20934d371be02ec613355e1d832d51a407339d1f226b3",
+      "bytes": 2294
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/required-ide-build.log",
+      "sha256": "7a05f7ee014d91e2beebf296ab96e48f9857b1899603b20881a942950e60a15f",
+      "bytes": 215
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/required-ide-tests.log",
+      "sha256": "bae8c7e1921a9fbbc909803e6de8fbf6e737ac99ffe74587e89f29297fbd64e6",
+      "bytes": 620
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/required-bootstrap-tests.log",
+      "sha256": "9e378dd1d1584c1f091c3d47ef6a933bdbd13fdc3b3f75ccd2ae5897b46689d5",
+      "bytes": 525
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/required-installed-version.log",
+      "sha256": "dfe8e17c77ceb45097ee23fe9bb6862360f9f7233e6da42bb9f0b9f641b4e64a",
+      "bytes": 312
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/gui-publication.json",
+      "sha256": "c64c11100810b30aa3973aa2addd1f08fbaaddd33555bbac4492e31e2105290c",
+      "bytes": 71879
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/gui-input_test.log",
+      "sha256": "d992b451c3b31e7ddd85ed2d1da08c97c7ed3e8c1b7fb3bf5ca8fbd44164c9c0",
+      "bytes": 302
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/gui-update_client_test.log",
+      "sha256": "a3dedab65f92e683859aff6626c32139e54cbe9d987195696cb860c6092ef352",
+      "bytes": 245
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/gui-required-update.png",
+      "sha256": "2d8e5283c7de3e4ecb46bb94f3d3ce034973f57997430120b46f3a89492ef226",
+      "bytes": 142459
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/gui-published-workbench.png",
+      "sha256": "bb3ff5bc3bc767bb7ef1d7ea02b77b3f0d0e759cb189748401782dd059eb9e2e",
+      "bytes": 148349
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/gui-published-gui.log",
+      "sha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db",
+      "bytes": 74
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/bootstrap-report.json",
+      "sha256": "8067e08785a9b148d719c392b05e8c5e85ad410d1a7e55119b72d92d93d81446",
+      "bytes": 367
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/bootstrap-bootstrap.log",
+      "sha256": "74ef6b66f25a6092b7fe74026d4eec971c4ca06692b94e4ebc7b1e4b42ce741b",
+      "bytes": 141967
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/bootstrap-same-version-check.log",
+      "sha256": "e593c38fee28b5a21c76ec1871942ed4e2394c5690fe2cdb7973e6f99ca424b4",
+      "bytes": 89
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/bootstrap-gui-no-config-no-extlibs.log",
+      "sha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db",
+      "bytes": 74
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/bootstrap-gui-corrupt-config.log",
+      "sha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db",
+      "bytes": 74
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/bootstrap-c-run-no-external-toolchain.log",
+      "sha256": "8c42af658206c78434f034ce537970894a98ab7b9b52efece3b9cfe253bc368e",
+      "bytes": 16
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/bootstrap-xlang-run-no-extlibs.log",
+      "sha256": "8884d78afdb2a7cf383b65f06cdd90296fe0480dc37a45f8c9965769d78ce5eb",
+      "bytes": 19
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/win_x64-build.json",
+      "sha256": "d632924e9dad91a7bbe2a071309ba232449506e096d691456262623ea7d49f31",
+      "bytes": 3018
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-20261103/linux_x64-build.json",
+      "sha256": "c5bbcc608bd06fd61303f94f46a55e9055e0a029aea2922eff23e2f184987a00",
+      "bytes": 2959
+    }
+  ]
+}

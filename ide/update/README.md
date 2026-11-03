@@ -2,18 +2,20 @@
 
 一套 C/XRT 代码，各平台分别编译。XRT 单头以 `xrt_profile.h` 裁剪，独立编入可执行文件；不加载 XGE、引擎、外部 TLS 库或客户端中的 XRT DLL。Windows 终端输出由 XRT 转为 Unicode，光标/输入适配使用传统控制台 API，不强制开启 VT；Linux 使用终端序列和 termios。不支持完整终端时输出普通文本，显示失败不阻断更新。
 
-正常输出位于 `release/<platform>/xlang-update[.exe]`。默认 URL 为 `https://xcompiler.com/download/update_<platform>`，默认根目录是自身所在目录。仅靠该可执行文件即可开始引导；官方线上目录和签名正确部署后才可下载正式更新。
+正常输出位于 `release/<platform>/update[.exe]`。默认 URL 为 `https://xcompiler.com/download/update_<platform>`，默认根目录是自身所在目录。仅靠该可执行文件即可开始引导；官方线上目录和签名正确部署后才可下载正式更新。
 
 ```powershell
-release/win_x64/xlang-update.exe
-release/win_x64/xlang-update.exe --check --no-launch --plain
-release/win_x64/xlang-update.exe --offline E:/xlang-updates/win_x64 --no-launch
-release/win_x64/xlang-update.exe --root D:/Apps/xlang --recover-only --no-launch
+release/win_x64/update.exe
+release/win_x64/update.exe --check --no-launch --plain
+release/win_x64/update.exe --offline E:/xlang-updates/win_x64 --no-launch
+release/win_x64/update.exe --root D:/Apps/xlang --recover-only --no-launch
 ```
 
-`--check` 只检查目标文件，不修复未完成安装；`--check-version` 是 IDE 使用的轻量检查，不扫描全部安装文件。存在未完成事务时，先关闭 IDE 并运行正常更新或 `--recover-only`。同版本正常运行仍会修复缺失或损坏文件。退出码 0 为成功/无需更新，2 表示检查发现更新，1 为失败，3 为提交前取消。非交互模式加 `--plain`，不会等待按键。
+`--check` 只检查目标文件，不修复未完成安装；`--check-version` 是 IDE 使用的轻量检查，不扫描全部安装文件。存在未完成事务时，先关闭 IDE 并运行正常更新或 `--recover-only`。同版本正常运行仍会修复缺失或损坏文件。退出码 0 为成功/无需更新，2 表示普通更新，4 表示必须更新，1 为失败，3 为提交前取消。非交互模式加 `--plain`，不会等待按键。
 
 下载显示标题、平台/版本、更新简介、当前文件、当前文件和总下载进度。下载、校验时可取消；提交时完成事务或恢复旧文件。失败时交互终端提供 R 重试、Esc/Enter 退出；完整错误记录在安装目录 `.xlang-update/update.log`，超过 1 MiB 时轮换一份。安装目录需要写入权限；权限不足时保持现有文件并报告错误。
+
+`version.txt` 支持 `{"version":3,"forceUpdate":true}`。强更标记须与签名清单一致；普通数字版本仍可读取，按非强更处理。`--cached-policy` 仅验证本机已缓存的签名强更策略，无网络访问；`--check-version` 在网络错误时仍保留有效强更要求。IDE 不会仅凭未签名的网络标记限制用户使用。
 
 ## 安装与恢复
 

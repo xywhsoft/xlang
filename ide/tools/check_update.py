@@ -17,7 +17,7 @@ sys.path.insert(0,str(ROOT/'ide/tools/update'))
 import update_manager as manager
 import prepare_update as maker
 PLATFORM=os.environ.get('UPDATE_TEST_PLATFORM','win_x64' if os.name=='nt' else 'linux_x64')
-EXE=ROOT/'release'/PLATFORM/('xlang-update.exe' if os.name=='nt' else 'xlang-update')
+EXE=ROOT/'release'/PLATFORM/('update.exe' if os.name=='nt' else 'update')
 CRYPTO=ROOT/'ide/build/Release/update'/PLATFORM/('update-crypto.exe' if os.name=='nt' else 'update-crypto')
 class Quiet(http.server.SimpleHTTPRequestHandler):
     def log_message(self,*args): pass
@@ -35,9 +35,9 @@ class UpdateTests(unittest.TestCase):
     def tearDown(self):
         if self.server:self.server.shutdown();self.server.server_close();self.thread.join()
         self.temp.cleanup()
-    def prepare(self,version,command='prepare'):
+    def prepare(self,version,command='prepare',*extra):
         args=[command,'--platform',PLATFORM,'--source',str(self.source),'--store',str(self.store),'--version',str(version),'--key',str(self.key),'--crypto',str(CRYPTO),'--notes','更新说明\n修复和改进']
-        self.assertEqual(manager.main(args),0)
+        self.assertEqual(manager.main([*args,*extra]),0)
     def update(self,*extra,expected=0,env=None,online=False,stage=True):
         args=[str(EXE),'--root',str(self.install),'--public-key',self.public,'--no-launch','--plain']
         if stage and os.name=='nt':args.append('--staged')
@@ -61,10 +61,19 @@ class UpdateTests(unittest.TestCase):
         for name in ('extlibs/private','option/settings.json','projects/user.xl','mdo-home/settings'):self.assertEqual((self.install/name).read_bytes(),b'USER')
     def test_http_streaming(self):self.update(online=True)
     def test_self_staging(self):self.update(stage=False)
+    def test_waits_for_parent_checker_before_lock(self):
+        lock=self.install/'.xlang-update/lock';lock.parent.mkdir()
+        script="import sys,os,time; f=open(sys.argv[1],'a+b'); exec(\"import fcntl; fcntl.flock(f,fcntl.LOCK_EX)\" if os.name!='nt' else 'pass'); print('READY',flush=True); time.sleep(1)"
+        parent=subprocess.Popen([sys.executable,'-c',script,str(lock)],stdout=subprocess.PIPE,text=True)
+        try:
+            self.assertEqual(parent.stdout.readline().strip(),'READY')
+            waiter=threading.Thread(target=parent.wait);waiter.start()
+            self.update('--parent-pid',str(parent.pid));waiter.join(5)
+        finally:parent.wait(timeout=5);parent.stdout.close()
     @unittest.skipUnless(os.name=='nt','Windows running executable self-replacement')
     def test_running_updater_replacement(self):
-        original=EXE.read_bytes();installed=self.install/'xlang-update.exe';installed.write_bytes(original+b'OLD')
-        (self.source/'xlang-update.exe').write_bytes(original+b'NEW');self.prepare(2)
+        original=EXE.read_bytes();installed=self.install/'update.exe';installed.write_bytes(original+b'OLD')
+        (self.source/'update.exe').write_bytes(original+b'NEW');self.prepare(2)
         r=subprocess.run([str(installed),'--root',str(self.install),'--public-key',self.public,'--offline',str(self.store),'--plain','--no-launch'],capture_output=True,timeout=60)
         self.assertEqual(r.returncode,0,r.stderr.decode(errors='replace'))
         # Default Windows bootstrap releases its original process. Inherited
@@ -135,6 +144,35 @@ class UpdateTests(unittest.TestCase):
         m=manager.payload(self.store/'update.json');self.assertTrue(any('archiveParts' in f for f in m['files']));self.update()
     def test_version_manifest_race(self):
         (self.store/'version.txt').write_text('2\n');self.update(expected=1);self.assertFalse((self.install/'xl.exe').exists())
+    def test_legacy_numeric_version(self):
+        (self.store/'version.txt').write_text('1\n');self.update()
+    def test_required_policy_cache_and_install(self):
+        self.update();(self.source/'xl.exe').write_bytes(b'forced-v2');self.prepare(2,'prepare','--force-update')
+        self.update('--check-version',expected=4);self.update('--cached-policy',expected=4)
+        (self.store/'version.txt').write_text('not-json')
+        self.update('--check-version',expected=4)
+        for name in manager.META:maker.copy_atomic(self.store/'.state/history/2'/name,self.store/name)
+        self.update();self.update('--cached-policy');self.assertEqual((self.install/'xl.exe').read_bytes(),b'forced-v2')
+    def test_required_policy_survives_interrupted_install(self):
+        self.update();(self.source/'xl.exe').write_bytes(b'forced');self.prepare(2,'prepare','--force-update')
+        self.update(expected=86,env=dict(os.environ,XLANG_UPDATE_TEST_CRASH_AFTER='1'))
+        self.update('--cached-policy',expected=4);self.update('--check-version',expected=4)
+        self.assertTrue((self.install/'.xlang-update/txn/journal.json').exists())
+        self.update('--recover-only');self.update('--cached-policy',expected=4);self.update();self.update('--cached-policy')
+    def test_new_signed_optional_policy_releases_gate(self):
+        self.update();self.prepare(2,'prepare','--force-update');self.update('--check-version',expected=4)
+        self.prepare(3);self.update('--check-version',expected=2);self.update('--cached-policy')
+    def test_unsigned_force_marker_is_rejected(self):
+        (self.store/'version.txt').write_text('{"version":1,"forceUpdate":true}')
+        self.update('--check-version',expected=1);self.update('--cached-policy')
+    def test_older_signed_policy_cannot_remove_required_gate(self):
+        self.update();self.prepare(2,'prepare','--force-update');self.update('--check-version',expected=4)
+        for name in manager.META:maker.copy_atomic(self.store/'.state/history/1'/name,self.store/name)
+        self.update('--check-version',expected=4);self.update('--cached-policy',expected=4)
+    def test_invalid_json_version_types(self):
+        for text in ('true','{"version":1,"forceUpdate":"true"}','{"version":1.5,"forceUpdate":false}'):
+            with self.subTest(text=text):
+                (self.store/'version.txt').write_text(text);self.update('--check-version',expected=1)
     @unittest.skipIf(os.name=='nt','Unix executable permission repair')
     def test_executable_permission_repair(self):
         self.update();p=self.install/'xl.exe';p.chmod(0o644)
@@ -143,7 +181,7 @@ class UpdateTests(unittest.TestCase):
     def test_protected_deletion(self):
         self.resign(lambda m:m['delete'].append('option/settings.json'));self.update(expected=1)
     def test_updater_cannot_be_deleted(self):
-        self.resign(lambda m:m['delete'].append('xlang-update.exe'));self.update(expected=1)
+        self.resign(lambda m:m['delete'].append('update.exe'));self.update(expected=1)
     @unittest.skipUnless(os.name=='nt','Windows sharing violation fixture')
     def test_locked_file_rolls_back(self):
         import ctypes

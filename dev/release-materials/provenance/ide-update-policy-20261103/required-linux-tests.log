@@ -1,0 +1,75 @@
+test_bootstrap_repair_and_user_state (__main__.UpdateTests.test_bootstrap_repair_and_user_state) ... ok
+test_corrupt_object_before_commit (__main__.UpdateTests.test_corrupt_object_before_commit) ... ok
+test_crash_recovery (__main__.UpdateTests.test_crash_recovery) ... ok
+test_duplicate_path (__main__.UpdateTests.test_duplicate_path) ... ok
+test_executable_permission_repair (__main__.UpdateTests.test_executable_permission_repair) ... ok
+test_http_streaming (__main__.UpdateTests.test_http_streaming) ... ok
+test_incremental_delete_and_discard (__main__.UpdateTests.test_incremental_delete_and_discard) ... ok
+test_invalid_json_version_types (__main__.UpdateTests.test_invalid_json_version_types) ... ok
+test_key_rotation (__main__.UpdateTests.test_key_rotation) ... ok
+test_legacy_numeric_version (__main__.UpdateTests.test_legacy_numeric_version) ... ok
+test_locked_file_rolls_back (__main__.UpdateTests.test_locked_file_rolls_back) ... skipped 'Windows sharing violation fixture'
+test_long_install_path (__main__.UpdateTests.test_long_install_path) ... skipped 'Windows extended-length path'
+test_multipart (__main__.UpdateTests.test_multipart) ... ok
+test_new_signed_optional_policy_releases_gate (__main__.UpdateTests.test_new_signed_optional_policy_releases_gate) ... ok
+test_older_signed_policy_cannot_remove_required_gate (__main__.UpdateTests.test_older_signed_policy_cannot_remove_required_gate) ... ok
+test_path_traversal (__main__.UpdateTests.test_path_traversal) ... ok
+test_platform_mismatch (__main__.UpdateTests.test_platform_mismatch) ... ok
+test_protected_deletion (__main__.UpdateTests.test_protected_deletion) ... ok
+test_protected_file (__main__.UpdateTests.test_protected_file) ... ok
+test_recovery_preserves_external_modification (__main__.UpdateTests.test_recovery_preserves_external_modification) ... ok
+test_required_policy_cache_and_install (__main__.UpdateTests.test_required_policy_cache_and_install) ... ok
+test_required_policy_survives_interrupted_install (__main__.UpdateTests.test_required_policy_survives_interrupted_install) ... ok
+test_running_updater_replacement (__main__.UpdateTests.test_running_updater_replacement) ... skipped 'Windows running executable self-replacement'
+test_self_staging (__main__.UpdateTests.test_self_staging) ... ok
+test_symlink_escape (__main__.UpdateTests.test_symlink_escape) ... ok
+test_tampered_signature (__main__.UpdateTests.test_tampered_signature) ... ok
+test_unsigned_force_marker_is_rejected (__main__.UpdateTests.test_unsigned_force_marker_is_rejected) ... ok
+test_updater_cannot_be_deleted (__main__.UpdateTests.test_updater_cannot_be_deleted) ... ok
+test_version_manifest_race (__main__.UpdateTests.test_version_manifest_race) ... ok
+test_waits_for_parent_checker_before_lock (__main__.UpdateTests.test_waits_for_parent_checker_before_lock) ... ok
+test_windows_junction_escape (__main__.UpdateTests.test_windows_junction_escape) ... skipped 'Windows directory junction fixture'
+test_wrong_key (__main__.UpdateTests.test_wrong_key) ... ok
+
+----------------------------------------------------------------------
+Ran 32 tests in 7.785s
+
+OK (skipped=4)
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-03ffoup6/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-ca3yplo3/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-gntyz5bo/repository"}
+{"version": 2, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-gntyz5bo/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-jqq2gpav/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-d7rei5xh/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-l25fquus/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-_p2z5n3z/repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 1, "store": "/tmp/xlang-update-validation/case-_p2z5n3z/repository"}
+Restored local version 1
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-svptwups/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-5gnqdmr3/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-jgrtok4l/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-wr5m7odw/repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 7, "store": "/tmp/xlang-update-validation/case-wr5m7odw/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-46b5kuqx/repository"}
+{"version": 2, "changedFiles": 0, "newObjects": 0, "store": "/tmp/xlang-update-validation/case-46b5kuqx/repository"}
+{"version": 3, "changedFiles": 0, "newObjects": 0, "store": "/tmp/xlang-update-validation/case-46b5kuqx/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-1q9lhl0u/repository"}
+{"version": 2, "changedFiles": 0, "newObjects": 0, "store": "/tmp/xlang-update-validation/case-1q9lhl0u/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-2pckd6f_/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-bsh8x4m2/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-awf4_jy9/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-h7f8pdjf/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-boingjna/repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 1, "store": "/tmp/xlang-update-validation/case-boingjna/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-5vystrdi/repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 1, "store": "/tmp/xlang-update-validation/case-5vystrdi/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-5xliyw8p/repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 1, "store": "/tmp/xlang-update-validation/case-5xliyw8p/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-76tk85nm/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-hk_9qhd9/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-7jqq8hrd/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-r1wixg3n/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-vtq4tocq/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-1ngykmqh/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-fg5xnwj7/repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/tmp/xlang-update-validation/case-7uu1a7jp/repository"}

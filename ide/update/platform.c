@@ -116,7 +116,7 @@ int up_managed(const char* p) {
     /* Explicit ownership, identical on every platform and in the maker. */
     const char* prefixes[]={"data/","include/","notices/","option/defaults/"};
     for(size_t i=0;i<sizeof(prefixes)/sizeof(*prefixes);i++)if(!strncmp(p,prefixes[i],strlen(prefixes[i])))return 1;
-    const char* files[]={"xlang_ide.exe","xlang-ls.exe","xge.dll","xl.exe","xl.dll","xlc.dll","xl.def","xlc.def","xlang-update.exe","xlang_ide","xlang-ls","xlang-update","xl","libxl.so","libxlc.so","libxge.so","README.md","QUICKSTART.md","mdo.exe","mdo"};
+    const char* files[]={"xlang_ide.exe","xlang-ls.exe","xge.dll","xl.exe","xl.dll","xlc.dll","xl.def","xlc.def","update.exe","xlang_ide","xlang-ls","update","xl","libxl.so","libxlc.so","libxge.so","README.md","QUICKSTART.md","mdo.exe","mdo"};
     for(size_t i=0;i<sizeof(files)/sizeof(*files);i++)if(!strcmp(p,files[i]))return 1;
     return 0;
 }
@@ -250,7 +250,7 @@ int up_self_stage(int argc,char** argv,const char* root) {
 #ifdef _WIN32
     wchar_t source[32768],temp[32768],dir[32768],target[32768];char src[UP_PATH],dst[UP_PATH];
     if(!GetModuleFileNameW(NULL,source,32768)||!GetTempPathW(32768,temp)||!GetTempFileNameW(temp,L"xlu",0,dir))return 0;
-    DeleteFileW(dir);if(!CreateDirectoryW(dir,NULL))return 0;swprintf(target,32768,L"%ls\\xlang-update.exe",dir);
+    DeleteFileW(dir);if(!CreateDirectoryW(dir,NULL))return 0;swprintf(target,32768,L"%ls\\update.exe",dir);
     if(!utf8(source,src,sizeof(src))||!utf8(target,dst,sizeof(dst))||!up_copy(src,dst))return 0;
     wchar_t* cmd=calloc(65536,sizeof(wchar_t));if(!cmd)return 0;swprintf(cmd,65536,L"\"%ls\" --staged --bootstrap-pid %lu --cleanup-helper \"%ls\"",target,(unsigned long)GetCurrentProcessId(),source);
     int hasRoot=0;
@@ -289,7 +289,7 @@ int up_cleanup_stage(const char* executable,unsigned long pid){
     wchar_t temp[32768],full[32768];wchar_t* input=wide(executable);
     if(!input||!GetTempPathW(32768,temp)||!GetFullPathNameW(input,32768,full,NULL)){free(input);return 0;}free(input);
     size_t n=wcslen(temp);if(_wcsnicmp(full,temp,n))return 0;wchar_t* parent=full+n,*slash=wcschr(parent,L'\\');
-    if(!slash||slash-parent!=11||_wcsnicmp(parent,L"xlu",3)||_wcsnicmp(parent+7,L".tmp",4)||wcscmp(slash+1,L"xlang-update.exe"))return 0;
+    if(!slash||slash-parent!=11||_wcsnicmp(parent,L"xlu",3)||_wcsnicmp(parent+7,L".tmp",4)||wcscmp(slash+1,L"update.exe"))return 0;
     for(int i=3;i<7;i++)if(!((parent[i]>=L'0'&&parent[i]<=L'9')||(parent[i]>=L'A'&&parent[i]<=L'F')||(parent[i]>=L'a'&&parent[i]<=L'f')))return 0;
     char file[UP_PATH],directory[UP_PATH];if(!utf8(full,file,sizeof(file)))return 0;*slash=0;if(!utf8(full,directory,sizeof(directory))||up_regular(directory)!=2||up_regular(file)!=1||!pid||pid==GetCurrentProcessId())return 0;
     if(!up_wait_parent(pid,120))return 0;
