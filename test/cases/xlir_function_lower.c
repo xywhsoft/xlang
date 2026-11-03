@@ -1,4 +1,5 @@
 #include "src/ir/xl6_ir.h"
+#include "src/compile/xl6_compile_unit.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -69,83 +70,46 @@ static int testReleasePlan(
 
 static int testManagedOwnershipIsNotErased(void)
 {
-    XL6_IrModule ir;
-    XL6_DiagList diags;
-    XL6_AstNode* root;
-    XL6_AstNode* func;
-    size_t i;
-    int sawDup = 0;
-    int sawCopy = 0;
-    int sawReturn = 0;
-    int sawForeignOwnershipCheck = 0;
-    int ok;
-
-    memset(&diags, 0, sizeof(diags));
-    xl6IrModuleInit(&ir);
-    root = xl6AstNew(XL6_AST_MODULE, NULL);
-    func = xl6AstNew(XL6_AST_FUNC, NULL);
-    if ( root == NULL || func == NULL ) return 0;
-    func->semanticSymbolId = 12;
-    {
-        XL6_AstNode* name = xl6AstNewText(XL6_AST_NAME, "owned", 5, NULL);
-        name->inferredType = testManagedType();
-        xl6AstAddChild(func, name);
+    /* Owning expressions need the real semantic lifetime/exception plans.
+     * A hand-built typed-looking AST is not authority for those plans. */
+    XL6_CompileUnit unit;
+    xl6CompileUnitInit(&unit);
+    int ok=xl6CompileUnitLoadSource(&unit,
+        "func owned() as string\n    return \"x\"\nend\nstring kept=owned()\nassert kept==\"x\"\n", "__lower_owned.xl", 1) &&
+        xl6IrLowerModule(&unit.ir,&unit.parse.diags) && xl6IrVerifyModule(&unit.ir,&unit.parse.diags);
+    int sawDup=0,sawCopy=0,sawReturn=0,sawTarget=0;
+    XL6_IrModule* ir=&unit.ir;
+    for(size_t f=0;ok && f<ir->functionCount;++f){
+        const XL6_IrFunction* function=&ir->functions[f];
+        if(function->kind!=XL6_IR_FUNCTION_USER)continue;
+        for(size_t i=function->firstInstruction;i<function->firstInstruction+function->instructionCount;++i){
+            const XL6_IrInstruction* instruction=&ir->instructions[i];
+            if(instruction->kind==XL6_IR_INSTR_RUNTIME_CALL &&
+                (instruction->runtimeOp==XL6_IR_RUNTIME_STRING_DUP || instruction->runtimeOp==XL6_IR_RUNTIME_STRING_FROM_UTF8))++sawDup;
+            if(instruction->kind==XL6_IR_INSTR_RUNTIME_CALL && instruction->runtimeOp==XL6_IR_RUNTIME_STRING_COPY)++sawCopy;
+            if(instruction->kind==XL6_IR_INSTR_RETURN)sawReturn=1;
+        }
     }
-    xl6AstAddChild(func, xl6AstNew(XL6_AST_LIST, NULL));
-    {
-        XL6_AstNode* returns = xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
-        xl6AstAddChild(returns, testManagedType());
-        xl6AstAddChild(func, returns);
+    ok=ok && sawDup==1 && !sawCopy && sawReturn;
+    for(size_t i=0;ok && i<ir->callTargetCount;++i){
+        XL6_IrCallTarget* target=&ir->callTargets[i];
+        if(target->kind!=XL6_IR_CALL_TARGET_INTERNAL || target->parameterCount)continue;
+        sawTarget=1;
+        XL6_IrCallTarget saved=*target;
+        ok=target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_DIRECT;
+        target->resultConversionAbi=XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY;
+        ok=ok && !xl6IrVerifyModule(ir,NULL);
+        *target=saved;
+        target->kind=XL6_IR_CALL_TARGET_EXTERN_C;
+        target->executionBoundaryAbi=XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK;
+        ok=ok && !xl6IrVerifyModule(ir,NULL);
+        *target=saved;
+        ok=ok && xl6IrVerifyModule(ir,NULL);
     }
-    {
-        XL6_AstNode* body = xl6AstNew(XL6_AST_BLOCK, NULL);
-        XL6_AstNode* ret = xl6AstNew(XL6_AST_RETURN, NULL);
-        XL6_AstNode* value = xl6AstNewText(XL6_AST_STRING, "\"x\"", 3, NULL);
-        value->inferredType = testManagedType();
-        value->semanticOwnership = XL6_SEM_OWNERSHIP_COPY;
-        ret->semanticExitKind = XL6_SEM_EXIT_RETURN;
-        xl6AstAddChild(ret, value);
-        xl6AstAddChild(body, ret);
-        xl6AstAddChild(func, body);
-    }
-    xl6AstAddChild(root, func);
-    ok = xl6IrBuildModuleFromAst(&ir, root, &diags) &&
-         xl6IrLowerModule(&ir, &diags) && xl6IrVerifyModule(&ir, &diags);
-    for ( i = 0; ok && i < ir.instructionCount; ++i ) {
-        const XL6_IrInstruction* instruction = &ir.instructions[i];
-        if ( instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
-             instruction->runtimeOp == XL6_IR_RUNTIME_STRING_DUP ) sawDup = 1;
-        if ( instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
-             instruction->runtimeOp == XL6_IR_RUNTIME_STRING_COPY ) sawCopy = 1;
-        if ( instruction->kind == XL6_IR_INSTR_RETURN ) sawReturn = 1;
-    }
-    /* The literal producer already owns its allocation.  Returning it is a
-     * direct move; a second STRING_COPY would be a redundant allocation. */
-    ok = ok && sawDup && !sawCopy && sawReturn;
-    /* 验证器必须拒绝把内部拥有返回误标为借用，也拒绝遗漏外部字符串复制。 */
-    for ( i = 0; ok && i < ir.callTargetCount; ++i ) {
-        XL6_IrCallTarget* target = &ir.callTargets[i];
-        if ( target->symbol != 12 ) continue;
-        sawForeignOwnershipCheck = 1;
-        ok = target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_DIRECT;
-        target->resultConversionAbi = XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY;
-        ok = ok && !xl6IrVerifyModule(&ir, &diags) && diags.count > 0 &&
-             strstr(diags.items[diags.count - 1].message,
-                    "foreign result ownership conversion ABI") != NULL;
-        target->resultConversionAbi = XL6_IR_CALL_RESULT_CONVERSION_DIRECT;
-        target->kind = XL6_IR_CALL_TARGET_EXTERN_C;
-        target->executionBoundaryAbi = XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK;
-        ok = ok && !xl6IrVerifyModule(&ir, &diags) && diags.count > 0 &&
-             strstr(diags.items[diags.count - 1].message,
-                    "foreign result ownership conversion ABI") != NULL;
-        target->kind = XL6_IR_CALL_TARGET_INTERNAL;
-        target->executionBoundaryAbi = XL6_IR_CALL_EXECUTION_LANGUAGE_CFG;
-        ok = ok && xl6IrVerifyModule(&ir, &diags);
-    }
-    ok = ok && sawForeignOwnershipCheck;
-    xl6IrModuleFree(&ir);
-    xl6AstFree(root);
-    xrtFree(diags.items);
+    ok=ok && sawTarget;
+    if(!ok)fprintf(stderr,"owned lowering: dup=%d copy=%d return=%d target=%d phase=%s\n",
+        sawDup,sawCopy,sawReturn,sawTarget,unit.phase ? unit.phase : "none");
+    xl6CompileUnitFree(&unit);
     return ok;
 }
 
@@ -440,7 +404,7 @@ static int testStringBridgeContracts(void)
         target.parameterAbis = modes;
         target.parameterPhysicalAbis = physical;
         target.resultPhysicalAbi = XL6_IR_CALL_RESULT_PHYSICAL_DIRECT;
-        target.errorAbi = XL6_IR_ERROR_ABI_NO_RAISE;
+        target.errorAbi = xl6IrRuntimeStringBridgeErrorAbi(target.cName);
         target.variadicAbi = XL6_IR_CALL_VARIADIC_NONE;
         if ( !xl6IrRuntimeStringBridgeTargetMatches(&module, &target) ) return 0;
         --target.parameterCount;

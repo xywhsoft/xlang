@@ -16,7 +16,7 @@ def main():
     inputs={str(path):sha(path) for path in pinned};out.mkdir(parents=True,exist_ok=False);(out/'tmp').mkdir()
     env=dict(os.environ,XL6_SOURCE_NATIVE_ROOT=str(root),TEMP=str(out/'tmp'),TMP=str(out/'tmp'),TMPDIR=str(out/'tmp'))
     report=dict(complete=False,passed=False,scope=__doc__,networkTests=False,sourceBuild=str(public/'build.json'),inputs=inputs,rows=[])
-    report['legacySyntheticAstUnit']='Compile-only enum migration check; existing runtime fixture failure recorded separately'
+    report['legacySyntheticAstUnit']='Real frontend owned-result contract plus legacy CFG fixture, compiled and executed'
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n')
     def run(name,command,accepted=True):
         cmd=command_with_response(command,cc,out/(name+'.rsp'))
@@ -71,12 +71,9 @@ def main():
         run('IR-'+opt+'-build',[cc,'-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-'+opt,*includes,contract,*objects,runtime,*systems,'-o',exe])
         run('IR-'+opt+'-run',[exe,source])
         for name in ('xlir_function_lower','xlir_persistence_project_plan_contract'):
-            if name=='xlir_function_lower':
-                run(name+'-'+opt+'-syntax',[cc,'-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-'+opt,*includes,'-fsyntax-only',root/('test/cases/'+name+'.c')])
-                continue
             exe=out/(name+'-'+opt+suffix)
             run(name+'-'+opt+'-build',[cc,'-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-'+opt,*includes,root/('test/cases/'+name+'.c'),*objects,runtime,*systems,'-o',exe])
-            arguments=[root/'test/cases/xlir_persistence_project_plan.xl',out/('persistence-'+opt+'.json'),'schema']
+            arguments=[] if name=='xlir_function_lower' else [root/'test/cases/xlir_persistence_project_plan.xl',out/('persistence-'+opt+'.json'),'schema']
             run(name+'-'+opt+'-run',[exe,*arguments])
     verify_public_build(root,public);report['inputsUnchanged']=all(sha(path)==value for path,value in inputs.items())
     report['complete']=True;report['passed']=report['inputsUnchanged'];save();assert report['passed']
