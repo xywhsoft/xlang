@@ -47,7 +47,15 @@ class SSHServer(paramiko.ServerInterface):
 class Public(fixture.Quiet):
     break_metadata=False
     break_version=False
+    disconnect_next_object=False
+    truncate_next_object=False
     def do_GET(self):
+        if Public.disconnect_next_object and self.path.startswith('/update/'):
+            Public.disconnect_next_object=False;self.connection.shutdown(socket.SHUT_RDWR);self.connection.close();return
+        if Public.truncate_next_object and self.path.startswith('/update/'):
+            Public.truncate_next_object=False;data=Path(self.translate_path(self.path)).read_bytes()
+            self.send_response(200);self.send_header('Content-Length',str(len(data)));self.end_headers()
+            self.wfile.write(data[:len(data)//2]);self.wfile.flush();self.close_connection=True;return
         if self.break_version and self.path.startswith('/version.txt'):
             self.send_response(200);self.end_headers();self.wfile.write(b'0\n');return
         if self.break_metadata and self.path.startswith('/update.json'):
@@ -93,7 +101,11 @@ class PublishTests(unittest.TestCase):
             with self.assertRaises(ValueError):transport.run('printf '+('x'*7000))
             self.assertEqual(manager.main(['push',*args,'--dry-run']),0)
             self.assertFalse((remote/'version.txt').exists())
+            Public.disconnect_next_object=True
+            Public.truncate_next_object=True
             self.assertEqual(manager.main(['push',*args]),0)
+            self.assertFalse(Public.disconnect_next_object)
+            self.assertFalse(Public.truncate_next_object)
             self.assertEqual((remote/'version.txt').read_text().strip(),'1')
             # Missing remote objects must be healed even on a same-version rerun.
             removed=next((remote/'update').glob('*.lzma'));removed.unlink()
@@ -116,7 +128,7 @@ class PublishTests(unittest.TestCase):
             Public.break_version=False
             self.assertEqual(manager.main(['push',*args]),0)
         finally:
-            Public.break_metadata=False;Public.break_version=False;stop.set()
+            Public.break_metadata=False;Public.break_version=False;Public.disconnect_next_object=False;Public.truncate_next_object=False;stop.set()
             if sock:sock.close()
             for transport in transports:transport.close()
             if server:server.shutdown();server.server_close()

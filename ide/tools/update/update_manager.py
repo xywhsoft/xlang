@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import hashlib
+import http.client
 import json
 import lzma
 import os
@@ -17,6 +18,7 @@ import sys
 import tempfile
 import time
 import urllib.request
+import urllib.error
 import prepare_update as maker
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -293,12 +295,32 @@ class SSH:
         for i in range(0,len(names),64):
             self.run('cd '+shlex.quote(directory)+' && chmod 644 '+' '.join(shlex.quote(n) for n in names[i:i+64]))
 
+def public_retry(read,url):
+    for attempt in range(3):
+        try:return read()
+        except (OSError,urllib.error.URLError,http.client.HTTPException) as error:
+            if attempt==2:raise RuntimeError('public download failed: '+url+': '+str(error)) from error
+            print(f'RETRY public {attempt+1}/2 {url}: {error}',flush=True);time.sleep(attempt+1)
+
 def fetch_public(url,limit=16*1024*1024):
-    request=urllib.request.Request(url,headers={'Cache-Control':'no-cache','Accept-Encoding':'identity'})
-    with public_open(request) as response:
-        data=response.read(limit+1)
-        if len(data)>limit: raise ValueError('public response exceeded limit')
-        return data
+    def read():
+        request=urllib.request.Request(url,headers={'Cache-Control':'no-cache','Accept-Encoding':'identity'})
+        with public_open(request) as response:
+            data=response.read(limit+1)
+            if len(data)>limit: raise ValueError('public response exceeded limit')
+            return data
+    return public_retry(read,url)
+
+def verify_public_object(url,spec):
+    def read():
+        h=hashlib.sha256();size=0
+        with public_open(url) as response:
+            while block:=response.read(1024*1024):
+                h.update(block);size+=len(block)
+                if size>spec['size']:raise ValueError('public object exceeded declared size: '+url)
+        if size<spec['size']:raise OSError('public object response was truncated: '+url)
+        if size!=spec['size'] or h.hexdigest()!=spec['sha256']:raise ValueError('public object verification failed: '+url)
+    public_retry(read,url)
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,*args): return None
@@ -348,13 +370,9 @@ def push(args,store):
         if any(actual.get(n)!=specs[n]['sha256'] for n in names): raise ValueError('remote complete-object check failed')
         remote.set_read_permissions(root+'/update',names)
         # Validate public object access BEFORE exposing the new version marker.
-        for name in names:
-            h=hashlib.sha256();size=0
-            with public_open(remote.url+'/update/'+name) as response:
-                while block:=response.read(1024*1024):
-                    h.update(block);size+=len(block)
-                    if size>specs[name]['size']: raise ValueError('public object exceeded declared size')
-            if size!=specs[name]['size'] or h.hexdigest()!=specs[name]['sha256']: raise ValueError('public object verification failed: '+name)
+        for index,name in enumerate(names,1):
+            verify_public_object(remote.url+'/update/'+name,specs[name])
+            if index==1 or index%64==0 or index==len(names):print(f'VERIFY PUBLIC {index}/{len(names)}',flush=True)
         for name in META:
             remote.upload(store/name,stage+'/'+name)
             if remote.run('sha256sum -- '+q(stage+'/'+name)).split()[0]!=digest(store/name): raise ValueError('remote metadata hash mismatch')
