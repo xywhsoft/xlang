@@ -70,9 +70,11 @@ static int xl6IrCgenEmitFunction(
         for (i = 0; i < function->parameterCount; ++i)
             xl6OutputPrintf(out, "    (void)s%u;\n", (unsigned)module->functionParameters[function->firstParameter + i]);
         if(target->foreignOperationAbi!=XL6_IR_FOREIGN_OPERATION_CALL){
-            xl6OutputPrintf(out,"    %ss%u->%s",function->returnType ? "return " : "",
+            bool dereference=target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_READ || target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_WRITE;
+            if(dereference)xl6OutputPrintf(out,"    %s*s%u",function->returnType ? "return " : "",(unsigned)xl6IrDirectCForwardingArgument(module,forwarding,0));
+            else xl6OutputPrintf(out,"    %ss%u->%s",function->returnType ? "return " : "",
                 (unsigned)xl6IrDirectCForwardingArgument(module,forwarding,0),target->cName);
-            if(target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_FIELD_WRITE)
+            if(target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_FIELD_WRITE || target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_WRITE)
                 xl6OutputPrintf(out," = s%u",(unsigned)xl6IrDirectCForwardingArgument(module,forwarding,1));
             xl6OutputPuts(";\n}\n\n",out);return !xl6OutputHasFailed(out);
         }

@@ -52,7 +52,9 @@ typedef struct XL6_ForeignCallFacts {
     uint32 rollbackSymbol;
     /* Status + one trivial output, distinct from an owning factory. Occupies
      * existing tail padding; outputIndexPlusOne includes the C receiver. */
-    uint32 valueOutput;
+    uint8 valueOutput;
+    uint8 receiverDereference;
+    uint16 reserved;
 } XL6_ForeignCallFacts;
 
 /* The factory output index counts actual C slots. Expanded pointer/count

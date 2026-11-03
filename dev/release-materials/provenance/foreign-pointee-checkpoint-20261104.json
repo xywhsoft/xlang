@@ -1,0 +1,67 @@
+{
+  "complete": true,
+  "scope": "Exact native pointee projections with callback epochs; compiler capability checkpoint",
+  "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r10",
+  "windows": {
+    "fullTranslationUnits": 1414,
+    "tccObjects": 1562,
+    "acceptedGroups": 23,
+    "optimizationLevels": [
+      "O0",
+      "O2"
+    ],
+    "tccModes": [
+      "JIT",
+      "module",
+      "standalone"
+    ]
+  },
+  "linux": {
+    "fullTranslationUnits": 1413,
+    "acceptedGroups": 9,
+    "tccIncluded": false
+  },
+  "contract": {
+    "factsBytes": 88,
+    "projectionMutationsPerOptimization": 40,
+    "zeroOutputsPerOptimization": 80,
+    "semanticNegatives": 8,
+    "staleReadRejected": true,
+    "staleWriteRejected": true,
+    "typedArgumentsAllocate": false,
+    "warmCalls": 200,
+    "warmXrtAllocationDelta": 0
+  },
+  "eightTasksComplete": false,
+  "shippingUpdated": false,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r10.json",
+      "sha256": "7d707635d0e5a86107cbf4ff50ff97a6e2e0049261838669680f663fa6a179d7"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r10\\build.json",
+      "sha256": "fb89660faa5ffa0703ab547434d6f800a3c84d338bb07494e742d48b2a503836"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r10-vfs\\build.json",
+      "sha256": "2901c339b077a7a319a948e3cc265d87dc41c47c322a4a76f2f430332e101582"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r10-vfs\\provider.json",
+      "sha256": "d9d86545580c7e4d84517bd621195373d69442aaef586b949b0579a77cd483cb"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\precompiled-r10\\manifest.json",
+      "sha256": "36811fb6e8fdfdf83c5373ebb6106bf0ee1b1b6e65d8c6de06dde257f8f2ec8d"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\batch-r10\\results.json",
+      "sha256": "3a05ce48c4cbc55f0a32f159f316799c62ba6106e3d264399e9d7dd920efe92b"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-dereference-evidence-r6.json",
+      "sha256": "d28d1cc2c1e8549e2bcd774f33d284edf6e5006770a2b4e05620d837a85b15f3"
+    }
+  ]
+}

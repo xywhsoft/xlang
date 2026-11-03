@@ -5990,12 +5990,13 @@ static YYACTIONTYPE yy_reduce(
 #line 1670 "xl6_parser.y"
 {
     yylhsminor.yy166 = yymsp[-1].minor.yy166;
-    if (yymsp[0].minor.yy230 && yymsp[0].minor.yy230->childCount == 0) {
+    if (yymsp[0].minor.yy230 && yymsp[0].minor.yy230->childCount == 0 && (!yymsp[0].minor.yy230->text || strcmp(yymsp[0].minor.yy230->text,"c_deref"))) {
         XL6_Token token = {0}; token.text = yymsp[0].minor.yy230->text; token.len = yymsp[0].minor.yy230->text ? strlen(yymsp[0].minor.yy230->text) : 0;
         token.startLine = yymsp[0].minor.yy230->line; token.startColumn = yymsp[0].minor.yy230->column;
         yylhsminor.yy166.flags |= xl6PExternContractFlag(ctx, &token);
         xl6AstFree(yymsp[0].minor.yy230);
     } else if (yymsp[0].minor.yy230) {
+        if(yymsp[0].minor.yy230->text && !strcmp(yymsp[0].minor.yy230->text,"c_deref"))yylhsminor.yy166.flags|=XL6_AST_FLAG_FOREIGN_NO_RAISE|XL6_AST_FLAG_FOREIGN_NONBLOCKING;
         if (!yylhsminor.yy166.attributes) yylhsminor.yy166.attributes = xl6AstNewText(XL6_AST_FIELD_ATTR, "c_call", 6, NULL);
         xl6AstAddChild(yylhsminor.yy166.attributes, yymsp[0].minor.yy230);
     }

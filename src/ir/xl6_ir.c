@@ -34228,7 +34228,7 @@ static int xl6IrRuntimeBridgeTargetMatches(
     int reserved;
     if ( module == NULL || target == NULL ) return 0;
     if(target->foreignOperationAbi!=XL6_IR_FOREIGN_OPERATION_CALL)
-        return !target->runtimeBridge && !target->runtimeBridgeOperation && xl6IrForeignFieldOperationMatches(module,target);
+        return !target->runtimeBridge && !target->runtimeBridgeOperation && xl6IrForeignProjectionMatches(module,target);
     {
         const char* expected = xl6IrRuntimeNativeHandlePolicyForName(target->cName);
         if(target->nativeServicesRequired!=xl6IrRuntimeDirectBridgeServices(target->cName))return 0;
@@ -39868,7 +39868,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             declaration != NULL ? declaration->sourceKind : (XL6_AstKind)0,
             declaration != NULL ? declaration->flags : 0);
         size_t parameter;
-        if(!xl6IrForeignFieldOperationMatches(module,target))
+        if(!xl6IrForeignProjectionMatches(module,target))
             return xl6IrDiag(diags,NULL,"foreign C field operation disagrees with its closed declaration");
         if (target->executionBoundaryAbi == XL6_IR_CALL_EXECUTION_INVALID ||
             target->executionBoundaryAbi != expectedExecution)
@@ -40939,7 +40939,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         XL6_IrErrorAbi expectedOperatorErrorAbi =
             xl6IrClassifyOperatorErrorAbi(module, node);
         if (node->foreignCall.spanParameters || node->foreignCall.retainedCallbacks || node->foreignCall.terminatedStrings || node->foreignCall.controlViews || node->foreignCall.resultOwnerIndexPlusOne || node->foreignCall.textViews || node->foreignCall.bytesViews || node->foreignCall.borrowedViewResult || node->foreignCall.constRecordAddresses || node->foreignCall.staticCallbackAddresses || node->foreignCall.outputIndexPlusOne ||
-            node->foreignCall.successCode || node->foreignCall.rollbackSymbol || node->foreignCall.valueOutput) {
+            node->foreignCall.successCode || node->foreignCall.rollbackSymbol || node->foreignCall.valueOutput || node->foreignCall.receiverDereference || node->foreignCall.reserved) {
             const XL6_IrNode* params = node->childCount > 1
                 ? xl6IrNodeGet(module, module->children[node->firstChild + 1]) : NULL;
             size_t receiver=(node->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || node->sourceKind==XL6_AST_GET || node->sourceKind==XL6_AST_LET) &&
@@ -40962,6 +40962,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 (node->foreignCall.controlViews & ((node->foreignCall.textViews|node->foreignCall.bytesViews|node->foreignCall.terminatedStrings|node->foreignCall.spanParameters|node->foreignCall.retainedCallbacks|
                     node->foreignCall.constRecordAddresses|node->foreignCall.staticCallbackAddresses)<<receiver)) ||
                 (params->childCount < 64 && ((node->foreignCall.constRecordAddresses | node->foreignCall.staticCallbackAddresses | node->foreignCall.textViews | node->foreignCall.bytesViews | node->foreignCall.terminatedStrings | node->foreignCall.spanParameters | node->foreignCall.retainedCallbacks) >> params->childCount)) ||
+                node->foreignCall.reserved || node->foreignCall.receiverDereference>1 ||
+                (node->foreignCall.receiverDereference && ((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || node->foreignCall.outputIndexPlusOne)) ||
                 (node->foreignCall.valueOutput>1) ||
                 (node->foreignCall.valueOutput && (!node->foreignCall.outputIndexPlusOne || node->foreignCall.borrowedViewResult || node->foreignCall.rollbackSymbol)) ||
                 (node->foreignCall.outputIndexPlusOne ?
@@ -53936,11 +53938,11 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         xl6OutputPrintf(out, "    {\"generatorClosePointAbi\":%d,\"generatorClosePointAbiName\":\"%s\",", (int)node->generatorClosePointAbi, xl6IrGeneratorClosePointAbiName(node->generatorClosePointAbi));
         xl6OutputPrintf(out, "\"indexReceiverGate\":%d,", (int)node->indexReceiverGate);
         xl6OutputPrintf(out, "\"constructorReceiverSymbol\":%u,", (unsigned)node->constructorReceiverSymbol);
-        xl6OutputPrintf(out, "\"foreignCall\":{\"controlViews\":\"0x%016llX\",\"resultOwnerIndexPlusOne\":%u,\"textViews\":\"0x%016llX\",\"bytesViews\":\"0x%016llX\",\"borrowedViewResult\":%u,\"constRecordAddresses\":\"0x%016llX\",\"staticCallbackAddresses\":\"0x%016llX\",\"outputIndexPlusOne\":%u,\"successCode\":%d,\"rollbackSymbol\":%u,\"valueOutput\":%u},",
+        xl6OutputPrintf(out, "\"foreignCall\":{\"controlViews\":\"0x%016llX\",\"resultOwnerIndexPlusOne\":%u,\"textViews\":\"0x%016llX\",\"bytesViews\":\"0x%016llX\",\"borrowedViewResult\":%u,\"constRecordAddresses\":\"0x%016llX\",\"staticCallbackAddresses\":\"0x%016llX\",\"outputIndexPlusOne\":%u,\"successCode\":%d,\"rollbackSymbol\":%u,\"valueOutput\":%u,\"receiverDereference\":%u},",
             (unsigned long long)node->foreignCall.controlViews,(unsigned)node->foreignCall.resultOwnerIndexPlusOne,
             (unsigned long long)node->foreignCall.textViews,(unsigned long long)node->foreignCall.bytesViews,(unsigned)node->foreignCall.borrowedViewResult,
             (unsigned long long)node->foreignCall.constRecordAddresses, (unsigned long long)node->foreignCall.staticCallbackAddresses, (unsigned)node->foreignCall.outputIndexPlusOne,
-            (int)node->foreignCall.successCode, (unsigned)node->foreignCall.rollbackSymbol,(unsigned)node->foreignCall.valueOutput);
+            (int)node->foreignCall.successCode, (unsigned)node->foreignCall.rollbackSymbol,(unsigned)node->foreignCall.valueOutput,(unsigned)node->foreignCall.receiverDereference);
         xl6OutputPrintf(out, "\"id\":%lu,\"kind\":%d,\"kindName\":\"%s\",\"sourceKind\":%d,\"sourceKindName\":\"%s\",\"declarationOwnerType\":%u,\"callKind\":%d,\"callKindName\":\"%s\",\"valueCategory\":%d,\"valueCategoryName\":\"%s\",\"ownership\":%d,\"ownershipName\":\"%s\",\"ownershipPlanned\":%d,\"parent\":%u,\"line\":%d,\"column\":%d,\"firstChild\":%lu,\"childCount\":%lu,\"opcode\":%d,\"opcodeName\":\"%s\",\"operatorErrorAbi\":%d,\"operatorErrorAbiName\":\"%s\",\"operatorExecutionType\":%u,\"compoundOperatorSymbol\":%u,\"operatorOperand0Abi\":%d,\"operatorOperand0AbiName\":\"%s\",\"operatorOperand1Abi\":%d,\"operatorOperand1AbiName\":\"%s\",\"castAbi\":%d,\"castAbiName\":\"%s\",\"castErrorAbi\":%d,\"castErrorAbiName\":\"%s\",\"implicitConversionRuntimeOp\":%d,\"implicitConversionRuntimeOpName\":\"%s\",\"implicitConversionErrorAbi\":%d,\"implicitConversionErrorAbiName\":\"%s\",\"implicitNameAbi\":%d,\"implicitNameAbiName\":\"%s\",\"implicitReceiverType\":%u,\"implicitFieldDeclaration\":%u,\"namedCallableAbi\":%d,\"namedCallableAbiName\":\"%s\",\"namedCallableTargetSymbol\":%u,\"namedCallableSignatureType\":%u,\"memberAbi\":%d,\"memberAbiName\":\"%s\",\"projectionErrorAbi\":%d,\"projectionErrorAbiName\":\"%s\",\"evaluationErrorAbi\":%d,\"evaluationErrorAbiName\":\"%s\",\"constructionErrorAbi\":%d,\"constructionErrorAbiName\":\"%s\",\"unionField\":%ld,\"indexWriteAbi\":%d,\"indexWriteAbiName\":\"%s\",\"indexWriteErrorAbi\":%d,\"indexWriteErrorAbiName\":\"%s\",\"loopAbi\":%d,\"loopAbiName\":\"%s\",\"loopKeyAbi\":%d,\"loopKeyAbiName\":\"%s\",\"loopItemAbi\":%d,\"loopItemAbiName\":\"%s\",\"loopKeyLifetimeAbi\":%d,\"loopKeyLifetimeAbiName\":\"%s\",\"loopItemLifetimeAbi\":%d,\"loopItemLifetimeAbiName\":\"%s\",\"loopErrorAbi\":%d,\"loopErrorAbiName\":\"%s\",\"loopResourceAbi\":%d,\"loopResourceAbiName\":\"%s\",\"loopResourceType\":%u,\"loopProtocolIterTarget\":%u,\"loopProtocolNextTarget\":%u,\"loopProtocolIterableReceiverType\":%u,\"loopProtocolIteratorReceiverType\":%u,\"loopProtocolIteratorType\":%u,\"loopProtocolNextResultType\":%u,\"loopProtocolItemType\":%u,\"type\":%u,\"storageType\":%u,\"typeValueTarget\":%u,\"symbol\":%u,\"targetSymbol\":%u,\"scopeDepth\":%u,\"region\":%u}%s\n",
                         (unsigned long)(i + 1), (int)node->kind,
                         xl6IrNodeKindName(node->kind), (int)node->sourceKind,

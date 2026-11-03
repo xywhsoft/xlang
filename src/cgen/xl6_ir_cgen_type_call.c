@@ -513,17 +513,18 @@ static int xl6IrCgenPrepareForeignCountedField(XL6_Output* out,const XL6_IrModul
     xl6OutputPrintf(out,")->%s; }\n",target->cName);return !xl6OutputHasFailed(out);
 }
 
-static int xl6IrCgenEmitForeignFieldExpression(XL6_Output* out,const XL6_IrModule* module,
+static int xl6IrCgenEmitForeignProjectionExpression(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrCallTarget* target,const XL6_IrValueId* values)
 {
     if(xl6IrForeignFieldLengthGet(module,target)){xl6OutputPuts("native_field_view",out);return !xl6OutputHasFailed(out);}
     char place[40];
     if(values)snprintf(place,sizeof(place),"v%u",(unsigned)values[0]);
     else strcpy(place,"receiver");
-    xl6OutputPuts("(",out);
+    bool dereference=target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_READ || target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_WRITE;
+    xl6OutputPuts(dereference ? "(*(" : "(",out);
     if(!xl6IrCgenEmitCallPlace(out,module,target,0,place))return 0;
-    xl6OutputPrintf(out,")->%s",target->cName);
-    if(target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_FIELD_WRITE){
+    if(dereference)xl6OutputPuts("))",out);else xl6OutputPrintf(out,")->%s",target->cName);
+    if(target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_FIELD_WRITE || target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_WRITE){
         xl6OutputPuts(" = ",out);
         if(values)snprintf(place,sizeof(place),"v%u",(unsigned)values[1]);else strcpy(place,"a0");
         if(!xl6IrCgenEmitCallPlace(out,module,target,1,place))return 0;
@@ -575,7 +576,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
         xl6OutputPrintf(out, "    %s%s = ", result,
             target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE ? ".Data" : "");
     if(target->foreignOperationAbi!=XL6_IR_FOREIGN_OPERATION_CALL){
-        if(!xl6IrCgenEmitForeignFieldExpression(out,module,target,NULL))return 0;
+        if(!xl6IrCgenEmitForeignProjectionExpression(out,module,target,NULL))return 0;
         xl6OutputPuts(";\n",out);
     }else {
     xl6OutputPrintf(out, "%s(", target->cName);
@@ -982,7 +983,7 @@ static int xl6IrCgenEmitDirectCall(
     else
         xl6OutputPuts("    ", out);
     if(target->foreignOperationAbi!=XL6_IR_FOREIGN_OPERATION_CALL){
-        if(!xl6IrCgenEmitForeignFieldExpression(out,module,target,module->operands+instruction->firstOperand))return 0;
+        if(!xl6IrCgenEmitForeignProjectionExpression(out,module,target,module->operands+instruction->firstOperand))return 0;
         xl6OutputPuts(";\n",out);
     }else {
     if ( target->kind == XL6_IR_CALL_TARGET_INTERNAL )

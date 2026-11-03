@@ -3,7 +3,13 @@
 XL6_IrForeignOperationAbi xl6IrForeignOperationForTarget(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration) : NULL;
-    if(!node || !(node->flags&XL6_AST_FLAG_FOREIGN_FIELD))return XL6_IR_FOREIGN_OPERATION_CALL;
+    if(!node || (!(node->flags&XL6_AST_FLAG_FOREIGN_FIELD) && !node->foreignCall.receiverDereference))return XL6_IR_FOREIGN_OPERATION_CALL;
+    if(node->foreignCall.receiverDereference){
+        if(node->foreignCall.receiverDereference!=1 || (node->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_STATIC)) ||
+            target->kind!=XL6_IR_CALL_TARGET_EXTERN_C)return XL6_IR_FOREIGN_OPERATION_INVALID;
+        return node->sourceKind==XL6_AST_GET ? XL6_IR_FOREIGN_OPERATION_DEREF_READ :
+            node->sourceKind==XL6_AST_LET ? XL6_IR_FOREIGN_OPERATION_DEREF_WRITE : XL6_IR_FOREIGN_OPERATION_INVALID;
+    }
     if(target->kind!=XL6_IR_CALL_TARGET_EXTERN_C || (node->flags&XL6_AST_FLAG_STATIC))return XL6_IR_FOREIGN_OPERATION_INVALID;
     return node->sourceKind==XL6_AST_GET ? XL6_IR_FOREIGN_OPERATION_FIELD_READ :
         node->sourceKind==XL6_AST_LET ? XL6_IR_FOREIGN_OPERATION_FIELD_WRITE : XL6_IR_FOREIGN_OPERATION_INVALID;
@@ -56,7 +62,7 @@ int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTa
         target->resultPhysicalAbi==XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
         target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE;
 }
-int xl6IrForeignFieldOperationMatches(const XL6_IrModule* module,const XL6_IrCallTarget* target)
+int xl6IrForeignProjectionMatches(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
     XL6_IrForeignOperationAbi op=xl6IrForeignOperationForTarget(module,target);
     if(!target || target->foreignOperationAbi!=op || op==XL6_IR_FOREIGN_OPERATION_INVALID)return 0;
@@ -75,10 +81,11 @@ int xl6IrForeignFieldOperationMatches(const XL6_IrModule* module,const XL6_IrCal
     size_t bytes=strlen(node->text);
     if(bytes<2 || node->text[0]!='"' || node->text[bytes-1]!='"' || strlen(target->cName)!=bytes-2 ||
         memcmp(node->text+1,target->cName,bytes-2))return 0;
-    const XL6_IrType* value=op==XL6_IR_FOREIGN_OPERATION_FIELD_READ ? xl6IrTypeGet(&module->types,target->returnType) :
+    int read=op==XL6_IR_FOREIGN_OPERATION_FIELD_READ || op==XL6_IR_FOREIGN_OPERATION_DEREF_READ;
+    const XL6_IrType* value=read ? xl6IrTypeGet(&module->types,target->returnType) :
         target->parameterCount==2 ? xl6IrTypeGet(&module->types,target->parameterTypes[1]) : NULL;
     return value && (f->borrowedViewResult || xl6IrRawCCallbackTrivialValueType(value)) &&
-        (op==XL6_IR_FOREIGN_OPERATION_FIELD_READ ? target->parameterCount==1 :
+        (read ? target->parameterCount==1 :
             !target->returnType && target->parameterCount==2 && !f->borrowedViewResult && !(node->flags&XL6_AST_FLAG_FOREIGN_PURE));
 }
 
