@@ -1,0 +1,7 @@
+{
+  "format": "xlang-ide-settings-1",
+  "toolchain": { "compiler": "../xl.exe" },
+  "editor": { "font": { "path": "../data/fonts/Consolas-with-Yahei_Nerd_Font.ttf", "size": 16 } },
+  "ui": { "font": { "path": "../data/fonts/Consolas-with-Yahei_Nerd_Font.ttf", "size": 16 } },
+  "update": { "enabled": true }
+}
