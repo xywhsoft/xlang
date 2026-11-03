@@ -1,5 +1,16 @@
 # XGE3 / XUI3 声明式接入实施状态
 
+11 月 4 日 XGE `07a6b765` 为内容测量和布局 Prepare／Children／Complete 增加原生 Owned 入口。
+函数及 userdata 保持类型化；稀疏拥有目录只用于所有权，记录独立于 Reference.Data 的 userdata。
+替换事务在 Hold 重入后重新查找实际槽，清理发生在发布后；调用快照保活至完整 thunk 返回，
+底层 native operation 继续保护余下原生访问。完整拥有图包括这些实际槽。
+Windows 六组原生 O0/O2 与 Linux 六组 O0/O2 + ASan/UBSan/泄漏检查通过。
+完整默认 O2 宿主引擎构建 138 单元、导入 174 个共用 XRT 符号；与当前 xlang 核心的实际组合
+O0/O2 通过，包含布局回调替换／关闭、闭包回到 context 的循环及 200 次预热后无新增 XRT 分配／释放／realloc。
+该实际组合复用已校验的完整编译器对象，只重编相关原生运行时单元，不是另一次整套编译器重建。
+其他原生回调族、完整语言声明和发布迁移仍待完成。证据见
+`dev/release-materials/provenance/xui-owned-layout-checkpoint-20261104.json`。
+
 11 月 4 日计数字段投影及匿名函数解析修复通过下一份完整冻结队列：Windows 1,414 单元、
 1,562 个 TCC 对象和 22 组联合验收全部通过；Linux 1,413 单元及 8 组 GCC O0/O2 专项通过。
 `@c_length` 从同一受准入接收者直接读取字节长度，保留 NUL，拒绝负数、固定数组越界、

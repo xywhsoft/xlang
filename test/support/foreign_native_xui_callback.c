@@ -46,7 +46,7 @@ static const XL6_ForeignViewDescriptorV1 widgetDescriptor={sizeof(widgetDescript
     sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_widget,unwatch,destroy_widget,0,1,NULL,NULL,NULL,NULL};
 static const XL6_NativeCallbackRuntimeV1* api;
 static unsigned invocations;
-enum {READ,REMOVE,CLOSE,FAIL};
+enum {READ,REMOVE,CLOSE,FAIL,REMOVE_LAYOUT};
 typedef struct Environment {XL6_ForeignView* view;int action;} Environment;
 static const XL6_CaptureSlotV2 slots[]={
     {{XL6_CAPTURE_NATIVE_GRAPH_V3,offsetof(Environment,view),sizeof(XL6_ForeignView*)},xl6ForeignViewCaptureProfileV1Get},
@@ -62,6 +62,7 @@ static int body(void* raw,xui_widget widget,const xui_event_t* event)
         assert(!xuiWidgetGetChildCount(call.raw) && xl6ForeignViewCallEndV1(&call));
     }
     if(environment->action==REMOVE)assert(xuiWidgetSetEventCallback(widget,NULL,NULL)==XUI_OK);
+    if(environment->action==REMOVE_LAYOUT)assert(xuiWidgetSetContentMeasureCallback(widget,NULL,NULL)==XUI_OK);
     if(environment->action==CLOSE)xuiDestroy(xuiWidgetGetContext(widget));
     return environment->action==FAIL?XUI_ERROR_CALLBACK_FAILED:XUI_OK;
 }
@@ -91,6 +92,39 @@ static void bind(xui_widget widget,XL6_ForeignView* root,XL6_ForeignView* captur
     xui_callback_owner_t owner={api->Ownership(record),api->HoldNative,api->DropNative};
     assert(xuiWidgetSetEventCallbackOwned(widget,thunk,record,&owner)==XUI_OK && api->Release(record));
 }
+static int layout_thunk(xui_widget widget,xui_vec2_t constraint,xui_vec2_t* output,void* raw)
+{
+    (void)constraint;XL6_NativeCallbackScopeV1 scope={0};xui_call_scope_t native={0};
+    if(!api->Enter(raw,991,&scope,&native,sizeof(native)))return XUI_ERROR_CALLBACK_FAILED;
+    int status=((int(*)(void*,xui_widget,const xui_event_t*))scope.closure.closure->invoke)
+        (scope.closure.closure->environment,widget,NULL);
+    *output=(xui_vec2_t){12,13};
+    xl6_error_result result=api->Leave(&scope,(xl6_error_result){status==XUI_OK,xrtTakeError()});
+    if(!result.ok){xl6ErrorScopePropagateFailure(result);return XUI_ERROR_CALLBACK_FAILED;}
+    assert(!result.error);return XUI_OK;
+}
+static void bind_layout(xui_widget widget,XL6_ForeignView* root,XL6_ForeignView* capture,int action)
+{
+    Environment* environment=xrtCalloc(1,sizeof(*environment));assert(environment);environment->action=action;
+    environment->view=xl6ForeignViewRetainV1(capture);assert(!capture || environment->view);
+    XL6_Closure* closure=xl6ClosureRuntimeV4Get()->Create(NULL,(void(*)(void))body,NULL,environment,sizeof(*environment),&layout,NULL,NULL,0);assert(closure);
+    XL6_NativeCallback* record=api->Create(NULL,closure,root,991);assert(record);xl6ClosureRuntimeV1Get()->Release(closure);
+    xui_callback_owner_t owner={api->Ownership(record),api->HoldNative,api->DropNative};
+    assert(xuiWidgetSetContentMeasureCallbackOwned(widget,layout_thunk,record,&owner)==XUI_OK && api->Release(record));
+}
+static void layout_calls(void)
+{
+    xui_context raw=NULL;xui_widget widget=NULL;XL6_ForeignView* child=NULL;
+    XL6_ForeignView* root=create(&raw,&widget,&child);bind_layout(widget,root,child,READ);
+    xui_vec2_t output={0};assert(xuiWidgetMeasureContent(widget,(xui_vec2_t){100,100},&output)==XUI_OK);
+    xmemdebugsnapshot before,after;xrtMemDebugSnapshot(&before);unsigned count=invocations;
+    for(unsigned i=0;i<200;++i)assert(xuiWidgetMeasureContent(widget,(xui_vec2_t){100,100},&output)==XUI_OK && output.fX==12 && output.fY==13);
+    xrtMemDebugSnapshot(&after);assert(invocations-count==200 && before.AllocCount==after.AllocCount &&
+        before.FreeCount==after.FreeCount && before.ReallocCount==after.ReallocCount);
+    bind_layout(widget,root,child,REMOVE_LAYOUT);assert(xuiWidgetMeasureContent(widget,(xui_vec2_t){100,100},&output)==XUI_OK);
+    bind_layout(widget,root,child,CLOSE);assert(xuiWidgetMeasureContent(widget,(xui_vec2_t){100,100},&output)==XUI_OK);
+    assert(xl6ForeignViewReleaseV1(child) && xl6ForeignViewReleaseV1(root) && xl6ForeignViewDrainV1());
+}
 static int dispatch(xui_context raw,xui_widget widget)
 {xui_event_t event={0};event.iSize=sizeof(event);event.iType=XUI_EVENT_COMMAND;event.pTarget=widget;return xuiDispatchEvent(raw,&event);}
 static void calls(void)
@@ -111,10 +145,11 @@ static void calls(void)
 }
 static bool discover(XL6_ModuleOwnershipVisit visit,void* user,void* catalog)
 {(void)catalog;return xl6ForeignViewDiscoverV1(NULL,visit,user);}
-static void cycle(void)
+static void cycle(int layoutCallback)
 {
     xui_context raw=NULL;xui_widget widget=NULL;XL6_ForeignView* child=NULL;
-    XL6_ForeignView* root=create(&raw,&widget,&child);bind(widget,root,child,READ);
+    XL6_ForeignView* root=create(&raw,&widget,&child);
+    if(layoutCallback)bind_layout(widget,root,child,READ);else bind(widget,root,child,READ);
     assert(xl6ForeignViewReleaseV1(child) && xl6ForeignViewReleaseV1(root));
     const XL6_OwnershipDomainV1* domains[]={xl6OwnershipDomainForeignViewV1Get(),xl6OwnershipDomainNativeCallbackV1Get(),xl6OwnershipDomainClosureV1Get()};
     XL6_OwnershipCatalog* catalog=xl6OwnershipCatalogCreateV1(domains,3);assert(catalog);XL6_OwnershipPlan* plan=NULL;
@@ -194,8 +229,8 @@ int main(void)
     assert(xgeHostXrtBind(&contract,resolve,NULL,NULL)==XGE_HOST_XRT_OK);
     assert(xgeHostXrtRuntimeIdentity()==(xge_host_xrt_proc)xrtVersion);
     assert(xrtMemDebugEnabled() || xrtMemDebugEnable(true));api=xl6NativeCallbackRuntimeV1Get();
-    xmemdebugsnapshot before,after;xrtMemDebugSnapshot(&before);calls();cycle();payload_cycles();xrtClearError();xrtMemDebugSnapshot(&after);
+    xmemdebugsnapshot before,after;xrtMemDebugSnapshot(&before);calls();layout_calls();cycle(0);cycle(1);payload_cycles();xrtClearError();xrtMemDebugSnapshot(&after);
     assert(!xl6ForeignViewPendingV1(0) && before.LiveCount==after.LiveCount && before.LiveBytes==after.LiveBytes);
     assert(before.InvalidFreeCount==after.InvalidFreeCount && before.DoubleFreeCount==after.DoubleFreeCount);
-    puts("hosted XUI and resident userdata: typed events, graph/workflow payload cycles, borrowed canvas exclusion, native close and zero steady allocations passed");return 0;
+    puts("hosted XUI and resident userdata: typed events/layout, graph/workflow payload cycles, borrowed canvas exclusion, native close and zero steady allocations passed");return 0;
 }
