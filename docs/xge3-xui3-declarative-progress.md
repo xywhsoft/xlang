@@ -1,5 +1,15 @@
 # XGE3 / XUI3 声明式接入实施状态
 
+11 月 4 日 `@c_deref` 完成正式验收：Windows 完整编译 1,414 单元、1,562 个 TCC 对象和
+23 组联合检查全部通过；Linux 完整编译 1,413 单元及 9 组 GCC O0/O2 检查通过。
+回调输出指针直接读写原生 pointee，保存后读／写均 checked 拒绝；请求持久文本时直接使用
+XRT 已有的 `xrtStrView`。每个优化等级拒绝 40 项 IR 篡改、80 次空 C/header 输出；
+8 项负例明确到达语义层。200 次预热调用无新增 XRT 分配／释放／realloc。
+此提交只封存该通用能力；真实 XUI 接线发现的实例工厂／权威头声明修正另行验收，
+其他回调族、独立资源、完整声明和发布迁移仍未完成。
+证据：`dev/release-materials/provenance/foreign-pointee-checkpoint-20261104.json`。
+
+
 11 月 4 日 XGE `07a6b765` 为内容测量和布局 Prepare／Children／Complete 增加原生 Owned 入口。
 函数及 userdata 保持类型化；稀疏拥有目录只用于所有权，记录独立于 Reference.Data 的 userdata。
 替换事务在 Hold 重入后重新查找实际槽，清理发生在发布后；调用快照保活至完整 thunk 返回，

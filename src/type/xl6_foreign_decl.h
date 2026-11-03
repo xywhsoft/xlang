@@ -112,6 +112,10 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
         const XL6_AstNode* attr = attributes->children[i];
         int32 index;
+        if(attr && attr->text && !strcmp(attr->text,"c_deref")){
+            if(attr->childCount || facts.receiverDereference)return 0;
+            facts.receiverDereference=1;continue;
+        }
         if(attr && attr->text && !strcmp(attr->text,"c_length")){
             if(countedField || !xl6ForeignFieldLengthRead(attr,NULL))return 0;
             countedField=1;continue;
@@ -181,6 +185,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             facts.rollbackSymbol = attr->children[2]->semanticSymbolId;
         } else return 0;
     }
+    if(facts.receiverDereference && ((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.valueOutput || facts.outputIndexPlusOne))return 0;
     if(countedField){
         if(!(node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || node->kind!=XL6_AST_GET || facts.outputIndexPlusOne)return 0;
         if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_TEXT)facts.borrowedViewResult=XL6_FOREIGN_VIEW_RESULT_TEXT_FIELD;
@@ -196,6 +201,9 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     if (output) *output = facts;
     return 1;
 }
+
+static inline int xl6ForeignFunctionDereferences(const XL6_AstNode* node)
+{XL6_ForeignCallFacts facts={0};return xl6ForeignFunctionRead(node,&facts) && facts.receiverDereference;}
 
 /* Parser-owned fixed C array vocabulary. '$' is not a source identifier, so
  * the family is introduced only by a checked field declarator, not by an

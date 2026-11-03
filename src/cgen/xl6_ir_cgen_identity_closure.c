@@ -372,7 +372,8 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
     if(target->foreignOperationAbi!=XL6_IR_FOREIGN_OPERATION_CALL){
         const XL6_IrType* receiver=xl6IrTypeGet(&module->types,target->parameterTypes[0]);
         const XL6_IrType* value=xl6IrTypeGet(&module->types,target->returnType);
-        const char* physical=target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_FIELD_WRITE ?
+        bool write=target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_FIELD_WRITE || target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_WRITE;
+        const char* physical=write ?
             xl6IrCgenExternParameterType(module,target,1) : target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW ? "xstrview" :
             target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW ? "xbytesview" :
             target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW ? value->cName : xl6IrCgenType(module,target->returnType);
@@ -384,6 +385,10 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
                 "_Static_assert(_Generic(((%s)0)->%s, %s:1, default:0), \"native field length type\");\n",
                 receiver->cName,target->cName,extra,receiver->cName,length->field,
                 length->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int" : "size_t");return !xl6OutputHasFailed(out);
+        }
+        if(target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_READ || target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_WRITE){
+            xl6OutputPrintf(out,"_Static_assert(_Generic(*((%s)0), %s:1, default:0), \"native pointee type\");\n",receiver->cName,physical);
+            return !xl6OutputHasFailed(out);
         }
         xl6OutputPrintf(out,"_Static_assert(_Generic(((%s)0)->%s, %s:1, default:0), \"native field type\");\n",
             receiver->cName,target->cName,physical);return !xl6OutputHasFailed(out);

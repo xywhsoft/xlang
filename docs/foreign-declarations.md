@@ -477,3 +477,27 @@ Embedded NUL bytes are preserved. A requested language string/bytes value is
 copied before ending the receiver's native scope, so that value can be saved.
 Saving the callback view itself does not extend its lifetime. No field wrapper
 function, temporary Buffer or NUL scan is introduced for this projection.
+
+## Native pointee projections
+
+`@c_deref` on an external instance getter/setter reads or writes the exact
+native pointee. It has no arguments and selects an ordinary C dereference,
+with the same exact-value and borrowed-result rules as a native field. It
+cannot be combined with `@c_field`, factories, status or output mappings.
+
+```xlang
+extern "int*" class IntOut @header("native.h") @lifetime("callback") @owner(Context)
+    native point handle
+    extern "value" @c_deref get value() as c_int
+    extern "value" @c_deref let value(c_int next)
+end
+```
+
+This provides callback output views without parameter-reference syntax. The
+pointer is accessed only after the callback epoch has been checked; saved
+views reject both reads and writes after the callback returns. Typed views
+do not allocate per argument. Explicit dynamic boxing keeps its normal cost.
+The authoritative header checks the pointee type; no forwarding C function
+is emitted. A NUL-terminated character view can directly declare the existing
+native `xrtStrView` primitive and request `@c_result("text_view")` when a
+persistent string copy is needed.

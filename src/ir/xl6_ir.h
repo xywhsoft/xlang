@@ -5517,7 +5517,9 @@ typedef enum XL6_IrForeignOperationAbi {
     XL6_IR_FOREIGN_OPERATION_INVALID=-1,
     XL6_IR_FOREIGN_OPERATION_CALL=0,
     XL6_IR_FOREIGN_OPERATION_FIELD_READ,
-    XL6_IR_FOREIGN_OPERATION_FIELD_WRITE
+    XL6_IR_FOREIGN_OPERATION_FIELD_WRITE,
+    XL6_IR_FOREIGN_OPERATION_DEREF_READ,
+    XL6_IR_FOREIGN_OPERATION_DEREF_WRITE
 } XL6_IrForeignOperationAbi;
 
 typedef struct XL6_IrCallTarget {
@@ -7980,7 +7982,7 @@ size_t xl6IrForeignParameterWidth(const XL6_IrModule*,const XL6_IrCallTarget*,si
 XL6_IrForeignOperationAbi xl6IrForeignOperationForTarget(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignFieldLengthContract* xl6IrForeignFieldLengthGet(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignOutputValueMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
-int xl6IrForeignFieldOperationMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
+int xl6IrForeignProjectionMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignManagedViewParameter(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 int xl6IrForeignControlViewParameter(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 const XL6_IrType* xl6IrForeignRootType(const XL6_IrModule*,XL6_IrTypeId);

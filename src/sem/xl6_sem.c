@@ -21412,7 +21412,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
     }
     XL6_AstNode* params = node->childCount > 1 ? node->children[1] : NULL;
     size_t count = params ? params->childCount : 0;
-    if(node->flags&XL6_AST_FLAG_FOREIGN_FIELD){
+    if((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference){
         XL6_ForeignClassDecl owner;
         char field[64];XL6_AstNode name={0};name.kind=XL6_AST_STRING;name.text=node->text;
         const XL6_AstNode* returns=node->childCount>2 ? node->children[2] : NULL;
@@ -21429,7 +21429,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             facts.terminatedStrings || facts.spanParameters || facts.retainedCallbacks || facts.controlViews || facts.outputIndexPlusOne ||
             facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE || facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS || facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS ||
             (!facts.borrowedViewResult && !xl6SemIsCAbiCallbackValueType(ctx,value,0))){
-            xl6SemErrorNode(ctx,node,"@c_field requires a declared instance C field getter/setter with exact trivial value or explicit borrowed-result admission");return 0;
+            xl6SemErrorNode(ctx,node,"native field/dereference projection requires a declared instance getter/setter with exact trivial value or explicit borrowed-result admission");return 0;
         }
     }
     if (count < 64 && ((facts.constRecordAddresses | facts.staticCallbackAddresses | facts.textViews | facts.bytesViews | facts.terminatedStrings | facts.spanParameters | facts.retainedCallbacks) >> count)) {
@@ -24528,7 +24528,8 @@ static int xl6SemCheckClassMemberConflicts(XL6_SemContext* ctx, XL6_AstNode* typ
                  xl6SemIsNativeBackedExternMember(member) &&
                  xl6SemIsNativeBackedExternMember(other) &&
                  xl6TextEquals(member->text, other->text) &&
-                 !((member->flags|other->flags)&XL6_AST_FLAG_FOREIGN_FIELD) ) {
+                 !((member->flags|other->flags)&XL6_AST_FLAG_FOREIGN_FIELD) &&
+                 !xl6ForeignFunctionDereferences(member) && !xl6ForeignFunctionDereferences(other) ) {
                 xl6SemErrorNode(ctx, other, "same native-backed class cannot bind the same C symbol twice");
                 ok = 0;
             }

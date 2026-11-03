@@ -1,0 +1,79 @@
+extern "DerefRoot*" class Root @header("test/cases/foreign_dereference.h") @lifetime("owned") @policy("derefRootPolicy") @scope("DerefScope") @watch("DerefWatch")
+    native point handle
+    extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "int*" class IntOut @header("test/cases/foreign_dereference.h") @lifetime("callback") @owner(Root)
+    native point handle
+    extern "value" @c_deref get value() as c_int
+    extern "value" @c_deref let value(c_int next)
+end
+extern "const char*" class TextView @header("test/cases/foreign_dereference.h") @lifetime("callback") @owner(Root)
+    native point handle
+    extern "xrtStrView" @no_raise @c_result("text_view") func copy() as string
+end
+extern "int*" class CallerInt @header("test/cases/foreign_dereference.h") @lifetime("caller")
+    native point handle
+    extern "value" @c_deref get value() as c_int
+    extern "value" @c_deref let value(c_int next)
+end
+func plainRead(CallerInt item) as c_int
+    return item.value
+end
+extern "deref_destroy" @no_raise func rollback(Root root)
+extern "deref_create" @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Root
+extern "deref_on" @no_raise @c_owned_callback(1,0,"DerefOwner",-9) func on(Root root,func(Root,IntOut,TextView) as c_int callback)
+extern "deref_fire" @no_raise func fire(Root root) as c_int
+extern "deref_counter_begin" @no_raise func countersBegin()
+extern "deref_counter_end" @no_raise func countersEnd()
+func main(...) as int
+    Root root=create()
+    IntOut? saved=null
+    TextView? savedText=null
+    on(root,func(Root sender,IntOut output,TextView text) as c_int
+        assert output.value==7
+        output.value=21
+        assert output.value==21 and text.copy()=="view"
+        var dynamicOutput=output
+        assert dynamicOutput.value==21
+        dynamicOutput.value=c_int(23)
+        saved=output
+        savedText=text
+        return c_int(0)
+    end)
+    assert fire(root)==23
+    bool rejected=false
+    try
+        auto invalid=(saved as IntOut).value
+    catch error
+        rejected=true
+    end
+    assert rejected
+    rejected=false
+    try
+        (saved as IntOut).value=1
+    catch error
+        rejected=true
+    end
+    assert rejected
+    rejected=false
+    try
+        auto invalid=(savedText as TextView).copy()
+    catch error
+        rejected=true
+    end
+    assert rejected
+    on(root,func(Root sender,IntOut output,TextView text) as c_int
+        output.value=output.value+1
+        return c_int(0)
+    end)
+    assert fire(root)==8
+    countersBegin()
+    int i=0
+    while i<200
+        assert fire(root)==8
+        i+=1
+    end
+    countersEnd()
+    root.close()
+    return 0
+end

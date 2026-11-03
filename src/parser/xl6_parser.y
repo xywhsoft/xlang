@@ -1671,12 +1671,13 @@ field_attr_arg(A) ::= field_attr_word(N) ASSIGN STRING(V). {
 extern_func_contract(A) ::= . { A.flags = 0; A.attributes = NULL; }
 extern_func_contract(A) ::= extern_func_contract(B) extern_func_contract_item(C). {
     A = B;
-    if (C && C->childCount == 0) {
+    if (C && C->childCount == 0 && (!C->text || strcmp(C->text,"c_deref"))) {
         XL6_Token token = {0}; token.text = C->text; token.len = C->text ? strlen(C->text) : 0;
         token.startLine = C->line; token.startColumn = C->column;
         A.flags |= xl6PExternContractFlag(ctx, &token);
         xl6AstFree(C);
     } else if (C) {
+        if(C->text && !strcmp(C->text,"c_deref"))A.flags|=XL6_AST_FLAG_FOREIGN_NO_RAISE|XL6_AST_FLAG_FOREIGN_NONBLOCKING;
         if (!A.attributes) A.attributes = xl6AstNewText(XL6_AST_FIELD_ATTR, "c_call", 6, NULL);
         xl6AstAddChild(A.attributes, C);
     }
