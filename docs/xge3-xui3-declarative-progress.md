@@ -1,5 +1,20 @@
 # XGE3 / XUI3 声明式接入实施状态
 
+11 月 4 日独立资源原生前置：XGE `e870ee7e` 新增 Font／Texture 的记录存储采用合同。
+只有成功初始化、恰好一个原生引用的独立 XRT 堆记录可以转交；普通栈／嵌入记录保持原行为。
+采用本身没有分配或复制；其他原生引用保留记录，最后一次 Free 同时释放 payload 与记录。
+公开记录大小在本轮 x64 平台保持 Font 96 字节、Texture 48 字节。checked 拥有槽先取得引用，
+成功后发布，再释放旧值；引用计数上限拒绝不会修改原槽，Sprite／Particle 调用方同步检查。
+两端完整 O2 宿主引擎及 O0/O2 原生客户端通过，覆盖 RGBA／YUV、三重 Material 引用、
+Font fallback、普通记录、六个初始化失败预算和既有字体 fallback shaping 回归。
+本批没有 sanitizer，也尚未接受语言原位工厂；后者仍在实现。未更新发布产物。
+
+构建计数口径修正：对应宿主构建有 138 个源单元、139 次编译动作，Windows 共用 XRT
+导入为 177 个、Linux 为 175 个。旧报告中的 hostEngineTranslationUnits=139 是编译动作数，
+不是不同源单元数；历史报告字节保留，由新报告明确更正，不再采用 174 个导入的旧表述。
+证据：`dev/release-materials/provenance/foreign-native-record-storage-20261104.json`。
+
+
 11 月 4 日协议／受管指针输出及导航回调验收：Windows 完整编译 1,414 单元、
 TCC 1,562 对象和 27 组联合检查全部通过；Linux 完整编译 1,413 单元、13 组
 GCC 检查及 base／choice／navigation 三组真实 XUI O0/O2 组合通过。
