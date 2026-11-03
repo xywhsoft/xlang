@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Real OpenSSH transport + temporary SSH server, shell filesystem and HTTP activation."""
 import functools
+import hashlib
 import http.server
 import os
 from pathlib import Path
@@ -79,6 +80,17 @@ class PublishTests(unittest.TestCase):
             if os.name=='nt':remote_path='/'+remote_path[0].lower()+remote_path[2:]
             args=['--store',str(case.store),'--platform',fixture.PLATFORM]
             self.assertEqual(manager.main(['configure',*args,'--host','fixture-update','--remote-root',remote_path,'--public-url',f'http://127.0.0.1:{server.server_port}','--ssh-config',str(config)]),0)
+            # Real OpenSSH with enough long object paths to exceed legacy
+            # command limits if each absolute path is repeated in one chmod.
+            transport=manager.SSH(manager.read(case.store/'.state/deploy.json'))
+            permission_dir=remote/'permission-fixture';permission_dir.mkdir()
+            expected={}
+            for i in range(110):
+                data=str(i).encode();name=hashlib.sha256(data).hexdigest()+'.lzma'
+                (permission_dir/name).write_bytes(data);expected[name]=hashlib.sha256(data).hexdigest()
+            transport.set_read_permissions(remote_path+'/permission-fixture',sorted(expected))
+            self.assertEqual(transport.hashes(remote_path+'/permission-fixture',sorted(expected)),expected)
+            with self.assertRaises(ValueError):transport.run('printf '+('x'*7000))
             self.assertEqual(manager.main(['push',*args,'--dry-run']),0)
             self.assertFalse((remote/'version.txt').exists())
             self.assertEqual(manager.main(['push',*args]),0)
