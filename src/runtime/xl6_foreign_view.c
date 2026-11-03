@@ -1,5 +1,6 @@
 #include "src/common/xl6_xrt.h"
 #include "xl6_foreign_view.h"
+#include "xl6_foreign_view_abi.h"
 #include "xl6_foreign_context.h"
 #include "src/api/xl_foreign_error.h"
 #include <stddef.h>
@@ -15,6 +16,9 @@ struct XL6_ForeignView {
     xatomic32 closing;
     xatomic32 active;
     xatomic32 nativeLive;
+    xatomic32 callbackFailed;
+    uint64_t callbackFailures;
+    xerror* callbackError;
     uint64 thread;
     const void* claim;
     bool prepared, cleared, binding;
@@ -144,6 +148,7 @@ static XL6_ForeignView* viewAllocate(void* raw,const XL6_ForeignViewDescriptorV1
     xrtAtomic64Init(&view->references,1); xrtAtomic64Init(&view->external,0);
     xrtAtomic32Init(&view->closing,0); xrtAtomic32Init(&view->active,0);
     xrtAtomic32Init(&view->nativeLive,1);
+    xrtAtomic32Init(&view->callbackFailed,0);
     return view;
 }
 static void viewDiscardUnpublished(XL6_ForeignView* view)
@@ -153,13 +158,18 @@ static void viewDiscardUnpublished(XL6_ForeignView* view)
     if (!view->owner) xrtMapUnit(&view->directory);
     xrtFree(view); xl6CodeLeaseRelease(code);
 }
-XL6_ForeignView* xl6ForeignViewCreateRootV1(void* raw,const XL6_ForeignViewDescriptorV1* d,
-    const XL6_CodeOwner* codeOwner)
+static XL6_ForeignView* viewCreateRoot(void* raw,const XL6_ForeignViewDescriptorV1* d,
+    const XL6_CodeOwner* codeOwner,const XL6_ForeignResultProbeV1* probe)
 {
     if(!xl6ForeignContextReadyV1())return NULL;
     XL6_ForeignView* view=viewAllocate(raw,d,codeOwner,true);
     if (!view) return NULL;
     if (!xrtMapInit(&view->directory,sizeof(XL6_ForeignView*))) { viewDiscardUnpublished(view); return NULL; }
+    /* Lease admission can invoke host code. The factory observer must still
+     * identify a live output before any native Watch dereferences its address. */
+    if(probe && !xl6ForeignResultProbeAliveV1(probe)) {
+        xrtSetErrorKind(XERR_STATE);viewDiscardUnpublished(view);return NULL;
+    }
     if (d->Watch && !d->Watch(raw,view->watchStorage,viewInvalidate,view)) {
         if (!xrtGetError()) xrtSetErrorKind(XERR_STATE);
         viewDiscardUnpublished(view); return NULL;
@@ -173,6 +183,16 @@ XL6_ForeignView* xl6ForeignViewCreateRootV1(void* raw,const XL6_ForeignViewDescr
     viewRoots=view; ++viewCount;
     viewLockLeave(); viewMutationEnd(&mutation);
     return view;
+}
+XL6_ForeignView* xl6ForeignViewCreateRootV1(void* raw,const XL6_ForeignViewDescriptorV1* descriptor,
+    const XL6_CodeOwner* codeOwner)
+{return viewCreateRoot(raw,descriptor,codeOwner,NULL);}
+XL6_ForeignView* xl6ForeignViewCreateRootProbedV1(void* raw,XL6_ForeignResultProbeV1* probe,const XL6_CodeOwner* owner)
+{
+    if(!xl6ForeignResultProbeAliveV1(probe) || !probe->root || probe->identity!=raw) {
+        xrtSetErrorKind(XERR_STATE);return NULL;
+    }
+    return viewCreateRoot(raw,&probe->descriptor,owner,probe);
 }
 XL6_ForeignView* xl6ForeignViewRetainV1(XL6_ForeignView* view)
 {
@@ -209,6 +229,9 @@ XL6_ForeignView* xl6ForeignViewBorrowChildV1(void* raw,XL6_ForeignView* owner,
     }
     XL6_ForeignView* view=viewAllocate(raw,d,codeOwner,false);
     if (!view) return NULL;
+    if(xrtAtomic32Load(&root->closing,XMEMORY_ACQUIRE) || !root->raw) {
+        xrtSetErrorKind(XERR_STATE);viewDiscardUnpublished(view);return NULL;
+    }
     view->owner=root;
     if (!d->Watch(raw,view->watchStorage,viewInvalidate,view)) {
         if (!xrtGetError()) xrtSetErrorKind(XERR_STATE);
@@ -257,6 +280,9 @@ static void viewDrop(const void* raw)
     XL6_ForeignView* owner=view->owner;
     XL6_CodeLease* code=view->code;
     viewLockEnter();
+    bool callbackFailed=xrtAtomic32Load(&view->callbackFailed,XMEMORY_RELAXED)!=0;
+    xerror* callbackError=view->callbackError;view->callbackError=NULL;
+    xrtAtomic32Store(&view->callbackFailed,0,XMEMORY_RELEASE);
     if (view->rootsPrevious) {
         *view->rootsPrevious=view->rootsNext;
         if (view->rootsNext) view->rootsNext->rootsPrevious=view->rootsPrevious;
@@ -264,6 +290,7 @@ static void viewDrop(const void* raw)
     if (!viewCount) abort();
     --viewCount;
     viewLockLeave(); viewMutationEnd(&mutation);
+    if(callbackFailed)xl6ErrorScopePropagateFailure((xl6_error_result){false,callbackError});
     if (!owner) xrtMapUnit(&view->directory);
     xrtFree(view);
     viewDrop(owner); xl6CodeLeaseRelease(code);
@@ -318,6 +345,7 @@ bool xl6ForeignViewCallBeginV1(XL6_ForeignView* view,XL6_ForeignViewCallV1* scop
         (d->CallBegin ? !storage || (uintptr_t)storage%d->callAlignment : storage!=NULL)) {
         xrtSetErrorKind(XERR_STATE); return false;
     }
+    if(!xl6ForeignViewThrowIfCallbackFailedV1(root))return false;
     if(!xl6ForeignContextCallEnterV1(&scope->execution,root))return false;
     xrtownershipscope mutation={0}; viewMutationBegin(&mutation);
     bool ok=!root->claim && !view->claim && !root->prepared && !view->cleared && view->raw && root->raw &&
@@ -338,6 +366,38 @@ bool xl6ForeignViewCallBeginV1(XL6_ForeignView* view,XL6_ForeignViewCallV1* scop
     scope->self=scope; scope->view=view; scope->root=root;
     scope->raw=view->raw; scope->nativeStorage=storage;
     return true;
+}
+void xl6ForeignViewRecordCallbackFailureV1(XL6_ForeignView* view,xl6_error_result failure)
+{
+    if(!view || failure.ok)abort();
+    XL6_ForeignView* root=viewRoot(view);xerror* discard=NULL;
+    xrtownershipscope mutation={0};viewMutationBegin(&mutation);viewLockEnter();
+    if(root->callbackFailures!=UINT64_MAX)++root->callbackFailures;
+    if(!xrtAtomic32Load(&root->callbackFailed,XMEMORY_RELAXED)) {
+        root->callbackError=failure.error;xrtAtomic32Store(&root->callbackFailed,1,XMEMORY_RELEASE);
+    } else discard=failure.error;
+    viewLockLeave();viewMutationEnd(&mutation);xrtErrorFree(discard);
+}
+bool xl6ForeignViewThrowIfCallbackFailedV1(XL6_ForeignView* view)
+{
+    if(!view){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    XL6_ForeignView* root=viewRoot(view);
+    if(!xrtAtomic32Load(&root->callbackFailed,XMEMORY_ACQUIRE))return true;
+    xrtownershipscope mutation={0};viewMutationBegin(&mutation);viewLockEnter();
+    bool failed=xrtAtomic32Load(&root->callbackFailed,XMEMORY_RELAXED)!=0;
+    xerror* error=root->callbackError;root->callbackError=NULL;
+    xrtAtomic32Store(&root->callbackFailed,0,XMEMORY_RELEASE);
+    viewLockLeave();viewMutationEnd(&mutation);
+    if(failed)xrtSetErrorTake(error);
+    return !failed;
+}
+bool xl6ForeignViewCallbackFailureCountV1(XL6_ForeignView* view,uint64_t* output)
+{
+    if(!view || !output || (uintptr_t)output%_Alignof(uint64_t)){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    XL6_ForeignView* root=viewRoot(view);
+    xrtownershipscope mutation={0};viewMutationBegin(&mutation);viewLockEnter();
+    uint64_t count=root->callbackFailures;viewLockLeave();viewMutationEnd(&mutation);
+    *output=count;return true;
 }
 static bool viewPublish(xl6_error_result result)
 {
@@ -367,7 +427,7 @@ bool xl6ForeignViewCallEndV1(XL6_ForeignViewCallV1* scope)
         xl6ErrorScopeCaptureFailure(&errors);
     return viewPublish(xl6ErrorScopeEnd(&errors));
 }
-bool xl6ForeignViewCloseV1(XL6_ForeignView* view)
+static bool viewCloseBody(XL6_ForeignView* view)
 {
     if (!view) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
     XL6_ForeignView* root=viewRoot(view);
@@ -383,11 +443,20 @@ bool xl6ForeignViewCloseV1(XL6_ForeignView* view)
     if (view->raw && root->descriptor.CallBegin &&
         xrtAtomic32Load(&root->active,XMEMORY_ACQUIRE)) {
         xl6_error_scope errors={0}; if (!xl6ErrorScopeBegin(&errors)) abort();
-        if (!view->descriptor.Destroy(view->raw) || xrtGetError()) xl6ErrorScopeCaptureFailure(&errors);
+        bool destroyed=view->descriptor.Destroy(view->raw);
+        if(destroyed && !view->descriptor.Watch)viewInvalidate(view);
+        if (!destroyed || xrtGetError()) xl6ErrorScopeCaptureFailure(&errors);
         return viewPublish(xl6ErrorScopeEnd(&errors));
     }
     if (!viewCalls() && !xl6ForeignCallbackActiveV1() && !viewIsDraining()) return xl6ForeignViewDrainV1();
     return true;
+}
+bool xl6ForeignViewCloseV1(XL6_ForeignView* view)
+{
+    xl6_error_scope errors={0};if(!xl6ErrorScopeBegin(&errors))return false;
+    if(!xl6ForeignViewThrowIfCallbackFailedV1(view))xl6ErrorScopeCaptureFailure(&errors);
+    if(!viewCloseBody(view) || xrtGetError())xl6ErrorScopeCaptureFailure(&errors);
+    return viewPublish(xl6ErrorScopeEnd(&errors));
 }
 static bool viewDestroyNative(XL6_ForeignView* view)
 {
@@ -517,6 +586,7 @@ static bool viewTrace(const void* raw,xrtownershipvisitor visit,void* context)
     const XL6_ForeignView* view=raw; size_t count;
     if (!visit || !viewReadCount(view,&count)) return false;
     if (view->code && !visit(xl6CodeLeaseOwnership(view->code),context)) return false;
+    if (view->callbackError && !visit(xrtErrorOwnership(view->callbackError),context)) return false;
     if (view->owner) return visit(xl6ForeignViewOwnershipV1(view->owner),context);
     if (view->binding && !visit(xl6ForeignViewOwnershipV1(view),context)) return false;
     for (const XL6_ForeignView* child=view->children; child; child=child->next)
@@ -600,4 +670,67 @@ bool xl6ForeignViewDiscoverV1(const XL6_CodeOwner* owner,XL6_ModuleOwnershipVisi
     for (const XL6_ForeignView* root=viewRoots; root; root=root->rootsNext)
         if (!visit(xl6ForeignViewOwnershipV1(root),context)) return false;
     return true;
+}
+
+bool xl6ForeignViewCopyValueV1(XL6_ForeignView* input,XL6_ForeignView** output)
+{
+    if(!output || (uintptr_t)output%_Alignof(XL6_ForeignView*) || *output){
+        xrtSetErrorKind(XERR_ARGUMENT);return false;
+    }
+    XL6_ForeignView* copy=xl6ForeignViewRetainV1(input);
+    if(input && !copy)return false;
+    *output=copy;return true;
+}
+void xl6ForeignViewDropValueV1(XL6_ForeignView* input)
+{
+    if(!xl6ForeignViewReleaseV1(input))
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});
+}
+bool xl6ForeignViewEqualValueV1(XL6_ForeignView* left,XL6_ForeignView* right)
+{
+    return left==right;
+}
+static void resultProbeInvalidate(void* raw)
+{
+    XL6_ForeignResultProbeV1* probe=raw;
+    probe->live=false;
+}
+bool xl6ForeignResultProbePrepareV1(XL6_ForeignResultProbeV1* probe,
+    const XL6_ForeignViewDescriptorV1* descriptor,bool root,void* storage,size_t bytes)
+{
+    if(!probe || probe->self || probe->thread || probe->storage || probe->identity || probe->root || probe->live || probe->observed ||
+        !viewDescriptorValid(descriptor,root) || bytes!=descriptor->watchBytes ||
+        (bytes ? !storage || (uintptr_t)storage%descriptor->watchAlignment : storage!=NULL)){
+        xrtSetErrorKind(XERR_ARGUMENT);return false;
+    }
+    probe->descriptor=*descriptor;probe->storage=storage;probe->root=root;probe->thread=xrtThreadCurrentId();
+    probe->self=probe;return true;
+}
+bool xl6ForeignResultProbeObserveV1(XL6_ForeignResultProbeV1* probe,void* raw)
+{
+    if(!probe || probe->self!=probe || probe->thread!=xrtThreadCurrentId() || probe->observed){
+        xrtSetErrorKind(XERR_STATE);return false;
+    }
+    probe->observed=true;probe->identity=raw;
+    if(!raw)return true;
+    probe->live=true;
+    if(probe->descriptor.Watch && !probe->descriptor.Watch(raw,probe->storage,resultProbeInvalidate,probe)){
+        probe->live=false;return false;
+    }
+    return true;
+}
+bool xl6ForeignResultProbeAliveV1(const XL6_ForeignResultProbeV1* probe)
+{
+    return probe && probe->self==probe && probe->observed && probe->thread==xrtThreadCurrentId() &&
+        probe->live;
+}
+bool xl6ForeignResultProbeEndV1(XL6_ForeignResultProbeV1* probe)
+{
+    if(!probe){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    if(!probe->self && !probe->thread && !probe->storage && !probe->identity && !probe->root && !probe->observed && !probe->live)return true;
+    if(probe->self!=probe || probe->thread!=xrtThreadCurrentId()){
+        xrtSetErrorKind(XERR_STATE);return false;
+    }
+    if(probe->descriptor.Unwatch)probe->descriptor.Unwatch(probe->storage);
+    *probe=(XL6_ForeignResultProbeV1){0};return true;
 }

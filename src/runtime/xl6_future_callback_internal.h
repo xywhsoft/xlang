@@ -27,7 +27,7 @@ typedef struct XL6_FutureCallbackFrameV1 {
     const XL6_CaptureLayoutV2* layoutV2;
     size_t references, active, dataSize;
     const void* claim;
-    bool committed, publishing, retiring, payloadLive, cleared, queued;
+    bool graph, committed, publishing, retiring, payloadLive, cleared, queued;
     xfuturewatch watch;
     xfuture* source;
     xpromise* output;

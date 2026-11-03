@@ -260,7 +260,8 @@ static const char* xl6IrCgenArrayScalarReadSymbol(XL6_IrRuntimeOp operation)
 static const char* xl6IrCgenArrayExtractSymbol(const XL6_IrType* result)
 {
     if (!result) return NULL;
-    if (xl6IrNativeValuePlanForType(result)) return "xl6ArrayExtractNativeValueV2";
+    const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(result);
+    if (native) return native->nominalDomainArguments ? "xl6ArrayExtractForeignViewV1" : "xl6ArrayExtractNativeValueV2";
     if (xl6IrArrayTrivialExtractResult(result)) return "xl6ArrayExtractTrivialV1";
     switch (result->cAbi) {
     case XL6_IR_C_ABI_BOOL: return "xl6ArrayExtractBoolV1";
@@ -435,7 +436,13 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
                         (unsigned)instruction->result,native->cName,(unsigned)instruction->result,symbol,(unsigned)receiver,
                         (unsigned long long)array->typeValueId,(unsigned long long)element->typeValueId);
                     if (pop) xl6OutputPuts("0",out); else xl6OutputPrintf(out,"v%u",(unsigned)argument0);
-                    xl6OutputPrintf(out,", %s, %s(), &v%u);\n",pop ? "true" : "false",native->profileSymbol,(unsigned)instruction->result);
+                    if(native->nominalDomainArguments){
+                        const XL6_IrType* base=typedResult->kind==XL6_IR_TYPE_NULLABLE ?
+                            xl6IrTypeGet(&module->types,typedResult->params[0]) : typedResult;
+                        xl6OutputPrintf(out,", %s, 0x%016llXULL, %s, &v%u);\n",pop ? "true" : "false",
+                            (unsigned long long)base->typeValueId,typedResult->kind==XL6_IR_TYPE_NULLABLE ? "true" : "false",
+                            (unsigned)instruction->result);
+                    }else xl6OutputPrintf(out,", %s, %s(), &v%u);\n",pop ? "true" : "false",native->profileSymbol,(unsigned)instruction->result);
                     return xl6OutputHasFailed(out) ? -1 : 1;
                 }
                 if (xl6IrArrayTrivialExtractResult(typedResult)) {

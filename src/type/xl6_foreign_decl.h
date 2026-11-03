@@ -11,6 +11,9 @@
 typedef struct XL6_ForeignClassDecl {
     char cName[64];
     char header[256];
+    XL6_ForeignLifetimeAbi lifetime;
+    char policy[64],scope[64],watch[64],owner[256];
+    uint32 ownerSymbol;
 } XL6_ForeignClassDecl;
 
 static inline const XL6_AstNode* xl6ForeignFunctionAttributes(const XL6_AstNode* node)
@@ -36,6 +39,58 @@ static inline int xl6ForeignDecimalInt(const XL6_AstNode* node, int32* output)
     return 1;
 }
 
+static inline int xl6ForeignQuotedText(const XL6_AstNode*,char*,size_t);
+static inline int xl6ForeignIdentifier(const char*);
+static inline int xl6ForeignPointerSpelling(const char*);
+static inline int xl6ForeignHeaderName(const char*);
+
+static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
+    XL6_ForeignParameterContract* output)
+{
+    XL6_ForeignParameterContract result={0};
+    int32 index;
+    if(!attr || !attr->text || !attr->childCount ||
+        !xl6ForeignDecimalInt(attr->children[0],&index) || index<0 || index>=64)return 0;
+    result.parameter=(uint32)index;
+    if(!strcmp(attr->text,"c_span")) {
+        char count[32];
+        if((attr->childCount!=3 && attr->childCount!=4) || !xl6ForeignQuotedText(attr->children[1],result.pointerCName,sizeof(result.pointerCName)) ||
+            !xl6ForeignPointerSpelling(result.pointerCName) ||
+            !xl6ForeignQuotedText(attr->children[2],count,sizeof(count)))return 0;
+        if(attr->childCount==4 && (!xl6ForeignQuotedText(attr->children[3],result.header,sizeof(result.header)) ||
+            !xl6ForeignHeaderName(result.header)))return 0;
+        result.kind=XL6_FOREIGN_PARAMETER_SPAN;
+        if(!strcmp(count,"size_t"))result.countAbi=XL6_FOREIGN_SPAN_COUNT_SIZE;
+        else if(!strcmp(count,"int"))result.countAbi=XL6_FOREIGN_SPAN_COUNT_INT;
+        else return 0;
+        const char* element=result.pointerCName;
+        if(!strncmp(element,"const ",6)){result.readOnly=true;element+=6;}
+        const char* end=strchr(element,'*');
+        if(!end || end[1])return 0; /* Exactly one explicit pointer level. */
+        size_t bytes=(size_t)(end-element);
+        while(bytes && element[bytes-1]==' ')--bytes;
+        if(!bytes || bytes>=sizeof(result.elementCName))return 0;
+        memcpy(result.elementCName,element,bytes);result.elementCName[bytes]=0;
+    } else if(!strcmp(attr->text,"c_owned_callback")) {
+        int32 owner;
+        if((attr->childCount!=4 && attr->childCount!=5) ||
+            !xl6ForeignDecimalInt(attr->children[1],&owner) || owner<0 || owner>=64 ||
+            !xl6ForeignQuotedText(attr->children[2],result.callbackOwnerCName,sizeof(result.callbackOwnerCName)) ||
+            !xl6ForeignIdentifier(result.callbackOwnerCName) ||
+            !xl6ForeignDecimalInt(attr->children[3],&result.callbackFailureCode))return 0;
+        result.kind=XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK;
+        result.callbackOwnerIndexPlusOne=(uint32)owner+1;
+        if(attr->childCount==5) {
+            char order[16];
+            if(!xl6ForeignQuotedText(attr->children[4],order,sizeof(order)))return 0;
+            if(!strcmp(order,"first"))result.callbackUserFirst=true;
+            else if(strcmp(order,"last"))return 0;
+        }
+    } else return 0;
+    if(output)*output=result;
+    return 1;
+}
+
 static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     XL6_ForeignCallFacts* output)
 {
@@ -45,16 +100,30 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         const XL6_AstNode* attr = attributes->children[i];
         int32 index;
         if (attr && attr->text && !strcmp(attr->text, "c_result")) {
-            const XL6_AstNode* value = attr->childCount == 1 ? attr->children[0] : NULL;
+            const XL6_AstNode* value = attr->childCount ? attr->children[0] : NULL;
             if (facts.borrowedViewResult || !value || value->kind != XL6_AST_STRING || !value->text) return 0;
             if (!strcmp(value->text, "\"text_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_TEXT;
             else if (!strcmp(value->text, "\"bytes_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_BYTES;
+            else if (!strcmp(value->text, "\"owned_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE;
+            else if (!strcmp(value->text, "\"owner_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE;
+            else if (!strcmp(value->text, "\"bool_status\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS;
             else return 0;
+            if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE){
+                int32 source;
+                if(attr->childCount!=2 || !xl6ForeignDecimalInt(attr->children[1],&source) || source<0 || source>=64)return 0;
+                facts.resultOwnerIndexPlusOne=(uint32)source+1;
+            }else if(attr->childCount!=1)return 0;
             continue;
         }
         if (!attr || !attr->text || !attr->childCount ||
             !xl6ForeignDecimalInt(attr->children[0], &index) || index < 0 || index >= 64) return 0;
-        if (!strcmp(attr->text, "c_text_view")) {
+        if (!strcmp(attr->text,"c_span") || !strcmp(attr->text,"c_owned_callback")) {
+            XL6_ForeignParameterContract contract;
+            uint64 bit=UINT64_C(1)<<index;
+            if(!xl6ForeignParameterRead(attr,&contract) || ((facts.spanParameters|facts.retainedCallbacks)&bit))return 0;
+            if(contract.kind==XL6_FOREIGN_PARAMETER_SPAN)facts.spanParameters|=bit;
+            else facts.retainedCallbacks|=bit;
+        } else if (!strcmp(attr->text, "c_text_view")) {
             uint64 bit = UINT64_C(1) << index;
             if (attr->childCount != 1 || (facts.textViews & bit)) return 0;
             facts.textViews |= bit;
@@ -62,6 +131,14 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             uint64 bit = UINT64_C(1) << index;
             if (attr->childCount != 1 || (facts.bytesViews & bit)) return 0;
             facts.bytesViews |= bit;
+        } else if (!strcmp(attr->text,"c_cstr")) {
+            uint64 bit = UINT64_C(1) << index;
+            if (attr->childCount != 1 || (facts.terminatedStrings & bit)) return 0;
+            facts.terminatedStrings |= bit;
+        } else if(!strcmp(attr->text,"c_control")){
+            uint64 bit=UINT64_C(1)<<index;
+            if(attr->childCount!=1 || (facts.controlViews&bit))return 0;
+            facts.controlViews|=bit;
         } else if (!strcmp(attr->text, "c_ref")) {
             uint64 bit = UINT64_C(1) << index;
             if (attr->childCount != 1 || (facts.constRecordAddresses & bit)) return 0;
@@ -79,9 +156,11 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             facts.rollbackSymbol = attr->children[2]->semanticSymbolId;
         } else return 0;
     }
-    if ((facts.textViews & (facts.constRecordAddresses | facts.staticCallbackAddresses | facts.bytesViews)) ||
+    if (((facts.spanParameters|facts.retainedCallbacks) & (facts.terminatedStrings|facts.textViews|facts.bytesViews|facts.constRecordAddresses|facts.staticCallbackAddresses)) ||
+        (facts.terminatedStrings & (facts.textViews | facts.bytesViews | facts.constRecordAddresses | facts.staticCallbackAddresses)) ||
+        (facts.textViews & (facts.constRecordAddresses | facts.staticCallbackAddresses | facts.bytesViews)) ||
         (facts.bytesViews & (facts.constRecordAddresses | facts.staticCallbackAddresses)) ||
-        (facts.borrowedViewResult && facts.outputIndexPlusOne)) return 0;
+        (facts.borrowedViewResult && facts.borrowedViewResult<=XL6_FOREIGN_VIEW_RESULT_BYTES && facts.outputIndexPlusOne)) return 0;
     if (output) *output = facts;
     return 1;
 }
@@ -192,6 +271,12 @@ static inline int xl6ForeignClassRead(const XL6_AstNode* node,
     for (size_t i = 1; i < declaration->childCount; ++i) {
         const XL6_AstNode* attr = declaration->children[i];
         char value[256];
+        if(attr && attr->kind==XL6_AST_FIELD_ATTR && attr->text && !strcmp(attr->text,"owner")){
+            const XL6_AstNode* name=attr->childCount==1 ? attr->children[0] : NULL;
+            if((seen&16) || !name || name->kind!=XL6_AST_NAME || !name->text ||
+                strlen(name->text)>=sizeof(result.owner))return -1;
+            strcpy(result.owner,name->text);result.ownerSymbol=name->semanticSymbolId;seen|=16;continue;
+        }
         if (!attr || attr->kind != XL6_AST_FIELD_ATTR || !attr->text ||
             attr->childCount != 1 ||
             !xl6ForeignQuotedText(attr->children[0], value, sizeof(value))) return -1;
@@ -199,12 +284,28 @@ static inline int xl6ForeignClassRead(const XL6_AstNode* node,
             if ((seen & 1) || !xl6ForeignHeaderName(value)) return -1;
             memcpy(result.header, value, strlen(value) + 1); seen |= 1;
         } else if (!strcmp(attr->text, "lifetime")) {
-            if ((seen & 2) || strcmp(value, "caller")) return -1;
+            if (seen & 2) return -1;
+            if(!strcmp(value,"caller"))result.lifetime=XL6_FOREIGN_LIFETIME_CALLER;
+            else if(!strcmp(value,"owned"))result.lifetime=XL6_FOREIGN_LIFETIME_OWNED;
+            else if(!strcmp(value,"owner"))result.lifetime=XL6_FOREIGN_LIFETIME_OWNER;
+            else return -1;
             seen |= 2;
+        } else if(!strcmp(attr->text,"policy")){
+            if((seen&4) || !xl6ForeignIdentifier(value) || strlen(value)>=sizeof(result.policy))return -1;
+            strcpy(result.policy,value);seen|=4;
+        } else if(!strcmp(attr->text,"scope")){
+            if((seen&8) || !xl6ForeignIdentifier(value) || strlen(value)>=sizeof(result.scope))return -1;
+            strcpy(result.scope,value);seen|=8;
+        } else if(!strcmp(attr->text,"watch")){
+            if((seen&32) || !xl6ForeignIdentifier(value) || strlen(value)>=sizeof(result.watch))return -1;
+            strcpy(result.watch,value);seen|=32;
         } else return -1;
     }
-    if (seen != 3) {
-        if (error) *error = "external class requires @header(\"...\") and @lifetime(\"caller\")";
+    unsigned expected=result.lifetime==XL6_FOREIGN_LIFETIME_CALLER ? 3 :
+        result.lifetime==XL6_FOREIGN_LIFETIME_OWNED ? ((seen&8)?15:7) : 23;
+    if(result.lifetime!=XL6_FOREIGN_LIFETIME_CALLER && (seen&32))expected|=32;
+    if (seen != expected) {
+        if (error) *error = "external class requires an exact header/lifetime contract; owned views also need policy/scope, owner views need policy/owner";
         return -1;
     }
     if (output) *output = result;

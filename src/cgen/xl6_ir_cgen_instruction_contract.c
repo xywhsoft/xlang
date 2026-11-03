@@ -203,12 +203,12 @@ static int xl6IrCgenEmitNullableInstruction(
             (unsigned int)instruction->result,
             xl6IrCgenType(module, instruction->type), (unsigned int)value);
     } else if ( instruction->kind == XL6_IR_INSTR_NULLABLE_UNWRAP &&
-                (operandType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE || xl6IrNullableNativeValuePlan(&module->types,operandType)!=NULL) ) {
+                operandType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE ) {
         xl6OutputPrintf(out, "    v%u = v%u.value;\n",
             (unsigned int)instruction->result, (unsigned int)value);
     } else {
         if(instruction->kind==XL6_IR_INSTR_NULLABLE_WRAP &&
-            xl6IrNullableNativeValuePlan(&module->types,xl6IrTypeGet(&module->types,instruction->type))){
+            xl6IrTypeGet(&module->types,instruction->type)->nullAbi==XL6_IR_NULL_ABI_TAGGED_VALUE){
             xl6OutputPrintf(out,"    v%u = (%s){ true, v%u };\n",(unsigned)instruction->result,
                 xl6IrCgenType(module,instruction->type),(unsigned)value);
             return !xl6OutputHasFailed(out);

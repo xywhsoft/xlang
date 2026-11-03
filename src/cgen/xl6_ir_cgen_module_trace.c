@@ -41,6 +41,13 @@ static int xl6IrCgenEmitModuleOwnershipTrace(XL6_Output* out,
             xl6OutputPuts("    return false; /* explicit opaque global storage */\n", out);
             continue;
         }
+        if(storage->moduleTraceAbi==XL6_IR_FRAME_TRACE_NATIVE_GRAPH){
+            const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,storage->type));
+            if(!native || !native->graphCapture)return 0;
+            xl6OutputPrintf(out,"    if (!xl6NativeGraphCaptureTraceV1(%s(), &",native->captureProfileSymbol);
+            xl6IrCgenPutStorageName(out,module,storage->symbol);
+            xl6OutputPuts(", visit, context)) return false;\n",out);continue;
+        }
         view = xl6IrCgenOwnershipView(storage->moduleTraceAbi);
         if (view == NULL) return 0;
         xl6OutputPrintf(out, "    if (!visit(%s(", view);

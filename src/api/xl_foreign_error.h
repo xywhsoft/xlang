@@ -69,6 +69,9 @@ XL6_FOREIGN_API void xl6ErrorScopeCaptureFailure(xl6_error_scope* scope);
  * Do not substitute that rule for diagnostic-only APIs: a NULL diagnostic
  * cannot represent their failure independently of an enclosing call scope. */
 XL6_FOREIGN_API void xl6ErrorScopePropagateFailure(xl6_error_result failure);
+/* Consume only if an enclosing boundary exists; otherwise leave the owned
+ * failure unchanged for the callback owner's deferred checked delivery. */
+XL6_FOREIGN_API bool xl6ErrorScopeTryPropagateFailureV1(xl6_error_result*);
 
 XL6_FOREIGN_API bool xl6ForeignCallBegin(xl6_foreign_error_scope* scope);
 XL6_FOREIGN_API xl6_foreign_error_result xl6ForeignCallEnd(xl6_foreign_error_scope* scope);

@@ -19,6 +19,8 @@
     src\runtime\xl6_foreign_net.c
     src\runtime\xl6_xacme.c
     src\runtime\xl6_native_handle.c
+    src\runtime\xl6_native_handle_access.c
+    src\runtime\xl6_buffer_span.c
     src\runtime\xl6_closure.c
     src\runtime\xl6_cell.c
     src\runtime\xl6_slot.c

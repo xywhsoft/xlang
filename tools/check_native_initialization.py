@@ -2,6 +2,7 @@
 controls keep their existing contracts. Source compiler only, no foreign calls.
 """
 from pathlib import Path
+from runtime_layout import runtime_directory
 import argparse,hashlib,json,subprocess,os
 
 
@@ -14,7 +15,7 @@ def main():
     out.mkdir(parents=True)
     sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
     inputs={str(p):sha(p) for p in (Path(__file__).resolve(),driver)}
-    provider=root/('release/xl.dll' if os.name=='nt' else 'release/libxl.so')
+    provider=runtime_directory(root)/('xl.dll' if os.name=='nt' else 'libxl.so')
     inputs[str(provider)]=sha(provider)
     env=dict(os.environ,XL6_SOURCE_NATIVE_ROOT=str(root))
     native='class NativeProbe\n native point handle\nend\n'

@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-04",
+  "kind": "compiler-foundation-checkpoint",
+  "shippingProductsUpdated": false,
+  "eightTasksComplete": false,
+  "networkTests": false,
+  "windowsFullSourceUnits": 1412,
+  "tccObjects": 1560,
+  "canonicalBatchGroups": 17,
+  "canonicalBatchPassed": true,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r6\\build.json",
+      "sha256": "f0a8354638d79e2e5bc21317b5d95070eaf150734823ed77ae41e1ff356a076f"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\batch-r6\\results.json",
+      "sha256": "e7e55f0acc5b07826fd14a09e23f571b560dfd53f0583d8dad492c02366d364d"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\probe-admission-r2\\results.json",
+      "sha256": "49baa96d4c7db87de324e84edb48c9eb1df63145c83ccaaec587793c89bae658"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\userdata-mailbox-r2\\results.json",
+      "sha256": "bc4811545f52ebfd6504843668ee63611eb6b710af8bb094e3f333df3cc588b6"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\legacy-ir-r4\\results.json",
+      "sha256": "c1ba7afc9f2ade6f643ebd32cf635847d42d906b342fe0ace8b34ee0d3e50ad9"
+    }
+  ],
+  "remaining": [
+    "callback-lifetime Event/DrawContext language contract",
+    "remaining XGE/XUI native callback owner slots",
+    "independent native resources",
+    "package initialization and complete declarations",
+    "SDK IDE examples and product acceptance"
+  ]
+}

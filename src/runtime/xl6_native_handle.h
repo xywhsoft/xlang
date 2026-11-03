@@ -1,6 +1,7 @@
 #ifndef XL6_NATIVE_HANDLE_H
 #define XL6_NATIVE_HANDLE_H
 #include "xl6_code_lease.h"
+#include "xl6_foreign_context.h"
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -39,6 +40,36 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TccHandlerHandlePolicyV1Ge
  * No enclosing ownership mutation may span this call's arbitrary cleanup. */
 XL6_CODE_LEASE_API struct xvalue* xl6NativeHandleTakeV1(
     void** slot, const XL6_NativeHandlePolicyV1* policy);
+typedef enum XL6_NativeHandleAccessModeV1 {
+    XL6_NATIVE_HANDLE_ACCESS_CALL_V1=1,
+    XL6_NATIVE_HANDLE_ACCESS_READ_SPAN_V1,
+    XL6_NATIVE_HANDLE_ACCESS_WRITE_SPAN_V1,
+    XL6_NATIVE_HANDLE_ACCESS_TAKE_V1
+} XL6_NativeHandleAccessModeV1;
+/* Intrusive caller stack storage. No allocation or user code under the native
+ * registry lock. Ordinary operations retain their existing concurrency rules;
+ * spans exclude operations which could invalidate their storage, including
+ * reentry and calls begun on another thread. No pointer may escape the call. */
+typedef struct XL6_NativeHandleAccessV1 {
+    struct XL6_NativeHandleAccessV1* self;
+    struct XL6_NativeHandleAccessV1* next;
+    struct XL6_NativeHandleAccessV1** previous;
+    struct xvalue* value;
+    void* raw;
+    const struct xvaluehandleops* operations;
+    XL6_NativeHandleAccessModeV1 mode;
+    XL6_ForeignCallContextV1 execution;
+} XL6_NativeHandleAccessV1;
+XL6_CODE_LEASE_API bool xl6NativeHandleAccessBeginV1(struct xvalue*,
+    const XL6_NativeHandlePolicyV1*,XL6_NativeHandleAccessModeV1,XL6_NativeHandleAccessV1*);
+XL6_CODE_LEASE_API bool xl6NativeHandleAccessEndV1(XL6_NativeHandleAccessV1*);
+typedef struct XL6_BufferSpanV1 {
+    XL6_NativeHandleAccessV1 access;
+    void* data;
+    size_t bytes;
+} XL6_BufferSpanV1;
+XL6_CODE_LEASE_API bool xl6BufferSpanBeginV1(struct xvalue*,bool,XL6_BufferSpanV1*);
+XL6_CODE_LEASE_API bool xl6BufferSpanEndV1(XL6_BufferSpanV1*);
 XL6_CODE_LEASE_API bool xl6NativeHandleTraceLeaf(const struct xvalue*,
     bool (*)(struct xrtownershipref, void*), void*);
 

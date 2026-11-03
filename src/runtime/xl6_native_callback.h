@@ -34,5 +34,8 @@ typedef struct XL6_NativeCallbackRuntimeV1 {
     bool (*DropNative)(const void*);
 } XL6_NativeCallbackRuntimeV1;
 XL6_CODE_LEASE_API const XL6_NativeCallbackRuntimeV1* xl6NativeCallbackRuntimeV1Get(void);
+/* Consume failure into the immediate checked boundary, or the pinned root
+ * when called by a native publisher outside language execution. */
+XL6_CODE_LEASE_API bool xl6NativeCallbackReportFailureV1(XL6_NativeCallback*,struct xl6_foreign_error_result);
 XL6_CODE_LEASE_API const struct XL6_OwnershipDomainV1* xl6OwnershipDomainNativeCallbackV1Get(void);
 #endif

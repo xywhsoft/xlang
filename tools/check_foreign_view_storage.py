@@ -16,6 +16,7 @@ def main():
     p.add_argument('--callbacks',action='store_true')
     p.add_argument('--userdata',action='store_true')
     p.add_argument('--values',action='store_true',help='test native view ownership in ordinary class/value storage')
+    p.add_argument('--probes',action='store_true',help='test stack factory observations and typed owner copies')
     p.add_argument('--sequences',action='store_true',help='test owning typed native view slots, erasure and graph cycles')
     p.add_argument('--xui-build',type=Path,help='exercise actual hosted XUI event slots with the same resident core')
     p.add_argument('--xui-root',type=Path,default=Path('D:/GIT/xge'))
@@ -25,14 +26,15 @@ def main():
     build=json.loads((base/'build.json').read_text(encoding='utf-8-sig'))
     assert build['Complete'] and build['InputsUnchanged']
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
-    assert sum(map(bool,(a.callbacks,a.userdata,a.xui_build,a.values,a.sequences)))<=1
-    fixture='foreign_view_sequence.c' if a.sequences else 'foreign_view_value.c' if a.values else 'foreign_native_xui_callback.c' if a.xui_build else 'foreign_native_userdata.c' if a.userdata else 'foreign_view_callbacks.c' if a.callbacks else 'foreign_view_storage.c'
+    assert sum(map(bool,(a.callbacks,a.userdata,a.xui_build,a.values,a.sequences,a.probes)))<=1
+    fixture='foreign_result_probe.c' if a.probes else 'foreign_view_sequence.c' if a.sequences else 'foreign_view_value.c' if a.values else 'foreign_native_xui_callback.c' if a.xui_build else 'foreign_native_userdata.c' if a.userdata else 'foreign_view_callbacks.c' if a.callbacks else 'foreign_view_storage.c'
     sources=[root/('test/support/'+fixture)]+[root/('src/runtime/'+n+'.c') for n in (
         'xl6_cell','xl6_native_future_payload','xl6_foreign_view','xl6_foreign_callback_scope','xl6_foreign_context',
         'xl6_closure','xl6_code_finalizer',
         'xl6_native_capture_graph','xl6_foreign_view_capture','xl6_capture_v3','xl6_closure_capture_v4',
         'xl6_cell_native_graph','xl6_native_graph_future_payload','xl6_ownership_domain_native_graph_future_payload')]
-    if a.userdata or a.xui_build:sources.append(root/'src/runtime/xl6_native_callback.c')
+    if a.probes:sources += [root/('src/runtime/'+name+'.c') for name in ('xl6_native_handle','xl6_native_handle_access','xl6_buffer_span','xl6_buffer_core','xl6_task_frame','xl6_future_callback','xl6_future_callback_queue','xl6_future_callback_interrupt','xl6_tls_class_future','xl6_tls_recv_owned_future','xl6_udp_future','xl6_generator','xl6_continuation_frame')]
+    if a.userdata or a.xui_build:sources += [root/'src/runtime/xl6_native_callback.c',root/'tools/xrt_single_header_impl.c']
     if a.values or a.sequences or a.xui_build:sources.append(root/'src/runtime/xl6_foreign_view_value.c')
     if a.sequences:sources.append(root/'src/runtime/xl6_foreign_view_sequence.c')
     base_root=next(Path(row['Source']).parents[2] for row in build['Objects'] if Path(row['Source']).name=='xl_api.c')
@@ -83,12 +85,13 @@ def main():
     # about real type/signature mismatches is disabled.
     if os.name!='nt':baseflags+=['-Wno-unused-function','-Wno-unused-const-variable']
     baseflags+=['-I'+str(sdk),'-I'+str(sdk/'include')]
+    baseflags=[flag.replace(str(base_root),str(root)) for flag in baseflags]
     if a.sanitize:baseflags+=['-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie']
     if engine:
         baseflags+=['-DXGE_DLL','-DXUI_DLL','-DXGE_XRT_HOST=1','-Wno-cast-function-type',
             '-I'+str(a.xui_root),'-I'+str(a.xui_root/'include'),'-I'+str(a.xui_build/'host-xrt'),
             '-include',str(a.xui_build/'xge_build_config.h')]
-    cases=('typed','nullable','erased','stack','cycle','allocation','all') if a.sequences else ('values','class-field','cycle','cleanup','allocation','all') if a.values else ('all',) if engine else ('replacement','nested','binding','cycle','errors','cleanup','affinity','allocation','all') if a.userdata else ('finalizer','context-release','box-invoke','box-drop','all') if a.callbacks else ('cells','cell-cycle','futures','future-cycle','cleanup','allocation','all')
+    cases=('all',) if a.probes else ('typed','nullable','erased','stack','cycle','allocation','all') if a.sequences else ('values','class-field','cycle','cleanup','allocation','all') if a.values else ('all',) if engine else ('replacement','nested','binding','cycle','errors','cleanup','affinity','allocation','all') if a.userdata else ('finalizer','context-release','box-invoke','box-drop','all') if a.callbacks else ('cells','cell-cycle','futures','future-cycle','cleanup','allocation','all')
     for opt in ('O0','O2'):
         modules=[]
         if a.userdata:
@@ -120,7 +123,9 @@ def main():
             if item=='-o':skip_output=True;continue
             if item.endswith('.o') and str(Path(item).resolve()).lower() not in allowed:continue
             response.append(item)
-        exe=out/(opt+('.exe' if os.name=='nt' else '.out'));response += [str(obj) for obj in compiled]+['-o',str(exe)]
+        libraries=[item for item in response if item.startswith('-l')]
+        response=[item for item in response if not item.startswith('-l')]
+        exe=out/(opt+('.exe' if os.name=='nt' else '.out'));response += [str(obj) for obj in compiled]+libraries+['-o',str(exe)]
         if engine:response+=[str(engine),*(['-Wl,-rpath,'+str(engine.parent)] if os.name!='nt' else [])]
         if a.sanitize:response+=['-fsanitize=address,undefined','-no-pie']
         rsp=out/(opt+'.rsp');rsp.write_bytes(('\n'.join('"'+item.replace('\\','/')+'"' for item in response)+'\n').encode())

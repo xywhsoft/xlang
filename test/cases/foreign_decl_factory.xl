@@ -9,6 +9,27 @@ extern "foreign_factory_config_read" @pure @no_raise @nonblocking @c_ref(0) func
 extern "foreign_factory_destroy" @no_raise @nonblocking func dispose(Widget widget)
 extern "foreign_factory_create" @no_raise @nonblocking @factory(1, 0, dispose) @c_ref(1) func create(c_int mode, Config config) as Widget
 extern "foreign_factory_live" @no_raise @nonblocking func live() as c_int
+int inputDrops = 0
+class FactoryInput
+    Config config = Config()
+    destroy()
+        inputDrops += 1
+        throw ValueError "factory argument cleanup failed"
+    end
+end
+func makeFactoryInput() as FactoryInput
+    return FactoryInput()
+end
+class CleanupToken
+    private native point handle
+    extern "foreign_factory_token_open" @no_raise create()
+    destroy()
+        inputDrops+=1
+        throw ValueError "post-call input cleanup failed"
+    end
+end
+extern "foreign_factory_token_calls" @no_raise func tokenCalls() as c_int
+extern "foreign_factory_create_token" @no_raise @factory(1, 0, dispose) @c_ref(1) func createToken(CleanupToken input,Config config) as Widget
 func main(...) as int
     Config config = Config()
     config.value = 42
@@ -19,6 +40,20 @@ func main(...) as int
     assert widget.value == 42 and live() == 1
     dispose(widget)
     assert live() == 0
+    bool cleanupCaught = false
+    try
+        auto discarded = create(0, makeFactoryInput().config)
+    catch ValueError failure
+        cleanupCaught = true
+    end
+    assert cleanupCaught and inputDrops == 1 and live() == 0
+    cleanupCaught=false
+    try
+        auto discarded=createToken(CleanupToken(),config)
+    catch ValueError failure
+        cleanupCaught=true
+    end
+    assert cleanupCaught and inputDrops==2 and live()==0 and tokenCalls()==1
     for mode in array[1, 2, 3]
         bool caught = false
         try

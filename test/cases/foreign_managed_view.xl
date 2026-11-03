@@ -1,0 +1,191 @@
+extern "ManagedRoot*" class Root @header("test/cases/foreign_managed_view.h") @lifetime("owned") @policy("managedRootPolicy") @scope("ManagedScope") @watch("ManagedWatch")
+    native point handle
+    extern "managed_root_read" @no_raise @nonblocking get value() as c_int
+    extern "managed_root_method_read" @no_raise @nonblocking func read() as c_int
+    extern "managed_child_first" @no_raise @nonblocking @c_result("owner_view",0) func first() as Child?
+    extern "xl6ForeignViewCloseV1" @no_raise @nonblocking @c_control(0) @c_result("bool_status") func close()
+end
+extern "ManagedChild*" class Child @header("test/cases/foreign_managed_view.h") @lifetime("owner") @owner(Root) @policy("managedChildPolicy") @watch("ManagedWatch")
+    native point handle
+    extern "managed_child_read" @no_raise @nonblocking get value() as c_int
+    extern "managed_child_owner" @no_raise @nonblocking @c_result("owner_view",0) get context() as Root
+    extern "xl6ForeignViewCloseV1" @no_raise @nonblocking @c_control(0) @c_result("bool_status") func close()
+end
+extern "managed_root_destroy" @no_raise @nonblocking func rollback(Root root)
+extern "managed_root_create" @no_raise @nonblocking @c_result("owned_view") @factory(1,0,rollback) func create(c_int mode) as Root
+extern "managed_roots_live" @no_raise @nonblocking func live() as c_int
+extern "managed_children_live" @no_raise @nonblocking func childLive() as c_int
+extern "managed_child_destroy" @no_raise @nonblocking func rollbackChild(Child child)
+extern "managed_child_create" @no_raise @nonblocking @c_result("owner_view",0) @factory(2,0,rollbackChild) func createChild(Root root,c_int mode) as Child
+extern "managed_reset_failure" @no_raise @nonblocking func resetFailure()
+protocol ReaderApi
+    func value(Root root) as c_int
+    func child(Root root) as Child?
+end
+class NativeReader
+    private native point handle
+    extern "managed_reader_open" @no_raise create()
+    extern "managed_reader_value" @no_raise @nonblocking func value(Root root) as c_int
+    extern "managed_reader_child" @no_raise @nonblocking @c_result("owner_view",1) func child(Root root) as Child?
+end
+func witnessCases()
+    Root root=create(0)
+    Child child=createChild(root,0)
+    NativeReader reader=NativeReader()
+    ReaderApi api=reader
+    assert api.value(root)==42
+    Child? projected=api.child(root)
+    assert projected!=null
+    Child projectedValue=projected as Child
+    assert projectedValue.value==17
+    var dynamic=reader
+    assert dynamic.value(root)==42
+    Child? dynamicChild=dynamic.child(root) as Child?
+    assert dynamicChild!=null
+    Child dynamicValue=dynamicChild as Child
+    assert dynamicValue.value==17
+    root.close()
+    bool rejected=false
+    try
+        auto discarded=api.value(root)
+    catch error
+        rejected=true
+    end
+    assert rejected
+    rejected=false
+    try
+        auto discarded=dynamic.value(root)
+    catch error
+        rejected=true
+    end
+    assert rejected
+end
+func read(Root root) as c_int
+    return root.value
+end
+class Box
+    Root? value
+end
+func storageCases()
+    Root r=create(0)
+    func() as c_int bound=r.read
+    assert bound()==42
+    auto captured=func() as c_int => r.value
+    assert captured()==42
+    Root? optional=r
+    if optional!=null then assert optional.value==42 end
+    var erased=r
+    Root projected=erased as Root
+    assert projected.value==42
+    Box b=Box()
+    b.value=r
+    Root field=b.value as Root
+    assert field.value==42
+    array<Root> values=[]
+    values.append(r)
+    assert values[0].value==42
+    Root taken=values.pop()
+    assert taken.value==42
+    Stack<Root> stack=Stack::<Root>()
+    stack.push(r)
+    Root popped=stack.pop()
+    assert popped.value==42
+    for value in stream(r)
+        assert value.value==42
+    end
+    func(c_int) as Root factory=create
+    Root indirect=factory(0)
+    assert indirect.value==42
+    indirect.close()
+    r.close()
+end
+func stream(Root value) as generator<Root>
+    yield value
+end
+func cellCases()
+    Root r=create(0)
+    auto replace=func()
+        r=create(0)
+    end
+    replace()
+    assert live()==1 and r.value==42
+    r.close()
+end
+func ownerCases()
+    Root root=create(0)
+    assert root.first()==null
+    Child child=createChild(root,0)
+    assert child.value==17 and childLive()==1
+    Child again=root.first() as Child
+    assert again==child
+    Root owner=child.context
+    assert owner==root
+    for mode in [1,2,3,4]
+        bool caught=false
+        try
+            Child bad=createChild(root,c_int(mode))
+        catch error
+            caught=true
+        finally
+            resetFailure()
+        end
+        assert caught and childLive()==1
+    end
+    root.close()
+    assert childLive()==0
+    bool rejected=false
+    try
+        auto bad=child.value
+    catch error
+        rejected=true
+    end
+    assert rejected
+end
+async func ready() as int
+    return 1
+end
+async func after(future<int> pending,Root root) as Root
+    int value=await pending
+    assert value==1
+    return root
+end
+func main(...) as int
+    assert live()==0
+    storageCases()
+    assert live()==0
+    cellCases()
+    assert live()==0
+    ownerCases()
+    assert live()==0
+    witnessCases()
+    assert live()==0
+    Root root=create(0)
+    assert root.value==42 and live()==1
+    Root copy=root
+    assert read(copy)==42
+    copy.close()
+    assert live()==0
+    bool caught=false
+    try
+        auto value=root.value
+    catch error
+        caught=true
+    end
+    assert caught
+    for mode in [1,2,4]
+        caught=false
+        try
+            Root bad=create(c_int(mode))
+        catch error
+            caught=true
+        finally
+            resetFailure()
+        end
+        assert caught and live()==0
+    end
+    return 0
+end
+Root globalRoot=create(0)
+Root resumed=await after(ready(),globalRoot)
+assert resumed.value==42
+resumed.close()

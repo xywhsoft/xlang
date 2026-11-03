@@ -67,9 +67,9 @@ static int xl6IrCgenEmitAsyncFrameHandoff(
 /* The payload ABI fixes physical drop glue; it is not inferred from a source
  * type spelling or an expression producer. Both launch and resume use the same
  * allocation/acceptance/rollback protocol. */
-static int xl6IrCgenAsyncResultDrop(XL6_IrAsyncResultAbi abi, const char** release, const char** destroy)
+static int xl6IrCgenAsyncResultDrop(const XL6_IrModule* module,XL6_IrTypeId id,XL6_IrAsyncResultAbi abi, const char** release, const char** destroy)
 {
-    *release = NULL; *destroy = xl6IrCgenAsyncPayloadDestroy(abi);
+    *release = NULL; *destroy = xl6IrCgenAsyncPayloadDestroy(module,id,abi);
     switch (abi) {
     case XL6_IR_ASYNC_RESULT_COPY_BOOL: case XL6_IR_ASYNC_RESULT_COPY_CHAR:
     case XL6_IR_ASYNC_RESULT_COPY_I64:
@@ -130,7 +130,7 @@ static int xl6IrCgenEmitAsyncResultCommit(
         machine->completionAbi != XL6_IR_ASYNC_COMPLETION_RETIRE_BEFORE_PUBLISH ||
         instruction->operandCount != (hasPayload ? 1u : 0u) ||
         (hasPayload && (type == NULL ||
-            !xl6IrCgenAsyncResultDrop(target->asyncResultAbi, &release, &destroy))) ||
+            !xl6IrCgenAsyncResultDrop(module,target->workerReturnType,target->asyncResultAbi, &release, &destroy))) ||
         (!hasPayload && target->workerReturnType != XL6_IR_TYPE_INVALID))
         return xl6IrCgenDiag(diags, module, instruction->origin, "XLIR async result commit transaction is unresolved");
     if (release != NULL) snprintf(unboxedDrop, sizeof(unboxedDrop), "%s(v%u);", release,
@@ -168,7 +168,7 @@ static int xl6IrCgenEmitAsyncResultCommit(
     xl6IrCgenEmitAsyncCompletionBarrier(out);
     xl6OutputPuts("      if (!", out);
     if (hasPayload) {
-        if (!xl6IrCgenEmitAsyncPayloadPublish(out, target->asyncResultAbi, promise, "value")) return 0;
+        if (!xl6IrCgenEmitAsyncPayloadPublish(out,module,target->workerReturnType, target->asyncResultAbi, promise, "value")) return 0;
     } else xl6OutputPrintf(out, "xrtPromiseResolve(%s, NULL)", promise);
     xl6OutputPuts(") {\n        if (xrtGetError() == NULL) xrtSetErrorKind(XERR_STATE);\n", out);
     xl6IrCgenEmitAsyncResultRollback(out, target, boxedDrop);

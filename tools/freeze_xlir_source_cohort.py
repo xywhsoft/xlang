@@ -9,6 +9,7 @@ import hashlib
 import json
 import shutil
 import subprocess
+from runtime_layout import runtime_directory, runtime_source
 
 
 def sha(path):
@@ -19,22 +20,25 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--target',choices=('win64','linux64'))
     args = parser.parse_args()
     root, out = args.root.resolve(), args.out.resolve()
     assert not out.exists() and not out.is_relative_to(root)
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip()
     paths = set()
-    for folder in ['src', 'lib', 'include', 'res/tcc', 'release/include', 'tools', 'test/cases', 'test/support']:
-        paths.update(p for p in (root/folder).rglob('*') if p.is_file() and '__pycache__' not in p.parts)
-    paths.update(root/p for p in ['release/xl.dll', 'build_dll.bat', 'build_linux.sh'])
+    runtime = runtime_directory(root,args.target)
+    for folder in [root/p for p in ['src', 'lib', 'include', 'res/tcc', 'tools', 'test/cases', 'test/support']] + [runtime/'include']:
+        paths.update(p for p in folder.rglob('*') if p.is_file() and '__pycache__' not in p.parts)
+    paths.update(root/p for p in ['build_dll.bat', 'build_linux.sh'])
+    paths.update(p for p in [runtime/'xl.dll', runtime/'xlc.dll', runtime/'libxl.so', runtime/'libxlc.so'] if p.is_file())
     # Native source package inputs outside src/lib are explicit manifest
     # dependencies too, even when this driver's executable never calls them.
-    for name in ['tcc_vfs_manifest_win64_xlc.txt', 'tcc_vfs_manifest_linux_xlc.txt']:
+    for name in (['tcc_vfs_manifest_'+('linux' if args.target=='linux64' else 'win64')+'_xlc.txt'] if args.target else ['tcc_vfs_manifest_win64_xlc.txt', 'tcc_vfs_manifest_linux_xlc.txt']):
         for line in (root/'tools'/name).read_text(encoding='utf-8-sig').splitlines():
             parts = line.split('|')
             if len(parts) < 3 or not parts[2].startswith('%XL6_ROOT%'):
                 continue
-            source = Path(parts[2].replace('%XL6_ROOT%', str(root)).replace('\\', '/'))
+            source = runtime_source(root, Path(parts[2].replace('%XL6_ROOT%', str(root)).replace('\\', '/')),args.target)
             assert source.is_relative_to(root)
             if parts[0] == 'file':
                 paths.add(source)

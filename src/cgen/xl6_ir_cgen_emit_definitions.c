@@ -181,7 +181,7 @@ static int xl6IrCgenEmitModuleDefinitions(
         size_t capture;
         if ( closure->reachability == XL6_IR_REACHABILITY_UNREACHABLE ||
              closure->captureCount == 0 ) continue;
-        int nativeLayout=xl6IrClosureEnvironmentAbi(module,closure)==XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3;
+        int nativeLayout=xl6IrClosureEnvironmentAbi(module,closure)>=XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3;
         xl6OutputPrintf(out, "typedef struct xlir_closure_env_%u {\n",
                         (unsigned int)closure->targetSymbol);
         for ( capture = 0; capture < closure->captureCount; ++capture ) {
@@ -235,7 +235,11 @@ static int xl6IrCgenEmitModuleDefinitions(
             const XL6_IrClosureCapture* item = &module->closureCaptures[closure->firstCapture + capture];
             const char* kind;
             switch ( item->abi ) {
-            case XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE:kind="XL6_CAPTURE_NATIVE_LEAF_V2";break;
+            case XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE: {
+                const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,item->type));
+                if(!native)return 0;
+                kind=native->graphCapture ? "XL6_CAPTURE_NATIVE_GRAPH_V3" : "XL6_CAPTURE_NATIVE_LEAF_V2";break;
+            }
             case XL6_IR_CLOSURE_CAPTURE_RETAIN_XVALUE: kind = "XL6_CLOSURE_CAPTURE_XVALUE"; break;
             case XL6_IR_CLOSURE_CAPTURE_RETAIN_CLOSURE: kind = "XL6_CLOSURE_CAPTURE_CLOSURE"; break;
             case XL6_IR_CLOSURE_CAPTURE_RETAIN_CELL: kind = "XL6_CLOSURE_CAPTURE_CELL"; break;

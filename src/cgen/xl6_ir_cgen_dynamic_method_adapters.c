@@ -255,87 +255,15 @@ static int xl6IrCgenEmitDynamicNativeWitness(
     XL6_Output* out, const XL6_IrModule* module, const XL6_IrCallTarget* target,
     XL6_DiagList* diags)
 {
-    XL6_IrNativeCallValuePlan valuePlan={0};
-    if (!xl6IrNativeCallValuePlanBuild(module,target,&valuePlan)) return 0;
-    bool encoded=xl6IrCgenNativeCallValueEncoded(&valuePlan);
-    char input[40];
-    if (valuePlan.inputParameter>1)snprintf(input,sizeof(input),"a%u",valuePlan.inputParameter-2);
-    else snprintf(input,sizeof(input),"receiver");
     xl6OutputPuts("    { xl6_foreign_error_scope nativeScope = {0}; xl6_foreign_error_result nativeOutcome;\n", out);
-    for ( size_t p = 0; p < target->parameterCount; ++p )
-        if ( target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW )
-            xl6OutputPrintf(out, "      void* native%lu = NULL;\n", (unsigned long)p);
     xl6OutputPuts("      if (!xl6ForeignCallBegin(&nativeScope)) goto fail;\n", out);
-    for ( size_t p = 0; p < target->parameterCount; ++p ) {
-        const XL6_IrClassField* field;
-        if ( target->parameterPhysicalAbis[p] != XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW ) continue;
-        field = xl6IrCgenNativeClassPhysicalField(module, target, p);
-        if ( field == NULL ) return xl6IrCgenDiag(diags, module, target->declaration,
-            "XLIR dynamic native operand has no exact physical field");
-        xl6OutputPuts("      { xvalue* field = xrtValueObjectGet(", out);
-        if ( p == 0 ) xl6OutputPuts("receiver", out);
-        else xl6OutputPrintf(out, "a%lu", (unsigned long)(p - 1));
-        xl6OutputPuts(", xlir_literal_view(", out);
-        xl6IrCgenEmitCStringLiteral(out, field->name);
-        xl6OutputPrintf(out,
-            ")); if (field == NULL || !%s(field, &native%lu%s)) { if (!nativeScope.failed && xrtGetError() == NULL) xrtSetErrorTake(xlir_error_create(\"TypeError\", \"dynamic native argument has no valid declared field\")); xl6ErrorScopeCaptureFailure(&nativeScope); goto native_done; } }\n",
-            field->nativeDestroySymbol != 0 ? "xrtValueGetHandle" : "xrtValueGetPointer",
-            (unsigned long)p, field->nativeDestroySymbol != 0 ? ", NULL, NULL" : "");
-    }
-    if (!xl6IrCgenNativeCallValueBegin(out,module,&valuePlan,input,"nativeScope")) return 0;
-    int bytesPrepared=xl6IrCgenPrepareBytesViews(out,target,NULL);
-    xl6OutputPuts("      ", out);
-    if (target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY)
-        xl6OutputPrintf(out,"%s borrowed_raw = ",xl6IrCgenBorrowedResultCType(target));
-    else if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
-        xl6OutputPuts("callResult = ", out);
-    else if ( target->returnType != XL6_IR_TYPE_INVALID && target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_NONE )
-        xl6OutputPuts(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE
-            ? "callResult.value.Data = " : "callResult.value = ", out);
-    xl6OutputPrintf(out, "%s(", target->cName);
-    if(target->nativeServicesRequired) {
-        if(!xl6IrCgenEmitNativeServices(out,target))return 0;
-        if(target->nativeContextAbi || target->parameterCount)xl6OutputPuts(", ",out);
-    }
-    if(target->nativeContextAbi!=XL6_IR_CALL_NATIVE_CONTEXT_NONE) {
-        if(!xl6IrCgenEmitNativeContext(out,module,target))return 0;
-        if(target->parameterCount)xl6OutputPuts(", ",out);
-    }
-    for ( size_t p = 0; p < target->parameterCount; ++p ) {
-        if ( p ) xl6OutputPuts(", ", out);
-        if (encoded && valuePlan.inputParameter==p+1)
-            xl6OutputPuts("&native_value_input",out);
-        else if ( target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW )
-            xl6OutputPrintf(out, "native%lu", (unsigned long)p);
-        else if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW)
-            xl6OutputPrintf(out,"&a%lu",(unsigned long)(p-1));
-        else if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD)
-            xl6OutputPuts("NULL",out);
-        else if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW)
-            xl6OutputPrintf(out,"xlir_bytes_arg_%lu",(unsigned long)p);
-        else if ( p == 0 ) xl6OutputPuts("receiver", out);
-        else xl6OutputPrintf(out, "a%lu%s", (unsigned long)(p - 1), xl6IrCgenDirectPlaceSuffix(module, target, p));
-    }
-    if(target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1) {
-        if(target->parameterCount || target->nativeContextAbi || target->nativeServicesRequired)xl6OutputPuts(", ",out);
-        xl6OutputPuts(encoded&&valuePlan.output?"&native_value_output":"&callResult.value",out);
-    }
-    xl6OutputPuts(")", out);
-    xl6OutputPuts(";\n", out);
-    if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY)
-        xl6IrCgenEmitBorrowedValueAdmission(out,module,target,"callResult.value","borrowed_raw","nativeScope");
-    if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE)
-        xl6IrCgenEmitOwnedStringAdmission(out,module,target,"callResult.value","nativeScope.failed");
-    /* OWNED inputs are consumed only by actual native entry. Nulling the local
-     * witnesses prevents the later failure path from releasing them again. */
-    for ( size_t p = 1; p < target->parameterCount; ++p )
-        if ( target->parameterAbis[p] == XL6_IR_PARAMETER_ABI_OWNED )
-            xl6OutputPrintf(out, "      a%lu = (%s){0};\n", (unsigned long)(p - 1), xl6IrCgenType(module, target->parameterTypes[p]));
-    if (!xl6IrCgenNativeCallValueEnd(out,module,&valuePlan,"callResult.value","nativeScope")) return 0;
-    if(bytesPrepared)xl6OutputPuts("    }\n",out);
+    int handles = xl6IrCgenWitnessNativeHandles(out, module, target, "nativeScope");
+    if (handles < 0) return 0;
+    if (!xl6IrCgenEmitWitnessNativeCall(out, module, target, "callResult.value", "nativeScope")) return 0;
+    if (handles) xl6OutputPuts("    }\n", out);
     if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
         xl6OutputPuts("      if (!callResult.ok) { xl6_error_result failure = {false, xrtTakeError()}; xl6ErrorScopePropagateFailure(failure); }\n", out);
-    xl6OutputPuts("native_done:\n      if (nativeScope.failed || xrtGetError() != NULL) {\n"
+    xl6OutputPuts("      if (nativeScope.failed || xrtGetError() != NULL) {\n"
         "        xl6ErrorScopeCaptureFailure(&nativeScope);\n", out);
     if ( target->returnType != XL6_IR_TYPE_INVALID &&
          !xl6IrCgenEmitOwnedPlaceRelease(out, module, target->returnType, "callResult.value", diags) ) return 0;

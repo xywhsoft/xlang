@@ -7,4 +7,8 @@ int foreign_factory_create(int mode, foreign_factory_widget** output, const fore
 void foreign_factory_destroy(foreign_factory_widget* widget);
 int foreign_factory_read(foreign_factory_widget* widget);
 int foreign_factory_live(void);
+void* foreign_factory_token_open(void);
+int foreign_factory_token_calls(void);
+struct xvalue;
+int foreign_factory_create_token(struct xvalue*,foreign_factory_widget**,const foreign_factory_config*);
 #endif

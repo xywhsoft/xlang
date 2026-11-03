@@ -9,6 +9,7 @@
 #include <stdint.h>
 
 typedef struct XL6_ForeignView XL6_ForeignView;
+struct xl6_foreign_error_result;
 
 /* Compiler/native-publisher contract, not a sandbox for arbitrary C pointers.
  * The copied descriptor and every transitive native dependency are protected
@@ -85,6 +86,11 @@ XL6_CODE_LEASE_API bool xl6ForeignViewReleaseV1(XL6_ForeignView*);
 XL6_CODE_LEASE_API bool xl6ForeignViewCallBeginV1(XL6_ForeignView*,XL6_ForeignViewCallV1*,void*,size_t);
 XL6_CODE_LEASE_API bool xl6ForeignViewCallEndV1(XL6_ForeignViewCallV1*);
 XL6_CODE_LEASE_API bool xl6ForeignViewCloseV1(XL6_ForeignView*);
+/* Consuming first-error delivery for native callbacks without a boundary.
+ * A native callback record pins the root throughout publication. */
+XL6_CODE_LEASE_API void xl6ForeignViewRecordCallbackFailureV1(XL6_ForeignView*,struct xl6_foreign_error_result);
+XL6_CODE_LEASE_API bool xl6ForeignViewThrowIfCallbackFailedV1(XL6_ForeignView*);
+XL6_CODE_LEASE_API bool xl6ForeignViewCallbackFailureCountV1(XL6_ForeignView*,uint64_t*);
 /* Internal native binding owner: keeps the control/code readable without
  * creating a language owning value or suppressing default close. A retained
  * callback uses this for its implicit context, not a hidden strong language

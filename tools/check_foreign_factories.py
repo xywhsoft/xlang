@@ -1,5 +1,6 @@
 """Offline declaration-driven C status/output factories and const record inputs."""
 from pathlib import Path
+from runtime_layout import runtime_directory
 import argparse, hashlib, json, os, shutil, subprocess, time
 
 
@@ -32,10 +33,10 @@ def main():
     run('cgen', [driver, source, 'cgen-default', generated])
     text = generated.read_text(encoding='utf-8-sig')
     assert 'extern int foreign_factory_create(int, foreign_factory_widget**, const foreign_factory_config*);' in text
-    assert '.e0 = foreign_factory_create(' in text and 'xlir_xvalue_object_get_literal' not in text
-    runtime = root/('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
+    assert '.e0 = foreign_factory_create(' in text and 'foreign_factory_create_token(' in text
+    runtime = runtime_directory(root)/('xl.dll' if os.name == 'nt' else 'libxl.so')
     if os.name == 'nt': shutil.copy2(runtime, out/runtime.name)
-    includes = ['-I'+str(root), '-I'+str(root/'release/include'), '-I'+str(driver.parent/'include')]
+    includes = ['-I'+str(root), '-I'+str(runtime_directory(root)/'include'), '-I'+str(driver.parent/'include')]
     warnings = ['-Wno-unused-function', '-Wno-unused-variable', '-Wno-unused-label',
                 '-Wno-unused-const-variable', '-Wno-unused-but-set-variable']
     ext = '.exe' if os.name == 'nt' else '.out'
@@ -116,7 +117,7 @@ extern "foreign_factory_destroy" @no_raise @nonblocking func release(factory_api
     for opt in ('O0', 'O2'):
         executable = out/('IR-'+opt+ext)
         arguments = ['-std=c11', '-Wall', '-Wextra', '-Werror', '-DXL_STATIC_EMBED', '-'+opt,
-                     '-I'+str(root/'release'), *includes, root/'test/cases/foreign_decl_factory_ir_contract.c',
+                     '-I'+str(runtime_directory(root)), *includes, root/'test/cases/foreign_decl_factory_ir_contract.c',
                      *objects, runtime, *systems, '-o', executable]
         rsp = out/('IR-'+opt+'.rsp')
         rsp.write_text('\n'.join('"'+str(v).replace('\\', '/')+'"' for v in arguments)+'\n', encoding='utf-8')

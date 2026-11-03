@@ -82,6 +82,24 @@ static int xl6IrCgenPrepareBytesViews(XL6_Output* out,const XL6_IrCallTarget* ta
     return present;
 }
 
+/* C strings are explicit terminating-text contracts. Interior NUL is rejected
+ * before C entry; length-aware xstrview declarations never perform this scan. */
+static int xl6IrCgenPrepareTerminatedStrings(XL6_Output* out,const XL6_IrCallTarget* target,
+    const XL6_IrValueId* operands,const char* scope)
+{
+    int count=0;
+    for(size_t p=0;p<target->parameterCount;++p) {
+        if(target->parameterPhysicalAbis[p]!=XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW)continue;
+        if(!count++)xl6OutputPuts("    { bool c_strings_ok = true;\n",out);
+        xl6OutputPrintf(out,"    const char* xlir_cstr_arg_%lu = xlir_string_cstr(",(unsigned long)p);
+        if(operands)xl6OutputPrintf(out,"v%u",(unsigned)operands[p]);
+        else xl6OutputPrintf(out,"a%lu",(unsigned long)(p-1));
+        xl6OutputPrintf(out,"); if (!xlir_cstr_arg_%lu) { c_strings_ok = false; xl6ErrorScopeCaptureFailure(&%s); }\n",(unsigned long)p,scope);
+    }
+    if(count)xl6OutputPuts("    if (c_strings_ok) {\n",out);
+    return count;
+}
+
 static int xl6IrCgenTypeSelected(
     const XL6_IrModule* module, XL6_IrTypeId type,
     const unsigned char* selectedTypes)
@@ -314,7 +332,8 @@ static int xl6IrCgenEmitUnionTypes(
 static const char* xl6IrCgenCellKind(const XL6_IrType* element)
 {
     if (element == NULL) return NULL;
-    if(xl6IrOwnedTransferPlanForType(element))return "XL6_CELL_NATIVE_LEAF_V2";
+    const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(element);
+    if(native)return native->graphCapture ? "XL6_CELL_NATIVE_GRAPH_V3" : "XL6_CELL_NATIVE_LEAF_V2";
     switch (element->cAbi) {
     case XL6_IR_C_ABI_BOOL: return "XL6_CELL_BOOL";
     case XL6_IR_C_ABI_CHAR_U32: return "XL6_CELL_CHAR";
@@ -338,11 +357,34 @@ static int xl6IrCgenEmitProductTypes(
     size_t typeIndex;
     int emitted = 0;
     int scalarCarriersIncluded = 0;
+    for(size_t t=0;t<module->callTargetCount;++t) {
+        const XL6_IrCallTarget* target=&module->callTargets[t];
+        if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        for(size_t p=0;p<target->parameterCount;++p) {
+            const XL6_ForeignParameterContract* row=xl6IrForeignParameterGet(module,target,p);
+            if(row && row->header[0]) {
+                bool seen=false;
+                for(size_t before=0;before<t && !seen;++before) {
+                    const XL6_IrCallTarget* prior=&module->callTargets[before];
+                    if(prior->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+                    for(size_t q=0;q<prior->parameterCount;++q) {
+                        const XL6_ForeignParameterContract* previous=xl6IrForeignParameterGet(module,prior,q);
+                        if(previous && !strcmp(previous->header,row->header)){seen=true;break;}
+                    }
+                }
+                for(size_t q=0;q<p && !seen;++q) {
+                    const XL6_ForeignParameterContract* previous=xl6IrForeignParameterGet(module,target,q);
+                    if(previous && !strcmp(previous->header,row->header))seen=true;
+                }
+                if(!seen)xl6OutputPrintf(out,"#include <%s>\n",row->header);
+            }
+        }
+    }
     /* C owns the representation of declared external handles. Only selected
      * physical types bring in their authoritative declaration header. */
     for (typeIndex = 0; typeIndex < module->types.count; ++typeIndex) {
         const XL6_IrType* type = &module->types.items[typeIndex];
-        if (!type->foreignHeader || type->cAbi != XL6_IR_C_ABI_NATIVE_HANDLE ||
+        if (!type->foreignHeader || (type->cAbi != XL6_IR_C_ABI_NATIVE_HANDLE && !type->foreignPolicy) ||
             !xl6IrCgenTypeSelected(module,
                 (XL6_IrTypeId)(typeIndex + 1), selectedTypes)) continue;
         int seen = 0, seenType = 0;

@@ -63,7 +63,7 @@ static int xl6IrCgenEmitAsyncSourceLeaseRelease(
 {
     const char *release = NULL, *destroy = NULL;
     if (suspension->resultAbi != XL6_IR_ASYNC_RESULT_VOID &&
-        !xl6IrCgenAsyncResultDrop(suspension->resultAbi, &release, &destroy)) return 0;
+        !xl6IrCgenAsyncResultDrop(module,suspension->resultType,suspension->resultAbi, &release, &destroy)) return 0;
     xl6OutputPrintf(out,
         "    { xl6_error_scope source_cleanup = {0}; xl6_error_result observed;\n"
         "      xerror* original = xrtTakeError(); bool acquired = await_ok_%u;\n"
@@ -435,7 +435,7 @@ static int xl6IrCgenEmitAsyncLauncher(
     worker = xl6IrTypeGet(&module->types, target->workerReturnType);
     resultType = target->asyncResultAbi == XL6_IR_ASYNC_RESULT_VOID
         ? NULL : xl6IrCgenType(module, target->workerReturnType);
-    valueDestroy = xl6IrCgenAsyncPayloadDestroy(target->asyncResultAbi);
+    valueDestroy = xl6IrCgenAsyncPayloadDestroy(module,target->workerReturnType,target->asyncResultAbi);
     if ( target->asyncResultAbi != XL6_IR_ASYNC_RESULT_VOID &&
          (worker == NULL || resultType == NULL || valueDestroy == NULL) )
         return xl6IrCgenDiag(diags, module, target->declaration,

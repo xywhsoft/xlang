@@ -4,6 +4,7 @@ This validates compiler capabilities; it does not certify the XGE/XUI packages,
 managed native ownership, retained callbacks, or shipping runtime products.
 """
 from pathlib import Path
+from runtime_layout import runtime_directory
 import argparse, hashlib, json, os, subprocess, sys, time
 
 
@@ -18,7 +19,7 @@ def main():
     out.mkdir(parents=True, exist_ok=False)
     env = dict(os.environ, XL6_SOURCE_NATIVE_ROOT=str(root))
     if os.name != 'nt':
-        env['LD_LIBRARY_PATH'] = str(root/'release')+':'+env.get('LD_LIBRARY_PATH', '')
+        env['LD_LIBRARY_PATH'] = str(runtime_directory(root))+':'+env.get('LD_LIBRARY_PATH', '')
     report = dict(complete=False, scope=__doc__, sourceBuild=str(args.source_build.resolve()),
                   sourceBuildSha256=hashlib.sha256(args.source_build.read_bytes()).hexdigest(), stages=[])
 
@@ -48,7 +49,7 @@ def main():
         run('constructor-alias-'+mode, [driver, root/'test/cases/foreign_decl_constructor_alias.xl',
             mode, out/('constructor-alias-'+mode)])
     run('constructor-alias-standalone', [out/('constructor-alias-exe.exe' if os.name == 'nt' else 'constructor-alias-exe')])
-    for gate in ('text_views', 'bytes_views', 'bound_views'):
+    for gate in ('text_views', 'bytes_views', 'bound_views','managed_views','expanded_calls','terminated_strings'):
         run(gate, [sys.executable, '-B', root/('tools/check_foreign_'+gate+'.py'),
             '--root', root, '--public-directory', args.source_build.resolve().parent, '--out', out/gate])
     report['complete'] = True

@@ -5,6 +5,7 @@ This source-driver proof does not rebuild/certify shipping libraries or VFS.
 """
 from pathlib import Path
 import argparse, hashlib, json, os, re, shutil, subprocess
+from runtime_layout import runtime_directory, runtime_source
 
 def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -14,6 +15,7 @@ def main():
     parser.add_argument('--optimization',choices=['O0','O2'],default='O0')
     parser.add_argument('--sanitize',action='store_true')
     parser.add_argument('--runtime-resource',type=Path)
+    parser.add_argument('--sdk-directory',type=Path,help='Explicit source SDK with platform neutral public declarations and native C providers; never supplies host binaries')
     args=parser.parse_args(); root,native,out=[getattr(args,name).resolve() for name in ('root','native_root','out')]
     assert os.name!='nt' and not out.exists()
     project=root; cc=shutil.which('gcc'); assert cc
@@ -36,7 +38,12 @@ def main():
         'xl6_array_sync_admission','xl6_queue_spsc_admission','xl6_queue_mpsc_admission',
         'xl6_queue_mpmc_admission','xl6_thread','xl6_array_thread_admission'}
     assert required.issubset({path.stem for path in sources})
-    tcc_core=native/'release/libxlc.so'; assert tcc_core.is_file()
+    sdk=args.sdk_directory.resolve() if args.sdk_directory else runtime_directory(root,'linux64')
+    def source_path(path):
+        try:relative=path.relative_to(root/'release')
+        except ValueError:return path
+        return sdk/relative if relative.parts and relative.parts[0] in ('include','extlibs') else path
+    tcc_core=runtime_directory(native,'linux64')/'libxlc.so'; assert tcc_core.is_file()
     # ELF interposes exported TCC helpers. Linking libxl while loading libxlc
     # would mix two private TCC states; the host and selected core must agree.
     runtime=tcc_core
@@ -51,8 +58,9 @@ def main():
     if runtime_resource:
         assert runtime_resource.is_file()
         files.add(runtime_resource)
-    for folder in ('src','lib','res/tcc','release/include','release/extlibs'):
-        files.update(path for path in (root/folder).rglob('*') if path.is_file())
+    for folder in [root/p for p in ('src','lib','res/tcc')]+[sdk/'include',sdk/'extlibs']:
+        files.update(path for path in folder.rglob('*') if path.is_file())
+    files.add(Path(__file__).with_name('runtime_layout.py'))
     files.update(path for path in (native/'build/linux/tcc-dist').rglob('*') if path.is_file())
     # Record the actual compiler/assembler/linker used, not just the gcc wrapper.
     for name in ('cc1','as','ld'):
@@ -66,7 +74,7 @@ def main():
         'Sources':list(map(str,sources)),'Rows':rows,'SourceXrt':True,'RuntimeOnly':False,'EnableExeCompiler':1,
         'SourceProductAcceptance':False,'ShippingLibraryAcceptance':False,'Scope':__doc__,'NativeRoot':str(native),'Optimization':args.optimization,
         'Sanitize':args.sanitize,'AllSourceProvidersInstrumented':args.sanitize,'ReleasedTccCoreInstrumented':False,
-        'ConfiguredTriplet':triplet,'RuntimeResource':str(runtime_resource) if runtime_resource else None,
+        'ConfiguredTriplet':triplet,'SdkDirectory':str(sdk),'SdkRole':'Source declarations and C providers only; host binaries come from NativeRoot','RuntimeResource':str(runtime_resource) if runtime_resource else None,
         'TccCore':str(tcc_core),'TccCoreSha256':sha(tcc_core),'RuntimeLibrary':str(runtime)}
     def save(): (out/'build.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     def run(name,command):
@@ -87,7 +95,7 @@ def main():
                 headers.append({'Path':str(target),'Source':str(original),'Sha256':sha(target)})
             continue
         if not line.startswith('file|include/__xl_runtime/'): continue
-        _,relative,source=line.split('|'); original=Path(source.replace('%XL6_ROOT%',str(root)))
+        _,relative,source=line.split('|'); original=source_path(Path(source.replace('%XL6_ROOT%',str(root))))
         target=out/relative; target.parent.mkdir(parents=True,exist_ok=True); assert not target.exists()
         shutil.copy2(original,target)
         assert sha(target)==sha(original)
@@ -105,7 +113,7 @@ def main():
         parts=line.split('|')
         if len(parts)<3 or not parts[1].startswith('__xl_compiler/') or not parts[2].startswith('%XL6_ROOT%'): continue
         relative=Path(parts[1]); assert '..' not in relative.parts and not relative.is_absolute()
-        source=Path(parts[2].replace('%XL6_ROOT%',str(root))).resolve()
+        source=source_path(Path(parts[2].replace('%XL6_ROOT%',str(root))).resolve())
         assert source.is_relative_to(root)
         originals=sorted(f for f in source.rglob('*') if f.is_file() and
             any(f.match(pattern) for pattern in parts[3].split(';'))) if parts[0]=='dir' else [source]
@@ -117,7 +125,7 @@ def main():
             headers.append({'Path':str(target),'Source':str(original),'Sha256':sha(target)})
     flags=['-std=c11','-D_GNU_SOURCE','-Wall','-Wextra','-Werror','-'+args.optimization,'-DXL_STATIC_EMBED',
         '-DXL_ENABLE_EXE_COMPILER=1','-DTCC_DISABLE_BUILTIN_VFS',
-        '-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include'),'-I'+str(root/'lib/tcc')]
+        '-I'+str(root),'-I'+str(sdk),'-I'+str(sdk/'include'),'-I'+str(root/'lib/tcc')]
     if triplet:flags.append('-DXL6_TCC_CONFIGURED_TRIPLET="'+triplet+'"')
     instrumentation=['-fsanitize=address,undefined','-fno-omit-frame-pointer','-g'] if args.sanitize else []
     flags+=instrumentation+(['-fno-pie'] if args.sanitize else [])

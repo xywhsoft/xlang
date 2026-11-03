@@ -3,6 +3,11 @@
 #include <assert.h>
 struct foreign_factory_widget { int value; };
 static int live;
+static int token,tokenCalls;
+void* foreign_factory_token_open(void){return &token;}
+int foreign_factory_token_calls(void){return tokenCalls;}
+int foreign_factory_create_token(struct xvalue* input,foreign_factory_widget** output,const foreign_factory_config* config)
+{assert(input);++tokenCalls;return foreign_factory_create(0,output,config);}
 int foreign_factory_config_read(const foreign_factory_config* config) { return config->value; }
 int foreign_factory_create(int mode, foreign_factory_widget** output, const foreign_factory_config* config)
 {

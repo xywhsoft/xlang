@@ -168,19 +168,17 @@ static int xl6IrCgenEmitDispatchWitness(
         if (!xl6IrCgenEmitPreparationRollback(out, module, target, NULL, 1, "outcome", diags)) return 0;
         xl6OutputPuts("        xrtSetErrorTake(outcome.error); return result;\n"
             "    }\n    ", out);
-        int bytesPrepared=xl6IrCgenPrepareBytesViews(out,target,NULL);
-        if (target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY)
-            xl6OutputPrintf(out,"%s borrowed_raw = ",xl6IrCgenBorrowedResultCType(target));
-        else if (returnType != XL6_IR_TYPE_INVALID) xl6OutputPuts(
-            target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE
-                ? "result.value.Data = " : "result.value = ", out);
-        xl6IrCgenEmitDispatchTargetCall(out, module, target, externReceiverField, parameterCount);
-        xl6OutputPuts(";\n", out);
-        if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY)
-            xl6IrCgenEmitBorrowedValueAdmission(out,module,target,"result.value","borrowed_raw","scope");
-        if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE)
-            xl6IrCgenEmitOwnedStringAdmission(out,module,target,"result.value","scope.failed");
-        if(bytesPrepared)xl6OutputPuts("    }\n",out);
+        int handles = xl6IrCgenWitnessNativeHandles(out, module, target, "scope");
+        if (handles < 0 || !xl6IrCgenEmitWitnessNativeCall(out, module, target, "result.value", "scope")) return 0;
+        if (handles) xl6OutputPuts("    }\n", out);
+        /* Only actual native entry consumes OWNED inputs. Preparation failures
+         * leave nonempty slots; clearing before release also permits reentry. */
+        for (size_t p = target->parameterCount; p > 1; --p) {
+            if (target->parameterAbis[p - 1] != XL6_IR_PARAMETER_ABI_OWNED) continue;
+            char place[40]; snprintf(place, sizeof(place), "a%lu", (unsigned long)(p - 2));
+            if (!xl6IrCgenEmitOwnedPlaceRelease(out, module, target->parameterTypes[p - 1], place, diags)) return 0;
+            xl6OutputPuts("    if (xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);\n", out);
+        }
         if (returnType != XL6_IR_TYPE_INVALID) {
             xl6OutputPuts("    if (scope.failed || xrtGetError() != NULL) {\n"
                 "        xl6ErrorScopeCaptureFailure(&scope);\n", out);

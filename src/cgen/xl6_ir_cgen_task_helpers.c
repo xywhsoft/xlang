@@ -184,19 +184,23 @@ static const XL6_IrCgenAsyncPayloadContract* xl6IrCgenAsyncPayloadContract(
     }
 }
 
-static const char* xl6IrCgenAsyncPayloadDestroy(XL6_IrAsyncResultAbi abi)
+static const char* xl6IrCgenAsyncPayloadDestroy(const XL6_IrModule* module,XL6_IrTypeId id,XL6_IrAsyncResultAbi abi)
 {
+    if(abi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE){
+        const XL6_IrNativeValuePlan* plan=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,id));
+        return plan && plan->graphCapture ? "xl6NativeGraphFuturePayloadRuntimeV1Get()->Drop" : "xl6NativeFuturePayloadRuntimeV1Get()->Drop";
+    }
     const XL6_IrCgenAsyncPayloadContract* contract = xl6IrCgenAsyncPayloadContract(abi);
     return contract != NULL ? contract->destroy : NULL;
 }
 
-static int xl6IrCgenEmitAsyncPayloadPublish(XL6_Output* out, XL6_IrAsyncResultAbi abi,
+static int xl6IrCgenEmitAsyncPayloadPublish(XL6_Output* out,const XL6_IrModule* module,XL6_IrTypeId id, XL6_IrAsyncResultAbi abi,
     const char* promise, const char* value)
 {
     const XL6_IrCgenAsyncPayloadContract* contract = xl6IrCgenAsyncPayloadContract(abi);
     if (contract == NULL) return 0;
     if(abi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE)
-        xl6OutputPrintf(out,"xl6NativeFuturePayloadRuntimeV1Get()->ResolveOwned(%s, %s)",promise,value);
+        xl6OutputPrintf(out,"%s->ResolveOwned(%s, %s)",xl6IrCgenNativePayloadRuntime(module,id),promise,value);
     else xl6OutputPrintf(out, "xl6PayloadResolveOwned(%s, %s, %s)", promise, value, contract->residentKind);
     return !xl6OutputHasFailed(out);
 }
@@ -220,16 +224,16 @@ static int xl6IrCgenEmitAsyncPayloadAllocation(XL6_Output* out,const XL6_IrModul
     if(abi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE) {
         const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,id));
         if(!native)return 0;
-        xl6OutputPrintf(out,"    %s = (%s*)xl6NativeFuturePayloadRuntimeV1Get()->Allocate(%s());\n",
-            destination,type,native->captureProfileSymbol);
+        xl6OutputPrintf(out,"    %s = (%s*)%s->Allocate(%s());\n",
+            destination,type,xl6IrCgenNativePayloadRuntime(module,id),native->captureProfileSymbol);
     } else xl6OutputPrintf(out,"    %s = (%s*)xrtMalloc(sizeof(*%s));\n",destination,type,destination);
     return !xl6OutputHasFailed(out);
 }
 
-static void xl6IrCgenEmitAsyncTaskSubmission(XL6_Output* out,XL6_IrAsyncResultAbi abi)
+static void xl6IrCgenEmitAsyncTaskSubmission(XL6_Output* out,const XL6_IrModule* module,XL6_IrTypeId id,XL6_IrAsyncResultAbi abi)
 {
     if(abi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE)
-        xl6OutputPuts("    future = xl6TaskSubmitOwnedPolicyV1(xlir_async_pool, frame, NULL, xl6NativeFuturePayloadRuntimeV1Get()->Policy(), false);\n",out);
+        xl6OutputPrintf(out,"    future = xl6TaskSubmitOwnedPolicyV1(xlir_async_pool, frame, NULL, %s->Policy(), false);\n",xl6IrCgenNativePayloadRuntime(module,id));
     else xl6OutputPrintf(out,"    future = xlir_async_pool_submit(frame, NULL, %s);\n",
         xl6IrCgenAsyncPayloadKind(abi));
 }
@@ -327,8 +331,8 @@ static int xl6IrCgenEmitCallbackCapture(XL6_Output* out, const XL6_IrModule* mod
     size_t i;
     if (boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V3)
         xl6OutputPrintf(out,
-            "    frame = (%s_frame_%lu*)(xl6TaskRuntimeV3Get()->Allocate)(xlir_task_owner, sizeof(*frame), %s_task_%lu, &%s_layout_%lu);\n",
-            prefix, (unsigned long)index, prefix, (unsigned long)index, prefix, (unsigned long)index);
+            "    frame = (%s_frame_%lu*)%s(xlir_task_owner, sizeof(*frame), %s_task_%lu, &%s_layout_%lu);\n",
+            prefix, (unsigned long)index, xl6IrCgenHasNativeGraph(module) ? "xl6TaskFrameAllocateGraphV1" : "(xl6TaskRuntimeV3Get()->Allocate)", prefix, (unsigned long)index, prefix, (unsigned long)index);
     else if (boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_QUEUED_FUTURE_FRAME_V1)
         xl6OutputPrintf(out,
             "    frame = (%s_frame_%lu*)xlir_future_callback_allocate(sizeof(*frame), %s_proc_%lu, &%s_layout_%lu);\n",
@@ -415,7 +419,7 @@ static int xl6IrCgenEmitTaskSpawnHelper(
         return xl6IrCgenDiag(diags, module, instruction->origin, "XLIR task callback boundary is unresolved");
     if (!isVoid) {
         payloadType = xl6IrCgenType(module, instruction->payloadType);
-        destroy = xl6IrCgenAsyncPayloadDestroy(instruction->asyncResultAbi);
+        destroy = xl6IrCgenAsyncPayloadDestroy(module,instruction->payloadType,instruction->asyncResultAbi);
         if (!payloadType || !destroy) return 0;
     }
     if (!xl6IrCgenEmitCallbackFrame(out, module, boundary, "xlir_task_spawn", instructionIndex)) return 0;
@@ -491,7 +495,7 @@ static int xl6IrCgenEmitTaskSpawnHelper(
         "    }\n",
         (unsigned long)instructionIndex);
     if (!xl6IrCgenEmitCallbackCapture(out, module, boundary, "xlir_task_spawn", instructionIndex)) return 0;
-    xl6IrCgenEmitAsyncTaskSubmission(out,instruction->asyncResultAbi);
+    xl6IrCgenEmitAsyncTaskSubmission(out,module,instruction->payloadType,instruction->asyncResultAbi);
     xl6OutputPrintf(out,
         "    if (future == NULL) {\n"
         "        if (!xrtGetError()) xrtSetErrorTake(xlir_error_create(\"TaskError\", \"task.spawn submission failed\"));\n"
@@ -515,7 +519,7 @@ static int xl6IrCgenEmitFutureContinuationHelper(
     const XL6_IrCallbackBoundary* boundary = xl6IrCgenCallbackBoundary(module, instruction);
     const char* sourceType = xl6IrCgenType(module, instruction->sourcePayloadType);
     const char* outputType = xl6IrCgenType(module, instruction->payloadType);
-    const char* destroy = xl6IrCgenAsyncPayloadDestroy(instruction->asyncResultAbi);
+    const char* destroy = xl6IrCgenAsyncPayloadDestroy(module,instruction->payloadType,instruction->asyncResultAbi);
     int isThen = instruction->futureContinuationKind == XL6_IR_FUTURE_CONTINUATION_THEN;
     int isCatch = instruction->futureContinuationKind == XL6_IR_FUTURE_CONTINUATION_CATCH;
     int isFinally = instruction->futureContinuationKind == XL6_IR_FUTURE_CONTINUATION_FINALLY;
@@ -584,7 +588,7 @@ static int xl6IrCgenEmitFutureContinuationHelper(
         "    } else {\n"
         "        if (!",
         (unsigned long)instructionIndex, destroy);
-    if (!xl6IrCgenEmitAsyncPayloadPublish(out, instruction->asyncResultAbi, "output", "value")) return 0;
+    if (!xl6IrCgenEmitAsyncPayloadPublish(out,module,instruction->payloadType, instruction->asyncResultAbi, "output", "value")) return 0;
     xl6OutputPrintf(out,
         ") { xerror* primary = xrtTakeError(); %s(value, NULL); xrtClearError(); xl6FutureCallbackRuntimeV5Get()->Fail(output, primary); }\n"
         "    }\n"

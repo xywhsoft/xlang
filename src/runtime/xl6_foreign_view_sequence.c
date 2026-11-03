@@ -2,6 +2,7 @@
 #include "xl6_sequence.h"
 #include "xl6_foreign_view_value_storage.h"
 #include "xl6_ownership_domain_impl.h"
+#include "xl6_array_extract_view.h"
 #include "src/api/xl_foreign_error.h"
 #include <stdlib.h>
 
@@ -151,3 +152,45 @@ xvalue* xl6ForeignViewSequenceCreateV1(unsigned int role,uint64_t owner,
     return result;
 }
 XL6_OWNERSHIP_DOMAIN_POLICY(SequenceForeignView,Sequence,xl6ForeignViewSequenceAdmissionV1)
+
+bool xl6ArrayExtractForeignViewV1(const xvalue* source,uint64_t owner,uint64_t element,
+    int64_t index,bool pop,uint64_t boxed,bool nullable,XL6_ForeignView** output)
+{
+    xl6_error_scope errors={0};if(!xl6ErrorScopeBegin(&errors))return false;
+    XL6_ArrayExtractView view={0};bool admitted=false,ok=false;
+    if(!output || (uintptr_t)output%_Alignof(XL6_ForeignView*) || *output || !boxed)
+        xrtSetErrorKind(XERR_ARGUMENT);
+    else {
+        admitted=true;
+        if(xl6ArrayExtractBegin(source,owner,element,index,pop,&view)){
+            if(view.owner){
+                XL6_SequenceAdmissionV3 policy={0};
+                const xrttype* type=xl6ForeignViewStorageTypeV1();
+                if(xl6ArrayExtractSlotMatches(&view,XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1,type->Size,type) &&
+                    xl6SequenceAdmissionCopyV3(view.owner,&policy)){
+                    const ViewPolicy* actual=policy.ops==&admission ? policy.data : NULL;
+                    xtypedarray* storage=xl6SequenceStorageV1(view.owner);
+                    if(!actual || actual->element!=element || actual->boxed!=boxed || actual->nullable!=nullable)
+                        xrtSetErrorKind(XERR_TYPE);
+                    else if(xrtTypedArrayCapacity(storage)>SIZE_MAX/type->Size)xrtSetErrorKind(XERR_STATE);
+                    else if(xrtMemRangesOverlap(xrtTypedArrayConstGet(storage,0),
+                        xrtTypedArrayCapacity(storage)*type->Size,output,type->Size)){
+                        admitted=false;xrtSetErrorKind(XERR_ARGUMENT);
+                    }else ok=xrtTypedArrayTake(storage,view.at,output);
+                }
+                xl6SequenceAdmissionDropV3(&policy);
+            }else {
+                ok=xl6ForeignViewUnboxV1(view.item,boxed,nullable,output);
+                if(ok)ok=xl6ArrayExtractWireCommit(&view);
+            }
+        }
+    }
+    ok=xl6ArrayExtractFinish(&view,ok);
+    if(!ok || xrtGetError() || errors.failed){
+        xl6ErrorScopeCaptureFailure(&errors);
+        if(admitted && *output){XL6_ForeignView* owned=*output;*output=NULL;release(owned);}
+    }
+    xl6_error_result result=xl6ErrorScopeEnd(&errors);
+    if(!result.ok)xl6ErrorScopePropagateFailure(result);
+    return result.ok;
+}

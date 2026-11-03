@@ -54,6 +54,12 @@ static int xl6IrCgenVerifyDeclarations(
                       (parameterType->kind == XL6_IR_TYPE_FUNCTION || xl6IrTypeIsCOwned(parameterType))) )
                     return xl6IrCgenCallParameterDiag(diags, module, target,
                         parameter, "uses a direct closure at an extern boundary");
+            } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW) {
+                if (!xl6IrForeignTerminatedStringParameter(module,target,parameter) || !parameterType ||
+                    parameterType->kind != XL6_IR_TYPE_BUILTIN || parameterType->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
+                    target->parameterAbis[parameter] != XL6_IR_PARAMETER_ABI_BORROW ||
+                    target->parameterPhysicalFieldDeclarations[parameter] || target->parameterConstraintAbis[parameter])
+                    return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no exact checked C string ABI");
             } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW) {
                 if(!xl6IrForeignTextViewParameter(module,target,parameter) ||
                     !parameterType || parameterType->kind!=XL6_IR_TYPE_BUILTIN ||
@@ -67,6 +73,20 @@ static int xl6IrCgenVerifyDeclarations(
                     target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
                     target->parameterPhysicalFieldDeclarations[parameter] || target->parameterConstraintAbis[parameter])
                     return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no exact borrowed bytes view ABI");
+            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW ||
+                      target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK) {
+                if(!xl6IrForeignParameterGet(module,target,parameter))
+                    return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no sealed sparse expansion");
+            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_HANDLE_ACCESS_BORROW) {
+                if(!xl6IrNativeHandleAccessParameter(module,target,parameter) ||
+                    parameterType->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR)
+                    return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no exact native handle access owner");
+            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW){
+                if(!xl6IrForeignManagedViewParameter(module,target,parameter) || !parameterType || !parameterType->foreignPolicy ||
+                    !xl6IrForeignRootType(module,target->parameterTypes[parameter]) ||
+                    target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
+                    target->parameterPhysicalFieldDeclarations[parameter] || target->parameterConstraintAbis[parameter])
+                    return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no managed foreign-view preparation ABI");
             } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK) {
                 if (!xl6IrForeignStaticCallbackParameter(module, target, parameter) ||
                     !xl6IrCFunctionPointerForSignature(module, target->parameterTypes[parameter]))

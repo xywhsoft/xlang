@@ -60,6 +60,24 @@ int main(int argc, char** argv)
         }
         assert(xl6IrVerifyModule(module, NULL));
     }
+    unsigned guarded=0;
+    for(size_t i=0;i<module->instructionCount;++i) {
+        XL6_IrInstruction* begin=&module->instructions[i];
+        if(!begin->evaluationNativeResult)continue;
+        ++guarded;XL6_IrInstruction saved=*begin;
+        begin->evaluationNativeResult=0;refused(module);*begin=saved;
+        begin->evaluationNativeDestroy=0;refused(module);*begin=saved;
+        begin->evaluationNativeResult=begin->evaluationNativeResult+1;refused(module);*begin=saved;
+        for(size_t j=i+1;j<module->instructionCount;++j) {
+            XL6_IrInstruction* rollback=&module->instructions[j];
+            if(rollback->kind!=XL6_IR_INSTR_FOREIGN_RESULT_ROLLBACK || rollback->evaluationScope!=i+1)continue;
+            XL6_IrInstruction original=*rollback;
+            rollback->targetSymbol=0;refused(module);*rollback=original;
+            rollback->evaluationScope=0;refused(module);*rollback=original;
+            rollback->kind=XL6_IR_INSTR_DROP;refused(module);*rollback=original;
+        }
+    }
+    assert(guarded);
     unsigned addresses = 0;
     for (size_t i = 0; i < module->callTargetCount; ++i) {
         XL6_IrCallTarget* target = &module->callTargets[i];

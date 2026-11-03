@@ -1,0 +1,60 @@
+extern "terminated_size" @no_raise @nonblocking @c_cstr(0) func size(string input) as c_size
+extern "terminated_calls" @no_raise @nonblocking func calls() as c_int
+extern "terminated_reset" @no_raise @nonblocking func reset()
+protocol TextApi
+    func size(string input) as c_size
+end
+class TextSource
+    private native point handle
+    extern "terminated_open" @no_raise create()
+    extern "terminated_object_size" @no_raise @nonblocking @c_cstr(0) func size(string input) as c_size
+end
+async func ready() as int
+    return 1
+end
+async func after(future<int> pending,string text) as c_size
+    assert await pending == 1
+    return size(text)
+end
+func sequence(string text) as generator<int>
+    yield int(size(text))
+end
+func main(...) as int
+    assert size("") == 0 and size("abc") == 3 and size("你") == 3
+    func(string) as c_size saved = size
+    assert saved("abc") == 3
+    TextSource object = TextSource()
+    func(string) as c_size bound = object.size
+    assert bound("你好") == 6
+    TextApi api = object
+    assert api.size("abc") == 3
+    var dynamic = object
+    assert dynamic.size("abc") == 3
+    reset()
+    bool rejected = false
+    try
+        auto invalid = size("a\0b")
+    catch error
+        rejected = true
+    end
+    assert rejected and calls() == 0
+    rejected = false
+    try
+        auto invalid = api.size("a\0b")
+    catch error
+        rejected = true
+    end
+    assert rejected and calls() == 0
+    rejected = false
+    try
+        auto invalid = dynamic.size("a\0b")
+    catch error
+        rejected = true
+    end
+    assert rejected and calls() == 0
+    for count in sequence("你好")
+        assert count == 6
+    end
+    return 0
+end
+assert await after(ready(),"你好") == 6

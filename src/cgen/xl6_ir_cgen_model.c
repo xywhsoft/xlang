@@ -368,7 +368,8 @@ static const XL6_IrClassField* xl6IrCgenNativeClassPhysicalField(
     const XL6_IrModule* module, const XL6_IrCallTarget* target,
     size_t parameter)
 {
-    return xl6IrCallTargetNativeClassPhysicalField(module, target, parameter);
+    const XL6_IrClassField* field=xl6IrCallTargetNativeClassPhysicalField(module,target,parameter);
+    return field ? field : xl6IrCallTargetNativeAccessField(module,target,parameter);
 }
 
 /* The protocol table may select an extern C class method.  Its CallTarget is
@@ -394,11 +395,7 @@ static const XL6_IrClassField* xl6IrCgenProtocolExternReceiverField(
          (field = xl6IrCgenNativeClassPhysicalField(module, target, 0)) == NULL )
         return NULL;
     for ( parameter = 1; parameter < target->parameterCount; ++parameter )
-        if ( (target->parameterPhysicalAbis[parameter] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT &&
-              target->parameterPhysicalAbis[parameter] != XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW &&
-              target->parameterPhysicalAbis[parameter] != XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW) ||
-             target->parameterPhysicalFieldDeclarations[parameter] !=
-                 XL6_IR_NODE_INVALID ) return NULL;
+        if(!xl6IrForeignPreparedParameterMatches(module,target,parameter))return NULL;
     return field;
 }
 
@@ -449,6 +446,21 @@ static const char* xl6IrCgenExternParameterType(
         return "xstrview";
     if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW)
         return "xbytesview";
+    if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW)
+        return "const char*";
+    if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_HANDLE_ACCESS_BORROW)
+        return "void*";
+    if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK) {
+        const XL6_ForeignParameterContract* row=xl6IrForeignParameterGet(module,target,parameter);
+        return row ? row->callbackTypeCName : NULL;
+    }
+    if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW) {
+        const XL6_ForeignParameterContract* row=xl6IrForeignParameterGet(module,target,parameter);
+        return row ? row->pointerCName : NULL;
+    }
+    if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW){
+        type=xl6IrTypeGet(&module->types,target->parameterTypes[parameter]);return type ? type->cName : NULL;
+    }
     if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW) {
         type=xl6IrTypeGet(&module->types,target->parameterTypes[parameter]);
         return xl6IrTypeIsCOwned(type) ? (type->cAbi==XL6_IR_C_ABI_C_STRING ? "xstrview" : "xbytesview") : NULL;
@@ -498,4 +510,20 @@ static const char* xl6IrCgenNullableScalarCarrier(const XL6_IrModule* module, XL
     case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U32: return "XL6_NullableNativeU32V1";
     default: return NULL;
     }
+}
+
+/* Capture engine selection follows authenticated physical native profiles.
+ * Graph engines also admit the established leaf vocabulary. */
+static int xl6IrCgenHasNativeGraph(const XL6_IrModule* module)
+{
+    for(size_t i=0;i<module->types.count;++i){
+        const XL6_IrNativeValuePlan* plan=xl6IrOwnedTransferPlanForType(&module->types.items[i]);
+        if(plan && plan->graphCapture)return 1;
+    }
+    return 0;
+}
+static const char* xl6IrCgenNativePayloadRuntime(const XL6_IrModule* module,XL6_IrTypeId id)
+{
+    const XL6_IrNativeValuePlan* plan=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,id));
+    return plan && plan->graphCapture ? "xl6NativeGraphFuturePayloadRuntimeV1Get()" : "xl6NativeFuturePayloadRuntimeV1Get()";
 }

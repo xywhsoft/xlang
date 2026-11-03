@@ -7,6 +7,7 @@ XRT modules remain source compiled, preserving fine-grained deployment.
 from __future__ import annotations
 import argparse, hashlib, json, os, re, subprocess, struct
 from pathlib import Path
+from runtime_layout import runtime_directory, source_directories
 
 
 def run(command, root):
@@ -16,7 +17,7 @@ def run(command, root):
 
 
 def source_fingerprint(root):
-    inputs=sorted({p for folder in ("src","lib/tcc","lib/lzma","lib/xrt","lib/xruntime","release/include","release/extlibs/xacme") for p in (root/folder).rglob("*") if p.is_file() and p.suffix in (".c",".h",".inc",".def")})
+    inputs=sorted({p for folder in source_directories(root) for p in folder.rglob("*") if p.is_file() and p.suffix in (".c",".h",".inc",".def")})
     digest=hashlib.sha256()
     for p in inputs:digest.update(p.relative_to(root).as_posix().encode());digest.update(hashlib.sha256(p.read_bytes()).digest())
     return digest.hexdigest()
@@ -35,7 +36,7 @@ def source_dependencies(root, source):
         visited.add(path)
         text=path.read_text(encoding="utf-8")
         for name in re.findall(r'^\s*#\s*include\s*["<]([^">\n]+\.c)[">]',text,re.M):
-            candidates=[path.parent/name,root/name,root/"src"/name,root/"release"/name]
+            candidates=[path.parent/name,root/name,root/"src"/name,runtime_directory(root)/name]
             found=next((p for p in candidates if p.is_file()),None)
             if found is not None:todo.append(found)
     h=hashlib.sha256()
@@ -78,7 +79,7 @@ def main():
     native_cc=args.native_cc.resolve() if args.native_cc else cc
     target="win64" if os.name=="nt" else "linux-x86_64"
     common=["-B"+str(dist),"-std=c11","-D_CRT_SECURE_NO_WARNINGS","-DXL_STATIC_TCC","-DXL6_COMPILER_SOURCE_VFS",
-        "-I.","-Isrc","-Irelease","-Irelease/include","-Ilib/tcc","-Ilib/lzma"]
+        "-I.","-Isrc","-I"+str(runtime_directory(root)),"-I"+str(runtime_directory(root)/"include"),"-Ilib/tcc","-Ilib/lzma"]
     if os.name=="nt":common += ["-DCONFIG_TCC_STATIC","-I"+str(dist/"include")]
     else:common += ["-D_GNU_SOURCE","-fPIC"]
     if args.triplet:
@@ -111,8 +112,8 @@ def main():
             system_hash.update(str(path).encode()+b"\0"+hashlib.sha256(path.read_bytes()).digest())
     source_hash=source_fingerprint(root)
     header_hash=hashlib.sha256()
-    for folder in ("src","lib/tcc","lib/lzma","lib/xrt","lib/xruntime","release/include","release/extlibs/xacme"):
-        for path in sorted((root/folder).rglob("*")):
+    for folder in source_directories(root):
+        for path in sorted(folder.rglob("*")):
             if path.is_file() and path.suffix in (".h",".inc",".def"):
                 header_hash.update(path.relative_to(root).as_posix().encode()+b"\0"+hashlib.sha256(path.read_bytes()).digest())
     sdk=hashlib.sha256()
@@ -120,6 +121,7 @@ def main():
         if path.is_file():sdk.update(path.relative_to(dist).as_posix().encode()+b"\0"+hashlib.sha256(path.read_bytes()).digest())
     fingerprint=dict(schema=1,sdk=sdk.hexdigest(),target=target,tcc=hashlib.sha256(cc.read_bytes()).hexdigest(),sources=source_hash,
         producer=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        runtimeLayout=hashlib.sha256(Path(__file__).with_name('runtime_layout.py').read_bytes()).hexdigest(),
         nativeCompiler=hashlib.sha256(native_cc.read_bytes()).hexdigest(),
         nativeSystemHeaders=system_hash.hexdigest(),flags=native_common)
     signature=hashlib.sha256(json.dumps(fingerprint,sort_keys=True).encode()).hexdigest()
