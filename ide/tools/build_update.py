@@ -51,7 +51,7 @@ def main():
         if not obj.exists() or not stamp.exists() or stamp.read_text()!=fingerprint:
             run([a.cc,*flags,'-c',source,'-o',obj]);stamp.write_text(fingerprint)
         objects.append(obj)
-    candidate=out/('xlang-update'+suffix);run([a.cc,*objects,*link,'-o',candidate,*libs])
+    candidate=out/('update'+suffix);run([a.cc,*objects,*link,'-o',candidate,*libs])
     for name,expected in inputs.items():
         if hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected: raise ValueError('build input changed: '+name)
     binary=candidate.read_bytes()
@@ -63,7 +63,7 @@ def main():
         if binary[:4]!=b'\x7fELF' or binary[5]!=1 or struct.unpack_from('<H',binary,18)[0]!=expected:raise ValueError('ELF architecture does not match update platform')
     if not a.skip_run:
         output=subprocess.check_output([candidate,'--version'],text=True).strip()
-        if output!='xlang-update 1 '+a.platform:raise ValueError('runtime platform identity mismatch')
+        if output!='xlang-update 2 '+a.platform:raise ValueError('runtime platform identity mismatch')
         print(output)
     executable=release/candidate.name;temp=executable.with_suffix('.publish');shutil.copy2(candidate,temp);os.replace(temp,executable)
     tools=ROOT/'release/tools/update';tools.mkdir(parents=True,exist_ok=True)

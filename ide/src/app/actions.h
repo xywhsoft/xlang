@@ -38,6 +38,7 @@ const xide_action_info* xideActionAt(size_t index);
 const xide_action_info* xideActionFind(int id);
 const xide_action_info* xideActionNamed(const char* name);
 int xideActionsHasModal(xide_app* app);
+int xideActionsHasOtherModal(xide_app* app);
 xide_action_state xideActionQuery(xide_app* app,int action);
 int xideActionExecute(xide_app* app,int action);
 /* Init after the root exists; destroy after XUI destroys callbacks/widgets. */

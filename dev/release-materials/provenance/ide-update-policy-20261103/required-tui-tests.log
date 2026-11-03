@@ -1,0 +1,6 @@
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-02p98mn2/repository"}
+PASS terminal 80 columns, TERM=xterm, captured=3999 bytes
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-2_mu0872/repository"}
+PASS terminal 50 columns, TERM=xterm, captured=3145 bytes
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-jrljcxu_/repository"}
+PASS terminal 80 columns, TERM=dumb, captured=411 bytes

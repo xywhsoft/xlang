@@ -106,24 +106,25 @@ class PublishTests(unittest.TestCase):
             self.assertEqual(manager.main(['push',*args]),0)
             self.assertFalse(Public.disconnect_next_object)
             self.assertFalse(Public.truncate_next_object)
-            self.assertEqual((remote/'version.txt').read_text().strip(),'1')
+            self.assertEqual(manager.version_marker((remote/'version.txt').read_text())[0],1)
             # Missing remote objects must be healed even on a same-version rerun.
             removed=next((remote/'update').glob('*.lzma'));removed.unlink()
             self.assertEqual(manager.main(['push',*args]),0);self.assertTrue(removed.exists())
             first={name:(remote/name).read_bytes() for name in manager.META}
-            (case.source/'xl.exe').write_bytes(b'engine-v2');case.prepare(2)
+            (case.source/'xl.exe').write_bytes(b'engine-v2');case.prepare(2,'prepare','--force-update')
             Public.break_metadata=True
             self.assertEqual(manager.main(['push',*args]),1)
             for name,data in first.items():self.assertEqual((remote/name).read_bytes(),data)
             Public.break_metadata=False
             self.assertEqual(manager.main(['push',*args]),0)
-            self.assertEqual((remote/'version.txt').read_text().strip(),'2')
+            self.assertEqual(manager.version_marker((remote/'version.txt').read_text())[0],2)
+            self.assertTrue(manager.version_marker((remote/'version.txt').read_text())[1])
             self.assertTrue(manager.read(case.store/'.state/history/2/record.json')['published'])
             self.assertFalse((case.store/'.state/push.json').exists())
             (case.source/'xl.exe').write_bytes(b'engine-v3');case.prepare(3)
             Public.break_version=True
             self.assertEqual(manager.main(['push',*args]),1)
-            self.assertEqual((remote/'version.txt').read_text().strip(),'3')
+            self.assertEqual(manager.version_marker((remote/'version.txt').read_text())[0],3)
             self.assertTrue((case.store/'.state/push.json').exists())
             Public.break_version=False
             self.assertEqual(manager.main(['push',*args]),0)

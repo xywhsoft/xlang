@@ -23,8 +23,8 @@ import prepare_update as maker
 
 ROOT = Path(__file__).resolve().parents[3]
 PLATFORMS = ('win_x64', 'linux_x64', 'linux_arm', 'linux_arm64')
-TOP = {'xlang_ide.exe','xlang-ls.exe','xge.dll','xl.exe','xl.dll','xlc.dll','xl.def','xlc.def','xlang-update.exe',
-       'xlang_ide','xlang-ls','xlang-update','xl','libxl.so','libxlc.so','libxge.so','README.md','QUICKSTART.md'}
+TOP = {'xlang_ide.exe','xlang-ls.exe','xge.dll','xl.exe','xl.dll','xlc.dll','xl.def','xlc.def','update.exe',
+       'xlang_ide','xlang-ls','update','xl','libxl.so','libxlc.so','libxge.so','README.md','QUICKSTART.md'}
 META = ('update.json','update.lzma','version.txt')
 HEX = re.compile(r'[0-9a-f]{64}(?:-[1-9][0-9]*)?\.lzma\Z')
 
@@ -47,6 +47,15 @@ def managed(path, mdo=False):
 
 def read(path):
     return json.loads(Path(path).read_text(encoding='utf-8'))
+
+def version_marker(text):
+    value=json.loads(text)
+    if isinstance(value,dict):
+        version=value.get('version');force=value.get('forceUpdate')
+        if type(force) is not bool:raise ValueError('version marker forceUpdate must be boolean')
+    else:version=value;force=False
+    if type(version) is not int or not 0<=version<=2147483647:raise ValueError('invalid version marker')
+    return version,force
 
 def write(path, value):
     maker.write_atomic(Path(path),(json.dumps(value,ensure_ascii=False,indent=2)+'\n').encode('utf-8'))
@@ -177,7 +186,7 @@ def make(args,store):
     previous=current(store)
     if args.command=='init' and previous: raise ValueError('already initialized; use prepare')
     if args.command=='prepare' and not previous: raise ValueError('initialize first')
-    if args.version<=previous: raise ValueError('version must increase')
+    if args.version>2147483647 or args.version<=previous: raise ValueError('version must increase')
     config=read(store/'.state/config.json') if (store/'.state/config.json').exists() else {}
     if config.get('platform') and config['platform']!=args.platform:raise ValueError('update repository belongs to another platform')
     source=Path(args.source or config.get('source') or ROOT/'release'/args.platform).resolve()
@@ -239,24 +248,24 @@ def make(args,store):
                     while decoder and not decoder.needs_input and not decoder.eof:
                         rawhash.update(decoder.decompress(b'',max_length=1024*1024))
                 if rawhash.hexdigest()!=sha or (decoder and not decoder.eof): raise ValueError('input changed while encoding: '+rel)
-            mode=0o755 if (path.suffix.lower() in ('.exe','.so') or os.access(path,os.X_OK) and os.name!='nt' or rel in ('xl','xlang-update','xlang_ide','xlang-ls','mdo')) else 0o644
+            mode=0o755 if (path.suffix.lower() in ('.exe','.so') or os.access(path,os.X_OK) and os.name!='nt' or rel in ('xl','update','xlang_ide','xlang-ls','mdo')) else 0o644
             files.append({'path':rel,**entry,'mode':mode})
             if not any(f['path']==rel and f['sha256']==sha for f in old['files']): changed+=1
         if not files: raise ValueError('no managed runtime files')
         for p,sha in inputs:
             if digest(p)!=sha: raise ValueError('input changed during preparation: '+str(p))
         notes=Path(args.notes_file).read_text(encoding='utf-8') if args.notes_file else args.notes or ''
-        manifest={'schema':4,'platform':args.platform,'version':args.version,'notes':notes,'files':files,
-                  'delete':sorted(p for p in known-{f['path'] for f in files} if managed(p,args.include_mdo) and p not in ('xlang-update.exe','xlang-update'))}
+        manifest={'schema':4,'platform':args.platform,'version':args.version,'forceUpdate':args.force_update,'notes':notes,'files':files,
+                  'delete':sorted(p for p in known-{f['path'] for f in files} if managed(p,args.include_mdo) and p not in ('update.exe','update'))}
         data=signed(manifest,key,crypto,args.co_sign_key)
-        maker.write_atomic(staging/'update.json',data);maker.write_atomic(staging/'update.lzma',maker.lzma_alone(data));maker.write_atomic(staging/'version.txt',f'{args.version}\n'.encode())
+        maker.write_atomic(staging/'update.json',data);maker.write_atomic(staging/'update.lzma',maker.lzma_alone(data));write(staging/'version.txt',{'version':args.version,'forceUpdate':args.force_update})
         oldspec=object_specs(old);specs=object_specs(manifest);batch=store/f'ver{args.version}';batch.mkdir()
         for name in specs:
             if name not in oldspec: link(objects/name,batch/name)
             link(objects/name,store/'update'/name)
         history=store/'.state/history'/str(args.version);history.mkdir(parents=True)
         for name in META: maker.copy_atomic(staging/name,history/name)
-        write(history/'record.json',{'version':args.version,'previous':previous,'platform':args.platform,'created':int(time.time()),'published':False,'catalogCompilerBindingCurrent':binding_current,'changedFiles':changed,'objects':len(specs),'newObjects':len(list(batch.glob('*.lzma')))})
+        write(history/'record.json',{'version':args.version,'forceUpdate':args.force_update,'previous':previous,'platform':args.platform,'created':int(time.time()),'published':False,'catalogCompilerBindingCurrent':binding_current,'changedFiles':changed,'objects':len(specs),'newObjects':len(list(batch.glob('*.lzma')))})
         write(store/'.state/config.json',{'source':str(source),'platform':args.platform,'key':str(key)})
         activate_local(store,args.version);restore_main(store,manifest)
         print(json.dumps({'version':args.version,'changedFiles':changed,'newObjects':len(list(batch.glob('*.lzma'))),'store':str(store)},ensure_ascii=False))
@@ -351,8 +360,9 @@ def push(args,store):
     activated=False;metadata_started=False
     try:
         active=remote.run(f'if test -f {q(root)}/version.txt; then cat {q(root)}/version.txt; else printf 0; fi').strip()
-        if not active.isdigit() or int(active)>version: raise ValueError('remote version is newer; prepare a new release number')
-        if int(active)==version:
+        active_version,_=version_marker(active)
+        if active_version>version: raise ValueError('remote version is newer; prepare a new release number')
+        if active_version==version:
             remote_json=remote.run(f'cat {q(root)}/update.json').encode('utf-8')
             if remote_json!=(store/'update.json').read_bytes(): raise ValueError('published version is immutable; choose a new version number')
             activated=True
@@ -394,8 +404,8 @@ def push(args,store):
         if metadata_started and not activated:
             try:
                 observed=remote.run(f'if test -f {q(root)}/version.txt; then cat {q(root)}/version.txt; else printf 0; fi').strip()
-                safe_to_restore=observed.isdigit() and int(observed)<version
-            except (OSError,RuntimeError):pass
+                observed_version,_=version_marker(observed);safe_to_restore=observed_version<version
+            except (OSError,RuntimeError,ValueError):pass
         if safe_to_restore:
             # Restore the activation marker last; objects are immutable and retained.
             remote.run(' && '.join(f'if test -f {q(stage)}/previous/{n}; then cp -- {q(stage)}/previous/{n} {q(root)}/{n}.new && chmod 644 {q(root)}/{n}.new && mv -fT -- {q(root)}/{n}.new {q(root)}/{n}; else rm -f -- {q(root)}/{n}; fi' for n in META),check=False)
@@ -419,6 +429,7 @@ def menu():
             version=input('新版本号（递增整数）: ').strip()
             if not version.isdigit(): print('版本号无效');continue
             args+=['--version',version,'--notes',input('更新简介: ')]
+            if input('是否强制旧版本更新？[y/N]: ').strip().lower()=='y':args+=['--force-update']
             if command=='init':args+=['--source',input('平台发行目录: ').strip()]
         if command=='configure':
             args+=['--host',input('SSH 主机别名: ').strip(),'--remote-root',input('远端文件系统目录: ').strip(),'--public-url',input('公开下载 URL: ').strip()]
@@ -432,6 +443,7 @@ def main(argv=None):
     parser.add_argument('--platform',choices=PLATFORMS,default='win_x64' if os.name=='nt' else 'linux_x64')
     parser.add_argument('--store',type=Path);parser.add_argument('--source');parser.add_argument('--version',type=int,default=0)
     parser.add_argument('--key');parser.add_argument('--crypto');parser.add_argument('--notes');parser.add_argument('--notes-file');parser.add_argument('--include-mdo',action='store_true')
+    parser.add_argument('--force-update',action=argparse.BooleanOptionalAction,default=False,help='require older IDE installations to update; default is optional')
     parser.add_argument('--co-sign-key',action='append',default=[],help='additional trusted rollout key; preserves the previous signature')
     parser.add_argument('--host');parser.add_argument('--remote-root');parser.add_argument('--public-url');parser.add_argument('--ssh');parser.add_argument('--ssh-config');parser.add_argument('--dry-run',action='store_true');parser.add_argument('--remote',action='store_true')
     args=parser.parse_args(argv);store=(args.store or ROOT/'ide/build/updates'/args.platform).resolve()

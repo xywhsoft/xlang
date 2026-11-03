@@ -1,0 +1,2 @@
+PASS update action registry, corrupt-preference fallback/preservation, and unsaved-document cancel handoff
+PASS optional dismissal, mandatory action/input/escape gate, update/exit save cancellation, offline retention and signed-policy release

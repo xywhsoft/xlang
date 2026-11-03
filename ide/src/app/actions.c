@@ -139,8 +139,10 @@ const xide_action_info* xideActionAt(size_t index) { return index<xideActionCoun
 static const action_def* definition(int id) { for(size_t i=0;i<xideActionCount();++i) if(definitions[i].info.id==id) return &definitions[i]; return NULL; }
 const xide_action_info* xideActionFind(int id) { const action_def* d=definition(id); return d ? &d->info : NULL; }
 const xide_action_info* xideActionNamed(const char* name) { if(name) for(size_t i=0;i<xideActionCount();++i) if(!strcmp(name,definitions[i].info.name)) return &definitions[i].info; return NULL; }
+int xideActionsHasOtherModal(xide_app* a)
+{ return a && ( xideFileDialogBusy(a) || xideMessageBusy(a) || xideCatalogSourceIsOpen(a) || xideGotoViewIsOpen(a) || xideToolchainViewIsOpen(a) || xideResourceViewIsOpen(a) || xideImportViewIsOpen(a) || xideRenameViewIsOpen(a) || xideRenameViewHasPending(a) || xideTemplateViewIsOpen(a) || xideReferencesViewIsOpen(a) || xideConfigurationViewIsOpen(a) || xideFontViewIsOpen(a) || xideRecoveryViewIsOpen(a) || xideFileChangesViewIsOpen(a)); }
 int xideActionsHasModal(xide_app* a)
-{ return a && (xideUpdateIsModal(a) || xideFileDialogBusy(a) || xideMessageBusy(a) || xideCatalogSourceIsOpen(a) || xideGotoViewIsOpen(a) || xideToolchainViewIsOpen(a) || xideResourceViewIsOpen(a) || xideImportViewIsOpen(a) || xideRenameViewIsOpen(a) || xideRenameViewHasPending(a) || xideTemplateViewIsOpen(a) || xideReferencesViewIsOpen(a) || xideConfigurationViewIsOpen(a) || xideFontViewIsOpen(a) || xideRecoveryViewIsOpen(a) || xideFileChangesViewIsOpen(a)); }
+{ return a && (xideUpdateIsModal(a) || xideActionsHasOtherModal(a)); }
 xide_action_state xideActionQuery(xide_app* a,int id)
 {
     const action_def* d=definition(id); xide_action_state state={0,0,"未知动作或工作台尚未就绪"};
