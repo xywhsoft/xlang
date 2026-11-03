@@ -1,0 +1,16 @@
+{
+  "version": 3,
+  "forceUpdate": false,
+  "previous": 2,
+  "platform": "win_x64",
+  "created": 1793710158,
+  "published": true,
+  "catalogCompilerBindingCurrent": false,
+  "changedFiles": 3,
+  "objects": 640,
+  "newObjects": 3,
+  "publishedAt": 1793712005,
+  "host": "xs@222.186.10.53",
+  "publicUrl": "https://xcompiler.com/download/update_win_x64",
+  "publicVerificationRoute": "server-https"
+}

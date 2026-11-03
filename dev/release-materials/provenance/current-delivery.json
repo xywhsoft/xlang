@@ -3391,19 +3391,20 @@
     "publisherTools": "release/tools/update",
     "preparedStore": "ide/build/updates/win_x64",
     "preparedVersion": 3,
-    "published": false,
+    "published": true,
     "privateKeyPackaged": false,
     "publicKey": "53d97e95b59ae119fe0a95d02edfe1010458e60e7b95ede3541aad1df018f6a8",
     "defaultUrl": "https://xcompiler.com/download/update_<platform>",
     "publishedPlatforms": [
       "win_x64"
     ],
-    "currentPublishProvenance": "dev/release-materials/provenance/ide-update-publish-20261103-175642.json",
-    "publishedVersion": 2,
+    "currentPublishProvenance": "dev/release-materials/provenance/ide-update-policy-publish-20261103.json",
+    "publishedVersion": 3,
     "publicUrl": "https://xcompiler.com/download/update_win_x64",
     "remoteRoot": "/opt/www/host/xlang/wwwroot/download/update_win_x64",
     "localBootstrapObservedPath": "release/win_x64/update.exe",
-    "preparedForceUpdate": false
+    "preparedForceUpdate": false,
+    "publishedForceUpdate": false
   },
   "runtimeLayout": {
     "windows": "release/win_x64",

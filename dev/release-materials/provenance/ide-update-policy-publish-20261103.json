@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "date": "2026-11-03",
+  "status": "published-and-verified",
+  "platform": "win_x64",
+  "version": 3,
+  "forceUpdate": false,
+  "externalPublishPerformed": true,
+  "remoteRoot": "/opt/www/host/xlang/wwwroot/download/update_win_x64",
+  "publicUrl": "https://xcompiler.com/download/update_win_x64",
+  "objects": 640,
+  "newObjects": 3,
+  "checks": {
+    "allPublicObjectsVerifiedByPublisher": true,
+    "publicObjectVerificationRoute": "server-https",
+    "metadataExactMatch": true,
+    "clientTlsSignatureAndPolicyCheck": true,
+    "nativeOptionalDismissalAllowsEditing": true,
+    "mandatoryGateAndSaveCancelTests": true,
+    "fullOnlineBootstrapFromWorkstation": "not rerun; large-object downloads on that route truncated; offline bootstrap passed"
+  },
+  "updater": {
+    "path": "release/win_x64/update.exe",
+    "sha256": "b5af349428867c1bc59ecce602bc160e3b4ddf96d6f13a0661bd828dd0d24546"
+  },
+  "publisherRevision": "aa732ca20d2f2db3fc01caa42d2203d55ce5162a",
+  "evidence": [
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-publish-20261103/policy-publish-20261103.log",
+      "bytes": 2152,
+      "sha256": "ddefcbd103cf79ea075c0c5bfef40111ffc66cac1af8daac4dabff8bb93c0535"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-publish-20261103/policy-server-publish-20261103.log",
+      "bytes": 81,
+      "sha256": "8cdd4d5daae54c2749b22ecc7fb0e9392d0d587cb9a0333ec32b4ff163531e93"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-publish-20261103/policy-online-client.log",
+      "bytes": 89,
+      "sha256": "bb385bb07294bab0ec311b5f7607a4713e47feea9998a99c2fb26b20118c493f"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-publish-20261103/required-ide-final-tests.log",
+      "bytes": 620,
+      "sha256": "bae8c7e1921a9fbbc909803e6de8fbf6e737ac99ffe74587e89f29297fbd64e6"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-publish-20261103/required-direct-publish-tests.log",
+      "bytes": 2294,
+      "sha256": "5e2f0a3171274d0778291a7772f4c537c5bd2e886e4d91fe1d27e3e0b882837d"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-publish-20261103/required-server-publish-tests.log",
+      "bytes": 2282,
+      "sha256": "f70e994955ea89909b9addbab66cbc2bb00b7c9eb3c0ff579c126c13a12ff60e"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-publish-20261103/update.json",
+      "bytes": 223598,
+      "sha256": "6729ac12c58cdeda444ee5d9de775a78c3a586548ba12960424aa9afae38fa12"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-publish-20261103/update.lzma",
+      "bytes": 50437,
+      "sha256": "2a04d865e051bec5af1d363adb62acdd42242de4880040e1c7cf62cd96d28295"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-publish-20261103/version.txt",
+      "bytes": 43,
+      "sha256": "91f93032971011b81b028edf33e0e266466b618aced269603453497033d8dad0"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-policy-publish-20261103/record.json",
+      "bytes": 399,
+      "sha256": "04a9ceada34bf4e48d01737e3f0faf1d6fd4bae8a296e12f4ede1733dfe8cb38"
+    }
+  ]
+}
