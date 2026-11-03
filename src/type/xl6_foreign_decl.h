@@ -108,11 +108,14 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             else if (!strcmp(value->text, "\"owner_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE;
             else if (!strcmp(value->text, "\"bool_status\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS;
             else if (!strcmp(value->text, "\"scope_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE;
+            else if (!strcmp(value->text, "\"status\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_INT_STATUS;
             else return 0;
             if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE || facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE){
                 int32 source;
                 if(attr->childCount!=2 || !xl6ForeignDecimalInt(attr->children[1],&source) || source<0 || source>=64)return 0;
                 facts.resultOwnerIndexPlusOne=(uint32)source+1;
+            }else if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS){
+                if(attr->childCount!=2 || !xl6ForeignDecimalInt(attr->children[1],&facts.successCode))return 0;
             }else if(attr->childCount!=1)return 0;
             continue;
         }
@@ -148,6 +151,10 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             uint64 bit = UINT64_C(1) << index;
             if (attr->childCount != 1 || (facts.staticCallbackAddresses & bit)) return 0;
             facts.staticCallbackAddresses |= bit;
+        } else if (!strcmp(attr->text,"c_output")) {
+            if(facts.outputIndexPlusOne || attr->childCount!=2 ||
+                !xl6ForeignDecimalInt(attr->children[1],&facts.successCode))return 0;
+            facts.outputIndexPlusOne=(uint32)index+1;facts.valueOutput=1;
         } else if (!strcmp(attr->text, "factory")) {
             if (facts.outputIndexPlusOne || attr->childCount != 3 ||
                 !xl6ForeignDecimalInt(attr->children[1], &facts.successCode) ||
@@ -161,7 +168,8 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         (facts.terminatedStrings & (facts.textViews | facts.bytesViews | facts.constRecordAddresses | facts.staticCallbackAddresses)) ||
         (facts.textViews & (facts.constRecordAddresses | facts.staticCallbackAddresses | facts.bytesViews)) ||
         (facts.bytesViews & (facts.constRecordAddresses | facts.staticCallbackAddresses)) ||
-        (facts.borrowedViewResult && facts.borrowedViewResult<=XL6_FOREIGN_VIEW_RESULT_BYTES && facts.outputIndexPlusOne)) return 0;
+        (facts.borrowedViewResult && facts.borrowedViewResult<=XL6_FOREIGN_VIEW_RESULT_BYTES && facts.outputIndexPlusOne) ||
+        (facts.valueOutput && facts.borrowedViewResult)) return 0;
     if (output) *output = facts;
     return 1;
 }

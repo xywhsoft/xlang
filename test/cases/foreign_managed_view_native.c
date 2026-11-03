@@ -3,7 +3,6 @@
 #include "test/cases/foreign_expanded_calls.h"
 #include <assert.h>
 struct ManagedRoot {ManagedWatch* watches;ManagedChild* children;unsigned depth;bool closing,failDestroy;int value;ManagedCallback callback;void* userdata;ManagedCallbackOwner callbackOwner;};
-struct ManagedChild {ManagedWatch* watches;ManagedRoot* root;ManagedChild* next;bool closing;int value;};
 int span_points_write(SpanPoint* data,int count)
 {for(int i=0;i<count;++i)data[i]=(SpanPoint){(float)i+1,(float)i+2};return count;}
 int span_points_sum(const SpanPoint* data,int count)

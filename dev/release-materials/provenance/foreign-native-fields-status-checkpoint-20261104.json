@@ -1,0 +1,113 @@
+{
+  "complete": true,
+  "scope": "Native field operations, integer statuses and one trivial C output value; compiler-capability checkpoint, not complete XGE/XUI delivery",
+  "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r8",
+  "windows": {
+    "fullTranslationUnits": 1414,
+    "tccObjects": 1562,
+    "groups": 21,
+    "acceptedGroups": 21,
+    "optimizationLevels": [
+      "O0",
+      "O2"
+    ],
+    "tccModes": [
+      "JIT",
+      "module",
+      "standalone"
+    ],
+    "fieldMutationsPerOptimization": 80,
+    "statusMutationsPerOptimization": 110,
+    "outputMutationsPerOptimization": 68,
+    "initialBatchPreserved": true,
+    "correctedGate": "native-fields-r8-corrected-r3/results.json",
+    "testCorrection": "Native header mismatch now uses a minimal exported raw getter, avoiding unrelated function/property type errors"
+  },
+  "linux": {
+    "fullTranslationUnits": 1413,
+    "acceptedGroups": [
+      "managed_views",
+      "expanded_calls",
+      "terminated_strings",
+      "scoped_views",
+      "native_fields",
+      "status",
+      "output_values"
+    ],
+    "tccIncluded": false
+  },
+  "costs": {
+    "trivialCallerGetter": {
+      "tccInstructionBytes": 27,
+      "identicalToHandwrittenC": true,
+      "gccO2Instructions": [
+        "field load",
+        "return"
+      ]
+    },
+    "typedScopedFieldWarmCalls": 200,
+    "newXrtAllocations": 0,
+    "newXrtReallocations": 0,
+    "newXrtFrees": 0,
+    "excludes": "Managed scopes still resolve tokens and maintain lifetime/error boundaries; result strings/bytes copy payloads; no universal zero-overhead claim"
+  },
+  "nativeBugFix": {
+    "repository": "D:/GIT/xge",
+    "commit": "5e6fda67",
+    "issue": "owner Hold reentry could overwrite nested event registrations or commit after close",
+    "windowsO0O2Passed": true,
+    "linuxAsanUbsanPassed": true
+  },
+  "eightTasksComplete": false,
+  "shippingUpdated": false,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r8.json",
+      "sha256": "eba4668484f6f4aaf92f6cb50fea9f43d4978a26eef90c3b696d77fad8b9d10a"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r8\\build.json",
+      "sha256": "f3fb3ba9a2c9399ce2ddf532bba75de691b7d4d42b7bdd769573542a12ae17fe"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r8-vfs\\build.json",
+      "sha256": "2ccdf65b8180c162dab01f35e5f1e3d7f16c9c82bb29c57b6dd3a52d246bbdb3"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r8-vfs\\provider.json",
+      "sha256": "987e0eca7df6d76fb11a0e32311863c5fe54b772e2e62788453d16538d4a6cb9"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\precompiled-r8\\manifest.json",
+      "sha256": "96bd883d593a8bb33bf45dcfb6bbf8ed9f8be71c6c52934905a75eb00b828878"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\batch-r8\\results.json",
+      "sha256": "4eddf9c07c2d152f7476f5913326115a97719a47e3b5d2553a82f151cf25c89c"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-fields-r8-corrected-r3\\results.json",
+      "sha256": "38d65843cb58f9ee008f9ffa75e38045bc862954b1d30028bbc9987575ee16aa"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\field-forwarding-r8-verified\\comparison.json",
+      "sha256": "41d6e78406c590a22115033da4d17ee2a84f60ad21210bd2fe6da808dd96bc2d"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-native-fields-status-evidence-r4.json",
+      "sha256": "acf81597630791280e45e3ff722ceed23ff9b44d3b26b7c9b426afef9be60716"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xui-hold-reentry-before-r1\\results.json",
+      "sha256": "f96a0b3ae454fb3eb7c8b29f12ef0bccae05aa51fa1631dd20e159aec0940a6e"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xui-hold-reentry-after-r2\\results.json",
+      "sha256": "8ffdddc68cf7ec54f4f14df996bdcf0e429d9b6b215475eef39c645414bc95de"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-xui-hold-reentry-r1.json",
+      "sha256": "3cae6b007ef1fee978df06447f2c8965ce7ce381a8a02b3641e6f644a792857f"
+    }
+  ]
+}

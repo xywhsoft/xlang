@@ -39,6 +39,10 @@ int main(void)
     assert(xl6ForeignCallbackEnterV1(&callback));
     assert(xl6ForeignScopeBeginV1(&a,&call));
     XL6_ForeignScopeViewV1 saved={0},child={0},null={0};
+    const Ephemeral readOnly={7,{1,2,3}};
+    XL6_ForeignScopeViewV1 constView={0};
+    assert(xl6ForeignScopeViewMakeV1(&a,&readOnly,&constView));
+    assert(xl6ForeignScopeViewDeriveV1(constView,readOnly.bytes,&child));
     assert(xl6ForeignScopeViewMakeV1(&a,&event,&saved));
     assert(xl6ForeignScopeViewMakeV1(&a,NULL,&null) && !null.address && !null.lifetime);
     assert(xl6ForeignScopeViewAliveV1(saved));

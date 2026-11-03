@@ -360,18 +360,32 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
                              "XLIR extern call target has no deterministic C linkage ABI");
     const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);
     uint32 output = declaration ? declaration->foreignCall.outputIndexPlusOne : 0;
-    size_t outputLogical=output ? xl6ForeignFactoryOutputLogical(&declaration->foreignCall,target->parameterCount) : SIZE_MAX;
+    size_t receiver=declaration && (declaration->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || declaration->sourceKind==XL6_AST_GET || declaration->sourceKind==XL6_AST_LET) &&
+        !(declaration->flags&XL6_AST_FLAG_STATIC) ? 1u : 0u;
+    size_t outputLogical=output ? xl6ForeignOutputLogical(&declaration->foreignCall,target->parameterCount,receiver) : SIZE_MAX;
     /* A runtime bridge is not an unresolved foreign symbol: the verified
      * component selected by runtimeBridge has already emitted its canonical
      * definition before this prototype phase.  Re-declaring it from the
      * language's normalized storage type (for example uint32 -> int64_t)
      * would invent a second C ABI and can conflict with the component's
      * fixed-width public signature. */
+    if(target->foreignOperationAbi!=XL6_IR_FOREIGN_OPERATION_CALL){
+        const XL6_IrType* receiver=xl6IrTypeGet(&module->types,target->parameterTypes[0]);
+        const XL6_IrType* value=xl6IrTypeGet(&module->types,target->returnType);
+        const char* physical=target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_FIELD_WRITE ?
+            xl6IrCgenExternParameterType(module,target,1) : target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW ? "xstrview" :
+            target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW ? "xbytesview" :
+            target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW ? value->cName : xl6IrCgenType(module,target->returnType);
+        if(!receiver || !physical)return 0;
+        xl6OutputPrintf(out,"_Static_assert(_Generic(((%s)0)->%s, %s:1, default:0), \"native field type\");\n",
+            receiver->cName,target->cName,physical);return !xl6OutputHasFailed(out);
+    }
     if ( target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE ) return 1;
     {
         XL6_IrTypeId physicalResult =
             xl6IrCgenPhysicalResultType(module, target);
-        returnType = target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_BOOL_STATUS ? "bool"
+        returnType = target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_INT_STATUS ? "int"
+            : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_BOOL_STATUS ? "bool"
             : target->returnType == XL6_IR_TYPE_INVALID ? "void"
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW ? "xstrview"
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW ? "xbytesview"

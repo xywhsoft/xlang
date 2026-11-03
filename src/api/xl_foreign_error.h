@@ -83,6 +83,10 @@ XL6_FOREIGN_API xl6_foreign_error_result xl6ForeignCallEnd(xl6_foreign_error_sco
  * cause; native code may consume that diagnostic without handling the language
  * exception. With no scope, only the native diagnostic is published. */
 XL6_FOREIGN_API void xl6ForeignCallbackFail(void);
+/* Cold failure reporting for a declaration-driven integer status contract.
+ * Preserves an existing native diagnostic; the caller still captures the
+ * independent failed status even if diagnostic allocation fails. */
+XL6_FOREIGN_API void xl6ForeignStatusFailureV1(int status,const char* operation);
 
 #ifdef __cplusplus
 }

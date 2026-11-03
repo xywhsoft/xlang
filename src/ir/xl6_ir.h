@@ -4222,7 +4222,8 @@ typedef enum XL6_IrCallResultCAbi {
     XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW,
     XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW,
     XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW,
-    XL6_IR_CALL_RESULT_C_ABI_BOOL_STATUS
+    XL6_IR_CALL_RESULT_C_ABI_BOOL_STATUS,
+    XL6_IR_CALL_RESULT_C_ABI_INT_STATUS
 } XL6_IrCallResultCAbi;
 
 /* CALL 在物理调用后立即完成拥有权转换，之后才允许释放参数和接收者。
@@ -4232,7 +4233,8 @@ typedef enum XL6_IrCallResultConversionAbi {
     XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY,
     XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE,
     XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT,
-    XL6_IR_CALL_RESULT_CONVERSION_STATUS_CHECK
+    XL6_IR_CALL_RESULT_CONVERSION_STATUS_CHECK,
+    XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE
 } XL6_IrCallResultConversionAbi;
 
 /* Compiler-private resident producers receive the verified owner/element
@@ -5511,12 +5513,20 @@ typedef enum XL6_IrCallImplementationAbi {
     XL6_IR_CALL_IMPLEMENTATION_GENERATED_TCC_V1
 } XL6_IrCallImplementationAbi;
 
+typedef enum XL6_IrForeignOperationAbi {
+    XL6_IR_FOREIGN_OPERATION_INVALID=-1,
+    XL6_IR_FOREIGN_OPERATION_CALL=0,
+    XL6_IR_FOREIGN_OPERATION_FIELD_READ,
+    XL6_IR_FOREIGN_OPERATION_FIELD_WRITE
+} XL6_IrForeignOperationAbi;
+
 typedef struct XL6_IrCallTarget {
     XL6_IrCallTargetKind kind;
     XL6_IrCallExecutionBoundaryAbi executionBoundaryAbi;
     XL6_IrCallEffectAbi effectAbi;
     XL6_IrRuntimeBridgeKind runtimeBridge;
     XL6_IrCallImplementationAbi implementationAbi;
+    XL6_IrForeignOperationAbi foreignOperationAbi;
     XL6_IrCallErrorPhysicalAbi producerErrorPhysicalAbi;
     XL6_IrRuntimeBridgeOperation runtimeBridgeOperation;
     /* Closed resident resource declaration, resolved once from the private
@@ -7965,6 +7975,9 @@ int xl6IrForeignPreparedParameterMatches(const XL6_IrModule*,const XL6_IrCallTar
 int xl6IrForeignSpanParameterMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 int xl6IrForeignRetainedParameterMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 size_t xl6IrForeignParameterWidth(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+XL6_IrForeignOperationAbi xl6IrForeignOperationForTarget(const XL6_IrModule*,const XL6_IrCallTarget*);
+int xl6IrForeignOutputValueMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
+int xl6IrForeignFieldOperationMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignManagedViewParameter(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 int xl6IrForeignControlViewParameter(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 const XL6_IrType* xl6IrForeignRootType(const XL6_IrModule*,XL6_IrTypeId);

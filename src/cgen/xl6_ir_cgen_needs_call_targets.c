@@ -76,7 +76,8 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
         /* A reached resident symbol needs the shared physical declarations
          * regardless of its language bridge family. Registry linkage, not a
          * VFS/FS symbol spelling or emitted adapter body, selects this header. */
-        XL6_ArtifactRuntimeId owner=xl6ArtifactRuntimeSymbolOwner(target->cName);
+        XL6_ArtifactRuntimeId owner=target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_CALL ?
+            xl6ArtifactRuntimeSymbolOwner(target->cName) : XL6_ARTIFACT_RUNTIME_COUNT;
         if (owner != XL6_ARTIFACT_RUNTIME_COUNT)
             needs->needsTextAdapterDeclarations = 1;
         if (owner == XL6_ARTIFACT_DICT_METHODS)

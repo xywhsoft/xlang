@@ -55,7 +55,7 @@ bool xl6ForeignScopeEndV1(XL6_ForeignScopeLifetimeV1* scope)
     *scope=(XL6_ForeignScopeLifetimeV1){0};
     return true;
 }
-bool xl6ForeignScopeViewMakeV1(const XL6_ForeignScopeLifetimeV1* scope,void* raw,XL6_ForeignScopeViewV1* output)
+bool xl6ForeignScopeViewMakeV1(const XL6_ForeignScopeLifetimeV1* scope,const void* raw,XL6_ForeignScopeViewV1* output)
 {
     if(!emptyOutput(output)){xrtSetErrorKind(XERR_ARGUMENT);return false;}
     if(!xl6ForeignContextReadyV1())return false;
@@ -63,7 +63,7 @@ bool xl6ForeignScopeViewMakeV1(const XL6_ForeignScopeLifetimeV1* scope,void* raw
     if(raw)*output=(XL6_ForeignScopeViewV1){(uintptr_t)raw,scope->identity};
     return true;
 }
-bool xl6ForeignScopeViewDeriveV1(XL6_ForeignScopeViewV1 source,void* raw,XL6_ForeignScopeViewV1* output)
+bool xl6ForeignScopeViewDeriveV1(XL6_ForeignScopeViewV1 source,const void* raw,XL6_ForeignScopeViewV1* output)
 {
     if(!emptyOutput(output)){xrtSetErrorKind(XERR_ARGUMENT);return false;}
     if(!xl6ForeignContextReadyV1())return false;

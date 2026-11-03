@@ -69,6 +69,13 @@ static int xl6IrCgenEmitFunction(
         xl6OutputPuts("\n{\n", out);
         for (i = 0; i < function->parameterCount; ++i)
             xl6OutputPrintf(out, "    (void)s%u;\n", (unsigned)module->functionParameters[function->firstParameter + i]);
+        if(target->foreignOperationAbi!=XL6_IR_FOREIGN_OPERATION_CALL){
+            xl6OutputPrintf(out,"    %ss%u->%s",function->returnType ? "return " : "",
+                (unsigned)xl6IrDirectCForwardingArgument(module,forwarding,0),target->cName);
+            if(target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_FIELD_WRITE)
+                xl6OutputPrintf(out," = s%u",(unsigned)xl6IrDirectCForwardingArgument(module,forwarding,1));
+            xl6OutputPuts(";\n}\n\n",out);return !xl6OutputHasFailed(out);
+        }
         xl6OutputPrintf(out, "    %s%s(", function->returnType ? "return " : "", target->cName);
         for (i = 0; i < forwarding->operandCount; ++i) {
             if (i) xl6OutputPuts(", ", out);
