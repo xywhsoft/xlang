@@ -1,20 +1,23 @@
-"""Compile existing text-view generated C; no compiler frontend rebuild.
+"""Compile existing generated C and its native fixture; no frontend rebuild.
 
 Sanitizers cover generated C and native fixture, not the reused host DLL/SO.
 """
 from pathlib import Path
 import argparse,hashlib,json,os,shutil,subprocess,time
+import re
 from compiler_response import command_with_response
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for key in ('root','generated','runtime','out'):p.add_argument('--'+key,type=Path,required=True)
     p.add_argument('--include',type=Path,action='append',default=[])
+    p.add_argument('--case-stem',default='foreign_text_view')
     p.add_argument('--sanitize',action='store_true');a=p.parse_args()
+    assert re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*',a.case_stem)
     root,generated,runtime,out=[v.resolve() for v in (a.root,a.generated,a.runtime,a.out)]
     out.mkdir(parents=True,exist_ok=False);(out/'tmp').mkdir();cc=shutil.which('gcc');assert cc
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
-    provider=root/'test/cases/foreign_text_view_native.c';host=root/'test/cases/foreign_decl_module_host.c'
-    inputs={str(path):sha(path) for path in (Path(__file__).resolve(),generated,runtime,provider,host,root/'test/cases/foreign_text_view.h',Path(cc))}
+    provider=root/('test/cases/'+a.case_stem+'_native.c');host=root/'test/cases/foreign_decl_module_host.c'
+    inputs={str(path):sha(path) for path in (Path(__file__).resolve(),generated,runtime,provider,host,root/('test/cases/'+a.case_stem+'.h'),Path(cc))}
     for directory in a.include:
         inputs.update((str(path),sha(path)) for path in directory.resolve().rglob('*.h'))
     report=dict(complete=False,passed=False,scope=__doc__,networkTests=False,sanitizers=a.sanitize,reusedCoreInstrumented=False,inputs=inputs,rows=[])

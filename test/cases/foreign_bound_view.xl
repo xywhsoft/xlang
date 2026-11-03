@@ -1,0 +1,93 @@
+extern "bound_view*" class View @header("test/cases/foreign_bound_view.h") @lifetime("caller")
+    native point handle
+    extern "bound_view_add" @no_raise @nonblocking func add(int amount = 2) as int
+    extern "bound_view_mul" @no_raise @nonblocking func mul(int amount) as int
+    extern "bound_view_store" @no_raise @nonblocking func store(int amount)
+end
+extern "bound_view*" class Child @header("test/cases/foreign_bound_view.h") @lifetime("caller") extends View
+end
+typedef Alias = Child
+extern "bound_view_at" @no_raise @nonblocking func view(c_int index) as View
+extern "bound_view_child" @no_raise @nonblocking func child(c_int index) as Alias
+extern "bound_view_check_begin" @no_raise @nonblocking func beginCheck()
+extern "bound_view_check_unchanged" @no_raise @nonblocking func unchanged() as c_int
+extern "bound_view_calls" @no_raise @nonblocking func calls() as c_int
+extern "bound_view_binding_cost" @no_raise func bindingCost()
+extern "bound_view_fail_after" @no_raise @nonblocking func failAfter(c_int prefix)
+extern "bound_view_mark_balance" @no_raise @nonblocking func markBalance()
+extern "bound_view_balanced" @no_raise @nonblocking func balanced() as c_int
+
+func bind(View value) as func(int) as int
+    func(int) as int saved = value.add
+    return saved
+end
+class Managed
+    int value
+    create(int value)
+        self.value = value
+    end
+    func add(int amount) as int
+        return self.value + amount
+    end
+end
+func retainedBinding() as func(int) as int
+    auto owner = Managed(7)
+    func(int) as int saved = owner.add
+    return saved
+end
+func tryBind(View value, c_int prefix) as bool
+    failAfter(prefix)
+    try
+        func(int) as int attempt = value.add
+        failAfter(c_int(-1))
+        assert attempt(1) == 11
+        return true
+    catch error
+        failAfter(c_int(-1))
+        return false
+    end
+end
+func main(...) as int
+    View first = view(c_int(0))
+    beginCheck()
+    func(int) as int add = first.add
+    bindingCost()
+    first = view(c_int(1))
+    assert add(3) == 13
+    func(int) as int escaped = bind(view(c_int(0)))
+    assert escaped(7) == 17
+    func(int) as int retained = retainedBinding()
+    assert retained(3) == 10
+    func() as int defaulted = view(c_int(0)).add
+    assert defaulted() == 12
+    Alias derived = child(c_int(0))
+    func(int) as int inherited = derived.mul
+    assert inherited(3) == 30
+    func(int) as int cloned = add
+    int iteration = 0
+    beginCheck()
+    while iteration < 200
+        assert cloned(2) == 12
+        iteration += 1
+    end
+    assert unchanged() == c_int(1)
+    func(int) setter = view(c_int(0)).store
+    setter(25)
+    assert add(3) == 28
+    setter(10)
+    View? optional = view(c_int(0))
+    if optional != null
+        func(int) as int narrowed = optional.add
+        assert narrowed(2) == 12
+    end
+    int prefix = 0
+    bool succeeded = false
+    while prefix < 8 and not succeeded
+        markBalance()
+        succeeded = tryBind(view(c_int(0)), c_int(prefix))
+        assert balanced() == c_int(1)
+        prefix += 1
+    end
+    assert succeeded and prefix >= 3
+    return 0
+end

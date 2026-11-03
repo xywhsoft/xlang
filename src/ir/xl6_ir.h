@@ -7261,6 +7261,7 @@ int xl6IrBoundMethodSelectionMatches(const XL6_IrModule*,XL6_IrNodeId,XL6_Symbol
 int xl6IrBoundMethodCandidateMatches(const XL6_IrModule*,XL6_IrNodeId,XL6_IrNodeId);
 int xl6IrBoundMethodResultMatches(const XL6_IrModule*,XL6_IrTypeId,XL6_IrTypeId);
 int xl6IrBoundMethodTargetMatches(const XL6_IrModule*,XL6_IrNodeId,XL6_SymbolId,XL6_IrTypeId);
+XL6_IrClosureCaptureAbi xl6IrBoundMethodReceiverCaptureAbi(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrVerifyDynamicMethodScalarCodecs(const XL6_IrModule*,XL6_DiagList*);
 const XL6_IrCallableBridgeResult* xl6IrDynamicMethodScalarCodecGet(const XL6_IrModule*,size_t);
 const XL6_IrCallableBridge* xl6IrCallableBridgeGet(

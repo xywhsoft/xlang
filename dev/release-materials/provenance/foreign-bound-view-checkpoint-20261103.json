@@ -1,0 +1,158 @@
+{
+  "recordedAt": "2026-11-03T04:37:40.215452+00:00",
+  "checkpointComplete": true,
+  "fullXgeXuiMigrationComplete": false,
+  "scope": "Typed bound method values for explicitly caller-owned foreign C pointer views; exact bound-adapter invocation verification",
+  "generatedPath": "AST -> unified XLIR -> existing typed closure adapter CFG -> C; no library-specific bridge, opcode dispatch or receiver boxing",
+  "sourceHashes": {
+    "src/ir/xl6_ir.c": "3e8121b2bb5f2f9f8c47b0ea60c224540cbeb280efef8c604ef47cf7a3c9317b",
+    "src/ir/xl6_ir.h": "36a51a3d55d71f71b3f59375437c2e3abfdb5a7a874200689dfc33f205defc27",
+    "src/ir/xl6_ir_bound_method.c": "6de58b1aea73e720af1657f04aac7ab7c154f6b610f9a653951087db0df8f369",
+    "test/cases/foreign_bound_view.xl": "524dc43f197b34b7a6b5cf451d15567854c3555ce366f59d5888c2ea32c1b25d",
+    "test/cases/foreign_bound_view.h": "3d6bb734a19405d754c8dbf2b62203a7764d3584ee15bcf3d9f8ddbaa6c93d00",
+    "test/cases/foreign_bound_view_native.c": "81fd92e4e39e66c07065bc584401a538b8c717446cad06e507e6d94035dc9d48",
+    "test/cases/foreign_bound_view_ir.c": "ac1b13cb77e7717df9d324117cdf91fbc3a53f457ace0f12aa879f45ec25aaf5",
+    "test/cases/foreign_text_view.xl": "7a2105617461b9bce7077bef1149d2bfdc37bb3a7051cb3f4ccd197f0fd8f554"
+  },
+  "toolHashes": {
+    "tools/check_foreign_bound_views.py": "687e088ebb956b86e414e3657f642bef3c75afa93080e92a038d55b9f7feba9e",
+    "tools/check_foreign_text_native.py": "b79763d68d2bbd90537aaebb6e37b45e6f24dafc7c092bdc9cd6ec69ecbc78ea"
+  },
+  "sourceBuild": {
+    "path": "F:\\xlang-validation\\foreign-bound-20261103\\source-r1-vfs\\build.json",
+    "sha256": "02938f0477ae7b5e36b1633246d9e7b487d36e30fd71e646d8917f123abdb12d",
+    "translationUnits": 1410,
+    "optimization": "O0",
+    "inputsUnchanged": true,
+    "workingTreeSnapshot": true
+  },
+  "precompiled": {
+    "path": "F:\\xlang-validation\\foreign-bound-20261103\\precompiled-r1\\manifest.json",
+    "sha256": "ad44e3e6663ba9eddaf22a59e1d6139245a864c6cff2e44f6c85dab9fafc0e37",
+    "objects": 1558
+  },
+  "provider": {
+    "path": "F:\\xlang-validation\\foreign-bound-20261103\\source-r1-vfs\\provider.json",
+    "sha256": "2326a44264f2758e63565ca235b7a5433edb66cd4bf0746a5e10dc347d17c685",
+    "role": "TinyCC/VFS provider; serialized target objects only, no second executing compiler or XRT"
+  },
+  "windows": [
+    {
+      "path": "F:\\xlang-validation\\foreign-bound-20261103\\bound-acceptance-r2\\results.json",
+      "sha256": "bca2320864d062708d6c9775685cc4a89a98d789250f946b5d274d18fcbbb94f",
+      "passed": true,
+      "stages": 68
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-bound-20261103\\text-regression-r1\\results.json",
+      "sha256": "3a5d9555143c9f30712537c24d4d218e35df7fc3299a91d0750f6ae28afeeb9b",
+      "passed": true,
+      "stages": 25
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-bound-20261103\\foundation-r1\\results.json",
+      "sha256": "0cd843b17e18881148799cdce3c84fe3a331999ece2485fafcaf59feeff4a57a",
+      "passed": true,
+      "stages": 11
+    }
+  ],
+  "linux": {
+    "path": "/home/ubuntu/xlang-validation/foreign-bound-20261103-r1/results.json",
+    "sha256": "cc75bcccfe03667c9c2d2790d9867352e189669c0327b2356ec9df91d9e7a023",
+    "passed": true,
+    "stages": 4,
+    "sanitizers": "ASan, UBSan, leak detection on generated C and native fixture; reused SO not rebuilt or instrumented",
+    "generatedCSha256": "2292696f62adfcfd429cd522b788d27accaa0a40d684ffeb0e976301f7c713af",
+    "sameGeneratedCAsFinalWindowsGate": true
+  },
+  "coverage": {
+    "typedNativeReceiverCaptures": 7,
+    "ownedManagedReceiverCaptures": 1,
+    "existingPositiveCgenCases": 22,
+    "existingRejectedCases": 22,
+    "newNegativeCases": 5,
+    "irChecks": {
+      "receiver-IR-O0-run": {
+        "summary": "bound views: raw=7 managed=1 mutations=76 zero-output=152",
+        "logSha256": "c2205e53f4b156fd3ff3ce258a2cd9ac0241301ced1c2f386009d80c6f73c725"
+      },
+      "receiver-IR-O2-run": {
+        "summary": "bound views: raw=7 managed=1 mutations=76 zero-output=152",
+        "logSha256": "c2205e53f4b156fd3ff3ce258a2cd9ac0241301ced1c2f386009d80c6f73c725"
+      },
+      "dispatch-IR-O0-run": {
+        "summary": "bound dispatch: 2 static, 1 virtual, 6 rejected mutations",
+        "logSha256": "5202011e8cec1d98fa7a2ff7b30dad7a8eb09b04e495670f8d0580685b484e1d"
+      },
+      "dispatch-IR-O2-run": {
+        "summary": "bound dispatch: 2 static, 1 virtual, 6 rejected mutations",
+        "logSha256": "5202011e8cec1d98fa7a2ff7b30dad7a8eb09b04e495670f8d0580685b484e1d"
+      }
+    }
+  },
+  "performance": {
+    "coldBinding": {
+      "O0-run": {
+        "allocations": 2,
+        "requestedLiveBytes": 144,
+        "reallocations": 0,
+        "log": "F:\\xlang-validation\\foreign-bound-20261103\\bound-acceptance-r2\\O0-run.log",
+        "logSha256": "e06b589771f5e3e01065d313e1984af775407158cdb55d66c7d151220119fa48"
+      },
+      "O2-run": {
+        "allocations": 2,
+        "requestedLiveBytes": 144,
+        "reallocations": 0,
+        "log": "F:\\xlang-validation\\foreign-bound-20261103\\bound-acceptance-r2\\O2-run.log",
+        "logSha256": "e06b589771f5e3e01065d313e1984af775407158cdb55d66c7d151220119fa48"
+      },
+      "tcc-run": {
+        "allocations": 3,
+        "requestedLiveBytes": 200,
+        "reallocations": 0,
+        "log": "F:\\xlang-validation\\foreign-bound-20261103\\bound-acceptance-r2\\tcc-run.log",
+        "logSha256": "3ec2ede1fddfc130760dbc246fd4d9d8ce36b2db7e17175fa208df56774bb5ac"
+      },
+      "tcc-module": {
+        "allocations": 3,
+        "requestedLiveBytes": 200,
+        "reallocations": 0,
+        "log": "F:\\xlang-validation\\foreign-bound-20261103\\bound-acceptance-r2\\tcc-module.log",
+        "logSha256": "9e856797efc58e6cac804e533e538bab22ec793c83d75d7f7b90d78c0b0fb75b"
+      },
+      "standalone": {
+        "allocations": 3,
+        "requestedLiveBytes": 200,
+        "reallocations": 0,
+        "log": "F:\\xlang-validation\\foreign-bound-20261103\\bound-acceptance-r2\\standalone.log",
+        "logSha256": "13e642d3297c5225f62ac8da7edfdfa1c669d45bbcf07e7af136e4a4460361a3"
+      }
+    },
+    "stableCalls": 200,
+    "stableXrtAllocationDelta": 0,
+    "stableXrtReallocationDelta": 0,
+    "receiverStorage": "one exact C pointer, trivial capture; ordinary language class remains retained xvalue",
+    "remainingCosts": [
+      "closure environment/storage allocations on creation",
+      "optional code lease admission",
+      "closure indirect invocation",
+      "environment read",
+      "code activity and ownership bookkeeping"
+    ],
+    "handwrittenCEquivalenceMeasured": false,
+    "zeroOverheadClaim": false
+  },
+  "priorFailedGate": {
+    "path": "F:\\xlang-validation\\foreign-bound-20261103\\bound-acceptance-r1\\results.json",
+    "reason": "Independent IR fixture referenced a compiler-private helper; replaced with independent definition scan. No production-source change between gates."
+  },
+  "limitations": [
+    "Caller contract does not retain or invalidate native object or keep its external C provider alive.",
+    "Managed view declarations, language/container schema, ownership/transfer/context XLIR and full native callback graph remain unfinished.",
+    "Factory result protection, complete text/span/effect contracts and final package migration remain unfinished.",
+    "No full Linux frontend rebuild or shipping DLL/SDK/IDE update in this checkpoint.",
+    "Platform SDK compatibility mappings exist only inside isolated snapshot; no root release/include or release/extlibs recreated.",
+    "Other concurrent completion and release-layout work is outside this commit."
+  ],
+  "networkTests": false
+}

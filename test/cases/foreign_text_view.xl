@@ -40,6 +40,8 @@ func main(...) as int
     w.text = "p\0q"
     assert w.text == "p\0q"
     expect(c_int(textSize(w.echo("a\0b"))), 3)
+    func(string) as string bound = w.echo
+    expect(c_int(textSize(bound("c\0d"))), 3)
     bool rejected = false
     try
         auto bad = textResult(2)
