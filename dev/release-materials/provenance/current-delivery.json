@@ -3,7 +3,7 @@
   "date": "2026-11-03",
   "primaryDirectory": "D:/GIT/x-lang",
   "deliveryDirectory": "release",
-  "externalPublishPerformed": false,
+  "externalPublishPerformed": true,
   "primaryIntegrationRevision": "03a82ac0d0f1a45e1cdbc2f208712bea049da642",
   "integrations": {
     "tomlCalendarCommit": "65eb0f3dc",
@@ -3382,10 +3382,18 @@
     "publisherTools": "release/tools/update",
     "preparedStore": "ide/build/updates/win_x64",
     "preparedVersion": 2,
-    "published": false,
+    "published": true,
     "privateKeyPackaged": false,
     "publicKey": "53d97e95b59ae119fe0a95d02edfe1010458e60e7b95ede3541aad1df018f6a8",
-    "defaultUrl": "https://xcompiler.com/download/update_<platform>"
+    "defaultUrl": "https://xcompiler.com/download/update_<platform>",
+    "publishedPlatforms": [
+      "win_x64"
+    ],
+    "currentPublishProvenance": "dev/release-materials/provenance/ide-update-publish-20261103-175642.json",
+    "publishedVersion": 2,
+    "publicUrl": "https://xcompiler.com/download/update_win_x64",
+    "remoteRoot": "/opt/www/host/xlang/wwwroot/download/update_win_x64",
+    "localBootstrapObservedPath": "release/win_x64/update.exe"
   },
   "runtimeLayout": {
     "windows": "release/win_x64",

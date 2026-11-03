@@ -1,0 +1,19 @@
+VERIFY PUBLIC 1/640
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update/10d1e8125ec0eb25771fda579093b88444db2ce834993148d1072df240626ee2.lzma: Remote end closed connection without response
+VERIFY PUBLIC 64/640
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update/27e17cb16f25a4b1c16714736faee0e6df2098f472b0fd393166acc2e98de30a.lzma: public object response was truncated: https://xcompiler.com/download/update_win_x64/update/27e17cb16f25a4b1c16714736faee0e6df2098f472b0fd393166acc2e98de30a.lzma
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update/2ff1ed234bd2e7e7b756700da1de550d39935be0cbb9e5af886138090ae65ec6.lzma: public object response was truncated: https://xcompiler.com/download/update_win_x64/update/2ff1ed234bd2e7e7b756700da1de550d39935be0cbb9e5af886138090ae65ec6.lzma
+VERIFY PUBLIC 128/640
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update/35a7074585fe4af3763db2aaa7635aabffb8995b6f52e61cd46c0a53e560b16b.lzma: public object response was truncated: https://xcompiler.com/download/update_win_x64/update/35a7074585fe4af3763db2aaa7635aabffb8995b6f52e61cd46c0a53e560b16b.lzma
+VERIFY PUBLIC 192/640
+VERIFY PUBLIC 256/640
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update/6f06912ce622e2e593b0d4fce9c84efa1f112ff6243f7abc91e4b8e005715f0c.lzma: Remote end closed connection without response
+VERIFY PUBLIC 320/640
+VERIFY PUBLIC 384/640
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update/ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad.lzma: Remote end closed connection without response
+VERIFY PUBLIC 448/640
+VERIFY PUBLIC 512/640
+VERIFY PUBLIC 576/640
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update/ec04cc376b34887cedbdf84074e2e226ed2761eeabdcb9173fc1dd7bfd153ef7.lzma: public object response was truncated: https://xcompiler.com/download/update_win_x64/update/ec04cc376b34887cedbdf84074e2e226ed2761eeabdcb9173fc1dd7bfd153ef7.lzma
+VERIFY PUBLIC 640/640
+PUBLISHED win_x64 version=2 uploaded=0 reused=640

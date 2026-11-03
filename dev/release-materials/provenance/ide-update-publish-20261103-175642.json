@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "date": "2026-11-03T17:56:42.196181+08:00",
+  "status": "published-and-verified",
+  "externalPublishPerformed": true,
+  "platform": "win_x64",
+  "version": 2,
+  "files": 640,
+  "objects": 640,
+  "compressedBytes": 42613192,
+  "remoteHost": "xs@222.186.10.53",
+  "remoteRoot": "/opt/www/host/xlang/wwwroot/download/update_win_x64",
+  "publicUrl": "https://xcompiler.com/download/update_win_x64",
+  "manifestSha256": "5d048c526f79c8817427612d6e7551096907754d8f5d7e8c527e244a37bc97bf",
+  "pinnedPublicKey": "53d97e95b59ae119fe0a95d02edfe1010458e60e7b95ede3541aad1df018f6a8",
+  "signingPrivateKeyUploaded": false,
+  "publisherRevision": "99b846db5d19427c321bd1bebda8c3fa099e8cfe",
+  "publisherTools": [
+    {
+      "path": "release/tools/update/update_manager.py",
+      "sha256": "119538df35d61ef2013bcb1e66ec86c2b07117b75b735275b724410f2f05114c"
+    },
+    {
+      "path": "ide/tools/check_update_publish.py",
+      "sha256": "ddb4c3c027b1fd47a596638c9d7d82b7a2f2fa64f11b63aedb20ab5cc2ac99b8"
+    }
+  ],
+  "runtimeQualification": "Retains the qualified package and prior explicitly retained compiler/catalog boundary; does not requalify other concurrent compiler changes",
+  "localBootstrapObservedPath": "release/win_x64/update.exe",
+  "installedUpdaterName": "xlang-update.exe",
+  "updaterSha256": "ea3262611eaf2d91a2974dafe1866a651f8cd563b5378fb9beec3dd3a99932e0",
+  "checks": {
+    "publicMetadataExactMatch": true,
+    "publishedMarker": 2,
+    "remoteObjects": 640,
+    "clientCheckExit": 2,
+    "xrtTlsAndPinnedSignatureCheck": true,
+    "allPublicObjectsPreviouslyVerifiedByPublisher": true,
+    "longCommandBatchRegression": "passed: real SSH with 110 long object paths and oversize-command rejection",
+    "publicNetworkRetryRegression": "passed: closed connection and truncated response before successful verification",
+    "initialAttemptStoppedBeforeVersionActivation": true,
+    "userFreshDirectoryInstallTest": "pending user test"
+  },
+  "otherPlatformsPublished": false,
+  "evidence": [
+    {
+      "path": "dev/release-materials/provenance/ide-update-publish-20261103-175642/production-push-20261103.log",
+      "bytes": 55040,
+      "sha256": "cab264b3977a36c26c855d66326f02be8c2f2f9e937b14c57f472f17732c0008"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-publish-20261103-175642/production-resume-20261103.log",
+      "bytes": 54,
+      "sha256": "232bc88e014fead00dab9a86882205437bb6b08aaba21fb2819d8657b435eb20"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-publish-20261103-175642/production-retry-20261103.log",
+      "bytes": 2077,
+      "sha256": "97a3bf6ffc20ea0483d0d3389940b86401b42802fc480740f85ca27c09f67d72"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-publish-20261103-175642/ssh-batch-tests-20261103.log",
+      "bytes": 1644,
+      "sha256": "e2a3c6191758db3c5b0a9ff81764fbded4cb7626855a374c6602e986c58731cb"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-publish-20261103-175642/ssh-http-retry-tests-20261103.log",
+      "bytes": 2294,
+      "sha256": "89aad6a269bc382cac277708669eeb92b698ed098b824d2e16ec7f51ee9bb02e"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-publish-20261103-175642/production-http-sample-20261103.json",
+      "bytes": 512,
+      "sha256": "a5f5143c460b951776a770c2d86e3e998d00e81a0e90a93604f1caf5563c989e"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-publish-20261103-175642/production-client-check-20261103.log",
+      "bytes": 50,
+      "sha256": "fee36072e591a6d2410c5accc061a6355879ad3ef8ba0de8ec3f7da869c5a624"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-publish-20261103-175642/publish-preflight-check.log",
+      "bytes": 96,
+      "sha256": "b8ff7ce5917b162b17a8e5df04d1351a2d4eab3a099645de6d67fecaecbf2f35"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-publish-20261103-175642/update.json",
+      "bytes": 223582,
+      "sha256": "5d048c526f79c8817427612d6e7551096907754d8f5d7e8c527e244a37bc97bf"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-publish-20261103-175642/update.lzma",
+      "bytes": 50433,
+      "sha256": "2e5458d982c9909d2977e3e8dd25115035a8e62a514930e64480e3995ab5ff4a"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-publish-20261103-175642/version.txt",
+      "bytes": 2,
+      "sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3"
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-publish-20261103-175642/record.json",
+      "bytes": 330,
+      "sha256": "fb33a4f1db836f133462450c90fa7696459586b5761fe8f8cfc031147b4c0a55"
+    }
+  ]
+}
