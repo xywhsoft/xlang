@@ -2478,6 +2478,7 @@ void xl6IrModuleFree(XL6_IrModule* module)
     xrtFree(module->pendingExceptions);
     xrtFree(module->instantiations);
     xrtFree(module->foreignParameters);
+    xrtFree(module->foreignFieldLengths);
     for ( i = 0; i < module->callTargetCount; ++i ) {
         xrtFree(module->callTargets[i].cName);
         xrtFree(module->callTargets[i].parameterTypes);
@@ -4436,6 +4437,13 @@ static XL6_IrNodeId xl6IrBuildAstNode(
     for(size_t attr=0;foreignAttributes && attr<foreignAttributes->childCount;++attr) {
         const XL6_AstNode* declaration=foreignAttributes->children[attr];
         XL6_ForeignParameterContract contract;
+        if(declaration && declaration->text && !strcmp(declaration->text,"c_length")){
+            XL6_ForeignFieldLengthContract row;
+            if(!xl6ForeignFieldLengthRead(declaration,&row) ||
+                !xl6IrGrow((void**)&module->foreignFieldLengths,&module->foreignFieldLengthCapacity,
+                    module->foreignFieldLengthCount,sizeof(*module->foreignFieldLengths))){*ok=0;return 0;}
+            row.declaration=id;module->foreignFieldLengths[module->foreignFieldLengthCount++]=row;continue;
+        }
         if(!declaration || !declaration->text ||
             (strcmp(declaration->text,"c_span") && strcmp(declaration->text,"c_owned_callback")))continue;
         if(!xl6ForeignParameterRead(declaration,&contract) ||
@@ -22989,8 +22997,8 @@ int xl6IrForeignCallAdmissionMayRaise(const XL6_IrModule* module,const XL6_IrCal
 XL6_IrCallResultCAbi xl6IrCallResultCAbiForTarget(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
     const XL6_IrNode* declaration=target ? xl6IrNodeGet(module,target->declaration) : NULL;
-    if(declaration && declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_TEXT)return XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW;
-    if(declaration && declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BYTES)return XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW;
+    if(declaration && xl6ForeignResultTextView(declaration->foreignCall.borrowedViewResult))return XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW;
+    if(declaration && xl6ForeignResultBytesView(declaration->foreignCall.borrowedViewResult))return XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW;
     if(declaration && declaration->foreignCall.valueOutput)return XL6_IR_CALL_RESULT_C_ABI_STORAGE;
     if(declaration && (declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE ||
         declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE ||
@@ -23109,7 +23117,7 @@ XL6_IrCallResultConversionAbi xl6IrCallResultConversionForTarget(
     return target != NULL && target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
            target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE &&
            result != NULL && (result->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
-               (declaration && declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BYTES))
+               (declaration && xl6ForeignResultBytesView(declaration->foreignCall.borrowedViewResult)))
         ? XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY
         : XL6_IR_CALL_RESULT_CONVERSION_DIRECT;
 }
@@ -36896,7 +36904,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         return xl6IrDiag(diags, NULL, "XLIR module is not initialized");
     }
     if (!xl6IrVerifyNodeTopology(module, diags)) return 0;
-    if (!xl6IrVerifyForeignParameters(module,diags)) return 0;
+    if (!xl6IrVerifyForeignParameters(module,diags) || !xl6IrVerifyForeignFieldLengths(module,diags)) return 0;
     if (!xl6IrVerifyCompiledPackages(module,diags)) return 0;
     if (module->specializedSymbolCount > module->specializedSymbolCapacity ||
         (module->specializedSymbolCount && !module->specializedSymbols))
@@ -40942,7 +40950,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                    (node->flags&XL6_AST_FLAG_EXTERN) && !node->foreignCall.constRecordAddresses &&
                    !node->foreignCall.staticCallbackAddresses && (!node->foreignCall.outputIndexPlusOne || node->foreignCall.valueOutput))) ||
                 !params || params->kind != XL6_IR_NODE_LIST ||
-                node->foreignCall.borrowedViewResult<XL6_FOREIGN_VIEW_RESULT_NONE || node->foreignCall.borrowedViewResult>XL6_FOREIGN_VIEW_RESULT_INT_STATUS ||
+                node->foreignCall.borrowedViewResult<XL6_FOREIGN_VIEW_RESULT_NONE || node->foreignCall.borrowedViewResult>XL6_FOREIGN_VIEW_RESULT_BYTES_FIELD ||
                 ((node->foreignCall.spanParameters|node->foreignCall.retainedCallbacks) & (node->foreignCall.terminatedStrings|node->foreignCall.textViews|node->foreignCall.bytesViews|node->foreignCall.constRecordAddresses|node->foreignCall.staticCallbackAddresses)) ||
                 (node->foreignCall.terminatedStrings & (node->foreignCall.textViews | node->foreignCall.bytesViews | node->foreignCall.constRecordAddresses | node->foreignCall.staticCallbackAddresses)) ||
                 (node->foreignCall.textViews & (node->foreignCall.bytesViews | node->foreignCall.constRecordAddresses | node->foreignCall.staticCallbackAddresses)) ||
@@ -53764,6 +53772,12 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             row->readOnly ? "true" : "false",row->callbackOwnerCName,row->callbackTypeCName,
             row->callbackOwnerIndexPlusOne,row->callbackFailureCode,row->callbackUserFirst ? "true" : "false",
             i+1==module->foreignParameterCount ? "" : ",");
+    }
+    xl6OutputPuts("  ],\n  \"foreignFieldLengths\": [\n",out);
+    for(i=0;i<module->foreignFieldLengthCount;++i){
+        const XL6_ForeignFieldLengthContract* row=&module->foreignFieldLengths[i];
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"field\":\"%s\",\"countAbi\":%d}%s\n",row->declaration,row->field,(int)row->countAbi,
+            i+1==module->foreignFieldLengthCount ? "" : ",");
     }
     xl6OutputPuts("  ],\n  \"callTargets\": [\n", out);
     for ( i = 0; i < module->callTargetCount; ++i ) {

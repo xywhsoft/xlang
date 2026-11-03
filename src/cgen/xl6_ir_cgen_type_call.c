@@ -484,9 +484,39 @@ static void xl6IrCgenEmitNativeStatusCheck(XL6_Output* out,const XL6_IrModule* m
     }else xl6OutputPrintf(out,"    if (!native_status) xl6ErrorScopeCaptureFailure(&%s);\n",errors);
 }
 
+static int xl6IrCgenPrepareForeignCountedField(XL6_Output* out,const XL6_IrModule* module,
+    const XL6_IrCallTarget* target,const XL6_IrValueId* values,const char* errors)
+{
+    const XL6_ForeignFieldLengthContract* length=xl6IrForeignFieldLengthGet(module,target);
+    if(!length)return 1;
+    const XL6_IrType* receiver=xl6IrTypeGet(&module->types,target->parameterTypes[0]);
+    char place[40];if(values)snprintf(place,sizeof(place),"v%u",(unsigned)values[0]);else strcpy(place,"receiver");
+    const char* view=xl6IrCgenBorrowedResultCType(target);
+    const char* count=length->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int" : "size_t";
+    xl6OutputPrintf(out,"    %s native_field_view = {0};\n    %s native_field_count = (",view,count);
+    if(!xl6IrCgenEmitCallPlace(out,module,target,0,place))return 0;
+    xl6OutputPrintf(out,")->%s;\n    size_t native_field_bound = _Generic(&((%s)0)->%s,\n"
+        "        char (*)[sizeof(((%s)0)->%s)]: sizeof(((%s)0)->%s),\n"
+        "        const char (*)[sizeof(((%s)0)->%s)]: sizeof(((%s)0)->%s),\n"
+        "        unsigned char (*)[sizeof(((%s)0)->%s)]: sizeof(((%s)0)->%s),\n"
+        "        const unsigned char (*)[sizeof(((%s)0)->%s)]: sizeof(((%s)0)->%s), default: SIZE_MAX);\n",
+        length->field,receiver->cName,target->cName,
+        receiver->cName,target->cName,receiver->cName,target->cName,
+        receiver->cName,target->cName,receiver->cName,target->cName,
+        receiver->cName,target->cName,receiver->cName,target->cName,
+        receiver->cName,target->cName,receiver->cName,target->cName);
+    xl6OutputPrintf(out,"    if (%s(size_t)native_field_count > native_field_bound) { xrtSetErrorKind(XERR_RANGE); xl6ErrorScopeCaptureFailure(&%s); }\n"
+        "    else { native_field_view.Size=(size_t)native_field_count; native_field_view.Data=(%s)(",
+        length->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "native_field_count < 0 || " : "",errors,
+        target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW ? "const uint8_t*" : "const char*");
+    if(!xl6IrCgenEmitCallPlace(out,module,target,0,place))return 0;
+    xl6OutputPrintf(out,")->%s; }\n",target->cName);return !xl6OutputHasFailed(out);
+}
+
 static int xl6IrCgenEmitForeignFieldExpression(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrCallTarget* target,const XL6_IrValueId* values)
 {
+    if(xl6IrForeignFieldLengthGet(module,target)){xl6OutputPuts("native_field_view",out);return !xl6OutputHasFailed(out);}
     char place[40];
     if(values)snprintf(place,sizeof(place),"v%u",(unsigned)values[0]);
     else strcpy(place,"receiver");
@@ -520,6 +550,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     if(access<0)return 0;
     int callbacks=xl6IrCgenRetainedCallbacksBegin(out,module,target,NULL,scope);
     if(callbacks<0)return 0;
+    if(!xl6IrCgenPrepareForeignCountedField(out,module,target,NULL,scope))return 0;
     int probe = xl6IrCgenFactoryProbeBegin(out, module, target, scope);
     const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);
     int valueOutput=target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE;
@@ -922,6 +953,7 @@ static int xl6IrCgenEmitDirectCall(
     if(accessPrepared<0)return 0;
     int callbacksPrepared=xl6IrCgenRetainedCallbacksBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope);
     if(callbacksPrepared<0)return 0;
+    if(!xl6IrCgenPrepareForeignCountedField(out,module,target,module->operands+instruction->firstOperand,nativeScope))return 0;
     int probePrepared=xl6IrCgenFactoryProbeBegin(out,module,target,nativeScope);
     const XL6_IrNode* foreignDeclaration=xl6IrNodeGet(module,target->declaration);
     int valueOutput=target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE;

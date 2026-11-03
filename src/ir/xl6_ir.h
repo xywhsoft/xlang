@@ -7013,6 +7013,8 @@ typedef struct XL6_IrModule {
     XL6_IrNodeId root;
     XL6_IrStats stats;
     int ready;
+    XL6_ForeignFieldLengthContract* foreignFieldLengths;
+    size_t foreignFieldLengthCount,foreignFieldLengthCapacity;
 } XL6_IrModule;
 
 void xl6IrModuleInit(XL6_IrModule* module);
@@ -7976,6 +7978,7 @@ int xl6IrForeignSpanParameterMatches(const XL6_IrModule*,const XL6_IrCallTarget*
 int xl6IrForeignRetainedParameterMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 size_t xl6IrForeignParameterWidth(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 XL6_IrForeignOperationAbi xl6IrForeignOperationForTarget(const XL6_IrModule*,const XL6_IrCallTarget*);
+const XL6_ForeignFieldLengthContract* xl6IrForeignFieldLengthGet(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignOutputValueMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignFieldOperationMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignManagedViewParameter(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);

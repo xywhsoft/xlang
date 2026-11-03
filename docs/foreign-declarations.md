@@ -455,3 +455,25 @@ separate `@factory` rollback transaction. No parameter-reference syntax is added
 extern "native_measure" @no_raise @c_output(1, 0) func measure(c_int constraint) as c_int
 // C: int native_measure(int constraint, int* output);
 ```
+
+## Counted native data fields
+
+A native field getter can combine `@c_result("text_view")` or
+`@c_result("bytes_view")` with `@c_length("nativeCountField", "int")` (or
+`"size_t"`). Both names are C field identifiers on the same admitted receiver.
+The authoritative header checks the byte pointer/array and count field types.
+
+```xlang
+extern "text" @c_field @c_length("textSize", "int") @c_result("text_view") get text() as string
+```
+
+The count is in bytes and is read once. Negative counts and counts beyond a
+fixed inline array's capacity raise checked errors before copying. Pointer
+fields require the native publisher's valid-range contract; a nonzero count
+with NULL data, or a result beyond the language length range, is rejected.
+Flexible arrays need a separate explicit pointer/capacity API.
+
+Embedded NUL bytes are preserved. A requested language string/bytes value is
+copied before ending the receiver's native scope, so that value can be saved.
+Saving the callback view itself does not extend its lifetime. No field wrapper
+function, temporary Buffer or NUL scan is introduced for this projection.

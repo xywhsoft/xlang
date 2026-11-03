@@ -1501,6 +1501,7 @@ static int xl6ParserRewriteQualifiedDeclTypes(XL6_ParseTokenStream* stream)
             xl6ParseTokenStreamFree(&rewritten);
             return 0;
         }
+        rewritten.parserKinds[rewritten.count - 1] = stream->parserKinds[i];
     }
     xl6ParseTokenStreamFree(stream);
     *stream = rewritten;
@@ -1699,13 +1700,17 @@ static int xl6ParserReadTokens(XL6_Lexer* lexer, XL6_ParseTokenStream* stream, X
         xl6DiagAdd(diags, token.startLine, token.startColumn, "内存不足，无法拆分嵌套泛型 token");
         return 0;
     }
-    if ( !xl6ParserRewriteQualifiedDeclTypes(stream) ) {
-        xl6DiagAdd(diags, token.startLine, token.startColumn, "内存不足，无法标记限定类型");
-        return 0;
-    }
     xl6ParserMarkFunctionTypeTokens(stream);
     if ( !xl6ParserInsertAnonBlockSeparators(stream) ) {
         xl6DiagAdd(diags, token.startLine, token.startColumn, "内存不足，无法补齐匿名函数块分隔符");
+        return 0;
+    }
+    /* Recover lambda statement boundaries before recognizing `ns.Type name`.
+     * Otherwise a member RHS followed by the next line's assignment name is
+     * collapsed into a fictitious qualified declaration type. Type/function
+     * classification already understands uncollapsed dotted type spellings. */
+    if ( !xl6ParserRewriteQualifiedDeclTypes(stream) ) {
+        xl6DiagAdd(diags, token.startLine, token.startColumn, "内存不足，无法标记限定类型");
         return 0;
     }
     xl6ParserMarkNullableTypeQuestions(stream);

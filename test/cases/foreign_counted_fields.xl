@@ -1,0 +1,64 @@
+extern "ManagedRoot*" class Root @header("test/cases/foreign_counted_fields.h") @lifetime("owned") @policy("managedRootPolicy") @scope("ManagedScope") @watch("ManagedWatch")
+    native point handle
+    extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "ManagedChild*" class Event @header("test/cases/foreign_counted_fields.h") @lifetime("callback") @owner(Root)
+    native point handle
+    extern "value" @c_field get mode() as c_int
+    extern "countedText" @c_field @c_length("countedTextSize","int") @c_result("text_view") get text() as string
+    extern "countedData" @c_field @c_result("bytes_view") @c_length("countedDataSize","size_t") get data() as bytes
+    extern "countedData" @c_field @c_length("countedDataSize","size_t") @c_result("bytes_view") get optionalData() as bytes?
+end
+extern "managed_root_destroy" @no_raise func rollback(Root root)
+extern "managed_root_create" @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(c_int mode) as Root
+extern "managed_set_callback" @no_raise @c_owned_callback(1,0,"ManagedCallbackOwner",-9) func on(Root root,func(Event?,c_int) as c_int callback)
+extern "counted_fire" @no_raise func fire(Root root,c_int mode) as c_int
+func main(...) as int
+    Root root=create(0)
+    Event? saved=null
+    string copied=""
+    bytes binary=b""
+    on(root,func(Event? input,c_int mode) as c_int
+        Event event=input as Event
+        saved=event
+        if mode==0 then
+            copied=event.text
+            binary=event.data
+            assert copied=="a\0b" and copied.length==3
+            assert binary==b"\0\xff\0\x03"
+            var dynamicEvent=event
+            assert dynamicEvent.text=="a\0b"
+        elseif mode==1 or mode==2 then
+            auto invalid=event.text
+        elseif mode==3 then
+            assert event.optionalData==null
+        elseif mode==4 or mode==6 then
+            auto invalid=event.data
+        elseif mode==5 then
+            assert event.text==""
+        end
+        return mode
+    end)
+    assert fire(root,0)==0
+    assert copied=="a\0b" and binary==b"\0\xff\0\x03"
+    int mode=1
+    while mode<=6
+        bool rejected=false
+        try
+            auto value=fire(root,c_int(mode))
+        catch error
+            rejected=true
+        end
+        assert rejected==(mode==1 or mode==2 or mode==4 or mode==6)
+        mode+=1
+    end
+    bool expired=false
+    try
+        auto invalid=(saved as Event).text
+    catch error
+        expired=true
+    end
+    assert expired
+    root.close()
+    return 0
+end

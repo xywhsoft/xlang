@@ -44,6 +44,19 @@ static inline int xl6ForeignIdentifier(const char*);
 static inline int xl6ForeignPointerSpelling(const char*);
 static inline int xl6ForeignHeaderName(const char*);
 
+static inline int xl6ForeignFieldLengthRead(const XL6_AstNode* attr,XL6_ForeignFieldLengthContract* output)
+{
+    XL6_ForeignFieldLengthContract row={0};char count[32];
+    if(!attr || !attr->text || strcmp(attr->text,"c_length") || attr->childCount!=2 ||
+        !xl6ForeignQuotedText(attr->children[0],row.field,sizeof(row.field)) || !xl6ForeignIdentifier(row.field) ||
+        !xl6ForeignQuotedText(attr->children[1],count,sizeof(count)))return 0;
+    if(!strcmp(count,"int"))row.countAbi=XL6_FOREIGN_SPAN_COUNT_INT;
+    else if(!strcmp(count,"size_t"))row.countAbi=XL6_FOREIGN_SPAN_COUNT_SIZE;
+    else return 0;
+    if(output)*output=row;
+    return 1;
+}
+
 static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
     XL6_ForeignParameterContract* output)
 {
@@ -94,11 +107,15 @@ static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
 static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     XL6_ForeignCallFacts* output)
 {
-    XL6_ForeignCallFacts facts = {0};
+    XL6_ForeignCallFacts facts = {0};int countedField=0;
     const XL6_AstNode* attributes = xl6ForeignFunctionAttributes(node);
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
         const XL6_AstNode* attr = attributes->children[i];
         int32 index;
+        if(attr && attr->text && !strcmp(attr->text,"c_length")){
+            if(countedField || !xl6ForeignFieldLengthRead(attr,NULL))return 0;
+            countedField=1;continue;
+        }
         if (attr && attr->text && !strcmp(attr->text, "c_result")) {
             const XL6_AstNode* value = attr->childCount ? attr->children[0] : NULL;
             if (facts.borrowedViewResult || !value || value->kind != XL6_AST_STRING || !value->text) return 0;
@@ -163,6 +180,12 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             facts.outputIndexPlusOne = (uint32)index + 1;
             facts.rollbackSymbol = attr->children[2]->semanticSymbolId;
         } else return 0;
+    }
+    if(countedField){
+        if(!(node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || node->kind!=XL6_AST_GET || facts.outputIndexPlusOne)return 0;
+        if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_TEXT)facts.borrowedViewResult=XL6_FOREIGN_VIEW_RESULT_TEXT_FIELD;
+        else if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BYTES)facts.borrowedViewResult=XL6_FOREIGN_VIEW_RESULT_BYTES_FIELD;
+        else return 0;
     }
     if (((facts.spanParameters|facts.retainedCallbacks) & (facts.terminatedStrings|facts.textViews|facts.bytesViews|facts.constRecordAddresses|facts.staticCallbackAddresses)) ||
         (facts.terminatedStrings & (facts.textViews | facts.bytesViews | facts.constRecordAddresses | facts.staticCallbackAddresses)) ||
