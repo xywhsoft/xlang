@@ -1,0 +1,17 @@
+const char* xl6StdlibTlsDialOptionsSource=
+    "class TlsDialOptions\n    private native point handle\n"
+    "    extern \"xl6TlsDialOptionsCreateV1\" @nonblocking create()\n"
+    "    extern \"xl6TlsDialOptionsDestroyV1\" @no_raise @nonblocking destroy()\n"
+    "    extern \"xl6TlsDialOptionsTransportV1\" @nonblocking func transport() as TcpDialOptions\n"
+    "    extern \"xl6TlsDialOptionsStreamV1\" @nonblocking func stream() as TlsStreamOptions\n"
+    "    extern \"xl6TlsDialOptionsWithTransportV1\" @nonblocking func withTransport(TcpDialOptions transport) as TlsDialOptions\n"
+    "    extern \"xl6TlsDialOptionsWithStreamV1\" @nonblocking func withStream(TlsStreamOptions stream) as TlsDialOptions\n"
+    "    extern \"xl6TlsDialOptionsTimeoutV1\" @pure @no_raise @nonblocking get timeoutMillis() as int\n"
+    "    extern \"xl6TlsDialOptionsWithTimeoutV1\" @nonblocking func withTimeoutMillis(int millis) as TlsDialOptions\n"
+    "    extern \"xl6TlsDialOptionsServerNameFromHostV1\" @pure @no_raise @nonblocking get serverNameFromHost() as bool\n"
+    "    extern \"xl6TlsDialOptionsWithServerNameFromHostV1\" @nonblocking func withServerNameFromHost(bool enabled) as TlsDialOptions\n"
+    "    extern \"xl6TlsDialOptionsServerNameV1\" @pure @nonblocking get serverName() as string\n"
+    "    extern \"xl6TlsDialOptionsVerifyNameV1\" @pure @nonblocking get verifyName() as string\n"
+    "    extern \"xl6TlsDialOptionsWithServerNameV1\" @nonblocking func withServerName(string name, int size = -1) as TlsDialOptions\n"
+    "    extern \"xl6TlsDialOptionsWithVerifyNameV1\" @nonblocking func withVerifyName(string name, int size = -1) as TlsDialOptions\n"
+    "end\n";

@@ -1,0 +1,8 @@
+    "    extern \"xl6X509CrlEntriesV1\" @pure @nonblocking func entries(int maxEntries = 65536) as X509CrlEntries\n"
+    "    extern \"xl6X509CrlFindSerialV1\" @pure @nonblocking func findBySerial(bytes serialContent) as X509CrlEntry?\n"
+    "    extern \"xl6X509CrlFindCertificateV1\" @pure @nonblocking func findCertificate(Certificate certificate) as X509CrlEntry?\n"
+    "    extern \"xl6X509CrlNumberV1\" @pure @nonblocking get numberMagnitude() as bytes?\n"
+    "    extern \"xl6X509CrlDeltaBaseV1\" @pure @nonblocking get deltaBaseMagnitude() as bytes?\n"
+    "    extern \"xl6X509CrlAuthorityKeyIdV1\" @pure @nonblocking func authorityKeyId() as X509AuthorityKeyIdentifier?\n"
+    "    extern \"xl6X509CrlIssuingPointV1\" @pure @nonblocking func issuingPoint() as X509IssuingDistributionPoint?\n"
+    "    extern \"xl6X509CrlFreshestV1\" @pure @nonblocking func freshestCrl(int maxPoints = 65536) as X509DistributionPoints?\n"

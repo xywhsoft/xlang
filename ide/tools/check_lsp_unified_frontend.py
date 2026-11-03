@@ -10,7 +10,7 @@ from check_lsp_automatic_diagnostics import AutomaticClient
 from check_lsp_module_semantics import initialize,checked
 from check_language_definitions import position
 from native_current_unified_profile import CORPUS
-from native_c_interop_profile import CORPUS as C_INTEROP_CORPUS, NEGATIVE_CORPUS
+from native_c_interop_profile import CORPUS as C_INTEROP_CORPUS, NEGATIVE_CORPUS, ASYNC_RESULT_CORPUS, ASYNC_RESULT_PRIVATE_CORPUS
 
 
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
@@ -21,8 +21,10 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--server',type=Path,required=True);p.add_argument('--corpus',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--c-interop',action='store_true',help='also verify the captured C-interop positive and negative corpus')
+    p.add_argument('--async-results',action='store_true',help='also verify current async factory and callback result adaptations')
     a=p.parse_args();server=a.server.resolve(strict=True);corpus=a.corpus.resolve(strict=True);out=a.output.resolve();out.mkdir(parents=True,exist_ok=False)
     cases=CORPUS+(C_INTEROP_CORPUS+tuple(('bad_c_interop_'+name,0) for name in NEGATIVE_CORPUS) if a.c_interop else ())
+    if a.async_results:cases+=ASYNC_RESULT_CORPUS+ASYNC_RESULT_PRIVATE_CORPUS
     protected={str(x):sha(x) for x in [server,Path(__file__).resolve(),*[corpus/(name+'.xl') for name,_ in cases],*[Path(__file__).with_name(x) for x in ['check_lsp_automatic_diagnostics.py','check_lsp_module_semantics.py','check_language_definitions.py','check_language_snapshots.py','native_current_unified_profile.py','native_c_interop_profile.py']]]}
     report=dict(status='running',scope=__doc__,protected=protected,processes=[],checks=[],navigation=[],completions=[])
     def save():(out/'result.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf8',newline='\n')
@@ -51,7 +53,7 @@ def main():
             with client(name+'-incremental',folder,entry) as live:
                 for generation in range(4):
                     version=generation+1;body=original if not generation else '\ufeff// 中文 😀\r\n'+original
-                    if generation>=2:body+='\nfunc xls_unified_anchor() as int\n return 3\nend\nfunc xls_unified_probe() as int\n return '+str(17 if generation==2 else 18)+'\nend\n'
+                    if generation>=2:body+='\nfunc xls_unified_anchor() as int\n int total=3\n'+' total=total+1\n'*20+' return total\nend\nfunc xls_unified_probe() as int\n return '+str(17 if generation==2 else 18)+'\nend\n'
                     if not generation:live.open(entry,body,version)
                     else:live.change(entry,body,version)
                     actual=checked(live,entry,version);assert actual['ok']==bool(accepted),actual

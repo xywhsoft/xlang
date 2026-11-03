@@ -8,7 +8,7 @@ from pathlib import Path
 import base64
 import hashlib
 import zlib
-from native_c_interop_profile import COHORT, PINS
+from native_c_interop_profile import COHORT, PINS, pins_for, revision
 
 
 _MIXED = {
@@ -21,8 +21,8 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def recover(data,relative):
-    expected=PINS[relative]
+def recover(data,relative,pins=None):
+    expected=(PINS if pins is None else pins)[relative]
     if sha(data)==expected:return data,'exact'
     lf=data.replace(b'\r\n',b'\n')
     for candidate,operation in ((lf,'restore-LF'),(lf.replace(b'\n',b'\r\n'),'restore-CRLF')):
@@ -44,18 +44,19 @@ def recover(data,relative):
 
 def prepare(frontend: Path, destination: Path):
     frontend=frontend.resolve(strict=True)
+    pins=pins_for(frontend)
     metadata=dict(status='unchanged-other-cohort',sourceRoot=str(frontend),
                   frontendRoot=str(frontend),originalInputs={},transformations=[])
     # Runtime identity alone is shared with an older semantic cohort.
     for relative in ('src/ast/xl6_ast.h','lib/xrt/xrt.h'):
         path=frontend/relative
-        if not path.is_file() or recover(path.read_bytes(),relative) is None:
+        if not path.is_file() or recover(path.read_bytes(),relative,pins) is None:
             return frontend,metadata
-    metadata.update(status='exact',cohort=COHORT)
-    for relative,expected in PINS.items():
+    metadata.update(status='exact',cohort=COHORT,sourceRevision=revision(frontend))
+    for relative,expected in pins.items():
         path=frontend/relative
         if not path.is_file():raise ValueError('audited frontend material is missing: '+relative)
-        original=path.read_bytes();recovered=recover(original,relative)
+        original=path.read_bytes();recovered=recover(original,relative,pins)
         if recovered is None:
             raise ValueError('frontend content changed beyond an audited EOL counterpart;review source contracts: '+relative)
         metadata['originalInputs'][str(path)]=sha(original)
@@ -65,11 +66,11 @@ def prepare(frontend: Path, destination: Path):
     prepared=frontend
     if metadata['transformations']:
         prepared=destination.resolve();prepared.mkdir(parents=True,exist_ok=False)
-        for relative,expected in PINS.items():
+        for relative,expected in pins.items():
             path=frontend/relative;original=path.read_bytes()
             if sha(original)!=metadata['originalInputs'][str(path)]:
                 raise ValueError('frontend changed during EOL preparation: '+relative)
-            recovered=recover(original,relative)
+            recovered=recover(original,relative,pins)
             if recovered is None or sha(recovered[0])!=expected:
                 raise ValueError('cannot reproduce the exact audited frontend: '+relative)
             target=prepared/relative;target.parent.mkdir(parents=True,exist_ok=True)

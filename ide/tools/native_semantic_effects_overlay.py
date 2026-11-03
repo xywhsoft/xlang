@@ -2,6 +2,8 @@
 from pathlib import Path
 import hashlib
 from native_current_unified_profile import updated_pins
+from native_c_interop_profile import revision
+from check_native_bridge_catalog import function
 
 
 INCLUDES={
@@ -30,6 +32,29 @@ def derive(frontend:Path,output:Path,source:str):
     for before,after in changes.items():
         if body.count(before)!=1:raise ValueError('shared C-owned mutation seam changed')
         body=body.replace(before,after)
+    async_seams=0
+    if revision(frontend)=='async-results-20261103':
+        one=function(body,'xl6SemCOwnedAsyncResultMethodOne')
+        observed=one.replace('{','{\n    xlsSemFunctionMutation(ctx);',1)
+        before='    if(!xl6SemAssignEntitySymbolIds(ctx,copy))'
+        if observed.count(before)!=1:raise ValueError('async worker allocation seam changed')
+        observed=observed.replace(before,'    xlsSemDeclarationEffectBegin(ctx);\n'+before,1)
+        before='    return checked ? copy : NULL;'
+        if observed.count(before)!=1:raise ValueError('async worker completed declaration seam changed')
+        observed=observed.replace(before,'    xlsSemDeclarationEffectEnd(ctx,owner,copy);\n'+before,1)
+        body=body.replace(one,observed,1);async_seams=3
+    ownership_seams=0
+    for old,count in (('old',2),('previous',int(async_seams!=0))):
+        if not count:continue
+        before=f'*{old}=*expr;*expr=*replacement;'
+        if body.count(before)!=count:raise ValueError('native expression replacement ownership seam changed')
+        body=body.replace(before,before+f'xlsAstRestoreReplacementOwner(expr,{old});')
+        ownership_seams+=count
+    body='#include "analysis/ast_storage.h"\n'+body
+    before='*old=*expr;parts[0]=old;parts[1]=type;*expr=*binding;'
+    if source.count(before)!=1:raise ValueError('contextual method replacement ownership seam changed')
+    source='#include "analysis/ast_storage.h"\n'+source.replace(before,before+'xlsAstRestoreReplacementOwner(expr,old);',1)
+    ownership_seams+=1
     include='#include "src/sem/xl6_sem_c_owned.c"'
     if source.count(include)!=1:raise ValueError('shared C-owned include seam changed')
     compiled=output/'frontend/xl6_sem_c_owned.effects.c'
@@ -37,4 +62,6 @@ def derive(frontend:Path,output:Path,source:str):
     return source.replace(include,'#include "xl6_sem_c_owned.effects.c"'),dict(
         auditedDependencies=audited,compiledSource=str(compiled),
         compiledSha256=hashlib.sha256(compiled.read_bytes()).hexdigest(),
-        mutationSeams=3,semantics='observe actual declaration emission and lexical rewrite; exact ordered declaration receipts; original checker produces every mutation')
+        mutationSeams=3+async_seams,asyncResultMutationSeams=async_seams,
+        replacementOwnershipSeams=ownership_seams,
+        semantics='observe actual declaration emission and lexical rewrite; exact ordered declaration receipts; original checker produces every mutation')

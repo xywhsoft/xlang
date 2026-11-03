@@ -1,7 +1,7 @@
 """Exercise exact frontend preparation across real and synthetic checkouts."""
 from pathlib import Path
 import argparse,hashlib,json,subprocess
-from native_c_interop_profile import PINS,profile
+from native_c_interop_profile import pins_for,profile
 from native_frontend_inputs import prepare
 
 
@@ -13,10 +13,11 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--frontend-root',type=Path,required=True)
     p.add_argument('--previous-root',type=Path)
+    p.add_argument('--other-revision',type=Path,help='reject each mixed file from the other audited revision')
     p.add_argument('--checkout-ref',help='also exercise the repository checkout filters at this commit')
     p.add_argument('--output',type=Path,required=True)
     a=p.parse_args();frontend=a.frontend_root.resolve(strict=True);out=a.output.resolve();out.mkdir(parents=True,exist_ok=False)
-    repo=Path(__file__).resolve().parents[2];profile(frontend)
+    repo=Path(__file__).resolve().parents[2];profile(frontend);PINS=pins_for(frontend)
     protected={str(frontend/rel):digest for rel,digest in PINS.items()}
     for name in (Path(__file__).name,'native_frontend_inputs.py','native_c_interop_profile.py'):
         path=Path(__file__).with_name(name).resolve();protected[str(path)]=sha(path)
@@ -52,6 +53,23 @@ def main():
             result,metadata=prepare(previous,out/'previous-prepared')
             assert result==previous and metadata['status']=='unchanged-other-cohort' and not (out/'previous-prepared').exists()
             report['cases'].append(dict(name='previous-cohort-untouched',status='passed'));save()
+        if a.other_revision:
+            other=a.other_revision.resolve(strict=True);profile(other);other_pins=pins_for(other)
+            changed=[rel for rel in PINS if PINS[rel]!=other_pins[rel]]
+            assert len(changed)==4,changed
+            for index,rel in enumerate(changed):
+                protected[str(other/rel)]=other_pins[rel]
+                source=out/'lf-checkout';path=source/rel;original=path.read_bytes()
+                path.write_bytes((other/rel).read_bytes().replace(b'\r\n',b'\n'))
+                destination=out/('mixed-'+str(index)+'-prepared')
+                try:
+                    try:prepare(source,destination)
+                    except ValueError as error:
+                        assert 'beyond an audited EOL counterpart' in str(error)
+                        report['cases'].append(dict(name='mixed-revision-'+rel,status='passed',error=str(error)));save()
+                    else:raise AssertionError('mixed revision admitted: '+rel)
+                    assert not destination.exists()
+                finally:path.write_bytes(original)
         source=out/'lf-checkout';path=source/'src/sem/xl6_sem.c';original=path.read_bytes();path.write_bytes(original+b'\n')
         try:
             try:prepare(source,out/'unknown-prepared')

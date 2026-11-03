@@ -11,6 +11,17 @@ xls_ast_storage* xlsAstStorageCreate(size_t budget);
 XL6_AstNode* xlsAstStorageNode(xls_ast_storage* storage,size_t extraBudget);
 void xlsAstStorageUnpin(xls_ast_storage* storage);
 void xlsAstStorageFreeNode(XL6_AstNode* node);
+/* Native checker producers replace an exclusively owned expression in place
+ * and destroy a heap snapshot of its old payload. Pool identity belongs to the
+ * destination allocation, not to the copied payload. Call after the native
+ * struct assignments and before either old/replacement wrapper is freed.
+ * This construction-only operation must never mutate a shared type leaf. */
+static inline void xlsAstRestoreReplacementOwner(XL6_AstNode* target,XL6_AstNode* old)
+{
+    target->xlsStorage=old->xlsStorage;
+    target->xlsLeafReferences=old->xlsLeafReferences;
+    old->xlsStorage=NULL;old->xlsLeafReferences=0;
+}
 /* Private fact forests may share direct type roots in one construction.
  * Ordinary paths still opt in only for unlocated bare leaves;static semantic
  * restoration can explicitly prove complete direct-root projection equality.
