@@ -419,3 +419,39 @@ python tools/check_foreign_declarative.py --root <repo> --driver <source-driver>
 保留各组及汇总报告。某组失败后继续执行其他独立组，最后统一报告失败。
 本入口验证编译器能力，
 XGE/XUI 包、受管拥有和长期回调的完整验收仍须在相应实现完成后加入。
+
+## Native fields and checked C statuses
+
+`@c_field` on an external instance getter/setter selects direct native field
+access. The C name must be one identifier, the getter has no explicit arguments,
+and the setter has one exact value argument. The authoritative header checks the
+actual field type. A field cannot be static, an owning factory, or an arbitrary C
+expression. Managed and callback receivers retain their normal access checks.
+
+```xlang
+extern "NativeEvent*" class Event @header("native.h") @lifetime("callback") @owner(Context)
+    private native point handle
+    extern "code" @c_field get code() as c_int
+    extern "code" @c_field let code(c_int value)
+end
+```
+
+A void language method can map an integer C status with
+`@no_raise @c_result("status", successCode)`. The physical C result remains `int`.
+Other values raise a checked error preserving the original native diagnostic,
+or report the returned status and native operation if no diagnostic exists.
+Failure is independent of whether an error object can be allocated. Successful
+calls do not call the diagnostic helper.
+
+`@no_raise @c_output(physicalIndex, successCode)` maps one trivial C output
+parameter to the language result. It accepts exact scalars and C records and can
+be used on free functions, instance methods and getters. The index includes the
+native receiver and expanded pointer/count or callback/user/owner slots; an
+output cannot split an expanded group. The native result is initialized on the
+stack and committed only after success. Managed owning factories keep their
+separate `@factory` rollback transaction. No parameter-reference syntax is added.
+
+```xlang
+extern "native_measure" @no_raise @c_output(1, 0) func measure(c_int constraint) as c_int
+// C: int native_measure(int constraint, int* output);
+```

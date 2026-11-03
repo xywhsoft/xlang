@@ -142,6 +142,7 @@ static inline int xl6AstKindIsAggregate(XL6_AstKind kind)
 #define XL6_AST_FLAG_C_OWNED_CALLABLE_ADAPTER 0x08000000u
 /* Extern result owns one NUL-terminated allocation accepted by xrtFree. */
 #define XL6_AST_FLAG_FOREIGN_OWNED_STRING 0x10000000u
+#define XL6_AST_FLAG_FOREIGN_FIELD 0x20000000u
 #define XL6_AST_FLAG_INTERNAL_NULLABLE 0x40000000u
 /* 仅供语义规范化使用，源码不能构造该标记。 */
 #define XL6_AST_FLAG_CLASS_HANDLE 0x80000000u

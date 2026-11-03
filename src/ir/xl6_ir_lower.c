@@ -12697,8 +12697,11 @@ static int xl6IrLowerResolveRuntimeBridge(
     const XL6_IrType* third;
     if ( ctx == NULL || target == NULL ) return 0;
     target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_NONE;
-    target->implementationAbi = xl6IrRuntimeCallImplementation(target->cName);
+    target->foreignOperationAbi=xl6IrForeignOperationForTarget(ctx->module,target);
+    target->implementationAbi = target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_CALL ?
+        xl6IrRuntimeCallImplementation(target->cName) : XL6_IR_CALL_IMPLEMENTATION_DEFAULT;
     target->runtimeBridgeOperation = XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE;
+    if(target->foreignOperationAbi!=XL6_IR_FOREIGN_OPERATION_CALL)return target->foreignOperationAbi!=XL6_IR_FOREIGN_OPERATION_INVALID;
     target->nativeArrayResultAbi = xl6IrRuntimeDirectBridgeNativeArrayResultAbi(target->cName);
     target->nativeResultAbi=xl6IrRuntimeDirectBridgeNativeResultAbi(target->cName);
     target->nativeServicesRequired=xl6IrRuntimeDirectBridgeServices(target->cName);
@@ -31952,7 +31955,8 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
             }
             const XL6_IrNode* foreignDeclaration = xl6IrNodeGet(ctx->module, target->declaration);
             int rawFactory = foreignDeclaration && foreignDeclaration->foreignCall.outputIndexPlusOne &&
-                target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT;
+                target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT &&
+                target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE;
             /* Status/output factories consume only trivial C operands. Keep
              * nested expression owners registered until their status commits:
              * the factory's explicit raise route must still retire them. */
@@ -31982,7 +31986,8 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
             if(callEmitted) {
                 XL6_IrLowerCallCleanup cleanup={cleanupOwners,cleanupCount,cleanupDestroys,0,0};
                 if (foreignDeclaration && foreignDeclaration->foreignCall.outputIndexPlusOne &&
-                    target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT) {
+                    target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT &&
+                    target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE) {
                     cleanup.resultDestroy = foreignDeclaration->foreignCall.rollbackSymbol;
                     callEmitted = xl6IrLowerCompleteOwnedCleanup(ctx, id, node,
                         &result, target->returnType, errorPlan, &cleanup);
@@ -33548,7 +33553,8 @@ static int xl6IrLowerNamedAdapterBody(
      * Default temporaries use the same commit as incoming parameter slots. */
     if (!xl6IrLowerProjectCallTargetPhysicalOperands(ctx,closure->declaration,target,operands,target->parameterCount)) goto done;
     if (!xl6IrLowerCommitEvaluationOwners(ctx, closure->declaration, first)) goto done;
-    if (declaration->foreignCall.outputIndexPlusOne && target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT) {
+    if (declaration->foreignCall.outputIndexPlusOne && target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT &&
+            target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE) {
         if (dispatch != SIZE_MAX || !xl6IrLowerForeignFactory(ctx, closure->declaration,
                 target, operands, target->parameterCount, &callResult)) goto done;
     } else if ( !xl6IrLowerEmit(ctx,
@@ -33579,7 +33585,8 @@ static int xl6IrLowerNamedAdapterBody(
             defaultStorages[count++] = defaultStorages[parameter];
         }
         cleanup.temporaries = defaultStorages; cleanup.temporaryCount = count;
-        if (declaration->foreignCall.outputIndexPlusOne && target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT) {
+        if (declaration->foreignCall.outputIndexPlusOne && target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT &&
+            target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE) {
             cleanup.resultDestroy = declaration->foreignCall.rollbackSymbol;
             if (!xl6IrLowerCompleteOwnedCleanup(ctx, closure->declaration,
                     xl6IrNodeGet(ctx->module, closure->declaration), &callResult,

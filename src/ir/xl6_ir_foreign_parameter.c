@@ -1,5 +1,57 @@
 /* Sparse foreign parameter contracts. Declaration parsing ends before this
  * file; both lowering and Cgen consume these normalized rows. */
+XL6_IrForeignOperationAbi xl6IrForeignOperationForTarget(const XL6_IrModule* module,const XL6_IrCallTarget* target)
+{
+    const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration) : NULL;
+    if(!node || !(node->flags&XL6_AST_FLAG_FOREIGN_FIELD))return XL6_IR_FOREIGN_OPERATION_CALL;
+    if(target->kind!=XL6_IR_CALL_TARGET_EXTERN_C || (node->flags&XL6_AST_FLAG_STATIC))return XL6_IR_FOREIGN_OPERATION_INVALID;
+    return node->sourceKind==XL6_AST_GET ? XL6_IR_FOREIGN_OPERATION_FIELD_READ :
+        node->sourceKind==XL6_AST_LET ? XL6_IR_FOREIGN_OPERATION_FIELD_WRITE : XL6_IR_FOREIGN_OPERATION_INVALID;
+}
+int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTarget* target)
+{
+    const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration) : NULL;
+    if(!node || !node->foreignCall.valueOutput)return 0;
+    size_t receiver=(node->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || node->sourceKind==XL6_AST_GET || node->sourceKind==XL6_AST_LET) &&
+        !(node->flags&XL6_AST_FLAG_STATIC) ? 1u : 0u;
+    const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
+    return node->foreignCall.valueOutput==1 && node->foreignCall.outputIndexPlusOne &&
+        !node->foreignCall.rollbackSymbol && !node->foreignCall.borrowedViewResult &&
+        xl6ForeignOutputLogical(&node->foreignCall,target->parameterCount,receiver)!=SIZE_MAX &&
+        (node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) && !(node->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) &&
+        target->kind==XL6_IR_CALL_TARGET_EXTERN_C && !target->runtimeBridge &&
+        !target->nativeServicesRequired && !target->nativeContextAbi && !target->nativeResultAbi && !target->nativeArrayResultAbi &&
+        target->variadicAbi==XL6_IR_CALL_VARIADIC_NONE && xl6IrRawCCallbackTrivialValueType(result) &&
+        target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_STORAGE &&
+        target->resultPhysicalAbi==XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
+        target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE;
+}
+int xl6IrForeignFieldOperationMatches(const XL6_IrModule* module,const XL6_IrCallTarget* target)
+{
+    XL6_IrForeignOperationAbi op=xl6IrForeignOperationForTarget(module,target);
+    if(!target || target->foreignOperationAbi!=op || op==XL6_IR_FOREIGN_OPERATION_INVALID)return 0;
+    if(op==XL6_IR_FOREIGN_OPERATION_CALL)return 1;
+    const XL6_IrNode* node=xl6IrNodeGet(module,target->declaration);
+    const XL6_IrType* owner=target->parameterTypes && target->parameterCount ? xl6IrTypeGet(&module->types,target->parameterTypes[0]) : NULL;
+    const XL6_ForeignCallFacts* f=&node->foreignCall;
+    if(!owner || owner->kind!=XL6_IR_TYPE_CLASS || !owner->foreignHeader || !node->declarationOwnerType ||
+        target->runtimeBridge || target->implementationAbi || target->nativeServicesRequired || target->nativeContextAbi ||
+        target->nativeResultAbi || target->nativeArrayResultAbi || target->variadicAbi ||
+        !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) || (node->flags&XL6_AST_FLAG_FOREIGN_OWNED_STRING) ||
+        !xl6ForeignIdentifier(target->cName) || !node->text ||
+        f->constRecordAddresses || f->staticCallbackAddresses || f->textViews || f->bytesViews || f->terminatedStrings ||
+        f->spanParameters || f->retainedCallbacks || f->controlViews || f->outputIndexPlusOne ||
+        f->borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE || f->borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS || f->borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS)return 0;
+    size_t bytes=strlen(node->text);
+    if(bytes<2 || node->text[0]!='"' || node->text[bytes-1]!='"' || strlen(target->cName)!=bytes-2 ||
+        memcmp(node->text+1,target->cName,bytes-2))return 0;
+    const XL6_IrType* value=op==XL6_IR_FOREIGN_OPERATION_FIELD_READ ? xl6IrTypeGet(&module->types,target->returnType) :
+        target->parameterCount==2 ? xl6IrTypeGet(&module->types,target->parameterTypes[1]) : NULL;
+    return value && (f->borrowedViewResult || xl6IrRawCCallbackTrivialValueType(value)) &&
+        (op==XL6_IR_FOREIGN_OPERATION_FIELD_READ ? target->parameterCount==1 :
+            !target->returnType && target->parameterCount==2 && !f->borrowedViewResult && !(node->flags&XL6_AST_FLAG_FOREIGN_PURE));
+}
+
 const XL6_IrClassField* xl6IrForeignSpanBufferField(const XL6_IrModule* module,
     const XL6_IrCallTarget* target,size_t parameter)
 {

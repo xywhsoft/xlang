@@ -1587,7 +1587,7 @@ int xl6ArtifactRuntimePlanBuildWithOptions(const XL6_IrModule* module, XL6_Artif
         const XL6_IrCallTarget* target=&module->callTargets[i];
         const XL6_ArtifactNativeSymbol* symbols;
         size_t count;
-        if (target->kind!=XL6_IR_CALL_TARGET_EXTERN_C ||
+        if (target->kind!=XL6_IR_CALL_TARGET_EXTERN_C || target->foreignOperationAbi!=XL6_IR_FOREIGN_OPERATION_CALL ||
             target->reachability==XL6_IR_REACHABILITY_UNREACHABLE) continue;
         symbols=xl6ArtifactNativeSymbolLookup(target->cName,&count);
         for (size_t j=0;j<count;++j) {

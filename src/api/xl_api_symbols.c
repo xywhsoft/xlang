@@ -415,6 +415,7 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6NativeGraphFuturePayloadRuntimeV1Get", (const void*)xl6NativeGraphFuturePayloadRuntimeV1Get)) return 0;
     if (!visit(user, "xl6OwnershipDomainNativeGraphFuturePayloadV1Get", (const void*)xl6OwnershipDomainNativeGraphFuturePayloadV1Get)) return 0;
     if (!visit(user, "xl6CellCreateGraphV1", (const void*)xl6CellCreateGraphV1)) return 0;
+    if (!visit(user, "xl6ForeignStatusFailureV1", (const void*)xl6ForeignStatusFailureV1)) return 0;
     if (!visit(user, "xl6ErrorScopeTryPropagateFailureV1", (const void*)xl6ErrorScopeTryPropagateFailureV1)) return 0;
     if (!visit(user, "xl6ForeignViewRecordCallbackFailureV1", (const void*)xl6ForeignViewRecordCallbackFailureV1)) return 0;
     if (!visit(user, "xl6ForeignViewThrowIfCallbackFailedV1", (const void*)xl6ForeignViewThrowIfCallbackFailedV1)) return 0;

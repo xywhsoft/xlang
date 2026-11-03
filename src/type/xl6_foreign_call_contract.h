@@ -18,7 +18,8 @@ typedef enum XL6_ForeignBorrowedViewResult {
     XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE,
     XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE,
     XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS,
-    XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE
+    XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE,
+    XL6_FOREIGN_VIEW_RESULT_INT_STATUS
 } XL6_ForeignBorrowedViewResult;
 
 /* Closed declaration facts. Const addresses exist only during one call;
@@ -40,21 +41,28 @@ typedef struct XL6_ForeignCallFacts {
     uint32 outputIndexPlusOne;
     int32 successCode;
     uint32 rollbackSymbol;
+    /* Status + one trivial output, distinct from an owning factory. Occupies
+     * existing tail padding; outputIndexPlusOne includes the C receiver. */
+    uint32 valueOutput;
 } XL6_ForeignCallFacts;
 
 /* The factory output index counts actual C slots. Expanded pointer/count
  * and callback/userdata/owner groups remain indivisible parameter contracts. */
-static inline size_t xl6ForeignFactoryOutputLogical(const XL6_ForeignCallFacts* facts,size_t count)
+static inline size_t xl6ForeignOutputLogical(const XL6_ForeignCallFacts* facts,size_t count,size_t receiver)
 {
     if(!facts || !facts->outputIndexPlusOne)return SIZE_MAX;
     size_t physical=0;
     for(size_t p=0;p<=count;++p) {
         if(physical==facts->outputIndexPlusOne-1)return p;
-        if(p<count)physical+=p<64 && (facts->spanParameters&(UINT64_C(1)<<p)) ? 2 :
-            p<64 && (facts->retainedCallbacks&(UINT64_C(1)<<p)) ? 3 : 1;
+        size_t explicitParameter=p>=receiver ? p-receiver : SIZE_MAX;
+        if(p<count)physical+=explicitParameter<64 && (facts->spanParameters&(UINT64_C(1)<<explicitParameter)) ? 2 :
+            explicitParameter<64 && (facts->retainedCallbacks&(UINT64_C(1)<<explicitParameter)) ? 3 : 1;
     }
     return SIZE_MAX;
 }
+
+static inline size_t xl6ForeignFactoryOutputLogical(const XL6_ForeignCallFacts* facts,size_t count)
+{return xl6ForeignOutputLogical(facts,count,0);}
 
 /* Sparse per-declaration physical expansions, stored only for parameters
  * which request them. No fixed array is attached to every call or IR node. */

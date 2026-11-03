@@ -9,6 +9,8 @@ typedef struct ManagedWatch {
     void (*notify)(void*);
     void* user;
 } ManagedWatch;
+struct ManagedChild {ManagedWatch* watches;ManagedRoot* root;ManagedChild* next;bool closing;int value;};
+
 typedef struct ManagedScope {ManagedRoot* root;struct ManagedScope* self;} ManagedScope;
 extern const XL6_ForeignViewDescriptorV1 managedRootPolicy;
 extern const XL6_ForeignViewDescriptorV1 managedChildPolicy;

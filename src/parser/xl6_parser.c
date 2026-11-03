@@ -949,6 +949,8 @@ static XL6_AstNode* xl6PTypedLiteral(const XL6_Token* token, XL6_AstNode* litera
 static unsigned int xl6PExternContractFlag(
     XL6_ParseContext* ctx, const XL6_Token* token)
 {
+    if ( xl6PTokenTextEquals(token, "c_field") )
+        return XL6_AST_FLAG_FOREIGN_FIELD | XL6_AST_FLAG_FOREIGN_NO_RAISE | XL6_AST_FLAG_FOREIGN_NONBLOCKING;
     if ( xl6PTokenTextEquals(token, "pure") ) {
         return XL6_AST_FLAG_FOREIGN_PURE;
     }

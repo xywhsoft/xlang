@@ -194,3 +194,13 @@ XL6_FOREIGN_API void xl6ForeignCallbackFail(void)
     xrtSetErrorTake(diagnostic != NULL ? diagnostic : xrtErrorRef(original));
     xrtErrorFree(original);
 }
+
+XL6_FOREIGN_API void xl6ForeignStatusFailureV1(int status,const char* operation)
+{
+    if(xrtGetError())return;
+    xerrordesc description={0};description.Kind=XERR_STATE;
+    description.Domain="xlang.foreign";description.Code=status;
+    description.Operation=operation;description.Message="Native C operation returned a failing status.";
+    xerror* error=xrtErrorBuild(&description);
+    if(error)xrtSetErrorTake(error);
+}

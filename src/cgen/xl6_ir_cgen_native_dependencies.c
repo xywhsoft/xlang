@@ -480,6 +480,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
                 (!visitor(context,"xl6ForeignResultProbePrepareV1") || !visitor(context,"xl6ForeignResultProbeObserveV1") ||
                  !visitor(context,"xl6ForeignResultProbeAliveV1") || !visitor(context,"xl6ForeignResultProbeEndV1")))return 0;
         }
+        if((target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_INT_STATUS ||
+            target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE) && !visitor(context,"xl6ForeignStatusFailureV1"))return 0;
         if(xl6IrNativeContextIsClassCallback(target->nativeContextAbi)){
             XL6_IrNativeClassCallbackPlan plan={0};
             if(!xl6IrNativeClassCallbackPlanBuild(module,target,&plan)||

@@ -1,0 +1,52 @@
+extern "SpanPoint" struct Point @header("test/cases/foreign_output_values.h")
+    c_float x
+    c_float y
+end
+extern "ManagedRoot*" class Root @header("test/cases/foreign_output_values.h") @lifetime("owned") @policy("managedRootPolicy") @scope("ManagedScope") @watch("ManagedWatch")
+    native point handle
+    extern "output_root_span" @no_raise @c_span(0,"const uint8_t*","int") @c_output(3,0) func sum(string data) as c_int
+    extern "output_root" @no_raise @c_output(1,0) get value() as c_int
+    extern "output_root_read" @no_raise @c_output(1,0) func read() as c_int
+    extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "managed_root_destroy" @no_raise func rollback(Root root)
+extern "managed_root_create" @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(c_int mode) as Root
+extern "output_first" @no_raise @c_output(0,0) func first(c_int code) as c_int
+extern "output_record" @no_raise @c_output(1,17) func makePoint(c_int value) as Point
+extern "output_span" @no_raise @c_span(0,"const uint8_t*","int","test/cases/foreign_output_values.h") @c_output(2,0) func sum(string data) as c_int
+extern "managed_counter_begin" @no_raise func countersBegin()
+extern "managed_counter_end" @no_raise func countersEnd()
+func main(...) as int
+    Root root=create(0)
+    assert first(0)==91
+    auto p=makePoint(3)
+    assert p.x==3.0 and p.y==7.0
+    assert sum("a\0b")==195
+    assert root.value==42 and root.read()==42
+    assert root.sum("a\0b")==195
+    func() as c_int reader=root.read
+    assert reader()==42
+    func(c_int) as c_int fn=first
+    assert fn(0)==91
+    var dynamicRoot=root
+    assert dynamicRoot.read()==42
+    c_int kept=8
+    bool rejected=false
+    try
+        kept=first(-2)
+    catch error
+        rejected=true
+        assert error.code==-2 and error.operation=="output_first"
+    end
+    assert rejected and kept==8
+    countersBegin()
+    int i=0
+    while i<200
+        assert first(0)==91
+        assert root.value==42
+        i+=1
+    end
+    countersEnd()
+    root.close()
+    return 0
+end
