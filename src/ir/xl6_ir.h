@@ -509,6 +509,8 @@ typedef enum XL6_IrNativeValueAbi {
     XL6_IR_NATIVE_VALUE_NULLABLE_SLOT_MAP_KEY_V1,
     XL6_IR_NATIVE_VALUE_FOREIGN_VIEW_V1,
     XL6_IR_NATIVE_VALUE_NULLABLE_FOREIGN_VIEW_V1,
+    XL6_IR_NATIVE_VALUE_FOREIGN_SCOPE_VIEW_V1,
+    XL6_IR_NATIVE_VALUE_NULLABLE_FOREIGN_SCOPE_VIEW_V1,
 } XL6_IrNativeValueAbi;
 
 /* Frontend-fixed ownership category.  Lowering must not rediscover whether a
@@ -701,6 +703,8 @@ typedef enum XL6_IrNativeSlotAbi {
     XL6_IR_NATIVE_SLOT_NULLABLE_SLOT_MAP_KEY_V1,
     XL6_IR_NATIVE_SLOT_RAW_POINTER,
     XL6_IR_NATIVE_SLOT_FOREIGN_VIEW_V1,
+    XL6_IR_NATIVE_SLOT_FOREIGN_SCOPE_VIEW_V1,
+    XL6_IR_NATIVE_SLOT_NULLABLE_FOREIGN_SCOPE_VIEW_V1,
 } XL6_IrNativeSlotAbi;
 
 /* Target resident Sequence recipe, not permission to reinterpret an existing
@@ -2304,6 +2308,7 @@ typedef struct XL6_IrNativeValuePlan {
      * from a matching size. Domain arguments are sealed nominal identities. */
     bool graphCapture;
     bool nominalDomainArguments;
+    const char* nominalExtractSymbol;
 } XL6_IrNativeValuePlan;
 
 /* Canonical language identities for every stable XRT xvalue tag.  This table

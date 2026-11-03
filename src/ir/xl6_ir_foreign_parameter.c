@@ -102,12 +102,12 @@ int xl6IrForeignRetainedParameterMatches(const XL6_IrModule* module,const XL6_Ir
     size_t source=row->callbackOwnerIndexPlusOne-1;
     const XL6_IrType* owner=xl6IrTypeGet(&module->types,target->parameterTypes[source]);
     const XL6_IrType* root=xl6IrForeignRootType(module,target->parameterTypes[source]);
-    if(!owner || owner->kind==XL6_IR_TYPE_NULLABLE || !root ||
+    if(!owner || !owner->foreignPolicy || owner->kind==XL6_IR_TYPE_NULLABLE || !root ||
         target->parameterPhysicalAbis[source]!=XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW)return 0;
     for(size_t p=0;p<signature->paramCount;++p) {
         const XL6_IrType* item=xl6IrTypeGet(&module->types,signature->params[p]);
         if(signature->parameterModes[p]!=XL6_IR_PARAMETER_MODE_DEFAULT || !item)return 0;
-        if(item->foreignPolicy) {
+        if(item->foreignPolicy || item->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK) {
             if(signature->parameterAbis[p]!=XL6_IR_PARAMETER_ABI_BORROW || xl6IrForeignRootType(module,signature->params[p])!=root)return 0;
         } else if(!xl6IrRawCCallbackTrivialValueType(item) || item->cAbi==XL6_IR_C_ABI_TYPE_ID ||
             signature->parameterAbis[p]!=XL6_IR_PARAMETER_ABI_VALUE)return 0;

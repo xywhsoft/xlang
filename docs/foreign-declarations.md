@@ -379,6 +379,33 @@ thunk 进入独立的 adapter／body 代码作用域及 Root 原生作用域，�
 进入 XLIR，不能借此省略必要的 checked 路径。可写 span 和长期回调注册不能声明
 为 pure。直接、绑定、命名函数、协议和动态分派共用同一份物理参数映射。
 
+## 回调期视图
+
+```xlang
+extern "UiEvent*" class Event @header("ui.h") @lifetime("callback") @owner(Context)
+    private native point handle
+    extern "uiEventCode" @no_raise get code() as c_int
+    extern "uiEventPart" @no_raise @c_result("scope_view",0) func part() as Event
+end
+```
+
+回调期类型必须声明所属的 owned Root，不能带 policy／watch／scope，不能通过
+拥有工厂或 `c_control` 创建／操作。长期回调的此类参数只在本次回调有效。
+一个回调登记一次栈上 lifetime；所有传入及派生视图共享这一标识，不复制原生
+payload，不逐个分配控制对象。`scope_view` 的非空来源必须已经是回调期视图；
+从普通 Root 调用不能制造可在返回后使用的临时视图。`owner_view` 则可返回其
+同一 Root 中的稳定对象，继续遵循已有的受管对象合同。
+
+非空逻辑载体是地址整数和 uint64 标识；可空载体另带 hasValue。
+赋值、捕获和字段／Array／Stack 保存可以保留这个值，但不会延长 Context、
+原生数据或模块的生命周期。每次原生访问先在当前执行上下文检查标识，再恢复
+原生指针；回调结束、跨线程／fiber 使用、相同地址后续复用都不能使旧值复活。
+原生 owner scope 提前结束时也先使其视图过期。需要长期使用时显式复制数据。
+
+普通 typed 路径不装箱；显式转为 var／普通对象存储时仍有动态值的正常分配成本。
+访问存在执行上下文查询、有效期检查和 checked 边界；不宣称与无检查裸 C
+指针完全相同。首次执行上下文初始化也是冷路径成本。
+
 ## 批量验证
 
 使用同一次完整源码构建运行已落地能力的专项验收：

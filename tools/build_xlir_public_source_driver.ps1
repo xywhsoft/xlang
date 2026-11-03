@@ -532,6 +532,8 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_nullable_slot_map_key_capture.c',
     'src/runtime/xl6_closure_capture_v3.c',
     'src/runtime/xl6_foreign_context.c',
+    'src/runtime/xl6_foreign_scope_view.c',
+    'src/runtime/xl6_foreign_scope_value.c',
     'src/runtime/xl6_foreign_callback_scope.c',
     'src/runtime/xl6_foreign_view.c',
     'src/runtime/xl6_foreign_view_value.c',

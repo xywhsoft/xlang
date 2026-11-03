@@ -107,8 +107,9 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             else if (!strcmp(value->text, "\"owned_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE;
             else if (!strcmp(value->text, "\"owner_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE;
             else if (!strcmp(value->text, "\"bool_status\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS;
+            else if (!strcmp(value->text, "\"scope_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE;
             else return 0;
-            if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE){
+            if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE || facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE){
                 int32 source;
                 if(attr->childCount!=2 || !xl6ForeignDecimalInt(attr->children[1],&source) || source<0 || source>=64)return 0;
                 facts.resultOwnerIndexPlusOne=(uint32)source+1;
@@ -288,6 +289,7 @@ static inline int xl6ForeignClassRead(const XL6_AstNode* node,
             if(!strcmp(value,"caller"))result.lifetime=XL6_FOREIGN_LIFETIME_CALLER;
             else if(!strcmp(value,"owned"))result.lifetime=XL6_FOREIGN_LIFETIME_OWNED;
             else if(!strcmp(value,"owner"))result.lifetime=XL6_FOREIGN_LIFETIME_OWNER;
+            else if(!strcmp(value,"callback"))result.lifetime=XL6_FOREIGN_LIFETIME_CALLBACK;
             else return -1;
             seen |= 2;
         } else if(!strcmp(attr->text,"policy")){
@@ -302,8 +304,9 @@ static inline int xl6ForeignClassRead(const XL6_AstNode* node,
         } else return -1;
     }
     unsigned expected=result.lifetime==XL6_FOREIGN_LIFETIME_CALLER ? 3 :
-        result.lifetime==XL6_FOREIGN_LIFETIME_OWNED ? ((seen&8)?15:7) : 23;
-    if(result.lifetime!=XL6_FOREIGN_LIFETIME_CALLER && (seen&32))expected|=32;
+        result.lifetime==XL6_FOREIGN_LIFETIME_OWNED ? ((seen&8)?15:7) :
+        result.lifetime==XL6_FOREIGN_LIFETIME_CALLBACK ? 19 : 23;
+    if((result.lifetime==XL6_FOREIGN_LIFETIME_OWNED || result.lifetime==XL6_FOREIGN_LIFETIME_OWNER) && (seen&32))expected|=32;
     if (seen != expected) {
         if (error) *error = "external class requires an exact header/lifetime contract; owned views also need policy/scope, owner views need policy/owner";
         return -1;

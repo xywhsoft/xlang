@@ -37,6 +37,8 @@
     src\runtime\xl6_slot_map_iterator_count.c
     src\runtime\xl6_capture_v2.c
     src/runtime/xl6_foreign_context.c
+    src/runtime/xl6_foreign_scope_view.c
+    src/runtime/xl6_foreign_scope_value.c
     src/runtime/xl6_foreign_callback_scope.c
     src/runtime/xl6_foreign_view.c
 src/runtime/xl6_foreign_view_value.c

@@ -3,7 +3,7 @@
 static const char* xl6IrCgenRetainedNativeType(const XL6_IrModule* module,XL6_IrTypeId id)
 {
     const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
-    return type && type->foreignPolicy ? type->cName : xl6IrCgenType(module,id);
+    return type && (type->foreignPolicy || type->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK) ? type->cName : xl6IrCgenType(module,id);
 }
 static int xl6IrCgenRetainedParameters(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrType* signature,const XL6_ForeignParameterContract* row,bool names)
@@ -59,16 +59,31 @@ static int xl6IrCgenEmitRetainedCallbackThunks(XL6_Output* out,const XL6_IrModul
             "    XL6_NativeCallbackScopeV1 scope = {0}; xl6_error_scope errors = {0};\n"
             "    if (!xl6ErrorScopeBegin(&errors)) abort();\n",out);
         if(signature->returnCount)xl6OutputPrintf(out,"    %s result = {%d};\n",result,row->callbackFailureCode);
+        bool scoped=false;
         for(size_t p=0;p<signature->paramCount;++p) {
             const XL6_IrType* item=xl6IrTypeGet(&module->types,signature->params[p]);
-            if(item->foreignPolicy)xl6OutputPrintf(out,"    XL6_ForeignView* arg%lu = NULL;\n",(unsigned long)p);
+            if(item->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK){
+                scoped=true;xl6OutputPrintf(out,"    %s arg%lu = {0};\n",xl6IrCgenType(module,signature->params[p]),(unsigned long)p);
+            }else if(item->foreignPolicy)xl6OutputPrintf(out,"    XL6_ForeignView* arg%lu = NULL;\n",(unsigned long)p);
         }
+        if(scoped)xl6OutputPuts("    XL6_ForeignScopeLifetimeV1 lifetime={0};\n",out);
         if(root->foreignScope)xl6OutputPrintf(out,"    %s native_scope = {0};\n",root->foreignScope);
         xl6OutputPrintf(out,"    if (!xl6NativeCallbackRuntimeV1Get()->Enter(record,0x%016llXULL,&scope,%s)) xl6ErrorScopeCaptureFailure(&errors);\n"
             "    else {\n",(unsigned long long)signature->typeValueId,
             root->foreignScope ? "&native_scope,sizeof(native_scope)" : "NULL,0");
+        if(scoped)xl6OutputPuts("    if (!xl6ForeignScopeBeginV1(&lifetime,&scope.owner)) xl6ErrorScopeCaptureFailure(&errors);\n",out);
         for(size_t p=0;p<signature->paramCount;++p) {
             const XL6_IrType* item=xl6IrTypeGet(&module->types,signature->params[p]);
+            if(item->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK){
+                xl6OutputPrintf(out,"    if (!errors.failed && raw%lu) { XL6_ForeignScopeViewV1 borrowed={0};\n"
+                    "        if (!xl6ForeignScopeViewMakeV1(&lifetime,raw%lu,&borrowed)) xl6ErrorScopeCaptureFailure(&errors);\n        else arg%lu = ",
+                    (unsigned long)p,(unsigned long)p,(unsigned long)p);
+                if(item->kind==XL6_IR_TYPE_NULLABLE)xl6OutputPuts("(XL6_NullableForeignScopeViewV1){true,borrowed}",out);
+                else xl6OutputPuts("borrowed",out);
+                xl6OutputPuts("; }\n",out);
+                if(item->kind!=XL6_IR_TYPE_NULLABLE)xl6OutputPrintf(out,"    if (!errors.failed && !raw%lu) { xrtSetErrorKind(XERR_STATE); xl6ErrorScopeCaptureFailure(&errors); }\n",(unsigned long)p);
+                continue;
+            }
             if(!item->foreignPolicy)continue;
             xl6OutputPrintf(out,"    if (!errors.failed && raw%lu) { arg%lu = %s(raw%lu,scope.owner.root",
                 (unsigned long)p,(unsigned long)p,item->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED ?
@@ -86,12 +101,13 @@ static int xl6IrCgenEmitRetainedCallbackThunks(XL6_Output* out,const XL6_IrModul
         if(signature->returnCount)xl6OutputPuts(", &result",out);
         for(size_t p=0;p<signature->paramCount;++p) {
             const XL6_IrType* item=xl6IrTypeGet(&module->types,signature->params[p]);
-            xl6OutputPrintf(out,", %s%lu",item->foreignPolicy ? "arg" : "raw",(unsigned long)p);
+            xl6OutputPrintf(out,", %s%lu",(item->foreignPolicy || item->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK) ? "arg" : "raw",(unsigned long)p);
         }
         xl6OutputPuts(")) xl6ErrorScopeCaptureFailure(&errors);\n    }\n",out);
         for(size_t p=signature->paramCount;p>0;--p)
             if(xl6IrTypeGet(&module->types,signature->params[p-1])->foreignPolicy)
                 xl6OutputPrintf(out,"    if (arg%lu && !xl6ForeignViewReleaseV1(arg%lu)) xl6ErrorScopeCaptureFailure(&errors);\n",(unsigned long)(p-1),(unsigned long)(p-1));
+        if(scoped)xl6OutputPuts("    if (lifetime.self && !xl6ForeignScopeEndV1(&lifetime)) xl6ErrorScopeCaptureFailure(&errors);\n",out);
         xl6OutputPuts("    xl6_error_result outcome = xl6ErrorScopeEnd(&errors);\n"
             "    if (scope.self) outcome=xl6NativeCallbackRuntimeV1Get()->Leave(&scope,outcome);\n"
             "    if (!outcome.ok) { xl6NativeCallbackReportFailureV1(record,outcome);",out);

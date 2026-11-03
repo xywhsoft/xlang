@@ -20,6 +20,18 @@ static int xl6IrCgenForeignViewsBegin(XL6_Output* out,const XL6_IrModule* module
         const XL6_IrType* root=xl6IrForeignRootType(module,target->parameterTypes[p]);
         const XL6_IrType* type=xl6IrTypeGet(&module->types,target->parameterTypes[p]);
         xl6OutputPrintf(out,"    XL6_ForeignViewCallV1 native_view_%lu = {0};\n",(unsigned long)p);
+        if(type->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK){
+            xl6OutputPuts("    if (native_views_ok",out);
+            if(type->kind==XL6_IR_TYPE_NULLABLE){
+                xl6OutputPuts(" && ",out);xl6IrCgenForeignViewArgument(out,values,p,receiver);xl6OutputPuts(".hasValue",out);
+            }
+            xl6OutputPuts(") { if (!xl6ForeignScopeViewGetV1(",out);
+            xl6IrCgenForeignViewArgument(out,values,p,receiver);
+            if(type->kind==XL6_IR_TYPE_NULLABLE)xl6OutputPuts(".value",out);
+            xl6OutputPrintf(out,", &native_view_%lu.raw, &native_view_%lu.root)) { native_views_ok=false; xl6ErrorScopeCaptureFailure(&%s); } }\n",
+                (unsigned long)p,(unsigned long)p,errors);
+            continue;
+        }
         if(root->foreignScope)xl6OutputPrintf(out,"    %s native_scope_%lu = {0};\n",root->foreignScope,(unsigned long)p);
         xl6OutputPuts("    if (native_views_ok",out);
         if(type->kind==XL6_IR_TYPE_NULLABLE){
@@ -67,6 +79,16 @@ static void xl6IrCgenNativeViewAdmission(XL6_Output* out,const XL6_IrModule* mod
 {
     const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
     const XL6_IrType* type=xl6IrTypeGet(&module->types,target->returnType);
+    if(type->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK){
+        xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError()==NULL) {\n        if (%s) { XL6_ForeignScopeViewV1 derived={0};\n            if (!xl6ForeignScopeViewDeriveV1(",errors,raw);
+        xl6IrCgenForeignViewArgument(out,values,declaration->foreignCall.resultOwnerIndexPlusOne-1,receiver);
+        xl6OutputPrintf(out,", %s, &derived)) xl6ErrorScopeCaptureFailure(&%s);\n            else %s = ",raw,errors,place);
+        if(type->kind==XL6_IR_TYPE_NULLABLE)xl6OutputPuts("(XL6_NullableForeignScopeViewV1){true,derived}",out);
+        else xl6OutputPuts("derived",out);
+        xl6OutputPuts(";\n        }",out);
+        if(type->kind!=XL6_IR_TYPE_NULLABLE)xl6OutputPrintf(out," else { xrtSetErrorKind(XERR_STATE); xl6ErrorScopeCaptureFailure(&%s); }",errors);
+        xl6OutputPrintf(out,"\n    } else xl6ErrorScopeCaptureFailure(&%s);\n",errors);return;
+    }
     if(status){
         xl6OutputPrintf(out,"    if (xrtGetError() != NULL) xl6ErrorScopeCaptureFailure(&%s);\n"
             "    if (!xl6ForeignResultProbeObserveV1(&native_result_probe, %s)) xl6ErrorScopeCaptureFailure(&%s);\n",errors,raw,errors);
@@ -79,7 +101,10 @@ static void xl6IrCgenNativeViewAdmission(XL6_Output* out,const XL6_IrModule* mod
     else {
         int root=type->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED;
         xl6OutputPrintf(out,"%s(%s, ",root ? "xl6ForeignViewBorrowRootV1" : "xl6ForeignViewBorrowChildV1",raw);
-        xl6IrCgenForeignViewArgument(out,values,declaration->foreignCall.resultOwnerIndexPlusOne-1,receiver);
+        size_t source=declaration->foreignCall.resultOwnerIndexPlusOne-1;
+        const XL6_IrType* sourceType=xl6IrTypeGet(&module->types,target->parameterTypes[source]);
+        if(sourceType->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK)xl6OutputPrintf(out,"native_view_%lu.root",(unsigned long)source);
+        else xl6IrCgenForeignViewArgument(out,values,source,receiver);
         if(!root)xl6OutputPrintf(out,", &%s, xlir_code_owner.size ? &xlir_code_owner : NULL",type->foreignPolicy);
         xl6OutputPuts(")",out);
     }

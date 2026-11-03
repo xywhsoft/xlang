@@ -261,7 +261,7 @@ static const char* xl6IrCgenArrayExtractSymbol(const XL6_IrType* result)
 {
     if (!result) return NULL;
     const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(result);
-    if (native) return native->nominalDomainArguments ? "xl6ArrayExtractForeignViewV1" : "xl6ArrayExtractNativeValueV2";
+    if (native) return native->nominalDomainArguments ? native->nominalExtractSymbol : "xl6ArrayExtractNativeValueV2";
     if (xl6IrArrayTrivialExtractResult(result)) return "xl6ArrayExtractTrivialV1";
     switch (result->cAbi) {
     case XL6_IR_C_ABI_BOOL: return "xl6ArrayExtractBoolV1";

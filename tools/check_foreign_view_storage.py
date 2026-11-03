@@ -16,6 +16,7 @@ def main():
     p.add_argument('--callbacks',action='store_true')
     p.add_argument('--userdata',action='store_true')
     p.add_argument('--values',action='store_true',help='test native view ownership in ordinary class/value storage')
+    p.add_argument('--scope-views',action='store_true',help='test non-owning callback view lifetime and stale-value rejection')
     p.add_argument('--probes',action='store_true',help='test stack factory observations and typed owner copies')
     p.add_argument('--sequences',action='store_true',help='test owning typed native view slots, erasure and graph cycles')
     p.add_argument('--xui-build',type=Path,help='exercise actual hosted XUI event slots with the same resident core')
@@ -26,13 +27,14 @@ def main():
     build=json.loads((base/'build.json').read_text(encoding='utf-8-sig'))
     assert build['Complete'] and build['InputsUnchanged']
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
-    assert sum(map(bool,(a.callbacks,a.userdata,a.xui_build,a.values,a.sequences,a.probes)))<=1
-    fixture='foreign_result_probe.c' if a.probes else 'foreign_view_sequence.c' if a.sequences else 'foreign_view_value.c' if a.values else 'foreign_native_xui_callback.c' if a.xui_build else 'foreign_native_userdata.c' if a.userdata else 'foreign_view_callbacks.c' if a.callbacks else 'foreign_view_storage.c'
+    assert sum(map(bool,(a.callbacks,a.userdata,a.xui_build,a.values,a.sequences,a.probes,a.scope_views)))<=1
+    fixture='foreign_scope_view.c' if a.scope_views else 'foreign_result_probe.c' if a.probes else 'foreign_view_sequence.c' if a.sequences else 'foreign_view_value.c' if a.values else 'foreign_native_xui_callback.c' if a.xui_build else 'foreign_native_userdata.c' if a.userdata else 'foreign_view_callbacks.c' if a.callbacks else 'foreign_view_storage.c'
     sources=[root/('test/support/'+fixture)]+[root/('src/runtime/'+n+'.c') for n in (
-        'xl6_cell','xl6_native_future_payload','xl6_foreign_view','xl6_foreign_callback_scope','xl6_foreign_context',
+        'xl6_cell','xl6_native_future_payload','xl6_foreign_view','xl6_foreign_callback_scope','xl6_foreign_context','xl6_foreign_scope_view',
         'xl6_closure','xl6_code_finalizer',
         'xl6_native_capture_graph','xl6_foreign_view_capture','xl6_capture_v3','xl6_closure_capture_v4',
         'xl6_cell_native_graph','xl6_native_graph_future_payload','xl6_ownership_domain_native_graph_future_payload')]
+    if a.scope_views:sources.append(root/'src/runtime/xl6_foreign_scope_value.c')
     if a.probes:sources += [root/('src/runtime/'+name+'.c') for name in ('xl6_native_handle','xl6_native_handle_access','xl6_buffer_span','xl6_buffer_core','xl6_task_frame','xl6_future_callback','xl6_future_callback_queue','xl6_future_callback_interrupt','xl6_tls_class_future','xl6_tls_recv_owned_future','xl6_udp_future','xl6_generator','xl6_continuation_frame')]
     if a.userdata or a.xui_build:sources += [root/'src/runtime/xl6_native_callback.c',root/'tools/xrt_single_header_impl.c']
     if a.values or a.sequences or a.xui_build:sources.append(root/'src/runtime/xl6_foreign_view_value.c')
@@ -91,7 +93,7 @@ def main():
         baseflags+=['-DXGE_DLL','-DXUI_DLL','-DXGE_XRT_HOST=1','-Wno-cast-function-type',
             '-I'+str(a.xui_root),'-I'+str(a.xui_root/'include'),'-I'+str(a.xui_build/'host-xrt'),
             '-include',str(a.xui_build/'xge_build_config.h')]
-    cases=('all',) if a.probes else ('typed','nullable','erased','stack','cycle','allocation','all') if a.sequences else ('values','class-field','cycle','cleanup','allocation','all') if a.values else ('all',) if engine else ('replacement','nested','binding','cycle','errors','cleanup','affinity','allocation','all') if a.userdata else ('finalizer','context-release','box-invoke','box-drop','all') if a.callbacks else ('cells','cell-cycle','futures','future-cycle','cleanup','allocation','all')
+    cases=('all',) if a.probes or a.scope_views else ('typed','nullable','erased','stack','cycle','allocation','all') if a.sequences else ('values','class-field','cycle','cleanup','allocation','all') if a.values else ('all',) if engine else ('replacement','nested','binding','cycle','errors','cleanup','affinity','allocation','all') if a.userdata else ('finalizer','context-release','box-invoke','box-drop','all') if a.callbacks else ('cells','cell-cycle','futures','future-cycle','cleanup','allocation','all')
     for opt in ('O0','O2'):
         modules=[]
         if a.userdata:

@@ -5,7 +5,7 @@
 static const XL6_IrNativeValuePlan g_xl6IrNativeValues[] = {
 #define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,Release,Type,Converter,Sequence,Profile,ValueId,CaptureHeader,CaptureProfile) \
     {XL6_IR_NATIVE_VALUE_##Tag,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,XL6_IR_RELEASE_EFFECT_##Release, \
-        XL6_IR_NATIVE_SLOT_##Tag,#Type "()",#Converter "()",Sequence,Profile,ValueId,CaptureHeader,CaptureProfile,XL6_IR_NATIVE_VALUE_NONE,NULL,false,false},
+        XL6_IR_NATIVE_SLOT_##Tag,#Type "()",#Converter "()",Sequence,Profile,ValueId,CaptureHeader,CaptureProfile,XL6_IR_NATIVE_VALUE_NONE,NULL,false,false,NULL},
 #include "src/type/xl6_native_value_profiles.inc"
 #undef XL6_NATIVE_VALUE_PROFILE
     {XL6_IR_NATIVE_VALUE_NULLABLE_SLOT_MAP_KEY_V1,"xlang.runtime.nullable-slot-map-key.v1",
@@ -15,7 +15,7 @@ static const XL6_IrNativeValuePlan g_xl6IrNativeValues[] = {
         XL6_IR_NATIVE_SLOT_NULLABLE_SLOT_MAP_KEY_V1,"xl6NullableSlotMapKeyTypeV1()","xl6NullableSlotMapKeyConverterV1()",
         "xl6SequenceNullableSlotMapKeyCreateV1","xl6NullableSlotMapKeyCollectionProfileV1Get",
         XL6_NULLABLE_SLOT_MAP_KEY_LANGUAGE_VALUE_ID,"__xl_runtime/xl6_nullable_slot_map_key_capture.h",
-        "xl6NullableSlotMapKeyCaptureProfileV1Get",XL6_IR_NATIVE_VALUE_SLOT_MAP_KEY_V1,"xl6NullableSlotMapKeyTryUnboxV1",false,false},
+        "xl6NullableSlotMapKeyCaptureProfileV1Get",XL6_IR_NATIVE_VALUE_SLOT_MAP_KEY_V1,"xl6NullableSlotMapKeyTryUnboxV1",false,false,NULL},
 };
 static const XL6_IrNativeValuePlan g_xl6IrForeignViewValue={
     .abi=XL6_IR_NATIVE_VALUE_FOREIGN_VIEW_V1,.abiName="xlang.foreign.view.v1",
@@ -26,7 +26,7 @@ static const XL6_IrNativeValuePlan g_xl6IrForeignViewValue={
     .releaseEffect=XL6_IR_RELEASE_EFFECT_MAY_RAISE,.slotAbi=XL6_IR_NATIVE_SLOT_FOREIGN_VIEW_V1,
     .typeExpr="xl6ForeignViewStorageTypeV1()",.converterExpr="xl6ForeignViewSequenceConverterV1()",
     .sequenceSymbol="xl6ForeignViewSequenceCreateV1",.captureHeader="__xl_runtime/xl6_foreign_view_capture.h",
-    .captureProfileSymbol="xl6ForeignViewCaptureProfileV1Get",.graphCapture=true,.nominalDomainArguments=true
+    .captureProfileSymbol="xl6ForeignViewCaptureProfileV1Get",.graphCapture=true,.nominalDomainArguments=true,.nominalExtractSymbol="xl6ArrayExtractForeignViewV1"
 };
 static const XL6_IrNativeValuePlan g_xl6IrNullableForeignViewValue={
     .abi=XL6_IR_NATIVE_VALUE_NULLABLE_FOREIGN_VIEW_V1,.abiName="xlang.foreign.nullable-view.v1",
@@ -38,7 +38,38 @@ static const XL6_IrNativeValuePlan g_xl6IrNullableForeignViewValue={
     .releaseEffect=XL6_IR_RELEASE_EFFECT_MAY_RAISE,.slotAbi=XL6_IR_NATIVE_SLOT_FOREIGN_VIEW_V1,
     .typeExpr="xl6ForeignViewStorageTypeV1()",.converterExpr="xl6ForeignViewSequenceConverterV1()",
     .sequenceSymbol="xl6ForeignViewSequenceCreateV1",.captureHeader="__xl_runtime/xl6_foreign_view_capture.h",
-    .captureProfileSymbol="xl6ForeignViewCaptureProfileV1Get",.graphCapture=true,.nominalDomainArguments=true
+    .captureProfileSymbol="xl6ForeignViewCaptureProfileV1Get",.graphCapture=true,.nominalDomainArguments=true,.nominalExtractSymbol="xl6ArrayExtractForeignViewV1"
+};
+static const XL6_IrNativeValuePlan g_xl6IrScopeViewValue={
+    .abi=XL6_IR_NATIVE_VALUE_FOREIGN_SCOPE_VIEW_V1,.abiName="xlang.foreign.scope-view.v1",
+    .cName="XL6_ForeignScopeViewV1",.header="__xl_runtime/xl6_foreign_scope_value.h",
+    .errorResultCName="xlir_result_foreign_scope_view_v1",
+    .copySymbol="xl6ScopeViewCopyV1",
+    .dropSymbol="xl6ScopeViewDropV1",
+    .equalSymbol="xl6ScopeViewEqualV1",
+    .boxSymbol="xl6ScopeViewBoxV1",
+    .projectSymbol="xl6ScopeViewUnboxV1",
+    .tryProjectSymbol="xl6ScopeViewTryUnboxV1",
+    .releaseEffect=XL6_IR_RELEASE_EFFECT_NO_RAISE,.slotAbi=XL6_IR_NATIVE_SLOT_FOREIGN_SCOPE_VIEW_V1,
+    .typeExpr="xl6ScopeViewTypeV1()",.converterExpr="xl6ScopeViewConverterV1()",
+    .sequenceSymbol="xl6ScopeViewSequenceCreateV1",.captureHeader="__xl_runtime/xl6_foreign_scope_value.h",
+    .captureProfileSymbol="xl6ScopeViewCaptureV1",.nominalDomainArguments=true,.nominalExtractSymbol="xl6ArrayExtractScopeViewV1"
+};
+static const XL6_IrNativeValuePlan g_xl6IrNullableScopeViewValue={
+    .abi=XL6_IR_NATIVE_VALUE_NULLABLE_FOREIGN_SCOPE_VIEW_V1,.abiName="xlang.foreign.nullable-scope-view.v1",
+    .cName="XL6_NullableForeignScopeViewV1",.header="__xl_runtime/xl6_foreign_scope_value.h",
+    .errorResultCName="xlir_result_nullable_foreign_scope_view_v1",
+    .copySymbol="xl6NullableScopeViewCopyV1",
+    .dropSymbol="xl6NullableScopeViewDropV1",
+    .equalSymbol="xl6NullableScopeViewEqualV1",
+    .boxSymbol="xl6NullableScopeViewBoxV1",
+    .projectSymbol="xl6NullableScopeViewUnboxV1",
+    .tryProjectSymbol="xl6NullableScopeViewTryUnboxV1",
+    .releaseEffect=XL6_IR_RELEASE_EFFECT_NO_RAISE,.slotAbi=XL6_IR_NATIVE_SLOT_NULLABLE_FOREIGN_SCOPE_VIEW_V1,
+    .typeExpr="xl6NullableScopeViewTypeV1()",.converterExpr="xl6NullableScopeViewConverterV1()",
+    .sequenceSymbol="xl6ScopeViewSequenceCreateV1",.captureHeader="__xl_runtime/xl6_foreign_scope_value.h",
+    .captureProfileSymbol="xl6NullableScopeViewCaptureV1",.nominalDomainArguments=true,.nominalExtractSymbol="xl6ArrayExtractScopeViewV1",
+    .nullableElementAbi=XL6_IR_NATIVE_VALUE_FOREIGN_SCOPE_VIEW_V1
 };
 static XL6_IrNativeValueAbi xl6IrNativeValueAbiFromFrontend(XL6_TypeAbiId abi)
 {
@@ -94,6 +125,9 @@ static XL6_IrNativeValueAbi xl6IrNativeValueAbiFromType(const XL6_IrType* type)
 {
     if (!type || type->returnCount)
         return XL6_IR_NATIVE_VALUE_NONE;
+    if(type->foreignHeader && type->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK)
+        return type->kind==XL6_IR_TYPE_CLASS ? XL6_IR_NATIVE_VALUE_FOREIGN_SCOPE_VIEW_V1 :
+            type->kind==XL6_IR_TYPE_NULLABLE ? XL6_IR_NATIVE_VALUE_NULLABLE_FOREIGN_SCOPE_VIEW_V1 : XL6_IR_NATIVE_VALUE_NONE;
     if(type->foreignHeader && type->foreignPolicy &&
         (type->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED || type->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNER))
         return type->kind==XL6_IR_TYPE_CLASS ? XL6_IR_NATIVE_VALUE_FOREIGN_VIEW_V1 :
@@ -114,6 +148,10 @@ const XL6_IrNativeValuePlan* xl6IrNativeValuePlanForType(const XL6_IrType* type)
         type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
         type->nativeValueAbi == XL6_IR_NATIVE_VALUE_NONE ||
         type->nativeValueAbi != xl6IrNativeValueAbiFromType(type)) return NULL;
+    if(type->nativeValueAbi==XL6_IR_NATIVE_VALUE_FOREIGN_SCOPE_VIEW_V1 ||
+        type->nativeValueAbi==XL6_IR_NATIVE_VALUE_NULLABLE_FOREIGN_SCOPE_VIEW_V1)
+        return type->nullAbi==(type->kind==XL6_IR_TYPE_NULLABLE ? XL6_IR_NULL_ABI_TAGGED_VALUE : XL6_IR_NULL_ABI_NONE) ?
+            (type->kind==XL6_IR_TYPE_NULLABLE ? &g_xl6IrNullableScopeViewValue : &g_xl6IrScopeViewValue) : NULL;
     if(type->nativeValueAbi==XL6_IR_NATIVE_VALUE_FOREIGN_VIEW_V1 ||
         type->nativeValueAbi==XL6_IR_NATIVE_VALUE_NULLABLE_FOREIGN_VIEW_V1)
         return type->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL ?
@@ -129,6 +167,7 @@ static const XL6_IrNativeValuePlan* xl6IrNullableNativeValuePlanForElement(const
     const XL6_IrNativeValuePlan* base=xl6IrNativeValuePlanForType(element);
     if(!base || base->nullableElementAbi)return NULL;
     if(base==&g_xl6IrForeignViewValue)return &g_xl6IrNullableForeignViewValue;
+    if(base==&g_xl6IrScopeViewValue)return &g_xl6IrNullableScopeViewValue;
     for(size_t i=0;i<XL6_ARRAY_COUNT(g_xl6IrNativeValues);++i)
         if(g_xl6IrNativeValues[i].nullableElementAbi==base->abi)return &g_xl6IrNativeValues[i];
     return NULL;
