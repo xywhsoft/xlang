@@ -61,6 +61,12 @@ static int xl6IrCgenVerifyDeclarations(
                     target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
                     target->parameterPhysicalFieldDeclarations[parameter] || target->parameterConstraintAbis[parameter])
                     return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no sealed text view ABI");
+            } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW) {
+                if(!xl6IrForeignBytesViewParameter(module,target,parameter) || !parameterType ||
+                    parameterType->cAbi!=XL6_IR_C_ABI_MANAGED_BYTES || parameterType->kind!=XL6_IR_TYPE_BUILTIN ||
+                    target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
+                    target->parameterPhysicalFieldDeclarations[parameter] || target->parameterConstraintAbis[parameter])
+                    return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no exact borrowed bytes view ABI");
             } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK) {
                 if (!xl6IrForeignStaticCallbackParameter(module, target, parameter) ||
                     !xl6IrCFunctionPointerForSignature(module, target->parameterTypes[parameter]))

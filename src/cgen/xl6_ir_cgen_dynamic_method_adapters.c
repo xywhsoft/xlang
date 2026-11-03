@@ -1,6 +1,6 @@
 static int xl6IrCgenEmitExternPrototype(XL6_Output*, const XL6_IrModule*, const XL6_IrCallTarget*, XL6_DiagList*);
 static int xl6IrCgenEmitLauncherPrototype(XL6_Output*,const XL6_IrModule*,const XL6_IrCallTarget*,XL6_DiagList*);
-static void xl6IrCgenEmitDispatchTargetCall(XL6_Output*,const XL6_IrCallTarget*,const XL6_IrClassField*,size_t);
+static void xl6IrCgenEmitDispatchTargetCall(XL6_Output*,const XL6_IrModule*,const XL6_IrCallTarget*,const XL6_IrClassField*,size_t);
 
 static int xl6IrCgenDynamicMethodNeeded(
     const XL6_IrModule* module, size_t methodIndex)
@@ -283,9 +283,10 @@ static int xl6IrCgenEmitDynamicNativeWitness(
             (unsigned long)p, field->nativeDestroySymbol != 0 ? ", NULL, NULL" : "");
     }
     if (!xl6IrCgenNativeCallValueBegin(out,module,&valuePlan,input,"nativeScope")) return 0;
+    int bytesPrepared=xl6IrCgenPrepareBytesViews(out,target,NULL);
     xl6OutputPuts("      ", out);
-    if (target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY)
-        xl6OutputPuts(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW ? "xstrview borrowed_raw = " : "const char* borrowed_raw = ",out);
+    if (target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY)
+        xl6OutputPrintf(out,"%s borrowed_raw = ",xl6IrCgenBorrowedResultCType(target));
     else if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
         xl6OutputPuts("callResult = ", out);
     else if ( target->returnType != XL6_IR_TYPE_INVALID && target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_NONE )
@@ -310,6 +311,8 @@ static int xl6IrCgenEmitDynamicNativeWitness(
             xl6OutputPrintf(out,"&a%lu",(unsigned long)(p-1));
         else if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD)
             xl6OutputPuts("NULL",out);
+        else if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW)
+            xl6OutputPrintf(out,"xlir_bytes_arg_%lu",(unsigned long)p);
         else if ( p == 0 ) xl6OutputPuts("receiver", out);
         else xl6OutputPrintf(out, "a%lu%s", (unsigned long)(p - 1), xl6IrCgenDirectPlaceSuffix(module, target, p));
     }
@@ -319,8 +322,8 @@ static int xl6IrCgenEmitDynamicNativeWitness(
     }
     xl6OutputPuts(")", out);
     xl6OutputPuts(";\n", out);
-    if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY)
-        xl6IrCgenEmitBorrowedStringAdmission(out,module,target,"callResult.value","borrowed_raw","nativeScope");
+    if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY)
+        xl6IrCgenEmitBorrowedValueAdmission(out,module,target,"callResult.value","borrowed_raw","nativeScope");
     if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE)
         xl6IrCgenEmitOwnedStringAdmission(out,module,target,"callResult.value","nativeScope.failed");
     /* OWNED inputs are consumed only by actual native entry. Nulling the local
@@ -329,6 +332,7 @@ static int xl6IrCgenEmitDynamicNativeWitness(
         if ( target->parameterAbis[p] == XL6_IR_PARAMETER_ABI_OWNED )
             xl6OutputPrintf(out, "      a%lu = (%s){0};\n", (unsigned long)(p - 1), xl6IrCgenType(module, target->parameterTypes[p]));
     if (!xl6IrCgenNativeCallValueEnd(out,module,&valuePlan,"callResult.value","nativeScope")) return 0;
+    if(bytesPrepared)xl6OutputPuts("    }\n",out);
     if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
         xl6OutputPuts("      if (!callResult.ok) { xl6_error_result failure = {false, xrtTakeError()}; xl6ErrorScopePropagateFailure(failure); }\n", out);
     xl6OutputPuts("native_done:\n      if (nativeScope.failed || xrtGetError() != NULL) {\n"
@@ -652,7 +656,7 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
         xl6OutputPuts("    ", out);
         if ( carrierCType != NULL ) xl6OutputPuts("callResult = ", out);
         else if ( resultType != NULL ) xl6OutputPuts("returned = ", out);
-        xl6IrCgenEmitDispatchTargetCall(out,target,NULL,method->parameterCount);
+        xl6IrCgenEmitDispatchTargetCall(out,module,target,NULL,method->parameterCount);
         xl6OutputPuts(";\n",out);
     }
     if(vector) {

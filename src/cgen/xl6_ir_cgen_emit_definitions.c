@@ -171,7 +171,7 @@ static int xl6IrCgenEmitModuleDefinitions(
             xl6OutputPrintf(out,", {.boolean_value=%s, .i64_value=%d}",
                 native->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE ? "true" : "false",
                 native->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE ||
-                native->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY ? 1 : 0);
+                native->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY ? 1 : 0);
         }
         xl6OutputPuts("};\n", out);
     }

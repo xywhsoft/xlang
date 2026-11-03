@@ -373,7 +373,7 @@ static const XL6_IrClassField* xl6IrCgenNativeClassPhysicalField(
 
 /* The protocol table may select an extern C class method.  Its CallTarget is
  * already the complete adapter contract: semantic receiver, exact physical
- * field, and direct remaining parameters.  Keep this predicate mechanical so
+ * field, and direct or borrowed-view remaining parameters. Keep this predicate mechanical so
  * dispatcher emission never searches source declarations or method names. */
 static const XL6_IrClassField* xl6IrCgenProtocolExternReceiverField(
     const XL6_IrModule* module, const XL6_IrProtocolDispatchSlot* slot,
@@ -394,8 +394,9 @@ static const XL6_IrClassField* xl6IrCgenProtocolExternReceiverField(
          (field = xl6IrCgenNativeClassPhysicalField(module, target, 0)) == NULL )
         return NULL;
     for ( parameter = 1; parameter < target->parameterCount; ++parameter )
-        if ( target->parameterPhysicalAbis[parameter] !=
-                 XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
+        if ( (target->parameterPhysicalAbis[parameter] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT &&
+              target->parameterPhysicalAbis[parameter] != XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW &&
+              target->parameterPhysicalAbis[parameter] != XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW) ||
              target->parameterPhysicalFieldDeclarations[parameter] !=
                  XL6_IR_NODE_INVALID ) return NULL;
     return field;
@@ -446,6 +447,8 @@ static const char* xl6IrCgenExternParameterType(
         return xl6IrCgenType(module, target->parameterTypes[parameter]);
     if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW)
         return "xstrview";
+    if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW)
+        return "xbytesview";
     if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW) {
         type=xl6IrTypeGet(&module->types,target->parameterTypes[parameter]);
         return xl6IrTypeIsCOwned(type) ? (type->cAbi==XL6_IR_C_ABI_C_STRING ? "xstrview" : "xbytesview") : NULL;

@@ -141,16 +141,17 @@ static void xl6IrCgenCollectHeaderTypeNeeds(
                     module, target->parameterTypes[parameter], needs,
                     structuralTypes);
         if ( target->returnType != XL6_IR_TYPE_INVALID &&
-             (target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW ||
+             (target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW || target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW ||
              (target->resultCAbi != XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER &&
              target->resultConversionAbi !=
-                 XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY)) )
+                 XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY)) )
             xl6IrCgenHeaderMarkType(
                 module, xl6IrCgenPhysicalResultType(module, target), needs,
                 structuralTypes);
         for ( parameter = 0; parameter < target->parameterCount; ++parameter )
             if ( target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
                  target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW ||
+                 target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW ||
                  target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS )
                 xl6IrCgenHeaderMarkType(
                     module, target->parameterTypes[parameter], needs,

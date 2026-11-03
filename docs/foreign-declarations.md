@@ -261,6 +261,40 @@ Cgen 直接传递已有函数地址，不生成额外回调入口或闭包分配
 判断计数器不可用。该测量仅覆盖夹具内的静态回调调用，不包含模块初始化或
 后续受管回调注册的成本。
 
+## 精确二进制视图
+
+```xlang
+extern "inspectBytes" @pure @no_raise @nonblocking @c_bytes_view(0) func inspect(bytes input) as c_size
+extern "borrowBytes" @no_raise @nonblocking @c_bytes_view(0) @c_result("bytes_view") func copyResult(bytes input) as bytes
+```
+
+对应 C 声明为 `size_t inspectBytes(xbytesview)` 和
+`xbytesview borrowBytes(xbytesview)`。`@c_bytes_view(index)` 使用零起始的显式
+语言参数序号，只接受非空 `bytes`；接收者不占该序号。多个参数可分别声明。
+它不能与同参数的文本视图、记录地址或静态回调合同重叠。
+
+输入在调用处通过一次 `xrtValueGetBytes` 取得栈上的指针／长度记录；不复制数据，
+不扫描终止符，不创建临时 Buffer 或转发函数。原生函数只能在当前调用期间读取
+该视图，不能保存地址、修改数据或在返回后使用。它保留任意字节及内嵌 NUL，
+不执行 UTF-8 检查。可变共享 Buffer 的跨回调地址保护尚未定义，不能套用此合同。
+
+`@c_result("bytes_view")` 接受 `bytes`／`bytes?` 结果。原生生产者返回借用
+`xbytesview`；统一 CALL 在清理输入及接收者前将它复制成语言拥有值。
+因此 C 生产者的 `@no_raise` 不会掩盖结果复制的分配失败。
+
+结果的 `{NULL, 0}` 表示缺失：可空结果成为 `null`，非空结果报 checked 错误。
+非 NULL 地址加零长度表示存在的空字节值。NULL 地址加非零长度或超过语言长度
+上限的视图被拒绝。生产者已失败时不读取返回地址；复制分配失败即使不能再分配
+诊断，也会保留失败状态。此合同不检查任意 C 地址是否有效，提供方仍须交付有效
+且至少存活至本次结果复制结束的内存。
+
+自由函数、函数值、直接方法、属性、类型化绑定方法、协议／动态方法、异步和
+生成器中的调用均复用该合同。结果有必要的复制、分配和 checked scope 成本；
+输入也有一次不透明值访问，不能将整个调用宣称为零开销。
+
+`tools/check_foreign_bytes_views.py` 提供公开头、原生 C 提供方、GCC O0/O2、
+TCC JIT／模块／独立程序、声明负例和独立 IR 篡改验收。
+
 ## 批量验证
 
 使用同一次完整源码构建运行已落地能力的专项验收：
@@ -270,6 +304,7 @@ python tools/check_foreign_declarative.py --root <repo> --driver <source-driver>
 ```
 
 脚本依次运行视图、记录、内联数组、工厂、回调、直接参数放置和初始化检查，
+并对同一源码构建运行文本／二进制视图及类型化绑定方法专项，
 保留各组及汇总报告。某组失败后继续执行其他独立组，最后统一报告失败。
 本入口验证编译器能力，
 XGE/XUI 包、受管拥有和长期回调的完整验收仍须在相应实现完成后加入。

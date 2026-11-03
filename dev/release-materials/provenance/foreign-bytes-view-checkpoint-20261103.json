@@ -1,0 +1,200 @@
+{
+  "recordedAt": "2026-11-03",
+  "scope": "Declarative xbytesview arguments and owned copies of borrowed binary results; partial XGE/XUI compiler integration",
+  "complete": true,
+  "overallEightCapabilitiesComplete": false,
+  "shippingProductsUpdated": false,
+  "networkTests": false,
+  "sourceTranslationUnits": 1410,
+  "cleanCompiledObjects": 1410,
+  "tccPrecompiledObjects": 1558,
+  "sourceSnapshot": "F:\\xlang-validation\\foreign-bytes-20261103\\snapshot-r2",
+  "validationOnlySdkPathMappings": true,
+  "sourceMatchesValidationSnapshot": {
+    "src/type/xl6_foreign_call_contract.h": "1d1b243ecd738ba3130920b4aa7ea45ae58b030d54ea552cd4b9e13960f796ef",
+    "src/type/xl6_foreign_decl.h": "c87297459514017cd402a7a19a33242c9192fb78652ae57f12945ca801ecc834",
+    "src/sem/xl6_sem.c": "cad15247f485801bcebedd7471fb59c3abd18cd8fc1c64868afdb4391a145f67",
+    "src/ir/xl6_ir.c": "9fa1bf009b5dc7d8ac77f12e73e6c5d18aecc68df7eca035fbaa87c6e66faca4",
+    "src/ir/xl6_ir.h": "ded4603930f0d8b4e3b8bf7661607d7906c10b1bb52a4792f01dc039a28df573",
+    "src/ir/xl6_ir_lower.c": "3c1bee4218f3ad69cc4c3a22b1de23bc48843930981d33fc3695bad70bc55b15",
+    "src/cgen/xl6_ir_cgen_dispatch_persistence.c": "b9c8c4cb8384dd43230179e84b9edc89f92f3aa330fa9070ae773f85fef9c25a",
+    "src/cgen/xl6_ir_cgen_dynamic_method_adapters.c": "84759f866e8e804c5f42b75e65903a4a5eb80c5645c7a976ef83ee6ef10f31d7",
+    "src/cgen/xl6_ir_cgen_emit_definitions.c": "8e112e0b71b6ce595ce60719df0fe7b653c65e013cbe7f627385ce155c569d6b",
+    "src/cgen/xl6_ir_cgen_header_emit.c": "23cef10ae484d160ca5e2b1e3b69fc6daa1d787a1e1eef694945064f00219702",
+    "src/cgen/xl6_ir_cgen_identity_closure.c": "3ce0351b88a2624dfb0081afe6e87f90089094c2984c80f5c8821d8422facaa0",
+    "src/cgen/xl6_ir_cgen_model.c": "ad765bebfb6b251643941f9633c9325a459bfa55aa296704f74740c7620a4247",
+    "src/cgen/xl6_ir_cgen_type_call.c": "bab1dc013cc2e6a7e37b0aeca45a6e514bdc528d6d19a0fcd1e25d94653e48e4",
+    "src/cgen/xl6_ir_cgen_type_definitions.c": "4bb2bdd89d85a05ba9a96763391ede1c59b4fcda56ca1414723e7e959613b8e9",
+    "src/cgen/xl6_ir_cgen_verify_declarations.c": "c0ae62c8b2fd7ba8b8621632a2ca72dfd1768674037d16b22818d34a762fed73",
+    "test/cases/foreign_bytes_view.h": "1931de91d9b18f2a835e96274faca9b9b3def88fed455ef523832fa94823456a",
+    "test/cases/foreign_bytes_view.xl": "496e645de4964ca8303e73e579b8287cad335ea533e23a9c25c3bac39321daa3",
+    "test/cases/foreign_bytes_view_native.c": "1548bf48549b481ee895d8fec68ade4a4b7e7e20670fadabf4e9d996b0bcbc7f",
+    "test/cases/foreign_bytes_view_ir.c": "7a639ec9b35ad5d8954812f3a78296fab81df29b0df0133e7bd66d166c9f88c6",
+    "test/cases/foreign_text_view_ir.c": "67ebe8e22a001b5e1f89c54b3d6410db39dabe7e92339cf3ac422352aee9debc",
+    "test/cases/xlir_function_lower.c": "7b91582b90f2b24da1d736e4eb51ce0d281569291da0f777a993834e65bfcf1c",
+    "test/cases/xlir_persistence_project_plan_contract.c": "bad12cc33c5e61bdd52c96df82d5ec01487e64843d60395e4481bae39f968f1a",
+    "tools/check_foreign_bytes_views.py": "d5927a335ab0ab22e79b5fb4d40ef8cb06aaadf02ee8ab238e65f7a6dcbdd1ba",
+    "tools/check_foreign_text_views.py": "d4847c481f1e4f3bc77f545981ef1782592dd08035ea00debde90502efaa5e3a",
+    "tools/check_foreign_declarative.py": "6b2cb166c0fd86789761544d61f38ac5da2df24d8a75bdd6e11f57fff71da42a",
+    "tools/check_xlir_foreign_string_abi.ps1": "5c742b30851d0233e3a9076058e0579c07b5a2fdd1396e07e6b83f8451901aa6"
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-bytes-20261103\\source-r2\\build.json",
+      "sha256": "a5ed3e4b856bcf68b7ea333ebbede8f58b9e0dc5a6dce4bd3bd1ddc05eb1b485"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-bytes-20261103\\source-r2-vfs\\provider.json",
+      "sha256": "007ca4e05e74662c8a98741cf1f133a4115225e7f6015ab1e2480ab8dea222d0"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-bytes-20261103\\batch-r1\\results.json",
+      "sha256": "eb26e794202fc572b3b2584df653495c13ed7fd1a4e54881f8152562278b3af7"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-bytes-20261103\\batch-r1\\text_views\\results.json",
+      "sha256": "f71fb17db67ce68f2523d01d7b12040081a2ed27c064ed6162a00902bb084ac8"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-bytes-20261103\\batch-r1\\bound_views\\results.json",
+      "sha256": "0df7aff852857b17f22be8d7c2886413bfb0e8fc2ff7b4679d0cc268842a2033"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-bytes-20261103\\bytes-acceptance-r2\\results.json",
+      "sha256": "404dc968ddd69dd09f96e8f12e9b324b3bd82f38672830e42eb0a4d6c8f087c7"
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-bytes-20261103-r1\\results.json",
+      "sha256": "c9026bd17e9ac842e0083b60c7a75adb56812cfc7dee9a504d3fea8976a81f08"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-bytes-20261103\\legacy-baseline-r2\\results.json",
+      "sha256": "814c5b7f293b3384886e7371c25d50908c5f7779a73daf90c32b6d76b305d097"
+    }
+  ],
+  "gateResolution": [
+    {
+      "name": "declarations",
+      "passed": true,
+      "evidence": "F:\\xlang-validation\\foreign-bytes-20261103\\batch-r1\\declarations.log",
+      "sha256": "d6349ae592e899ff505e57bc13ac8c7540c6fc4c0235d996c7e8267b0e5c1a9a",
+      "retested": false
+    },
+    {
+      "name": "records",
+      "passed": true,
+      "evidence": "F:\\xlang-validation\\foreign-bytes-20261103\\batch-r1\\records.log",
+      "sha256": "dd97331e6465cf24e4547adb7bf6c3d87f0208b84b6e397e321e22035e6fa6f2",
+      "retested": false
+    },
+    {
+      "name": "arrays",
+      "passed": true,
+      "evidence": "F:\\xlang-validation\\foreign-bytes-20261103\\batch-r1\\arrays.log",
+      "sha256": "fb42cd643dec13b0049326f2c48cacf4daa5b1ee8cd9dbdf65f279fd2081d69e",
+      "retested": false
+    },
+    {
+      "name": "factories",
+      "passed": true,
+      "evidence": "F:\\xlang-validation\\foreign-bytes-20261103\\batch-r1\\factories.log",
+      "sha256": "aded796ec3d234af36723885f1989eb5b9fa860356f3532809854e6f2d7a4e61",
+      "retested": false
+    },
+    {
+      "name": "callbacks",
+      "passed": true,
+      "evidence": "F:\\xlang-validation\\foreign-bytes-20261103\\batch-r1\\callbacks.log",
+      "sha256": "a5626df69ef1296e0dcf96180a534a85251586295324e7421d547326a30a3851",
+      "retested": false
+    },
+    {
+      "name": "forwarding",
+      "passed": true,
+      "evidence": "F:\\xlang-validation\\foreign-bytes-20261103\\batch-r1\\forwarding.log",
+      "sha256": "0b388511310c5fb02410ee967f27985c6c5b23679362132617487a589936cd65",
+      "retested": false
+    },
+    {
+      "name": "initialization",
+      "passed": true,
+      "evidence": "F:\\xlang-validation\\foreign-bytes-20261103\\batch-r1\\initialization.log",
+      "sha256": "2f2478aa0bd01ebea4ab02c38bca107c5095535b270b772efb236bd2afa280fe",
+      "retested": false
+    },
+    {
+      "name": "constructor-alias-run",
+      "passed": true,
+      "evidence": "F:\\xlang-validation\\foreign-bytes-20261103\\batch-r1\\constructor-alias-run.log",
+      "sha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9",
+      "retested": false
+    },
+    {
+      "name": "constructor-alias-module",
+      "passed": true,
+      "evidence": "F:\\xlang-validation\\foreign-bytes-20261103\\batch-r1\\constructor-alias-module.log",
+      "sha256": "1e707a82a3e0bb0352b5b2c05cb58c0373dedb34eda49443f6b6dcda11fbeb5f",
+      "retested": false
+    },
+    {
+      "name": "constructor-alias-exe",
+      "passed": true,
+      "evidence": "F:\\xlang-validation\\foreign-bytes-20261103\\batch-r1\\constructor-alias-exe.log",
+      "sha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31",
+      "retested": false
+    },
+    {
+      "name": "constructor-alias-standalone",
+      "passed": true,
+      "evidence": "F:\\xlang-validation\\foreign-bytes-20261103\\batch-r1\\constructor-alias-standalone.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "retested": false
+    },
+    {
+      "name": "text_views",
+      "passed": true,
+      "evidence": "F:\\xlang-validation\\foreign-bytes-20261103\\batch-r1\\text_views.log",
+      "sha256": "5451f53bad3b727b7fac22d393fbdf2d4108c5ddbbcc9b719dfe68583bfa5d84",
+      "retested": false
+    },
+    {
+      "name": "bytes_views",
+      "passed": true,
+      "evidence": "F:\\xlang-validation\\foreign-bytes-20261103\\bytes-acceptance-r2\\results.json",
+      "retested": true
+    },
+    {
+      "name": "bound_views",
+      "passed": true,
+      "evidence": "F:\\xlang-validation\\foreign-bytes-20261103\\batch-r1\\bound_views.log",
+      "sha256": "1179b3ac4c54189de69b5d8f9e91733903ca05cee38608d5a06bfe60fa12c0dd",
+      "retested": false
+    }
+  ],
+  "originalBatchPassed": false,
+  "gateResolutionNote": "Preserve failed batch. Retain 13 unchanged successful groups and rerun the failed bytes gate against the same verified source cohort after checker/fixture corrections.",
+  "bytesStages": 34,
+  "textStages": 25,
+  "boundStages": 68,
+  "bytesIrMutationsPerOptimization": 98,
+  "bytesIrZeroOutputChecksPerOptimization": 196,
+  "persistenceFocusedScope": "Schema fixture only: 482 projection and 3 graph mutations per O0/O2; not full serialization matrix",
+  "nativeInputAllocations": 0,
+  "nativeInputReallocations": 0,
+  "borrowedResultMaterializationAllocations": 1,
+  "linuxScope": "Same generated C and native fixture at O0/O2 with ASan/UBSan/leak checking; reused host SO and Linux frontend not rebuilt or instrumented",
+  "corrections": [
+    "Old text negative sources used the Windows locale encoding, causing unreadable-file refusal rather than semantic refusal. Current checker writes UTF-8 and requires exit 1 plus [sem]; prior reports remain unchanged.",
+    "Synthetic AST xlir_function_lower runtime test also fails against preceding compiler and original HEAD fixture with the same exception-route lifetime error. Enum migration is compile-checked only; its runtime failure is not counted as a pass. Real frontend IR ownership tests remain mandatory."
+  ],
+  "unrelatedWorkspaceCompletionEdits": "Present in the frozen working-tree sem source, excluded from this change commit",
+  "remaining": [
+    "Managed view language declarations, control-pointer ABI, ownership/capture/storage XLIR integration",
+    "Complete retained callback declarations and automatic C adapters",
+    "Factory results across fallible operand cleanup",
+    "C sentinel text, separate pointer/length arguments, mutable Buffer spans and managed scopes",
+    "Repair pre-existing synthetic-AST lowering fixture using current semantic contracts",
+    "Full platform-directory delivery acceptance and XGE/XUI package/SDK/IDE/example migration"
+  ],
+  "legacyBaselineSourceCommit": "2f812d9553cb4d105e48fc028e870d5876e47155"
+}

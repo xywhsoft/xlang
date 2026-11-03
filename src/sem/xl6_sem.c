@@ -21314,8 +21314,8 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
     }
     XL6_AstNode* params = node->childCount > 1 ? node->children[1] : NULL;
     size_t count = params ? params->childCount : 0;
-    if (count < 64 && ((facts.constRecordAddresses | facts.staticCallbackAddresses | facts.textViews) >> count)) {
-        xl6SemErrorNode(ctx, node, "C record address parameter index is outside the declared signature"); return 0;
+    if (count < 64 && ((facts.constRecordAddresses | facts.staticCallbackAddresses | facts.textViews | facts.bytesViews) >> count)) {
+        xl6SemErrorNode(ctx, node, "C parameter ABI index is outside the declared signature"); return 0;
     }
     for (size_t i = 0; i < count && i < 64; ++i) {
         XL6_AstNode* parameter = params->children[i];
@@ -21324,6 +21324,12 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             const XL6_AstNode* resolved = xl6SemResolveAliasType(ctx, type);
             if (!resolved || resolved->childCount || !xl6TextEquals(resolved->text, "string")) {
                 xl6SemErrorNode(ctx, parameter, "@c_text_view requires a non-null string parameter"); return 0;
+            }
+        }
+        if (facts.bytesViews & (UINT64_C(1) << i)) {
+            const XL6_AstNode* resolved = xl6SemResolveAliasType(ctx, type);
+            if (!resolved || resolved->childCount || !xl6TextEquals(resolved->text, "bytes")) {
+                xl6SemErrorNode(ctx, parameter, "@c_bytes_view requires a non-null bytes parameter"); return 0;
             }
         }
         if ((facts.constRecordAddresses & (UINT64_C(1) << i)) && !xl6SemIsCAbiRecordType(ctx, type)) {
@@ -21338,14 +21344,15 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         }
 
     }
-    if (facts.textViewResult) {
+    if (facts.borrowedViewResult) {
         const XL6_AstNode* returns = node->childCount > 2 ? node->children[2] : NULL;
         const XL6_AstNode* result = returns && returns->childCount == 1 ? xl6SemResolveAliasType(ctx, returns->children[0]) : NULL;
         const XL6_AstNode* inner = result ? xl6SemResolveAliasType(ctx,
             xl6SemTypeIsNullable(result) ? xl6SemNullableInnerType(result) : result) : NULL;
-        if (!inner || inner->childCount || !xl6TextEquals(inner->text, "string") ||
+        const char* expected=facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BYTES ? "bytes" : "string";
+        if (!inner || inner->childCount || !xl6TextEquals(inner->text, expected) ||
             (node->flags & XL6_AST_FLAG_FOREIGN_OWNED_STRING)) {
-            xl6SemErrorNode(ctx, node, "@c_result(\"text_view\") requires a borrowed string or nullable string result"); return 0;
+            xl6SemErrorNode(ctx, node, "C borrowed view result must match its declared string/bytes kind and nullability"); return 0;
         }
     }
     if (facts.outputIndexPlusOne) {
@@ -21506,9 +21513,9 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
     if ( returns != NULL && returns->childCount == 1 ) {
         XL6_AstNode* typeNode = returns->children[0];
         typeNode = (XL6_AstNode*)xl6SemResolveAliasType(ctx, typeNode);
-        XL6_ForeignCallFacts textFacts={0};
-        if(xl6ForeignFunctionRead(node,&textFacts) && textFacts.textViewResult)
-            return ok; /* Exact string/nullability contract checked above. */
+        XL6_ForeignCallFacts viewFacts={0};
+        if(xl6ForeignFunctionRead(node,&viewFacts) && viewFacts.borrowedViewResult)
+            return ok; /* Exact view kind/nullability contract checked above. */
         if ( typeNode != NULL && xl6SemIsFutureLikeTypeName(typeNode->text) ) {
             return ok;
         }
