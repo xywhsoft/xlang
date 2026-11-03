@@ -23034,7 +23034,11 @@ int xl6IrCallResultCAbiMatches(const XL6_IrModule* module, const XL6_IrCallTarge
             const XL6_IrNode* rollbackDecl=rollback ? xl6IrNodeGet(module,rollback->declaration) : NULL;
             if(!(result->kind==XL6_IR_TYPE_CLASS && (source->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) &&
                 !(source->flags&(XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) &&
-                source->sourceKind==XL6_AST_EXTERN_FUNC && target->variadicAbi==XL6_IR_CALL_VARIADIC_NONE &&
+                (source->sourceKind==XL6_AST_EXTERN_FUNC || source->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC) &&
+                (source->sourceKind!=XL6_AST_NATIVE_EXTERN_FUNC || (source->flags&XL6_AST_FLAG_STATIC) ||
+                    (target->parameterCount && xl6IrForeignManagedViewParameter(module,target,0) &&
+                     xl6IrTypeGet(&module->types,target->parameterTypes[0])->foreignLifetime!=XL6_FOREIGN_LIFETIME_CALLBACK)) &&
+                target->variadicAbi==XL6_IR_CALL_VARIADIC_NONE &&
                 !target->nativeServicesRequired && !target->nativeContextAbi && !target->nativeResultAbi && !target->nativeArrayResultAbi &&
                 rollback && rollbackDecl && rollbackDecl->sourceKind==XL6_AST_EXTERN_FUNC &&
                 (rollbackDecl->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) && rollback->kind==XL6_IR_CALL_TARGET_EXTERN_C &&
@@ -40969,7 +40973,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 (node->foreignCall.outputIndexPlusOne ?
                     (node->foreignCall.valueOutput ?
                         xl6ForeignOutputLogical(&node->foreignCall,params->childCount+receiver,receiver)==SIZE_MAX :
-                        !node->foreignCall.rollbackSymbol || xl6ForeignFactoryOutputLogical(&node->foreignCall,params->childCount)==SIZE_MAX) :
+                        !node->foreignCall.rollbackSymbol || xl6ForeignOutputLogical(&node->foreignCall,params->childCount+receiver,receiver)==SIZE_MAX) :
                     (node->foreignCall.successCode && node->foreignCall.borrowedViewResult!=XL6_FOREIGN_VIEW_RESULT_INT_STATUS) || node->foreignCall.rollbackSymbol))
                 return xl6IrDiag(diags, node, "declarative C call facts are not attached to one exact source signature");
         }

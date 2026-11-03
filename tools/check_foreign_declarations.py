@@ -46,8 +46,8 @@ def main():
     run('handle-cgen', [driver, source, 'cgen-default', generated])
     text = generated.read_text(encoding='utf-8-sig')
     assert '#include <test/cases/foreign_decl_handle.h>' in text
-    assert 'extern int foreign_decl_add_child(foreign_decl_widget, foreign_decl_widget);' in text
-    assert 'extern foreign_decl_widget foreign_decl_identity(foreign_decl_widget);' in text
+    assert '_Static_assert(_Generic(&foreign_decl_add_child, int (*)(foreign_decl_widget, foreign_decl_widget):1, default:0), "declared C function ABI");' in text
+    assert '_Static_assert(_Generic(&foreign_decl_identity, foreign_decl_widget (*)(foreign_decl_widget):1, default:0), "declared C function ABI");' in text
     assert 'xlir_xvalue_object_get_literal_raw_pointer(' not in text
     assert 'xlir_native_handle_take_s' not in text
     runtime = runtime_directory(root) / ('xl.dll' if os.name == 'nt' else 'libxl.so')

@@ -411,14 +411,25 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
     if (output) returnType = "int";
     if ( returnType == NULL )
         return xl6IrCgenDiag(diags, module, target->declaration, "XLIR C emitter does not support extern return ABI");
-    xl6OutputPrintf(out, "extern %s ", returnType);
+    /* Header-owned C types make the included declaration authoritative.
+     * Re-declaring its symbol can erase dllimport/calling-convention metadata.
+     * Check the complete physical signature without replacing that declaration. */
+    const XL6_IrType* resultType=xl6IrTypeGet(&module->types,target->returnType);
+    bool headerDeclared=resultType && resultType->foreignHeader;
+    for(size_t p=0;p<target->parameterCount && !headerDeclared;++p){
+        const XL6_IrType* type=xl6IrTypeGet(&module->types,target->parameterTypes[p]);
+        headerDeclared=type && type->foreignHeader;
+    }
+    if(headerDeclared)xl6OutputPuts("_Static_assert(_Generic(&",out);
+    else xl6OutputPrintf(out, "extern %s ", returnType);
     size_t startByte = out->buffer.Size;
     xl6OutputPuts(target->cName, out);
     if (visitor != NULL && !visitor(context, target->symbol, target->cName,
             "function", startByte, out->buffer.Size))
         return xl6IrCgenDiag(diags, module, target->declaration,
                              "cannot collect bounded C extern header binding");
-    xl6OutputPutc('(', out);
+    if(headerDeclared)xl6OutputPrintf(out,", %s (*)(",returnType);
+    else xl6OutputPutc('(', out);
     if ( target->parameterCount == 0 && !output ) xl6OutputPuts("void", out);
     for ( i = 0; i < target->parameterCount + (output != 0); ++i ) {
         const char* type;
@@ -451,7 +462,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
     }
     if ( target->variadicAbi == XL6_IR_CALL_VARIADIC_C )
         xl6OutputPuts(", ...", out);
-    xl6OutputPuts(");\n", out);
+    xl6OutputPuts(headerDeclared ? "):1, default:0), \"declared C function ABI\");\n" : ");\n", out);
     return 1;
 }
 

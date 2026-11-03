@@ -1,0 +1,140 @@
+{
+  "complete": true,
+  "scope": "Managed instance factories, authoritative C prototypes and actual headless XUI declaration calls",
+  "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r11",
+  "windows": {
+    "fullTranslationUnits": 1414,
+    "tccObjects": 1562,
+    "acceptedGroups": 24,
+    "originalSuccessfulGroups": 20,
+    "correctedAssertionGroups": 4,
+    "tccModes": [
+      "JIT",
+      "module",
+      "standalone"
+    ]
+  },
+  "linux": {
+    "fullTranslationUnits": 1413,
+    "acceptedGroups": 10,
+    "tccIncluded": false
+  },
+  "factory": {
+    "instanceReceiver": true,
+    "outputCountsReceiver": true,
+    "mutationsPerOptimization": 8,
+    "zeroOutputsPerOptimization": 16,
+    "semanticNegatives": 6,
+    "paths": [
+      "direct",
+      "named",
+      "bound",
+      "inferred-dynamic"
+    ]
+  },
+  "header": {
+    "preservesIncludedDeclaration": true,
+    "compileTimeFunctionTypeProof": true,
+    "runtimeChecksAdded": 0,
+    "wrongResultRejected": true,
+    "wrongParameterRejected": true
+  },
+  "xui": {
+    "upstreamCommit": "0d8f6340",
+    "nativeGroupsPerPlatform": 7,
+    "optimizationLevels": [
+      "O0",
+      "O2"
+    ],
+    "linuxNativeSanitizers": [
+      "ASan",
+      "UBSan",
+      "leaks"
+    ],
+    "hostEngineTranslationUnits": 139,
+    "windowsEngineBytes": 8674923,
+    "linuxEngineBytes": 9396080,
+    "sharedXrtImports": 174,
+    "actualDeclarationPlatforms": [
+      "Windows",
+      "Linux"
+    ],
+    "actualCallbackRegistrationApis": 9,
+    "actualTccIncluded": false,
+    "warmMeasureCalls": 200,
+    "warmXrtAllocationDelta": 0
+  },
+  "eightTasksComplete": false,
+  "shippingUpdated": false,
+  "networkTests": false,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r11.json",
+      "sha256": "62598e8b92318873a9c592c5135cf8ed0f133c763f1d19ae9005c926908bd125"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r11\\build.json",
+      "sha256": "f34b82af029a3a7766d4171b16152f3b1df7ebe6f097442cfd198fa49e7aebde"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r11-vfs\\build.json",
+      "sha256": "1b5b6a91ff33c20a1080751c70319eb3782171a370124a62fee783a360c7d846"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r11-vfs\\provider.json",
+      "sha256": "eb4861a26be8a176acdda1673df5d6e3d18283e5472ef043522b4f8b8b40ba46"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\precompiled-r11\\manifest.json",
+      "sha256": "d911693e3af3627f7ea32e870b866b9323d780730bb4206dea9facfc75693ae6"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\batch-r11\\results.json",
+      "sha256": "0b32a50b63fa497391129d37fa6070b1ac82857aedf1b13745a9919b465809d7"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\four-gates-r11-corrected-r1\\results.json",
+      "sha256": "04f868943be6d17ef3710299acefd85ca9e3d43453b12e4ef90cfd68712d7ed0"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\actual-xui-declarative-r11\\results.json",
+      "sha256": "21e4a4561c1a4db9331ebbee5653892be4cf986cdd083a0082af50e11ca2ca6e"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\actual-xui-linux-r11.json",
+      "sha256": "596602efc38e67338ac20be70efd5252f7450e79b6cca49bea4c3ea594a9cd8c"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\header-authority-win-r11\\results.json",
+      "sha256": "a8ffe54954b0cb8adde4b3a113f1edba38ada153ae48dfa52e7ec78a4bbe0eed"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\header-authority-linux-r11\\results.json",
+      "sha256": "f5daf2336cde0971efc3fbb5d7783fbafd3016e6081ba5bb87b690fe83ca33fd"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-instance-factory-evidence-r7.json",
+      "sha256": "6cfd8cb5c78072ab5ad25cc4578a2bcc19e99a08218f1a8f7e070b049ea31f91"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-r11-extra-evidence.json",
+      "sha256": "29dd3408d3ff4dc5b2f545490c5d371ff902fa957c608eb1bbe1e466df3fc70c"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xge-owned-widget-inputs-r1\\snapshot.json",
+      "sha256": "08299f0c6eb4612f5f3ce367cfea065c66005b9415a328ccee209246b2b9175e"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xge-owned-widget-host-r1\\build-report.json",
+      "sha256": "984cb5834c883386a18e6503bb668986437c0fae06494e8290827e728d2c6dbb"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xui-owned-widget-r3\\results.json",
+      "sha256": "7780af045f87b099f1f9379ea5b324cb3231d31216f37c4a08f7c392256c5387"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-xui-owned-widget-r1.json",
+      "sha256": "c9ec6ec101c1bc461187a94e9156833dda7113d4c89f7fc61879e87621417d99"
+    }
+  ]
+}

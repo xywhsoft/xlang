@@ -501,3 +501,24 @@ The authoritative header checks the pointee type; no forwarding C function
 is emitted. A NUL-terminated character view can directly declare the existing
 native `xrtStrView` primitive and request `@c_result("text_view")` when a
 persistent string copy is needed.
+
+## Managed instance factories and authoritative prototypes
+
+A managed instance method can declare a status/output factory. Its output
+index includes the implicit C receiver and any expanded argument groups. The
+receiver and result must both have managed native lifetimes; caller-lifetime
+factories retain the static/free restriction. The ordinary result probe,
+rollback, input cleanup and code-residency transaction also applies to methods.
+
+```xlang
+// Native C: int xuiWidgetCreate(xui_context context, xui_widget* output);
+extern "xuiWidgetCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWidget) func widget() as Widget
+```
+
+When the physical signature uses header-owned C types, the included header
+must declare the native function. Generated C checks the complete physical
+function-pointer type with `_Static_assert` / `_Generic` instead of replacing
+that declaration with another `extern`. This preserves attributes such as
+Windows `dllimport` and adds no runtime check. Wrong return or parameter types
+fail C/header acceptance. Native declarations without supplied header-owned
+types keep their explicit C prototype.

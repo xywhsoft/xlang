@@ -1,0 +1,52 @@
+extern "ManagedRoot*" class Root @header("test/cases/foreign_managed_view.h") @lifetime("owned") @policy("managedRootPolicy") @scope("ManagedScope") @watch("ManagedWatch")
+    native point handle
+    extern "managed_child_create" @no_raise @c_result("owner_view",0) @factory(2,0,rollbackChild) func child(c_int mode) as Child
+    extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "ManagedChild*" class Child @header("test/cases/foreign_managed_view.h") @lifetime("owner") @owner(Root) @policy("managedChildPolicy") @watch("ManagedWatch")
+    native point handle
+    extern "managed_child_read" @no_raise get value() as c_int
+    extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "managed_root_destroy" @no_raise func rollback(Root root)
+extern "managed_child_destroy" @no_raise func rollbackChild(Child child)
+extern "managed_root_create" @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(c_int mode) as Root
+extern "managed_children_live" @no_raise func live() as c_int
+extern "managed_reset_failure" @no_raise func resetFailure()
+func main(...) as int
+    Root root=create(0)
+    Child direct=root.child(0)
+    Child named=root.child(mode=0)
+    func(c_int) as Child bound=root.child
+    Child viaBound=bound(0)
+    var dynamic=root
+    Child viaDynamic=dynamic.child(0) as Child
+    assert live()==4
+    assert direct.value==17 and named.value==17 and viaBound.value==17 and viaDynamic.value==17
+    int mode=1
+    while mode<=4
+        if mode!=3
+            bool failed=false
+            try
+                auto ignored=root.child(c_int(mode))
+            catch error
+                failed=true
+            end
+            resetFailure()
+            assert failed and live()==4
+        end
+        mode+=1
+    end
+    direct.close()
+    assert live()==3
+    root.close()
+    assert live()==0
+    bool expired=false
+    try
+        auto ignored=bound(0)
+    catch error
+        expired=true
+    end
+    assert expired
+    return 0
+end
