@@ -1,5 +1,7 @@
 """Offline declaration-driven C status/output factories and const record inputs."""
 from pathlib import Path
+from compiler_response import command_with_response
+from xlir_public_build_inputs import verify_public_build
 from runtime_layout import runtime_directory
 import argparse, hashlib, json, os, shutil, subprocess, time
 
@@ -10,6 +12,11 @@ def main():
         p.add_argument('--'+key, type=Path, required=True)
     a = p.parse_args()
     root, driver, out = a.root.resolve(), a.driver.resolve(), a.out.resolve()
+    source_build, source_inputs, _ = verify_public_build(root, driver.parent)
+    assert Path(source_build['Driver']).resolve() == driver
+    source_objects = [x['Path'] for x in source_build['Objects'] if Path(x['Source']).name not in
+                      ('xlir_public_source_driver.c', 'xlir_public_source_linux_driver.c')]
+    source_systems = ['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-Wl,--export-dynamic','-pthread','-ldl','-lm']
     out.mkdir(parents=True, exist_ok=False)
     source = root/'test/cases/foreign_decl_factory.xl'
     provider = root/'test/cases/foreign_decl_factory_native.c'
@@ -17,6 +24,8 @@ def main():
     rows = []
 
     def run(name, command, accepted=True, diagnostic=None):
+        if str(command[0]) == 'gcc' and not any(str(x).startswith('@') for x in command[1:]):
+            command = command_with_response(command, 'gcc', out/(name+'.rsp'))
         command = list(map(str, command)); started = time.monotonic()
         result = subprocess.run(command, cwd=root, env=env, capture_output=True, timeout=240)
         log = out/(name+'.log'); log.write_bytes(result.stdout+result.stderr)
@@ -42,8 +51,8 @@ def main():
     ext = '.exe' if os.name == 'nt' else '.out'
     for opt in ('O0', 'O2'):
         executable = out/('factory-'+opt+ext)
-        run(opt+'-build', ['gcc', '-std=c11', '-Wall', '-Wextra', '-Werror', *warnings, '-'+opt,
-            *includes, generated, provider, root/'test/cases/foreign_decl_module_host.c', runtime, '-o', executable])
+        run(opt+'-build', ['gcc', '-std=c11', '-Wall', '-Wextra', '-Werror', '-DXL_STATIC_EMBED', *warnings, '-'+opt,
+            *includes, generated, provider, root/'test/cases/foreign_decl_module_host.c', *source_objects, runtime, *source_systems, '-o', executable])
         run(opt+'-run', [executable])
     for mode in ('run', 'module', 'exe'):
         prefix = out/('native-'+mode)
@@ -123,6 +132,9 @@ extern "foreign_factory_destroy" @no_raise @nonblocking func release(factory_api
         rsp.write_text('\n'.join('"'+str(v).replace('\\', '/')+'"' for v in arguments)+'\n', encoding='utf-8')
         run('IR-'+opt+'-build', ['gcc', '@'+str(rsp)])
         run('IR-'+opt+'-run', [executable, source])
+
+
+    verify_public_build(root, driver.parent)
 
 
 if __name__ == '__main__':

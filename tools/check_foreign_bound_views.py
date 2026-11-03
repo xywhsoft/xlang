@@ -14,6 +14,7 @@ def main():
     pinned.update((Path(__file__).resolve(),source,provider,contract,root/'test/cases/foreign_bound_view.h',Path(cc),*positive,*negative))
     pinned.update((root/'test/cases/xlir_bound_dispatch_contract.c',root/'test/cases/xlir_owner_consumption_contract.c'))
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    pinned.add(root/'test/cases/foreign_decl_module_host.c')
     inputs={str(path):sha(path) for path in pinned};out.mkdir(parents=True,exist_ok=False);(out/'tmp').mkdir()
     env=dict(os.environ,XL6_SOURCE_NATIVE_ROOT=str(root),TEMP=str(out/'tmp'),TMP=str(out/'tmp'),TMPDIR=str(out/'tmp'))
     report=dict(complete=False,passed=False,scope=__doc__,networkTests=False,sourceBuild=str(public/'build.json'),inputs=inputs,rows=[])
@@ -35,9 +36,11 @@ def main():
     suffix='.exe' if os.name=='nt' else '.out'
     run('emit-header',[driver,source,'emit',out/'header',provider])
     run('header-C-ABI',[cc,'-std=c11','-Wall','-Wextra','-Werror','-x','c','-fsyntax-only',*includes,out/'header.h'])
+    objects=[row['Path'] for row in build['Objects'] if Path(row['Source']).name not in ('xlir_public_source_driver.c','xlir_public_source_linux_driver.c')]
+    systems=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-Wl,--export-dynamic','-pthread','-ldl','-lm','-Wl,-rpath,'+str(runtime.parent)]
     for opt in ('O0','O2'):
         exe=out/('bound-'+opt+suffix)
-        run(opt+'-build',[cc,'-std=c11','-Wall','-Wextra','-Werror','-'+opt,*warnings,*includes,generated,provider,root/'test/cases/foreign_decl_module_host.c',runtime,'-o',exe]);run(opt+'-run',[exe])
+        run(opt+'-build',[cc,'-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-'+opt,*warnings,*includes,generated,provider,root/'test/cases/foreign_decl_module_host.c',*objects,runtime,*systems,'-o',exe]);run(opt+'-run',[exe])
     for mode in ('run','module','exe'):
         prefix=out/('tcc-'+mode);run('tcc-'+mode,[driver,source,mode,prefix,provider])
         if mode=='exe':run('standalone',[prefix.with_suffix('.exe') if os.name=='nt' else prefix])
@@ -54,8 +57,6 @@ def main():
     for case in positive:run('regression-'+case.stem,[driver,case,'cgen-default',out/(case.stem+'.c')])
     for case in negative:
         target=out/(case.stem+'.c');run('reject-'+case.stem,[driver,case,'cgen-default',target],False);assert not target.exists()
-    objects=[row['Path'] for row in build['Objects'] if Path(row['Source']).name not in ('xlir_public_source_driver.c','xlir_public_source_linux_driver.c')]
-    systems=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-Wl,--export-dynamic','-pthread','-ldl','-lm','-Wl,-rpath,'+str(runtime.parent)]
     for opt in ('O0','O2'):
         for label,unit,args in (('receiver',contract,[source]),('dispatch',root/'test/cases/xlir_bound_dispatch_contract.c',[])):
             exe=out/(label+'-IR-'+opt+suffix)

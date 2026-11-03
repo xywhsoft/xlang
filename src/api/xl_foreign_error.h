@@ -51,6 +51,11 @@ XL6_FOREIGN_API bool xl6ErrorScopeBegin(xl6_error_scope* scope);
  * End still returns an owned result; only the boundary publishes it. */
 XL6_FOREIGN_API bool xl6ErrorScopeBeginCleanup(xl6_error_scope* scope, bool knownFailure);
 XL6_FOREIGN_API xl6_error_result xl6ErrorScopeEnd(xl6_error_scope* scope);
+/* Generated language cleanup / completed foreign-operation boundary only:
+ * all native storage addresses must have been relinquished. Drain deferred
+ * foreign destruction before closing the checked outcome. Raw native Drop
+ * callbacks use ordinary End and leave the enclosing operation to drain. */
+XL6_FOREIGN_API xl6_error_result xl6ErrorScopeEndAtSafePointV1(xl6_error_scope* scope);
 
 /* Called after an explicit failed cleanup step, with this scope on top.
  * Consumes its diagnostic into the first-error accumulator and clears the

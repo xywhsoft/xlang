@@ -21709,6 +21709,13 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node,const XL
                     "c_callback can only annotate a function-typed extern parameter");
                 ok = 0;
             }
+            /* An explicitly declared caller C pointer keeps its exact
+             * pointer/NULL carrier when nullable. Other nullable parameter
+             * families still require their own physical admission contract. */
+            XL6_ForeignClassDecl nullableCaller={0};
+            if(xl6SemNullableInnerType(typeNode) &&
+               xl6SemForeignViewDeclaration(ctx,typeNode,&nullableCaller) &&
+               nullableCaller.lifetime==XL6_FOREIGN_LIFETIME_CALLER)continue;
             if ( !xl6COwnedBaseName(typeNode->text) &&
                  !xl6SemIsCAbiClassHandleType(ctx, typeNode) &&
                  !xl6SemIsCAbiClassType(ctx, typeNode) &&

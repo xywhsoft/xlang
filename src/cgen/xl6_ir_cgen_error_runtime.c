@@ -157,7 +157,7 @@ static int xl6IrCgenEmitErrorStateInstruction(
         /* ErrorScopeEnd restores the diagnostic that existed before normal
          * cleanup began. Publish the cleanup-owned error only on failure;
          * writing NULL on success would erase that restored diagnostic. */
-        xl6OutputPrintf(out, "    { xl6_error_result cleanup = xl6ErrorScopeEnd(&xlir_unwind);\n"
+        xl6OutputPrintf(out, "    { xl6_error_result cleanup = xl6ErrorScopeEndAtSafePointV1(&xlir_unwind);\n"
             "      v%u = cleanup.ok; if (!cleanup.ok) xrtSetErrorTake(cleanup.error); }\n",
             (unsigned int)instruction->result);
         break;
@@ -169,7 +169,7 @@ static int xl6IrCgenEmitErrorStateInstruction(
             "      xrtSetErrorTake(original); xl6ErrorScopeCaptureFailure(&xlir_unwind); }\n", out);
         break;
     case XL6_IR_INSTR_ERROR_UNWIND_END:
-        xl6OutputPuts("    { xl6_error_result original = xl6ErrorScopeEnd(&xlir_unwind);\n"
+        xl6OutputPuts("    { xl6_error_result original = xl6ErrorScopeEndAtSafePointV1(&xlir_unwind);\n"
             "      xrtSetErrorTake(original.error); }\n", out);
         break;
     case XL6_IR_INSTR_ERROR_TAKE:

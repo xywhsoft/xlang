@@ -1,5 +1,24 @@
 # XGE3 / XUI3 声明式接入实施状态
 
+11 月 4 日容器拥有权／八类选择控件验收：Windows 完整编译 1,414 单元、TCC 1,562 对象，
+25 组接受；其中八份旧验证脚本只链接旧发布 DLL，保留失败报告，改为同源码运行时后仅补跑八组。
+Linux 完整编译 1,413 单元、11 组 GCC 检查及 base／choice 两组实际 XUI O0/O2 组合通过。
+修复可空 caller C 指针参数、拥有型原生临时值装箱后的源拥有清理，以及容器 Drop 的延迟退役
+在安全边界交付。覆盖六类容器／擦除、24 个分配预算、无诊断失败、首错保留和四线程调度；
+每个优化等级拒绝 10 项 IR 篡改，并核对 20 次空 C/header 输出。
+
+XGE `3734eb3f` 增加 Button、CheckBox、CheckCard、Radio、Toggle、Slider、RangeSlider、
+ScrollBar 的类型化 Owned 入口。两端原生 O0/O2 七组旧回归＋八个新增分例通过，Linux 另有
+ASan/UBSan/泄漏检查。两端宿主引擎均构建 139 单元，共用 174 个 XRT 导入；Windows
+8,679,019 字节，Linux 9,400,240 字节。真实语言声明直接调用八类控件的注册入口。
+1,600 次预热直接接收者回调没有 XRT 分配／释放／realloc；类型化数组索引读取目前仍创建
+临时 xvalue，因此这一测量明确排除索引投影，不能概括为完整组合零开销。
+
+八项整体任务仍未封板，协议原生接收者的后续修改不在本次接受范围；完整声明、其余回调、
+独立资源、初始化及发布迁移继续进行。未替换发布 DLL／SDK／IDE。
+证据：`dev/release-materials/provenance/foreign-native-ownership-choice-checkpoint-20261104.json`。
+
+
 11 月 4 日实例工厂／权威头验收完成：Windows 完整编译 1,414 单元、1,562 个 TCC 对象，
 24 组接受。原批次保留四处旧 `extern` 文本断言失败，改验精确函数指针断言后仅补跑四组，
 其余 20 组沿用首次成功结果。Linux 完整编译 1,413 单元及 10 组 GCC O0/O2 检查通过。

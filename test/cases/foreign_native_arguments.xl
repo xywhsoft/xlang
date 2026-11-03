@@ -1,0 +1,134 @@
+extern "const NativeArgument*" class Argument @header("test/cases/foreign_native_arguments.h") @lifetime("caller")
+    native point handle
+end
+extern "ManagedRoot*" class Root @header("test/cases/foreign_native_arguments.h") @lifetime("owned") @policy("managedRootPolicy") @scope("ManagedScope") @watch("ManagedWatch")
+    native point handle
+    extern "managed_root_read" @no_raise get value() as c_int
+    extern "native_root_argument" @no_raise func argument(Argument? value=null) as c_int
+end
+extern "native_argument" @no_raise func argument() as Argument
+extern "native_argument_read" @no_raise func read(Argument? value=null) as c_int
+extern "managed_root_destroy" @no_raise func rollback(Root root)
+extern "managed_root_create" @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(c_int mode) as Root
+extern "managed_roots_live" @no_raise func live() as c_int
+extern "managed_from_root" @no_raise @c_result("owned_view") @factory(1,0,rollback) func markDestroyFailure(Root root) as Root
+extern "managed_reset_failure" @no_raise func resetFailure()
+extern "native_argument_fail_after" @no_raise func failAfter(c_int count)
+func pointerCases()
+    Argument pointer=argument()
+    Argument? optional=pointer
+    assert read()==-1 and read(null)==-1 and read(pointer)==73 and read(optional)==73, "native arguments line 19"
+    assert read(value=pointer)==73, "native arguments line 20"
+    func(Argument?) as c_int indirect=read
+    assert indirect(null)==-1 and indirect(pointer)==73, "native arguments line 22"
+    Root root=create(0)
+    assert root.argument()==-1 and root.argument(pointer)==73 and root.argument(optional)==73, "native arguments line 24"
+    func(Argument?) as c_int bound=root.argument
+    assert bound(null)==-1 and bound(optional)==73, "native arguments line 26"
+end
+func arrays()
+    array<Root> values=[create(0),create(0)]
+    assert live()==2 and values[0].value==42 and values[1].value==42, "native arguments line 30"
+    values.append(create(0))
+    assert live()==3, "native arguments line 32"
+end
+func lists()
+    list<Root> values=list[0:create(0),7:create(0)]
+    assert live()==2 and values[7].value==42, "native arguments line 36"
+end
+func dictionaries()
+    dict<Root> values=dict{"a":create(0),"b":create(0)}
+    assert live()==2 and values["a"].value==42, "native arguments line 40"
+end
+func sets()
+    set<Root> values=set{create(0),create(0)}
+    assert live()==2 and values.length==2, "native arguments line 44"
+end
+func stacks()
+    Stack<Root> values=Stack::<Root>()
+    values.push(create(0))
+    assert live()==1 and values.pop().value==42, "native arguments line 49"
+end
+func erased()
+    var value=create(0)
+    Root projected=value as Root
+    assert live()==1 and projected.value==42, "native arguments line 54"
+end
+func laterFailure()
+    bool caught=false
+    try
+        array<Root> values=[create(0),create(2)]
+    catch error
+        caught=true
+    end
+    assert caught and live()==0, "native arguments line 63"
+end
+func prepared(c_int budget) as Root
+    Root value=create(0)
+    failAfter(budget)
+    return value
+end
+func allocationFailures()
+    int failures=0
+    int successes=0
+    int budget=0
+    while budget<24
+        try
+            array<Root> values=[prepared(c_int(budget)),create(0)]
+            successes+=1
+        catch error
+            failures+=1
+        finally
+            resetFailure()
+        end
+        assert live()==0, "native arguments line 83"
+        budget+=1
+    end
+    assert failures>0 and successes>0, "native arguments line 86"
+end
+func markedRoot() as Root
+    Root root=create(0)
+    Root other=markDestroyFailure(root)
+    return root
+end
+func deferredFailure(bool primary)
+    array<Root> values=[markedRoot()]
+    if primary then assert false, "primary survives deferred failure" end
+end
+func checkedCleanup()
+    bool caught=false
+    try
+        deferredFailure(false)
+    catch error
+        caught=true
+    end
+    assert caught and live()==0, "deferred failure without diagnostic"
+    caught=false
+    try
+        deferredFailure(true)
+    catch error
+        caught=true
+        assert error.message=="primary survives deferred failure"
+    end
+    assert caught and live()==0, "deferred cleanup preserves first failure"
+end
+func main(...) as int
+    pointerCases()
+    assert live()==0, "native arguments line 90"
+    arrays()
+    assert live()==0, "native arguments line 92"
+    lists()
+    assert live()==0, "native arguments line 94"
+    dictionaries()
+    assert live()==0, "native arguments line 96"
+    sets()
+    assert live()==0, "native arguments line 98"
+    stacks()
+    assert live()==0, "native arguments line 100"
+    erased()
+    assert live()==0, "native arguments line 102"
+    laterFailure()
+    allocationFailures()
+    checkedCleanup()
+    return 0
+end

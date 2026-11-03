@@ -1,5 +1,7 @@
 """Offline exact C record/pointer callbacks and direct caller-resident addresses."""
 from pathlib import Path
+from compiler_response import command_with_response
+from xlir_public_build_inputs import verify_public_build
 from runtime_layout import runtime_directory
 import argparse, hashlib, json, os, shutil, subprocess, time
 
@@ -11,11 +13,18 @@ def main():
     parser.add_argument('--source-build', type=Path)
     args = parser.parse_args()
     root, driver, out = args.root.resolve(), args.driver.resolve(), args.out.resolve()
+    source_build, source_inputs, _ = verify_public_build(root, driver.parent)
+    assert Path(source_build['Driver']).resolve() == driver
+    source_objects = [x['Path'] for x in source_build['Objects'] if Path(x['Source']).name not in
+                      ('xlir_public_source_driver.c', 'xlir_public_source_linux_driver.c')]
+    source_systems = ['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-Wl,--export-dynamic','-pthread','-ldl','-lm']
     out.mkdir(parents=True, exist_ok=False)
     rows = []
     env = dict(os.environ, XL6_SOURCE_NATIVE_ROOT=str(root))
 
     def run(name, command, accepted=True):
+        if str(command[0]) == 'gcc' and not any(str(x).startswith('@') for x in command[1:]):
+            command = command_with_response(command, 'gcc', out/(name+'.rsp'))
         command = list(map(str, command)); start = time.monotonic()
         process = subprocess.run(command, cwd=root, env=env, capture_output=True, timeout=240)
         log = out/(name+'.log'); log.write_bytes(process.stdout+process.stderr)
@@ -45,8 +54,8 @@ def main():
         for opt in ('O0', 'O2'):
             exe = out/(stem+'-'+opt+suffix)
             run(stem+'-'+opt+'-build', ['gcc', '-std=c11', '-Wall', '-Wextra', '-Werror',
-                *warnings, '-'+opt, *includes, generated, provider,
-                root/'test/cases/foreign_decl_module_host.c', runtime, '-o', exe])
+                *warnings, '-DXL_STATIC_EMBED', '-'+opt, *includes, generated, provider,
+                root/'test/cases/foreign_decl_module_host.c', *source_objects, runtime, *source_systems, '-o', exe])
             run(stem+'-'+opt+'-run', [exe])
         for mode in ('run', 'module', 'exe'):
             prefix = out/(stem+'-'+mode)
@@ -90,6 +99,9 @@ def main():
         rsp.write_text('\n'.join('"'+str(v).replace('\\', '/')+'"' for v in arguments)+'\n', encoding='utf-8')
         run('IR-'+opt+'-build', ['gcc', '@'+str(rsp)])
         run('IR-'+opt+'-run', [exe, source])
+
+
+    verify_public_build(root, driver.parent)
 
 
 if __name__ == '__main__':

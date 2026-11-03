@@ -3,6 +3,7 @@
 #include "xl6_foreign_view_abi.h"
 #include "xl6_foreign_scope_view.h"
 #include "xl6_foreign_context.h"
+#include "xl6_deferred_cleanup.h"
 #include "src/api/xl_foreign_error.h"
 #include <stddef.h>
 #include <stdlib.h>
@@ -47,6 +48,9 @@ static XL6_ForeignView* viewWork;
 static XL6_ForeignView** viewWorkTail = &viewWork;
 static size_t viewCount;
 static xatomic64 viewEpoch;
+static xatomic64 viewQueued;
+static bool viewDeferredDrain(void);
+static XL6_DeferredCleanupV1 viewDeferredCleanup={.Run=viewDeferredDrain};
 static bool viewCalls(void)
 { return xl6ForeignContextGetV1(XL6_FOREIGN_CONTEXT_VIEW_CALLS_V1)!=NULL; }
 static bool viewIsDraining(void)
@@ -80,8 +84,10 @@ static void viewEnqueue(XL6_ForeignView* view,unsigned flags)
     if (!view->work) {
         if (!viewHold(view)) abort();
         view->workNext=NULL; *viewWorkTail=view; viewWorkTail=&view->workNext;
+        (void)xrtAtomic64FetchAdd(&viewQueued,1,XMEMORY_RELEASE);
     }
     view->work|=flags;
+    xl6DeferredCleanupScheduleV1(&viewDeferredCleanup);
     viewLockLeave();
 }
 static xbytesview viewKey(void* const* raw)
@@ -507,6 +513,10 @@ static void viewDetach(XL6_ForeignView* view)
 }
 bool xl6ForeignViewDrainV1(void)
 {
+    /* Most language cleanup boundaries have never held a foreign view. Do
+     * not initialize execution-context storage or acquire the graph lock on
+     * that path. Queue publication/removal owns this counter under viewLock. */
+    if (!xrtAtomic64Load(&viewQueued,XMEMORY_ACQUIRE)) return true;
     if(!xl6ForeignContextReadyV1())return false;
     if (viewIsDraining() || viewCalls() || xl6ForeignCallbackActiveV1()) return true;
     if(!xl6ForeignContextSetV1(XL6_FOREIGN_CONTEXT_VIEW_DRAINING_V1,(void*)(uintptr_t)1))return false;
@@ -535,6 +545,7 @@ bool xl6ForeignViewDrainV1(void)
             *slot=view->workNext;
             if (!view->workNext) viewWorkTail=slot;
             view->workNext=NULL; work=view->work; view->work=0;
+            if (!xrtAtomic64FetchSub(&viewQueued,1,XMEMORY_ACQ_REL)) abort();
         }
         viewLockLeave(); viewMutationEnd(&mutation);
         if (!view) break;
@@ -561,6 +572,14 @@ size_t xl6ForeignViewPendingV1(uint64_t thread)
     for (XL6_ForeignView* item=viewWork; item; item=item->workNext)
         if (!thread || item->thread==thread) ++count;
     viewLockLeave(); viewMutationEnd(&mutation); return count;
+}
+
+static bool viewDeferredDrain(void)
+{
+    bool ok=xl6ForeignViewDrainV1();
+    if (xrtAtomic64Load(&viewQueued,XMEMORY_ACQUIRE))
+        xl6DeferredCleanupScheduleV1(&viewDeferredCleanup);
+    return ok;
 }
 
 static bool viewBusy(const void* raw)
