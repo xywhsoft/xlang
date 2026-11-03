@@ -11,6 +11,7 @@ import subprocess
 import sys
 import threading
 import unittest
+from unittest import mock
 import paramiko
 sys.path.insert(0,str(Path(__file__).parent))
 import check_update as fixture
@@ -103,7 +104,8 @@ class PublishTests(unittest.TestCase):
             self.assertFalse((remote/'version.txt').exists())
             Public.disconnect_next_object=True
             Public.truncate_next_object=True
-            self.assertEqual(manager.main(['push',*args]),0)
+            with mock.patch('urllib.request.getproxies',return_value={'http':'http://127.0.0.1:1','https':'http://127.0.0.1:1'}),mock.patch('urllib.request.proxy_bypass',return_value=False):
+                self.assertEqual(manager.main(['push',*args]),0)
             self.assertFalse(Public.disconnect_next_object)
             self.assertFalse(Public.truncate_next_object)
             self.assertEqual(manager.version_marker((remote/'version.txt').read_text())[0],1)
@@ -127,7 +129,7 @@ class PublishTests(unittest.TestCase):
             self.assertEqual(manager.version_marker((remote/'version.txt').read_text())[0],3)
             self.assertTrue((case.store/'.state/push.json').exists())
             Public.break_version=False
-            self.assertEqual(manager.main(['push',*args]),0)
+            self.assertEqual(manager.main(['push',*args,'--verify-public-on-server']),0)
         finally:
             Public.break_metadata=False;Public.break_version=False;Public.disconnect_next_object=False;Public.truncate_next_object=False;stop.set()
             if sock:sock.close()

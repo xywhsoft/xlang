@@ -28,6 +28,10 @@ static int verify(void* user){if(started)return XGE_OK;started=1;const char* dir
     xideUpdateApplyCheckResult(&app,2,0);xideUpdatePoll(&app);CHECK(!xideUpdateCurrentPrompt(&app));
     xideUpdateApplyCheckResult(&app,2,1);xideUpdatePoll(&app);CHECK(settle(&app));box=xideUpdateCurrentPrompt(&app);CHECK(box&&!xideUpdateIsRequired(&app));
     CHECK(click(&app,xuiMsgBoxGetButtonWidget(box,1)));xideUpdatePoll(&app);CHECK(!xideUpdateIsModal(&app));
+    uint64_t before=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(doc->editor));
+    CHECK(click(&app,doc->editor)&&input(&app,XGE_EVENT_TEXT,0,'R')&&xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(doc->editor))>before);
+    CHECK(input(&app,XGE_EVENT_KEY_DOWN,XGE_KEY_BACKSPACE,0)&&input(&app,XGE_EVENT_KEY_UP,XGE_KEY_BACKSPACE,0));
+    CHECK(!strcmp(xuiCodeEditGetText(doc->editor),"func unsaved()\nend\n"));
     xideUpdateApplyCheckResult(&app,4,0);xideUpdatePoll(&app);CHECK(settle(&app));box=xideUpdateCurrentPrompt(&app);
     CHECK(box&&xideUpdateIsRequired(&app)&&xideActionsHasModal(&app)&&!xideActionQuery(&app,XIDE_ACTION_BUILD).enabled);
     CHECK(input(&app,XGE_EVENT_KEY_DOWN,XGE_KEY_ESCAPE,0)&&input(&app,XGE_EVENT_KEY_UP,XGE_KEY_ESCAPE,0));
