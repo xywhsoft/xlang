@@ -1,0 +1,71 @@
+{
+  "complete": true,
+  "scope": "Native XUI sparse owned content-measure/layout callbacks and composition with the resident xlang ownership core",
+  "xgeCommit": "07a6b765",
+  "nativeApis": [
+    "xuiWidgetSetContentMeasureCallbackOwned",
+    "xuiWidgetSetLayoutPrepareCallbackOwned",
+    "xuiWidgetSetLayoutChildrenCallbackOwned",
+    "xuiWidgetSetLayoutCompleteCallbackOwned"
+  ],
+  "nativeFunctionAndUserTypesPreserved": true,
+  "opaqueUserDataIndependentOfOwnershipData": true,
+  "ownedDirectoryTraced": true,
+  "registrationReentryChecked": true,
+  "physicalNativeOperationProtectsCompleteReturnTail": true,
+  "windows": {
+    "nativeGroups": 6,
+    "optimizationLevels": [
+      "O0",
+      "O2"
+    ],
+    "runtimeComposition": [
+      "O0",
+      "O2"
+    ],
+    "wholeEngineOptimization": "O2",
+    "wholeEngineUnits": 138,
+    "hostXrt": true,
+    "xrtImports": 177
+  },
+  "linux": {
+    "nativeGroups": 6,
+    "optimizationLevels": [
+      "O0",
+      "O2"
+    ],
+    "asan": true,
+    "ubsan": true,
+    "leakChecks": true,
+    "wholeEngineOrLanguageComposition": false
+  },
+  "warmCalls": 200,
+  "newXrtAllocations": 0,
+  "newXrtReallocations": 0,
+  "newXrtFrees": 0,
+  "excludes": "Registration has sparse native storage and owner hold/drop; active invocation pins are required. This is not zero overhead or complete callback/package coverage.",
+  "eightTasksComplete": false,
+  "shippingUpdated": false,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xui-sparse-layout-r3\\results.json",
+      "sha256": "8f763508535ab5743326883bec9e83246884a00a518a9b7bc4513e6355180cb3"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-xui-sparse-layout-r1.json",
+      "sha256": "9d063a09041a407d867d5ef71e1790a06240fcaa95a7a3dc5aba76733cada152"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xge-sparse-layout-inputs-r1\\snapshot.json",
+      "sha256": "0b764eae45d026550a576197e817b70fb57ca4e7b708725e423338f94da62b06"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xge-sparse-layout-host-r1\\build-report.json",
+      "sha256": "235c8da3dade45b37b7ccf32095b6473c0a97938ad7dbe5639c76ad98be5ed0d"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\actual-xui-sparse-runtime-r2\\results.json",
+      "sha256": "f89ba8a2389c2ddd0c97d0af4b46ff5c68bf2498daf4cecd5ffdbe5de46690fc"
+    }
+  ]
+}
