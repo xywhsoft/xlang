@@ -1,0 +1,445 @@
+{
+  "schema": 1,
+  "date": "2026-11-03",
+  "scope": "Independent updater, publisher and targeted IDE integration; retained compiler/catalog qualification boundary",
+  "status": "passed-targeted-validation",
+  "externalPublishPerformed": false,
+  "sourceIdentity": {
+    "standaloneCommit": "82ef8026741d663d6ea4a732ea065de302312c1d",
+    "guiModifiedFromBase": true,
+    "guiExactInputManifest": "dev/release-materials/provenance/ide-updater-20261103/gui-publication.json"
+  },
+  "builds": {
+    "win_x64": {
+      "artifact": {
+        "path": "release/win_x64/xlang-update.exe",
+        "sha256": "ea3262611eaf2d91a2974dafe1866a651f8cd563b5378fb9beec3dd3a99932e0",
+        "bytes": 1439232
+      },
+      "receipt": "dev/release-materials/provenance/ide-updater-20261103/win_x64-build.json",
+      "compiler": "gcc (GCC) 16.2.0",
+      "static": true,
+      "inputFiles": 27
+    },
+    "linux_x64": {
+      "artifact": {
+        "path": "release/linux_x64/xlang-update",
+        "sha256": "dc46eec6acb372910c398d816793305108841c06b3bf71005da4269edb14efd2",
+        "bytes": 986184
+      },
+      "receipt": "dev/release-materials/provenance/ide-updater-20261103/linux_x64-build.json",
+      "compiler": "x86_64-linux-gnu-gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+      "static": true,
+      "inputFiles": 27
+    }
+  },
+  "publisherTools": [
+    {
+      "path": "release/tools/update/deploy.example.json",
+      "sha256": "946f9172ba98cfce327c2c638216bb419c008446af7f1457e82c31927b17b640",
+      "bytes": 184
+    },
+    {
+      "path": "release/tools/update/NOTICE.txt",
+      "sha256": "e884629a140e55451ae493a1d2ba2f558220886428facd541f9e2a2bbf7e380c",
+      "bytes": 1406
+    },
+    {
+      "path": "release/tools/update/prepare_update.py",
+      "sha256": "1352c5c161bd0646b877a67e6d1d42377844b25c1942a30237c71c49b88b0ce2",
+      "bytes": 14051
+    },
+    {
+      "path": "release/tools/update/README.md",
+      "sha256": "bf83568717ecf41a904bb2bbb4231dd29e183123205a3de8e104b266357d9389",
+      "bytes": 6372
+    },
+    {
+      "path": "release/tools/update/update-crypto",
+      "sha256": "722b3a51c9e825ec687d50916ca79ed0aacf6c52aa7a1cee61d5e95f7632646f",
+      "bytes": 104736
+    },
+    {
+      "path": "release/tools/update/update-crypto.exe",
+      "sha256": "01bf1cb67c4e8ba234a148793053b5d17e53ec5a6fbd5b54fe3ddd1c6e700f25",
+      "bytes": 230912
+    },
+    {
+      "path": "release/tools/update/update_manager.bat",
+      "sha256": "63a37e2f072769d19b75d04107767675d68f5e8efab213f8ef27c88b6140e7c9",
+      "bytes": 53
+    },
+    {
+      "path": "release/tools/update/update_manager.py",
+      "sha256": "b0e1160f81b9de0ee5e4ccc8046f54b7a6d309fbe2eac8055f56872683813020",
+      "bytes": 29914
+    },
+    {
+      "path": "release/tools/update/update_manager.sh",
+      "sha256": "6862b78e43b059067de3b54f18d6dcc442980459de26df182e172a1954848994",
+      "bytes": 64
+    }
+  ],
+  "dependencies": {
+    "implementation": "C with macro-trimmed private XRT implementation and repository LZMA decoder",
+    "windowsSystemDlls": [
+      "KERNEL32.dll",
+      "msvcrt.dll",
+      "SHELL32.dll",
+      "WS2_32.dll"
+    ],
+    "linuxX64FullyStatic": true,
+    "xgeRequired": false,
+    "engineRequired": false,
+    "externalTlsLibraryRequired": false
+  },
+  "trust": {
+    "algorithm": "Ed25519 over exact UTF-8 payload bytes",
+    "pinnedPublicKey": "53d97e95b59ae119fe0a95d02edfe1010458e60e7b95ede3541aad1df018f6a8",
+    "privateKeyPackaged": false,
+    "tlsHostnameAndCertificateVerification": true,
+    "builtInRoots": [
+      "ISRG Root X1",
+      "ISRG Root X2"
+    ]
+  },
+  "validation": {
+    "protocolAndFaultTests": {
+      "windows": {
+        "run": 24,
+        "passed": 22,
+        "skipped": 2
+      },
+      "linux": {
+        "run": 24,
+        "passed": 20,
+        "skipped": 4
+      }
+    },
+    "linuxTerminalCases": 3,
+    "realSshTransportFixture": "passed: initial publish, immutable-object checks, missing-object healing, pre-activation metadata rollback, resume, post-activation verification recovery",
+    "ideNativeFixtures": [
+      "input_test passed",
+      "update_client_test passed"
+    ],
+    "actualReleaseBootstrap": [
+      {
+        "store": "ide/build/updates/win_x64",
+        "version": 1,
+        "files": 640,
+        "objects": 640,
+        "checks": [
+          "bootstrap",
+          "same-version-check",
+          "gui-no-config-no-extlibs",
+          "gui-corrupt-config",
+          "c-run-no-external-toolchain",
+          "xlang-run-no-extlibs"
+        ],
+        "mainBytes": 42612823,
+        "hardlinkedObjects": 640,
+        "status": "passed"
+      },
+      {
+        "store": "ide/build/updates/win_x64",
+        "version": 2,
+        "files": 640,
+        "objects": 640,
+        "checks": [
+          "bootstrap",
+          "same-version-check",
+          "gui-no-config-no-extlibs",
+          "gui-corrupt-config",
+          "c-run-no-external-toolchain",
+          "xlang-run-no-extlibs"
+        ],
+        "mainBytes": 42613192,
+        "hardlinkedObjects": 640,
+        "status": "passed"
+      }
+    ],
+    "physicalWin7Hd4200Tested": false,
+    "armBuiltOrRun": false,
+    "productionSshTested": false,
+    "fullSuiteExecuted": false
+  },
+  "guiBuild": {
+    "translationUnits": 102,
+    "strictWarnings": [
+      "-Wall",
+      "-Wextra",
+      "-Werror"
+    ],
+    "sdkAbiFingerprintRebuiltTogether": true,
+    "existingCatalogRetained": true,
+    "completeCompilerCatalogReleaseAcceptance": false,
+    "inputReceipt": "dev/release-materials/provenance/ide-updater-20261103/gui-publication.json",
+    "previousAcceptance": "dev/release-materials/provenance/ide-wgl-compat-20261102.json",
+    "previousAcceptanceSha256": "4a61675ea746f42641de9b5b6b969e4e0e5e4cf68d743553e49e999b40cf144e"
+  },
+  "publication": {
+    "products": [
+      {
+        "path": "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+        "sha256": "650b3156298e8c4f77d4af2d019640efe7957b7b8f8f4a5b3f90f8483469ff5b",
+        "bytes": 1796385
+      },
+      {
+        "path": "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll",
+        "sha256": "2ff1ed234bd2e7e7b756700da1de550d39935be0cbb9e5af886138090ae65ec6",
+        "bytes": 10559422
+      }
+    ],
+    "protectedRuntime": {
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "8bc80fe50cc4a5856630003eb47a59426a5225e4b2d8d076a6486f56dab4339d",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334",
+      "D:\\GIT\\x-lang\\release\\win_x64\\data\\commands.json": "27e17cb16f25a4b1c16714736faee0e6df2098f472b0fd393166acc2e98de30a",
+      "D:\\GIT\\x-lang\\release\\win_x64\\data\\catalog-sources\\index.json": "2ab9cd46e0179056a0357f453465a633f7d17fa2482f3a38ee5f2fc993c18546",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "2ff1ed234bd2e7e7b756700da1de550d39935be0cbb9e5af886138090ae65ec6",
+      "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json": "8b5a5151212487910ae88a7385fc6574f08e1ba3f1b8cb20885c4421dc5eff65"
+    },
+    "matchedSdkInstalled": true,
+    "onlyGuiReplaced": true,
+    "previousGuiSha256": "93500bab01cda5fe6e8b88b0bfe6284cb8016e4095a8c5ef1a5bf74961a0e6ea",
+    "newGuiSha256": "650b3156298e8c4f77d4af2d019640efe7957b7b8f8f4a5b3f90f8483469ff5b",
+    "temporaryTestExecutablesPackaged": false,
+    "userSettingsPreserved": true
+  },
+  "preparedRelease": {
+    "store": "ide/build/updates/win_x64",
+    "version": 2,
+    "files": 640,
+    "mainObjects": 640,
+    "mainCompressedBytes": 42613192,
+    "hardlinkedObjects": 640,
+    "lastVersionNewObjects": 2,
+    "published": false,
+    "defaultEndpointsObserved": "HTTP 404; TLS handshake succeeded",
+    "excluded": [
+      "extlibs/",
+      "projects/",
+      "examples/",
+      "option/settings.json",
+      "mdo-home/",
+      "caches and recovery",
+      "development materials"
+    ],
+    "mdo": "opt-in only"
+  },
+  "limitations": [
+    "ARM binaries not built or run",
+    "Windows 7 physical HD4200 hardware not tested",
+    "No production publish: SSH host and remote root are not configured",
+    "Existing stale compiler/catalog binding remains explicitly retained; full compiler/catalog release admission not claimed",
+    "Advanced history rollback and automatic remote garbage collection deferred"
+  ],
+  "evidence": [
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/windows-tests.log",
+      "sha256": "54394e020bd3cbbd0a672251cdb876f1d4d1b51a02d0367e7ef1f44196c8b757",
+      "bytes": 6219
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/linux-tests.log",
+      "sha256": "d57ed15b3e27ebd881006f6577a1dd2a2a3dffb1b4d10e8e45f42bd60d4c9456",
+      "bytes": 5064
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/ssh-tests.log",
+      "sha256": "d61a99ad65fdd9f82763a2c9c661923ba46036882b9c45804927f3a6d17962f8",
+      "bytes": 1644
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/tui-tests.log",
+      "sha256": "9d28d6f4ec8d6b908792d850138ae2e517eff51e9d4f23420f98b3c832a01dae",
+      "bytes": 583
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/ide-tests.log",
+      "sha256": "972e2e01bb7dcf96e3633d5d8bf5ce699c2ee39fa43b743c9313b9127c74d3b4",
+      "bytes": 481
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/full-delivery-tests.log",
+      "sha256": "a4b6ced3eb85500d2ec4f861002032be17f3289f3b726ae8e752ef9b22dbf386",
+      "bytes": 525
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/windows-build.log",
+      "sha256": "43774d1438ac81b738ee0993524f3229566189562a7cec0250a7663267b687f3",
+      "bytes": 4296
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/linux-build.log",
+      "sha256": "6848e0da564068a45ac5c6e0abf90de37f385f64a13348e50034ccad0575c274",
+      "bytes": 4422
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/ide-candidate-build.log",
+      "sha256": "7a05f7ee014d91e2beebf296ab96e48f9857b1899603b20881a942950e60a15f",
+      "bytes": 215
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/windows-default-endpoint.log",
+      "sha256": "605e2d2b79bbfc15797e1c93b0fbe81bc118158431e22c71b521d04552a0da57",
+      "bytes": 217
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/tui-80-xterm.txt",
+      "sha256": "a8711f1be7690e191f6ac6b323417f0e497183e50cbe64d725272f60e43bb8ff",
+      "bytes": 3999
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/tui-50-xterm.txt",
+      "sha256": "0c3507956d50a167af840cf19acac583310a9a666c35377eb970d23a8074eb1c",
+      "bytes": 3145
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/tui-80-dumb.txt",
+      "sha256": "d415d67de198a77e6731e2df1270548e809ed7c2a62a1ee10b25b87df4c41ea2",
+      "bytes": 411
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/gui-publication.json",
+      "sha256": "bdca8c14c4a13ba4207e6c18f97fa005ea220cfc940abbd4ffbfa0cf1d29af0a",
+      "bytes": 71885
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/gui-input_test.log",
+      "sha256": "d992b451c3b31e7ddd85ed2d1da08c97c7ed3e8c1b7fb3bf5ca8fbd44164c9c0",
+      "bytes": 302
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/gui-update_client_test.log",
+      "sha256": "a20662253b3655bd9bdacc750064d89a2af3fd33cb76ef74d905c871dd6842f9",
+      "bytes": 108
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/gui-published-gui.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/gui-published-workbench.png",
+      "sha256": "bb3ff5bc3bc767bb7ef1d7ea02b77b3f0d0e759cb189748401782dd059eb9e2e",
+      "bytes": 148349
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/bootstrap-v1-report.json",
+      "sha256": "c2a0157da69584589533285cd1adddf8236db417e4fe836589af70812732a0ae",
+      "bytes": 367
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/bootstrap-v1-bootstrap.log",
+      "sha256": "c66eeb1d7aaad456eb25f30da5874a8fa82c038338ddb1b39e7b375941bc3558",
+      "bytes": 141967
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/bootstrap-v1-same-version-check.log",
+      "sha256": "7e72d0effb5edd1eda6b56e010a898b2e4074da3d40fa45ee06ea14e57f1c0e8",
+      "bytes": 89
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/bootstrap-v1-gui-no-config-no-extlibs.log",
+      "sha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db",
+      "bytes": 74
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/bootstrap-v1-gui-corrupt-config.log",
+      "sha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db",
+      "bytes": 74
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/bootstrap-v1-c-run-no-external-toolchain.log",
+      "sha256": "8c42af658206c78434f034ce537970894a98ab7b9b52efece3b9cfe253bc368e",
+      "bytes": 16
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/bootstrap-v1-xlang-run-no-extlibs.log",
+      "sha256": "8884d78afdb2a7cf383b65f06cdd90296fe0480dc37a45f8c9965769d78ce5eb",
+      "bytes": 19
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/bootstrap-v1-fresh-workbench.png",
+      "sha256": "bb3ff5bc3bc767bb7ef1d7ea02b77b3f0d0e759cb189748401782dd059eb9e2e",
+      "bytes": 148349
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/bootstrap-v2-report.json",
+      "sha256": "a26055e158b79f34ca532052abdaf95bc80ba9a86c8e9d70d6d20c7a6d83a70b",
+      "bytes": 367
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/bootstrap-v2-bootstrap.log",
+      "sha256": "af36f3de05f81e308693c09a68545998cd43f578c4ee38383095607f0e79c9c7",
+      "bytes": 141967
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/bootstrap-v2-same-version-check.log",
+      "sha256": "04d307d8421a97cbd947098a4590139f9916f31a3e6e750c45ac118367387997",
+      "bytes": 89
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/bootstrap-v2-gui-no-config-no-extlibs.log",
+      "sha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db",
+      "bytes": 74
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/bootstrap-v2-gui-corrupt-config.log",
+      "sha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db",
+      "bytes": 74
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/bootstrap-v2-c-run-no-external-toolchain.log",
+      "sha256": "8c42af658206c78434f034ce537970894a98ab7b9b52efece3b9cfe253bc368e",
+      "bytes": 16
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/bootstrap-v2-xlang-run-no-extlibs.log",
+      "sha256": "8884d78afdb2a7cf383b65f06cdd90296fe0480dc37a45f8c9965769d78ce5eb",
+      "bytes": 19
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/bootstrap-v2-fresh-workbench.png",
+      "sha256": "bb3ff5bc3bc767bb7ef1d7ea02b77b3f0d0e759cb189748401782dd059eb9e2e",
+      "bytes": 148349
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/win_x64-build.json",
+      "sha256": "c3c8e92bdfabdc043403d8d3c08c28e793ac097c94d812b13daf86ebb3ca7854",
+      "bytes": 3014
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/linux_x64-build.json",
+      "sha256": "e03e28abe57516955e96923e0c14d92998d87d11444ff03f7d9a7fd062d66cc9",
+      "bytes": 2959
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/prepared-version.txt",
+      "sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+      "bytes": 2
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/prepared-update.json",
+      "sha256": "5d048c526f79c8817427612d6e7551096907754d8f5d7e8c527e244a37bc97bf",
+      "bytes": 223582
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/prepared-update.lzma",
+      "sha256": "2e5458d982c9909d2977e3e8dd25115035a8e62a514930e64480e3995ab5ff4a",
+      "bytes": 50433
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/windows-pe-imports.txt",
+      "sha256": "965cf8aab9510091ce100ceebf6249dd1bb8208b0322250fe337e35392f48f9c",
+      "bytes": 1189856
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-updater-20261103/linux-linkage.txt",
+      "sha256": "79d3cd373d59e5ecf2bd87b23f282bd2f03af02db501a0b06e2f4f301e8f6eae",
+      "bytes": 45
+    }
+  ]
+}

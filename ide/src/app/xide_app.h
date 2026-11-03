@@ -53,6 +53,7 @@ enum xide_window_id {
 typedef struct xide_app {
     xide_dialog* dialogs;
     xide_messages* messages;
+    struct xide_update* updater;
     xide_file_dialog* fileDialog;
     xide_actions* actions;
     xide_dpi_proxy* dpiProxy; float dpiScale,dpiOverride; int highDpi;

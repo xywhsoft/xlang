@@ -24,6 +24,7 @@
 #include "ui/file_changes_view.h"
 #include "ui/goto_view.h"
 #include "ui/catalog_view.h"
+#include "services/update_client.h"
 #include <stdlib.h>
 #include <string.h>
 enum requirement { WORKBENCH, WORKSPACE_VIEW, WORKSPACE, NEW_PROJECT, IMPORT_VIEW, PROJECT, AVAILABLE_PROJECT, REFERENCES, RESOURCES, NEW_RESOURCE, ADD_FILE, REMOVE_FILE, RENAME_SELECTED_FILE, MIGRATE_PROJECT, PROPERTIES,
@@ -44,6 +45,8 @@ static int sourceAction(xide_app* a,int id) { return xideCatalogSourceOpen(a,id=
 #define W(id,name,title,need) A(id,name,title,NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,need,NO_CHECK,xideWorkspaceAction)
 #define E(id,name,title,chord,key,mods,need,scope,cmd) A(id,name,title,NULL,chord,key,mods,scope,cmd,need,NO_CHECK,xideEditorAction)
 static const action_def definitions[]={
+    A(XIDE_ACTION_UPDATE_CHECK,"help.checkUpdates","检查更新…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideUpdateAction),
+    A(XIDE_ACTION_UPDATE_REPAIR,"help.repairInstallation","更新／修复安装…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideUpdateAction),
     A(XIDE_ACTION_RESET,"view.resetLayout","恢复默认布局","恢复布局",NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideWorkbenchAction),
     A(XIDE_ACTION_XLANG,"view.xlangDemo","查看 xlang 语法演示","xlang",NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideWorkbenchAction),
     A(XIDE_ACTION_C,"view.cDemo","查看 C 语法演示","C",NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideWorkbenchAction),
@@ -137,7 +140,7 @@ static const action_def* definition(int id) { for(size_t i=0;i<xideActionCount()
 const xide_action_info* xideActionFind(int id) { const action_def* d=definition(id); return d ? &d->info : NULL; }
 const xide_action_info* xideActionNamed(const char* name) { if(name) for(size_t i=0;i<xideActionCount();++i) if(!strcmp(name,definitions[i].info.name)) return &definitions[i].info; return NULL; }
 int xideActionsHasModal(xide_app* a)
-{ return a && (xideFileDialogBusy(a) || xideMessageBusy(a) || xideCatalogSourceIsOpen(a) || xideGotoViewIsOpen(a) || xideToolchainViewIsOpen(a) || xideResourceViewIsOpen(a) || xideImportViewIsOpen(a) || xideRenameViewIsOpen(a) || xideRenameViewHasPending(a) || xideTemplateViewIsOpen(a) || xideReferencesViewIsOpen(a) || xideConfigurationViewIsOpen(a) || xideFontViewIsOpen(a) || xideRecoveryViewIsOpen(a) || xideFileChangesViewIsOpen(a)); }
+{ return a && (xideUpdateIsModal(a) || xideFileDialogBusy(a) || xideMessageBusy(a) || xideCatalogSourceIsOpen(a) || xideGotoViewIsOpen(a) || xideToolchainViewIsOpen(a) || xideResourceViewIsOpen(a) || xideImportViewIsOpen(a) || xideRenameViewIsOpen(a) || xideRenameViewHasPending(a) || xideTemplateViewIsOpen(a) || xideReferencesViewIsOpen(a) || xideConfigurationViewIsOpen(a) || xideFontViewIsOpen(a) || xideRecoveryViewIsOpen(a) || xideFileChangesViewIsOpen(a)); }
 xide_action_state xideActionQuery(xide_app* a,int id)
 {
     const action_def* d=definition(id); xide_action_state state={0,0,"未知动作或工作台尚未就绪"};

@@ -44,7 +44,12 @@ int xideSettingsLoad(xide_settings* settings,const char* path,xide_model_error* 
     if(error) memset(error,0,sizeof(*error));
     if(!settings || !path) return fail(error,XIDE_MODEL_INVALID,"Invalid settings path.");
     xide_settings temporary={0}; temporary.editorFontSize=16; temporary.uiFontSize=16; temporary.path=xidePathResolve(NULL,path); if(!temporary.path) return fail(error,XIDE_MODEL_INVALID,"Invalid UTF-8 settings path.");
-    temporary.existed=xidePathExists(temporary.path); temporary.source=temporary.existed ? read(temporary.path) : xrtValueObject();
+    temporary.existed=xidePathExists(temporary.path); temporary.source=temporary.existed ? read(temporary.path) : NULL;
+    if(!temporary.existed) {
+        char* directory=xidePathDirectory(temporary.path);char* defaults=directory ? xidePathResolve(directory,"defaults/settings.json") : NULL;
+        temporary.source=defaults ? read(defaults) : NULL;free(defaults);free(directory);
+        if(!temporary.source)temporary.source=xrtValueObject();
+    }
     char* format=get(temporary.source,"format") ? string(get(temporary.source,"format")) : NULL;
     xvalue* toolchain=get(temporary.source,"toolchain"); int okay=temporary.source && (!temporary.existed || (format && !strcmp(format,"xlang-ide-settings-1"))) && (!toolchain || xrtValueIs(toolchain,XVALUE_OBJECT));
     free(format);
@@ -86,7 +91,14 @@ int xideSettingsLoad(xide_settings* settings,const char* path,xide_model_error* 
         if(okay) temporary.uiFontSize=(int)size;
     }
     }
-    if(!okay) { xideSettingsClear(&temporary); return fail(error,XIDE_MODEL_INVALID,"Settings are unreadable or unsupported; the original file is preserved."); }
+    if(!okay) {
+        char* originalPath=temporary.path;int existed=temporary.existed;temporary.path=NULL;xideSettingsClear(&temporary);
+        temporary.path=originalPath;temporary.existed=existed;temporary.editorFontSize=16;temporary.uiFontSize=16;temporary.source=xrtValueObject();
+        if(!temporary.source){xideSettingsClear(&temporary);return fail(error,XIDE_MODEL_MEMORY,"Cannot allocate default preferences.");}
+        /* Preserve the disk identity: normal writes will report a conflict with
+           the unreadable original instead of overwriting user preferences. */
+        fail(error,XIDE_MODEL_INVALID,"Preferences are unreadable or unsupported; using built-in defaults and preserving the original file.");
+    }
     xideSettingsClear(settings); *settings=temporary; return 1;
 }
 /* Keep bundled tools relocatable in the program's own portable settings.

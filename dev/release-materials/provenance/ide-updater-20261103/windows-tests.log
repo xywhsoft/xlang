@@ -1,0 +1,58 @@
+test_bootstrap_repair_and_user_state (__main__.UpdateTests.test_bootstrap_repair_and_user_state) ... ok
+test_corrupt_object_before_commit (__main__.UpdateTests.test_corrupt_object_before_commit) ... ok
+test_crash_recovery (__main__.UpdateTests.test_crash_recovery) ... ok
+test_duplicate_path (__main__.UpdateTests.test_duplicate_path) ... ok
+test_executable_permission_repair (__main__.UpdateTests.test_executable_permission_repair) ... skipped 'Unix executable permission repair'
+test_http_streaming (__main__.UpdateTests.test_http_streaming) ... ok
+test_incremental_delete_and_discard (__main__.UpdateTests.test_incremental_delete_and_discard) ... ok
+test_key_rotation (__main__.UpdateTests.test_key_rotation) ... ok
+test_locked_file_rolls_back (__main__.UpdateTests.test_locked_file_rolls_back) ... ok
+test_long_install_path (__main__.UpdateTests.test_long_install_path) ... ok
+test_multipart (__main__.UpdateTests.test_multipart) ... ok
+test_path_traversal (__main__.UpdateTests.test_path_traversal) ... ok
+test_platform_mismatch (__main__.UpdateTests.test_platform_mismatch) ... ok
+test_protected_deletion (__main__.UpdateTests.test_protected_deletion) ... ok
+test_protected_file (__main__.UpdateTests.test_protected_file) ... ok
+test_recovery_preserves_external_modification (__main__.UpdateTests.test_recovery_preserves_external_modification) ... ok
+test_running_updater_replacement (__main__.UpdateTests.test_running_updater_replacement) ... ok
+test_self_staging (__main__.UpdateTests.test_self_staging) ... ok
+test_symlink_escape (__main__.UpdateTests.test_symlink_escape) ... skipped 'symlinks require extra Windows privileges; junction case is separately checked'
+test_tampered_signature (__main__.UpdateTests.test_tampered_signature) ... ok
+test_updater_cannot_be_deleted (__main__.UpdateTests.test_updater_cannot_be_deleted) ... ok
+test_version_manifest_race (__main__.UpdateTests.test_version_manifest_race) ... ok
+test_windows_junction_escape (__main__.UpdateTests.test_windows_junction_escape) ... ok
+test_wrong_key (__main__.UpdateTests.test_wrong_key) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 7.833s
+
+OK (skipped=2)
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-tuvlgc_u\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-ha1idnn7\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-ak0hcw0l\\repository"}
+{"version": 2, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-ak0hcw0l\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-o9wudb94\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-14jdsogr\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-2rpedryd\\repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 1, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-2rpedryd\\repository"}
+Restored local version 1
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-gjgx3xtd\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-g39kw9pp\\repository"}
+{"version": 2, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-g39kw9pp\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-2atw1ket\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-b5nuljbg\\repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 7, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-b5nuljbg\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-fdwv30s_\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-ou8_svyf\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-ezurjv6e\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-nb1vcuyi\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-q2o_pdh6\\repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 1, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-q2o_pdh6\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-ei2viief\\repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 1, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-ei2viief\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-hdtewnjb\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-hgskxx85\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-5sbcm6jf\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-6gts_caj\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-r2g02ne_\\repository"}
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-hlbidaki\\repository"}
