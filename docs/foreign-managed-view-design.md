@@ -18,6 +18,13 @@ XUI 的 context 全实例登记、弱销毁通知和 `xuiCallScopeBegin/End` 已
 
 后续顺序：完成控制记录／目录／待清理队列及图准入，接入捕获和存储 schema，然后把生命周期与调用准备降入 XLIR；再完成工厂结果保护、文本物化、动态连续 span、效果合同和包／SDK／IDE 的一次迁移。每组先批量发现和修复，再统一验证。最终产品和发布索引只在完整接入验收后更新。
 
+2026-11-03 原生 payload 前置：XUI context 的真实组合夹具改用完整的 `xuiContextTraceOwnership`，
+覆盖事件拥有槽以及 FlowGraph／Workflow 控件唯一拥有的模型值。旧 event-only 入口继续保留其窄合同。
+模型 trace 包含当前配置、undo／redo 和批量删除子记录、类型 schema 与变量默认值；借用模型不产生拥有边。
+四种真实控件循环已与驻留 View、Box、Closure 和 NativeCallback 的拥有域组合验证，包含同一 graph 被多个画布借用。
+这解决了之前仅 base widget/event 的验收范围缺口；其他借用回调转拥有入口、独立资源的失效合同以及语言 schema／XLIR
+仍需接入，不能因为存在通用 C tracer 就把任意自定义 payload 或 raw userdata 当作受管安全对象。
+
 内部运行时检查点：`xl6_foreign_view.c` 已实现创建线程约束、实例目录、引用和 native pin、失效与延迟清理、调用作用域、checked 关闭／重试、回调栈标记及独立拥有域。`Release` 返回独立的成功标志，保留无诊断分配失败；void drop 适配器必须传播失败位。这个组件暂未加入语言类型、捕获 schema、发布 SDK 或生成程序的运行时选择，不能把此检查点当成可用的受管声明语法。
 
 Windows O0/O2 的 8 组独立测试及合并测试均通过；Linux 对这两份新运行时源码启用 ASan/UBSan/泄漏检查，也全部通过。共享 XRT／基础运行库未由这轮 sanitizer 重新编译，不能扩大该检查的覆盖声明。验证包括自引用与 Child→Root 循环、错误线程最后释放、native 通知栈上的代码依赖保留、空诊断首错、6 个分配失败位置和零分配重复曝光。

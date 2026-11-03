@@ -1,0 +1,125 @@
+{
+  "date": "2026-11-03T06:54:59.004132+00:00",
+  "checkpointComplete": true,
+  "fullMigrationComplete": false,
+  "scope": "Native XUI unique model payload ownership and real hosted context cycles; prerequisite to managed language/XLIR admission",
+  "xgeCommit": "20fad3e8b6e0bb9b591bdacb27aa4e99ff7b6d7a",
+  "xgeSourceSha256": {
+    "include/xui.h": "f89281e3e7de69542b991a4e5b3565614d70b48ba44129ebdc9e0395c5c822e2",
+    "src/xui/core/xui_internal.h": "eb334a7c7ae6698ece9297881551e3f155969da3dc156614d5d3b2224213bbb2",
+    "src/xui/core/xui_widget.c": "5c2bf8239d976da81c7440466f26476b95c60269c94578305d2f2e126a77074b",
+    "src/xui/workflow/xui_flow_graph.c": "07a4552647e41946ff8635158d6d4209a3705dae692c08ca8c552339ec8b7990",
+    "src/xui/workflow/xui_flow_graph_widget.c": "cb96d3c7010ca5c36db13ac72091d20583b6bba461076dee07931f57a8ef366b",
+    "src/xui/workflow/xui_workflow.c": "0648277694197b2db0a8ca0e10603d8ea66e1fc60aa80554523183fec64d8563",
+    "src/xui/workflow/xui_workflow_widget.c": "5738061e02015979c1281aecf266c1bcbd14abc8dabe0a58677fac3ee9159bee",
+    "tests/xui/xui_owned_payload_test.c": "c585a16022fc0379aaa6c803479060cc4cb2a172a25a856a532aeee0083b45b8",
+    "tools/test/check_xui_lifetime.py": "a63f111a3717dc063a5edc442413f258d7654d85fcb4a7169d2cfe43592d9b30"
+  },
+  "xlangSourceSha256": {
+    "test/support/foreign_native_xui_callback.c": "5ac3d7bf90dd9d0e5b5884bede9e34ed1e4ff3f9edf0ba5bdc245b0dcae88d8e",
+    "tools/check_foreign_view_storage.py": "4dd2a2aa10d1ad643868bbf56e19e9e975e67f28fa7827ddacd94aab550c62b4"
+  },
+  "nativeWindows": {
+    "path": "F:\\xlang-validation\\xui-payload-20261103\\native-win-r2\\results.json",
+    "sha256": "3aa91105840790d8b3ed59494d8c8a309c32b3e02c1ffeb010fde18d84a0d928",
+    "stages": 66,
+    "passed": true
+  },
+  "nativeLinux": {
+    "path": "/home/ubuntu/xlang-validation/xui-payload-20261103/native-linux-r2/results.json",
+    "sha256": "8e4fc0cdd39630e3d818a41bf8166a635883230a448fbd62d60ce6b477f46f5c",
+    "stages": 66,
+    "passed": true
+  },
+  "hostedWindows": {
+    "path": "F:\\xlang-validation\\xui-payload-20261103\\actual-xl-win-r5\\results.json",
+    "sha256": "1f41278b6796233912a9022324c66cb9378e839422ff6dd0c6906e1fcc208dee",
+    "stages": 38,
+    "passed": true
+  },
+  "hostedLinux": {
+    "path": "/home/ubuntu/xlang-validation/xui-payload-20261103/actual-xl-linux-r2/results.json",
+    "sha256": "2b52bb3c7e2a6b543a3e40e8bfe9fcb7854324cebdd8b4f3a81488cbd9fa27da",
+    "stages": 38,
+    "passed": true
+  },
+  "engines": {
+    "windows": {
+      "path": "F:\\xlang-validation\\xui-payload-20261103\\host-win\\build-report.json",
+      "sha256": "5cb41ea0b197579ae221c9f1b16a4b733f669ffa20c3797a43af12149b59e0a7",
+      "selectedSources": 137,
+      "runtimeBytes": 8665195,
+      "dllSha256": "d01ad344a92a4174cee0e25dc3823503cf7a4a7c0c633a5522a975c59067c510",
+      "hostXrtImports": 177
+    },
+    "linux": {
+      "path": "/home/ubuntu/xlang-validation/xui-payload-20261103/host-linux/build-report.json",
+      "sha256": "dbc7fe87e8262d68a14e449754105863292f5ff1bdbdee1f7249251a272ecaaa",
+      "selectedSources": 137,
+      "runtimeBytes": 9379568,
+      "hostXrtImports": 175
+    },
+    "optimization": "O2",
+    "mode": "host; no embedded XRT implementation",
+    "xrtCanonicalHeaderSha256": "20b781e898c38a79a602024530313acfff2e558826e0039a89bbf974896eee06"
+  },
+  "capabilities": [
+    "Per-native-type frozen ownership trace; each inheritance level traces only its introduced slots.",
+    "Context includes unattached widgets and actual owned event references.",
+    "FlowGraph current config, undo and redo old/new config, delete-selection child snapshots.",
+    "Workflow unique graph, registered type schema, variable defaults.",
+    "Owning FlowGraph/Workflow widgets enumerate their unique models; borrowed canvases contribute no duplicate model edges.",
+    "Tracer replacement refuses live exact or derived instances.",
+    "size_t zero-based array bounds; unknown nested command schema refuses without recursive stack growth."
+  ],
+  "verification": {
+    "optimizations": [
+      "O0",
+      "O2"
+    ],
+    "nativeSuites": [
+      "lifetime",
+      "lifetime_observer",
+      "drag_drop_reentry",
+      "owned_callback",
+      "owned_payload"
+    ],
+    "existingDragDropCasesPerOptimization": 47,
+    "nativeReadonlyIterationsPerOptimization": 200,
+    "traceAllocationDelta": 0,
+    "traceFreeDelta": 0,
+    "traceReallocationDelta": 0,
+    "hostedPayloadCycleShapesPerOptimization": 4,
+    "hostedDirectEdgeCounts": [
+      4,
+      6,
+      5,
+      7
+    ],
+    "nativeLinuxSanitizers": "XRT implementation, XUI core, native models and fixtures compiled with ASan/UBSan; leak detection enabled.",
+    "hostedLinuxSanitizers": "17 replacement resident/fixture units compiled with ASan/UBSan; reused xlang core objects and complete O2 XGE are not instrumented.",
+    "sourceCompilerRebuilt": false,
+    "windowsCohort": "F:/xlang-validation/foreign-bound-20261103/source-r1-vfs/build.json",
+    "linuxCohort": "/home/ubuntu/xlang-validation/xge-declarative-20261102-r2/source-r2/build.json",
+    "coreReuse": "Recorded object bytes verified; selected native sources recompiled O0/O2. Not a new canonical frontend build.",
+    "earlierHarnessFailures": [
+      "Staged Windows cohort keeps LinkResponse at its recorded parent path; tool now consumes/verifies the manifest path.",
+      "Linux runtime layout has no default SDK; tool now accepts a pinned --sdk-root, hashes its headers, and verifies XRT source identity against the cohort."
+    ]
+  },
+  "performance": {
+    "metadata": "one function pointer per registered native type; no additional widget field or allocation",
+    "normalRenderEventPath": "payload trace is not executed",
+    "traceWork": "linear enumeration of widgets, type chains and actual model slots; no cloning or extra owning references",
+    "zeroOverheadClaim": false
+  },
+  "releaseProductsUpdated": false,
+  "releaseIndexUpdated": false,
+  "networkTests": false,
+  "remaining": [
+    "Managed language declarations, owning storage schema, owner/transfer/context XLIR and managed bound method values.",
+    "Owned registration and complete return-tail contracts for other currently borrowed native callbacks.",
+    "Lifetime/invalidation contracts for separately exposed model and independent resource views.",
+    "Factory result guards, remaining text/span/effect contracts, package initialization, full XGE/XUI declarations, SDK/IDE and delivery acceptance."
+  ]
+}
