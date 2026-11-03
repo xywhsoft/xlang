@@ -1,0 +1,53 @@
+extern "ManagedRoot*" class Root @header("test/cases/foreign_managed_view.h") @lifetime("owned") @policy("managedRootPolicy") @scope("ManagedScope") @watch("ManagedWatch")
+    native point handle
+    extern "managed_root_read" @no_raise get value() as c_int
+    extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "ManagedChild*" class Event @header("test/cases/foreign_scoped_view.h") @lifetime("callback") @owner(Root)
+    native point handle
+    extern "managed_child_read" @no_raise get value() as c_int
+    extern "scoped_read" @no_raise func read() as c_int
+    extern "managed_child_owner" @no_raise @c_result("owner_view",0) get context() as Root
+    extern "scoped_identity" @no_raise @c_result("scope_view",0) func same() as Event
+    extern "scoped_optional" @no_raise @c_result("scope_view",0) func optional() as Event?
+end
+extern "managed_root_destroy" @no_raise func rollback(Root root)
+extern "managed_root_create" @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(c_int mode) as Root
+extern "managed_set_callback" @no_raise @c_owned_callback(1,0,"ManagedCallbackOwner",-9) func on(Root root,func(Event?,c_int) as c_int callback)
+extern "scoped_fire" @no_raise func fire(Root root,c_int value) as c_int
+extern "managed_counter_begin" @no_raise func countersBegin()
+extern "managed_counter_end" @no_raise func countersEnd()
+protocol Reader
+    func read() as c_int
+end
+func rejectedAsReader(var value) as bool
+    try
+        Reader invalid=value as Reader
+    catch error
+        return true
+    end
+    return false
+end
+func main(...) as int
+    Root root=create(0)
+    var saved=null
+    on(root,func(Event? input,c_int code) as c_int
+        Event event=input as Event
+        Reader reader=event
+        saved=reader
+        assert reader.read()==code
+        return reader.read()
+    end)
+    assert fire(root,17)==17
+    bool rejected=false
+    try
+        Reader expired=saved as Reader
+        auto ignored=expired.read()
+    catch error
+        rejected=true
+    end
+    assert rejected
+    assert rejectedAsReader(root)
+    root.close()
+    return 0
+end

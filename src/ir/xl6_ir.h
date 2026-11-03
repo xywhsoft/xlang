@@ -6612,9 +6612,9 @@ typedef struct XL6_IrProtocolDispatchImpl {
 
 /* Closed runtime identities accepted by one class or protocol target.  Class
  * hierarchies and protocol witnesses are resolved while Typed XLIR is built;
- * lowering/Cgen consume only this source-free set.  Runtime-tag sets preserve
- * derived-class identity; exact-TypeId sets cover nominal XRT classes without
- * a compiler-owned class layout (for example imported native classes). */
+ * lowering/Cgen consume only this source-free set. Runtime-tag sets preserve
+ * class-layout inheritance. Protocols use exact concrete TypeIds across both
+ * object and native-value storage, without fabricating object layouts. */
 typedef enum XL6_IrNominalIdentityKind {
     XL6_IR_NOMINAL_IDENTITY_INVALID = 0,
     XL6_IR_NOMINAL_IDENTITY_CLASS_RUNTIME_TAG,
@@ -7983,6 +7983,7 @@ XL6_IrForeignOperationAbi xl6IrForeignOperationForTarget(const XL6_IrModule*,con
 const XL6_ForeignFieldLengthContract* xl6IrForeignFieldLengthGet(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignOutputValueMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignProjectionMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
+int xl6IrForeignManagedPointeeWrite(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignManagedViewParameter(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 int xl6IrForeignControlViewParameter(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 const XL6_IrType* xl6IrForeignRootType(const XL6_IrModule*,XL6_IrTypeId);

@@ -399,6 +399,23 @@ static const XL6_IrClassField* xl6IrCgenProtocolExternReceiverField(
     return field;
 }
 
+/* A native nominal receiver owns methods without an object-field layout. */
+static const XL6_IrType* xl6IrCgenProtocolNativeReceiver(
+    const XL6_IrModule* module,const XL6_IrProtocolDispatchSlot* slot,const XL6_IrCallTarget* target)
+{
+    if (!module || !slot || !target || !target->parameterCount ||
+        target->parameterCount!=slot->parameterCount+1 || !target->parameterTypes ||
+        target->returnType!=slot->returnType || target->resultPhysicalAbi!=XL6_IR_CALL_RESULT_PHYSICAL_DIRECT) return NULL;
+    const XL6_IrType* receiver=xl6IrTypeGet(&module->types,target->parameterTypes[0]);
+    if (!xl6IrNativeValuePlanForType(receiver)) return NULL;
+    if (target->kind==XL6_IR_CALL_TARGET_EXTERN_C) {
+        if (target->errorPhysicalAbi!=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE) return NULL;
+        for(size_t p=0;p<target->parameterCount;++p)
+            if(!xl6IrForeignPreparedParameterMatches(module,target,p))return NULL;
+    }
+    return receiver;
+}
+
 static const XL6_IrClassField* xl6IrCgenNativeClassResultField(
     const XL6_IrModule* module, const XL6_IrCallTarget* target)
 {

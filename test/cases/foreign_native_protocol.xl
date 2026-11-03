@@ -1,0 +1,72 @@
+extern "ManagedRoot*" class Root @header("test/cases/foreign_managed_view.h") @lifetime("owned") @policy("managedRootPolicy") @scope("ManagedScope") @watch("ManagedWatch")
+    native point handle
+    extern "managed_root_read" @no_raise func read() as c_int
+    extern "managed_child_create" @no_raise @c_result("owner_view",0) @factory(2,0,rollbackChild) func child(c_int mode) as Child
+    extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "ManagedRoot*" class DerivedRoot @header("test/cases/foreign_managed_view.h") @lifetime("owned") @policy("managedRootPolicy") @scope("ManagedScope") @watch("ManagedWatch") extends Root
+end
+extern "ManagedChild*" class Child @header("test/cases/foreign_managed_view.h") @lifetime("owner") @owner(Root) @policy("managedChildPolicy") @watch("ManagedWatch")
+    native point handle
+    extern "managed_child_read" @no_raise func read() as c_int
+end
+extern "managed_root_destroy" @no_raise func rollback(Root root)
+extern "managed_child_destroy" @no_raise func rollbackChild(Child child)
+extern "managed_root_create" @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(c_int mode) as Root
+extern "managed_root_destroy" @no_raise func rollbackDerived(DerivedRoot root)
+extern "managed_root_create" @no_raise @c_result("owned_view") @factory(1,0,rollbackDerived) func createDerived(c_int mode) as DerivedRoot
+extern "managed_roots_live" @no_raise func roots() as c_int
+extern "managed_children_live" @no_raise func children() as c_int
+protocol Reader
+    func read() as c_int
+end
+protocol Maker
+    func child(c_int mode) as Child
+end
+class LocalReader
+    func read() as c_int
+        return 99
+    end
+end
+class InheritedReader extends LocalReader
+end
+func cases()
+    Root root=create(0)
+    Reader reader=root
+    Maker maker=root
+    assert reader.read()==42
+    Child child=maker.child(0)
+    Reader childReader=child
+    assert childReader.read()==17
+    func() as c_int bound=root.read
+    assert bound()==42
+    var erased=maker
+    Reader checked=erased as Reader
+    assert checked.read()==42
+    Reader? directlyNullable=root
+    assert directlyNullable!=null and directlyNullable.read()==42
+    Reader? optional=erased as Reader?
+    assert optional!=null and optional.read()==42
+    DerivedRoot derived=createDerived(0)
+    array<Reader> mixed=[root,LocalReader(),InheritedReader(),child,derived]
+    assert mixed[0].read()==42 and mixed[1].read()==99 and mixed[2].read()==99 and mixed[3].read()==17 and mixed[4].read()==42
+    root.close()
+    bool expired=false
+    try
+        auto ignored=maker.child(0)
+    catch error
+        expired=true
+    end
+    assert expired
+end
+func owningFactory()
+    Reader reader=create(0)
+    assert reader.read()==42 and roots()==1
+end
+func main(...) as int
+    cases()
+    assert roots()==0 and children()==0
+    owningFactory()
+    assert roots()==0
+    return 0
+end

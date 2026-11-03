@@ -153,13 +153,13 @@ static void xl6IrCgenEmitDispatchTargetCall(
 static int xl6IrCgenEmitDispatchWitness(
     XL6_Output* out, const XL6_IrModule* module, XL6_IrTypeId returnType,
     XL6_IrErrorAbi errorAbi, const XL6_IrCallTarget* target,
-    const XL6_IrClassField* externReceiverField, size_t parameterCount,
+    const XL6_IrClassField* externReceiverField, XL6_IrTypeId nativeReceiverType, size_t parameterCount,
     XL6_DiagList* diags)
 {
     int carrier = errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE;
     int lift = carrier && target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_NONE;
     if (target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE) {
-        if (!carrier || externReceiverField == NULL)
+        if (!carrier || (externReceiverField == NULL && !nativeReceiverType))
             return xl6IrCgenDiag(diags, module, target->declaration,
                 "XLIR foreign witness has no joined outcome or native receiver ABI");
         xl6OutputPrintf(out, "%s result = {false};\n", xl6IrCgenErrorResultType(module, returnType));
@@ -168,9 +168,18 @@ static int xl6IrCgenEmitDispatchWitness(
         if (!xl6IrCgenEmitPreparationRollback(out, module, target, NULL, 1, "outcome", diags)) return 0;
         xl6OutputPuts("        xrtSetErrorTake(outcome.error); return result;\n"
             "    }\n    ", out);
+        if (nativeReceiverType) {
+            const XL6_IrType* type=xl6IrTypeGet(&module->types,nativeReceiverType);
+            const XL6_IrNativeValuePlan* plan=xl6IrNativeValuePlanForType(type);
+            if (!plan || !plan->nominalDomainArguments) return 0;
+            xl6OutputPrintf(out,"    %s receiver = {0};\n    bool native_receiver_ok = %s(boxed_receiver, 0x%016llXULL, false, &receiver);\n"
+                "    if (!native_receiver_ok) xl6ErrorScopeCaptureFailure(&scope);\n    if (native_receiver_ok) {\n",
+                xl6IrCgenType(module,target->parameterTypes[0]),plan->projectSymbol,(unsigned long long)type->typeValueId);
+        }
         int handles = xl6IrCgenWitnessNativeHandles(out, module, target, "scope");
         if (handles < 0 || !xl6IrCgenEmitWitnessNativeCall(out, module, target, "result.value", "scope")) return 0;
         if (handles) xl6OutputPuts("    }\n", out);
+        if (nativeReceiverType) xl6OutputPuts("    }\n",out);
         /* Only actual native entry consumes OWNED inputs. Preparation failures
          * leave nonempty slots; clearing before release also permits reentry. */
         for (size_t p = target->parameterCount; p > 1; --p) {
@@ -179,6 +188,8 @@ static int xl6IrCgenEmitDispatchWitness(
             if (!xl6IrCgenEmitOwnedPlaceRelease(out, module, target->parameterTypes[p - 1], place, diags)) return 0;
             xl6OutputPuts("    if (xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);\n", out);
         }
+        if (nativeReceiverType &&
+            !xl6IrCgenEmitOwnedPlaceRelease(out,module,target->parameterTypes[0],"receiver",diags)) return 0;
         if (returnType != XL6_IR_TYPE_INVALID) {
             xl6OutputPuts("    if (scope.failed || xrtGetError() != NULL) {\n"
                 "        xl6ErrorScopeCaptureFailure(&scope);\n", out);
@@ -197,7 +208,7 @@ static int xl6IrCgenEmitDispatchWitness(
     int bytesPrepared=target->kind==XL6_IR_CALL_TARGET_EXTERN_C ? xl6IrCgenPrepareBytesViews(out,target,NULL) : 0;
     int owned=target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE;
     if (lift) {
-        xl6OutputPrintf(out, "%s result = {true}; ", xl6IrCgenErrorResultType(module, returnType));
+        xl6OutputPrintf(out, "%s result = {0}; result.ok = true; ", xl6IrCgenErrorResultType(module, returnType));
         if (returnType != XL6_IR_TYPE_INVALID) xl6OutputPuts(owned ? "result.value.Data = " : "result.value = ", out);
     } else if(owned) {
         xl6OutputPuts("xlir_string owned_result = {0}; owned_result.Data = ",out);
@@ -239,7 +250,7 @@ static int xl6IrCgenEmitVirtualDispatchers(
                     "XLIR virtual dispatch implementation has no runtime type tag ABI");
             xl6OutputPrintf(out, "    case %u: { ", (unsigned int)layout->runtimeTypeTag);
             if (!xl6IrCgenEmitDispatchWitness(out, module, slot->returnType, slot->errorAbi,
-                    target, NULL, slot->parameterCount, diags)) return 0;
+                    target, NULL, 0, slot->parameterCount, diags)) return 0;
             xl6OutputPuts("}\n", out);
         }
         xl6OutputPuts("    default: abort();\n    }\n}\n\n", out);
@@ -247,8 +258,8 @@ static int xl6IrCgenEmitVirtualDispatchers(
     return !xl6OutputHasFailed(out);
 }
 
-/* Protocol dispatch consumes the same runtime object tag as class dispatch,
- * but its rows are independently verified protocol witnesses. */
+/* Protocol witnesses use immutable nominal TypeIds for both object and native
+ * values. Object layout tags remain the separate virtual-class ABI. */
 
 static int xl6IrCgenEmitProtocolDispatchers(
     XL6_Output* out, const XL6_IrModule* module, XL6_DiagList* diags)
@@ -261,7 +272,7 @@ static int xl6IrCgenEmitProtocolDispatchers(
         if ( !xl6IrCgenProtocolDispatchSlotIsReachable(module, slotIndex) ) continue;
         if ( !xl6IrCgenEmitProtocolDispatcherSignature(
                 out, module, slot, slotIndex, diags) ) return 0;
-        xl6OutputPuts("\n{\n    switch (xlir_xvalue_object_get_literal_i64(receiver, xrtStrView(\"$xlir.class.runtime-type\"))) {\n", out);
+        xl6OutputPuts("\n{\n    xvalue* boxed_receiver = receiver;\n    switch (xrtValueTypeId(boxed_receiver)) {\n", out);
         for ( implementation = 0; implementation < module->protocolDispatchImplCount; ++implementation ) {
             const XL6_IrProtocolDispatchImpl* impl = &module->protocolDispatchImpls[implementation];
             const XL6_IrClassLayout* layout = NULL;
@@ -273,7 +284,9 @@ static int xl6IrCgenEmitProtocolDispatchers(
                     layout = &module->classLayouts[parameter]; break;
                 }
             target = xl6IrCallTargetGet(module, impl->implementationSymbol);
-            if ( layout == NULL || layout->runtimeTypeTag == 0 || target == NULL ||
+            const XL6_IrType* owner=xl6IrTypeGet(&module->types,impl->ownerType);
+            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(owner);
+            if ( !owner || !owner->typeValueId || (!native && (!layout || !layout->runtimeTypeTag)) || target == NULL ||
                   (target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
                    target->kind != XL6_IR_CALL_TARGET_INTERNAL_ASYNC &&
                    target->kind != XL6_IR_CALL_TARGET_INTERNAL_GENERATOR &&
@@ -281,14 +294,15 @@ static int xl6IrCgenEmitProtocolDispatchers(
                  target->returnType != slot->returnType )
                 return xl6IrCgenDiag(diags, module, impl->implementationDeclaration,
                                      "XLIR protocol witness has no runtime type tag/callable ABI");
-            if ( target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
+            if ( target->kind == XL6_IR_CALL_TARGET_EXTERN_C && !native &&
                  (externReceiverField = xl6IrCgenProtocolExternReceiverField(
                       module, slot, target)) == NULL )
                 return xl6IrCgenDiag(diags, module, impl->implementationDeclaration,
                     "XLIR protocol extern witness has no exact native receiver adapter ABI");
-            xl6OutputPrintf(out, "    case %u: { ", (unsigned int)layout->runtimeTypeTag);
+            xl6OutputPrintf(out,"    case 0x%016llXULL: { ",(unsigned long long)owner->typeValueId);
+            if(!native)xl6OutputPuts("xvalue* receiver = boxed_receiver;\n",out);
             if (!xl6IrCgenEmitDispatchWitness(out, module, slot->returnType, slot->errorAbi,
-                    target, externReceiverField, slot->parameterCount, diags)) return 0;
+                    target, externReceiverField, native?impl->ownerType:0, slot->parameterCount, diags)) return 0;
             xl6OutputPuts("}\n", out);
         }
         xl6OutputPuts("    default: abort();\n    }\n", out);

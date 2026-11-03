@@ -1,5 +1,26 @@
 # XGE3 / XUI3 声明式接入实施状态
 
+11 月 4 日协议／受管指针输出及导航回调验收：Windows 完整编译 1,414 单元、
+TCC 1,562 对象和 27 组联合检查全部通过；Linux 完整编译 1,413 单元、13 组
+GCC 检查及 base／choice／navigation 三组真实 XUI O0/O2 组合通过。
+受管／回调视图协议使用精确名义类型 ID，原生 witness 直接准备原生接收者；
+16 个既有协议运行用例通过。协议与受管指针输出每个优化等级各拒绝 20 项 IR
+篡改并检查 40 次空 C/header 输出。回调内 `Child**` 允许同 Root 或 null；
+跨实际 Context 在写入前 checked 拒绝，保存后的读写也 checked 拒绝。
+
+XGE `0a682961` 的 Hyperlink、Page、Carousel、Breadcrumb click／context 五个
+类型化 Owned 槽通过 Windows O0/O2 及 Linux O0/O2 + ASan/UBSan/泄漏检查。
+两端完整默认 O2 宿主引擎均为 139 单元、174 个共用 XRT 导入；实际语言声明
+直接调用原生注册入口。1,000 次预热导航回调无新增 XRT 分配／释放／realloc。
+指针输出 200 轮预热无新增分配。协议擦除、装箱、首次登记和 checked／拥有
+管理仍有各自成本；不能将这些结果概括为整套绑定零开销。
+
+本次只封存上述能力；独立资源的原位工厂／存储拥有合同、其他原生回调族、
+完整声明、自动初始化及 SDK／IDE／发布迁移仍在推进，八项整体任务尚未封板。
+未更新发布二进制。证据：
+`dev/release-materials/provenance/foreign-native-protocol-pointee-navigation-20261104.json`。
+
+
 11 月 4 日容器拥有权／八类选择控件验收：Windows 完整编译 1,414 单元、TCC 1,562 对象，
 25 组接受；其中八份旧验证脚本只链接旧发布 DLL，保留失败报告，改为同源码运行时后仅补跑八组。
 Linux 完整编译 1,413 单元、11 组 GCC 检查及 base／choice 两组实际 XUI O0/O2 组合通过。
