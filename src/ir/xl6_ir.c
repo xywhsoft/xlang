@@ -14536,6 +14536,28 @@ static int xl6IrBoundMethodResultMatchesDepth(const XL6_IrModule* module,XL6_IrT
 }
 int xl6IrBoundMethodResultMatches(const XL6_IrModule* module,XL6_IrTypeId from,XL6_IrTypeId to)
 { return module && xl6IrBoundMethodResultMatchesDepth(module,from,to,0); }
+/* One closed capture policy for the hidden receiver. A caller-lifetime view
+ * snapshots its exact C pointer; an ordinary class owns a language reference.
+ * Native resources without the explicit foreign declaration cannot acquire a
+ * trivial lifetime through this path. Neither policy grants a native owner. */
+XL6_IrClosureCaptureAbi xl6IrBoundMethodReceiverCaptureAbi(const XL6_IrModule* module,
+    const XL6_IrCallTarget* target)
+{
+    const XL6_IrType* type=module && target && target->parameterCount && target->parameterTypes
+        ? xl6IrTypeGet(&module->types,target->parameterTypes[0]) : NULL;
+    if(!type || type->kind!=XL6_IR_TYPE_CLASS || !target->parameterAbis ||
+        target->parameterAbis[0]!=XL6_IR_PARAMETER_ABI_BORROW)return XL6_IR_CLOSURE_CAPTURE_INVALID;
+    if(type->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED)
+        return XL6_IR_CLOSURE_CAPTURE_RETAIN_XVALUE;
+    const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
+    return type->cAbi==XL6_IR_C_ABI_NATIVE_HANDLE && type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+        type->foreignHeader && !xl6IrNativeHandleDestroySymbol(module,target->parameterTypes[0]) &&
+        target->kind==XL6_IR_CALL_TARGET_EXTERN_C &&
+        target->runtimeBridge==XL6_IR_RUNTIME_BRIDGE_NONE && target->parameterPhysicalAbis &&
+        target->parameterPhysicalAbis[0]==XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT && declaration &&
+        declaration->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC && !(declaration->flags&XL6_AST_FLAG_STATIC)
+            ? XL6_IR_CLOSURE_CAPTURE_COPY_VALUE : XL6_IR_CLOSURE_CAPTURE_INVALID;
+}
 int xl6IrBoundMethodTargetMatches(const XL6_IrModule* module,XL6_IrNodeId sourceId,
     XL6_SymbolId symbol,XL6_IrTypeId signatureId)
 {
@@ -14554,7 +14576,7 @@ int xl6IrBoundMethodTargetMatches(const XL6_IrModule* module,XL6_IrNodeId source
        target->variadicAbi!=xl6IrBuildCallableVariadicAbi(signature->callableErasureAbi) ||
         target->parameterCount<signature->paramCount+1 ||
         !xl6IrBoundMethodResultMatches(module,target->returnType,signature->callableResultType) ||
-       target->parameterAbis[0]!=XL6_IR_PARAMETER_ABI_BORROW) return 0;
+       xl6IrBoundMethodReceiverCaptureAbi(module,target)==XL6_IR_CLOSURE_CAPTURE_INVALID) return 0;
     const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
     const XL6_IrNode* name=declaration && declaration->childCount>2 ? xl6IrNodeGet(module,module->children[declaration->firstChild]) : NULL;
     const XL6_IrNode* params=declaration && declaration->childCount>2 ? xl6IrNodeGet(module,module->children[declaration->firstChild+1]) : NULL;
@@ -41204,12 +41226,13 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  "XLIR anonymous closure target has no complete signature and body ABI");
         } else if ( closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ||
                     closure->kind == XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER ) {
-             size_t parameter, boundaries = 0, boundary = 0;
+             size_t parameter, boundaries = 0, boundary = 0, invocations = 0;
              if ( module->stage != XL6_IR_STAGE_LOWERED ||
                   (closure->kind==XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER ?
                    (!xl6IrBoundMethodTargetMatches(module,closure->declaration,closure->adaptedTargetSymbol,closure->signatureType) ||
                     closure->boundMethodDispatchSlot!=xl6IrBoundMethodDispatchSlot(module,closure->declaration,closure->adaptedTargetSymbol) ||
-                    closure->captureCount!=1 || !target || module->closureCaptures[closure->firstCapture].type!=target->parameterTypes[0]) :
+                    closure->captureCount!=1 || !target || module->closureCaptures[closure->firstCapture].type!=target->parameterTypes[0] ||
+                    module->closureCaptures[closure->firstCapture].abi!=xl6IrBoundMethodReceiverCaptureAbi(module,target)) :
                    ((declaration->kind!=XL6_IR_NODE_NAME && declaration->sourceKind!=XL6_AST_GENERIC_INSTANT) ||
                     declaration->namedCallableAbi!=XL6_IR_NAMED_CALLABLE_CAPTURE_FREE_ADAPTER ||
                     declaration->namedCallableTargetSymbol!=closure->adaptedTargetSymbol ||
@@ -41242,14 +41265,21 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             for (parameter = adapter->firstInstruction;
                  parameter < adapter->firstInstruction + adapter->instructionCount; ++parameter) {
                 const XL6_IrInstruction* member = &module->instructions[parameter];
+                /* Defaults have their own expression origins. The adapter's
+                 * primary invocation must retain the authenticated method,
+                 * even if another target has an identical physical ABI. */
                 if(closure->kind==XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER &&
                    member->origin==closure->declaration &&
                    (member->kind==XL6_IR_INSTR_CALL || member->kind==XL6_IR_INSTR_VIRTUAL_CALL ||
-                    member->kind==XL6_IR_INSTR_ASYNC_START || member->kind==XL6_IR_INSTR_GENERATOR_START) &&
-                   (member->kind==XL6_IR_INSTR_VIRTUAL_CALL || member->targetSymbol==closure->adaptedTargetSymbol) &&
-                   (member->dispatchSlot!=closure->boundMethodDispatchSlot ||
-                    (member->kind==XL6_IR_INSTR_VIRTUAL_CALL)!=(closure->boundMethodDispatchSlot!=0)))
-                    return xl6IrDiag(diags,declaration,"XLIR bound method changed its source dispatch policy");
+                    member->kind==XL6_IR_INSTR_ASYNC_START || member->kind==XL6_IR_INSTR_GENERATOR_START)) {
+                    XL6_IrInstructionKind expected=closure->boundMethodDispatchSlot ? XL6_IR_INSTR_VIRTUAL_CALL :
+                        target->kind==XL6_IR_CALL_TARGET_INTERNAL_ASYNC ? XL6_IR_INSTR_ASYNC_START :
+                        target->kind==XL6_IR_CALL_TARGET_INTERNAL_GENERATOR ? XL6_IR_INSTR_GENERATOR_START : XL6_IR_INSTR_CALL;
+                    if(member->kind!=expected || member->dispatchSlot!=closure->boundMethodDispatchSlot ||
+                       (expected!=XL6_IR_INSTR_VIRTUAL_CALL && member->targetSymbol!=closure->adaptedTargetSymbol))
+                        return xl6IrDiag(diags,declaration,"XLIR bound method changed its exact invocation target or dispatch policy");
+                    ++invocations;
+                }
                 if (((member->kind == XL6_IR_INSTR_ERROR_UNWIND_BEGIN || member->cleanupPlan != 0) &&
                      member->cleanupPlan != boundary) ||
                     ((member->kind == XL6_IR_INSTR_RELEASE || member->kind == XL6_IR_INSTR_CELL_RELEASE) &&
@@ -41257,6 +41287,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      member->errorScope == 0))
                     return xl6IrDiag(diags, declaration, "XLIR adapter cleanup must observe failure at its own function boundary");
             }
+            if(closure->kind==XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER && invocations!=1)
+                return xl6IrDiag(diags,declaration,"XLIR bound method requires one exact primary invocation");
             for ( parameter = 0; parameter < signature->paramCount; ++parameter ) {
                 const XL6_IrStorage* storage = xl6IrStorageGet(
                     module, module->functionParameters[adapter->firstParameter + parameter]);

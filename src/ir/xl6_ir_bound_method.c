@@ -63,7 +63,10 @@ static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext* ctx,XL6_IrNodeId or
     if(owner && owner->kind==XL6_IR_TYPE_NULLABLE && owner->paramCount==1) {
         ownerId=owner->params[0];owner=xl6IrTypeGet(&module->types,ownerId);
     }
-    if(!owner || owner->kind!=XL6_IR_TYPE_CLASS || owner->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) return 0;
+    if(!owner || owner->kind!=XL6_IR_TYPE_CLASS ||
+       (owner->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+        !(owner->cAbi==XL6_IR_C_ABI_NATIVE_HANDLE && owner->foreignHeader &&
+          owner->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL))) return 0;
     XL6_SymbolId selected=0;
     XL6_IrNodeId selectedDeclaration=0;
     XL6_IrTypeId* selectedArgs=NULL;
@@ -190,7 +193,8 @@ static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext* ctx,XL6_IrNodeId or
         XL6_IrNodeId selfId=xl6IrLowerFindClassReceiverInSubtree(module,target->declaration);
         const XL6_IrNode* self=xl6IrNodeGet(module,selfId);
         *capture=(XL6_IrClosureCapture){.sourceSymbol=self && self->targetSymbol ? self->targetSymbol : xl6IrLowerNewSyntheticSymbol(ctx),
-            .storageSymbol=xl6IrLowerNewSyntheticSymbol(ctx),.type=receiverType,.abi=XL6_IR_CLOSURE_CAPTURE_RETAIN_XVALUE};
+            .storageSymbol=xl6IrLowerNewSyntheticSymbol(ctx),.type=receiverType,
+            .abi=xl6IrBoundMethodReceiverCaptureAbi(module,target)};
         const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
         const XL6_IrNode* params=xl6IrNodeGet(module,module->children[declaration->firstChild+1]);
         XL6_IrCallTarget user=xl6IrLowerBoundMethodUserTarget(target);
