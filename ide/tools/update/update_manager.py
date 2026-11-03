@@ -63,7 +63,8 @@ def crypto_path(selected=None):
     if selected:
         return str(Path(selected).resolve())
     suffix='.exe' if os.name=='nt' else ''
-    for path in (Path(__file__).with_name('update-crypto'+suffix), ROOT/'ide/build/Release/update'/('update-crypto'+suffix)):
+    host='win_x64' if os.name=='nt' else ('linux_arm64' if os.uname().machine in ('aarch64','arm64') else 'linux_arm' if os.uname().machine.startswith('arm') else 'linux_x64')
+    for path in (Path(__file__).with_name('update-crypto'+suffix), ROOT/'ide/build/Release/update'/host/('update-crypto'+suffix), ROOT/'release/tools/update'/('update-crypto'+suffix)):
         if path.is_file(): return str(path)
     raise ValueError('update-crypto not found; run ide/tools/build_update.py first')
 

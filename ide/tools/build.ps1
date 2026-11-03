@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([ValidateSet('Debug','Release')][string]$Configuration='Debug', [switch]$Tests, [string]$FrontendRoot='', [string]$ReleaseDirectory='', [switch]$GuiOnly, [string]$LanguageServerPath='', [switch]$EnableCLsp)
+param([ValidateSet('Debug','Release')][string]$Configuration='Debug', [switch]$Tests, [string]$FrontendRoot='', [string]$ReleaseDirectory='', [switch]$GuiOnly, [string]$LanguageServerPath='', [switch]$EnableCLsp, [switch]$CandidateOnly)
 $ErrorActionPreference='Stop'
 function Get-XideSha256([string]$Path) {
     $stream=[IO.File]::OpenRead($Path)
@@ -15,7 +15,7 @@ $compiler = (Get-Command gcc -ErrorAction Stop).Source
 $resourceCompiler = (Get-Command windres -ErrorAction Stop).Source
 $objectRoot = Join-Path $ideRoot ('build\' + $Configuration)
 # Development tests stay private; the shared runtime never receives fixtures.
-$releaseRoot = if ($ReleaseDirectory) { [IO.Path]::GetFullPath($ReleaseDirectory) } elseif ($Tests) { Join-Path $objectRoot 'release' } else { Join-Path (Split-Path -Parent $ideRoot) 'release' }
+$releaseRoot = if ($ReleaseDirectory) { [IO.Path]::GetFullPath($ReleaseDirectory) } elseif ($Tests) { Join-Path $objectRoot 'release' } else { Join-Path (Split-Path -Parent $ideRoot) 'release\win_x64' }
 if ($GuiOnly) {
     if (-not $LanguageServerPath) { throw 'GuiOnly requires an explicit qualified LanguageServerPath.' }
     $LanguageServerPath=(Resolve-Path -LiteralPath $LanguageServerPath).Path
@@ -63,6 +63,7 @@ $sources += 'src\protocol\input_state.c'
 $sources += 'src\protocol\diagnostic_paths.c'
 $sources += 'src\services\reference_results.c'
 $sources += 'src\services\execution_target.c'
+$sources += 'src\services\update_client.c'
 $sources += 'src\ui\main_toolbar.c'
 # C LSP implementations stay in the repository but are absent from default binaries.
 $cLspSources=@('src\services\c_commands.c','src\services\c_language.c','src\services\c_completion_job.c','src\services\c_input_trace.c','tools\clangd_input_trace\NativeInput.c','src\services\c_bridge.c','src\ui\c_completion_view.c','src\ui\c_analysis_inputs.c','src\ui\c_language_view.c')
@@ -81,11 +82,12 @@ function Assert-XideBuildInputs([hashtable]$Inputs) {
     }
 }
 function Assert-XideCatalog {
-    & python -X utf8 (Join-Path $PSScriptRoot 'check_catalog_coverage.py') --root (Split-Path -Parent $ideRoot) --catalog (Join-Path $ideRoot 'data\commands.json')
+    $catalogArguments=@('--root',(Split-Path -Parent $ideRoot),'--catalog',(Join-Path $ideRoot 'data\commands.json'),'--release-directory',$releaseRoot)
+    & python -X utf8 (Join-Path $PSScriptRoot 'check_catalog_coverage.py') @catalogArguments
     if ($LASTEXITCODE -ne 0) { throw 'IDE catalog is stale; regenerate it against the current accepted compiler release.' }
 }
 # Reject stale runtime assets before compiling or replacing any program.
-Assert-XideCatalog
+if (-not $CandidateOnly) { Assert-XideCatalog } elseif (-not $GuiOnly) { throw 'CandidateOnly requires GuiOnly; it compiles without publishing runtime files.' }
 $appResources = Join-Path $objectRoot 'xlang_ide.res.o'
 & $resourceCompiler '-I' (Join-Path $ideRoot 'data') '-i' (Join-Path $ideRoot 'data\xlang_ide.rc') '-O' 'coff' '-o' $appResources
 if ($LASTEXITCODE -ne 0) { throw 'Application icon resource compilation failed.' }
@@ -127,6 +129,11 @@ $guiStaging=Join-Path $objectRoot 'xlang_ide.link.exe'
 & $compiler @flags '-DXIDE_GUI=1' -mwindows (Join-Path $ideRoot 'src\main.c') @objects $appResources @libraries -o $guiStaging
 if ($LASTEXITCODE -ne 0) { throw 'GUI link failed.' }
 Assert-XideBuildInputs $buildInputs
+if ($CandidateOnly) {
+    @{configuration=$Configuration;cLspEnabled=[bool]$EnableCLsp;candidateOnly=$true;inputs=$buildInputs;languageServerSha256=$languageServerHash;compiler=$compiler;flags=$flags;objects=$objects;resources=$appResources;libraries=$libraries;runtime=$releaseRoot;outputs=@{xlang_ide=(Get-XideSha256 $guiStaging)}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $objectRoot 'gui-candidate-build-inputs.json') -Encoding utf8
+    Write-Host "GUI candidate compiled; no runtime files published: $guiStaging"
+    return
+}
 Assert-XideCatalog
 [void](New-Item -ItemType Directory -Path (Join-Path $releaseRoot 'data') -Force)
 & python -X utf8 (Join-Path $PSScriptRoot 'catalog_publish.py') --pair (Join-Path $ideRoot 'data') --data (Join-Path $releaseRoot 'data') --work (Join-Path $objectRoot 'catalog-publications')

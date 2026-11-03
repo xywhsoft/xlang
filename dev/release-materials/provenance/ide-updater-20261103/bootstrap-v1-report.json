@@ -1,0 +1,17 @@
+{
+  "store": "ide/build/updates/win_x64",
+  "version": 1,
+  "files": 640,
+  "objects": 640,
+  "checks": [
+    "bootstrap",
+    "same-version-check",
+    "gui-no-config-no-extlibs",
+    "gui-corrupt-config",
+    "c-run-no-external-toolchain",
+    "xlang-run-no-extlibs"
+  ],
+  "mainBytes": 42612823,
+  "hardlinkedObjects": 640,
+  "status": "passed"
+}

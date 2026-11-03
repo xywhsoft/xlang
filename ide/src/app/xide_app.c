@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
+#include "services/update_client.h"
 #include <math.h>
 #define TRY_DOMAIN(call,domain_) do { int result_ = (call); if (result_ != 0) { xideFailureSet(&app->failure,app->frames ? XIDE_FAILURE_RENDER : XIDE_FAILURE_STARTUP,domain_,result_,"The interface could not create or render a required resource.",#call); fprintf(stderr, "workbench call failed at %s:%d: %s -> %d\n", __FILE__, __LINE__, #call, result_); return result_; } } while (0)
 #define TRY(call) TRY_DOMAIN(call,"XUI")
@@ -68,7 +69,7 @@ static int quitRequest(void* user)
     xideMessageEndOperation(app);
     xide_model_error error={0};
     if(!xideSessionSave(app,1,&error)) fprintf(stderr,"session on exit: %s\n",error.message);
-    return 1;
+    return xideUpdateOnQuit(app);
 }
 void xideAppLoadSettings(xide_app* app)
 {
@@ -137,6 +138,7 @@ int xideAppCreate(xide_app* app)
 }
 void xideAppDestroy(xide_app* app)
 {
+    xideUpdateDestroy(app);
 
 #if XIDE_ENABLE_C_LSP
  xideCLanguageViewStop(app); xideCCompletionViewStop(app);
@@ -204,6 +206,7 @@ static int frame(void* user)
  xideCLanguageViewPoll(app);
 #endif
  xideToolchainViewPoll(app); xideRecoveryViewPoll(app);
+    xideUpdatePoll(app);
     xideWorkbenchLayout(app); TRY(xuiLayout(app->context)); xideCatalogViewLayout(app); TRY(xuiLayout(app->context)); TRY(xuiTerminalFit(app->panels[XIDE_TERMINAL]));
     if(app->initialChapterRequested && app->frames==0) {
         if(!xideHelpJump(xideCatalogHelpDocument(app),(size_t)app->initialChapter)) return XUI_ERROR_INVALID_ARGUMENT;

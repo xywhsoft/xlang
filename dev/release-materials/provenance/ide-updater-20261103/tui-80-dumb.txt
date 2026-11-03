@@ -1,0 +1,12 @@
+xlang 更新器
+检查更新清单 |  | 0/0 bytes
+
+PLAN version=1 changes=2 download=86
+版本 0 -> 1
+更新说明修复和改进
+下载更新文件 | data/commands.json | 0/86 bytes
+解压并校验文件 | data/commands.json | 80/86 bytes
+下载更新文件 | xl.exe | 80/86 bytes
+解压并校验文件 | xl.exe | 86/86 bytes
+安装更新 | xl.exe | 86/86 bytes
+更新完成 | xl.exe | 86/86 bytes
