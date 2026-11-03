@@ -1,0 +1,43 @@
+{"version": 1, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-ug3iqns2\\repository"}
+Deployment configuration saved locally
+{
+  "host": "fixture-update",
+  "remoteRoot": "/d/GIT/x-lang/ide/build/Release/update-tests/case-ug3iqns2/remote/update_win_x64",
+  "publicUrl": "http://127.0.0.1:52924",
+  "version": 1,
+  "objects": 2,
+  "bytes": 89
+}
+UPLOAD 1/2 2b6de828c1709a82c8b10123807c18296f45b9b358759027ccf7734ae5a02cbc.lzma
+UPLOAD 2/2 a5e4ef9ebd87f44b51757f3c6f5eb1defd3caf8a96ab3c8813efd89a1f831e7f.lzma
+RETRY public 1/2 http://127.0.0.1:52924/update/2b6de828c1709a82c8b10123807c18296f45b9b358759027ccf7734ae5a02cbc.lzma: Remote end closed connection without response
+RETRY public 2/2 http://127.0.0.1:52924/update/2b6de828c1709a82c8b10123807c18296f45b9b358759027ccf7734ae5a02cbc.lzma: public object response was truncated: http://127.0.0.1:52924/update/2b6de828c1709a82c8b10123807c18296f45b9b358759027ccf7734ae5a02cbc.lzma
+VERIFY PUBLIC 1/2
+VERIFY PUBLIC 2/2
+PUBLISHED win_x64 version=1 uploaded=2 reused=0
+UPLOAD 1/1 2b6de828c1709a82c8b10123807c18296f45b9b358759027ccf7734ae5a02cbc.lzma
+VERIFY PUBLIC 1/2
+VERIFY PUBLIC 2/2
+PUBLISHED win_x64 version=1 uploaded=1 reused=1
+{"version": 2, "changedFiles": 1, "newObjects": 1, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-ug3iqns2\\repository"}
+UPLOAD 1/1 0dac93a841f916b3dc9c2971ce82266463bcb225806dc78c8b97e5d1831a7f52.lzma
+VERIFY PUBLIC 1/2
+VERIFY PUBLIC 2/2
+test_publish_resume_immutable_and_rollback (__main__.PublishTests.test_publish_resume_immutable_and_rollback) ... ERROR: public download verification failed: update.json
+VERIFY PUBLIC 1/2
+VERIFY PUBLIC 2/2
+PUBLISHED win_x64 version=2 uploaded=0 reused=2
+{"version": 3, "changedFiles": 1, "newObjects": 1, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-ug3iqns2\\repository"}
+UPLOAD 1/1 3db38082e631fac11090457a2b7761e3e48df06a7cd2667a2aa3a4f495db732c.lzma
+VERIFY PUBLIC 1/2
+VERIFY PUBLIC 2/2
+ERROR: version activated; public verification pending, rerun push
+VERIFY PUBLIC 1/2
+VERIFY PUBLIC 2/2
+ok
+
+----------------------------------------------------------------------
+Ran 1 test in 20.289s
+
+OK
+PUBLISHED win_x64 version=3 uploaded=0 reused=2

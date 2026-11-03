@@ -1,0 +1,13 @@
+UPLOAD 1/3 3b6003a0f2dfe58379f89a2235abeb0c4d87f548bba17cbaedb4e03eeddda37e.lzma
+UPLOAD 2/3 9fe5f0a298c1cd367c4dc36a3fccaafa556a8291b7c2e2ff6a95035494024338.lzma
+UPLOAD 3/3 b5af349428867c1bc59ecce602bc160e3b4ddf96d6f13a0661bd828dd0d24546.lzma
+VERIFY PUBLIC 1/640
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update/031cadbee25faed9b5ecccaca27037974e6b602efd84c8f0a4fdae0aac91b52c.lzma: Remote end closed connection without response
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update/05dd01e8f5898e169b7890f94f671aecc101b968e0a7ace0bf0008e0fc7dceed.lzma: Remote end closed connection without response
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update/09e4c934b339b0c1e170c7213811954aef2d05a4555ec89036876d36622b323b.lzma: Remote end closed connection without response
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update/105a6863050bdaa948200b64dda78a5387b6e3d04055c7df7c45612c22113839.lzma: Remote end closed connection without response
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update/14ee5b3be19a7022a1983b66431173642a6f70736c46706436431db3f5406382.lzma: Remote end closed connection without response
+VERIFY PUBLIC 64/640
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update/27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334.lzma: public object response was truncated: https://xcompiler.com/download/update_win_x64/update/27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334.lzma
+RETRY public 2/2 https://xcompiler.com/download/update_win_x64/update/27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334.lzma: public object response was truncated: https://xcompiler.com/download/update_win_x64/update/27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334.lzma
+ERROR: public download failed: https://xcompiler.com/download/update_win_x64/update/27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334.lzma: public object response was truncated: https://xcompiler.com/download/update_win_x64/update/27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334.lzma
