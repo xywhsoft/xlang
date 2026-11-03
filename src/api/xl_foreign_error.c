@@ -156,6 +156,14 @@ XL6_FOREIGN_API void xl6ErrorScopePropagateFailure(xl6_error_result failure)
     xrtSetErrorTake(failure.error);
 }
 
+XL6_FOREIGN_API bool xl6ErrorScopeTryPropagateFailureV1(xl6_error_result* failure)
+{
+    if(!failure || failure->ok)return false;
+    if(!xrtOnce(&xl6_foreign_error_once,xl6ForeignErrorKeyInit,NULL) || !xl6ForeignErrorTop())return false;
+    xl6ErrorScopePropagateFailure(*failure);
+    *failure=(xl6_error_result){true,NULL};return true;
+}
+
 XL6_FOREIGN_API void xl6ForeignCallbackFail(void)
 {
     xerror* original = xrtTakeError();

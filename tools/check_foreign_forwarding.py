@@ -1,5 +1,6 @@
 """Compare a verified direct C forwarding body with handwritten C on TCC/GCC."""
 from pathlib import Path
+from runtime_layout import runtime_directory
 import argparse, ctypes as c, json, os, re, subprocess, hashlib
 
 
@@ -29,11 +30,11 @@ def main():
     handwritten = out/'handwritten.c'
     handwritten.write_text('#include "test/cases/foreign_decl_handle.h"\n'
         'int handwritten_count(foreign_decl_widget value) { return foreign_decl_child_count(value); }\n')
-    includes = [root, root/'release/include', driver.parent/'include']
+    includes = [root, runtime_directory(root)/'include', driver.parent/'include']
     if os.name == 'nt':
-        library = c.CDLL(str(root/'release/xlc.dll'))
+        library = c.CDLL(str(runtime_directory(root)/'xlc.dll'))
     else:
-        library = c.CDLL(str(root/'release/libxlc.so'))
+        library = c.CDLL(str(runtime_directory(root)/'libxlc.so'))
     signatures = {'tcc_new': ([], c.c_void_p), 'tcc_delete': ([c.c_void_p], None),
         'tcc_set_lib_path': ([c.c_void_p, c.c_char_p], None),
         'tcc_add_include_path': ([c.c_void_p, c.c_char_p], c.c_int),
@@ -88,7 +89,7 @@ def main():
             assert hashlib.sha256(Path(row['Path']).read_bytes()).hexdigest() == row['Sha256'].lower()
         objects = [r['Path'] for r in build['Objects'] if Path(r['Source']).name not in
                    ('xlir_public_source_driver.c', 'xlir_public_source_linux_driver.c')]
-        runtime = root/('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
+        runtime = runtime_directory(root)/('xl.dll' if os.name == 'nt' else 'libxl.so')
         if os.name == 'nt':
             import shutil
             shutil.copy2(runtime, out/runtime.name)
@@ -97,7 +98,7 @@ def main():
         for opt in ('O0', 'O2'):
             executable = out/('IR-'+opt+('.exe' if os.name == 'nt' else '.out'))
             command = ['-std=c11', '-Wall', '-Wextra', '-Werror', '-DXL_STATIC_EMBED', '-'+opt,
-                '-I'+str(root/'release'), *['-I'+str(p) for p in includes],
+                '-I'+str(runtime_directory(root)), *['-I'+str(p) for p in includes],
                 root/'test/cases/foreign_decl_forwarding_ir_contract.c', *objects, runtime, *systems, '-o', executable]
             rsp = out/('IR-'+opt+'.rsp')
             rsp.write_text('\n'.join('"'+str(v).replace('\\', '/')+'"' for v in command)+'\n')

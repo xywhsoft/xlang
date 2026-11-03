@@ -33,6 +33,20 @@ static int xl6IrCgenEmitRuntimePrelude(
 {
     size_t i;
     size_t parameter;
+    int accessHeader=0,retainedHeader=0;
+    for(size_t t=0;t<module->callTargetCount;++t) {
+        const XL6_IrCallTarget* target=&module->callTargets[t];
+        if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        for(size_t p=0;p<target->parameterCount;++p)
+            retainedHeader |= target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK;
+        for(size_t p=0;p<target->parameterCount;++p)
+            accessHeader |= target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_HANDLE_ACCESS_BORROW ||
+                target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW;
+    }
+    if(retainedHeader)xl6OutputPuts("#include <__xl_runtime/xl6_native_callback.h>\n#include <stdlib.h>\n",out);
+    if(accessHeader)xl6OutputPuts("#include <__xl_runtime/xl6_native_handle.h>\n#include <limits.h>\n",out);
+    if(xl6IrCgenHasNativeGraph(module))
+        xl6OutputPuts("#include <__xl_runtime/xl6_native_frame_graph.h>\n#include <__xl_runtime/xl6_native_graph_future_payload.h>\n",out);
     if (module->abi.slotTransferAbi != XL6_IR_SLOT_TRANSFER_RESIDENT_ORDERED_WRITES_V1)
         return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR physical slot transfer ABI is unresolved");
     xl6OutputPuts("#include <__xl_runtime/xl6_slot.h>\n",out);
@@ -48,6 +62,8 @@ static int xl6IrCgenEmitRuntimePrelude(
             "#define xlir_async_frame_allocate (xl6ContinuationFrameRuntimeV5Get()->Allocate)\n"
             "#define xlir_async_frame_dispose (xl6ContinuationFrameRuntimeV2Get()->Discard)\n",out);
     }
+    if(xl6IrCgenHasNativeGraph(module) && (needs->needsAsyncMachineRuntime || needs->needsAsyncTaskRuntime))
+        xl6OutputPuts("#undef xlir_async_frame_allocate\n#define xlir_async_frame_allocate xl6ContinuationFrameAllocateGraphV1\n",out);
     /* One closed declaration surface for shared string support. Prelude
      * adapters may use it before the definitions emitted in runtime support. */
     if (needs->needsStringRuntime)
@@ -96,7 +112,9 @@ static int xl6IrCgenEmitRuntimePrelude(
         if (module->abi.closureStorageAbi != xl6IrModuleClosureStorageRequirement(module))
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID, "XLIR closure storage ABI is unresolved");
         xl6OutputPuts("#include <__xl_runtime/xl6_closure.h>\n", out);
-        if(module->abi.closureStorageAbi==XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3)
+        if(module->abi.closureStorageAbi==XL6_IR_CLOSURE_STORAGE_RESIDENT_GRAPH_LAYOUT_V4)
+            xl6OutputPuts("#include <__xl_runtime/xl6_closure_capture_v4.h>\nextern void* xrtCalloc(size_t,size_t);\n",out);
+        else if(module->abi.closureStorageAbi==XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3)
             xl6OutputPuts("#include <__xl_runtime/xl6_closure_capture_v3.h>\nextern void* xrtCalloc(size_t,size_t);\n",out);
         xl6OutputPuts("extern void* xrtMalloc(size_t);\nextern void xrtFree(void*);\n", out);
         xl6OutputPuts(module->abi.codeOwnerAbi == XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT
@@ -110,7 +128,10 @@ static int xl6IrCgenEmitRuntimePrelude(
             "#define xlir_closure_ownership (xl6ClosureRuntimeV1Get()->Ownership)\n"
             "#define xlir_closure_enter (xl6ClosureRuntimeV1Get()->Enter)\n"
             "#define xlir_closure_leave (xl6ClosureRuntimeV1Get()->Leave)\n", out);
-        if(module->abi.closureStorageAbi==XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3)
+        if(module->abi.closureStorageAbi==XL6_IR_CLOSURE_STORAGE_RESIDENT_GRAPH_LAYOUT_V4)
+            xl6OutputPuts("#define xlir_closure_new_v3(...) (xl6ClosureRuntimeV4Get()->Create)(xlir_closure_owner, __VA_ARGS__)\n"
+                "#define xlir_closure_env_drop_v3 (xl6ClosureRuntimeV4Get()->DropEnvironment)\n",out);
+        else if(module->abi.closureStorageAbi==XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3)
             xl6OutputPuts("#define xlir_closure_new_v3(...) (xl6ClosureRuntimeV3Get()->Create)(xlir_closure_owner, __VA_ARGS__)\n"
                 "#define xlir_closure_env_drop_v3 (xl6ClosureRuntimeV3Get()->DropEnvironment)\n",out);
         xl6OutputPuts("\n", out);
@@ -136,8 +157,8 @@ static int xl6IrCgenEmitRuntimePrelude(
             "#define xlir_cell_retain (xl6CellRuntimeV1Get()->Retain)\n"
             "#define xlir_cell_release (xl6CellRuntimeV1Get()->Release)\n"
             "#define xlir_cell_ownership (xl6CellRuntimeV1Get()->Ownership)\n\n", out);
-        if(module->abi.cellStorageAbi==XL6_IR_CELL_STORAGE_RESIDENT_NATIVE_LEAF_V2){
-            xl6OutputPuts("#include <__xl_runtime/xl6_cell_native.h>\n",out);
+        if(module->abi.cellStorageAbi>=XL6_IR_CELL_STORAGE_RESIDENT_NATIVE_LEAF_V2){
+            xl6OutputPuts("#include <__xl_runtime/xl6_cell_native.h>\n#include <__xl_runtime/xl6_cell_native_graph.h>\n",out);
             for(size_t i=0;i<module->types.count;++i){
                 const XL6_IrType* cell=&module->types.items[i];
                 if(cell->kind!=XL6_IR_TYPE_CELL || cell->paramCount!=1 || !cell->params)continue;
@@ -212,6 +233,9 @@ static int xl6IrCgenEmitRuntimePrelude(
             "#define xlir_generator_frame_discard (xl6GeneratorRuntimeV2Get()->FrameDiscard)\n"
             "\n",out);
     }
+    if(xl6IrCgenHasNativeGraph(module) && needs->needsGeneratorRuntime)
+        xl6OutputPuts("#undef xlir_generator_create\n#define xlir_generator_create(...) xl6GeneratorCreateGraphV1(xlir_generator_owner, __VA_ARGS__)\n"
+            "#undef xlir_generator_frame_allocate\n#define xlir_generator_frame_allocate xl6GeneratorFrameAllocateGraphV1\n",out);
     if ( needs->needsCheckedI64Runtime )
         xl6OutputPuts("/* Checked integer conversion is an XLIR runtime-op ABI: its failure is\n"
                       " * observed by the immediately following ERROR_TEST, never by a C cast. */\n"
@@ -461,6 +485,8 @@ static int xl6IrCgenEmitRuntimePrelude(
             "#define xlir_future_callback_allocate(...) (xl6FutureCallbackRuntimeV5Get()->Allocate)(xlir_future_callback_owner, __VA_ARGS__)\n"
             "#define xlir_future_callback_discard (xl6FutureCallbackRuntimeV1Get()->Discard)\n",out);
     }
+    if(xl6IrCgenHasNativeGraph(module) && needs->needsFutureContinuationRuntime)
+        xl6OutputPuts("#undef xlir_future_callback_allocate\n#define xlir_future_callback_allocate(...) xl6CallbackFrameAllocateGraphV1(xlir_future_callback_owner, __VA_ARGS__)\n",out);
     if (needs->needsAsyncTaskRuntime) {
         if (module->abi.taskStorageAbi != XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V3)
             return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR task frame/pool storage ABI is unresolved");

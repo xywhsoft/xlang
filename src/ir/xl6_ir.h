@@ -507,6 +507,8 @@ typedef enum XL6_IrNativeValueAbi {
 #include "src/type/xl6_native_value_profiles.inc"
 #undef XL6_NATIVE_VALUE_PROFILE
     XL6_IR_NATIVE_VALUE_NULLABLE_SLOT_MAP_KEY_V1,
+    XL6_IR_NATIVE_VALUE_FOREIGN_VIEW_V1,
+    XL6_IR_NATIVE_VALUE_NULLABLE_FOREIGN_VIEW_V1,
 } XL6_IrNativeValueAbi;
 
 /* Frontend-fixed ownership category.  Lowering must not rediscover whether a
@@ -698,6 +700,7 @@ typedef enum XL6_IrNativeSlotAbi {
 #undef XL6_NATIVE_VALUE_PROFILE
     XL6_IR_NATIVE_SLOT_NULLABLE_SLOT_MAP_KEY_V1,
     XL6_IR_NATIVE_SLOT_RAW_POINTER,
+    XL6_IR_NATIVE_SLOT_FOREIGN_VIEW_V1,
 } XL6_IrNativeSlotAbi;
 
 /* Target resident Sequence recipe, not permission to reinterpret an existing
@@ -862,6 +865,11 @@ typedef struct XL6_IrType {
      * Backends must use this closed identity rather than inspect source AST. */
     char* foreignHeader;
     XL6_IrTypeId foreignBase;
+    XL6_ForeignLifetimeAbi foreignLifetime;
+    XL6_IrTypeId foreignOwner;
+    char* foreignPolicy;
+    char* foreignScope;
+    char* foreignWatch;
     /* Fixed C array value, with params[0] as its exact trivial element ABI.
      * The parser-owned extent spelling is gone at this backend boundary. */
     uint64 nativeArrayExtent;
@@ -2292,6 +2300,10 @@ typedef struct XL6_IrNativeValuePlan {
     /* Nonzero only for an owning tagged nullable record. */
     XL6_IrNativeValueAbi nullableElementAbi;
     const char* tryProjectSymbol;
+    /* Independent graph admission; legacy leaf publishers never acquire it
+     * from a matching size. Domain arguments are sealed nominal identities. */
+    bool graphCapture;
+    bool nominalDomainArguments;
 } XL6_IrNativeValuePlan;
 
 /* Canonical language identities for every stable XRT xvalue tag.  This table
@@ -3395,6 +3407,10 @@ typedef struct XL6_IrInstruction {
     /* Exact pending result storage, only on the evaluation CLEANUP_BEGIN.
      * Zero when the operation has no managed result to commit. */
     XL6_SymbolId evaluationResult;
+    /* Caller-owned raw factory result: retained in SSA until evaluation
+     * commits, disposed by this exact declaration on the cleanup failure. */
+    XL6_IrValueId evaluationNativeResult;
+    XL6_SymbolId evaluationNativeDestroy;
     /* PendingException identity on its STORE/MOVE/RELEASE or a scope cleanup
      * which cancels it. A MOVE's nonzero pendingFailure names the CLEANUP_END
      * outcome whose secondary failure must preserve this original error. */
@@ -4161,7 +4177,12 @@ typedef enum XL6_IrCallParameterPhysicalAbi {
     XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS,
     XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK,
     XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW,
-    XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW
+    XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW,
+    XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW,
+    XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW,
+    XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_HANDLE_ACCESS_BORROW,
+    XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW,
+    XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK
 } XL6_IrCallParameterPhysicalAbi;
 
 /* A raw C callback may cross ordinary language wrapper functions before it
@@ -4194,7 +4215,9 @@ typedef enum XL6_IrCallResultCAbi {
     XL6_IR_CALL_RESULT_C_ABI_STORAGE = 0,
     XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER,
     XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW,
-    XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW
+    XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW,
+    XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW,
+    XL6_IR_CALL_RESULT_C_ABI_BOOL_STATUS
 } XL6_IrCallResultCAbi;
 
 /* CALL 在物理调用后立即完成拥有权转换，之后才允许释放参数和接收者。
@@ -4202,7 +4225,9 @@ typedef enum XL6_IrCallResultCAbi {
 typedef enum XL6_IrCallResultConversionAbi {
     XL6_IR_CALL_RESULT_CONVERSION_DIRECT = 0,
     XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY,
-    XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE
+    XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE,
+    XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT,
+    XL6_IR_CALL_RESULT_CONVERSION_STATUS_CHECK
 } XL6_IrCallResultConversionAbi;
 
 /* Compiler-private resident producers receive the verified owner/element
@@ -4799,7 +4824,8 @@ typedef enum XL6_IrContinuationFrameTraceAbi {
     XL6_IR_FRAME_TRACE_ERROR,
     XL6_IR_FRAME_TRACE_OPAQUE,
     XL6_IR_FRAME_TRACE_VALUE_ITERATOR,
-    XL6_IR_FRAME_TRACE_GENERATOR
+    XL6_IR_FRAME_TRACE_GENERATOR,
+    XL6_IR_FRAME_TRACE_NATIVE_GRAPH
 } XL6_IrContinuationFrameTraceAbi;
 
 /* Async lowering is driven exclusively by the lowered CFG. */
@@ -5486,6 +5512,7 @@ typedef struct XL6_IrCallTarget {
     XL6_IrCallEffectAbi effectAbi;
     XL6_IrRuntimeBridgeKind runtimeBridge;
     XL6_IrCallImplementationAbi implementationAbi;
+    XL6_IrCallErrorPhysicalAbi producerErrorPhysicalAbi;
     XL6_IrRuntimeBridgeOperation runtimeBridgeOperation;
     /* Closed resident resource declaration, resolved once from the private
      * ABI registry and independently verified. NONE preserves strict refusal
@@ -5804,7 +5831,8 @@ typedef enum XL6_IrClosureStorageAbi {
     /* Immutable closed capture slots; resident trace/drop, no producer-owned
      * environment callbacks. V1 remains a rejected legacy lowered value. */
     XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V2,
-    XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3
+    XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3,
+    XL6_IR_CLOSURE_STORAGE_RESIDENT_GRAPH_LAYOUT_V4
 } XL6_IrClosureStorageAbi;
 
 /* Dynamic member values are erased callables, but their immutable receiver
@@ -5821,7 +5849,8 @@ typedef enum XL6_IrBoundMethodStorageAbi {
 typedef enum XL6_IrCellStorageAbi {
     XL6_IR_CELL_STORAGE_NONE = 0,
     XL6_IR_CELL_STORAGE_RESIDENT_TRANSFER_V1,
-    XL6_IR_CELL_STORAGE_RESIDENT_NATIVE_LEAF_V2
+    XL6_IR_CELL_STORAGE_RESIDENT_NATIVE_LEAF_V2,
+    XL6_IR_CELL_STORAGE_RESIDENT_NATIVE_GRAPH_V3
 } XL6_IrCellStorageAbi;
 
 typedef enum XL6_IrValueIteratorStorageAbi {
@@ -6745,6 +6774,9 @@ typedef struct XL6_IrModule {
     XL6_IrCallTarget* callTargets;
     size_t callTargetCount;
     size_t callTargetCapacity;
+    XL6_ForeignParameterContract* foreignParameters;
+    size_t foreignParameterCount;
+    size_t foreignParameterCapacity;
     XL6_IrCallSite* callSites;
     size_t callSiteCount;
     size_t callSiteCapacity;
@@ -7920,6 +7952,22 @@ XL6_IrCallResultConversionAbi xl6IrCallResultConversionForTarget(
 XL6_IrCallResultCAbi xl6IrCallResultCAbiForTarget(const XL6_IrModule*, const XL6_IrCallTarget* target);
 int xl6IrForeignTextViewParameter(const XL6_IrModule*, const XL6_IrCallTarget*, size_t);
 int xl6IrForeignBytesViewParameter(const XL6_IrModule*, const XL6_IrCallTarget*, size_t);
+int xl6IrForeignTerminatedStringParameter(const XL6_IrModule*, const XL6_IrCallTarget*, size_t);
+const XL6_ForeignParameterContract* xl6IrForeignParameterGet(const XL6_IrModule*, const XL6_IrCallTarget*, size_t);
+const XL6_IrClassField* xl6IrForeignSpanBufferField(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+const XL6_IrType* xl6IrForeignRetainedSignature(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+int xl6IrForeignPreparedParameterMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+int xl6IrForeignSpanParameterMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+int xl6IrForeignRetainedParameterMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+size_t xl6IrForeignParameterWidth(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+int xl6IrForeignManagedViewParameter(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+int xl6IrForeignControlViewParameter(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+const XL6_IrType* xl6IrForeignRootType(const XL6_IrModule*,XL6_IrTypeId);
+int xl6IrForeignCallAdmissionMayRaise(const XL6_IrModule*,const XL6_IrCallTarget*);
+int xl6IrNativeHandleAccessParameter(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+const XL6_IrClassField* xl6IrCallTargetNativeResourceField(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+const XL6_IrClassField* xl6IrCallTargetNativeAccessField(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+XL6_IrCallErrorPhysicalAbi xl6IrCallProducerErrorPhysicalAbi(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrCallResultCAbiMatches(const XL6_IrModule* module, const XL6_IrCallTarget* target);
 const XL6_IrCallSite* xl6IrCallSiteGet(const XL6_IrModule* module, XL6_IrNodeId origin);
 XL6_IrNodeId xl6IrCallParameterListGet(const XL6_IrModule* module, XL6_IrNodeId declaration);

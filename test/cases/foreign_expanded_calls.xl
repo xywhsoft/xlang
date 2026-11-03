@@ -1,0 +1,161 @@
+extern "ManagedRoot*" class Root @header("test/cases/foreign_managed_view.h") @lifetime("owned") @policy("managedRootPolicy") @scope("ManagedScope") @watch("ManagedWatch")
+    native point handle
+    extern "managed_root_read" @no_raise @nonblocking get value() as c_int
+    extern "managed_root_method_read" @no_raise @nonblocking func read() as c_int
+    extern "managed_child_first" @no_raise @nonblocking @c_result("owner_view",0) func first() as Child?
+    extern "xl6ForeignViewCloseV1" @no_raise @nonblocking @c_control(0) @c_result("bool_status") func close()
+end
+extern "ManagedChild*" class Child @header("test/cases/foreign_managed_view.h") @lifetime("owner") @owner(Root) @policy("managedChildPolicy") @watch("ManagedWatch")
+    native point handle
+    extern "managed_child_read" @no_raise @nonblocking get value() as c_int
+    extern "managed_child_owner" @no_raise @nonblocking @c_result("owner_view",0) get context() as Root
+    extern "xl6ForeignViewCloseV1" @no_raise @nonblocking @c_control(0) @c_result("bool_status") func close()
+end
+extern "managed_root_destroy" @no_raise @nonblocking func rollback(Root root)
+extern "managed_root_create" @no_raise @nonblocking @c_result("owned_view") @factory(1,0,rollback) func create(c_int mode) as Root
+extern "managed_roots_live" @no_raise @nonblocking func live() as c_int
+extern "managed_children_live" @no_raise @nonblocking func childLive() as c_int
+extern "managed_child_destroy" @no_raise @nonblocking func rollbackChild(Child child)
+extern "managed_child_create" @no_raise @nonblocking @c_result("owner_view",0) @factory(2,0,rollbackChild) func createChild(Root root,c_int mode) as Child
+extern "managed_reset_failure" @no_raise @nonblocking func resetFailure()
+extern "span_floats" struct FloatValues @header("test/cases/foreign_expanded_calls.h")
+    c_float values[3]
+end
+extern "managed_span_read" @no_raise @c_span(1,"const uint8_t*","size_t") func readSpan(Root root,bytes data) as c_int
+extern "managed_span_read" @no_raise @c_span(1,"const uint8_t*","size_t") func readText(Root root,string data) as c_int
+extern "managed_span_read" @no_raise @c_span(1,"const uint8_t*","size_t") func readBuffer(Root root,Buffer data) as c_int
+extern "managed_span_write" @no_raise @c_span(1,"uint8_t*","int") func writeBuffer(Root root,Buffer data) as c_int
+extern "managed_span_floats" @no_raise @c_span(1,"const float*","int") func readFloats(Root root,FloatValues data) as c_int
+extern "managed_set_callback" @no_raise @c_owned_callback(1,0,"ManagedCallbackOwner",-9) func setCallback(Root root,func(Child?,c_int) as c_int callback)
+extern "managed_set_callback" @no_raise @c_owned_callback(1,0,"ManagedCallbackOwner",-9) func clearCallback(Root root,(func(Child?,c_int) as c_int)? callback)
+extern "managed_span_write_callback" @no_raise @c_span(1,"uint8_t*","int") func writeCallback(Root root,Buffer data) as c_int
+extern "managed_from_bytes" @no_raise @c_result("owned_view") @factory(2,0,rollback) @c_span(0,"const uint8_t*","size_t") func fromBytes(bytes input) as Root
+extern "managed_from_root" @no_raise @c_result("owned_view") @factory(1,0,rollback) func fromRoot(Root input) as Root
+extern "managed_fire" @no_raise func fire(Root root,c_int value) as c_int
+extern "span_points_write" @no_raise @c_span(0,"SpanPoint*","int","test/cases/foreign_expanded_calls.h") func writePoints(Buffer data) as c_int
+extern "span_points_sum" @no_raise @c_span(0,"const SpanPoint*","int","test/cases/foreign_expanded_calls.h") func sumPoints(Buffer data) as c_int
+protocol ExpandedApi
+    func on(Root root,func(Child?,c_int) as c_int callback)
+    func span(Root root,Buffer data) as c_int
+end
+class ExpandedHost
+    private native point handle
+    extern "managed_reader_open" @no_raise create()
+    extern "managed_reader_set" @no_raise @c_owned_callback(1,1,"ManagedCallbackOwner",-9) func on(Root root,func(Child?,c_int) as c_int callback)
+    extern "managed_reader_span" @no_raise @c_span(1,"const uint8_t*","size_t") func span(Root root,Buffer data) as c_int
+end
+extern "managed_counter_begin" @no_raise func countersBegin()
+extern "managed_counter_end" @no_raise func countersEnd()
+func main(...) as int
+    Buffer points=Buffer(b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0")
+    assert writePoints(points)==2 and sumPoints(points)==8
+    Root root=create(0)
+    bool cleanupRejected=false
+    try
+        auto discarded=fromRoot(create(0))
+    catch error
+        cleanupRejected=true
+    end
+    assert cleanupRejected and live()==1 and childLive()==0
+    Child child=createChild(root,0)
+    assert readText(root,"a\0b")==195
+    bytes data=b"a\0b"
+    assert readSpan(root,data)==195
+    Root sized=fromBytes(data)
+    assert sized.value==3
+    sized.close()
+    Buffer buffer=Buffer()
+    buffer.appendByte(97)
+    buffer.appendByte(0)
+    buffer.appendByte(98)
+    assert readBuffer(root,buffer)==195
+    assert writeBuffer(root,buffer)==3
+    assert readBuffer(root,buffer)==198
+    FloatValues floats=FloatValues()
+    auto values=floats.values
+    values[0]=c_float(1.0)
+    values[1]=c_float(2.0)
+    values[2]=c_float(3.0)
+    floats.values=values
+    assert readFloats(root,floats)==6
+    int observed=0
+    auto callback=func(Child? value,c_int delta) as c_int
+        assert value!=null
+        Child current=value as Child
+        observed+=int(delta)
+        return c_int(int(current.value)+observed)
+    end
+    func(Root,func(Child?,c_int) as c_int) savedSetter=setCallback
+    savedSetter(root,callback)
+    assert fire(root,3)==20
+    assert observed==3
+    ExpandedHost host=ExpandedHost()
+    ExpandedApi api=host
+    assert api.span(root,buffer)==198
+    api.on(root,callback)
+    assert fire(root,1)==21
+    var dynamic=host
+    assert dynamic.span(root,buffer)==198
+    dynamic.on(root,callback)
+    assert fire(root,1)==22
+    func(Root,func(Child?,c_int) as c_int) bound=host.on
+    bound(root,callback)
+    setCallback(root,func(Child? value,c_int delta) as c_int
+        setCallback(root,callback)
+        return c_int(99)
+    end)
+    assert fire(root,1)==99
+    assert fire(root,2)==24
+    setCallback(root,func(Child? value,c_int delta) as c_int
+        buffer.appendByte(9)
+        return c_int(1)
+    end)
+    bool rejected=false
+    try
+        auto discarded=writeCallback(root,buffer)
+    catch error
+        rejected=true
+    end
+    assert rejected and readBuffer(root,buffer)==198
+    assert buffer.appendByte(3)
+    setCallback(root,func(Child? value,c_int delta) as c_int
+        buffer.destroy()
+        return c_int(1)
+    end)
+    rejected=false
+    try
+        auto discarded=writeCallback(root,buffer)
+    catch error
+        rejected=true
+    end
+    assert rejected and readBuffer(root,buffer)==201
+    setCallback(root,func(Child? value,c_int delta) as c_int => c_int(1))
+    countersBegin()
+    int repeats=0
+    while repeats<200
+        assert fire(root,1)==1
+        assert readBuffer(root,buffer)==201
+        repeats+=1
+    end
+    countersEnd()
+    setCallback(root,func(Child? value,c_int delta) as c_int
+        assert false
+        return c_int(1)
+    end)
+    rejected=false
+    try
+        auto discarded=fire(root,1)
+    catch error
+        rejected=true
+    end
+    assert rejected
+    clearCallback(root,null)
+    assert fire(root,1)==0
+    setCallback(root,func(Child? value,c_int delta) as c_int
+        root.close()
+        return c_int(7)
+    end)
+    assert fire(root,1)==7
+    root.close()
+    return 0
+end

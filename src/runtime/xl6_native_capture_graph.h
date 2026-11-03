@@ -24,4 +24,10 @@ typedef struct XL6_NativeGraphCaptureProfileV1 {
 #define XL6_CAPTURE_NATIVE_GRAPH_V3 ((XL6_CaptureKind)11)
 
 XL6_CODE_LEASE_API const XL6_NativeGraphCaptureProfileV1* xl6NativeGraphCaptureProfileV1Get(const XL6_NativeCaptureProfileV1*);
+static inline bool xl6NativeGraphCaptureTraceV1(const XL6_NativeCaptureProfileV1* prefix,
+    const void* slot,XL6_ModuleOwnershipVisit visit,void* context)
+{
+    const XL6_NativeGraphCaptureProfileV1* profile=xl6NativeGraphCaptureProfileV1Get(prefix);
+    return profile && slot && visit && profile->Trace(slot,visit,context);
+}
 #endif

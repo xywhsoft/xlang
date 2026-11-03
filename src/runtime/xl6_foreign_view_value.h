@@ -15,5 +15,6 @@ XL6_CODE_LEASE_API struct xvalue* xl6ForeignViewBoxV1(XL6_ForeignView*,uint64_t 
  * Type IDs authorize storage projection, not native access: a closed view
  * remains copyable, while its methods still fail their native admission. */
 XL6_CODE_LEASE_API bool xl6ForeignViewUnboxV1(const struct xvalue*,uint64_t identity,bool nullable,XL6_ForeignView**);
+XL6_CODE_LEASE_API bool xl6ForeignViewTryUnboxV1(const struct xvalue*,uint64_t identity,XL6_ForeignView**);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainForeignViewValueV1Get(void);
 #endif

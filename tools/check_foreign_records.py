@@ -1,5 +1,6 @@
 """Check authoritative C record layouts and execution without a UI backend."""
 from pathlib import Path
+from runtime_layout import runtime_directory
 import argparse
 import hashlib
 import json
@@ -44,10 +45,10 @@ def main():
     assert 'extern foreign_decl_transform foreign_decl_scale(foreign_decl_transform, double);' in text
     assert 'C record field offset' in text and 'C record field type' in text
     assert 'xlir_xvalue_object_get_literal' not in text
-    runtime = root / 'release' / ('xl.dll' if os.name == 'nt' else 'libxl.so')
+    runtime = runtime_directory(root) / ('xl.dll' if os.name == 'nt' else 'libxl.so')
     if os.name == 'nt':
         shutil.copy2(runtime, out / runtime.name)
-    includes = ['-I'+str(root), '-I'+str(root/'release/include'), '-I'+str(driver.parent/'include')]
+    includes = ['-I'+str(root), '-I'+str(runtime_directory(root)/'include'), '-I'+str(driver.parent/'include')]
     for optimization in ('O0', 'O2'):
         executable = out / ('record-'+optimization+('.exe' if os.name == 'nt' else ''))
         run(optimization+'-build', ['gcc', '-std=c11', '-Wall', '-Wextra', '-Werror',

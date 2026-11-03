@@ -1,5 +1,6 @@
 """Offline exact C record/pointer callbacks and direct caller-resident addresses."""
 from pathlib import Path
+from runtime_layout import runtime_directory
 import argparse, hashlib, json, os, shutil, subprocess, time
 
 
@@ -25,9 +26,9 @@ def main():
         print(name, process.returncode, flush=True)
         assert (process.returncode == 0) == accepted, log
 
-    runtime = root/('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
+    runtime = runtime_directory(root)/('xl.dll' if os.name == 'nt' else 'libxl.so')
     if os.name == 'nt': shutil.copy2(runtime, out/runtime.name)
-    includes = ['-I'+str(root), '-I'+str(root/'release/include'), '-I'+str(driver.parent/'include')]
+    includes = ['-I'+str(root), '-I'+str(runtime_directory(root)/'include'), '-I'+str(driver.parent/'include')]
     warnings = ['-Wno-unused-function', '-Wno-unused-variable', '-Wno-unused-label',
                 '-Wno-unused-const-variable', '-Wno-unused-but-set-variable']
     provider = root/'test/cases/foreign_decl_callback_native.c'
@@ -83,7 +84,7 @@ def main():
     for opt in ('O0', 'O2'):
         exe = out/('IR-'+opt+suffix)
         arguments = ['-std=c11', '-Wall', '-Wextra', '-Werror', '-DXL_STATIC_EMBED', '-'+opt,
-                     '-I'+str(root/'release'), *includes, root/'test/cases/foreign_decl_callback_ir_contract.c',
+                     '-I'+str(runtime_directory(root)), *includes, root/'test/cases/foreign_decl_callback_ir_contract.c',
                      *objects, runtime, *systems, '-o', exe]
         rsp = out/('IR-'+opt+'.rsp')
         rsp.write_text('\n'.join('"'+str(v).replace('\\', '/')+'"' for v in arguments)+'\n', encoding='utf-8')

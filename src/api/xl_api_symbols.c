@@ -157,6 +157,8 @@
 #include "src/runtime/xl6_foreign_context.h"
 #include "src/runtime/xl6_foreign_callback_scope.h"
 #include "src/runtime/xl6_foreign_view.h"
+#include "src/runtime/xl6_foreign_view_abi.h"
+#include "src/runtime/xl6_native_frame_graph.h"
 #include "src/runtime/xl6_foreign_view_value.h"
 #include "src/runtime/xl6_foreign_view_value_storage.h"
 #include "src/runtime/xl6_foreign_view_sequence.h"
@@ -344,9 +346,23 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6ForeignCallbackLeaveV1", (const void*)xl6ForeignCallbackLeaveV1)) return 0;
     if (!visit(user, "xl6ForeignCallbackActiveV1", (const void*)xl6ForeignCallbackActiveV1)) return 0;
     if (!visit(user, "xl6ForeignViewCreateRootV1", (const void*)xl6ForeignViewCreateRootV1)) return 0;
+    if (!visit(user, "xl6ForeignViewCreateRootProbedV1", (const void*)xl6ForeignViewCreateRootProbedV1)) return 0;
     if (!visit(user, "xl6ForeignViewBorrowChildV1", (const void*)xl6ForeignViewBorrowChildV1)) return 0;
     if (!visit(user, "xl6ForeignViewBorrowRootV1", (const void*)xl6ForeignViewBorrowRootV1)) return 0;
     if (!visit(user, "xl6ForeignViewRetainV1", (const void*)xl6ForeignViewRetainV1)) return 0;
+    if (!visit(user, "xl6ForeignViewCopyValueV1", (const void*)xl6ForeignViewCopyValueV1)) return 0;
+    if (!visit(user, "xl6ArrayExtractForeignViewV1", (const void*)xl6ArrayExtractForeignViewV1)) return 0;
+    if (!visit(user, "xl6ForeignViewDropValueV1", (const void*)xl6ForeignViewDropValueV1)) return 0;
+    if (!visit(user, "xl6ForeignViewEqualValueV1", (const void*)xl6ForeignViewEqualValueV1)) return 0;
+    if (!visit(user, "xl6ForeignResultProbePrepareV1", (const void*)xl6ForeignResultProbePrepareV1)) return 0;
+    if (!visit(user, "xl6ForeignResultProbeObserveV1", (const void*)xl6ForeignResultProbeObserveV1)) return 0;
+    if (!visit(user, "xl6ForeignResultProbeAliveV1", (const void*)xl6ForeignResultProbeAliveV1)) return 0;
+    if (!visit(user, "xl6ForeignResultProbeEndV1", (const void*)xl6ForeignResultProbeEndV1)) return 0;
+    if (!visit(user, "xl6ContinuationFrameAllocateGraphV1", (const void*)xl6ContinuationFrameAllocateGraphV1)) return 0;
+    if (!visit(user, "xl6GeneratorFrameAllocateGraphV1", (const void*)xl6GeneratorFrameAllocateGraphV1)) return 0;
+    if (!visit(user, "xl6GeneratorCreateGraphV1", (const void*)xl6GeneratorCreateGraphV1)) return 0;
+    if (!visit(user, "xl6TaskFrameAllocateGraphV1", (const void*)xl6TaskFrameAllocateGraphV1)) return 0;
+    if (!visit(user, "xl6CallbackFrameAllocateGraphV1", (const void*)xl6CallbackFrameAllocateGraphV1)) return 0;
     if (!visit(user, "xl6ForeignViewReleaseV1", (const void*)xl6ForeignViewReleaseV1)) return 0;
     if (!visit(user, "xl6ForeignViewCallBeginV1", (const void*)xl6ForeignViewCallBeginV1)) return 0;
     if (!visit(user, "xl6ForeignViewCallEndV1", (const void*)xl6ForeignViewCallEndV1)) return 0;
@@ -367,10 +383,20 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6NativeGraphFuturePayloadRuntimeV1Get", (const void*)xl6NativeGraphFuturePayloadRuntimeV1Get)) return 0;
     if (!visit(user, "xl6OwnershipDomainNativeGraphFuturePayloadV1Get", (const void*)xl6OwnershipDomainNativeGraphFuturePayloadV1Get)) return 0;
     if (!visit(user, "xl6CellCreateGraphV1", (const void*)xl6CellCreateGraphV1)) return 0;
+    if (!visit(user, "xl6ErrorScopeTryPropagateFailureV1", (const void*)xl6ErrorScopeTryPropagateFailureV1)) return 0;
+    if (!visit(user, "xl6ForeignViewRecordCallbackFailureV1", (const void*)xl6ForeignViewRecordCallbackFailureV1)) return 0;
+    if (!visit(user, "xl6ForeignViewThrowIfCallbackFailedV1", (const void*)xl6ForeignViewThrowIfCallbackFailedV1)) return 0;
+    if (!visit(user, "xl6ForeignViewCallbackFailureCountV1", (const void*)xl6ForeignViewCallbackFailureCountV1)) return 0;
+    if (!visit(user, "xl6NativeCallbackReportFailureV1", (const void*)xl6NativeCallbackReportFailureV1)) return 0;
     if (!visit(user, "xl6NativeCallbackRuntimeV1Get", (const void*)xl6NativeCallbackRuntimeV1Get)) return 0;
+    if (!visit(user, "xl6NativeHandleAccessBeginV1", (const void*)xl6NativeHandleAccessBeginV1)) return 0;
+    if (!visit(user, "xl6NativeHandleAccessEndV1", (const void*)xl6NativeHandleAccessEndV1)) return 0;
+    if (!visit(user, "xl6BufferSpanBeginV1", (const void*)xl6BufferSpanBeginV1)) return 0;
+    if (!visit(user, "xl6BufferSpanEndV1", (const void*)xl6BufferSpanEndV1)) return 0;
     if (!visit(user, "xl6OwnershipDomainNativeCallbackV1Get", (const void*)xl6OwnershipDomainNativeCallbackV1Get)) return 0;
     if (!visit(user, "xl6ForeignViewBoxV1", (const void*)xl6ForeignViewBoxV1)) return 0;
     if (!visit(user, "xl6ForeignViewUnboxV1", (const void*)xl6ForeignViewUnboxV1)) return 0;
+    if (!visit(user, "xl6ForeignViewTryUnboxV1", (const void*)xl6ForeignViewTryUnboxV1)) return 0;
     if (!visit(user, "xl6OwnershipDomainForeignViewValueV1Get", (const void*)xl6OwnershipDomainForeignViewValueV1Get)) return 0;
     if (!visit(user, "xl6ForeignViewStorageBoxV1", (const void*)xl6ForeignViewStorageBoxV1)) return 0;
     if (!visit(user, "xl6ForeignViewStorageUnboxV1", (const void*)xl6ForeignViewStorageUnboxV1)) return 0;

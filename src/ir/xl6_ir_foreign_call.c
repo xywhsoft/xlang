@@ -68,8 +68,21 @@ static int xl6IrVerifyNativeStatusOut(const XL6_IrModule* module,
     for (size_t p = 0; p < target->parameterCount; ++p) {
         const XL6_IrInstruction* argument = xl6IrValueDefinition(module, module->operands[call->firstOperand + p], NULL);
         const XL6_IrType* type = xl6IrTypeGet(&module->types, target->parameterTypes[p]);
-        if (!argument || argument->type != target->parameterTypes[p] || !type ||
-            type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL) return 0;
+        const XL6_IrClassField* field=xl6IrCallTargetNativeClassPhysicalField(module,target,p);
+        if(field) {
+            const XL6_IrInstruction* object=argument && argument->operandCount==1 ?
+                xl6IrValueDefinition(module,module->operands[argument->firstOperand],NULL) : NULL;
+            if(!argument || !object || object->type!=target->parameterTypes[p] || argument->type!=field->type ||
+                argument->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+                argument->runtimeOp!=(field->nativeDestroySymbol ? XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_NATIVE_HANDLE_BORROW :
+                    XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_RAW_POINTER) ||
+                !xl6IrCanonicalCStringLiteralMatchesText(argument->immediateText,field->name))return 0;
+        } else if (!argument || argument->type != target->parameterTypes[p] || !type ||
+            (type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+             (target->parameterPhysicalAbis[p]!=XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
+              target->parameterAbis[p]!=XL6_IR_PARAMETER_ABI_BORROW ||
+              !xl6IrBorrowedCallArgumentIsExplicit(module,function,index,argument,
+                (size_t)(argument-module->instructions),NULL,0)))) return 0;
     }
     const XL6_IrCallTarget* rollback = xl6IrCallTargetGet(module, declaration->foreignCall.rollbackSymbol);
     if (!rollback || rollback->kind != XL6_IR_CALL_TARGET_EXTERN_C || rollback->returnType ||

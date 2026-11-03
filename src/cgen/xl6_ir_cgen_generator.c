@@ -685,7 +685,7 @@ static int xl6IrCgenEmitGeneratorMachine(
     case XL6_IR_GENERATOR_YIELD_MOVE_FUTURE: itemKind = "XL6_CAPTURE_FUTURE"; break;
     case XL6_IR_GENERATOR_YIELD_MOVE_ERROR: itemKind = "XL6_CAPTURE_ERROR"; break;
     case XL6_IR_GENERATOR_YIELD_MOVE_GENERATOR: itemKind = "XL6_CAPTURE_GENERATOR"; break;
-    case XL6_IR_GENERATOR_YIELD_MOVE_NATIVE_VALUE: itemKind = "XL6_CAPTURE_NATIVE_LEAF_V2"; break;
+    case XL6_IR_GENERATOR_YIELD_MOVE_NATIVE_VALUE: itemKind = nativeItem->graphCapture ? "XL6_CAPTURE_NATIVE_GRAPH_V3" : "XL6_CAPTURE_NATIVE_LEAF_V2"; break;
     default: return xl6IrCgenDiag(diags, module, target->declaration,
         "XLIR generator item storage ABI is unresolved");
     }

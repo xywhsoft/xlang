@@ -25,7 +25,7 @@ def main():
     assert manifest['target']=='win64'
     out.mkdir(parents=True,exist_ok=False);(out/'tmp').mkdir()
     files=[Path(__file__).resolve(),root/'tools/compiler_response.py',base/'build.json',precompiled/'manifest.json',
-        root/'tools/gen_tcc_vfs_resources.py',root/'tools/precompile_builtin.py',Path(cc),Path(nm)]
+        root/'tools/gen_tcc_vfs_resources.py',root/'tools/precompile_builtin.py',root/'tools/runtime_layout.py',Path(cc),Path(nm)]
     files += [Path(row['source']) for row in manifest['objects']]
     inputs={str(path):sha(path) for path in files}
     report=dict(complete=False,passed=False,scope=__doc__,sourceBuild=str(base/'build.json'),

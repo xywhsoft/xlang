@@ -485,12 +485,16 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
         (contract = xl6IrDirectBridgeContract(target->cName)) == NULL ||
         target->kind != (contract->details->resultOwner ? XL6_IR_CALL_TARGET_NATIVE_FACTORY : XL6_IR_CALL_TARGET_EXTERN_C) ||
         target->runtimeBridge != contract->kind || target->errorAbi !=
-            xl6IrRuntimeDirectBridgeErrorAbi(contract->name) ||
+            (target->errorPhysicalAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID && xl6IrForeignCallAdmissionMayRaise(module,target)
+                ? XL6_IR_ERROR_ABI_MAY_RAISE : xl6IrRuntimeDirectBridgeErrorAbi(contract->name)) ||
         target->nativeArrayResultAbi != contract->details->nativeArrayResultAbi ||
         target->nativeResultAbi != contract->details->nativeResultAbi ||
         target->nativeServicesRequired != contract->details->nativeServicesRequired ||
-        (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
-         target->errorPhysicalAbi != xl6IrRuntimeDirectBridgeErrorPhysicalAbi(contract->name)) ||
+        (target->producerErrorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
+         target->producerErrorPhysicalAbi != xl6IrRuntimeDirectBridgeErrorPhysicalAbi(contract->name)) ||
+        (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID && target->errorPhysicalAbi !=
+         (xl6IrForeignCallAdmissionMayRaise(module,target) ? XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE :
+            xl6IrRuntimeDirectBridgeErrorPhysicalAbi(contract->name))) ||
         (contract->details->resultOwner
             ? (target->resultPhysicalAbi != (contract->details->managedHandleResult
                     ? XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_HANDLE_VALUE_TAKE
@@ -802,7 +806,8 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
         }
         if (contract->parameters[i].owner) {
             if (target->parameterAbis[i] != XL6_IR_PARAMETER_ABI_BORROW ||
-                target->parameterPhysicalAbis[i] != XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW ||
+                (target->parameterPhysicalAbis[i] != XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW &&
+                 target->parameterPhysicalAbis[i] != XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_HANDLE_ACCESS_BORROW) ||
                 target->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
                 !xl6IrDirectBridgeResourceMatches(module, target->parameterTypes[i],
                     target->parameterPhysicalFieldDeclarations[i], 0, contract->parameters[i].owner)) return 0;

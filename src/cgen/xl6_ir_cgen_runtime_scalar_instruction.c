@@ -187,15 +187,32 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                     if (instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_COPY ||
                         instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED ||
                         instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY)
+                    {
                         xl6OutputPrintf(out,"    v%u = (%s){0};\n"
-                            "    bool projection_ok_%u = %s(v%u, &v%u);\n",
+                            "    bool projection_ok_%u = %s(v%u",
                             (unsigned)instruction->result,plan->cName,(unsigned)instruction->result,
                             xl6IrRuntimeNativeValueSymbol(plan,instruction->runtimeOp),
-                            (unsigned)module->operands[instruction->firstOperand],(unsigned)instruction->result);
-                    else if (instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_BOX)
-                        xl6OutputPrintf(out,"    v%u = %s(v%u);\n",(unsigned)instruction->result,
+                            (unsigned)module->operands[instruction->firstOperand]);
+                        if(plan->nominalDomainArguments && instruction->runtimeOp!=XL6_IR_RUNTIME_NATIVE_VALUE_COPY){
+                            const XL6_IrType* result=xl6IrTypeGet(&module->types,instruction->type);
+                            const XL6_IrType* base=result->kind==XL6_IR_TYPE_NULLABLE ?
+                                xl6IrTypeGet(&module->types,result->params[0]) : result;
+                            xl6OutputPrintf(out,", 0x%016llXULL",(unsigned long long)base->typeValueId);
+                            if(instruction->runtimeOp!=XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY)
+                                xl6OutputPrintf(out,", %s",result->kind==XL6_IR_TYPE_NULLABLE ? "true" : "false");
+                        }
+                        xl6OutputPrintf(out,", &v%u);\n",(unsigned)instruction->result);
+                    } else if (instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_BOX){
+                        xl6OutputPrintf(out,"    v%u = %s(v%u",(unsigned)instruction->result,
                             plan->boxSymbol,(unsigned)module->operands[instruction->firstOperand]);
-                    else xl6OutputPrintf(out,"    v%u = %s(v%u, v%u);\n",
+                        if(plan->nominalDomainArguments){
+                            const XL6_IrInstruction* source=xl6IrCgenValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+                            const XL6_IrType* type=xl6IrTypeGet(&module->types,source->type);
+                            const XL6_IrType* base=type->kind==XL6_IR_TYPE_NULLABLE ? xl6IrTypeGet(&module->types,type->params[0]) : type;
+                            xl6OutputPrintf(out,", 0x%016llXULL",(unsigned long long)base->typeValueId);
+                        }
+                        xl6OutputPuts(");\n",out);
+                    } else xl6OutputPrintf(out,"    v%u = %s(v%u, v%u);\n",
                         (unsigned)instruction->result,plan->equalSymbol,
                         (unsigned)module->operands[instruction->firstOperand],
                         (unsigned)module->operands[instruction->firstOperand+1]);

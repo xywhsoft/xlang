@@ -53,6 +53,7 @@ static void xl6IrCgenHeaderMarkType(
          (size_t)type > module->types.count || structuralTypes[type - 1] )
         return;
     structuralTypes[type - 1] = 1;
+    if(item->foreignOwner)xl6IrCgenHeaderMarkType(module,item->foreignOwner,needs,structuralTypes);
     if ( xl6IrCAbiIsAggregate(item->cAbi) ) {
         size_t layoutIndex;
         for ( layoutIndex = 0; layoutIndex < module->aggregateLayoutCount;
@@ -149,9 +150,13 @@ static void xl6IrCgenCollectHeaderTypeNeeds(
                 module, xl6IrCgenPhysicalResultType(module, target), needs,
                 structuralTypes);
         for ( parameter = 0; parameter < target->parameterCount; ++parameter )
-            if ( target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
+            if ( target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW ||
+                 target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK ||
+                 target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
                  target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW ||
+                 target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW ||
                  target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW ||
+                 target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW ||
                  target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS )
                 xl6IrCgenHeaderMarkType(
                     module, target->parameterTypes[parameter], needs,
@@ -253,7 +258,7 @@ static int xl6IrCgenEmitHeaderBody(
         return 0;
     }
     xrtFree(publicTypes);
-    if ( !xl6IrCgenEmitCallbackTypes(out, module, 1, diags) ) return 0;
+    if ( !xl6IrCgenEmitCallbackTypes(out, module, 1, diags) || !xl6IrCgenEmitRetainedCallbackTypes(out,module) ) return 0;
     {
         size_t parameter;
         int needsLanguageFunction = 0;

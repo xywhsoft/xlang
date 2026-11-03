@@ -1,3 +1,4 @@
+#include "xl6_native_frame_graph.h"
 #define XRT_MODULE_MEMORY
 #define XRT_MODULE_ATOMIC
 #include "src/common/xl6_xrt.h"
@@ -15,7 +16,7 @@ typedef struct XL6_GeneratorFrame {
     volatile int32_t references;
     const void* claim;
     size_t bytes;
-    bool published, active, payloadLive, cleared;
+    bool graph, published, active, payloadLive, cleared;
     max_align_t alignment;
     unsigned char data[];
 } XL6_GeneratorFrame;
@@ -26,7 +27,7 @@ typedef struct GeneratorControl {
     const XL6_CaptureLayoutV1* itemLayout;
     const XL6_CaptureLayoutV2* itemLayoutV2;
     const void* claim;
-    bool cleared;
+    bool graph, cleared;
     max_align_t alignment;
     unsigned char data[];
 } GeneratorControl;
@@ -37,12 +38,12 @@ static bool frame_managed(const XL6_GeneratorFrame* f) { return f->layout || f->
 static bool control_managed(const GeneratorControl* c) { return c->itemLayout || c->itemLayoutV2; }
 static bool frame_layout_valid(const XL6_GeneratorFrame* f)
 {
-    return f->layoutV2 ? !f->layout && xl6ActivationCaptureRuntimeV2Get()->Validate(f->layoutV2,f->bytes) :
+    return f->layoutV2 ? !f->layout && (f->graph ? xl6ActivationCaptureRuntimeV3Get() : xl6ActivationCaptureRuntimeV2Get())->Validate(f->layoutV2,f->bytes) :
         xl6ActivationCaptureRuntimeV1Get()->Validate(f->layout,f->bytes);
 }
 static bool item_layout_valid(const GeneratorControl* c,size_t bytes)
 {
-    return c->itemLayoutV2 ? !c->itemLayout && xl6CaptureRuntimeV2Get()->Validate(c->itemLayoutV2,bytes) :
+    return c->itemLayoutV2 ? !c->itemLayout && (c->graph ? xl6CaptureRuntimeV3Get() : xl6CaptureRuntimeV2Get())->Validate(c->itemLayoutV2,bytes) :
         xl6CaptureRuntimeV1Get()->Validate(c->itemLayout,bytes);
 }
 static void frame_discard(void*);
@@ -103,7 +104,7 @@ static bool frame_trace(const void* data,xrtownershipvisitor visit,void* context
     if(!visit||!frame_count(data,&count))return false;
     if(frame_managed(frame))return (!frame->lease||visit(xl6CodeLeaseOwnership(frame->lease),context))&&
         (!frame->payloadLive||(frame->layoutV2 ?
-            xl6ActivationCaptureRuntimeV2Get()->Trace(frame->layoutV2,frame->data,frame->bytes,visit,context) :
+            (frame->graph ? xl6ActivationCaptureRuntimeV3Get() : xl6ActivationCaptureRuntimeV2Get())->Trace(frame->layoutV2,frame->data,frame->bytes,visit,context) :
             xl6ActivationCaptureRuntimeV1Get()->Trace(frame->layout,frame->data,visit,context)));
     return frame->trace&&frame->trace(frame->data,visit,context);
 }
@@ -117,7 +118,7 @@ static bool generator_trace(const void* data,xrtownershipvisitor visit,void* con
     if (generator->frame){const XL6_GeneratorFrame* frame=frame_header(generator->frame);
         if(!visit((xrtownershipref){frame,frame_managed(frame)?&frame_managed_ops:&frame_ops},context))return false;}
     const GeneratorControl* control=control_header(generator);
-    if(control->itemLayoutV2)return !generator->has_item||xl6CaptureRuntimeV2Get()->Trace(control->itemLayoutV2,generator->item,generator->item_size,visit,context);
+    if(control->itemLayoutV2)return !generator->has_item||(control->graph ? xl6CaptureRuntimeV3Get() : xl6CaptureRuntimeV2Get())->Trace(control->itemLayoutV2,generator->item,generator->item_size,visit,context);
     if(control->itemLayout)return !generator->has_item||xl6CaptureRuntimeV1Get()->Trace(control->itemLayout,generator->item,visit,context);
     return !generator->has_item || (generator->item_trace && generator->item_trace(generator->item,visit,context));
 }
@@ -127,7 +128,7 @@ static xrtownershipref generator_ownership(const XL6_Generator* generator)
 { return (xrtownershipref){generator,generator ? (control_managed(control_header(generator))?&generator_managed_ops:&generator_ops) : NULL}; }
 static XL6_Generator* generator_create_body(const XL6_CodeOwner* owner,void* data,XL6_GeneratorResume resume,
     XL6_GeneratorFree drop,size_t item_size,XL6_GeneratorFree item_drop,XL6_CodeContextTrace trace,XL6_CodeContextTrace item_trace,
-    const XL6_CaptureLayoutV1* item_layout,const XL6_CaptureLayoutV2* item_layout_v2)
+    const XL6_CaptureLayoutV1* item_layout,const XL6_CaptureLayoutV2* item_layout_v2,bool graph)
 {
     XL6_Generator* generator; GeneratorControl* control;XL6_CodeLease* lease=NULL; XL6_CodeLeaseAdmission admission;
     if (!data || !resume || !item_size || item_size>SIZE_MAX-sizeof(*generator)-sizeof(*control) ||
@@ -135,7 +136,7 @@ static XL6_Generator* generator_create_body(const XL6_CodeOwner* owner,void* dat
         frame_header(data)->references!=1 || frame_header(data)->active ||
         frame_header(data)->cleared || !frame_header(data)->payloadLive ||
         (item_layout_v2 ? item_layout || !frame_header(data)->layoutV2 || !frame_layout_valid(frame_header(data)) ||
-            !xl6CaptureRuntimeV2Get()->Validate(item_layout_v2,item_size) ||
+            !(graph ? xl6CaptureRuntimeV3Get() : xl6CaptureRuntimeV2Get())->Validate(item_layout_v2,item_size) || frame_header(data)->graph!=graph ||
             item_layout_v2->count!=1 || item_layout_v2->slots[0].value.offset!=0 || item_layout_v2->slots[0].value.bytes!=item_size :
         item_layout ? !frame_header(data)->layout || frame_header(data)->layoutV2 || !xl6CaptureRuntimeV1Get()->Validate(item_layout,item_size) ||
             !frame_layout_valid(frame_header(data)) ||
@@ -154,7 +155,7 @@ static XL6_Generator* generator_create_body(const XL6_CodeOwner* owner,void* dat
         xl6CodeLeaseRelease(lease);
         xrtSetErrorTake(generator_error(XERR_MEMORY,"MemoryError","generator allocation failed")); return NULL;
     }
-    *control=(GeneratorControl){0};control->references=1;control->itemLayout=item_layout;control->itemLayoutV2=item_layout_v2;
+    *control=(GeneratorControl){0};control->references=1;control->itemLayout=item_layout;control->itemLayoutV2=item_layout_v2;control->graph=graph;
     generator=(XL6_Generator*)control->data;
     *generator=(XL6_Generator){0}; generator->frame=data; generator->resume=resume;
     generator->frame_free=drop; generator->item_free=item_drop; generator->item_trace=item_trace;
@@ -165,7 +166,7 @@ static XL6_Generator* generator_create_body(const XL6_CodeOwner* owner,void* dat
 }
 static XL6_Generator* generator_create(const XL6_CodeOwner* owner,void* data,XL6_GeneratorResume resume,
     XL6_GeneratorFree drop,size_t size,XL6_GeneratorFree item_drop,XL6_CodeContextTrace trace,XL6_CodeContextTrace item_trace)
-{ XL6_OWNERSHIP_RETURN(XL6_Generator*,generator_create_body(owner,data,resume,drop,size,item_drop,trace,item_trace,NULL,NULL)); }
+{ XL6_OWNERSHIP_RETURN(XL6_Generator*,generator_create_body(owner,data,resume,drop,size,item_drop,trace,item_trace,NULL,NULL,false)); }
 
 /* Only transitions are mutations. The resident scope keeps callback code alive
  * while the actual source body, cleanup or native call may wait or park. */
@@ -239,7 +240,7 @@ static void item_release(XL6_Generator* generator)
 {
     const XL6_CaptureLayoutV2* v2=control_header(generator)->itemLayoutV2;
     if(v2){
-        xl6_error_result r=xl6CaptureRuntimeV2Get()->Cleanup(v2,generator->item,generator->item_size,(xl6_error_result){true,NULL});
+        xl6_error_result r=(control_header(generator)->graph ? xl6CaptureRuntimeV3Get() : xl6CaptureRuntimeV2Get())->Cleanup(v2,generator->item,generator->item_size,(xl6_error_result){true,NULL});
         if(!r.ok)xl6ErrorScopePropagateFailure(r);
         return;
     }
@@ -432,7 +433,7 @@ static void frame_discard(void* data)
     frame->active=true;xl6CodeScopeEnter(&code,frame->lease);
     if(!xrtOwnershipScopeEnd(&mutation))abort();
     if(!xl6ErrorScopeBeginCleanup(&cleanup,false))abort();
-    outcome=frame->layoutV2 ? xl6ActivationCaptureRuntimeV2Get()->Cleanup(frame->layoutV2,data,frame->bytes,(xl6_error_result){true,NULL}) :
+    outcome=frame->layoutV2 ? (frame->graph ? xl6ActivationCaptureRuntimeV3Get() : xl6ActivationCaptureRuntimeV2Get())->Cleanup(frame->layoutV2,data,frame->bytes,(xl6_error_result){true,NULL}) :
         xl6ActivationCaptureRuntimeV1Get()->Cleanup(frame->layout,data,(xl6_error_result){true,NULL});
     if(!outcome.ok)xl6ErrorScopePropagateFailure(outcome);
     outcome=xl6ErrorScopeEnd(&cleanup);
@@ -445,12 +446,12 @@ static void frame_discard(void* data)
 static XL6_Generator* generator_create_v2(const XL6_CodeOwner* owner,void* frame,XL6_GeneratorResume resume,
     const XL6_CaptureLayoutV1* item)
 {
-    XL6_OWNERSHIP_RETURN(XL6_Generator*,generator_create_body(owner,frame,resume,NULL,item?item->bytes:0,NULL,NULL,NULL,item,NULL));
+    XL6_OWNERSHIP_RETURN(XL6_Generator*,generator_create_body(owner,frame,resume,NULL,item?item->bytes:0,NULL,NULL,NULL,item,NULL,false));
 }
 static XL6_Generator* generator_create_v3(const XL6_CodeOwner* owner,void* frame,XL6_GeneratorResume resume,
     const XL6_CaptureLayoutV2* item)
 {
-    XL6_OWNERSHIP_RETURN(XL6_Generator*,generator_create_body(owner,frame,resume,NULL,item?item->bytes:0,NULL,NULL,NULL,NULL,item));
+    XL6_OWNERSHIP_RETURN(XL6_Generator*,generator_create_body(owner,frame,resume,NULL,item?item->bytes:0,NULL,NULL,NULL,NULL,item,false));
 }
 static bool control_hold(const void* data)
 {
@@ -586,3 +587,15 @@ const xrtownershipadapterv1* xl6GeneratorOwnershipAdapterV1(xrtownershipref ref,
     }
     return NULL;
 }
+
+void* xl6GeneratorFrameAllocateGraphV1(size_t bytes,const XL6_ActivationCaptureLayoutV2* layout)
+{
+    if(!xl6ActivationCaptureRuntimeV3Get()->Validate(layout,bytes)){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    xrtownershipscope mutation={0};if(!xrtOwnershipMutationBegin(&mutation))return NULL;
+    void* data=frame_allocate_body(bytes);
+    if(data){frame_header(data)->layoutV2=layout;frame_header(data)->graph=true;}
+    if(!xrtOwnershipScopeEnd(&mutation))abort();
+    return data;
+}
+XL6_Generator* xl6GeneratorCreateGraphV1(const XL6_CodeOwner* owner,void* frame,XL6_GeneratorResume resume,const XL6_CaptureLayoutV2* item)
+{XL6_OWNERSHIP_RETURN(XL6_Generator*,generator_create_body(owner,frame,resume,NULL,item?item->bytes:0,NULL,NULL,NULL,NULL,item,true));}

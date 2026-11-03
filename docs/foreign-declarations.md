@@ -276,7 +276,7 @@ extern "borrowBytes" @no_raise @nonblocking @c_bytes_view(0) @c_result("bytes_vi
 输入在调用处通过一次 `xrtValueGetBytes` 取得栈上的指针／长度记录；不复制数据，
 不扫描终止符，不创建临时 Buffer 或转发函数。原生函数只能在当前调用期间读取
 该视图，不能保存地址、修改数据或在返回后使用。它保留任意字节及内嵌 NUL，
-不执行 UTF-8 检查。可变共享 Buffer 的跨回调地址保护尚未定义，不能套用此合同。
+不执行 UTF-8 检查。可变共享 Buffer 应使用下述显式 `c_span` 合同，不能套用此 bytes 合同。
 
 `@c_result("bytes_view")` 接受 `bytes`／`bytes?` 结果。原生生产者返回借用
 `xbytesview`；统一 CALL 在清理输入及接收者前将它复制成语言拥有值。
@@ -294,6 +294,90 @@ extern "borrowBytes" @no_raise @nonblocking @c_bytes_view(0) @c_result("bytes_vi
 
 `tools/check_foreign_bytes_views.py` 提供公开头、原生 C 提供方、GCC O0/O2、
 TCC JIT／模块／独立程序、声明负例和独立 IR 篡改验收。
+
+## 受管原生视图
+
+```xlang
+extern "UiContext*" class Context @header("ui.h") @lifetime("owned") @policy("contextPolicy") @scope("UiScope") @watch("UiWatch")
+    native point handle
+end
+extern "UiWidget*" class Widget @header("ui.h") @lifetime("owner") @owner(Context) @policy("widgetPolicy") @watch("UiWatch")
+    native point handle
+end
+extern "uiRollbackContext" @no_raise func rollback(Context context)
+extern "uiCreateContext" @no_raise @c_result("owned_view") @factory(0,0,rollback) func createContext() as Context
+```
+
+语言槽保存 `XL6_ForeignView*`，方法仍以声明中的精确 C 指针调用。
+Root 拥有原生对象；`owner` 子视图由 Root 管辖，失去最后一个子视图引用不会单独
+销毁原生子对象。方法准备检查线程、关闭状态与调用作用域。显式关闭和原生销毁
+使既有别名失效；复制关闭后的值仍允许，后续原生访问返回 checked 错误。
+
+`@c_result("owner_view", source)` 的 source 包含接收者；0 是实例方法的 self，
+自由函数则是首个实参。Root 结果只能借回同一 Root；子结果必须属于声明的 Root。
+`@c_control(index)` 显式传控制记录，供 checked close 等驻留生命周期操作使用。
+`@c_result("bool_status")` 把原生 bool 转为语言 void，false 独立表示失败。
+
+字段、可空值、动态装箱、Array／Stack、闭包／cell、Future、异步及生成器都保存
+实际拥有槽和图合同。原生描述符必须准确追踪实际拥有引用，不能把含语言闭包的
+payload 声明为 leaf。native watch 必须在释放内存前通知，且自身不分配、不执行
+用户代码。工厂观察记录覆盖结果登记及其失败回滚；代码驻留准入重入后须重新
+确认输出存活和 parent 仍开放，再安装新观察者。
+
+这些规则不替代原生库的资源合同。caller 视图仍由声明作者负责生命周期；原生
+共享资源、借用参数的长期保存及尚无拥有入口的回调，必须先补足相应原生合同。
+
+## C 终止符字符串与分离的指针／长度
+
+```xlang
+extern "readPath" @no_raise @c_cstr(0) func readPath(string path) as c_int
+extern "drawPoints" @no_raise @c_span(0,"const Point*","int","draw.h") func drawPoints(Buffer input)
+extern "consumeBytes" @no_raise @c_span(0,"const uint8_t*","size_t") func consume(bytes input)
+```
+
+`@c_cstr(index)` 检查内嵌 NUL，拒绝静默截断；调用原生 C 函数时不创建字符串
+副本，但有一次检查扫描。需要精确长度时优先使用 `c_text_view`、`c_bytes_view`
+或 `c_span`。
+
+`c_span` 将一个逻辑参数展开为相邻的 C 指针和元素数量。指针要求一个显式 `*`，
+计数类型为 `int` 或 `size_t`；可选第四个字符串指定权威 C 头文件。
+string／bytes 和显式 C record 只提供 const 输入，Buffer 可以提供 const 或可写
+存储。元素数量由实际字节长度除以 `sizeof(element)` 得出；长度必须整除，地址
+必须满足元素对齐要求，int 计数不得溢出。void 元素按字节计数。
+
+Buffer 的存储在栈作用域中持有实际原生 handle；没有临时 Buffer、复制回写或
+数据复制。存储视图存活时，冲突的常规 Buffer 操作和显式 destroy 被 checked 拒绝；
+释放语言变量不能提前释放被使用的存储。它增加登记、引用和同步成本。
+原有显式 point／裸指针 C 互操仍由调用者负责地址有效期。
+
+工厂的 output 序号按实际 C 参数计算。指针／数量二元组和回调三元组不可从中间
+插入 output。普通参数序号仍按显式语言参数计算，不包含接收者。
+
+## 长期原生回调
+
+```xlang
+extern "uiSetHandlerOwned" @no_raise @c_owned_callback(1,0,"UiCallbackOwner",-1) func setHandler(Context context,func(Widget?,c_int) as c_int callback)
+```
+
+逻辑函数展开为精确类型的 C 函数指针、userdata 和 `const UiCallbackOwner*`。
+owner source 0 指首个 Context 实参；实例方法的 0 则指 self。可选第五个字符串
+`"first"`／`"last"` 选择 C 回调中 userdata 的位置，默认最后。回调结果支持平凡
+C 值；托管输入只能来自同一 Root。字符串／bytes 的隐式跨回调转换不属于此合同。
+
+原生 owner record 按顺序包含 `xrtownershipref`、bool Hold、bool Drop。发布者在
+注册时持有实际引用，每次调用另持有一份快照，直到整个类型化 thunk 返回后才
+释放。替换先提交新槽，再清理旧槽；追踪必须枚举这些实际拥有槽。
+普通闭包可捕获，nullable 函数用空三元组清除注册；不通过 xvalue 装箱调用。
+
+thunk 进入独立的 adapter／body 代码作用域及 Root 原生作用域，转换受管输入，
+调用 checked 语言入口，按逆序清理，失败时返回声明的 C fallback，绝不跨 C 栈
+展开语言异常。有即时 checked 边界时交付该边界；外部宿主触发而没有边界时，
+错误和独立失败位保留在 Root，供下一次调用、显式检查或关闭时交付。
+宿主的累计查询统计这类延迟交付失败，首个错误为空时也不会被后续错误覆盖。
+
+原生 `@no_raise` 只描述 C 生产者。准备、结果复制／准入和输入清理各自的失败都
+进入 XLIR，不能借此省略必要的 checked 路径。可写 span 和长期回调注册不能声明
+为 pure。直接、绑定、命名函数、协议和动态分派共用同一份物理参数映射。
 
 ## 批量验证
 

@@ -395,7 +395,7 @@ static int xl6IrCgenEmitAsyncReadyLauncher(
             "        xrtErrorFree(error); xrtPromiseDestroy(promise); return future; }\n"
             "    *value = worker.value;\n", valueDestroy);
     xl6OutputPuts("    if (!", out);
-    if (!xl6IrCgenEmitAsyncPayloadPublish(out, target->asyncResultAbi, "promise", "value")) return 0;
+    if (!xl6IrCgenEmitAsyncPayloadPublish(out,module,target->workerReturnType, target->asyncResultAbi, "promise", "value")) return 0;
     xl6OutputPuts(") {\n", out);
     xl6IrCgenEmitActivationFailure(out);
     xl6IrCgenEmitActivationCleanupBegin(out, 1);

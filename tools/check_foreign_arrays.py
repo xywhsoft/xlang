@@ -1,5 +1,6 @@
 """Offline native inline-array layout, value semantics and rejection checks."""
 from pathlib import Path
+from runtime_layout import runtime_directory
 import argparse, hashlib, json, os, shutil, subprocess, time
 
 
@@ -38,10 +39,10 @@ def main():
     assert 'Elements[16]' in text and 'Elements[3]' in text
     assert 'C array extent' in text
     assert 'xlir_xvalue_object_get_literal' not in text
-    runtime = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
+    runtime = runtime_directory(root) / ('xl.dll' if os.name == 'nt' else 'libxl.so')
     if os.name == 'nt':
         shutil.copy2(runtime, out / runtime.name)
-    includes = ['-I'+str(root), '-I'+str(root/'release/include'), '-I'+str(driver.parent/'include')]
+    includes = ['-I'+str(root), '-I'+str(runtime_directory(root)/'include'), '-I'+str(driver.parent/'include')]
     for opt in ('O0', 'O2'):
         exe = out / (opt + ('.exe' if os.name == 'nt' else '.out'))
         run(opt+'-build', ['gcc', '-std=c11', '-Wall', '-Wextra', '-Werror',
@@ -98,7 +99,7 @@ def main():
         for opt in ('O0', 'O2'):
             exe = out / ('ir-contract-'+opt+('.exe' if os.name == 'nt' else '.out'))
             arguments = ['-std=c11', '-Wall', '-Wextra', '-Werror', '-DXL_STATIC_EMBED',
-                         '-I'+str(root/'release'), *includes, '-'+opt, str(contract),
+                         '-I'+str(runtime_directory(root)), *includes, '-'+opt, str(contract),
                          *objects, str(runtime), *systems, '-o', str(exe)]
             rsp = out / ('ir-contract-'+opt+'.rsp')
             rsp.write_text('\n'.join('"'+str(s).replace('\\', '/')+'"' for s in arguments)+'\n', encoding='utf-8')

@@ -5,6 +5,7 @@ header makes a wrong receiver, argument or result type a C compilation error.
 These tests do not open a window, create a socket or use a security protocol.
 """
 from pathlib import Path
+from runtime_layout import runtime_directory
 import argparse
 import hashlib
 import json
@@ -49,7 +50,7 @@ def main():
     assert 'extern foreign_decl_widget foreign_decl_identity(foreign_decl_widget);' in text
     assert 'xlir_xvalue_object_get_literal_raw_pointer(' not in text
     assert 'xlir_native_handle_take_s' not in text
-    runtime = root / 'release' / ('xl.dll' if os.name == 'nt' else 'libxl.so')
+    runtime = runtime_directory(root) / ('xl.dll' if os.name == 'nt' else 'libxl.so')
     if os.name == 'nt':
         import shutil
         shutil.copy2(runtime, out / runtime.name)
@@ -58,7 +59,7 @@ def main():
         command = ['gcc', '-std=c11', '-Wall', '-Wextra', '-Werror', '-Wno-unused-function',
                    '-Wno-unused-variable', '-Wno-unused-label', '-Wno-unused-const-variable',
                    '-Wno-unused-but-set-variable', '-' + optimization, '-I' + str(root),
-                   '-I' + str(root / 'release/include'), '-I' + str(driver.parent / 'include'),
+                   '-I' + str(runtime_directory(root) / 'include'), '-I' + str(driver.parent / 'include'),
                    generated, root / 'test/cases/foreign_decl_handle_native.c',
                    root / 'test/cases/foreign_decl_module_host.c', runtime, '-o', executable]
         run('handle-' + optimization + '-build', command)
@@ -120,7 +121,7 @@ consume(value)
     rejected = out / 'not-a-pointer.c'
     run('not-a-pointer-cgen', [driver, scalar, 'cgen-default', rejected])
     run('not-a-pointer-c-abi', ['gcc', '-std=c11', '-O0', '-c',
-        '-I' + str(root / 'release/include'), '-I' + str(driver.parent / 'include'),
+        '-I' + str(runtime_directory(root) / 'include'), '-I' + str(driver.parent / 'include'),
         rejected, '-o', out / 'not-a-pointer.o'], accepted=False,
         diagnostic='external handle must be a C pointer type')
     print('External handle representation, authoritative C ABI, O0/O2 and refusal checks passed.')

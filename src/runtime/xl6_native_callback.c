@@ -152,6 +152,15 @@ static xl6_error_result leave(XL6_NativeCallbackScopeV1* scope,xl6_error_result 
     if(!xl6ForeignCallbackLeaveV1(&scope->callback))abort();
     return xl6ErrorScopeEnd(&errors);
 }
+bool xl6NativeCallbackReportFailureV1(XL6_NativeCallback* record,xl6_error_result failure)
+{
+    if(failure.ok)abort();
+    if(xl6ErrorScopeTryPropagateFailureV1(&failure))return true;
+    if(record && record->payload.owner) {
+        xl6ForeignViewRecordCallbackFailureV1(record->payload.owner,failure);return true;
+    }
+    xrtSetErrorTake(failure.error);return false;
+}
 static bool collector_hold(const void* raw)
 {
     XL6_NativeCallback* record=(XL6_NativeCallback*)raw;

@@ -179,8 +179,8 @@ static int xl6IrCgenEmitAwaitPayload(
     if (abi == XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE) {
         const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,instruction->type));
         if(!native)return 0;
-        xl6OutputPrintf(out,"        await_ok_%u = xl6NativeFuturePayloadRuntimeV1Get()->Copy(payload, %s(), &v%u);\n",
-            result,native->captureProfileSymbol,result);
+        xl6OutputPrintf(out,"        await_ok_%u = %s->Copy(payload, %s(), &v%u);\n",
+            result,xl6IrCgenNativePayloadRuntime(module,instruction->type),native->captureProfileSymbol,result);
     } else if (abi == XL6_IR_ASYNC_RESULT_OWNED_STRING)
         xl6OutputPrintf(out, "        v%u = xlir_string_copy(*payload);\n"
             "        if (payload->Data != NULL && v%u.Data == NULL) await_ok_%u = false;\n",

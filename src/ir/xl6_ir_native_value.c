@@ -5,7 +5,7 @@
 static const XL6_IrNativeValuePlan g_xl6IrNativeValues[] = {
 #define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,Release,Type,Converter,Sequence,Profile,ValueId,CaptureHeader,CaptureProfile) \
     {XL6_IR_NATIVE_VALUE_##Tag,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,XL6_IR_RELEASE_EFFECT_##Release, \
-        XL6_IR_NATIVE_SLOT_##Tag,#Type "()",#Converter "()",Sequence,Profile,ValueId,CaptureHeader,CaptureProfile,XL6_IR_NATIVE_VALUE_NONE,NULL},
+        XL6_IR_NATIVE_SLOT_##Tag,#Type "()",#Converter "()",Sequence,Profile,ValueId,CaptureHeader,CaptureProfile,XL6_IR_NATIVE_VALUE_NONE,NULL,false,false},
 #include "src/type/xl6_native_value_profiles.inc"
 #undef XL6_NATIVE_VALUE_PROFILE
     {XL6_IR_NATIVE_VALUE_NULLABLE_SLOT_MAP_KEY_V1,"xlang.runtime.nullable-slot-map-key.v1",
@@ -15,7 +15,30 @@ static const XL6_IrNativeValuePlan g_xl6IrNativeValues[] = {
         XL6_IR_NATIVE_SLOT_NULLABLE_SLOT_MAP_KEY_V1,"xl6NullableSlotMapKeyTypeV1()","xl6NullableSlotMapKeyConverterV1()",
         "xl6SequenceNullableSlotMapKeyCreateV1","xl6NullableSlotMapKeyCollectionProfileV1Get",
         XL6_NULLABLE_SLOT_MAP_KEY_LANGUAGE_VALUE_ID,"__xl_runtime/xl6_nullable_slot_map_key_capture.h",
-        "xl6NullableSlotMapKeyCaptureProfileV1Get",XL6_IR_NATIVE_VALUE_SLOT_MAP_KEY_V1,"xl6NullableSlotMapKeyTryUnboxV1"},
+        "xl6NullableSlotMapKeyCaptureProfileV1Get",XL6_IR_NATIVE_VALUE_SLOT_MAP_KEY_V1,"xl6NullableSlotMapKeyTryUnboxV1",false,false},
+};
+static const XL6_IrNativeValuePlan g_xl6IrForeignViewValue={
+    .abi=XL6_IR_NATIVE_VALUE_FOREIGN_VIEW_V1,.abiName="xlang.foreign.view.v1",
+    .cName="XL6_ForeignView*",.header="__xl_runtime/xl6_foreign_view_abi.h",
+    .errorResultCName="xlir_result_foreign_view_v1",.copySymbol="xl6ForeignViewCopyValueV1",
+    .dropSymbol="xl6ForeignViewDropValueV1",.equalSymbol="xl6ForeignViewEqualValueV1",
+    .boxSymbol="xl6ForeignViewBoxV1",.projectSymbol="xl6ForeignViewUnboxV1",
+    .releaseEffect=XL6_IR_RELEASE_EFFECT_MAY_RAISE,.slotAbi=XL6_IR_NATIVE_SLOT_FOREIGN_VIEW_V1,
+    .typeExpr="xl6ForeignViewStorageTypeV1()",.converterExpr="xl6ForeignViewSequenceConverterV1()",
+    .sequenceSymbol="xl6ForeignViewSequenceCreateV1",.captureHeader="__xl_runtime/xl6_foreign_view_capture.h",
+    .captureProfileSymbol="xl6ForeignViewCaptureProfileV1Get",.graphCapture=true,.nominalDomainArguments=true
+};
+static const XL6_IrNativeValuePlan g_xl6IrNullableForeignViewValue={
+    .abi=XL6_IR_NATIVE_VALUE_NULLABLE_FOREIGN_VIEW_V1,.abiName="xlang.foreign.nullable-view.v1",
+    .cName="XL6_ForeignView*",.header="__xl_runtime/xl6_foreign_view_abi.h",
+    .errorResultCName="xlir_result_foreign_view_v1",.copySymbol="xl6ForeignViewCopyValueV1",
+    .dropSymbol="xl6ForeignViewDropValueV1",.equalSymbol="xl6ForeignViewEqualValueV1",
+    .boxSymbol="xl6ForeignViewBoxV1",.projectSymbol="xl6ForeignViewUnboxV1",
+    .tryProjectSymbol="xl6ForeignViewTryUnboxV1",.nullableElementAbi=XL6_IR_NATIVE_VALUE_FOREIGN_VIEW_V1,
+    .releaseEffect=XL6_IR_RELEASE_EFFECT_MAY_RAISE,.slotAbi=XL6_IR_NATIVE_SLOT_FOREIGN_VIEW_V1,
+    .typeExpr="xl6ForeignViewStorageTypeV1()",.converterExpr="xl6ForeignViewSequenceConverterV1()",
+    .sequenceSymbol="xl6ForeignViewSequenceCreateV1",.captureHeader="__xl_runtime/xl6_foreign_view_capture.h",
+    .captureProfileSymbol="xl6ForeignViewCaptureProfileV1Get",.graphCapture=true,.nominalDomainArguments=true
 };
 static XL6_IrNativeValueAbi xl6IrNativeValueAbiFromFrontend(XL6_TypeAbiId abi)
 {
@@ -35,32 +58,46 @@ XL6_IrClosureStorageAbi xl6IrClosureEnvironmentAbi(const XL6_IrModule* module,co
         if(capture->abi!=XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE)continue;
         const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,capture->type));
         if(!native || !native->captureHeader || !native->captureProfileSymbol)return XL6_IR_CLOSURE_STORAGE_NONE;
-        result=XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3;
+        XL6_IrClosureStorageAbi required=native->graphCapture ? XL6_IR_CLOSURE_STORAGE_RESIDENT_GRAPH_LAYOUT_V4 :
+            XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3;
+        if(required>result)result=required;
     }
     return result;
 }
 XL6_IrClosureStorageAbi xl6IrModuleClosureStorageRequirement(const XL6_IrModule* module)
 {
     if(!module)return XL6_IR_CLOSURE_STORAGE_NONE;
-    for(size_t i=0;i<module->closureTargetCount;++i)
-        if(module->closureTargets[i].reachability!=XL6_IR_REACHABILITY_UNREACHABLE &&
-            xl6IrClosureEnvironmentAbi(module,&module->closureTargets[i])==XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3)
-            return XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3;
-    return XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V2;
+    XL6_IrClosureStorageAbi result=XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V2;
+    for(size_t i=0;i<module->closureTargetCount;++i){
+        if(module->closureTargets[i].reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        XL6_IrClosureStorageAbi required=xl6IrClosureEnvironmentAbi(module,&module->closureTargets[i]);
+        if(required==XL6_IR_CLOSURE_STORAGE_NONE)return required;
+        if(required>result)result=required;
+    }
+    return result;
 }
 XL6_IrCellStorageAbi xl6IrModuleCellStorageRequirement(const XL6_IrModule* module)
 {
     if(!module)return XL6_IR_CELL_STORAGE_NONE;
-    for(size_t i=0;i<module->storageCount;++i)
-        if(module->storages[i].cellType!=XL6_IR_TYPE_INVALID &&
-            xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,module->storages[i].type)))
-            return XL6_IR_CELL_STORAGE_RESIDENT_NATIVE_LEAF_V2;
-    return XL6_IR_CELL_STORAGE_RESIDENT_TRANSFER_V1;
+    XL6_IrCellStorageAbi result=XL6_IR_CELL_STORAGE_RESIDENT_TRANSFER_V1;
+    for(size_t i=0;i<module->storageCount;++i){
+        if(module->storages[i].cellType==XL6_IR_TYPE_INVALID)continue;
+        const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(xl6IrTypeGet(&module->types,module->storages[i].type));
+        if(!native)continue;
+        XL6_IrCellStorageAbi required=native->graphCapture ? XL6_IR_CELL_STORAGE_RESIDENT_NATIVE_GRAPH_V3 :
+            XL6_IR_CELL_STORAGE_RESIDENT_NATIVE_LEAF_V2;
+        if(required>result)result=required;
+    }
+    return result;
 }
 static XL6_IrNativeValueAbi xl6IrNativeValueAbiFromType(const XL6_IrType* type)
 {
     if (!type || type->returnCount)
         return XL6_IR_NATIVE_VALUE_NONE;
+    if(type->foreignHeader && type->foreignPolicy &&
+        (type->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED || type->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNER))
+        return type->kind==XL6_IR_TYPE_CLASS ? XL6_IR_NATIVE_VALUE_FOREIGN_VIEW_V1 :
+            type->kind==XL6_IR_TYPE_NULLABLE ? XL6_IR_NATIVE_VALUE_NULLABLE_FOREIGN_VIEW_V1 : XL6_IR_NATIVE_VALUE_NONE;
     if(type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1 && type->params){
         for(size_t i=0;i<XL6_ARRAY_COUNT(g_xl6IrNativeValues);++i)
             if(g_xl6IrNativeValues[i].nullableElementAbi &&
@@ -77,6 +114,10 @@ const XL6_IrNativeValuePlan* xl6IrNativeValuePlanForType(const XL6_IrType* type)
         type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
         type->nativeValueAbi == XL6_IR_NATIVE_VALUE_NONE ||
         type->nativeValueAbi != xl6IrNativeValueAbiFromType(type)) return NULL;
+    if(type->nativeValueAbi==XL6_IR_NATIVE_VALUE_FOREIGN_VIEW_V1 ||
+        type->nativeValueAbi==XL6_IR_NATIVE_VALUE_NULLABLE_FOREIGN_VIEW_V1)
+        return type->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL ?
+            (type->kind==XL6_IR_TYPE_NULLABLE ? &g_xl6IrNullableForeignViewValue : &g_xl6IrForeignViewValue) : NULL;
     for (i=0;i<XL6_ARRAY_COUNT(g_xl6IrNativeValues);++i)
         if (g_xl6IrNativeValues[i].abi == type->nativeValueAbi &&
             type->nullAbi==(g_xl6IrNativeValues[i].nullableElementAbi ? XL6_IR_NULL_ABI_TAGGED_VALUE : XL6_IR_NULL_ABI_NONE))
@@ -87,6 +128,7 @@ static const XL6_IrNativeValuePlan* xl6IrNullableNativeValuePlanForElement(const
 {
     const XL6_IrNativeValuePlan* base=xl6IrNativeValuePlanForType(element);
     if(!base || base->nullableElementAbi)return NULL;
+    if(base==&g_xl6IrForeignViewValue)return &g_xl6IrNullableForeignViewValue;
     for(size_t i=0;i<XL6_ARRAY_COUNT(g_xl6IrNativeValues);++i)
         if(g_xl6IrNativeValues[i].nullableElementAbi==base->abi)return &g_xl6IrNativeValues[i];
     return NULL;

@@ -80,7 +80,7 @@ bool xl6ForeignViewStorageUnboxV1(const xvalue* value,XL6_ForeignView** output)
 }
 bool xl6ForeignViewUnboxV1(const xvalue* value,uint64_t identity,bool nullable,XL6_ForeignView** output)
 {
-    if(!output || *output || !identity){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    if(!output || (uintptr_t)output % _Alignof(XL6_ForeignView*) || *output || !identity){xrtSetErrorKind(XERR_ARGUMENT);return false;}
     xl6_error_scope errors={0};if(!xl6ErrorScopeBegin(&errors))return false;
     XL6_ForeignView* copy=NULL;bool success=false;
     if(!value || xrtValueType(value)==XVALUE_NULL){
@@ -99,6 +99,12 @@ bool xl6ForeignViewUnboxV1(const xvalue* value,uint64_t identity,bool nullable,X
     }
     if(!finish(&errors,success))return false;
     *output=copy;return true;
+}
+bool xl6ForeignViewTryUnboxV1(const xvalue* value,uint64_t identity,XL6_ForeignView** output)
+{
+    if(!output || (uintptr_t)output % _Alignof(XL6_ForeignView*) || *output || !identity){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    if(!xl6ForeignViewValueAdmitsV1(value,identity,true))return true;
+    return xl6ForeignViewUnboxV1(value,identity,true,output);
 }
 static bool resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
     const xrtownershipadapterv1** output,const xrtownershippreparationv1** preparation,const XL6_OwnershipFinishV1** completion)

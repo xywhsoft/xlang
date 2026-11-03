@@ -360,6 +360,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
                              "XLIR extern call target has no deterministic C linkage ABI");
     const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);
     uint32 output = declaration ? declaration->foreignCall.outputIndexPlusOne : 0;
+    size_t outputLogical=output ? xl6ForeignFactoryOutputLogical(&declaration->foreignCall,target->parameterCount) : SIZE_MAX;
     /* A runtime bridge is not an unresolved foreign symbol: the verified
      * component selected by runtimeBridge has already emitted its canonical
      * definition before this prototype phase.  Re-declaring it from the
@@ -370,9 +371,12 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
     {
         XL6_IrTypeId physicalResult =
             xl6IrCgenPhysicalResultType(module, target);
-        returnType = target->returnType == XL6_IR_TYPE_INVALID ? "void"
+        returnType = target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_BOOL_STATUS ? "bool"
+            : target->returnType == XL6_IR_TYPE_INVALID ? "void"
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW ? "xstrview"
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW ? "xbytesview"
+            : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW ? xl6IrTypeGet(&module->types,target->returnType)->cName
+            : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_BOOL_STATUS ? "bool"
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER ? "char*"
             : target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY
                 ? "const char*" : xl6IrCgenType(module, physicalResult);
@@ -392,10 +396,12 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
     for ( i = 0; i < target->parameterCount + (output != 0); ++i ) {
         const char* type;
         if ( i > 0 ) xl6OutputPuts(", ", out);
-        if (output && i + 1 == output) {
-            xl6OutputPrintf(out, "%s*", xl6IrCgenType(module, target->returnType)); continue;
+        if (output && i == outputLogical) {
+            const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
+            xl6OutputPrintf(out, "%s*", target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW ?
+                result->cName : xl6IrCgenType(module, target->returnType)); continue;
         }
-        size_t parameter = i - (output && i + 1 > output);
+        size_t parameter = i - (output && i > outputLogical);
         if ( target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_RAW_C_CALLBACK ||
              target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK ) {
             xl6OutputPrintf(out, "xlir_raw_callback_t%u",
@@ -410,6 +416,11 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
         else xl6OutputPuts(type, out);
         if ( xl6IrCgenParameterAbiIsIndirect(target->parameterAbis[parameter]) )
             xl6OutputPuts("*", out);
+        const XL6_ForeignParameterContract* expanded=xl6IrForeignParameterGet(module,target,parameter);
+        if(expanded && expanded->kind==XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK)
+            xl6OutputPrintf(out,", void*, const %s*",expanded->callbackOwnerCName);
+        if(expanded && expanded->kind==XL6_FOREIGN_PARAMETER_SPAN)
+            xl6OutputPrintf(out,", %s",expanded->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int" : "size_t");
     }
     if ( target->variadicAbi == XL6_IR_CALL_VARIADIC_C )
         xl6OutputPuts(", ...", out);
@@ -562,8 +573,8 @@ static int xl6IrCgenEmitCellInstruction(
             const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(element);
             if(native){
                 if(!native->captureProfileSymbol)return 0;
-                xl6OutputPrintf(out,"    v%u = xl6CellCreateNativeV2(%s());\n",
-                    (unsigned)instruction->result,native->captureProfileSymbol);
+                xl6OutputPrintf(out,"    v%u = %s(%s());\n",
+                    (unsigned)instruction->result,native->graphCapture ? "xl6CellCreateNativeGraphV3" : "xl6CellCreateNativeV2",native->captureProfileSymbol);
             }else xl6OutputPrintf(out, "    v%u = (xl6CellRuntimeV1Get()->Create)(%s, sizeof(%s));\n",
                 (unsigned int)instruction->result, kind, payloadType);
         }
@@ -626,7 +637,7 @@ static int xl6IrCgenEmitClosureMakeInstruction(
     size_t capture;
     int needsCopies = 0;
     int conditionCount = 0;
-    int nativeLayout=target && xl6IrClosureEnvironmentAbi(module,target)==XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3;
+    int nativeLayout=target && xl6IrClosureEnvironmentAbi(module,target)>=XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3;
     if ( instruction == NULL || xl6IrCgenType(module, instruction->type) == NULL ||
          target == NULL || signature == NULL ||
          signature->kind != XL6_IR_TYPE_FUNCTION ||

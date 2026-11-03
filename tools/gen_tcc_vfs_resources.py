@@ -12,6 +12,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from runtime_layout import runtime_source
 
 
 @dataclass(frozen=True)
@@ -67,7 +68,7 @@ def resolve_manifest_path(
     # 清单可能由 Windows 与 POSIX 构建共用，统一采用 Path 可识别的分隔符。
     value = value.replace("\\", "/")
     path = Path(value)
-    return (path if path.is_absolute() else root / path).resolve()
+    return runtime_source(root, path if path.is_absolute() else root / path).resolve()
 
 
 def load_resources(

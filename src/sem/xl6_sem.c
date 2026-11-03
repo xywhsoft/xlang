@@ -231,6 +231,7 @@ static int xl6SemClassDeclHasNativeHandle(XL6_SemContext* ctx, const XL6_AstNode
 static const XL6_AstNode* xl6SemTypeNodeGenericArgs(const XL6_AstNode* typeNode);
 static const XL6_AstNode* xl6SemClassHandleTargetType(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
 static const XL6_AstNode* xl6SemClassValueType(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
+static const XL6_AstNode* xl6SemForeignViewDeclaration(XL6_SemContext*,const XL6_AstNode*,XL6_ForeignClassDecl*);
 static int xl6SemClassHandleCanWiden(XL6_SemContext* ctx, const XL6_AstNode* sourceType, const XL6_AstNode* targetType);
 static int xl6SemTypeUsesClassReferenceSemantics(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
 static int xl6SemTypeIsClassValue(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
@@ -9112,6 +9113,36 @@ static int xl6SemTypeListEquals(XL6_SemContext* ctx, const XL6_AstNode* a, const
     return 1;
 }
 
+static int xl6SemExternParameterExpansion(const XL6_AstNode* node,size_t parameter,XL6_ForeignParameterContract* output)
+{
+    const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);
+    for(size_t i=0;attrs && i<attrs->childCount;++i) {
+        XL6_ForeignParameterContract row;
+        if(xl6ForeignParameterRead(attrs->children[i],&row) && row.parameter==parameter){*output=row;return 1;}
+    }
+    return 0;
+}
+static int xl6SemExternParameterListsCompatible(XL6_SemContext* ctx,const XL6_AstNode* a,const XL6_AstNode* b)
+{
+    const XL6_AstNode* left=xl6SemExternFuncParams(a);const XL6_AstNode* right=xl6SemExternFuncParams(b);
+    if(!left || !right || left->childCount!=right->childCount)return left==right;
+    for(size_t p=0;p<left->childCount;++p) {
+        XL6_ForeignParameterContract x={0},y={0};
+        int expanded=xl6SemExternParameterExpansion(a,p,&x),other=xl6SemExternParameterExpansion(b,p,&y);
+        if(expanded!=other)return 0;
+        const XL6_AstNode* lt=left->children[p]->children[0];const XL6_AstNode* rt=right->children[p]->children[0];
+        if(expanded) {
+            if(x.kind!=y.kind || strcmp(x.pointerCName,y.pointerCName) || x.countAbi!=y.countAbi ||
+                strcmp(x.callbackOwnerCName,y.callbackOwnerCName) || x.callbackUserFirst!=y.callbackUserFirst)return 0;
+            if(x.kind==XL6_FOREIGN_PARAMETER_SPAN)continue;
+            lt=xl6SemResolveAliasType(ctx,lt);rt=xl6SemResolveAliasType(ctx,rt);
+            if(xl6SemTypeIsNullable(lt))lt=xl6SemNullableInnerType(lt);
+            if(xl6SemTypeIsNullable(rt))rt=xl6SemNullableInnerType(rt);
+        }
+        if(!xl6SemTypeEquals(ctx,lt,rt) || xl6SemParamMode(left->children[p])!=xl6SemParamMode(right->children[p]))return 0;
+    }
+    return 1;
+}
 static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* a, const XL6_AstNode* b)
 {
     if ( a == NULL || b == NULL ) {
@@ -9124,7 +9155,7 @@ static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* 
             left.staticCallbackAddresses != right.staticCallbackAddresses ||
             left.outputIndexPlusOne != right.outputIndexPlusOne || left.successCode != right.successCode) return 0;
         return ((a->flags ^ b->flags) & XL6_AST_FLAG_FOREIGN_OWNED_STRING) == 0 &&
-               xl6SemTypeListEquals(ctx, xl6SemExternFuncParams(a), xl6SemExternFuncParams(b), 1) &&
+               xl6SemExternParameterListsCompatible(ctx,a,b) &&
                xl6SemTypeListEquals(ctx, xl6SemExternFuncReturns(a), xl6SemExternFuncReturns(b), 0);
     }
     if ( a->kind == XL6_AST_EXTERN_VAR ) {
@@ -17216,8 +17247,11 @@ static int xl6SemCheckBoundarySymbolUse(XL6_SemContext* ctx, const XL6_AstNode* 
             cellValue = xl6SemResolveAliasType(ctx, nullableElement);
         const XL6_TypeInfo* cellInfo=cellValue && cellValue->text
             ? xl6TypeRegistryFind(&ctx->types,cellValue->text) : NULL;
+        XL6_ForeignClassDecl foreignCell={0};
+        bool managedForeign=xl6SemForeignViewDeclaration(ctx,cellValue,&foreignCell) &&
+            foreignCell.lifetime>=XL6_FOREIGN_LIFETIME_OWNED;
         if ( cellValue == NULL || cellValue->text == NULL ||
-             cellValue->childCount != 0 ||
+             (cellValue->childCount != 0 && !managedForeign) ||
              !(xl6SemIsBoolTypeName(cellValue->text) ||
                 xl6SemIsIntegerTypeName(cellValue->text) ||
                 xl6SemIsFloatTypeName(cellValue->text) ||
@@ -17225,7 +17259,7 @@ static int xl6SemCheckBoundarySymbolUse(XL6_SemContext* ctx, const XL6_AstNode* 
                 xl6TextEquals(cellValue->text, "string") ||
                 xl6TextEquals(cellValue->text, "bytes") ||
                 xl6COwnedBaseName(cellValue->text) ||
-                xl6TextEquals(cellValue->text, "var") ||
+                xl6TextEquals(cellValue->text, "var") || managedForeign ||
                 (cellInfo && cellInfo->kind==XL6_TYPE_BUILTIN && xl6TypeRegistryIsNativeValueAbi(cellInfo->abiId))) ) {
             xl6SemErrorNode(ctx, node, "可变捕获需要已实现的共享 cell 元素 ABI");
             return 0;
@@ -20959,7 +20993,8 @@ static int xl6SemIsCAbiCallbackValueType(
     const XL6_AstNode* inner = xl6SemNullableInnerType(typeNode);
     const XL6_AstNode* value = xl6SemClassValueType(ctx, inner ? inner : typeNode);
     const XL6_AstNode* declaration = value && value->text ? xl6SemFindTypeDecl(ctx, value->text) : NULL;
-    if (xl6ForeignClassRead(declaration, NULL, NULL) == 1 ||
+    XL6_ForeignClassDecl foreign={0};
+    if ((xl6ForeignClassRead(declaration, &foreign, NULL) == 1 && foreign.lifetime==XL6_FOREIGN_LIFETIME_CALLER) ||
         (!inner && declaration && declaration->kind == XL6_AST_C_RECORD)) return 1;
     if ( typeNode == NULL || typeNode->text == NULL || typeNode->childCount != 0 ) {
         return 0;
@@ -21299,28 +21334,91 @@ static int xl6SemDeclaredNativeValueExternType(XL6_SemContext* ctx,
     return 0;
 }
 
-static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNode* node)
+static const XL6_AstNode* xl6SemForeignViewDeclaration(XL6_SemContext* ctx,
+    const XL6_AstNode* type,XL6_ForeignClassDecl* contract)
+{
+    type=xl6SemResolveAliasType(ctx,type);
+    if(xl6SemTypeIsNullable(type))type=xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(type));
+    type=xl6SemClassValueType(ctx,type);
+    const XL6_AstNode* declaration=type && type->text ? xl6SemFindTypeDecl(ctx,type->text) : NULL;
+    return xl6ForeignClassRead(declaration,contract,NULL)==1 ? declaration : NULL;
+}
+static const XL6_AstNode* xl6SemForeignRootDeclaration(XL6_SemContext* ctx,const XL6_AstNode* declaration,
+    const XL6_ForeignClassDecl* contract)
+{
+    if(contract->lifetime==XL6_FOREIGN_LIFETIME_OWNED)return declaration;
+    if(contract->lifetime!=XL6_FOREIGN_LIFETIME_OWNER)return NULL;
+    XL6_AstNode type={0};type.kind=XL6_AST_TYPE;type.text=(char*)contract->owner;
+    return xl6SemForeignViewDeclaration(ctx,&type,NULL);
+}
+static int xl6SemForeignSpanType(XL6_SemContext* ctx,const XL6_AstNode* type,
+    const XL6_ForeignParameterContract* contract)
+{
+    type=xl6SemResolveAliasType(ctx,type);
+    if(!type || xl6SemTypeIsNullable(type))return 0;
+    if(!type->childCount && (xl6TextEquals(type->text,"string") || xl6TextEquals(type->text,"bytes")))
+        return contract->readOnly;
+    if(contract->readOnly && xl6ForeignRecordRead(xl6SemFindTypeDecl(ctx,type->text),NULL,NULL)==1)return 1;
+    uint64 extent;
+    if(type->childCount==1 && xl6ForeignArrayExtent(type->text,&extent))return contract->readOnly;
+    const XL6_AstNode* value=xl6SemClassValueType(ctx,type);
+    const XL6_AstNode* declaration=value ? xl6SemFindTypeDecl(ctx,value->text) : NULL;
+    const XL6_AstNode* body=declaration && declaration->kind==XL6_AST_CLASS && declaration->childCount>1 ? declaration->children[1] : NULL;
+    for(size_t i=0;body && i<body->childCount;++i) {
+        const XL6_AstNode* member=body->children[i];
+        if(member && member->kind==XL6_AST_NATIVE_EXTERN_SPECIAL && member->text &&
+            (!strcmp(member->text,"\"xl6BufferDestroyV1\"") || !strcmp(member->text,"xl6BufferDestroyV1")))return 1;
+    }
+    return 0;
+}
+static int xl6SemCheckRetainedCallbackType(XL6_SemContext* ctx,const XL6_AstNode* signature,
+    const XL6_AstNode* owner,XL6_AstNode* at)
+{
+    signature=xl6SemResolveAliasType(ctx,signature);
+    if(xl6SemTypeIsNullable(signature))signature=xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(signature));
+    if(!signature || !xl6TextEquals(signature->text,"function") || signature->childCount!=2)goto invalid;
+    const XL6_AstNode* params=signature->children[0];
+    const XL6_AstNode* returns=signature->children[1];
+    if(!params || !returns || returns->childCount>1)goto invalid;
+    for(size_t p=0;p<params->childCount;++p) {
+        const XL6_AstNode* item=params->children[p];
+        const XL6_AstNode* type=xl6SemCallableItemType(item);
+        if(!type || (item->kind==XL6_AST_PARAM && item->childCount!=1) || xl6SemTypeIsVararg(type))goto invalid;
+        XL6_ForeignClassDecl contract={0};
+        const XL6_AstNode* declaration=xl6SemForeignViewDeclaration(ctx,type,&contract);
+        if(declaration && contract.lifetime!=XL6_FOREIGN_LIFETIME_CALLER) {
+            if(xl6SemForeignRootDeclaration(ctx,declaration,&contract)!=owner)goto invalid;
+        } else if(!xl6SemIsCAbiCallbackValueType(ctx,type,0))goto invalid;
+    }
+    if(returns->childCount && !xl6SemIsCAbiCallbackValueType(ctx,returns->children[0],1))goto invalid;
+    return 1;
+invalid:
+    xl6SemErrorNode(ctx,at,"retained C callback requires an exact native signature and managed inputs from its declared owner root");
+    return 0;
+}
+static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNode* node,const XL6_AstNode* ownerClass)
 {
     XL6_ForeignCallFacts facts;
     const XL6_AstNode* attrs = xl6ForeignFunctionAttributes(node);
-    if (!attrs) return 1;
+    if(!attrs && node->kind!=XL6_AST_EXTERN_FUNC && node->kind!=XL6_AST_NATIVE_EXTERN_FUNC &&
+        node->kind!=XL6_AST_GET && node->kind!=XL6_AST_LET)return 1;
     if (!xl6ForeignFunctionRead(node, &facts) ||
         (node->kind != XL6_AST_EXTERN_FUNC && node->kind != XL6_AST_NATIVE_EXTERN_FUNC &&
          !((node->kind==XL6_AST_GET || node->kind==XL6_AST_LET) &&
            (node->flags&XL6_AST_FLAG_EXTERN) && !facts.constRecordAddresses &&
            !facts.staticCallbackAddresses && !facts.outputIndexPlusOne))) {
-        xl6SemErrorNode(ctx, node, "invalid declarative C call; expected @c_ref(index), @c_static_callback(index), or @factory(outputIndex, successCode, rollback)");
+        xl6SemErrorNode(ctx, node, "invalid declarative C call contract");
         return 0;
     }
     XL6_AstNode* params = node->childCount > 1 ? node->children[1] : NULL;
     size_t count = params ? params->childCount : 0;
-    if (count < 64 && ((facts.constRecordAddresses | facts.staticCallbackAddresses | facts.textViews | facts.bytesViews) >> count)) {
+    if (count < 64 && ((facts.constRecordAddresses | facts.staticCallbackAddresses | facts.textViews | facts.bytesViews | facts.terminatedStrings | facts.spanParameters | facts.retainedCallbacks) >> count)) {
         xl6SemErrorNode(ctx, node, "C parameter ABI index is outside the declared signature"); return 0;
     }
     for (size_t i = 0; i < count && i < 64; ++i) {
         XL6_AstNode* parameter = params->children[i];
         XL6_AstNode* type = parameter && parameter->childCount ? parameter->children[0] : NULL;
-        if (facts.textViews & (UINT64_C(1) << i)) {
+        if ((facts.textViews | facts.terminatedStrings) & (UINT64_C(1) << i)) {
             const XL6_AstNode* resolved = xl6SemResolveAliasType(ctx, type);
             if (!resolved || resolved->childCount || !xl6TextEquals(resolved->text, "string")) {
                 xl6SemErrorNode(ctx, parameter, "@c_text_view requires a non-null string parameter"); return 0;
@@ -21344,7 +21442,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         }
 
     }
-    if (facts.borrowedViewResult) {
+    if (facts.borrowedViewResult && facts.borrowedViewResult<=XL6_FOREIGN_VIEW_RESULT_BYTES) {
         const XL6_AstNode* returns = node->childCount > 2 ? node->children[2] : NULL;
         const XL6_AstNode* result = returns && returns->childCount == 1 ? xl6SemResolveAliasType(ctx, returns->children[0]) : NULL;
         const XL6_AstNode* inner = result ? xl6SemResolveAliasType(ctx,
@@ -21355,16 +21453,111 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             xl6SemErrorNode(ctx, node, "C borrowed view result must match its declared string/bytes kind and nullability"); return 0;
         }
     }
+    size_t receiver=(node->kind==XL6_AST_NATIVE_EXTERN_FUNC || node->kind==XL6_AST_GET || node->kind==XL6_AST_LET) &&
+        !(node->flags&XL6_AST_FLAG_STATIC) ? 1u : 0u;
+    for(size_t i=0;attrs && i<attrs->childCount;++i) {
+        const XL6_AstNode* attr=attrs->children[i];
+        XL6_ForeignParameterContract contract;
+        if(!attr || !attr->text || (strcmp(attr->text,"c_span") && strcmp(attr->text,"c_owned_callback")))continue;
+        if(!xl6ForeignParameterRead(attr,&contract) || contract.parameter>=count)return 0;
+        XL6_AstNode* parameter=params->children[contract.parameter];
+        const XL6_AstNode* type=parameter && parameter->childCount ? parameter->children[0] : NULL;
+        if((node->flags&XL6_AST_FLAG_FOREIGN_PURE) &&
+            (contract.kind==XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK || !contract.readOnly)) {
+            xl6SemErrorNode(ctx,node,"mutable C spans and retained callback registration cannot be @pure");return 0;
+        }
+        if(contract.kind==XL6_FOREIGN_PARAMETER_SPAN) {
+            if(!xl6SemForeignSpanType(ctx,type,&contract)) {
+                xl6SemErrorNode(ctx,parameter,"C span requires readonly string/bytes/fixed C array, or a declared Buffer resource");return 0;
+            }
+        } else {
+            size_t source=contract.callbackOwnerIndexPlusOne-1;
+            XL6_ForeignClassDecl ownerContract={0};
+            const XL6_AstNode* sourceType=source>=receiver && source-receiver<count ? params->children[source-receiver]->children[0] : NULL;
+            const XL6_AstNode* owner=source<receiver ? ownerClass : xl6SemForeignViewDeclaration(ctx,sourceType,&ownerContract);
+            if(source<receiver && owner)xl6ForeignClassRead(owner,&ownerContract,NULL);
+            const XL6_AstNode* root=owner ? xl6SemForeignRootDeclaration(ctx,owner,&ownerContract) : NULL;
+            if(!root || (sourceType && xl6SemTypeIsNullable(xl6SemResolveAliasType(ctx,sourceType))) ||
+                (source<64 && (facts.controlViews&(UINT64_C(1)<<source))) ||
+                !xl6SemCheckRetainedCallbackType(ctx,type,root,parameter)) {
+                xl6SemErrorNode(ctx,parameter,"retained C callback requires one non-null managed owner source");return 0;
+            }
+        }
+    }
+    if(facts.controlViews & ((facts.textViews|facts.bytesViews|facts.terminatedStrings|facts.spanParameters|facts.retainedCallbacks|facts.constRecordAddresses|facts.staticCallbackAddresses)<<receiver)){
+        xl6SemErrorNode(ctx,node,"C control mapping conflicts with another physical parameter contract");return 0;
+    }
+    if(count+receiver<64 && (facts.controlViews>>(count+receiver))){
+        xl6SemErrorNode(ctx,node,"C control parameter index is outside the physical signature");return 0;
+    }
+    for(size_t p=0;p<count+receiver && p<64;++p)if(facts.controlViews&(UINT64_C(1)<<p)){
+        XL6_ForeignClassDecl contract={0};
+        const XL6_AstNode* declaration=p<receiver ? ownerClass :
+            xl6SemForeignViewDeclaration(ctx,params->children[p-receiver]->children[0],&contract);
+        if(p<receiver && declaration)xl6ForeignClassRead(declaration,&contract,NULL);
+        if(!declaration || contract.lifetime<XL6_FOREIGN_LIFETIME_OWNED){
+            xl6SemErrorNode(ctx,node,"@c_control requires a managed view parameter");return 0;
+        }
+    }
+    const XL6_AstNode* viewReturns=node->childCount>2 ? node->children[2] : NULL;
+    XL6_ForeignClassDecl resultContract;
+    const XL6_AstNode* resultDecl=viewReturns && viewReturns->childCount==1 ?
+        xl6SemForeignViewDeclaration(ctx,viewReturns->children[0],&resultContract) : NULL;
+    if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS){
+        if(!viewReturns || viewReturns->childCount || facts.outputIndexPlusOne){
+            xl6SemErrorNode(ctx,node,"bool_status requires a void language result and no output factory");return 0;
+        }
+    }else if(resultDecl && resultContract.lifetime!=XL6_FOREIGN_LIFETIME_CALLER){
+        if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE){
+            if(resultContract.lifetime!=XL6_FOREIGN_LIFETIME_OWNED || !facts.outputIndexPlusOne){
+                xl6SemErrorNode(ctx,node,"owned_view requires an owned root and a status/output factory with rollback");return 0;
+            }
+        }else if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE){
+            size_t p=facts.resultOwnerIndexPlusOne-1;
+            const XL6_AstNode* ownerType=p>=receiver && p-receiver<count ?
+                xl6SemResolveAliasType(ctx,params->children[p-receiver]->children[0]) : NULL;
+            XL6_ForeignClassDecl sourceContract={0};
+            const XL6_AstNode* sourceDecl=p<receiver ? ownerClass :
+                p-receiver<count ? xl6SemForeignViewDeclaration(ctx,params->children[p-receiver]->children[0],&sourceContract) : NULL;
+            if(p<receiver && sourceDecl)xl6ForeignClassRead(sourceDecl,&sourceContract,NULL);
+            if(!sourceDecl || (ownerType && xl6SemTypeIsNullable(ownerType)) ||
+                (p<64 && (facts.controlViews&(UINT64_C(1)<<p))) ||
+                xl6SemForeignRootDeclaration(ctx,sourceDecl,&sourceContract)!=
+                xl6SemForeignRootDeclaration(ctx,resultDecl,&resultContract)){
+                xl6SemErrorNode(ctx,node,"owner_view source must belong to the declared result root");return 0;
+            }
+        }else{
+            xl6SemErrorNode(ctx,node,"managed view result needs owned_view or owner_view admission");return 0;
+        }
+    }else if(facts.borrowedViewResult>=XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE){
+        xl6SemErrorNode(ctx,node,"native view result contract requires a managed external class");return 0;
+    }
     if (facts.outputIndexPlusOne) {
         const XL6_AstNode* returns = node->childCount > 2 ? node->children[2] : NULL;
         const XL6_AstNode* result = returns && returns->childCount == 1 ? xl6SemResolveAliasType(ctx, returns->children[0]) : NULL;
         const XL6_AstNode* view = xl6SemClassValueType(ctx, result);
         const XL6_AstNode* typeDecl = view && view->text ? xl6SemFindTypeDecl(ctx, view->text) : NULL;
-        if (facts.outputIndexPlusOne > count + 1) {
+        if (xl6ForeignFactoryOutputLogical(&facts,count)==SIZE_MAX) {
             xl6SemErrorNode(ctx, node, "factory output index is outside the physical signature"); return 0;
         }
         if (!result || xl6ForeignClassRead(typeDecl, NULL, NULL) != 1) {
             xl6SemErrorNode(ctx, node, "factory result must be an exact non-null external native view"); return 0;
+        }
+        XL6_ForeignClassDecl factoryContract={0};
+        if(xl6ForeignClassRead(typeDecl,&factoryContract,NULL)==1 && factoryContract.lifetime==XL6_FOREIGN_LIFETIME_CALLER &&
+            (facts.spanParameters || facts.retainedCallbacks || facts.terminatedStrings)) {
+            xl6SemErrorNode(ctx,node,"expanded factory inputs require a managed result lifetime");return 0;
+        }
+        if(factoryContract.lifetime==XL6_FOREIGN_LIFETIME_CALLER)for(size_t p=0;p<count;++p) {
+            const XL6_AstNode* parameter=params->children[p]->children[0];
+            XL6_ForeignClassDecl inputContract={0};
+            const XL6_AstNode* input=xl6SemForeignViewDeclaration(ctx,parameter,&inputContract);
+            const XL6_AstNode* classValue=xl6SemClassValueType(ctx,parameter);
+            XL6_ForeignParameterContract probe={.readOnly=true};
+            if((input && inputContract.lifetime!=XL6_FOREIGN_LIFETIME_CALLER) ||
+                (classValue && classValue!=parameter && xl6SemForeignSpanType(ctx,parameter,&probe))) {
+                xl6SemErrorNode(ctx,node,"native scoped factory inputs require a managed result lifetime");return 0;
+            }
         }
         if (!(node->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE)) {
             xl6SemErrorNode(ctx, node, "factory producer requires an explicit @no_raise callee contract"); return 0;
@@ -21400,7 +21593,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
     return 1;
 }
 
-static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
+static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node,const XL6_AstNode* ownerClass)
 {
     XL6_AstNode* params;
     XL6_AstNode* returns;
@@ -21409,7 +21602,7 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
 
     ok = 1;
 
-    if (!xl6SemCheckForeignFunctionDeclaration(ctx, node)) return 0;
+    if (!xl6SemCheckForeignFunctionDeclaration(ctx, node,ownerClass)) return 0;
 
     /* A declared generic value input has no concrete C value ABI until
      * specialization. Its closed descriptor selects a const slot-address
@@ -21458,6 +21651,9 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
                 continue;
             }
             typeNode = (XL6_AstNode*)xl6SemResolveAliasType(ctx, typeNode);
+            XL6_ForeignCallFacts parameterFacts={0};
+            if(xl6ForeignFunctionRead(node,&parameterFacts) && i<64 &&
+                (parameterFacts.retainedCallbacks & (UINT64_C(1)<<i)))continue;
             if ( typeNode != NULL && xl6TextEquals(typeNode->text, "function") ) {
                 if ( (param->flags & XL6_AST_FLAG_C_CALLBACK) != 0 &&
                      !xl6SemCheckCAbiCallbackType(ctx, typeNode, param) ) {
@@ -21708,7 +21904,7 @@ static int xl6SemCheckExternFunc(XL6_SemContext* ctx, XL6_AstNode* node)
             }
         }
     }
-    if ( !xl6SemCheckExternCAbi(ctx, node) ) {
+    if ( !xl6SemCheckExternCAbi(ctx, node,NULL) ) {
         ok = 0;
     }
     return ok;
@@ -23510,7 +23706,7 @@ static int xl6SemCheckClassExternSpecial(XL6_SemContext* ctx, XL6_AstNode* class
     if ( !xl6SemCheckClassExternParamsNoVararg(ctx, params, 0) ) {
         ok = 0;
     }
-    if ( !xl6SemCheckExternCAbi(ctx, node) ) {
+    if ( !xl6SemCheckExternCAbi(ctx, node,classNode) ) {
         ok = 0;
     }
     if ( !xl6SemCheckNativeMemberDirectCAbi(ctx, node) ) ok = 0;
@@ -23537,7 +23733,7 @@ static int xl6SemCheckClassExternFunc(XL6_SemContext* ctx, XL6_AstNode* classNod
     if ( node->childCount > 2 && !xl6SemCheckReturnTypes(ctx, node->children[2]) ) {
         ok = 0;
     }
-    if ( !xl6SemCheckExternCAbi(ctx, node) ) {
+    if ( !xl6SemCheckExternCAbi(ctx, node,classNode) ) {
         ok = 0;
     }
     if ( !xl6SemCheckNativeMemberDirectCAbi(ctx, node) ) ok = 0;
@@ -23597,7 +23793,7 @@ static int xl6SemCheckClassExternProperty(XL6_SemContext* ctx, XL6_AstNode* clas
             ok = 0;
         }
     }
-    if ( propertyParamsOk && !xl6SemCheckExternCAbi(ctx, node) ) {
+    if ( propertyParamsOk && !xl6SemCheckExternCAbi(ctx, node,classNode) ) {
         ok = 0;
     }
     if ( propertyParamsOk && !xl6SemCheckNativeMemberDirectCAbi(ctx, node) ) ok = 0;
@@ -24622,13 +24818,31 @@ static int xl6SemCheckForeignClass(XL6_SemContext* ctx, XL6_AstNode* node)
         return 1;
     }
     if (state < 0) { xl6SemErrorNode(ctx, node, error); return 0; }
+    if(contract.lifetime==XL6_FOREIGN_LIFETIME_OWNER){
+        XL6_AstNode ownerType={0};ownerType.kind=XL6_AST_TYPE;ownerType.text=contract.owner;
+        const XL6_AstNode* resolved=xl6SemResolveAliasType(ctx,&ownerType);
+        const XL6_AstNode* owner=resolved ? xl6SemFindTypeDecl(ctx,resolved->text) : NULL;
+        XL6_ForeignClassDecl ownerContract;
+        if(!owner || owner==node || xl6ForeignClassRead(owner,&ownerContract,NULL)!=1 ||
+            ownerContract.lifetime!=XL6_FOREIGN_LIFETIME_OWNED){
+            xl6SemErrorNode(ctx,node,"@owner requires a distinct owned external root class");return 0;
+        }
+        XL6_AstNode* attributes=node->children[3];
+        for(size_t i=1;i<attributes->childCount;++i){
+            XL6_AstNode* attr=attributes->children[i];
+            if(attr && attr->text && !strcmp(attr->text,"owner"))
+                attr->children[0]->semanticSymbolId=owner->semanticSymbolId;
+        }
+    }
     const XL6_AstNode* body = node->children[1];
     const XL6_AstNode* base = node->children[0];
     if (base && base->kind == XL6_AST_NAME) {
         XL6_ForeignClassDecl parent;
         const XL6_AstNode* owner = xl6SemFindTypeDecl(ctx, base->text);
         if (xl6ForeignClassRead(owner, &parent, NULL) != 1 ||
-            strcmp(contract.cName, parent.cName) || strcmp(contract.header, parent.header)) {
+            strcmp(contract.cName, parent.cName) || strcmp(contract.header, parent.header) ||
+            contract.lifetime!=parent.lifetime || strcmp(contract.policy,parent.policy) ||
+            strcmp(contract.scope,parent.scope) || strcmp(contract.watch,parent.watch) || strcmp(contract.owner,parent.owner)) {
             xl6SemErrorNode(ctx, node,
                 "external class base must have the same C handle and header contract");
             return 0;
