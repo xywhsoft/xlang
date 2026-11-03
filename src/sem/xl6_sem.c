@@ -21462,12 +21462,12 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         }
 
     }
-    if (facts.borrowedViewResult && facts.borrowedViewResult<=XL6_FOREIGN_VIEW_RESULT_BYTES) {
+    if (xl6ForeignResultTextView(facts.borrowedViewResult) || xl6ForeignResultBytesView(facts.borrowedViewResult)) {
         const XL6_AstNode* returns = node->childCount > 2 ? node->children[2] : NULL;
         const XL6_AstNode* result = returns && returns->childCount == 1 ? xl6SemResolveAliasType(ctx, returns->children[0]) : NULL;
         const XL6_AstNode* inner = result ? xl6SemResolveAliasType(ctx,
             xl6SemTypeIsNullable(result) ? xl6SemNullableInnerType(result) : result) : NULL;
-        const char* expected=facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BYTES ? "bytes" : "string";
+        const char* expected=xl6ForeignResultBytesView(facts.borrowedViewResult) ? "bytes" : "string";
         if (!inner || inner->childCount || !xl6TextEquals(inner->text, expected) ||
             (node->flags & XL6_AST_FLAG_FOREIGN_OWNED_STRING)) {
             xl6SemErrorNode(ctx, node, "C borrowed view result must match its declared string/bytes kind and nullability"); return 0;
@@ -21557,7 +21557,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         }else{
             xl6SemErrorNode(ctx,node,"managed view result needs owned_view or owner_view admission");return 0;
         }
-    }else if(facts.borrowedViewResult>=XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE){
+    }else if(facts.borrowedViewResult && !xl6ForeignResultTextView(facts.borrowedViewResult) && !xl6ForeignResultBytesView(facts.borrowedViewResult)){
         xl6SemErrorNode(ctx,node,"native view result contract requires a managed external class");return 0;
     }
     if(facts.valueOutput){

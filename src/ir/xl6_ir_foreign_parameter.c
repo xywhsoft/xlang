@@ -8,6 +8,36 @@ XL6_IrForeignOperationAbi xl6IrForeignOperationForTarget(const XL6_IrModule* mod
     return node->sourceKind==XL6_AST_GET ? XL6_IR_FOREIGN_OPERATION_FIELD_READ :
         node->sourceKind==XL6_AST_LET ? XL6_IR_FOREIGN_OPERATION_FIELD_WRITE : XL6_IR_FOREIGN_OPERATION_INVALID;
 }
+const XL6_ForeignFieldLengthContract* xl6IrForeignFieldLengthGet(const XL6_IrModule* module,const XL6_IrCallTarget* target)
+{
+    if(!module || !target)return NULL;
+    for(size_t i=0;i<module->foreignFieldLengthCount;++i)
+        if(module->foreignFieldLengths[i].declaration==target->declaration)return &module->foreignFieldLengths[i];
+    return NULL;
+}
+static int xl6IrVerifyForeignFieldLengths(const XL6_IrModule* module,XL6_DiagList* diags)
+{
+    if(module->foreignFieldLengthCount>module->foreignFieldLengthCapacity ||
+        (module->foreignFieldLengthCount && !module->foreignFieldLengths))goto invalid;
+    for(size_t i=0;i<module->foreignFieldLengthCount;++i){
+        const XL6_ForeignFieldLengthContract* row=&module->foreignFieldLengths[i];
+        const XL6_IrNode* node=xl6IrNodeGet(module,row->declaration);
+        if(!node || !memchr(row->field,0,sizeof(row->field)) || !xl6ForeignIdentifier(row->field) ||
+            (row->countAbi!=XL6_FOREIGN_SPAN_COUNT_INT && row->countAbi!=XL6_FOREIGN_SPAN_COUNT_SIZE) ||
+            !xl6ForeignResultCountedField(node->foreignCall.borrowedViewResult) || node->sourceKind!=XL6_AST_GET ||
+            !(node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || (node->flags&XL6_AST_FLAG_STATIC))goto invalid;
+        for(size_t j=0;j<i;++j)if(module->foreignFieldLengths[j].declaration==row->declaration)goto invalid;
+    }
+    for(size_t n=0;n<module->nodeCount;++n){
+        const XL6_IrNode* node=&module->nodes[n];
+        if(!xl6ForeignResultCountedField(node->foreignCall.borrowedViewResult))continue;
+        size_t found=0;
+        for(size_t i=0;i<module->foreignFieldLengthCount;++i)found+=module->foreignFieldLengths[i].declaration==n+1;
+        if(found!=1)goto invalid;
+    }
+    return 1;
+invalid:return xl6IrDiag(diags,NULL,"counted native fields require unique normalized length contracts");
+}
 int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration) : NULL;

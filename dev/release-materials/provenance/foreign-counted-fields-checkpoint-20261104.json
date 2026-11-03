@@ -1,0 +1,73 @@
+{
+  "complete": true,
+  "scope": "Counted C field projections and multiline callback parsing; compiler-capability checkpoint",
+  "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r9",
+  "windows": {
+    "fullTranslationUnits": 1414,
+    "tccObjects": 1562,
+    "acceptedGroups": 22,
+    "optimizationLevels": [
+      "O0",
+      "O2"
+    ],
+    "tccModes": [
+      "JIT",
+      "module",
+      "standalone"
+    ]
+  },
+  "linux": {
+    "fullTranslationUnits": 1413,
+    "acceptedGroups": 8,
+    "tccIncluded": false
+  },
+  "fieldContract": {
+    "sparseRows": 3,
+    "mutationsPerOptimization": 27,
+    "zeroOutputChecksPerOptimization": 54,
+    "countTypes": [
+      "int",
+      "size_t"
+    ],
+    "preservesEmbeddedNul": true,
+    "negativeCountRejected": true,
+    "fixedArrayOverreadRejected": true,
+    "pointerCountOverflowRejected": true,
+    "nullableEmptyDistinction": true,
+    "staleViewRejected": true,
+    "textOrBytesCopiesOnlyWhenRequested": true
+  },
+  "parserFix": "Restore anonymous-body separators before merging qualified declaration tokens, preserving existing function-type classification",
+  "eightTasksComplete": false,
+  "shippingUpdated": false,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r9.json",
+      "sha256": "2fd9a02468c89692a8970038615b9c48652976378111d2672d23fed892815908"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r9\\build.json",
+      "sha256": "22313a882412c420d3dff56fd23cd8c6611e5615252b5565687bb12847b15ac1"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r9-vfs\\build.json",
+      "sha256": "5ab0a1d20eb81aaa69ee678aba0061bb83dd66955335e3608056b7a8fd4616eb"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r9-vfs\\provider.json",
+      "sha256": "7d14d6ec6067280700a5e62d98e119db9837d5058b6af189e943d26b1ed61b80"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\precompiled-r9\\manifest.json",
+      "sha256": "692e2ee7e01816adbdea3c9c12fca6c82676ddfa6fadc7ef16ebee9ae2264b00"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\batch-r9\\results.json",
+      "sha256": "a297cbb309a5aacce0c08e3abbcf070c3a7858997c108bd8c2a9f8f347be1ee8"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-counted-fields-evidence-r5.json",
+      "sha256": "add921893664623b5f8504d63b66cb19ddf0eef43e895bdbdde8644f5934c80d"
+    }
+  ]
+}

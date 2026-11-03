@@ -9,7 +9,11 @@ typedef struct ManagedWatch {
     void (*notify)(void*);
     void* user;
 } ManagedWatch;
-struct ManagedChild {ManagedWatch* watches;ManagedRoot* root;ManagedChild* next;bool closing;int value;};
+struct ManagedChild {
+    ManagedWatch* watches;ManagedRoot* root;ManagedChild* next;bool closing;int value;
+    char countedText[8];int countedTextSize;
+    const unsigned char* countedData;size_t countedDataSize;
+};
 
 typedef struct ManagedScope {ManagedRoot* root;struct ManagedScope* self;} ManagedScope;
 extern const XL6_ForeignViewDescriptorV1 managedRootPolicy;

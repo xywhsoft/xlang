@@ -377,6 +377,14 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
             target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW ? "xbytesview" :
             target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW ? value->cName : xl6IrCgenType(module,target->returnType);
         if(!receiver || !physical)return 0;
+        const XL6_ForeignFieldLengthContract* length=xl6IrForeignFieldLengthGet(module,target);
+        if(length){
+            const char* extra=target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW ? ", unsigned char*:1, const unsigned char*:1" : "";
+            xl6OutputPrintf(out,"_Static_assert(_Generic(((%s)0)->%s, char*:1, const char*:1%s, default:0), \"native field data type\");\n"
+                "_Static_assert(_Generic(((%s)0)->%s, %s:1, default:0), \"native field length type\");\n",
+                receiver->cName,target->cName,extra,receiver->cName,length->field,
+                length->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int" : "size_t");return !xl6OutputHasFailed(out);
+        }
         xl6OutputPrintf(out,"_Static_assert(_Generic(((%s)0)->%s, %s:1, default:0), \"native field type\");\n",
             receiver->cName,target->cName,physical);return !xl6OutputHasFailed(out);
     }

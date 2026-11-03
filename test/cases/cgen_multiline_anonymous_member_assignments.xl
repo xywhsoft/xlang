@@ -1,0 +1,25 @@
+class Box
+    int value=4
+    string text="ok"
+end
+func invoke(func() as int callback) as int
+    return callback()
+end
+func main(...) as int
+    auto result=invoke(func() as int
+        Box box=Box()
+        int current=0
+        current=box.value
+        current=current+1
+        if current==5 then
+            current=box.value
+            box.value=current+3
+        end
+        auto text=box.text
+        current=box.value
+        assert text=="ok" and current==7
+        return current
+    end)
+    assert result==7
+    return 0
+end

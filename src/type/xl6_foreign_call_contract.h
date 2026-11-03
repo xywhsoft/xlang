@@ -19,8 +19,17 @@ typedef enum XL6_ForeignBorrowedViewResult {
     XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE,
     XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS,
     XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE,
-    XL6_FOREIGN_VIEW_RESULT_INT_STATUS
+    XL6_FOREIGN_VIEW_RESULT_INT_STATUS,
+    XL6_FOREIGN_VIEW_RESULT_TEXT_FIELD,
+    XL6_FOREIGN_VIEW_RESULT_BYTES_FIELD
 } XL6_ForeignBorrowedViewResult;
+
+static inline int xl6ForeignResultTextView(XL6_ForeignBorrowedViewResult kind)
+{return kind==XL6_FOREIGN_VIEW_RESULT_TEXT || kind==XL6_FOREIGN_VIEW_RESULT_TEXT_FIELD;}
+static inline int xl6ForeignResultBytesView(XL6_ForeignBorrowedViewResult kind)
+{return kind==XL6_FOREIGN_VIEW_RESULT_BYTES || kind==XL6_FOREIGN_VIEW_RESULT_BYTES_FIELD;}
+static inline int xl6ForeignResultCountedField(XL6_ForeignBorrowedViewResult kind)
+{return kind==XL6_FOREIGN_VIEW_RESULT_TEXT_FIELD || kind==XL6_FOREIGN_VIEW_RESULT_BYTES_FIELD;}
 
 /* Closed declaration facts. Const addresses exist only during one call;
  * they do not introduce a language reference or an escaping pointer. */
@@ -74,6 +83,14 @@ typedef enum XL6_ForeignSpanCountAbi {
     XL6_FOREIGN_SPAN_COUNT_SIZE = 1,
     XL6_FOREIGN_SPAN_COUNT_INT
 } XL6_ForeignSpanCountAbi;
+/* Only counted native field projections allocate a row. Ordinary fields,
+ * calls and IR nodes carry no fixed-size C identifier/length strings. */
+typedef struct XL6_ForeignFieldLengthContract {
+    uint32 declaration;
+    char field[64];
+    XL6_ForeignSpanCountAbi countAbi;
+} XL6_ForeignFieldLengthContract;
+
 typedef struct XL6_ForeignParameterContract {
     uint32 declaration;
     uint32 parameter; /* Explicit language parameter, excluding receiver. */
