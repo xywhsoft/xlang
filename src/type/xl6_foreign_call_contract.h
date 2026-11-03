@@ -7,7 +7,8 @@ typedef enum XL6_ForeignLifetimeAbi {
     XL6_FOREIGN_LIFETIME_NONE=0,
     XL6_FOREIGN_LIFETIME_CALLER,
     XL6_FOREIGN_LIFETIME_OWNED,
-    XL6_FOREIGN_LIFETIME_OWNER
+    XL6_FOREIGN_LIFETIME_OWNER,
+    XL6_FOREIGN_LIFETIME_CALLBACK
 } XL6_ForeignLifetimeAbi;
 
 typedef enum XL6_ForeignBorrowedViewResult {
@@ -16,7 +17,8 @@ typedef enum XL6_ForeignBorrowedViewResult {
     XL6_FOREIGN_VIEW_RESULT_BYTES,
     XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE,
     XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE,
-    XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS
+    XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS,
+    XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE
 } XL6_ForeignBorrowedViewResult;
 
 /* Closed declaration facts. Const addresses exist only during one call;

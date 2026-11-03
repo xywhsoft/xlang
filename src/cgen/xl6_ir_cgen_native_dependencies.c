@@ -460,12 +460,14 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             }
             if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK &&
                 (!visitor(context,"xl6NativeCallbackRuntimeV1Get") || !visitor(context,"xl6NativeCallbackReportFailureV1") ||
+                 !visitor(context,"xl6ForeignScopeBeginV1") || !visitor(context,"xl6ForeignScopeEndV1") || !visitor(context,"xl6ForeignScopeViewMakeV1") ||
                  !visitor(context,"xl6ForeignViewBorrowRootV1") || !visitor(context,"xl6ForeignViewBorrowChildV1") ||
                  !visitor(context,"xl6ForeignViewReleaseV1")))return 0;
             if(xl6IrForeignSpanBufferField(module,target,p) &&
                 (!visitor(context,"xl6BufferSpanBeginV1") || !visitor(context,"xl6BufferSpanEndV1")))return 0;
             if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW &&
-                (!visitor(context,"xl6ForeignViewCallBeginV1") || !visitor(context,"xl6ForeignViewCallEndV1")))return 0;
+                (!visitor(context,"xl6ForeignViewCallBeginV1") || !visitor(context,"xl6ForeignViewCallEndV1") ||
+                 !visitor(context,"xl6ForeignScopeViewGetV1")))return 0;
         }
         if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT){
             const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
@@ -473,7 +475,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             const char* admit=declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE ?
                 "xl6ForeignViewCreateRootProbedV1" : type->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED ?
                 "xl6ForeignViewBorrowRootV1" : "xl6ForeignViewBorrowChildV1";
-            if(!visitor(context,admit))return 0;
+            if(!visitor(context,admit) || !visitor(context,"xl6ForeignScopeViewDeriveV1"))return 0;
             if(declaration->foreignCall.outputIndexPlusOne &&
                 (!visitor(context,"xl6ForeignResultProbePrepareV1") || !visitor(context,"xl6ForeignResultProbeObserveV1") ||
                  !visitor(context,"xl6ForeignResultProbeAliveV1") || !visitor(context,"xl6ForeignResultProbeEndV1")))return 0;

@@ -1,0 +1,100 @@
+extern "ManagedRoot*" class Root @header("test/cases/foreign_managed_view.h") @lifetime("owned") @policy("managedRootPolicy") @scope("ManagedScope") @watch("ManagedWatch")
+    native point handle
+    extern "managed_root_read" @no_raise get value() as c_int
+    extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "ManagedChild*" class Event @header("test/cases/foreign_scoped_view.h") @lifetime("callback") @owner(Root)
+    native point handle
+    extern "managed_child_read" @no_raise get value() as c_int
+    extern "scoped_read" @no_raise func read() as c_int
+    extern "managed_child_owner" @no_raise @c_result("owner_view",0) get context() as Root
+    extern "scoped_identity" @no_raise @c_result("scope_view",0) func same() as Event
+    extern "scoped_optional" @no_raise @c_result("scope_view",0) func optional() as Event?
+end
+extern "managed_root_destroy" @no_raise func rollback(Root root)
+extern "managed_root_create" @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(c_int mode) as Root
+extern "managed_set_callback" @no_raise @c_owned_callback(1,0,"ManagedCallbackOwner",-9) func on(Root root,func(Event?,c_int) as c_int callback)
+extern "scoped_fire" @no_raise func fire(Root root,c_int value) as c_int
+extern "managed_counter_begin" @no_raise func countersBegin()
+extern "managed_counter_end" @no_raise func countersEnd()
+class Saved
+    Event? event
+    func() as c_int reader
+end
+func main(...) as int
+    Root root=create(0)
+    Saved holder=Saved()
+    Event? saved=null
+    array<Event> events=[]
+    var boxed=null
+    on(root,func(Event? input,c_int code) as c_int
+        assert input!=null
+        Event event=input as Event
+        assert event.value==code
+        assert event.context.value==42
+        assert event.same().value==code
+        Event optional=event.optional() as Event
+        assert optional.value==code
+        func() as c_int current=event.read
+        assert current()==code
+        holder.reader=current
+        holder.event=event
+        saved=event
+        events.append(event)
+        boxed=event
+        Event projected=boxed as Event
+        assert projected.value==code
+        return code+1
+    end)
+    assert fire(root,17)==18
+    bool rejected=false
+    try
+        auto ignored=(saved as Event).value
+    catch error
+        rejected=true
+    end
+    assert rejected
+    rejected=false
+    try
+        auto ignored=(holder.event as Event).value
+    catch error
+        rejected=true
+    end
+    assert rejected
+    rejected=false
+    try
+        auto ignored=events[0].value
+    catch error
+        rejected=true
+    end
+    assert rejected
+    rejected=false
+    try
+        Event projected=boxed as Event
+        auto ignored=projected.value
+    catch error
+        rejected=true
+    end
+    assert rejected
+    rejected=false
+    try
+        auto ignored=holder.reader()
+    catch error
+        rejected=true
+    end
+    assert rejected
+    on(root,func(Event? input,c_int code) as c_int
+        Event event=input as Event
+        return event.value
+    end)
+    assert fire(root,9)==9
+    countersBegin()
+    int i=0
+    while i<200
+        assert fire(root,9)==9
+        i+=1
+    end
+    countersEnd()
+    root.close()
+    return 0
+end

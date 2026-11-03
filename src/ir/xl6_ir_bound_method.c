@@ -65,7 +65,7 @@ static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext* ctx,XL6_IrNodeId or
     }
     if(!owner || owner->kind!=XL6_IR_TYPE_CLASS ||
        (owner->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-        !(owner->cAbi==XL6_IR_C_ABI_NATIVE_VALUE && owner->foreignPolicy && xl6IrNativeValuePlanForType(owner)) &&
+        !(owner->cAbi==XL6_IR_C_ABI_NATIVE_VALUE && (owner->foreignPolicy || owner->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK) && xl6IrNativeValuePlanForType(owner)) &&
         !(owner->cAbi==XL6_IR_C_ABI_NATIVE_HANDLE && owner->foreignHeader &&
           owner->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL))) return 0;
     XL6_SymbolId selected=0;

@@ -1634,7 +1634,7 @@ static int xl6IrLowerTypeIsClassReceiver(const XL6_IrModule* module, XL6_IrTypeI
     return item != NULL && item->kind == XL6_IR_TYPE_CLASS &&
            (item->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
             item->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE ||
-            (item->foreignPolicy && xl6IrNativeValuePlanForType(item)));
+            ((item->foreignPolicy || item->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK) && xl6IrNativeValuePlanForType(item)));
 }
 
 /* A loaded catch binding is a borrowed observation of storage that remains

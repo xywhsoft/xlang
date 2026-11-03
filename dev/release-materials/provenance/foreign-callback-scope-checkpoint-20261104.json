@@ -1,0 +1,69 @@
+{
+  "date": "2026-11-04",
+  "kind": "callback-scope-compiler-checkpoint",
+  "shippingProductsUpdated": false,
+  "eightTasksComplete": false,
+  "networkTests": false,
+  "windows": {
+    "sourceUnits": 1414,
+    "tccObjects": 1562,
+    "canonicalGroups": 18,
+    "passed": true
+  },
+  "linux": {
+    "sourceUnits": 1413,
+    "gccGates": [
+      "managed_views",
+      "expanded_calls",
+      "terminated_strings",
+      "scoped_views"
+    ],
+    "tccIncluded": false,
+    "modifiedRuntimeUnitsSanitized": true,
+    "unchangedObjectsSanitized": false
+  },
+  "scopeIrMutationsPerOptimization": 47,
+  "emptyOutputsPerOptimization": 94,
+  "warmTypedCallbacks": 200,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r7.json",
+      "sha256": "a579de03c939c7cad5eef45d48052639f0d013dfbdf916f24d0801f88a9d275c"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r7\\build.json",
+      "sha256": "bc450f7e0baf370e87f2d384be14ee528453ed058eaaf8ae240aa09eacfa33a7"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\precompiled-r7\\manifest.json",
+      "sha256": "55541e056b95ce0f65d5bc927dff891172f800bc44599181c2706092fc1fbe62"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r7-vfs\\provider.json",
+      "sha256": "d37186ea23488ba84b2e610bf0e8bbb01b88c862b6911069af8e58207866a32b"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\batch-r7\\results.json",
+      "sha256": "af2cef6212a743f026b89f9cd7006f4df03d7750e295913af8d5cfb33d332a27"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\scope-native-r6\\results.json",
+      "sha256": "ca6de20c306dc47b9c75321a5c014725e04e5243f7694ac061616cdb272a08d1"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-source-copy-r3.json",
+      "sha256": "5b4d613d23d53334942e07ccef7fcfa05dabe15ce293e4c2455c184baa1059ee"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-scope-evidence-r3.json",
+      "sha256": "02bfb4cf275900f25e4c65c2d52b4344e86951c741651e681382cb99bff959aa"
+    }
+  ],
+  "remaining": [
+    "native field projections",
+    "remaining XGE/XUI owned callback slots",
+    "independent native resources",
+    "package initialization and full declarations",
+    "SDK IDE examples and product acceptance"
+  ]
+}

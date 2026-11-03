@@ -1006,7 +1006,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_xlang_handler_policy.c",D(R(OWNERSHIP_CATALOG),R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{NULL},XL6_ARTIFACT_HOST_XLANG_RUNTIME_V1},
     {"src/runtime/xl6_foreign_context.c",D(),{"XRT_MODULE_ONCE","XRT_MODULE_ERROR","XRT_MODULE_THREAD"}},
     {"src/runtime/xl6_foreign_callback_scope.c",D(R(FOREIGN_CONTEXT)),{"XRT_MODULE_THREAD","XRT_MODULE_ERROR"}},
-    {"src/runtime/xl6_foreign_view.c",D(R(FOREIGN_CALLBACK_SCOPE),R(CODE_LEASE),R(OWNERSHIP_CATALOG),R(FOREIGN_ERROR)),
+    {"src/runtime/xl6_foreign_view.c",D(R(FOREIGN_CALLBACK_SCOPE),R(CODE_LEASE),R(OWNERSHIP_CATALOG),R(FOREIGN_ERROR),R(FOREIGN_SCOPE_VIEW)),
         {"XRT_MODULE_MEMORY","XRT_MODULE_ATOMIC","XRT_MODULE_MAP","XRT_MODULE_THREAD"}},
     {"src/runtime/xl6_native_capture_graph.c",D(),{NULL}},
     {"src/runtime/xl6_foreign_view_capture.c",D(R(FOREIGN_VIEW),R(NATIVE_CAPTURE_GRAPH)),{NULL}},
@@ -1019,6 +1019,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_native_callback.c",D(R(CLOSURE),R(FOREIGN_VIEW),R(FOREIGN_ERROR)),{"XRT_MODULE_MEMORY","XRT_MODULE_ATOMIC"}},
     {"src/runtime/xl6_foreign_view_value.c",D(R(FOREIGN_VIEW),R(FOREIGN_ERROR)),{"XRT_MODULE_VALUE_GRAPH"}},
     {"src/runtime/xl6_foreign_view_sequence.c",D(R(FOREIGN_VIEW_VALUE),R(SEQUENCE)),{"XRUNTIME_MODULE_TYPED_ARRAY"}},
+    {"src/runtime/xl6_foreign_scope_view.c",D(R(FOREIGN_CONTEXT),R(FOREIGN_CALLBACK_SCOPE)),{"XRT_MODULE_ATOMIC","XRT_MODULE_ERROR"}},
+    {"src/runtime/xl6_foreign_scope_value.c",D(R(FOREIGN_SCOPE_VIEW),R(SEQUENCE)),{"XRT_MODULE_VALUE_GRAPH","XRT_MODULE_MEMORY","XRUNTIME_MODULE_TYPED_ARRAY"}},
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

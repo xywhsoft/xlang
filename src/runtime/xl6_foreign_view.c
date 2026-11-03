@@ -1,6 +1,7 @@
 #include "src/common/xl6_xrt.h"
 #include "xl6_foreign_view.h"
 #include "xl6_foreign_view_abi.h"
+#include "xl6_foreign_scope_view.h"
 #include "xl6_foreign_context.h"
 #include "src/api/xl_foreign_error.h"
 #include <stddef.h>
@@ -413,6 +414,7 @@ bool xl6ForeignViewCallEndV1(XL6_ForeignViewCallV1* scope)
         scope->root->thread!=xrtThreadCurrentId() || !xl6ForeignContextCallContainsV1(&scope->execution)) {
         xrtSetErrorKind(XERR_STATE); return false;
     }
+    xl6ForeignScopeExpireOwnerV1(scope);
     XL6_ForeignView* view=scope->view;
     XL6_ForeignView* root=scope->root;
     void* storage=scope->nativeStorage;

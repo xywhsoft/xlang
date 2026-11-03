@@ -157,6 +157,8 @@
 #include "src/runtime/xl6_foreign_context.h"
 #include "src/runtime/xl6_foreign_callback_scope.h"
 #include "src/runtime/xl6_foreign_view.h"
+#include "src/runtime/xl6_foreign_scope_view.h"
+#include "src/runtime/xl6_foreign_scope_value.h"
 #include "src/runtime/xl6_foreign_view_abi.h"
 #include "src/runtime/xl6_native_frame_graph.h"
 #include "src/runtime/xl6_foreign_view_value.h"
@@ -345,6 +347,36 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6ForeignCallbackEnterV1", (const void*)xl6ForeignCallbackEnterV1)) return 0;
     if (!visit(user, "xl6ForeignCallbackLeaveV1", (const void*)xl6ForeignCallbackLeaveV1)) return 0;
     if (!visit(user, "xl6ForeignCallbackActiveV1", (const void*)xl6ForeignCallbackActiveV1)) return 0;
+    if (!visit(user, "xl6ScopeViewCopyV1", (const void*)xl6ScopeViewCopyV1)) return 0;
+    if (!visit(user, "xl6ScopeViewDropV1", (const void*)xl6ScopeViewDropV1)) return 0;
+    if (!visit(user, "xl6ScopeViewEqualV1", (const void*)xl6ScopeViewEqualV1)) return 0;
+    if (!visit(user, "xl6ScopeViewBoxV1", (const void*)xl6ScopeViewBoxV1)) return 0;
+    if (!visit(user, "xl6ScopeViewUnboxV1", (const void*)xl6ScopeViewUnboxV1)) return 0;
+    if (!visit(user, "xl6ScopeViewTryUnboxV1", (const void*)xl6ScopeViewTryUnboxV1)) return 0;
+    if (!visit(user, "xl6ScopeViewTypeV1", (const void*)xl6ScopeViewTypeV1)) return 0;
+    if (!visit(user, "xl6ScopeViewCaptureV1", (const void*)xl6ScopeViewCaptureV1)) return 0;
+    if (!visit(user, "xl6ScopeViewConverterV1", (const void*)xl6ScopeViewConverterV1)) return 0;
+    if (!visit(user, "xl6NullableScopeViewCopyV1", (const void*)xl6NullableScopeViewCopyV1)) return 0;
+    if (!visit(user, "xl6NullableScopeViewDropV1", (const void*)xl6NullableScopeViewDropV1)) return 0;
+    if (!visit(user, "xl6NullableScopeViewEqualV1", (const void*)xl6NullableScopeViewEqualV1)) return 0;
+    if (!visit(user, "xl6NullableScopeViewBoxV1", (const void*)xl6NullableScopeViewBoxV1)) return 0;
+    if (!visit(user, "xl6NullableScopeViewUnboxV1", (const void*)xl6NullableScopeViewUnboxV1)) return 0;
+    if (!visit(user, "xl6NullableScopeViewTryUnboxV1", (const void*)xl6NullableScopeViewTryUnboxV1)) return 0;
+    if (!visit(user, "xl6NullableScopeViewTypeV1", (const void*)xl6NullableScopeViewTypeV1)) return 0;
+    if (!visit(user, "xl6NullableScopeViewCaptureV1", (const void*)xl6NullableScopeViewCaptureV1)) return 0;
+    if (!visit(user, "xl6NullableScopeViewConverterV1", (const void*)xl6NullableScopeViewConverterV1)) return 0;
+    if (!visit(user, "xl6ScopeViewSequenceCreateV1", (const void*)xl6ScopeViewSequenceCreateV1)) return 0;
+    if (!visit(user, "xl6ArrayExtractScopeViewV1", (const void*)xl6ArrayExtractScopeViewV1)) return 0;
+    if (!visit(user, "xl6ScopeViewSequenceAdmissionV1", (const void*)xl6ScopeViewSequenceAdmissionV1)) return 0;
+    if (!visit(user, "xl6OwnershipDomainSequenceScopeViewV1Get", (const void*)xl6OwnershipDomainSequenceScopeViewV1Get)) return 0;
+    if (!visit(user, "xl6OwnershipDomainScopeViewValueV1Get", (const void*)xl6OwnershipDomainScopeViewValueV1Get)) return 0;
+    if (!visit(user, "xl6ForeignScopeBeginV1", (const void*)xl6ForeignScopeBeginV1)) return 0;
+    if (!visit(user, "xl6ForeignScopeEndV1", (const void*)xl6ForeignScopeEndV1)) return 0;
+    if (!visit(user, "xl6ForeignScopeViewMakeV1", (const void*)xl6ForeignScopeViewMakeV1)) return 0;
+    if (!visit(user, "xl6ForeignScopeViewDeriveV1", (const void*)xl6ForeignScopeViewDeriveV1)) return 0;
+    if (!visit(user, "xl6ForeignScopeViewGetV1", (const void*)xl6ForeignScopeViewGetV1)) return 0;
+    if (!visit(user, "xl6ForeignScopeViewAliveV1", (const void*)xl6ForeignScopeViewAliveV1)) return 0;
+    if (!visit(user, "xl6ForeignScopeExpireOwnerV1", (const void*)xl6ForeignScopeExpireOwnerV1)) return 0;
     if (!visit(user, "xl6ForeignViewCreateRootV1", (const void*)xl6ForeignViewCreateRootV1)) return 0;
     if (!visit(user, "xl6ForeignViewCreateRootProbedV1", (const void*)xl6ForeignViewCreateRootProbedV1)) return 0;
     if (!visit(user, "xl6ForeignViewBorrowChildV1", (const void*)xl6ForeignViewBorrowChildV1)) return 0;

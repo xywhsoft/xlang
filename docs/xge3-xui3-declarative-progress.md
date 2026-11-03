@@ -1,5 +1,17 @@
 # XGE3 / XUI3 声明式接入实施状态
 
+11 月 4 日回调期视图已接入声明／XLIR／Cgen：真实 C 栈事件在回调内可读，保存到
+类字段、共享 cell、数组、动态值和绑定方法后，过期访问 checked 拒绝；派生视图
+共享原有效期。Windows 完整重建 1,414 单元、1,562 个 TCC 对象及 VFS，18 组联合
+验收通过；包含 GCC O0/O2、公开头和 TCC JIT／模块／独立程序。每个优化等级拒绝
+47 项 scope 合同篡改并检查 94 次空输出。预热后 200 次 typed 回调没有新增 XRT
+分配／释放／realloc。Windows 原生测试另覆盖跨线程／fiber、嵌套及地址复用。
+Linux 完整重建 1,413 单元，managed／span／C-string／scope 四组 GCC O0/O2 验收通过；
+scope 原生修改单元 O0/O2 + ASan/UBSan/泄漏检查通过，复用基础对象未重新插桩。
+此处尚未更新真实 XGE/XUI 的其余 callback owner 槽和发布包。
+证据见 `dev/release-materials/provenance/foreign-callback-scope-checkpoint-20261104.json`。
+
+
 11 月 4 日：受管视图的语言／XLIR／Cgen 接入已通过同一隔离源码队列的 17 组联合验收。
 本队列完整编译 1,412 个 Windows 单元，生成 1,560 个 TCC 对象并重建隔离 VFS；
 GCC O0/O2、公开头及 TCC JIT／模块／独立程序均通过相应专项。

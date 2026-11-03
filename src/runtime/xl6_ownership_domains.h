@@ -310,4 +310,6 @@ XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainLogV1Get(void)
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainLogCustomV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainLogAsyncV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainLogRingV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainScopeViewValueV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainSequenceScopeViewV1Get(void);
 #endif

@@ -384,7 +384,7 @@ static int xl6IrCgenEmitProductTypes(
      * physical types bring in their authoritative declaration header. */
     for (typeIndex = 0; typeIndex < module->types.count; ++typeIndex) {
         const XL6_IrType* type = &module->types.items[typeIndex];
-        if (!type->foreignHeader || (type->cAbi != XL6_IR_C_ABI_NATIVE_HANDLE && !type->foreignPolicy) ||
+        if (!type->foreignHeader || (type->cAbi != XL6_IR_C_ABI_NATIVE_HANDLE && !type->foreignPolicy && type->foreignLifetime!=XL6_FOREIGN_LIFETIME_CALLBACK) ||
             !xl6IrCgenTypeSelected(module,
                 (XL6_IrTypeId)(typeIndex + 1), selectedTypes)) continue;
         int seen = 0, seenType = 0;
