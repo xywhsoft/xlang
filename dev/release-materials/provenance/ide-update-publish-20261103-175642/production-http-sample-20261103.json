@@ -1,0 +1,20 @@
+[
+  {
+    "object": "001ea43101c0bfbd4923c9f23e6d6336ac808972e5ca9960dd64a8b3123e2fcf.lzma",
+    "bytes": 1171,
+    "sha256Matched": true,
+    "seconds": 0.25
+  },
+  {
+    "object": "ea3262611eaf2d91a2974dafe1866a651f8cd563b5378fb9beec3dd3a99932e0.lzma",
+    "bytes": 551871,
+    "sha256Matched": true,
+    "seconds": 0.906
+  },
+  {
+    "object": "ffd8dcfb27db08af35418ee33b8cd73f7d2138fb900fb1e7d9266dd9ab4c247e.lzma",
+    "bytes": 513,
+    "sha256Matched": true,
+    "seconds": 0.172
+  }
+]
