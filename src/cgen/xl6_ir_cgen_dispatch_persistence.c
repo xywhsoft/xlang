@@ -164,7 +164,7 @@ static int xl6IrCgenEmitDispatchWitness(
         xl6OutputPuts("        xrtSetErrorTake(outcome.error); return result;\n"
             "    }\n    ", out);
         if (target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY)
-            xl6OutputPuts("const char* borrowed_raw = ",out);
+            xl6OutputPuts(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW ? "xstrview borrowed_raw = " : "const char* borrowed_raw = ",out);
         else if (returnType != XL6_IR_TYPE_INVALID) xl6OutputPuts(
             target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE
                 ? "result.value.Data = " : "result.value = ", out);

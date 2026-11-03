@@ -285,7 +285,7 @@ static int xl6IrCgenEmitDynamicNativeWitness(
     if (!xl6IrCgenNativeCallValueBegin(out,module,&valuePlan,input,"nativeScope")) return 0;
     xl6OutputPuts("      ", out);
     if (target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY)
-        xl6OutputPuts("const char* borrowed_raw = ",out);
+        xl6OutputPuts(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW ? "xstrview borrowed_raw = " : "const char* borrowed_raw = ",out);
     else if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
         xl6OutputPuts("callResult = ", out);
     else if ( target->returnType != XL6_IR_TYPE_INVALID && target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_NONE )

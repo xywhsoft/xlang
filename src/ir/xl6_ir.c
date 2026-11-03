@@ -22759,8 +22759,23 @@ static int xl6IrNativeCStringResultArity(const XL6_IrCallTarget* target)
     return -1;
 }
 
-XL6_IrCallResultCAbi xl6IrCallResultCAbiForTarget(const XL6_IrCallTarget* target)
+int xl6IrForeignTextViewParameter(const XL6_IrModule* module,
+    const XL6_IrCallTarget* target,size_t parameter)
 {
+    const XL6_IrNode* declaration=target ? xl6IrNodeGet(module,target->declaration) : NULL;
+    if(!declaration || target->kind!=XL6_IR_CALL_TARGET_EXTERN_C ||
+        target->runtimeBridge!=XL6_IR_RUNTIME_BRIDGE_NONE)return 0;
+    size_t offset=(declaration->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC ||
+        declaration->sourceKind==XL6_AST_GET || declaration->sourceKind==XL6_AST_LET) &&
+        !(declaration->flags&XL6_AST_FLAG_STATIC) ? 1u : 0u;
+    return parameter>=offset && parameter-offset<64 && parameter<target->parameterCount &&
+        (declaration->foreignCall.textViews & (UINT64_C(1)<<(parameter-offset)))!=0;
+}
+
+XL6_IrCallResultCAbi xl6IrCallResultCAbiForTarget(const XL6_IrModule* module,const XL6_IrCallTarget* target)
+{
+    const XL6_IrNode* declaration=target ? xl6IrNodeGet(module,target->declaration) : NULL;
+    if(declaration && declaration->foreignCall.textViewResult)return XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW;
     return (target && target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE) ||
            (target && xl6IrRuntimeDirectBridgeOwnsString(target->cName)) ||
            xl6IrNativeCStringResultArity(target)>=0
@@ -22771,7 +22786,18 @@ int xl6IrCallResultCAbiMatches(const XL6_IrModule* module, const XL6_IrCallTarge
 {
     const XL6_IrType* result;
     int arity;
-    if (!module || !target || target->resultCAbi!=xl6IrCallResultCAbiForTarget(target)) return 0;
+    if (!module || !target || target->resultCAbi!=xl6IrCallResultCAbiForTarget(module,target)) return 0;
+    const XL6_IrNode* source=xl6IrNodeGet(module,target->declaration);
+    if(source && (source->foreignCall.textViews || source->foreignCall.textViewResult) &&
+        (target->kind!=XL6_IR_CALL_TARGET_EXTERN_C || target->runtimeBridge!=XL6_IR_RUNTIME_BRIDGE_NONE))return 0;
+    if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW){
+        result=xl6IrTypeGet(&module->types,target->returnType);
+        return target->kind==XL6_IR_CALL_TARGET_EXTERN_C && target->runtimeBridge==XL6_IR_RUNTIME_BRIDGE_NONE &&
+            result && result->cAbi==XL6_IR_C_ABI_MANAGED_STRING &&
+            (result->kind==XL6_IR_TYPE_BUILTIN || result->kind==XL6_IR_TYPE_NULLABLE) &&
+            target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY &&
+            target->resultPhysicalAbi==XL6_IR_CALL_RESULT_PHYSICAL_DIRECT;
+    }
     if (target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE) {
         const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
         result=xl6IrTypeGet(&module->types,target->returnType);
@@ -23661,6 +23687,7 @@ int xl6IrCVariadicNativeTargetSupported(const XL6_IrModule* module,
         signature->callableErasureAbi != XL6_IR_CALLABLE_ERASURE_C_VARIADIC ||
         target->kind != XL6_IR_CALL_TARGET_EXTERN_C || !target->cName ||
         target->variadicAbi != XL6_IR_CALL_VARIADIC_C || !target->parameterCount ||
+        target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW ||
         signature->paramCount != target->parameterCount + 1 ||
         target->returnType != signature->callableResultType ||
         target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE ||
@@ -39806,6 +39833,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             if (xl6IrForeignConstRecordParameter(module, target, parameter) !=
                 (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS))
                 return xl6IrDiag(diags, NULL, "C record const address disagrees with its declaration");
+            if (xl6IrForeignTextViewParameter(module,target,parameter) !=
+                (target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW))
+                return xl6IrDiag(diags,NULL,"C text view disagrees with its closed declaration");
             if ( target->parameterPhysicalAbis[parameter] ==
                      XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ) {
                 if ( target->parameterPhysicalFieldDeclarations[parameter] !=
@@ -39814,6 +39844,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       (parameterType->kind == XL6_IR_TYPE_FUNCTION || xl6IrTypeIsCOwned(parameterType))) )
                     return xl6IrDiag(diags, NULL,
                         "XLIR extern function parameter cannot use the direct closure physical ABI");
+            } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW) {
+                if(parameterType->kind!=XL6_IR_TYPE_BUILTIN || parameterType->cAbi!=XL6_IR_C_ABI_MANAGED_STRING ||
+                    target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
+                    target->parameterPhysicalFieldDeclarations[parameter] || target->parameterConstraintAbis[parameter])
+                    return xl6IrDiag(diags,NULL,"C text view requires an exact non-null borrowed string ABI");
             } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK) {
                 if (!xl6IrCFunctionPointerForSignature(module, target->parameterTypes[parameter]) ||
                     target->parameterAbis[parameter] != XL6_IR_PARAMETER_ABI_BORROW ||
@@ -40519,14 +40554,20 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             : node->opcode;
         XL6_IrErrorAbi expectedOperatorErrorAbi =
             xl6IrClassifyOperatorErrorAbi(module, node);
-        if (node->foreignCall.constRecordAddresses || node->foreignCall.staticCallbackAddresses || node->foreignCall.outputIndexPlusOne ||
+        if (node->foreignCall.textViews || node->foreignCall.textViewResult || node->foreignCall.constRecordAddresses || node->foreignCall.staticCallbackAddresses || node->foreignCall.outputIndexPlusOne ||
             node->foreignCall.successCode || node->foreignCall.rollbackSymbol) {
             const XL6_IrNode* params = node->childCount > 1
                 ? xl6IrNodeGet(module, module->children[node->firstChild + 1]) : NULL;
             if (node->kind != XL6_IR_NODE_FUNC_DECL ||
-                (node->sourceKind != XL6_AST_EXTERN_FUNC && node->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC) ||
+                (node->sourceKind != XL6_AST_EXTERN_FUNC && node->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC &&
+                 !((node->sourceKind==XL6_AST_GET || node->sourceKind==XL6_AST_LET) &&
+                   (node->flags&XL6_AST_FLAG_EXTERN) && !node->foreignCall.constRecordAddresses &&
+                   !node->foreignCall.staticCallbackAddresses && !node->foreignCall.outputIndexPlusOne)) ||
                 !params || params->kind != XL6_IR_NODE_LIST ||
-                (params->childCount < 64 && ((node->foreignCall.constRecordAddresses | node->foreignCall.staticCallbackAddresses) >> params->childCount)) ||
+                node->foreignCall.textViewResult>1 ||
+                (node->foreignCall.textViews & (node->foreignCall.constRecordAddresses | node->foreignCall.staticCallbackAddresses)) ||
+                (node->foreignCall.textViewResult && (node->foreignCall.outputIndexPlusOne || (node->flags&XL6_AST_FLAG_FOREIGN_OWNED_STRING))) ||
+                (params->childCount < 64 && ((node->foreignCall.constRecordAddresses | node->foreignCall.staticCallbackAddresses | node->foreignCall.textViews) >> params->childCount)) ||
                 (node->foreignCall.outputIndexPlusOne ?
                     !node->foreignCall.rollbackSymbol || node->foreignCall.outputIndexPlusOne > params->childCount + 1 :
                     node->foreignCall.successCode || node->foreignCall.rollbackSymbol))
@@ -49808,6 +49849,7 @@ static const char* xl6IrCallParameterPhysicalAbiName(
     case XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW:
         return "checked-result-closure-borrow";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW: return "c-span-borrow";
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW: return "text-view-borrow";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS: return "const-c-record-address";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK: return "static-c-callback";
     default: return "invalid";
@@ -53451,7 +53493,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         xl6OutputPrintf(out, "    {\"generatorClosePointAbi\":%d,\"generatorClosePointAbiName\":\"%s\",", (int)node->generatorClosePointAbi, xl6IrGeneratorClosePointAbiName(node->generatorClosePointAbi));
         xl6OutputPrintf(out, "\"indexReceiverGate\":%d,", (int)node->indexReceiverGate);
         xl6OutputPrintf(out, "\"constructorReceiverSymbol\":%u,", (unsigned)node->constructorReceiverSymbol);
-        xl6OutputPrintf(out, "\"foreignCall\":{\"constRecordAddresses\":\"0x%016llX\",\"staticCallbackAddresses\":\"0x%016llX\",\"outputIndexPlusOne\":%u,\"successCode\":%d,\"rollbackSymbol\":%u},",
+        xl6OutputPrintf(out, "\"foreignCall\":{\"textViews\":\"0x%016llX\",\"textViewResult\":%u,\"constRecordAddresses\":\"0x%016llX\",\"staticCallbackAddresses\":\"0x%016llX\",\"outputIndexPlusOne\":%u,\"successCode\":%d,\"rollbackSymbol\":%u},",
+            (unsigned long long)node->foreignCall.textViews,(unsigned)node->foreignCall.textViewResult,
             (unsigned long long)node->foreignCall.constRecordAddresses, (unsigned long long)node->foreignCall.staticCallbackAddresses, (unsigned)node->foreignCall.outputIndexPlusOne,
             (int)node->foreignCall.successCode, (unsigned)node->foreignCall.rollbackSymbol);
         xl6OutputPrintf(out, "\"id\":%lu,\"kind\":%d,\"kindName\":\"%s\",\"sourceKind\":%d,\"sourceKindName\":\"%s\",\"declarationOwnerType\":%u,\"callKind\":%d,\"callKindName\":\"%s\",\"valueCategory\":%d,\"valueCategoryName\":\"%s\",\"ownership\":%d,\"ownershipName\":\"%s\",\"ownershipPlanned\":%d,\"parent\":%u,\"line\":%d,\"column\":%d,\"firstChild\":%lu,\"childCount\":%lu,\"opcode\":%d,\"opcodeName\":\"%s\",\"operatorErrorAbi\":%d,\"operatorErrorAbiName\":\"%s\",\"operatorExecutionType\":%u,\"compoundOperatorSymbol\":%u,\"operatorOperand0Abi\":%d,\"operatorOperand0AbiName\":\"%s\",\"operatorOperand1Abi\":%d,\"operatorOperand1AbiName\":\"%s\",\"castAbi\":%d,\"castAbiName\":\"%s\",\"castErrorAbi\":%d,\"castErrorAbiName\":\"%s\",\"implicitConversionRuntimeOp\":%d,\"implicitConversionRuntimeOpName\":\"%s\",\"implicitConversionErrorAbi\":%d,\"implicitConversionErrorAbiName\":\"%s\",\"implicitNameAbi\":%d,\"implicitNameAbiName\":\"%s\",\"implicitReceiverType\":%u,\"implicitFieldDeclaration\":%u,\"namedCallableAbi\":%d,\"namedCallableAbiName\":\"%s\",\"namedCallableTargetSymbol\":%u,\"namedCallableSignatureType\":%u,\"memberAbi\":%d,\"memberAbiName\":\"%s\",\"projectionErrorAbi\":%d,\"projectionErrorAbiName\":\"%s\",\"evaluationErrorAbi\":%d,\"evaluationErrorAbiName\":\"%s\",\"constructionErrorAbi\":%d,\"constructionErrorAbiName\":\"%s\",\"unionField\":%ld,\"indexWriteAbi\":%d,\"indexWriteAbiName\":\"%s\",\"indexWriteErrorAbi\":%d,\"indexWriteErrorAbiName\":\"%s\",\"loopAbi\":%d,\"loopAbiName\":\"%s\",\"loopKeyAbi\":%d,\"loopKeyAbiName\":\"%s\",\"loopItemAbi\":%d,\"loopItemAbiName\":\"%s\",\"loopKeyLifetimeAbi\":%d,\"loopKeyLifetimeAbiName\":\"%s\",\"loopItemLifetimeAbi\":%d,\"loopItemLifetimeAbiName\":\"%s\",\"loopErrorAbi\":%d,\"loopErrorAbiName\":\"%s\",\"loopResourceAbi\":%d,\"loopResourceAbiName\":\"%s\",\"loopResourceType\":%u,\"loopProtocolIterTarget\":%u,\"loopProtocolNextTarget\":%u,\"loopProtocolIterableReceiverType\":%u,\"loopProtocolIteratorReceiverType\":%u,\"loopProtocolIteratorType\":%u,\"loopProtocolNextResultType\":%u,\"loopProtocolItemType\":%u,\"type\":%u,\"storageType\":%u,\"typeValueTarget\":%u,\"symbol\":%u,\"targetSymbol\":%u,\"scopeDepth\":%u,\"region\":%u}%s\n",

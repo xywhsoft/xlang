@@ -4,6 +4,40 @@
 类型／调用合同；Cgen 不根据包名或方法名猜测转换，也不生成库专用转发函数。
 普通 class 及既有 native-backed class 的对象语义不变。
 
+## 精确长度的 C 文本视图
+
+```xlang
+extern "nativeTextSize" @pure @no_raise @nonblocking @c_text_view(0) func textSize(string text) as c_size
+extern "nativeText" @no_raise @nonblocking @c_result("text_view") func text() as string
+```
+
+`@c_text_view(index)` 把一个非空 `string` 参数直接声明为 C 的 `xstrview`
+（`const char* Data`、`size_t Size`）。索引不包含方法的隐式接收者。
+这是声明作者提供的同步、只读、非逃逸合同；C 函数不能修改、释放或保留数据。
+语言参数仍按现有值语义、求值和借用寿命计划处理，不增加语言层引用类型。
+传输保留实际字节长度和内嵌 NUL，不执行 `strlen` 或终止符预检。
+它不是接受 `const char*` 或分开的指针／长度参数的通用替代品，物理 C 签名必须匹配。
+
+`@c_result("text_view")` 声明 C 生产者返回借用的 `xstrview`；语言返回类型
+必须是 `string` 或 `string?`，不能与 `@owned` 或 `@factory` 混用。
+生成代码在同一 CALL 边界内按精确长度复制，成功后才允许清理参数及接收者，
+因此结果可以借用本次输入，包括临时字符串。C 提供的数据必须在这段复制完成前有效，
+并满足现有字符串的文本合同；不能把任意二进制谎报为文本。
+
+`{NULL,0}` 对可空结果表示缺省，对非空结果报错；非空指针＋零长度表示空字符串。
+NULL＋非零长度、超过语言长度上限及复制失败均为 checked 失败。C 生产者已经报错时
+不读取其返回指针；即使无法分配错误诊断，失败位也会保留。
+`@no_raise` 只约束 C 生产者，不能抹掉结果物化所需的分配和错误合同。
+
+此合同支持自由函数、直接方法、getter／setter 和自由函数值调用。
+裸 `caller` 指针视图的绑定方法值仍未开放；C 可变参数函数值的视图结果也没有准入。
+这两种形式需要各自的接收者／调用合同，不能退回动态装箱来隐藏缺口。
+输入实测不增加 XRT 分配；借用结果通常需要一次精确长度复制和一次分配，
+并保留 checked foreign scope 的开销，不宣称整条调用零成本。
+
+`tools/check_foreign_text_views.py` 验证实际 C 签名、NUL／UTF-8 字节长度、
+无终止符输入、临时参数、空结果、分配失败、生产者失败，以及独立 XLIR 破坏性检查。
+
 ## 调用方管理生命周期的原生视图
 
 ```xlang

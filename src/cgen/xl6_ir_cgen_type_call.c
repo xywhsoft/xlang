@@ -222,6 +222,7 @@ static const char* xl6IrCgenDirectPlaceSuffix(
 {
     const XL6_IrType* type = xl6IrTypeGet(&module->types, target->parameterTypes[parameter]);
     return type != NULL && type->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+        target->parameterPhysicalAbis[parameter]!=XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW &&
         (target->kind == XL6_IR_CALL_TARGET_EXTERN_C || target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
         target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ? ".Data" : "";
 }
@@ -384,6 +385,9 @@ static int xl6IrCgenEmitCallOperand(
     if ( target == NULL || parameter >= target->parameterCount ||
          target->parameterPhysicalAbis == NULL ) return 0;
     if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK) {
+        xl6OutputPrintf(out, "v%u", (unsigned)value); return !xl6OutputHasFailed(out);
+    }
+    if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW) {
         xl6OutputPrintf(out, "v%u", (unsigned)value); return !xl6OutputHasFailed(out);
     }
     if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS) {
@@ -746,7 +750,8 @@ static int xl6IrCgenEmitDirectCall(
     if (!xl6IrCgenNativeCallValueBegin(out,module,&nativeValue,
             nativeValue.inputParameter?nativeInput:NULL,nativeScope)) return 0;
     if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY)
-        xl6OutputPrintf(out,"    const char* borrowed_raw_%lu = ",(unsigned long)instructionIndex);
+        xl6OutputPrintf(out,"    %s borrowed_raw_%lu = ",
+            target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW ? "xstrview" : "const char*",(unsigned long)instructionIndex);
     else if ( errorPhysicalAbi ==
              XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
         xl6OutputPrintf(out, "    %s r%lu = ",

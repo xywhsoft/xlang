@@ -1,0 +1,85 @@
+{
+  "recordedAt": "2026-11-03",
+  "scope": "Length-preserving declarative C text views: input ABI, borrowed-result materialization and closed XLIR; partial XGE/XUI integration",
+  "complete": true,
+  "overallEightCapabilitiesComplete": false,
+  "networkTests": false,
+  "sourceTranslationUnits": 1410,
+  "tccPrecompiledObjects": 1558,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-text-20261103\\source-r6\\build.json",
+      "sha256": "48dfe8658cb97d16f9e71bf0fab54b9d5d5756926cb049ea819a3b78ae75e0fa",
+      "stages": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-text-20261103\\source-r6-vfs\\provider.json",
+      "sha256": "a4a389be37ec986bcaaf674e0ad8218157dadd5a0e907d33da64a6bcff11a196",
+      "stages": 7
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-text-20261103\\acceptance-r2\\results.json",
+      "sha256": "38fb1bcfe2e2c3bb0d4f3636509db7ca9be3d97de97fdd2c472dd109cebeb8cc",
+      "stages": 25
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-text-20261103\\foundation-r1\\results.json",
+      "sha256": "a11748f06d0e05c37323499fbcdcbbd06d48d3ffefb6945ffad5b0def868f0b9",
+      "stages": 11
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-text-20261103-r2\\results.json",
+      "sha256": "e2f400f33c2587f01efb860a5c10e77bea960ca3602ba964fb34f86e704e1d62",
+      "stages": 4
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-text-20261103\\package-paths-r1\\results.json",
+      "sha256": "82973da8b443f9b593573f802d20035cc3b49d009acf63b2de692d33e78fed1c",
+      "stages": 4
+    }
+  ],
+  "sourceMatchesValidationSnapshot": {
+    "src/common/xl6_xrt.h": "c903a68aeee7c852860bf809abb227bc0f63e3b672d101d3c881ac9ac6ba153a",
+    "tools/build_xlir_public_source_driver.ps1": "100ea4d3d79d979ca8f2063b9e5c626920164fef8b1f2d91eae043793a2201a8",
+    "tools/precompile_builtin.py": "e322bbdccbd07b435a09f8d2b32c9a94ee2141ebfb0d13d4da4ca0f3d0afcc19",
+    "src/type/xl6_foreign_call_contract.h": "c94f9e342d0c5e58d8441a586cf4ab8849f02c64caea981d038cf168dfb238dc",
+    "src/type/xl6_foreign_decl.h": "f2daec39caee4032e60b2664f3b15cae80e59c37857caaacd5c8bfc55b29b17c",
+    "src/sem/xl6_sem.c": "3cc635dd7eaa9a620396e9a5e82e5a269636b976631f25202c3ad612140dedad",
+    "src/ir/xl6_ir.c": "037daf7d04796828a92698db0f16e53ab83e733a0c3168fc3966aa7066238421",
+    "src/ir/xl6_ir.h": "b200af8b2ffdd4a47df4a763e9a8f928bd0aefbb18a211f5a4df7b3d5a703cf4",
+    "src/ir/xl6_ir_lower.c": "abcb709f5437155a604043a54e695e75b0120a2a468112ae9b04973bc820923b",
+    "src/cgen/xl6_ir_cgen_model.c": "fb96b9d8192a121f856553813d7825ae9208e257f5e21ad5cd5b2f5af508d7d3",
+    "src/cgen/xl6_ir_cgen_type_call.c": "f730f0b311c68b1d463bd9e7d1e409436349b00fcea2062bb56d074309bf7ee8",
+    "src/cgen/xl6_ir_cgen_type_definitions.c": "d137d9557910dfe25d483b791c9c8855c0458e2e80a53d47286908c92c52afdf",
+    "src/cgen/xl6_ir_cgen_verify_declarations.c": "f77607ea1085cb15d7464fa40c0dae2479e78db2b6028171137adcf9214bec3b",
+    "src/cgen/xl6_ir_cgen_identity_closure.c": "9712f9a2e3934cb358afe6fac36043c6733a03f8f4b316ab64269700c2bee269",
+    "src/cgen/xl6_ir_cgen_dispatch_persistence.c": "0f91d90777315e3d31f6495e9d6537bbd8edb72b58da1cd8a0b001be3ebe8584",
+    "src/cgen/xl6_ir_cgen_dynamic_method_adapters.c": "b2c758b867a5b2fcea10fe3abc81a88d6bc683a9e16ad77804fbe690f4e190db",
+    "src/cgen/xl6_ir_cgen_header_emit.c": "b27ad68eab3e72fc752ea0c559a747770f66822ceff6c6f7aa642035d7a4e732",
+    "test/cases/foreign_text_view.h": "42383b8f066821f64b43a1bdaa4f47f340227efc536e2d1d1b00f69fcf7241e2",
+    "test/cases/foreign_text_view.xl": "320ccf391649007e627385d3eaad0ae93e413eeb7d80a869f35ad5a1dda0dc60",
+    "test/cases/foreign_text_view_native.c": "c99cc3bca6bf0f965263a5ead45f503f390dae117628eab75f4f07d22d3b0ab8",
+    "test/cases/foreign_text_view_ir.c": "914fccd1cdc7fd4293bc2cda432284282007b912465568a4a864c57eb796fdee"
+  },
+  "validationOnlySdkPathMappings": true,
+  "sourceSnapshot": "F:\\xlang-validation\\foreign-text-20261103\\snapshot",
+  "nativeInputAllocations": 0,
+  "borrowedResultMaterializationAllocations": 1,
+  "irMutationsPerOptimization": 41,
+  "irZeroOutputChecksPerOptimization": 82,
+  "windowsOptimizations": [
+    "O0",
+    "O2"
+  ],
+  "linuxScope": "Same generated C and native fixture, O0/O2 + ASan/UBSan/leak checks; reused host SO and Linux compiler frontend not rebuilt/instrumented",
+  "shippingProductsUpdated": false,
+  "remaining": [
+    "Managed view declaration/capture/storage/ownership XLIR contracts",
+    "Complete native callback and payload ownership graph",
+    "Factory result protection during fallible operand cleanup",
+    "C sentinel text and separate pointer/length spans; bytes/Buffer mutation/reentry gates",
+    "Native caller-view bound method values",
+    "Full workspace platform-directory migration acceptance",
+    "Package/SDK/IDE/examples migration"
+  ]
+}
