@@ -1,0 +1,78 @@
+{
+  "complete": true,
+  "scope": "Native storage adoption foundation, not language in-place factories or shipping bindings",
+  "upstreamCommit": "e870ee7e",
+  "nativeStorageAccepted": true,
+  "languageInplaceFactoryAccepted": false,
+  "eightTasksComplete": false,
+  "shippingUpdated": false,
+  "networkTests": false,
+  "windows": {
+    "nativeSourceUnits": 138,
+    "compileActions": 139,
+    "xrtImports": 177,
+    "runtimeBytes": 8684139
+  },
+  "linux": {
+    "complete": true,
+    "passed": true,
+    "report": "/home/ubuntu/xlang-validation/xge-resource-storage-test-20261104-r2/results.json",
+    "reportSha256": "0e55d2c9bdf3cc42610d6581ec9b45216ffc2966caf50fa6eddbaa880936553c",
+    "buildReport": "/home/ubuntu/xlang-validation/xge-resource-storage-host-20261104-r2/build-report.json",
+    "buildReportSha256": "590b3d5630070cc55097badbef91e89dc86f0c82fc856705cc236e16ab53b887",
+    "nativeSourceUnits": 138,
+    "compileActions": 139,
+    "xrtImports": 175,
+    "runtimeBytes": 9400336,
+    "sanitizers": false
+  },
+  "tests": {
+    "clientOptimization": [
+      "O0",
+      "O2"
+    ],
+    "nativeEngineOptimization": "O2",
+    "sanitizers": false,
+    "publicRecordSizes": {
+      "font": 96,
+      "texture": 48
+    },
+    "exactFinalNativeReferenceFreesStorage": true,
+    "ordinaryAutomaticRecordsPreserved": true,
+    "zeroAllocationAdoption": true,
+    "rgbaAndYuv": true,
+    "sharedMaterialSlots": 3,
+    "checkedFallbackOwnership": true,
+    "overflowRefusalAndSlotAtomicity": true,
+    "constructorFailureBudgets": 6,
+    "legacyFallbackShaping": true
+  },
+  "correction": {
+    "report": "dev/release-materials/provenance/foreign-native-protocol-pointee-navigation-20261104.json",
+    "field": "xui.hostEngineTranslationUnits",
+    "previous": 139,
+    "sourceUnits": 138,
+    "compileActions": 139,
+    "windowsXrtImports": 177,
+    "linuxXrtImports": 175,
+    "historicalReportBytesPreserved": true
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xge-resource-storage-inputs-r2\\snapshot.json",
+      "sha256": "339067ec491522f5e31ae08f0bab86880d096c1508af1e88a0328abc4b002137"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xge-resource-storage-host-r2\\build-report.json",
+      "sha256": "8b7a7accca9abe2589b1547620b27af9ce35ae890f44cf0ec52342e9b396e5c7"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xge-resource-storage-test-win-r2\\results.json",
+      "sha256": "4b6e6db95b1bbe2cfc04e8e1819c3bf2b9551a2883bdba8633274cf10519daae"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-native-storage-evidence-r2.json",
+      "sha256": "857d41225535afa8dfd744d50c99b3be8b6648dec80d4d042a200832e1f851e7"
+    }
+  ]
+}
