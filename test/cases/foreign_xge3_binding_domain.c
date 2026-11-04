@@ -28,7 +28,7 @@ static bool traceRoot(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
 static bool destroy(void* raw){binding_domain_destroy(raw);return true;}
 const XL6_ForeignViewDescriptorV1 bindingDomainRootPolicy={
  sizeof(bindingDomainRootPolicy),XL6_FOREIGN_VIEW_V1_TAG,"binding.domain.root",
- 0,1,NULL,NULL,destroy,0,1,NULL,NULL,traceRoot,NULL};
+ 0,1,NULL,NULL,destroy,0,1,NULL,NULL,traceRoot,NULL,0,NULL,NULL};
 int binding_domain_create(BindingDomainRoot** output)
 {
  if(!output || current)return -1;

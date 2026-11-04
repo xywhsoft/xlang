@@ -44,7 +44,7 @@ static bool destroy(void* raw){Payload* p=raw;drop(p->node);xrtFree(p);return tr
 static bool tracePayload(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
 {return visit((xrtownershipref){((const Payload*)raw)->node,&ops},user);}
 static const XL6_ForeignViewDescriptorV1 descriptor={sizeof(descriptor),XL6_FOREIGN_VIEW_V1_TAG,
- "query.rc.payload",0,1,NULL,NULL,destroy,0,1,NULL,NULL,tracePayload,NULL};
+ "query.rc.payload",0,1,NULL,NULL,destroy,0,1,NULL,NULL,tracePayload,NULL,0,NULL,NULL};
 static XL6_ForeignView* create(Node* node,const XL6_OwnershipDomainV1* domain)
 {
  Payload* p=xrtCalloc(1,sizeof(*p));assert(p && hold(node));p->node=node;

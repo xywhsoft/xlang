@@ -33,4 +33,4 @@ static bool destroy(void* raw){preparation_destroy(raw);return true;}
 static bool trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* user){(void)raw;(void)visit;(void)user;return true;}
 static bool busy(const void* raw){return ((const PrepRoot*)raw)->depth!=0;}
 const XL6_ForeignViewDescriptorV1 preparationPolicy={sizeof(preparationPolicy),XL6_FOREIGN_VIEW_V1_TAG,
- "test.preparation",0,1,NULL,NULL,destroy,sizeof(PrepScope),_Alignof(PrepScope),begin,end,trace,busy};
+ "test.preparation",0,1,NULL,NULL,destroy,sizeof(PrepScope),_Alignof(PrepScope),begin,end,trace,busy,0,NULL,NULL};

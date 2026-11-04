@@ -33,4 +33,4 @@ int retained_calls(void){return calls;}
 void retained_fail_after(int count){assert(xrtMemDebugFailAfter(count));}
 void retained_reset(void){assert(xrtMemDebugFailAfter(-1));}
 static bool destroy(void* raw){retained_release(raw);return true;}
-const XL6_ForeignViewDescriptorV1 retainedPolicy={sizeof(retainedPolicy),XL6_FOREIGN_VIEW_V1_TAG,"retained.node",0,1,NULL,NULL,destroy,0,1,NULL,NULL,NULL,NULL};
+const XL6_ForeignViewDescriptorV1 retainedPolicy={sizeof(retainedPolicy),XL6_FOREIGN_VIEW_V1_TAG,"retained.node",0,1,NULL,NULL,destroy,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};

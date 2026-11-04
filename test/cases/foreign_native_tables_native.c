@@ -30,7 +30,7 @@ int foreign_native_tables_probe(const XL6_NativeCallbackRuntimeV1* callbacks,
     assert(outcome.ok && !outcome.error && result==35);
     assert(callbacks->DropNative(record) && !xl6ForeignCallbackActiveV1());
     static const XL6_ForeignViewDescriptorV1 descriptor={sizeof(descriptor),XL6_FOREIGN_VIEW_V1_TAG,"tables.root",
-        0,1,NULL,NULL,destroy_root,0,1,NULL,NULL,NULL,NULL};
+        0,1,NULL,NULL,destroy_root,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
     void* raw=xrtCalloc(1,1);assert(raw);
     XL6_ForeignView* root=xl6ForeignViewCreateRootV1(raw,&descriptor,NULL);assert(root);
     XL6_ForeignViewCallV1 call={0};assert(xl6ForeignViewCallBeginV1(root,&call,NULL,0));

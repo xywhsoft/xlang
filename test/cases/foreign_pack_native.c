@@ -43,4 +43,4 @@ int pack_live(void){return live;}
 void pack_fail_after(int count){assert(xrtMemDebugFailAfter(count));}
 void pack_reset(void){assert(xrtMemDebugFailAfter(-1));}
 static bool destroy(void* raw){pack_drop(raw);return true;}
-const XL6_ForeignViewDescriptorV1 packPolicy={sizeof(packPolicy),XL6_FOREIGN_VIEW_V1_TAG,"pack.root",0,1,NULL,NULL,destroy,0,1,NULL,NULL,NULL,NULL};
+const XL6_ForeignViewDescriptorV1 packPolicy={sizeof(packPolicy),XL6_FOREIGN_VIEW_V1_TAG,"pack.root",0,1,NULL,NULL,destroy,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};

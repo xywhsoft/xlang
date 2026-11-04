@@ -26,7 +26,7 @@ def main():
     if os.name=='nt':shutil.copy2(runtime,out/runtime.name)
     else:env['LD_LIBRARY_PATH']=str(runtime.parent)+':'+env.get('LD_LIBRARY_PATH','')
     report=dict(scope=__doc__,complete=False,passed=False,fullSourceRebuild=build["fullSourceRebuild"],buildManifest=build["buildManifest"],overlay=build["overlay"],inputs=inputs,rows=[])
-    def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n')
+    def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     def run(name,command,accepted=True):
         command=list(map(str,command));actual=command_with_response(command,'gcc',out/(name+'.rsp')) if command[0] in ('gcc','g++') else command
         started=time.monotonic();result=subprocess.run(actual,cwd=cohort,env=env,capture_output=True,timeout=240)
@@ -49,7 +49,7 @@ def main():
         if irFixture.exists():
             gate=out/('ir-'+level+('.exe' if os.name=='nt' else '.out'))
             run('ir-'+level+'-build',['gcc',*common,'-'+level,irFixture,*objects,runtime,*systems,'-o',gate]);run('ir-'+level+'-run',[gate,fixture])
-    original=fixture.read_text();needle='@c_region(2,"read","0","1","3",4)'
+    original=fixture.read_text(encoding='utf-8-sig');needle='@c_region(2,"read","0","1","3",4)'
     cases={
         'duplicate':needle+' '+needle,'bad-access':'@c_region(2,"mutable","0","1","3",4)',
         'negative-slot':'@c_region(-1,"read","0","1","3",4)', 'zero-unit':'@c_region(2,"read","0","1","3",0)',
@@ -73,7 +73,7 @@ def main():
     for name,code in negatives.items():
         path=out/(name+'.xl');path.write_text(code,encoding='utf8');target=out/(name+'.c');run('reject-'+name,[driver,path,'cgen-default',target],False);assert not target.exists()
     bad=out/'bad-header/test/cases';bad.mkdir(parents=True)
-    (bad/'foreign_region.h').write_text((root/'test/cases/foreign_region.h').read_text().replace('(*readRGBA)(RegionRoot*,RegionRoot*,void*,int);','(*readRGBA)(RegionRoot*,RegionRoot*,const void*,int);'))
+    (bad/'foreign_region.h').write_text((root/'test/cases/foreign_region.h').read_text(encoding='utf-8-sig').replace('(*readRGBA)(RegionRoot*,RegionRoot*,void*,int);','(*readRGBA)(RegionRoot*,RegionRoot*,const void*,int);'),encoding='utf-8')
     run('reject-native-pointer',['gcc','-I'+str(out/'bad-header'),*common,*warnings,'-fsyntax-only',generated],False)
     report['inputsUnchanged']=all(sha(p)==s for p,s in inputs.items());assert report['inputsUnchanged'];report.update(complete=True,passed=True);save()
 if __name__=='__main__':main()
