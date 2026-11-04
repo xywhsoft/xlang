@@ -506,6 +506,15 @@
       "line": 1464,
       "functionSha256": "761cbe9c61faebc924a822e78260f53e6b97f848e8c7c84cc76076a7fd6c9945"
     },
+    "xuiTableGridEditorConfigOutputSetPalette": {
+      "bindingFile": "lib/bindings/xui/src/managed.xl",
+      "declaration": "extern \"xuiTableGridEditorConfigOutputSetPalette\" @no_raise @c_span(0,\"const uint32_t*\",\"int\") @c_result(\"status\",0) func setPalette(Buffer colors)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/controls/xui_table_grid_config_output.c",
+      "line": 61,
+      "functionSha256": "84b03c0bb77af145b65b9030bfd5226c4bedc9ec2bf72a9289d0cae17cb9b008",
+      "evidence": "Allocates count*sizeof(uint32_t), memcpy completes before swapping owned palette; caller pointer is never retained. Generic span checks alignment, element divisibility and int count."
+    },
     "xuiListViewSetSelectionBuffer": {
       "storage": "retained-mutable-pointer",
       "defaultExport": false,

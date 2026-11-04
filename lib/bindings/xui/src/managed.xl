@@ -609,7 +609,119 @@ end
 
 export typedef TableViewMergeProc = func(Widget,c_int,c_int,CallbackInt,CallbackInt) as c_int
 
+export typedef TableGridSetProc = func(Widget,c_int,c_int,CString,c_int)
+
+export typedef TableGridValidateProc = func(Widget,c_int,c_int,CString,c_int) as c_int
+
+export extern "const xui_table_view_cell_output_t*" class CallbackConstTableViewCellOutput @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iType" @c_field get iType() as c_int
+ extern "iRowSpan" @c_field get iRowSpan() as c_int
+ extern "iColSpan" @c_field get iColSpan() as c_int
+ extern "bDisabled" @c_field get bDisabled() as c_int
+ extern "bEditing" @c_field get bEditing() as c_int
+ extern "bInvalid" @c_field get bInvalid() as c_int
+ extern "bDirty" @c_field get bDirty() as c_int
+ extern "bHasStyle" @c_field get bHasStyle() as c_int
+ extern "iBackgroundColor" @c_field get iBackgroundColor() as c_uint
+ extern "iTextColor" @c_field get iTextColor() as c_uint
+ extern "iGridColor" @c_field get iGridColor() as c_uint
+ extern "bReadOnly" @c_field get bReadOnly() as c_int
+ extern "xuiTableViewCellOutputGetText" @no_raise @c_result("text_view") func text() as string
+ extern "xuiTableViewCellOutputGetTooltip" @no_raise @c_result("text_view") func tooltip() as string
+ extern "xuiTableViewCellOutputGetValue" @no_raise @c_result("borrowed_value") func value() as var
+end
+
+export extern "const xui_table_grid_editor_config_output_t*" class CallbackConstTableGridEditorConfigOutput @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iEnumSelected" @c_field get iEnumSelected() as c_int
+ extern "bEnumUseValue" @c_field get bEnumUseValue() as c_int
+ extern "iEnumSelectedValue" @c_field get iEnumSelectedValue() as c_int
+ extern "fMin" @c_field get fMin() as c_float
+ extern "fMax" @c_field get fMax() as c_float
+ extern "fStep" @c_field get fStep() as c_float
+ extern "iPrecision" @c_field get iPrecision() as c_int
+ extern "bNullable" @c_field get bNullable() as c_int
+ extern "iDateMode" @c_field get iDateMode() as c_int
+ extern "bDateModeSet" @c_field get bDateModeSet() as c_int
+ extern "bShowSecond" @c_field get bShowSecond() as c_int
+ extern "tDateMin" @c_field get tDateMin() as time
+ extern "tDateMax" @c_field get tDateMax() as time
+ extern "bDateHasMin" @c_field get bDateHasMin() as c_int
+ extern "bDateHasMax" @c_field get bDateHasMax() as c_int
+ extern "tDefaultRangeSpan" @c_field get tDefaultRangeSpan() as time
+ extern "bAlphaEnabled" @c_field get bAlphaEnabled() as c_int
+ extern "xuiTableGridEditorConfigOutputGetEnumCount" @no_raise func enumCount() as c_int
+ extern "xuiTableGridEditorConfigOutputGetEnumItem" @no_raise @c_outputs(2,3,4,5,6) @c_status(0) @c_output_view(2,"text") func enumItem(c_int index) as (string,c_int,c_int,c_int,c_int)
+ extern "xuiTableGridEditorConfigOutputGetPaletteCount" @no_raise func paletteCount() as c_int
+ extern "xuiTableGridEditorConfigOutputGetPaletteItem" @no_raise @c_output(2,0) func paletteItem(c_int index) as c_uint
+ extern "xuiTableGridEditorConfigOutputGetDateFormat" @no_raise @c_result("text_view") func dateFormat() as string
+ extern "xuiTableGridEditorConfigOutputGetActionText" @no_raise @c_result("text_view") func actionText() as string
+ extern "xuiTableGridEditorConfigOutputGetFileFilter" @no_raise @c_result("text_view") func fileFilter() as string
+ extern "xuiTableGridEditorConfigOutputGetRangeSeparator" @no_raise @c_result("text_view") func rangeSeparator() as string
+end
+
+export typedef TableGridEditorOwnedProc = func(Widget,c_int,c_int,CallbackConstTableViewCellOutput,CallbackConstTableGridEditorConfigOutput,Rect) as c_int
+
 export typedef TableGridChangeProc = func(Widget,c_int,c_int,CString,c_int)
+
+export extern "xui_table_grid_editor_config_output_t*" class CallbackTableGridEditorConfigOutput @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iEnumSelected" @c_field get iEnumSelected() as c_int
+ extern "iEnumSelected" @c_field let iEnumSelected(c_int value)
+ extern "bEnumUseValue" @c_field get bEnumUseValue() as c_int
+ extern "bEnumUseValue" @c_field let bEnumUseValue(c_int value)
+ extern "iEnumSelectedValue" @c_field get iEnumSelectedValue() as c_int
+ extern "iEnumSelectedValue" @c_field let iEnumSelectedValue(c_int value)
+ extern "fMin" @c_field get fMin() as c_float
+ extern "fMin" @c_field let fMin(c_float value)
+ extern "fMax" @c_field get fMax() as c_float
+ extern "fMax" @c_field let fMax(c_float value)
+ extern "fStep" @c_field get fStep() as c_float
+ extern "fStep" @c_field let fStep(c_float value)
+ extern "iPrecision" @c_field get iPrecision() as c_int
+ extern "iPrecision" @c_field let iPrecision(c_int value)
+ extern "bNullable" @c_field get bNullable() as c_int
+ extern "bNullable" @c_field let bNullable(c_int value)
+ extern "iDateMode" @c_field get iDateMode() as c_int
+ extern "iDateMode" @c_field let iDateMode(c_int value)
+ extern "bDateModeSet" @c_field get bDateModeSet() as c_int
+ extern "bDateModeSet" @c_field let bDateModeSet(c_int value)
+ extern "bShowSecond" @c_field get bShowSecond() as c_int
+ extern "bShowSecond" @c_field let bShowSecond(c_int value)
+ extern "tDateMin" @c_field get tDateMin() as time
+ extern "tDateMin" @c_field let tDateMin(time value)
+ extern "tDateMax" @c_field get tDateMax() as time
+ extern "tDateMax" @c_field let tDateMax(time value)
+ extern "bDateHasMin" @c_field get bDateHasMin() as c_int
+ extern "bDateHasMin" @c_field let bDateHasMin(c_int value)
+ extern "bDateHasMax" @c_field get bDateHasMax() as c_int
+ extern "bDateHasMax" @c_field let bDateHasMax(c_int value)
+ extern "tDefaultRangeSpan" @c_field get tDefaultRangeSpan() as time
+ extern "tDefaultRangeSpan" @c_field let tDefaultRangeSpan(time value)
+ extern "bAlphaEnabled" @c_field get bAlphaEnabled() as c_int
+ extern "bAlphaEnabled" @c_field let bAlphaEnabled(c_int value)
+ extern "xuiTableGridEditorConfigOutputGetEnumCount" @no_raise @c_const(0) func enumCount() as c_int
+ extern "xuiTableGridEditorConfigOutputGetEnumItem" @no_raise @c_const(0) @c_outputs(2,3,4,5,6) @c_status(0) @c_output_view(2,"text") func enumItem(c_int index) as (string,c_int,c_int,c_int,c_int)
+ extern "xuiTableGridEditorConfigOutputGetPaletteCount" @no_raise @c_const(0) func paletteCount() as c_int
+ extern "xuiTableGridEditorConfigOutputGetPaletteItem" @no_raise @c_const(0) @c_output(2,0) func paletteItem(c_int index) as c_uint
+ extern "xuiTableGridEditorConfigOutputGetDateFormat" @no_raise @c_const(0) @c_result("text_view") func dateFormat() as string
+ extern "xuiTableGridEditorConfigOutputSetDateFormat" @no_raise @c_text_view(0) @c_result("status",0) func setDateFormat(string text)
+ extern "xuiTableGridEditorConfigOutputGetActionText" @no_raise @c_const(0) @c_result("text_view") func actionText() as string
+ extern "xuiTableGridEditorConfigOutputSetActionText" @no_raise @c_text_view(0) @c_result("status",0) func setActionText(string text)
+ extern "xuiTableGridEditorConfigOutputGetFileFilter" @no_raise @c_const(0) @c_result("text_view") func fileFilter() as string
+ extern "xuiTableGridEditorConfigOutputSetFileFilter" @no_raise @c_text_view(0) @c_result("status",0) func setFileFilter(string text)
+ extern "xuiTableGridEditorConfigOutputGetRangeSeparator" @no_raise @c_const(0) @c_result("text_view") func rangeSeparator() as string
+ extern "xuiTableGridEditorConfigOutputSetRangeSeparator" @no_raise @c_text_view(0) @c_result("status",0) func setRangeSeparator(string text)
+ extern "xuiTableGridEditorConfigOutputSetEnumCount" @no_raise @c_result("status",0) func setEnumCount(c_int count)
+ extern "xuiTableGridEditorConfigOutputSetEnumItem" @no_raise @c_text_view(1) @c_result("status",0) func setEnumItem(c_int index,string text,c_int value,c_int enabled,c_int separator,c_int icon)
+ extern "xuiTableGridEditorConfigOutputSetPaletteCount" @no_raise @c_result("status",0) func setPaletteCount(c_int count)
+ extern "xuiTableGridEditorConfigOutputSetPalette" @no_raise @c_span(0,"const uint32_t*","int") @c_result("status",0) func setPalette(Buffer colors)
+ extern "xuiTableGridEditorConfigOutputSetPaletteItem" @no_raise @c_result("status",0) func setPaletteItem(c_int index,c_uint color)
+ extern "xuiTableGridEditorConfigOutputDispose" @no_raise func reset()
+end
+
+export typedef TableGridEditorConfigOwnedProc = func(Widget,c_int,c_int,c_int,CallbackTableGridEditorConfigOutput) as c_int
 
 export typedef TableGridContextProc = func(Widget,c_int,c_int,c_int,c_float,c_float) as c_int
 
@@ -768,25 +880,6 @@ export typedef FlowContextProc = func(Widget,CallbackConstFlowHit,c_float,c_floa
 export extern "xui_widget_t*" class CallbackWidget @header("xge3_runtime.h") @lifetime("callback")
  native point handle
  extern "xuiWidgetGetRect" @no_raise func rect() as Rect
-end
-
-export extern "const xui_table_view_cell_output_t*" class CallbackConstTableViewCellOutput @header("xge3_runtime.h") @lifetime("callback")
- native point handle
- extern "iType" @c_field get iType() as c_int
- extern "iRowSpan" @c_field get iRowSpan() as c_int
- extern "iColSpan" @c_field get iColSpan() as c_int
- extern "bDisabled" @c_field get bDisabled() as c_int
- extern "bEditing" @c_field get bEditing() as c_int
- extern "bInvalid" @c_field get bInvalid() as c_int
- extern "bDirty" @c_field get bDirty() as c_int
- extern "bHasStyle" @c_field get bHasStyle() as c_int
- extern "iBackgroundColor" @c_field get iBackgroundColor() as c_uint
- extern "iTextColor" @c_field get iTextColor() as c_uint
- extern "iGridColor" @c_field get iGridColor() as c_uint
- extern "bReadOnly" @c_field get bReadOnly() as c_int
- extern "xuiTableViewCellOutputGetText" @no_raise @c_result("text_view") func text() as string
- extern "xuiTableViewCellOutputGetTooltip" @no_raise @c_result("text_view") func tooltip() as string
- extern "xuiTableViewCellOutputGetValue" @no_raise @c_result("borrowed_value") func value() as var
 end
 
 export typedef TableViewCellTextOwnedProc = func(CallbackWidget,c_int,c_int,CallbackConstTableViewCellOutput) as string
@@ -4287,7 +4380,15 @@ export extern "xui_widget_t*" class TableGrid @header("xge3_runtime.h") @lifetim
 
  extern "xuiTableGridSetRows" @no_raise @c_span(0,"const xui_table_view_row_t*","int") func setRows(Buffer arrRows) as c_int
 
+ extern "xuiTableGridSetAdapterOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_owned_callback(2,0,"xui_callback_owner_t",0) @c_result("status",0) func setAdapter(TableViewCountProc? onCount,TableViewCellOwnedProc? onCell,TableGridSetProc? onSet)
+
+ extern "xuiTableGridSetValidateOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setValidate(TableGridValidateProc? onValidate)
+
+ extern "xuiTableGridSetEditorOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setEditor(TableGridEditorOwnedProc? onEditor)
+
  extern "xuiTableGridSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setChange(TableGridChangeProc? onChange)
+
+ extern "xuiTableGridSetEditorConfigOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setEditorConfig(TableGridEditorConfigOwnedProc? onConfig)
 
  extern "xuiTableGridSetContextMenuOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setContextMenu(TableGridContextProc? onContext)
 
