@@ -1,0 +1,125 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Private Native48 resource policies and CPU prerequisite kernels. Explicit six-unit runtime overlay over full R32; not full compiler/public script or delivery qualification.",
+  "nativeRevision": "f7d60603eb747707d92832b8e2c27874228ff23a",
+  "nativeManifest": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-resources48-inputs-r2\\manifest.json",
+    "sha256": "45d4b04c8c7e0e016a749a40d5ce32c29a9acbcc0a1801efa150772d83ce519a"
+  },
+  "nativeCohort": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-resources48-cohort-r2.json",
+    "sha256": "2bc64800a71355dfdcbb2853b154823dff963e174ba0416f7418625dd605b675",
+    "reports": 24,
+    "rows": 260
+  },
+  "privateManifest": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\package-native48-milestone-r1\\candidate.json",
+    "sha256": "dac88e9be3f60d7611990592b55f11bc524c46a070b43a3b38b73e4661fda7be"
+  },
+  "evidence": [
+    {
+      "label": "policy-win",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\proxy48-policy-win-r3\\results.json",
+      "sha256": "3403aa6e4f3134ced9284af7af0a2aad0eb7d93b58864a41ad7fa78cf2587d2d",
+      "copy": "evidence\\policy-win.json"
+    },
+    {
+      "label": "policy-linux",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\proxy48-policy-linux-r3\\results.json",
+      "sha256": "8a8e0ea3e2bda714ad7570444b24d216dc2c8fc27a4cd1e3ae64312a592de553",
+      "copy": "evidence\\policy-linux.json"
+    },
+    {
+      "label": "affinity-win",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\proxy48-affinity-win-r1\\results.json",
+      "sha256": "8c3e66891cf2076d6cb3bf3105ea642cf59f295df46269324d7c69681a5c58b6",
+      "copy": "evidence\\affinity-win.json"
+    },
+    {
+      "label": "affinity-linux",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\proxy48-affinity-linux-r1\\results.json",
+      "sha256": "29d964c98446a7515cfb456cba94eb33a7e4f9fc3bb32e64b852a91e632cd56e",
+      "copy": "evidence\\affinity-linux.json"
+    },
+    {
+      "label": "leaf-win",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\proxy48-leaf-win-r1\\results.json",
+      "sha256": "4a16b839d848534ed2e46faf5c0aa63631d136e651a32a8df46c543831821e76",
+      "copy": "evidence\\leaf-win.json"
+    },
+    {
+      "label": "leaf-linux",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\proxy48-leaf-linux-r1\\results.json",
+      "sha256": "b9508648ede460d0bf6038cb6a23917f994bba712f68f1c4c5b991e5edf20df3",
+      "copy": "evidence\\leaf-linux.json"
+    },
+    {
+      "label": "backend-win",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-proxy-backend48-win-r1\\results.json",
+      "sha256": "ccbfdd9035e91827b6c66bfb76cdec823256bf56c0e53228b430deefe0676bab",
+      "copy": "evidence\\backend-win.json"
+    },
+    {
+      "label": "backend-linux",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-proxy-backend48-linux-r1\\results.json",
+      "sha256": "b6a24c276074e29097ec4a02c400d90f1045635a5b6b2c8a62d18170faf47466",
+      "copy": "evidence\\backend-linux.json"
+    }
+  ],
+  "files": [
+    {
+      "path": "lib/bindings/_xge_native/include/xge3_runtime.h",
+      "sha256": "6fe0f5d19c272937dc0d76ec46aebc6011e0337b1ee72568d1647a72db39299c"
+    },
+    {
+      "path": "lib/bindings/_xge_native/src/runtime.c",
+      "sha256": "ce57407e6ab2fc5a2f5f128dbe8cd775999beeca40bcce3783d54d7cef8ebb6e"
+    },
+    {
+      "path": "docs/xge3-package-bootstrap.md",
+      "sha256": "32916c52d115664ef330d5d6ac5ff920fa81729b0e4420731480a51d14b83645"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_cell_check.py",
+      "sha256": "5f0512cac612b9e90dc9392c56771de982f08d16e79805a914defa6a95d8a0e9"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_leaf.c",
+      "sha256": "71b609355569fdcae8f9e381c3782be6f0ce93c65be6799d04afba5edcda628b"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_proxy_plan.c",
+      "sha256": "130b291719c3b70877fba49576f0e9c01933387f1841646f011a2a908aa47a93"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_proxy_plan_check.py",
+      "sha256": "855001406d48e364e4d69972566a4c37076d6bdc08b32e6153dc04b2a6d0575a"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_proxy_policy.c",
+      "sha256": "a6df80e34ec4961a87bc43722c647630ebea321d918857d6fda429cfcfd71b1a"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_proxy_affinity.c",
+      "sha256": "245eb18df1cc43a15c900c1a4f7dd607e9420cd6e44fe928b03b1b1a6e81e267"
+    }
+  ],
+  "privateRows": 32,
+  "notes": [
+    "Initial native batch with explicit Cell-only follow-up object replacement; not a fresh final joint build",
+    "Active snapshot completion is exact 48-byte FinishV2 with pure DropReady",
+    "Widget destroy preserves checked rejection, including diagnostic allocation failure",
+    "The shared-resource policy reports consumed cleanup failure separately from unconsumed owner refusal"
+  ],
+  "pending": [
+    "Cell committed-Step worker fix in separate native overlay",
+    "Public Proxy declarations and end-to-end script",
+    "Owned Draw sessions",
+    "Manager ownership",
+    "Complete cache/Layout/Renderer and surface graphs",
+    "Final matched full delivery"
+  ],
+  "shippingDelivery": false,
+  "releaseBinaryUpdated": false
+}

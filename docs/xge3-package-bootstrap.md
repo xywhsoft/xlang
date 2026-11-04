@@ -183,3 +183,33 @@ Runtime publication, matched SDK delivery and release evidence updates are
 separate from staging. Source snapshots belong in
 `dev/release-materials/sources/`; acceptance and delivery reports belong in
 `dev/release-materials/provenance/`.
+
+## Shared native proxy resources
+
+The next native ABI adds an immutable RC proxy capability, with Font and
+Surface payloads in the same allocations as their common owning headers.
+The private `xl6Xui3OwnershipDomainV1` capability resolves both Cell and proxy
+resources by exact native Ops identity and admits authoritative FinishV2
+descriptors only after checking size, tag, adapter and checked-Drop pointer.
+It is attached to actual ForeignView roots; it is not a permanent global
+registry or a flattened replacement for native participant nodes.
+
+`foreign_xge3_package_proxy_plan_check.py` compiles the pinned common native
+component into a program using the independently verified resident planner.
+The policy case in `foreign_xge3_package_cell_check.py` instead links the
+matched native engine and real private package source. Its
+`--checked-plan-evidence` and `--checked-plan-source` options verify and reuse
+the six accepted lifecycle objects and immutable declaration snapshot, while
+retaining the full source cohort's remaining objects. Reports mark this as
+an explicit partial runtime overlay, not a new complete compiler build.
+
+These CPU gates cover actual native RC, checked consumed failures with NULL
+diagnostics/OOM, cold domain discovery and callback/closure/view cycles.
+Default-backend CPU tests additionally load a font, retain glyph paint and
+release the original owners while the paint still protects its real Font
+reference. Ordinary calls still invoke native functions or function-pointer
+fields directly. The new native owning protocol has real RC, header and
+readiness costs shared with handwritten C; direct declarations do not make
+those native costs zero. Full Context/Widget/cache graphs, public Proxy field
+declarations, final matched compiler/package delivery and hardware behavior
+require their separate acceptance gates.
