@@ -1094,14 +1094,18 @@ ST_FUNC void relocate_syms(TCCState *s1, Section *symtab, int do_resolve)
                 /* dlsym() needs the undecorated name.  */
                 const char *name_ud = &name[s1->leading_underscore];
                 void *addr = NULL;
-                if (!s1->nostdlib)
+                /* Resolve explicitly retained libraries through their own
+                 * handles first. RTLD_DEFAULT can make glibc mark a provider
+                 * NODELETE because this long-lived compiler DSO looked it up,
+                 * defeating the state's balanced dlopen/dlclose lifetime. */
+                int i;
+                for (i = 0; i < s1->nb_loaded_dlls; i++) {
+                    void* handle = s1->loaded_dlls[i]->handle;
+                    if (handle && (addr = dlsym(handle, name_ud)))
+                        break;
+                }
+                if (addr == NULL && !s1->nostdlib)
                     addr = dlsym(RTLD_DEFAULT, name_ud);
-		if (addr == NULL) {
-		    int i;
-		    for (i = 0; i < s1->nb_loaded_dlls; i++)
-                        if ((addr = dlsym(s1->loaded_dlls[i]->handle, name_ud)))
-			    break;
-		}
                 if (addr) {
                     sym->st_value = (addr_t) addr;
 #ifdef DEBUG_RELOC

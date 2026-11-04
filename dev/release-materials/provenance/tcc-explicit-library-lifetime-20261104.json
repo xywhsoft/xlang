@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "status": "isolated-linux-acceptance-passed",
+  "releaseProductsUpdated": false,
+  "scope": "One real loader reference per TCC state entry, explicit retained-library resolution before RTLD_DEFAULT; host-registered symbols retain precedence.",
+  "sourceFiles": {
+    "lib/tcc/libtcc.c": "3aab4adca367bbe7c6778db3c273028d597e24950650ba8ed23d75e090f323cf",
+    "lib/tcc/tccelf.c": "451b7d239f0aba29474b3b0159f6ccac61c3d7d189a2e27aa5eaf3ff8c3302e9"
+  },
+  "evidence": [
+    {
+      "path": "/home/ubuntu/xlang-validation/tcc-lifetime-fix-20261104-r4/results.json",
+      "sha256": "aa6cf81f47f5ea041ce2ffaf405754e8449ddd3819b70dabf6a3afad79059a66"
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/formal-r28-tail-linux-tcc-overlay-r3/results.json",
+      "sha256": "dc38f0d0f23f1e10c18461b262af7bf684b03c636598800a122cacfaf95e996c"
+    }
+  ],
+  "qualifications": [
+    "ELF O0/O2 real loader kernel; duplicate links, two states, final actual unload and host symbol precedence.",
+    "Strict publisher return-tail test uses a verified r28 parent compiler and explicitly recorded new-provider overlay.",
+    "Provider kernel uses an empty VFS and -Bsymbolic to avoid interposing two independent provider states; it does not certify a rebuilt shipping VFS.",
+    "Windows provider branch is unchanged; current full Windows compiler/TCC rebuild is separately in progress."
+  ],
+  "networkTests": false,
+  "gpuTests": false,
+  "desktopTests": false
+}
