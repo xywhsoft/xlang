@@ -7,6 +7,7 @@
 #include "src/runtime/xl6_ownership_completion.h"
 #include "src/runtime/xl6_callback_failure.h"
 #include "src/api/xl_foreign_error.h"
+#include "test/support/ownership_test_thread.h"
 #include <assert.h>
 #include <stdio.h>
 #if defined(_WIN32)
@@ -20,7 +21,8 @@ typedef struct Node {
     size_t refs,checkedDrops,legacyDrops,finalized,cleared,finished,restored;
     const void* claim;
     struct Node* edge;
-    bool fail,diagnostic;
+    bool fail,diagnostic,dropBlocked;
+    uint64_t creator,lastThread;
 } Node;
 static const xrtownershipops ops;
 static const xrtownershipadapterv1 adapter;
@@ -40,12 +42,15 @@ static bool release(Node* n)
     xrtownershipscope mutation={0};assert(xrtOwnershipMutationBegin(&mutation));
     assert(n->refs);bool last=--n->refs==0;assert(xrtOwnershipScopeEnd(&mutation));
     if(!last)return true;
+    n->lastThread=xrtThreadCurrentId();
     ++n->finalized;
     if(n->diagnostic)xrtSetErrorKind(XERR_VALUE);
     return !n->fail;
 }
 static void drop(const void* data){Node* n=(Node*)data;++n->legacyDrops;assert(release(n));}
 static bool checked_drop(const void* data){Node* n=(Node*)data;++n->checkedDrops;return release(n);}
+static bool drop_ready(const void* data)
+{const Node* n=data;return !n->dropBlocked && (!n->creator || n->creator==xrtThreadCurrentId());}
 static bool claim(const void* data,const void* token)
 {Node* n=(Node*)data;assert(!n->claim);n->claim=token;return true;}
 static void restore(const void* data,const void* token)
@@ -58,7 +63,7 @@ static xrtownershipfinishresult finish(const void* data,const void* token)
     n->edge=NULL;assert(release(n));++n->finished;return XRT_OWNERSHIP_FINISH_READY;
 }
 static const xrtownershipadapterv1 adapter={sizeof(adapter),hold,drop,claim,restore,NULL,clear,NULL};
-static const xrtownershipfinishv2 completion={{sizeof(completion),&adapter,finish},XRT_OWNERSHIP_FINISH_V2_TAG,checked_drop};
+static const xrtownershipfinishv2 completion={{sizeof(completion),&adapter,finish},XRT_OWNERSHIP_FINISH_V2_TAG,checked_drop,drop_ready};
 static const xrtownershipfinishv1 legacy={sizeof(legacy),&adapter,finish};
 static bool resolve(xrtownershipref ref,void* context,const xrtownershipadapterv1** out,
     const xrtownershippreparationv1** preparation,const xrtownershipfinishv1** step)
@@ -173,10 +178,11 @@ static void failed_creation(void)
 static void invalid_descriptors(void)
 {
     Node n={.refs=1};n.edge=&n;xrtownershipfinishv2 bad=completion;
-    for(unsigned i=0;i<5;++i){
+    for(unsigned i=0;i<7;++i){
         bad=completion;
         switch(i){case 0:--bad.V1.size;break;case 1:++bad.V1.size;break;
-            case 2:bad.AbiTag^=1;break;case 3:bad.DropChecked=NULL;break;default:bad.V1.Adapter=NULL;break;}
+            case 2:bad.AbiTag^=1;break;case 3:bad.DropChecked=NULL;break;case 4:bad.V1.Adapter=NULL;break;
+            case 5:bad.DropReady=NULL;break;default:bad.V1.size=40;break;}
         selected=&bad.V1;XL6_OwnershipPlan* plan=NULL;size_t c=counts,t=traces;
         assert(xl6OwnershipPlanTryCreateV3(view(&n),resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_ERROR && !plan);
         assert(counts==c && traces==t && n.refs==1 && !n.claim);xrtClearError();
@@ -206,11 +212,54 @@ static void legacy_page(void)
     assert(xl6OwnershipPlanTryCreateV3(view(&n),resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_ROOTED);
     assert(xl6OwnershipPlanTryDestroy(plan)==XL6_OWNERSHIP_PLAN_READY);
     assert(n.refs==1 && n.legacyDrops==1 && !n.checkedDrops);assert(release(&n));
+    /* Reject the superseded 40-byte unpublished prototype before reading
+     * its nonexistent readiness tail on the inaccessible second page. */
+    exact=(xrtownershipfinishv1*)(memory+page-40);*exact=legacy;exact->size=40;
+    assert(!xl6OwnershipCompletionValid(exact,&adapter) && !xl6OwnershipCompletionV2Get(exact));
 #if defined(_WIN32)
     assert(VirtualFree(memory,0,MEM_RELEASE));
 #else
     assert(munmap(memory,page*2)==0);
 #endif
+}
+typedef struct AffinityTest {Node* a;Node* b;XL6_OwnershipPlan* plan;bool create;} AffinityTest;
+static void wrong_thread(void* raw)
+{
+    AffinityTest* test=raw;
+    xrtSetErrorKind(XERR_ARGUMENT);const xerror* previous=xrtGetError();
+    if(test->create){
+        XL6_OwnershipPlan* output=NULL;
+        assert(xl6OwnershipPlanTryCreateV3(view(test->a),resolve,NULL,&output)==XL6_OWNERSHIP_PLAN_BUSY && !output);
+    }else{
+        assert(xl6OwnershipPlanTryDestroy(test->plan)==XL6_OWNERSHIP_PLAN_BUSY);
+        assert(!test->a->checkedDrops && !test->a->legacyDrops && !test->a->restored);
+        if(test->b)assert(!test->b->checkedDrops && !test->b->legacyDrops && !test->b->restored);
+    }
+    assert(xrtGetError()==previous);xrtClearError();
+}
+static void affinity(void)
+{
+    Node a={.refs=1,.creator=xrtThreadCurrentId()},b={.refs=1};
+    selected=&completion.V1;AffinityTest test={.a=&a,.b=&b,.create=true};
+    xl6OwnershipTestThreadRun(wrong_thread,&test);assert(a.refs==1 && !a.claim);
+    /* b is visited first by the reverse Drop loop: no partial batch may be
+     * released before a's wrong-thread readiness is discovered. */
+    a.edge=&a;b.edge=&b;test.create=false;
+    assert(xl6OwnershipPlanTryCreateV4(view(&a),resolve,discover,&b,&test.plan)==XL6_OWNERSHIP_PLAN_READY);
+    xl6OwnershipTestThreadRun(wrong_thread,&test);
+    assert(a.refs==2 && b.refs==2 && a.claim==test.plan && b.claim==test.plan);
+    assert(xl6OwnershipPlanTryDestroy(test.plan)==XL6_OWNERSHIP_PLAN_READY);
+    assert(a.refs==1 && b.refs==1 && a.restored==1 && b.restored==1);
+    a.edge=NULL;b.edge=NULL;assert(release(&a) && release(&b));
+    /* A rooted plan becomes the LAST real reference when its original
+     * language/native owner closes. The physical destructor stays on creator. */
+    a=(Node){.refs=1,.creator=xrtThreadCurrentId()};test=(AffinityTest){.a=&a};
+    assert(xl6OwnershipPlanTryCreateV3(view(&a),resolve,NULL,&test.plan)==XL6_OWNERSHIP_PLAN_ROOTED);
+    assert(release(&a) && a.refs==1);xl6OwnershipTestThreadRun(wrong_thread,&test);
+    assert(a.refs==1 && !a.finalized && !a.checkedDrops);
+    assert(xl6OwnershipPlanTryDestroy(test.plan)==XL6_OWNERSHIP_PLAN_READY);
+    assert(!a.refs && a.finalized==1 && a.checkedDrops==1 && a.lastThread==a.creator);
+    empty_mailbox();
 }
 int main(void)
 {
@@ -226,6 +275,7 @@ int main(void)
         abort_and_busy();multiple_failures();invalid_descriptors();legacy_page();
     }
     failed_creation();
+    affinity();
     empty_mailbox();xrtClearError();xrtMemDebugSnapshot(&after);
     assert(after.LiveCount==before.LiveCount && after.LiveBytes==before.LiveBytes);
     assert(after.AllocCount-before.AllocCount==after.FreeCount-before.FreeCount);

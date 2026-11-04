@@ -5198,12 +5198,22 @@ typedef struct xrtownershipfinishv1 {
  * diagnostics; it never permits retrying that consumed reference. Call either
  * DropChecked OR Adapter->Drop, exactly once. All descriptor/code pins must
  * outlive this callback's physical return. DropChecked runs outside freeze.
- * V1.Step keeps its existing committed-completion contract. */
+ * DropReady is a pure, nonallocating preflight under graph freeze. It keeps
+ * the ambient diagnostic unchanged and runs no semantic/user callback. True
+ * certifies that this thread can consume the snapshot reference outside the
+ * freeze, including any final cleanup. False means BUSY and consumes nothing.
+ * Readers check it before acquiring new holds and preflight EVERY held node
+ * before restoring any claim or dropping any reference. This prevents an
+ * aborted snapshot from moving creator-thread finalization to another thread.
+ * Ready is not permission to call arbitrary cleanup while frozen; a true
+ * admission remains valid until that drop, under the participant's lifetime
+ * and native-thread contract. V1.Step keeps its committed-completion contract. */
 #define XRT_OWNERSHIP_FINISH_V2_TAG UINT64_C(0x5852544F574E4632)
 typedef struct xrtownershipfinishv2 {
 	xrtownershipfinishv1 V1;
 	uint64 AbiTag;
 	bool (*DropChecked)(const void* pData);
+	bool (*DropReady)(const void* pData);
 } xrtownershipfinishv2;
 typedef struct xrtownershipresult {
 	size_t NodeCount;

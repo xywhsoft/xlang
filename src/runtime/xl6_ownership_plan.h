@@ -147,6 +147,10 @@ XL6_CODE_LEASE_API bool xl6OwnershipPlanFinish(XL6_OwnershipPlan*);
  * a checked V2 snapshot Drop failure: that reference was already consumed and
  * must not be retried. Such failures reach the enclosing checked error scope,
  * or the resident callback-failure mailbox if there is no enclosing scope.
+ * The V2 pure DropReady gate is checked before acquiring any new Hold and
+ * again for every held node under one Freeze before any Restore/Drop. A moved
+ * plan can therefore report BUSY without partially releasing a creator-affine
+ * graph. Committed V2 plans use the same gate before physical Drop.
  * V1 void Drop behavior is unchanged. V2 is accepted only at its exact size
  * and ABI tag, and invokes DropChecked instead of (never in addition to) Drop. */
 XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryDestroy(XL6_OwnershipPlan*);
