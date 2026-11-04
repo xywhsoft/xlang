@@ -35,7 +35,13 @@ static int xl6IrOutputViewExpected(const XL6_IrModule* module,const XL6_ForeignO
     if(!returns || returns->kind!=XL6_IR_NODE_LIST || returns->firstChild>module->childCount ||
         returns->childCount>module->childCount-returns->firstChild || returns->childCount>64)return 0;
     size_t ordinal=SIZE_MAX;XL6_ForeignValueOutputKind mode=xl6ForeignValueOutputBase(node->foreignCall.valueOutput);
-    if(mode==XL6_FOREIGN_VALUE_OUTPUT_STATUS || mode==XL6_FOREIGN_VALUE_OUTPUT_VOID){
+    if(xl6ForeignValueOutputIsRecord(node->foreignCall.valueOutput)){
+        XL6_IrCallTarget target={0};target.declaration=row->declaration;
+        const XL6_ForeignOutputRecordContract* record=xl6IrForeignOutputRecordGet(module,&target);
+        const XL6_ForeignOutputFieldContract* field=xl6IrForeignOutputFieldGet(module,&target,row->ordinal);
+        if(!record || !field || row->physicalIndex!=record->physicalIndex || row->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE)return 0;
+        ordinal=row->ordinal;
+    }else if(mode==XL6_FOREIGN_VALUE_OUTPUT_STATUS || mode==XL6_FOREIGN_VALUE_OUTPUT_VOID){
         if(returns->childCount!=1 || row->physicalIndex+1!=node->foreignCall.outputIndexPlusOne)return 0;
         ordinal=0;
     }else if(mode==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS || mode==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID){
@@ -71,7 +77,9 @@ static int xl6IrVerifyOutputViews(const XL6_IrModule* module,XL6_DiagList* diags
         const XL6_ForeignOutputViewContract* row=&module->foreignOutputViews[i];XL6_ForeignOutputViewContract expected;
         if(!xl6IrOutputViewExpected(module,row,&expected) || row->ordinal!=expected.ordinal || row->logicalType!=expected.logicalType)goto invalid;
         for(size_t j=0;j<i;++j)if(module->foreignOutputViews[j].declaration==row->declaration &&
-            module->foreignOutputViews[j].physicalIndex==row->physicalIndex)goto invalid;
+            (module->foreignOutputViews[j].ordinal==row->ordinal ||
+             (module->foreignOutputViews[j].physicalIndex==row->physicalIndex &&
+              !xl6ForeignValueOutputIsRecord(xl6IrNodeGet(module,row->declaration)->foreignCall.valueOutput))))goto invalid;
         for(size_t j=0;j<module->foreignOutputSizeCount;++j)if(module->foreignOutputSizes[j].declaration==row->declaration &&
             module->foreignOutputSizes[j].physicalIndex==row->physicalIndex)goto invalid;
     }

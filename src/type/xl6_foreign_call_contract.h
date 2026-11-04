@@ -45,7 +45,9 @@ typedef enum XL6_ForeignValueOutputKind {
     XL6_FOREIGN_VALUE_OUTPUT_STATUS,
     XL6_FOREIGN_VALUE_OUTPUT_VOID,
     XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS,
-    XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID
+    XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID,
+    XL6_FOREIGN_VALUE_OUTPUT_RECORD_STATUS,
+    XL6_FOREIGN_VALUE_OUTPUT_RECORD_VOID
 } XL6_ForeignValueOutputKind;
 
 /* The output-mode byte authenticates sparse sizeof initializers and borrowed
@@ -59,10 +61,14 @@ static inline int xl6ForeignValueOutputHasSize(uint8 mode)
 {return (mode&XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED)!=0;}
 static inline int xl6ForeignValueOutputHasView(uint8 mode)
 {return (mode&XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED)!=0;}
+static inline int xl6ForeignValueOutputIsRecord(uint8 mode)
+{return xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_RECORD_STATUS || xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_RECORD_VOID;}
+static inline int xl6ForeignValueOutputIsVoid(uint8 mode)
+{return xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_VOID || xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID || xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_RECORD_VOID;}
 static inline int xl6ForeignValueOutputBitsValid(uint8 mode)
 {
     return !(mode&~(XL6_FOREIGN_VALUE_OUTPUT_KIND_MASK|XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED|XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED)) &&
-        xl6ForeignValueOutputBase(mode)<=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID &&
+        xl6ForeignValueOutputBase(mode)<=XL6_FOREIGN_VALUE_OUTPUT_RECORD_VOID &&
         (!(xl6ForeignValueOutputHasSize(mode)||xl6ForeignValueOutputHasView(mode)) || xl6ForeignValueOutputBase(mode)!=XL6_FOREIGN_VALUE_OUTPUT_NONE);
 }
 /* Closed input-contract bits: expected callback-span count plus sparse input
@@ -172,6 +178,17 @@ typedef struct XL6_ForeignOutputViewContract {
     uint32 retainSymbol,rollbackSymbol;
     XL6_ForeignRetainSuccess retainSuccess;
 } XL6_ForeignOutputViewContract;
+
+/* An explicitly borrowed native record is physical output storage, never a
+ * language record. Its fields project to independent logical tuple values. */
+typedef struct XL6_ForeignOutputRecordContract {
+    uint32 declaration,physicalIndex;
+    char recordCName[64];
+} XL6_ForeignOutputRecordContract;
+typedef struct XL6_ForeignOutputFieldContract {
+    uint32 declaration,ordinal,logicalType;
+    char field[64];
+} XL6_ForeignOutputFieldContract;
 
 /* Only parameters which explicitly add pointee constness occupy a row. */
 typedef struct XL6_ForeignPointerQualifierContract {

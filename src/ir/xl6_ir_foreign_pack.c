@@ -59,7 +59,7 @@ size_t xl6IrForeignPhysicalStepCount(const XL6_IrModule* m,const XL6_IrCallTarge
 {
     if(!t || !xl6IrPackArraysValid(m))return SIZE_MAX;
     const XL6_IrNode* node=xl6IrNodeGet(m,t->declaration);if(!node)return SIZE_MAX;
-    size_t outputs=node->foreignCall.valueOutput ? xl6IrForeignOutputCount(m,t):(node->foreignCall.outputIndexPlusOne ? 1:0);
+    size_t outputs=node->foreignCall.valueOutput ? xl6IrForeignPhysicalOutputCount(m,t):(node->foreignCall.outputIndexPlusOne ? 1:0);
     size_t count=t->parameterCount+outputs;
     for(size_t i=0;i<m->foreignPackCount;++i){const XL6_ForeignPackContract* row=&m->foreignPacks[i];
         if(row->declaration!=t->declaration)continue;
@@ -72,7 +72,7 @@ int xl6IrForeignPhysicalStepGet(const XL6_IrModule* m,const XL6_IrCallTarget* t,
 {
     const XL6_IrNode* node=t ? xl6IrNodeGet(m,t->declaration):NULL;
     if(!node || wanted>=xl6IrForeignPhysicalStepCount(m,t))return 0;
-    size_t outputs=node->foreignCall.valueOutput ? xl6IrForeignOutputCount(m,t):(node->foreignCall.outputIndexPlusOne ? 1:0);
+    size_t outputs=node->foreignCall.valueOutput ? xl6IrForeignPhysicalOutputCount(m,t):(node->foreignCall.outputIndexPlusOne ? 1:0);
     size_t receiver=(node->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || node->sourceKind==XL6_AST_GET || node->sourceKind==XL6_AST_LET) &&
         !(node->flags&XL6_AST_FLAG_STATIC) ? 1:0;
     size_t physical=0,p=0,o=0;

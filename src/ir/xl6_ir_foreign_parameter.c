@@ -377,16 +377,31 @@ size_t xl6IrForeignOutputCount(const XL6_IrModule* module,const XL6_IrCallTarget
 {
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration):NULL;
     if(!node || !node->foreignCall.valueOutput)return 0;
+    if(xl6ForeignValueOutputIsRecord(node->foreignCall.valueOutput)){
+        if(!xl6IrOutputRecordArraysValid(module))return 0;
+        size_t fields=0;for(size_t i=0;i<module->foreignOutputFieldCount;++i)fields+=module->foreignOutputFields[i].declaration==target->declaration;
+        return fields;
+    }
     if(!xl6IrForeignMultiOutput(node))return 1;
     if(module->foreignOutputCount>module->foreignOutputCapacity || (module->foreignOutputCount && !module->foreignOutputs))return 0;
     size_t count=0;
     for(size_t i=0;i<module->foreignOutputCount;++i)count+=module->foreignOutputs[i].declaration==target->declaration;
     return count;
 }
+size_t xl6IrForeignPhysicalOutputCount(const XL6_IrModule* module,const XL6_IrCallTarget* target)
+{
+    const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration):NULL;
+    if(node && xl6ForeignValueOutputIsRecord(node->foreignCall.valueOutput))return 1;
+    return xl6IrForeignOutputCount(module,target);
+}
 XL6_IrTypeId xl6IrForeignOutputType(const XL6_IrModule* module,const XL6_IrCallTarget* target,size_t ordinal)
 {
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration):NULL;
     if(!node || !node->foreignCall.valueOutput)return 0;
+    if(xl6ForeignValueOutputIsRecord(node->foreignCall.valueOutput)){
+        const XL6_ForeignOutputFieldContract* field=xl6IrForeignOutputFieldGet(module,target,ordinal);
+        return field ? field->logicalType:0;
+    }
     if(!xl6IrForeignMultiOutput(node))return ordinal ? 0 : target->returnType;
     const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
     return result && result->kind==XL6_IR_TYPE_TUPLE && result->params && ordinal<result->paramCount ? result->params[ordinal] : 0;
@@ -435,8 +450,9 @@ int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTa
     size_t steps=xl6IrForeignPhysicalStepCount(module,target);
     if(steps>target->parameterCount+count)return 0;
     for(size_t step=0;step<steps;++step)if(!xl6IrForeignPhysicalStepGet(module,target,step,NULL))return 0;
-    return xl6ForeignValueOutputBase(node->foreignCall.valueOutput)<=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID &&
-        ((xl6ForeignValueOutputBase(node->foreignCall.valueOutput)!=XL6_FOREIGN_VALUE_OUTPUT_VOID && xl6ForeignValueOutputBase(node->foreignCall.valueOutput)!=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID) || !node->foreignCall.successCode) &&
+    return xl6ForeignValueOutputBitsValid(node->foreignCall.valueOutput) &&
+        (!xl6ForeignValueOutputIsVoid(node->foreignCall.valueOutput) || !node->foreignCall.successCode) &&
+        xl6IrForeignOutputRecordsMatch(module,target) &&
         xl6IrForeignOutputSizesMatch(module,target) &&
         xl6IrForeignOutputViewsMatch(module,target) &&
         target->outputResultAbi==xl6IrCallOutputResultAbiForTarget(module,target) && node->foreignCall.outputIndexPlusOne &&

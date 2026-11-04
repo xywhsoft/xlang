@@ -9208,6 +9208,7 @@ static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* 
             left.outputIndexPlusOne != right.outputIndexPlusOne || left.successCode != right.successCode) return 0;
         if((a->kind==XL6_AST_NATIVE_EXTERN_FUNC || b->kind==XL6_AST_NATIVE_EXTERN_FUNC || xl6SemForeignManagedInputVariants(ctx,a,b) ||
             xl6SemForeignHasSpans(a) || xl6SemForeignHasSpans(b) ||
+            xl6ForeignValueOutputIsRecord(left.valueOutput) || xl6ForeignValueOutputIsRecord(right.valueOutput) ||
             xl6SemForeignHasRetainedOutputs(a) || xl6SemForeignHasRetainedOutputs(b) ||
             xl6ForeignInputHasPacks(left.inputMappingFacts) || xl6ForeignInputHasPacks(right.inputMappingFacts) ||
             xl6ForeignInputHasRegions(left.inputMappingFacts) || xl6ForeignInputHasRegions(right.inputMappingFacts)) &&
@@ -21517,6 +21518,7 @@ static const XL6_AstNode* xl6SemForeignOwnershipHelper(XL6_SemContext* ctx,
 #include "src/sem/xl6_sem_foreign_output_view.c"
 #include "src/sem/xl6_sem_foreign_region.c"
 #include "src/sem/xl6_sem_foreign_pack.c"
+#include "src/sem/xl6_sem_foreign_output_record.c"
 static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNode* node,const XL6_AstNode* ownerClass)
 {
     XL6_ForeignCallFacts facts;
@@ -21803,6 +21805,9 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         xl6SemErrorNode(ctx,node,"native view result contract requires a managed external class");return 0;
     }
     if(facts.valueOutput){
+        if(xl6ForeignValueOutputIsRecord(facts.valueOutput)){
+            if(!xl6SemForeignOutputRecord(ctx,node,attrs,ownerClass,&facts,count+receiver,receiver))return 0;
+        }else{
         size_t outputs=1;uint32 slots[64]={facts.outputIndexPlusOne-1};
         int multi=xl6ForeignValueOutputBase(facts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS || xl6ForeignValueOutputBase(facts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID;
         if(multi){
@@ -21830,6 +21835,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         }
         if(!xl6SemForeignOutputSizes(ctx,node,attrs,&facts))return 0;
         if(!xl6SemForeignOutputViews(ctx,node,attrs,slots,outputs))return 0;
+        }
     }
     if (facts.outputIndexPlusOne && !facts.valueOutput) {
         const XL6_AstNode* returns = node->childCount > 2 ? node->children[2] : NULL;
@@ -22031,7 +22037,8 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node,const XL
     XL6_ForeignCallFacts outputFacts={0};
     int hasOutputProduct=xl6ForeignFunctionRead(node,&outputFacts) &&
         (xl6ForeignValueOutputBase(outputFacts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS ||
-         xl6ForeignValueOutputBase(outputFacts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID);
+         xl6ForeignValueOutputBase(outputFacts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID ||
+         xl6ForeignValueOutputIsRecord(outputFacts.valueOutput));
     if ( returns != NULL && returns->childCount > 1 &&
          !hasOutputProduct && !xl6SemIsCAbiProductReturns(ctx, returns) ) {
         xl6SemErrorNode(ctx, returns->children[1] != NULL ? returns->children[1] : returns,

@@ -1,0 +1,151 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "scope": "Generic borrowed output-struct projection to POD/retained results; 46-TU frontend overlay on complete R35, not a new complete compiler or delivery build.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\output-record-candidate-r2\\manifest.json",
+    "sha256": "7e648f04e0233dbfde9758866cc35fcb6590791a2df6daa27e220d16914eecb5"
+  },
+  "compilerFiles": 16,
+  "reports": [
+    {
+      "platform": "win_x64",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\output-record-gate-win-r4\\results.json",
+      "sha256": "501d6e17b39d017c9f326ac5ea7a00a71cb457110d258a44782ced20a2d6d8ed",
+      "steps": 57
+    },
+    {
+      "platform": "linux_x64",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\output-record-gate-linux-r4\\results.json",
+      "sha256": "1d2a263832d4fbf5b27ecfa1c40e233c7c28d0b31aa3e62e13707439c1201a58",
+      "steps": 57
+    }
+  ],
+  "irMutationsPerOptimization": 357,
+  "optimizations": [
+    "O0",
+    "O2"
+  ],
+  "declarationNegatives": 28,
+  "badNativeHeaders": 14,
+  "nonTrivialCppRejected": true,
+  "factsBytes": 88,
+  "limitations": [
+    "No runtime or native engine change",
+    "Complete R36 source rebuild and final SDK/VFS are separate acceptance",
+    "Concurrent IDE changes excluded from Sem snapshot"
+  ],
+  "files": [
+    {
+      "path": "src/type/xl6_foreign_call_contract.h",
+      "sha256": "71a51eb5ff93682880c755398ff7e48a301e8ee091baf1a26b33576390c124a4",
+      "blob": "f56f36236e5c30c7e54523bc2c0479a5ad609389"
+    },
+    {
+      "path": "src/type/xl6_foreign_decl.h",
+      "sha256": "d726e8629fa9ebee2525d884cf35a76b3222026a5ca51bfae3489ab8cbc1766d",
+      "blob": "7544d4940fbe028cd3ee37e5cfb30ca9fdf82b0e"
+    },
+    {
+      "path": "src/type/xl6_foreign_output_record_decl.h",
+      "sha256": "6438a25f4f4c87028d2b36d910f3fcb255e36ab3c6d6fcddf62f2bd788583ff7",
+      "blob": "096feaf7d0a24f9f080646dfbd78f3035c6f7838"
+    },
+    {
+      "path": "src/sem/xl6_sem.c",
+      "sha256": "50ec2d4185c7d4ccc969bd32242627961dd13d02823d5a74a3d543736673242d",
+      "blob": "77c9c377a6602efbae2a05d94080b93e71ffd24d"
+    },
+    {
+      "path": "src/sem/xl6_sem_foreign_output_record.c",
+      "sha256": "043b0390c8582aa7d0e12db4fe91737d2ff43b2b73fdce1a1f1117f69e56f844",
+      "blob": "aed8fba6a7ea65f6120b45f86b636880422b0a09"
+    },
+    {
+      "path": "src/ir/xl6_ir.h",
+      "sha256": "008a50e48658f88a2d0784937e8dc2a0ba5b1bc2a4679a4d314afbc874e10fab",
+      "blob": "9d3b9c4aa264e62d6c4dd427e8c1489af688b691"
+    },
+    {
+      "path": "src/ir/xl6_ir.c",
+      "sha256": "6ea6539d2ff98fb6abad051c42b9b906cc90e344b1e74b60991ffde19ed41b12",
+      "blob": "f8fc1347a746fce94bbb2e43bbefcee59724e498"
+    },
+    {
+      "path": "src/ir/xl6_ir_lower.c",
+      "sha256": "1d770a8f87f734f8a7971a30e9d907d503f5921d35398eb69205444db966c04e",
+      "blob": "cc407562b1bb37ee26aa7e2a32edaf0cda40f091"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_parameter.c",
+      "sha256": "b0e19298020efbf4bb2812906f78064af3c55a6152b16c8ba4a495f54d8a1182",
+      "blob": "1764a6ca26ad408dd4bab2ac960cff5380395bad"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_pack.c",
+      "sha256": "ddd0643c372c5066479be4489542a3fb5f17a0946a5e79f81d463642d992bce5",
+      "blob": "cc8f88a0a126d68ec60dabe525c781610f9acbdc"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_output_view.c",
+      "sha256": "df9e5718af4ab446bb7fad77abeb84e2e9c30352f382ba583150ad51ff8240b7",
+      "blob": "7df89a0768720b4ced37df12a65490487a01360f"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_output_record.c",
+      "sha256": "33b9672430293ad6725fda8b299bc85408c9a40533c5e329be486b27f8f8c9c4",
+      "blob": "5adc6e62c6e02772443af5f30ebd55bb2be9d366"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_foreign_output_view.c",
+      "sha256": "9da8a995468fd62e56ae7e66f2fdcdff8243f560ed33cdf38787fc9a39e1bfca",
+      "blob": "fcdbc5198cdaaedded79a06b19a521417e7f48b0"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_type_call.c",
+      "sha256": "d80f16806595e1d393a363ab4db19856ca3b0b8d48db81180653c26053f8ffe3",
+      "blob": "d77cd83a80717e043143b33f9af56aa656973e84"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_identity_closure.c",
+      "sha256": "1d2624f701caca1cb8e514cebc91f6bc4aed066ed335777b031b81675cb96265",
+      "blob": "db4e0085e3337f3187c55755d56aee0bbe60de0c"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_compat.c",
+      "sha256": "32a3b3946e833a57296927063e909f3357b947c5907c4a35a9a6c5c01b8cd493",
+      "blob": "6235f38e521e57661956c425df8e38a9e8e77f85"
+    },
+    {
+      "path": "test/cases/foreign_output_record.h",
+      "sha256": "212f027b9ea32469653cc894e972b3dc056974620d69b2d825f27652f699d753",
+      "blob": "8f7760ce081582397a43a7d102f1e029df0dcc9f"
+    },
+    {
+      "path": "test/cases/foreign_output_record.xl",
+      "sha256": "37688552c821f25c6f2a780df4b096f09c8b7860e9601dbfed061c55b9d51884",
+      "blob": "e0cc9d59f91802fd0e8881b28ef32067b96e3f96"
+    },
+    {
+      "path": "test/cases/foreign_output_record_ir.c",
+      "sha256": "ccc664666446dc96398df3cf1ee91a33759c624daec9a628dc2eda9f014219e2",
+      "blob": "ef0d29a45b9f1523b4824f60e392827a2444fa3b"
+    },
+    {
+      "path": "test/cases/foreign_output_record_native.c",
+      "sha256": "03b624a879a9da52010711740d12582913ba27c5dd7c079b47a063e6a480f6a0",
+      "blob": "49f63418b936beabcb9a8c0c5ed8cc9b119033de"
+    },
+    {
+      "path": "tools/check_foreign_output_record.py",
+      "sha256": "79cb26855a10714a2faff2bbd79e08a8b865bd0f22a5be825eccb43ecce54b40",
+      "blob": "4dee07ae865e760b26e111179756859407536d26"
+    },
+    {
+      "path": "docs/foreign-declarations.md",
+      "sha256": "7192cac745241459d6ee2201dcef959dffcec267fb0e673d0773dfd45490c7f4",
+      "blob": "502bf23e7446daae2493f9e9095757213b4ad97e"
+    }
+  ]
+}

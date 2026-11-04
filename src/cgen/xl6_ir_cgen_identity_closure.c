@@ -434,6 +434,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
     }
     const XL6_ForeignStorageContract* storage=xl6IrForeignStorageGet(module,target);
     if(!xl6IrCgenPackProof(out,module,target))return 0;
+    if(!xl6IrCgenOutputRecordProof(out,module,target))return 0;
     if(storage)xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE((%s)0, %s*), \"in-place native record pointer\");\n"
         "XLIR_NATIVE_ASSERT(sizeof(%s[1])>0 && XLIR_NATIVE_ALIGNOF(%s)<=XL6_FOREIGN_RECORD_ALIGNMENT_V1, \"in-place native record size/alignment\");\n",
         resultType->cName,storage->recordCName,storage->recordCName,storage->recordCName);
