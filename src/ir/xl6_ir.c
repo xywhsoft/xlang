@@ -2481,6 +2481,8 @@ void xl6IrModuleFree(XL6_IrModule* module)
     xrtFree(module->instantiations);
     xrtFree(module->foreignParameters);
     xrtFree(module->foreignOutputs);
+    xrtFree(module->foreignOutputSizes);
+    xrtFree(module->foreignOutputViews);
     xrtFree(module->foreignFieldLengths);
     xrtFree(module->foreignStorage);
     xrtFree(module->foreignRetains);
@@ -2488,6 +2490,7 @@ void xl6IrModuleFree(XL6_IrModule* module)
     xrtFree(module->foreignValues);
     xrtFree(module->foreignPointerQualifiers);
     xrtFree(module->foreignFunctionHeaders);
+    xrtFree(module->foreignFieldCalls);
     for ( i = 0; i < module->callTargetCount; ++i ) {
         xrtFree(module->callTargets[i].cName);
         xrtFree(module->callTargets[i].parameterTypes);
@@ -4451,6 +4454,13 @@ static XL6_IrNodeId xl6IrBuildAstNode(
     for(size_t attr=0;foreignAttributes && attr<foreignAttributes->childCount;++attr) {
         const XL6_AstNode* declaration=foreignAttributes->children[attr];
         XL6_ForeignParameterContract contract;
+        if(declaration && declaration->text && !strcmp(declaration->text,"c_field_call")){
+            XL6_ForeignFieldCallContract row={0};
+            if(!xl6ForeignFieldCallName(source,row.field,sizeof(row.field)) ||
+                !xl6IrGrow((void**)&module->foreignFieldCalls,&module->foreignFieldCallCapacity,
+                    module->foreignFieldCallCount,sizeof(*module->foreignFieldCalls))){*ok=0;return 0;}
+            row.declaration=id;module->foreignFieldCalls[module->foreignFieldCallCount++]=row;continue;
+        }
         if(declaration && declaration->text && !strcmp(declaration->text,"header")){
             XL6_ForeignFunctionHeaderContract row={0};
             if(!xl6ForeignFunctionHeaderRead(declaration,row.header,sizeof(row.header)) ||
@@ -4466,6 +4476,20 @@ static XL6_IrNodeId xl6IrBuildAstNode(
                 module->foreignOutputs[module->foreignOutputCount++]=(XL6_ForeignOutputContract){id,(uint32)o,slots[o]};
             }
             continue;
+        }
+        if(declaration && declaration->text && !strcmp(declaration->text,"c_output_size")){
+            XL6_ForeignOutputSizeContract row;
+            if(!xl6ForeignOutputSizeRead(declaration,&row) ||
+                !xl6IrGrow((void**)&module->foreignOutputSizes,&module->foreignOutputSizeCapacity,
+                    module->foreignOutputSizeCount,sizeof(*module->foreignOutputSizes))){*ok=0;return 0;}
+            row.declaration=id;module->foreignOutputSizes[module->foreignOutputSizeCount++]=row;continue;
+        }
+        if(declaration && declaration->text && !strcmp(declaration->text,"c_output_view")){
+            XL6_ForeignOutputViewContract row;
+            if(!xl6ForeignOutputViewRead(declaration,&row) ||
+                !xl6IrGrow((void**)&module->foreignOutputViews,&module->foreignOutputViewCapacity,
+                    module->foreignOutputViewCount,sizeof(*module->foreignOutputViews))){*ok=0;return 0;}
+            row.declaration=id;module->foreignOutputViews[module->foreignOutputViewCount++]=row;continue;
         }
         if(declaration && declaration->text && !strcmp(declaration->text,"c_value")){
             XL6_ForeignValueContract row;
@@ -5832,6 +5856,9 @@ static int xl6IrBuildUnionLayouts(XL6_IrModule* module)
     }
     return 1;
 }
+
+#include "src/ir/xl6_ir_foreign_output_size.c"
+#include "src/ir/xl6_ir_foreign_output_view.c"
 
 typedef struct XL6_IrBuildFieldPersistence {
     int skip;
@@ -21676,6 +21703,10 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
         buildFailure = "cannot normalize XLIR managed read result ownership";
     else if ( !xl6IrBuildUnionLayouts(module) )
         buildFailure = "cannot build XLIR union layouts";
+    else if ( !xl6IrCloseOutputSizes(module) )
+        buildFailure = "cannot close native sizeof output initializer contracts";
+    else if ( !xl6IrCloseOutputViews(module) )
+        buildFailure = "cannot close native borrowed output conversion contracts";
     else if ( !xl6IrBuildEnumLayouts(module) )
         buildFailure = "cannot build XLIR enum layouts";
     else if ( !xl6IrRefreshClassLayoutsDetailed(
@@ -23026,7 +23057,8 @@ int xl6IrForeignStaticCallbackParameter(const XL6_IrModule* module,
 
 static int xl6IrNativeCStringResultArity(const XL6_IrCallTarget* target)
 {
-    if (target && target->kind==XL6_IR_CALL_TARGET_EXTERN_C && target->cName) {
+    if (target && target->kind==XL6_IR_CALL_TARGET_EXTERN_C &&
+        target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_CALL && target->cName) {
 #define XL6_IR_NATIVE_CSTRING_RESULT(Name, Arity) if (!strcmp(target->cName,Name)) return Arity;
 #include "src/ir/xl6_ir_native_cstring_results.inc"
 #undef XL6_IR_NATIVE_CSTRING_RESULT
@@ -23141,6 +23173,7 @@ XL6_IrCallErrorPhysicalAbi xl6IrCallProducerErrorPhysicalAbi(const XL6_IrModule*
 int xl6IrForeignCallAdmissionMayRaise(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
     if(!target)return 0;
+    if(target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_FIELD_CALL)return 1;
     if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY ||
         target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT ||
         target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_STATUS_CHECK ||
@@ -23156,8 +23189,8 @@ XL6_IrCallOutputResultAbi xl6IrCallOutputResultAbiForTarget(const XL6_IrModule* 
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration):NULL;
     if(!node || !node->foreignCall.outputIndexPlusOne)return XL6_IR_CALL_OUTPUT_RESULT_NONE;
     return node->foreignCall.inplaceOutput==XL6_FOREIGN_INPLACE_VOID ||
-        (node->foreignCall.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_VOID ||
-         node->foreignCall.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID) ?
+        (xl6ForeignValueOutputBase(node->foreignCall.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_VOID ||
+         xl6ForeignValueOutputBase(node->foreignCall.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID) ?
         XL6_IR_CALL_OUTPUT_RESULT_VOID : XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS;
 }
 XL6_IrCallResultCAbi xl6IrCallResultCAbiForTarget(const XL6_IrModule* module,const XL6_IrCallTarget* target)
@@ -23206,7 +23239,7 @@ int xl6IrCallResultCAbiMatches(const XL6_IrModule* module, const XL6_IrCallTarge
         return source && source->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BORROWED_VALUE &&
             !(source->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) &&
             !source->foreignCall.outputIndexPlusOne && !source->foreignCall.receiverDereference &&
-            target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_CALL &&
+            xl6IrForeignOperationInvokesFunction(target->foreignOperationAbi) &&
             target->kind==XL6_IR_CALL_TARGET_EXTERN_C && !target->runtimeBridge &&
             result && result->kind==XL6_IR_TYPE_BUILTIN && result->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
             result->name && !strcmp(result->name,"var") &&
@@ -37135,10 +37168,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             (target->foreignHeaderIndexPlusOne && target->kind!=XL6_IR_CALL_TARGET_EXTERN_C))
             return xl6IrDiag(diags,NULL,"native function header index disagrees with its declaration");
     }
-    if (!xl6IrVerifyForeignOutputs(module,diags) || !xl6IrVerifyForeignParameters(module,diags) || !xl6IrVerifyForeignFieldLengths(module,diags) ||
+    if (!xl6IrVerifyForeignOutputs(module,diags) || !xl6IrVerifyOutputSizes(module,diags) || !xl6IrVerifyOutputViews(module,diags) || !xl6IrVerifyForeignParameters(module,diags) || !xl6IrVerifyForeignFieldLengths(module,diags) ||
         !xl6IrVerifyForeignStorage(module,diags) || !xl6IrVerifyForeignRetains(module,diags) ||
         !xl6IrVerifyForeignCallbackSpans(module,diags) || !xl6IrVerifyForeignValues(module,diags) ||
-        !xl6IrVerifyPointerQualifiers(module,diags) || !xl6IrVerifyFunctionHeaders(module,diags)) return 0;
+        !xl6IrVerifyPointerQualifiers(module,diags) || !xl6IrVerifyFunctionHeaders(module,diags) ||
+        !xl6IrVerifyFieldCalls(module,diags)) return 0;
     if (!xl6IrVerifyCompiledPackages(module,diags)) return 0;
     if (module->specializedSymbolCount > module->specializedSymbolCapacity ||
         (module->specializedSymbolCount && !module->specializedSymbols))
@@ -41216,12 +41250,12 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     node->foreignCall.borrowedViewResult!=XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE ||
                     (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || node->foreignCall.receiverDereference)) ||
                 (node->foreignCall.receiverDereference && ((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || node->foreignCall.outputIndexPlusOne)) ||
-                (node->foreignCall.valueOutput>XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID ||
-                 ((node->foreignCall.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_VOID || node->foreignCall.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID) && node->foreignCall.successCode)) ||
+                (xl6ForeignValueOutputBase(node->foreignCall.valueOutput)>XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID ||
+                 ((xl6ForeignValueOutputBase(node->foreignCall.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_VOID || xl6ForeignValueOutputBase(node->foreignCall.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID) && node->foreignCall.successCode)) ||
                 (node->foreignCall.valueOutput && (!node->foreignCall.outputIndexPlusOne || node->foreignCall.borrowedViewResult || node->foreignCall.rollbackSymbol)) ||
                 (node->foreignCall.outputIndexPlusOne ?
                     (node->foreignCall.valueOutput ?
-                        (node->foreignCall.valueOutput<=XL6_FOREIGN_VALUE_OUTPUT_VOID && xl6ForeignOutputLogical(&node->foreignCall,params->childCount+receiver,receiver)==SIZE_MAX) :
+                        (xl6ForeignValueOutputBase(node->foreignCall.valueOutput)<=XL6_FOREIGN_VALUE_OUTPUT_VOID && xl6ForeignOutputLogical(&node->foreignCall,params->childCount+receiver,receiver)==SIZE_MAX) :
                         !node->foreignCall.rollbackSymbol || xl6ForeignOutputLogical(&node->foreignCall,params->childCount+receiver,receiver)==SIZE_MAX) :
                     (node->foreignCall.successCode && node->foreignCall.borrowedViewResult!=XL6_FOREIGN_VIEW_RESULT_INT_STATUS) || node->foreignCall.rollbackSymbol))
                 return xl6IrDiag(diags, node, "declarative C call facts are not attached to one exact source signature");
@@ -54044,6 +54078,18 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         const XL6_ForeignOutputContract* row=&module->foreignOutputs[i];
         xl6OutputPrintf(out,"    {\"declaration\":%u,\"ordinal\":%u,\"physicalIndex\":%u}%s\n",row->declaration,row->ordinal,row->physicalIndex,i+1==module->foreignOutputCount ? "":",");
     }
+    xl6OutputPuts("  ],\n  \"foreignOutputSizes\": [\n",out);
+    for(i=0;i<module->foreignOutputSizeCount;++i){
+        const XL6_ForeignOutputSizeContract* row=&module->foreignOutputSizes[i];
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"physicalIndex\":%u,\"ordinal\":%u,\"recordType\":%u,\"fieldDeclaration\":%u,\"fieldType\":%u,\"field\":\"%s\"}%s\n",
+            row->declaration,row->physicalIndex,row->ordinal,row->recordType,row->fieldDeclaration,row->fieldType,row->field,i+1==module->foreignOutputSizeCount ? "":",");
+    }
+    xl6OutputPuts("  ],\n  \"foreignOutputViews\": [\n",out);
+    for(i=0;i<module->foreignOutputViewCount;++i){
+        const XL6_ForeignOutputViewContract* row=&module->foreignOutputViews[i];
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"physicalIndex\":%u,\"ordinal\":%u,\"logicalType\":%u,\"conversion\":%u}%s\n",
+            row->declaration,row->physicalIndex,row->ordinal,row->logicalType,(unsigned)row->conversion,i+1==module->foreignOutputViewCount ? "":",");
+    }
     xl6OutputPuts("  ],\n  \"foreignStorage\": [\n",out);
     for(i=0;i<module->foreignStorageCount;++i){
         const XL6_ForeignStorageContract* row=&module->foreignStorage[i];
@@ -54069,6 +54115,12 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         const XL6_ForeignPointerQualifierContract* row=&module->foreignPointerQualifiers[i];
         xl6OutputPrintf(out,"    {\"declaration\":%u,\"parameter\":%u,\"cName\":\"%s\"}%s\n",
             row->declaration,row->parameter,row->cName,i+1==module->foreignPointerQualifierCount ? "" : ",");
+    }
+    xl6OutputPuts("  ],\n  \"foreignFieldCalls\": [\n",out);
+    for(i=0;i<module->foreignFieldCallCount;++i){
+        const XL6_ForeignFieldCallContract* row=&module->foreignFieldCalls[i];
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"field\":\"%s\"}%s\n",(unsigned)row->declaration,row->field,
+            i+1==module->foreignFieldCallCount ? "":",");
     }
     xl6OutputPuts("  ],\n  \"foreignFunctionHeaders\": [\n",out);
     for(i=0;i<module->foreignFunctionHeaderCount;++i){

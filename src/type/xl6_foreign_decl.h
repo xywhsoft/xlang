@@ -57,6 +57,25 @@ static inline int xl6ForeignPointerQualifierRead(const XL6_AstNode* attr,uint32*
     if(parameter)*parameter=(uint32)index;
     return 1;
 }
+static inline int xl6ForeignOutputSizeRead(const XL6_AstNode* attr,XL6_ForeignOutputSizeContract* output)
+{
+    int32 index;XL6_ForeignOutputSizeContract row={0};
+    if(!attr || !attr->text || strcmp(attr->text,"c_output_size") || attr->childCount!=2 ||
+        !xl6ForeignDecimalInt(attr->children[0],&index) || index<0 || index>=64 ||
+        !xl6ForeignQuotedText(attr->children[1],row.field,sizeof(row.field)) || !xl6ForeignIdentifier(row.field))return 0;
+    row.physicalIndex=(uint32)index;if(output)*output=row;return 1;
+}
+static inline int xl6ForeignOutputViewRead(const XL6_AstNode* attr,XL6_ForeignOutputViewContract* output)
+{
+    int32 index;char kind[16];XL6_ForeignOutputViewContract row={0};
+    if(!attr || !attr->text || strcmp(attr->text,"c_output_view") || attr->childCount!=2 ||
+        !xl6ForeignDecimalInt(attr->children[0],&index) || index<0 || index>=64 ||
+        !xl6ForeignQuotedText(attr->children[1],kind,sizeof(kind)))return 0;
+    row.conversion=!strcmp(kind,"text") ? XL6_FOREIGN_OUTPUT_CONVERSION_TEXT :
+        !strcmp(kind,"bytes") ? XL6_FOREIGN_OUTPUT_CONVERSION_BYTES : XL6_FOREIGN_OUTPUT_CONVERSION_INVALID;
+    if(!row.conversion)return 0;
+    row.physicalIndex=(uint32)index;if(output)*output=row;return 1;
+}
 static inline int xl6ForeignConstPointerName(const char* input,char* output,size_t capacity)
 {
     if(!input || !output || !capacity || !strncmp(input,"const ",6) ||
@@ -231,14 +250,32 @@ static inline int xl6ForeignMultiOutputSlotsValid(const XL6_ForeignCallFacts* f,
     return 1;
 }
 
+static inline int xl6ForeignFieldCallName(const XL6_AstNode* node,char* field,size_t capacity)
+{
+    XL6_AstNode name={0};name.kind=XL6_AST_STRING;name.text=node ? node->text:NULL;
+    return xl6ForeignQuotedText(&name,field,capacity) && xl6ForeignIdentifier(field);
+}
+static inline int xl6ForeignFunctionFieldCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);
+    for(size_t i=0;attrs && i<attrs->childCount;++i)
+        if(attrs->children[i] && attrs->children[i]->text && !strcmp(attrs->children[i]->text,"c_field_call"))return 1;
+    return 0;
+}
+
 static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     XL6_ForeignCallFacts* output)
 {
-    XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0,outputStatus=0;uint64 callbackSpans=0,callbackParameters=0;
+    XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0,outputStatus=0,fieldCall=0;uint64 callbackSpans=0,callbackParameters=0,outputSizes=0,outputViews=0;
     const XL6_AstNode* attributes = xl6ForeignFunctionAttributes(node);
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
         const XL6_AstNode* attr = attributes->children[i];
         int32 index;
+        if(attr && attr->text && !strcmp(attr->text,"c_field_call")){
+            char field[64];
+            if(fieldCall || attr->childCount || !xl6ForeignFieldCallName(node,field,sizeof(field)))return 0;
+            fieldCall=1;continue;
+        }
         if(attr && attr->text && !strcmp(attr->text,"header")){
             char header[256];
             if(!xl6ForeignFunctionHeaderRead(attr,header,sizeof(header)) || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD))return 0;
@@ -254,6 +291,16 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             uint32 slots[64];size_t outputs;
             if(facts.outputIndexPlusOne || !xl6ForeignMultiOutputRead(attr,slots,&outputs))return 0;
             facts.outputIndexPlusOne=slots[0]+1;facts.valueOutput=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID;continue;
+        }
+        if(attr && attr->text && !strcmp(attr->text,"c_output_size")){
+            XL6_ForeignOutputSizeContract row;
+            if(!xl6ForeignOutputSizeRead(attr,&row) || (outputSizes&(UINT64_C(1)<<row.physicalIndex)))return 0;
+            outputSizes|=UINT64_C(1)<<row.physicalIndex;continue;
+        }
+        if(attr && attr->text && !strcmp(attr->text,"c_output_view")){
+            XL6_ForeignOutputViewContract row;
+            if(!xl6ForeignOutputViewRead(attr,&row) || (outputViews&(UINT64_C(1)<<row.physicalIndex)))return 0;
+            outputViews|=UINT64_C(1)<<row.physicalIndex;continue;
         }
         if(attr && attr->text && !strcmp(attr->text,"c_value")){
             XL6_ForeignValueContract row;
@@ -356,10 +403,14 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             facts.rollbackSymbol=rollback->semanticSymbolId;
         } else return 0;
     }
+    if(fieldCall && (node->kind!=XL6_AST_NATIVE_EXTERN_FUNC ||
+        (node->flags&(XL6_AST_FLAG_STATIC|XL6_AST_FLAG_FOREIGN_FIELD)) || facts.receiverDereference ||
+        facts.controlViews || (facts.outputIndexPlusOne && facts.outputIndexPlusOne==1)))return 0;
     if(outputStatus){
         if(facts.valueOutput!=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID)return 0;
         facts.valueOutput=XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS;
     }
+    if((outputSizes|outputViews) && (!facts.valueOutput || (outputSizes&outputViews)))return 0;
     if(voidFactory){
         if(facts.inplaceOutput!=XL6_FOREIGN_INPLACE_STATUS)return 0;
         facts.inplaceOutput=XL6_FOREIGN_INPLACE_VOID;
@@ -383,6 +434,8 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         (facts.bytesViews & (facts.constRecordAddresses | facts.staticCallbackAddresses)) ||
         (facts.borrowedViewResult && facts.borrowedViewResult<=XL6_FOREIGN_VIEW_RESULT_BYTES && facts.outputIndexPlusOne) ||
         (facts.valueOutput && facts.borrowedViewResult)) return 0;
+    if(outputSizes)facts.valueOutput|=XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED;
+    if(outputViews)facts.valueOutput|=XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED;
     if (output) *output = facts;
     return 1;
 }
@@ -447,6 +500,11 @@ static inline int xl6ForeignPointerSpelling(const char* text)
         while (*p == ' ') ++p;
     }
     return pointers && !*p;
+}
+static inline int xl6ForeignSinglePointerSpelling(const char* text)
+{
+    const char* pointer=text ? strchr(text,'*'):NULL;
+    return pointer && !strchr(pointer+1,'*') && xl6ForeignPointerSpelling(text);
 }
 
 static inline int xl6ForeignQuotedText(const XL6_AstNode* node,

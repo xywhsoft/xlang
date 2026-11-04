@@ -1,0 +1,79 @@
+extern "BindingOutputViewBox*" class Root @header("test/cases/foreign_xge3_binding_output_view.h") @lifetime("owned") @policy("bindingOutputViewPolicy") @scope("BindingOutputViewScope")
+ native point handle
+ extern "binding_output_view_method" @no_raise @c_output_view(3,"text") @c_output_view(4,"bytes") @c_outputs(3,4,5) @c_status(0) func read(c_int mode=0,c_int failAfter=-1) as (string,bytes,c_int)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "binding_output_view_create" @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Root
+extern "binding_output_view_destroy" @no_raise func rollback(Root root)
+extern "binding_output_view_pair" @header("test/cases/foreign_xge3_binding_output_view.h") @no_raise @c_outputs(0,1,2,3) @c_status(0) @c_output_view(0,"text") @c_output_view(2,"bytes") func pair() as (string,c_int,bytes,c_size)
+extern "binding_output_view_nullable" @header("test/cases/foreign_xge3_binding_output_view.h") @no_raise @c_output_view(1,"text") @c_outputs(1,2) @c_status(0) @c_output_view(2,"bytes") func optional(c_int mode) as (string?,bytes?)
+extern "binding_output_view_required" @header("test/cases/foreign_xge3_binding_output_view.h") @no_raise @c_outputs(1,2) @c_status(0) @c_output_view(1,"text") @c_output_view(2,"bytes") func required(c_int mode) as (string,bytes)
+extern "binding_output_view_void" @header("test/cases/foreign_xge3_binding_output_view.h") @no_raise @c_output(0) @c_output_view(0,"text") func voidText() as string
+extern "binding_output_view_bytes" @header("test/cases/foreign_xge3_binding_output_view.h") @no_raise @c_output(0,0) @c_output_view(0,"bytes") func singleBytes() as bytes
+extern "binding_output_view_span" @header("test/cases/foreign_xge3_binding_output_view.h") @no_raise @c_span(0,"const uint8_t*","size_t") @c_outputs(2,3) @c_status(0) @c_output_view(2,"text") @c_output_view(3,"bytes") func fromSpan(bytes value) as (string,bytes)
+extern "binding_output_view_end_count" @header("test/cases/foreign_xge3_binding_output_view.h") @no_raise func ends() as c_int
+extern "binding_output_view_reset" @header("test/cases/foreign_xge3_binding_output_view.h") @no_raise func resetFailure()
+extern "binding_output_view_counter_begin" @header("test/cases/foreign_xge3_binding_output_view.h") @no_raise func beginCounter()
+extern "binding_output_view_counter_end" @header("test/cases/foreign_xge3_binding_output_view.h") @no_raise func endCounter()
+protocol Reader
+ func read(c_int mode,c_int failAfter) as (string,bytes,c_int)
+end
+func main(...) as int
+ auto text,number,data,size=pair()
+ assert text=="A\0你" and number==c_int(17) and data==b"\xff\0\x81B" and size==c_size(4)
+ assert voidText()=="A\0你"
+ assert singleBytes()==b"\xff\0\x81B"
+ auto spanText,spanBytes=fromSpan(b"A\0\xe4\xbd\xa0")
+ assert spanText=="A\0你" and spanBytes==b"A\0\xe4\xbd\xa0"
+ auto missingText,missingBytes=optional(c_int(0))
+ assert missingText==null and missingBytes==null
+ auto emptyText,emptyBytes=optional(c_int(1))
+ assert emptyText!=null and emptyBytes!=null and emptyText=="" and emptyBytes==b""
+ for mode in [0,2,3,4,5]
+  beginCounter()
+  bool caught=false
+  try
+   auto badText,badBytes=required(c_int(mode))
+  catch error
+   caught=true
+  end
+  assert caught
+  endCounter()
+ end
+ Root root=create()
+ auto before=ends()
+ auto ownedText,ownedBytes,count=root.read()
+ assert ends()==before+c_int(1) and ownedText=="A\0你" and ownedBytes==b"\xff\0\x81B" and count==c_int(23)
+ func(c_int,c_int) as (string,bytes,c_int) bound=root.read
+ auto boundText,boundBytes,boundCount=bound(c_int(0),c_int(-1))
+ assert boundText=="A\0你" and boundBytes==data and boundCount==c_int(23)
+ Reader reader=root
+ auto protocolText,protocolBytes,protocolCount=reader.read(c_int(0),c_int(-1))
+ assert protocolText=="A\0你" and protocolBytes==data and protocolCount==c_int(23)
+ string keptText="keep"
+ bytes keptBytes=b"keep"
+ c_int keptCount=77
+ bool caught=false
+ try
+  keptText,keptBytes,keptCount=root.read(c_int(1),c_int(-1))
+ catch error
+  caught=true
+  assert error.code==-7
+ end
+ assert caught and keptText=="keep" and keptBytes==b"keep" and keptCount==c_int(77)
+ for failAfter in [0,1]
+  beginCounter()
+  caught=false
+  try
+   keptText,keptBytes,keptCount=root.read(c_int(0),c_int(failAfter))
+  catch error
+   caught=true
+  finally
+   resetFailure()
+  end
+  assert caught and keptText=="keep" and keptBytes==b"keep" and keptCount==c_int(77)
+  endCounter()
+ end
+ root.close()
+ return 0
+end

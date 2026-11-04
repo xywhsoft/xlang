@@ -5990,7 +5990,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1670 "xl6_parser.y"
 {
     yylhsminor.yy166 = yymsp[-1].minor.yy166;
-    if (yymsp[0].minor.yy230 && yymsp[0].minor.yy230->childCount == 0 && (!yymsp[0].minor.yy230->text || strcmp(yymsp[0].minor.yy230->text,"c_deref"))) {
+    if (yymsp[0].minor.yy230 && yymsp[0].minor.yy230->childCount == 0 && (!yymsp[0].minor.yy230->text || (strcmp(yymsp[0].minor.yy230->text,"c_deref") && strcmp(yymsp[0].minor.yy230->text,"c_field_call")))) {
         XL6_Token token = {0}; token.text = yymsp[0].minor.yy230->text; token.len = yymsp[0].minor.yy230->text ? strlen(yymsp[0].minor.yy230->text) : 0;
         token.startLine = yymsp[0].minor.yy230->line; token.startColumn = yymsp[0].minor.yy230->column;
         yylhsminor.yy166.flags |= xl6PExternContractFlag(ctx, &token);

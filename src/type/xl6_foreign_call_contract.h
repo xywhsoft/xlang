@@ -47,6 +47,24 @@ typedef enum XL6_ForeignValueOutputKind {
     XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID
 } XL6_ForeignValueOutputKind;
 
+/* The output-mode byte authenticates sparse sizeof initializers and borrowed
+ * output conversions. No additional fact slot is attached to every IR node. */
+#define XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED 128u
+#define XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED 64u
+#define XL6_FOREIGN_VALUE_OUTPUT_KIND_MASK 7u
+static inline XL6_ForeignValueOutputKind xl6ForeignValueOutputBase(uint8 mode)
+{return (XL6_ForeignValueOutputKind)(mode&XL6_FOREIGN_VALUE_OUTPUT_KIND_MASK);}
+static inline int xl6ForeignValueOutputHasSize(uint8 mode)
+{return (mode&XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED)!=0;}
+static inline int xl6ForeignValueOutputHasView(uint8 mode)
+{return (mode&XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED)!=0;}
+static inline int xl6ForeignValueOutputBitsValid(uint8 mode)
+{
+    return !(mode&~(XL6_FOREIGN_VALUE_OUTPUT_KIND_MASK|XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED|XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED)) &&
+        xl6ForeignValueOutputBase(mode)<=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID &&
+        (!(xl6ForeignValueOutputHasSize(mode)||xl6ForeignValueOutputHasView(mode)) || xl6ForeignValueOutputBase(mode)!=XL6_FOREIGN_VALUE_OUTPUT_NONE);
+}
+
 /* Closed declaration facts. Const addresses exist only during one call;
  * they do not introduce a language reference or an escaping pointer. */
 typedef struct XL6_ForeignCallFacts {
@@ -67,8 +85,8 @@ typedef struct XL6_ForeignCallFacts {
     uint32 outputIndexPlusOne;
     int32 successCode;
     uint32 rollbackSymbol;
-    /* One trivial output (XL6_ForeignValueOutputKind), distinct from an owning factory. Occupies
-     * existing tail padding; outputIndexPlusOne includes the C receiver. */
+    /* Closed output kind/presence flags, decoded only through the helpers
+     * above. outputIndexPlusOne includes the C receiver. */
     uint8 valueOutput;
     uint8 receiverDereference;
     uint8 inplaceOutput; /* XL6_ForeignInplaceKind, not a Boolean. */
@@ -112,6 +130,25 @@ typedef struct XL6_ForeignOutputContract {
     uint32 declaration,ordinal,physicalIndex;
 } XL6_ForeignOutputContract;
 
+/* Only outputs with an explicit sizeof initializer occupy a row. The typed
+ * IR closes recordType and fieldDeclaration/fieldType before publication. */
+typedef struct XL6_ForeignOutputSizeContract {
+    uint32 declaration,physicalIndex,ordinal,recordType,fieldDeclaration,fieldType;
+    char field[64];
+} XL6_ForeignOutputSizeContract;
+
+typedef enum XL6_ForeignOutputConversion {
+    XL6_FOREIGN_OUTPUT_CONVERSION_INVALID=0,
+    XL6_FOREIGN_OUTPUT_CONVERSION_TEXT,
+    XL6_FOREIGN_OUTPUT_CONVERSION_BYTES
+} XL6_ForeignOutputConversion;
+/* Physical xstrview/xbytesview outputs become owned logical values before
+ * native input/callback scopes end. Ordinary outputs occupy no row. */
+typedef struct XL6_ForeignOutputViewContract {
+    uint32 declaration,physicalIndex,ordinal,logicalType;
+    XL6_ForeignOutputConversion conversion;
+} XL6_ForeignOutputViewContract;
+
 /* Only parameters which explicitly add pointee constness occupy a row. */
 typedef struct XL6_ForeignPointerQualifierContract {
     uint32 declaration,parameter;
@@ -121,6 +158,13 @@ typedef struct XL6_ForeignFunctionHeaderContract {
     uint32 declaration;
     char header[256];
 } XL6_ForeignFunctionHeaderContract;
+
+/* A callable C-record field is a distinct operation, never a global symbol.
+ * Only declarations which request it occupy a row; ordinary nodes stay 88 B. */
+typedef struct XL6_ForeignFieldCallContract {
+    uint32 declaration;
+    char field[64];
+} XL6_ForeignFieldCallContract;
 
 /* Sparse per-declaration physical expansions, stored only for parameters
  * which request them. No fixed array is attached to every call or IR node. */

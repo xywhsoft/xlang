@@ -1,0 +1,264 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Generic declaration-to-XLIR-to-C native callable fields, output sizeof initializers and owned view outputs",
+  "factsBytes": 88,
+  "fullCompilerRebuild": false,
+  "developmentOverlay": "46 compiler/frontend units plus one IR hardening update; verified R31 runtime/provider reuse",
+  "fieldMutationCountPerOptimization": 164,
+  "outputSizeMutationCountPerOptimization": 24,
+  "outputViewMutationCountPerOptimization": 25,
+  "semExcludedIdeHunks": 3,
+  "semComparedCAndIrOutputs": 30,
+  "evidence": [
+    {
+      "path": "/home/ubuntu/xlang-validation/field-call-accept-linux-r2/results.json",
+      "sha256": "b431b6da632a9c97eb3ed8ee249185078ac3791aabc095d151bd83fc7417907f",
+      "complete": true,
+      "passed": true,
+      "rows": 20
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/output-size-gate-linux-r1/results.json",
+      "sha256": "e9c3b6cfda82af7ebe5ee87ff812df9b1e3e73364332771f60bc23fa1af619f4",
+      "complete": true,
+      "passed": true,
+      "rows": 28
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/output-view-gate-linux-r1/results.json",
+      "sha256": "8db57ef96f6557f8b3c6dbefe4c520f1f2d1311d29004200f2d6d69d9588ec56",
+      "complete": true,
+      "passed": true,
+      "rows": 28
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/pointer-hardening-gate-linux-r1/results.json",
+      "sha256": "89029e920e775590fa128aba306e55048ea608b1fca25fbefd39136e91310f87",
+      "complete": true,
+      "passed": true,
+      "rows": 20
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/field-call-tcc-linux-r1/results.json",
+      "sha256": "1b97aa93c984be3c0b7a51113f8c3d5f0d0e996e1d67207593af7126b8799b14",
+      "complete": true,
+      "passed": true,
+      "rows": 4
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/output-view-tcc-linux-r1/results.json",
+      "sha256": "f30d330ea6aca9684e80e97c6860def6ae16198e0500398dbb9df3cf80800835",
+      "complete": true,
+      "passed": true,
+      "rows": 7
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\field-call-accept-win-r3\\results.json",
+      "sha256": "5327863d7dc7c5586745b93fd4bbf682bd6931b920ea26cc770fd18f7f6351f7",
+      "complete": true,
+      "passed": true,
+      "rows": 20
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\field-call-tcc-win-r3\\results.json",
+      "sha256": "716ad10b4d7b6835832a5b816c1317eeff50fb4290583cbccd6a0bfecfbeb605",
+      "complete": true,
+      "passed": true,
+      "rows": 4
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\output-size-gate-win-r2\\results.json",
+      "sha256": "9a870e1ad340971de1ed2468714f4889f1c3454bdfc6b8c2714d3b8159f6d620",
+      "complete": true,
+      "passed": true,
+      "rows": 28
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\output-view-gate-win-r4\\results.json",
+      "sha256": "6f0dfd72838eac84d8193bbbc7c0715fb99c3a97cc10bdfc5c3d67d9508b2e56",
+      "complete": true,
+      "passed": true,
+      "rows": 28
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\pointer-hardening-gate-win-r2\\results.json",
+      "sha256": "147355fb7754c37d4c7f48cf11cf5da1b4c1a48856bdeb145f900017ae9b1d31",
+      "complete": true,
+      "passed": true,
+      "rows": 20
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\output-view-tcc-win-r5\\results.json",
+      "sha256": "b4b9f2b20677807fa4046ccf2d29080f7009996ef466c222664423e2d71e2060",
+      "complete": true,
+      "passed": true,
+      "rows": 7
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\sem-scope-final-core-r1\\results.json",
+      "sha256": "cae35624e27c09b55e5929ea06954d0198c26f8426b3851e66ba523d10546339",
+      "complete": true,
+      "passed": true,
+      "rows": 30
+    }
+  ],
+  "files": [
+    {
+      "path": "src/type/xl6_foreign_call_contract.h",
+      "sha256": "34a83a283610a3cee07bc277b110310b44aef9309147aee6abacc2199f34b77c"
+    },
+    {
+      "path": "src/type/xl6_foreign_decl.h",
+      "sha256": "4f2d1a973f9e867fd68a9a37fefb6ccfdfab99c15906fd8f23bb62b171c03117"
+    },
+    {
+      "path": "src/sem/xl6_sem.c",
+      "sha256": "69815a7c05f37a0ad48a5d258d10b244c7f5416fb3fc6985692b02f816377c20"
+    },
+    {
+      "path": "src/ir/xl6_ir.h",
+      "sha256": "cd3db60c12530528da85759a55382fca1f1a1ca3f5c7b8698bf362d557c45c3e"
+    },
+    {
+      "path": "src/ir/xl6_ir.c",
+      "sha256": "20c322ba241441467f09575994cf571dd3496598b82f6f4d4f3b8339b3242bd2"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_parameter.c",
+      "sha256": "5f7f2cff34783ba824197d034fdc8f496c7cf3d3544d2754aac9e1f3d20f82e2"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_function_emit.c",
+      "sha256": "a5232c1111ea427318b995cc4013c1757eb476ec4f6732295e9669f255668eab"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_identity_closure.c",
+      "sha256": "411e6188590b21d313f02b677e9370e9be420a418ab4784a614fd841d6081311"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_type_call.c",
+      "sha256": "7d010a973cd855b87a7c2cf82b2eeaea0fab43635fa2f05615dc6bf4c54ff4e1"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_native_dependencies.c",
+      "sha256": "e6d02c77145fdda12861eadca0e1bd810a52c224f87e3b97f58f6c7116879ba9"
+    },
+    {
+      "path": "src/parser/xl6_parser.y",
+      "sha256": "7eec7c64e32306a83ba5c5d69750fe09573ca931dd924db2bef869190360fb97"
+    },
+    {
+      "path": "src/parser/xl6_parser.c",
+      "sha256": "67adf48a048dc88d2258aaffb4ba44d5028c34c11bcf838e0545df48ef82549c"
+    },
+    {
+      "path": "src/sem/xl6_sem_foreign_output_size.c",
+      "sha256": "9a9369253b0f43db32c989f9f238c1f681c688fd6ac50e02f37f31e052f1bc81"
+    },
+    {
+      "path": "src/ir/xl6_ir_lower.c",
+      "sha256": "8c7f1abd7062c7773b8fa896e82ebf9b7093f744f4159fbcb68022cbea5756bb"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_output_size.c",
+      "sha256": "cb70590678d3f0e415c2a59eecf1190c02a88f098baf0b777d99992a3b005a9b"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen.c",
+      "sha256": "321169d288aee5bdc079678ce353825ef8183c15323aa2525bea01f80902f24e"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_type_definitions.c",
+      "sha256": "4edac0669f0d8dc012956080989ae1adea079937823b32a3aeafd24a7b84bde4"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_foreign_output_size.c",
+      "sha256": "5deb5924421752238a78c9f972aa80c56c23931da3ed71c07df8f3dc1fcbda77"
+    },
+    {
+      "path": "src/sem/xl6_sem_foreign_output_view.c",
+      "sha256": "0520a9800c8b23cd73e1dc9adc9cd32df00aa38bb02b6d07ec48a0c7fa856e54"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_output_view.c",
+      "sha256": "05aad445be076b90a399e10f45c605f111a161bdfe3f5d77bdfd567a92d7b89f"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_foreign_output_view.c",
+      "sha256": "518cc95ecb5ee28df96d4216029bd5aab42055ee461d320916a45fc33cec7bec"
+    },
+    {
+      "path": "docs/foreign-declarations.md",
+      "sha256": "2f51f12da74f26fdc6bc3c40f944778d42e3988e42f6973e07f7ddf5bfd40970"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_output_view.h",
+      "sha256": "5998c1215c0851c7ab59bdbd1b5e174d6e7825a76ed53f6cf87dc46562a2120a"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_output_view.c",
+      "sha256": "982ec73b38009c6c22a881ee405952571db04abc34fd703cb1b1db4ca8ab847b"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_output_view.xl",
+      "sha256": "f9eeaf75a1279f293ebe65489afe635ac8fa24c4230377280730c86aa0898add"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_output_view_ir.c",
+      "sha256": "cd44d96956a43b61a946927bfac9593db1773d6514f359f87b4795e168810f2a"
+    },
+    {
+      "path": "tools/check_foreign_output_view.py",
+      "sha256": "d3fe8b35319d90194ee4bb0a987d5bf774992d91c29d7a4fa2a2739f9e6af123"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_output_size_ir.c",
+      "sha256": "699be11902e718ca6a4f7f144e24f4d1d7c57caedc3a19b1c0995b5b19c2ce64"
+    },
+    {
+      "path": "test/cases/foreign_callable_field_ir.c",
+      "sha256": "11e5c3e3fb87fb526f60e8d2f0ddb9f92fdf23a7e5107ec30016ee59551c6265"
+    },
+    {
+      "path": "test/cases/foreign_callable_field.h",
+      "sha256": "79cb0d2480ec61b3aada04fc9e3d963c0ff61a52df099bbdee8d7967ab2c30cd"
+    },
+    {
+      "path": "test/cases/foreign_callable_field.xl",
+      "sha256": "432fd45577e3812a649cf01d42c45e116efc43ff0776e0f4bb21b4f6bae8bece"
+    },
+    {
+      "path": "test/cases/foreign_callable_field_native.c",
+      "sha256": "95780b048bbcecfbf0a34f09ae49f294848bfef790279b37c4511eaa37a22200"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_output_size.h",
+      "sha256": "8c66103f41c7d3acfcc131291f1d62c6b5f11dd2d37b7ebe558452014d403483"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_output_size.xl",
+      "sha256": "317359de1d874b76cf7c0796445af6c61eb3e652c4efb8997390625b3f6662e8"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_output_size.c",
+      "sha256": "a201e9b3550648d4ae506b1151f403b4e0f6d6528009d8eeafa9b45c23e6162a"
+    },
+    {
+      "path": "tools/check_foreign_callable_field.py",
+      "sha256": "6de6d7100b6bd7d88ff0fd47369c9a18f3358607436a2f9a63fdb98c8c970e03"
+    },
+    {
+      "path": "tools/check_foreign_output_size.py",
+      "sha256": "93c07718ea5ebc5ec639dfec19db65c19aa502c940ac176283e33c5e34432b9a"
+    }
+  ],
+  "shippingDelivery": false,
+  "releaseBinaryUpdated": false,
+  "costs": [
+    "Native function-table indirect call and checked callee admission",
+    "Sparse per-declaration metadata; no additional per-node fact bytes",
+    "Output sizeof assignment has no call or allocation",
+    "Borrowed text/bytes outputs copy to language-owned values before source scopes end"
+  ]
+}
