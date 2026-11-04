@@ -1,0 +1,43 @@
+{
+  "complete": true,
+  "scope": "Three disabled-feature C++ extern-C guard pairs; pinned XRT API/implementation version retained",
+  "upstreamCommit": "50bd79a5",
+  "xgeOverlayCommit": "e646055f",
+  "nativeCallbacksCommits": [
+    "4540e5f2",
+    "933bb587"
+  ],
+  "authoritativeHeaderChecks": 96,
+  "authoritativeCPreprocessedEquivalenceCombinations": 8,
+  "pinnedXlangPublicHeaderChecks": 12,
+  "abiChanged": false,
+  "implementationChanged": false,
+  "fullXrtUpgrade": false,
+  "pinnedBaseRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
+  "runtimeDllRebuilt": false,
+  "shippingDeliveryIndexUpdated": false,
+  "platformWorktreeDeclaration": "release/win_x64/include/xrt_decl.h",
+  "committedDeclarationAtCurrentHead": "release/include/xrt_decl.h",
+  "note": "Stage only the exact linkage guard hunk at the current tracked SDK path; preserve the concurrent platform-directory migration and historical evidence bytes",
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xrt-cpp-guards-r2\\results.json",
+      "sha256": "b56bfaa536a90898e8fef42511cb596c457872816a4bc1487c09d2b1126a1093"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xlang-cpp-overlay-r1\\results.json",
+      "sha256": "eb661bd4d56ca4c81fdaddd429c931a2c52210ba4ff01dc992e097fa4bc8bf40"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xrt-cpp-overlay-sync.json",
+      "sha256": "779232a73bb6ed9ae6f0fef35303c92e9e3a35af376458516305eefcb098175c"
+    }
+  ],
+  "files": {
+    "lib\\xrt\\xrt.h": "1125d38fe544d6b4ddfd25b8a9c5a638bb6409a811997ab7239ffb1e0c1ef80b",
+    "release\\win_x64\\include\\xrt_decl.h": "daa2184b9ada9a56a240625d050ffadc7f89aa9dbe8ce1122ff6e32e086dca4a",
+    "lib\\xrt\\upstream.json": "fa16de652ce83b2a37d24c003dc04600627e941699618745b05ea97cd81396f6",
+    "lib\\xrt\\xrt.snapshot.json": "59e0b74b847bfa3d289fb3bce2b6e1f4ce1e9f5b6212f72e86ec47825afbf8fb",
+    "lib\\xruntime\\xruntime.snapshot.json": "e85ee3d1e94625195ca68533586050e0955def1bec39070cd4b7f8476d8c2cbb"
+  }
+}

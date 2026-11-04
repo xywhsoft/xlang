@@ -13,6 +13,7 @@ import subprocess
 import sys
 import shutil
 import tempfile
+from runtime_layout import runtime_directory
 
 from gen_xrt_symbol_table import _api_names, _render as render_symbol_table
 from gen_xrt_xlang_matrix import check as check_capability_matrix
@@ -81,10 +82,10 @@ def _check_snapshot(root: Path) -> bool:
     """校验 XRT、xruntime 快照、元数据和运行时符号表。"""
 
     core_header = root / "lib" / "xrt" / "xrt.h"
-    core_declarations = root / "release" / "include" / "xrt_decl.h"
+    core_declarations = runtime_directory(root) / "include" / "xrt_decl.h"
     core_metadata_path = root / "lib" / "xrt" / "xrt.snapshot.json"
     runtime_header = root / "lib" / "xruntime" / "xruntime.h"
-    runtime_declarations = root / "release" / "include" / "xruntime_decl.h"
+    runtime_declarations = runtime_directory(root) / "include" / "xruntime_decl.h"
     runtime_metadata_path = root / "lib" / "xruntime" / "xruntime.snapshot.json"
     runtime_features = root / "lib" / "xruntime" / "xruntime_features.h"
     symbols_path = root / "src" / "api" / "xl_xrt_symbols.inc"
@@ -264,10 +265,10 @@ def _sync(root: Path, xrt_root: Path, allow_development_source: bool = False) ->
         runtime_declaration_source,
     ) = _validate_source(xrt_root, validations, allow_development_source)
     core_destination = root / "lib" / "xrt" / "xrt.h"
-    core_declaration_destination = root / "release" / "include" / "xrt_decl.h"
+    core_declaration_destination = runtime_directory(root) / "include" / "xrt_decl.h"
     core_metadata_path = root / "lib" / "xrt" / "xrt.snapshot.json"
     runtime_destination = root / "lib" / "xruntime" / "xruntime.h"
-    runtime_declaration_destination = root / "release" / "include" / "xruntime_decl.h"
+    runtime_declaration_destination = runtime_directory(root) / "include" / "xruntime_decl.h"
     runtime_metadata_path = root / "lib" / "xruntime" / "xruntime.snapshot.json"
     runtime_features = root / "lib" / "xruntime" / "xruntime_features.h"
     upstream_path = root / "lib" / "xrt" / "upstream.json"
