@@ -718,3 +718,16 @@ XLIR 保存稀疏的类型投影行和明确的物理 ABI；Cgen 复用普通视
 `XLIR_NATIVE_*` 宏只组织编译期证明，不生成运行时代码。C++ 中对直接标量枚举
 及函数签名使用底层整数兼容规则，指针仍保留精确枚举身份和 cv 限定；禁止用
 `int*` 代替枚举指针。需要精确枚举指针时使用权威 C 头的 typedef。
+
+
+### Void 原位初始化器
+
+`@factory(outputIndex, rollback) @c_inplace("RecordCName")` 声明原生返回 `void` 的
+原位初始化器；需要原生存储采用时同样可使用三参数 `@c_inplace`。初始化错误通过
+checked 边界报告，部分初始化失败仍先 rollback payload，再释放独立记录。
+已有 `@factory(outputIndex, successCode, rollback)` 保留精确的 C `int` 状态返回。
+两参数形式必须配合原位存储，不允许用于普通指针输出；没有隐式成功码或虚构 int 返回。
+XLIR 的 factoryResultAbi 单独记录物理 producer 返回 ABI，与语言的拥有结果及 C 输出
+参数分离；公开头持续核对真实原生声明。生成 C 直接调用初始化器，void 路径不产生
+native_status 临时值。实际 XGE Material 已验证此合同；其纹理槽由原生代码 retain，
+shader 是借用槽，不能误当成拥有资源公开。

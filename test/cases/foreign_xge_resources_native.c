@@ -9,9 +9,11 @@
 static bool destroy_font(void* raw){xgeFontFree(raw);return true;}
 static bool destroy_texture(void* raw){xgeTextureFree(raw);return true;}
 static bool destroy_image(void* raw){xgeImageFree(raw);xrtFree(raw);return true;}
+static bool destroy_material(void* raw){xgeMaterialFree(raw);xrtFree(raw);return true;}
 const XL6_ForeignViewDescriptorV1 declarativeXgeFontPolicy={sizeof(declarativeXgeFontPolicy),XL6_FOREIGN_VIEW_V1_TAG,"xge.font",0,1,NULL,NULL,destroy_font,0,1,NULL,NULL,NULL,NULL};
 const XL6_ForeignViewDescriptorV1 declarativeXgeTexturePolicy={sizeof(declarativeXgeTexturePolicy),XL6_FOREIGN_VIEW_V1_TAG,"xge.texture",0,1,NULL,NULL,destroy_texture,0,1,NULL,NULL,NULL,NULL};
 const XL6_ForeignViewDescriptorV1 declarativeXgeImagePolicy={sizeof(declarativeXgeImagePolicy),XL6_FOREIGN_VIEW_V1_TAG,"xge.image",0,1,NULL,NULL,destroy_image,0,1,NULL,NULL,NULL,NULL};
+const XL6_ForeignViewDescriptorV1 declarativeXgeMaterialPolicy={sizeof(declarativeXgeMaterialPolicy),XL6_FOREIGN_VIEW_V1_TAG,"xge.material",0,1,NULL,NULL,destroy_material,0,1,NULL,NULL,NULL,NULL};
 xbytesview declarative_xge_image_bytes(void)
 {
     /* A complete CRC-checked 1x1 RGBA PNG generated from one red pixel. */

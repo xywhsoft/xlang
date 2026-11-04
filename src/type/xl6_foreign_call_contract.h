@@ -32,6 +32,12 @@ static inline int xl6ForeignResultBytesView(XL6_ForeignBorrowedViewResult kind)
 static inline int xl6ForeignResultCountedField(XL6_ForeignBorrowedViewResult kind)
 {return kind==XL6_FOREIGN_VIEW_RESULT_TEXT_FIELD || kind==XL6_FOREIGN_VIEW_RESULT_BYTES_FIELD;}
 
+typedef enum XL6_ForeignInplaceKind {
+    XL6_FOREIGN_INPLACE_NONE=0,
+    XL6_FOREIGN_INPLACE_STATUS,
+    XL6_FOREIGN_INPLACE_VOID
+} XL6_ForeignInplaceKind;
+
 /* Closed declaration facts. Const addresses exist only during one call;
  * they do not introduce a language reference or an escaping pointer. */
 typedef struct XL6_ForeignCallFacts {
@@ -55,7 +61,7 @@ typedef struct XL6_ForeignCallFacts {
      * existing tail padding; outputIndexPlusOne includes the C receiver. */
     uint8 valueOutput;
     uint8 receiverDereference;
-    uint8 inplaceOutput;
+    uint8 inplaceOutput; /* XL6_ForeignInplaceKind, not a Boolean. */
     uint8 callbackSpanMappings;
 } XL6_ForeignCallFacts;
 

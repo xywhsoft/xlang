@@ -13645,6 +13645,7 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
     }
     target->resultConversionAbi = xl6IrCallResultConversionForTarget(module, target);
     target->resultCAbi=xl6IrCallResultCAbiForTarget(module,target);
+    target->factoryResultAbi=xl6IrCallFactoryResultAbiForTarget(module,target);
     if (!xl6IrCallResultCAbiMatches(module,target))
         return xl6IrLowerDiag(ctx,target->declaration,"XLIR native C result signature does not match the declared language ABI");
     if (target->parameterCount != 0) {

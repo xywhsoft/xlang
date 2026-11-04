@@ -5,6 +5,7 @@
 extern const XL6_ForeignViewDescriptorV1 declarativeXgeFontPolicy;
 extern const XL6_ForeignViewDescriptorV1 declarativeXgeTexturePolicy;
 extern const XL6_ForeignViewDescriptorV1 declarativeXgeImagePolicy;
+extern const XL6_ForeignViewDescriptorV1 declarativeXgeMaterialPolicy;
 xbytesview declarative_xge_image_bytes(void);
 xstrview declarative_xge_font_path(void);
 xbytesview declarative_xge_font_bytes(void);

@@ -195,7 +195,7 @@ static int xl6IrVerifyForeignStorage(const XL6_IrModule* module,XL6_DiagList* di
         const XL6_ForeignStorageContract* row=&module->foreignStorage[i];
         const XL6_IrNode* node=xl6IrNodeGet(module,row->declaration);
         const XL6_IrNode* adopt=xl6IrSymbolNodeGet(module,row->adoptSymbol);
-        if(!node || node->foreignCall.inplaceOutput!=1 ||
+        if(!node || (node->foreignCall.inplaceOutput!=XL6_FOREIGN_INPLACE_STATUS && node->foreignCall.inplaceOutput!=XL6_FOREIGN_INPLACE_VOID) ||
             (row->kind!=XL6_FOREIGN_STORAGE_POLICY && row->kind!=XL6_FOREIGN_STORAGE_NATIVE_ADOPTION) ||
             (row->kind==XL6_FOREIGN_STORAGE_POLICY && (row->adoptSymbol || row->successCode)) ||
             (row->kind==XL6_FOREIGN_STORAGE_NATIVE_ADOPTION && (!adopt ||
@@ -219,12 +219,13 @@ int xl6IrForeignStorageFactoryMatches(const XL6_IrModule* module,const XL6_IrCal
     if(!node)return 0;
     if(!node->foreignCall.inplaceOutput)return !row;
     const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
-    if(!(node->foreignCall.inplaceOutput==1 && row && result && result->kind==XL6_IR_TYPE_CLASS &&
+    if(!((node->foreignCall.inplaceOutput==XL6_FOREIGN_INPLACE_STATUS || node->foreignCall.inplaceOutput==XL6_FOREIGN_INPLACE_VOID) && row && result && result->kind==XL6_IR_TYPE_CLASS &&
         result->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && result->foreignHeader &&
         !result->foreignWatch && !result->foreignScope &&
         node->foreignCall.outputIndexPlusOne && !node->foreignCall.valueOutput &&
         node->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE &&
-        target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT))return 0;
+        target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT &&
+        target->factoryResultAbi==xl6IrCallFactoryResultAbiForTarget(module,target)))return 0;
     if(row->kind==XL6_FOREIGN_STORAGE_POLICY)return !row->adoptSymbol && !row->successCode;
     return row->kind==XL6_FOREIGN_STORAGE_NATIVE_ADOPTION &&
         xl6IrForeignOwnershipHelperMatches(module,row->adoptSymbol,target->returnType,1);

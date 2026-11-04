@@ -1,0 +1,113 @@
+{
+  "complete": true,
+  "scope": "Exact void native initializers and actual XGE Material resource composition",
+  "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r22",
+  "windows": {
+    "fullTranslationUnits": 1414,
+    "tccObjects": 1562,
+    "acceptedGroups": 34,
+    "tccModes": [
+      "JIT",
+      "module",
+      "standalone"
+    ]
+  },
+  "linux": {
+    "fullTranslationUnits": 1413,
+    "acceptedCompilerGroups": 20,
+    "actualXuiCases": 3,
+    "actualXgeCases": 1,
+    "tccIncluded": false,
+    "clientSanitizers": [
+      "ASan",
+      "UBSan",
+      "leaks",
+      "stack-use-after-return"
+    ]
+  },
+  "voidFactories": {
+    "factories": 3,
+    "mutationsPerOptimization": 33,
+    "emptyOutputsPerOptimization": 66,
+    "semanticNegatives": 6,
+    "headerNegatives": 1,
+    "allocationBudgets": 32,
+    "factsBytes": 88,
+    "physicalResults": [
+      "INT_STATUS",
+      "VOID"
+    ],
+    "logicalResultIndependent": true,
+    "noFakeStatus": true
+  },
+  "actualXge": {
+    "resources": [
+      "Font",
+      "Texture",
+      "Image",
+      "Material"
+    ],
+    "optimizations": [
+      "O0",
+      "O2"
+    ],
+    "engineCodeRevision": "e870ee7e",
+    "engineDocumentationRevision": "aed545b",
+    "windowsImports": 177,
+    "linuxImports": 175,
+    "materialTextureSlots": 3,
+    "materialAllocationBudgets": 24,
+    "shaderExported": false
+  },
+  "limits": [
+    "Only generated C and native void-factory clients are sanitizer instrumented; core/XRT and actual engine are reused",
+    "No GPU, desktop, network/security or Linux TCC tests",
+    "Three existing IDE-only semantic completion hunks excluded from commit",
+    "Captured synchronous callbacks, remaining native callback families, full declarations, automatic initialization and SDK/IDE/shipping migration remain unfinished"
+  ],
+  "eightTasksComplete": false,
+  "shippingUpdated": false,
+  "networkTests": false,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r22.json",
+      "sha256": "b15394db20b6c6e389db7af7e5b51ca45974b30c3e0ef9c040c2ae5998677feb"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r22\\build.json",
+      "sha256": "16e9752f23e8447338b601e460160a99141f5f009043af1892f2734cd54d6389"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r22-vfs\\build.json",
+      "sha256": "69268cfe4a920045804b2c2b82249d6a63f396f415628d477ac3e9a8f0c2d35c"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r22-vfs\\provider.json",
+      "sha256": "128a8517802664def7158e8f962d575a5032a4d7cc02f94f8d9402dc0579b42c"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\precompiled-r22\\manifest.json",
+      "sha256": "988121522f7f7b4257260f18e10ef4eed619cb2e73458f74f7b1ab51c823a143"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\batch-r22\\results.json",
+      "sha256": "9051ec4d0ec7452edbcfd24762d4e2a59aa35be9b90b77190790b97c3b1f9862"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\actual-xge-resources-r22\\results.json",
+      "sha256": "10f3b6d2ddad4e2de35fdbf0b20b477db995cbde9b30c7a686f5021d86250dae"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-gates-r18.json",
+      "sha256": "f7b910a55a32dbb4bf0b70d3acc0f64aa764cae1f83e9eef6d621206ac672000"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-r22-evidence.json",
+      "sha256": "c71b51281d0f5d313401dc8c0e3a63181193e4a1ccd5402ca294368b80998e1a"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-void-factory-asan-r1.json",
+      "sha256": "6cf53bff54b81429df486d24dcb9aa8cde494bb61c8d1288297740964ca941f7"
+    }
+  ]
+}

@@ -627,7 +627,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
         xl6OutputPrintf(out,"    if (!%.*s.ok) xl6ErrorScopeCaptureFailure(&%s);\n",(int)(bytes-6),result,scope);
     }
     if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT)
-        xl6IrCgenNativeViewAdmission(out, module, target, NULL, NULL, result, "native_raw", scope, factoryOutput ? "native_status" : NULL);
+        xl6IrCgenNativeViewAdmission(out, module, target, NULL, NULL, result, "native_raw", scope, target->factoryResultAbi==XL6_IR_CALL_FACTORY_RESULT_INT_STATUS ? "native_status" : NULL);
     if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_STATUS_CHECK || valueOutput)
         xl6IrCgenEmitNativeStatusCheck(out,module,target,scope);
     if(valueOutput)xl6OutputPrintf(out,"    if (!%s.failed && !xrtGetError()) %s = native_raw;\n",scope,result);
@@ -1058,7 +1058,7 @@ static int xl6IrCgenEmitDirectCall(
     if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT){
         char place[40];snprintf(place,sizeof(place),"v%u",(unsigned)instruction->result);
         xl6IrCgenNativeViewAdmission(out,module,target,module->operands+instruction->firstOperand,NULL,
-            place,"native_raw",nativeScope,factoryOutput ? "native_status" : NULL);
+            place,"native_raw",nativeScope,target->factoryResultAbi==XL6_IR_CALL_FACTORY_RESULT_INT_STATUS ? "native_status" : NULL);
     }
     if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_STATUS_CHECK || valueOutput)
         xl6IrCgenEmitNativeStatusCheck(out,module,target,nativeScope);

@@ -1,5 +1,17 @@
 # XGE3 / XUI3 声明式接入实施状态
 
+11 月 4 日 void 原位工厂／Material 完成验收：Windows 完整源码 1,414 单元、
+TCC 1,562 对象及 34 组检查通过；Linux 完整源码 1,413 单元、20 组编译器检查、
+三组真实 XUI 和一组真实 XGE 通过。31 份公开头通过 C11／C++11／C++17。
+三种 void 工厂每个优化等级拒绝 33 项 IR 篡改、检查 66 次空输出，32 个分配预算通过。
+Material 直接调用 void xgeMaterialInit，无伪状态或新增逐方法包装；三组纹理拥有槽、
+独立返回引用及 24 个分配预算在真实 XGE O0/O2 通过。shader 仍是原生借用合同，
+没有公开为安全语言槽。Linux 新工厂客户端通过 ASan／UBSan／泄漏／栈生命周期检查，
+复用核心与 XRT 未插桩。发布产物未更新；同步捕获回调、其他回调族、完整声明、
+自动初始化和 SDK／IDE 迁移仍在推进，八项整体未封板。证据：
+`dev/release-materials/provenance/foreign-void-factory-material-20261104.json`。
+
+
 11 月 4 日回调文本结果／pointee 按值投影／C++ ABI 证明完成验收：Windows 完整
 源码 1,414 单元、TCC 1,562 对象及 33 组检查通过；Linux 完整源码 1,413 单元、
 19 组编译器检查、三组真实 XUI 和一组真实 XGE 组合通过。原位资源仍为 Font／
@@ -202,7 +214,7 @@ C 生产者错误 ABI 与参数准备／结果准入的错误合同分别验证�
 | --- | --- | --- |
 | 1. 原生类型 | 精确接收者／参数／结果、nullable、静态继承、别名；caller／owned／owner／callback 四类生命周期及名义身份 | 实际库的完整声明清单归入第 8 项 |
 | 2. 原生数据 | C record、固定数组、const 记录地址、指针／长度展开、可变 Buffer span；字段、pointee 读写及视图按值投影；C/C++ 权威头证明 | 实际绘制／游戏接口的完整映射和工作负载验收 |
-| 3. 工厂 | 状态／输出、复合输出、失败回滚、函数值、独立 retain 结果；native adoption 与 policy-owned 原位记录；Font／Texture／Image 真实组合 | void 原生初始化器尚未纳入工厂合同；不能伪造状态返回 ABI |
+| 3. 工厂 | 状态／输出、复合输出、失败回滚、函数值、独立 retain 结果；native adoption 与 policy-owned 原位记录；Font／Texture／Image／Material 真实组合；void 与 int 状态初始化器分别封闭建模 | 实际库其余工厂归入第 8 项 |
 | 4. 回调 | 静态 C 地址、长期类型化 Closure／thunk、独立代码驻留、callback epoch、计数字节片段、拥有字符串结果；base／choice／navigation 原生 Owned 槽 | 捕获式同步不逃逸回调；其他原生回调族的拥有／退役及实际调用方迁移 |
 | 5. 文本与二进制 | 两字段视图、精确长度与 NUL、终止符检查、分离 span、Buffer pin、字段结果和复制事务；直接／绑定／协议／动态／异步／生成器路径 | 其余 XGE/XUI 文本 API 的实际声明和原生拥有结果消费合同 |
 | 6. 生命周期 | 原生 watch／scope／busy、checked 关闭和退役、实例身份、语言字段／容器／闭包／cell／Future 图；协议与动态准入、回调期过期拒绝 | 随剩余原生 callback 和资源族接入继续检查实际拥有图，不能由已测控件推定全库通过 |

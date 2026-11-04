@@ -1,0 +1,94 @@
+extern "PlainRecord*" class Plain @header("test/cases/foreign_void_factory.h") @lifetime("owned") @policy("inplacePlainPolicy")
+ native point handle
+ extern "inplace_plain_read" @no_raise get value() as c_int
+ extern "inplace_void_plain_from" @no_raise @c_result("owned_view") @factory(1,plainRollback) @c_inplace("PlainRecord") func copied() as Plain
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "InplaceRecord*" class Adopted @header("test/cases/foreign_void_factory.h") @lifetime("owned") @policy("inplacePolicy")
+ native point handle
+ extern "inplace_read" @no_raise get value() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "inplace_void_plain_init" @no_raise @c_result("owned_view") @factory(0,plainRollback) @c_inplace("PlainRecord") func plain(c_int mode) as Plain
+extern "inplace_plain_free" @no_raise func plainRollback(Plain value)
+extern "inplace_void_init" @no_raise @c_result("owned_view") @factory(0,rollback) @c_inplace("InplaceRecord",adopt,0) func create(c_int mode) as Adopted
+extern "inplace_adopt" @no_raise func adopt(Adopted value) as c_int
+extern "inplace_free" @no_raise func rollback(Adopted value)
+extern "inplace_live" @no_raise func live() as c_int
+extern "inplace_fail_after" @no_raise func failAfter(c_int count)
+extern "inplace_reset" @no_raise func resetFailure()
+protocol Copier
+ func copied() as Plain
+end
+func basic()
+ Plain value=plain(0)
+ assert value.value==42
+ func(c_int) as Plain factory=plain
+ Plain indirect=factory(0)
+ assert indirect.value==42
+ Plain copied=value.copied()
+ assert copied.value==42
+ func() as Plain bound=value.copied
+ Plain boundCopy=bound()
+ assert boundCopy.value==42
+ Copier copier=value
+ Plain protocolCopy=copier.copied()
+ assert protocolCopy.value==42
+ var boxed=value
+ Plain dynamicCopy=boxed.copied() as Plain
+ assert dynamicCopy.value==42
+ Adopted adopted=create(0)
+ assert adopted.value==4
+end
+func failures()
+ int mode=1
+ while mode<8
+  bool rejected=false
+  try
+   Adopted invalid=create(c_int(mode))
+  catch error
+   rejected=true
+  finally
+   resetFailure()
+  end
+  assert rejected and live()==0
+  mode+=1
+ end
+ mode=1
+ while mode<3
+  bool rejected=false
+  try
+   Plain invalid=plain(c_int(mode))
+  catch error
+   rejected=true
+  end
+  assert rejected and live()==0
+  mode+=1
+ end
+ int count=0
+ int accepted=0
+ int rejected=0
+ while count<32
+  failAfter(c_int(count))
+  try
+   Plain value=plain(0)
+   Adopted adopted=create(0)
+   assert value.value==42 and adopted.value==4
+   accepted+=1
+  catch error
+   rejected+=1
+  finally
+   resetFailure()
+  end
+  assert live()==0
+  count+=1
+ end
+ assert accepted>0 and rejected>0
+end
+func main(...) as int
+ basic()
+ assert live()==0
+ failures()
+ assert live()==0
+ return 0
+end
