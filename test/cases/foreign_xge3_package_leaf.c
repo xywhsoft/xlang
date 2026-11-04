@@ -9,6 +9,9 @@ static void close_view(XL6_ForeignView* view)
 int main(void)
 {
     assert(!xl6Xge3RuntimeBindV1());
+    xui_path path=NULL;assert(xuiPathCreate(&path)==XUI_OK);
+    assert(xuiPathMoveTo(path,0,0)==XUI_OK && xuiPathLineTo(path,3,4)==XUI_OK && xuiPathGetCommandCount(path)==2);
+    close_view(own(path,&xl6Xui3PathPolicy));
 #if XGE_ENABLE_SHAPE_EX
     xge_shape_ex shape=NULL;assert(xgeShapeExCreate(&shape)==XGE_OK);
     assert(xgeShapeExMoveTo(shape,0,0)==XGE_OK && xgeShapeExLineTo(shape,3,4)==XGE_OK);

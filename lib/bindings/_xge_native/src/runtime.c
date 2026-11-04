@@ -5,6 +5,7 @@
 #include <__xl_runtime/xl6_host_xrt.h>
 #include <__xl_runtime/xl_foreign_error.h>
 #include <__xl_runtime/xl6_callback_failure.h>
+static void report_resource_failure(int status,const char* operation);
 
 static xge_host_xrt_proc resolve(void* unused,const char* name)
 {
@@ -34,7 +35,8 @@ static bool watch_widget(void* raw,void* storage,void(*invalidate)(void*),void* 
 {return xuiWidgetLifetimeWatch(raw,storage,invalidate,user)==XUI_OK;}
 static void unwatch(void* storage){xuiLifetimeUnwatch(storage);}
 static bool destroy_context(void* raw){xuiDestroy(raw);return true;}
-static bool destroy_widget(void* raw){xuiWidgetDestroy(raw);return true;}
+static bool destroy_widget(void* raw)
+{int status=xuiWidgetDestroyChecked(raw);report_resource_failure(status,"xuiWidgetDestroyChecked");return status==XUI_OK;}
 static bool context_begin(void* raw,void* storage){return xuiCallScopeBegin(raw,storage)==XUI_OK;}
 static bool context_end(void* storage){return xuiCallScopeEnd(storage)==XUI_OK;}
 static bool context_busy(const void* raw){return xuiContextOwnershipBusy((xui_context)raw);}
@@ -87,8 +89,10 @@ static bool cell_domain_resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV
     const xrtownershipadapterv1* exact=xuiTableViewCellOutputOwnershipAdapterV1(ref);
     if(!exact)return false;
     const xrtownershippreparationv1* ready=xuiTableViewCellOutputOwnershipPreparationV1(ref);
-    if(!ready || ready->Adapter!=exact)return false;
-    *adapter=exact;*preparation=ready;return true;
+    const xrtownershipfinishv2* complete=xuiTableViewCellOutputOwnershipCompletionV2(ref);
+    if(!ready || ready->Adapter!=exact || !complete || complete->V1.size!=sizeof(*complete) ||
+       complete->AbiTag!=XRT_OWNERSHIP_FINISH_V2_TAG || complete->V1.Adapter!=exact || !complete->DropChecked || !complete->DropReady)return false;
+    *adapter=exact;*preparation=ready;*finish=&complete->V1;return true;
 }
 static bool cell_domain_read(xrtownershipref ref)
 {
@@ -101,6 +105,75 @@ const XL6_OwnershipDomainV1* xuiTableViewCellOutputOwnershipDomainV1Get(void)
      * reached through a live ForeignView root's pinned immutable domain. */
     static const XL6_OwnershipDomainV1 value={sizeof(value),NULL,cell_domain_resolve,cell_domain_read};
     return &value;
+}
+static bool proxy_domain_resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
+    const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation,
+    const XL6_OwnershipFinishV1** finish)
+{
+    (void)policies;*adapter=NULL;*preparation=NULL;*finish=NULL;
+    const xrtownershipadapterv1* exact=xuiProxyResourceOwnershipAdapterV1(ref);
+    if(!exact)return false;
+    const xrtownershippreparationv1* ready=xuiProxyResourceOwnershipPreparationV1(ref);
+    const xrtownershipfinishv2* complete=xuiProxyResourceOwnershipCompletionV2(ref);
+    if(!ready || ready->Adapter!=exact || !complete || complete->V1.size!=sizeof(*complete) ||
+       complete->AbiTag!=XRT_OWNERSHIP_FINISH_V2_TAG || complete->V1.Adapter!=exact || !complete->DropChecked || !complete->DropReady)return false;
+    *adapter=exact;*preparation=ready;*finish=&complete->V1;return true;
+}
+static bool proxy_domain_read(xrtownershipref ref)
+{
+    const xrtownershipquiescencev1* exact=xuiProxyResourceOwnershipQuiescenceV1(ref);
+    return exact && exact->Ops==ref.Ops && !exact->Busy(ref.Data);
+}
+static bool xui_domain_resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
+    const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation,
+    const XL6_OwnershipFinishV1** finish)
+{
+    return cell_domain_resolve(ref,policies,adapter,preparation,finish) ||
+        proxy_domain_resolve(ref,policies,adapter,preparation,finish);
+}
+static bool xui_domain_read(xrtownershipref ref)
+{return cell_domain_read(ref) || proxy_domain_read(ref);}
+const XL6_OwnershipDomainV1* xl6Xui3OwnershipDomainV1Get(void)
+{
+    /* Context roots can reach resource nodes without a separate language
+     * resource view. Admission therefore travels with the complete UI root. */
+    static const XL6_OwnershipDomainV1 value={sizeof(value),NULL,xui_domain_resolve,xui_domain_read};
+    return &value;
+}
+static void report_resource_failure(int status,const char* operation)
+{
+    if(status==XUI_OK)return;
+    xl6ForeignStatusFailureV1(status,operation);
+    xl6_error_result failure={false,xrtTakeError()};
+    if(!xl6ErrorScopeTryPropagateFailureV1(&failure))xl6CallbackFailureRecordV1(failure);
+}
+static bool destroy_proxy(void* raw)
+{bool consumed=false;int status=xuiProxyReleaseOwnerChecked(raw,&consumed);report_resource_failure(status,"xuiProxyReleaseOwnerChecked");return consumed;}
+static bool destroy_xui_font(void* raw)
+{bool consumed=false;int status=xuiFontReleaseOwnerChecked(raw,&consumed);report_resource_failure(status,"xuiFontReleaseOwnerChecked");return consumed;}
+static bool destroy_surface(void* raw)
+{bool consumed=false;int status=xuiSurfaceReleaseOwnerChecked(raw,&consumed);report_resource_failure(status,"xuiSurfaceReleaseOwnerChecked");return consumed;}
+static bool proxy_trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
+{return visit(xuiProxyOwnership((xui_proxy)raw),user);}
+static bool xui_font_trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
+{return visit(xuiFontOwnership((xui_font)raw),user);}
+static bool surface_trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
+{return visit(xuiSurfaceOwnership((xui_surface)raw),user);}
+#define XUI_SHARED_POLICY(Name,Family,Destroy,Trace) \
+const XL6_ForeignViewDescriptorV1* Name(void) { \
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,Family,0,1,NULL,NULL,Destroy,0,1,NULL,NULL,Trace,NULL};return &value;}
+/* An owning RC reference protects each shared record. A language close
+ * consumes that owner; native active pins and other owners keep storage alive.
+ * Native quiescence/preparation belongs to the independent native graph node. */
+XUI_SHARED_POLICY(xl6Xui3ProxyPolicyGet,"xui.proxy",destroy_proxy,proxy_trace)
+XUI_SHARED_POLICY(xl6Xui3FontPolicyGet,"xui.font",destroy_xui_font,xui_font_trace)
+XUI_SHARED_POLICY(xl6Xui3SurfacePolicyGet,"xui.surface",destroy_surface,surface_trace)
+#undef XUI_SHARED_POLICY
+static bool destroy_path(void* raw){xuiPathDestroy(raw);return true;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3PathPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.path",
+        0,1,NULL,NULL,destroy_path,0,1,NULL,NULL,NULL,NULL};return &value;
 }
 static bool destroy_font(void* raw){xgeFontFree(raw);return true;}
 static bool destroy_texture(void* raw){xgeTextureFree(raw);return true;}
