@@ -1,0 +1,47 @@
+extern "BorrowRoot*" class Root @header("test/cases/foreign_borrow_variants.h") @lifetime("owned") @policy("borrowPolicy") @scope("BorrowScope")
+ native point handle
+ extern "variant_take" @no_raise func take(Root value) as c_int
+ extern "variant_take" @no_raise func take(Epoch value) as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "BorrowRoot*" class Epoch @header("test/cases/foreign_borrow_variants.h") @lifetime("callback")
+ native point handle
+end
+extern "variant_create" @header("test/cases/foreign_borrow_variants.h") @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Root
+extern "variant_destroy" @no_raise func rollback(Root root)
+extern "variant_take" @header("test/cases/foreign_borrow_variants.h") @no_raise func accept(Root root,Root value) as c_int
+extern "variant_take" @header("test/cases/foreign_borrow_variants.h") @no_raise func accept(Root root,Epoch value) as c_int
+extern "variant_with" @header("test/cases/foreign_borrow_variants.h") @no_raise @c_sync_callback(1,0,-16) func withRoot(Root root,func(Epoch) as c_int callback) as c_int
+extern "variant_calls" @header("test/cases/foreign_borrow_variants.h") @no_raise func calls() as c_int
+protocol Receiver
+ func take(Epoch value) as c_int
+end
+class Saved
+ Epoch? value
+end
+func main(...) as int
+ auto root=create()
+ auto saved=Saved()
+ assert root.take(root)==c_int(17) and accept(root,root)==c_int(17)
+ func(Root) as c_int ownedBound=root.take
+ assert ownedBound(root)==c_int(17)
+ assert withRoot(root,func(Epoch value) as c_int
+  assert root.take(value)==c_int(17) and accept(root,value)==c_int(17)
+  func(Epoch) as c_int epochBound=root.take
+  assert epochBound(value)==c_int(17)
+  Receiver receiver=root
+  assert receiver.take(value)==c_int(17)
+  saved.value=value
+  return c_int(21)
+ end)==c_int(21)
+ auto before=calls()
+ bool refused=false
+ try
+  auto ignored=root.take(saved.value as Epoch)
+ catch error
+  refused=true
+ end
+ assert refused and calls()==before
+ root.close()
+ return 0
+end

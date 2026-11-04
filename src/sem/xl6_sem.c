@@ -9186,7 +9186,8 @@ static int xl6SemExternParameterListsCompatible(XL6_SemContext* ctx,const XL6_As
             if(xl6SemTypeIsNullable(lt))lt=xl6SemNullableInnerType(lt);
             if(xl6SemTypeIsNullable(rt))rt=xl6SemNullableInnerType(rt);
         }
-        if((!xl6SemExternCTypeCompatible(ctx,lt,rt) && !xl6SemForeignRegionInputCompatible(ctx,a,b,p,lt,rt)) ||
+        if((!xl6SemExternCTypeCompatible(ctx,lt,rt) && !xl6SemForeignRegionInputCompatible(ctx,a,b,p,lt,rt) &&
+            !xl6SemForeignManagedInputCompatible(ctx,lt,rt)) ||
             xl6SemParamMode(left->children[p])!=xl6SemParamMode(right->children[p]))return 0;
     }
     return 1;
@@ -9202,7 +9203,7 @@ static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* 
             left.constAggregateAddresses != right.constAggregateAddresses ||
             left.staticCallbackAddresses != right.staticCallbackAddresses ||
             left.outputIndexPlusOne != right.outputIndexPlusOne || left.successCode != right.successCode) return 0;
-        if((a->kind==XL6_AST_NATIVE_EXTERN_FUNC || b->kind==XL6_AST_NATIVE_EXTERN_FUNC ||
+        if((a->kind==XL6_AST_NATIVE_EXTERN_FUNC || b->kind==XL6_AST_NATIVE_EXTERN_FUNC || xl6SemForeignManagedInputVariants(ctx,a,b) ||
             xl6ForeignInputHasRegions(left.inputMappingFacts) || xl6ForeignInputHasRegions(right.inputMappingFacts)) &&
             (!xl6ForeignCallFactsEqual(&left,&right) || !xl6SemForeignAttributesEqual(a,b) ||
              ((a->flags^b->flags)&(XL6_AST_FLAG_STATIC|XL6_AST_FLAG_FOREIGN_OWNED_STRING|XL6_AST_FLAG_FOREIGN_PURE|

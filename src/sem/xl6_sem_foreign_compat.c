@@ -57,3 +57,23 @@ static int xl6SemForeignRegionInputCompatible(XL6_SemContext* ctx,const XL6_AstN
     int rbytes=right && !right->childCount && xl6TextEquals(right->text,"bytes");
     return lbytes!=rbytes && xl6SemForeignSpanType(ctx,left,&span) && xl6SemForeignSpanType(ctx,right,&span);
 }
+
+static int xl6SemForeignManagedInputCompatible(XL6_SemContext* ctx,const XL6_AstNode* left,const XL6_AstNode* right)
+{
+    left=xl6SemResolveAliasType(ctx,left);right=xl6SemResolveAliasType(ctx,right);
+    if(xl6SemTypeIsNullable(left) || xl6SemTypeIsNullable(right))return 0;
+    XL6_ForeignClassDecl a={0},b={0};
+    if(!xl6SemForeignViewDeclaration(ctx,left,&a) || !xl6SemForeignViewDeclaration(ctx,right,&b))return 0;
+    return ((a.lifetime==XL6_FOREIGN_LIFETIME_OWNED && b.lifetime==XL6_FOREIGN_LIFETIME_CALLBACK) ||
+            (b.lifetime==XL6_FOREIGN_LIFETIME_OWNED && a.lifetime==XL6_FOREIGN_LIFETIME_CALLBACK)) &&
+        !strcmp(a.cName,b.cName) && !strcmp(a.header,b.header);
+}
+static int xl6SemForeignManagedInputVariants(XL6_SemContext* ctx,const XL6_AstNode* a,const XL6_AstNode* b)
+{
+    const XL6_AstNode* left=xl6SemExternFuncParams(a);const XL6_AstNode* right=xl6SemExternFuncParams(b);
+    if(!left || !right || left->childCount!=right->childCount)return 0;
+    for(size_t i=0;i<left->childCount;++i)
+        if(left->children[i]->childCount && right->children[i]->childCount &&
+            xl6SemForeignManagedInputCompatible(ctx,left->children[i]->children[0],right->children[i]->children[0]))return 1;
+    return 0;
+}

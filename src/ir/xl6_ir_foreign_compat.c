@@ -40,6 +40,18 @@ static int xl6IrForeignRegionEqual(const XL6_ForeignRegionContract* a,const XL6_
         a->access==b->access && a->nullable==b->nullable && !memcmp(&a->width,&b->width,sizeof(a->width)) &&
         !memcmp(&a->height,&b->height,sizeof(a->height)) && !memcmp(&a->stride,&b->stride,sizeof(a->stride));
 }
+static int xl6IrForeignManagedInputCompatible(const XL6_IrModule* module,const XL6_IrCallTarget* a,const XL6_IrCallTarget* b,size_t p)
+{
+    const XL6_IrType* left=xl6IrTypeGet(&module->types,a->parameterTypes[p]);const XL6_IrType* right=xl6IrTypeGet(&module->types,b->parameterTypes[p]);
+    return left && right && left->kind==XL6_IR_TYPE_CLASS && right->kind==XL6_IR_TYPE_CLASS &&
+        a->parameterAbis[p]==XL6_IR_PARAMETER_ABI_BORROW && b->parameterAbis[p]==XL6_IR_PARAMETER_ABI_BORROW &&
+        a->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW &&
+        b->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW &&
+        xl6IrForeignManagedViewParameter(module,a,p) && xl6IrForeignManagedViewParameter(module,b,p) &&
+        ((left->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && right->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK) ||
+         (right->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && left->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK)) &&
+        left->foreignHeader && right->foreignHeader && !strcmp(left->cName,right->cName) && !strcmp(left->foreignHeader,right->foreignHeader);
+}
 static int xl6IrForeignOverloadsCompatible(const XL6_IrModule* module,const XL6_IrCallTarget* a,const XL6_IrCallTarget* b)
 {
     const XL6_IrNode* left=xl6IrNodeGet(module,a->declaration);const XL6_IrNode* right=xl6IrNodeGet(module,b->declaration);
@@ -60,9 +72,9 @@ static int xl6IrForeignOverloadsCompatible(const XL6_IrModule* module,const XL6_
             a->parameterConstraintAbis[p]!=b->parameterConstraintAbis[p])return 0;
         if(a->parameterTypes[p]!=b->parameterTypes[p]){
             const XL6_IrType* lt=xl6IrTypeGet(&module->types,a->parameterTypes[p]);const XL6_IrType* rt=xl6IrTypeGet(&module->types,b->parameterTypes[p]);
-            if(!x || x->access!=XL6_FOREIGN_REGION_ACCESS_READ || !lt || !rt ||
+            if(!xl6IrForeignManagedInputCompatible(module,a,b,p) && (!x || x->access!=XL6_FOREIGN_REGION_ACCESS_READ || !lt || !rt ||
                 !((lt->cAbi==XL6_IR_C_ABI_MANAGED_BYTES && xl6IrForeignRegionBufferField(module,b,p)) ||
-                  (rt->cAbi==XL6_IR_C_ABI_MANAGED_BYTES && xl6IrForeignRegionBufferField(module,a,p))))return 0;
+                  (rt->cAbi==XL6_IR_C_ABI_MANAGED_BYTES && xl6IrForeignRegionBufferField(module,a,p)))))return 0;
         }else if(a->parameterPhysicalFieldDeclarations[p]!=b->parameterPhysicalFieldDeclarations[p])return 0;
         const XL6_ForeignRegionObserverContract* xo=xl6IrForeignRegionObserverGet(module,a,p);
         const XL6_ForeignRegionObserverContract* yo=xl6IrForeignRegionObserverGet(module,b,p);
@@ -86,9 +98,15 @@ static int xl6IrVerifyForeignOverloads(const XL6_IrModule* module,XL6_DiagList* 
             const XL6_IrCallTarget* b=&module->callTargets[j];const XL6_IrNode* right=xl6IrNodeGet(module,b->declaration);
             if(b->kind!=XL6_IR_CALL_TARGET_EXTERN_C || !right || a->declaration==b->declaration || strcmp(a->cName,b->cName) ||
                 left->sourceKind!=right->sourceKind || left->declarationOwnerType!=right->declarationOwnerType ||
-                a->foreignOperationAbi!=b->foreignOperationAbi ||
-                (left->sourceKind!=XL6_AST_NATIVE_EXTERN_FUNC && !xl6ForeignInputHasRegions(left->foreignCall.inputMappingFacts) &&
-                 !xl6ForeignInputHasRegions(right->foreignCall.inputMappingFacts)))continue;
+                a->foreignOperationAbi!=b->foreignOperationAbi)continue;
+            int lifetimeVariants=0;
+            if(b->kind==XL6_IR_CALL_TARGET_EXTERN_C && a->parameterCount==b->parameterCount)
+                for(size_t p=0;p<a->parameterCount;++p){
+                    const XL6_IrType* lt=xl6IrTypeGet(&module->types,a->parameterTypes[p]);const XL6_IrType* rt=xl6IrTypeGet(&module->types,b->parameterTypes[p]);
+                    if(lt && rt && lt->foreignHeader && rt->foreignHeader && lt->foreignLifetime!=rt->foreignLifetime)lifetimeVariants=1;
+                }
+            if(left->sourceKind!=XL6_AST_NATIVE_EXTERN_FUNC && !xl6ForeignInputHasRegions(left->foreignCall.inputMappingFacts) &&
+                !xl6ForeignInputHasRegions(right->foreignCall.inputMappingFacts) && !lifetimeVariants)continue;
             if(!xl6IrForeignOverloadsCompatible(module,a,b))return xl6IrDiag(diags,NULL,"native target overloads disagree on their sealed physical, effect or ownership contract");
         }
     }
