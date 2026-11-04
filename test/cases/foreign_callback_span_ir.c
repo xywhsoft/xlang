@@ -33,8 +33,8 @@ int main(int argc,char** argv)
         row->countAbi=0;refused(module);*row=saved;
         row->pointerCName[0]='-';refused(module);*row=saved;
         memset(row->pointerCName,'x',sizeof(row->pointerCName));refused(module);*row=saved;
-        node->foreignCall.callbackSpanMappings=0;refused(module);node->foreignCall=facts;
-        ++node->foreignCall.callbackSpanMappings;refused(module);node->foreignCall=facts;
+        node->foreignCall.inputMappingFacts=0;refused(module);node->foreignCall=facts;
+        ++node->foreignCall.inputMappingFacts;refused(module);node->foreignCall=facts;
         XL6_IrType* type=(XL6_IrType*)xl6IrTypeGet(&module->types,signature->params[row->argument]);XL6_IrType original=*type;
         type->foreignLifetime=XL6_FOREIGN_LIFETIME_CALLER;refused(module);*type=original;
         XL6_IrParameterAbi abi=signature->parameterAbis[row->argument];signature->parameterAbis[row->argument]=XL6_IR_PARAMETER_ABI_OWNED;refused(module);signature->parameterAbis[row->argument]=abi;

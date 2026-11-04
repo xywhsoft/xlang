@@ -481,6 +481,10 @@ static const char* xl6IrCgenExternParameterType(
         const XL6_ForeignParameterContract* row=xl6IrForeignParameterGet(module,target,parameter);
         return row ? row->pointerCName : NULL;
     }
+    if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_REGION_BORROW){
+        const XL6_ForeignRegionContract* row=xl6IrForeignRegionGet(module,target,parameter);
+        return row ? row->access==XL6_FOREIGN_REGION_ACCESS_READ ? "const void*":"void*":NULL;
+    }
     if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VALUE_BORROW){
         const XL6_ForeignValueContract* row=xl6IrForeignValueGet(module,target,parameter);return row ? row->cName:NULL;
     }

@@ -43,6 +43,7 @@ static inline int xl6ForeignQuotedText(const XL6_AstNode*,char*,size_t);
 static inline int xl6ForeignIdentifier(const char*);
 static inline int xl6ForeignPointerSpelling(const char*);
 static inline int xl6ForeignHeaderName(const char*);
+#include "src/type/xl6_foreign_region_decl.h"
 static inline int xl6ForeignFunctionHeaderRead(const XL6_AstNode* attr,char* output,size_t capacity)
 {
     return attr && attr->text && !strcmp(attr->text,"header") && attr->childCount==1 &&
@@ -266,11 +267,21 @@ static inline int xl6ForeignFunctionFieldCall(const XL6_AstNode* node)
 static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     XL6_ForeignCallFacts* output)
 {
-    XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0,outputStatus=0,fieldCall=0;uint64 callbackSpans=0,callbackParameters=0,outputSizes=0,outputViews=0;
+    XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0,outputStatus=0,fieldCall=0;uint64 callbackSpans=0,callbackParameters=0,outputSizes=0,outputViews=0,regions=0,regionObservers=0;size_t callbackSpanCount=0;
     const XL6_AstNode* attributes = xl6ForeignFunctionAttributes(node);
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
         const XL6_AstNode* attr = attributes->children[i];
         int32 index;
+        if(attr && attr->text && !strcmp(attr->text,"c_region")){
+            XL6_ForeignRegionContract row;
+            if(!xl6ForeignRegionRead(attr,&row) || (regions&(UINT64_C(1)<<row.physicalIndex)))return 0;
+            regions|=UINT64_C(1)<<row.physicalIndex;continue;
+        }
+        if(attr && attr->text && !strcmp(attr->text,"c_region_observer")){
+            XL6_ForeignRegionObserverContract row;
+            if(!xl6ForeignRegionObserverRead(attr,&row) || (regionObservers&(UINT64_C(1)<<row.regionPhysicalIndex)))return 0;
+            regionObservers|=UINT64_C(1)<<row.regionPhysicalIndex;continue;
+        }
         if(attr && attr->text && !strcmp(attr->text,"c_field_call")){
             char field[64];
             if(fieldCall || attr->childCount || !xl6ForeignFieldCallName(node,field,sizeof(field)))return 0;
@@ -314,8 +325,8 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         if(attr && attr->text && !strcmp(attr->text,"c_callback_span")){
             XL6_ForeignCallbackSpanContract row;
             if(!xl6ForeignCallbackSpanRead(attr,&row))return 0;
-            if(facts.callbackSpanMappings==64)return 0;
-            callbackSpans|=UINT64_C(1)<<row.parameter;++facts.callbackSpanMappings;continue;
+            if(callbackSpanCount==64)return 0;
+            callbackSpans|=UINT64_C(1)<<row.parameter;++callbackSpanCount;continue;
         }
         if(attr && attr->text && !strcmp(attr->text,"c_retain")){
             if(retainedResult || !xl6ForeignRetainRead(attr,NULL))return 0;
@@ -436,6 +447,8 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         (facts.valueOutput && facts.borrowedViewResult)) return 0;
     if(outputSizes)facts.valueOutput|=XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED;
     if(outputViews)facts.valueOutput|=XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED;
+    if((regionObservers&~regions) || (regions && ((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)) ||
+        !xl6ForeignInputMappingsSet(callbackSpanCount,regions!=0,&facts.inputMappingFacts))return 0;
     if (output) *output = facts;
     return 1;
 }

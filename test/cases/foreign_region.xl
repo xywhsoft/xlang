@@ -1,0 +1,196 @@
+extern "RegionDesc" struct Desc @header("test/cases/foreign_region.h")
+ c_int width
+ c_int height
+end
+extern "RegionRect" struct Rect @header("test/cases/foreign_region.h")
+ c_int x
+ c_int y
+ c_int width
+ c_int height
+end
+extern "RegionRoot*" class Root @header("test/cases/foreign_region.h") @lifetime("owned") @policy("regionPolicy") @scope("RegionScope")
+ native point handle
+ extern "createRGBA" @c_field_call @no_raise @c_output(1,0) @c_region(4,"read","2","3","5",4,"nullable") func createRGBA(c_int width,c_int height,bytes? pixels,c_int stride,c_uint flags=c_uint(0)) as c_int
+ extern "updateRGBA" @c_field_call @no_raise @c_region(3,"read","2.width","2.height","4",4) func update(Root surface,Rect rect,bytes pixels,c_int stride) as c_int
+ extern "updateRGBA" @c_field_call @no_raise @c_region(3,"read","2.width","2.height","4",4) func update(Root surface,Rect rect,Buffer pixels,c_int stride) as c_int
+ extern "surfaceGetDesc" @c_field_call @no_raise @c_output(2,0) func desc(Root surface) as Desc
+ extern "readRGBA" @c_field_call @no_raise @c_result("status",0) @c_region(2,"write","observer.width","observer.height","3",4) @c_region_observer(2,desc,0,1) func read(Root surface,Buffer pixels,c_int stride)
+ extern "region_root_mode" @no_raise func mode(c_int value) as c_int
+ extern "region_root_queries" @no_raise func queries() as c_int
+ extern "region_root_calls" @no_raise func calls() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "region_root_create" @header("test/cases/foreign_region.h") @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Root
+extern "region_root_destroy" @no_raise func rollback(Root value)
+extern "region_free_read" @header("test/cases/foreign_region.h") @no_raise @c_region(2,"read","0","1","3",4) func freeRead(c_int width,c_int height,bytes pixels,c_int stride) as c_int
+extern "region_free_read" @header("test/cases/foreign_region.h") @no_raise @c_region(2,"read","0","1","3",4) func freeReadBuffer(c_int width,c_int height,Buffer pixels,c_int stride) as c_int
+extern "region_wide_read" @header("test/cases/foreign_region.h") @no_raise @c_region(2,"read","0","1","3",4) func wideRead(uint64 width,uint64 height,bytes pixels,uint64 stride) as c_int
+extern "region_reset_failure" @header("test/cases/foreign_region.h") @no_raise func resetFailure()
+extern "const xbytesview*" class Slice @header("test/cases/foreign_region.h") @lifetime("callback")
+ native point handle
+ extern "Size" @c_field get size() as c_size
+ extern "Data" @c_field @c_length("Size","size_t") @c_result("bytes_view") get copy() as bytes
+end
+extern "region_callback_read" @header("test/cases/foreign_region.h") @no_raise @c_sync_callback(4,-1,-16) @c_callback_span(4,0,"const uint8_t*","size_t") @c_region(2,"read","0","1","3",4) func callbackRead(c_int width,c_int height,bytes pixels,c_int stride,func(Slice) as c_int callback) as c_int
+protocol Reader
+ func read(Root surface,Buffer pixels,c_int stride)
+end
+protocol BufferUpdater
+ func update(Root surface,Rect rect,Buffer pixels,c_int stride) as c_int
+end
+func main(...) as int
+ Root root=create()
+ bytes data=b"\x01\x02\x03\x04\x05\x06\x07\x08xx\x01\x02\x03\x04\x05\x06\x07\x08"
+ assert root.createRGBA(c_int(2),c_int(2),data,c_int(10))==c_int(72)
+ assert root.createRGBA(c_int(2),c_int(2),null,c_int(0))==c_int(0)
+ Rect rect=Rect()
+ rect.width=c_int(2)
+ rect.height=c_int(2)
+ assert root.update(root,rect,data,c_int(10))==c_int(72)
+ auto sourceBuffer=Buffer(data)
+ assert root.update(root,rect,sourceBuffer,c_int(10))==c_int(72)
+ func(Root,Rect,Buffer,c_int) as c_int bufferBound=root.update
+ assert bufferBound(root,rect,sourceBuffer,c_int(10))==c_int(72)
+ func(Root,Rect,bytes,c_int) as c_int bytesBound=root.update
+ assert bytesBound(root,rect,data,c_int(10))==c_int(72)
+ BufferUpdater updater=root
+ assert updater.update(root,rect,sourceBuffer,c_int(10))==c_int(72)
+ assert freeRead(c_int(2),c_int(2),data,c_int(10))==c_int(72)
+ assert freeReadBuffer(c_int(2),c_int(2),Buffer(data),c_int(10))==c_int(72)
+ assert callbackRead(c_int(2),c_int(2),data,c_int(10),func(Slice slice) as c_int
+  assert slice.size==c_size(18) and slice.copy==data
+  return c_int(81)
+ end)==c_int(81)
+ func(c_int,c_int,bytes,c_int) as c_int freeValue=freeRead
+ assert freeValue(c_int(2),c_int(2),data,c_int(10))==c_int(72)
+ auto output=Buffer(b"....................TAIL")
+ root.read(root,output,c_int(12))
+ assert output.len()==24 and output.toBytes()==b"\x01\x01\x01\x01\x01\x01\x01\x01....\x02\x02\x02\x02\x02\x02\x02\x02TAIL"
+ assert root.queries()==c_int(1)
+ func(Root,Buffer,c_int) bound=root.read
+ bound(root,output,c_int(12))
+ Reader reader=root
+ reader.read(root,output,c_int(12))
+ assert root.queries()==c_int(3)
+ bool rejected=false
+ try
+  root.read(root,Buffer(b"short"),c_int(12))
+ catch error
+  rejected=true
+ end
+ assert rejected and root.queries()==c_int(4)
+ auto untouched=Buffer(b"....................TAIL")
+ auto ignored=root.mode(c_int(1))
+ rejected=false
+ try
+  root.read(root,untouched,c_int(12))
+ catch error
+  rejected=true
+ end
+ assert rejected and untouched.toBytes()==b"....................TAIL" and untouched.len()==24
+ ignored=root.mode(c_int(4))
+ rejected=false
+ try
+  root.read(root,untouched,c_int(12))
+ catch error
+  rejected=true
+ end
+ assert rejected and untouched.toBytes()==b"....................TAIL" and untouched.len()==24
+ ignored=root.mode(c_int(5))
+ rejected=false
+ try
+  root.read(root,untouched,c_int(12))
+ catch error
+  resetFailure()
+  rejected=true
+ end
+ resetFailure()
+ assert rejected and untouched.toBytes()==b"....................TAIL" and untouched.len()==24
+ auto callsBefore=root.calls()
+ ignored=root.mode(c_int(6))
+ rejected=false
+ try
+  root.read(root,untouched,c_int(12))
+ catch error
+  resetFailure()
+  rejected=true
+ end
+ resetFailure()
+ assert rejected and root.calls()==callsBefore and untouched.toBytes()==b"....................TAIL" and untouched.len()==24
+ ignored=root.mode(c_int(7))
+ rejected=false
+ try
+  root.read(root,untouched,c_int(12))
+ catch error
+  assert error.code==73
+  rejected=true
+ end
+ assert rejected and root.calls()==callsBefore and untouched.toBytes()==b"....................TAIL" and untouched.len()==24
+ auto queriesBefore=root.queries()
+ ignored=root.mode(c_int(9))
+ rejected=false
+ try
+  root.read(root,untouched,c_int(12))
+ catch error
+  assert error.code==73
+  rejected=true
+ end
+ assert rejected and root.calls()==callsBefore and untouched.toBytes()==b"....................TAIL" and untouched.len()==24
+ queriesBefore=root.queries()
+ ignored=root.mode(c_int(8))
+ rejected=false
+ try
+  root.read(root,untouched,c_int(12))
+ catch error
+  assert error.code==83
+  rejected=true
+ end
+ assert rejected and root.calls()==callsBefore and root.queries()==queriesBefore and untouched.toBytes()==b"....................TAIL" and untouched.len()==24
+ ignored=root.mode(c_int(3))
+ rejected=false
+ try
+  root.read(root,untouched,c_int(12))
+ catch error
+  rejected=true
+ end
+ assert rejected and untouched.toBytes()==b"c...................TAIL" and untouched.len()==24
+ ignored=root.mode(c_int(0))
+ rejected=false
+ try
+  auto bad=root.createRGBA(c_int(2),c_int(2),data,c_int(7))
+ catch error
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ try
+  auto bad=root.createRGBA(c_int(0),c_int(2),data,c_int(0))
+ catch error
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ try
+  auto bad=root.createRGBA(c_int(2147483647),c_int(2),data,c_int(0))
+ catch error
+  rejected=true
+ end
+ assert rejected
+ assert wideRead(uint64(2),uint64(2),b"................",uint64(0))==c_int(1)
+ rejected=false
+ try
+  auto bad=wideRead(uint64(18446744073709551615),uint64(2),data,uint64(0))
+ catch error
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ try
+  auto bad=wideRead(uint64(2),uint64(18446744073709551615),data,uint64(18446744073709551615))
+ catch error
+  rejected=true
+ end
+ assert rejected
+ root.close()
+ return 0
+end

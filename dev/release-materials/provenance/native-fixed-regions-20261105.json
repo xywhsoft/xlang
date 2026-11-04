@@ -1,0 +1,171 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Region30 corrected: initial independent failure/TLS admission and post-observer failed bit prevent touching outputs after swallowed/NULL callback diagnostics; excludes nullable Buffer/fixed-array in-progress changes",
+  "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\region-core-candidate-r2\\manifest.json",
+  "snapshotSha256": "17e99bf0ecb3cd7c9b1e90ac13e7446999abba112da1205f3de853463ac7d73d",
+  "files": [
+    {
+      "path": "src/type/xl6_foreign_call_contract.h",
+      "sha256": "63084e4f0c9fd718883b3fd5cb4c2ed771a36087b58a37ab59325e5fa46f26d6"
+    },
+    {
+      "path": "src/type/xl6_foreign_decl.h",
+      "sha256": "b1ec5e62ff15308b8d5a8effcad35cd4b2943ba6d8a4f3f0205519ec3cdb1d8d"
+    },
+    {
+      "path": "src/type/xl6_foreign_region_contract.h",
+      "sha256": "393f22b2dd7b2f308c9723ad6e9fc5d1d41adb284f0b5347381e63b994693c12"
+    },
+    {
+      "path": "src/type/xl6_foreign_region_decl.h",
+      "sha256": "cc4276fd4f2109b99856cb28f2b4bcfa1b15b983b25a583262f3a207ffeb2714"
+    },
+    {
+      "path": "src/sem/xl6_sem.c",
+      "sha256": "7601a2e2fa804b5014b6d1cdde17ba6b040038a445b029c890cf1cb8b1c6524e"
+    },
+    {
+      "path": "src/sem/xl6_sem_foreign_region.c",
+      "sha256": "53cd5ed9218086bc574d60bd506b2ee3800d1678bfe34747070c9e1cfffb5e9c"
+    },
+    {
+      "path": "src/ir/xl6_ir.h",
+      "sha256": "009a8902d7b76751016cfaa26c087022e4c09e01d9f590d0e794d5377ee9706c"
+    },
+    {
+      "path": "src/ir/xl6_ir.c",
+      "sha256": "49a106b598b91367be437f371513722db24882d91de93cfa7adfad1eef6d5f97"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_region.c",
+      "sha256": "97c6b0ebd6713a2be4b2afcc23abebab970074e9d4067077e92e35134227ea68"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_parameter.c",
+      "sha256": "796ee572ba1a51aafb0dfe58e6595cb58aab4577f5f9b8afa27ac7d312fa92d7"
+    },
+    {
+      "path": "src/ir/xl6_ir_lower.c",
+      "sha256": "98db0ae4bf584edeb721a639066c3d96608c0e0b3e168279004ceba8d1dcced6"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_emit_prelude.c",
+      "sha256": "d82341aa3d616ac34164c6dc23839c8ac8f3c51df7005d256558d86d2a9fb8ad"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_header_emit.c",
+      "sha256": "e37cc1abbb5af8137343fcf45063fec6e1726f6b10155cfbdab3c043918b089b"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_model.c",
+      "sha256": "044f6fffd802ffb6b56e9c3142695d6e3af302fedcc43f615f21bb1c54c42485"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_native_dependencies.c",
+      "sha256": "df1359f751928a49fa4423842ca1b9938c519386850ec122eaea1e8b854fe91f"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_type_call.c",
+      "sha256": "3b47c471ddec9e57dd135c93da0f4be42988964aa8c42981129d8baba54ff85b"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_verify_declarations.c",
+      "sha256": "89d2ad2bff307e2797bbbcd6cac578db501abad34eb03dbd63a01b49dc525a5b"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_foreign_region.c",
+      "sha256": "341369052e6f1e7dc8cf112e08a061c53ed68475911d5abd8dfd96337eba1a73"
+    },
+    {
+      "path": "src/sem/xl6_sem_foreign_compat.c",
+      "sha256": "c9bc1cd90dca6e9c1d016ef2e9f2354f7c0b873cdf53b4fd4aa0e468ee0fb1fe"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_compat.c",
+      "sha256": "fb79509291d7b74430cdc63067c5a882854b52f86cfb1e35abd12427d386e329"
+    },
+    {
+      "path": "docs/foreign-declarations.md",
+      "sha256": "1a16ebb66b877b1608f43042603d7c6da1d7376ce576da616bba34e90a01f5b0"
+    },
+    {
+      "path": "tools/check_foreign_regions.py",
+      "sha256": "ec8dea44770b31c493e30cf6e1e09f8741446a0079c5e064db03bda2cb810bf7"
+    },
+    {
+      "path": "test/cases/foreign_region.xl",
+      "sha256": "18306a93aa1aebda440328671aeb5a7a7fbb25716ca9c926bf4a3f20a7be34e2"
+    },
+    {
+      "path": "test/cases/foreign_region.h",
+      "sha256": "92ef8d5ab4c663f8a0da842c3d9e4a2346a475bf52efbe14774ea96782aceda6"
+    },
+    {
+      "path": "test/cases/foreign_region_native.c",
+      "sha256": "43a05886ac85ebdb9966f92e14de9230ef313c1607c53028ccb414feba8675f8"
+    },
+    {
+      "path": "test/cases/foreign_region_ir.c",
+      "sha256": "e2ac8aa52c4107cb89547ce3bec2977dfeead47e1a49a0c43ea3888b19b330a2"
+    },
+    {
+      "path": "test/cases/foreign_callback_span_ir.c",
+      "sha256": "d3f871d06a88f8f649106ff605542ef50d8f01fa6cfabf181568cc273250fa77"
+    },
+    {
+      "path": "test/cases/foreign_dereference_ir.c",
+      "sha256": "6ca831e85a702f5e72ee9894044018513f22a36930c390fb391d7120f4656304"
+    },
+    {
+      "path": "test/cases/foreign_inplace_factory_ir.c",
+      "sha256": "3e594a0fb04f8962b7276644fb26a08e10fff22e0240509615b7decc2e010376"
+    },
+    {
+      "path": "test/cases/foreign_managed_pointee_ir.c",
+      "sha256": "04c7e4dfa58bf24af4302ed372597443ee8853a1b1cf1acf69a50dbaad42c36c"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\region-gate-win-r5\\results.json",
+      "sha256": "d2174cf9ea417d108a60c13e39c3d47d636d79dcd864e997fcfb6ee5c001fb14",
+      "rows": 36,
+      "fullSourceRebuild": false
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\region-gate-linux-r2\\results.json",
+      "sha256": "fb00ed1a6921e62e8b25373e74e451b34dcf2eefe0fc68821387cbd0957b08aa",
+      "rows": 36,
+      "fullSourceRebuild": false
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\region-observer-guard-win-r2\\results.json",
+      "sha256": "79210f043939fe4fb62fea30d901077517d5bee3b1e37bfe901dd3593fa7bef1",
+      "rows": 36,
+      "fullSourceRebuild": false
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\region-observer-guard-linux-r2\\results.json",
+      "sha256": "9d625b30ada6f7c6c531d8f659409d97bc5bb328c7e9eb93a2eaed8161c2881a",
+      "rows": 36,
+      "fullSourceRebuild": false
+    }
+  ],
+  "semIsolation": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\sem-scope-region-r1\\results.json",
+    "sha256": "27f685873a43b11e6976fd28e2c040e40087c79f99638b2ea9d2522f5741e9b4",
+    "excludedIdeHunks": 3,
+    "comparedOutputs": 32
+  },
+  "factsBytes": 88,
+  "irMutationsPerOptimization": 206,
+  "shippingDelivery": false,
+  "releaseBinaryUpdated": false,
+  "costs": [
+    "Inline checked extent arithmetic; native pointer remains one original ABI slot",
+    "Writable Buffer uses existing initialized storage and keeps length unchanged",
+    "Observed destination adds one direct native descriptor query into a stack record",
+    "Native callback failure bit and first diagnostic are checked before reading descriptor fields or touching the destination"
+  ]
+}

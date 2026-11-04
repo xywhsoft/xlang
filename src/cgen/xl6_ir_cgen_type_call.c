@@ -406,6 +406,10 @@ static int xl6IrCgenEmitCallPlace(XL6_Output* out, const XL6_IrModule* module,
             (unsigned long)parameter,row->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int" : "size_t",(unsigned long)parameter);
         break;
     }
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_REGION_BORROW:{
+        const XL6_ForeignRegionContract* row=xl6IrForeignRegionGet(module,target,parameter);if(!row)return 0;
+        xl6OutputPrintf(out,"(%s)native_region_data_%lu",row->access==XL6_FOREIGN_REGION_ACCESS_READ ? "const void*":"void*",(unsigned long)parameter);break;
+    }
     case XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_HANDLE_ACCESS_BORROW:
         xl6OutputPrintf(out,"native_access_%lu.raw",(unsigned long)parameter);break;
     case XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW:
@@ -578,6 +582,8 @@ static int xl6IrCgenNativeFieldCallBegin(XL6_Output* out,const XL6_IrModule* mod
     return 1;
 }
 
+#include "src/cgen/xl6_ir_cgen_foreign_region.c"
+
 static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrCallTarget* target, const char* result, const char* scope)
 {
@@ -593,6 +599,8 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     int bytes = xl6IrCgenPrepareBytesViews(out, target, NULL);
     int spans=xl6IrCgenForeignSpansBegin(out,module,target,NULL,scope);
     if(spans<0)return 0;
+    int regions=xl6IrCgenForeignRegionsBegin(out,module,target,NULL,scope);
+    if(regions<0)return 0;
     int access = xl6IrCgenNativeAccessBegin(out,module,target,NULL,scope);
     if(access<0)return 0;
     int callbacks=xl6IrCgenNativeCallbacksBegin(out,module,target,NULL,scope);
@@ -699,6 +707,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     if(fieldCallee)xl6OutputPuts("    } }\n",out);
     if(callbacks)xl6IrCgenNativeCallbacksEnd(out,target,scope);
     if (access) xl6IrCgenNativeAccessEnd(out,target,scope);
+    if(regions)xl6IrCgenForeignRegionsEnd(out,module,target,scope);
     if(spans)xl6IrCgenForeignSpansEnd(out,module,target,scope);
     if (bytes) xl6OutputPuts("    }\n", out);
     if (cstrings) xl6OutputPuts("    } }\n", out);
@@ -1015,6 +1024,8 @@ static int xl6IrCgenEmitDirectCall(
     int bytesPrepared=xl6IrCgenPrepareBytesViews(out,target,module->operands+instruction->firstOperand);
     int spansPrepared=xl6IrCgenForeignSpansBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope);
     if(spansPrepared<0)return 0;
+    int regionsPrepared=xl6IrCgenForeignRegionsBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope);
+    if(regionsPrepared<0)return 0;
     int accessPrepared=xl6IrCgenNativeAccessBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope);
     if(accessPrepared<0)return 0;
     int callbacksPrepared=xl6IrCgenNativeCallbacksBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope);
@@ -1151,6 +1162,7 @@ static int xl6IrCgenEmitDirectCall(
     if(fieldCallee)xl6OutputPuts("    } }\n",out);
     if(callbacksPrepared)xl6IrCgenNativeCallbacksEnd(out,target,nativeScope);
     if(accessPrepared)xl6IrCgenNativeAccessEnd(out,target,nativeScope);
+    if(regionsPrepared)xl6IrCgenForeignRegionsEnd(out,module,target,nativeScope);
     if(spansPrepared)xl6IrCgenForeignSpansEnd(out,module,target,nativeScope);
     if(bytesPrepared)xl6OutputPuts("    }\n",out);
     if(cstringsPrepared)xl6OutputPuts("    } }\n",out);

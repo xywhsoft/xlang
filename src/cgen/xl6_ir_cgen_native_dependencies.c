@@ -31,6 +31,8 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
         /* Borrowed xvalue results retain through XRT's value implementation.
          * They are native algorithm dependencies, not resident helper symbols. */
         if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_CONST_XVALUE_POINTER)needs->needsXValueRuntime=1;
+        for(size_t p=0;p<target->parameterCount;++p)
+            if(xl6IrForeignRegionGet(module,target,p))needs->needsBytesRuntime=needs->needsXValueRuntime=1;
         for(size_t o=0;o<xl6IrForeignOutputCount(module,target);++o){
             const XL6_ForeignOutputViewContract* output=xl6IrForeignOutputViewGet(module,target,o);
             if(!output)continue;
@@ -499,7 +501,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
                         !visitor(context,"xl6ForeignViewBorrowChildV1") || !visitor(context,"xl6ForeignViewReleaseV1")))return 0;
                 }
             }
-            if(xl6IrForeignSpanBufferField(module,target,p) &&
+            if((xl6IrForeignSpanBufferField(module,target,p) || xl6IrForeignRegionBufferField(module,target,p)) &&
                 (!visitor(context,"xl6BufferSpanBeginV1") || !visitor(context,"xl6BufferSpanEndV1")))return 0;
             if(xl6IrForeignViewBorrowPhysical(target->parameterPhysicalAbis[p]) &&
                 (!visitor(context,"xl6ForeignViewCallBeginV1") || !visitor(context,"xl6ForeignViewCallEndV1") ||
