@@ -1,0 +1,28 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "OwnNativeScope destructors check their real native activity and advance their own cache cleanup. Deep graph Busy remains used for graph reads/collection. Exact R6 runtime kernel delta, 34 new+22 regression rows per platform, no matched shipping SDK/VFS claim.",
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\foreign-reservation-win-dev-r10\\results.json",
+      "sha256": "3da44c8becd237502bb32924f1273cd60d9756947459c87b02d6db26772f2eba",
+      "rows": 34
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\foreign-reservation-regression-win-r4\\results.json",
+      "sha256": "69949607ad0424904c1f1eff63286c313ec8cd0461e4daadcff228ad719047f3",
+      "rows": 22
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-reservation-linux-r4\\results.json",
+      "sha256": "38e099a556e952f3e2b8cb8db200a729a1f3d28abf42989f53493dcb221ab6de",
+      "rows": 34
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-reservation-regression-linux-r4\\results.json",
+      "sha256": "4d30def1253cb5b4674aee798539edf8d98e471c5a052623b098cb73c69fa376",
+      "rows": 22
+    }
+  ],
+  "shippingDelivery": false
+}

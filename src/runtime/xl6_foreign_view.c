@@ -610,9 +610,9 @@ static bool viewDestroyNative(XL6_ForeignView* view,bool autoOnly,bool* cancelle
        xrtAtomic32Load(&root->closing,XMEMORY_ACQUIRE))return true;
     if(!viewRequestClose(view,autoOnly,cancelled))return false;
     if(*cancelled)return true;
-    /* Accepted logical Context close may wait for independent native/cache
-     * activity. It keeps the actual owner/lease, without a new callback error. */
-    if(!view->unadopted && ownScope && d->Busy(root->raw))return true;
+    /* Native scope owners perform their own activity/cache preparation.
+     * Graph Busy is deliberately stricter: an idle destructor must still
+     * be allowed to consume independent ready caches and make progress. */
     XL6_ForeignCallContextV1 execution={0};
     if(!xl6ForeignContextCallEnterV1(&execution,root))return false;
     xrtownershipscope mutation={0}; viewMutationBegin(&mutation);
