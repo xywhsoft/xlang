@@ -1,0 +1,95 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Pure whole-plan snapshot-drop readiness, before Hold and before any Restore or Drop",
+  "upstreamCommit": "031e59a0",
+  "descriptorBytes": 48,
+  "oldUnreleasedPrototypeBytes": 40,
+  "legacyV1Supported": true,
+  "prototypeCompatibility": false,
+  "fullCompilerRebuild": false,
+  "sourceParent": "source-completion-r32 1416/1415 full source hosts; six-unit checked-plan runtime overlay",
+  "files": [
+    {
+      "path": "lib/xrt/xrt.h",
+      "sha256": "0f1637529a32ffd1c3e468cd9d4898692f687efda504de75941d2124953443fd"
+    },
+    {
+      "path": "lib/xrt/upstream.json",
+      "sha256": "79be76306278748c2916fef78b2ec43602cdacfa609775799b6ea788b86c611c"
+    },
+    {
+      "path": "lib/xrt/xrt.snapshot.json",
+      "sha256": "62068263c413fb64514a4c6665eea44ee35145a40432e39304528767779f1cf1"
+    },
+    {
+      "path": "lib/xruntime/xruntime.snapshot.json",
+      "sha256": "d5dcdf3e53c8c7b1c1d52a0ca258b12b298fc12b7431c79724f723c8be2e7583"
+    },
+    {
+      "path": "src/runtime/xl6_ownership_completion.h",
+      "sha256": "6634f5e27130133c49c258890d07a359f493684fbb337fae5f44b7f97bbcea0b"
+    },
+    {
+      "path": "src/runtime/xl6_ownership_plan.c",
+      "sha256": "4cc3073c7c4da419698dc9ee6ad1b4d785628a4c2204b6a5e1c0093012c7aee3"
+    },
+    {
+      "path": "src/runtime/xl6_ownership_plan.h",
+      "sha256": "3ee0161b5586e0daa7daec3fa6b2c46f2384291155a326680cdea55e35c06937"
+    },
+    {
+      "path": "test/cases/xlir_ownership_checked_drop_runtime.c",
+      "sha256": "472765d4752cc100d7c249af1b82dccc4c7e7ae37e24ee78730dd8e7e9b19d2d"
+    },
+    {
+      "path": "docs/ownership-checked-snapshot-release.md",
+      "sha256": "4ab9d24a5395d6257a5e20a0bebc8175741416d8d1bb2695c0bd83f72e4c6a25"
+    }
+  ],
+  "sdkActive": "D:\\GIT\\x-lang\\release\\win_x64\\include\\xrt_decl.h",
+  "sdkSha256": "c62088a29b7a74c571447924d13ce4f0c3caf1e5853b85ba3a559d64d6835a3f",
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\finish-v2-affinity-plan-win-r2\\results.json",
+      "sha256": "f3a8361f31572dfc5f0cb5fb29173908392cbf6674a6091b7e720702441e64c5",
+      "rows": 40,
+      "complete": true,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\finish-v2-affinity-plan-linux-r1.results.json",
+      "sha256": "5c06fbd330d230fc7ed141e90737181dd4524e7b65db675f9de012f47fddc57c",
+      "rows": 40,
+      "complete": true,
+      "passed": true
+    }
+  ],
+  "pointSync": {
+    "complete": true,
+    "scope": "Exact unpublished FinishV2 readiness addition, no unrelated XRT algorithm upgrade",
+    "commit": "031e59a04644701a54fc8af3c7bf5aaf678c9874",
+    "rows": [
+      {
+        "path": "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h",
+        "before": "2c0dd0c2fdd15deb34aedd78fea9a9128760257febdaf3d886c88a1df76d1983",
+        "after": "0f1637529a32ffd1c3e468cd9d4898692f687efda504de75941d2124953443fd",
+        "bytesAdded": 749
+      },
+      {
+        "path": "D:\\GIT\\x-lang\\release\\win_x64\\include\\xrt_decl.h",
+        "before": "a8b671ff77d9423b8d3d6d74b1842902457b5806d0d3ce963b0a754ae746368f",
+        "after": "c62088a29b7a74c571447924d13ce4f0c3caf1e5853b85ba3a559d64d6835a3f",
+        "bytesAdded": 749
+      },
+      {
+        "path": "D:\\GIT\\xge\\extlibs\\xrt\\xrt.h",
+        "before": "2c0dd0c2fdd15deb34aedd78fea9a9128760257febdaf3d886c88a1df76d1983",
+        "after": "0f1637529a32ffd1c3e468cd9d4898692f687efda504de75941d2124953443fd",
+        "bytesAdded": 749
+      }
+    ]
+  },
+  "shippingDelivery": false,
+  "releaseBinaryUpdated": false
+}

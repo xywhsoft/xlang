@@ -9,7 +9,7 @@ static inline const xrtownershipfinishv2* xl6OwnershipCompletionV2Get(
 {
     if(!completion || completion->size!=sizeof(xrtownershipfinishv2))return NULL;
     const xrtownershipfinishv2* v2=(const xrtownershipfinishv2*)completion;
-    return v2->AbiTag==XRT_OWNERSHIP_FINISH_V2_TAG && v2->DropChecked ? v2 : NULL;
+    return v2->AbiTag==XRT_OWNERSHIP_FINISH_V2_TAG && v2->DropChecked && v2->DropReady ? v2 : NULL;
 }
 static inline bool xl6OwnershipCompletionValid(const xrtownershipfinishv1* completion,
     const xrtownershipadapterv1* adapter)

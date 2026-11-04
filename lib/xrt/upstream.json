@@ -53,6 +53,17 @@
       ],
       "abiChanged": false,
       "protocolExtension": "xrtownershipfinishv2"
+    },
+    {
+      "commit": "031e59a04644701a54fc8af3c7bf5aaf678c9874",
+      "kind": "Unreleased FinishV2 pure snapshot-drop preflight",
+      "modules": [
+        "include/xrt/core.h"
+      ],
+      "abiChanged": false,
+      "protocolExtension": "xrtownershipfinishv2.DropReady",
+      "unreleasedPrototypeBytesBefore": 40,
+      "descriptorBytes": 48
     }
   ]
 }

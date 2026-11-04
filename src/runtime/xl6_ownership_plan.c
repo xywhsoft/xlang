@@ -78,6 +78,8 @@ static bool admit(xrtownershipref ref,void* context)
     if(preparation && (preparation->size!=sizeof(*preparation) || preparation->Adapter!=adapter ||
         !preparation->Ready || !preparation->Prepare))return false;
     if(!xl6OwnershipCompletionValid(completion,adapter))return false;
+    const xrtownershipfinishv2* checked=xl6OwnershipCompletionV2Get(completion);
+    if(checked && !checked->DropReady(ref.Data)){build->busy=true;return false;}
     node.ref=ref;node.adapter=adapter;node.preparation=preparation;node.completion=completion;
     node.finalized=adapter->Finalize==NULL;node.finished=!completion && adapter->Finish==NULL;
     /* Old held identities are supplied as anchors, in this same order, before
@@ -132,7 +134,7 @@ static bool append_anchor(xrtownershipref ref,void* context)
     }
     anchors->refs[anchors->count++]=ref;return true;
 }
-static XL6_OwnershipPlanResult rebuild(XL6_OwnershipPlan* plan)
+static XL6_OwnershipPlanResult rebuild_body(XL6_OwnershipPlan* plan)
 {
     PlanBuild build={.plan=plan};xrtownershipsnapshot* snapshot=NULL;
     PlanAnchors anchors={0};XL6_OwnershipPlanResult result=XL6_OWNERSHIP_PLAN_ERROR;
@@ -200,6 +202,16 @@ failed:
       xrtClearError();xrtSetErrorTake(error); }
     return result;
 }
+static XL6_OwnershipPlanResult rebuild(XL6_OwnershipPlan* plan)
+{
+    /* A refused admission can make SnapshotCreate publish a STATE error.
+     * Keep the caller's earlier diagnostic independent of this read/claim
+     * transaction, especially when a pure DropReady refusal maps to BUSY. */
+    xerror* previous=xrtTakeError();
+    XL6_OwnershipPlanResult result=rebuild_body(plan);
+    if(previous){xrtClearError();xrtSetErrorTake(previous);}
+    return result;
+}
 static XL6_OwnershipPlanResult create(xrtownershipref root,XL6_OwnershipResolve resolve,
     XL6_OwnershipResolveV2 resolveV2,XL6_OwnershipResolveV3 resolveV3,
     XL6_OwnershipDiscoverV1 discover,bool pinRoot,void* context,XL6_OwnershipPlan** output,XL6_OwnershipProbeV1 probe,const XL6_OwnershipBoundaryV1* boundary)
@@ -224,7 +236,7 @@ static XL6_OwnershipPlanResult create(xrtownershipref root,XL6_OwnershipResolve 
             xerror* error=seed.admissionError ? seed.admissionError : xrtTakeError();
             if(seed.admissionError)xrtClearError();
             xrtFree(seed.nodes);xrtFree(plan);freeze_end(boundary,&freeze);
-            if(busy){xrtErrorFree(error);return XL6_OWNERSHIP_PLAN_BUSY;}
+            if(busy){xrtSetErrorTake(error);return XL6_OWNERSHIP_PLAN_BUSY;}
             xrtSetErrorTake(error);return XL6_OWNERSHIP_PLAN_ERROR;
         }
         seed.nodes[0].held=true;plan->nodes=seed.nodes;plan->count=1;
@@ -445,13 +457,26 @@ XL6_OwnershipPlanResult xl6OwnershipPlanTryDestroy(XL6_OwnershipPlan* plan)
     if(checked && !xl6ErrorScopeBegin(&errors)){
         xl6CodeLeaseReleaseScopeEndV1(&releases);return XL6_OWNERSHIP_PLAN_ERROR;
     }
-    if(!plan->committed){
+    if(!plan->committed || checked){
         if(!freeze_begin(plan->boundary,&freeze)){
             xl6CodeLeaseReleaseScopeEndV1(&releases);
             if(checked)publish_drop_failure(&errors);
             return XL6_OWNERSHIP_PLAN_BUSY;
         }
-        for(size_t i=0;i<plan->count;++i){PlanNode* node=&plan->nodes[i];if(node->claimed)node->adapter->Restore(node->ref.Data,plan);}
+        /* Pure admission of the WHOLE batch precedes any restore or release.
+         * The plan can have moved threads since creation, and an aborted
+         * snapshot can hold the last creator-affine native reference. */
+        for(size_t i=0;i<plan->count;++i){
+            PlanNode* node=&plan->nodes[i];
+            const xrtownershipfinishv2* v2=xl6OwnershipCompletionV2Get(node->completion);
+            if(v2 && !v2->DropReady(node->ref.Data)){
+                freeze_end(plan->boundary,&freeze);
+                xl6CodeLeaseReleaseScopeEndV1(&releases);
+                publish_drop_failure(&errors);return XL6_OWNERSHIP_PLAN_BUSY;
+            }
+        }
+        if(!plan->committed)
+            for(size_t i=0;i<plan->count;++i){PlanNode* node=&plan->nodes[i];if(node->claimed)node->adapter->Restore(node->ref.Data,plan);}
         freeze_end(plan->boundary,&freeze);
     }
     plan->running=true;
