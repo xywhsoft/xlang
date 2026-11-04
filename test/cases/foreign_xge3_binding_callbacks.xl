@@ -1,0 +1,49 @@
+// Combined with the actual package callbacks and bootstrap by the checker.
+// No engine/window/device initialization is performed.
+class FrameCounter
+ int calls=0
+end
+func installFrameCounter()
+ FrameCounter counter=FrameCounter()
+ setFrameCallback(func() as c_int
+  counter.calls+=1
+  return c_int(counter.calls)
+ end)
+end
+func main(...) as int
+ installFrameCounter()
+ assert dispatchFrame()==c_int(1)
+ assert dispatchFrame()==c_int(2)
+ setFrameCallback(func() as c_int
+  setFrameCallback(null)
+  return c_int(7)
+ end)
+ assert dispatchFrame()==c_int(7)
+ assert dispatchFrame()==c_int(0)
+ setFrameCallback(func() as c_int
+  return c_int(-19)
+ end)
+ bool rejected=false
+ try
+  auto result=dispatchFrame()
+ catch error
+  rejected=error.code==-19
+ end
+ assert rejected
+ setFrameCallback(func() as c_int
+  throw "frame callback failure"
+  return c_int(0)
+ end)
+ bool callbackFailed=false
+ try
+  auto result=dispatchFrame()
+ catch error
+  callbackFailed=true
+ end
+ assert callbackFailed
+ setFrameCallback(null)
+ assert dispatchFrame()==c_int(0)
+ unit()
+ assert dispatchFrame()==c_int(0)
+ return 0
+end

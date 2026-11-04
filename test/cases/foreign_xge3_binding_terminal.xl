@@ -1,0 +1,38 @@
+// Combined with the actual xui package by the checker; no renderer/session.
+class TerminalSaved
+ ByteSlice? slice
+ bytes copied=b""
+ int calls=0
+end
+func main(...) as int
+ Context context=create()
+ Terminal terminal=context.terminalNative()
+ TerminalSaved saved=TerminalSaved()
+ terminal.setInputCallback(func(Widget widget,ByteSlice data)
+  saved.calls+=1
+  assert data.size==c_size(4)
+  saved.slice=data
+  saved.copied=data.bytes
+ end)
+ assert terminal.inputText("A你")==c_int(0)
+ assert saved.calls==1 and saved.copied==b"A\xe4\xbd\xa0"
+ bool expired=false
+ try
+  auto length=(saved.slice as ByteSlice).size
+ catch error
+  expired=true
+ end
+ assert expired
+ terminal.setInputCallback(null)
+ assert terminal.inputText("ignored")==c_int(0)
+ assert saved.calls==1
+ context.close()
+ bool closed=false
+ try
+  auto result=terminal.inputText("closed")
+ catch error
+  closed=true
+ end
+ assert closed and saved.copied==b"A\xe4\xbd\xa0"
+ return 0
+end

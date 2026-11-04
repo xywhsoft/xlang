@@ -1,0 +1,17 @@
+// Refcounted, owned cell cache. Underscore native fields stay private.
+// A callback can use(cache) without cloning cached text; setters reject read pins.
+export extern "xui_table_view_cell_output_t*" class TableCellOutput @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3TableCellOutputPolicy") @domain("xuiTableViewCellOutputOwnershipDomainV1")
+ native point handle
+ extern "xuiTableViewCellOutputSetText" @no_raise @c_text_view(0) @c_result("status",0) func setText(string text)
+ extern "xuiTableViewCellOutputGetText" @no_raise @c_const(0) @c_result("text_view") func text() as string
+ extern "xuiTableViewCellOutputSetTooltip" @no_raise @c_text_view(0) @c_result("status",0) func setTooltip(string text)
+ extern "xuiTableViewCellOutputGetTooltip" @no_raise @c_const(0) @c_result("text_view") func tooltip() as string
+ extern "xuiTableViewCellOutputSetValue" @no_raise @c_const(1) @c_result("status",0) func setValue(var value)
+ extern "xuiTableViewCellOutputGetValue" @no_raise @c_const(0) @c_result("borrowed_value") func value() as var
+ extern "xuiTableViewCellOutputSetFormatterOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0,"owned_text") @c_result("status",0) func setFormatter(TableViewCellTextOwnedProc? callback)
+ extern "xuiTableViewCellOutputSetRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setRenderer(TableViewCellRenderOwnedProc? callback)
+ extern "xuiTableViewCellOutputReset" @no_raise @c_result("status",0) func reset()
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+export extern "xuiTableViewCellOutputCreate" @no_raise @c_result("owned_view") @factory(0,0,rollbackCell) func createTableCell() as TableCellOutput
+extern "xuiTableViewCellOutputReleaseChecked" @no_raise @c_result("status",0) func rollbackCell(TableCellOutput cell)

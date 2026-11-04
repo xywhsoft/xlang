@@ -1,0 +1,16 @@
+import xge
+class Counter
+ int calls=0
+end
+func main(...) as int
+ Counter state=Counter()
+ xge.setFrameCallback(func() as c_int
+  state.calls+=1
+  return c_int(state.calls)
+ end)
+ assert xge.dispatchFrame()==c_int(1)
+ assert xge.dispatchFrame()==c_int(2)
+ xge.setFrameCallback(null)
+ xge.unit()
+ return 0
+end

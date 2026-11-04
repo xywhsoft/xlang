@@ -1,0 +1,18 @@
+{
+  "format": "xlang-package-1",
+  "name": "_xge_native",
+  "version": "3.0.0",
+  "abiVersion": "2",
+  "kind": "xlang-private-extlib",
+  "artifact": {
+    "kind": "source",
+    "cSources": ["src/runtime.c"],
+    "includeDirs": ["include"],
+    "xlSources": ["src/bootstrap.xl"],
+    "runtimeSymbols": ["xl6HostXrtResolveV1", "xl6ErrorScopeTryPropagateFailureV1", "xl6CallbackFailureRecordV1", "xl6ForeignStatusFailureV1"]
+  },
+  "links": [],
+  "loadlibs": [],
+  "dependencies": [],
+  "native": {"singleton": true, "loadName": "xge-host-api3", "version": "3.0.0"}
+}

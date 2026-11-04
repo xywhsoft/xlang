@@ -1,0 +1,39 @@
+// Native internal children refuse destructive ownership changes, without
+// invalidating an otherwise live managed view or poisoning the Context scope.
+func main(...) as int
+ Context context=create()
+ NumericInput numeric=context.numericInputNative()
+ Widget part=numeric.getInputWidget() as Widget
+ auto before=part.getRect()
+ assert part.setEnabled(c_int(0))==c_int(0)
+ assert part.getEnabled()==c_int(0)
+ bool protected=false
+ try
+  part.close()
+ catch error
+  protected=true
+ end
+ assert protected
+ auto after=part.getRect()
+ assert after.fX==before.fX and after.fY==before.fY
+ assert part.getEnabled()==c_int(0)
+ assert part.setEnabled(c_int(1))==c_int(0)
+ Widget ordinary=context.widget()
+ ordinary.close()
+ bool destroyed=false
+ try
+  auto rect=ordinary.getRect()
+ catch error
+  destroyed=true
+ end
+ assert destroyed
+ context.close()
+ bool expired=false
+ try
+  auto rect=part.getRect()
+ catch error
+  expired=true
+ end
+ assert expired
+ return 0
+end

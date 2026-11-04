@@ -1,0 +1,540 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Source-only declarative binding milestone, pinned native v16; remaining resource/API work deliberately excluded",
+  "fullApiComplete": false,
+  "shippingDelivery": false,
+  "releaseBinaryUpdated": false,
+  "uniqueNativeMappings": 2648,
+  "exactCompileProbes": 2658,
+  "privateFileCount": 36,
+  "publicFileCount": 43,
+  "nativeSource": "F:\\xlang-validation\\foreign-completion-20261103\\native-callback-parts-guard-source-r3",
+  "nativeBuild": "F:\\xlang-validation\\foreign-completion-20261103\\native-callback-parts-guard-host-r3\\build-report.json",
+  "files": [
+    {
+      "path": "lib/bindings/_xge_native/include/xge3_runtime.h",
+      "sha256": "19ecf04f1d7ccb2ef136ad8d6d009e411d966184151e3e4dc66e593dbd1fc41e",
+      "bytes": 2357,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\lib\\bindings\\_xge_native\\include\\xge3_runtime.h"
+    },
+    {
+      "path": "lib/bindings/_xge_native/src/bootstrap.xl",
+      "sha256": "54d74fc4d81f9bade0f3fa358178073d885425e59bda9fd64cd79073c8bc19f0",
+      "bytes": 265,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\lib\\bindings\\_xge_native\\src\\bootstrap.xl"
+    },
+    {
+      "path": "lib/bindings/_xge_native/src/runtime.c",
+      "sha256": "feedd9e7bea3f4b4f4b93004e2187bf10ffe5d5158b459e6dc53cc7fe7a3fa5f",
+      "bytes": 7795,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\lib\\bindings\\_xge_native\\src\\runtime.c"
+    },
+    {
+      "path": "lib/bindings/_xge_native/xlang.package.json",
+      "sha256": "84297c161cf4f70390a51e8ea20c79f252a1a70282f11ef65f8b15f82fad6fe5",
+      "bytes": 565,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\lib\\bindings\\_xge_native\\xlang.package.json"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package.xl",
+      "sha256": "32ffd85cbf75d9ec072702c7ce567dacc8ce66b71e323c0e001de41180fbac6f",
+      "bytes": 1610,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package.xl"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_bind_failure.c",
+      "sha256": "d3f9ac1f144f82c73df1b3efe14a42e0c54d69d415f68d10c0c38a1b8cccf8f5",
+      "bytes": 1085,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_bind_failure.c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_callback_drop.c",
+      "sha256": "612fa65a5332c47df149dd3426ca36b787f5d2e45d49fdb2ab5be96b8eb5e786",
+      "bytes": 3845,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_callback_drop.c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_callback_drop_check.py",
+      "sha256": "db4fc738c5858b5bc3584f27453438a55c6c038ff8f59ebb68a1d6bf5e4f06b8",
+      "bytes": 3814,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_callback_drop_check.py"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_callback_failure.c",
+      "sha256": "d90bc3cbfa29c6e84231899f172986ffc00294a304aa2179ed504b7de104e3dd",
+      "bytes": 4056,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_callback_failure.c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_cell.c",
+      "sha256": "f593cdaed5b2080303568b8f024e4edccf7f006ed351d78c17794da7a48d40a4",
+      "bytes": 7545,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_cell.c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_cell_check.py",
+      "sha256": "c8b8005055d065d1e72e091b7eb91f39a81658a4026437a21928084a0b630976",
+      "bytes": 4754,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_cell_check.py"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_cell_script_check.py",
+      "sha256": "6a9b509253f2cca78d3c1075b805d1f399b1aefad46c8120dafc18f909738ecd",
+      "bytes": 4068,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_cell_script_check.py"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_cell_script_host.c",
+      "sha256": "7f40d6fc47dd8fea5aec9460e3b2f55826ad0560d381c082854311b2eb20ffe4",
+      "bytes": 4810,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_cell_script_host.c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_check.py",
+      "sha256": "66e6b9b627ec798cea3195d0fd22397bfb83cbc35d334b5ed43928fc6c74a566",
+      "bytes": 7914,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_check.py"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_global_check.py",
+      "sha256": "aa7faa64365def18876cba666199cebdc0597d3b21029b998c3f925bbb30f25d",
+      "bytes": 3818,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_global_check.py"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_host.c",
+      "sha256": "de02e09fec4b688b3bc924210c6c803fe3d800002e79a236a50958a1dee21d5c",
+      "bytes": 2189,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_host.c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_leaf.c",
+      "sha256": "ee46418ef8f83eff1d8119f6f4bec07705f54faacaaa7fbfc072fb2faa506f64",
+      "bytes": 2682,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_leaf.c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_native.c",
+      "sha256": "089054bd5a6072972f02c3f53d1d35187e5b1aa7206dd1c51a3852e1b3850a8e",
+      "bytes": 953,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_native.c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_ownership_batch.h",
+      "sha256": "d51fea88932473873c2636a357acca9baff2220dd72dd1e59e28eb1158ff20d2",
+      "bytes": 545,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_ownership_batch.h"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_ownership_batch_check.py",
+      "sha256": "f913cd91bc1de2b64325c9f6c12fded482a148d2c033e1eba32835de085b9271",
+      "bytes": 3932,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_ownership_batch_check.py"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_ownership_batch_host.c",
+      "sha256": "384c1fd955b3c9121f39d156827e8ebeb3915c8973d41b203b85454a86267c28",
+      "bytes": 7993,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_ownership_batch_host.c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_ownership_batch_native.c",
+      "sha256": "d5f1f500c32ff1244ea94bf199c462e4bb00856f43273cef3bdfc659beb1883c",
+      "bytes": 1435,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_ownership_batch_native.c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_public_init.xl",
+      "sha256": "dfcc44c9728bb26059c4e52a97e3d254fefe7b72d4ade8dced9bf3cc91722e68",
+      "bytes": 427,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_public_init.xl"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_resolver.c",
+      "sha256": "0bcd112d84400a837f958e7fe4a7521ce8f5c0213da225100afa828ad5f66bb5",
+      "bytes": 1978,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_resolver.c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_tail.h",
+      "sha256": "332453c78e03c666b40d2909eff558db5b81aac90b61c90a0207a61cff43c126",
+      "bytes": 882,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_tail.h"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_tail.xl",
+      "sha256": "f6f27f68937350abc2be3c14ef0469e77212bc45d788c9c9b9486238af90eef1",
+      "bytes": 582,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_tail.xl"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_tail_check.py",
+      "sha256": "43330f24dfd0eb3968dd98d2377ba997ebdc24ebad5c819db111b5ace41d290a",
+      "bytes": 4717,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_tail_check.py"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_tail_host.c",
+      "sha256": "af1a7fd0774c991bc8a03985229846c7c12582a8d959918cde26295bbcc62e0a",
+      "bytes": 3788,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_tail_host.c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_tail_native.c",
+      "sha256": "2f1bbf690597437d2fa218c3524256eb2a04da29edb6bb7b34078c5583a30cf7",
+      "bytes": 1719,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\test\\cases\\foreign_xge3_package_tail_native.c"
+    },
+    {
+      "path": "tools/stage_xge3_packages.py",
+      "sha256": "0dc1c1c8ddf5a5fc35a1ad8e95d7ea5a40a79509d38dca5ba712b2299259b39a",
+      "bytes": 10435,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\tools\\stage_xge3_packages.py"
+    },
+    {
+      "path": "tools/stage_source_tcc_provider_linux.py",
+      "sha256": "877d7e7974f5b5f0932ded2ada413d9ec7d40b429506c9880cd09feb47414d96",
+      "bytes": 9011,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\tools\\stage_source_tcc_provider_linux.py"
+    },
+    {
+      "path": "tools/stage_source_public_sdk_linux.py",
+      "sha256": "1e8c757617ee959b27fb017193a6e8640793e4b8e85fee9f5262a34bcd2a3e52",
+      "bytes": 3936,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\tools\\stage_source_public_sdk_linux.py"
+    },
+    {
+      "path": "tools/stage_source_tcc_producer_overlay_linux.py",
+      "sha256": "0dbc327eaccf76af1e5b507b3676348e25acabdf347577aec0b475dad409dfaf",
+      "bytes": 8813,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\tools\\stage_source_tcc_producer_overlay_linux.py"
+    },
+    {
+      "path": "tools/stage_foreign_bootstrap_overlay_linux.py",
+      "sha256": "428562a0c1fca7daaad9a6d8a838fdde21ca7497ab7149283bb06d07ebce5b64",
+      "bytes": 6651,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\tools\\stage_foreign_bootstrap_overlay_linux.py"
+    },
+    {
+      "path": "tools/check_source_provider_nested_linux.py",
+      "sha256": "4eb9a7b5180dba8bbd20584eec3765f47a8424f818e039cdd0c8aec4b16cefe1",
+      "bytes": 3862,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\tools\\check_source_provider_nested_linux.py"
+    },
+    {
+      "path": "docs/xge3-package-bootstrap.md",
+      "sha256": "382864a3fffa1ae1919b5ea88ef34a556bd7c1874be9dd62b8bfa00e81791fe1",
+      "bytes": 11427,
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\private-package-candidate-r31\\docs\\xge3-package-bootstrap.md"
+    },
+    {
+      "path": "docs/xge3-xui3-api-map-storage.json",
+      "sha256": "8f09932b14e64c7073aa70f64fa1f55197929f4231e4ed4c43826c262de43328",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\docs\\xge3-xui3-api-map-storage.json"
+    },
+    {
+      "path": "docs/xge3-xui3-api-map-upstream.json",
+      "sha256": "1d8f730ae727640cbb00a3f65c422fd4ac96a79b9a51cde65baa760539a3806f",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\docs\\xge3-xui3-api-map-upstream.json"
+    },
+    {
+      "path": "docs/xge3-xui3-api-map.json",
+      "sha256": "e9ec784cbdf84541a0a01faf3f67d219aec1a1299801aa8913ac4caf7dbd44de",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\docs\\xge3-xui3-api-map.json"
+    },
+    {
+      "path": "docs/xge3-xui3-api-map.md",
+      "sha256": "e32781ea32c7310b7c35992abbeaf5ad46f169d9095af96a4a4971955f6305b4",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\docs\\xge3-xui3-api-map.md"
+    },
+    {
+      "path": "lib/bindings/xge/debug/src/bootstrap.xl",
+      "sha256": "06ba71e4c15a4fc4cf6378eadd6e73ccb6d1dbd46b83d508bf242f1f341c5115",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\debug\\src\\bootstrap.xl"
+    },
+    {
+      "path": "lib/bindings/xge/debug/src/functions.xl",
+      "sha256": "67b1bca36c66368c89a6f146f96940c28e1425cae3f61dda04a8ade9e294f94f",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\debug\\src\\functions.xl"
+    },
+    {
+      "path": "lib/bindings/xge/debug/src/records.xl",
+      "sha256": "d175946d1c3c38f0d3ceec4dde8924b3da3c2a0d03268e8859b6d6573072d2d1",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\debug\\src\\records.xl"
+    },
+    {
+      "path": "lib/bindings/xge/debug/xlang.package.json",
+      "sha256": "bf8d0ba7df46abf336e3ef3904a4536f08c0b9aecae7c488d47fdfbecad3bee7",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\debug\\xlang.package.json"
+    },
+    {
+      "path": "lib/bindings/xge/examples/headless_frame.xl",
+      "sha256": "3a37e65d5538683730fb092f31f755ece1b18a61374166b38d9627de2681d80b",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\examples\\headless_frame.xl"
+    },
+    {
+      "path": "lib/bindings/xge/README.md",
+      "sha256": "5626c6ab3641bf0d6c081eb1de03f5d909e9a6b94d674123617be41fb785634b",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\README.md"
+    },
+    {
+      "path": "lib/bindings/xge/src/bootstrap.xl",
+      "sha256": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\src\\bootstrap.xl"
+    },
+    {
+      "path": "lib/bindings/xge/src/callbacks.xl",
+      "sha256": "0bf51f8c393c28a6595173f18a45b9f79c58fadef0c9e2c55f4ad1ee7e38279a",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\src\\callbacks.xl"
+    },
+    {
+      "path": "lib/bindings/xge/src/constants.xl",
+      "sha256": "8f65b793351547d449cde57ca88ad66e132d2fe45595a199e88afd6c01faae71",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\src\\constants.xl"
+    },
+    {
+      "path": "lib/bindings/xge/src/functions.xl",
+      "sha256": "5456638e59f7c4b9e0a506d24dc1dec5efcdae57b68faa547228f65c26a1ce91",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\src\\functions.xl"
+    },
+    {
+      "path": "lib/bindings/xge/src/records.xl",
+      "sha256": "75f43f39f0aeb5bff6c3aab420dd6ac2b1eca47dcadb05d78deeacce8287a521",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\src\\records.xl"
+    },
+    {
+      "path": "lib/bindings/xge/src/resources.xl",
+      "sha256": "6b54c4de89c087bfae0e0a73b8535c3f17c40ccedb15b638664092398d898e7a",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\src\\resources.xl"
+    },
+    {
+      "path": "lib/bindings/xge/src/shapes.xl",
+      "sha256": "a20456775c010ebd2f6a15ea7c5b8faaa5dadd27bf68ff8e5c299953ccdd893e",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\src\\shapes.xl"
+    },
+    {
+      "path": "lib/bindings/xge/three_d/src/bootstrap.xl",
+      "sha256": "06ba71e4c15a4fc4cf6378eadd6e73ccb6d1dbd46b83d508bf242f1f341c5115",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\three_d\\src\\bootstrap.xl"
+    },
+    {
+      "path": "lib/bindings/xge/three_d/src/functions.xl",
+      "sha256": "3e198eb64525d90434fec430813d0711084f010e0678194e494ed17da01a0c0c",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\three_d\\src\\functions.xl"
+    },
+    {
+      "path": "lib/bindings/xge/three_d/src/records.xl",
+      "sha256": "04244c16754d53688c617fc7f2982eee662690ce23b16fb8d9080e97a29680e0",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\three_d\\src\\records.xl"
+    },
+    {
+      "path": "lib/bindings/xge/three_d/xlang.package.json",
+      "sha256": "6b0540e01e561263758dbf75c6e3c623b65abe5b58dbb902f2ed2bc6255c00dc",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\three_d\\xlang.package.json"
+    },
+    {
+      "path": "lib/bindings/xge/xlang.package.json",
+      "sha256": "309f657d4d0a9026b48c7b996e04ff2fd87e470d8b263f2084e1dd3e1defe69c",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xge\\xlang.package.json"
+    },
+    {
+      "path": "lib/bindings/xui/examples/headless_cell.xl",
+      "sha256": "9204d081949783bbd0d2abfda6a84e5b3ba7c5c41135e284b70611bf3be63896",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xui\\examples\\headless_cell.xl"
+    },
+    {
+      "path": "lib/bindings/xui/README.md",
+      "sha256": "9eb953701464d9a86f8c7e936ae9a7ae4ffd48598d015a373353b97cdc33bfd6",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xui\\README.md"
+    },
+    {
+      "path": "lib/bindings/xui/src/bootstrap.xl",
+      "sha256": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xui\\src\\bootstrap.xl"
+    },
+    {
+      "path": "lib/bindings/xui/src/cell.xl",
+      "sha256": "d0380264a7c0a270f5186155eb2cf13cefde37a4228b8e566592f42688534ee8",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xui\\src\\cell.xl"
+    },
+    {
+      "path": "lib/bindings/xui/src/constants.xl",
+      "sha256": "c7c0b50acaec871a993029575a5cd94c53e54b037c3d13dfee930ea78f826d9b",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xui\\src\\constants.xl"
+    },
+    {
+      "path": "lib/bindings/xui/src/managed.xl",
+      "sha256": "20c9dbd0c59bb7b73478da8c5ccbe71668b7dd584b87beabe8ad7e64ad0fe88c",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xui\\src\\managed.xl"
+    },
+    {
+      "path": "lib/bindings/xui/src/records.xl",
+      "sha256": "f42623d9961a4474cfbadd206cf66e5f24c1151bf9763084cfcd623272532779",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xui\\src\\records.xl"
+    },
+    {
+      "path": "lib/bindings/xui/xlang.package.json",
+      "sha256": "3fe7e9fe79c1da2f15da8224c14cad9809d8f7db0f2cc89dbd984cff06c26981",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\lib\\bindings\\xui\\xlang.package.json"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_callbacks.xl",
+      "sha256": "3f18c7a52c2739acf677722a59bfa0ecd6151db7ba162751978df902cffc5142",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\test\\cases\\foreign_xge3_binding_callbacks.xl"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_callbacks_check.py",
+      "sha256": "930d7571fbc70304f33e3da76ca05bfb0da1fa971ccf1211db34b6cb66d93c32",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\test\\cases\\foreign_xge3_binding_callbacks_check.py"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_cell_cycle.h",
+      "sha256": "f99ee541b0497926b5963d082bb92f6045a0ee21c0e6ec71fede726c86f37118",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\test\\cases\\foreign_xge3_binding_cell_cycle.h"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_cell_cycle.xl",
+      "sha256": "c1800f48213a6bcac96ee21f66cfc5674dba32dd1b8d6fc273602633ca1b219f",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\test\\cases\\foreign_xge3_binding_cell_cycle.xl"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_guard.xl",
+      "sha256": "4803f0a19e2ae670f98eb5fa3c2a703e4d3484e0c4e5115e2d80d4d82fdec79d",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\test\\cases\\foreign_xge3_binding_guard.xl"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_merge.c",
+      "sha256": "614377b32b74a9194a844c0679bb1c126b350c00fbd53e13494430a3ead54b1f",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\test\\cases\\foreign_xge3_binding_merge.c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_merge.h",
+      "sha256": "577965becf73a5fcfde4a4164371181345c8e68ea673a7e0dd590241ce4fdf86",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\test\\cases\\foreign_xge3_binding_merge.h"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_merge.xl",
+      "sha256": "ceee0b29c9cbef37fca8aa6577ec3780d1563d7b69a4f145afe32c43303e609d",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\test\\cases\\foreign_xge3_binding_merge.xl"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_scalar.c",
+      "sha256": "fa6545a617834a2d00073d5680c0a91a1f050485a3ce50e6fd53be833d01e4bb",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\test\\cases\\foreign_xge3_binding_scalar.c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_scalar.h",
+      "sha256": "b99012bdeecc205395db9301309601978c0a64a04f5e4441a8226717d890c6c8",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\test\\cases\\foreign_xge3_binding_scalar.h"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_scalar.xl",
+      "sha256": "88fffe09504cc830a0e4b08ea94c6dc9c44c6d3509b12bb1312a9028f152d971",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\test\\cases\\foreign_xge3_binding_scalar.xl"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_terminal.xl",
+      "sha256": "1ec3b4c43db57cec0da763668bd72fbe5b72ba681b85b6c30251b1679de44a26",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\test\\cases\\foreign_xge3_binding_terminal.xl"
+    },
+    {
+      "path": "tools/check_xge3_bindings.py",
+      "sha256": "787b2dbf95069bee6b7f2a8385b8e4b1dfa38fa3f59a9fd2b146a59783f382dd",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-r31-guard-r3\\files\\tools\\check_xge3_bindings.py"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/ubuntu/xlang-validation/public-init-final-r31-linux-r2/results.json",
+      "sha256": "82c6f1f0af4a1feca717637d21a09397c33fe8493756d631091260ad2b56e885",
+      "passed": true,
+      "complete": true
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/cell-script-final-r31-linux-r6/results.json",
+      "sha256": "8e0f7387308d3398daae36a8f78911da90211284cabf1fc94cb5e57f8c236bc1",
+      "passed": true,
+      "complete": true
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/native-tail-final-r31-linux-r1/results.json",
+      "sha256": "d8747a1e48ff70fafc69271e07ffb0cd49fbb16882b59a936d4e5c21ad56605d",
+      "passed": true,
+      "complete": true
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/nested-source-provider-r31-linux-r2/results.json",
+      "sha256": "0d16bda9976bcfee1c55ca03e807f2e8fa4ce4e5741988c6a2a0ac6f309b1080",
+      "passed": true,
+      "complete": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\public-init-final-r31-win-r2\\results.json",
+      "sha256": "4078211169a08ab7e84b59d8a56fd40d9c074974f906893195fe15d9410c445d",
+      "complete": true,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\cell-script-final-r31-win-r6\\results.json",
+      "sha256": "6eb90365babd1c0a074c7c5bca4f82482def671205ccf62b4e21778148481505",
+      "complete": true,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-tail-final-r31-win-r1\\results.json",
+      "sha256": "db1d58b8ca98b0fbf84184231c22b4ac9dc0339f38bd298fb81a92d6249bdc29",
+      "complete": true,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\binding-probes-guard-r31-coverage.json",
+      "sha256": "8b8cc2aa8c3fdbb050ccf69ae3867ef80897393ab139d3ec859f3eaf8c0fa037",
+      "complete": true,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\binding-guard-r31-win-r3\\results.json",
+      "sha256": "9726482a293f85153bb58c78b8fe6561aeef504778a9ea1b0bc9a990becd6d08",
+      "complete": true,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\binding-merge-r31-win-r1\\results.json",
+      "sha256": "375727996f3bd5e57924e069d20313e7459ccc60bbf8dae9fbcadd2a808c7634",
+      "complete": true,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\binding-scalar-r31-win-r1\\results.json",
+      "sha256": "96bd6a8a9776eaeed394bffc1e319fea4ee8f9d4c5605829987293df35044fb3",
+      "complete": true,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\binding-frame-r31-win-r1\\results.json",
+      "sha256": "d72549179781c7f6353389744321af073707005ac7da80eb08ac101903017d77",
+      "complete": true,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\binding-terminal-r31-win-r1\\results.json",
+      "sha256": "4723ea36d2f80c129ce8f2c22f10c038c2d049be75e4fa1fbdd6de27790b3ff9",
+      "complete": true,
+      "passed": true
+    }
+  ],
+  "limitations": [
+    "Compile-only API proof does not cover every runtime path",
+    "Grid Owned drafts withheld; complete upstream inventory kept separately",
+    "xgeGetBuildInfo requires the generic initialized-output contract",
+    "Proxy v17 ownership/native field calls are a later source cohort",
+    "Optional 3D compile-only; debug package requires matched debug SDK and is not default staged"
+  ],
+  "callbackImportInitialization": "Idempotent native identity check per public import context; xge+xui may perform two cold binds",
+  "remaining": [
+    "Proxy v17 shared Font/Surface/Context/Widget ownership",
+    "Remaining retained non-widget publishers",
+    "Final matched full source/SDK/provider and delivery update"
+  ]
+}

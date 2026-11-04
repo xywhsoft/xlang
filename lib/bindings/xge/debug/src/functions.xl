@@ -1,0 +1,4 @@
+export extern "xgeDebugGetStats" @header("xge3_runtime.h") @no_raise @c_output(0,0) func debugGetStats() as DebugStats
+export extern "xgedbgDirtyRectCount" @header("xge3_runtime.h") func dbgDirtyRectCount() as c_int
+export extern "xgedbgDirtyRectGet" @header("xge3_runtime.h") @no_raise @c_output(1,0) func dbgDirtyRectGet(c_int iIndex) as xge.Rect
+export extern "xgedbgDirtyRectClear" @header("xge3_runtime.h") func dbgDirtyRectClear()

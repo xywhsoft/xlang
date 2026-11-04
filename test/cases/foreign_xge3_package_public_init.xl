@@ -1,0 +1,14 @@
+// Ordinary package imports execute the shared private initializer once.
+// The native allocation is deliberately a global initializer, before main.
+import xge
+import xui
+import xge
+import xui
+auto initializedCell=xui.createTableCell()
+func main(...) as int
+ initializedCell.setText("ready globally")
+ assert initializedCell.text()=="ready globally"
+ assert xge.dispatchFrame()==c_int(0)
+ initializedCell.close()
+ return 0
+end

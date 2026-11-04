@@ -1,0 +1,416 @@
+// Requires a matching 3D-enabled native SDK; no feature macros are changed by this module.
+export extern "xge3d_vec3_t" struct Xge3dVec3 @header("xge3_runtime.h")
+ c_float x
+ c_float y
+ c_float z
+end
+
+export extern "xge3d_dvec3_t" struct Xge3dDvec3 @header("xge3_runtime.h")
+ c_double x
+ c_double y
+ c_double z
+end
+
+export extern "xge3d_aabb_t" struct Xge3dAabb @header("xge3_runtime.h")
+ Xge3dVec3 min
+ Xge3dVec3 max
+end
+
+export extern "xge3d_sphere_t" struct Xge3dSphere @header("xge3_runtime.h")
+ Xge3dVec3 center
+ c_float radius
+end
+
+export extern "xge3d_quat_t" struct Xge3dQuat @header("xge3_runtime.h")
+ c_float x
+ c_float y
+ c_float z
+ c_float w
+end
+
+export extern "xge3d_mat4_t" struct Xge3dMat4 @header("xge3_runtime.h")
+ c_float m[16]
+end
+
+export extern "xge3d_node_t" struct Xge3dNode @header("xge3_runtime.h")
+ uint64 slot
+ uint64 scene
+end
+
+export extern "xge3d_transform_t" struct Xge3dTransform @header("xge3_runtime.h")
+ Xge3dVec3 position
+ Xge3dQuat rotation
+ Xge3dVec3 scale
+end
+
+export extern "xge3d_camera_t" struct Xge3dCamera @header("xge3_runtime.h")
+ Xge3dMat4 view
+ Xge3dMat4 projection
+ c_float near_z
+ c_float far_z
+end
+
+export extern "xge3d_vertex_t" struct Xge3dVertex @header("xge3_runtime.h")
+ Xge3dVec3 position
+ Xge3dVec3 normal
+ c_float uv[2]
+ c_float tangent[4]
+ c_float uv1[2]
+ c_ushort joints[4]
+ c_float weights[4]
+end
+
+export extern "xge3d_sampler_t" struct Xge3dSampler @header("xge3_runtime.h")
+ c_int min_filter
+ c_int mag_filter
+ c_int wrap_u
+ c_int wrap_v
+end
+
+export extern "xge3d_ray_t" struct Xge3dRay @header("xge3_runtime.h")
+ Xge3dVec3 origin
+ Xge3dVec3 direction
+end
+
+export extern "xge3d_hit_t" struct Xge3dHit @header("xge3_runtime.h")
+ Xge3dNode node
+ Xge3dNode model_root
+ c_float distance
+ Xge3dVec3 position
+ Xge3dVec3 normal
+ c_size triangle
+end
+
+export extern "xge3d_light_desc_t" struct Xge3dLightDesc @header("xge3_runtime.h")
+ c_int type
+ Xge3dVec3 color
+ Xge3dVec3 direction
+ c_float intensity
+ c_float range
+ c_float inner_angle
+ c_float outer_angle
+ c_int casts_shadow
+end
+
+export extern "xge3d_shadow_settings_t" struct Xge3dShadowSettings @header("xge3_runtime.h")
+ c_int resolution
+ c_int cascades
+ c_float distance
+ c_float split_lambda
+ c_float blend
+ c_float bias
+ c_float normal_bias
+ c_float filter_radius
+ c_float depth_padding
+end
+
+export extern "xge3d_fog_settings_t" struct Xge3dFogSettings @header("xge3_runtime.h")
+ Xge3dVec3 color
+ c_float start
+ c_float endValue @c_name("end")
+end
+
+export extern "xge3d_render_stats_t" struct Xge3dRenderStats @header("xge3_runtime.h")
+ c_uint draw_calls
+ uint64 triangles
+ uint64 upload_bytes
+ c_uint shadow_draw_calls
+ c_uint shadow_maps
+ c_uint visible_meshes
+ c_uint culled_meshes
+ c_uint instanced_draw_calls
+ uint64 instances
+end
+
+export extern "xge3d_terrain_info_t" struct Xge3dTerrainInfo @header("xge3_runtime.h")
+ c_size width
+ c_size depth
+ c_size chunk_count
+ c_int lod_count
+ Xge3dAabb bounds
+end
+
+export extern "xge3d_color_settings_t" struct Xge3dColorSettings @header("xge3_runtime.h")
+ c_uint size
+ c_int tone_mapping
+ c_float saturation
+ c_float contrast
+ Xge3dVec3 gain
+end
+
+export extern "xge3d_bloom_settings_t" struct Xge3dBloomSettings @header("xge3_runtime.h")
+ c_uint size
+ c_float strength
+ c_float threshold
+ c_float knee
+ c_int levels
+end
+
+export extern "xge3d_bloom_info_t" struct Xge3dBloomInfo @header("xge3_runtime.h")
+ c_uint size
+ c_uint levels
+ c_uint passes
+ uint64 storage_bytes
+end
+
+export extern "xge3d_height_fog_settings_t" struct Xge3dHeightFogSettings @header("xge3_runtime.h")
+ c_uint size
+ Xge3dVec3 color
+ c_double height
+ c_float density
+ c_float falloff
+ c_float max_opacity
+end
+
+export extern "xge3d_model_info_t" struct Xge3dModelInfo @header("xge3_runtime.h")
+ c_size node_count
+ c_size primitive_count
+ c_size material_count
+ c_size animation_count
+ c_size skin_count
+ c_size truncated_weight_vertices
+end
+
+export extern "xge3d_release_budget_t" struct Xge3dReleaseBudget @header("xge3_runtime.h")
+ c_size operations
+ uint64 microseconds
+end
+
+export extern "xge3d_retirement_info_t" struct Xge3dRetirementInfo @header("xge3_runtime.h")
+ c_uint size
+ c_size operations
+ c_size total_operations
+ c_int completed
+end
+
+export extern "xge3d_loader_desc_t" struct Xge3dLoaderDesc @header("xge3_runtime.h")
+ c_size max_requests
+ c_uint flags
+end
+
+export extern "xge3d_request_t" struct Xge3dRequest @header("xge3_runtime.h")
+ uint64 slot
+ uint64 loader
+end
+
+export extern "xge3d_request_info_t" struct Xge3dRequestInfo @header("xge3_runtime.h")
+ c_int state
+ c_int result
+ c_int pending_cleanup
+ uint64 uploaded_bytes
+ uint64 total_bytes
+end
+
+export extern "xge3d_upload_budget_t" struct Xge3dUploadBudget @header("xge3_runtime.h")
+ uint64 bytes
+ uint64 microseconds
+ c_uint operations
+end
+
+export extern "xge3d_upload_stats_t" struct Xge3dUploadStats @header("xge3_runtime.h")
+ uint64 upload_bytes
+ uint64 min_next_bytes
+ c_uint operations
+ c_uint completed
+ c_uint failed
+end
+
+export extern "xge3d_bone_binding_t" struct Xge3dBoneBinding @header("xge3_runtime.h")
+ c_size source
+ c_size target
+end
+
+export extern "xge3d_animation_event_t" struct Xge3dAnimationEvent @header("xge3_runtime.h")
+ c_int layer
+ c_uint id
+ c_float time
+end
+
+export extern "xge3d_root_motion_t" struct Xge3dRootMotion @header("xge3_runtime.h")
+ Xge3dVec3 translation
+ Xge3dQuat rotation
+end
+
+export extern "xge3d_playback_info_t" struct Xge3dPlaybackInfo @header("xge3_runtime.h")
+ c_uint size
+ c_float time
+ c_float duration
+ c_float speed
+ c_float weight
+ c_float target_weight
+ c_float fade_remaining
+ c_int active
+ c_int paused
+ c_int finished
+ c_int loop
+ c_int mode
+ c_int transitioning
+ c_int stopping
+end
+
+export extern "xge3d_work_budget_t" struct Xge3dWorkBudget @header("xge3_runtime.h")
+ c_size nodes
+ uint64 microseconds
+end
+
+export extern "xge3d_query_filter_t" struct Xge3dQueryFilter @header("xge3_runtime.h")
+ c_uint layers
+ c_int include_hidden
+end
+
+export extern "xge3d_scene_stats_t" struct Xge3dSceneStats @header("xge3_runtime.h")
+ c_uint size
+ uint64 world_updates
+ uint64 bounds_updates
+ uint64 spatial_builds
+ uint64 spatial_refits
+ uint64 query_tree_visits
+ uint64 query_mesh_tests
+ uint64 destroyed_nodes
+ c_size nodes
+ c_size spatial_bytes
+end
+
+export extern "xge3d_renderer_options_t" struct Xge3dRendererOptions @header("xge3_runtime.h")
+ c_uint size
+ c_uint render_layers
+ c_uint shadow_layers
+ c_uint max_lights
+ c_int profiling
+end
+
+export extern "xge3d_render_profile_t" struct Xge3dRenderProfile @header("xge3_runtime.h")
+ c_uint size
+ uint64 total_cpu_us
+ uint64 collect_cpu_us
+ uint64 shadow_cpu_us
+ uint64 submit_cpu_us
+ uint64 gpu_ns
+ uint64 gpu_sample
+ c_uint candidate_lights
+ c_uint selected_lights
+ c_uint skipped_lights
+ c_int gpu_available
+end
+
+export extern "xge3d_resource_info_t" struct Xge3dResourceInfo @header("xge3_runtime.h")
+ c_uint size
+ uint64 cpu_payload_bytes
+ uint64 gpu_payload_bytes
+ c_size vertices
+ c_size indices
+ c_size textures
+ c_uint references
+end
+
+export extern "xge3d_asset_memory_t" struct Xge3dAssetMemory @header("xge3_runtime.h")
+ c_size size
+ uint64 cpu_storage_bytes
+ uint64 gpu_required_bytes
+ uint64 source_bytes
+ uint64 parser_bytes
+end
+
+export extern "xge3d_decode_budget_info_t" struct Xge3dDecodeBudgetInfo @header("xge3_runtime.h")
+ c_size size
+ uint64 limit
+ uint64 live_bytes
+ uint64 peak_bytes
+ uint64 live_allocations
+ uint64 rejections
+end
+
+export extern "xge3d_cache_stats_t" struct Xge3dCacheStats @header("xge3_runtime.h")
+ c_uint size
+ c_size models
+ c_size textures
+ c_size requests
+ c_size pending
+ uint64 cpu_storage_bytes
+ uint64 gpu_required_bytes
+ uint64 hits
+ uint64 misses
+ uint64 coalesced
+ uint64 evictions
+ uint64 shared_textures
+ c_int over_budget
+end
+
+export extern "xge3d_cache_request_t" struct Xge3dCacheRequest @header("xge3_runtime.h")
+ uint64 slot
+ uint64 cache
+end
+
+export extern "xge3d_collision_filter_t" struct Xge3dCollisionFilter @header("xge3_runtime.h")
+ c_uint layers
+ Xge3dNode exclude
+end
+
+export extern "xge3d_collision_hit_t" struct Xge3dCollisionHit @header("xge3_runtime.h")
+ Xge3dNode node
+ Xge3dVec3 position
+ Xge3dVec3 normal
+ c_float fraction
+ c_float distance
+ c_size triangle
+ c_int started_overlapping
+end
+
+export extern "xge3d_collision_stats_t" struct Xge3dCollisionStats @header("xge3_runtime.h")
+ c_size colliders
+ c_size triangle_bvh_bytes
+ uint64 triangle_tests
+end
+
+export extern "xge3d_contact_t" struct Xge3dContact @header("xge3_runtime.h")
+ Xge3dCollisionHit hit
+ c_float depth
+end
+
+export extern "xge3d_motion_settings_t" struct Xge3dMotionSettings @header("xge3_runtime.h")
+ c_uint size
+ c_int iterations
+ c_float margin
+ c_float max_recovery
+end
+
+export extern "xge3d_motion_result_t" struct Xge3dMotionResult @header("xge3_runtime.h")
+ c_uint size
+ c_uint flags
+ c_int iterations
+ c_int contact_count
+ Xge3dVec3 displacement
+ Xge3dVec3 recovery
+ Xge3dVec3 remainder
+ Xge3dVec3 normals[8]
+end
+
+export extern "xge3d_particle_desc_t" struct Xge3dParticleDesc @header("xge3_runtime.h")
+ c_uint size
+ c_uint capacity
+ c_uint seed
+ c_float rate
+ c_float life_min
+ c_float life_max
+ c_float speed_min
+ c_float speed_max
+ c_float size_start
+ c_float size_end
+ c_float spread
+ c_float drag
+ Xge3dVec3 position
+ Xge3dVec3 direction
+ Xge3dVec3 gravity
+ c_float color_start[4]
+ c_float color_end[4]
+ c_int columns
+ c_int rows
+ c_float fps
+end
+
+export extern "xge3d_particle_info_t" struct Xge3dParticleInfo @header("xge3_runtime.h")
+ c_uint size
+ c_uint alive
+ uint64 emitted
+ uint64 dropped
+end
