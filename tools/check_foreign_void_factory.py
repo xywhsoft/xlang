@@ -60,6 +60,8 @@ def main():
     assert 'native_status' not in text
     assert 'inplace_void_plain_init(native_raw' in text and 'inplace_void_init(native_raw' in text
     assert 'native_storage_adopted' in text and 'xrtCalloc' in text
+    assert 'XL6_FOREIGN_RESULT_RECORD_UNADOPTED' in text and 'xl6ForeignResultProbeOwnRecordV1' in text
+    assert 'xl6ForeignResultProbeStorageAdoptedV1' in text and 'xrtFree(native_raw)' not in text
     runtime = runtime_directory(root)/'xl.dll' if os.name=='nt' else Path(build['RuntimeLibrary'])
     sdk=runtime_directory(root) if os.name=='nt' else Path(build.get('SdkDirectory',root/'release/win_x64'))
     if os.name!='nt':env['LD_LIBRARY_PATH']=str(runtime.parent)+':'+env.get('LD_LIBRARY_PATH','')

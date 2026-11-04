@@ -73,7 +73,8 @@ static void clear_record(SyncRecord* record)
 {if(record->payload){xrtFree(record->payload);--syncLive;}*record=(SyncRecord){0};}
 void sync_rollback(SyncRecord* record){++syncRollbacks;clear_record(record);}
 static bool destroy_record(void* raw){++syncDestroys;clear_record(raw);xrtFree(raw);return true;}
-const XL6_ForeignViewDescriptorV1 syncRecordPolicy={sizeof(syncRecordPolicy),XL6_FOREIGN_VIEW_V1_TAG,"sync.record",0,1,NULL,NULL,destroy_record,0,1,NULL,NULL,NULL,NULL};
+static bool destroy_unadopted_record(void* raw){sync_rollback(raw);xrtFree(raw);return true;}
+const XL6_ForeignViewDescriptorV1 syncRecordPolicy={sizeof(syncRecordPolicy),XL6_FOREIGN_VIEW_V1_TAG,"sync.record",0,1,NULL,NULL,destroy_record,0,1,NULL,NULL,NULL,NULL,0,destroy_unadopted_record,NULL};
 void sync_factory(SyncRecord* record,SyncAction callback,void* user,int mode)
 {
     assert(record && !record->payload);

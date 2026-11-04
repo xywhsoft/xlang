@@ -1,0 +1,152 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Source milestone: reserve control storage, native lifetime observation and code lease before Native owner production; allocation-free materialization, consuming phase-aware compiler-record rollback and checked retry with exact actual owner retained. Tag4 unpublished descriptor/probe ABI. Includes only seven semantic runtime kernel/tool files plus 22 compiler/fixture/gate files; excludes line-ending-only snapshot differences and shared private XUI/docs WIP.",
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\reservation-cgen-integration-r2.json",
+      "sha256": "d960f1bdb3d8416bf8a8506c1c2e944b94b8f5c6413423010d867f28226fb31b",
+      "rows": 20
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\foreign-reservation-win-dev-r8\\results.json",
+      "sha256": "763913cc2e49ffb70142ea10e2d79d70a1f83520509de98f43d27a7e5fddbb8e",
+      "rows": 28
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\foreign-reservation-regression-win-r2\\results.json",
+      "sha256": "98d1409be63bf5271d6a6dd540462b193bb64bf9b8fb549dbf23c8504a2dffce",
+      "rows": 22
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-reservation-linux-r2\\results.json",
+      "sha256": "3943dcb887d64a515d7df22ffdfe18cfe9160882c3c6755815e7661c1ea36b13",
+      "rows": 28
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-reservation-regression-linux-r2\\results.json",
+      "sha256": "812f93d1e90c38bf2ee7b8d6c766c1288e46f4fc6f5f936b41dd158c42e79055",
+      "rows": 22
+    }
+  ],
+  "files": [
+    {
+      "path": "src/runtime/xl6_foreign_view.c",
+      "sha256": "6b1c03e5986a2b851ea00f9a8f9e1c3cd2866e29b8e030f7625529d5a7d24cad"
+    },
+    {
+      "path": "src/runtime/xl6_foreign_view.h",
+      "sha256": "8f88d2ab63cfc926d968c9f17e6cab2231026a73691cfc1851d783801295296d"
+    },
+    {
+      "path": "src/runtime/xl6_foreign_view_abi.h",
+      "sha256": "638741e6f1661104833a61301cf1cfdd1e760f1fd99c9f5f0c9c674f8d1c1955"
+    },
+    {
+      "path": "test/support/foreign_factory_reservation.c",
+      "sha256": "828812947f9fcdc9c89ec74a49a3e577aa0cb4f1d9da4f87ff7017ba5551c942"
+    },
+    {
+      "path": "test/support/foreign_view.c",
+      "sha256": "9b95585282bdafbf45a6e593dbf088af32a4dc8f36bda952f95c1866aedcb79e"
+    },
+    {
+      "path": "test/support/foreign_view_native_fixture.h",
+      "sha256": "6f17429f32464da2843c0b3da80095a61fee8e0c2442ee1680702e6f1c4a2dfc"
+    },
+    {
+      "path": "tools/check_foreign_views.py",
+      "sha256": "e2950b444d83a29406e7def2e18c6472d834edcb97cc1c585915cb1994b7e9db"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_foreign_view.c",
+      "sha256": "ec2123c89828c531060f5590e85a4631ab9ddccc0a2fa0d2f03afdf434278811"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_foreign_output_view.c",
+      "sha256": "add54d130de54f981eef9443b26284d8783b4ca522f67702abcd53b1705fc8b1"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_native_dependencies.c",
+      "sha256": "87547bcc7d7ea632ee8ccd58bb4a67429b6b525822c1b8a0ae26b2c5ac194075"
+    },
+    {
+      "path": "src/api/xl_api_symbols.c",
+      "sha256": "f15551ab74157ddc2f76a05b2b981216453fb8a166becd2b71cec6c95fcd618c"
+    },
+    {
+      "path": "src/compile/xl6_artifact_runtime_symbols.inc",
+      "sha256": "812e1bf5c137d81870dc5a68de6d3d06ec624db47ea20a6cad9c5eefe0bbff66"
+    },
+    {
+      "path": "test/cases/foreign_inplace_factory_native.c",
+      "sha256": "37635debf7465d5072c9a43fe3d65c7ad51e135fe15ddf3f8915da2e8586d9b3"
+    },
+    {
+      "path": "test/cases/foreign_sync_callback_native.c",
+      "sha256": "ce1c766bc45f2db2d78540d2edee4e813052396213d2b4eadf3e4bba9e7e71f4"
+    },
+    {
+      "path": "test/cases/foreign_value_projection_native.c",
+      "sha256": "a075f9187fb6cc1d766ae0791947384e02bcc89ca33cc72cf60db923a14d8250"
+    },
+    {
+      "path": "test/cases/foreign_xge_resources_native.c",
+      "sha256": "62fe48ab5a06c3ca810fd88726c6496359c1165e8ef18930c3c690f2ff821837"
+    },
+    {
+      "path": "test/cases/foreign_managed_view_native.c",
+      "sha256": "7d43e84c0ca5a49a30498cc9e14625a5446951aa6524797fbe84dcad9892f461"
+    },
+    {
+      "path": "test/cases/foreign_dereference_native.c",
+      "sha256": "97540873129d65e1b3290c3592579e160a3f8333960a0f51af48fdb30f9f1173"
+    },
+    {
+      "path": "test/cases/foreign_xui_declarative_native.c",
+      "sha256": "c4f61ebb7d3d4a09b772dfbec1c3d85c14dd945d89754d2f1c0d695c2c1aaf1b"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_rollback.c",
+      "sha256": "5d7a502b1f703ba204a5aa5dd9b55428ebf54a52e2f5ddf86a86d06c11588f0d"
+    },
+    {
+      "path": "test/cases/foreign_managed_view.xl",
+      "sha256": "dc597ff190691208e36c2a72d35f70dc188b7729b746d4ec1f765f395b7d9783"
+    },
+    {
+      "path": "test/cases/foreign_inplace_factory.xl",
+      "sha256": "588bddc459bf197d461f3c6e3c3bd4b156965ebf2b74b3f7b0e47dbdd8021bdb"
+    },
+    {
+      "path": "test/cases/foreign_retained_result.xl",
+      "sha256": "84e5ebccf1069a43d047fe4e801b17cd3cd1e0caca67411ca1d89666fd53b81f"
+    },
+    {
+      "path": "test/cases/foreign_void_factory.xl",
+      "sha256": "66c928f540db707d770f435bfce0c1a02d48dcc18d34e672f296af36c92de24b"
+    },
+    {
+      "path": "tools/check_foreign_managed_views.py",
+      "sha256": "9bfd70644e49d277a324d72103f4a305b50b0124fa15999228cd3204dffaf2e4"
+    },
+    {
+      "path": "tools/check_foreign_expanded_calls.py",
+      "sha256": "c58b9dd2d06f54517c6ea4100ff2975463ca44fa8f4e31879ff6a4f2646dc324"
+    },
+    {
+      "path": "tools/check_foreign_retained_result.py",
+      "sha256": "dcaa61143a671f1e1aeb8efbc665b8963d15258f46b16ca40e1edd68b83eb105"
+    },
+    {
+      "path": "tools/check_foreign_inplace_factory.py",
+      "sha256": "b6001d817dbbac4bb53d1386a9328b83f4b961fd03db7d80e3a90c15a7c44b1f"
+    },
+    {
+      "path": "tools/check_foreign_void_factory.py",
+      "sha256": "56ba411594738891542b50d5c53150b791e7e6c7bbe30e337f8c80b8db283719"
+    }
+  ],
+  "qualification": "Runtime focused 28 rows plus 22 existing regression rows per platform; 360 actual language integration steps on explicit R33 partial compiler/runtime overlays. No matched full-source VFS/JIT/AOT/shipping claim. Independent reports-failure deferred-destroy extension remains later work.",
+  "shippingDelivery": false
+}

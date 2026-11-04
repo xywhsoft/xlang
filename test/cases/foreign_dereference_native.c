@@ -39,7 +39,7 @@ static bool trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
 {const DerefRoot* root=raw;return !root->owner.reference.Ops || visit(root->owner.reference,user);}
 static bool busy(const void* raw){return ((const DerefRoot*)raw)->depth!=0;}
 const XL6_ForeignViewDescriptorV1 derefRootPolicy={sizeof(derefRootPolicy),XL6_FOREIGN_VIEW_V1_TAG,"deref.test.root",
-    sizeof(DerefWatch),_Alignof(DerefWatch),watch,unwatch,destroy,sizeof(DerefScope),_Alignof(DerefScope),begin,end,trace,busy};
+    sizeof(DerefWatch),_Alignof(DerefWatch),watch,unwatch,destroy,sizeof(DerefScope),_Alignof(DerefScope),begin,end,trace,busy,XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH,NULL,NULL};
 int deref_create(DerefRoot** out){*out=xrtCalloc(1,sizeof(**out));return *out ? 0 : -1;}
 void deref_on(DerefRoot* root,DerefCallback fn,void* user,const DerefOwner* incoming)
 {

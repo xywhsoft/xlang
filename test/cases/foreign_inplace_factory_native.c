@@ -12,7 +12,7 @@ void inplace_plain_free(PlainRecord* record)
 {if(record->payload){xrtFree(record->payload);--live;}*record=(PlainRecord){0};}
 int inplace_plain_read(PlainRecord* record){assert(record && record->payload);return record->value;}
 static bool destroy_plain(void* raw){inplace_plain_free(raw);xrtFree(raw);return true;}
-const XL6_ForeignViewDescriptorV1 inplacePlainPolicy={sizeof(inplacePlainPolicy),XL6_FOREIGN_VIEW_V1_TAG,"inplace.plain",0,1,NULL,NULL,destroy_plain,0,1,NULL,NULL,NULL,NULL};
+const XL6_ForeignViewDescriptorV1 inplacePlainPolicy={sizeof(inplacePlainPolicy),XL6_FOREIGN_VIEW_V1_TAG,"inplace.plain",0,1,NULL,NULL,destroy_plain,0,1,NULL,NULL,NULL,NULL,0,destroy_plain,NULL};
 int inplace_init(InplaceRecord* record,int mode,xstrview text)
 {
     assert(record && !record->refs && !record->payload && !record->adopted);
@@ -49,4 +49,10 @@ int inplace_live(void){return live;}
 void inplace_fail_after(int count){(void)xrtMemDebugFailAfter(count);}
 void inplace_reset(void){(void)xrtMemDebugFailAfter(-1);}
 static bool destroy(void* raw){inplace_free(raw);return true;}
-const XL6_ForeignViewDescriptorV1 inplacePolicy={sizeof(inplacePolicy),XL6_FOREIGN_VIEW_V1_TAG,"inplace.record",0,1,NULL,NULL,destroy,0,1,NULL,NULL,NULL,NULL};
+static bool destroy_unadopted(void* raw)
+{
+    InplaceRecord* record=raw;
+    if(record->adopted || record->refs>1){xrtSetErrorKind(XERR_STATE);return false;}
+    inplace_free(record);xrtFree(record);return true;
+}
+const XL6_ForeignViewDescriptorV1 inplacePolicy={sizeof(inplacePolicy),XL6_FOREIGN_VIEW_V1_TAG,"inplace.record",0,1,NULL,NULL,destroy,0,1,NULL,NULL,NULL,NULL,0,destroy_unadopted,NULL};

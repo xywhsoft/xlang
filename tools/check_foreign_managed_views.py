@@ -56,7 +56,8 @@ def main():
     run('ir', [driver, source, 'ir-lowered', out/'ir.json'])
     text = generated.read_text(encoding='utf-8-sig')
     assert 'managed_root_create(' in text and 'xl6ForeignViewCallBeginV1' in text
-    assert 'xl6ForeignViewCreateRootProbedV1' in text and 'xl6ForeignViewBorrowChildV1' in text
+    assert 'xl6ForeignResultProbeReserveRootV1' in text and 'xl6ForeignResultProbeMaterializeRootV1' in text
+    assert 'xl6ForeignViewBorrowChildV1' in text and 'xl6ForeignViewCreateRootProbedV1' not in text
     runtime = runtime_directory(root)/'xl.dll' if os.name=='nt' else Path(build['RuntimeLibrary'])
     sdk=runtime_directory(root) if os.name=='nt' else Path(build.get('SdkDirectory',root/'release/win_x64'))
     if os.name!='nt':env['LD_LIBRARY_PATH']=str(runtime.parent)+':'+env.get('LD_LIBRARY_PATH','')

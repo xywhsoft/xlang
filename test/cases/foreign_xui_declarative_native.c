@@ -36,9 +36,9 @@ static bool trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
 {return xuiContextTraceOwnership((xui_context)raw,visit,user);}
 const XL6_ForeignViewDescriptorV1 declarativeXuiContextPolicy={sizeof(declarativeXuiContextPolicy),XL6_FOREIGN_VIEW_V1_TAG,"xui_context",
     sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_context,unwatch,destroy_context,
-    sizeof(xui_call_scope_t),_Alignof(xui_call_scope_t),begin,end,trace,busy};
+    sizeof(xui_call_scope_t),_Alignof(xui_call_scope_t),begin,end,trace,busy,XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH,NULL,NULL};
 const XL6_ForeignViewDescriptorV1 declarativeXuiWidgetPolicy={sizeof(declarativeXuiWidgetPolicy),XL6_FOREIGN_VIEW_V1_TAG,"xui_widget",
-    sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_widget,unwatch,destroy_widget,0,1,NULL,NULL,NULL,NULL};
+    sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_widget,unwatch,destroy_widget,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
 void declarative_xui_start(void)
 {
     size_t i=0;

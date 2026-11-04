@@ -56,6 +56,15 @@ end
 func failures()
  int mode=1
  while mode<8
+  if mode==4 then
+   Record noAlloc=create(c_int(mode),"fault")
+   resetFailure()
+   assert noAlloc.value==5
+   noAlloc.close()
+   assert live()==0
+   mode+=1
+   continue
+  end
   bool caught=false
   try
    Record invalid=create(c_int(mode),"fault")

@@ -1,4 +1,6 @@
 #include "test/cases/foreign_xge3_binding_rollback.h"
+#include <__xl_runtime/xl_foreign_error.h>
+#include <__xl_runtime/xl6_callback_failure.h>
 #include <assert.h>
 struct BindingRollbackRoot { int mode; };
 static int live,calls;
@@ -27,6 +29,15 @@ int binding_rollback_release_42(BindingRollbackRoot* value)
 void binding_rollback_reset(void){xrtMemDebugFailClear();}
 int binding_rollback_live(void){return live;}
 int binding_rollback_calls(void){return calls;}
-static bool destroy(void* raw){(void)binding_rollback_release(raw);return true;}
+static bool destroy(void* raw)
+{
+ int status=binding_rollback_release(raw);
+ if(status){
+  if(!xrtGetError())xl6ForeignStatusFailureV1(status,"binding_rollback_release");
+  xl6_error_result failure={false,xrtTakeError()};
+  if(!xl6ErrorScopeTryPropagateFailureV1(&failure))xl6CallbackFailureRecordV1(failure);
+ }
+ return true;
+}
 const XL6_ForeignViewDescriptorV1 bindingRollbackPolicy={
- sizeof(bindingRollbackPolicy),XL6_FOREIGN_VIEW_V1_TAG,"binding.rollback.root",0,1,NULL,NULL,destroy,0,1,NULL,NULL,NULL,NULL};
+ sizeof(bindingRollbackPolicy),XL6_FOREIGN_VIEW_V1_TAG,"binding.rollback.root",0,1,NULL,NULL,destroy,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};

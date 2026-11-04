@@ -1,6 +1,7 @@
 /* Each raw output has its exact physical type, separate from owned results. */
 static void xl6IrCgenRetainedViewAdmission(XL6_Output*,const XL6_IrModule*,XL6_IrTypeId,
     const XL6_ForeignRetainContract*,const char*,const char*,const char*);
+static void xl6IrCgenReserveRootProbe(XL6_Output*,const XL6_IrType*,int);
 static const char* xl6IrCgenOutputRawType(const XL6_IrModule* module,
     const XL6_IrCallTarget* target,size_t ordinal)
 {
@@ -46,8 +47,9 @@ static int xl6IrCgenOutputValuesAdmit(XL6_Output* out,const XL6_IrModule* module
             XL6_ForeignRetainContract retain={0};retain.retainSymbol=row->retainSymbol;retain.rollbackSymbol=row->rollbackSymbol;retain.success=row->retainSuccess;
             xl6OutputPrintf(out,"    { XL6_ForeignResultProbeV1 native_result_probe={0};\n"
                 "      if (!%s.failed && !xrtGetError()) {\n"
-                "        if (!xl6ForeignResultProbePrepareV1(&native_result_probe,&%s,true,NULL,0)) xl6ErrorScopeCaptureFailure(&%s);\n"
-                "        else {\n",scope,type->foreignPolicy,scope);
+                "        if (!",scope);
+            xl6IrCgenReserveRootProbe(out,type,0);
+            xl6OutputPrintf(out,") xl6ErrorScopeCaptureFailure(&%s);\n        else {\n",scope);
             xl6IrCgenRetainedViewAdmission(out,module,row->logicalType,&retain,admitted,raw,scope);
             xl6OutputPrintf(out,"        }\n      }\n      if (native_result_probe.self && !xl6ForeignResultProbeEndV1(&native_result_probe)) xl6ErrorScopeCaptureFailure(&%s);\n    }\n",scope);
         }else if(row)xl6IrCgenEmitBorrowedOwnedAdmission(out,module,row->logicalType,

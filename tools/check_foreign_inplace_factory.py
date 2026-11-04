@@ -57,6 +57,8 @@ def main():
     run('ir', [driver, source, 'ir-lowered', out/'ir.json'])
     text = generated.read_text(encoding='utf-8-sig')
     assert 'native_storage_adopted' in text and 'sizeof(InplaceRecord)' in text
+    assert 'XL6_FOREIGN_RESULT_RECORD_UNADOPTED' in text and 'xl6ForeignResultProbeOwnRecordV1' in text
+    assert 'xl6ForeignResultProbeStorageAdoptedV1' in text and 'xrtFree(native_raw)' not in text
     assert 'in-place native record pointer' in text and 'in-place native record size/alignment' in text
     assert 'inplace_init(native_raw' in text
     runtime = runtime_directory(root)/'xl.dll' if os.name=='nt' else Path(build['RuntimeLibrary'])

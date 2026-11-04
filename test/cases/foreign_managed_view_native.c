@@ -111,10 +111,10 @@ ManagedChild* managed_reader_child(void* self,ManagedRoot* root)
 const XL6_ForeignViewDescriptorV1 managedRootPolicy={
     sizeof(managedRootPolicy),XL6_FOREIGN_VIEW_V1_TAG,"managed.test.root",
     sizeof(ManagedWatch),_Alignof(ManagedWatch),rootWatch,unwatch,destroyRoot,
-    sizeof(ManagedScope),_Alignof(ManagedScope),begin,end,traceRoot,busy};
+    sizeof(ManagedScope),_Alignof(ManagedScope),begin,end,traceRoot,busy,XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH,NULL,NULL};
 const XL6_ForeignViewDescriptorV1 managedChildPolicy={
     sizeof(managedChildPolicy),XL6_FOREIGN_VIEW_V1_TAG,"managed.test.child",
-    sizeof(ManagedWatch),_Alignof(ManagedWatch),childWatch,unwatch,destroyChild,0,1,NULL,NULL,NULL,NULL};
+    sizeof(ManagedWatch),_Alignof(ManagedWatch),childWatch,unwatch,destroyChild,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
 
 void managed_set_callback(ManagedRoot* root,ManagedCallback fn,void* data,const ManagedCallbackOwner* owner)
 {

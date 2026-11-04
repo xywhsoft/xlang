@@ -34,13 +34,27 @@ typedef struct XL6_ForeignResultProbeV1 {
     bool root;
     bool live;
     bool observed;
+    XL6_ForeignView* reservedRoot;
+    bool failed;
 } XL6_ForeignResultProbeV1;
+#define XL6_FOREIGN_RESULT_RECORD_UNADOPTED 1u
+/* Reserve every allocation/lease before an owning producer or Retain. A
+ * compiler record is bound immediately after its allocation, before the
+ * constructor can fail. Observe transfers a real native owner even when the
+ * producer's separate checked outcome failed. End queues any unmaterialized
+ * owner for checked retirement; BUSY never discards its native address/code. */
+XL6_CODE_LEASE_API bool xl6ForeignResultProbeReserveRootV1(XL6_ForeignResultProbeV1*,
+    const XL6_ForeignViewDescriptorV1*,const XL6_OwnershipDomainV1*,const XL6_CodeOwner*,
+    size_t typedWatchBytes,size_t typedWatchAlignment,unsigned modeFlags);
+XL6_CODE_LEASE_API bool xl6ForeignResultProbeOwnRecordV1(XL6_ForeignResultProbeV1*,void*);
+XL6_CODE_LEASE_API bool xl6ForeignResultProbeStorageAdoptedV1(XL6_ForeignResultProbeV1*);
+XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignResultProbeMaterializeRootV1(XL6_ForeignResultProbeV1*);
 XL6_CODE_LEASE_API bool xl6ForeignResultProbePrepareV1(XL6_ForeignResultProbeV1*,
     const XL6_ForeignViewDescriptorV1*,bool root,void*,size_t);
-XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewCreateRootProbedV1(void*,XL6_ForeignResultProbeV1*,const XL6_CodeOwner*);
+XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewCreateRootProbedV1(const void*,XL6_ForeignResultProbeV1*,const XL6_CodeOwner*);
 XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewCreateRootWithDomainProbedV1(
-    void*,XL6_ForeignResultProbeV1*,const XL6_OwnershipDomainV1*,const XL6_CodeOwner*);
-XL6_CODE_LEASE_API bool xl6ForeignResultProbeObserveV1(XL6_ForeignResultProbeV1*,void*);
+    const void*,XL6_ForeignResultProbeV1*,const XL6_OwnershipDomainV1*,const XL6_CodeOwner*);
+XL6_CODE_LEASE_API bool xl6ForeignResultProbeObserveV1(XL6_ForeignResultProbeV1*,const void*);
 XL6_CODE_LEASE_API bool xl6ForeignResultProbeAliveV1(const XL6_ForeignResultProbeV1*);
 XL6_CODE_LEASE_API bool xl6ForeignResultProbeEndV1(XL6_ForeignResultProbeV1*);
 #endif

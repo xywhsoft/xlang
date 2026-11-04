@@ -10,23 +10,26 @@ def main():
     p.add_argument('--out',type=Path,required=True)
     p.add_argument('--cc',default='gcc')
     p.add_argument('--sanitize',action='store_true')
+    p.add_argument('--factories',action='store_true',help='test preallocated owned factory/record retirement')
     p.add_argument('--captures',action='store_true',help='test graph capture schema and typed closures')
     p.add_argument('--contexts',action='store_true',help='test thread/fiber execution-context isolation')
     p.add_argument('--tcc-contexts',action='store_true',help='also compile/run contexts with actual Windows TinyCC')
     a=p.parse_args(); root,runtime,out=[x.resolve() for x in (a.root,a.runtime,a.out)]
     cc=shutil.which(a.cc); assert cc
-    assert not(a.captures and a.contexts)
+    assert sum((a.captures,a.contexts,a.factories))<=1
     assert not a.tcc_contexts or (a.contexts and os.name=='nt')
     out.mkdir(parents=True,exist_ok=False); (out/'tmp').mkdir()
-    fixture='foreign_view_capture.c' if a.captures else 'foreign_view_context.c' if a.contexts else 'foreign_view.c'
+    fixture='foreign_factory_reservation.c' if a.factories else 'foreign_view_capture.c' if a.captures else 'foreign_view_context.c' if a.contexts else 'foreign_view.c'
     sources=[root/('test/support/'+fixture),root/'src/runtime/xl6_foreign_view.c',
-        root/'src/runtime/xl6_foreign_callback_scope.c',root/'src/runtime/xl6_foreign_context.c']
+        root/'src/runtime/xl6_foreign_callback_scope.c',root/'src/runtime/xl6_foreign_context.c',
+        root/'src/runtime/xl6_foreign_scope_view.c',root/'src/runtime/xl6_ownership_catalog.c',
+        root/'src/runtime/xl6_code_lease.c',root/'src/api/xl_foreign_error.c']
     if a.captures:
         sources += [root/('src/runtime/'+name+'.c') for name in ('xl6_native_capture_graph','xl6_foreign_view_capture','xl6_capture_v3','xl6_closure_capture_v4')]
     sha=lambda path:hashlib.sha256(path.read_bytes()).hexdigest()
     inputs={str(path):sha(path) for path in [Path(__file__).resolve(),runtime,*sources,root/'test/support/foreign_view_native_fixture.h',
         *sorted((root/'src/runtime').glob('*.h')),*sorted((root/'src/common').glob('*.h')),
-        *sorted((root/'src/api').glob('*.h')),*sorted((root/'release/include').glob('*.h'))]}
+        *sorted((root/'src/api').glob('*.h')),*sorted((root/'release/win_x64/include').glob('*.h'))]}
     if a.tcc_contexts:
         inputs.update({str(path):sha(path) for path in (root/'release/xl.exe',root/'release/xlc.dll')})
     env=dict(os.environ,TEMP=str(out/'tmp'),TMP=str(out/'tmp'),TMPDIR=str(out/'tmp'))
@@ -34,7 +37,7 @@ def main():
     if a.sanitize:
         assert os.name!='nt'
         env.update(ASAN_OPTIONS='detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1')
-    report=dict(complete=False,passed=False,scope=__doc__,captureSchema=a.captures,executionContexts=a.contexts,networkTests=False,
+    report=dict(complete=False,passed=False,scope=__doc__,captureSchema=a.captures,executionContexts=a.contexts,factoryReservations=a.factories,networkTests=False,
         sourceSanitizers=a.sanitize,sharedRuntimeInstrumented=False,compiler=cc,compilerSha256=sha(Path(cc)),
         inputs=inputs,rows=[])
     def save(): (out/'results.json').write_bytes((json.dumps(report,indent=2)+'\n').encode())
@@ -47,14 +50,14 @@ def main():
         print(name,result.returncode,flush=True)
         return result.returncode==0
     flags=['-std=c11','-g','-Wall','-Wextra','-Werror','-I'+str(root),'-I'+str(root/'release'),
-        '-I'+str(root/'src/runtime')]
+        '-I'+str(root/'src/runtime'),'-I'+str(root/'release/win_x64')]
     if os.name!='nt': flags+=['-Wl,-rpath,'+str(runtime.parent)]
-    if a.contexts:flags+=['-Wno-unused-function','-Wno-unused-const-variable']
+    if a.contexts or a.factories:flags+=['-Wno-unused-function','-Wno-unused-const-variable']
     if a.sanitize: flags+=['-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie','-no-pie']
     for opt in ('O0','O2'):
         exe=out/(opt+('.exe' if os.name=='nt' else '.out'))
         if run(opt+'-build',[cc,*flags,'-'+opt,*sources,runtime,'-o',exe]):
-            cases=('layout','sparse','metadata','cleanup','invoke','cycle','allocation','all') if a.captures else ('scopes','threads','fibers','allocation','all') if a.contexts else ('views','residency','affinity','retry','graph','allocation','exclusive','admission','all')
+            cases=('success','oom','partial','eligibility','watch','records','request','defer','reject','resurrection','worker','acquire','all') if a.factories else ('layout','sparse','metadata','cleanup','invoke','cycle','allocation','all') if a.captures else ('scopes','threads','fibers','allocation','all') if a.contexts else ('views','residency','affinity','retry','graph','allocation','exclusive','admission','deferred','all')
             for case in cases:
                 run(opt+'-'+case,[exe,*([] if case=='all' else [case])])
     if a.tcc_contexts:
