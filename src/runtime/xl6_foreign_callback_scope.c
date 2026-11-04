@@ -29,3 +29,10 @@ bool xl6ForeignCallbackLeaveV1(XL6_ForeignCallbackScopeV1* scope)
 }
 bool xl6ForeignCallbackActiveV1(void)
 { return xl6ForeignContextReadyV1() && callbackTop()!=NULL; }
+bool xl6ForeignCallbackContainsV1(const XL6_ForeignCallbackScopeV1* scope)
+{
+    if(!scope || !xl6ForeignContextReadyV1())return false;
+    for(const XL6_ForeignCallbackScopeV1* item=callbackTop();item;item=item->previous)
+        if(item==scope)return item->self==item && item->thread==xrtThreadCurrentId();
+    return false;
+}

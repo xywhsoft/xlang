@@ -387,6 +387,12 @@ static int xl6IrCgenEmitCallPlace(XL6_Output* out, const XL6_IrModule* module,
     XL6_IrCallParameterPhysicalAbi abi = target->parameterPhysicalAbis[parameter];
     const XL6_IrType* type = xl6IrTypeGet(&module->types, target->parameterTypes[parameter]);
     switch (abi) {
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK: {
+        const XL6_ForeignParameterContract* row=xl6IrForeignParameterGet(module,target,parameter);
+        if(!row)return 0;
+        xl6OutputPrintf(out,"native_callback_%lu.invocation.self ? %s_thunk : NULL, native_callback_%lu.invocation.self ? &native_callback_%lu : NULL",
+            (unsigned long)parameter,row->callbackTypeCName,(unsigned long)parameter,(unsigned long)parameter);break;
+    }
     case XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK: {
         const XL6_ForeignParameterContract* row=xl6IrForeignParameterGet(module,target,parameter);
         if(!row)return 0;
@@ -554,7 +560,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     if(spans<0)return 0;
     int access = xl6IrCgenNativeAccessBegin(out,module,target,NULL,scope);
     if(access<0)return 0;
-    int callbacks=xl6IrCgenRetainedCallbacksBegin(out,module,target,NULL,scope);
+    int callbacks=xl6IrCgenNativeCallbacksBegin(out,module,target,NULL,scope);
     if(callbacks<0)return 0;
     if(!xl6IrCgenPrepareForeignCountedField(out,module,target,NULL,scope))return 0;
     int probe = xl6IrCgenFactoryProbeBegin(out, module, target, scope);
@@ -620,6 +626,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     xl6OutputPuts(");\n", out);
     }
     if(storagePrepared)xl6OutputPuts("    }\n",out);
+    xl6IrCgenNativeCallbacksObserve(out,target,scope);
     if(target->producerErrorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT)
         xl6OutputPrintf(out,"    if (%s == NULL) xl6ErrorScopeCaptureFailure(&%s);\n",result,scope);
     if(target->producerErrorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER) {
@@ -641,7 +648,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
         if (target->parameterAbis[p] == XL6_IR_PARAMETER_ABI_OWNED)
             xl6OutputPrintf(out, "    a%lu = (%s){0};\n", (unsigned long)(p - 1), xl6IrCgenType(module, target->parameterTypes[p]));
     if (probe) xl6IrCgenFactoryProbeEnd(out, scope);
-    if(callbacks)xl6IrCgenRetainedCallbacksEnd(out,target,scope);
+    if(callbacks)xl6IrCgenNativeCallbacksEnd(out,target,scope);
     if (access) xl6IrCgenNativeAccessEnd(out,target,scope);
     if(spans)xl6IrCgenForeignSpansEnd(out,module,target,scope);
     if (bytes) xl6OutputPuts("    }\n", out);
@@ -961,7 +968,7 @@ static int xl6IrCgenEmitDirectCall(
     if(spansPrepared<0)return 0;
     int accessPrepared=xl6IrCgenNativeAccessBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope);
     if(accessPrepared<0)return 0;
-    int callbacksPrepared=xl6IrCgenRetainedCallbacksBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope);
+    int callbacksPrepared=xl6IrCgenNativeCallbacksBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope);
     if(callbacksPrepared<0)return 0;
     if(!xl6IrCgenPrepareForeignCountedField(out,module,target,module->operands+instruction->firstOperand,nativeScope))return 0;
     int probePrepared=xl6IrCgenFactoryProbeBegin(out,module,target,nativeScope);
@@ -1047,6 +1054,7 @@ static int xl6IrCgenEmitDirectCall(
     xl6OutputPuts(");\n", out);
     }
     if(storagePrepared)xl6OutputPuts("    }\n",out);
+    xl6IrCgenNativeCallbacksObserve(out,target,nativeScope);
     if(errorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE &&
         target->producerErrorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER) {
         if(target->returnType)xl6OutputPrintf(out,"    v%u = r%lu.value;\n",(unsigned)instruction->result,(unsigned long)instructionIndex);
@@ -1077,7 +1085,7 @@ static int xl6IrCgenEmitDirectCall(
             errorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ? failed : NULL);
     }
     if(probePrepared)xl6IrCgenFactoryProbeEnd(out,nativeScope);
-    if(callbacksPrepared)xl6IrCgenRetainedCallbacksEnd(out,target,nativeScope);
+    if(callbacksPrepared)xl6IrCgenNativeCallbacksEnd(out,target,nativeScope);
     if(accessPrepared)xl6IrCgenNativeAccessEnd(out,target,nativeScope);
     if(spansPrepared)xl6IrCgenForeignSpansEnd(out,module,target,nativeScope);
     if(bytesPrepared)xl6OutputPuts("    }\n",out);

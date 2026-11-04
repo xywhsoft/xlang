@@ -1021,6 +1021,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_foreign_view_sequence.c",D(R(FOREIGN_VIEW_VALUE),R(SEQUENCE)),{"XRUNTIME_MODULE_TYPED_ARRAY"}},
     {"src/runtime/xl6_foreign_scope_view.c",D(R(FOREIGN_CONTEXT),R(FOREIGN_CALLBACK_SCOPE)),{"XRT_MODULE_ATOMIC","XRT_MODULE_ERROR"}},
     {"src/runtime/xl6_foreign_scope_value.c",D(R(FOREIGN_SCOPE_VIEW),R(SEQUENCE)),{"XRT_MODULE_VALUE_GRAPH","XRT_MODULE_MEMORY","XRUNTIME_MODULE_TYPED_ARRAY"}},
+    {"src/runtime/xl6_sync_callback.c",D(R(CLOSURE),R(CODE_LEASE),R(FOREIGN_ERROR),R(FOREIGN_CALLBACK_SCOPE)),{"XRT_MODULE_ATOMIC","XRT_MODULE_ERROR"}},
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

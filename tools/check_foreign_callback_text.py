@@ -59,7 +59,7 @@ def main():
     text = generated.read_text(encoding='utf-8-sig')
     assert 'xrtFree((void*)result.Data)' in text
     # The typed C return is the owned language result, without a second copy.
-    thunks=text.split('    XL6_NativeCallback* record = userdata;')[1:]
+    thunks=re.split(r'\bXL6_NativeCallback\s*\*\s*record\s*=\s*userdata\s*;',text)[1:]
     assert len(thunks)==2
     for body in thunks:
         hot=body.split('    return result;',1)[0]

@@ -33,17 +33,20 @@ static int xl6IrCgenEmitRuntimePrelude(
 {
     size_t i;
     size_t parameter;
-    int accessHeader=0,retainedHeader=0;
+    int accessHeader=0,retainedHeader=0,syncHeader=0;
     for(size_t t=0;t<module->callTargetCount;++t) {
         const XL6_IrCallTarget* target=&module->callTargets[t];
         if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
         for(size_t p=0;p<target->parameterCount;++p)
             retainedHeader |= target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK;
         for(size_t p=0;p<target->parameterCount;++p)
+            syncHeader |= target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK;
+        for(size_t p=0;p<target->parameterCount;++p)
             accessHeader |= target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_HANDLE_ACCESS_BORROW ||
                 target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW;
     }
     if(retainedHeader)xl6OutputPuts("#include <__xl_runtime/xl6_native_callback.h>\n#include <stdlib.h>\n",out);
+    if(syncHeader)xl6OutputPuts("#include <__xl_runtime/xl6_sync_callback.h>\n#include <stdlib.h>\n",out);
     if(accessHeader)xl6OutputPuts("#include <__xl_runtime/xl6_native_handle.h>\n#include <limits.h>\n",out);
     if(xl6IrCgenHasNativeGraph(module))
         xl6OutputPuts("#include <__xl_runtime/xl6_native_frame_graph.h>\n#include <__xl_runtime/xl6_native_graph_future_payload.h>\n",out);

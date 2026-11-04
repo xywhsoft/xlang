@@ -731,3 +731,47 @@ XLIR 的 factoryResultAbi 单独记录物理 producer 返回 ABI，与语言的�
 参数分离；公开头持续核对真实原生声明。生成 C 直接调用初始化器，void 路径不产生
 native_status 临时值。实际 XGE Material 已验证此合同；其纹理槽由原生代码 retain，
 shader 是借用槽，不能误当成拥有资源公开。
+
+
+### 同步捕获回调与独立 epoch
+
+`@c_sync_callback(parameter, owner, failureCode)` 把一个语言 Closure 映射为原生
+函数指针与 userdata 两个参数。parameter 不计隐式 receiver；owner 计入 receiver，
+`-1` 明确表示没有受管 owner。可选第四参数为 `"first"`／`"last"`，指定 callback
+内部 userdata 位置；第五参数可提供权威 C 头文件。具备该头的声明做完整函数类型
+证明，不另行声明并覆盖原生导入／调用约定。一个函数可含多个独立同步回调，
+`@c_callback_span` 可把 callback 的原生 pointer/count 组合为一个 callback 期字节视图。
+
+这是声明作者对原生函数的严格合同：原生函数必须同步等待全部调用结束，不保留
+函数地址或 userdata。编译器为每个声明参数生成一个类型化 thunk，调用上下文
+保存在调用者栈上；闭包在整个 C 调用期间保留，adapter 代码活动登记复用已有
+调用者的驻留能力。它不新建长期回调堆记录或获取另一个 adapter 代码 lease。
+原生异步／逃逸回调必须使用 `@c_owned_callback`；返回后再使用过期 C userdata
+属于违反原生合同，不能依靠语言 checked 保护修复任意 C 悬空指针。
+
+同步入口只允许在同一执行上下文进入闭包，其他线程及 Windows fiber 在触及
+捕获状态之前 checked 拒绝。第一个回调失败单独保留，包括没有诊断对象的失败；
+已有外层 checked 失败优先，其后才是回调失败、原生诊断和清理失败。
+原生 `@no_raise` 不会消除闭包／准备的 checked 边界；动态语言回调可能阻塞，
+这类声明不能标 `@pure` 或 `@nonblocking`。当前结果限于已支持的平凡 C 值或
+void；拥有文本结果仍使用长期回调的显式 owned_text 合同。
+
+`@lifetime("callback")` 类现在可省略 `@owner`，表示独立的 callback epoch，适用于
+Event、DrawContext、原生快照和 C 字符串视图。带 owner 的声明继续验证根的名义
+身份；无 owner 的视图也可出现在有受管根的回调中，此时实际 epoch 仍由该次原生
+调用保护。保存／装箱只复制逻辑载体，不能延长原生 payload 生命周期；字段、方法
+和派生视图都在读取地址前解析当前上下文中的 epoch，回调结束后 checked 拒绝。
+需要长期保存的数据通过显式复制 API 获取。
+
+回调控制记录升级为 XL6_ForeignScopeLifetimeV2，区分 root、rootless 与 expired；
+配套 Begin／End／Make／Derive／Get／Alive／ExpireOwner 接口均为 V2。逻辑
+XL6_ForeignScopeViewV1 仍为 address/identity 两字段，没有新增逐值拥有记录。
+这些私有 runtime 头与编译器必须作为匹配 SDK 交付，不能混用旧版控制记录。
+
+栈上下文与 epoch 并不消除所有成本：类型化间接调用、闭包引用、代码活动与所有权
+登记、执行上下文／错误槽访问，以及需要时的 epoch 编号仍存在。预热循环的零新增
+XRT 分配只能说明这些路径不再创建堆适配器，不能代替同工作负载的完整 C 性能比较。
+
+同步调用在原生函数返回后先执行 producer Complete，再判断状态、采用拥有结果或
+交付输出值；闭包与 adapter 的代码活动持续到最终 End 清理。Complete 不提前释放
+这些能力，因此结果采用／清理阶段的拒绝或回调尾部不会访问已卸载代码。

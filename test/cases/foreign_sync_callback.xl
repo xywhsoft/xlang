@@ -1,0 +1,245 @@
+typedef Handler = func(Event) as c_int
+typedef RootHandler = func(Root) as c_int
+extern "SpanRoot*" class Root @header("test/cases/foreign_sync_callback.h") @lifetime("owned") @policy("spanRootPolicy") @scope("SpanCall")
+ native point handle
+ extern "sync_root_apply" @no_raise @c_sync_callback(0,0,-9) func apply(RootHandler callback) as c_int
+ extern "sync_root_event" @no_raise @c_sync_callback(0,0,-9) func applyEvent(Handler callback) as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "span_create" @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Root
+extern "span_destroy" @no_raise func rollback(Root root)
+extern "span_live" @no_raise func live() as c_int
+extern "const SyncEvent*" class Event @header("test/cases/foreign_sync_callback.h") @lifetime("callback")
+ native point handle
+ extern "code" @c_field get code() as c_int
+ extern "text" @c_field @c_length("length","size_t") @c_result("text_view") get text() as string
+ extern "child" @c_field @c_result("scope_view",0) get child() as Event?
+ extern "sync_event_apply" @no_raise @c_sync_callback(0,-1,-9) func apply(Handler callback) as c_int
+end
+extern "const xbytesview*" class Slice @header("test/cases/foreign_sync_callback.h") @lifetime("callback")
+ native point handle
+ extern "Size" @c_field get size() as c_size
+ extern "Data" @c_field @c_length("Size","size_t") @c_result("bytes_view") get copy() as bytes
+end
+typedef Scalar = func(c_int) as c_int
+typedef Action = func(c_int)
+extern "sync_action" @no_raise @c_sync_callback(0,-1,0,"last","test/cases/foreign_sync_callback.h") func action(Action? callback,c_int value)
+extern "sync_scalar" @no_raise @c_sync_callback(0,-1,-9,"last","test/cases/foreign_sync_callback.h") func scalar(Scalar? callback,c_int seed,c_int count) as c_int
+extern "sync_pair" @no_raise @c_sync_callback(0,-1,-9,"last","test/cases/foreign_sync_callback.h") @c_sync_callback(1,-1,-8,"first","test/cases/foreign_sync_callback.h") func pair(Scalar first,Scalar second) as c_int
+extern "sync_event" @no_raise @c_sync_callback(0,-1,-9,"last","test/cases/foreign_sync_callback.h") func event(Handler? callback,c_int mode) as c_int
+typedef SliceHandler = func(Slice) as c_int
+extern "sync_bytes" @no_raise @c_sync_callback(0,-1,-9,"last","test/cases/foreign_sync_callback.h") @c_callback_span(0,0,"const unsigned char*","size_t") func bytesCall(SliceHandler callback,c_int mode) as c_int
+extern "sync_enable_debug" @no_raise func enableDebug()
+extern "sync_counters_begin" @no_raise func countersBegin()
+extern "sync_counters_end" @no_raise func countersEnd()
+extern "sync_fail_after" @no_raise func failAfter(c_int n)
+extern "sync_failure" @no_raise @c_result("bool_status") func fail()
+extern "SyncRecord*" class Receipt @header("test/cases/foreign_sync_callback.h") @lifetime("owned") @policy("syncRecordPolicy")
+ native point handle
+ extern "value" @c_field get value() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "sync_factory" @no_raise @c_sync_callback(0,-1,0) @c_result("owned_view") @factory(0,rollbackReceipt) @c_inplace("SyncRecord") func receipt(Action? callback,c_int mode) as Receipt
+extern "sync_rollback" @no_raise func rollbackReceipt(Receipt receipt)
+extern "sync_resource_expect" @no_raise func resourceExpect(c_int rollbacks,c_int destroys)
+extern "sync_text" @no_raise @owned @c_sync_callback(0,-1,0,"last","test/cases/foreign_sync_callback.h") func text(Action? callback) as string?
+extern "sync_output" @no_raise @c_output(2,0) @c_sync_callback(0,-1,0,"last","test/cases/foreign_sync_callback.h") func output(Action? callback) as c_int
+protocol RootOps
+ func apply(RootHandler callback) as c_int
+end
+protocol EventOps
+ func apply(Handler callback) as c_int
+end
+class Saved
+ Event? event
+ Slice? slice
+ int calls=0
+end
+func main(...) as int
+ enableDebug()
+ int add=4
+ Scalar plus=func(c_int x) as c_int
+  return x+c_int(add)
+ end
+ assert scalar(plus,1,3)==18 and scalar(null,1,3)==0
+ assert pair(plus,plus)==13
+ Scalar firstFailure=func(c_int x) as c_int
+  throw RuntimeError "first parameter"
+  return x
+ end
+ Scalar secondFailure=func(c_int x) as c_int
+  throw RuntimeError "second invoked first"
+  return x
+ end
+ bool ordered=false
+ try
+  auto ignored=pair(firstFailure,secondFailure)
+ catch error
+  ordered=error.message=="second invoked first"
+ end
+ assert ordered
+ func(Scalar?,c_int,c_int) as c_int invoke=scalar
+ assert invoke(plus,1,3)==18
+ Root root=create()
+ assert root.apply(func(Root borrowed) as c_int
+  return 3
+ end)==3
+ assert root.applyEvent(func(Event e) as c_int
+  return e.code
+ end)==11
+ RootHandler rootHandler=func(Root r) as c_int
+  return 4
+ end
+ func(RootHandler) as c_int boundRoot=root.apply
+ assert boundRoot(rootHandler)==4
+ RootOps virtualRoot=root
+ assert virtualRoot.apply(rootHandler)==4
+ var boxedRoot=root
+ assert (boxedRoot as Root).apply(rootHandler)==4
+ root.close()
+ assert live()==0
+ Saved saved=Saved()
+ action(func(c_int value)
+  saved.calls+=int(value)
+ end,2)
+ assert saved.calls==2
+ action(null,2)
+ saved.calls=0
+ Handler inspect=func(Event e) as c_int
+  saved.calls+=1
+  saved.event=e.child
+  assert e.code==11 and e.text=="a\0b"
+  assert e.apply(func(Event nested) as c_int
+   return nested.code
+  end)==11
+  Handler echo=func(Event nested) as c_int
+   return nested.code
+  end
+  func(Handler) as c_int boundEvent=e.apply
+  assert boundEvent(echo)==11
+  EventOps virtualEvent=e
+  assert virtualEvent.apply(echo)==11
+  return (e.child as Event).code
+ end
+ assert event(inspect,0)==12 and saved.calls==1 and event(null,0)==0
+ bool expired=false
+ try
+  auto value=(saved.event as Event).code
+ catch error
+  expired=true
+ end
+ assert expired
+ int mode=1
+ while mode<=3
+  bool rejected=false
+  try
+   auto value=event(inspect,c_int(mode))
+  catch error
+   rejected=true
+  end
+  assert rejected and saved.calls==1
+  mode+=1
+ end
+ auto sliceHandler=func(Slice slice) as c_int
+  saved.slice=slice
+  assert slice.copy==b"a\0b"
+  return c_int(slice.size)
+ end
+ assert bytesCall(sliceHandler,0)==3
+ bool invalid=false
+ try
+  auto value=bytesCall(sliceHandler,1)
+ catch error
+  invalid=true
+ end
+ assert invalid
+ expired=false
+ try
+  auto value=(saved.slice as Slice).size
+ catch error
+  expired=true
+ end
+ assert expired
+ // Warm the ordinary closure and execution-context paths before measuring.
+ assert scalar(plus,1,1)==5
+ countersBegin()
+ assert scalar(plus,1,200)==20900
+ countersEnd()
+ Handler warmEvent=func(Event e) as c_int
+  return e.code
+ end
+ assert event(warmEvent,0)==11
+ countersBegin()
+ int i=0
+ while i<100
+  assert scalar(plus,1,1)==5 and event(warmEvent,0)==11
+  i+=1
+ end
+ countersEnd()
+ // These paths need no XRT allocation after first use, even under OOM.
+ failAfter(0)
+ assert scalar(plus,1,1)==5 and event(warmEvent,0)==11
+ failAfter(-1)
+ Scalar failing=func(c_int x) as c_int
+  fail()
+  return x
+ end
+ bool failed=false
+ failAfter(0)
+ try
+  auto ignored=scalar(failing,1,2)
+ catch error
+  failed=true
+ end
+ failAfter(-1)
+ assert failed
+ Action reject=func(c_int value)
+  throw RuntimeError "callback precedes producer"
+ end
+ Receipt created=receipt(null,0)
+ assert created.value==42
+ created.close()
+ resourceExpect(0,1)
+ int failures=0
+ int factoryMode=0
+ while factoryMode<=1
+  try
+   auto ignored=receipt(reject,c_int(factoryMode))
+  catch error
+   assert error.message=="callback precedes producer"
+   failures+=1
+  end
+  factoryMode+=1
+ end
+ resourceExpect(2,1)
+ func(Action?,c_int) as Receipt factoryValue=receipt
+ try
+  auto ignored=factoryValue(reject,0)
+ catch error
+  assert error.message=="callback precedes producer"
+  failures+=1
+ end
+ resourceExpect(3,1)
+ try
+  auto ignored=receipt(reject,2)
+ catch error
+  failures+=1
+ end
+ resourceExpect(4,1)
+ assert (text(null) as string)=="ok" and output(null)==7
+ try
+  auto ignored=text(reject)
+ catch error
+  assert error.message=="callback precedes producer"
+  failures+=1
+ end
+ c_int preserved=-1
+ try
+  preserved=output(reject)
+ catch error
+  assert error.message=="callback precedes producer"
+  failures+=1
+ end
+ assert preserved == -1 and failures==6
+ return 0
+end

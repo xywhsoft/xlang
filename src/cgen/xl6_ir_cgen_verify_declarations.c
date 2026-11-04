@@ -74,7 +74,7 @@ static int xl6IrCgenVerifyDeclarations(
                     target->parameterPhysicalFieldDeclarations[parameter] || target->parameterConstraintAbis[parameter])
                     return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no exact borrowed bytes view ABI");
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW ||
-                      target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK) {
+                      (target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK || target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK)) {
                 if(!xl6IrForeignParameterGet(module,target,parameter))
                     return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no sealed sparse expansion");
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_HANDLE_ACCESS_BORROW) {
@@ -83,7 +83,7 @@ static int xl6IrCgenVerifyDeclarations(
                     return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no exact native handle access owner");
             } else if(xl6IrForeignViewBorrowPhysical(target->parameterPhysicalAbis[parameter])){
                 if(!xl6IrForeignManagedViewParameter(module,target,parameter) || !parameterType || (!parameterType->foreignPolicy && parameterType->foreignLifetime!=XL6_FOREIGN_LIFETIME_CALLBACK) ||
-                    !xl6IrForeignRootType(module,target->parameterTypes[parameter]) ||
+                    (!xl6IrForeignRootType(module,target->parameterTypes[parameter]) && parameterType->foreignLifetime!=XL6_FOREIGN_LIFETIME_CALLBACK) ||
                     target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
                     target->parameterPhysicalFieldDeclarations[parameter] || target->parameterConstraintAbis[parameter])
                     return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no managed foreign-view preparation ABI");

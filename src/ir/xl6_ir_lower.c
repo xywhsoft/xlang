@@ -13388,8 +13388,9 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
             target->parameterPhysicalAbis[parameterOffset+i]=XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW;
         }
         const XL6_ForeignParameterContract* expansion=xl6IrForeignParameterGet(module,target,parameterOffset+i);
-        if(expansion && expansion->kind==XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK) {
-            target->parameterPhysicalAbis[parameterOffset+i]=XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK;
+        if(expansion && expansion->kind!=XL6_FOREIGN_PARAMETER_SPAN) {
+            target->parameterPhysicalAbis[parameterOffset+i]=expansion->kind==XL6_FOREIGN_PARAMETER_SYNC_CALLBACK ?
+                XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK : XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK;
         } else if ( (target->kind == XL6_IR_CALL_TARGET_EXTERN_C ||
               target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
              xl6IrTypeGet(&module->types, parameter->storageType) != NULL &&
@@ -13621,7 +13622,8 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
         const XL6_ForeignParameterContract* extended=xl6IrForeignParameterGet(module,target,i);
         if(extended) {
             target->parameterPhysicalAbis[i]=extended->kind==XL6_FOREIGN_PARAMETER_SPAN ?
-                XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW : XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK;
+                XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW : extended->kind==XL6_FOREIGN_PARAMETER_SYNC_CALLBACK ?
+                XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK : XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK;
             const XL6_IrClassField* buffer=xl6IrForeignSpanBufferField(module,target,i);
             target->parameterPhysicalFieldDeclarations[i]=buffer ? buffer->declaration : XL6_IR_NODE_INVALID;
         }

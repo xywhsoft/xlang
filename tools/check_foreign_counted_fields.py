@@ -57,7 +57,7 @@ def main():
     text = generated.read_text(encoding='utf-8-sig')
     assert 'native_field_count < 0' in text and 'native_field_bound' in text
     assert 'native field data type' in text and 'native field length type' in text
-    assert 'xl6ForeignScopeViewGetV1' in text and 'native_field_view' in text
+    assert 'xl6ForeignScopeViewGetV2' in text and 'native_field_view' in text
     runtime = runtime_directory(root)/'xl.dll' if os.name=='nt' else Path(build['RuntimeLibrary'])
     sdk=runtime_directory(root) if os.name=='nt' else Path(build.get('SdkDirectory',root/'release/win_x64'))
     if os.name!='nt':env['LD_LIBRARY_PATH']=str(runtime.parent)+':'+env.get('LD_LIBRARY_PATH','')

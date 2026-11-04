@@ -467,7 +467,7 @@ static const char* xl6IrCgenExternParameterType(
         return "const char*";
     if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_HANDLE_ACCESS_BORROW)
         return "void*";
-    if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK) {
+    if((target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK || target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK)) {
         const XL6_ForeignParameterContract* row=xl6IrForeignParameterGet(module,target,parameter);
         return row ? row->callbackTypeCName : NULL;
     }

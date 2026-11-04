@@ -23,8 +23,8 @@ int main(int argc,char** argv)
         XL6_IrNode* node=&module->nodes[row->declaration-1];XL6_ForeignCallFacts facts=node->foreignCall;
         const XL6_IrCallTarget* target=xl6IrCallTargetGet(module,node->symbol);assert(target);++spans;
         size_t parameter=row->parameter; /* Both test producers are free functions. */
-        const XL6_IrType* signature=xl6IrForeignRetainedSignature(module,target,parameter);
-        assert(signature && xl6IrForeignRetainedParameterMatches(module,target,parameter));
+        const XL6_IrType* signature=xl6IrForeignCallbackSignature(module,target,parameter);
+        assert(signature && xl6IrForeignCallbackParameterMatches(module,target,parameter));
         row->declaration=0;refused(module);*row=saved;
         row->parameter=0;refused(module);*row=saved;
         row->parameter=64;refused(module);*row=saved;

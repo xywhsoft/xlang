@@ -210,7 +210,7 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
                 }
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW){
                 needs->needsClosureRuntime=1;
-            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK) {
+            } else if((target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK || target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK)) {
                 needs->needsClosureRuntime=1;needs->needsForeignErrorRuntime=1;
             } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK) {
                 needs->needsRawCallbackRuntime = 1; /* Signature typedef only. */

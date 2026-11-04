@@ -58,7 +58,7 @@ def main():
     text = generated.read_text(encoding='utf-8-sig')
     assert 'callback span requires const xbytesview pointer' in text
     assert 'native_span_0=(xbytesview)' in text and 'native_span_1=(xbytesview)' in text
-    assert 'xl6ForeignScopeViewMakeV1' in text and 'raw0_count<0' in text
+    assert 'xl6ForeignScopeViewMakeV2' in text and 'raw0_count<0' in text
     runtime = runtime_directory(root)/'xl.dll' if os.name=='nt' else Path(build['RuntimeLibrary'])
     sdk=runtime_directory(root) if os.name=='nt' else Path(build.get('SdkDirectory',root/'release/win_x64'))
     if os.name!='nt':env['LD_LIBRARY_PATH']=str(runtime.parent)+':'+env.get('LD_LIBRARY_PATH','')
