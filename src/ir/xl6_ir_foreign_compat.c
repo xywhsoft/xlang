@@ -23,6 +23,8 @@ static int xl6IrForeignOverloadMetadataEqual(const XL6_IrModule* m,uint32 a,uint
     XL6_EQUAL_ROWS(foreignOutputs,foreignOutputCount);
     XL6_EQUAL_ROWS(foreignOutputSizes,foreignOutputSizeCount);
     XL6_EQUAL_ROWS(foreignOutputViews,foreignOutputViewCount);
+    XL6_EQUAL_ROWS(foreignPacks,foreignPackCount);
+    XL6_EQUAL_ROWS(foreignPackFields,foreignPackFieldCount);
     XL6_EQUAL_ROWS(foreignPointerQualifiers,foreignPointerQualifierCount);
     XL6_EQUAL_ROWS(foreignValues,foreignValueCount);
     XL6_EQUAL_ROWS(foreignCallbackSpans,foreignCallbackSpanCount);
@@ -105,8 +107,13 @@ static int xl6IrVerifyForeignOverloads(const XL6_IrModule* module,XL6_DiagList* 
                     const XL6_IrType* lt=xl6IrTypeGet(&module->types,a->parameterTypes[p]);const XL6_IrType* rt=xl6IrTypeGet(&module->types,b->parameterTypes[p]);
                     if(lt && rt && lt->foreignHeader && rt->foreignHeader && lt->foreignLifetime!=rt->foreignLifetime)lifetimeVariants=1;
                 }
+            int retainedOutputs=0;
+            for(size_t o=0;o<module->foreignOutputViewCount;++o)
+                if((module->foreignOutputViews[o].declaration==a->declaration || module->foreignOutputViews[o].declaration==b->declaration) &&
+                    module->foreignOutputViews[o].conversion==XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE)retainedOutputs=1;
             if(left->sourceKind!=XL6_AST_NATIVE_EXTERN_FUNC && !xl6ForeignInputHasRegions(left->foreignCall.inputMappingFacts) &&
-                !xl6ForeignInputHasRegions(right->foreignCall.inputMappingFacts) && !lifetimeVariants)continue;
+                !xl6ForeignInputHasRegions(right->foreignCall.inputMappingFacts) && !xl6ForeignInputHasPacks(left->foreignCall.inputMappingFacts) &&
+                !xl6ForeignInputHasPacks(right->foreignCall.inputMappingFacts) && !lifetimeVariants && !retainedOutputs)continue;
             if(!xl6IrForeignOverloadsCompatible(module,a,b))return xl6IrDiag(diags,NULL,"native target overloads disagree on their sealed physical, effect or ownership contract");
         }
     }

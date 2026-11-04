@@ -391,30 +391,6 @@ XL6_IrTypeId xl6IrForeignOutputType(const XL6_IrModule* module,const XL6_IrCallT
     const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
     return result && result->kind==XL6_IR_TYPE_TUPLE && result->params && ordinal<result->paramCount ? result->params[ordinal] : 0;
 }
-int xl6IrForeignOutputStep(const XL6_IrModule* module,const XL6_IrCallTarget* target,size_t step,size_t* input,size_t* output)
-{
-    const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration):NULL;
-    if(!node || !input || !output)return 0;
-    size_t count=xl6IrForeignOutputCount(module,target);
-    size_t receiver=(node->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || node->sourceKind==XL6_AST_GET || node->sourceKind==XL6_AST_LET) && !(node->flags&XL6_AST_FLAG_STATIC) ? 1u:0u;
-    size_t physical=0,p=0,o=0;
-    if(step>=target->parameterCount+count)return 0;
-    for(size_t event=0;event<=step;++event){
-        const XL6_ForeignOutputContract* row=xl6IrForeignMultiOutput(node) ? xl6IrForeignOutputGet(module,target,o):NULL;
-        size_t slot=row ? row->physicalIndex : node->foreignCall.outputIndexPlusOne-1;
-        if(o<count && slot==physical){
-            *input=SIZE_MAX;*output=o++;++physical;
-        }else{
-            if(p>=target->parameterCount || (o<count && slot<physical))return 0;
-            *input=p;*output=SIZE_MAX;
-            size_t explicitParameter=p>=receiver ? p-receiver:SIZE_MAX;
-            physical+=explicitParameter<64 && (node->foreignCall.physicalPairs&(UINT64_C(1)<<explicitParameter)) ? 2 :
-                explicitParameter<64 && (node->foreignCall.retainedCallbacks&(UINT64_C(1)<<explicitParameter)) ? 3 : 1;
-            ++p;
-        }
-    }
-    return 1;
-}
 static int xl6IrVerifyForeignOutputs(const XL6_IrModule* module,XL6_DiagList* diags)
 {
     if(module->foreignOutputCount>module->foreignOutputCapacity || (module->foreignOutputCount && !module->foreignOutputs))goto invalid;
@@ -439,7 +415,7 @@ static int xl6IrVerifyForeignOutputs(const XL6_IrModule* module,XL6_DiagList* di
             slots[o]=row->physicalIndex;
         }
         if(node->foreignCall.outputIndexPlusOne!=slots[0]+1 ||
-            !xl6ForeignMultiOutputSlotsValid(&node->foreignCall,params->childCount+receiver,receiver,slots,count))goto invalid;
+            (!xl6ForeignInputHasPacks(node->foreignCall.inputMappingFacts) && !xl6ForeignMultiOutputSlotsValid(&node->foreignCall,params->childCount+receiver,receiver,slots,count)))goto invalid;
     }
     return 1;
 invalid:return xl6IrDiag(diags,NULL,"native multi-output rows must exactly cover increasing complete C slots and language results");
@@ -448,7 +424,6 @@ int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTa
 {
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration) : NULL;
     if(!node || !node->foreignCall.valueOutput)return 0;
-    size_t receiver=(node->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || node->sourceKind==XL6_AST_GET || node->sourceKind==XL6_AST_LET) && !(node->flags&XL6_AST_FLAG_STATIC) ? 1u:0u;
     size_t count=xl6IrForeignOutputCount(module,target);
     if(!count || count>64)return 0;
     for(size_t o=0;o<count;++o)if(!xl6IrForeignOutputViewGet(module,target,o) &&
@@ -456,8 +431,10 @@ int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTa
     if(xl6IrForeignMultiOutput(node)){
         const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
         if(count<2 || !result || result->kind!=XL6_IR_TYPE_TUPLE || result->paramCount!=count)return 0;
-    }else if(xl6ForeignOutputLogical(&node->foreignCall,target->parameterCount,receiver)==SIZE_MAX)return 0;
-    for(size_t step=0;step<target->parameterCount+count;++step){size_t in,out;if(!xl6IrForeignOutputStep(module,target,step,&in,&out))return 0;}
+    }else if(xl6IrForeignFirstOutputLogical(module,target)==SIZE_MAX)return 0;
+    size_t steps=xl6IrForeignPhysicalStepCount(module,target);
+    if(steps>target->parameterCount+count)return 0;
+    for(size_t step=0;step<steps;++step)if(!xl6IrForeignPhysicalStepGet(module,target,step,NULL))return 0;
     return xl6ForeignValueOutputBase(node->foreignCall.valueOutput)<=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID &&
         ((xl6ForeignValueOutputBase(node->foreignCall.valueOutput)!=XL6_FOREIGN_VALUE_OUTPUT_VOID && xl6ForeignValueOutputBase(node->foreignCall.valueOutput)!=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID) || !node->foreignCall.successCode) &&
         xl6IrForeignOutputSizesMatch(module,target) &&

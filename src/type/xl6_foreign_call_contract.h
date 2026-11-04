@@ -65,22 +65,25 @@ static inline int xl6ForeignValueOutputBitsValid(uint8 mode)
         xl6ForeignValueOutputBase(mode)<=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID &&
         (!(xl6ForeignValueOutputHasSize(mode)||xl6ForeignValueOutputHasView(mode)) || xl6ForeignValueOutputBase(mode)!=XL6_FOREIGN_VALUE_OUTPUT_NONE);
 }
-/* One closed input-contract byte: an expected callback-span count and the
- * presence of sparse fixed-pointer region rows. Concrete mappings stay sparse. */
+/* Closed input-contract bits: expected callback-span count plus sparse input
+ * schema presence. All decoders validate the same uint16 representation. */
 #define XL6_FOREIGN_INPUT_CALLBACK_COUNT_MASK 127u
 #define XL6_FOREIGN_INPUT_REGIONS_PRESENT 128u
-static inline uint8 xl6ForeignInputCallbackCount(uint8 facts)
+#define XL6_FOREIGN_INPUT_PACKS_PRESENT 256u
+static inline uint8 xl6ForeignInputCallbackCount(uint16 facts)
 {return (uint8)(facts&XL6_FOREIGN_INPUT_CALLBACK_COUNT_MASK);}
-static inline int xl6ForeignInputHasRegions(uint8 facts)
+static inline int xl6ForeignInputHasRegions(uint16 facts)
 {return (facts&XL6_FOREIGN_INPUT_REGIONS_PRESENT)!=0;}
-static inline int xl6ForeignInputMappingsValid(uint8 facts)
-{return xl6ForeignInputCallbackCount(facts)<=64;}
-static inline int xl6ForeignInputMappingsEmpty(uint8 facts)
-{return xl6ForeignInputMappingsValid(facts) && !xl6ForeignInputCallbackCount(facts) && !xl6ForeignInputHasRegions(facts);}
-static inline int xl6ForeignInputMappingsSet(size_t callbacks,int regions,uint8* output)
+static inline int xl6ForeignInputHasPacks(uint16 facts)
+{return (facts&XL6_FOREIGN_INPUT_PACKS_PRESENT)!=0;}
+static inline int xl6ForeignInputMappingsValid(uint16 facts)
+{return !(facts&~(XL6_FOREIGN_INPUT_CALLBACK_COUNT_MASK|XL6_FOREIGN_INPUT_REGIONS_PRESENT|XL6_FOREIGN_INPUT_PACKS_PRESENT)) && xl6ForeignInputCallbackCount(facts)<=64;}
+static inline int xl6ForeignInputMappingsEmpty(uint16 facts)
+{return xl6ForeignInputMappingsValid(facts) && !facts;}
+static inline int xl6ForeignInputMappingsSet(size_t callbacks,int regions,int packs,uint16* output)
 {
-    if(callbacks>64 || (regions!=0 && regions!=1) || !output)return 0;
-    *output=(uint8)(callbacks|(regions ? XL6_FOREIGN_INPUT_REGIONS_PRESENT:0));return 1;
+    if(callbacks>64 || (regions!=0 && regions!=1) || (packs!=0 && packs!=1) || !output)return 0;
+    *output=(uint16)(callbacks|(regions ? XL6_FOREIGN_INPUT_REGIONS_PRESENT:0)|(packs ? XL6_FOREIGN_INPUT_PACKS_PRESENT:0));return 1;
 }
 
 /* Closed declaration facts. Const addresses exist only during one call;
@@ -98,17 +101,17 @@ typedef struct XL6_ForeignCallFacts {
     uint64 physicalPairs;
     uint64 retainedCallbacks;
     uint64 controlViews;
-    XL6_ForeignBorrowedViewResult borrowedViewResult;
+    /* Closed byte enums, never written through enum*. Their placement leaves
+     * room for input bits while keeping the declaration record at 88 B. */
+    uint8 borrowedViewResult;
+    uint8 valueOutput;
+    uint8 receiverDereference;
+    uint8 inplaceOutput; /* XL6_ForeignInplaceKind, not a Boolean. */
+    uint16 inputMappingFacts;
     uint32 resultOwnerIndexPlusOne;
     uint32 outputIndexPlusOne;
     int32 successCode;
     uint32 rollbackSymbol;
-    /* Closed output kind/presence flags, decoded only through the helpers
-     * above. outputIndexPlusOne includes the C receiver. */
-    uint8 valueOutput;
-    uint8 receiverDereference;
-    uint8 inplaceOutput; /* XL6_ForeignInplaceKind, not a Boolean. */
-    uint8 inputMappingFacts;
 } XL6_ForeignCallFacts;
 
 static inline int xl6ForeignCallFactsEqual(const XL6_ForeignCallFacts* a,const XL6_ForeignCallFacts* b)
@@ -121,7 +124,8 @@ static inline int xl6ForeignCallFactsEqual(const XL6_ForeignCallFacts* a,const X
         a->valueOutput==b->valueOutput && a->receiverDereference==b->receiverDereference && a->inplaceOutput==b->inplaceOutput &&
         xl6ForeignInputMappingsValid(a->inputMappingFacts) && xl6ForeignInputMappingsValid(b->inputMappingFacts) &&
         xl6ForeignInputCallbackCount(a->inputMappingFacts)==xl6ForeignInputCallbackCount(b->inputMappingFacts) &&
-        xl6ForeignInputHasRegions(a->inputMappingFacts)==xl6ForeignInputHasRegions(b->inputMappingFacts);
+        xl6ForeignInputHasRegions(a->inputMappingFacts)==xl6ForeignInputHasRegions(b->inputMappingFacts) &&
+        xl6ForeignInputHasPacks(a->inputMappingFacts)==xl6ForeignInputHasPacks(b->inputMappingFacts);
 }
 
 /* Ownership helpers have one exact raw owner input and no physical input
@@ -137,24 +141,6 @@ static inline int xl6ForeignOwnershipHelperFacts(const XL6_ForeignCallFacts* f,i
          !retain && f->borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS);
 }
 
-/* The factory output index counts actual C slots. Expanded pointer/count
- * and callback/userdata/owner groups remain indivisible parameter contracts. */
-static inline size_t xl6ForeignOutputLogical(const XL6_ForeignCallFacts* facts,size_t count,size_t receiver)
-{
-    if(!facts || !facts->outputIndexPlusOne)return SIZE_MAX;
-    size_t physical=0;
-    for(size_t p=0;p<=count;++p) {
-        if(physical==facts->outputIndexPlusOne-1)return p;
-        size_t explicitParameter=p>=receiver ? p-receiver : SIZE_MAX;
-        if(p<count)physical+=explicitParameter<64 && (facts->physicalPairs&(UINT64_C(1)<<explicitParameter)) ? 2 :
-            explicitParameter<64 && (facts->retainedCallbacks&(UINT64_C(1)<<explicitParameter)) ? 3 : 1;
-    }
-    return SIZE_MAX;
-}
-
-static inline size_t xl6ForeignFactoryOutputLogical(const XL6_ForeignCallFacts* facts,size_t count)
-{return xl6ForeignOutputLogical(facts,count,0);}
-
 /* Each multi-output producer stores only its actual physical output slots.
  * Ordinals follow increasing physical positions and the language return list. */
 typedef struct XL6_ForeignOutputContract {
@@ -168,16 +154,23 @@ typedef struct XL6_ForeignOutputSizeContract {
     char field[64];
 } XL6_ForeignOutputSizeContract;
 
+typedef enum XL6_ForeignRetainSuccess {
+    XL6_FOREIGN_RETAIN_ZERO = 1,
+    XL6_FOREIGN_RETAIN_POSITIVE
+} XL6_ForeignRetainSuccess;
 typedef enum XL6_ForeignOutputConversion {
     XL6_FOREIGN_OUTPUT_CONVERSION_INVALID=0,
     XL6_FOREIGN_OUTPUT_CONVERSION_TEXT,
-    XL6_FOREIGN_OUTPUT_CONVERSION_BYTES
+    XL6_FOREIGN_OUTPUT_CONVERSION_BYTES,
+    XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE
 } XL6_ForeignOutputConversion;
 /* Physical xstrview/xbytesview outputs become owned logical values before
  * native input/callback scopes end. Ordinary outputs occupy no row. */
 typedef struct XL6_ForeignOutputViewContract {
     uint32 declaration,physicalIndex,ordinal,logicalType;
     XL6_ForeignOutputConversion conversion;
+    uint32 retainSymbol,rollbackSymbol;
+    XL6_ForeignRetainSuccess retainSuccess;
 } XL6_ForeignOutputViewContract;
 
 /* Only parameters which explicitly add pointee constness occupy a row. */
@@ -208,6 +201,7 @@ typedef enum XL6_ForeignSpanCountAbi {
     XL6_FOREIGN_SPAN_COUNT_SIZE = 1,
     XL6_FOREIGN_SPAN_COUNT_INT
 } XL6_ForeignSpanCountAbi;
+#include "src/type/xl6_foreign_pack_contract.h"
 /* Only counted native field projections allocate a row. Ordinary fields,
  * calls and IR nodes carry no fixed-size C identifier/length strings. */
 typedef struct XL6_ForeignFieldLengthContract {
@@ -231,10 +225,6 @@ typedef struct XL6_ForeignStorageContract {
     char recordCName[64];
 } XL6_ForeignStorageContract;
 
-typedef enum XL6_ForeignRetainSuccess {
-    XL6_FOREIGN_RETAIN_ZERO = 1,
-    XL6_FOREIGN_RETAIN_POSITIVE
-} XL6_ForeignRetainSuccess;
 /* A borrowed native result acquires one independent native reference before
  * input cleanup. Each admitted language root owns precisely that reference. */
 typedef struct XL6_ForeignRetainContract {

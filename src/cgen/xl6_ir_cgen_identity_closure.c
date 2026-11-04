@@ -361,9 +361,6 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
     const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);
     const XL6_ForeignFieldCallContract* fieldCall=xl6IrForeignFieldCallGet(module,target);
     uint32 output = declaration ? declaration->foreignCall.outputIndexPlusOne : 0;
-    size_t receiver=declaration && (declaration->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || declaration->sourceKind==XL6_AST_GET || declaration->sourceKind==XL6_AST_LET) &&
-        !(declaration->flags&XL6_AST_FLAG_STATIC) ? 1u : 0u;
-    size_t outputLogical=output ? xl6ForeignOutputLogical(&declaration->foreignCall,target->parameterCount,receiver) : SIZE_MAX;
     /* A runtime bridge is not an unresolved foreign symbol: the verified
      * component selected by runtimeBridge has already emitted its canonical
      * definition before this prototype phase.  Re-declaring it from the
@@ -436,6 +433,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
         }
     }
     const XL6_ForeignStorageContract* storage=xl6IrForeignStorageGet(module,target);
+    if(!xl6IrCgenPackProof(out,module,target))return 0;
     if(storage)xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE((%s)0, %s*), \"in-place native record pointer\");\n"
         "XLIR_NATIVE_ASSERT(sizeof(%s[1])>0 && XLIR_NATIVE_ALIGNOF(%s)<=XL6_FOREIGN_RECORD_ALIGNMENT_V1, \"in-place native record size/alignment\");\n",
         resultType->cName,storage->recordCName,storage->recordCName,storage->recordCName);
@@ -450,18 +448,24 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
                              "cannot collect bounded C extern header binding");
     if(!fieldCall){if(headerDeclared)xl6OutputPrintf(out,", %s (*)(",returnType);
     else xl6OutputPutc('(', out);}
-    if ( target->parameterCount == 0 && !output ) xl6OutputPuts("void", out);
-    for ( i = 0; i < target->parameterCount + (declaration->foreignCall.valueOutput ? xl6IrForeignOutputCount(module,target) : (size_t)(output!=0)); ++i ) {
+    size_t physicalSteps=xl6IrForeignPhysicalStepCount(module,target);
+    if(physicalSteps>target->parameterCount+64)return 0;
+    if (!physicalSteps) xl6OutputPuts("void", out);
+    for ( i = 0; i < physicalSteps; ++i ) {
         const char* type;
         if ( i > 0 ) xl6OutputPuts(", ", out);
-        size_t parameter=i,resultOrdinal=SIZE_MAX;
-        if(declaration->foreignCall.valueOutput){
-            if(!xl6IrForeignOutputStep(module,target,i,&parameter,&resultOrdinal))return 0;
-            if(resultOrdinal!=SIZE_MAX){xl6OutputPrintf(out,"%s*",xl6IrCgenOutputRawType(module,target,resultOrdinal));continue;}
-        }else if(output && i==outputLogical){
+        XL6_ForeignPhysicalStep step;if(!xl6IrForeignPhysicalStepGet(module,target,i,&step))return 0;
+        size_t parameter=step.parameter;
+        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){
+            const XL6_ForeignPackContract* pack=xl6IrForeignPackGet(module,target,step.physicalIndex);if(!pack)return 0;
+            xl6OutputPrintf(out,"const %s*",pack->recordCName);continue;
+        }
+        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT && declaration->foreignCall.valueOutput){
+            xl6OutputPrintf(out,"%s*",xl6IrCgenOutputRawType(module,target,step.ordinal));continue;
+        }else if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){
             const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
             xl6OutputPrintf(out,"%s%s",target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW ? result->cName:xl6IrCgenType(module,target->returnType),storage ? "":"*");continue;
-        }else parameter=i-(output && i>outputLogical);
+        }
         if ( target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_RAW_C_CALLBACK ||
              target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK ) {
             xl6OutputPrintf(out, "xlir_raw_callback_t%u",

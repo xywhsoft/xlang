@@ -97,13 +97,22 @@ static int xl6IrCgenPrepareBytesViews(XL6_Output* out,const XL6_IrCallTarget* ta
 
 /* C strings are explicit terminating-text contracts. Interior NUL is rejected
  * before C entry; length-aware xstrview declarations never perform this scan. */
-static int xl6IrCgenPrepareTerminatedStrings(XL6_Output* out,const XL6_IrCallTarget* target,
+static int xl6IrCgenPrepareTerminatedStrings(XL6_Output* out,const XL6_IrModule* module,const XL6_IrCallTarget* target,
     const XL6_IrValueId* operands,const char* scope)
 {
     int count=0;
     for(size_t p=0;p<target->parameterCount;++p) {
         if(target->parameterPhysicalAbis[p]!=XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW)continue;
         if(!count++)xl6OutputPuts("    { bool c_strings_ok = true;\n",out);
+        const XL6_IrType* type=xl6IrTypeGet(&module->types,target->parameterTypes[p]);
+        if(type->kind==XL6_IR_TYPE_NULLABLE){
+            xl6OutputPrintf(out,"    const char* xlir_cstr_arg_%lu = NULL; if (",(unsigned long)p);
+            if(operands)xl6OutputPrintf(out,"v%u",(unsigned)operands[p]);else xl6OutputPrintf(out,"a%lu",(unsigned long)(p-1));
+            xl6OutputPrintf(out,".Data) { xlir_cstr_arg_%lu = xlir_string_cstr(",(unsigned long)p);
+            if(operands)xl6OutputPrintf(out,"v%u",(unsigned)operands[p]);else xl6OutputPrintf(out,"a%lu",(unsigned long)(p-1));
+            xl6OutputPrintf(out,"); if (!xlir_cstr_arg_%lu) { c_strings_ok=false; xl6ErrorScopeCaptureFailure(&%s); } }\n",(unsigned long)p,scope);
+            continue;
+        }
         xl6OutputPrintf(out,"    const char* xlir_cstr_arg_%lu = xlir_string_cstr(",(unsigned long)p);
         if(operands)xl6OutputPrintf(out,"v%u",(unsigned)operands[p]);
         else xl6OutputPrintf(out,"a%lu",(unsigned long)(p-1));

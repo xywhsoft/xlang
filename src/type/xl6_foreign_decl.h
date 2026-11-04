@@ -69,7 +69,22 @@ static inline int xl6ForeignOutputSizeRead(const XL6_AstNode* attr,XL6_ForeignOu
 static inline int xl6ForeignOutputViewRead(const XL6_AstNode* attr,XL6_ForeignOutputViewContract* output)
 {
     int32 index;char kind[16];XL6_ForeignOutputViewContract row={0};
-    if(!attr || !attr->text || strcmp(attr->text,"c_output_view") || attr->childCount!=2 ||
+    if(!attr || !attr->text)return 0;
+    if(!strcmp(attr->text,"c_output_retain")){
+        char success[32];
+        if(attr->childCount!=4 || !xl6ForeignDecimalInt(attr->children[0],&index) || index<0 || index>=64 ||
+            !attr->children[1] || attr->children[1]->kind!=XL6_AST_NAME || !attr->children[1]->text ||
+            !xl6ForeignQuotedText(attr->children[2],success,sizeof(success)) ||
+            !attr->children[3] || attr->children[3]->kind!=XL6_AST_NAME || !attr->children[3]->text)return 0;
+        row.retainSuccess=!strcmp(success,"zero") ? XL6_FOREIGN_RETAIN_ZERO :
+            !strcmp(success,"positive") ? XL6_FOREIGN_RETAIN_POSITIVE:0;
+        if(!row.retainSuccess)return 0;
+        row.physicalIndex=(uint32)index;row.conversion=XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE;
+        row.retainSymbol=attr->children[1]->semanticSymbolId;row.rollbackSymbol=attr->children[3]->semanticSymbolId;
+        if(output)*output=row;
+        return 1;
+    }
+    if(strcmp(attr->text,"c_output_view") || attr->childCount!=2 ||
         !xl6ForeignDecimalInt(attr->children[0],&index) || index<0 || index>=64 ||
         !xl6ForeignQuotedText(attr->children[1],kind,sizeof(kind)))return 0;
     row.conversion=!strcmp(kind,"text") ? XL6_FOREIGN_OUTPUT_CONVERSION_TEXT :
@@ -250,6 +265,7 @@ static inline int xl6ForeignMultiOutputSlotsValid(const XL6_ForeignCallFacts* f,
     }
     return 1;
 }
+#include "src/type/xl6_foreign_pack_decl.h"
 
 static inline int xl6ForeignFieldCallName(const XL6_AstNode* node,char* field,size_t capacity)
 {
@@ -267,11 +283,24 @@ static inline int xl6ForeignFunctionFieldCall(const XL6_AstNode* node)
 static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     XL6_ForeignCallFacts* output)
 {
-    XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0,outputStatus=0,fieldCall=0;uint64 callbackSpans=0,callbackParameters=0,outputSizes=0,outputViews=0,regions=0,regionObservers=0;size_t callbackSpanCount=0;
+    XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0,outputStatus=0,fieldCall=0;uint64 callbackSpans=0,callbackParameters=0,outputSizes=0,outputViews=0,regions=0,regionObservers=0,packs=0,packText=0,packCstrings=0;size_t callbackSpanCount=0,packFields=0;
     const XL6_AstNode* attributes = xl6ForeignFunctionAttributes(node);
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
         const XL6_AstNode* attr = attributes->children[i];
         int32 index;
+        if(attr && attr->text && !strcmp(attr->text,"c_pack")){
+            XL6_ForeignPackContract row;
+            if(!xl6ForeignPackRead(attr,&row) || (packs&(UINT64_C(1)<<row.physicalIndex)))return 0;
+            packs|=UINT64_C(1)<<row.physicalIndex;continue;
+        }
+        if(attr && attr->text && (!strcmp(attr->text,"c_pack_field") || !strcmp(attr->text,"c_pack_size"))){
+            XL6_ForeignPackFieldContract row;
+            if(!xl6ForeignPackFieldRead(attr,&row))return 0;
+            ++packFields;
+            if(row.kind==XL6_FOREIGN_PACK_FIELD_TEXT_DATA || row.kind==XL6_FOREIGN_PACK_FIELD_TEXT_SIZE)packText|=UINT64_C(1)<<row.parameter;
+            if(row.kind==XL6_FOREIGN_PACK_FIELD_C_STRING)packCstrings|=UINT64_C(1)<<row.parameter;
+            continue;
+        }
         if(attr && attr->text && !strcmp(attr->text,"c_region")){
             XL6_ForeignRegionContract row;
             if(!xl6ForeignRegionRead(attr,&row) || (regions&(UINT64_C(1)<<row.physicalIndex)))return 0;
@@ -308,7 +337,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             if(!xl6ForeignOutputSizeRead(attr,&row) || (outputSizes&(UINT64_C(1)<<row.physicalIndex)))return 0;
             outputSizes|=UINT64_C(1)<<row.physicalIndex;continue;
         }
-        if(attr && attr->text && !strcmp(attr->text,"c_output_view")){
+        if(attr && attr->text && (!strcmp(attr->text,"c_output_view") || !strcmp(attr->text,"c_output_retain"))){
             XL6_ForeignOutputViewContract row;
             if(!xl6ForeignOutputViewRead(attr,&row) || (outputViews&(UINT64_C(1)<<row.physicalIndex)))return 0;
             outputViews|=UINT64_C(1)<<row.physicalIndex;continue;
@@ -439,6 +468,8 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         else if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BYTES)facts.borrowedViewResult=XL6_FOREIGN_VIEW_RESULT_BYTES_FIELD;
         else return 0;
     }
+    if((packFields!=0)!=(packs!=0) || (packText&facts.textViews) || (packCstrings&facts.terminatedStrings))return 0;
+    facts.textViews|=packText;facts.terminatedStrings|=packCstrings;
     if (((facts.physicalPairs|facts.retainedCallbacks) & (facts.terminatedStrings|facts.textViews|facts.bytesViews|facts.constAggregateAddresses|facts.staticCallbackAddresses)) ||
         (facts.terminatedStrings & (facts.textViews | facts.bytesViews | facts.constAggregateAddresses | facts.staticCallbackAddresses)) ||
         (facts.textViews & (facts.constAggregateAddresses | facts.staticCallbackAddresses | facts.bytesViews)) ||
@@ -448,7 +479,8 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     if(outputSizes)facts.valueOutput|=XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED;
     if(outputViews)facts.valueOutput|=XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED;
     if((regionObservers&~regions) || (regions && ((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)) ||
-        !xl6ForeignInputMappingsSet(callbackSpanCount,regions!=0,&facts.inputMappingFacts))return 0;
+        (packs && (regions || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)) ||
+        !xl6ForeignInputMappingsSet(callbackSpanCount,regions!=0,packs!=0,&facts.inputMappingFacts))return 0;
     if (output) *output = facts;
     return 1;
 }
