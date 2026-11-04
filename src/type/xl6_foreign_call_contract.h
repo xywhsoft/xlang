@@ -2,6 +2,7 @@
 #define XL6_FOREIGN_CALL_CONTRACT_H
 
 #include "src/common/xl6_common.h"
+#include "src/type/xl6_foreign_region_contract.h"
 
 typedef enum XL6_ForeignLifetimeAbi {
     XL6_FOREIGN_LIFETIME_NONE=0,
@@ -64,6 +65,23 @@ static inline int xl6ForeignValueOutputBitsValid(uint8 mode)
         xl6ForeignValueOutputBase(mode)<=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID &&
         (!(xl6ForeignValueOutputHasSize(mode)||xl6ForeignValueOutputHasView(mode)) || xl6ForeignValueOutputBase(mode)!=XL6_FOREIGN_VALUE_OUTPUT_NONE);
 }
+/* One closed input-contract byte: an expected callback-span count and the
+ * presence of sparse fixed-pointer region rows. Concrete mappings stay sparse. */
+#define XL6_FOREIGN_INPUT_CALLBACK_COUNT_MASK 127u
+#define XL6_FOREIGN_INPUT_REGIONS_PRESENT 128u
+static inline uint8 xl6ForeignInputCallbackCount(uint8 facts)
+{return (uint8)(facts&XL6_FOREIGN_INPUT_CALLBACK_COUNT_MASK);}
+static inline int xl6ForeignInputHasRegions(uint8 facts)
+{return (facts&XL6_FOREIGN_INPUT_REGIONS_PRESENT)!=0;}
+static inline int xl6ForeignInputMappingsValid(uint8 facts)
+{return xl6ForeignInputCallbackCount(facts)<=64;}
+static inline int xl6ForeignInputMappingsEmpty(uint8 facts)
+{return xl6ForeignInputMappingsValid(facts) && !xl6ForeignInputCallbackCount(facts) && !xl6ForeignInputHasRegions(facts);}
+static inline int xl6ForeignInputMappingsSet(size_t callbacks,int regions,uint8* output)
+{
+    if(callbacks>64 || (regions!=0 && regions!=1) || !output)return 0;
+    *output=(uint8)(callbacks|(regions ? XL6_FOREIGN_INPUT_REGIONS_PRESENT:0));return 1;
+}
 
 /* Closed declaration facts. Const addresses exist only during one call;
  * they do not introduce a language reference or an escaping pointer. */
@@ -90,8 +108,21 @@ typedef struct XL6_ForeignCallFacts {
     uint8 valueOutput;
     uint8 receiverDereference;
     uint8 inplaceOutput; /* XL6_ForeignInplaceKind, not a Boolean. */
-    uint8 callbackSpanMappings;
+    uint8 inputMappingFacts;
 } XL6_ForeignCallFacts;
+
+static inline int xl6ForeignCallFactsEqual(const XL6_ForeignCallFacts* a,const XL6_ForeignCallFacts* b)
+{
+    return a->constRecordAddresses==b->constRecordAddresses && a->staticCallbackAddresses==b->staticCallbackAddresses &&
+        a->textViews==b->textViews && a->bytesViews==b->bytesViews && a->terminatedStrings==b->terminatedStrings &&
+        a->physicalPairs==b->physicalPairs && a->retainedCallbacks==b->retainedCallbacks && a->controlViews==b->controlViews &&
+        a->borrowedViewResult==b->borrowedViewResult && a->resultOwnerIndexPlusOne==b->resultOwnerIndexPlusOne &&
+        a->outputIndexPlusOne==b->outputIndexPlusOne && a->successCode==b->successCode && a->rollbackSymbol==b->rollbackSymbol &&
+        a->valueOutput==b->valueOutput && a->receiverDereference==b->receiverDereference && a->inplaceOutput==b->inplaceOutput &&
+        xl6ForeignInputMappingsValid(a->inputMappingFacts) && xl6ForeignInputMappingsValid(b->inputMappingFacts) &&
+        xl6ForeignInputCallbackCount(a->inputMappingFacts)==xl6ForeignInputCallbackCount(b->inputMappingFacts) &&
+        xl6ForeignInputHasRegions(a->inputMappingFacts)==xl6ForeignInputHasRegions(b->inputMappingFacts);
+}
 
 /* Ownership helpers have one exact raw owner input and no physical input
  * rewrites. Release may report int status through the existing checked-result
@@ -101,7 +132,7 @@ static inline int xl6ForeignOwnershipHelperFacts(const XL6_ForeignCallFacts* f,i
     return f && !f->constRecordAddresses && !f->staticCallbackAddresses && !f->textViews && !f->bytesViews &&
         !f->terminatedStrings && !f->physicalPairs && !f->retainedCallbacks && !f->controlViews &&
         !f->resultOwnerIndexPlusOne && !f->outputIndexPlusOne && !f->rollbackSymbol && !f->valueOutput &&
-        !f->receiverDereference && !f->inplaceOutput && !f->callbackSpanMappings &&
+        !f->receiverDereference && !f->inplaceOutput && xl6ForeignInputMappingsEmpty(f->inputMappingFacts) &&
         (f->borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_NONE ? !f->successCode :
          !retain && f->borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS);
 }

@@ -44,7 +44,7 @@ int main(int argc,char** argv)
         node->foreignCall.inplaceOutput=0;refused(module);node->foreignCall=facts;
         node->foreignCall.inplaceOutput=2;refused(module);node->foreignCall=facts;
         node->foreignCall.valueOutput=1;refused(module);node->foreignCall=facts;
-        node->foreignCall.callbackSpanMappings=1;refused(module);node->foreignCall=facts;
+        node->foreignCall.inputMappingFacts=1;refused(module);node->foreignCall=facts;
         if(saved.kind!=XL6_FOREIGN_STORAGE_NATIVE_ADOPTION)continue;
         XL6_IrCallTarget* adopter=(XL6_IrCallTarget*)xl6IrCallTargetGet(module,row->adoptSymbol);XL6_IrCallTarget original=*adopter;
         XL6_IrNode* decl=&module->nodes[adopter->declaration-1];uint32 flags=decl->flags;

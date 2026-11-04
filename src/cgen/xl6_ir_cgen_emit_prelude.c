@@ -43,6 +43,7 @@ static int xl6IrCgenEmitRuntimePrelude(
             syncHeader |= target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK;
         for(size_t p=0;p<target->parameterCount;++p)
             accessHeader |= target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_HANDLE_ACCESS_BORROW ||
+                target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_REGION_BORROW ||
                 target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW;
     }
     if(retainedHeader)xl6OutputPuts("#include <__xl_runtime/xl6_native_callback.h>\n#include <stdlib.h>\n",out);

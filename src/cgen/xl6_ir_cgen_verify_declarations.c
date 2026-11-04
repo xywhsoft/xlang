@@ -77,6 +77,9 @@ static int xl6IrCgenVerifyDeclarations(
                     target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
                     target->parameterPhysicalFieldDeclarations[parameter] || target->parameterConstraintAbis[parameter])
                     return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no exact borrowed bytes view ABI");
+            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_REGION_BORROW){
+                if(!xl6IrForeignRegionParameterMatches(module,target,parameter))
+                    return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no sealed fixed region");
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW ||
                       (target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK || target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK)) {
                 if(!xl6IrForeignParameterGet(module,target,parameter))

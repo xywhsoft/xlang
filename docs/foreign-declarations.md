@@ -1006,3 +1006,76 @@ return ordinal and exact result type including nullability. C/header proof
 uses the physical view pointer type, rather than treating a borrowed view as
 a language string, a dynamic byte value or a user C record. Conversion and
 copy costs are explicit; no per-library or per-method C wrapper is introduced.
+
+## Fixed-pointer byte regions and typed observers
+
+`@c_region(physicalInput,"read"|"write",width,height,stride,unitBytes)`
+describes a strided byte region occupying exactly one native pointer slot.
+Unlike `c_span`, it does not add a count argument. Selectors are quoted closed
+references: `"2"` names a complete physical input, `"2.width"` names an exact
+integer C-record member, and `"observer.width"` names an observer output member.
+Positions include the receiver, factory output and expanded input groups.
+An output slot, data pointer itself, partial span/callback group, arbitrary C
+expression, float or unverified member cannot be used as an extent.
+
+```xl
+extern "surfaceUpdateRGBA" @c_field_call @no_raise
+    @c_region(3,"read","2.width","2.height","4",4)
+    func update(Surface surface,RectI rect,bytes pixels,c_int stride) as c_int
+
+extern "surfaceReadRGBA" @c_field_call @no_raise @c_result("status",0)
+    @c_region(2,"write","observer.width","observer.height","3",4)
+    @c_region_observer(2,surfaceDesc,0,1)
+    func read(Surface surface,Buffer output,c_int stride)
+```
+
+Read regions accept `bytes` or the actual managed `Buffer` resource. Write
+regions accept only `Buffer`; they never write through a language byte value.
+An optional final `"nullable"` is accepted only for read `bytes?`, where absence
+supplies native NULL. Non-null data still obeys the complete region bounds.
+Strings and raw points are not Region storage carriers.
+
+Width and height must be positive. Effective stride is the positive supplied
+stride, or `width * unitBytes` when stride is zero or negative. The checked
+extent is `(height - 1) * effectiveStride + width * unitBytes`: padding beyond
+the final valid row is not required. Generated C rejects overflowing `size_t`
+arithmetic, an undersized stride, and a default packed stride outside the
+native stride type's range before calling the producer. Buffer bounds use
+initialized logical size, including when capacity is larger. A write neither
+grows nor changes length; failure may have modified a prefix, and length stays
+unchanged. Existing scoped Buffer pinning protects the pointer for the call.
+
+`c_region_observer` names a typed logical native method/function, not a string
+to dispatch at run time. Its remaining arguments identify existing physical
+inputs. It must be a nonrecursive no-raise single-record output producer with
+compatible effects and exact input types/physical pointer qualification. The
+query has no Region, callback or other hidden input expansion. Its native
+status is checked before any output fields are read or any destination Buffer
+is acquired. The same native input scopes remain active across query and main
+call. An unavailable field, query failure, or allocation failure in reporting
+that failure prevents the main call and leaves the destination unchanged.
+
+Each observed Region adds one real native query per invocation. Other Region
+work is checked integer arithmetic, a byte-value view or Buffer pin, and the
+original direct native call. The compiler adds no content copy, per-method C
+wrapper or pointer/count expansion. Existing view/lease/error bookkeeping is
+still present and must be included in performance comparisons.
+
+Sparse XLIR rows seal the physical input, exact logical storage, integer/member
+identities and typed query edge. Reachability includes observer targets, so
+their authoritative headers and field/function ABI proofs are emitted even
+when no source expression directly calls the observer. Region presence shares
+the closed input-mapping byte with the independently counted callback-span
+rows; missing/extra rows and invalid counts are rejected before C/header output.
+
+## Multiple logical inputs for one native C target
+
+Two logical overloads may bind the same native function or callable field only
+when their complete physical, lifetime, output and effect contracts agree.
+For Region data inputs, `bytes` and `Buffer` may provide the same non-null
+readonly pointer with identical extent selectors, units, stride and observer.
+Their language types remain distinct; this does not enable nominal casts or
+relax normal overload ambiguity rules. Constness, checked status, ownership,
+native output shape, callback contracts and effects cannot differ between the
+declarations. XLIR independently verifies this agreement, including coherent
+but conflicting edits to one overload's otherwise valid Region contract.

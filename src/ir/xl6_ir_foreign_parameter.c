@@ -224,7 +224,8 @@ static int xl6IrVerifyForeignCallbackSpans(const XL6_IrModule* module,XL6_DiagLi
     for(size_t n=0;n<module->nodeCount;++n){
         size_t count=0;
         for(size_t i=0;i<module->foreignCallbackSpanCount;++i)count+=module->foreignCallbackSpans[i].declaration==n+1;
-        if(module->nodes[n].foreignCall.callbackSpanMappings!=count)goto invalid;
+        if(!xl6ForeignInputMappingsValid(module->nodes[n].foreignCall.inputMappingFacts) ||
+            xl6ForeignInputCallbackCount(module->nodes[n].foreignCall.inputMappingFacts)!=count)goto invalid;
     }
     return 1;
 invalid:return xl6IrDiag(diags,NULL,"callback byte spans require unique normalized physical pointer/count mappings");
@@ -697,6 +698,8 @@ int xl6IrForeignPreparedParameterMatches(const XL6_IrModule* module,const XL6_Ir
         return xl6IrCallTargetNativeAccessField(module,target,p)!=NULL;
     case XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW:
         return xl6IrForeignSpanParameterMatches(module,target,p);
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_REGION_BORROW:
+        return xl6IrForeignRegionParameterMatches(module,target,p);
     case XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK:
     case XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK:
         return xl6IrForeignCallbackParameterMatches(module,target,p);

@@ -4196,7 +4196,8 @@ typedef enum XL6_IrCallParameterPhysicalAbi {
     XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_NATIVE_POINTER_DIRECT,
     XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_FOREIGN_VIEW_BORROW,
     /* Exact nonescaping const xvalue* input. No view wrapper or value copy. */
-    XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_XVALUE_BORROW
+    XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_XVALUE_BORROW,
+    XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_REGION_BORROW
 } XL6_IrCallParameterPhysicalAbi;
 
 /* A raw C callback may cross ordinary language wrapper functions before it
@@ -7061,6 +7062,10 @@ typedef struct XL6_IrModule {
     size_t foreignOutputSizeCount,foreignOutputSizeCapacity;
     XL6_ForeignOutputViewContract* foreignOutputViews;
     size_t foreignOutputViewCount,foreignOutputViewCapacity;
+    XL6_ForeignRegionContract* foreignRegions;
+    size_t foreignRegionCount,foreignRegionCapacity;
+    XL6_ForeignRegionObserverContract* foreignRegionObservers;
+    size_t foreignRegionObserverCount,foreignRegionObserverCapacity;
 } XL6_IrModule;
 
 void xl6IrModuleInit(XL6_IrModule* module);
@@ -8050,6 +8055,10 @@ const XL6_ForeignOutputSizeContract* xl6IrForeignOutputSizeGet(const XL6_IrModul
 int xl6IrForeignOutputSizesMatch(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignOutputViewContract* xl6IrForeignOutputViewGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 int xl6IrForeignOutputViewsMatch(const XL6_IrModule*,const XL6_IrCallTarget*);
+const XL6_ForeignRegionContract* xl6IrForeignRegionGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+const XL6_ForeignRegionObserverContract* xl6IrForeignRegionObserverGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+const XL6_IrClassField* xl6IrForeignRegionBufferField(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+int xl6IrForeignRegionParameterMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 int xl6IrForeignProjectionMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignManagedPointeeWrite(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignManagedViewParameter(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);

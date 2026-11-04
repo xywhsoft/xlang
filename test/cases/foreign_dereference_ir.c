@@ -32,7 +32,7 @@ int main(int argc,char** argv)
         target->runtimeBridge=XL6_IR_RUNTIME_BRIDGE_BUFFER;refused(module);*target=saved;
         node->foreignCall.receiverDereference=0;refused(module);node->foreignCall=facts;
         node->foreignCall.receiverDereference=2;refused(module);node->foreignCall=facts;
-        node->foreignCall.callbackSpanMappings=1;refused(module);node->foreignCall=facts;
+        node->foreignCall.inputMappingFacts=1;refused(module);node->foreignCall=facts;
         node->flags|=XL6_AST_FLAG_FOREIGN_FIELD;refused(module);node->flags=flags;
         node->flags&=~XL6_AST_FLAG_FOREIGN_NO_RAISE;refused(module);node->flags=flags;
     }

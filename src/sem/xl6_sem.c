@@ -9155,6 +9155,8 @@ static int xl6SemExternCReturnsCompatible(XL6_SemContext* ctx,const XL6_AstNode*
         if(!xl6SemExternCTypeCompatible(ctx,a->children[i],b->children[i]))return 0;
     return 1;
 }
+#include "src/sem/xl6_sem_foreign_compat.c"
+
 static int xl6SemExternParameterListsCompatible(XL6_SemContext* ctx,const XL6_AstNode* a,const XL6_AstNode* b)
 {
     const XL6_AstNode* aa=xl6ForeignFunctionAttributes(a);const XL6_AstNode* bb=xl6ForeignFunctionAttributes(b);
@@ -9184,7 +9186,8 @@ static int xl6SemExternParameterListsCompatible(XL6_SemContext* ctx,const XL6_As
             if(xl6SemTypeIsNullable(lt))lt=xl6SemNullableInnerType(lt);
             if(xl6SemTypeIsNullable(rt))rt=xl6SemNullableInnerType(rt);
         }
-        if(!xl6SemExternCTypeCompatible(ctx,lt,rt) || xl6SemParamMode(left->children[p])!=xl6SemParamMode(right->children[p]))return 0;
+        if((!xl6SemExternCTypeCompatible(ctx,lt,rt) && !xl6SemForeignRegionInputCompatible(ctx,a,b,p,lt,rt)) ||
+            xl6SemParamMode(left->children[p])!=xl6SemParamMode(right->children[p]))return 0;
     }
     return 1;
 }
@@ -9193,12 +9196,17 @@ static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* 
     if ( a == NULL || b == NULL ) {
         return 0;
     }
-    if ( a->kind == XL6_AST_EXTERN_FUNC ) {
+    if ( a->kind == XL6_AST_EXTERN_FUNC || a->kind == XL6_AST_NATIVE_EXTERN_FUNC ) {
         XL6_ForeignCallFacts left, right;
         if (!xl6ForeignFunctionRead(a, &left) || !xl6ForeignFunctionRead(b, &right) ||
             left.constRecordAddresses != right.constRecordAddresses ||
             left.staticCallbackAddresses != right.staticCallbackAddresses ||
             left.outputIndexPlusOne != right.outputIndexPlusOne || left.successCode != right.successCode) return 0;
+        if((a->kind==XL6_AST_NATIVE_EXTERN_FUNC || b->kind==XL6_AST_NATIVE_EXTERN_FUNC ||
+            xl6ForeignInputHasRegions(left.inputMappingFacts) || xl6ForeignInputHasRegions(right.inputMappingFacts)) &&
+            (!xl6ForeignCallFactsEqual(&left,&right) || !xl6SemForeignAttributesEqual(a,b) ||
+             ((a->flags^b->flags)&(XL6_AST_FLAG_STATIC|XL6_AST_FLAG_FOREIGN_OWNED_STRING|XL6_AST_FLAG_FOREIGN_PURE|
+                XL6_AST_FLAG_FOREIGN_NO_RAISE|XL6_AST_FLAG_FOREIGN_NONBLOCKING))))return 0;
         return ((a->flags ^ b->flags) & XL6_AST_FLAG_FOREIGN_OWNED_STRING) == 0 &&
                xl6SemExternParameterListsCompatible(ctx,a,b) &&
                xl6SemExternCReturnsCompatible(ctx, xl6SemExternFuncReturns(a), xl6SemExternFuncReturns(b));
@@ -21487,6 +21495,7 @@ static const XL6_AstNode* xl6SemForeignOwnershipHelper(XL6_SemContext* ctx,
 }
 #include "src/sem/xl6_sem_foreign_output_size.c"
 #include "src/sem/xl6_sem_foreign_output_view.c"
+#include "src/sem/xl6_sem_foreign_region.c"
 static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNode* node,const XL6_AstNode* ownerClass)
 {
     XL6_ForeignCallFacts facts;
@@ -21876,7 +21885,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             if(adoptName)adoptName->semanticSymbolId=adopt->semanticSymbolId;
         }
     }
-    return 1;
+    return xl6SemForeignRegions(ctx,node,ownerClass,attrs,&facts);
 }
 
 static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node,const XL6_AstNode* ownerClass)
@@ -21940,6 +21949,7 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node,const XL
             XL6_ForeignCallFacts parameterFacts={0};
             if(xl6ForeignFunctionRead(node,&parameterFacts) && i<64 &&
                 ((parameterFacts.retainedCallbacks|parameterFacts.physicalPairs) & (UINT64_C(1)<<i)))continue;
+            if(xl6SemForeignRegionParameter(node,i))continue;
             if ( typeNode != NULL && xl6TextEquals(typeNode->text, "function") ) {
                 if ( (param->flags & XL6_AST_FLAG_C_CALLBACK) != 0 &&
                      !xl6SemCheckCAbiCallbackType(ctx, typeNode, param) ) {
@@ -24806,8 +24816,10 @@ static int xl6SemCheckClassMemberConflicts(XL6_SemContext* ctx, XL6_AstNode* typ
                  xl6TextEquals(member->text, other->text) &&
                  !((member->flags|other->flags)&XL6_AST_FLAG_FOREIGN_FIELD) &&
                  !xl6ForeignFunctionDereferences(member) && !xl6ForeignFunctionDereferences(other) ) {
-                xl6SemErrorNode(ctx, other, "same native-backed class cannot bind the same C symbol twice");
-                ok = 0;
+                if(!xl6SemExternCDeclsCompatible(ctx,member,other)){
+                    xl6SemErrorNode(ctx, other, "same native C target requires an identical physical ABI and lifetime/effect contract");
+                    ok = 0;
+                }
             }
         }
 

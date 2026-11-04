@@ -13200,6 +13200,13 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
     /* Factory dependencies are exact normalized symbols, not source-order
      * assumptions. Register their plain C targets before validating the
      * producer's result transaction. No dependency may itself be a factory. */
+    for(size_t observer=0;observer<module->foreignRegionObserverCount;++observer){
+        const XL6_ForeignRegionObserverContract* query=&module->foreignRegionObservers[observer];
+        if(query->declaration!=declaration)continue;
+        if(!query->queryDeclaration || query->queryDeclaration==declaration ||
+            !xl6IrLowerRegisterCallTarget(ctx,query->queryDeclaration))
+            return xl6IrLowerDiag(ctx,declaration,"fixed-pointer region has no acyclic typed observer target");
+    }
     if((node->foreignCall.outputIndexPlusOne && !node->foreignCall.valueOutput) ||
         node->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE){
         XL6_IrCallTarget key={0};key.declaration=declaration;
@@ -13635,6 +13642,12 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
             target->parameterPhysicalAbis[i] = XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW;
         if (xl6IrForeignTerminatedStringParameter(module, target, i))
             target->parameterPhysicalAbis[i] = XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW;
+        if(xl6IrForeignRegionGet(module,target,i)){
+            target->parameterAbis[i]=XL6_IR_PARAMETER_ABI_BORROW;
+            target->parameterPhysicalAbis[i]=XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_REGION_BORROW;
+            const XL6_IrClassField* buffer=xl6IrForeignRegionBufferField(module,target,i);
+            target->parameterPhysicalFieldDeclarations[i]=buffer ? buffer->declaration:0;
+        }
         if(xl6IrForeignManagedViewParameter(module,target,i))
             target->parameterPhysicalAbis[i]=xl6IrForeignValueGet(module,target,i) ?
                 XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VALUE_BORROW : XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW;
