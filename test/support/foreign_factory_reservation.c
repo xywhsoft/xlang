@@ -163,7 +163,7 @@ static void separate_status(void)
     assert(!xl6ForeignResultProbeEndV1(&probe) && !xrtGetError()); /* No opt-in for partial records. */
     record->ready=true;assert(xl6ForeignViewDrainV1() && codeReferences==1 && cleaned==5);
 }
-static unsigned requested,deferDestroy,rejectRequests;
+static unsigned requested,deferDestroy,rejectRequests,ownDestroyAttempts;
 static bool failRequest;
 static bool failedDestroy;
 static bool requestClose(void* raw)
@@ -176,7 +176,8 @@ static bool requestClose(void* raw)
 static bool contextBusy(const void* raw){const Native* native=raw;return native->depth || native->failures;}
 static bool destroyOwnScope(void* raw)
 {
-    Native* native=raw;assert(!native->depth && !native->failures);
+    Native* native=raw;assert(!native->depth);++ownDestroyAttempts;
+    if(native->failures)return false;
     if(deferDestroy){--deferDestroy;return false;}
     if(failedDestroy){failedDestroy=false;xl6_error_result failure={false,NULL};assert(xl6ErrorScopeTryPropagateFailureV1(&failure));return false;}
     NativeScope scope={0};assert(scope_begin(native,&scope));assert(destroy_native(native));
@@ -270,6 +271,24 @@ static void request_worker(void)
     assert(xl6ForeignViewDrainV1() && requested==beforeRequested+1 && !raw->closing);
     raw->failures=0;assert(xl6ForeignViewDrainV1() && codeReferences==1);
 }
+static void idle_progress(void)
+{
+    XL6_ForeignViewDescriptorV1 descriptor=policy();descriptor.Destroy=destroyOwnScope;descriptor.Busy=contextBusy;
+    descriptor.RequestClose=requestClose;descriptor.flags|=XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY|XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE;
+    Native* raw=native_create();raw->failures=1;
+    XL6_ForeignView* root=xl6ForeignViewCreateRootV1(raw,&descriptor,&codeOwner);assert(root);
+    unsigned attempts=ownDestroyAttempts;
+    assert(xl6ForeignViewCloseV1(root) && !xrtGetError() && ownDestroyAttempts==attempts+1 && !raw->closing);
+    const XL6_OwnershipDomainV1* domains[]={xl6OwnershipDomainForeignViewV1Get()};
+    XL6_OwnershipCatalog* catalog=xl6OwnershipCatalogCreateV1(domains,1);assert(catalog);
+    const xrtownershipadapterv1* adapter=NULL;const xrtownershippreparationv1* prepare=NULL;
+    const XL6_OwnershipFinishV1* finish=NULL;
+    assert(xl6OwnershipCatalogProbeV1(xl6ForeignViewOwnershipV1(root),catalog,&adapter,&prepare,&finish)==XL6_OWNERSHIP_ADMISSION_BUSY);
+    assert(!adapter && !prepare && !finish && ownDestroyAttempts==attempts+1);
+    xl6OwnershipCatalogDestroyV1(catalog);
+    assert(xl6ForeignViewReleaseV1(root) && !xrtGetError() && ownDestroyAttempts==attempts+2 && codeReferences==2);
+    raw->failures=0;assert(xl6ForeignViewDrainV1() && codeReferences==1);
+}
 static bool factoryDiscover(XL6_ModuleOwnershipVisit visit,void* context,void* catalog)
 {(void)catalog;return xl6ForeignViewDiscoverV1(NULL,visit,context);}
 static void deferred_finalize(void)
@@ -313,7 +332,7 @@ int main(int argc,char** argv)
     xmemdebugsnapshot before,after;xrtMemDebugSnapshot(&before);
     const struct {const char* name;void(*run)(void);} cases[]={
         {"success",success},{"oom",oom},{"partial",partial},{"eligibility",eligibility},
-        {"watch",watch_contract},{"records",records},{"status",separate_status},{"finalize",deferred_finalize},{"request",request},{"defer",request_deferred},{"reject",request_rejected},{"resurrection",request_resurrection},{"worker",request_worker},{"acquire",acquire_failure}};
+        {"watch",watch_contract},{"records",records},{"status",separate_status},{"finalize",deferred_finalize},{"request",request},{"defer",request_deferred},{"reject",request_rejected},{"resurrection",request_resurrection},{"worker",request_worker},{"idle",idle_progress},{"acquire",acquire_failure}};
     bool found=argc==1;
     for(size_t i=0;i<sizeof(cases)/sizeof(cases[0]);++i)
         if(argc==1 || !strcmp(argv[1],cases[i].name)){found=true;cases[i].run();}

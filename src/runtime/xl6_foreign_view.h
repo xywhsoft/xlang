@@ -75,8 +75,9 @@ typedef struct XL6_ForeignViewDescriptorV1 {
  * closing output. Ordinary method eligibility is a separate checked result.
  * This is a trusted native ABI promise, not validation of arbitrary pointers. */
 #define XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH UINT64_C(2)
-/* The checked destructor owns its native operation scope. Idle retirement
- * first probes Busy; pending work remains owned without a new call failure. */
+/* The checked destructor owns its native operation scope and actual idle
+ * activity/cache preflight. Graph Busy remains independent; it must not
+ * prevent an idle native destructor from preparing other ready resources. */
 #define XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE UINT64_C(4)
 /* The root adapter separately reports every actual cleanup failure through
  * the checked channel, including a failed result with no diagnostic. Destroy
