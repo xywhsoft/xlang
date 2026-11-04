@@ -1,0 +1,21 @@
+extern "PlaceVertex" struct Vertex @header("test/cases/foreign_aggregate_place.h")
+ c_float x
+ c_float y
+end
+extern "PlaceQuad" struct Quad @header("test/cases/foreign_aggregate_place.h")
+ Vertex vertices[4]
+end
+extern "PlaceModel" struct Model @header("test/cases/foreign_aggregate_place.h")
+ Quad items[2]
+ c_int tag
+end
+extern "aggregate_place_model" @header("test/cases/foreign_aggregate_place.h") @no_raise func make() as Model
+func main(...) as int
+ auto captured=make()
+ auto update=func()
+  captured.items[0].vertices[2].x=c_float(43)
+ end
+ update()
+ assert captured.items[0].vertices[2].x==c_float(43)
+ return 0
+end

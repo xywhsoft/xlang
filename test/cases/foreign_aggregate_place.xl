@@ -1,0 +1,76 @@
+extern "PlaceVertex" struct Vertex @header("test/cases/foreign_aggregate_place.h")
+ c_float x
+ c_float y
+end
+extern "PlaceQuad" struct Quad @header("test/cases/foreign_aggregate_place.h")
+ Vertex vertices[4]
+end
+extern "PlaceModel" struct Model @header("test/cases/foreign_aggregate_place.h")
+ Quad items[2]
+ c_int tag
+end
+extern "aggregate_place_model" @header("test/cases/foreign_aggregate_place.h") @no_raise func make() as Model
+Model model=make()
+int order=0
+int selected=1
+func rhs() as c_float
+ order=order*10+1
+ return c_float(9)
+end
+func outerKey() as int
+ order=order*10+2
+ model.tag=c_int(31)
+ model.items[1].vertices[3].y=c_float(99)
+ return selected
+end
+func innerKey() as int
+ order=order*10+3
+ return 3
+end
+func changed(Model value) as Model
+ value.items[0].vertices[0].x=c_float(81)
+ return value
+end
+func main(...) as int
+ auto original=make()
+ auto values=original.items[0].vertices
+ values[0].x=c_float(9)
+ assert values[0].x==c_float(9) and original.items[0].vertices[0].x==c_float(1)
+ model.items[outerKey()].vertices[innerKey()].x=rhs()
+ assert order==123 and model.tag==c_int(31)
+ assert model.items[1].vertices[3].x==c_float(9) and model.items[1].vertices[3].y==c_float(99)
+ selected=2
+ order=0
+ bool rejected=false
+ try
+  model.items[outerKey()].vertices[innerKey()].x=rhs()
+ catch error
+  rejected=true
+ end
+ assert rejected and order==12
+ assert model.items[1].vertices[3].x==c_float(9) and model.items[1].vertices[3].y==c_float(99)
+ selected=-1
+ order=0
+ rejected=false
+ try
+  model.items[outerKey()].vertices[innerKey()].x=rhs()
+ catch error
+  rejected=true
+ end
+ assert rejected and order==12
+ uint64 wide=uint64(9223372036854775807)+uint64(1)
+ rejected=false
+ try
+  model.items[wide].vertices[0].x=c_float(22)
+ catch error
+  rejected=true
+ end
+ assert rejected and model.items[1].vertices[3].x==c_float(9)
+ auto independent=changed(original)
+ assert independent.items[0].vertices[0].x==c_float(81) and original.items[0].vertices[0].x==c_float(1)
+ auto replacement=original.items[0]
+ replacement.vertices[1].x=c_float(101)
+ model.items[0]=replacement
+ assert model.items[0].vertices[1].x==c_float(101)
+ return 0
+end

@@ -10568,6 +10568,19 @@ static int xl6IrLowerEmitCheckedIndexWrite(
     return xl6IrLowerEmitCheckedWrite(ctx, origin, committed, "RangeError", "container index assignment failed");
 }
 
+/* All fixed extents fit uint32. Normalize an evaluated integer to the signed
+ * bounds carrier. Unsigned values above INT64_MAX become negative and fail
+ * the same range guard without narrowing into a valid index. */
+static XL6_IrValueId xl6IrLowerNativeArrayKey(XL6_IrLowerContext* ctx,
+    XL6_IrNodeId origin,XL6_IrNodeId keyId,const XL6_IrNode* key)
+{
+    XL6_IrTypeId integer=xl6IrLowerFindIntegerType(ctx->module,XL6_IR_INTEGER_TARGET_SIGNED_64);
+    XL6_IrValueId value=xl6IrLowerNodeAsType(ctx,origin,keyId,key,integer);
+    if(value && xl6IrLowerValueType(ctx,value)!=integer)
+        value=xl6IrLowerEmitIntegerStorageNormalize(ctx,origin,integer,value);
+    return value;
+}
+
 static XL6_IrValueId xl6IrLowerNativeArrayAccess(XL6_IrLowerContext* ctx,
     XL6_IrNodeId origin, const XL6_IrNode* index, XL6_IrValueId value)
 {
@@ -10585,10 +10598,9 @@ static XL6_IrValueId xl6IrLowerNativeArrayAccess(XL6_IrLowerContext* ctx,
         read.memberAbi = XL6_IR_MEMBER_ABI_UNION_FIELD;
         array = xl6IrLowerUnionFieldProject(ctx, origin, &read);
     } else array = xl6IrLowerNode(ctx, receiverId);
-    XL6_IrTypeId integer = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_I64);
     XL6_IrTypeId boolean = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_BOOL);
     XL6_IrValueId operands[4] = {array, 0, 0, 0}, proof = 0, result = 0;
-    operands[1] = xl6IrLowerNodeAsType(ctx, origin, keyId, key, integer);
+    operands[1] = xl6IrLowerNativeArrayKey(ctx,origin,keyId,key);
     if (!array || !operands[1] || !boolean ||
         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_C_ARRAY_BOUNDS, origin, boolean, 0, operands, 2, &proof) ||
         !xl6IrLowerEmitCheckedWrite(ctx, origin, proof, "RangeError", "fixed C array index is out of bounds"))
@@ -27791,6 +27803,8 @@ static int xl6IrLowerEmitStorageAssignment(
     return xl6IrLowerWriteStorageTargetPlan(ctx, origin, plan, value);
 }
 
+#include "src/ir/xl6_ir_lower_aggregate_place.c"
+
 static int xl6IrLowerStorageAssign(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrNode* lhs,
     XL6_IrNodeId rhsId, const XL6_IrNode* rhs)
@@ -30944,6 +30958,15 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 ? xl6IrLowerNodeAsType(ctx, id, rhsId, rhs, lhs->storageType)
                 : XL6_IR_VALUE_INVALID;
             if ( lhs == NULL || values[0] == 0 ) { xl6IrLowerDiag(ctx, id, "XLIR assignment lacks a resolved target or value"); return 0; }
+            {
+                int aggregate=xl6IrLowerAggregatePlaceAssign(ctx,id,lhs,values[0]);
+                if(aggregate!=0)return aggregate>0 ? 0:XL6_IR_VALUE_INVALID;
+                if(lhs->kind==XL6_IR_NODE_MEMBER &&
+                   lhs->memberAbi==XL6_IR_MEMBER_ABI_UNION_FIELD) {
+                    xl6IrLowerDiag(ctx,id,"XLIR aggregate field assignment requires a writable named value path");
+                    return XL6_IR_VALUE_INVALID;
+                }
+            }
             if ( node->lvalueKind == XL6_SEM_LVALUE_INDEX ) {
                 if ( node->opcode != XL6_IR_OPCODE_INVALID ) {
                     xl6IrLowerDiag(ctx, id,
