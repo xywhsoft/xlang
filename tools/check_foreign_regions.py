@@ -1,23 +1,21 @@
-"""CPU-only fixed-pointer Region/typed observer gate over a pinned frontend overlay.
+"""CPU-only regions gate over a hash-verified compiler cohort.
 
-No Native engine, graphics, network or device code is exercised.
+Accepts an actual complete source build or an explicitly partial frontend
+overlay. Build qualification is recorded without certifying shipping/VFS.
+No Native device, graphics, window, network or security tests are run.
 """
 from pathlib import Path
 import argparse,hashlib,json,os,shutil,subprocess,sys,time
+from foreign_validation_build import add_build_arguments,load_build
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    for name in ('root','overlay','out'):parser.add_argument('--'+name,type=Path,required=True)
-    args=parser.parse_args();root,overlay,out=[p.resolve() for p in (args.root,args.overlay,args.out)]
-    description=json.loads(overlay.read_text());assert description['passed'] and not description['fullRebuild']
-    cohort=Path(description['sourceRoot']);basePath=Path(description['parentBuild']);base=json.loads(basePath.read_text())
+    for name in ('root','out'):parser.add_argument('--'+name,type=Path,required=True)
+    add_build_arguments(parser)
+    args=parser.parse_args();root,out=[p.resolve() for p in (args.root,args.out)]
+    build=load_build(args.build,args.overlay)
+    cohort,basePath,base,objects,inputs,driver,runtime=[build[k] for k in ('cohort','basePath','base','objects','inputs','driver','runtime')]
     sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
-    assert base['Complete'] and base['InputsUnchanged'] and sha(basePath)==description['parentBuildSha256']
-    replacements={r['ParentObject']:r for r in description['Objects']};objects=[];inputs={str(overlay):sha(overlay)}
-    for original in base['Objects']:
-        row=replacements.get(original['Path'],original);assert sha(row['Path'])==row['Sha256'].lower();inputs[row['Path']]=sha(row['Path'])
-        if Path(original['Source']).name not in ('xlir_public_source_driver.c','xlir_public_source_linux_driver.c'):objects.append(row['Path'])
-    driver=Path(description['Driver']);runtime=Path(description['RuntimeLibrary']);assert sha(driver)==description['DriverSha256']
     fixture=root/'test/cases/foreign_region.xl';native=root/'test/cases/foreign_region_native.c';host=root/'test/cases/foreign_decl_module_host.c'
     pinned=[driver,runtime,fixture,native,host,root/'test/cases/foreign_region.h',Path(__file__).resolve()]
     irFixture=root/'test/cases/foreign_region_ir.c'
@@ -27,7 +25,7 @@ def main():
     env=dict(os.environ,XL6_SOURCE_NATIVE_ROOT=str(cohort))
     if os.name=='nt':shutil.copy2(runtime,out/runtime.name)
     else:env['LD_LIBRARY_PATH']=str(runtime.parent)+':'+env.get('LD_LIBRARY_PATH','')
-    report=dict(scope=__doc__,complete=False,passed=False,fullSourceRebuild=False,overlay=str(overlay),inputs=inputs,rows=[])
+    report=dict(scope=__doc__,complete=False,passed=False,fullSourceRebuild=build["fullSourceRebuild"],buildManifest=build["buildManifest"],overlay=build["overlay"],inputs=inputs,rows=[])
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n')
     def run(name,command,accepted=True):
         command=list(map(str,command));actual=command_with_response(command,'gcc',out/(name+'.rsp')) if command[0] in ('gcc','g++') else command
@@ -38,7 +36,7 @@ def main():
     generated=out/'generated.c';run('cgen',[driver,fixture,'cgen-default',generated]);run('ir',[driver,fixture,'ir-lowered',out/'lowered.json']);run('header',[driver,fixture,'emit',out/'public'])
     text=generated.read_text(encoding='utf-8-sig');assert 'native_region_query_' in text and 'native_region_required_' in text
     headers=out/'fixture-inputs/test/cases';headers.mkdir(parents=True);shutil.copy2(root/'test/cases/foreign_region.h',headers/'foreign_region.h')
-    sdk=Path(base.get('SdkDirectory') or str(Path(base['Objects'][0]['Source']).parents[2]/'release'/'win_x64'))
+    sdk=Path(base.get('SdkDirectory') or base.get('RuntimeDirectory') or str(Path(base['Objects'][0]['Source']).parents[2]/'release'/'win_x64'))
     includes=['-I'+str(p) for p in (out/'fixture-inputs',cohort,basePath.parent/'include',sdk,sdk/'include')]
     common=['-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED',*includes]
     run('header-C',['gcc',*common,'-x','c','-fsyntax-only',out/'public.h'])
