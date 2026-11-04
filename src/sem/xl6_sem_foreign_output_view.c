@@ -31,7 +31,7 @@ static int xl6SemForeignOutputViews(XL6_SemContext* ctx,XL6_AstNode* node,
             const XL6_AstNode* retain=xl6SemForeignOwnershipHelper(ctx,attr->children[1],input,1);
             const XL6_AstNode* rollback=xl6SemForeignOwnershipHelper(ctx,attr->children[3],input,0);
             if(!view || contract.lifetime!=XL6_FOREIGN_LIFETIME_OWNED || !contract.header[0] ||
-                contract.watch[0] || contract.scope[0] || !retain || !rollback ||
+                contract.watch[0] || !retain || !rollback ||
                 !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
                 (node->flags&(XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_OWNED_STRING)))goto invalid;
             attr->children[1]->semanticSymbolId=retain->semanticSymbolId;

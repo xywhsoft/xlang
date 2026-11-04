@@ -68,15 +68,17 @@ static void xl6IrCgenForeignViewsEnd(XL6_Output* out,const XL6_IrCallTarget* tar
 /* Reserve the one ordinary root allocation before any native ownership is
  * acquired. Domain and code-owner admission cannot be postponed until after
  * a producer/Retain has transferred a possibly busy native resource. */
-static void xl6IrCgenReserveRootProbe(XL6_Output* out,const XL6_IrType* type,int recordStorage)
+static void xl6IrCgenReserveRootProbeNamed(XL6_Output* out,const XL6_IrType* type,int recordStorage,const char* probe)
 {
-    xl6OutputPrintf(out,"xl6ForeignResultProbeReserveRootV1(&native_result_probe,&%s,",type->foreignPolicy);
+    xl6OutputPrintf(out,"xl6ForeignResultProbeReserveRootV1(&%s,&%s,",probe,type->foreignPolicy);
     if(type->foreignDomain)xl6OutputPrintf(out,"&%s",type->foreignDomain);else xl6OutputPuts("NULL",out);
     xl6OutputPuts(",xlir_code_owner.size ? &xlir_code_owner : NULL,",out);
     if(type->foreignWatch)xl6OutputPrintf(out,"sizeof(%s),XLIR_NATIVE_ALIGNOF(%s),",type->foreignWatch,type->foreignWatch);
     else xl6OutputPuts("0,1,",out);
     xl6OutputPuts(recordStorage ? "XL6_FOREIGN_RESULT_RECORD_UNADOPTED)":"0)",out);
 }
+static void xl6IrCgenReserveRootProbe(XL6_Output* out,const XL6_IrType* type,int recordStorage)
+{xl6IrCgenReserveRootProbeNamed(out,type,recordStorage,"native_result_probe");}
 static int xl6IrCgenFactoryProbeBegin(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrCallTarget* target,const char* errors)
 {
@@ -145,7 +147,7 @@ static void xl6IrCgenNativeRollback(XL6_Output* out,const XL6_IrCallTarget* help
  * and ends native_result_probe around this shared admission transaction. */
 static void xl6IrCgenRetainedViewAdmission(XL6_Output* out,const XL6_IrModule* module,
     XL6_IrTypeId typeId,const XL6_ForeignRetainContract* retained,
-    const char* place,const char* raw,const char* errors)
+    const char* place,const char* raw,const char* errors,const char* probe)
 {
     const XL6_IrType* type=xl6IrTypeGet(&module->types,typeId);
     const XL6_IrCallTarget* retain=xl6IrCallTargetGet(module,retained->retainSymbol);
@@ -155,11 +157,11 @@ static void xl6IrCgenRetainedViewAdmission(XL6_Output* out,const XL6_IrModule* m
         "        int retained_status=%s(%s); native_result_retained=(retained_status%s);\n"
         "        if(!native_result_retained) { if(!xrtGetError()) xl6ForeignStatusFailureV1(retained_status,\"%s\"); xl6ErrorScopeCaptureFailure(&%s); }\n"
         "        if(xrtGetError()) xl6ErrorScopeCaptureFailure(&%s);\n"
-        "        if(native_result_retained && !xl6ForeignResultProbeObserveV1(&native_result_probe,%s)) xl6ErrorScopeCaptureFailure(&%s);\n    }\n",
+        "        if(native_result_retained && !xl6ForeignResultProbeObserveV1(&%s,%s)) xl6ErrorScopeCaptureFailure(&%s);\n    }\n",
         errors,errors,raw,retain->cName,raw,retained->success==XL6_FOREIGN_RETAIN_ZERO ? "==0" : ">0",
-        retain->cName,errors,errors,raw,errors);
+        retain->cName,errors,errors,probe,raw,errors);
     xl6OutputPrintf(out,"    if (!%s.failed && !xrtGetError()) {\n        if (%s) { %s = ",errors,raw,place);
-    xl6OutputPuts("xl6ForeignResultProbeMaterializeRootV1(&native_result_probe)",out);
+    xl6OutputPrintf(out,"xl6ForeignResultProbeMaterializeRootV1(&%s)",probe);
     xl6OutputPrintf(out,"; if (!%s) xl6ErrorScopeCaptureFailure(&%s); }",place,errors);
     if(type->kind!=XL6_IR_TYPE_NULLABLE)xl6OutputPrintf(out," else { xrtSetErrorKind(XERR_STATE); xl6ErrorScopeCaptureFailure(&%s); }",errors);
     xl6OutputPuts("\n    }\n",out);
@@ -173,7 +175,7 @@ static void xl6IrCgenNativeViewAdmission(XL6_Output* out,const XL6_IrModule* mod
     const XL6_ForeignStorageContract* storage=xl6IrForeignStorageGet(module,target);
     const XL6_ForeignRetainContract* retained=xl6IrForeignRetainGet(module,target);
     bool factory=target->outputResultAbi!=XL6_IR_CALL_OUTPUT_RESULT_NONE;
-    if(retained){xl6IrCgenRetainedViewAdmission(out,module,target->returnType,retained,place,raw,errors);return;}
+    if(retained){xl6IrCgenRetainedViewAdmission(out,module,target->returnType,retained,place,raw,errors,"native_result_probe");return;}
     if(type->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK){
         xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError()==NULL) {\n        if (%s) { XL6_ForeignScopeViewV1 derived={0};\n            if (!xl6ForeignScopeViewDeriveV2(",errors,raw);
         xl6IrCgenForeignViewArgument(out,values,declaration->foreignCall.resultOwnerIndexPlusOne-1,receiver);
