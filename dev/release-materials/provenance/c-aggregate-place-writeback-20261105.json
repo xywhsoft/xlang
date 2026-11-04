@@ -1,0 +1,82 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Typed named C aggregate place writeback, ordered single-evaluation indexes, reload after reentry and dominating fixed-extent proofs",
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\aggregate-place-win-r8\\results.json",
+      "sha256": "24b6b3c829cd8e6887b9a7983d29042f0847711be55c67f51b4454cfead71afd",
+      "rows": 16
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\aggregate-place-linux-r4\\results.json",
+      "sha256": "0bfab72a1d0aed4a089ce80c0a647ca0adee77ad588ffcc2392c47e7323c7002",
+      "rows": 16
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\aggregate-place-source-regression-r1\\results.json",
+      "sha256": "bfebb93d8bc02c72513876aed3186b6eb0939528c779f35e892e70bcc8b6a6c3",
+      "rows": 12
+    }
+  ],
+  "files": [
+    {
+      "path": "src/ir/xl6_ir.h",
+      "sha256": "21ba2aa4fd3fbc7b08c075f78fca0dec6d0a13b335ad71ea99afb40d45afb961"
+    },
+    {
+      "path": "src/ir/xl6_ir.c",
+      "sha256": "853ffbcb50cfdf8a4a64265ca97dd2e73a73d47de21848170da47cbc5ad1dc2c"
+    },
+    {
+      "path": "src/ir/xl6_ir_lower.c",
+      "sha256": "7275da4b34dcd4087fc17a373641cab4c35037323c4b7ed01da564080a0e982f"
+    },
+    {
+      "path": "src/ir/xl6_ir_lower_aggregate_place.c",
+      "sha256": "62067f1a020cf3bc0beb0c4aed80423a33f9a0b6ecc3e8d74c611a300c04e673"
+    },
+    {
+      "path": "docs/c-aggregate-places.md",
+      "sha256": "1f4efac13f58c427f2b35080918a61662b65dcffe6ad7e51f714f98892560f6c"
+    },
+    {
+      "path": "tools/check_foreign_aggregate_place.py",
+      "sha256": "e323c1d7e669cb67945cb47526593d29e13880c59cdf585dd0166c3b75d97998"
+    },
+    {
+      "path": "test/cases/foreign_aggregate_place.xl",
+      "sha256": "3a945e07e1d8a9a3e97a325a3f6b167093374311c9cce3a76dc32359fbae53da"
+    },
+    {
+      "path": "test/cases/foreign_aggregate_place.h",
+      "sha256": "1beab8da54bfffbfe21e852194ddfd5cc091f2c1e00eaf961477e73d2f97c852"
+    },
+    {
+      "path": "test/cases/foreign_aggregate_place_native.c",
+      "sha256": "d17975947cfcc0cbf4973a372076b88ad0493348ea8c4d5d4b75f9d45e2fe10c"
+    },
+    {
+      "path": "test/cases/foreign_aggregate_place_ir.c",
+      "sha256": "f54b1a375043c237b17423891c00c6641e4b3c0b1d4deec6335a34f92447b574"
+    },
+    {
+      "path": "test/cases/bad_foreign_aggregate_mutable_capture.xl",
+      "sha256": "d7b0839540a1adb772c24e2c6677f23d0830f01b21e7403c5e489b7a6c2e6974"
+    }
+  ],
+  "unsafeIrMutationsPerOptimization": 86,
+  "sourceRegression": {
+    "passed": 11,
+    "unchangedBaselineFailures": [
+      "cgen_union_var_box"
+    ]
+  },
+  "fullSourceRebuild": false,
+  "shippingDelivery": false,
+  "notes": [
+    "Two IR translation units replaced over the fixed-array compiler cohort; source and parent object hashes recorded",
+    "Temporary assignments and unsupported mutable C-record captures reject before C output",
+    "Language value copies and existing storage publication are preserved; no universal zero-overhead assertion"
+  ]
+}

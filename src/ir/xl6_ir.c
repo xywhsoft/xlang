@@ -18715,6 +18715,47 @@ static const XL6_IrClassField* xl6IrImplicitNameFieldByIdentity(
     return found;
 }
 
+/* A path is a typed value place, not a reference or a guessed C address.
+ * Index keys remain expressions here; lowering freezes each exactly once. */
+XL6_IrNodeId xl6IrAggregatePlaceRootGet(
+    const XL6_IrModule* module, const XL6_IrNode* place)
+{
+    if (!module || !place || place<module->nodes ||
+        place>=module->nodes+module->nodeCount) return XL6_IR_NODE_INVALID;
+    for (size_t depth=0; depth<module->nodeCount; ++depth) {
+        const XL6_IrType* type=xl6IrTypeGet(&module->types,place->storageType);
+        if (!type || type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL) return 0;
+        if (place->kind==XL6_IR_NODE_NAME) {
+            const XL6_IrNode* declaration=xl6IrSymbolNodeGet(module,place->targetSymbol);
+            if (!place->targetSymbol ||
+                (type->cAbi!=XL6_IR_C_ABI_C_RECORD && type->cAbi!=XL6_IR_C_ABI_C_ARRAY) ||
+                (declaration && (declaration->sourceKind==XL6_AST_CONST_DECL ||
+                                 declaration->sourceKind==XL6_AST_EXPORT_CONST))) return 0;
+            return (XL6_IrNodeId)(place-module->nodes+1);
+        }
+        if (place->firstChild>module->childCount ||
+            place->childCount>module->childCount-place->firstChild) return 0;
+        const XL6_IrNode* receiver=place->childCount
+            ? xl6IrNodeGet(module,module->children[place->firstChild]):NULL;
+        const XL6_IrType* parent=receiver ? xl6IrTypeGet(&module->types,receiver->storageType):NULL;
+        if (!parent || parent->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL) return 0;
+        if (place->kind==XL6_IR_NODE_MEMBER && place->childCount==1 &&
+            parent->cAbi==XL6_IR_C_ABI_C_RECORD) {
+            const XL6_IrAggregateField* field=xl6IrUnionFieldForMemberAbi(module,place,NULL);
+            if (!field || field->ownerType!=receiver->storageType || field->type!=place->storageType) return 0;
+        } else if (place->kind==XL6_IR_NODE_INDEX && place->childCount==2 &&
+                   parent->cAbi==XL6_IR_C_ABI_C_ARRAY && parent->paramCount==1 &&
+                   parent->params && parent->params[0]==place->storageType) {
+            const XL6_IrNode* key=xl6IrNodeGet(module,module->children[place->firstChild+1]);
+            const XL6_IrType* keyType=key ? xl6IrTypeGet(&module->types,key->storageType):NULL;
+            if(!keyType || (keyType->integerTarget==XL6_IR_INTEGER_TARGET_INVALID &&
+               !(keyType->cAbi>=XL6_IR_C_ABI_C_CHAR && keyType->cAbi<=XL6_IR_C_ABI_C_UINTPTR)))return 0;
+        } else return 0;
+        place=receiver;
+    }
+    return 0;
+}
+
 static XL6_IrMemberAbi xl6IrClassifyMemberAbi(
     const XL6_IrModule* module, const XL6_IrNode* member)
 {
@@ -18797,6 +18838,8 @@ static XL6_IrMemberAbi xl6IrClassifyMemberAbi(
         return XL6_IR_MEMBER_ABI_XVALUE_COUNT;
     if ( xl6IrUnionFieldForMemberAbi(module, member, NULL) != NULL ) {
         if ( xl6IrMemberIsPlainAssignmentTarget(module, member) ) {
+            if (xl6IrAggregatePlaceRootGet(module,member))
+                return XL6_IR_MEMBER_ABI_C_AGGREGATE_PATH_WRITE;
             if ( receiver != NULL && receiver->kind == XL6_IR_NODE_NAME &&
                  receiver->targetSymbol != 0 )
                 return XL6_IR_MEMBER_ABI_UNION_FIELD_DIRECT_STORAGE_WRITE;
@@ -20015,7 +20058,8 @@ static int xl6IrBuildMemberAbis(XL6_IrModule* module)
               module->nodes[i].memberAbi ==
                   XL6_IR_MEMBER_ABI_UNION_FIELD_DIRECT_STORAGE_WRITE ||
               module->nodes[i].memberAbi ==
-                  XL6_IR_MEMBER_ABI_UNION_FIELD_CLASS_FIELD_WRITE) &&
+                  XL6_IR_MEMBER_ABI_UNION_FIELD_CLASS_FIELD_WRITE ||
+              module->nodes[i].memberAbi==XL6_IR_MEMBER_ABI_C_AGGREGATE_PATH_WRITE) &&
              xl6IrUnionFieldForMemberAbi(
                  module, &module->nodes[i], &unionField) == NULL ) return 0;
         module->nodes[i].unionField = unionField;
@@ -20078,7 +20122,8 @@ static XL6_IrIndexWriteAbi xl6IrClassifyIndexWriteAbi(
         ((receiver->kind == XL6_IR_NODE_NAME && receiver->targetSymbol) ||
          (receiver->kind == XL6_IR_NODE_MEMBER &&
           (receiver->memberAbi == XL6_IR_MEMBER_ABI_UNION_FIELD_DIRECT_STORAGE_WRITE ||
-           receiver->memberAbi == XL6_IR_MEMBER_ABI_UNION_FIELD_CLASS_FIELD_WRITE))))
+           receiver->memberAbi == XL6_IR_MEMBER_ABI_UNION_FIELD_CLASS_FIELD_WRITE ||
+           receiver->memberAbi == XL6_IR_MEMBER_ABI_C_AGGREGATE_PATH_WRITE))))
         return XL6_IR_INDEX_WRITE_C_ARRAY_SET_COPY;
     if ( receiver->kind == XL6_IR_NODE_NAME && receiver->targetSymbol != 0 &&
          keyType->cAbi == XL6_IR_C_ABI_I64 &&
@@ -27400,6 +27445,62 @@ static const XL6_IrBlock* xl6IrFunctionInstructionBlock(
     return NULL;
 }
 
+static int xl6IrOwnedInputDominates(const XL6_IrModule*,
+    const XL6_IrFunction*,size_t,size_t);
+
+/* Fixed bounds depend on the exact array type and evaluated key, not on its
+ * element payload. A successful guard may remain valid through nested places
+ * and a reload after key callbacks. Require its true-only block to dominate. */
+static int xl6IrNativeArrayGuardDominates(const XL6_IrModule* module,
+    const XL6_IrInstruction* proof,const XL6_IrInstruction* use,const XL6_IrBlock* using)
+{
+    XL6_IrBlockId useId=(XL6_IrBlockId)(using-module->blocks+1);
+    XL6_IrFunction global={0};global.entryBlock=module->entryBlock;global.blockCount=module->blockCount;
+    const XL6_IrFunction* function=&global;
+    for(size_t f=0;f<module->functionCount;++f) {
+        const XL6_IrFunction* candidate=&module->functions[f];
+        if(candidate->firstBlock>module->blockCount ||
+           candidate->blockCount>module->blockCount-candidate->firstBlock)return 0;
+        if(useId>candidate->firstBlock && useId-candidate->firstBlock<=candidate->blockCount) {
+            function=candidate;break;
+        }
+    }
+    for(size_t b=0;b<module->blockCount;++b) {
+        const XL6_IrBlock* block=&module->blocks[b];
+        if(block->firstInstruction>module->instructionCount ||
+           block->instructionCount>module->instructionCount-block->firstInstruction)return 0;
+        if(!block->instructionCount)continue;
+        const XL6_IrInstruction* branch=&module->instructions[block->firstInstruction+block->instructionCount-1];
+        if(branch->kind!=XL6_IR_INSTR_BRANCH || branch->operandCount!=1 ||
+           branch->firstOperand>=module->operandCount ||
+           module->operands[branch->firstOperand]!=proof->result ||
+           !branch->trueTarget || branch->trueTarget>module->blockCount ||
+           branch->trueTarget==branch->falseTarget)continue;
+        XL6_IrBlockId guarded=branch->trueTarget;
+        if(guarded==function->entryBlock || guarded<=function->firstBlock ||
+           guarded-function->firstBlock>function->blockCount)continue;
+        bool exact=true;size_t entries=0;
+        for(size_t from=0;from<module->blockCount;++from) {
+            const XL6_IrBlock* prior=&module->blocks[from];
+            if(prior->firstInstruction>module->instructionCount ||
+               prior->instructionCount>module->instructionCount-prior->firstInstruction)return 0;
+            if(!prior->instructionCount)continue;
+            const XL6_IrInstruction* edge=&module->instructions[prior->firstInstruction+prior->instructionCount-1];
+            if(edge->trueTarget!=guarded && edge->falseTarget!=guarded)continue;
+            if(edge->kind!=XL6_IR_INSTR_BRANCH || edge->trueTarget!=guarded || edge->falseTarget==guarded ||
+               edge->operandCount!=1 || edge->firstOperand>=module->operandCount ||
+               module->operands[edge->firstOperand]!=proof->result){exact=false;break;}
+            ++entries;
+        }
+        if(!exact || !entries)continue;
+        if(guarded==useId)return 1;
+        const XL6_IrBlock* first=&module->blocks[guarded-1];
+        if(first->instructionCount && xl6IrOwnedInputDominates(module,function,
+                first->firstInstruction,(size_t)(use-module->instructions)))return 1;
+    }
+    return 0;
+}
+
 /* Fixed-array access consumes an exact bounds fact, never an unchecked index.
  * Its block is entered only through the true edge of that same fact. This
  * local CFG proof survives ordinary SSA copies and needs no runtime token. */
@@ -27432,26 +27533,10 @@ static int xl6IrVerifyNativeArrayInstruction(const XL6_IrModule* module,
     const XL6_IrInstruction* proof = xl6IrValueDefinition(module, operands[expected - 1u], NULL);
     if (!proof || proof->kind != XL6_IR_INSTR_C_ARRAY_BOUNDS || proof->operandCount != 2 ||
         proof->firstOperand > module->operandCount || 2u > module->operandCount - proof->firstOperand ||
-        module->operands[proof->firstOperand] != operands[0] ||
         module->operands[proof->firstOperand + 1] != operands[1]) return 0;
-    XL6_IrBlockId id = (XL6_IrBlockId)(block - module->blocks + 1);
-    if (id == module->entryBlock) return 0;
-    for (size_t i = 0; i < module->functionCount; ++i)
-        if (module->functions[i].entryBlock == id) return 0;
-    unsigned entries = 0;
-    for (size_t i = 0; i < module->blockCount; ++i) {
-        const XL6_IrBlock* prior = &module->blocks[i];
-        if (prior->firstInstruction > module->instructionCount ||
-            prior->instructionCount > module->instructionCount - prior->firstInstruction) return 0;
-        if (!prior->instructionCount) continue;
-        const XL6_IrInstruction* edge = &module->instructions[prior->firstInstruction + prior->instructionCount - 1];
-        if (edge->trueTarget != id && edge->falseTarget != id) continue;
-        if (edge->kind != XL6_IR_INSTR_BRANCH || edge->trueTarget != id || edge->falseTarget == id ||
-            edge->operandCount != 1 || edge->firstOperand >= module->operandCount ||
-            module->operands[edge->firstOperand] != proof->result) return 0;
-        ++entries;
-    }
-    return entries != 0;
+    const XL6_IrInstruction* bounded=xl6IrValueDefinition(module,module->operands[proof->firstOperand],NULL);
+    if(!bounded || bounded->type!=array->type)return 0;
+    return xl6IrNativeArrayGuardDominates(module,proof,instruction,block);
 }
 
 /* Independently re-prove every constrained raw callback at the consuming
@@ -41340,7 +41425,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
               expectedMemberAbi ==
                   XL6_IR_MEMBER_ABI_UNION_FIELD_DIRECT_STORAGE_WRITE ||
               expectedMemberAbi ==
-                  XL6_IR_MEMBER_ABI_UNION_FIELD_CLASS_FIELD_WRITE) &&
+                  XL6_IR_MEMBER_ABI_UNION_FIELD_CLASS_FIELD_WRITE ||
+              expectedMemberAbi==XL6_IR_MEMBER_ABI_C_AGGREGATE_PATH_WRITE) &&
              xl6IrUnionFieldForMemberAbi(
                   module, node, &expectedUnionField) == NULL ) {
             xrtFree(incoming);
@@ -41431,7 +41517,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 "typed XLIR named callable has no exact declaration and signature ABI");
         }
         if ( node->memberAbi < XL6_IR_MEMBER_ABI_NONE ||
-             node->memberAbi > XL6_IR_MEMBER_ABI_C_ARRAY_LENGTH ||
+             node->memberAbi > XL6_IR_MEMBER_ABI_C_AGGREGATE_PATH_WRITE ||
              node->memberAbi != expectedMemberAbi ||
              node->unionField != expectedUnionField ) {
             xrtFree(incoming);
@@ -50888,6 +50974,7 @@ static const char* xl6IrMemberAbiName(XL6_IrMemberAbi abi)
         return "safe-class-field-nullable";
     case XL6_IR_MEMBER_ABI_BYTES_LENGTH: return "bytes-length";
     case XL6_IR_MEMBER_ABI_C_ARRAY_LENGTH: return "c-array-length";
+    case XL6_IR_MEMBER_ABI_C_AGGREGATE_PATH_WRITE: return "c-aggregate-path-write";
     case XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE: return "class-field-exact-value";
     default: return "invalid";
     }

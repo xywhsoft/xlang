@@ -3022,7 +3022,10 @@ typedef enum XL6_IrMemberAbi {
      * its erased slot, then apply the canonical exact-TypeId projection.
      * The result is an independent scalar/value, never a slot reference. */
     XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE,
-    XL6_IR_MEMBER_ABI_C_ARRAY_LENGTH
+    XL6_IR_MEMBER_ABI_C_ARRAY_LENGTH,
+    /* A named, trivial C aggregate place reached through exact record fields
+     * and fixed-array indexes. Lowering owns the complete write-back path. */
+    XL6_IR_MEMBER_ABI_C_AGGREGATE_PATH_WRITE
 } XL6_IrMemberAbi;
 
 /* Safe builtin indexing evaluates its key only on the present successor.
@@ -7992,6 +7995,10 @@ XL6_IrTypeId xl6IrTypeInternStorageRef(
 XL6_IrTypeId xl6IrTypeInternTuple(
     XL6_IrModule* module, const XL6_IrTypeId* elementTypes, size_t elementCount);
 const XL6_IrStorage* xl6IrStorageGet(const XL6_IrModule* module, XL6_SymbolId symbol);
+/* Exact named destination for a trivial C record/fixed-array value path.
+ * Returns INVALID for temporaries, nullable paths and non-aggregate access. */
+XL6_IrNodeId xl6IrAggregatePlaceRootGet(
+    const XL6_IrModule* module, const XL6_IrNode* place);
 /* Canonical requirement from materialized lowered operations, including dead
  * functions. The resource stays lazy; no AST/reachability guess is needed. */
 XL6_IrModuleTaskPoolAbi xl6IrModuleTaskPoolRequirement(const XL6_IrModule* module);
