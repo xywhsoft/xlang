@@ -78,6 +78,11 @@ typedef struct XL6_ForeignViewDescriptorV1 {
 /* The checked destructor owns its native operation scope. Idle retirement
  * first probes Busy; pending work remains owned without a new call failure. */
 #define XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE UINT64_C(4)
+/* The root adapter separately reports every actual cleanup failure through
+ * the checked channel, including a failed result with no diagnostic. Destroy
+ * false only means its owner remains unconsumed and may wait without error.
+ * This does not change the conservative DestroyUnadopted contract. */
+#define XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE UINT64_C(8)
 
 /* Stable compiler-owned storage; never copy a live call or callback scope.
  * nativeStorage is a separately typed C record emitted from the declaration,
