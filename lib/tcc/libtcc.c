@@ -1097,11 +1097,15 @@ static int tcc_add_binary(TCCState *s1, int flags, const char *filename, int fd)
     case AFF_BINTYPE_DYN:
         if (s1->output_type == TCC_OUTPUT_MEMORY) {
 #ifdef TCC_IS_NATIVE
-            void* dl = dlopen(filename, RTLD_GLOBAL | RTLD_LAZY);
-            if (dl)
-                tcc_add_dllref(s1, filename, 0)->handle = dl;
-            else
-                ret = FILE_NOT_RECOGNIZED;
+            DLLReference* existing = tcc_add_dllref(s1, filename, 0);
+            /* One owned loader reference per state entry. Repeated links or
+             * loadlibs must not overwrite a handle after another dlopen.
+             * Allocate the entry first, so OOM cannot leak a loaded handle. */
+            if (!existing->handle) {
+                existing->handle = dlopen(filename, RTLD_GLOBAL | RTLD_LAZY);
+                if (!existing->handle)
+                    ret = FILE_NOT_RECOGNIZED;
+            }
 #endif
         } else
             ret = tcc_load_dll(s1, fd, filename, (flags & AFF_REFERENCED_DLL) != 0);
