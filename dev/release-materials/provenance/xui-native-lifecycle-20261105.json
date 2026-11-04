@@ -1,0 +1,441 @@
+{
+  "format": "xlang-native-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "scope": "Shared owned-Proxy Context lifecycle, Native scopes/first-error receipts, widget/part/cache/Font/Surface/registry/Icon/atlas contracts, Canvas and TextEdit development cohort.",
+  "xrtHeaderSHA256": "0f1637529a32ffd1c3e468cd9d4898692f687efda504de75941d2124953443fd",
+  "xrtUpstreamRevision": "031e59a0",
+  "platforms": [
+    {
+      "platform": "win_x64",
+      "steps": 172,
+      "fresh144Build": {
+        "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-host-win-r8\\build-report.json",
+        "sha256": "651b3739c84c6d5dc7a456e8a46f3884923c7b0604c679114dc5815a66f868a9"
+      },
+      "seventeenInlineConsumerOverlay": {
+        "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-host-win-r9\\overlay.json",
+        "sha256": "b7eb6b3d498690d19b86ce68c54f5f37cb59d826946c57a460c0dff7cc2aaaa4"
+      },
+      "engineBuild": {
+        "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-host-win-r9\\build-report.json",
+        "sha256": "f0e2bd892b202df113e9f031f0b0d186cd79301debc29154a833934e74b700e7"
+      },
+      "matrix": {
+        "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\results.json",
+        "sha256": "1f2cc8de9746e38c0b6a7b6b4fa132d77795e8178a47b74cc77d8d2922ac3bff"
+      },
+      "reports": [
+        {
+          "name": "remaining",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\remaining\\results.json",
+            "sha256": "4e8d5dc35d934764bb1f46f87b7e4835f845b63e9065d42cdc591d1085962e50"
+          }
+        },
+        {
+          "name": "groups",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\groups\\results.json",
+            "sha256": "b2c16155e15d0044b887ff771701670719ff75f5773bfdf1f9b783a692c60830"
+          }
+        },
+        {
+          "name": "tree",
+          "steps": 12,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\tree\\results.json",
+            "sha256": "4e703c430547c6761ba5872eef6dafb30517f9300e8c84aa9d701c270aa92d0a"
+          }
+        },
+        {
+          "name": "cell",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\cell\\results.json",
+            "sha256": "589d66a917c295ac9d62015ab43c9b10881ddddbf95ee471402c4fe7f6481d51"
+          }
+        },
+        {
+          "name": "table",
+          "steps": 12,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\table\\results.json",
+            "sha256": "421c5a24642ff906360b497be51daf8d908e4448d0fa49cf964b3c2151ce844d"
+          }
+        },
+        {
+          "name": "context",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\context\\results.json",
+            "sha256": "55afd0cca34424cac5bb745bc313a2f91bf1a39b9a905e9c64e332146439f1d5"
+          }
+        },
+        {
+          "name": "parts",
+          "steps": 64,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\parts\\results.json",
+            "sha256": "af766ae7e4dc877c5b6e92dc72b20ef3057d3d0b8b00c662d685424bb5791148"
+          }
+        },
+        {
+          "name": "grid",
+          "steps": 8,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\grid\\results.json",
+            "sha256": "91b2b3ce1da0d6a472278b3f511441e4da2cc2ca9502295b0caaf879cd355b37"
+          }
+        },
+        {
+          "name": "port",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\port\\results.json",
+            "sha256": "aea1cfdfc9c215d4d0f5c8ba55e08bbf2c80cbb8be93cdd27798649dc4ff9ec7"
+          }
+        },
+        {
+          "name": "fonts",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\fonts\\results.json",
+            "sha256": "a70a6bd2372c654758547c007dbecbebc669d9a35490e5e21c32891dbc5fcd84"
+          }
+        },
+        {
+          "name": "paint",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\paint\\results.json",
+            "sha256": "99a49ce146b0602a61d92a46eac2d711d95de20c6272e2f36fa572ea47fb91e3"
+          }
+        },
+        {
+          "name": "receipt",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\receipt\\results.json",
+            "sha256": "dd03946308d651265c0539a58cae9e916c806e07c6c8769d5ee8d82898c2d10b"
+          }
+        },
+        {
+          "name": "surfaces",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\surfaces\\results.json",
+            "sha256": "ef6c9fc2451eb37d35757297702b31824bf9cb59600d1f9223cc6c53e4feb68d"
+          }
+        },
+        {
+          "name": "layout",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\layout\\results.json",
+            "sha256": "16fad689a789cb0dcd757431f978cd3beb91a80968347f81f9568eb53cf6207d"
+          }
+        },
+        {
+          "name": "layout_draft",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\layout_draft\\results.json",
+            "sha256": "5963e4cad026e801129ef3f8fef795075bf0089668003c6ea96d6b720f4f941a"
+          }
+        },
+        {
+          "name": "chunk_edit",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\chunk_edit\\results.json",
+            "sha256": "5224160673bde0716e8a82dae7474d2e8b729f8f4cfec66b2acce1ece770604a"
+          }
+        },
+        {
+          "name": "renderer",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\renderer\\results.json",
+            "sha256": "2d95ddca60fa5ea52fa150651185cc935356e683dac4416f4f5d9fa33e5fb55a"
+          }
+        },
+        {
+          "name": "renderer_busy",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\renderer_busy\\results.json",
+            "sha256": "622867177afb7e93c520b1b3d1a3a26c775e4ef120bc1cdd0510efe6741770f2"
+          }
+        },
+        {
+          "name": "shape",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\shape\\results.json",
+            "sha256": "e248554903643673fb502c27b2c13b7265f3594771f8e7ae0741eb8bafa9f04d"
+          }
+        },
+        {
+          "name": "simple_layout",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\simple_layout\\results.json",
+            "sha256": "5e3c480bf0da64c85b53cfeb263c4a0554bf0dec4b781af036e9a23539e5a1a8"
+          }
+        },
+        {
+          "name": "requested_callbacks",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\requested_callbacks\\results.json",
+            "sha256": "bf4575de49774b8abe9ffe63438ee0df44d712474ef9c5507a0cc886d28ec77d"
+          }
+        },
+        {
+          "name": "textedit_cache",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\textedit_cache\\results.json",
+            "sha256": "7f3cdf59e388d58d3355ca3574d3fa852909b42a453a6ac8c17f74d32247d377"
+          }
+        },
+        {
+          "name": "textedit_regression",
+          "steps": 4,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-matrix-win-r9\\textedit_regression\\results.json",
+            "sha256": "205a4c29642e8ec507938dc16c9b377e99372f2841c8f881cb042d2a5522c9e9"
+          }
+        }
+      ]
+    },
+    {
+      "platform": "linux_x64",
+      "steps": 172,
+      "fresh144Build": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-host-linux-r8\\build-report.json",
+        "sha256": "5312a544e82ded8995de54070864f0f2a4fb9e552d933eebc8a42552a1d9c145"
+      },
+      "seventeenInlineConsumerOverlay": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-host-linux-r9\\overlay.json",
+        "sha256": "5d74ba374df8bb3729d99c4820600c918fd4cdb2f7da821137d737ffe8221ad7"
+      },
+      "engineBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-host-linux-r9\\build-report.json",
+        "sha256": "16811600ae1be0f55438eb052daa148389b06801d3cfd6b5183106ed23daeb32"
+      },
+      "matrix": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\results.json",
+        "sha256": "b089f81f205bc4281280632a45c043628b619d5acf8af41bc75b0fe94a0b0dc5"
+      },
+      "reports": [
+        {
+          "name": "remaining",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\remaining\\results.json",
+            "sha256": "1f60c1e118647ee558239ba40462a1b46562b087bbdaa42dc088b06e48a4ea7c"
+          }
+        },
+        {
+          "name": "groups",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\groups\\results.json",
+            "sha256": "d75702563bfdb83e8e18f6f7972f7f8fb9a26d9c203c7b063093453d894b6f26"
+          }
+        },
+        {
+          "name": "tree",
+          "steps": 12,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\tree\\results.json",
+            "sha256": "3a5c73a38cac077672505bde7fb5c3691a56a8245999ad713c9a54db1e7a22ee"
+          }
+        },
+        {
+          "name": "cell",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\cell\\results.json",
+            "sha256": "f0f4240deb784ae0f8b5c3269aff3f3f2bb8c6500353cfb8a7579808f3ca3a23"
+          }
+        },
+        {
+          "name": "table",
+          "steps": 12,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\table\\results.json",
+            "sha256": "3190ca01f60907750fd74a10d99fbc894237075062a6c4a8498d3d7c5f28bfd2"
+          }
+        },
+        {
+          "name": "context",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\context\\results.json",
+            "sha256": "d4729db053a84946ac6dc224e8a3fb353b7914ca50c0dc338040043879934813"
+          }
+        },
+        {
+          "name": "parts",
+          "steps": 64,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\parts\\results.json",
+            "sha256": "c189be619b2baaf3b26bba46076abfc6ad91bdd936202119121f834439c464b8"
+          }
+        },
+        {
+          "name": "grid",
+          "steps": 8,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\grid\\results.json",
+            "sha256": "8a2fc9f31605993f5f668e028a05308ddb3c041fac5ebd0d7786ef50ea40c710"
+          }
+        },
+        {
+          "name": "port",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\port\\results.json",
+            "sha256": "5541863d57c80b2e55c6f3acf9d9d8eb657309d9ec66db773bf009f2c5b10984"
+          }
+        },
+        {
+          "name": "fonts",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\fonts\\results.json",
+            "sha256": "c386aa65ea0a44bf62f7708724e4a4a6aa875bf45d2e493404019e78f60fdf54"
+          }
+        },
+        {
+          "name": "paint",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\paint\\results.json",
+            "sha256": "1c6f629c71808e3b6cd36ce049f82dd895fa833e03e302bde5de8b9d480b30be"
+          }
+        },
+        {
+          "name": "receipt",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\receipt\\results.json",
+            "sha256": "fbf11a3787ff669dc4021f60d8faf72cf36916d68528ab3b258930091a512496"
+          }
+        },
+        {
+          "name": "surfaces",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\surfaces\\results.json",
+            "sha256": "795a762aa7be550f0f5a298a05a459fb78a7b722e25f6013ac3a47c770e5f643"
+          }
+        },
+        {
+          "name": "layout",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\layout\\results.json",
+            "sha256": "d43fa77a877600bd8692c57260bdcdb10fddb44218a03a096675f4511dc0964b"
+          }
+        },
+        {
+          "name": "layout_draft",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\layout_draft\\results.json",
+            "sha256": "190a5d588ec86d9f14c2ad561e9e4946cfed82fe5677d862dcb90d428efcc1c8"
+          }
+        },
+        {
+          "name": "chunk_edit",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\chunk_edit\\results.json",
+            "sha256": "609394cf5727af4ce4654be3c0a8e945c7d686b6f52b0429d76bb73ecdb98591"
+          }
+        },
+        {
+          "name": "renderer",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\renderer\\results.json",
+            "sha256": "9612a80e1df948e1d1935b4f1d832a74392192df5702e7f81729a47964e64e0c"
+          }
+        },
+        {
+          "name": "renderer_busy",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\renderer_busy\\results.json",
+            "sha256": "1a75a84cbdc73f2581d037dec6cdb9282cdf9ccf1e694da559b16f2864bdc6e7"
+          }
+        },
+        {
+          "name": "shape",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\shape\\results.json",
+            "sha256": "48734beec2827cb34596981996f8e3dce679c84f5d27df7a44c233834c955a3f"
+          }
+        },
+        {
+          "name": "simple_layout",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\simple_layout\\results.json",
+            "sha256": "030586850fc82941f822534daa5d77ae82515ebaacc9ea65c605f3305f2de162"
+          }
+        },
+        {
+          "name": "requested_callbacks",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\requested_callbacks\\results.json",
+            "sha256": "d1573b11d0c9692ef4f7cb71bc2b8b22c14b367c4f7d6c0d9b1aed5aa40bed1b"
+          }
+        },
+        {
+          "name": "textedit_cache",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\textedit_cache\\results.json",
+            "sha256": "d26c99ed1db66c05e03ee3a6d87893d94f1fd90a9aab0ba4e3927b308532413a"
+          }
+        },
+        {
+          "name": "textedit_regression",
+          "steps": 4,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-ambient-matrix-linux-r9\\textedit_regression\\results.json",
+            "sha256": "d9f4008fac0785e8b42f489d14888f1980e9cdeca72251ba6c97b0afba5fa25c"
+          }
+        }
+      ]
+    }
+  ],
+  "verifiedSteps": 344,
+  "layoutProof": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-layout-r9\\results.json",
+    "sha256": "e824ffa578ae05d48301352e7b11015ea1e9ac9ce3b04d45bfa2c81ed08ade0f"
+  },
+  "linuxLayoutProof": {
+    "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-layout-r9\\results.txt",
+    "sha256": "685c7ba6cb5a9415b8b3c361f0195de05c8cfa301b0302b9c4d96305ed32d492"
+  },
+  "sourceLayer": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-ambient-source-r8\\ambient-source-layer-r8.json",
+    "sha256": "d27121a26b14068d6a6d998c4f370382397841d83cef5b841a5d742928558b0d"
+  },
+  "exclusions": [
+    "Concrete MsgBox/Toast/MsgTip/FileDialog final Native and language policies are qualified separately",
+    "New MessageList/CodeEdit/WebProvider work is not included",
+    "No final shipping SDK, VFS/provider rebuild, release DLL replacement or zero-total-overhead claim",
+    "No network, security, GPU, desktop or browser execution"
+  ]
+}
