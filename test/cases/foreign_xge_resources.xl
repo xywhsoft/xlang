@@ -1,0 +1,113 @@
+extern "const void*" class Pixels @header("test/cases/foreign_xge_resources.h") @lifetime("caller")
+ native point handle
+end
+extern "xge_texture" class Texture @header("test/cases/foreign_xge_resources.h") @lifetime("owned") @policy("declarativeXgeTexturePolicy")
+ native point handle
+ extern "iWidth" @c_field get width() as c_int
+ extern "iHeight" @c_field get height() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xge_font" class Font @header("test/cases/foreign_xge_resources.h") @lifetime("owned") @policy("declarativeXgeFontPolicy")
+ native point handle
+ extern "fSize" @c_field get size() as c_float
+ extern "pFallback" @c_field @c_result("retained_view") @c_retain(retainFont,"positive",freeFont) get fallback() as Font?
+ extern "xgeFontCreateSized" @no_raise @c_result("owned_view") @factory(0,0,freeFont) @c_inplace("xge_font_t",adoptFont,0) func sized(c_float size) as Font
+ extern "xgeFontSetFallbackChecked" @no_raise @c_result("status",0) func setFallback(Font? fallback)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeTextureCreateRGBA" @no_raise @c_result("owned_view") @factory(0,0,freeTexture) @c_inplace("xge_texture_t",adoptTexture,0) func createTexture(c_int width,c_int height,Pixels? pixels=null) as Texture
+extern "xgeTextureLoadMemory" @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeTexture) @c_inplace("xge_texture_t",adoptTexture,0) func loadTexture(bytes data) as Texture
+extern "xgeFontLoad" @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeFont) @c_inplace("xge_font_t",adoptFont,0) func loadFont(string path,c_float size) as Font
+extern "xgeFontLoadMemory" @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeFont) @c_inplace("xge_font_t",adoptFont,0) func loadFontMemory(bytes data,c_float size) as Font
+extern "xgeTextureAdoptStorage" @no_raise func adoptTexture(Texture value) as c_int
+extern "xgeTextureFree" @no_raise func freeTexture(Texture value)
+extern "xgeFontAdoptStorage" @no_raise func adoptFont(Font value) as c_int
+extern "xgeFontAddRef" @no_raise func retainFont(Font value) as c_int
+extern "xgeFontFree" @no_raise func freeFont(Font value)
+extern "declarative_xui_start" @no_raise func start()
+extern "declarative_xge_font_path" @no_raise @c_result("text_view") func fontPath() as string
+extern "declarative_xge_font_bytes" @no_raise @c_result("bytes_view") func fontBytes() as bytes
+extern "declarative_xge_heap_begin" @no_raise func heapBegin()
+extern "declarative_xge_heap_end" @no_raise func heapEnd()
+extern "declarative_xge_fail_after" @no_raise func failAfter(c_int count)
+extern "declarative_xge_reset_failure" @no_raise func resetFailure()
+protocol Sizable
+ func sized(c_float size) as Font
+end
+func resources(string path,bytes data)
+ Texture texture=createTexture(2,2)
+ assert texture.width==2 and texture.height==2
+ texture.close()
+ bool expired=false
+ try
+  auto invalid=texture.width
+ catch error
+  expired=true
+ end
+ assert expired
+ Font font=loadFont(path,c_float(16))
+ Font other=font.sized(c_float(24))
+ func(c_float) as Font factory=font.sized
+ Font bound=factory(c_float(20))
+ Sizable sizable=font
+ Font throughProtocol=sizable.sized(c_float(18))
+ var dynamicFont=font
+ Font throughDynamic=dynamicFont.sized(c_float(22)) as Font
+ Font memory=loadFontMemory(data,c_float(17))
+ assert font.size==16.0 and other.size==24.0 and bound.size==20.0 and throughProtocol.size==18.0 and throughDynamic.size==22.0 and memory.size==17.0
+ font.setFallback(other)
+ Font savedFallback=font.fallback as Font
+ other.close()
+ // Font's native reference keeps the adopted fallback RECORD alive.
+ font.setFallback(null)
+ assert savedFallback.size==24.0
+ savedFallback.close()
+ font.close()
+ bound.close()
+ throughProtocol.close()
+ throughDynamic.close()
+ memory.close()
+end
+func failures()
+ bool invalid=false
+ try
+  Texture bad=createTexture(-1,2)
+ catch error
+  invalid=true
+ end
+ assert invalid
+ invalid=false
+ try
+  Texture bad=loadTexture(b"invalid\0image")
+ catch error
+  invalid=true
+ end
+ assert invalid
+ int budget=0
+ int accepted=0
+ int rejected=0
+ while budget<32
+  failAfter(c_int(budget))
+  try
+   Texture texture=createTexture(2,2)
+   assert texture.width==2
+   accepted+=1
+  catch error
+   rejected+=1
+  finally
+   resetFailure()
+  end
+  budget+=1
+ end
+ assert accepted>0 and rejected>0
+end
+func main(...) as int
+ start()
+ string path=fontPath()
+ bytes data=fontBytes()
+ heapBegin()
+ resources(path,data)
+ failures()
+ heapEnd()
+ return 0
+end

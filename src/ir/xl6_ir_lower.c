@@ -13192,8 +13192,31 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
          (node->sourceKind == XL6_AST_NATIVE_EXTERN_SPECIAL &&
           node->childCount < signatureOffset + 1) )
         return xl6IrLowerDiag(ctx, declaration, "XLIR callable declaration has no canonical function identity");
-    if ( xl6IrCallTargetGet(module, node->symbol) != NULL )
-        return xl6IrLowerDiag(ctx, declaration, "XLIR callable declaration has a duplicate canonical target");
+    const XL6_IrCallTarget* registered=xl6IrCallTargetGet(module,node->symbol);
+    if(registered){
+        if(registered->declaration==declaration)return 1;
+        return xl6IrLowerDiag(ctx,declaration,"XLIR callable declaration has a duplicate canonical target");
+    }
+    /* Factory dependencies are exact normalized symbols, not source-order
+     * assumptions. Register their plain C targets before validating the
+     * producer's result transaction. No dependency may itself be a factory. */
+    if((node->foreignCall.outputIndexPlusOne && !node->foreignCall.valueOutput) ||
+        node->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE){
+        XL6_IrCallTarget key={0};key.declaration=declaration;
+        const XL6_ForeignStorageContract* storage=xl6IrForeignStorageGet(module,&key);
+        const XL6_ForeignRetainContract* retained=xl6IrForeignRetainGet(module,&key);
+        XL6_SymbolId symbols[2]={retained ? retained->rollbackSymbol:node->foreignCall.rollbackSymbol,
+            retained ? retained->retainSymbol:storage ? storage->adoptSymbol:0};
+        for(size_t dependency=0;dependency<2;++dependency){
+            if(!symbols[dependency] || xl6IrCallTargetGet(module,symbols[dependency]))continue;
+            const XL6_IrNode* owner=xl6IrSymbolNodeGet(module,symbols[dependency]);
+            if(!owner || owner==node || owner->sourceKind!=XL6_AST_EXTERN_FUNC ||
+                owner->foreignCall.outputIndexPlusOne || owner->foreignCall.inplaceOutput ||
+                owner->foreignCall.borrowedViewResult ||
+                !xl6IrLowerRegisterCallTarget(ctx,(XL6_IrNodeId)(owner-module->nodes+1)))
+                return xl6IrLowerDiag(ctx,declaration,"native factory has no acyclic exact cleanup/adoption dependency");
+        }
+    }
     params = node->sourceKind == XL6_AST_CREATE
         ? xl6IrNodeGet(module, xl6IrLowerCreateSignaturePart(module, declaration, XL6_IR_NODE_LIST))
         : xl6IrNodeGet(module, module->children[node->firstChild + signatureOffset]);

@@ -420,6 +420,10 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
         const XL6_IrType* type=xl6IrTypeGet(&module->types,target->parameterTypes[p]);
         headerDeclared=type && type->foreignHeader;
     }
+    const XL6_ForeignStorageContract* storage=xl6IrForeignStorageGet(module,target);
+    if(storage)xl6OutputPrintf(out,"_Static_assert(_Generic((%s)0, %s*:1, default:0), \"in-place native record pointer\");\n"
+        "_Static_assert(sizeof(%s[1])>0 && _Alignof(%s)<=XL6_FOREIGN_RECORD_ALIGNMENT_V1, \"in-place native record size/alignment\");\n",
+        resultType->cName,storage->recordCName,storage->recordCName,storage->recordCName);
     if(headerDeclared)xl6OutputPuts("_Static_assert(_Generic(&",out);
     else xl6OutputPrintf(out, "extern %s ", returnType);
     size_t startByte = out->buffer.Size;
@@ -436,8 +440,8 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
         if ( i > 0 ) xl6OutputPuts(", ", out);
         if (output && i == outputLogical) {
             const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
-            xl6OutputPrintf(out, "%s*", target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW ?
-                result->cName : xl6IrCgenType(module, target->returnType)); continue;
+            xl6OutputPrintf(out, "%s%s", target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW ?
+                result->cName : xl6IrCgenType(module, target->returnType),storage ? "" : "*"); continue;
         }
         size_t parameter = i - (output && i > outputLogical);
         if ( target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_RAW_C_CALLBACK ||

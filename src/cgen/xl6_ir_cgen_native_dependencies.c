@@ -256,6 +256,9 @@ int xl6IrCgenVisitNativeModules(const XL6_IrModule* module, XL6_DiagList* diags,
     if ((module->abi.entryKind!=XL6_IR_MODULE_ENTRY_NONE || (options && options->emitScriptEntry)) &&
         !visitor(context,"XRT_MODULE_CONSOLE")) return 0;
     if(needs.needsDebugConsoleRuntime && !visitor(context,"XRT_MODULE_STRING_FORMAT"))return 0;
+    for(size_t t=0;t<module->callTargetCount;++t)
+        if(module->callTargets[t].reachability!=XL6_IR_REACHABILITY_UNREACHABLE &&
+            xl6IrForeignStorageGet(module,&module->callTargets[t]) && !visitor(context,"XRT_MODULE_MEMORY"))return 0;
 #define XL6_IR_CGEN_NEED(Type, Field, Group) \
     if (needs.Field && !xl6IrCgenVisitNativeGroup(XL6_IR_CGEN_NATIVE_##Group, \
             (uint64_t)needs.Field,visitor,context)) return 0;
@@ -472,14 +475,17 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT){
             const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
             const XL6_IrType* type=xl6IrTypeGet(&module->types,target->returnType);
-            const char* admit=declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE ?
+            const char* admit=(declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE ||
+                declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE) ?
                 "xl6ForeignViewCreateRootProbedV1" : type->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED ?
                 "xl6ForeignViewBorrowRootV1" : "xl6ForeignViewBorrowChildV1";
             if(!visitor(context,admit) || !visitor(context,"xl6ForeignScopeViewDeriveV1"))return 0;
-            if(declaration->foreignCall.outputIndexPlusOne &&
+            if((declaration->foreignCall.outputIndexPlusOne || declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE) &&
                 (!visitor(context,"xl6ForeignResultProbePrepareV1") || !visitor(context,"xl6ForeignResultProbeObserveV1") ||
                  !visitor(context,"xl6ForeignResultProbeAliveV1") || !visitor(context,"xl6ForeignResultProbeEndV1")))return 0;
         }
+        if(xl6IrForeignStorageGet(module,target) && !visitor(context,"xl6ForeignStatusFailureV1"))return 0;
+        if(xl6IrForeignRetainGet(module,target) && !visitor(context,"xl6ForeignStatusFailureV1"))return 0;
         if((target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_INT_STATUS ||
             target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE) && !visitor(context,"xl6ForeignStatusFailureV1"))return 0;
         if(xl6IrNativeContextIsClassCallback(target->nativeContextAbi)){

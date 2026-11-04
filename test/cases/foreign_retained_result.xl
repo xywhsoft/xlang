@@ -1,0 +1,121 @@
+extern "RetainedNode*" class Node @header("test/cases/foreign_retained_result.h") @lifetime("owned") @policy("retainedPolicy")
+ native point handle
+ extern "retained_value" @no_raise get value() as c_int
+ extern "retained_refs" @no_raise get refs() as c_int
+ extern "retained_borrow" @no_raise @c_result("retained_view") @c_retain(retain,"positive",rollback) func borrow() as Node
+ extern "retained_borrow_zero" @no_raise @c_result("retained_view") @c_retain(retainZero,"zero",rollback) func borrowZero() as Node
+ extern "retained_maybe" @no_raise @c_result("retained_view") @c_retain(retain,"positive",rollback) func maybe() as Node?
+ extern "child" @c_field @c_result("retained_view") @c_retain(retain,"positive",rollback) get child() as Node?
+ extern "retained_set_child" @no_raise @c_result("status",0) func setChild(Node? child)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "retained_create" @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(c_int mode) as Node
+// Forward helper resolution is part of the ownership contract.
+extern "retained_addref" @no_raise func retain(Node value) as c_int
+extern "retained_addref_zero" @no_raise func retainZero(Node value) as c_int
+extern "retained_release" @no_raise func rollback(Node value)
+extern "retained_live" @no_raise func live() as c_int
+extern "retained_calls" @no_raise func calls() as c_int
+extern "retained_fail_after" @no_raise func failAfter(c_int count)
+extern "retained_reset" @no_raise func resetFailure()
+protocol Borrower
+ func borrow() as Node
+ func maybe() as Node?
+end
+func basic()
+ Node node=create(0)
+ int before=calls()
+ assert node.maybe()==null and node.child==null and calls()==before
+ Node first=node.borrow()
+ Node zero=node.borrowZero()
+ func() as Node method=node.borrow
+ Node bound=method()
+ Borrower borrower=node
+ Node throughProtocol=borrower.borrow()
+ var dynamicNode=node
+ Node throughDynamic=dynamicNode.borrow() as Node
+ assert node.refs==6
+ node.close()
+ assert first.value==17 and first.refs==5
+ first.close()
+ zero.close()
+ bound.close()
+ throughProtocol.close()
+ throughDynamic.close()
+ assert live()==0
+end
+func childOwnership()
+ Node parent=create(0)
+ Node child=create(0)
+ parent.setChild(child)
+ child.close()
+ Node saved=parent.child as Node
+ assert saved.refs==2
+ Node other=parent.maybe() as Node
+ assert other.refs==3
+ Borrower borrower=parent
+ Node protocolChild=borrower.maybe() as Node
+ assert protocolChild.refs==4
+ parent.setChild(null)
+ parent.close()
+ assert saved.value==17 and saved.refs==3 and live()==1
+ saved.close()
+ other.close()
+ protocolChild.close()
+ assert live()==0
+end
+func failures()
+ int mode=1
+ while mode<5
+  Node node=create(c_int(mode))
+  bool caught=false
+  try
+   Node result=node.borrow()
+  catch error
+   caught=true
+  finally
+   resetFailure()
+  end
+  assert caught and node.refs==1
+  node.close()
+  assert live()==0
+  mode+=1
+ end
+ Node stable=create(0)
+ int count=0
+ int accepted=0
+ int rejected=0
+ while count<32
+  failAfter(c_int(count))
+  try
+   Node result=stable.borrow()
+   assert result.value==17
+   accepted+=1
+  catch error
+   rejected+=1
+  finally
+   resetFailure()
+  end
+  assert stable.refs==1
+  count+=1
+ end
+ assert accepted>0 and rejected>0
+ stable.close()
+end
+func stream() as generator<Node>
+ Node node=create(0)
+ yield node.borrow()
+end
+func main(...) as int
+ basic()
+ childOwnership()
+ failures()
+ assert live()==0
+ int produced=0
+ for value in stream()
+  assert value.value==17
+  produced+=1
+ end
+ assert produced==1 and live()==0
+ return 0
+end

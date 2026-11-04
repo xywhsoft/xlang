@@ -289,6 +289,7 @@ static int xl6IrCgenEmitAsyncMachine(
         "static void xlir_async_machine_program_%u(xlir_async_machine_frame_%u* frame, const xfutureresult* input, xpromise* output, size_t entry)\n"
         "{\n    xpromise* destination = output;\n",
         (unsigned int)target->symbol, (unsigned int)target->symbol);
+    if(!machine->suspensionCount)xl6OutputPuts("    (void)input;\n",out);
     xl6IrCgenDeclareUnwindScope(out, module, function);
     if (!xl6IrCgenAsyncDeclareMachineProgramValues(out, module, machine, function, programBlocks, diags) ||
         !xl6IrCgenAsyncDeclareMachineProgramStorages(out, module, machine, function, programBlocks, diags)) goto done;
