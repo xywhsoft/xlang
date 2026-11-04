@@ -618,8 +618,10 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     int factoryOutput=declaration->foreignCall.outputIndexPlusOne && !declaration->foreignCall.valueOutput;
     int storagePrepared=0;
     int valueOutput=target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE;
+    int outputProbes=0;
     if(valueOutput){
         if(!xl6IrCgenOutputRawDeclare(out,module,target))return 0;
+        outputProbes=xl6IrCgenOutputProbesBegin(out,module,target,scope);
         xl6OutputPuts("    ",out);
         if(target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS)xl6OutputPuts("int native_status = ",out);
     }
@@ -698,6 +700,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
         (valueOutput && target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS))
         xl6IrCgenEmitNativeStatusCheck(out,module,target,scope);
     if(valueOutput && !xl6IrCgenOutputValuesAdmit(out,module,target,result,scope))return 0;
+    if(outputProbes)xl6IrCgenOutputProbesEnd(out,module,target,scope);
     if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY)
         xl6IrCgenEmitBorrowedValueAdmission(out, module, target, result, "borrowed_raw", scope);
     if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE) {
@@ -1045,8 +1048,10 @@ static int xl6IrCgenEmitDirectCall(
     int factoryOutput=foreignDeclaration->foreignCall.outputIndexPlusOne && !foreignDeclaration->foreignCall.valueOutput;
     int storagePrepared=0;
     int valueOutput=target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE;
+    int outputProbes=0;
     if(valueOutput){
         if(!xl6IrCgenOutputRawDeclare(out,module,target))return 0;
+        outputProbes=xl6IrCgenOutputProbesBegin(out,module,target,nativeScope);
         xl6OutputPuts("    ",out);
         if(target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS)xl6OutputPuts("int native_status = ",out);
     }
@@ -1153,6 +1158,7 @@ static int xl6IrCgenEmitDirectCall(
         xl6IrCgenEmitNativeStatusCheck(out,module,target,nativeScope);
     if(valueOutput){char place[40];snprintf(place,sizeof(place),"v%u",(unsigned)instruction->result);
         if(!xl6IrCgenOutputValuesAdmit(out,module,target,place,nativeScope))return 0;}
+    if(outputProbes)xl6IrCgenOutputProbesEnd(out,module,target,nativeScope);
     if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY) {
         char place[40],raw[48];
         snprintf(place,sizeof(place),"v%u",(unsigned)instruction->result);

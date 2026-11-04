@@ -8,7 +8,7 @@ static int xl6IrOutputViewType(const XL6_IrModule* module,XL6_IrTypeId id,
         xl6IrTypeGet(&module->types,type->params[0]):type;
     if(conversion==XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE)
         return type && inner && inner->kind==XL6_IR_TYPE_CLASS && inner->foreignHeader && inner->foreignPolicy &&
-            inner->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && !inner->foreignScope && !inner->foreignWatch &&
+            inner->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && !inner->foreignWatch &&
             type->cAbi==inner->cAbi && type->ownershipAbi==inner->ownershipAbi &&
             type->foreignLifetime==inner->foreignLifetime;
     XL6_IrCAbi abi=conversion==XL6_FOREIGN_OUTPUT_CONVERSION_TEXT ? XL6_IR_C_ABI_MANAGED_STRING:

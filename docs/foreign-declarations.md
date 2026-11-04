@@ -1135,14 +1135,22 @@ exact logical input type. This adds no forwarding C method or new scope kind.
 `c_output` or `c_outputs` and uses the same helper signatures and native success
 rules as `c_retain`. The selected logical result must be an independent owned
 foreign class, optionally nullable, with an exact authoritative header and
-policy. Call-scoped/watch-based roots and caller/owner/callback views are not
+policy. Watch-based roots and caller/owner/callback views are not
 accepted. Retain takes the exact non-null class and returns native `int`;
 rollback takes that class and is logical void, with an optional checked native
 status. Both helpers must be `no_raise` declarations without other adaptation.
 
+An owned class may declare a validated `@scope("NativeScope")`. Scalar
+`retained_view`, a single retained output, and retained tuple outputs all follow
+this rule. The retained class keeps its normal input CallBegin/CallEnd and Busy
+contract; acquiring the independent owning result does not invent a borrowed
+lifetime or copy its payload. A scope does not make a watch-based root eligible.
+
 The native producer receives its original `T**` output, with a separate raw
-`T*` slot. After the producer succeeds, each non-null result acquires one native
-reference and its language root before native input scopes end. A nullable NULL
+`T*` slot. All owning result roots are reserved before the producer; a failed
+reservation skips the producer. After it succeeds, each non-null result acquires
+one native reference and materializes its reserved language root without another
+allocation, before native input scopes end. A nullable NULL
 result does not invoke Retain. Required NULL is a checked error. Text/bytes
 conversions can appear in the same tuple. No tuple is delivered until every
 result has been admitted; a later failure releases all earlier acquired results
@@ -1216,3 +1224,42 @@ bound, protocol and global calls; invalid or conflicting safety metadata fails
 before C/header emission. Ordinary overload resolution still selects an exact
 logical source type. The bytes overload alone may supply an empty default;
 the Buffer overload requires an explicit argument.
+
+## Owning factory reservation and failed construction
+
+Before an owning native producer or Retain can transfer a reference, the
+runtime reserves its root control, code lease, directory entry and cleanup
+storage. The producer runs only after reservation succeeds and the current
+checked scope is healthy. Observe takes responsibility for every transferred
+non-NULL owner even if the producer, Retain or a callback has already failed.
+Successful materialization transfers that reservation to the language value
+without allocating again. A failed construction retires the reserved owner
+through the existing checked close queue; a non-consuming Busy result keeps
+the native resource and its code lease available for retry.
+
+Compiler-allocated `c_inplace` storage is owned by the reservation immediately
+after allocation. Its policy must provide `DestroyUnadopted`: this cold hook
+consumes the complete original record responsibility only when it returns
+true. It must handle zero/partially initialized records, preserve storage on a
+non-consuming failure, and account for any remaining native references.
+Trace/Busy must cover that phase and its actual owning dependencies. Native
+code must own the dependencies needed for deferred partial cleanup rather
+than retain this call's borrowed text/view pointers. There is no unconditional
+record free after a failed cleanup. An explicit native adopter switches to
+normal destruction as soon as its native success status is reported, including
+when a checked callback error is also present. Plain constructors switch only
+after successful checked completion.
+
+Owned policies with a physical Watch declare
+`XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH` only after their native contract proves
+that a valid one-owner output can always attach its observer. Watch's bool
+reports physical attachment; a checked rejection uses the separate failure
+channel while keeping observation installed. Constructor/Retain failure does
+not mean that the owner was consumed. Borrowed child/root aliases retain
+their existing observation and parent-ownership rules.
+
+This moves the existing admission allocations before ownership transfer and
+can fail before invoking a native producer. It can also allocate a reservation
+for a producer that ultimately fails or returns nullable NULL. Materialization
+adds no second root allocation. These cold lifetime operations do not add a C
+forwarding method to ordinary UI or game calls.

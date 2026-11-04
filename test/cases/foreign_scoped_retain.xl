@@ -1,0 +1,132 @@
+extern "ScopedRetainNode*" class Node @header("test/cases/foreign_scoped_retain.h") @lifetime("owned") @policy("scopedRetainPolicy") @scope("ScopedRetainScope")
+ native point handle
+ extern "scoped_retain_value" @no_raise func value() as c_int
+ extern "scoped_retain_refs" @no_raise func refs() as c_int
+ extern "scoped_retain_borrow" @no_raise @c_result("retained_view") @c_retain(retain,"zero",rollback) func borrow() as Node
+ extern "scoped_retain_maybe" @no_raise @c_result("retained_view") @c_retain(retain,"zero",rollback) func maybe(c_int present) as Node?
+ extern "scoped_retain_single" @no_raise @c_output(1,0) @c_output_retain(1,retain,"zero",rollback) func output() as Node
+ extern "scoped_retain_pair" @no_raise @c_outputs(1,2) @c_status(0) @c_output_retain(1,retain,"zero",rollback) @c_output_retain(2,retain,"zero",rollback) func pair() as (Node,Node?)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "scoped_retain_create" @header("test/cases/foreign_scoped_retain.h") @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(c_int mode) as Node
+extern "scoped_retain_hold" @header("test/cases/foreign_scoped_retain.h") @no_raise func retain(Node value) as c_int
+extern "scoped_retain_drop" @header("test/cases/foreign_scoped_retain.h") @no_raise @c_result("status",0) func rollback(Node value)
+extern "scoped_retain_live" @header("test/cases/foreign_scoped_retain.h") @no_raise func live() as c_int
+extern "scoped_retain_calls" @header("test/cases/foreign_scoped_retain.h") @no_raise func calls() as c_int
+extern "scoped_retain_producers" @header("test/cases/foreign_scoped_retain.h") @no_raise func producerCalls() as c_int
+extern "scoped_retain_fail_after" @header("test/cases/foreign_scoped_retain.h") @no_raise func failAfter(c_int count)
+extern "scoped_retain_reset" @header("test/cases/foreign_scoped_retain.h") @no_raise func resetFailure()
+protocol Producer
+ func borrow() as Node
+ func output() as Node
+ func pair() as (Node,Node?)
+end
+func paths()
+ Node node=create(c_int(0))
+ Node direct=node.borrow()
+ func() as Node bound=node.borrow
+ Node boundResult=bound()
+ Producer producer=node
+ Node protocolResult=producer.borrow()
+ Node one=node.output()
+ func() as Node boundOutput=node.output
+ Node boundOne=boundOutput()
+ Node protocolOne=producer.output()
+ auto first,second=node.pair()
+ assert node.refs()==c_int(9)
+ node.close()
+ assert direct.value()==c_int(87) and first.refs()==c_int(8)
+ direct.close()
+ boundResult.close()
+ protocolResult.close()
+ one.close()
+ boundOne.close()
+ protocolOne.close()
+ first.close()
+ (second as Node).close()
+ assert live()==c_int(0)
+ node=create(c_int(3))
+ assert node.maybe(c_int(0))==null
+ func() as (Node,Node?) pair=node.pair
+ auto b0,b1=pair()
+ assert b1==null and node.refs()==c_int(2)
+ b0.close()
+ Producer nullable=node
+ auto p0,p1=nullable.pair()
+ assert p1==null and node.refs()==c_int(2)
+ p0.close()
+ node.close()
+ assert live()==c_int(0)
+end
+func failures()
+ Node node=create(c_int(1))
+ bool scalar=false
+ try
+  Node invalid=node.borrow()
+ catch error
+  scalar=true
+  assert error.code==-9
+ end
+ assert scalar and node.refs()==c_int(1)
+ bool output=false
+ try
+  auto invalid,other=node.pair()
+ catch error
+  output=true
+  assert error.code==-9
+ end
+ assert output and node.refs()==c_int(1)
+ node.close()
+end
+func reservation()
+ int accepted=0
+ int rejected=0
+ int budget=0
+ while budget<64
+  Node node=create(c_int(0))
+  int before=producerCalls()
+  bool caught=false
+  failAfter(c_int(budget))
+  try
+   auto first,second=node.pair()
+   resetFailure()
+   assert producerCalls()==before+1 and node.refs()==c_int(3)
+   first.close()
+   (second as Node).close()
+   accepted+=1
+  catch error
+   caught=true
+   rejected+=1
+  finally
+   resetFailure()
+  end
+  if caught then
+   assert producerCalls()==before and node.refs()==c_int(1)
+  end
+  node.close()
+  budget+=1
+ end
+ assert accepted>0 and rejected>0 and live()==c_int(0)
+ Node noAlloc=create(c_int(2))
+ Node scalar=noAlloc.borrow()
+ resetFailure()
+ assert scalar.value()==c_int(87)
+ scalar.close()
+ Node single=noAlloc.output()
+ resetFailure()
+ assert single.value()==c_int(87)
+ single.close()
+ auto first,second=noAlloc.pair()
+ resetFailure()
+ assert first.value()==c_int(87) and noAlloc.refs()==c_int(3)
+ first.close()
+ (second as Node).close()
+ noAlloc.close()
+end
+func main(...) as int
+ paths()
+ failures()
+ reservation()
+ assert live()==c_int(0)
+ return 0
+end

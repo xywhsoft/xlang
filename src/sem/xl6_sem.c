@@ -21751,7 +21751,8 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             facts.receiverDereference || (node->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_OWNED_STRING))){
             xl6SemErrorNode(ctx,node,"borrowed_value requires a var result from a native function, without output or field adaptation");return 0;
         }
-    }else if(resultDecl && resultContract.lifetime!=XL6_FOREIGN_LIFETIME_CALLER){
+    }else if(resultDecl && resultContract.lifetime!=XL6_FOREIGN_LIFETIME_CALLER &&
+        !xl6ForeignValueOutputHasView(facts.valueOutput)){
         if(resultContract.lifetime==XL6_FOREIGN_LIFETIME_CALLBACK && facts.outputIndexPlusOne){
             xl6SemErrorNode(ctx,node,"callback views cannot be constructed by an owning native factory");return 0;
         }
@@ -21773,7 +21774,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             const XL6_AstNode* retain=retained ? xl6SemForeignOwnershipHelper(ctx,retained->children[0],resultType,1) : NULL;
             const XL6_AstNode* rollback=retained ? xl6SemForeignOwnershipHelper(ctx,retained->children[2],resultType,0) : NULL;
             if(resultContract.lifetime!=XL6_FOREIGN_LIFETIME_OWNED || !resultContract.header[0] ||
-                resultContract.watch[0] || resultContract.scope[0] || !retain || !rollback ||
+                resultContract.watch[0] || !retain || !rollback ||
                 !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
                 (node->flags&(XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_OWNED_STRING))){
                 xl6SemErrorNode(ctx,node,"retained_view requires an independent header-owned root and exact no-raise C retain/release helpers");return 0;

@@ -267,7 +267,7 @@ int xl6IrForeignRetainResultMatches(const XL6_IrModule* module,const XL6_IrCallT
         input=result->params[0];result=xl6IrTypeGet(&module->types,input);
     }
     return row && result && result->kind==XL6_IR_TYPE_CLASS && result->foreignHeader &&
-        result->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && !result->foreignScope && !result->foreignWatch &&
+        result->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && !result->foreignWatch &&
         (row->success==XL6_FOREIGN_RETAIN_ZERO || row->success==XL6_FOREIGN_RETAIN_POSITIVE) &&
         !node->foreignCall.outputIndexPlusOne && !node->foreignCall.inplaceOutput &&
         (node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) &&

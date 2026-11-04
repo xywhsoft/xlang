@@ -1,0 +1,84 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Scoped owning results use the existing fully validated Native scope contract; watch-based/caller/owner/callback views remain excluded. Scalar, single and tuple retained outputs supported for direct/bound/protocol calls. All tuple owning roots reserve before producer side effects; any reservation failure skips the producer; retain/materialization needs no second root allocation.",
+  "files": [
+    {
+      "path": "src/cgen/xl6_ir_cgen_foreign_output_view.c",
+      "sha256": "c73ccb53d28917b0b7778d1149cc2d93c83bf8b6f0466c9d85d17bac36839e24"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_foreign_view.c",
+      "sha256": "0030d7e3ae57539edb10d2c1ea2a47086bb74c310a272a0018addfd5f9584913"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_type_call.c",
+      "sha256": "68180268a6cebd3e7188166e60039ed4022da897fe636d40c414d825b42e9a74"
+    },
+    {
+      "path": "src/sem/xl6_sem.c",
+      "sha256": "beece96cbe1e0de92febf9abe3dca807037d6dd0392269f7df18adce306ff7e3"
+    },
+    {
+      "path": "src/sem/xl6_sem_foreign_output_view.c",
+      "sha256": "98ec1f705bbcfd21b28e3f871808a2d13b6b45136c8cf61fd2b8290b47a8f672"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_parameter.c",
+      "sha256": "717f48827a450d4a32e127b56cf180c7e56b77cccfc48331e293ab6411f4c29a"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_output_view.c",
+      "sha256": "395d403402164adb5a19884c754567e037ee6f08b39ae04814b2fdea884588d8"
+    },
+    {
+      "path": "test/cases/foreign_scoped_retain.h",
+      "sha256": "6c838e911900acb5943ec0154ab9813a3694d372191268a32959910a80c5fa0f"
+    },
+    {
+      "path": "test/cases/foreign_scoped_retain.xl",
+      "sha256": "8d2db100b2aed1fd6b8afe9859f9d3255dabe951be3cce581d986a3e5ac88fc4"
+    },
+    {
+      "path": "test/cases/foreign_scoped_retain_ir.c",
+      "sha256": "507a9c00df24ee80ae93d3e681f6c98d39e317fc9674a7f6f15fec7110505abe"
+    },
+    {
+      "path": "test/cases/foreign_scoped_retain_native.c",
+      "sha256": "c5841a324336958ebf2ed5dad9293b0212cf200f57217c06812a1290957e21a7"
+    },
+    {
+      "path": "tools/check_foreign_scoped_retain.py",
+      "sha256": "1f33849d9787ff148b4119744ce33a665526847d32d917402cb4fa12e73bc83c"
+    },
+    {
+      "path": "docs/foreign-declarations.md",
+      "sha256": "2efea03fd823bc396714efa4b0db2ca60127033d3e0d791646766940075fa5f3"
+    }
+  ],
+  "reports": [
+    {
+      "path": "/mnt/f/xlang-validation/foreign-completion-20261103/scoped-retain-full-win-r2/results.json",
+      "sha256": "9f501fa013e453beb2783aa0abe44adb8e96f8cb5e77c5209ed25a08ea054265",
+      "commands": 30,
+      "fullSourceRebuild": false,
+      "qualification": "Explicit 3TU over full R34, includes parent Cgen pre-producer reservation. Not a new full build/provider.",
+      "irResult": "scoped retained roots: 2 scalar/3 outputs, 26 mutations refused with zero C/header\n"
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/scoped-retain-full-linux-r2/results.json",
+      "sha256": "0512811c8ccd8c4def58021a289f2785dcdee1aa8e2eb390f73803758635d109",
+      "commands": 30,
+      "fullSourceRebuild": false,
+      "qualification": "Explicit 3TU over full R34, includes parent Cgen pre-producer reservation. Not a new full build/provider.",
+      "irResult": "scoped retained roots: 2 scalar/3 outputs, 26 mutations refused with zero C/header\n"
+    }
+  ],
+  "parentOutputRetainRegression": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\output-prereserve-win-r1\\results.json",
+    "sha256": "b11cd8a7623aceaef1acd940e82bb7605af162b4b3487c4f4aa3b6e0194a8dc1"
+  },
+  "qualification": "Exact three-TU frontend overlays on complete NoCache R34 per platform; C11/C++11/17, O0/O2,26 sealed IR mutations per optimization,13 declaration negatives and3 bad headers,64 OOM budgets and producer-end allocation failure. No new full source/provider/JIT/AOT/shipping claim.",
+  "excludedIdeHunks": 3,
+  "shippingDelivery": false
+}

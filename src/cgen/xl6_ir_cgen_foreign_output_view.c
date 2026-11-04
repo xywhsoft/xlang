@@ -1,7 +1,7 @@
 /* Each raw output has its exact physical type, separate from owned results. */
 static void xl6IrCgenRetainedViewAdmission(XL6_Output*,const XL6_IrModule*,XL6_IrTypeId,
-    const XL6_ForeignRetainContract*,const char*,const char*,const char*);
-static void xl6IrCgenReserveRootProbe(XL6_Output*,const XL6_IrType*,int);
+    const XL6_ForeignRetainContract*,const char*,const char*,const char*,const char*);
+static void xl6IrCgenReserveRootProbeNamed(XL6_Output*,const XL6_IrType*,int,const char*);
 static const char* xl6IrCgenOutputRawType(const XL6_IrModule* module,
     const XL6_IrCallTarget* target,size_t ordinal)
 {
@@ -27,6 +27,42 @@ static int xl6IrCgenOutputRawDeclare(XL6_Output* out,const XL6_IrModule* module,
     }
     return xl6IrCgenOutputSizeInitialize(out,module,target);
 }
+/* Reserve every retained output before the producer can have side effects.
+ * A tuple failure does not let a later field force allocation after an earlier
+ * native session was already acquired. No output-specific wrapper is emitted. */
+static int xl6IrCgenOutputProbesBegin(XL6_Output* out,const XL6_IrModule* module,
+    const XL6_IrCallTarget* target,const char* errors)
+{
+    size_t count=xl6IrForeignOutputCount(module,target);int opened=0;
+    for(size_t ordinal=0;ordinal<count;++ordinal){
+        const XL6_ForeignOutputViewContract* row=xl6IrForeignOutputViewGet(module,target,ordinal);
+        if(!row || row->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE)continue;
+        if(!opened){xl6OutputPuts("    {\n",out);opened=1;}
+        xl6OutputPrintf(out,"    XL6_ForeignResultProbeV1 native_output_probe_%lu={0};\n",(unsigned long)ordinal);
+    }
+    if(!opened)return 0;
+    for(size_t ordinal=0;ordinal<count;++ordinal){
+        const XL6_ForeignOutputViewContract* row=xl6IrForeignOutputViewGet(module,target,ordinal);
+        if(!row || row->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE)continue;
+        char probe[48];snprintf(probe,sizeof(probe),"native_output_probe_%lu",(unsigned long)ordinal);
+        xl6OutputPrintf(out,"    if(!%s.failed && !",errors);
+        xl6IrCgenReserveRootProbeNamed(out,xl6IrTypeGet(&module->types,row->logicalType),0,probe);
+        xl6OutputPrintf(out,") xl6ErrorScopeCaptureFailure(&%s);\n",errors);
+    }
+    xl6OutputPrintf(out,"    if(!%s.failed && !xrtGetError()) {\n",errors);return 1;
+}
+static void xl6IrCgenOutputProbesEnd(XL6_Output* out,const XL6_IrModule* module,
+    const XL6_IrCallTarget* target,const char* errors)
+{
+    xl6OutputPuts("    }\n",out);
+    for(size_t ordinal=xl6IrForeignOutputCount(module,target);ordinal>0;--ordinal){
+        const XL6_ForeignOutputViewContract* row=xl6IrForeignOutputViewGet(module,target,ordinal-1);
+        if(!row || row->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE)continue;
+        xl6OutputPrintf(out,"    if(native_output_probe_%lu.self && !xl6ForeignResultProbeEndV1(&native_output_probe_%lu)) xl6ErrorScopeCaptureFailure(&%s);\n",
+            (unsigned long)(ordinal-1),(unsigned long)(ordinal-1),errors);
+    }
+    xl6OutputPuts("    }\n",out);
+}
 static int xl6IrCgenOutputValuesAdmit(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrCallTarget* target,const char* place,const char* scope)
 {
@@ -43,15 +79,11 @@ static int xl6IrCgenOutputValuesAdmit(XL6_Output* out,const XL6_IrModule* module
             snprintf(admitted,sizeof(admitted),"native_admitted.e%lu",(unsigned long)ordinal);}
         else{strcpy(raw,"native_raw");strcpy(admitted,"native_admitted");}
         if(row && row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE){
-            const XL6_IrType* type=xl6IrTypeGet(&module->types,row->logicalType);
             XL6_ForeignRetainContract retain={0};retain.retainSymbol=row->retainSymbol;retain.rollbackSymbol=row->rollbackSymbol;retain.success=row->retainSuccess;
-            xl6OutputPrintf(out,"    { XL6_ForeignResultProbeV1 native_result_probe={0};\n"
-                "      if (!%s.failed && !xrtGetError()) {\n"
-                "        if (!",scope);
-            xl6IrCgenReserveRootProbe(out,type,0);
-            xl6OutputPrintf(out,") xl6ErrorScopeCaptureFailure(&%s);\n        else {\n",scope);
-            xl6IrCgenRetainedViewAdmission(out,module,row->logicalType,&retain,admitted,raw,scope);
-            xl6OutputPrintf(out,"        }\n      }\n      if (native_result_probe.self && !xl6ForeignResultProbeEndV1(&native_result_probe)) xl6ErrorScopeCaptureFailure(&%s);\n    }\n",scope);
+            char probe[48];snprintf(probe,sizeof(probe),"native_output_probe_%lu",(unsigned long)ordinal);
+            xl6OutputPuts("    {\n",out);
+            xl6IrCgenRetainedViewAdmission(out,module,row->logicalType,&retain,admitted,raw,scope,probe);
+            xl6OutputPuts("    }\n",out);
         }else if(row)xl6IrCgenEmitBorrowedOwnedAdmission(out,module,row->logicalType,
             row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_TEXT ? XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW:XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW,
             admitted,raw,scope);
