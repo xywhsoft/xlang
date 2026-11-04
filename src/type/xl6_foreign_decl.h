@@ -173,7 +173,7 @@ static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
 static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     XL6_ForeignCallFacts* output)
 {
-    XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0;uint64 callbackSpans=0;
+    XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0;uint64 callbackSpans=0;
     const XL6_AstNode* attributes = xl6ForeignFunctionAttributes(node);
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
         const XL6_AstNode* attr = attributes->children[i];
@@ -195,7 +195,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         }
         if(attr && attr->text && !strcmp(attr->text,"c_inplace")){
             if(facts.inplaceOutput || !xl6ForeignStorageRead(attr,NULL))return 0;
-            facts.inplaceOutput=1;continue;
+            facts.inplaceOutput=XL6_FOREIGN_INPLACE_STATUS;continue;
         }
         if(attr && attr->text && !strcmp(attr->text,"c_deref")){
             if(attr->childCount || facts.receiverDereference)return 0;
@@ -263,13 +263,18 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
                 !xl6ForeignDecimalInt(attr->children[1],&facts.successCode))return 0;
             facts.outputIndexPlusOne=(uint32)index+1;facts.valueOutput=1;
         } else if (!strcmp(attr->text, "factory")) {
-            if (facts.outputIndexPlusOne || attr->childCount != 3 ||
-                !xl6ForeignDecimalInt(attr->children[1], &facts.successCode) ||
-                !attr->children[2] || attr->children[2]->kind != XL6_AST_NAME ||
-                !attr->children[2]->text) return 0;
-            facts.outputIndexPlusOne = (uint32)index + 1;
-            facts.rollbackSymbol = attr->children[2]->semanticSymbolId;
+            if(facts.outputIndexPlusOne || (attr->childCount!=2 && attr->childCount!=3))return 0;
+            voidFactory=attr->childCount==2;
+            const XL6_AstNode* rollback=attr->children[attr->childCount-1];
+            if((!voidFactory && !xl6ForeignDecimalInt(attr->children[1],&facts.successCode)) ||
+                !rollback || rollback->kind!=XL6_AST_NAME || !rollback->text)return 0;
+            facts.outputIndexPlusOne=(uint32)index+1;
+            facts.rollbackSymbol=rollback->semanticSymbolId;
         } else return 0;
+    }
+    if(voidFactory){
+        if(facts.inplaceOutput!=XL6_FOREIGN_INPLACE_STATUS)return 0;
+        facts.inplaceOutput=XL6_FOREIGN_INPLACE_VOID;
     }
     if(callbackSpans&~facts.retainedCallbacks)return 0;
     if(retainedResult!=(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE) ||

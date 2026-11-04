@@ -411,7 +411,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
             : target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY
                 ? "const char*" : xl6IrCgenType(module, physicalResult);
     }
-    if (output) returnType = "int";
+    if (output) returnType=target->factoryResultAbi==XL6_IR_CALL_FACTORY_RESULT_VOID ? "void" : "int";
     if ( returnType == NULL )
         return xl6IrCgenDiag(diags, module, target->declaration, "XLIR C emitter does not support extern return ABI");
     /* Header-owned C types make the included declaration authoritative.

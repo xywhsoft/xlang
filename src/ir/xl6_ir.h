@@ -4217,6 +4217,14 @@ typedef enum XL6_IrCallResultPhysicalAbi {
 /* The C prototype's pointer type is independent of the language storage and
  * ownership conversion. A native char* may be carried as an opaque point;
  * erasing the C declaration to void* is not a compatible function type. */
+/* A factory's C return channel is independent of its logical owned result
+ * and output pointer. Never invent an integer return for a void initializer. */
+typedef enum XL6_IrCallFactoryResultAbi {
+    XL6_IR_CALL_FACTORY_RESULT_NONE=0,
+    XL6_IR_CALL_FACTORY_RESULT_INT_STATUS,
+    XL6_IR_CALL_FACTORY_RESULT_VOID
+} XL6_IrCallFactoryResultAbi;
+
 typedef enum XL6_IrCallResultCAbi {
     XL6_IR_CALL_RESULT_C_ABI_STORAGE = 0,
     XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER,
@@ -5547,6 +5555,7 @@ typedef struct XL6_IrCallTarget {
     XL6_IrCallResultConversionAbi resultConversionAbi;
     XL6_IrCallNativeArrayResultAbi nativeArrayResultAbi;
     XL6_IrCallResultCAbi resultCAbi;
+    XL6_IrCallFactoryResultAbi factoryResultAbi;
     /* Exact managed class field initialized by a native factory result, or
      * invalid for DIRECT. */
     XL6_IrNodeId resultPhysicalFieldDeclaration;
@@ -7977,6 +7986,7 @@ const XL6_IrInstruction* xl6IrDirectCForwardingCall(const XL6_IrModule*, const X
 XL6_SymbolId xl6IrDirectCForwardingArgument(const XL6_IrModule*, const XL6_IrInstruction*, size_t);
 XL6_IrCallResultConversionAbi xl6IrCallResultConversionForTarget(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
+XL6_IrCallFactoryResultAbi xl6IrCallFactoryResultAbiForTarget(const XL6_IrModule*,const XL6_IrCallTarget*);
 XL6_IrCallResultCAbi xl6IrCallResultCAbiForTarget(const XL6_IrModule*, const XL6_IrCallTarget* target);
 int xl6IrForeignTextViewParameter(const XL6_IrModule*, const XL6_IrCallTarget*, size_t);
 int xl6IrForeignBytesViewParameter(const XL6_IrModule*, const XL6_IrCallTarget*, size_t);

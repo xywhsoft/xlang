@@ -1,4 +1,4 @@
-"""Actual CPU-only Font/Texture/Image in-place declarations against shared-XRT XGE.
+"""Actual CPU-only Font/Texture/Image/Material declarations against shared-XRT XGE.
 
 GCC O0/O2 clients use one pinned O2 engine and full source compiler. No GPU,
 desktop, network, shipping-package, sanitizer or actual-XGE TCC acceptance.
@@ -54,7 +54,8 @@ def main():
     run('cgen',[driver,source,'cgen-default',generated]);run('ir',[driver,source,'ir-lowered',out/'ir.json'])
     text=generated.read_text(encoding='utf-8-sig')
     for name in ('xgeFontLoad','xgeFontLoadMemory','xgeFontCreateSized','xgeTextureCreateRGBA',
-                 'xgeTextureLoadMemory','xgeImageLoadMemory','xgeFontAdoptStorage','xgeTextureAdoptStorage'):
+                 'xgeTextureLoadMemory','xgeImageLoadMemory','xgeMaterialInit',
+                 'xgeFontAdoptStorage','xgeTextureAdoptStorage'):
         assert name+'(' in text and 'extern int '+name+'(' not in text,name
     assert 'sizeof(xge_font_t)' in text and 'sizeof(xge_texture_t)' in text
     assert 'xgeFontCreateSized(native_raw, (xge_font)native_view_0.raw' in text

@@ -23026,6 +23026,13 @@ int xl6IrForeignCallAdmissionMayRaise(const XL6_IrModule* module,const XL6_IrCal
     return 0;
 }
 
+XL6_IrCallFactoryResultAbi xl6IrCallFactoryResultAbiForTarget(const XL6_IrModule* module,const XL6_IrCallTarget* target)
+{
+    const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration):NULL;
+    if(!node || !node->foreignCall.outputIndexPlusOne || node->foreignCall.valueOutput)return XL6_IR_CALL_FACTORY_RESULT_NONE;
+    return node->foreignCall.inplaceOutput==XL6_FOREIGN_INPLACE_VOID ?
+        XL6_IR_CALL_FACTORY_RESULT_VOID : XL6_IR_CALL_FACTORY_RESULT_INT_STATUS;
+}
 XL6_IrCallResultCAbi xl6IrCallResultCAbiForTarget(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
     const XL6_IrNode* declaration=target ? xl6IrNodeGet(module,target->declaration) : NULL;
@@ -23049,7 +23056,8 @@ int xl6IrCallResultCAbiMatches(const XL6_IrModule* module, const XL6_IrCallTarge
 {
     const XL6_IrType* result;
     int arity;
-    if (!module || !target || target->resultCAbi!=xl6IrCallResultCAbiForTarget(module,target)) return 0;
+    if (!module || !target || target->resultCAbi!=xl6IrCallResultCAbiForTarget(module,target) ||
+        target->factoryResultAbi!=xl6IrCallFactoryResultAbiForTarget(module,target)) return 0;
     const XL6_IrNode* source=xl6IrNodeGet(module,target->declaration);
     if(source && source->foreignCall.valueOutput)return xl6IrForeignOutputValueMatches(module,target);
     if(source && (source->foreignCall.textViews || source->foreignCall.bytesViews || source->foreignCall.terminatedStrings || source->foreignCall.borrowedViewResult) &&
@@ -41025,7 +41033,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 (node->foreignCall.controlViews & ((node->foreignCall.textViews|node->foreignCall.bytesViews|node->foreignCall.terminatedStrings|node->foreignCall.spanParameters|node->foreignCall.retainedCallbacks|
                     node->foreignCall.constRecordAddresses|node->foreignCall.staticCallbackAddresses)<<receiver)) ||
                 (params->childCount < 64 && ((node->foreignCall.constRecordAddresses | node->foreignCall.staticCallbackAddresses | node->foreignCall.textViews | node->foreignCall.bytesViews | node->foreignCall.terminatedStrings | node->foreignCall.spanParameters | node->foreignCall.retainedCallbacks) >> params->childCount)) ||
-                node->foreignCall.callbackSpanMappings>64 || node->foreignCall.receiverDereference>1 || node->foreignCall.inplaceOutput>1 ||
+                node->foreignCall.callbackSpanMappings>64 || node->foreignCall.receiverDereference>1 || node->foreignCall.inplaceOutput>XL6_FOREIGN_INPLACE_VOID ||
+                (node->foreignCall.inplaceOutput==XL6_FOREIGN_INPLACE_VOID && node->foreignCall.successCode) ||
                 (node->foreignCall.inplaceOutput && (!node->foreignCall.outputIndexPlusOne || node->foreignCall.valueOutput ||
                     node->foreignCall.borrowedViewResult!=XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE ||
                     (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || node->foreignCall.receiverDereference)) ||
@@ -53976,11 +53985,11 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
                         target->generatorCaptureAbis[parameter]));
             }
         xl6OutputPrintf(out,
-            "],\"nativeServicesRequired\":%u,\"nativeContextAbi\":%d,\"nativeContextType\":%u,\"nativeContextPayloadAbi\":%d,\"nativeResultAbi\":%d,\"resultCAbi\":%d,\"resultConversionAbi\":%d,\"resultConversionAbiName\":\"%s\",\"executionBoundaryAbi\":%d,\"executionBoundaryAbiName\":\"%s\",\"effectAbi\":%d,\"effectAbiName\":\"%s\",\"preparationFailureAbi\":%d,\"preparationFailureAbiName\":\"%s\"}%s\n",
+            "],\"nativeServicesRequired\":%u,\"nativeContextAbi\":%d,\"nativeContextType\":%u,\"nativeContextPayloadAbi\":%d,\"nativeResultAbi\":%d,\"resultCAbi\":%d,\"factoryResultAbi\":%d,\"resultConversionAbi\":%d,\"resultConversionAbiName\":\"%s\",\"executionBoundaryAbi\":%d,\"executionBoundaryAbiName\":\"%s\",\"effectAbi\":%d,\"effectAbiName\":\"%s\",\"preparationFailureAbi\":%d,\"preparationFailureAbiName\":\"%s\"}%s\n",
             target->nativeServicesRequired,
             (int)target->nativeContextAbi,(unsigned)target->nativeContextType,(int)target->nativeContextPayloadAbi,
             (int)target->nativeResultAbi,
-            (int)target->resultCAbi,
+            (int)target->resultCAbi,(int)target->factoryResultAbi,
             (int)target->resultConversionAbi,
             xl6IrCallResultConversionAbiName(target->resultConversionAbi),
             (int)target->executionBoundaryAbi,

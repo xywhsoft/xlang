@@ -21759,7 +21759,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         }
         XL6_AstNode* rollbackName = NULL;
         for (size_t i = 0; i < attrs->childCount; ++i)
-            if (!strcmp(attrs->children[i]->text, "factory")) rollbackName = attrs->children[i]->children[2];
+            if (!strcmp(attrs->children[i]->text, "factory")) rollbackName = attrs->children[i]->children[attrs->children[i]->childCount-1];
         const XL6_AstNode* rollback = NULL;
         size_t matches = 0;
         for (size_t i = 0; ctx->root && i < ctx->root->childCount; ++i) {

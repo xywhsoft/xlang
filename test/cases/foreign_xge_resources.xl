@@ -1,6 +1,15 @@
 extern "const void*" class Pixels @header("test/cases/foreign_xge_resources.h") @lifetime("caller")
  native point handle
 end
+extern "xge_material" class Material @header("test/cases/foreign_xge_resources.h") @lifetime("owned") @policy("declarativeXgeMaterialPolicy")
+ native point handle
+ extern "iColor" @c_field get color() as c_uint
+ extern "pTexture" @c_field @c_result("retained_view") @c_retain(retainTexture,"positive",freeTexture) get texture() as Texture?
+ extern "xgeMaterialSetTextureChecked" @no_raise @c_result("status",0) func setTexture(Texture? value)
+ extern "xgeMaterialSetTexture2Checked" @no_raise @c_result("status",0) func setTexture2(Texture? value)
+ extern "xgeMaterialSetTexture3Checked" @no_raise @c_result("status",0) func setTexture3(Texture? value)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
 extern "xge_texture" class Texture @header("test/cases/foreign_xge_resources.h") @lifetime("owned") @policy("declarativeXgeTexturePolicy")
  native point handle
  extern "iWidth" @c_field get width() as c_int
@@ -23,11 +32,14 @@ extern "xge_image" class Image @header("test/cases/foreign_xge_resources.h") @li
 end
 extern "xgeImageLoadMemory" @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeImage) @c_inplace("xge_image_t") func loadImage(bytes data) as Image
 extern "xgeImageFree" @no_raise func freeImage(Image value)
+extern "xgeMaterialInit" @no_raise @c_result("owned_view") @factory(0,freeMaterial) @c_inplace("xge_material_t") func createMaterial() as Material
+extern "xgeMaterialFree" @no_raise func freeMaterial(Material value)
 extern "xgeTextureCreateRGBA" @no_raise @c_result("owned_view") @factory(0,0,freeTexture) @c_inplace("xge_texture_t",adoptTexture,0) func createTexture(c_int width,c_int height,Pixels? pixels=null) as Texture
 extern "xgeTextureLoadMemory" @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeTexture) @c_inplace("xge_texture_t",adoptTexture,0) func loadTexture(bytes data) as Texture
 extern "xgeFontLoad" @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeFont) @c_inplace("xge_font_t",adoptFont,0) func loadFont(string path,c_float size) as Font
 extern "xgeFontLoadMemory" @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeFont) @c_inplace("xge_font_t",adoptFont,0) func loadFontMemory(bytes data,c_float size) as Font
 extern "xgeTextureAdoptStorage" @no_raise func adoptTexture(Texture value) as c_int
+extern "xgeTextureAddRef" @no_raise func retainTexture(Texture value) as c_int
 extern "xgeTextureFree" @no_raise func freeTexture(Texture value)
 extern "xgeFontAdoptStorage" @no_raise func adoptFont(Font value) as c_int
 extern "xgeFontAddRef" @no_raise func retainFont(Font value) as c_int
@@ -44,6 +56,18 @@ protocol Sizable
  func sized(c_float size) as Font
 end
 func resources(string path,bytes data,bytes imageData)
+ Material material=createMaterial()
+ assert material.color==c_uint(4294967295)
+ Texture held=createTexture(2,2)
+ material.setTexture(held)
+ material.setTexture2(held)
+ material.setTexture3(held)
+ Texture snapshot=material.texture as Texture
+ held.close()
+ assert snapshot.width==2
+ material.close()
+ assert snapshot.width==2
+ snapshot.close()
  Image image=loadImage(imageData)
  assert image.width==1 and image.height==1
  image.close()
@@ -84,6 +108,23 @@ func resources(string path,bytes data,bytes imageData)
  memory.close()
 end
 func failures()
+ int materialBudget=0
+ int materialAccepted=0
+ int materialRejected=0
+ while materialBudget<24
+  failAfter(c_int(materialBudget))
+  try
+   Material value=createMaterial()
+   assert value.color==c_uint(4294967295)
+   materialAccepted+=1
+  catch error
+   materialRejected+=1
+  finally
+   resetFailure()
+  end
+  materialBudget+=1
+ end
+ assert materialAccepted>0 and materialRejected>0
  bool invalid=false
  try
   Texture bad=createTexture(-1,2)
