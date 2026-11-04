@@ -1,0 +1,69 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Exact non-null native BORROW owned-root/epoch input variants; raw/implicit conversions and producer ownership weakening rejected; 2 frontend object replacement over aggregate R32 overlay, no parent path/prep changes",
+  "manifest": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\borrow-variants-core-candidate-r1\\manifest.json",
+    "sha256": "b40378ec0feefc95f92435e73e50e1138ff1cba5364d90ff57312c9ec1882cae"
+  },
+  "files": [
+    {
+      "path": "src/sem/xl6_sem.c",
+      "sha256": "21b2d2e1b7a49209edfba2339c21b5e0dcbcc1b181242459824558b0b5d3a692"
+    },
+    {
+      "path": "src/sem/xl6_sem_foreign_compat.c",
+      "sha256": "34b49d05a40be490ade6786976604f8618cf4702e10438e08cdc4487b72295bf"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_compat.c",
+      "sha256": "3864ee29ff2a4753cc229dd18ad1c6e9693d43ee961f56740f40747c169aa76b"
+    },
+    {
+      "path": "docs/foreign-declarations.md",
+      "sha256": "23f17b7db0dcc39df131c68c93c17ffef4646962da18c17032f662d3de1226c0"
+    },
+    {
+      "path": "tools/check_foreign_borrow_variants.py",
+      "sha256": "aec32ed6cc0a364c3c581cb16c53ea33a3b63c01ae36f6aca2b9281fc195b3f3"
+    },
+    {
+      "path": "test/cases/foreign_borrow_variants.h",
+      "sha256": "d45455f3c0e2e8f7d065b18080c7fa57fb0b8b75a56f793c442a82242654a01a"
+    },
+    {
+      "path": "test/cases/foreign_borrow_variants_native.c",
+      "sha256": "42c46b7d116d29a30f7471877ac3b3774a2a00a1c66ba71a04b7d398101bec11"
+    },
+    {
+      "path": "test/cases/foreign_borrow_variants.xl",
+      "sha256": "a7f0ac94cb58018fc675bbb074b9700d8b49d726db80171e2273acc96aeb7c23"
+    },
+    {
+      "path": "test/cases/foreign_borrow_variants_ir.c",
+      "sha256": "4dd740719f36ed7c498f0fcac832ebd344eeb2aca7dc356d7d6a90620f3326e7"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\borrow-variants-win-r1\\results.json",
+      "sha256": "103f970eb9578d94a2b66cb93e4f9de7022b4762ebba15531e4152ca78cbde17",
+      "rows": 20
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\borrow-variants-linux-r1\\results.json",
+      "sha256": "f00ea2b3cc230466a460de0841db9322628190a0f08db75bf1fedc144c3d9f5e",
+      "rows": 20
+    }
+  ],
+  "irMutationsPerOptimization": 10,
+  "dslNegativeCases": 6,
+  "semExcludedIdeHunks": 3,
+  "semComparedOutputs": 10,
+  "fullSourceRebuild": false,
+  "shippingDelivery": false,
+  "notes": [
+    "Only exact non-null BORROW inputs with identical C pointee and header may have owned-root and callback-epoch overloads",
+    "No implicit cast, raw caller view, qualifier weakening or producer ownership equivalence is admitted"
+  ]
+}

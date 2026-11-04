@@ -1113,3 +1113,18 @@ record layouts; native header proof checks the exact const element pointer.
 There is no C forwarding wrapper, additional heap allocation or added content
 copy in this projection. Ordinary language fixed-array assignment/value
 semantics and callable preparation costs still apply.
+
+## Owned and callback-epoch variants of a native input
+
+A same-target overload may also accept either an owned-root view or a
+callback-epoch view of the exact same native pointee, qualifier and header.
+Both inputs must use `BORROW` with the sealed `FOREIGN_VIEW_BORROW` physical
+ABI. Each declaration keeps its own verified lifetime/policy/scope: the owned
+view establishes its ordinary call scope, and the epoch view performs its
+active-epoch check. Expired values fail before the producer is called.
+
+This is input compatibility for a single native call, rather than an implicit
+language conversion or a shared owning root. Raw caller pointers are excluded.
+Result/producer ownership, effects, other argument mappings and authoritative
+ABI contracts still have to agree. Ordinary overload resolution selects the
+exact logical input type. This adds no forwarding C method or new scope kind.
