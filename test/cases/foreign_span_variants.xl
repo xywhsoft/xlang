@@ -1,0 +1,60 @@
+extern "SpanVariantsRoot*" class Reader @header("test/cases/foreign_span_variants.h") @lifetime("owned") @policy("spanVariantsPolicy")
+ native point handle
+ extern "sum" @c_field_call @no_raise @c_span(0,"const float*","int") func sum(bytes data=b"") as c_int
+ extern "sum" @c_field_call @no_raise @c_span(0,"const float*","int") func sum(Buffer data) as c_int
+ extern "packed" @c_field_call @no_raise @c_span(0,"const float*","int") @c_pack(1,"SpanVariantsDesc",0,1) @c_pack_field(1,"values",0,"span_data") @c_pack_field(1,"count",0,"span_count") @c_output(2,0) func packed(bytes data=b"") as c_int
+ extern "packed" @c_field_call @no_raise @c_span(0,"const float*","int") @c_pack(1,"SpanVariantsDesc",0,1) @c_pack_field(1,"values",0,"span_data") @c_pack_field(1,"count",0,"span_count") @c_output(2,0) func packed(Buffer data) as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "span_variants_create" @header("test/cases/foreign_span_variants.h") @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Reader
+extern "span_variants_drop" @header("test/cases/foreign_span_variants.h") @no_raise func rollback(Reader value)
+extern "span_variants_sum" @header("test/cases/foreign_span_variants.h") @no_raise @c_span(0,"const float*","int") func sum(bytes data) as c_int
+extern "span_variants_sum" @header("test/cases/foreign_span_variants.h") @no_raise @c_span(0,"const float*","int") func sum(Buffer data) as c_int
+extern "span_variants_live" @header("test/cases/foreign_span_variants.h") @no_raise func live() as c_int
+extern "span_variants_calls" @header("test/cases/foreign_span_variants.h") @no_raise func calls() as c_int
+extern "span_variants_fail_after" @header("test/cases/foreign_span_variants.h") @no_raise func failAfter(c_int count)
+extern "span_variants_reset" @header("test/cases/foreign_span_variants.h") @no_raise func resetFailure()
+protocol SumReader
+ func sum(bytes data) as c_int
+ func sum(Buffer data) as c_int
+ func packed(bytes data) as c_int
+ func packed(Buffer data) as c_int
+end
+func main(...) as int
+ Reader reader=create()
+ bytes data=b"\0\0\x80\x3f\0\0\0\x40"
+ Buffer buffer=Buffer(data)
+ assert reader.sum()==c_int(0) and reader.packed()==c_int(0)
+ assert reader.sum(data)==c_int(3) and reader.sum(buffer)==c_int(3)
+ assert reader.packed(data)==c_int(3) and reader.packed(buffer)==c_int(3)
+ func(bytes) as c_int byteSum=reader.sum
+ func(Buffer) as c_int bufferSum=reader.sum
+ func(bytes) as c_int bytePacked=reader.packed
+ func(Buffer) as c_int bufferPacked=reader.packed
+ assert byteSum(data)==c_int(3) and bufferSum(buffer)==c_int(3)
+ assert bytePacked(data)==c_int(3) and bufferPacked(buffer)==c_int(3)
+ SumReader protocolReader=reader
+ assert protocolReader.sum(data)==c_int(3) and protocolReader.sum(buffer)==c_int(3)
+ assert protocolReader.packed(data)==c_int(3) and protocolReader.packed(buffer)==c_int(3)
+ assert sum(data)==c_int(3) and sum(buffer)==c_int(3)
+ failAfter(c_int(0))
+ try
+  assert reader.sum(data)==c_int(3) and reader.sum(buffer)==c_int(3)
+  assert reader.packed(data)==c_int(3) and reader.packed(buffer)==c_int(3)
+  resetFailure()
+ catch error
+  resetFailure()
+  throw "readonly source projection unexpectedly allocated"
+ end
+ int before=calls()
+ bool caught=false
+ try
+  reader.sum(b"a")
+ catch error
+  caught=true
+ end
+ assert caught and calls()==before
+ reader.close()
+ assert live()==c_int(0)
+ return 0
+end

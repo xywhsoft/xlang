@@ -84,3 +84,27 @@ static int xl6SemForeignManagedInputVariants(XL6_SemContext* ctx,const XL6_AstNo
             xl6SemForeignManagedInputCompatible(ctx,left->children[i]->children[0],right->children[i]->children[0]))return 1;
     return 0;
 }
+static int xl6SemForeignHasSpans(const XL6_AstNode* node)
+{
+    const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);
+    for(size_t i=0;attrs && i<attrs->childCount;++i){XL6_ForeignParameterContract row;
+        if(xl6ForeignParameterRead(attrs->children[i],&row) && row.kind==XL6_FOREIGN_PARAMETER_SPAN)return 1;
+    }
+    return 0;
+}
+static int xl6SemForeignReadonlySpanInputCompatible(XL6_SemContext* ctx,
+    const XL6_AstNode* left,const XL6_AstNode* right,const XL6_ForeignParameterContract* a,const XL6_ForeignParameterContract* b)
+{
+    if(!a->readOnly || !b->readOnly || a->kind!=XL6_FOREIGN_PARAMETER_SPAN || b->kind!=a->kind ||
+        strcmp(a->pointerCName,b->pointerCName) || a->countAbi!=b->countAbi)return 0;
+    left=xl6SemResolveAliasType(ctx,left);right=xl6SemResolveAliasType(ctx,right);
+    if(!left || !right || xl6SemTypeIsNullable(left) || xl6SemTypeIsNullable(right))return 0;
+    int lbytes=!left->childCount && xl6TextEquals(left->text,"bytes");
+    int rbytes=!right->childCount && xl6TextEquals(right->text,"bytes");
+    if(lbytes==rbytes)return 0;
+    const XL6_AstNode* buffer=lbytes ? right:left;
+    const XL6_AstNode* value=xl6SemClassValueType(ctx,buffer);
+    const XL6_AstNode* declaration=value && value->text ? xl6SemFindTypeDecl(ctx,value->text):NULL;
+    return declaration && declaration->kind==XL6_AST_CLASS &&
+        xl6SemForeignSpanType(ctx,left,a) && xl6SemForeignSpanType(ctx,right,b);
+}
