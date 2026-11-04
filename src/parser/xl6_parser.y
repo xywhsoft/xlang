@@ -71,6 +71,20 @@ typedef struct XL6_PTextBuilder {
     size_t cap;
 } XL6_PTextBuilder;
 
+static XL6_AstNode* xl6PFixedArrayType(XL6_ParseContext* ctx,XL6_AstNode* element,const XL6_Token* count)
+{
+    uint64 extent=0;int valid=count && count->len>0;
+    for(size_t i=0;valid && i<count->len;++i){
+        unsigned char c=(unsigned char)count->text[i];
+        if(c<'0' || c>'9' || extent>(UINT32_MAX-(c-'0'))/10u)valid=0;
+        else extent=extent*10u+(c-'0');
+    }
+    if(!valid || !extent)xl6PDiag(ctx,count,"fixed C array extent must be a positive decimal integer no greater than UINT32_MAX");
+    char name[64];snprintf(name,sizeof(name),"c_array$%llu",(unsigned long long)extent);
+    XL6_AstNode* type=xl6AstNewText(XL6_AST_TYPE,name,strlen(name),count);
+    XL6_AstNode* args=xl6PList();xl6AstAddChild(args,element);xl6AstAddChild(type,args);return type;
+}
+
 static void xl6PTextBuilderInit(XL6_PTextBuilder* builder)
 {
     memset(builder, 0, sizeof(*builder));
@@ -1573,20 +1587,7 @@ field_decl(A) ::= var_type_ref(T) name_tok(N) field_attrs_opt(R) field_default(D
 }
 
 field_decl(A) ::= var_type_ref(T) name_tok(N) LBRACKET INT(I) RBRACKET field_attrs_opt(R) field_default(D) need_sep. {
-    uint64 extent = 0;
-    int valid = I.len > 0;
-    for (size_t i = 0; i < I.len; ++i) {
-        unsigned char c = (unsigned char)I.text[i];
-        if (c < '0' || c > '9' || extent > (UINT32_MAX - (c - '0')) / 10u) { valid = 0; break; }
-        extent = extent * 10u + (c - '0');
-    }
-    if (!valid || !extent) xl6PDiag(ctx, &I, "fixed C array extent must be a positive decimal integer no greater than UINT32_MAX");
-    char name[64];
-    snprintf(name, sizeof(name), "c_array$%llu", (unsigned long long)extent);
-    XL6_AstNode* type = xl6AstNewText(XL6_AST_TYPE, name, strlen(name), &I);
-    XL6_AstNode* args = xl6PList();
-    xl6AstAddChild(args, T);
-    xl6AstAddChild(type, args);
+    XL6_AstNode* type=xl6PFixedArrayType(ctx,T,&I);
     A = xl6AstNew(XL6_AST_FIELD, &N);
     xl6AstAddChild(A, type);
     if (D) xl6AstAddChild(A, D);
@@ -1990,6 +1991,9 @@ type_ref(A) ::= KW_NULL(N). {
 type_ref(A) ::= TYPE_FUNCTION(N). [KW_THEN] {
     A = xl6AstNewText(XL6_AST_TYPE, "function", 8, &N);
 }
+type_ref(A) ::= type_ref(T) TYPE_ARRAY_LBRACKET INT(I) RBRACKET. {
+    A=xl6PFixedArrayType(ctx,T,&I);
+}
 type_ref(A) ::= name_tok(N) LT type_list(L) GT. {
     A = xl6AstNewGenericType(&N, L);
 }
@@ -2004,6 +2008,9 @@ type_ref(A) ::= QUALIFIED_TYPE(N) TYPE_LT type_list(L) GT. {
 }
 qualified_type_ref(A) ::= name_tok(P) DOT import_name(N). [KW_THEN] {
     A = xl6PQualifiedType(ctx, &P, N);
+}
+qualified_type_ref(A) ::= qualified_type_ref(T) TYPE_ARRAY_LBRACKET INT(I) RBRACKET. {
+    A=xl6PFixedArrayType(ctx,T,&I);
 }
 qualified_type_ref(A) ::= name_tok(P) DOT import_name(N) LT type_list(L) GT. {
     A = xl6PQualifiedType(ctx, &P, N);

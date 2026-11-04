@@ -43,6 +43,13 @@ static int xl6IrRegionInteger(const XL6_IrType* type)
         type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && type->cAbi!=XL6_IR_C_ABI_CHAR_U32 &&
         xl6IrBuildCAbiIsIntegerScalar(type->cAbi);
 }
+static XL6_IrTypeId xl6IrRegionStorageType(const XL6_IrModule* module,XL6_IrTypeId typeId)
+{
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,typeId);
+    if(!type)return 0;
+    if(type->kind!=XL6_IR_TYPE_NULLABLE)return typeId;
+    return type->paramCount==1 && type->params ? type->params[0]:0;
+}
 static const XL6_ForeignRegionObserverContract* xl6IrRegionObserverAt(const XL6_IrModule* module,uint32 declaration,uint32 physical)
 {
     if(module->foreignRegionObserverCount>module->foreignRegionObserverCapacity ||
@@ -68,7 +75,7 @@ static int xl6IrRegionObserverExpected(const XL6_IrModule* module,const XL6_Fore
         queryParameters->childCount+queryReceiver!=row->inputCount || queryOutputsCount!=1 ||
         !xl6ForeignInputMappingsEmpty(query->foreignCall.inputMappingFacts) || query->foreignCall.receiverDereference ||
         query->foreignCall.physicalPairs || query->foreignCall.retainedCallbacks || query->foreignCall.controlViews ||
-        query->foreignCall.constRecordAddresses || query->foreignCall.staticCallbackAddresses || query->foreignCall.textViews ||
+        query->foreignCall.constAggregateAddresses || query->foreignCall.staticCallbackAddresses || query->foreignCall.textViews ||
         query->foreignCall.bytesViews || query->foreignCall.terminatedStrings || query->foreignCall.rollbackSymbol || query->foreignCall.borrowedViewResult ||
         !(query->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) || (query->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) ||
         ((node->flags&XL6_AST_FLAG_FOREIGN_PURE) && !(query->flags&XL6_AST_FLAG_FOREIGN_PURE)) ||
@@ -136,7 +143,7 @@ static int xl6IrRegionExpected(const XL6_IrModule* module,const XL6_ForeignRegio
     size_t parameter=xl6ForeignRegionPhysicalInput(&node->foreignCall,params->childCount+receiver,receiver,outputs,outputCount,row->physicalIndex);
     if(parameter==SIZE_MAX || parameter<receiver)return 0;
     uint64 bit=UINT64_C(1)<<(parameter-receiver);
-    if((node->foreignCall.constRecordAddresses|node->foreignCall.staticCallbackAddresses|node->foreignCall.textViews|node->foreignCall.bytesViews|
+    if((node->foreignCall.constAggregateAddresses|node->foreignCall.staticCallbackAddresses|node->foreignCall.textViews|node->foreignCall.bytesViews|
         node->foreignCall.terminatedStrings|node->foreignCall.physicalPairs|node->foreignCall.retainedCallbacks)&bit ||
         (node->foreignCall.controlViews&(UINT64_C(1)<<parameter)))return 0;
     XL6_IrTypeId logical=xl6IrRegionInputType(module,node,params,receiver,parameter);
@@ -145,8 +152,10 @@ static int xl6IrRegionExpected(const XL6_IrModule* module,const XL6_ForeignRegio
     if(type->cAbi==XL6_IR_C_ABI_MANAGED_BYTES){
         if(row->access!=XL6_FOREIGN_REGION_ACCESS_READ || type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED)return 0;
     }else{
-        const XL6_IrClassField* buffer=xl6IrManagedNativeConstructorField(module,logical);
-        if(row->nullable || type->kind!=XL6_IR_TYPE_CLASS || !buffer || !buffer->nativeHandlePolicyCName ||
+        XL6_IrTypeId storageId=xl6IrRegionStorageType(module,logical);
+        const XL6_IrType* storage=xl6IrTypeGet(&module->types,storageId);
+        const XL6_IrClassField* buffer=xl6IrManagedNativeConstructorField(module,storageId);
+        if(!storage || storage->kind!=XL6_IR_TYPE_CLASS || !buffer || !buffer->nativeHandlePolicyCName ||
             strcmp(buffer->nativeHandlePolicyCName,"xl6BufferHandlePolicyV1Get"))return 0;
     }
     *expected=*row;expected->parameter=(uint32)parameter;expected->logicalType=logical;
@@ -215,7 +224,7 @@ const XL6_ForeignRegionObserverContract* xl6IrForeignRegionObserverGet(const XL6
 const XL6_IrClassField* xl6IrForeignRegionBufferField(const XL6_IrModule* module,const XL6_IrCallTarget* target,size_t parameter)
 {
     if(!xl6IrForeignRegionGet(module,target,parameter) || parameter>=target->parameterCount)return NULL;
-    const XL6_IrClassField* field=xl6IrManagedNativeConstructorField(module,target->parameterTypes[parameter]);
+    const XL6_IrClassField* field=xl6IrManagedNativeConstructorField(module,xl6IrRegionStorageType(module,target->parameterTypes[parameter]));
     return field && field->nativeHandlePolicyCName && !strcmp(field->nativeHandlePolicyCName,"xl6BufferHandlePolicyV1Get") ? field:NULL;
 }
 int xl6IrForeignRegionParameterMatches(const XL6_IrModule* module,const XL6_IrCallTarget* target,size_t parameter)

@@ -9199,7 +9199,7 @@ static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* 
     if ( a->kind == XL6_AST_EXTERN_FUNC || a->kind == XL6_AST_NATIVE_EXTERN_FUNC ) {
         XL6_ForeignCallFacts left, right;
         if (!xl6ForeignFunctionRead(a, &left) || !xl6ForeignFunctionRead(b, &right) ||
-            left.constRecordAddresses != right.constRecordAddresses ||
+            left.constAggregateAddresses != right.constAggregateAddresses ||
             left.staticCallbackAddresses != right.staticCallbackAddresses ||
             left.outputIndexPlusOne != right.outputIndexPlusOne || left.successCode != right.successCode) return 0;
         if((a->kind==XL6_AST_NATIVE_EXTERN_FUNC || b->kind==XL6_AST_NATIVE_EXTERN_FUNC ||
@@ -21143,6 +21143,19 @@ static int xl6SemIsCAbiRecordType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
     return typeInfo != NULL && xl6TypeKindIsAggregate(typeInfo->kind);
 }
 
+static int xl6SemIsCAbiConstAggregateType(XL6_SemContext* ctx,XL6_AstNode* typeNode)
+{
+    typeNode=(XL6_AstNode*)xl6SemResolveAliasType(ctx,typeNode);
+    if(typeNode && !typeNode->childCount && xl6ForeignRecordRead(xl6SemFindTypeDecl(ctx,typeNode->text),NULL,NULL)==1)return 1;
+    uint64 extent;
+    if(!typeNode || typeNode->childCount!=1 || !xl6ForeignArrayExtent(typeNode->text,&extent) || !extent || extent>UINT32_MAX)return 0;
+    const XL6_AstNode* arguments=xl6SemTypeNodeGenericArgs(typeNode);
+    XL6_AstNode* element=arguments && arguments->childCount==1 ? (XL6_AstNode*)xl6SemResolveAliasType(ctx,arguments->children[0]):NULL;
+    return element && !element->childCount &&
+        (xl6ForeignRecordRead(xl6SemFindTypeDecl(ctx,element->text),NULL,NULL)==1 ||
+         xl6SemIsBoolTypeName(element->text) || xl6SemIsIntegerTypeName(element->text) || xl6SemIsFloatTypeName(element->text));
+}
+
 static int xl6SemIsCAbiEnumType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
 {
     const XL6_TypeInfo* typeInfo;
@@ -21505,7 +21518,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
     if (!xl6ForeignFunctionRead(node, &facts) ||
         (node->kind != XL6_AST_EXTERN_FUNC && node->kind != XL6_AST_NATIVE_EXTERN_FUNC &&
          !((node->kind==XL6_AST_GET || node->kind==XL6_AST_LET) &&
-           (node->flags&XL6_AST_FLAG_EXTERN) && !facts.constRecordAddresses &&
+           (node->flags&XL6_AST_FLAG_EXTERN) && !facts.constAggregateAddresses &&
            !facts.staticCallbackAddresses && (!facts.outputIndexPlusOne || facts.valueOutput)))) {
         xl6SemErrorNode(ctx, node, "invalid declarative C call contract");
         return 0;
@@ -21538,14 +21551,14 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) || !value ||
             (read ? count!=0 : !write || count!=1 || !returns || returns->childCount) ||
             (write && (node->flags&XL6_AST_FLAG_FOREIGN_PURE)) ||
-            facts.constRecordAddresses || facts.staticCallbackAddresses || facts.textViews || facts.bytesViews ||
+            facts.constAggregateAddresses || facts.staticCallbackAddresses || facts.textViews || facts.bytesViews ||
             facts.terminatedStrings || facts.physicalPairs || facts.retainedCallbacks || facts.controlViews || facts.outputIndexPlusOne ||
             facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE || facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS || facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS ||
             (!facts.borrowedViewResult && !managedWrite && !xl6SemIsCAbiCallbackValueType(ctx,value,0))){
             xl6SemErrorNode(ctx,node,"native projection requires an exact trivial value, explicit borrowed result, or callback pointee owned by the same root");return 0;
         }
     }
-    if (count < 64 && ((facts.constRecordAddresses | facts.staticCallbackAddresses | facts.textViews | facts.bytesViews | facts.terminatedStrings | facts.physicalPairs | facts.retainedCallbacks) >> count)) {
+    if (count < 64 && ((facts.constAggregateAddresses | facts.staticCallbackAddresses | facts.textViews | facts.bytesViews | facts.terminatedStrings | facts.physicalPairs | facts.retainedCallbacks) >> count)) {
         xl6SemErrorNode(ctx, node, "C parameter ABI index is outside the declared signature"); return 0;
     }
     for (size_t i = 0; i < count && i < 64; ++i) {
@@ -21563,8 +21576,8 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
                 xl6SemErrorNode(ctx, parameter, "@c_bytes_view requires a non-null bytes parameter"); return 0;
             }
         }
-        if ((facts.constRecordAddresses & (UINT64_C(1) << i)) && !xl6SemIsCAbiRecordType(ctx, type)) {
-            xl6SemErrorNode(ctx, parameter, "@c_ref requires an exact trivial C record value"); return 0;
+        if ((facts.constAggregateAddresses & (UINT64_C(1) << i)) && !xl6SemIsCAbiConstAggregateType(ctx, type)) {
+            xl6SemErrorNode(ctx, parameter, "@c_ref requires an exact trivial C record or fixed scalar/record C array"); return 0;
         }
         if (facts.staticCallbackAddresses & (UINT64_C(1) << i)) {
             const XL6_AstNode* signature = xl6SemResolveAliasType(ctx, type);
@@ -21600,7 +21613,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         XL6_ForeignClassDecl contract={0};char qualified[80];
         const XL6_AstNode* view=p<receiver ? ownerClass : xl6SemForeignViewDeclaration(ctx,input,&contract);
         if(p<receiver && view)xl6ForeignClassRead(view,&contract,NULL);
-        uint64 mappings=facts.controlViews | ((facts.constRecordAddresses|facts.staticCallbackAddresses|facts.textViews|
+        uint64 mappings=facts.controlViews | ((facts.constAggregateAddresses|facts.staticCallbackAddresses|facts.textViews|
             facts.bytesViews|facts.terminatedStrings|facts.physicalPairs|facts.retainedCallbacks)<<receiver);
         if((!valueBorrow && (!view || !contract.header[0] || !xl6ForeignConstPointerName(contract.cName,qualified,sizeof(qualified)))) ||
             (mappings&(UINT64_C(1)<<p)) || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference){
@@ -21625,7 +21638,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         const XL6_AstNode* view=row.parameter<receiver ? ownerClass : xl6SemForeignViewDeclaration(ctx,input,&contract);
         if(row.parameter<receiver && view)xl6ForeignClassRead(view,&contract,NULL);
         uint64 bit=UINT64_C(1)<<row.parameter;
-        uint64 mappings=facts.controlViews | ((facts.constRecordAddresses|facts.staticCallbackAddresses|facts.textViews|
+        uint64 mappings=facts.controlViews | ((facts.constAggregateAddresses|facts.staticCallbackAddresses|facts.textViews|
             facts.bytesViews|facts.terminatedStrings|facts.physicalPairs|facts.retainedCallbacks)<<receiver);
         if(!view || (resolved && xl6SemTypeIsNullable(resolved)) ||
             (contract.lifetime!=XL6_FOREIGN_LIFETIME_CALLBACK && contract.lifetime!=XL6_FOREIGN_LIFETIME_OWNED && contract.lifetime!=XL6_FOREIGN_LIFETIME_OWNER) ||
@@ -21698,7 +21711,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             }
         }
     }
-    if(facts.controlViews & ((facts.textViews|facts.bytesViews|facts.terminatedStrings|facts.physicalPairs|facts.retainedCallbacks|facts.constRecordAddresses|facts.staticCallbackAddresses)<<receiver)){
+    if(facts.controlViews & ((facts.textViews|facts.bytesViews|facts.terminatedStrings|facts.physicalPairs|facts.retainedCallbacks|facts.constAggregateAddresses|facts.staticCallbackAddresses)<<receiver)){
         xl6SemErrorNode(ctx,node,"C control mapping conflicts with another physical parameter contract");return 0;
     }
     if(count+receiver<64 && (facts.controlViews>>(count+receiver))){
@@ -21950,6 +21963,7 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node,const XL
             if(xl6ForeignFunctionRead(node,&parameterFacts) && i<64 &&
                 ((parameterFacts.retainedCallbacks|parameterFacts.physicalPairs) & (UINT64_C(1)<<i)))continue;
             if(xl6SemForeignRegionParameter(node,i))continue;
+            if(i<64 && (parameterFacts.constAggregateAddresses&(UINT64_C(1)<<i)))continue;
             if ( typeNode != NULL && xl6TextEquals(typeNode->text, "function") ) {
                 if ( (param->flags & XL6_AST_FLAG_C_CALLBACK) != 0 &&
                      !xl6SemCheckCAbiCallbackType(ctx, typeNode, param) ) {

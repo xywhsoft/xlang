@@ -80,7 +80,7 @@ static int xl6SemForeignRegions(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_
         size_t parameter=xl6ForeignRegionPhysicalInput(facts,inputs,receiver,slots,outputCount,row.physicalIndex);
         if(parameter==SIZE_MAX || parameter<receiver)goto invalid;
         uint64 explicitBit=UINT64_C(1)<<(parameter-receiver);
-        if((facts->constRecordAddresses|facts->staticCallbackAddresses|facts->textViews|facts->bytesViews|
+        if((facts->constAggregateAddresses|facts->staticCallbackAddresses|facts->textViews|facts->bytesViews|
             facts->terminatedStrings|facts->physicalPairs|facts->retainedCallbacks)&explicitBit ||
             (facts->controlViews&(UINT64_C(1)<<parameter)))goto invalid;
         const XL6_AstNode* data=xl6SemForeignRegionInputType(ctx,params,owner,receiver,parameter);
@@ -93,7 +93,7 @@ static int xl6SemForeignRegions(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_
             const XL6_AstNode* value=xl6SemClassValueType(ctx,data);
             const XL6_AstNode* declaration=value && value->text ? xl6SemFindTypeDecl(ctx,value->text):NULL;
             XL6_ForeignParameterContract span={0};span.readOnly=row.access==XL6_FOREIGN_REGION_ACCESS_READ;
-            if(nullable || !declaration || declaration->kind!=XL6_AST_CLASS || !xl6SemForeignSpanType(ctx,data,&span))goto invalid;
+            if(!declaration || declaration->kind!=XL6_AST_CLASS || !xl6SemForeignSpanType(ctx,data,&span))goto invalid;
         }
         if(row.access==XL6_FOREIGN_REGION_ACCESS_WRITE && (node->flags&XL6_AST_FLAG_FOREIGN_PURE))goto invalid;
         const XL6_AstNode* observed=NULL;size_t observerCount=0;
@@ -113,7 +113,7 @@ static int xl6SemForeignRegions(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_
                 (xl6ForeignValueOutputBase(queryFacts.valueOutput)!=XL6_FOREIGN_VALUE_OUTPUT_STATUS &&
                  xl6ForeignValueOutputBase(queryFacts.valueOutput)!=XL6_FOREIGN_VALUE_OUTPUT_VOID) ||
                 queryFacts.rollbackSymbol || queryFacts.borrowedViewResult || queryFacts.physicalPairs || queryFacts.retainedCallbacks ||
-                queryFacts.controlViews || queryFacts.constRecordAddresses || queryFacts.staticCallbackAddresses || queryFacts.textViews ||
+                queryFacts.controlViews || queryFacts.constAggregateAddresses || queryFacts.staticCallbackAddresses || queryFacts.textViews ||
                 queryFacts.bytesViews || queryFacts.terminatedStrings || !(query->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
                 (query->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) ||
                 ((node->flags&XL6_AST_FLAG_FOREIGN_PURE) && !(query->flags&XL6_AST_FLAG_FOREIGN_PURE)) ||

@@ -27,7 +27,7 @@ int main(int argc,char** argv)
             target->parameterPhysicalAbis[p]=XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT;refused(module);
             target->parameterPhysicalAbis[p]=XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW;
             node->foreignCall.bytesViews=0;refused(module);node->foreignCall=facts;
-            node->foreignCall.constRecordAddresses|=facts.bytesViews;refused(module);node->foreignCall=facts;
+            node->foreignCall.constAggregateAddresses|=facts.bytesViews;refused(module);node->foreignCall=facts;
             node->foreignCall.textViews|=facts.bytesViews;refused(module);node->foreignCall=facts;
             node->foreignCall.bytesViews|=UINT64_C(1)<<63;refused(module);node->foreignCall=facts;
             int constraint=target->parameterConstraintAbis[p];

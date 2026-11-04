@@ -4182,7 +4182,7 @@ typedef enum XL6_IrCallParameterPhysicalAbi {
      * only for this call. The resident producer owns both leases separately. */
     XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW,
     XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW,
-    XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS,
+    XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_AGGREGATE_BORROW,
     XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK,
     XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW,
     XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW,
@@ -8009,7 +8009,8 @@ XL6_IrTypeId xl6IrCallTargetPhysicalParameterType(const struct XL6_IrModule*, co
 int xl6IrForeignStaticCallbackParameter(const struct XL6_IrModule*, const XL6_IrCallTarget*, size_t);
 XL6_IrTypeId xl6IrTypeInternCFunctionPointer(struct XL6_IrModule*, XL6_IrTypeId);
 XL6_IrTypeId xl6IrCFunctionPointerForSignature(const struct XL6_IrModule*, XL6_IrTypeId);
-int xl6IrForeignConstRecordParameter(const struct XL6_IrModule*, const XL6_IrCallTarget*, size_t);
+int xl6IrForeignConstAggregateParameter(const struct XL6_IrModule*, const XL6_IrCallTarget*, size_t);
+int xl6IrForeignConstAggregateTypeSupported(const struct XL6_IrModule*,XL6_IrTypeId);
 const XL6_IrCallTarget* xl6IrCallTargetGet(const XL6_IrModule* module, XL6_SymbolId symbol);
 /* Closed value-placement plan for a single exact C call. No AST inspection,
  * allocation, managed inputs, adaptation, cleanup, or exceptional control flow. */

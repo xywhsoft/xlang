@@ -86,7 +86,7 @@ static inline int xl6ForeignInputMappingsSet(size_t callbacks,int regions,uint8*
 /* Closed declaration facts. Const addresses exist only during one call;
  * they do not introduce a language reference or an escaping pointer. */
 typedef struct XL6_ForeignCallFacts {
-    uint64 constRecordAddresses;
+    uint64 constAggregateAddresses;
     /* Capture-free no-raise C entries. The declaration author guarantees
      * that module code and globals outlive every native use of the address. */
     uint64 staticCallbackAddresses;
@@ -113,7 +113,7 @@ typedef struct XL6_ForeignCallFacts {
 
 static inline int xl6ForeignCallFactsEqual(const XL6_ForeignCallFacts* a,const XL6_ForeignCallFacts* b)
 {
-    return a->constRecordAddresses==b->constRecordAddresses && a->staticCallbackAddresses==b->staticCallbackAddresses &&
+    return a->constAggregateAddresses==b->constAggregateAddresses && a->staticCallbackAddresses==b->staticCallbackAddresses &&
         a->textViews==b->textViews && a->bytesViews==b->bytesViews && a->terminatedStrings==b->terminatedStrings &&
         a->physicalPairs==b->physicalPairs && a->retainedCallbacks==b->retainedCallbacks && a->controlViews==b->controlViews &&
         a->borrowedViewResult==b->borrowedViewResult && a->resultOwnerIndexPlusOne==b->resultOwnerIndexPlusOne &&
@@ -129,7 +129,7 @@ static inline int xl6ForeignCallFactsEqual(const XL6_ForeignCallFacts* a,const X
  * contract; this is independent of its logical void result. */
 static inline int xl6ForeignOwnershipHelperFacts(const XL6_ForeignCallFacts* f,int retain)
 {
-    return f && !f->constRecordAddresses && !f->staticCallbackAddresses && !f->textViews && !f->bytesViews &&
+    return f && !f->constAggregateAddresses && !f->staticCallbackAddresses && !f->textViews && !f->bytesViews &&
         !f->terminatedStrings && !f->physicalPairs && !f->retainedCallbacks && !f->controlViews &&
         !f->resultOwnerIndexPlusOne && !f->outputIndexPlusOne && !f->rollbackSymbol && !f->valueOutput &&
         !f->receiverDereference && !f->inplaceOutput && xl6ForeignInputMappingsEmpty(f->inputMappingFacts) &&

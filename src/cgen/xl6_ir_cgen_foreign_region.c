@@ -104,8 +104,12 @@ static int xl6IrCgenForeignRegionsBegin(XL6_Output* out,const XL6_IrModule* modu
             "    if(!native_regions_ok) { xrtSetErrorKind(XERR_RANGE); xl6ErrorScopeCaptureFailure(&%s); } }\n",
             (unsigned long)p,(unsigned long)p,(unsigned long)p,(unsigned long)p,(unsigned long)p,row->unitBytes,row->unitBytes,
             (unsigned long)p,(unsigned long)p,(unsigned long)p,xl6IrCgenType(module,row->stride.fieldType),xl6IrCgenType(module,row->stride.fieldType),(unsigned long)p,errors);
+        if(row->nullable){
+            xl6OutputPrintf(out,"    native_region_absent_%lu=!(",(unsigned long)p);xl6IrCgenForeignViewArgument(out,values,p,NULL);
+            xl6OutputPuts(") || !xrtValueType(",out);xl6IrCgenForeignViewArgument(out,values,p,NULL);xl6OutputPuts(");\n",out);
+        }
         if(buffer){
-            xl6OutputPrintf(out,"    if(native_regions_ok) { if(!xl6BufferSpanBeginV1(xrtValueObjectGet(");
+            xl6OutputPrintf(out,"    if(native_regions_ok && !native_region_absent_%lu) { if(!xl6BufferSpanBeginV1(xrtValueObjectGet(",(unsigned long)p);
             xl6IrCgenForeignViewArgument(out,values,p,NULL);
             xl6OutputPuts(",(xstrview){",out);xl6IrCgenEmitCStringLiteral(out,buffer->name);
             xl6OutputPuts(",sizeof(",out);xl6IrCgenEmitCStringLiteral(out,buffer->name);
@@ -113,10 +117,6 @@ static int xl6IrCgenForeignRegionsBegin(XL6_Output* out,const XL6_IrModule* modu
                 "    else { native_region_data_%lu=native_region_%lu.data; native_region_bytes_%lu=native_region_%lu.bytes; } }\n",
                 row->access==XL6_FOREIGN_REGION_ACCESS_READ ? "true":"false",(unsigned long)p,errors,(unsigned long)p,(unsigned long)p,(unsigned long)p,(unsigned long)p);
         }else{
-            if(row->nullable){
-                xl6OutputPrintf(out,"    native_region_absent_%lu=!(",(unsigned long)p);xl6IrCgenForeignViewArgument(out,values,p,NULL);
-                xl6OutputPuts(") || !xrtValueType(",out);xl6IrCgenForeignViewArgument(out,values,p,NULL);xl6OutputPuts(");\n",out);
-            }
             xl6OutputPrintf(out,"    if(native_regions_ok && !native_region_absent_%lu) { xbytesview view={0}; if(!xrtValueGetBytes(",(unsigned long)p);
             xl6IrCgenForeignViewArgument(out,values,p,NULL);
             xl6OutputPrintf(out,",&view)) { native_regions_ok=false; xl6ErrorScopeCaptureFailure(&%s); } else { native_region_data_%lu=view.Data; native_region_bytes_%lu=view.Size; } }\n",errors,(unsigned long)p,(unsigned long)p);

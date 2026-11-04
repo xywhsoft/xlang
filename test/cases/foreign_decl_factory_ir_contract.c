@@ -82,10 +82,10 @@ int main(int argc, char** argv)
     for (size_t i = 0; i < module->callTargetCount; ++i) {
         XL6_IrCallTarget* target = &module->callTargets[i];
         for (size_t p = 0; p < target->parameterCount; ++p) {
-            if (target->parameterPhysicalAbis[p] != XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS) continue;
+            if (target->parameterPhysicalAbis[p] != XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_AGGREGATE_BORROW) continue;
             ++addresses;
             target->parameterPhysicalAbis[p] = XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT; refused(module);
-            target->parameterPhysicalAbis[p] = XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS;
+            target->parameterPhysicalAbis[p] = XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_AGGREGATE_BORROW;
         }
     }
     assert(factories >= 3 && addresses >= 2 && xl6IrVerifyModule(module, NULL));

@@ -433,6 +433,8 @@ static int xl6ParserMatchTypeRef(const XL6_ParseTokenStream* stream, size_t inde
         next += 1;
     }
 
+    while(next+2<stream->count && stream->tokens[next].kind==XL6_TK_LBRACKET &&
+        stream->tokens[next+1].kind==XL6_TK_INT && stream->tokens[next+2].kind==XL6_TK_RBRACKET)next+=3;
     *outNext = next;
     return 1;
 }
@@ -641,6 +643,11 @@ static int xl6ParserVMatchTypeRef(const XL6_ParseTokenStream* stream, XL6_VToken
         next = xl6ParserVNext(stream, next);
     }
 
+    while(xl6ParserVKindAt(stream,next)==XL6_TK_LBRACKET){
+        XL6_VTokenPos count=xl6ParserVNext(stream,next),close=xl6ParserVNext(stream,count);
+        if(xl6ParserVKindAt(stream,count)!=XL6_TK_INT || xl6ParserVKindAt(stream,close)!=XL6_TK_RBRACKET)break;
+        next=xl6ParserVNext(stream,close);
+    }
     *outNext = next;
     return 1;
 }
@@ -1048,6 +1055,41 @@ static int xl6ParserNullableAliasContext(
  * `value is int ? 1 : 0` 的问号后紧跟一段表达式，不能把它改写成 int?；
  * `value is int?`、`value as int? ?? 0` 则由后续运算符结束类型后缀。
  */
+/* An array suffix is a type only in an established declaration/type range.
+ * Ordinary a[4], including call arguments and cast-result indexing, keeps its
+ * original token. The lexer and source spans are unchanged. */
+static int xl6ParserFixedArrayDeclarationHead(const XL6_ParseTokenStream* stream,size_t index)
+{
+    size_t start=xl6ParserStmtStartIndex(stream,index);
+    for(size_t i=start;i<index;++i)
+        if(stream->tokens[i].kind==XL6_KW_FUNC || stream->tokens[i].kind==XL6_KW_GET || stream->tokens[i].kind==XL6_KW_LET)return 1;
+    return 0;
+}
+static void xl6ParserMarkFixedArrayRange(XL6_ParseTokenStream* stream,size_t begin,size_t end)
+{
+    for(size_t i=begin;i+2<end;++i)
+        if(stream->tokens[i].kind==XL6_TK_LBRACKET && stream->tokens[i+1].kind==XL6_TK_INT && stream->tokens[i+2].kind==XL6_TK_RBRACKET)
+            stream->parserKinds[i]=XL6PG_TYPE_ARRAY_LBRACKET;
+}
+static void xl6ParserMarkFixedArrayTypes(XL6_ParseTokenStream* stream)
+{
+    for(size_t i=0;i<stream->count;++i){
+        size_t end=0;
+        if(stream->parserKinds[i]==XL6PG_TYPE_FUNCTION && xl6ParserMatchFunctionTypeRef(stream,i,&end)){
+            xl6ParserMarkFixedArrayRange(stream,i,end);continue;
+        }
+        if(stream->tokens[i].kind==XL6_KW_AS && xl6ParserFixedArrayDeclarationHead(stream,i)){
+            size_t begin=i+1;
+            if(begin<stream->count && stream->tokens[begin].kind==XL6_TK_LPAREN){
+                if(xl6ParserMatchTypeList(stream,begin+1,&end))xl6ParserMarkFixedArrayRange(stream,begin,end);
+            }else if(xl6ParserMatchTypeExpr(stream,begin,&end))xl6ParserMarkFixedArrayRange(stream,begin,end);
+        }
+        if(xl6ParserMatchTypeRef(stream,i,&end) && end>i &&
+            (xl6ParserNullableNamedDeclContext(stream,i,end-1) || xl6ParserNullableAliasContext(stream,i)))
+            xl6ParserMarkFixedArrayRange(stream,i,end);
+    }
+}
+
 static int xl6ParserTokenStartsExpression(int kind)
 {
     switch ( kind ) {
@@ -1429,6 +1471,13 @@ static int xl6ParserQualifiedDeclTypeEnd(
             xl6ParserIsNameToken(&stream->tokens[end + 1]) ) {
         end += 2;
     }
+    size_t fixed=end;
+    while(fixed+2<stream->count && stream->tokens[fixed].kind==XL6_TK_LBRACKET &&
+        stream->tokens[fixed+1].kind==XL6_TK_INT && stream->tokens[fixed+2].kind==XL6_TK_RBRACKET)fixed+=3;
+    if(fixed!=end && fixed<stream->count && (xl6ParserIsNameToken(&stream->tokens[fixed]) ||
+        (fixed+1<stream->count && stream->tokens[fixed].kind==XL6_TK_QUESTION && xl6ParserIsNameToken(&stream->tokens[fixed+1])))){
+        *outEnd=end;return 1;
+    }
     if ( end < stream->count && xl6ParserIsNameToken(&stream->tokens[end]) ) {
         *outEnd = end;
         return 1;
@@ -1714,6 +1763,7 @@ static int xl6ParserReadTokens(XL6_Lexer* lexer, XL6_ParseTokenStream* stream, X
         xl6DiagAdd(diags, token.startLine, token.startColumn, "内存不足，无法标记限定类型");
         return 0;
     }
+    xl6ParserMarkFixedArrayTypes(stream);
     xl6ParserMarkNullableTypeQuestions(stream);
     xl6ParserMarkPostWhileTokens(stream);
     xl6ParserMarkStatementMatchTokens(stream);

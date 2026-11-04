@@ -49,9 +49,10 @@ static int xl6SemForeignRegionInputCompatible(XL6_SemContext* ctx,const XL6_AstN
 {
     XL6_ForeignRegionContract x,y;
     if(!xl6SemForeignRegionForParameter(a,parameter,&x) || !xl6SemForeignRegionForParameter(b,parameter,&y) ||
-        x.access!=XL6_FOREIGN_REGION_ACCESS_READ || y.access!=x.access || x.nullable || y.nullable)return 0;
+        x.access!=XL6_FOREIGN_REGION_ACCESS_READ || y.access!=x.access || x.nullable!=y.nullable)return 0;
     XL6_ForeignParameterContract span={0};span.readOnly=1;
     left=xl6SemResolveAliasType(ctx,left);right=xl6SemResolveAliasType(ctx,right);
+    if(x.nullable){left=xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(left));right=xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(right));}
     int lbytes=left && !left->childCount && xl6TextEquals(left->text,"bytes");
     int rbytes=right && !right->childCount && xl6TextEquals(right->text,"bytes");
     return lbytes!=rbytes && xl6SemForeignSpanType(ctx,left,&span) && xl6SemForeignSpanType(ctx,right,&span);

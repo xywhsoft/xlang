@@ -1,0 +1,47 @@
+extern "RegionVertex" struct Vertex @header("test/cases/foreign_region.h")
+ c_float x
+ c_float y
+end
+extern "RegionQuad" struct Quad @header("test/cases/foreign_region.h")
+ Vertex vertices[4]
+end
+extern "RegionInts" struct Ints @header("test/cases/foreign_region.h")
+ c_int values[4]
+end
+extern "RegionRoot*" class Root @header("test/cases/foreign_region.h") @lifetime("owned") @policy("regionPolicy") @scope("RegionScope")
+ native point handle
+ extern "sumVertices" @c_field_call @no_raise @c_ref(0) func sum(Vertex[4] values) as c_float
+ extern "sumInts" @c_field_call @no_raise @c_ref(0) func sumInts(c_int[4] values) as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "region_root_create" @header("test/cases/foreign_region.h") @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Root
+extern "region_root_destroy" @no_raise func rollback(Root value)
+extern "region_vertices" @header("test/cases/foreign_region.h") @no_raise func vertices() as Quad
+extern "region_ints" @header("test/cases/foreign_region.h") @no_raise func ints() as Ints
+extern "region_sum_vertices" @header("test/cases/foreign_region.h") @no_raise @c_ref(0) func sum(Vertex[4] values) as c_float
+protocol Reader
+ func sum(Vertex[4] values) as c_float
+end
+typedef VertexArray=Vertex[4]
+func main(...) as int
+ auto quad=vertices()
+ Vertex[4] values=quad.vertices
+ VertexArray alias=values
+ assert sum(values)==c_float(16)
+ func(Vertex[4]) as c_float freeValue=sum
+ assert freeValue(alias)==c_float(16)
+ auto root=create()
+ assert root.sum(values)==c_float(16)
+ func(Vertex[4]) as c_float bound=root.sum
+ assert bound(values)==c_float(16)
+ Reader reader=root
+ assert reader.sum(values)==c_float(16)
+ assert root.sumInts(ints().values)==c_int(10)
+ assert values[3].x==c_float(7) and values[0].y==c_float(2)
+ auto changed=values[0]
+ changed.x=c_float(9)
+ values[0]=changed
+ assert sum(values)==c_float(24) and sum(quad.vertices)==c_float(16)
+ root.close()
+ return 0
+end

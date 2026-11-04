@@ -161,7 +161,7 @@ static void xl6IrCgenCollectHeaderTypeNeeds(
                  target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW ||
                  target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW ||
                  xl6IrForeignViewBorrowPhysical(target->parameterPhysicalAbis[parameter]) ||
-                 target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS )
+                 target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_AGGREGATE_BORROW )
                 xl6IrCgenHeaderMarkType(
                     module, target->parameterTypes[parameter], needs,
                     structuralTypes);

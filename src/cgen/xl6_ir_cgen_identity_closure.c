@@ -471,7 +471,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
         type = xl6IrCgenExternParameterType(module, target, parameter);
         if ( type == NULL )
             return xl6IrCgenDiag(diags, module, target->declaration, "XLIR C emitter does not support extern parameter ABI");
-        if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS)
+        if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_AGGREGATE_BORROW)
             xl6OutputPrintf(out, "const %s*", type);
         else xl6OutputPuts(type, out);
         if ( xl6IrCgenParameterAbiIsIndirect(target->parameterAbis[parameter]) )

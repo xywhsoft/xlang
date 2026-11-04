@@ -1031,8 +1031,13 @@ extern "surfaceReadRGBA" @c_field_call @no_raise @c_result("status",0)
 
 Read regions accept `bytes` or the actual managed `Buffer` resource. Write
 regions accept only `Buffer`; they never write through a language byte value.
-An optional final `"nullable"` is accepted only for read `bytes?`, where absence
-supplies native NULL. Non-null data still obeys the complete region bounds.
+An optional final `"nullable"` is accepted for read `bytes?` or `Buffer?`, where
+object absence supplies native NULL. A non-null empty Buffer/bytes value still
+obeys the complete capacity check; NULL data inside an empty value is not
+object absence. Write regions remain non-null. A matching create overload may
+default its `bytes?` input to null; its `Buffer?` overload requires that argument
+explicitly, avoiding an omitted-argument ambiguity. Bare null follows normal
+overload rules and may need a typed nullable variable.
 Strings and raw points are not Region storage carriers.
 
 Width and height must be positive. Effective stride is the positive supplied
@@ -1072,10 +1077,39 @@ rows; missing/extra rows and invalid counts are rejected before C/header output.
 
 Two logical overloads may bind the same native function or callable field only
 when their complete physical, lifetime, output and effect contracts agree.
-For Region data inputs, `bytes` and `Buffer` may provide the same non-null
+For Region data inputs, `bytes` and `Buffer` may provide the same
 readonly pointer with identical extent selectors, units, stride and observer.
+Matching `bytes?`/`Buffer?` forms use the same explicit nullable Region contract.
 Their language types remain distinct; this does not enable nominal casts or
 relax normal overload ambiguity rules. Constness, checked status, ownership,
 native output shape, callback contracts and effects cannot differ between the
 declarations. XLIR independently verifies this agreement, including coherent
 but conflicting edits to one overload's otherwise valid Region contract.
+
+## Readonly fixed C-array inputs
+
+The `Vertex[4]` type suffix names the existing fixed C-array value type. The
+extent is a static positive decimal integer up to `UINT32_MAX`; the element
+must have a supported trivial scalar/C-record ABI. The earlier record-field
+spelling `Vertex vertices[4]` retains the same AST/type/layout. Dynamic arrays,
+nullable arrays/elements, nested C arrays and managed elements do not qualify
+for this input contract.
+
+```xl
+extern "surfaceDrawQuad" @c_field_call @no_raise @c_ref(1)
+    func drawQuad(Surface surface,SurfaceVertex[4] vertices,c_uint flags) as c_int
+```
+
+`c_ref` keeps its explicit-language-parameter index. For records it passes
+`&value` as `const Record*`; for fixed arrays it passes `value.Elements` as
+`const Element*`, with no pointer-to-array or count argument. Native code may
+read the declared fixed elements only during the call and must not retain or
+write them. The binding author must match the native API's documented fixed
+cardinality: a C pointer signature alone cannot express that requirement.
+
+Direct, bound, function-value and protocol calls share the same sealed
+aggregate-borrow ABI. The type pool closes element type, extent and native
+record layouts; native header proof checks the exact const element pointer.
+There is no C forwarding wrapper, additional heap allocation or added content
+copy in this projection. Ordinary language fixed-array assignment/value
+semantics and callable preparation costs still apply.
