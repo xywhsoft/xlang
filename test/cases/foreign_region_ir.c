@@ -51,14 +51,14 @@ int main(int argc,char** argv)
     strcpy(row->field,"missing");refused(ir,"selector member");*row=saved;
    }
   }
-  XL6_IrNode* declaration=&ir->nodes[original.declaration-1];uint8 facts=declaration->foreignCall.inputMappingFacts;
+  XL6_IrNode* declaration=&ir->nodes[original.declaration-1];uint16 facts=declaration->foreignCall.inputMappingFacts;
   assert(xl6ForeignInputHasRegions(facts));
   declaration->foreignCall.inputMappingFacts=(uint8)(facts&127u);refused(ir,"lost Region presence");declaration->foreignCall.inputMappingFacts=facts;
   declaration->foreignCall.inputMappingFacts=255;refused(ir,"unknown callback count");declaration->foreignCall.inputMappingFacts=facts;
-  uint8 changed;assert(xl6ForeignInputMappingsSet(xl6ForeignInputCallbackCount(facts)+1,1,&changed));
+  uint16 changed;assert(xl6ForeignInputMappingsSet(xl6ForeignInputCallbackCount(facts)+1,1,0,&changed));
   declaration->foreignCall.inputMappingFacts=changed;refused(ir,"callback count plus Region");declaration->foreignCall.inputMappingFacts=facts;
   if(xl6ForeignInputCallbackCount(facts)){
-   assert(xl6ForeignInputMappingsSet(0,1,&changed));declaration->foreignCall.inputMappingFacts=changed;
+   assert(xl6ForeignInputMappingsSet(0,1,0,&changed));declaration->foreignCall.inputMappingFacts=changed;
    refused(ir,"lost callback span with Region");declaration->foreignCall.inputMappingFacts=facts;
   }
  }

@@ -60,13 +60,13 @@ static int xl6IrCgenVerifyDeclarations(
                     return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no const xvalue borrow contract");
             } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW) {
                 if (!xl6IrForeignTerminatedStringParameter(module,target,parameter) || !parameterType ||
-                    parameterType->kind != XL6_IR_TYPE_BUILTIN || parameterType->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
+                    (parameterType->kind != XL6_IR_TYPE_BUILTIN && !(parameterType->kind==XL6_IR_TYPE_NULLABLE && xl6IrForeignPackParameter(module,target,parameter))) || parameterType->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
                     target->parameterAbis[parameter] != XL6_IR_PARAMETER_ABI_BORROW ||
                     target->parameterPhysicalFieldDeclarations[parameter] || target->parameterConstraintAbis[parameter])
                     return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no exact checked C string ABI");
             } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW) {
                 if(!xl6IrForeignTextViewParameter(module,target,parameter) ||
-                    !parameterType || parameterType->kind!=XL6_IR_TYPE_BUILTIN ||
+                    !parameterType || (parameterType->kind!=XL6_IR_TYPE_BUILTIN && !(parameterType->kind==XL6_IR_TYPE_NULLABLE && xl6IrForeignPackParameter(module,target,parameter))) ||
                     parameterType->cAbi!=XL6_IR_C_ABI_MANAGED_STRING ||
                     target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
                     target->parameterPhysicalFieldDeclarations[parameter] || target->parameterConstraintAbis[parameter])

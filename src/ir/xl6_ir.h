@@ -7069,6 +7069,10 @@ typedef struct XL6_IrModule {
     size_t foreignRegionCount,foreignRegionCapacity;
     XL6_ForeignRegionObserverContract* foreignRegionObservers;
     size_t foreignRegionObserverCount,foreignRegionObserverCapacity;
+    XL6_ForeignPackContract* foreignPacks;
+    size_t foreignPackCount,foreignPackCapacity;
+    XL6_ForeignPackFieldContract* foreignPackFields;
+    size_t foreignPackFieldCount,foreignPackFieldCapacity;
 } XL6_IrModule;
 
 void xl6IrModuleInit(XL6_IrModule* module);
@@ -8057,12 +8061,17 @@ const XL6_ForeignCallbackSpanContract* xl6IrForeignCallbackSpanGet(const XL6_IrM
 size_t xl6IrForeignOutputCount(const XL6_IrModule*,const XL6_IrCallTarget*);
 XL6_IrTypeId xl6IrForeignOutputType(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 /* One emission step is either one complete logical input group or one output. */
-int xl6IrForeignOutputStep(const XL6_IrModule*,const XL6_IrCallTarget*,size_t,size_t*,size_t*);
 int xl6IrForeignOutputValueMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignOutputSizeContract* xl6IrForeignOutputSizeGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 int xl6IrForeignOutputSizesMatch(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignOutputViewContract* xl6IrForeignOutputViewGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 int xl6IrForeignOutputViewsMatch(const XL6_IrModule*,const XL6_IrCallTarget*);
+const XL6_ForeignPackContract* xl6IrForeignPackGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+const XL6_ForeignPackContract* xl6IrForeignPackParameter(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+size_t xl6IrForeignPhysicalStepCount(const XL6_IrModule*,const XL6_IrCallTarget*);
+int xl6IrForeignPhysicalStepGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t,XL6_ForeignPhysicalStep*);
+size_t xl6IrForeignFirstOutputLogical(const XL6_IrModule*,const XL6_IrCallTarget*);
+int xl6IrForeignPacksMatch(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignRegionContract* xl6IrForeignRegionGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 const XL6_ForeignRegionObserverContract* xl6IrForeignRegionObserverGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 const XL6_IrClassField* xl6IrForeignRegionBufferField(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);

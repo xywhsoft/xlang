@@ -9204,6 +9204,8 @@ static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* 
             left.staticCallbackAddresses != right.staticCallbackAddresses ||
             left.outputIndexPlusOne != right.outputIndexPlusOne || left.successCode != right.successCode) return 0;
         if((a->kind==XL6_AST_NATIVE_EXTERN_FUNC || b->kind==XL6_AST_NATIVE_EXTERN_FUNC || xl6SemForeignManagedInputVariants(ctx,a,b) ||
+            xl6SemForeignHasRetainedOutputs(a) || xl6SemForeignHasRetainedOutputs(b) ||
+            xl6ForeignInputHasPacks(left.inputMappingFacts) || xl6ForeignInputHasPacks(right.inputMappingFacts) ||
             xl6ForeignInputHasRegions(left.inputMappingFacts) || xl6ForeignInputHasRegions(right.inputMappingFacts)) &&
             (!xl6ForeignCallFactsEqual(&left,&right) || !xl6SemForeignAttributesEqual(a,b) ||
              ((a->flags^b->flags)&(XL6_AST_FLAG_STATIC|XL6_AST_FLAG_FOREIGN_OWNED_STRING|XL6_AST_FLAG_FOREIGN_PURE|
@@ -21510,6 +21512,7 @@ static const XL6_AstNode* xl6SemForeignOwnershipHelper(XL6_SemContext* ctx,
 #include "src/sem/xl6_sem_foreign_output_size.c"
 #include "src/sem/xl6_sem_foreign_output_view.c"
 #include "src/sem/xl6_sem_foreign_region.c"
+#include "src/sem/xl6_sem_foreign_pack.c"
 static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNode* node,const XL6_AstNode* ownerClass)
 {
     XL6_ForeignCallFacts facts;
@@ -21526,6 +21529,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
     }
     XL6_AstNode* params = node->childCount > 1 ? node->children[1] : NULL;
     size_t count = params ? params->childCount : 0;
+    if(!xl6SemForeignPacks(ctx,node,ownerClass,attrs,&facts))return 0;
     if(xl6ForeignFunctionFieldCall(node)){
         XL6_ForeignClassDecl owner;
         if(!ownerClass || xl6ForeignClassRead(ownerClass,&owner,NULL)!=1 || !owner.header[0] ||
@@ -21567,6 +21571,8 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         XL6_AstNode* type = parameter && parameter->childCount ? parameter->children[0] : NULL;
         if ((facts.textViews | facts.terminatedStrings) & (UINT64_C(1) << i)) {
             const XL6_AstNode* resolved = xl6SemResolveAliasType(ctx, type);
+            if(xl6ForeignPackForParameter(node,i,NULL) && xl6SemTypeIsNullable(resolved))
+                resolved=xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(resolved));
             if (!resolved || resolved->childCount || !xl6TextEquals(resolved->text, "string")) {
                 xl6SemErrorNode(ctx, parameter, "@c_text_view requires a non-null string parameter"); return 0;
             }
@@ -21798,13 +21804,13 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             int found=0;
             for(size_t a=0;attrs && a<attrs->childCount;++a)
                 if(xl6ForeignMultiOutputRead(attrs->children[a],slots,&outputs))++found;
-            if(found!=1 || !xl6ForeignMultiOutputSlotsValid(&facts,count+receiver,receiver,slots,outputs)){
+            if(found!=1 || (!xl6ForeignInputHasPacks(facts.inputMappingFacts) && !xl6ForeignMultiOutputSlotsValid(&facts,count+receiver,receiver,slots,outputs))){
                 xl6SemErrorNode(ctx,node,"@c_outputs requires complete increasing physical slots outside expanded parameter groups");return 0;
             }
         }
         if(!viewReturns || viewReturns->childCount!=outputs || !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
             (node->flags&XL6_AST_FLAG_FOREIGN_OWNED_STRING) || facts.borrowedViewResult || facts.rollbackSymbol ||
-            !facts.outputIndexPlusOne || (!multi && xl6ForeignOutputLogical(&facts,count+receiver,receiver)==SIZE_MAX)){
+            !facts.outputIndexPlusOne || (!multi && xl6ForeignOutputLogicalForDeclaration(node,&facts,count+receiver,receiver)==SIZE_MAX)){
             xl6SemErrorNode(ctx,node,"C value outputs require matching exact trivial C results, explicit @no_raise and complete physical slots");return 0;
         }
         for(size_t o=0;o<outputs;++o){
@@ -21825,7 +21831,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         const XL6_AstNode* result = returns && returns->childCount == 1 ? xl6SemResolveAliasType(ctx, returns->children[0]) : NULL;
         const XL6_AstNode* view = xl6SemClassValueType(ctx, result);
         const XL6_AstNode* typeDecl = view && view->text ? xl6SemFindTypeDecl(ctx, view->text) : NULL;
-        if (xl6ForeignOutputLogical(&facts,count+receiver,receiver)==SIZE_MAX) {
+        if (xl6ForeignOutputLogicalForDeclaration(node,&facts,count+receiver,receiver)==SIZE_MAX) {
             xl6SemErrorNode(ctx, node, "factory output index is outside the physical signature"); return 0;
         }
         if (!result || xl6ForeignClassRead(typeDecl, NULL, NULL) != 1) {
@@ -21964,6 +21970,7 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node,const XL
             if(xl6ForeignFunctionRead(node,&parameterFacts) && i<64 &&
                 ((parameterFacts.retainedCallbacks|parameterFacts.physicalPairs) & (UINT64_C(1)<<i)))continue;
             if(xl6SemForeignRegionParameter(node,i))continue;
+            if(xl6ForeignPackForParameter(node,i,NULL))continue;
             if(i<64 && (parameterFacts.constAggregateAddresses&(UINT64_C(1)<<i)))continue;
             if ( typeNode != NULL && xl6TextEquals(typeNode->text, "function") ) {
                 if ( (param->flags & XL6_AST_FLAG_C_CALLBACK) != 0 &&

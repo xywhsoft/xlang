@@ -598,7 +598,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     else snprintf(input, sizeof(input), "receiver");
     if (!xl6IrCgenNativeCallValueBegin(out, module, &valuePlan, input, scope)) return 0;
     int views = xl6IrCgenForeignViewsBegin(out, module, target, NULL, NULL, scope);
-    int cstrings = xl6IrCgenPrepareTerminatedStrings(out, target, NULL, scope);
+    int cstrings = xl6IrCgenPrepareTerminatedStrings(out, module,target, NULL, scope);
     int bytes = xl6IrCgenPrepareBytesViews(out, target, NULL);
     int spans=xl6IrCgenForeignSpansBegin(out,module,target,NULL,scope);
     if(spans<0)return 0;
@@ -609,6 +609,8 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     int callbacks=xl6IrCgenNativeCallbacksBegin(out,module,target,NULL,scope);
     if(callbacks<0)return 0;
     if(!xl6IrCgenPrepareForeignCountedField(out,module,target,NULL,scope))return 0;
+    int packs=xl6IrCgenForeignPacksBegin(out,module,target,NULL,scope);
+    if(packs<0)return 0;
     int fieldCallee=xl6IrCgenNativeFieldCallBegin(out,module,target,NULL,scope,NULL);
     if(fieldCallee<0)return 0;
     int probe = xl6IrCgenFactoryProbeBegin(out, module, target, scope);
@@ -616,9 +618,6 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     int factoryOutput=declaration->foreignCall.outputIndexPlusOne && !declaration->foreignCall.valueOutput;
     int storagePrepared=0;
     int valueOutput=target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE;
-    size_t receiverCount=(declaration->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || declaration->sourceKind==XL6_AST_GET || declaration->sourceKind==XL6_AST_LET) &&
-        !(declaration->flags&XL6_AST_FLAG_STATIC) ? 1u : 0u;
-    size_t outputLogical=factoryOutput || valueOutput ? xl6ForeignOutputLogical(&declaration->foreignCall,target->parameterCount,receiverCount) : SIZE_MAX;
     if(valueOutput){
         if(!xl6IrCgenOutputRawDeclare(out,module,target))return 0;
         xl6OutputPuts("    ",out);
@@ -654,18 +653,20 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
         if (!xl6IrCgenEmitNativeContext(out, module, target)) return 0;
         if (target->parameterCount) xl6OutputPuts(", ", out);
     }
-    for (size_t physical = 0; physical < target->parameterCount + (valueOutput ? xl6IrForeignOutputCount(module,target) : (size_t)factoryOutput); ++physical) {
+    size_t physicalSteps=xl6IrForeignPhysicalStepCount(module,target);
+    if(physicalSteps>target->parameterCount+64)return 0;
+    for (size_t physical = 0; physical < physicalSteps; ++physical) {
         if (physical) xl6OutputPuts(", ", out);
-        size_t p=physical,output=SIZE_MAX;
-        if(valueOutput){
-            if(!xl6IrForeignOutputStep(module,target,physical,&p,&output))return 0;
-            if(output!=SIZE_MAX){
-                if(xl6IrForeignOutputCount(module,target)>1)xl6OutputPrintf(out,"&native_raw.e%lu",(unsigned long)output);
+        XL6_ForeignPhysicalStep step;if(!xl6IrForeignPhysicalStepGet(module,target,physical,&step))return 0;
+        size_t p=step.parameter;
+        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){xl6OutputPrintf(out,"&native_pack_%u",step.physicalIndex);continue;}
+        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){
+            if(valueOutput){
+                if(xl6IrForeignOutputCount(module,target)>1)xl6OutputPrintf(out,"&native_raw.e%lu",(unsigned long)step.ordinal);
                 else xl6OutputPuts("&native_raw",out);
-                continue;
-            }
-        }else if(factoryOutput && physical==outputLogical){xl6OutputPuts(storagePrepared ? "native_raw":"&native_raw",out);continue;}
-        else p=physical-(factoryOutput && physical>outputLogical);
+            }else xl6OutputPuts(storagePrepared ? "native_raw":"&native_raw",out);
+            continue;
+        }
         if (encoded && valuePlan.inputParameter == p + 1) xl6OutputPuts("&native_value_input", out);
         else {
             char place[40];
@@ -708,6 +709,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
             xl6OutputPrintf(out, "    a%lu = (%s){0};\n", (unsigned long)(p - 1), xl6IrCgenType(module, target->parameterTypes[p]));
     if (probe) xl6IrCgenFactoryProbeEnd(out, scope);
     if(fieldCallee)xl6OutputPuts("    } }\n",out);
+    if(packs)xl6IrCgenForeignPacksEnd(out);
     if(callbacks)xl6IrCgenNativeCallbacksEnd(out,target,scope);
     if (access) xl6IrCgenNativeAccessEnd(out,target,scope);
     if(regions)xl6IrCgenForeignRegionsEnd(out,module,target,scope);
@@ -1023,7 +1025,7 @@ static int xl6IrCgenEmitDirectCall(
     if (!xl6IrCgenNativeCallValueBegin(out,module,&nativeValue,
             nativeValue.inputParameter?nativeInput:NULL,nativeScope)) return 0;
     int viewsPrepared=xl6IrCgenForeignViewsBegin(out,module,target,module->operands+instruction->firstOperand,NULL,nativeScope);
-    int cstringsPrepared=xl6IrCgenPrepareTerminatedStrings(out,target,module->operands+instruction->firstOperand,nativeScope);
+    int cstringsPrepared=xl6IrCgenPrepareTerminatedStrings(out,module,target,module->operands+instruction->firstOperand,nativeScope);
     int bytesPrepared=xl6IrCgenPrepareBytesViews(out,target,module->operands+instruction->firstOperand);
     int spansPrepared=xl6IrCgenForeignSpansBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope);
     if(spansPrepared<0)return 0;
@@ -1034,6 +1036,8 @@ static int xl6IrCgenEmitDirectCall(
     int callbacksPrepared=xl6IrCgenNativeCallbacksBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope);
     if(callbacksPrepared<0)return 0;
     if(!xl6IrCgenPrepareForeignCountedField(out,module,target,module->operands+instruction->firstOperand,nativeScope))return 0;
+    int packsPrepared=xl6IrCgenForeignPacksBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope);
+    if(packsPrepared<0)return 0;
     int fieldCallee=xl6IrCgenNativeFieldCallBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope,diags);
     if(fieldCallee<0)return 0;
     int probePrepared=xl6IrCgenFactoryProbeBegin(out,module,target,nativeScope);
@@ -1041,9 +1045,6 @@ static int xl6IrCgenEmitDirectCall(
     int factoryOutput=foreignDeclaration->foreignCall.outputIndexPlusOne && !foreignDeclaration->foreignCall.valueOutput;
     int storagePrepared=0;
     int valueOutput=target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE;
-    size_t receiverCount=(foreignDeclaration->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || foreignDeclaration->sourceKind==XL6_AST_GET || foreignDeclaration->sourceKind==XL6_AST_LET) &&
-        !(foreignDeclaration->flags&XL6_AST_FLAG_STATIC) ? 1u : 0u;
-    size_t outputLogical=factoryOutput || valueOutput ? xl6ForeignOutputLogical(&foreignDeclaration->foreignCall,target->parameterCount,receiverCount) : SIZE_MAX;
     if(valueOutput){
         if(!xl6IrCgenOutputRawDeclare(out,module,target))return 0;
         xl6OutputPuts("    ",out);
@@ -1093,18 +1094,22 @@ static int xl6IrCgenEmitDirectCall(
         xl6OutputPrintf(out, "0x%016llXULL, 0x%016llXULL%s", (unsigned long long)owner->typeValueId,
             (unsigned long long)item->typeValueId, instruction->operandCount ? ", " : "");
     }
-    for ( size_t physical = 0; physical < instruction->operandCount+(valueOutput ? xl6IrForeignOutputCount(module,target) : (size_t)factoryOutput); ++physical ) {
+    size_t physicalSteps=xl6IrForeignPhysicalStepCount(module,target);
+    if(physicalSteps>target->parameterCount+64)return 0;
+    for ( size_t physical = 0; physical < physicalSteps+instruction->operandCount-target->parameterCount; ++physical ) {
         if ( physical != 0 ) xl6OutputPuts(", ", out);
-        size_t output=SIZE_MAX;
-        if(valueOutput){
-            if(!xl6IrForeignOutputStep(module,target,physical,&argument,&output))return 0;
-            if(output!=SIZE_MAX){
-                if(xl6IrForeignOutputCount(module,target)>1)xl6OutputPrintf(out,"&native_raw.e%lu",(unsigned long)output);
-                else xl6OutputPuts("&native_raw",out);
+        if(physical<physicalSteps){
+            XL6_ForeignPhysicalStep step;if(!xl6IrForeignPhysicalStepGet(module,target,physical,&step))return 0;
+            argument=step.parameter;
+            if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){xl6OutputPrintf(out,"&native_pack_%u",step.physicalIndex);continue;}
+            if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){
+                if(valueOutput){
+                    if(xl6IrForeignOutputCount(module,target)>1)xl6OutputPrintf(out,"&native_raw.e%lu",(unsigned long)step.ordinal);
+                    else xl6OutputPuts("&native_raw",out);
+                }else xl6OutputPuts(storagePrepared ? "native_raw":"&native_raw",out);
                 continue;
             }
-        }else if(factoryOutput && physical==outputLogical){xl6OutputPuts(storagePrepared ? "native_raw":"&native_raw",out);continue;}
-        else argument=physical-(factoryOutput && physical>outputLogical);
+        }else argument=target->parameterCount+physical-physicalSteps;
         if ( argument < target->parameterCount ) {
             if (encoded && nativeValue.inputParameter==argument+1)
                 xl6OutputPuts("&native_value_input",out);
@@ -1163,6 +1168,7 @@ static int xl6IrCgenEmitDirectCall(
     }
     if(probePrepared)xl6IrCgenFactoryProbeEnd(out,nativeScope);
     if(fieldCallee)xl6OutputPuts("    } }\n",out);
+    if(packsPrepared)xl6IrCgenForeignPacksEnd(out);
     if(callbacksPrepared)xl6IrCgenNativeCallbacksEnd(out,target,nativeScope);
     if(accessPrepared)xl6IrCgenNativeAccessEnd(out,target,nativeScope);
     if(regionsPrepared)xl6IrCgenForeignRegionsEnd(out,module,target,nativeScope);

@@ -38,7 +38,7 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
             if(!output)continue;
             if(output->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_TEXT){
                 needs->needsStringRuntime=1;needs->needsStringScalarRuntime=1;needs->needsStringViews=1;
-            }else{needs->needsBytesRuntime=1;needs->needsXValueRuntime=1;}
+            }else if(output->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BYTES){needs->needsBytesRuntime=1;needs->needsXValueRuntime=1;}
         }
         if(xl6IrTypeIsCOwned(xl6IrTypeGet(&module->types,target->returnType)))needs->needsCOwnedRuntime=1;
         for(size_t p=0;p<target->parameterCount;++p)
@@ -524,6 +524,15 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         }
         if(xl6IrForeignStorageGet(module,target) && !visitor(context,"xl6ForeignStatusFailureV1"))return 0;
         if(xl6IrForeignRetainGet(module,target) && !visitor(context,"xl6ForeignStatusFailureV1"))return 0;
+        for(size_t o=0;o<xl6IrForeignOutputCount(module,target);++o){
+            const XL6_ForeignOutputViewContract* output=xl6IrForeignOutputViewGet(module,target,o);
+            if(!output || output->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE)continue;
+            const XL6_IrType* type=xl6IrTypeGet(&module->types,output->logicalType);
+            if(!visitor(context,type->foreignDomain ? "xl6ForeignViewCreateRootWithDomainProbedV1":"xl6ForeignViewCreateRootProbedV1") ||
+                !visitor(context,"xl6ForeignResultProbePrepareV1") || !visitor(context,"xl6ForeignResultProbeObserveV1") ||
+                !visitor(context,"xl6ForeignResultProbeEndV1") || !visitor(context,"xl6ForeignViewReleaseV1") ||
+                !visitor(context,"xl6ForeignStatusFailureV1"))return 0;
+        }
         if((target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_INT_STATUS ||
              target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS) && !visitor(context,"xl6ForeignStatusFailureV1"))return 0;
         if(xl6IrNativeContextIsClassCallback(target->nativeContextAbi)){

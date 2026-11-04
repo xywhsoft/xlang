@@ -1070,7 +1070,7 @@ Sparse XLIR rows seal the physical input, exact logical storage, integer/member
 identities and typed query edge. Reachability includes observer targets, so
 their authoritative headers and field/function ABI proofs are emitted even
 when no source expression directly calls the observer. Region presence shares
-the closed input-mapping byte with the independently counted callback-span
+the closed input-mapping word with the independently counted callback-span
 rows; missing/extra rows and invalid counts are rejected before C/header output.
 
 ## Multiple logical inputs for one native C target
@@ -1128,3 +1128,72 @@ language conversion or a shared owning root. Raw caller pointers are excluded.
 Result/producer ownership, effects, other argument mappings and authoritative
 ABI contracts still have to agree. Ordinary overload resolution selects the
 exact logical input type. This adds no forwarding C method or new scope kind.
+
+## Borrowed native references in output tuples
+
+`@c_output_retain(physical, retain, "zero"|"positive", rollback)` composes with
+`c_output` or `c_outputs` and uses the same helper signatures and native success
+rules as `c_retain`. The selected logical result must be an independent owned
+foreign class, optionally nullable, with an exact authoritative header and
+policy. Call-scoped/watch-based roots and caller/owner/callback views are not
+accepted. Retain takes the exact non-null class and returns native `int`;
+rollback takes that class and is logical void, with an optional checked native
+status. Both helpers must be `no_raise` declarations without other adaptation.
+
+The native producer receives its original `T**` output, with a separate raw
+`T*` slot. After the producer succeeds, each non-null result acquires one native
+reference and its language root before native input scopes end. A nullable NULL
+result does not invoke Retain. Required NULL is a checked error. Text/bytes
+conversions can appear in the same tuple. No tuple is delivered until every
+result has been admitted; a later failure releases all earlier acquired results
+in reverse order and preserves the first failure even without an allocated
+diagnostic. Rollback failures cannot replace that primary outcome.
+
+This contract adds one native Retain and one ordinary root admission per
+non-null owning output. It neither repeats the producer/getter nor copies the
+native resource payload. Typed sparse output rows carry the physical slot,
+logical type, ordinal and exact helper symbols. Same-target overloads must
+preserve those rows and their effects; emission consumes the sealed IR.
+
+## Synchronous native descriptor packs
+
+`@c_pack(physical,"NativeRecord",first,count)` replaces a contiguous group of
+explicit logical parameters with one `const NativeRecord*` at the selected
+physical position. Receiver indices are included in physical positions; source
+parameter indices exclude the receiver, as with `c_span`. Ordinary named and
+default arguments remain language arguments and are evaluated once. Multiple
+packs, interleaved outputs, callable fields, bound methods and protocols use the
+same sealed physical-step plan.
+
+Each `@c_pack_field(physical,"field",source,"mode")` assigns one exact native
+field. `value` accepts an exact C scalar; `view_raw` borrows a checked managed
+native view; `c_string` prepares checked terminated text. Paired `text_data` /
+`text_size` fields borrow UTF-8 with its exact byte length, including NUL; the
+size mode requires a final `"int"` or `"size_t"`. Paired `span_data` /
+`span_count` fields use an existing readonly `c_span` contract, including its
+element and count ABI. Nullable text distinguishes NULL from non-NULL empty
+text. Nullable views preserve NULL. `int` text lengths are checked before the
+native call. `@c_pack_size(physical,"size","uint32_t")` initializes an exact
+unsigned size field with `sizeof(NativeRecord)` and proves representability.
+
+The native record is stack storage with zero-initialized unspecified fields.
+It is a physical schema rather than a new managed record or public pointer.
+The authoritative header proves a complete tagged struct and the exact type
+of every mapped field. All logical sources must be covered; groups, native
+fields and mappings must be disjoint. Writable spans, arbitrary expressions,
+unions, nested managed records, function-pointer fields, variadic functions
+and escaping descriptor/data pointers are excluded. Pack and Region input
+schemas cannot currently coexist in one declaration. A declaration uses
+`no_raise` for its native producer; checked preparation failures still prevent
+that producer from running.
+
+The binding author must audit that the native implementation neither retains
+the descriptor nor its borrowed memory. Managed native resources remain pinned
+until after the call and result admission; native code that stores a resource
+must acquire its own declared owning reference. For custom providers this is
+part of the provider's explicit native contract. There is no descriptor heap
+allocation, dynamic field lookup or forwarding C method. Costs are stack
+initialization, scalar/pointer field stores, bounds checks and the preparation
+already required for each input. Terminated-text validation and existing native
+view/span scopes retain their normal costs. A packed logical function cannot
+be passed as an unadapted flat C callback address.

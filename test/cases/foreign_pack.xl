@@ -1,0 +1,74 @@
+extern "PackRoot*" class Root @header("test/cases/foreign_pack.h") @lifetime("owned") @policy("packPolicy")
+ native point handle
+ extern "pack_value" @no_raise func value() as c_int
+ extern "pack_seen" @no_raise func seen() as c_uint
+ extern "evaluate" @c_field_call @no_raise @c_output(4,0) @c_sync_callback(7,0,-16) @c_span(6,"const float*","int") @c_pack(1,"PackDesc",0,7) @c_pack_size(1,"size","uint32_t") @c_pack_field(1,"mode",0,"value") @c_pack_field(1,"factor",1,"value") @c_pack_field(1,"font",2,"view_raw") @c_pack_field(1,"text",3,"text_data") @c_pack_field(1,"textSize",3,"text_size","int") @c_pack_field(1,"context",4,"text_data") @c_pack_field(1,"contextSize",4,"text_size","size_t") @c_pack_field(1,"language",5,"c_string") @c_pack_field(1,"dashes",6,"span_data") @c_pack_field(1,"dashCount",6,"span_count") func evaluate(c_int mode,c_int factor,Root? font,string text,string? context,string? language,Buffer dashes,func() as c_int callback) as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "pack_create" @header("test/cases/foreign_pack.h") @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(c_int value) as Root
+extern "pack_drop" @header("test/cases/foreign_pack.h") @no_raise func rollback(Root value)
+extern "pack_free" @header("test/cases/foreign_pack.h") @no_raise @c_output(1,0) @c_span(6,"const float*","int") @c_pack(0,"PackDesc",0,7) @c_pack_size(0,"size","uint32_t") @c_pack_field(0,"mode",0,"value") @c_pack_field(0,"factor",1,"value") @c_pack_field(0,"font",2,"view_raw") @c_pack_field(0,"text",3,"text_data") @c_pack_field(0,"textSize",3,"text_size","int") @c_pack_field(0,"context",4,"text_data") @c_pack_field(0,"contextSize",4,"text_size","size_t") @c_pack_field(0,"language",5,"c_string") @c_pack_field(0,"dashes",6,"span_data") @c_pack_field(0,"dashCount",6,"span_count") func freeValue(c_int mode,c_int factor,Root? font,string text,string? context,string? language,Buffer dashes) as c_int
+extern "pack_void" @header("test/cases/foreign_pack.h") @no_raise @c_output(0) @c_span(6,"const float*","int") @c_pack(1,"PackDesc",0,7) @c_pack_size(1,"size","uint32_t") @c_pack_field(1,"mode",0,"value") @c_pack_field(1,"factor",1,"value") @c_pack_field(1,"font",2,"view_raw") @c_pack_field(1,"text",3,"text_data") @c_pack_field(1,"textSize",3,"text_size","int") @c_pack_field(1,"context",4,"text_data") @c_pack_field(1,"contextSize",4,"text_size","size_t") @c_pack_field(1,"language",5,"c_string") @c_pack_field(1,"dashes",6,"span_data") @c_pack_field(1,"dashCount",6,"span_count") func voidValue(c_int mode,c_int factor,Root? font,string text,string? context,string? language,Buffer dashes) as c_int
+extern "pack_make" @header("test/cases/foreign_pack.h") @no_raise @c_result("owned_view") @factory(1,0,rollback) @c_span(6,"const float*","int") @c_pack(0,"PackDesc",0,7) @c_pack_size(0,"size","uint32_t") @c_pack_field(0,"mode",0,"value") @c_pack_field(0,"factor",1,"value") @c_pack_field(0,"font",2,"view_raw") @c_pack_field(0,"text",3,"text_data") @c_pack_field(0,"textSize",3,"text_size","int") @c_pack_field(0,"context",4,"text_data") @c_pack_field(0,"contextSize",4,"text_size","size_t") @c_pack_field(0,"language",5,"c_string") @c_pack_field(0,"dashes",6,"span_data") @c_pack_field(0,"dashCount",6,"span_count") func make(c_int mode,c_int factor,Root? font,string text,string? context,string? language,Buffer dashes) as Root
+extern "pack_calls" @header("test/cases/foreign_pack.h") @no_raise func calls() as c_int
+extern "pack_live" @header("test/cases/foreign_pack.h") @no_raise func live() as c_int
+extern "pack_fail_after" @header("test/cases/foreign_pack.h") @no_raise func failAfter(c_int count)
+extern "pack_reset" @header("test/cases/foreign_pack.h") @no_raise func resetFailure()
+extern "pack_two" @header("test/cases/foreign_pack.h") @no_raise @c_outputs(1,3) @c_status(0) @c_pack(0,"PackSmall",0,1) @c_pack_field(0,"value",0,"value") @c_pack(2,"PackSmall",1,1) @c_pack_field(2,"value",1,"value") func two(c_int left=3,c_int right=4) as (c_int,c_int)
+extern "pack_two" @header("test/cases/foreign_pack.h") @no_raise @c_outputs(1,3) @c_status(0) @c_pack(0,"PackSmall",0,1) @c_pack_field(0,"value",0,"value") @c_pack(2,"PackSmall",1,1) @c_pack_field(2,"value",1,"value") func twoAlias(c_int left=3,c_int right=4) as (c_int,c_int)
+protocol Evaluator
+ func evaluate(c_int mode,c_int factor,Root? font,string text,string? context,string? language,Buffer dashes,func() as c_int callback) as c_int
+end
+func main(...) as int
+ Root root=create(c_int(1))
+ Root font=create(c_int(7))
+ Buffer dashes=Buffer(b"\0\0\x80\x3f\0\0\0\x40")
+ string text="a\0你"
+ string? missing=null
+ string? empty=""
+ auto noop=func() as c_int
+  return c_int(0)
+ end
+ assert root.evaluate(c_int(2),c_int(3),font,text,missing,missing,dashes,noop)==c_int(37)
+ assert root.seen()==c_uint(469)
+ func(c_int,c_int,Root?,string,string?,string?,Buffer,func() as c_int) as c_int bound=root.evaluate
+ assert bound(c_int(2),c_int(3),font,text,empty,empty,dashes,noop)==c_int(37)
+ assert root.seen()==c_uint(474)
+ Evaluator evaluator=root
+ assert evaluator.evaluate(c_int(2),c_int(3),font,text,missing,missing,dashes,noop)==c_int(37)
+ assert freeValue(c_int(2),c_int(3),font,text,missing,missing,dashes)==c_int(37)
+ assert voidValue(c_int(2),c_int(3),font,text,missing,missing,dashes)==c_int(37)
+ Root made=make(c_int(2),c_int(3),font,text,missing,missing,dashes)
+ assert made.value()==c_int(37)
+ made.close()
+ auto left,right=two(right=c_int(12))
+ assert left==c_int(3) and right==c_int(12)
+ auto aliasLeft,aliasRight=twoAlias(c_int(8),c_int(9))
+ assert aliasLeft==c_int(8) and aliasRight==c_int(9)
+ failAfter(c_int(0))
+ try
+  auto result=freeValue(c_int(2),c_int(3),font,text,missing,missing,dashes)
+  resetFailure()
+  assert result==c_int(37)
+ catch error
+  resetFailure()
+  throw "descriptor packing unexpectedly allocated"
+ end
+ int before=calls()
+ bool caught=false
+ try
+  root.evaluate(c_int(2),c_int(3),font,text,missing,"a\0b",dashes,noop)
+ catch error
+  caught=true
+ end
+ assert caught and calls()==before
+ auto closeFont=func() as c_int
+  font.close()
+  return c_int(0)
+ end
+ assert root.evaluate(c_int(2),c_int(3),font,text,missing,missing,dashes,closeFont)==c_int(37)
+ assert live()==c_int(1)
+ root.close()
+ assert live()==c_int(0)
+ return 0
+end

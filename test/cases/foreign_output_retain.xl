@@ -1,0 +1,104 @@
+extern "OutputRetainNode*" class Node @header("test/cases/foreign_output_retain.h") @lifetime("owned") @policy("outputRetainPolicy")
+ native point handle
+ extern "output_retain_value" @no_raise func value() as c_int
+ extern "output_retain_refs" @no_raise func refs() as c_int
+ extern "output_retain_values" @no_raise @c_outputs(1,2,3,4) @c_status(0) @c_output_retain(1,retain,"zero",rollback) @c_output_retain(3,retainPositive,"positive",rollback) @c_output_view(4,"text") func values() as (Node,c_int,Node?,string)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "output_retain_create" @header("test/cases/foreign_output_retain.h") @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(c_int mode) as Node
+extern "output_retain_hold" @header("test/cases/foreign_output_retain.h") @no_raise func retain(Node value) as c_int
+extern "output_retain_hold_positive" @header("test/cases/foreign_output_retain.h") @no_raise func retainPositive(Node value) as c_int
+extern "output_retain_drop" @header("test/cases/foreign_output_retain.h") @no_raise @c_result("status",0) func rollback(Node value)
+extern "output_retain_live" @header("test/cases/foreign_output_retain.h") @no_raise func live() as c_int
+extern "output_retain_calls" @header("test/cases/foreign_output_retain.h") @no_raise func calls() as c_int
+extern "output_retain_fail_after" @header("test/cases/foreign_output_retain.h") @no_raise func failAfter(c_int count)
+extern "output_retain_reset" @header("test/cases/foreign_output_retain.h") @no_raise func resetFailure()
+extern "output_retain_values" @header("test/cases/foreign_output_retain.h") @no_raise @c_outputs(1,2,3,4) @c_status(0) @c_output_retain(1,retain,"zero",rollback) @c_output_retain(3,retainPositive,"positive",rollback) @c_output_view(4,"text") func freeValues(Node node) as (Node,c_int,Node?,string)
+extern "output_retain_values" @header("test/cases/foreign_output_retain.h") @no_raise @c_outputs(1,2,3,4) @c_status(0) @c_output_retain(1,retain,"zero",rollback) @c_output_retain(3,retainPositive,"positive",rollback) @c_output_view(4,"text") func freeAlias(Node node) as (Node,c_int,Node?,string)
+protocol Producer
+ func values() as (Node,c_int,Node?,string)
+end
+func main(...) as int
+ Node node=create(c_int(0))
+ auto first,number,second,text=node.values()
+ assert node.refs()==c_int(3) and number==c_int(91) and text=="a\0你"
+ node.close()
+ assert first.value()==c_int(83) and live()==c_int(1)
+ (second as Node).close()
+ first.close()
+ assert live()==c_int(0)
+ node=create(c_int(0))
+ auto f0,f1,f2,f3=freeValues(node)
+ f0.close()
+ (f2 as Node).close()
+ auto a0,a1,a2,a3=freeAlias(node)
+ a0.close()
+ (a2 as Node).close()
+ node.close()
+ node=create(c_int(7))
+ func() as (Node,c_int,Node?,string) bound=node.values
+ auto b0,b1,b2,b3=bound()
+ assert b2==null and node.refs()==c_int(2)
+ b0.close()
+ Producer producer=node
+ auto p0,p1,p2,p3=producer.values()
+ assert p2==null and node.refs()==c_int(2)
+ p0.close()
+ node.close()
+ int mode=1
+ while mode<7
+  Node failing=create(c_int(mode))
+  int before=calls()
+  bool caught=false
+  try
+   auto a,b,c,d=failing.values()
+  catch error
+   caught=true
+   if mode==1 then
+    assert error.code==-7
+   end
+   if mode==5 then
+    assert error.code==-9
+   end
+  finally
+   resetFailure()
+  end
+  assert caught and failing.refs()==c_int(1)
+  if mode==5 or mode==6 then
+   assert calls()==before
+  end
+  failing.close()
+  assert live()==c_int(0)
+  mode+=1
+ end
+ Node stable=create(c_int(0))
+ int count=0
+ int success=0
+ int failure=0
+ bool rolledBackMultiple=false
+ while count<48
+  failAfter(c_int(count))
+  int before=calls()
+  try
+   auto a,b,c,d=stable.values()
+   resetFailure()
+   assert a.value()==c_int(83) and b==c_int(91) and d=="a\0你"
+   a.close()
+   (c as Node).close()
+   success+=1
+  catch error
+   failure+=1
+   if calls()-before>=2 then
+    rolledBackMultiple=true
+   end
+  finally
+   resetFailure()
+  end
+  assert stable.refs()==c_int(1)
+  count+=1
+ end
+ assert success>0 and failure>0 and rolledBackMultiple
+ stable.close()
+ assert live()==c_int(0)
+ return 0
+end

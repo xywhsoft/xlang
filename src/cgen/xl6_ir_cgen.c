@@ -27,6 +27,7 @@
 #include "src/cgen/xl6_ir_cgen_foreign_view.c"
 #include "src/cgen/xl6_ir_cgen_foreign_access.c"
 #include "src/cgen/xl6_ir_cgen_foreign_span.c"
+#include "src/cgen/xl6_ir_cgen_foreign_pack.c"
 #include "src/cgen/xl6_ir_cgen_native_callback.c"
 #include "src/cgen/xl6_ir_cgen_type_call.c"
 #include "src/cgen/xl6_ir_cgen_instruction_contract.c"

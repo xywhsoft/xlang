@@ -1,10 +1,16 @@
 /* Borrowed physical outputs have explicit logical ownership conversions. */
+static int xl6IrForeignOwnershipHelperMatches(const XL6_IrModule*,XL6_SymbolId,XL6_IrTypeId,int);
 static int xl6IrOutputViewType(const XL6_IrModule* module,XL6_IrTypeId id,
     XL6_ForeignOutputConversion conversion)
 {
     const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
     const XL6_IrType* inner=type && type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1 && type->params ?
         xl6IrTypeGet(&module->types,type->params[0]):type;
+    if(conversion==XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE)
+        return type && inner && inner->kind==XL6_IR_TYPE_CLASS && inner->foreignHeader && inner->foreignPolicy &&
+            inner->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && !inner->foreignScope && !inner->foreignWatch &&
+            type->cAbi==inner->cAbi && type->ownershipAbi==inner->ownershipAbi &&
+            type->foreignLifetime==inner->foreignLifetime;
     XL6_IrCAbi abi=conversion==XL6_FOREIGN_OUTPUT_CONVERSION_TEXT ? XL6_IR_C_ABI_MANAGED_STRING:
         conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BYTES ? XL6_IR_C_ABI_MANAGED_BYTES:XL6_IR_C_ABI_UNSUPPORTED;
     return type && inner && abi!=XL6_IR_C_ABI_UNSUPPORTED && inner->kind==XL6_IR_TYPE_BUILTIN &&
@@ -19,6 +25,12 @@ static int xl6IrOutputViewExpected(const XL6_IrModule* module,const XL6_ForeignO
         !xl6ForeignValueOutputHasView(node->foreignCall.valueOutput) || row->physicalIndex>=64 ||
         (node->sourceKind!=XL6_AST_EXTERN_FUNC && node->sourceKind!=XL6_AST_NATIVE_EXTERN_FUNC && node->sourceKind!=XL6_AST_GET) ||
         node->firstChild>module->childCount || node->childCount>module->childCount-node->firstChild || node->childCount<3 || !module->children)return 0;
+    if(row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE){
+        if(!row->retainSymbol || !row->rollbackSymbol ||
+            (row->retainSuccess!=XL6_FOREIGN_RETAIN_ZERO && row->retainSuccess!=XL6_FOREIGN_RETAIN_POSITIVE) ||
+            !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
+            (node->flags&(XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_OWNED_STRING)))return 0;
+    }else if(row->retainSymbol || row->rollbackSymbol || row->retainSuccess)return 0;
     const XL6_IrNode* returns=xl6IrNodeGet(module,module->children[node->firstChild+2]);
     if(!returns || returns->kind!=XL6_IR_NODE_LIST || returns->firstChild>module->childCount ||
         returns->childCount>module->childCount-returns->firstChild || returns->childCount>64)return 0;
@@ -92,6 +104,12 @@ int xl6IrForeignOutputViewsMatch(const XL6_IrModule* module,const XL6_IrCallTarg
         if(row->declaration!=target->declaration)continue;
         if(row->logicalType!=xl6IrForeignOutputType(module,target,row->ordinal) ||
             !xl6IrOutputViewType(module,row->logicalType,row->conversion))return 0;
+        if(row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE){
+            const XL6_IrType* result=xl6IrTypeGet(&module->types,row->logicalType);
+            XL6_IrTypeId input=result->kind==XL6_IR_TYPE_NULLABLE ? result->params[0]:row->logicalType;
+            if(!xl6IrForeignOwnershipHelperMatches(module,row->retainSymbol,input,1) ||
+                !xl6IrForeignOwnershipHelperMatches(module,row->rollbackSymbol,input,0))return 0;
+        }
         ++count;
     }
     return (count!=0)==xl6ForeignValueOutputHasView(node->foreignCall.valueOutput);
