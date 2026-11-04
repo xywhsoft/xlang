@@ -38,6 +38,8 @@ typedef struct XL6_ForeignResultProbeV1 {
 XL6_CODE_LEASE_API bool xl6ForeignResultProbePrepareV1(XL6_ForeignResultProbeV1*,
     const XL6_ForeignViewDescriptorV1*,bool root,void*,size_t);
 XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewCreateRootProbedV1(void*,XL6_ForeignResultProbeV1*,const XL6_CodeOwner*);
+XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewCreateRootWithDomainProbedV1(
+    void*,XL6_ForeignResultProbeV1*,const XL6_OwnershipDomainV1*,const XL6_CodeOwner*);
 XL6_CODE_LEASE_API bool xl6ForeignResultProbeObserveV1(XL6_ForeignResultProbeV1*,void*);
 XL6_CODE_LEASE_API bool xl6ForeignResultProbeAliveV1(const XL6_ForeignResultProbeV1*);
 XL6_CODE_LEASE_API bool xl6ForeignResultProbeEndV1(XL6_ForeignResultProbeV1*);

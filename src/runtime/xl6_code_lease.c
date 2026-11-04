@@ -4,6 +4,7 @@
 #include "src/common/xl6_xrt.h"
 #include "xl6_code_lease.h"
 #include "xl6_ownership_scope.h"
+#include "xl6_foreign_context.h"
 #include <stdlib.h>
 struct XL6_CodeLease {
     xatomic64 references;
@@ -13,6 +14,7 @@ struct XL6_CodeLease {
     const xrtownershipops* ownerOps;
     const void* claim;
     bool cleared;
+    struct XL6_CodeLease* retiredNext;
 };
 struct XL6_CodeDrop {
     XL6_CodeLease* lease;
@@ -42,7 +44,7 @@ static XL6_CodeLeaseAdmission xl6OwnershipBody_xl6CodeLeaseAcquire(const XL6_Cod
     xrtAtomic64Init(&lease->references, 1);
     lease->context = owner->context; lease->acquire = owner->acquire; lease->release = owner->release;
     lease->ownerOps = xl6CodeOwnerGraphOps(owner);
-    lease->claim = NULL; lease->cleared = false;
+    lease->claim = NULL; lease->cleared = false;lease->retiredNext=NULL;
     *output = lease; admission = XL6_CODE_LEASE_ACQUIRED;
 done:
     if (prior != NULL) { xrtClearError(); xrtSetErrorTake(prior); }
@@ -142,8 +144,43 @@ static void xl6OwnershipBody_xl6CodeLeaseRelease(XL6_CodeLease* lease,
     references = xrtAtomic64FetchSub(&lease->references, 1, XMEMORY_ACQ_REL);
     if (references == 0) abort();
     if (references != 1) return;
+    XL6_CodeLeaseReleaseScopeV1* batch=xl6ForeignContextTryGetV1(XL6_FOREIGN_CONTEXT_LEASE_RELEASES_V1);
+    if(batch){
+        if(batch->self!=batch || lease->retiredNext)abort();
+        if(batch->last)batch->last->retiredNext=lease;else batch->first=lease;
+        batch->last=lease;return;
+    }
     *context = lease->context; *release = lease->release;
     xrtFree(lease);
+}
+bool xl6CodeLeaseReleaseScopeBeginV1(XL6_CodeLeaseReleaseScopeV1* scope)
+{
+    if(!scope || scope->self || scope->previous || scope->first || scope->last){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    if(!xl6ForeignContextReadyV1())return false;
+    XL6_CodeLeaseReleaseScopeV1* previous=xl6ForeignContextGetV1(XL6_FOREIGN_CONTEXT_LEASE_RELEASES_V1);
+    if(!xl6ForeignContextSetV1(XL6_FOREIGN_CONTEXT_LEASE_RELEASES_V1,scope))return false;
+    scope->self=scope;scope->previous=previous;return true;
+}
+void xl6CodeLeaseReleaseScopeEndV1(XL6_CodeLeaseReleaseScopeV1* scope)
+{
+    if(!scope || scope->self!=scope || xl6ForeignContextGetV1(XL6_FOREIGN_CONTEXT_LEASE_RELEASES_V1)!=scope)abort();
+    XL6_CodeLeaseReleaseScopeV1* previous=scope->previous;
+    if(!xl6ForeignContextSetV1(XL6_FOREIGN_CONTEXT_LEASE_RELEASES_V1,previous))abort();
+    XL6_CodeLease* first=scope->first;
+    if(previous && first){
+        if(previous->last)previous->last->retiredNext=first;else previous->first=first;
+        previous->last=scope->last;first=NULL;
+    }
+    *scope=(XL6_CodeLeaseReleaseScopeV1){0};
+    while(first){
+        XL6_CodeLease* next=first->retiredNext;
+        void* context=first->context;void(*release)(void*)=first->release;
+        xrtFree(first);
+        /* No freeze, mutation admission or native adapter call remains. The
+         * detached acquisition itself keeps its native release code alive. */
+        if(release){xerror* prior=xrtTakeError();release(context);xrtClearError();xrtSetErrorTake(prior);}
+        first=next;
+    }
 }
 void xl6CodeLeaseRelease(XL6_CodeLease* lease)
 {

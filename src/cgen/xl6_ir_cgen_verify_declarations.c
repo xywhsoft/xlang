@@ -46,7 +46,8 @@ static int xl6IrCgenVerifyDeclarations(
                 return xl6IrCgenCallParameterDiag(diags, module, target, parameter,
                                                    "has no canonical parameter ownership ABI");
             if ( target->parameterPhysicalAbis[parameter] ==
-                     XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ) {
+                     XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
+                 target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_NATIVE_POINTER_DIRECT ) {
                 if ( target->parameterPhysicalFieldDeclarations[parameter] !=
                          XL6_IR_NODE_INVALID ||
                      (target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
@@ -54,6 +55,9 @@ static int xl6IrCgenVerifyDeclarations(
                       (parameterType->kind == XL6_IR_TYPE_FUNCTION || xl6IrTypeIsCOwned(parameterType))) )
                     return xl6IrCgenCallParameterDiag(diags, module, target,
                         parameter, "uses a direct closure at an extern boundary");
+            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_XVALUE_BORROW){
+                if(!xl6IrForeignPointerQualifierMatches(module,target,parameter))
+                    return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no const xvalue borrow contract");
             } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW) {
                 if (!xl6IrForeignTerminatedStringParameter(module,target,parameter) || !parameterType ||
                     parameterType->kind != XL6_IR_TYPE_BUILTIN || parameterType->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||

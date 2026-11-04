@@ -143,6 +143,7 @@ static void xl6IrCgenCollectHeaderTypeNeeds(
                     structuralTypes);
         if ( target->returnType != XL6_IR_TYPE_INVALID &&
              (target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW || target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW ||
+              target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_CONST_XVALUE_POINTER ||
              (target->resultCAbi != XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER &&
              target->resultConversionAbi !=
                  XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY)) )
@@ -153,6 +154,8 @@ static void xl6IrCgenCollectHeaderTypeNeeds(
             if ( target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW ||
                  (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK || target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK) ||
                  target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
+                 target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_NATIVE_POINTER_DIRECT ||
+                 target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_XVALUE_BORROW ||
                  target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW ||
                  target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW ||
                  target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW ||

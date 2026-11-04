@@ -10,6 +10,7 @@
 #include "src/type/xl6_constructor_flow.h"
 #include "src/type/xl6_c_owned_type.h"
 #include "src/type/xl6_foreign_decl.h"
+#include "src/common/xl6_output.h"
 #include "src/abi/xl6_native_generic.h"
 
 #include <limits.h>
@@ -9144,7 +9145,7 @@ static int xl6SemExternCTypeCompatible(XL6_SemContext* ctx,const XL6_AstNode* a,
     return xl6SemForeignViewDeclaration(ctx,a,&left) && xl6SemForeignViewDeclaration(ctx,b,&right) &&
         left.lifetime==right.lifetime && !strcmp(left.cName,right.cName) && !strcmp(left.header,right.header) &&
         !strcmp(left.policy,right.policy) && !strcmp(left.scope,right.scope) &&
-        !strcmp(left.watch,right.watch) && !strcmp(left.owner,right.owner);
+        !strcmp(left.watch,right.watch) && !strcmp(left.domain,right.domain) && !strcmp(left.owner,right.owner);
 }
 static int xl6SemExternCReturnsCompatible(XL6_SemContext* ctx,const XL6_AstNode* a,const XL6_AstNode* b)
 {
@@ -9162,6 +9163,10 @@ static int xl6SemExternParameterListsCompatible(XL6_SemContext* ctx,const XL6_As
         for(size_t i=0;aa && i<aa->childCount;++i)if(xl6ForeignValueRead(aa->children[i],&x) && x.parameter==p){found=true;break;}
         for(size_t i=0;bb && i<bb->childCount;++i)if(xl6ForeignValueRead(bb->children[i],&y) && y.parameter==p){other=true;break;}
         if(found!=other || (found && strcmp(x.cName,y.cName)))return 0;
+        found=other=false;
+        for(size_t i=0;aa && i<aa->childCount;++i){uint32 q;if(xl6ForeignPointerQualifierRead(aa->children[i],&q)&&q==p)found=true;}
+        for(size_t i=0;bb && i<bb->childCount;++i){uint32 q;if(xl6ForeignPointerQualifierRead(bb->children[i],&q)&&q==p)other=true;}
+        if(found!=other)return 0;
     }
     const XL6_AstNode* left=xl6SemExternFuncParams(a);const XL6_AstNode* right=xl6SemExternFuncParams(b);
     if(!left || !right || left->childCount!=right->childCount)return left==right;
@@ -21454,11 +21459,18 @@ static const XL6_AstNode* xl6SemForeignOwnershipHelper(XL6_SemContext* ctx,
     if(!name || !name->text || !type)return NULL;
     for(size_t i=0;ctx->root && i<ctx->root->childCount;++i){
         const XL6_AstNode* decl=ctx->root->children[i];
+        XL6_ForeignCallFacts helperFacts={0};
         if(!decl || decl->kind!=XL6_AST_EXTERN_FUNC ||
             !xl6TextEquals(xl6SemFuncName(decl),name->text) ||
             !(decl->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
             (decl->flags&(XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) ||
-            xl6ForeignFunctionAttributes(decl) || xl6SemFuncIsGeneric(decl))continue;
+            !xl6ForeignFunctionRead(decl,&helperFacts) || !xl6ForeignOwnershipHelperFacts(&helperFacts,status) || xl6SemFuncIsGeneric(decl))continue;
+        const XL6_AstNode* helperAttrs=xl6ForeignFunctionAttributes(decl);int permitted=1;
+        for(size_t a=0;helperAttrs && a<helperAttrs->childCount;++a){
+            const XL6_AstNode* attr=helperAttrs->children[a];
+            if(!attr || !attr->text || (strcmp(attr->text,"header") && strcmp(attr->text,"c_result")))permitted=0;
+        }
+        if(!permitted)continue;
         const XL6_AstNode* args=decl->childCount>1 ? decl->children[1] : NULL;
         const XL6_AstNode* ret=decl->childCount>2 ? decl->children[2] : NULL;
         const XL6_AstNode* argument=args && args->childCount==1 && args->children[0]->childCount==1 ?
@@ -21559,6 +21571,31 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
     size_t receiver=(node->kind==XL6_AST_NATIVE_EXTERN_FUNC || node->kind==XL6_AST_GET || node->kind==XL6_AST_LET) &&
         !(node->flags&XL6_AST_FLAG_STATIC) ? 1u : 0u;
     for(size_t i=0;attrs && i<attrs->childCount;++i){
+        const XL6_AstNode* attr=attrs->children[i];uint32 p;
+        if(!attr || !attr->text || strcmp(attr->text,"c_const"))continue;
+        if(!xl6ForeignPointerQualifierRead(attr,&p) || p>=count+receiver){
+            xl6SemErrorNode(ctx,node,"@c_const index must identify one complete native pointer input");return 0;
+        }
+        const XL6_AstNode* input=p<receiver ? NULL : params->children[p-receiver]->children[0];
+        const XL6_AstNode* inputType=xl6SemResolveAliasType(ctx,input);
+        int valueBorrow=inputType && !inputType->childCount && xl6TextEquals(inputType->text,"var");
+        XL6_ForeignClassDecl contract={0};char qualified[80];
+        const XL6_AstNode* view=p<receiver ? ownerClass : xl6SemForeignViewDeclaration(ctx,input,&contract);
+        if(p<receiver && view)xl6ForeignClassRead(view,&contract,NULL);
+        uint64 mappings=facts.controlViews | ((facts.constRecordAddresses|facts.staticCallbackAddresses|facts.textViews|
+            facts.bytesViews|facts.terminatedStrings|facts.physicalPairs|facts.retainedCallbacks)<<receiver);
+        if((!valueBorrow && (!view || !contract.header[0] || !xl6ForeignConstPointerName(contract.cName,qualified,sizeof(qualified)))) ||
+            (mappings&(UINT64_C(1)<<p)) || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference){
+            xl6SemErrorNode(ctx,node,"@c_const requires var or an explicit single-level native pointer, without another physical mapping");return 0;
+        }
+        for(size_t j=0;j<attrs->childCount;++j){uint32 other;XL6_ForeignValueContract value;
+            if((j!=i && xl6ForeignPointerQualifierRead(attrs->children[j],&other) && other==p) ||
+                (xl6ForeignValueRead(attrs->children[j],&value) && value.parameter==p)){
+                xl6SemErrorNode(ctx,node,"@c_const has duplicate or overlapping parameter mappings");return 0;
+            }
+        }
+    }
+    for(size_t i=0;attrs && i<attrs->childCount;++i){
         const XL6_AstNode* attr=attrs->children[i];
         if(!attr || !attr->text || strcmp(attr->text,"c_value"))continue;
         XL6_ForeignValueContract row;XL6_ForeignClassDecl contract={0};
@@ -21611,10 +21648,10 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             const XL6_AstNode* owner=source<receiver ? ownerClass : xl6SemForeignViewDeclaration(ctx,sourceType,&ownerContract);
             if(source<receiver && owner)xl6ForeignClassRead(owner,&ownerContract,NULL);
             const XL6_AstNode* root=owner ? xl6SemForeignRootDeclaration(ctx,owner,&ownerContract) : NULL;
-            if((!root && (contract.kind!=XL6_FOREIGN_PARAMETER_SYNC_CALLBACK || contract.callbackOwnerIndexPlusOne)) || ownerContract.lifetime==XL6_FOREIGN_LIFETIME_CALLBACK || (sourceType && xl6SemTypeIsNullable(xl6SemResolveAliasType(ctx,sourceType))) ||
+            if((!root && contract.callbackOwnerIndexPlusOne) || ownerContract.lifetime==XL6_FOREIGN_LIFETIME_CALLBACK || (sourceType && xl6SemTypeIsNullable(xl6SemResolveAliasType(ctx,sourceType))) ||
                 (source<64 && (facts.controlViews&(UINT64_C(1)<<source))) ||
                 !xl6SemCheckNativeCallbackType(ctx,type,root,contract.callbackResultKind,parameter)) {
-                xl6SemErrorNode(ctx,parameter,"retained C callback requires one non-null managed owner source");return 0;
+                xl6SemErrorNode(ctx,parameter,"native callback requires its declared non-null managed owner source, or explicit owner=-1");return 0;
             }
         }
     }
@@ -21665,6 +21702,12 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
     if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS || facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS){
         if(!viewReturns || viewReturns->childCount || facts.outputIndexPlusOne){
             xl6SemErrorNode(ctx,node,"bool_status requires a void language result and no output factory");return 0;
+        }
+    }else if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BORROWED_VALUE){
+        const XL6_AstNode* result=viewReturns && viewReturns->childCount==1 ? xl6SemResolveAliasType(ctx,viewReturns->children[0]):NULL;
+        if(!result || result->childCount || !xl6TextEquals(result->text,"var") || facts.outputIndexPlusOne ||
+            facts.receiverDereference || (node->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_OWNED_STRING))){
+            xl6SemErrorNode(ctx,node,"borrowed_value requires a var result from a native function, without output or field adaptation");return 0;
         }
     }else if(resultDecl && resultContract.lifetime!=XL6_FOREIGN_LIFETIME_CALLER){
         if(resultContract.lifetime==XL6_FOREIGN_LIFETIME_CALLBACK && facts.outputIndexPlusOne){
@@ -21717,14 +21760,29 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         xl6SemErrorNode(ctx,node,"native view result contract requires a managed external class");return 0;
     }
     if(facts.valueOutput){
-        const XL6_AstNode* value=viewReturns && viewReturns->childCount==1 ?
-            xl6SemResolveAliasType(ctx,viewReturns->children[0]) : NULL;
-        if(!value || !xl6SemIsCAbiCallbackValueType(ctx,value,1) ||
-            (resultDecl && resultContract.lifetime!=XL6_FOREIGN_LIFETIME_CALLER) ||
-            !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) || (node->flags&XL6_AST_FLAG_FOREIGN_OWNED_STRING) ||
-            facts.borrowedViewResult || facts.rollbackSymbol || !facts.outputIndexPlusOne ||
-            xl6ForeignOutputLogical(&facts,count+receiver,receiver)==SIZE_MAX){
-            xl6SemErrorNode(ctx,node,"@c_output requires one exact trivial C value result, explicit @no_raise and a complete physical output slot");return 0;
+        size_t outputs=1;uint32 slots[64]={facts.outputIndexPlusOne-1};
+        int multi=facts.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS || facts.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID;
+        if(multi){
+            int found=0;
+            for(size_t a=0;attrs && a<attrs->childCount;++a)
+                if(xl6ForeignMultiOutputRead(attrs->children[a],slots,&outputs))++found;
+            if(found!=1 || !xl6ForeignMultiOutputSlotsValid(&facts,count+receiver,receiver,slots,outputs)){
+                xl6SemErrorNode(ctx,node,"@c_outputs requires complete increasing physical slots outside expanded parameter groups");return 0;
+            }
+        }
+        if(!viewReturns || viewReturns->childCount!=outputs || !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
+            (node->flags&XL6_AST_FLAG_FOREIGN_OWNED_STRING) || facts.borrowedViewResult || facts.rollbackSymbol ||
+            !facts.outputIndexPlusOne || (!multi && xl6ForeignOutputLogical(&facts,count+receiver,receiver)==SIZE_MAX)){
+            xl6SemErrorNode(ctx,node,"C value outputs require matching exact trivial C results, explicit @no_raise and complete physical slots");return 0;
+        }
+        for(size_t o=0;o<outputs;++o){
+            const XL6_AstNode* value=xl6SemResolveAliasType(ctx,viewReturns->children[o]);
+            XL6_ForeignClassDecl outputContract={0};
+            const XL6_AstNode* outputDecl=xl6SemForeignViewDeclaration(ctx,value,&outputContract);
+            if(!value || !xl6SemIsCAbiCallbackValueType(ctx,value,1) ||
+                (outputDecl && outputContract.lifetime!=XL6_FOREIGN_LIFETIME_CALLER)){
+                xl6SemErrorNode(ctx,node,"C value outputs accept only exact trivial C values without hidden ownership");return 0;
+            }
         }
     }
     if (facts.outputIndexPlusOne && !facts.valueOutput) {
@@ -21767,24 +21825,9 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         XL6_AstNode* rollbackName = NULL;
         for (size_t i = 0; i < attrs->childCount; ++i)
             if (!strcmp(attrs->children[i]->text, "factory")) rollbackName = attrs->children[i]->children[attrs->children[i]->childCount-1];
-        const XL6_AstNode* rollback = NULL;
-        size_t matches = 0;
-        for (size_t i = 0; ctx->root && i < ctx->root->childCount; ++i) {
-            const XL6_AstNode* decl = ctx->root->children[i];
-            if (!decl || decl == node || decl->kind != XL6_AST_EXTERN_FUNC ||
-                !xl6TextEquals(xl6SemFuncName(decl), rollbackName->text) ||
-                !(decl->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE) || xl6ForeignFunctionAttributes(decl) ||
-                xl6SemFuncIsGeneric(decl)) continue;
-            const XL6_AstNode* args = decl->childCount > 1 ? decl->children[1] : NULL;
-            const XL6_AstNode* ret = decl->childCount > 2 ? decl->children[2] : NULL;
-            const XL6_AstNode* argument = args && args->childCount == 1 && args->children[0]->childCount
-                ? args->children[0]->children[0] : NULL;
-            if (!ret || ret->childCount || !argument ||
-                !xl6SemTypeEquals(ctx, view, xl6SemClassValueType(ctx, argument))) continue;
-            rollback = decl; ++matches;
-        }
-        if (matches != 1 || !rollback->semanticSymbolId) {
-            xl6SemErrorNode(ctx, node, "factory rollback must resolve to one declared @no_raise C function accepting the exact result and returning void"); return 0;
+        const XL6_AstNode* rollback=xl6SemForeignOwnershipHelper(ctx,rollbackName,view,0);
+        if (!rollback || rollback==node) {
+            xl6SemErrorNode(ctx, node, "factory rollback requires one exact @no_raise owner input and logical void result, with optional checked int status"); return 0;
         }
         rollbackName->semanticSymbolId = rollback->semanticSymbolId;
         if(facts.inplaceOutput){
@@ -21936,8 +21979,12 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node,const XL
         }
         return ok;
     }
+    XL6_ForeignCallFacts outputFacts={0};
+    int hasOutputProduct=xl6ForeignFunctionRead(node,&outputFacts) &&
+        (outputFacts.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS ||
+         outputFacts.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID);
     if ( returns != NULL && returns->childCount > 1 &&
-         !xl6SemIsCAbiProductReturns(ctx, returns) ) {
+         !hasOutputProduct && !xl6SemIsCAbiProductReturns(ctx, returns) ) {
         xl6SemErrorNode(ctx, returns->children[1] != NULL ? returns->children[1] : returns,
             "C ABI extern product requires a closed native product profile");
         ok = 0;
@@ -22532,7 +22579,14 @@ static int xl6SemCheckField(XL6_SemContext* ctx, XL6_AstNode* field, const XL6_A
             xl6SemExprStaticTypeName(ctx, defaultExpr));
         ok = 0;
     }
-    if ( !xl6SemCheckFieldAttrs(ctx->diags, field) ) {
+    if (owner && owner->kind == XL6_AST_C_RECORD) {
+        char cName[XL6_C_SYMBOL_COMPONENT_MAX + 1];
+        const char* error = NULL;
+        if (!xl6ForeignRecordFieldRead(field, cName, sizeof(cName), &error)) {
+            xl6SemErrorNode(ctx, field, error);
+            ok = 0;
+        }
+    } else if ( !xl6SemCheckFieldAttrs(ctx->diags, field) ) {
         ok = 0;
     }
     if ( !xl6SemCheckFieldAttrValueExprs(ctx, field) ) {
@@ -23768,12 +23822,25 @@ static int xl6SemCheckUnion(XL6_SemContext* ctx, XL6_AstNode* node)
             ok = 0;
             continue;
         }
-        if ( field->childCount > 1 ) {
+        if ( node->kind == XL6_AST_C_RECORD ? xl6SemFieldDefaultExpr(field) != NULL : field->childCount > 1 ) {
             xl6SemErrorNode(ctx, field, "union fields do not support default values");
             ok = 0;
         }
         if ( !xl6SemCheckField(ctx, field, node->kind == XL6_AST_C_RECORD ? node : NULL) ) {
             ok = 0;
+        }
+        if (node->kind == XL6_AST_C_RECORD) {
+            char name[XL6_C_SYMBOL_COMPONENT_MAX + 1];
+            if (xl6ForeignRecordFieldRead(field, name, sizeof(name), NULL)) {
+                for (size_t j = 0; j < i; ++j) {
+                    char prior[XL6_C_SYMBOL_COMPONENT_MAX + 1];
+                    if (xl6ForeignRecordFieldRead(body->children[j], prior, sizeof(prior), NULL) &&
+                        !strcmp(name, prior)) {
+                        xl6SemErrorNode(ctx, field, "duplicate C record member name");
+                        ok = 0;
+                    }
+                }
+            }
         }
         if ( field->childCount > 0 && !xl6SemUnionFieldTypeIsPlainDepth(ctx, field->children[0], 0) ) {
             xl6SemErrorNode(ctx, field->children[0], "union field type must be a plain C-compatible value type");

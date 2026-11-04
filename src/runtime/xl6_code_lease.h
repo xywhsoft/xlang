@@ -92,6 +92,21 @@ XL6_CODE_LEASE_API XL6_CodeLease* xl6CodeLeaseRetain(XL6_CodeLease*);
 /* Last release may unmap generated code. Only resident code, or a caller with
  * another independent entry/residency lease, may perform that release. */
 XL6_CODE_LEASE_API void xl6CodeLeaseRelease(XL6_CodeLease*);
+/* Resident physical-drop batch. Last releases detach into their own existing
+ * lease records, so no allocation is required during destruction. The outer
+ * End releases host acquisitions only after ALL native adapter Drop calls
+ * have returned. Nested batches transfer their pending leases to the parent.
+ * This protects native descriptor/code pointers independently of graph order.
+ * Begin is fallible cold setup and must precede any irreversible plan work.
+ * Storage is zeroed, execution-context-local, LIFO, and must never be copied. */
+typedef struct XL6_CodeLeaseReleaseScopeV1 {
+    struct XL6_CodeLeaseReleaseScopeV1* self;
+    struct XL6_CodeLeaseReleaseScopeV1* previous;
+    XL6_CodeLease* first;
+    XL6_CodeLease* last;
+} XL6_CodeLeaseReleaseScopeV1;
+XL6_CODE_LEASE_API bool xl6CodeLeaseReleaseScopeBeginV1(XL6_CodeLeaseReleaseScopeV1*);
+XL6_CODE_LEASE_API void xl6CodeLeaseReleaseScopeEndV1(XL6_CodeLeaseReleaseScopeV1*);
 /* One node for this shared lease, with its actual retained-child count and
  * exactly one edge to the host owner acquired at creation. A legacy/unknown
  * owner refuses inspection; it is never silently treated as a leaf. NULL is

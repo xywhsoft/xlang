@@ -13,7 +13,7 @@
 #define D(...) (const size_t[]){__VA_ARGS__}, sizeof((const size_t[]){__VA_ARGS__})/sizeof(size_t)
 static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_slot.c", NULL, 0, {"XRT_MODULE_MEMORY"}},
-    {"src/runtime/xl6_code_lease.c", NULL, 0, {"XRT_MODULE_MEMORY", "XRT_MODULE_ATOMIC", "XRT_MODULE_THREAD"}},
+    {"src/runtime/xl6_code_lease.c", D(R(FOREIGN_CONTEXT)), {"XRT_MODULE_MEMORY", "XRT_MODULE_ATOMIC", "XRT_MODULE_THREAD"}},
     {"src/runtime/xl6_closure.c", D(R(CODE_LEASE),R(CELL),R(FOREIGN_ERROR),R(FOREIGN_CALLBACK_SCOPE)),
         {"XRT_MODULE_FUTURE", "XRUNTIME_MODULE_RUNTIME_CALL", "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"}},
     {"src/runtime/xl6_cell.c", D(R(FOREIGN_ERROR)), {"XRT_MODULE_MEMORY", "XRT_MODULE_ATOMIC", "XRT_MODULE_VALUE_CONTAINER"}},
@@ -35,7 +35,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_future_payload.c", D(R(CLOSURE),R(GENERATOR),R(FOREIGN_ERROR)),
         {"XRT_MODULE_MEMORY", "XRT_MODULE_VALUE", "XRT_MODULE_FUTURE", "XRUNTIME_MODULE_RUNTIME_VALUE_FUTURE"}},
     {"src/runtime/xl6_code_finalizer.c", D(R(CODE_LEASE),R(FOREIGN_ERROR),R(FOREIGN_CALLBACK_SCOPE)), {"XRT_MODULE_VALUE_GRAPH"}},
-    {"src/runtime/xl6_ownership_plan.c", NULL, 0, {"XRT_MODULE_MEMORY"}},
+    {"src/runtime/xl6_ownership_plan.c", D(R(CODE_LEASE)), {"XRT_MODULE_MEMORY"}},
     {"src/api/xl_protocol_registry.c", NULL, 0, {"XRT_MODULE_ONCE", "XRT_MODULE_MUTEX", "XRT_MODULE_MEMORY"}},
     {"src/api/xl_future_bridge.c", D(R(CODE_LEASE),R(FUTURE_PAYLOAD),R(FUTURE_METADATA)),
         {"XRT_MODULE_FUTURE_COMBINE", "XRT_MODULE_THREAD", "XRT_MODULE_MUTEX"}},
@@ -1016,12 +1016,14 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_native_graph_future_payload.c",D(R(NATIVE_CAPTURE_GRAPH),R(FOREIGN_CALLBACK_SCOPE),R(FOREIGN_ERROR)),
         {"XRT_MODULE_MEMORY","XRT_MODULE_FUTURE"}},
     {"src/runtime/xl6_ownership_domain_native_graph_future_payload.c",D(R(OWNERSHIP_CATALOG),R(NATIVE_GRAPH_FUTURE_PAYLOAD)),{NULL}},
-    {"src/runtime/xl6_native_callback.c",D(R(CLOSURE),R(FOREIGN_VIEW),R(FOREIGN_ERROR)),{"XRT_MODULE_MEMORY","XRT_MODULE_ATOMIC"}},
+    {"src/runtime/xl6_native_callback.c",D(R(CLOSURE),R(FOREIGN_VIEW),R(FOREIGN_ERROR),R(CALLBACK_FAILURE)),{"XRT_MODULE_MEMORY","XRT_MODULE_ATOMIC"}},
     {"src/runtime/xl6_foreign_view_value.c",D(R(FOREIGN_VIEW),R(FOREIGN_ERROR)),{"XRT_MODULE_VALUE_GRAPH"}},
     {"src/runtime/xl6_foreign_view_sequence.c",D(R(FOREIGN_VIEW_VALUE),R(SEQUENCE)),{"XRUNTIME_MODULE_TYPED_ARRAY"}},
     {"src/runtime/xl6_foreign_scope_view.c",D(R(FOREIGN_CONTEXT),R(FOREIGN_CALLBACK_SCOPE)),{"XRT_MODULE_ATOMIC","XRT_MODULE_ERROR"}},
     {"src/runtime/xl6_foreign_scope_value.c",D(R(FOREIGN_SCOPE_VIEW),R(SEQUENCE)),{"XRT_MODULE_VALUE_GRAPH","XRT_MODULE_MEMORY","XRUNTIME_MODULE_TYPED_ARRAY"}},
     {"src/runtime/xl6_sync_callback.c",D(R(CLOSURE),R(CODE_LEASE),R(FOREIGN_ERROR),R(FOREIGN_CALLBACK_SCOPE)),{"XRT_MODULE_ATOMIC","XRT_MODULE_ERROR"}},
+    {"src/runtime/xl6_callback_failure.c",D(R(FOREIGN_ERROR),R(FOREIGN_CALLBACK_SCOPE)),{"XRT_MODULE_ATOMIC","XRT_MODULE_ERROR","XRT_MODULE_THREAD"}},
+    {"src/runtime/xl6_host_xrt.c",D(),{NULL},0,XL6_ARTIFACT_RUNTIME_IN_XRT_TRANSLATION_UNIT},
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -1115,7 +1117,11 @@ int xl6ArtifactRuntimeClosePlan(const XL6_ArtifactRuntimeSet* roots, XL6_Artifac
         if (!xl6ArtifactRuntimeSetHas(&result.components,i)) continue;
         if(item->hostAbi & ~(unsigned)XL6_ARTIFACT_HOST_ALL)return 0;
         result.hostAbi|=item->hostAbi;
-        result.sources[result.sourceCount++]=item->source;
+        if(item->placement==XL6_ARTIFACT_RUNTIME_RESIDENT_SOURCE)
+            result.sources[result.sourceCount++]=item->source;
+        else if(item->placement==XL6_ARTIFACT_RUNTIME_IN_XRT_TRANSLATION_UNIT)
+            result.xrtSources[result.xrtSourceCount++]=item->source;
+        else return 0;
         for (size_t j=0;j<sizeof(item->nativeModules)/sizeof(item->nativeModules[0]) && item->nativeModules[j];++j) {
             size_t k=0;
             while (k<result.nativeModuleCount && strcmp(result.nativeModules[k],item->nativeModules[j])) ++k;
@@ -1197,14 +1203,18 @@ int xl6ArtifactOwnershipPlanBuild(const XL6_ArtifactRuntimePlan* base,XL6_Artifa
     if(!output)return 0;
     memset(output,0,sizeof(*output));
     if(!base || base->entry<XL6_ARTIFACT_ENTRY_FRAGMENT || base->entry>XL6_ARTIFACT_ENTRY_EXECUTABLE_V1 ||
-        base->sourceCount>XL6_ARTIFACT_RUNTIME_COUNT || base->nativeModuleCount>XL6_ARTIFACT_NATIVE_MODULE_LIMIT)return 0;
+        base->sourceCount>XL6_ARTIFACT_RUNTIME_COUNT || base->xrtSourceCount>XL6_ARTIFACT_RUNTIME_COUNT ||
+        base->nativeModuleCount>XL6_ARTIFACT_NATIVE_MODULE_LIMIT)return 0;
     XL6_ArtifactOwnershipPlan result={0};
     XL6_ArtifactRuntimePlan closed={0};
     if(!xl6ArtifactRuntimeClosePlan(&base->roots,&closed) ||
         !xl6ArtifactRuntimeSetEqual(&base->components,&closed.components) || base->sourceCount!=closed.sourceCount ||
+        base->xrtSourceCount!=closed.xrtSourceCount ||
         base->hostAbi!=closed.hostAbi)return 0;
     for(size_t i=0;i<closed.sourceCount;++i)
         if(!base->sources[i] || strcmp(base->sources[i],closed.sources[i]))return 0;
+    for(size_t i=0;i<closed.xrtSourceCount;++i)
+        if(!base->xrtSources[i] || strcmp(base->xrtSources[i],closed.xrtSources[i]))return 0;
     XL6_ArtifactRuntimeSet roots=base->roots;
     if(!xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,R(OWNERSHIP_CATALOG)))return 0;
 #define XL6_OWNERSHIP_DOMAIN_ENTRY(Producer, Component, Getter) \

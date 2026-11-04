@@ -1,0 +1,17 @@
+import "foreign_tail"
+extern "const TailEvent*" class TailEvent @header("foreign_xge3_package_tail.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_field get value() as c_int
+end
+typedef TailCallback=func(TailEvent)
+extern "tail_install" @no_raise @c_result("status",0) @c_owned_callback(0,-1,"TailOwner",0) func install(TailCallback? callback)
+extern "tail_request_close" @no_raise func closeHostModule()
+func main(...) as int
+ install(func(TailEvent event)
+  assert event.value==23
+  install(null)
+  closeHostModule()
+  assert event.value==23
+ end)
+ return 0
+end

@@ -32,6 +32,7 @@
 #include "src/runtime/xl6_ownership_plan.h"
 #include "src/runtime/xl6_ownership_domains.h"
 #include "src/runtime/xl6_ownership_read.h"
+#include "src/runtime/xl6_foreign_callback_scope.h"
 #include "src/api/xl_module_state.h"
 #include "src/api/xl_api_lock.h"
 #include "src/runtime/xl6_native_handle.h"
@@ -2089,8 +2090,13 @@ static int xlAddEmbeddedXlangRuntimeSources(
     for ( i = 0; i < XL6_ARTIFACT_RUNTIME_COUNT; ++i ) {
         const XL6_ArtifactRuntimeComponent* component =
             xl6ArtifactRuntimeComponentGet((unsigned)i);
-        if (component == NULL || component->source == NULL ||
-            !xlAddPrecompiledSourceFile(ctx,s,component->source,"static-compiler")) return 0;
+        if (component == NULL || component->source == NULL) return 0;
+        /* A full embedded host supplies its resolver through xl_api_symbols.
+         * Native-TU components must never request a standalone (empty) .o,
+         * just as with a pruned artifact's explicit placement contract. */
+        if(component->placement==XL6_ARTIFACT_RUNTIME_IN_XRT_TRANSLATION_UNIT)continue;
+        if(component->placement!=XL6_ARTIFACT_RUNTIME_RESIDENT_SOURCE ||
+           !xlAddPrecompiledSourceFile(ctx,s,component->source,"static-compiler"))return 0;
     }
     if ( (features & XL6_IMPORT_FEATURE_XLANG_COMPILER) != 0 ) {
         for ( i = 0; i < sizeof(compilerSources) / sizeof(compilerSources[0]); ++i ) {
@@ -2391,14 +2397,15 @@ static int xlCompileUnitToExternalOutputWithC(
     if ( !xlAddEmbeddedXlangRuntimeSources(ctx, s, unit, outputType) ) {
         goto cleanup;
     }
-    if(xl6XrtTrimRequiresFull(&unit->importDeps,cSourceFiles?cSourceFiles->count:0)) {
+    if(xl6XrtTrimRequiresFull(&unit->importDeps,cSourceFiles?cSourceFiles->count:0) &&
+       !xl6XrtTrimNeedsGeneratedRuntime(&unit->importDeps,&artifactRuntime)) {
         if(!xlAddNativeObject(s,outputType)) {
             xlSetError(ctx,"cannot load shared precompiled XRT implementation");goto cleanup;
         }
     } else {
-    if ( !xl6XrtTrimBuildImplementationSourceFromArtifact(&unit->importDeps,
+    if ( !xl6XrtTrimBuildImplementationSourceFromPlan(&unit->importDeps,
             cSourceFiles != NULL ? cSourceFiles->count : 0,
-            artifactRuntime.nativeModules, artifactRuntime.nativeModuleCount, &runtimeSource) ) {
+            &artifactRuntime, &runtimeSource) ) {
         xlSetError(ctx, "cannot generate XRT implementation source");
         goto cleanup;
     }
@@ -3075,12 +3082,17 @@ static int xlModuleTryRetireUnlocked(XL_Module* module)
     int ownsRuntimeRef;
 
     if (module == NULL) return 1;
+    if(xl6ForeignCallbackActiveV1()){
+        module->nativeTailRetirementPending=1;
+        return 0;
+    }
+    if(module->nativeTailRetirementPending)return 0;
     if (module->activeCalls != 0 || module->retirementRunning || xl__ownershipDriverRunning ||
         (module->snapshotRefs && !module->ownershipPlan)) return 0;
     if (module->destroyRequested && !xlModulePrepareRetirementUnlocked(module)) return 0;
     if (module->ownershipPlan || (module->codeLeases != 0 && module->retirementContract && module->destroyRequested))
         xlModuleAdvanceOwnershipUnlocked(module);
-    if (module->ownershipPlan || module->snapshotRefs != 0 || module->preparationRefs != 0 || module->codeLeases != 0) return 0;
+    if (module->nativeTailRetirementPending || module->ownershipPlan || module->snapshotRefs != 0 || module->preparationRefs != 0 || module->codeLeases != 0) return 0;
     module->retirementRunning = 1;
     if ( module->state != NULL ) {
         checkedUnit = (XL_ScriptUnitCheckedProc)xl__tcc.tcc_get_symbol(module->state, "xl_script_module_unit_checked");
@@ -3182,11 +3194,21 @@ XL_RuntimeDrainResult xlRuntimeDrainRetiringChecked(long long milliseconds)
     xl6_error_scope scope={0};bool ready=false;
     if(!xl6ErrorScopeBegin(&scope))return (XL_RuntimeDrainResult){0,0};
     if(milliseconds< -1){xrtSetErrorKind(XERR_ARGUMENT);xl6ErrorScopeCaptureFailure(&scope);goto drain_end;}
+    if(xl6ForeignCallbackActiveV1())goto drain_end;
+    /* This explicit host operation requires native publishers to be stopped
+     * and joined, as well as no further language entries. A different thread's
+     * arbitrary checked boundary cannot certify a native DLL's return tail.
+     * Acknowledge only the initial batch; new tails created by cleanup callbacks
+     * need a later explicit drain rather than being cleared inside this loop. */
+    xlApiLock();
+    for(XL_Module* module=xl__retiringModules;module;module=module->retirementNext)
+        module->nativeTailRetirementPending=0;
+    xlApiUnlock();
     uint64 timeout=milliseconds<0 ? UINT64_MAX : (uint64)milliseconds;
     XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(timeout);
     const uint64 caller=xrtThreadCurrentId();
     for(;;){
-        xlApiLock();bool active=xl__collectingRetirements || xl__ownershipDriverRunning,recovery=false;
+        xlApiLock();bool active=xl__collectingRetirements || xl__ownershipDriverRunning,recovery=false,nativeTailBusy=false;
         /* Only a callback on the current driver thread must return BUSY to
          * avoid self-deadlock. Another thread's outside-lock cleanup is real
          * progress to wait for, subject to this caller's deadline. Owner IDs
@@ -3203,6 +3225,8 @@ XL_RuntimeDrainResult xlRuntimeDrainRetiringChecked(long long milliseconds)
                 }
             xlCollectRetiringModulesUnlocked();
             for(XL_Module* module=xl__retiringModules;module;module=module->retirementNext)
+                nativeTailBusy|=module->nativeTailRetirementPending!=0;
+            for(XL_Module* module=xl__retiringModules;module;module=module->retirementNext)
                 if(module->retirementFailed || module->ownershipAdmissionRefused){
                     recovery=true;
                     if(!scope.failed){
@@ -3216,7 +3240,7 @@ XL_RuntimeDrainResult xlRuntimeDrainRetiringChecked(long long milliseconds)
             ready=xl__retiringModules==NULL;
         }
         xlApiUnlock();
-        if(ready || reentry || recovery || (milliseconds>=0 && xl6DeadlineExpiredV1(deadline)))break;
+        if(ready || reentry || recovery || nativeTailBusy || (milliseconds>=0 && xl6DeadlineExpiredV1(deadline)))break;
         xrtThreadYield();
     }
 drain_end:;

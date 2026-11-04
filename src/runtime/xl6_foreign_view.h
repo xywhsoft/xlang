@@ -73,6 +73,14 @@ typedef struct XL6_ForeignViewCallV1 {
  * record. Neither ordinary copying nor an existing lookup allocates a wrapper.
  * All language owning references keep the root/context alive. */
 XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewCreateRootV1(void*,const XL6_ForeignViewDescriptorV1*,const XL6_CodeOwner*);
+/* A native subgraph may contain independent shared nodes, rather than only
+ * uniquely owned payload slots. This optional domain admits those exact Ops.
+ * It is immutable, has no Load hook, and its Resolve/AdmitsRead are independent
+ * of catalog policies. The supplied code owner protects the domain, its native
+ * tables and all transitive code until every plan callback has returned.
+ * It adds no operation or allocation to ordinary native method calls. */
+XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewCreateRootWithDomainV1(
+    void*,const XL6_ForeignViewDescriptorV1*,const XL6_OwnershipDomainV1*,const XL6_CodeOwner*);
 XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewBorrowChildV1(void*,XL6_ForeignView*,const XL6_ForeignViewDescriptorV1*,const XL6_CodeOwner*);
 /* Exact owner-result projection during a live native call. The closed IR
  * proves the nominal root type. raw must equal that same live native root;

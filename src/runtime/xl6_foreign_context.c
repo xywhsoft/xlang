@@ -9,6 +9,7 @@ static DWORD contextKeys[XL6_FOREIGN_CONTEXT_KEY_COUNT_V1];
 static pthread_key_t contextKeys[XL6_FOREIGN_CONTEXT_KEY_COUNT_V1];
 #endif
 static xonce contextOnce=XRT_ONCE_INIT;
+static xatomic32 contextReady;
 static bool initialize(void* unused)
 {
     (void)unused;unsigned count=0;
@@ -20,7 +21,7 @@ static bool initialize(void* unused)
         if(pthread_key_create(&contextKeys[count],NULL))break;
 #endif
     }
-    if(count==XL6_FOREIGN_CONTEXT_KEY_COUNT_V1)return true;
+    if(count==XL6_FOREIGN_CONTEXT_KEY_COUNT_V1){xrtAtomic32Store(&contextReady,1,XMEMORY_RELEASE);return true;}
     while(count){
         --count;
 #if defined(_WIN32)
@@ -44,6 +45,12 @@ void* xl6ForeignContextGetV1(XL6_ForeignContextKeyV1 key)
 #else
     return pthread_getspecific(contextKeys[key]);
 #endif
+}
+void* xl6ForeignContextTryGetV1(XL6_ForeignContextKeyV1 key)
+{
+    if((unsigned)key>=XL6_FOREIGN_CONTEXT_KEY_COUNT_V1)abort();
+    if(!xrtAtomic32Load(&contextReady,XMEMORY_ACQUIRE))return NULL;
+    return xl6ForeignContextGetV1(key);
 }
 bool xl6ForeignContextSetV1(XL6_ForeignContextKeyV1 key,void* value)
 {

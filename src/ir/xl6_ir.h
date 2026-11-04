@@ -874,6 +874,9 @@ typedef struct XL6_IrType {
     char* foreignPolicy;
     char* foreignScope;
     char* foreignWatch;
+    /* Optional immutable admission domain for independent native subgraphs.
+     * Only owned roots may declare it; nullable forms preserve it exactly. */
+    char* foreignDomain;
     /* Fixed C array value, with params[0] as its exact trivial element ABI.
      * The parser-owned extent spelling is gone at this backend boundary. */
     uint64 nativeArrayExtent;
@@ -4189,7 +4192,11 @@ typedef enum XL6_IrCallParameterPhysicalAbi {
     XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW,
     XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK,
     XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK,
-    XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VALUE_BORROW
+    XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VALUE_BORROW,
+    XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_NATIVE_POINTER_DIRECT,
+    XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_FOREIGN_VIEW_BORROW,
+    /* Exact nonescaping const xvalue* input. No view wrapper or value copy. */
+    XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_XVALUE_BORROW
 } XL6_IrCallParameterPhysicalAbi;
 
 /* A raw C callback may cross ordinary language wrapper functions before it
@@ -4218,13 +4225,13 @@ typedef enum XL6_IrCallResultPhysicalAbi {
 /* The C prototype's pointer type is independent of the language storage and
  * ownership conversion. A native char* may be carried as an opaque point;
  * erasing the C declaration to void* is not a compatible function type. */
-/* A factory's C return channel is independent of its logical owned result
+/* An output producer's C return channel is independent of its logical result
  * and output pointer. Never invent an integer return for a void initializer. */
-typedef enum XL6_IrCallFactoryResultAbi {
-    XL6_IR_CALL_FACTORY_RESULT_NONE=0,
-    XL6_IR_CALL_FACTORY_RESULT_INT_STATUS,
-    XL6_IR_CALL_FACTORY_RESULT_VOID
-} XL6_IrCallFactoryResultAbi;
+typedef enum XL6_IrCallOutputResultAbi {
+    XL6_IR_CALL_OUTPUT_RESULT_NONE=0,
+    XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS,
+    XL6_IR_CALL_OUTPUT_RESULT_VOID
+} XL6_IrCallOutputResultAbi;
 
 typedef enum XL6_IrCallResultCAbi {
     XL6_IR_CALL_RESULT_C_ABI_STORAGE = 0,
@@ -4233,7 +4240,8 @@ typedef enum XL6_IrCallResultCAbi {
     XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW,
     XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW,
     XL6_IR_CALL_RESULT_C_ABI_BOOL_STATUS,
-    XL6_IR_CALL_RESULT_C_ABI_INT_STATUS
+    XL6_IR_CALL_RESULT_C_ABI_INT_STATUS,
+    XL6_IR_CALL_RESULT_C_ABI_CONST_XVALUE_POINTER
 } XL6_IrCallResultCAbi;
 
 /* CALL 在物理调用后立即完成拥有权转换，之后才允许释放参数和接收者。
@@ -4244,7 +4252,7 @@ typedef enum XL6_IrCallResultConversionAbi {
     XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE,
     XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT,
     XL6_IR_CALL_RESULT_CONVERSION_STATUS_CHECK,
-    XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE
+    XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE
 } XL6_IrCallResultConversionAbi;
 
 /* Compiler-private resident producers receive the verified owner/element
@@ -5556,7 +5564,8 @@ typedef struct XL6_IrCallTarget {
     XL6_IrCallResultConversionAbi resultConversionAbi;
     XL6_IrCallNativeArrayResultAbi nativeArrayResultAbi;
     XL6_IrCallResultCAbi resultCAbi;
-    XL6_IrCallFactoryResultAbi factoryResultAbi;
+    XL6_IrCallOutputResultAbi outputResultAbi;
+    int32 nativeSuccessCode; /* Physical int status predicate; zero for void/non-status producers. */
     /* Exact managed class field initialized by a native factory result, or
      * invalid for DIRECT. */
     XL6_IrNodeId resultPhysicalFieldDeclaration;
@@ -5623,6 +5632,7 @@ typedef struct XL6_IrCallTarget {
     XL6_IrTypeId nativeContextType;
     XL6_IrAsyncResultAbi nativeContextPayloadAbi;
     XL6_IrCallNativeResultAbi nativeResultAbi;
+    uint32 foreignHeaderIndexPlusOne;
 } XL6_IrCallTarget;
 
 /* Complete physical callable envelope accepted by dynamic method adapters.
@@ -7026,6 +7036,8 @@ typedef struct XL6_IrModule {
     XL6_IrNodeId root;
     XL6_IrStats stats;
     int ready;
+    XL6_ForeignOutputContract* foreignOutputs;
+    size_t foreignOutputCount,foreignOutputCapacity;
     XL6_ForeignFieldLengthContract* foreignFieldLengths;
     size_t foreignFieldLengthCount,foreignFieldLengthCapacity;
     XL6_ForeignStorageContract* foreignStorage;
@@ -7036,6 +7048,10 @@ typedef struct XL6_IrModule {
     size_t foreignValueCount,foreignValueCapacity;
     XL6_ForeignCallbackSpanContract* foreignCallbackSpans;
     size_t foreignCallbackSpanCount,foreignCallbackSpanCapacity;
+    XL6_ForeignPointerQualifierContract* foreignPointerQualifiers;
+    size_t foreignPointerQualifierCount,foreignPointerQualifierCapacity;
+    XL6_ForeignFunctionHeaderContract* foreignFunctionHeaders;
+    size_t foreignFunctionHeaderCount,foreignFunctionHeaderCapacity;
 } XL6_IrModule;
 
 void xl6IrModuleInit(XL6_IrModule* module);
@@ -7987,7 +8003,8 @@ const XL6_IrInstruction* xl6IrDirectCForwardingCall(const XL6_IrModule*, const X
 XL6_SymbolId xl6IrDirectCForwardingArgument(const XL6_IrModule*, const XL6_IrInstruction*, size_t);
 XL6_IrCallResultConversionAbi xl6IrCallResultConversionForTarget(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
-XL6_IrCallFactoryResultAbi xl6IrCallFactoryResultAbiForTarget(const XL6_IrModule*,const XL6_IrCallTarget*);
+XL6_IrCallOutputResultAbi xl6IrCallOutputResultAbiForTarget(const XL6_IrModule*,const XL6_IrCallTarget*);
+int32 xl6IrCallNativeSuccessCodeForTarget(const XL6_IrModule*,const XL6_IrCallTarget*);
 XL6_IrCallResultCAbi xl6IrCallResultCAbiForTarget(const XL6_IrModule*, const XL6_IrCallTarget* target);
 int xl6IrForeignTextViewParameter(const XL6_IrModule*, const XL6_IrCallTarget*, size_t);
 int xl6IrForeignBytesViewParameter(const XL6_IrModule*, const XL6_IrCallTarget*, size_t);
@@ -8006,10 +8023,18 @@ int xl6IrForeignStorageFactoryMatches(const XL6_IrModule*,const XL6_IrCallTarget
 const XL6_ForeignRetainContract* xl6IrForeignRetainGet(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignRetainResultMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 static inline int xl6IrForeignViewBorrowPhysical(XL6_IrCallParameterPhysicalAbi abi)
-{return abi==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW || abi==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VALUE_BORROW;}
+{return abi==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW || abi==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VALUE_BORROW || abi==XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_FOREIGN_VIEW_BORROW;}
+const XL6_ForeignPointerQualifierContract* xl6IrForeignPointerQualifierGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+int xl6IrForeignPointerQualifierMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+uint32 xl6IrForeignFunctionHeaderIndex(const XL6_IrModule*,XL6_IrNodeId);
+const XL6_ForeignFunctionHeaderContract* xl6IrForeignFunctionHeaderGet(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignValueContract* xl6IrForeignValueGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 int xl6IrForeignValueMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 const XL6_ForeignCallbackSpanContract* xl6IrForeignCallbackSpanGet(const XL6_IrModule*,const XL6_ForeignParameterContract*,size_t);
+size_t xl6IrForeignOutputCount(const XL6_IrModule*,const XL6_IrCallTarget*);
+XL6_IrTypeId xl6IrForeignOutputType(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+/* One emission step is either one complete logical input group or one output. */
+int xl6IrForeignOutputStep(const XL6_IrModule*,const XL6_IrCallTarget*,size_t,size_t*,size_t*);
 int xl6IrForeignOutputValueMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignProjectionMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignManagedPointeeWrite(const XL6_IrModule*,const XL6_IrCallTarget*);

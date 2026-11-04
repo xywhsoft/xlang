@@ -1,5 +1,6 @@
 #include "src/common/xl6_xrt.h"
 #include "xl6_native_callback.h"
+#include "xl6_callback_failure.h"
 #include "src/api/xl_foreign_error.h"
 #include <stdlib.h>
 
@@ -62,12 +63,24 @@ static bool release(XL6_NativeCallback* record)
     CallbackPayload payload=record->payload;record->payload=(CallbackPayload){0};
     mutation_end(&mutation);xrtFree(record);return release_payload(payload);
 }
+static void report_drop_failure(void)
+{
+    /* release() may already have freed the callback record. Do not inspect
+     * its former owner while reporting the cleanup result. A C publisher still
+     * receives false and its diagnostic; an unhandled language failure also
+     * needs an independent checked channel, including {false,NULL}. */
+    xl6_error_result failure={false,xrtTakeError()};
+    if(xl6ErrorScopeTryPropagateFailureV1(&failure))return;
+    xerror* native=xrtErrorRef(failure.error);
+    xl6CallbackFailureRecordV1(failure);
+    xrtSetErrorTake(native);
+}
 static bool drop_native(const void* raw)
 {
     if(!raw)return true;
     XL6_ForeignCallbackScopeV1 callback={0};if(!xl6ForeignCallbackEnterV1(&callback))abort();
     bool ok=release((XL6_NativeCallback*)raw);
-    if(!ok)xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});
+    if(!ok)report_drop_failure();
     if(!xl6ForeignCallbackLeaveV1(&callback))abort();
     return ok;
 }
@@ -159,7 +172,7 @@ bool xl6NativeCallbackReportFailureV1(XL6_NativeCallback* record,xl6_error_resul
     if(record && record->payload.owner) {
         xl6ForeignViewRecordCallbackFailureV1(record->payload.owner,failure);return true;
     }
-    xrtSetErrorTake(failure.error);return false;
+    xl6CallbackFailureRecordV1(failure);return true;
 }
 static bool collector_hold(const void* raw)
 {
@@ -167,7 +180,7 @@ static bool collector_hold(const void* raw)
     return hold_body(record);
 }
 static void collector_drop(const void* raw)
-{if(!release((XL6_NativeCallback*)raw))xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});}
+{if(!release((XL6_NativeCallback*)raw))report_drop_failure();}
 static bool claim(const void* raw,const void* token)
 {
     XL6_NativeCallback* record=(XL6_NativeCallback*)raw;

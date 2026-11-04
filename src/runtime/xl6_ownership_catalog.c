@@ -12,11 +12,33 @@ struct XL6_OwnershipCatalog {
     size_t count;
     bool building,failed;
     const XL6_OwnershipBoundaryV1* boundary;
+    XL6_OwnershipBoundaryV1 combinedBoundary;
     XL6_OwnershipPoliciesV1 policies;
 #define XL6_POLICY_STORAGE(Name, Type) const struct Type** Name; size_t Name##Capacity;
     XL6_OWNERSHIP_POLICY_GROUPS(XL6_POLICY_STORAGE)
 #undef XL6_POLICY_STORAGE
 };
+static bool catalogBoundaryEnter(void* raw)
+{
+    const XL6_OwnershipCatalog* catalog=raw;
+    return !catalog->boundary || catalog->boundary->Enter(catalog->boundary->context);
+}
+static void catalogBoundaryLeave(void* raw)
+{
+    const XL6_OwnershipCatalog* catalog=raw;
+    if(catalog->boundary)catalog->boundary->Leave(catalog->boundary->context);
+}
+static bool catalogBoundaryDiscover(XL6_ModuleOwnershipVisit visit,void* user,void* raw)
+{
+    const XL6_OwnershipCatalog* catalog=raw;
+    const XL6_OwnershipBoundaryV1* original=catalog->boundary;
+    if(original && original->Discover && !original->Discover(visit,user,original->context))return false;
+    for(size_t i=0;i<catalog->policies.DiscoveryCount;++i){
+        const XL6_OwnershipDiscoveryV1* discovery=catalog->Discovery[i];
+        if(!discovery->Discover(visit,user,discovery->context))return false;
+    }
+    return true;
+}
 bool xl6OwnershipCatalogSetBoundaryV1(XL6_OwnershipCatalog* catalog,const XL6_OwnershipBoundaryV1* boundary)
 {
     if(!catalog||!catalog->building||!boundary||boundary->size!=sizeof(*boundary)||
@@ -27,7 +49,10 @@ bool xl6OwnershipCatalogSetBoundaryV1(XL6_OwnershipCatalog* catalog,const XL6_Ow
     catalog->boundary=boundary;return true;
 }
 const XL6_OwnershipBoundaryV1* xl6OwnershipCatalogBoundaryV1Get(const XL6_OwnershipCatalog* catalog)
-{ return catalog&&!catalog->building ? catalog->boundary:NULL; }
+{
+    if(!catalog || catalog->building)return NULL;
+    return catalog->policies.DiscoveryCount ? &catalog->combinedBoundary : catalog->boundary;
+}
 
 static void catalogPropagateFailure(xl6_error_result result)
 {
@@ -99,6 +124,12 @@ XL6_OwnershipCatalog* xl6OwnershipCatalogCreateV1(
             xrtSetErrorKind(XERR_STATE);goto failed;
         }
     }
+    for(size_t i=0;i<catalog->policies.DiscoveryCount;++i){
+        const XL6_OwnershipDiscoveryV1* discovery=catalog->Discovery[i];
+        if(discovery->size!=sizeof(*discovery) || !discovery->Discover){xrtSetErrorKind(XERR_ARGUMENT);goto failed;}
+    }
+    catalog->combinedBoundary=(XL6_OwnershipBoundaryV1){sizeof(catalog->combinedBoundary),
+        catalogBoundaryEnter,catalogBoundaryLeave,catalogBoundaryDiscover,catalog};
     catalog->building=false;
     {
         xl6_error_result outcome=xl6ErrorScopeEnd(&scope);

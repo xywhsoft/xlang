@@ -12,7 +12,7 @@ typedef struct XL6_ForeignClassDecl {
     char cName[64];
     char header[256];
     XL6_ForeignLifetimeAbi lifetime;
-    char policy[64],scope[64],watch[64],owner[256];
+    char policy[64],scope[64],watch[64],domain[64],owner[256];
     uint32 ownerSymbol;
 } XL6_ForeignClassDecl;
 
@@ -43,6 +43,27 @@ static inline int xl6ForeignQuotedText(const XL6_AstNode*,char*,size_t);
 static inline int xl6ForeignIdentifier(const char*);
 static inline int xl6ForeignPointerSpelling(const char*);
 static inline int xl6ForeignHeaderName(const char*);
+static inline int xl6ForeignFunctionHeaderRead(const XL6_AstNode* attr,char* output,size_t capacity)
+{
+    return attr && attr->text && !strcmp(attr->text,"header") && attr->childCount==1 &&
+        xl6ForeignQuotedText(attr->children[0],output,capacity) && xl6ForeignHeaderName(output);
+}
+
+static inline int xl6ForeignPointerQualifierRead(const XL6_AstNode* attr,uint32* parameter)
+{
+    int32 index;
+    if(!attr || !attr->text || strcmp(attr->text,"c_const") || attr->childCount!=1 ||
+        !xl6ForeignDecimalInt(attr->children[0],&index) || index<0 || index>=64)return 0;
+    if(parameter)*parameter=(uint32)index;
+    return 1;
+}
+static inline int xl6ForeignConstPointerName(const char* input,char* output,size_t capacity)
+{
+    if(!input || !output || !capacity || !strncmp(input,"const ",6) ||
+        !strchr(input,'*') || !xl6ForeignPointerSpelling(input) ||
+        strlen(input)+7>capacity)return 0;
+    memcpy(output,"const ",6);memcpy(output+6,input,strlen(input)+1);return 1;
+}
 
 static inline int xl6ForeignCallbackSpanRead(const XL6_AstNode* attr,XL6_ForeignCallbackSpanContract* output)
 {
@@ -147,12 +168,12 @@ static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
     } else if(!strcmp(attr->text,"c_owned_callback")) {
         int32 owner;
         if((attr->childCount<4 || attr->childCount>6) ||
-            !xl6ForeignDecimalInt(attr->children[1],&owner) || owner<0 || owner>=64 ||
+            !xl6ForeignDecimalInt(attr->children[1],&owner) || owner < -1 || owner>=64 ||
             !xl6ForeignQuotedText(attr->children[2],result.callbackOwnerCName,sizeof(result.callbackOwnerCName)) ||
             !xl6ForeignIdentifier(result.callbackOwnerCName) ||
             !xl6ForeignDecimalInt(attr->children[3],&result.callbackFailureCode))return 0;
         result.kind=XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK;
-        result.callbackOwnerIndexPlusOne=(uint32)owner+1;
+        result.callbackOwnerIndexPlusOne=(uint32)(owner+1);
         if(attr->childCount>=5) {
             char order[16];
             if(!xl6ForeignQuotedText(attr->children[4],order,sizeof(order)))return 0;
@@ -185,17 +206,62 @@ static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
     return 1;
 }
 
+/* No output may split a pointer/count or callback/userdata/owner group. */
+static inline int xl6ForeignMultiOutputRead(const XL6_AstNode* attr,uint32 slots[64],size_t* count)
+{
+    if(!attr || !attr->text || strcmp(attr->text,"c_outputs") || attr->childCount<2 || attr->childCount>64)return 0;
+    for(size_t i=0;i<attr->childCount;++i){
+        int32 slot;
+        if(!xl6ForeignDecimalInt(attr->children[i],&slot) || slot<0 || slot>=64 || (i && (uint32)slot<=slots[i-1]))return 0;
+        slots[i]=(uint32)slot;
+    }
+    *count=attr->childCount;return 1;
+}
+static inline int xl6ForeignMultiOutputSlotsValid(const XL6_ForeignCallFacts* f,size_t inputs,size_t receiver,const uint32* slots,size_t outputs)
+{
+    size_t physical=0,p=0,o=0;
+    while(p<inputs || o<outputs){
+        if(o<outputs && slots[o]==physical){++o;++physical;continue;}
+        if(p>=inputs || (o<outputs && slots[o]<physical))return 0;
+        size_t explicitParameter=p>=receiver ? p-receiver : SIZE_MAX;
+        physical+=explicitParameter<64 && (f->physicalPairs&(UINT64_C(1)<<explicitParameter)) ? 2 :
+            explicitParameter<64 && (f->retainedCallbacks&(UINT64_C(1)<<explicitParameter)) ? 3 : 1;
+        ++p;
+    }
+    return 1;
+}
+
 static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     XL6_ForeignCallFacts* output)
 {
-    XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0;uint64 callbackSpans=0,callbackParameters=0;
+    XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0,outputStatus=0;uint64 callbackSpans=0,callbackParameters=0;
     const XL6_AstNode* attributes = xl6ForeignFunctionAttributes(node);
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
         const XL6_AstNode* attr = attributes->children[i];
         int32 index;
+        if(attr && attr->text && !strcmp(attr->text,"header")){
+            char header[256];
+            if(!xl6ForeignFunctionHeaderRead(attr,header,sizeof(header)) || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD))return 0;
+            for(size_t j=0;j<i;++j)if(attributes->children[j] && attributes->children[j]->text &&
+                !strcmp(attributes->children[j]->text,"header"))return 0;
+            continue;
+        }
+        if(attr && attr->text && !strcmp(attr->text,"c_status")){
+            if(outputStatus || attr->childCount!=1 || !xl6ForeignDecimalInt(attr->children[0],&facts.successCode))return 0;
+            outputStatus=1;continue;
+        }
+        if(attr && attr->text && !strcmp(attr->text,"c_outputs")){
+            uint32 slots[64];size_t outputs;
+            if(facts.outputIndexPlusOne || !xl6ForeignMultiOutputRead(attr,slots,&outputs))return 0;
+            facts.outputIndexPlusOne=slots[0]+1;facts.valueOutput=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID;continue;
+        }
         if(attr && attr->text && !strcmp(attr->text,"c_value")){
             XL6_ForeignValueContract row;
             if(!xl6ForeignValueRead(attr,&row))return 0;
+            continue;
+        }
+        if(attr && attr->text && !strcmp(attr->text,"c_const")){
+            if(!xl6ForeignPointerQualifierRead(attr,NULL))return 0;
             continue;
         }
         if(attr && attr->text && !strcmp(attr->text,"c_callback_span")){
@@ -225,6 +291,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             if (facts.borrowedViewResult || !value || value->kind != XL6_AST_STRING || !value->text) return 0;
             if (!strcmp(value->text, "\"text_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_TEXT;
             else if (!strcmp(value->text, "\"bytes_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_BYTES;
+            else if (!strcmp(value->text, "\"borrowed_value\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_BORROWED_VALUE;
             else if (!strcmp(value->text, "\"owned_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE;
             else if (!strcmp(value->text, "\"retained_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE;
             else if (!strcmp(value->text, "\"owner_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE;
@@ -275,9 +342,10 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             if (attr->childCount != 1 || (facts.staticCallbackAddresses & bit)) return 0;
             facts.staticCallbackAddresses |= bit;
         } else if (!strcmp(attr->text,"c_output")) {
-            if(facts.outputIndexPlusOne || attr->childCount!=2 ||
-                !xl6ForeignDecimalInt(attr->children[1],&facts.successCode))return 0;
-            facts.outputIndexPlusOne=(uint32)index+1;facts.valueOutput=1;
+            if(facts.outputIndexPlusOne || (attr->childCount!=1 && attr->childCount!=2) ||
+                (attr->childCount==2 && !xl6ForeignDecimalInt(attr->children[1],&facts.successCode)))return 0;
+            facts.outputIndexPlusOne=(uint32)index+1;
+            facts.valueOutput=attr->childCount==1 ? XL6_FOREIGN_VALUE_OUTPUT_VOID : XL6_FOREIGN_VALUE_OUTPUT_STATUS;
         } else if (!strcmp(attr->text, "factory")) {
             if(facts.outputIndexPlusOne || (attr->childCount!=2 && attr->childCount!=3))return 0;
             voidFactory=attr->childCount==2;
@@ -287,6 +355,10 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             facts.outputIndexPlusOne=(uint32)index+1;
             facts.rollbackSymbol=rollback->semanticSymbolId;
         } else return 0;
+    }
+    if(outputStatus){
+        if(facts.valueOutput!=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID)return 0;
+        facts.valueOutput=XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS;
     }
     if(voidFactory){
         if(facts.inplaceOutput!=XL6_FOREIGN_INPLACE_STATUS)return 0;
@@ -453,12 +525,16 @@ static inline int xl6ForeignClassRead(const XL6_AstNode* node,
         } else if(!strcmp(attr->text,"watch")){
             if((seen&32) || !xl6ForeignIdentifier(value) || strlen(value)>=sizeof(result.watch))return -1;
             strcpy(result.watch,value);seen|=32;
+        } else if(!strcmp(attr->text,"domain")){
+            if((seen&64) || !xl6ForeignIdentifier(value) || strlen(value)>=sizeof(result.domain))return -1;
+            strcpy(result.domain,value);seen|=64;
         } else return -1;
     }
     unsigned expected=result.lifetime==XL6_FOREIGN_LIFETIME_CALLER ? 3 :
         result.lifetime==XL6_FOREIGN_LIFETIME_OWNED ? ((seen&8)?15:7) :
         result.lifetime==XL6_FOREIGN_LIFETIME_CALLBACK ? ((seen&16)?19:3) : 23;
     if((result.lifetime==XL6_FOREIGN_LIFETIME_OWNED || result.lifetime==XL6_FOREIGN_LIFETIME_OWNER) && (seen&32))expected|=32;
+    if(result.lifetime==XL6_FOREIGN_LIFETIME_OWNED && (seen&64))expected|=64;
     if (seen != expected) {
         if (error) *error = "external class requires an exact header/lifetime contract; owned views also need policy/scope, owner views need policy/owner";
         return -1;
@@ -469,6 +545,29 @@ static inline int xl6ForeignClassRead(const XL6_AstNode* node,
 
 /* C records are trivial values. Their field layout belongs to the named C
  * declaration, and is checked against the ordered language field schema. */
+static inline int xl6ForeignRecordFieldRead(const XL6_AstNode* field,
+    char* output, size_t capacity, const char** error)
+{
+    const char* name;
+    char alias[256];
+    int seen = 0;
+    if (error) *error = "C record field accepts one @c_name(\"identifier\") annotation";
+    if (!field || field->kind != XL6_AST_FIELD || !field->text ||
+        !field->childCount || !output || !capacity) return 0;
+    name = field->text;
+    for (size_t i = 1; i < field->childCount; ++i) {
+        const XL6_AstNode* attr = field->children[i];
+        if (!attr || attr->kind != XL6_AST_FIELD_ATTR || !attr->text ||
+            strcmp(attr->text, "c_name") || seen++ || attr->childCount != 1 ||
+            !xl6ForeignQuotedText(attr->children[0], alias, sizeof(alias)) ||
+            !xl6ForeignIdentifier(alias)) return 0;
+        name = alias;
+    }
+    if (!xl6ForeignIdentifier(name) || strlen(name) >= capacity) return 0;
+    memcpy(output, name, strlen(name) + 1);
+    return 1;
+}
+
 static inline int xl6ForeignRecordRead(const XL6_AstNode* node,
     XL6_ForeignClassDecl* output, const char** error)
 {

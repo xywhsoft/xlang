@@ -924,6 +924,8 @@ typedef enum XL6_ArtifactRuntimeId {
     XL6_ARTIFACT_FOREIGN_SCOPE_VIEW,
     XL6_ARTIFACT_FOREIGN_SCOPE_VALUE,
     XL6_ARTIFACT_SYNC_CALLBACK,
+    XL6_ARTIFACT_CALLBACK_FAILURE,
+    XL6_ARTIFACT_HOST_XRT,
     XL6_ARTIFACT_RUNTIME_COUNT
 } XL6_ArtifactRuntimeId;
 #define XL6_ARTIFACT_RUNTIME_WORD_COUNT (XL6_ARTIFACT_RUNTIME_COUNT / 64u + (XL6_ARTIFACT_RUNTIME_COUNT % 64u != 0))
@@ -945,12 +947,19 @@ static inline int xl6ArtifactRuntimeSetEqual(const XL6_ArtifactRuntimeSet* left,
 { return left != NULL && right != NULL && xl6ComponentSetEqual(left->words,right->words,XL6_ARTIFACT_RUNTIME_COUNT); }
 #define XL6_ARTIFACT_NATIVE_MODULE_LIMIT 512
 
+typedef enum XL6_ArtifactRuntimePlacement {
+    XL6_ARTIFACT_RUNTIME_RESIDENT_SOURCE=0,
+    /* Compiled after the selected native implementation, sharing its macros.
+     * It must never be loaded as an independent precompiled runtime object. */
+    XL6_ARTIFACT_RUNTIME_IN_XRT_TRANSLATION_UNIT
+} XL6_ArtifactRuntimePlacement;
 typedef struct XL6_ArtifactRuntimeComponent {
     const char* source;
     const size_t* dependencies;
     size_t dependencyCount;
     const char* nativeModules[8];
     unsigned hostAbi;
+    XL6_ArtifactRuntimePlacement placement;
 } XL6_ArtifactRuntimeComponent;
 
 typedef enum XL6_ArtifactHostAbi {
@@ -992,6 +1001,8 @@ typedef struct XL6_ArtifactRuntimePlan {
     XL6_ArtifactRuntimeSet components;
     size_t sourceCount;
     const char* sources[XL6_ARTIFACT_RUNTIME_COUNT];
+    size_t xrtSourceCount;
+    const char* xrtSources[XL6_ARTIFACT_RUNTIME_COUNT];
     size_t nativeModuleCount;
     const char* nativeModules[XL6_ARTIFACT_NATIVE_MODULE_LIMIT];
 } XL6_ArtifactRuntimePlan;

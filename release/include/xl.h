@@ -51,8 +51,11 @@ typedef struct XL_RuntimeDrainResult { int ready; int ok; } XL_RuntimeDrainResul
 /* Retire queued modules without consuming runtime/context references or
  * closing live module handles. Preserve failure independently of readiness.
  * -1 waits; 0 is one bounded turn; positive milliseconds bound retries only.
- * Stop creating/using contexts while performing process shutdown. External
- * owners remain genuine roots; same-driver callback reentry returns BUSY. */
+ * Stop creating/using contexts and stop/join native callback publishers before
+ * draining deferred native DLL return tails. This explicit host operation
+ * acknowledges their quiescence; arbitrary checked boundaries cannot do so.
+ * External owners remain genuine roots. Callback reentry and a new tail
+ * created by cleanup return BUSY (ready=0,ok=1), including with -1. */
 XL_API XL_RuntimeDrainResult xlRuntimeDrainRetiringChecked(long long timeoutMilliseconds);
 
 XL_API XL_Context* xlCreateContext(const XL_ContextOptions* options);

@@ -43,7 +43,7 @@ static int closure_contract(void)
                 }
             CHECK(xl6ArtifactRuntimeClosePlan(&roots,&plan));
             CHECK(xl6ArtifactRuntimeSetEqual(&plan.roots,&roots) &&
-                xl6ArtifactRuntimeSetEqual(&plan.components,&expected) && plan.sourceCount==count);
+                xl6ArtifactRuntimeSetEqual(&plan.components,&expected) && plan.sourceCount+plan.xrtSourceCount==count);
             for (size_t i=0;i<plan.sourceCount;++i)
                 for (size_t j=i+1;j<plan.sourceCount;++j) CHECK(strcmp(plan.sources[i],plan.sources[j]));
             for (size_t i=0;i<plan.nativeModuleCount;++i)
@@ -527,6 +527,35 @@ done:
     return ok;
 }
 
+static int native_placement_contract(void)
+{
+    XL6_ArtifactRuntimePlan plan;
+    XL6_ArtifactRuntimeSet roots=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_HOST_XRT);
+    XL6_ImportDeps deps;xl6ImportDepsInit(&deps);
+    char* text=NULL;
+    CHECK(xl6ArtifactRuntimeClosePlan(&roots,&plan));
+    CHECK(plan.sourceCount==0 && plan.xrtSourceCount==1 &&
+        !strcmp(plan.xrtSources[0],"src/runtime/xl6_host_xrt.c"));
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6HostXrtResolveV1")==XL6_ARTIFACT_HOST_XRT);
+    CHECK(xl6XrtTrimNeedsGeneratedRuntime(&deps,&plan));
+    CHECK(xl6XrtTrimBuildImplementationSourceFromPlan(&deps,0,&plan,&text));
+    CHECK(strstr(text,"XL6_ARTIFACT_XRT_IMPLEMENTATION") && strstr(text,"__xl_compiler/src/runtime/xl6_host_xrt.c") &&
+        strstr(text,"__xl_runtime/xruntime.h")<strstr(text,"__xl_compiler/src/runtime/xl6_host_xrt.c"));
+    xrtFree(text);text=NULL;
+    CHECK(xl6XrtTrimBuildImplementationSourceFromPlan(&deps,1,&plan,&text));
+    CHECK(strstr(text,"#define XRT_MODULE_ALL") && strstr(text,"__xl_compiler/src/runtime/xl6_host_xrt.c"));
+    xrtFree(text);text=NULL;
+    deps.features=XL6_IMPORT_FEATURE_XLANG_COMPILER;
+    CHECK(!xl6XrtTrimNeedsGeneratedRuntime(&deps,&plan));
+    CHECK(xl6XrtTrimBuildImplementationSourceFromPlan(&deps,0,&plan,&text));
+    CHECK(!strstr(text,"XL6_ARTIFACT_XRT_IMPLEMENTATION"));xrtFree(text);text=NULL;
+    plan.xrtSources[0]="arbitrary/file.c";
+    CHECK(!xl6XrtTrimBuildImplementationSourceFromPlan(&deps,0,&plan,&text) && !text);
+    plan.xrtSourceCount=0;
+    CHECK(!xl6XrtTrimBuildImplementationSourceFromPlan(&deps,0,&plan,&text) && !text);
+    xl6ImportDepsFree(&deps);return 1;
+}
+
 int main(int argc,char** argv)
 {
     if (!xrtMemDebugEnable(true)) return 1;
@@ -535,7 +564,7 @@ int main(int argc,char** argv)
      * every single fixture in the same compiled cohort. */
     if (argc==4 && !strcmp(argv[1],"--emit-native")) return emit_native_source(argv[2],argv[3],NULL)?0:1;
     if (argc==5 && !strcmp(argv[1],"--emit-native-with-c")) return emit_native_source(argv[2],argv[3],argv[4])?0:1;
-    if (!closure_contract() || !artifact_source_contract()) return 1;
+    if (!closure_contract() || !artifact_source_contract() || !native_placement_contract()) return 1;
     if (argc==2 && !strcmp(argv[1],"--registry")) {
         if (!native_catalog_contract() || !slot_key_component_contract()) return 1;
         printf("artifact registry contract complete: %u dependency pairs\n",
@@ -548,7 +577,7 @@ int main(int argc,char** argv)
             XL6_ArtifactRuntimePlan plan;
             XL6_ArtifactRuntimeSet roots=xl6ArtifactRuntimeSetSingleton(i);
             if (!xl6ArtifactRuntimeClosePlan(&roots,&plan)) return 1;
-            printf("{\"Id\":%u,\"Source\":\"%s\",\"Dependencies\":[",i,item->source);
+            printf("{\"Id\":%u,\"Source\":\"%s\",\"Placement\":%d,\"Dependencies\":[",i,item->source,(int)item->placement);
             for (size_t j=0;j<item->dependencyCount;++j) printf("%s%zu",j?",":"",item->dependencies[j]);
             printf("],\"HostAbi\":%u,\"ClosureHostAbi\":%u,\"Closure\":",item->hostAbi,plan.hostAbi); print_set(&plan.components); puts("}");
         }

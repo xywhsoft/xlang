@@ -1,0 +1,57 @@
+extern "xui_context_t*" class Context @header("test/cases/foreign_xge3_binding_outputs.h") @lifetime("owned") @policy("declarativeXuiContextPolicy") @scope("xui_call_scope_t") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiWidgetCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWidget) func widget() as Widget
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xui_widget_t*" class Widget @header("test/cases/foreign_xge3_binding_outputs.h") @lifetime("owner") @owner(Context) @policy("declarativeXuiWidgetPolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiWidgetSetSizeMode" @no_raise @c_result("status",0) func setSizeMode(c_int width,c_int height)
+ extern "xuiWidgetGetSizeMode" @no_raise @c_outputs(1,2) @c_status(0) func sizeMode() as (c_int,c_int)
+ extern "xuiWidgetSetGridMetrics" @no_raise @c_result("status",0) func setGrid(c_int columns,c_float width,c_float height)
+ extern "xuiWidgetGetGridMetrics" @no_raise @c_outputs(1,2,3) @c_status(0) func grid() as (c_int,c_float,c_float)
+ extern "xuiWidgetSetLayer" @no_raise @c_result("status",0) func setLayer(c_int layer,c_int zIndex)
+ extern "xuiWidgetGetLayer" @no_raise @c_outputs(1,2) @c_status(0) func layer() as (c_int,c_int)
+end
+extern "xuiDestroy" @no_raise func rollback(Context value)
+extern "xuiWidgetDestroy" @no_raise func rollbackWidget(Widget value)
+extern "xuiCreate" @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Context
+extern "declarative_xui_start" @no_raise func start()
+extern "xgeMouseGet" @header("test/cases/foreign_xge3_binding_outputs.h") @no_raise @c_outputs(0,1) func mouse() as (c_float,c_float)
+extern "xgeSceneUpdateStrategyGet" @header("test/cases/foreign_xge3_binding_outputs.h") @no_raise @c_outputs(0,1,2) func sceneStrategy() as (c_int,c_float,c_int)
+extern "binding_span_outputs" @no_raise @c_span(0,"const uint8_t*","size_t","test/cases/foreign_xge3_binding_outputs.h") @c_outputs(2,3) @c_status(0) func span(bytes data) as (c_size,c_uint)
+func main(...) as int
+ start()
+ Context context=create()
+ Widget widget=context.widget()
+ widget.setSizeMode(c_int(0),c_int(1))
+ auto width,height=widget.sizeMode()
+ assert width==c_int(0) and height==c_int(1)
+ widget.setGrid(c_int(4),c_float(25),c_float(17))
+ auto columns,itemWidth,itemHeight=widget.grid()
+ assert columns==c_int(4) and itemWidth==25.0 and itemHeight==17.0
+ widget.setLayer(c_int(3),c_int(9))
+ auto layer,zIndex=widget.layer()
+ assert layer==c_int(3) and zIndex==c_int(9)
+ auto x,y=mouse()
+ assert x==0.0 and y==0.0
+ auto mode,step,maxUpdates=sceneStrategy()
+ assert mode==c_int(0) and step==0.0 and maxUpdates==c_int(0)
+ auto size,first=span(b"a\0b")
+ assert size==c_size(3) and first==c_uint(97)
+ bool failed=false
+ try
+  auto badSize,badFirst=span(b"\xff")
+ catch error
+  failed=true
+ end
+ assert failed
+ context.close()
+ bool expired=false
+ try
+  auto badWidth,badHeight=widget.sizeMode()
+ catch error
+  expired=true
+ end
+ assert expired
+ return 0
+end

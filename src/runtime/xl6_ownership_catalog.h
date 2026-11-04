@@ -36,7 +36,8 @@
     X(TlsStreamEvents, xtlsstreamownershipv1) \
     X(TlsListenerEvents, xtlslistenerownershipv1) \
     X(TlsDialDone, xtlsdialownershipv1) \
-    X(TlsVerifierContext, xtlsverifiercontextownershipv1)
+    X(TlsVerifierContext, xtlsverifiercontextownershipv1) \
+    X(Discovery, XL6_OwnershipDiscoveryV1)
 #define XL6_DECLARE_POLICY(Name, Type) struct Type;
 XL6_OWNERSHIP_POLICY_GROUPS(XL6_DECLARE_POLICY)
 #undef XL6_DECLARE_POLICY
@@ -48,6 +49,17 @@ XL6_CODE_LEASE_API const struct XL6_OwnershipDomainV1* xl6OwnershipDomainXacmeV1
  * transition. BUSY does not grant Count/Trace or lifecycle admission.
  * Frozen, read-only, resident, no callbacks/allocations/reference changes. */
 typedef struct xrtownershipquiescencev1 XL6_OwnershipQuiescenceV1;
+/* Cold-registered exact physical discovery. Called only under the plan's
+ * native boundary and whole-domain Freeze, with no allocation, callbacks into
+ * language code, reference transitions, or synthetic owning slots. Immutable
+ * descriptor/context/code remain protected until the last plan releases all
+ * physical pins. This adds discovery without making ordinary class plans
+ * depend on a particular foreign-resource implementation. */
+typedef struct XL6_OwnershipDiscoveryV1 {
+    size_t size;
+    XL6_OwnershipDiscoverV1 Discover;
+    void* context;
+} XL6_OwnershipDiscoveryV1;
 typedef struct XL6_OwnershipPoliciesV1 {
 #define XL6_POLICY_VIEW(Name, Type) const struct Type* const* Name; size_t Name##Count;
     XL6_OWNERSHIP_POLICY_GROUPS(XL6_POLICY_VIEW)
@@ -57,7 +69,10 @@ typedef struct XL6_OwnershipPoliciesV1 {
 typedef struct XL6_OwnershipDomainV1 {
     size_t size;
     /* Load executes only during creation, outside Freeze, before publication.
-     * Policies and callbacks are borrowed immutable resident capabilities. */
+     * Policies and callbacks are borrowed immutable capabilities. Ordinary
+     * catalog domains are resident. A ForeignView's separately leased native
+     * domain has no Load hook: its physical anchor/code pins protect queries
+     * and saved native descriptors through the entire plan Drop batch. */
     bool (*Load)(XL6_OwnershipCatalog*);
     /* Exact query only. false must leave all outputs NULL. The catalog checks
      * every domain and refuses conflicting admission instead of first-match

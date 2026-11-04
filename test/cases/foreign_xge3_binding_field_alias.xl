@@ -1,0 +1,27 @@
+// Real authoritative XGE record with a language-reserved native field.
+export extern "xge3d_vec3_t" struct Vec3 @header("test/cases/foreign_xge3_binding_field_alias.h")
+ c_float x
+ c_float y
+ c_float z
+end
+export extern "xge3d_fog_settings_t" struct Fog @header("test/cases/foreign_xge3_binding_field_alias.h")
+ Vec3 color
+ c_float start
+ c_float endValue @c_name("end")
+end
+export "foreign_xge3_fog_copy" func copyFog(Fog value) as Fog
+ return value
+end
+func main(...) as int
+ Fog value=Fog()
+ assert value.endValue==0.0
+ value.start=c_float(1)
+ value.endValue=c_float(12)
+ Fog copy=value
+ copy.endValue=c_float(23)
+ assert value.endValue==12.0 and copy.endValue==23.0
+ var erased=value
+ Fog restored=erased as Fog
+ assert restored.endValue==12.0
+ return 0
+end

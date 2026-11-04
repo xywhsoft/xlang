@@ -29,6 +29,12 @@ static void xl6IrCgenEmitBorrowedValueAdmission(XL6_Output* out,
     const char* place, const char* raw, const char* scope)
 {
     const XL6_IrType* type=xl6IrTypeGet(&module->types,target->returnType);
+    if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_CONST_XVALUE_POINTER){
+        xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError() == NULL) {\n"
+            "        %s = xrtValueRetain(%s != NULL ? %s : xrtValueNull());\n"
+            "        if (%s == NULL) xl6ErrorScopeCaptureFailure(&%s);\n    }\n",scope,place,raw,raw,place,scope);
+        return;
+    }
     if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW){
         xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError() == NULL) {\n"
             "        if ((%s.Data == NULL && %s.Size != 0) || %s.Size > INT64_MAX) { xrtSetErrorKind(XERR_RANGE); xl6ErrorScopeCaptureFailure(&%s); }\n"
@@ -60,7 +66,8 @@ static void xl6IrCgenEmitBorrowedValueAdmission(XL6_Output* out,
 static const char* xl6IrCgenBorrowedResultCType(const XL6_IrCallTarget* target)
 {
     return target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW ? "xstrview" :
-        target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW ? "xbytesview" : "const char*";
+        target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW ? "xbytesview" :
+        target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_CONST_XVALUE_POINTER ? "const xvalue*" : "const char*";
 }
 
 /* Read the opaque byte value once into a stack view. There is no forwarding
@@ -175,7 +182,7 @@ static int xl6IrCgenEmitForeignFieldSchema(XL6_Output* out, const XL6_IrModule* 
  * qualifiers, array extents and nominal record identity remain exact. */
 static void xl6IrCgenEmitNativeAbiProofs(XL6_Output* out,const XL6_IrModule* module)
 {
-    bool needed=false;
+    bool needed=module->foreignFunctionHeaderCount!=0;
     for(size_t i=0;i<module->types.count;++i)if(module->types.items[i].foreignHeader){needed=true;break;}
     if(!needed)return;
     xl6OutputPuts(
@@ -406,6 +413,18 @@ static int xl6IrCgenEmitProductTypes(
     size_t typeIndex;
     int emitted = 0;
     int scalarCarriersIncluded = 0;
+    for(size_t t=0;t<module->callTargetCount;++t){
+        const XL6_IrCallTarget* target=&module->callTargets[t];
+        const XL6_ForeignFunctionHeaderContract* row=xl6IrForeignFunctionHeaderGet(module,target);
+        if(!row || target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        bool seen=false;
+        for(size_t before=0;before<t && !seen;++before){
+            const XL6_IrCallTarget* prior=&module->callTargets[before];
+            const XL6_ForeignFunctionHeaderContract* previous=xl6IrForeignFunctionHeaderGet(module,prior);
+            if(previous && prior->reachability!=XL6_IR_REACHABILITY_UNREACHABLE && !strcmp(previous->header,row->header))seen=true;
+        }
+        if(!seen)xl6OutputPrintf(out,"#include <%s>\n",row->header);
+    }
     for(size_t t=0;t<module->callTargetCount;++t) {
         const XL6_IrCallTarget* target=&module->callTargets[t];
         if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
@@ -447,6 +466,10 @@ static int xl6IrCgenEmitProductTypes(
             }
         }
         if (!seen) xl6OutputPrintf(out, "#include <%s>\n", type->foreignHeader);
+        if(type->foreignDomain){
+            xl6OutputPuts("#include <__xl_runtime/xl6_ownership_catalog.h>\n",out);
+            xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(&%s, const XL6_OwnershipDomainV1*), \"native ownership domain type\");\n",type->foreignDomain);
+        }
         if (seenType) continue;
         xl6OutputPrintf(out,
             "XLIR_NATIVE_ASSERT(sizeof(%s) == sizeof(void*), \"external handle width\");\n",

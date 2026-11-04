@@ -18,7 +18,7 @@ def main():
     cc, cpp = shutil.which('gcc'), shutil.which('g++')
     assert cc and cpp
     sources = sorted(p for p in (root/'test/cases').glob('foreign_*.xl')
-                     if not p.stem.startswith(('foreign_xge_', 'foreign_xui_')))
+                     if not p.stem.startswith(('foreign_xge_', 'foreign_xui_', 'foreign_xge3_')))
     pinned.update([Path(__file__).resolve(), Path(cc), Path(cpp), *sources,
                    *(root/'test/cases').glob('foreign_*.h')])
     sha = lambda p: hashlib.sha256(Path(p).read_bytes()).hexdigest()

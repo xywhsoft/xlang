@@ -1,5 +1,90 @@
 /* Sparse foreign parameter contracts. Declaration parsing ends before this
  * file; both lowering and Cgen consume these normalized rows. */
+uint32 xl6IrForeignFunctionHeaderIndex(const XL6_IrModule* module,XL6_IrNodeId declaration)
+{
+    if(!module || module->foreignFunctionHeaderCount>module->foreignFunctionHeaderCapacity ||
+        module->foreignFunctionHeaderCount>UINT32_MAX || module->foreignFunctionHeaderCount>module->nodeCount ||
+        (module->foreignFunctionHeaderCount && !module->foreignFunctionHeaders))return 0;
+    for(size_t i=0;i<module->foreignFunctionHeaderCount;++i)
+        if(module->foreignFunctionHeaders[i].declaration==declaration)return (uint32)i+1;
+    return 0;
+}
+const XL6_ForeignFunctionHeaderContract* xl6IrForeignFunctionHeaderGet(
+    const XL6_IrModule* module,const XL6_IrCallTarget* target)
+{
+    if(!target || !target->foreignHeaderIndexPlusOne || !module ||
+        target->foreignHeaderIndexPlusOne>module->foreignFunctionHeaderCount ||
+        module->foreignFunctionHeaderCount>module->foreignFunctionHeaderCapacity || !module->foreignFunctionHeaders)return NULL;
+    const XL6_ForeignFunctionHeaderContract* row=&module->foreignFunctionHeaders[target->foreignHeaderIndexPlusOne-1];
+    return row->declaration==target->declaration ? row : NULL;
+}
+static int xl6IrVerifyFunctionHeaders(const XL6_IrModule* module,XL6_DiagList* diags)
+{
+    if(module->foreignFunctionHeaderCount>module->foreignFunctionHeaderCapacity ||
+        module->foreignFunctionHeaderCount>module->nodeCount ||
+        (module->foreignFunctionHeaderCount && !module->foreignFunctionHeaders))goto invalid;
+    for(size_t i=0;i<module->foreignFunctionHeaderCount;++i){
+        const XL6_ForeignFunctionHeaderContract* row=&module->foreignFunctionHeaders[i];
+        const XL6_IrNode* node=xl6IrNodeGet(module,row->declaration);
+        if(!node || node->kind!=XL6_IR_NODE_FUNC_DECL ||
+            (node->sourceKind!=XL6_AST_EXTERN_FUNC && node->sourceKind!=XL6_AST_NATIVE_EXTERN_FUNC &&
+             node->sourceKind!=XL6_AST_GET && node->sourceKind!=XL6_AST_LET) ||
+            (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || node->foreignCall.receiverDereference ||
+            !memchr(row->header,0,sizeof(row->header)) || !xl6ForeignHeaderName(row->header))goto invalid;
+        for(size_t j=0;j<i;++j)if(module->foreignFunctionHeaders[j].declaration==row->declaration)goto invalid;
+    }
+    return 1;
+invalid:return xl6IrDiag(diags,NULL,"native function headers require unique authoritative declaration contracts");
+}
+const XL6_ForeignPointerQualifierContract* xl6IrForeignPointerQualifierGet(
+    const XL6_IrModule* module,const XL6_IrCallTarget* target,size_t p)
+{
+    if(!module || !target || p>=target->parameterCount ||
+        module->foreignPointerQualifierCount>module->foreignPointerQualifierCapacity ||
+        (module->foreignPointerQualifierCount && !module->foreignPointerQualifiers))return NULL;
+    for(size_t i=0;i<module->foreignPointerQualifierCount;++i)
+        if(module->foreignPointerQualifiers[i].declaration==target->declaration &&
+            module->foreignPointerQualifiers[i].parameter==p)return &module->foreignPointerQualifiers[i];
+    return NULL;
+}
+static int xl6IrVerifyPointerQualifiers(const XL6_IrModule* module,XL6_DiagList* diags)
+{
+    if(module->foreignPointerQualifierCount>module->foreignPointerQualifierCapacity ||
+        (module->foreignPointerQualifierCount && !module->foreignPointerQualifiers))goto invalid;
+    for(size_t i=0;i<module->foreignPointerQualifierCount;++i){
+        const XL6_ForeignPointerQualifierContract* row=&module->foreignPointerQualifiers[i];
+        const XL6_IrType* type=xl6IrPointerQualifierSourceType(module,row);char expected[80];
+        if(!type || !memchr(row->cName,0,sizeof(row->cName)) ||
+            !xl6IrPointerQualifierName(type,expected,sizeof(expected)) || strcmp(row->cName,expected))goto invalid;
+        for(size_t j=0;j<i;++j)if(module->foreignPointerQualifiers[j].declaration==row->declaration &&
+            module->foreignPointerQualifiers[j].parameter==row->parameter)goto invalid;
+        for(size_t j=0;j<module->foreignValueCount;++j)if(module->foreignValues[j].declaration==row->declaration &&
+            module->foreignValues[j].parameter==row->parameter)goto invalid;
+    }
+    return 1;
+invalid:return xl6IrDiag(diags,NULL,"native pointer qualifiers require unique exact const pointee contracts");
+}
+int xl6IrForeignPointerQualifierMatches(const XL6_IrModule* module,const XL6_IrCallTarget* target,size_t p)
+{
+    const XL6_ForeignPointerQualifierContract* row=xl6IrForeignPointerQualifierGet(module,target,p);
+    if(!row || !target->parameterTypes || !target->parameterPhysicalAbis || !target->parameterAbis ||
+        !target->parameterConstraintAbis || !target->parameterPhysicalFieldDeclarations ||
+        target->kind!=XL6_IR_CALL_TARGET_EXTERN_C || target->runtimeBridge ||
+        target->foreignOperationAbi!=XL6_IR_FOREIGN_OPERATION_CALL || target->parameterConstraintAbis[p] ||
+        target->parameterPhysicalFieldDeclarations[p] || xl6IrForeignParameterGet(module,target,p))return 0;
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,target->parameterTypes[p]);
+    if(type && type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1)type=xl6IrTypeGet(&module->types,type->params[0]);
+    char expected[80];
+    if(type && type->kind==XL6_IR_TYPE_BUILTIN && type->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && type->name && !strcmp(type->name,"var"))
+        return !strcmp(row->cName,"const xvalue*") && target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_XVALUE_BORROW &&
+            target->parameterAbis[p]==XL6_IR_PARAMETER_ABI_BORROW;
+    if(!type || type->kind!=XL6_IR_TYPE_CLASS || !type->foreignHeader ||
+        !xl6ForeignConstPointerName(type->cName,expected,sizeof(expected)) || strcmp(expected,row->cName))return 0;
+    int managed=xl6IrForeignManagedViewParameter(module,target,p);
+    return target->parameterPhysicalAbis[p]==(managed ? XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_FOREIGN_VIEW_BORROW :
+        XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_NATIVE_POINTER_DIRECT) &&
+        (managed ? target->parameterAbis[p]==XL6_IR_PARAMETER_ABI_BORROW : type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL);
+}
 const XL6_ForeignValueContract* xl6IrForeignValueGet(const XL6_IrModule* module,const XL6_IrCallTarget* target,size_t p)
 {
     if(!module || !target || p>=target->parameterCount)return NULL;
@@ -128,12 +213,7 @@ static int xl6IrForeignOwnershipHelperMatches(const XL6_IrModule* module,
     return helper && node && node->sourceKind==XL6_AST_EXTERN_FUNC &&
         (node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) &&
         !(node->flags&(XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) &&
-        !node->foreignCall.constRecordAddresses && !node->foreignCall.staticCallbackAddresses &&
-        !node->foreignCall.textViews && !node->foreignCall.bytesViews && !node->foreignCall.terminatedStrings &&
-        !node->foreignCall.physicalPairs && !node->foreignCall.retainedCallbacks && !node->foreignCall.controlViews &&
-        !node->foreignCall.borrowedViewResult && !node->foreignCall.resultOwnerIndexPlusOne &&
-        !node->foreignCall.outputIndexPlusOne && !node->foreignCall.successCode && !node->foreignCall.rollbackSymbol &&
-        !node->foreignCall.valueOutput && !node->foreignCall.receiverDereference && !node->foreignCall.inplaceOutput && !node->foreignCall.callbackSpanMappings &&
+        xl6ForeignOwnershipHelperFacts(&node->foreignCall,status) &&
         helper->kind==XL6_IR_CALL_TARGET_EXTERN_C && helper->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_CALL &&
         !helper->runtimeBridge && !helper->variadicAbi && !helper->nativeServicesRequired &&
         !helper->nativeContextAbi && !helper->nativeResultAbi && !helper->nativeArrayResultAbi &&
@@ -142,7 +222,12 @@ static int xl6IrForeignOwnershipHelperMatches(const XL6_IrModule* module,
         helper->parameterPhysicalAbis && helper->parameterPhysicalAbis[0]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW &&
         (status ? result && result->cAbi==XL6_IR_C_ABI_C_INT : !helper->returnType) &&
         helper->resultPhysicalAbi==XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
-        helper->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_DIRECT;
+        (node->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS ?
+            !status && helper->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_INT_STATUS &&
+            helper->nativeSuccessCode==node->foreignCall.successCode &&
+            helper->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_STATUS_CHECK :
+            helper->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_STORAGE && !helper->nativeSuccessCode &&
+            helper->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_DIRECT);
 }
 int xl6IrForeignRetainResultMatches(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
@@ -225,7 +310,7 @@ int xl6IrForeignStorageFactoryMatches(const XL6_IrModule* module,const XL6_IrCal
         node->foreignCall.outputIndexPlusOne && !node->foreignCall.valueOutput &&
         node->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE &&
         target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT &&
-        target->factoryResultAbi==xl6IrCallFactoryResultAbiForTarget(module,target)))return 0;
+        target->outputResultAbi==xl6IrCallOutputResultAbiForTarget(module,target)))return 0;
     if(row->kind==XL6_FOREIGN_STORAGE_POLICY)return !row->adoptSymbol && !row->successCode;
     return row->kind==XL6_FOREIGN_STORAGE_NATIVE_ADOPTION &&
         xl6IrForeignOwnershipHelperMatches(module,row->adoptSymbol,target->returnType,1);
@@ -253,23 +338,109 @@ static int xl6IrVerifyForeignFieldLengths(const XL6_IrModule* module,XL6_DiagLis
     return 1;
 invalid:return xl6IrDiag(diags,NULL,"counted native fields require unique normalized length contracts");
 }
+static int xl6IrForeignMultiOutput(const XL6_IrNode* node)
+{return node && (node->foreignCall.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS || node->foreignCall.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID);}
+static const XL6_ForeignOutputContract* xl6IrForeignOutputGet(const XL6_IrModule* module,const XL6_IrCallTarget* target,size_t ordinal)
+{
+    if(!module || !target || module->foreignOutputCount>module->foreignOutputCapacity || (module->foreignOutputCount && !module->foreignOutputs))return NULL;
+    for(size_t i=0;i<module->foreignOutputCount;++i)
+        if(module->foreignOutputs[i].declaration==target->declaration && module->foreignOutputs[i].ordinal==ordinal)return &module->foreignOutputs[i];
+    return NULL;
+}
+size_t xl6IrForeignOutputCount(const XL6_IrModule* module,const XL6_IrCallTarget* target)
+{
+    const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration):NULL;
+    if(!node || !node->foreignCall.valueOutput)return 0;
+    if(!xl6IrForeignMultiOutput(node))return 1;
+    if(module->foreignOutputCount>module->foreignOutputCapacity || (module->foreignOutputCount && !module->foreignOutputs))return 0;
+    size_t count=0;
+    for(size_t i=0;i<module->foreignOutputCount;++i)count+=module->foreignOutputs[i].declaration==target->declaration;
+    return count;
+}
+XL6_IrTypeId xl6IrForeignOutputType(const XL6_IrModule* module,const XL6_IrCallTarget* target,size_t ordinal)
+{
+    const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration):NULL;
+    if(!node || !node->foreignCall.valueOutput)return 0;
+    if(!xl6IrForeignMultiOutput(node))return ordinal ? 0 : target->returnType;
+    const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
+    return result && result->kind==XL6_IR_TYPE_TUPLE && result->params && ordinal<result->paramCount ? result->params[ordinal] : 0;
+}
+int xl6IrForeignOutputStep(const XL6_IrModule* module,const XL6_IrCallTarget* target,size_t step,size_t* input,size_t* output)
+{
+    const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration):NULL;
+    if(!node || !input || !output)return 0;
+    size_t count=xl6IrForeignOutputCount(module,target);
+    size_t receiver=(node->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || node->sourceKind==XL6_AST_GET || node->sourceKind==XL6_AST_LET) && !(node->flags&XL6_AST_FLAG_STATIC) ? 1u:0u;
+    size_t physical=0,p=0,o=0;
+    if(step>=target->parameterCount+count)return 0;
+    for(size_t event=0;event<=step;++event){
+        const XL6_ForeignOutputContract* row=xl6IrForeignMultiOutput(node) ? xl6IrForeignOutputGet(module,target,o):NULL;
+        size_t slot=row ? row->physicalIndex : node->foreignCall.outputIndexPlusOne-1;
+        if(o<count && slot==physical){
+            *input=SIZE_MAX;*output=o++;++physical;
+        }else{
+            if(p>=target->parameterCount || (o<count && slot<physical))return 0;
+            *input=p;*output=SIZE_MAX;
+            size_t explicitParameter=p>=receiver ? p-receiver:SIZE_MAX;
+            physical+=explicitParameter<64 && (node->foreignCall.physicalPairs&(UINT64_C(1)<<explicitParameter)) ? 2 :
+                explicitParameter<64 && (node->foreignCall.retainedCallbacks&(UINT64_C(1)<<explicitParameter)) ? 3 : 1;
+            ++p;
+        }
+    }
+    return 1;
+}
+static int xl6IrVerifyForeignOutputs(const XL6_IrModule* module,XL6_DiagList* diags)
+{
+    if(module->foreignOutputCount>module->foreignOutputCapacity || (module->foreignOutputCount && !module->foreignOutputs))goto invalid;
+    for(size_t i=0;i<module->foreignOutputCount;++i){
+        const XL6_ForeignOutputContract* row=&module->foreignOutputs[i];
+        const XL6_IrNode* node=xl6IrNodeGet(module,row->declaration);
+        if(!xl6IrForeignMultiOutput(node) || node->kind!=XL6_IR_NODE_FUNC_DECL || row->ordinal>=64 || row->physicalIndex>=64)goto invalid;
+        for(size_t j=0;j<i;++j)if(module->foreignOutputs[j].declaration==row->declaration &&
+            (module->foreignOutputs[j].ordinal==row->ordinal || module->foreignOutputs[j].physicalIndex==row->physicalIndex))goto invalid;
+    }
+    for(size_t n=0;n<module->nodeCount;++n){
+        const XL6_IrNode* node=&module->nodes[n];if(!xl6IrForeignMultiOutput(node))continue;
+        XL6_IrCallTarget target={0};target.declaration=(XL6_IrNodeId)(n+1);
+        size_t count=xl6IrForeignOutputCount(module,&target);uint32 slots[64];
+        const XL6_IrNode* params=node->childCount>1 ? xl6IrNodeGet(module,module->children[node->firstChild+1]):NULL;
+        const XL6_IrNode* returns=node->childCount>2 ? xl6IrNodeGet(module,module->children[node->firstChild+2]):NULL;
+        size_t receiver=(node->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || node->sourceKind==XL6_AST_GET || node->sourceKind==XL6_AST_LET) && !(node->flags&XL6_AST_FLAG_STATIC) ? 1u:0u;
+        if(count<2 || count>64 || !params || !returns || returns->childCount!=count)goto invalid;
+        for(size_t o=0;o<count;++o){
+            const XL6_ForeignOutputContract* row=xl6IrForeignOutputGet(module,&target,o);
+            if(!row || (o && row->physicalIndex<=slots[o-1]))goto invalid;
+            slots[o]=row->physicalIndex;
+        }
+        if(node->foreignCall.outputIndexPlusOne!=slots[0]+1 ||
+            !xl6ForeignMultiOutputSlotsValid(&node->foreignCall,params->childCount+receiver,receiver,slots,count))goto invalid;
+    }
+    return 1;
+invalid:return xl6IrDiag(diags,NULL,"native multi-output rows must exactly cover increasing complete C slots and language results");
+}
 int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration) : NULL;
     if(!node || !node->foreignCall.valueOutput)return 0;
-    size_t receiver=(node->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || node->sourceKind==XL6_AST_GET || node->sourceKind==XL6_AST_LET) &&
-        !(node->flags&XL6_AST_FLAG_STATIC) ? 1u : 0u;
-    const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
-    return node->foreignCall.valueOutput==1 && node->foreignCall.outputIndexPlusOne &&
+    size_t receiver=(node->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || node->sourceKind==XL6_AST_GET || node->sourceKind==XL6_AST_LET) && !(node->flags&XL6_AST_FLAG_STATIC) ? 1u:0u;
+    size_t count=xl6IrForeignOutputCount(module,target);
+    if(!count || count>64)return 0;
+    for(size_t o=0;o<count;++o)if(!xl6IrRawCCallbackTrivialValueType(xl6IrTypeGet(&module->types,xl6IrForeignOutputType(module,target,o))))return 0;
+    if(xl6IrForeignMultiOutput(node)){
+        const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
+        if(count<2 || !result || result->kind!=XL6_IR_TYPE_TUPLE || result->paramCount!=count)return 0;
+    }else if(xl6ForeignOutputLogical(&node->foreignCall,target->parameterCount,receiver)==SIZE_MAX)return 0;
+    for(size_t step=0;step<target->parameterCount+count;++step){size_t in,out;if(!xl6IrForeignOutputStep(module,target,step,&in,&out))return 0;}
+    return node->foreignCall.valueOutput<=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID &&
+        ((node->foreignCall.valueOutput!=XL6_FOREIGN_VALUE_OUTPUT_VOID && node->foreignCall.valueOutput!=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID) || !node->foreignCall.successCode) &&
+        target->outputResultAbi==xl6IrCallOutputResultAbiForTarget(module,target) && node->foreignCall.outputIndexPlusOne &&
         !node->foreignCall.rollbackSymbol && !node->foreignCall.borrowedViewResult &&
-        xl6ForeignOutputLogical(&node->foreignCall,target->parameterCount,receiver)!=SIZE_MAX &&
         (node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) && !(node->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) &&
         target->kind==XL6_IR_CALL_TARGET_EXTERN_C && !target->runtimeBridge &&
         !target->nativeServicesRequired && !target->nativeContextAbi && !target->nativeResultAbi && !target->nativeArrayResultAbi &&
-        target->variadicAbi==XL6_IR_CALL_VARIADIC_NONE && xl6IrRawCCallbackTrivialValueType(result) &&
-        target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_STORAGE &&
-        target->resultPhysicalAbi==XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
-        target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE;
+        target->variadicAbi==XL6_IR_CALL_VARIADIC_NONE &&
+        target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_STORAGE && target->resultPhysicalAbi==XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
+        target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE;
 }
 int xl6IrForeignManagedPointeeWrite(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
@@ -357,7 +528,7 @@ static int xl6IrForeignParameterRowValid(const XL6_ForeignParameterContract* row
         (row->callbackResultKind==XL6_FOREIGN_CALLBACK_RESULT_TRIVIAL || row->callbackResultKind==XL6_FOREIGN_CALLBACK_RESULT_OWNED_TEXT) &&
         !row->countAbi && !row->readOnly && row->callbackOwnerIndexPlusOne<=64 &&
         (row->kind==XL6_FOREIGN_PARAMETER_SYNC_CALLBACK ? !row->callbackOwnerCName[0] && !row->callbackResultKind :
-         row->callbackOwnerIndexPlusOne && memchr(row->callbackOwnerCName,0,sizeof(row->callbackOwnerCName)) && xl6ForeignIdentifier(row->callbackOwnerCName));
+         memchr(row->callbackOwnerCName,0,sizeof(row->callbackOwnerCName)) && xl6ForeignIdentifier(row->callbackOwnerCName));
 }
 static int xl6IrVerifyForeignParameters(const XL6_IrModule* module,XL6_DiagList* diags)
 {
@@ -415,7 +586,7 @@ int xl6IrForeignCallbackParameterMatches(const XL6_IrModule* module,const XL6_Ir
         signature->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_FIXED ||
         target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW || target->parameterPhysicalFieldDeclarations[parameter] ||
         target->parameterConstraintAbis[parameter] ||
-        (!row->callbackOwnerIndexPlusOne && row->kind!=XL6_FOREIGN_PARAMETER_SYNC_CALLBACK) || row->callbackOwnerIndexPlusOne>target->parameterCount)return 0;
+        row->callbackOwnerIndexPlusOne>target->parameterCount)return 0;
     size_t source=row->callbackOwnerIndexPlusOne-1;
     const XL6_IrType* owner=source<target->parameterCount ? xl6IrTypeGet(&module->types,target->parameterTypes[source]) : NULL;
     const XL6_IrType* root=source<target->parameterCount ? xl6IrForeignRootType(module,target->parameterTypes[source]) : NULL;
@@ -462,6 +633,10 @@ int xl6IrForeignPreparedParameterMatches(const XL6_IrModule* module,const XL6_Ir
         return xl6IrForeignValueMatches(module,target,p);
     case XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW:
         return xl6IrForeignManagedViewParameter(module,target,p);
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_FOREIGN_VIEW_BORROW:
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_NATIVE_POINTER_DIRECT:
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_XVALUE_BORROW:
+        return xl6IrForeignPointerQualifierMatches(module,target,p);
     case XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW:
         return xl6IrForeignTextViewParameter(module,target,p);
     case XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW:

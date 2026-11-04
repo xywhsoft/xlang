@@ -22,7 +22,8 @@ typedef enum XL6_ForeignBorrowedViewResult {
     XL6_FOREIGN_VIEW_RESULT_INT_STATUS,
     XL6_FOREIGN_VIEW_RESULT_TEXT_FIELD,
     XL6_FOREIGN_VIEW_RESULT_BYTES_FIELD,
-    XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE
+    XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE,
+    XL6_FOREIGN_VIEW_RESULT_BORROWED_VALUE
 } XL6_ForeignBorrowedViewResult;
 
 static inline int xl6ForeignResultTextView(XL6_ForeignBorrowedViewResult kind)
@@ -37,6 +38,14 @@ typedef enum XL6_ForeignInplaceKind {
     XL6_FOREIGN_INPLACE_STATUS,
     XL6_FOREIGN_INPLACE_VOID
 } XL6_ForeignInplaceKind;
+
+typedef enum XL6_ForeignValueOutputKind {
+    XL6_FOREIGN_VALUE_OUTPUT_NONE=0,
+    XL6_FOREIGN_VALUE_OUTPUT_STATUS,
+    XL6_FOREIGN_VALUE_OUTPUT_VOID,
+    XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS,
+    XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID
+} XL6_ForeignValueOutputKind;
 
 /* Closed declaration facts. Const addresses exist only during one call;
  * they do not introduce a language reference or an escaping pointer. */
@@ -58,13 +67,26 @@ typedef struct XL6_ForeignCallFacts {
     uint32 outputIndexPlusOne;
     int32 successCode;
     uint32 rollbackSymbol;
-    /* Status + one trivial output, distinct from an owning factory. Occupies
+    /* One trivial output (XL6_ForeignValueOutputKind), distinct from an owning factory. Occupies
      * existing tail padding; outputIndexPlusOne includes the C receiver. */
     uint8 valueOutput;
     uint8 receiverDereference;
     uint8 inplaceOutput; /* XL6_ForeignInplaceKind, not a Boolean. */
     uint8 callbackSpanMappings;
 } XL6_ForeignCallFacts;
+
+/* Ownership helpers have one exact raw owner input and no physical input
+ * rewrites. Release may report int status through the existing checked-result
+ * contract; this is independent of its logical void result. */
+static inline int xl6ForeignOwnershipHelperFacts(const XL6_ForeignCallFacts* f,int retain)
+{
+    return f && !f->constRecordAddresses && !f->staticCallbackAddresses && !f->textViews && !f->bytesViews &&
+        !f->terminatedStrings && !f->physicalPairs && !f->retainedCallbacks && !f->controlViews &&
+        !f->resultOwnerIndexPlusOne && !f->outputIndexPlusOne && !f->rollbackSymbol && !f->valueOutput &&
+        !f->receiverDereference && !f->inplaceOutput && !f->callbackSpanMappings &&
+        (f->borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_NONE ? !f->successCode :
+         !retain && f->borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS);
+}
 
 /* The factory output index counts actual C slots. Expanded pointer/count
  * and callback/userdata/owner groups remain indivisible parameter contracts. */
@@ -83,6 +105,22 @@ static inline size_t xl6ForeignOutputLogical(const XL6_ForeignCallFacts* facts,s
 
 static inline size_t xl6ForeignFactoryOutputLogical(const XL6_ForeignCallFacts* facts,size_t count)
 {return xl6ForeignOutputLogical(facts,count,0);}
+
+/* Each multi-output producer stores only its actual physical output slots.
+ * Ordinals follow increasing physical positions and the language return list. */
+typedef struct XL6_ForeignOutputContract {
+    uint32 declaration,ordinal,physicalIndex;
+} XL6_ForeignOutputContract;
+
+/* Only parameters which explicitly add pointee constness occupy a row. */
+typedef struct XL6_ForeignPointerQualifierContract {
+    uint32 declaration,parameter;
+    char cName[80];
+} XL6_ForeignPointerQualifierContract;
+typedef struct XL6_ForeignFunctionHeaderContract {
+    uint32 declaration;
+    char header[256];
+} XL6_ForeignFunctionHeaderContract;
 
 /* Sparse per-declaration physical expansions, stored only for parameters
  * which request them. No fixed array is attached to every call or IR node. */

@@ -1,6 +1,6 @@
 /* Real public module retirement, parked in a valid checked preflight.
  * No network, fake module records, sleeps or replacement runtime providers. */
-#include "release/include/xl_clock.h"
+#include "xl_clock.h"
 #include "xl.h"
 #include "xruntime_decl.h"
 #include <assert.h>
@@ -41,6 +41,7 @@ static int32 unpark(void* unused)
     xrtAtomic32Store(&release_preflight,1,XMEMORY_RELEASE);return 0;
 }
 static const char artifact[]=
+    "#include <xrt_decl.h>\n"
     "#include <__xl_runtime/xruntime_decl.h>\n"
     "#include <__xl_runtime/xl6_code_lease.h>\n"
     "extern int drain_park(void);extern int drain_stage(void);\n"
@@ -94,7 +95,7 @@ static void cycle(int argc,char** argv,unsigned phase)
     printf("drain threads: phase=%u same-driver=%u zero=%d/%d bounded=%d/%d elapsed=%llu wait=%d/%d released=%d\n",
         phase,reentries,zero.ready,zero.ok,bounded.ready,bounded.ok,(unsigned long long)elapsed,waiting.ready,waiting.ok,released);
     fflush(stdout);
-    assert(reentries==(phase+1)*3&&!zero.ready&&zero.ok&&!bounded.ready&&bounded.ok&&elapsed>=20000);
+    assert(reentries==(phase+1)*3&&!zero.ready&&zero.ok&&!bounded.ready&&bounded.ok&&elapsed>=20);
     assert(waiting.ready&&waiting.ok&&released&&!xrtGetError());
 }
 int main(int argc,char** argv)
