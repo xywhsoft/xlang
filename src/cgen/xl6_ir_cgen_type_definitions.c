@@ -170,6 +170,54 @@ static int xl6IrCgenEmitForeignFieldSchema(XL6_Output* out, const XL6_IrModule* 
     return !xl6OutputHasFailed(out);
 }
 
+/* The public header keeps the same ABI proofs in C11 and C++11. C enum
+ * compatibility is normalized for scalar values and callback signatures;
+ * qualifiers, array extents and nominal record identity remain exact. */
+static void xl6IrCgenEmitNativeAbiProofs(XL6_Output* out,const XL6_IrModule* module)
+{
+    bool needed=false;
+    for(size_t i=0;i<module->types.count;++i)if(module->types.items[i].foreignHeader){needed=true;break;}
+    if(!needed)return;
+    xl6OutputPuts(
+        "#ifndef XLIR_NATIVE_ABI_PROOFS_V1\n"
+        "#define XLIR_NATIVE_ABI_PROOFS_V1 1\n"
+        "#ifdef __cplusplus\n"
+        "extern \"C++\" {\n"
+        "#include <type_traits>\n"
+        "namespace xlir_native_abi_v1 {\n"
+        "template<class T,bool E=std::is_enum<T>::value> struct scalar { typedef T type; };\n"
+        "template<class T> struct scalar<T,true> { typedef typename std::underlying_type<T>::type type; };\n"
+        "template<class T> struct canonical : scalar<T> {};\n"
+        "template<class T> struct canonical<const T> { typedef const typename canonical<T>::type type; };\n"
+        "template<class T> struct canonical<volatile T> { typedef volatile typename canonical<T>::type type; };\n"
+        "template<class T> struct canonical<const volatile T> { typedef const volatile typename canonical<T>::type type; };\n"
+        "template<class R,class... A> struct canonical<R(A...)> { typedef typename canonical<R>::type type(typename canonical<A>::type...); };\n"
+        "template<class R,class... A> struct canonical<R(A...,...)> { typedef typename canonical<R>::type type(typename canonical<A>::type...,...); };\n"
+        "template<class R,class... A> struct canonical<R(*)(A...)> { typedef typename canonical<R(A...)>::type* type; };\n"
+        "template<class R,class... A> struct canonical<R(*)(A...,...)> { typedef typename canonical<R(A...,...)>::type* type; };\n"
+        "#if defined(__cpp_noexcept_function_type)\n"
+        "template<class R,class... A> struct canonical<R(A...) noexcept> : canonical<R(A...)> {};\n"
+        "template<class R,class... A> struct canonical<R(A...,...) noexcept> : canonical<R(A...,...)> {};\n"
+        "template<class R,class... A> struct canonical<R(*)(A...) noexcept> : canonical<R(*)(A...)> {};\n"
+        "template<class R,class... A> struct canonical<R(*)(A...,...) noexcept> : canonical<R(*)(A...,...)> {};\n"
+        "#endif\n"
+        "template<class A,class B> struct same : std::is_same<typename canonical<typename std::decay<A>::type>::type,typename canonical<B>::type> {};\n"
+        "}\n"
+        "}\n"
+        "#define XLIR_NATIVE_ASSERT(Expr,Message) static_assert(Expr,Message)\n"
+        "#define XLIR_NATIVE_ALIGNOF(Type) alignof(Type)\n"
+        "#define XLIR_NATIVE_IS_TYPE(Expr,Type) (xlir_native_abi_v1::same<decltype(Expr),Type>::value)\n"
+        "#define XLIR_NATIVE_IS_POINTER(Type) (std::is_pointer<Type>::value)\n"
+        "#else\n"
+        "#define XLIR_NATIVE_ASSERT(Expr,Message) _Static_assert(Expr,Message)\n"
+        "#define XLIR_NATIVE_ALIGNOF(Type) _Alignof(Type)\n"
+        "#define XLIR_NATIVE_IS_TYPE(Expr,Type) _Generic((Expr),Type:1,default:0)\n"
+        "#define XLIR_NATIVE_IS_POINTER(Type) _Generic((Type)0,bool:0,char:0,signed char:0,unsigned char:0,short:0,unsigned short:0,int:0,unsigned int:0,long:0,unsigned long:0,long long:0,unsigned long long:0,float:0,double:0,long double:0,default:1)\n"
+        "#endif\n"
+        "#endif\n"
+        ,out);
+}
+
 static int xl6IrCgenEmitUnionTypes(
     XL6_Output* out, const XL6_IrModule* module,
     const unsigned char* selectedTypes, XL6_DiagList* diags,
@@ -180,6 +228,7 @@ static int xl6IrCgenEmitUnionTypes(
     size_t requiredCount = 0;
     size_t pass;
     size_t layoutIndex;
+    xl6IrCgenEmitNativeAbiProofs(out,module);
     if (!xl6IrCgenEmitForeignArrayTypes(out, module, selectedTypes, diags)) return 0;
     for ( layoutIndex = 0; layoutIndex < module->aggregateLayoutCount; ++layoutIndex )
         if ( xl6IrCgenTypeSelected(
@@ -248,8 +297,8 @@ static int xl6IrCgenEmitUnionTypes(
                     if (!xl6IrCgenEmitForeignFieldSchema(out, module, field, diags)) { xrtFree(emitted); return 0; }
                 }
                 xl6OutputPrintf(out, "} xlir_record_schema_%s;\n"
-                    "_Static_assert(sizeof(%s) == sizeof(xlir_record_schema_%s), \"C record size\");\n"
-                    "_Static_assert(_Alignof(%s) == _Alignof(xlir_record_schema_%s), \"C record alignment\");\n",
+                    "XLIR_NATIVE_ASSERT(sizeof(%s) == sizeof(xlir_record_schema_%s), \"C record size\");\n"
+                    "XLIR_NATIVE_ASSERT(XLIR_NATIVE_ALIGNOF(%s) == XLIR_NATIVE_ALIGNOF(xlir_record_schema_%s), \"C record alignment\");\n",
                     unionType->cName, unionType->cName, unionType->cName,
                     unionType->cName, unionType->cName);
                 for (fieldOffset = 0; fieldOffset < layout->fieldCount; ++fieldOffset) {
@@ -257,19 +306,19 @@ static int xl6IrCgenEmitUnionTypes(
                         &module->aggregateFields[layout->firstField + fieldOffset];
                     const char* cType = xl6IrCgenType(module, field->type);
                     xl6OutputPrintf(out,
-                        "_Static_assert(offsetof(%s, %s) == offsetof(xlir_record_schema_%s, %s), \"C record field offset\");\n",
+                        "XLIR_NATIVE_ASSERT(offsetof(%s, %s) == offsetof(xlir_record_schema_%s, %s), \"C record field offset\");\n",
                         unionType->cName, field->cName, unionType->cName, field->cName);
                     const XL6_IrType* fieldType = xl6IrTypeGet(&module->types, field->type);
                     if (fieldType->cAbi == XL6_IR_C_ABI_C_ARRAY) {
                         const char* element = xl6IrCgenType(module, fieldType->params[0]);
                         xl6OutputPrintf(out,
-                            "_Static_assert(sizeof(((%s*)0)->%s) / sizeof(((%s*)0)->%s[0]) == %llu, \"C array extent\");\n"
-                            "_Static_assert(_Generic(&((%s*)0)->%s[0], %s*:1, default:0), \"C array element type\");\n",
+                            "XLIR_NATIVE_ASSERT(sizeof(((%s*)0)->%s) / sizeof(((%s*)0)->%s[0]) == %llu, \"C array extent\");\n"
+                            "XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(&((%s*)0)->%s[0], %s*), \"C array element type\");\n",
                             unionType->cName, field->cName, unionType->cName, field->cName,
                             (unsigned long long)fieldType->nativeArrayExtent,
                             unionType->cName, field->cName, element);
                     } else xl6OutputPrintf(out,
-                        "_Static_assert(_Generic(((%s*)0)->%s, %s:1, default:0), \"C record field type\");\n",
+                        "XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s*)0)->%s, %s), \"C record field type\");\n",
                         unionType->cName, field->cName, cType);
                 }
                 xl6OutputPuts("#endif\n", out);
@@ -400,13 +449,10 @@ static int xl6IrCgenEmitProductTypes(
         if (!seen) xl6OutputPrintf(out, "#include <%s>\n", type->foreignHeader);
         if (seenType) continue;
         xl6OutputPrintf(out,
-            "_Static_assert(sizeof(%s) == sizeof(void*), \"external handle width\");\n",
+            "XLIR_NATIVE_ASSERT(sizeof(%s) == sizeof(void*), \"external handle width\");\n",
             type->cName);
         xl6OutputPrintf(out,
-            "_Static_assert(_Generic((%s)0, bool:0, char:0, signed char:0, unsigned char:0, "
-            "short:0, unsigned short:0, int:0, unsigned int:0, long:0, unsigned long:0, "
-            "long long:0, unsigned long long:0, float:0, double:0, long double:0, default:1), "
-            "\"external handle must be a C pointer type\");\n", type->cName);
+            "XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_POINTER(%s), \"external handle must be a C pointer type\");\n", type->cName);
     }
     /* Native record declarations precede every product which may contain one.
      * The native header owns layout and checked-result ABI; no duplicate body. */

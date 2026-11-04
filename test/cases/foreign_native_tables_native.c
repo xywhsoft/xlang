@@ -1,4 +1,5 @@
 #include "src/common/xl6_xrt.h"
+#include "foreign_native_tables.h"
 #include "src/api/xl_foreign_error.h"
 #include "src/runtime/xl6_native_callback.h"
 #include "src/runtime/xl6_closure_capture_v4.h"

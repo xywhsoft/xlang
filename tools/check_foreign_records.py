@@ -50,8 +50,8 @@ def main():
     generated = out / 'record.c'
     run('record-cgen', [driver, source, 'cgen-default', generated])
     text = generated.read_text(encoding='utf-8-sig')
-    assert '_Static_assert(_Generic(&foreign_decl_shift, foreign_decl_rect (*)(foreign_decl_rect, int, int):1, default:0), "declared C function ABI");' in text
-    assert '_Static_assert(_Generic(&foreign_decl_scale, foreign_decl_transform (*)(foreign_decl_transform, double):1, default:0), "declared C function ABI");' in text
+    assert 'XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(&foreign_decl_shift, foreign_decl_rect (*)(foreign_decl_rect, int, int)), "declared C function ABI");' in text
+    assert 'XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(&foreign_decl_scale, foreign_decl_transform (*)(foreign_decl_transform, double)), "declared C function ABI");' in text
     assert 'C record field offset' in text and 'C record field type' in text
     assert 'xlir_xvalue_object_get_literal' not in text
     runtime = runtime_directory(root) / ('xl.dll' if os.name == 'nt' else 'libxl.so')

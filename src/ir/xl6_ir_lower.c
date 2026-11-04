@@ -13632,7 +13632,8 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
         if (xl6IrForeignTerminatedStringParameter(module, target, i))
             target->parameterPhysicalAbis[i] = XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW;
         if(xl6IrForeignManagedViewParameter(module,target,i))
-            target->parameterPhysicalAbis[i]=XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW;
+            target->parameterPhysicalAbis[i]=xl6IrForeignValueGet(module,target,i) ?
+                XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VALUE_BORROW : XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW;
         if (xl6IrForeignConstRecordParameter(module, target, i))
             target->parameterPhysicalAbis[i] = XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS;
         if (xl6IrForeignStaticCallbackParameter(module, target, i)) {

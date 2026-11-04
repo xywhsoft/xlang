@@ -12,11 +12,11 @@ static int xl6IrCgenForeignViewsBegin(XL6_Output* out,const XL6_IrModule* module
 {
     int count=0;
     for(size_t p=0;p<target->parameterCount;++p)
-        if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW)++count;
+        if(xl6IrForeignViewBorrowPhysical(target->parameterPhysicalAbis[p]))++count;
     if(!count)return 0;
     xl6OutputPuts("    { bool native_views_ok = true;\n",out);
     for(size_t p=0;p<target->parameterCount;++p){
-        if(target->parameterPhysicalAbis[p]!=XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW)continue;
+        if(!xl6IrForeignViewBorrowPhysical(target->parameterPhysicalAbis[p]))continue;
         const XL6_IrType* root=xl6IrForeignRootType(module,target->parameterTypes[p]);
         const XL6_IrType* type=xl6IrTypeGet(&module->types,target->parameterTypes[p]);
         xl6OutputPrintf(out,"    XL6_ForeignViewCallV1 native_view_%lu = {0};\n",(unsigned long)p);
@@ -53,7 +53,7 @@ static void xl6IrCgenForeignViewsEnd(XL6_Output* out,const XL6_IrCallTarget* tar
 {
     xl6OutputPuts("    }\n",out);
     for(size_t p=target->parameterCount;p>0;--p)
-        if(target->parameterPhysicalAbis[p-1]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW)
+        if(xl6IrForeignViewBorrowPhysical(target->parameterPhysicalAbis[p-1]))
             xl6OutputPrintf(out,"    if (native_view_%lu.self && !xl6ForeignViewCallEndV1(&native_view_%lu)) xl6ErrorScopeCaptureFailure(&%s);\n",
                 (unsigned long)(p-1),(unsigned long)(p-1),errors);
     xl6OutputPuts("    }\n",out);

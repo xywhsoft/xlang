@@ -1,0 +1,184 @@
+{
+  "complete": true,
+  "scope": "Owned callback string results, exact native pointee-by-value projection, portable C/C++ ABI proofs and early IR storage authentication",
+  "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r21",
+  "windows": {
+    "fullTranslationUnits": 1414,
+    "tccObjects": 1562,
+    "acceptedGroups": 33,
+    "parallelPassedGroups": 24,
+    "serialRetriedGroups": 9,
+    "tccModes": [
+      "JIT",
+      "module",
+      "standalone"
+    ],
+    "gccNativeCallingTccCallbacks": [
+      "JIT",
+      "module after compiler context release"
+    ]
+  },
+  "linux": {
+    "fullTranslationUnits": 1413,
+    "acceptedCompilerGroups": 19,
+    "actualXuiCases": 3,
+    "actualXgeCases": 1,
+    "tccIncluded": false,
+    "clientSanitizers": [
+      "ASan",
+      "UBSan",
+      "leaks",
+      "stack-use-after-return"
+    ]
+  },
+  "ownedCallbackText": {
+    "callbackDeclarations": 2,
+    "result": "XRT-owned xstrview",
+    "logicalResults": [
+      "string",
+      "string?"
+    ],
+    "mutationsPerOptimization": 22,
+    "emptyOutputsPerOptimization": 44,
+    "semanticNegatives": 7,
+    "headerNegatives": 1,
+    "nullableEmptyDistinguished": true,
+    "nulAndUnicode": true,
+    "cleanupFailureFreesProducedValue": true,
+    "warmLiteralReturns": 100,
+    "warmCapturedStringReturns": 100,
+    "allocationsPerReturn": 1,
+    "freesPerReturn": 1,
+    "warmReallocations": 0,
+    "extraBridgeCopies": 0
+  },
+  "pointeeValue": {
+    "sparseRows": 5,
+    "rowBytes": 72,
+    "factsBytes": 88,
+    "mutationsPerOptimization": 95,
+    "emptyOutputsPerOptimization": 190,
+    "semanticNegatives": 8,
+    "headerNegatives": 3,
+    "receiverIndexIncluded": true,
+    "callerAndNullableRejected": true,
+    "directBoundProtocolAndBoxed": true,
+    "expiredAndClosedRejected": true,
+    "warmCallbackRounds": 200,
+    "warmXrtAllocationDelta": 0,
+    "warmXrtFreeDelta": 0,
+    "warmXrtReallocationDelta": 0
+  },
+  "headerProofs": {
+    "fixtureHeaders": 30,
+    "languages": [
+      "C11",
+      "C++11",
+      "C++17"
+    ],
+    "enumNegativeChecks": 6,
+    "enumPointersKeepNominalIdentity": true,
+    "proofsAreCompileTimeOnly": true
+  },
+  "verification": {
+    "order": "Arena/parameter storage before native semantic admission and effects",
+    "nullParameterArraysRejected": true,
+    "nullCallTargetArenaRejected": true
+  },
+  "resolvedFailures": [
+    {
+      "evidence": "linux-gates-r15.json",
+      "reason": "Enum pointer compatibility differs between GCC targets; public C++ checks now retain pointer enum identity and the fixture names its exact native pointer typedef"
+    },
+    {
+      "evidence": "value-projection-gate-probe-r3/results.json",
+      "reason": "A null parameter type array could reach a native effect helper before array validation; structural preflight now precedes semantic verification"
+    },
+    {
+      "evidence": "batch-r21-parallel/results.json",
+      "reason": "Three compiler test groups exceeded available Windows commit memory; MemoryError/STATUS_COMMITMENT_LIMIT stages were preserved, all nine failed or unrecorded groups retried serially"
+    }
+  ],
+  "limits": [
+    "No universal zero-overhead claim: checked view preparation, ownership, snapshots, OS context lookup, code residency and native retains have costs",
+    "The measured no-allocation projection loop uses warmed direct method/free-function calls, not cold registration, boxing or bound closure creation",
+    "Returned language strings require one owned allocation; the bridge does not add a second copy",
+    "Client sanitizer instrumentation does not include reused core/XRT or the actual engine",
+    "No Linux TCC or actual-engine TCC/GPU/desktop acceptance",
+    "Three IDE-only semantic completion hunks were in frozen build inputs and excluded from this commit",
+    "Synchronous captured callbacks, void native initializers, remaining native callback families, full declarations, automatic initialization and SDK/IDE/shipping migration remain unfinished"
+  ],
+  "eightTasksComplete": false,
+  "shippingUpdated": false,
+  "networkTests": false,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r21.json",
+      "sha256": "8830217ef0d3148629276d3c1e11d068a919c6083ce1fc06446aa4e14167f466"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r21\\build.json",
+      "sha256": "258d8c0f36cab29adbba092a249e6a7b877b6597e7727b956667ac1e3cf193ac"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r21-vfs\\build.json",
+      "sha256": "105be5b5ee2a44c9b4e48587f15e06a988bb78c9d68694501cbd5dbc583d9bc8"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r21-vfs\\provider.json",
+      "sha256": "3dbf45703a5e071575b5b8336fc7f72d19bbceabf3d1ec122187560315e6b6f8"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\precompiled-r21\\manifest.json",
+      "sha256": "c6903965f37639321810f54060a1b3f3b105abfd31a9121b9b34e8c464c9863e"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\batch-r21-accepted.json",
+      "sha256": "5a252f6eadbfd33056a793c014b953f9e23d4aa210f6325a59167712f248e817"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\batch-r21-parallel\\results.json",
+      "sha256": "e41689004e791f729e81681cfa6a5361724df18e95361d601ec9b029629dc3c4"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\batch-r21-retry\\results.json",
+      "sha256": "147247c310248ce5ea286807501d75d481c5fb2ce2f72829b6651de71f67e3f3"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\actual-xge-resources-r21\\results.json",
+      "sha256": "09e7c35292bf0a13b325c5877f84f0fc3c2f3de689365c3d76cb65130f676b64"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-gates-r17.json",
+      "sha256": "1e3522c147c2fac28ea6084dd7f605c73edd3a049bdbac80cae0dd5f3f559834"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-r21-evidence.json",
+      "sha256": "82084ea4f058d14a9f3dcec3f04d0ea94f1e4dca6c1388ffeee252a9bb0e2852"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-callback-value-asan-r1.json",
+      "sha256": "723ef1bee624cc3637d28bc0b7b314205a40cb22737829c52bf21c4aa33653ff"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\retired-validation-r21.json",
+      "sha256": "2eb226213ec0178773e9d10bd9350ca769e1f13e20a7df0f4a93f550802458a1"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\parallel-windows-r21.py",
+      "sha256": "1ec9d3817a72150db849eeb709fe7dc56ef20915c13353ac9b74445ee4999495"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\serial-retry-windows-r21.py",
+      "sha256": "ae726e2958eec2db5d5a579015f5aa31cd88e6e9735a7c9264c9dac437960845"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-gates-r15.json",
+      "sha256": "89dd54677ad66e956eaae47aa080ccc9c6e266e379f4680fb723cfe38adcc0ca"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\value-projection-gate-probe-r3\\results.json",
+      "sha256": "841ead081a93c684ccbec34e62a45f2ebe1c257b1086039ec9d386133e3d2e83"
+    }
+  ]
+}

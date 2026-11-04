@@ -1,0 +1,81 @@
+extern "SpanRoot*" class Root @header("test/cases/foreign_value_projection.h") @lifetime("owned") @policy("spanRootPolicy") @scope("SpanCall")
+ native point handle
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "const xbytesview*" class Slice @header("test/cases/foreign_value_projection.h") @lifetime("callback") @owner(Root)
+ native point handle
+ extern "value_projection_size" @no_raise @c_value(0,"xbytesview") func read() as c_int
+end
+extern "PlainRecord*" class Plain @header("test/cases/foreign_value_projection.h") @lifetime("owned") @policy("inplacePlainPolicy")
+ native point handle
+ extern "value_projection_record" @no_raise @c_value(0,"PlainRecord") func read() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "inplace_plain_init" @no_raise @c_result("owned_view") @factory(0,0,plainRollback) @c_inplace("PlainRecord") func plain(c_int mode) as Plain
+extern "inplace_plain_free" @no_raise func plainRollback(Plain value)
+extern "span_create" @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Root
+extern "span_destroy" @no_raise func rollback(Root root)
+extern "span_set" @no_raise @c_owned_callback(1,0,"SpanOwner",-7) @c_callback_span(1,0,"const unsigned char*","size_t") func on(Root root,func(Slice,c_int) as c_int callback)
+extern "span_fire" @no_raise func fire(Root root,c_int mode) as c_int
+extern "span_counter_begin" @no_raise func countsBegin()
+extern "span_counter_end" @no_raise func countsEnd()
+extern "value_projection_size" @no_raise @c_value(0,"xbytesview") func size(Slice value) as c_int
+extern "value_projection_pair" @no_raise @c_value(0,"xbytesview") @c_value(1,"xbytesview") func pair(Slice first,Slice second) as c_int
+protocol Reader
+ func read() as c_int
+end
+class Saved
+ Slice? slice
+end
+func main(...) as int
+ Root root=create()
+ Saved saved=Saved()
+ on(root,func(Slice input,c_int mode) as c_int
+  saved.slice=input
+  assert input.read()==3 and size(input)==3 and pair(input,input)==6
+  func() as c_int bound=input.read
+  assert bound()==3
+  Reader reader=input
+  assert reader.read()==3
+  var boxed=input
+  assert (boxed as Slice).read()==3
+  return input.read()
+ end)
+ assert fire(root,0)==3
+ bool expired=false
+ try
+  auto invalid=(saved.slice as Slice).read()
+ catch error
+  expired=true
+ end
+ assert expired
+ on(root,func(Slice input,c_int mode) as c_int
+  return input.read()+size(input)+pair(input,input)
+ end)
+ assert fire(root,0)==12
+ countsBegin()
+ int round=0
+ while round<200
+  assert fire(root,0)==12
+  round+=1
+ end
+ countsEnd()
+ root.close()
+ Plain value=plain(0)
+ assert value.read()==42
+ func() as c_int bound=value.read
+ assert bound()==42
+ Reader reader=value
+ assert reader.read()==42
+ var boxed=value
+ assert (boxed as Plain).read()==42
+ value.close()
+ bool closed=false
+ try
+  auto invalid=reader.read()
+ catch error
+  closed=true
+ end
+ assert closed
+ return 0
+end

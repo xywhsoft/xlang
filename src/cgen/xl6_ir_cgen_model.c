@@ -475,6 +475,9 @@ static const char* xl6IrCgenExternParameterType(
         const XL6_ForeignParameterContract* row=xl6IrForeignParameterGet(module,target,parameter);
         return row ? row->pointerCName : NULL;
     }
+    if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VALUE_BORROW){
+        const XL6_ForeignValueContract* row=xl6IrForeignValueGet(module,target,parameter);return row ? row->cName:NULL;
+    }
     if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW){
         type=xl6IrTypeGet(&module->types,target->parameterTypes[parameter]);return type ? type->cName : NULL;
     }

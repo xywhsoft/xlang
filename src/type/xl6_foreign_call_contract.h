@@ -129,6 +129,18 @@ typedef struct XL6_ForeignCallbackSpanContract {
     char pointerCName[128];
 } XL6_ForeignCallbackSpanContract;
 
+/* One logical native view supplies its complete pointee by value. Parameter
+ * indices include the implicit receiver; this never expands physical slots. */
+typedef struct XL6_ForeignValueContract {
+    uint32 declaration,parameter;
+    char cName[64];
+} XL6_ForeignValueContract;
+
+typedef enum XL6_ForeignCallbackResultKind {
+    XL6_FOREIGN_CALLBACK_RESULT_TRIVIAL = 0,
+    XL6_FOREIGN_CALLBACK_RESULT_OWNED_TEXT
+} XL6_ForeignCallbackResultKind;
+
 typedef struct XL6_ForeignParameterContract {
     uint32 declaration;
     uint32 parameter; /* Explicit language parameter, excluding receiver. */
@@ -143,6 +155,7 @@ typedef struct XL6_ForeignParameterContract {
     uint32 callbackOwnerIndexPlusOne; /* Includes the implicit receiver. */
     int32 callbackFailureCode;
     bool callbackUserFirst;
+    XL6_ForeignCallbackResultKind callbackResultKind;
 } XL6_ForeignParameterContract;
 
 #endif

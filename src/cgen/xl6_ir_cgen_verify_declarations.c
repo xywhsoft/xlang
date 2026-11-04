@@ -81,7 +81,7 @@ static int xl6IrCgenVerifyDeclarations(
                 if(!xl6IrNativeHandleAccessParameter(module,target,parameter) ||
                     parameterType->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR)
                     return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no exact native handle access owner");
-            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW){
+            } else if(xl6IrForeignViewBorrowPhysical(target->parameterPhysicalAbis[parameter])){
                 if(!xl6IrForeignManagedViewParameter(module,target,parameter) || !parameterType || (!parameterType->foreignPolicy && parameterType->foreignLifetime!=XL6_FOREIGN_LIFETIME_CALLBACK) ||
                     !xl6IrForeignRootType(module,target->parameterTypes[parameter]) ||
                     target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||

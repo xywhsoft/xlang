@@ -47,7 +47,7 @@ def main():
         generated = out/(stem+'.c')
         run(stem+'-cgen', [driver, source, 'cgen-default', generated])
         text = generated.read_text(encoding='utf-8-sig')
-        assert '_Static_assert(_Generic(&foreign_callback_apply_record, foreign_callback_record (*)(' in text
+        assert 'XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(&foreign_callback_apply_record, foreign_callback_record (*)(' in text
         if stem == 'static_callback':
             assert 'xlir_raw_callback_entry_' not in text and 'xlir_closure_new(' not in text
             assert '= xlir_fn_' in text and '.raw_callback' not in text

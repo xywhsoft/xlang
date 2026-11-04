@@ -41,7 +41,7 @@ def main():
     generated = out/'factory.c'
     run('cgen', [driver, source, 'cgen-default', generated])
     text = generated.read_text(encoding='utf-8-sig')
-    assert '_Static_assert(_Generic(&foreign_factory_create, int (*)(int, foreign_factory_widget**, const foreign_factory_config*):1, default:0), "declared C function ABI");' in text
+    assert 'XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(&foreign_factory_create, int (*)(int, foreign_factory_widget**, const foreign_factory_config*)), "declared C function ABI");' in text
     assert '.e0 = foreign_factory_create(' in text and 'foreign_factory_create_token(' in text
     runtime = runtime_directory(root)/('xl.dll' if os.name == 'nt' else 'libxl.so')
     if os.name == 'nt': shutil.copy2(runtime, out/runtime.name)

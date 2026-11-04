@@ -107,6 +107,16 @@ static inline int xl6ForeignFieldLengthRead(const XL6_AstNode* attr,XL6_ForeignF
     return 1;
 }
 
+static inline int xl6ForeignValueRead(const XL6_AstNode* attr,XL6_ForeignValueContract* output)
+{
+    XL6_ForeignValueContract row={0};int32 p;
+    if(!attr || !attr->text || strcmp(attr->text,"c_value") || attr->childCount!=2 ||
+        !xl6ForeignDecimalInt(attr->children[0],&p) || p<0 || p>=64 ||
+        !xl6ForeignQuotedText(attr->children[1],row.cName,sizeof(row.cName)) ||
+        !xl6ForeignIdentifier(!strncmp(row.cName,"struct ",7) ? row.cName+7 : row.cName))return 0;
+    row.parameter=(uint32)p;if(output)*output=row;return 1;
+}
+
 static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
     XL6_ForeignParameterContract* output)
 {
@@ -136,18 +146,24 @@ static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
         memcpy(result.elementCName,element,bytes);result.elementCName[bytes]=0;
     } else if(!strcmp(attr->text,"c_owned_callback")) {
         int32 owner;
-        if((attr->childCount!=4 && attr->childCount!=5) ||
+        if((attr->childCount<4 || attr->childCount>6) ||
             !xl6ForeignDecimalInt(attr->children[1],&owner) || owner<0 || owner>=64 ||
             !xl6ForeignQuotedText(attr->children[2],result.callbackOwnerCName,sizeof(result.callbackOwnerCName)) ||
             !xl6ForeignIdentifier(result.callbackOwnerCName) ||
             !xl6ForeignDecimalInt(attr->children[3],&result.callbackFailureCode))return 0;
         result.kind=XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK;
         result.callbackOwnerIndexPlusOne=(uint32)owner+1;
-        if(attr->childCount==5) {
+        if(attr->childCount>=5) {
             char order[16];
             if(!xl6ForeignQuotedText(attr->children[4],order,sizeof(order)))return 0;
             if(!strcmp(order,"first"))result.callbackUserFirst=true;
+            else if(!strcmp(order,"owned_text") && attr->childCount==5)result.callbackResultKind=XL6_FOREIGN_CALLBACK_RESULT_OWNED_TEXT;
             else if(strcmp(order,"last"))return 0;
+        }
+        if(attr->childCount==6){
+            char kind[32];
+            if(!xl6ForeignQuotedText(attr->children[5],kind,sizeof(kind)) || strcmp(kind,"owned_text"))return 0;
+            result.callbackResultKind=XL6_FOREIGN_CALLBACK_RESULT_OWNED_TEXT;
         }
     } else return 0;
     if(output)*output=result;
@@ -162,6 +178,11 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
         const XL6_AstNode* attr = attributes->children[i];
         int32 index;
+        if(attr && attr->text && !strcmp(attr->text,"c_value")){
+            XL6_ForeignValueContract row;
+            if(!xl6ForeignValueRead(attr,&row))return 0;
+            continue;
+        }
         if(attr && attr->text && !strcmp(attr->text,"c_callback_span")){
             XL6_ForeignCallbackSpanContract row;
             if(!xl6ForeignCallbackSpanRead(attr,&row))return 0;

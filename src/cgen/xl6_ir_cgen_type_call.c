@@ -406,6 +406,11 @@ static int xl6IrCgenEmitCallPlace(XL6_Output* out, const XL6_IrModule* module,
         xl6OutputPrintf(out, "xlir_cstr_arg_%lu", (unsigned long)parameter); break;
     case XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW:
         xl6OutputPrintf(out, "xlir_bytes_arg_%lu", (unsigned long)parameter); break;
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VALUE_BORROW: {
+        const XL6_ForeignValueContract* row=xl6IrForeignValueGet(module,target,parameter);
+        if(!row)return 0;
+        xl6OutputPrintf(out,"*((%s)native_view_%lu.raw)",type->cName,(unsigned long)parameter);break;
+    }
     case XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW:
         xl6OutputPrintf(out, "(%s)native_view_%lu.raw", type->cName, (unsigned long)parameter); break;
     case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS:
