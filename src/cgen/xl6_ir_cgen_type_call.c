@@ -664,7 +664,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){xl6OutputPrintf(out,"&native_pack_%u",step.physicalIndex);continue;}
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){
             if(valueOutput){
-                if(xl6IrForeignOutputCount(module,target)>1)xl6OutputPrintf(out,"&native_raw.e%lu",(unsigned long)step.ordinal);
+                if(!xl6IrForeignOutputRecordGet(module,target) && xl6IrForeignOutputCount(module,target)>1)xl6OutputPrintf(out,"&native_raw.e%lu",(unsigned long)step.ordinal);
                 else xl6OutputPuts("&native_raw",out);
             }else xl6OutputPuts(storagePrepared ? "native_raw":"&native_raw",out);
             continue;
@@ -1109,7 +1109,7 @@ static int xl6IrCgenEmitDirectCall(
             if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){xl6OutputPrintf(out,"&native_pack_%u",step.physicalIndex);continue;}
             if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){
                 if(valueOutput){
-                    if(xl6IrForeignOutputCount(module,target)>1)xl6OutputPrintf(out,"&native_raw.e%lu",(unsigned long)step.ordinal);
+                    if(!xl6IrForeignOutputRecordGet(module,target) && xl6IrForeignOutputCount(module,target)>1)xl6OutputPrintf(out,"&native_raw.e%lu",(unsigned long)step.ordinal);
                     else xl6OutputPuts("&native_raw",out);
                 }else xl6OutputPuts(storagePrepared ? "native_raw":"&native_raw",out);
                 continue;

@@ -7065,6 +7065,10 @@ typedef struct XL6_IrModule {
     size_t foreignOutputSizeCount,foreignOutputSizeCapacity;
     XL6_ForeignOutputViewContract* foreignOutputViews;
     size_t foreignOutputViewCount,foreignOutputViewCapacity;
+    XL6_ForeignOutputRecordContract* foreignOutputRecords;
+    size_t foreignOutputRecordCount,foreignOutputRecordCapacity;
+    XL6_ForeignOutputFieldContract* foreignOutputFields;
+    size_t foreignOutputFieldCount,foreignOutputFieldCapacity;
     XL6_ForeignRegionContract* foreignRegions;
     size_t foreignRegionCount,foreignRegionCapacity;
     XL6_ForeignRegionObserverContract* foreignRegionObservers;
@@ -8059,6 +8063,10 @@ const XL6_ForeignValueContract* xl6IrForeignValueGet(const XL6_IrModule*,const X
 int xl6IrForeignValueMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 const XL6_ForeignCallbackSpanContract* xl6IrForeignCallbackSpanGet(const XL6_IrModule*,const XL6_ForeignParameterContract*,size_t);
 size_t xl6IrForeignOutputCount(const XL6_IrModule*,const XL6_IrCallTarget*);
+size_t xl6IrForeignPhysicalOutputCount(const XL6_IrModule*,const XL6_IrCallTarget*);
+const XL6_ForeignOutputRecordContract* xl6IrForeignOutputRecordGet(const XL6_IrModule*,const XL6_IrCallTarget*);
+const XL6_ForeignOutputFieldContract* xl6IrForeignOutputFieldGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+int xl6IrForeignOutputRecordsMatch(const XL6_IrModule*,const XL6_IrCallTarget*);
 XL6_IrTypeId xl6IrForeignOutputType(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 /* One emission step is either one complete logical input group or one output. */
 int xl6IrForeignOutputValueMatches(const XL6_IrModule*,const XL6_IrCallTarget*);

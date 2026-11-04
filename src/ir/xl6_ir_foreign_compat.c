@@ -59,6 +59,8 @@ static int xl6IrForeignOverloadMetadataEqual(const XL6_IrModule* m,const XL6_IrC
     XL6_EQUAL_ROWS(foreignOutputs,foreignOutputCount);
     XL6_EQUAL_ROWS(foreignOutputSizes,foreignOutputSizeCount);
     XL6_EQUAL_ROWS(foreignOutputViews,foreignOutputViewCount);
+    XL6_EQUAL_ROWS(foreignOutputRecords,foreignOutputRecordCount);
+    XL6_EQUAL_ROWS(foreignOutputFields,foreignOutputFieldCount);
     XL6_EQUAL_ROWS(foreignPacks,foreignPackCount);
     if(!xl6IrForeignPackFieldsEqual(m,left,right))return 0;
     XL6_EQUAL_ROWS(foreignPointerQualifiers,foreignPointerQualifierCount);
@@ -153,7 +155,9 @@ static int xl6IrVerifyForeignOverloads(const XL6_IrModule* module,XL6_DiagList* 
                     module->foreignParameters[p].kind==XL6_FOREIGN_PARAMETER_SPAN)spans=1;
             if(left->sourceKind!=XL6_AST_NATIVE_EXTERN_FUNC && !spans && !xl6ForeignInputHasRegions(left->foreignCall.inputMappingFacts) &&
                 !xl6ForeignInputHasRegions(right->foreignCall.inputMappingFacts) && !xl6ForeignInputHasPacks(left->foreignCall.inputMappingFacts) &&
-                !xl6ForeignInputHasPacks(right->foreignCall.inputMappingFacts) && !lifetimeVariants && !retainedOutputs)continue;
+                !xl6ForeignInputHasPacks(right->foreignCall.inputMappingFacts) &&
+                !xl6ForeignValueOutputIsRecord(left->foreignCall.valueOutput) &&
+                !xl6ForeignValueOutputIsRecord(right->foreignCall.valueOutput) && !lifetimeVariants && !retainedOutputs)continue;
             if(!xl6IrForeignOverloadsCompatible(module,a,b))return xl6IrDiag(diags,NULL,"native target overloads disagree on their sealed physical, effect or ownership contract");
         }
     }

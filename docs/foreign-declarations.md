@@ -1263,3 +1263,52 @@ can fail before invoking a native producer. It can also allocate a reservation
 for a producer that ultimately fails or returns nullable NULL. Materialization
 adds no second root allocation. These cold lifetime operations do not add a C
 forwarding method to ordinary UI or game calls.
+
+## Borrowed native record outputs
+
+One native output struct can project directly to a logical result or tuple.
+The physical struct remains stack storage; it is not exposed as a language
+record containing unmanaged resource pointers.
+
+```text
+extern "nativeGetPatch" @no_raise
+    @c_output_record(1,"NativePatch","borrowed") @c_status(0)
+    @c_output_field(0,"surface","retain",retainSurface,"zero",releaseSurface)
+    @c_output_field(1,"source") @c_output_field(2,"mode")
+    func getPatch() as (Surface?,Rect,c_int)
+```
+
+The output slot counts physical C arguments, including the native receiver.
+Each `c_output_field` ordinal names one logical result and one direct C field
+identifier. Every result must have exactly one mapping. The record must be a
+complete tagged C struct defined by the authoritative header, with a trivial,
+standard-layout C++ counterpart. C and C++ ABI
+proofs check the exact producer signature and every mapped field's type.
+`c_status(successCode)` denotes a native `int` status; omitting it denotes a
+native `void` producer.
+
+This contract is explicitly **borrowed**: the native output record itself
+carries no producer-owned cleanup responsibility. Supported field projections
+are trivial C scalars/records and independent owned native resources with
+typed Retain/rollback helpers. Nullable resource fields preserve NULL and do
+not Retain it. A non-nullable resource field rejects NULL. Raw pointer fields
+without Retain, text/bytes conversions, nullable POD, unions, private fields,
+nested field expressions and `c_output_size`/`c_output_view` on the same group
+are rejected. Binding authors must audit the actual native lifetime; the
+attribute cannot turn an unowned C pointer into a stable resource.
+
+All retained result roots are reserved before the native producer. Failure
+to reserve any root prevents the call. The producer runs once, then each
+resource is retained and admitted before input scopes end. Any status, Retain,
+callback or admission failure releases previously acquired results and delivers
+no partial tuple. The explicit failed bit preserves a first error even when
+an error object cannot be allocated. Declarations of the same native target
+must agree on the complete field, resource, effect and physical ABI contract.
+XLIR verifies these sparse rows before emitting any C or public header.
+
+Costs are zero-initialized stack record storage, field-to-result stores and
+the normal checked scopes. Resource projections additionally use the existing
+root reservation, one declared Retain per non-NULL resource, and lifetime
+bookkeeping. POD projection performs no heap allocation or dynamic dispatch.
+No forwarding C function, second getter call, runtime field-name lookup or
+per-method marshalling wrapper is generated.

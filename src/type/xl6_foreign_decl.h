@@ -92,6 +92,7 @@ static inline int xl6ForeignOutputViewRead(const XL6_AstNode* attr,XL6_ForeignOu
     if(!row.conversion)return 0;
     row.physicalIndex=(uint32)index;if(output)*output=row;return 1;
 }
+#include "src/type/xl6_foreign_output_record_decl.h"
 static inline int xl6ForeignConstPointerName(const char* input,char* output,size_t capacity)
 {
     if(!input || !output || !capacity || !strncmp(input,"const ",6) ||
@@ -284,6 +285,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     XL6_ForeignCallFacts* output)
 {
     XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0,outputStatus=0,fieldCall=0;uint64 callbackSpans=0,callbackParameters=0,outputSizes=0,outputViews=0,regions=0,regionObservers=0,packs=0,packText=0,packCstrings=0;size_t callbackSpanCount=0,packFields=0;
+    uint64 recordFields=0,recordRetains=0;
     const XL6_AstNode* attributes = xl6ForeignFunctionAttributes(node);
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
         const XL6_AstNode* attr = attributes->children[i];
@@ -331,6 +333,20 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             uint32 slots[64];size_t outputs;
             if(facts.outputIndexPlusOne || !xl6ForeignMultiOutputRead(attr,slots,&outputs))return 0;
             facts.outputIndexPlusOne=slots[0]+1;facts.valueOutput=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID;continue;
+        }
+        if(attr && attr->text && !strcmp(attr->text,"c_output_record")){
+            XL6_ForeignOutputRecordContract row;
+            if(facts.outputIndexPlusOne || !xl6ForeignOutputRecordRead(attr,&row))return 0;
+            facts.outputIndexPlusOne=row.physicalIndex+1;facts.valueOutput=XL6_FOREIGN_VALUE_OUTPUT_RECORD_VOID;continue;
+        }
+        if(attr && attr->text && !strcmp(attr->text,"c_output_field")){
+            XL6_ForeignOutputFieldContract row;XL6_ForeignOutputViewContract view;
+            if(!xl6ForeignOutputFieldRead(attr,&row,&view) || (recordFields&(UINT64_C(1)<<row.ordinal)))return 0;
+            for(size_t j=0;j<i;++j){XL6_ForeignOutputFieldContract previous;
+                if(xl6ForeignOutputFieldRead(attributes->children[j],&previous,NULL) && !strcmp(row.field,previous.field))return 0;}
+            recordFields|=UINT64_C(1)<<row.ordinal;
+            if(view.conversion)recordRetains|=UINT64_C(1)<<row.ordinal;
+            continue;
         }
         if(attr && attr->text && !strcmp(attr->text,"c_output_size")){
             XL6_ForeignOutputSizeContract row;
@@ -447,9 +463,13 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         (node->flags&(XL6_AST_FLAG_STATIC|XL6_AST_FLAG_FOREIGN_FIELD)) || facts.receiverDereference ||
         facts.controlViews || (facts.outputIndexPlusOne && facts.outputIndexPlusOne==1)))return 0;
     if(outputStatus){
-        if(facts.valueOutput!=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID)return 0;
-        facts.valueOutput=XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS;
+        if(facts.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_RECORD_VOID)facts.valueOutput=XL6_FOREIGN_VALUE_OUTPUT_RECORD_STATUS;
+        else if(facts.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID)facts.valueOutput=XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS;
+        else return 0;
     }
+    if(xl6ForeignValueOutputIsRecord(facts.valueOutput)){
+        if(!recordFields || outputSizes || outputViews)return 0;
+    }else if(recordFields)return 0;
     if((outputSizes|outputViews) && (!facts.valueOutput || (outputSizes&outputViews)))return 0;
     if(voidFactory){
         if(facts.inplaceOutput!=XL6_FOREIGN_INPLACE_STATUS)return 0;
@@ -477,7 +497,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         (facts.borrowedViewResult && facts.borrowedViewResult<=XL6_FOREIGN_VIEW_RESULT_BYTES && facts.outputIndexPlusOne) ||
         (facts.valueOutput && facts.borrowedViewResult)) return 0;
     if(outputSizes)facts.valueOutput|=XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED;
-    if(outputViews)facts.valueOutput|=XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED;
+    if(outputViews || recordRetains)facts.valueOutput|=XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED;
     if((regionObservers&~regions) || (regions && ((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)) ||
         (packs && (regions || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)) ||
         !xl6ForeignInputMappingsSet(callbackSpanCount,regions!=0,packs!=0,&facts.inputMappingFacts))return 0;
