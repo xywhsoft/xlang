@@ -405,20 +405,21 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
             : target->returnType == XL6_IR_TYPE_INVALID ? "void"
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW ? "xstrview"
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW ? "xbytesview"
+            : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_CONST_XVALUE_POINTER ? "const xvalue*"
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW ? xl6IrTypeGet(&module->types,target->returnType)->cName
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_BOOL_STATUS ? "bool"
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER ? "char*"
             : target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY
                 ? "const char*" : xl6IrCgenType(module, physicalResult);
     }
-    if (output) returnType=target->factoryResultAbi==XL6_IR_CALL_FACTORY_RESULT_VOID ? "void" : "int";
+    if (output) returnType=target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_VOID ? "void" : "int";
     if ( returnType == NULL )
         return xl6IrCgenDiag(diags, module, target->declaration, "XLIR C emitter does not support extern return ABI");
     /* Header-owned C types make the included declaration authoritative.
      * Re-declaring its symbol can erase dllimport/calling-convention metadata.
      * Check the complete physical signature without replacing that declaration. */
     const XL6_IrType* resultType=xl6IrTypeGet(&module->types,target->returnType);
-    bool headerDeclared=resultType && resultType->foreignHeader;
+    bool headerDeclared=(resultType && resultType->foreignHeader) || xl6IrForeignFunctionHeaderGet(module,target)!=NULL;
     for(size_t p=0;p<target->parameterCount && !headerDeclared;++p){
         const XL6_IrType* type=xl6IrTypeGet(&module->types,target->parameterTypes[p]);
         const XL6_ForeignParameterContract* expansion=xl6IrForeignParameterGet(module,target,p);
@@ -448,15 +449,17 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
     if(headerDeclared)xl6OutputPrintf(out,", %s (*)(",returnType);
     else xl6OutputPutc('(', out);
     if ( target->parameterCount == 0 && !output ) xl6OutputPuts("void", out);
-    for ( i = 0; i < target->parameterCount + (output != 0); ++i ) {
+    for ( i = 0; i < target->parameterCount + (declaration->foreignCall.valueOutput ? xl6IrForeignOutputCount(module,target) : (size_t)(output!=0)); ++i ) {
         const char* type;
         if ( i > 0 ) xl6OutputPuts(", ", out);
-        if (output && i == outputLogical) {
+        size_t parameter=i,resultOrdinal=SIZE_MAX;
+        if(declaration->foreignCall.valueOutput){
+            if(!xl6IrForeignOutputStep(module,target,i,&parameter,&resultOrdinal))return 0;
+            if(resultOrdinal!=SIZE_MAX){xl6OutputPrintf(out,"%s*",xl6IrCgenType(module,xl6IrForeignOutputType(module,target,resultOrdinal)));continue;}
+        }else if(output && i==outputLogical){
             const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
-            xl6OutputPrintf(out, "%s%s", target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW ?
-                result->cName : xl6IrCgenType(module, target->returnType),storage ? "" : "*"); continue;
-        }
-        size_t parameter = i - (output && i > outputLogical);
+            xl6OutputPrintf(out,"%s%s",target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW ? result->cName:xl6IrCgenType(module,target->returnType),storage ? "":"*");continue;
+        }else parameter=i-(output && i>outputLogical);
         if ( target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_RAW_C_CALLBACK ||
              target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK ) {
             xl6OutputPrintf(out, "xlir_raw_callback_t%u",

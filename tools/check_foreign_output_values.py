@@ -91,7 +91,7 @@ def main():
                 run('tcc-standalone', [prefix.with_suffix('.exe') if os.name == 'nt' else prefix])
     original = source.read_text(encoding='utf-8-sig')
     negatives = {
-        'output-missing-success': original.replace('@c_output(0,0)', '@c_output(0)',1),
+        'output-noninteger-position': original.replace('@c_output(0,0)', '@c_output("0",0)',1),
         'output-extra-argument': original.replace('@c_output(0,0)', '@c_output(0,0,1)',1),
         'output-missing-no-raise': original.replace('@no_raise @c_output(0,0)', '@c_output(0,0)',1),
         'output-outside': original.replace('@c_output(0,0)', '@c_output(63,0)',1),

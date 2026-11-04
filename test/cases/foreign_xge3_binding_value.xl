@@ -1,0 +1,35 @@
+extern "BindingValueBox*" class ValueBox @header("test/cases/foreign_xge3_binding_value.h") @lifetime("owned") @policy("bindingValueBoxPolicy") @scope("BindingValueScope")
+ native point handle
+ extern "binding_value_set" @no_raise @c_const(1) func set(var value)
+ extern "binding_value_read" @no_raise @c_result("borrowed_value") func read() as var
+ extern "binding_value_null" @no_raise @c_result("borrowed_value") func absent() as var
+ extern "binding_value_empty" @no_raise func empty() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "binding_value_create" @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as ValueBox
+extern "binding_value_destroy" @no_raise func rollback(ValueBox box)
+extern "binding_value_identity" @header("test/cases/foreign_xge3_binding_value.h") @no_raise @c_const(0) @c_result("borrowed_value") func identity(var value) as var
+extern "binding_value_checks" @header("test/cases/foreign_xge3_binding_value.h") @no_raise func checks() as c_int
+protocol ValueReader
+ func read() as var
+end
+func main(...) as int
+ ValueBox box=create()
+ box.set("a\0b")
+ var text=box.read()
+ assert text as string=="a\0b" and box.empty()==c_int(1) and checks()==c_int(1)
+ box.set(73)
+ func() as var bound=box.read
+ var number=bound()
+ assert number as int==73 and box.empty()==c_int(1) and checks()==c_int(2)
+ box.set("protocol")
+ ValueReader reader=box
+ var projected=reader.read()
+ assert projected as string=="protocol" and box.empty()==c_int(1) and checks()==c_int(3)
+ func(var) as var indirect=identity
+ var echoed=indirect("indirect\0text")
+ assert echoed as string=="indirect\0text"
+ assert identity(null)==null and box.absent()==null
+ box.close()
+ return 0
+end

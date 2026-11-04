@@ -786,6 +786,7 @@ static int xl6ParserFunctionTypeInAlias(const XL6_ParseTokenStream* stream, size
     }
 
     start = xl6ParserStmtStartIndex(stream, index);
+    if (start < stream->count && stream->tokens[start].kind == XL6_KW_EXPORT) ++start;
     return start < stream->count &&
            (stream->tokens[start].kind == XL6_KW_TYPEDEF ||
             stream->tokens[start].kind == XL6_KW_EXTERN);

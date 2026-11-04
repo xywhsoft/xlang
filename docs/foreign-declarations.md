@@ -727,7 +727,7 @@ XLIR 保存稀疏的类型投影行和明确的物理 ABI；Cgen 复用普通视
 checked 边界报告，部分初始化失败仍先 rollback payload，再释放独立记录。
 已有 `@factory(outputIndex, successCode, rollback)` 保留精确的 C `int` 状态返回。
 两参数形式必须配合原位存储，不允许用于普通指针输出；没有隐式成功码或虚构 int 返回。
-XLIR 的 factoryResultAbi 单独记录物理 producer 返回 ABI，与语言的拥有结果及 C 输出
+XLIR 的 outputResultAbi 单独记录物理 producer 返回 ABI，与语言的拥有结果及 C 输出
 参数分离；公开头持续核对真实原生声明。生成 C 直接调用初始化器，void 路径不产生
 native_status 临时值。实际 XGE Material 已验证此合同；其纹理槽由原生代码 retain，
 shader 是借用槽，不能误当成拥有资源公开。
@@ -775,3 +775,142 @@ XRT 分配只能说明这些路径不再创建堆适配器，不能代替同工�
 同步调用在原生函数返回后先执行 producer Complete，再判断状态、采用拥有结果或
 交付输出值；闭包与 adapter 的代码活动持续到最终 End 清理。Complete 不提前释放
 这些能力，因此结果采用／清理阶段的拒绝或回调尾部不会访问已卸载代码。
+
+### 平凡 C 输出与多返回值
+
+`@c_output(physicalIndex)` 表示原生 `void` 函数写出一个平凡 C 值；
+`@c_output(physicalIndex, successCode)` 表示原生 `int` 状态加一个平凡输出。
+这两种形式与拥有型 `@factory` 分别建模。`@c_outputs(i, j, ...)` 把多个
+独立输出槽映射为相同顺序的语言多返回值，默认原生返回 `void`；搭配
+`@c_status(successCode)` 时原生返回 `int`。位置必须严格递增，计入 receiver，
+不能插入 pointer/count 或 callback/userdata/owner 分组内部。
+
+输出只接受明确的平凡 C 类型，包括完整的平凡记录。生成 C 先将输出值置零，
+一次调用原生函数，确认 producer、回调和状态成功后再交付整个结果；失败不交付
+部分值。多返回值的 product 只是语言结果载体，不能误声明成 C 函数直接返回
+同名结构。`outputResultAbi` 区分物理 `INT_STATUS` 和 `VOID`，
+`nativeSuccessCode` 保存该调用的状态成功谓词；Cgen 直接消费这些规范合同。
+
+### 没有受管根的长期回调
+
+`@c_owned_callback(parameter, -1, "NativeOwner", failureCode)` 明确声明由全局
+发布者或独立原生记录持有的闭包。原生入口仍接收函数指针、userdata 和真实 owner
+三元组，必须 Hold／Drop 并保护实际调用快照；`-1` 不会虚构 Root。一个函数可以
+接收多个独立三元组，原生批量发布应先完成全部 Hold 和准备，失败回滚，最后一起
+发布。此类回调可接收独立 epoch 视图；需要受管对象参数时仍须有对应的真实 owner。
+
+回调失败优先交给当前 checked 调用，其次交给真实受管 owner。两者均不存在时，
+驻留错误通道移动保留首个 xerror，并独立累计失败次数；没有诊断对象仍属于失败。
+后续安全 checked 边界可以交付该批错误；已有主错误时保留到以后，不覆盖也不吞掉。
+当前执行上下文仍处于原生回调时暂缓交付，不要求全进程其他线程都已静止。
+宿主可通过匹配 SDK 的 `xl6CallbackFailureTakeV1`／`CountV1` 读取；Take 的返回值
+表示输出参数检查成功，输出载体的 `ok` 才表示是否没有待交付失败。
+
+错误通道只保存驻留 xerror 及其拥有的诊断数据，不保存生成代码或原生发布者。
+它的可交付性不能充当 DLL 可卸载的证明。原生快照保护生成 thunk 的物理返回；
+在原生回调／Drop 内请求模块销毁时，宿主另外保留模块的退役挂起状态，阻止自动
+卸载发布者 DLL。宿主必须先停止并等待原生发布者返回，再显式调用
+`xlRuntimeDrainRetiringChecked` 确认静止。任意线程的另一次 checked 调用不能
+替代该确认。回调内排空或清理又产生新尾部时返回 BUSY，`ready` 和 `ok` 必须分开检查。
+
+
+### 独立原生子图的声明与代码寿命
+
+拥有型外部类可声明 `@domain("NativeDomain")`，其中标识符由权威 C 头提供，
+类型必须是不可变的 `XL6_OwnershipDomainV1`。域必须没有 `Load` 回调，
+`Resolve`／`AdmitsRead` 只按精确原生 Ops 身份查询，不依赖 catalog policy，
+也不分配、不调用语言、不改变引用。caller／owner／callback 类不能声明此项；
+可空类型和同一原生根的继承类型必须保留一致的域。
+
+`TraceRaw` 对独立引用计数节点报告实际的一条拥有边，不能把该节点的子边摊平到
+语言控制记录。节点自己的 Count、Trace、Claim、Clear、Finish 和活动状态继续
+由原生库负责；普通原生引用和缓存持有的引用同样计入真实数量。
+
+驻留根控制记录保存域指针及其代码 lease。catalog 在冷创建时登记物理根发现能力，
+计划在 Freeze 内枚举所有物理根并取得真实 snapshot pin。原有 native boundary
+的 Enter／Leave／Discover 和新增发现能力组合执行，不用另一个无关锁域替换它。
+同一域指针去重，不同域全部参与查询；相互冲突的准入拒绝，不能采用第一个匹配。
+
+计划的 native adapter 表可能来自可卸载 DLL。全部 adapter Drop 返回之前，
+最后的 CodeLease release 只将真实宿主 acquisition 移入本次执行上下文的批次；
+嵌套批次合并，在最外层结束时才执行宿主 release。该批次使用已经存在的 lease
+记录作链表，不分配额外队列项。计划自身的 running 保护和记录也保留到所有
+宿主 release 返回，避免重入时读到已经释放的计划。不能依赖图遍历顺序保住 DLL。
+
+本合同不增加逐方法包装；域查询、发现和批次只服务创建／拥有图／清理。成本仍
+包括根记录中的一个域指针、lease 中的一个退休链接、最后释放时的执行上下文查询，
+以及冷期图查询和物理 pin；它们必须计入完整的 C 对照，不能称为整套绑定零成本。
+`XL6_ForeignViewDescriptorV1` 和 factory ProbeV1 布局保持不变，有域的工厂使用
+独立的 `xl6ForeignViewCreateRootWithDomainProbedV1` 入口。
+
+私有 runtime SDK 同时提供 `__xl_runtime/xl_foreign_error.h`。原生清理结果中的
+“已消耗 owning 引用”和“清理是否成功”必须分别传递；即使没有可分配的 xerror，
+失败位仍须进入当前 checked scope。不能因为物理对象仍被其他引用保留而重复释放
+已经消耗的语言 owner，也不能用返回成功来吞掉原生 finalizer 失败。
+
+## Independent native function headers
+
+A free extern function can name its authoritative C header independently of
+its argument and result types. This also covers zero-argument and scalar-only
+functions, whose signatures otherwise carry no external class header:
+
+```xl
+extern "nativeVersion" @header("native.h") @no_raise func version() as c_uint
+```
+
+The compiler emits the include and an exact function-pointer type assertion.
+It preserves the header's DLL import and calling convention attributes instead
+of redeclaring the symbol. The header path and declaration identity are sparse
+XLIR contracts; malformed paths, duplicate contracts and mismatched call-target
+indices are rejected before either C or public-header output.
+
+## Exact const pointer inputs and borrowed dynamic results
+
+`@c_const(index)` counts the implicit receiver, when present. For an external
+pointer class it changes only that physical input to `const T*`; ownership,
+epoch checks and the logical class remain the same. The source pointer must be
+single-level and mutable; a class already declared `const T*` needs no annotation.
+It cannot overlap a span, callback, `c_ref`, `c_value`, control or field mapping.
+
+For a parameter whose exact logical type is `var`, the same annotation means a
+nonescaping `const xvalue*` borrow. It passes the existing value pointer directly;
+it does not clone, allocate, box or transfer ownership. Native code must acquire
+its own reference before retaining that value beyond the call. The contract
+does not recursively make the contents of mutable containers immutable.
+
+```xl
+extern "nativeSetValue" @no_raise @c_const(1) func setValue(Root owner,var value)
+extern "nativeGetValue" @no_raise @c_result("borrowed_value") func getValue(Root owner) as var
+```
+
+`borrowed_value` declares an exact native `const xvalue*` result and a logical
+`var` result. Before releasing input owners, callback epochs or native call
+scopes, generated C obtains an owned value with `xrtValueRetain`. This follows
+normal `var` assignment semantics, rather than an explicit container clone or
+deep copy. Native NULL becomes the language null value. A producer failure is
+observed before dereferencing or retaining its result, and a failed retain
+remains a checked failure even if no diagnostic can be allocated. The native
+pointer never escapes as the language result.
+
+## Checked status rollback helpers
+
+An owning factory's rollback helper has one exact, non-null resource parameter
+and a logical void result. Its native C return may be void, or an explicitly
+declared checked integer status:
+
+```xl
+extern "nativeReleaseChecked" @no_raise @c_result("status",0) func rollback(Resource value)
+extern "nativeCreate" @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Resource
+```
+
+The latter produces an exact `int nativeReleaseChecked(NativeResource*)` ABI.
+An arbitrary language integer result, boolean status, hidden input adaptation,
+or nullable/different owner type cannot act as rollback. This rule also applies
+to the release helper of `c_retain`.
+
+Rollback remains a direct native call on the cold failure path. The compiler
+latches the original producer/admission failure before cleanup, then accumulates
+both a failing cleanup status and a cleanup diagnostic through the same checked
+scope. A first failure with a NULL diagnostic remains first; a later allocation
+or cleanup error cannot replace it. Existing void rollback declarations keep
+their native ABI.

@@ -36,6 +36,7 @@ struct XL6_ForeignView {
     unsigned work;
     uint64 attempted;
     XL6_CodeLease* code;
+    const XL6_OwnershipDomainV1* nativeDomain;
     XL6_ForeignViewDescriptorV1 descriptor;
     xmap directory;
     void* watchStorage;
@@ -166,11 +167,15 @@ static void viewDiscardUnpublished(XL6_ForeignView* view)
     xrtFree(view); xl6CodeLeaseRelease(code);
 }
 static XL6_ForeignView* viewCreateRoot(void* raw,const XL6_ForeignViewDescriptorV1* d,
-    const XL6_CodeOwner* codeOwner,const XL6_ForeignResultProbeV1* probe)
+    const XL6_OwnershipDomainV1* domain,const XL6_CodeOwner* codeOwner,const XL6_ForeignResultProbeV1* probe)
 {
+    if(domain && (domain->size!=sizeof(*domain) || domain->Load || !domain->Resolve || !domain->AdmitsRead)){
+        xrtSetErrorKind(XERR_ARGUMENT);return NULL;
+    }
     if(!xl6ForeignContextReadyV1())return NULL;
     XL6_ForeignView* view=viewAllocate(raw,d,codeOwner,true);
     if (!view) return NULL;
+    view->nativeDomain=domain;
     if (!xrtMapInit(&view->directory,sizeof(XL6_ForeignView*))) { viewDiscardUnpublished(view); return NULL; }
     /* Lease admission can invoke host code. The factory observer must still
      * identify a live output before any native Watch dereferences its address. */
@@ -193,13 +198,24 @@ static XL6_ForeignView* viewCreateRoot(void* raw,const XL6_ForeignViewDescriptor
 }
 XL6_ForeignView* xl6ForeignViewCreateRootV1(void* raw,const XL6_ForeignViewDescriptorV1* descriptor,
     const XL6_CodeOwner* codeOwner)
-{return viewCreateRoot(raw,descriptor,codeOwner,NULL);}
+{return viewCreateRoot(raw,descriptor,NULL,codeOwner,NULL);}
+XL6_ForeignView* xl6ForeignViewCreateRootWithDomainV1(void* raw,const XL6_ForeignViewDescriptorV1* descriptor,
+    const XL6_OwnershipDomainV1* domain,const XL6_CodeOwner* codeOwner)
+{return viewCreateRoot(raw,descriptor,domain,codeOwner,NULL);}
 XL6_ForeignView* xl6ForeignViewCreateRootProbedV1(void* raw,XL6_ForeignResultProbeV1* probe,const XL6_CodeOwner* owner)
 {
     if(!xl6ForeignResultProbeAliveV1(probe) || !probe->root || probe->identity!=raw) {
         xrtSetErrorKind(XERR_STATE);return NULL;
     }
-    return viewCreateRoot(raw,&probe->descriptor,owner,probe);
+    return viewCreateRoot(raw,&probe->descriptor,NULL,owner,probe);
+}
+XL6_ForeignView* xl6ForeignViewCreateRootWithDomainProbedV1(void* raw,XL6_ForeignResultProbeV1* probe,
+    const XL6_OwnershipDomainV1* domain,const XL6_CodeOwner* owner)
+{
+    if(!xl6ForeignResultProbeAliveV1(probe) || !probe->root || probe->identity!=raw || !domain){
+        xrtSetErrorKind(XERR_STATE);return NULL;
+    }
+    return viewCreateRoot(raw,&probe->descriptor,domain,owner,probe);
 }
 XL6_ForeignView* xl6ForeignViewRetainV1(XL6_ForeignView* view)
 {
@@ -664,18 +680,66 @@ static const xrtownershipadapterv1 viewAdapter={sizeof(viewAdapter),viewHold,vie
     viewClaim,viewRestore,viewFinalize,viewClear,viewFinish};
 static const xrtownershippreparationv1 viewPreparation={sizeof(viewPreparation),&viewAdapter,viewReady,viewPrepare};
 static const xrtownershipquiescencev1 viewQuiescence={sizeof(viewQuiescence),&viewOps,viewBusy};
+static bool viewDomainDiscover(XL6_ModuleOwnershipVisit visit,void* user,void* context)
+{(void)context;return xl6ForeignViewDiscoverV1(NULL,visit,user);}
 static bool viewDomainLoad(XL6_OwnershipCatalog* catalog)
-{ return xl6OwnershipCatalogAddQuiescenceV1(catalog,&viewQuiescence); }
+{
+    static const XL6_OwnershipDiscoveryV1 discovery={sizeof(discovery),viewDomainDiscover,NULL};
+    return xl6OwnershipCatalogAddQuiescenceV1(catalog,&viewQuiescence) &&
+        xl6OwnershipCatalogAddDiscoveryV1(catalog,&discovery);
+}
+/* Freeze-only query of leased native capabilities. Failure also stays
+ * allocation-free: the caller's snapshot/checked boundary owns diagnostics. */
+static bool viewNativeDomainQuery(xrtownershipref ref,bool read,
+    const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation,
+    const XL6_OwnershipFinishV1** finish)
+{
+    const xrtownershipadapterv1* selected=NULL;
+    const xrtownershippreparationv1* pending=NULL;
+    const XL6_OwnershipFinishV1* completion=NULL;
+    /* Root links and descriptor leases cannot disappear during Freeze. Plan
+     * physical pins preserve code through all Finish/Drop callbacks. Query
+     * every distinct capability, with no first-match or Ops spelling guesses. */
+    for(const XL6_ForeignView* root=viewRoots;root;root=root->rootsNext){
+        const XL6_OwnershipDomainV1* domain=root->nativeDomain;
+        if(!domain)continue;
+        bool duplicate=false;
+        for(const XL6_ForeignView* earlier=viewRoots;earlier!=root;earlier=earlier->rootsNext)
+            if(earlier->nativeDomain==domain){duplicate=true;break;}
+        if(duplicate)continue;
+        const xrtownershipadapterv1* current=NULL;
+        const xrtownershippreparationv1* ready=NULL;
+        const XL6_OwnershipFinishV1* step=NULL;
+        bool known=domain->Resolve(ref,NULL,&current,&ready,&step);
+        bool readable=read && domain->AdmitsRead(ref);
+        if((!known && (current || ready || step || readable)) ||
+            (known && (!current || (read && !readable))) ||
+            (known && selected && (selected!=current || pending!=ready || completion!=step)))return false;
+        if(known){selected=current;pending=ready;completion=step;}
+    }
+    if(!selected)return false;
+    *adapter=selected;*preparation=pending;*finish=completion;return true;
+}
 static bool viewDomainResolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
     const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation,
     const XL6_OwnershipFinishV1** finish)
 {
     (void)policies;
-    if (ref.Ops!=&viewOps || !ref.Data) return false;
-    *adapter=&viewAdapter; *preparation=&viewPreparation; *finish=NULL; return true;
+    if(!ref.Data || !ref.Ops)return false;
+    if(ref.Ops==&viewOps){
+        *adapter=&viewAdapter;*preparation=&viewPreparation;*finish=NULL;return true;
+    }
+    return viewNativeDomainQuery(ref,false,adapter,preparation,finish);
 }
 static bool viewDomainAdmitsRead(xrtownershipref ref)
-{ return ref.Data && ref.Ops==&viewOps && !viewBusy(ref.Data); }
+{
+    if(!ref.Data || !ref.Ops)return false;
+    if(ref.Ops==&viewOps)return !viewBusy(ref.Data);
+    const xrtownershipadapterv1* adapter=NULL;
+    const xrtownershippreparationv1* preparation=NULL;
+    const XL6_OwnershipFinishV1* finish=NULL;
+    return viewNativeDomainQuery(ref,true,&adapter,&preparation,&finish);
+}
 const XL6_OwnershipDomainV1* xl6OwnershipDomainForeignViewV1Get(void)
 {
     static const XL6_OwnershipDomainV1 domain={sizeof(domain),viewDomainLoad,viewDomainResolve,viewDomainAdmitsRead};

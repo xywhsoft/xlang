@@ -12,10 +12,14 @@ typedef enum XL6_ForeignContextKeyV1 {
     XL6_FOREIGN_CONTEXT_VIEW_CALLS_V1,
     XL6_FOREIGN_CONTEXT_VIEW_DRAINING_V1,
     XL6_FOREIGN_CONTEXT_SCOPED_VIEWS_V1,
+    XL6_FOREIGN_CONTEXT_LEASE_RELEASES_V1,
     XL6_FOREIGN_CONTEXT_KEY_COUNT_V1
 } XL6_ForeignContextKeyV1;
 XL6_CODE_LEASE_API bool xl6ForeignContextReadyV1(void);
 XL6_CODE_LEASE_API void* xl6ForeignContextGetV1(XL6_ForeignContextKeyV1);
+/* Read a key only if global OS key initialization has completed. Does not
+ * initialize, allocate, change diagnostics, or create execution-context data. */
+XL6_CODE_LEASE_API void* xl6ForeignContextTryGetV1(XL6_ForeignContextKeyV1);
 XL6_CODE_LEASE_API bool xl6ForeignContextSetV1(XL6_ForeignContextKeyV1,void*);
 /* Physical calls may end in a different nesting order, but only in their
  * original execution context. Intrusive caller stack storage; no allocation.

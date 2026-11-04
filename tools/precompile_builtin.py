@@ -64,6 +64,36 @@ def defined_symbols(path):
     return names
 
 
+def component_sources(text):
+    """Separate complete C initializers, including nested dependency arrays.
+
+    Native-side components share the final selected implementation TU. An
+    independently compiled, empty object for one would falsely look deployable.
+    """
+    fixed,placed=[],[]
+    depth=0;quoted=False;escaped=False;start=None
+    for i,ch in enumerate(text):
+        if quoted:
+            if escaped:escaped=False
+            elif ch=='\\':escaped=True
+            elif ch=='"':quoted=False
+            continue
+        if ch=='"':quoted=True;continue
+        if ch=='{':
+            depth+=1
+            if depth==2:start=i
+        elif ch=='}':
+            if depth==2:
+                row=text[start:i+1]
+                match=re.match(r'\{\s*"(src/[^"\n]+\.c)"',row)
+                if not match:raise RuntimeError('Unrecognized runtime component initializer')
+                group=placed if 'XL6_ARTIFACT_RUNTIME_IN_XRT_TRANSLATION_UNIT' in row else fixed
+                group.append(match[1])
+            depth-=1
+    if depth or quoted:raise RuntimeError('Incomplete runtime component catalog')
+    return list(dict.fromkeys(fixed)),list(dict.fromkeys(placed))
+
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", type=Path, required=True)
@@ -90,7 +120,7 @@ def main():
     run([cc,*common,"-DXL_STATIC_EMBED","-E","src/compile/xl6_compile_unit.c","-o",catalog],root)
     text=catalog.read_text(encoding="utf-8",errors="replace");text=text[text.index("static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[]"):];text=text[:text.index("_Static_assert")]
     while re.search(r'"\s+"',text):text=re.sub(r'"\s+"',"",text)
-    components=list(dict.fromkeys(re.findall(r'\{\s*"(src/[^"\n]+\.c)"',text)))
+    components,placed_components=component_sources(text)
     assert len(components)>1000,"expanded artifact catalog is incomplete"
     tcc_sources=["lib/tcc/libtcc.c","lib/tcc/tcctools.c","lib/tcc/tcc_builtin_vfs.c","lib/lzma/LzmaDec.c","src/api/xl_tcc_standalone_env.c"]
     if os.name=="nt":tcc_sources.append("lib/tcc/tcc_utf8_io.c")
@@ -176,7 +206,8 @@ def main():
         if overlap:raise RuntimeError("duplicate XRT implementation in "+row["virtual"]+": "+str(sorted(overlap)[:3]))
     if source_fingerprint(root)!=source_hash:
         raise RuntimeError("producer sources changed during precompilation; retry on a stable tree")
-    prior.write_text(json.dumps(dict(**fingerprint,signature=signature,components=len(components),objects=rows),indent=2)+"\n",encoding="utf-8")
+    prior.write_text(json.dumps(dict(**fingerprint,signature=signature,components=len(components),
+        nativeTranslationUnitSources=placed_components,objects=rows),indent=2)+"\n",encoding="utf-8")
     print("precompiled "+str(len(rows))+" objects ("+str(reused)+" unchanged)")
 
 if __name__=="__main__":main()

@@ -1,0 +1,25 @@
+extern "BindingDomainRoot*" class DomainRoot @header("test/cases/foreign_xge3_binding_domain.h") @lifetime("owned") @policy("bindingDomainRootPolicy") @domain("bindingNativeDomain")
+ native point handle
+ extern "binding_domain_read" @no_raise func read() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "binding_domain_create" @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as DomainRoot
+extern "binding_domain_destroy" @no_raise func rollback(DomainRoot value)
+extern "binding_domain_check" @header("test/cases/foreign_xge3_binding_domain.h") @no_raise func checkDomain() as c_int
+extern "binding_domain_live" @header("test/cases/foreign_xge3_binding_domain.h") @no_raise func live() as c_int
+func main(...) as int
+ DomainRoot root=create()
+ DomainRoot? optional=root
+ assert root.read()==c_int(37) and live()==c_int(1)
+ assert checkDomain()==c_int(1)
+ root.close()
+ assert live()==c_int(0)
+ bool expired=false
+ try
+  auto invalid=root.read()
+ catch error
+  expired=true
+ end
+ assert expired
+ return 0
+end

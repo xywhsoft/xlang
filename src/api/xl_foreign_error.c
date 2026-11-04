@@ -17,7 +17,7 @@ static xatomicptr xl6_deferred_cleanup;
 XL6_FOREIGN_API void xl6DeferredCleanupScheduleV1(XL6_DeferredCleanupV1* work)
 {
     if (!work || !work->Run) abort();
-    int32 expected=0;
+    uint32 expected=0;
     if (!xrtAtomic32CompareExchange(&work->scheduled,&expected,1,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE)) return;
     void* head=xrtAtomicPtrLoad(&xl6_deferred_cleanup,XMEMORY_ACQUIRE);
     do { work->next=head; }
@@ -53,6 +53,13 @@ static bool xl6ForeignErrorSetTop(xl6_foreign_error_scope* scope)
 #else
     return pthread_setspecific(xl6_foreign_error_key, scope) == 0;
 #endif
+}
+
+XL6_FOREIGN_API bool xl6ErrorScopeCanAcceptDeferredFailureV1(void)
+{
+    if(!xrtOnce(&xl6_foreign_error_once,xl6ForeignErrorKeyInit,NULL))return false;
+    xl6_foreign_error_scope* scope=xl6ForeignErrorTop();
+    return scope!=NULL && !scope->failed && xrtGetError()==NULL;
 }
 
 static void xl6ForeignErrorSetFailure(xerrkind kind, const char* message)

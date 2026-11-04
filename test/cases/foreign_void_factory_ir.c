@@ -22,11 +22,11 @@ int main(int argc,char** argv)
         const XL6_ForeignStorageContract* row=&module->foreignStorage[i];
         XL6_IrNode* node=&module->nodes[row->declaration-1];XL6_ForeignCallFacts facts=node->foreignCall;
         XL6_IrCallTarget* target=(XL6_IrCallTarget*)xl6IrCallTargetGet(module,node->symbol);
-        assert(target && facts.inplaceOutput==XL6_FOREIGN_INPLACE_VOID && target->factoryResultAbi==XL6_IR_CALL_FACTORY_RESULT_VOID);
+        assert(target && facts.inplaceOutput==XL6_FOREIGN_INPLACE_VOID && target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_VOID);
         ++factories;
-        target->factoryResultAbi=XL6_IR_CALL_FACTORY_RESULT_NONE;refused(module);
-        target->factoryResultAbi=XL6_IR_CALL_FACTORY_RESULT_INT_STATUS;refused(module);
-        target->factoryResultAbi=99;refused(module);target->factoryResultAbi=XL6_IR_CALL_FACTORY_RESULT_VOID;
+        target->outputResultAbi=XL6_IR_CALL_OUTPUT_RESULT_NONE;refused(module);
+        target->outputResultAbi=XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS;refused(module);
+        target->outputResultAbi=99;refused(module);target->outputResultAbi=XL6_IR_CALL_OUTPUT_RESULT_VOID;
         node->foreignCall.inplaceOutput=XL6_FOREIGN_INPLACE_STATUS;refused(module);node->foreignCall=facts;
         node->foreignCall.inplaceOutput=XL6_FOREIGN_INPLACE_NONE;refused(module);node->foreignCall=facts;
         node->foreignCall.inplaceOutput=99;refused(module);node->foreignCall=facts;

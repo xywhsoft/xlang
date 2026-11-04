@@ -62,7 +62,17 @@ try {
     $symbolOwners=@{};$componentObjects=@()
     foreach($component in $catalog){
         $object="$outputPath/component-$($component.Id).o"
-        $componentBuild=Invoke-XlirGccToLog ($flags+@('-c',$component.Source,'-o',$object)) "$outputPath/component-$($component.Id).log"
+        $componentSource=$component.Source
+        if($component.Placement-eq1){
+            $componentSource="$outputPath/component-$($component.Id)-native.c"
+            $nativeOracleLines=@('#define XRT_MODULE_ALL','#define XRUNTIME_MODULE_ALL',
+                '#include "lib/xruntime/xruntime_features.h"','#define XRT_IMPLEMENTATION',
+                '#include "lib/xrt/xrt.h"','#define XRUNTIME_IMPLEMENTATION',
+                '#include "lib/xruntime/xruntime.h"','#define XL6_ARTIFACT_XRT_IMPLEMENTATION 1',
+                ('#include "'+$component.Source+'"'))
+            [IO.File]::WriteAllText($componentSource,($nativeOracleLines-join"`n")+"`n",[Text.UTF8Encoding]::new($false))
+        }elseif($component.Placement-ne0){throw 'Unknown native runtime component placement'}
+        $componentBuild=Invoke-XlirGccToLog ($flags+@('-c',$componentSource,'-o',$object)) "$outputPath/component-$($component.Id).log"
         $defined=@();$undefined=@();$nativeUndefined=@()
         if($componentBuild-eq0){
             # Test oracle only: include xlSync checked host exports and BSS/

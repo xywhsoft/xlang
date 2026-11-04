@@ -17,17 +17,20 @@ typedef struct xl6_foreign_error_scope {
     xerror* previous_diagnostic;
     bool failed;
 } xl6_foreign_error_scope;
+#ifndef XL6_ERROR_RESULT_ABI_DEFINED
+#define XL6_ERROR_RESULT_ABI_DEFINED
 typedef struct xl6_foreign_error_result {
     bool ok;
     xerror* error;
 } xl6_foreign_error_result;
+typedef xl6_foreign_error_result xl6_error_result;
+#endif
 
 /* Cleanup and foreign calls nest on ONE execution-context-local boundary
  * stack. A second independent cleanup TLS stack would publish failures past
  * an intervening language catch. Keep the original ABI names as aliases for
  * existing generated modules; new cleanup programs use the neutral names. */
 typedef xl6_foreign_error_scope xl6_error_scope;
-typedef xl6_foreign_error_result xl6_error_result;
 
 #ifndef XL6_FOREIGN_API
 #if defined(_WIN32) && (defined(XL_BUILD_DLL) || defined(XL6_BUILD_SHARED))
@@ -77,6 +80,10 @@ XL6_FOREIGN_API void xl6ErrorScopePropagateFailure(xl6_error_result failure);
 /* Consume only if an enclosing boundary exists; otherwise leave the owned
  * failure unchanged for the callback owner's deferred checked delivery. */
 XL6_FOREIGN_API bool xl6ErrorScopeTryPropagateFailureV1(xl6_error_result*);
+/* Read-only cold deferred-delivery admission. True only inside a currently
+ * successful checked scope. Does not allocate, create a scope, consume a
+ * diagnostic or mark a failure. Call after scope initialization. */
+XL6_FOREIGN_API bool xl6ErrorScopeCanAcceptDeferredFailureV1(void);
 
 XL6_FOREIGN_API bool xl6ForeignCallBegin(xl6_foreign_error_scope* scope);
 XL6_FOREIGN_API xl6_foreign_error_result xl6ForeignCallEnd(xl6_foreign_error_scope* scope);

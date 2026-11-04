@@ -1,0 +1,46 @@
+extern "ManagedRoot*" class Root @header("test/cases/foreign_xge3_binding_const.h") @lifetime("owned") @policy("managedRootPolicy") @scope("ManagedScope") @watch("ManagedWatch")
+ native point handle
+ extern "managed_child_create" @no_raise @c_result("owner_view",0) @factory(2,0,rollbackChild) func child(c_int mode) as Child
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "ManagedChild*" class Child @header("test/cases/foreign_xge3_binding_const.h") @lifetime("owner") @owner(Root) @policy("managedChildPolicy") @watch("ManagedWatch")
+ native point handle
+ extern "qualification_child_read" @no_raise @c_const(0) func read() as c_int
+end
+extern "ManagedChild*" class RawChild @header("test/cases/foreign_xge3_binding_const.h") @lifetime("caller")
+ native point handle
+ extern "qualification_raw_read" @no_raise @c_const(0) func read() as c_int
+end
+extern "managed_root_create" @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(c_int mode=0) as Root
+extern "managed_root_destroy" @no_raise func rollback(Root value)
+extern "managed_child_destroy" @no_raise func rollbackChild(Child value)
+extern "qualification_raw_open" @no_raise func rawOpen() as RawChild
+extern "qualification_child_read" @no_raise @c_const(0) func readChild(Child value) as c_int
+extern "qualification_raw_read" @no_raise @c_const(0) func readRaw(RawChild value) as c_int
+protocol Reader
+ func read() as c_int
+end
+func main(...) as int
+ Root root=create()
+ Child child=root.child(c_int(7))
+ assert child.read()==c_int(17) and readChild(child)==c_int(17)
+ func() as c_int bound=child.read
+ assert bound()==c_int(17)
+ Reader reader=child
+ assert reader.read()==c_int(17)
+ func(Child) as c_int callback=readChild
+ assert callback(child)==c_int(17)
+ RawChild raw=rawOpen()
+ assert raw.read()==c_int(19) and readRaw(raw)==c_int(19)
+ func() as c_int rawBound=raw.read
+ assert rawBound()==c_int(19)
+ root.close()
+ bool expired=false
+ try
+  auto invalid=child.read()
+ catch error
+  expired=true
+ end
+ assert expired
+ return 0
+end

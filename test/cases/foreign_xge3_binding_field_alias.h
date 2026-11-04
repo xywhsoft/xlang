@@ -1,0 +1,6 @@
+#ifndef FOREIGN_XGE3_BINDING_FIELD_ALIAS_H
+#define FOREIGN_XGE3_BINDING_FIELD_ALIAS_H
+#define XGE_ENABLE_3D 1
+#define XGE3D_ENABLE_FOG 1
+#include <xge.h>
+#endif

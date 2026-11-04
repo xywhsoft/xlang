@@ -419,6 +419,11 @@ static int xl6IrCgenEmitCallPlace(XL6_Output* out, const XL6_IrModule* module,
     }
     case XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW:
         xl6OutputPrintf(out, "(%s)native_view_%lu.raw", type->cName, (unsigned long)parameter); break;
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_FOREIGN_VIEW_BORROW: {
+        const XL6_ForeignPointerQualifierContract* row=xl6IrForeignPointerQualifierGet(module,target,parameter);
+        if(!row)return 0;
+        xl6OutputPrintf(out,"(%s)native_view_%lu.raw",row->cName,(unsigned long)parameter);break;
+    }
     case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS:
     case XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW:
         xl6OutputPrintf(out, "&%s", place); break;
@@ -440,6 +445,8 @@ static int xl6IrCgenEmitCallPlace(XL6_Output* out, const XL6_IrModule* module,
     case XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW:
         xl6OutputPuts(place, out); break;
     case XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT:
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_NATIVE_POINTER_DIRECT:
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_XVALUE_BORROW:
     case XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW:
         if (xl6IrCgenParameterAbiIsIndirect(target->parameterAbis[parameter]))
             xl6OutputPrintf(out, "(%s*)%s", xl6IrCgenType(module, target->parameterTypes[parameter]), place);
@@ -488,10 +495,10 @@ static int xl6IrCgenWitnessNativeHandles(XL6_Output* out, const XL6_IrModule* mo
 static void xl6IrCgenEmitNativeStatusCheck(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrCallTarget* target,const char* errors)
 {
-    const XL6_IrNode* source=xl6IrNodeGet(module,target->declaration);
-    if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_INT_STATUS || source->foreignCall.valueOutput){
+    (void)module;
+    if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_INT_STATUS || target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS){
         xl6OutputPrintf(out,"    if (native_status != %d) { if (!%s.failed && !xrtGetError()) xl6ForeignStatusFailureV1(native_status, \"%s\"); xl6ErrorScopeCaptureFailure(&%s); }\n",
-            source->foreignCall.successCode,errors,target->cName,errors);
+            target->nativeSuccessCode,errors,target->cName,errors);
     }else xl6OutputPrintf(out,"    if (!native_status) xl6ErrorScopeCaptureFailure(&%s);\n",errors);
 }
 
@@ -567,11 +574,14 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);
     int factoryOutput=declaration->foreignCall.outputIndexPlusOne && !declaration->foreignCall.valueOutput;
     int storagePrepared=0;
-    int valueOutput=target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE;
+    int valueOutput=target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE;
     size_t receiverCount=(declaration->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || declaration->sourceKind==XL6_AST_GET || declaration->sourceKind==XL6_AST_LET) &&
         !(declaration->flags&XL6_AST_FLAG_STATIC) ? 1u : 0u;
     size_t outputLogical=factoryOutput || valueOutput ? xl6ForeignOutputLogical(&declaration->foreignCall,target->parameterCount,receiverCount) : SIZE_MAX;
-    if(valueOutput)xl6OutputPrintf(out,"    %s native_raw = {0}; int native_status = ",xl6IrCgenType(module,target->returnType));
+    if(valueOutput){
+        xl6OutputPrintf(out,"    %s native_raw = {0};\n    ",xl6IrCgenType(module,target->returnType));
+        if(target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS)xl6OutputPuts("int native_status = ",out);
+    }
     else if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT) {
         const XL6_IrType* type = xl6IrTypeGet(&module->types, target->returnType);
         if(factoryOutput)storagePrepared=xl6IrCgenFactoryStorageBegin(out,module,target,scope);
@@ -602,12 +612,18 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
         if (!xl6IrCgenEmitNativeContext(out, module, target)) return 0;
         if (target->parameterCount) xl6OutputPuts(", ", out);
     }
-    for (size_t physical = 0; physical < target->parameterCount + (factoryOutput || valueOutput); ++physical) {
+    for (size_t physical = 0; physical < target->parameterCount + (valueOutput ? xl6IrForeignOutputCount(module,target) : (size_t)factoryOutput); ++physical) {
         if (physical) xl6OutputPuts(", ", out);
-        if ((factoryOutput || valueOutput) && physical == outputLogical) {
-            xl6OutputPuts(storagePrepared ? "native_raw" : "&native_raw", out); continue;
-        }
-        size_t p = physical - ((factoryOutput || valueOutput) && physical > outputLogical);
+        size_t p=physical,output=SIZE_MAX;
+        if(valueOutput){
+            if(!xl6IrForeignOutputStep(module,target,physical,&p,&output))return 0;
+            if(output!=SIZE_MAX){
+                if(xl6IrForeignOutputCount(module,target)>1)xl6OutputPrintf(out,"&native_raw.e%lu",(unsigned long)output);
+                else xl6OutputPuts("&native_raw",out);
+                continue;
+            }
+        }else if(factoryOutput && physical==outputLogical){xl6OutputPuts(storagePrepared ? "native_raw":"&native_raw",out);continue;}
+        else p=physical-(factoryOutput && physical>outputLogical);
         if (encoded && valuePlan.inputParameter == p + 1) xl6OutputPuts("&native_value_input", out);
         else {
             char place[40];
@@ -634,8 +650,9 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
         xl6OutputPrintf(out,"    if (!%.*s.ok) xl6ErrorScopeCaptureFailure(&%s);\n",(int)(bytes-6),result,scope);
     }
     if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT)
-        xl6IrCgenNativeViewAdmission(out, module, target, NULL, NULL, result, "native_raw", scope, target->factoryResultAbi==XL6_IR_CALL_FACTORY_RESULT_INT_STATUS ? "native_status" : NULL);
-    if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_STATUS_CHECK || valueOutput)
+        xl6IrCgenNativeViewAdmission(out, module, target, NULL, NULL, result, "native_raw", scope, target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS ? "native_status" : NULL);
+    if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_STATUS_CHECK ||
+        (valueOutput && target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS))
         xl6IrCgenEmitNativeStatusCheck(out,module,target,scope);
     if(valueOutput)xl6OutputPrintf(out,"    if (!%s.failed && !xrtGetError()) %s = native_raw;\n",scope,result);
     if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY)
@@ -975,11 +992,14 @@ static int xl6IrCgenEmitDirectCall(
     const XL6_IrNode* foreignDeclaration=xl6IrNodeGet(module,target->declaration);
     int factoryOutput=foreignDeclaration->foreignCall.outputIndexPlusOne && !foreignDeclaration->foreignCall.valueOutput;
     int storagePrepared=0;
-    int valueOutput=target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE;
+    int valueOutput=target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE;
     size_t receiverCount=(foreignDeclaration->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || foreignDeclaration->sourceKind==XL6_AST_GET || foreignDeclaration->sourceKind==XL6_AST_LET) &&
         !(foreignDeclaration->flags&XL6_AST_FLAG_STATIC) ? 1u : 0u;
     size_t outputLogical=factoryOutput || valueOutput ? xl6ForeignOutputLogical(&foreignDeclaration->foreignCall,target->parameterCount,receiverCount) : SIZE_MAX;
-    if(valueOutput)xl6OutputPrintf(out,"    %s native_raw = {0}; int native_status = ",xl6IrCgenType(module,target->returnType));
+    if(valueOutput){
+        xl6OutputPrintf(out,"    %s native_raw = {0};\n    ",xl6IrCgenType(module,target->returnType));
+        if(target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS)xl6OutputPuts("int native_status = ",out);
+    }
     else if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT){
         const XL6_IrType* type=xl6IrTypeGet(&module->types,target->returnType);
         if(factoryOutput)storagePrepared=xl6IrCgenFactoryStorageBegin(out,module,target,nativeScope);
@@ -1024,12 +1044,18 @@ static int xl6IrCgenEmitDirectCall(
         xl6OutputPrintf(out, "0x%016llXULL, 0x%016llXULL%s", (unsigned long long)owner->typeValueId,
             (unsigned long long)item->typeValueId, instruction->operandCount ? ", " : "");
     }
-    for ( size_t physical = 0; physical < instruction->operandCount+(factoryOutput || valueOutput); ++physical ) {
+    for ( size_t physical = 0; physical < instruction->operandCount+(valueOutput ? xl6IrForeignOutputCount(module,target) : (size_t)factoryOutput); ++physical ) {
         if ( physical != 0 ) xl6OutputPuts(", ", out);
-        if((factoryOutput || valueOutput) && physical==outputLogical){
-            xl6OutputPuts(storagePrepared ? "native_raw" : "&native_raw",out);continue;
-        }
-        argument=physical-((factoryOutput || valueOutput) && physical>outputLogical);
+        size_t output=SIZE_MAX;
+        if(valueOutput){
+            if(!xl6IrForeignOutputStep(module,target,physical,&argument,&output))return 0;
+            if(output!=SIZE_MAX){
+                if(xl6IrForeignOutputCount(module,target)>1)xl6OutputPrintf(out,"&native_raw.e%lu",(unsigned long)output);
+                else xl6OutputPuts("&native_raw",out);
+                continue;
+            }
+        }else if(factoryOutput && physical==outputLogical){xl6OutputPuts(storagePrepared ? "native_raw":"&native_raw",out);continue;}
+        else argument=physical-(factoryOutput && physical>outputLogical);
         if ( argument < target->parameterCount ) {
             if (encoded && nativeValue.inputParameter==argument+1)
                 xl6OutputPuts("&native_value_input",out);
@@ -1066,9 +1092,10 @@ static int xl6IrCgenEmitDirectCall(
     if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT){
         char place[40];snprintf(place,sizeof(place),"v%u",(unsigned)instruction->result);
         xl6IrCgenNativeViewAdmission(out,module,target,module->operands+instruction->firstOperand,NULL,
-            place,"native_raw",nativeScope,target->factoryResultAbi==XL6_IR_CALL_FACTORY_RESULT_INT_STATUS ? "native_status" : NULL);
+            place,"native_raw",nativeScope,target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS ? "native_status" : NULL);
     }
-    if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_STATUS_CHECK || valueOutput)
+    if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_STATUS_CHECK ||
+        (valueOutput && target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS))
         xl6IrCgenEmitNativeStatusCheck(out,module,target,nativeScope);
     if(valueOutput)xl6OutputPrintf(out,"    if (!%s.failed && !xrtGetError()) v%u = native_raw;\n",nativeScope,(unsigned)instruction->result);
     if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY) {

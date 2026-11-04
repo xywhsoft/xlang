@@ -52,5 +52,8 @@ struct XL_Module {
     XL_Module* retirementNext;
     xerror* retirementError;
     int retirementFailed; /* Failure is independent of diagnostic allocation. */
+    /* A native publisher still has a return tail after its last owner Drop.
+     * Only an explicit host drain after publisher quiescence may acknowledge. */
+    int nativeTailRetirementPending;
 };
 #endif

@@ -401,14 +401,21 @@ XL6_OwnershipPlanResult xl6OwnershipPlanTryDestroy(XL6_OwnershipPlan* plan)
 {
     xrtownershipscope freeze={0};
     if(!plan || plan->running){xrtSetErrorKind(XERR_STATE);return XL6_OWNERSHIP_PLAN_ERROR;}
+    XL6_CodeLeaseReleaseScopeV1 releases={0};
     if(plan->committed){
         for(size_t i=0;i<plan->count;++i)if(plan->nodes[i].claimed && !plan->nodes[i].finished){xrtSetErrorKind(XERR_STATE);return XL6_OWNERSHIP_PLAN_ERROR;}
-    }else{
-        if(!freeze_begin(plan->boundary,&freeze))return XL6_OWNERSHIP_PLAN_BUSY;
+    }
+    if(!xl6CodeLeaseReleaseScopeBeginV1(&releases))return XL6_OWNERSHIP_PLAN_ERROR;
+    if(!plan->committed){
+        if(!freeze_begin(plan->boundary,&freeze)){xl6CodeLeaseReleaseScopeEndV1(&releases);return XL6_OWNERSHIP_PLAN_BUSY;}
         for(size_t i=0;i<plan->count;++i){PlanNode* node=&plan->nodes[i];if(node->claimed)node->adapter->Restore(node->ref.Data,plan);}
         freeze_end(plan->boundary,&freeze);
     }
     plan->running=true;
     for(size_t i=plan->count;i--!=0;)plan->nodes[i].adapter->Drop(plan->nodes[i].ref.Data);
+    /* Host release can reenter retirement while the caller still refers to
+     * this plan. Keep its running guard and storage alive through every such
+     * release; no native table is read after ending the physical drop batch. */
+    xl6CodeLeaseReleaseScopeEndV1(&releases);
     xrtFree(plan->nodes);xrtFree(plan);return XL6_OWNERSHIP_PLAN_READY;
 }

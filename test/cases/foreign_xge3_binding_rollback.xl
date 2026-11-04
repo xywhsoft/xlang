@@ -1,0 +1,39 @@
+extern "BindingRollbackRoot*" class Root @header("test/cases/foreign_xge3_binding_rollback.h") @lifetime("owned") @policy("bindingRollbackPolicy")
+ native point handle
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "binding_rollback_create" @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(c_int mode) as Root
+extern "binding_rollback_create" @no_raise @c_result("owned_view") @factory(1,0,rollback42) func create42(c_int mode) as Root
+extern "binding_rollback_release" @no_raise @c_result("status",0) func rollback(Root value)
+extern "binding_rollback_release_42" @no_raise @c_result("status",42) func rollback42(Root value)
+extern "binding_rollback_reset" @header("test/cases/foreign_xge3_binding_rollback.h") @no_raise func resetFailure()
+extern "binding_rollback_live" @header("test/cases/foreign_xge3_binding_rollback.h") @no_raise func live() as c_int
+extern "binding_rollback_calls" @header("test/cases/foreign_xge3_binding_rollback.h") @no_raise func calls() as c_int
+func main(...) as int
+ bool caught=false
+ try
+  Root invalid=create(c_int(1))
+ catch error
+  caught=true
+  assert error.code==91 and error.message=="primary producer error"
+ end
+ assert caught and live()==c_int(0) and calls()==c_int(1)
+ for mode in [2,3]
+  caught=false
+  try
+   Root invalid=create(c_int(mode))
+  catch error
+   caught=true
+   if mode==2 then
+    assert error.code==-7
+   end
+  finally
+   resetFailure()
+  end
+  assert caught and live()==c_int(0)
+ end
+ Root valid=create42(c_int(0))
+ valid.close()
+ assert live()==c_int(0) and calls()==c_int(4)
+ return 0
+end

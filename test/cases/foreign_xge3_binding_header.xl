@@ -1,0 +1,12 @@
+extern "qualification_header_read" @header("test/cases/foreign_xge3_binding_header.h") @pure @no_raise @nonblocking func read() as c_int
+extern "qualification_header_add" @header("test/cases/foreign_xge3_binding_header.h") @pure @no_raise @nonblocking func add(c_int left,c_int right) as c_int
+export "qualification_header_forward" func forward() as c_int
+ return read()
+end
+func main(...) as int
+ assert read()==c_int(42) and add(c_int(2),c_int(5))==c_int(7)
+ func() as c_int reader=read
+ assert reader()==c_int(42)
+ assert forward()==c_int(42)
+ return 0
+end

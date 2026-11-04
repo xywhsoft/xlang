@@ -103,3 +103,49 @@ int xl6XrtTrimBuildImplementationSourceFromArtifact(
     xl6OutputClose(&out);
     return ok;
 }
+
+int xl6XrtTrimNeedsGeneratedRuntime(const XL6_ImportDeps* deps,const XL6_ArtifactRuntimePlan* plan)
+{
+    if(!plan || !plan->xrtSourceCount)return 0;
+    /* These packages already include the API symbol catalog implementation.
+     * Plain C sources and the C compiler package do not provide that catalog. */
+    return !deps || !(deps->features&(XL6_IMPORT_FEATURE_XLANG_RUNTIME|XL6_IMPORT_FEATURE_XLANG_COMPILER));
+}
+
+int xl6XrtTrimBuildImplementationSourceFromPlan(const XL6_ImportDeps* deps,size_t additional,
+    const XL6_ArtifactRuntimePlan* plan,char** outText)
+{
+    if(!outText)return 0;
+    *outText=NULL;
+    if(!plan || plan->xrtSourceCount>XL6_ARTIFACT_RUNTIME_COUNT)return 0;
+    size_t expected=0;
+    for(size_t id=0;id<XL6_ARTIFACT_RUNTIME_COUNT;++id)
+        if(xl6ArtifactRuntimeSetHas(&plan->components,id) &&
+            xl6ArtifactRuntimeComponentGet((unsigned)id)->placement==XL6_ARTIFACT_RUNTIME_IN_XRT_TRANSLATION_UNIT)++expected;
+    if(expected!=plan->xrtSourceCount)return 0;
+    int placed=xl6XrtTrimNeedsGeneratedRuntime(deps,plan);
+    for(size_t i=0;i<plan->xrtSourceCount;++i){
+        const char* source=plan->xrtSources[i];int found=0;
+        if(!source)return 0;
+        for(size_t id=0;id<XL6_ARTIFACT_RUNTIME_COUNT;++id){
+            const XL6_ArtifactRuntimeComponent* component=xl6ArtifactRuntimeComponentGet((unsigned)id);
+            if(component->placement==XL6_ARTIFACT_RUNTIME_IN_XRT_TRANSLATION_UNIT &&
+                xl6ArtifactRuntimeSetHas(&plan->components,id) && !strcmp(source,component->source))++found;
+        }
+        if(found!=1)return 0;
+        for(size_t j=0;j<i;++j)if(!strcmp(source,plan->xrtSources[j]))return 0;
+    }
+    char* native=NULL;
+    if(!xl6XrtTrimBuildImplementationSourceFromArtifact(deps,additional,plan->nativeModules,plan->nativeModuleCount,&native))return 0;
+    if(!placed){*outText=native;return 1;}
+    XL6_Output out;
+    if(!xl6OutputOpenMemory(&out)){xrtFree(native);return 0;}
+    int ok=xl6OutputPuts(native,&out)!=EOF &&
+        xl6OutputPuts("#define XL6_ARTIFACT_XRT_IMPLEMENTATION 1\n",&out)!=EOF;
+    xrtFree(native);
+    for(size_t i=0;ok && i<plan->xrtSourceCount;++i)
+        ok=xl6OutputPrintf(&out,"#include <__xl_compiler/%s>\n",plan->xrtSources[i])!=EOF;
+    if(ok)ok=xl6OutputPuts("#undef XL6_ARTIFACT_XRT_IMPLEMENTATION\n",&out)!=EOF && !xl6OutputHasFailed(&out);
+    if(ok){*outText=xl6OutputTakeMemoryText(&out,NULL);ok=*outText!=NULL;}
+    xl6OutputClose(&out);return ok;
+}

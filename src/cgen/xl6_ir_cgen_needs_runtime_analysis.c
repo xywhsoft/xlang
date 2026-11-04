@@ -4,11 +4,20 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
     XL6_DiagList* diags)
 {
     size_t i;
-    for(i=0;i<module->callTargetCount;++i)
-        if(module->callTargets[i].reachability!=XL6_IR_REACHABILITY_UNREACHABLE&&
+    for(i=0;i<module->callTargetCount;++i){
+        const XL6_IrCallTarget* target=&module->callTargets[i];
+        if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        /* The checked C-string borrow uses the same NUL guard even when no
+         * string literal/copy/operation exists in the language body. Select
+         * support from its closed physical ABI, not from incidental uses. */
+        for(size_t p=0;p<target->parameterCount;++p)
+            if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW)
+                needs->needsStringRuntime=needs->needsStringViews=1;
+        if(
             (module->callTargets[i].nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1||
              xl6IrNativeContextIsClassCallback(module->callTargets[i].nativeContextAbi)))
             needs->needsClassValueIdentityRuntime=needs->needsXValueClassFinalizerRuntime=needs->needsXValueRuntime=1;
+    }
     for (i=0;i<module->dynamicMethodCount;++i)
         if (xl6IrCgenDynamicMethodNeeded(module,i) && module->dynamicMethods[i].variadicCarrierAbi==
                 XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1)

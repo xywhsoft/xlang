@@ -13212,7 +13212,7 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
             const XL6_IrNode* owner=xl6IrSymbolNodeGet(module,symbols[dependency]);
             if(!owner || owner==node || owner->sourceKind!=XL6_AST_EXTERN_FUNC ||
                 owner->foreignCall.outputIndexPlusOne || owner->foreignCall.inplaceOutput ||
-                owner->foreignCall.borrowedViewResult ||
+                (owner->foreignCall.borrowedViewResult && !(dependency==0 && owner->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS)) ||
                 !xl6IrLowerRegisterCallTarget(ctx,(XL6_IrNodeId)(owner-module->nodes+1)))
                 return xl6IrLowerDiag(ctx,declaration,"native factory has no acyclic exact cleanup/adoption dependency");
         }
@@ -13468,8 +13468,10 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
                     "XLIR multi-result callable has no verified product ABI");
             if ( target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
                  !(target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
-                   product->nativeProductAbi != XL6_IR_NATIVE_PRODUCT_NONE &&
-                   product->nativeProductAbi == xl6IrNativeProductAbiForShape(&module->types, product)) )
+                   ((node->foreignCall.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS ||
+                     node->foreignCall.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID) ||
+                    (product->nativeProductAbi != XL6_IR_NATIVE_PRODUCT_NONE &&
+                     product->nativeProductAbi == xl6IrNativeProductAbiForShape(&module->types, product)))) )
                 return xl6IrLowerDiag(ctx, declaration,
                     "XLIR multi-result callable has no closed native product boundary");
         }
@@ -13638,6 +13640,12 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
                 XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VALUE_BORROW : XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW;
         if (xl6IrForeignConstRecordParameter(module, target, i))
             target->parameterPhysicalAbis[i] = XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS;
+        if(xl6IrForeignPointerQualifierGet(module,target,i)){
+            const XL6_IrType* input=xl6IrTypeGet(&module->types,target->parameterTypes[i]);
+            target->parameterPhysicalAbis[i]=input && input->kind==XL6_IR_TYPE_BUILTIN && input->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ?
+                XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_XVALUE_BORROW : xl6IrForeignManagedViewParameter(module,target,i) ?
+                XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_FOREIGN_VIEW_BORROW : XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_NATIVE_POINTER_DIRECT;
+        }
         if (xl6IrForeignStaticCallbackParameter(module, target, i)) {
             if (!xl6IrTypeInternCFunctionPointer(module, target->parameterTypes[i]))
                 return xl6IrLowerDiag(ctx, declaration, "static C callback requires an exact trivial C signature without text or ownership adaptation");
@@ -13647,7 +13655,9 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
     }
     target->resultConversionAbi = xl6IrCallResultConversionForTarget(module, target);
     target->resultCAbi=xl6IrCallResultCAbiForTarget(module,target);
-    target->factoryResultAbi=xl6IrCallFactoryResultAbiForTarget(module,target);
+    target->outputResultAbi=xl6IrCallOutputResultAbiForTarget(module,target);
+    target->nativeSuccessCode=xl6IrCallNativeSuccessCodeForTarget(module,target);
+    target->foreignHeaderIndexPlusOne=xl6IrForeignFunctionHeaderIndex(module,target->declaration);
     if (!xl6IrCallResultCAbiMatches(module,target))
         return xl6IrLowerDiag(ctx,target->declaration,"XLIR native C result signature does not match the declared language ABI");
     if (target->parameterCount != 0) {
@@ -31985,7 +31995,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
             const XL6_IrNode* foreignDeclaration = xl6IrNodeGet(ctx->module, target->declaration);
             int rawFactory = foreignDeclaration && foreignDeclaration->foreignCall.outputIndexPlusOne &&
                 target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT &&
-                target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE;
+                target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE;
             /* Status/output factories consume only trivial C operands. Keep
              * nested expression owners registered until their status commits:
              * the factory's explicit raise route must still retire them. */
@@ -32016,7 +32026,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 XL6_IrLowerCallCleanup cleanup={cleanupOwners,cleanupCount,cleanupDestroys,0,0};
                 if (foreignDeclaration && foreignDeclaration->foreignCall.outputIndexPlusOne &&
                     target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT &&
-                    target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE) {
+                    target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE) {
                     cleanup.resultDestroy = foreignDeclaration->foreignCall.rollbackSymbol;
                     callEmitted = xl6IrLowerCompleteOwnedCleanup(ctx, id, node,
                         &result, target->returnType, errorPlan, &cleanup);
@@ -33583,7 +33593,7 @@ static int xl6IrLowerNamedAdapterBody(
     if (!xl6IrLowerProjectCallTargetPhysicalOperands(ctx,closure->declaration,target,operands,target->parameterCount)) goto done;
     if (!xl6IrLowerCommitEvaluationOwners(ctx, closure->declaration, first)) goto done;
     if (declaration->foreignCall.outputIndexPlusOne && target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT &&
-            target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE) {
+            target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE) {
         if (dispatch != SIZE_MAX || !xl6IrLowerForeignFactory(ctx, closure->declaration,
                 target, operands, target->parameterCount, &callResult)) goto done;
     } else if ( !xl6IrLowerEmit(ctx,
@@ -33615,7 +33625,7 @@ static int xl6IrLowerNamedAdapterBody(
         }
         cleanup.temporaries = defaultStorages; cleanup.temporaryCount = count;
         if (declaration->foreignCall.outputIndexPlusOne && target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT &&
-            target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_STATUS_OUTPUT_VALUE) {
+            target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE) {
             cleanup.resultDestroy = declaration->foreignCall.rollbackSymbol;
             if (!xl6IrLowerCompleteOwnedCleanup(ctx, closure->declaration,
                     xl6IrNodeGet(ctx->module, closure->declaration), &callResult,

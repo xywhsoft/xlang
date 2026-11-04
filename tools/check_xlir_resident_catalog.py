@@ -277,15 +277,17 @@ def main():
         files.update((manifest, Path(build['Driver']), Path(cc), root / 'test/cases/xlir_artifact_runtime_contract.c'))
         objects = [row['Path'] for row in build['Objects'] if Path(row['Path']).name not in
                    ('xlir_public_source_driver.o', 'xlir_public_source_linux_driver.o')]
+        sdk=Path(build.get('SdkDirectory',build.get('RuntimeDirectory',root/'release/win_x64')))
+        flags+=['-I'+str(sdk),'-I'+str(sdk/'include'),'-I'+str(args.compiler.resolve()/'include')]
         if windows:
-            runtime = root / 'release/xl.dll'
+            runtime = Path(build['RuntimeDirectory'])/'xl.dll'
             files.add(runtime)
             shutil.copy2(runtime, build_dir / 'xl.dll')
             libraries = [runtime, '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32']
         else:
-            native = Path(build['NativeRoot']) / 'release'
-            files.add(native / 'libxl.so')
-            libraries = ['-L' + str(native), '-lxl', '-Wl,-rpath,' + str(native),
+            runtime=Path(build['RuntimeLibrary']);native=runtime.parent
+            files.add(runtime)
+            libraries = [runtime, '-Wl,-rpath,' + str(native),
                          '-Wl,--export-dynamic', '-pthread', '-ldl', '-lm']
         binary = build_dir / ('contract.exe' if windows else 'contract')
         inputs = [{'Path': str(path), 'Sha256': sha(path)} for path in sorted(files)]
@@ -312,7 +314,21 @@ def main():
         for component in catalog:
             obj = build_dir / ('component-' + str(component['Id']) + '.o')
             if args.compiler:
-                run('component-' + str(component['Id']), [cc, *flags, '-c', component['Source'], '-o', obj])
+                source=component['Source']
+                if component.get('Placement',0)==1:
+                    # Audit its real physical placement, not an empty fixed .o.
+                    # Native exports are independently filtered below, leaving
+                    # the same exact language-runtime symbol ownership oracle.
+                    source=build_dir/('component-'+str(component['Id'])+'-native.c')
+                    source.write_text('#define XRT_MODULE_ALL\n#define XRUNTIME_MODULE_ALL\n'
+                        '#include "lib/xruntime/xruntime_features.h"\n#define XRT_IMPLEMENTATION\n'
+                        '#include "lib/xrt/xrt.h"\n#define XRUNTIME_IMPLEMENTATION\n'
+                        '#include "lib/xruntime/xruntime.h"\n#define XL6_ARTIFACT_XRT_IMPLEMENTATION 1\n'
+                        '#include "'+component['Source']+'"\n',encoding='utf8')
+                    report.setdefault('GeneratedSources',[]).append({'Path':str(source),'Sha256':sha(source)})
+                else:
+                    assert component.get('Placement',0)==0, 'Unknown component placement'
+                run('component-' + str(component['Id']), [cc, *flags, '-c', source, '-o', obj])
             assert obj.is_file(), 'Missing actual provider object: ' + str(obj)
             defined = re.findall(r'\b[A-Za-z]\s+(\w+)\s*$',
                 run('defined-' + str(component['Id']), [nm, '-g', '--defined-only', obj]), re.M)

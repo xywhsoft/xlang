@@ -187,7 +187,8 @@ static int xl6IrCgenNativeCallbacksBegin(XL6_Output* out,const XL6_IrModule* mod
         xl6IrCgenForeignViewArgument(out,values,p,NULL);
         xl6OutputPrintf(out,") { native_callback_%lu=xl6NativeCallbackRuntimeV1Get()->Create(xlir_closure_owner,",(unsigned long)p);
         xl6IrCgenForeignViewArgument(out,values,p,NULL);xl6OutputPuts(",",out);
-        xl6IrCgenForeignViewArgument(out,values,row->callbackOwnerIndexPlusOne-1,NULL);
+        if(row->callbackOwnerIndexPlusOne)xl6IrCgenForeignViewArgument(out,values,row->callbackOwnerIndexPlusOne-1,NULL);
+        else xl6OutputPuts("NULL",out);
         xl6OutputPrintf(out,",0x%016llXULL); if (!native_callback_%lu) { native_callbacks_ok=false; xl6ErrorScopeCaptureFailure(&%s); }\n"
             "    else native_callback_owner_%lu=(%s){xl6NativeCallbackRuntimeV1Get()->Ownership(native_callback_%lu),"
             "xl6NativeCallbackRuntimeV1Get()->HoldNative,xl6NativeCallbackRuntimeV1Get()->DropNative}; }\n",

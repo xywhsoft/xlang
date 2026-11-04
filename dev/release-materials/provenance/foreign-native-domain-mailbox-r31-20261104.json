@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "complete": true,
+  "passed": true,
+  "scope": "Core declaration, callback failure delivery, native ownership domains and physical module retirement; not completion of all XGE/XUI bindings",
+  "sourceCohort": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r31",
+  "windows": {
+    "fullTranslationUnits": 1416,
+    "hostCompilerOptimization": "O0",
+    "freshTccObjects": 1564,
+    "focusedAcceptedGroups": 17,
+    "sourceBuildInputsUnchanged": true
+  },
+  "linux": {
+    "fullTranslationUnits": 1415,
+    "hostCompilerOptimization": "O0",
+    "focusedAcceptedGroups": 17,
+    "sourceBuild": "/home/ubuntu/xlang-validation/foreign-completion-20261103-r23/source/build.json",
+    "tccProvider": "/home/ubuntu/xlang-validation/tcc-provider-source-r31-partial-r1",
+    "producerObjects": 1562,
+    "rebuiltO2ProducerObjects": 21,
+    "reusedVerifiedProducerObjects": 1541,
+    "fullProducerRebuild": false,
+    "nestedAcceptance": "/home/ubuntu/xlang-validation/nested-source-provider-r31-linux-r2/results.json",
+    "nestedInputKinds": 4,
+    "nestedModes": [
+      "JIT",
+      "module",
+      "relocated standalone executable"
+    ],
+    "standaloneHasXlangOrTccSharedDependency": false
+  },
+  "declarationSpecialists": {
+    "previousFullTwoPlatformCohort": "R30",
+    "accepted": [
+      "field aliases",
+      "trivial multi outputs",
+      "export typedefs",
+      "exact const inputs",
+      "independent native headers",
+      "native domains",
+      "borrowed xvalue results"
+    ],
+    "currentR31CheckedRollback": {
+      "optimizations": [
+        "O0",
+        "O2"
+      ],
+      "mutationsPerOptimization": 18,
+      "primaryStatusBeforeRollback": true,
+      "emptyDiagnosticRemainsFailure": true
+    },
+    "postFreezeTestOnlyFixes": [
+      "authoritative header on two output functions",
+      "native xvalue retain-count assertion before owner cleanup"
+    ]
+  },
+  "callbackFailures": {
+    "firstErrorAndSaturatingCount": true,
+    "nullDiagnosticFailurePreserved": true,
+    "delivery": "next safe checked boundary, deferred during callback or existing primary failure",
+    "nativeCallbackThreadAbort": false
+  },
+  "lifetime": {
+    "nativeTailQuiescence": "stop/join publishers then explicit checked drain; arbitrary safe points cannot acknowledge",
+    "descriptorCodeLeases": "defer final host releases until all native adapter Drop callbacks finish",
+    "planAliveUntilHostReleasesReturn": true,
+    "discoveryPinsPhysicalRoots": true,
+    "domainConflictsFailClosed": true,
+    "domainQueryAllocations": 0,
+    "descriptorV1LayoutChanged": false,
+    "factoryProbeV1LayoutChanged": false
+  },
+  "costs": {
+    "perRootNativeDomainBytesX64": 8,
+    "perLeaseRetirementLinkBytesX64": 8,
+    "finalLeaseRelease": "execution-context lookup and intrusive batch",
+    "coldDomainDiscovery": "read-only domain scans and physical root pins",
+    "wholeBindingZeroOverheadProven": false,
+    "perMethodWrapperAdded": false
+  },
+  "commitIsolation": {
+    "excludedIdeCompletionHunks": 3,
+    "semCandidateSha256": "f8efbf791d242a001e237ba3e8c604c8b01ba45829ef2dd71abc5699d3aa2313",
+    "cliFixturesCompared": 12,
+    "byteIdenticalCAndIrOutputs": 24,
+    "ideCompletionRetested": false,
+    "bindingGenerator": "Frozen R31 inventory/generator; latest two-platform validated acceptance section, plus lazy pycparser import. New inventory/storage generator remains unstaged.",
+    "stagedBindingGateSha256": "39591defbf4537972527c473f379edced782a89d3fdea5f88aa8d29791d6107f"
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r31.json",
+      "sha256": "5065cf413ec71d95eb864565cd05190aab9b9acbca372ad92ab2adfafc73ff48"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r31\\build.json",
+      "sha256": "ca4efbfa220e5e4dee980907f1db84147ce82f48382d3742c61c1e267e84a019"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\precompiled-r31\\manifest.json",
+      "sha256": "4b555fb1ec2976b489d9e7e93357e66230279d8b1d7c2f834df56ccb3c1cc740"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r31-vfs\\provider.json",
+      "sha256": "fc0bc2b69d81a7da068de43f6d6ba816b29d34f936248ca4cc387a71bf794e66"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\focus-r31-win\\results.json",
+      "sha256": "2490e8912c7d00260e92b7eeeb97a6e617bb95dee0f0010371f5bfcc53f92f95"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\focus-r31-linux\\results.json",
+      "sha256": "ad0b0260193ae4f588678e7908e04e16ea1e54f7a9c38b83842705d3adaa25f8"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\binding-rollback-r31\\results.json",
+      "sha256": "72045186c540fc1868bf532b9c4e4ba268674d2a865e6abcb818b34f13e920b8"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-domain-query-win-r1\\results.json",
+      "sha256": "c95604082d81625765fe9766fd706827f4fb396cf032a1a526780a41229ac8ff"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\sem-scope-r31\\results.json",
+      "sha256": "54f48b28b051384b84044832ab80e3d69bc128ff93737d1883c9245dc0aeed68"
+    }
+  ],
+  "limits": [
+    "Not a full test-suite rerun",
+    "R31 source builds include three concurrent IDE hunks; staged sem exclusion separately proved on 12 CLI inputs",
+    "Seven declaration specialists retain R30 evidence with test-only corrections; R31 rollback and affected focus groups are fresh",
+    "No security, external network, GPU or interactive desktop tests",
+    "Frame/Grid, remaining API inventory, XUI proxy resource lifetime, SDK/IDE distribution remain in development"
+  ],
+  "eightTasksComplete": false,
+  "shippingUpdated": false,
+  "activeDeliveryIndexUpdated": false,
+  "networkTests": false,
+  "gpuTests": false,
+  "desktopTests": false
+}

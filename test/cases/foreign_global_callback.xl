@@ -1,0 +1,65 @@
+extern "const GlobalEvent*" class Event @header("test/cases/foreign_global_callback.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_field get value() as c_int
+end
+typedef Handler=func(Event)
+extern "global_callback_set" @no_raise @c_result("status",0) @c_owned_callback(0,-1,"GlobalOwner",0) @c_owned_callback(1,-1,"GlobalOwner",0) func install(Handler? first,Handler? second)
+extern "global_callback_fire" func fire(c_int count,c_int threaded)
+extern "global_callback_pending" @no_raise func pending() as c_int
+extern "global_callback_total" @no_raise func total() as c_int
+extern "global_callback_live" @no_raise func live() as c_int
+class Saved
+ Event? event=null
+ int first=0
+ int second=0
+end
+func main(...) as int
+ auto saved=Saved()
+ install(func(Event event)
+  assert event.value==23
+  saved.event=event
+  saved.first+=1
+ end,func(Event event)
+  assert event.value==23
+  saved.second+=1
+ end)
+ assert live()==2
+ fire(3,0)
+ assert saved.first==3 and saved.second==3
+ bool expired=false
+ try
+  auto value=(saved.event as Event).value
+ catch error
+  expired=true
+ end
+ assert expired
+ fire(4,1)
+ assert saved.first==7 and saved.second==7
+ install(func(Event event)
+  assert event.value==23
+  saved.first+=1
+  throw "global first callback failure"
+ end,func(Event event)
+  saved.second+=1
+  throw "global second callback failure"
+ end)
+ bool rejected=false
+ try
+  fire(3,1)
+ catch error
+  rejected=true
+  assert string(error).contains("global first callback failure")
+ end
+ assert rejected and pending()==0 and total()==6
+ assert saved.first==10 and saved.second==10
+ install(null,null)
+ assert live()==0
+ // Native retains a physical snapshot even when the language closure clears it.
+ install(func(Event event)
+  install(null,null)
+  assert event.value==23
+ end,null)
+ fire(1,0)
+ assert live()==0
+ return 0
+end

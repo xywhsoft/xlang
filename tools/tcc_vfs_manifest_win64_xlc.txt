@@ -10,6 +10,7 @@
 
 dir|include|%XL6_EMBED_TCC_DIST_X64%\include
 dir|include/__xl_runtime|%XL6_ROOT%\src\runtime|*.h
+file|include/__xl_runtime/xl_foreign_error.h|%XL6_ROOT%/src/api/xl_foreign_error.h
 
 # The tracked TCC include directory owns the same compatibility surface used
 # by xl.dll; package builds therefore do not depend on release outputs.

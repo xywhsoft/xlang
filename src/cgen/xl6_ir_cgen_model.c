@@ -457,6 +457,12 @@ static const char* xl6IrCgenExternParameterType(
     if ( module == NULL || target == NULL || parameter >= target->parameterCount ||
          target->parameterTypes == NULL || target->parameterAbis == NULL ||
          target->parameterPhysicalAbis == NULL ) return NULL;
+    if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_NATIVE_POINTER_DIRECT ||
+        target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_FOREIGN_VIEW_BORROW ||
+        target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_XVALUE_BORROW){
+        const XL6_ForeignPointerQualifierContract* row=xl6IrForeignPointerQualifierGet(module,target,parameter);
+        return row ? row->cName : NULL;
+    }
     if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS)
         return xl6IrCgenType(module, target->parameterTypes[parameter]);
     if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW)

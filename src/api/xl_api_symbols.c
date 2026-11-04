@@ -167,6 +167,8 @@
 #include "src/runtime/xl6_foreign_view_sequence.h"
 #include "src/runtime/xl6_native_callback.h"
 #include "src/runtime/xl6_sync_callback.h"
+#include "src/runtime/xl6_callback_failure.h"
+#include "src/runtime/xl6_host_xrt.h"
 #include "src/runtime/xl6_native_capture_graph.h"
 #include "src/runtime/xl6_foreign_view_capture.h"
 #include "src/runtime/xl6_capture_v3.h"
@@ -341,6 +343,7 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6CellCreateNativeV2", (const void*)xl6CellCreateNativeV2)) return 0;
     if (!visit(user, "xl6ForeignContextReadyV1", (const void*)xl6ForeignContextReadyV1)) return 0;
     if (!visit(user, "xl6ForeignContextGetV1", (const void*)xl6ForeignContextGetV1)) return 0;
+    if (!visit(user, "xl6ForeignContextTryGetV1", (const void*)xl6ForeignContextTryGetV1)) return 0;
     if (!visit(user, "xl6ForeignContextSetV1", (const void*)xl6ForeignContextSetV1)) return 0;
     if (!visit(user, "xl6ForeignContextCallEnterV1", (const void*)xl6ForeignContextCallEnterV1)) return 0;
     if (!visit(user, "xl6ForeignContextCallContainsV1", (const void*)xl6ForeignContextCallContainsV1)) return 0;
@@ -381,6 +384,8 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6ForeignScopeExpireOwnerV2", (const void*)xl6ForeignScopeExpireOwnerV2)) return 0;
     if (!visit(user, "xl6ForeignViewCreateRootV1", (const void*)xl6ForeignViewCreateRootV1)) return 0;
     if (!visit(user, "xl6ForeignViewCreateRootProbedV1", (const void*)xl6ForeignViewCreateRootProbedV1)) return 0;
+    if (!visit(user, "xl6ForeignViewCreateRootWithDomainV1", (const void*)xl6ForeignViewCreateRootWithDomainV1)) return 0;
+    if (!visit(user, "xl6ForeignViewCreateRootWithDomainProbedV1", (const void*)xl6ForeignViewCreateRootWithDomainProbedV1)) return 0;
     if (!visit(user, "xl6ForeignViewBorrowChildV1", (const void*)xl6ForeignViewBorrowChildV1)) return 0;
     if (!visit(user, "xl6ForeignViewBorrowRootV1", (const void*)xl6ForeignViewBorrowRootV1)) return 0;
     if (!visit(user, "xl6ForeignViewRetainV1", (const void*)xl6ForeignViewRetainV1)) return 0;
@@ -425,6 +430,11 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6NativeCallbackReportFailureV1", (const void*)xl6NativeCallbackReportFailureV1)) return 0;
     if (!visit(user, "xl6NativeCallbackRuntimeV1Get", (const void*)xl6NativeCallbackRuntimeV1Get)) return 0;
     if (!visit(user, "xl6SyncCallbackBeginV1", (const void*)xl6SyncCallbackBeginV1)) return 0;
+    if (!visit(user, "xl6CallbackFailureRecordV1", (const void*)xl6CallbackFailureRecordV1)) return 0;
+    if (!visit(user, "xl6CallbackFailureTakeV1", (const void*)xl6CallbackFailureTakeV1)) return 0;
+    if (!visit(user, "xl6CallbackFailureCountV1", (const void*)xl6CallbackFailureCountV1)) return 0;
+    if (!visit(user, "xl6HostXrtResolveV1", (const void*)xl6HostXrtResolveV1)) return 0;
+    if (!visit(user, "xl6ErrorScopeCanAcceptDeferredFailureV1", (const void*)xl6ErrorScopeCanAcceptDeferredFailureV1)) return 0;
     if (!visit(user, "xl6SyncCallbackCompleteV1", (const void*)xl6SyncCallbackCompleteV1)) return 0;
     if (!visit(user, "xl6SyncCallbackEndV1", (const void*)xl6SyncCallbackEndV1)) return 0;
     if (!visit(user, "xl6SyncCallbackEnterV1", (const void*)xl6SyncCallbackEnterV1)) return 0;
@@ -709,6 +719,8 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
         !visit(user, "xl6CodeScopeLeave", (const void*)xl6CodeScopeLeave) ||
         !visit(user, "xl6CodeLeaseRetain", (const void*)xl6CodeLeaseRetain) ||
         !visit(user, "xl6CodeLeaseRelease", (const void*)xl6CodeLeaseRelease) ||
+        !visit(user, "xl6CodeLeaseReleaseScopeBeginV1", (const void*)xl6CodeLeaseReleaseScopeBeginV1) ||
+        !visit(user, "xl6CodeLeaseReleaseScopeEndV1", (const void*)xl6CodeLeaseReleaseScopeEndV1) ||
         !visit(user, "xl6CodeLeaseOwnership", (const void*)xl6CodeLeaseOwnership) ||
         !visit(user, "xl6CodeDropCreate", (const void*)xl6CodeDropCreate) ||
         !visit(user, "xl6CodeDropAbort", (const void*)xl6CodeDropAbort) ||
@@ -866,6 +878,22 @@ static const XL_XrtRuntimeSymbol xl__xrtRuntimeSymbols[] = {
 #include "xl_xrt_symbols.inc"
 };
 #undef XL_XRT_SYMBOL
+
+/* Shared-XRT clients must receive implementation addresses, not module-local
+ * TinyCC import thunks. Reuse this already-required immutable host catalog. */
+#include "src/runtime/xl6_host_xrt.h"
+XL6_HostXrtFunctionV1 xl6HostXrtResolveV1(const char* name)
+{
+    if(!name)return NULL;
+    size_t first=0,last=sizeof(xl__xrtRuntimeSymbols)/sizeof(*xl__xrtRuntimeSymbols);
+    while(first<last){
+        size_t middle=first+(last-first)/2;
+        int order=strcmp(name,xl__xrtRuntimeSymbols[middle].name);
+        if(order<0)last=middle;else if(order>0)first=middle+1;
+        else return (XL6_HostXrtFunctionV1)xl__xrtRuntimeSymbols[middle].value;
+    }
+    return NULL;
+}
 
 int xlApiVisitDefaultRuntimeSymbols(XL_ApiSymbolVisit visit,void* user)
 {
