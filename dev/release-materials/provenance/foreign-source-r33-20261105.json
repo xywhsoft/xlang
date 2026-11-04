@@ -1,0 +1,44 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "R33 compiler/runtime source baseline c9d84b960, two complete NoCache O0 builds and seven integrated focused CPU families per platform, C11/C++11/C++17 and O0/O2 clients. Not final shipping provider or Native acceptance. Excludes later active-close descriptor flags and unfinished native ownership updates.",
+  "windowsTranslationUnits": 1416,
+  "linuxTranslationUnits": 1415,
+  "focusedFamilies": [
+    "Pack",
+    "retained native output",
+    "Region",
+    "fixed C pointer arrays",
+    "owned/callback input overloads",
+    "C aggregate place writeback",
+    "native admission failure"
+  ],
+  "focusedRuns": 14,
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r33.json",
+      "sha256": "15324201243c23ce90058d3e920e6c88062879a44e2ca9d04e6448d5a14779c2"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r33\\build.json",
+      "sha256": "40665e8d23c676b0c9e0b2c5ac20d3f41c005ab694d86883c673888f4ce70e9b"
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-completion-20261105-r33\\source\\build.json",
+      "sha256": "a849c6f29e58661aaf1d686f311914094bb9888816b5bd7534094410db8f6054"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\focused-full-r33-win-r2\\results.json",
+      "sha256": "ecca1de2f65301a96f221ee100bd5f9a3fcaff30cc0c0dd0192e39ce3514dff7"
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\focused-full-r33-linux-r2\\results.json",
+      "sha256": "2eaa4e3431ff0061b6d97683791e0a2a1e2ef06e9766a1cc2dcdddc1cf41fcd1"
+    }
+  ],
+  "toolsManifest": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\focused-full-tools-r2\\manifest.json",
+    "sha256": "765ebc31e1d83870bf6d57afd1b60beef7e51f533e123883aac0f3b5b87020a8"
+  },
+  "shippingDelivery": false
+}

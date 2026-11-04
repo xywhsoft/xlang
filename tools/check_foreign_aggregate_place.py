@@ -1,25 +1,21 @@
-"""Verify nested C aggregate writes and their bounds/CFG contracts.
+"""CPU-only aggregate place gate over a hash-verified compiler cohort.
 
-Checks one-time ordered key evaluation, reentrant changes to other fields,
-value-copy behavior, range errors and unsafe IR rejection. CPU only; uses
-explicit hash-verified source objects and is not a full delivery gate.
+Accepts an actual complete source build or an explicitly partial frontend
+overlay. Build qualification is recorded without certifying shipping/VFS.
+No Native device, graphics, window, network or security tests are run.
 """
 from pathlib import Path
 import argparse,hashlib,json,os,shutil,subprocess,sys,time
+from foreign_validation_build import add_build_arguments,load_build
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    for name in ('root','overlay','out'):parser.add_argument('--'+name,type=Path,required=True)
-    args=parser.parse_args();root,overlay,out=[p.resolve() for p in (args.root,args.overlay,args.out)]
-    description=json.loads(overlay.read_text());assert description['passed'] and not description['fullRebuild']
-    cohort=Path(description['sourceRoot']);basePath=Path(description['parentBuild']);base=json.loads(basePath.read_text())
+    for name in ('root','out'):parser.add_argument('--'+name,type=Path,required=True)
+    add_build_arguments(parser)
+    args=parser.parse_args();root,out=[p.resolve() for p in (args.root,args.out)]
+    build=load_build(args.build,args.overlay)
+    cohort,basePath,base,objects,inputs,driver,runtime=[build[k] for k in ('cohort','basePath','base','objects','inputs','driver','runtime')]
     sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
-    assert base['Complete'] and base['InputsUnchanged'] and sha(basePath)==description['parentBuildSha256']
-    replacements={r['ParentObject']:r for r in description['Objects']};objects=[];inputs={str(overlay):sha(overlay)}
-    for original in base['Objects']:
-        row=replacements.get(original['Path'],original);assert sha(row['Path'])==row['Sha256'].lower();inputs[row['Path']]=sha(row['Path'])
-        if Path(original['Source']).name not in ('xlir_public_source_driver.c','xlir_public_source_linux_driver.c'):objects.append(row['Path'])
-    driver=Path(description['Driver']);runtime=Path(description['RuntimeLibrary']);assert sha(driver)==description['DriverSha256']
     fixture=root/'test/cases/foreign_aggregate_place.xl';native=root/'test/cases/foreign_aggregate_place_native.c';host=cohort/'test/cases/foreign_decl_module_host.c'
     pinned=[driver,runtime,fixture,native,host,root/'test/cases/foreign_aggregate_place.h',Path(__file__).resolve()]
     irFixture=root/'test/cases/foreign_aggregate_place_ir.c';pinned.append(irFixture)
@@ -28,7 +24,7 @@ def main():
     env=dict(os.environ,XL6_SOURCE_NATIVE_ROOT=str(cohort))
     if os.name=='nt':shutil.copy2(runtime,out/runtime.name)
     else:env['LD_LIBRARY_PATH']=str(runtime.parent)+':'+env.get('LD_LIBRARY_PATH','')
-    report=dict(scope=__doc__,complete=False,passed=False,fullSourceRebuild=False,overlay=str(overlay),inputs=inputs,rows=[])
+    report=dict(scope=__doc__,complete=False,passed=False,fullSourceRebuild=build["fullSourceRebuild"],buildManifest=build["buildManifest"],overlay=build["overlay"],inputs=inputs,rows=[])
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n')
     def run(name,command,accepted=True):
         command=list(map(str,command));actual=command_with_response(command,'gcc',out/(name+'.rsp')) if command[0] in ('gcc','g++') else command
@@ -37,8 +33,8 @@ def main():
         report['rows'].append(dict(name=name,exitCode=result.returncode,accepted=accepted,logSha256=sha(log),seconds=round(time.monotonic()-started,3)));save()
         print(name,result.returncode,flush=True);assert (result.returncode==0)==accepted,log
     generated=out/'generated.c';run('cgen',[driver,fixture,'cgen-default',generated]);run('ir',[driver,fixture,'ir-lowered',out/'lowered.json']);run('header',[driver,fixture,'emit',out/'public'])
-    sdk=Path(base.get('SdkDirectory') or str(Path(base['Objects'][0]['Source']).parents[2]/'release'/'win_x64'))
-    includeOverlay=Path(description.get('includeOverlayRoot',cohort))
+    sdk=Path(base.get('SdkDirectory') or base.get('RuntimeDirectory') or str(Path(base['Objects'][0]['Source']).parents[2]/'release'/'win_x64'))
+    includeOverlay=Path(build['includeOverlayRoot'])
     includes=['-I'+str(p) for p in (includeOverlay,root,cohort,cohort/'src/ir',basePath.parent/'include',sdk,sdk/'include')]
     common=['-std=c11','-Wall','-Wextra','-DXL_STATIC_EMBED',*includes]
     warnings=['-Wno-'+s for s in ('unused-function','unused-variable','unused-label','unused-const-variable','unused-but-set-variable','cast-function-type')]
