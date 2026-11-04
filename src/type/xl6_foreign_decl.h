@@ -81,11 +81,14 @@ static inline int xl6ForeignRetainRead(const XL6_AstNode* attr,XL6_ForeignRetain
 static inline int xl6ForeignStorageRead(const XL6_AstNode* attr,XL6_ForeignStorageContract* output)
 {
     XL6_ForeignStorageContract row={0};
-    if(!attr || !attr->text || strcmp(attr->text,"c_inplace") || attr->childCount!=3 ||
+    if(!attr || !attr->text || strcmp(attr->text,"c_inplace") || (attr->childCount!=1 && attr->childCount!=3) ||
         !xl6ForeignQuotedText(attr->children[0],row.recordCName,sizeof(row.recordCName)) ||
-        !xl6ForeignIdentifier(!strncmp(row.recordCName,"struct ",7) ? row.recordCName+7 : row.recordCName) ||
+        !xl6ForeignIdentifier(!strncmp(row.recordCName,"struct ",7) ? row.recordCName+7 : row.recordCName))return 0;
+    if(attr->childCount==1){row.kind=XL6_FOREIGN_STORAGE_POLICY;if(output)*output=row;return 1;}
+    if(
         !attr->children[1] || attr->children[1]->kind!=XL6_AST_NAME || !attr->children[1]->text ||
         !xl6ForeignDecimalInt(attr->children[2],&row.successCode))return 0;
+    row.kind=XL6_FOREIGN_STORAGE_NATIVE_ADOPTION;
     row.adoptSymbol=attr->children[1]->semanticSymbolId;
     if(output)*output=row;
     return 1;

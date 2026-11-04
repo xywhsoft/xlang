@@ -15,6 +15,14 @@ extern "xge_font" class Font @header("test/cases/foreign_xge_resources.h") @life
  extern "xgeFontSetFallbackChecked" @no_raise @c_result("status",0) func setFallback(Font? fallback)
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
+extern "xge_image" class Image @header("test/cases/foreign_xge_resources.h") @lifetime("owned") @policy("declarativeXgeImagePolicy")
+ native point handle
+ extern "iWidth" @c_field get width() as c_int
+ extern "iHeight" @c_field get height() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeImageLoadMemory" @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeImage) @c_inplace("xge_image_t") func loadImage(bytes data) as Image
+extern "xgeImageFree" @no_raise func freeImage(Image value)
 extern "xgeTextureCreateRGBA" @no_raise @c_result("owned_view") @factory(0,0,freeTexture) @c_inplace("xge_texture_t",adoptTexture,0) func createTexture(c_int width,c_int height,Pixels? pixels=null) as Texture
 extern "xgeTextureLoadMemory" @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeTexture) @c_inplace("xge_texture_t",adoptTexture,0) func loadTexture(bytes data) as Texture
 extern "xgeFontLoad" @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeFont) @c_inplace("xge_font_t",adoptFont,0) func loadFont(string path,c_float size) as Font
@@ -27,6 +35,7 @@ extern "xgeFontFree" @no_raise func freeFont(Font value)
 extern "declarative_xui_start" @no_raise func start()
 extern "declarative_xge_font_path" @no_raise @c_result("text_view") func fontPath() as string
 extern "declarative_xge_font_bytes" @no_raise @c_result("bytes_view") func fontBytes() as bytes
+extern "declarative_xge_image_bytes" @no_raise @c_result("bytes_view") func imageBytes() as bytes
 extern "declarative_xge_heap_begin" @no_raise func heapBegin()
 extern "declarative_xge_heap_end" @no_raise func heapEnd()
 extern "declarative_xge_fail_after" @no_raise func failAfter(c_int count)
@@ -34,7 +43,13 @@ extern "declarative_xge_reset_failure" @no_raise func resetFailure()
 protocol Sizable
  func sized(c_float size) as Font
 end
-func resources(string path,bytes data)
+func resources(string path,bytes data,bytes imageData)
+ Image image=loadImage(imageData)
+ assert image.width==1 and image.height==1
+ image.close()
+ Texture decoded=loadTexture(imageData)
+ assert decoded.width==1 and decoded.height==1
+ decoded.close()
  Texture texture=createTexture(2,2)
  assert texture.width==2 and texture.height==2
  texture.close()
@@ -105,8 +120,9 @@ func main(...) as int
  start()
  string path=fontPath()
  bytes data=fontBytes()
+ bytes imageData=imageBytes()
  heapBegin()
- resources(path,data)
+ resources(path,data,imageData)
  failures()
  heapEnd()
  return 0

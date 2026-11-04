@@ -8,8 +8,16 @@
 #include <string.h>
 static bool destroy_font(void* raw){xgeFontFree(raw);return true;}
 static bool destroy_texture(void* raw){xgeTextureFree(raw);return true;}
+static bool destroy_image(void* raw){xgeImageFree(raw);xrtFree(raw);return true;}
 const XL6_ForeignViewDescriptorV1 declarativeXgeFontPolicy={sizeof(declarativeXgeFontPolicy),XL6_FOREIGN_VIEW_V1_TAG,"xge.font",0,1,NULL,NULL,destroy_font,0,1,NULL,NULL,NULL,NULL};
 const XL6_ForeignViewDescriptorV1 declarativeXgeTexturePolicy={sizeof(declarativeXgeTexturePolicy),XL6_FOREIGN_VIEW_V1_TAG,"xge.texture",0,1,NULL,NULL,destroy_texture,0,1,NULL,NULL,NULL,NULL};
+const XL6_ForeignViewDescriptorV1 declarativeXgeImagePolicy={sizeof(declarativeXgeImagePolicy),XL6_FOREIGN_VIEW_V1_TAG,"xge.image",0,1,NULL,NULL,destroy_image,0,1,NULL,NULL,NULL,NULL};
+xbytesview declarative_xge_image_bytes(void)
+{
+    /* A complete CRC-checked 1x1 RGBA PNG generated from one red pixel. */
+    static const unsigned char bytes[]={0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,0x00,0x00,0x00,0x0d,0x49,0x48,0x44,0x52,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x01,0x08,0x06,0x00,0x00,0x00,0x1f,0x15,0xc4,0x89,0x00,0x00,0x00,0x0d,0x49,0x44,0x41,0x54,0x78,0x9c,0x63,0xf8,0xcf,0xc0,0xf0,0x1f,0x00,0x05,0x00,0x01,0xff,0x89,0x99,0x3d,0x1d,0x00,0x00,0x00,0x00,0x49,0x45,0x4e,0x44,0xae,0x42,0x60,0x82};
+    return (xbytesview){bytes,sizeof(bytes)};
+}
 xstrview declarative_xge_font_path(void)
 {const char* path=getenv("XL6_TEST_FONT");assert(path);return (xstrview){path,strlen(path)};}
 /* Fixture I/O is deliberately outside the binding under test. */

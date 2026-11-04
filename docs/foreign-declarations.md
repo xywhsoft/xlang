@@ -667,3 +667,11 @@ epochs: an inner saved view expires while the outer view remains valid. A
 declared copy property performs ordinary checked bytes materialization for
 persistent data. Callback registration, activity, epoch bookkeeping, dynamic
 boxing and explicit copies retain their respective costs.
+
+### 非引用计数记录策略
+
+`@c_inplace("RecordCName")` 使用同一原位工厂机制，但不调用原生 storage adopter。
+成功准入后，类型策略的 Destroy 必须同时释放原生 payload 和 XRT 堆记录；
+初始化或准入失败时，编译器先调用声明的 rollback，再释放记录。此模式仅用于
+独立拥有根，不能让原生代码跨语言 close 保留该记录。需要原生引用计数逃逸的
+Font／Texture 等资源使用三参数 `@c_inplace`，由最后一个原生引用释放记录。

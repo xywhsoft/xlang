@@ -1,5 +1,8 @@
 # XGE3 / XUI3 声明式接入实施状态
 
+11 月 4 日非引用计数记录策略完成验收：`@c_inplace("Record")` 由类型策略在最后拥有者清理时释放 payload 和记录；原生引用计数对象仍采用三参数 storage adoption 合同。初始化／准入失败由编译器回滚并释放记录，不把二者混用。Windows 完整源码 1,414 单元、TCC 1,562 对象、30 组检查及真实 Font／Texture／Image O0/O2 组合通过；Linux 完整源码 1,413 单元、16 组编译器和四组真实组合通过。工厂每个优化等级拒绝 44 项篡改并检查 88 次空输出，32 个分配预算通过。Image 与 Texture 的 70 字节 PNG 解码均直接调用 XGE，得到 1×1 图像；没有新增逐方法包装。发布包仍未更新，其余前置继续开发。证据：`dev/release-materials/provenance/foreign-policy-record-image-20261104.json`。
+
+
 11 月 4 日原位工厂／独立引用结果／回调字节片段完成正式验收：Windows 完整编译
 1,414 单元、生成 1,562 个 TCC 对象，30 组检查及真实 Font／Texture O0/O2 组合通过；
 Linux 完整编译 1,413 单元、16 组编译器检查、三组 XUI 和一组 XGE 组合通过。

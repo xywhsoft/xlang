@@ -32,7 +32,12 @@ int main(int argc,char** argv)
         XL6_IrNode* node=&module->nodes[row->declaration-1];XL6_ForeignCallFacts facts=node->foreignCall;
         const XL6_IrCallTarget* target=xl6IrCallTargetGet(module,node->symbol);assert(target && xl6IrForeignStorageFactoryMatches(module,target));++factories;
         row->declaration=0;refused(module);*row=saved;
-        row->adoptSymbol=0;refused(module);*row=saved;
+        row->kind=0;refused(module);*row=saved;
+        if(saved.kind==XL6_FOREIGN_STORAGE_NATIVE_ADOPTION){row->adoptSymbol=0;refused(module);*row=saved;}
+        else {
+            row->successCode=1;refused(module);*row=saved;
+            row->kind=XL6_FOREIGN_STORAGE_NATIVE_ADOPTION;refused(module);*row=saved;
+        }
         row->adoptSymbol=facts.rollbackSymbol;refused(module);*row=saved;
         row->adoptSymbol=node->symbol;refused(module);*row=saved;
         row->recordCName[0]='-';refused(module);*row=saved;
@@ -40,6 +45,7 @@ int main(int argc,char** argv)
         node->foreignCall.inplaceOutput=2;refused(module);node->foreignCall=facts;
         node->foreignCall.valueOutput=1;refused(module);node->foreignCall=facts;
         node->foreignCall.callbackSpanMappings=1;refused(module);node->foreignCall=facts;
+        if(saved.kind!=XL6_FOREIGN_STORAGE_NATIVE_ADOPTION)continue;
         XL6_IrCallTarget* adopter=(XL6_IrCallTarget*)xl6IrCallTargetGet(module,row->adoptSymbol);XL6_IrCallTarget original=*adopter;
         XL6_IrNode* decl=&module->nodes[adopter->declaration-1];uint32 flags=decl->flags;
         decl->flags|=XL6_AST_FLAG_FOREIGN_PURE;refused(module);decl->flags=flags;
@@ -49,7 +55,7 @@ int main(int argc,char** argv)
         XL6_IrParameterAbi parameter=adopter->parameterAbis[0];adopter->parameterAbis[0]=XL6_IR_PARAMETER_ABI_OWNED;refused(module);adopter->parameterAbis[0]=parameter;
         XL6_IrCallParameterPhysicalAbi physical=adopter->parameterPhysicalAbis[0];adopter->parameterPhysicalAbis[0]=XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT;refused(module);adopter->parameterPhysicalAbis[0]=physical;
     }
-    size_t count=module->foreignStorageCount;assert(count>=2);--module->foreignStorageCount;refused(module);module->foreignStorageCount=count;
+    size_t count=module->foreignStorageCount;assert(count==3);--module->foreignStorageCount;refused(module);module->foreignStorageCount=count;
     assert(sizeof(XL6_ForeignCallFacts)==88 && xl6IrVerifyModule(module,NULL));
     printf("in-place native factories: factories=%u mutations=%u zero-output=%u\n",factories,mutations,mutations*2);
     xl6CompileUnitFree(&unit);return 0;
