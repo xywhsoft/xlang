@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 import re
 import sys
+from runtime_layout import runtime_source
 
 
 IMPLEMENTATION_MARKERS = (
@@ -243,7 +244,7 @@ def _source_references(
     known = runtime_apis | (external_apis or set())
     for path in _source_files(root):
         relative = path.relative_to(root).as_posix()
-        text = path.read_text(encoding="utf-8", errors="strict")
+        text = runtime_source(root,path).read_text(encoding="utf-8", errors="strict")
         for name in set(CALL.findall(text)) | _native_address_references(text, known):
             target = references if name in runtime_apis else missing
             target[name].add(relative)
@@ -259,12 +260,12 @@ def _external_api_catalog(root: Path, runtime_apis: set[str]) -> dict[str, dict[
     catalog: dict[str, dict[str, object]] = {}
     for product, contract in EXTERNAL_API_PRODUCTS.items():
         consumers = tuple(contract["consumers"])
-        if not any((root / path).is_file() for path in consumers):
+        if not any(runtime_source(root,root/path).is_file() for path in consumers):
             continue
         for path in (contract["declarations"], contract["provider"], *consumers):
-            if not (root / path).is_file():
+            if not runtime_source(root,root/path).is_file():
                 raise ValueError(f"external API product {product} is missing: {path}")
-        declarations = _api_headers(root / contract["declarations"],
+        declarations = _api_headers(runtime_source(root,root/contract["declarations"]),
             allow_identical_redeclarations=True)
         if not declarations:
             raise ValueError(f"external API product {product} has no declarations")

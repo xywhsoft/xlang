@@ -34669,9 +34669,7 @@ XRT_API bool xrtWsUpgradeStreamConfig(
 
 
 
-#if defined(XRT_FEATURE_WEBSOCKET_UPGRADE)
 XRT_EXTERN_C_END
-#endif
 
 #endif
 
@@ -34728,9 +34726,7 @@ XRT_API xhttp1status xrtHttp1ResponseParseBuffer(
 
 
 
-#if defined(XRT_FEATURE_HTTP1_NET)
 XRT_EXTERN_C_END
-#endif
 
 #endif
 
@@ -34787,9 +34783,7 @@ XRT_API xhttp1status xrtHttp1ResponseParseTls(
 
 
 
-#if defined(XRT_FEATURE_HTTP1_TLS)
 XRT_EXTERN_C_END
-#endif
 
 #endif
 

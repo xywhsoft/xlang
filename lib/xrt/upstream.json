@@ -33,5 +33,17 @@
       ],
       "exitCode": 0
     }
+  ],
+  "localPatches": [
+    {
+      "commit": "50bd79a5be18922fdf4f31daf763981ce3654a7b",
+      "kind": "C++ linkage guards only",
+      "modules": [
+        "include/xrt/http1_net.h",
+        "include/xrt/http1_tls.h",
+        "include/xrt/websocket_upgrade.h"
+      ],
+      "abiChanged": false
+    }
   ]
 }
