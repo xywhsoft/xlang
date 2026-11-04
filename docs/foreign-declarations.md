@@ -1197,3 +1197,22 @@ initialization, scalar/pointer field stores, bounds checks and the preparation
 already required for each input. Terminated-text validation and existing native
 view/span scopes retain their normal costs. A packed logical function cannot
 be passed as an unadapted flat C callback address.
+
+## Readonly typed span source overloads
+
+One native function or callable field may declare both `bytes` and `Buffer`
+inputs for the same readonly `c_span`. The exact element type, pointer
+qualifier, count ABI, native header, output, lifetime and effect contracts must
+agree. Each source keeps its own verified preparation and pin; this does not
+convert a Buffer into bytes, copy its contents or relax nominal casts. Writable
+and nullable spans, strings, C records and fixed arrays are excluded from this
+source substitution.
+
+When the span feeds a descriptor pack, only its matching `span_data` and
+`span_count` field rows may carry the corresponding different logical source
+type. Physical field names/types, parameter positions and the whole descriptor
+schema remain identical. XLIR checks this agreement independently for direct,
+bound, protocol and global calls; invalid or conflicting safety metadata fails
+before C/header emission. Ordinary overload resolution still selects an exact
+logical source type. The bytes overload alone may supply an empty default;
+the Buffer overload requires an explicit argument.

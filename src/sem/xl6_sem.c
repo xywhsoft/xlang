@@ -9181,7 +9181,10 @@ static int xl6SemExternParameterListsCompatible(XL6_SemContext* ctx,const XL6_As
             if(x.kind!=y.kind || strcmp(x.pointerCName,y.pointerCName) || x.countAbi!=y.countAbi ||
                 strcmp(x.callbackOwnerCName,y.callbackOwnerCName) || x.callbackUserFirst!=y.callbackUserFirst ||
                 x.callbackFailureCode!=y.callbackFailureCode || x.callbackResultKind!=y.callbackResultKind)return 0;
-            if(x.kind==XL6_FOREIGN_PARAMETER_SPAN)continue;
+            if(x.kind==XL6_FOREIGN_PARAMETER_SPAN){
+                if(!xl6SemExternCTypeCompatible(ctx,lt,rt) && !xl6SemForeignReadonlySpanInputCompatible(ctx,lt,rt,&x,&y))return 0;
+                continue;
+            }
             lt=xl6SemResolveAliasType(ctx,lt);rt=xl6SemResolveAliasType(ctx,rt);
             if(xl6SemTypeIsNullable(lt))lt=xl6SemNullableInnerType(lt);
             if(xl6SemTypeIsNullable(rt))rt=xl6SemNullableInnerType(rt);
@@ -9204,6 +9207,7 @@ static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* 
             left.staticCallbackAddresses != right.staticCallbackAddresses ||
             left.outputIndexPlusOne != right.outputIndexPlusOne || left.successCode != right.successCode) return 0;
         if((a->kind==XL6_AST_NATIVE_EXTERN_FUNC || b->kind==XL6_AST_NATIVE_EXTERN_FUNC || xl6SemForeignManagedInputVariants(ctx,a,b) ||
+            xl6SemForeignHasSpans(a) || xl6SemForeignHasSpans(b) ||
             xl6SemForeignHasRetainedOutputs(a) || xl6SemForeignHasRetainedOutputs(b) ||
             xl6ForeignInputHasPacks(left.inputMappingFacts) || xl6ForeignInputHasPacks(right.inputMappingFacts) ||
             xl6ForeignInputHasRegions(left.inputMappingFacts) || xl6ForeignInputHasRegions(right.inputMappingFacts)) &&

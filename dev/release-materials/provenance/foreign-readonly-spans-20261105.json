@@ -1,0 +1,60 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Exact same-C readonly typed span bytes/Buffer input overloads with per-source preparation retained. Only semantic/IR compatibility changes, no IR layout/Cgen/runtime change. Pinned R33 runtime; not newer descriptor ABI or shipping provider qualification.",
+  "files": [
+    {
+      "path": "src/sem/xl6_sem.c",
+      "sha256": "5895e8dd4871b36d4c94a229d35b44c8b13964a6c9c276a24d49f29dd860cadc"
+    },
+    {
+      "path": "src/sem/xl6_sem_foreign_compat.c",
+      "sha256": "5b36bafdea64e2eca574a150cc674b3ac06a312f82b2daaec1419dbf16f8e768"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_compat.c",
+      "sha256": "066f25d18765e96611734623f0b950c4567966dc1a4fd43c8a133d6f4d3bf65f"
+    },
+    {
+      "path": "docs/foreign-declarations.md",
+      "sha256": "98837bfccd219c75d9c9e59b0f94cb7f0c907757c6a6a11bd36a9d2449c53a7c"
+    },
+    {
+      "path": "tools/check_foreign_span_variants.py",
+      "sha256": "ab3bbb90fb21136f7b0f4dcea0a7f7c042e56974556cd429df08f983ce16be26"
+    },
+    {
+      "path": "test/cases/foreign_span_variants.h",
+      "sha256": "93a9ef259c61c8b2b0f5925ef056505d09bb471eaf96c50d43bffb12eaf37a17"
+    },
+    {
+      "path": "test/cases/foreign_span_variants_native.c",
+      "sha256": "3bc44bf89649ca26ac6e2a7abf1fd3795ec29a4bbcd7d482f3ffb5de6b6f04c1"
+    },
+    {
+      "path": "test/cases/foreign_span_variants.xl",
+      "sha256": "15dcaff62511def0df59fbab3def8376595e7fbd2bd5a38d214dd0a0fe584e3e"
+    },
+    {
+      "path": "test/cases/foreign_span_variants_ir.c",
+      "sha256": "3bbdcc0647ee01195e8787f01e56eb871438450ac908710c3b41b7b6f85a00aa"
+    }
+  ],
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\readonly-span-win-r3\\results.json",
+      "sha256": "92b0aefee5a2fe5a246f88faec45bbeb939636b1117878bcd7869a4c1d6138b4"
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\readonly-span-linux-r1\\results.json",
+      "sha256": "ed548f1db564988698f3baa96b893d4ef600d0e345d9a22c66d357ef133891e6"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\sem-scope-readonly-span-r2\\results.json",
+      "sha256": "19a0dd3421304d7860e52147b7991becfcc4a00ea9d2332380111bb1167b58ab"
+    }
+  ],
+  "excludedIdeHunks": 3,
+  "identicalScopedOutputs": 18,
+  "shippingDelivery": false
+}
