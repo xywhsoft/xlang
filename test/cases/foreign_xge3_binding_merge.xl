@@ -1,0 +1,50 @@
+extern "binding_merge_column" @header("test/cases/foreign_xge3_binding_merge.h") @no_raise @c_result("status",0) func prepareColumn(TableView table)
+extern "binding_merge_row_span" @header("test/cases/foreign_xge3_binding_merge.h") @no_raise @c_const(0) func rowSpan(TableCellOutput output) as c_int
+class MergeSaved
+ CallbackInt? output
+ int calls=0
+end
+func main(...) as int
+ Context context=create()
+ TableView table=context.tableViewNative()
+ prepareColumn(table)
+ table.setAdapter(func(Widget widget) as c_int
+  return c_int(2)
+ end,func(Widget widget,c_int row,c_int column,CallbackTableViewCellOutput output) as c_int
+  output.setText("row")
+  return c_int(0)
+ end)
+ MergeSaved saved=MergeSaved()
+ table.setMergeProvider(func(Widget widget,c_int row,c_int column,CallbackInt rows,CallbackInt columns) as c_int
+  rows.value=c_int(2)
+  columns.value=c_int(1)
+  saved.output=rows
+  saved.calls+=1
+  return c_int(1)
+ end)
+ auto output=createTableCell()
+ table.getCell(c_int(0),c_int(0),output)
+ assert saved.calls>0 and rowSpan(output)==c_int(2) and output.text()=="row"
+ bool expired=false
+ try
+  (saved.output as CallbackInt).value=c_int(99)
+ catch error
+  expired=true
+ end
+ assert expired and rowSpan(output)==c_int(2)
+ table.setMergeProvider(func(Widget widget,c_int row,c_int column,CallbackInt rows,CallbackInt columns) as c_int
+  return c_int(-17)
+ end)
+ bool rejected=false
+ try
+  table.getCell(c_int(0),c_int(0),output)
+ catch error
+  rejected=error.code==-17
+ end
+ assert rejected and output.text()=="row" and rowSpan(output)==c_int(2)
+ table.setMergeProvider(null)
+ context.close()
+ assert output.text()=="row"
+ output.close()
+ return 0
+end

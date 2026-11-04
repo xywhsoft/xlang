@@ -22,6 +22,39 @@ def split(text,delimiter=','):
         elif c in ')]}':depth-=1
         elif c==delimiter and not depth:out.append(text[start:i].strip());start=i+1
     out.append(text[start:].strip());return [x for x in out if x]
+
+def macro_definitions(text):
+    """Retain complete replacement lists, including backslash continuations."""
+    lines=text.splitlines();i=0
+    while i<len(lines):
+        first=i;line=lines[i];i+=1
+        m=re.match(r'\s*#\s*define\s+((?:XGE|XUI)\w*)(.*)',line)
+        if not m:continue
+        replacement=m[2]
+        while replacement.rstrip().endswith('\\') and i<len(lines):
+            replacement=replacement.rstrip()[:-1]+'\n'+lines[i];i+=1
+        yield m[1],first+1,replacement
+
+def native_function_sha(text,name):
+    m=re.search(r'(?m)^[A-Za-z_][\w \t*]*?\b'+re.escape(name)+r'\s*\([^;{}]*\)\s*\{',text)
+    if not m:return None
+    i=m.end();depth=1;quote=None;comment=None
+    while depth and i<len(text):
+        c=text[i];pair=text[i:i+2]
+        if comment=='line':
+            if c=='\n':comment=None
+        elif comment=='block':
+            if pair=='*/':comment=None;i+=2;continue
+        elif quote:
+            if c=='\\':i+=2;continue
+            if c==quote:quote=None
+        elif pair=='//':comment='line';i+=2;continue
+        elif pair=='/*':comment='block';i+=2;continue
+        elif c in ('"',"'"):quote=c
+        elif c=='{':depth+=1
+        elif c=='}':depth-=1
+        i+=1
+    return hashlib.sha256(text[m.start():i].encode()).hexdigest() if depth==0 else None
 def typedefs(text):
     out=[];position=0
     while True:
@@ -52,8 +85,20 @@ def type_json(node):
 
 def header_inventory(path):
     assert c_parser,'API inventory requires pycparser; acceptance does not'
-    original=path.read_text(encoding='utf-8-sig');text=clean(original)
-    td=typedefs(re.sub(r'^\s*#(?:[^\n\\]|\\\n)*\n','\n',text,flags=re.M))
+    header_bytes=path.read_bytes()
+    original=header_bytes.decode('utf-8-sig').replace('\r\n','\n');text=clean(original)
+    conditions={};stack=[]
+    for line,raw_line in enumerate(original.splitlines(),1):
+        m=re.match(r'\s*#\s*(if|ifdef|ifndef|elif|else|endif)\b(.*)',raw_line)
+        if m:
+            directive,expression=m[1],m[2].strip()
+            if directive in ('if','ifdef','ifndef'):stack.append(expression if directive=='if' else ('!' if directive=='ifndef' else '')+'defined('+expression+')')
+            elif directive=='endif' and stack:stack.pop()
+            elif directive=='else' and stack:stack[-1]='!('+stack[-1]+')'
+            elif directive=='elif' and stack:stack[-1]=expression
+        conditions[line]=[x for x in stack if re.search(r'X(?:GE|UI)_(?:ENABLE|HAS)_',x)]
+    type_text=re.sub(r'^[ \t]*#(?:[^\n\\]|\\\n)*\n',lambda m:'\n'*m.group().count('\n'),text,flags=re.M)
+    td=typedefs(type_text)
     names=set()
     for _,raw in td:
         cb=re.search(r'\(\s*\*\s*(\w+)\s*\)',raw)
@@ -70,8 +115,28 @@ def header_inventory(path):
         try:
             tree=parser.parse(pre+'\n'+raw)
             for d in tree.ext[len(known):]:
-                types.append(dict(name=d.name,declaration=' '.join(raw.split()),type=type_json(d.type)))
+                line=type_text.count('\n',0,pos)+1
+                types.append(dict(name=d.name,line=line,conditions=conditions.get(line,[]),declaration=' '.join(raw.split()),type=type_json(d.type)))
         except Exception as error:errors.append(dict(declaration=' '.join(raw.split()),error=str(error)))
+    # Complete forward typedefs from their separately declared public bodies.
+    definitions={}
+    declarations=re.sub(r'^[ \t]*#(?:[^\n\\]|\\\n)*\n',lambda m:'\n'*m.group().count('\n'),text,flags=re.M)
+    for match in re.finditer(r'(?m)^(struct|union)\s+([A-Za-z_]\w*)\s*\{',declarations):
+        depth=1;end=match.end()
+        while depth and end<len(declarations):
+            if declarations[end]=='{':depth+=1
+            elif declarations[end]=='}':depth-=1
+            end+=1
+        raw=declarations[match.start():end]+';'
+        known=(set(re.findall(r'\b[A-Za-z_]\w*\b',raw)) & names) | {'size_t','uintptr_t','intptr_t','bool','uint8_t','uint16_t','uint32_t','uint64_t','int8_t','int16_t','int32_t','int64_t','xtime','xstrview','xvalue'}
+        try:
+            tree=parser.parse('\n'.join('typedef int '+n+';' for n in known)+'\n'+raw)
+            definitions[(match[1],match[2])]=type_json(tree.ext[-1].type)
+        except Exception as error:errors.append(dict(declaration=' '.join(raw.split()),error=str(error)))
+    for row in types:
+        t=row['type']
+        if t['kind'] in ('struct','union') and t.get('fields') is None and (t['kind'],t.get('tag')) in definitions:
+            row['type']=dict(definitions[(t['kind'],t['tag'])])
     functions=[]
     for m in re.finditer(r'\b(X(?:GE|UI)\w*_API)\s+([^;{}]+?\([^;{}]*?\))\s*;',text,re.S):
         raw=m.group(2);before,args=raw.split('(',1);name=re.search(r'\w+\s*$',before).group().strip();ret=before[:before.rfind(name)]
@@ -80,34 +145,50 @@ def header_inventory(path):
         known=set(re.findall(r'\b[A-Za-z_]\w*\b',' '.join(type_words)))-KEYWORDS
         pre='\n'.join('typedef int '+x+';' for x in known)
         try:
-            d=parser.parse(pre+'\n'+raw+';').ext[-1];functions.append(dict(name=name,line=text.count('\n',0,m.start())+1,declaration=' '.join(raw.split()),type=type_json(d.type),state='requires-contract-review'))
+            line=text.count('\n',0,m.start())+1
+            d=parser.parse(pre+'\n'+raw+';').ext[-1];functions.append(dict(name=name,line=line,conditions=conditions.get(line,[]),declaration=' '.join(raw.split()),type=type_json(d.type),state='requires-contract-review'))
         except Exception as error:errors.append(dict(declaration=' '.join(raw.split()),error=str(error)))
-    constants=[]
-    for m in re.finditer(r'^\s*#define\s+((?:XGE|XUI)\w*)([^\n]*)',original,re.M):
-        if m.group(2).startswith('('):continue
-        value=m.group(2).strip()
+    constants=[];function_macros=[]
+    for name,line,replacement in macro_definitions(original):
+        if replacement.startswith('('):
+            signature=re.match(r'\(([^)]*)\)\s*(.*)',replacement,re.S)
+            if signature:function_macros.append(dict(name=name,line=line,parameters=split(signature[1]),body=signature[2],state='requires-compile-time-mapping'))
+            continue
+        value=replacement.strip()
         if not value or value=='\\':continue
-        constants.append(dict(name=m.group(1),line=original.count('\n',0,m.start())+1,expression=value))
-    return dict(header=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),functions=functions,types=types,constants=constants,parseErrors=errors)
+        constants.append(dict(name=name,line=line,expression=value))
+    aliases={t['name']:t['type'] for t in types};callable_fields=[]
+    for record in types:
+        for member in record['type'].get('fields') or []:
+            target=member['type'];seen=set();callback=None
+            while target.get('kind')=='named' and len(target.get('names',[]))==1:
+                alias=target['names'][0]
+                if alias in seen or alias not in aliases:break
+                seen.add(alias);callback=alias;target=aliases[alias]
+            if target.get('kind')=='pointer' and target['to'].get('kind')=='function':
+                callable_fields.append(dict(record=record['name'],member=member['name'],callbackTypedef=callback,signature=target['to'],globalSymbol=False,state='requires-callable-field-and-lifetime-contract'))
+    return dict(header=str(path),sha256=hashlib.sha256(header_bytes).hexdigest(),functions=functions,types=types,constants=constants,functionMacros=function_macros,callableFields=callable_fields,parseErrors=errors)
 
 def inventory(root,out):
     result=dict(schema=1,scope=__doc__,headers=[header_inventory(root/'include'/name) for name in ('xge.h','xui.h')])
-    result['counts']={k:sum(len(h[k]) for h in result['headers']) for k in ('functions','types','constants','parseErrors')}
+    result['counts']={k:sum(len(h[k]) for h in result['headers']) for k in ('functions','types','constants','functionMacros','callableFields','parseErrors')}
     out.parent.mkdir(parents=True,exist_ok=True);out.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     print(json.dumps(result['counts']));return result
 
 
 SCALARS={'void':None,'int':'c_int','unsigned int':'c_uint','unsigned':'c_uint','char':'c_char','signed char':'c_schar','unsigned char':'c_uchar','short':'c_short','unsigned short':'c_ushort','long':'c_long','unsigned long':'c_ulong','long long':'c_longlong','unsigned long long':'c_ulonglong','float':'c_float','double':'c_double','size_t':'c_size','int8_t':'c_schar','uint8_t':'c_uchar','int16_t':'c_short','uint16_t':'c_ushort','int32_t':'c_int','uint32_t':'c_uint','int64_t':'int64','uint64_t':'uint64','xtime':'int64','intptr_t':'c_intptr','uintptr_t':'c_uintptr','ptrdiff_t':'c_ptrdiff'}
-SCALARS['xtime']='time'
+SCALARS.update(xtime='time',bool='bool',_Bool='bool')
 def pascal(name):
     name=re.sub(r'^x(?:ge|ui)_','',name);name=re.sub(r'_t$','',name)
     return ''.join(x[:1].upper()+x[1:] for x in name.split('_'))
 def integer(expression,known):
     expression=re.sub(r'/\*.*?\*/|//.*','',expression).strip()
     expression=re.sub(r'\b(0[xX][0-9a-fA-F]+|\d+)[uUlL]+\b',r'\1',expression)
+    expression=re.sub(r'(?<![\w.])((?:\d+\.\d*|\.\d+)(?:[eE][+-]?\d+)?|\d+[eE][+-]?\d+)[fFlL]\b',r'\1',expression)
     expression=re.sub(r'\((?:u?int\d+_t|unsigned|int|long|size_t)\)', '',expression)
     for symbol in set(re.findall(r'\b[A-Za-z_]\w*\b',expression)):
         if symbol not in known:raise ValueError(symbol)
+        if not isinstance(known[symbol],(int,float)):raise ValueError('non-numeric '+symbol)
         expression=re.sub(r'\b'+re.escape(symbol)+r'\b',str(known[symbol]),expression)
     node=ast.parse(expression,mode='eval')
     allowed=(ast.Expression,ast.Constant,ast.UnaryOp,ast.BinOp,ast.USub,ast.UAdd,ast.Invert,ast.Add,ast.Sub,ast.Mult,ast.FloorDiv,ast.Div,ast.Mod,ast.LShift,ast.RShift,ast.BitAnd,ast.BitOr,ast.BitXor,ast.Load)
@@ -116,8 +197,49 @@ def integer(expression,known):
     if not isinstance(value,(int,float)):raise ValueError(expression)
     return value
 
+def expand_constant_macros(expression,macros):
+    for _ in range(16):
+        changed=False
+        for name,m in macros.items():
+            match=re.search(r'\b'+re.escape(name)+r'\s*\(',expression)
+            if not match:continue
+            depth=1;end=match.end()
+            while depth and end<len(expression):
+                if expression[end]=='(':depth+=1
+                elif expression[end]==')':depth-=1
+                end+=1
+            if depth:raise ValueError('unterminated constant macro')
+            args=split(expression[match.end():end-1])
+            if len(args)!=len(m['parameters']):raise ValueError('constant macro arity')
+            body=m['body']
+            for parameter,argument in zip(m['parameters'],args):body=re.sub(r'\b'+re.escape(parameter)+r'\b','('+argument+')',body)
+            expression=expression[:match.start()]+'('+body+')'+expression[end:];changed=True
+        if not changed:return expression
+    raise ValueError('recursive constant macro')
+
+def is_build_macro(name):
+    return name in ('XGE_DEBUG','XGE_RELEASE','XGE_DEBUGMODE','XGE_XRT_HOST') or name.endswith('_API') or bool(re.match(r'^X(?:GE|UI)(?:3D)?_(?:ENABLE|HAS|BUILD)_',name))
+
 def generate(root,data):
     reserved=set(re.findall(r'\{\"([A-Za-z_]\w*)\", XL6_KW_', (root/'src/lexer/xl6_lexer_gen.c').read_text(encoding='utf8')))
+    storage_path=root/'docs/xge3-xui3-api-map-storage.json'
+    storage=json.loads(storage_path.read_text(encoding='utf8'))['entries']
+    storage_sources={}
+    def reviewed_span(f,pointer,count):
+        # A matching C shape proves ABI, never non-escape. New signatures must
+        # receive an explicit native storage review before an implicit span.
+        review=storage.get(f['name'],{})
+        shape='"'+pointer+'","'+count+'"'
+        if review.get('storage') not in ('native-copy-or-synchronous-read','bounded-synchronous-output') or shape not in review.get('declaration',''):
+            f.update(state='requires-pointer-storage-review',reason='Counted native pointer lacks a matching reviewed non-escape contract')
+            raise ValueError('unreviewed pointer storage')
+        native_root=Path(data['headers'][0]['header']).parents[1]
+        source=native_root/review['sourceFile']
+        if source not in storage_sources:storage_sources[source]=source.read_text(encoding='utf-8-sig')
+        if native_function_sha(storage_sources[source],f['name'])!=review['functionSha256']:
+            f.update(state='requires-pointer-storage-review',reason='Native pointer consumer changed after the recorded storage review')
+            raise ValueError('native pointer storage review is stale')
+        f['storageContract']=dict(inventory=str(storage_path.relative_to(root)).replace('\\','/'),storage=review['storage'],sourceFile=review['sourceFile'],functionSha256=review['functionSha256'])
     for header in data['headers']:
         package=Path(header['header']).stem;folder=root/'lib/bindings'/package;src=folder/'src';src.mkdir(parents=True,exist_ok=True)
         types={t['name']:t['type'] for t in header['types']};records={};pending={n:t for n,t in types.items() if t['kind']=='struct' and t.get('fields') is not None}
@@ -150,14 +272,24 @@ def generate(root,data):
                 declarations.append('export extern "'+name+'" struct '+language+' @header("xge3_runtime.h")\n'+'\n'.join(fields)+'\nend\n')
                 del pending[name];progress=True
             if not progress:break
+        debug_types={t['name'] for t in header['types'] if any('XGE_HAS_DEBUGMODE' in c for c in t.get('conditions',[]))}
         records3d=[d for d in declarations if 'extern "xge3d_' in d]
-        records2d=[d for d in declarations if d not in records3d]
+        records_debug=[d for d in declarations if any('extern "'+name+'"' in d for name in debug_types)]
+        records2d=[d for d in declarations if d not in records3d and d not in records_debug]
+        base_records={language for name,language in records.items() if name not in debug_types and not name.startswith('xge3d_')}
+        def qualify_base_records(declaration):
+            for name in base_records:declaration=re.sub(r'\b'+re.escape(name)+r'\b','xge.'+name,declaration)
+            return declaration
         (src/'records.xl').write_text('// Exact, pointer-free native value records. Generated from the authoritative header.\n'+ '\n'.join(records2d),encoding='utf8')
         if package=='xge':
             optional=folder/'three_d';(optional/'src').mkdir(parents=True,exist_ok=True)
             (optional/'src/records.xl').write_text('// Requires a matching 3D-enabled native SDK; no feature macros are changed by this module.\n'+'\n'.join(records3d),encoding='utf8')
+            debug=folder/'debug';(debug/'src').mkdir(parents=True,exist_ok=True)
+            (debug/'src/records.xl').write_text('// Requires XGE_HAS_DEBUGMODE in the native SDK before its first header include.\n'+'\n'.join(map(qualify_base_records,records_debug)),encoding='utf8')
         known={};constants=[];seen=set()
-        candidates=list(header['constants'])
+        # Conditional preprocessing controls are selected by the actual SDK,
+        # not by the first textual #define in an all-branches inventory.
+        candidates=[c for c in header['constants'] if not is_build_macro(c['name'])]
         for t in header['types']:
             if t['type']['kind']=='enum' and t['type'].get('values'):
                 previous=-1
@@ -166,19 +298,27 @@ def generate(root,data):
                     except (ValueError,SyntaxError,NameError):break
                     known[v['name']]=previous;candidates.append(dict(name=v['name'],expression=str(previous)))
         remaining=list(candidates)
+        constant_macros={m['name']:m for m in header['functionMacros']}
         for _ in range(20):
             next_remaining=[]
             for c in remaining:
                 if c['name'] in seen:continue
-                try:value=integer(c['expression'],known)
+                try:
+                    expression=expand_constant_macros(c['expression'],constant_macros)
+                    value=ast.literal_eval(expression) if re.fullmatch(r'"(?:\\.|[^"\\])*"',expression) else known[expression] if expression in known else integer(expression,known)
                 except (ValueError,SyntaxError,NameError,ZeroDivisionError):next_remaining.append(c);continue
                 known[c['name']]=value;seen.add(c['name'])
-                if isinstance(value,float):typ='float';literal=repr(value)
+                if isinstance(value,str):typ='string';literal=json.dumps(value,ensure_ascii=False)
+                elif isinstance(value,float):typ='c_float' if re.search(r'(?:\d\.|\.\d|[eE][+-]?\d).*?[fF]\b',expression) else 'c_double';literal=repr(value)
                 else:typ='uint64' if value>0xffffffff else 'uint32' if value>0x7fffffff else 'int64' if value < -0x80000000 else 'c_int';literal=str(value)
                 constants.append('export const '+typ+' '+c['name']+' = '+literal)
             if len(next_remaining)==len(remaining):break
             remaining=next_remaining
-        (src/'constants.xl').write_text('// Numeric constants preserve their native values; no runtime storage or C wrapper.\n'+'\n'.join(constants)+'\n',encoding='utf8')
+        (src/'constants.xl').write_text('// Numeric and text constants preserve native values without runtime dispatch or C wrappers.\n'+'\n'.join(constants)+'\n',encoding='utf8')
+        for c in header['constants']:
+            if c['name'] in seen:c.update(state='compile-time-constant',language=package+'.'+c['name'],value=known[c['name']])
+            elif is_build_macro(c['name']):c['state']='native-build-configuration'
+            else:c['state']='requires-compile-time-mapping'
         # Core functions without resources, buffers or escaping pointers. The
         # native integer result is retained; status-vs-count is never guessed.
         functions=[];mapped={};special=set()
@@ -190,39 +330,163 @@ def generate(root,data):
             return primitive(t),[]
         if package=='xge':
             for f in header['functions']:
-                sig=f['type'];attrs=[];params=[]
+                if f['name']=='xgeGetBuildInfo':
+                    f.update(state='requires-initialized-output',reason='Native requires out.size == sizeof(*out); a zero-only output mapping is insufficient')
+                    continue
+                if f['name'] in ('xgeUnit','xgeRequestQuit'):
+                    f.update(state='replaced-checked-entry',language='xge.unit' if f['name']=='xgeUnit' else 'xge.requestQuit',replacement='xgeUnitChecked' if f['name']=='xgeUnit' else 'xgeRequestQuitChecked');continue
+                sig=f['type'];attrs=[];params=[];outputs=[];out_types=[];consumed=set()
                 try:
                     ret=primitive(sig['returns'])
                     for i,p in enumerate(sig['parameters']):
+                        if i in consumed:continue
                         if p.get('variadic'):raise ValueError('variadic')
                         if p['type']=={'kind':'named','names':['void'],'qualifiers':[]}:continue
-                        pt,at=param(p['type'],i);attrs.extend(at);params.append(pt+' '+('arg'+str(i) if not p['name'] or p['name'] in reserved else p['name']))
+                        t=p['type']
+                        if t['kind']=='pointer' and i+1<len(sig['parameters']) and re.search(r'(?:size|length|count|capacity|bytes)$',sig['parameters'][i+1].get('name') or '',re.I):
+                            next_type=sig['parameters'][i+1]['type'];ct=' '.join(next_type.get('names',[])) if next_type['kind']=='named' else ''
+                            element=t['to'];ename=' '.join(element.get('names',[])) if element['kind']=='named' else ''
+                            if ct not in ('int','size_t') or ename not in SCALARS and ename not in records:raise ValueError('unreviewed counted input/output')
+                            readonly='const' in element.get('qualifiers',[]);pointer=('const ' if readonly else '')+ename+'*'
+                            pointer=pointer.replace('unsigned char','uint8_t').replace('signed char','int8_t')
+                            if not re.fullmatch(r'(?:const )?[A-Za-z_]\w*\*',pointer):raise ValueError('counted pointer spelling')
+                            reviewed_span(f,pointer,ct)
+                            pt='string' if pointer=='const char*' else 'bytes' if pointer in ('const void*','const uint8_t*') else 'Buffer'
+                            attrs.append('@c_span('+str(len(params))+',"'+pointer+'","'+ct+'")');params.append(pt+' '+p['name']);consumed.add(i+1);continue
+                        if t['kind']=='pointer' and 'const' not in t['to'].get('qualifiers',[]) and re.search(r'Get|Default|Identity|Init$',f['name']):
+                            pt=primitive(t['to'])
+                            if not pt:raise ValueError('void output')
+                            outputs.append(i);out_types.append(pt);continue
+                        pt,at=param(t,len(params));attrs.extend(at);params.append(pt+' '+('arg'+str(i) if not p['name'] or p['name'] in reserved else p['name']))
+                    if outputs:
+                        if ret not in (None,'c_int'):raise ValueError('output producer has unreviewed native result')
+                        attrs.append('@no_raise')
+                        attrs.append('@c_output('+str(outputs[0])+(')' if ret is None else ',0)') if len(outputs)==1 else '@c_outputs('+','.join(map(str,outputs))+')'+(' @c_status(0)' if ret else ''))
+                        ret=out_types[0] if len(out_types)==1 else '('+','.join(out_types)+')'
                 except ValueError:continue
                 name=f['name'][3:];name='threeD'+name[2:] if name.startswith('3d') else name[:1].lower()+name[1:];name='native'+name[:1].upper()+name[1:] if name in reserved else name
+                if f['name']=='xgeUnitChecked':name='unit';ret=None;attrs+=['@no_raise','@c_result("status",0)']
                 if name in special:continue
                 special.add(name)
                 line='export extern "'+f['name']+'" @header("xge3_runtime.h") '+(' '.join(attrs)+' ' if attrs else '')+'func '+name+'('+','.join(params)+')'+(' as '+ret if ret else '')
-                functions.append(line);mapped[f['name']]='xge.'+name
+                functions.append(line);mapped[f['name']]=('xge3d.' if f['name'].startswith('xge3d') else 'xgeDebug.' if any('XGE_HAS_DEBUGMODE' in c for c in f.get('conditions',[])) else 'xge.')+name
             functions3d=[f for f in functions if 'extern "xge3d' in f]
-            functions2d=[f for f in functions if f not in functions3d]
+            debug_names={f['name'] for f in header['functions'] if any('XGE_HAS_DEBUGMODE' in c for c in f.get('conditions',[]))}
+            functions_debug=[f for f in functions if any('extern "'+name+'"' in f for name in debug_names)]
+            functions2d=[f for f in functions if f not in functions3d and f not in functions_debug]
             (src/'functions.xl').write_text('// Direct C declarations. Integer results retain the authoritative C status/count semantics.\n'+'\n'.join(functions2d)+'\n',encoding='utf8')
             (optional/'src/functions.xl').write_text('\n'.join(functions3d)+'\n',encoding='utf8')
-            optional_manifest={'format':'xlang-package-1','name':'xge3d','version':'3.0.0','abiVersion':'2','kind':'xlang-extlib','artifact':{'kind':'source','cSources':[],'xlSources':['src/records.xl','src/functions.xl']},'links':[],'loadlibs':[],'dependencies':[{'name':'xge','version':'3.0.0','abiVersion':'2'}],'requiresNativeFeatures':['XGE_ENABLE_3D'],'native':{'singleton':False,'loadName':'','version':''}}
+            (debug/'src/functions.xl').write_text('\n'.join(map(qualify_base_records,functions_debug))+'\n',encoding='utf8')
+            optional_manifest={'format':'xlang-package-1','name':'xge3d','version':'3.0.0','abiVersion':'2','kind':'xlang-extlib','artifact':{'kind':'source','cSources':[],'xlSources':['src/bootstrap.xl','src/records.xl','src/functions.xl']},'links':[],'loadlibs':[],'dependencies':[{'name':'xge','version':'3.0.0','abiVersion':'2'}],'requiresNativeFeatures':['XGE_ENABLE_3D'],'native':{'singleton':False,'loadName':'','version':''}}
             (optional/'xlang.package.json').write_text(json.dumps(optional_manifest,indent=2)+'\n',encoding='utf8')
+            debug_manifest=dict(optional_manifest,name='xgeDebug',requiresNativeFeatures=['XGE_HAS_DEBUGMODE'])
+            (debug/'xlang.package.json').write_text(json.dumps(debug_manifest,indent=2)+'\n',encoding='utf8')
+            for extension in (optional,debug):(extension/'src/bootstrap.xl').write_text('// Normal module import executes the shared native initializer once.\nimport "xge"\n',encoding='utf8')
+            object_mapping=generate_xge_objects(root,header,records,types,primitive,param,reserved,reviewed_span)
+            mapped.update(object_mapping)
         if package=='xui':
-            managed,mapping=generate_xui(root,header,records,types,primitive,param,reserved)
+            managed,mapping=generate_xui(root,header,records,types,primitive,param,reserved,reviewed_span)
             mapped.update(mapping)
-        header['bindingSummary']=dict(pointerFreeRecords=len(records),numericConstants=len(constants),scalarFunctions=len(functions))
-        header['bindingTypes']={name:dict(language=records.get(name),state='direct-value-record' if name in records else 'requires-lifetime-or-layout-contract') for name in types}
+        header['bindingSummary']=dict(pointerFreeRecords=len(records),numericConstants=sum(isinstance(v,(int,float)) for v in known.values()),textConstants=sum(isinstance(v,str) for v in known.values()),exportedConstants=len(constants),scalarFunctions=len(functions))
+        header['bindingTypes']={name:dict(language=(('xge3d.' if name.startswith('xge3d_') else 'xgeDebug.' if name in debug_types else package+'.')+records[name]) if name in records else None,state='direct-value-record' if name in records else 'requires-lifetime-or-layout-contract') for name in types}
         for f in header['functions']:
             if f['name'] in mapped:f.update(state='direct-declaration',language=mapped[f['name']])
-        manifest={'format':'xlang-package-1','name':package,'version':'3.0.0','abiVersion':'2','kind':'xlang-extlib','artifact':{'kind':'source','cSources':[],'xlSources':['src/records.xl','src/constants.xl']+(['src/functions.xl','src/resources.xl'] if package=='xge' else ['src/managed.xl'])},'links':[],'loadlibs':[],'dependencies':[{'name':'_xge_native','version':'3.0.0','abiVersion':'2'}],'native':{'singleton':False,'loadName':'','version':''}}
+        (src/'bootstrap.xl').write_text('// Normal module import executes the shared native initializer once.\nimport "_xge_native"\n',encoding='utf8')
+        manifest={'format':'xlang-package-1','name':package,'version':'3.0.0','abiVersion':'2','kind':'xlang-extlib','artifact':{'kind':'source','cSources':[],'xlSources':['src/bootstrap.xl','src/records.xl','src/constants.xl']+(['src/functions.xl','src/resources.xl','src/callbacks.xl','src/shapes.xl'] if package=='xge' else ['src/managed.xl','src/cell.xl'])},'links':[],'loadlibs':[],'dependencies':[{'name':'_xge_native','version':'3.0.0','abiVersion':'2'}],'native':{'singleton':False,'loadName':'','version':''}}
         (folder/'xlang.package.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf8')
+        # Reconcile hand-authored ownership/callback declarations too. A private
+        # rollback helper is implementation metadata, not a public free API.
+        by_name={f['name']:f for f in header['functions']};class_bindings=[]
+        for relative in manifest['artifact']['xlSources']:
+            owner=None
+            for line in (folder/relative).read_text(encoding='utf8').splitlines():
+                cls=re.match(r'export extern "([^"]+)" class (\w+).*@lifetime\("([^"]+)"\)',line)
+                if cls:
+                    owner=cls[2];class_bindings.append(dict(language=package+'.'+owner,cName=cls[1],lifetime=cls[3],declaration=line,source=relative));continue
+                if line=='end':owner=None;continue
+                declaration=re.search(r'extern "([^"]+)".*\b(func|get|let) (\w+)\(',line)
+                if declaration and declaration[1] in by_name and (owner or line.startswith('export extern')):
+                    f=by_name[declaration[1]];f.update(state='direct-declaration',language=package+'.'+(owner+'.' if owner else '')+declaration[3],bindingSource=relative)
+        header['classBindings']=class_bindings
+        header['bindingSummary']['publicFunctionsMapped']=sum(f['state']=='direct-declaration' for f in header['functions'])
         print(package,header['bindingSummary'])
 
 
-def generate_xui(root,header,records,types,primitive,param,reserved):
+def generate_xge_objects(root,header,records,types,primitive,param,reserved,reviewed_span):
+    families={'xge_shape_ex':('Shape','xl6Xge3ShapePolicy','xgeShapeEx','xgeShapeExDestroy'),
+              'xge_shape_ex_scene':('ShapeScene','xl6Xge3ShapeScenePolicy','xgeShapeExScene','xgeShapeExSceneDestroy'),
+              'xge_shape_ex_path_measure':('PathMeasure','xl6Xge3PathMeasurePolicy','xgeShapeExPathMeasure','xgeShapeExPathMeasureDestroy')}
+    mapped={};methods={n:[] for n,_,_,_ in families.values()};factories=[]
+    def family(t):
+        if t['kind']=='named' and len(t['names'])==1:return families.get(t['names'][0])
+        return None
+    for f in header['functions']:
+        p=f['type']['parameters'];ret=f['type']['returns'];params=[];attrs=[];outputs=[];values=[];factory=None
+        if not p:continue
+        owner=family(p[0]['type'])
+        if not owner:continue
+        if f['name'] in [v[3] for v in families.values()] or f['name'].endswith('AddRef'):continue
+        try:
+            result=primitive(ret)
+            i=1
+            while i<len(p):
+                a=p[i];t=a['type'];logical=len(params)
+                if t['kind']=='pointer' and family(t['to']):
+                    if not re.search(r'Clone$',f['name']):raise ValueError('unreviewed borrowed/resource output')
+                    if factory or outputs:raise ValueError('mixed native outputs')
+                    factory=family(t['to']);outputs.append(i);i+=1;continue
+                resource=family(t)
+                if resource:params.append(resource[0]+' '+a['name']);i+=1;continue
+                if t['kind']=='pointer' and i+1<len(p) and re.search(r'(?:size|length|count|capacity|bytes)$',p[i+1].get('name') or '',re.I):
+                    count=p[i+1]['type'];ct=' '.join(count.get('names',[])) if count['kind']=='named' else ''
+                    el=t['to'];en=' '.join(el.get('names',[])) if el['kind']=='named' else ''
+                    if ct not in ('int','size_t') or en not in SCALARS and en not in records:raise ValueError('array contract')
+                    pointer=('const ' if 'const' in el.get('qualifiers',[]) else '')+en+'*'
+                    pointer=pointer.replace('unsigned char','uint8_t').replace('signed char','int8_t')
+                    if not re.fullmatch(r'(?:const )?[A-Za-z_]\w*\*',pointer):raise ValueError('array spelling')
+                    reviewed_span(f,pointer,ct)
+                    pt='string' if pointer=='const char*' else 'bytes' if pointer in ('const void*','const uint8_t*') else 'Buffer'
+                    attrs.append('@c_span('+str(logical)+',"'+pointer+'","'+ct+'")');params.append(pt+' '+a['name']);i+=2;continue
+                if t['kind']=='pointer' and 'const' not in t['to'].get('qualifiers',[]):
+                    pt=primitive(t['to'])
+                    if not pt:raise ValueError('opaque output')
+                    outputs.append(i);values.append(pt);i+=1;continue
+                pt,at=param(t,logical);attrs+=at;params.append(pt+' '+('arg'+str(i) if a['name'] in reserved else a['name']));i+=1
+            if result!='c_int':raise ValueError('family methods must retain reviewed status semantics')
+            if factory:
+                if len(outputs)!=1 or values:raise ValueError('multiple resource outputs')
+                attrs+=['@c_result("owned_view")','@factory('+str(outputs[0])+',0,rollback'+factory[0]+')'];result=factory[0]
+            elif outputs:
+                attrs.append('@c_output('+str(outputs[0])+',0)' if len(outputs)==1 else '@c_outputs('+','.join(map(str,outputs))+') @c_status(0)')
+                result=values[0] if len(values)==1 else '('+','.join(values)+')'
+            else:attrs.append('@c_result("status",0)');result=None
+            name=f['name'][len(owner[2]):];name=name[:1].lower()+name[1:]
+            if name=='close':name='closePath'
+            if not name or name in reserved:name='native'+name[:1].upper()+name[1:]
+            methods[owner[0]].append(' extern "'+f['name']+'" @no_raise '+ ' '.join(attrs)+' func '+name+'('+','.join(params)+')'+(' as '+result if result else ''))
+            mapped[f['name']]='xge.'+owner[0]+'.'+name
+        except ValueError:continue
+    lines=['// Native-only shape graphs: own one exact native reference, no language callback slots.']
+    for native,(name,policy,prefix,destroy) in families.items():
+        lines+=['export extern "'+native+'" class '+name+' @header("xge3_runtime.h") @lifetime("owned") @policy("'+policy+'")',' native point handle',*methods[name],
+                ' extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()','end',
+                'extern "'+destroy+'" @no_raise func rollback'+name+'('+name+' value)']
+        if name in ('Shape','ShapeScene'):
+            cname=prefix+'Create';public='create'+name
+            lines+=['export extern "'+cname+'" @no_raise @c_result("owned_view") @factory(0,0,rollback'+name+') func '+public+'() as '+name];mapped[cname]='xge.'+public
+    lines+=['export extern "xgeShapeExPathMeasureCreate" @no_raise @c_ref(1) @c_result("owned_view") @factory(0,0,rollbackPathMeasure) func measurePath(Shape shape,ShapeExMatrix matrix,c_float tolerance) as PathMeasure']
+    mapped['xgeShapeExPathMeasureCreate']='xge.measurePath'
+    (root/'lib/bindings/xge/src/shapes.xl').write_text('\n'.join(lines)+'\n',encoding='utf8')
+    return mapped
+
+
+def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_span):
     src=root/'lib/bindings/xui/src';functions=header['functions'];mapped={};raw={};callbacks={};views={};classes={'Widget':[]};context=[];free=[]
+    # Native ownership drafts remain in the authoritative inventory, but are
+    # not public callable bindings until their consumer/lifetime gate passes.
+    pending_native={'xuiTableGridSetAdapterOwned','xuiTableGridSetValidateOwned','xuiTableGridSetEditorOwned'}
+    for f in functions:
+        if f['name'] in pending_native:f.update(state='requires-native-lifecycle-acceptance',reason='Native owning output/adapter draft is not in the matched accepted SDK')
     sources={};native_bodies={}
     for path in Path(header['header']).parents[1].joinpath('src/xui').rglob('*.c'):
         sources[path]=clean(path.read_text(encoding='utf-8-sig'))
@@ -264,6 +528,8 @@ def generate_xui(root,header,records,types,primitive,param,reserved):
         return {}
     constructors=[]
     for f in functions:
+        if f['name']=='xuiListViewSetSelectionBuffer':
+            f.update(state='requires-owned-pinned-storage',reason='Native arrExternalSelected retains the mutable caller array beyond return');continue
         p=f['type']['parameters']
         if len(p)<2 or not same(p[0]['type'],'xui_context') or p[1]['type'].get('kind')!='pointer' or not same(p[1]['type']['to'],'xui_widget') or not f['name'].endswith('Create'):continue
         group=f['name'][3:-6];classes.setdefault(group,[]);params=[];attrs=[]
@@ -286,46 +552,95 @@ def generate_xui(root,header,records,types,primitive,param,reserved):
         declaration=' extern "'+f['name']+'" @no_raise @c_result("owner_view",0) @factory(1,0,rollback'+group+') '+(' '.join(attrs)+' ' if attrs else '')+'func '+method+'('+','.join(params)+') as '+group
         context.append(declaration);mapped[f['name']]='xui.Context.'+method;constructors.append(f['name'])
     groups=sorted(classes,key=len,reverse=True)
-    callback_declarations=[]
+    callback_declarations=[];callback_spans={}
     def callback_view(t):
         c=spelling(t)
         if c in views:return views[c]
-        name='Callback'+pascal(c.replace('const ','').replace('struct ','').replace('*',''))
-        if name=='CallbackChar':name='CString'
+        name='Callback'+('Const' if c.startswith('const ') else '')+pascal(c.replace('const ','').replace('struct ','').replace('*',''))
+        if c=='const char*':name='CString'
+        if c=='const xbytesview*':name='ByteSlice'
         views[c]=name
         body=['export extern "'+c+'" class '+name+' @header("xge3_runtime.h") @lifetime("callback")',' native point handle']
-        if c=='const char*':
+        native=''
+        if c=='const xbytesview*':
+            body+=[' extern "Size" @c_field get size() as c_size',
+                   ' extern "Data" @c_field @c_length("Size","size_t") @c_result("bytes_view") get bytes() as bytes']
+        elif c=='const char*':
             body+=[' extern "strlen" @no_raise get length() as c_size',' extern "xrtStrDup" @owned func copy() as string']
         else:
             target=t['to'];native=' '.join(target.get('names',[])) if target['kind']=='named' else target.get('tag','');record=types.get(native,{})
+            scalar=SCALARS.get(native)
+            if scalar:
+                body.append(' extern "value" @c_deref get value() as '+scalar)
+                if 'const' not in target.get('qualifiers',[]):body.append(' extern "value" @c_deref let value('+scalar+' next)')
             for f in record.get('fields') or []:
                 try:ft=primitive(f['type'])
                 except ValueError:continue
-                if not ft or f.get('bits') or not f.get('name'):continue
+                if not ft or f.get('bits') or not f.get('name') or f['name'].startswith('_'):continue
                 language=f['name']+'Value' if f['name'] in reserved else f['name']
                 body.append(' extern "'+f['name']+'" @c_field get '+language+'() as '+ft)
                 if 'const' not in target.get('qualifiers',[]):body.append(' extern "'+f['name']+'" @c_field let '+language+'('+ft+' value)')
+        if native in ('xui_tree_view_node_output_t','xui_table_view_cell_output_t'):
+            prefix='xuiTreeViewNodeOutput' if native=='xui_tree_view_node_output_t' else 'xuiTableViewCellOutput'
+            const='' if 'const' in target.get('qualifiers',[]) else '@c_const(0) '
+            body+=[' extern "'+prefix+'GetText" @no_raise '+const+'@c_result("text_view") func text() as string']
+            if 'const' not in target.get('qualifiers',[]):body+=[' extern "'+prefix+'SetText" @no_raise @c_text_view(0) @c_result("status",0) func setText(string text)']
+            if native=='xui_table_view_cell_output_t':
+                body+=[' extern "'+prefix+'GetTooltip" @no_raise '+const+'@c_result("text_view") func tooltip() as string',
+                       ' extern "'+prefix+'GetValue" @no_raise '+const+'@c_result("borrowed_value") func value() as var']
+                if 'const' not in target.get('qualifiers',[]):body+=[' extern "'+prefix+'SetTooltip" @no_raise @c_text_view(0) @c_result("status",0) func setTooltip(string text)',
+                     ' extern "'+prefix+'SetValue" @no_raise @c_const(1) @c_result("status",0) func setValue(var value)',
+                     ' extern "'+prefix+'Use" @no_raise @c_result("status",0) func use(TableCellOutput cached)']
+        if native=='xui_widget_t':
+            body+=[' extern "xuiWidgetGetRect" @no_raise func rect() as Rect']
         body+=['end'];callback_declarations.append('\n'.join(body));return name
+    failures={'xui_widget_content_measure_proc':-16,'xui_widget_layout_prepare_proc':-16,'xui_widget_layout_children_proc':-16,
+              'xui_widget_layout_complete_proc':-16,'xui_widget_event_proc':-16,'xui_widget_cursor_proc':-1,
+              'xui_widget_ime_rect_proc':0,'xui_widget_cache_render_proc':-16,'xui_widget_update_proc':-16,
+              'xui_tree_view_count_proc':-16,'xui_tree_view_node_owned_proc':-16,'xui_table_view_count_proc':-16,
+              'xui_table_view_cell_owned_proc':-16,'xui_table_view_cell_render_owned_proc':-16}
+    # These exact native consumers propagate negative event/merge failures.
+    # Timeline's changing/opening consumers instead use C boolean veto: a
+    # negative fallback would permit the action, so its failure value is zero.
+    failures.update({name:-16 for name in ('xui_breadcrumb_context_proc','xui_tag_input_context_proc','xui_tabs_context_proc',
+        'xui_window_context_proc','xui_dock_context_proc','xui_list_view_context_proc','xui_tree_view_context_proc',
+        'xui_table_view_context_proc','xui_table_grid_context_proc','xui_property_grid_context_proc',
+        'xui_toolbar_context_proc','xui_statusbar_context_proc','xui_flow_context_proc')})
+    failures.update({name:0 for name in ('xui_timeline_current_frame_changing_proc','xui_timeline_layer_changing_proc',
+        'xui_timeline_frame_changing_proc','xui_timeline_span_changing_proc','xui_timeline_context_opening_proc')})
+    failures['xui_table_view_merge_proc']=-16
     def callback_type(native):
         if native in callbacks:return callbacks[native]
         t=types[native]
         if t['kind']!='pointer' or t['to']['kind']!='function':raise ValueError('not callback')
         signature=t['to'];args=signature['parameters']
         if not args or spelling(args[-1]['type'])!='void*':raise ValueError('userdata order')
-        result=primitive(signature['returns']);params=[]
-        if result:raise ValueError('nonvoid needs explicit failure review')
-        for a in args[:-1]:
-            t=a['type']
-            if widget(t):pt='Widget'
+        owned_text=native=='xui_table_view_cell_text_owned_proc'
+        result='string' if owned_text else primitive(signature['returns']);params=[]
+        if result and native not in failures and not owned_text:raise ValueError('nonvoid needs explicit failure review')
+        spans=[];i=0
+        while i<len(args)-1:
+            a=args[i];t=a['type']
+            if t['kind']=='pointer' and 'const' in t['to'].get('qualifiers',[]) and i+1<len(args)-1 and re.search(r'(?:size|length|count|bytes)$',args[i+1].get('name') or '',re.I):
+                count=args[i+1]['type'];count_name=' '.join(count.get('names',[])) if count['kind']=='named' else ''
+                pointer=spelling(t).replace('unsigned char','uint8_t')
+                if count_name not in ('int','size_t') or pointer not in ('const void*','const uint8_t*','const char*'):raise ValueError('callback span needs exact byte count')
+                pt=callback_view(dict(kind='pointer',qualifiers=[],to=dict(kind='named',names=['xbytesview'],qualifiers=['const'])))
+                spans.append((len(params),pointer,count_name));params.append(pt);i+=2;continue
+            if widget(t):
+                pt=callback_view(dict(kind='pointer',qualifiers=[],to=dict(kind='named',names=['xui_widget_t'],qualifiers=[]))) if native in ('xui_table_view_cell_text_owned_proc','xui_table_view_cell_render_owned_proc') else 'Widget'
+            elif same(t,'xui_context'):pt='Context'
             elif t['kind']=='pointer':pt=callback_view(t)
+            elif t['kind']=='named' and types.get(t['names'][0],{}).get('kind')=='pointer':pt=callback_view(types[t['names'][0]])
             else:pt=primitive(t)
             if not pt:raise ValueError('callback void argument')
-            params.append(pt)
+            params.append(pt);i+=1
         name=pascal(native);callbacks[native]=name
-        callback_declarations.append('export typedef '+name+' = func('+','.join(params)+')')
+        callback_spans[native]=spans
+        callback_declarations.append('export typedef '+name+' = func('+','.join(params)+')'+(' as '+result if result else ''))
         return name
     for f in functions:
-        if f['name'] in constructors or f['name'] in ('xuiCreate','xuiDestroy','xuiWidgetDestroy','xuiContextLifetimeWatch','xuiWidgetLifetimeWatch'):continue
+        if f.get('state') in ('requires-owned-pinned-storage','requires-native-lifecycle-acceptance') or f['name'] in constructors or f['name'] in ('xuiCreate','xuiDestroy','xuiWidgetDestroy','xuiWidgetDestroyChecked','xuiContextLifetimeWatch','xuiWidgetLifetimeWatch'):continue
         p=f['type']['parameters'];sig=f['type'];receiver=False;owner=None;prefix='xui'
         if p and same(p[0]['type'],'xui_context'):owner='Context';receiver=True
         elif p and widget(p[0]['type']):
@@ -335,6 +650,7 @@ def generate_xui(root,header,records,types,primitive,param,reserved):
             receiver=True
         else:continue
         params=[];attrs=[];outputs=[];returns=[];callback_seen=False
+        if p[0]['type']['kind']=='pointer' and 'const' in p[0]['type']['to'].get('qualifiers',[]):attrs.append('@c_const(0)')
         try:
             ret,at=simple(sig['returns'],0,True);attrs+=at
             if widget(sig['returns']) or same(sig['returns'],'xui_context'):attrs.append('@c_result("owner_view",0)')
@@ -342,6 +658,10 @@ def generate_xui(root,header,records,types,primitive,param,reserved):
             i=0
             while i<len(explicit):
                 a=explicit[i];t=a['type'];logical=len(params)
+                if f['name']=='xuiTableViewGetCellOwned' and spelling(t)=='xui_table_view_cell_output_t*':
+                    # This is an initialized owned object mutated transactionally,
+                    # not a raw record output or a newly produced native pointer.
+                    params.append('TableCellOutput '+a['name']);i+=1;continue
                 if t['kind']=='pointer' and i+1<len(explicit) and re.search(r'(?:size|length|count|capacity|bytes)$',explicit[i+1].get('name') or '',re.I):
                     count=explicit[i+1]['type'];ct=' '.join(count.get('names',[])) if count['kind']=='named' else ''
                     if ct not in ('int','size_t'):raise ValueError('unsupported counted pointer ABI')
@@ -350,18 +670,23 @@ def generate_xui(root,header,records,types,primitive,param,reserved):
                     readonly='const' in element.get('qualifiers',[]);pointer=spelling(t)
                     pointer=pointer.replace('unsigned char','uint8_t').replace('signed char','int8_t')
                     if not re.fullmatch(r'(?:const )?(?:struct )?[A-Za-z_]\w*\*',pointer):raise ValueError('unsupported native pointer spelling')
+                    reviewed_span(f,pointer,ct)
                     pt='string' if readonly and ename=='char' else 'bytes' if readonly and ename in ('void','uint8_t','unsigned char','int8_t','signed char') else 'Buffer'
                     attrs.append('@c_span('+str(logical)+',"'+pointer+'","'+ct+'")');params.append(pt+' '+a['name']);i+=2;continue
                 if t['kind']=='named' and t['names'][0] in types and types[t['names'][0]]['kind']=='pointer' and types[t['names'][0]]['to']['kind']=='function':
                     native=t['names'][0]
                     if not f['name'].endswith('Owned') or i+2>=len(explicit) or spelling(explicit[i+1]['type'])!='void*' or 'xui_callback_owner_t' not in spelling(explicit[i+2]['type']):raise ValueError('unowned callback')
-                    pt=callback_type(native)+'?';params.append(pt+' '+a['name']);attrs.append('@c_owned_callback('+str(logical)+',0,"xui_callback_owner_t",0)');i+=3;callback_seen=True;continue
+                    pt=callback_type(native)+'?';params.append(pt+' '+a['name']);attrs.append('@c_owned_callback('+str(logical)+',0,"xui_callback_owner_t",'+str(failures.get(native,0))+')')
+                    attrs+=['@c_callback_span('+str(logical)+','+str(arg)+',"'+pointer+'","'+count+'")' for arg,pointer,count in callback_spans.get(native,[])]
+                    i+=3;callback_seen=True;continue
                 if t['kind']=='pointer' and 'const' not in t['to'].get('qualifiers',[]):
                     if not re.search(r'Get|Query|Measure|Hit|OffsetTo|LineColumnTo',f['name']):raise ValueError('mutable pointer requires an explicit out/inout review')
                     pt=primitive(t['to'])
                     if not pt:raise ValueError('void output')
                     outputs.append(i+1);returns.append(pt);i+=1;continue
-                pt,at=simple(t,logical);attrs+=at;params.append(pt+' '+('arg'+str(i) if a['name'] in reserved else a['name']));i+=1
+                pt,at=simple(t,logical);attrs+=at
+                if (widget(t) or same(t,'xui_context')) and t['kind']=='pointer' and 'const' in t['to'].get('qualifiers',[]):attrs.append('@c_const('+str(logical+int(receiver))+')')
+                params.append(pt+' '+('arg'+str(i) if a['name'] in reserved else a['name']));i+=1
             contract=source_contract(f)
             if outputs:
                 if ret!='c_int' or not contract.get('statusZero') or callback_seen:raise ValueError('unreviewed output status')
@@ -369,28 +694,66 @@ def generate_xui(root,header,records,types,primitive,param,reserved):
                 ret=returns[0] if len(returns)==1 else '('+','.join(returns)+')'
             # Literal XUI_OK guarantees the native int is a status, not a count.
             # Never infer this from a Set/Get spelling alone.
-            elif ret=='c_int' and contract.get('statusZero') and not re.search(r'Get|Count|Index|Find|Hit|Query|Is|Has|Contains|Compare',f['name']):
+            elif ret=='c_int' and (callback_seen or f['name']=='xuiTableViewGetCellOwned' or contract.get('statusZero') and not re.search(r'Get|Count|Index|Find|Hit|Query|Is|Has|Contains|Compare',f['name'])):
                 attrs.append('@c_result("status",0)');ret=None
             name=f['name'][len(prefix):];name=name[:1].lower()+name[1:]
             if name.endswith('Owned'):name=name[:-5]
+            close_actions={'xuiMenuClose':'closeMenu','xuiMenuBarClose':'closeMenu','xuiComboBoxClose':'closePopup',
+                           'xuiCascaderClose':'closePopup','xuiColorPickerClose':'closePopup','xuiIconPickerClose':'closePopup',
+                           'xuiDatePickerClose':'closePopup','xuiWebViewClose':'closeBrowser'}
+            name=close_actions.get(f['name'],name)
             if name in reserved:name='native'+name[:1].upper()+name[1:]
             declaration=' extern "'+f['name']+'" @no_raise '+(' '.join(attrs)+' ' if attrs else '')+'func '+name+'('+','.join(params)+')'+(' as '+ret if ret else '')
             (context if owner=='Context' else classes[owner]).append(declaration);mapped[f['name']]='xui.'+owner+'.'+name
             f['sourceContract']=contract
         except ValueError:continue
+    # These callbacks belong to the independently owned Cell output root.
+    for native in ('xui_table_view_cell_text_owned_proc','xui_table_view_cell_render_owned_proc'):
+        if native in types:callback_type(native)
+    # Pointer-free global utilities are ordinary direct declarations too. They
+    # must not disappear merely because they do not have a Context/Widget slot.
+    for f in functions:
+        if f['name'] in mapped or f.get('state')!='requires-contract-review':continue
+        p=f['type']['parameters']
+        if p and root_type(p[0].get('type',{})):continue
+        params=[];attrs=[];outputs=[];values=[]
+        try:
+            result=primitive(f['type']['returns'])
+            for i,a in enumerate(p):
+                if a.get('variadic'):raise ValueError('variadic')
+                t=a['type']
+                if same(t,'void'):continue
+                if t['kind']=='pointer' and 'const' not in t['to'].get('qualifiers',[]):
+                    if not re.search(r'Default$|Init$|Get|Query',f['name']):raise ValueError('unreviewed mutable pointer')
+                    value=primitive(t['to'])
+                    if not value:raise ValueError('void output')
+                    outputs.append(i);values.append(value);continue
+                typ,at=param(t,len(params));attrs+=at
+                params.append(typ+' '+('arg'+str(i) if not a['name'] or a['name'] in reserved else a['name']))
+            if outputs:
+                if result not in (None,'c_int'):raise ValueError('unreviewed producer result')
+                if result and not source_contract(f).get('statusZero'):raise ValueError('unreviewed producer status')
+                attrs.append('@c_output('+str(outputs[0])+(')' if result is None else ',0)') if len(outputs)==1 else '@c_outputs('+','.join(map(str,outputs))+')'+(' @c_status(0)' if result else ''))
+                result=values[0] if len(values)==1 else '('+','.join(values)+')'
+            name=f['name'][3:];name=name[:1].lower()+name[1:]
+            if name in reserved:name='native'+name[:1].upper()+name[1:]
+            free.append('export extern "'+f['name']+'" @header("xge3_runtime.h") @no_raise '+(' '.join(attrs)+' ' if attrs else '')+'func '+name+'('+','.join(params)+')'+(' as '+result if result else ''))
+            mapped[f['name']]='xui.'+name
+        except ValueError:continue
     lines=['// Managed owner graph and direct native methods. Generated; no per-method C wrappers.']
     for c,n in sorted(raw.items()):lines+=['// Explicit C-interop-only descriptor pointer; this does not own the pointed-to data.','export extern "'+c+'" class '+n+' @header("xge3_runtime.h") @lifetime("caller")',' native point handle','end']
     lines+=callback_declarations
-    lines+=['export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3ContextPolicy") @scope("xui_call_scope_t") @watch("xui_lifetime_link_t")',' native point handle',*context,' extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()','end']
+    lines+=['export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3ContextPolicy") @scope("xui_call_scope_t") @watch("xui_lifetime_link_t") @domain("xuiTableViewCellOutputOwnershipDomainV1")',' native point handle',*context,' extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()','end']
     for group,methods in classes.items():
         lines+=['export extern "xui_widget_t*" class '+group+' @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t")'+(' extends Widget' if group!='Widget' else '')]
         if group=='Widget':lines+=[' native point handle']
         lines+=methods
-        if group=='Widget':lines+=[' extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()']
+        if group=='Widget':lines+=[' extern "xuiWidgetDestroyChecked" @no_raise @c_result("status",0) func close()']
         lines+=['end']
     lines+=['extern "xuiDestroy" @no_raise func rollback(Context value)']
-    lines+=['extern "xuiWidgetDestroy" @no_raise func rollback'+group+'('+group+' value)' for group in classes]
+    lines+=['extern "xuiWidgetDestroyChecked" @no_raise @c_result("status",0) func rollback'+group+'('+group+' value)' for group in classes]
     lines+=['export extern "xuiCreate" @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Context']
+    lines+=free
     (src/'managed.xl').write_text('\n\n'.join(lines)+'\n',encoding='utf8')
     print('xui managed',len(mapped),'functions',len(classes),'classes',len(callbacks),'callbacks',len(views),'callback views')
     return lines,mapped
@@ -398,13 +761,14 @@ def generate_xui(root,header,records,types,primitive,param,reserved):
 
 def probes(args):
     root=args.root.resolve();out=args.out.resolve();out.mkdir(parents=True,exist_ok=False)
-    report={'schema':1,'compileOnly':True,'runtimeAccepted':False,'rows':[]}
+    report={'schema':1,'compileOnly':True,'runtimeAccepted':False,'packageImportInitializationValidated':False,'rows':[]}
     for package,relative in (('xge','xge'),('xui','xui'),('xge3d','xge/three_d')):
         folder=root/'lib/bindings'/relative
         manifest=json.loads((folder/'xlang.package.json').read_text())
-        source='\n'.join((folder/name).read_text(encoding='utf8') for name in manifest['artifact']['xlSources'])
+        source='\n'.join((folder/name).read_text(encoding='utf8') for name in manifest['artifact']['xlSources'] if name!='src/bootstrap.xl')
         callback_names=set(re.findall(r'(?:export )?typedef (\w+) = func\(',source))
         callback_signatures={n:split(t) for n,t in re.findall(r'(?:export )?typedef (\w+) = func\(([^\n]*)\)',source)}
+        callback_results={n:r for n,r in re.findall(r'(?:export )?typedef (\w+) = func\([^\n]*\) as ([A-Za-z_]\w*)',source)}
         callback_views=set(re.findall(r'export extern "[^"]+" class (\w+)[^\n]*@lifetime\("callback"\)',source))
         view_operations={v:[] for v in callback_views}
         view_owner=None
@@ -432,9 +796,20 @@ def probes(args):
                     for ordinal,t in enumerate(callback_signatures[pt.rstrip('?')]):
                         variable='callbackArg'+str(ordinal);args.append(t+' '+variable)
                         for op,member,ps in view_operations.get(t,[]):
-                            callargs=[p.rsplit(' ',1)[0]+('(0)' if p.startswith(('c_','int64 ','uint64 ')) else '()') for p in split(ps)]
+                            callargs=[]
+                            for p in split(ps):
+                                typ=p.rsplit(' ',1)[0]
+                                if typ=='string':value='""'
+                                elif typ=='var':value='null'
+                                elif typ=='TableCellOutput':
+                                    value='capturedCell'+str(i)+'_'+str(ordinal);declaration=typ+' '+value
+                                    if declaration not in params:params.append(declaration)
+                                else:value=typ+('(0)' if typ.startswith('c_') or typ in ('int64','uint64') else '()')
+                                callargs.append(value)
                             body.append('  '+variable+'.'+member+('('+','.join(callargs)+')' if op=='func' else '='+callargs[-1] if op=='let' else ''))
-                    arguments.append('func('+','.join(args)+')\n'+'\n'.join(body)+'\n end');continue
+                    result=callback_results.get(pt.rstrip('?'))
+                    if result:body.append('  return '+('""' if result=='string' else result+'(0)' if result.startswith('c_') else result+'()'))
+                    arguments.append('func('+','.join(args)+')'+(' as '+result if result else '')+'\n'+'\n'.join(body)+'\n end');continue
                 if pt.endswith('?'):
                     arguments.append('null');continue
                 params.append(pt+' arg'+str(i));arguments.append('arg'+str(i))

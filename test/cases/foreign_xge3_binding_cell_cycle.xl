@@ -1,0 +1,30 @@
+import xui
+from xui import TableCellOutput as CellOutput
+extern "binding_cell_cycle_observe" @header("test/cases/foreign_xge3_binding_cell_cycle.h") @no_raise @c_result("status",0) func observeCell(xui.TableCellOutput cell)
+xui.TableCellOutput? retainedCell
+func main(...) as int
+ if retainedCell!=null
+  auto retained=retainedCell as CellOutput
+  assert retained.text()=="cycle text"
+  assert retained.value()==uint64(18446744073709551615)
+  return 0
+ end
+ auto cell=xui.createTableCell()
+ bool rejected=false
+ try
+  cell.setText("cycle\0text")
+ catch error
+  rejected=true
+ end
+ assert rejected
+ cell.setText("cycle text")
+ cell.setValue(uint64(18446744073709551615))
+ assert cell.text()=="cycle text"
+ assert cell.value()==uint64(18446744073709551615)
+ cell.setFormatter(func(xui.CallbackWidget widget,c_int row,c_int column,xui.CallbackConstTableViewCellOutput input) as string
+  return cell.text()
+ end)
+ observeCell(cell)
+ retainedCell=cell
+ return 0
+end

@@ -1,0 +1,518 @@
+{
+  "schema": 1,
+  "scope": "Source-inspected pointer storage, separate from ABI compile-only evidence and runtime acceptance",
+  "sourceRoot": "D:\\GIT\\xge",
+  "runtimeAcceptance": false,
+  "entries": {
+    "xgeGraphicsShaderHeaderGet": {
+      "bindingFile": "lib\\bindings\\xge\\src\\functions.xl",
+      "declaration": "export extern \"xgeGraphicsShaderHeaderGet\" @header(\"xge3_runtime.h\") @c_span(1,\"char*\",\"int\") func graphicsShaderHeaderGet(c_int iBackend,Buffer sBuffer) as c_int",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xge/core/xge_core.c",
+      "line": 784,
+      "functionSha256": "2abed6c95f3f202e74d5b3c5e8b24f3cb11e88ec9559e254669968b95d448a9e"
+    },
+    "xgeGraphicsLibraryNameGet": {
+      "bindingFile": "lib\\bindings\\xge\\src\\functions.xl",
+      "declaration": "export extern \"xgeGraphicsLibraryNameGet\" @header(\"xge3_runtime.h\") @c_span(2,\"char*\",\"int\") func graphicsLibraryNameGet(c_int iBackend,c_int iIndex,Buffer sBuffer) as c_int",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xge/core/xge_core.c",
+      "line": 791,
+      "functionSha256": "caaa9b2cc9df04cbd5ccce5fb62e54e2046877997cb73bc026defaece5c345cc"
+    },
+    "xgeMiniProgramTouch": {
+      "bindingFile": "lib\\bindings\\xge\\src\\functions.xl",
+      "declaration": "export extern \"xgeMiniProgramTouch\" @header(\"xge3_runtime.h\") @c_span(1,\"const xge_miniprogram_touch_t*\",\"int\") func miniProgramTouch(c_int iPhase,Buffer pTouches) as c_int",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/platform/xge_miniprogram.c",
+      "line": 277,
+      "functionSha256": "c99776a57a364d26243f8e82296edacbc4a691d99a10a6c664a7c364688b6651"
+    },
+    "xgeMiniProgramAudioCommand": {
+      "bindingFile": "lib\\bindings\\xge\\src\\functions.xl",
+      "declaration": "export extern \"xgeMiniProgramAudioCommand\" @header(\"xge3_runtime.h\") @c_span(2,\"const void*\",\"int\") func miniProgramAudioCommand(c_int iCommand,c_int iHandle,bytes pData) as c_int",
+      "storage": "requires-native-backend-nonescape-contract",
+      "sourceFile": "src/xge/platform/xge_miniprogram.c",
+      "line": 412,
+      "functionSha256": "b439a8a223b9eedc21bc46714a563432162e58f4fb6075e2db397ff70602613e",
+      "defaultExport": false,
+      "reason": "Direct custom bridge callback has no documented consume/copy requirement; source alone does not establish non-escape"
+    },
+    "xgeFontFallbackSetMemory": {
+      "bindingFile": "lib\\bindings\\xge\\src\\functions.xl",
+      "declaration": "export extern \"xgeFontFallbackSetMemory\" @header(\"xge3_runtime.h\") @c_span(0,\"const void*\",\"int\") func fontFallbackSetMemory(bytes pData,c_float fSize) as c_int",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/text/xge_font.c",
+      "line": 1624,
+      "functionSha256": "13b8228cb9e84e184817be92b05189092de28ba1fec91998f7b9364fe3c7b797",
+      "helperEvidence": {
+        "sourceFile": "src/xge/text/xge_font.c",
+        "line": 881,
+        "marker": "memcpy(pFace->pData, pData",
+        "reason": "uses the same owned FontLoadMemory/Face memory path"
+      }
+    },
+    "xgeShapePolygonFill": {
+      "bindingFile": "lib\\bindings\\xge\\src\\functions.xl",
+      "declaration": "export extern \"xgeShapePolygonFill\" @header(\"xge3_runtime.h\") @c_span(0,\"const xge_vec2_t*\",\"int\") func shapePolygonFill(Buffer pPoints,c_uint iColor)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/render/xge_shape.c",
+      "line": 1736,
+      "functionSha256": "33026ac146b1d97e4864ec192c8e39010dfedf675514b1af6994fc67db7948c9"
+    },
+    "xgeShapePolygonFillPx": {
+      "bindingFile": "lib\\bindings\\xge\\src\\functions.xl",
+      "declaration": "export extern \"xgeShapePolygonFillPx\" @header(\"xge3_runtime.h\") @c_span(0,\"const xge_vec2_t*\",\"int\") func shapePolygonFillPx(Buffer pPoints,c_uint iColor)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/render/xge_shape.c",
+      "line": 1741,
+      "functionSha256": "f47a42472ceacdeea218cc990cf92328aa4fef43173dca7efcc310d980f62d62"
+    },
+    "xgeShapeMeshFill": {
+      "bindingFile": "lib\\bindings\\xge\\src\\functions.xl",
+      "declaration": "export extern \"xgeShapeMeshFill\" @header(\"xge3_runtime.h\") @c_span(0,\"const xge_shape_vertex_t*\",\"int\") @c_span(1,\"const uint32_t*\",\"int\") func shapeMeshFill(Buffer pVertices,Buffer pIndices) as c_int",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/render/xge_shape.c",
+      "line": 1791,
+      "functionSha256": "6c14a9817a3ab9063b176862bc25b13406a16efa6160b6871556605c026e1a61"
+    },
+    "xgeShapeMeshFillPx": {
+      "bindingFile": "lib\\bindings\\xge\\src\\functions.xl",
+      "declaration": "export extern \"xgeShapeMeshFillPx\" @header(\"xge3_runtime.h\") @c_span(0,\"const xge_shape_vertex_t*\",\"int\") @c_span(1,\"const uint32_t*\",\"int\") func shapeMeshFillPx(Buffer pVertices,Buffer pIndices) as c_int",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/render/xge_shape.c",
+      "line": 1796,
+      "functionSha256": "bc3251b91dd2821e31344766ec8e9f653fe742e1d858b6947ba4293583ac0a7c"
+    },
+    "xgeClipboardGetData": {
+      "bindingFile": "lib\\bindings\\xge\\src\\functions.xl",
+      "declaration": "export extern \"xgeClipboardGetData\" @header(\"xge3_runtime.h\") @c_cstr(0) @c_span(1,\"void*\",\"size_t\") func clipboardGetData(string sFormat,Buffer pData) as c_int",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xge/render/xge_render.c",
+      "line": 1540,
+      "functionSha256": "faded33156b0dae104ddd2dd51d42bd083da4f16e192d772effd261dd1721789"
+    },
+    "xgeImeCandidateGetText": {
+      "bindingFile": "lib\\bindings\\xge\\src\\functions.xl",
+      "declaration": "export extern \"xgeImeCandidateGetText\" @header(\"xge3_runtime.h\") @c_span(1,\"char*\",\"int\") func imeCandidateGetText(c_int iIndex,Buffer sText) as c_int",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xge/input/xge_input.c",
+      "line": 598,
+      "functionSha256": "9329c416582884a277de4308156dde4254abbbaf27674943a222ac658cc40a28"
+    },
+    "xgeImageLoadMemory": {
+      "bindingFile": "lib\\bindings\\xge\\src\\resources.xl",
+      "declaration": "export extern \"xgeImageLoadMemory\" @no_raise @c_span(0,\"const void*\",\"int\") @c_result(\"owned_view\") @factory(0,0,freeImage) @c_inplace(\"xge_image_t\") func loadImage(bytes data) as Image",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/text/xge_texture.c",
+      "line": 544,
+      "functionSha256": "aa0243882e54824c4b2e63330d580e3fd2565968bad82f2f84e0dfd9263e058e"
+    },
+    "xgeTextureLoadMemory": {
+      "bindingFile": "lib\\bindings\\xge\\src\\resources.xl",
+      "declaration": "export extern \"xgeTextureLoadMemory\" @no_raise @c_span(0,\"const void*\",\"int\") @c_result(\"owned_view\") @factory(0,0,freeTexture) @c_inplace(\"xge_texture_t\",adoptTexture,0) func loadTexture(bytes data) as Texture",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/text/xge_texture.c",
+      "line": 820,
+      "functionSha256": "80c29dd65d2ec83d66dd78739ecc7b1838705384cc42e2e73fe98d66f635c7ca"
+    },
+    "xgeFontLoadMemory": {
+      "bindingFile": "lib\\bindings\\xge\\src\\resources.xl",
+      "declaration": "export extern \"xgeFontLoadMemory\" @no_raise @c_span(0,\"const void*\",\"int\") @c_result(\"owned_view\") @factory(0,0,freeFont) @c_inplace(\"xge_font_t\",adoptFont,0) func loadFontMemory(bytes data,c_float size) as Font",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/text/xge_font.c",
+      "line": 1130,
+      "functionSha256": "442ae7f9b64415b9169ee07471bda902de3030b9cf9d3c6031b7cb1254cec5a0",
+      "helperEvidence": {
+        "sourceFile": "src/xge/text/xge_font.c",
+        "line": 881,
+        "marker": "memcpy(pFace->pData, pData",
+        "reason": "copies font bytes to pFace-owned storage"
+      }
+    },
+    "xgeShapeExAppendPolyline": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExAppendPolyline\" @no_raise @c_span(0,\"const xge_vec2_t*\",\"int\") @c_result(\"status\",0) func appendPolyline(Buffer pPoints)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 10162,
+      "functionSha256": "49bac5651a56fa9a6aaeb3830f516a7b435a122d606d19ec9fbd8c70826875b1",
+      "helperEvidence": {
+        "sourceFile": "src/xge/render/xge_shape_ex.c",
+        "line": 10131,
+        "marker": "__xgeShapeExAppendPointList",
+        "reason": "LineTo copies coordinates into reserved native point storage"
+      }
+    },
+    "xgeShapeExAppendPolygon": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExAppendPolygon\" @no_raise @c_span(0,\"const xge_vec2_t*\",\"int\") @c_result(\"status\",0) func appendPolygon(Buffer pPoints)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 10167,
+      "functionSha256": "7b1b9c043e6d96c3bb2ed366a3af48a4d2b3db9db70518b39e95434459b16b47",
+      "helperEvidence": {
+        "sourceFile": "src/xge/render/xge_shape_ex.c",
+        "line": 10131,
+        "marker": "__xgeShapeExAppendPointList",
+        "reason": "same copied coordinate append path"
+      }
+    },
+    "xgeShapeExAppendPath": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExAppendPath\" @no_raise @c_span(0,\"const uint8_t*\",\"int\") @c_span(1,\"const xge_vec2_t*\",\"int\") @c_result(\"status\",0) func appendPath(bytes pCommands,Buffer pPoints)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 10508,
+      "functionSha256": "5fc84cafdd32af9618b31dd820cd2c3adf3ad57728a4c8a2f687e957bc6efdc0",
+      "helperEvidence": {
+        "sourceFile": "src/xge/render/xge_shape_ex.c",
+        "line": 2070,
+        "marker": "memcpy(pShape->pPoints + pShape->iPointCount, pPoints",
+        "reason": "reserves native commands/points and copies both input arrays"
+      }
+    },
+    "xgeShapeExGetSvgPathData": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExGetSvgPathData\" @no_raise @c_span(0,\"char*\",\"int\") @c_output(3,0) func getSvgPathData(Buffer sBuffer) as c_int",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 11098,
+      "functionSha256": "d2da4a0d18cb93e1961cf606a391e9e992831d10f8eaf23fb20795240b9e8f0d"
+    },
+    "xgeShapeExFillLinearGradient": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExFillLinearGradient\" @no_raise @c_span(5,\"const xge_shape_ex_color_stop_t*\",\"int\") @c_result(\"status\",0) func fillLinearGradient(c_float fX1,c_float fY1,c_float fX2,c_float fY2,c_int iUnits,Buffer pStops)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 11195,
+      "functionSha256": "d0957ff033af671f125d5e6aed9b59b7bccdc592e72664404eaaf123f8dde6a2",
+      "helperEvidence": {
+        "sourceFile": "src/xge/render/xge_shape_ex.c",
+        "line": 11212,
+        "marker": "pShape->pFillSourceStops[i] = pStops[i]",
+        "reason": "reserves native gradient stop arrays, copies each value; Ex delegates to the copied path"
+      }
+    },
+    "xgeShapeExFillRadialGradient": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExFillRadialGradient\" @no_raise @c_span(6,\"const xge_shape_ex_color_stop_t*\",\"int\") @c_result(\"status\",0) func fillRadialGradient(c_float fCX,c_float fCY,c_float fRadius,c_float fFX,c_float fFY,c_int iUnits,Buffer pStops)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 11248,
+      "functionSha256": "89c2f35c983bd6116217de1202a30c7bc0210fafc8da413875fc0386bf0ff2f3",
+      "helperEvidence": {
+        "sourceFile": "src/xge/render/xge_shape_ex.c",
+        "line": 11212,
+        "marker": "pShape->pFillSourceStops[i] = pStops[i]",
+        "reason": "reserves native gradient stop arrays, copies each value; Ex delegates to the copied path"
+      }
+    },
+    "xgeShapeExFillRadialGradientEx": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExFillRadialGradientEx\" @no_raise @c_span(7,\"const xge_shape_ex_color_stop_t*\",\"int\") @c_result(\"status\",0) func fillRadialGradientEx(c_float fCX,c_float fCY,c_float fRadius,c_float fFX,c_float fFY,c_float fFocalRadius,c_int iUnits,Buffer pStops)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 11253,
+      "functionSha256": "d1051e41605b6addf7978150dc89ea1f6915b3df6dc27d1a25b8dc2f1202ed27",
+      "helperEvidence": {
+        "sourceFile": "src/xge/render/xge_shape_ex.c",
+        "line": 11212,
+        "marker": "pShape->pFillSourceStops[i] = pStops[i]",
+        "reason": "reserves native gradient stop arrays, copies each value; Ex delegates to the copied path"
+      }
+    },
+    "xgeShapeExStrokeLinearGradient": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExStrokeLinearGradient\" @no_raise @c_span(5,\"const xge_shape_ex_color_stop_t*\",\"int\") @c_result(\"status\",0) func strokeLinearGradient(c_float fX1,c_float fY1,c_float fX2,c_float fY2,c_int iUnits,Buffer pStops)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 11396,
+      "functionSha256": "6bf57f5b27526f8a02ccf52a3035e8834898d4dee0947e2e926b46b0b4876145",
+      "helperEvidence": {
+        "sourceFile": "src/xge/render/xge_shape_ex.c",
+        "line": 11413,
+        "marker": "pShape->pStrokeSourceStops[i] = pStops[i]",
+        "reason": "reserves native gradient stop arrays, copies each value; Ex delegates to the copied path"
+      }
+    },
+    "xgeShapeExStrokeRadialGradient": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExStrokeRadialGradient\" @no_raise @c_span(6,\"const xge_shape_ex_color_stop_t*\",\"int\") @c_result(\"status\",0) func strokeRadialGradient(c_float fCX,c_float fCY,c_float fRadius,c_float fFX,c_float fFY,c_int iUnits,Buffer pStops)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 11455,
+      "functionSha256": "84d2dfa43f357ab5467cbffb556ed1d754d42b4e40156a7924fc945cd6fd4b36",
+      "helperEvidence": {
+        "sourceFile": "src/xge/render/xge_shape_ex.c",
+        "line": 11413,
+        "marker": "pShape->pStrokeSourceStops[i] = pStops[i]",
+        "reason": "reserves native gradient stop arrays, copies each value; Ex delegates to the copied path"
+      }
+    },
+    "xgeShapeExStrokeRadialGradientEx": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExStrokeRadialGradientEx\" @no_raise @c_span(7,\"const xge_shape_ex_color_stop_t*\",\"int\") @c_result(\"status\",0) func strokeRadialGradientEx(c_float fCX,c_float fCY,c_float fRadius,c_float fFX,c_float fFY,c_float fFocalRadius,c_int iUnits,Buffer pStops)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 11460,
+      "functionSha256": "1957722d5d5a0418d182a9f918b82db0b02bbaaaa73a01c32c0423e3ff9f2cee",
+      "helperEvidence": {
+        "sourceFile": "src/xge/render/xge_shape_ex.c",
+        "line": 11413,
+        "marker": "pShape->pStrokeSourceStops[i] = pStops[i]",
+        "reason": "reserves native gradient stop arrays, copies each value; Ex delegates to the copied path"
+      }
+    },
+    "xgeShapeExStrokeDash": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExStrokeDash\" @no_raise @c_span(0,\"const float*\",\"int\") @c_result(\"status\",0) func strokeDash(Buffer pDashPattern,c_float fDashOffset)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 11669,
+      "functionSha256": "47ecddf083f8c6500229e00979f4b4f79aaef3c344493b5ca24c420612b55a76",
+      "helperEvidence": {
+        "sourceFile": "src/xge/render/xge_shape_ex.c",
+        "line": 11699,
+        "marker": "pCopy[i] = pDashPattern[i]",
+        "reason": "allocates pCopy and copies values; owns pCopy"
+      }
+    },
+    "xuiGetDamageRects": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiGetDamageRects\" @no_raise @c_span(0,\"xui_rect_i_t*\",\"int\") func getDamageRects(Buffer pRects) as c_int",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xui/core/xui_core.c",
+      "line": 2228,
+      "functionSha256": "8a8c5067e1b88fb20187ce89b5bfcc9ccb1910de7f1be162cf17a65b87a2770b"
+    },
+    "xuiInputImeComposition": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiInputImeComposition\" @no_raise @c_span(0,\"const char*\",\"int\") func inputImeComposition(string sText,c_int iCompositionStart,c_int iCompositionLength) as c_int",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/core/xui_input.c",
+      "line": 2421,
+      "functionSha256": "1e55880a5b7c6d57bf2a8d882312b22eff10775570c1f138e673f34c861898a6",
+      "helperEvidence": {
+        "sourceFile": "src/xui/core/xui_input.c",
+        "line": 2341,
+        "marker": "__xuiInputImeCompositionPush",
+        "reason": "copies text into the native event record"
+      }
+    },
+    "xuiDebugWidgetTreeDump": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiDebugWidgetTreeDump\" @no_raise @c_span(1,\"char*\",\"int\") func debugWidgetTreeDump(Widget pRoot,Buffer sBuffer) as c_int",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xui/core/xui_widget.c",
+      "line": 8176,
+      "functionSha256": "c4b4690beb8b3358eb84083667c9f7b8c2bdf7a1c4e05313821544df47a2e1bf"
+    },
+    "xuiDebugLayoutSnapshot": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiDebugLayoutSnapshot\" @no_raise @c_span(0,\"char*\",\"int\") func debugLayoutSnapshot(Buffer sBuffer) as c_int",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xui/core/xui_widget.c",
+      "line": 8205,
+      "functionSha256": "e190d4ce92bfca2733aa145dc034ca708a6b21c59d4f82fc916f2b5c44d30f97"
+    },
+    "xuiChartSetSeriesDash": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiChartSetSeriesDash\" @no_raise @c_span(1,\"const float*\",\"int\") @c_result(\"status\",0) func setSeriesDash(c_int iSeries,Buffer pDashPattern)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/controls/xui_chart.c",
+      "line": 3864,
+      "functionSha256": "d4567e2950dbc4dac9cc3c55ee4a64972fb9d93f208904fea10f39c496a6da12"
+    },
+    "xuiChartGetSeriesDash": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiChartGetSeriesDash\" @no_raise @c_span(1,\"float*\",\"int\") func getSeriesDash(c_int iSeries,Buffer pDashPattern) as c_int",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xui/controls/xui_chart.c",
+      "line": 3898,
+      "functionSha256": "d0cfe99082d8dbc41f0f3ef522eab9cc45a3af60ba02556d46cc738c2a82e701"
+    },
+    "xuiCodeEditSetTextLength": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiCodeEditSetTextLength\" @no_raise @c_span(0,\"const char*\",\"int\") func setTextLength(string sText) as c_int",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/code/xui_code_edit.c",
+      "line": 7431,
+      "functionSha256": "3d199b2a36fd5b150946cae8bc42dad5de31c5b3fbdbb7d9ddc038b6f2d20a07",
+      "helperEvidence": {
+        "sourceFile": "src/xui/code/xui_code_document.c",
+        "line": 1024,
+        "marker": "xuiCodeDocumentSetTextLength",
+        "reason": "NormalizeText creates owned text; SetOwnedText commits it"
+      }
+    },
+    "xuiCodeEditSetPlaceholders": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiCodeEditSetPlaceholders\" @no_raise @c_span(0,\"const xui_code_placeholder_t*\",\"int\") func setPlaceholders(Buffer pPlaceholders,c_int iActiveIndex) as c_int",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/code/xui_code_edit.c",
+      "line": 8076,
+      "functionSha256": "ad02c47fc165320800642eec47434ed92c8093b2026b14b0ebf1825ab881a582"
+    },
+    "xuiInventoryGridExportXSON": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiInventoryGridExportXSON\" @no_raise @c_span(0,\"char*\",\"int\") func exportXSON(Buffer sBuffer) as c_int",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xui/controls/xui_inventory_grid.c",
+      "line": 5288,
+      "functionSha256": "68f9ae30c7ed52bc2268a488a5366d71dea8ef5bf331b39cdd87b4e1e19f4da4"
+    },
+    "xuiTerminalWrite": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiTerminalWrite\" @no_raise @c_span(0,\"const void*\",\"int\") func write(bytes pData) as c_int",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/controls/xui_terminal.c",
+      "line": 6614,
+      "functionSha256": "2ad7e8c5fcf515b165e5b6adf5e66ba5c0588cfcbe53d7b7332d9c048ccdb8f4",
+      "helperEvidence": {
+        "sourceFile": "src/xui/controls/xui_terminal.c",
+        "line": 3308,
+        "marker": "__xuiTerminalAppendQueue",
+        "reason": "copies bytes into the native ring queue before return"
+      }
+    },
+    "xuiTerminalGetSelectionText": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiTerminalGetSelectionText\" @no_raise @c_span(0,\"char*\",\"int\") func getSelectionText(Buffer sBuffer) as c_int",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xui/controls/xui_terminal.c",
+      "line": 7262,
+      "functionSha256": "7b507876147dd1b040d1355a90f3eb9c92f5bbe906d3f1ac346ad68efcfe1f0c"
+    },
+    "xuiTerminalSerializeText": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiTerminalSerializeText\" @no_raise @c_span(0,\"char*\",\"int\") func serializeText(Buffer sBuffer) as c_int",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xui/controls/xui_terminal.c",
+      "line": 7294,
+      "functionSha256": "8b3a419559075179b866c0ae6b7d075b703e9f3db77cf43b1ef61a9fa014a9ed"
+    },
+    "xuiTabsSetEnabledItems": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiTabsSetEnabledItems\" @no_raise @c_span(0,\"const int*\",\"int\") @c_result(\"status\",0) func setEnabledItems(Buffer arrEnabled)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/controls/xui_tabs.c",
+      "line": 2717,
+      "functionSha256": "484a8ce86349aa83df6ffd5011c7f6c9dbc13d4ce4b817c90fc2656310d00767"
+    },
+    "xuiTabsSetDirtyItems": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiTabsSetDirtyItems\" @no_raise @c_span(0,\"const int*\",\"int\") func setDirtyItems(Buffer arrDirty) as c_int",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/controls/xui_tabs.c",
+      "line": 2776,
+      "functionSha256": "9f39be756be0094e142634592c77d8db580d50003d7f9778e08fcde4edf3b1a0"
+    },
+    "xuiCanvasDrawMeshTriangles": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiCanvasDrawMeshTriangles\" @no_raise @c_span(0,\"const xui_mesh_vertex_t*\",\"int\") @c_span(1,\"const uint32_t*\",\"int\") func drawMeshTriangles(Buffer pVertices,Buffer pIndices,c_uint iFlags) as c_int",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/controls/xui_canvas.c",
+      "line": 1147,
+      "functionSha256": "6e6d44631e5c8124febf78b5f544b4d40123a082eb92f6d9bc2c77a497b94306",
+      "helperEvidence": {
+        "sourceFile": "src/xui/controls/xui_canvas.c",
+        "line": 317,
+        "marker": "__xuiCanvasWithDraw",
+        "reason": "calls draw synchronously and drawEnd before returning; backend must consume/copy its own draw arguments"
+      }
+    },
+    "xuiListViewSetEnabledItems": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiListViewSetEnabledItems\" @no_raise @c_span(0,\"const int*\",\"int\") @c_result(\"status\",0) func setEnabledItems(Buffer arrEnabled)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/controls/xui_list_view.c",
+      "line": 2246,
+      "functionSha256": "69ed3bc842f4f142701a1fb2a6321ef92614ad2d2bdef81b040c895cb1830579"
+    },
+    "xuiMessageListGetSelectedText": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiMessageListGetSelectedText\" @no_raise @c_span(0,\"char*\",\"int\") func getSelectedText(Buffer sBuffer) as c_int",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xui/controls/xui_message_list.c",
+      "line": 4954,
+      "functionSha256": "d13e55095c0fbd4b0a795928b92b07a9701536273dda0037a177021cb235cdba"
+    },
+    "xuiMessageListExportText": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiMessageListExportText\" @no_raise @c_span(0,\"char*\",\"int\") func exportText(Buffer sBuffer) as c_int",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xui/controls/xui_message_list.c",
+      "line": 5048,
+      "functionSha256": "592d50e657489b0f96851d5d79df2d48fd86f00c1044cf210b8e8dd5378c2dcd"
+    },
+    "xuiTableViewSetRows": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiTableViewSetRows\" @no_raise @c_span(0,\"const xui_table_view_row_t*\",\"int\") func setRows(Buffer arrRows) as c_int",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/controls/xui_table_view.c",
+      "line": 4632,
+      "functionSha256": "014ed621bdff0aa3445532f8f527de5ad4a467763deba808f6387e402012e9e9",
+      "helperEvidence": {
+        "sourceFile": "src/xui/controls/xui_table_view.c",
+        "line": 3561,
+        "marker": "__xuiTableViewSetRowsOperation",
+        "reason": "allocates arrNewRows and memcpy; never stores arrRows"
+      }
+    },
+    "xuiTableGridSetRows": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiTableGridSetRows\" @no_raise @c_span(0,\"const xui_table_view_row_t*\",\"int\") func setRows(Buffer arrRows) as c_int",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/controls/xui_table_grid.c",
+      "line": 2147,
+      "functionSha256": "637aeef2a50dc512840163651e19fa10717d8b27e79a323d61c284797c69a78f",
+      "helperEvidence": {
+        "sourceFile": "src/xui/controls/xui_table_view.c",
+        "line": 3561,
+        "marker": "__xuiTableViewSetRowsOperation",
+        "reason": "delegates to TableView native copy transaction"
+      }
+    },
+    "xuiComboBoxSetEnabledItems": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiComboBoxSetEnabledItems\" @no_raise @c_span(0,\"const int*\",\"int\") @c_result(\"status\",0) func setEnabledItems(Buffer arrEnabled)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/controls/xui_combobox.c",
+      "line": 1906,
+      "functionSha256": "e8baf481cb0df5c62401bc45f6148a9a5e307c5f9793a71135e179fa673b6690"
+    },
+    "xuiCascaderGetSelectedPath": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiCascaderGetSelectedPath\" @no_raise @c_span(0,\"int*\",\"int\") func getSelectedPath(Buffer arrValues) as c_int",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xui/controls/xui_cascader.c",
+      "line": 2479,
+      "functionSha256": "9b492aa0ce16252d16505b27ae7bad5d63391870a689f545eeecedb01a58bc4c"
+    },
+    "xuiColorPickerSetPalette": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiColorPickerSetPalette\" @no_raise @c_span(0,\"const uint32_t*\",\"int\") @c_result(\"status\",0) func setPalette(Buffer arrColors)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/controls/xui_color_picker.c",
+      "line": 2918,
+      "functionSha256": "43b10e0a1faffa5f35dc1bc5b3df3e3e1149aaef45cb913839e1739f4579b9f7"
+    },
+    "xuiWebViewLoadHtml": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiWebViewLoadHtml\" @no_raise @c_span(0,\"const char*\",\"size_t\") func loadHtml(string sHtml) as c_int",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/document/xui_webview.c",
+      "line": 1464,
+      "functionSha256": "761cbe9c61faebc924a822e78260f53e6b97f848e8c7c84cc76076a7fd6c9945"
+    },
+    "xuiListViewSetSelectionBuffer": {
+      "storage": "retained-mutable-pointer",
+      "defaultExport": false,
+      "reason": "arrExternalSelected stores caller array; Buffer retain alone cannot protect later realloc",
+      "sourceFile": "src/xui/controls/xui_list_view.c",
+      "line": 2502,
+      "functionSha256": "9862045505ce3d15a9304b38f5592564d499b092942f30144b04082d13be3c25"
+    }
+  }
+}

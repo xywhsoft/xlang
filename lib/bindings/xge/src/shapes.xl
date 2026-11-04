@@ -1,0 +1,181 @@
+// Native-only shape graphs: own one exact native reference, no language callback slots.
+export extern "xge_shape_ex" class Shape @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3ShapePolicy")
+ native point handle
+ extern "xgeShapeExRefCountGet" @no_raise @c_output(1,0) func refCountGet() as c_int
+ extern "xgeShapeExId" @no_raise @c_result("status",0) func id(c_uint iId)
+ extern "xgeShapeExIdGet" @no_raise @c_output(1,0) func idGet() as c_uint
+ extern "xgeShapeExClone" @no_raise @c_result("owned_view") @factory(1,0,rollbackShape) func clone() as Shape
+ extern "xgeShapeExReset" @no_raise @c_result("status",0) func reset()
+ extern "xgeShapeExMoveTo" @no_raise @c_result("status",0) func moveTo(c_float fX,c_float fY)
+ extern "xgeShapeExLineTo" @no_raise @c_result("status",0) func lineTo(c_float fX,c_float fY)
+ extern "xgeShapeExQuadTo" @no_raise @c_result("status",0) func quadTo(c_float fCX,c_float fCY,c_float fX,c_float fY)
+ extern "xgeShapeExCubicTo" @no_raise @c_result("status",0) func cubicTo(c_float fC1X,c_float fC1Y,c_float fC2X,c_float fC2Y,c_float fX,c_float fY)
+ extern "xgeShapeExArcTo" @no_raise @c_result("status",0) func arcTo(c_float fRX,c_float fRY,c_float fAxisDegrees,c_int bLargeArc,c_int bSweep,c_float fX,c_float fY)
+ extern "xgeShapeExClose" @no_raise @c_result("status",0) func closePath()
+ extern "xgeShapeExAppendTriangle" @no_raise @c_result("status",0) func appendTriangle(c_float fX1,c_float fY1,c_float fX2,c_float fY2,c_float fX3,c_float fY3,c_int bClockwise)
+ extern "xgeShapeExAppendLine" @no_raise @c_result("status",0) func appendLine(c_float fX1,c_float fY1,c_float fX2,c_float fY2)
+ extern "xgeShapeExAppendPolyline" @no_raise @c_span(0,"const xge_vec2_t*","int") @c_result("status",0) func appendPolyline(Buffer pPoints)
+ extern "xgeShapeExAppendPolygon" @no_raise @c_span(0,"const xge_vec2_t*","int") @c_result("status",0) func appendPolygon(Buffer pPoints)
+ extern "xgeShapeExAppendRect" @no_raise @c_result("status",0) func appendRect(c_float fX,c_float fY,c_float fW,c_float fH,c_float fRX,c_float fRY,c_int bClockwise)
+ extern "xgeShapeExAppendCapsule" @no_raise @c_result("status",0) func appendCapsule(c_float fX,c_float fY,c_float fW,c_float fH,c_int bClockwise)
+ extern "xgeShapeExAppendCircle" @no_raise @c_result("status",0) func appendCircle(c_float fCX,c_float fCY,c_float fRX,c_float fRY,c_int bClockwise)
+ extern "xgeShapeExAppendEllipse" @no_raise @c_result("status",0) func appendEllipse(c_float fCX,c_float fCY,c_float fRX,c_float fRY,c_int bClockwise)
+ extern "xgeShapeExAppendArc" @no_raise @c_result("status",0) func appendArc(c_float fCX,c_float fCY,c_float fRX,c_float fRY,c_float fStartRadians,c_float fEndRadians)
+ extern "xgeShapeExAppendPie" @no_raise @c_result("status",0) func appendPie(c_float fCX,c_float fCY,c_float fRX,c_float fRY,c_float fStartRadians,c_float fEndRadians)
+ extern "xgeShapeExAppendChord" @no_raise @c_result("status",0) func appendChord(c_float fCX,c_float fCY,c_float fRX,c_float fRY,c_float fStartRadians,c_float fEndRadians)
+ extern "xgeShapeExAppendPath" @no_raise @c_span(0,"const uint8_t*","int") @c_span(1,"const xge_vec2_t*","int") @c_result("status",0) func appendPath(bytes pCommands,Buffer pPoints)
+ extern "xgeShapeExAppendSvgPath" @no_raise @c_cstr(0) @c_result("status",0) func appendSvgPath(string sPath)
+ extern "xgeShapeExGetSvgPathData" @no_raise @c_span(0,"char*","int") @c_output(3,0) func getSvgPathData(Buffer sBuffer) as c_int
+ extern "xgeShapeExFillColor" @no_raise @c_result("status",0) func fillColor(c_uint iColor)
+ extern "xgeShapeExFillTypeGet" @no_raise @c_output(1,0) func fillTypeGet() as c_int
+ extern "xgeShapeExFillColorGet" @no_raise @c_output(1,0) func fillColorGet() as c_uint
+ extern "xgeShapeExFillLinearGradient" @no_raise @c_span(5,"const xge_shape_ex_color_stop_t*","int") @c_result("status",0) func fillLinearGradient(c_float fX1,c_float fY1,c_float fX2,c_float fY2,c_int iUnits,Buffer pStops)
+ extern "xgeShapeExFillRadialGradient" @no_raise @c_span(6,"const xge_shape_ex_color_stop_t*","int") @c_result("status",0) func fillRadialGradient(c_float fCX,c_float fCY,c_float fRadius,c_float fFX,c_float fFY,c_int iUnits,Buffer pStops)
+ extern "xgeShapeExFillRadialGradientEx" @no_raise @c_span(7,"const xge_shape_ex_color_stop_t*","int") @c_result("status",0) func fillRadialGradientEx(c_float fCX,c_float fCY,c_float fRadius,c_float fFX,c_float fFY,c_float fFocalRadius,c_int iUnits,Buffer pStops)
+ extern "xgeShapeExFillGradientSpread" @no_raise @c_result("status",0) func fillGradientSpread(c_int iSpread)
+ extern "xgeShapeExFillGradientSpreadGet" @no_raise @c_output(1,0) func fillGradientSpreadGet() as c_int
+ extern "xgeShapeExFillGradientTransformSet" @no_raise @c_ref(0) @c_result("status",0) func fillGradientTransformSet(ShapeExMatrix pMatrix)
+ extern "xgeShapeExFillGradientTransformIdentity" @no_raise @c_result("status",0) func fillGradientTransformIdentity()
+ extern "xgeShapeExFillGradientTransformGet" @no_raise @c_output(1,0) func fillGradientTransformGet() as ShapeExMatrix
+ extern "xgeShapeExStrokeColor" @no_raise @c_result("status",0) func strokeColor(c_uint iColor)
+ extern "xgeShapeExStrokeTypeGet" @no_raise @c_output(1,0) func strokeTypeGet() as c_int
+ extern "xgeShapeExStrokeColorGet" @no_raise @c_output(1,0) func strokeColorGet() as c_uint
+ extern "xgeShapeExStrokeLinearGradient" @no_raise @c_span(5,"const xge_shape_ex_color_stop_t*","int") @c_result("status",0) func strokeLinearGradient(c_float fX1,c_float fY1,c_float fX2,c_float fY2,c_int iUnits,Buffer pStops)
+ extern "xgeShapeExStrokeRadialGradient" @no_raise @c_span(6,"const xge_shape_ex_color_stop_t*","int") @c_result("status",0) func strokeRadialGradient(c_float fCX,c_float fCY,c_float fRadius,c_float fFX,c_float fFY,c_int iUnits,Buffer pStops)
+ extern "xgeShapeExStrokeRadialGradientEx" @no_raise @c_span(7,"const xge_shape_ex_color_stop_t*","int") @c_result("status",0) func strokeRadialGradientEx(c_float fCX,c_float fCY,c_float fRadius,c_float fFX,c_float fFY,c_float fFocalRadius,c_int iUnits,Buffer pStops)
+ extern "xgeShapeExStrokeGradientSpread" @no_raise @c_result("status",0) func strokeGradientSpread(c_int iSpread)
+ extern "xgeShapeExStrokeGradientSpreadGet" @no_raise @c_output(1,0) func strokeGradientSpreadGet() as c_int
+ extern "xgeShapeExStrokeGradientTransformSet" @no_raise @c_ref(0) @c_result("status",0) func strokeGradientTransformSet(ShapeExMatrix pMatrix)
+ extern "xgeShapeExStrokeGradientTransformIdentity" @no_raise @c_result("status",0) func strokeGradientTransformIdentity()
+ extern "xgeShapeExStrokeGradientTransformGet" @no_raise @c_output(1,0) func strokeGradientTransformGet() as ShapeExMatrix
+ extern "xgeShapeExStrokeWidth" @no_raise @c_result("status",0) func strokeWidth(c_float fWidth)
+ extern "xgeShapeExStrokeWidthGet" @no_raise @c_output(1,0) func strokeWidthGet() as c_float
+ extern "xgeShapeExStrokeCap" @no_raise @c_result("status",0) func strokeCap(c_int iCap)
+ extern "xgeShapeExStrokeCapGet" @no_raise @c_output(1,0) func strokeCapGet() as c_int
+ extern "xgeShapeExStrokeJoin" @no_raise @c_result("status",0) func strokeJoin(c_int iJoin)
+ extern "xgeShapeExStrokeJoinGet" @no_raise @c_output(1,0) func strokeJoinGet() as c_int
+ extern "xgeShapeExStrokeMiterLimit" @no_raise @c_result("status",0) func strokeMiterLimit(c_float fLimit)
+ extern "xgeShapeExStrokeMiterLimitGet" @no_raise @c_output(1,0) func strokeMiterLimitGet() as c_float
+ extern "xgeShapeExStrokeNonScaling" @no_raise @c_result("status",0) func strokeNonScaling(c_int bNonScaling)
+ extern "xgeShapeExStrokeNonScalingGet" @no_raise @c_output(1,0) func strokeNonScalingGet() as c_int
+ extern "xgeShapeExStrokeDash" @no_raise @c_span(0,"const float*","int") @c_result("status",0) func strokeDash(Buffer pDashPattern,c_float fDashOffset)
+ extern "xgeShapeExTrimPath" @no_raise @c_result("status",0) func trimPath(c_float fBegin,c_float fEnd,c_int bSimultaneous)
+ extern "xgeShapeExTrimPathGet" @no_raise @c_outputs(1,2,3,4) @c_status(0) func trimPathGet() as (c_float,c_float,c_int,c_int)
+ extern "xgeShapeExTrimClear" @no_raise @c_result("status",0) func trimClear()
+ extern "xgeShapeExFillRule" @no_raise @c_result("status",0) func fillRule(c_int iRule)
+ extern "xgeShapeExFillRuleGet" @no_raise @c_output(1,0) func fillRuleGet() as c_int
+ extern "xgeShapeExPaintOrder" @no_raise @c_result("status",0) func paintOrder(c_int bStrokeFirst)
+ extern "xgeShapeExPaintOrderGet" @no_raise @c_output(1,0) func paintOrderGet() as c_int
+ extern "xgeShapeExOpacity" @no_raise @c_result("status",0) func opacity(c_float fOpacity)
+ extern "xgeShapeExOpacityGet" @no_raise @c_output(1,0) func opacityGet() as c_float
+ extern "xgeShapeExVisible" @no_raise @c_result("status",0) func visible(c_int bVisible)
+ extern "xgeShapeExVisibleGet" @no_raise @c_output(1,0) func visibleGet() as c_int
+ extern "xgeShapeExBlend" @no_raise @c_result("status",0) func blend(c_int iBlend)
+ extern "xgeShapeExBlendClear" @no_raise @c_result("status",0) func blendClear()
+ extern "xgeShapeExBlendGet" @no_raise @c_outputs(1,2) @c_status(0) func blendGet() as (c_int,c_int)
+ extern "xgeShapeExMaskShapeSet" @no_raise @c_result("status",0) func maskShapeSet(Shape pTarget,c_int iMethod)
+ extern "xgeShapeExMaskSceneSet" @no_raise @c_result("status",0) func maskSceneSet(ShapeScene pTarget,c_int iMethod)
+ extern "xgeShapeExMaskClear" @no_raise @c_result("status",0) func maskClear()
+ extern "xgeShapeExGetBounds" @no_raise @c_output(2,0) func getBounds(c_float fTolerance) as Rect
+ extern "xgeShapeExGetOBB" @no_raise @c_output(2,0) func getOBB(c_float fTolerance) as Vec2
+ extern "xgeShapeExBoundsIntersects" @no_raise @c_output(3,0) func boundsIntersects(Rect tRect,c_float fTolerance) as c_int
+ extern "xgeShapeExIntersects" @no_raise @c_output(3,0) func intersects(Rect tRect,c_float fTolerance) as c_int
+ extern "xgeShapeExIntersectsEx" @no_raise @c_ref(2) @c_output(4,0) func intersectsEx(Rect tRect,c_float fTolerance,ShapeExMatrix pParentMatrix) as c_int
+ extern "xgeShapeExContainsPoint" @no_raise @c_output(4,0) func containsPoint(c_float fX,c_float fY,c_float fTolerance) as c_int
+ extern "xgeShapeExContainsPointEx" @no_raise @c_ref(3) @c_output(5,0) func containsPointEx(c_float fX,c_float fY,c_float fTolerance,ShapeExMatrix pParentMatrix) as c_int
+ extern "xgeShapeExGetLength" @no_raise @c_output(2,0) func getLength(c_float fTolerance) as c_float
+ extern "xgeShapeExGetPointAtLength" @no_raise @c_outputs(3,4) @c_status(0) func getPointAtLength(c_float fDistance,c_float fTolerance) as (Vec2,Vec2)
+ extern "xgeShapeExClipRectSet" @no_raise @c_result("status",0) func clipRectSet(Rect tRect)
+ extern "xgeShapeExClipRectGet" @no_raise @c_outputs(1,2) @c_status(0) func clipRectGet() as (Rect,c_int)
+ extern "xgeShapeExClipShapeAdd" @no_raise @c_result("status",0) func clipShapeAdd(Shape pClipShape)
+ extern "xgeShapeExClipShapeAddEx" @no_raise @c_result("status",0) func clipShapeAddEx(Shape pClipShape,c_int iMode)
+ extern "xgeShapeExClipShapeGetCount" @no_raise @c_output(1,0) func clipShapeGetCount() as c_int
+ extern "xgeShapeExClipShapeClear" @no_raise @c_result("status",0) func clipShapeClear()
+ extern "xgeShapeExClipClear" @no_raise @c_result("status",0) func clipClear()
+ extern "xgeShapeExStencilClipBegin" @no_raise @c_ref(1) @c_output(3,0) func stencilClipBegin(c_float fTolerance,ShapeExMatrix pParentMatrix) as c_int
+ extern "xgeShapeExStencilClipBeginPx" @no_raise @c_ref(1) @c_output(3,0) func stencilClipBeginPx(c_float fTolerance,ShapeExMatrix pParentMatrix) as c_int
+ extern "xgeShapeExTransformSet" @no_raise @c_ref(0) @c_result("status",0) func transformSet(ShapeExMatrix pMatrix)
+ extern "xgeShapeExTransformIdentity" @no_raise @c_result("status",0) func transformIdentity()
+ extern "xgeShapeExTransformGet" @no_raise @c_output(1,0) func transformGet() as ShapeExMatrix
+ extern "xgeShapeExTransformTranslate" @no_raise @c_result("status",0) func transformTranslate(c_float fTX,c_float fTY)
+ extern "xgeShapeExTransformScale" @no_raise @c_result("status",0) func transformScale(c_float fSX,c_float fSY)
+ extern "xgeShapeExTransformRotate" @no_raise @c_result("status",0) func transformRotate(c_float fRadians)
+ extern "xgeShapeExTransformSkew" @no_raise @c_result("status",0) func transformSkew(c_float fXRadians,c_float fYRadians)
+ extern "xgeShapeExDraw" @no_raise @c_result("status",0) func draw(c_float fTolerance)
+ extern "xgeShapeExDrawPx" @no_raise @c_result("status",0) func drawPx(c_float fTolerance)
+ extern "xgeShapeExDrawEx" @no_raise @c_ref(1) @c_result("status",0) func drawEx(c_float fTolerance,ShapeExMatrix pParentMatrix,c_float fParentOpacity)
+ extern "xgeShapeExDrawPxEx" @no_raise @c_ref(1) @c_result("status",0) func drawPxEx(c_float fTolerance,ShapeExMatrix pParentMatrix,c_float fParentOpacity)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeShapeExDestroy" @no_raise func rollbackShape(Shape value)
+export extern "xgeShapeExCreate" @no_raise @c_result("owned_view") @factory(0,0,rollbackShape) func createShape() as Shape
+export extern "xge_shape_ex_scene" class ShapeScene @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3ShapeScenePolicy")
+ native point handle
+ extern "xgeShapeExSceneRefCountGet" @no_raise @c_output(1,0) func refCountGet() as c_int
+ extern "xgeShapeExSceneId" @no_raise @c_result("status",0) func id(c_uint iId)
+ extern "xgeShapeExSceneIdGet" @no_raise @c_output(1,0) func idGet() as c_uint
+ extern "xgeShapeExSceneClone" @no_raise @c_result("owned_view") @factory(1,0,rollbackShapeScene) func clone() as ShapeScene
+ extern "xgeShapeExSceneClear" @no_raise @c_result("status",0) func clear()
+ extern "xgeShapeExSceneAdd" @no_raise @c_result("status",0) func add(Shape pShape)
+ extern "xgeShapeExSceneAddScene" @no_raise @c_result("status",0) func addScene(ShapeScene pChildScene)
+ extern "xgeShapeExSceneInsert" @no_raise @c_result("status",0) func insert(Shape pShape,Shape pBefore)
+ extern "xgeShapeExSceneInsertShapeAt" @no_raise @c_result("status",0) func insertShapeAt(Shape pShape,c_int iIndex)
+ extern "xgeShapeExSceneInsertSceneAt" @no_raise @c_result("status",0) func insertSceneAt(ShapeScene pChildScene,c_int iIndex)
+ extern "xgeShapeExSceneRemove" @no_raise @c_result("status",0) func remove(Shape pShape)
+ extern "xgeShapeExSceneRemoveScene" @no_raise @c_result("status",0) func removeScene(ShapeScene pChildScene)
+ extern "xgeShapeExSceneGetCount" @no_raise @c_output(1,0) func getCount() as c_int
+ extern "xgeShapeExSceneTransformSet" @no_raise @c_ref(0) @c_result("status",0) func transformSet(ShapeExMatrix pMatrix)
+ extern "xgeShapeExSceneTransformIdentity" @no_raise @c_result("status",0) func transformIdentity()
+ extern "xgeShapeExSceneTransformGet" @no_raise @c_output(1,0) func transformGet() as ShapeExMatrix
+ extern "xgeShapeExSceneTransformTranslate" @no_raise @c_result("status",0) func transformTranslate(c_float fTX,c_float fTY)
+ extern "xgeShapeExSceneTransformScale" @no_raise @c_result("status",0) func transformScale(c_float fSX,c_float fSY)
+ extern "xgeShapeExSceneTransformRotate" @no_raise @c_result("status",0) func transformRotate(c_float fRadians)
+ extern "xgeShapeExSceneTransformSkew" @no_raise @c_result("status",0) func transformSkew(c_float fXRadians,c_float fYRadians)
+ extern "xgeShapeExSceneOpacity" @no_raise @c_result("status",0) func opacity(c_float fOpacity)
+ extern "xgeShapeExSceneOpacityGet" @no_raise @c_output(1,0) func opacityGet() as c_float
+ extern "xgeShapeExSceneVisible" @no_raise @c_result("status",0) func visible(c_int bVisible)
+ extern "xgeShapeExSceneVisibleGet" @no_raise @c_output(1,0) func visibleGet() as c_int
+ extern "xgeShapeExSceneBlend" @no_raise @c_result("status",0) func blend(c_int iBlend)
+ extern "xgeShapeExSceneBlendClear" @no_raise @c_result("status",0) func blendClear()
+ extern "xgeShapeExSceneBlendGet" @no_raise @c_outputs(1,2) @c_status(0) func blendGet() as (c_int,c_int)
+ extern "xgeShapeExSceneMaskShapeSet" @no_raise @c_result("status",0) func maskShapeSet(Shape pTarget,c_int iMethod)
+ extern "xgeShapeExSceneMaskSceneSet" @no_raise @c_result("status",0) func maskSceneSet(ShapeScene pTarget,c_int iMethod)
+ extern "xgeShapeExSceneMaskClear" @no_raise @c_result("status",0) func maskClear()
+ extern "xgeShapeExSceneClipRectSet" @no_raise @c_result("status",0) func clipRectSet(Rect tRect)
+ extern "xgeShapeExSceneClipRectGet" @no_raise @c_outputs(1,2) @c_status(0) func clipRectGet() as (Rect,c_int)
+ extern "xgeShapeExSceneClipShapeAdd" @no_raise @c_result("status",0) func clipShapeAdd(Shape pClipShape)
+ extern "xgeShapeExSceneClipShapeAddEx" @no_raise @c_result("status",0) func clipShapeAddEx(Shape pClipShape,c_int iMode)
+ extern "xgeShapeExSceneClipShapeGetCount" @no_raise @c_output(1,0) func clipShapeGetCount() as c_int
+ extern "xgeShapeExSceneClipShapeClear" @no_raise @c_result("status",0) func clipShapeClear()
+ extern "xgeShapeExSceneClipClear" @no_raise @c_result("status",0) func clipClear()
+ extern "xgeShapeExSceneEffectClear" @no_raise @c_result("status",0) func effectClear()
+ extern "xgeShapeExSceneEffectGaussianBlur" @no_raise @c_result("status",0) func effectGaussianBlur(c_float fSigma,c_int iDirection,c_int iBorder,c_int iQuality)
+ extern "xgeShapeExSceneEffectDropShadow" @no_raise @c_result("status",0) func effectDropShadow(c_uint iColor,c_float fAngleDegrees,c_float fDistance,c_float fSigma,c_int iQuality)
+ extern "xgeShapeExSceneEffectFill" @no_raise @c_result("status",0) func effectFill(c_uint iColor)
+ extern "xgeShapeExSceneEffectTint" @no_raise @c_result("status",0) func effectTint(c_uint iBlackColor,c_uint iWhiteColor,c_float fIntensity)
+ extern "xgeShapeExSceneEffectTritone" @no_raise @c_result("status",0) func effectTritone(c_uint iShadowColor,c_uint iMidtoneColor,c_uint iHighlightColor,c_int iBlend)
+ extern "xgeShapeExSceneEffectGetCount" @no_raise @c_output(1,0) func effectGetCount() as c_int
+ extern "xgeShapeExSceneEffectGetAt" @no_raise @c_output(2,0) func effectGetAt(c_int iIndex) as ShapeExSceneEffect
+ extern "xgeShapeExSceneGetBounds" @no_raise @c_output(2,0) func getBounds(c_float fTolerance) as Rect
+ extern "xgeShapeExSceneGetOBB" @no_raise @c_output(2,0) func getOBB(c_float fTolerance) as Vec2
+ extern "xgeShapeExSceneBoundsIntersects" @no_raise @c_output(3,0) func boundsIntersects(Rect tRect,c_float fTolerance) as c_int
+ extern "xgeShapeExSceneIntersects" @no_raise @c_output(3,0) func intersects(Rect tRect,c_float fTolerance) as c_int
+ extern "xgeShapeExSceneIntersectsEx" @no_raise @c_ref(2) @c_output(4,0) func intersectsEx(Rect tRect,c_float fTolerance,ShapeExMatrix pParentMatrix) as c_int
+ extern "xgeShapeExSceneContainsPoint" @no_raise @c_output(4,0) func containsPoint(c_float fX,c_float fY,c_float fTolerance) as c_int
+ extern "xgeShapeExSceneContainsPointEx" @no_raise @c_ref(3) @c_output(5,0) func containsPointEx(c_float fX,c_float fY,c_float fTolerance,ShapeExMatrix pParentMatrix) as c_int
+ extern "xgeShapeExSceneDraw" @no_raise @c_result("status",0) func draw(c_float fTolerance)
+ extern "xgeShapeExSceneDrawPx" @no_raise @c_result("status",0) func drawPx(c_float fTolerance)
+ extern "xgeShapeExSceneDrawEx" @no_raise @c_ref(1) @c_result("status",0) func drawEx(c_float fTolerance,ShapeExMatrix pParentMatrix,c_float fParentOpacity)
+ extern "xgeShapeExSceneDrawPxEx" @no_raise @c_ref(1) @c_result("status",0) func drawPxEx(c_float fTolerance,ShapeExMatrix pParentMatrix,c_float fParentOpacity)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeShapeExSceneDestroy" @no_raise func rollbackShapeScene(ShapeScene value)
+export extern "xgeShapeExSceneCreate" @no_raise @c_result("owned_view") @factory(0,0,rollbackShapeScene) func createShapeScene() as ShapeScene
+export extern "xge_shape_ex_path_measure" class PathMeasure @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3PathMeasurePolicy")
+ native point handle
+ extern "xgeShapeExPathMeasureGetLength" @no_raise @c_output(1,0) func getLength() as c_float
+ extern "xgeShapeExPathMeasureGetPointAtLength" @no_raise @c_outputs(2,3) @c_status(0) func getPointAtLength(c_float fDistance) as (Vec2,Vec2)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeShapeExPathMeasureDestroy" @no_raise func rollbackPathMeasure(PathMeasure value)
+export extern "xgeShapeExPathMeasureCreate" @no_raise @c_ref(1) @c_result("owned_view") @factory(0,0,rollbackPathMeasure) func measurePath(Shape shape,ShapeExMatrix matrix,c_float tolerance) as PathMeasure

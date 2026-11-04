@@ -1,0 +1,33 @@
+{
+  "format": "xlang-package-1",
+  "name": "xgeDebug",
+  "version": "3.0.0",
+  "abiVersion": "2",
+  "kind": "xlang-extlib",
+  "artifact": {
+    "kind": "source",
+    "cSources": [],
+    "xlSources": [
+      "src/bootstrap.xl",
+      "src/records.xl",
+      "src/functions.xl"
+    ]
+  },
+  "links": [],
+  "loadlibs": [],
+  "dependencies": [
+    {
+      "name": "xge",
+      "version": "3.0.0",
+      "abiVersion": "2"
+    }
+  ],
+  "requiresNativeFeatures": [
+    "XGE_HAS_DEBUGMODE"
+  ],
+  "native": {
+    "singleton": false,
+    "loadName": "",
+    "version": ""
+  }
+}

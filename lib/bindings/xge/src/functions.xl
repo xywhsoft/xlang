@@ -1,0 +1,193 @@
+// Direct C declarations. Integer results retain the authoritative C status/count semantics.
+export extern "xgeGetBuildFeatures" @header("xge3_runtime.h") func getBuildFeatures() as c_uint
+export extern "xgeCheckBuildCompatibility" @header("xge3_runtime.h") func checkBuildCompatibility(uint64 fingerprint,c_uint features) as c_int
+export extern "xgeUnitChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func unit()
+export extern "xgeQuit" @header("xge3_runtime.h") func quit()
+export extern "xgeRenderRequest" @header("xge3_runtime.h") func renderRequest()
+export extern "xgeRenderRequestAfter" @header("xge3_runtime.h") func renderRequestAfter(c_float fDelaySeconds)
+export extern "xgeFrame" @header("xge3_runtime.h") func frame() as c_int
+export extern "xgeRender" @header("xge3_runtime.h") func render() as c_int
+export extern "xgeFrameStatsReset" @header("xge3_runtime.h") func frameStatsReset()
+export extern "xgeFrameStatsGet" @header("xge3_runtime.h") func frameStatsGet() as FrameStats
+export extern "xgeLogSetLevel" @header("xge3_runtime.h") func logSetLevel(c_int iLevel) as c_int
+export extern "xgeLogGetLevel" @header("xge3_runtime.h") func logGetLevel() as c_int
+export extern "xgeLogWrite" @header("xge3_runtime.h") @c_cstr(1) @c_cstr(2) func logWrite(c_int iLevel,string sTag,string sMessage) as c_int
+export extern "xgeLogFlush" @header("xge3_runtime.h") func logFlush() as c_int
+export extern "xgeGpuCapsGet" @header("xge3_runtime.h") @no_raise @c_output(0,0) func gpuCapsGet() as GpuCaps
+export extern "xgePlatformCapsGet" @header("xge3_runtime.h") @no_raise @c_output(0,0) func platformCapsGet() as PlatformCaps
+export extern "xgePlatformRuntimeGet" @header("xge3_runtime.h") @no_raise @c_output(0,0) func platformRuntimeGet() as PlatformRuntime
+export extern "xgeDragDropCapsGet" @header("xge3_runtime.h") @no_raise @c_output(0,0) func dragDropCapsGet() as DragDropCaps
+export extern "xgeDragCancel" @header("xge3_runtime.h") func dragCancel() as c_int
+export extern "xgeDragIsActive" @header("xge3_runtime.h") func dragIsActive() as c_int
+export extern "xgeGraphicsShaderHeaderGet" @header("xge3_runtime.h") @c_span(1,"char*","int") func graphicsShaderHeaderGet(c_int iBackend,Buffer sBuffer) as c_int
+export extern "xgeGraphicsLibraryNameGet" @header("xge3_runtime.h") @c_span(2,"char*","int") func graphicsLibraryNameGet(c_int iBackend,c_int iIndex,Buffer sBuffer) as c_int
+export extern "xgeGraphicsMappingGet" @header("xge3_runtime.h") @no_raise @c_output(1,0) func graphicsMappingGet(c_int iBackend) as GraphicsMapping
+export extern "xgeScenePop" @header("xge3_runtime.h") func scenePop() as c_int
+export extern "xgeSceneCount" @header("xge3_runtime.h") func sceneCount() as c_int
+export extern "xgeSceneUpdateStrategySet" @header("xge3_runtime.h") func sceneUpdateStrategySet(c_int iMode,c_float fFixedStep,c_int iMaxUpdates) as c_int
+export extern "xgeSceneUpdateStrategyGet" @header("xge3_runtime.h") @no_raise @c_outputs(0,1,2) func sceneUpdateStrategyGet() as (c_int,c_float,c_int)
+export extern "xgeGetWidth" @header("xge3_runtime.h") func getWidth() as c_int
+export extern "xgeGetHeight" @header("xge3_runtime.h") func getHeight() as c_int
+export extern "xgeSetCursor" @header("xge3_runtime.h") func setCursor(c_int iCursor) as c_int
+export extern "xgeGetCursor" @header("xge3_runtime.h") func getCursor() as c_int
+export extern "xgeGetDelta" @header("xge3_runtime.h") func getDelta() as c_float
+export extern "xgeGetFPS" @header("xge3_runtime.h") func getFPS() as c_int
+export extern "xgeTimer" @header("xge3_runtime.h") func timer() as c_double
+export extern "xgeTimeNow" @header("xge3_runtime.h") func timeNow() as int64
+export extern "xgeSleep" @header("xge3_runtime.h") func sleep(c_uint iMilliseconds)
+export extern "xgeSetTitle" @header("xge3_runtime.h") @c_cstr(0) func setTitle(string sTitle)
+export extern "xgeBegin" @header("xge3_runtime.h") func begin() as c_int
+export extern "xgeEnd" @header("xge3_runtime.h") func nativeEnd() as c_int
+export extern "xgeFlush" @header("xge3_runtime.h") func flush() as c_int
+export extern "xgeRenderThreadCapsGet" @header("xge3_runtime.h") @no_raise @c_output(0,0) func renderThreadCapsGet() as RenderThreadCaps
+export extern "xgeRenderThreadSet" @header("xge3_runtime.h") func renderThreadSet(c_int bEnabled) as c_int
+export extern "xgeRenderThreadGet" @header("xge3_runtime.h") func renderThreadGet() as c_int
+export extern "xgeClear" @header("xge3_runtime.h") func clear(c_uint iColor)
+export extern "xgePresent" @header("xge3_runtime.h") func present()
+export extern "xgeInvalidateRect" @header("xge3_runtime.h") func invalidateRect(Rect tRect)
+export extern "xgeColorRGBA" @header("xge3_runtime.h") func colorRGBA(c_int iR,c_int iG,c_int iB,c_int iA) as c_uint
+export extern "xgeColorUnpack" @header("xge3_runtime.h") func colorUnpack(c_uint iColor) as Color
+export extern "xgeBlendSet" @header("xge3_runtime.h") func blendSet(c_int iBlend)
+export extern "xgeBlendGet" @header("xge3_runtime.h") func blendGet() as c_int
+export extern "xgeDepthTestSet" @header("xge3_runtime.h") func depthTestSet(c_int bEnabled)
+export extern "xgeDepthTestGet" @header("xge3_runtime.h") func depthTestGet() as c_int
+export extern "xgeCameraDefault" @header("xge3_runtime.h") func cameraDefault(c_float fWidth,c_float fHeight) as Camera
+export extern "xgeCameraPerspective" @header("xge3_runtime.h") func cameraPerspective(c_float fWidth,c_float fHeight,c_float fFovY,c_float fNearZ,c_float fFarZ) as Camera
+export extern "xgeCameraSet" @header("xge3_runtime.h") @c_ref(0) func cameraSet(Camera pCamera)
+export extern "xgeCameraGet" @header("xge3_runtime.h") func cameraGet() as Camera
+export extern "xgeWorldToScreen" @header("xge3_runtime.h") func worldToScreen(Vec2 tPoint) as Vec2
+export extern "xgeScreenToWorld" @header("xge3_runtime.h") func screenToWorld(Vec2 tPoint) as Vec2
+export extern "xgeResourceProviderClear" @header("xge3_runtime.h") func resourceProviderClear()
+export extern "xgeMiniProgramInitSimple" @header("xge3_runtime.h") func miniProgramInitSimple(c_int iWidth,c_int iHeight,c_float fDevicePixelRatio) as c_int
+export extern "xgeMiniProgramUnit" @header("xge3_runtime.h") func miniProgramUnit()
+export extern "xgeMiniProgramFrame" @header("xge3_runtime.h") func miniProgramFrame(c_double fTimeSeconds) as c_int
+export extern "xgeMiniProgramResize" @header("xge3_runtime.h") func miniProgramResize(c_int iWidth,c_int iHeight,c_float fDevicePixelRatio) as c_int
+export extern "xgeMiniProgramTouch" @header("xge3_runtime.h") @c_span(1,"const xge_miniprogram_touch_t*","int") func miniProgramTouch(c_int iPhase,Buffer pTouches) as c_int
+export extern "xgeMiniProgramTouchOne" @header("xge3_runtime.h") func miniProgramTouchOne(c_int iPhase,c_int iId,c_float fX,c_float fY,c_float fForce) as c_int
+export extern "xgeMiniProgramText" @header("xge3_runtime.h") func miniProgramText(c_uint iCodepoint) as c_int
+export extern "xgeMiniProgramRequestFrame" @header("xge3_runtime.h") func miniProgramRequestFrame() as c_int
+export extern "xgeEGLCapsGet" @header("xge3_runtime.h") @no_raise @c_output(0,0) func eGLCapsGet() as EglCaps
+export extern "xgeAsyncThreadingSet" @header("xge3_runtime.h") func asyncThreadingSet(c_int bEnabled) as c_int
+export extern "xgeAsyncThreadingGet" @header("xge3_runtime.h") func asyncThreadingGet() as c_int
+export extern "xgeAudioInit" @header("xge3_runtime.h") func audioInit() as c_int
+export extern "xgeAudioUnit" @header("xge3_runtime.h") func audioUnit()
+export extern "xgeAudioIsReady" @header("xge3_runtime.h") func audioIsReady() as c_int
+export extern "xgeAudioSetVolume" @header("xge3_runtime.h") func audioSetVolume(c_float fVolume)
+export extern "xgeAudioGetVolume" @header("xge3_runtime.h") func audioGetVolume() as c_float
+export extern "xgeAudioListenerSet" @header("xge3_runtime.h") @c_ref(0) func audioListenerSet(AudioListener pListener)
+export extern "xgeAudioListenerGet" @header("xge3_runtime.h") func audioListenerGet() as AudioListener
+export extern "xgeSoundFallbackSet" @header("xge3_runtime.h") @c_cstr(0) func soundFallbackSet(string sPath) as c_int
+export extern "xgeSoundFallbackClear" @header("xge3_runtime.h") func soundFallbackClear()
+export extern "xgeFontFallbackSetMemory" @header("xge3_runtime.h") @c_span(0,"const void*","int") func fontFallbackSetMemory(bytes pData,c_float fSize) as c_int
+export extern "xgeFontFallbackClear" @header("xge3_runtime.h") func fontFallbackClear()
+export extern "xgeEmojiPackClearDefault" @header("xge3_runtime.h") func emojiPackClearDefault()
+export extern "xgeSamplerDefault" @header("xge3_runtime.h") func samplerDefault() as Sampler
+export extern "xgeTextureFallbackClear" @header("xge3_runtime.h") func textureFallbackClear()
+export extern "xgeTextureUploadFlush" @header("xge3_runtime.h") func textureUploadFlush() as c_int
+export extern "xgeTextureCoordinateContract" @header("xge3_runtime.h") func textureCoordinateContract() as c_int
+export extern "xgeShapePoint" @header("xge3_runtime.h") func shapePoint(c_float fX,c_float fY,c_float fSize,c_uint iColor)
+export extern "xgeShapePointPx" @header("xge3_runtime.h") func shapePointPx(c_float fX,c_float fY,c_float fSize,c_uint iColor)
+export extern "xgeShapeLine" @header("xge3_runtime.h") func shapeLine(c_float fX0,c_float fY0,c_float fX1,c_float fY1,c_float fWidth,c_uint iColor)
+export extern "xgeShapeLinePx" @header("xge3_runtime.h") func shapeLinePx(c_float fX0,c_float fY0,c_float fX1,c_float fY1,c_float fWidth,c_uint iColor)
+export extern "xgeShapeRectFill" @header("xge3_runtime.h") func shapeRectFill(Rect tRect,c_uint iColor)
+export extern "xgeShapeRectFillPx" @header("xge3_runtime.h") func shapeRectFillPx(Rect tRect,c_uint iColor)
+export extern "xgeShapeRectStroke" @header("xge3_runtime.h") func shapeRectStroke(Rect tRect,c_float fWidth,c_uint iColor)
+export extern "xgeShapeRectStrokePx" @header("xge3_runtime.h") func shapeRectStrokePx(Rect tRect,c_float fWidth,c_uint iColor)
+export extern "xgeShapeRectFillPixels" @header("xge3_runtime.h") func shapeRectFillPixels(RectI tRect,c_uint iColor)
+export extern "xgeShapeRectBorderPixels" @header("xge3_runtime.h") func shapeRectBorderPixels(RectI tRect,EdgesI tBorder,c_uint iColor)
+export extern "xgeShapeCircleFill" @header("xge3_runtime.h") func shapeCircleFill(c_float fX,c_float fY,c_float fRadius,c_uint iColor)
+export extern "xgeShapeCircleFillPx" @header("xge3_runtime.h") func shapeCircleFillPx(c_float fX,c_float fY,c_float fRadius,c_uint iColor)
+export extern "xgeShapeCircleStroke" @header("xge3_runtime.h") func shapeCircleStroke(c_float fX,c_float fY,c_float fRadius,c_float fWidth,c_uint iColor)
+export extern "xgeShapeCircleStrokePx" @header("xge3_runtime.h") func shapeCircleStrokePx(c_float fX,c_float fY,c_float fRadius,c_float fWidth,c_uint iColor)
+export extern "xgeShapeArc" @header("xge3_runtime.h") func shapeArc(c_float fX,c_float fY,c_float fRadius,c_float fStartRadians,c_float fEndRadians,c_float fWidth,c_uint iColor)
+export extern "xgeShapeArcPx" @header("xge3_runtime.h") func shapeArcPx(c_float fX,c_float fY,c_float fRadius,c_float fStartRadians,c_float fEndRadians,c_float fWidth,c_uint iColor)
+export extern "xgeShapeTriangleFill" @header("xge3_runtime.h") func shapeTriangleFill(Vec2 tA,Vec2 tB,Vec2 tC,c_uint iColor)
+export extern "xgeShapeTriangleFillPx" @header("xge3_runtime.h") func shapeTriangleFillPx(Vec2 tA,Vec2 tB,Vec2 tC,c_uint iColor)
+export extern "xgeShapeTriangleStroke" @header("xge3_runtime.h") func shapeTriangleStroke(Vec2 tA,Vec2 tB,Vec2 tC,c_float fWidth,c_uint iColor)
+export extern "xgeShapeTriangleStrokePx" @header("xge3_runtime.h") func shapeTriangleStrokePx(Vec2 tA,Vec2 tB,Vec2 tC,c_float fWidth,c_uint iColor)
+export extern "xgeShapeEllipseFill" @header("xge3_runtime.h") func shapeEllipseFill(c_float fX,c_float fY,c_float fRadiusX,c_float fRadiusY,c_uint iColor)
+export extern "xgeShapeEllipseFillPx" @header("xge3_runtime.h") func shapeEllipseFillPx(c_float fX,c_float fY,c_float fRadiusX,c_float fRadiusY,c_uint iColor)
+export extern "xgeShapeEllipseStroke" @header("xge3_runtime.h") func shapeEllipseStroke(c_float fX,c_float fY,c_float fRadiusX,c_float fRadiusY,c_float fWidth,c_uint iColor)
+export extern "xgeShapeEllipseStrokePx" @header("xge3_runtime.h") func shapeEllipseStrokePx(c_float fX,c_float fY,c_float fRadiusX,c_float fRadiusY,c_float fWidth,c_uint iColor)
+export extern "xgeShapePieFill" @header("xge3_runtime.h") func shapePieFill(c_float fX,c_float fY,c_float fRadiusX,c_float fRadiusY,c_float fStartRadians,c_float fEndRadians,c_uint iColor)
+export extern "xgeShapePieFillPx" @header("xge3_runtime.h") func shapePieFillPx(c_float fX,c_float fY,c_float fRadiusX,c_float fRadiusY,c_float fStartRadians,c_float fEndRadians,c_uint iColor)
+export extern "xgeShapeChordFill" @header("xge3_runtime.h") func shapeChordFill(c_float fX,c_float fY,c_float fRadiusX,c_float fRadiusY,c_float fStartRadians,c_float fEndRadians,c_uint iColor)
+export extern "xgeShapeChordFillPx" @header("xge3_runtime.h") func shapeChordFillPx(c_float fX,c_float fY,c_float fRadiusX,c_float fRadiusY,c_float fStartRadians,c_float fEndRadians,c_uint iColor)
+export extern "xgeShapeCapsuleFill" @header("xge3_runtime.h") func shapeCapsuleFill(Rect tRect,c_uint iColor)
+export extern "xgeShapeCapsuleFillPx" @header("xge3_runtime.h") func shapeCapsuleFillPx(Rect tRect,c_uint iColor)
+export extern "xgeShapeCapsuleStroke" @header("xge3_runtime.h") func shapeCapsuleStroke(Rect tRect,c_float fWidth,c_uint iColor)
+export extern "xgeShapeCapsuleStrokePx" @header("xge3_runtime.h") func shapeCapsuleStrokePx(Rect tRect,c_float fWidth,c_uint iColor)
+export extern "xgeShapeRenderModeSet" @header("xge3_runtime.h") func shapeRenderModeSet(c_int iMode)
+export extern "xgeShapeRenderModeGet" @header("xge3_runtime.h") func shapeRenderModeGet() as c_int
+export extern "xgeShapeRoundRectModeSet" @header("xge3_runtime.h") func shapeRoundRectModeSet(c_int iMode)
+export extern "xgeShapeRoundRectModeGet" @header("xge3_runtime.h") func shapeRoundRectModeGet() as c_int
+export extern "xgeShapeRoundRectFill" @header("xge3_runtime.h") func shapeRoundRectFill(Rect tRect,c_float fRadius,c_uint iColor)
+export extern "xgeShapeRoundRectFillPx" @header("xge3_runtime.h") func shapeRoundRectFillPx(Rect tRect,c_float fRadius,c_uint iColor)
+export extern "xgeShapeRoundRectFillEx" @header("xge3_runtime.h") func shapeRoundRectFillEx(Rect tRect,ShapeRoundRect tRadii,c_int iMode,c_uint iColor)
+export extern "xgeShapeRoundRectFillExPx" @header("xge3_runtime.h") func shapeRoundRectFillExPx(Rect tRect,ShapeRoundRect tRadii,c_int iMode,c_uint iColor)
+export extern "xgeShapeRoundRectStroke" @header("xge3_runtime.h") func shapeRoundRectStroke(Rect tRect,c_float fRadius,c_float fWidth,c_uint iColor)
+export extern "xgeShapeRoundRectStrokePx" @header("xge3_runtime.h") func shapeRoundRectStrokePx(Rect tRect,c_float fRadius,c_float fWidth,c_uint iColor)
+export extern "xgeShapeRoundRectStrokeEx" @header("xge3_runtime.h") func shapeRoundRectStrokeEx(Rect tRect,ShapeRoundRect tRadii,c_int iMode,c_float fWidth,c_uint iColor)
+export extern "xgeShapeRoundRectStrokeExPx" @header("xge3_runtime.h") func shapeRoundRectStrokeExPx(Rect tRect,ShapeRoundRect tRadii,c_int iMode,c_float fWidth,c_uint iColor)
+export extern "xgeShapeRoundRectDraw" @header("xge3_runtime.h") func shapeRoundRectDraw(Rect tRect,c_float fRadius,c_uint iFillColor,c_float fStrokeWidth,c_uint iStrokeColor)
+export extern "xgeShapeRoundRectDrawPx" @header("xge3_runtime.h") func shapeRoundRectDrawPx(Rect tRect,c_float fRadius,c_uint iFillColor,c_float fStrokeWidth,c_uint iStrokeColor)
+export extern "xgeShapeRoundRectDrawEx" @header("xge3_runtime.h") func shapeRoundRectDrawEx(Rect tRect,ShapeRoundRect tRadii,c_int iMode,c_uint iFillColor,c_float fStrokeWidth,c_uint iStrokeColor)
+export extern "xgeShapeRoundRectDrawExPx" @header("xge3_runtime.h") func shapeRoundRectDrawExPx(Rect tRect,ShapeRoundRect tRadii,c_int iMode,c_uint iFillColor,c_float fStrokeWidth,c_uint iStrokeColor)
+export extern "xgeShapePolygonFill" @header("xge3_runtime.h") @c_span(0,"const xge_vec2_t*","int") func shapePolygonFill(Buffer pPoints,c_uint iColor)
+export extern "xgeShapePolygonFillPx" @header("xge3_runtime.h") @c_span(0,"const xge_vec2_t*","int") func shapePolygonFillPx(Buffer pPoints,c_uint iColor)
+export extern "xgeShapeMeshFill" @header("xge3_runtime.h") @c_span(0,"const xge_shape_vertex_t*","int") @c_span(1,"const uint32_t*","int") func shapeMeshFill(Buffer pVertices,Buffer pIndices) as c_int
+export extern "xgeShapeMeshFillPx" @header("xge3_runtime.h") @c_span(0,"const xge_shape_vertex_t*","int") @c_span(1,"const uint32_t*","int") func shapeMeshFillPx(Buffer pVertices,Buffer pIndices) as c_int
+export extern "xgeShapeExMatrixIdentity" @header("xge3_runtime.h") @no_raise @c_output(0,0) func shapeExMatrixIdentity() as ShapeExMatrix
+export extern "xgeShapeExIdFromName" @header("xge3_runtime.h") @c_cstr(0) func shapeExIdFromName(string sName) as c_uint
+export extern "xgeShapeExStencilClipEnd" @header("xge3_runtime.h") func shapeExStencilClipEnd(c_int bApplied,c_int iRet) as c_int
+export extern "xgeSvgCacheInvalidate" @header("xge3_runtime.h") @c_cstr(0) func svgCacheInvalidate(string sURI) as c_int
+export extern "xgeSvgCacheClear" @header("xge3_runtime.h") func svgCacheClear()
+export extern "xgeViewportSet" @header("xge3_runtime.h") func viewportSet(Rect tRect)
+export extern "xgeViewportGet" @header("xge3_runtime.h") func viewportGet() as Rect
+export extern "xgeViewportClear" @header("xge3_runtime.h") func viewportClear()
+export extern "xgeClipSet" @header("xge3_runtime.h") func clipSet(Rect tRect)
+export extern "xgeClipGet" @header("xge3_runtime.h") func clipGet() as Rect
+export extern "xgeClipClear" @header("xge3_runtime.h") func clipClear()
+export extern "xgeRectToPixelsNearest" @header("xge3_runtime.h") func rectToPixelsNearest(Rect tRect) as RectI
+export extern "xgeRectToPixelsOutward" @header("xge3_runtime.h") func rectToPixelsOutward(Rect tRect) as RectI
+export extern "xgeRectToPixelsInward" @header("xge3_runtime.h") func rectToPixelsInward(Rect tRect) as RectI
+export extern "xgeViewportSetPixels" @header("xge3_runtime.h") func viewportSetPixels(RectI tRect)
+export extern "xgeViewportGetPixels" @header("xge3_runtime.h") func viewportGetPixels() as RectI
+export extern "xgeClipSetPixels" @header("xge3_runtime.h") func clipSetPixels(RectI tRect)
+export extern "xgeClipGetPixels" @header("xge3_runtime.h") func clipGetPixels() as RectI
+export extern "xgeClipboardGetData" @header("xge3_runtime.h") @c_cstr(0) @c_span(1,"void*","size_t") func clipboardGetData(string sFormat,Buffer pData) as c_int
+export extern "xgeClipboardSetText" @header("xge3_runtime.h") @c_cstr(0) func clipboardSetText(string sText)
+export extern "xgeKeyDown" @header("xge3_runtime.h") func keyDown(c_int iKey) as c_int
+export extern "xgeKeyPressed" @header("xge3_runtime.h") func keyPressed(c_int iKey) as c_int
+export extern "xgeKeyRepeated" @header("xge3_runtime.h") func keyRepeated(c_int iKey) as c_int
+export extern "xgeKeyReleased" @header("xge3_runtime.h") func keyReleased(c_int iKey) as c_int
+export extern "xgeInputConsumeKey" @header("xge3_runtime.h") func inputConsumeKey(c_int iKey)
+export extern "xgeInputKeyConsumed" @header("xge3_runtime.h") func inputKeyConsumed(c_int iKey) as c_int
+export extern "xgeMouseGet" @header("xge3_runtime.h") @no_raise @c_outputs(0,1) func mouseGet() as (c_float,c_float)
+export extern "xgeMouseGetDelta" @header("xge3_runtime.h") @no_raise @c_outputs(0,1) func mouseGetDelta() as (c_float,c_float)
+export extern "xgeMouseGetWheel" @header("xge3_runtime.h") @no_raise @c_outputs(0,1) func mouseGetWheel() as (c_float,c_float)
+export extern "xgeMouseDown" @header("xge3_runtime.h") func mouseDown(c_int iButton) as c_int
+export extern "xgeTextGet" @header("xge3_runtime.h") func textGet() as c_uint
+export extern "xgeInputEventPendingCount" @header("xge3_runtime.h") func inputEventPendingCount() as c_int
+export extern "xgeInputEventDroppedCount" @header("xge3_runtime.h") func inputEventDroppedCount() as uint64
+export extern "xgeImeGetEnabled" @header("xge3_runtime.h") func imeGetEnabled() as c_int
+export extern "xgeImeSetEnabled" @header("xge3_runtime.h") func imeSetEnabled(c_int bEnabled) as c_int
+export extern "xgeImeGetMode" @header("xge3_runtime.h") func imeGetMode() as c_int
+export extern "xgeImeSetMode" @header("xge3_runtime.h") func imeSetMode(c_int iMode) as c_int
+export extern "xgeImeSetCandidatePresenterReady" @header("xge3_runtime.h") func imeSetCandidatePresenterReady(c_int bReady) as c_int
+export extern "xgeImeSetCandidateRect" @header("xge3_runtime.h") func imeSetCandidateRect(Rect tRect) as c_int
+export extern "xgeImeGetCandidateRect" @header("xge3_runtime.h") @no_raise @c_output(0,0) func imeGetCandidateRect() as Rect
+export extern "xgeImeRefreshTextClient" @header("xge3_runtime.h") func imeRefreshTextClient() as c_int
+export extern "xgeImeCandidateGetInfo" @header("xge3_runtime.h") @no_raise @c_output(0,0) func imeCandidateGetInfo() as ImeCandidateInfo
+export extern "xgeImeCandidateGetText" @header("xge3_runtime.h") @c_span(1,"char*","int") func imeCandidateGetText(c_int iIndex,Buffer sText) as c_int
+export extern "xgeImeCandidateSelect" @header("xge3_runtime.h") func imeCandidateSelect(c_int iIndex) as c_int
+export extern "xgeImeCandidateFinalize" @header("xge3_runtime.h") func imeCandidateFinalize() as c_int
+export extern "xgeTouchGetCount" @header("xge3_runtime.h") func touchGetCount() as c_int
+export extern "xgeTouchGet" @header("xge3_runtime.h") @no_raise @c_output(1,0) func touchGet(c_int iIndex) as TouchPoint
+export extern "xgeGamepadConnected" @header("xge3_runtime.h") func gamepadConnected(c_int iGamepad) as c_int
+export extern "xgeGamepadButtonDown" @header("xge3_runtime.h") func gamepadButtonDown(c_int iGamepad,c_uint iButton) as c_int
+export extern "xgeGamepadButtonPressed" @header("xge3_runtime.h") func gamepadButtonPressed(c_int iGamepad,c_uint iButton) as c_int
+export extern "xgeGamepadButtonReleased" @header("xge3_runtime.h") func gamepadButtonReleased(c_int iGamepad,c_uint iButton) as c_int
+export extern "xgeGamepadAxis" @header("xge3_runtime.h") func gamepadAxis(c_int iGamepad,c_int iAxis) as c_float
+export extern "xgeGamepadSetConnected" @header("xge3_runtime.h") func gamepadSetConnected(c_int iGamepad,c_int bConnected) as c_int
+export extern "xgeParticlePlayInit" @header("xge3_runtime.h") @no_raise @c_output(0) func particlePlayInit() as ParticlePlay

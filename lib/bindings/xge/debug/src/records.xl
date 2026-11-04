@@ -1,0 +1,9 @@
+// Requires XGE_HAS_DEBUGMODE in the native SDK before its first header include.
+export extern "xge_debug_stats_t" struct DebugStats @header("xge3_runtime.h")
+ xge.FrameStats tFrame
+ c_int iTextureCount
+ uint64 iTextureMemoryBytes
+ c_int iFontCount
+ c_int iAudioCount
+ c_int iLastGLError
+end

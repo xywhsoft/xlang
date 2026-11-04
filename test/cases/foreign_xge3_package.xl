@@ -1,0 +1,28 @@
+import "_xge_native"
+
+extern "xui_context_t*" class PackageContext @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3ContextPolicy") @scope("xui_call_scope_t") @watch("xui_lifetime_link_t")
+    native point handle
+    extern "xuiWidgetCreate" @no_raise @c_result("owner_view",0) @factory(1,0,packageRollbackWidget) func widget() as PackageWidget
+    extern "xuiSetRootWidget" @no_raise @c_result("status",0) func root(PackageWidget widget)
+    extern "xuiSetViewportSize" @no_raise @c_result("status",0) func viewport(c_int width,c_int height)
+    extern "xuiLayout" @no_raise @c_result("status",0) func layout()
+    extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xui_widget_t*" class PackageWidget @header("xge3_runtime.h") @lifetime("owner") @owner(PackageContext) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t")
+    native point handle
+    extern "xuiWidgetGetContext" @no_raise @c_result("owner_view",0) get context() as PackageContext
+end
+extern "xuiDestroy" @no_raise func packageRollback(PackageContext context)
+extern "xuiWidgetDestroy" @no_raise func packageRollbackWidget(PackageWidget widget)
+extern "xuiCreate" @no_raise @c_result("owned_view") @factory(0,0,packageRollback) func packageCreate() as PackageContext
+
+func main(...) as int
+    // No manual bind: the private package's top-level checked initializer runs.
+    PackageContext context=packageCreate()
+    PackageWidget widget=context.widget()
+    context.root(widget)
+    context.viewport(320,200)
+    context.layout()
+    context.close()
+    return 0
+end

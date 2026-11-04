@@ -1,0 +1,51 @@
+extern "int*" class IntOutput @header("test/cases/foreign_xge3_binding_scalar.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_deref get value() as c_int
+ extern "value" @c_deref let value(c_int next)
+end
+extern "float*" class FloatOutput @header("test/cases/foreign_xge3_binding_scalar.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_deref get value() as c_float
+ extern "value" @c_deref let value(c_float next)
+end
+extern "bool*" class BoolOutput @header("test/cases/foreign_xge3_binding_scalar.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_deref get value() as bool
+ extern "value" @c_deref let value(bool next)
+end
+extern "binding_scalar_apply" @header("test/cases/foreign_xge3_binding_scalar.h") @no_raise @c_sync_callback(0,-1,0) @c_result("status",0) func apply(func(IntOutput,FloatOutput,BoolOutput) callback)
+class ScalarSaved
+ IntOutput? integer
+ FloatOutput? real
+ BoolOutput? flag
+end
+func main(...) as int
+ ScalarSaved saved=ScalarSaved()
+ apply(func(IntOutput integer,FloatOutput real,BoolOutput flag)
+  assert integer.value==c_int(7) and real.value==c_float(1.25) and not flag.value
+  integer.value=c_int(23)
+  real.value=c_float(2.5)
+  flag.value=true
+  saved.integer=integer
+  saved.real=real
+  saved.flag=flag
+ end)
+ int rejected=0
+ try
+  auto value=(saved.integer as IntOutput).value
+ catch error
+  rejected+=1
+ end
+ try
+  (saved.real as FloatOutput).value=c_float(3.0)
+ catch error
+  rejected+=1
+ end
+ try
+  auto value=(saved.flag as BoolOutput).value
+ catch error
+  rejected+=1
+ end
+ assert rejected==3
+ return 0
+end

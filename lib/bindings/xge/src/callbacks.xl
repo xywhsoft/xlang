@@ -1,0 +1,39 @@
+// Typed native callbacks retain the language closure until explicitly cleared.
+// Callback views expire when this invocation returns; CString.copy owns text.
+export extern "const char*" class CString @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "strlen" @no_raise get length() as c_size
+ extern "xrtStrDup" @owned func copy() as string
+end
+export extern "const xge_error_info_t*" class ErrorInfo @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iCode" @c_field get code() as c_int
+ extern "bRecoverable" @c_field get recoverable() as c_int
+ extern "sSubsystem" @c_field @c_result("scope_view",0) get subsystem() as CString?
+ extern "sOperation" @c_field @c_result("scope_view",0) get operation() as CString?
+ extern "sMessage" @c_field @c_result("scope_view",0) get message() as CString?
+end
+export extern "const xge_drag_event_t*" class DragEvent @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iType" @c_field get type() as c_int
+ extern "iSequence" @c_field get sequence() as uint64
+ extern "fTime" @c_field get time() as c_double
+ extern "fX" @c_field get x() as c_float
+ extern "fY" @c_field get y() as c_float
+ extern "iModifiers" @c_field get modifiers() as c_uint
+ extern "iAllowedEffects" @c_field get allowedEffects() as c_uint
+ extern "iSuggestedEffect" @c_field get suggestedEffect() as c_uint
+ extern "iEffect" @c_field get effect() as c_uint
+end
+export typedef ErrorHandler = func(ErrorInfo)
+export typedef QuitRequestHandler = func() as c_int
+export typedef DragHandler = func(DragEvent) as c_uint
+export typedef FrameHandler = func() as c_int
+export extern "xgeSetErrorCallbackOwned" @header("xge3_runtime.h") @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",0) @c_result("status",0) func setErrorCallback(ErrorHandler? callback)
+export extern "xgeSetQuitRequestCallbackOwned" @header("xge3_runtime.h") @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",0) @c_result("status",0) func setQuitRequestCallback(QuitRequestHandler? callback)
+export extern "xgeDragEventCallbackSetOwned" @header("xge3_runtime.h") @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",0) @c_result("status",0) func setDragCallback(DragHandler? callback)
+export extern "xgeQuitRequestDispatch" @header("xge3_runtime.h") @no_raise @c_output(0,0) func dispatchQuitRequest() as c_int
+export extern "xgeRequestQuitChecked" @header("xge3_runtime.h") @no_raise @c_output(0,0) func requestQuit() as c_int
+export extern "xgeSetFrameCallbackOwned" @header("xge3_runtime.h") @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",-16) @c_result("status",0) func setFrameCallback(FrameHandler? callback)
+export extern "xgeFrameCallbackDispatchChecked" @header("xge3_runtime.h") @no_raise @c_output(0,0) func dispatchFrame() as c_int
+export extern "xgeRunOwned" @header("xge3_runtime.h") @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",-16) @c_result("status",0) func run(FrameHandler? callback)

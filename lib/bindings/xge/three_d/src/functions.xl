@@ -1,0 +1,12 @@
+export extern "xge3dLightDefault" @header("xge3_runtime.h") func threeDLightDefault(c_int type) as Xge3dLightDesc
+export extern "xge3dShadowDefault" @header("xge3_runtime.h") func threeDShadowDefault() as Xge3dShadowSettings
+export extern "xge3dFogDefault" @header("xge3_runtime.h") func threeDFogDefault() as Xge3dFogSettings
+export extern "xge3dColorDefault" @header("xge3_runtime.h") func threeDColorDefault() as Xge3dColorSettings
+export extern "xge3dBloomDefault" @header("xge3_runtime.h") func threeDBloomDefault() as Xge3dBloomSettings
+export extern "xge3dHeightFogDefault" @header("xge3_runtime.h") func threeDHeightFogDefault() as Xge3dHeightFogSettings
+export extern "xge3dAabbIntersects" @header("xge3_runtime.h") @c_ref(0) @c_ref(1) func threeDAabbIntersects(Xge3dAabb a,Xge3dAabb b) as c_int
+export extern "xge3dSphereIntersectsAabb" @header("xge3_runtime.h") @c_ref(0) @c_ref(1) func threeDSphereIntersectsAabb(Xge3dSphere sphere,Xge3dAabb box) as c_int
+export extern "xge3dCameraIntersectsAabb" @header("xge3_runtime.h") @c_ref(0) @c_ref(1) func threeDCameraIntersectsAabb(Xge3dCamera camera,Xge3dAabb box) as c_int
+export extern "xge3dRendererOptionsDefault" @header("xge3_runtime.h") func threeDRendererOptionsDefault() as Xge3dRendererOptions
+export extern "xge3dMotionDefault" @header("xge3_runtime.h") func threeDMotionDefault() as Xge3dMotionSettings
+export extern "xge3dParticlesDefault" @header("xge3_runtime.h") func threeDParticlesDefault() as Xge3dParticleDesc
