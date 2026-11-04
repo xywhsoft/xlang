@@ -380,17 +380,20 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
         if(!receiver || !physical)return 0;
         const XL6_ForeignFieldLengthContract* length=xl6IrForeignFieldLengthGet(module,target);
         if(length){
-            const char* extra=target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW ? ", unsigned char*:1, const unsigned char*:1" : "";
-            xl6OutputPrintf(out,"_Static_assert(_Generic(((%s)0)->%s, char*:1, const char*:1%s, default:0), \"native field data type\");\n"
-                "_Static_assert(_Generic(((%s)0)->%s, %s:1, default:0), \"native field length type\");\n",
-                receiver->cName,target->cName,extra,receiver->cName,length->field,
-                length->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int" : "size_t");return !xl6OutputHasFailed(out);
-        }
-        if(target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_READ || target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_WRITE){
-            xl6OutputPrintf(out,"_Static_assert(_Generic(*((%s)0), %s:1, default:0), \"native pointee type\");\n",receiver->cName,physical);
+            xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s)0)->%s,char*) || XLIR_NATIVE_IS_TYPE(((%s)0)->%s,const char*)",
+                receiver->cName,target->cName,receiver->cName,target->cName);
+            if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW)
+                xl6OutputPrintf(out," || XLIR_NATIVE_IS_TYPE(((%s)0)->%s,unsigned char*) || XLIR_NATIVE_IS_TYPE(((%s)0)->%s,const unsigned char*)",
+                    receiver->cName,target->cName,receiver->cName,target->cName);
+            xl6OutputPrintf(out,", \"native field data type\");\nXLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s)0)->%s, %s), \"native field length type\");\n",
+                receiver->cName,length->field,length->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int" : "size_t");
             return !xl6OutputHasFailed(out);
         }
-        xl6OutputPrintf(out,"_Static_assert(_Generic(((%s)0)->%s, %s:1, default:0), \"native field type\");\n",
+        if(target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_READ || target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_WRITE){
+            xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(*((%s)0), %s), \"native pointee type\");\n",receiver->cName,physical);
+            return !xl6OutputHasFailed(out);
+        }
+        xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s)0)->%s, %s), \"native field type\");\n",
             receiver->cName,target->cName,physical);return !xl6OutputHasFailed(out);
     }
     if ( target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE ) return 1;
@@ -420,11 +423,20 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
         const XL6_IrType* type=xl6IrTypeGet(&module->types,target->parameterTypes[p]);
         headerDeclared=type && type->foreignHeader;
     }
+    for(size_t p=0;p<target->parameterCount;++p){
+        const XL6_ForeignValueContract* projection=xl6IrForeignValueGet(module,target,p);
+        if(projection){
+            const XL6_IrType* view=xl6IrTypeGet(&module->types,target->parameterTypes[p]);
+            xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(*((%s)0), %s), \"native pointee value type\");\n"
+                "XLIR_NATIVE_ASSERT(sizeof(%s[1])>0, \"native pointee value completeness\");\n",
+                view->cName,projection->cName,projection->cName);
+        }
+    }
     const XL6_ForeignStorageContract* storage=xl6IrForeignStorageGet(module,target);
-    if(storage)xl6OutputPrintf(out,"_Static_assert(_Generic((%s)0, %s*:1, default:0), \"in-place native record pointer\");\n"
-        "_Static_assert(sizeof(%s[1])>0 && _Alignof(%s)<=XL6_FOREIGN_RECORD_ALIGNMENT_V1, \"in-place native record size/alignment\");\n",
+    if(storage)xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE((%s)0, %s*), \"in-place native record pointer\");\n"
+        "XLIR_NATIVE_ASSERT(sizeof(%s[1])>0 && XLIR_NATIVE_ALIGNOF(%s)<=XL6_FOREIGN_RECORD_ALIGNMENT_V1, \"in-place native record size/alignment\");\n",
         resultType->cName,storage->recordCName,storage->recordCName,storage->recordCName);
-    if(headerDeclared)xl6OutputPuts("_Static_assert(_Generic(&",out);
+    if(headerDeclared)xl6OutputPuts("XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(&",out);
     else xl6OutputPrintf(out, "extern %s ", returnType);
     size_t startByte = out->buffer.Size;
     xl6OutputPuts(target->cName, out);
@@ -466,7 +478,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
     }
     if ( target->variadicAbi == XL6_IR_CALL_VARIADIC_C )
         xl6OutputPuts(", ...", out);
-    xl6OutputPuts(headerDeclared ? "):1, default:0), \"declared C function ABI\");\n" : ");\n", out);
+    xl6OutputPuts(headerDeclared ? ")), \"declared C function ABI\");\n" : ");\n", out);
     return 1;
 }
 

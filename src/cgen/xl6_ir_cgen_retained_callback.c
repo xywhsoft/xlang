@@ -3,6 +3,7 @@
 static const char* xl6IrCgenRetainedNativeType(const XL6_IrModule* module,XL6_IrTypeId id)
 {
     const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
+    if(type && type->cAbi==XL6_IR_C_ABI_MANAGED_STRING)return "xstrview";
     return type && (type->foreignPolicy || type->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK) ? type->cName : xl6IrCgenType(module,id);
 }
 static int xl6IrCgenRetainedParameters(XL6_Output* out,const XL6_IrModule* module,
@@ -46,7 +47,7 @@ static int xl6IrCgenEmitRetainedCallbackTypes(XL6_Output* out,const XL6_IrModule
         xl6OutputPuts(");\n",out);
         for(size_t a=0;a<signature->paramCount;++a)if(xl6IrForeignCallbackSpanGet(module,row,a)){
             const XL6_IrType* view=xl6IrTypeGet(&module->types,signature->params[a]);
-            xl6OutputPrintf(out,"_Static_assert(_Generic((%s)0,const xbytesview*:1,default:0),\"callback span requires const xbytesview pointer\");\n",view->cName);
+            xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE((%s)0,const xbytesview*),\"callback span requires const xbytesview pointer\");\n",view->cName);
         }
     }
     return !xl6OutputHasFailed(out);
@@ -64,7 +65,7 @@ static int xl6IrCgenEmitRetainedCallbackThunks(XL6_Output* out,const XL6_IrModul
         if(!target)continue;
         const XL6_IrType* signature=xl6IrForeignRetainedSignature(module,target,parameter);
         const XL6_IrType* root=xl6IrForeignRootType(module,target->parameterTypes[row->callbackOwnerIndexPlusOne-1]);
-        const char* result=signature->returnCount ? xl6IrCgenType(module,signature->callableResultType) : "void";
+        const char* result=signature->returnCount ? xl6IrCgenRetainedNativeType(module,signature->callableResultType) : "void";
         xl6OutputPrintf(out,"static %s %s_thunk(",result,row->callbackTypeCName);
         if(!xl6IrCgenRetainedParameters(out,module,signature,row,true))return 0;
         xl6OutputPuts(")\n{\n    XL6_NativeCallback* record = userdata;\n"
@@ -136,7 +137,9 @@ static int xl6IrCgenEmitRetainedCallbackThunks(XL6_Output* out,const XL6_IrModul
         if(scoped)xl6OutputPuts("    if (lifetime.self && !xl6ForeignScopeEndV1(&lifetime)) xl6ErrorScopeCaptureFailure(&errors);\n",out);
         xl6OutputPuts("    xl6_error_result outcome = xl6ErrorScopeEnd(&errors);\n"
             "    if (scope.self) outcome=xl6NativeCallbackRuntimeV1Get()->Leave(&scope,outcome);\n"
-            "    if (!outcome.ok) { xl6NativeCallbackReportFailureV1(record,outcome);",out);
+            "    if (!outcome.ok) {",out);
+        if(row->callbackResultKind==XL6_FOREIGN_CALLBACK_RESULT_OWNED_TEXT)xl6OutputPuts(" xrtFree((void*)result.Data);",out);
+        xl6OutputPuts(" xl6NativeCallbackReportFailureV1(record,outcome);",out);
         if(signature->returnCount)xl6OutputPrintf(out," result=(%s){%d};",result,row->callbackFailureCode);
         xl6OutputPuts(" }\n",out);
         if(signature->returnCount)xl6OutputPuts("    return result;\n",out);

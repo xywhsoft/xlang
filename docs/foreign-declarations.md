@@ -351,7 +351,8 @@ Buffer 的存储在栈作用域中持有实际原生 handle；没有临时 Buffe
 原有显式 point／裸指针 C 互操仍由调用者负责地址有效期。
 
 工厂的 output 序号按实际 C 参数计算。指针／数量二元组和回调三元组不可从中间
-插入 output。普通参数序号仍按显式语言参数计算，不包含接收者。
+插入 output。`c_span` 等普通参数序号按显式语言参数计算，不包含接收者；
+`c_control` 和下述 `c_value` 的序号包含隐式接收者。
 
 ## 长期原生回调
 
@@ -675,3 +676,45 @@ boxing and explicit copies retain their respective costs.
 初始化或准入失败时，编译器先调用声明的 rollback，再释放记录。此模式仅用于
 独立拥有根，不能让原生代码跨语言 close 保留该记录。需要原生引用计数逃逸的
 Font／Texture 等资源使用三参数 `@c_inplace`，由最后一个原生引用释放记录。
+
+### 原生回调返回拥有字符串
+
+```xlang
+extern "setLabelProviderOwned" @no_raise @c_owned_callback(1,0,"NativeOwner",0,"owned_text") func onLabel(Root root,func() as string callback)
+```
+
+`owned_text` 是显式的结果拥有合同：逻辑回调返回 `string` 或 `string?`，
+实际原生回调返回 `xstrview`，将其 XRT 分配交给原生调用方。原生方消费后须
+`xrtFree(Data)`，并在释放 callback snapshot 之前完成；此合同不能用于返回
+借用 `char*` 的旧接口。`first`／`last` 仍控制 userdata 位置，指定两者时将
+`owned_text` 放在第六个参数；省略位置时默认最后。
+
+null 使用 `{NULL,0}`，存在的空字符串保持非空 Data；长度是精确 UTF-8 字节，
+允许内嵌 NUL。回调抛错、分配失败或 Leave 清理失败时，thunk 先释放已经产生
+的结果，再报告 checked 失败，返回空结果。失败码必须为 0。成功时直接交付语言
+返回值，不增加桥接复制；返回共享的捕获字符串时仍须产生独立的拥有值。
+
+### 原生视图的按值投影
+
+```xlang
+extern "nativeRead" @no_raise @c_value(0,"NativeRecord") func read(RecordView value) as c_int
+// 类方法的 0 表示隐式接收者；自由函数的 0 表示第一个参数。
+```
+
+`c_value(index,"CType")` 从非空受管／回调期视图读取完整 pointee，按原生 C
+值传入。序号包含隐式接收者；一项仍占一个物理参数，不与 `c_span` 等展开
+合同混用。原始 caller 指针和 nullable 视图不能使用此合同。
+长期回调的 owner 参数仍须保留原生指针 ABI，不能把它改为按值记录。
+
+XLIR 保存稀疏的类型投影行和明确的物理 ABI；Cgen 复用普通视图的 checked
+调用准备，参数直接生成为 `*((const NativeRecord*)native_view_0.raw)`，没有
+逐方法转发函数、额外分配或字段装箱。原生头同时证明 pointee 类型、完整性和
+整个函数签名；不能把同样大小的 `xstrview` 与 `xbytesview` 相互冒充。直接调用、
+有明确函数类型的绑定方法、协议和动态投影使用同一准备规则，过期／关闭检查不变。
+
+### C 与 C++ 的原生 ABI 证明
+
+生成的公开头在 C11 和 C++11／17 中均执行签名、字段、尺寸和对齐检查。
+`XLIR_NATIVE_*` 宏只组织编译期证明，不生成运行时代码。C++ 中对直接标量枚举
+及函数签名使用底层整数兼容规则，指针仍保留精确枚举身份和 cv 限定；禁止用
+`int*` 代替枚举指针。需要精确枚举指针时使用权威 C 头的 typedef。

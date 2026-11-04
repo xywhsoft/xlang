@@ -259,6 +259,15 @@ int xl6IrCgenVisitNativeModules(const XL6_IrModule* module, XL6_DiagList* diags,
     for(size_t t=0;t<module->callTargetCount;++t)
         if(module->callTargets[t].reachability!=XL6_IR_REACHABILITY_UNREACHABLE &&
             xl6IrForeignStorageGet(module,&module->callTargets[t]) && !visitor(context,"XRT_MODULE_MEMORY"))return 0;
+    for(size_t t=0;t<module->callTargetCount;++t){
+        const XL6_IrCallTarget* target=&module->callTargets[t];
+        if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        for(size_t p=0;p<target->parameterCount;++p){
+            const XL6_ForeignParameterContract* row=xl6IrForeignParameterGet(module,target,p);
+            if(row && row->kind==XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK &&
+                row->callbackResultKind==XL6_FOREIGN_CALLBACK_RESULT_OWNED_TEXT && !visitor(context,"XRT_MODULE_MEMORY"))return 0;
+        }
+    }
 #define XL6_IR_CGEN_NEED(Type, Field, Group) \
     if (needs.Field && !xl6IrCgenVisitNativeGroup(XL6_IR_CGEN_NATIVE_##Group, \
             (uint64_t)needs.Field,visitor,context)) return 0;
@@ -468,7 +477,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
                  !visitor(context,"xl6ForeignViewReleaseV1")))return 0;
             if(xl6IrForeignSpanBufferField(module,target,p) &&
                 (!visitor(context,"xl6BufferSpanBeginV1") || !visitor(context,"xl6BufferSpanEndV1")))return 0;
-            if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW &&
+            if(xl6IrForeignViewBorrowPhysical(target->parameterPhysicalAbis[p]) &&
                 (!visitor(context,"xl6ForeignViewCallBeginV1") || !visitor(context,"xl6ForeignViewCallEndV1") ||
                  !visitor(context,"xl6ForeignScopeViewGetV1")))return 0;
         }

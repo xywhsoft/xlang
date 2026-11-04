@@ -49,7 +49,7 @@ def main():
         run('constructor-alias-'+mode, [driver, root/'test/cases/foreign_decl_constructor_alias.xl',
             mode, out/('constructor-alias-'+mode)])
     run('constructor-alias-standalone', [out/('constructor-alias-exe.exe' if os.name == 'nt' else 'constructor-alias-exe')])
-    for gate in ('text_views', 'bytes_views', 'bound_views','managed_views','expanded_calls','terminated_strings','scoped_views','native_fields','status','output_values','counted_fields','dereference','instance_factory','native_arguments','native_protocol','managed_pointee','inplace_factory','retained_result','callback_span'):
+    for gate in ('text_views', 'bytes_views', 'bound_views','managed_views','expanded_calls','terminated_strings','scoped_views','native_fields','status','output_values','counted_fields','dereference','instance_factory','native_arguments','native_protocol','managed_pointee','inplace_factory','retained_result','callback_span','callback_text','header_cpp','value_projection'):
         run(gate, [sys.executable, '-B', root/('tools/check_foreign_'+gate+'.py'),
             '--root', root, '--public-directory', args.source_build.resolve().parent, '--out', out/gate])
     report['complete'] = True

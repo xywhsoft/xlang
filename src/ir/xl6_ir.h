@@ -4187,7 +4187,8 @@ typedef enum XL6_IrCallParameterPhysicalAbi {
     XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW,
     XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_HANDLE_ACCESS_BORROW,
     XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW,
-    XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK
+    XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK,
+    XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VALUE_BORROW
 } XL6_IrCallParameterPhysicalAbi;
 
 /* A raw C callback may cross ordinary language wrapper functions before it
@@ -7021,6 +7022,8 @@ typedef struct XL6_IrModule {
     size_t foreignStorageCount,foreignStorageCapacity;
     XL6_ForeignRetainContract* foreignRetains;
     size_t foreignRetainCount,foreignRetainCapacity;
+    XL6_ForeignValueContract* foreignValues;
+    size_t foreignValueCount,foreignValueCapacity;
     XL6_ForeignCallbackSpanContract* foreignCallbackSpans;
     size_t foreignCallbackSpanCount,foreignCallbackSpanCapacity;
 } XL6_IrModule;
@@ -7991,6 +7994,10 @@ const XL6_ForeignStorageContract* xl6IrForeignStorageGet(const XL6_IrModule*,con
 int xl6IrForeignStorageFactoryMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignRetainContract* xl6IrForeignRetainGet(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignRetainResultMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
+static inline int xl6IrForeignViewBorrowPhysical(XL6_IrCallParameterPhysicalAbi abi)
+{return abi==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW || abi==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VALUE_BORROW;}
+const XL6_ForeignValueContract* xl6IrForeignValueGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+int xl6IrForeignValueMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 const XL6_ForeignCallbackSpanContract* xl6IrForeignCallbackSpanGet(const XL6_IrModule*,const XL6_ForeignParameterContract*,size_t);
 int xl6IrForeignOutputValueMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignProjectionMatches(const XL6_IrModule*,const XL6_IrCallTarget*);

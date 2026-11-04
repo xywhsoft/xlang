@@ -1,4 +1,4 @@
-extern "const XL6_NativeCallbackRuntimeV1*" class CallbackRuntime @header("__xl_runtime/xl6_native_callback.h") @lifetime("caller")
+extern "const XL6_NativeCallbackRuntimeV1*" class CallbackRuntime @header("test/cases/foreign_native_tables.h") @lifetime("caller")
     native point handle
 end
 extern "const XL6_ClosureRuntimeV3*" class ClosureRuntime @header("__xl_runtime/xl6_closure_capture_v4.h") @lifetime("caller")
