@@ -1,0 +1,56 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Exact five-file r5 delta after source-only r4 milestone 808c2cbcc. Root-only independent cleanup failure flag bit8; legacy and unadopted false remain failures. Finalize requires actual native consumption before Clear; late refusal uses existing V1 FAILED, abort plan restores pins and VIEW_CLOSE retains true owner/code.",
+  "files": [
+    {
+      "path": "src/runtime/xl6_foreign_view.c",
+      "sha256": "6b4d0daee217c81f386581f915115ddcdfe3cdd05e84966931bec40dbeb6a3a0",
+      "parentSha256": "6b1c03e5986a2b851ea00f9a8f9e1c3cd2866e29b8e030f7625529d5a7d24cad"
+    },
+    {
+      "path": "src/runtime/xl6_foreign_view.h",
+      "sha256": "885a8b6b6438ebbc6d0a7fb327a8769c630d640b2c5dee3642891f207bc3031d",
+      "parentSha256": "8f88d2ab63cfc926d968c9f17e6cab2231026a73691cfc1851d783801295296d"
+    },
+    {
+      "path": "test/support/foreign_factory_reservation.c",
+      "sha256": "81b9270f97dce955e380b25a4400bc84b1c0868ef20f09fbdd8465b5b053ea41",
+      "parentSha256": "828812947f9fcdc9c89ec74a49a3e577aa0cb4f1d9da4f87ff7017ba5551c942"
+    },
+    {
+      "path": "test/support/foreign_view.c",
+      "sha256": "faa38d444ad53106a798f33aa8305695e1b96fe247e664c93c285a21854d9c7a",
+      "parentSha256": "9b95585282bdafbf45a6e593dbf088af32a4dc8f36bda952f95c1866aedcb79e"
+    },
+    {
+      "path": "tools/check_foreign_views.py",
+      "sha256": "0b81e7445522917767618b8c7de10b5d6e14e25f9a55c4668a1f8e8a535b9fff",
+      "parentSha256": "e2950b444d83a29406e7def2e18c6472d834edcb97cc1c585915cb1994b7e9db"
+    }
+  ],
+  "windows": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\foreign-reservation-win-dev-r9\\results.json",
+      "sha256": "b325fca006fa0eff310b2cea280453ceca7e62f634b5ed8272a0f4f3b8eed642"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\foreign-reservation-regression-win-r3\\results.json",
+      "sha256": "bf4bc9b152647f8031c720142c37bb1370a15fc7b78b0ce34cb4d4fa8c1a6eda"
+    }
+  ],
+  "linux": [
+    {
+      "path": "/home/ubuntu/xlang-validation/foreign-reservation-linux-r3/results.json",
+      "sha256": "bfd5aa5552e59c12e65ddeadced4495d75052cdc58e0d6a5ad3e82f146d971e0",
+      "rows": 32
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/foreign-reservation-regression-linux-r3/results.json",
+      "sha256": "df78b0020ad0bd8b1e1ea84033eba90a5095ebdc5e415f7a07c05ab730efded4",
+      "rows": 22
+    }
+  ],
+  "qualification": "Win/Linux O0/O2:32 new kernel +22 old regression rows each; no matched VFS/JIT/AOT qualification.",
+  "shippingDelivery": false
+}

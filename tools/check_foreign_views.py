@@ -57,7 +57,7 @@ def main():
     for opt in ('O0','O2'):
         exe=out/(opt+('.exe' if os.name=='nt' else '.out'))
         if run(opt+'-build',[cc,*flags,'-'+opt,*sources,runtime,'-o',exe]):
-            cases=('success','oom','partial','eligibility','watch','records','request','defer','reject','resurrection','worker','acquire','all') if a.factories else ('layout','sparse','metadata','cleanup','invoke','cycle','allocation','all') if a.captures else ('scopes','threads','fibers','allocation','all') if a.contexts else ('views','residency','affinity','retry','graph','allocation','exclusive','admission','deferred','all')
+            cases=('success','oom','partial','eligibility','watch','records','status','finalize','request','defer','reject','resurrection','worker','acquire','all') if a.factories else ('layout','sparse','metadata','cleanup','invoke','cycle','allocation','all') if a.captures else ('scopes','threads','fibers','allocation','all') if a.contexts else ('views','residency','affinity','retry','graph','allocation','exclusive','admission','deferred','all')
             for case in cases:
                 run(opt+'-'+case,[exe,*([] if case=='all' else [case])])
     if a.tcc_contexts:

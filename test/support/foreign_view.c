@@ -229,7 +229,7 @@ static void metadata_and_admission(void)
         if (fault==3) d.Unwatch=NULL;
         if (fault==4) { d.CallBegin=NULL; d.CallEnd=NULL; d.callBytes=0; d.callAlignment=1; }
         if (fault==5) d.Busy=NULL;
-        if (fault==6) d.flags=UINT64_C(8);
+        if (fault==6) d.flags=UINT64_C(16);
         if (fault==7) {d.flags=XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY;d.CallBegin=NULL;d.CallEnd=NULL;d.callBytes=0;d.callAlignment=1;}
         assert(!xl6ForeignViewCreateRootV1(raw,&d,&codeOwner));
         assert(!raw->watch && codeReferences==1); xrtClearError(); assert(destroy_native(raw));

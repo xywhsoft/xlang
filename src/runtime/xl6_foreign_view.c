@@ -122,8 +122,9 @@ static bool viewDescriptorValid(const XL6_ForeignViewDescriptorV1* d,bool root)
 {
     if (!d || d->size!=sizeof(*d) || d->abiTag!=XL6_FOREIGN_VIEW_V1_TAG ||
         !d->family || !*d->family || !d->Destroy || !!d->Watch!=!!d->Unwatch ||
-        (d->flags&~(XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY|XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH|XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE)) ||
+        (d->flags&~(XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY|XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH|XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE|XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE)) ||
         ((d->flags&XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE) && (!root || !d->Busy || !d->CallBegin)) ||
+        ((d->flags&XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE) && !root) ||
         (d->RequestClose && !root) ||
         ((d->flags&XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH) && (!root || !d->Watch)) ||
         ((d->flags&XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY) && (!root || !d->CallBegin || !d->CallEnd)) ||
@@ -581,7 +582,8 @@ static bool viewCloseBody(XL6_ForeignView* view)
         xl6_error_scope errors={0}; if (!xl6ErrorScopeBegin(&errors)) abort();
         bool destroyed=view->descriptor.Destroy(view->raw);
         if(destroyed && !view->watched)viewInvalidate(view);
-        if (!destroyed || xrtGetError()) xl6ErrorScopeCaptureFailure(&errors);
+        if ((!destroyed && !(view->descriptor.flags&XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE)) || xrtGetError())
+            xl6ErrorScopeCaptureFailure(&errors);
         return viewPublish(xl6ErrorScopeEnd(&errors));
     }
     if (!viewCalls() && !xl6ForeignCallbackActiveV1() && !viewIsDraining()) return xl6ForeignViewDrainV1();
@@ -623,7 +625,8 @@ static bool viewDestroyNative(XL6_ForeignView* view,bool autoOnly,bool* cancelle
     if (begun) {
         bool ok=unadopted ? view->descriptor.DestroyUnadopted(view->raw):view->descriptor.Destroy(view->raw);
         if (ok && !view->watched) viewInvalidate(view);
-        if ((!ok && (!ownScope || unadopted)) || xrtGetError())xl6ErrorScopeCaptureFailure(&errors);
+        bool independent=ownScope || (view->descriptor.flags&XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE);
+        if ((!ok && (!independent || unadopted)) || xrtGetError())xl6ErrorScopeCaptureFailure(&errors);
         if (!unadopted && !ownScope && d->CallEnd && (!d->CallEnd(root->closeStorage) || xrtGetError()))
             xl6ErrorScopeCaptureFailure(&errors);
     }
@@ -786,7 +789,10 @@ static bool viewFinalize(const void* raw,const void* token)
     XL6_ForeignView* view=(XL6_ForeignView*)raw;
     if (!token || view->claim!=token || view->cleared || !viewReady(view)) return false;
     /* Borrowed children do not independently consume a root-owned C payload. */
-    return view->owner || xl6ForeignViewCloseV1(view);
+    if(view->owner)return true;
+    /* Logical acceptance is not owner consumption. A deferred destructor
+     * must never authorize Clear while its actual native payload is alive. */
+    return xl6ForeignViewCloseV1(view) && !view->raw;
 }
 static void viewClear(const void* raw,const void* token)
 {
