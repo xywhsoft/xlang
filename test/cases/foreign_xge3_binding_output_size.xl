@@ -1,0 +1,46 @@
+extern "BindingSizedInfo" struct Info @header("test/cases/foreign_xge3_binding_output_size.h")
+ c_uint byteSize @c_name("size")
+ c_int value
+end
+extern "xge_build_info_t" struct BuildInfo @header("xge3_runtime.h")
+ c_uint size
+ c_uint api_major
+ c_uint api_minor
+ c_uint api_patch
+ c_uint foundation_revision
+ c_uint features
+ uint64 abi_fingerprint
+end
+extern "ManagedRoot*" class Root @header("test/cases/foreign_xge3_binding_output_size.h") @lifetime("owned") @policy("managedRootPolicy") @scope("ManagedScope") @watch("ManagedWatch")
+ native point handle
+ extern "binding_sized_method" @no_raise @c_output_size(1,"size") @c_output(1,0) func read(c_int value) as Info
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "managed_root_create" @header("test/cases/foreign_xge3_binding_output_size.h") @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(c_int mode=0) as Root
+extern "managed_root_destroy" @no_raise func rollback(Root root)
+extern "binding_sized_free" @header("test/cases/foreign_xge3_binding_output_size.h") @no_raise @c_output(0,0) @c_output_size(0,"size") func sized(c_int value) as Info
+extern "binding_sized_void" @header("test/cases/foreign_xge3_binding_output_size.h") @no_raise @c_output_size(0,"size") @c_output(0) func sizedVoid() as Info
+extern "binding_sized_multi" @header("test/cases/foreign_xge3_binding_output_size.h") @no_raise @c_output_size(4,"size") @c_output_size(1,"size") @c_span(0,"const uint8_t*","size_t") @c_outputs(0,1,4) @c_status(0) func multi(bytes data) as (c_uint,Info,Info)
+extern "xgeGetBuildInfo" @header("xge3_runtime.h") @no_raise @c_output(0,0) @c_output_size(0,"size") func buildInfo() as BuildInfo
+protocol Reader
+ func read(c_int value) as Info
+end
+func main(...) as int
+ auto info=sized(c_int(17))
+ assert info.byteSize>c_uint(0) and info.value==c_int(17)
+ assert sizedVoid().value==c_int(9)
+ func(c_int) as Info freeValue=sized
+ assert freeValue(c_int(18)).value==c_int(18)
+ Root root=create()
+ assert root.read(c_int(19)).value==c_int(19)
+ func(c_int) as Info bound=root.read
+ assert bound(c_int(20)).value==c_int(20)
+ Reader reader=root
+ assert reader.read(c_int(21)).value==c_int(21)
+ auto count,first,last=multi(b"a\0b")
+ assert count==c_uint(3) and first.value==c_int(97) and last.value==c_int(98)
+ auto native=buildInfo()
+ assert native.size>c_uint(0) and native.api_major==c_uint(3) and native.abi_fingerprint!=uint64(0)
+ root.close()
+ return 0
+end

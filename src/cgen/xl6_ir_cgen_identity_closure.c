@@ -359,6 +359,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
         return xl6IrCgenDiag(diags, module, target != NULL ? target->declaration : XL6_IR_NODE_INVALID,
                              "XLIR extern call target has no deterministic C linkage ABI");
     const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);
+    const XL6_ForeignFieldCallContract* fieldCall=xl6IrForeignFieldCallGet(module,target);
     uint32 output = declaration ? declaration->foreignCall.outputIndexPlusOne : 0;
     size_t receiver=declaration && (declaration->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || declaration->sourceKind==XL6_AST_GET || declaration->sourceKind==XL6_AST_LET) &&
         !(declaration->flags&XL6_AST_FLAG_STATIC) ? 1u : 0u;
@@ -369,7 +370,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
      * language's normalized storage type (for example uint32 -> int64_t)
      * would invent a second C ABI and can conflict with the component's
      * fixed-width public signature. */
-    if(target->foreignOperationAbi!=XL6_IR_FOREIGN_OPERATION_CALL){
+    if(!xl6IrForeignOperationInvokesFunction(target->foreignOperationAbi)){
         const XL6_IrType* receiver=xl6IrTypeGet(&module->types,target->parameterTypes[0]);
         const XL6_IrType* value=xl6IrTypeGet(&module->types,target->returnType);
         bool write=target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_FIELD_WRITE || target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_WRITE;
@@ -438,16 +439,17 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
     if(storage)xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE((%s)0, %s*), \"in-place native record pointer\");\n"
         "XLIR_NATIVE_ASSERT(sizeof(%s[1])>0 && XLIR_NATIVE_ALIGNOF(%s)<=XL6_FOREIGN_RECORD_ALIGNMENT_V1, \"in-place native record size/alignment\");\n",
         resultType->cName,storage->recordCName,storage->recordCName,storage->recordCName);
-    if(headerDeclared)xl6OutputPuts("XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(&",out);
+    if(fieldCall)xl6OutputPrintf(out,"typedef %s (*xlir_native_callee_s%u)(",returnType,(unsigned)target->symbol);
+    else if(headerDeclared)xl6OutputPuts("XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(&",out);
     else xl6OutputPrintf(out, "extern %s ", returnType);
     size_t startByte = out->buffer.Size;
-    xl6OutputPuts(target->cName, out);
-    if (visitor != NULL && !visitor(context, target->symbol, target->cName,
+    if(!fieldCall)xl6OutputPuts(target->cName, out);
+    if (!fieldCall && visitor != NULL && !visitor(context, target->symbol, target->cName,
             "function", startByte, out->buffer.Size))
         return xl6IrCgenDiag(diags, module, target->declaration,
                              "cannot collect bounded C extern header binding");
-    if(headerDeclared)xl6OutputPrintf(out,", %s (*)(",returnType);
-    else xl6OutputPutc('(', out);
+    if(!fieldCall){if(headerDeclared)xl6OutputPrintf(out,", %s (*)(",returnType);
+    else xl6OutputPutc('(', out);}
     if ( target->parameterCount == 0 && !output ) xl6OutputPuts("void", out);
     for ( i = 0; i < target->parameterCount + (declaration->foreignCall.valueOutput ? xl6IrForeignOutputCount(module,target) : (size_t)(output!=0)); ++i ) {
         const char* type;
@@ -455,7 +457,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
         size_t parameter=i,resultOrdinal=SIZE_MAX;
         if(declaration->foreignCall.valueOutput){
             if(!xl6IrForeignOutputStep(module,target,i,&parameter,&resultOrdinal))return 0;
-            if(resultOrdinal!=SIZE_MAX){xl6OutputPrintf(out,"%s*",xl6IrCgenType(module,xl6IrForeignOutputType(module,target,resultOrdinal)));continue;}
+            if(resultOrdinal!=SIZE_MAX){xl6OutputPrintf(out,"%s*",xl6IrCgenOutputRawType(module,target,resultOrdinal));continue;}
         }else if(output && i==outputLogical){
             const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
             xl6OutputPrintf(out,"%s%s",target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW ? result->cName:xl6IrCgenType(module,target->returnType),storage ? "":"*");continue;
@@ -483,7 +485,11 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
     }
     if ( target->variadicAbi == XL6_IR_CALL_VARIADIC_C )
         xl6OutputPuts(", ...", out);
-    xl6OutputPuts(headerDeclared ? ")), \"declared C function ABI\");\n" : ");\n", out);
+    if(fieldCall){
+        const XL6_IrType* receiverType=xl6IrTypeGet(&module->types,target->parameterTypes[0]);
+        xl6OutputPrintf(out,");\nXLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s)0)->%s, xlir_native_callee_s%u), \"native callable field ABI\");\n",
+            receiverType->cName,fieldCall->field,(unsigned)target->symbol);
+    }else xl6OutputPuts(headerDeclared ? ")), \"declared C function ABI\");\n" : ");\n", out);
     return 1;
 }
 

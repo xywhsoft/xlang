@@ -1,0 +1,96 @@
+extern "BindingFieldTable*" class Table @header("test/cases/foreign_callable_field.h") @lifetime("owned") @policy("bindingFieldPolicy") @scope("BindingFieldScope")
+ native point handle
+ extern "add" @c_field_call @no_raise func add(c_int value) as c_int
+ extern "xrtPathCwd" @c_field_call @no_raise func collision(c_int value) as c_int
+ extern "count" @c_field_call @no_raise @c_span(0,"const uint8_t*","size_t") func count(bytes value) as c_size
+ extern "pair" @c_field_call @no_raise @c_outputs(1,2) func pair() as (c_int,c_float)
+ extern "checked" @c_field_call @no_raise @c_result("status",0) func checked(c_int status)
+ extern "echo" @c_field_call @no_raise @c_text_view(0) @c_result("text_view") func echo(string value) as string
+ extern "apply" @c_field_call @no_raise @c_sync_callback(1,0,-1) func apply(c_int value,func(c_int) as c_int callback) as c_int
+ extern "missing" @c_field_call @no_raise func missing() as c_int
+ extern "read" @c_field_call @no_raise @c_const(0) @c_result("borrowed_value") func read() as var
+ extern "create" @c_field_call @no_raise @c_result("owned_view") @factory(1,0,rollback) func newTable() as Table
+ extern "missingFactory" @c_field_call @no_raise @c_result("owned_view") @factory(1,0,rollback) func missingFactory() as Table
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "BindingFieldTable*" class Caller @header("test/cases/foreign_callable_field.h") @lifetime("caller")
+ native point handle
+ extern "add" @c_field_call @no_raise func add(c_int value) as c_int
+end
+extern "binding_field_create" @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Table
+extern "binding_field_destroy" @no_raise func rollback(Table value)
+extern "binding_field_null" @no_raise func nullCaller() as Caller
+extern "binding_field_identity" @header("test/cases/foreign_callable_field.h") @no_raise @c_const(0) @c_result("borrowed_value") func identity(var value) as var
+protocol Adder
+ func add(c_int value) as c_int
+end
+func main(...) as int
+ Table table=create()
+ assert table.add(c_int(4))==c_int(11)
+ assert table.collision(c_int(7))==c_int(14)
+ func(c_int) as c_int bound=table.add
+ assert bound(c_int(5))==c_int(12)
+ Adder adder=table
+ assert adder.add(c_int(6))==c_int(13)
+ assert table.count(b"a\0b")==c_size(3)
+ auto first,second=table.pair()
+ assert first==c_int(19) and second==c_float(3.5)
+ assert table.echo("你\0好")=="你\0好"
+ int bias=9
+ assert table.apply(c_int(3),func(c_int value) as c_int
+  return value+c_int(bias)
+ end)==c_int(12)
+ var value=table.read()
+ assert value==uint64(18446744073709551615)
+ assert identity(value)==uint64(18446744073709551615)
+ auto other=table.newTable()
+ assert other.add(c_int(9))==c_int(16)
+ other.close()
+ bool callbackRejected=false
+ try
+  auto bad=table.apply(c_int(3),func(c_int value) as c_int
+   throw RuntimeError "field callback failed"
+  end)
+ catch error
+  assert error.message=="field callback failed"
+  callbackRejected=true
+ end
+ assert callbackRejected
+ bool factoryRejected=false
+ try
+  auto bad=table.missingFactory()
+ catch error
+  factoryRejected=true
+ end
+ assert factoryRejected
+ bool statusRejected=false
+ try
+  table.checked(c_int(-7))
+ catch error
+  statusRejected=true
+ end
+ assert statusRejected
+ bool missingRejected=false
+ try
+  auto bad=table.missing()
+ catch error
+  missingRejected=true
+ end
+ assert missingRejected
+ bool nullRejected=false
+ try
+  auto bad=nullCaller().add(c_int(1))
+ catch error
+  nullRejected=true
+ end
+ assert nullRejected
+ table.close()
+ bool closedRejected=false
+ try
+  auto bad=bound(c_int(1))
+ catch error
+  closedRejected=true
+ end
+ assert closedRejected
+ return 0
+end

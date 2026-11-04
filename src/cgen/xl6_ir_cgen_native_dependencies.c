@@ -28,6 +28,16 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
     for(size_t i=0;i<module->callTargetCount;++i) {
         const XL6_IrCallTarget* target=&module->callTargets[i];
         if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        /* Borrowed xvalue results retain through XRT's value implementation.
+         * They are native algorithm dependencies, not resident helper symbols. */
+        if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_CONST_XVALUE_POINTER)needs->needsXValueRuntime=1;
+        for(size_t o=0;o<xl6IrForeignOutputCount(module,target);++o){
+            const XL6_ForeignOutputViewContract* output=xl6IrForeignOutputViewGet(module,target,o);
+            if(!output)continue;
+            if(output->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_TEXT){
+                needs->needsStringRuntime=1;needs->needsStringScalarRuntime=1;needs->needsStringViews=1;
+            }else{needs->needsBytesRuntime=1;needs->needsXValueRuntime=1;}
+        }
         if(xl6IrTypeIsCOwned(xl6IrTypeGet(&module->types,target->returnType)))needs->needsCOwnedRuntime=1;
         for(size_t p=0;p<target->parameterCount;++p)
             if(xl6IrTypeIsCOwned(xl6IrTypeGet(&module->types,target->parameterTypes[p])))needs->needsCOwnedRuntime=1;
@@ -448,10 +458,6 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             module->callTargets[t].runtimeBridge==XL6_IR_RUNTIME_BRIDGE_FS_PATH_BUILD &&
             !visitor(context,"xl6_xrt_fs_path_build"))return 0;
     if(needs.needsNativeFuturePayloadRuntime && !visitor(context,"xl6NativeFuturePayloadRuntimeV1Get"))return 0;
-    for(size_t t=0;t<module->callTargetCount;++t)
-        if(module->callTargets[t].reachability!=XL6_IR_REACHABILITY_UNREACHABLE &&
-            module->callTargets[t].resultCAbi==XL6_IR_CALL_RESULT_C_ABI_CONST_XVALUE_POINTER &&
-            (!visitor(context,"xrtValueRetain") || !visitor(context,"xrtValueNull")))return 0;
     for(size_t i=0;i<module->storageCount;++i){
         const XL6_IrStorage* storage=&module->storages[i];
         if(storage->kind!=XL6_IR_STORAGE_GLOBAL || storage->moduleTraceAbi!=XL6_IR_FRAME_TRACE_NATIVE_GRAPH)continue;

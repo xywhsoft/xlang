@@ -63,13 +63,14 @@ static int xl6IrCgenEmitFunction(
         ? NULL : xl6IrCgenClosureTargetGet(module, function->symbol);
     const XL6_IrInstruction* forwarding = !closure && !(options && options->debugMode)
         ? xl6IrDirectCForwardingCall(module, function) : NULL;
+    if (forwarding && xl6IrCallTargetGet(module,forwarding->targetSymbol)->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_FIELD_CALL)forwarding=NULL;
     if (forwarding) {
         const XL6_IrCallTarget* target = xl6IrCallTargetGet(module, forwarding->targetSymbol);
         if (!xl6IrCgenEmitPrototype(out, module, function, diags)) return 0;
         xl6OutputPuts("\n{\n", out);
         for (i = 0; i < function->parameterCount; ++i)
             xl6OutputPrintf(out, "    (void)s%u;\n", (unsigned)module->functionParameters[function->firstParameter + i]);
-        if(target->foreignOperationAbi!=XL6_IR_FOREIGN_OPERATION_CALL){
+        if(!xl6IrForeignOperationInvokesFunction(target->foreignOperationAbi)){
             bool dereference=target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_READ || target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_WRITE;
             if(dereference)xl6OutputPrintf(out,"    %s*s%u",function->returnType ? "return " : "",(unsigned)xl6IrDirectCForwardingArgument(module,forwarding,0));
             else xl6OutputPrintf(out,"    %ss%u->%s",function->returnType ? "return " : "",

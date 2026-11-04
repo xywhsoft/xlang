@@ -24,18 +24,18 @@ static void xl6IrCgenEmitOwnedStringAdmission(XL6_Output* out,
 /* A no-raise C producer can still require a fallible language copy. Keep
  * the raw pointer until its outcome is known; an absent nullable result and
  * a failed nonempty copy have different outcomes, even without a diagnostic. */
-static void xl6IrCgenEmitBorrowedValueAdmission(XL6_Output* out,
-    const XL6_IrModule* module, const XL6_IrCallTarget* target,
+static void xl6IrCgenEmitBorrowedOwnedAdmission(XL6_Output* out,
+    const XL6_IrModule* module, XL6_IrTypeId logicalType,XL6_IrCallResultCAbi resultAbi,
     const char* place, const char* raw, const char* scope)
 {
-    const XL6_IrType* type=xl6IrTypeGet(&module->types,target->returnType);
-    if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_CONST_XVALUE_POINTER){
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,logicalType);
+    if(resultAbi==XL6_IR_CALL_RESULT_C_ABI_CONST_XVALUE_POINTER){
         xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError() == NULL) {\n"
             "        %s = xrtValueRetain(%s != NULL ? %s : xrtValueNull());\n"
             "        if (%s == NULL) xl6ErrorScopeCaptureFailure(&%s);\n    }\n",scope,place,raw,raw,place,scope);
         return;
     }
-    if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW){
+    if(resultAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW){
         xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError() == NULL) {\n"
             "        if ((%s.Data == NULL && %s.Size != 0) || %s.Size > INT64_MAX) { xrtSetErrorKind(XERR_RANGE); xl6ErrorScopeCaptureFailure(&%s); }\n"
             "        else if (%s.Data != NULL) { %s = xrtValueBytes(%s); if (%s == NULL) xl6ErrorScopeCaptureFailure(&%s); }\n",
@@ -45,7 +45,7 @@ static void xl6IrCgenEmitBorrowedValueAdmission(XL6_Output* out,
         else xl6OutputPrintf(out,"        else { xrtSetErrorKind(XERR_VALUE); xl6ErrorScopeCaptureFailure(&%s); }\n",scope);
         xl6OutputPuts("    }\n",out);return;
     }
-    if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW){
+    if(resultAbi==XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW){
         xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError() == NULL) {\n"
             "        if ((%s.Data == NULL && %s.Size != 0) || %s.Size > INT64_MAX) { xrtSetErrorKind(XERR_RANGE); xl6ErrorScopeCaptureFailure(&%s); }\n"
             "        else { %s = xlir_string_copy(%s); if (%s.Data != NULL && %s.Data == NULL) xl6ErrorScopeCaptureFailure(&%s);\n",
@@ -61,6 +61,12 @@ static void xl6IrCgenEmitBorrowedValueAdmission(XL6_Output* out,
     if(type->kind!=XL6_IR_TYPE_NULLABLE)
         xl6OutputPrintf(out,"        else if (%s == NULL) { xrtSetErrorKind(XERR_VALUE); xl6ErrorScopeCaptureFailure(&%s); }\n",raw,scope);
     xl6OutputPuts("    }\n",out);
+}
+static void xl6IrCgenEmitBorrowedValueAdmission(XL6_Output* out,
+    const XL6_IrModule* module,const XL6_IrCallTarget* target,
+    const char* place,const char* raw,const char* scope)
+{
+    xl6IrCgenEmitBorrowedOwnedAdmission(out,module,target->returnType,target->resultCAbi,place,raw,scope);
 }
 
 static const char* xl6IrCgenBorrowedResultCType(const XL6_IrCallTarget* target)
@@ -329,6 +335,7 @@ static int xl6IrCgenEmitUnionTypes(
                         unionType->cName, field->cName, cType);
                 }
                 xl6OutputPuts("#endif\n", out);
+                if(!xl6IrCgenOutputSizeProof(out,module,layout)){xrtFree(emitted);return 0;}
                 emitted[layoutIndex] = 1;
                 emittedCount += 1;
                 continue;

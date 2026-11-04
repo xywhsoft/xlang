@@ -21485,6 +21485,8 @@ static const XL6_AstNode* xl6SemForeignOwnershipHelper(XL6_SemContext* ctx,
     }
     return matches==1 && found->semanticSymbolId ? found : NULL;
 }
+#include "src/sem/xl6_sem_foreign_output_size.c"
+#include "src/sem/xl6_sem_foreign_output_view.c"
 static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNode* node,const XL6_AstNode* ownerClass)
 {
     XL6_ForeignCallFacts facts;
@@ -21501,6 +21503,13 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
     }
     XL6_AstNode* params = node->childCount > 1 ? node->children[1] : NULL;
     size_t count = params ? params->childCount : 0;
+    if(xl6ForeignFunctionFieldCall(node)){
+        XL6_ForeignClassDecl owner;
+        if(!ownerClass || xl6ForeignClassRead(ownerClass,&owner,NULL)!=1 || !owner.header[0] ||
+            !strchr(owner.cName,'*') || strchr(strchr(owner.cName,'*')+1,'*')){
+            xl6SemErrorNode(ctx,node,"C field calls require an instance method of an explicit native pointer class");return 0;
+        }
+    }
     if((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference){
         XL6_ForeignClassDecl owner;
         char field[64];XL6_AstNode name={0};name.kind=XL6_AST_STRING;name.text=node->text;
@@ -21761,7 +21770,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
     }
     if(facts.valueOutput){
         size_t outputs=1;uint32 slots[64]={facts.outputIndexPlusOne-1};
-        int multi=facts.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS || facts.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID;
+        int multi=xl6ForeignValueOutputBase(facts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS || xl6ForeignValueOutputBase(facts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID;
         if(multi){
             int found=0;
             for(size_t a=0;attrs && a<attrs->childCount;++a)
@@ -21776,6 +21785,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             xl6SemErrorNode(ctx,node,"C value outputs require matching exact trivial C results, explicit @no_raise and complete physical slots");return 0;
         }
         for(size_t o=0;o<outputs;++o){
+            if(xl6SemForeignOutputViewAt(attrs,slots[o],NULL))continue;
             const XL6_AstNode* value=xl6SemResolveAliasType(ctx,viewReturns->children[o]);
             XL6_ForeignClassDecl outputContract={0};
             const XL6_AstNode* outputDecl=xl6SemForeignViewDeclaration(ctx,value,&outputContract);
@@ -21784,6 +21794,8 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
                 xl6SemErrorNode(ctx,node,"C value outputs accept only exact trivial C values without hidden ownership");return 0;
             }
         }
+        if(!xl6SemForeignOutputSizes(ctx,node,attrs,&facts))return 0;
+        if(!xl6SemForeignOutputViews(ctx,node,attrs,slots,outputs))return 0;
     }
     if (facts.outputIndexPlusOne && !facts.valueOutput) {
         const XL6_AstNode* returns = node->childCount > 2 ? node->children[2] : NULL;
@@ -21981,8 +21993,8 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node,const XL
     }
     XL6_ForeignCallFacts outputFacts={0};
     int hasOutputProduct=xl6ForeignFunctionRead(node,&outputFacts) &&
-        (outputFacts.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS ||
-         outputFacts.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID);
+        (xl6ForeignValueOutputBase(outputFacts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS ||
+         xl6ForeignValueOutputBase(outputFacts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID);
     if ( returns != NULL && returns->childCount > 1 &&
          !hasOutputProduct && !xl6SemIsCAbiProductReturns(ctx, returns) ) {
         xl6SemErrorNode(ctx, returns->children[1] != NULL ? returns->children[1] : returns,

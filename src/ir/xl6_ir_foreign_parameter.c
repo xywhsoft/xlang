@@ -70,7 +70,7 @@ int xl6IrForeignPointerQualifierMatches(const XL6_IrModule* module,const XL6_IrC
     if(!row || !target->parameterTypes || !target->parameterPhysicalAbis || !target->parameterAbis ||
         !target->parameterConstraintAbis || !target->parameterPhysicalFieldDeclarations ||
         target->kind!=XL6_IR_CALL_TARGET_EXTERN_C || target->runtimeBridge ||
-        target->foreignOperationAbi!=XL6_IR_FOREIGN_OPERATION_CALL || target->parameterConstraintAbis[p] ||
+        !xl6IrForeignOperationInvokesFunction(target->foreignOperationAbi) || target->parameterConstraintAbis[p] ||
         target->parameterPhysicalFieldDeclarations[p] || xl6IrForeignParameterGet(module,target,p))return 0;
     const XL6_IrType* type=xl6IrTypeGet(&module->types,target->parameterTypes[p]);
     if(type && type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1)type=xl6IrTypeGet(&module->types,type->params[0]);
@@ -103,7 +103,7 @@ int xl6IrForeignValueMatches(const XL6_IrModule* module,const XL6_IrCallTarget* 
         memchr(type->cName,0,sizeof(type->cName)) && strchr(type->cName,'*') && xl6IrForeignManagedViewParameter(module,target,p) &&
         target->parameterAbis[p]==XL6_IR_PARAMETER_ABI_BORROW && !target->parameterConstraintAbis[p] &&
         !target->parameterPhysicalFieldDeclarations[p] && !xl6IrForeignParameterGet(module,target,p) &&
-        target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_CALL;
+        xl6IrForeignOperationInvokesFunction(target->foreignOperationAbi);
 }
 static int xl6IrVerifyForeignValues(const XL6_IrModule* module,XL6_DiagList* diags)
 {
@@ -128,9 +128,34 @@ static int xl6IrVerifyForeignValues(const XL6_IrModule* module,XL6_DiagList* dia
     return 1;
 invalid:return xl6IrDiag(diags,NULL,"native pointee values require unique exact non-null preparation contracts");
 }
+const XL6_ForeignFieldCallContract* xl6IrForeignFieldCallGet(const XL6_IrModule* module,const XL6_IrCallTarget* target)
+{
+    if(!module || !target || module->foreignFieldCallCount>module->foreignFieldCallCapacity ||
+        module->foreignFieldCallCount>module->nodeCount || (module->foreignFieldCallCount && !module->foreignFieldCalls))return NULL;
+    for(size_t i=0;i<module->foreignFieldCallCount;++i)
+        if(module->foreignFieldCalls[i].declaration==target->declaration)return &module->foreignFieldCalls[i];
+    return NULL;
+}
+static int xl6IrVerifyFieldCalls(const XL6_IrModule* module,XL6_DiagList* diags)
+{
+    if(module->foreignFieldCallCount>module->foreignFieldCallCapacity || module->foreignFieldCallCount>module->nodeCount ||
+        (module->foreignFieldCallCount && !module->foreignFieldCalls))goto invalid;
+    for(size_t i=0;i<module->foreignFieldCallCount;++i){
+        const XL6_ForeignFieldCallContract* row=&module->foreignFieldCalls[i];
+        const XL6_IrNode* node=xl6IrNodeGet(module,row->declaration);
+        if(!node || node->kind!=XL6_IR_NODE_FUNC_DECL || node->sourceKind!=XL6_AST_NATIVE_EXTERN_FUNC ||
+            !node->declarationOwnerType || (node->flags&(XL6_AST_FLAG_STATIC|XL6_AST_FLAG_FOREIGN_FIELD)) ||
+            node->foreignCall.receiverDereference || node->foreignCall.controlViews ||
+            node->foreignCall.outputIndexPlusOne==1 || !memchr(row->field,0,sizeof(row->field)) || !xl6ForeignIdentifier(row->field))goto invalid;
+        for(size_t j=0;j<i;++j)if(module->foreignFieldCalls[j].declaration==row->declaration)goto invalid;
+    }
+    return 1;
+invalid:return xl6IrDiag(diags,NULL,"C callable fields require unique instance-method contracts");
+}
 XL6_IrForeignOperationAbi xl6IrForeignOperationForTarget(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration) : NULL;
+    if(xl6IrForeignFieldCallGet(module,target))return XL6_IR_FOREIGN_OPERATION_FIELD_CALL;
     if(!node || (!(node->flags&XL6_AST_FLAG_FOREIGN_FIELD) && !node->foreignCall.receiverDereference))return XL6_IR_FOREIGN_OPERATION_CALL;
     if(node->foreignCall.receiverDereference){
         if(node->foreignCall.receiverDereference!=1 || (node->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_STATIC)) ||
@@ -339,7 +364,7 @@ static int xl6IrVerifyForeignFieldLengths(const XL6_IrModule* module,XL6_DiagLis
 invalid:return xl6IrDiag(diags,NULL,"counted native fields require unique normalized length contracts");
 }
 static int xl6IrForeignMultiOutput(const XL6_IrNode* node)
-{return node && (node->foreignCall.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS || node->foreignCall.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID);}
+{return node && (xl6ForeignValueOutputBase(node->foreignCall.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS || xl6ForeignValueOutputBase(node->foreignCall.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID);}
 static const XL6_ForeignOutputContract* xl6IrForeignOutputGet(const XL6_IrModule* module,const XL6_IrCallTarget* target,size_t ordinal)
 {
     if(!module || !target || module->foreignOutputCount>module->foreignOutputCapacity || (module->foreignOutputCount && !module->foreignOutputs))return NULL;
@@ -425,14 +450,17 @@ int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTa
     size_t receiver=(node->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || node->sourceKind==XL6_AST_GET || node->sourceKind==XL6_AST_LET) && !(node->flags&XL6_AST_FLAG_STATIC) ? 1u:0u;
     size_t count=xl6IrForeignOutputCount(module,target);
     if(!count || count>64)return 0;
-    for(size_t o=0;o<count;++o)if(!xl6IrRawCCallbackTrivialValueType(xl6IrTypeGet(&module->types,xl6IrForeignOutputType(module,target,o))))return 0;
+    for(size_t o=0;o<count;++o)if(!xl6IrForeignOutputViewGet(module,target,o) &&
+        !xl6IrRawCCallbackTrivialValueType(xl6IrTypeGet(&module->types,xl6IrForeignOutputType(module,target,o))))return 0;
     if(xl6IrForeignMultiOutput(node)){
         const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
         if(count<2 || !result || result->kind!=XL6_IR_TYPE_TUPLE || result->paramCount!=count)return 0;
     }else if(xl6ForeignOutputLogical(&node->foreignCall,target->parameterCount,receiver)==SIZE_MAX)return 0;
     for(size_t step=0;step<target->parameterCount+count;++step){size_t in,out;if(!xl6IrForeignOutputStep(module,target,step,&in,&out))return 0;}
-    return node->foreignCall.valueOutput<=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID &&
-        ((node->foreignCall.valueOutput!=XL6_FOREIGN_VALUE_OUTPUT_VOID && node->foreignCall.valueOutput!=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID) || !node->foreignCall.successCode) &&
+    return xl6ForeignValueOutputBase(node->foreignCall.valueOutput)<=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID &&
+        ((xl6ForeignValueOutputBase(node->foreignCall.valueOutput)!=XL6_FOREIGN_VALUE_OUTPUT_VOID && xl6ForeignValueOutputBase(node->foreignCall.valueOutput)!=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID) || !node->foreignCall.successCode) &&
+        xl6IrForeignOutputSizesMatch(module,target) &&
+        xl6IrForeignOutputViewsMatch(module,target) &&
         target->outputResultAbi==xl6IrCallOutputResultAbiForTarget(module,target) && node->foreignCall.outputIndexPlusOne &&
         !node->foreignCall.rollbackSymbol && !node->foreignCall.borrowedViewResult &&
         (node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) && !(node->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) &&
@@ -460,6 +488,24 @@ int xl6IrForeignProjectionMatches(const XL6_IrModule* module,const XL6_IrCallTar
     XL6_IrForeignOperationAbi op=xl6IrForeignOperationForTarget(module,target);
     if(!target || target->foreignOperationAbi!=op || op==XL6_IR_FOREIGN_OPERATION_INVALID)return 0;
     if(op==XL6_IR_FOREIGN_OPERATION_CALL)return 1;
+    if(op==XL6_IR_FOREIGN_OPERATION_FIELD_CALL){
+        const XL6_ForeignFieldCallContract* row=xl6IrForeignFieldCallGet(module,target);
+        const XL6_IrNode* decl=xl6IrNodeGet(module,target->declaration);
+        const XL6_IrType* owner=target->parameterCount && target->parameterTypes ? xl6IrTypeGet(&module->types,target->parameterTypes[0]):NULL;
+        if(!row || !target->cName || !decl || !decl->text)return 0;
+        size_t nameBytes=strlen(decl->text),fieldBytes=strlen(row->field);
+        if(nameBytes<2 || decl->text[0]!='"' || decl->text[nameBytes-1]!='"' ||
+            fieldBytes!=nameBytes-2 || memcmp(decl->text+1,row->field,fieldBytes))return 0;
+        return row && decl && decl->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC && decl->declarationOwnerType &&
+            !(decl->flags&(XL6_AST_FLAG_STATIC|XL6_AST_FLAG_FOREIGN_FIELD)) && !decl->foreignCall.receiverDereference &&
+            !decl->foreignCall.controlViews && decl->foreignCall.outputIndexPlusOne!=1 && owner && owner->kind==XL6_IR_TYPE_CLASS &&
+            owner->foreignHeader && xl6ForeignSinglePointerSpelling(owner->cName) &&
+            owner->foreignLifetime!=XL6_FOREIGN_LIFETIME_NONE && !strcmp(row->field,target->cName) &&
+            target->kind==XL6_IR_CALL_TARGET_EXTERN_C && !target->runtimeBridge && !target->runtimeBridgeOperation &&
+            !target->implementationAbi && !target->nativeServicesRequired && !target->nativeContextAbi &&
+            !target->nativeResultAbi && !target->nativeArrayResultAbi && !target->variadicAbi &&
+            !xl6IrForeignParameterGet(module,target,0) && !xl6IrForeignValueGet(module,target,0);
+    }
     const XL6_IrNode* node=xl6IrNodeGet(module,target->declaration);
     const XL6_IrType* owner=target->parameterTypes && target->parameterCount ? xl6IrTypeGet(&module->types,target->parameterTypes[0]) : NULL;
     const XL6_ForeignCallFacts* f=&node->foreignCall;

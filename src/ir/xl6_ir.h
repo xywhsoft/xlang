@@ -5537,8 +5537,11 @@ typedef enum XL6_IrForeignOperationAbi {
     XL6_IR_FOREIGN_OPERATION_FIELD_READ,
     XL6_IR_FOREIGN_OPERATION_FIELD_WRITE,
     XL6_IR_FOREIGN_OPERATION_DEREF_READ,
-    XL6_IR_FOREIGN_OPERATION_DEREF_WRITE
+    XL6_IR_FOREIGN_OPERATION_DEREF_WRITE,
+    XL6_IR_FOREIGN_OPERATION_FIELD_CALL
 } XL6_IrForeignOperationAbi;
+static inline int xl6IrForeignOperationInvokesFunction(XL6_IrForeignOperationAbi op)
+{return op==XL6_IR_FOREIGN_OPERATION_CALL || op==XL6_IR_FOREIGN_OPERATION_FIELD_CALL;}
 
 typedef struct XL6_IrCallTarget {
     XL6_IrCallTargetKind kind;
@@ -7050,8 +7053,14 @@ typedef struct XL6_IrModule {
     size_t foreignCallbackSpanCount,foreignCallbackSpanCapacity;
     XL6_ForeignPointerQualifierContract* foreignPointerQualifiers;
     size_t foreignPointerQualifierCount,foreignPointerQualifierCapacity;
+    XL6_ForeignFieldCallContract* foreignFieldCalls;
+    size_t foreignFieldCallCount,foreignFieldCallCapacity;
     XL6_ForeignFunctionHeaderContract* foreignFunctionHeaders;
     size_t foreignFunctionHeaderCount,foreignFunctionHeaderCapacity;
+    XL6_ForeignOutputSizeContract* foreignOutputSizes;
+    size_t foreignOutputSizeCount,foreignOutputSizeCapacity;
+    XL6_ForeignOutputViewContract* foreignOutputViews;
+    size_t foreignOutputViewCount,foreignOutputViewCapacity;
 } XL6_IrModule;
 
 void xl6IrModuleInit(XL6_IrModule* module);
@@ -8016,6 +8025,7 @@ int xl6IrForeignPreparedParameterMatches(const XL6_IrModule*,const XL6_IrCallTar
 int xl6IrForeignSpanParameterMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 int xl6IrForeignCallbackParameterMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 size_t xl6IrForeignParameterWidth(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+const XL6_ForeignFieldCallContract* xl6IrForeignFieldCallGet(const XL6_IrModule*,const XL6_IrCallTarget*);
 XL6_IrForeignOperationAbi xl6IrForeignOperationForTarget(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignFieldLengthContract* xl6IrForeignFieldLengthGet(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignStorageContract* xl6IrForeignStorageGet(const XL6_IrModule*,const XL6_IrCallTarget*);
@@ -8036,6 +8046,10 @@ XL6_IrTypeId xl6IrForeignOutputType(const XL6_IrModule*,const XL6_IrCallTarget*,
 /* One emission step is either one complete logical input group or one output. */
 int xl6IrForeignOutputStep(const XL6_IrModule*,const XL6_IrCallTarget*,size_t,size_t*,size_t*);
 int xl6IrForeignOutputValueMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
+const XL6_ForeignOutputSizeContract* xl6IrForeignOutputSizeGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+int xl6IrForeignOutputSizesMatch(const XL6_IrModule*,const XL6_IrCallTarget*);
+const XL6_ForeignOutputViewContract* xl6IrForeignOutputViewGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+int xl6IrForeignOutputViewsMatch(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignProjectionMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignManagedPointeeWrite(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignManagedViewParameter(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);

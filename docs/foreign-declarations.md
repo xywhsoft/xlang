@@ -914,3 +914,95 @@ both a failing cleanup status and a cleanup diagnostic through the same checked
 scope. A first failure with a NULL diagnostic remains first; a later allocation
 or cleanup error cannot replace it. Existing void rollback declarations keep
 their native ABI.
+
+## Callable native record fields
+
+`@c_field_call` selects an exact function-pointer field of a native pointer
+class, rather than a global C symbol. For example:
+
+```xl
+extern "NativeProxy*" class Proxy @header("native.h") @lifetime("caller")
+    native point handle
+    extern "measure" @c_field_call @no_raise func measure(c_int value) as c_int
+end
+```
+
+The receiver is one native pointer, and the selected field's exact C function
+type is proved against the authoritative header. XLIR records a distinct
+FIELD_CALL operation and seals the field identity, receiver, physical inputs,
+outputs and checked preparation. A field name never triggers a same-named
+global symbol's bridge or CString rules. Direct, bound and protocol calls
+prepare the receiver and arguments, read the typed callee once, and invoke it
+with the native receiver as its first C argument. There is no forwarding C
+function or operation-code dispatch. NULL receiver/callee admission is checked;
+already transferred owned arguments are rolled back if admission fails.
+
+Existing span, callback, factory and output contracts retain their meaning.
+The native call is indirect because the authoritative C API is a function
+table; safety admission and lifetime pins remain real binding costs.
+
+## Size-prefixed native record outputs
+
+`@c_output_size(physicalOutput,"field")` initializes the named C member of an
+existing `c_output` or `c_outputs` record before the single native call:
+
+```xl
+extern "nativeGetInfo" @header("native.h") @no_raise
+    @c_output(0,0) @c_output_size(0,"size") func info() as NativeInfo
+```
+
+The position counts actual C slots, including a receiver and expanded input
+groups. It must identify an output slot, and the member name is the exact C
+name, including any record field `c_name` mapping. Multiple initializers may
+select different outputs; duplicate slots are rejected. Attribute order does
+not change the output kind or erase the initializer.
+
+Only trivial C records with authoritative headers and an unsigned C integer
+member are accepted. Fixed-width language integers, signed integers, booleans,
+arrays and arbitrary initializer expressions do not establish this ABI. The
+generated header proves the exact member type and that it can represent the
+whole native record's `sizeof`; an unsigned byte in a larger record is rejected
+even when its C layout otherwise matches.
+
+The compiler stores only declarations that request this operation in sparse,
+typed XLIR rows. Output position, return ordinal, record type and member
+declaration/type are verified together. Generated C assigns
+`native_raw.size = sizeof(native_raw)`, or the corresponding tuple element,
+without an extra call, heap allocation or per-function wrapper. Direct,
+function-value, bound and protocol calls use the same verified initializer.
+The output-mode byte contains a closed kind/presence flag set; unknown bits or
+a presence flag without its rows are rejected before C or header output.
+
+## Borrowed text and byte output slots
+
+`@c_output_view(physicalOutput,"text")` declares an exact native `xstrview*`
+output and an owned logical `string` or `string?` result. The `"bytes"` form
+declares `xbytesview*` and `bytes` or `bytes?`. It combines with `c_output` or
+`c_outputs` and counts the same complete physical slots; it cannot overlap a
+size initializer, input span or callback group.
+
+```xl
+extern "nativeReadItem" @header("native.h") @no_raise
+    @c_outputs(1,2) @c_status(0) @c_output_view(1,"text")
+    func readItem(c_int index) as (string,c_int)
+```
+
+The native view is borrowed only until the input/native call scopes end.
+Generated C first checks producer status and callback errors, then materializes
+every logical result while those scopes remain active. Only after all copies
+succeed does it deliver the complete result. A later copy failure releases
+earlier copies and leaves an assignment's previous values unchanged; no partial
+tuple is delivered. Input scope cleanup failures still follow the existing
+checked call contract.
+
+The NULL rules match `c_result("text_view")` and `c_result("bytes_view")`:
+NULL data with zero size is absence for nullable results and a checked value
+error for required results. Non-NULL data with zero size is an actual empty
+value. NULL data with nonzero size, or a size above `INT64_MAX`, is a checked
+range error. Embedded NUL and UTF-8 byte lengths are preserved without `strlen`.
+
+Sparse typed XLIR rows seal each conversion kind, physical output, logical
+return ordinal and exact result type including nullability. C/header proof
+uses the physical view pointer type, rather than treating a borrowed view as
+a language string, a dynamic byte value or a user C record. Conversion and
+copy costs are explicit; no per-library or per-method C wrapper is introduced.
