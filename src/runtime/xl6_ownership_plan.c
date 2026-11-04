@@ -1,6 +1,9 @@
 #define XRT_MODULE_MEMORY
 #include "src/common/xl6_xrt.h"
 #include "xl6_ownership_plan.h"
+#include "xl6_ownership_completion.h"
+#include "xl6_callback_failure.h"
+#include "src/api/xl_foreign_error.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -74,8 +77,7 @@ static bool admit(xrtownershipref ref,void* context)
         !adapter->Claim || !adapter->Restore || !adapter->Clear)return false;
     if(preparation && (preparation->size!=sizeof(*preparation) || preparation->Adapter!=adapter ||
         !preparation->Ready || !preparation->Prepare))return false;
-    if(completion && (completion->size!=sizeof(*completion) || completion->Adapter!=adapter ||
-        !completion->Step))return false;
+    if(!xl6OwnershipCompletionValid(completion,adapter))return false;
     node.ref=ref;node.adapter=adapter;node.preparation=preparation;node.completion=completion;
     node.finalized=adapter->Finalize==NULL;node.finished=!completion && adapter->Finish==NULL;
     /* Old held identities are supplied as anchors, in this same order, before
@@ -230,9 +232,17 @@ static XL6_OwnershipPlanResult create(xrtownershipref root,XL6_OwnershipResolve 
     result=rebuild(plan);
     if(result<=XL6_OWNERSHIP_PLAN_BUSY){
         const XL6_OwnershipAdapterV1* adapter=pinRoot ? plan->nodes[0].adapter : NULL;
+        const xrtownershipfinishv2* completion=pinRoot
+            ? xl6OwnershipCompletionV2Get(plan->nodes[0].completion) : NULL;
+        bool primaryFailed=result==XL6_OWNERSHIP_PLAN_ERROR;
         xerror* error=xrtTakeError();xrtFree(plan->nodes);xrtFree(plan);freeze_end(boundary,&freeze);
-        if(adapter)adapter->Drop(root.Data);
-        xrtClearError();xrtSetErrorTake(error);return result;
+        if(completion){
+            if(!completion->DropChecked(root.Data))result=XL6_OWNERSHIP_PLAN_ERROR;
+        }else if(adapter)adapter->Drop(root.Data);
+        xerror* cleanup=xrtTakeError();
+        if(cleanup)result=XL6_OWNERSHIP_PLAN_ERROR;
+        if(primaryFailed || error)xrtErrorFree(cleanup);else error=cleanup;
+        xrtSetErrorTake(error);return result;
     }
     *output=plan;freeze_end(boundary,&freeze);return result;
 }
@@ -397,25 +407,68 @@ XL6_OwnershipStepResult xl6OwnershipPlanFinishV2(XL6_OwnershipPlan* plan)
 }
 bool xl6OwnershipPlanFinish(XL6_OwnershipPlan* plan)
 { return xl6OwnershipPlanFinishV2(plan)==XL6_OWNERSHIP_STEP_READY; }
+static void publish_drop_failure(xl6_error_scope* scope)
+{
+    bool enclosing=scope->previous!=NULL;
+    xl6_error_result failure=xl6ErrorScopeEnd(scope);
+    if(failure.ok)return;
+    xerror* previous=xrtTakeError();
+    if(enclosing && previous){
+        /* The caller's already escaping diagnostic has priority over a later
+         * cleanup error. A NULL first failure in its scope is preserved too. */
+        xrtErrorFree(failure.error);failure.error=previous;previous=NULL;
+    }
+    if(!xl6ErrorScopeTryPropagateFailureV1(&failure)){
+        /* No active checked caller: retain the independent failure bit even
+         * if OOM prevented a diagnostic. Bare C still sees an available error. */
+        xerror* diagnostic=previous ? previous : xrtErrorRef(failure.error);
+        xl6CallbackFailureRecordV1(failure);xrtSetErrorTake(diagnostic);
+    }
+}
 XL6_OwnershipPlanResult xl6OwnershipPlanTryDestroy(XL6_OwnershipPlan* plan)
 {
     xrtownershipscope freeze={0};
     if(!plan || plan->running){xrtSetErrorKind(XERR_STATE);return XL6_OWNERSHIP_PLAN_ERROR;}
     XL6_CodeLeaseReleaseScopeV1 releases={0};
+    xl6_error_scope errors={0};bool checked=false;
+    for(size_t i=0;i<plan->count;++i){
+        PlanNode* node=&plan->nodes[i];
+        if(!xl6OwnershipCompletionValid(node->completion,node->adapter)){
+            xrtSetErrorKind(XERR_STATE);return XL6_OWNERSHIP_PLAN_ERROR;
+        }
+        if(xl6OwnershipCompletionV2Get(node->completion))checked=true;
+    }
     if(plan->committed){
         for(size_t i=0;i<plan->count;++i)if(plan->nodes[i].claimed && !plan->nodes[i].finished){xrtSetErrorKind(XERR_STATE);return XL6_OWNERSHIP_PLAN_ERROR;}
     }
     if(!xl6CodeLeaseReleaseScopeBeginV1(&releases))return XL6_OWNERSHIP_PLAN_ERROR;
+    if(checked && !xl6ErrorScopeBegin(&errors)){
+        xl6CodeLeaseReleaseScopeEndV1(&releases);return XL6_OWNERSHIP_PLAN_ERROR;
+    }
     if(!plan->committed){
-        if(!freeze_begin(plan->boundary,&freeze)){xl6CodeLeaseReleaseScopeEndV1(&releases);return XL6_OWNERSHIP_PLAN_BUSY;}
+        if(!freeze_begin(plan->boundary,&freeze)){
+            xl6CodeLeaseReleaseScopeEndV1(&releases);
+            if(checked)publish_drop_failure(&errors);
+            return XL6_OWNERSHIP_PLAN_BUSY;
+        }
         for(size_t i=0;i<plan->count;++i){PlanNode* node=&plan->nodes[i];if(node->claimed)node->adapter->Restore(node->ref.Data,plan);}
         freeze_end(plan->boundary,&freeze);
     }
     plan->running=true;
-    for(size_t i=plan->count;i--!=0;)plan->nodes[i].adapter->Drop(plan->nodes[i].ref.Data);
+    for(size_t i=plan->count;i--!=0;){
+        PlanNode* node=&plan->nodes[i];
+        const xrtownershipfinishv2* v2=xl6OwnershipCompletionV2Get(node->completion);
+        if(v2){
+            /* Both outcomes consume this one real snapshot reference. Never
+             * retry it or follow it with the legacy void Drop. */
+            if(!v2->DropChecked(node->ref.Data))xl6ErrorScopeCaptureFailure(&errors);
+        }else node->adapter->Drop(node->ref.Data);
+        if(checked && xrtGetError())xl6ErrorScopeCaptureFailure(&errors);
+    }
     /* Host release can reenter retirement while the caller still refers to
      * this plan. Keep its running guard and storage alive through every such
      * release; no native table is read after ending the physical drop batch. */
     xl6CodeLeaseReleaseScopeEndV1(&releases);
+    if(checked)publish_drop_failure(&errors);
     xrtFree(plan->nodes);xrtFree(plan);return XL6_OWNERSHIP_PLAN_READY;
 }
