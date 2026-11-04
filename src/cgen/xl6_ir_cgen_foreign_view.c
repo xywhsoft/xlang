@@ -14,7 +14,12 @@ static int xl6IrCgenForeignViewsBegin(XL6_Output* out,const XL6_IrModule* module
     for(size_t p=0;p<target->parameterCount;++p)
         if(xl6IrForeignViewBorrowPhysical(target->parameterPhysicalAbis[p]))++count;
     if(!count)return 0;
-    xl6OutputPuts("    { bool native_views_ok = true;\n",out);
+    /* A successful native admission may still have let a language callback
+     * escape. Its independent failed bit survives a swallowed/NULL native
+     * diagnostic. Keep acquired scopes for End, but admit no later operand
+     * or producer after that failure. */
+    xl6OutputPrintf(out,"    { bool native_views_ok = !%s.failed;\n"
+        "    if (xrtGetError()) { native_views_ok=false; xl6ErrorScopeCaptureFailure(&%s); }\n",errors,errors);
     for(size_t p=0;p<target->parameterCount;++p){
         if(!xl6IrForeignViewBorrowPhysical(target->parameterPhysicalAbis[p]))continue;
         const XL6_IrType* root=xl6IrForeignRootType(module,target->parameterTypes[p]);
@@ -42,7 +47,9 @@ static int xl6IrCgenForeignViewsBegin(XL6_Output* out,const XL6_IrModule* module
         xl6OutputPrintf(out,", &native_view_%lu, ",(unsigned long)p);
         if(root->foreignScope)xl6OutputPrintf(out,"&native_scope_%lu, sizeof(native_scope_%lu)",(unsigned long)p,(unsigned long)p);
         else xl6OutputPuts("NULL, 0",out);
-        xl6OutputPrintf(out,")) { native_views_ok = false; xl6ErrorScopeCaptureFailure(&%s); } }\n",errors);
+        xl6OutputPrintf(out,")) { native_views_ok = false; xl6ErrorScopeCaptureFailure(&%s); } }\n"
+            "    if (xrtGetError()) { native_views_ok=false; xl6ErrorScopeCaptureFailure(&%s); }\n"
+            "    if (%s.failed) native_views_ok=false;\n",errors,errors,errors);
     }
     if(xl6IrForeignManagedPointeeWrite(module,target))
         xl6OutputPrintf(out,"    if (native_views_ok && native_view_1.raw && native_view_0.root != native_view_1.root) {\n"
