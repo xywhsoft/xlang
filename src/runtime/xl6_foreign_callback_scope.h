@@ -18,4 +18,7 @@ typedef struct XL6_ForeignCallbackScopeV1 {
 XL6_CODE_LEASE_API bool xl6ForeignCallbackEnterV1(XL6_ForeignCallbackScopeV1*);
 XL6_CODE_LEASE_API bool xl6ForeignCallbackLeaveV1(XL6_ForeignCallbackScopeV1*);
 XL6_CODE_LEASE_API bool xl6ForeignCallbackActiveV1(void);
+/* Same execution context, including the Windows fiber. The address is only
+ * compared with live markers; an untrusted caller's pointer is never read. */
+XL6_CODE_LEASE_API bool xl6ForeignCallbackContainsV1(const XL6_ForeignCallbackScopeV1*);
 #endif

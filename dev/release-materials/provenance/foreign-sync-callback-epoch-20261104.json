@@ -1,0 +1,152 @@
+{
+  "complete": true,
+  "scope": "Synchronous captured C callbacks, explicit rootless callback epochs and producer completion before result admission",
+  "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r24",
+  "windows": {
+    "fullTranslationUnits": 1415,
+    "tccObjects": 1563,
+    "focusedAcceptedGroups": 16,
+    "tccModes": [
+      "JIT",
+      "module",
+      "standalone"
+    ],
+    "priorR23": {
+      "groups": 35,
+      "passed": 33,
+      "failed": 2,
+      "failures": [
+        "callback-text whitespace test",
+        "sync runtime private header unavailable to TCC"
+      ],
+      "fixedAndRetestedInR24": true
+    }
+  },
+  "linux": {
+    "fullTranslationUnits": 1414,
+    "focusedAcceptedGroups": 16,
+    "priorR23AcceptedGroups": 25,
+    "tccIncluded": false
+  },
+  "synchronousCallbacks": {
+    "callbacks": 12,
+    "mutationsPerOptimization": 184,
+    "emptyOutputsPerOptimization": 368,
+    "semanticNegatives": 9,
+    "headerNegatives": 1,
+    "publicCAndCppHeaders": 32,
+    "factsBytes": 88,
+    "context": "stack",
+    "closureActivity": "once over native call",
+    "completionBeforeAdmission": true
+  },
+  "callbackEpoch": {
+    "controlVersion": 2,
+    "carrierVersion": 1,
+    "carrierBytes": 16,
+    "nullableCarrierBytes": 24,
+    "ownerKinds": [
+      "NONE",
+      "ROOT",
+      "ROOTLESS",
+      "EXPIRED"
+    ],
+    "savedPayloadAfterReturn": "checked rejection"
+  },
+  "qualifiedAfterSnapshot": {
+    "files": [
+      "src/runtime/xl6_sync_callback.c",
+      "src/runtime/xl6_sync_callback.h"
+    ],
+    "changes": [
+      "CAS expected uint32 per native API",
+      "comment clarification"
+    ],
+    "windowsStrictO0O2": true,
+    "linuxSanitizedChangedRuntimeUnits": 4,
+    "fullCurrentSourceRebuilt": false
+  },
+  "sanitizers": {
+    "platform": "Linux",
+    "optimizations": [
+      "O0",
+      "O2"
+    ],
+    "checks": [
+      "ASan",
+      "UBSan",
+      "leaks",
+      "stack-use-after-return"
+    ],
+    "instrumented": [
+      "generated and native sync fixture clients",
+      "sync callback runtime",
+      "callback scope runtime",
+      "callback view runtime",
+      "foreign view runtime"
+    ],
+    "uninstrumented": [
+      "remaining compiler/runtime",
+      "XRT",
+      "actual XGE engine"
+    ]
+  },
+  "limits": [
+    "Three existing IDE-only completion hunks excluded from commit; frozen builds include those worktree hunks",
+    "No GPU, desktop, external network, security or Linux TCC tests",
+    "Remaining native callback families, full declarations, automatic initialization and SDK/IDE/shipping migration remain unfinished"
+  ],
+  "eightTasksComplete": false,
+  "shippingUpdated": false,
+  "networkTests": false,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r24.json",
+      "sha256": "e9c22c52442d4fec3875b5c7767ed2ba321ad1f7e80530655bf032763f8b9f95"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r24\\build.json",
+      "sha256": "6afbb99784f62193058720c4e7d846aadfdfdfbb6bac7de0fab24a82683d1e23"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r24-vfs\\build.json",
+      "sha256": "4de9d200094a38acf557366ba3cf3c8a90124f54d7bc1c280a6250ac509f23d4"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r24-vfs\\provider.json",
+      "sha256": "e22b033a688f374f23f5fc759ffec1ab2214b143fa31c62e5ee9c0c907bd7d6c"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\precompiled-r24\\manifest.json",
+      "sha256": "ac7cd26f9fcf13c4341928654d63b1157672e1efa588ec41e2e621e8bb34f014"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\focus-r24-win\\results.json",
+      "sha256": "1727c7e2d5d35fb68c5beefc020f145262f51fd23a19e4d9887241ac63026011"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\focus-r24-linux\\results.json",
+      "sha256": "9f9eb2f11c4045f9b6f5c60db43f0382d746b9d8335783df8e33f13dd6648ded"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-r24-evidence.json",
+      "sha256": "0affe8fdd28ad22b66fcf7fac76e8ac4f579f1d94d5826f39524430c6460328e"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-sync-sanitizers-r24-r2.json",
+      "sha256": "9d61a2e76aabe98cdb189ebf78f51dc45248bd5449132eb4a795be5ce5901112"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\windows-qualified-runtime-r24\\results.json",
+      "sha256": "b560657bf46c746f1f8f14075f89e0a23e5b35a00326a2088d8355ebfe480662"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\batch-r23\\results.json",
+      "sha256": "5979ac5e6609ab5e43de7704b628e11dd89ad0222a369ffc2b999f2002b9015a"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-gates-r19.json",
+      "sha256": "a195a5ab3208fffe0287207220acbcdb22cf064f4bbbdc5f293a43b91fe71c96"
+    }
+  ]
+}

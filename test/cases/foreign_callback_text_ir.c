@@ -23,8 +23,8 @@ int main(int argc,char** argv)
         if(row->callbackResultKind!=XL6_FOREIGN_CALLBACK_RESULT_OWNED_TEXT)continue;
         XL6_ForeignParameterContract saved=*row;XL6_IrNode* node=&module->nodes[row->declaration-1];
         const XL6_IrCallTarget* target=xl6IrCallTargetGet(module,node->symbol);assert(target);++callbacks;
-        const XL6_IrType* signature=xl6IrForeignRetainedSignature(module,target,row->parameter);
-        assert(signature && xl6IrForeignRetainedParameterMatches(module,target,row->parameter));
+        const XL6_IrType* signature=xl6IrForeignCallbackSignature(module,target,row->parameter);
+        assert(signature && xl6IrForeignCallbackParameterMatches(module,target,row->parameter));
         row->callbackResultKind=XL6_FOREIGN_CALLBACK_RESULT_TRIVIAL;refused(module);*row=saved;
         row->callbackResultKind=99;refused(module);*row=saved;
         row->callbackFailureCode=-1;refused(module);*row=saved;

@@ -36,7 +36,7 @@ int main(int argc,char** argv)
         node->foreignCall.outputIndexPlusOne=64;refused(module);node->foreignCall=facts;
         node->foreignCall.rollbackSymbol=target->symbol;refused(module);node->foreignCall=facts;
         node->flags&=~XL6_AST_FLAG_FOREIGN_NO_RAISE;refused(module);node->flags=flags;
-        if(node->foreignCall.spanParameters){node->foreignCall.outputIndexPlusOne=node->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC ? 3u : 2u;refused(module);node->foreignCall=facts;}
+        if(node->foreignCall.physicalPairs){node->foreignCall.outputIndexPlusOne=node->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC ? 3u : 2u;refused(module);node->foreignCall=facts;}
     }
     assert(outputs>=5 && xl6IrVerifyModule(module,NULL));
     printf("status/output values: outputs=%u mutations=%u zero-output=%u\n",outputs,mutations,mutations*2);

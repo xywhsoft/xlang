@@ -166,6 +166,7 @@
 #include "src/runtime/xl6_foreign_view_value_storage.h"
 #include "src/runtime/xl6_foreign_view_sequence.h"
 #include "src/runtime/xl6_native_callback.h"
+#include "src/runtime/xl6_sync_callback.h"
 #include "src/runtime/xl6_native_capture_graph.h"
 #include "src/runtime/xl6_foreign_view_capture.h"
 #include "src/runtime/xl6_capture_v3.h"
@@ -371,13 +372,13 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6ScopeViewSequenceAdmissionV1", (const void*)xl6ScopeViewSequenceAdmissionV1)) return 0;
     if (!visit(user, "xl6OwnershipDomainSequenceScopeViewV1Get", (const void*)xl6OwnershipDomainSequenceScopeViewV1Get)) return 0;
     if (!visit(user, "xl6OwnershipDomainScopeViewValueV1Get", (const void*)xl6OwnershipDomainScopeViewValueV1Get)) return 0;
-    if (!visit(user, "xl6ForeignScopeBeginV1", (const void*)xl6ForeignScopeBeginV1)) return 0;
-    if (!visit(user, "xl6ForeignScopeEndV1", (const void*)xl6ForeignScopeEndV1)) return 0;
-    if (!visit(user, "xl6ForeignScopeViewMakeV1", (const void*)xl6ForeignScopeViewMakeV1)) return 0;
-    if (!visit(user, "xl6ForeignScopeViewDeriveV1", (const void*)xl6ForeignScopeViewDeriveV1)) return 0;
-    if (!visit(user, "xl6ForeignScopeViewGetV1", (const void*)xl6ForeignScopeViewGetV1)) return 0;
-    if (!visit(user, "xl6ForeignScopeViewAliveV1", (const void*)xl6ForeignScopeViewAliveV1)) return 0;
-    if (!visit(user, "xl6ForeignScopeExpireOwnerV1", (const void*)xl6ForeignScopeExpireOwnerV1)) return 0;
+    if (!visit(user, "xl6ForeignScopeBeginV2", (const void*)xl6ForeignScopeBeginV2)) return 0;
+    if (!visit(user, "xl6ForeignScopeEndV2", (const void*)xl6ForeignScopeEndV2)) return 0;
+    if (!visit(user, "xl6ForeignScopeViewMakeV2", (const void*)xl6ForeignScopeViewMakeV2)) return 0;
+    if (!visit(user, "xl6ForeignScopeViewDeriveV2", (const void*)xl6ForeignScopeViewDeriveV2)) return 0;
+    if (!visit(user, "xl6ForeignScopeViewGetV2", (const void*)xl6ForeignScopeViewGetV2)) return 0;
+    if (!visit(user, "xl6ForeignScopeViewAliveV2", (const void*)xl6ForeignScopeViewAliveV2)) return 0;
+    if (!visit(user, "xl6ForeignScopeExpireOwnerV2", (const void*)xl6ForeignScopeExpireOwnerV2)) return 0;
     if (!visit(user, "xl6ForeignViewCreateRootV1", (const void*)xl6ForeignViewCreateRootV1)) return 0;
     if (!visit(user, "xl6ForeignViewCreateRootProbedV1", (const void*)xl6ForeignViewCreateRootProbedV1)) return 0;
     if (!visit(user, "xl6ForeignViewBorrowChildV1", (const void*)xl6ForeignViewBorrowChildV1)) return 0;
@@ -423,6 +424,14 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6ForeignViewCallbackFailureCountV1", (const void*)xl6ForeignViewCallbackFailureCountV1)) return 0;
     if (!visit(user, "xl6NativeCallbackReportFailureV1", (const void*)xl6NativeCallbackReportFailureV1)) return 0;
     if (!visit(user, "xl6NativeCallbackRuntimeV1Get", (const void*)xl6NativeCallbackRuntimeV1Get)) return 0;
+    if (!visit(user, "xl6SyncCallbackBeginV1", (const void*)xl6SyncCallbackBeginV1)) return 0;
+    if (!visit(user, "xl6SyncCallbackCompleteV1", (const void*)xl6SyncCallbackCompleteV1)) return 0;
+    if (!visit(user, "xl6SyncCallbackEndV1", (const void*)xl6SyncCallbackEndV1)) return 0;
+    if (!visit(user, "xl6SyncCallbackEnterV1", (const void*)xl6SyncCallbackEnterV1)) return 0;
+    if (!visit(user, "xl6SyncCallbackLeaveV1", (const void*)xl6SyncCallbackLeaveV1)) return 0;
+    if (!visit(user, "xl6SyncCallbackReportV1", (const void*)xl6SyncCallbackReportV1)) return 0;
+    if (!visit(user, "xl6ForeignCallbackContainsV1", (const void*)xl6ForeignCallbackContainsV1)) return 0;
+
     if (!visit(user, "xl6NativeHandleAccessBeginV1", (const void*)xl6NativeHandleAccessBeginV1)) return 0;
     if (!visit(user, "xl6NativeHandleAccessEndV1", (const void*)xl6NativeHandleAccessEndV1)) return 0;
     if (!visit(user, "xl6BufferSpanBeginV1", (const void*)xl6BufferSpanBeginV1)) return 0;

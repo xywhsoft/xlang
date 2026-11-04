@@ -420,7 +420,7 @@ bool xl6ForeignViewCallEndV1(XL6_ForeignViewCallV1* scope)
         scope->root->thread!=xrtThreadCurrentId() || !xl6ForeignContextCallContainsV1(&scope->execution)) {
         xrtSetErrorKind(XERR_STATE); return false;
     }
-    xl6ForeignScopeExpireOwnerV1(scope);
+    xl6ForeignScopeExpireOwnerV2(scope);
     XL6_ForeignView* view=scope->view;
     XL6_ForeignView* root=scope->root;
     void* storage=scope->nativeStorage;

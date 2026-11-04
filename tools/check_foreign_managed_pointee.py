@@ -55,7 +55,7 @@ def main():
     run('cgen', [driver, source, 'cgen-default', generated])
     run('ir', [driver, source, 'ir-lowered', out/'ir.json'])
     text = generated.read_text(encoding='utf-8-sig')
-    assert 'xl6ForeignScopeViewGetV1' in text
+    assert 'xl6ForeignScopeViewGetV2' in text
     assert 'native pointee type' in text and '(*((ManagedChild**)native_view_0.raw))' in text
     assert 'native_view_0.root != native_view_1.root' in text
     assert not re.search(r'extern[^;]+\bvalue\(',text)

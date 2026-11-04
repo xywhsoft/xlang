@@ -55,7 +55,7 @@ def main():
     run('cgen', [driver, source, 'cgen-default', generated])
     run('ir', [driver, source, 'ir-lowered', out/'ir.json'])
     text = generated.read_text(encoding='utf-8-sig')
-    assert 'xl6ForeignScopeViewGetV1' in text
+    assert 'xl6ForeignScopeViewGetV2' in text
     assert 'native pointee type' in text and '(*((int*)native_view_0.raw))' in text
     assert not re.search(r'extern[^;]+\bvalue\(',text)
     runtime = runtime_directory(root)/'xl.dll' if os.name=='nt' else Path(build['RuntimeLibrary'])

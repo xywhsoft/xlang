@@ -4188,6 +4188,7 @@ typedef enum XL6_IrCallParameterPhysicalAbi {
     XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_HANDLE_ACCESS_BORROW,
     XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW,
     XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK,
+    XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK,
     XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VALUE_BORROW
 } XL6_IrCallParameterPhysicalAbi;
 
@@ -7993,10 +7994,10 @@ int xl6IrForeignBytesViewParameter(const XL6_IrModule*, const XL6_IrCallTarget*,
 int xl6IrForeignTerminatedStringParameter(const XL6_IrModule*, const XL6_IrCallTarget*, size_t);
 const XL6_ForeignParameterContract* xl6IrForeignParameterGet(const XL6_IrModule*, const XL6_IrCallTarget*, size_t);
 const XL6_IrClassField* xl6IrForeignSpanBufferField(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
-const XL6_IrType* xl6IrForeignRetainedSignature(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+const XL6_IrType* xl6IrForeignCallbackSignature(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 int xl6IrForeignPreparedParameterMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 int xl6IrForeignSpanParameterMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
-int xl6IrForeignRetainedParameterMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+int xl6IrForeignCallbackParameterMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 size_t xl6IrForeignParameterWidth(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 XL6_IrForeignOperationAbi xl6IrForeignOperationForTarget(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignFieldLengthContract* xl6IrForeignFieldLengthGet(const XL6_IrModule*,const XL6_IrCallTarget*);

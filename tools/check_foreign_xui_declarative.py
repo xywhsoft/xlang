@@ -41,7 +41,7 @@ def main():
         log=out/(name+'.log');log.write_bytes(r.stdout+r.stderr);report['rows'].append(dict(name=name,exitCode=r.returncode,seconds=round(time.monotonic()-start,3),logSha256=sha(log)));save();print(name,r.returncode,flush=True);assert not r.returncode,log
     generated=out/'actual-xui.c';run('cgen',[driver,source,'cgen-default',generated]);run('ir',[driver,source,'ir-lowered',out/'ir.json'])
     text=generated.read_text(encoding='utf-8-sig');assert 'declared C function ABI' in text
-    if a.case=='base':assert 'xl6ForeignScopeViewMakeV1' in text
+    if a.case=='base':assert 'xl6ForeignScopeViewMakeV2' in text
     symbols=('xuiWidgetSetDefaultActionOwned','xuiWidgetSetCancelActionOwned','xuiWidgetSetImeCandidateRectOwned','xuiWidgetSetCursorQueryCallbackOwned','xuiWidgetSetContentMeasureCallbackOwned','xuiWidgetSetLayoutPrepareCallbackOwned','xuiWidgetSetLayoutChildrenCallbackOwned','xuiWidgetSetLayoutCompleteCallbackOwned','xuiWidgetSetEventCallbackOwned') if a.case=='base' else ('xuiButtonSetClickOwned','xuiCheckBoxSetChangeOwned','xuiCheckCardSetChangeOwned','xuiRadioSetChangeOwned','xuiToggleSetChangeOwned','xuiSliderSetChangeOwned','xuiRangeSliderSetChangeOwned','xuiScrollBarSetChangeOwned')
     if a.case=='navigation':symbols=('xuiHyperlinkSetClickOwned','xuiPageSetChangeOwned','xuiCarouselSetChangeOwned','xuiBreadcrumbSetClickOwned','xuiBreadcrumbSetContextMenuOwned')
     for symbol in symbols:

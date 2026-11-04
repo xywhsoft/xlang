@@ -49,7 +49,8 @@ typedef struct XL6_ForeignCallFacts {
     uint64 textViews;
     uint64 bytesViews;
     uint64 terminatedStrings;
-    uint64 spanParameters;
+    /* Exactly two C slots: span pointer/count or synchronous callback/userdata. */
+    uint64 physicalPairs;
     uint64 retainedCallbacks;
     uint64 controlViews;
     XL6_ForeignBorrowedViewResult borrowedViewResult;
@@ -74,7 +75,7 @@ static inline size_t xl6ForeignOutputLogical(const XL6_ForeignCallFacts* facts,s
     for(size_t p=0;p<=count;++p) {
         if(physical==facts->outputIndexPlusOne-1)return p;
         size_t explicitParameter=p>=receiver ? p-receiver : SIZE_MAX;
-        if(p<count)physical+=explicitParameter<64 && (facts->spanParameters&(UINT64_C(1)<<explicitParameter)) ? 2 :
+        if(p<count)physical+=explicitParameter<64 && (facts->physicalPairs&(UINT64_C(1)<<explicitParameter)) ? 2 :
             explicitParameter<64 && (facts->retainedCallbacks&(UINT64_C(1)<<explicitParameter)) ? 3 : 1;
     }
     return SIZE_MAX;
@@ -87,7 +88,8 @@ static inline size_t xl6ForeignFactoryOutputLogical(const XL6_ForeignCallFacts* 
  * which request them. No fixed array is attached to every call or IR node. */
 typedef enum XL6_ForeignParameterKind {
     XL6_FOREIGN_PARAMETER_SPAN = 1,
-    XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK
+    XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK,
+    XL6_FOREIGN_PARAMETER_SYNC_CALLBACK
 } XL6_ForeignParameterKind;
 typedef enum XL6_ForeignSpanCountAbi {
     XL6_FOREIGN_SPAN_COUNT_SIZE = 1,
@@ -153,7 +155,7 @@ typedef struct XL6_ForeignParameterContract {
     XL6_ForeignParameterKind kind;
     char pointerCName[128];
     char elementCName[128];
-    char header[256]; /* Optional authoritative header for a split C span. */
+    char header[256]; /* Optional authoritative header for span/callback C entry. */
     XL6_ForeignSpanCountAbi countAbi;
     bool readOnly;
     char callbackOwnerCName[64];

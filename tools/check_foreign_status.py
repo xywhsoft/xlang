@@ -55,8 +55,8 @@ def main():
     run('cgen', [driver, source, 'cgen-default', generated])
     run('ir', [driver, source, 'ir-lowered', out/'ir.json'])
     text = generated.read_text(encoding='utf-8-sig')
-    assert 'xl6ForeignScopeBeginV1' in text and 'xl6ForeignScopeEndV1' in text
-    assert 'xl6ForeignScopeViewGetV1' in text and 'xl6ForeignScopeViewDeriveV1' in text
+    assert 'xl6ForeignScopeBeginV2' in text and 'xl6ForeignScopeEndV2' in text
+    assert 'xl6ForeignScopeViewGetV2' in text and 'xl6ForeignScopeViewDeriveV2' in text
     assert 'XL6_NullableForeignScopeViewV1' in text
     assert 'xl6ScopeViewSequenceCreateV1' in text
     assert 'xl6ForeignStatusFailureV1' in text and 'native_status != 17' in text

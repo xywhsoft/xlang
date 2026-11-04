@@ -151,7 +151,7 @@ static void xl6IrCgenCollectHeaderTypeNeeds(
                 structuralTypes);
         for ( parameter = 0; parameter < target->parameterCount; ++parameter )
             if ( target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW ||
-                 target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK ||
+                 (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK || target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK) ||
                  target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
                  target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW ||
                  target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW ||
@@ -258,7 +258,7 @@ static int xl6IrCgenEmitHeaderBody(
         return 0;
     }
     xrtFree(publicTypes);
-    if ( !xl6IrCgenEmitCallbackTypes(out, module, 1, diags) || !xl6IrCgenEmitRetainedCallbackTypes(out,module) ) return 0;
+    if ( !xl6IrCgenEmitCallbackTypes(out, module, 1, diags) || !xl6IrCgenEmitNativeCallbackTypes(out,module) ) return 0;
     {
         size_t parameter;
         int needsLanguageFunction = 0;

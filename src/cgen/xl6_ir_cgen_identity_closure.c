@@ -421,7 +421,8 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
     bool headerDeclared=resultType && resultType->foreignHeader;
     for(size_t p=0;p<target->parameterCount && !headerDeclared;++p){
         const XL6_IrType* type=xl6IrTypeGet(&module->types,target->parameterTypes[p]);
-        headerDeclared=type && type->foreignHeader;
+        const XL6_ForeignParameterContract* expansion=xl6IrForeignParameterGet(module,target,p);
+        headerDeclared=(type && type->foreignHeader) || (expansion && expansion->header[0]);
     }
     for(size_t p=0;p<target->parameterCount;++p){
         const XL6_ForeignValueContract* projection=xl6IrForeignValueGet(module,target,p);
@@ -473,6 +474,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
         const XL6_ForeignParameterContract* expanded=xl6IrForeignParameterGet(module,target,parameter);
         if(expanded && expanded->kind==XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK)
             xl6OutputPrintf(out,", void*, const %s*",expanded->callbackOwnerCName);
+        if(expanded && expanded->kind==XL6_FOREIGN_PARAMETER_SYNC_CALLBACK)xl6OutputPuts(", void*",out);
         if(expanded && expanded->kind==XL6_FOREIGN_PARAMETER_SPAN)
             xl6OutputPrintf(out,", %s",expanded->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int" : "size_t");
     }
