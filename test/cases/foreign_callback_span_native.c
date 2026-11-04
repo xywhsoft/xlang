@@ -50,7 +50,7 @@ static bool destroy(void* raw){span_destroy(raw);return true;}
 static bool trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
 {const SpanRoot* root=raw;return (!root->owner.reference.Ops || visit(root->owner.reference,user)) && (!root->pairOwner.reference.Ops || visit(root->pairOwner.reference,user)) && (!root->textOwner.reference.Ops || visit(root->textOwner.reference,user));}
 static bool busy(const void* raw){return ((const SpanRoot*)raw)->depth!=0;}
-static const XL6_ForeignViewDescriptorV1 spanPolicyData={sizeof(spanPolicyData),XL6_FOREIGN_VIEW_V1_TAG,"callback.span",0,1,NULL,NULL,destroy,sizeof(SpanCall),_Alignof(SpanCall),begin,end,trace,busy};
+static const XL6_ForeignViewDescriptorV1 spanPolicyData={sizeof(spanPolicyData),XL6_FOREIGN_VIEW_V1_TAG,"callback.span",0,1,NULL,NULL,destroy,sizeof(SpanCall),_Alignof(SpanCall),begin,end,trace,busy,0,NULL,NULL};
 const XL6_ForeignViewDescriptorV1* span_policy_get(void){return &spanPolicyData;}
 int span_fire(SpanRoot* root,int mode)
 {

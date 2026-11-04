@@ -1,0 +1,122 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Tag4 fixture and explicit UTF8 verification migration, no compiler changes. Fourteen focused reports / 342 actual steps over complete NoCache R34 builds (Windows1416/Linux1415 TU), separately frozen fixture tree. Does not certify later uncommitted Cgen/scoped-retain or Native GUI sources.",
+  "acceptance": "F:\\xlang-validation\\foreign-completion-20261103\\tag4-fixture-r34-acceptance-r1.json",
+  "acceptanceSha256": "ab9bfde9cfdc0a964a93aa55d5c5f1dee9ca4a4c0713cbdc3c8e74ab1b853577",
+  "reports": [
+    {
+      "platform": "windows",
+      "case": "pack",
+      "path": "/mnt/f/xlang-validation/foreign-completion-20261103/focused-full-r34-overlay-win-r2/pack/results.json",
+      "sha256": "e0ed9362f1a48932e0afbfec22b829a8d887ec4702df84c221ca5358502e01fd",
+      "steps": 39,
+      "buildManifest": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r34\\build.json"
+    },
+    {
+      "platform": "windows",
+      "case": "output_retain",
+      "path": "/mnt/f/xlang-validation/foreign-completion-20261103/focused-full-r34-overlay-win-r2/output_retain/results.json",
+      "sha256": "d610279255e62821558c6a0ad2d49e4ec4f919ae22512196202b99d27914cea3",
+      "steps": 29,
+      "buildManifest": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r34\\build.json"
+    },
+    {
+      "platform": "windows",
+      "case": "regions",
+      "path": "/mnt/f/xlang-validation/foreign-completion-20261103/focused-full-r34-overlay-win-r2/regions/results.json",
+      "sha256": "1b09161932d3ef38f58fca215027457d45cb810ba24732c763959199b8fa77e9",
+      "steps": 36,
+      "buildManifest": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r34\\build.json"
+    },
+    {
+      "platform": "windows",
+      "case": "fixed_ref",
+      "path": "/mnt/f/xlang-validation/foreign-completion-20261103/focused-full-r34-overlay-win-r2/fixed_ref/results.json",
+      "sha256": "31f1ca40e249cdda92f80bb26f1efbd47df1ab7b415524f03f2630d2e75fd720",
+      "steps": 25,
+      "buildManifest": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r34\\build.json"
+    },
+    {
+      "platform": "windows",
+      "case": "borrow_variants",
+      "path": "/mnt/f/xlang-validation/foreign-completion-20261103/focused-full-r34-overlay-win-r2/borrow_variants/results.json",
+      "sha256": "a10712d1383278c55a4138f90065baf210fe981b7afa62a5396083a6e89dfcb1",
+      "steps": 20,
+      "buildManifest": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r34\\build.json"
+    },
+    {
+      "platform": "windows",
+      "case": "aggregate_place",
+      "path": "/mnt/f/xlang-validation/foreign-completion-20261103/focused-full-r34-overlay-win-r2/aggregate_place/results.json",
+      "sha256": "d2d4f2d181facf21013e3a31f3902a03ade7eac992d18dd161d08f6fa92ce754",
+      "steps": 16,
+      "buildManifest": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r34\\build.json"
+    },
+    {
+      "platform": "windows",
+      "case": "native_preparation",
+      "path": "/mnt/f/xlang-validation/foreign-completion-20261103/focused-full-r34-overlay-win-r2/native_preparation/results.json",
+      "sha256": "0953871650e396dd948f49f075c20c48982cc5277cd82e68260f5bf4cc2a26e9",
+      "steps": 6,
+      "buildManifest": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r34\\build.json"
+    },
+    {
+      "platform": "linux",
+      "case": "pack",
+      "path": "/home/ubuntu/xlang-validation/focused-full-r34-overlay-linux-r2/pack/results.json",
+      "sha256": "fbd6c9de442f6e35e46abcf1042315c7be54d8b159d6735763a94f0779673635",
+      "steps": 39,
+      "buildManifest": "/home/ubuntu/xlang-validation/foreign-completion-20261105-r34/source/build.json"
+    },
+    {
+      "platform": "linux",
+      "case": "output_retain",
+      "path": "/home/ubuntu/xlang-validation/focused-full-r34-overlay-linux-r2/output_retain/results.json",
+      "sha256": "0d9f6e622777b7f9aa2d1724218712134cba481edaa7b73118cc6a8a2aba99ba",
+      "steps": 29,
+      "buildManifest": "/home/ubuntu/xlang-validation/foreign-completion-20261105-r34/source/build.json"
+    },
+    {
+      "platform": "linux",
+      "case": "regions",
+      "path": "/home/ubuntu/xlang-validation/focused-full-r34-overlay-linux-r2/regions/results.json",
+      "sha256": "660e5e68635357355f21d84b93f5fa27d248a1ef2d2059272e03f6c87925e201",
+      "steps": 36,
+      "buildManifest": "/home/ubuntu/xlang-validation/foreign-completion-20261105-r34/source/build.json"
+    },
+    {
+      "platform": "linux",
+      "case": "fixed_ref",
+      "path": "/home/ubuntu/xlang-validation/focused-full-r34-overlay-linux-r2/fixed_ref/results.json",
+      "sha256": "3357d20087594c2fc23d567350dd911c6aedf7a14f5bb1c32006cc19a0b6ae5c",
+      "steps": 25,
+      "buildManifest": "/home/ubuntu/xlang-validation/foreign-completion-20261105-r34/source/build.json"
+    },
+    {
+      "platform": "linux",
+      "case": "borrow_variants",
+      "path": "/home/ubuntu/xlang-validation/focused-full-r34-overlay-linux-r2/borrow_variants/results.json",
+      "sha256": "91ac50aa7ea03ff171109e96a4f70a53f1bdbaff008cd9e9925b273d9d3004f7",
+      "steps": 20,
+      "buildManifest": "/home/ubuntu/xlang-validation/foreign-completion-20261105-r34/source/build.json"
+    },
+    {
+      "platform": "linux",
+      "case": "aggregate_place",
+      "path": "/home/ubuntu/xlang-validation/focused-full-r34-overlay-linux-r2/aggregate_place/results.json",
+      "sha256": "26ad20d3b96f912f999f76ff2308fc6710a254f18f58e8fca9e6016a650f7a57",
+      "steps": 16,
+      "buildManifest": "/home/ubuntu/xlang-validation/foreign-completion-20261105-r34/source/build.json"
+    },
+    {
+      "platform": "linux",
+      "case": "native_preparation",
+      "path": "/home/ubuntu/xlang-validation/focused-full-r34-overlay-linux-r2/native_preparation/results.json",
+      "sha256": "08dd49b759f350b0f3a916f15443d13705d48e462a8e8d567f80880c112f1ae6",
+      "steps": 6,
+      "buildManifest": "/home/ubuntu/xlang-validation/foreign-completion-20261105-r34/source/build.json"
+    }
+  ],
+  "shippingDelivery": false
+}

@@ -43,4 +43,4 @@ static bool trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
 {return visit(xrtValueOwnership(((const BindingFieldTable*)raw)->stored),user);}
 static bool busy(const void* raw){return ((const BindingFieldTable*)raw)->depth!=0;}
 const XL6_ForeignViewDescriptorV1 bindingFieldPolicy={sizeof(bindingFieldPolicy),XL6_FOREIGN_VIEW_V1_TAG,
- "binding.callable.field",0,1,NULL,NULL,destroy,sizeof(BindingFieldScope),_Alignof(BindingFieldScope),begin,end,trace,busy};
+ "binding.callable.field",0,1,NULL,NULL,destroy,sizeof(BindingFieldScope),_Alignof(BindingFieldScope),begin,end,trace,busy,0,NULL,NULL};

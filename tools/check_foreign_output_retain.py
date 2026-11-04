@@ -26,7 +26,7 @@ def main():
     if os.name=='nt':shutil.copy2(runtime,out/runtime.name)
     else:env['LD_LIBRARY_PATH']=str(runtime.parent)+':'+env.get('LD_LIBRARY_PATH','')
     report=dict(scope=__doc__,complete=False,passed=False,fullSourceRebuild=build["fullSourceRebuild"],buildManifest=build["buildManifest"],overlay=build["overlay"],inputs=inputs,rows=[])
-    def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n')
+    def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     def run(name,command,accepted=True):
         command=list(map(str,command));actual=command_with_response(command,'gcc',out/(name+'.rsp')) if command[0] in ('gcc','g++') else command
         started=time.monotonic();result=subprocess.run(actual,cwd=cohort,env=env,capture_output=True,timeout=240)
@@ -49,7 +49,7 @@ def main():
         if irFixture.exists():
             gate=out/('ir-'+level+('.exe' if os.name=='nt' else '.out'))
             run('ir-'+level+'-build',['gcc',*common,'-'+level,irFixture,*objects,runtime,*systems,'-o',gate]);run('ir-'+level+'-run',[gate,fixture])
-    needle='@c_output_retain(1,retain,"zero",rollback)';original=fixture.read_text()
+    needle='@c_output_retain(1,retain,"zero",rollback)';original=fixture.read_text(encoding='utf-8-sig')
     changes={'duplicate':needle+' '+needle,'wrong-slot':'@c_output_retain(2,retain,"zero",rollback)','negative-slot':'@c_output_retain(-1,retain,"zero",rollback)','bad-success':'@c_output_retain(1,retain,"other",rollback)','integer-success':'@c_output_retain(1,retain,0,rollback)','missing-helper':'@c_output_retain(1,missing,"zero",rollback)','wrong-retain':'@c_output_retain(1,rollback,"zero",rollback)','wrong-rollback':'@c_output_retain(1,retain,"zero",retain)','view-overlap':needle+' @c_output_view(1,"text")','size-overlap':needle+' @c_output_size(1,"size")','missing-retain':''}
     negatives={name:original.replace(needle,change,1) for name,change in changes.items()}
     negatives['caller-result']=original.replace('@lifetime("owned") @policy("outputRetainPolicy")','@lifetime("caller")')
@@ -59,7 +59,7 @@ def main():
     for name,code in negatives.items():
         case=out/(name+'.xl');case.write_text(code,encoding='utf8');target=out/(name+'.c');run('reject-'+name,[driver,case,'cgen-default',target],False);assert not target.exists()
     bad=out/'bad-header/test/cases';bad.mkdir(parents=True)
-    (bad/header.name).write_text(header.read_text().replace('OutputRetainNode**,int*,OutputRetainNode**,xstrview*','void**,int*,OutputRetainNode**,xstrview*'))
+    (bad/header.name).write_text(header.read_text(encoding='utf-8-sig').replace('OutputRetainNode**,int*,OutputRetainNode**,xstrview*','void**,int*,OutputRetainNode**,xstrview*'),encoding='utf-8')
     run('reject-native-output',['gcc','-I'+str(out/'bad-header'),*common,*warnings,'-fsyntax-only',generated],False)
     report['inputsUnchanged']=all(sha(p)==h for p,h in inputs.items());assert report['inputsUnchanged']
     report.update(complete=True,passed=True);save()

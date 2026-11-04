@@ -26,7 +26,7 @@ def main():
     if os.name=='nt':shutil.copy2(runtime,out/runtime.name)
     else:env['LD_LIBRARY_PATH']=str(runtime.parent)+':'+env.get('LD_LIBRARY_PATH','')
     report=dict(scope=__doc__,complete=False,passed=False,fullSourceRebuild=build["fullSourceRebuild"],buildManifest=build["buildManifest"],overlay=build["overlay"],inputs=inputs,rows=[])
-    def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n')
+    def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     def run(name,command,accepted=True):
         command=list(map(str,command));actual=command_with_response(command,'gcc',out/(name+'.rsp')) if command[0] in ('gcc','g++') else command
         started=time.monotonic();result=subprocess.run(actual,cwd=cohort,env=env,capture_output=True,timeout=240)
@@ -49,7 +49,7 @@ def main():
         if irFixture.exists():
             gate=out/('ir-'+level+('.exe' if os.name=='nt' else '.out'))
             run('ir-'+level+'-build',['gcc',*common,'-'+level,irFixture,*objects,runtime,*systems,'-o',gate]);run('ir-'+level+'-run',[gate,fixture])
-    original=fixture.read_text();pack='@c_pack(1,"PackDesc",0,7)';field='@c_pack_field(1,"textSize",3,"text_size","int")'
+    original=fixture.read_text(encoding='utf-8-sig');pack='@c_pack(1,"PackDesc",0,7)';field='@c_pack_field(1,"textSize",3,"text_size","int")'
     changes={
         'duplicate-group':(pack,pack+' '+pack),
         'overlap-group':(pack,pack+' @c_pack(2,"PackDesc",1,2)'),
@@ -86,12 +86,12 @@ use(flat)
         case=out/(name+'.xl');case.write_text(code,encoding='utf8');target=out/(name+'.c')
         run('reject-'+name,[driver,case,'cgen-default',target],False);assert not target.exists()
     for name,badText in {
-        'field-type':header.read_text().replace('int textSize;','size_t textSize;'),
-        'descriptor-const':header.read_text().replace('PackRoot*,const PackDesc*,PackCallback','PackRoot*,PackDesc*,PackCallback'),
-        'size-field':header.read_text().replace('uint32_t size;','int32_t size;'),
-        'record-union':header.read_text().replace('typedef struct PackSmall','typedef union PackSmall'),
+        'field-type':header.read_text(encoding='utf-8-sig').replace('int textSize;','size_t textSize;'),
+        'descriptor-const':header.read_text(encoding='utf-8-sig').replace('PackRoot*,const PackDesc*,PackCallback','PackRoot*,PackDesc*,PackCallback'),
+        'size-field':header.read_text(encoding='utf-8-sig').replace('uint32_t size;','int32_t size;'),
+        'record-union':header.read_text(encoding='utf-8-sig').replace('typedef struct PackSmall','typedef union PackSmall'),
     }.items():
-        bad=out/('bad-'+name)/'test/cases';bad.mkdir(parents=True);(bad/header.name).write_text(badText)
+        bad=out/('bad-'+name)/'test/cases';bad.mkdir(parents=True);(bad/header.name).write_text(badText,encoding='utf-8')
         run('reject-native-'+name,['gcc','-I'+str(bad.parents[1]),*common,*warnings,'-fsyntax-only',generated],False)
     report['inputsUnchanged']=all(sha(p)==h for p,h in inputs.items());assert report['inputsUnchanged']
     report.update(complete=True,passed=True);save()

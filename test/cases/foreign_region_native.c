@@ -73,4 +73,4 @@ static bool destroy(void* raw){region_root_destroy(raw);return true;}
 static bool trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* user){(void)raw;(void)visit;(void)user;return true;}
 static bool busy(const void* raw){return ((const RegionRoot*)raw)->depth!=0;}
 const XL6_ForeignViewDescriptorV1 regionPolicy={sizeof(regionPolicy),XL6_FOREIGN_VIEW_V1_TAG,
- "binding.region",0,1,NULL,NULL,destroy,sizeof(RegionScope),_Alignof(RegionScope),begin,end,trace,busy};
+ "binding.region",0,1,NULL,NULL,destroy,sizeof(RegionScope),_Alignof(RegionScope),begin,end,trace,busy,0,NULL,NULL};

@@ -26,7 +26,7 @@ def main():
     if os.name=='nt':shutil.copy2(runtime,out/runtime.name)
     else:env['LD_LIBRARY_PATH']=str(runtime.parent)+':'+env.get('LD_LIBRARY_PATH','')
     report=dict(scope=__doc__,complete=False,passed=False,fullSourceRebuild=build["fullSourceRebuild"],buildManifest=build["buildManifest"],overlay=build["overlay"],inputs=inputs,rows=[])
-    def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n')
+    def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     def run(name,command,accepted=True):
         command=list(map(str,command));actual=command_with_response(command,'gcc',out/(name+'.rsp')) if command[0] in ('gcc','g++') else command
         started=time.monotonic();result=subprocess.run(actual,cwd=cohort,env=env,capture_output=True,timeout=240)
@@ -49,7 +49,7 @@ def main():
         if irFixture.exists():
             gate=out/('ir-'+level+('.exe' if os.name=='nt' else '.out'))
             run('ir-'+level+'-build',['gcc',*common,'-'+level,irFixture,*objects,runtime,*systems,'-o',gate]);run('ir-'+level+'-run',[gate,fixture])
-    original=fixture.read_text()
+    original=fixture.read_text(encoding='utf-8-sig')
     negatives={
         'dynamic':'func sum(array<Vertex> values)',
         'point':'func sum(point values)',
@@ -68,7 +68,7 @@ def main():
         ('pointer-to-array','(*sumVertices)(RegionRoot*,const RegionVertex*)','(*sumVertices)(RegionRoot*,const RegionVertex(*)[4])'),
         ('element','(*sumVertices)(RegionRoot*,const RegionVertex*)','(*sumVertices)(RegionRoot*,const int*)')]:
         bad=out/name/'test/cases';bad.mkdir(parents=True)
-        header=(root/'test/cases/foreign_region.h').read_text();assert old in header;(bad/'foreign_region.h').write_text(header.replace(old,new))
+        header=(root/'test/cases/foreign_region.h').read_text(encoding='utf-8-sig');assert old in header;(bad/'foreign_region.h').write_text(header.replace(old,new),encoding='utf-8')
         run('reject-native-'+name,['gcc','-I'+str(out/name),*common,*warnings,'-fsyntax-only',generated],False)
     report['inputsUnchanged']=all(sha(p)==s for p,s in inputs.items());assert report['inputsUnchanged'];report.update(complete=True,passed=True);save()
 if __name__=='__main__':main()

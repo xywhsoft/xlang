@@ -43,7 +43,7 @@ static bool destroy(void* raw){binding_output_view_destroy(raw);return true;}
 static bool busy(const void* raw){return ((const BindingOutputViewBox*)raw)->depth!=0;}
 const XL6_ForeignViewDescriptorV1 bindingOutputViewPolicy={
  sizeof(bindingOutputViewPolicy),XL6_FOREIGN_VIEW_V1_TAG,"binding.output.view",0,1,NULL,NULL,destroy,
- sizeof(BindingOutputViewScope),_Alignof(BindingOutputViewScope),begin,end,NULL,busy};
+ sizeof(BindingOutputViewScope),_Alignof(BindingOutputViewScope),begin,end,NULL,busy,0,NULL,NULL};
 int binding_output_view_end_count(void){return ends;}
 void binding_output_view_reset(void){(void)xrtMemDebugFailAfter(-1);}
 void binding_output_view_counter_begin(void){xrtMemDebugSnapshot(&counter);}

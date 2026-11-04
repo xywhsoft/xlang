@@ -26,4 +26,4 @@ static bool trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
 static bool busy(const void* raw){return ((const BindingValueBox*)raw)->depth!=0;}
 const XL6_ForeignViewDescriptorV1 bindingValueBoxPolicy={
  sizeof(bindingValueBoxPolicy),XL6_FOREIGN_VIEW_V1_TAG,"binding.value.box",0,1,NULL,NULL,destroy,
- sizeof(BindingValueScope),_Alignof(BindingValueScope),begin,end,trace,busy};
+ sizeof(BindingValueScope),_Alignof(BindingValueScope),begin,end,trace,busy,0,NULL,NULL};

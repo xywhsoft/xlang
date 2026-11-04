@@ -25,7 +25,7 @@ def main():
     if os.name=='nt':shutil.copy2(runtime,out/runtime.name)
     else:env['LD_LIBRARY_PATH']=str(runtime.parent)+':'+env.get('LD_LIBRARY_PATH','')
     report=dict(scope=__doc__,complete=False,passed=False,fullSourceRebuild=build["fullSourceRebuild"],buildManifest=build["buildManifest"],overlay=build["overlay"],inputs=inputs,rows=[])
-    def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n')
+    def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     def run(name,command,accepted=True):
         command=list(map(str,command));actual=command_with_response(command,'gcc',out/(name+'.rsp')) if command[0] in ('gcc','g++') else command
         started=time.monotonic();result=subprocess.run(actual,cwd=cohort,env=env,capture_output=True,timeout=240)
@@ -46,8 +46,8 @@ def main():
         run(level+'-build',['gcc',*common,*warnings,'-'+level,generated,native,host,*objects,runtime,*systems,'-o',exe]);run(level+'-run',[exe])
         gate=out/('ir-'+level+('.exe' if os.name=='nt' else '.out'))
         run('ir-'+level+'-build',['gcc',*common,'-Werror','-'+level,irFixture,*objects,runtime,*systems,'-o',gate]);run('ir-'+level+'-run',[gate,fixture])
-    preamble=fixture.read_text().split('Model model=make()')[0]
-    temporary=out/'temporary.xl';temporary.write_text(preamble+'func main(...) as int\n make().items[0].vertices[0].x=c_float(9)\n return 0\nend\n')
+    preamble=fixture.read_text(encoding='utf-8-sig').split('Model model=make()')[0]
+    temporary=out/'temporary.xl';temporary.write_text(preamble+'func main(...) as int\n make().items[0].vertices[0].x=c_float(9)\n return 0\nend\n',encoding='utf-8')
     for name,path in [('temporary',temporary),('mutable-capture',root/'test/cases/bad_foreign_aggregate_mutable_capture.xl')]:
         target=out/(name+'.c');run('reject-'+name,[driver,path,'cgen-default',target],False);assert not target.exists()
     report['inputsUnchanged']=all(sha(p)==v for p,v in inputs.items());assert report['inputsUnchanged'];report.update(complete=True,passed=True);save()
