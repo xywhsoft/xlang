@@ -1,0 +1,88 @@
+extern "binding_grid_prepare" @header("test/cases/foreign_xge3_binding_grid.h") @no_raise @c_result("status",0) func prepareGrid(TableGrid grid)
+class GridSaved
+ CallbackTableGridEditorConfigOutput? mutableConfig
+ CallbackConstTableGridEditorConfigOutput? constConfig
+ string copiedText=""
+ int configCalls=0
+ int editorCalls=0
+end
+func main(...) as int
+ Context context=create()
+ context.inputViewport(c_int(400),c_int(240))
+ Widget root=context.widget()
+ context.setRootWidget(root)
+ Rect bounds=Rect()
+ bounds.fW=c_int(400)
+ bounds.fH=c_int(240)
+ root.setRect(bounds)
+ TableGrid grid=context.tableGridNative()
+ root.addChild(grid)
+ grid.setRect(bounds)
+ prepareGrid(grid)
+ GridSaved saved=GridSaved()
+ grid.setAdapter(func(Widget widget) as c_int
+  return c_int(2)
+ end,func(Widget widget,c_int row,c_int column,CallbackTableViewCellOutput output) as c_int
+  output.iType=c_int(XUI_TABLE_CELL_TYPE_CUSTOM)
+  output.setText("custom")
+  return c_int(0)
+ end,func(Widget widget,c_int row,c_int column,CString value,c_int kind)
+ end)
+ grid.setValidate(func(Widget widget,c_int row,c_int column,CString value,c_int kind) as c_int
+  return c_int(1)
+ end)
+ grid.setEditorConfig(func(Widget widget,c_int row,c_int column,c_int kind,CallbackTableGridEditorConfigOutput output) as c_int
+  output.iPrecision=c_int(2)
+  output.setFileFilter("*."+"xl")
+  output.setActionText("Choose")
+  output.setDateFormat("yyyy-MM-dd")
+  output.setRangeSeparator(" / ")
+  output.setEnumCount(c_int(2))
+  output.setEnumItem(c_int(0),"first",c_int(10),c_int(1),c_int(0),c_int(0))
+  output.setEnumItem(c_int(1),"sec"+"ond",c_int(20),c_int(0),c_int(0),c_int(0))
+  output.setPaletteCount(c_int(2))
+  output.setPaletteItem(c_int(1),c_uint(0x11223344))
+  output.setPalette(Buffer(b"\x44\x33\x22\x11\xdd\xcc\xbb\xaa"))
+  auto text,value,enabled,separator,icon=output.enumItem(c_int(1))
+  assert text=="second" and value==c_int(20) and enabled==c_int(0) and separator==c_int(0)
+  saved.copiedText=text
+  saved.mutableConfig=output
+  saved.configCalls+=1
+  return c_int(0)
+ end)
+ grid.setEditor(func(Widget widget,c_int row,c_int column,CallbackConstTableViewCellOutput cell,CallbackConstTableGridEditorConfigOutput config,Rect rectangle) as c_int
+  assert cell.text()=="custom" and config.iPrecision==c_int(2)
+  assert config.fileFilter()=="*.xl" and config.actionText()=="Choose"
+  assert config.dateFormat()=="yyyy-MM-dd" and config.rangeSeparator()==" / "
+  auto text,value,enabled,separator,icon=config.enumItem(c_int(1))
+  assert text=="second" and value==c_int(20) and enabled==c_int(0)
+  assert config.enumCount()==c_int(2) and config.paletteCount()==c_int(2)
+  assert config.paletteItem(c_int(1))==c_uint(0xAABBCCDD)
+  saved.constConfig=config
+  saved.editorCalls+=1
+  return c_int(1)
+ end)
+ context.layout()
+ assert grid.beginEdit(c_int(0),c_int(0))==c_int(1),"custom editor dispatch"
+ assert saved.configCalls==1 and saved.editorCalls==1 and saved.copiedText=="second","config and editor callbacks"
+ bool expired=false
+ try
+  auto a,b,c,d,e=(saved.constConfig as CallbackConstTableGridEditorConfigOutput).enumItem(c_int(1))
+ catch error
+  expired=true
+ end
+ assert expired
+ expired=false
+ try
+  (saved.mutableConfig as CallbackTableGridEditorConfigOutput).setActionText("expired")
+ catch error
+  expired=true
+ end
+ assert expired and saved.copiedText=="second"
+ grid.setEditor(null)
+ grid.setEditorConfig(null)
+ grid.setValidate(null)
+ grid.setAdapter(null,null,null)
+ context.close()
+ return 0
+end

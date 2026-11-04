@@ -1,5 +1,6 @@
 // Direct C declarations. Integer results retain the authoritative C status/count semantics.
 export extern "xgeGetBuildFeatures" @header("xge3_runtime.h") func getBuildFeatures() as c_uint
+export extern "xgeGetBuildInfo" @header("xge3_runtime.h") @no_raise @c_output(0,0) @c_output_size(0,"size") func getBuildInfo() as BuildInfo
 export extern "xgeCheckBuildCompatibility" @header("xge3_runtime.h") func checkBuildCompatibility(uint64 fingerprint,c_uint features) as c_int
 export extern "xgeUnitChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func unit()
 export extern "xgeQuit" @header("xge3_runtime.h") func quit()

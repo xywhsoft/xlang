@@ -1,0 +1,106 @@
+{
+  "scope": "Grid v16 + BuildInfo declarative public projection delta over committed milestone 94ff66caf; no stage or release mutation",
+  "complete": true,
+  "passed": true,
+  "nativeRevision": "5cba979b",
+  "files": [
+    {
+      "path": "docs/xge3-xui3-api-map-storage.json",
+      "sha256": "004d8ad771cb450a5d13ba78306995d5fa0d7624314578fa26b9ae0c987b636d",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-grid-r1\\files\\docs\\xge3-xui3-api-map-storage.json"
+    },
+    {
+      "path": "docs/xge3-xui3-api-map.json",
+      "sha256": "6ed9e86e17d63f2fdb1b161fead00a1627729ddd5675f3db981d0ebd2f94098b",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-grid-r1\\files\\docs\\xge3-xui3-api-map.json"
+    },
+    {
+      "path": "docs/xge3-xui3-api-map.md",
+      "sha256": "cc0043f8f9d51c6072e7d396705fd050adf630454be666aa030e0b946c3476a1",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-grid-r1\\files\\docs\\xge3-xui3-api-map.md"
+    },
+    {
+      "path": "lib/bindings/xge/README.md",
+      "sha256": "32c43bf79f231ff846d6fafd45c9c91f0b5d4afe5337cff4e08bc17519dcf6e6",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-grid-r1\\files\\lib\\bindings\\xge\\README.md"
+    },
+    {
+      "path": "lib/bindings/xge/src/functions.xl",
+      "sha256": "f73d8e37a57c4c566a18da0b03de8ea7953a9cee025bf83ea93345b17e7fbb48",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-grid-r1\\files\\lib\\bindings\\xge\\src\\functions.xl"
+    },
+    {
+      "path": "lib/bindings/xui/README.md",
+      "sha256": "9c98fa9700021940d35eb01aabbc2627f9ca344c5648bbbd83b52cfdd35e0777",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-grid-r1\\files\\lib\\bindings\\xui\\README.md"
+    },
+    {
+      "path": "lib/bindings/xui/src/managed.xl",
+      "sha256": "3801baf4e92d5901d3c1021eec02018edce9089565bbfb5e66a4a8f3aff047c9",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-grid-r1\\files\\lib\\bindings\\xui\\src\\managed.xl"
+    },
+    {
+      "path": "tools/check_xge3_bindings.py",
+      "sha256": "8988e3a02120b95ad648600b5f69e9899d7bfe438e54a5934fdf5db49ded0815",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-grid-r1\\files\\tools\\check_xge3_bindings.py"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_callbacks_check.py",
+      "sha256": "29702bb24d5bece7a0b0ac4461c20908d149c5e77108cb67e98757f5bddbebad",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-grid-r1\\files\\test\\cases\\foreign_xge3_binding_callbacks_check.py"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_grid.c",
+      "sha256": "4b3fbf570eae8ac96f813121ef8883723b7210cf2ece5e5904aa05bced887c59",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-grid-r1\\files\\test\\cases\\foreign_xge3_binding_grid.c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_grid.h",
+      "sha256": "c867053d425cc935576e0bb9ff6e2c4990c80aeb1478837969078d714402ba17",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-grid-r1\\files\\test\\cases\\foreign_xge3_binding_grid.h"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_grid.xl",
+      "sha256": "7ed909aa75ec19d43df2a70ac0a707294339ddcd8633634c5eafb1383b531af0",
+      "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\public-package-candidate-grid-r1\\files\\test\\cases\\foreign_xge3_binding_grid.xl"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\binding-probes-grid-r31-coverage.json",
+      "sha256": "3ba0573ea49cf4e5669bf690505026c15ece620560771cbeb1595f2b9c7feda2",
+      "complete": true,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\binding-grid-output-view-win-r5\\results.json",
+      "sha256": "3d83f6807c6afa1c23edadbcf3056cc02d5f5920a054998472e97b2de859afda",
+      "complete": true,
+      "passed": true
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/binding-grid-output-view-linux-r3/results.json",
+      "sha256": "ce38dc9e2f698b4280c04f742c2eff81d66f5aedd006ac60a407e7806cfdec13",
+      "complete": true,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-callback-grid-cohort-r1.json",
+      "sha256": "24c89428847c519dc9cad9e15c8bba5fbc114d69d734f768c7de632aa37cf93b",
+      "complete": true,
+      "passed": true
+    }
+  ],
+  "mappedNativeFunctions": {
+    "xge": 394,
+    "xui": 2277
+  },
+  "probeMethods": 2663,
+  "limitations": [
+    "Compiler-only overlays over pinned R31 objects; canonical next compiler/VFS rebuild remains parent integration",
+    "Combined declaration script gate does not certify ordinary package-import initialization",
+    "Proxy v17/FinishV2 resource protocol is a separate pending matched cohort",
+    "3D compile-only and debug requires matching Native build, no GPU executed"
+  ],
+  "shippingDelivery": false
+}

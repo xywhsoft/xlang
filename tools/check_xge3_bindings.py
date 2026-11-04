@@ -330,9 +330,6 @@ def generate(root,data):
             return primitive(t),[]
         if package=='xge':
             for f in header['functions']:
-                if f['name']=='xgeGetBuildInfo':
-                    f.update(state='requires-initialized-output',reason='Native requires out.size == sizeof(*out); a zero-only output mapping is insufficient')
-                    continue
                 if f['name'] in ('xgeUnit','xgeRequestQuit'):
                     f.update(state='replaced-checked-entry',language='xge.unit' if f['name']=='xgeUnit' else 'xge.requestQuit',replacement='xgeUnitChecked' if f['name']=='xgeUnit' else 'xgeRequestQuitChecked');continue
                 sig=f['type'];attrs=[];params=[];outputs=[];out_types=[];consumed=set()
@@ -363,6 +360,7 @@ def generate(root,data):
                         attrs.append('@no_raise')
                         attrs.append('@c_output('+str(outputs[0])+(')' if ret is None else ',0)') if len(outputs)==1 else '@c_outputs('+','.join(map(str,outputs))+')'+(' @c_status(0)' if ret else ''))
                         ret=out_types[0] if len(out_types)==1 else '('+','.join(out_types)+')'
+                    if f['name']=='xgeGetBuildInfo':attrs.append('@c_output_size(0,"size")')
                 except ValueError:continue
                 name=f['name'][3:];name='threeD'+name[2:] if name.startswith('3d') else name[:1].lower()+name[1:];name='native'+name[:1].upper()+name[1:] if name in reserved else name
                 if f['name']=='xgeUnitChecked':name='unit';ret=None;attrs+=['@no_raise','@c_result("status",0)']
@@ -484,7 +482,8 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
     src=root/'lib/bindings/xui/src';functions=header['functions'];mapped={};raw={};callbacks={};views={};classes={'Widget':[]};context=[];free=[]
     # Native ownership drafts remain in the authoritative inventory, but are
     # not public callable bindings until their consumer/lifetime gate passes.
-    pending_native={'xuiTableGridSetAdapterOwned','xuiTableGridSetValidateOwned','xuiTableGridSetEditorOwned'}
+    # Exact Grid owning output signatures come from the matching native header.
+    pending_native=set()
     for f in functions:
         if f['name'] in pending_native:f.update(state='requires-native-lifecycle-acceptance',reason='Native owning output/adapter draft is not in the matched accepted SDK')
     sources={};native_bodies={}
@@ -593,6 +592,27 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
                      ' extern "'+prefix+'Use" @no_raise @c_result("status",0) func use(TableCellOutput cached)']
         if native=='xui_widget_t':
             body+=[' extern "xuiWidgetGetRect" @no_raise func rect() as Rect']
+        if native=='xui_table_grid_editor_config_output_t':
+            const='' if 'const' in target.get('qualifiers',[]) else '@c_const(0) '
+            prefix='xuiTableGridEditorConfigOutput'
+            body+=[' extern "'+prefix+'GetEnumCount" @no_raise '+const+'func enumCount() as c_int',
+                   ' extern "'+prefix+'GetEnumItem" @no_raise '+const+'@c_outputs(2,3,4,5,6) @c_status(0) @c_output_view(2,"text") func enumItem(c_int index) as (string,c_int,c_int,c_int,c_int)',
+                   ' extern "'+prefix+'GetPaletteCount" @no_raise '+const+'func paletteCount() as c_int',
+                   ' extern "'+prefix+'GetPaletteItem" @no_raise '+const+'@c_output(2,0) func paletteItem(c_int index) as c_uint']
+            for field in ('DateFormat','ActionText','FileFilter','RangeSeparator'):
+                accessor=field[:1].lower()+field[1:]
+                body+=[' extern "'+prefix+'Get'+field+'" @no_raise '+const+'@c_result("text_view") func '+accessor+'() as string']
+                if 'const' not in target.get('qualifiers',[]):
+                    body+=[' extern "'+prefix+'Set'+field+'" @no_raise @c_text_view(0) @c_result("status",0) func set'+field+'(string text)']
+            if 'const' not in target.get('qualifiers',[]):
+                palette=next(f for f in functions if f['name']=='xuiTableGridEditorConfigOutputSetPalette')
+                reviewed_span(palette,'const uint32_t*','int')
+                body+=[' extern "'+prefix+'SetEnumCount" @no_raise @c_result("status",0) func setEnumCount(c_int count)',
+                       ' extern "'+prefix+'SetEnumItem" @no_raise @c_text_view(1) @c_result("status",0) func setEnumItem(c_int index,string text,c_int value,c_int enabled,c_int separator,c_int icon)',
+                       ' extern "'+prefix+'SetPaletteCount" @no_raise @c_result("status",0) func setPaletteCount(c_int count)',
+                       ' extern "'+prefix+'SetPalette" @no_raise @c_span(0,"const uint32_t*","int") @c_result("status",0) func setPalette(Buffer colors)',
+                       ' extern "'+prefix+'SetPaletteItem" @no_raise @c_result("status",0) func setPaletteItem(c_int index,c_uint color)',
+                       ' extern "'+prefix+'Dispose" @no_raise func reset()']
         body+=['end'];callback_declarations.append('\n'.join(body));return name
     failures={'xui_widget_content_measure_proc':-16,'xui_widget_layout_prepare_proc':-16,'xui_widget_layout_children_proc':-16,
               'xui_widget_layout_complete_proc':-16,'xui_widget_event_proc':-16,'xui_widget_cursor_proc':-1,
@@ -609,6 +629,7 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
     failures.update({name:0 for name in ('xui_timeline_current_frame_changing_proc','xui_timeline_layer_changing_proc',
         'xui_timeline_frame_changing_proc','xui_timeline_span_changing_proc','xui_timeline_context_opening_proc')})
     failures['xui_table_view_merge_proc']=-16
+    failures.update({name:-16 for name in ('xui_table_grid_validate_proc','xui_table_grid_editor_owned_proc','xui_table_grid_editor_config_owned_proc')})
     def callback_type(native):
         if native in callbacks:return callbacks[native]
         t=types[native]
@@ -804,7 +825,7 @@ def probes(args):
                                 elif typ=='TableCellOutput':
                                     value='capturedCell'+str(i)+'_'+str(ordinal);declaration=typ+' '+value
                                     if declaration not in params:params.append(declaration)
-                                else:value=typ+('(0)' if typ.startswith('c_') or typ in ('int64','uint64') else '()')
+                                else:value=typ+('(0)' if typ.startswith('c_') or typ in ('int64','uint64','time') else '()')
                                 callargs.append(value)
                             body.append('  '+variable+'.'+member+('('+','.join(callargs)+')' if op=='func' else '='+callargs[-1] if op=='let' else ''))
                     result=callback_results.get(pt.rstrip('?'))
