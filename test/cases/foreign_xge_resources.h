@@ -4,6 +4,8 @@
 #include "src/runtime/xl6_foreign_view.h"
 extern const XL6_ForeignViewDescriptorV1 declarativeXgeFontPolicy;
 extern const XL6_ForeignViewDescriptorV1 declarativeXgeTexturePolicy;
+extern const XL6_ForeignViewDescriptorV1 declarativeXgeImagePolicy;
+xbytesview declarative_xge_image_bytes(void);
 xstrview declarative_xge_font_path(void);
 xbytesview declarative_xge_font_bytes(void);
 void declarative_xge_heap_begin(void);

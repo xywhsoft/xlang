@@ -3,7 +3,12 @@
 #include "src/runtime/xl6_foreign_view.h"
 #include <xrt_decl.h>
 typedef struct InplaceRecord {int refs,mode,value;bool adopted;void* payload;} InplaceRecord;
+typedef struct PlainRecord {int value;void* payload;} PlainRecord;
 extern const XL6_ForeignViewDescriptorV1 inplacePolicy;
+extern const XL6_ForeignViewDescriptorV1 inplacePlainPolicy;
+int inplace_plain_init(PlainRecord*,int);
+void inplace_plain_free(PlainRecord*);
+int inplace_plain_read(PlainRecord*);
 int inplace_init(InplaceRecord*,int,xstrview);
 int inplace_adopt(InplaceRecord*);
 void inplace_free(InplaceRecord*);

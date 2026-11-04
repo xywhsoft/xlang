@@ -21741,8 +21741,12 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         rollbackName->semanticSymbolId = rollback->semanticSymbolId;
         if(facts.inplaceOutput){
             XL6_AstNode* adoptName=NULL;
+            XL6_ForeignStorageContract storage={0};
             for(size_t i=0;i<attrs->childCount;++i)
-                if(!strcmp(attrs->children[i]->text,"c_inplace"))adoptName=attrs->children[i]->children[1];
+                if(!strcmp(attrs->children[i]->text,"c_inplace")){
+                    if(!xl6ForeignStorageRead(attrs->children[i],&storage))return 0;
+                    if(storage.kind==XL6_FOREIGN_STORAGE_NATIVE_ADOPTION)adoptName=attrs->children[i]->children[1];
+                }
             const XL6_AstNode* adopt=NULL;size_t adopters=0;
             for(size_t i=0;ctx->root && i<ctx->root->childCount;++i){
                 const XL6_AstNode* decl=ctx->root->children[i];
@@ -21763,10 +21767,10 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             }
             if(factoryContract.lifetime!=XL6_FOREIGN_LIFETIME_OWNED || !factoryContract.header[0] ||
                 factoryContract.scope[0] || factoryContract.watch[0] ||
-                adopters!=1 || !adopt->semanticSymbolId){
+                (storage.kind==XL6_FOREIGN_STORAGE_NATIVE_ADOPTION && (adopters!=1 || !adopt->semanticSymbolId))){
                 xl6SemErrorNode(ctx,node,"in-place factory requires an independent header-owned root without native watches/scopes and one exact @no_raise C storage adopter returning c_int");return 0;
             }
-            adoptName->semanticSymbolId=adopt->semanticSymbolId;
+            if(adoptName)adoptName->semanticSymbolId=adopt->semanticSymbolId;
         }
     }
     return 1;

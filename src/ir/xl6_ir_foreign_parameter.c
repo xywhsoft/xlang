@@ -152,9 +152,12 @@ static int xl6IrVerifyForeignStorage(const XL6_IrModule* module,XL6_DiagList* di
         const XL6_ForeignStorageContract* row=&module->foreignStorage[i];
         const XL6_IrNode* node=xl6IrNodeGet(module,row->declaration);
         const XL6_IrNode* adopt=xl6IrSymbolNodeGet(module,row->adoptSymbol);
-        if(!node || node->foreignCall.inplaceOutput!=1 || !adopt ||
-            adopt->sourceKind!=XL6_AST_EXTERN_FUNC || !(adopt->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
-            (adopt->flags&XL6_AST_FLAG_FOREIGN_PURE) || !memchr(row->recordCName,0,sizeof(row->recordCName)) ||
+        if(!node || node->foreignCall.inplaceOutput!=1 ||
+            (row->kind!=XL6_FOREIGN_STORAGE_POLICY && row->kind!=XL6_FOREIGN_STORAGE_NATIVE_ADOPTION) ||
+            (row->kind==XL6_FOREIGN_STORAGE_POLICY && (row->adoptSymbol || row->successCode)) ||
+            (row->kind==XL6_FOREIGN_STORAGE_NATIVE_ADOPTION && (!adopt ||
+                adopt->sourceKind!=XL6_AST_EXTERN_FUNC || !(adopt->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
+                (adopt->flags&XL6_AST_FLAG_FOREIGN_PURE))) || !memchr(row->recordCName,0,sizeof(row->recordCName)) ||
             !xl6ForeignIdentifier(!strncmp(row->recordCName,"struct ",7) ? row->recordCName+7 : row->recordCName))goto invalid;
         for(size_t j=0;j<i;++j)if(module->foreignStorage[j].declaration==row->declaration)goto invalid;
     }
@@ -173,27 +176,15 @@ int xl6IrForeignStorageFactoryMatches(const XL6_IrModule* module,const XL6_IrCal
     if(!node)return 0;
     if(!node->foreignCall.inplaceOutput)return !row;
     const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
-    const XL6_IrCallTarget* adopt=row ? xl6IrCallTargetGet(module,row->adoptSymbol):NULL;
-    const XL6_IrNode* decl=adopt ? xl6IrNodeGet(module,adopt->declaration):NULL;
-    const XL6_IrType* status=adopt ? xl6IrTypeGet(&module->types,adopt->returnType):NULL;
-    return node->foreignCall.inplaceOutput==1 && row && result && result->kind==XL6_IR_TYPE_CLASS &&
+    if(!(node->foreignCall.inplaceOutput==1 && row && result && result->kind==XL6_IR_TYPE_CLASS &&
         result->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && result->foreignHeader &&
         !result->foreignWatch && !result->foreignScope &&
         node->foreignCall.outputIndexPlusOne && !node->foreignCall.valueOutput &&
         node->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE &&
-        target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT &&
-        adopt && decl && decl->sourceKind==XL6_AST_EXTERN_FUNC &&
-        (decl->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) && !(decl->flags&XL6_AST_FLAG_FOREIGN_PURE) &&
-        adopt->kind==XL6_IR_CALL_TARGET_EXTERN_C && adopt->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_CALL &&
-        !adopt->runtimeBridge && !adopt->variadicAbi && !adopt->nativeServicesRequired &&
-        !adopt->nativeContextAbi && !adopt->nativeResultAbi && !adopt->nativeArrayResultAbi &&
-        adopt->parameterCount==1 && adopt->parameterTypes && adopt->parameterTypes[0]==target->returnType &&
-        adopt->parameterAbis && adopt->parameterAbis[0]==XL6_IR_PARAMETER_ABI_BORROW &&
-        adopt->parameterPhysicalAbis && adopt->parameterPhysicalAbis[0]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW &&
-        status && status->cAbi==XL6_IR_C_ABI_C_INT &&
-        adopt->resultPhysicalAbi==XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
-        adopt->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_DIRECT &&
-        !decl->foreignCall.outputIndexPlusOne && !decl->foreignCall.borrowedViewResult && !decl->foreignCall.controlViews;
+        target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT))return 0;
+    if(row->kind==XL6_FOREIGN_STORAGE_POLICY)return !row->adoptSymbol && !row->successCode;
+    return row->kind==XL6_FOREIGN_STORAGE_NATIVE_ADOPTION &&
+        xl6IrForeignOwnershipHelperMatches(module,row->adoptSymbol,target->returnType,1);
 }
 static int xl6IrVerifyForeignFieldLengths(const XL6_IrModule* module,XL6_DiagList* diags)
 {

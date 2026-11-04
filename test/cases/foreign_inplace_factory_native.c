@@ -1,6 +1,18 @@
 #include "foreign_inplace_factory.h"
 #include <assert.h>
 static int live;
+int inplace_plain_init(PlainRecord* record,int mode)
+{
+    assert(record && !record->value && !record->payload);
+    if(mode==2)return -2;
+    record->payload=xrtMalloc(1);if(!record->payload)return -1;
+    record->value=42;++live;return mode==1 ? -1:0;
+}
+void inplace_plain_free(PlainRecord* record)
+{if(record->payload){xrtFree(record->payload);--live;}*record=(PlainRecord){0};}
+int inplace_plain_read(PlainRecord* record){assert(record && record->payload);return record->value;}
+static bool destroy_plain(void* raw){inplace_plain_free(raw);xrtFree(raw);return true;}
+const XL6_ForeignViewDescriptorV1 inplacePlainPolicy={sizeof(inplacePlainPolicy),XL6_FOREIGN_VIEW_V1_TAG,"inplace.plain",0,1,NULL,NULL,destroy_plain,0,1,NULL,NULL,NULL,NULL};
 int inplace_init(InplaceRecord* record,int mode,xstrview text)
 {
     assert(record && !record->refs && !record->payload && !record->adopted);

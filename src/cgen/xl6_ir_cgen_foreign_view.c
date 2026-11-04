@@ -126,7 +126,7 @@ static void xl6IrCgenNativeViewAdmission(XL6_Output* out,const XL6_IrModule* mod
             errors,errors,raw,retain->cName,raw,retained->success==XL6_FOREIGN_RETAIN_ZERO ? "==0" : ">0",
             retain->cName,errors,errors,raw,errors);
     }
-    if(storage){
+    if(storage && storage->kind==XL6_FOREIGN_STORAGE_NATIVE_ADOPTION){
         const XL6_IrCallTarget* adopt=xl6IrCallTargetGet(module,storage->adoptSymbol);
         xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError()==NULL && %s==%d && %s) {\n"
             "        int adopted=%s(%s); native_storage_adopted=(adopted==%d);\n"

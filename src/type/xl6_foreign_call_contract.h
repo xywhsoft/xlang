@@ -98,10 +98,15 @@ typedef struct XL6_ForeignFieldLengthContract {
 /* Only in-place record factories carry storage/adoption metadata. The record
  * name is checked against the exact pointer type by the authoritative C header;
  * native storage must be independently xrt-allocated, never language stack data. */
+typedef enum XL6_ForeignStorageKind {
+    XL6_FOREIGN_STORAGE_POLICY = 1,
+    XL6_FOREIGN_STORAGE_NATIVE_ADOPTION
+} XL6_ForeignStorageKind;
 typedef struct XL6_ForeignStorageContract {
     uint32 declaration;
     uint32 adoptSymbol;
     int32 successCode;
+    XL6_ForeignStorageKind kind;
     char recordCName[64];
 } XL6_ForeignStorageContract;
 

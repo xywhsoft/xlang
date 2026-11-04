@@ -1,0 +1,91 @@
+{
+  "complete": true,
+  "scope": "Policy-owned non-refcounted record factories and actual XGE Image CPU decoding",
+  "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r18",
+  "windows": {
+    "fullTranslationUnits": 1414,
+    "tccObjects": 1562,
+    "acceptedGroups": 30,
+    "tccModes": [
+      "JIT",
+      "module",
+      "standalone"
+    ]
+  },
+  "linux": {
+    "fullTranslationUnits": 1413,
+    "acceptedCompilerGroups": 16,
+    "actualXuiCases": 3,
+    "actualXgeCases": 1,
+    "tccIncluded": false
+  },
+  "factory": {
+    "storageMode": "policy-owned or native adoption",
+    "factsBytes": 88,
+    "storageContractBytes": 80,
+    "mutationsPerOptimization": 44,
+    "emptyOutputsPerOptimization": 88,
+    "allocationBudgets": 32,
+    "policyDestroyFreesRecord": true
+  },
+  "xge": {
+    "commit": "e870ee7e",
+    "resources": [
+      "Font",
+      "Texture",
+      "Image"
+    ],
+    "encodedPngBytes": 70,
+    "pngWidth": 1,
+    "pngHeight": 1,
+    "headless": true
+  },
+  "limits": [
+    "No universal zero-overhead claim: allocations, checked ownership, code activity and retains have costs",
+    "Plain records must not escape the declared language owner; native refcounted escape requires adoption",
+    "Actual XGE/XUI combinations use GCC O0/O2 clients, not actual-engine TCC/GPU/desktop acceptance",
+    "Three concurrent semantic completion hunks were present in frozen build inputs but excluded from commit",
+    "Other native callbacks, value projection, full declarations, automatic initialization and SDK/IDE/shipping integration remain in progress"
+  ],
+  "eightTasksComplete": false,
+  "shippingUpdated": false,
+  "networkTests": false,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r18.json",
+      "sha256": "1c4b8617fbb148691314597f399932b5fc9cbae59f984d358ad59810770d136a"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r18\\build.json",
+      "sha256": "f792f62e5eed32a0e6597e7c72c7e9ba1ab2f31a107345c76b648a825520946e"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r18-vfs\\build.json",
+      "sha256": "c612d94167af34dfb96147c2c4169a710ece3653178ab52b101ec5ce74e2518d"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r18-vfs\\provider.json",
+      "sha256": "a93d7499691064be62790f6a01b8f5dc8892f1149d46f47f9460dfc6bd69f722"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\precompiled-r18\\manifest.json",
+      "sha256": "09ae3631dea8cd288187adfef87285c81ca7133a0503ec39aba0417a1e4f6e01"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\batch-r18\\results.json",
+      "sha256": "f4b2eb80c5abaa6a23ec2380b3cbd054709d0b29ae72ded5fc8c09b1981dc44b"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\actual-xge-resources-r18\\results.json",
+      "sha256": "d4fe63514608e137884cff07a5e23e791b071849fda6c08d1e7fbc26b1a3fa12"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-gates-r14.json",
+      "sha256": "be80132c3359afba7e4ad3b061cb44f308ffd1eb33900fa48816153aae29e1a1"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-r18-evidence.json",
+      "sha256": "b346ff45570ad13cc64d8a5d8f891eb929b193033b67c147e0ac3e75a5c109fc"
+    }
+  ]
+}

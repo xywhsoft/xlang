@@ -12,6 +12,13 @@ extern "inplace_free" @no_raise func rollback(Record record)
 extern "inplace_live" @no_raise func live() as c_int
 extern "inplace_fail_after" @no_raise func failAfter(c_int count)
 extern "inplace_reset" @no_raise func resetFailure()
+extern "PlainRecord*" class Plain @header("test/cases/foreign_inplace_factory.h") @lifetime("owned") @policy("inplacePlainPolicy")
+ native point handle
+ extern "inplace_plain_read" @no_raise get value() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "inplace_plain_init" @no_raise @c_result("owned_view") @factory(0,0,rollbackPlain) @c_inplace("PlainRecord") func plain(c_int mode) as Plain
+extern "inplace_plain_free" @no_raise func rollbackPlain(Plain value)
 protocol Maker
  func newCopy() as Record
 end
@@ -82,6 +89,49 @@ end
 func stream() as generator<Record>
  yield create(0,"generator")
 end
+func plainStorage()
+ func(c_int) as Plain factory=plain
+ Plain value=factory(0)
+ Plain alias=value
+ assert value.value==42
+ value.close()
+ bool closed=false
+ try
+  auto invalid=alias.value
+ catch error
+  closed=true
+ end
+ assert closed and live()==0
+ int mode=1
+ while mode<3
+  bool rejected=false
+  try
+   Plain invalid=plain(c_int(mode))
+  catch error
+   rejected=true
+  end
+  assert rejected and live()==0
+  mode+=1
+ end
+ int count=0
+ int accepted=0
+ int rejected=0
+ while count<32
+  failAfter(c_int(count))
+  try
+   Plain record=plain(0)
+   assert record.value==42
+   accepted+=1
+  catch error
+   rejected+=1
+  finally
+   resetFailure()
+  end
+  assert live()==0
+  count+=1
+ end
+ assert accepted>0 and rejected>0
+end
 async func ready() as int
  return 1
 end
@@ -107,6 +157,7 @@ func main(...) as int
  end
  assert produced==1 and live()==0
  failures()
+ plainStorage()
  assert live()==0
  return 0
 end

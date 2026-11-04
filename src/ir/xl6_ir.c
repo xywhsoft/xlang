@@ -4456,7 +4456,7 @@ static XL6_IrNodeId xl6IrBuildAstNode(
         }
         if(declaration && declaration->text && !strcmp(declaration->text,"c_inplace")){
             XL6_ForeignStorageContract row;
-            if(!xl6ForeignStorageRead(declaration,&row) || !row.adoptSymbol ||
+            if(!xl6ForeignStorageRead(declaration,&row) ||
                 !xl6IrGrow((void**)&module->foreignStorage,&module->foreignStorageCapacity,
                     module->foreignStorageCount,sizeof(*module->foreignStorage))){*ok=0;return 0;}
             row.declaration=id;module->foreignStorage[module->foreignStorageCount++]=row;continue;
@@ -29505,7 +29505,7 @@ static int xl6IrBuildReachabilityFacts(
             if(declaration && declaration->foreignCall.outputIndexPlusOne){
                 changed |= xl6IrReachabilityMarkSymbol(module,facts,declaration->foreignCall.rollbackSymbol,XL6_IR_REACHABILITY_TRANSITIVE);
                 const XL6_ForeignStorageContract* storage=xl6IrForeignStorageGet(module,target);
-                if(storage)changed |= xl6IrReachabilityMarkSymbol(module,facts,storage->adoptSymbol,XL6_IR_REACHABILITY_TRANSITIVE);
+                if(storage && storage->adoptSymbol)changed |= xl6IrReachabilityMarkSymbol(module,facts,storage->adoptSymbol,XL6_IR_REACHABILITY_TRANSITIVE);
             }
             const XL6_ForeignRetainContract* retained=xl6IrForeignRetainGet(module,target);
             if(retained){
@@ -53829,8 +53829,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPuts("  ],\n  \"foreignStorage\": [\n",out);
     for(i=0;i<module->foreignStorageCount;++i){
         const XL6_ForeignStorageContract* row=&module->foreignStorage[i];
-        xl6OutputPrintf(out,"    {\"declaration\":%u,\"adoptSymbol\":%u,\"successCode\":%d,\"recordCName\":\"%s\"}%s\n",
-            (unsigned)row->declaration,(unsigned)row->adoptSymbol,(int)row->successCode,row->recordCName,
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"adoptSymbol\":%u,\"successCode\":%d,\"kind\":%d,\"recordCName\":\"%s\"}%s\n",
+            (unsigned)row->declaration,(unsigned)row->adoptSymbol,(int)row->successCode,(int)row->kind,row->recordCName,
             i+1==module->foreignStorageCount ? "" : ",");
     }
     xl6OutputPuts("  ],\n  \"foreignRetains\": [\n",out);
