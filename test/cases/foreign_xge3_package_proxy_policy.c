@@ -60,6 +60,25 @@ static void protectedWidget(void)
     assert(xuiWidgetGetContext(client)==context);xuiDestroy(context);
 #endif
 }
+static void failedContext(bool oom,bool priorNull)
+{
+    unsigned disposed=0;xui_context context=NULL;xui_proxy proxy=NULL;
+    assert(xuiCreate(&context)==XUI_OK && xuiProxyXgeCreate(&proxy)==XUI_OK);
+    assert(xuiSetProxyOwned(context,proxy)==XUI_OK);
+    xui_font font=NULL;void* payload=NULL;
+    assert(xuiFontCreateOwned(proxy,sizeof(Payload),finalize,&font,&payload)==XUI_OK);*(Payload*)payload=(Payload){&disposed,true};
+    assert(xuiSetDefaultFont(context,font)==XUI_OK && xuiFontReleaseChecked(font)==XUI_OK && xuiProxyReleaseChecked(proxy)==XUI_OK);
+    XL6_ForeignView* view=xl6ForeignViewCreateRootWithDomainV1(context,&xl6Xui3ContextPolicy,&xl6Xui3OwnershipDomainV1,NULL);assert(view);
+    xl6_error_scope scope={0};assert(xl6ErrorScopeBegin(&scope));if(priorNull)xl6ErrorScopeCaptureFailure(&scope);
+    if(oom)assert(xrtMemDebugFailAfter(0));
+    assert(!xl6ForeignViewCloseV1(view));
+    if(oom)xrtMemDebugFailClear();
+    xl6_error_result result=xl6ErrorScopeEnd(&scope);
+    if(result.ok || disposed!=1)fprintf(stderr,"Context outcome: oom=%d priorNull=%d ok=%d disposed=%u kind=%d code=%lld\n",oom,priorNull,result.ok,disposed,(int)xrtErrorKind(result.error),(long long)xrtErrorCode(result.error));
+    assert(!result.ok && disposed==1);
+    if(priorNull)assert(!result.error);else if(!oom)assert(result.error && xrtErrorCode(result.error)==-7);
+    xrtErrorFree(result.error);assert(xl6ForeignViewCloseV1(view) && xl6ForeignViewReleaseV1(view));
+}
 typedef struct Capture {XL6_ForeignView* view;unsigned* dropped;} Capture;
 static const int captureIdentity=1;
 static bool captureValid(const void* layout,const void* raw,size_t bytes)
@@ -102,7 +121,7 @@ static void cycle(void)
 }
 int main(void)
 {
-    assert(!xl6Xge3RuntimeBindV1());assert(xrtMemDebugEnable(true));shared();failed(false);failed(true);protectedWidget();cycle();
+    assert(!xl6Xge3RuntimeBindV1());assert(xrtMemDebugEnable(true));shared();failed(false);failed(true);protectedWidget();failedContext(false,false);failedContext(true,false);failedContext(false,true);cycle();
     uint64_t pending,total;assert(xl6CallbackFailureCountV1(&pending,&total) && !pending);
     puts("actual Proxy/Font policies: shared native owner, consumed failed close, aggregate FinishV2 domain and callback/view cycle: PASS");return 0;
 }

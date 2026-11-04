@@ -34,11 +34,14 @@ static bool watch_context(void* raw,void* storage,void(*invalidate)(void*),void*
 static bool watch_widget(void* raw,void* storage,void(*invalidate)(void*),void* user)
 {return xuiWidgetLifetimeWatch(raw,storage,invalidate,user)==XUI_OK;}
 static void unwatch(void* storage){xuiLifetimeUnwatch(storage);}
-static bool destroy_context(void* raw){xuiDestroy(raw);return true;}
+static bool destroy_context(void* raw)
+{bool consumed=false;int status=xuiDestroyOwnerChecked(raw,&consumed);report_resource_failure(status,"xuiDestroyOwnerChecked");return consumed;}
 static bool destroy_widget(void* raw)
 {int status=xuiWidgetDestroyChecked(raw);report_resource_failure(status,"xuiWidgetDestroyChecked");return status==XUI_OK;}
-static bool context_begin(void* raw,void* storage){return xuiCallScopeBegin(raw,storage)==XUI_OK;}
-static bool context_end(void* storage){return xuiCallScopeEnd(storage)==XUI_OK;}
+static bool context_begin(void* raw,void* storage)
+{int status=xuiCallScopeBegin(raw,storage);if(status!=XUI_OK)report_resource_failure(status,"xuiCallScopeBegin");return status==XUI_OK;}
+static bool context_end(void* storage)
+{int status=xuiCallScopeEnd(storage);if(status!=XUI_OK)report_resource_failure(status,"xuiCallScopeEnd");return status==XUI_OK;}
 static bool context_busy(const void* raw){return xuiContextOwnershipBusy((xui_context)raw);}
 static bool context_trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
 {return xuiContextTraceOwnership((xui_context)raw,visit,user);}
@@ -169,6 +172,22 @@ XUI_SHARED_POLICY(xl6Xui3ProxyPolicyGet,"xui.proxy",destroy_proxy,proxy_trace)
 XUI_SHARED_POLICY(xl6Xui3FontPolicyGet,"xui.font",destroy_xui_font,xui_font_trace)
 XUI_SHARED_POLICY(xl6Xui3SurfacePolicyGet,"xui.surface",destroy_surface,surface_trace)
 #undef XUI_SHARED_POLICY
+static bool destroy_draw(void* raw)
+{bool consumed=false;int status=xuiDrawReleaseOwnerChecked(raw,&consumed);report_resource_failure(status,"xuiDrawReleaseOwnerChecked");return consumed;}
+static bool draw_trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
+{return visit(xuiDrawOwnership((xui_draw_context)raw),user);}
+static bool draw_begin(void* raw,void* storage)
+{int status=xuiDrawCallScopeBegin(raw,storage);if(status!=XUI_OK)report_resource_failure(status,"xuiDrawCallScopeBegin");return status==XUI_OK;}
+static bool draw_end(void* storage)
+{int status=xuiDrawCallScopeEnd(storage);if(status!=XUI_OK)report_resource_failure(status,"xuiDrawCallScopeEnd");return status==XUI_OK;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3DrawPolicyGet(void)
+{
+    /* Scope pins are independent from snapshot refs: the last call tail must
+     * finish a requested End even while an ownership plan retains storage. */
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.draw",
+        0,1,NULL,NULL,destroy_draw,sizeof(xui_draw_scope_t),_Alignof(xui_draw_scope_t),draw_begin,draw_end,draw_trace,NULL};
+    return &value;
+}
 static bool destroy_path(void* raw){xuiPathDestroy(raw);return true;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3PathPolicyGet(void)
 {
