@@ -60,7 +60,7 @@ static int xl6IrForeignOverloadsCompatible(const XL6_IrModule* module,const XL6_
             a->parameterConstraintAbis[p]!=b->parameterConstraintAbis[p])return 0;
         if(a->parameterTypes[p]!=b->parameterTypes[p]){
             const XL6_IrType* lt=xl6IrTypeGet(&module->types,a->parameterTypes[p]);const XL6_IrType* rt=xl6IrTypeGet(&module->types,b->parameterTypes[p]);
-            if(!x || x->access!=XL6_FOREIGN_REGION_ACCESS_READ || x->nullable || !lt || !rt ||
+            if(!x || x->access!=XL6_FOREIGN_REGION_ACCESS_READ || !lt || !rt ||
                 !((lt->cAbi==XL6_IR_C_ABI_MANAGED_BYTES && xl6IrForeignRegionBufferField(module,b,p)) ||
                   (rt->cAbi==XL6_IR_C_ABI_MANAGED_BYTES && xl6IrForeignRegionBufferField(module,a,p))))return 0;
         }else if(a->parameterPhysicalFieldDeclarations[p]!=b->parameterPhysicalFieldDeclarations[p])return 0;

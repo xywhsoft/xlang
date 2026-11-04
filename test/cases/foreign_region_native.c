@@ -38,10 +38,19 @@ static int surfaceGetDesc(RegionRoot* r,RegionRoot* surface,RegionDesc* out)
   return -7;}
  *out=(RegionDesc){8/4,2};return 0;
 }
+float region_sum_vertices(const RegionVertex* values)
+{assert(values);return values[0].x+values[1].x+values[2].x+values[3].x;}
+static float sumVertices(RegionRoot* root,const RegionVertex* values)
+{assert(root && root->depth);return region_sum_vertices(values);}
+static int sumInts(RegionRoot* root,const int* values)
+{assert(root && root->depth && values);return values[0]+values[1]+values[2]+values[3];}
+RegionQuad region_vertices(void)
+{return (RegionQuad){{{1,2},{3,4},{5,6},{7,8}}};}
+RegionInts region_ints(void){return (RegionInts){{1,2,3,4}};}
 int region_root_create(RegionRoot** out)
 {
  *out=xrtCalloc(1,sizeof(**out));if(!*out)return -1;
- **out=(RegionRoot){.createRGBA=createRGBA,.updateRGBA=updateRGBA,.readRGBA=readRGBA,.surfaceGetDesc=surfaceGetDesc};return 0;
+ **out=(RegionRoot){.createRGBA=createRGBA,.updateRGBA=updateRGBA,.readRGBA=readRGBA,.surfaceGetDesc=surfaceGetDesc,.sumVertices=sumVertices,.sumInts=sumInts};return 0;
 }
 void region_root_destroy(RegionRoot* r){if(!r)return;r->closing=true;if(!r->depth)xrtFree(r);}
 int region_root_mode(RegionRoot* r,int mode){assert(r && r->depth);r->mode=mode;r->surfaceGetDesc=mode==4 ? NULL:surfaceGetDesc;return mode;}
@@ -51,6 +60,7 @@ int region_free_read(int w,int h,const void* p,int stride){return consume(w,h,p,
 int region_wide_read(uint64_t w,uint64_t h,const void* p,uint64_t stride)
 {assert(w==2 && h==2 && p && !stride);return 1;}
 void region_reset_failure(void){assert(xrtMemDebugFailAfter(-1));}
+void region_fail_after(int budget){assert(xrtMemDebugFailAfter(budget));}
 int region_callback_read(int w,int h,const void* p,int stride,int(*callback)(const uint8_t*,size_t,void*),void* user)
 {assert(callback && p);return callback(p,(size_t)(h-1)*(stride>0 ? (size_t)stride:(size_t)w*4)+(size_t)w*4,user);}
 static bool begin(void* raw,void* token)

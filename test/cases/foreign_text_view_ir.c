@@ -27,7 +27,7 @@ int main(int argc,char** argv)
             target->parameterPhysicalAbis[p]=XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT;refused(module);
             target->parameterPhysicalAbis[p]=XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW;
             node->foreignCall.textViews=0;refused(module);node->foreignCall=facts;
-            node->foreignCall.constRecordAddresses|=facts.textViews;refused(module);node->foreignCall=facts;
+            node->foreignCall.constAggregateAddresses|=facts.textViews;refused(module);node->foreignCall=facts;
             XL6_IrParameterAbi abi=target->parameterAbis[p];target->parameterAbis[p]=XL6_IR_PARAMETER_ABI_OWNED;refused(module);target->parameterAbis[p]=abi;
         }
         if(target->resultCAbi!=XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW)continue;

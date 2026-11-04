@@ -10,7 +10,8 @@ extern "RegionRect" struct Rect @header("test/cases/foreign_region.h")
 end
 extern "RegionRoot*" class Root @header("test/cases/foreign_region.h") @lifetime("owned") @policy("regionPolicy") @scope("RegionScope")
  native point handle
- extern "createRGBA" @c_field_call @no_raise @c_output(1,0) @c_region(4,"read","2","3","5",4,"nullable") func createRGBA(c_int width,c_int height,bytes? pixels,c_int stride,c_uint flags=c_uint(0)) as c_int
+ extern "createRGBA" @c_field_call @no_raise @c_output(1,0) @c_region(4,"read","2","3","5",4,"nullable") func createRGBA(c_int width,c_int height,bytes? pixels=null,c_int stride=c_int(0),c_uint flags=c_uint(0)) as c_int
+ extern "createRGBA" @c_field_call @no_raise @c_output(1,0) @c_region(4,"read","2","3","5",4,"nullable") func createRGBA(c_int width,c_int height,Buffer? pixels,c_int stride=c_int(0),c_uint flags=c_uint(0)) as c_int
  extern "updateRGBA" @c_field_call @no_raise @c_region(3,"read","2.width","2.height","4",4) func update(Root surface,Rect rect,bytes pixels,c_int stride) as c_int
  extern "updateRGBA" @c_field_call @no_raise @c_region(3,"read","2.width","2.height","4",4) func update(Root surface,Rect rect,Buffer pixels,c_int stride) as c_int
  extern "surfaceGetDesc" @c_field_call @no_raise @c_output(2,0) func desc(Root surface) as Desc
@@ -26,6 +27,7 @@ extern "region_free_read" @header("test/cases/foreign_region.h") @no_raise @c_re
 extern "region_free_read" @header("test/cases/foreign_region.h") @no_raise @c_region(2,"read","0","1","3",4) func freeReadBuffer(c_int width,c_int height,Buffer pixels,c_int stride) as c_int
 extern "region_wide_read" @header("test/cases/foreign_region.h") @no_raise @c_region(2,"read","0","1","3",4) func wideRead(uint64 width,uint64 height,bytes pixels,uint64 stride) as c_int
 extern "region_reset_failure" @header("test/cases/foreign_region.h") @no_raise func resetFailure()
+extern "region_fail_after" @header("test/cases/foreign_region.h") @no_raise func failAfter(c_int budget)
 extern "const xbytesview*" class Slice @header("test/cases/foreign_region.h") @lifetime("callback")
  native point handle
  extern "Size" @c_field get size() as c_size
@@ -42,7 +44,38 @@ func main(...) as int
  Root root=create()
  bytes data=b"\x01\x02\x03\x04\x05\x06\x07\x08xx\x01\x02\x03\x04\x05\x06\x07\x08"
  assert root.createRGBA(c_int(2),c_int(2),data,c_int(10))==c_int(72)
- assert root.createRGBA(c_int(2),c_int(2),null,c_int(0))==c_int(0)
+ bytes? absentBytes=null
+ Buffer? absentBuffer=null
+ Buffer? nullableBuffer=Buffer(data)
+ assert root.createRGBA(c_int(2),c_int(2),absentBytes,c_int(0))==c_int(0)
+ assert root.createRGBA(c_int(2),c_int(2),absentBuffer,c_int(0))==c_int(0)
+ assert root.createRGBA(c_int(2),c_int(2))==c_int(0)
+ assert root.createRGBA(c_int(2),c_int(2),nullableBuffer,c_int(10))==c_int(72)
+ failAfter(c_int(0))
+ try
+  auto noAllocNull=root.createRGBA(c_int(2),c_int(2),absentBuffer)
+  auto noAllocPresent=root.createRGBA(c_int(2),c_int(2),nullableBuffer,c_int(10))
+  resetFailure()
+  assert noAllocNull==c_int(0) and noAllocPresent==c_int(72)
+ catch error
+  resetFailure()
+  throw "readonly nullable Buffer unexpectedly allocated"
+ end
+ bool emptyRejected=false
+ Buffer? emptyBuffer=Buffer()
+ try
+  auto bad=root.createRGBA(c_int(2),c_int(2),emptyBuffer)
+ catch error
+  emptyRejected=true
+ end
+ assert emptyRejected
+ emptyRejected=false
+ try
+  auto bad=root.createRGBA(c_int(2),c_int(2),b"")
+ catch error
+  emptyRejected=true
+ end
+ assert emptyRejected
  Rect rect=Rect()
  rect.width=c_int(2)
  rect.height=c_int(2)

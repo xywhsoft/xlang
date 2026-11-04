@@ -393,8 +393,8 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             facts.controlViews|=bit;
         } else if (!strcmp(attr->text, "c_ref")) {
             uint64 bit = UINT64_C(1) << index;
-            if (attr->childCount != 1 || (facts.constRecordAddresses & bit)) return 0;
-            facts.constRecordAddresses |= bit;
+            if (attr->childCount != 1 || (facts.constAggregateAddresses & bit)) return 0;
+            facts.constAggregateAddresses |= bit;
         } else if (!strcmp(attr->text, "c_static_callback")) {
             uint64 bit = UINT64_C(1) << index;
             if (attr->childCount != 1 || (facts.staticCallbackAddresses & bit)) return 0;
@@ -439,10 +439,10 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         else if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BYTES)facts.borrowedViewResult=XL6_FOREIGN_VIEW_RESULT_BYTES_FIELD;
         else return 0;
     }
-    if (((facts.physicalPairs|facts.retainedCallbacks) & (facts.terminatedStrings|facts.textViews|facts.bytesViews|facts.constRecordAddresses|facts.staticCallbackAddresses)) ||
-        (facts.terminatedStrings & (facts.textViews | facts.bytesViews | facts.constRecordAddresses | facts.staticCallbackAddresses)) ||
-        (facts.textViews & (facts.constRecordAddresses | facts.staticCallbackAddresses | facts.bytesViews)) ||
-        (facts.bytesViews & (facts.constRecordAddresses | facts.staticCallbackAddresses)) ||
+    if (((facts.physicalPairs|facts.retainedCallbacks) & (facts.terminatedStrings|facts.textViews|facts.bytesViews|facts.constAggregateAddresses|facts.staticCallbackAddresses)) ||
+        (facts.terminatedStrings & (facts.textViews | facts.bytesViews | facts.constAggregateAddresses | facts.staticCallbackAddresses)) ||
+        (facts.textViews & (facts.constAggregateAddresses | facts.staticCallbackAddresses | facts.bytesViews)) ||
+        (facts.bytesViews & (facts.constAggregateAddresses | facts.staticCallbackAddresses)) ||
         (facts.borrowedViewResult && facts.borrowedViewResult<=XL6_FOREIGN_VIEW_RESULT_BYTES && facts.outputIndexPlusOne) ||
         (facts.valueOutput && facts.borrowedViewResult)) return 0;
     if(outputSizes)facts.valueOutput|=XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED;

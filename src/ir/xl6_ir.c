@@ -4870,7 +4870,7 @@ static const XL6_IrType* xl6IrPointerQualifierSourceType(const XL6_IrModule* mod
     const XL6_IrNode* params=xl6IrNodeGet(module,module->children[node->firstChild+1]);
     if(!params || params->kind!=XL6_IR_NODE_LIST || params->firstChild>module->childCount ||
         params->childCount>module->childCount-params->firstChild || row->parameter>=params->childCount+receiver)return NULL;
-    uint64 mappings=node->foreignCall.controlViews | ((node->foreignCall.constRecordAddresses|
+    uint64 mappings=node->foreignCall.controlViews | ((node->foreignCall.constAggregateAddresses|
         node->foreignCall.staticCallbackAddresses|node->foreignCall.textViews|node->foreignCall.bytesViews|
         node->foreignCall.terminatedStrings|node->foreignCall.physicalPairs|node->foreignCall.retainedCallbacks)<<receiver);
     if(mappings&(UINT64_C(1)<<row->parameter))return NULL;
@@ -23050,16 +23050,27 @@ XL6_IrTypeId xl6IrCallTargetPhysicalParameterType(const XL6_IrModule* module,
     return field ? field->type : target->parameterTypes[parameter];
 }
 
-int xl6IrForeignConstRecordParameter(const XL6_IrModule* module,
+int xl6IrForeignConstAggregateTypeSupported(const XL6_IrModule* module,XL6_IrTypeId typeId)
+{
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,typeId);
+    if(!type || type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL)return 0;
+    if(type->kind==XL6_IR_TYPE_C_RECORD)return type->cAbi==XL6_IR_C_ABI_C_RECORD && type->foreignHeader && xl6IrUnionLayoutGet(module,typeId);
+    if(type->kind!=XL6_IR_TYPE_C_ARRAY || type->cAbi!=XL6_IR_C_ABI_C_ARRAY || !type->nativeArrayExtent ||
+        type->nativeArrayExtent>UINT32_MAX || type->paramCount!=1 || !type->params)return 0;
+    const XL6_IrType* element=xl6IrTypeGet(&module->types,type->params[0]);
+    return element && element->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+        ((element->kind==XL6_IR_TYPE_C_RECORD && element->cAbi==XL6_IR_C_ABI_C_RECORD && element->foreignHeader && xl6IrUnionLayoutGet(module,type->params[0])) ||
+         (element->kind==XL6_IR_TYPE_BUILTIN && (xl6IrBuildCAbiIsNumericScalar(element->cAbi) || element->cAbi==XL6_IR_C_ABI_BOOL || element->cAbi==XL6_IR_C_ABI_C_BOOL)));
+}
+
+int xl6IrForeignConstAggregateParameter(const XL6_IrModule* module,
     const XL6_IrCallTarget* target, size_t parameter)
 {
-    const XL6_IrNode* declaration = target ? xl6IrNodeGet(module, target->declaration) : NULL;
-    if (!declaration || target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
-        target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE) return 0;
-    size_t offset = declaration->sourceKind == XL6_AST_NATIVE_EXTERN_FUNC &&
-        !(declaration->flags & XL6_AST_FLAG_STATIC) ? 1u : 0u;
-    if (parameter < offset || parameter - offset >= 64 || parameter >= target->parameterCount) return 0;
-    return (declaration->foreignCall.constRecordAddresses & (UINT64_C(1) << (parameter - offset))) != 0;
+    const XL6_IrNode* declaration=target ? xl6IrNodeGet(module,target->declaration):NULL;
+    if(!declaration || target->kind!=XL6_IR_CALL_TARGET_EXTERN_C || target->runtimeBridge!=XL6_IR_RUNTIME_BRIDGE_NONE)return 0;
+    size_t offset=declaration->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC && !(declaration->flags&XL6_AST_FLAG_STATIC) ? 1:0;
+    return parameter>=offset && parameter-offset<64 && parameter<target->parameterCount &&
+        (declaration->foreignCall.constAggregateAddresses&(UINT64_C(1)<<(parameter-offset)))!=0;
 }
 
 int xl6IrForeignStaticCallbackParameter(const XL6_IrModule* module,
@@ -40465,8 +40476,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             if (xl6IrForeignStaticCallbackParameter(module, target, parameter) !=
                 (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK))
                 return xl6IrDiag(diags, NULL, "static C callback address disagrees with its declaration");
-            if (xl6IrForeignConstRecordParameter(module, target, parameter) !=
-                (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS))
+            if (xl6IrForeignConstAggregateParameter(module, target, parameter) !=
+                (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_AGGREGATE_BORROW))
                 return xl6IrDiag(diags, NULL, "C record const address disagrees with its declaration");
             if (xl6IrForeignTextViewParameter(module,target,parameter) !=
                 (target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW))
@@ -40539,12 +40550,12 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     target->parameterPhysicalFieldDeclarations[parameter] ||
                     target->parameterConstraintAbis[parameter] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE)
                     return xl6IrDiag(diags, NULL, "static C callback has no exact physical function pointer ABI");
-            } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS) {
-                if (parameterType->cAbi != XL6_IR_C_ABI_C_RECORD ||
+            } else if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_AGGREGATE_BORROW) {
+                if (!xl6IrForeignConstAggregateTypeSupported(module,target->parameterTypes[parameter]) ||
                     parameterType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
                     target->parameterAbis[parameter] != XL6_IR_PARAMETER_ABI_VALUE ||
                     target->parameterPhysicalFieldDeclarations[parameter])
-                    return xl6IrDiag(diags, NULL, "C record const address lacks an exact trivial value ABI");
+                    return xl6IrDiag(diags, NULL, "C aggregate const borrow lacks an exact trivial record/array ABI");
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW) {
                 if((target->kind!=XL6_IR_CALL_TARGET_EXTERN_C && target->kind!=XL6_IR_CALL_TARGET_NATIVE_FACTORY) || !xl6IrTypeIsCOwned(parameterType) || parameterType->kind!=XL6_IR_TYPE_BUILTIN ||
                     target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
@@ -41250,7 +41261,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             : node->opcode;
         XL6_IrErrorAbi expectedOperatorErrorAbi =
             xl6IrClassifyOperatorErrorAbi(module, node);
-        if (node->foreignCall.physicalPairs || node->foreignCall.retainedCallbacks || node->foreignCall.terminatedStrings || node->foreignCall.controlViews || node->foreignCall.resultOwnerIndexPlusOne || node->foreignCall.textViews || node->foreignCall.bytesViews || node->foreignCall.borrowedViewResult || node->foreignCall.constRecordAddresses || node->foreignCall.staticCallbackAddresses || node->foreignCall.outputIndexPlusOne ||
+        if (node->foreignCall.physicalPairs || node->foreignCall.retainedCallbacks || node->foreignCall.terminatedStrings || node->foreignCall.controlViews || node->foreignCall.resultOwnerIndexPlusOne || node->foreignCall.textViews || node->foreignCall.bytesViews || node->foreignCall.borrowedViewResult || node->foreignCall.constAggregateAddresses || node->foreignCall.staticCallbackAddresses || node->foreignCall.outputIndexPlusOne ||
             node->foreignCall.successCode || node->foreignCall.rollbackSymbol || node->foreignCall.valueOutput || node->foreignCall.receiverDereference || node->foreignCall.inplaceOutput || !xl6ForeignInputMappingsEmpty(node->foreignCall.inputMappingFacts)) {
             const XL6_IrNode* params = node->childCount > 1
                 ? xl6IrNodeGet(module, module->children[node->firstChild + 1]) : NULL;
@@ -41259,22 +41270,22 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             if (node->kind != XL6_IR_NODE_FUNC_DECL ||
                 (node->sourceKind != XL6_AST_EXTERN_FUNC && node->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC &&
                  !((node->sourceKind==XL6_AST_GET || node->sourceKind==XL6_AST_LET) &&
-                   (node->flags&XL6_AST_FLAG_EXTERN) && !node->foreignCall.constRecordAddresses &&
+                   (node->flags&XL6_AST_FLAG_EXTERN) && !node->foreignCall.constAggregateAddresses &&
                    !node->foreignCall.staticCallbackAddresses && (!node->foreignCall.outputIndexPlusOne || node->foreignCall.valueOutput))) ||
                 !params || params->kind != XL6_IR_NODE_LIST ||
                 node->foreignCall.borrowedViewResult<XL6_FOREIGN_VIEW_RESULT_NONE || node->foreignCall.borrowedViewResult>XL6_FOREIGN_VIEW_RESULT_BORROWED_VALUE ||
                 (node->foreignCall.physicalPairs & node->foreignCall.retainedCallbacks) ||
-                ((node->foreignCall.physicalPairs|node->foreignCall.retainedCallbacks) & (node->foreignCall.terminatedStrings|node->foreignCall.textViews|node->foreignCall.bytesViews|node->foreignCall.constRecordAddresses|node->foreignCall.staticCallbackAddresses)) ||
-                (node->foreignCall.terminatedStrings & (node->foreignCall.textViews | node->foreignCall.bytesViews | node->foreignCall.constRecordAddresses | node->foreignCall.staticCallbackAddresses)) ||
-                (node->foreignCall.textViews & (node->foreignCall.bytesViews | node->foreignCall.constRecordAddresses | node->foreignCall.staticCallbackAddresses)) ||
-                (node->foreignCall.bytesViews & (node->foreignCall.constRecordAddresses | node->foreignCall.staticCallbackAddresses)) ||
+                ((node->foreignCall.physicalPairs|node->foreignCall.retainedCallbacks) & (node->foreignCall.terminatedStrings|node->foreignCall.textViews|node->foreignCall.bytesViews|node->foreignCall.constAggregateAddresses|node->foreignCall.staticCallbackAddresses)) ||
+                (node->foreignCall.terminatedStrings & (node->foreignCall.textViews | node->foreignCall.bytesViews | node->foreignCall.constAggregateAddresses | node->foreignCall.staticCallbackAddresses)) ||
+                (node->foreignCall.textViews & (node->foreignCall.bytesViews | node->foreignCall.constAggregateAddresses | node->foreignCall.staticCallbackAddresses)) ||
+                (node->foreignCall.bytesViews & (node->foreignCall.constAggregateAddresses | node->foreignCall.staticCallbackAddresses)) ||
                 (node->foreignCall.borrowedViewResult && ((node->foreignCall.borrowedViewResult<=XL6_FOREIGN_VIEW_RESULT_BYTES && node->foreignCall.outputIndexPlusOne) || (node->flags&XL6_AST_FLAG_FOREIGN_OWNED_STRING))) ||
                 (!!node->foreignCall.resultOwnerIndexPlusOne!=(node->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE || node->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE)) ||
                 (params->childCount+receiver<64 && (node->foreignCall.controlViews>>(params->childCount+receiver))) ||
                 (node->foreignCall.resultOwnerIndexPlusOne>params->childCount+receiver) ||
                 (node->foreignCall.controlViews & ((node->foreignCall.textViews|node->foreignCall.bytesViews|node->foreignCall.terminatedStrings|node->foreignCall.physicalPairs|node->foreignCall.retainedCallbacks|
-                    node->foreignCall.constRecordAddresses|node->foreignCall.staticCallbackAddresses)<<receiver)) ||
-                (params->childCount < 64 && ((node->foreignCall.constRecordAddresses | node->foreignCall.staticCallbackAddresses | node->foreignCall.textViews | node->foreignCall.bytesViews | node->foreignCall.terminatedStrings | node->foreignCall.physicalPairs | node->foreignCall.retainedCallbacks) >> params->childCount)) ||
+                    node->foreignCall.constAggregateAddresses|node->foreignCall.staticCallbackAddresses)<<receiver)) ||
+                (params->childCount < 64 && ((node->foreignCall.constAggregateAddresses | node->foreignCall.staticCallbackAddresses | node->foreignCall.textViews | node->foreignCall.bytesViews | node->foreignCall.terminatedStrings | node->foreignCall.physicalPairs | node->foreignCall.retainedCallbacks) >> params->childCount)) ||
                 !xl6ForeignInputMappingsValid(node->foreignCall.inputMappingFacts) || node->foreignCall.receiverDereference>1 || node->foreignCall.inplaceOutput>XL6_FOREIGN_INPLACE_VOID ||
                 (node->foreignCall.inplaceOutput==XL6_FOREIGN_INPLACE_VOID && node->foreignCall.successCode) ||
                 (node->foreignCall.inplaceOutput && (!node->foreignCall.outputIndexPlusOne || node->foreignCall.valueOutput ||
@@ -50603,7 +50614,7 @@ static const char* xl6IrCallParameterPhysicalAbiName(
     case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_NATIVE_POINTER_DIRECT: return "const-native-pointer-direct";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_FOREIGN_VIEW_BORROW: return "const-foreign-view-borrow";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_XVALUE_BORROW: return "const-xvalue-borrow";
-    case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS: return "const-c-record-address";
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_AGGREGATE_BORROW: return "const-c-aggregate-borrow";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK: return "static-c-callback";
     default: return "invalid";
     }
@@ -54349,10 +54360,10 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         xl6OutputPrintf(out, "    {\"generatorClosePointAbi\":%d,\"generatorClosePointAbiName\":\"%s\",", (int)node->generatorClosePointAbi, xl6IrGeneratorClosePointAbiName(node->generatorClosePointAbi));
         xl6OutputPrintf(out, "\"indexReceiverGate\":%d,", (int)node->indexReceiverGate);
         xl6OutputPrintf(out, "\"constructorReceiverSymbol\":%u,", (unsigned)node->constructorReceiverSymbol);
-        xl6OutputPrintf(out, "\"foreignCall\":{\"controlViews\":\"0x%016llX\",\"resultOwnerIndexPlusOne\":%u,\"textViews\":\"0x%016llX\",\"bytesViews\":\"0x%016llX\",\"borrowedViewResult\":%u,\"constRecordAddresses\":\"0x%016llX\",\"staticCallbackAddresses\":\"0x%016llX\",\"outputIndexPlusOne\":%u,\"successCode\":%d,\"rollbackSymbol\":%u,\"valueOutput\":%u,\"receiverDereference\":%u,\"inplaceOutput\":%u},",
+        xl6OutputPrintf(out, "\"foreignCall\":{\"controlViews\":\"0x%016llX\",\"resultOwnerIndexPlusOne\":%u,\"textViews\":\"0x%016llX\",\"bytesViews\":\"0x%016llX\",\"borrowedViewResult\":%u,\"constAggregateAddresses\":\"0x%016llX\",\"staticCallbackAddresses\":\"0x%016llX\",\"outputIndexPlusOne\":%u,\"successCode\":%d,\"rollbackSymbol\":%u,\"valueOutput\":%u,\"receiverDereference\":%u,\"inplaceOutput\":%u},",
             (unsigned long long)node->foreignCall.controlViews,(unsigned)node->foreignCall.resultOwnerIndexPlusOne,
             (unsigned long long)node->foreignCall.textViews,(unsigned long long)node->foreignCall.bytesViews,(unsigned)node->foreignCall.borrowedViewResult,
-            (unsigned long long)node->foreignCall.constRecordAddresses, (unsigned long long)node->foreignCall.staticCallbackAddresses, (unsigned)node->foreignCall.outputIndexPlusOne,
+            (unsigned long long)node->foreignCall.constAggregateAddresses, (unsigned long long)node->foreignCall.staticCallbackAddresses, (unsigned)node->foreignCall.outputIndexPlusOne,
             (int)node->foreignCall.successCode, (unsigned)node->foreignCall.rollbackSymbol,(unsigned)node->foreignCall.valueOutput,(unsigned)node->foreignCall.receiverDereference,(unsigned)node->foreignCall.inplaceOutput);
         xl6OutputPrintf(out, "\"id\":%lu,\"kind\":%d,\"kindName\":\"%s\",\"sourceKind\":%d,\"sourceKindName\":\"%s\",\"declarationOwnerType\":%u,\"callKind\":%d,\"callKindName\":\"%s\",\"valueCategory\":%d,\"valueCategoryName\":\"%s\",\"ownership\":%d,\"ownershipName\":\"%s\",\"ownershipPlanned\":%d,\"parent\":%u,\"line\":%d,\"column\":%d,\"firstChild\":%lu,\"childCount\":%lu,\"opcode\":%d,\"opcodeName\":\"%s\",\"operatorErrorAbi\":%d,\"operatorErrorAbiName\":\"%s\",\"operatorExecutionType\":%u,\"compoundOperatorSymbol\":%u,\"operatorOperand0Abi\":%d,\"operatorOperand0AbiName\":\"%s\",\"operatorOperand1Abi\":%d,\"operatorOperand1AbiName\":\"%s\",\"castAbi\":%d,\"castAbiName\":\"%s\",\"castErrorAbi\":%d,\"castErrorAbiName\":\"%s\",\"implicitConversionRuntimeOp\":%d,\"implicitConversionRuntimeOpName\":\"%s\",\"implicitConversionErrorAbi\":%d,\"implicitConversionErrorAbiName\":\"%s\",\"implicitNameAbi\":%d,\"implicitNameAbiName\":\"%s\",\"implicitReceiverType\":%u,\"implicitFieldDeclaration\":%u,\"namedCallableAbi\":%d,\"namedCallableAbiName\":\"%s\",\"namedCallableTargetSymbol\":%u,\"namedCallableSignatureType\":%u,\"memberAbi\":%d,\"memberAbiName\":\"%s\",\"projectionErrorAbi\":%d,\"projectionErrorAbiName\":\"%s\",\"evaluationErrorAbi\":%d,\"evaluationErrorAbiName\":\"%s\",\"constructionErrorAbi\":%d,\"constructionErrorAbiName\":\"%s\",\"unionField\":%ld,\"indexWriteAbi\":%d,\"indexWriteAbiName\":\"%s\",\"indexWriteErrorAbi\":%d,\"indexWriteErrorAbiName\":\"%s\",\"loopAbi\":%d,\"loopAbiName\":\"%s\",\"loopKeyAbi\":%d,\"loopKeyAbiName\":\"%s\",\"loopItemAbi\":%d,\"loopItemAbiName\":\"%s\",\"loopKeyLifetimeAbi\":%d,\"loopKeyLifetimeAbiName\":\"%s\",\"loopItemLifetimeAbi\":%d,\"loopItemLifetimeAbiName\":\"%s\",\"loopErrorAbi\":%d,\"loopErrorAbiName\":\"%s\",\"loopResourceAbi\":%d,\"loopResourceAbiName\":\"%s\",\"loopResourceType\":%u,\"loopProtocolIterTarget\":%u,\"loopProtocolNextTarget\":%u,\"loopProtocolIterableReceiverType\":%u,\"loopProtocolIteratorReceiverType\":%u,\"loopProtocolIteratorType\":%u,\"loopProtocolNextResultType\":%u,\"loopProtocolItemType\":%u,\"type\":%u,\"storageType\":%u,\"typeValueTarget\":%u,\"symbol\":%u,\"targetSymbol\":%u,\"scopeDepth\":%u,\"region\":%u}%s\n",
                         (unsigned long)(i + 1), (int)node->kind,

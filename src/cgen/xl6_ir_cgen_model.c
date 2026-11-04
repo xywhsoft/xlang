@@ -463,8 +463,10 @@ static const char* xl6IrCgenExternParameterType(
         const XL6_ForeignPointerQualifierContract* row=xl6IrForeignPointerQualifierGet(module,target,parameter);
         return row ? row->cName : NULL;
     }
-    if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS)
-        return xl6IrCgenType(module, target->parameterTypes[parameter]);
+    if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_AGGREGATE_BORROW){
+        const XL6_IrType* aggregate=xl6IrTypeGet(&module->types,target->parameterTypes[parameter]);
+        return aggregate && aggregate->kind==XL6_IR_TYPE_C_ARRAY ? xl6IrCgenType(module,aggregate->params[0]):xl6IrCgenType(module,target->parameterTypes[parameter]);
+    }
     if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW)
         return "xstrview";
     if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_BYTES_VIEW_BORROW)

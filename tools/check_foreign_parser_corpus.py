@@ -18,8 +18,12 @@ def main():
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--baseline', required=True)
+    parser.add_argument('--profile', type=Path, help='Immutable current source profile; defaults to root')
+    parser.add_argument('--runtime', type=Path, help='Matched runtime library; avoids changing release/')
+    parser.add_argument('--sdk', type=Path, help='Matched declaration SDK directory')
     args = parser.parse_args()
     root, out = args.root.resolve(), args.out.resolve()
+    current = (args.profile or root).resolve()
     out.mkdir(parents=True, exist_ok=False)
     baseline = out/'baseline'
     files = ('src/parser/xl6_parser.c', 'src/parser/xl6_parser.h',
@@ -37,22 +41,25 @@ def main():
     fixtures = sorted((root/'test/cases').glob('*.xl'), key=lambda p:p.name)
     feed = ''.join(str(p)+'\n' for p in fixtures).encode('utf-8')
     rows, outcomes = [], {}
+    runtime = (args.runtime or root/'release'/('win_x64/xl.dll' if os.name=='nt' else 'linux_x64/libxl.so')).resolve()
     if os.name == 'nt':
-        shutil.copy2(root/'release/xl.dll', out/'xl.dll')
+        shutil.copy2(runtime, out/'xl.dll')
+    env = dict(os.environ)
+    if os.name != 'nt':env['LD_LIBRARY_PATH']=str(runtime.parent)+':'+env.get('LD_LIBRARY_PATH','')
     for version in ('baseline', 'current'):
-        profile = baseline if version == 'baseline' else root
+        profile = baseline if version == 'baseline' else current
         executable = out/(version+('.exe' if os.name == 'nt' else ''))
-        runtime = root/'release'/('xl.dll' if os.name == 'nt' else 'libxl.so')
         command = ['gcc', '-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
                    '-Wno-unused-function', '-Wno-unused-parameter', '-Wno-unused-variable',
-                   '-I'+str(profile), '-I'+str(root),
-                   *[root/name for name in common],
+                   '-I'+str(profile), '-I'+str(current),
+                   *(['-I'+str(args.sdk.resolve()),'-I'+str(args.sdk.resolve()/'include')] if args.sdk else []),
+                   *[current/name for name in common],
                    *[profile/name for name in files if name.endswith('.c')],
                    runtime, '-o', executable]
         result = subprocess.run(list(map(str,command)), cwd=root, capture_output=True, timeout=180)
         (out/(version+'-build.log')).write_bytes(result.stdout+result.stderr)
         assert result.returncode == 0, (version, 'build')
-        result = subprocess.run([str(executable)], cwd=root, input=feed, capture_output=True, timeout=180)
+        result = subprocess.run([str(executable)], cwd=root, env=env,input=feed, capture_output=True, timeout=180)
         log = out/(version+'-corpus.log'); log.write_bytes(result.stdout+result.stderr)
         assert result.returncode == 0, (version, 'corpus')
         values = result.stdout.decode('utf-8-sig').splitlines()

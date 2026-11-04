@@ -515,7 +515,7 @@ int xl6IrForeignProjectionMatches(const XL6_IrModule* module,const XL6_IrCallTar
         target->nativeResultAbi || target->nativeArrayResultAbi || target->variadicAbi ||
         !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) || (node->flags&XL6_AST_FLAG_FOREIGN_OWNED_STRING) ||
         !xl6ForeignIdentifier(target->cName) || !node->text ||
-        f->constRecordAddresses || f->staticCallbackAddresses || f->textViews || f->bytesViews || f->terminatedStrings ||
+        f->constAggregateAddresses || f->staticCallbackAddresses || f->textViews || f->bytesViews || f->terminatedStrings ||
         f->physicalPairs || f->retainedCallbacks || f->controlViews || f->outputIndexPlusOne ||
         f->borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE || f->borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS || f->borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS)return 0;
     size_t bytes=strlen(node->text);
@@ -690,8 +690,8 @@ int xl6IrForeignPreparedParameterMatches(const XL6_IrModule* module,const XL6_Ir
         return xl6IrForeignBytesViewParameter(module,target,p);
     case XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW:
         return xl6IrForeignTerminatedStringParameter(module,target,p);
-    case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS:
-        return xl6IrForeignConstRecordParameter(module,target,p);
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_AGGREGATE_BORROW:
+        return xl6IrForeignConstAggregateParameter(module,target,p) && xl6IrForeignConstAggregateTypeSupported(module,target->parameterTypes[p]);
     case XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW:
         return xl6IrCallTargetNativeClassPhysicalField(module,target,p)!=NULL;
     case XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_HANDLE_ACCESS_BORROW:

@@ -428,7 +428,10 @@ static int xl6IrCgenEmitCallPlace(XL6_Output* out, const XL6_IrModule* module,
         if(!row)return 0;
         xl6OutputPrintf(out,"(%s)native_view_%lu.raw",row->cName,(unsigned long)parameter);break;
     }
-    case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS:
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_AGGREGATE_BORROW:
+        if(type->cAbi==XL6_IR_C_ABI_C_ARRAY)xl6OutputPrintf(out,"(%s).Elements",place);
+        else xl6OutputPrintf(out,"&%s",place);
+        break;
     case XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW:
         xl6OutputPrintf(out, "&%s", place); break;
     case XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW:

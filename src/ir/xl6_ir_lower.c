@@ -13651,8 +13651,8 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
         if(xl6IrForeignManagedViewParameter(module,target,i))
             target->parameterPhysicalAbis[i]=xl6IrForeignValueGet(module,target,i) ?
                 XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VALUE_BORROW : XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW;
-        if (xl6IrForeignConstRecordParameter(module, target, i))
-            target->parameterPhysicalAbis[i] = XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_RECORD_ADDRESS;
+        if (xl6IrForeignConstAggregateParameter(module, target, i))
+            target->parameterPhysicalAbis[i] = XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_AGGREGATE_BORROW;
         if(xl6IrForeignPointerQualifierGet(module,target,i)){
             const XL6_IrType* input=xl6IrTypeGet(&module->types,target->parameterTypes[i]);
             target->parameterPhysicalAbis[i]=input && input->kind==XL6_IR_TYPE_BUILTIN && input->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ?
