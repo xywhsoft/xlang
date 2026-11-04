@@ -9,7 +9,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('root','cohort-root','public-directory','packages','out'):p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--runtime-overlay',action='store_true',help='Development only: rebuild five runtime translation units')
-    p.add_argument('--case',choices=('cell','leaf','proxy_policy','proxy_affinity'),default='cell')
+    p.add_argument('--case',choices=('cell','leaf','proxy_policy','proxy_affinity','draw_policy'),default='cell')
     p.add_argument('--font',type=Path,help='CPU font input for the explicit affinity reproducer')
     p.add_argument('--affinity-guarded',action='store_true',help='Require worker BUSY and creator-thread snapshot retry')
     p.add_argument('--checked-plan-evidence',type=Path,help='Verified FinishV2 lifecycle objects; explicit partial runtime overlay')

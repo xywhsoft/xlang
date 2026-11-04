@@ -1,0 +1,110 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Draw Native shared carrier/default integration + cold Draw policy; Context checked status/consumption bridge and callback Scope failure delivery",
+  "sourceManifest": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\package-owned-draw-milestone-r2\\candidate.json",
+    "sha256": "5d813996f5e7b99c58f6482b14310be3d96668d0cf908c7a9e248e64607167ae"
+  },
+  "files": [
+    {
+      "path": "lib/bindings/_xge_native/include/xge3_runtime.h",
+      "sha256": "c70d510b44b652c11c2a66b50066c48ebb2e5c60728ff3cdf74d81a6265e3607"
+    },
+    {
+      "path": "lib/bindings/_xge_native/src/runtime.c",
+      "sha256": "1121af3388a21f6e4e849375eace81704044c12dec835917818c17b9ce577dc8"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_cell_check.py",
+      "sha256": "02ba8e6e0c3d4e991ed8b5dc789f75c23122b5d06996b9e2e17daa49d26600f6"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_proxy_plan_check.py",
+      "sha256": "da0e562f28b71412bfeab529b091e26a82dd68acf7924bd65dac895b736326b9"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_draw_policy.c",
+      "sha256": "ce99805634936c6f1fdf2c4f84b8c71f208578d7930b8b5d1b671a9539a4f13b"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_draw_plan.c",
+      "sha256": "2d0a16e93c29d4c90326158c10a10e941950316d1c6a37fc66208a0199a318ed"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_proxy_policy.c",
+      "sha256": "2c3287a77eaaa87cf0cd744cc3edd9fd9bb5a45e542a415dae537b281eb2183c"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-draw-context-policy-win-r5\\results.json",
+      "sha256": "c553fe0236f1a74de76f56fce22f11d4a041b857935c40f6038e57d7c46d69b5",
+      "copy": "evidence/win-0-results.json"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-draw-policy-win-r5\\results.json",
+      "sha256": "7e10aed0b926274201311427cd33f42b24aaa3a53347d4dd158bbb08dfcbfa36",
+      "copy": "evidence/win-1-results.json"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\draw-policy-packages-win-r4.json",
+      "sha256": "6428c1de3dd3ebdf35faf774867602dfbc054ef6b26509add0231c4b1082a0cd",
+      "copy": "evidence/win-2-draw-policy-packages-win-r4.json"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-cleanup-classified-host-win-r5\\build-report.json",
+      "sha256": "9250750ff81dcfa34edf9b67d939165fab38c9377593d0fd9346729771d4e32d",
+      "copy": "evidence/win-3-build-report.json"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-cleanup-classified-host-win-r5\\overlay-build.json",
+      "sha256": "63d30a986d23c61f93876dceb6610ec99218e5f0924f80b0a5efe31215e59857",
+      "copy": "evidence/win-4-overlay-build.json"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-classified-receipt-acceptance-r3.json",
+      "sha256": "00f514ab0e6d67ee24ef5426598bb93064ff3a5caf404fb12d4d2e8a58a34c18",
+      "copy": "evidence/win-5-native-classified-receipt-acceptance-r3.json"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-cleanup-classified-overlay-r4\\manifest.json",
+      "sha256": "45e7b6ce6bb6f2549a7c87059d2ee715d9eb2bc76f5004a333f8d870d7a3a062",
+      "copy": "evidence/win-6-manifest.json"
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/native-draw-context-policy-linux-r5/results.json",
+      "sha256": "b9f7450591150daea81031bc8b31527de5ff17cb7e76f430be91eba899f626ab",
+      "copy": "evidence/linux-0-results.json"
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/native-draw-policy-linux-r5/results.json",
+      "sha256": "36dd70017e682563ab32dfac5700f98bbded0b0995f4ceae006d7dae1ba7a454",
+      "copy": "evidence/linux-1-results.json"
+    }
+  ],
+  "nativeRevision": "b229e7a",
+  "nativeClassification": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-classified-receipt-acceptance-r3.json",
+    "sha256": "00f514ab0e6d67ee24ef5426598bb93064ff3a5caf404fb12d4d2e8a58a34c18",
+    "reports": 24,
+    "rows": 256
+  },
+  "scopeAbiBytes": 48,
+  "privateContextAndDrawRows": 16,
+  "fullSourceRebuild": false,
+  "shippingDelivery": false,
+  "releaseBinaryUpdated": false,
+  "pending": [
+    "R33 matched public declaration/DSL/JIT/AOT acceptance",
+    "Default Draw GPU execution intentionally excluded",
+    "Three opaque manager lifecycle implementation remains",
+    "Safe Context initializer choice pending user answer; no claim legacy raw contexts are safely owned"
+  ],
+  "notes": [
+    "Matched fresh 143-unit Draw native baseline plus exact classified-body replacement; not Surface/Prefix/Manager/cache qualification",
+    "Context and Draw hooks call cold error reporting only on failing status",
+    "Checked cleanup failure and consumed owner are independent outcomes",
+    "No GPU/window/desktop/network execution"
+  ]
+}
