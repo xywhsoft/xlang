@@ -44,6 +44,15 @@
         "include/xrt/websocket_upgrade.h"
       ],
       "abiChanged": false
+    },
+    {
+      "commit": "c6d40f00fff9cf6ec7b818e610a2bdf1c1343964",
+      "kind": "Versioned ownership completion checked-drop declaration only",
+      "modules": [
+        "include/xrt/core.h"
+      ],
+      "abiChanged": false,
+      "protocolExtension": "xrtownershipfinishv2"
     }
   ]
 }

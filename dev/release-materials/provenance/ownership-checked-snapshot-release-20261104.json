@@ -1,0 +1,79 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Additive canonical XRT FinishV2 descriptor and resident checked snapshot release; focused acceptance, not shipping update",
+  "upstreamCommit": "c6d40f00fff9cf6ec7b818e610a2bdf1c1343964",
+  "typeDeltaLines": 19,
+  "typeDeltaBytes": 1124,
+  "implementationUpgrade": false,
+  "sdkLogicalPath": "release/include/xrt_decl.h",
+  "sdkActivePath": "D:\\GIT\\x-lang\\release\\win_x64\\include\\xrt_decl.h",
+  "sdkSha256": "a8b671ff77d9423b8d3d6d74b1842902457b5806d0d3ce963b0a754ae746368f",
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\finish-v2-plan-win-r1\\results.json",
+      "sha256": "b65c9f101aed14e22334d3508d6f2c4a0e12485274c1e575973e09d74c2330bf",
+      "rows": 40,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\finish-v2-plan-linux-r1.results.json",
+      "sha256": "34cf6617e2f307f05094fea77a93baf3a1061df6755168de51e25e3ac3da4576",
+      "rows": 40,
+      "passed": true
+    }
+  ],
+  "files": [
+    {
+      "path": "lib/xrt/xrt.h",
+      "sha256": "2c0dd0c2fdd15deb34aedd78fea9a9128760257febdaf3d886c88a1df76d1983"
+    },
+    {
+      "path": "lib/xrt/upstream.json",
+      "sha256": "f7f1a22291c4cce6390ff565b77e7f9bec15b6db4370ffc5d7c83a9b67852447"
+    },
+    {
+      "path": "lib/xrt/xrt.snapshot.json",
+      "sha256": "9fdb9431d8cddfae3472f27d1a1e7caa274f2405d11d5fe37682fc6c45cc9160"
+    },
+    {
+      "path": "lib/xruntime/xruntime.snapshot.json",
+      "sha256": "aa91994dda2521c6b8e40ad2f4d100d34decc26c507e1f24ec9bd9f7f1cfb42c"
+    },
+    {
+      "path": "src/runtime/xl6_ownership_completion.h",
+      "sha256": "de56f7960e2893569ba986ba7ae7c4619775ec50eb6a323e26abf3f8cea716f0"
+    },
+    {
+      "path": "src/runtime/xl6_ownership_plan.c",
+      "sha256": "bde9482a51aa08806d805044c1a8568ac294ef9732ca4511dadfce29cf91cf52"
+    },
+    {
+      "path": "src/runtime/xl6_ownership_plan.h",
+      "sha256": "3284843f68699748ed74589f92d58f2de12b716dcbb809dd42b51f026c77cdec"
+    },
+    {
+      "path": "src/runtime/xl6_ownership_catalog.c",
+      "sha256": "a67cd97218cccbf938abee347aa83d216dc7f01121fd8c362725b4755be22501"
+    },
+    {
+      "path": "src/compile/xl6_compile_unit.c",
+      "sha256": "483c1c380f61250861295306cb850b0ebccb6ae57b895c64124b0f7cb005a322"
+    },
+    {
+      "path": "tools/check_ownership_checked_drop.py",
+      "sha256": "adc430ee3b882743f7709c0b0eb440de31ac126958147974a49505bbf68ec763"
+    },
+    {
+      "path": "test/cases/xlir_ownership_checked_drop_runtime.c",
+      "sha256": "a02e5b9b4187d38241ed50ab6de0c8ff1e9b533a8b6cd61f7382bce5e67e8095"
+    },
+    {
+      "path": "docs/ownership-checked-snapshot-release.md",
+      "sha256": "ea25d8e5764f67c21072bcd8b3820de45e8db70856bb9fadbdddbd6f0f2cb289"
+    }
+  ],
+  "fullCompilerRebuild": false,
+  "nativeUiEngineAcceptance": false,
+  "deliveryIndexChanged": false
+}

@@ -35,7 +35,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_future_payload.c", D(R(CLOSURE),R(GENERATOR),R(FOREIGN_ERROR)),
         {"XRT_MODULE_MEMORY", "XRT_MODULE_VALUE", "XRT_MODULE_FUTURE", "XRUNTIME_MODULE_RUNTIME_VALUE_FUTURE"}},
     {"src/runtime/xl6_code_finalizer.c", D(R(CODE_LEASE),R(FOREIGN_ERROR),R(FOREIGN_CALLBACK_SCOPE)), {"XRT_MODULE_VALUE_GRAPH"}},
-    {"src/runtime/xl6_ownership_plan.c", D(R(CODE_LEASE)), {"XRT_MODULE_MEMORY"}},
+    {"src/runtime/xl6_ownership_plan.c", D(R(CODE_LEASE),R(FOREIGN_ERROR),R(CALLBACK_FAILURE)), {"XRT_MODULE_MEMORY"}},
     {"src/api/xl_protocol_registry.c", NULL, 0, {"XRT_MODULE_ONCE", "XRT_MODULE_MUTEX", "XRT_MODULE_MEMORY"}},
     {"src/api/xl_future_bridge.c", D(R(CODE_LEASE),R(FUTURE_PAYLOAD),R(FUTURE_METADATA)),
         {"XRT_MODULE_FUTURE_COMBINE", "XRT_MODULE_THREAD", "XRT_MODULE_MUTEX"}},

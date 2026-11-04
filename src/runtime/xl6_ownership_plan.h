@@ -143,6 +143,11 @@ XL6_CODE_LEASE_API XL6_OwnershipStepResult xl6OwnershipPlanFinishV2(XL6_Ownershi
 XL6_CODE_LEASE_API bool xl6OwnershipPlanFinish(XL6_OwnershipPlan*);
 /* Abort restores quarantine before dropping holds; a committed plan first
  * requires successful Finish. Release callbacks run after leaving freeze.
- * BUSY leaves the plan alive for a later retry. Success consumes it. */
+ * BUSY leaves the plan alive for a later retry. READY consumes it, including
+ * a checked V2 snapshot Drop failure: that reference was already consumed and
+ * must not be retried. Such failures reach the enclosing checked error scope,
+ * or the resident callback-failure mailbox if there is no enclosing scope.
+ * V1 void Drop behavior is unchanged. V2 is accepted only at its exact size
+ * and ABI tag, and invokes DropChecked instead of (never in addition to) Drop. */
 XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryDestroy(XL6_OwnershipPlan*);
 #endif

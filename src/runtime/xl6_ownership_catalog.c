@@ -3,6 +3,7 @@
 #define XRT_MODULE_VALUE_CONTAINER
 #include "src/common/xl6_xrt.h"
 #include "xl6_ownership_catalog.h"
+#include "xl6_ownership_completion.h"
 #include "xl6_native_handle.h"
 #include "src/api/xl_foreign_error.h"
 #include <string.h>
@@ -173,7 +174,7 @@ bool xl6OwnershipCatalogResolveV1(xrtownershipref ref,void* data,
         bool known=catalog->domains[i]->Resolve(ref,&catalog->policies,&current,&ready,&step);
         if((!known && (current || ready || step)) || (known && (!current ||
             (ready && (ready->size!=sizeof(*ready) || ready->Adapter!=current)) ||
-            (step && (step->size!=sizeof(*step) || step->Adapter!=current)))) ||
+            !xl6OwnershipCompletionValid(step,current))) ||
             (known && selected && (selected!=current || pending!=ready || finish!=step))){
             xrtSetErrorKind(XERR_STATE);return false;
         }
