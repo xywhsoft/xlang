@@ -1,0 +1,79 @@
+extern "PrepRoot*" class Root @header("test/cases/foreign_native_preparation.h") @lifetime("owned") @policy("preparationPolicy") @scope("PrepScope")
+ native point handle
+ extern "preparation_read" @no_raise func read() as c_int
+ extern "read" @c_field_call @no_raise func field() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "preparation_create" @header("test/cases/foreign_native_preparation.h") @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Root
+extern "preparation_destroy" @no_raise func rollback(Root value)
+extern "preparation_pair" @no_raise func pair(Root first,Root second) as c_int
+extern "preparation_arm" @no_raise func arm(c_int mode)
+extern "preparation_calls" @no_raise func calls() as c_int
+extern "preparation_begins" @no_raise func begins() as c_int
+extern "preparation_ends" @no_raise func ends() as c_int
+protocol Reader
+ func read() as c_int
+end
+func main(...) as int
+ Root root=create()
+ Root other=create()
+ func() as c_int bound=root.read
+ Reader reader=root
+ assert root.read()==c_int(1)
+ auto before=calls()
+ for mode in range(1,5)
+  auto starts=begins()
+  auto finishes=ends()
+  arm(c_int(mode))
+  bool rejected=false
+  try
+   auto ignored=root.read()
+  catch error
+   if mode!=2 then assert error.code==73 end
+   rejected=true
+  end
+  assert rejected and calls()==before and begins()==starts+c_int(1) and ends()==finishes+c_int(1)
+ end
+ arm(c_int(1))
+ bool rejected=false
+ try
+  auto ignored=bound()
+ catch error
+  assert error.code==73
+  rejected=true
+ end
+ assert rejected and calls()==before
+ arm(c_int(1))
+ rejected=false
+ try
+  auto ignored=reader.read()
+ catch error
+  assert error.code==73
+  rejected=true
+ end
+ assert rejected and calls()==before
+ arm(c_int(1))
+ rejected=false
+ try
+  auto ignored=root.field()
+ catch error
+  assert error.code==73
+  rejected=true
+ end
+ assert rejected and calls()==before
+ auto starts=begins()
+ auto finishes=ends()
+ arm(c_int(1))
+ rejected=false
+ try
+  auto ignored=pair(root,other)
+ catch error
+  assert error.code==73
+  rejected=true
+ end
+ assert rejected and calls()==before and begins()==starts+c_int(1) and ends()==finishes+c_int(1)
+ assert root.read()==before+c_int(1)
+ root.close()
+ other.close()
+ return 0
+end

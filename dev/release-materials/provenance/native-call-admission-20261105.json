@@ -1,0 +1,56 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Stop native producers after escaped callback failures during view admission; always pair successfully acquired scopes",
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-preparation-after-r2\\results.json",
+      "sha256": "b4b38d86f95d1e9beacec9378c449f58338fb7b07fd3e60b6e3cc0c6a11c353d",
+      "rows": 6,
+      "fullSourceRebuild": false
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-preparation-after-linux-r2\\results.json",
+      "sha256": "1e3e7a0b710bf81dafd01051f7ff9adf1126a900f18b5f38a632e10ed98dc022",
+      "rows": 6,
+      "fullSourceRebuild": false
+    }
+  ],
+  "beforeRegression": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-preparation-before-r2\\results.json",
+    "sha256": "dbe027a7f65d7da729cde82e746afd438cd8dde8867d67816c954e924a8bb429",
+    "expectedFailure": true,
+    "productionAcceptance": false
+  },
+  "files": [
+    {
+      "path": "src/cgen/xl6_ir_cgen_foreign_view.c",
+      "sha256": "8eecfd608471ac789d5e13761e8d2a28556643df15fb77b43449ce864ae7c003"
+    },
+    {
+      "path": "docs/native-call-admission.md",
+      "sha256": "43b6893ec25e90c058d0b47e9be6b8d1c06e97ca378033decec7dd65e5dc355a"
+    },
+    {
+      "path": "tools/check_foreign_native_preparation.py",
+      "sha256": "85cca45804519b70c6883ac5280ad24fcc75c9456d34de8dfc71c17b2fb04f81"
+    },
+    {
+      "path": "test/cases/foreign_native_preparation.xl",
+      "sha256": "aae0895ce6d86d9d761cc28b17cdbc345838e5e0c70139a766e9e589ad251791"
+    },
+    {
+      "path": "test/cases/foreign_native_preparation.h",
+      "sha256": "ab7068ee2b88711aaffd5f5c1649cd35840dc1f22b7ad01592387488b52ec189"
+    },
+    {
+      "path": "test/cases/foreign_native_preparation_native.c",
+      "sha256": "adf82b86c8f01bbc406918f1bed508b8b50999398a4b6084848dde7ed9e84fa3"
+    }
+  ],
+  "costs": [
+    "Inline failed-bit checks and diagnostic lookups per native-view admission",
+    "No additional error scope, allocation, payload copy or forwarding call"
+  ],
+  "shippingDelivery": false
+}
