@@ -570,3 +570,100 @@ the callback return are checked failures.
 Optional declared managed inputs use their existing NULL sentinel; callback
 inputs keep their tagged epoch carrier. This does not admit arbitrary nullable
 C values. The native producer remains distinct from preparation and cleanup.
+## In-place C record factories
+
+An independently owned native resource can declare its actual initializer,
+record type, storage adopter and failure finalizer:
+
+```xl
+extern "native_init" @no_raise @c_result("owned_view")
+ @factory(0,0,release) @c_inplace("NativeRecord",adopt,0)
+ func create(c_int option) as Resource
+extern "native_adopt_storage" @no_raise func adopt(Resource value) as c_int
+extern "native_release" @no_raise func release(Resource value)
+```
+
+The factory output index includes the native receiver and physical expansions.
+The initializer receives `NativeRecord*`, rather than `NativeRecord**`. Generated
+C allocates a zeroed, independently XRT-owned record, calls the initializer
+directly, then adopts its storage. The authoritative header checks the exact
+pointer type, complete record and supported heap alignment (16 bytes on the
+currently supported targets). Over-aligned or incomplete records are rejected.
+
+Before successful adoption, failure finalizes any initialized payload and frees
+the record. After adoption, the native finalizer owns final record disposal,
+including admission failure after transfer. An adopter's declared success means
+it took storage even if it also reports a diagnostic; a failed adopter must not
+consume storage. This is a trusted native API contract. The result is an
+independent owned root, without a native watch or call-scope contract.
+
+There is one shared checked transaction in Cgen. It does not synthesize a C
+forwarding implementation for each constructor. Record/control allocation,
+registration and checked ownership still have costs relative to a C stack
+record; this feature does not establish universal zero overhead.
+
+## Independent retained results
+
+`owner_view` borrows a value within the same managed root. An independently
+reference-counted borrowed result instead declares acquisition of its own
+native reference:
+
+```xl
+extern "native_borrow" @no_raise @c_result("retained_view")
+ @c_retain(retain,"positive",release) func borrow(Resource source) as Resource?
+extern "native_addref" @no_raise func retain(Resource value) as c_int
+extern "native_release" @no_raise func release(Resource value)
+```
+
+The success predicate is explicitly `"positive"` (result > 0) or `"zero"`
+(result == 0). Both helpers must be exact top-level, non-pure, no-raise C
+declarations taking the non-null resource type; release returns void. The
+result uses an independent owned-root policy and authoritative header, without
+native watches or scopes. A nullable NULL result acquires no native reference.
+Properties may use the same contract, including direct `@c_field` reads.
+
+The producer returns a borrowed pointer. Before input cleanup, generated C
+acquires one reference and admits a language control. Failure before acquisition
+does not release the borrowed pointer. Failure after acquisition releases only
+the reference acquired by this transaction, including success accompanied by a
+diagnostic. Separate controls may own separate references to the same native
+pointer; this mechanism does not globally intern raw pointer addresses. It
+requires one native retain and ordinary control admission, without copying the
+resource payload.
+
+## Bounded callback byte spans
+
+A native callback's pointer/count pair can become one callback-epoch view:
+
+```xl
+extern "const xbytesview*" class Slice @header("native.h")
+ @lifetime("callback") @owner(Context)
+ native point handle
+ extern "Size" @c_field get size() as c_size
+ extern "Data" @c_field @c_length("Size","size_t")
+  @c_result("bytes_view") get copy() as bytes
+end
+typedef Handler = func(Slice,c_int) as c_int
+extern "native_set" @no_raise @c_owned_callback(1,0,"NativeOwner",-7)
+ @c_callback_span(1,0,"const unsigned char*","size_t")
+ func on(Context owner,Handler? callback)
+```
+
+The first index is the explicit callback parameter of the registration
+declaration; the second is its logical callback argument. Physical expansion
+preserves argument order and the declared first/last userdata convention.
+Multiple logical arguments can each expand to pointer plus byte count. A
+declaration permits at most 64 such mappings. Counts use `int` or `size_t`;
+readonly pointers use `const void*`, `const uint8_t*`, `const unsigned char*` or
+`const char*`. The header proves the logical view's exact const `xbytesview*`
+type and complete native callback signature.
+
+The thunk builds a stack `xbytesview` and uses the existing two-word epoch view.
+It makes no payload copy or per-argument heap wrapper. NULL/zero is a present
+empty slice and is normalized to a stable empty data address; NULL/nonzero,
+negative and out-of-language-range counts fail before invoking language code.
+Saving a slice does not extend its validity. Nested callbacks keep their own
+epochs: an inner saved view expires while the outer view remains valid. A
+declared copy property performs ordinary checked bytes materialization for
+persistent data. Callback registration, activity, epoch bookkeeping, dynamic
+boxing and explicit copies retain their respective costs.

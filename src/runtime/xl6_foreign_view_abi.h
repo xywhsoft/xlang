@@ -4,6 +4,10 @@
 #include "xl6_foreign_view_value.h"
 #include "xl6_foreign_view_sequence.h"
 
+/* Minimum alignment guaranteed by the pinned resident XRT heap on every
+ * supported target. In-place C records are checked against this ABI limit. */
+#define XL6_FOREIGN_RECORD_ALIGNMENT_V1 16u
+
 /* A language owner is one control pointer, never the native payload pointer.
  * Copy publishes one independent owner into an empty output. Drop consumes
  * its by-value owner after the caller has detached its owning storage. */

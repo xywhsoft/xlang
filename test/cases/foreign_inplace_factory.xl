@@ -1,0 +1,112 @@
+extern "InplaceRecord*" class Record @header("test/cases/foreign_inplace_factory.h") @lifetime("owned") @policy("inplacePolicy")
+ native point handle
+ extern "inplace_from" @no_raise @c_result("owned_view") @factory(1,0,rollback) @c_inplace("InplaceRecord",adopt,0) func newCopy() as Record
+ extern "inplace_read" @no_raise get value() as c_int
+ extern "inplace_duplicate" @no_raise @c_result("owned_view") @factory(1,0,rollback) func duplicate() as Record
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "inplace_init" @no_raise @c_text_view(1) @c_result("owned_view") @factory(0,0,rollback) @c_inplace("InplaceRecord",adopt,0) func create(c_int mode,string text) as Record
+// Forward resolution is deliberate: adoption is declared AFTER the factory.
+extern "inplace_adopt" @no_raise func adopt(Record record) as c_int
+extern "inplace_free" @no_raise func rollback(Record record)
+extern "inplace_live" @no_raise func live() as c_int
+extern "inplace_fail_after" @no_raise func failAfter(c_int count)
+extern "inplace_reset" @no_raise func resetFailure()
+protocol Maker
+ func newCopy() as Record
+end
+func basic()
+ Record record=create(0,"a\0b")
+ assert record.value==3
+ Record copied=record
+ Record other=record.duplicate()
+ record.close()
+ bool rejected=false
+ try
+  auto invalid=copied.value
+ catch error
+  rejected=true
+ end
+ assert rejected and other.value==3 and live()==1
+ Record directCopy=other.newCopy()
+ func() as Record method=other.newCopy
+ Record methodCopy=method()
+ Maker maker=other
+ Record protocolCopy=maker.newCopy()
+ var erased=other
+ Record dynamicCopy=erased.newCopy() as Record
+ assert directCopy.value==3 and methodCopy.value==3 and protocolCopy.value==3 and dynamicCopy.value==3 and live()==5
+ directCopy.close()
+ methodCopy.close()
+ protocolCopy.close()
+ dynamicCopy.close()
+ other.close()
+ assert live()==0
+ func(c_int,string) as Record indirect=create
+ Record throughValue=indirect(0,"value")
+ assert throughValue.value==5
+end
+func failures()
+ int mode=1
+ while mode<8
+  bool caught=false
+  try
+   Record invalid=create(c_int(mode),"fault")
+  catch error
+   caught=true
+  finally
+   resetFailure()
+  end
+  assert caught and live()==0
+  mode+=1
+ end
+ int count=0
+ int rejected=0
+ int accepted=0
+ while count<32
+  failAfter(c_int(count))
+  try
+   Record value=create(0,"budget")
+   assert value.value==6
+   accepted+=1
+  catch error
+   rejected+=1
+  finally
+   resetFailure()
+  end
+  assert live()==0
+  count+=1
+ end
+ assert rejected>0 and accepted>0
+end
+func stream() as generator<Record>
+ yield create(0,"generator")
+end
+async func ready() as int
+ return 1
+end
+async func asyncMade() as int
+ // Native roots remain creator-affine. Complete native use and close on this
+ // activation; only the scalar result crosses the async publication boundary.
+ int marker=await ready()
+ assert marker==1
+ Record value=create(0,"async")
+ int size=value.value
+ value.close()
+ return size
+end
+int resumed=await asyncMade()
+func main(...) as int
+ assert resumed==5
+ basic()
+ assert live()==0
+ int produced=0
+ for item in stream()
+  assert item.value==9
+  produced+=1
+ end
+ assert produced==1 and live()==0
+ failures()
+ assert live()==0
+ return 0
+end

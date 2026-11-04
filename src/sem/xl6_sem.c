@@ -21428,6 +21428,34 @@ invalid:
     xl6SemErrorNode(ctx,at,"retained C callback requires an exact native signature and managed inputs from its declared owner root");
     return 0;
 }
+/* Ownership helper declarations are resolved once by semantics; lowering and
+ * Cgen only consume their sealed symbols and exact physical signatures. */
+static const XL6_AstNode* xl6SemForeignOwnershipHelper(XL6_SemContext* ctx,
+    const XL6_AstNode* name,const XL6_AstNode* type,int status)
+{
+    const XL6_AstNode* found=NULL;size_t matches=0;
+    if(!name || !name->text || !type)return NULL;
+    for(size_t i=0;ctx->root && i<ctx->root->childCount;++i){
+        const XL6_AstNode* decl=ctx->root->children[i];
+        if(!decl || decl->kind!=XL6_AST_EXTERN_FUNC ||
+            !xl6TextEquals(xl6SemFuncName(decl),name->text) ||
+            !(decl->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
+            (decl->flags&(XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) ||
+            xl6ForeignFunctionAttributes(decl) || xl6SemFuncIsGeneric(decl))continue;
+        const XL6_AstNode* args=decl->childCount>1 ? decl->children[1] : NULL;
+        const XL6_AstNode* ret=decl->childCount>2 ? decl->children[2] : NULL;
+        const XL6_AstNode* argument=args && args->childCount==1 && args->children[0]->childCount==1 ?
+            xl6SemResolveAliasType(ctx,args->children[0]->children[0]) : NULL;
+        if(!argument || xl6SemTypeIsNullable(argument) ||
+            !xl6SemTypeEquals(ctx,type,xl6SemClassValueType(ctx,argument)) || !ret)continue;
+        if(status){
+            const XL6_AstNode* result=ret->childCount==1 ? xl6SemResolveAliasType(ctx,ret->children[0]) : NULL;
+            if(!result || result->childCount || !xl6TextEquals(result->text,"c_int"))continue;
+        }else if(ret->childCount)continue;
+        found=decl;++matches;
+    }
+    return matches==1 && found->semanticSymbolId ? found : NULL;
+}
 static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNode* node,const XL6_AstNode* ownerClass)
 {
     XL6_ForeignCallFacts facts;
@@ -21542,6 +21570,31 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             }
         }
     }
+    for(size_t i=0;attrs && i<attrs->childCount;++i){
+        const XL6_AstNode* attr=attrs->children[i];
+        if(!attr || !attr->text || strcmp(attr->text,"c_callback_span"))continue;
+        XL6_ForeignCallbackSpanContract row;
+        if(!xl6ForeignCallbackSpanRead(attr,&row) || row.parameter>=count){
+            xl6SemErrorNode(ctx,node,"callback span parameter is outside the declared signature");return 0;
+        }
+        const XL6_AstNode* signature=xl6SemResolveAliasType(ctx,params->children[row.parameter]->children[0]);
+        if(xl6SemTypeIsNullable(signature))signature=xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(signature));
+        const XL6_AstNode* arguments=signature && xl6TextEquals(signature->text,"function") && signature->childCount==2 ? signature->children[0] : NULL;
+        const XL6_AstNode* value=arguments && row.argument<arguments->childCount ?
+            xl6SemResolveAliasType(ctx,xl6SemCallableItemType(arguments->children[row.argument])) : NULL;
+        XL6_ForeignClassDecl contract={0};
+        if(!value || xl6SemTypeIsNullable(value) || !xl6SemForeignViewDeclaration(ctx,value,&contract) ||
+            contract.lifetime!=XL6_FOREIGN_LIFETIME_CALLBACK){
+            xl6SemErrorNode(ctx,node,"callback span must map to one non-null callback-lifetime const xbytesview pointer");return 0;
+        }
+        for(size_t j=0;j<i;++j){
+            XL6_ForeignCallbackSpanContract previous;
+            if(xl6ForeignCallbackSpanRead(attrs->children[j],&previous) &&
+                previous.parameter==row.parameter && previous.argument==row.argument){
+                xl6SemErrorNode(ctx,node,"callback span argument has duplicate physical mappings");return 0;
+            }
+        }
+    }
     if(facts.controlViews & ((facts.textViews|facts.bytesViews|facts.terminatedStrings|facts.spanParameters|facts.retainedCallbacks|facts.constRecordAddresses|facts.staticCallbackAddresses)<<receiver)){
         xl6SemErrorNode(ctx,node,"C control mapping conflicts with another physical parameter contract");return 0;
     }
@@ -21577,6 +21630,23 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             if(resultContract.lifetime!=XL6_FOREIGN_LIFETIME_OWNED || !facts.outputIndexPlusOne){
                 xl6SemErrorNode(ctx,node,"owned_view requires an owned root and a status/output factory with rollback");return 0;
             }
+        }else if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE){
+            XL6_AstNode* retained=NULL;
+            for(size_t i=0;attrs && i<attrs->childCount;++i)
+                if(!strcmp(attrs->children[i]->text,"c_retain"))retained=attrs->children[i];
+            const XL6_AstNode* resultType=xl6SemResolveAliasType(ctx,viewReturns->children[0]);
+            if(xl6SemTypeIsNullable(resultType))resultType=xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(resultType));
+            resultType=xl6SemClassValueType(ctx,resultType);
+            const XL6_AstNode* retain=retained ? xl6SemForeignOwnershipHelper(ctx,retained->children[0],resultType,1) : NULL;
+            const XL6_AstNode* rollback=retained ? xl6SemForeignOwnershipHelper(ctx,retained->children[2],resultType,0) : NULL;
+            if(resultContract.lifetime!=XL6_FOREIGN_LIFETIME_OWNED || !resultContract.header[0] ||
+                resultContract.watch[0] || resultContract.scope[0] || !retain || !rollback ||
+                !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
+                (node->flags&(XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_OWNED_STRING))){
+                xl6SemErrorNode(ctx,node,"retained_view requires an independent header-owned root and exact no-raise C retain/release helpers");return 0;
+            }
+            retained->children[0]->semanticSymbolId=retain->semanticSymbolId;
+            retained->children[2]->semanticSymbolId=rollback->semanticSymbolId;
         }else if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE || facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE){
             size_t p=facts.resultOwnerIndexPlusOne-1;
             const XL6_AstNode* ownerType=p>=receiver && p-receiver<count ?
@@ -21669,6 +21739,35 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             xl6SemErrorNode(ctx, node, "factory rollback must resolve to one declared @no_raise C function accepting the exact result and returning void"); return 0;
         }
         rollbackName->semanticSymbolId = rollback->semanticSymbolId;
+        if(facts.inplaceOutput){
+            XL6_AstNode* adoptName=NULL;
+            for(size_t i=0;i<attrs->childCount;++i)
+                if(!strcmp(attrs->children[i]->text,"c_inplace"))adoptName=attrs->children[i]->children[1];
+            const XL6_AstNode* adopt=NULL;size_t adopters=0;
+            for(size_t i=0;ctx->root && i<ctx->root->childCount;++i){
+                const XL6_AstNode* decl=ctx->root->children[i];
+                if(!decl || decl==node || decl->kind!=XL6_AST_EXTERN_FUNC || !adoptName ||
+                    !xl6TextEquals(xl6SemFuncName(decl),adoptName->text) ||
+                    !(decl->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
+                    (decl->flags&XL6_AST_FLAG_FOREIGN_PURE) || xl6ForeignFunctionAttributes(decl) ||
+                    xl6SemFuncIsGeneric(decl))continue;
+                const XL6_AstNode* args=decl->childCount>1 ? decl->children[1] : NULL;
+                const XL6_AstNode* ret=decl->childCount>2 ? decl->children[2] : NULL;
+                const XL6_AstNode* argument=args && args->childCount==1 && args->children[0]->childCount ?
+                    xl6SemResolveAliasType(ctx,args->children[0]->children[0]) : NULL;
+                const XL6_AstNode* result=ret && ret->childCount==1 ? xl6SemResolveAliasType(ctx,ret->children[0]) : NULL;
+                if(!argument || xl6SemTypeIsNullable(argument) ||
+                    !xl6SemTypeEquals(ctx,view,xl6SemClassValueType(ctx,argument)) ||
+                    !result || result->childCount || !xl6TextEquals(result->text,"c_int"))continue;
+                adopt=decl;++adopters;
+            }
+            if(factoryContract.lifetime!=XL6_FOREIGN_LIFETIME_OWNED || !factoryContract.header[0] ||
+                factoryContract.scope[0] || factoryContract.watch[0] ||
+                adopters!=1 || !adopt->semanticSymbolId){
+                xl6SemErrorNode(ctx,node,"in-place factory requires an independent header-owned root without native watches/scopes and one exact @no_raise C storage adopter returning c_int");return 0;
+            }
+            adoptName->semanticSymbolId=adopt->semanticSymbolId;
+        }
     }
     return 1;
 }

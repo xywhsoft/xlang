@@ -21,7 +21,8 @@ typedef enum XL6_ForeignBorrowedViewResult {
     XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE,
     XL6_FOREIGN_VIEW_RESULT_INT_STATUS,
     XL6_FOREIGN_VIEW_RESULT_TEXT_FIELD,
-    XL6_FOREIGN_VIEW_RESULT_BYTES_FIELD
+    XL6_FOREIGN_VIEW_RESULT_BYTES_FIELD,
+    XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE
 } XL6_ForeignBorrowedViewResult;
 
 static inline int xl6ForeignResultTextView(XL6_ForeignBorrowedViewResult kind)
@@ -54,7 +55,8 @@ typedef struct XL6_ForeignCallFacts {
      * existing tail padding; outputIndexPlusOne includes the C receiver. */
     uint8 valueOutput;
     uint8 receiverDereference;
-    uint16 reserved;
+    uint8 inplaceOutput;
+    uint8 callbackSpanMappings;
 } XL6_ForeignCallFacts;
 
 /* The factory output index counts actual C slots. Expanded pointer/count
@@ -92,6 +94,35 @@ typedef struct XL6_ForeignFieldLengthContract {
     char field[64];
     XL6_ForeignSpanCountAbi countAbi;
 } XL6_ForeignFieldLengthContract;
+
+/* Only in-place record factories carry storage/adoption metadata. The record
+ * name is checked against the exact pointer type by the authoritative C header;
+ * native storage must be independently xrt-allocated, never language stack data. */
+typedef struct XL6_ForeignStorageContract {
+    uint32 declaration;
+    uint32 adoptSymbol;
+    int32 successCode;
+    char recordCName[64];
+} XL6_ForeignStorageContract;
+
+typedef enum XL6_ForeignRetainSuccess {
+    XL6_FOREIGN_RETAIN_ZERO = 1,
+    XL6_FOREIGN_RETAIN_POSITIVE
+} XL6_ForeignRetainSuccess;
+/* A borrowed native result acquires one independent native reference before
+ * input cleanup. Each admitted language root owns precisely that reference. */
+typedef struct XL6_ForeignRetainContract {
+    uint32 declaration,retainSymbol,rollbackSymbol;
+    XL6_ForeignRetainSuccess success;
+} XL6_ForeignRetainContract;
+
+/* Two physical native callback slots become one non-null callback-epoch byte
+ * view. Counts are bytes; no element-stride inference or payload ownership. */
+typedef struct XL6_ForeignCallbackSpanContract {
+    uint32 declaration,parameter,argument;
+    XL6_ForeignSpanCountAbi countAbi;
+    char pointerCName[128];
+} XL6_ForeignCallbackSpanContract;
 
 typedef struct XL6_ForeignParameterContract {
     uint32 declaration;

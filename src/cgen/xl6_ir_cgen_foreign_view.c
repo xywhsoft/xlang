@@ -63,7 +63,8 @@ static int xl6IrCgenFactoryProbeBegin(XL6_Output* out,const XL6_IrModule* module
 {
     const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
     if(target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT ||
-        !declaration->foreignCall.outputIndexPlusOne)return 0;
+        (!declaration->foreignCall.outputIndexPlusOne &&
+         declaration->foreignCall.borrowedViewResult!=XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE))return 0;
     const XL6_IrType* type=xl6IrTypeGet(&module->types,target->returnType);
     xl6OutputPuts("    { XL6_ForeignResultProbeV1 native_result_probe = {0};\n",out);
     if(type->foreignWatch)xl6OutputPrintf(out,"    %s native_result_watch = {0};\n",type->foreignWatch);
@@ -76,12 +77,29 @@ static void xl6IrCgenFactoryProbeEnd(XL6_Output* out,const char* errors)
 {
     xl6OutputPrintf(out,"    }\n    if (native_result_probe.self && !xl6ForeignResultProbeEndV1(&native_result_probe)) xl6ErrorScopeCaptureFailure(&%s);\n    }\n",errors);
 }
+/* A closed storage contract selects this one allocation/adoption transaction.
+ * The C producer still receives its original exact record pointer, not ** and
+ * not a generated per-function forwarding implementation. */
+static int xl6IrCgenFactoryStorageBegin(XL6_Output* out,const XL6_IrModule* module,
+    const XL6_IrCallTarget* target,const char* errors)
+{
+    const XL6_ForeignStorageContract* storage=xl6IrForeignStorageGet(module,target);
+    if(!storage)return 0;
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,target->returnType);
+    xl6OutputPrintf(out,"    bool native_storage_adopted=false;\n"
+        "    %s native_raw=(%s)xrtCalloc(1,sizeof(%s));\n    int native_status=0;\n"
+        "    if(!native_raw) { xl6ErrorScopeCaptureFailure(&%s); } else {\n    native_status = ",
+        type->cName,type->cName,storage->recordCName,errors);
+    return 1;
+}
 static void xl6IrCgenNativeViewAdmission(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrCallTarget* target,const XL6_IrValueId* values,const char* receiver,
     const char* place,const char* raw,const char* errors,const char* status)
 {
     const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
     const XL6_IrType* type=xl6IrTypeGet(&module->types,target->returnType);
+    const XL6_ForeignStorageContract* storage=xl6IrForeignStorageGet(module,target);
+    const XL6_ForeignRetainContract* retained=xl6IrForeignRetainGet(module,target);
     if(type->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK){
         xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError()==NULL) {\n        if (%s) { XL6_ForeignScopeViewV1 derived={0};\n            if (!xl6ForeignScopeViewDeriveV1(",errors,raw);
         xl6IrCgenForeignViewArgument(out,values,declaration->foreignCall.resultOwnerIndexPlusOne-1,receiver);
@@ -96,10 +114,30 @@ static void xl6IrCgenNativeViewAdmission(XL6_Output* out,const XL6_IrModule* mod
         xl6OutputPrintf(out,"    if (xrtGetError() != NULL) xl6ErrorScopeCaptureFailure(&%s);\n"
             "    if (!xl6ForeignResultProbeObserveV1(&native_result_probe, %s)) xl6ErrorScopeCaptureFailure(&%s);\n",errors,raw,errors);
     }
+    if(retained){
+        const XL6_IrCallTarget* retain=xl6IrCallTargetGet(module,retained->retainSymbol);
+        xl6OutputPrintf(out,"    bool native_result_retained=false;\n"
+            "    if(xrtGetError()) xl6ErrorScopeCaptureFailure(&%s);\n"
+            "    if(!%s.failed && %s) {\n"
+            "        int retained_status=%s(%s); native_result_retained=(retained_status%s);\n"
+            "        if(!native_result_retained) { if(!xrtGetError()) xl6ForeignStatusFailureV1(retained_status,\"%s\"); xl6ErrorScopeCaptureFailure(&%s); }\n"
+            "        if(xrtGetError()) xl6ErrorScopeCaptureFailure(&%s);\n"
+            "        if(native_result_retained && !xl6ForeignResultProbeObserveV1(&native_result_probe,%s)) xl6ErrorScopeCaptureFailure(&%s);\n    }\n",
+            errors,errors,raw,retain->cName,raw,retained->success==XL6_FOREIGN_RETAIN_ZERO ? "==0" : ">0",
+            retain->cName,errors,errors,raw,errors);
+    }
+    if(storage){
+        const XL6_IrCallTarget* adopt=xl6IrCallTargetGet(module,storage->adoptSymbol);
+        xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError()==NULL && %s==%d && %s) {\n"
+            "        int adopted=%s(%s); native_storage_adopted=(adopted==%d);\n"
+            "        if(!native_storage_adopted) { if(!xrtGetError()) xl6ForeignStatusFailureV1(adopted,\"%s\"); xl6ErrorScopeCaptureFailure(&%s); }\n"
+            "        if(xrtGetError()) xl6ErrorScopeCaptureFailure(&%s);\n    }\n",
+            errors,status,declaration->foreignCall.successCode,raw,adopt->cName,raw,storage->successCode,adopt->cName,errors,errors);
+    }
     xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError() == NULL",errors);
     if(status)xl6OutputPrintf(out," && %s == %d",status,declaration->foreignCall.successCode);
     xl6OutputPrintf(out,") {\n        if (%s != NULL) { %s = ",raw,place);
-    if(declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE)
+    if(declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE || retained)
         xl6OutputPrintf(out,"xl6ForeignViewCreateRootProbedV1(%s, &native_result_probe, xlir_code_owner.size ? &xlir_code_owner : NULL)",raw);
     else {
         int root=type->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED;
@@ -118,5 +156,10 @@ static void xl6IrCgenNativeViewAdmission(XL6_Output* out,const XL6_IrModule* mod
     if(status){
         const XL6_IrCallTarget* rollback=xl6IrCallTargetGet(module,declaration->foreignCall.rollbackSymbol);
         xl6OutputPrintf(out,"    if (%s == NULL && %s != NULL && xl6ForeignResultProbeAliveV1(&native_result_probe)) { %s(%s); }\n",place,raw,rollback->cName,raw);
+        if(storage)xl6OutputPrintf(out,"    if(%s==NULL && %s!=NULL && !native_storage_adopted) xrtFree(%s);\n",place,raw,raw);
+    }
+    if(retained){
+        const XL6_IrCallTarget* rollback=xl6IrCallTargetGet(module,retained->rollbackSymbol);
+        xl6OutputPrintf(out,"    if(%s==NULL && native_result_retained) %s(%s);\n",place,rollback->cName,raw);
     }
 }

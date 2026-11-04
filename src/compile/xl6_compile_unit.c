@@ -1219,12 +1219,19 @@ int xl6ArtifactOwnershipPlanBuild(const XL6_ArtifactRuntimePlan* base,XL6_Artifa
     result.runtime.entry=base->entry;result.runtime.entryOwnershipAbi=base->entryOwnershipAbi;*output=result;return 1;
 }
 
+typedef struct XL6_ArtifactResidentVisit {
+    XL6_ArtifactRuntimeSet* roots;
+    XL6_DiagList* diags;
+} XL6_ArtifactResidentVisit;
 static int xl6ArtifactVisitResidentSymbol(void* opaque, const char* symbol)
 {
-    XL6_ArtifactRuntimeSet* roots = opaque;
+    XL6_ArtifactResidentVisit* visit=opaque;
     XL6_ArtifactRuntimeId owner = xl6ArtifactRuntimeSymbolOwner(symbol);
-    return owner != XL6_ARTIFACT_RUNTIME_COUNT &&
-        xl6ComponentSetAdd(roots->words,XL6_ARTIFACT_RUNTIME_COUNT,owner);
+    if(owner==XL6_ARTIFACT_RUNTIME_COUNT){
+        char message[256];snprintf(message,sizeof(message),"Generated resident dependency has no implementation owner: %s",symbol ? symbol : "<null>");
+        xl6DiagAdd(visit->diags,0,0,message);return 0;
+    }
+    return xl6ComponentSetAdd(visit->roots->words,XL6_ARTIFACT_RUNTIME_COUNT,owner);
 }
 
 int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi entry,
@@ -1561,7 +1568,8 @@ int xl6ArtifactRuntimePlanBuildWithOptions(const XL6_IrModule* module, XL6_Artif
     xrtFree(work.seen); xrtFree(work.queue);
     cOptions.emitScriptEntry=entry!=XL6_ARTIFACT_ENTRY_FRAGMENT;
     cOptions.emitMainWrapper=entry==XL6_ARTIFACT_ENTRY_EXECUTABLE_V1;
-    if (!xl6IrCgenVisitResidentSymbols(module,diags,&cOptions,xl6ArtifactVisitResidentSymbol,&roots)) return 0;
+    XL6_ArtifactResidentVisit residentVisit={&roots,diags};
+    if (!xl6IrCgenVisitResidentSymbols(module,diags,&cOptions,xl6ArtifactVisitResidentSymbol,&residentVisit)) return 0;
     if (!xl6ArtifactRuntimeClosePlan(&roots,plan)) return 0;
     {
         /* The public xlValue ABI includes graph cloning, native/callable/type

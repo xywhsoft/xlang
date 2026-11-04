@@ -1,0 +1,129 @@
+extern "SpanRoot*" class Root @header("test/cases/foreign_callback_span.h") @lifetime("owned") @policy("spanRootPolicy") @scope("SpanCall")
+ native point handle
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "const xbytesview*" class Slice @header("test/cases/foreign_callback_span.h") @lifetime("callback") @owner(Root)
+ native point handle
+ extern "Size" @c_field get size() as c_size
+ extern "Data" @c_field @c_length("Size","size_t") @c_result("bytes_view") get copy() as bytes
+end
+extern "span_create" @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Root
+extern "span_destroy" @no_raise func rollback(Root root)
+typedef ByteHandler = func(Slice,c_int) as c_int
+typedef PairHandler = func(Slice,Slice) as c_int
+extern "span_set" @no_raise @c_owned_callback(1,0,"SpanOwner",-7) @c_callback_span(1,0,"const unsigned char*","size_t") func on(Root root,ByteHandler? callback)
+extern "span_set_pair" @no_raise @c_owned_callback(1,0,"SpanOwner",-7,"first") @c_callback_span(1,0,"const char*","int") @c_callback_span(1,1,"const void*","size_t") func onPair(Root root,PairHandler? callback)
+extern "span_fire" @no_raise func fire(Root root,c_int mode) as c_int
+extern "span_fire_pair" @no_raise func firePair(Root root,c_int mode) as c_int
+extern "span_live" @no_raise func live() as c_int
+extern "span_counter_begin" @no_raise func countersBegin()
+extern "span_counter_end" @no_raise func countersEnd()
+class Saved
+ Slice? slice
+ bytes copied=b""
+end
+func basic()
+ Root root=create()
+ Saved saved=Saved()
+ on(root,func(Slice slice,c_int mode) as c_int
+  if mode==1
+   assert slice.size==0 and slice.copy==b""
+   return 1
+  end
+  assert slice.size==3 and slice.copy==b"a\0b"
+  saved.slice=slice
+  saved.copied=slice.copy
+  return 3
+ end)
+ assert fire(root,0)==3 and saved.copied==b"a\0b"
+ bool expired=false
+ try
+  auto size=(saved.slice as Slice).size
+ catch error
+  expired=true
+ end
+ assert expired and fire(root,1)==1
+ int mode=2
+ while mode<5
+  if mode!=3
+   bool rejected=false
+   try
+    auto result=fire(root,c_int(mode))
+   catch error
+    rejected=true
+   end
+   assert rejected
+  end
+  mode+=1
+ end
+ on(root,null)
+ onPair(root,func(Slice first,Slice second) as c_int
+  if first.size==0
+   assert second.size==0
+   return 0
+  end
+  assert first.copy==b"a\0b" and second.copy==b"\xe4\xbd\xa0"
+  return 6
+ end)
+ assert firePair(root,0)==6 and firePair(root,2)==0
+ bool negative=false
+ try
+  auto result=firePair(root,1)
+ catch error
+  negative=true
+ end
+ assert negative
+ onPair(root,null)
+ root.close()
+end
+func warm()
+ Root root=create()
+ on(root,func(Slice input,c_int mode) as c_int
+  assert input.size==3 and mode==0
+  return 3
+ end)
+ assert fire(root,0)==3
+ countersBegin()
+ int round=0
+ while round<200
+  assert fire(root,0)==3
+  round+=1
+ end
+ countersEnd()
+ on(root,null)
+ root.close()
+end
+func nested()
+ Root root=create()
+ int depth=0
+ Slice? inner=null
+ on(root,func(Slice input,c_int mode) as c_int
+  assert input.size==3 and mode==0
+  if depth==0
+   depth=1
+   assert fire(root,0)==3
+   assert input.size==3
+   bool expired=false
+   try
+    auto size=(inner as Slice).size
+   catch error
+    expired=true
+   end
+   assert expired
+   depth=0
+  else
+   inner=input
+  end
+  return 3
+ end)
+ assert fire(root,0)==3
+ on(root,null)
+ root.close()
+end
+func main(...) as int
+ basic()
+ nested()
+ warm()
+ assert live()==0
+ return 0
+end

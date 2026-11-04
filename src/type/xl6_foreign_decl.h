@@ -44,6 +44,53 @@ static inline int xl6ForeignIdentifier(const char*);
 static inline int xl6ForeignPointerSpelling(const char*);
 static inline int xl6ForeignHeaderName(const char*);
 
+static inline int xl6ForeignCallbackSpanRead(const XL6_AstNode* attr,XL6_ForeignCallbackSpanContract* output)
+{
+    XL6_ForeignCallbackSpanContract row={0};int32 parameter,argument;char count[32];
+    if(!attr || !attr->text || strcmp(attr->text,"c_callback_span") || attr->childCount!=4 ||
+        !xl6ForeignDecimalInt(attr->children[0],&parameter) || parameter<0 || parameter>=64 ||
+        !xl6ForeignDecimalInt(attr->children[1],&argument) || argument<0 || argument>=64 ||
+        !xl6ForeignQuotedText(attr->children[2],row.pointerCName,sizeof(row.pointerCName)) ||
+        !xl6ForeignQuotedText(attr->children[3],count,sizeof(count)))return 0;
+    if(strcmp(row.pointerCName,"const void*") && strcmp(row.pointerCName,"const uint8_t*") &&
+        strcmp(row.pointerCName,"const unsigned char*") && strcmp(row.pointerCName,"const char*"))return 0;
+    if(!strcmp(count,"int"))row.countAbi=XL6_FOREIGN_SPAN_COUNT_INT;
+    else if(!strcmp(count,"size_t"))row.countAbi=XL6_FOREIGN_SPAN_COUNT_SIZE;
+    else return 0;
+    row.parameter=(uint32)parameter;row.argument=(uint32)argument;
+    if(output)*output=row;
+    return 1;
+}
+
+static inline int xl6ForeignRetainRead(const XL6_AstNode* attr,XL6_ForeignRetainContract* output)
+{
+    XL6_ForeignRetainContract row={0};char success[32];
+    if(!attr || !attr->text || strcmp(attr->text,"c_retain") || attr->childCount!=3 ||
+        !attr->children[0] || attr->children[0]->kind!=XL6_AST_NAME || !attr->children[0]->text ||
+        !xl6ForeignQuotedText(attr->children[1],success,sizeof(success)) ||
+        !attr->children[2] || attr->children[2]->kind!=XL6_AST_NAME || !attr->children[2]->text)return 0;
+    if(!strcmp(success,"zero"))row.success=XL6_FOREIGN_RETAIN_ZERO;
+    else if(!strcmp(success,"positive"))row.success=XL6_FOREIGN_RETAIN_POSITIVE;
+    else return 0;
+    row.retainSymbol=attr->children[0]->semanticSymbolId;
+    row.rollbackSymbol=attr->children[2]->semanticSymbolId;
+    if(output)*output=row;
+    return 1;
+}
+
+static inline int xl6ForeignStorageRead(const XL6_AstNode* attr,XL6_ForeignStorageContract* output)
+{
+    XL6_ForeignStorageContract row={0};
+    if(!attr || !attr->text || strcmp(attr->text,"c_inplace") || attr->childCount!=3 ||
+        !xl6ForeignQuotedText(attr->children[0],row.recordCName,sizeof(row.recordCName)) ||
+        !xl6ForeignIdentifier(!strncmp(row.recordCName,"struct ",7) ? row.recordCName+7 : row.recordCName) ||
+        !attr->children[1] || attr->children[1]->kind!=XL6_AST_NAME || !attr->children[1]->text ||
+        !xl6ForeignDecimalInt(attr->children[2],&row.successCode))return 0;
+    row.adoptSymbol=attr->children[1]->semanticSymbolId;
+    if(output)*output=row;
+    return 1;
+}
+
 static inline int xl6ForeignFieldLengthRead(const XL6_AstNode* attr,XL6_ForeignFieldLengthContract* output)
 {
     XL6_ForeignFieldLengthContract row={0};char count[32];
@@ -107,11 +154,25 @@ static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
 static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     XL6_ForeignCallFacts* output)
 {
-    XL6_ForeignCallFacts facts = {0};int countedField=0;
+    XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0;uint64 callbackSpans=0;
     const XL6_AstNode* attributes = xl6ForeignFunctionAttributes(node);
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
         const XL6_AstNode* attr = attributes->children[i];
         int32 index;
+        if(attr && attr->text && !strcmp(attr->text,"c_callback_span")){
+            XL6_ForeignCallbackSpanContract row;
+            if(!xl6ForeignCallbackSpanRead(attr,&row))return 0;
+            if(facts.callbackSpanMappings==64)return 0;
+            callbackSpans|=UINT64_C(1)<<row.parameter;++facts.callbackSpanMappings;continue;
+        }
+        if(attr && attr->text && !strcmp(attr->text,"c_retain")){
+            if(retainedResult || !xl6ForeignRetainRead(attr,NULL))return 0;
+            retainedResult=1;continue;
+        }
+        if(attr && attr->text && !strcmp(attr->text,"c_inplace")){
+            if(facts.inplaceOutput || !xl6ForeignStorageRead(attr,NULL))return 0;
+            facts.inplaceOutput=1;continue;
+        }
         if(attr && attr->text && !strcmp(attr->text,"c_deref")){
             if(attr->childCount || facts.receiverDereference)return 0;
             facts.receiverDereference=1;continue;
@@ -126,6 +187,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             if (!strcmp(value->text, "\"text_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_TEXT;
             else if (!strcmp(value->text, "\"bytes_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_BYTES;
             else if (!strcmp(value->text, "\"owned_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE;
+            else if (!strcmp(value->text, "\"retained_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE;
             else if (!strcmp(value->text, "\"owner_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE;
             else if (!strcmp(value->text, "\"bool_status\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS;
             else if (!strcmp(value->text, "\"scope_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE;
@@ -185,7 +247,13 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             facts.rollbackSymbol = attr->children[2]->semanticSymbolId;
         } else return 0;
     }
+    if(callbackSpans&~facts.retainedCallbacks)return 0;
+    if(retainedResult!=(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE) ||
+        (retainedResult && (facts.outputIndexPlusOne || facts.inplaceOutput || facts.receiverDereference || facts.valueOutput)))return 0;
     if(facts.receiverDereference && ((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.valueOutput || facts.outputIndexPlusOne))return 0;
+    if(facts.inplaceOutput && (!facts.outputIndexPlusOne || facts.valueOutput ||
+        facts.borrowedViewResult!=XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE ||
+        (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference))return 0;
     if(countedField){
         if(!(node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || node->kind!=XL6_AST_GET || facts.outputIndexPlusOne)return 0;
         if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_TEXT)facts.borrowedViewResult=XL6_FOREIGN_VIEW_RESULT_TEXT_FIELD;

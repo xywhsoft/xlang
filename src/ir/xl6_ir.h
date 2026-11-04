@@ -7017,6 +7017,12 @@ typedef struct XL6_IrModule {
     int ready;
     XL6_ForeignFieldLengthContract* foreignFieldLengths;
     size_t foreignFieldLengthCount,foreignFieldLengthCapacity;
+    XL6_ForeignStorageContract* foreignStorage;
+    size_t foreignStorageCount,foreignStorageCapacity;
+    XL6_ForeignRetainContract* foreignRetains;
+    size_t foreignRetainCount,foreignRetainCapacity;
+    XL6_ForeignCallbackSpanContract* foreignCallbackSpans;
+    size_t foreignCallbackSpanCount,foreignCallbackSpanCapacity;
 } XL6_IrModule;
 
 void xl6IrModuleInit(XL6_IrModule* module);
@@ -7981,6 +7987,11 @@ int xl6IrForeignRetainedParameterMatches(const XL6_IrModule*,const XL6_IrCallTar
 size_t xl6IrForeignParameterWidth(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 XL6_IrForeignOperationAbi xl6IrForeignOperationForTarget(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignFieldLengthContract* xl6IrForeignFieldLengthGet(const XL6_IrModule*,const XL6_IrCallTarget*);
+const XL6_ForeignStorageContract* xl6IrForeignStorageGet(const XL6_IrModule*,const XL6_IrCallTarget*);
+int xl6IrForeignStorageFactoryMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
+const XL6_ForeignRetainContract* xl6IrForeignRetainGet(const XL6_IrModule*,const XL6_IrCallTarget*);
+int xl6IrForeignRetainResultMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
+const XL6_ForeignCallbackSpanContract* xl6IrForeignCallbackSpanGet(const XL6_IrModule*,const XL6_ForeignParameterContract*,size_t);
 int xl6IrForeignOutputValueMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignProjectionMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignManagedPointeeWrite(const XL6_IrModule*,const XL6_IrCallTarget*);

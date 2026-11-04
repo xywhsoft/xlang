@@ -11,6 +11,14 @@ static int xl6IrCgenRetainedParameters(XL6_Output* out,const XL6_IrModule* modul
     if(row->callbackUserFirst)xl6OutputPuts(names ? "void* userdata" : "void*",out);
     for(size_t p=0;p<signature->paramCount;++p) {
         if(p || row->callbackUserFirst)xl6OutputPuts(", ",out);
+        const XL6_ForeignCallbackSpanContract* span=xl6IrForeignCallbackSpanGet(module,row,p);
+        if(span){
+            xl6OutputPuts(span->pointerCName,out);
+            if(names)xl6OutputPrintf(out," raw%lu",(unsigned long)p);
+            xl6OutputPrintf(out,", %s",span->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int" : "size_t");
+            if(names)xl6OutputPrintf(out," raw%lu_count",(unsigned long)p);
+            continue;
+        }
         xl6OutputPuts(xl6IrCgenRetainedNativeType(module,signature->params[p]),out);
         if(names)xl6OutputPrintf(out," raw%lu",(unsigned long)p);
     }
@@ -36,6 +44,10 @@ static int xl6IrCgenEmitRetainedCallbackTypes(XL6_Output* out,const XL6_IrModule
             xl6IrCgenRetainedNativeType(module,signature->callableResultType) : "void",row->callbackTypeCName);
         if(!xl6IrCgenRetainedParameters(out,module,signature,row,false))return 0;
         xl6OutputPuts(");\n",out);
+        for(size_t a=0;a<signature->paramCount;++a)if(xl6IrForeignCallbackSpanGet(module,row,a)){
+            const XL6_IrType* view=xl6IrTypeGet(&module->types,signature->params[a]);
+            xl6OutputPrintf(out,"_Static_assert(_Generic((%s)0,const xbytesview*:1,default:0),\"callback span requires const xbytesview pointer\");\n",view->cName);
+        }
     }
     return !xl6OutputHasFailed(out);
 }
@@ -64,6 +76,7 @@ static int xl6IrCgenEmitRetainedCallbackThunks(XL6_Output* out,const XL6_IrModul
             const XL6_IrType* item=xl6IrTypeGet(&module->types,signature->params[p]);
             if(item->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK){
                 scoped=true;xl6OutputPrintf(out,"    %s arg%lu = {0};\n",xl6IrCgenType(module,signature->params[p]),(unsigned long)p);
+                if(xl6IrForeignCallbackSpanGet(module,row,p))xl6OutputPrintf(out,"    xbytesview native_span_%lu={0};\n",(unsigned long)p);
             }else if(item->foreignPolicy)xl6OutputPrintf(out,"    XL6_ForeignView* arg%lu = NULL;\n",(unsigned long)p);
         }
         if(scoped)xl6OutputPuts("    XL6_ForeignScopeLifetimeV1 lifetime={0};\n",out);
@@ -75,6 +88,19 @@ static int xl6IrCgenEmitRetainedCallbackThunks(XL6_Output* out,const XL6_IrModul
         for(size_t p=0;p<signature->paramCount;++p) {
             const XL6_IrType* item=xl6IrTypeGet(&module->types,signature->params[p]);
             if(item->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK){
+                const XL6_ForeignCallbackSpanContract* span=xl6IrForeignCallbackSpanGet(module,row,p);
+                if(span){
+                    xl6OutputPuts("    if(!errors.failed && (",out);
+                    if(span->countAbi==XL6_FOREIGN_SPAN_COUNT_INT)xl6OutputPrintf(out,"raw%lu_count<0 || ",(unsigned long)p);
+                    xl6OutputPrintf(out,"(uintmax_t)raw%lu_count>INT64_MAX || (raw%lu_count && !raw%lu))) { xrtSetErrorKind(XERR_ARGUMENT); xl6ErrorScopeCaptureFailure(&errors); }\n"
+                        "    if(!errors.failed) { XL6_ForeignScopeViewV1 borrowed={0};\n"
+                        "        native_span_%lu=(xbytesview){raw%lu ? (const uint8_t*)raw%lu : (const uint8_t*)\"\",(size_t)raw%lu_count};\n"
+                        "        if(!xl6ForeignScopeViewMakeV1(&lifetime,&native_span_%lu,&borrowed)) xl6ErrorScopeCaptureFailure(&errors);\n"
+                        "        else arg%lu=borrowed;\n    }\n",
+                        (unsigned long)p,(unsigned long)p,(unsigned long)p,
+                        (unsigned long)p,(unsigned long)p,(unsigned long)p,(unsigned long)p,(unsigned long)p,(unsigned long)p);
+                    continue;
+                }
                 xl6OutputPrintf(out,"    if (!errors.failed && raw%lu) { XL6_ForeignScopeViewV1 borrowed={0};\n"
                     "        if (!xl6ForeignScopeViewMakeV1(&lifetime,raw%lu,&borrowed)) xl6ErrorScopeCaptureFailure(&errors);\n        else arg%lu = ",
                     (unsigned long)p,(unsigned long)p,(unsigned long)p);

@@ -1,0 +1,166 @@
+{
+  "complete": true,
+  "scope": "Declared native in-place record factories, independent retain/release results, bounded callback-epoch byte spans and corrected AOT dependency classification",
+  "snapshot": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r17",
+  "windows": {
+    "fullTranslationUnits": 1414,
+    "tccObjects": 1562,
+    "acceptedGroups": 30,
+    "tccModes": [
+      "JIT",
+      "module",
+      "standalone"
+    ],
+    "actualXgeCases": 1
+  },
+  "linux": {
+    "fullTranslationUnits": 1413,
+    "acceptedCompilerGroups": 16,
+    "actualXuiCases": 3,
+    "actualXgeCases": 1,
+    "tccIncluded": false
+  },
+  "factory": {
+    "storageMode": "native adoption",
+    "factsBytes": 88,
+    "mutationsPerOptimization": 31,
+    "emptyOutputsPerOptimization": 62,
+    "semanticNegatives": 10,
+    "headerNegatives": 3,
+    "allocationBudgets": 32,
+    "threadAffinityPreserved": true,
+    "artifactMemoryDependencyChecked": true
+  },
+  "retainedResult": {
+    "declarations": 4,
+    "mutationsPerOptimization": 93,
+    "emptyOutputsPerOptimization": 186,
+    "semanticNegatives": 14,
+    "headerNegatives": 2,
+    "allocationBudgets": 32,
+    "successPredicates": [
+      "positive",
+      "zero"
+    ],
+    "nullableNullSkipsRetain": true,
+    "successWithDiagnosticRollsBack": true,
+    "separateControls": true
+  },
+  "callbackSpans": {
+    "mappings": 3,
+    "mutationsPerOptimization": 37,
+    "emptyOutputsPerOptimization": 74,
+    "semanticNegatives": 10,
+    "headerNegatives": 2,
+    "nativeCountAbis": [
+      "int",
+      "size_t"
+    ],
+    "maxMappingsPerDeclaration": 64,
+    "nulPreserved": true,
+    "nullZeroIsEmpty": true,
+    "nestedEpochs": true,
+    "expiredAccessChecked": true,
+    "warmRounds": 200,
+    "warmXrtAllocationDelta": 0,
+    "warmXrtFreeDelta": 0,
+    "warmXrtReallocationDelta": 0,
+    "sanitizers": "Linux generated callback client and native fixture only: ASan, UBSan, leaks, stack-use-after-return; reused core/XRT not instrumented"
+  },
+  "xge": {
+    "commit": "e870ee7e",
+    "sources": 138,
+    "compileActions": 139,
+    "windowsImports": 177,
+    "linuxEngine": {
+      "path": "/home/ubuntu/xlang-validation/xge-resource-storage-host-20261104-r2/build-report.json",
+      "sha256": "590b3d5630070cc55097badbef91e89dc86f0c82fc856705cc236e16ab53b887",
+      "sources": 138,
+      "compileActions": 139,
+      "imports": 175,
+      "runtimeBytes": 9400336
+    },
+    "resources": [
+      "Font",
+      "Texture"
+    ],
+    "retainedFontFallback": true,
+    "headless": true
+  },
+  "resolvedFailures": [
+    {
+      "report": "batch-r15/results.json",
+      "reason": "XRT allocator symbols were incorrectly visited as resident components, rejecting AOT before C compilation"
+    },
+    {
+      "report": "batch-r16/results.json",
+      "reason": "Same AOT dependency error plus a fixture-only private host header include incompatible with standalone TCC sidecars"
+    }
+  ],
+  "limits": [
+    "No universal zero-overhead claim: record/control allocation, native retains, registration, code activity and checked ownership have costs",
+    "No per-function native forwarding implementation was introduced",
+    "Callback explicit copy materializes owned bytes; dynamic boxing and indexed native-value reads retain their own costs",
+    "Resources remain creator-affine; suspended async fixture completes resource use within one activation and returns a scalar",
+    "Non-refcounted record policies, other native callback families, value projections, full declarations, automatic initialization and SDK/IDE/shipping migration remain in progress",
+    "Three concurrent semantic completion hunks were present in frozen build inputs and are excluded from this commit",
+    "Actual XGE/XUI combinations are GCC clients, not actual-engine TCC/GPU/desktop acceptance"
+  ],
+  "eightTasksComplete": false,
+  "shippingUpdated": false,
+  "networkTests": false,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r17.json",
+      "sha256": "02ac5601c17daad01da35bd0b31f44437b77c43c10c523aee978eef78fb0c77a"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r17\\build.json",
+      "sha256": "7000ff961f0cf61d88236ac426d12eaf1460d0f7d017addf7a5b00b9b7ecca15"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r17-vfs\\build.json",
+      "sha256": "da784bbf1dc3487bae9594a462e7d00e999bd8dd62f19c4694b6b5d70d564eff"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r17-vfs\\provider.json",
+      "sha256": "b510281fa67ef7e418f61ee98be893356fa94a39159e1af0ae0d58834f14c996"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\precompiled-r17\\manifest.json",
+      "sha256": "7a260cb249eae32cf7adcd549ae53d0196b2a1060b15ea8059ce66cf0c23e93a"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\batch-r17\\results.json",
+      "sha256": "0b46cc074993b7ed4dc318000932f8f8c9a2d09e125f0b69090e5292d8d151ba"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\actual-xge-resources-r17\\results.json",
+      "sha256": "7ffef46534af477172e45f9352d8de646cff7e5b226ab7ed784a6c11c095c885"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-gates-r13.json",
+      "sha256": "9bb603a52b08e1f9500be42a685d017ff0988d2ed04f257042b457dd4987a3d8"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-r17-evidence.json",
+      "sha256": "b1de77d2c9755102686682f506bf46c0c4ae3ae50c262325ac029785f777df0a"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\linux-callback-span-asan-r1.json",
+      "sha256": "001ce7df4d711f7b4eb1866db2fc21f21ecf21f9a235694e3ebca058b38a1023"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\xge-resource-storage-host-r2\\build-report.json",
+      "sha256": "8b7a7accca9abe2589b1547620b27af9ce35ae890f44cf0ec52342e9b396e5c7"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\batch-r15\\results.json",
+      "sha256": "18acfe4df52b9d2a669ab53849722c19e3485d60642533ff13635b7a567eabaa"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\batch-r16\\results.json",
+      "sha256": "bf3d41df7729ff3b4c5d9aba9482dac4e46952202ecd45ad576df5d9f71296fc"
+    }
+  ]
+}
