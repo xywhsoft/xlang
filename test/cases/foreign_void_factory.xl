@@ -43,6 +43,15 @@ end
 func failures()
  int mode=1
  while mode<8
+  if mode==4 then
+   Adopted noAlloc=create(c_int(mode))
+   resetFailure()
+   assert noAlloc.value==4
+   noAlloc.close()
+   assert live()==0
+   mode+=1
+   continue
+  end
   bool rejected=false
   try
    Adopted invalid=create(c_int(mode))

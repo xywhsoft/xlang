@@ -66,7 +66,7 @@ func childOwnership()
 end
 func failures()
  int mode=1
- while mode<5
+ while mode<4
   Node node=create(c_int(mode))
   bool caught=false
   try
@@ -81,6 +81,14 @@ func failures()
   assert live()==0
   mode+=1
  end
+ Node noAlloc=create(4)
+ Node retainedNoAlloc=noAlloc.borrow()
+ resetFailure()
+ assert noAlloc.refs==2 and retainedNoAlloc.value==17
+ noAlloc.close()
+ assert retainedNoAlloc.value==17
+ retainedNoAlloc.close()
+ assert live()==0
  Node stable=create(0)
  int count=0
  int accepted=0

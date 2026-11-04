@@ -1,4 +1,5 @@
 #include "foreign_view_native_fixture.h"
+#include "src/runtime/xl6_foreign_view_abi.h"
 
 static void views_and_scopes(void)
 {
@@ -189,9 +190,38 @@ static void exclusive_root(void)
     assert(xl6ForeignViewCallEndV1(&call) && nativeDestroyed==before+1);
     xl6ForeignViewReleaseV1(root); assert(codeReferences==1);
 }
+static bool deferred_destroy(void* raw)
+{Native* n=raw;return n->depth>1 ? false:destroy_native(raw);}
+static void deferred_active_close(void)
+{
+    Native* raw=native_create();
+    XL6_ForeignViewDescriptorV1 descriptor=rootDescriptor;
+    descriptor.flags=XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY;descriptor.Destroy=deferred_destroy;
+    descriptor.Watch=NULL;descriptor.Unwatch=NULL;descriptor.watchBytes=0;descriptor.watchAlignment=1;
+    XL6_ForeignResultProbeV1 probe={0};
+    assert(xl6ForeignResultProbeReserveRootV1(&probe,&descriptor,NULL,&codeOwner,0,1,0));
+    assert(probe.descriptor.flags==descriptor.flags && xl6ForeignResultProbeObserveV1(&probe,raw));
+    XL6_ForeignView* root=xl6ForeignViewCreateRootProbedV1(raw,&probe,&codeOwner);assert(root);
+    assert(xl6ForeignResultProbeEndV1(&probe));
+    NativeScope native={0};XL6_ForeignViewCallV1 call={0};
+    assert(xl6ForeignViewCallBeginV1(root,&call,&native,sizeof(native)));
+    unsigned before=nativeDestroyed;
+    assert(xrtMemDebugFailAfter(0));
+    assert(xl6ForeignViewCloseV1(root) && !raw->closing && raw->depth==1);
+    assert(!xrtMemDebugFailTriggered());xrtMemDebugFailClear();
+    /* Model a native child pass which outlives the resident input scope. Its
+     * real Busy signal keeps the queued native owner and code lease readable. */
+    NativeScope child={0};assert(scope_begin(raw,&child));
+    assert(!xl6ForeignViewCallEndV1(&call) && !xrtGetError() && !raw->closing && raw->depth==1);
+    assert(nativeDestroyed==before && codeReferences==2 && xl6ForeignViewPendingV1(0)==1);
+    assert(!xl6ForeignViewReleaseV1(root) && !xrtGetError() && nativeDestroyed==before);
+    assert(!xl6ForeignViewDrainV1() && !xrtGetError() && nativeDestroyed==before);
+    assert(scope_end(&child));
+    assert(xl6ForeignViewDrainV1() && nativeDestroyed==before+1 && codeReferences==1);
+}
 static void metadata_and_admission(void)
 {
-    for (unsigned fault=0;fault<6;++fault) {
+    for (unsigned fault=0;fault<8;++fault) {
         Native* raw=native_create(); XL6_ForeignViewDescriptorV1 d=rootDescriptor;
         if (fault==0) d.size--;
         if (fault==1) d.abiTag=0;
@@ -199,6 +229,8 @@ static void metadata_and_admission(void)
         if (fault==3) d.Unwatch=NULL;
         if (fault==4) { d.CallBegin=NULL; d.CallEnd=NULL; d.callBytes=0; d.callAlignment=1; }
         if (fault==5) d.Busy=NULL;
+        if (fault==6) d.flags=UINT64_C(8);
+        if (fault==7) {d.flags=XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY;d.CallBegin=NULL;d.CallEnd=NULL;d.callBytes=0;d.callAlignment=1;}
         assert(!xl6ForeignViewCreateRootV1(raw,&d,&codeOwner));
         assert(!raw->watch && codeReferences==1); xrtClearError(); assert(destroy_native(raw));
     }
@@ -234,7 +266,7 @@ int main(int argc,char** argv)
     const struct { const char* name; void (*run)(void); } cases[]={
         {"views",views_and_scopes},{"residency",native_stack_residency},{"affinity",affinity},
         {"retry",checked_retry},{"graph",graph_cycle},{"allocation",allocation_rollback},
-        {"exclusive",exclusive_root},{"admission",metadata_and_admission}};
+        {"exclusive",exclusive_root},{"admission",metadata_and_admission},{"deferred",deferred_active_close}};
     bool found=argc==1;
     for (size_t i=0;i<sizeof(cases)/sizeof(cases[0]);++i)
         if (argc==1 || !strcmp(argv[1],cases[i].name)) { found=true; cases[i].run(); }

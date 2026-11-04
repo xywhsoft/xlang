@@ -172,7 +172,7 @@ func main(...) as int
         caught=true
     end
     assert caught
-    for mode in [1,2,4]
+    for mode in [1,2]
         caught=false
         try
             Root bad=create(c_int(mode))
@@ -183,6 +183,13 @@ func main(...) as int
         end
         assert caught and live()==0
     end
+    // The native producer closes allocation after transferring its owner.
+    // Root admission has already reserved all memory and must now succeed.
+    Root noAlloc=create(4)
+    resetFailure()
+    assert noAlloc.value==42 and live()==1
+    noAlloc.close()
+    assert live()==0
     return 0
 end
 Root globalRoot=create(0)

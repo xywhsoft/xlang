@@ -510,26 +510,28 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT){
             const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
             const XL6_IrType* type=xl6IrTypeGet(&module->types,target->returnType);
-            const XL6_ForeignRetainContract* release=xl6IrForeignRetainGet(module,target);
-            const XL6_IrCallTarget* rollback=xl6IrCallTargetGet(module,release ? release->rollbackSymbol:declaration->foreignCall.rollbackSymbol);
+            int owning=declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE ||
+                declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE;
+            const XL6_IrCallTarget* rollback=owning ? NULL:xl6IrCallTargetGet(module,declaration->foreignCall.rollbackSymbol);
             if(rollback && rollback->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_INT_STATUS && !visitor(context,"xl6ForeignStatusFailureV1"))return 0;
-            const char* admit=(declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE ||
-                declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE) ?
-                (type->foreignDomain ? "xl6ForeignViewCreateRootWithDomainProbedV1" : "xl6ForeignViewCreateRootProbedV1") : type->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED ?
+            const char* admit=owning ? "xl6ForeignResultProbeMaterializeRootV1" : type->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK ?
+                "xl6ForeignScopeViewDeriveV2" : type->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED ?
                 "xl6ForeignViewBorrowRootV1" : "xl6ForeignViewBorrowChildV1";
-            if(!visitor(context,admit) || !visitor(context,"xl6ForeignScopeViewDeriveV2"))return 0;
+            if(!visitor(context,admit))return 0;
             if((declaration->foreignCall.outputIndexPlusOne || declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE) &&
-                (!visitor(context,"xl6ForeignResultProbePrepareV1") || !visitor(context,"xl6ForeignResultProbeObserveV1") ||
-                 !visitor(context,"xl6ForeignResultProbeAliveV1") || !visitor(context,"xl6ForeignResultProbeEndV1")))return 0;
+                (!visitor(context,owning ? "xl6ForeignResultProbeReserveRootV1":"xl6ForeignResultProbePrepareV1") || !visitor(context,"xl6ForeignResultProbeObserveV1") ||
+                 (!owning && !visitor(context,"xl6ForeignResultProbeAliveV1")) || !visitor(context,"xl6ForeignResultProbeEndV1")))return 0;
         }
-        if(xl6IrForeignStorageGet(module,target) && !visitor(context,"xl6ForeignStatusFailureV1"))return 0;
+        const XL6_ForeignStorageContract* storage=xl6IrForeignStorageGet(module,target);
+        if(storage && (!visitor(context,"xl6ForeignResultProbeOwnRecordV1") ||
+            !visitor(context,"xl6ForeignResultProbeStorageAdoptedV1") ||
+            (storage->kind==XL6_FOREIGN_STORAGE_NATIVE_ADOPTION && !visitor(context,"xl6ForeignStatusFailureV1"))))return 0;
         if(xl6IrForeignRetainGet(module,target) && !visitor(context,"xl6ForeignStatusFailureV1"))return 0;
         for(size_t o=0;o<xl6IrForeignOutputCount(module,target);++o){
             const XL6_ForeignOutputViewContract* output=xl6IrForeignOutputViewGet(module,target,o);
             if(!output || output->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE)continue;
-            const XL6_IrType* type=xl6IrTypeGet(&module->types,output->logicalType);
-            if(!visitor(context,type->foreignDomain ? "xl6ForeignViewCreateRootWithDomainProbedV1":"xl6ForeignViewCreateRootProbedV1") ||
-                !visitor(context,"xl6ForeignResultProbePrepareV1") || !visitor(context,"xl6ForeignResultProbeObserveV1") ||
+            if(!visitor(context,"xl6ForeignResultProbeMaterializeRootV1") ||
+                !visitor(context,"xl6ForeignResultProbeReserveRootV1") || !visitor(context,"xl6ForeignResultProbeObserveV1") ||
                 !visitor(context,"xl6ForeignResultProbeEndV1") || !visitor(context,"xl6ForeignViewReleaseV1") ||
                 !visitor(context,"xl6ForeignStatusFailureV1"))return 0;
         }

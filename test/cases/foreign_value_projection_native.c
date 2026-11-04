@@ -11,7 +11,7 @@ void inplace_plain_free(PlainRecord* record)
 static bool projection_destroy_plain(void* raw)
 { inplace_plain_free(raw);xrtFree(raw);return true; }
 const XL6_ForeignViewDescriptorV1 inplacePlainPolicy={sizeof(inplacePlainPolicy),
-    XL6_FOREIGN_VIEW_V1_TAG,"projection.plain",0,1,NULL,NULL,projection_destroy_plain,0,1,NULL,NULL,NULL,NULL};
+    XL6_FOREIGN_VIEW_V1_TAG,"projection.plain",0,1,NULL,NULL,projection_destroy_plain,0,1,NULL,NULL,NULL,NULL,0,projection_destroy_plain,NULL};
 /* Independent native consumers: the language emitter must pass these exact
  * records by value, rather than changing the provider's ABI. */
 int value_projection_size(xbytesview input)

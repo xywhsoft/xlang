@@ -394,6 +394,10 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6ForeignViewDropValueV1", (const void*)xl6ForeignViewDropValueV1)) return 0;
     if (!visit(user, "xl6ForeignViewEqualValueV1", (const void*)xl6ForeignViewEqualValueV1)) return 0;
     if (!visit(user, "xl6ForeignResultProbePrepareV1", (const void*)xl6ForeignResultProbePrepareV1)) return 0;
+    if (!visit(user, "xl6ForeignResultProbeReserveRootV1", (const void*)xl6ForeignResultProbeReserveRootV1)) return 0;
+    if (!visit(user, "xl6ForeignResultProbeOwnRecordV1", (const void*)xl6ForeignResultProbeOwnRecordV1)) return 0;
+    if (!visit(user, "xl6ForeignResultProbeStorageAdoptedV1", (const void*)xl6ForeignResultProbeStorageAdoptedV1)) return 0;
+    if (!visit(user, "xl6ForeignResultProbeMaterializeRootV1", (const void*)xl6ForeignResultProbeMaterializeRootV1)) return 0;
     if (!visit(user, "xl6ForeignResultProbeObserveV1", (const void*)xl6ForeignResultProbeObserveV1)) return 0;
     if (!visit(user, "xl6ForeignResultProbeAliveV1", (const void*)xl6ForeignResultProbeAliveV1)) return 0;
     if (!visit(user, "xl6ForeignResultProbeEndV1", (const void*)xl6ForeignResultProbeEndV1)) return 0;

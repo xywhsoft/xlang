@@ -127,10 +127,10 @@ static bool busy_native(const void* raw)
 static const XL6_ForeignViewDescriptorV1 rootDescriptor={
     sizeof(rootDescriptor),XL6_FOREIGN_VIEW_V1_TAG,"native.test.root",
     sizeof(Watch),_Alignof(Watch),watch,unwatch,destroy_native,
-    sizeof(NativeScope),_Alignof(NativeScope),scope_begin,scope_end,trace_native,busy_native};
+    sizeof(NativeScope),_Alignof(NativeScope),scope_begin,scope_end,trace_native,busy_native,0,NULL,NULL};
 static const XL6_ForeignViewDescriptorV1 childDescriptor={
     sizeof(childDescriptor),XL6_FOREIGN_VIEW_V1_TAG,"native.test.child",
-    sizeof(Watch),_Alignof(Watch),watch,unwatch,destroy_native,0,1,NULL,NULL,NULL,NULL};
+    sizeof(Watch),_Alignof(Watch),watch,unwatch,destroy_native,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
 
 
 #endif

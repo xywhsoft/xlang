@@ -36,8 +36,8 @@ struct xl6_foreign_error_result;
  * Child views borrow this payload; they do not duplicate its owning edges.
  * TraceRaw is read-only under whole-domain Freeze, with no allocation, locks,
  * language invocation, reference transitions or policy guessing.
- * Busy is a creator-thread, frozen read-only probe of independent native
- * activity. An observed root requires it: the resident active count alone
+ * Busy is a creator-thread read-only probe of independent native activity,
+ * valid both at idle retirement and under whole-domain Freeze. An observed root requires it: the resident active count alone
  * cannot see operations begun by an external C event loop. */
 typedef struct XL6_ForeignViewDescriptorV1 {
     size_t size;
@@ -52,8 +52,32 @@ typedef struct XL6_ForeignViewDescriptorV1 {
     bool (*CallEnd)(void* storage);
     bool (*TraceRaw)(const void*,XL6_ModuleOwnershipVisit,void*);
     bool (*Busy)(const void*);
+    uint64_t flags;
+    /* Cold compiler-record cleanup, including its outer allocation and every
+     * partial payload dependency. Cleanup must not depend on borrowed inputs
+     * whose call has ended. False retains this exact owner for retry;
+     * true consumes it even when a separate checked failure was reported. */
+    bool (*DestroyUnadopted)(void* raw);
+    /* Optional root logical close request: never consumes its native owner
+     * or invalidates physical observation. Rejection leaves the view open;
+     * acceptance and checked diagnostic success are independent. Repeated
+     * accepted requests coalesce. Borrowed children use native parent ownership. */
+    bool (*RequestClose)(void* raw);
 } XL6_ForeignViewDescriptorV1;
-#define XL6_FOREIGN_VIEW_V1_TAG UINT64_C(0x584C364656494531)
+#define XL6_FOREIGN_VIEW_V1_TAG UINT64_C(0x584C364656494534)
+/* An active close retains the native owner in the checked retirement queue.
+ * The native logical destructor runs only after all active scopes return;
+ * this is required when close may be temporarily refused by native nesting.
+ * Ordinary Context roots retain their immediate logical-close behavior. */
+#define XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY UINT64_C(1)
+/* For every valid factory output transferring one actual native owner, Watch
+ * establishes physical observation without allocation, including a live
+ * closing output. Ordinary method eligibility is a separate checked result.
+ * This is a trusted native ABI promise, not validation of arbitrary pointers. */
+#define XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH UINT64_C(2)
+/* The checked destructor owns its native operation scope. Idle retirement
+ * first probes Busy; pending work remains owned without a new call failure. */
+#define XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE UINT64_C(4)
 
 /* Stable compiler-owned storage; never copy a live call or callback scope.
  * nativeStorage is a separately typed C record emitted from the declaration,
@@ -72,7 +96,7 @@ typedef struct XL6_ForeignViewCallV1 {
  * on the same creator thread/root; repeated exposure reuses its live control
  * record. Neither ordinary copying nor an existing lookup allocates a wrapper.
  * All language owning references keep the root/context alive. */
-XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewCreateRootV1(void*,const XL6_ForeignViewDescriptorV1*,const XL6_CodeOwner*);
+XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewCreateRootV1(const void*,const XL6_ForeignViewDescriptorV1*,const XL6_CodeOwner*);
 /* A native subgraph may contain independent shared nodes, rather than only
  * uniquely owned payload slots. This optional domain admits those exact Ops.
  * It is immutable, has no Load hook, and its Resolve/AdmitsRead are independent
@@ -80,12 +104,12 @@ XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewCreateRootV1(void*,const XL6_F
  * tables and all transitive code until every plan callback has returned.
  * It adds no operation or allocation to ordinary native method calls. */
 XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewCreateRootWithDomainV1(
-    void*,const XL6_ForeignViewDescriptorV1*,const XL6_OwnershipDomainV1*,const XL6_CodeOwner*);
-XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewBorrowChildV1(void*,XL6_ForeignView*,const XL6_ForeignViewDescriptorV1*,const XL6_CodeOwner*);
+    const void*,const XL6_ForeignViewDescriptorV1*,const XL6_OwnershipDomainV1*,const XL6_CodeOwner*);
+XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewBorrowChildV1(const void*,XL6_ForeignView*,const XL6_ForeignViewDescriptorV1*,const XL6_CodeOwner*);
 /* Exact owner-result projection during a live native call. The closed IR
  * proves the nominal root type. raw must equal that same live native root;
  * no second control record/watch is created for e.g. Widget.context. */
-XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewBorrowRootV1(void* raw,XL6_ForeignView* source);
+XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewBorrowRootV1(const void* raw,XL6_ForeignView* source);
 XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewRetainV1(XL6_ForeignView*);
 /* Consumes its language reference on success AND checked cleanup failure.
  * A void native drop adapter must propagate a false result's separate failure
