@@ -100,3 +100,24 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 /release/linux_x64/extlibs/xge/** -text whitespace=cr-at-eol
 /release/linux_x64/extlibs/xui/** -text whitespace=cr-at-eol
 /release/linux_x64/extlibs/_xge_native/** -text whitespace=cr-at-eol
+/release/win_x64/examples/xge/** -text whitespace=cr-at-eol
+/release/win_x64/examples/xui/** -text whitespace=cr-at-eol
+/release/linux_x64/examples/xge/** -text whitespace=cr-at-eol
+/release/linux_x64/examples/xui/** -text whitespace=cr-at-eol
+/release/win_x64/notices/xge/** -text whitespace=cr-at-eol
+/release/linux_x64/notices/xge/** -text whitespace=cr-at-eol
+/release/win_x64/notices/tcc/** -text whitespace=cr-at-eol
+/release/linux_x64/notices/tcc/** -text whitespace=cr-at-eol
+/release/win_x64/notices/LICENSE.xlang-MIT.txt -text
+/release/linux_x64/notices/LICENSE.xlang-MIT.txt -text
+/release/win_x64/notices/THIRD_PARTY_NOTICES.md -text
+/release/linux_x64/notices/THIRD_PARTY_NOTICES.md -text
+/release/win_x64/notices/material-index.json -text
+/release/linux_x64/notices/material-index.json -text
+/dev/release-materials/provenance/xge3-production-profiles-20261105/** -text whitespace=cr-at-eol
+/dev/release-materials/provenance/xge3-final-sdk-20261105/** -text whitespace=cr-at-eol
+/dev/release-materials/provenance/xge3-local-publication-20261105/** -text whitespace=cr-at-eol
+/dev/release-materials/sources/xge3-native-20261105-r3-host2/** -text whitespace=cr-at-eol
+/dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1/** -text whitespace=cr-at-eol
+/dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.manifest.json -text
+/dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.README.md -text

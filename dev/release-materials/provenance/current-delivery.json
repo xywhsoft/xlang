@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "date": "2026-11-03",
+  "date": "2026-11-05",
   "primaryDirectory": "D:/GIT/x-lang",
   "deliveryDirectory": "release",
-  "externalPublishPerformed": true,
-  "primaryIntegrationRevision": "03a82ac0d0f1a45e1cdbc2f208712bea049da642",
+  "externalPublishPerformed": false,
+  "primaryIntegrationRevision": "88bd73dc2b4615b6dcda189eb896aaf028c173f1",
   "integrations": {
     "tomlCalendarCommit": "65eb0f3dc",
     "originalOutstandingCommits": 124,
@@ -20,14 +20,14 @@
     "extensionSourceRevision": "8806c6b6f642e7e532fb16801246b2e6318a70ca"
   },
   "compiler": {
-    "sourceRevision": "44ac8a20b5e3a2e6a85bd9e7d71999c39a422633",
+    "sourceRevision": "a1d18117b935c4e14c93b59c25b8db0e500826f9",
     "version": "0.6.0",
     "originalAcceptance": "docs/reports/prerelease-0.6.0.json",
     "rebuiltThisDelivery": true,
     "entireAcceptanceRerunThisDelivery": false,
     "reusedQualifiedProducts": false,
     "xrtRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
-    "currentBuildProvenance": "dev/release-materials/provenance/xrt-unification-20261101.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/xge3-production-profiles-20261105/receipt.json",
     "optimization": "-O2",
     "previousDeliveryCompiler": {
       "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
@@ -42,10 +42,17 @@
       "rebuiltThisDelivery": false,
       "entireAcceptanceRerunThisDelivery": false,
       "reusedQualifiedProducts": true
-    }
+    },
+    "sourceMaterials": {
+      "path": "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.manifest.json",
+      "sha256": "26ba28940a0da86ebbe970dae419ee6b45ced38062367d392f21585a75727833",
+      "bytes": 7232398
+    },
+    "xrtBaseRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
+    "xrtLocalPatchTip": "7cecb354dd67aba47eb47cf9c118aea2b0195498"
   },
   "ide": {
-    "languageServer": "Native xlang-ls 0.100 is unchanged. The default IDE disables C LSP and excludes clangd; see dev/release-materials/provenance/ide-c-lsp-disabled-20261031.json.",
+    "languageServer": "Rebuilt qualified 455-pin C interop cohort; separately accepted from the prior GUI build.",
     "guiTranslationUnits": 102,
     "compiler": "GCC 16.2.0",
     "warnings": [
@@ -55,8 +62,6 @@
     ],
     "optimization": "-O2",
     "configuration": "Release",
-    "buildRunnerSha256": "7e14659c094f860e8836be645d779f9de2729c0a1c2b547d510e62181f18ca82",
-    "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -CandidateOnly -LanguageServerPath D:/GIT/x-lang/release/win_x64/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release/win_x64; python ide/tools/check_update_ide.py; python ide/tools/publish_update_ide.py",
     "defaultFont": {
       "path": "Consolas-with-Yahei_Nerd_Font.ttf",
       "sha256": "35a7074585fe4af3763db2aaa7635aabffb8995b6f52e61cd46c0a53e560b16b",
@@ -69,7 +74,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-update-policy-20261103.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -91,11 +96,14 @@
       ]
     },
     "sourceIdentity": {
-      "baseRevision": "3fbd6755727d998b912b240ccc50a6c783372e9c",
-      "modifiedFromBase": true,
-      "exactInputManifest": "dev/release-materials/provenance/ide-update-policy-20261103/gui-publication.json"
+      "guiQualification": "dev/release-materials/provenance/xge3-ide-matched-build-20261105.json",
+      "languageServerQualification": "dev/release-materials/provenance/final-lsp-c-interop-20261105.json",
+      "materials": {
+        "path": "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.manifest.json",
+        "sha256": "26ba28940a0da86ebbe970dae419ee6b45ced38062367d392f21585a75727833",
+        "bytes": 7232398
+      }
     },
-    "buildScope": "Targeted independent updater integration with exactly retained accepted runtime assets; not full compiler/catalog release admission",
     "previousMatchedGuiProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
     "openglStartupCompatibility": {
       "request": "3.3 core",
@@ -127,7 +135,8 @@
     },
     "availableSources": 593,
     "catalogSha256": "27e17cb16f25a4b1c16714736faee0e6df2098f472b0fd393166acc2e98de30a",
-    "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6"
+    "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
+    "currentDeliveryAction": "retained exact prior 600-file static snapshot; no new XGE3 API documentation coverage claim"
   },
   "publicExtensionModules": 207,
   "dataFiles": [
@@ -3134,58 +3143,58 @@
   ],
   "products": [
     {
-      "sha256": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05",
+      "sha256": "6a9378f3c772b40bcd035969212fd1ee99a1b8ed22be00c30c37114e0523a2f6",
       "bytes": 71168,
       "path": "release/win_x64/xl.exe",
-      "origin": "xrt-unification-20261101-targeted-accepted"
+      "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930",
-      "bytes": 14188544,
+      "sha256": "6ee80b3d2370289c1077b924d700985226c8df8aef17779b87c5c3e38a425835",
+      "bytes": 14828544,
       "path": "release/win_x64/xl.dll",
-      "origin": "xrt-unification-20261101-targeted-accepted"
+      "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "27758bd6c3689c433d9164faef0cbbd99b90a1b43be92301f09b46eb3a073334",
-      "bytes": 19489280,
+      "sha256": "e4ab39f8137fd91781bcc57dfd20d9904aa6bc2e74f422073d6015de3c489642",
+      "bytes": 20278272,
       "path": "release/win_x64/xlc.dll",
-      "origin": "xrt-unification-20261101-targeted-accepted"
+      "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "dd8716c22d40714b4683cbfdeb7aeea4485049858b34a72ba4ea45d610f736fb",
+      "sha256": "0afa441e1e3486c3e8ea2d7fbde7be5e5ea6caa850bc76a2bca1dc767b60f1d0",
       "bytes": 47224,
       "path": "release/linux_x64/xl",
-      "origin": "xrt-unification-20261101-targeted-accepted"
+      "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "4e1b591e116f4b6495c8060f4890e76373965034ac2a78ead01e7c0ae25de6ad",
-      "bytes": 15595216,
+      "sha256": "82f1786ae29b4cf919bb6b1da7d88b6003cc1609e09e3e28620938486bf3d638",
+      "bytes": 16259536,
       "path": "release/linux_x64/libxl.so",
-      "origin": "xrt-unification-20261101-targeted-accepted"
+      "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "0987419bc3dd4b3a60f319ff0339ac9cfde700c3d68d7085b82a483ed2453386",
-      "bytes": 21022672,
+      "sha256": "b0f5557eede29dcc7a9381a8d3796f6bc0a5c782e07a5cd22166ae407e62a56d",
+      "bytes": 21957328,
       "path": "release/linux_x64/libxlc.so",
-      "origin": "xrt-unification-20261101-targeted-accepted"
+      "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "9fe5f0a298c1cd367c4dc36a3fccaafa556a8291b7c2e2ff6a95035494024338",
-      "bytes": 1798261,
+      "sha256": "5fdc6080d90c60aea26cd3416c3217599a1fdbd1fdf2d70a2e1c55a1648bac8c",
+      "bytes": 1799797,
       "path": "release/win_x64/xlang_ide.exe",
-      "origin": "ide-update-policy-20261103-targeted-validated"
+      "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "8bc80fe50cc4a5856630003eb47a59426a5225e4b2d8d076a6486f56dab4339d",
-      "bytes": 10210363,
+      "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+      "bytes": 10701410,
       "path": "release/win_x64/xlang-ls.exe",
-      "origin": "native-integration-see-component-provenance"
+      "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "2ff1ed234bd2e7e7b756700da1de550d39935be0cbb9e5af886138090ae65ec6",
-      "bytes": 10559422,
+      "sha256": "edafbc3d3520f47cbb851365c98375b27f9a0f09404535dc7e03237e2ddc02fc",
+      "bytes": 11125305,
       "path": "release/win_x64/xge.dll",
-      "origin": "ide-wgl-compat-20261102-targeted-validated"
+      "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
       "path": "release/win_x64/update.exe",
@@ -3198,172 +3207,52 @@
       "sha256": "78109cd8a6af3e22b007d37c51ced6d08b21fb36a1976ff895ac3fd2033e05fd",
       "bytes": 986184,
       "origin": "ide-update-policy-20261103-targeted-validated"
+    },
+    {
+      "path": "release/win_x64/extlibs/_xge_native/native/xge3_host.dll",
+      "sha256": "b60bab3050fb8523cc46acb769cf32b15a81896abfbb6cbe47b5e74073ee139c",
+      "bytes": 9104102,
+      "origin": "matched-host-xrt-native-image"
+    },
+    {
+      "path": "release/linux_x64/extlibs/_xge_native/native/libxge3_host.so",
+      "sha256": "ffa77a906c0d630613a97304fa0faeaab7e656e9dba64b74628056321ffa3723",
+      "bytes": 9898672,
+      "origin": "matched-host-xrt-native-image"
     }
   ],
   "acceptance": {
-    "syntax": "68 production C units with the compiler XRT preamble; not full package certification",
-    "matchedSdkWireCheck": "Previous delivery passed disk dependency diagnostic 1 -> 0; the matched SDK and qualified CLI service are unchanged in this font update.",
-    "allPackagesReleaseAccepted": false,
-    "actualPrimaryReleaseBuildRunTargets": [
-      {
-        "name": "c",
-        "exitCode": 0
-      },
-      {
-        "name": "xlang",
-        "exitCode": 0
-      },
-      {
-        "name": "project",
-        "exitCode": 0
-      },
-      {
-        "name": "workspace",
-        "exitCode": 0
-      },
-      {
-        "name": "explicit-file",
-        "exitCode": 0
-      },
-      {
-        "name": "seed-workspace-session",
-        "exitCode": 0
-      },
-      {
-        "name": "file-overrides-last-workspace",
-        "exitCode": 0
-      }
-    ],
-    "guiFocusedTests": [
-      {
-        "stdout": "font_test passed: Unicode real fonts, native modal apply/cancel/reset boundaries, malformed/size/conflict and scroll rollback, C/xlang versions/selection/undo/languages, closed/new documents, pooled completion fonts, help/output/terminal metrics and restart preferences.\r\n",
-        "status": "pass",
-        "test": "font_test"
-      },
-      {
-        "stdout": "ui_font_test passed: real Unicode TTF/TTC, native apply/reset/cancel, separate UI/code preferences and physical font sizes at 125 percent, menus/dock/trees/help/output/terminal, project properties and configuration drafts, native popup scrolling at size 40, C/xlang versions/selection/undo preservation, malformed/range rejection, conflict/locked atomic save and reading-position rollback, unknown UI fields, independent restart and native screenshots.\r\n",
-        "status": "pass",
-        "test": "ui_font_test"
-      }
-    ],
-    "fullSuiteExecuted": false,
-    "fontBoundaryChecks": {
-      "status": "passed",
-      "checks": 278,
-      "actualProcesses": 10,
-      "nativeScreenshots": 18,
-      "portableSettingsRelative": true,
-      "systemFontsModified": false,
-      "cases": [
-        {
-          "name": "missing",
-          "exitCode": 0
-        },
-        {
-          "name": "corrupt",
-          "exitCode": 0
-        },
-        {
-          "name": "saved-bad",
-          "exitCode": 0
-        },
-        {
-          "name": "latin",
-          "exitCode": 0
-        },
-        {
-          "name": "missing-default",
-          "exitCode": 0
-        },
-        {
-          "name": "corrupt-default",
-          "exitCode": 0
-        },
-        {
-          "name": "no-bundle",
-          "exitCode": 0
-        },
-        {
-          "name": "deep",
-          "exitCode": 0
-        },
-        {
-          "name": "portable-write",
-          "exitCode": 0
-        },
-        {
-          "name": "portable-read",
-          "exitCode": 0
-        }
-      ]
+    "currentPublication": {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
+      "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
+      "bytes": 10653
     },
-    "installedGuiDpi200": "passed: actual primary release, 3 frames, isolated settings, native screenshot",
-    "cLspDisabled": {
-      "status": "focused-functional-and-default-package-checks-passed",
-      "provenance": "dev/release-materials/provenance/ide-c-lsp-disabled-20261031.json",
-      "additionalFileDialogEscapeCase": "unqualified",
-      "wholeLspPerformanceAccepted": false
+    "productionSteps": 119,
+    "productionExampleSteps": 34,
+    "installedSteps": 6,
+    "priorAcceptance": {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/previous-current-delivery.json",
+      "sha256": "7601d36e3df64445512daf17b0f040381df60d0bc7478314102b6b7f0c491556",
+      "bytes": 161362
     },
-    "iconAndFontPortability": {
-      "status": "passed",
-      "provenance": "dev/release-materials/provenance/ide-icon-font-portability-20261031.json",
-      "fontDirectoryRelocation": true,
-      "differentMachineTested": false
-    },
-    "runtimeMaterialsLayout": {
-      "status": "passed",
-      "report": "docs/reports/release-materials-migration-20261031.json",
-      "consoleFrontend": false
-    },
-    "xrtVersionUnification": {
-      "status": "passed-targeted-validation",
-      "provenance": "dev/release-materials/provenance/xrt-unification-20261101.json",
-      "fullSuiteExecuted": false,
-      "windowsStages": 38,
-      "linuxStages": 38,
-      "xgeTests": 7
-    },
-    "ideSha256Unification": {
-      "status": "passed-targeted-validation",
-      "provenance": "dev/release-materials/provenance/ide-xrt-sha256-20261102.json",
-      "tests": 10,
-      "standardCatalogBuildGuardPassed": false,
-      "fullReleaseAdmission": false
-    },
-    "ideWglCompatibility": {
-      "status": "passed-targeted-validation",
-      "provenance": "dev/release-materials/provenance/ide-wgl-compat-20261102.json",
-      "wglCases": 8,
-      "guiFaults": 7,
-      "nativeRegressions": 6,
-      "physicalWin7Hd4200Tested": false,
-      "fullReleaseAdmission": false
-    },
-    "ideUpdater": {
-      "status": "passed-targeted-validation",
-      "provenance": "dev/release-materials/provenance/ide-updater-20261103.json",
-      "protocolAndFaultChecksPassed": 42,
-      "sshFixturePassed": true,
-      "fullBootstrapPassed": true,
-      "fullReleaseAdmission": false
-    },
-    "ideUpdatePolicy": {
-      "status": "passed-targeted-validation",
-      "provenance": "dev/release-materials/provenance/ide-update-policy-20261103.json",
-      "forceUpdateEnabledOnPublicServer": false
-    }
+    "interactiveGpuOsNetwork": false
   },
   "remaining": {
-    "toml": "Existing M1 foreign dict/var projection blocks the original central TOML JIT case: TypeError: TOML document root must be a dict. New C and XLang calendar boundary tests pass.",
-    "concurrentChanges": "Existing compiler and unrelated example work preserved; current GUI identities and focused validation limits are recorded by component provenance.",
-    "xrtProviderDeduplication": "Next phase: XGE host-XRT provider and matching xlang IDE SDK deployment; this source-version update does not yet remove runtime instances."
+    "currentDelivery": [
+      "Interactive windows, GPU rendering, real OS clipboard/OLE, browser and external network operations were not executed.",
+      "Direct declarative calls retain checked lifetime/error costs; the pinned cost report makes no universal zero-overhead claim.",
+      "Concurrent unrelated IDE3/native work and old flat-release migration deletions were not staged."
+    ],
+    "priorUnreviewedItems": "See previousDeliveryIndex; historical items were not silently re-certified or waived."
   },
   "persistence": {
     "ignoredBuildArtifactsRequiredForUsingRelease": false,
     "userSettingsModified": false,
     "versionedProducts": true,
     "modelsAndToolchainsAdded": false,
-    "versionedCatalogSourcesAndFonts": true
+    "versionedCatalogSourcesAndFonts": true,
+    "currentOwnedArtifactCommit": "88bd73dc2b4615b6dcda189eb896aaf028c173f1",
+    "concurrentReleaseMigrationStagedByThisDelivery": false
   },
   "cleanup": {
     "date": "2026-10-31",
@@ -3412,5 +3301,28 @@
     "sharedPublisherTools": "release/tools/update",
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
+  },
+  "currentScope": "Matched XGE3/XUI3 compiler, public SDK, native extension packages, Windows GUI and language-server local installation; developer materials are outside runtime directories.",
+  "localPublication": {
+    "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
+    "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
+    "bytes": 10653
+  },
+  "previousDeliveryIndex": {
+    "path": "dev/release-materials/provenance/xge3-local-publication-20261105/previous-current-delivery.json",
+    "sha256": "7601d36e3df64445512daf17b0f040381df60d0bc7478314102b6b7f0c491556",
+    "bytes": 161362
+  },
+  "sourceMaterials": {
+    "xlang": {
+      "path": "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.manifest.json",
+      "sha256": "26ba28940a0da86ebbe970dae419ee6b45ced38062367d392f21585a75727833",
+      "bytes": 7232398
+    },
+    "native": {
+      "path": "dev/release-materials/sources/xge3-native-20261105-r3-host2/source-manifest.json",
+      "sha256": "8fb1d6037a6c3304192f5517c121af1bc79da27e4169cef5e46a678b7d2bcac1",
+      "bytes": 1736447
+    }
   }
 }

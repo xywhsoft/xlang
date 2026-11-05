@@ -1,0 +1,193 @@
+{
+  "complete": true,
+  "passed": true,
+  "whitelist": "dev/release-materials/sources/xge3-native-20261105-r3-host2/notice-whitelist.json",
+  "whitelistSha256": "d20cfb50a7577aa7bb76b2366da5e3dcaf0e72d419fc14d611e3ebfcddfe77cc",
+  "files": [
+    {
+      "path": "release/win_x64/notices/xge/extlibs/harfbuzz/src/ms-use/COPYING",
+      "bytes": 1162,
+      "before": null,
+      "sha256": "9906940f61b1f0b533fa7d99baf55178b2808fbe113ea51dfbfad8572ccd5f2b",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\harfbuzz\\src\\ms-use\\COPYING"
+    },
+    {
+      "path": "release/linux_x64/notices/xge/extlibs/harfbuzz/src/ms-use/COPYING",
+      "bytes": 1162,
+      "before": null,
+      "sha256": "9906940f61b1f0b533fa7d99baf55178b2808fbe113ea51dfbfad8572ccd5f2b",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\harfbuzz\\src\\ms-use\\COPYING"
+    },
+    {
+      "path": "release/win_x64/notices/xge/extlibs/sokol/XGE_FORK.md",
+      "bytes": 323,
+      "before": null,
+      "sha256": "fce9686119c4d6b9b539c2f0b9f18e789692fa84a38f4f57e0c8db75994ad6d4",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\sokol\\XGE_FORK.md"
+    },
+    {
+      "path": "release/linux_x64/notices/xge/extlibs/sokol/XGE_FORK.md",
+      "bytes": 323,
+      "before": null,
+      "sha256": "fce9686119c4d6b9b539c2f0b9f18e789692fa84a38f4f57e0c8db75994ad6d4",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\sokol\\XGE_FORK.md"
+    },
+    {
+      "path": "release/win_x64/notices/xge/extlibs/stb/stb_vorbis.LICENSE",
+      "bytes": 2772,
+      "before": null,
+      "sha256": "814b915fefba4d825b55ea3d10a32c27daefe5f3adba431004eb5b76fc139a62",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\stb\\stb_vorbis.LICENSE"
+    },
+    {
+      "path": "release/linux_x64/notices/xge/extlibs/stb/stb_vorbis.LICENSE",
+      "bytes": 2772,
+      "before": null,
+      "sha256": "814b915fefba4d825b55ea3d10a32c27daefe5f3adba431004eb5b76fc139a62",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\stb\\stb_vorbis.LICENSE"
+    },
+    {
+      "path": "release/win_x64/notices/xge/extlibs/unicode/LICENSE",
+      "bytes": 2034,
+      "before": null,
+      "sha256": "8437ba5f4e4c8ae0268c3df5cf106006f2d045ff3452eedd1f27e8eb26c5f327",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\unicode\\LICENSE"
+    },
+    {
+      "path": "release/linux_x64/notices/xge/extlibs/unicode/LICENSE",
+      "bytes": 2034,
+      "before": null,
+      "sha256": "8437ba5f4e4c8ae0268c3df5cf106006f2d045ff3452eedd1f27e8eb26c5f327",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\unicode\\LICENSE"
+    },
+    {
+      "path": "release/win_x64/notices/xge/extlibs/harfbuzz/COPYING",
+      "bytes": 2013,
+      "before": "bd836c0ddca8ea0bab54a03cd32b6ff7256cbb3840fca2edc1249a4ed92c5b02",
+      "sha256": "bd836c0ddca8ea0bab54a03cd32b6ff7256cbb3840fca2edc1249a4ed92c5b02",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\harfbuzz\\COPYING"
+    },
+    {
+      "path": "release/linux_x64/notices/xge/extlibs/harfbuzz/COPYING",
+      "bytes": 2013,
+      "before": null,
+      "sha256": "bd836c0ddca8ea0bab54a03cd32b6ff7256cbb3840fca2edc1249a4ed92c5b02",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\harfbuzz\\COPYING"
+    },
+    {
+      "path": "release/win_x64/notices/xge/extlibs/libunibreak/LICENCE",
+      "bytes": 1066,
+      "before": "8c7b1018f608e05a21af078ca4303d545d6b8719b95306eda83df64845283564",
+      "sha256": "8c7b1018f608e05a21af078ca4303d545d6b8719b95306eda83df64845283564",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\libunibreak\\LICENCE"
+    },
+    {
+      "path": "release/linux_x64/notices/xge/extlibs/libunibreak/LICENCE",
+      "bytes": 1066,
+      "before": null,
+      "sha256": "8c7b1018f608e05a21af078ca4303d545d6b8719b95306eda83df64845283564",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\libunibreak\\LICENCE"
+    },
+    {
+      "path": "release/win_x64/notices/xge/extlibs/libunibreak/UNICODE-LICENSE.txt",
+      "bytes": 2026,
+      "before": "85d2c71ce603e6facf0029043f82992556f099eebe55417b456ec27332665fed",
+      "sha256": "85d2c71ce603e6facf0029043f82992556f099eebe55417b456ec27332665fed",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\libunibreak\\UNICODE-LICENSE.txt"
+    },
+    {
+      "path": "release/linux_x64/notices/xge/extlibs/libunibreak/UNICODE-LICENSE.txt",
+      "bytes": 2026,
+      "before": null,
+      "sha256": "85d2c71ce603e6facf0029043f82992556f099eebe55417b456ec27332665fed",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\libunibreak\\UNICODE-LICENSE.txt"
+    },
+    {
+      "path": "release/win_x64/notices/xge/extlibs/md4c/LICENSE.md",
+      "bytes": 1096,
+      "before": "e547c9a66c120b19f9838a1f7c2f51137f5c71ba27b70c3611b673f2cdb4e02e",
+      "sha256": "e547c9a66c120b19f9838a1f7c2f51137f5c71ba27b70c3611b673f2cdb4e02e",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\md4c\\LICENSE.md"
+    },
+    {
+      "path": "release/linux_x64/notices/xge/extlibs/md4c/LICENSE.md",
+      "bytes": 1096,
+      "before": null,
+      "sha256": "e547c9a66c120b19f9838a1f7c2f51137f5c71ba27b70c3611b673f2cdb4e02e",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\md4c\\LICENSE.md"
+    },
+    {
+      "path": "release/win_x64/notices/xge/extlibs/sheenbidi/LICENSE",
+      "bytes": 11560,
+      "before": "3ddf9be5c28fe27dad143a5dc76eea25222ad1dd68934a047064e56ed2fa40c5",
+      "sha256": "3ddf9be5c28fe27dad143a5dc76eea25222ad1dd68934a047064e56ed2fa40c5",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\sheenbidi\\LICENSE"
+    },
+    {
+      "path": "release/linux_x64/notices/xge/extlibs/sheenbidi/LICENSE",
+      "bytes": 11560,
+      "before": null,
+      "sha256": "3ddf9be5c28fe27dad143a5dc76eea25222ad1dd68934a047064e56ed2fa40c5",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\sheenbidi\\LICENSE"
+    },
+    {
+      "path": "release/win_x64/notices/xge/extlibs/zstd/LICENSE",
+      "bytes": 1579,
+      "before": "e15eea76150c59fc3079289fb170478cbe7d5880a7e0fc8bb12320bfbcfc49ca",
+      "sha256": "e15eea76150c59fc3079289fb170478cbe7d5880a7e0fc8bb12320bfbcfc49ca",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\zstd\\LICENSE"
+    },
+    {
+      "path": "release/linux_x64/notices/xge/extlibs/zstd/LICENSE",
+      "bytes": 1579,
+      "before": null,
+      "sha256": "e15eea76150c59fc3079289fb170478cbe7d5880a7e0fc8bb12320bfbcfc49ca",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\zstd\\LICENSE"
+    },
+    {
+      "path": "release/win_x64/notices/xge/res/xge/emoji/twemoji_core/17.0/LICENSE-GRAPHICS",
+      "bytes": 18917,
+      "before": "f7c011ea2361bca6404b53a3e4d7ae8f9ca2d5abdc3916f83787789e71029d07",
+      "sha256": "f7c011ea2361bca6404b53a3e4d7ae8f9ca2d5abdc3916f83787789e71029d07",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\res\\xge\\emoji\\twemoji_core\\17.0\\LICENSE-GRAPHICS"
+    },
+    {
+      "path": "release/linux_x64/notices/xge/res/xge/emoji/twemoji_core/17.0/LICENSE-GRAPHICS",
+      "bytes": 18917,
+      "before": null,
+      "sha256": "f7c011ea2361bca6404b53a3e4d7ae8f9ca2d5abdc3916f83787789e71029d07",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\res\\xge\\emoji\\twemoji_core\\17.0\\LICENSE-GRAPHICS"
+    },
+    {
+      "path": "release/win_x64/notices/xge/res/xge/emoji/twemoji_core/17.0/NOTICE.md",
+      "bytes": 667,
+      "before": "a704e4e5eee567288a1c74d61486de8e1f328c29ae475ac9feac1b50df4feeb6",
+      "sha256": "a704e4e5eee567288a1c74d61486de8e1f328c29ae475ac9feac1b50df4feeb6",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\res\\xge\\emoji\\twemoji_core\\17.0\\NOTICE.md"
+    },
+    {
+      "path": "release/linux_x64/notices/xge/res/xge/emoji/twemoji_core/17.0/NOTICE.md",
+      "bytes": 667,
+      "before": null,
+      "sha256": "a704e4e5eee567288a1c74d61486de8e1f328c29ae475ac9feac1b50df4feeb6",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\res\\xge\\emoji\\twemoji_core\\17.0\\NOTICE.md"
+    },
+    {
+      "path": "release/win_x64/notices/xge/res/xui/dockpanel_suite/LICENSE.dockpanelsuite.txt",
+      "bytes": 1109,
+      "before": "bda3b93fd24606d3a413c35930380c1850658f59876ab6bc5c32d036f9a94967",
+      "sha256": "bda3b93fd24606d3a413c35930380c1850658f59876ab6bc5c32d036f9a94967",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\res\\xui\\dockpanel_suite\\LICENSE.dockpanelsuite.txt"
+    },
+    {
+      "path": "release/linux_x64/notices/xge/res/xui/dockpanel_suite/LICENSE.dockpanelsuite.txt",
+      "bytes": 1109,
+      "before": null,
+      "sha256": "bda3b93fd24606d3a413c35930380c1850658f59876ab6bc5c32d036f9a94967",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\res\\xui\\dockpanel_suite\\LICENSE.dockpanelsuite.txt"
+    }
+  ],
+  "filesWritten": 17,
+  "existingNoticeFilesUnchanged": 9,
+  "optionalAndWebAssetsNotAdded": true
+}

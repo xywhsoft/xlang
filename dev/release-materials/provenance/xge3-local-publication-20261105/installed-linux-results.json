@@ -1,0 +1,44 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Actual published Linux CLI with default package lookup; no source driver, stage package override or external core.",
+  "environment": {
+    "removedOverrideNames": [],
+    "LD_LIBRARY_PATH": "/mnt/d/GIT/x-lang/release/linux_x64",
+    "packagePathOverride": false
+  },
+  "inputs": {
+    "/mnt/d/GIT/x-lang/release/linux_x64/xl": "0afa441e1e3486c3e8ea2d7fbde7be5e5ea6caa850bc76a2bca1dc767b60f1d0",
+    "/mnt/d/GIT/x-lang/release/linux_x64/libxl.so": "82f1786ae29b4cf919bb6b1da7d88b6003cc1609e09e3e28620938486bf3d638",
+    "/mnt/d/GIT/x-lang/release/linux_x64/libxlc.so": "b0f5557eede29dcc7a9381a8d3796f6bc0a5c782e07a5cd22166ae407e62a56d",
+    "/mnt/d/GIT/x-lang/release/linux_x64/examples/xge/headless_frame.xl": "f609b4f2e45cd4c571f2ee83c0e11b000afdd46b8c6123e5fe758115dfb77ef9",
+    "/mnt/d/GIT/x-lang/release/linux_x64/examples/xui/data_object.xl": "74bd0f37a2708d116c685b98b1329ea4d5acf915836d7becfec935ab7791e96d"
+  },
+  "rows": [
+    {
+      "name": "linux-frame",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/examples/xge/headless_frame.xl"
+      ],
+      "cwd": "/mnt/d/GIT/x-lang/release/linux_x64",
+      "exitCode": 0,
+      "seconds": 3.139,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "linux-data",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/examples/xui/data_object.xl"
+      ],
+      "cwd": "/mnt/d/GIT/x-lang/release/linux_x64",
+      "exitCode": 0,
+      "seconds": 24.339,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "inputsUnchanged": true
+}

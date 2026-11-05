@@ -1,0 +1,234 @@
+{
+  "schema": 1,
+  "complete": true,
+  "passed": true,
+  "date": "2026-11-05",
+  "scope": "Matched XGE3/XUI3 compiler, public SDK, native extension packages, Windows GUI and language-server local installation; developer materials are outside runtime directories.",
+  "localInstallationPerformed": true,
+  "externalPublishPerformed": false,
+  "artifactCommit": "88bd73dc2b4615b6dcda189eb896aaf028c173f1",
+  "productionAcceptanceSteps": 119,
+  "productionExampleProcessSteps": 34,
+  "installedProcessSteps": 6,
+  "installedHeadlessRuns": 4,
+  "committedInstalledTargets": 3291,
+  "packageExampleTargets": 146,
+  "windowsKnownLegacyFilesRetired": 260,
+  "existingXgeNoticesPreserved": 9,
+  "sources": [
+    {
+      "path": "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.manifest.json",
+      "sha256": "26ba28940a0da86ebbe970dae419ee6b45ced38062367d392f21585a75727833",
+      "bytes": 7232398
+    },
+    {
+      "path": "dev/release-materials/sources/xge3-native-20261105-r3-host2/source-manifest.json",
+      "sha256": "8fb1d6037a6c3304192f5517c121af1bc79da27e4169cef5e46a678b7d2bcac1",
+      "bytes": 1736447
+    }
+  ],
+  "sourceArchiveFiles": [
+    {
+      "path": "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.zip",
+      "sha256": "d6152ffbe21499ecf74ee64d7266661d31af42d285c36291c2a6c41f35e49787",
+      "bytes": 103448219,
+      "compression": "ZIP deflate level 6"
+    },
+    {
+      "path": "dev/release-materials/sources/xge3-native-20261105-r3-host2/xge3-native-r3-host-image-r2.tar.gz",
+      "sha256": "5a4a7aec6670c336750aefa0687c1d1368b12d77606837c6fa56392ad5fe7cc4",
+      "bytes": 38039209
+    }
+  ],
+  "qualification": [
+    {
+      "path": "dev/release-materials/provenance/xge3-production-profiles-20261105/receipt.json",
+      "sha256": "1be446145329f2d31b73246a8d80bb3fea6ff0ce005698073cbac2edfdf22483",
+      "bytes": 9007
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-final-sdk-20261105/receipt.json",
+      "sha256": "ba2607e71eac966ce5c21100dab66c9221fbf731b08ba342cfb70d597861a367",
+      "bytes": 3297
+    },
+    {
+      "path": "dev/release-materials/provenance/final-source-provider-20261105.json",
+      "sha256": "b2e47520c4798bb790973bc60d0c50c6bbbb321153e20499d655db6495405e1a",
+      "bytes": 2910
+    },
+    {
+      "path": "dev/release-materials/provenance/production-ui-examples-20261105.json",
+      "sha256": "f3aa4655747ccad12c448ca0c48551e78e46661c6fd1efe8ee0badd4083db020",
+      "bytes": 881
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-ide-matched-build-20261105.json",
+      "sha256": "71357b07df60b4b50ade1fe1dd430e0fc05de06caf3f6ce780e45400c4b84ae2",
+      "bytes": 1027
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-sdk-provenance-preservation-20261105.json",
+      "sha256": "7895af0f3ecda3effe138442aff774c9e0523843dfb9ac80adeb69c822665d71",
+      "bytes": 955
+    },
+    {
+      "path": "dev/release-materials/provenance/final-lsp-c-interop-20261105.json",
+      "sha256": "4a41d77f7174879c11f869207f10b4805b64bf83f3f4b933e8fbf1778c8e4a2e",
+      "bytes": 15966
+    },
+    {
+      "path": "dev/release-materials/provenance/native-binding-costs-20261105.json",
+      "sha256": "69a1c42a53ce857977f480273acd6dcc93ce199b35d355a694cf9caabde20456",
+      "bytes": 20813
+    }
+  ],
+  "publicationInputs": [
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/base-license-publication.json",
+      "sha256": "5a60be5f7b00840a221d0e7a5ca8f351e36a811e750339cb175f0e6049319fd3",
+      "bytes": 2544
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/baseline.json",
+      "sha256": "9e14e9db59d5fdc61aef92230956e7a017b5698ceb207f322c40b3f9ce059164",
+      "bytes": 336690
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/captured-inputs.json",
+      "sha256": "5aed55ebf22efc86801c78cb9922ca9efd2c681b4b86033d404ba8182b134f10",
+      "bytes": 3198
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/committed-installed-bytes.json",
+      "sha256": "86bad246dbf4d2c5ebf44f5ccabd8eee4aafbd4021142b4037ef924017b3eaf2",
+      "bytes": 476341
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/finalize-local-delivery.py",
+      "sha256": "2dcd337ecebc7f1cbf7d931cd28499baa6dd61370d974a63d6274c10af9c1c94",
+      "bytes": 9998
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/first-invocation-error.json",
+      "sha256": "3bff0ac6af5233b94fafba904df2513df13ad106fdadf93db42b140227a286fb",
+      "bytes": 360
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/first-invocation-error.log",
+      "sha256": "029f5f24d97f480f2ffa60493f64779cbaa6e3aa276226e848118742f87f272c",
+      "bytes": 78
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/inherited-catalog-assets.json",
+      "sha256": "8eed4d884c2c076657bdca88c807d167d653903ba15a2479d70f3f1a26f5f972",
+      "bytes": 148543
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/installed-linux-linux-data.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/installed-linux-linux-frame.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/installed-linux-results.json",
+      "sha256": "51bde26a3a214d6da3a65537e2f5da9758c5713d2e750ce56363ae25ad5f298d",
+      "bytes": 1805
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/installed-lsp-transcript.json",
+      "sha256": "dec94ccc081c92f0b3fca136eb6fa91a06672dfc07b65cf97bf306872d1fbb49",
+      "bytes": 3641
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/installed-receipt.json",
+      "sha256": "cba623b50b58ca9f9a80e6d7f3767898d94c665723dd6fe0ec2e6dff8ad6fb31",
+      "bytes": 880
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/installed-results.json",
+      "sha256": "f78d1df479ec84ca3fe1fcd94c2508ae94c06f0e00e91ed411d122a6d9d612f2",
+      "bytes": 55436
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/installed-win-data.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/installed-win-frame.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/installed-win-gui-hidden-help.log",
+      "sha256": "bec71761a456755926f2bf4eb112d3bf19eaa8d7599ab1eeba2da937f6ba6e6f",
+      "bytes": 1624
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/linux-packages-journal.json",
+      "sha256": "5842aae0083376dac96c9d43a1062f4d7aef704c9c45966854dd409132d4cfe6",
+      "bytes": 40788
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/linux-packages-receipt.json",
+      "sha256": "696556b71e4b04031cb7dda27d895c720ef0fb53dbe446a2bf61f23ad2d3cbb3",
+      "bytes": 614
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/notice-publication.json",
+      "sha256": "1edf898c30fa8c54528ef9730d77071f688f1951719ed4c5c0803fb4e91a11ba",
+      "bytes": 10191
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/previous-COMPILER-REBUILD.md",
+      "sha256": "1b1ebee159ad307effa7b0b6524120050fa639b852e51ddf19020524c0df5918",
+      "bytes": 1569
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/previous-current-delivery.json",
+      "sha256": "7601d36e3df64445512daf17b0f040381df60d0bc7478314102b6b7f0c491556",
+      "bytes": 161362
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/previous-win-material-index.json",
+      "sha256": "94f5ee1cc37bae0695489cb46e3f60c2ec094f6b4cf13d1664e435cbad51902a",
+      "bytes": 294116
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/publish-runtime-files.py",
+      "sha256": "1a24e30b89e93180fb25d44f0b2866a01d2d0d2e4b5904ef48609c6db838ba97",
+      "bytes": 7251
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/runtime-files-journal.json",
+      "sha256": "b0dd5747dea92544fca912eb8d3cdebaf92f09503cd644c13dbe976701cbf3aa",
+      "bytes": 1197869
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/runtime-files-plan.json",
+      "sha256": "69f247443deec097337cb085fcc6108380c52f60c3ab0f78883213e3b2481b10",
+      "bytes": 1221785
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/win-packages-journal.json",
+      "sha256": "7911b8cc130d8fc3ef0d6730dad90dd7bb6291412b2e6d437df5599b8cd90780",
+      "bytes": 106440
+    },
+    {
+      "path": "dev/release-materials/provenance/xge3-local-publication-20261105/win-packages-receipt.json",
+      "sha256": "dc0a6e70e4a2a6903b6c924694b8266d0ea3081a2c95de2ded096c993b4b7210",
+      "bytes": 610
+    }
+  ],
+  "userState": "The exact transaction journals exclude user settings, projects, resources and hidden example state. No independent before/after hash claim is made for user state.",
+  "retainedCatalog": "600 existing catalog/assets files match their previous indexed bytes; static API documentation was not regenerated by this package delivery.",
+  "limits": [
+    "Interactive windows, GPU rendering, real OS clipboard/OLE, browser and external network operations were not executed.",
+    "Direct declarative calls retain checked lifetime/error costs; the pinned cost report makes no universal zero-overhead claim.",
+    "Concurrent unrelated IDE3/native work and old flat-release migration deletions were not staged."
+  ]
+}
