@@ -17,6 +17,7 @@ struct XL6_StaticModule {
     XL6_CodeOwnerGraph owner;
     XL6_StaticModuleContractV1 contract;
     XL6_OwnershipProbeV1 probe;
+    XL6_OwnershipFinalizationResolveV1 finalization;
     const XL6_OwnershipBoundaryV1* boundary;
     xmutex* lock;
     size_t leases, pins;
@@ -284,6 +285,20 @@ XL6_StaticModule* xl6StaticModuleCreateV3(const XL6_StaticModuleContractV2* cont
     if(module)module->boundary=boundary;
     return module;
 }
+XL6_StaticModule* xl6StaticModuleCreateV4(const XL6_StaticModuleContractV2* contract,
+    const XL6_OwnershipBoundaryV1* boundary,XL6_OwnershipFinalizationResolveV1 finalization)
+{
+    if(!finalization){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    XL6_StaticModule* module=xl6StaticModuleCreateV3(contract,boundary);
+    if(module)module->finalization=finalization;
+    return module;
+}
+static bool staticFinalization(xrtownershipref ref,void* context,
+    const XL6_OwnershipAdapterV1* adapter,const xrtownershipfinalizationv1** output)
+{
+    XL6_StaticModule* module=context;
+    return module->finalization(ref,module->contract.context,adapter,output);
+}
 xrtownershipref xl6StaticModuleOwnershipV1(const XL6_StaticModule* module)
 { return (xrtownershipref){module,module ? &staticOps : NULL}; }
 static XL6_StaticModuleResultV1 staticRetire(XL6_StaticModule* module,bool* blockedFailure)
@@ -305,7 +320,9 @@ static XL6_StaticModuleResultV1 staticRetire(XL6_StaticModule* module,bool* bloc
     xl6_error_scope scope={0};bool begun=xl6ErrorScopeBegin(&scope);
     if(begun){
         if(module->phase==STATIC_START){
-            XL6_OwnershipPlanResult status=module->probe
+            XL6_OwnershipPlanResult status=module->finalization
+                ? xl6OwnershipPlanTryCreateV8(xl6StaticModuleOwnershipV1(module),staticProbe,staticDiscover,staticFinalization,true,module,module->boundary,&module->plan)
+                : module->probe
                 ? xl6OwnershipPlanTryCreateV7(xl6StaticModuleOwnershipV1(module),staticProbe,staticDiscover,true,module,module->boundary,&module->plan)
                 : xl6OwnershipPlanTryCreateV5(xl6StaticModuleOwnershipV1(module),staticResolve,staticDiscover,module,&module->plan);
             if(status==XL6_OWNERSHIP_PLAN_ERROR){module->blocked=true;xl6ErrorScopeCaptureFailure(&scope);goto end;}
@@ -314,13 +331,21 @@ static XL6_StaticModuleResultV1 staticRetire(XL6_StaticModule* module,bool* bloc
             module->phase=status==XL6_OWNERSHIP_PLAN_ROOTED ? STATIC_ABORT : status==XL6_OWNERSHIP_PLAN_PREPARATIONS ? STATIC_PREPARE : STATIC_FINALIZE;
         }
         if(module->phase==STATIC_PREPARE || module->phase==STATIC_FINALIZE){
-            bool preparing=module->phase==STATIC_PREPARE;
-            XL6_OwnershipStepResult status=preparing ? xl6OwnershipPlanPrepare(module->plan) : xl6OwnershipPlanFinalizeV2(module->plan);
-            if(status==XL6_OWNERSHIP_STEP_FAILED || status==XL6_OWNERSHIP_STEP_ERROR){
+            bool preparing=module->phase==STATIC_PREPARE,semanticFailed=false;
+            XL6_OwnershipStepResult status=preparing ? xl6OwnershipPlanPrepare(module->plan)
+                : xl6OwnershipPlanFinalizeStepV1(module->plan,&semanticFailed);
+            if(semanticFailed)xl6ErrorScopeCaptureFailure(&scope);
+            if(status==XL6_OWNERSHIP_STEP_FAILED || (preparing && status==XL6_OWNERSHIP_STEP_ERROR)){
                 if(preparing || status==XL6_OWNERSHIP_STEP_ERROR)module->blocked=true;
                 xl6ErrorScopeCaptureFailure(&scope);module->phase=STATIC_ABORT;
-            }else if(status==XL6_OWNERSHIP_STEP_BUSY)goto end;
-            else module->phase=preparing ? STATIC_FINALIZE : STATIC_COMMIT;
+            }else if(status==XL6_OWNERSHIP_STEP_ERROR){
+                module->blocked=true;
+                /* A snapshot error is not an invented semantic failure. */
+                xrtClearError();goto end;
+            }else if(status==XL6_OWNERSHIP_STEP_BUSY || status==XL6_OWNERSHIP_STEP_WAITING){
+                if(semanticFailed)module->blocked=true;
+                goto end;
+            }else module->phase=preparing ? STATIC_FINALIZE : STATIC_COMMIT;
         }
         if(module->phase==STATIC_COMMIT){
             XL6_OwnershipPlanResult status=xl6OwnershipPlanTryCommit(module->plan);
@@ -373,17 +398,20 @@ XL6_StaticModuleResultV1 xl6StaticModuleRetireV1(XL6_StaticModule* module)
 {
     if(!module){xrtSetErrorKind(XERR_ARGUMENT);return (XL6_StaticModuleResultV1){false,false};}
     if(!staticBoundaryEnter(STATIC_BOUNDARY_RETIRE))return (XL6_StaticModuleResultV1){false,!staticFailed(module)};
+    if(module->plan && module->phase==STATIC_FINALIZE && !xl6OwnershipPlanRetryFinalizationV1(module->plan)){staticBoundaryLeave();return (XL6_StaticModuleResultV1){false,false};}
     XL6_StaticModuleResultV1 result=staticRetire(module,NULL);staticBoundaryLeave();return result;
 }
 XL6_StaticModuleResultV1 xl6StaticModuleDrainV1(XL6_StaticModule* module)
 {
     if(!module){xrtSetErrorKind(XERR_ARGUMENT);return (XL6_StaticModuleResultV1){false,false};}
+    bool acknowledge=true;
     for(;;){
         if(!staticBoundaryEnter(STATIC_BOUNDARY_RETIRE)){
             if(xrtAtomic64Load(&staticBoundaryThread,XMEMORY_ACQUIRE)==xrtThreadCurrentId())
                 return (XL6_StaticModuleResultV1){false,!staticFailed(module)};
             xrtThreadYield();continue;
         }
+        if(acknowledge){if(module->plan && module->phase==STATIC_FINALIZE && !xl6OwnershipPlanRetryFinalizationV1(module->plan)){staticBoundaryLeave();return (XL6_StaticModuleResultV1){false,false};}acknowledge=false;}
         XL6_StaticModuleResultV1 result=staticRetire(module,NULL);bool blocked=module->blocked;
         staticBoundaryLeave();if(result.ready || blocked)return result;
         xrtThreadYield();
@@ -394,11 +422,13 @@ XL6_StaticModuleResultV1 xl6StaticModuleDrainForV1(XL6_StaticModule* module,long
     if(!module || milliseconds< -1){xrtSetErrorKind(XERR_ARGUMENT);return (XL6_StaticModuleResultV1){false,false};}
     uint64 timeout=milliseconds<0 ? UINT64_MAX : (uint64)milliseconds;
     XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(timeout);
+    bool acknowledge=true;
     for(;;){
         XL6_StaticModuleResultV1 result={false,!staticFailed(module)};
         if(!staticBoundaryEnter(STATIC_BOUNDARY_RETIRE)){
             if(xrtAtomic64Load(&staticBoundaryThread,XMEMORY_ACQUIRE)==xrtThreadCurrentId())return result;
         }else{
+            if(acknowledge){if(module->plan && module->phase==STATIC_FINALIZE && !xl6OwnershipPlanRetryFinalizationV1(module->plan)){staticBoundaryLeave();return (XL6_StaticModuleResultV1){false,false};}acknowledge=false;}
             bool failed=false;result=staticRetire(module,&failed);
             staticBoundaryLeave();if(result.ready || failed)return result;
         }

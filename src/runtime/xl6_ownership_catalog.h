@@ -37,7 +37,8 @@
     X(TlsListenerEvents, xtlslistenerownershipv1) \
     X(TlsDialDone, xtlsdialownershipv1) \
     X(TlsVerifierContext, xtlsverifiercontextownershipv1) \
-    X(Discovery, XL6_OwnershipDiscoveryV1)
+    X(Discovery, XL6_OwnershipDiscoveryV1) \
+    X(Finalization, xrtownershipfinalizationv1)
 #define XL6_DECLARE_POLICY(Name, Type) struct Type;
 XL6_OWNERSHIP_POLICY_GROUPS(XL6_DECLARE_POLICY)
 #undef XL6_DECLARE_POLICY
@@ -100,6 +101,11 @@ XL6_CODE_LEASE_API bool xl6OwnershipCatalogResolveV1(struct xrtownershipref,void
     const struct xrtownershipadapterv1**,const struct xrtownershippreparationv1**,
     const XL6_OwnershipFinishV1**);
 XL6_CODE_LEASE_API bool xl6OwnershipCatalogAdmitsReadV1(struct xrtownershipref,void*);
+/* Exact adapter-keyed cold capability. true+NULL means no continuation. */
+XL6_CODE_LEASE_API bool xl6OwnershipCatalogResolveFinalizationV1(
+    struct xrtownershipref,void*,const XL6_OwnershipAdapterV1*,
+    const struct xrtownershipfinalizationv1**);
+
 XL6_CODE_LEASE_API XL6_OwnershipAdmissionV1 xl6OwnershipCatalogProbeV1(struct xrtownershipref,void*,
     const struct xrtownershipadapterv1**,const struct xrtownershippreparationv1**,
     const XL6_OwnershipFinishV1**);

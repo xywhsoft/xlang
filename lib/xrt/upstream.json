@@ -64,6 +64,16 @@
       "protocolExtension": "xrtownershipfinishv2.DropReady",
       "unreleasedPrototypeBytesBefore": 40,
       "descriptorBytes": 48
+    },
+    {
+      "commit": "7cecb354dd67aba47eb47cf9c118aea2b0195498",
+      "kind": "Independent resumable semantic finalization declaration only",
+      "modules": [
+        "include/xrt/core.h"
+      ],
+      "abiChanged": false,
+      "protocolExtension": "xrtownershipfinalizationv1",
+      "descriptorBytes": 40
     }
   ]
 }

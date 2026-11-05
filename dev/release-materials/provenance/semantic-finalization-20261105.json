@@ -1,0 +1,214 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "scope": "Independent authoritative FinalizationV1 plus resident V8/staticV4 source milestone, CPU-only, immutable R4 eight-TU development overlay over complete R36. No complete compiler rebuild, matched VFS/AOT, final SDK or release binaries qualification.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\semantic-finalization-core-candidate-r1\\manifest.json",
+    "sha256": "c8450f4eaf0955882ecea7f416617c956538c83a481e675ad22a7a9e17ebfefd"
+  },
+  "authoritativeXrtCommit": "7cecb354dd67aba47eb47cf9c118aea2b0195498",
+  "reports": [
+    {
+      "platform": "win_x64",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\semantic-finalization-plan-win-r4\\results.json",
+      "sha256": "83fd9d211d696431f2390e6f942c08d2f4aa32b24cf895c6cc5a19bf01bdda3d",
+      "rows": 44
+    },
+    {
+      "platform": "win_x64",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\semantic-finalization-view-win-r4\\results.json",
+      "sha256": "56e9a7f636d4893ca14a42ff24af36b5f065c659aa63e3a21b1d03b9ee79553f",
+      "rows": 26
+    },
+    {
+      "platform": "win_x64",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\webview-finalization-win-r4\\results.json",
+      "sha256": "45fb52a65e24b692f680fd26aef8bf9066480fc51cdb69c1e4924e9c37cc358b",
+      "rows": 4
+    },
+    {
+      "platform": "linux_x64",
+      "path": "/home/ubuntu/xlang-validation/semantic-finalization-plan-linux-r4/results.json",
+      "sha256": "cbdef00cb40533899324db07a349b6590f989af38e60dd8aa025d856a56f5d8c",
+      "rows": 44
+    },
+    {
+      "platform": "linux_x64",
+      "path": "/home/ubuntu/xlang-validation/semantic-finalization-view-linux-r4/results.json",
+      "sha256": "4a0662515c1c232e4b68b7c79152e2a1f17cf92dde657bf2ea49cb72203a9cb8",
+      "rows": 26
+    },
+    {
+      "platform": "linux_x64",
+      "path": "/home/ubuntu/xlang-validation/webview-finalization-linux-r4/results.json",
+      "sha256": "941f0b0feb36b246104947de20470265f1d639fb2252af22b2def6e2ccbc68b3",
+      "rows": 4
+    }
+  ],
+  "totalRows": 148,
+  "costReport": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\semantic-finalization-cost-r2\\results.json",
+    "sha256": "d739ce6ffc9d5f48b5f892bec800a3d7a1f52a2951ec7ccc6c9cc8584c777fe2"
+  },
+  "files": [
+    {
+      "path": "src/runtime/xl6_ownership_plan.c",
+      "blob": "7b8be479f2228ddd82f6e1a4e5b161fad07208a2",
+      "sha256": "a4459bb8092da818e965b4cd77512792902d92a8b2c4f3d35f8198b80797ee81"
+    },
+    {
+      "path": "src/runtime/xl6_ownership_plan.h",
+      "blob": "1979215eb04e44576864899af41c3380aff7cdc3",
+      "sha256": "40ca4d7c69596569790693cd540091ad75419e86a1c210306da082281402ca01"
+    },
+    {
+      "path": "src/runtime/xl6_ownership_catalog.c",
+      "blob": "ae26d521d8ce1384508c380ea52d5071da36b4cc",
+      "sha256": "35c24c78c3149dd47cba289c4e95b6f72bcb4a3dcd4a03a8d040cc2163f88b69"
+    },
+    {
+      "path": "src/runtime/xl6_ownership_catalog.h",
+      "blob": "55b385cfafc40806b29c7fd1c93f277da33a5578",
+      "sha256": "c017ee5fef2beb9c7b9996fc59d29c09fe4f8f902f28b53b8bb03bcecafe2a1e"
+    },
+    {
+      "path": "src/runtime/xl6_ownership_finalization.h",
+      "blob": "497c066385b5b8c0ae073b6124746f9de6fa7a0a",
+      "sha256": "ff23abe2eac7dd3bb013d17e008c1c30aa0459705623de17fc73629e937c73ac"
+    },
+    {
+      "path": "src/runtime/xl6_foreign_view.c",
+      "blob": "ba7928619e0369ad692a5ee217a8751b90372219",
+      "sha256": "de22de66c9c08cb0c98a437a27a1b7f825f569c3738184fcdf7e2b45f88c2dd6"
+    },
+    {
+      "path": "src/runtime/xl6_foreign_view.h",
+      "blob": "0be157b12e77bd144f5a1c7dbaf9c12907f3f050",
+      "sha256": "b933dddeba6cf223d8a0a028e1c170895e78ee89aeedcbd5d83ca2ab634911fa"
+    },
+    {
+      "path": "src/runtime/xl6_static_module.c",
+      "blob": "6470ba819fe43ae293a342db8360de9c9bf57cba",
+      "sha256": "59725f270100b8c3b2c6072870ea283b2ed5b14999e19e923b4ce4f1b6688a56"
+    },
+    {
+      "path": "src/runtime/xl6_static_module.h",
+      "blob": "7bdfdd5751f648412636a99bfc8e9f32c6fee40c",
+      "sha256": "c7eca209f81d61583e14a727678520eea3b2e2a98b981d8ed055734f0d896b43"
+    },
+    {
+      "path": "src/api/xl_api.c",
+      "blob": "8edd4566f7e8f9e8667b7ec9e444ffd3af328be7",
+      "sha256": "9123374de625519fc2a444995a3d224ab10482e3db444c1320cd3ee13f0d41eb"
+    },
+    {
+      "path": "src/api/xl_api_symbols.c",
+      "blob": "c2677f07a2bc8eb54423e315f7a47740026883ba",
+      "sha256": "40157ec9233565f909b09918546a29decfcf9a961c02f73b73db6b239531b8fa"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_static_entry.c",
+      "blob": "a2f229433a1314924b51c6deea80bf26d77c35c6",
+      "sha256": "5e8238931e4b3d6de0ba7fe11d9f1c176d7a415e2c7eec6feb6a5b07cad68e6c"
+    },
+    {
+      "path": "src/compile/xl6_artifact_runtime_symbols.inc",
+      "blob": "10862111452b464f19a31ff552f9b680926923ec",
+      "sha256": "c31376b42c682004833ad689069d2c6223812adcfba93a460f657a38da1687ad"
+    },
+    {
+      "path": "lib/xrt/xrt.h",
+      "blob": "d9af7a94a484678e90fe369ed6b083c92baf5b2e",
+      "sha256": "4c02cd11accbd06c4e5de725b1f19bacbf44a92e4791a3819ba45540bc6e4f5d"
+    },
+    {
+      "path": "release/win_x64/include/xrt_decl.h",
+      "blob": "371e6c203dcf07187c818468b4b72f7e28783e6d",
+      "sha256": "3508abef61bd9b48e8b13bd4acca02e789cc3b770aa7c7fa70fe752f380a2726"
+    },
+    {
+      "path": "test/cases/xlir_ownership_finalization_runtime.c",
+      "blob": "c4e5ed91adac9658896db3d810dad63df0a94034",
+      "sha256": "e471e7226a0da37ca52b64db8895e549e593aa56aa4877a6421e5b7cd6bc12f6"
+    },
+    {
+      "path": "tools/check_ownership_finalization.py",
+      "blob": "e05410443fc66f8ecc9a0238254e44948f949435",
+      "sha256": "cf8123e91bb9d295a9c63ba6712fd84f451ed9e911561017124c403ada92a32c"
+    },
+    {
+      "path": "test/cases/xlir_ownership_finalization_view_runtime.c",
+      "blob": "9d5729e1e0ed97c29fe70f786ad46580e1966ab9",
+      "sha256": "a73cfd8d5854530b7ad4ab78a84eb1bf6ced1e04bad2cd619cfe62c4abcf8e64"
+    },
+    {
+      "path": "tools/check_ownership_finalization_view.py",
+      "blob": "448d20337ce03e8db4b7315e38db415436602412",
+      "sha256": "1fa28b0a758a89df6b8ce3d082bd6f4d4ad823dfd523b7c0117207e245d56f1b"
+    },
+    {
+      "path": "docs/xge3-package-semantic-finalization.md",
+      "blob": "ce0c4bf7a3599be4016004ad3e2abf1d6d37c5a7",
+      "sha256": "259af26d4a99313d71c659f87aab5c22a10ac92b126022f4dcd4d7c2c94c5ee8"
+    },
+    {
+      "path": "lib/xrt/upstream.json",
+      "blob": "9e14f5aff99734eb0647bf3295df39536fd9fbc7",
+      "sha256": "9164d7dc9c2a2add9795e9ff2a7f5af5f18af6b0fce7a5d3ae9b3266585738d1"
+    },
+    {
+      "path": "lib/xrt/xrt.snapshot.json",
+      "blob": "373f250696df754b113960c2f3c7a8d0bd5d8c93",
+      "sha256": "7baa1add74f2e814ee42ac50ac6f530ea6331b63dc9b943c63a92d4d09bdd3d9"
+    },
+    {
+      "path": "lib/xruntime/xruntime.snapshot.json",
+      "blob": "e722ea85153a8d34e6492b467527edb676cbb582",
+      "sha256": "4f08bcf07cb8f4af071eb1fde93cb77f8b22b32ed50141d67a86ba70b88d6dde"
+    },
+    {
+      "path": "test/support/foreign_component_catalog.c",
+      "blob": "70d442c4e35b758423e35fd56011b18d1e95adb4",
+      "sha256": "f86a56b14a1e28d0129bd8a0398f5c295acfc5c9c9ccf3deeca7528a646e7d97"
+    },
+    {
+      "path": "tools/check_foreign_component_catalog.py",
+      "blob": "c3ba644368dd42cb6f092387cc1755be21dcae60",
+      "sha256": "15e34edd3bc5a818be2277fd51803331d6393836427a78b4a9601ae6e7340662"
+    }
+  ],
+  "documentationQualification": [
+    {
+      "path": "docs/xge3-package-semantic-finalization.md",
+      "sourceSha256": "e04c2e3bce60fdd98efcf3255a7118f4df9401f25b6fe9d4021bab90aed0b1d1",
+      "committedSha256": "259af26d4a99313d71c659f87aab5c22a10ac92b126022f4dcd4d7c2c94c5ee8",
+      "proof": "Documentation encoding correction in one version-range sentence only; source/runtime/test bytes remain unchanged."
+    }
+  ],
+  "componentCatalog": {
+    "candidate": "F:\\xlang-validation\\foreign-completion-20261103\\continuation-wiring-candidate-r1\\manifest.json",
+    "sha256": "2ce7f83698211d5fb339f8dd02902d71156321099d8a44353820582ee4b9c796",
+    "reports": [
+      {
+        "platform": "win_x64",
+        "path": "F:\\xlang-validation\\foreign-completion-20261103\\continuation-component-catalog-win-r2\\results.json",
+        "sha256": "d16b166a0a5b68f8749c292a902c7adb2cd110655917247254f3c8f81de0c676",
+        "steps": 4
+      },
+      {
+        "platform": "linux_x64",
+        "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\continuation-component-catalog-linux-r1\\results.json",
+        "sha256": "7c1887d24b48f647af7cfb78a1b804f4e2303f3aed4beb6ec590be6f91c26782",
+        "steps": 4
+      }
+    ]
+  },
+  "consumerOptInPatch": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\semantic-finalization-core-candidate-r1\\private-context-continuation.patch",
+    "sha256": "4823880e989c83d6df5e9f5c0e026821ebf2f543e1c03464aa8890376bec1ba7",
+    "note": "Consumer policy source is qualified separately with the complete XUI binding package; this core milestone adds the generic capability."
+  },
+  "shippingDelivery": false,
+  "oldFailuresPreserved": true
+}
