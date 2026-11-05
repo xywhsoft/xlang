@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "scope": "Preserved Windows paired target-object/VFS successor and current read-only packaging qualification. Prior failed tool-drift attempt remains an unchanged record.",
+  "passed": true,
+  "reports": [
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2-final-qualification.json",
+      "archivePath": "provider-win-r2-final-qualification.json",
+      "sha256": "34d2b3bb0a89890af8cc1a86948cc4a99ecf00ea67b44c3e8a1dee14b5079aea"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2-final-qualification-r2.json",
+      "archivePath": "provider-win-r2-final-qualification-r2.json",
+      "sha256": "2b1309ef6ee01a3acaa08acc009c186985f007b17e5ee73fc94a0ac53d1c51a2"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\precompiled-win-r2\\manifest.json",
+      "archivePath": "precompiled-win-r2/manifest.json",
+      "sha256": "8431fa3968b63ecb30016f0e151c489758470a6a82719805065bafbc4709d1dc"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\precompiled-win-r1\\manifest.json",
+      "archivePath": "precompiled-win-r1/manifest.json",
+      "sha256": "8377bc7f982f941962d2aeea1d4668ea055bc80e470ecad509e6002dbb143084"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2\\provider.json",
+      "archivePath": "provider-win-r2/provider.json",
+      "sha256": "373fdb07fd09dac86b9dcde5e0e467f6be112b66ed38d13745547d2192ae3060"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2-qualified-r2\\provider.json",
+      "archivePath": "provider-win-r2-qualified-r2/provider.json",
+      "sha256": "b0d42d97c2757fd2c3c2880a193222645ad4dda281346e3eaf34776fb2b33d23"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\results.json",
+      "archivePath": "sourcefree-nested-win-r2/results.json",
+      "sha256": "9a34bafc4280c90a9ff12bb1ff3e7de478fff3fe030cc1de1bc609b9ae45059b"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\mixed-schema-focused-r8\\results.json",
+      "archivePath": "mixed-schema-focused-r8/results.json",
+      "sha256": "e4192c7d0f174b9e28feb68c946938cd23f4d59d344f3e98861aeebc7584d7a6"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\mixed-consumer-plan-linux-r2-local.json",
+      "archivePath": "mixed-consumer-plan-linux-r2-local.json",
+      "sha256": "f9d686f8ee2d4373b4f5daafbf0177897d4e647f816373fcee8dfc5b9d37e947"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\serialized-successor-tools-candidate-r3\\manifest.json",
+      "archivePath": "serialized-successor-tools-candidate-r3/manifest.json",
+      "sha256": "d7f04fdb41c8fecf4d60cede5c41390559adb842d0bfc47286a7e495283c47f6"
+    }
+  ],
+  "sourceMaterials": "dev\\release-materials\\sources\\serialized-successor-tools-20261106-r2\\manifest.json",
+  "sourceMaterialsSha256": "78c9c3a6f08302336c6edf651f2a29eb716369759c3eb744048b85288c83c802",
+  "archiveSha256": "ba9469a66517dfd7217e260e045e818ebac26afb277d00d35a9d541b672b9882",
+  "latestReceipt": "dev/release-materials/provenance/tcc-serialized-vfs-successor-20261106-r2.json",
+  "latestReceiptSha256": "d0cf5ee76bdbafebc8e97a268f29a950dda94e7290739142b180146e570f221d",
+  "metadataChecks": 24,
+  "shippingDelivery": false,
+  "peAotQualified": false
+}

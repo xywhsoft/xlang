@@ -1,0 +1,434 @@
+{
+  "schema": 1,
+  "complete": true,
+  "passed": true,
+  "scope": "Final R7 Windows matched serialized/VFS successor, current frozen mixed-manifest validator, current-source SDK aliases, and CPU JIT. Honest 6 target objects rebuilt / 1560 inherited; two resources and provider images reused unchanged from the preserved failed tool-drift attempt. No TinyCC PE emission/execution and no release installation.",
+  "sourceRoot": "F:\\xlang-validation\\native-static-20261106\\core-source-r7",
+  "sourceFreeze": "F:\\xlang-validation\\native-static-20261106\\core-source-r7.json",
+  "sourceFreezeSha256": "0b66c60929627eb755cc74561a1071a801be80f2ebd664cd7dd674d777b68aee",
+  "qualifiedProviderDirectory": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2-qualified-r2",
+  "reports": [
+    {
+      "role": "finalQualification",
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2-final-qualification.json",
+      "sha256": "34d2b3bb0a89890af8cc1a86948cc4a99ecf00ea67b44c3e8a1dee14b5079aea"
+    },
+    {
+      "role": "toolCandidate",
+      "path": "F:\\xlang-validation\\native-static-20261106\\serialized-successor-tools-candidate-r1\\manifest.json",
+      "sha256": "7ace3b2bb5eef76789632909862781a6c66a30fbfd8ef38fed34c395943850b3"
+    },
+    {
+      "role": "serializedManifest",
+      "path": "F:\\xlang-validation\\native-static-20261106\\precompiled-win-r2\\manifest.json",
+      "sha256": "8431fa3968b63ecb30016f0e151c489758470a6a82719805065bafbc4709d1dc"
+    },
+    {
+      "role": "sourcefreeCpu",
+      "path": "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\results.json",
+      "sha256": "9a34bafc4280c90a9ff12bb1ff3e7de478fff3fe030cc1de1bc609b9ae45059b"
+    },
+    {
+      "role": "mixedMetadata",
+      "path": "F:\\xlang-validation\\native-static-20261106\\mixed-schema-focused-r5\\results.json",
+      "sha256": "ca18de1cd41c0820629358c23cc2f4c23234519d5296c5531c6b70d303220b77"
+    }
+  ],
+  "fullRecompile": false,
+  "targetObjects": {
+    "recompiled": 6,
+    "inherited": 1560
+  },
+  "images": [
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2-qualified-r2\\public_source.exe",
+      "sha256": "4a5fc0ae56ecfeb3beba76cf85bc824d2ef2a55d15fd20e7a58f931048d88036",
+      "original": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2\\public_source.exe",
+      "originalSha256": "4a5fc0ae56ecfeb3beba76cf85bc824d2ef2a55d15fd20e7a58f931048d88036"
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2-qualified-r2\\xl.dll",
+      "sha256": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930",
+      "original": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2\\xl.dll",
+      "originalSha256": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930"
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2-qualified-r2\\xlc.dll",
+      "sha256": "8d1a88ec71e8f4a5b5f96c98c030d2dfc8dc595775871933ad270cb7a13194c6",
+      "original": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2\\xlc.dll",
+      "originalSha256": "8d1a88ec71e8f4a5b5f96c98c030d2dfc8dc595775871933ad270cb7a13194c6"
+    }
+  ],
+  "resources": [
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2\\tcc_builtin_resources.c",
+      "sha256": "7af78fedebef834233d7c0da73eee2d688754d6fc174436ee04a8d98c5c64a44",
+      "stamp": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2\\tcc_builtin_resources.c.stamp.json",
+      "stampSha256": "b7ce6c402f06d2c0bcf16f0b733b68487343662cffd93ce4783f2ccbc9c9b52b"
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2\\tcc_builtin_resources_runtime.c",
+      "sha256": "f699d1425689779740d2a68224c7a6871bf834da476cec4adb44ad9f8e7754ca",
+      "stamp": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2\\tcc_builtin_resources_runtime.c.stamp.json",
+      "stampSha256": "ccf250c9310a2126ed0cc0d465ddb6373c8be37bb5a63924ef0dd854e7996395"
+    }
+  ],
+  "sdkAliasCount": 3142,
+  "sdkAliasChanges": [
+    {
+      "path": "__xl_compiler/lib/tcc/tccelf.c",
+      "previousSha256": "bcaf0ee8b8be27463cf83564aac51178c98ed5ba3d4ba90d8c86e6fcb5b8900a",
+      "currentSha256": "d6c5d5cfee517e66e582d09a5cc55f3f3c143a9610363db69c96ff938def67d2"
+    }
+  ],
+  "allSdkAliasesMatchR7": true,
+  "providerImportBinding": {
+    "requested": true,
+    "verified": true,
+    "tccImports": {
+      "_tcc_error_noabort": "xlc.dll",
+      "tcc_basename": "xlc.dll",
+      "tcc_delete": "xlc.dll",
+      "tcc_enter_state": "xlc.dll",
+      "tcc_fileextension": "xlc.dll",
+      "tcc_free": "xlc.dll",
+      "tcc_get_dllexports": "xlc.dll",
+      "tcc_malloc": "xlc.dll",
+      "tcc_realloc": "xlc.dll"
+    },
+    "provider": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2\\xlc.dll",
+    "scope": "Stock SourceDriver fixes the API DLL to adjacent xlc.dll; this is not a guarantee for arbitrary custom tccDllPath/provider swapping",
+    "source": "F:\\xlang-validation\\foreign-completion-20261103\\source-module-code-owner-r1\\test\\cases\\xlir_public_source_driver.c",
+    "sourceSha256": "a47ceeb8f7976588e91fac7cb325ce3d23b61f2c260715e2fd12ead714ed4ffa",
+    "cohortSource": "F:\\xlang-validation\\native-static-20261106\\core-source-r7\\test\\cases\\xlir_public_source_driver.c",
+    "cohortSourceSha256": "fc225343c110e260dc717e612bb44ac563e96136f866132c148dac3443955b7a",
+    "canonicalLFSame": true
+  },
+  "historicalFailedAttempt": {
+    "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2\\provider.json",
+    "sha256": "373fdb07fd09dac86b9dcde5e0e467f6be112b66ed38d13745547d2192ae3060",
+    "reason": "Validation helper changed during build; source/runtime inputs and all artifact bytes unchanged. Later SDK refresh is separately recorded."
+  },
+  "ownedFiles": [
+    {
+      "path": "tools/precompile_builtin_successor.py",
+      "sha256": "85f2dbaa9262ce42e1f701f303679062423425e40600abcd7a9675e7e3f98b1b",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\serialized-successor-tools-candidate-r1\\tools\\precompile_builtin_successor.py"
+    },
+    {
+      "path": "tools/check_precompile_builtin_successor.py",
+      "sha256": "18ececd022d6450f967374613081fca6cb480c1ce383188020a515beb17c4e8d",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\serialized-successor-tools-candidate-r1\\tools\\check_precompile_builtin_successor.py"
+    },
+    {
+      "path": "tools/stage_source_tcc_provider.py",
+      "sha256": "f014df497af90c40a0c0df5c6af453089bfef6250631d3cf6b487c495606e913",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\serialized-successor-tools-candidate-r1\\tools\\stage_source_tcc_provider.py"
+    },
+    {
+      "path": "tools/gen_tcc_vfs_resources.py",
+      "sha256": "978788dcd44ca0c8e44cb76b862d6bf13a5be33923062509b978d50d84ae1303",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\serialized-successor-tools-candidate-r1\\tools\\gen_tcc_vfs_resources.py"
+    },
+    {
+      "path": "docs/serialized-object-successors.md",
+      "sha256": "4f9fcf95e07dac997437b922f5d6a003cffb6325a67a3d42d458a71878255a43",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\serialized-successor-tools-candidate-r1\\docs\\serialized-object-successors.md"
+    }
+  ],
+  "runtimeRows": [
+    {
+      "name": "stdlib_nested_sdk-run",
+      "command": [
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\host\\public_source.exe",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\stdlib_nested_sdk.xl",
+        "run",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\stdlib_nested_sdk-run"
+      ],
+      "exitCode": 0,
+      "seconds": 1.484,
+      "logSha256": "019cb3ce169ba86e759277154b60911d1ac55a08a5d7c0604c6429d0b5b00853"
+    },
+    {
+      "name": "stdlib_nested_sdk-module",
+      "command": [
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\host\\public_source.exe",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\stdlib_nested_sdk.xl",
+        "module",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\stdlib_nested_sdk-module"
+      ],
+      "exitCode": 0,
+      "seconds": 0.297,
+      "logSha256": "ae3b1a89b955b133c21e2ff8de52451afe713d15f583fd2dd4e297e4095779af"
+    },
+    {
+      "name": "stdlib_nested_aot-run",
+      "command": [
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\host\\public_source.exe",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\stdlib_nested_aot.xl",
+        "run",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\stdlib_nested_aot-run"
+      ],
+      "exitCode": 0,
+      "seconds": 0.687,
+      "logSha256": "93be8856428ad80a6b2698101fcc10da5d93a5fc9ba50b4cc49cd51189661f63"
+    },
+    {
+      "name": "stdlib_nested_aot-module",
+      "command": [
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\host\\public_source.exe",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\stdlib_nested_aot.xl",
+        "module",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\stdlib_nested_aot-module"
+      ],
+      "exitCode": 0,
+      "seconds": 0.735,
+      "logSha256": "cd0bf3bcef90008c9e9c8ff821a40466bd58c9b82d2f18e9a3a9fc90ae55d3b7"
+    },
+    {
+      "name": "stdlib_string_bridge_boundaries-run",
+      "command": [
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\host\\public_source.exe",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\stdlib_string_bridge_boundaries.xl",
+        "run",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\stdlib_string_bridge_boundaries-run"
+      ],
+      "exitCode": 0,
+      "seconds": 0.296,
+      "logSha256": "88c8b5a1051155122abb06d012cfe21871bc42ed834d4cf80f5ea3538878fbd2"
+    },
+    {
+      "name": "stdlib_string_bridge_boundaries-module",
+      "command": [
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\host\\public_source.exe",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\stdlib_string_bridge_boundaries.xl",
+        "module",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\stdlib_string_bridge_boundaries-module"
+      ],
+      "exitCode": 0,
+      "seconds": 0.25,
+      "logSha256": "bf53dfb6a7e8cdff5361b9dc1f45e8c7c0a221a38ea5c788830f022fbddc47b1"
+    },
+    {
+      "name": "native_sequence-run",
+      "command": [
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\host\\public_source.exe",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\native_sequence.xl",
+        "run",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\native_sequence-run"
+      ],
+      "exitCode": 0,
+      "seconds": 0.172,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "native_sequence-module",
+      "command": [
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\host\\public_source.exe",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\native_sequence.xl",
+        "module",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\native_sequence-module"
+      ],
+      "exitCode": 0,
+      "seconds": 0.14,
+      "logSha256": "1e707a82a3e0bb0352b5b2c05cb58c0373dedb34eda49443f6b6dcda11fbeb5f"
+    },
+    {
+      "name": "double-nested-run",
+      "command": [
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\host\\public_source.exe",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\double-nested.xl",
+        "run",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\double-nested-run"
+      ],
+      "exitCode": 0,
+      "seconds": 0.203,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "double-nested-module",
+      "command": [
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\host\\public_source.exe",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\double-nested.xl",
+        "module",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\double-nested-module"
+      ],
+      "exitCode": 0,
+      "seconds": 0.203,
+      "logSha256": "1e707a82a3e0bb0352b5b2c05cb58c0373dedb34eda49443f6b6dcda11fbeb5f"
+    },
+    {
+      "name": "c-jit-only-run",
+      "command": [
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\host\\public_source.exe",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\c-jit-only.xl",
+        "run",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\c-jit-only-run"
+      ],
+      "exitCode": 0,
+      "seconds": 0.125,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "c-jit-only-module",
+      "command": [
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\host\\public_source.exe",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\c-jit-only.xl",
+        "module",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\c-jit-only-module"
+      ],
+      "exitCode": 0,
+      "seconds": 0.109,
+      "logSha256": "1e707a82a3e0bb0352b5b2c05cb58c0373dedb34eda49443f6b6dcda11fbeb5f"
+    },
+    {
+      "name": "static-xge-emit",
+      "command": [
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\host\\public_source.exe",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\static_data.xl",
+        "emit",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\static-emit"
+      ],
+      "exitCode": 0,
+      "seconds": 1.391,
+      "logSha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74"
+    },
+    {
+      "name": "static-xge-run",
+      "command": [
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\host\\public_source.exe",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\static_data.xl",
+        "run",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\static-run"
+      ],
+      "exitCode": 0,
+      "seconds": 1.172,
+      "logSha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9"
+    },
+    {
+      "name": "static-xge-module",
+      "command": [
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\host\\public_source.exe",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\static_data.xl",
+        "module",
+        "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\static-module"
+      ],
+      "exitCode": 0,
+      "seconds": 1.109,
+      "logSha256": "1e707a82a3e0bb0352b5b2c05cb58c0373dedb34eda49443f6b6dcda11fbeb5f"
+    }
+  ],
+  "metadataRows": [
+    {
+      "name": "mixed-two-producers",
+      "passed": true
+    },
+    {
+      "name": "full-recompile",
+      "passed": true,
+      "diagnostic": "Mixed set cannot claim full recompilation"
+    },
+    {
+      "name": "parent-sha",
+      "passed": true,
+      "diagnostic": "Parent manifest changed"
+    },
+    {
+      "name": "duplicate",
+      "passed": true,
+      "diagnostic": "Unexpected/duplicate target object"
+    },
+    {
+      "name": "missing",
+      "passed": true,
+      "diagnostic": "Object set/count differs"
+    },
+    {
+      "name": "counts",
+      "passed": true,
+      "diagnostic": "Object set/count differs"
+    },
+    {
+      "name": "object-hash",
+      "passed": true,
+      "diagnostic": "Target object changed"
+    },
+    {
+      "name": "object-size",
+      "passed": true,
+      "diagnostic": "Target object changed"
+    },
+    {
+      "name": "flags",
+      "passed": true,
+      "diagnostic": "Target flags changed"
+    },
+    {
+      "name": "unknown-producer",
+      "passed": true,
+      "diagnostic": "Unregistered actual producer"
+    },
+    {
+      "name": "inherited-producer-relabeled",
+      "passed": true,
+      "diagnostic": "Inherited producer relabeled"
+    },
+    {
+      "name": "inherited-path-relabeled",
+      "passed": true,
+      "diagnostic": "Target object changed"
+    },
+    {
+      "name": "source-closure",
+      "passed": true,
+      "diagnostic": "Wrong target source closure"
+    },
+    {
+      "name": "source-identity",
+      "passed": true,
+      "diagnostic": "Wrong target source closure"
+    },
+    {
+      "name": "provenance-kind",
+      "passed": true,
+      "diagnostic": "Object provenance contradicts source changes"
+    },
+    {
+      "name": "producer-binary",
+      "passed": true,
+      "diagnostic": "Actual producer binary changed"
+    },
+    {
+      "name": "signed-false-proof",
+      "passed": true,
+      "diagnostic": "Inheritance source proof differs"
+    },
+    {
+      "name": "three-producer-transitive-chain",
+      "passed": true
+    },
+    {
+      "name": "cli-mixed-parent-plan",
+      "passed": true
+    },
+    {
+      "name": "unrecomputed-native-system-headers-rejected",
+      "passed": true,
+      "diagnostic": "Native system-header digest requires external recomputation; this CLI qualifies TCC SDK headers only"
+    },
+    {
+      "name": "changed-c-through-unchanged-header-rejected",
+      "passed": true,
+      "diagnostic": "Changed C body included by a header; full qualification required: src/a.c"
+    }
+  ],
+  "peSmokeSkipped": true,
+  "peAotQualified": false,
+  "shippingDelivery": false,
+  "limitations": [
+    "No release installation or production-profile relabeling. SourceDriver objects retain their original Source/Flags provenance.",
+    "Only the Windows/TCC empty nativeSystemHeaders profile is supported by the rebuilding CLI; nonempty host-header inventories require external recomputation.",
+    "Producer changes require explicit reviewed source allowlisting; arbitrary code-generator equivalence is not inferred.",
+    "Current R2 resource/provider artifact bytes are unchanged from the preserved helper-drift attempt; final tools, SDK aliases and JIT are separately qualified."
+  ]
+}
