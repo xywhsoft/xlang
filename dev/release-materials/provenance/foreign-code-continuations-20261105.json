@@ -1,0 +1,60 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "fullCompilerRebuild": false,
+  "scope": "Cold ForeignView code-capability export/continuation and existing creator retirement. Runtime-only focused overlay; COM services and final provider are separate.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\fv-code-continuation-source-r1\\manifest.json",
+    "sha256": "b97e3567bb80ee2532b09c7dbde3d7ab6147d3a49e7526fd21026d8f0e39e569"
+  },
+  "reports": [
+    {
+      "platform": "win_x64",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\fv-code-continuation-win-r3\\results.json",
+      "sha256": "27748120120d6b29cb68583c9ee89b6dc6c089bc7a10645510bdb5e89f1d714b",
+      "steps": 8
+    },
+    {
+      "platform": "linux_x64",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\fv-code-continuation-linux-r1\\results.json",
+      "sha256": "914db7c946cbc44b1472fed57f33ba6284fc80c217f543b70eb8664f32217517",
+      "steps": 8
+    }
+  ],
+  "files": [
+    {
+      "path": "src/runtime/xl6_foreign_view.c",
+      "canonicalLfSha256": "02c687397129fef15ba92260e507ede2050ed20884a90f5aa4c694d0b4ddf53c"
+    },
+    {
+      "path": "src/runtime/xl6_foreign_view.h",
+      "canonicalLfSha256": "827a3cda6dea2b552897c0873c76f0b09a946761f02edddefa50947d056f2420"
+    },
+    {
+      "path": "src/api/xl_api_symbols.c",
+      "canonicalLfSha256": "557b3a34cf1ae20037d2fe74bd90867bc490e0c0142095bf7308182e42432aa9"
+    },
+    {
+      "path": "test/cases/foreign_view_code_continuation.c",
+      "canonicalLfSha256": "449a33ed2a2bbc466ea70ca1f117e921c9d9cd35c4c2446d8c205193d49ad6fc"
+    },
+    {
+      "path": "tools/check_foreign_view_code_continuation.py",
+      "canonicalLfSha256": "3c8c2683ade15108afd91dfd81e627bd1bf17b8ba51f5cf153d657701178b90d"
+    },
+    {
+      "path": "docs/foreign-code-continuations.md",
+      "canonicalLfSha256": "00fb1c99c4f4b3bf1041b280b3afb45f073e2f5a131a0ed33f25f73d09cb257d"
+    }
+  ],
+  "abiLayoutUnchanged": true,
+  "newOrdinaryMethodWork": false,
+  "allocationFailurePrefixes": 2,
+  "limitations": [
+    "No new native queue or borrowed language reference.",
+    "Accepted code lease is a trusted caller capability, not validation of arbitrary C pointers.",
+    "New API symbol entries are source wiring; final matched provider registration is separate."
+  ]
+}

@@ -119,6 +119,13 @@ XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewCreateRootV1(const void*,const
  * It adds no operation or allocation to ordinary native method calls. */
 XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewCreateRootWithDomainV1(
     const void*,const XL6_ForeignViewDescriptorV1*,const XL6_OwnershipDomainV1*,const XL6_CodeOwner*);
+/* Cold continuation from an already accepted real capability. Borrows parent
+ * and retains one independent child; no host Acquire or reopened admission.
+ * NULL parent is an explicit externally-resident C promise. Failure consumes
+ * neither the native owner nor parent. The ordinary Watch/domain/creator and
+ * checked retirement contracts are identical to CreateRootWithDomainV1. */
+XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewCreateRootFromLeaseV1(
+    const void*,const XL6_ForeignViewDescriptorV1*,const XL6_OwnershipDomainV1*,XL6_CodeLease*);
 XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewBorrowChildV1(const void*,XL6_ForeignView*,const XL6_ForeignViewDescriptorV1*,const XL6_CodeOwner*);
 /* Exact owner-result projection during a live native call. The closed IR
  * proves the nominal root type. raw must equal that same live native root;
@@ -143,6 +150,12 @@ XL6_CODE_LEASE_API bool xl6ForeignViewCallbackFailureCountV1(XL6_ForeignView*,ui
  * self-reference. It is still a REAL graph edge and must be traced. */
 XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewNativePinV1(XL6_ForeignView*);
 XL6_CODE_LEASE_API void xl6ForeignViewNativeUnpinV1(XL6_ForeignView*);
+/* Cold external-code export from an exact live owning root on its creator.
+ * Does not retain the resource or control, and does not discover code in an
+ * arbitrary child/closed/claimed root. True transfers one independent lease;
+ * true with NULL records that this root was explicitly externally resident.
+ * False clears output and transfers nothing. The caller already owns view. */
+XL6_CODE_LEASE_API bool xl6ForeignViewRetainCodeLeaseV1(XL6_ForeignView*,XL6_CodeLease**);
 
 /* Native invalidation only clears/queues; it cannot release the final code
  * dependency while the native notifier is still on the C stack. Drain runs

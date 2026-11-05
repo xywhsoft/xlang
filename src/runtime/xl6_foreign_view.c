@@ -209,15 +209,9 @@ static void viewDiscardUnpublished(XL6_ForeignView* view)
     if (!view->owner) xrtMapUnit(&view->directory);
     xrtFree(view); xl6CodeLeaseRelease(code);
 }
-static XL6_ForeignView* viewCreateRoot(void* raw,const XL6_ForeignViewDescriptorV1* d,
-    const XL6_OwnershipDomainV1* domain,const XL6_CodeOwner* codeOwner,const XL6_ForeignResultProbeV1* probe)
+static XL6_ForeignView* viewAcceptRoot(XL6_ForeignView* view,void* raw,const XL6_ForeignViewDescriptorV1* d,
+    const XL6_OwnershipDomainV1* domain,const XL6_ForeignResultProbeV1* probe)
 {
-    if(!viewDomainValid(domain)){
-        xrtSetErrorKind(XERR_ARGUMENT);return NULL;
-    }
-    if(!xl6ForeignContextReadyV1())return NULL;
-    XL6_ForeignView* view=viewAllocate(raw,d,codeOwner,true);
-    if (!view) return NULL;
     view->nativeDomain=domain;
     if (!xrtMapInit(&view->directory,sizeof(XL6_ForeignView*))) { viewDiscardUnpublished(view); return NULL; }
     /* Lease admission can invoke host code. The factory observer must still
@@ -240,12 +234,37 @@ static XL6_ForeignView* viewCreateRoot(void* raw,const XL6_ForeignViewDescriptor
     xrtAtomic64Store(&view->external,1,XMEMORY_RELEASE);
     return view;
 }
+static XL6_ForeignView* viewCreateRoot(void* raw,const XL6_ForeignViewDescriptorV1* d,
+    const XL6_OwnershipDomainV1* domain,const XL6_CodeOwner* codeOwner,const XL6_ForeignResultProbeV1* probe)
+{
+    if(!viewDomainValid(domain)){
+        xrtSetErrorKind(XERR_ARGUMENT);return NULL;
+    }
+    if(!xl6ForeignContextReadyV1())return NULL;
+    XL6_ForeignView* view=viewAllocate(raw,d,codeOwner,true);
+    return view ? viewAcceptRoot(view,raw,d,domain,probe) : NULL;
+}
 XL6_ForeignView* xl6ForeignViewCreateRootV1(const void* raw,const XL6_ForeignViewDescriptorV1* descriptor,
     const XL6_CodeOwner* codeOwner)
 {return viewCreateRoot((void*)raw,descriptor,NULL,codeOwner,NULL);}
 XL6_ForeignView* xl6ForeignViewCreateRootWithDomainV1(const void* raw,const XL6_ForeignViewDescriptorV1* descriptor,
     const XL6_OwnershipDomainV1* domain,const XL6_CodeOwner* codeOwner)
 {return viewCreateRoot((void*)raw,descriptor,domain,codeOwner,NULL);}
+XL6_ForeignView* xl6ForeignViewCreateRootFromLeaseV1(const void* raw,const XL6_ForeignViewDescriptorV1* descriptor,
+    const XL6_OwnershipDomainV1* domain,XL6_CodeLease* parent)
+{
+    if(!viewDomainValid(domain)){
+        xrtSetErrorKind(XERR_ARGUMENT);return NULL;
+    }
+    if(!xl6ForeignContextReadyV1())return NULL;
+    /* A real accepted capability may be continued after root admission closes.
+     * Retain it before observation; never reacquire its host or call user code
+     * to rediscover residency. NULL is an explicit externally-resident promise. */
+    XL6_ForeignView* view=viewAllocate((void*)raw,descriptor,NULL,true);
+    if(!view)return NULL;
+    view->code=xl6CodeLeaseRetain(parent);
+    return viewAcceptRoot(view,(void*)raw,descriptor,domain,NULL);
+}
 XL6_ForeignView* xl6ForeignViewCreateRootProbedV1(const void* raw,XL6_ForeignResultProbeV1* probe,const XL6_CodeOwner* owner)
 {
     (void)owner;
@@ -391,6 +410,23 @@ XL6_ForeignView* xl6ForeignViewNativePinV1(XL6_ForeignView* view)
     viewMutationEnd(&mutation);
     if(!ok)xrtSetErrorKind(XERR_STATE);
     return ok?root:NULL;
+}
+bool xl6ForeignViewRetainCodeLeaseV1(XL6_ForeignView* view,XL6_CodeLease** output)
+{
+    if(!output){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    *output=NULL;
+    if(!view){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    xrtownershipscope mutation={0};viewMutationBegin(&mutation);
+    /* Only the exact owning root qualifies. A child's own code is not a
+     * substitute for its parent's complete transitive resource capability. */
+    bool ok=!view->owner && view->thread==xrtThreadCurrentId() &&
+        !view->claim && !view->cleared && !view->unadopted && view->raw &&
+        !xrtAtomic32Load(&view->closing,XMEMORY_ACQUIRE) &&
+        xrtAtomic32Load(&view->nativeLive,XMEMORY_ACQUIRE);
+    if(ok)*output=xl6CodeLeaseRetain(view->code);
+    viewMutationEnd(&mutation);
+    if(!ok)xrtSetErrorKind(XERR_STATE);
+    return ok;
 }
 void xl6ForeignViewNativeUnpinV1(XL6_ForeignView* root)
 { viewDrop(root); }
