@@ -3323,6 +3323,16 @@
       "path": "dev/release-materials/sources/xge3-native-20261105-r3-host2/source-manifest.json",
       "sha256": "8fb1d6037a6c3304192f5517c121af1bc79da27e4169cef5e46a678b7d2bcac1",
       "bytes": 1736447
+    },
+    "toolOverlay": {
+      "path": "dev/release-materials/sources/source-provider-tools-successor-20261105/source-manifest.json",
+      "sha256": "499021b2cd9533e8856d5ed6eb58934b386a922090e96811f3757240489b2319",
+      "bytes": 2052
     }
+  },
+  "buildToolsSuccessor": {
+    "path": "dev/release-materials/provenance/source-provider-tools-successor-20261105.json",
+    "sha256": "374d099cfe6b7ac33d735fe0940a1d3a17464a5e6c654d677f4df7333e0d0af2",
+    "bytes": 3261
   }
 }

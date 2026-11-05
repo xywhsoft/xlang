@@ -10,3 +10,5 @@ The compiler's implementation source matches qualified Core commit `a1d18117b935
 Current artifact hashes, CPU acceptance, SDK manifests, local installation and inherited runtime assets are indexed by `../provenance/current-delivery.json`. Original reports retain their original paths and bytes. Neither a developer source bundle nor hidden CLI checks substitute for interactive window/GPU acceptance.
 
 Older `xlang/`, `xge/` and `tcc/` snapshots remain historical materials. Their original guide is preserved at `../provenance/xge3-local-publication-20261105/previous-COMPILER-REBUILD.md`; do not treat those earlier build paths or hashes as the current source cohort. Keep source materials and provenance outside the runtime folders.
+
+Apply the five-file `source-provider-tools-successor-20261105/` overlay after extracting the xlang archive. Its README and manifest pin the subsequent SDK alias refresh, production acceptance tool and role documentation to Git commit `1f19a1dec`; no compiler/ABI rebuild is required by this tools-only layer.

@@ -1,0 +1,34 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Mutable source/index successor only; original local publication and index-validation reports remain immutable.",
+  "currentDelivery": {
+    "path": "dev/release-materials/provenance/current-delivery.json",
+    "sha256": "35db18769afd37de81f49dcb2b10454ed89638d6ffc0b5c1d58633bc72d28649",
+    "bytes": 159296
+  },
+  "materialIndexes": [
+    {
+      "path": "release/win_x64/notices/material-index.json",
+      "sha256": "ed344d0fac913bd89d3b427d0d50af278e47199817414b110989f687623fd651",
+      "bytes": 9431
+    },
+    {
+      "path": "release/linux_x64/notices/material-index.json",
+      "sha256": "94f4c5e611be79a3b4ee7a73093ee9822c249c0ef9f5eb9dc308072898e0cb5d",
+      "bytes": 8418
+    }
+  ],
+  "toolOverlay": {
+    "path": "dev/release-materials/sources/source-provider-tools-successor-20261105/source-manifest.json",
+    "sha256": "499021b2cd9533e8856d5ed6eb58934b386a922090e96811f3757240489b2319",
+    "bytes": 2052
+  },
+  "qualificationReceipt": {
+    "path": "dev/release-materials/provenance/source-provider-tools-successor-20261105.json",
+    "sha256": "374d099cfe6b7ac33d735fe0940a1d3a17464a5e6c654d677f4df7333e0d0af2",
+    "bytes": 3261
+  },
+  "coreAbiOrRuntimeImagesChanged": false,
+  "heavyAcceptanceRepeated": false
+}
