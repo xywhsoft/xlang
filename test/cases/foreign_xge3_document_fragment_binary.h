@@ -1,0 +1,7 @@
+#ifndef FOREIGN_XGE3_DOCUMENT_FRAGMENT_BINARY_H
+#define FOREIGN_XGE3_DOCUMENT_FRAGMENT_BINARY_H
+#include "xge3_runtime.h"
+xbytesview document_fragment_binary_buffer(xui_document_fragment);
+void document_fragment_binary_free(void);
+int document_fragment_binary_verify(xui_document_fragment);
+#endif

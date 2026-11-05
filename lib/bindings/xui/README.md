@@ -4,6 +4,26 @@
 matching `_xge_native` SDK, the engine DLL/SO and the language's XRT. Package
 version `3.0.0`, ABI `2`, does not change the native `XUI_VERSION_*` constants.
 
+The default Document model has seven typed resource classes: `Document`,
+`DocumentSnapshot`, `DocumentChangeSet`, `DocumentPrepare`, `DocumentFragment`,
+`DocumentSourceIndex` and unique `DocumentTransaction`. Use `createDocument()`
+or the explicit Owned import factories. Snapshot/index/fragment/prepare
+`share()` acquires a real independent native owner. Notification arguments
+are callback epoch views; call `share()` to save them beyond the callback.
+Transaction `commit()` and `abort()` close the writer but keep its shell;
+`close()` releases the unique native owner. The exact API and remaining C
+interoperability boundaries are in
+[`Document model map`](../../../docs/xge3-xui3-document-api-map.md).
+
+Node and change-info queries project direct POD fields from one size-prefixed
+native output struct. Borrowed pointers stay private. Text can be obtained
+through scoped `Buffer` Copy/Read methods; Buffer lengths stay unchanged.
+`setAttributesColumns` replaces the whole attributes value, with its fixed
+font-family bytes reset to empty; `setTextStyle` accepts an exact POD for a
+font family. Raw allocator hooks and libc-allocated `char**` results remain
+explicit C interoperability. These declarations require the matching Model
+engine, leased ownership-domain runtime and sized-record compiler contract.
+
 `Context` owns its widget graph. Control classes extend `Widget`; a method such
 as `button.setText(text)` calls its original native function. The package has
 no C wrappers for individual methods and no opcode dispatch. Constructors

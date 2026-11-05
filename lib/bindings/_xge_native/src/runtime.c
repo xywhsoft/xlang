@@ -63,7 +63,8 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3ContextPolicyGet(void)
         sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_context,unwatch,destroy_context,
         sizeof(xui_call_scope_t),_Alignof(xui_call_scope_t),context_begin,context_end,context_trace,context_busy,
         XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH|XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY|
-        XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE|XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE|XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE,NULL,request_context};
+        XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE|XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE|
+        XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE,NULL,request_context};
     return &value;
 }
 const XL6_ForeignViewDescriptorV1* xl6Xui3WidgetPolicyGet(void)
@@ -167,16 +168,19 @@ static bool xui_domain_resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1
     const XL6_OwnershipFinishV1** finish)
 {
     return cell_domain_resolve(ref,policies,adapter,preparation,finish) ||
-        proxy_domain_resolve(ref,policies,adapter,preparation,finish);
+        proxy_domain_resolve(ref,policies,adapter,preparation,finish) ||
+        xl6Xui3DocumentModelDomainV1Get()->Resolve(ref,policies,adapter,preparation,finish);
 }
 static bool xui_domain_read(xrtownershipref ref)
-{return cell_domain_read(ref) || proxy_domain_read(ref);}
+{return cell_domain_read(ref) || proxy_domain_read(ref) || xl6Xui3DocumentModelDomainV1Get()->AdmitsRead(ref);}
+static bool document_domain_finalization(xrtownershipref,const xrtownershipadapterv1*,const xrtownershipfinalizationv1**);
 const XL6_OwnershipDomainV1* xl6Xui3OwnershipDomainV1Get(void)
 {
     /* Context roots can reach resource nodes without a separate language
      * resource view. Admission therefore travels with the complete UI root. */
-    static const XL6_OwnershipDomainV1 value={sizeof(value),NULL,xui_domain_resolve,xui_domain_read};
-    return &value;
+    static const XL6_OwnershipDomainV2 value={{sizeof(value),NULL,xui_domain_resolve,xui_domain_read},
+        XL6_OWNERSHIP_DOMAIN_V2_TAG,document_domain_finalization};
+    return &value.V1;
 }
 static void report_resource_failure(int status,const char* operation)
 {
@@ -184,6 +188,85 @@ static void report_resource_failure(int status,const char* operation)
     xl6ForeignStatusFailureV1(status,operation);
     xl6_error_result failure={false,xrtTakeError()};
     if(!xl6ErrorScopeTryPropagateFailureV1(&failure))xl6CallbackFailureRecordV1(failure);
+}
+#if XUI_ENABLE_DOCUMENT
+/* These are native RC roots, not independently watchable Widgets. Each
+ * ForeignView owns one real native reference. Its resident active pin defers
+ * close across callbacks; native business methods provide their own admission
+ * and activity protocol. Do not add a second retain/scope around each call.
+ * Trace exposes the independent native node once, including its exact graph. */
+#define XUI_DOCUMENT_MODEL_POLICY(Name,Prefix,Family) \
+static bool destroy_##Name(void* raw) \
+{bool consumed=false;int status=Prefix##ReleaseOwnerChecked(raw,&consumed); \
+ if(status!=XUI_STATUS_DEFERRED){report_resource_failure(status,#Prefix "ReleaseOwnerChecked");}return consumed;} \
+static bool trace_##Name(const void* raw,XL6_ModuleOwnershipVisit visit,void* user) \
+{return visit(Prefix##Ownership((void*)raw),user);} \
+static bool busy_##Name(const void* raw) \
+{xrtownershipref ref=Prefix##Ownership((void*)raw); \
+ const xrtownershipquiescencev1* q=xuiDocumentModelOwnershipQuiescenceV1(ref); \
+ return !q || q->Busy(ref.Data);} \
+const XL6_ForeignViewDescriptorV1* xl6Xui3##Name##PolicyGet(void) \
+{static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,Family, \
+ 0,1,NULL,NULL,destroy_##Name,0,1,NULL,NULL,trace_##Name,busy_##Name, \
+ XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE|XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE,NULL,NULL};return &value;}
+XUI_DOCUMENT_MODEL_POLICY(Document,xuiDocument,"xui.document")
+XUI_DOCUMENT_MODEL_POLICY(DocumentSnapshot,xuiDocumentSnapshot,"xui.documentSnapshot")
+XUI_DOCUMENT_MODEL_POLICY(DocumentChangeSet,xuiDocumentChangeSet,"xui.documentChangeSet")
+XUI_DOCUMENT_MODEL_POLICY(DocumentPrepare,xuiDocumentPrepare,"xui.documentPrepare")
+XUI_DOCUMENT_MODEL_POLICY(DocumentFragment,xuiDocumentFragment,"xui.documentFragment")
+XUI_DOCUMENT_MODEL_POLICY(DocumentSourceIndex,xuiDocumentSourceIndex,"xui.documentSourceIndex")
+XUI_DOCUMENT_MODEL_POLICY(DocumentTxn,xuiDocumentTxn,"xui.documentTxn")
+#undef XUI_DOCUMENT_MODEL_POLICY
+static bool document_domain_resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
+    const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation,
+    const XL6_OwnershipFinishV1** finish)
+{
+    (void)policies;*adapter=NULL;*preparation=NULL;*finish=NULL;
+    const xrtownershipadapterv1* exact=xuiDocumentModelOwnershipAdapterV1(ref);
+    if(!exact)return false;
+    const xrtownershippreparationv1* ready=xuiDocumentModelOwnershipPreparationV1(ref);
+    const xrtownershipfinishv2* complete=xuiDocumentModelOwnershipCompletionV2(ref);
+    if(!ready || ready->size!=sizeof(*ready) || ready->Adapter!=exact ||
+       !complete || complete->V1.size!=sizeof(*complete) || complete->AbiTag!=XRT_OWNERSHIP_FINISH_V2_TAG ||
+       complete->V1.Adapter!=exact || !complete->DropChecked || !complete->DropReady)return false;
+    *adapter=exact;*preparation=ready;*finish=&complete->V1;return true;
+}
+static bool document_domain_read(xrtownershipref ref)
+{return xuiDocumentModelOwnershipReadReady(ref);}
+static bool document_domain_finalization(xrtownershipref ref,const xrtownershipadapterv1* adapter,
+    const xrtownershipfinalizationv1** output)
+{
+    *output=NULL;
+    const xrtownershipfinalizationv1* value=xuiDocumentModelOwnershipFinalizationV1(ref);
+    if(!value)return true;
+    if(value->size!=sizeof(*value) || value->AbiTag!=XRT_OWNERSHIP_FINALIZATION_V1_TAG ||
+       value->Adapter!=adapter || !value->CanStep || !value->Step)return false;
+    *output=value;return true;
+}
+#else
+#define XUI_DOCUMENT_MODEL_DISABLED(Name) \
+const XL6_ForeignViewDescriptorV1* xl6Xui3##Name##PolicyGet(void){return NULL;}
+XUI_DOCUMENT_MODEL_DISABLED(Document)
+XUI_DOCUMENT_MODEL_DISABLED(DocumentSnapshot)
+XUI_DOCUMENT_MODEL_DISABLED(DocumentChangeSet)
+XUI_DOCUMENT_MODEL_DISABLED(DocumentPrepare)
+XUI_DOCUMENT_MODEL_DISABLED(DocumentFragment)
+XUI_DOCUMENT_MODEL_DISABLED(DocumentSourceIndex)
+XUI_DOCUMENT_MODEL_DISABLED(DocumentTxn)
+#undef XUI_DOCUMENT_MODEL_DISABLED
+static bool document_domain_resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
+    const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation,const XL6_OwnershipFinishV1** finish)
+{(void)ref;(void)policies;*adapter=NULL;*preparation=NULL;*finish=NULL;return false;}
+static bool document_domain_read(xrtownershipref ref){(void)ref;return false;}
+static bool document_domain_finalization(xrtownershipref ref,const xrtownershipadapterv1* adapter,
+    const xrtownershipfinalizationv1** output)
+{(void)ref;(void)adapter;*output=NULL;return true;}
+#endif
+const XL6_OwnershipDomainV1* xl6Xui3DocumentModelDomainV1Get(void)
+{
+    static const XL6_OwnershipDomainV2 value={{sizeof(value),NULL,document_domain_resolve,document_domain_read},
+        XL6_OWNERSHIP_DOMAIN_V2_TAG,document_domain_finalization};
+    return &value.V1;
 }
 static bool destroy_proxy(void* raw)
 {bool consumed=false;int status=xuiProxyReleaseOwnerChecked(raw,&consumed);report_resource_failure(status,"xuiProxyReleaseOwnerChecked");return consumed;}

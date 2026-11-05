@@ -12,6 +12,7 @@ $env:XLANG_PACKAGE_PATH = "$runtime\extlibs"
 & "$runtime\xl.exe" "D:\GIT\x-lang\lib\bindings\xui\examples\headless_cell.xl"
 & "$runtime\xl.exe" "D:\GIT\x-lang\lib\bindings\xui\examples\context_graph.xl"
 & "$runtime\xl.exe" "D:\GIT\x-lang\lib\bindings\xui\examples\manager_lifetime.xl"
+& "$runtime\xl.exe" "D:\GIT\x-lang\lib\bindings\xui\examples\document_model.xl"
 ```
 
 | Example | Prerequisites and assertions | Cleanup |
@@ -20,6 +21,7 @@ $env:XLANG_PACKAGE_PATH = "$runtime\extlibs"
 | `headless_cell.xl` | Owned native Cell support; no window/device. Text and the full unsigned 64-bit value round-trip. | Cell closes. Native UI text rejects embedded NUL. |
 | `context_graph.xl` | Shared default XGE Proxy and safe Context construction. Builds a Panel/Button graph without rendering; verifies text and registers a typed owning callback. It does **not** dispatch a click or assert event delivery. | Clears the callback, closes Button, then Context graph and Proxy. |
 | `manager_lifetime.xl` | Context-owned Manager support. Creates an unopened MsgBox and a logical MsgTip; dismiss invokes a typed callback exactly once. No OS dialog, frame, browser or clipboard operation is requested. | Clears the callback and closes the children, Context and Proxy in order. |
+| `document_model.xl` | Matched default-provenance Model engine, leased-domain runtime and sized-record compiler. Builds a Rich document with no Context/Proxy/window, commits a unique transaction, reads exact UTF-8 text into a scoped Buffer and keeps the immutable snapshot readable after Document closes. | Transaction shell, Document, Snapshot and ChangeSet each release their real native owner. |
 | `gui_surface_draw.xl` | Interactive desktop, matching XGE 2D backend, target-Surface and Draw support. Allocates only after a frame begins. Draw ends before release, then the image is presented for one frame and the demo exits. | Releases Draw, Surface, callback, Proxy and engine, including exceptional exits. |
 
 The GUI example is separate and must be requested explicitly:
