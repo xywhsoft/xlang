@@ -26,7 +26,11 @@ static bool transferServicesValid(const xn_transfer_services_v1* services)
 #define COBJMACROS
 #define CONST_VTABLE
 #include <windows.h>
+#if defined(__TINYC__)
+#include "xl6_native_com_win_abi.h"
+#else
 #include <oleidl.h>
+#endif
 
 /* These fixed iface identities are data in the resident component. No
  * QueryInterface call is forwarded into the publisher or exposes its vtable. */

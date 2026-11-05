@@ -1,0 +1,66 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "TinyCC-only private C COM ABI header; GCC retains system SDK. 41 exact typed slots, all record fields, 92 SDK-derived numeric facts and real resident-component compilation. No COM/OS call executed.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-com-abi-candidate-r1\\manifest.json",
+    "sha256": "e959e1d466a5ce85358f3f4a5ca9873295a8f9e470731b4fa72e18c32ab9ca57"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-com-abi-formal-win-r2\\results.json",
+      "sha256": "aa8f700bee09ddf0daf7799b2ee8b4a9590c565903f77ec6b181db89d4cecf11",
+      "steps": 14
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-com-link-inputs-win-r1\\results.json",
+      "sha256": "bcba8f12a58a7a3277caf03c18269a52d3fc7830ca9b483e46b44a1b6ea308ba",
+      "steps": 2
+    }
+  ],
+  "typedVtableSlots": 41,
+  "sdkNumericWitnesses": 92,
+  "limitations": [
+    "TCC layout uses SDK-derived static assertions in actual object compilation, not executing the TCC EXE blocked by Defender in historical r1",
+    "GCC SDK/internal oracle executed O0/O2; TCC actual native_com.c object compiled",
+    "No res/ole32.def, linking dependency or runtime policy changes included",
+    "OLE32 PE import inspected; generated link fixture not executed.",
+    "Default TinyCC API link-library selection belongs to the separately tested source-group integration."
+  ],
+  "files": [
+    {
+      "path": "src/runtime/xl6_native_com_win_abi.h",
+      "canonicalLfSha256": "d0017ac62b90cc52dfd34a601a06f6475443109a149659636e2cb443ffdd8b5d"
+    },
+    {
+      "path": "src/runtime/xl6_native_com.c",
+      "canonicalLfSha256": "4734189914ff8db8abfe084de2f339274012675579bb9235555b99066e8729ef"
+    },
+    {
+      "path": "test/cases/native_com_win_abi_oracle.c",
+      "canonicalLfSha256": "339431269d66dcc9c353ff57f318f8a932aef3fba5a74bcde96c199939ae4f9c"
+    },
+    {
+      "path": "tools/check_native_com_win_abi.py",
+      "canonicalLfSha256": "15795b17a3bfc43824d42e63db00a1b5c6e2f6a790f88899d8a913da6f6b91ae"
+    },
+    {
+      "path": "build_dll.bat",
+      "canonicalLfSha256": "b166d1e7c436abe980f79dd89302453c173eb545669f518a2037ae56a4bf1cfd"
+    },
+    {
+      "path": "res/tcc/win64/x86_64/lib/ole32.def",
+      "canonicalLfSha256": "8b06d001cdd89bf744b31fa7b27c25d6d6198775f03f397c18ca07fb8091cbb7"
+    },
+    {
+      "path": "test/cases/native_com_ole32_import.c",
+      "canonicalLfSha256": "17c012bde9913800efd9707ca1707e1f87b772cd81ca4adf3572b9304735089f"
+    },
+    {
+      "path": "tools/check_native_com_link_inputs.py",
+      "canonicalLfSha256": "0d4a17c8fdc815aa872705672c0c49e7bf1da9180d2ffebfcad150be0527d897"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+LIBRARY OLE32.dll
+EXPORTS
+ReleaseStgMedium
