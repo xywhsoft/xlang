@@ -1,0 +1,65 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Matched final Core SourceDriver and normal OnlyTCC serialized/VFS CPU acceptance. Not a production DLL profile or shipping delivery.",
+  "sourceRoot": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2",
+  "sourceReceipt": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2.json",
+  "sourceReceiptSha256": "eb0dab141ac73236a022acd241c96f48cfa814d3586cd119bb78596f329b87b9",
+  "rows": [
+    {
+      "name": "win-sourcefree",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\final-sourcefree-win-r1\\results.json",
+      "sha256": "d95419db26d9cd06c0039bf816acdf7a9087bd5225db0d2881a07109e9e95046",
+      "steps": 40,
+      "passed": true
+    },
+    {
+      "name": "win-provider-identity-debugheap",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\final-provider-binding-win-r1\\results.json",
+      "sha256": "04d75e8cea36384959e65d97c6562cf3b894ca17e9499c3a7b92572fc6b6dc21",
+      "steps": 10,
+      "passed": true
+    },
+    {
+      "name": "win-optional-vfs",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\final-optional-vfs-win-r1\\results.json",
+      "sha256": "631175936d1de5db2af3fd3a0c313bb3b4ffc1a113e3fbc6f5c830328f5f0201",
+      "steps": 17,
+      "passed": true
+    },
+    {
+      "name": "win-loaded-libraries",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\final-loaded-libraries-win-r1\\results.json",
+      "sha256": "bff2285d7d5e43415161ae7cdb084efdf84a954d18279fb81af7f323816dc109",
+      "steps": 5,
+      "passed": true
+    },
+    {
+      "name": "linux-sourcefree",
+      "path": "/home/ubuntu/xlang-validation/final-sourcefree-linux-r1/results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-linux-sourcefree-localCopy.json",
+      "sha256": "e596d42059ec2a53d076af02cceb3a622b8720f2f5941d06f2022da11978b3e9",
+      "steps": 40,
+      "passed": true
+    },
+    {
+      "name": "linux-optional-vfs",
+      "path": "/home/ubuntu/xlang-validation/final-optional-vfs-linux-r2/results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-linux-optional-vfs-localCopy.json",
+      "sha256": "ce9569eea06eb44d0b43bc260ce579a874b6c33eb02e7835227b8d063be426ef",
+      "steps": 17,
+      "passed": true
+    },
+    {
+      "name": "linux-loaded-libraries",
+      "path": "/home/ubuntu/xlang-validation/final-loaded-libraries-linux-r1/results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-linux-loaded-libraries-localCopy.json",
+      "sha256": "cd78d5f29f27f5021cce032fe1517760a2b2a8797c668d1134f93fdab633a429",
+      "steps": 5,
+      "passed": true
+    }
+  ],
+  "totalSteps": 134,
+  "productionDllAcceptance": false,
+  "unchangedSourceSnapshots": true
+}
