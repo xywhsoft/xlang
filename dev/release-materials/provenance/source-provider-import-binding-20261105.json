@@ -1,0 +1,96 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "fullCompilerRebuild": false,
+  "scope": "Matched stock adjacent-provider SourceDriver only, not arbitrary custom tccDllPath/provider swapping. Legacy full CLI verifies generation/AOT compatibility only.",
+  "aggregate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\r39-provider-integration-final-r2.json",
+    "sha256": "89f3d809665aad17222b7e71faebf6f0119d801484e0ef8d7101176d73a4da18"
+  },
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\provider-successor-tools-candidate-r2\\manifest.json",
+    "sha256": "942106862e3e9ff4e3fc429c3bad5640090b8ab854776873f57fd3da968d1e5c"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\provider-tool-full-regression-win-r2\\provider.json",
+      "sha256": "8168582c1985e6856a9b2783575c89a4128fa677aa831cf51786f8430413d613",
+      "steps": 8,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r39-vfs-r2\\provider.json",
+      "sha256": "32f503d80a1781bdfcaa4a08b77a0f40c48e70e2c916795c123ed10a70873041",
+      "steps": 9,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\r39-optional-vfs-win-r2\\results.json",
+      "sha256": "cf09c644e879be39b40b18aefe2356abaea6f45599fb0ce31fc9578a1df8372a",
+      "steps": 17,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\r39-provider-loaded-library-win-r2\\results.json",
+      "sha256": "b9eacdda1dc7b9c36b915671228a8ffd030bf6866c6404b66096a8f69c80c8a9",
+      "steps": 5,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\r39-sourcefree-win-r2\\results.json",
+      "sha256": "20e5061d056a253fd3774c3d2da9df04fea82d5041707f3b62eb333a7bda7f51",
+      "steps": 40,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\r39-provider-tool-negatives-win-r2\\results.json",
+      "sha256": "e216b15202b4f36e46f29c9d9d1649b46f6b8b268464f0884924fd5b25fa51f9",
+      "steps": 3,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\r39-provider-binding-debug-win-r2\\results.json",
+      "sha256": "ff45e4758b0f91ab2a3c558c744d6f1c6c5879ab7b2a83e59723a4dc81aae117",
+      "steps": 10,
+      "passed": true
+    }
+  ],
+  "totalSteps": 92,
+  "recompiledCompilerObjects": 0,
+  "compilerReplacements": 6,
+  "reusedCompilerObjects": 1411,
+  "freshSerializedTccObjects": 1565,
+  "files": [
+    {
+      "path": "tools/stage_source_tcc_provider.py",
+      "canonicalLfSha256": "1f3f60ad97a7c5d5fea228bcb4845c35bc7b53124432f3b5bf8c0b18e03e82bf"
+    },
+    {
+      "path": "tools/check_source_provider_nested_windows.py",
+      "canonicalLfSha256": "aaede4526e9462502c5bc567af4f92d613a2e48060471978a35826650ec77550"
+    },
+    {
+      "path": "tools/check_tcc_provider_loaded_libraries.py",
+      "canonicalLfSha256": "e77cb18ef140782947f2f0ae4c3d05ff9d3079fddb7be9ee93a120d6b009b3b8"
+    },
+    {
+      "path": "tools/check_tcc_provider_binding_windows.py",
+      "canonicalLfSha256": "16a383d1ba084760b9cfd3213e9ecdccc681c4d38557e0b4de966a7a05c9aedb"
+    },
+    {
+      "path": "test/cases/tcc_loaded_library_lifetime.c",
+      "canonicalLfSha256": "14b928a9c7458b143a1a0b8925ed861b80c0cb62ea1eee1da5fc710cf27b912f"
+    },
+    {
+      "path": "docs/source-provider-cohorts.md",
+      "canonicalLfSha256": "04d97c9f072baed5a5a21fb91e24648a21c154698085777145c8b85f7ac891cc"
+    }
+  ],
+  "limitations": [
+    "Stock SourceDriver fixes adjacent provider; not arbitrary dynamic tccDllPath certification.",
+    "Native factory, relocation and destruction must use one actual TinyCC instance.",
+    "Old partial/failure evidence preserved; later ModuleCodeOwner/COM/DocUI and final delivery are separate."
+  ]
+}
