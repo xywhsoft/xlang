@@ -1,0 +1,15 @@
+import xui
+// Compile-only: every real native target is reachable without opening UI.
+export func probeTabs(xui.Tabs tabs,array<string> titles,array<xui.Surface?> icons,array<xui.Rect> sources)
+ tabs.setItems(titles)
+ tabs.setIcons(icons,sources)
+end
+export func probeToolbar(xui.Toolbar toolbar,array<string?> texts,array<string?> tooltips,array<c_int> types,array<c_uint> states,array<c_int> values,array<c_int> groups,array<xui.Surface?> icons,array<xui.Rect> sources)
+ toolbar.setItemsColumns(texts,tooltips,types,states,values,groups,icons,sources)
+end
+export func probeCustomButtons(xui.MsgBox box,array<string> texts,array<c_int> results,array<c_int> semantics)
+ box.setCustomButtonsColumns(texts,results,semantics)
+end
+func main(...) as int
+ return 0
+end
