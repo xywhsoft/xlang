@@ -1,0 +1,73 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Actual two DataObject private policies and TransferDomain with pure Native owned-r2 C sources. FP0 explicitly rejects full-engine bootstrap. No Native DLL/FP/SDK/public language/COM/clipboard qualification.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\data-object-policy-candidate-r1\\manifest.json",
+    "sha256": "16771e66a6b993d265b4bdcf1701f5931f76727981f001dabddc1e1c599b3cd3"
+  },
+  "acceptance": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\data-object-policy-candidate-r1\\acceptance.json",
+    "sha256": "dbd681203a904429f1f2969ccfc73f5d4b0abcffee3e96c16da28b9f51067a81"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\data-object-policy-win-r5\\results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\data-object-policy-candidate-r1\\windows-results.json",
+      "sha256": "1ea2e83c959581033c1c599d880231ea41b0382defcd608b5223aef13d53b5f3",
+      "steps": 16,
+      "reachablePrivateExports": [
+        "xl6Xge3DataObjectPolicyGet",
+        "xl6Xge3TransferDomainV1Get",
+        "xl6Xui3DataObjectPolicyGet"
+      ]
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/data-object-policy-linux-r5/results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\data-object-policy-candidate-r1\\linux-results.json",
+      "sha256": "2c37fe9a4dc7bee34c572be8a369e0ee3e8514e4e1359fe1077f2b4465fe1c5d",
+      "steps": 16,
+      "reachablePrivateExports": [
+        "xl6Xge3DataObjectPolicyGet",
+        "xl6Xge3TransferDomainV1Get",
+        "xl6Xui3DataObjectPolicyGet"
+      ]
+    }
+  ],
+  "totalSteps": 32,
+  "proved": [
+    "Both families real native RC and independent view ownership",
+    "Provider callback active-close carrier remains until native return",
+    "Callback +1 is negative CALLBACK_FAILED, never pure waiting",
+    "Cross-family Native object/generation/FV graph collected by true V8 plan",
+    "Domain V2 exact adapters plus Finish48/Finalization40; unknown Ops never invoked; allocation-free queries",
+    "Last owner consumed once on callback Drop false/NULL under OOM",
+    "Failure-swallowing derived policy mutant rejected",
+    "Only two policies and TransferDomain retained from full private TU"
+  ],
+  "limitations": [
+    "No fabricated Native +1 return: tested actual resident active-close waiting separately",
+    "No XUI aggregate-domain claim",
+    "No language callback closure/Cgen or shipping SDK claim"
+  ],
+  "files": [
+    {
+      "path": "lib/bindings/_xge_native/src/runtime.c",
+      "canonicalLfSha256": "c85138389db8cca57cd560fd24323b127dd5d4aa9f0d8401928eb6ac614cba4e"
+    },
+    {
+      "path": "lib/bindings/_xge_native/include/xge3_runtime.h",
+      "canonicalLfSha256": "d22aff119f3736b1afbce13c1d4248ddec2189c5af5b24a48e685fc3b3fc2779"
+    },
+    {
+      "path": "test/cases/foreign_xge3_data_object_policy.c",
+      "canonicalLfSha256": "4d5c175979010124bc3fc7b17b89397051413c68d7f894c745e7452f312b48af"
+    },
+    {
+      "path": "tools/check_foreign_data_object_policy.py",
+      "canonicalLfSha256": "c762bf80d777614e4d9b52ef45037052194d8529f686c668e89c1f7696eda8e8"
+    }
+  ]
+}

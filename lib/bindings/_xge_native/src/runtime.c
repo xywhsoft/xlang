@@ -166,6 +166,87 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3TableCellOutputPolicyGet(void)
         "xui.table_cell_output",0,1,NULL,NULL,destroy_cell,0,1,NULL,NULL,cell_trace,cell_busy,0,NULL,NULL};
     return &value;
 }
+/* Exact cold private package addition proposed for Root to merge.
+ * Native15 API per family is now implemented in the standalone components.
+ * No Watch / extra Native scope: one ForeignView owns one actual shared RC,
+ * resident activity defers view close; Native methods pin their own callouts. */
+#define XN_DATA_OBJECT_POLICY(Name,Prefix,Deferred,Family) \
+static bool destroy_##Name(void* raw) \
+{bool consumed=false;int status=Prefix##ReleaseOwnerChecked(raw,&consumed); \
+ if(status!=Deferred){report_resource_failure(status,#Prefix "ReleaseOwnerChecked");}return consumed;} \
+static bool trace_##Name(const void* raw,XL6_ModuleOwnershipVisit visit,void* user) \
+{return visit(Prefix##Ownership((void*)raw),user);} \
+static bool busy_##Name(const void* raw) \
+{xrtownershipref ref=Prefix##Ownership((void*)raw); \
+ const xrtownershipquiescencev1* q=Prefix##OwnershipQuiescenceV1(ref);return !q || q->Busy(ref.Data);} \
+const XL6_ForeignViewDescriptorV1* Name##PolicyGet(void) \
+{static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,Family, \
+ 0,1,NULL,NULL,destroy_##Name,0,1,NULL,NULL,trace_##Name,busy_##Name, \
+ XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE|XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE,NULL,NULL};return &value;}
+XN_DATA_OBJECT_POLICY(xl6Xge3DataObject,xgeDataObject,XGE_STATUS_DEFERRED,"xge.dataObject")
+#if XGE_ENABLE_XUI
+XN_DATA_OBJECT_POLICY(xl6Xui3DataObject,xuiDataObject,XUI_STATUS_DEFERRED,"xui.dataObject")
+#else
+const XL6_ForeignViewDescriptorV1* xl6Xui3DataObjectPolicyGet(void){return NULL;}
+#endif
+#undef XN_DATA_OBJECT_POLICY
+
+/* One adapter lookup authenticates which exact family/type owns this ref.
+ * Both family getters admit their private generation nodes as well as objects.
+ * They do not accept raw origins or arbitrary Ops merely by shape. */
+static const xrtownershipadapterv1* transfer_exact(xrtownershipref ref,bool* ui)
+{
+    *ui=false;const xrtownershipadapterv1* exact=xgeDataObjectOwnershipAdapterV1(ref);
+#if XGE_ENABLE_XUI
+    if(!exact){exact=xuiDataObjectOwnershipAdapterV1(ref);*ui=exact!=NULL;}
+#endif
+    return exact;
+}
+static bool transfer_domain_resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
+    const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation,
+    const XL6_OwnershipFinishV1** finish)
+{
+    (void)policies;*adapter=NULL;*preparation=NULL;*finish=NULL;bool ui=false;
+    const xrtownershipadapterv1* exact=transfer_exact(ref,&ui);if(!exact)return false;
+    const xrtownershippreparationv1* ready=xgeDataObjectOwnershipPreparationV1(ref);
+    const xrtownershipfinishv2* complete=xgeDataObjectOwnershipCompletionV2(ref);
+#if XGE_ENABLE_XUI
+    if(ui){ready=xuiDataObjectOwnershipPreparationV1(ref);complete=xuiDataObjectOwnershipCompletionV2(ref);}
+#endif
+    if(!ready || ready->size!=sizeof(*ready) || ready->Adapter!=exact || !complete ||
+       complete->V1.size!=sizeof(*complete) || complete->AbiTag!=XRT_OWNERSHIP_FINISH_V2_TAG ||
+       complete->V1.Adapter!=exact || !complete->DropChecked || !complete->DropReady)return false;
+    *adapter=exact;*preparation=ready;*finish=&complete->V1;return true;
+}
+static bool transfer_domain_read(xrtownershipref ref)
+{
+    bool result=xgeDataObjectOwnershipReadReady(ref);
+#if XGE_ENABLE_XUI
+    result=result || xuiDataObjectOwnershipReadReady(ref);
+#endif
+    return result;
+}
+static bool transfer_domain_finalization(xrtownershipref ref,const xrtownershipadapterv1* adapter,
+    const xrtownershipfinalizationv1** output)
+{
+    *output=NULL;bool ui=false;const xrtownershipadapterv1* exact=transfer_exact(ref,&ui);
+    if(!exact)return true;
+    if(exact!=adapter)return false;
+    const xrtownershipfinalizationv1* value=xgeDataObjectOwnershipFinalizationV1(ref);
+#if XGE_ENABLE_XUI
+    if(ui)value=xuiDataObjectOwnershipFinalizationV1(ref);
+#endif
+    if(!value || value->size!=sizeof(*value) || value->AbiTag!=XRT_OWNERSHIP_FINALIZATION_V1_TAG ||
+       value->Adapter!=adapter || !value->CanStep || !value->Step)return false;
+    *output=value;return true;
+}
+const XL6_OwnershipDomainV1* xl6Xge3TransferDomainV1Get(void)
+{
+    static const XL6_OwnershipDomainV2 value={{sizeof(value),NULL,transfer_domain_resolve,transfer_domain_read},
+        XL6_OWNERSHIP_DOMAIN_V2_TAG,transfer_domain_finalization};return &value.V1;
+}
+
+
 static bool cell_domain_resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
     const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation,
     const XL6_OwnershipFinishV1** finish)
@@ -215,17 +296,26 @@ static bool xui_domain_resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1
 {
     return cell_domain_resolve(ref,policies,adapter,preparation,finish) ||
         proxy_domain_resolve(ref,policies,adapter,preparation,finish) ||
+        transfer_domain_resolve(ref,policies,adapter,preparation,finish) ||
         xl6Xui3DocumentModelDomainV1Get()->Resolve(ref,policies,adapter,preparation,finish);
 }
 static bool xui_domain_read(xrtownershipref ref)
-{return cell_domain_read(ref) || proxy_domain_read(ref) || xl6Xui3DocumentModelDomainV1Get()->AdmitsRead(ref);}
+{return cell_domain_read(ref) || proxy_domain_read(ref) || transfer_domain_read(ref) || xl6Xui3DocumentModelDomainV1Get()->AdmitsRead(ref);}
 static bool document_domain_finalization(xrtownershipref,const xrtownershipadapterv1*,const xrtownershipfinalizationv1**);
+static bool xui_domain_finalization(xrtownershipref ref,const xrtownershipadapterv1* adapter,
+    const xrtownershipfinalizationv1** output)
+{
+    bool ui=false;
+    if(transfer_exact(ref,&ui))return transfer_domain_finalization(ref,adapter,output);
+    return document_domain_finalization(ref,adapter,output);
+}
+
 const XL6_OwnershipDomainV1* xl6Xui3OwnershipDomainV1Get(void)
 {
     /* Context roots can reach resource nodes without a separate language
      * resource view. Admission therefore travels with the complete UI root. */
     static const XL6_OwnershipDomainV2 value={{sizeof(value),NULL,xui_domain_resolve,xui_domain_read},
-        XL6_OWNERSHIP_DOMAIN_V2_TAG,document_domain_finalization};
+        XL6_OWNERSHIP_DOMAIN_V2_TAG,xui_domain_finalization};
     return &value.V1;
 }
 static void report_resource_failure(int status,const char* operation)
