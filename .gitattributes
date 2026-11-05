@@ -121,3 +121,4 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 /dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1/** -text whitespace=cr-at-eol
 /dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.manifest.json -text
 /dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.README.md -text
+/dev/release-materials/sources/source-provider-tools-successor-20261105/** -text whitespace=cr-at-eol

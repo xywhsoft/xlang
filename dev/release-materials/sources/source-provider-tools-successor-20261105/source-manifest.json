@@ -1,0 +1,41 @@
+{
+  "complete": true,
+  "passed": true,
+  "sourceCommit": "1f19a1dece0077a41bf25a3f5a6ee2897c961e0e",
+  "baseArchive": "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.zip",
+  "baseArchiveSha256": "d6152ffbe21499ecf74ee64d7266661d31af42d285c36291c2a6c41f35e49787",
+  "files": [
+    {
+      "path": "tools/stage_source_tcc_provider_linux.py",
+      "sha256": "ac741337cdf5a24cfc22ac6c1300e2dfe2915de99cd582b5ca5c65bbfdb5c4e8",
+      "sourceSha256": "ac741337cdf5a24cfc22ac6c1300e2dfe2915de99cd582b5ca5c65bbfdb5c4e8",
+      "role": "Necessary normal SDK alias refresh"
+    },
+    {
+      "path": "tools/check_source_provider_nested_linux.py",
+      "sha256": "e7c7d2a1a248d9e000ad21416654a22db219be5de836fd076b43bff369e81c4c",
+      "sourceSha256": "e7c7d2a1a248d9e000ad21416654a22db219be5de836fd076b43bff369e81c4c",
+      "role": "Implementation-capable SDK role documentation only"
+    },
+    {
+      "path": "tools/check_source_provider_nested_windows.py",
+      "sha256": "1f4eb008d25f446955952a191236df1e90da2db5dd7c80ae8e3df5bfd854185e",
+      "sourceSha256": "1f4eb008d25f446955952a191236df1e90da2db5dd7c80ae8e3df5bfd854185e",
+      "role": "Implementation-capable SDK role documentation only"
+    },
+    {
+      "path": "tools/check_production_source_candidate.py",
+      "sha256": "b060453de73fecd0b6bd350d2cdcf6eb83a302d37e27f9b2e0a4d13ad13d0358",
+      "sourceSha256": "b060453de73fecd0b6bd350d2cdcf6eb83a302d37e27f9b2e0a4d13ad13d0358",
+      "role": "Persisted production profile acceptance entry"
+    },
+    {
+      "path": "docs/source-provider-cohorts.md",
+      "sha256": "dc302eb400d52f7fe275e4f04c612d85924dc79c9e4e61f25d63f21dd6bb70ae",
+      "sourceSha256": "dc302eb400d52f7fe275e4f04c612d85924dc79c9e4e61f25d63f21dd6bb70ae",
+      "role": "Implementation-capable SDK role documentation only"
+    }
+  ],
+  "qualificationReceipt": "dev/release-materials/provenance/source-provider-tools-successor-20261105.json",
+  "qualificationReceiptSha256": "374d099cfe6b7ac33d735fe0940a1d3a17464a5e6c654d677f4df7333e0d0af2"
+}
