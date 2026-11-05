@@ -1312,3 +1312,14 @@ root reservation, one declared Retain per non-NULL resource, and lifetime
 bookkeeping. POD projection performs no heap allocation or dynamic dispatch.
 No forwarding C function, second getter call, runtime field-name lookup or
 per-method marshalling wrapper is generated.
+
+Descriptor-pack `value` fields accept the same pointer-free POD domain:
+native C scalars and complete C records containing only those values,
+recursively. Every record keeps its authoritative header, exact native field
+types and layout proofs; nested native counterparts must also be tagged
+structs and trivial/standard-layout in C++. Nullable records, unions, fixed
+arrays, raw pointers, native resource handles and managed fields are excluded
+from this value projection. Resource handles continue to require `view_raw`
+and their separate native owning contract. A POD input is assigned by value
+into the stack descriptor; it creates no heap object, runtime conversion,
+reference alias, extra native call or forwarding C function.

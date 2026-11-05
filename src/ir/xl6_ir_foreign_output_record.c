@@ -28,7 +28,7 @@ const XL6_ForeignOutputFieldContract* xl6IrForeignOutputFieldGet(const XL6_IrMod
         result=&m->foreignOutputFields[r];}
     return result;
 }
-static int xl6IrOutputRecordPod(const XL6_IrModule* m,XL6_IrTypeId id,size_t depth)
+static int xl6IrForeignTrivialCValue(const XL6_IrModule* m,XL6_IrTypeId id,size_t depth)
 {
     const XL6_IrType* type=xl6IrTypeGet(&m->types,id);
     if(!type || depth>16)return 0;
@@ -39,7 +39,7 @@ static int xl6IrOutputRecordPod(const XL6_IrModule* m,XL6_IrTypeId id,size_t dep
     if(!layout || layout->firstField>m->aggregateFieldCount || layout->fieldCount>m->aggregateFieldCount-layout->firstField ||
         (layout->fieldCount && !m->aggregateFields))return 0;
     for(size_t f=0;f<layout->fieldCount;++f)
-        if(!xl6IrOutputRecordPod(m,m->aggregateFields[layout->firstField+f].type,depth+1))return 0;
+        if(!xl6IrForeignTrivialCValue(m,m->aggregateFields[layout->firstField+f].type,depth+1))return 0;
     return 1;
 }
 static const XL6_IrNode* xl6IrOutputRecordReturns(const XL6_IrModule* m,XL6_IrNodeId declaration)
@@ -96,7 +96,7 @@ static int xl6IrVerifyOutputRecords(const XL6_IrModule* m,XL6_DiagList* diags)
         XL6_IrCallTarget target={0};target.declaration=row->declaration;
         if(!xl6IrForeignOutputRecordGet(m,&target))goto invalid;
         const XL6_ForeignOutputViewContract* view=xl6IrForeignOutputViewGet(m,&target,row->ordinal);
-        if(view ? view->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE:!xl6IrOutputRecordPod(m,row->logicalType,0))goto invalid;
+        if(view ? view->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE:!xl6IrForeignTrivialCValue(m,row->logicalType,0))goto invalid;
         for(size_t p=0;p<r;++p)if(m->foreignOutputFields[p].declaration==row->declaration &&
             (m->foreignOutputFields[p].ordinal==row->ordinal || !strcmp(m->foreignOutputFields[p].field,row->field)))goto invalid;
     }

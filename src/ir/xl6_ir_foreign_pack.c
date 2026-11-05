@@ -159,7 +159,10 @@ static int xl6IrPackFieldExpected(const XL6_IrModule* m,const XL6_ForeignPackFie
     XL6_IrTypeId typeId=xl6IrRegionInputType(m,node,params,receiver,p);const XL6_IrType* type=xl6IrTypeGet(&m->types,typeId);
     const XL6_IrType* inner=type && type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1 && type->params ? xl6IrTypeGet(&m->types,type->params[0]):type;
     const char* cName=NULL;XL6_ForeignSpanCountAbi countAbi=0;
-    if(row->kind==XL6_FOREIGN_PACK_FIELD_VALUE)cName=xl6IrPackScalarCName(type);
+    if(row->kind==XL6_FOREIGN_PACK_FIELD_VALUE){
+        if(!xl6IrForeignTrivialCValue(m,typeId,0))return 0;
+        cName=type->kind==XL6_IR_TYPE_C_RECORD ? type->cName:xl6IrPackScalarCName(type);
+    }
     else if(row->kind==XL6_FOREIGN_PACK_FIELD_VIEW_RAW){
         if(!type || !inner || inner->kind!=XL6_IR_TYPE_CLASS || !inner->foreignHeader ||
             (inner->foreignLifetime!=XL6_FOREIGN_LIFETIME_OWNED && inner->foreignLifetime!=XL6_FOREIGN_LIFETIME_OWNER && inner->foreignLifetime!=XL6_FOREIGN_LIFETIME_CALLBACK) ||

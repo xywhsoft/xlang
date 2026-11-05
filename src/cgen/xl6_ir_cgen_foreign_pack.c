@@ -1,4 +1,18 @@
 /* Only closed typed schemas produce stack records; no runtime name dispatch. */
+static int xl6IrCgenPackPodProof(XL6_Output* out,const XL6_IrModule* module,XL6_IrTypeId id,size_t depth)
+{
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
+    if(!type || depth>16)return 0;
+    if(type->kind!=XL6_IR_TYPE_C_RECORD)return type->kind==XL6_IR_TYPE_BUILTIN && type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL;
+    const XL6_IrAggregateLayout* layout=xl6IrUnionLayoutGet(module,id);
+    if(!layout)return 0;
+    xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE((%s*)0,struct %s*), \"native packed POD tagged struct\");\n"
+        "#ifdef __cplusplus\nXLIR_NATIVE_ASSERT(std::is_trivial<%s>::value && std::is_standard_layout<%s>::value, \"native packed POD trivial C layout\");\n#endif\n",
+        type->cName,type->cName,type->cName,type->cName);
+    for(size_t f=0;f<layout->fieldCount;++f)
+        if(!xl6IrCgenPackPodProof(out,module,module->aggregateFields[layout->firstField+f].type,depth+1))return 0;
+    return !xl6OutputHasFailed(out);
+}
 static int xl6IrCgenPackProof(XL6_Output* out,const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
     if(!xl6IrForeignPacksMatch(module,target))return 0;
@@ -10,6 +24,7 @@ static int xl6IrCgenPackProof(XL6_Output* out,const XL6_IrModule* module,const X
             if(field->declaration!=pack->declaration || field->packPhysicalIndex!=pack->physicalIndex)continue;
             xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s*)0)->%s,%s), \"native descriptor field type\");\n",
                 pack->recordCName,field->field,field->physicalCName);
+            if(field->kind==XL6_FOREIGN_PACK_FIELD_VALUE && !xl6IrCgenPackPodProof(out,module,field->logicalType,0))return 0;
             if(field->kind==XL6_FOREIGN_PACK_FIELD_SIZEOF)xl6OutputPrintf(out,
                 "XLIR_NATIVE_ASSERT(sizeof(%s)<=((%s)~(%s)0), \"native descriptor size range\");\n",pack->recordCName,field->physicalCName,field->physicalCName);
         }

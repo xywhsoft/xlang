@@ -1,19 +1,5 @@
 /* Native borrowed records are stack-only physical storage. No raw pointer
  * field may masquerade as a trivial language value. */
-static int xl6SemForeignOutputRecordPod(XL6_SemContext* ctx,const XL6_AstNode* type,size_t depth)
-{
-    type=xl6SemResolveAliasType(ctx,type);
-    if(!type || depth>16 || xl6SemTypeIsNullable(type))return 0;
-    if(xl6SemForeignPackScalarCName(type))return 1;
-    const XL6_AstNode* record=type->text && !type->childCount ? xl6SemFindTypeDecl(ctx,type->text):NULL;
-    if(!record || record->kind!=XL6_AST_C_RECORD || !record->childCount)return 0;
-    const XL6_AstNode* fields=record->children[0];
-    for(size_t f=0;fields && f<fields->childCount;++f){
-        const XL6_AstNode* field=fields->children[f];
-        if(!field || !field->childCount || !xl6SemForeignOutputRecordPod(ctx,field->children[0],depth+1))return 0;
-    }
-    return fields!=NULL;
-}
 static int xl6SemForeignOutputRecord(XL6_SemContext* ctx,XL6_AstNode* node,
     const XL6_AstNode* attrs,const XL6_AstNode* ownerClass,const XL6_ForeignCallFacts* facts,size_t inputs,size_t receiver)
 {
@@ -39,7 +25,7 @@ static int xl6SemForeignOutputRecord(XL6_SemContext* ctx,XL6_AstNode* node,
             if(!declaration || contract.lifetime!=XL6_FOREIGN_LIFETIME_OWNED || !contract.header[0] || contract.watch[0] ||
                 !hold || !drop || (node->flags&XL6_AST_FLAG_FOREIGN_PURE))goto invalid;
             attr->children[3]->semanticSymbolId=hold->semanticSymbolId;attr->children[5]->semanticSymbolId=drop->semanticSymbolId;
-        }else if(!xl6SemForeignOutputRecordPod(ctx,result,0))goto invalid;
+        }else if(!xl6SemForeignTrivialCValue(ctx,result,0))goto invalid;
     }
     if(count!=returns->childCount)goto invalid;
     return 1;

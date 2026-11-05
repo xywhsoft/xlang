@@ -10,6 +10,22 @@ static const char* xl6SemForeignPackScalarCName(const XL6_AstNode* type)
     for(size_t i=0;i<sizeof(names)/sizeof(*names);++i)if(!strcmp(type->text,names[i][0]))return names[i][1];
     return NULL;
 }
+/* Exactly the pointer-free value domain used by borrowed output records.
+ * Native descriptor packing does not make a managed record or array POD. */
+static int xl6SemForeignTrivialCValue(XL6_SemContext* ctx,const XL6_AstNode* type,size_t depth)
+{
+    type=xl6SemResolveAliasType(ctx,type);
+    if(!type || depth>16 || xl6SemTypeIsNullable(type))return 0;
+    if(xl6SemForeignPackScalarCName(type))return 1;
+    const XL6_AstNode* record=type->text && !type->childCount ? xl6SemFindTypeDecl(ctx,type->text):NULL;
+    if(!record || record->kind!=XL6_AST_C_RECORD || !record->childCount)return 0;
+    const XL6_AstNode* fields=record->children[0];
+    for(size_t f=0;fields && f<fields->childCount;++f){
+        const XL6_AstNode* field=fields->children[f];
+        if(!field || !field->childCount || !xl6SemForeignTrivialCValue(ctx,field->children[0],depth+1))return 0;
+    }
+    return fields!=NULL;
+}
 static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_AstNode* ownerClass,
     const XL6_AstNode* attrs,const XL6_ForeignCallFacts* facts)
 {
@@ -47,7 +63,7 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
             const XL6_AstNode* type=xl6SemResolveAliasType(ctx,params->children[p]->children[0]);
             const XL6_AstNode* inner=type && xl6SemTypeIsNullable(type) ? xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(type)):type;
             used|=UINT64_C(1)<<p;
-            if(field.kind==XL6_FOREIGN_PACK_FIELD_VALUE){if(!xl6SemForeignPackScalarCName(type))goto invalid;}
+            if(field.kind==XL6_FOREIGN_PACK_FIELD_VALUE){if(!xl6SemForeignTrivialCValue(ctx,type,0))goto invalid;}
             else if(field.kind==XL6_FOREIGN_PACK_FIELD_VIEW_RAW){XL6_ForeignClassDecl view;
                 if(!xl6SemForeignViewDeclaration(ctx,type,&view) || view.lifetime==XL6_FOREIGN_LIFETIME_CALLER)goto invalid;
             }else if(field.kind==XL6_FOREIGN_PACK_FIELD_SPAN_DATA || field.kind==XL6_FOREIGN_PACK_FIELD_SPAN_COUNT){
