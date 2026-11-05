@@ -1,0 +1,44 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Five existing checker artifact lookup only: runtime_image/import_library and staged loadName through already-qualified native_artifacts helper. No compiler/runtime/public source or historical report changes.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\five-named-checker-candidate-r1\\manifest.json",
+    "sha256": "da81a32d6cee26922271f56a62b55e2e3e0fc3cb925840a25c8f853658bb25f5"
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\five-named-checkers-win-r1\\results.json",
+      "sha256": "97756c0031008da0f4da201e8bdb2592baf10f09cbc7cffb9e40a17868f72a8f"
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\five-named-checkers-linux-r1\\results.json",
+      "sha256": "65cc0e67c9bdb926cc4ca7baa5b5dea911f4a365e95e0faf54a546ec4deb21fc"
+    }
+  ],
+  "qualification": "11 checks per platform: five explicit py_compile outputs outside workspace, five --help parsers, and one actual final named normal-SDK metadata read. No frontend/Native execution rerun.",
+  "files": [
+    {
+      "path": "tools/check_foreign_xge3_document.py",
+      "canonicalLfSha256": "7282f395faf77933c40943a4e34a16fe89a49cab244911db5f4dc82e6d40f251"
+    },
+    {
+      "path": "tools/check_foreign_xge3_document_ui.py",
+      "canonicalLfSha256": "d69a16a8e931dfbefc05a19bec154e6ec0388a116d4b6787c45719a5419848ea"
+    },
+    {
+      "path": "tools/check_foreign_xge3_document_binary.py",
+      "canonicalLfSha256": "a8cbe21100e31a6e8635bc807cc3305f166e785240d785ccb83286a1b07efbf0"
+    },
+    {
+      "path": "tools/check_foreign_xge3_native_sequence.py",
+      "canonicalLfSha256": "21aa12b1e61cb171daf34a8070a20aea50c12e1f6703703a28a292dfd00278c8"
+    },
+    {
+      "path": "tools/check_foreign_xge3_renderer_policy.py",
+      "canonicalLfSha256": "373a41db968cda7576666f8eb25374d58aed3b640cf7c89ccaa70208667f3abd"
+    }
+  ]
+}

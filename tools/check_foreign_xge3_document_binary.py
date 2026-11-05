@@ -1,10 +1,11 @@
 """Actual binary Fragment envelope admission, allocator-safe copy and exact typed ABI."""
 from pathlib import Path
 import argparse,json,hashlib,subprocess,shutil,sys,os,time
+from foreign_native_artifacts import native_artifacts
 p=argparse.ArgumentParser();[p.add_argument('--'+n,type=Path,required=True) for n in ('root','overlay','packages','engine','out')];a=p.parse_args();root,overlay,packages,engine,out=[x.resolve() for x in (a.root,a.overlay,a.packages,a.engine,a.out)];sys.path.insert(0,str(root/'tools'));from foreign_validation_build import load_build;from check_foreign_xge3_document import reachable;from compiler_response import command_with_response
-b=load_build(overlay=overlay);source=b['cohort'];driver=b['driver'];runtime=b['runtime'];base=b['base'];windows=os.name=='nt';sha=lambda x:hashlib.sha256(Path(x).read_bytes()).hexdigest();fixture=root/'test/cases/foreign_xge3_document_fragment_binary.xl';native=fixture.with_name(fixture.stem+'_native.c');host=root/'test/cases/foreign_decl_module_host.c';private=packages/'_xge_native';library=engine/('xge.lib' if windows else 'libxge.so');binary=engine/('xge.dll' if windows else 'libxge.so');out.mkdir();local=out/'sdk/__xl_runtime';local.mkdir(parents=True)
+b=load_build(overlay=overlay);source=b['cohort'];driver=b['driver'];runtime=b['runtime'];base=b['base'];windows=os.name=='nt';sha=lambda x:hashlib.sha256(Path(x).read_bytes()).hexdigest();fixture=root/'test/cases/foreign_xge3_document_fragment_binary.xl';native=fixture.with_name(fixture.stem+'_native.c');host=root/'test/cases/foreign_decl_module_host.c';private=packages/'_xge_native';artifacts=native_artifacts(packages,engine);library=artifacts['library'];binary=artifacts['image'];out.mkdir();local=out/'sdk/__xl_runtime';local.mkdir(parents=True)
 for h in (source/'src/runtime').glob('*.h'):shutil.copy2(h,local/h.name)
-inputs=dict(b['inputs']);inputs.update((str(x),sha(x)) for x in [Path(__file__),fixture,native,fixture.with_suffix('.h'),host,library,binary,*[x for x in packages.rglob('*') if x.is_file()]])
+inputs=dict(b['inputs']);inputs.update((str(x),sha(x)) for x in [Path(__file__),Path(__file__).with_name('foreign_native_artifacts.py'),fixture,native,fixture.with_suffix('.h'),host,library,binary,*[x for x in packages.rglob('*') if x.is_file()]])
 env=dict(os.environ,XLANG_PACKAGE_PATH=str(packages),XL6_SOURCE_NATIVE_ROOT=str(source))
 if windows:shutil.copy2(runtime,out/runtime.name);shutil.copy2(binary,out/binary.name)
 else:env['LD_LIBRARY_PATH']=str(engine)+':'+str(runtime.parent)+':'+env.get('LD_LIBRARY_PATH','')

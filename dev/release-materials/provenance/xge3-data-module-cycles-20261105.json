@@ -1,0 +1,85 @@
+{
+  "scope": "Two actual TinyCC modules, each with real Context -> Native Data -> owned provider closure -> Context cycle; final named schema2 SDKs.",
+  "complete": true,
+  "passed": true,
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\data-object-cycle-final-win-r1\\results.json",
+      "sha256": "a416fb4f2760f72a5412ebd5b7ba601a3af22b9de373ffc971485aea5587a417",
+      "compiler": "F:\\xlang-validation\\foreign-completion-20261103\\compiler-final-core-win-jit-r1\\overlay.json",
+      "rows": [
+        {
+          "name": "O0-build",
+          "exitCode": 0,
+          "seconds": 2.016,
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "O0-run",
+          "exitCode": 0,
+          "seconds": 26.234,
+          "logSha256": "deff8db7f46f9a589b1cb6c78490a451e96d14e9e0ba424b1c7ec156b13f56a9"
+        },
+        {
+          "name": "O2-build",
+          "exitCode": 0,
+          "seconds": 1.656,
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "O2-run",
+          "exitCode": 0,
+          "seconds": 27.672,
+          "logSha256": "deff8db7f46f9a589b1cb6c78490a451e96d14e9e0ba424b1c7ec156b13f56a9"
+        }
+      ]
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\data-object-cycle-final-linux-r1\\results.json",
+      "sha256": "42012b125d1f4527efdf5e2d318118cb6b057447336f60818287fbf5a282955a",
+      "compiler": "/home/ubuntu/xlang-validation/compiler-final-core-linux-r1/overlay.json",
+      "rows": [
+        {
+          "name": "O0-build",
+          "exitCode": 0,
+          "seconds": 0.798,
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "O0-run",
+          "exitCode": 0,
+          "seconds": 29.991,
+          "logSha256": "cce6027f3be4bda620f71e9571f36026f5c52a6b1ddde510f4bb787be62c8928"
+        },
+        {
+          "name": "O2-build",
+          "exitCode": 0,
+          "seconds": 0.773,
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "O2-run",
+          "exitCode": 0,
+          "seconds": 30.024,
+          "logSha256": "cce6027f3be4bda620f71e9571f36026f5c52a6b1ddde510f4bb787be62c8928"
+        }
+      ]
+    }
+  ],
+  "accepted": [
+    "O0/O2 hosts on both platforms",
+    "actual modules outlive compiler and unrelated runner",
+    "module0 unit logically closes only Context0; live module1 remains callable",
+    "module1 unit closes Context1; each weak logical watch once",
+    "final checked retirement unloads the real named Native engine"
+  ],
+  "qualification": {
+    "compiler": "honest 9-TU O2 successors of complete R37 source; JIT-only fresh Only-TCC core, no fake full rebuild",
+    "provider": "physical external SDK/libraries, no VFS/nested/AOT qualification",
+    "runtime": "final named r2 native images from exact 145-object normal relinks; stage inputs verified by the harness",
+    "osUiNetworkGpuClipboardDragExecuted": false,
+    "extraNativeOwnerOrVerifierClosure": false,
+    "watch": "Context watch observes logical close; final unload is a separate retirement observation",
+    "shippingDelivery": false
+  }
+}

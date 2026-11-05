@@ -8,6 +8,7 @@ from pathlib import Path
 import argparse,hashlib,json,os,shutil,subprocess,time
 from compiler_response import command_with_response
 from foreign_validation_build import add_build_arguments,load_build
+from foreign_native_artifacts import native_artifacts
 
 
 def main():
@@ -18,11 +19,11 @@ def main():
  sha=lambda x:hashlib.sha256(Path(x).read_bytes()).hexdigest();windows=os.name=='nt'
  native=engine/'build-report.json';metadata=json.loads(native.read_text(encoding='utf-8-sig'))
  assert metadata['linked'] and metadata['xrt_mode']=='host'
- binary=engine/('xge.dll' if windows else 'libxge.so');library=engine/('xge.lib' if windows else 'libxge.so')
+ artifacts=native_artifacts(packages,engine);binary=artifacts['image'];library=artifacts['library']
  stem=root/'test/cases/foreign_xge3_package_native_sequence'
  fixture=stem.with_suffix('.xl');header=stem.with_suffix('.h');sidecar=stem.with_name(stem.name+'_native.c');host=stem.with_name(stem.name+'_host.c')
  cc=shutil.which('gcc');cxx=shutil.which('g++');assert cc and cxx
- inputs=dict(b['inputs']);inputs.update((str(x),sha(x)) for x in (Path(__file__),Path(cc),Path(cxx),fixture,header,sidecar,host,native,binary,library,engine/'xge_build_config.h'))
+ inputs=dict(b['inputs']);inputs.update((str(x),sha(x)) for x in (Path(__file__),Path(__file__).with_name('foreign_native_artifacts.py'),Path(cc),Path(cxx),fixture,header,sidecar,host,native,binary,library,engine/'xge_build_config.h'))
  inputs.update((str(x),sha(x)) for x in packages.rglob('*') if x.is_file())
  runtime_headers=list((source/'src/runtime').glob('*.h'));assert runtime_headers
  inputs.update((str(x),sha(x)) for x in runtime_headers)
