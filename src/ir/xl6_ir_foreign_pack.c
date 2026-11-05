@@ -31,18 +31,18 @@ static int xl6IrPackArraysValid(const XL6_IrModule* m)
 {
     return m && m->foreignPackCount<=m->foreignPackCapacity && (!m->foreignPackCount || m->foreignPacks) &&
         m->foreignPackFieldCount<=m->foreignPackFieldCapacity && (!m->foreignPackFieldCount || m->foreignPackFields) &&
-        m->foreignNullCount<=m->foreignNullCapacity && (!m->foreignNullCount || m->foreignNulls) &&
-        (!m->foreignNullCount || (m->foreignNullCount-1)/64<m->nodeCount) &&
+        m->foreignFixedInputCount<=m->foreignFixedInputCapacity && (!m->foreignFixedInputCount || m->foreignFixedInputs) &&
+        (!m->foreignFixedInputCount || (m->foreignFixedInputCount-1)/64<m->nodeCount) &&
         (!m->foreignPackCount || (m->foreignPackCount-1)/64<m->nodeCount) &&
         (!m->foreignPackFieldCount || (m->foreignPackFieldCount-1)/256<m->nodeCount);
 }
-const XL6_ForeignNullContract* xl6IrForeignNullGet(const XL6_IrModule* m,const XL6_IrCallTarget* t,size_t physical)
+const XL6_ForeignFixedInputContract* xl6IrForeignFixedInputGet(const XL6_IrModule* m,const XL6_IrCallTarget* t,size_t physical)
 {
     if(!t || !xl6IrPackArraysValid(m))return NULL;
-    const XL6_ForeignNullContract* found=NULL;
-    for(size_t i=0;i<m->foreignNullCount;++i)if(m->foreignNulls[i].declaration==t->declaration && m->foreignNulls[i].physicalIndex==physical){
+    const XL6_ForeignFixedInputContract* found=NULL;
+    for(size_t i=0;i<m->foreignFixedInputCount;++i)if(m->foreignFixedInputs[i].declaration==t->declaration && m->foreignFixedInputs[i].physicalIndex==physical){
         if(found)return NULL;
-        found=&m->foreignNulls[i];
+        found=&m->foreignFixedInputs[i];
     }
     return found;
 }
@@ -73,7 +73,7 @@ size_t xl6IrForeignPhysicalStepCount(const XL6_IrModule* m,const XL6_IrCallTarge
     const XL6_IrNode* node=xl6IrNodeGet(m,t->declaration);if(!node)return SIZE_MAX;
     size_t outputs=node->foreignCall.valueOutput ? xl6IrForeignPhysicalOutputCount(m,t):(node->foreignCall.outputIndexPlusOne ? 1:0);
     size_t count=t->parameterCount+outputs;
-    for(size_t i=0;i<m->foreignNullCount;++i)count+=m->foreignNulls[i].declaration==t->declaration;
+    for(size_t i=0;i<m->foreignFixedInputCount;++i)count+=m->foreignFixedInputs[i].declaration==t->declaration;
     for(size_t i=0;i<m->foreignPackCount;++i){const XL6_ForeignPackContract* row=&m->foreignPacks[i];
         if(row->declaration!=t->declaration)continue;
         if(!row->parameterCount || row->parameterCount-1>count)return SIZE_MAX;
@@ -102,8 +102,8 @@ int xl6IrForeignPhysicalStepGet(const XL6_IrModule* m,const XL6_IrCallTarget* t,
         XL6_ForeignPhysicalStep step={0};step.physicalIndex=(uint32)physical;
         if(o<outputs && slot==physical){
             step.kind=XL6_FOREIGN_PHYSICAL_STEP_OUTPUT;step.ordinal=(uint32)o;step.parameter=UINT32_MAX;++o;++physical;
-        }else if(xl6IrForeignNullGet(m,t,physical)){
-            step.kind=XL6_FOREIGN_PHYSICAL_STEP_NULL;step.parameter=UINT32_MAX;++physical;
+        }else if(xl6IrForeignFixedInputGet(m,t,physical)){
+            step.kind=XL6_FOREIGN_PHYSICAL_STEP_FIXED;step.parameter=UINT32_MAX;++physical;
         }else{
             if(p>=t->parameterCount || (o<outputs && slot<physical))return 0;
             const XL6_ForeignPackContract* pack=xl6IrForeignPackParameter(m,t,p);step.parameter=(uint32)p;
@@ -245,17 +245,16 @@ static int xl6IrClosePacks(XL6_IrModule* m)
 static int xl6IrVerifyPacks(const XL6_IrModule* m,XL6_DiagList* diags)
 {
     if(!xl6IrPackArraysValid(m))goto invalid;
-    for(size_t i=0;i<m->foreignNullCount;++i){const XL6_ForeignNullContract* row=&m->foreignNulls[i];
+    for(size_t i=0;i<m->foreignFixedInputCount;++i){const XL6_ForeignFixedInputContract* row=&m->foreignFixedInputs[i];
         const XL6_IrNode* params;size_t receiver,outputs;uint32 slots[64]={0};
         const XL6_IrNode* node=xl6IrRegionSignature(m,row->declaration,&params,&receiver,slots,&outputs);
         const XL6_IrType* owner=node ? xl6IrTypeGet(&m->types,node->declarationOwnerType):NULL;
         const char* header=owner ? owner->foreignHeader:NULL;
         for(size_t h=0;h<m->foreignFunctionHeaderCount;++h)if(m->foreignFunctionHeaders[h].declaration==row->declaration)header=m->foreignFunctionHeaders[h].header;
-        if(!node || !header || !xl6ForeignHeaderName(header) || !xl6ForeignInputHasNulls(node->foreignCall.inputMappingFacts) ||
+        if(!node || !header || !xl6ForeignHeaderName(header) || !xl6ForeignInputHasFixedInputs(node->foreignCall.inputMappingFacts) ||
             !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) || (node->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) ||
-            xl6ForeignInputHasRegions(node->foreignCall.inputMappingFacts) || !memchr(row->pointerCName,0,sizeof(row->pointerCName)) ||
-            !strchr(row->pointerCName,'*') || !xl6ForeignPointerSpelling(row->pointerCName))goto invalid;
-        for(size_t old=0;old<i;++old)if(m->foreignNulls[old].declaration==row->declaration && m->foreignNulls[old].physicalIndex==row->physicalIndex)goto invalid;
+            xl6ForeignInputHasRegions(node->foreignCall.inputMappingFacts) || !xl6ForeignFixedInputTypeValid(row))goto invalid;
+        for(size_t old=0;old<i;++old)if(m->foreignFixedInputs[old].declaration==row->declaration && m->foreignFixedInputs[old].physicalIndex==row->physicalIndex)goto invalid;
     }
     for(size_t i=0;i<m->foreignPackCount;++i){const XL6_ForeignPackContract* pack=&m->foreignPacks[i];XL6_ForeignPackContract expected;
         if(!xl6IrPackExpected(m,pack,&expected) || !memchr(pack->header,0,sizeof(pack->header)) || strcmp(pack->header,expected.header))goto invalid;
@@ -286,20 +285,19 @@ static int xl6IrVerifyPacks(const XL6_IrModule* m,XL6_DiagList* diags)
     for(size_t n=0;n<m->nodeCount;++n){size_t packs=0,fields=0;for(size_t i=0;i<m->foreignPackCount;++i)packs+=m->foreignPacks[i].declaration==n+1;
         for(size_t i=0;i<m->foreignPackFieldCount;++i)fields+=m->foreignPackFields[i].declaration==n+1;
         if((packs!=0)!=xl6ForeignInputHasPacks(m->nodes[n].foreignCall.inputMappingFacts) || (packs!=0)!=(fields!=0))goto invalid;
-        size_t nulls=0;for(size_t i=0;i<m->foreignNullCount;++i)nulls+=m->foreignNulls[i].declaration==n+1;
-        if((nulls!=0)!=xl6ForeignInputHasNulls(m->nodes[n].foreignCall.inputMappingFacts))goto invalid;
+        size_t nulls=0;for(size_t i=0;i<m->foreignFixedInputCount;++i)nulls+=m->foreignFixedInputs[i].declaration==n+1;
+        if((nulls!=0)!=xl6ForeignInputHasFixedInputs(m->nodes[n].foreignCall.inputMappingFacts))goto invalid;
         if(!packs && !nulls)continue;
         const XL6_IrNode* params;size_t receiver,outputs;uint32 slots[64]={0};
         const XL6_IrNode* node=xl6IrRegionSignature(m,(uint32)n+1,&params,&receiver,slots,&outputs);if(!node)goto invalid;
         XL6_IrCallTarget target={0};target.declaration=(uint32)n+1;target.parameterCount=params->childCount+receiver;
         size_t count=xl6IrForeignPhysicalStepCount(m,&target);if(count>target.parameterCount+outputs+64)goto invalid;
         for(size_t i=0;i<count;++i)if(!xl6IrForeignPhysicalStepGet(m,&target,i,NULL))goto invalid;
-        for(size_t i=0;i<m->foreignNullCount;++i){const XL6_ForeignNullContract* row=&m->foreignNulls[i];if(row->declaration!=n+1)continue;
-            if(row->physicalIndex>=64 || (receiver && !row->physicalIndex) ||
-                !memchr(row->pointerCName,0,sizeof(row->pointerCName)) || !strchr(row->pointerCName,'*') || !xl6ForeignPointerSpelling(row->pointerCName))goto invalid;
+        for(size_t i=0;i<m->foreignFixedInputCount;++i){const XL6_ForeignFixedInputContract* row=&m->foreignFixedInputs[i];if(row->declaration!=n+1)continue;
+            if(row->physicalIndex>=64 || (receiver && !row->physicalIndex) || !xl6ForeignFixedInputTypeValid(row))goto invalid;
             size_t found=0;for(size_t s=0;s<count;++s){XL6_ForeignPhysicalStep step;
                 if(!xl6IrForeignPhysicalStepGet(m,&target,s,&step))goto invalid;
-                found+=step.kind==XL6_FOREIGN_PHYSICAL_STEP_NULL && step.physicalIndex==row->physicalIndex;
+                found+=step.kind==XL6_FOREIGN_PHYSICAL_STEP_FIXED && step.physicalIndex==row->physicalIndex;
             }
             if(found!=1)goto invalid;
         }
@@ -325,11 +323,11 @@ int xl6IrForeignPacksMatch(const XL6_IrModule* m,const XL6_IrCallTarget* t)
     }
     if((found!=0)!=xl6ForeignInputHasPacks(node->foreignCall.inputMappingFacts))return 0;
     size_t nulls=0;
-    for(size_t i=0;i<m->foreignNullCount;++i){const XL6_ForeignNullContract* row=&m->foreignNulls[i];if(row->declaration!=t->declaration)continue;
+    for(size_t i=0;i<m->foreignFixedInputCount;++i){const XL6_ForeignFixedInputContract* row=&m->foreignFixedInputs[i];if(row->declaration!=t->declaration)continue;
         ++nulls;
         if(t->kind!=XL6_IR_CALL_TARGET_EXTERN_C || t->runtimeBridge || t->variadicAbi || t->nativeContextAbi || t->nativeServicesRequired ||
             t->nativeResultAbi || t->nativeArrayResultAbi || node->flags&XL6_AST_FLAG_FOREIGN_FIELD ||
             !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE))return 0;
     }
-    return (nulls!=0)==xl6ForeignInputHasNulls(node->foreignCall.inputMappingFacts);
+    return (nulls!=0)==xl6ForeignInputHasFixedInputs(node->foreignCall.inputMappingFacts);
 }

@@ -16,7 +16,7 @@ int main(int argc,char** argv)
 {
     assert(argc==2 && sizeof(XL6_ForeignCallFacts)==88);XL6_CompileUnit unit;xl6CompileUnitInit(&unit);
     assert(xl6CompileUnitLoadFile(&unit,argv[1],1));assert(xl6IrLowerModule(&unit.ir,&unit.parse.diags));
-    XL6_IrModule* m=&unit.ir;assert(xl6IrVerifyModule(m,NULL));assert(m->foreignNullCount>=7);
+    XL6_IrModule* m=&unit.ir;assert(xl6IrVerifyModule(m,NULL));assert(m->foreignFixedInputCount>=7);
     for(size_t i=0;i<m->foreignPackFieldCount;++i){XL6_ForeignPackFieldContract* row=&m->foreignPackFields[i];XL6_ForeignPackFieldContract saved=*row;
         row->recordParentIndexPlusOne=UINT32_MAX;refused(m,"parent row out of bounds");*row=saved;
         if(strchr(row->field,'.')){row->recordParentIndexPlusOne=0;refused(m,"missing nested parent identity");*row=saved;}
@@ -30,18 +30,20 @@ int main(int argc,char** argv)
             row->countAbi=XL6_FOREIGN_SPAN_COUNT_INT;refused(m,"record witness span count");*row=saved;
         }
     }
-    for(size_t i=0;i<m->foreignNullCount;++i){XL6_ForeignNullContract* row=&m->foreignNulls[i];XL6_ForeignNullContract saved=*row;
+    for(size_t i=0;i<m->foreignFixedInputCount;++i){XL6_ForeignFixedInputContract* row=&m->foreignFixedInputs[i];XL6_ForeignFixedInputContract saved=*row;
+        row->kind=0;refused(m,"unresolved fixed-input kind");*row=saved;
+        row->kind=(XL6_ForeignFixedInputKind)UINT32_MAX;refused(m,"unknown fixed-input kind");*row=saved;
         row->declaration=0;refused(m,"orphan NULL");*row=saved;
         row->physicalIndex=63;refused(m,"unreachable NULL slot");*row=saved;
         strcpy(row->pointerCName,"int");refused(m,"nonpointer NULL");*row=saved;
         strcpy(row->pointerCName,"int(*)(int)");refused(m,"function pointer NULL");*row=saved;
         XL6_IrNode* node=&m->nodes[row->declaration-1];uint16 old=node->foreignCall.inputMappingFacts;
-        node->foreignCall.inputMappingFacts&=~XL6_FOREIGN_INPUT_NULLS_PRESENT;refused(m,"lost NULL presence");node->foreignCall.inputMappingFacts=old;
+        node->foreignCall.inputMappingFacts&=~XL6_FOREIGN_INPUT_FIXED_PRESENT;refused(m,"lost NULL presence");node->foreignCall.inputMappingFacts=old;
         node->foreignCall.inputMappingFacts|=32768u;refused(m,"unknown input metadata bit");node->foreignCall.inputMappingFacts=old;
         uint64 flags=node->flags;node->flags&=~XL6_AST_FLAG_FOREIGN_NO_RAISE;refused(m,"NULL native status effects");node->flags=flags;
     }
-    size_t count=m->foreignNullCount;m->foreignNullCount=m->foreignNullCapacity+1;refused(m,"NULL storage count");m->foreignNullCount=count;
-    XL6_ForeignNullContract* rows=m->foreignNulls;m->foreignNulls=NULL;refused(m,"NULL row storage missing");m->foreignNulls=rows;
+    size_t count=m->foreignFixedInputCount;m->foreignFixedInputCount=m->foreignFixedInputCapacity+1;refused(m,"NULL storage count");m->foreignFixedInputCount=count;
+    XL6_ForeignFixedInputContract* rows=m->foreignFixedInputs;m->foreignFixedInputs=NULL;refused(m,"NULL row storage missing");m->foreignFixedInputs=rows;
     assert(xl6IrVerifyModule(m,NULL));printf("nested pack/NULL: %u mutations rejected with zero C/header output\n",mutations);
     xl6CompileUnitFree(&unit);return 0;
 }

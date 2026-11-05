@@ -31,7 +31,7 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
 {
     const XL6_AstNode* params=xl6SemExternFuncParams(node);size_t count=params ? params->childCount:0;
     size_t packCount=0,fieldCount=0;uint64 consumed=0;
-    if(!xl6ForeignInputHasPacks(facts->inputMappingFacts) && !xl6ForeignInputHasNulls(facts->inputMappingFacts))return 1;
+    if(!xl6ForeignInputHasPacks(facts->inputMappingFacts) && !xl6ForeignInputHasFixedInputs(facts->inputMappingFacts))return 1;
     char header[256]={0};XL6_ForeignClassDecl owner={0};
     if(ownerClass && xl6ForeignClassRead(ownerClass,&owner,NULL)==1)strcpy(header,owner.header);
     for(size_t i=0;attrs && i<attrs->childCount;++i)if(xl6ForeignFunctionHeaderRead(attrs->children[i],header,sizeof(header)))break;
@@ -99,11 +99,11 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
         if(steps>count+receiver+outputCount+64)goto invalid;
         for(size_t i=0;i<steps;++i)
             if(!xl6ForeignPhysicalStepRead(node,facts,count+receiver,receiver,outputs,outputCount,i,NULL))goto invalid;
-        for(size_t a=0;attrs && a<attrs->childCount;++a){XL6_ForeignNullContract nullRow;
-            if(!xl6ForeignNullRead(attrs->children[a],&nullRow))continue;
+        for(size_t a=0;attrs && a<attrs->childCount;++a){XL6_ForeignFixedInputContract nullRow;
+            if(!xl6ForeignFixedInputRead(attrs->children[a],&nullRow))continue;
             size_t found=0;for(size_t i=0;i<steps;++i){XL6_ForeignPhysicalStep step;
                 if(!xl6ForeignPhysicalStepRead(node,facts,count+receiver,receiver,outputs,outputCount,i,&step))goto invalid;
-                found+=step.kind==XL6_FOREIGN_PHYSICAL_STEP_NULL && step.physicalIndex==nullRow.physicalIndex;}
+                found+=step.kind==XL6_FOREIGN_PHYSICAL_STEP_FIXED && step.physicalIndex==nullRow.physicalIndex;}
             if(found!=1 || (receiver && !nullRow.physicalIndex))goto invalid;
         }
         if(receiver<64 && ((consumed<<receiver)&facts->controlViews))goto invalid;

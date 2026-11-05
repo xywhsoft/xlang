@@ -458,8 +458,8 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
         if ( i > 0 ) xl6OutputPuts(", ", out);
         XL6_ForeignPhysicalStep step;if(!xl6IrForeignPhysicalStepGet(module,target,i,&step))return 0;
         size_t parameter=step.parameter;
-        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_NULL){
-            const XL6_ForeignNullContract* row=xl6IrForeignNullGet(module,target,step.physicalIndex);if(!row)return 0;
+        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_FIXED){
+            const XL6_ForeignFixedInputContract* row=xl6IrForeignFixedInputGet(module,target,step.physicalIndex);if(!row)return 0;
             xl6OutputPuts(row->pointerCName,out);continue;
         }
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){

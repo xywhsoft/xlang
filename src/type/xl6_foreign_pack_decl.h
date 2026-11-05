@@ -16,21 +16,36 @@ static inline int xl6ForeignPackPath(const char* path)
 }
 static inline size_t xl6ForeignPackParentLength(const char* path)
 {const char* dot=strrchr(path,'.');return dot ? (size_t)(dot-path):0;}
-static inline int xl6ForeignNullRead(const XL6_AstNode* attr,XL6_ForeignNullContract* output)
+static inline int xl6ForeignFixedInputTypeValid(const XL6_ForeignFixedInputContract* row)
 {
-    int32 physical;XL6_ForeignNullContract row={0};
-    if(!attr || !attr->text || strcmp(attr->text,"c_null") || attr->childCount!=2 ||
-        !xl6ForeignDecimalInt(attr->children[0],&physical) || physical<0 || physical>=64 ||
+    if(!row || !memchr(row->pointerCName,0,sizeof(row->pointerCName)))return 0;
+    if(row->kind==XL6_FOREIGN_FIXED_MODULE_CODE_OWNER)
+        return !strcmp(row->pointerCName,"const XL6_CodeOwner*");
+    return row->kind==XL6_FOREIGN_FIXED_TYPED_NULL && strchr(row->pointerCName,'*') &&
+        xl6ForeignPointerSpelling(row->pointerCName);
+}
+static inline int xl6ForeignFixedInputRead(const XL6_AstNode* attr,XL6_ForeignFixedInputContract* output)
+{
+    int32 physical;XL6_ForeignFixedInputContract row={0};
+    if(!attr || !attr->text)return 0;
+    bool codeOwner=!strcmp(attr->text,"c_code_owner");
+    if((!codeOwner && strcmp(attr->text,"c_null")) || attr->childCount!=(codeOwner ? 1u:2u) ||
+        !xl6ForeignDecimalInt(attr->children[0],&physical) || physical<0 || physical>=64)return 0;
+    if(codeOwner){
+        row.kind=XL6_FOREIGN_FIXED_MODULE_CODE_OWNER;
+        strcpy(row.pointerCName,"const XL6_CodeOwner*");
+    }else if(
         !xl6ForeignQuotedText(attr->children[1],row.pointerCName,sizeof(row.pointerCName)) ||
         !strchr(row.pointerCName,'*') || !xl6ForeignPointerSpelling(row.pointerCName) || strchr(row.pointerCName,'(') ||
         strchr(row.pointerCName,'['))return 0;
+    else row.kind=XL6_FOREIGN_FIXED_TYPED_NULL;
     row.physicalIndex=(uint32)physical;if(output)*output=row;return 1;
 }
-static inline int xl6ForeignNullAt(const XL6_AstNode* node,size_t physical,XL6_ForeignNullContract* output)
+static inline int xl6ForeignFixedInputAt(const XL6_AstNode* node,size_t physical,XL6_ForeignFixedInputContract* output)
 {
-    const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);size_t found=0;XL6_ForeignNullContract match={0};
-    for(size_t i=0;attrs && i<attrs->childCount;++i){XL6_ForeignNullContract row;
-        if(xl6ForeignNullRead(attrs->children[i],&row) && row.physicalIndex==physical){match=row;++found;}}
+    const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);size_t found=0;XL6_ForeignFixedInputContract match={0};
+    for(size_t i=0;attrs && i<attrs->childCount;++i){XL6_ForeignFixedInputContract row;
+        if(xl6ForeignFixedInputRead(attrs->children[i],&row) && row.physicalIndex==physical){match=row;++found;}}
     if(found!=1)return 0;
     if(output)*output=match;
     return 1;
@@ -138,7 +153,7 @@ static inline size_t xl6ForeignPhysicalStepCount(const XL6_AstNode* node,size_t 
         if(xl6ForeignArrayGroupRead(attrs->children[i],&group)){
             if(group.arrayCount>count)return SIZE_MAX;
             count-=group.arrayCount;
-        }XL6_ForeignNullContract nullRow;if(xl6ForeignNullRead(attrs->children[i],&nullRow))++count;}
+        }XL6_ForeignFixedInputContract nullRow;if(xl6ForeignFixedInputRead(attrs->children[i],&nullRow))++count;}
     return count;
 }
 static inline int xl6ForeignPhysicalStepRead(const XL6_AstNode* node,const XL6_ForeignCallFacts* facts,
@@ -151,8 +166,8 @@ static inline int xl6ForeignPhysicalStepRead(const XL6_AstNode* node,const XL6_F
         if(ordinal<outputs && slots[ordinal]==physical){
             step.kind=XL6_FOREIGN_PHYSICAL_STEP_OUTPUT;step.ordinal=(uint32)ordinal;step.parameter=UINT32_MAX;
             ++ordinal;++physical;
-        }else if(xl6ForeignNullAt(node,physical,NULL)){
-            step.kind=XL6_FOREIGN_PHYSICAL_STEP_NULL;step.parameter=UINT32_MAX;++physical;
+        }else if(xl6ForeignFixedInputAt(node,physical,NULL)){
+            step.kind=XL6_FOREIGN_PHYSICAL_STEP_FIXED;step.parameter=UINT32_MAX;++physical;
         }else{
             if(parameter>=parameters || (ordinal<outputs && slots[ordinal]<physical))return 0;
             XL6_ForeignPackContract pack;size_t explicitParameter=parameter>=receiver ? parameter-receiver:SIZE_MAX;
