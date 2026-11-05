@@ -20,6 +20,13 @@ static int xl6IrOutputSizeExpected(const XL6_IrModule* module,const XL6_ForeignO
     if(!returns || returns->kind!=XL6_IR_NODE_LIST || returns->firstChild>module->childCount ||
         returns->childCount>module->childCount-returns->firstChild || returns->childCount>64)return 0;
     size_t ordinal=SIZE_MAX;uint8 mode=(uint8)xl6ForeignValueOutputBase(node->foreignCall.valueOutput);
+    if(xl6ForeignValueOutputIsRecord(node->foreignCall.valueOutput)){
+        XL6_IrCallTarget target={0};target.declaration=row->declaration;
+        const XL6_ForeignOutputRecordContract* group=xl6IrForeignOutputRecordGet(module,&target);
+        if(!group || group->physicalIndex!=row->physicalIndex || row->physicalIndex+1!=node->foreignCall.outputIndexPlusOne)return 0;
+        *expected=*row;expected->ordinal=0;expected->recordType=0;
+        expected->fieldDeclaration=0;expected->fieldType=0;return 1;
+    }
     if(mode==XL6_FOREIGN_VALUE_OUTPUT_STATUS || mode==XL6_FOREIGN_VALUE_OUTPUT_VOID){
         if(returns->childCount!=1 || row->physicalIndex+1!=node->foreignCall.outputIndexPlusOne)return 0;
         ordinal=0;
@@ -104,7 +111,11 @@ int xl6IrForeignOutputSizesMatch(const XL6_IrModule* module,const XL6_IrCallTarg
     for(size_t i=0;i<module->foreignOutputSizeCount;++i){
         const XL6_ForeignOutputSizeContract* row=&module->foreignOutputSizes[i];
         if(row->declaration!=target->declaration)continue;
-        if(row->recordType!=xl6IrForeignOutputType(module,target,row->ordinal))return 0;
+        if(xl6ForeignValueOutputIsRecord(node->foreignCall.valueOutput)){
+            const XL6_ForeignOutputRecordContract* group=xl6IrForeignOutputRecordGet(module,target);
+            if(!group || row->physicalIndex!=group->physicalIndex || row->ordinal || row->recordType ||
+                row->fieldDeclaration || row->fieldType)return 0;
+        }else if(row->recordType!=xl6IrForeignOutputType(module,target,row->ordinal))return 0;
         ++count;
     }
     return (count!=0)==xl6ForeignValueOutputHasSize(node->foreignCall.valueOutput);

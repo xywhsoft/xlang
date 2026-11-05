@@ -20,6 +20,11 @@ static int xl6IrCgenOutputSizeInitialize(XL6_Output* out,const XL6_IrModule* mod
 {
     size_t count=xl6IrForeignOutputCount(module,target);
     if(!xl6IrForeignOutputSizesMatch(module,target))return 0;
+    if(xl6IrForeignOutputRecordGet(module,target)){
+        const XL6_ForeignOutputSizeContract* row=xl6IrForeignOutputSizeGet(module,target,0);
+        if(row)xl6OutputPrintf(out,"    native_raw.%s = sizeof(native_raw);\n",row->field);
+        return !xl6OutputHasFailed(out);
+    }
     for(size_t ordinal=0;ordinal<count;++ordinal){
         const XL6_ForeignOutputSizeContract* row=xl6IrForeignOutputSizeGet(module,target,ordinal);
         if(!row)continue;

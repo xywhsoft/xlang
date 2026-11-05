@@ -1296,9 +1296,24 @@ are trivial C scalars/records and independent owned native resources with
 typed Retain/rollback helpers. Nullable resource fields preserve NULL and do
 not Retain it. A non-nullable resource field rejects NULL. Raw pointer fields
 without Retain, text/bytes conversions, nullable POD, unions, private fields,
-nested field expressions and `c_output_size`/`c_output_view` on the same group
+nested field expressions and `c_output_view` on the same group
 are rejected. Binding authors must audit the actual native lifetime; the
 attribute cannot turn an unowned C pointer into a stable resource.
+
+For size-prefixed physical output structs, compose
+`@c_output_record(1,"NativeInfo","borrowed") @c_output_size(1,"iSize")`.
+The size annotation names that same physical output slot, including the
+receiver, rather than a logical tuple field. The compiler zero-initializes
+the stack struct, assigns `raw.iSize = sizeof(raw)`, and invokes the producer
+once. C/C++ header proofs require a complete trivial tagged struct, an unsigned
+C integer member, and a member large enough to represent `sizeof(raw)`.
+The sparse size row has ordinal zero and no logical record/field type identity:
+those identities belong to the physical group and are proved against its
+authoritative header. XLIR rejects a different slot, duplicate rows, nonzero
+logical identities, a missing presence bit and disagreement between native
+aliases. A failed status never projects or Retains fields, even if the native
+producer left poison pointers in the output. This composition adds one stack
+field assignment and no heap allocation or forwarding function.
 
 All retained result roots are reserved before the native producer. Failure
 to reserve any root prevents the call. The producer runs once, then each

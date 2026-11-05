@@ -1,0 +1,138 @@
+extern "OutputRecordPoint" struct Point @header("test/cases/foreign_output_record_size.h")
+ c_float x
+ c_float y
+end
+extern "OutputRecordNode*" class Node @header("test/cases/foreign_output_record_size.h") @lifetime("owned") @policy("outputRecordPolicy")
+ native point handle
+ extern "output_record_read" @no_raise @c_output_record(1,"OutputRecordNative","borrowed") @c_output_size(1,"iSize") @c_status(0) @c_output_field(0,"code") @c_output_field(1,"first","retain",retain,"zero",rollback) @c_output_field(2,"point") @c_output_field(3,"second","retain",retain,"zero",rollback) @c_output_field(4,"mode") func read() as (c_uint,Node,Point,Node?,c_int)
+ extern "output_record_read_void" @no_raise @c_output_record(1,"OutputRecordNative","borrowed") @c_output_size(1,"iSize") @c_output_field(0,"code") @c_output_field(1,"first","retain",retain,"zero",rollback) @c_output_field(2,"point") @c_output_field(3,"second","retain",retain,"zero",rollback) @c_output_field(4,"mode") func readVoid() as (c_uint,Node,Point,Node?,c_int)
+ extern "output_record_refs" @no_raise func refs() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "output_record_create" @header("test/cases/foreign_output_record_size.h") @no_raise @c_result("owned_view") @factory(0,0,rollback) func create(c_int mode) as Node
+extern "output_record_hold" @header("test/cases/foreign_output_record_size.h") @no_raise func retain(Node value) as c_int
+extern "output_record_drop" @header("test/cases/foreign_output_record_size.h") @no_raise @c_result("status",0) func rollback(Node value)
+extern "output_record_live" @header("test/cases/foreign_output_record_size.h") @no_raise func live() as c_int
+extern "output_record_producers" @header("test/cases/foreign_output_record_size.h") @no_raise func producers() as c_int
+extern "output_record_fail_after" @header("test/cases/foreign_output_record_size.h") @no_raise func failAfter(c_int count)
+extern "output_record_reset" @header("test/cases/foreign_output_record_size.h") @no_raise func resetFailure()
+extern "output_record_read" @header("test/cases/foreign_output_record_size.h") @no_raise @c_output_record(1,"OutputRecordNative","borrowed") @c_output_size(1,"iSize") @c_status(0) @c_output_field(0,"code") @c_output_field(1,"first","retain",retain,"zero",rollback) @c_output_field(2,"point") @c_output_field(3,"second","retain",retain,"zero",rollback) @c_output_field(4,"mode") func readFree(Node source) as (c_uint,Node,Point,Node?,c_int)
+extern "output_record_read" @header("test/cases/foreign_output_record_size.h") @no_raise @c_output_record(1,"OutputRecordNative","borrowed") @c_output_size(1,"iSize") @c_status(0) @c_output_field(0,"code") @c_output_field(1,"first","retain",retain,"zero",rollback) @c_output_field(2,"point") @c_output_field(3,"second","retain",retain,"zero",rollback) @c_output_field(4,"mode") func readAlias(Node source) as (c_uint,Node,Point,Node?,c_int)
+extern "output_record_read_pod" @header("test/cases/foreign_output_record_size.h") @no_raise @c_output_record(1,"OutputRecordNative","borrowed") @c_output_size(1,"iSize") @c_status(0) @c_output_field(0,"point") @c_output_field(1,"code") func readPod(Node source) as (Point,c_uint)
+extern "output_record_read_one" @header("test/cases/foreign_output_record_size.h") @no_raise @c_output_record(1,"OutputRecordNative","borrowed") @c_output_size(1,"iSize") @c_status(0) @c_output_field(0,"code") func readCount(Node source) as c_uint
+extern "output_record_read_owned" @header("test/cases/foreign_output_record_size.h") @no_raise @c_output_record(1,"OutputRecordNative","borrowed") @c_output_size(1,"iSize") @c_status(0) @c_output_field(0,"first","retain",retain,"zero",rollback) func readOwned(Node source) as Node
+protocol Reader
+ func read() as (c_uint,Node,Point,Node?,c_int)
+end
+func dropResult(c_uint code,Node first,Point at,Node? second,c_int mode)
+ assert code==c_uint(73) and at.x==c_float(1.25) and at.y==c_float(2.5)
+ assert mode>=c_int(0)
+ first.close()
+ if second!=null then
+  (second as Node).close()
+ end
+end
+func paths()
+ Node source=create(c_int(0))
+ auto c0,n0,p0,s0,m0=source.read()
+ assert source.refs()==c_int(3)
+ dropResult(c0,n0,p0,s0,m0)
+ func() as (c_uint,Node,Point,Node?,c_int) bound=source.read
+ auto c1,n1,p1,s1,m1=bound()
+ dropResult(c1,n1,p1,s1,m1)
+ Reader reader=source
+ auto c2,n2,p2,s2,m2=reader.read()
+ dropResult(c2,n2,p2,s2,m2)
+ auto c3,n3,p3,s3,m3=source.readVoid()
+ dropResult(c3,n3,p3,s3,m3)
+ auto c5,n5,p5,s5,m5=readFree(source)
+ dropResult(c5,n5,p5,s5,m5)
+ auto c6,n6,p6,s6,m6=readAlias(source)
+ dropResult(c6,n6,p6,s6,m6)
+ auto pod,code=readPod(source)
+ assert pod.x==c_float(1.25) and code==c_uint(73) and source.refs()==c_int(1)
+ assert readCount(source)==c_uint(73)
+ Node one=readOwned(source)
+ assert source.refs()==c_int(2)
+ one.close()
+ source.close()
+ source=create(c_int(3))
+ auto c4,n4,p4,s4,m4=source.read()
+ assert s4==null and source.refs()==c_int(2)
+ dropResult(c4,n4,p4,s4,m4)
+ source.close()
+end
+func failures()
+ int mode=1
+ while mode<6
+  if mode!=2 and mode!=3 then
+   Node source=create(c_int(mode))
+   bool caught=false
+   try
+    auto code,first,at,second,status=source.read()
+   catch error
+    caught=true
+    if mode==1 then assert error.code==-9 end
+    if mode==4 then assert error.code==-7 end
+   end
+   assert caught and source.refs()==c_int(1)
+   source.close()
+  end
+  mode+=1
+ end
+end
+func reservation()
+ int accepted=0
+ int rejected=0
+ int budget=0
+ while budget<64
+  Node source=create(c_int(0))
+  int before=producers()
+  bool caught=false
+  failAfter(c_int(budget))
+  try
+   auto code,first,at,second,status=source.read()
+   resetFailure()
+   assert producers()==before+1 and source.refs()==c_int(3)
+   dropResult(code,first,at,second,status)
+   accepted+=1
+  catch error
+   caught=true
+   rejected+=1
+  finally
+   resetFailure()
+  end
+  if caught then
+   assert producers()==before and source.refs()==c_int(1)
+  end
+  source.close()
+  budget+=1
+ end
+ assert accepted>0 and rejected>0
+ Node source=create(c_int(2))
+ auto code,first,at,second,status=source.read()
+ resetFailure()
+ assert source.refs()==c_int(3)
+ dropResult(code,first,at,second,status)
+ source.close()
+end
+func failedPoison()
+ Node source=create(c_int(6))
+ bool caught=false
+ try
+  auto code,first,at,second,status=source.read()
+ catch error
+  assert error.code==-23
+  caught=true
+ end
+ assert caught and source.refs()==c_int(1)
+ source.close()
+end
+func main(...) as int
+ failedPoison()
+ paths()
+ failures()
+ reservation()
+ assert live()==c_int(0)
+ return 0
+end

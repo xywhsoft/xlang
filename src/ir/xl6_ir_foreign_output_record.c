@@ -50,7 +50,7 @@ static const XL6_IrNode* xl6IrOutputRecordReturns(const XL6_IrModule* m,XL6_IrNo
         (node->sourceKind!=XL6_AST_EXTERN_FUNC && node->sourceKind!=XL6_AST_NATIVE_EXTERN_FUNC && node->sourceKind!=XL6_AST_GET) ||
         !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
         (node->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) ||
-        node->foreignCall.rollbackSymbol || node->foreignCall.borrowedViewResult || xl6ForeignValueOutputHasSize(node->foreignCall.valueOutput) ||
+        node->foreignCall.rollbackSymbol || node->foreignCall.borrowedViewResult ||
         node->firstChild>m->childCount || node->childCount>m->childCount-node->firstChild || node->childCount<3 || !m->children)return NULL;
     const XL6_IrNode* returns=xl6IrNodeGet(m,m->children[node->firstChild+2]);
     if(!returns || returns->kind!=XL6_IR_NODE_LIST || !returns->childCount || returns->childCount>64 ||
