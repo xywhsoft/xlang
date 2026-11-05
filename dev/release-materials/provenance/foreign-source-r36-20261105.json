@@ -1,0 +1,220 @@
+{
+  "format": "xlang-acceptance-1",
+  "sourceRevision": "a921d75735234d140994464bbe2ca4fc6648306a",
+  "complete": true,
+  "passed": true,
+  "scope": "Complete no-cache R36 source compiler and ten focused C-interop gates, including borrowed output struct fields and nested trivial POD pack inputs. No frontend overlay.",
+  "snapshot": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r36.json",
+    "sha256": "63a4939309927446a905421d86a3de3446d695e44c84873ab96a82e2eadafdcf"
+  },
+  "platforms": [
+    {
+      "platform": "win_x64",
+      "translationUnits": 1416,
+      "cacheHits": 0,
+      "inputsUnchanged": true,
+      "build": {
+        "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-completion-r36\\build.json",
+        "sha256": "1e9b897584561618ff9bf6a51b401cb308c959de75be5205635210d9bda21a58"
+      },
+      "matrix": {
+        "path": "F:\\xlang-validation\\foreign-completion-20261103\\focused-full-r36-win-r1\\results.json",
+        "sha256": "ed9b6acb4bef30fd5cbf02e600530761f62cf1d7e7eb3ddc90daae5a2fd9d572"
+      },
+      "reports": [
+        {
+          "name": "pack",
+          "steps": 39,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\focused-full-r36-win-r1\\pack\\results.json",
+            "sha256": "0b51714f3021df64ca19a63b394dccc9bd5d6daf04190995ee1c4ae208da91a4"
+          }
+        },
+        {
+          "name": "output_retain",
+          "steps": 29,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\focused-full-r36-win-r1\\output_retain\\results.json",
+            "sha256": "b800d386892c3b89bf14857fb5e16e50ae557d0fb09235606d0acb7f2ec3adb6"
+          }
+        },
+        {
+          "name": "regions",
+          "steps": 36,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\focused-full-r36-win-r1\\regions\\results.json",
+            "sha256": "e742db0373a05851a7e9d4d345c3c40584773151c638daa3084f39ed079dabb2"
+          }
+        },
+        {
+          "name": "fixed_ref",
+          "steps": 25,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\focused-full-r36-win-r1\\fixed_ref\\results.json",
+            "sha256": "bc1030bacd9572853354ecfec20b4328aaf980deb0366b61cc2e57bf7bb4cbe9"
+          }
+        },
+        {
+          "name": "borrow_variants",
+          "steps": 20,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\focused-full-r36-win-r1\\borrow_variants\\results.json",
+            "sha256": "246ada7a8f66a581bf4ae904fea7d75f479e48f5a786d9195294c89cd361583a"
+          }
+        },
+        {
+          "name": "aggregate_place",
+          "steps": 16,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\focused-full-r36-win-r1\\aggregate_place\\results.json",
+            "sha256": "c9273328b6daf8f3f46125f09246132767505b4627e4f08b4fd5eb53e4f618c8"
+          }
+        },
+        {
+          "name": "native_preparation",
+          "steps": 6,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\focused-full-r36-win-r1\\native_preparation\\results.json",
+            "sha256": "2ea903e22ce90bf2568802bdf7d153c2a321c9d9495e3640c51dc198d345e330"
+          }
+        },
+        {
+          "name": "scoped_retain",
+          "steps": 30,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\focused-full-r36-win-r1\\scoped_retain\\results.json",
+            "sha256": "8a8bbec10a2ba14130886081956cc1b2e25df00837951c952398b2b0beef284c"
+          }
+        },
+        {
+          "name": "output_record",
+          "steps": 57,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\focused-full-r36-win-r1\\output_record\\results.json",
+            "sha256": "c7c3046006767487373f782b54c65d3dc64d9e98d0c6616e81a81c4160c9de16"
+          }
+        },
+        {
+          "name": "pack_pod",
+          "steps": 31,
+          "report": {
+            "path": "F:\\xlang-validation\\foreign-completion-20261103\\focused-full-r36-win-r1\\pack_pod\\results.json",
+            "sha256": "401ee057c9d48ae23e2d80799a1cd1f1c8465ee2c2a53a8f0386ad786c66904e"
+          }
+        }
+      ],
+      "steps": 289
+    },
+    {
+      "platform": "linux_x64",
+      "translationUnits": 1415,
+      "cacheHits": 0,
+      "inputsUnchanged": true,
+      "build": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-completion-20261105-r36\\source\\build.json",
+        "sha256": "7c87397cd84e6e08761a1f41a20792012eeda2032b21defd302cc5e6ab749c82"
+      },
+      "matrix": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\focused-full-r36-linux-r1\\results.json",
+        "sha256": "577ff0708ac3c92479bcb9493e4d815ae86c2ea9e521a16974bc3d42d40b4a9a"
+      },
+      "reports": [
+        {
+          "name": "pack",
+          "steps": 39,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\focused-full-r36-linux-r1\\pack\\results.json",
+            "sha256": "8f9df1507c8ca484d35f709eb63deb305fa6e79e6ee0eed72759119c347284ff"
+          }
+        },
+        {
+          "name": "output_retain",
+          "steps": 29,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\focused-full-r36-linux-r1\\output_retain\\results.json",
+            "sha256": "e90c058abf41a27290facc3bdebc2415639a1a920a3809f11270c377878c55c6"
+          }
+        },
+        {
+          "name": "regions",
+          "steps": 36,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\focused-full-r36-linux-r1\\regions\\results.json",
+            "sha256": "282a8c255c5c6064ebac3fe160f4a2a818c78810bfdab74b69b37b2740cf60c8"
+          }
+        },
+        {
+          "name": "fixed_ref",
+          "steps": 25,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\focused-full-r36-linux-r1\\fixed_ref\\results.json",
+            "sha256": "a1871dcbded65260e55340dded266e2301d4df14b1fb26507b3e5d5550e23df1"
+          }
+        },
+        {
+          "name": "borrow_variants",
+          "steps": 20,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\focused-full-r36-linux-r1\\borrow_variants\\results.json",
+            "sha256": "1ad1eb3ab63377eee3df997b154d11d4d47ad7f8865d3bacd0f3aa0b029ba589"
+          }
+        },
+        {
+          "name": "aggregate_place",
+          "steps": 16,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\focused-full-r36-linux-r1\\aggregate_place\\results.json",
+            "sha256": "166f7f2ef424d90ca93d52e61c45674796f4a26bdde8a8f7913bf7979a15cbac"
+          }
+        },
+        {
+          "name": "native_preparation",
+          "steps": 6,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\focused-full-r36-linux-r1\\native_preparation\\results.json",
+            "sha256": "bf06460b6db0829cb24d30f921ef4ad40f4d76611339941be6b6d94d8393cb1f"
+          }
+        },
+        {
+          "name": "scoped_retain",
+          "steps": 30,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\focused-full-r36-linux-r1\\scoped_retain\\results.json",
+            "sha256": "8093e521fcbd57effe6d374378ec9a2ad7f7daef05123016bb85669b0c1f25ec"
+          }
+        },
+        {
+          "name": "output_record",
+          "steps": 57,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\focused-full-r36-linux-r1\\output_record\\results.json",
+            "sha256": "e62ab872f6346d477f5a40dc44c7eed6706ab5bbe2ed436ac2f595dcd61a3087"
+          }
+        },
+        {
+          "name": "pack_pod",
+          "steps": 31,
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\focused-full-r36-linux-r1\\pack_pod\\results.json",
+            "sha256": "b2adfa55a25022f0d8dc8e6c8ec7b8908d4639a075db6c86674547fbbb2f38c2"
+          }
+        }
+      ],
+      "steps": 289
+    }
+  ],
+  "verifiedSteps": 578,
+  "outputRecordIrMutationsPerOptimization": 357,
+  "packPodIrMutationsPerOptimization": 60,
+  "optimizations": [
+    "O0",
+    "O2"
+  ],
+  "factsBytes": 88,
+  "limitations": [
+    "Existing external TCC provider reused in this source-driver cohort; newly matched provider/VFS is qualified separately",
+    "No live IDE or public Native binding-package changes included",
+    "No final release/SDK replacement or device, network, browser or GPU execution"
+  ]
+}
