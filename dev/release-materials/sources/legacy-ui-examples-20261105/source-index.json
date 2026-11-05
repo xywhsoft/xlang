@@ -1,0 +1,392 @@
+{
+  "complete": true,
+  "bytesPreserved": true,
+  "runtimeFilesRemoved": false,
+  "scope": "Historical tutorial source snapshot only, not compatibility or execution acceptance",
+  "counts": {
+    "xge": 28,
+    "xui": 48
+  },
+  "files": [
+    {
+      "originalPath": "release/win_x64/examples/xge/ch02.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch02.xl",
+      "sha256": "6e9719fab6e8e959afffc82e3c99798ffb28c98125ce63c49c3861177d2b5697"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch03.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch03.xl",
+      "sha256": "bb41cbebf761259ed0f271bfd88df514ab8ea885dbdfa98af80adedb173b3f8b"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch04.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch04.xl",
+      "sha256": "7604668068870c1d8cca23c8c05253671a8e0588f5aba4265440070e648a19fb"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch05.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch05.xl",
+      "sha256": "63578307744de832f5e8768df4f463654fd1a1818e3b617bba2b3cb7dc4df28b"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch06.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch06.xl",
+      "sha256": "a51dc3026e56904566293c421a85f1365345b6d06999a09b7f8862ad4923742c"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch08.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch08.xl",
+      "sha256": "5114f6e9a231d06cc5bcf29ca0f8386dcd582227a267a3f1c6466f2e14095546"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch11.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch11.xl",
+      "sha256": "6b87750f7e5c1195950d8be40c75201d800a821bc5481db2c84d6a0cb6b1a575"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch12.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch12.xl",
+      "sha256": "d0669dc8ad0d812363f19d5903bff0e621b2d33c793634a0a48cc02d19790aa2"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch13.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch13.xl",
+      "sha256": "6462b32bec64e10ad51df8dd499bd58723dec432b2a0fc0e8944c15c660e38f9"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch14.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch14.xl",
+      "sha256": "578ba5d0e58e3f77de0e9f99368f5ef1babad37a7b68d43f5a0934e4b3e6b974"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch15.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch15.xl",
+      "sha256": "cf1c3be143cab7a7e4e6b1fc2c1517150cffb1357d4264735ba1984c2e2a052a"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch16.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch16.xl",
+      "sha256": "c82dd1f47727ea3bf4138f60a302f103d33d076ab5a3bcc5982c13cadc71df1b"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch17.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch17.xl",
+      "sha256": "2cd9f0a18af57880dae26fdf61a54613be113fee9a4f37e539940f6b4cdb2932"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch18.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch18.xl",
+      "sha256": "c32c90e00f6ba6324c7f8c4640cbd6d8248bd438a249115bf48fe67ab26d475c"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch19.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch19.xl",
+      "sha256": "beb7435382dc04bdd75bc7817413800df81dd8862b0285bc1ba1f1ed8e0b4e77"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch20.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch20.xl",
+      "sha256": "de0a3c5fb95ef1b4d661c37388fc0582235c94c528f468fda69627c162d16e1a"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch21.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch21.xl",
+      "sha256": "454487029ac8267e3f1fbf1a190d54cedfedc73f1380ec054851f02ebb9e1350"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch22.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch22.xl",
+      "sha256": "ffb85cc1772a88998966bad988a1be25abfb27e679f557afa65103b3da8185d4"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch23.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch23.xl",
+      "sha256": "cab41fd3b9d5f5c561dad81cde46afa18361ca65f35c1e8ead858b273ab4ea27"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch24.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch24.xl",
+      "sha256": "9952b46028430f59eb762b9b7279fa6d3984dc73cac0db4eb997c1bc1dfa021b"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch25.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch25.xl",
+      "sha256": "59d3b74afbc8ac32e9020910fb9fc93adff83976fd1a6cc2c7ea70e6804dc0c3"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch26.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch26.xl",
+      "sha256": "6efb8b27d2de4d851d52a1c74a703e2f69abb9fa60358b09084bfce8fcd82107"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch27.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch27.xl",
+      "sha256": "5597ab894e0d549c1712cfe04b24d5d025b2d6c66cf59b3075a256aef5a24409"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch28.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch28.xl",
+      "sha256": "36140cf4c3a744930554df020bcb49eb36c2313c78a656b271db45733934e70a"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch29.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch29.xl",
+      "sha256": "89fb2c8ff6c4dd70c59264ffb9624db85c4ac40663b373a08161d02959ad7e69"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/ch30.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/ch30.xl",
+      "sha256": "0b13ea3460e9787ec46377cdb47422bc322674034d124441d2e8d4cd8535f9ed"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/shape_ex.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/shape_ex.xl",
+      "sha256": "d924c722913232d23ab8b37f50cd1620217753dc959f1129ff1f0476a4f95590"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xge/test_callback.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xge/test_callback.xl",
+      "sha256": "c6e156a0af60f277404265f8f2f41869d4266f664b706526d0082f60c51ee14e"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/accordion.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/accordion.xl",
+      "sha256": "9eec1ad6e50c76bdd4c1b7440282ad876ff922e7cb0e8e41d8da7f6f99b20b7f"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/all_controls.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/all_controls.xl",
+      "sha256": "36454990da51df111d38d4e16cbe316e089dd7007995c233a0ef292bb3986ffb"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/basic.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/basic.xl",
+      "sha256": "7262cea761572c948191c1aa36d3775dd6a0c768237f12f9047102f295bdb6d8"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/breadcrumb.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/breadcrumb.xl",
+      "sha256": "311c1b3b0504ed7564f05b36679afb9bd88c87737ed041d67903799fad794f5b"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/button.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/button.xl",
+      "sha256": "f647f5596621199368f30a61841a7a3b29b688b53a5abe38c084d0569f789eed"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/canvas.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/canvas.xl",
+      "sha256": "d467c802ca5cd5318abd399f44099755e6e75edf9b4173a64a3eb2608dbeaed5"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/carousel.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/carousel.xl",
+      "sha256": "34cac42bf5b8b4ba1d3713761a6237137639c1dbc51c3372283b87f78282da87"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/chart.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/chart.xl",
+      "sha256": "8323fea07819576e1f7cc89c2d57a0b94dd2fcd4815af0d62fd74e836a348422"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/checkbox.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/checkbox.xl",
+      "sha256": "fc3bdc7d585a58a676818bbde74fc3a1150a64ebacbd919ef0d81ecbb59e2421"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/codeedit.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/codeedit.xl",
+      "sha256": "257f375f614832f651a60948dbb27f4a1ea41d442a0f8d826c7ca5312ffe1ca2"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/colorpicker.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/colorpicker.xl",
+      "sha256": "ec6c4a1927f86dffd44c47a03669512acc9213651d0626fcde8b65070675a18a"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/combobox.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/combobox.xl",
+      "sha256": "7beecc1c34ce66ed688cf2a6ebd0d99ea036ab69626d59ae9be1368bd29e886d"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/datepicker.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/datepicker.xl",
+      "sha256": "84aa3af0f91077c96ac1604612bb68058bcc105544b5078bf4689543c8d62586"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/dockpanel.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/dockpanel.xl",
+      "sha256": "5709f61a0ab5b9f887b953cf3cedb3a25745e4e1997a9e4b6b84834f6c3e838a"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/hyperlink.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/hyperlink.xl",
+      "sha256": "8c49751410e3cd46063b2bd058148f749497e8861425764d484f2af05274f241"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/image.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/image.xl",
+      "sha256": "b619f59a6421a5ec8df8bae51bdd5428d01b4aa0c394d4a8afe50cfbd56eaf3a"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/input.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/input.xl",
+      "sha256": "952da063aa29791202b12929b9c53251bf4075521a1281b9c176d593e1ca9606"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/listview.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/listview.xl",
+      "sha256": "107af828146834fff5f3ce3364762c521eb03341fb33e93c9050bed8369fe679"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/menu.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/menu.xl",
+      "sha256": "cbc9a754cac0cd1006ba7838ea18327dfb7c7aa98fcddf2a02a5c6e2043c0562"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/messagelist.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/messagelist.xl",
+      "sha256": "545677328326742ef83a34619ae517831c8993b6754f812c3bdb972673687bef"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/numericinput.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/numericinput.xl",
+      "sha256": "1920568002595054ea7088d8900f2b182d4f40c76d76f345b655f3eae6972b78"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/page.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/page.xl",
+      "sha256": "658cf98c60cd9707f9f3235316a9a51d37b2592c53bbbc2388efe3920b23b348"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/panel.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/panel.xl",
+      "sha256": "2dcb49a3da752694f19d71e42e2ec11183c067aa7e4f4716605fab3964034b9d"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/popup.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/popup.xl",
+      "sha256": "bccf1806f413cf2c0b6b012b9b3f324c6e355a2c23bc20405dd2396a06b4fd54"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/progress.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/progress.xl",
+      "sha256": "a4472b21fb7a629b9420e877d7f147fa5a1b2292642d04107637a99a628ed3a7"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/propertygrid.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/propertygrid.xl",
+      "sha256": "21b905a19c5740fd8fc1a835a0080ebe3e8436c5a8ee15502a09c6760d11ed6d"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/qrcode.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/qrcode.xl",
+      "sha256": "ad49f63f71c698cb315c0e66efab4ce4ffd05bfdbfb81ec6dd18af2744f10bd3"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/radio.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/radio.xl",
+      "sha256": "92b52a79436084ed498b674b3fbde42f9a03e16bd8e7f09c807a7f10a23bbf35"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/rangeslider.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/rangeslider.xl",
+      "sha256": "810aec91750282c580eb6c25538582040b13afab154700ee9671b78d91f27aa9"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/richtext.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/richtext.xl",
+      "sha256": "fb58f4fee10834849b7b8b7ab22d165c2c8b033b09d993f631c14512f4e0f14b"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/scrollbar.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/scrollbar.xl",
+      "sha256": "9b07d766d2e44e6e744b13dfff92f34e1b49c5f924c43d164b721fb6ecb65d2b"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/scrollview.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/scrollview.xl",
+      "sha256": "1b72625fa313131202bbc53bf75c0c114e11ad76f992f092eca71effb62d210f"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/separator.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/separator.xl",
+      "sha256": "cb2a27e453525477ac715ec5929647190f9d17c5672ad3deae8f65db8229eebd"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/slider.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/slider.xl",
+      "sha256": "77a9c86abfecf708a85792aff4241cefc9c43847da7fbca26972ce76d8cfab5d"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/splitlayout.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/splitlayout.xl",
+      "sha256": "32192cb4f65d3a2707aa55062cc2fbf1989c9b4694cd98d64863bc139d4caf53"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/statusbar.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/statusbar.xl",
+      "sha256": "ad8ce47f91583073ac8b23ee5add270d13e84b0951590c0729bb2652bfb207cb"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/stepbar.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/stepbar.xl",
+      "sha256": "b8b63a43c178ed1f22aa93040013bf0238b5d18fd49a4869f99eb2580ee397c8"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/tablegrid.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/tablegrid.xl",
+      "sha256": "0bf107e12d29e8d63fd5464cb2d5a0a639fa02d5eda673067da14fd5079c7963"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/tableview.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/tableview.xl",
+      "sha256": "45ac6ad9d9e3f9e507f3208bced4ff9fec575199f39b6022b1e5a3545e80282a"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/tabs.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/tabs.xl",
+      "sha256": "762668f4c962d403415bdf7683855dd3f347455cc8b9aca23f241c100252b5be"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/taginput.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/taginput.xl",
+      "sha256": "ecc25b947cd54406732d90ddd14ecccf8854a1818d33a467b9af296fe312b26b"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/terminal.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/terminal.xl",
+      "sha256": "eca34937038d610b1fa13ad0d16f3c7de7b6f2196a68c3900c7d039a263e403e"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/textedit.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/textedit.xl",
+      "sha256": "2a0d01d231b8fa2846104c9e9b80f085df06e49545d948fe3f765490cb1cd52e"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/timeline.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/timeline.xl",
+      "sha256": "4e5e633ac89de84e172f6705b8ef7ea949062dc8a18cf7af34370081bd38a5fc"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/toggle.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/toggle.xl",
+      "sha256": "9de77d3d6ba63ef39179e55738500bef7d5bd9b1efd265ba720a51be6b2d7f6e"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/toolbar.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/toolbar.xl",
+      "sha256": "acd18be6eee86388d5630695f461ed2eb531047db7dbb818a8fd3ff6ad7cc699"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/treeview.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/treeview.xl",
+      "sha256": "137b85e21993386a7d40badafe4b9ef3437e51914ebb87dab47924e1d684f262"
+    },
+    {
+      "originalPath": "release/win_x64/examples/xui/window.xl",
+      "storedPath": "dev/release-materials/sources/legacy-ui-examples-20261105/xui/window.xl",
+      "sha256": "e2bf9d6c4a18d8b187f0f3a8fe734f34fde5f9dd5eeafdf9b7074f489fdcdff6"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+// taginput.xl — 标签输入：TagInput 控件
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "TagInput Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "TagInput Demo", font)
+    root.addChild(title)
+
+    xui.Label lblTags = xui.Label(ctx, "Tags:", font)
+    root.addChild(lblTags)
+
+    xui.TagInput tags = xui.TagInput(ctx, "", font)
+    tags.setPreferredSize(480.0, 40.0)
+    root.addChild(tags)
+
+    xui.Label hint = xui.Label(ctx, "Type and press Enter to add a tag", font)
+    root.addChild(hint)
+
+    g_app.run(onFrame)
+    return 0
+end

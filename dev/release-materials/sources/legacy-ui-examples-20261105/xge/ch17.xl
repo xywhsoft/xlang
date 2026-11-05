@@ -1,0 +1,53 @@
+// ch17 — 视口与裁剪：分屏 + 滚动裁剪
+import xge
+
+func draw_scene()
+    // 左半屏：玩家 1 视角
+    xge.Shape.rectFill(10, 30, 380, 540, xge.Color.rgba(10, 26, 32, 255))
+    xge.Shape.rectStroke(10, 30, 380, 540, 2.0, xge.Color.rgba(79, 216, 194, 150))
+    // 玩家 1 内容
+    xge.Shape.circleFill(200, 300, 25, xge.Color.rgba(79, 216, 194, 255))
+    xge.Shape.rectFill(50, 450, 300, 20, xge.Color.rgba(42, 74, 63, 255))
+
+    // 右半屏：玩家 2 视角
+    xge.Shape.rectFill(410, 30, 380, 540, xge.Color.rgba(20, 16, 10, 255))
+    xge.Shape.rectStroke(410, 30, 380, 540, 2.0, xge.Color.rgba(255, 180, 84, 150))
+    // 玩家 2 内容
+    xge.Shape.circleFill(600, 300, 25, xge.Color.rgba(255, 180, 84, 255))
+    xge.Shape.rectFill(450, 450, 300, 20, xge.Color.rgba(74, 60, 42, 255))
+
+    // 分隔线
+    xge.Shape.line(400, 30, 400, 570, 2.0, xge.Color.rgba(200, 210, 220, 100))
+
+    // 裁剪演示区域（右下角小窗）
+    xge.Shape.rectFill(500, 60, 250, 150, xge.Color.rgba(0, 0, 0, 150))
+    // 被裁剪的列表项（超出区域不显示）
+    int i = 0
+    while i < 6
+        float y = 70.0 + float(i) * 30.0
+        if y + 25.0 > 210.0 then
+            // 超出裁剪区
+            i = 6  // break
+        else
+            xge.Shape.rectFill(510, y, 230, 25, xge.Color.rgba(26, 42, 48, 255))
+            i = i + 1
+        end
+    end
+    xge.Shape.rectStroke(500, 60, 250, 150, 1.0, xge.Color.rgba(255, 107, 94, 180))
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch17")
+    if ret != 0 then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

@@ -1,0 +1,39 @@
+// ch02 — 引擎初始化与窗口创建
+import xge
+
+func draw_scene()
+    // 模拟窗口边框
+    xge.Shape.rectStroke(100, 60, 600, 480, 2.0, xge.Color.rgba(79, 216, 194, 255))
+
+    // 标题栏区域
+    xge.Shape.rectFill(100, 60, 600, 36, xge.Color.rgba(30, 40, 50, 255))
+
+    // 标题栏小圆点（窗口按钮）
+    xge.Shape.circleFill(120, 78, 6, xge.Color.rgba(255, 107, 94, 255))
+    xge.Shape.circleFill(140, 78, 6, xge.Color.rgba(255, 180, 84, 255))
+    xge.Shape.circleFill(160, 78, 6, xge.Color.rgba(79, 216, 194, 255))
+
+    // 客户区中心标识
+    xge.Shape.circleFill(400, 320, 40, xge.Color.rgba(255, 180, 84, 180))
+    xge.Shape.circleStroke(400, 320, 55, 2.0, xge.Color.rgba(79, 216, 194, 200))
+
+    // 尺寸标注线
+    xge.Shape.line(100, 560, 700, 560, 1.5, xge.Color.rgba(100, 120, 140, 255))
+    xge.Shape.line(720, 60, 720, 540, 1.5, xge.Color.rgba(100, 120, 140, 255))
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch02")
+    if ret != 0 then
+        println("xge.XgeApp.init failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

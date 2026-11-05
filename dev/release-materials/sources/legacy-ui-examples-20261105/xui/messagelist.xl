@@ -1,0 +1,28 @@
+// messagelist.xl — 消息列表：MessageList 控件
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "MessageList Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "MessageList Demo", font)
+    root.addChild(title)
+
+    xui.MessageList messages = xui.MessageList(ctx)
+    messages.setFlex(1.0, 1.0)
+    root.addChild(messages)
+
+    xui.Label hint = xui.Label(ctx, "Chat bubble style message area", font)
+    root.addChild(hint)
+
+    g_app.run(onFrame)
+    return 0
+end

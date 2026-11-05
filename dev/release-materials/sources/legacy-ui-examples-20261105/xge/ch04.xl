@@ -1,0 +1,33 @@
+// ch04 — 手动渲染模式：离屏渲染圆形
+import xge
+
+func draw_scene()
+    // 大圆形（教程示例中的琥珀色圆）
+    xge.Shape.circleFill(400, 300, 150, xge.Color.rgba(255, 180, 84, 255))
+
+    // 内圈装饰
+    xge.Shape.circleStroke(400, 300, 100, 2.0, xge.Color.rgba(13, 17, 22, 180))
+    xge.Shape.circleStroke(400, 300, 50, 2.0, xge.Color.rgba(13, 17, 22, 120))
+
+    // 中心点
+    xge.Shape.circleFill(400, 300, 8, xge.Color.rgba(13, 17, 22, 200))
+
+    // 边框表示离屏帧缓冲
+    xge.Shape.rectStroke(50, 30, 700, 540, 1.5, xge.Color.rgba(100, 120, 140, 150))
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch04")
+    if ret != 0 then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

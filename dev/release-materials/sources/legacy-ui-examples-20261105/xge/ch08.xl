@@ -1,0 +1,46 @@
+// ch08 — 帧统计与调试：HUD 性能面板
+import xge
+
+func draw_scene()
+    // 模拟场景：多个随机圆形
+    xge.Shape.circleFill(200, 200, 60, xge.Color.rgba(79, 216, 194, 180))
+    xge.Shape.circleFill(500, 350, 80, xge.Color.rgba(255, 180, 84, 150))
+    xge.Shape.circleFill(650, 150, 40, xge.Color.rgba(255, 107, 94, 200))
+    xge.Shape.circleFill(350, 450, 50, xge.Color.rgba(109, 179, 242, 160))
+
+    // HUD 面板背景
+    xge.Shape.rectFill(20, 20, 320, 130, xge.Color.rgba(0, 0, 0, 180))
+    xge.Shape.rectStroke(20, 20, 320, 130, 1.0, xge.Color.rgba(79, 216, 194, 120))
+
+    // 帧时间条形图（模拟最近几帧）
+    int i = 0
+    while i < 12
+        float h = 10.0 + float((i * 7 + 3) % 11) * 3.0
+        float x = 30.0 + float(i) * 22.0
+        uint32 col = xge.Color.rgba(79, 216, 194, 220)
+        if h > 30.0 then
+            col = xge.Color.rgba(255, 107, 94, 220)
+        end
+        xge.Shape.rectFill(x, 130.0 - h, 16, h, col)
+        i = i + 1
+    end
+
+    // 16.6ms 参考线
+    xge.Shape.line(30, 130.0 - 16.6, 294, 130.0 - 16.6, 1.0, xge.Color.rgba(255, 180, 84, 180))
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch08")
+    if ret != 0 then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

@@ -1,0 +1,28 @@
+// qrcode.xl — 二维码：QrCode 控件（内容为 "Hello XUI"）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "QrCode Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "QrCode Demo", font)
+    root.addChild(title)
+
+    xui.QrCode qr = xui.QrCode(ctx, "Hello XUI")
+    qr.setPreferredSize(240.0, 240.0)
+    root.addChild(qr)
+
+    xui.Label caption = xui.Label(ctx, "Encodes: Hello XUI", font)
+    root.addChild(caption)
+
+    g_app.run(onFrame)
+    return 0
+end

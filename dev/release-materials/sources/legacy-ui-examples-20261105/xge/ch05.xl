@@ -1,0 +1,34 @@
+// ch05 — 窗口管理：自适应居中圆形
+import xge
+
+func draw_scene()
+    float cx = 400.0
+    float cy = 300.0
+    float r = 180.0  // 短边 600 * 0.3 = 180
+
+    // 主圆形（青绿色填充）
+    xge.Shape.circleFill(cx, cy, r, xge.Color.rgba(79, 216, 194, 255))
+
+    // 琥珀色描边（r+10）
+    xge.Shape.circleStroke(cx, cy, r + 10.0, 3.0, xge.Color.rgba(255, 180, 84, 255))
+
+    // 十字准线标识中心
+    xge.Shape.line(cx - 20.0, cy, cx + 20.0, cy, 1.5, xge.Color.rgba(13, 17, 22, 180))
+    xge.Shape.line(cx, cy - 20.0, cx, cy + 20.0, 1.5, xge.Color.rgba(13, 17, 22, 180))
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch05")
+    if ret != 0 then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

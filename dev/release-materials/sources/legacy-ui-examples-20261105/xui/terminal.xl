@@ -1,0 +1,31 @@
+// terminal.xl — 终端：Terminal 控件（输出日志文本）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Terminal Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "Terminal Demo", font)
+    root.addChild(title)
+
+    xui.Terminal term = xui.Terminal(ctx)
+    term.setFlex(1.0, 1.0)
+
+    xui.xuiTerminalWriteText(term.handle, "$ xui-demo --start\n")
+    xui.xuiTerminalWriteText(term.handle, "loading modules ... ok\n")
+    xui.xuiTerminalWriteText(term.handle, "initializing renderer ... ok\n")
+    xui.xuiTerminalWriteText(term.handle, "ready.\n")
+
+    root.addChild(term)
+
+    g_app.run(onFrame)
+    return 0
+end

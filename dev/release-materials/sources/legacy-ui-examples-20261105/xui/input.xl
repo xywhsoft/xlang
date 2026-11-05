@@ -1,0 +1,32 @@
+// input.xl — 输入框：用户输入文本，Label 实时显示
+import xui
+
+xui.XuiApp g_app
+xui.Input g_input
+xui.Label g_echo
+
+func onFrame()
+    g_echo.setText("You typed: " + xui.xuiInputGetText(g_input.handle))
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Input Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "Input Demo", font)
+    root.addChild(title)
+
+    g_input = xui.Input(ctx, "Type here...", font)
+    g_input.setPreferredSize(500.0, 36.0)
+    root.addChild(g_input)
+
+    g_echo = xui.Label(ctx, "You typed: Type here...", font)
+    g_echo.setMargin(10.0, 10.0, 0.0, 0.0)
+    root.addChild(g_echo)
+
+    g_app.run(onFrame)
+    return 0
+end

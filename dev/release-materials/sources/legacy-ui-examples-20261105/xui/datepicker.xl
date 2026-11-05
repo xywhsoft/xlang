@@ -1,0 +1,28 @@
+// datepicker.xl — 日期选择器：DatePicker 控件
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "DatePicker Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "DatePicker Demo", font)
+    root.addChild(title)
+
+    xui.DatePicker picker = xui.DatePicker(ctx, font)
+    picker.setPreferredSize(260.0, 36.0)
+    root.addChild(picker)
+
+    xui.Label hint = xui.Label(ctx, "Click to open the calendar drop-down", font)
+    root.addChild(hint)
+
+    g_app.run(onFrame)
+    return 0
+end

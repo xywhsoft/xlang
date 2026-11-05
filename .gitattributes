@@ -87,3 +87,5 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 
 # Shared native ABI snapshot retains the canonical upstream header bytes.
 /src/runtime/xnative_transfer.h text eol=lf
+# Historical source snapshots are indexed by exact original byte hashes.
+/dev/release-materials/sources/legacy-ui-examples-20261105/** -text whitespace=cr-at-eol

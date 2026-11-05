@@ -1,0 +1,33 @@
+// hyperlink.xl — 超链接：Hyperlink 控件 + 点击事件
+import xui
+
+xui.XuiApp g_app
+int g_clicks = 0
+xui.Label g_label
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Hyperlink Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "Hyperlink Demo", font)
+    root.addChild(title)
+
+    xui.Hyperlink link = xui.Hyperlink(ctx, "Visit x-lang project", font)
+    link.onClick(func(xui.Widget w)
+        g_clicks += 1
+        g_label.setText("Link clicked: " + string(g_clicks) + " time(s)")
+    end)
+    root.addChild(link)
+
+    g_label = xui.Label(ctx, "Link clicked: 0 time(s)", font)
+    root.addChild(g_label)
+
+    g_app.run(onFrame)
+    return 0
+end

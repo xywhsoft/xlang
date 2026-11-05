@@ -1,0 +1,37 @@
+// scrollbar.xl — 滚动条：ScrollBar 控件（垂直 + 水平）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "ScrollBar Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "ScrollBar Demo", font)
+    root.addChild(title)
+
+    xui.Label lblV = xui.Label(ctx, "Vertical:", font)
+    root.addChild(lblV)
+
+    // orientation: 1 = vertical
+    xui.ScrollBar vbar = xui.ScrollBar(ctx, 1)
+    vbar.setPreferredSize(20.0, 320.0)
+    root.addChild(vbar)
+
+    xui.Label lblH = xui.Label(ctx, "Horizontal:", font)
+    root.addChild(lblH)
+
+    // orientation: 0 = horizontal
+    xui.ScrollBar hbar = xui.ScrollBar(ctx, 0)
+    hbar.setPreferredSize(600.0, 20.0)
+    root.addChild(hbar)
+
+    g_app.run(onFrame)
+    return 0
+end

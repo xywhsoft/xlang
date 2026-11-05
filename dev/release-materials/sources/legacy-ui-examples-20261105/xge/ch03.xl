@@ -1,0 +1,48 @@
+// ch03 — 帧循环：旋转图形（静态截取一帧）
+import xge
+
+func draw_scene()
+    float cx = 400.0
+    float cy = 300.0
+    float angle = 45.0 * math.pi / 180.0  // 模拟旋转 45°
+    float r = 120.0
+
+    // 绘制旋转正方形的 4 条边
+    int i = 0
+    while i < 4
+        float a0 = angle + float(i) * math.pi / 2.0
+        float a1 = angle + float(i + 1) * math.pi / 2.0
+        float x0 = cx + r * math.cos(a0)
+        float y0 = cy + r * math.sin(a0)
+        float x1 = cx + r * math.cos(a1)
+        float y1 = cy + r * math.sin(a1)
+        xge.Shape.line(x0, y0, x1, y1, 3.0, xge.Color.rgba(79, 216, 194, 255))
+        i = i + 1
+    end
+
+    // 中心点
+    xge.Shape.circleFill(cx, cy, 6, xge.Color.rgba(255, 180, 84, 255))
+
+    // 旋转轴指示线
+    xge.Shape.line(cx, cy, cx + r * math.cos(angle), cy + r * math.sin(angle),
+        1.5, xge.Color.rgba(255, 107, 94, 200))
+
+    // 轨迹圆
+    xge.Shape.circleStroke(cx, cy, r, 1.0, xge.Color.rgba(100, 120, 140, 120))
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch03")
+    if ret != 0 then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

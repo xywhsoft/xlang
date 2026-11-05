@@ -1,0 +1,44 @@
+// ch24 — 弧线：进度环 + 加载动画
+import xge
+
+func draw_scene()
+    float pi = math.pi
+
+    // 半圆弧
+    xge.Shape.arc(200, 150, 80, pi, 2.0 * pi, 4.0,
+        xge.Color.rgba(79, 216, 194, 255))
+
+    // 四分之一弧
+    xge.Shape.arc(200, 150, 50, 0, pi / 2.0, 3.0,
+        xge.Color.rgba(255, 180, 84, 255))
+
+    // 加载动画（270° 弧）
+    xge.Shape.arc(550, 150, 50, 0.5, 0.5 + pi * 1.5, 6.0,
+        xge.Color.rgba(109, 179, 242, 255))
+
+    // 进度环 72%
+    float offset = 0.0 - pi / 2.0
+    float fEnd = 0.72 * 2.0 * pi
+    // 背景环
+    xge.Shape.arc(400, 400, 80, 0, 2.0 * pi, 10.0,
+        xge.Color.rgba(51, 51, 51, 255))
+    // 进度弧
+    xge.Shape.arc(400, 400, 80, offset, offset + fEnd, 10.0,
+        xge.Color.rgba(79, 216, 194, 255))
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch24")
+    if ret != 0 then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

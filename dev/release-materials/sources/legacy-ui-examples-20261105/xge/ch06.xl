@@ -1,0 +1,43 @@
+// ch06 — Delta Time：帧率无关的匀速动画（截取一帧）
+import xge
+
+func draw_scene()
+    float y = 300.0
+    float r = 30.0
+
+    // 运动轨迹（虚线效果：多个淡色圆）
+    int i = 0
+    while i < 8
+        float x = 100.0 + float(i) * 80.0
+        int alpha = 40 + i * 20
+        xge.Shape.circleFill(x, y, r * 0.6, xge.Color.rgba(255, 107, 94, alpha))
+        i = i + 1
+    end
+
+    // 当前球体位置（模拟 t=1.5s 时 x=300）
+    xge.Shape.circleFill(400, y, r, xge.Color.rgba(255, 107, 94, 255))
+
+    // 运动方向箭头
+    xge.Shape.line(440, y, 520, y, 2.0, xge.Color.rgba(255, 180, 84, 200))
+    xge.Shape.line(520, y, 505, y - 8.0, 2.0, xge.Color.rgba(255, 180, 84, 200))
+    xge.Shape.line(520, y, 505, y + 8.0, 2.0, xge.Color.rgba(255, 180, 84, 200))
+
+    // 基准线
+    xge.Shape.line(60, y + 60.0, 740, y + 60.0, 1.0, xge.Color.rgba(100, 120, 140, 100))
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch06")
+    if ret != 0 then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

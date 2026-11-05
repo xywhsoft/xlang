@@ -1,0 +1,37 @@
+// ch29 — 圆角矩形（基础）：卡片 + 不同半径
+import xge
+
+func draw_scene()
+    // 卡片背景
+    xge.Shape.roundRectFill(100, 80, 300, 200, 12.0, xge.Color.rgba(26, 42, 48, 255))
+    xge.Shape.roundRectStroke(100, 80, 300, 200, 12.0, 1.5, xge.Color.rgba(79, 216, 194, 96))
+
+    // Draw 一次完成
+    xge.Shape.roundRectDraw(500, 80, 180, 50, 8.0,
+        xge.Color.rgba(42, 58, 64, 255), 2.0, xge.Color.rgba(255, 180, 84, 255))
+
+    // 不同半径对比
+    int i = 0
+    while i < 5
+        float x = 80.0 + float(i) * 140.0
+        float radius = float(i) * 6.0
+        xge.Shape.roundRectFill(x, 380, 120, 80, radius, xge.Color.rgba(79, 216, 194, 255))
+        i = i + 1
+    end
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch29")
+    if ret != 0 then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

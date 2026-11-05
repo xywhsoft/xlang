@@ -1,0 +1,45 @@
+// ch16 — 坐标转换：世界坐标与屏幕坐标 + 小地图
+import xge
+
+func draw_scene()
+    // 主世界区域
+    xge.Shape.rectFill(20, 20, 560, 560, xge.Color.rgba(15, 25, 30, 255))
+    xge.Shape.rectStroke(20, 20, 560, 560, 1.5, xge.Color.rgba(100, 120, 140, 120))
+
+    // 世界中的物体
+    xge.Shape.circleFill(200, 250, 15, xge.Color.rgba(255, 180, 84, 255))
+    xge.Shape.circleFill(400, 350, 15, xge.Color.rgba(79, 216, 194, 255))
+    xge.Shape.rectFill(100, 400, 80, 60, xge.Color.rgba(109, 179, 242, 200))
+
+    // 鼠标拾取线（屏幕→世界）
+    xge.Shape.line(580, 100, 200, 250, 1.0, xge.Color.rgba(255, 107, 94, 150))
+    xge.Shape.circleFill(580, 100, 4, xge.Color.rgba(255, 107, 94, 255))
+
+    // 小地图（右下角）
+    xge.Shape.rectFill(600, 400, 180, 180, xge.Color.rgba(0, 0, 0, 200))
+    xge.Shape.rectStroke(600, 400, 180, 180, 1.5, xge.Color.rgba(79, 216, 194, 150))
+
+    // 小地图中的点
+    xge.Shape.circleFill(640, 470, 3, xge.Color.rgba(255, 180, 84, 255))
+    xge.Shape.circleFill(700, 500, 3, xge.Color.rgba(79, 216, 194, 255))
+    xge.Shape.circleFill(620, 520, 3, xge.Color.rgba(109, 179, 242, 255))
+
+    // 视口框（小地图中当前可见区域）
+    xge.Shape.rectStroke(620, 450, 60, 50, 1.0, xge.Color.rgba(255, 255, 255, 150))
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch16")
+    if ret != 0 then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end
