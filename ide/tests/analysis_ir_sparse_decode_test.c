@@ -119,6 +119,160 @@ static int foreignTypeKeys(void)
  type.nativeArrayExtent=UINT64_C(0x8000000000000001);CHECK(xlsIrMemoTypes(&pool,&other,limit));
  CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);xrtStrBufFree(&first);return 1;
 }
+#ifdef XLS_NATIVE_FINAL_INTEROP
+static int foreignPayloads(void)
+{
+ XL6_IrNode input={0};input.kind=XL6_IR_NODE_VALUE_DECL;input.unionField=SIZE_MAX;
+ input.foreignCall.constAggregateAddresses=1;
+ input.foreignCall.staticCallbackAddresses=2;
+ input.foreignCall.textViews=3;
+ input.foreignCall.bytesViews=4;
+ input.foreignCall.terminatedStrings=5;
+ input.foreignCall.physicalPairs=6;
+ input.foreignCall.retainedCallbacks=7;
+ input.foreignCall.controlViews=8;
+ input.foreignCall.borrowedViewResult=9;
+ input.foreignCall.valueOutput=10;
+ input.foreignCall.receiverDereference=11;
+ input.foreignCall.inplaceOutput=12;
+ input.foreignCall.inputMappingFacts=13;
+ input.foreignCall.resultOwnerIndexPlusOne=14;
+ input.foreignCall.outputIndexPlusOne=15;
+ input.foreignCall.successCode=16;
+ input.foreignCall.rollbackSymbol=17;
+
+ xstrbuf first={0},other={0};xls_ir_unit unit={0};xls_ir_capture capture={.unit=&unit};
+ CHECK(xlsIrMemoEncodeNode(&first,&input,1024u*1024u,&capture));
+ XL6_IrNode changed=input;
+ size_t begin=offsetof(XL6_ForeignCallFacts,inputMappingFacts)+sizeof(input.foreignCall.inputMappingFacts);
+ size_t end=offsetof(XL6_ForeignCallFacts,resultOwnerIndexPlusOne);
+ CHECK(end-begin==2 && sizeof(XL6_ForeignCallFacts)==88);
+ for(size_t i=begin;i<end;++i)((unsigned char*)&changed.foreignCall)[i]=0xa5;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size==other.Size && !memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.constAggregateAddresses;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.staticCallbackAddresses;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.textViews;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.bytesViews;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.terminatedStrings;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.physicalPairs;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.retainedCallbacks;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.controlViews;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.borrowedViewResult;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.valueOutput;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.receiverDereference;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.inplaceOutput;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.inputMappingFacts;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.resultOwnerIndexPlusOne;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.outputIndexPlusOne;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.successCode;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.rollbackSymbol;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+
+ for(int borrow=0;borrow<2;++borrow){
+  xls_ir_reader reader={(const unsigned char*)first.Data,0,first.Size};XL6_IrNode actual={0};
+  CHECK(xlsIrMemoDecodeNode(&reader,&actual,borrow,NULL,&unit,NULL) && reader.at==first.Size);
+  CHECK(actual.foreignCall.constAggregateAddresses==input.foreignCall.constAggregateAddresses);
+  CHECK(actual.foreignCall.staticCallbackAddresses==input.foreignCall.staticCallbackAddresses);
+  CHECK(actual.foreignCall.textViews==input.foreignCall.textViews);
+  CHECK(actual.foreignCall.bytesViews==input.foreignCall.bytesViews);
+  CHECK(actual.foreignCall.terminatedStrings==input.foreignCall.terminatedStrings);
+  CHECK(actual.foreignCall.physicalPairs==input.foreignCall.physicalPairs);
+  CHECK(actual.foreignCall.retainedCallbacks==input.foreignCall.retainedCallbacks);
+  CHECK(actual.foreignCall.controlViews==input.foreignCall.controlViews);
+  CHECK(actual.foreignCall.borrowedViewResult==input.foreignCall.borrowedViewResult);
+  CHECK(actual.foreignCall.valueOutput==input.foreignCall.valueOutput);
+  CHECK(actual.foreignCall.receiverDereference==input.foreignCall.receiverDereference);
+  CHECK(actual.foreignCall.inplaceOutput==input.foreignCall.inplaceOutput);
+  CHECK(actual.foreignCall.inputMappingFacts==input.foreignCall.inputMappingFacts);
+  CHECK(actual.foreignCall.resultOwnerIndexPlusOne==input.foreignCall.resultOwnerIndexPlusOne);
+  CHECK(actual.foreignCall.outputIndexPlusOne==input.foreignCall.outputIndexPlusOne);
+  CHECK(actual.foreignCall.successCode==input.foreignCall.successCode);
+  CHECK(actual.foreignCall.rollbackSymbol==input.foreignCall.rollbackSymbol);
+
+ }
+ xrtStrBufFree(&first);return 1;
+}
+static int finalSchema(void)
+{
+ XL6_IrModule module={0};CHECK(xlsFinalIrTablesEmpty(&module));
+ module.foreignParameterCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignParameterCount=0;
+ module.foreignOutputCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignOutputCount=0;
+ module.foreignFieldLengthCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignFieldLengthCount=0;
+ module.foreignStorageCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignStorageCount=0;
+ module.foreignRetainCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignRetainCount=0;
+ module.foreignValueCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignValueCount=0;
+ module.foreignCallbackSpanCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignCallbackSpanCount=0;
+ module.foreignPointerQualifierCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignPointerQualifierCount=0;
+ module.foreignFieldCallCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignFieldCallCount=0;
+ module.foreignFunctionHeaderCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignFunctionHeaderCount=0;
+ module.foreignOutputSizeCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignOutputSizeCount=0;
+ module.foreignNativeSequenceCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignNativeSequenceCount=0;
+ module.foreignOutputViewCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignOutputViewCount=0;
+ module.foreignOutputRecordCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignOutputRecordCount=0;
+ module.foreignOutputFieldCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignOutputFieldCount=0;
+ module.foreignRegionCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignRegionCount=0;
+ module.foreignRegionObserverCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignRegionObserverCount=0;
+ module.foreignPackCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignPackCount=0;
+ module.foreignPackFieldCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignPackFieldCount=0;
+ module.foreignFixedInputCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignFixedInputCount=0;
+ module.foreignArrayGroupCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignArrayGroupCount=0;
+ module.foreignArrayInputCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignArrayInputCount=0;
+ module.foreignArrayFieldCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignArrayFieldCount=0;
+
+ XL6_AstNode attr={.kind=XL6_AST_FIELD_ATTR,.text="c_code_owner"};CHECK(xlsFinalIrForeignAst(&attr,0));
+ attr.kind=XL6_AST_NAME;CHECK(!xlsFinalIrForeignAst(&attr,0));
+ XL6_IrType type={0};XL6_IrTypePool pool={.items=&type,.count=1,.capacity=1};xstrbuf first={0},other={0};
+ CHECK(xlsIrMemoTypes(&pool,&first,1024u*1024u));
+ type.foreignLifetime=1;
+ CHECK(xlsIrMemoTypes(&pool,&other,1024u*1024u));CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);type.foreignLifetime=0;
+ type.foreignOwner=1;
+ CHECK(xlsIrMemoTypes(&pool,&other,1024u*1024u));CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);type.foreignOwner=0;
+ type.foreignPolicy="retained text";
+ CHECK(xlsIrMemoTypes(&pool,&other,1024u*1024u));CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);type.foreignPolicy=0;
+ type.foreignScope="retained text";
+ CHECK(xlsIrMemoTypes(&pool,&other,1024u*1024u));CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);type.foreignScope=0;
+ type.foreignWatch="retained text";
+ CHECK(xlsIrMemoTypes(&pool,&other,1024u*1024u));CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);type.foreignWatch=0;
+ type.foreignDomain="retained text";
+ CHECK(xlsIrMemoTypes(&pool,&other,1024u*1024u));CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);type.foreignDomain=0;
+
+ xrtStrBufFree(&first);return 1;
+}
+#else
 static int foreignPayloads(void)
 {
  XL6_IrNode input={0};input.kind=XL6_IR_NODE_VALUE_DECL;input.unionField=SIZE_MAX;
@@ -156,6 +310,7 @@ static int foreignPayloads(void)
  CHECK(XLS_IR_SYMBOL_FIELDS==5 && !(XLS_IR_PACKAGE_MASK&((1u<<(XLS_IR_SYMBOL_FIELDS*2))-1u)));
  xrtStrBufFree(&first);return 1;
 }
+#endif
 static uint32_t rollbackDeclaration(const xls_semantic_check* check)
 {
  const XL6_AstNode* root=xlsSemanticCheckAst(check);
@@ -203,6 +358,9 @@ int main(void)
  if(!bitCases() || !masks() || !payloads())return 1;
 #ifdef XLS_NATIVE_IR_FOREIGN_FIELDS
  if(!foreignTypeKeys() || !foreignPayloads() || !foreignBindings())return 1;
+#ifdef XLS_NATIVE_FINAL_INTEROP
+ if(!finalSchema())return 1;
+#endif
 #endif
  printf("analysis_ir_sparse_decode_test passed: %u checks; actual native decoder,all word bits,dense/random/unaligned masks,every truncated prefix,owned/borrowed strings and package payloads,portable bit scan\n",sparseChecks);
  return 0;

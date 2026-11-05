@@ -37,7 +37,7 @@ def semantic_cancellation(source: str) -> str:
     return source[:start] + body + source[end:]
 
 
-def ir_cancellation(source: str, *, current=False, foreign=False) -> str:
+def ir_cancellation(source: str, *, current=False, foreign=False, final=False) -> str:
     start = source.index('static XL6_IrNodeId xl6IrBuildAstNode(')
     end = source.index('\nstatic XL6_IrTypeId xl6IrClassTypeByDeclaration(', start)
     body = source[start:end]
@@ -67,7 +67,12 @@ def ir_cancellation(source: str, *, current=False, foreign=False) -> str:
     a = body.index('    if ( !xl6IrBuildForeignClassBases(' if foreign else '    if ( !xl6IrInternAsyncInvocationTypes(')
     b = body.index('    if ( buildFailure != NULL )', a)
     phases = body[a:b]
-    if phases.count('if ( !') != (29 if foreign else 28 if current else 26):
+    if final:
+        import re
+        expected=('xl6IrBuildForeignClassBases', 'xl6IrInternAsyncInvocationTypes', 'xl6IrBuildNamedCallableAbis', 'xl6IrInternProjectionDomains', 'xl6IrTypePoolFinalizeCallableResults', 'xl6IrBuildOwnedReadResults', 'xl6IrBuildUnionLayouts', 'xl6IrCloseOutputSizes', 'xl6IrCloseOutputRecords', 'xl6IrCloseOutputViews', 'xl6IrCloseNativeSequences', 'xl6IrBuildEnumLayouts', 'xl6IrRefreshClassLayoutsDetailed', 'xl6IrBuildClassStaticFields', 'xl6IrCloseRegions', 'xl6IrClosePacks', 'xl6IrCloseArrayGroups', 'xl6IrBuildImplicitNameAbis', 'xl6IrBuildProtocolDispatchTables', 'xl6IrRefreshNominalIdentitySets', 'xl6IrNormalizeExpressionCallKinds', 'xl6IrBuildDynamicMethodRegistry', 'xl6IrBuildIntrinsicCalls', 'xl6IrRefreshDynamicMethodAdmissions', 'xl6IrBuildCallSites', 'xl6IrBuildValueInitializers', 'xl6IrBuildNativeHandleBinds', 'xl6IrBuildNativeHandleProjects', 'xl6IrBuildOperatorErrorAbis', 'xl6IrBuildCastAbis', 'xl6IrBuildMemberAbis', 'xl6IrBuildDynamicCalls', 'xl6IrBuildIndexWriteAbis', 'xl6IrRefreshLoopAbis', 'xl6IrBuildImplicitConversionAbis', 'xl6IrRefreshExitPlans')
+        if tuple(re.findall(r'if \( !(\w+)\(',phases))!=expected:
+            raise ValueError('final IR phase ownership/cancellation chain differs')
+    elif phases.count('if ( !') != (29 if foreign else 28 if current else 26):
         raise ValueError('shared IR build phase chain changed; audit cancellation')
     phases = phases.replace('if ( !', 'if ( xlsFrontendCancelPoint(XLS_CANCEL_IR_PHASE,1) || !')
     phases = once(phases, 'else if ( (buildFailure = xl6IrBuildClassDispatchTables(',

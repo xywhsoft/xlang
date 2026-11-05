@@ -113,6 +113,9 @@ static int xlsIrMemoTypes(const XL6_IrTypePool* pool,xstrbuf* key,size_t limit)
 #endif
 #ifdef XLS_NATIVE_IR_FOREIGN_FIELDS
             ,t->foreignBase,t->nativeArrayExtent
+#ifdef XLS_NATIVE_FINAL_INTEROP
+            ,t->foreignLifetime,t->foreignOwner
+#endif
 #endif
         };
         if(!xlsIrMemoData(key,fields,sizeof(fields),limit) || !xlsIrMemoData(key,t->cName,sizeof(t->cName),limit) ||
@@ -122,6 +125,10 @@ static int xlsIrMemoTypes(const XL6_IrTypePool* pool,xstrbuf* key,size_t limit)
         /* Header content and nullness are part of the closed C identity;
          * an allocation address is never a type-prefix identity. */
         if(!xlsIrMemoString(key,t->foreignHeader,limit))return 0;
+#ifdef XLS_NATIVE_FINAL_INTEROP
+        if(!xlsIrMemoString(key,t->foreignPolicy,limit) || !xlsIrMemoString(key,t->foreignScope,limit) ||
+           !xlsIrMemoString(key,t->foreignWatch,limit) || !xlsIrMemoString(key,t->foreignDomain,limit))return 0;
+#endif
 #endif
         if((t->paramCount && !t->params) || (t->returnCount && !t->returns))return 0;
         if((t->paramCount && !xlsIrMemoData(key,t->params,t->paramCount*sizeof(*t->params),limit)) ||
@@ -131,6 +138,45 @@ static int xlsIrMemoTypes(const XL6_IrTypePool* pool,xstrbuf* key,size_t limit)
     }
     return 1;
 }
+#ifdef XLS_NATIVE_FINAL_INTEROP
+/* Every current sparse foreign table is named here and checked against the
+ * pinned Module header by the cohort audit. None is serialized as an address. */
+static int xlsFinalIrTablesEmpty(const XL6_IrModule* module)
+{return !module || (!module->foreignParameterCount &&
+    !module->foreignOutputCount &&
+    !module->foreignFieldLengthCount &&
+    !module->foreignStorageCount &&
+    !module->foreignRetainCount &&
+    !module->foreignValueCount &&
+    !module->foreignCallbackSpanCount &&
+    !module->foreignPointerQualifierCount &&
+    !module->foreignFieldCallCount &&
+    !module->foreignFunctionHeaderCount &&
+    !module->foreignOutputSizeCount &&
+    !module->foreignNativeSequenceCount &&
+    !module->foreignOutputViewCount &&
+    !module->foreignOutputRecordCount &&
+    !module->foreignOutputFieldCount &&
+    !module->foreignRegionCount &&
+    !module->foreignRegionObserverCount &&
+    !module->foreignPackCount &&
+    !module->foreignPackFieldCount &&
+    !module->foreignFixedInputCount &&
+    !module->foreignArrayGroupCount &&
+    !module->foreignArrayInputCount &&
+    !module->foreignArrayFieldCount);}
+static int xlsFinalIrForeignAst(const XL6_AstNode* node,size_t depth)
+{
+    if(!node)return 0;
+    if(depth>512 || (node->childCount && !node->children))return 1;
+    if(node->kind==XL6_AST_C_RECORD || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) ||
+       ((node->kind==XL6_AST_FIELD_ATTR || node->kind==XL6_AST_TYPE) &&
+        node->text && (!strcmp(node->text,"c") || !strncmp(node->text,"c_",2))))return 1;
+    for(size_t i=0;i<node->childCount;++i)
+        if(xlsFinalIrForeignAst(node->children[i],depth+1))return 1;
+    return 0;
+}
+#endif
 static xls_ir_unit* xlsIrUnitRetain(xls_ir_unit* unit)
 {if(unit)xrtAtomic32FetchAdd(&unit->references,1,XMEMORY_RELAXED);return unit;}
 static void xlsIrUnitRelease(xls_ir_unit* unit)
@@ -318,11 +364,32 @@ static int xlsIrMemoEncodeNode(xstrbuf* data,const XL6_IrNode* in,size_t limit,x
      * Normalize the private copy without mutating the checked native node. */
     XL6_ForeignCallFacts foreign=value.foreignCall;
     memset(&value.foreignCall,0,sizeof(value.foreignCall));
+#ifdef XLS_NATIVE_FINAL_INTEROP
+    _Static_assert(sizeof(XL6_ForeignCallFacts)==88,"audit every final foreign fact and padding");
+    value.foreignCall.constAggregateAddresses=foreign.constAggregateAddresses;
+    value.foreignCall.staticCallbackAddresses=foreign.staticCallbackAddresses;
+    value.foreignCall.textViews=foreign.textViews;
+    value.foreignCall.bytesViews=foreign.bytesViews;
+    value.foreignCall.terminatedStrings=foreign.terminatedStrings;
+    value.foreignCall.physicalPairs=foreign.physicalPairs;
+    value.foreignCall.retainedCallbacks=foreign.retainedCallbacks;
+    value.foreignCall.controlViews=foreign.controlViews;
+    value.foreignCall.borrowedViewResult=foreign.borrowedViewResult;
+    value.foreignCall.valueOutput=foreign.valueOutput;
+    value.foreignCall.receiverDereference=foreign.receiverDereference;
+    value.foreignCall.inplaceOutput=foreign.inplaceOutput;
+    value.foreignCall.inputMappingFacts=foreign.inputMappingFacts;
+    value.foreignCall.resultOwnerIndexPlusOne=foreign.resultOwnerIndexPlusOne;
+    value.foreignCall.outputIndexPlusOne=foreign.outputIndexPlusOne;
+    value.foreignCall.successCode=foreign.successCode;
+    value.foreignCall.rollbackSymbol=foreign.rollbackSymbol;
+#else
     value.foreignCall.constRecordAddresses=foreign.constRecordAddresses;
     value.foreignCall.staticCallbackAddresses=foreign.staticCallbackAddresses;
     value.foreignCall.outputIndexPlusOne=foreign.outputIndexPlusOne;
     value.foreignCall.successCode=foreign.successCode;
     value.foreignCall.rollbackSymbol=foreign.rollbackSymbol;
+#endif
 #endif
     XL6_SymbolId* fields[]={&value.symbol,&value.targetSymbol,&value.compoundOperatorSymbol
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
@@ -650,6 +717,12 @@ int xlsFrontendIrBuildMemo(XL6_IrModule* module,const XL6_AstNode* root,XL6_Diag
 {
     if(result)*result=NULL;
     if(work)*work=(xls_ir_memo_work){0};
+#ifdef XLS_NATIVE_FINAL_INTEROP
+    if(xlsFinalIrForeignAst(root,0)){
+        if(work)work->declined=1;
+        return xl6IrBuildModuleFromAst(module,root,diags);
+    }
+#endif
     if(bytes>XLS_IR_MEMO_BYTES)bytes=XLS_IR_MEMO_BYTES;
     xls_ir_memo* memo=bytes && root ? xrtCalloc(1,sizeof(*memo)) : NULL;
     if(memo){
@@ -677,6 +750,9 @@ int xlsFrontendIrBuildMemo(XL6_IrModule* module,const XL6_AstNode* root,XL6_Diag
     xlsActiveIrMemo=&build;int accepted=xl6IrBuildModuleFromAst(module,root,diags);xlsActiveIrMemo=build.previous;
     xrtArrayUnit(&build.functions);
     build.work.bytes=memo->bytes;if(work)*work=build.work;
+#ifdef XLS_NATIVE_FINAL_INTEROP
+    if(!xlsFinalIrTablesEmpty(module)){xlsFrontendIrMemoDestroy(memo);memo=NULL;if(work)++work->declined;}
+#endif
     if(accepted && !xlsFrontendCancelObserved() && result)*result=memo;else xlsFrontendIrMemoDestroy(memo);
     return accepted;
 }

@@ -1,0 +1,370 @@
+{
+  "format": "xlang-acceptance-1",
+  "shippingDelivery": false,
+  "complete": true,
+  "passed": true,
+  "scope": "Necessary final-Core Windows LSP alignment only; no live IDE, completion_facts, GUI or release mutation.",
+  "baseIde": "F:\\xlang-validation\\foreign-completion-20261103\\ide-final-source-r1\\ide",
+  "qualifiedCore": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2",
+  "files": [
+    {
+      "path": "ide/docs/final-c-interop-cohort.md",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\docs\\final-c-interop-cohort.md",
+      "sha256": "715a8321f10c641979109f194453eee64ce0053512a6ea83172e1d929f606f0c"
+    },
+    {
+      "path": "ide/src/analysis/frontend_ir_memo.inc",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\src\\analysis\\frontend_ir_memo.inc",
+      "sha256": "9fe05b4cb15516298f06993fb6b6ce858c7602272924d746c0af0432be3d5c5a"
+    },
+    {
+      "path": "ide/src/analysis/frontend_ir_persistent.inc",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\src\\analysis\\frontend_ir_persistent.inc",
+      "sha256": "56355b18ddd7beab928931eee1b981b38a6972fac4be05a4b57360344eb3fa8f"
+    },
+    {
+      "path": "ide/tests/analysis_final_interop_test.c",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tests\\analysis_final_interop_test.c",
+      "sha256": "b142a23afc4b39a853bb21f07b4234e396049bc12609c1326df1ddbe1c259e46"
+    },
+    {
+      "path": "ide/tests/analysis_ir_sparse_decode_test.c",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tests\\analysis_ir_sparse_decode_test.c",
+      "sha256": "2b2396a2fea188dd62542ec67261f230c2dc9196cb9d6a58f49384c84590102a"
+    },
+    {
+      "path": "ide/tools/build_lsp_core.py",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\build_lsp_core.py",
+      "sha256": "313a78d43f6c30c5df24221b26a2010a43b2785152304da947627d08510b71eb"
+    },
+    {
+      "path": "ide/tools/check_final_lsp_frontend.py",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\check_final_lsp_frontend.py",
+      "sha256": "9b52394c5729ff8259ecb019501e12da07b382102c58ccf6238ec013f393a8ee"
+    },
+    {
+      "path": "ide/tools/check_final_lsp_serializer.py",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\check_final_lsp_serializer.py",
+      "sha256": "33b598bb24fdadbcec6c38965a9a9ea7160d5d47543c98069848a55c28b04260"
+    },
+    {
+      "path": "ide/tools/check_final_lsp_stdio.py",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\check_final_lsp_stdio.py",
+      "sha256": "639cb3aabcec28e43ecc436949f387382a930a23f0c67c702cb28c76e04a9d0c"
+    },
+    {
+      "path": "ide/tools/native_ast_overlay.py",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\native_ast_overlay.py",
+      "sha256": "182fa691bc21a1dd9bda25b64c46201aa895fbe76605f29678d6ac99ff485a05"
+    },
+    {
+      "path": "ide/tools/native_c_interop_profile.py",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\native_c_interop_profile.py",
+      "sha256": "11d0a4e0a3203a448f6f34ec6f228d368d0f682c021223cb6486b1df022f4728"
+    },
+    {
+      "path": "ide/tools/native_cancellation_overlay.py",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\native_cancellation_overlay.py",
+      "sha256": "426959e4d8b80b35a66790c3081f2fa072c6b408db2808dd4eefccddd4a7eae1"
+    },
+    {
+      "path": "ide/tools/native_context_overlay.py",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\native_context_overlay.py",
+      "sha256": "c3e5262d7eb61b5e2d1f162211f4877c0b3d759c04e9a40827f89b132010aa5c"
+    },
+    {
+      "path": "ide/tools/native_current_ir_overlay.py",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\native_current_ir_overlay.py",
+      "sha256": "04029e9a36ccaf5de420b2bd193758bc182938929022bf77d57f17e29a42e836"
+    },
+    {
+      "path": "ide/tools/native_current_ir_profile.py",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\native_current_ir_profile.py",
+      "sha256": "8ad2c2662c1791d0322b384f88e9c53dc163f601bbec25295c8feb99d86ca9e9"
+    },
+    {
+      "path": "ide/tools/native_final_c_interop_pins.json",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\native_final_c_interop_pins.json",
+      "sha256": "5039e892a9acaa8af9a1fb509a3a624b2aa385da0cc985896f89eab1cc906de0"
+    },
+    {
+      "path": "ide/tools/native_final_c_interop_profile.py",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\native_final_c_interop_profile.py",
+      "sha256": "f67c15abdade0e5c91ce666f2166923744165555b3c48a5f1efb13ac12575984"
+    },
+    {
+      "path": "ide/tools/native_frontend_inputs.py",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\native_frontend_inputs.py",
+      "sha256": "983b906a3a0eed42f2f6d97b20b1293551b92aa76d96dcf7374991c82041f58c"
+    },
+    {
+      "path": "ide/tools/native_index_overlay.py",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\native_index_overlay.py",
+      "sha256": "725615c80372f673a1a2fd03fd1ae31465b797f3ece8cceddc1757867d5be349"
+    },
+    {
+      "path": "ide/tools/native_parser_ownership_overlay.py",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\native_parser_ownership_overlay.py",
+      "sha256": "d78bca462651bc9b815562edf46544820b9b2d560645a2256d7d2f0ec04c10da"
+    },
+    {
+      "path": "ide/tools/native_semantic_effects_overlay.py",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\native_semantic_effects_overlay.py",
+      "sha256": "0ad360102ac95d57ef09080932290a814f5bd3142dffbb2cb34704fb50c80c38"
+    },
+    {
+      "path": "ide/tools/native_signature_overlay.py",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\native_signature_overlay.py",
+      "sha256": "703e6b83ad2d0ac62ccba453878a1f34ad6f9400eb585701e7119fc461a56a74"
+    },
+    {
+      "path": "ide/tools/xrt_process_tree_overlay.py",
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\files\\ide\\tools\\xrt_process_tree_overlay.py",
+      "sha256": "ad9c612639e124da90d57bdaf6c71e351cdfb35ef967d1e91d0776ce70ee48b2"
+    }
+  ],
+  "cohort": "final-c-interop-20261105",
+  "frontendPins": 455,
+  "logicalSdkProjection": 6,
+  "normalBuild": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-build-probe-r8\\build-result.json",
+    "sha256": "6c2874a6252cbdbdf7d4cd3c4e2c5fe816351e4bfdb805fcd171d94308bec411"
+  },
+  "server": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-build-probe-r8\\xlang-ls.exe",
+    "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232"
+  },
+  "archive": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-build-probe-r8\\xlang-analysis-core.a",
+    "sha256": "8eb9302d6872178efe1356a71750c5a99b288db69806579143c7f119b2da5423"
+  },
+  "normalBuildInputsUnchanged": true,
+  "keywordPresence": {
+    "c_span": true,
+    "c_pack": true,
+    "c_code_owner": true,
+    "c_owned_sequence": true
+  },
+  "codec": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-serializer-r1\\acceptance.json",
+    "sha256": "1436c0064b69671b40b0e2bcc738d65578368866b620b7912b4656b056e8d3a5"
+  },
+  "codecChecks": 127836,
+  "stdio": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-stdio-r1\\results.json",
+    "sha256": "cd43a9fdda8403db981860b8686bb7e765c79ebe32a5b5706d94ec82775061f0"
+  },
+  "stdioChecks": 16,
+  "guards": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-guards-r1\\results.json",
+    "sha256": "a012d1c19512bc8c52f869047cf846fb5b7e30078cfe24bd36f0587420254a5c"
+  },
+  "guardChecks": 5,
+  "basicFeatures": {
+    "report": {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-focused-r3\\results.json",
+      "sha256": "35b11d54c91073f8f02878f366601206216d209d638cc804cd4ebdca2736523c"
+    },
+    "selectedRows": [
+      "client-build",
+      "foreign_module_code_owner",
+      "foreign_array_projection",
+      "foreign_output_record",
+      "foreign_output_record_size",
+      "foreign_pack",
+      "foreign_pack_pod",
+      "native_sequence_contract",
+      "bad-code-owner"
+    ],
+    "qualifiedClientSource": {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-qualified-r1\\historical-harness\\analysis_final_interop_test.r3.c",
+      "sha256": "12bfb584bcd038beeae3e6fb3ba9c67fb7d261dc2153cf17a3a4732764117881"
+    },
+    "note": "Initial failed package fixture context configuration remains recorded; that row is superseded only by the matching-package supplement."
+  },
+  "packageSupplement": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\lsp-final-package-focused-r1\\results.json",
+    "sha256": "fafc8c1b33af5a5f7f495a44f19e8474e589dc13103f3a576d35fd457678327f"
+  },
+  "packageMetrics": [
+    {
+      "round": 0,
+      "elapsedMs": 1094.0000000118744,
+      "moduleParse": {
+        "parsed": 24,
+        "reused": 0,
+        "declined": 0,
+        "bytes": 0
+      },
+      "irFragments": {
+        "checked": 0,
+        "reused": 0,
+        "captured": 0,
+        "nodesReused": 0,
+        "bytes": 0,
+        "declined": 1,
+        "textNodes": 0,
+        "textBytes": 0,
+        "ownerBytes": 0
+      },
+      "semanticFunctionsReused": 0
+    },
+    {
+      "round": 1,
+      "elapsedMs": 827.9999999795109,
+      "moduleParse": {
+        "parsed": 0,
+        "reused": 24,
+        "declined": 0,
+        "bytes": 0
+      },
+      "irFragments": {
+        "checked": 0,
+        "reused": 0,
+        "captured": 0,
+        "nodesReused": 0,
+        "bytes": 0,
+        "declined": 1,
+        "textNodes": 0,
+        "textBytes": 0,
+        "ownerBytes": 0
+      },
+      "semanticFunctionsReused": 2
+    },
+    {
+      "round": 2,
+      "elapsedMs": 844.0000000118744,
+      "moduleParse": {
+        "parsed": 0,
+        "reused": 24,
+        "declined": 0,
+        "bytes": 0
+      },
+      "irFragments": {
+        "checked": 0,
+        "reused": 0,
+        "captured": 0,
+        "nodesReused": 0,
+        "bytes": 0,
+        "declined": 1,
+        "textNodes": 0,
+        "textBytes": 0,
+        "ownerBytes": 0
+      },
+      "semanticFunctionsReused": 4
+    }
+  ],
+  "packageCapturedInputs": 27,
+  "limits": [
+    "Final foreign sparse IR tables are not serialized; raw/persistent fragment admission declines them and executes the complete native builder/verifier.",
+    "The existing unreviewed-derived-pair path retains original native pure passes for this new cohort; restored foreign derived/persistent caching is not claimed.",
+    "Only Windows stdio LSP is built; the existing server transport is Windows-specific. No window/GPU/browser/network/real clipboard is exercised."
+  ],
+  "reportsPreserved": [
+    "lsp-final-audit-r1",
+    "lsp-final-build-probe-r2",
+    "lsp-final-build-probe-r3",
+    "lsp-final-build-probe-r4",
+    "lsp-final-build-probe-r5",
+    "lsp-final-build-probe-r6",
+    "lsp-final-build-probe-r7",
+    "lsp-final-focused-r1",
+    "lsp-final-focused-r2",
+    "lsp-final-focused-r3",
+    "lsp-final-serializer-r1/results.json"
+  ],
+  "committedSources": [
+    {
+      "path": "ide/docs/final-c-interop-cohort.md",
+      "canonicalLfSha256": "715a8321f10c641979109f194453eee64ce0053512a6ea83172e1d929f606f0c"
+    },
+    {
+      "path": "ide/src/analysis/frontend_ir_memo.inc",
+      "canonicalLfSha256": "9fe05b4cb15516298f06993fb6b6ce858c7602272924d746c0af0432be3d5c5a"
+    },
+    {
+      "path": "ide/src/analysis/frontend_ir_persistent.inc",
+      "canonicalLfSha256": "56355b18ddd7beab928931eee1b981b38a6972fac4be05a4b57360344eb3fa8f"
+    },
+    {
+      "path": "ide/tests/analysis_final_interop_test.c",
+      "canonicalLfSha256": "b142a23afc4b39a853bb21f07b4234e396049bc12609c1326df1ddbe1c259e46"
+    },
+    {
+      "path": "ide/tests/analysis_ir_sparse_decode_test.c",
+      "canonicalLfSha256": "2b2396a2fea188dd62542ec67261f230c2dc9196cb9d6a58f49384c84590102a"
+    },
+    {
+      "path": "ide/tools/build_lsp_core.py",
+      "canonicalLfSha256": "313a78d43f6c30c5df24221b26a2010a43b2785152304da947627d08510b71eb"
+    },
+    {
+      "path": "ide/tools/check_final_lsp_frontend.py",
+      "canonicalLfSha256": "9b52394c5729ff8259ecb019501e12da07b382102c58ccf6238ec013f393a8ee"
+    },
+    {
+      "path": "ide/tools/check_final_lsp_serializer.py",
+      "canonicalLfSha256": "33b598bb24fdadbcec6c38965a9a9ea7160d5d47543c98069848a55c28b04260"
+    },
+    {
+      "path": "ide/tools/check_final_lsp_stdio.py",
+      "canonicalLfSha256": "639cb3aabcec28e43ecc436949f387382a930a23f0c67c702cb28c76e04a9d0c"
+    },
+    {
+      "path": "ide/tools/native_ast_overlay.py",
+      "canonicalLfSha256": "182fa691bc21a1dd9bda25b64c46201aa895fbe76605f29678d6ac99ff485a05"
+    },
+    {
+      "path": "ide/tools/native_c_interop_profile.py",
+      "canonicalLfSha256": "11d0a4e0a3203a448f6f34ec6f228d368d0f682c021223cb6486b1df022f4728"
+    },
+    {
+      "path": "ide/tools/native_cancellation_overlay.py",
+      "canonicalLfSha256": "426959e4d8b80b35a66790c3081f2fa072c6b408db2808dd4eefccddd4a7eae1"
+    },
+    {
+      "path": "ide/tools/native_context_overlay.py",
+      "canonicalLfSha256": "c3e5262d7eb61b5e2d1f162211f4877c0b3d759c04e9a40827f89b132010aa5c"
+    },
+    {
+      "path": "ide/tools/native_current_ir_overlay.py",
+      "canonicalLfSha256": "04029e9a36ccaf5de420b2bd193758bc182938929022bf77d57f17e29a42e836"
+    },
+    {
+      "path": "ide/tools/native_current_ir_profile.py",
+      "canonicalLfSha256": "8ad2c2662c1791d0322b384f88e9c53dc163f601bbec25295c8feb99d86ca9e9"
+    },
+    {
+      "path": "ide/tools/native_final_c_interop_pins.json",
+      "canonicalLfSha256": "b5a18efe242120f0c9cb25d0268049f614aa62e0ed8ad1a49e276e04805f7abe"
+    },
+    {
+      "path": "ide/tools/native_final_c_interop_profile.py",
+      "canonicalLfSha256": "f67c15abdade0e5c91ce666f2166923744165555b3c48a5f1efb13ac12575984"
+    },
+    {
+      "path": "ide/tools/native_frontend_inputs.py",
+      "canonicalLfSha256": "983b906a3a0eed42f2f6d97b20b1293551b92aa76d96dcf7374991c82041f58c"
+    },
+    {
+      "path": "ide/tools/native_index_overlay.py",
+      "canonicalLfSha256": "725615c80372f673a1a2fd03fd1ae31465b797f3ece8cceddc1757867d5be349"
+    },
+    {
+      "path": "ide/tools/native_parser_ownership_overlay.py",
+      "canonicalLfSha256": "d78bca462651bc9b815562edf46544820b9b2d560645a2256d7d2f0ec04c10da"
+    },
+    {
+      "path": "ide/tools/native_semantic_effects_overlay.py",
+      "canonicalLfSha256": "0ad360102ac95d57ef09080932290a814f5bd3142dffbb2cb34704fb50c80c38"
+    },
+    {
+      "path": "ide/tools/native_signature_overlay.py",
+      "canonicalLfSha256": "703e6b83ad2d0ac62ccba453878a1f34ad6f9400eb585701e7119fc461a56a74"
+    },
+    {
+      "path": "ide/tools/xrt_process_tree_overlay.py",
+      "canonicalLfSha256": "ad9c612639e124da90d57bdaf6c71e351cdfb35ef967d1e91d0776ce70ee48b2"
+    }
+  ]
+}
