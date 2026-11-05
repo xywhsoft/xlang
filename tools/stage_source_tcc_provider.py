@@ -47,6 +47,7 @@ def main():
     p.add_argument('--overlay',type=Path,help='Explicit partial compiler overlay over --base')
     p.add_argument('--root',type=Path,help='Frozen source or matching producer tree for VFS inputs')
     p.add_argument('--producer-tool',type=Path,help='Actual TinyCC executable used by the precompiled manifest')
+    p.add_argument('--skip-pe-smoke',action='store_true',help='Use JIT smoke only; emit/run no TinyCC PE and leave PE/AOT unqualified')
     p.add_argument('--match-provider-imports',action='store_true',
         help='Relink the stock adjacent-xlc.dll SourceDriver from verified objects and require matching TCC PE imports')
     a=p.parse_args()
@@ -102,7 +103,8 @@ def main():
         sourceBuildSha256=sha(base/'build.json'),precompiledManifest=str(precompiled/'manifest.json'),inputs=inputs,rows=[],
         compilerOverlay=str(a.overlay.resolve()) if a.overlay else None,fullSourceCompilerParent=selected['fullSourceRebuild'],
         compilerObjectsRebuiltByThisTool=False,sourceRoot=str(selected['cohort']),vfsProducerRoot=str(root),
-        precompiledObjectCount=len(manifest['objects']))
+        precompiledObjectCount=len(manifest['objects']),peSmokeSkipped=a.skip_pe_smoke,peAotQualified=False,shippingDelivery=False)
+    if a.skip_pe_smoke:report['scope']+=' This invocation qualifies provider/VFS and JIT only; PE/AOT emission and execution are explicitly skipped.'
     if a.producer_tool:report['precompilerTool']=dict(path=str(a.producer_tool.resolve()),sha256=sha(a.producer_tool),reused=True)
     env=dict(os.environ,TEMP=str(out/'tmp'),TMP=str(out/'tmp'),PYTHONDONTWRITEBYTECODE='1')
     def save(): (out/'provider.json').write_text(json.dumps(report,indent=2)+'\n')
@@ -172,6 +174,7 @@ def main():
     if a.match_provider_imports:
         staged['linkResponse']=str(out/'driver-provider-relink.rsp')
         staged['linkResponseSha256']=sha(out/'driver-provider-relink.rsp')
+    staged.update(peSmokeSkipped=a.skip_pe_smoke,peAotQualified=False,shippingDelivery=False)
     staged['Headers']=copy.deepcopy(description.get('Headers',original['Headers']))
     alias_families={}
     for row in staged['Headers']:
@@ -214,8 +217,17 @@ def main():
         (out/'overlay.json').write_text(json.dumps(staged,indent=2)+'\n')
     else:staged['Inputs'] += [dict(Path=path,Sha256=value) for path,value in inputs.items()]
     (out/'build.json').write_text(json.dumps(staged,indent=2)+'\n')
-    run('source-driver-aot',[out/'public_source.exe',selected['cohort']/'test/cases/cgen_basic.xl','exe',out/'smoke'])
-    run('source-aot-run',[out/'smoke.exe'])
+    if a.skip_pe_smoke:
+        run('source-driver-jit',[out/'public_source.exe',selected['cohort']/'test/cases/cgen_basic.xl','run',out/'smoke-jit'])
+        assert not(out/'smoke.exe').exists(),'JIT-only smoke unexpectedly emitted PE'
+        report['jitSmokeQualified']=True
+    else:
+        run('source-driver-aot',[out/'public_source.exe',selected['cohort']/'test/cases/cgen_basic.xl','exe',out/'smoke'])
+        run('source-aot-run',[out/'smoke.exe'])
+        report['peAotQualified']=True
+        staged['peAotQualified']=True
+        (out/'build.json').write_text(json.dumps(staged,indent=2)+'\n')
+        if a.overlay:(out/'overlay.json').write_text(json.dumps(staged,indent=2)+'\n')
     report['inputsUnchanged']=all(sha(path)==value for path,value in inputs.items())
     report['parentCohortUnchanged']=all(sha(row['Path']).lower()==row['Sha256'].lower()
         for row in original['Inputs']+original['Headers']+original['Objects'])

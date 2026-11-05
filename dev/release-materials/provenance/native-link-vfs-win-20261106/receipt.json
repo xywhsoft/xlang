@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "scope": "Matched Windows sectioned target precompilation + solid VFS + O2 TinyCC-only provider, source-driver JIT smoke; not production DLL shipping or PE/AOT qualification",
+  "sourceCandidate": "F:\\xlang-validation\\native-static-20261106\\core-source-r5.json",
+  "sourceCandidateSha256": "688ea9d54817ff92302c5638e00bb244f66784f796361cc60a12e144d1c5b90a",
+  "precompiledManifest": "F:\\xlang-validation\\native-static-20261106\\precompiled-win-r1\\manifest.json",
+  "precompiledManifestSha256": "8377bc7f982f941962d2aeea1d4668ea055bc80e470ecad509e6002dbb143084",
+  "providerOverlay": "F:\\xlang-validation\\native-static-20261106\\provider-win-r1\\overlay.json",
+  "providerOverlaySha256": "ca89faf15bfffa16c4e6d56cd0b027770d68b425e48acb10dc7f34509f70f302",
+  "providerSha256": "babc47786951f54693a5ceb2e590d6bad38d374589e1b68ce12d873890eb48ad",
+  "serializedObjects": 1566,
+  "freshObjects": 1566,
+  "soleXrtDefinitionProducts": 2,
+  "duplicateXrtDefinitions": false,
+  "hostOptimization": "GCC O2",
+  "windowsTargetProducer": "TCC ELF",
+  "peAotQualified": false,
+  "shippingDelivery": false,
+  "reports": [
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\precompiled-win-r1\\validation.json",
+      "archivePath": "precompiled-validation.json",
+      "sha256": "121a26a90f6926dc13f2c1845d6c21323acad7663b075a7a1505febbc352b402"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\provider-win-r1\\provider.json",
+      "archivePath": "provider.json",
+      "sha256": "ce5d3ac0bfdbd499c013f36d7324fcaf22f6b9f3c78e360e4093d42f97827465"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-producer-win-r3\\build.json",
+      "archivePath": "producer.json",
+      "sha256": "8d3367001f3027a0bf35a52a4637cef0b0e8689d1c17def3011569dbbf72450d"
+    }
+  ],
+  "archiveSha256": "e7d49c0880d00ac7e01d2e38299166643170c1e3ff65db0070fa2ff4183e2062",
+  "scriptDiagnosticOnlyCorrection": "Working-tree precompile help/error clarifies that native COFF is supported separately; command/flags/body path of qualified Windows TCC producer is unchanged"
+}
