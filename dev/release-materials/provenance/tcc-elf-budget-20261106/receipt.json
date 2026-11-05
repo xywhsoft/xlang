@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "scope": "ELF input-header section budget correction only. A non-null input header creates at most one Section, including relocation headers already counted in e_shnum. Preserve 32 metadata headroom, SHN_LORESERVE hard guard and controlled jump. No PE files emitted/run.",
+  "checks": 150,
+  "passed": true,
+  "reports": [
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-elf-budget\\qualified-r1\\manifest.json",
+      "archivePath": "qualification.json",
+      "sha256": "ad656dfea50ee7f4280453a028731925ab9881e47defa38ca0e34dcb2c6af627"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-elf-budget\\qualified-r1\\source-only.patch",
+      "archivePath": "source-only.patch",
+      "sha256": "7783a4db37c845cd5808b9b3a669e571e5e9b2be7ded2c2f9f9db2e198561ec8"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-elf-budget\\qualified-win-r1\\results.json",
+      "archivePath": "results-0.json",
+      "sha256": "1ce09f639a5dd3bea11fda061f13234f07156ef57e4cd5070b86d54760e67086"
+    },
+    {
+      "originalPath": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\tcc-elf-budget-qualified-linux-r1\\results.json",
+      "archivePath": "results-1.json",
+      "sha256": "e96ca9afe0c0bac66a968fb73b15c70f0657f19f5e2f3099b51dee0d200e9658"
+    }
+  ],
+  "evidence": [
+    "synthetic 20189 input headers including real data/relocation pairs + 25000 existing -> 45185 sections",
+    "exact one-header bound seeded45060 -> actual65245, below SHN_LORESERVE65280",
+    "true overflow seeded50000 rejected before publishing sections/symbols; subsequent small input succeeds",
+    "unchanged hard guard permits last legal index then controlled jump; teardown and next compiler state succeed",
+    "Linux actual full static-native.o 6976864B/20189 headers loaded after25000 sections (see O0/O2 logs)"
+  ],
+  "ownedFiles": [
+    {
+      "path": "lib/tcc/tccelf.c",
+      "source": "F:\\xlang-validation\\native-static-20261106\\tcc-elf-budget\\qualified-r1\\files\\lib\\tcc\\tccelf.c",
+      "sha256": "bcaf0ee8b8be27463cf83564aac51178c98ed5ba3d4ba90d8c86e6fcb5b8900a",
+      "sharedWithParent": true
+    },
+    {
+      "path": "test/cases/tcc_elf_section_budget.c",
+      "source": "F:\\xlang-validation\\native-static-20261106\\tcc-elf-budget\\qualified-r1\\files\\test\\cases\\tcc_elf_section_budget.c",
+      "sha256": "07ce9b344a331659bdf2e8ba73370a61d96b4410c84a37af55afd28513f95762",
+      "sharedWithParent": false
+    },
+    {
+      "path": "tools/check_tcc_elf_section_budget.py",
+      "source": "F:\\xlang-validation\\native-static-20261106\\tcc-elf-budget\\qualified-r1\\files\\tools\\check_tcc_elf_section_budget.py",
+      "sha256": "ff77fcc602e213af13f3ade9111c9732c516914776b028fbee76f4ec96957800",
+      "sharedWithParent": false
+    },
+    {
+      "path": "docs/tcc-elf-section-budget.md",
+      "source": "F:\\xlang-validation\\native-static-20261106\\tcc-elf-budget\\qualified-r1\\files\\docs\\tcc-elf-section-budget.md",
+      "sha256": "94fb6be381a4514817a2f61b01c5a118c37537dbfc4516e3fe796137af258b87",
+      "sharedWithParent": false
+    }
+  ],
+  "archiveSha256": "4d0caa297460cbdf544cf3a31bcc4052621d658dd0a6c2e120a5ee9f858bdbaa",
+  "shippingDelivery": false
+}

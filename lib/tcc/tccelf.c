@@ -3347,9 +3347,16 @@ ST_FUNC int tcc_load_object_file(TCCState *s1,
 invalid:
         return tcc_error_noabort("invalid object file");
     }
-    /* Leave headroom for relocation tables and final linker metadata. */
+    /* Each non-null input header can create at most one Section below.
+       Relocation sections already have their own input headers; counting
+       them twice rejects legal function/data-section objects. Leave the
+       existing headroom for final linker metadata and keep new_section's
+       hard index check as the final authority. Extended indices are not
+       part of this linker's 16-bit section model. */
+    if (!ehdr.e_shnum)
+        return tcc_error_noabort("object has no supported 16-bit section table");
     if (s1->nb_sections > SHN_LORESERVE - 32
-        || ehdr.e_shnum > (SHN_LORESERVE - s1->nb_sections - 32) / 2)
+        || (unsigned)ehdr.e_shnum - 1 > (unsigned)(SHN_LORESERVE - s1->nb_sections - 32))
         return tcc_error_noabort("object exceeds 16-bit section index limit");
     /* read sections */
     shdr = load_data(fd, file_offset + ehdr.e_shoff,
