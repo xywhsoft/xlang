@@ -16,6 +16,7 @@
 #include <xge.h>
 #include <xui.h>
 #include <xui_document.h>
+#include <xui_document_ui.h>
 #include <xge_host_xrt.h>
 #include <__xl_runtime/xl6_foreign_view.h>
 
@@ -42,6 +43,10 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentPreparePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentFragmentPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentSourceIndexPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentTxnPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentRendererPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentHtmlInteractionPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentWebProviderPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentImageRequestPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3ProxyPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3FontPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3SurfacePolicyGet(void);
@@ -78,6 +83,10 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
 #define xl6Xui3DocumentFragmentPolicy (*xl6Xui3DocumentFragmentPolicyGet())
 #define xl6Xui3DocumentSourceIndexPolicy (*xl6Xui3DocumentSourceIndexPolicyGet())
 #define xl6Xui3DocumentTxnPolicy (*xl6Xui3DocumentTxnPolicyGet())
+#define xl6Xui3DocumentRendererPolicy (*xl6Xui3DocumentRendererPolicyGet())
+#define xl6Xui3DocumentHtmlInteractionPolicy (*xl6Xui3DocumentHtmlInteractionPolicyGet())
+#define xl6Xui3DocumentWebProviderPolicy (*xl6Xui3DocumentWebProviderPolicyGet())
+#define xl6Xui3DocumentImageRequestPolicy (*xl6Xui3DocumentImageRequestPolicyGet())
 #define xl6Xui3ProxyPolicy (*xl6Xui3ProxyPolicyGet())
 #define xl6Xui3FontPolicy (*xl6Xui3FontPolicyGet())
 #define xl6Xui3SurfacePolicy (*xl6Xui3SurfacePolicyGet())

@@ -158,3 +158,34 @@ an explicit nonnegative size uses at most the common prefix. Their O(n)
 temporary records and resource scopes are intentional, with no per-method C
 wrapper. See [projection contracts and costs](../../../../docs/foreign-array-projections.md).
 Ordinary mutable object arrays are not treated as native descriptor storage.
+## Document UI
+
+`createDocumentView(context, document)` and
+`createDocumentEditor(context, document)` create Context-owned Widget subtypes.
+Their native descriptors are built on the call stack, including exact nested
+size fields and typed Font inputs; legacy callback/userdata fields remain NULL.
+Editor inherits the View selection, search and layout queries. MessageList
+adds a copied-text `addNode`, Document attachment, independent Owned activate
+and task callbacks, and retained Document retrieval.
+
+`createDocumentRenderer(context)` creates an independent unique owner. It
+retains its actual native Snapshot/Font/Proxy resources and observes Context
+weakly: Context expiry rejects further business methods, while `close()` still
+releases the renderer. Font resolver outputs and object measurement outputs
+are callback-period views. `setFont` takes a real native reference; mutable
+Vec2/float projections update the actual native output. A callback Snapshot
+requires explicit `share()` to save it. Callback text has `length` and `text`;
+reading `text` makes an owned copy, preserving its counted byte length.
+
+WebProvider, HtmlInteraction and ImageRequest are distinct Context-owned
+composite child views. Their declarations/headers are checked, but acceptance
+does not start a browser, decode a host file, access the network or use the OS
+clipboard. Image load and Poll intentionally omit the optional borrowed
+registry-entry output. They do not invent a safe owning Resource handle.
+
+Each method calls the native symbol directly. Resource scopes, checked
+errors, Native allocations/copies and callback epochs have real costs; this
+is not a claim of equal runtime cost to unchecked C. The API map records
+lifecycle infrastructure, caller rectangle arrays and legacy void-userdata
+adapters separately. Optional NULL clearing variants of otherwise typed
+record/descriptor inputs are a subsequent generic compatibility step.

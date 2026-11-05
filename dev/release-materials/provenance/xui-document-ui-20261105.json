@@ -1,0 +1,128 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Direct Document UI declarations, eleven POD records and four cold ownership policies; independent Renderer and Context-owned child widgets.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\document-ui-candidate-r2\\manifest.json",
+    "sha256": "a26d41eb9d3cd073700f9aec02d7d5c94457455a088a9e1ab50a521bd2c99a8d"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\document-ui-full-win-r1\\results.json",
+      "sha256": "4c90697a67072a2a20e8dc3ba8be2c62e65c8ccf9fc0fb22513a9de60cadc7e3",
+      "processRows": 14
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\document-ui-full-linux-r1\\results.json",
+      "sha256": "21ce04d758e3281e36a0e4c7e2a3964beb24c29130c202886a6c9c44b467afc9",
+      "processRows": 14
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\document-renderer-policy-win-r4\\results.json",
+      "sha256": "6b8d482c645beed3f32e0a73c8cef095d4486733edc4dc250a9cd51bd0b30aa2",
+      "processRows": 6
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\document-renderer-policy-linux-r1\\results.json",
+      "sha256": "11ab0a3c8b7db79576a5843577e6d3e8180636cd66068590f08fc1ef68036a0d",
+      "processRows": 6
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\document-ui-actual-win-r3\\results.json",
+      "sha256": "9d8de603c9f30bc302b65dfdf4bca77c9d10957ba8ff0ab3e5d8caaf67c08c28",
+      "processRows": 6
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\document-ui-actual-linux-r2\\results.json",
+      "sha256": "de0ccbcc5dccd1f46ce865e87e6f189ba082e35591ebd71cbccbbb71f4646947",
+      "processRows": 6
+    }
+  ],
+  "declaredNativeHeaderFunctions": 135,
+  "nativeHeaderFunctions": 165,
+  "supplementalNativeFunctions": 1,
+  "logicalMethodsAndCallbackProjections": 152,
+  "records": 11,
+  "limitations": [
+    "NULL-clearing aliases require the separately validated generic physical-signature compatibility delta.",
+    "Renderer deferred cleanup is waiting rather than failure; true busy-paint and OOM paths qualified.",
+    "No GUI, browser, GPU or real clipboard tests; final matched SDK/provider delivery is separate.",
+    "Caller-owned outputs, producer buffers and opaque unsafe C cases remain explicitly catalogued."
+  ],
+  "files": [
+    {
+      "path": "lib/bindings/_xge_native/include/xge3_runtime.h",
+      "canonicalLfSha256": "6d279c359eb05ed46eda2101788fc27d9a688746fb69a990d0ec115adcd216d0"
+    },
+    {
+      "path": "lib/bindings/_xge_native/src/runtime.c",
+      "canonicalLfSha256": "b30bd5bfb7a38c393c09a9a695e267097c1ea684dcbb2b5e0e12bef3de43485f"
+    },
+    {
+      "path": "lib/bindings/xui/src/managed.xl",
+      "canonicalLfSha256": "585f39fac9b5c90179c39c6a0f4580519c56734386d225da2a091ec77ea68aaa"
+    },
+    {
+      "path": "lib/bindings/xui/src/document_ui_records.xl",
+      "canonicalLfSha256": "f67a4626e751660b30ca57dc4082f48e9c3e9d7f830547ae47b7f4e27fd48d13"
+    },
+    {
+      "path": "lib/bindings/xui/src/document_ui.xl",
+      "canonicalLfSha256": "cbfd6db6ad39bc1219888df175c3048dcd031d0db501970dff9b30cc8bd38bf5"
+    },
+    {
+      "path": "lib/bindings/xui/src/document_ui_message_methods.inc",
+      "canonicalLfSha256": "d0026a4b11d6168c7c6448c459be2aedbb4874ef10438b70be31fe0a672b56d4"
+    },
+    {
+      "path": "lib/bindings/xui/xlang.package.json",
+      "canonicalLfSha256": "0adf05d2d024490bdc41585ebdb80a9a0c6a731ba024d57a3ee0558ca91a5965"
+    },
+    {
+      "path": "lib/bindings/xui/README.md",
+      "canonicalLfSha256": "5b820649941b6f7083d6e078b5dff64104f0cbf01fb01f7011a44841562874f6"
+    },
+    {
+      "path": "tools/gen_xge3_document_ui_bindings.py",
+      "canonicalLfSha256": "50ea0aecb314d26df35a336612730a8e3e1c43dca89ef2ec958bc45162805414"
+    },
+    {
+      "path": "tools/check_foreign_xge3_document_ui.py",
+      "canonicalLfSha256": "b0747f92756ec9723817a64de010d5561008a6fb78b0d003dc8c63595b7b3904"
+    },
+    {
+      "path": "tools/check_xge3_bindings.py",
+      "canonicalLfSha256": "52e6f3269503ab0ca56dd2d73d35205337866d309e72ee9753855364aad8308b"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_document_ui.xl",
+      "canonicalLfSha256": "cfd946ea9bbb555d48f72ff0faac1e24253ecbabe34f8a67ffab112cf3f34118"
+    },
+    {
+      "path": "docs/xge3-xui3-document-ui-api-map.md",
+      "canonicalLfSha256": "7002e8b33a33da486ed435d5d46ccc6cb3f8a77b2b728b96b6e55cfcf5341fa1"
+    },
+    {
+      "path": "docs/xge3-xui3-document-ui-api-map.json",
+      "canonicalLfSha256": "7c3e873605249c2e814156fb03359c856675056858fbf1b7ed4094917b94bb5d"
+    },
+    {
+      "path": "test/cases/foreign_xge3_document_renderer_policy.c",
+      "canonicalLfSha256": "ec1db9d81bafda96f051cd66f2c36f729d16dc3a0925de7607e8a3aea782c6ed"
+    },
+    {
+      "path": "tools/check_foreign_xge3_renderer_policy.py",
+      "canonicalLfSha256": "1f276a292eaa446712e9ed30414493ba69540c8eea41e467269f5d81e1e3c188"
+    },
+    {
+      "path": "lib/bindings/xui/examples/document_ui_headless.xl",
+      "canonicalLfSha256": "cfd946ea9bbb555d48f72ff0faac1e24253ecbabe34f8a67ffab112cf3f34118"
+    },
+    {
+      "path": "lib/bindings/xui/examples/README.md",
+      "canonicalLfSha256": "67120252bafef1d16b27d0608058cfed088bd0488225511d8ed733e93c61ce43"
+    }
+  ]
+}

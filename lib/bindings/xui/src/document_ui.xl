@@ -1,0 +1,193 @@
+// Direct native Document UI methods. Resource pins, callback epochs and checked cleanup remain real costs.
+export extern "const xstrview*" class CallbackDocumentText @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "Size" @c_field get length() as c_size
+ extern "Data" @c_field @c_length("Size","size_t") @c_result("text_view") get text() as string
+end
+
+export extern "float*" class CallbackDocumentFloat @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_deref get value() as c_float
+ extern "value" @c_deref let value(c_float number)
+end
+
+export extern "struct xui_doc_snapshot_t*" class CallbackDocumentSnapshot @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiDocumentSnapshotShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackDocumentSnapshot) func share() as DocumentSnapshot
+end
+
+export extern "struct xui_document_renderer_t*" class CallbackDocumentRenderer @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiDocumentRendererRequestClose" @no_raise @c_result("status",0) func requestClose()
+end
+
+export extern "xui_doc_font_output_t*" class CallbackDocumentFontOutput @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiDocumentFontOutputSetFont" @no_raise @c_result("status",0) func setFont(Font font)
+ extern "xuiDocumentFontOutputGetFont" @no_raise @c_const(0) @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func font() as Font?
+ extern "xuiDocumentFontOutputDisposeChecked" @no_raise @c_result("status",0) func clear()
+end
+
+export typedef DocumentFontResolverProc = func(CallbackDocumentRenderer,CString,c_uint,c_float,CallbackDocumentFontOutput) as c_int
+export typedef DocumentObjectMeasureProc = func(CallbackDocumentRenderer,CallbackDocumentSnapshot,uint64,c_float,c_float,CallbackVec2,CallbackDocumentFloat) as c_int
+export typedef DocumentObjectDrawProc = func(CallbackDocumentRenderer,CallbackDocumentSnapshot,uint64,CallbackDrawContext,Rect) as c_int
+export typedef DocumentActivateProc = func(Widget,uint64,CallbackDocumentText)
+export typedef DocumentTaskToggleProc = func(Widget,uint64,c_int)
+export typedef DocumentEditorErrorProc = func(Widget,c_int)
+export typedef DocumentWebInvalidateProc = func()
+export typedef DocumentOpenLinkProc = func(CallbackDocumentText)
+
+export extern "struct xui_document_renderer_t*" class DocumentRenderer @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3DocumentRendererPolicy") @domain("xl6Xui3OwnershipDomainV1")
+ native point handle
+ extern "xuiDocumentRendererSetSnapshot" @no_raise @c_result("status",0) func setSnapshot(DocumentSnapshot snapshot,DocumentChangeSet? changes)
+ extern "xuiDocumentRendererSetSourceInput" @no_raise @c_result("status",0) func setSourceInput(DocumentPrepare? prepare)
+ extern "xuiDocumentRendererSetMode" @no_raise @c_result("status",0) func setMode(c_uint mode)
+ extern "xuiDocumentRendererInvalidateObjects" @no_raise @c_result("status",0) func invalidateObjects()
+ extern "xuiDocumentRendererInvalidateFonts" @no_raise @c_result("status",0) func invalidateFonts()
+ extern "xuiDocumentRendererSetActivePosition" @no_raise @c_ref(0) @c_result("status",0) func setActivePosition(DocumentPosition position)
+ extern "xuiDocumentRendererGetActiveSourceRange" @no_raise @c_outputs(1,2) @c_status(0) func activeSourceRange() as (uint64,uint64)
+ extern "xuiDocumentRendererLayout" @no_raise @c_result("status",0) func layout(c_double width,c_double viewport_top,c_double viewport_height)
+ extern "xuiDocumentRendererGetSize" @no_raise @c_outputs(1,2) @c_status(0) func size() as (DocumentRect,c_int)
+ extern "xuiDocumentRendererHitTest" @no_raise @c_output(3,0) @c_output_size(3,"iSize") func hitTest(c_double x,c_double y) as DocumentPosition
+ extern "xuiDocumentRendererHitTaskMarker" @no_raise @c_output(3,0) func hitTaskMarker(c_double x,c_double y) as uint64
+ extern "xuiDocumentRendererHitTestCell" @no_raise @c_output(3,0) @c_output_size(3,"iSize") func hitTestCell(c_double x,c_double y) as DocumentCellHit
+ extern "xuiDocumentRendererGetCellRect" @no_raise @c_output(2,0) @c_output_size(2,"iSize") func cellRect(uint64 cell) as DocumentCellHit
+ extern "xuiDocumentRendererGetNodeRect" @no_raise @c_output(2,0) func nodeRect(uint64 node) as DocumentRect
+ extern "xuiDocumentRendererGetCaretRect" @no_raise @c_ref(0) @c_output(2,0) func caretRect(DocumentPosition position) as DocumentRect
+ extern "xuiDocumentRendererGetLineRange" @no_raise @c_ref(0) @c_output(2,0) func lineRange(DocumentPosition position) as DocumentRange
+ extern "xuiDocumentRendererDraw" @no_raise @c_ref(4) @c_result("status",0) func draw(DrawContext draw,c_double origin_x,c_double origin_y,Rect clip,DocumentRange selection,c_uint selection_color)
+ extern "xuiDocumentRendererGetStats" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func stats() as DocumentRendererStats
+ extern "xuiDocumentRendererSetFontResolverOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setFontResolver(DocumentFontResolverProc? callback)
+ extern "xuiDocumentRendererSetObjectMeasureOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setObjectMeasure(DocumentObjectMeasureProc? callback)
+ extern "xuiDocumentRendererSetObjectDrawOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setObjectDraw(DocumentObjectDrawProc? callback)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiDocumentRendererReleaseChecked" @no_raise @header("xge3_runtime.h") @c_result("status",0) func rollbackDocumentRenderer(DocumentRenderer value)
+
+export extern "xui_widget_t*" class DocumentView @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
+ extern "xuiDocumentViewSetDocument" @no_raise @c_result("status",0) func setDocument(Document document)
+ extern "xuiDocumentViewGetDocument" @no_raise @c_result("retained_view") @c_retain(retainDocumentUi,"zero",rollbackDocument) func document() as Document?
+ extern "xuiDocumentViewSetSelection" @no_raise @c_ref(0) @c_result("status",0) func setSelection(DocumentRange range)
+ extern "xuiDocumentViewGetSelection" @no_raise @c_output(1,0) func selection() as DocumentRange
+ extern "xuiDocumentViewSelectObject" @no_raise @c_result("status",0) func selectObject(uint64 node)
+ extern "xuiDocumentViewSetScroll" @no_raise @c_result("status",0) func setScroll(c_double x,c_double y)
+ extern "xuiDocumentViewGetScroll" @no_raise @c_outputs(1,2) @c_status(0) func scroll() as (c_double,c_double)
+ extern "xuiDocumentViewSetZoom" @no_raise @c_result("status",0) func setZoom(c_float zoom)
+ extern "xuiDocumentViewSetMode" @no_raise @c_result("status",0) func setMode(c_uint mode)
+ extern "xuiDocumentViewInvalidateObjects" @no_raise @c_result("status",0) func invalidateObjects()
+ extern "xuiDocumentViewInvalidateFonts" @no_raise @c_result("status",0) func invalidateFonts()
+ extern "xuiDocumentViewGetMode" @no_raise func mode() as c_uint
+ extern "xuiDocumentViewGetContentSize" @no_raise @c_outputs(1,2) @c_status(0) func contentSize() as (DocumentRect,c_int)
+ extern "xuiDocumentViewGetRenderStats" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func renderStats() as DocumentRendererStats
+ extern "xuiDocumentViewHitTest" @no_raise @c_output(3,0) @c_output_size(3,"iSize") func hitTest(c_double x,c_double y) as DocumentPosition
+ extern "xuiDocumentViewHitTestCell" @no_raise @c_output(3,0) @c_output_size(3,"iSize") func hitTestCell(c_double x,c_double y) as DocumentCellHit
+ extern "xuiDocumentViewGetCellRect" @no_raise @c_output(2,0) @c_output_size(2,"iSize") func cellRect(uint64 cell) as DocumentCellHit
+ extern "xuiDocumentViewSetTableSelection" @no_raise @c_ref(0) @c_result("status",0) func setTableSelection(DocumentTableSelection selection)
+ extern "xuiDocumentViewGetTableSelection" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func tableSelection() as DocumentTableSelection
+ extern "xuiDocumentViewFind" @no_raise @c_span(0,"const char*","size_t") @c_output(5,0) func find(string pattern,c_int backward,c_int wrap) as DocumentRange
+ extern "xuiDocumentViewFindEx" @no_raise @c_span(0,"const char*","size_t") @c_output(6,0) func findEx(string pattern,c_uint flags,c_int backward,c_int wrap) as DocumentRange
+ extern "xuiDocumentViewSetFindQuery" @no_raise @c_span(0,"const char*","size_t") @c_result("status",0) func setFindQuery(string pattern)
+ extern "xuiDocumentViewSetFindQueryEx" @no_raise @c_span(0,"const char*","size_t") @c_result("status",0) func setFindQueryEx(string pattern,c_uint flags)
+ extern "xuiDocumentViewSetFindScope" @no_raise @c_ref(0) @c_result("status",0) func setFindScope(DocumentRange scope)
+ extern "xuiDocumentViewGetFindScope" @no_raise @c_output(1,0) func findScope() as DocumentRange
+ extern "xuiDocumentViewClearFind" @no_raise @c_result("status",0) func clearFind()
+ extern "xuiDocumentViewGetFindResultCount" @no_raise @c_output(1,0) func findResultCount() as uint64
+ extern "xuiDocumentViewGetFindResult" @no_raise @c_outputs(2,3) @c_status(0) func findResult(uint64 index) as (DocumentRange,c_int)
+ extern "xuiDocumentViewActivateFindResult" @no_raise @c_output(2,0) func activateFindResult(uint64 index) as DocumentRange
+ extern "xuiDocumentViewSetActivateOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setActivate(DocumentActivateProc? callback)
+end
+extern "xuiWidgetDestroyChecked" @no_raise @header("xge3_runtime.h") @c_result("status",0) func rollbackDocumentView(DocumentView value)
+
+export extern "xui_widget_t*" class DocumentEditor @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends DocumentView
+ extern "xuiDocumentEditorInsertText" @no_raise @c_span(0,"const char*","size_t") @c_result("status",0) func insertText(string text)
+ extern "xuiDocumentEditorAppendStreamSource" @no_raise @c_span(0,"const char*","size_t") @c_result("status",0) func appendStreamSource(string text,c_int final_chunk)
+ extern "xuiDocumentEditorExecute" @no_raise @c_result("status",0) func execute(c_uint command)
+ extern "xuiDocumentEditorGetMenuWidget" @no_raise @c_result("owner_view",0) func menuWidget() as Widget?
+ extern "xuiDocumentEditorOpenMenu" @no_raise @c_result("status",0) func openMenu(c_float x,c_float y)
+ extern "xuiDocumentEditorSetupToolbar" @no_raise @c_result("status",0) func setupToolbar(Widget toolbar,c_uint groups)
+ extern "xuiDocumentEditorSyncToolbar" @no_raise @c_result("status",0) func syncToolbar(Widget toolbar)
+ extern "xuiDocumentEditorExecuteToolbarItem" @no_raise @c_result("status",0) func executeToolbarItem(Widget toolbar,c_int index)
+ extern "xuiDocumentEditorQueryCommand" @no_raise @c_output(2,0) @c_output_size(2,"iSize") func queryCommand(c_uint command) as DocumentCommandState
+ extern "xuiDocumentEditorCanExecute" @no_raise func canExecute(c_uint command) as c_int
+ extern "xuiDocumentEditorQueryParagraphSpacing" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func queryParagraphSpacing() as DocumentParagraphSpacingState
+ extern "xuiDocumentEditorSetParagraphSpacing" @no_raise @c_result("status",0) func setParagraphSpacing(c_float spacing,c_int use_default)
+ extern "xuiDocumentEditorSetReadOnly" @no_raise @c_result("status",0) func setReadOnly(c_int read_only)
+ extern "xuiDocumentEditorSetTableColumnWidth" @no_raise @c_result("status",0) func setTableColumnWidth(uint64 table,c_uint column,c_float width)
+ extern "xuiDocumentEditorToggleTaskItem" @no_raise @c_result("status",0) func toggleTaskItem(uint64 item)
+ extern "xuiDocumentEditorGetReadOnly" @no_raise func readOnly() as c_int
+ extern "xuiDocumentEditorSetMarks" @no_raise @c_result("status",0) func setMarks(c_uint set,c_uint clear)
+ extern "xuiDocumentEditorQueryTextStyle" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func queryTextStyle() as DocumentEditorTextStyleState
+ extern "xuiDocumentEditorSetTextStyle" @no_raise @c_ref(1) @c_result("status",0) func setTextStyle(c_uint fields,DocumentTextStyle style)
+ extern "xuiDocumentEditorInsertLink" @no_raise @c_span(0,"const char*","size_t") @c_cstr(1) @c_cstr(2) @c_result("status",0) func insertLink(string label,string uri,string title)
+ extern "xuiDocumentEditorSetLink" @no_raise @c_cstr(0) @c_cstr(1) @c_result("status",0) func setLink(string uri,string title)
+ extern "xuiDocumentEditorInsertObject" @no_raise @c_span(2,"const char*","size_t") @c_result("status",0) func insertObject(c_uint kind,c_uint flags,string utf8)
+ extern "xuiDocumentEditorInsertCodeBlock" @no_raise @c_cstr(0) @c_span(1,"const char*","size_t") @c_result("status",0) func insertCodeBlock(string language,string utf8)
+ extern "xuiDocumentEditorSetCodeBlockLanguage" @no_raise @c_cstr(1) @c_result("status",0) func setCodeBlockLanguage(uint64 code_id,string language)
+ extern "xuiDocumentEditorInsertRule" @no_raise @c_result("status",0) func insertRule()
+ extern "xuiDocumentEditorWrapQuote" @no_raise @c_result("status",0) func wrapQuote()
+ extern "xuiDocumentEditorUnwrapQuote" @no_raise @c_result("status",0) func unwrapQuote()
+ extern "xuiDocumentEditorInsertFootnote" @no_raise @c_cstr(0) @c_span(1,"const char*","size_t") @c_result("status",0) func insertFootnote(string label,string initial_utf8)
+ extern "xuiDocumentEditorRemoveFootnoteReference" @no_raise @c_result("status",0) func removeFootnoteReference(uint64 reference_id)
+ extern "xuiDocumentEditorInsertTable" @no_raise @c_result("status",0) func insertTable(c_uint rows,c_uint columns)
+ extern "xuiDocumentEditorUpdateObjectSource" @no_raise @c_span(1,"const char*","size_t") @c_result("status",0) func updateObjectSource(uint64 object_id,string utf8)
+ extern "xuiDocumentEditorReplaceCurrent" @no_raise @c_span(0,"const char*","size_t") @c_span(1,"const char*","size_t") @c_result("status",0) func replaceCurrent(string pattern,string replacement)
+ extern "xuiDocumentEditorReplaceCurrentEx" @no_raise @c_span(0,"const char*","size_t") @c_span(1,"const char*","size_t") @c_result("status",0) func replaceCurrentEx(string pattern,string replacement,c_uint flags)
+ extern "xuiDocumentEditorReplaceAll" @no_raise @c_span(0,"const char*","size_t") @c_span(1,"const char*","size_t") @c_ref(2) @c_output(6,0) func replaceAll(string pattern,string replacement,DocumentRange scope) as uint64
+ extern "xuiDocumentEditorReplaceAllEx" @no_raise @c_span(0,"const char*","size_t") @c_span(1,"const char*","size_t") @c_ref(3) @c_output(7,0) func replaceAllEx(string pattern,string replacement,c_uint flags,DocumentRange scope) as uint64
+ extern "xuiDocumentEditorOpenFind" @no_raise @c_result("status",0) func openFind()
+ extern "xuiDocumentEditorOpenReplace" @no_raise @c_result("status",0) func openReplace()
+ extern "xuiDocumentEditorGetFindWindow" @no_raise @c_result("owner_view",0) func findWindow() as Widget?
+ extern "xuiDocumentEditorCancelComposition" @no_raise @c_result("status",0) func cancelComposition()
+ extern "xuiDocumentEditorIsComposing" @no_raise func isComposing() as c_int
+ extern "xuiDocumentEditorFlush" @no_raise @c_result("status",0) func flush()
+ extern "xuiDocumentEditorRetryInput" @no_raise @c_result("status",0) func retryInput()
+ extern "xuiDocumentEditorCancelInput" @no_raise @c_result("status",0) func cancelInput()
+ extern "xuiDocumentEditorGetPendingInput" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func pendingInput() as DocumentPrepareInfo
+ extern "xuiDocumentEditorGetPendingWork" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func pendingWork() as DocumentEditorPendingWork
+ extern "xuiDocumentEditorSetErrorOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setError(DocumentEditorErrorProc? callback)
+ extern "xuiDocumentEditorInsertImage" @no_raise @c_pack(1,"xui_doc_image_desc_t",0,7) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sResource",0,"c_string") @c_pack_field(1,"sAlt",1,"text_data") @c_pack_field(1,"sTitle",2,"c_string") @c_pack_field(1,"sLinkTarget",3,"c_string") @c_pack_field(1,"sLinkTitle",4,"c_string") @c_pack_field(1,"fWidth",5,"value") @c_pack_field(1,"fHeight",6,"value") @c_pack_field(1,"iAltBytes",1,"text_size","size_t") @c_result("status",0) func insertImage(string resource,string alt="",string? title=null,string? linkTarget=null,string? linkTitle=null,c_float width=0,c_float height=0)
+ extern "xuiDocumentEditorUpdateImage" @no_raise @c_pack(2,"xui_doc_image_desc_t",1,7) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sResource",1,"c_string") @c_pack_field(2,"sAlt",2,"text_data") @c_pack_field(2,"sTitle",3,"c_string") @c_pack_field(2,"sLinkTarget",4,"c_string") @c_pack_field(2,"sLinkTitle",5,"c_string") @c_pack_field(2,"fWidth",6,"value") @c_pack_field(2,"fHeight",7,"value") @c_pack_field(2,"iAltBytes",2,"text_size","size_t") @c_result("status",0) func updateImage(uint64 imageId,string resource,string alt="",string? title=null,string? linkTarget=null,string? linkTitle=null,c_float width=0,c_float height=0)
+end
+extern "xuiWidgetDestroyChecked" @no_raise @header("xge3_runtime.h") @c_result("status",0) func rollbackDocumentEditor(DocumentEditor value)
+
+export extern "struct xui_doc_web_provider_t*" class DocumentWebProvider @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3DocumentWebProviderPolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiDocumentWebProviderUpdate" @no_raise @c_result("status",0) func update()
+ extern "xuiDocumentWebProviderSetPalette" @no_raise @c_result("status",0) func setPalette(c_uint foreground,c_uint background)
+ extern "xuiDocumentWebProviderGetStats" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func stats() as DocumentWebProviderStats
+ extern "xuiDocumentWebProviderSetInvalidateOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setInvalidate(DocumentWebInvalidateProc? callback)
+ extern "xuiDocumentWebProviderReleaseChecked" @no_raise @c_result("status",0) func close()
+end
+extern "xuiDocumentWebProviderReleaseChecked" @no_raise @header("xge3_runtime.h") @c_result("status",0) func rollbackDocumentWebProvider(DocumentWebProvider value)
+
+export extern "struct xui_doc_html_interaction_t*" class DocumentHtmlInteraction @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3DocumentHtmlInteractionPolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiDocumentHtmlInteractionUpdate" @no_raise @c_result("status",0) func update()
+ extern "xuiDocumentHtmlInteractionShow" @no_raise @c_result("status",0) func show()
+ extern "xuiDocumentHtmlInteractionGetWindow" @no_raise @c_result("owner_view",0) func window() as Widget?
+ extern "xuiDocumentHtmlInteractionGetWebView" @no_raise @c_result("owner_view",0) func webView() as Widget?
+ extern "xuiDocumentHtmlInteractionSetOpenLinkOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setOpenLink(DocumentOpenLinkProc? callback)
+ extern "xuiDocumentHtmlInteractionReleaseChecked" @no_raise @c_result("status",0) func close()
+end
+extern "xuiDocumentHtmlInteractionReleaseChecked" @no_raise @header("xge3_runtime.h") @c_result("status",0) func rollbackDocumentHtmlInteraction(DocumentHtmlInteraction value)
+
+export extern "struct xui_doc_image_request_t*" class DocumentImageRequest @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3DocumentImageRequestPolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiDocumentImageResourcePoll" @no_raise @c_null(1,"xui_resource*") func poll() as c_int
+ extern "xuiDocumentImageResourceCancel" @no_raise @c_result("status",0) func cancel()
+ extern "xuiDocumentImageResourceReleaseChecked" @no_raise @c_result("status",0) func close()
+end
+extern "xuiDocumentImageResourceReleaseChecked" @no_raise @header("xge3_runtime.h") @c_result("status",0) func rollbackDocumentImageRequest(DocumentImageRequest value)
+
+extern "xuiDocumentAddRef" @header("xge3_runtime.h") @no_raise func retainDocumentUi(Document value) as c_int
+
+export extern "xuiDocumentRendererCreate" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(2,0,rollbackDocumentRenderer) @c_pack(1,"xui_doc_renderer_desc_t",1,25) @c_pack_size(1,"iSize","uint32_t") @c_pack_record(1,"tFonts","xui_doc_font_set_t") @c_pack_field(1,"fZoom",1,"value") @c_pack_field(1,"fParagraphGap",2,"value") @c_pack_field(1,"fLineGap",3,"value") @c_pack_field(1,"fIndent",4,"value") @c_pack_field(1,"tFonts.normal",5,"view_raw") @c_pack_field(1,"tFonts.bold",6,"view_raw") @c_pack_field(1,"tFonts.italic",7,"view_raw") @c_pack_field(1,"tFonts.boldItalic",8,"view_raw") @c_pack_field(1,"tFonts.monospace",9,"view_raw") @c_pack_field(1,"iTextColor",10,"value") @c_pack_field(1,"iBorderColor",11,"value") @c_pack_field(1,"iCodeBackground",12,"value") @c_pack_field(1,"iHighlightColor",13,"value") @c_pack_field(1,"iLinkColor",14,"value") @c_pack_field(1,"iQuoteBorderColor",15,"value") @c_pack_field(1,"iRuleColor",16,"value") @c_pack_field(1,"iParagraphBackgroundColor",17,"value") @c_pack_field(1,"iTableBorderColor",18,"value") @c_pack_field(1,"iTableHeaderColor",19,"value") @c_pack_field(1,"iTableCellColor",20,"value") @c_pack_field(1,"iImagePlaceholderColor",21,"value") @c_pack_field(1,"iImageBorderColor",22,"value") @c_pack_field(1,"iImageTextColor",23,"value") @c_pack_field(1,"iLayoutCacheBudgetBytes",24,"value") @c_pack_field(1,"bSourceLineHeightMayVary",25,"value") func createDocumentRenderer(Context context,c_float zoom=1,c_float paragraphGap=0,c_float lineGap=0,c_float indent=0,Font? normal=null,Font? bold=null,Font? italic=null,Font? boldItalic=null,Font? monospace=null,c_uint textColor=0,c_uint borderColor=0,c_uint codeBackground=0,c_uint highlightColor=0,c_uint linkColor=0,c_uint quoteBorderColor=0,c_uint ruleColor=0,c_uint paragraphBackgroundColor=0,c_uint tableBorderColor=0,c_uint tableHeaderColor=0,c_uint tableCellColor=0,c_uint imagePlaceholderColor=0,c_uint imageBorderColor=0,c_uint imageTextColor=0,uint64 layoutCacheBudgetBytes=0,c_uint sourceLineHeightMayVary=0) as DocumentRenderer
+export extern "xuiDocumentViewCreate" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) @factory(2,0,rollbackDocumentView) @c_pack(1,"xui_doc_view_desc_t",1,30) @c_pack_size(1,"iSize","uint32_t") @c_pack_record(1,"tRenderer","xui_doc_renderer_desc_t") @c_pack_record(1,"tRenderer.tFonts","xui_doc_font_set_t") @c_pack_field(1,"pDocument",1,"view_raw") @c_pack_field(1,"tRenderer.fZoom",2,"value") @c_pack_field(1,"tRenderer.fParagraphGap",3,"value") @c_pack_field(1,"tRenderer.fLineGap",4,"value") @c_pack_field(1,"tRenderer.fIndent",5,"value") @c_pack_field(1,"tRenderer.tFonts.normal",6,"view_raw") @c_pack_field(1,"tRenderer.tFonts.bold",7,"view_raw") @c_pack_field(1,"tRenderer.tFonts.italic",8,"view_raw") @c_pack_field(1,"tRenderer.tFonts.boldItalic",9,"view_raw") @c_pack_field(1,"tRenderer.tFonts.monospace",10,"view_raw") @c_pack_field(1,"tRenderer.iTextColor",11,"value") @c_pack_field(1,"tRenderer.iBorderColor",12,"value") @c_pack_field(1,"tRenderer.iCodeBackground",13,"value") @c_pack_field(1,"tRenderer.iHighlightColor",14,"value") @c_pack_field(1,"tRenderer.iLinkColor",15,"value") @c_pack_field(1,"tRenderer.iQuoteBorderColor",16,"value") @c_pack_field(1,"tRenderer.iRuleColor",17,"value") @c_pack_field(1,"tRenderer.iParagraphBackgroundColor",18,"value") @c_pack_field(1,"tRenderer.iTableBorderColor",19,"value") @c_pack_field(1,"tRenderer.iTableHeaderColor",20,"value") @c_pack_field(1,"tRenderer.iTableCellColor",21,"value") @c_pack_field(1,"tRenderer.iImagePlaceholderColor",22,"value") @c_pack_field(1,"tRenderer.iImageBorderColor",23,"value") @c_pack_field(1,"tRenderer.iImageTextColor",24,"value") @c_pack_field(1,"tRenderer.iLayoutCacheBudgetBytes",25,"value") @c_pack_field(1,"tRenderer.bSourceLineHeightMayVary",26,"value") @c_pack_field(1,"bAutoHeight",27,"value") @c_pack_field(1,"bDisableSelection",28,"value") @c_pack_field(1,"iSelectionColor",29,"value") @c_pack_field(1,"iBackgroundColor",30,"value") @c_pack_size(1,"tRenderer.iSize","uint32_t","tRenderer") func createDocumentView(Context context,Document document,c_float zoom=1,c_float paragraphGap=0,c_float lineGap=0,c_float indent=0,Font? normal=null,Font? bold=null,Font? italic=null,Font? boldItalic=null,Font? monospace=null,c_uint textColor=0,c_uint borderColor=0,c_uint codeBackground=0,c_uint highlightColor=0,c_uint linkColor=0,c_uint quoteBorderColor=0,c_uint ruleColor=0,c_uint paragraphBackgroundColor=0,c_uint tableBorderColor=0,c_uint tableHeaderColor=0,c_uint tableCellColor=0,c_uint imagePlaceholderColor=0,c_uint imageBorderColor=0,c_uint imageTextColor=0,uint64 layoutCacheBudgetBytes=0,c_uint sourceLineHeightMayVary=0,c_int autoHeight=0,c_int disableSelection=0,c_uint selectionColor=0,c_uint backgroundColor=0) as DocumentView
+export extern "xuiDocumentEditorCreate" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) @factory(2,0,rollbackDocumentEditor) @c_pack(1,"xui_doc_editor_desc_t",1,35) @c_pack_size(1,"iSize","uint32_t") @c_pack_record(1,"tView","xui_doc_view_desc_t") @c_pack_record(1,"tView.tRenderer","xui_doc_renderer_desc_t") @c_pack_record(1,"tView.tRenderer.tFonts","xui_doc_font_set_t") @c_pack_field(1,"tView.pDocument",1,"view_raw") @c_pack_field(1,"tView.tRenderer.fZoom",2,"value") @c_pack_field(1,"tView.tRenderer.fParagraphGap",3,"value") @c_pack_field(1,"tView.tRenderer.fLineGap",4,"value") @c_pack_field(1,"tView.tRenderer.fIndent",5,"value") @c_pack_field(1,"tView.tRenderer.tFonts.normal",6,"view_raw") @c_pack_field(1,"tView.tRenderer.tFonts.bold",7,"view_raw") @c_pack_field(1,"tView.tRenderer.tFonts.italic",8,"view_raw") @c_pack_field(1,"tView.tRenderer.tFonts.boldItalic",9,"view_raw") @c_pack_field(1,"tView.tRenderer.tFonts.monospace",10,"view_raw") @c_pack_field(1,"tView.tRenderer.iTextColor",11,"value") @c_pack_field(1,"tView.tRenderer.iBorderColor",12,"value") @c_pack_field(1,"tView.tRenderer.iCodeBackground",13,"value") @c_pack_field(1,"tView.tRenderer.iHighlightColor",14,"value") @c_pack_field(1,"tView.tRenderer.iLinkColor",15,"value") @c_pack_field(1,"tView.tRenderer.iQuoteBorderColor",16,"value") @c_pack_field(1,"tView.tRenderer.iRuleColor",17,"value") @c_pack_field(1,"tView.tRenderer.iParagraphBackgroundColor",18,"value") @c_pack_field(1,"tView.tRenderer.iTableBorderColor",19,"value") @c_pack_field(1,"tView.tRenderer.iTableHeaderColor",20,"value") @c_pack_field(1,"tView.tRenderer.iTableCellColor",21,"value") @c_pack_field(1,"tView.tRenderer.iImagePlaceholderColor",22,"value") @c_pack_field(1,"tView.tRenderer.iImageBorderColor",23,"value") @c_pack_field(1,"tView.tRenderer.iImageTextColor",24,"value") @c_pack_field(1,"tView.tRenderer.iLayoutCacheBudgetBytes",25,"value") @c_pack_field(1,"tView.tRenderer.bSourceLineHeightMayVary",26,"value") @c_pack_field(1,"tView.bAutoHeight",27,"value") @c_pack_field(1,"tView.bDisableSelection",28,"value") @c_pack_field(1,"tView.iSelectionColor",29,"value") @c_pack_field(1,"tView.iBackgroundColor",30,"value") @c_pack_field(1,"iMode",31,"value") @c_pack_field(1,"bReadOnly",32,"value") @c_pack_field(1,"iCaretColor",33,"value") @c_pack_field(1,"iAsyncSourceThresholdBytes",34,"value") @c_pack_field(1,"iUndoGroupTimeoutMs",35,"value") @c_pack_size(1,"tView.tRenderer.iSize","uint32_t","tView.tRenderer") @c_pack_size(1,"tView.iSize","uint32_t","tView") func createDocumentEditor(Context context,Document document,c_float zoom=1,c_float paragraphGap=0,c_float lineGap=0,c_float indent=0,Font? normal=null,Font? bold=null,Font? italic=null,Font? boldItalic=null,Font? monospace=null,c_uint textColor=0,c_uint borderColor=0,c_uint codeBackground=0,c_uint highlightColor=0,c_uint linkColor=0,c_uint quoteBorderColor=0,c_uint ruleColor=0,c_uint paragraphBackgroundColor=0,c_uint tableBorderColor=0,c_uint tableHeaderColor=0,c_uint tableCellColor=0,c_uint imagePlaceholderColor=0,c_uint imageBorderColor=0,c_uint imageTextColor=0,uint64 layoutCacheBudgetBytes=0,c_uint sourceLineHeightMayVary=0,c_int autoHeight=0,c_int disableSelection=0,c_uint selectionColor=0,c_uint backgroundColor=0,c_uint mode=1,c_int readOnly=0,c_uint caretColor=0,uint64 asyncSourceThresholdBytes=0,c_uint undoGroupTimeoutMs=0) as DocumentEditor
+export extern "xuiDocumentWebProviderCreate" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) @factory(1,0,rollbackDocumentWebProvider) @c_pack(0,"xui_doc_web_provider_desc_t",0,5) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"pContext",0,"view_raw") @c_pack_field(0,"pParent",1,"view_raw") @c_pack_field(0,"sAssetsFolder",2,"c_string") @c_pack_field(0,"sUserDataFolder",3,"c_string") @c_pack_field(0,"iTimeoutMs",4,"value") func createDocumentWebProvider(Context context,Widget parent,string assetsFolder,string? userDataFolder=null,c_uint timeoutMs=0) as DocumentWebProvider
+export extern "xuiDocumentHtmlInteractionCreate" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) @factory(1,0,rollbackDocumentHtmlInteraction) @c_pack(0,"xui_doc_html_interaction_desc_t",0,5) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"pContext",0,"view_raw") @c_pack_field(0,"pDocument",1,"view_raw") @c_pack_field(0,"iNodeId",2,"value") @c_pack_field(0,"tBounds",3,"value") @c_pack_field(0,"sTitle",4,"c_string") func createDocumentHtmlInteraction(Context context,Document document,uint64 node,Rect bounds,string? title=null) as DocumentHtmlInteraction
+export extern "xuiDocumentImageResourceLoadFile" @header("xge3_runtime.h") @no_raise @c_cstr(1) @c_pack(3,"xui_doc_image_load_limits_t",3,2) @c_pack_size(3,"iSize","uint32_t") @c_pack_field(3,"iMaxEncodedBytes",3,"value") @c_pack_field(3,"iMaxPixels",4,"value") @c_cstr(2) @c_null(4,"xui_resource*") @c_result("status",0) func loadDocumentImageFile(Context context,string resourceName,string authorizedPath,uint64 maxEncodedBytes=0,uint64 maxPixels=0)
+export extern "xuiDocumentImageResourceLoadFileAsync" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) @factory(4,0,rollbackDocumentImageRequest) @c_cstr(1) @c_pack(3,"xui_doc_image_load_limits_t",3,2) @c_pack_size(3,"iSize","uint32_t") @c_pack_field(3,"iMaxEncodedBytes",3,"value") @c_pack_field(3,"iMaxPixels",4,"value") @c_cstr(2) func loadDocumentImageFileAsync(Context context,string resourceName,string authorizedPath,uint64 maxEncodedBytes=0,uint64 maxPixels=0) as DocumentImageRequest
+export extern "xuiDocumentImageResourceLoadMemory" @header("xge3_runtime.h") @no_raise @c_cstr(1) @c_pack(4,"xui_doc_image_load_limits_t",3,2) @c_pack_size(4,"iSize","uint32_t") @c_pack_field(4,"iMaxEncodedBytes",3,"value") @c_pack_field(4,"iMaxPixels",4,"value") @c_span(2,"const void*","size_t") @c_null(5,"xui_resource*") @c_result("status",0) func loadDocumentImageMemory(Context context,string resourceName,bytes encoded,uint64 maxEncodedBytes=0,uint64 maxPixels=0)
+export extern "xuiDocumentImageResourceLoadMemoryAsync" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) @factory(5,0,rollbackDocumentImageRequest) @c_cstr(1) @c_pack(4,"xui_doc_image_load_limits_t",3,2) @c_pack_size(4,"iSize","uint32_t") @c_pack_field(4,"iMaxEncodedBytes",3,"value") @c_pack_field(4,"iMaxPixels",4,"value") @c_span(2,"const void*","size_t") func loadDocumentImageMemoryAsync(Context context,string resourceName,bytes encoded,uint64 maxEncodedBytes=0,uint64 maxPixels=0) as DocumentImageRequest
+export extern "xuiDocumentImageResourceGetAsyncStats" @header("xge3_runtime.h") @no_raise @c_output(1,0) @c_output_size(1,"iSize") func documentImageAsyncStats(Context context) as DocumentImageAsyncStats

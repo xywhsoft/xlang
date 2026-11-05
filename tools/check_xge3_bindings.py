@@ -451,7 +451,7 @@ def generate(root,data):
         for f in header['functions']:
             if f['name'] in mapped:f.update(state='direct-declaration',language=mapped[f['name']])
         (src/'bootstrap.xl').write_text('// Normal module import executes the shared native initializer once.\nimport "_xge_native"\n',encoding='utf8')
-        manifest={'format':'xlang-package-1','name':package,'version':'3.0.0','abiVersion':'2','kind':'xlang-extlib','artifact':{'kind':'source','cSources':[],'xlSources':['src/bootstrap.xl','src/records.xl','src/constants.xl']+(['src/functions.xl','src/resources.xl','src/callbacks.xl','src/shapes.xl'] if package=='xge' else ['src/managed.xl','src/cell.xl','src/proxy.xl','src/draw.xl','src/text_shape.xl','src/managers.xl','src/document_records.xl','src/document.xl'])},'links':[],'loadlibs':[],'dependencies':[{'name':'_xge_native','version':'3.0.0','abiVersion':'2'}],'native':{'singleton':False,'loadName':'','version':''}}
+        manifest={'format':'xlang-package-1','name':package,'version':'3.0.0','abiVersion':'2','kind':'xlang-extlib','artifact':{'kind':'source','cSources':[],'xlSources':['src/bootstrap.xl','src/records.xl','src/constants.xl']+(['src/functions.xl','src/resources.xl','src/callbacks.xl','src/shapes.xl'] if package=='xge' else ['src/managed.xl','src/cell.xl','src/proxy.xl','src/draw.xl','src/text_shape.xl','src/managers.xl','src/document_records.xl','src/document.xl','src/document_ui_records.xl','src/document_ui.xl'])},'links':[],'loadlibs':[],'dependencies':[{'name':'_xge_native','version':'3.0.0','abiVersion':'2'}],'native':{'singleton':False,'loadName':'','version':''}}
         (folder/'xlang.package.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf8')
     annotate_existing_bindings(root,data,strict_storage=True,generated=True)
 
@@ -966,6 +966,8 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
         lines+=['export extern "xui_widget_t*" class '+group+' @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t")'+(' extends Widget' if group!='Widget' else '')]
         if group=='Widget':lines+=[' native point handle']
         lines+=methods
+        documentMethods=src/'document_ui_message_methods.inc'
+        if group=='MessageList' and documentMethods.is_file():lines+=[documentMethods.read_text(encoding='utf8')]
         if group=='Widget':lines+=[' extern "xuiWidgetDestroyChecked" @no_raise @c_result("status",0) func close()']
         lines+=['end']
     lines+=['extern "xuiDestroy" @no_raise func rollback(Context value)']
