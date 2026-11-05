@@ -167,7 +167,21 @@
   "sdkMaterials": {
     "sourceManifest": "dev/release-materials/sources/xge3-native-20261105-r3-host2/source-manifest.json",
     "sha256": "8fb1d6037a6c3304192f5517c121af1bc79da27e4169cef5e46a678b7d2bcac1",
-    "sourceFiles": 7720
+    "sourceFiles": 7720,
+    "ideEngineSource": {
+      "sourceManifest": {
+        "path": "dev/release-materials/sources/xge-ide-update-20261106/source-manifest.json",
+        "sha256": "85521c1a3f1bfc4675ce5e2a13dd31049f27f18bbb08e0109ee325e1a4679f65",
+        "bytes": 628
+      },
+      "sourceFiles": 4504,
+      "sdkManifest": {
+        "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+        "sha256": "371be1c1d14e71cbdd95b5f8b9169324acbe1df1e7415e50507902d6cc3cb411",
+        "bytes": 14590
+      },
+      "publicAbiFingerprint": "9a70075c21d0350a"
+    }
   },
   "compilerSources": {
     "sourceManifest": "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.manifest.json",
@@ -246,5 +260,15 @@
     "path": "dev/release-materials/provenance/ide-startup-fix-20261106/publication-receipt.json",
     "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
     "bytes": 2693
+  },
+  "ideEngineUpdate": {
+    "path": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
+    "sha256": "5846a963f9bfde550bd561fd44fd36edeb668e292caf669399e799f66d6ad976",
+    "bytes": 4379
+  },
+  "ideEngineSourceArchive": {
+    "path": "dev/release-materials/sources/xge-ide-update-20261106/xge3-ide-current-source.tar.gz",
+    "sha256": "3c30319c93a2bcdcfa269f1432abd823fe75a10dc7031a3291c2eab0762d86b3",
+    "bytes": 20912092
   }
 }

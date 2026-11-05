@@ -125,3 +125,6 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 
 /dev/release-materials/sources/ide-startup-fix-20261106/** -text whitespace=cr-at-eol
 /dev/release-materials/provenance/ide-startup-fix-20261106/** -text whitespace=cr-at-eol
+
+/dev/release-materials/sources/xge-ide-update-20261106/** -text whitespace=cr-at-eol
+/dev/release-materials/provenance/xge-ide-update-20261106/** -text whitespace=cr-at-eol

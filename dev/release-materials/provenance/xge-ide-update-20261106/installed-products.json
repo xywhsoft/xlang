@@ -1,0 +1,344 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Matched Windows IDE engine, SDK and GUI local replacement",
+  "before": {
+    "ide/third_party/xge_sdk/sdk_manifest.json": "ab36bf1effbe19e5793d301caeffa4811f3f3de6580e9c5348813a581acbad74",
+    "ide/third_party/xge_sdk/xge-source-files.json": "8722861b3f5254f475892cca97c0c023d431546d17942dc9f1f7df738d8a29ae",
+    "ide/third_party/xge_sdk/xge.dll": "edafbc3d3520f47cbb851365c98375b27f9a0f09404535dc7e03237e2ddc02fc",
+    "ide/third_party/xge_sdk/xge.h": "c64dcc31d83634631697a316f4cae0d211041f51770629128474cc384c4d299b",
+    "ide/third_party/xge_sdk/xge.lib": "6f6e8605b690f2112e5b06e45006fc1e50e919640ed88a6c4e11de7b31839173",
+    "ide/third_party/xge_sdk/xge_build_config.h": "94a7864bf5d7f7897e1845b1abf9d50cd2e5115a343be4341ef60264fbca343b",
+    "ide/third_party/xge_sdk/xge_config.h": "5d960786a736321b22d1b88cbe2d3aaac807e8afaa8a7bd0a4e509b06f7b76bf",
+    "ide/third_party/xge_sdk/xge_host_xrt.h": "5e43dc2cff98741941c1be6d02832d6cf34256521c94975e4fe96fd411e7b60f",
+    "ide/third_party/xge_sdk/xnative_transfer.h": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f",
+    "ide/third_party/xge_sdk/xui.h": "b10940d61965e0d85e4481d9e6a157410bc6a308a0d7e69f49c0a500d3da56c0",
+    "ide/third_party/xge_sdk/xui_config.h": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
+    "ide/third_party/xge_sdk/xui_document.h": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2",
+    "ide/third_party/xge_sdk/xui_document_ui.h": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2",
+    "ide/third_party/xge_sdk/provenance/parent-sdk-manifest.json": "17c4321c04c6a42a8f60de228cb589c8feec9ac5637256bcb634b8f429d8b65b",
+    "ide/third_party/xge_sdk/provenance/source-build-manifest.json": "908d5a067047b45249c0cf8368203279d0eb6d118bf8dc7cc0996bb1527d395d",
+    "ide/third_party/xge_sdk/provenance/source-build-report.json": "fec79c648a1a5f55dc9d5f5ad86b67311903cd19be3c77c71bcc272bb92b1f8c",
+    "ide/third_party/xge_sdk/extlibs/xrt/upstream.json": "13bbabde78aa12ad00b6546f7d464f41403095cd2010fb8c4b154825a2cad89c",
+    "ide/third_party/xge_sdk/extlibs/xrt/xrt.h": "3508abef61bd9b48e8b13bd4acca02e789cc3b770aa7c7fa70fe752f380a2726",
+    "ide/third_party/xge_sdk/extlibs/xrt/xrt_config.h": "0aa49016ab725145a8043619b860f780d0b81cbb2184084aaf1c485fa57bf314",
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm/include/xllm.h": "53921f2b7888eaea36a91cb014c482de2260b2f21c98c299138783b21fcd4ab1",
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm/include/xllm/api.h": "0182c8e567ea936444666e58be148ef20b6fe693f85db193e3895af5ab436c6d",
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm/include/xllm/executor.h": "07c29f7190a909c6266f807cf1a675a4b764bfb133db4dd47c0a1a58e9b812cf",
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm/include/xllm/features.h": "1865a3cca266bb8035d6c313e1dbd18cb6a1f93be72059ef0e4b1619a6c874e8",
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm/src/internal/xllm_internal.h": "36c04e2f6bcb6588fb5f82bf7f1e5c907f2ea4446fe340421babdedb3319a14e",
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm-session/include/xllm-session.h": "df6bc5bdee305d163e38874252f6d58d4542c67bcb24384c89a56a59a88cda97",
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm-session/include/xllm-session/api.h": "737969514039b3d072b231dfdfe9925e0478b403ebe95489761e0b08503aeb2b",
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm-session/include/xllm-session/features.h": "a0fefc50260d09e1e8d00a1487169d8e9402f6edc61e775f20695d33e3ec2624",
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm-session/src/internal/xllm_session_internal.h": "1df1879ff315d72f370058c19526076732404b9b1070c9eaad4dbf2821ef22f5",
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xwork/include/xwork.h": "b5683a0fac630c60f51d95bf728b9031aa99a4d05fcc81ba642e2110bcc82c02",
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xwork/include/xwork/api.h": "e3e05ee6f950d879ed03c63c66d6c7a7108c5aa20bcfabcf69505e6667b41ece",
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xwork/include/xwork/features.h": "91996f1fc399ed139543929d919af4a48b2e044979866650f0414ff822fd2be3",
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xwork/src/internal/xwork_internal.h": "a899e654a4aa31ff7f0c250be83a42c604beb4b7869903dc881b13f743ac7920",
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/patch-manifest.json": "50f287112eca501a65799edb608bcf3ad98a58b590a38dcc886bec8745e07b83",
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/upstream.json": "31451c4e78a4359dcd809394873231369108208b23e63f93e21df9bfa960de6a",
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/upstream.json.patch": "132c3fbf36b554c61d69629f4e56dc7011057a1b34f3ca4891f7e20de96c3ee1",
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/xrt.h": "095a852f390a83e7adef52e8e456634298f40245b7a36ec1e55b138e91143e16",
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/xrt.h.patch": "2437a75331c1804bffb1bcbd389c126b42583b909dfef2a4a60e90ff3e2c676c",
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/xui_code_annotation.c": "3bd2b3e67c77d6915aa2df0b5df62451e88ca1d025cb7dddc42eaf619d3f4105",
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/xui_code_annotation.patch": "d2609097c5ae55cfaf398657623966704d5d006d289f8b99dbb4b59e3e44c33a",
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/xui_code_edit.c": "943ae32753216072fc348b4eae6deb52c1441f8b1da85e0b977fa68c4b57d401",
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/xui_code_edit.patch": "8ae0baa90cb05400d4b949276a3efc55845c94e56b3705f3f9dbe5b352409b64",
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/xui_find.c": "119950af38e3d0d1617d1b666d2d046b7b2d8d360e0cf60b99b8b7aa91983832",
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/xui_find.patch": "b61f2531267809547ffdbaff64e8ab2587ac4ff3990bff7c7b59ebbbf4e5d0c0",
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/overlay.json": "74eff350628fd5be9c302198d46127d89d4be842257b64179170cb02e7fbe4a2",
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/parent-sdk_manifest.json": "2d540fd86eabc6ba5f2012fbecfa0f10d60d2e482eb6c2c72d0cf1cc39a1ae4c",
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/parent-source-build-manifest.json": "d46e4a963c1b7349d46504f4c5d768658d39254b70f9933b335d5b9cd6b922b3",
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/parent-source-build-report.json": "0fbd0a39bd646f45b8ca032b3e341397c1c3821632ad4e88c2a46a0fd549b248",
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/parent-xge-source-files.json": "d46e4a963c1b7349d46504f4c5d768658d39254b70f9933b335d5b9cd6b922b3",
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/sokol_app.h.patch": "098d66ee4a6d90f714e686122f34af611ae16a7ba28ff469a166d95a4354d9a5",
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/source-freeze.json": "b15be9bc5f0ed55f75105b9d64bd8a477353da7163fcfdbe577f6e8ae3658efd",
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/upstream-build-report.json": "9fd16eb1fd3340ff678bcc8af1b97da7d5502996d3fbddf8a904e7f458fe9d7e",
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/wgl_context_overlay.py": "eebaa6a0cd79e9130188e0451193413120c2ca8ec7cb34cc19cfdc5cb4580469",
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/xge_core.c.patch": "51813d71334522269d11301ab5b1fc0c4afcd25fcb8eeafabb78a44b9918c87c",
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/xge_impl.c.patch": "2b8d18bbc012c9601c0058580f5accbd5d91ec55c23e12645c4319be02c2afac",
+    "ide/third_party/xge_sdk/provenance/xge3-3e6e77f6c445-c6acff776a02-142d9fd1/parent-sdk-manifest.json": "142d9fd10e13c810c8b45679c171af5d93c2de212579238cc31fe8120f7097d6",
+    "ide/third_party/xge_sdk/provenance/xge3-3e6e77f6c445-c6acff776a02-142d9fd1/parent-xge-source-files.json": "908d5a067047b45249c0cf8368203279d0eb6d118bf8dc7cc0996bb1527d395d",
+    "ide/third_party/xge_sdk/provenance/xge3-3e6e77f6c445-c6acff776a02-142d9fd1/source-build-report.json": "c6acff776a02098580b00562ba98e89f3f26309f2db4b5cf58809c4587d77b3e",
+    "ide/third_party/xge_sdk/provenance/xge3-3e6e77f6c445-c6acff776a02-142d9fd1/source-freeze.json": "3e6e77f6c445225b0370cf2e638f6c664d442ca277b47156cbdd580c8563faf6",
+    "ide/third_party/xge_sdk/provenance/xge3-4fe557426d33-83b8c377aba1-ab36bf1e/parent-sdk-manifest.json": null,
+    "ide/third_party/xge_sdk/provenance/xge3-4fe557426d33-83b8c377aba1-ab36bf1e/parent-xge-source-files.json": null,
+    "ide/third_party/xge_sdk/provenance/xge3-4fe557426d33-83b8c377aba1-ab36bf1e/source-build-report.json": null,
+    "ide/third_party/xge_sdk/provenance/xge3-4fe557426d33-83b8c377aba1-ab36bf1e/source-freeze.json": null,
+    "release/win_x64/xlang_ide.exe": "25ade2a9867ed229edbf4b9013f26d99890dabaf8e9629c226fcea4a4f294883",
+    "release/win_x64/xge.dll": "edafbc3d3520f47cbb851365c98375b27f9a0f09404535dc7e03237e2ddc02fc"
+  },
+  "changed": [
+    "ide/third_party/xge_sdk/sdk_manifest.json",
+    "ide/third_party/xge_sdk/xge-source-files.json",
+    "ide/third_party/xge_sdk/xge.dll",
+    "ide/third_party/xge_sdk/xge.h",
+    "ide/third_party/xge_sdk/xge.lib",
+    "ide/third_party/xge_sdk/xge_build_config.h",
+    "ide/third_party/xge_sdk/provenance/xge3-4fe557426d33-83b8c377aba1-ab36bf1e/parent-sdk-manifest.json",
+    "ide/third_party/xge_sdk/provenance/xge3-4fe557426d33-83b8c377aba1-ab36bf1e/parent-xge-source-files.json",
+    "ide/third_party/xge_sdk/provenance/xge3-4fe557426d33-83b8c377aba1-ab36bf1e/source-build-report.json",
+    "ide/third_party/xge_sdk/provenance/xge3-4fe557426d33-83b8c377aba1-ab36bf1e/source-freeze.json",
+    "release/win_x64/xlang_ide.exe",
+    "release/win_x64/xge.dll"
+  ],
+  "installed": {
+    "ide/third_party/xge_sdk/sdk_manifest.json": {
+      "sha256": "371be1c1d14e71cbdd95b5f8b9169324acbe1df1e7415e50507902d6cc3cb411",
+      "bytes": 14590
+    },
+    "ide/third_party/xge_sdk/xge-source-files.json": {
+      "sha256": "5eb0a8a7655cedbcd45b786090ee278d05b3fca8690389af3cc60b812e06a85b",
+      "bytes": 824298
+    },
+    "ide/third_party/xge_sdk/xge.dll": {
+      "sha256": "b3dcabc7051634461f68852024a48e856bbe5b7ef66ed5693cae97c5f6dc1e3d",
+      "bytes": 11130425
+    },
+    "ide/third_party/xge_sdk/xge.h": {
+      "sha256": "f3b467786f5faedd225d9c17fb3569d5ca88b5e23e17b5c3a53c03b12e28b79e",
+      "bytes": 236899
+    },
+    "ide/third_party/xge_sdk/xge.lib": {
+      "sha256": "16bcd54bfd6bd194408e68023852db2c1d602a3a83ce2358af6fc878c256461d",
+      "bytes": 4676168
+    },
+    "ide/third_party/xge_sdk/xge_build_config.h": {
+      "sha256": "e156bf019019b1d258f52bd45f95d431b16b66dfe57cac2c7e8e09842ab0de31",
+      "bytes": 3287
+    },
+    "ide/third_party/xge_sdk/xge_config.h": {
+      "sha256": "5d960786a736321b22d1b88cbe2d3aaac807e8afaa8a7bd0a4e509b06f7b76bf",
+      "bytes": 8855
+    },
+    "ide/third_party/xge_sdk/xge_host_xrt.h": {
+      "sha256": "5e43dc2cff98741941c1be6d02832d6cf34256521c94975e4fe96fd411e7b60f",
+      "bytes": 1905
+    },
+    "ide/third_party/xge_sdk/xnative_transfer.h": {
+      "sha256": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f",
+      "bytes": 4183
+    },
+    "ide/third_party/xge_sdk/xui.h": {
+      "sha256": "b10940d61965e0d85e4481d9e6a157410bc6a308a0d7e69f49c0a500d3da56c0",
+      "bytes": 690457
+    },
+    "ide/third_party/xge_sdk/xui_config.h": {
+      "sha256": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
+      "bytes": 22798
+    },
+    "ide/third_party/xge_sdk/xui_document.h": {
+      "sha256": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2",
+      "bytes": 93662
+    },
+    "ide/third_party/xge_sdk/xui_document_ui.h": {
+      "sha256": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2",
+      "bytes": 50657
+    },
+    "ide/third_party/xge_sdk/provenance/parent-sdk-manifest.json": {
+      "sha256": "17c4321c04c6a42a8f60de228cb589c8feec9ac5637256bcb634b8f429d8b65b",
+      "bytes": 11638
+    },
+    "ide/third_party/xge_sdk/provenance/source-build-manifest.json": {
+      "sha256": "908d5a067047b45249c0cf8368203279d0eb6d118bf8dc7cc0996bb1527d395d",
+      "bytes": 137897
+    },
+    "ide/third_party/xge_sdk/provenance/source-build-report.json": {
+      "sha256": "fec79c648a1a5f55dc9d5f5ad86b67311903cd19be3c77c71bcc272bb92b1f8c",
+      "bytes": 20816
+    },
+    "ide/third_party/xge_sdk/extlibs/xrt/upstream.json": {
+      "sha256": "13bbabde78aa12ad00b6546f7d464f41403095cd2010fb8c4b154825a2cad89c",
+      "bytes": 1953
+    },
+    "ide/third_party/xge_sdk/extlibs/xrt/xrt.h": {
+      "sha256": "3508abef61bd9b48e8b13bd4acca02e789cc3b770aa7c7fa70fe752f380a2726",
+      "bytes": 1484321
+    },
+    "ide/third_party/xge_sdk/extlibs/xrt/xrt_config.h": {
+      "sha256": "0aa49016ab725145a8043619b860f780d0b81cbb2184084aaf1c485fa57bf314",
+      "bytes": 2812
+    },
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm/include/xllm.h": {
+      "sha256": "53921f2b7888eaea36a91cb014c482de2260b2f21c98c299138783b21fcd4ab1",
+      "bytes": 115
+    },
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm/include/xllm/api.h": {
+      "sha256": "0182c8e567ea936444666e58be148ef20b6fe693f85db193e3895af5ab436c6d",
+      "bytes": 34088
+    },
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm/include/xllm/executor.h": {
+      "sha256": "07c29f7190a909c6266f807cf1a675a4b764bfb133db4dd47c0a1a58e9b812cf",
+      "bytes": 3053
+    },
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm/include/xllm/features.h": {
+      "sha256": "1865a3cca266bb8035d6c313e1dbd18cb6a1f93be72059ef0e4b1619a6c874e8",
+      "bytes": 2279
+    },
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm/src/internal/xllm_internal.h": {
+      "sha256": "36c04e2f6bcb6588fb5f82bf7f1e5c907f2ea4446fe340421babdedb3319a14e",
+      "bytes": 15168
+    },
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm-session/include/xllm-session.h": {
+      "sha256": "df6bc5bdee305d163e38874252f6d58d4542c67bcb24384c89a56a59a88cda97",
+      "bytes": 120
+    },
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm-session/include/xllm-session/api.h": {
+      "sha256": "737969514039b3d072b231dfdfe9925e0478b403ebe95489761e0b08503aeb2b",
+      "bytes": 29525
+    },
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm-session/include/xllm-session/features.h": {
+      "sha256": "a0fefc50260d09e1e8d00a1487169d8e9402f6edc61e775f20695d33e3ec2624",
+      "bytes": 783
+    },
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm-session/src/internal/xllm_session_internal.h": {
+      "sha256": "1df1879ff315d72f370058c19526076732404b9b1070c9eaad4dbf2821ef22f5",
+      "bytes": 7571
+    },
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xwork/include/xwork.h": {
+      "sha256": "b5683a0fac630c60f51d95bf728b9031aa99a4d05fcc81ba642e2110bcc82c02",
+      "bytes": 92
+    },
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xwork/include/xwork/api.h": {
+      "sha256": "e3e05ee6f950d879ed03c63c66d6c7a7108c5aa20bcfabcf69505e6667b41ece",
+      "bytes": 25187
+    },
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xwork/include/xwork/features.h": {
+      "sha256": "91996f1fc399ed139543929d919af4a48b2e044979866650f0414ff822fd2be3",
+      "bytes": 746
+    },
+    "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xwork/src/internal/xwork_internal.h": {
+      "sha256": "a899e654a4aa31ff7f0c250be83a42c604beb4b7869903dc881b13f743ac7920",
+      "bytes": 10652
+    },
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/patch-manifest.json": {
+      "sha256": "50f287112eca501a65799edb608bcf3ad98a58b590a38dcc886bec8745e07b83",
+      "bytes": 1918
+    },
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/upstream.json": {
+      "sha256": "31451c4e78a4359dcd809394873231369108208b23e63f93e21df9bfa960de6a",
+      "bytes": 2010
+    },
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/upstream.json.patch": {
+      "sha256": "132c3fbf36b554c61d69629f4e56dc7011057a1b34f3ca4891f7e20de96c3ee1",
+      "bytes": 2722
+    },
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/xrt.h": {
+      "sha256": "095a852f390a83e7adef52e8e456634298f40245b7a36ec1e55b138e91143e16",
+      "bytes": 8534258
+    },
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/xrt.h.patch": {
+      "sha256": "2437a75331c1804bffb1bcbd389c126b42583b909dfef2a4a60e90ff3e2c676c",
+      "bytes": 516
+    },
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/xui_code_annotation.c": {
+      "sha256": "3bd2b3e67c77d6915aa2df0b5df62451e88ca1d025cb7dddc42eaf619d3f4105",
+      "bytes": 34289
+    },
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/xui_code_annotation.patch": {
+      "sha256": "d2609097c5ae55cfaf398657623966704d5d006d289f8b99dbb4b59e3e44c33a",
+      "bytes": 13998
+    },
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/xui_code_edit.c": {
+      "sha256": "943ae32753216072fc348b4eae6deb52c1441f8b1da85e0b977fa68c4b57d401",
+      "bytes": 384146
+    },
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/xui_code_edit.patch": {
+      "sha256": "8ae0baa90cb05400d4b949276a3efc55845c94e56b3705f3f9dbe5b352409b64",
+      "bytes": 10297
+    },
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/xui_find.c": {
+      "sha256": "119950af38e3d0d1617d1b666d2d046b7b2d8d360e0cf60b99b8b7aa91983832",
+      "bytes": 35150
+    },
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/xui_find.patch": {
+      "sha256": "b61f2531267809547ffdbaff64e8ab2587ac4ff3990bff7c7b59ebbbf4e5d0c0",
+      "bytes": 4099
+    },
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/overlay.json": {
+      "sha256": "74eff350628fd5be9c302198d46127d89d4be842257b64179170cb02e7fbe4a2",
+      "bytes": 761
+    },
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/parent-sdk_manifest.json": {
+      "sha256": "2d540fd86eabc6ba5f2012fbecfa0f10d60d2e482eb6c2c72d0cf1cc39a1ae4c",
+      "bytes": 11638
+    },
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/parent-source-build-manifest.json": {
+      "sha256": "d46e4a963c1b7349d46504f4c5d768658d39254b70f9933b335d5b9cd6b922b3",
+      "bytes": 137795
+    },
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/parent-source-build-report.json": {
+      "sha256": "0fbd0a39bd646f45b8ca032b3e341397c1c3821632ad4e88c2a46a0fd549b248",
+      "bytes": 42644
+    },
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/parent-xge-source-files.json": {
+      "sha256": "d46e4a963c1b7349d46504f4c5d768658d39254b70f9933b335d5b9cd6b922b3",
+      "bytes": 137795
+    },
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/sokol_app.h.patch": {
+      "sha256": "098d66ee4a6d90f714e686122f34af611ae16a7ba28ff469a166d95a4354d9a5",
+      "bytes": 8922
+    },
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/source-freeze.json": {
+      "sha256": "b15be9bc5f0ed55f75105b9d64bd8a477353da7163fcfdbe577f6e8ae3658efd",
+      "bytes": 135638
+    },
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/upstream-build-report.json": {
+      "sha256": "9fd16eb1fd3340ff678bcc8af1b97da7d5502996d3fbddf8a904e7f458fe9d7e",
+      "bytes": 18872
+    },
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/wgl_context_overlay.py": {
+      "sha256": "eebaa6a0cd79e9130188e0451193413120c2ca8ec7cb34cc19cfdc5cb4580469",
+      "bytes": 7575
+    },
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/xge_core.c.patch": {
+      "sha256": "51813d71334522269d11301ab5b1fc0c4afcd25fcb8eeafabb78a44b9918c87c",
+      "bytes": 521
+    },
+    "ide/third_party/xge_sdk/provenance/wgl-context-v1/xge_impl.c.patch": {
+      "sha256": "2b8d18bbc012c9601c0058580f5accbd5d91ec55c23e12645c4319be02c2afac",
+      "bytes": 2490
+    },
+    "ide/third_party/xge_sdk/provenance/xge3-3e6e77f6c445-c6acff776a02-142d9fd1/parent-sdk-manifest.json": {
+      "sha256": "142d9fd10e13c810c8b45679c171af5d93c2de212579238cc31fe8120f7097d6",
+      "bytes": 13789
+    },
+    "ide/third_party/xge_sdk/provenance/xge3-3e6e77f6c445-c6acff776a02-142d9fd1/parent-xge-source-files.json": {
+      "sha256": "908d5a067047b45249c0cf8368203279d0eb6d118bf8dc7cc0996bb1527d395d",
+      "bytes": 137897
+    },
+    "ide/third_party/xge_sdk/provenance/xge3-3e6e77f6c445-c6acff776a02-142d9fd1/source-build-report.json": {
+      "sha256": "c6acff776a02098580b00562ba98e89f3f26309f2db4b5cf58809c4587d77b3e",
+      "bytes": 19671
+    },
+    "ide/third_party/xge_sdk/provenance/xge3-3e6e77f6c445-c6acff776a02-142d9fd1/source-freeze.json": {
+      "sha256": "3e6e77f6c445225b0370cf2e638f6c664d442ca277b47156cbdd580c8563faf6",
+      "bytes": 1280159
+    },
+    "ide/third_party/xge_sdk/provenance/xge3-4fe557426d33-83b8c377aba1-ab36bf1e/parent-sdk-manifest.json": {
+      "sha256": "ab36bf1effbe19e5793d301caeffa4811f3f3de6580e9c5348813a581acbad74",
+      "bytes": 13820
+    },
+    "ide/third_party/xge_sdk/provenance/xge3-4fe557426d33-83b8c377aba1-ab36bf1e/parent-xge-source-files.json": {
+      "sha256": "8722861b3f5254f475892cca97c0c023d431546d17942dc9f1f7df738d8a29ae",
+      "bytes": 1270809
+    },
+    "ide/third_party/xge_sdk/provenance/xge3-4fe557426d33-83b8c377aba1-ab36bf1e/source-build-report.json": {
+      "sha256": "83b8c377aba1ee747ec15e5565544d9a2c006ee6bea0b7959c4cddda65b2db9e",
+      "bytes": 19875
+    },
+    "ide/third_party/xge_sdk/provenance/xge3-4fe557426d33-83b8c377aba1-ab36bf1e/source-freeze.json": {
+      "sha256": "4fe557426d33594969aff5075bfe6a588855045da44e213977b75d139f18aec9",
+      "bytes": 825423
+    },
+    "release/win_x64/xlang_ide.exe": {
+      "sha256": "0261d2ab6c619dd8e4304e159ae6e2d6b9897ce337142c940e32f3266a5b6f47",
+      "bytes": 1794464
+    },
+    "release/win_x64/xge.dll": {
+      "sha256": "b3dcabc7051634461f68852024a48e856bbe5b7ef66ed5693cae97c5f6dc1e3d",
+      "bytes": 11130425
+    }
+  },
+  "externalPublishPerformed": false
+}

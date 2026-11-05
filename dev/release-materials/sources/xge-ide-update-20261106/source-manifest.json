@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "scope": "Windows IDE embedded-XRT engine successor; does not replace language host-XRT packages",
+  "baseHEAD": "86d0a15b0cb2fb0d17463f3283f6898c941eeaa4",
+  "sourceWorktreeDirty": true,
+  "archive": {
+    "path": "xge3-ide-current-source.tar.gz",
+    "sha256": "3c30319c93a2bcdcfa269f1432abd823fe75a10dc7031a3291c2eab0762d86b3",
+    "bytes": 20912092,
+    "prefix": "xge3/"
+  },
+  "sourceFreeze": {
+    "path": "source-freeze.json",
+    "sha256": "4fe557426d33594969aff5075bfe6a588855045da44e213977b75d139f18aec9",
+    "sourceFiles": 4504
+  },
+  "allArchiveEntriesVerified": true
+}

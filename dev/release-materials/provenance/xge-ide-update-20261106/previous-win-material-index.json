@@ -1,0 +1,250 @@
+{
+  "schema": 2,
+  "date": "2026-11-05",
+  "platform": "win_x64",
+  "status": "matched-technical-materials-index",
+  "materials": [
+    {
+      "path": "notices/xge/extlibs/harfbuzz/src/ms-use/COPYING",
+      "sha256": "9906940f61b1f0b533fa7d99baf55178b2808fbe113ea51dfbfad8572ccd5f2b",
+      "bytes": 1162
+    },
+    {
+      "path": "notices/xge/extlibs/sokol/XGE_FORK.md",
+      "sha256": "fce9686119c4d6b9b539c2f0b9f18e789692fa84a38f4f57e0c8db75994ad6d4",
+      "bytes": 323
+    },
+    {
+      "path": "notices/xge/extlibs/stb/stb_vorbis.LICENSE",
+      "sha256": "814b915fefba4d825b55ea3d10a32c27daefe5f3adba431004eb5b76fc139a62",
+      "bytes": 2772
+    },
+    {
+      "path": "notices/xge/extlibs/unicode/LICENSE",
+      "sha256": "8437ba5f4e4c8ae0268c3df5cf106006f2d045ff3452eedd1f27e8eb26c5f327",
+      "bytes": 2034
+    },
+    {
+      "path": "notices/xge/extlibs/harfbuzz/COPYING",
+      "sha256": "bd836c0ddca8ea0bab54a03cd32b6ff7256cbb3840fca2edc1249a4ed92c5b02",
+      "bytes": 2013
+    },
+    {
+      "path": "notices/xge/extlibs/libunibreak/LICENCE",
+      "sha256": "8c7b1018f608e05a21af078ca4303d545d6b8719b95306eda83df64845283564",
+      "bytes": 1066
+    },
+    {
+      "path": "notices/xge/extlibs/libunibreak/UNICODE-LICENSE.txt",
+      "sha256": "85d2c71ce603e6facf0029043f82992556f099eebe55417b456ec27332665fed",
+      "bytes": 2026
+    },
+    {
+      "path": "notices/xge/extlibs/md4c/LICENSE.md",
+      "sha256": "e547c9a66c120b19f9838a1f7c2f51137f5c71ba27b70c3611b673f2cdb4e02e",
+      "bytes": 1096
+    },
+    {
+      "path": "notices/xge/extlibs/sheenbidi/LICENSE",
+      "sha256": "3ddf9be5c28fe27dad143a5dc76eea25222ad1dd68934a047064e56ed2fa40c5",
+      "bytes": 11560
+    },
+    {
+      "path": "notices/xge/extlibs/zstd/LICENSE",
+      "sha256": "e15eea76150c59fc3079289fb170478cbe7d5880a7e0fc8bb12320bfbcfc49ca",
+      "bytes": 1579
+    },
+    {
+      "path": "notices/xge/res/xge/emoji/twemoji_core/17.0/LICENSE-GRAPHICS",
+      "sha256": "f7c011ea2361bca6404b53a3e4d7ae8f9ca2d5abdc3916f83787789e71029d07",
+      "bytes": 18917
+    },
+    {
+      "path": "notices/xge/res/xge/emoji/twemoji_core/17.0/NOTICE.md",
+      "sha256": "a704e4e5eee567288a1c74d61486de8e1f328c29ae475ac9feac1b50df4feeb6",
+      "bytes": 667
+    },
+    {
+      "path": "notices/xge/res/xui/dockpanel_suite/LICENSE.dockpanelsuite.txt",
+      "sha256": "bda3b93fd24606d3a413c35930380c1850658f59876ab6bc5c32d036f9a94967",
+      "bytes": 1109
+    },
+    {
+      "path": "notices/LICENSE.xlang-MIT.txt",
+      "sha256": "1ef2f4366ef12ebedf3a7a56f22e118bd0d437de717006f42aea953c7c5788da",
+      "bytes": 1116
+    },
+    {
+      "path": "notices/THIRD_PARTY_NOTICES.md",
+      "sha256": "797e05e0cdfd461cff2399ed1cba8ee47569202cf34e5d05bda5b72ba14404fa",
+      "bytes": 3206
+    },
+    {
+      "path": "notices/tcc/GPL-2.0.txt",
+      "sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
+      "bytes": 17984
+    },
+    {
+      "path": "notices/tcc/XLANG-LICENSE-NOTICE.md",
+      "sha256": "5aaae5e13c12aaaa0acfccda2663175b92bd1f45dedde7288b1748976c874967",
+      "bytes": 1121
+    },
+    {
+      "path": "notices/tcc/COPYING",
+      "sha256": "9b183e7f0356c398cc0a65c4a2d2cd56f2149a8e244264c4d26ac59e9dada3e8",
+      "bytes": 26932
+    },
+    {
+      "path": "data/fonts/LICENSE",
+      "copyright": "data/fonts/COPYRIGHT.txt",
+      "provenance": "data/fonts/source.json",
+      "status": "pinned-unmodified-OFL-font"
+    },
+    {
+      "component": "stb",
+      "kind": "embedded-notice-header",
+      "sourceArchive": "dev/release-materials/sources/xge3-native-20261105-r3-host2/xge3-native-r3-host-image-r2.tar.gz",
+      "archiveEntry": "xge3/extlibs/stb/stb_image.h",
+      "sha256": "4da0d9fb792973186fcde195826cbc98363e6ceeb8ee7e31be1c3deceb1cf48f",
+      "bytes": 260467
+    },
+    {
+      "component": "stb",
+      "kind": "embedded-notice-header",
+      "sourceArchive": "dev/release-materials/sources/xge3-native-20261105-r3-host2/xge3-native-r3-host-image-r2.tar.gz",
+      "archiveEntry": "xge3/extlibs/stb/stb_image_write.h",
+      "sha256": "cbd5f0ad7a9cf4468affb36354a1d2338034f2c12473cf1a8e32053cb6914a05",
+      "bytes": 71221
+    },
+    {
+      "component": "stb",
+      "kind": "embedded-notice-header",
+      "sourceArchive": "dev/release-materials/sources/xge3-native-20261105-r3-host2/xge3-native-r3-host-image-r2.tar.gz",
+      "archiveEntry": "xge3/extlibs/stb/stb_truetype.h",
+      "sha256": "b34ba78041e0645bba5e6db6d61697b0a7c4457411c346bbab7984f347f937d8",
+      "bytes": 191665
+    },
+    {
+      "component": "sokol",
+      "kind": "embedded-notice-header",
+      "sourceArchive": "dev/release-materials/sources/xge3-native-20261105-r3-host2/xge3-native-r3-host-image-r2.tar.gz",
+      "archiveEntry": "xge3/extlibs/sokol/sokol_app.h",
+      "sha256": "42228272007c06ae5e7b256d536fb28a9bfd5ce4d16b94f74acf74fd7a948ee7",
+      "bytes": 580546
+    },
+    {
+      "component": "miniaudio",
+      "kind": "embedded-notice-header",
+      "sourceArchive": "dev/release-materials/sources/xge3-native-20261105-r3-host2/xge3-native-r3-host-image-r2.tar.gz",
+      "archiveEntry": "xge3/extlibs/miniaudio/miniaudio.h",
+      "sha256": "ac7af4de748b7e26b777f37e01cee313a308a7296a3eb080e2906b320cc55c89",
+      "bytes": 4108168
+    },
+    {
+      "component": "xrt",
+      "kind": "embedded-notice-header",
+      "sourceArchive": "dev/release-materials/sources/xge3-native-20261105-r3-host2/xge3-native-r3-host-image-r2.tar.gz",
+      "archiveEntry": "xge3/extlibs/xrt/xrt.h",
+      "sha256": "4c02cd11accbd06c4e5de725b1f19bacbf44a92e4791a3819ba45540bc6e4f5d",
+      "bytes": 9113263
+    }
+  ],
+  "previousMaterialIndex": {
+    "path": "dev/release-materials/provenance/xge3-local-publication-20261105/previous-win-material-index.json",
+    "sha256": "94f5ee1cc37bae0695489cb46e3f60c2ec094f6b4cf13d1664e435cbad51902a",
+    "bytes": 294116
+  },
+  "localPublication": {
+    "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
+    "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
+    "bytes": 10653
+  },
+  "developmentMaterials": {
+    "directory": "../../dev/release-materials"
+  },
+  "sourceAndProvenancePathsRelativeTo": "repository root",
+  "runtimePathsRelativeTo": "runtime platform directory",
+  "sdkMaterials": {
+    "sourceManifest": "dev/release-materials/sources/xge3-native-20261105-r3-host2/source-manifest.json",
+    "sha256": "8fb1d6037a6c3304192f5517c121af1bc79da27e4169cef5e46a678b7d2bcac1",
+    "sourceFiles": 7720
+  },
+  "compilerSources": {
+    "sourceManifest": "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.manifest.json",
+    "sha256": "26ba28940a0da86ebbe970dae419ee6b45ced38062367d392f21585a75727833",
+    "sourceCommit": "88bd73dc2b4615b6dcda189eb896aaf028c173f1",
+    "qualifiedCoreCommit": "a1d18117b935c4e14c93b59c25b8db0e500826f9",
+    "archive": {
+      "path": "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.zip",
+      "sha256": "d6152ffbe21499ecf74ee64d7266661d31af42d285c36291c2a6c41f35e49787",
+      "bytes": 103448219,
+      "compression": "ZIP deflate level 6"
+    },
+    "toolOverlay": {
+      "path": "dev/release-materials/sources/source-provider-tools-successor-20261105/source-manifest.json",
+      "sha256": "499021b2cd9533e8856d5ed6eb58934b386a922090e96811f3757240489b2319",
+      "bytes": 2052
+    },
+    "toolQualification": {
+      "path": "dev/release-materials/provenance/source-provider-tools-successor-20261105.json",
+      "sha256": "374d099cfe6b7ac33d735fe0940a1d3a17464a5e6c654d677f4df7333e0d0af2",
+      "bytes": 3261
+    },
+    "guiStartupOverlay": {
+      "path": "dev/release-materials/sources/ide-startup-fix-20261106/source-manifest.json",
+      "sha256": "62699954478a710352f937147b1a76d9cecd031e91dc461d2982d596e74a56e3",
+      "bytes": 3583
+    }
+  },
+  "tccMaterials": {
+    "sourceArchive": {
+      "path": "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.zip",
+      "sha256": "d6152ffbe21499ecf74ee64d7266661d31af42d285c36291c2a6c41f35e49787",
+      "bytes": 103448219,
+      "compression": "ZIP deflate level 6"
+    },
+    "archiveDirectory": "lib/tcc/",
+    "originalNoticesPreserved": true,
+    "relinkReviewComplete": false
+  },
+  "extensionMaterials": [
+    "extlibs/_bzip2/third_party/bzip2/LICENSE",
+    "extlibs/_expat/vendor/expat/COPYING",
+    "extlibs/_libzip/third_party/libzip/LICENSE",
+    "extlibs/_tomlc17/LICENSE",
+    "extlibs/_zlib/third_party/zlib/LICENSE",
+    "extlibs/argon2/vendor/LICENSE",
+    "extlibs/blake3/third_party/LICENSE",
+    "extlibs/brotli/LICENSE",
+    "extlibs/lz4/third_party/LICENSE",
+    "extlibs/md4c/LICENSE.md",
+    "extlibs/miniz/LICENSE",
+    "extlibs/siphash128/test/reference/LICENSE_CC0",
+    "extlibs/siphash128/test/reference/LICENSE_MIT",
+    "extlibs/snappy/LICENSE",
+    "extlibs/stb_image/LICENSE.stb.txt",
+    "extlibs/stb_image_resize2/LICENSE.stb.txt",
+    "extlibs/stb_image_write/LICENSE.stb.txt",
+    "extlibs/stb_truetype/LICENSE.stb.txt",
+    "extlibs/xregex/src/third_party/bbre/LICENSE.md",
+    "extlibs/xxhash/LICENSE",
+    "notices/xge/extlibs/zstd/LICENSE"
+  ],
+  "cServerSources": {
+    "enabled": false,
+    "inputTraceProtocol": 0,
+    "note": "C LSP is excluded from the default IDE; implementation retained behind XIDE_ENABLE_C_LSP."
+  },
+  "remaining": [
+    "SDK complete distribution terms review, including XGE and xlayout",
+    "TCC corresponding source/relink obligations review",
+    "Extension assets distribution review",
+    "IDE and xlang project distribution terms confirmation"
+  ],
+  "legalDistributionReviewComplete": false,
+  "guiStartupCorrection": {
+    "path": "dev/release-materials/provenance/ide-startup-fix-20261106/publication-receipt.json",
+    "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
+    "bytes": 2693
+  }
+}

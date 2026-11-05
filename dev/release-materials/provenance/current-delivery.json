@@ -74,7 +74,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-startup-fix-20261106/publication-receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -97,9 +97,9 @@
     },
     "sourceIdentity": {
       "guiQualification": {
-        "path": "dev/release-materials/provenance/ide-startup-fix-20261106/candidate-receipt.json",
-        "sha256": "657ccc379ad1251ba2a3f20246951d9060164c42805afc8e797be1a8403cfd6d",
-        "bytes": 4776
+        "path": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
+        "sha256": "5846a963f9bfde550bd561fd44fd36edeb668e292caf669399e799f66d6ad976",
+        "bytes": 4379
       },
       "languageServerQualification": "dev/release-materials/provenance/final-lsp-c-interop-20261105.json",
       "materials": {
@@ -111,14 +111,19 @@
         "path": "dev/release-materials/sources/ide-startup-fix-20261106/source-manifest.json",
         "sha256": "62699954478a710352f937147b1a76d9cecd031e91dc461d2982d596e74a56e3",
         "bytes": 3583
+      },
+      "nativeIdeMaterials": {
+        "path": "dev/release-materials/sources/xge-ide-update-20261106/source-manifest.json",
+        "sha256": "85521c1a3f1bfc4675ce5e2a13dd31049f27f18bbb08e0109ee325e1a4679f65",
+        "bytes": 628
       }
     },
     "previousMatchedGuiProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
     "openglStartupCompatibility": {
       "request": "3.3 core",
-      "targetedValidation": "passed",
+      "targetedValidation": "Passed with current matched SDK: real hidden window/workbench rendering and 1.25/2.0 DPI",
       "physicalWin7Hd4200Tested": false,
-      "matchedSdkManifestSha256": "142d9fd10e13c810c8b45679c171af5d93c2de212579238cc31fe8120f7097d6"
+      "matchedSdkManifestSha256": "371be1c1d14e71cbdd95b5f8b9169324acbe1df1e7415e50507902d6cc3cb411"
     },
     "updateClient": {
       "backgroundVersionCheck": true,
@@ -136,7 +141,18 @@
       "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
       "bytes": 2693
     },
-    "buildScope": "GUI startup, optional persisted-field probes, handled preference fallback and retained DPI paint ownership correction"
+    "buildScope": "Current XGE/XUI IDE profile plus matched SDK and full qualified GUI rebuild; startup correction source overlay retained",
+    "currentEngine": {
+      "sourceMaterials": {
+        "path": "dev/release-materials/sources/xge-ide-update-20261106/source-manifest.json",
+        "sha256": "85521c1a3f1bfc4675ce5e2a13dd31049f27f18bbb08e0109ee325e1a4679f65",
+        "bytes": 628
+      },
+      "publicAbiFingerprint": "9a70075c21d0350a",
+      "profile": "ide",
+      "xrtMode": "embedded",
+      "runtime": "release/win_x64/xge.dll"
+    }
   },
   "catalog": {
     "status": "passed",
@@ -3194,10 +3210,10 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "25ade2a9867ed229edbf4b9013f26d99890dabaf8e9629c226fcea4a4f294883",
+      "sha256": "0261d2ab6c619dd8e4304e159ae6e2d6b9897ce337142c940e32f3266a5b6f47",
       "bytes": 1794464,
       "path": "release/win_x64/xlang_ide.exe",
-      "origin": "ide-startup-fix-20261106"
+      "origin": "xge-ide-update-20261106"
     },
     {
       "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
@@ -3206,10 +3222,10 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "edafbc3d3520f47cbb851365c98375b27f9a0f09404535dc7e03237e2ddc02fc",
-      "bytes": 11125305,
+      "sha256": "b3dcabc7051634461f68852024a48e856bbe5b7ef66ed5693cae97c5f6dc1e3d",
+      "bytes": 11130425,
       "path": "release/win_x64/xge.dll",
-      "origin": "matched-xge3-xui3-local-delivery-20261105"
+      "origin": "xge-ide-update-20261106"
     },
     {
       "path": "release/win_x64/update.exe",
@@ -3355,6 +3371,11 @@
       "path": "dev/release-materials/sources/ide-startup-fix-20261106/source-manifest.json",
       "sha256": "62699954478a710352f937147b1a76d9cecd031e91dc461d2982d596e74a56e3",
       "bytes": 3583
+    },
+    "nativeIde": {
+      "path": "dev/release-materials/sources/xge-ide-update-20261106/source-manifest.json",
+      "sha256": "85521c1a3f1bfc4675ce5e2a13dd31049f27f18bbb08e0109ee325e1a4679f65",
+      "bytes": 628
     }
   },
   "buildToolsSuccessor": {
@@ -3366,5 +3387,10 @@
     "path": "dev/release-materials/provenance/ide-startup-fix-20261106/publication-receipt.json",
     "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
     "bytes": 2693
+  },
+  "xgeIdeUpdate": {
+    "path": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
+    "sha256": "5846a963f9bfde550bd561fd44fd36edeb668e292caf669399e799f66d6ad976",
+    "bytes": 4379
   }
 }
