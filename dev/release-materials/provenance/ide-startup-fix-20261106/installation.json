@@ -1,0 +1,22 @@
+{
+  "complete": true,
+  "passed": true,
+  "installed": true,
+  "sourceCommit": "8ea106dee2c394c1d3fc810272a3375315cc889f",
+  "target": "release/win_x64/xlang_ide.exe",
+  "beforeSha256": "5fdc6080d90c60aea26cd3416c3217599a1fdbd1fdf2d70a2e1c55a1648bac8c",
+  "afterSha256": "25ade2a9867ed229edbf4b9013f26d99890dabaf8e9629c226fcea4a4f294883",
+  "bytes": 1794464,
+  "source": "F:\\xlang-validation\\ide-startup-20261106-r1\\settings-successor-r1\\xlang_ide.exe",
+  "backup": "F:\\xlang-validation\\ide-startup-20261106-r1\\publication-r1\\previous-xlang_ide.exe",
+  "protected": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "edafbc3d3520f47cbb851365c98375b27f9a0f09404535dc7e03237e2ddc02fc",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "6a9378f3c772b40bcd035969212fd1ee99a1b8ed22be00c30c37114e0523a2f6",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "6ee80b3d2370289c1077b924d700985226c8df8aef17779b87c5c3e38a425835",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "e4ab39f8137fd91781bcc57dfd20d9904aa6bc2e74f422073d6015de3c489642",
+    "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json": "8b5a5151212487910ae88a7385fc6574f08e1ba3f1b8cb20885c4421dc5eff65"
+  },
+  "priorDeliveryIndexSha256": "35db18769afd37de81f49dcb2b10454ed89638d6ffc0b5c1d58633bc72d28649",
+  "externalPublishPerformed": false
+}

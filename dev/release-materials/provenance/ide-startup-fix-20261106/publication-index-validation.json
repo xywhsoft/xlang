@@ -1,0 +1,32 @@
+{
+  "complete": true,
+  "passed": true,
+  "currentDelivery": {
+    "path": "dev/release-materials/provenance/current-delivery.json",
+    "sha256": "c0e68b41ea4b9aad97e9b98e8887914014edba19bb7c952adce965c5eb9d2590",
+    "bytes": 160883
+  },
+  "materialIndexes": [
+    {
+      "path": "release/win_x64/notices/material-index.json",
+      "sha256": "b8cc7572f13a82b6221b3c3bf155c2e778ddfb29ca70cb3b364702ca357ff19a",
+      "bytes": 9893
+    },
+    {
+      "path": "release/linux_x64/notices/material-index.json",
+      "sha256": "31cea90753427a9a3f7994b1f7d826d3963b961252c8902239242169e0809592",
+      "bytes": 8649
+    }
+  ],
+  "publication": {
+    "path": "dev/release-materials/provenance/ide-startup-fix-20261106/publication-receipt.json",
+    "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
+    "bytes": 2693
+  },
+  "sourceOverlay": {
+    "path": "dev/release-materials/sources/ide-startup-fix-20261106/source-manifest.json",
+    "sha256": "62699954478a710352f937147b1a76d9cecd031e91dc461d2982d596e74a56e3",
+    "bytes": 3583
+  },
+  "historicalReceiptsNotRewritten": true
+}

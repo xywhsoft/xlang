@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "date": "2026-11-05",
+  "date": "2026-11-06",
   "primaryDirectory": "D:/GIT/x-lang",
   "deliveryDirectory": "release",
   "externalPublishPerformed": false,
@@ -53,7 +53,7 @@
   },
   "ide": {
     "languageServer": "Rebuilt qualified 455-pin C interop cohort; separately accepted from the prior GUI build.",
-    "guiTranslationUnits": 102,
+    "guiTranslationUnits": 103,
     "compiler": "GCC 16.2.0",
     "warnings": [
       "-Wall",
@@ -74,7 +74,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-startup-fix-20261106/publication-receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -96,12 +96,21 @@
       ]
     },
     "sourceIdentity": {
-      "guiQualification": "dev/release-materials/provenance/xge3-ide-matched-build-20261105.json",
+      "guiQualification": {
+        "path": "dev/release-materials/provenance/ide-startup-fix-20261106/candidate-receipt.json",
+        "sha256": "657ccc379ad1251ba2a3f20246951d9060164c42805afc8e797be1a8403cfd6d",
+        "bytes": 4776
+      },
       "languageServerQualification": "dev/release-materials/provenance/final-lsp-c-interop-20261105.json",
       "materials": {
         "path": "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.manifest.json",
         "sha256": "26ba28940a0da86ebbe970dae419ee6b45ced38062367d392f21585a75727833",
         "bytes": 7232398
+      },
+      "guiStartupOverlay": {
+        "path": "dev/release-materials/sources/ide-startup-fix-20261106/source-manifest.json",
+        "sha256": "62699954478a710352f937147b1a76d9cecd031e91dc461d2982d596e74a56e3",
+        "bytes": 3583
       }
     },
     "previousMatchedGuiProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
@@ -121,7 +130,13 @@
       "forceUpdateSupported": true,
       "cachedMandatoryPolicy": true,
       "saveCancelCannotBypassRequiredUpdate": true
-    }
+    },
+    "guiStartupCorrection": {
+      "path": "dev/release-materials/provenance/ide-startup-fix-20261106/publication-receipt.json",
+      "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
+      "bytes": 2693
+    },
+    "buildScope": "GUI startup, optional persisted-field probes, handled preference fallback and retained DPI paint ownership correction"
   },
   "catalog": {
     "status": "passed",
@@ -3179,10 +3194,10 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "5fdc6080d90c60aea26cd3416c3217599a1fdbd1fdf2d70a2e1c55a1648bac8c",
-      "bytes": 1799797,
+      "sha256": "25ade2a9867ed229edbf4b9013f26d99890dabaf8e9629c226fcea4a4f294883",
+      "bytes": 1794464,
       "path": "release/win_x64/xlang_ide.exe",
-      "origin": "matched-xge3-xui3-local-delivery-20261105"
+      "origin": "ide-startup-fix-20261106"
     },
     {
       "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
@@ -3235,11 +3250,17 @@
       "sha256": "7601d36e3df64445512daf17b0f040381df60d0bc7478314102b6b7f0c491556",
       "bytes": 161362
     },
-    "interactiveGpuOsNetwork": false
+    "interactiveGpuOsNetwork": false,
+    "guiStartupCorrection": {
+      "path": "dev/release-materials/provenance/ide-startup-fix-20261106/publication-receipt.json",
+      "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
+      "bytes": 2693
+    },
+    "guiWorkbenchRenderCases": 5
   },
   "remaining": {
     "currentDelivery": [
-      "Interactive windows, GPU rendering, real OS clipboard/OLE, browser and external network operations were not executed.",
+      "Bounded hidden workbench rendering is qualified, including session restore and 1/1.25/2 DPI. The complete interactive, clipboard/OLE, browser and network suites were not rerun.",
       "Direct declarative calls retain checked lifetime/error costs; the pinned cost report makes no universal zero-overhead claim.",
       "Concurrent unrelated IDE3/native work and old flat-release migration deletions were not staged."
     ],
@@ -3252,7 +3273,8 @@
     "modelsAndToolchainsAdded": false,
     "versionedCatalogSourcesAndFonts": true,
     "currentOwnedArtifactCommit": "88bd73dc2b4615b6dcda189eb896aaf028c173f1",
-    "concurrentReleaseMigrationStagedByThisDelivery": false
+    "concurrentReleaseMigrationStagedByThisDelivery": false,
+    "guiSourceCommit": "8ea106dee"
   },
   "cleanup": {
     "date": "2026-10-31",
@@ -3328,11 +3350,21 @@
       "path": "dev/release-materials/sources/source-provider-tools-successor-20261105/source-manifest.json",
       "sha256": "499021b2cd9533e8856d5ed6eb58934b386a922090e96811f3757240489b2319",
       "bytes": 2052
+    },
+    "guiStartupOverlay": {
+      "path": "dev/release-materials/sources/ide-startup-fix-20261106/source-manifest.json",
+      "sha256": "62699954478a710352f937147b1a76d9cecd031e91dc461d2982d596e74a56e3",
+      "bytes": 3583
     }
   },
   "buildToolsSuccessor": {
     "path": "dev/release-materials/provenance/source-provider-tools-successor-20261105.json",
     "sha256": "374d099cfe6b7ac33d735fe0940a1d3a17464a5e6c654d677f4df7333e0d0af2",
     "bytes": 3261
+  },
+  "ideStartupCorrection": {
+    "path": "dev/release-materials/provenance/ide-startup-fix-20261106/publication-receipt.json",
+    "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
+    "bytes": 2693
   }
 }

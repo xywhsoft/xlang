@@ -12,3 +12,5 @@ Current artifact hashes, CPU acceptance, SDK manifests, local installation and i
 Older `xlang/`, `xge/` and `tcc/` snapshots remain historical materials. Their original guide is preserved at `../provenance/xge3-local-publication-20261105/previous-COMPILER-REBUILD.md`; do not treat those earlier build paths or hashes as the current source cohort. Keep source materials and provenance outside the runtime folders.
 
 Apply the five-file `source-provider-tools-successor-20261105/` overlay after extracting the xlang archive. Its README and manifest pin the subsequent SDK alias refresh, production acceptance tool and role documentation to Git commit `1f19a1dec`; no compiler/ABI rebuild is required by this tools-only layer.
+
+Apply the `ide-startup-fix-20261106/` source overlay for the current Windows GUI startup correction. Its source manifest pins the optional metadata-read and DPI-paint ownership changes. The matched engine/CLI/language-server/SDK images remain unchanged. After rebuilding, use `python ide/tools/check_gui_startup.py --runtime release/win_x64 --out <new-external-validation-directory>` for real bounded workbench rendering and isolated session restore.
