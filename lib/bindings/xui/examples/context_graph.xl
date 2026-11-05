@@ -1,0 +1,46 @@
+// Builds a control graph and registers a typed owned callback; never renders.
+import xui
+
+class ClickCounter
+ int count=0
+end
+
+func main(...) as int
+ auto proxy=xui.createProxy()
+ try
+  auto context=xui.create(proxy)
+  try
+   auto root=context.panelNative()
+   auto bounds=xui.Rect()
+   bounds.fW=c_int(640)
+   bounds.fH=c_int(360)
+   assert root.setRect(bounds)==0
+   assert context.setRootWidget(root)==0
+   auto button=context.buttonNative()
+   button.setText("Direct native button")
+   auto buttonRect=xui.Rect()
+   buttonRect.fX=c_int(20)
+   buttonRect.fY=c_int(20)
+   buttonRect.fW=c_int(220)
+   buttonRect.fH=c_int(44)
+   assert button.setRect(buttonRect)==0
+   assert root.addChild(button)==0
+   ClickCounter clicks=ClickCounter()
+   button.setClick(func(xui.Widget source)
+    assert source.getEnabled()!=0
+    clicks.count+=1
+   end)
+   assert (button.getText() as string)=="Direct native button"
+   assert clicks.count==0
+   // No event is dispatched by this example. Clear the native owning slot.
+   button.setClick(null)
+   button.close()
+  finally
+   // Context closes its complete remaining widget graph.
+   context.close()
+  end
+ finally
+  proxy.close()
+ end
+ return 0
+end

@@ -1,0 +1,58 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Current XGE/XUI examples and read-only old-example audit. Full R36 compilers (1416/1415 source TUs), frozen public declarations including Manager R7, matching per-platform R7 SDK. No production source wrappers, runtime/UI/GPU/browser/network execution, core/release edits or new delivery/provider claim.",
+  "candidate": "F:\\xlang-validation\\foreign-completion-20261103\\examples-candidate-r1\\manifest.json",
+  "candidateSha256": "3eaffa06fcd91fe99b806c2638472787b909c983a6b735cfc90c29d80902b8e1",
+  "packageInputs": "F:\\xlang-validation\\foreign-completion-20261103\\examples-inputs-r2\\manifest.json",
+  "packageInputsSha256": "98a8c1127ac98a735167cdc478d7ffb4044c8ba98e24042da34781802f14c680",
+  "sourceFiles": 12,
+  "examples": 8,
+  "headlessExamples": 6,
+  "guiExamples": 2,
+  "windowsReports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\examples-abi-win-r3\\results.json",
+      "sha256": "ded7586326ecc0cd498fef6f9fc18850f6ac2a18b09ba48554680aeb49a93163",
+      "rows": 35
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\examples-native-objects-win-r1\\results.json",
+      "sha256": "c2224aacc6086f0bc954d704214717fba2ff5547f7b163d302c1c2afb9d95f20",
+      "rows": 16
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\examples-legacy-negative-win-r1\\results.json",
+      "sha256": "a5d19f4d0be14f3efe0a55d99fb7bd235a80cd610e2596e92e5398b2c6763226",
+      "rows": 3
+    }
+  ],
+  "linuxReports": [
+    {
+      "originalPath": "/home/ubuntu/xlang-validation/examples-abi-linux-r2/results.json",
+      "copiedPath": "/mnt/f/xlang-validation/foreign-completion-20261103/examples-acceptance-r1/examples-abi-linux-r2-results.json",
+      "sha256": "c22f2b4e348af1012bcba411faa9dc827dc5bda9a8d284d6845f6726c8d3ea41",
+      "rows": 35,
+      "examples": 8
+    },
+    {
+      "originalPath": "/home/ubuntu/xlang-validation/examples-native-objects-linux-r1/results.json",
+      "copiedPath": "/mnt/f/xlang-validation/foreign-completion-20261103/examples-acceptance-r1/examples-native-objects-linux-r1-results.json",
+      "sha256": "132d8a4539236ceab063d9a1c0d7eca82a5d9ceb42223bdb0c0e6de2e78d581f",
+      "rows": 16,
+      "examples": 0
+    }
+  ],
+  "legacyReadOnlyFiles": 76,
+  "legacyRepresentativeRejections": 3,
+  "exampleExecution": false,
+  "gpuTests": false,
+  "windowTests": false,
+  "shippingDelivery": false,
+  "sourceInputsUnchanged": true,
+  "knownGaps": [
+    "Legacy release examples still need separate migration, including application input/layout/font/resize wiring.",
+    "Current examples certify Cgen and actual native object compilation only, not graphical behavior.",
+    "Final async-finalize runtime, final Native SDK, TCC/VFS and full delivery remain parent integration work."
+  ]
+}
