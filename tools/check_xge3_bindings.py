@@ -217,12 +217,23 @@ def header_inventory(path,external_types=()):
     return dict(header=str(path),sha256=hashlib.sha256(header_bytes).hexdigest(),functions=functions,types=types,constants=constants,enums=enums,enumConstants=enum_constants,functionMacros=function_macros,callableFields=callable_fields,parseErrors=errors)
 
 def inventory(root,out):
-    result=dict(schema=1,scope=__doc__,headers=[header_inventory(root/'include'/name) for name in ('xge.h','xui.h')])
+    # Public headers may name types from a separately included portable ABI.
+    # Seed only declarations actually present in that dependency, rather than
+    # treating every xn_* spelling as a known C type and masking typos.
+    dependencies=[];known=set();transfer=root/'include/xnative_transfer.h'
+    if transfer.exists():
+        dependency=header_inventory(transfer);dependencies.append(dependency)
+        known.update(t['name'] for t in dependency['types'])
+    headers=[]
+    for name in ('xge.h','xui.h'):
+        row=header_inventory(root/'include'/name,known);headers.append(row)
+        known.update(t['name'] for t in row['types'])
+    result=dict(schema=1,scope=__doc__,headers=headers,dependencyHeaders=dependencies)
     result['counts']={k:sum(len(h[k]) for h in result['headers']) for k in ('functions','types','constants','enums','enumConstants','functionMacros','callableFields','parseErrors')}
-    # These are independent public headers, not reverse-included by xui.h.
-    # Keep them explicit instead of silently counting the primary two headers
-    # as the entire include/ surface. They are not auto-generated as caller
-    # resources: each owning Document/Renderer handle needs a real contract.
+    # Inventory separate public headers explicitly. This reader inventories
+    # each file's own declarations without expanding its include graph; the
+    # primary two-header count is not the entire public include/ surface.
+    # Owning Document/Renderer handles still need separate managed contracts.
     known={t['name'] for h in result['headers'] for t in h['types']}
     result['supplementaryHeaders']=[]
     for name in ('xui_document.h','xui_document_ui.h'):

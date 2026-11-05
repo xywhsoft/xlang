@@ -1,0 +1,80 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Source declaration inventory and exact independently named host SDK staging only; inventory is not whole-API execution coverage.",
+  "primaryCounts": {
+    "functions": 4583,
+    "types": 864,
+    "constants": 1820,
+    "enums": 0,
+    "enumConstants": 0,
+    "functionMacros": 7,
+    "callableFields": 162,
+    "parseErrors": 0
+  },
+  "supplementaryCounts": {
+    "functions": 383,
+    "types": 85,
+    "constants": 2,
+    "enums": 40,
+    "enumConstants": 316,
+    "functionMacros": 0,
+    "callableFields": 12,
+    "parseErrors": 0
+  },
+  "combinedCounts": {
+    "functions": 4966,
+    "types": 949,
+    "constants": 1822,
+    "enums": 40,
+    "enumConstants": 316,
+    "functionMacros": 7,
+    "callableFields": 174,
+    "parseErrors": 0
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\packages-final-win-r2.json",
+      "sha256": "39715955818eb32ee02e8d7f16078f1c34f0ccf6e2d415ce06c6cca4374a98f8",
+      "outputFiles": 60
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2.json",
+      "sha256": "5caef2622ad6b7b020c813c5f936b2e8c8b2a4891a8646b7e99f5d55a1f8cf3f",
+      "outputFiles": 60
+    }
+  ],
+  "ambiguousHostRejectedBeforeOutput": true,
+  "rejectionLog": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\reject-ambiguous-host-r2.log",
+    "sha256": "89374c1442ff935e19c9d619ba4953e8bebcb5b754ade99f77a98e1251dcf812"
+  },
+  "files": [
+    {
+      "path": "tools/check_xge3_bindings.py",
+      "canonicalLfSha256": "9a76000221e200ee562b13f5d85cea5456f24ba63fa5dd86fe00a3f98e361dc9"
+    },
+    {
+      "path": "tools/stage_xge3_packages.py",
+      "canonicalLfSha256": "5dde528f16f362cae07a1d8e7b6089c06b7bb4930ffd034c9138508d816a3da8"
+    },
+    {
+      "path": "docs/xge3-xui3-api-map.md",
+      "canonicalLfSha256": "6e097a12a703059a66978afe44b6f84e8cfe61751f60aa67e2c45af7566ce337"
+    },
+    {
+      "path": "docs/xge3-xui3-api-map.json",
+      "canonicalLfSha256": "82eadc53c0ee643bb622b14a9adaf29424fc4206107e92e969d41314cafc3828"
+    },
+    {
+      "path": "docs/xge3-xui3-api-map-documents.json",
+      "canonicalLfSha256": "669e18fe7ca345f585113e08b56680185c0ef6b64fe0a2d21b0392cec756c0c2"
+    },
+    {
+      "path": "docs/xge3-xui3-api-map-storage.json",
+      "canonicalLfSha256": "972918d40b643766aa320e4711a8bfd0aa9eb7c93a92afb951c6cf212aec9363"
+    }
+  ]
+}
