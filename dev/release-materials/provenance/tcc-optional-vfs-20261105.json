@@ -1,0 +1,75 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "scope": "Eight optional VFS symbol pointers in the private TCC API. Real extended and vanilla providers accepted; static signatures and assignments verified. Two-TU overlay on complete R36.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\optional-vfs-candidate-r1\\manifest.json",
+    "sha256": "ef2498d891abfef84c3571893d49b2d50ffdabdecab237e5aa76c9d615387497"
+  },
+  "reports": [
+    {
+      "platform": "win_x64",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\optional-vfs-gate-win-r3\\results.json",
+      "sha256": "3a942934d39dad24a2de0b451067f9337a8eb9bad095b9d96eac1b5b3371e254",
+      "steps": 17
+    },
+    {
+      "platform": "win_x64",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\optional-vfs-tcc-embed-win-r1\\results.json",
+      "sha256": "c13524314755dc3d3a0450ceb1e4b864898f8acfa5115212953e165c932c4b43",
+      "steps": 4
+    },
+    {
+      "platform": "linux_x64",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\optional-vfs-gate-linux-r1\\results.json",
+      "sha256": "c7d55f73266aa6ac5af1fffb3fbe2519a93c72161e04d9401284b1b8cfb37152",
+      "steps": 17
+    },
+    {
+      "platform": "linux_x64",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\optional-vfs-tcc-embed-linux-r1\\results.json",
+      "sha256": "971b14d75aff378489f07898f0832e6342b1f33bcc72aba7eaa414bffc3a4116",
+      "steps": 4
+    }
+  ],
+  "privateTableBytesAdded": 64,
+  "existingOffsetsChanged": false,
+  "publicAbiChanged": false,
+  "limitations": [
+    "No public Native package or release update",
+    "Full next-source and final shipping provider acceptance is separate"
+  ],
+  "files": [
+    {
+      "path": "src/api/xl_api.c",
+      "sha256": "92489cc61c897030ef78bfdaaf45c3f3809f80bb42242818cf7b0538631a85b9",
+      "blob": "933c863a78c512569687148943c068f7f1416aaa"
+    },
+    {
+      "path": "src/api/xl_api_internal.h",
+      "sha256": "ee56c03c7812456c9fa88fc2895e60ae578ad24139f25656d38b033db944dd79",
+      "blob": "aa099a2a6ad3979b3a041115fcb4a0864b345f3f"
+    },
+    {
+      "path": "src/api/xl_api_symbols.c",
+      "sha256": "9620f32a63d181da1d22b92128f05095b756a31149cb2e49f5574f69070775f0",
+      "blob": "3aefb0a089e0aefb3d6bb8ec84711f67a153b4d2"
+    },
+    {
+      "path": "test/cases/tcc_optional_vfs_loader.c",
+      "sha256": "3ccb6956aa7ae9e010fa2db91b766bbd58ea0091cbda3812aef1d559754b52e7",
+      "blob": "260b182146d7a9b43f86b28ecc46c3262ae769bc"
+    },
+    {
+      "path": "test/cases/tcc_optional_vfs_signature.c",
+      "sha256": "af3a44bd73d4681ba8f8aae39a522575aa98821ba5506776fdc76b98ec97ccdb",
+      "blob": "2162ff97806a83126b6f63fd493638c81d566264"
+    },
+    {
+      "path": "tools/check_tcc_optional_vfs.py",
+      "sha256": "93aac555175a077285ea47a51abd378b59dfd33ffbb2e9b6f7b03877da6480d3",
+      "blob": "1be07280d44898120d80b46bc6d8205a9534aad8"
+    }
+  ]
+}

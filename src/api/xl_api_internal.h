@@ -2,6 +2,8 @@
 #define XL_API_INTERNAL_H
 
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
 
 #include "include/xl.h"
 #include "libtcc.h"
@@ -95,6 +97,16 @@ typedef int (*XL_TccRelocateProc)(TCCState* s);
 typedef void* (*XL_TccGetSymbolProc)(TCCState* s, const char* name);
 typedef void (*XL_TccListSymbolsProc)(TCCState* s, void* ctx, void (*symbolCb)(void* ctx, const char* name, const void* value));
 typedef void (*XL_TccSetBacktraceFuncProc)(TCCState* s, void* userdata, TCCBtFunc* func);
+/* Optional provider extension, with the exact public tcc_builtin_vfs.h ABI.
+ * Ordinary libtcc providers may leave every entry NULL. */
+typedef int (*XL_TccVfsOpenProc)(const char* path, int flags, ...);
+typedef int (*XL_TccVfsCloseProc)(int fd);
+typedef int (*XL_TccVfsReadProc)(int fd, void* buffer, size_t count);
+typedef long (*XL_TccVfsLseekProc)(int fd, long offset, int whence);
+typedef FILE* (*XL_TccVfsFopenProc)(const char* path, const char* mode);
+typedef int (*XL_TccVfsFcloseProc)(FILE* file);
+typedef int (*XL_TccVfsMountMemoryProc)(const char* path, const void* data, size_t size);
+typedef void (*XL_TccVfsClearDynamicProc)(void);
 
 typedef struct XL_TccApi {
     int ready;
@@ -125,6 +137,14 @@ typedef struct XL_TccApi {
     XL_TccGetSymbolProc tcc_get_symbol;
     XL_TccListSymbolsProc tcc_list_symbols;
     XL_TccSetBacktraceFuncProc tcc_set_backtrace_func;
+    XL_TccVfsOpenProc tcc_vfs_open;
+    XL_TccVfsCloseProc tcc_vfs_close;
+    XL_TccVfsReadProc tcc_vfs_read;
+    XL_TccVfsLseekProc tcc_vfs_lseek;
+    XL_TccVfsFopenProc tcc_vfs_fopen;
+    XL_TccVfsFcloseProc tcc_vfs_fclose;
+    XL_TccVfsMountMemoryProc tcc_vfs_mount_memory;
+    XL_TccVfsClearDynamicProc tcc_vfs_clear_dynamic;
 } XL_TccApi;
 
 extern XL_TccApi xl__tcc;
