@@ -1,0 +1,22 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Maintained examples through actual current production CLIs, both platforms; static TCC/VFS, normal final named r2 SDKs.",
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\production-cli-examples-win-receipt-r1\\receipt.json",
+      "sha256": "8bea9b9c719d400595b4953b0353ed47100adcbae8b130d2de5582a48941d5ad"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\production-cli-examples-linux-receipt-r1\\receipt.json",
+      "sha256": "1e5e3103f463df9d299416894988ba34b4d11dd3408fa2fd091c7d73dacea30d"
+    }
+  ],
+  "totalProcessRows": 34,
+  "totalActualHeadlessRuns": 18,
+  "headlessExamplesPerPlatform": 9,
+  "interactiveExamplesPerPlatform": 2,
+  "interactiveExecution": false,
+  "sourceDriverUsed": false,
+  "shippingInstallation": false
+}
