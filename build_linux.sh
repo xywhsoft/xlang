@@ -14,6 +14,8 @@ if ! getconf GNU_LIBC_VERSION >/dev/null 2>&1; then
 fi
 
 BUILD_DIR="${XL6_LINUX_BUILD_DIR:-$ROOT/build/linux}"
+RELEASE_DIR="${XL6_RELEASE_DIR:-$ROOT/release/linux_x64}"
+SDK_DIR="$ROOT/release/linux_x64"
 TCC_SOURCE_DIR="$BUILD_DIR/tcc-source"
 TCC_DIST_DIR="$BUILD_DIR/tcc-dist"
 PACK_TOOL="$BUILD_DIR/tcc_vfs_lzma_pack"
@@ -37,7 +39,7 @@ require_tool "$PYTHON"
 
 "$PYTHON" "$ROOT/tools/check_stdlib_shipping_sources.py" --root "$ROOT"
 
-mkdir -p "$BUILD_DIR" "$TCC_DIST_DIR/include" "$TCC_DIST_DIR/lib" "$ROOT/release"
+mkdir -p "$BUILD_DIR" "$TCC_DIST_DIR/include" "$TCC_DIST_DIR/lib" "$RELEASE_DIR"
 
 "$PYTHON" "$ROOT/tools/sync_xrt_snapshot.py" --root "$ROOT" --check
 "$PYTHON" "$ROOT/tools/generate_stdlib_index.py" --root "$ROOT"
@@ -121,8 +123,8 @@ COMMON_FLAGS=(
 	-DLIBTCC_AS_DLL
 	-DCONFIG_TCC_BUILTIN_VFS=1
     -I"$ROOT"
-    -I"$ROOT/release"
-    -I"$ROOT/release/include"
+    -I"$SDK_DIR"
+    -I"$SDK_DIR/include"
     -I"$ROOT/src"
     -I"$ROOT/lib/lzma"
     -I"$TCC_SOURCE_DIR"
@@ -159,7 +161,7 @@ printf 'Building libxl.so...\n'
     "$BUILD_DIR/tcc_builtin_resources_runtime.c" \
     "${SYSTEM_LIBS[@]}" \
     -Wl,-soname,libxl.so \
-    -o "$ROOT/release/libxl.so"
+    -o "$RELEASE_DIR/libxl.so"
 
 printf 'Building libxlc.so...\n'
 "$CC" "${COMMON_FLAGS[@]}" "${SHARED_FLAGS[@]}" \
@@ -169,15 +171,15 @@ printf 'Building libxlc.so...\n'
     "$BUILD_DIR/tcc_builtin_resources.c" \
     "${SYSTEM_LIBS[@]}" \
     -Wl,-soname,libxlc.so \
-    -o "$ROOT/release/libxlc.so"
+    -o "$RELEASE_DIR/libxlc.so"
 
 printf 'Building xl command line tool...\n'
-"$CC" -std=c11 -D_GNU_SOURCE -Wall -O2 -s -ffunction-sections -fdata-sections -Wl,--gc-sections -I"$ROOT" -I"$ROOT/release" \
+"$CC" -std=c11 -D_GNU_SOURCE -Wall -O2 -s -ffunction-sections -fdata-sections -Wl,--gc-sections -I"$ROOT" -I"$SDK_DIR" \
     "$ROOT/src/driver/xl6_xlc_shell.c" \
     "$ROOT/src/common/xl6_console.c" \
-    -L"$ROOT/release" -lxlc \
+    -L"$RELEASE_DIR" -lxlc \
     -Wl,-rpath,'$ORIGIN' \
     -pthread -ldl -lm \
-    -o "$ROOT/release/xl"
+    -o "$RELEASE_DIR/xl"
 
-printf 'DEMO6 Linux build ok: release/xl release/libxl.so release/libxlc.so\n'
+printf 'DEMO6 Linux build ok: %s/xl %s/libxl.so %s/libxlc.so\n' "$RELEASE_DIR" "$RELEASE_DIR" "$RELEASE_DIR"

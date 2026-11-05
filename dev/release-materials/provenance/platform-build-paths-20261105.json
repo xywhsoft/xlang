@@ -1,0 +1,90 @@
+{
+  "scope": "Minimal supported Windows/Linux platform SDK and output path repair after actual final production qualification",
+  "complete": true,
+  "passed": true,
+  "candidateManifest": "F:\\xlang-validation\\foreign-completion-20261103\\platform-build-paths-candidate-r1\\manifest.json",
+  "candidateManifestSha256": "4939d43bf2620f3ea767b6b4864884d19874ae5d513fbc3568765cd93dacc948",
+  "files": [
+    {
+      "path": "build.bat",
+      "sha256": "d1c7b04203420ac50663291d3e94c08e45c9b975b86f9315f30a980e73dee0f1"
+    },
+    {
+      "path": "build_dll.bat",
+      "sha256": "205de48309fdc56a1e5768e36ac87138d4d31aef6f1b04c1b07a868665eeaf60"
+    },
+    {
+      "path": "build_linux.sh",
+      "sha256": "92cfc863d211580327a50f926ab283c60908d07f217cd3413ce3eee4f24570f1"
+    },
+    {
+      "path": "tools/xl6_toolchain_env.bat",
+      "sha256": "4c292917ea94c426f018e50f468cde805d83da9d0f6cfedef1094db95170f72e"
+    },
+    {
+      "path": "tools/build_xrt_obj.bat",
+      "sha256": "791bf7f4443bc3b0e5a0391c91f67b65c694a134994220d1d98a985891d9a32d"
+    },
+    {
+      "path": "tools/runtime_dll.rsp.in",
+      "sha256": "21add8e465c0d70c27df4f837af56cf18c141557f8c9252e2d619aad927bc4db"
+    },
+    {
+      "path": "tools/compiler_dll.rsp.in",
+      "sha256": "82f78f2905637badcbdda5713e8a2312ef1b4b4c2030e4f55e0b4f8860409611"
+    },
+    {
+      "path": "tools/generate_ir_contract_catalog.py",
+      "sha256": "0f7696b1dfe3709a38444d56788b136d9cb80ee7f3b60b5b1106f982b6c03207"
+    },
+    {
+      "path": "tools/check_xrt_snapshot.ps1",
+      "sha256": "06ad51475f824557858f2152c0d95fd361b6a13e9a8480dd94fd692fbd3b77ad"
+    },
+    {
+      "path": "test/cases/xl_dll_module_dependency_lifetime.c",
+      "sha256": "f00965343bbcf25414877fb82ce379544f8921cece20d831b911cd03d5bf657c"
+    }
+  ],
+  "checks": [
+    {
+      "name": "Windows actual production prefix/flags/resources/profile equivalence",
+      "passed": true
+    },
+    {
+      "name": "Normal auxiliary examples preserved; validation truncation excluded",
+      "passed": true
+    },
+    {
+      "name": "Current platform SDK include/output paths; no IDE console producer",
+      "passed": true
+    },
+    {
+      "name": "Catalog compiler flags equivalent to actual tested producer",
+      "passed": true
+    },
+    {
+      "name": "Linux bash -n",
+      "passed": true
+    },
+    {
+      "name": "Actual lifetime fixture C11 syntax with platform SDK",
+      "passed": true
+    }
+  ],
+  "normalAuxiliaryTasksPreserved": true,
+  "validationOnlyTruncationExcluded": true,
+  "productionReceipt": "dev/release-materials/provenance/final-production-delivery-20261105.json",
+  "sourceValidationReferences": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\platform-build-paths-check-r1\\shipping.json",
+      "sha256": "5fc375117a435daf94a3c5751e4311a5cc90a036b5929dd58376c112d01e098b"
+    }
+  ],
+  "linuxEquivalence": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\platform-build-paths-candidate-r1\\linux-equivalence.json",
+    "sha256": "7d1194afd35781152247b4ce557bc551bbdedfdf5aac4f1a72a327639a437e7a"
+  },
+  "coreSourceChanged": false,
+  "heavyBuildRepeated": false
+}

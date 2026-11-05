@@ -9,6 +9,7 @@ import json
 import os
 import re
 import subprocess
+from runtime_layout import runtime_directory
 
 
 def schema(root):
@@ -37,9 +38,10 @@ def schema(root):
 
 def compile_declarations(root, directory, cc, fields):
     directory.mkdir(parents=True, exist_ok=True)
+    sdk = runtime_directory(root)
     flags = ["-std=c11", "-O2", "-I" + str(root), "-I" + str(root / "src"),
-             "-I" + str(root / "src/ir"), "-I" + str(root / "release"),
-             "-I" + str(root / "release/include")]
+             "-I" + str(root / "src/ir"), "-I" + str(sdk),
+             "-I" + str(sdk / "include")]
     prefix = '''#include "src/ir/xl6_ir.h"
 #include "src/ir/xl6_ir_direct_bridge_schema.h"
 #include "src/ir/xl6_ir_direct_bridge_enums.inc"
