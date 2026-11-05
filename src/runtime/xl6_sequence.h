@@ -8,6 +8,19 @@
  * pins one wrapper and closes its graph while an operation runs. No raw
  * element borrows or parameter write-back are exposed to xlang. */
 typedef struct XL6_Sequence XL6_Sequence;
+/* Compiler-private synchronous FFI backing pin. It owns one actual Sequence
+ * reference, not just its Value shell. Readers remain admitted; every storage
+ * mutation is rejected until the last pin ends. Never copy an active token. */
+typedef struct XL6_SequenceReadPinV1 {
+    struct XL6_SequenceReadPinV1* self;
+    XL6_Sequence* owner;
+    const xtypedarray* storage;
+    size_t count;
+    uint64_t thread;
+} XL6_SequenceReadPinV1;
+XL6_TEXT_API bool xl6SequenceReadPinBeginV1(const xvalue*,uint64_t,uint64_t,unsigned int,size_t,const xrttype*,XL6_SequenceReadPinV1*);
+XL6_TEXT_API bool xl6SequenceReadPinEndV1(XL6_SequenceReadPinV1*);
+XL6_TEXT_API const void* xl6SequenceReadPinSlotV1(const XL6_SequenceReadPinV1*,size_t);
 /* Private immutable resident policy. No function/context from generated code
  * may be stored here. Data owns its identity metadata independently of the
  * source module; it has no owning Value edges. Retain/Drop share that metadata
@@ -73,6 +86,9 @@ XL6_TEXT_API bool xl6SequenceExtractTailV1(XL6_Sequence*, XL6_Sequence*, size_t,
 typedef enum XL6_SequenceRoleV1 {
     XL6_SEQUENCE_ARRAY_V1=1, XL6_SEQUENCE_STACK_V1, XL6_SEQUENCE_CURSOR_V1
 } XL6_SequenceRoleV1;
+XL6_TEXT_API XL6_Sequence* xl6SequenceBeginReadRoleV1(const xvalue*,XL6_SequenceRoleV1,uint64_t,uint64_t,unsigned int,size_t,const xrttype*);
+XL6_TEXT_API XL6_Sequence* xl6SequenceBeginOtherReadV1(const xvalue*,uint64_t,uint64_t,unsigned int,size_t,const xrttype*,XL6_Sequence*);
+XL6_TEXT_API int xl6SequenceBeginErasedReadRoleV1(const xvalue*,XL6_SequenceRoleV1,XL6_Sequence**,XL6_SequenceLayoutV1*,const xvalueconverter**);
 enum { XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 = 4 };
 /* Transfer 5's owned resident data starts with this immutable record. No
  * generated callback or context is permitted. Content grants equality/hash,

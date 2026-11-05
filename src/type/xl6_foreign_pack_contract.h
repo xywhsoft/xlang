@@ -34,7 +34,8 @@ typedef enum XL6_ForeignPhysicalStepKind {
     XL6_FOREIGN_PHYSICAL_STEP_INVALID=0,
     XL6_FOREIGN_PHYSICAL_STEP_INPUT,
     XL6_FOREIGN_PHYSICAL_STEP_OUTPUT,
-    XL6_FOREIGN_PHYSICAL_STEP_PACK
+    XL6_FOREIGN_PHYSICAL_STEP_PACK,
+    XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP
 } XL6_ForeignPhysicalStepKind;
 typedef struct XL6_ForeignPhysicalStep {
     XL6_ForeignPhysicalStepKind kind;

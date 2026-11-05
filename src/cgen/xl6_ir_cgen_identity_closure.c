@@ -434,6 +434,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
     }
     const XL6_ForeignStorageContract* storage=xl6IrForeignStorageGet(module,target);
     if(!xl6IrCgenPackProof(out,module,target))return 0;
+    if(!xl6IrCgenArrayProof(out,module,target))return 0;
     if(!xl6IrCgenOutputRecordProof(out,module,target))return 0;
     if(storage)xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE((%s)0, %s*), \"in-place native record pointer\");\n"
         "XLIR_NATIVE_ASSERT(sizeof(%s[1])>0 && XLIR_NATIVE_ALIGNOF(%s)<=XL6_FOREIGN_RECORD_ALIGNMENT_V1, \"in-place native record size/alignment\");\n",
@@ -457,6 +458,14 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
         if ( i > 0 ) xl6OutputPuts(", ", out);
         XL6_ForeignPhysicalStep step;if(!xl6IrForeignPhysicalStepGet(module,target,i,&step))return 0;
         size_t parameter=step.parameter;
+        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){
+            const XL6_ForeignArrayGroupContract* group=xl6IrForeignArrayGroupGet(module,target,step.physicalIndex);if(!group)return 0;
+            if(group->recordCName[0])xl6OutputPrintf(out,"const %s*",group->recordCName);
+            else for(size_t c=0;c<group->arrayCount;++c){XL6_ForeignArrayInputContract col;if(!xl6IrForeignArrayColumn(module,group,c,&col,NULL))return 0;
+                if(c)xl6OutputPuts(", ",out);
+                xl6OutputPuts(col.pointerCName,out);}
+            xl6OutputPrintf(out,", %s",group->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int":"size_t");continue;
+        }
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){
             const XL6_ForeignPackContract* pack=xl6IrForeignPackGet(module,target,step.physicalIndex);if(!pack)return 0;
             xl6OutputPrintf(out,"const %s*",pack->recordCName);continue;

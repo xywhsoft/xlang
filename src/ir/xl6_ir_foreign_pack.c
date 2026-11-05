@@ -66,6 +66,12 @@ size_t xl6IrForeignPhysicalStepCount(const XL6_IrModule* m,const XL6_IrCallTarge
         if(!row->parameterCount || row->parameterCount-1>count)return SIZE_MAX;
         count-=row->parameterCount-1;
     }
+    if(m->foreignArrayGroupCount>m->foreignArrayGroupCapacity || (m->foreignArrayGroupCount && !m->foreignArrayGroups))return SIZE_MAX;
+    for(size_t i=0;i<m->foreignArrayGroupCount;++i){const XL6_ForeignArrayGroupContract* row=&m->foreignArrayGroups[i];
+        if(row->declaration!=t->declaration)continue;
+        if(!row->arrayCount || row->arrayCount>count)return SIZE_MAX;
+        count-=row->arrayCount;
+    }
     return count;
 }
 int xl6IrForeignPhysicalStepGet(const XL6_IrModule* m,const XL6_IrCallTarget* t,size_t wanted,XL6_ForeignPhysicalStep* output)
@@ -85,7 +91,13 @@ int xl6IrForeignPhysicalStepGet(const XL6_IrModule* m,const XL6_IrCallTarget* t,
         }else{
             if(p>=t->parameterCount || (o<outputs && slot<physical))return 0;
             const XL6_ForeignPackContract* pack=xl6IrForeignPackParameter(m,t,p);step.parameter=(uint32)p;
-            if(pack){
+            const XL6_ForeignArrayGroupContract* arrays=xl6IrForeignArrayParameter(m,t,p);
+            if(arrays){
+                size_t width=arrays->recordCName[0] ? 2:arrays->arrayCount+1;
+                if(p!=arrays->firstParameter || arrays->physicalIndex!=physical || arrays->sizeParameter>=t->parameterCount ||
+                    (o<outputs && slot>physical && slot<physical+width))return 0;
+                step.kind=XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP;p+=arrays->arrayCount+1;physical+=width;
+            }else if(pack){
                 if(p!=pack->firstParameter || pack->physicalIndex!=physical || pack->parameterCount>t->parameterCount-p)return 0;
                 step.kind=XL6_FOREIGN_PHYSICAL_STEP_PACK;p+=pack->parameterCount;++physical;
             }else{
@@ -107,6 +119,7 @@ size_t xl6IrForeignFirstOutputLogical(const XL6_IrModule* m,const XL6_IrCallTarg
         if(!xl6IrForeignPhysicalStepGet(m,t,i,&step))return SIZE_MAX;
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT)return before;
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_INPUT)++before;
+        else if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){const XL6_ForeignArrayGroupContract* group=xl6IrForeignArrayGroupGet(m,t,step.physicalIndex);if(!group)return SIZE_MAX;before+=group->arrayCount+1;}
         else{const XL6_ForeignPackContract* pack=xl6IrForeignPackGet(m,t,step.physicalIndex);if(!pack)return SIZE_MAX;before+=pack->parameterCount;}
     }
     return SIZE_MAX;

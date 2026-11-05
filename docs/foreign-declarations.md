@@ -1,5 +1,8 @@
 # 声明式 C 互操作
 
+类型安全的同步 Array 列投影、列式原生描述符输入及其明确开销见
+[foreign-array-projections.md](foreign-array-projections.md)。
+
 本功能沿用 AST → XLIR → C。声明中的 C 身份、物理表示和生命周期先成为
 类型／调用合同；Cgen 不根据包名或方法名猜测转换，也不生成库专用转发函数。
 普通 class 及既有 native-backed class 的对象语义不变。

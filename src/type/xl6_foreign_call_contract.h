@@ -76,14 +76,17 @@ static inline int xl6ForeignValueOutputBitsValid(uint8 mode)
 #define XL6_FOREIGN_INPUT_CALLBACK_COUNT_MASK 127u
 #define XL6_FOREIGN_INPUT_REGIONS_PRESENT 128u
 #define XL6_FOREIGN_INPUT_PACKS_PRESENT 256u
+#define XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT 512u
 static inline uint8 xl6ForeignInputCallbackCount(uint16 facts)
 {return (uint8)(facts&XL6_FOREIGN_INPUT_CALLBACK_COUNT_MASK);}
 static inline int xl6ForeignInputHasRegions(uint16 facts)
 {return (facts&XL6_FOREIGN_INPUT_REGIONS_PRESENT)!=0;}
 static inline int xl6ForeignInputHasPacks(uint16 facts)
 {return (facts&XL6_FOREIGN_INPUT_PACKS_PRESENT)!=0;}
+static inline int xl6ForeignInputHasArrayGroups(uint16 facts)
+{return (facts&XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT)!=0;}
 static inline int xl6ForeignInputMappingsValid(uint16 facts)
-{return !(facts&~(XL6_FOREIGN_INPUT_CALLBACK_COUNT_MASK|XL6_FOREIGN_INPUT_REGIONS_PRESENT|XL6_FOREIGN_INPUT_PACKS_PRESENT)) && xl6ForeignInputCallbackCount(facts)<=64;}
+{return !(facts&~(XL6_FOREIGN_INPUT_CALLBACK_COUNT_MASK|XL6_FOREIGN_INPUT_REGIONS_PRESENT|XL6_FOREIGN_INPUT_PACKS_PRESENT|XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT)) && xl6ForeignInputCallbackCount(facts)<=64;}
 static inline int xl6ForeignInputMappingsEmpty(uint16 facts)
 {return xl6ForeignInputMappingsValid(facts) && !facts;}
 static inline int xl6ForeignInputMappingsSet(size_t callbacks,int regions,int packs,uint16* output)
@@ -131,7 +134,8 @@ static inline int xl6ForeignCallFactsEqual(const XL6_ForeignCallFacts* a,const X
         xl6ForeignInputMappingsValid(a->inputMappingFacts) && xl6ForeignInputMappingsValid(b->inputMappingFacts) &&
         xl6ForeignInputCallbackCount(a->inputMappingFacts)==xl6ForeignInputCallbackCount(b->inputMappingFacts) &&
         xl6ForeignInputHasRegions(a->inputMappingFacts)==xl6ForeignInputHasRegions(b->inputMappingFacts) &&
-        xl6ForeignInputHasPacks(a->inputMappingFacts)==xl6ForeignInputHasPacks(b->inputMappingFacts);
+        xl6ForeignInputHasPacks(a->inputMappingFacts)==xl6ForeignInputHasPacks(b->inputMappingFacts) &&
+        xl6ForeignInputHasArrayGroups(a->inputMappingFacts)==xl6ForeignInputHasArrayGroups(b->inputMappingFacts);
 }
 
 /* Ownership helpers have one exact raw owner input and no physical input
@@ -219,6 +223,7 @@ typedef enum XL6_ForeignSpanCountAbi {
     XL6_FOREIGN_SPAN_COUNT_INT
 } XL6_ForeignSpanCountAbi;
 #include "src/type/xl6_foreign_pack_contract.h"
+#include "src/type/xl6_foreign_array_contract.h"
 /* Only counted native field projections allocate a row. Ordinary fields,
  * calls and IR nodes carry no fixed-size C identifier/length strings. */
 typedef struct XL6_ForeignFieldLengthContract {

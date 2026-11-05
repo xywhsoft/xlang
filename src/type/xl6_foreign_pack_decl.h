@@ -85,6 +85,10 @@ static inline size_t xl6ForeignPhysicalStepCount(const XL6_AstNode* node,size_t 
         if(xl6ForeignPackRead(attrs->children[i],&pack)){
             if(pack.parameterCount-1>count)return SIZE_MAX;
             count-=pack.parameterCount-1;
+        }XL6_ForeignArrayGroupContract group;
+        if(xl6ForeignArrayGroupRead(attrs->children[i],&group)){
+            if(group.arrayCount>count)return SIZE_MAX;
+            count-=group.arrayCount;
         }}
     return count;
 }
@@ -102,7 +106,14 @@ static inline int xl6ForeignPhysicalStepRead(const XL6_AstNode* node,const XL6_F
             if(parameter>=parameters || (ordinal<outputs && slots[ordinal]<physical))return 0;
             XL6_ForeignPackContract pack;size_t explicitParameter=parameter>=receiver ? parameter-receiver:SIZE_MAX;
             step.parameter=(uint32)parameter;
-            if(explicitParameter<64 && xl6ForeignPackForParameter(node,explicitParameter,&pack)){
+            XL6_ForeignArrayGroupContract group;
+            if(explicitParameter<64 && xl6ForeignArrayForParameter(node,explicitParameter,&group)){
+                size_t width=xl6ForeignArrayNativeWidth(node,&group);
+                if(explicitParameter!=group.firstParameter || group.physicalIndex!=physical ||
+                    group.arrayCount>=parameters-parameter || width==SIZE_MAX ||
+                    (ordinal<outputs && slots[ordinal]>physical && slots[ordinal]-physical<width))return 0;
+                step.kind=XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP;parameter+=(size_t)group.arrayCount+1;physical+=width;
+            }else if(explicitParameter<64 && xl6ForeignPackForParameter(node,explicitParameter,&pack)){
                 if(explicitParameter!=pack.firstParameter || pack.physicalIndex!=physical || pack.parameterCount>parameters-parameter)return 0;
                 step.kind=XL6_FOREIGN_PHYSICAL_STEP_PACK;parameter+=pack.parameterCount;++physical;
             }else{
@@ -133,6 +144,9 @@ static inline size_t xl6ForeignOutputLogicalForDeclaration(const XL6_AstNode* no
                 else if(previous.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){XL6_ForeignPackContract pack;
                     if(previous.parameter<receiver || !xl6ForeignPackForParameter(node,previous.parameter-receiver,&pack))return SIZE_MAX;
                     before+=pack.parameterCount;
+                }else if(previous.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){XL6_ForeignArrayGroupContract group;
+                    if(previous.parameter<receiver || !xl6ForeignArrayForParameter(node,previous.parameter-receiver,&group))return SIZE_MAX;
+                    before+=(size_t)group.arrayCount+1;
                 }
             }
             return before;

@@ -8,7 +8,7 @@ static bool count(const xvalue* source, int64_t* output)
     XL6_Sequence* owner=NULL;
     XL6_SequenceLayoutV1 layout;
     const xvalueconverter* converter=NULL;
-    int status=xl6SequenceBeginErasedArrayV1(source,&owner,&layout,&converter);
+    int status=xl6SequenceBeginErasedReadRoleV1(source,XL6_SEQUENCE_ARRAY_V1,&owner,&layout,&converter);
     if (status<0) return false;
     size_t size;
     if (status) {

@@ -430,7 +430,7 @@ static int xl6IrVerifyForeignOutputs(const XL6_IrModule* module,XL6_DiagList* di
             slots[o]=row->physicalIndex;
         }
         if(node->foreignCall.outputIndexPlusOne!=slots[0]+1 ||
-            (!xl6ForeignInputHasPacks(node->foreignCall.inputMappingFacts) && !xl6ForeignMultiOutputSlotsValid(&node->foreignCall,params->childCount+receiver,receiver,slots,count)))goto invalid;
+            (!xl6ForeignInputHasPacks(node->foreignCall.inputMappingFacts) && !xl6ForeignInputHasArrayGroups(node->foreignCall.inputMappingFacts) && !xl6ForeignMultiOutputSlotsValid(&node->foreignCall,params->childCount+receiver,receiver,slots,count)))goto invalid;
     }
     return 1;
 invalid:return xl6IrDiag(diags,NULL,"native multi-output rows must exactly cover increasing complete C slots and language results");
@@ -693,6 +693,9 @@ int xl6IrForeignPreparedParameterMatches(const XL6_IrModule* module,const XL6_Ir
         return xl6IrForeignSpanParameterMatches(module,target,p);
     case XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_REGION_BORROW:
         return xl6IrForeignRegionParameterMatches(module,target,p);
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_ARRAY_COLUMN:
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_ARRAY_SIZE:
+        return xl6IrForeignArrayParameter(module,target,p) && xl6IrForeignArrayGroupsMatch(module,target);
     case XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK:
     case XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK:
         return xl6IrForeignCallbackParameterMatches(module,target,p);

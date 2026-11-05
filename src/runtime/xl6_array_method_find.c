@@ -37,7 +37,7 @@ int64_t xl6ArrayMethodIndexOfV1(const xvalue* source, const xvalue* item)
         xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return -1;
     }
     if (!item) xrtSetErrorKind(XERR_ARGUMENT);
-    else if (begin(source,&view)) at=find(&view,item,&operation);
+    else if (beginRead(source,&view)) at=find(&view,item,&operation);
     if (at==-2 || xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);
     finish(&view);
     xl6_error_result outcome=xl6ErrorScopeEnd(&operation);

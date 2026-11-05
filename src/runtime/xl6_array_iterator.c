@@ -37,7 +37,7 @@ xvalue* xl6ArrayIteratorSnapshotV1(XL6_Sequence* owner, PARAMS, uint64_t cursorI
 xvalue* xl6ArrayIteratorCreateV1(const xvalue* source, PARAMS, uint64_t cursorIdentity)
 {
     if (!cursorIdentity || cursorIdentity==identity) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
-    XL6_Sequence* owner=xl6SequenceBeginRoleV1(source,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
+    XL6_Sequence* owner=xl6SequenceBeginReadRoleV1(source,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     return owner ? xl6ArrayIteratorSnapshotV1(owner,LAYOUT,cursorIdentity) : NULL;
 }
 bool xl6ArrayIteratorAdvanceV1(const xvalue* value, PARAMS)

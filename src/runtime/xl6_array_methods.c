@@ -19,7 +19,7 @@ bool xl6ArrayMethodClearV1(xvalue* source)
 int64_t xl6ArrayMethodCapacityV1(const xvalue* source)
 {
     ArrayView view = {0};
-    if (!begin(source, &view)) return 0;
+    if (!beginRead(source, &view)) return 0;
     size_t size = view.owner ? xrtTypedArrayCapacity(view.storage) : xrtValueCapacity(view.wire);
     finish(&view);
     if (size > INT64_MAX) { xrtSetErrorKind(XERR_RANGE); return 0; }

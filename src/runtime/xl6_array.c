@@ -49,7 +49,7 @@ bool xl6ArrayInsertV1(const xvalue* value, PARAMS, int64_t index, const void* it
 bool xl6ArrayReadV1(const xvalue* value, PARAMS, int64_t index, void* target)
 {
     if (!target) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
-    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
+    XL6_Sequence* owner = xl6SequenceBeginReadRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return false;
     xtypedarray* storage = xl6SequenceStorageV1(owner);
     size_t at;
@@ -121,7 +121,7 @@ bool xl6ArrayClearV1(const xvalue* value, PARAMS)
 }
 int64_t xl6ArraySizeV1(const xvalue* value, PARAMS, bool capacity)
 {
-    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
+    XL6_Sequence* owner = xl6SequenceBeginReadRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return 0;
     xtypedarray* storage = xl6SequenceStorageV1(owner);
     size_t count = capacity ? xrtTypedArrayCapacity(storage) : xrtTypedArrayCount(storage);
@@ -137,7 +137,7 @@ bool xl6ArrayAppendV1(const xvalue* left, const xvalue* right, PARAMS)
 {
     XL6_Sequence* a = xl6SequenceBeginRoleV1(left,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!a) return false;
-    XL6_Sequence* b = xl6SequenceBeginOtherV1(right,LAYOUT,a);
+    XL6_Sequence* b = xl6SequenceBeginOtherReadV1(right,LAYOUT,a);
     if (!b) { xl6SequenceEndV1(a); return false; }
     bool ok = xl6SequenceAdmissionEquivalentV1(a,b) &&
         allocation(xrtTypedArrayAppend(xl6SequenceStorageV1(a),xl6SequenceStorageV1(b)));
@@ -163,7 +163,7 @@ bool xl6ArrayReverseV1(const xvalue* value, PARAMS)
 int64_t xl6ArrayFindV1(const xvalue* value, PARAMS, const void* item)
 {
     if (!item) { xrtSetErrorKind(XERR_ARGUMENT); return -1; }
-    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
+    XL6_Sequence* owner = xl6SequenceBeginReadRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return -1;
     xtypedarray* storage = xl6SequenceStorageV1(owner);
     size_t found = SIZE_MAX;

@@ -35,7 +35,7 @@ bool xl6ArrayInputAcquireBoundedV1(const xvalue* source, size_t maximum, XL6_Arr
     if(!xl6ErrorScopeBegin(&transaction)) return false;
     XL6_Sequence* owner=NULL; XL6_SequenceLayoutV1 layout;
     const xvalueconverter* converter=NULL;
-    int status=xl6SequenceBeginErasedArrayV1(source,&owner,&layout,&converter);
+    int status=xl6SequenceBeginErasedReadRoleV1(source,XL6_SEQUENCE_ARRAY_V1,&owner,&layout,&converter);
     if (status<0) {
         xl6ErrorScopeCaptureFailure(&transaction);
         xl6ErrorScopePropagateFailure(xl6ErrorScopeEnd(&transaction));

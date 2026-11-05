@@ -597,6 +597,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     if (valuePlan.inputParameter > 1) snprintf(input, sizeof(input), "a%u", valuePlan.inputParameter - 2);
     else snprintf(input, sizeof(input), "receiver");
     if (!xl6IrCgenNativeCallValueBegin(out, module, &valuePlan, input, scope)) return 0;
+    int arrays=xl6IrCgenArraysBegin(out,module,target,NULL,scope);if(arrays<0)return 0;
     int views = xl6IrCgenForeignViewsBegin(out, module, target, NULL, NULL, scope);
     int cstrings = xl6IrCgenPrepareTerminatedStrings(out, module,target, NULL, scope);
     int bytes = xl6IrCgenPrepareBytesViews(out, target, NULL);
@@ -661,6 +662,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
         if (physical) xl6OutputPuts(", ", out);
         XL6_ForeignPhysicalStep step;if(!xl6IrForeignPhysicalStepGet(module,target,physical,&step))return 0;
         size_t p=step.parameter;
+        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){if(!xl6IrCgenArrayArguments(out,module,target,step.physicalIndex))return 0;continue;}
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){xl6OutputPrintf(out,"&native_pack_%u",step.physicalIndex);continue;}
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){
             if(valueOutput){
@@ -720,6 +722,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     if (bytes) xl6OutputPuts("    }\n", out);
     if (cstrings) xl6OutputPuts("    } }\n", out);
     if (views) xl6IrCgenForeignViewsEnd(out, target, scope);
+    if(arrays)xl6IrCgenArraysEnd(out,module,target,scope);
     if (!xl6IrCgenNativeCallValueEnd(out, module, &valuePlan, result, scope)) return 0;
     return !xl6OutputHasFailed(out);
 }
@@ -1027,6 +1030,7 @@ static int xl6IrCgenEmitDirectCall(
     }
     if (!xl6IrCgenNativeCallValueBegin(out,module,&nativeValue,
             nativeValue.inputParameter?nativeInput:NULL,nativeScope)) return 0;
+    int arraysPrepared=xl6IrCgenArraysBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope);if(arraysPrepared<0)return 0;
     int viewsPrepared=xl6IrCgenForeignViewsBegin(out,module,target,module->operands+instruction->firstOperand,NULL,nativeScope);
     int cstringsPrepared=xl6IrCgenPrepareTerminatedStrings(out,module,target,module->operands+instruction->firstOperand,nativeScope);
     int bytesPrepared=xl6IrCgenPrepareBytesViews(out,target,module->operands+instruction->firstOperand);
@@ -1106,6 +1110,7 @@ static int xl6IrCgenEmitDirectCall(
         if(physical<physicalSteps){
             XL6_ForeignPhysicalStep step;if(!xl6IrForeignPhysicalStepGet(module,target,physical,&step))return 0;
             argument=step.parameter;
+            if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){if(!xl6IrCgenArrayArguments(out,module,target,step.physicalIndex))return 0;continue;}
             if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){xl6OutputPrintf(out,"&native_pack_%u",step.physicalIndex);continue;}
             if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){
                 if(valueOutput){
@@ -1182,6 +1187,7 @@ static int xl6IrCgenEmitDirectCall(
     if(bytesPrepared)xl6OutputPuts("    }\n",out);
     if(cstringsPrepared)xl6OutputPuts("    } }\n",out);
     if(viewsPrepared)xl6IrCgenForeignViewsEnd(out,target,nativeScope);
+    if(arraysPrepared)xl6IrCgenArraysEnd(out,module,target,nativeScope);
     if (!xl6IrCgenNativeCallValueEnd(out,module,&nativeValue,nativeResult,nativeScope)) return 0;
     if (textCount != 0) xl6OutputPuts("    }\n", out);
     if ( errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ) {

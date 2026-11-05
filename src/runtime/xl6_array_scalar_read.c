@@ -14,7 +14,7 @@ static int begin(const xvalue* source, uint64_t identity, uint64_t elementIdenti
     }
     XL6_SequenceLayoutV1 layout;
     const xvalueconverter* converter = NULL;
-    int status = xl6SequenceBeginErasedArrayV1(source, pin, &layout, &converter);
+    int status = xl6SequenceBeginErasedReadRoleV1(source,XL6_SEQUENCE_ARRAY_V1,pin,&layout,&converter);
     if (status < 0) return -1;
     if (status) {
         if (layout.identity != identity || layout.elementIdentity != elementIdentity ||
