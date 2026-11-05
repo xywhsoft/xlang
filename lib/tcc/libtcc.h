@@ -31,6 +31,13 @@ LIBTCCAPI int tcc_xlang_scalar_target(TCCXlangScalarTarget *target);
 typedef struct TCCXlangRecordLayout { int ms_bitfields; } TCCXlangRecordLayout;
 LIBTCCAPI int tcc_xlang_record_layout(TCCState *state, TCCXlangRecordLayout *target);
 
+/* Optional capability query: older providers may accept unknown -f flags. */
+#define TCC_NATIVE_LINK_FUNCTION_SECTIONS 1u
+#define TCC_NATIVE_LINK_DATA_SECTIONS 2u
+#define TCC_NATIVE_LINK_GC_SECTIONS 4u
+#define TCC_NATIVE_LINK_PRINT_GC_SECTIONS 8u
+LIBTCCAPI unsigned tcc_native_link_features(void);
+
 /* create a new TCC compilation context */
 LIBTCCAPI TCCState *tcc_new(void);
 

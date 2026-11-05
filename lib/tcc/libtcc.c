@@ -879,6 +879,19 @@ LIBTCCAPI void tcc_undefine_symbol(TCCState *s1, const char *sym)
 }
 
 
+LIBTCCAPI unsigned tcc_native_link_features(void)
+{
+#if defined(TCC_TARGET_MACHO)
+    return 0;
+#else
+    unsigned features = TCC_NATIVE_LINK_FUNCTION_SECTIONS | TCC_NATIVE_LINK_DATA_SECTIONS;
+# if defined(TCC_TARGET_X86_64)
+    features |= TCC_NATIVE_LINK_GC_SECTIONS | TCC_NATIVE_LINK_PRINT_GC_SECTIONS;
+# endif
+    return features;
+#endif
+}
+
 LIBTCCAPI TCCState *tcc_new(void)
 {
     TCCState *s;
@@ -955,6 +968,7 @@ LIBTCCAPI void tcc_delete(TCCState *s1)
     dynarray_reset(&s1->files, &s1->nb_files);
     dynarray_reset(&s1->target_deps, &s1->nb_target_deps);
     dynarray_reset(&s1->pragma_libs, &s1->nb_pragma_libs);
+    dynarray_reset(&s1->gc_roots, &s1->nb_gc_roots);
     dynarray_reset(&s1->argv, &s1->argc);
     dynarray_reset(&s1->link_argv, &s1->link_argc);
     cstr_free(&s1->cmdline_defs);
@@ -974,6 +988,9 @@ LIBTCCAPI void tcc_delete(TCCState *s1)
 
 LIBTCCAPI int tcc_set_output_type(TCCState *s, int output_type)
 {
+    TCCState *s1 = s;
+    if (s->nb_sections > SHN_LORESERVE - 32)
+        return tcc_error_noabort("too many sections for output metadata");
 #ifdef CONFIG_TCC_PIE
     if (output_type == TCC_OUTPUT_EXE)
         output_type |= TCC_OUTPUT_DYN;
@@ -1453,6 +1470,18 @@ static int tcc_set_linker(TCCState *s, const char *optarg)
 
         if (link_option(&o, "Bsymbolic")) {
             s->symbolic = 1;
+        } else if (link_option(&o, "gc-sections")) {
+            s->gc_sections = 1;
+        } else if (link_option(&o, "no-gc-sections")) {
+            s->gc_sections = 0;
+        } else if (link_option(&o, "print-gc-sections")) {
+            s->print_gc_sections = 1;
+        } else if (link_option(&o, "no-print-gc-sections")) {
+            s->print_gc_sections = 0;
+        } else if (link_option(&o, "undefined=|u:")) {
+            dynarray_add(&s->gc_roots, &s->nb_gc_roots, tcc_strdup(o.arg));
+            if (s->symtab)
+                set_global_sym(s, o.arg, NULL, 0);
         } else if (link_option(&o, "nostdlib")) {
             s->nostdlib_paths = 1;
         } else if (link_option(&o, "e=|entry=")) {
@@ -1750,6 +1779,8 @@ static const FlagDef options_f[] = {
     { offsetof(TCCState, char_is_unsigned), 0, "unsigned-char" },
     { offsetof(TCCState, char_is_unsigned), FD_INVERT, "signed-char" },
     { offsetof(TCCState, nocommon), FD_INVERT, "common" },
+    { offsetof(TCCState, function_sections), 0, "function-sections" },
+    { offsetof(TCCState, data_sections), 0, "data-sections" },
     { offsetof(TCCState, leading_underscore), 0, "leading-underscore" },
     { offsetof(TCCState, ms_extensions), 0, "ms-extensions" },
     { offsetof(TCCState, dollars_in_identifiers), 0, "dollars-in-identifiers" },

@@ -8412,6 +8412,10 @@ static void decl_initializer_alloc(CType *type, AttributeDef *ad, int r,
                 sec = bss_section;
         }
 
+        if (sec && !ad->section && tcc_state->data_sections)
+            sec = tcc_split_section(tcc_state, sec,
+                                    v ? get_tok_str(v, NULL) : "literal");
+
         if (sec) {
 	    addr = section_add(sec, size, align);
 #ifdef CONFIG_TCC_BCHECK
@@ -8574,6 +8578,9 @@ static void gen_function(Sym *sym)
 
     cur_scope = root_scope = &f;
     nocode_wanted = 0;
+    if (tcc_state->function_sections && cur_text_section == text_section)
+        cur_text_section = tcc_split_section(tcc_state, text_section,
+                                            get_tok_str(sym->v, NULL));
 
     ind = cur_text_section->data_offset;
     if (sym->a.aligned) {
