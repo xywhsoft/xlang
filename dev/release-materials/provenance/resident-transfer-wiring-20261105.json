@@ -1,0 +1,106 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "fullCompilerRebuild": false,
+  "scope": "Seven Root-owned COM wiring files plus independent compiled oracle/runner. Count-layout consumers rebuilt explicitly; no Core behavior or capsule source changes.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-com-wiring-candidate-r2\\manifest.json",
+    "sha256": "f3f2f443542697c4bc3b0328e42b8aa1fac3673859383508adaf7d8f31c95a6b"
+  },
+  "acceptance": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-com-wiring-candidate-r2\\acceptance.json",
+    "sha256": "0cbd2873ac70cb0a957b16b4299ffd62fdfafc131ce1a05dbf3e60969bae7a89"
+  },
+  "reports": [
+    {
+      "platform": "windows",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-com-wiring-win-r5\\results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\native-com-wiring-candidate-r2\\windows-results.json",
+      "sha256": "50efe86656f555f8db860a35363875d1e852b1b5a4fc760e0c9081d8985883ae",
+      "verificationSteps": 8,
+      "actualCompilationReport": "F:\\xlang-validation\\foreign-completion-20261103\\native-com-wiring-win-r2\\results.json",
+      "compilerBuildSteps": 7,
+      "newCompilerTUs": 5,
+      "newCapsuleTU": 1
+    },
+    {
+      "platform": "linux",
+      "path": "/home/ubuntu/xlang-validation/native-com-wiring-linux-r5/results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\native-com-wiring-candidate-r2\\linux-results.json",
+      "sha256": "95717b05014102f331ef0705a99b904d51ac9b8ea9af787f6c7f026e8a15047d",
+      "verificationSteps": 7,
+      "actualCompilationReport": "/home/ubuntu/xlang-validation/native-com-wiring-linux-r2/results.json",
+      "compilerBuildSteps": 7,
+      "newCompilerTUs": 5,
+      "newCapsuleTU": 1
+    }
+  ],
+  "proofs": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-com-wiring-candidate-r2\\plan-layout.json",
+      "sha256": "56a0f67be198c7f42aa6126a8855f27b35f96fa86b4dd1545066141b0360679e"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-com-wiring-candidate-r2\\plan-consumer-dependencies.json",
+      "sha256": "684ab67e05291ecb9462e068a7dd914909937e23be75a77b77fed7baa1bb6ae0"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-com-wiring-candidate-r2\\reused-source-provenance-win.json",
+      "sha256": "18541237a44a3a38a859df19dcfe6076bb7e2bacf00ea3d394abf271c5939e0b"
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/native-com-wiring-linux-dependencies-r2/plan-consumer-dependencies.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\native-com-wiring-candidate-r2\\linux-consumer-dependencies.json",
+      "sha256": "594631359dac2f2eaa60569a6e928d41b6ad8fd865b97f8db5e16ed601caad97"
+    }
+  ],
+  "totalSteps": 29,
+  "layout": {
+    "oldPlan": 26472,
+    "newPlan": 26488,
+    "oldOwnershipPlan": 37472,
+    "newOwnershipPlan": 37496,
+    "wordCount": 22
+  },
+  "qualification": "Partial successor: 5 existing O2 TUs plus 1 new capsule TU per platform. Existing FV object from ModuleCodeOwner successor. Windows artifact links matched XRT host; Linux reuses sole full XRT parent object (contains ForeignError); no compiler objects in either minimal resident closure artifact. Not full 1375-provider rebuild, not native-module size trimming, not new VFS/provider acceptance.",
+  "files": [
+    {
+      "path": "src/compile/xl6_artifact_runtime.h",
+      "canonicalLfSha256": "711444a7a6010c3a38326768e47939f6c3bef5167f13268a5a8a6c5a9f1ffe19"
+    },
+    {
+      "path": "src/compile/xl6_artifact_runtime_symbols.inc",
+      "canonicalLfSha256": "7e570e4490fb2eb12f0bc4581c5e2ec751699ef6ba6691b18e6cdd4abcd37c85"
+    },
+    {
+      "path": "src/compile/xl6_compile_unit.c",
+      "canonicalLfSha256": "c7535fbbd70366da25251e93936c7b0d12c0f2132b3ecc584231180c1b29ac59"
+    },
+    {
+      "path": "src/api/xl_api_symbols.c",
+      "canonicalLfSha256": "cb85f03c7379aec88a12a11661d7e71d58001972c8f71952909d86ecb6295320"
+    },
+    {
+      "path": "tools/compiler_dll.rsp.in",
+      "canonicalLfSha256": "2853d6a16865a7bbeed4780d29d38f0a41a20c46bc3065e605524e2fee76e68f"
+    },
+    {
+      "path": "tools/runtime_dll.rsp.in",
+      "canonicalLfSha256": "8cbc8782c3c7ca501f8cb2bb3cedc727f830324d98c94cc6e2d85c776679e112"
+    },
+    {
+      "path": "tools/build_xlir_public_source_driver.ps1",
+      "canonicalLfSha256": "045975e8c45245785bc6b13103617aa5de480dec719b22be34b5129fc9bdd90b"
+    },
+    {
+      "path": "test/support/native_com_component_wiring.c",
+      "canonicalLfSha256": "8084717ad6b4e9ab2984be805d89ff69ecf9ec45d22b56d3052a1da06e78b6c4"
+    },
+    {
+      "path": "tools/check_native_com_wiring.py",
+      "canonicalLfSha256": "b26e9fc20691527d8dd6a0b9b5e3f0e32fc610903e6193d966242138662933f7"
+    }
+  ]
+}
