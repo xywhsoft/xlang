@@ -3,6 +3,7 @@
 #include "xl6_foreign_view_abi.h"
 #include "xl6_foreign_scope_view.h"
 #include "xl6_foreign_context.h"
+#include "xl6_ownership_finalization.h"
 #include "xl6_deferred_cleanup.h"
 #include "src/api/xl_foreign_error.h"
 #include <stddef.h>
@@ -179,7 +180,7 @@ static XL6_ForeignView* viewAllocate(void* raw,const XL6_ForeignViewDescriptorV1
     return view;
 }
 static bool viewDomainValid(const XL6_OwnershipDomainV1* domain)
-{return !domain || (domain->size==sizeof(*domain) && !domain->Load && domain->Resolve && domain->AdmitsRead);}
+{return !domain || (xl6OwnershipDomainValidV1(domain) && !domain->Load && domain->Resolve && domain->AdmitsRead);}
 /* No allocation or user operation: publish the one actual native-owner pin. */
 static void viewPublishReservedRoot(XL6_ForeignView* view,void* raw)
 {
@@ -942,10 +943,36 @@ static bool viewDomainAdmitsRead(xrtownershipref ref)
     const XL6_OwnershipFinishV1* finish=NULL;
     return viewNativeDomainQuery(ref,true,&adapter,&preparation,&finish);
 }
+static bool viewDomainFinalization(xrtownershipref ref,const xrtownershipadapterv1* adapter,
+    const xrtownershipfinalizationv1** output)
+{
+    if(!output)return false;
+    *output=NULL;
+    const xrtownershipfinalizationv1* selected=NULL;
+    /* As with lifecycle admission, query every distinct leased capability.
+     * An unrelated domain may return true+NULL; malformed or conflicting
+     * metadata refuses the whole plan rather than selecting the first hit. */
+    for(const XL6_ForeignView* root=viewRoots;root;root=root->rootsNext){
+        const XL6_OwnershipDomainV1* domain=root->nativeDomain;
+        if(!domain || domain->size!=sizeof(XL6_OwnershipDomainV2))continue;
+        bool duplicate=false;
+        for(const XL6_ForeignView* earlier=viewRoots;earlier!=root;earlier=earlier->rootsNext)
+            if(earlier->nativeDomain==domain){duplicate=true;break;}
+        if(duplicate)continue;
+        const XL6_OwnershipDomainV2* extended=(const XL6_OwnershipDomainV2*)domain;
+        const xrtownershipfinalizationv1* current=NULL;
+        if(!extended->ResolveFinalization(ref,adapter,&current) ||
+           !xl6OwnershipFinalizationValidV1(current,adapter))return false;
+        if(current && selected && selected!=current)return false;
+        if(current)selected=current;
+    }
+    *output=selected;return true;
+}
 const XL6_OwnershipDomainV1* xl6OwnershipDomainForeignViewV1Get(void)
 {
-    static const XL6_OwnershipDomainV1 domain={sizeof(domain),viewDomainLoad,viewDomainResolve,viewDomainAdmitsRead};
-    return &domain;
+    static const XL6_OwnershipDomainV2 domain={{sizeof(domain),viewDomainLoad,viewDomainResolve,viewDomainAdmitsRead},
+        XL6_OWNERSHIP_DOMAIN_V2_TAG,viewDomainFinalization};
+    return &domain.V1;
 }
 bool xl6ForeignViewDiscoverV1(const XL6_CodeOwner* owner,XL6_ModuleOwnershipVisit visit,void* context)
 {
