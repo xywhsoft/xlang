@@ -1,0 +1,66 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Read-only R36 investigation with isolated fixtures. Managed func(string)/func(string?) callback inputs are rejected; const xstrview* callback epoch view + direct counted-field copy is supported without a C forwarding function or any shared Core edit.",
+  "candidate": "F:\\xlang-validation\\foreign-completion-20261103\\callback-view-candidate-r1\\manifest.json",
+  "candidateSha256": "31b3df673fb4359e3fb48b7caea4204a35356f26d1be850aa209f81fee932cfd",
+  "windowsReports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\callback-view-win-r3\\results.json",
+      "sha256": "95bfac5ad3c0b9db5c161f5e1bc0f79ed57ae2ba6d6cbb58d9f572bcabf02bdc",
+      "rows": 6
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\callback-view-tcc-win-r2\\results.json",
+      "sha256": "ec9243c3479e5c58d7de1ff7a109fd2aceb05ca1aff8243d435b97600117712f",
+      "rows": 4
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\callback-string-negative-win-r1\\results.json",
+      "sha256": "369c92fedc8fbf2c344e63b51cb0993a78123b20dc8fc0f993774a01e3a411f6",
+      "rows": 3
+    }
+  ],
+  "linuxReports": [
+    {
+      "path": "/home/ubuntu/xlang-validation/callback-view-linux-r1/results.json",
+      "copy": "/mnt/f/xlang-validation/foreign-completion-20261103/callback-view-evidence-r1/callback-view-linux-r1.json",
+      "sha256": "c61c8131439f579394e7be1c5c3fe91ee6037de8de658547be03a39d4e5d3981",
+      "rows": 6
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/callback-view-tcc-linux-r1/results.json",
+      "copy": "/mnt/f/xlang-validation/foreign-completion-20261103/callback-view-evidence-r1/callback-view-tcc-linux-r1.json",
+      "sha256": "d609304d8f57b403ea1ba76fa6e5491f39f742864568f7f7b3b9267f1a564643",
+      "rows": 4
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/callback-string-negative-linux-r1/results.json",
+      "copy": "/mnt/f/xlang-validation/foreign-completion-20261103/callback-view-evidence-r1/callback-string-negative-linux-r1.json",
+      "sha256": "d0267daf1da57c32cc5b52e63f01ef8bef70f09afa7245ca5b751982243da6a1",
+      "rows": 3
+    }
+  ],
+  "positiveRowsPerPlatform": 10,
+  "negativeRowsPerPlatform": 3,
+  "nativeCallbacksPerExecution": 21,
+  "negativeStringCallbackInputStillRejected": true,
+  "borrowedViewInputBytesCopied": 0,
+  "pureLengthPathXrtAllocations": 0,
+  "pureLengthPathXrtFrees": 0,
+  "pureLengthPathXrtReallocations": 0,
+  "explicitTextCopyTransferredReturnXrtAllocations": 1,
+  "explicitTextCopyTransferredReturnNativeFrees": 1,
+  "metrics": "XRT allocation counters around callback invocation; not a claim that all callback bookkeeping/TLS/atomics are free.",
+  "nativeSourcePoisonedAndFreed": true,
+  "globalCaptureReturnBoxSurvive": true,
+  "expiredViewRejected": true,
+  "coreModified": false,
+  "runtimeModified": false,
+  "publicPackageModified": false,
+  "releaseModified": false,
+  "examplesIncluded": false,
+  "gpuTests": false,
+  "networkTests": false,
+  "shippingDelivery": false
+}
