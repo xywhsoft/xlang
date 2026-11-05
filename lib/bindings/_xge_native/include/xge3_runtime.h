@@ -5,7 +5,7 @@
 #ifndef XGE_XRT_HOST
 #define XGE_XRT_HOST 1
 #endif
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(XL6_XGE_STATIC)
 #ifndef XGE_DLL
 #define XGE_DLL 1
 #endif
