@@ -1,0 +1,16 @@
+{
+  "format": "xlang-provenance-correction-1",
+  "complete": true,
+  "passed": true,
+  "previousReceipt": {
+    "path": "dev/release-materials/provenance/r37-source-kernel-acceptance-20261105.json",
+    "sha256": "d501b98c6109a5ccc83a7bfc4fa0917a4f98a6667856269ba8c35ee24606f1e0"
+  },
+  "correctedLinuxAggregate": {
+    "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-completion-20261105-r37\\gates-r1\\acceptance-r3.json",
+    "sha256": "a57dec7aa6b85128de51a2e59567d8e18b9b104f69ad98bb4f4e11a58170807e"
+  },
+  "scope": "Correct fresh Shape rerun command metadata only; underlying report path/hash/results and 16-group/438-step totals remain unchanged",
+  "historicalBytesChanged": false,
+  "shippingDelivery": false
+}

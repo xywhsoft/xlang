@@ -1182,6 +1182,15 @@ static int xlConfigureTccStateEnvironment(XL_Context* ctx, TCCState* s, int outp
 #endif
     xl__tcc.tcc_set_lib_path(s, tccLibPath);
     if (!xlVisitDefaultCEnvironment(ctx, xlTccCEnvVisit, s, s)) return 0;
+    /* A dynamically loaded compiler VFS owns public declarations too. Add
+     * its real SDK root before compiling the generated module, rather than
+     * waiting until compiler implementation objects are appended. */
+    if (xl__tcc.tcc_vfs_open != NULL) {
+        if (xl__tcc.tcc_add_include_path(s, "include") != 0) {
+            xlSetError(ctx, "cannot configure embedded compiler SDK include path");
+            return 0;
+        }
+    }
     (void)xl__tcc.tcc_add_library_path(s, tccLibSearchPath);
     xlAddDefaultTccRuntime(s, ctx, outputType);
     xlAddDefaultTccLinkLibraries(s);
@@ -1810,6 +1819,7 @@ static void xlAddEmbeddedSourceIncludePaths(TCCState* s)
         return;
     }
     (void)xl__tcc.tcc_add_include_path(s, XL_TCC_VFS_COMPILER_SOURCE_ROOT);
+    (void)xl__tcc.tcc_add_include_path(s, XL_TCC_VFS_COMPILER_SOURCE_ROOT "/include");
     (void)xl__tcc.tcc_add_include_path(s, XL_TCC_VFS_COMPILER_SOURCE_ROOT "/src");
     (void)xl__tcc.tcc_add_include_path(s, XL_TCC_VFS_COMPILER_SOURCE_ROOT "/lib/tcc");
     (void)xl__tcc.tcc_add_include_path(s, XL_TCC_VFS_COMPILER_SOURCE_ROOT "/lib/lzma");
@@ -1820,7 +1830,7 @@ static void xlAddEmbeddedSourceIncludePaths(TCCState* s)
     char root[512], package[1536], path[2048];
     if (xlGetProjectRoot(root,sizeof(root)) &&
         xlJoinPathBuffer(package,sizeof(package),root,"include/" XL_TCC_VFS_COMPILER_SOURCE_ROOT)) {
-        const char* suffixes[]={"","src","lib/tcc","lib/lzma","release"};
+        const char* suffixes[]={"","include","src","lib/tcc","lib/lzma","release"};
         for(size_t i=0;i<sizeof(suffixes)/sizeof(*suffixes);++i)
             if (xlJoinPathBuffer(path,sizeof(path),package,suffixes[i]))
                 (void)xl__tcc.tcc_add_include_path(s,path);
