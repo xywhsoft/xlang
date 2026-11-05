@@ -584,6 +584,7 @@ static int xl6ImportsCollectManifestDeps(
     for ( i = 0; i < manifest->runtimeSymbols.count; ++i ) {
         if ( !xl6ImportsStringListAppendUnique(&deps->runtimeSymbols, manifest->runtimeSymbols.items[i]) ) return 0;
     }
+    deps->nativeLinkFlags |= manifest->nativeLinkFlags;
     for (i = 0; i < manifest->cSourceGroupCount; ++i)
         if (!xl6ImportsAppendCSourceGroup(deps, manifest->dir, &manifest->cSourceGroups[i])) {
             xl6DiagAdd(diags, importNode ? importNode->line : 0,

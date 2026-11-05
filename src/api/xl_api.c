@@ -1067,10 +1067,25 @@ static int xlAddContextSymbols(XL_Context* ctx, TCCState* s)
 }
 
 typedef int (*XL_CEnvVisit)(void*, const char*, const char*, const char*, int);
+static int xlVisitPackageNativeLink(const XL6_CompileUnit* unit,
+    XL_CEnvVisit visit, void* user)
+{
+    static const struct { unsigned int flag; const char* option; } options[] = {
+        {XL6_NATIVE_LINK_FUNCTION_SECTIONS, "-ffunction-sections"},
+        {XL6_NATIVE_LINK_DATA_SECTIONS, "-fdata-sections"},
+        {XL6_NATIVE_LINK_GC_SECTIONS, "-Wl,--gc-sections"},
+        {XL6_NATIVE_LINK_PRINT_GC_SECTIONS, "-Wl,--print-gc-sections"}
+    };
+    unsigned int flags = unit ? unit->importDeps.nativeLinkFlags : 0;
+    for (size_t i = 0; i < sizeof(options) / sizeof(options[0]); ++i)
+        if ((flags & options[i].flag) && !visit(user, "options", options[i].option, NULL, 1))
+            return 0;
+    return 1;
+}
 static int xlTccCEnvVisit(void* user, const char* kind, const char* text, const char* value, int required)
 {
     TCCState* s = (TCCState*)user;
-    if (!strcmp(kind, "options")) { (void)xl__tcc.tcc_set_options(s, text); return 1; }
+    if (!strcmp(kind, "options")) return xl__tcc.tcc_set_options(s, text) >= 0;
     if (!strcmp(kind, "define")) { xl__tcc.tcc_define_symbol(s, text, value); return 1; }
     if (!strcmp(kind, "include")) { int result = xl__tcc.tcc_add_include_path(s, text); return !required || result == 0; }
     return 0;
@@ -2317,7 +2332,8 @@ static int xlVisitNativeSources(XL_Context* ctx, XL_CEnvVisit visit, void* user,
 static int xlTccPrepareNativeSources(XL_Context* ctx, TCCState* state,
     const XL6_CompileUnit* unit, const XL_StringList* cSourceFiles)
 {
-    return state != NULL && xlVisitNativeSources(ctx, xlTccCEnvVisit, state, unit, cSourceFiles);
+    return state != NULL && xlVisitPackageNativeLink(unit, xlTccCEnvVisit, state) &&
+        xlVisitNativeSources(ctx, xlTccCEnvVisit, state, unit, cSourceFiles);
 }
 
 
@@ -5325,6 +5341,7 @@ static char* xlBuildNativeCEnvironment(XL_Context* ctx, const XL6_CompileUnit* u
         xlVisitCOutputKind(shared ? TCC_OUTPUT_DLL : TCC_OUTPUT_EXE, xlCEnvCollect, &collector) &&
         xlVisitDefaultCEnvironment(ctx, xlCEnvCollect, &collector, NULL) &&
         xlVisitContextCIncludes(ctx, xlCEnvCollect, &collector) &&
+        xlVisitPackageNativeLink(unit, xlCEnvCollect, &collector) &&
         xlVisitNativeSources(ctx, xlCEnvCollect, &collector, unit, cSources);
 #ifdef XL_STATIC_TCC_VFS
     unsigned int i;

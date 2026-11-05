@@ -29,6 +29,14 @@ typedef struct XL6_PackageStringList {
     size_t count;
 } XL6_PackageStringList;
 
+/* Enable-only requirements, combined across imported packages. */
+enum {
+    XL6_NATIVE_LINK_FUNCTION_SECTIONS = 1u << 0,
+    XL6_NATIVE_LINK_DATA_SECTIONS = 1u << 1,
+    XL6_NATIVE_LINK_GC_SECTIONS = 1u << 2,
+    XL6_NATIVE_LINK_PRINT_GC_SECTIONS = 1u << 3
+};
+
 /* Cold, opt-in source dependency. Legacy cSources remain unconditional. */
 typedef struct XL6_PackageCSourceGroup {
     char* source;
@@ -64,6 +72,7 @@ typedef struct XL6_PackageManifest {
     XL6_PackageStringList xlSources;
     XL6_PackageStringList xrtModules;
     XL6_PackageStringList runtimeSymbols;
+    unsigned int nativeLinkFlags;
     XL6_PackageCSourceGroup* cSourceGroups;
     size_t cSourceGroupCount;
     int xrtModulesDeclared;

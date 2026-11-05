@@ -1,0 +1,26 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Package nativeLink parsing, enable-only import merge and checked option/report wiring; source only, not compiler/runtime or XGE binary delivery",
+  "inputs": {
+    "src/package/xl6_package.h": "42130cd56fd81a143e3d3f709fc49d754c84ddc8e3bc861a8bb84579ce490f28",
+    "src/package/xl6_package.c": "ea150e6d354fd1addaa5825a6cf26252fb87f4736abf3bea75f4371a006c34e4",
+    "src/package/xl6_package_native_link.inc": "7ba995ef152ec78013e270572ea6e6beb3ea87abacfa861c00e0933c6d912e0b",
+    "src/compile/xl6_imports.h": "7d3b4dc2fc3b8b84e26f66e9fc24bb083c5e1e7751f94bc3873e2286c52e6b98",
+    "src/compile/xl6_imports.c": "4ac6f4d996bf1344c2652294c931c24e2c392746af643448108cfce1c8906ed9",
+    "src/api/xl_api.c": "5b3995175ea532b58bd09d541136098aaebca2b30638347a641747e80d08d8c3",
+    "src/api/xl_c_source_groups.inc": "1761804161514f69a523a45671a44ef7347a47cf723289dc3c11e0286355dc67",
+    "test/cases/package_native_link.c": "8b8dcc4e50fd300533affe498d51f4adb52d32a68aaa5fd77e8f2578ab5bcf09",
+    "tools/check_package_native_link.py": "78f9b46d1c49a9ab93f08cc9b74c6be437a301aefad43b8442098e4e0573f04c",
+    "docs/package-native-link.md": "1c21544b60088a23918d81f656dffbb87e278135b69708b0323b62936028655f"
+  },
+  "parserReport": {
+    "path": "F:\\xlang-validation\\native-static-20261106\\package-parser-r2\\results.json",
+    "sha256": "bb2398f5fbd0e2c9300a7bf8492bbcb844de864569fa24f5039a0a32ce5d6b35",
+    "steps": 52
+  },
+  "syntax": [
+    "gcc -std=c11 -O0 -DXL_STATIC_EMBED -I. -Irelease/win_x64 -Irelease/win_x64/include -Ilib/tcc -Ilib/lzma -fsyntax-only src/api/xl_api.c src/compile/xl6_imports.c"
+  ],
+  "installedRuntimeWritten": false
+}

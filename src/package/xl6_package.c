@@ -380,6 +380,7 @@ static int xl6PackageValueReadDependencies(const xvalue* root, XL6_PackageManife
 }
 
 #include "xl6_package_c_source_groups.inc"
+#include "xl6_package_native_link.inc"
 
 static int xl6PackageValueReadArtifact(const xvalue* root, XL6_PackageManifest* manifest)
 {
@@ -396,7 +397,8 @@ static int xl6PackageValueReadArtifact(const xvalue* root, XL6_PackageManifest* 
          !xl6PackageValueReadStringArray(artifact, "xlSources", &manifest->xlSources) ||
          !xl6PackageValueReadStringArray(artifact, "xrtModules", &manifest->xrtModules) ||
          !xl6PackageValueReadStringArray(artifact, "runtimeSymbols", &manifest->runtimeSymbols) ||
-         !xl6PackageValueReadCSourceGroups(artifact, manifest) ) {
+         !xl6PackageValueReadCSourceGroups(artifact, manifest) ||
+         !xl6PackageValueReadNativeLink(artifact, manifest) ) {
         return 0;
     }
 
