@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+static bool useNoScope;
 typedef struct Link{void(*notify)(void*);void* user;void** slot;} Link;
 typedef struct Raw{Link* watch;Link* childWatch;XL6_ForeignView *capture,*child;unsigned calls,waits;bool alive,childAlive,readBusy,makeBusy,fail,failIncomplete,failedOnce;} Raw;
 static bool watch(void* data,void* storage,void(*notify)(void*),void* user)
@@ -41,11 +42,14 @@ static const XL6_ForeignViewDescriptorV1 rootDescriptor={sizeof(rootDescriptor),
  sizeof(Link),_Alignof(Link),watch,unwatch,destroy,1,1,begin,end,trace,busy,
  XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH|XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY|XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE|
  XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE|XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE,NULL,NULL};
+static const XL6_ForeignViewDescriptorV1 noScopeDescriptor={sizeof(noScopeDescriptor),XL6_FOREIGN_VIEW_V1_TAG,"fake.private-owner",
+ 0,1,NULL,NULL,destroy,0,1,NULL,NULL,trace,busy,
+ XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE|XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE,NULL,NULL};
 static const XL6_ForeignViewDescriptorV1 childDescriptor={sizeof(childDescriptor),XL6_FOREIGN_VIEW_V1_TAG,"fake.child",
  sizeof(Link),_Alignof(Link),childWatch,unwatch,destroy_child,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
 static XL6_ForeignView* create(Raw* r,bool capture,bool child)
 {
- r->alive=true;XL6_ForeignView* view=xl6ForeignViewCreateRootV1(r,&rootDescriptor,NULL);assert(view);
+ r->alive=true;XL6_ForeignView* view=xl6ForeignViewCreateRootV1(r,useNoScope?&noScopeDescriptor:&rootDescriptor,NULL);assert(view);
  if(capture)r->capture=xl6ForeignViewRetainV1(view);
  if(child){XL6_ForeignViewCallV1 call={0};char native=0;r->childAlive=true;
   assert(xl6ForeignViewCallBeginV1(view,&call,&native,sizeof(native)));
@@ -126,7 +130,10 @@ int main(void)
  assert(xrtMemDebugEnable(true));
  run(false,false,true,false);staticRun(0);xmemdebugsnapshot before,after;xrtMemDebugSnapshot(&before);
  for(unsigned i=0;i<20;++i){run(false,false,true,true);run(true,false,true,false);run(false,true,true,false);run(false,false,false,false);}
+ useNoScope=true;
+ run(false,false,false,true);run(true,false,false,false);run(false,true,false,false);
+ useNoScope=false;
  for(unsigned mode=0;mode<4;++mode)staticRun(mode);
  xrtClearError();xrtMemDebugSnapshot(&after);assert(before.LiveCount==after.LiveCount&&before.LiveBytes==after.LiveBytes);
- puts("ForeignView semantic continuation: 81 real native owners, child invalidation/detach, independent Context queue untouched, known-read BUSY continuation, consumed-failure NULL and explicit incomplete retry; zero live delta");return 0;
+ puts("ForeignView semantic continuation: 84 paired native-owner transactions and 5 static deployments, child invalidation/detach, independent Context queue untouched, known-read BUSY continuation, consumed-failure NULL and explicit incomplete retry; zero live delta");return 0;
 }

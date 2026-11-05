@@ -4,6 +4,13 @@ static int xl6IrCgenVerifyRuntimeInstruction(const XL6_IrModule* module,
 {
     switch (instruction->kind) {
         case XL6_IR_INSTR_RUNTIME_CALL:
+            if(instruction->runtimeOp>=XL6_IR_RUNTIME_NATIVE_SEQUENCE_CREATE &&
+                instruction->runtimeOp<=XL6_IR_RUNTIME_NATIVE_SEQUENCE_ORDINAL) {
+                if(!xl6IrNativeSequenceInstructionCompatible(module,instruction))
+                    return xl6IrCgenDiag(diags,module,instruction->origin,
+                        "Native sequence operation has no exact immutable element and read-scope ABI");
+                break;
+            }
             if(xl6IrCOwnedRuntimeOpIs(instruction->runtimeOp)) {
                 if(!xl6IrCOwnedInstructionCompatible(module,instruction))
                     return xl6IrCgenDiag(diags,module,instruction->origin,"C owner operation has no exact lifetime ABI");

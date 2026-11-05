@@ -92,6 +92,7 @@ static const char* xl6IrCgenType(const XL6_IrModule* module, XL6_IrTypeId type)
     case XL6_IR_C_ABI_C_ARRAY:
     case XL6_IR_C_ABI_UNION: return item->cName[0] != '\0' ? item->cName : NULL;
     case XL6_IR_C_ABI_STORAGE_REF_PTR: return "void*";
+    case XL6_IR_C_ABI_NATIVE_SEQUENCE_READ_PTR:return "xlir_native_sequence_cursor*";
     case XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR:
         return "xlir_xvalue_iterator*";
     default: return NULL;

@@ -88,6 +88,7 @@ static int xl6IrCgenAnalyzeReleaseNeeds(
         return 1;
     }
     if(type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED)return 1;
+    if(type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NATIVE_SEQUENCE)needs->needsNativeSequenceRuntime=1;
     switch(type->cAbi) {
     case XL6_IR_C_ABI_MANAGED_STRING: needs->needsStringRuntime=1;return 1;
     case XL6_IR_C_ABI_C_STRING:
@@ -99,6 +100,7 @@ static int xl6IrCgenAnalyzeReleaseNeeds(
     case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: needs->needsFutureRuntime=1;return 1;
     case XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR: needs->needsGeneratorRuntime=1;return 1;
     case XL6_IR_C_ABI_CLOSURE_PTR: needs->needsClosureRuntime=1;return 1;
+    case XL6_IR_C_ABI_NATIVE_SEQUENCE_READ_PTR:needs->needsNativeSequenceRuntime=needs->needsForeignErrorRuntime=1;return 1;
     case XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR:
         needs->needsXValueIteratorRuntime=needs->needsXValueRuntime=needs->needsRuntimeTrap=1;return 1;
     case XL6_IR_C_ABI_NATIVE_VALUE: {

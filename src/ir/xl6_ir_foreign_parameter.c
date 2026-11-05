@@ -391,6 +391,7 @@ size_t xl6IrForeignOutputCount(const XL6_IrModule* module,const XL6_IrCallTarget
 size_t xl6IrForeignPhysicalOutputCount(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration):NULL;
+    if(xl6IrForeignNativeSequenceGet(module,target))return 2;
     if(node && xl6ForeignValueOutputIsRecord(node->foreignCall.valueOutput))return 1;
     return xl6IrForeignOutputCount(module,target);
 }
@@ -439,6 +440,7 @@ int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTa
 {
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration) : NULL;
     if(!node || !node->foreignCall.valueOutput)return 0;
+    if(xl6ForeignValueOutputBase(node->foreignCall.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS)return xl6IrForeignNativeSequenceMatches(module,target);
     size_t count=xl6IrForeignOutputCount(module,target);
     if(!count || count>64)return 0;
     for(size_t o=0;o<count;++o)if(!xl6IrForeignOutputViewGet(module,target,o) &&

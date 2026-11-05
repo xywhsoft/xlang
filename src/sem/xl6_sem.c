@@ -107,6 +107,8 @@ typedef struct XL6_SemContext {
 
 static void xl6SemErrorNode(XL6_SemContext* ctx, const XL6_AstNode* node, const char* message);
 static int xl6SemCheckType(XL6_SemContext* ctx, XL6_AstNode* typeNode);
+static int xl6SemNativeSequencePod(XL6_SemContext*,const XL6_AstNode*,size_t);
+static int xl6SemNativeSequenceContainerArguments(XL6_SemContext*,const char*,const XL6_AstNode*,const XL6_AstNode*);
 static int xl6SemCheckBoundarySymbolUse(XL6_SemContext* ctx, const XL6_AstNode* node, XL6_Symbol* sym, int writeAccess);
 static XL6_AstNode* xl6SemFindTypeDecl(XL6_SemContext* ctx, const char* name);
 static XL6_AstNode* xl6SemBaseClassDecl(XL6_SemContext* ctx, const XL6_AstNode* classNode);
@@ -1515,6 +1517,7 @@ static int xl6SemCheckType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
     }
 
     ok = 1;
+    if(genericCount && !xl6SemNativeSequenceContainerArguments(ctx,typeNode->text,typeNode->children[0],typeNode))ok=0;
     if ( genericCount > 0 ) {
         if ( !typeInfo->allowGeneric ) {
             xl6SemErrorNode(ctx, typeNode, "该类型不接受泛型参数");
@@ -1558,6 +1561,12 @@ static int xl6SemCheckType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
              !xl6SemTypeCanCopy(ctx, itemType) ) {
             xl6SemErrorNode(ctx, itemType, "typed container item type must be copyable");
             ok = 0;
+        }
+    }
+    if (xl6TextEquals(typeNode->text,"NativeSequence")) {
+        const XL6_AstNode* a=xl6SemTypeNodeGenericArgs(typeNode);
+        if(!a || a->childCount!=1 || !xl6SemNativeSequencePod(ctx,a->children[0],0)){
+            xl6SemErrorNode(ctx,typeNode,"NativeSequence<T> requires one exact pointer-free C scalar or C record POD element");ok=0;
         }
     }
     if ( xl6TextEquals(typeNode->text, "weak") ) {
@@ -7878,7 +7887,8 @@ static int xl6SemCheckRuntimeTypeExpr(XL6_SemContext* ctx, XL6_AstNode* node, in
                 xl6TextEquals(effectiveTarget->text,"SlotMap") || xl6TextEquals(effectiveTarget->text,"mutex") ||
                 xl6TextEquals(effectiveTarget->text,"cond") || xl6TextEquals(effectiveTarget->text,"rwlock") ||
                 xl6TextEquals(effectiveTarget->text,"sem") || xl6TextEquals(effectiveTarget->text,"thread") ||
-                xl6TextEquals(effectiveTarget->text,"future"))) {
+                xl6TextEquals(effectiveTarget->text,"future") ||
+                xl6TextEquals(effectiveTarget->text,"NativeSequence"))) {
             /* A dynamic container projection keeps identity and the full generic
              * domain. XLIR owns its sealed schema and checked failure edge. */
         } else if ( effectiveSource == NULL ||
@@ -12189,6 +12199,8 @@ static int xl6SemCheckGenericInstant(XL6_SemContext* ctx, XL6_AstNode* node)
         return 0;
     }
 
+    if(!xl6SemNativeSequenceContainerArguments(ctx,nameNode->text,typeArgs,node))return 0;
+
     typeInfo = xl6TypeRegistryFind(&ctx->types, nameNode->text);
     if ( typeInfo != NULL && typeInfo->kind == XL6_TYPE_CLASS ) {
         XL6_AstNode* instanceType;
@@ -14433,6 +14445,7 @@ static int xl6SemCheckTaskCall(XL6_SemContext* ctx, XL6_AstNode* node)
     return 1;
 }
 
+#include "src/sem/xl6_sem_native_sequence.c"
 #include "src/sem/xl6_sem_special_collection.c"
 
 static const char* xl6SemTaskCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node)
@@ -14613,7 +14626,8 @@ static XL6_AstNode* xl6SemCloneIndexedItemType(XL6_SemContext* ctx, XL6_AstNode*
         return NULL;
     }
 
-    itemType = xl6SemCloneContainerItemType(
+    const XL6_AstNode* nativeElement=xl6SemNativeSequenceElement(ctx,concreteType);
+    itemType = nativeElement ? xl6SemCloneTypeNode(nativeElement) : xl6SemCloneContainerItemType(
         ctx,
         nullableInner != NULL ? nullableInner : receiverType);
     if ( itemType == NULL ) {
@@ -16650,7 +16664,7 @@ static int xl6SemCheckIndexExpr(XL6_SemContext* ctx, XL6_AstNode* node)
             ok = 0;
         }
     } else if ( xl6SemIsArrayTypeName(receiverType) || xl6SemIsListTypeName(receiverType) ||
-                xl6ForeignArrayExtent(receiverType, NULL) ) {
+                xl6TextEquals(receiverType,"NativeSequence") || xl6ForeignArrayExtent(receiverType, NULL) ) {
         if (xl6ForeignArrayExtent(receiverType, NULL) && node->kind == XL6_AST_SAFE_INDEX) {
             xl6SemErrorNode(ctx, node, "fixed C array uses checked ordinary indexing");
             ok = 0;
@@ -16728,6 +16742,7 @@ static int xl6SemSafeMemberLengthReceiverIsContainer(XL6_SemContext* ctx, const 
     }
     if ( !xl6TextEquals(name, "string") &&
          !xl6TextEquals(name, "bytes") &&
+         !xl6TextEquals(name, "NativeSequence") &&
          !xl6SemIsArrayTypeName(name) &&
          !xl6SemIsListTypeName(name) &&
          !xl6TextEquals(name, "set") &&
@@ -18894,6 +18909,7 @@ static int xl6SemCheckAssign(XL6_SemContext* ctx, XL6_AstNode* node)
             if(!op)return 0;
         }
     }
+    if(xl6SemNativeSequenceWrite(ctx,left)){xl6SemErrorNode(ctx,left,"NativeSequence elements are read-only values");return 0;}
     unionInitSymbol = xl6SemUnionFieldInitSymbol(ctx, left, op);
     if (left && left->kind == XL6_AST_INDEX && left->childCount) {
         XL6_AstNode* receiver = left->children[0];
@@ -20303,6 +20319,11 @@ static XL6_AstNode* xl6SemCloneForTargetType(XL6_SemContext* ctx, XL6_AstNode* i
         return xl6SemNewForTargetSimpleType("uint8", iterable);
     }
 
+    if (xl6TextEquals(typeName,"NativeSequence")) {
+        const XL6_AstNode* element=xl6SemNativeSequenceElement(ctx,concreteType);
+        itemType=targetCount==2 && targetIndex==0 ? xl6SemNewForTargetSimpleType("int",iterable) : xl6SemCloneTypeNode(element);
+        xl6AstFree(iterableType);return itemType;
+    }
     if ( xl6TextEquals(typeName, "SlotMap") ) {
         if ( targetCount == 1 || targetIndex == 0 ) {
             xl6AstFree(iterableType);
@@ -20434,6 +20455,13 @@ static int xl6SemCheckFor(XL6_SemContext* ctx, XL6_AstNode* node)
                 }
             }
         }
+    }
+    if (node->childCount>2) {
+        XL6_AstNode* t=xl6SemInferAutoTypeNode(ctx,iterable);
+        if(xl6SemNativeSequenceElement(ctx,t) && xl6SemNativeSequenceSuspends(node->children[2])){
+            xl6SemErrorNode(ctx,node,"NativeSequence traversal cannot suspend; copy a POD element before await/yield");ok=0;
+        }
+        xl6AstFree(t);
     }
     if ( node->childCount > 2 ) {
         bodyMark = ctx->flowFactCount;
@@ -21520,6 +21548,7 @@ static const XL6_AstNode* xl6SemForeignOwnershipHelper(XL6_SemContext* ctx,
 #include "src/sem/xl6_sem_foreign_pack.c"
 #include "src/sem/xl6_sem_foreign_array.c"
 #include "src/sem/xl6_sem_foreign_output_record.c"
+#include "src/sem/xl6_sem_foreign_native_sequence.c"
 static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNode* node,const XL6_AstNode* ownerClass)
 {
     XL6_ForeignCallFacts facts;
@@ -21807,7 +21836,9 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         xl6SemErrorNode(ctx,node,"native view result contract requires a managed external class");return 0;
     }
     if(facts.valueOutput){
-        if(xl6ForeignValueOutputIsRecord(facts.valueOutput)){
+        if(xl6ForeignValueOutputBase(facts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS){
+            if(!xl6SemForeignNativeSequence(ctx,node,attrs,ownerClass,&facts,count+receiver,receiver))return 0;
+        }else if(xl6ForeignValueOutputIsRecord(facts.valueOutput)){
             if(!xl6SemForeignOutputRecord(ctx,node,attrs,ownerClass,&facts,count+receiver,receiver))return 0;
         }else{
         size_t outputs=1;uint32 slots[64]={facts.outputIndexPlusOne-1};
@@ -21871,7 +21902,9 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         }
         XL6_ForeignClassDecl receiverContract={0};
         int managedReceiver=receiver && xl6ForeignClassRead(ownerClass,&receiverContract,NULL)==1 &&
-            (receiverContract.lifetime==XL6_FOREIGN_LIFETIME_OWNED || receiverContract.lifetime==XL6_FOREIGN_LIFETIME_OWNER);
+            (receiverContract.lifetime==XL6_FOREIGN_LIFETIME_OWNED || receiverContract.lifetime==XL6_FOREIGN_LIFETIME_OWNER ||
+             (receiverContract.lifetime==XL6_FOREIGN_LIFETIME_CALLBACK && factoryContract.lifetime==XL6_FOREIGN_LIFETIME_OWNED &&
+              facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE && !facts.resultOwnerIndexPlusOne && !facts.inplaceOutput));
         if ((node->flags & (XL6_AST_FLAG_FOREIGN_PURE | XL6_AST_FLAG_FOREIGN_OWNED_STRING)) ||
             (receiver && (!managedReceiver || factoryContract.lifetime==XL6_FOREIGN_LIFETIME_CALLER))) {
             xl6SemErrorNode(ctx, node, "factory requires a static/free producer or a managed instance and result, without @pure or @owned"); return 0;
@@ -22053,6 +22086,9 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node,const XL
         XL6_ForeignCallFacts viewFacts={0};
         if(xl6ForeignFunctionRead(node,&viewFacts) && viewFacts.borrowedViewResult)
             return ok; /* Exact view kind/nullability contract checked above. */
+        if(xl6ForeignValueOutputBase(viewFacts.valueOutput)==
+            XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS)
+            return ok; /* Exact POD, count and independent owner contract checked above. */
         if ( typeNode != NULL && xl6SemIsFutureLikeTypeName(typeNode->text) ) {
             return ok;
         }

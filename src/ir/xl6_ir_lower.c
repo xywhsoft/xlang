@@ -6878,6 +6878,8 @@ static XL6_IrValueId xl6IrLowerBuiltinSequenceIndex(
               resultType->cAbi == XL6_IR_C_ABI_I64 &&
               resultType->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_8 )
         operation = XL6_IR_RUNTIME_BYTES_AT;
+    else if(receiverType->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NATIVE_SEQUENCE && xl6IrNativeSequenceElement(ctx->module,receiver->storageType)==node->storageType)
+        operation=XL6_IR_RUNTIME_NATIVE_SEQUENCE_INDEX;
     else return XL6_IR_VALUE_INVALID;
     indexType = xl6IrLowerFindIntegerType(
         ctx->module, XL6_IR_INTEGER_TARGET_SIGNED_64);
@@ -8557,6 +8559,14 @@ static XL6_IrValueId xl6IrLowerNativeContainerProjectionCast(
         : xl6IrLowerNode(ctx,ctx->module->children[node->firstChild]);
     XL6_SymbolId temporary=0;
     if (!value) return XL6_IR_VALUE_INVALID;
+    if(role==XL6_IR_NATIVE_PROJECTION_NATIVE_SEQUENCE){
+        value=xl6IrLowerAcquireValueOwner(ctx,id,value);if(!value)return 0;
+        XL6_IrValueId result=xl6IrLowerEmitRuntimeCallMetadata(ctx,id,id,node->storageType,XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED,NULL,xl6IrNativeSequenceElement(ctx->module,base),base,&value,1);
+        if(!result)return 0;
+        ctx->module->instructions[ctx->module->instructionCount-1].castAbi=node->castAbi;
+        if(!xl6IrLowerEmitRuntimeErrorEdge(ctx,id,node,result))return 0;
+        return result;
+    }
     value=xl6IrLowerBorrowRuntimeXValueOperand(ctx,id,source,value,&temporary);
     if (!value) return XL6_IR_VALUE_INVALID;
     const XL6_IrType* target=xl6IrTypeGet(&ctx->module->types,base);
@@ -16562,7 +16572,7 @@ static int xl6IrLowerRuntimeResourceOpIsAvlTree(
 static int xl6IrLowerRuntimeResourceOpCreates(
     XL6_IrRuntimeResourceOp operation)
 {
-    return operation == XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_CREATE || operation == XL6_IR_RUNTIME_RESOURCE_OP_THREAD_CREATE ||
+    return operation==XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_CREATE || operation == XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_CREATE || operation == XL6_IR_RUNTIME_RESOURCE_OP_THREAD_CREATE ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CREATE ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_MUTEX_CREATE ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_SEM_CREATE ||
@@ -16577,6 +16587,7 @@ static int xl6IrLowerRuntimeResourceOpCreates(
 static XL6_IrRuntimeResourceAbi xl6IrLowerRuntimeResourceAbiForOp(
     XL6_IrRuntimeResourceOp operation)
 {
+    if(operation>=XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_CREATE && operation<=XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_SLICE)return XL6_IR_RUNTIME_RESOURCE_NATIVE_SEQUENCE;
     if ( xl6IrSlotMapResourceOpIs(operation) )
         return XL6_IR_RUNTIME_RESOURCE_SLOT_MAP;
     if ( operation >= XL6_IR_RUNTIME_RESOURCE_OP_THREAD_CREATE &&
@@ -16705,6 +16716,14 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
     if ( module == NULL || intrinsic == NULL ||
          intrinsic->operandCount > 4 ||
          (intrinsic->operandCount != 0 && operands == NULL) ) return 0;
+    if(intrinsic->runtimeResourceOp>=XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_CREATE && intrinsic->runtimeResourceOp<=XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_SLICE){
+        XL6_IrTypeId types[3]={0};if(intrinsic->operandCount>3)return 0;
+        for(size_t n=0;n<intrinsic->operandCount;++n){types[n]=operands[n].type;if(operands[n].abi!=(n==0 ? XL6_IR_INTRINSIC_OPERAND_BORROW:XL6_IR_INTRINSIC_OPERAND_VALUE))return 0;}
+        return intrinsic->resultAbi==(intrinsic->runtimeResourceOp==XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_COUNT ? XL6_IR_INTRINSIC_RESULT_VALUE:XL6_IR_INTRINSIC_RESULT_OWNED) &&
+            intrinsic->errorAbi==XL6_IR_ERROR_ABI_MAY_RAISE && !intrinsic->payloadType && !intrinsic->runtimeResourcePayloadAbi && !intrinsic->runtimeResourceKeyType &&
+            !intrinsic->runtimeResourceKeyPayloadAbi && !intrinsic->runtimeResourceKeyOrderAbi &&
+            xl6IrNativeSequenceResourceSignature(module,intrinsic->runtimeResourceOp,intrinsic->receiverType,intrinsic->resultType,types,intrinsic->operandCount);
+    }
     if(xl6IrSlotMapResourceOpIs(intrinsic->runtimeResourceOp))
         return xl6IrSlotMapIntrinsicCompatible(module,intrinsic,operands);
     if(xl6IrTreeQuerySpecResource(intrinsic->runtimeResourceOp))
@@ -19320,7 +19339,8 @@ static int xl6IrLowerPushLoopResource(
            loop->loopResourceAbi !=
                XL6_IR_LOOP_RESOURCE_PROTOCOL_ITERATOR_RELEASE &&
            loop->loopResourceAbi !=
-               XL6_IR_LOOP_RESOURCE_GENERATOR_CLOSE) ||
+               XL6_IR_LOOP_RESOURCE_GENERATOR_CLOSE &&
+           loop->loopResourceAbi != XL6_IR_LOOP_RESOURCE_NATIVE_SEQUENCE_READ_END) ||
          loop->loopResourceType == XL6_IR_TYPE_INVALID ||
          (type = xl6IrTypeGet(
               &ctx->module->types, loop->loopResourceType)) == NULL ||
@@ -19329,6 +19349,8 @@ static int xl6IrLowerPushLoopResource(
               ? (type->kind != XL6_IR_TYPE_VALUE_ITERATOR ||
                  type->cAbi !=
                      XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR)
+              : loop->loopResourceAbi==XL6_IR_LOOP_RESOURCE_NATIVE_SEQUENCE_READ_END
+                    ? (type->kind!=XL6_IR_TYPE_NATIVE_SEQUENCE_READ || type->cAbi!=XL6_IR_C_ABI_NATIVE_SEQUENCE_READ_PTR)
               : (loop->loopResourceAbi ==
                      XL6_IR_LOOP_RESOURCE_STRING_SNAPSHOT_RELEASE)
                     ? (type->cAbi != XL6_IR_C_ABI_MANAGED_STRING && type->cAbi!=XL6_IR_C_ABI_C_STRING)
@@ -19446,7 +19468,7 @@ static int xl6IrLowerEmitLoopResourceRelease(
           resource->abi ==
                XL6_IR_LOOP_RESOURCE_PROTOCOL_ITERATOR_RELEASE ||
           resource->abi ==
-              XL6_IR_LOOP_RESOURCE_GENERATOR_CLOSE) &&
+              XL6_IR_LOOP_RESOURCE_GENERATOR_CLOSE || resource->abi==XL6_IR_LOOP_RESOURCE_NATIVE_SEQUENCE_READ_END) &&
         resource->targetLifetimeAbi == XL6_IR_LOOP_TARGET_LIFETIME_NONE;
     iterationTarget =
         resource->kind == XL6_IR_LOWER_LOOP_RESOURCE_ITERATION_TARGET &&
@@ -23218,10 +23240,15 @@ static XL6_IrValueId xl6IrLowerGeneratorFor(
     return XL6_IR_VALUE_INVALID;
 }
 
+#include "src/ir/xl6_ir_lower_native_sequence.c"
+
 static XL6_IrValueId xl6IrLowerFor(
     XL6_IrLowerContext* ctx, XL6_IrNodeId id, const XL6_IrNode* node)
 {
     switch ( node->loopAbi ) {
+    case XL6_IR_LOOP_ABI_NATIVE_SEQUENCE_VALUE:
+    case XL6_IR_LOOP_ABI_NATIVE_SEQUENCE_INDEX_VALUE:
+        return xl6IrLowerNativeSequenceFor(ctx,id,node);
     case XL6_IR_LOOP_ABI_RANGE_I64_VALUE:
     case XL6_IR_LOOP_ABI_RANGE_I64_INDEX_VALUE:
         return xl6IrLowerRangeFor(ctx, id, node);
@@ -25040,6 +25067,8 @@ static int xl6IrLowerIntrinsicErasedCollectionConvert(
 static XL6_IrRuntimeOp xl6IrLowerRuntimeResourceOp(
     XL6_IrRuntimeResourceOp operation)
 {
+    if(operation>=XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_CREATE && operation<=XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_SLICE)
+        return (XL6_IrRuntimeOp)(XL6_IR_RUNTIME_NATIVE_SEQUENCE_CREATE+operation-XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_CREATE);
     if(xl6IrSlotMapResourceOpIs(operation)) return xl6IrSlotMapRuntimeOp(operation);
     const XL6_IrChannelReceiveSpec* receive=xl6IrChannelReceiveSpecResource(operation);
     if(receive) return receive->runtime;
@@ -31072,6 +31101,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
         }
         return xl6IrLowerRuntimeXValueIndexI64(ctx, id, node, XL6_IR_VALUE_INVALID);
     case XL6_IR_NODE_MEMBER:
+        if(node->memberAbi==XL6_IR_MEMBER_ABI_NATIVE_SEQUENCE_LENGTH)return xl6IrLowerNativeSequenceLength(ctx,id,node);
         if(node->callKind==XL6_SEM_CALL_C_OWNED_READ)return xl6IrLowerCOwnedRead(ctx,id,node);
         if (node->memberAbi == XL6_IR_MEMBER_ABI_C_ARRAY_LENGTH) {
             const XL6_IrNode* receiver = node->childCount == 1

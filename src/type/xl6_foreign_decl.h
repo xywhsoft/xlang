@@ -44,6 +44,7 @@ static inline int xl6ForeignIdentifier(const char*);
 static inline int xl6ForeignPointerSpelling(const char*);
 static inline int xl6ForeignHeaderName(const char*);
 #include "src/type/xl6_foreign_region_decl.h"
+#include "src/type/xl6_foreign_native_sequence_decl.h"
 static inline int xl6ForeignFunctionHeaderRead(const XL6_AstNode* attr,char* output,size_t capacity)
 {
     return attr && attr->text && !strcmp(attr->text,"header") && attr->childCount==1 &&
@@ -348,6 +349,13 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             if(outputStatus || attr->childCount!=1 || !xl6ForeignDecimalInt(attr->children[0],&facts.successCode))return 0;
             outputStatus=1;continue;
         }
+        if(attr && attr->text && !strcmp(attr->text,"c_owned_sequence")){
+            XL6_ForeignNativeSequenceContract row;
+            if(facts.outputIndexPlusOne || !xl6ForeignNativeSequenceRead(attr,&row))return 0;
+            facts.outputIndexPlusOne=row.dataIndex+1;
+            facts.valueOutput=XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS;
+            facts.successCode=row.successCode;continue;
+        }
         if(attr && attr->text && !strcmp(attr->text,"c_outputs")){
             uint32 slots[64];size_t outputs;
             if(facts.outputIndexPlusOne || !xl6ForeignMultiOutputRead(attr,slots,&outputs))return 0;
@@ -495,8 +503,11 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         facts.inplaceOutput=XL6_FOREIGN_INPLACE_VOID;
     }
     if(callbackSpans&~callbackParameters)return 0;
-    if(retainedResult!=(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE) ||
-        (retainedResult && (facts.outputIndexPlusOne || facts.inplaceOutput || facts.receiverDereference || facts.valueOutput)))return 0;
+    int nativeSequence=xl6ForeignValueOutputBase(facts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS;
+    if(retainedResult!=((facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE)||nativeSequence) ||
+        (retainedResult && !nativeSequence && (facts.outputIndexPlusOne || facts.inplaceOutput || facts.receiverDereference || facts.valueOutput)))return 0;
+    if(nativeSequence && (facts.borrowedViewResult || facts.inplaceOutput || facts.receiverDereference ||
+        outputSizes || outputViews || recordFields || outputStatus))return 0;
     if(facts.receiverDereference && ((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.valueOutput || facts.outputIndexPlusOne))return 0;
     if(facts.inplaceOutput && (!facts.outputIndexPlusOne || facts.valueOutput ||
         facts.borrowedViewResult!=XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE ||

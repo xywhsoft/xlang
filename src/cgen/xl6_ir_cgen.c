@@ -23,6 +23,7 @@
 #include "src/cgen/xl6_ir_cgen_channel_value.c"
 #include "src/cgen/xl6_ir_cgen_foreign_output_size.c"
 #include "src/cgen/xl6_ir_cgen_type_definitions.c"
+#include "src/cgen/xl6_ir_cgen_native_sequence.c"
 #include "src/cgen/xl6_ir_cgen_foreign_output_view.c"
 #include "src/cgen/xl6_ir_cgen_foreign_view.c"
 #include "src/cgen/xl6_ir_cgen_foreign_access.c"

@@ -58,6 +58,7 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
     for ( i = 0; i < module->callTargetCount; ++i ) {
         const XL6_IrCallTarget* target = &module->callTargets[i];
         if ( target->reachability == XL6_IR_REACHABILITY_UNREACHABLE ) continue;
+        if(xl6IrForeignNativeSequenceGet(module,target))needs->needsNativeSequenceRuntime=1;
         XL6_IrNativeCallValuePlan value={0};
         if (!xl6IrNativeCallValuePlanBuild(module,target,&value)) return 0;
         if (xl6IrCgenNativeCallValueEncoded(&value))

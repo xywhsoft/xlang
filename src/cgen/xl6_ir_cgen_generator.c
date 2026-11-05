@@ -725,9 +725,12 @@ static int xl6IrCgenEmitGeneratorMachine(
         const XL6_IrInstruction* definition = xl6IrCgenValueDefinition(module, value, NULL);
         if ( definition != NULL &&
              !xl6IrCgenResultStorageOmitted(module, definition) &&
-             xl6IrCgenType(module, definition->type) != NULL )
-            xl6OutputPrintf(out, "    %s v%u;\n",
-                xl6IrCgenType(module, definition->type), (unsigned int)value);
+             xl6IrCgenType(module, definition->type) != NULL ) {
+            xl6OutputPrintf(out, "    %s v%u%s;\n",
+                xl6IrCgenType(module, definition->type), (unsigned int)value,
+                definition->kind==XL6_IR_INSTR_RUNTIME_CALL && definition->runtimeOp==XL6_IR_RUNTIME_NATIVE_SEQUENCE_INDEX ? "={0}":"");
+            xl6IrCgenNativeSequenceCursorDeclaration(out,definition);
+        }
     }
     for ( local = 0; local < module->storageCount; ++local ) {
         const XL6_IrStorage* storage = &module->storages[local];

@@ -165,6 +165,7 @@
 #include "src/runtime/xl6_foreign_view_value.h"
 #include "src/runtime/xl6_foreign_view_value_storage.h"
 #include "src/runtime/xl6_foreign_view_sequence.h"
+#include "src/runtime/xl6_native_sequence.h"
 #include "src/runtime/xl6_native_callback.h"
 #include "src/runtime/xl6_sync_callback.h"
 #include "src/runtime/xl6_callback_failure.h"
@@ -714,6 +715,17 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6OwnershipCatalogBoundaryV1Get", (const void*)xl6OwnershipCatalogBoundaryV1Get)) return 0;
     if (!visit(user, "xl6StaticModuleCreateV3", (const void*)xl6StaticModuleCreateV3)) return 0;
     if (!visit(user, "xl6StaticModuleCreateV4", (const void*)xl6StaticModuleCreateV4)) return 0;
+    if (!visit(user, "xl6NativeSequenceResultReserveV1", (const void*)xl6NativeSequenceResultReserveV1)) return 0;
+    if (!visit(user, "xl6NativeSequenceResultSpanV1", (const void*)xl6NativeSequenceResultSpanV1)) return 0;
+    if (!visit(user, "xl6NativeSequenceResultAdoptV1", (const void*)xl6NativeSequenceResultAdoptV1)) return 0;
+    if (!visit(user, "xl6NativeSequenceResultTakeV1", (const void*)xl6NativeSequenceResultTakeV1)) return 0;
+    if (!visit(user, "xl6NativeSequenceResultEndV1", (const void*)xl6NativeSequenceResultEndV1)) return 0;
+    if (!visit(user, "xl6NativeSequenceEmptyV1", (const void*)xl6NativeSequenceEmptyV1)) return 0;
+    if (!visit(user, "xl6NativeSequenceAdmitsV1", (const void*)xl6NativeSequenceAdmitsV1)) return 0;
+    if (!visit(user, "xl6NativeSequenceLengthV1", (const void*)xl6NativeSequenceLengthV1)) return 0;
+    if (!visit(user, "xl6NativeSequenceSliceV1", (const void*)xl6NativeSequenceSliceV1)) return 0;
+    if (!visit(user, "xl6NativeSequenceReadBeginV1", (const void*)xl6NativeSequenceReadBeginV1)) return 0;
+    if (!visit(user, "xl6NativeSequenceReadEndV1", (const void*)xl6NativeSequenceReadEndV1)) return 0;
     if (!visit(user, "xl6XlangContextHandlePolicyV1Get", (const void*)xl6XlangContextHandlePolicyV1Get)) return 0;
     if (!visit(user, "xl6BufferHandlePolicyV1Get", (const void*)xl6BufferHandlePolicyV1Get)) return 0;
 #define XL6_NATIVE_RESOURCE_POLICY(Owner, Component, Getter) \

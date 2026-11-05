@@ -326,6 +326,7 @@ static const char* xl6IrCgenStorageReleaseFunction(
     case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: return "xrtFutureDestroy";
     case XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR: return "xlir_generator_destroy";
     case XL6_IR_C_ABI_CLOSURE_PTR: return "xlir_closure_release";
+    case XL6_IR_C_ABI_NATIVE_SEQUENCE_READ_PTR:return "xlir_native_sequence_cursor_drop";
     case XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR:
         return "xlir_xvalue_iterator_destroy";
     default: return NULL;
