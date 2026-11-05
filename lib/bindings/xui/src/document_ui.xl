@@ -60,6 +60,7 @@ export extern "struct xui_document_renderer_t*" class DocumentRenderer @header("
  extern "xuiDocumentRendererSetFontResolverOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setFontResolver(DocumentFontResolverProc? callback)
  extern "xuiDocumentRendererSetObjectMeasureOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setObjectMeasure(DocumentObjectMeasureProc? callback)
  extern "xuiDocumentRendererSetObjectDrawOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setObjectDraw(DocumentObjectDrawProc? callback)
+ extern "xuiDocumentRendererDraw" @no_raise @c_null(5,"const xui_doc_range_t*") @c_result("status",0) func draw(DrawContext draw,c_double origin_x,c_double origin_y,Rect clip,c_uint selection_color=0)
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 extern "xuiDocumentRendererReleaseChecked" @no_raise @header("xge3_runtime.h") @c_result("status",0) func rollbackDocumentRenderer(DocumentRenderer value)
@@ -95,6 +96,8 @@ export extern "xui_widget_t*" class DocumentView @header("xge3_runtime.h") @life
  extern "xuiDocumentViewGetFindResult" @no_raise @c_outputs(2,3) @c_status(0) func findResult(uint64 index) as (DocumentRange,c_int)
  extern "xuiDocumentViewActivateFindResult" @no_raise @c_output(2,0) func activateFindResult(uint64 index) as DocumentRange
  extern "xuiDocumentViewSetActivateOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setActivate(DocumentActivateProc? callback)
+ extern "xuiDocumentViewSetTableSelection" @no_raise @c_null(1,"const xui_doc_table_selection_t*") @c_result("status",0) func clearTableSelection()
+ extern "xuiDocumentViewSetFindScope" @no_raise @c_null(1,"const xui_doc_range_t*") @c_result("status",0) func clearFindScope()
 end
 extern "xuiWidgetDestroyChecked" @no_raise @header("xge3_runtime.h") @c_result("status",0) func rollbackDocumentView(DocumentView value)
 
@@ -147,6 +150,8 @@ export extern "xui_widget_t*" class DocumentEditor @header("xge3_runtime.h") @li
  extern "xuiDocumentEditorSetErrorOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setError(DocumentEditorErrorProc? callback)
  extern "xuiDocumentEditorInsertImage" @no_raise @c_pack(1,"xui_doc_image_desc_t",0,7) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sResource",0,"c_string") @c_pack_field(1,"sAlt",1,"text_data") @c_pack_field(1,"sTitle",2,"c_string") @c_pack_field(1,"sLinkTarget",3,"c_string") @c_pack_field(1,"sLinkTitle",4,"c_string") @c_pack_field(1,"fWidth",5,"value") @c_pack_field(1,"fHeight",6,"value") @c_pack_field(1,"iAltBytes",1,"text_size","size_t") @c_result("status",0) func insertImage(string resource,string alt="",string? title=null,string? linkTarget=null,string? linkTitle=null,c_float width=0,c_float height=0)
  extern "xuiDocumentEditorUpdateImage" @no_raise @c_pack(2,"xui_doc_image_desc_t",1,7) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sResource",1,"c_string") @c_pack_field(2,"sAlt",2,"text_data") @c_pack_field(2,"sTitle",3,"c_string") @c_pack_field(2,"sLinkTarget",4,"c_string") @c_pack_field(2,"sLinkTitle",5,"c_string") @c_pack_field(2,"fWidth",6,"value") @c_pack_field(2,"fHeight",7,"value") @c_pack_field(2,"iAltBytes",2,"text_size","size_t") @c_result("status",0) func updateImage(uint64 imageId,string resource,string alt="",string? title=null,string? linkTarget=null,string? linkTitle=null,c_float width=0,c_float height=0)
+ extern "xuiDocumentEditorReplaceAll" @no_raise @c_span(0,"const char*","size_t") @c_span(1,"const char*","size_t") @c_null(5,"const xui_doc_range_t*") @c_output(6,0) func replaceAll(string pattern,string replacement) as uint64
+ extern "xuiDocumentEditorReplaceAllEx" @no_raise @c_span(0,"const char*","size_t") @c_span(1,"const char*","size_t") @c_null(6,"const xui_doc_range_t*") @c_output(7,0) func replaceAllEx(string pattern,string replacement,c_uint flags) as uint64
 end
 extern "xuiWidgetDestroyChecked" @no_raise @header("xge3_runtime.h") @c_result("status",0) func rollbackDocumentEditor(DocumentEditor value)
 

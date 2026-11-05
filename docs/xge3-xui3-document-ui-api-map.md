@@ -51,9 +51,32 @@ it writes a caller array: it is never mapped as one POD record plus arbitrary
 capacity. The two old WebObject adapter functions erase their provider as
 `void*`, so they remain explicit C; use typed Owned Renderer callbacks instead.
 FontOutput Init is native fresh-storage infrastructure, not a resettable
-language method. Optional NULL clearing/select-all branches of typed const
-POD/packed-descriptor parameters await the narrow physical-signature
-compatibility step; the non-NULL methods are already qualified.
+language method. Typed NULL aliases expose these Native branches through the
+same physical function, with no forwarding wrapper:
+
+| Logical method | Native NULL meaning |
+| --- | --- |
+| Renderer `draw(draw,x,y,clip,color=0)` | Draw without selection highlighting |
+| View `clearTableSelection()` | Clear the table rectangle |
+| View `clearFindScope()` | Return to the default whole-document find scope |
+| Editor `replaceAll(pattern,replacement)` | Replace within the Native default scope |
+| Editor `replaceAllEx(pattern,replacement,flags)` | The same default scope with explicit matching flags |
+| MessageList `clearDocument(id)` | Detach that item's Document binding |
+| MessageList `clearDocumentTableSelection(id)` | Clear that item's table rectangle |
+
+Native `SetActivePosition` and ordinary View `SetSelection` explicitly reject
+NULL. No fake clear method or fabricated zero position is provided. The new
+aliases retain the ordinary checked Native error behavior and ownership of
+every unchanged input; the NULL itself needs no temporary descriptor storage.
+The new declaration layer has separate Windows/Linux `document-ui-null-*-r1`
+reports: all 159 logical calls have exact C/C++ header and O0/O2 compilation
+proof. The CPU script executes both View clears, checks find-scope absence,
+uses both Editor default-scope replace calls, and detaches a MessageList
+Document while checking that its getter returns null. Renderer drawing remains
+compile-only. These reports intentionally retain the previous matched Native
+Model r5/r6 SDK and private layer, with the declaration changes listed in
+`public-layer.json`; they are not qualification of the final Proxy18/schema2
+SDK or shipped artifacts.
 
 Direct declarations remove forwarding functions, not lifecycle work. Stack
 packing adds assignments and exact size constants; C-string inputs require

@@ -43,7 +43,7 @@ def main():
  env=dict(os.environ,XLANG_PACKAGE_PATH=str(packages),XL6_SOURCE_NATIVE_ROOT=str(source))
  if windows:shutil.copy2(runtime,out/runtime.name);shutil.copy2(binary,out/binary.name)
  else:env['LD_LIBRARY_PATH']=str(engine)+':'+str(runtime.parent)+':'+env.get('LD_LIBRARY_PATH','')
- report=dict(scope=__doc__,complete=False,passed=False,fullSourceRebuild=b['fullSourceRebuild'],compilerManifest=b['buildManifest'] or b['overlay'],shippingDelivery=False,uiDeviceOrNetworkExecuted=False,inputs=inputs,rows=[])
+ report=dict(scope=__doc__,complete=False,passed=False,fullSourceRebuild=b['fullSourceRebuild'],compilerManifest=b['buildManifest'] or b['overlay'],shippingDelivery=False,uiDeviceOrNetworkExecuted=False,nativeAuthoritySchema=native.get('native_sdk_fingerprint_schema',native.get('native_sdk_schema','historical-build-report')),inputs=inputs,rows=[])
  def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n')
  def run(name,cmd):
   cmd=list(map(str,cmd));actual=command_with_response(cmd,'gcc',out/(name+'.rsp')) if cmd[0] in ('gcc','g++') else cmd;t=time.monotonic();z=subprocess.run(actual,cwd=source,env=env,capture_output=True,timeout=300);log=out/(name+'.log');log.write_bytes(z.stdout+z.stderr);report['rows'].append(dict(name=name,exitCode=z.returncode,seconds=round(time.monotonic()-t,3),logSha256=sha(log)));save();print(name,z.returncode,flush=True);assert not z.returncode,log

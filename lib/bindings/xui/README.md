@@ -187,5 +187,8 @@ Each method calls the native symbol directly. Resource scopes, checked
 errors, Native allocations/copies and callback epochs have real costs; this
 is not a claim of equal runtime cost to unchecked C. The API map records
 lifecycle infrastructure, caller rectangle arrays and legacy void-userdata
-adapters separately. Optional NULL clearing variants of otherwise typed
-record/descriptor inputs are a subsequent generic compatibility step.
+adapters separately. `clearTableSelection`, `clearFindScope`, MessageList
+`clearDocument` / `clearDocumentTableSelection`, Renderer `draw` without a
+selection, and Editor `replaceAll` / `replaceAllEx` without a scope use the
+Native NULL branches directly. Ordinary View selection and Renderer active
+position still require real positions: their Native APIs reject NULL.

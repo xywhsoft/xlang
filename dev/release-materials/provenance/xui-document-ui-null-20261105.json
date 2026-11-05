@@ -1,0 +1,75 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Seven direct Native-defined NULL branch aliases; six CPU branches and drawing ABI-only. Historical matched Model Native SDK r5/r6 plus pinned public declaration layer, not Proxy18/schema2 shipping qualification.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\document-ui-null-candidate-r1\\manifest.json",
+    "sha256": "78aaa1e9a3691c553f43aa11cdb2f3657c690237ae520501a0eacbddd0f94a99"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\document-ui-null-win-r1\\results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\document-ui-null-win-r1\\results.json",
+      "sha256": "035c39446135d9b231a53561b082d80c3ca860884141731ff2257ec0eee6c48e",
+      "rows": 14
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/document-ui-null-linux-r1/results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\document-ui-null-candidate-r1\\report-local-1.json",
+      "sha256": "622b9c6895fb40cabf58dc9376f667dcf85657340df3df84ed6d11301b425ddb",
+      "rows": 14
+    }
+  ],
+  "reachableLogicalCalls": 159,
+  "addedNullAliases": 7,
+  "limitations": [
+    "Native rejects NULL for active position and ordinary selection; no false clear method is added.",
+    "Six branches run headlessly; draw without selection has compile/ABI qualification only.",
+    "Explicit public-layer successor over unchanged historical Model Native r5/r6, not final Proxy18/schema2 SDK.",
+    "Concurrent Context/DataObject changes excluded from managed.xl commit."
+  ],
+  "files": [
+    {
+      "path": "lib/bindings/xui/src/document_ui.xl",
+      "canonicalLfSha256": "7254a76898532646296b62a7614f3ff661a950a66155ad11ef98d984340d6f5c"
+    },
+    {
+      "path": "lib/bindings/xui/src/document_ui_message_methods.inc",
+      "canonicalLfSha256": "7c2318a47677164d28d5370a7b125b0adf3df17e7c6124e30860d6746107aa98"
+    },
+    {
+      "path": "tools/gen_xge3_document_ui_bindings.py",
+      "canonicalLfSha256": "000a6aa93849730a491a143a33dc8f05e92db1c8af51a5c287b30dcf55da809a"
+    },
+    {
+      "path": "tools/check_foreign_xge3_document_ui.py",
+      "canonicalLfSha256": "09dd3950017bfa2225db5cc058ea13f5d9de0b47e451fe73f9bb1502255898db"
+    },
+    {
+      "path": "docs/xge3-xui3-document-ui-api-map.md",
+      "canonicalLfSha256": "bc191596647992cb3ea6bcf6cb772ea3d3cf615486707035f21b8026e32c8500"
+    },
+    {
+      "path": "docs/xge3-xui3-document-ui-api-map.json",
+      "canonicalLfSha256": "42d15dba2171ba0d912333a25e0b3edf145d9a8315d59ccdcc24db569d3a328a"
+    },
+    {
+      "path": "lib/bindings/xui/README.md",
+      "canonicalLfSha256": "4771e5536a864f644b262510e92f6d122d291a2938408e5e032106042d07b2c8"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_document_ui.xl",
+      "canonicalLfSha256": "c5a04ef4742b0136cf89c1322ed5745e216f55f7e250f25eedbf3093eb25ad1d"
+    },
+    {
+      "path": "lib/bindings/xui/examples/document_ui_headless.xl",
+      "canonicalLfSha256": "c5a04ef4742b0136cf89c1322ed5745e216f55f7e250f25eedbf3093eb25ad1d"
+    },
+    {
+      "path": "lib/bindings/xui/src/managed.xl",
+      "canonicalLfSha256": "8add7614fb15cbca73ecd8e1e1df239f996b735643af385dad767955920aa42e"
+    }
+  ]
+}
