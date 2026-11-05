@@ -40,6 +40,9 @@ typedef struct XL6_ImportDeps {
     XL6_PackageStringList includeDirs;
     XL6_PackageStringList xrtModules;
     XL6_PackageStringList runtimeSymbols; /* Explicit native C resident dependencies. */
+    XL6_PackageCSourceGroup* cSourceGroups;
+    size_t cSourceGroupCount;
+    int cSourceGroupsResolved;
     XL6_PackageStringList links;
     XL6_PackageStringList loadlibs;
     /*

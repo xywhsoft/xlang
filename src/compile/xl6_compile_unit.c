@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "xl6_c_source_groups.inc"
 
 #define R(Name) XL6_ARTIFACT_##Name
 #define D(...) (const size_t[]){__VA_ARGS__}, sizeof((const size_t[]){__VA_ARGS__})/sizeof(size_t)
