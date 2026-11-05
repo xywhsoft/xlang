@@ -1,0 +1,54 @@
+{
+  "complete": true,
+  "passed": true,
+  "date": "2026-11-06",
+  "scope": "Install the qualified O2 Windows GUI startup correction. XGE/XRT/CLI/SDK/language-server products and original preferences are unchanged.",
+  "installed": true,
+  "externalPublishPerformed": false,
+  "sourceCommit": "8ea106dee",
+  "target": "release/win_x64/xlang_ide.exe",
+  "beforeSha256": "5fdc6080d90c60aea26cd3416c3217599a1fdbd1fdf2d70a2e1c55a1648bac8c",
+  "afterSha256": "25ade2a9867ed229edbf4b9013f26d99890dabaf8e9629c226fcea4a4f294883",
+  "bytes": 1794464,
+  "candidateQualification": {
+    "path": "dev/release-materials/provenance/ide-startup-fix-20261106/candidate-receipt.json",
+    "sha256": "657ccc379ad1251ba2a3f20246951d9060164c42805afc8e797be1a8403cfd6d",
+    "bytes": 4776
+  },
+  "sourceOverlay": {
+    "path": "dev/release-materials/sources/ide-startup-fix-20261106/source-manifest.json",
+    "sha256": "62699954478a710352f937147b1a76d9cecd031e91dc461d2982d596e74a56e3",
+    "bytes": 3583
+  },
+  "publication": {
+    "path": "dev/release-materials/provenance/ide-startup-fix-20261106/installation.json",
+    "sha256": "69b51528a13f4f962f7f7818a7e0d09327b9d03ff86309948770af38a9a64e0c",
+    "bytes": 1463
+  },
+  "installedChecks": [
+    {
+      "path": "dev/release-materials/provenance/ide-startup-fix-20261106/installed-startup.json",
+      "sha256": "54d77a33510fac5a0766d3d3c41a24bc0a17daf545e24e8a94d53d77f717fa75",
+      "bytes": 4307
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-startup-fix-20261106/installed-original-preferences.json",
+      "sha256": "b35bc51c6807db634dae5dd2c967e953941ffe19ebadd7acbd6abafe8c9410df",
+      "bytes": 937
+    }
+  ],
+  "actualPublishedStartupCases": 5,
+  "renderedFramesPerCase": 4,
+  "existingSettingsUnchanged": true,
+  "unchangedProducts": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "edafbc3d3520f47cbb851365c98375b27f9a0f09404535dc7e03237e2ddc02fc",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "6a9378f3c772b40bcd035969212fd1ee99a1b8ed22be00c30c37114e0523a2f6",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "6ee80b3d2370289c1077b924d700985226c8df8aef17779b87c5c3e38a425835",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "e4ab39f8137fd91781bcc57dfd20d9904aa6bc2e74f422073d6015de3c489642",
+    "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json": "8b5a5151212487910ae88a7385fc6574f08e1ba3f1b8cb20885c4421dc5eff65"
+  },
+  "limits": [
+    "Bounded hidden workbench rendering and targeted CPU/lifetime/metadata fixtures; no complete interactive or language/network suite rerun."
+  ]
+}

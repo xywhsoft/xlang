@@ -189,6 +189,11 @@
       "path": "dev/release-materials/provenance/source-provider-tools-successor-20261105.json",
       "sha256": "374d099cfe6b7ac33d735fe0940a1d3a17464a5e6c654d677f4df7333e0d0af2",
       "bytes": 3261
+    },
+    "guiStartupOverlay": {
+      "path": "dev/release-materials/sources/ide-startup-fix-20261106/source-manifest.json",
+      "sha256": "62699954478a710352f937147b1a76d9cecd031e91dc461d2982d596e74a56e3",
+      "bytes": 3583
     }
   },
   "tccMaterials": {
@@ -236,5 +241,10 @@
     "Extension assets distribution review",
     "IDE and xlang project distribution terms confirmation"
   ],
-  "legalDistributionReviewComplete": false
+  "legalDistributionReviewComplete": false,
+  "guiStartupCorrection": {
+    "path": "dev/release-materials/provenance/ide-startup-fix-20261106/publication-receipt.json",
+    "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
+    "bytes": 2693
+  }
 }

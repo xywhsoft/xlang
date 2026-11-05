@@ -1,0 +1,25 @@
+{
+  "complete": true,
+  "passed": true,
+  "command": [
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+    "--hidden",
+    "--frames",
+    "4",
+    "--no-session",
+    "--no-auto-diagnostics",
+    "--settings",
+    "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json",
+    "--session-root",
+    "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-original-preferences-r1\\session",
+    "--diagnostic-root",
+    "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-original-preferences-r1\\diagnostics",
+    "--screenshot",
+    "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-original-preferences-r1\\workbench.png"
+  ],
+  "exitCode": 0,
+  "seconds": 11.672000000020489,
+  "preferencesSha256": "8b5a5151212487910ae88a7385fc6574f08e1ba3f1b8cb20885c4421dc5eff65",
+  "preferencesUnchanged": true,
+  "guiSha256": "25ade2a9867ed229edbf4b9013f26d99890dabaf8e9629c226fcea4a4f294883"
+}

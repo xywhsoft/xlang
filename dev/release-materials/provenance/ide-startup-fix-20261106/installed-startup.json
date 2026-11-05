@@ -1,0 +1,106 @@
+{
+  "complete": true,
+  "passed": true,
+  "inputs": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe": "25ade2a9867ed229edbf4b9013f26d99890dabaf8e9629c226fcea4a4f294883",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "edafbc3d3520f47cbb851365c98375b27f9a0f09404535dc7e03237e2ddc02fc",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json": "8b5a5151212487910ae88a7385fc6574f08e1ba3f1b8cb20885c4421dc5eff65"
+  },
+  "rows": [
+    {
+      "name": "default",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+        "--hidden",
+        "--frames",
+        "4",
+        "--no-auto-diagnostics",
+        "--session-root",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-startup-r1\\session",
+        "--diagnostic-root",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-startup-r1\\diagnostics",
+        "--screenshot",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-startup-r1\\default.png",
+        "--no-session"
+      ],
+      "exitCode": 0,
+      "seconds": 8.781,
+      "rendered": true,
+      "screenshot": true,
+      "logSha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db"
+    },
+    {
+      "name": "fresh-session",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+        "--hidden",
+        "--frames",
+        "4",
+        "--no-auto-diagnostics",
+        "--session-root",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-startup-r1\\session",
+        "--diagnostic-root",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-startup-r1\\diagnostics",
+        "--screenshot",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-startup-r1\\fresh-session.png",
+        "--settings",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-startup-r1\\copied-settings.json"
+      ],
+      "exitCode": 0,
+      "seconds": 8.969,
+      "rendered": true,
+      "screenshot": true,
+      "logSha256": "fa8e518ec8093d8cf1b8cc68df2d2195839cc5a4a4eeeae176248a7eb0f78d08"
+    },
+    {
+      "name": "restored-session",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+        "--hidden",
+        "--frames",
+        "4",
+        "--no-auto-diagnostics",
+        "--session-root",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-startup-r1\\session",
+        "--diagnostic-root",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-startup-r1\\diagnostics",
+        "--screenshot",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-startup-r1\\restored-session.png",
+        "--settings",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-startup-r1\\copied-settings.json"
+      ],
+      "exitCode": 0,
+      "seconds": 9.234,
+      "rendered": true,
+      "screenshot": true,
+      "logSha256": "fa8e518ec8093d8cf1b8cc68df2d2195839cc5a4a4eeeae176248a7eb0f78d08"
+    },
+    {
+      "name": "malformed-preferences",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+        "--hidden",
+        "--frames",
+        "4",
+        "--no-auto-diagnostics",
+        "--session-root",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-startup-r1\\malformed-session",
+        "--diagnostic-root",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-startup-r1\\diagnostics",
+        "--screenshot",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-startup-r1\\malformed-preferences.png",
+        "--settings",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\installed-startup-r1\\malformed-settings.json"
+      ],
+      "exitCode": 0,
+      "seconds": 10.625,
+      "rendered": true,
+      "screenshot": true,
+      "logSha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db"
+    }
+  ],
+  "scope": "Real hidden window/workbench creation, rendering and isolated session restore; no user setting/session writes",
+  "inputsUnchanged": true,
+  "malformedPreferencesPreserved": true
+}
