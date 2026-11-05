@@ -101,14 +101,14 @@ def main():
     ap.add_argument("--tcc-dist", type=Path, required=True)
     ap.add_argument("--output", type=Path, required=True)
     ap.add_argument("--triplet", default="")
-    ap.add_argument("--native-cc", type=Path, help="Linux ELF producer with -O2; Windows keeps TCC ELF")
+    ap.add_argument("--native-cc", type=Path, help="Qualified Linux ELF producer with -O2; Windows serialized compiler/runtime profiles use TCC")
     args=ap.parse_args();root=args.root.resolve();out=args.output.resolve();out.mkdir(parents=True,exist_ok=True)
     cc=args.tcc.resolve();dist=args.tcc_dist.resolve()
     if args.native_cc and os.name == "nt":
-        ap.error("Windows TCC does not consume GCC COFF objects; use the TCC producer")
+        ap.error("Windows serialized compiler/runtime profiles require the TCC producer; external native COFF archives have a separate qualification")
     native_cc=args.native_cc.resolve() if args.native_cc else cc
     target="win64" if os.name=="nt" else "linux-x86_64"
-    common=["-B"+str(dist),"-std=c11","-D_CRT_SECURE_NO_WARNINGS","-DXL_STATIC_TCC","-DXL6_COMPILER_SOURCE_VFS",
+    common=["-B"+str(dist),"-std=c11","-ffunction-sections","-fdata-sections","-D_CRT_SECURE_NO_WARNINGS","-DXL_STATIC_TCC","-DXL6_COMPILER_SOURCE_VFS",
         "-I.","-Isrc","-I"+str(runtime_directory(root)),"-I"+str(runtime_directory(root)/"include"),"-Ilib/tcc","-Ilib/lzma"]
     if os.name=="nt":common += ["-DCONFIG_TCC_STATIC","-I"+str(dist/"include")]
     else:common += ["-D_GNU_SOURCE","-fPIC"]
