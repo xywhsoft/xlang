@@ -854,6 +854,7 @@ static int xlLoadStaticTcc(XL_Context* ctx)
     loaded.tcc_set_lib_path = tcc_set_lib_path;
     loaded.tcc_set_error_func = tcc_set_error_func;
     loaded.tcc_set_options = tcc_set_options;
+    loaded.tcc_native_link_features = tcc_native_link_features;
     loaded.tcc_add_include_path = tcc_add_include_path;
     loaded.tcc_add_sysinclude_path = tcc_add_sysinclude_path;
     loaded.tcc_define_symbol = tcc_define_symbol;
@@ -928,6 +929,7 @@ static int xlLoadTccFromPath(XL_Context* ctx, const char* path)
     loaded.tcc_set_lib_path = (XL_TccSetLibPathProc)xlLoadProc(&loaded, "tcc_set_lib_path");
     loaded.tcc_set_error_func = (XL_TccSetErrorFuncProc)xlLoadProc(&loaded, "tcc_set_error_func");
     loaded.tcc_set_options = (XL_TccSetOptionsProc)xlLoadProc(&loaded, "tcc_set_options");
+    loaded.tcc_native_link_features = (XL_TccNativeLinkFeaturesProc)xlLoadProc(&loaded, "tcc_native_link_features");
     loaded.tcc_add_include_path = (XL_TccAddIncludePathProc)xlLoadProc(&loaded, "tcc_add_include_path");
     loaded.tcc_add_sysinclude_path = (XL_TccAddSysIncludePathProc)xlLoadProc(&loaded, "tcc_add_sysinclude_path");
     loaded.tcc_define_symbol = (XL_TccDefineSymbolProc)xlLoadProc(&loaded, "tcc_define_symbol");
@@ -1067,6 +1069,11 @@ static int xlAddContextSymbols(XL_Context* ctx, TCCState* s)
 }
 
 typedef int (*XL_CEnvVisit)(void*, const char*, const char*, const char*, int);
+_Static_assert(XL6_NATIVE_LINK_FUNCTION_SECTIONS == TCC_NATIVE_LINK_FUNCTION_SECTIONS &&
+    XL6_NATIVE_LINK_DATA_SECTIONS == TCC_NATIVE_LINK_DATA_SECTIONS &&
+    XL6_NATIVE_LINK_GC_SECTIONS == TCC_NATIVE_LINK_GC_SECTIONS &&
+    XL6_NATIVE_LINK_PRINT_GC_SECTIONS == TCC_NATIVE_LINK_PRINT_GC_SECTIONS,
+    "package native link requirements must match the provider capability ABI");
 static int xlVisitPackageNativeLink(const XL6_CompileUnit* unit,
     XL_CEnvVisit visit, void* user)
 {
@@ -1077,6 +1084,7 @@ static int xlVisitPackageNativeLink(const XL6_CompileUnit* unit,
         {XL6_NATIVE_LINK_PRINT_GC_SECTIONS, "-Wl,--print-gc-sections"}
     };
     unsigned int flags = unit ? unit->importDeps.nativeLinkFlags : 0;
+    if (flags && !visit(user, "define", "XL6_NATIVE_LINK_SCHEMA", "1", 1)) return 0;
     for (size_t i = 0; i < sizeof(options) / sizeof(options[0]); ++i)
         if ((flags & options[i].flag) && !visit(user, "options", options[i].option, NULL, 1))
             return 0;
@@ -1090,6 +1098,8 @@ static int xlTccCEnvVisit(void* user, const char* kind, const char* text, const 
     if (!strcmp(kind, "include")) { int result = xl__tcc.tcc_add_include_path(s, text); return !required || result == 0; }
     return 0;
 }
+
+#include "src/api/xl_module_native_abi.inc"
 
 static int xlVisitDefaultProjectToolchainPaths(XL_CEnvVisit visit, void* user, TCCState* s)
 {
@@ -1175,6 +1185,18 @@ static int xlVisitCOutputKind(int outputType, XL_CEnvVisit visit, void* user)
     return outputType != TCC_OUTPUT_DLL || visit(user, "define", "XL6_BUILD_SHARED", "1", 0);
 }
 
+/* TCC expands {B} include paths during output selection, so choose its
+ * root before that operation as well as in the public environment helpers. */
+static const char* xlTccRootForOutput(const XL_Context* ctx, int outputType)
+{
+#ifdef XL_STATIC_TCC_VFS
+    if (outputType == TCC_OUTPUT_MEMORY) return XL6_TCC_ROOT_PATH;
+#endif
+    (void)outputType;
+    return ctx != NULL && ctx->tccLibPath != NULL && ctx->tccLibPath[0] != '\0' ?
+           ctx->tccLibPath : xlDefaultTccRootPath();
+}
+
 static int xlConfigureTccStateEnvironment(XL_Context* ctx, TCCState* s, int outputType)
 {
     size_t i;
@@ -1186,12 +1208,10 @@ static int xlConfigureTccStateEnvironment(XL_Context* ctx, TCCState* s, int outp
         return 0;
     }
 
-    tccLibPath = ctx != NULL && ctx->tccLibPath != NULL && ctx->tccLibPath[0] != '\0' ?
-                 ctx->tccLibPath : xlDefaultTccRootPath();
+    tccLibPath = xlTccRootForOutput(ctx, outputType);
     tccLibSearchPath = ctx != NULL && ctx->tccLibSearchPath != NULL ? ctx->tccLibSearchPath : xlDefaultTccLibPath();
 #ifdef XL_STATIC_TCC_VFS
     if ( outputType == TCC_OUTPUT_MEMORY ) {
-        tccLibPath = XL6_TCC_ROOT_PATH;
         tccLibSearchPath = XL6_TCC_LIB_PATH;
     }
 #endif
@@ -1232,6 +1252,7 @@ static TCCState* xlCreateTccState(XL_Context* ctx, int outputType)
         return NULL;
     }
     xl__tcc.tcc_set_error_func(s, ctx, xlTccError);
+    xl__tcc.tcc_set_lib_path(s, xlTccRootForOutput(ctx, outputType));
     (void)xlVisitCOutputKind(outputType, xlTccCEnvVisit, s);
     if ( xl__tcc.tcc_set_output_type(s, outputType) != 0 ) {
         xlSetError(ctx, "cannot set TCC output type");
@@ -1467,17 +1488,20 @@ static int xlAddDependenciesToTcc(XL_Context* ctx, TCCState* s, const XL6_Compil
         const char* value = unit->importDeps.links.items[i];
         if ( xlTextLooksLikePath(value) ) {
             if ( xl__tcc.tcc_add_file(s, value) != 0 ) {
-                xlSetError2(ctx, "cannot add import link file", value);
+                if (ctx == NULL || ctx->lastError == NULL)
+                    xlSetError2(ctx, "cannot add import link file", value);
                 return 0;
             }
         } else if ( xl__tcc.tcc_add_library(s, value) != 0 ) {
-            xlSetError2(ctx, "cannot add import link library", value);
+            if (ctx == NULL || ctx->lastError == NULL)
+                xlSetError2(ctx, "cannot add import link library", value);
             return 0;
         }
     }
     for ( i = 0; unit != NULL && i < unit->importDeps.loadlibs.count; ++i ) {
         if ( xl__tcc.tcc_add_file(s, unit->importDeps.loadlibs.items[i]) != 0 ) {
-            xlSetError2(ctx, "cannot add import loadlib", unit->importDeps.loadlibs.items[i]);
+            if (ctx == NULL || ctx->lastError == NULL)
+                xlSetError2(ctx, "cannot add import loadlib", unit->importDeps.loadlibs.items[i]);
             return 0;
         }
     }
@@ -2274,12 +2298,12 @@ static int xlCheckScriptActiveError(XL_Context* ctx, TCCState* state)
     if ( state == NULL ) {
         return 0;
     }
-    hasError = (XL_ScriptHasErrorProc)xl__tcc.tcc_get_symbol(state, "xl_script_has_error");
+    hasError = (XL_ScriptHasErrorProc)xl__tcc.tcc_get_symbol(state, xlModuleNativeAbiNames[XL_MODULE_ABI_HAS_ERROR]);
     if ( hasError == NULL || !hasError() ) {
         return 0;
     }
-    printUncaught = (XL_ScriptVoidProc)xl__tcc.tcc_get_symbol(state, "xl_script_print_uncaught");
-    clearError = (XL_ScriptVoidProc)xl__tcc.tcc_get_symbol(state, "xl_script_clear_error");
+    printUncaught = (XL_ScriptVoidProc)xl__tcc.tcc_get_symbol(state, xlModuleNativeAbiNames[XL_MODULE_ABI_PRINT_UNCAUGHT]);
+    clearError = (XL_ScriptVoidProc)xl__tcc.tcc_get_symbol(state, xlModuleNativeAbiNames[XL_MODULE_ABI_CLEAR_ERROR]);
     /* Printing is not an API diagnostic. Capture owned text while the
      * original error/module is alive, before the artifact clears its TLS.
      * Allocation failure must not replace the error being reported. */
@@ -2332,6 +2356,12 @@ static int xlVisitNativeSources(XL_Context* ctx, XL_CEnvVisit visit, void* user,
 static int xlTccPrepareNativeSources(XL_Context* ctx, TCCState* state,
     const XL6_CompileUnit* unit, const XL_StringList* cSourceFiles)
 {
+    unsigned int flags = unit ? unit->importDeps.nativeLinkFlags : 0;
+    if (flags && (!xl__tcc.tcc_native_link_features ||
+        (xl__tcc.tcc_native_link_features() & flags) != flags)) {
+        xlSetError(ctx, "selected TCC provider cannot satisfy the package nativeLink requirements");
+        return 0;
+    }
     return state != NULL && xlVisitPackageNativeLink(unit, xlTccCEnvVisit, state) &&
         xlVisitNativeSources(ctx, xlTccCEnvVisit, state, unit, cSourceFiles);
 }
@@ -2738,10 +2768,10 @@ static XL_Module* xlCreateModuleFromState(XL_Context* ctx, TCCState* s)
     }
     module->state = s;
     module->ownsRuntimeRef = 1;
-    module->ownershipTrace = (XL6_ModuleOwnershipTrace)xl__tcc.tcc_get_symbol(s, "xl_script_module_ownership_trace");
+    module->ownershipTrace = (XL6_ModuleOwnershipTrace)xl__tcc.tcc_get_symbol(s, xlModuleNativeAbiNames[XL_MODULE_ABI_OWNER_TRACE]);
     {
         XL6_ModuleReadContractGetV1 getRead = (XL6_ModuleReadContractGetV1)
-            xl__tcc.tcc_get_symbol(s, "xl_script_module_ownership_read_v1");
+            xl__tcc.tcc_get_symbol(s, xlModuleNativeAbiNames[XL_MODULE_ABI_OWNER_READ]);
         const XL6_ModuleReadContractV1* read = getRead ? getRead() : NULL;
         if (getRead) {
             if (!read || read->size != sizeof(*read) || read->abiTag != 0x584C364D524431ULL ||
@@ -2754,10 +2784,10 @@ static XL_Module* xlCreateModuleFromState(XL_Context* ctx, TCCState* s)
         }
     }
     {
-        XL6_ModuleRetirementGet get = (XL6_ModuleRetirementGet)xl__tcc.tcc_get_symbol(s, "xl_script_module_retirement_v1");
-        XL6_ModuleRetirementGetV2 getV2 = (XL6_ModuleRetirementGetV2)xl__tcc.tcc_get_symbol(s, "xl_script_module_retirement_v2");
-        XL6_ModuleRetirementGetV3 getV3 = (XL6_ModuleRetirementGetV3)xl__tcc.tcc_get_symbol(s, "xl_script_module_retirement_v3");
-        XL6_ModuleRetirementGetV4 getV4 = (XL6_ModuleRetirementGetV4)xl__tcc.tcc_get_symbol(s, "xl_script_module_retirement_v4");
+        XL6_ModuleRetirementGet get = (XL6_ModuleRetirementGet)xl__tcc.tcc_get_symbol(s, xlModuleNativeAbiNames[XL_MODULE_ABI_RETIREMENT_V1]);
+        XL6_ModuleRetirementGetV2 getV2 = (XL6_ModuleRetirementGetV2)xl__tcc.tcc_get_symbol(s, xlModuleNativeAbiNames[XL_MODULE_ABI_RETIREMENT_V2]);
+        XL6_ModuleRetirementGetV3 getV3 = (XL6_ModuleRetirementGetV3)xl__tcc.tcc_get_symbol(s, xlModuleNativeAbiNames[XL_MODULE_ABI_RETIREMENT_V3]);
+        XL6_ModuleRetirementGetV4 getV4 = (XL6_ModuleRetirementGetV4)xl__tcc.tcc_get_symbol(s, xlModuleNativeAbiNames[XL_MODULE_ABI_RETIREMENT_V4]);
         const XL6_ModuleRetirementV1* contract = get ? get() : NULL;
         const XL6_ModuleRetirementV2* preparation = getV2 ? getV2() : NULL;
         const XL6_ModuleRetirementV3* preflight = getV3 ? getV3() : NULL;
@@ -2791,9 +2821,9 @@ static XL_Module* xlCreateModuleFromState(XL_Context* ctx, TCCState* s)
          module, xlModuleAcquireCode, xlModuleReleaseCode},
         0x584C36434F574E31ULL, &xlModuleOwnershipOps};
     {
-        XL6_BindCodeOwnerProc bind = (XL6_BindCodeOwnerProc)xl__tcc.tcc_get_symbol(s, "xl_script_bind_code_owner");
+        XL6_BindCodeOwnerProc bind = (XL6_BindCodeOwnerProc)xl__tcc.tcc_get_symbol(s, xlModuleNativeAbiNames[XL_MODULE_ABI_BIND_CODE]);
         XL6_BindOwnershipReadV1 bindRead = (XL6_BindOwnershipReadV1)
-            xl__tcc.tcc_get_symbol(s, "xl_script_bind_ownership_read_v1");
+            xl__tcc.tcc_get_symbol(s, xlModuleNativeAbiNames[XL_MODULE_ABI_BIND_READ]);
         if (bindRead && (!bind || !module->ownershipReadContract || !module->retirementContract)) {
             xlModuleLoadedLibrariesFree(module); xrtFree(module);
             xlRuntimeReleaseManualUnlocked(); xlSetError(ctx, "module read binding requires certified owning slots and lifecycle");
@@ -2856,9 +2886,9 @@ static XL6_ModuleRetireResult xlModuleRetirementStep(XL_Module* module, bool gra
         xrtSetErrorKind(XERR_INTERNAL); return XL6_MODULE_RETIRE_FAILED;
     }
     if (graph) return module->retirementContract->finish() ? XL6_MODULE_RETIRE_READY : XL6_MODULE_RETIRE_FAILED;
-    XL_ScriptUnitCheckedProc checked = (XL_ScriptUnitCheckedProc)xl__tcc.tcc_get_symbol(module->state, "xl_script_module_unit_checked");
+    XL_ScriptUnitCheckedProc checked = (XL_ScriptUnitCheckedProc)xl__tcc.tcc_get_symbol(module->state, xlModuleNativeAbiNames[XL_MODULE_ABI_UNIT_CHECKED]);
     if (checked) return checked() ? XL6_MODULE_RETIRE_READY : XL6_MODULE_RETIRE_FAILED;
-    XL_ScriptVoidProc unit = (XL_ScriptVoidProc)xl__tcc.tcc_get_symbol(module->state, "xl_script_module_unit");
+    XL_ScriptVoidProc unit = (XL_ScriptVoidProc)xl__tcc.tcc_get_symbol(module->state, xlModuleNativeAbiNames[XL_MODULE_ABI_UNIT]);
     if (unit) unit();
     return XL6_MODULE_RETIRE_READY;
 }
@@ -3171,7 +3201,7 @@ static int xlModuleTryRetireUnlocked(XL_Module* module)
     if (module->nativeTailRetirementPending || module->ownershipPlan || module->snapshotRefs != 0 || module->preparationRefs != 0 || module->codeLeases != 0) return 0;
     module->retirementRunning = 1;
     if ( module->state != NULL ) {
-        checkedUnit = (XL_ScriptUnitCheckedProc)xl__tcc.tcc_get_symbol(module->state, "xl_script_module_unit_checked");
+        checkedUnit = (XL_ScriptUnitCheckedProc)xl__tcc.tcc_get_symbol(module->state, xlModuleNativeAbiNames[XL_MODULE_ABI_UNIT_CHECKED]);
         /* Checked artifacts own an idempotent phase guard. One-shot execution
          * never activates the host module, but its cleanup may still be busy;
          * host INACTIVE alone is therefore not proof that code can be freed. */
@@ -3208,7 +3238,7 @@ static int xlModuleTryRetireUnlocked(XL_Module* module)
             }
             module->activation = XL_MODULE_INACTIVE;
         }
-        errorUnit = (XL_ScriptVoidProc)xl__tcc.tcc_get_symbol(module->state, "xl_script_error_unit");
+        errorUnit = (XL_ScriptVoidProc)xl__tcc.tcc_get_symbol(module->state, xlModuleNativeAbiNames[XL_MODULE_ABI_ERROR_UNIT]);
         if ( errorUnit != NULL ) {
             xerror* saved = xrtTakeError();
             errorUnit();
@@ -3409,9 +3439,14 @@ static XL_Module* xlCompileUnitToModuleWithC(
     if ( !xlCompileUnitCSourceFiles(ctx, s, unit, cSourceFiles) ) {
         goto cleanup;
     }
+    /* Publish language roots before archive selection as well as refreshing
+       them after imports. The linker can then ignore dependencies occurring
+       only in dead Native policy functions without discarding input state. */
+    if (!xlTccRootLanguageModule(ctx, s, unit)) goto cleanup;
     if ( !xlAddDependenciesToTcc(ctx, s, unit) ) {
         goto cleanup;
     }
+    if (!xlTccRootLanguageModule(ctx, s, unit)) goto cleanup;
     if ( xl__tcc.tcc_relocate(s) != 0 ) {
         if ( ctx != NULL && ctx->lastError == NULL ) {
             xlSetError(ctx, "TCC relocate failed");
@@ -3585,8 +3620,8 @@ static int xlRunModuleMainUnlocked(
         xlSetError(ctx, "active module cannot run as a one-shot script");
         return 0;
     }
-    entry = (XL_XlangMainProc)xl__tcc.tcc_get_symbol(module->state, "xlang_main");
-    checkedEntry = (XL_ScriptMainCheckedProc)xl__tcc.tcc_get_symbol(module->state, "xl_script_main_checked");
+    entry = (XL_XlangMainProc)xl__tcc.tcc_get_symbol(module->state, xlModuleNativeAbiNames[XL_MODULE_ABI_ENTRY]);
+    checkedEntry = (XL_ScriptMainCheckedProc)xl__tcc.tcc_get_symbol(module->state, xlModuleNativeAbiNames[XL_MODULE_ABI_ENTRY_CHECKED]);
     if ( entry == NULL && checkedEntry == NULL ) {
         xlSetError(ctx, "script entry xlang_main not found");
         return 0;
@@ -3680,7 +3715,7 @@ static int xlActivateModuleUnlocked(
     if ( module->activation == XL_MODULE_ACTIVE ) {
         return 1;
     }
-    entry = (XL_ScriptModuleInitProc)xl__tcc.tcc_get_symbol(module->state, "xl_script_module_init");
+    entry = (XL_ScriptModuleInitProc)xl__tcc.tcc_get_symbol(module->state, xlModuleNativeAbiNames[XL_MODULE_ABI_INIT]);
     if ( entry == NULL ) {
         module->activation = XL_MODULE_ACTIVE;
         return 1;
@@ -5396,7 +5431,7 @@ static char* xlBuildNativeCEnvironment(XL_Context* ctx, const XL6_CompileUnit* u
     if (ok) {
         TCCState* selected = xlCreateTccState(ctx, shared ? TCC_OUTPUT_DLL : TCC_OUTPUT_EXE);
         TCCXlangRecordLayout layout;
-        ok = selected != NULL && xlVisitNativeSources(ctx, xlTccCEnvVisit, selected, unit, cSources);
+        ok = selected != NULL && xlTccPrepareNativeSources(ctx, selected, unit, cSources);
         if (ok && tcc_xlang_record_layout(selected, &layout)) {
             xvalue* profile = xrtValueObject();
             ok = profile != NULL &&
