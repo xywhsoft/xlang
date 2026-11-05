@@ -1,0 +1,45 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Small scoped package/example publisher. Default preflight only; --apply individual-file transactions with external backups, hash-checked temporaries and journal rollback. No real-release apply/dry-run was executed.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\publish-ui-tool-candidate-r1\\manifest.json",
+    "sha256": "1cffa09ffaaaf6dabe77afbf97556a064a9036d1e7c026616f8ddb997e9e1158"
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\publish-ui-synthetic-win-r4\\results.json",
+      "sha256": "bfc7c754f8cb2feddbd4efc613930d528d951187734281aee566dcb66bb40bcd"
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\publish-ui-synthetic-linux-r1\\results.json",
+      "sha256": "abdb87cddad0652c1ccf8a6f8af4a7dc4721d150e03f5dc9eef3f20aefb341fc"
+    }
+  ],
+  "qualification": "13 synthetic checks on each OS: default dry-run, normal Windows/Linux layouts, old/source/plan SHA rejection, unknown target and outside-scope/work-dir rejection, target replace failure rollback, journal write failure after target mutation rollback, hidden/unknown user files preserved, CLI default no writes. No Native/Core/frontend tests rerun.",
+  "realRuntimePreflightOnly": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\ui-publish-win-plan-r1\\receipt.json",
+      "sha256": "330d1227c0d4d132960e49606c5e00c5d173c8c2d54171a9c59cae20683cf3dc",
+      "operations": 333
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\ui-publish-linux-plan-r1\\receipt.json",
+      "sha256": "f578fc882c93bdc6dc2e21044da05ef5b4dde8039e4df1c23b5859746eb2b9eb",
+      "operations": 73
+    }
+  ],
+  "actualRuntimeTargetsUnchanged": true,
+  "files": [
+    {
+      "path": "tools/publish_xge3_packages.py",
+      "canonicalLfSha256": "8b8770ffaad8337031962c1e6b99a70175351414805d1fdbb052cf12367d1ec8"
+    },
+    {
+      "path": "tools/check_publish_xge3_packages.py",
+      "canonicalLfSha256": "bea345e6ee99781d67fabca1769adbbac79ee2da32f26247505b9cd2599f6e77"
+    }
+  ]
+}
