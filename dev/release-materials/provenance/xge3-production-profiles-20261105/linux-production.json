@@ -1,0 +1,115 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Fresh actual build_linux production O2/PIC/static-TCC profiles and thin CLI; no SourceDriver object reuse or release installation",
+  "fullProductionRebuild": true,
+  "sourceRoot": "/home/ubuntu/xlang-validation/source-final-core-r1",
+  "producer": "/home/ubuntu/xlang-validation/production-final-linux-r1/producer",
+  "derivedScripts": [
+    {
+      "path": "tools/generate_ir_contract_catalog.py",
+      "beforeSha256": "e0724932b4cdf67e0ca8591c9d463e87d21db23db05212126d3254221e6cfe62",
+      "sha256": "78aaa0110513fa7d07203b069596fcf9f1670a1724f9affbc035e984a958f14a",
+      "role": "Current platform SDK paths only"
+    },
+    {
+      "path": "build_linux.sh",
+      "beforeSha256": "ab321045f492ebd9d191542dbba12123d53cce6317690e74607315a0d4bbe6bb",
+      "sha256": "da790e5447fdde9d2b03d0ef7bb68413c490e5b7d31245ec27c22dd2d0d08436",
+      "role": "Reuse verified exact configured TCC and catalog inputs; preserve original production COMMON_FLAGS/source-list/link commands; output/current SDK path relocation"
+    }
+  ],
+  "profiles": [
+    {
+      "kind": "runtime",
+      "freshSourceCompilations": 1415,
+      "extraFlags": [
+        "-DXL_RUNTIME_ONLY_DLL"
+      ]
+    },
+    {
+      "kind": "compiler",
+      "freshSourceCompilations": 1420,
+      "extraFlags": []
+    }
+  ],
+  "totalGccTranslationUnitCompilations": 2835,
+  "cliCompilations": 2,
+  "sourceDriverObjectsReused": 0,
+  "commonFlags": [
+    "-std=c11",
+    "-D_GNU_SOURCE",
+    "-Wall",
+    "-Wno-pointer-sign",
+    "-Wno-unused-function",
+    "-Wno-unused-variable",
+    "-Wno-unused-but-set-variable",
+    "-Wno-format-truncation",
+    "-O2",
+    "-fPIC",
+    "-ffunction-sections",
+    "-fdata-sections",
+    "-DXL_BUILD_DLL",
+    "-DXL_STATIC_TCC",
+    "-DLIBTCC_AS_DLL",
+    "-DCONFIG_TCC_BUILTIN_VFS=1",
+    "-DXL6_TCC_CONFIGURED_TRIPLET=\"x86_64-linux-gnu\""
+  ],
+  "sharedLinkFlags": [
+    "-shared",
+    "-s",
+    "-Wl,--gc-sections",
+    "-Wl,-z,defs"
+  ],
+  "configuredTccSource": "/home/ubuntu/xlang-validation/provider-final-core-linux-r1/producer/lib/tcc",
+  "resourcesReusedFrom": "/home/ubuntu/xlang-validation/provider-final-core-linux-r3",
+  "reports": [
+    {
+      "path": "/home/ubuntu/xlang-validation/production-final-acceptance-linux-r2/results.json",
+      "sha256": "5671f91ea44484015f2fff79576b3d26ea7321222bb41a5f7460a4f0a05fc94c"
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/production-cli-linux-r1/results.json",
+      "sha256": "8f86e71b8b25a98c52d749bec10f2bedf733d85c8695cdae8eba5069741682b3"
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/production-final-linux-r1/compiler-source-identity.json",
+      "sha256": "68f2061b0153cf03c52575ce97ac71e4d8225673e6263bc24070aa930881558c"
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/production-final-linux-r1/build-completion-evidence.json",
+      "sha256": "54d70ff35a8378cd25a2684b2886a8693ab492d62f809f794a791eb52d20b466"
+    }
+  ],
+  "images": {
+    "libxl.so": {
+      "path": "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/release/linux_x64/libxl.so",
+      "sha256": "82f1786ae29b4cf919bb6b1da7d88b6003cc1609e09e3e28620938486bf3d638",
+      "bytes": 16259536
+    },
+    "libxlc.so": {
+      "path": "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/release/linux_x64/libxlc.so",
+      "sha256": "b0f5557eede29dcc7a9381a8d3796f6bc0a5c782e07a5cd22166ae407e62a56d",
+      "bytes": 21957328
+    },
+    "xl": {
+      "path": "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/release/linux_x64/xl",
+      "sha256": "0afa441e1e3486c3e8ea2d7fbde7be5e5ea6caa850bc76a2bca1dc767b60f1d0",
+      "bytes": 47224
+    }
+  },
+  "inputs": {
+    "/usr/bin/gcc": "b5f1b773a7c733738352000c92a077dc5852a1a2fc6d836b1e411be1e9ec5f88",
+    "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/build_linux.sh": "da790e5447fdde9d2b03d0ef7bb68413c490e5b7d31245ec27c22dd2d0d08436",
+    "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/tools/runtime_sources.py": "0cd227a33b2db21a2e0156879d7617a979cdf928e55eb647459bfa4c3df94903",
+    "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/tools/runtime_dll.rsp.in": "8cbc8782c3c7ca501f8cb2bb3cedc727f830324d98c94cc6e2d85c776679e112",
+    "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/build_dll.bat": "b166d1e7c436abe980f79dd89302453c173eb545669f518a2037ae56a4bf1cfd",
+    "/home/ubuntu/xlang-validation/production-final-linux-r1/build.log": "51b3f6c4c75e8190a090a370a4c966a276509bf8ff17d9af11169143120186f9",
+    "/home/ubuntu/xlang-validation/provider-final-core-linux-r1/producer/lib/tcc/config.h": "8659bba22ea4b7bd4768637071780a08909edfa3f602c69141f80cc15ae81cfc",
+    "/home/ubuntu/xlang-validation/provider-final-core-linux-r1/producer/lib/tcc/tccdefs_.h": "944e5631039a11a4d948274650fdea3b76ec88424b0473d992450eec014509ac"
+  },
+  "wallSecondsApproximation": 668.265,
+  "wallSecondsBasis": "ext4 log birth time to final modification; launch wrapper lost its final shell exit argument, successful set-e script completion and all artifacts/CPU gates are recorded separately",
+  "acceptanceSteps": 50,
+  "shippingInstallation": false
+}

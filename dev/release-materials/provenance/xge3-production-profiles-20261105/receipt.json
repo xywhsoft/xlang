@@ -1,0 +1,171 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Fresh real production O2 profiles, thin CLI, implementation-capable current Core SDK and focused CPU acceptance; no release installation performed",
+  "coreCommit": "a1d18117b935c4e14c93b59c25b8db0e500826f9",
+  "sourceReceipt": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2.json",
+  "sourceReceiptSha256": "eb0dab141ac73236a022acd241c96f48cfa814d3586cd119bb78596f329b87b9",
+  "sourceProviderAcceptance": "F:\\xlang-validation\\foreign-completion-20261103\\final-source-provider-acceptance-r1.json",
+  "sourceProviderAcceptanceSha256": "b2e47520c4798bb790973bc60d0c50c6bbbb321153e20499d655db6495405e1a",
+  "reports": [
+    {
+      "platform": "win_x64",
+      "name": "production",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\production-final-win-r1\\production-build.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-production-delivery-receipt-r1\\win-production.json",
+      "sha256": "c550e48a35cf57e8006c46c3513e319b977d0864d69d5af84b5752a8388e0c62"
+    },
+    {
+      "platform": "win_x64",
+      "name": "profile-cpu",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\production-final-acceptance-win-r1\\results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-production-delivery-receipt-r1\\win-profile-cpu.json",
+      "sha256": "71e01af95b77c4ed38b3eb3082c7308eab8c8250a59227259c7e9b882b52686c"
+    },
+    {
+      "platform": "win_x64",
+      "name": "debugheap",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\production-final-debugheap-win-r1\\results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-production-delivery-receipt-r1\\win-debugheap.json",
+      "sha256": "6d52642de41e6a346a3ea285bb51d69a3a142cf04bd64336a57e449ed89e1507"
+    },
+    {
+      "platform": "win_x64",
+      "name": "cli",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\production-cli-win-r1\\results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-production-delivery-receipt-r1\\win-cli.json",
+      "sha256": "185d6cc8b420c4539119f38a64d31922945d12376ffaacc722ee7cceb72bbe43"
+    },
+    {
+      "platform": "win_x64",
+      "name": "sdk",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-win-r3\\manifest.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-production-delivery-receipt-r1\\win-sdk.json",
+      "sha256": "5516ba90f26d8131181ef177b57c2a7796a3360e831dbcd418d3b2a63ae9906a"
+    },
+    {
+      "platform": "win_x64",
+      "name": "sdk-probes",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-header-win-r3\\results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-production-delivery-receipt-r1\\win-sdk-probes.json",
+      "sha256": "eafff485ba583eac6e9c142fe10a1e8ff934fd2173d6bea15c0a8dfa3a4e53e8"
+    },
+    {
+      "platform": "linux_x64",
+      "name": "production",
+      "path": "/home/ubuntu/xlang-validation/production-final-linux-r1/production-build.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-production-delivery-receipt-r1\\linux-production.json",
+      "sha256": "516ed63445b42103dd7d25cb470a6142b24181cd83647a7e22dc6fa749fd8b9e"
+    },
+    {
+      "platform": "linux_x64",
+      "name": "profile-cpu",
+      "path": "/home/ubuntu/xlang-validation/production-final-acceptance-linux-r2/results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-production-delivery-receipt-r1\\linux-profile-cpu.json",
+      "sha256": "5671f91ea44484015f2fff79576b3d26ea7321222bb41a5f7460a4f0a05fc94c"
+    },
+    {
+      "platform": "linux_x64",
+      "name": "cli",
+      "path": "/home/ubuntu/xlang-validation/production-cli-linux-r1/results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-production-delivery-receipt-r1\\linux-cli.json",
+      "sha256": "8f86e71b8b25a98c52d749bec10f2bedf733d85c8695cdae8eba5069741682b3"
+    },
+    {
+      "platform": "linux_x64",
+      "name": "sdk",
+      "path": "/home/ubuntu/xlang-validation/sdk-final-core-linux-r3/manifest.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-production-delivery-receipt-r1\\linux-sdk.json",
+      "sha256": "30d3194c7c278b56e5f96537ae808f18fc5b52b51e6b24f5199f4b1902d7348b"
+    },
+    {
+      "platform": "linux_x64",
+      "name": "sdk-probes",
+      "path": "/home/ubuntu/xlang-validation/sdk-final-core-header-linux-r1/results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-production-delivery-receipt-r1\\linux-sdk-probes.json",
+      "sha256": "fa3dd3e67746b385e764a6881c50816f2a054e6e70a309c4a195696704a871ee"
+    },
+    {
+      "platform": "linux_x64",
+      "name": "build-wrapper-evidence",
+      "path": "/home/ubuntu/xlang-validation/production-final-linux-r1/build-completion-evidence.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-production-delivery-receipt-r1\\linux-build-wrapper-evidence.json",
+      "sha256": "54d70ff35a8378cd25a2684b2886a8693ab492d62f809f794a791eb52d20b466"
+    }
+  ],
+  "images": {
+    "win_x64": {
+      "xl.def": {
+        "path": "F:\\xlang-validation\\foreign-completion-20261103\\production-final-win-r1\\release\\win_x64\\xl.def",
+        "sha256": "08141fb3180b36a3068afbb13f9a7efa4e2fedecfab3b1c26cf92e1215b5af7f",
+        "bytes": 243804
+      },
+      "xl.dll": {
+        "path": "F:\\xlang-validation\\foreign-completion-20261103\\production-final-win-r1\\release\\win_x64\\xl.dll",
+        "sha256": "6ee80b3d2370289c1077b924d700985226c8df8aef17779b87c5c3e38a425835",
+        "bytes": 14828544
+      },
+      "xl.exe": {
+        "path": "F:\\xlang-validation\\foreign-completion-20261103\\production-final-win-r1\\release\\win_x64\\xl.exe",
+        "sha256": "6a9378f3c772b40bcd035969212fd1ee99a1b8ed22be00c30c37114e0523a2f6",
+        "bytes": 71168
+      },
+      "xlc.def": {
+        "path": "F:\\xlang-validation\\foreign-completion-20261103\\production-final-win-r1\\release\\win_x64\\xlc.def",
+        "sha256": "817b7f28b5ef2fe20d505bfca8cddf3902ae171877fc14bdfb57efc561c346b0",
+        "bytes": 244803
+      },
+      "xlc.dll": {
+        "path": "F:\\xlang-validation\\foreign-completion-20261103\\production-final-win-r1\\release\\win_x64\\xlc.dll",
+        "sha256": "e4ab39f8137fd91781bcc57dfd20d9904aa6bc2e74f422073d6015de3c489642",
+        "bytes": 20278272
+      }
+    },
+    "linux_x64": {
+      "libxl.so": {
+        "path": "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/release/linux_x64/libxl.so",
+        "sha256": "82f1786ae29b4cf919bb6b1da7d88b6003cc1609e09e3e28620938486bf3d638",
+        "bytes": 16259536
+      },
+      "libxlc.so": {
+        "path": "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/release/linux_x64/libxlc.so",
+        "sha256": "b0f5557eede29dcc7a9381a8d3796f6bc0a5c782e07a5cd22166ae407e62a56d",
+        "bytes": 21957328
+      },
+      "xl": {
+        "path": "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/release/linux_x64/xl",
+        "sha256": "0afa441e1e3486c3e8ea2d7fbde7be5e5ea6caa850bc76a2bca1dc767b60f1d0",
+        "bytes": 47224
+      }
+    }
+  },
+  "sdk": {
+    "win_x64": {
+      "directory": "F:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-win-r3\\include",
+      "manifest": "F:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-win-r3\\manifest.json",
+      "sha256": "5516ba90f26d8131181ef177b57c2a7796a3360e831dbcd418d3b2a63ae9906a"
+    },
+    "linux_x64": {
+      "directory": "/home/ubuntu/xlang-validation/sdk-final-core-linux-r3/include",
+      "manifest": "/home/ubuntu/xlang-validation/sdk-final-core-linux-r3/manifest.json",
+      "sha256": "30d3194c7c278b56e5f96537ae808f18fc5b52b51e6b24f5199f4b1902d7348b"
+    }
+  },
+  "productionGccSourceCompilations": {
+    "win_x64": 2732,
+    "linux_x64": 2835
+  },
+  "cliSourceCompilations": 4,
+  "acceptanceSteps": {
+    "winProfileAndCli": 59,
+    "linuxProfileAndCli": 50,
+    "sdkProbes": 10,
+    "total": 119
+  },
+  "sdkRole": "Implementation-capable XRT/xruntime SDK headers and include templates retained; no loose .c/.o; Native engine SDK/metadata/resources/settings remain separately matched",
+  "historicalFailureNotes": [
+    "Linux launch wrapper exit argument became empty after successful set-e build script; completion marker, artifacts and actual CPU acceptance recorded without rewriting prior output",
+    "Earlier metadata/header-probe-only failures preserved; no production compiler/source failure was waived"
+  ],
+  "shippingInstallation": false
+}

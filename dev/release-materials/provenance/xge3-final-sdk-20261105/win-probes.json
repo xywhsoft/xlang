@@ -1,0 +1,83 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Authoritative current SDK public/private key header ABI and current compiler-layout facts; actual production CLI compilation. Implementation-capable XRT headers retained, no image rebuild.",
+  "sdkManifest": "F:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-win-r3\\manifest.json",
+  "sdkManifestSha256": "5516ba90f26d8131181ef177b57c2a7796a3360e831dbcd418d3b2a63ae9906a",
+  "cliSha256": "6a9378f3c772b40bcd035969212fd1ee99a1b8ed22be00c30c37114e0523a2f6",
+  "rows": [
+    {
+      "name": "C11",
+      "exitCode": 0,
+      "command": [
+        "gcc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-IF:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-win-r3\\include",
+        "-IF:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-win-r3\\include\\__xl_compiler",
+        "-fsyntax-only",
+        "F:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-header-win-r3\\sdk.c"
+      ]
+    },
+    {
+      "name": "Cpp11",
+      "exitCode": 0,
+      "command": [
+        "g++",
+        "-std=c++11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-IF:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-win-r3\\include",
+        "-IF:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-win-r3\\include\\__xl_compiler",
+        "-fsyntax-only",
+        "F:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-header-win-r3\\sdk.cpp"
+      ]
+    },
+    {
+      "name": "Cpp17",
+      "exitCode": 0,
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-IF:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-win-r3\\include",
+        "-IF:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-win-r3\\include\\__xl_compiler",
+        "-fsyntax-only",
+        "F:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-header-win-r3\\sdk.cpp"
+      ]
+    },
+    {
+      "name": "compiler-C11",
+      "exitCode": 0,
+      "command": [
+        "gcc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-IF:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-win-r3\\include",
+        "-IF:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-win-r3\\include\\__xl_compiler",
+        "-fsyntax-only",
+        "F:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-header-win-r3\\compiler-sdk.c"
+      ]
+    },
+    {
+      "name": "production-CLI-build",
+      "exitCode": 0,
+      "command": [
+        "F:\\xlang-validation\\foreign-completion-20261103\\production-final-win-r1\\release\\win_x64\\xl.exe",
+        "build",
+        "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2\\test\\cases\\native_sequence.xl",
+        "--inc-path",
+        "F:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-win-r3\\include",
+        "-o",
+        "F:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-header-win-r3\\sequence.exe"
+      ]
+    }
+  ]
+}

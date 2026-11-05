@@ -1,0 +1,39 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Actual production thin xl.exe backed solely by new xlc.dll; NativeSequence run/build/standalone",
+  "rows": [
+    {
+      "name": "run",
+      "exitCode": 0,
+      "command": [
+        "F:\\xlang-validation\\foreign-completion-20261103\\production-final-win-r1\\release\\win_x64\\xl.exe",
+        "run",
+        "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2\\test\\cases\\native_sequence.xl",
+        "--inc-path",
+        "F:\\xlang-validation\\foreign-completion-20261103\\provider-final-core-win-r2\\include"
+      ]
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "command": [
+        "F:\\xlang-validation\\foreign-completion-20261103\\production-final-win-r1\\release\\win_x64\\xl.exe",
+        "build",
+        "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2\\test\\cases\\native_sequence.xl",
+        "--inc-path",
+        "F:\\xlang-validation\\foreign-completion-20261103\\provider-final-core-win-r2\\include",
+        "-o",
+        "F:\\xlang-validation\\foreign-completion-20261103\\production-cli-win-r1\\sequence.exe"
+      ]
+    },
+    {
+      "name": "standalone",
+      "exitCode": 0,
+      "command": [
+        "F:\\xlang-validation\\foreign-completion-20261103\\production-cli-win-r1\\sequence.exe"
+      ]
+    }
+  ],
+  "cliSha256": "6a9378f3c772b40bcd035969212fd1ee99a1b8ed22be00c30c37114e0523a2f6"
+}
