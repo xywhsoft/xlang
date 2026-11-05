@@ -1,0 +1,25 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Metadata-only SDK successor: all prior code/header/config/image/importlib bytes and compiler configuration are identical; dependency-owned historical provenance paths and bytes are preserved.",
+  "historicalProvenanceFiles": 25,
+  "identicalCodeAndHeaderFiles": 27,
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\ide-sdk-metadata-successor-r2.json",
+      "sha256": "8d288316d0512e40d2721762b128ac7b3c9bd2db2af2d100c5963dfa52e65055"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\ide-sdk-final-r3.json",
+      "sha256": "72beb14909c415c6e95dbee9f86249913ff104b44f14a50d28e1105292565d06"
+    }
+  ],
+  "files": [
+    {
+      "path": "tools/stage_xge3_ide_sdk.py",
+      "canonicalLfSha256": "dc930f06e810f51890999e8c380f61ae8cf8a85814e0c34f81137abf5a98c4e2"
+    }
+  ]
+}

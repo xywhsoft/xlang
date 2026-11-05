@@ -71,9 +71,17 @@ def main():
         for source in sorted(base.rglob('*')):
             if source.is_file() and source.suffix in ('.h','.inc'):
                 add(source,source.relative_to(native).as_posix())
-    for source,name in ((source_manifest,'provenance/source-freeze.json'),
-        (build/'build-report.json','provenance/source-build-report.json'),
-        (parent/'sdk_manifest.json','provenance/parent-sdk-manifest.json')):
+    # Dependency-owned historical reports keep their bytes and relative paths.
+    # New evidence has a distinct location; source-build-report.json is not a
+    # mutable alias that can silently replace an earlier acceptance report.
+    for row in original['files']:
+        if row['path'].startswith('provenance/'):
+            add(parent/row['path'],row['path'])
+    evidence='provenance/xge3-'+sha(source_manifest)[:12]+'-'+sha(build/'build-report.json')[:12]+'-'+sha(parent/'sdk_manifest.json')[:8]+'/'
+    for source,name in ((source_manifest,evidence+'source-freeze.json'),
+        (build/'build-report.json',evidence+'source-build-report.json'),
+        (parent/'sdk_manifest.json',evidence+'parent-sdk-manifest.json'),
+        (parent/'xge-source-files.json',evidence+'parent-xge-source-files.json')):
         add(source,name)
     out.mkdir(parents=True)
     for name,source in materials.items():
@@ -88,8 +96,8 @@ def main():
         configurationHeader='xge_build_config.h',requiredXrtModules=original['requiredXrtModules'],
         requiredExports=original['requiredExports'],privateCandidate=True,formalRelease=False,
         provenance=dict(sourceCommit=frozen['baseHEAD'],sourceWorktreeDirty=bool(frozen['overlay']),
-            sourceFreeze='provenance/source-freeze.json',sourceFreezeSha256=sha(source_manifest),
-            sourceBuildReport='provenance/source-build-report.json',sourceBuildReportSha256=sha(build/'build-report.json'),
+            sourceFreeze=evidence+'source-freeze.json',sourceFreezeSha256=sha(source_manifest),
+            sourceBuildReport=evidence+'source-build-report.json',sourceBuildReportSha256=sha(build/'build-report.json'),
             proxyVersion=18,publicAbiSchema=2,publicAbiFingerprint=actual,xrt=upstream),files=files)
     (out/'sdk_manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
     assert all(sha(path)==digest for path,digest in inputs.items()),'A staging input changed'
