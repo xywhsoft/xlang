@@ -96,15 +96,18 @@ static int xl6SemForeignReadonlySpanInputCompatible(XL6_SemContext* ctx,
     const XL6_AstNode* left,const XL6_AstNode* right,const XL6_ForeignParameterContract* a,const XL6_ForeignParameterContract* b)
 {
     if(!a->readOnly || !b->readOnly || a->kind!=XL6_FOREIGN_PARAMETER_SPAN || b->kind!=a->kind ||
-        strcmp(a->pointerCName,b->pointerCName) || a->countAbi!=b->countAbi)return 0;
+        strcmp(a->pointerCName,b->pointerCName) || strcmp(a->elementCName,b->elementCName) ||
+        strcmp(a->header,b->header) || a->countAbi!=b->countAbi)return 0;
     left=xl6SemResolveAliasType(ctx,left);right=xl6SemResolveAliasType(ctx,right);
     if(!left || !right || xl6SemTypeIsNullable(left) || xl6SemTypeIsNullable(right))return 0;
-    int lbytes=!left->childCount && xl6TextEquals(left->text,"bytes");
-    int rbytes=!right->childCount && xl6TextEquals(right->text,"bytes");
-    if(lbytes==rbytes)return 0;
-    const XL6_AstNode* buffer=lbytes ? right:left;
-    const XL6_AstNode* value=xl6SemClassValueType(ctx,buffer);
-    const XL6_AstNode* declaration=value && value->text ? xl6SemFindTypeDecl(ctx,value->text):NULL;
-    return declaration && declaration->kind==XL6_AST_CLASS &&
-        xl6SemForeignSpanType(ctx,left,a) && xl6SemForeignSpanType(ctx,right,b);
+    int lk=!left->childCount && xl6TextEquals(left->text,"string") ? 1:
+        !left->childCount && xl6TextEquals(left->text,"bytes") ? 2:0;
+    int rk=!right->childCount && xl6TextEquals(right->text,"string") ? 1:
+        !right->childCount && xl6TextEquals(right->text,"bytes") ? 2:0;
+    const XL6_AstNode* lv=xl6SemClassValueType(ctx,left);const XL6_AstNode* rv=xl6SemClassValueType(ctx,right);
+    const XL6_AstNode* ld=lv && lv->text ? xl6SemFindTypeDecl(ctx,lv->text):NULL;
+    const XL6_AstNode* rd=rv && rv->text ? xl6SemFindTypeDecl(ctx,rv->text):NULL;
+    if(!lk && ld && ld->kind==XL6_AST_CLASS)lk=3;
+    if(!rk && rd && rd->kind==XL6_AST_CLASS)rk=3;
+    return lk && rk && lk!=rk && xl6SemForeignSpanType(ctx,left,a) && xl6SemForeignSpanType(ctx,right,b);
 }

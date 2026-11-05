@@ -13,7 +13,12 @@ static int xl6IrCgenForeignSpansBegin(XL6_Output* out,const XL6_IrModule* module
             (unsigned long)p,(unsigned long)p,(unsigned long)p);
         if(buffer) {
             xl6OutputPrintf(out,"    XL6_BufferSpanV1 native_span_%lu = {0};\n"
-                "    if (native_spans_ok) { if (!xl6BufferSpanBeginV1(",(unsigned long)p);
+                "    if (native_spans_ok",(unsigned long)p);
+            if(type->kind==XL6_IR_TYPE_NULLABLE){
+                xl6OutputPuts(" && (",out);xl6IrCgenForeignViewArgument(out,operands,p,NULL);
+                xl6OutputPuts(") && xrtValueType(",out);xl6IrCgenForeignViewArgument(out,operands,p,NULL);xl6OutputPuts(")",out);
+            }
+            xl6OutputPuts(") { if (!xl6BufferSpanBeginV1(",out);
             xl6OutputPuts("xrtValueObjectGet(",out);xl6IrCgenForeignViewArgument(out,operands,p,NULL);
             xl6OutputPuts(",(xstrview){",out);xl6IrCgenEmitCStringLiteral(out,buffer->name);
             xl6OutputPuts(",sizeof(",out);xl6IrCgenEmitCStringLiteral(out,buffer->name);

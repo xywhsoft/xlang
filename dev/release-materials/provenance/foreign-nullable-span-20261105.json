@@ -1,0 +1,95 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "fullCompilerRebuild": false,
+  "scope": "Nullable protected Buffer spans and exact readonly string/bytes/Buffer physical compatibility. No row/header/runtime/API/parser changes. Full facts remain 88 bytes. No new business C forwarding function.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\nullable-span-core-candidate-r1\\manifest.json",
+    "sha256": "480d01538c7bddefaa372113902b9df2358201e931b738f018989744a5025276"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\nullable-span-win-r5\\results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\nullable-span-win-r5\\results.json",
+      "sha256": "bd5eb5538286d71c599715b66119d72ddd619184a38e9ececb93df63fd52ab62",
+      "steps": 38
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/nullable-span-linux-r4/results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\nullable-span-core-candidate-r1\\local-report-1.json",
+      "sha256": "395dcac5ee6fea056c4d018e32a1e7f68eb8b246c3ec226b18ace17535277e3b",
+      "steps": 38
+    }
+  ],
+  "irMutationsPerOptimization": 86,
+  "factsBytes": 88,
+  "optimizations": [
+    "O0",
+    "O2"
+  ],
+  "limitations": [
+    "Nullable applies to protected Buffer only; not string/bytes/scalars/raw views.",
+    "Readonly source substitution keeps identical native pointer/count/header and all other contracts.",
+    "Focused 3-TU frontend overlays; final matched delivery is separate."
+  ],
+  "files": [
+    {
+      "path": "src/sem/xl6_sem.c",
+      "canonicalLfSha256": "9f4307d50cc295cf61fc73127f5ab6604eb8554cf8ed01631fb83e27ec326d8a"
+    },
+    {
+      "path": "src/sem/xl6_sem_foreign_span.c",
+      "canonicalLfSha256": "6d312bed4a21cddf62a2c5fad3bd32f7f0bfeb1cf189d657c405dd349b766e18"
+    },
+    {
+      "path": "src/sem/xl6_sem_foreign_compat.c",
+      "canonicalLfSha256": "b7eace3729fd51ee9fa7d40ec32abc6ae9aac7a1b409dcf4f4fa98ea73b93bc6"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_parameter.c",
+      "canonicalLfSha256": "c9f9513548d0839223ea96e5af210adfd1d1084c1c3beb4b5b81aedbc5ad2592"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_pack.c",
+      "canonicalLfSha256": "54a032b8f8e1caf391baca0c83ded0b4afa2060928bd5811c94974ddab4110f5"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_span_compat.c",
+      "canonicalLfSha256": "9e312402a98a9e587c8ad8041e4c51b9c0d4764413aa9080bb7851fb14d22b6a"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_compat.c",
+      "canonicalLfSha256": "184e95a613f34035fd1be9528142cdc143ea36807a862283dfb109e525f417c9"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_foreign_span.c",
+      "canonicalLfSha256": "652056ec12a03bb53447fc577e4b8efee0895a186a5eb9f82c6cfb8a2091f5cf"
+    },
+    {
+      "path": "test/cases/foreign_nullable_span.xl",
+      "canonicalLfSha256": "0ce504f7c07ea62241b1c3d2fa9e4f00a3ba3bc4ca521bc6b755610bad987e41"
+    },
+    {
+      "path": "test/cases/foreign_nullable_span.h",
+      "canonicalLfSha256": "f93e5e3b90e1d3153339400b244a4ced92ed891ec88bfc649f6f96d8b8a53809"
+    },
+    {
+      "path": "test/cases/foreign_nullable_span_native.c",
+      "canonicalLfSha256": "0cb241d48dc7a57c27525479ee3796c89d3b416ffeb00ff0bd9733de8e9048ab"
+    },
+    {
+      "path": "test/cases/foreign_nullable_span_ir.c",
+      "canonicalLfSha256": "932b2a3ef463313b2513fde2a56d48d0434679d0f4b957fd06d7f8f344ccc8a3"
+    },
+    {
+      "path": "tools/check_foreign_nullable_span.py",
+      "canonicalLfSha256": "8afd421d45b551a7a6eedb8bc0126097e4c9a9693e8babc41af667eea478c716"
+    },
+    {
+      "path": "docs/foreign-span-storage.md",
+      "canonicalLfSha256": "6d6d92c2f5209753b0dfb7a96a3293688bd9796c6662a32cd0fc7c88aa4af061"
+    }
+  ]
+}

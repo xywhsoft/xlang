@@ -17,21 +17,9 @@ static int xl6IrForeignRowsEqual(const void* data,size_t count,size_t stride,uin
     }
     return left==right;
 }
+#include "src/ir/xl6_ir_foreign_span_compat.c"
 static int xl6IrForeignReadonlySpanInputCompatible(const XL6_IrModule* m,const XL6_IrCallTarget* a,const XL6_IrCallTarget* b,size_t p)
-{
-    if(p>=a->parameterCount || p>=b->parameterCount || a->parameterAbis[p]!=XL6_IR_PARAMETER_ABI_BORROW ||
-        b->parameterAbis[p]!=XL6_IR_PARAMETER_ABI_BORROW ||
-        a->parameterPhysicalAbis[p]!=XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW ||
-        b->parameterPhysicalAbis[p]!=XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW ||
-        !xl6IrForeignSpanParameterMatches(m,a,p) || !xl6IrForeignSpanParameterMatches(m,b,p))return 0;
-    const XL6_ForeignParameterContract* x=xl6IrForeignParameterGet(m,a,p);const XL6_ForeignParameterContract* y=xl6IrForeignParameterGet(m,b,p);
-    const XL6_IrType* left=xl6IrTypeGet(&m->types,a->parameterTypes[p]);const XL6_IrType* right=xl6IrTypeGet(&m->types,b->parameterTypes[p]);
-    if(!x || !y || !x->readOnly || !y->readOnly || x->kind!=XL6_FOREIGN_PARAMETER_SPAN || y->kind!=x->kind ||
-        strcmp(x->pointerCName,y->pointerCName) || strcmp(x->elementCName,y->elementCName) || strcmp(x->header,y->header) || x->countAbi!=y->countAbi ||
-        !left || !right || left->kind==XL6_IR_TYPE_NULLABLE || right->kind==XL6_IR_TYPE_NULLABLE)return 0;
-    return (left->cAbi==XL6_IR_C_ABI_MANAGED_BYTES && xl6IrForeignSpanBufferField(m,b,p)) ||
-        (right->cAbi==XL6_IR_C_ABI_MANAGED_BYTES && xl6IrForeignSpanBufferField(m,a,p));
-}
+{return xl6IrForeignReadonlySpanByteInputCompatible(m,a,b,p);}
 static int xl6IrForeignPackFieldsEqual(const XL6_IrModule* m,const XL6_IrCallTarget* a,const XL6_IrCallTarget* b)
 {
     size_t left=0,right=0;
@@ -113,7 +101,7 @@ static int xl6IrForeignOverloadsCompatible(const XL6_IrModule* module,const XL6_
     for(size_t p=0;p<a->parameterCount;++p){
         const XL6_ForeignRegionContract* x=xl6IrForeignRegionGet(module,a,p);const XL6_ForeignRegionContract* y=xl6IrForeignRegionGet(module,b,p);
         if((x!=NULL)!=(y!=NULL) || (x && !xl6IrForeignRegionEqual(x,y)) ||
-            a->parameterAbis[p]!=b->parameterAbis[p] || a->parameterPhysicalAbis[p]!=b->parameterPhysicalAbis[p] ||
+            (a->parameterAbis[p]!=b->parameterAbis[p] && !xl6IrForeignReadonlySpanInputCompatible(module,a,b,p)) || a->parameterPhysicalAbis[p]!=b->parameterPhysicalAbis[p] ||
             a->parameterConstraintAbis[p]!=b->parameterConstraintAbis[p])return 0;
         if(a->parameterTypes[p]!=b->parameterTypes[p]){
             const XL6_IrType* lt=xl6IrTypeGet(&module->types,a->parameterTypes[p]);const XL6_IrType* rt=xl6IrTypeGet(&module->types,b->parameterTypes[p]);
