@@ -1,3 +1,4 @@
+#include "model/metadata_read.h"
 #include "ui/reading_state.h"
 #include "ui/workspace_view.h"
 #include "ui/catalog_view.h"
@@ -6,17 +7,17 @@
 #include <stdlib.h>
 #include <string.h>
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
-static const xvalue* get(const xvalue* v,const char* key) { return v ? xrtValueObjectGet(v,sv(key)) : NULL; }
-static const char* text(const xvalue* v) { xstrview s={0}; return xrtValueGetString(v,&s) && !memchr(s.Data,0,s.Size) ? s.Data : NULL; }
+static const xvalue* get(const xvalue* v,const char* key) { return v ? xideMetaField(v,sv(key)) : NULL; }
+static const char* text(const xvalue* v) { xstrview s={0}; return xideMetaString(v,&s) && !memchr(s.Data,0,s.Size) ? s.Data : NULL; }
 static int put(xvalue* v,const char* key,xvalue* item) { return item && xrtValueObjectSetNew(v,sv(key),item); }
 static int putText(xvalue* v,const char* key,const char* s) { return put(v,key,xrtValueString(sv(s ? s : ""))); }
 static xvalue* object(const xvalue* old) { return xrtValueIs(old,XVALUE_OBJECT) ? xrtValueDeepClone(old) : xrtValueObject(); }
 double xideReadingNumber(const xvalue* value,double fallback)
 {
     double n=0; int64 i=0; uint64 u=0;
-    if(xrtValueGetFloat(value,&n)) return isfinite(n) ? n : fallback;
-    if(xrtValueGetInt(value,&i)) return (double)i;
-    if(xrtValueGetUInt(value,&u)) return (double)u;
+    if(xideMetaFloat(value,&n)) return isfinite(n) ? n : fallback;
+    if(xideMetaInt(value,&i)) return (double)i;
+    if(xideMetaUInt(value,&u)) return (double)u;
     return fallback;
 }
 char* xideReadingKey(const char* kind,const char* owner,const char* value)
@@ -32,7 +33,7 @@ typedef struct state_map { const char** keys; const xvalue** values; size_t capa
 static void clearMap(state_map* map) { free(map->keys); free(map->values); memset(map,0,sizeof(*map)); }
 static int makeMap(state_map* map,const xvalue* nodes)
 {
-    size_t count=xrtValueCount(nodes); if(count>20000) return 0;
+    size_t count=xideMetaCount(nodes); if(count>20000) return 0;
     map->capacity=8; while(map->capacity<count*2) map->capacity*=2;
     map->keys=calloc(map->capacity,sizeof(*map->keys)); map->values=calloc(map->capacity,sizeof(*map->values));
     if(!map->keys || !map->values) { clearMap(map); return 0; }
@@ -64,7 +65,7 @@ static int treeValid(const xvalue* v)
     if(!xrtValueIs(v,XVALUE_OBJECT) || !xrtValueIs(nodes,XVALUE_ARRAY) || !textField(v,"selected",8192) || !textField(v,"anchor",8192) ||
        !numberField(v,"scrollY",10000000) || !numberField(v,"fraction",1)) return 0;
     state_map map={0}; if(!makeMap(&map,nodes)) return 0; clearMap(&map);
-    for(size_t i=0;i<xrtValueCount(nodes);++i) { const xvalue* node=xrtValueArrayGet(nodes,i); bool expanded=false; if(!xrtValueIs(node,XVALUE_OBJECT) || !xrtValueGetBool(get(node,"expanded"),&expanded)) return 0; }
+    for(size_t i=0;i<xideMetaCount(nodes);++i) { const xvalue* node=xrtValueArrayGet(nodes,i); bool expanded=false; if(!xrtValueIs(node,XVALUE_OBJECT) || !xideMetaBool(get(node,"expanded"),&expanded)) return 0; }
     return 1;
 }
 int xideReadingValid(const xvalue* v)
@@ -74,7 +75,7 @@ int xideReadingValid(const xvalue* v)
     const xvalue* properties=get(v,"properties"),*help=get(v,"help"),*position=get(help,"position");
     if(properties && (!xrtValueIs(properties,XVALUE_OBJECT) || !numberField(properties,"scrollY",10000000))) return 0;
     if(help && (!xrtValueIs(help,XVALUE_OBJECT) || !textField(help,"command",8192))) return 0;
-    bool atEnd=false; if(get(position,"end") && !xrtValueGetBool(get(position,"end"),&atEnd)) return 0;
+    bool atEnd=false; if(get(position,"end") && !xideMetaBool(get(position,"end"),&atEnd)) return 0;
     if(position && (!xrtValueIs(position,XVALUE_OBJECT) || !numberField(position,"scrollX",10000000) || !numberField(position,"scrollY",10000000))) return 0;
     const xvalue* chapter=get(position,"chapter"),*block=get(position,"block");
     if(chapter && (!xrtValueIs(chapter,XVALUE_OBJECT) || !text(get(chapter,"title")) || !textField(chapter,"title",8192) ||
@@ -136,7 +137,7 @@ static void restoreTree(xide_app* app,xui_widget tree,node_key key,const xvalue*
         const xui_tree_view_node_t* node=xuiTreeViewGetNode(tree,i); if(!node) continue;
         char* id=key(app,node->iId); if(!id) continue;
         if(wanted && *wanted && !strcmp(wanted,id)) target=node->iId;
-        if(!afterLayout && node->bHasChildren) { const xvalue* entry=lookup(&map,id); bool expanded=false; if(entry && xrtValueGetBool(get(entry,"expanded"),&expanded) && expanded!=(xuiTreeViewGetNodeExpanded(tree,node->iId)!=0)) xuiTreeViewSetNodeExpanded(tree,node->iId,expanded); }
+        if(!afterLayout && node->bHasChildren) { const xvalue* entry=lookup(&map,id); bool expanded=false; if(entry && xideMetaBool(get(entry,"expanded"),&expanded) && expanded!=(xuiTreeViewGetNodeExpanded(tree,node->iId)!=0)) xuiTreeViewSetNodeExpanded(tree,node->iId,expanded); }
         xrtFree(id);
     }
     clearMap(&map);

@@ -1,3 +1,4 @@
+#include "model/metadata_read.h"
 #include "ui/layout_state.h"
 #include "platform/path.h"
 #include <stdlib.h>
@@ -7,19 +8,19 @@
 static const char* ids[]={"commands","workspace","properties","xlang_demo","c_demo","command_help","problems","build_output","terminal","tasks","outline","usages"};
 _Static_assert(sizeof(ids)/sizeof(ids[0])==XIDE_WINDOW_COUNT,"Every IDE panel needs a stable layout ID.");
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
-static xvalue* get(const xvalue* v,const char* key) { return xrtValueObjectGet(v,sv(key)); }
-static const char* text(const xvalue* v) { xstrview s={0}; return xrtValueGetString(v,&s) && !memchr(s.Data,0,s.Size) ? s.Data : NULL; }
+static xvalue* get(const xvalue* v,const char* key) { return xideMetaField(v,sv(key)); }
+static const char* text(const xvalue* v) { xstrview s={0}; return xideMetaString(v,&s) && !memchr(s.Data,0,s.Size) ? s.Data : NULL; }
 static int take(xvalue* object,const char* name,xvalue** value) { xvalue* owned=*value; *value=NULL; return xrtValueObjectSetNew(object,sv(name),owned); }
 static int append(xvalue* array,xvalue** value) { xvalue* owned=*value; *value=NULL; return xrtValueArrayAppendNew(array,owned); }
 static int numeric(const xvalue* value,double* result)
 {
     int64 i=0; uint64 u=0;
-    if(xrtValueGetFloat(value,result)) return 1;
-    if(xrtValueGetInt(value,&i)) { *result=(double)i; return 1; }
-    if(xrtValueGetUInt(value,&u)) { *result=(double)u; return 1; }
+    if(xideMetaFloat(value,result)) return 1;
+    if(xideMetaInt(value,&i)) { *result=(double)i; return 1; }
+    if(xideMetaUInt(value,&u)) { *result=(double)u; return 1; }
     return 0;
 }
-static int number(const xvalue* v,int* out) { int64 i=0; uint64 u=0; if(xrtValueGetInt(v,&i) && i>=0 && i<=1000000) { *out=(int)i; return 1; } if(xrtValueGetUInt(v,&u) && u<=1000000) { *out=(int)u; return 1; } return 0; }
+static int number(const xvalue* v,int* out) { int64 i=0; uint64 u=0; if(xideMetaInt(v,&i) && i>=0 && i<=1000000) { *out=(int)i; return 1; } if(xideMetaUInt(v,&u) && u<=1000000) { *out=(int)u; return 1; } return 0; }
 static int fail(xide_model_error* e,const char* message) { if(e) { e->code=XIDE_MODEL_INVALID; snprintf(e->message,sizeof(e->message),"%s",message); } return 0; }
 static const char* key(xide_app* app,int window)
 {
@@ -42,7 +43,7 @@ static xvalue* mapped(xide_app* app,const xvalue* id,int saving,int* valid)
 }
 static int duplicate(xvalue* seen,const xvalue* id)
 {
-    for(size_t i=0;i<xrtValueCount(seen);++i) if(xrtValueEqual(id,xrtValueArrayGet(seen,i))) return 1;
+    for(size_t i=0;i<xideMetaCount(seen);++i) if(xrtValueEqual(id,xrtValueArrayGet(seen,i))) return 1;
     return !xrtValueArrayAppendNew(seen,xrtValueDeepClone(id));
 }
 static xvalue* node(xide_app* app,const xvalue* source,int saving,int depth,int* valid,xvalue* seen)
@@ -62,20 +63,20 @@ static xvalue* node(xide_app* app,const xvalue* source,int saving,int depth,int*
         if(!xrtValueObjectSetNew(result,sv("axis"),xrtValueString(sv(!strcmp(axis,"horizontal") ? "vertical" : "horizontal"))) || !take(result,"first",&first) || !take(result,"second",&second)) { xrtValueRelease(first); xrtValueRelease(second); *valid=0; goto bad; }
         return result;
     }
-    if(strcmp(type,"pane") || !xrtValueIs(get(source,"tabs"),XVALUE_ARRAY) || xrtValueCount(get(source,"tabs"))>10000) { *valid=0; goto bad; }
+    if(strcmp(type,"pane") || !xrtValueIs(get(source,"tabs"),XVALUE_ARRAY) || xideMetaCount(get(source,"tabs"))>10000) { *valid=0; goto bad; }
     xvalue* tabs=xrtValueArray(); if(!tabs) { *valid=0; goto bad; } int active=0,originalActive=0; const char* activeId=NULL;
     if(saving) { if(!number(get(source,"active"),&originalActive)) { xrtValueRelease(tabs); *valid=0; goto bad; } }
     else { activeId=text(get(source,"active")); if(!activeId) { xrtValueRelease(tabs); *valid=0; goto bad; } }
     const char* savedActive=NULL;
-    for(size_t i=0;i<xrtValueCount(get(source,"tabs"));++i) {
+    for(size_t i=0;i<xideMetaCount(get(source,"tabs"));++i) {
         const xvalue* original=xrtValueArrayGet(get(source,"tabs"),i); xvalue* value=mapped(app,original,saving,valid);
         if(!*valid) { xrtValueRelease(tabs); goto bad; } if(!value) continue;
         if(duplicate(seen,value)) { xrtValueRelease(value); xrtValueRelease(tabs); *valid=0; goto bad; }
         if(saving && (int)i==originalActive) savedActive=text(value);
-        if(!saving && !strcmp(text(original),activeId)) active=(int)xrtValueCount(tabs);
+        if(!saving && !strcmp(text(original),activeId)) active=(int)xideMetaCount(tabs);
         if(!xrtValueArrayAppendNew(tabs,value)) { xrtValueRelease(tabs); *valid=0; goto bad; }
     }
-    if(!xrtValueCount(tabs)) { xrtValueRelease(tabs); xrtValueRelease(result); return xrtValueNull(); }
+    if(!xideMetaCount(tabs)) { xrtValueRelease(tabs); xrtValueRelease(result); return xrtValueNull(); }
     if(saving && !savedActive) savedActive=text(xrtValueArrayGet(tabs,0));
     if(!xrtValueObjectSetNew(result,sv("active"),saving ? xrtValueString(sv(savedActive)) : xrtValueInt(active)) || !take(result,"tabs",&tabs)) { xrtValueRelease(tabs); *valid=0; goto bad; }
     return result;
@@ -84,7 +85,7 @@ bad:
 }
 static int rect(xvalue* object,const char* field,xide_app* app,int clamp)
 {
-    xvalue* value=get(object,field); if(!xrtValueIs(value,XVALUE_ARRAY) || xrtValueCount(value)!=4) return 0;
+    xvalue* value=get(object,field); if(!xrtValueIs(value,XVALUE_ARRAY) || xideMetaCount(value)!=4) return 0;
     double values[4];
     for(int i=0;i<4;++i) if(!numeric(xrtValueArrayGet(value,i),&values[i]) || !isfinite(values[i]) || fabs(values[i])>100000) return 0;
     if(clamp) {
@@ -104,11 +105,11 @@ static int rect(xvalue* object,const char* field,xide_app* app,int clamp)
 }
 
 static int placed(const xvalue* seen,const xvalue* id)
-{ for(size_t i=0;i<xrtValueCount(seen);++i) if(xrtValueEqual(id,xrtValueArrayGet(seen,i))) return 1; return 0; }
+{ for(size_t i=0;i<xideMetaCount(seen);++i) if(xrtValueEqual(id,xrtValueArrayGet(seen,i))) return 1; return 0; }
 static int repairPlacement(xvalue* regions,const char* name,const xvalue* id)
 {
     xvalue* region=NULL;
-    for(size_t i=0;i<xrtValueCount(regions);++i) { xvalue* candidate=xrtValueArrayGet(regions,i); if(!strcmp(name,text(get(candidate,"kind")))) { region=candidate; break; } }
+    for(size_t i=0;i<xideMetaCount(regions);++i) { xvalue* candidate=xrtValueArrayGet(regions,i); if(!strcmp(name,text(get(candidate,"kind")))) { region=candidate; break; } }
     if(!region) return 0;
     xvalue *pane=xrtValueObject(),*tabs=xrtValueArray(),*split=NULL;
     int okay=pane && tabs && xrtValueArrayAppendNew(tabs,xrtValueDeepClone(id)) &&
@@ -129,22 +130,22 @@ static xvalue* convert(xide_app* app,const xvalue* source,int saving)
     int version=0,valid=1; const char* kind=text(get(source,"kind"));
     if(!kind || strcmp(kind,saving ? "xui.dockpanel" : "xlang.dock") || !number(get(source,"version"),&version) || version!=1) return NULL;
     const char* arrays[]={"regions","windows","floating"};
-    for(int i=0;i<3;++i) if(!xrtValueIs(get(source,arrays[i]),XVALUE_ARRAY) || xrtValueCount(get(source,arrays[i]))>10000) return NULL;
+    for(int i=0;i<3;++i) if(!xrtValueIs(get(source,arrays[i]),XVALUE_ARRAY) || xideMetaCount(get(source,arrays[i]))>10000) return NULL;
     xvalue* result=xrtValueDeepClone(source),*regions=xrtValueArray(),*windows=xrtValueArray(),*floating=xrtValueArray(),*seen=xrtValueArray();
     if(!result || !regions || !windows || !floating || !seen) goto bad;
     int regionSeen[5]={0}; const char* names[]={"document","left","right","top","bottom"};
-    for(size_t i=0;i<xrtValueCount(get(source,"regions"));++i) {
+    for(size_t i=0;i<xideMetaCount(get(source,"regions"));++i) {
         const xvalue* original=xrtValueArrayGet(get(source,"regions"),i); const char* name=text(get(original,"kind")); int index=-1;
         for(int k=0;name && k<5;++k) if(!strcmp(name,names[k])) index=k;
         double value=0; const char* mode=text(get(original,"sizeMode")); bool visible=false;
-        if(index<0 || regionSeen[index]++ || !mode || (strcmp(mode,"pixel") && strcmp(mode,"portion")) || !numeric(get(original,"value"),&value) || !isfinite(value) || value<0 || value>100000 || !xrtValueGetBool(get(original,"visible"),&visible)) goto bad;
+        if(index<0 || regionSeen[index]++ || !mode || (strcmp(mode,"pixel") && strcmp(mode,"portion")) || !numeric(get(original,"value"),&value) || !isfinite(value) || value<0 || value>100000 || !xideMetaBool(get(original,"visible"),&visible)) goto bad;
         xvalue* child=node(app,get(original,"root"),saving,0,&valid,seen),*region=xrtValueDeepClone(original);
         if(!valid || !child || !region) { xrtValueRelease(child); xrtValueRelease(region); goto bad; }
         if(!xrtValueObjectSetNew(region,sv("value"),xrtValueFloat(value)) || !xrtValueObjectSetNew(region,sv(!strcmp(mode,"pixel") ? "pixelSize" : "portion"),xrtValueFloat(value)) || !take(region,"root",&child) || !append(regions,&region)) { xrtValueRelease(child); xrtValueRelease(region); goto bad; }
     }
-    if(xrtValueCount(regions)!=5) goto bad;
+    if(xideMetaCount(regions)!=5) goto bad;
     xvalue* windowSeen=xrtValueArray(); if(!windowSeen) goto bad;
-    for(size_t i=0;i<xrtValueCount(get(source,"windows"));++i) {
+    for(size_t i=0;i<xideMetaCount(get(source,"windows"));++i) {
         const xvalue* original=xrtValueArrayGet(get(source,"windows"),i); xvalue* id=mapped(app,get(original,"id"),saving,&valid);
         if(!valid) { xrtValueRelease(windowSeen); goto bad; } if(!id) continue;
         if(duplicate(windowSeen,id)) { xrtValueRelease(id); xrtValueRelease(windowSeen); goto bad; }
@@ -158,7 +159,7 @@ static xvalue* convert(xide_app* app,const xvalue* source,int saving)
         if(!item || !rect(item,"floatRect",app,!saving) || !rect(item,"lastDockRect",app,0) || !take(item,"id",&id) || !append(windows,&item)) { xrtValueRelease(id); xrtValueRelease(item); xrtValueRelease(windowSeen); goto bad; }
     }
     xrtValueRelease(windowSeen);
-    for(size_t i=0;i<xrtValueCount(get(source,"floating"));++i) {
+    for(size_t i=0;i<xideMetaCount(get(source,"floating"));++i) {
         const xvalue* original=xrtValueArrayGet(get(source,"floating"),i); xvalue* id=mapped(app,get(original,"id"),saving,&valid);
         if(!valid) goto bad;
         if(!id) continue;

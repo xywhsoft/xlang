@@ -1,3 +1,4 @@
+#include "model/metadata_read.h"
 #include "platform/recovery_backup.h"
 #include "platform/state_file.h"
 #include "platform/path.h"
@@ -9,8 +10,8 @@
 static const char* metadataNames[]={"session.json","layout.json","previous-session.json"};
 static int fail(xide_model_error* e,int code,const char* s) { if(e) { e->code=code; snprintf(e->message,sizeof(e->message),"%s",s); } return 0; }
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
-static xvalue* get(const xvalue* v,const char* s) { return v ? xrtValueObjectGet(v,sv(s)) : NULL; }
-static const char* text(const xvalue* v) { xstrview s={0}; return xrtValueGetString(v,&s) && !memchr(s.Data,0,s.Size) ? s.Data : NULL; }
+static xvalue* get(const xvalue* v,const char* s) { return v ? xideMetaField(v,sv(s)) : NULL; }
+static const char* text(const xvalue* v) { xstrview s={0}; return xideMetaString(v,&s) && !memchr(s.Data,0,s.Size) ? s.Data : NULL; }
 static int put(xvalue* v,const char* key,xvalue* value) { return value && xrtValueObjectSetNew(v,sv(key),value); }
 static char* copy(const char* s) { size_t n=strlen(s)+1; char* p=malloc(n); if(p) memcpy(p,s,n); return p; }
 static char* join(const char* a,const char* b) { size_t n=strlen(a),m=strlen(b); char* p=malloc(n+m+2); if(p) { memcpy(p,a,n); p[n]='/'; memcpy(p+n+1,b,m+1); } return p; }
@@ -97,14 +98,14 @@ static int scanBodies(const char* root,const char* prefix,xide_recovery_list* li
     CloseHandle(pinned); free(dir);
     return okay ? 1 : fail(e,XIDE_MODEL_IO,"Recovery scan cancelled, failed or exceeded its limit.");
 }
-static int number(const xvalue* v,uint64_t* out) { uint64 u=0; int64 i=0; if(xrtValueGetUInt(v,&u)) { *out=u; return 1; } if(xrtValueGetInt(v,&i) && i>=0) { *out=(uint64_t)i; return 1; } return 0; }
+static int number(const xvalue* v,uint64_t* out) { uint64 u=0; int64 i=0; if(xideMetaUInt(v,&u)) { *out=u; return 1; } if(xideMetaInt(v,&i) && i>=0) { *out=(uint64_t)i; return 1; } return 0; }
 static int validateArchive(const char* archive,int* complete,xide_model_error* e)
 {
     *complete=0; char* path=join(archive,"manifest.json"); xide_state_file state={0}; HANDLE manifest=path ? openOrdinary(path,GENERIC_READ) : INVALID_HANDLE_VALUE;
     int okay=manifest!=INVALID_HANDLE_VALUE && xideStateOpen(&state,path,"xlang-ide-recovery-backup-1",e) && state.existed;
     free(path); if(manifest!=INVALID_HANDLE_VALUE) CloseHandle(manifest);
     const char* phase=okay ? text(get(state.source,"state")) : NULL; const xvalue* files=okay ? get(state.source,"files") : NULL;
-    if(!phase || (strcmp(phase,"complete") && strcmp(phase,"copying")) || !xrtValueIs(files,XVALUE_ARRAY) || xrtValueCount(files)>LIMIT+3) okay=0;
+    if(!phase || (strcmp(phase,"complete") && strcmp(phase,"copying")) || !xrtValueIs(files,XVALUE_ARRAY) || xideMetaCount(files)>LIMIT+3) okay=0;
     if(okay && !strcmp(phase,"copying")) {
         for(int i=0;i<3;++i) { char name[80]; snprintf(name,sizeof(name),"retired-%s",metadataNames[i]); path=join(archive,name); wchar_t* w=wide(path); free(path);
             DWORD attrs=w ? GetFileAttributesW(w) : INVALID_FILE_ATTRIBUTES; DWORD status=GetLastError();
@@ -113,7 +114,7 @@ static int validateArchive(const char* archive,int* complete,xide_model_error* e
         }
     } else if(okay) {
         xvalue* seen=xrtValueObject(); if(!seen) okay=0;
-        for(size_t i=0;okay && i<xrtValueCount(files);++i) {
+        for(size_t i=0;okay && i<xideMetaCount(files);++i) {
             const xvalue* record=xrtValueArrayGet(files,i); const char* ref=text(get(record,"path")); uint64_t size=0;
             int body=ref && !strncmp(ref,"recovery/",9); const char* name=ref ? (body ? ref+9 : ref) : NULL;
             if(!name || !leaf(name) || (!body && strcmp(name,metadataNames[0]) && strcmp(name,metadataNames[1]) && strcmp(name,metadataNames[2])) || !number(get(record,"bytes"),&size) || get(seen,ref)) { okay=0; break; }

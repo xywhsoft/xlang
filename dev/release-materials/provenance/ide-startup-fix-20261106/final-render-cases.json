@@ -1,0 +1,76 @@
+{
+  "complete": true,
+  "passed": true,
+  "rows": [
+    {
+      "name": "copied-preferences",
+      "command": [
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\settings-successor-r1\\xlang_ide.exe",
+        "--hidden",
+        "--frames",
+        "4",
+        "--no-auto-diagnostics",
+        "--settings",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\final-gui-r1\\settings.json",
+        "--session-root",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\final-gui-r1\\session",
+        "--diagnostic-root",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\final-gui-r1\\diagnostics",
+        "--screenshot",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\final-gui-r1\\copied-preferences.png"
+      ],
+      "exitCode": 0,
+      "seconds": 8.172000000020489,
+      "logSha256": "fa8e518ec8093d8cf1b8cc68df2d2195839cc5a4a4eeeae176248a7eb0f78d08"
+    },
+    {
+      "name": "restored-session",
+      "command": [
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\settings-successor-r1\\xlang_ide.exe",
+        "--hidden",
+        "--frames",
+        "4",
+        "--no-auto-diagnostics",
+        "--settings",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\final-gui-r1\\settings.json",
+        "--session-root",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\final-gui-r1\\session",
+        "--diagnostic-root",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\final-gui-r1\\diagnostics",
+        "--screenshot",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\final-gui-r1\\restored-session.png"
+      ],
+      "exitCode": 0,
+      "seconds": 8.375,
+      "logSha256": "fa8e518ec8093d8cf1b8cc68df2d2195839cc5a4a4eeeae176248a7eb0f78d08"
+    },
+    {
+      "name": "malformed-preferences",
+      "command": [
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\settings-successor-r1\\xlang_ide.exe",
+        "--hidden",
+        "--frames",
+        "4",
+        "--no-auto-diagnostics",
+        "--settings",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\final-gui-r1\\bad-settings.json",
+        "--session-root",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\final-gui-r1\\bad-session",
+        "--diagnostic-root",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\final-gui-r1\\diagnostics",
+        "--screenshot",
+        "F:\\xlang-validation\\ide-startup-20261106-r1\\final-gui-r1\\malformed-preferences.png"
+      ],
+      "exitCode": 0,
+      "seconds": 8.202999999979511,
+      "logSha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db"
+    }
+  ],
+  "protectedInputs": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json": "8b5a5151212487910ae88a7385fc6574f08e1ba3f1b8cb20885c4421dc5eff65",
+    "F:\\xlang-validation\\ide-startup-20261106-r1\\final-gui-r1\\bad-settings.json": "be302461cda285db3ed2d45fb767b23e08ca8808b35a638009937df22b332d73"
+  },
+  "protectedInputsUnchanged": true,
+  "guiSha256": "25ade2a9867ed229edbf4b9013f26d99890dabaf8e9629c226fcea4a4f294883",
+  "engineSha256": "edafbc3d3520f47cbb851365c98375b27f9a0f09404535dc7e03237e2ddc02fc"
+}

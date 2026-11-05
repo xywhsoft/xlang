@@ -15,7 +15,11 @@ int main(int argc,char** argv)
     CHECK(loaded.compiler && xidePathEqual(loaded.compiler,compiler) && xrtValueObjectGet(loaded.source,(xstrview){"future",6}));
     CHECK(!xideSettingsSetCompiler(&settings,"missing.exe",&error) && error.code==XIDE_MODEL_INVALID);
     CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"external\":true}") && !xideSettingsSetCompiler(&settings,compiler,&error) && error.code==XIDE_MODEL_CONFLICT);
-    CHECK(writeText(path,"{broken") && !xideSettingsLoad(&settings,path,&error) && !xideSettingsSetCompiler(&loaded,compiler,&error));
+    CHECK(writeText(path,"{broken") && xideSettingsLoad(&settings,path,&error) && error.code==XIDE_MODEL_INVALID && !xideSettingsSetCompiler(&loaded,compiler,&error));
+    CHECK(!xrtGetError()); /* Fallback must not poison unrelated UI callbacks. */
+    xrtSetErrorKind(XERR_IO); const xerror* prior=xrtGetError();
+    CHECK(xideSettingsLoad(&settings,path,&error) && xrtGetError()==prior);
+    xrtErrorFree(xrtTakeError());
     size_t length=0; unsigned char* content=xrtFileReadAllLimit(path,256,&length); CHECK(content && length==7 && !memcmp(content,"{broken",7)); xrtFree(content);
     CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\"}") && xideSettingsLoad(&settings,path,&error));
     wchar_t locked[32768]; CHECK(MultiByteToWideChar(CP_UTF8,0,path,-1,locked,32768)); HANDLE handle=CreateFileW(locked,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,0,NULL); CHECK(handle!=INVALID_HANDLE_VALUE);
@@ -30,7 +34,7 @@ int main(int argc,char** argv)
     CHECK(!xideSettingsSetEditorFont(&settings,font,41,&error) && error.code==XIDE_MODEL_INVALID);
     CHECK(!xideSettingsSetEditorFont(&settings,"missing.ttf",16,&error) && error.code==XIDE_MODEL_INVALID);
     CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"external\":true}") && !xideSettingsSetEditorFont(&settings,font,20,&error) && error.code==XIDE_MODEL_CONFLICT);
-    CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"editor\":{\"font\":{\"size\":41}}}") && !xideSettingsLoad(&settings,path,&error));
+    CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"editor\":{\"font\":{\"size\":41}}}") && xideSettingsLoad(&settings,path,&error) && error.code==XIDE_MODEL_INVALID);
     CHECK(loaded.editorFontSize==24);
     CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"ui\":{\"futureUi\":true,\"font\":{\"futureFont\":11}}}"));
     CHECK(xideSettingsLoad(&settings,path,&error) && xideSettingsSetUiFont(&settings,font,28,&error) && xideSettingsSetEditorFont(&settings,font,20,&error) && xideSettingsSetCompiler(&settings,compiler,&error));
@@ -38,7 +42,7 @@ int main(int argc,char** argv)
     xvalue* ui=xrtValueObjectGet(loaded.source,(xstrview){"ui",2}),*uiFont=xrtValueObjectGet(ui,(xstrview){"font",4});
     CHECK(xrtValueObjectGet(ui,(xstrview){"futureUi",8}) && xrtValueObjectGet(uiFont,(xstrview){"futureFont",10}));
     CHECK(!xideSettingsSetUiFont(&settings,font,7,&error) && error.code==XIDE_MODEL_INVALID);
-    CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"ui\":{\"font\":{\"size\":41}}}") && !xideSettingsLoad(&settings,path,&error) && loaded.uiFontSize==28);
+    CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"ui\":{\"font\":{\"size\":41}}}") && xideSettingsLoad(&settings,path,&error) && error.code==XIDE_MODEL_INVALID && loaded.uiFontSize==28);
 #if XIDE_ENABLE_C_LSP
     /* C-server preferences share the existing atomic, conflict-aware store. */
     CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"future\":7,\"toolchain\":{\"cServer\":\"编译器 空格.exe\",\"futureToolchain\":true}}"));
@@ -57,7 +61,7 @@ int main(int argc,char** argv)
     CHECK(MultiByteToWideChar(CP_UTF8,0,path,-1,locked,32768)); handle=CreateFileW(locked,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,0,NULL); CHECK(handle!=INVALID_HANDLE_VALUE);
     okay=xideSettingsSetCServer(&settings,compiler,&error); CloseHandle(handle); CHECK(!okay && error.code==XIDE_MODEL_IO && xidePathEqual(settings.cServer,compiler));
     CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"external\":true}") && !xideSettingsSetCServer(&settings,compiler,&error) && error.code==XIDE_MODEL_CONFLICT);
-    CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"toolchain\":{\"cServer\":7}}") && !xideSettingsLoad(&settings,path,&error) && xidePathEqual(loaded.cServer,compiler));
+    CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"toolchain\":{\"cServer\":7}}") && xideSettingsLoad(&settings,path,&error) && error.code==XIDE_MODEL_INVALID && xidePathEqual(loaded.cServer,compiler));
     CHECK(writeText(path,"{broken") && !xideSettingsSetCServer(&loaded,compiler,&error));
     content=xrtFileReadAllLimit(path,256,&length); CHECK(content && length==7 && !memcmp(content,"{broken",7)); xrtFree(content);
 #else

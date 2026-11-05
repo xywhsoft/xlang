@@ -1,0 +1,109 @@
+{
+  "complete": true,
+  "passed": true,
+  "baseRevision": "c7710b9eb",
+  "frozenGuiBase": "F:/xlang-validation/foreign-completion-20261103/ide-final-source-r1/ide",
+  "files": [
+    {
+      "path": "ide/src/platform/dpi_proxy.c",
+      "sha256": "ed55030b570be27c1050f0d7b26846c631d0d693bc194bf4b65732657fc3e866",
+      "bytes": 45321
+    },
+    {
+      "path": "ide/src/platform/dpi_text_paint.c",
+      "sha256": "6f7d86bc022abc54455e50b1df7e643e40a169f30639e2f332d8717175a39c27",
+      "bytes": 5296
+    },
+    {
+      "path": "ide/src/platform/dpi_text_paint.h",
+      "sha256": "e4cd694d94cc96ad937f020d1f22fed02498234eefb29545fe1ef4106cf03e83",
+      "bytes": 602
+    },
+    {
+      "path": "ide/src/model/metadata_read.h",
+      "sha256": "421071d0845d2ba02bf218da2e25f2606b9d326d22ebd38fb551278ae32cf530",
+      "bytes": 1235
+    },
+    {
+      "path": "ide/src/services/execution_target.c",
+      "sha256": "35bb99d2fb58fcec93b8a87fe74165f288d56b8655349c433b0041e1d0abc7ad",
+      "bytes": 7979
+    },
+    {
+      "path": "ide/src/services/session.c",
+      "sha256": "1d27b08e271c262d65c79228ed52f5af472fe7e53d8a5166d7a515b743df4692",
+      "bytes": 60570
+    },
+    {
+      "path": "ide/src/ui/reading_state.c",
+      "sha256": "d6c8eba1dec1597138141155306f946adf4dbea5203994319eda90591956e0a3",
+      "bytes": 13165
+    },
+    {
+      "path": "ide/src/ui/layout_state.c",
+      "sha256": "c1480835f52e4c8b2b506796cdf95de3457e499dcdd6a4461c17614a59cfc2af",
+      "bytes": 14372
+    },
+    {
+      "path": "ide/src/platform/recovery_store.c",
+      "sha256": "8d5aae1b6e25806972f0bc504e5b735da8f1f3835455d0e53663a868310ccb4e",
+      "bytes": 15262
+    },
+    {
+      "path": "ide/src/platform/recovery_backup.c",
+      "sha256": "48c9dd567ef7f6a9e48bce51ce8fa959745996ffa0285ba32d43f965a0fcefce",
+      "bytes": 22455
+    },
+    {
+      "path": "ide/src/platform/settings.c",
+      "sha256": "28859500f2e07bb92ecbc16b7b636c5868c5c5a7cbc736654d9ca2a4b3073e5d",
+      "bytes": 17496
+    },
+    {
+      "path": "ide/src/platform/window_state.c",
+      "sha256": "6e847f9ae8c1c3468bbed7b8364107d05f826568a6feca620f5bde15e467e3b4",
+      "bytes": 17008
+    },
+    {
+      "path": "ide/src/platform/state_file.c",
+      "sha256": "849a7d919ee2000d66b6914ff615b17ec06387d5987f5c7073ca0330c92682dc",
+      "bytes": 4802
+    },
+    {
+      "path": "ide/src/services/build_inputs.c",
+      "sha256": "d98b1f4c2750184d151eea2384684131690c9e203a687bff32a785d2596b8d6d",
+      "bytes": 14160
+    },
+    {
+      "path": "ide/src/ui/help_document.c",
+      "sha256": "38371e72425eb3b0b70c756dc3ca9dbc66d3b75f8b6286a087b2292c3a6defbc",
+      "bytes": 30273
+    },
+    {
+      "path": "ide/tools/build.ps1",
+      "sha256": "ee6bb0d6db4ab6e3fb13681cf739fce2e0262b9585a20faa6a3b9e30fa62780b",
+      "bytes": 25792
+    },
+    {
+      "path": "ide/tools/check_gui_startup.py",
+      "sha256": "a79cfb58934e28371d34f25ee502d86965a6056227096ca2f71d3c78b9c94217",
+      "bytes": 3646
+    },
+    {
+      "path": "ide/tests/settings_test.c",
+      "sha256": "3e7bb543dcc5a41d284bf271668506008bc26861b07a5ab9fa78bf43faf4f4de",
+      "bytes": 9590
+    },
+    {
+      "path": "ide/tests/startup_values_test.c",
+      "sha256": "11492f197260e5c3d9a531c11994d41a9a5afc0b16a373aa4a36d5487d672e72",
+      "bytes": 2343
+    },
+    {
+      "path": "ide/tests/dpi_text_paint_test.c",
+      "sha256": "4dacb77f7f4c0b4cd640aa336207299bd295eeeb872860cfd5c0b9ebb46bb6b5",
+      "bytes": 5656
+    }
+  ],
+  "sourceScope": "Owned IDE startup/metadata/DPI changes only; no live unrelated IDE3 or compiler changes"
+}

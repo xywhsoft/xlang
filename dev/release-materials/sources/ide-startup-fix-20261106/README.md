@@ -1,0 +1,3 @@
+# IDE startup correction source overlay
+
+Apply these exact ide/ paths after the development archive and source-provider-tools-successor-20261105 overlay. The GUI uses its previously frozen source cohort, with the explicit source changes in source-manifest.json. XGE/XRT/CLI/language-server images are unchanged. Build the GUI with O2 and the matched IDE SDK; use ide/tools/check_gui_startup.py to test real bounded workbench creation rather than --help. The metadata and DPI ownership CPU tests are registered in ide/tools/build.ps1. DPI lifecycle tests can additionally receive a real TTF/TTC path. Original build/acceptance paths remain in the provenance reports.

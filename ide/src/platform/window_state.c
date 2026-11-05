@@ -1,4 +1,5 @@
 #define _WIN32_WINNT 0x0601
+#include "model/metadata_read.h"
 #include "platform/window_state.h"
 #include "platform/app_resources.h"
 #include "platform/path.h"
@@ -10,23 +11,23 @@
 #define WINDOW_PROPERTY L"XlangIDE.WindowState"
 #define PROCEDURE_PROPERTY L"XlangIDE.WindowPreviousProc"
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
-static xvalue* get(const xvalue* root,const char* key) { return root ? xrtValueObjectGet(root,sv(key)) : NULL; }
+static xvalue* get(const xvalue* root,const char* key) { return root ? xideMetaField(root,sv(key)) : NULL; }
 static int put(xvalue* root,const char* key,xvalue* value) { return value && xrtValueObjectSetNew(root,sv(key),value); }
 static int fail(xide_model_error* error,int code,const char* message) { if(error) { error->code=code; snprintf(error->message,sizeof(error->message),"%s",message); } return 0; }
 static int number(const xvalue* root,const char* key,int low,int high,int* result)
 {
     int64_t value=0;
-    if(!xrtValueGetInt(get(root,key),&value) || value<low || value>high) return 0;
+    if(!xideMetaInt(get(root,key),&value) || value<low || value>high) return 0;
     *result=(int)value; return 1;
 }
 int xideWindowGeometryRead(const xvalue* root,xide_window_geometry* geometry)
 {
     xide_window_geometry fresh={0}; xstrview monitor={0},coordinates={0}; bool maximized=false;
-    if(!root || !geometry || !xrtValueIs(root,XVALUE_OBJECT) || !xrtValueGetString(get(root,"coordinateSystem"),&coordinates) || coordinates.Size!=sizeof("monitor-work-dip-96")-1 || memcmp(coordinates.Data,"monitor-work-dip-96",coordinates.Size) ||
+    if(!root || !geometry || !xrtValueIs(root,XVALUE_OBJECT) || !xideMetaString(get(root,"coordinateSystem"),&coordinates) || coordinates.Size!=sizeof("monitor-work-dip-96")-1 || memcmp(coordinates.Data,"monitor-work-dip-96",coordinates.Size) ||
        !number(root,"x",-1000000,1000000,&fresh.x) || !number(root,"y",-1000000,1000000,&fresh.y) ||
        !number(root,"width",64,32768,&fresh.width) || !number(root,"height",64,32768,&fresh.height) ||
        !number(root,"workX",-1000000,1000000,&fresh.workX) || !number(root,"workY",-1000000,1000000,&fresh.workY) || !number(root,"dpi",48,768,&fresh.dpi) ||
-       !xrtValueGetBool(get(root,"maximized"),&maximized) || !xrtValueGetString(get(root,"monitor"),&monitor) || monitor.Size>=sizeof(fresh.monitor) || memchr(monitor.Data,0,monitor.Size)) return 0;
+       !xideMetaBool(get(root,"maximized"),&maximized) || !xideMetaString(get(root,"monitor"),&monitor) || monitor.Size>=sizeof(fresh.monitor) || memchr(monitor.Data,0,monitor.Size)) return 0;
     memcpy(fresh.monitor,monitor.Data,monitor.Size); fresh.maximized=maximized; *geometry=fresh; return 1;
 }
 int xideWindowDpi(void* handle)

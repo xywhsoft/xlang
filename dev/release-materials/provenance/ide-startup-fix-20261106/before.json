@@ -1,0 +1,16 @@
+{
+  "command": [
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+    "--hidden",
+    "--frames",
+    "2",
+    "--no-session",
+    "--no-auto-diagnostics",
+    "--session-root",
+    "F:\\xlang-validation\\ide-startup-20261106-r1\\session",
+    "--diagnostic-root",
+    "F:\\xlang-validation\\ide-startup-20261106-r1\\diagnostics"
+  ],
+  "exitCode": 1,
+  "seconds": 0.9690000000118744
+}
