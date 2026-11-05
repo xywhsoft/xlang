@@ -14,7 +14,8 @@
       "src/functions.xl",
       "src/resources.xl",
       "src/callbacks.xl",
-      "src/shapes.xl"
+      "src/shapes.xl",
+      "src/data_object.xl"
     ]
   },
   "links": [],

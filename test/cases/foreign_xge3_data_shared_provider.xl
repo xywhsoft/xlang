@@ -1,0 +1,147 @@
+// A Native share must preserve lazy providers after the registering view closes.
+import xge
+import xui
+from xge import DataOutput as EngineOutput
+from xui import DataOutput as UiOutput
+int drops=0
+int calls=0
+bool failBody=false
+xge.DataOutput? expiredEngine=null
+xui.DataOutput? expiredUi=null
+class CaptureMarker
+ int id=17
+ destroy()
+  drops+=1
+ end
+end
+func engineData() as xge.DataObject
+ auto marker=CaptureMarker()
+ auto data=xge.createDataObject()
+ data.setProvider("application/shared",func(xge.DataFormat format,xge.DataOutput output) as c_int
+  assert marker.id==17 and format.text=="application/shared"
+  calls+=1
+  expiredEngine=output
+  if failBody
+   throw RuntimeError "shared engine provider"
+  end
+  output.set(b"E\0P")
+  return c_int(0)
+ end)
+ return data
+end
+func uiData() as xui.DataObject
+ auto marker=CaptureMarker()
+ auto data=xui.createDataObject()
+ data.setProvider("application/shared",func(xui.DataFormat format,xui.DataOutput output) as c_int
+  assert marker.id==17 and format.text=="application/shared"
+  calls+=1
+  expiredUi=output
+  if failBody
+   throw RuntimeError "shared ui provider"
+  end
+  output.set(b"U\0P")
+  return c_int(0)
+ end)
+ return data
+end
+func engineCase() as bool
+ auto original=engineData()
+ auto shared=original.share()
+ original.close()
+ assert drops==0
+ auto output=Buffer(b"...")
+ c_size required=c_size(99)
+ bool rejected=false
+ try
+  required=shared.readInto("application/shared",output)
+ catch error
+  rejected=true
+ end
+ if rejected
+  assert calls==0 and required==c_size(99) and output.toBytes()==b"..."
+  shared.close()
+  assert drops==1
+  return false
+ end
+ assert required==c_size(3) and output.toBytes()==b"E\0P" and calls==1
+ rejected=false
+ try
+  auto stale=expiredEngine as EngineOutput
+  stale.set(b"bad")
+ catch error
+  rejected=true
+ end
+ assert rejected
+ failBody=true
+ assert output.assign(b"...")
+ required=c_size(99)
+ rejected=false
+ try
+  required=shared.readInto("application/shared",output)
+ catch error
+  assert error.message=="shared engine provider"
+  rejected=true
+ end
+ assert rejected and required==c_size(99) and output.toBytes()==b"..."
+ assert calls==2 and drops==0
+ failBody=false
+ shared.close()
+ assert drops==1
+ return true
+end
+func uiCase() as bool
+ auto original=uiData()
+ auto shared=original.share()
+ original.close()
+ assert drops==1
+ auto output=Buffer(b"...")
+ c_size required=c_size(99)
+ bool rejected=false
+ int before=calls
+ try
+  required=shared.readInto("application/shared",output)
+ catch error
+  rejected=true
+ end
+ if rejected
+  assert calls==before and required==c_size(99) and output.toBytes()==b"..."
+  shared.close()
+  assert drops==2
+  return false
+ end
+ assert required==c_size(3) and output.toBytes()==b"U\0P" and calls==before+1
+ rejected=false
+ try
+  auto stale=expiredUi as UiOutput
+  stale.write(c_size(0),b"bad")
+ catch error
+  rejected=true
+ end
+ assert rejected
+ failBody=true
+ assert output.assign(b"...")
+ required=c_size(99)
+ rejected=false
+ try
+  required=shared.readInto("application/shared",output)
+ catch error
+  assert error.message=="shared ui provider"
+  rejected=true
+ end
+ assert rejected and required==c_size(99) and output.toBytes()==b"..."
+ assert calls==before+2 and drops==1
+ failBody=false
+ shared.close()
+ assert drops==2
+ return true
+end
+func main(...) as int
+ bool engineOk=engineCase()
+ bool uiOk=uiCase()
+ assert drops==2
+ if not engineOk and not uiOk
+  return 33
+ end
+ assert engineOk and uiOk
+ return 0
+end

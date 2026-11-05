@@ -6,13 +6,45 @@
   "kind": "xlang-private-extlib",
   "artifact": {
     "kind": "source",
-    "cSources": ["src/runtime.c"],
-    "includeDirs": ["include"],
-    "xlSources": ["src/bootstrap.xl"],
-    "runtimeSymbols": ["xl6HostXrtResolveV1", "xl6ErrorScopeTryPropagateFailureV1", "xl6CallbackFailureRecordV1", "xl6ForeignStatusFailureV1"]
+    "cSources": [
+      "src/runtime.c"
+    ],
+    "includeDirs": [
+      "include"
+    ],
+    "xlSources": [
+      "src/bootstrap.xl"
+    ],
+    "runtimeSymbols": [
+      "xl6HostXrtResolveV1",
+      "xl6ErrorScopeTryPropagateFailureV1",
+      "xl6CallbackFailureRecordV1",
+      "xl6ForeignStatusFailureV1"
+    ],
+    "cSourceGroups": [
+      {
+        "source": "src/transfer.c",
+        "providedSymbols": [
+          "xl6Xge3RunOwned",
+          "xl6Xge3DragBegin",
+          "xl6Xge3CopyToClipboard",
+          "xl6Xui3CopyToClipboard"
+        ],
+        "requiredSymbols": [
+          "xl6CodeLeaseAcquireScoped",
+          "xl6CodeLeaseRelease",
+          "xl6TransferServicesFromLeaseV1",
+          "xl6TransferServicesProcessResidentV1"
+        ]
+      }
+    ]
   },
   "links": [],
   "loadlibs": [],
   "dependencies": [],
-  "native": {"singleton": true, "loadName": "xge-host-api3", "version": "3.0.0"}
+  "native": {
+    "singleton": true,
+    "loadName": "xge-host-api3",
+    "version": "3.0.0"
+  }
 }

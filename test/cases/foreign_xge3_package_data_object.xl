@@ -1,0 +1,233 @@
+// Headless DataObject/read/provider contract. No clipboard/drag/Run call.
+import xge
+import xui
+from xge import DataOutput as EngineOutput
+from xui import DataOutput as UiOutput
+from xge import DataFormat as EngineFormat
+from xui import DataFormat as UiFormat
+xge.DataOutput? expiredEngineOutput=null
+xui.DataOutput? expiredUiOutput=null
+xge.DataFormat? expiredEngineFormat=null
+xui.DataFormat? expiredUiFormat=null
+string savedEngineFormat=""
+string savedUiFormat=""
+int engineSource=0
+int uiSource=0
+func main(...) as int
+ auto engine=xge.createDataObject()
+ assert engine.isOwned()
+ engine.set("application/test",b"a\0b")
+ assert engine.formatCount==c_int(1)
+ assert (engine.formatAt(c_int(0)) as string)=="application/test"
+ assert engine.has("application/test")==c_int(1)
+ assert engine.formatAt(c_int(100))==null
+ engine.set("application/text","t\0s")
+ auto sourceBuffer=Buffer(b"B\0F")
+ engine.set("application/buffer",sourceBuffer)
+ assert sourceBuffer.assign(b"changed")
+ auto three=Buffer(b"...")
+ assert engine.readInto("application/text",three)==c_size(3) and three.toBytes()==b"t\0s"
+ assert engine.readInto("application/buffer",three)==c_size(3) and three.toBytes()==b"B\0F"
+ bool rejected=false
+ try
+  engine.set("application/test\0suffix",b"bad")
+ catch error
+  rejected=true
+ end
+ assert rejected
+ assert engine.readInto("application/test")==c_size(3)
+ auto output=Buffer(b"...")
+ assert engine.readInto("application/test",output)==c_size(3)
+ assert output.toBytes()==b"a\0b"
+ auto lazyBuffer=Buffer(b"lazy\0value")
+ engine.setProvider("application/lazy",func(xge.DataFormat format,xge.DataOutput sink) as c_int
+  assert format.text=="application/lazy"
+  assert format.length==c_size(16)
+  savedEngineFormat=format.text
+  expiredEngineFormat=format
+  expiredEngineOutput=sink
+  if engineSource==0
+   sink.set("lazy\0value")
+  elseif engineSource==1
+   sink.set(b"lazy\0value")
+  else
+   sink.set(lazyBuffer)
+  end
+  assert sink.required==c_size(10)
+  return c_int(0)
+ end)
+ assert engine.readInto("application/lazy")==c_size(10)
+ assert output.resize(10)
+ engineSource=1
+ assert engine.readInto("application/lazy",output)==c_size(10)
+ assert output.toBytes()==b"lazy\0value"
+ engineSource=2
+ assert engine.readInto("application/lazy",output)==c_size(10)
+ assert output.toBytes()==b"lazy\0value"
+ rejected=false
+ try
+  auto stale=expiredEngineOutput as EngineOutput
+  stale.set(b"bad")
+ catch error
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ try
+  auto stale=expiredEngineFormat as EngineFormat
+  auto forbidden=stale.text
+ catch error
+  rejected=true
+ end
+ assert rejected
+ auto shortBuffer=Buffer(b"??")
+ rejected=false
+ try
+  engine.readInto("application/test",shortBuffer)
+ catch error
+  rejected=true
+ end
+ assert rejected and shortBuffer.toBytes()==b"??" and shortBuffer.len()==2
+ auto tail=Buffer(b"\0Z")
+ engine.setProvider("application/parts",func(xge.DataFormat format,xge.DataOutput sink) as c_int
+  sink.write(c_size(0),"AB")
+  sink.write(c_size(2),b"CDEF")
+  sink.write(c_size(6),tail)
+  assert sink.required==c_size(8)
+  return c_int(0)
+ end)
+ assert engine.readInto("application/parts")==c_size(8)
+ auto prefix=Buffer(b"...")
+ rejected=false
+ try
+  engine.readInto("application/parts",prefix)
+ catch error
+  rejected=true
+ end
+ assert rejected and prefix.toBytes()==b"AB." and prefix.len()==3
+ engine.setProvider("application/failure",func(xge.DataFormat format,xge.DataOutput sink) as c_int
+  throw RuntimeError "engine provider failure"
+ end)
+ rejected=false
+ try
+  engine.readInto("application/failure")
+ catch error
+  assert error.message=="engine provider failure"
+  rejected=true
+ end
+ assert rejected
+ engine.set("application/lazy",b"replacement")
+ assert savedEngineFormat=="application/lazy"
+ auto shared=engine.share()
+ engine.close()
+ assert shared.readInto("application/test")==c_size(3)
+ auto data=xui.createDataObject()
+ assert data.isOwned()
+ data.set("application/ui",b"x\0y")
+ data.set("application/text","t\0s")
+ data.set("application/buffer",lazyBuffer)
+ assert data.readInto("application/ui")==c_size(3)
+ assert data.readInto("application/text",three)==c_size(3) and three.toBytes()==b"t\0s"
+ assert data.readInto("application/buffer")==c_size(10)
+ assert data.has("application/ui")==c_int(1) and data.formatAt(c_int(100))==null
+ data.setProvider("application/ui-lazy",func(xui.DataFormat format,xui.DataOutput sink) as c_int
+  assert format.text=="application/ui-lazy"
+  savedUiFormat=format.text
+  expiredUiFormat=format
+  expiredUiOutput=sink
+  if uiSource==0
+   sink.write(c_size(2),"Q")
+  elseif uiSource==1
+   sink.write(c_size(2),b"Q")
+  else
+   auto letter=Buffer(b"Q")
+   sink.write(c_size(2),letter)
+  end
+  return c_int(0)
+ end)
+ assert data.readInto("application/ui-lazy")==c_size(3)
+ assert output.resize(3)
+ uiSource=1
+ assert data.readInto("application/ui-lazy",output)==c_size(3)
+ assert output.toBytes()==b"\0\0Q"
+ uiSource=2
+ assert data.readInto("application/ui-lazy",output)==c_size(3) and output.toBytes()==b"\0\0Q"
+ data.setProvider("application/set",func(xui.DataFormat format,xui.DataOutput sink) as c_int
+  if uiSource==0
+   sink.set("lazy\0value")
+  elseif uiSource==1
+   sink.set(b"lazy\0value")
+  else
+   sink.set(lazyBuffer)
+  end
+  return c_int(0)
+ end)
+ uiSource=0
+ assert data.readInto("application/set")==c_size(10)
+ assert output.resize(10)
+ uiSource=1
+ assert data.readInto("application/set",output)==c_size(10) and output.toBytes()==b"lazy\0value"
+ uiSource=2
+ assert data.readInto("application/set",output)==c_size(10) and output.toBytes()==b"lazy\0value"
+ rejected=false
+ try
+  auto stale=expiredUiOutput as UiOutput
+  stale.write(c_size(0),b"bad")
+ catch error
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ try
+  auto stale=expiredUiFormat as UiFormat
+  auto forbidden=stale.text
+ catch error
+  rejected=true
+ end
+ assert rejected
+ data.setProvider("application/parts",func(xui.DataFormat format,xui.DataOutput sink) as c_int
+  sink.write(c_size(0),"AB")
+  sink.write(c_size(2),b"CDEF")
+  sink.write(c_size(6),tail)
+  return c_int(0)
+ end)
+ assert data.readInto("application/parts")==c_size(8)
+ assert prefix.assign(b"...")
+ rejected=false
+ try
+  data.readInto("application/parts",prefix)
+ catch error
+  rejected=true
+ end
+ assert rejected and prefix.toBytes()==b"AB." and prefix.len()==3
+ data.setProvider("application/failure",func(xui.DataFormat format,xui.DataOutput sink) as c_int
+  throw RuntimeError "ui provider failure"
+ end)
+ rejected=false
+ try
+  data.readInto("application/failure")
+ catch error
+  assert error.message=="ui provider failure"
+  rejected=true
+ end
+ assert rejected
+ data.set("application/ui-lazy",b"replacement")
+ assert savedUiFormat=="application/ui-lazy"
+ // A language capture is a real owned edge, even when it forms a Native cycle.
+ auto cycle=data.share()
+ data.setProvider("application/cycle",func(xui.DataFormat format,xui.DataOutput sink) as c_int
+  assert cycle.has(format.text)==c_int(1)
+  sink.set(b"cycle")
+  return c_int(0)
+ end)
+ assert data.readInto("application/cycle")==c_size(5)
+ shared.close()
+ data.close()
+ cycle.close()
+ expiredEngineOutput=null
+ expiredUiOutput=null
+ expiredEngineFormat=null
+ expiredUiFormat=null
+ assert savedEngineFormat=="application/lazy" and savedUiFormat=="application/ui-lazy"
+ return 0
+end

@@ -1,0 +1,29 @@
+// Internal logical drag only; no OS drag, clipboard, browser or frame call.
+import xui
+from xui import Context as SavedContext
+extern "binding_data_cycle_observe" @header("test/cases/foreign_xge3_data_object_cycle.h") @no_raise @c_result("status",0) func observeContext(xui.Context context)
+xui.Context? retainedContext=null
+func main(...) as int
+ if retainedContext!=null
+  auto context=retainedContext as SavedContext
+  assert context.dragIsActive()==c_int(1)
+  return 0
+ end
+ auto proxy=xui.createProxy()
+ auto context=xui.create(proxy)
+ auto widget=context.widget()
+ auto data=xui.createDataObject()
+ data.setProvider("application/cycle",func(xui.DataFormat format,xui.DataOutput output) as c_int
+  assert context.dragIsActive()==c_int(1)
+  assert format.text=="application/cycle"
+  output.set(b"cycle")
+  return c_int(0)
+ end)
+ context.startDrag(widget,data,c_uint(1),c_uint(1))
+ assert context.dragIsActive()==c_int(1)
+ assert data.readInto("application/cycle")==c_size(5)
+ observeContext(context)
+ retainedContext=context
+ // No explicit close: Context -> Native Data -> provider capture -> Context.
+ return 0
+end

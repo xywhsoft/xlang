@@ -20,7 +20,8 @@
       "src/document_records.xl",
       "src/document.xl",
       "src/document_ui_records.xl",
-      "src/document_ui.xl"
+      "src/document_ui.xl",
+      "src/data_object.xl"
     ]
   },
   "links": [],

@@ -1,0 +1,171 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Declarative DataObject/typed drag payload public layer; 72 reachable ABI calls and four real CPU scripts, plus pre/post shared-lazy-provider correctness. No Core/private/wiring/release change.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\data-object-public-candidate-r1\\manifest.json",
+    "sha256": "67c33a704e04a67de088b36e15c5d838457a5f30d79438602a4b540dcda4b477"
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\data-object-headers-win-r6\\results.json",
+      "sha256": "8961012ad89a159ba9334328ae27f3cf9fcf1f9c00ba5fb8cc62b960660b5142"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\data-object-prepared-win-r1\\results.json",
+      "sha256": "70d45a4f5972a744e70ba3b0f61cf6388b2836e920331e14a93027f5c1027c7a"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\data-object-share-before-win-r1\\results.json",
+      "sha256": "0fe3c658d7c37f6279d44f510d9fdae24a186a08476d701ea7357d681627cc41"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\data-object-share-after-win-r1\\results.json",
+      "sha256": "3b76c125b7fc656edf3223a741d597d96a5e9163c99b1a21e9f9455b9c71d123"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\data-object-example-retry-win-r1\\ir.log",
+      "sha256": "53ddbf715329b2f93449f74f44a1f346899bacebdd5bdc84e30dcbaa8919fea4"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\data-object-example-retry-win-r1\\example.json",
+      "sha256": "6b29200e400184293f103972462e9de176fd0a8d2414403abfd475e442605bc5"
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\data-object-prepared-linux-r1\\results.json",
+      "sha256": "79c8d5c3044239460d2b2b5664a0e9654bc2d0c34712d4723226d711cf0c887f"
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\data-object-share-after-linux-r1\\results.json",
+      "sha256": "3b4cb30de46db481cf87c9537e0203eaf7abe6edfdb062a1ae2aa801308c1b5d"
+    }
+  ],
+  "qualification": {
+    "abiCalls": 72,
+    "headlessPrograms": [
+      "DataObject both families",
+      "XGE checked stack drag",
+      "XUI typed stack transfer drag",
+      "maintained data_object example"
+    ],
+    "clientOptimizations": [
+      "O0",
+      "O2"
+    ],
+    "nativeSdk": "normal schema2 Proxy18 transfer-r3, exact staged packages",
+    "providerFix": "Native generation owns callback; owner=-1 preserves closure/codelease and callback epoch without binding its registering ForeignView. Both families failed with exit33 before, passed0 after; capture destructors exactly2.",
+    "cAbiAfterProviderFix": "physical signature unchanged; focused post-fix Cgen/IR and real clients pass both platforms",
+    "moduleCycle": "fixture and host prepared, real two-module execution awaits final matched provider; no acceptance claim yet",
+    "coldTransfer": "Run, OS drag and clipboard compile-only; cold transfer.c not linked into these pure CPU clients",
+    "shippingDelivery": false
+  },
+  "preservedFailures": [
+    "F:\\xlang-validation\\foreign-completion-20261103\\data-object-cpu-win-r2\\results.json",
+    "Linux data-object-cpu-linux-r2 incomplete after example Cgen; process termination cause not assigned"
+  ],
+  "rootWiringScope": "Root declaration/package wiring uses the same ABI-probed public API and separately accepted cold helper/source-group contracts. Final two-module/provider/delivery gates remain separate.",
+  "files": [
+    {
+      "path": "lib/bindings/xge/src/data_object.xl",
+      "canonicalLfSha256": "f30dd0685a04afeb806aa4f83c82ccd697424d9b1e991c17a0f8f7d5870deaad"
+    },
+    {
+      "path": "lib/bindings/xui/src/data_object.xl",
+      "canonicalLfSha256": "32710274d0f069fae960966e0d2d1b94c01a9d27155963fdf95bddf65a5a8774"
+    },
+    {
+      "path": "lib/bindings/xui/examples/data_object.xl",
+      "canonicalLfSha256": "74bd0f37a2708d116c685b98b1329ea4d5acf915836d7becfec935ab7791e96d"
+    },
+    {
+      "path": "lib/bindings/xui/examples/README.md",
+      "canonicalLfSha256": "8c5c3f38b9bffe3b26ea83bd71fd71fcdd9775bc9ade87dcfe16df0b086e13c0"
+    },
+    {
+      "path": "docs/xge3-xui3-data-object.md",
+      "canonicalLfSha256": "ed11a28944123c19fc13fc8f0cc80205703e55eaebbd47a0523bc91098777351"
+    },
+    {
+      "path": "tools/check_foreign_xge3_data_object.py",
+      "canonicalLfSha256": "3e7c8157a1f1bb2516c8f456216871dc91cb5760daa8cfc3c105eb05c3c7e6ff"
+    },
+    {
+      "path": "tools/check_foreign_xge3_data_prepared.py",
+      "canonicalLfSha256": "55032bce8511dbf11243a6b50767434241e416c983f20b16425bd0035e448f60"
+    },
+    {
+      "path": "tools/check_foreign_xge3_data_share.py",
+      "canonicalLfSha256": "a388a5d2126a3eed6405669d6651d175e0288da094bfd99d8917f27b987436e8"
+    },
+    {
+      "path": "tools/check_foreign_xge3_data_cycle.py",
+      "canonicalLfSha256": "954598e88dead1ec8171d30b671a3d6ccf48411d800b0b04759546c993a33c2c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_data_object.xl",
+      "canonicalLfSha256": "3568edb7963b2d00a875923cb5d7a6a03b9eb2acb14602322be624b660d03bbf"
+    },
+    {
+      "path": "test/cases/foreign_xge3_data_shared_provider.xl",
+      "canonicalLfSha256": "0997c32bf7ea7fa44dbcdb46b9abbddea9e304f5bc84eb90a1520e11aa2e2c11"
+    },
+    {
+      "path": "test/cases/foreign_xge3_checked_drag.xl",
+      "canonicalLfSha256": "aa1726e9e32abdafd9e77ae27186cc2f275e9240a60310316d19045d05e6b584"
+    },
+    {
+      "path": "test/cases/foreign_xge3_checked_drag.h",
+      "canonicalLfSha256": "9c6cf2d915b1f199ab7260418c780ecd6630381d50d7df4e3fcf97d5e395edc0"
+    },
+    {
+      "path": "test/cases/foreign_xge3_checked_drag_native.c",
+      "canonicalLfSha256": "ea557f029639a00c2cd3cd30eff4ee8b1aab59c9c926323f72c7121a20a1eb02"
+    },
+    {
+      "path": "test/cases/foreign_xge3_ui_drag.xl",
+      "canonicalLfSha256": "180c7946168477bb82c77083080bb219a55c0890e5aa413aaa86e560851243c0"
+    },
+    {
+      "path": "test/cases/foreign_xge3_ui_drag.h",
+      "canonicalLfSha256": "212b47ec40a6d7e2e269035865df6dda658ed586454a893ef13e9282f7ff6d1e"
+    },
+    {
+      "path": "test/cases/foreign_xge3_ui_drag_native.c",
+      "canonicalLfSha256": "991149bf53f6970fc680c67dec033e37605c017c5e44518f7158d9fd35b70620"
+    },
+    {
+      "path": "test/cases/foreign_xge3_data_object_cycle.xl",
+      "canonicalLfSha256": "9a12ae3a538452622da228e316434ee05d4fd943288154c97f543838dde8ed6c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_data_object_cycle.h",
+      "canonicalLfSha256": "2f89c0938185df19e64869c4de9d0d6881e65f36bcee70f77fccabe10486257b"
+    },
+    {
+      "path": "test/cases/foreign_xge3_data_object_cycle_host.c",
+      "canonicalLfSha256": "bcaa51d71e110a2cf2646f7565c9262330a4cf5002bbb48405ffcee8db4d3789"
+    },
+    {
+      "path": "lib/bindings/xge/src/callbacks.xl",
+      "canonicalLfSha256": "2d74e1a1ecec9850d658478af08086e5708186c407add0c988b371e22d89cd45"
+    },
+    {
+      "path": "lib/bindings/xui/src/managed.xl",
+      "canonicalLfSha256": "e44acea852f0a8928bedb403cb04d231b41e45962df1cb21ea67b72deddf3ecd"
+    },
+    {
+      "path": "lib/bindings/xge/xlang.package.json",
+      "canonicalLfSha256": "df1520f5f3e532a892f470775e9efbc0309042c345533fe1b555ac95772da891"
+    },
+    {
+      "path": "lib/bindings/xui/xlang.package.json",
+      "canonicalLfSha256": "8ff144ff6cc2bd42ec76bdfe7e6f5fee4d1ed3567adac08989e2638810994e50"
+    },
+    {
+      "path": "lib/bindings/_xge_native/xlang.package.json",
+      "canonicalLfSha256": "f1c09a2dcec2fbe658da1cedf86bc88457c64a1979917921e88946525701904d"
+    }
+  ]
+}
