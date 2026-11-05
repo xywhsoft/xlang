@@ -1,0 +1,158 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "scope": "Actual O2 XL_BUILD_DLL+XL_STATIC_TCC runtime/compiler profiles, public CPU JIT/module and static XGE acceptance. Each host links only the selected production DLL; no SourceDriver implementation object supplies its API. This is an isolated Windows candidate; no release installation or TCC PE emission/execution.",
+  "passed": true,
+  "productionJitRows": 22,
+  "productionStaticXgeRows": 6,
+  "sourceFreeSdk": true,
+  "optimization": "O2",
+  "retainedChangedProfileObjects": 6,
+  "inheritedProfileObjects": 2621,
+  "inheritedSharedObjects": 105,
+  "actualCompileInvocationsIncludingSuperseded": 8,
+  "images": [
+    {
+      "profile": "runtime",
+      "image": "F:\\xlang-validation\\native-static-20261106\\production-win-r3\\release\\win_x64\\xl.dll",
+      "sha256": "17ae784eb630fa2de9bc54e369c6b7be23b98ac1238268bb1b41cff4815ad5a7",
+      "bytes": 15316480,
+      "response": "F:\\xlang-validation\\native-static-20261106\\production-win-r3\\runtime.rsp",
+      "responseSha256": "c41313e96975a64beeb4cc3221c74016f01ab1fe7d410f09785da7e526e6e930",
+      "parentResponse": "F:\\xlang-validation\\native-static-20261106\\production-win-r2-link-r1\\runtime.rsp",
+      "parentResponseSha256": "407bd3f5561cace8ced3f9041b6f151f0f6066cdd4a25d771d85045c4dbe0104"
+    },
+    {
+      "profile": "compiler",
+      "image": "F:\\xlang-validation\\native-static-20261106\\production-win-r3\\release\\win_x64\\xlc.dll",
+      "sha256": "979d353367fc5bbe1fd43005c836b46a71bdc6f8655e908af687fb36d22854a4",
+      "bytes": 21649408,
+      "response": "F:\\xlang-validation\\native-static-20261106\\production-win-r3\\compiler.rsp",
+      "responseSha256": "4cc9c34bc199e87a9e8e727306c4f7ab230aae5099bc5ce923555a4af6a93d7f",
+      "parentResponse": "F:\\xlang-validation\\native-static-20261106\\production-win-r2-link-r1\\compiler.rsp",
+      "parentResponseSha256": "cd6f3b10cc06b176f70658978cbd7af6bda9dd488ca7c866ce0d29fd0efc45c4"
+    }
+  ],
+  "sourceMaterials": "dev/release-materials/sources/native-static-core-20261106/manifest.json",
+  "sourceMaterialsSha256": "5ce67c250d890cd76c53a1a955bd01659f7faec109cacffa13e4cd082a493c44",
+  "reports": [
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-win-r3\\production-build.json",
+      "archivePath": "production-build.json",
+      "sha256": "507987300084421e9e63b1ab879909e4b381dff50fd02c424619743a3cf4fe84"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-acceptance-win-r1\\results.json",
+      "archivePath": "production-jit-results.json",
+      "sha256": "916119beabdd0d52aaf5b79339a95591d3299bc87f8731311f3436828113984a"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-static-xge-win-r1\\results.json",
+      "archivePath": "production-static-xge-results.json",
+      "sha256": "6aa14b3695f41de95ec07cc625aa14f009aef835ab35687c96dfbc07d35a5a7e"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-win-r2\\production-build.json",
+      "archivePath": "parent-full-compile.json",
+      "sha256": "c3af2407ff527ac6c0171ddb5e3166dee9a2b88229fd82c7b84307bc699b3ae8"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-win-r2-link-r1\\results.json",
+      "archivePath": "parent-relink-results.json",
+      "sha256": "30e53edbf57569b5fc2644899bfff28cefd5b140e26e09f817b5c880a9de52d5"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-win-r3\\build.py",
+      "archivePath": "inputs/build.py",
+      "sha256": "ef1bbdba356b648689d047ccb61f5b9f742c832d0b68f5268f3347a6fbe25240"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-win-r3\\final-tcc.py",
+      "archivePath": "inputs/final-tcc.py",
+      "sha256": "d6bdc5cb1694e29d9ba186ae8ef3aaf43bd60d2beff7fb69321e068edb0b4ed2"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-win-r3\\final-resources-link.py",
+      "archivePath": "inputs/final-resources-link.py",
+      "sha256": "9b2f7acabd3ed27f46658f1a3fa5e6ecc9512b2944126905109b01703fe73adc"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-win-r3\\runtime.rsp",
+      "archivePath": "inputs/runtime.rsp",
+      "sha256": "c41313e96975a64beeb4cc3221c74016f01ab1fe7d410f09785da7e526e6e930"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-win-r3\\compiler.rsp",
+      "archivePath": "inputs/compiler.rsp",
+      "sha256": "4cc9c34bc199e87a9e8e727306c4f7ab230aae5099bc5ce923555a4af6a93d7f"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-acceptance-win-r1\\runtime_host.c",
+      "archivePath": "inputs/runtime_host.c",
+      "sha256": "f365cc4b33c86ddb1355ff21584a99bf0e741648c847e6d469f45fca7de03344"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-acceptance-win-r1\\public_driver.c",
+      "archivePath": "inputs/public_driver.c",
+      "sha256": "a47ceeb8f7976588e91fac7cb325ce3d23b61f2c260715e2fd12ead714ed4ffa"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-static-xge-win-r1\\color.xl",
+      "archivePath": "inputs/color.xl",
+      "sha256": "d32cf28ffa4df879a79d0c331fa659e6fc00006aa4433acbf681932cc450bc1f"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-static-xge-win-r1\\owned-checked.xl",
+      "archivePath": "inputs/owned-checked.xl",
+      "sha256": "73456f68eb95362ad5d9dcf0ea6405b6709b8f8b6cbf2f6d825d321e88bfdfde"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-static-xge-win-r1\\owned-nul.xl",
+      "archivePath": "inputs/owned-nul.xl",
+      "sha256": "9af8f4ad27c4c58236485e1f4cd388ac5b4ec2574d6827902c4ea8b4de36b770"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-acceptance-win-r1\\double-nested-compiler.xl",
+      "archivePath": "language-cases/double-nested-compiler.xl",
+      "sha256": "e23b2f65451752e985de68f6a8cce6cd37a2ac69061dacbc8257ee8cd997499a"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-acceptance-win-r1\\foreign_output_record_size.xl",
+      "archivePath": "language-cases/foreign_output_record_size.xl",
+      "sha256": "df1746b557108fa758237f974468c5e1af1fd470342d25491766d42cf6b2ee45"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-acceptance-win-r1\\native_sequence.xl",
+      "archivePath": "language-cases/native_sequence.xl",
+      "sha256": "5a539ac2dbad6efddddfd9da0cde4bd14884fa270f0c1a4344579314b5ff5d45"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-acceptance-win-r1\\nested-native-sequence.xl",
+      "archivePath": "language-cases/nested-native-sequence.xl",
+      "sha256": "6a23c80a1eae67c97ea463b48375a37e911a387fe63bed1c8079524d687fa5a7"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-acceptance-win-r1\\stdlib_nested_aot.xl",
+      "archivePath": "language-cases/stdlib_nested_aot.xl",
+      "sha256": "d268583a1beb16010f99cb2c2ce880f8c24c6416966830023ef2461d915e28db"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-acceptance-win-r1\\stdlib_nested_sdk.xl",
+      "archivePath": "language-cases/stdlib_nested_sdk.xl",
+      "sha256": "5de86988ba089c9f2844be8ba698932649f312ef5846360a60aef244ffe86c1d"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-acceptance-win-r1\\stdlib_string_bridge_boundaries.xl",
+      "archivePath": "language-cases/stdlib_string_bridge_boundaries.xl",
+      "sha256": "48483a3832c67042368b586813527ca3630246fe05d0c1da13d7eb707dbf946e"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-acceptance-win-r1\\tcc-jit-only.xl",
+      "archivePath": "language-cases/tcc-jit-only.xl",
+      "sha256": "adef3bdeceba1dfaf58e7b268d957514a4ccaa5f5ef690a5fb1fb3a4257e325e"
+    }
+  ],
+  "archiveSha256": "f19bb668e18cf4912034856d5993b749983c90b6a782f9f4da495dee7ca61244",
+  "windowsPeAotQualified": false,
+  "shippingDelivery": false
+}

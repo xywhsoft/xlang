@@ -14,6 +14,8 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('root','production-directory','runtime-headers','tcc-dist','out'):
         p.add_argument('--'+name,type=Path,required=True)
+    p.add_argument('--jit-only',action='store_true',
+        help='Qualify CPU JIT and modules only; do not emit or execute TinyCC PE/ELF programs')
     a=p.parse_args();root,production,headers,dist,out=[v.resolve() for v in
         (a.root,a.production_directory,a.runtime_headers,a.tcc_dist,a.out)]
     windows=os.name=='nt';cc=shutil.which('gcc');assert cc
@@ -69,9 +71,10 @@ failed:fprintf(stderr,"%s\n",xlGetLastError(context));xlDestroyContext(context);
 }
 ''');pins.append(runtime_source)
     inputs={str(v):sha(v) for v in pins}
-    report=dict(complete=False,passed=False,scope=__doc__,inputs=inputs,rows=[],
+    report=dict(complete=False,passed=False,scope=('CPU JIT and module acceptance of real production profiles; no standalone output or execution' if a.jit_only else __doc__),inputs=inputs,rows=[],
         profile='XL_BUILD_DLL + XL_STATIC_TCC; runtime also XL_RUNTIME_ONLY_DLL',
         linkedImplementationObjects=0,sourceFreeSdk=True,shippingDelivery=False,
+        jitOnly=a.jit_only,standaloneAotQualified=False,
         runtimeImages={name:sha(images/name) for name in names})
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n')
     env={k:v for k,v in os.environ.items() if not k.upper().startswith('XL6_') and k not in
@@ -103,8 +106,23 @@ failed:fprintf(stderr,"%s\n",xlGetLastError(context));xlDestroyContext(context);
     compiler_env=dict(env,XL6_SOURCE_NATIVE_ROOT=str(work if windows else out),XL6_NESTED_SDK_WORK=str(work))
     cases=[]
     for name in ('stdlib_nested_sdk','stdlib_nested_aot','stdlib_string_bridge_boundaries','stdlib_tcc_embed','native_sequence'):
+        if a.jit_only and name=='stdlib_tcc_embed':
+            # This fixture emits EXE internally even in outer run/module mode.
+            report['skippedFixtures']=['stdlib_tcc_embed (emits standalone programs)']
+            continue
         source=root/'test/cases'/(name+'.xl');local=out/source.name;shutil.copy2(source,local)
         inputs[str(source)]=sha(source);cases.append((local,[]))
+    if a.jit_only:
+        source=out/'tcc-jit-only.xl'
+        source.write_text('import tcc\n'
+            'assert tcc.run("int main(void){return 7;}")==7\n'
+            'auto child=tcc.Context()\n'
+            'assert child.compileString("int main(void){return 0;}")==0\n'
+            'assert child.run()==0\n'
+            'assert tcc.vfsMount("__xlvfs__/production.c","int main(void){return 0;}")\n'
+            'assert tcc.runFile("__xlvfs__/production.c")==0\n'
+            'tcc.vfsClear()\n')
+        inputs[str(source)]=sha(source);cases.append((source,[]))
     inner='auto values=NativeSequence::<c_int>()\nassert values.length==0\nfor value in values\n throw "unexpected"\nend\n'
     middle='import xlang\nauto context=xlang.Context()\nassert context.run('+json.dumps(inner)+'), context.lastError\n'
     for name,text in (('nested-native-sequence',inner),('double-nested-compiler',middle)):
@@ -117,7 +135,7 @@ failed:fprintf(stderr,"%s\n",xlGetLastError(context));xlDestroyContext(context);
             shutil.copy2(original,destination);inputs[str(original)]=sha(original)
         cases.append((local,[sidecar]))
     for source,sidecars in cases:
-        for mode in ('run','module','exe'):
+        for mode in (('run','module') if a.jit_only else ('run','module','exe')):
             output=out/(source.stem+'-'+mode)
             run(source.stem+'-'+mode,[driver,source,mode,output,*sidecars],custom_env=compiler_env)
             if mode=='exe':
@@ -127,7 +145,8 @@ failed:fprintf(stderr,"%s\n",xlGetLastError(context));xlDestroyContext(context);
                 local=relocated/program.name;shutil.copy2(program,local)
                 standalone_env={k:v for k,v in env.items() if not k.startswith('XL6_') and k!='LD_LIBRARY_PATH'}
                 run(source.stem+'-relocated',[local],relocated,standalone_env)
-    report.update(complete=True,inputsUnchanged=all(sha(path)==digest for path,digest in inputs.items()))
+    report.update(complete=True,standaloneAotQualified=not a.jit_only,
+        inputsUnchanged=all(sha(path)==digest for path,digest in inputs.items()))
     report['passed']=report['inputsUnchanged'];save();assert report['passed']
 
 if __name__=='__main__':main()
