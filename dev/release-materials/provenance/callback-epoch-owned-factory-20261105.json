@@ -1,0 +1,84 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "candidates": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\callback-factory-candidate-r1\\manifest.json",
+      "sha256": "86feebfcdcf3443ea5dc45cdc85e1ff098b06b58a7db075e2430702274f5ea9b"
+    }
+  ],
+  "acceptance": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-sequence-core-acceptance-r2\\acceptance.json",
+    "sha256": "920f81e288d33470dbc4b120b9a0084bbdd8b79e4507da8833dfb7d67994fd40",
+    "reports": [
+      {
+        "name": "win-epoch-factory",
+        "originalPath": "F:\\xlang-validation\\foreign-completion-20261103\\callback-factory-win-r6\\results.json",
+        "pinnedPath": "F:\\xlang-validation\\foreign-completion-20261103\\callback-factory-win-r6\\results.json",
+        "sha256": "ac9291a2900d713f678c49c19ae1130ab5b8f63902b27188296ad8c8b6bcb754",
+        "rows": 27,
+        "fullCompilerRebuild": false
+      },
+      {
+        "name": "linux-epoch-factory",
+        "originalPath": "/home/ubuntu/xlang-validation/callback-factory-linux-r2/results.json",
+        "pinnedPath": "F:\\xlang-validation\\foreign-completion-20261103\\native-sequence-core-acceptance-r2\\reports\\linux-epoch-factory.json",
+        "sha256": "3cbf77d0570ee31b3fe5788fd1770a38be3327f6f634aa675c2a71b2d33d1ef1",
+        "rows": 27,
+        "fullCompilerRebuild": false
+      }
+    ]
+  },
+  "files": [
+    {
+      "path": "test/cases/foreign_callback_factory.h",
+      "sourceSha256": "6c8397938f7ad57cb1c7df3b60f3c9576497012059a287d2eb08656b64321cf3",
+      "canonicalSha256": "6c8397938f7ad57cb1c7df3b60f3c9576497012059a287d2eb08656b64321cf3",
+      "blob": "b0f6ba2bd2492bdc8d9d9b7ec968ced75a8ec113"
+    },
+    {
+      "path": "test/cases/foreign_callback_factory.xl",
+      "sourceSha256": "16aec77c10109e4a9aa4e76d91da065fed8782982b30ef685c5ed290485ad908",
+      "canonicalSha256": "16aec77c10109e4a9aa4e76d91da065fed8782982b30ef685c5ed290485ad908",
+      "blob": "43594321a56fc68b1e9d2f862a0f777cb04fbc37"
+    },
+    {
+      "path": "test/cases/foreign_callback_factory_native.c",
+      "sourceSha256": "6bccb4382a9ba7efeaf503898814f3d0a494ae91ca7867733bac5258489e7d7c",
+      "canonicalSha256": "6bccb4382a9ba7efeaf503898814f3d0a494ae91ca7867733bac5258489e7d7c",
+      "blob": "3092856338fb49337516a8951ec9bbef4e5ad467"
+    },
+    {
+      "path": "test/cases/foreign_callback_factory_host.c",
+      "sourceSha256": "305866f50f30ea810833e7f3f613154e4f533f981dedf148129eb3b6a98adf73",
+      "canonicalSha256": "305866f50f30ea810833e7f3f613154e4f533f981dedf148129eb3b6a98adf73",
+      "blob": "6daf941ac8964696e83c63448eb139b981f3dff7"
+    },
+    {
+      "path": "test/cases/foreign_callback_factory_ir.c",
+      "sourceSha256": "befc868e8c766394964e6693a2d492ae8fc2701d4570b7be561dcf07a3d341ec",
+      "canonicalSha256": "befc868e8c766394964e6693a2d492ae8fc2701d4570b7be561dcf07a3d341ec",
+      "blob": "b68ab5f42ff0ed0cc5f91584a2f987809ee1eba7"
+    },
+    {
+      "path": "tools/check_foreign_callback_factory.py",
+      "sourceSha256": "f9d6a676e0bb1532001fce6953694d9afba319f42c2d46df9d4ed26973efc372",
+      "canonicalSha256": "f9d6a676e0bb1532001fce6953694d9afba319f42c2d46df9d4ed26973efc372",
+      "blob": "50437e553a939bb5cd048d4df583645d8cbbaf32"
+    },
+    {
+      "path": "docs/foreign-callback-factories.md",
+      "sourceSha256": "24a275ce56052c3beabcd1658acf6572ed51aac3a60903e8a346351d5ecd6524",
+      "canonicalSha256": "24a275ce56052c3beabcd1658acf6572ed51aac3a60903e8a346351d5ecd6524",
+      "blob": "d85c0b00ced1cea1519f0ecf2fc8d7cf1a7e8bcf"
+    }
+  ],
+  "sourceCanonicalization": "Exact captured source with only CRLF-to-LF translation; immutable original candidate and report bytes preserved.",
+  "fullSourceRebuild": false,
+  "matchedVfs": false,
+  "jitAotQualified": false,
+  "shippingDelivery": false,
+  "scope": "Callback-epoch receiver may invoke a checked status/output factory yielding an independent owned root. Owner-child, caller, in-place and direct-owned-pointer forms remain rejected.",
+  "sourceFiles": 7
+}
