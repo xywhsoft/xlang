@@ -1,81 +1,62 @@
 # XGE/XUI example wiring
 
-The maintained declaration examples live in `lib/bindings/xge/examples` and
-`lib/bindings/xui/examples`. The runtime delivery tree is not rewritten by
-this example update. Stage the source packages together with their exact native
-SDK before using these scripts; the current final delivery remains a separate
-acceptance step.
+Maintained examples are owned by `lib/bindings/xge/examples` and
+`lib/bindings/xui/examples`. Their standalone runtime copies are installed
+under `release/<platform>/examples/xge` and `examples/xui` together with the
+matching `xge`, `xui` and `_xge_native` packages. Each README gives commands,
+prerequisites, assertions and cleanup.
 
-## Example categories
+## Current production CLI acceptance
 
-- CPU/headless: `headless_frame`, `headless_shape`, `headless_path`,
-  `headless_cell`, `context_graph`, `manager_lifetime`. They request no window,
-  GPU, browser, network or actual OS dialog operation. The Context/Manager
-  examples still require the matching native XGE Proxy implementation.
-- Interactive desktop: `gui_shapes`, `gui_surface_draw`. They explicitly need
-  a working display and graphics backend. Automated ABI acceptance does not
-  execute them.
-- Fault/lifetime tests: `test/cases/foreign_xge3_binding_managers.xl`,
-  `foreign_xge3_binding_manager_cycle.xl` and the Shape factory, foreign-result
-  reservation, callback, runtime-policy and module-retirement gates. These
-  require their dedicated native host/fault-injection harnesses. They are not
-  standalone application examples; do not publish an OOM switch or test-only
-  native symbol as a standard-library function.
+Both actual production CLIs, using their statically linked TinyCC/VFS and the
+final independently named host SDK, passed these nine programs:
 
-Each package's example README gives commands, prerequisites, assertions and
-cleanup. The compile-only checker uses normal package imports, generates C and
-lowered IR, proves calls against the matched native headers and compiles the
-generated translation unit with GCC `-Wall -Wextra -Werror`. Header self-
-containment is checked separately in C11, C++11 and C++17. Its report explicitly
-sets execution, UI/GPU and shipping-delivery acceptance to false. This work
-does not refresh prior runtime/OOM/unload reports or assert GUI correctness.
+- `headless_frame`, `headless_shape`, `headless_path`;
+- `headless_cell`, `context_graph`, `manager_lifetime`;
+- `document_model`, `document_ui_headless`, `data_object`.
 
-The six maintained CPU/headless examples now have a separate **actual runtime**
-gate: `tools/check_xge3_headless_examples.py` generates C and lowered IR,
-builds and executes each example with GCC O0 and O2 on both platforms.
-Windows evidence is
-`F:/xlang-validation/foreign-completion-20261103/headless-six-win-r1/results.json`;
-Linux evidence is
-`/home/ubuntu/xlang-validation/headless-six-linux-r1/results.json`.
-Each report has 36 passing process rows and unchanged pinned inputs. The
-compiler is the honest R38-plus-sized-record frontend overlay over full R37,
-with final matching Model Native r5/r6 and matching public packages. This is
-generated-C runtime evidence, not a claim of a full compiler rebuild, refreshed
-embedded TCC provider, shipped release acceptance or graphics execution.
-`document_model.xl` is additionally executed by its dedicated seven-root Model
-gate; it is not included in the six-example count above.
+These programs request no window, GPU, browser, network, real clipboard or OS
+dialog operation. Context/Manager/Document UI cases still use the matching
+Native Proxy and ownership implementation. They are actual program execution,
+not declaration-only checks or a SourceDriver substitute.
 
-## Legacy delivery examples (read-only audit)
+The two interactive examples, `gui_shapes` and `gui_surface_draw`, passed
+`check`, C generation and ABI checks; they were never executed by this CPU
+acceptance. They require a working display and graphics backend.
 
-The read-only corpus contains 28 XGE and 48 XUI scripts. All 48 XUI scripts
-use `XuiApp` and raw Context/Font handles. Of the XGE scripts, 27 use
-`XgeApp`; the remaining `test_callback.xl` calls the earlier tutorial helpers
-`xgeTutorialRun`/`xgeTutorialEndFrame`. The current native Frame handler must
-return `c_int`; a void tutorial callback is not the same declaration contract.
-Three representative scripts (`ch02`, `test_callback`, `button`) were also
-actually submitted to the current compiler/packages and rejected before C
-output. This is evidence of migration work, not a passing legacy test suite.
+The combined receipt is
+`dev/release-materials/provenance/production-ui-examples-20261105.json`.
+It pins 34 process rows across both platforms, including 18 actual headless
+runs. Inputs, source copies, environment, production CLI/DLL hashes and exact
+logs are recorded. These pre-installation results do not themselves establish
+that a runtime directory was published; the delivery index records that step.
 
-`release/win_x64/examples/xge` still contains the earlier `XgeApp`, `Shape` and
-`Color` convenience API style. For example `ch02.xl` uses
-`XgeApp.init/run/beginFrame/endFrame`, `Shape.rectFill` and `Color.rgba`.
-The new package instead declares `initNative/run/begin/nativeEnd`,
-`shapeRectFill` and `colorRGBA` directly. This is a compile-time API migration;
-the old wrapper classes are not silently restored.
+## Historical and specialized evidence
 
-`release/win_x64/examples/xui` still uses `XuiApp`, `app.context()/font()` raw
-`point` values, `Widget(rawHandle)` and old positional constructors such as
-`Button(ctx,text,font)`. It also uses `onClick` instead of the native Owned
-registration `setClick`. Replacing only an import cannot make those scripts
-safe: the new design needs explicit owned Proxy/Context/Font, Context-owned
-factory results, typed callbacks and exact value records.
+The earlier six-example generated-C gate remains historical evidence:
+`headless-six-win-r1/results.json` under the validation root and
+`/home/ubuntu/xlang-validation/headless-six-linux-r1/results.json`, with 36
+process rows per platform. It used the explicitly recorded R38/sized-record
+frontend over R37 and its matching Native Model SDK. Its report bytes are not
+rewritten as a final production compiler run.
 
-The new examples demonstrate that safe subset. A complete migration of the
-old control gallery additionally needs an application loop with actual input
-pumping, viewport/resize/layout policy and fonts, and careful descriptor
-configuration per control. Caller-only descriptor pointers, typed arrays
-containing resource pointers, retained native text spans and still-in-progress
-Document/Renderer APIs must not be filled with fake `point` ownership or
-per-method C wrappers. The current inventory records those gaps independently
-of these examples. Legacy release files are neither modified nor counted as
-passing the new example gate.
+Fault/ownership cases under `test/cases`, including manager cycles, factory
+reservation, callback epochs, runtime policies, OOM and module retirement,
+need their dedicated harnesses. They are not standalone application examples
+and do not add test-only native symbols to the standard library.
+
+## Earlier wrapper tutorials
+
+The 28 XGE and 48 XUI wrapper tutorials have an exact-byte source archive at
+`dev/release-materials/sources/legacy-ui-examples-20261105`, with a SHA-256
+index. They use `XgeApp`/`XuiApp`, raw handles or old tutorial callbacks and are
+not counted as runnable examples for these declarative packages. No wrapper
+compatibility classes are restored.
+
+Publication retires only the enumerated legacy files and two old BAT runners;
+it never recursively deletes the examples directories or their hidden user
+IDE state. The maintained programs show the current owned Proxy/Context and
+typed callback/record contracts. They do not claim that every control in the
+old gallery has a new interactive demonstration. Native declaration presence,
+header ABI qualification, CPU execution and actual graphics behavior are
+separate evidence categories.
