@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "complete": true,
+  "passed": true,
+  "date": "2026-11-05",
+  "scope": "Native matched source materials and default host/IDE notice copy whitelist only; no compiler, runtime, GUI, OS, network or browser test was run, and no release/index/historical file was edited.",
+  "sourceDirectory": "dev/release-materials/sources/xge3-native-20261105-r3-host2",
+  "files": [
+    {
+      "path": "dev/release-materials/sources/xge3-native-20261105-r3-host2/xge3-native-r3-host-image-r2.tar.gz",
+      "sha256": "5a4a7aec6670c336750aefa0687c1d1368b12d77606837c6fa56392ad5fe7cc4",
+      "bytes": 38039209
+    },
+    {
+      "path": "dev/release-materials/sources/xge3-native-20261105-r3-host2/source-manifest.json",
+      "sha256": "8fb1d6037a6c3304192f5517c121af1bc79da27e4169cef5e46a678b7d2bcac1",
+      "bytes": 1736447
+    },
+    {
+      "path": "dev/release-materials/sources/xge3-native-20261105-r3-host2/notice-whitelist.json",
+      "sha256": "d20cfb50a7577aa7bb76b2366da5e3dcaf0e72d419fc14d611e3ebfcddfe77cc",
+      "bytes": 14727
+    },
+    {
+      "path": "dev/release-materials/sources/xge3-native-20261105-r3-host2/verify_archive.py",
+      "sha256": "ece5fa9d30f18121d875f301dec0b548ce2bc192836dd3b76aa88d39de6d20ca",
+      "bytes": 1100
+    },
+    {
+      "path": "dev/release-materials/sources/xge3-native-20261105-r3-host2/README.md",
+      "sha256": "92435ed3c3f67fefb677c3b8f551ed606ffeb77b4daac2ac48247bea3c0053b4",
+      "bytes": 4235
+    }
+  ],
+  "archiveVerification": {
+    "passed": true,
+    "checkedFiles": 7730,
+    "sourceFiles": 7720,
+    "sourceBytes": 144202343,
+    "archiveContentBytes": 148078516,
+    "compressedBytes": 38039209,
+    "method": "Streaming tar/gzip readback of every member; exact complete membership, sizes and SHA-256 checked."
+  },
+  "layers": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\source-freeze.json",
+      "sha256": "3e6e77f6c445225b0370cf2e638f6c664d442ca277b47156cbdd580c8563faf6",
+      "bytes": 1280159
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-host-image-source-r2\\source-freeze.json",
+      "sha256": "0f017810f3b3868ee8420f38e52aba3d403adc87db34d1873c0c689defd7a293",
+      "bytes": 1271352
+    }
+  ],
+  "changedPaths": [
+    "docs/host-runtime-image.md",
+    "tools/build/build.py",
+    "tools/build/relink.py",
+    "tools/test/check_host_image_names.py"
+  ],
+  "sourceSelection": "Exact frozen host-image R2 inventory, compared to qualified transfer R3: only four owned files differ. No live Native worktree reads.",
+  "historicalAcceptance": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-final-r3\\acceptance.json",
+      "sha256": "0a7ecee52ef1e18094ff6121b0641f7801b69495256eb4e677d453e85478eb5d",
+      "bytes": 77042
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-host-image-final-r2\\manifest.json",
+      "sha256": "13d6f9aeb66e62bf18c870ba5b9d38b906def578e464f6cd096a337416b7162c",
+      "bytes": 5378
+    }
+  ],
+  "defaultNoticeAdditions": 4,
+  "preserveExistingNoticeFiles": 9,
+  "excludedFromDefaultRuntimeNotices": 6,
+  "indexUpdateResponsibility": "Root integration owns current-delivery and runtime notice index changes; none changed here."
+}
