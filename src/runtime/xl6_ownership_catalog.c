@@ -103,7 +103,7 @@ XL6_OwnershipCatalog* xl6OwnershipCatalogCreateV1(
 {
     if((count && !domains) || count>SIZE_MAX/sizeof(*domains)){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
     for(size_t i=0;i<count;++i){
-        if(!domains[i] || domains[i]->size!=sizeof(*domains[i]) || (!domains[i]->Load && !domains[i]->Resolve && !domains[i]->AdmitsRead)){
+        if(!xl6OwnershipDomainValidV1(domains[i]) || (!domains[i]->Load && !domains[i]->Resolve && !domains[i]->AdmitsRead)){
             xrtSetErrorKind(XERR_ARGUMENT);return NULL;
         }
         for(size_t j=0;j<i;++j)if(domains[i]==domains[j]){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
@@ -219,7 +219,6 @@ bool xl6OwnershipCatalogAdmitsReadV1(xrtownershipref ref,void* data)
 bool xl6OwnershipCatalogResolveFinalizationV1(xrtownershipref ref,void* data,
     const XL6_OwnershipAdapterV1* adapter,const xrtownershipfinalizationv1** output)
 {
-    (void)ref;
     if(!output)return false;
     *output=NULL;const XL6_OwnershipCatalog* catalog=data;
     if(!catalog || catalog->building || !adapter)return false;
@@ -230,6 +229,16 @@ bool xl6OwnershipCatalogResolveFinalizationV1(xrtownershipref ref,void* data,
         if(value->Adapter!=adapter)continue;
         if(selected && selected!=value)return false;
         selected=value;
+    }
+    for(size_t i=0;i<catalog->count;++i){
+        const XL6_OwnershipDomainV1* domain=catalog->domains[i];
+        if(domain->size!=sizeof(XL6_OwnershipDomainV2))continue;
+        const XL6_OwnershipDomainV2* extended=(const XL6_OwnershipDomainV2*)domain;
+        const xrtownershipfinalizationv1* current=NULL;
+        if(!extended->ResolveFinalization(ref,adapter,&current) ||
+           !xl6OwnershipFinalizationValidV1(current,adapter))return false;
+        if(current && selected && selected!=current)return false;
+        if(current)selected=current;
     }
     *output=selected;return true;
 }

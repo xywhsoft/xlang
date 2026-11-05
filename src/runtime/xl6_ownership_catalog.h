@@ -87,6 +87,30 @@ typedef struct XL6_OwnershipDomainV1 {
     bool (*AdmitsRead)(struct xrtownershipref);
 } XL6_OwnershipDomainV1;
 
+/* Optional, immutable cold query for a leased native domain. V1 retains its
+ * original layout. V1.size identifies this complete extension; an unknown
+ * size/tag is refused before any extension callback is read. Returning true
+ * with NULL means no semantic continuation for this exact reference/adapter.
+ * False is query failure and must leave the output NULL. No allocation,
+ * reference transition, semantic callback or diagnostic mutation is allowed
+ * under Freeze. The domain's existing physical/code pins protect both the
+ * query and its returned descriptor through the plan's final Drop batch. */
+typedef struct XL6_OwnershipDomainV2 {
+    XL6_OwnershipDomainV1 V1;
+    uint64_t abiTag;
+    bool (*ResolveFinalization)(struct xrtownershipref,
+        const struct xrtownershipadapterv1*,const struct xrtownershipfinalizationv1**);
+} XL6_OwnershipDomainV2;
+#define XL6_OWNERSHIP_DOMAIN_V2_TAG UINT64_C(0x584C364F444F4D32)
+static inline bool xl6OwnershipDomainValidV1(const XL6_OwnershipDomainV1* domain)
+{
+    if(!domain)return false;
+    if(domain->size==sizeof(*domain))return true;
+    if(domain->size!=sizeof(XL6_OwnershipDomainV2))return false;
+    const XL6_OwnershipDomainV2* extended=(const XL6_OwnershipDomainV2*)domain;
+    return extended->abiTag==XL6_OWNERSHIP_DOMAIN_V2_TAG && extended->ResolveFinalization;
+}
+
 /* Create copies the domain pointer list and seals the policy population.
  * Descriptors, policies and callback code outlive the catalog and all plans.
  * Failure consumes nothing and releases every partial allocation. Lifecycle

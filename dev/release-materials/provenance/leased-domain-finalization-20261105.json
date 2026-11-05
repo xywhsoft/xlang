@@ -1,0 +1,80 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "scope": "Exact cold semantic-finalization query for leased native domains; V1 layout and existing exported symbols preserved",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\leased-domain-core-candidate-r1\\manifest.json",
+    "sha256": "f45f7bb2b538f29ab1c8b41c536c4f26f6c641866c7b92ef30316b4b6540dd1e"
+  },
+  "reports": [
+    {
+      "platform": "windows",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\leased-domain-win-r2\\results.json",
+      "sha256": "33c6df98c4a6000ee768a4a343a450adea811eda5729d64e58ded54ae077a5fb",
+      "rows": 22
+    },
+    {
+      "platform": "linux",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-completion-20261105-r37\\leased-domain-linux-r1\\results.json",
+      "sha256": "5715ba2e038c076c21d30f22753518091d8b9d9b788c216c25ceedd6ffa66574",
+      "rows": 22
+    }
+  ],
+  "files": [
+    {
+      "path": "src/runtime/xl6_ownership_catalog.h",
+      "sourceSha256": "d5756a22f73d6f85842e6000e1cc37be3583a2fef2f38d390e778e655fd1a3f7",
+      "canonicalSha256": "d5756a22f73d6f85842e6000e1cc37be3583a2fef2f38d390e778e655fd1a3f7",
+      "blob": "ff482495cfce5de6a83c5bd70eaad438a352a911"
+    },
+    {
+      "path": "src/runtime/xl6_ownership_catalog.c",
+      "sourceSha256": "7928dfdbde50f8ab38d793f0dcad0b6ede4411c90a18bb05e80bce91b3b8b9be",
+      "canonicalSha256": "7928dfdbde50f8ab38d793f0dcad0b6ede4411c90a18bb05e80bce91b3b8b9be",
+      "blob": "ce8b0c9f2fa9bfea58c6d27b2a51d99c8c7ecaba"
+    },
+    {
+      "path": "src/runtime/xl6_foreign_view.h",
+      "sourceSha256": "a06243592ed3a928470efad97b4c50193e2f5e65ed77e9b8c5b90ac9e282ac0d",
+      "canonicalSha256": "a06243592ed3a928470efad97b4c50193e2f5e65ed77e9b8c5b90ac9e282ac0d",
+      "blob": "4f1a3d1d50139043779727a37ac9092d3f581cfc"
+    },
+    {
+      "path": "src/runtime/xl6_foreign_view.c",
+      "sourceSha256": "fb3608c154347c693c4464a443efd7a2f06af231596bfd016e9d1c7ad5495d66",
+      "canonicalSha256": "fb3608c154347c693c4464a443efd7a2f06af231596bfd016e9d1c7ad5495d66",
+      "blob": "ece80c2f34caf66c4dc44bc3206afd21f0982ed4"
+    },
+    {
+      "path": "test/cases/xlir_ownership_leased_finalization_runtime.c",
+      "sourceSha256": "99b445075a55aa2edc82eaf0b53e5ae0215469ff55139b9adbdcb7bbc1e1c48c",
+      "canonicalSha256": "99b445075a55aa2edc82eaf0b53e5ae0215469ff55139b9adbdcb7bbc1e1c48c",
+      "blob": "4678aa54d2a91556c54c9c9b3a49fce25107b020"
+    },
+    {
+      "path": "tools/check_ownership_leased_finalization.py",
+      "sourceSha256": "f9eea2c21bd8f52890f5d281a8de97fcebdddcc4ebeb13bf27256981b2291241",
+      "canonicalSha256": "f9eea2c21bd8f52890f5d281a8de97fcebdddcc4ebeb13bf27256981b2291241",
+      "blob": "5aebbb47f11d6a14707dbd3efc954b075d344c63"
+    },
+    {
+      "path": "docs/native-domain-finalization.md",
+      "sourceSha256": "e64f60f21be60fd3c2e3ed7ffae6b6d355e1f4c229c5715012973108892ff9e4",
+      "canonicalSha256": "e64f60f21be60fd3c2e3ed7ffae6b6d355e1f4c229c5715012973108892ff9e4",
+      "blob": "6dce395e43b24ed49a308d1f58c1ae145dbc54da"
+    }
+  ],
+  "abi64": {
+    "domainV1Bytes": 32,
+    "domainV2Bytes": 48
+  },
+  "ordinaryCallAdditionalWork": 0,
+  "shippingDelivery": false,
+  "fullCompilerRebuild": false,
+  "limitations": [
+    "Tests explicitly rebuild two lifecycle runtime translation units over verified R37 O2 source parents",
+    "New compiler/VFS/provider successor and native Model public bindings are separate milestones"
+  ],
+  "sourceCanonicalization": "Only CRLF-to-LF for project text; historical candidates and reports unchanged"
+}

@@ -113,6 +113,9 @@ XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewCreateRootV1(const void*,const
  * It is immutable, has no Load hook, and its Resolve/AdmitsRead are independent
  * of catalog policies. The supplied code owner protects the domain, its native
  * tables and all transitive code until every plan callback has returned.
+ * A validated DomainV2 can additionally answer exact semantic-finalization
+ * queries without a Load hook. This capability remains available through
+ * cleared roots while a plan holds their physical/code pins.
  * It adds no operation or allocation to ordinary native method calls. */
 XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewCreateRootWithDomainV1(
     const void*,const XL6_ForeignViewDescriptorV1*,const XL6_OwnershipDomainV1*,const XL6_CodeOwner*);
