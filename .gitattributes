@@ -84,3 +84,6 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 
 # Keep recorded experimental patch hashes stable across checkout platforms.
 /ide/docs/prototypes/*.patch -text
+
+# Shared native ABI snapshot retains the canonical upstream header bytes.
+/src/runtime/xnative_transfer.h text eol=lf

@@ -1,0 +1,111 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "fullCompilerRebuild": false,
+  "scope": "Resident Windows full typed COM capsules and Linux portable service construction/stubs. No production API registry/component/rsp edits; requires separately owned ForeignView cold capability APIs.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-com-capsules-candidate-r2\\manifest.json",
+    "sha256": "be652e4ee2479a340a24b3d6c8a15eabfb40d9b9587f89cbfdde3b945abe6744"
+  },
+  "acceptance": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-com-capsules-candidate-r2\\acceptance.json",
+    "sha256": "62fb05a1504faf37321ff4fa20928ea27ee6de85a8cb40d4fd749a4f1f4907bf"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-com-capsules-win-r7\\results.json",
+      "sourcePath": "F:/xlang-validation/foreign-completion-20261103/native-com-capsules-win-r7/results.json",
+      "sha256": "309cb8c03aa546df7a40a69b322e0d33784def03f4f0239de524aed55cc7c962",
+      "steps": 18
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-com-capsules-candidate-r2\\linux-results.json",
+      "sourcePath": "/home/ubuntu/xlang-validation/native-com-capsules-linux-r4/results.json",
+      "sha256": "f721b3d1aded6a03c1bb09a7a4766995abbb8e864e1ef0ae6a9fffc10fd25e8f",
+      "steps": 10
+    }
+  ],
+  "debugheap": {
+    "command": [
+      "E:\\software\\w64devkit\\bin\\gdb.exe",
+      "--batch",
+      "-ex",
+      "set pagination off",
+      "-ex",
+      "run",
+      "--args",
+      "F:\\xlang-validation\\foreign-completion-20261103\\native-com-capsules-win-r7\\dll-host-O2.exe",
+      "F:\\xlang-validation\\foreign-completion-20261103\\native-com-capsules-win-r7\\capsule-publisher.dll"
+    ],
+    "toolSha256": "6a84417395ec9589bf8284e3944ede500645640c4cf0f9e8763c6121477cd0bf",
+    "exitCode": 0,
+    "logSha256": "87c57c14d2744264158e376bcd6130f2be34f09175b043e6774eca0ce1ee5083",
+    "steps": 1
+  },
+  "totalSteps": 29,
+  "coldPayload": {
+    "typedCapsuleBytes": 80,
+    "foreignViewBytes": 464,
+    "warmWrapAllocations": 2,
+    "warmWrapPayloadBytes": 544
+  },
+  "requiredParentSources": {
+    "D:\\GIT\\x-lang\\src\\runtime\\xl6_foreign_view.c": "bd4b3912a2e511bbd93278131322c4b42ffe6e3faed367391c3cbca2b00e4b04",
+    "D:\\GIT\\x-lang\\src\\runtime\\xl6_foreign_view.h": "2d57673fff75f11d3d31376272b5971a042d2d64bc6341ac1d67ef5031fac797"
+  },
+  "files": [
+    {
+      "path": "src/runtime/xl6_native_com.c",
+      "acceptedSha256": "9637ae836d18cc5815b36e86208c628ab5da0670afc63c6068df202b52fbfca7",
+      "canonicalLfSha256": "9637ae836d18cc5815b36e86208c628ab5da0670afc63c6068df202b52fbfca7"
+    },
+    {
+      "path": "src/runtime/xl6_native_com.h",
+      "acceptedSha256": "afcc0dbc8ec61783b876b10997d4c48f5d4185263d68c90af2d527b664413230",
+      "canonicalLfSha256": "afcc0dbc8ec61783b876b10997d4c48f5d4185263d68c90af2d527b664413230"
+    },
+    {
+      "path": "src/runtime/xnative_transfer.h",
+      "acceptedSha256": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f",
+      "canonicalLfSha256": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f"
+    },
+    {
+      "path": "test/cases/native_com_capsule.c",
+      "acceptedSha256": "acc4e7c9c23cb4d124a6eead6822172f05292c4f9403acf77baea38cfd1f0112",
+      "canonicalLfSha256": "acc4e7c9c23cb4d124a6eead6822172f05292c4f9403acf77baea38cfd1f0112"
+    },
+    {
+      "path": "test/cases/native_com_capsule_dll.c",
+      "acceptedSha256": "d9ad4f52b8a41d7e4bee90e5d906987b584bc129779b69dbba46077263317f4c",
+      "canonicalLfSha256": "d9ad4f52b8a41d7e4bee90e5d906987b584bc129779b69dbba46077263317f4c"
+    },
+    {
+      "path": "test/cases/native_com_capsule_dll.h",
+      "acceptedSha256": "b42a954754dbcb206470f7418cf27f2bf5f810fae0bd05dd5f576e7fbe82237f",
+      "canonicalLfSha256": "b42a954754dbcb206470f7418cf27f2bf5f810fae0bd05dd5f576e7fbe82237f"
+    },
+    {
+      "path": "test/cases/native_com_capsule_dll_host.c",
+      "acceptedSha256": "6e9536c6c5bdbef7ab3109018328f3608fa5f40b5fb9aaf421d38979a70bd66a",
+      "canonicalLfSha256": "6e9536c6c5bdbef7ab3109018328f3608fa5f40b5fb9aaf421d38979a70bd66a"
+    },
+    {
+      "path": "tools/check_native_com_capsules.py",
+      "acceptedSha256": "3b4cd91073bf41f60491c8b24dc91c550a2d45422175574532cc9ebd4a8e602a",
+      "canonicalLfSha256": "3b4cd91073bf41f60491c8b24dc91c550a2d45422175574532cc9ebd4a8e602a"
+    },
+    {
+      "path": "docs/resident-transfer-capsules.md",
+      "acceptedSha256": "34e2048f0532ebba9457640eb94e3d97069c34e861b6dac1a7621d588f3fe937",
+      "canonicalLfSha256": "34e2048f0532ebba9457640eb94e3d97069c34e861b6dac1a7621d588f3fe937"
+    }
+  ],
+  "canonicalUpstreamHeaderSha256": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f",
+  "limitations": [
+    "Only outputs with OS/process-resident child interfaces and medium cleanup conform to v1.",
+    "Linux constructs portable services; actual COM wrapping reports unsupported without consuming input.",
+    "Production registries/component selection/response manifests and language cold helpers are separate integration."
+  ]
+}
