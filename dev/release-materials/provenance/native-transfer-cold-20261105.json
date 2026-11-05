@@ -1,0 +1,47 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Cold helper and fake Native boundary tests only; no full Native SDK claim",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\transfer-cold-source-r2\\manifest.json",
+    "sha256": "8b6cccb6d658bffe2f88981453d28d07c0a71d0bb8df590cb1b22669be33145a"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\transfer-cold-win-r5\\results.json",
+      "sha256": "b27366e77b361d5a61cb463f72638035e6c975eafcf2861c6a36bd1faf5e0ddb",
+      "steps": 4
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\transfer-cold-linux-r2.results.json",
+      "sha256": "64129e1a4f63e35bc578b6271f6f58dfc907cbaae6516e41bfbee534cd08a751",
+      "steps": 4
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\transfer-cold-tcc-link-r2\\results.json",
+      "sha256": "1ad4a6600b1ca165870e0dfaed3d38008b45a7d76073a4c0f1440d834e936820",
+      "steps": 4
+    }
+  ],
+  "limitations": [
+    "Native Run/drag/clipboard calls use typed fakes in the GCC runtime gate.",
+    "TinyCC PE OLE32 imports inspected; executable not run.",
+    "Actual Native backend, public package and module-cycle acceptance are separate."
+  ],
+  "files": [
+    {
+      "path": "lib/bindings/_xge_native/src/transfer.c",
+      "canonicalLfSha256": "20f0b5820b6d46c77364935724575a9d885965c3e636c1138019384d289a4eb7"
+    },
+    {
+      "path": "test/cases/foreign_xge3_transfer_cold.c",
+      "canonicalLfSha256": "8c18254e16dcc1a936fafba5a6c674462448d72c061ea415b93c8c87cef8924f"
+    },
+    {
+      "path": "tools/check_foreign_xge3_transfer_cold.py",
+      "canonicalLfSha256": "e5d9068e8b3186d4f4121a68f28e5eb2d987fd50b7beb49f23d5cf4a0f23b455"
+    }
+  ]
+}
