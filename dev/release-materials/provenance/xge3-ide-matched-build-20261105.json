@@ -1,0 +1,30 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Matched normal-builder IDE SDK staging, strict O2 GUI build and non-render CLI entry checks only.",
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\ide-sdk-final-r1.json",
+      "sha256": "8b2822edb12088bc8f9f7db6ee3f7647a80b0ef7767bdd656f0dcde5ae9df749"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\ide-final-cpu-r1.json",
+      "sha256": "a6f9382bac8e250231b2cadf2835ad606f59ad4d069f8db644dde6ba02db047c"
+    }
+  ],
+  "guiTranslationUnits": 102,
+  "guiObjectTranslationUnits": 101,
+  "inputsUnchanged": true,
+  "files": [
+    {
+      "path": "tools/stage_xge3_ide_sdk.py",
+      "canonicalLfSha256": "ff002cd38f281cf9527c22eb0dabea80cbf6d3361bb1d057c3eae15c875ced7e"
+    }
+  ],
+  "limitations": [
+    "No GUI render, window, GPU, clipboard or network run.",
+    "Language server and catalog are not rebuilt by this GUI-only step."
+  ]
+}
