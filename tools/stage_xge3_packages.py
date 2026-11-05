@@ -62,10 +62,16 @@ def main():
     if len(debug_flags)!=1 or debug_flags[0] not in ('-DXGE_DEBUGMODE=0','-DXGE_DEBUGMODE=1'):
         raise SystemExit('The engine build does not identify its exact debug ABI input')
     debug=debug_flags[0][-1]=='1'
-    windows_binary='xgedbg.dll' if debug else 'xge.dll'
-    linux_binary='libxgedbg.so' if debug else 'libxge.so'
-    platform = "win_x64" if (build / windows_binary).is_file() else "linux_x64"
-    binary = build / (windows_binary if platform == "win_x64" else linux_binary)
+    # The IDE's embedded-XRT image is also shipped beside the CLI. A distinct
+    # host image name is required in the actual PE export table / ELF SONAME;
+    # merely renaming a copy of xge.dll leaves GNU AOT imports as xge.dll.
+    stem='xge3_hostdbg' if debug else 'xge3_host'
+    image=metadata.get('runtime_image')
+    platforms={stem+'.dll':'win_x64','lib'+stem+'.so':'linux_x64'}
+    if image not in platforms:
+        raise SystemExit('Rebuild the hosted engine with its independent xge3_host image name; an IDE xge.dll is not interchangeable')
+    platform=platforms[image]
+    binary=build/image
     if not binary.is_file():
         raise SystemExit("The engine build has no supported native binary")
     headers = sorted((native / "include").glob("*.h"))
@@ -158,6 +164,7 @@ def main():
     result = dict(complete=True, platform=platform, packages=packages,
                   hostXrtSha256=canonical_xrt, hostSymbolCount=len(slots),
                   nativeAbiFingerprint=actual_abi,
+                  nativeImageName=binary.name,
                   xrtModules=modules, engineBuild=str(build / "build-report.json"),
                   inputs=inputs, outputs=output, inputsUnchanged=True,
                   testsRun=False, shippingDelivery=False)

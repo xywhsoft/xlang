@@ -523,5 +523,159 @@
       "line": 2502,
       "functionSha256": "9862045505ce3d15a9304b38f5592564d499b092942f30144b04082d13be3c25"
     }
+  },
+  "fieldEntries": {
+    "xui_proxy_t.clipboardGetText": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeClipboardGetText",
+      "functionSha256": "8904d003bf1820b3ebcc53ff4a51d52ec94cfde348bb626a572ad5e48e9b9137",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "bounded-synchronous-output",
+      "note": "Default provider consumes the scoped storage synchronously; no caller data pointer is retained"
+    },
+    "xui_proxy_t.clipboardGetData": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeClipboardGetData",
+      "functionSha256": "9b5af4f0677e31489d93955129f625733de30c1ec32bd858998de2aa75a06a3c",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "bounded-synchronous-output",
+      "note": "Default provider consumes the scoped storage synchronously; no caller data pointer is retained"
+    },
+    "xui_proxy_t.surfaceCreateRGBA": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeSurfaceCreateRGBA",
+      "functionSha256": "d0022e14b2ffb9ee59eeb6dd2409853ec7ffb552bff704d5eef09e38c6503817",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "native-copy-or-synchronous-read",
+      "note": "NULL is explicit blank surface creation; present RGBA uses checked bounded row reads"
+    },
+    "xui_proxy_t.surfaceLoadMemory": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeSurfaceLoadMemory",
+      "functionSha256": "c1ed4c0eeee73115469ae2787015e3eb112493da729f19d81d0c4b1acf18d81a",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "native-copy-or-synchronous-read",
+      "note": "TextureLoadMemoryEx decodes owned image pixels before source scope ends"
+    },
+    "xui_proxy_t.surfaceLoadSvgMemory": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeSurfaceLoadSvgMemory",
+      "functionSha256": "a61cb74e0c6ed463bc190be300f286856a306493136b8706422a47c31b0028bd",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "native-copy-or-synchronous-read",
+      "note": "SvgTextureLoadMemoryEx rasterizes synchronously into independent texture"
+    },
+    "xui_proxy_t.surfaceUpdateRGBA": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeSurfaceUpdateRGBA",
+      "functionSha256": "6364675868a688ed0d72e6e6225c8d60977f3e1ef217f59caea2c33ca738ec1b",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "native-copy-or-synchronous-read",
+      "note": "Checked strided RGBA input; default backend copies rows into texture storage"
+    },
+    "xui_proxy_t.surfaceReadRGBA": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeSurfaceReadRGBA",
+      "functionSha256": "2334cd915d5dffb4544e797735e079773d40934fe655b6bebdb7ba59a70d223c",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "bounded-synchronous-output",
+      "note": "SurfaceGetDesc typed query plus checked row region; initialized Buffer size is unchanged"
+    },
+    "xui_proxy_t.surfaceDrawQuad": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeSurfaceDrawQuad",
+      "functionSha256": "d32d80a155209e9c7bb500ac49b7f52e661725f1957f832ef85ea6f7164d7f54",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "native-copy-or-synchronous-read",
+      "note": "Default provider consumes the scoped storage synchronously; no caller data pointer is retained"
+    },
+    "xui_proxy_t.surfaceDrawQuadTo": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeSurfaceDrawQuadTo",
+      "functionSha256": "ff1835db6ca7567696d98946109f71af95dd05a682fa14764260a220091c3f8d",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "native-copy-or-synchronous-read",
+      "note": "Default provider consumes the scoped storage synchronously; no caller data pointer is retained"
+    },
+    "xui_proxy_t.fontLoadMemory": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeFontLoadMemory",
+      "functionSha256": "9477bc701e4738c8ada394cebf056bec032a5f6dcec6f574c757bb01cc16b9bf",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "native-copy-or-synchronous-read",
+      "note": "xgeFontFaceLoadMemory allocates/copies input; XRF decoder similarly finishes before return"
+    },
+    "xui_proxy_t.zstdDecompress": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeZstdDecompress",
+      "functionSha256": "3c923f1f3a545c8fd6d5a0b2f8490fb31761bc01520c16d3a039880ab06e1dd2",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "bounded-synchronous-output",
+      "note": "Default provider consumes the scoped storage synchronously; no caller data pointer is retained"
+    },
+    "xui_proxy_t.drawSurfaceQuad": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeDrawSurfaceQuad",
+      "functionSha256": "cd55f39db5026028ebac7de6943c514031b80477d80e8e8bbd84cead663ada53",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "native-copy-or-synchronous-read",
+      "note": "Default provider consumes the scoped storage synchronously; no caller data pointer is retained"
+    },
+    "xui_proxy_t.drawMeshTriangles": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeDrawMeshTriangles",
+      "functionSha256": "285d1f791b7a96181425f31e2f7f4d8eac91f8589254630f5decfbe0441f8cd2",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "native-copy-or-synchronous-read",
+      "note": "Default proxy converts vertices to local stack/heap; ShapeMeshFill copies vertices and indices into native auto-batch arrays before return"
+    },
+    "xui_proxy_t.textMeasure": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeTextMeasure",
+      "functionSha256": "02a42918b7de19f9ddfbc2954c25d5e42f7cf8d3bda325ad6b708c8c698b1dda",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "native-copy-or-synchronous-read",
+      "note": "TextItem/font/text/context/language borrowed synchronously; temporary glyph run is freed before return. Managed Font stays pinned through the whole call."
+    },
+    "xui_proxy_t.textDraw": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeTextDraw",
+      "functionSha256": "3b55028e3fb1c832d69d55a804b07320fa34fe77aaadb120aab4eaab96d664f0",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "native-copy-or-synchronous-read",
+      "note": "Descriptor and text/context/language/spans consumed synchronously; managed Font pinned through the call. Deferred backend resources require Native owning references."
+    },
+    "xui_proxy_t.drawText": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeDrawText",
+      "functionSha256": "aa86643469da0532c035c57f4695b8c92e71efd685cc2e595d8e8b7016a47a53",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "native-copy-or-synchronous-read",
+      "note": "Descriptor and text/context/language/spans consumed synchronously; managed Font pinned through the call. Deferred backend resources require Native owning references."
+    },
+    "xui_proxy_t.drawPath": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeDrawPath",
+      "functionSha256": "ed417a5a0b6092909819bb1e936a08640680a9dc6d43abd8de6ff5b6acf3030f",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "native-copy-or-synchronous-read",
+      "note": "Path commands copied into temporary Shape, dash pattern copied by ShapeExStrokeDash, then temporary Shape destroyed before return."
+    },
+    "xui_proxy_t.drawSvgPath": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeDrawSvgPath",
+      "functionSha256": "ef468dc37cc342850286f6f38a22dcc6e181efca62df94f4329318746945173d",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "native-copy-or-synchronous-read",
+      "note": "SVG CString parsed synchronously into temporary Shape; dash pattern copied; temporary Shape destroyed before return."
+    },
+    "xui_proxy_t.drawTextSpans": {
+      "sourceFile": "src/xui/core/xui_proxy_xge.c",
+      "nativeHelper": "__xuiProxyXgeDrawTextSpans",
+      "functionSha256": "7560159ca2129101773c7fecf863f0e6225dd166a469624e2f745d257136b818",
+      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "storage": "native-copy-or-synchronous-read",
+      "note": "Explicit paint spans borrowed only during synchronous Native draw; managed Font pinned through the call. Native backend owns any deferred drawing resources."
+    }
   }
 }
