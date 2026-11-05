@@ -53,6 +53,17 @@ def load_build(build=None,overlay=None):
             inputs[row['Path']]=sha(row['Path'])
             if Path(original['Source']).name not in ('xlir_public_source_driver.c','xlir_public_source_linux_driver.c'):
                 objects.append(row['Path'])
+        # A development overlay may introduce a resident translation unit which
+        # has no ParentObject in the earlier complete build. Keep this explicit;
+        # otherwise a new runtime object could be silently omitted by a gate.
+        for row in description.get('ExtraObjects',[]):
+            assert all(key in row for key in ('Source','Path','Sha256','Flags'))
+            assert row['Path'] not in objects
+            assert Path(row['Source']).is_file()
+            assert sha(row['Path'])==row['Sha256'].lower()
+            objects.append(row['Path'])
+            inputs[row['Path']]=sha(row['Path'])
+            inputs[row['Source']]=sha(row['Source'])
         driver=Path(description['Driver']);runtime=Path(description['RuntimeLibrary'])
         assert sha(driver)==description['DriverSha256']
         full=False

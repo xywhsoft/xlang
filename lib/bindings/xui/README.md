@@ -74,10 +74,26 @@ pinned through the call. `proxy.shapeText(font,text)` creates that owner, scalar
 properties read the exact const record, and range measuring/drawing calls the
 native Proxy fields directly. `cluster(index)` and `caret(index)` each make
 one native query and return a record value; out-of-range indices are checked.
-Paint hooks and writable cluster/caret pointers remain private. No zero-copy
-typed array result is implied by these declarations. This newer source requires the
+Paint hooks and writable cluster/caret pointers remain private. This newer source requires the
 matching owned-Shape and pre-reserved factory runtime; earlier Draw-only
 reports do not validate it.
+
+`clusters()` and `carets()` return `NativeSequence<TextCluster>` and
+`NativeSequence<TextCaret>`. Their native arrays are shared without copying
+elements. Each result acquires an independent native Shape reference and a
+resident owning carrier with code residency; closing the original Shape does
+not invalidate it. Creation allocates that carrier and its language handle.
+The sequence exposes `length`, `count()`, checked indexing, `slice(start,
+count=-1)` and one- or two-variable `for`. A slice creates a small range handle
+and retains the backing owner, without copying its elements. Indexing copies
+one POD record; editing that copy leaves the sequence unchanged. Typed loops
+hold one traversal scope and read the actual C array without per-element
+boxing, allocation or native indexed-query calls. Individual indexed reads
+have a checked read scope. There is no public mutation, raw pointer or close
+operation on the sequence. Its owning references are released automatically.
+These declarations require the matching NativeSequence compiler/runtime;
+the prior indexed-query acceptance does not validate this new result carrier.
+See the [NativeSequence projection map and costs](../../../../docs/xge3-xui3-native-sequence-api-map.json).
 
 Owned `shapeText` defaults to native `DEFAULT | RETAIN_PAINT` (11), enabling
 kerning/emoji shaping and retaining the paint needed for cached drawing.

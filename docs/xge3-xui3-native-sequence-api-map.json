@@ -1,0 +1,82 @@
+{
+  "scope": "NativeSequence projections of immutable owned Shape arrays; explicit compiler/runtime costs, no per-method C wrapper",
+  "authority": "F:\\xlang-validation\\foreign-completion-20261103\\native-joint-final-source-r12\\include\\xui.h",
+  "authoritySha256": "1c36fe97afe0d5fa1f41a63ac09e1987a2e1a0f536a464e1ab1a3da2610ccab4",
+  "entries": [
+    {
+      "logical": "xui.TextShape.clusters() as NativeSequence<TextCluster>",
+      "native": "xuiTextShapeGetClusters",
+      "declaration": "XUI_API int xuiTextShapeGetClusters(const xui_text_shape_t* pShape, const xui_text_cluster_t** ppClusters, size_t* pCount);",
+      "authorityLine": 6848,
+      "elementCType": "xui_text_cluster_t",
+      "physicalOutputData": 1,
+      "physicalOutputCount": 2,
+      "countABI": "size_t",
+      "nativeSuccess": 0,
+      "independentNativeRetain": "xuiTextShapeAddRef",
+      "owningCleanup": "xuiTextShapeReleaseChecked",
+      "normalBusinessCalls": 1,
+      "extraNativeRetainCalls": 1,
+      "elementCopiesAtCreation": 0,
+      "perElementBoxing": false,
+      "perElementNativeQuery": false
+    },
+    {
+      "logical": "xui.TextShape.carets() as NativeSequence<TextCaret>",
+      "native": "xuiTextShapeGetCarets",
+      "declaration": "XUI_API int xuiTextShapeGetCarets(const xui_text_shape_t* pShape, const xui_text_caret_t** ppCarets, size_t* pCount);",
+      "authorityLine": 6849,
+      "elementCType": "xui_text_caret_t",
+      "physicalOutputData": 1,
+      "physicalOutputCount": 2,
+      "countABI": "size_t",
+      "nativeSuccess": 0,
+      "independentNativeRetain": "xuiTextShapeAddRef",
+      "owningCleanup": "xuiTextShapeReleaseChecked",
+      "normalBusinessCalls": 1,
+      "extraNativeRetainCalls": 1,
+      "elementCopiesAtCreation": 0,
+      "perElementBoxing": false,
+      "perElementNativeQuery": false
+    }
+  ],
+  "costs": {
+    "creation": "O(1) generic reservation/backing/range/value-handle allocations and code-residency bookkeeping, one native query and one independent native AddRef; no element array copy",
+    "assignmentAndParameters": "retain the existing owning language carrier; no element copy",
+    "slice": "O(1) checked range handle/value allocation and backing-owner retain; no element copy or new native indexed query",
+    "index": "bounds and schema check, one resident read scope, one POD value copy; no native element query or boxing",
+    "foreach": "one resident traversal scope, direct typed C array reads and POD loop values; no per-element allocation, boxing or native element query",
+    "cleanup": "actual owning native release when the last relevant backing owner retires; deferred/failed cleanup follows the shared runtime protocol"
+  },
+  "publicRestrictions": [
+    "No mutation, close, data or raw-pointer API on NativeSequence",
+    "Element POD assignment changes an independent copy",
+    "Source Shape.close does not invalidate the independent sequence owner",
+    "Custom backend code in this CPU fixture is permanent host code; unloadable-backend qualification is separate"
+  ],
+  "evidence": {
+    "windows": "F:\\xlang-validation\\foreign-completion-20261103\\native-sequence-public-win-r5\\results.json",
+    "linux": "/home/ubuntu/xlang-validation/native-sequence-public-linux-r1/results.json",
+    "fullSourceRebuild": false,
+    "tccIncluded": false,
+    "shippingDelivery": false,
+    "GPUExecution": false
+  },
+  "qualification": {
+    "scope": "Generated C with actual CPU Native backend; no GUI, GPU, shipping VFS or unloadable backend claim",
+    "platforms": [
+      {
+        "report": "F:\\xlang-validation\\foreign-completion-20261103\\native-sequence-public-win-r5\\results.json",
+        "sha256": "f82cad2bb3a50bda530e63f252aac60e3c820e515f9c3a9c15612cd46d9d5aaf",
+        "passed": true,
+        "inputsUnchanged": true
+      },
+      {
+        "report": "F:\\xlang-validation\\foreign-completion-20261103\\native-sequence-public-linux-r1-results.json",
+        "sha256": "b3f7b504f93587f12c0ff30fc0ac2d2b4e1b22acefd56e4c65eb451988c4e967",
+        "passed": true,
+        "inputsUnchanged": true
+      }
+    ]
+  }
+}

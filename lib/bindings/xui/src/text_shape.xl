@@ -16,7 +16,11 @@ export extern "const xui_text_shape_t*" class TextShape @header("xge3_runtime.h"
  // Native INVALID_ARGUMENT rejects an index outside its immutable array.
  extern "xuiTextShapeGetCluster" @no_raise @c_output(2,0) func cluster(c_size index) as TextCluster
  extern "xuiTextShapeGetCaret" @no_raise @c_output(2,0) func caret(c_size index) as TextCaret
+ // One native query and an independent Native owner; no element array copy.
+ extern "xuiTextShapeGetClusters" @no_raise @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainTextShape,"zero",rollbackTextShape) func clusters() as NativeSequence<TextCluster>
+ extern "xuiTextShapeGetCarets" @no_raise @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainTextShape,"zero",rollbackTextShape) func carets() as NativeSequence<TextCaret>
  extern "xuiTextShapeGetProxy" @no_raise @c_result("retained_view") @c_retain(retainProxy,"zero",rollbackProxy) func proxy() as Proxy
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 extern "xuiTextShapeReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackTextShape(TextShape value)
+extern "xuiTextShapeAddRef" @header("xge3_runtime.h") @no_raise func retainTextShape(TextShape value) as c_int

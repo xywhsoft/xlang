@@ -1,0 +1,108 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "candidates": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-sequence-public-candidate-r1\\manifest.json",
+      "sha256": "85391bf816b584b5b739d71d978bcc0494ca2aad6c5929bad6e40892abfced34"
+    }
+  ],
+  "acceptance": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-sequence-core-acceptance-r2\\acceptance.json",
+    "sha256": "920f81e288d33470dbc4b120b9a0084bbdd8b79e4507da8833dfb7d67994fd40",
+    "reports": [
+      {
+        "name": "win-public-shape",
+        "originalPath": "F:\\xlang-validation\\foreign-completion-20261103\\native-sequence-public-win-r6\\results.json",
+        "pinnedPath": "F:\\xlang-validation\\foreign-completion-20261103\\native-sequence-public-win-r6\\results.json",
+        "sha256": "e7ea0d854f6398fbb5dac3e83c255a111c517f82958b6396190ae5db8cdebcde",
+        "rows": 10,
+        "fullCompilerRebuild": false
+      },
+      {
+        "name": "linux-public-shape",
+        "originalPath": "/home/ubuntu/xlang-validation/native-sequence-public-linux-r2/results.json",
+        "pinnedPath": "F:\\xlang-validation\\foreign-completion-20261103\\native-sequence-core-acceptance-r2\\reports\\linux-public-shape.json",
+        "sha256": "9a296f171e7a1afef97be240d729af441f7987b7e87356be0680b28305016d26",
+        "rows": 10,
+        "fullCompilerRebuild": false
+      }
+    ]
+  },
+  "files": [
+    {
+      "path": "lib/bindings/xui/src/text_shape.xl",
+      "sourceSha256": "a4e463dcbe2aa1ec8bfac3f008eeda7590b7635ae519c720af142e39ff3496f7",
+      "canonicalSha256": "a4e463dcbe2aa1ec8bfac3f008eeda7590b7635ae519c720af142e39ff3496f7",
+      "blob": "1d8da79bade038b75e17ff24cd06a7eaf2b9b518"
+    },
+    {
+      "path": "lib/bindings/xui/README.md",
+      "sourceSha256": "cf7ea38b1db59bc8d2b441d17dbe7267cff75c93f3f1eac34020a7e017ca2a21",
+      "canonicalSha256": "cf7ea38b1db59bc8d2b441d17dbe7267cff75c93f3f1eac34020a7e017ca2a21",
+      "blob": "be30d4d0e1c6f4a6daad45aa424aa65912fc40e4"
+    },
+    {
+      "path": "tools/foreign_validation_build.py",
+      "sourceSha256": "246c19774fc04550ebc3576d47857f829a4e0229d1dbebb51b93bd9510a06384",
+      "canonicalSha256": "246c19774fc04550ebc3576d47857f829a4e0229d1dbebb51b93bd9510a06384",
+      "blob": "dc9dbcd10cc10c315b6ce445ce60216a8025ad46"
+    },
+    {
+      "path": "tools/check_foreign_xge3_native_sequence.py",
+      "sourceSha256": "4048e714e92fa52e659c356bb995ae214ec6ea1d09c3ba0c3c3254a9ee170d66",
+      "canonicalSha256": "4048e714e92fa52e659c356bb995ae214ec6ea1d09c3ba0c3c3254a9ee170d66",
+      "blob": "1dcc6127a556091b6c9169472b52b7c4419bad26"
+    },
+    {
+      "path": "docs/xge3-xui3-native-sequence-api-map.json",
+      "sourceSha256": "b3df9689d72f144990305d61a3523107f07fab6372dcfa183eaff9fc2f559004",
+      "canonicalSha256": "b3df9689d72f144990305d61a3523107f07fab6372dcfa183eaff9fc2f559004",
+      "blob": "7632fa51476ed9d38e66b71a938fb95eb5c92345"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_native_sequence.xl",
+      "sourceSha256": "7c707c7f645b37242f056b619356d9a169bdd2099aa11b44755de59453a0e4c4",
+      "canonicalSha256": "7c707c7f645b37242f056b619356d9a169bdd2099aa11b44755de59453a0e4c4",
+      "blob": "d8e0dccb56665943ac2e144481bdebeb1c357a73"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_native_sequence.h",
+      "sourceSha256": "940ff72de6e75977f6531561dba0e21b01918523e964e34b4e31f87def56705d",
+      "canonicalSha256": "940ff72de6e75977f6531561dba0e21b01918523e964e34b4e31f87def56705d",
+      "blob": "7fcc07037dad183fe212da967e28a8963eed87fe"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_native_sequence_native.c",
+      "sourceSha256": "e9f8946c0df7a22bd3905a1e10405f16b903b350d49dd264d3a6dd5c9629ea14",
+      "canonicalSha256": "e9f8946c0df7a22bd3905a1e10405f16b903b350d49dd264d3a6dd5c9629ea14",
+      "blob": "fa590871a129dbc24a53e0391ad6d9776dd2cc23"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_native_sequence_host.c",
+      "sourceSha256": "b134cd45a6f3e73e5cd6b74420c92e78c292111118ecf43ea4ed0263220a8d36",
+      "canonicalSha256": "b134cd45a6f3e73e5cd6b74420c92e78c292111118ecf43ea4ed0263220a8d36",
+      "blob": "2227dc1eb7ed1d6cc178e4e1b3d171bda7257096"
+    }
+  ],
+  "sourceCanonicalization": "Exact captured source with only CRLF-to-LF translation; immutable original candidate and report bytes preserved.",
+  "fullSourceRebuild": false,
+  "matchedVfs": false,
+  "jitAotQualified": false,
+  "shippingDelivery": false,
+  "scope": "Two direct Native Shape queries returning readonly owning NativeSequence values; exact native getters and retainers, no per-method C forwarding function.",
+  "tests": [
+    "real Shape source close with independent native refs",
+    "embedded NUL and empty arrays",
+    "POD index copy independence",
+    "slice, closure, typed parameter/result, dynamic exact generic identity",
+    "OOM threshold zero across typed loops and exact var projection",
+    "nonempty continue/break/return/throw with exactly four finally executions",
+    "two exact Shape and one Font physical drops; permanent host backend returns to one owner"
+  ],
+  "sourceFiles": 9,
+  "backingCopies": 0,
+  "perElementNativeCalls": 0,
+  "perElementBoxing": 0
+}
