@@ -5,7 +5,7 @@ cd /d %~dp0
 set XL6_ROOT=%CD%
 call tools\xl6_toolchain_env.bat
 if errorlevel 1 exit /b 1
-set "XL6_DLL_LINKS="%XL6_TCC_LIBTCC1%" -lWs2_32 -lIPHLPAPI -lShell32"
+set "XL6_DLL_LINKS="%XL6_TCC_LIBTCC1%" -lWs2_32 -lIPHLPAPI -lShell32 -lOle32"
 set "XL6_RELEASE_CC=gcc"
 set "XL6_RELEASE_CFLAGS=-std=c11 -Wall -Irelease/include -Wno-pointer-sign -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format-truncation -Wno-dangling-pointer -O2 -ffunction-sections -fdata-sections"
 set "XL6_RELEASE_LDFLAGS=-shared -Wl,--gc-sections -s"
