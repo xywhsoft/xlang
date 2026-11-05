@@ -1,0 +1,25 @@
+{
+  "complete": true,
+  "passed": true,
+  "report": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\published-location-smoke-r2\\results.json",
+    "sha256": "f78d1df479ec84ca3fe1fcd94c2508ae94c06f0e00e91ed411d122a6d9d612f2"
+  },
+  "processSteps": 6,
+  "headlessActualRuns": 4,
+  "guiHiddenHelp": 1,
+  "installedLanguageServerStdio": 1,
+  "desiredPackageExampleTargetsVerified": 146,
+  "platformTargets": {
+    "win_x64": 73,
+    "linux_x64": 73
+  },
+  "knownRetiredAbsent": {
+    "win_x64": 260,
+    "linux_x64": 0
+  },
+  "sourceDriverOrPackageOverride": false,
+  "userStateClaim": "Both publication journals exclude hidden/configuration/user-state targets. No independent pre-publication user-state byte hash snapshot exists; no byte-for-byte claim is made.",
+  "oldFailedR1Preserved": true,
+  "osNetworkGpuRenderingExecuted": false
+}

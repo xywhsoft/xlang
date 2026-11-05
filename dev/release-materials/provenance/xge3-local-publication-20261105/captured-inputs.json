@@ -1,0 +1,65 @@
+{
+  "scope": "Exact historical bytes; old external publication status is retained only as history. First CLI invocation used a filename without run and is not an implementation failure.",
+  "files": [
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\runtime-files-plan-r1.json",
+      "copy": "runtime-files-plan.json",
+      "sha256": "69f247443deec097337cb085fcc6108380c52f60c3ab0f78883213e3b2481b10"
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\runtime-files-publish-r1\\journal.json",
+      "copy": "runtime-files-journal.json",
+      "sha256": "b0dd5747dea92544fca912eb8d3cdebaf92f09503cd644c13dbe976701cbf3aa"
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\publish-runtime-files-r1.py",
+      "copy": "publish-runtime-files.py",
+      "sha256": "1a24e30b89e93180fb25d44f0b2866a01d2d0d2e4b5904ef48609c6db838ba97"
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\ui-publish-win-apply-r1\\receipt.json",
+      "copy": "win-packages-receipt.json",
+      "sha256": "dc0a6e70e4a2a6903b6c924694b8266d0ea3081a2c95de2ded096c993b4b7210"
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\ui-publish-win-apply-r1\\journal.json",
+      "copy": "win-packages-journal.json",
+      "sha256": "7911b8cc130d8fc3ef0d6730dad90dd7bb6291412b2e6d437df5599b8cd90780"
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\ui-publish-linux-apply-r1\\receipt.json",
+      "copy": "linux-packages-receipt.json",
+      "sha256": "696556b71e4b04031cb7dda27d895c720ef0fb53dbe446a2bf61f23ad2d3cbb3"
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\ui-publish-linux-apply-r1\\journal.json",
+      "copy": "linux-packages-journal.json",
+      "sha256": "5842aae0083376dac96c9d43a1062f4d7aef704c9c45966854dd409132d4cfe6"
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\release-ui-replacement-plan-r4\\plan.json",
+      "copy": "baseline.json",
+      "sha256": "9e14e9db59d5fdc61aef92230956e7a017b5698ceb207f322c40b3f9ce059164"
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\published-location-smoke-r1\\results.json",
+      "copy": "first-invocation-error.json",
+      "sha256": "3bff0ac6af5233b94fafba904df2513df13ad106fdadf93db42b140227a286fb"
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\published-location-smoke-r1\\win-frame.log",
+      "copy": "first-invocation-error.log",
+      "sha256": "029f5f24d97f480f2ffa60493f64779cbaa6e3aa276226e848118742f87f272c"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\current-delivery.json",
+      "copy": "previous-current-delivery.json",
+      "sha256": "7601d36e3df64445512daf17b0f040381df60d0bc7478314102b6b7f0c491556"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\notices\\material-index.json",
+      "copy": "previous-win-material-index.json",
+      "sha256": "94f5ee1cc37bae0695489cb46e3f60c2ec094f6b4cf13d1664e435cbad51902a"
+    }
+  ]
+}

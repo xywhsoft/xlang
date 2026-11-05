@@ -1,0 +1,683 @@
+{
+  "root": "D:\\GIT\\x-lang",
+  "platform": "linux_x64",
+  "platformRoot": "D:\\GIT\\x-lang\\release\\linux_x64",
+  "packages": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2",
+  "stageReport": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2.json",
+  "baseline": "F:\\xlang-validation\\foreign-completion-20261103\\release-ui-replacement-plan-r4\\plan.json",
+  "baselineSha256": "9e14e9db59d5fdc61aef92230956e7a017b5698ceb207f322c40b3f9ce059164",
+  "sourceInputs": {
+    "F:\\xlang-validation\\foreign-completion-20261103\\release-ui-replacement-plan-r4\\plan.json": "9e14e9db59d5fdc61aef92230956e7a017b5698ceb207f322c40b3f9ce059164",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2.json": "5caef2622ad6b7b020c813c5f936b2e8c8b2a4891a8646b7e99f5d55a1f8cf3f",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\examples\\gui_shapes.xl": "33ecf635b267e67ccb59e8c0852e41d1ed97f8bed4cd4e50fe5fa94271c7079f",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\examples\\headless_frame.xl": "f609b4f2e45cd4c571f2ee83c0e11b000afdd46b8c6123e5fe758115dfb77ef9",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\examples\\headless_shape.xl": "604881d4b0ebe27fe57de79387a7aba33c6dd6d15d3d1096774d3d02c67a053b",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\examples\\README.md": "59e85ec519654b0521c314eb5000b007b3069da4bb5c29a374a1f5e645a4ae44",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\README.md": "32c43bf79f231ff846d6fafd45c9c91f0b5d4afe5337cff4e08bc17519dcf6e6",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\src\\bootstrap.xl": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\src\\callbacks.xl": "2d74e1a1ecec9850d658478af08086e5708186c407add0c988b371e22d89cd45",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\src\\constants.xl": "8f65b793351547d449cde57ca88ad66e132d2fe45595a199e88afd6c01faae71",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\src\\data_object.xl": "f30dd0685a04afeb806aa4f83c82ccd697424d9b1e991c17a0f8f7d5870deaad",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\src\\functions.xl": "f73d8e37a57c4c566a18da0b03de8ea7953a9cee025bf83ea93345b17e7fbb48",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\src\\records.xl": "75f43f39f0aeb5bff6c3aab420dd6ac2b1eca47dcadb05d78deeacce8287a521",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\src\\resources.xl": "6b54c4de89c087bfae0e0a73b8535c3f17c40ccedb15b638664092398d898e7a",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\src\\shapes.xl": "a20456775c010ebd2f6a15ea7c5b8faaa5dadd27bf68ff8e5c299953ccdd893e",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\xlang.package.json": "df1520f5f3e532a892f470775e9efbc0309042c345533fe1b555ac95772da891",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\context_graph.xl": "3dd88afa57f700c7c6266904c5115e4dd247da3ae5a2370b8d6f7e0d6b8ce868",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\data_object.xl": "74bd0f37a2708d116c685b98b1329ea4d5acf915836d7becfec935ab7791e96d",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\document_model.xl": "f4ac1b08c9bee88fffe0331f720f5278c37ed9d0c524254f98d7bf4f515a4c52",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\document_ui_headless.xl": "c5a04ef4742b0136cf89c1322ed5745e216f55f7e250f25eedbf3093eb25ad1d",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\gui_surface_draw.xl": "6151f8e006865593b65f30660ccf3062e17402fecc5f6bf8e97c37f323e45126",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\headless_cell.xl": "8120e63db03bf332ab9515ecb0229cffa909a73322d79a3a949ce9295109dfc0",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\headless_path.xl": "b2bad5446a434dbcff574ad37321ce230afc2c76e44dc7e4b025d3fcc0cc0c0f",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\manager_lifetime.xl": "52fd66469509a4317e992fe4b2d76922a18345766c8e28518f288d159565cd32",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\README.md": "8c5c3f38b9bffe3b26ea83bd71fd71fcdd9775bc9ade87dcfe16df0b086e13c0",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\README.md": "4771e5536a864f644b262510e92f6d122d291a2938408e5e032106042d07b2c8",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\bootstrap.xl": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\cell.xl": "852cb65a590028fb42af45c07724e99976b915a49c5a1bdfa386e2cedeb6162b",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\constants.xl": "91b4a7b8c8dfa85b0c627604eccf2659eb193ba4acf618e8f9b464129207ea05",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\data_object.xl": "32710274d0f069fae960966e0d2d1b94c01a9d27155963fdf95bddf65a5a8774",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\document.xl": "97747c52db93cb015e0fb3d1065c10752350946bb6062d66709f6011c1a647b5",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\document_records.xl": "aa6e9d36ce9ebd07317aa616e32cfb35f19206365b345543d22f3350f5b27727",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\document_ui.xl": "aedb3c2ab8f7c81b54622d61e6e41b6fdaf4081f547e8b2102ea0bafce784bad",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\document_ui_message_methods.inc": "b274aaae51cb778920a0d7d91162a743440ac90a10bd2e3c43e53be9bb550f40",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\document_ui_records.xl": "e1733bd428c6ef3a6534f60ccb95988b502de0819ce65d3f43847e4cad4480e3",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\draw.xl": "522236365e3d98a35062a200386b62f5b89df9b6738b59679ad81050cd4eb14a",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\managed.xl": "21e766295f854fb761b51c9a4c31df9584ac7ee95df9215e29ff04a8b05a78ff",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\managers.xl": "cc696cc23bbffca5d5e102b6368e87af766742575b1477fd75b54b1247d6290f",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\proxy.xl": "ef323ba00bfd49431be35a927f4f4088d52620c1fbb2c7c3f6d75e06a136cec5",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\records.xl": "f42623d9961a4474cfbadd206cf66e5f24c1151bf9763084cfcd623272532779",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\text_shape.xl": "a4e463dcbe2aa1ec8bfac3f008eeda7590b7635ae519c720af142e39ff3496f7",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\xlang.package.json": "8ff144ff6cc2bd42ec76bdfe7e6f5fee4d1ed3567adac08989e2638810994e50",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\extlibs\\xrt\\xrt.h": "4c78a60a71e9b78403d84c85ef6c7e20331b669a0fb3bb65e5cfaca92dcdde1e",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\extlibs\\xrt\\xrt_config.h": "0aa49016ab725145a8043619b860f780d0b81cbb2184084aaf1c485fa57bf314",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xge.h": "c64dcc31d83634631697a316f4cae0d211041f51770629128474cc384c4d299b",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xge3_runtime.h": "d22aff119f3736b1afbce13c1d4248ddec2189c5af5b24a48e685fc3b3fc2779",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xge_build_config.h": "989d23b4f4e0f75d9fbab4a1847fc45b42bdff6fbc386c92839bd7818e30b873",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xge_config.h": "5d960786a736321b22d1b88cbe2d3aaac807e8afaa8a7bd0a4e509b06f7b76bf",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xge_host_xrt.h": "5e43dc2cff98741941c1be6d02832d6cf34256521c94975e4fe96fd411e7b60f",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xge_host_xrt_contract.h": "37378d9d6fa70a5b480db5ee69a24fd97942c361c7908d69bc33301a1bc986ec",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xge_host_xrt_fingerprint.h": "3f5744ec0d8273cb30b3e32dbf40aa70f3564f3fd19b5eb1d330038283f326c5",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xge_host_xrt_slots.inc": "bd6ee95bedc1f09874c78699f5ec5338dc254e610aca4590957a64d05956bc9b",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xnative_transfer.h": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xui.h": "b10940d61965e0d85e4481d9e6a157410bc6a308a0d7e69f49c0a500d3da56c0",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xui_config.h": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xui_document.h": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xui_document_ui.h": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\native\\libxge3_host.so": "ffa77a906c0d630613a97304fa0faeaab7e656e9dba64b74628056321ffa3723",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\src\\bootstrap.xl": "54d74fc4d81f9bade0f3fa358178073d885425e59bda9fd64cd79073c8bc19f0",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\src\\runtime.c": "c85138389db8cca57cd560fd24323b127dd5d4aa9f0d8401928eb6ac614cba4e",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\src\\transfer.c": "20f0b5820b6d46c77364935724575a9d885965c3e636c1138019384d289a4eb7",
+    "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\xlang.package.json": "01810dc4edd5688110e0fca698c7cf889f2bc91bdadcaa5181548fff602de32c"
+  },
+  "operations": [
+    {
+      "target": "release/linux_x64/examples/xge/README.md",
+      "before": null,
+      "after": "59e85ec519654b0521c314eb5000b007b3069da4bb5c29a374a1f5e645a4ae44",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\examples\\README.md",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/examples/xge/gui_shapes.xl",
+      "before": null,
+      "after": "33ecf635b267e67ccb59e8c0852e41d1ed97f8bed4cd4e50fe5fa94271c7079f",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\examples\\gui_shapes.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/examples/xge/headless_frame.xl",
+      "before": null,
+      "after": "f609b4f2e45cd4c571f2ee83c0e11b000afdd46b8c6123e5fe758115dfb77ef9",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\examples\\headless_frame.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/examples/xge/headless_shape.xl",
+      "before": null,
+      "after": "604881d4b0ebe27fe57de79387a7aba33c6dd6d15d3d1096774d3d02c67a053b",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\examples\\headless_shape.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/examples/xui/README.md",
+      "before": null,
+      "after": "8c5c3f38b9bffe3b26ea83bd71fd71fcdd9775bc9ade87dcfe16df0b086e13c0",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\README.md",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/examples/xui/context_graph.xl",
+      "before": null,
+      "after": "3dd88afa57f700c7c6266904c5115e4dd247da3ae5a2370b8d6f7e0d6b8ce868",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\context_graph.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/examples/xui/data_object.xl",
+      "before": null,
+      "after": "74bd0f37a2708d116c685b98b1329ea4d5acf915836d7becfec935ab7791e96d",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\data_object.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/examples/xui/document_model.xl",
+      "before": null,
+      "after": "f4ac1b08c9bee88fffe0331f720f5278c37ed9d0c524254f98d7bf4f515a4c52",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\document_model.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/examples/xui/document_ui_headless.xl",
+      "before": null,
+      "after": "c5a04ef4742b0136cf89c1322ed5745e216f55f7e250f25eedbf3093eb25ad1d",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\document_ui_headless.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/examples/xui/gui_surface_draw.xl",
+      "before": null,
+      "after": "6151f8e006865593b65f30660ccf3062e17402fecc5f6bf8e97c37f323e45126",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\gui_surface_draw.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/examples/xui/headless_cell.xl",
+      "before": null,
+      "after": "8120e63db03bf332ab9515ecb0229cffa909a73322d79a3a949ce9295109dfc0",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\headless_cell.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/examples/xui/headless_path.xl",
+      "before": null,
+      "after": "b2bad5446a434dbcff574ad37321ce230afc2c76e44dc7e4b025d3fcc0cc0c0f",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\headless_path.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/examples/xui/manager_lifetime.xl",
+      "before": null,
+      "after": "52fd66469509a4317e992fe4b2d76922a18345766c8e28518f288d159565cd32",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\manager_lifetime.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/include/extlibs/xrt/xrt.h",
+      "before": null,
+      "after": "4c78a60a71e9b78403d84c85ef6c7e20331b669a0fb3bb65e5cfaca92dcdde1e",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\extlibs\\xrt\\xrt.h",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/include/extlibs/xrt/xrt_config.h",
+      "before": null,
+      "after": "0aa49016ab725145a8043619b860f780d0b81cbb2184084aaf1c485fa57bf314",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\extlibs\\xrt\\xrt_config.h",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/include/xge.h",
+      "before": null,
+      "after": "c64dcc31d83634631697a316f4cae0d211041f51770629128474cc384c4d299b",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xge.h",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/include/xge3_runtime.h",
+      "before": null,
+      "after": "d22aff119f3736b1afbce13c1d4248ddec2189c5af5b24a48e685fc3b3fc2779",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xge3_runtime.h",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/include/xge_build_config.h",
+      "before": null,
+      "after": "989d23b4f4e0f75d9fbab4a1847fc45b42bdff6fbc386c92839bd7818e30b873",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xge_build_config.h",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/include/xge_config.h",
+      "before": null,
+      "after": "5d960786a736321b22d1b88cbe2d3aaac807e8afaa8a7bd0a4e509b06f7b76bf",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xge_config.h",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/include/xge_host_xrt.h",
+      "before": null,
+      "after": "5e43dc2cff98741941c1be6d02832d6cf34256521c94975e4fe96fd411e7b60f",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xge_host_xrt.h",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/include/xge_host_xrt_contract.h",
+      "before": null,
+      "after": "37378d9d6fa70a5b480db5ee69a24fd97942c361c7908d69bc33301a1bc986ec",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xge_host_xrt_contract.h",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/include/xge_host_xrt_fingerprint.h",
+      "before": null,
+      "after": "3f5744ec0d8273cb30b3e32dbf40aa70f3564f3fd19b5eb1d330038283f326c5",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xge_host_xrt_fingerprint.h",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/include/xge_host_xrt_slots.inc",
+      "before": null,
+      "after": "bd6ee95bedc1f09874c78699f5ec5338dc254e610aca4590957a64d05956bc9b",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xge_host_xrt_slots.inc",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/include/xnative_transfer.h",
+      "before": null,
+      "after": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xnative_transfer.h",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/include/xui.h",
+      "before": null,
+      "after": "b10940d61965e0d85e4481d9e6a157410bc6a308a0d7e69f49c0a500d3da56c0",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xui.h",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/include/xui_config.h",
+      "before": null,
+      "after": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xui_config.h",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/include/xui_document.h",
+      "before": null,
+      "after": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xui_document.h",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/include/xui_document_ui.h",
+      "before": null,
+      "after": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\include\\xui_document_ui.h",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/native/libxge3_host.so",
+      "before": null,
+      "after": "ffa77a906c0d630613a97304fa0faeaab7e656e9dba64b74628056321ffa3723",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\native\\libxge3_host.so",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/src/bootstrap.xl",
+      "before": null,
+      "after": "54d74fc4d81f9bade0f3fa358178073d885425e59bda9fd64cd79073c8bc19f0",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\src\\bootstrap.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/src/runtime.c",
+      "before": null,
+      "after": "c85138389db8cca57cd560fd24323b127dd5d4aa9f0d8401928eb6ac614cba4e",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\src\\runtime.c",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/src/transfer.c",
+      "before": null,
+      "after": "20f0b5820b6d46c77364935724575a9d885965c3e636c1138019384d289a4eb7",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\src\\transfer.c",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/_xge_native/xlang.package.json",
+      "before": null,
+      "after": "01810dc4edd5688110e0fca698c7cf889f2bc91bdadcaa5181548fff602de32c",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\_xge_native\\xlang.package.json",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xge/README.md",
+      "before": null,
+      "after": "32c43bf79f231ff846d6fafd45c9c91f0b5d4afe5337cff4e08bc17519dcf6e6",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\README.md",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xge/examples/README.md",
+      "before": null,
+      "after": "59e85ec519654b0521c314eb5000b007b3069da4bb5c29a374a1f5e645a4ae44",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\examples\\README.md",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xge/examples/gui_shapes.xl",
+      "before": null,
+      "after": "33ecf635b267e67ccb59e8c0852e41d1ed97f8bed4cd4e50fe5fa94271c7079f",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\examples\\gui_shapes.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xge/examples/headless_frame.xl",
+      "before": null,
+      "after": "f609b4f2e45cd4c571f2ee83c0e11b000afdd46b8c6123e5fe758115dfb77ef9",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\examples\\headless_frame.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xge/examples/headless_shape.xl",
+      "before": null,
+      "after": "604881d4b0ebe27fe57de79387a7aba33c6dd6d15d3d1096774d3d02c67a053b",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\examples\\headless_shape.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xge/src/bootstrap.xl",
+      "before": null,
+      "after": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\src\\bootstrap.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xge/src/callbacks.xl",
+      "before": null,
+      "after": "2d74e1a1ecec9850d658478af08086e5708186c407add0c988b371e22d89cd45",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\src\\callbacks.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xge/src/constants.xl",
+      "before": null,
+      "after": "8f65b793351547d449cde57ca88ad66e132d2fe45595a199e88afd6c01faae71",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\src\\constants.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xge/src/data_object.xl",
+      "before": null,
+      "after": "f30dd0685a04afeb806aa4f83c82ccd697424d9b1e991c17a0f8f7d5870deaad",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\src\\data_object.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xge/src/functions.xl",
+      "before": null,
+      "after": "f73d8e37a57c4c566a18da0b03de8ea7953a9cee025bf83ea93345b17e7fbb48",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\src\\functions.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xge/src/records.xl",
+      "before": null,
+      "after": "75f43f39f0aeb5bff6c3aab420dd6ac2b1eca47dcadb05d78deeacce8287a521",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\src\\records.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xge/src/resources.xl",
+      "before": null,
+      "after": "6b54c4de89c087bfae0e0a73b8535c3f17c40ccedb15b638664092398d898e7a",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\src\\resources.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xge/src/shapes.xl",
+      "before": null,
+      "after": "a20456775c010ebd2f6a15ea7c5b8faaa5dadd27bf68ff8e5c299953ccdd893e",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\src\\shapes.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xge/xlang.package.json",
+      "before": null,
+      "after": "df1520f5f3e532a892f470775e9efbc0309042c345533fe1b555ac95772da891",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xge\\xlang.package.json",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/README.md",
+      "before": null,
+      "after": "4771e5536a864f644b262510e92f6d122d291a2938408e5e032106042d07b2c8",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\README.md",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/examples/README.md",
+      "before": null,
+      "after": "8c5c3f38b9bffe3b26ea83bd71fd71fcdd9775bc9ade87dcfe16df0b086e13c0",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\README.md",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/examples/context_graph.xl",
+      "before": null,
+      "after": "3dd88afa57f700c7c6266904c5115e4dd247da3ae5a2370b8d6f7e0d6b8ce868",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\context_graph.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/examples/data_object.xl",
+      "before": null,
+      "after": "74bd0f37a2708d116c685b98b1329ea4d5acf915836d7becfec935ab7791e96d",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\data_object.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/examples/document_model.xl",
+      "before": null,
+      "after": "f4ac1b08c9bee88fffe0331f720f5278c37ed9d0c524254f98d7bf4f515a4c52",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\document_model.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/examples/document_ui_headless.xl",
+      "before": null,
+      "after": "c5a04ef4742b0136cf89c1322ed5745e216f55f7e250f25eedbf3093eb25ad1d",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\document_ui_headless.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/examples/gui_surface_draw.xl",
+      "before": null,
+      "after": "6151f8e006865593b65f30660ccf3062e17402fecc5f6bf8e97c37f323e45126",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\gui_surface_draw.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/examples/headless_cell.xl",
+      "before": null,
+      "after": "8120e63db03bf332ab9515ecb0229cffa909a73322d79a3a949ce9295109dfc0",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\headless_cell.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/examples/headless_path.xl",
+      "before": null,
+      "after": "b2bad5446a434dbcff574ad37321ce230afc2c76e44dc7e4b025d3fcc0cc0c0f",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\headless_path.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/examples/manager_lifetime.xl",
+      "before": null,
+      "after": "52fd66469509a4317e992fe4b2d76922a18345766c8e28518f288d159565cd32",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\examples\\manager_lifetime.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/src/bootstrap.xl",
+      "before": null,
+      "after": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\bootstrap.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/src/cell.xl",
+      "before": null,
+      "after": "852cb65a590028fb42af45c07724e99976b915a49c5a1bdfa386e2cedeb6162b",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\cell.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/src/constants.xl",
+      "before": null,
+      "after": "91b4a7b8c8dfa85b0c627604eccf2659eb193ba4acf618e8f9b464129207ea05",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\constants.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/src/data_object.xl",
+      "before": null,
+      "after": "32710274d0f069fae960966e0d2d1b94c01a9d27155963fdf95bddf65a5a8774",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\data_object.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/src/document.xl",
+      "before": null,
+      "after": "97747c52db93cb015e0fb3d1065c10752350946bb6062d66709f6011c1a647b5",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\document.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/src/document_records.xl",
+      "before": null,
+      "after": "aa6e9d36ce9ebd07317aa616e32cfb35f19206365b345543d22f3350f5b27727",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\document_records.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/src/document_ui.xl",
+      "before": null,
+      "after": "aedb3c2ab8f7c81b54622d61e6e41b6fdaf4081f547e8b2102ea0bafce784bad",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\document_ui.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/src/document_ui_message_methods.inc",
+      "before": null,
+      "after": "b274aaae51cb778920a0d7d91162a743440ac90a10bd2e3c43e53be9bb550f40",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\document_ui_message_methods.inc",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/src/document_ui_records.xl",
+      "before": null,
+      "after": "e1733bd428c6ef3a6534f60ccb95988b502de0819ce65d3f43847e4cad4480e3",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\document_ui_records.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/src/draw.xl",
+      "before": null,
+      "after": "522236365e3d98a35062a200386b62f5b89df9b6738b59679ad81050cd4eb14a",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\draw.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/src/managed.xl",
+      "before": null,
+      "after": "21e766295f854fb761b51c9a4c31df9584ac7ee95df9215e29ff04a8b05a78ff",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\managed.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/src/managers.xl",
+      "before": null,
+      "after": "cc696cc23bbffca5d5e102b6368e87af766742575b1477fd75b54b1247d6290f",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\managers.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/src/proxy.xl",
+      "before": null,
+      "after": "ef323ba00bfd49431be35a927f4f4088d52620c1fbb2c7c3f6d75e06a136cec5",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\proxy.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/src/records.xl",
+      "before": null,
+      "after": "f42623d9961a4474cfbadd206cf66e5f24c1151bf9763084cfcd623272532779",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\records.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/src/text_shape.xl",
+      "before": null,
+      "after": "a4e463dcbe2aa1ec8bfac3f008eeda7590b7635ae519c720af142e39ff3496f7",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\src\\text_shape.xl",
+      "action": "create",
+      "state": "applied"
+    },
+    {
+      "target": "release/linux_x64/extlibs/xui/xlang.package.json",
+      "before": null,
+      "after": "8ff144ff6cc2bd42ec76bdfe7e6f5fee4d1ed3567adac08989e2638810994e50",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\packages-final-linux-r2\\xui\\xlang.package.json",
+      "action": "create",
+      "state": "applied"
+    }
+  ],
+  "workDir": "F:\\xlang-validation\\foreign-completion-20261103\\ui-publish-linux-apply-r1",
+  "schema": 1,
+  "apply": true,
+  "status": "committed",
+  "temporaryFiles": [],
+  "createdDirectories": [
+    "D:\\GIT\\x-lang\\release\\linux_x64\\examples",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\examples\\xge",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\examples\\xui",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include\\extlibs",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include\\extlibs\\xrt",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\native",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\src",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xge",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xge\\examples",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xge\\src",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\examples",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\src"
+  ],
+  "rollbackFailures": []
+}

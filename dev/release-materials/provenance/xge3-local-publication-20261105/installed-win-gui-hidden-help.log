@@ -1,0 +1,30 @@
+xlang IDE development workbench
+  [file.c|file.xl|project.xlp|workspace.xlw]  open a build target
+  --size WIDTH HEIGHT  initial window size
+  --dpi-scale N  diagnostic render scale (0.5-8)
+  --frames N  bounded render smoke test
+  --hidden    hide this program's smoke-test window
+  --screenshot PATH.png  capture the final bounded frame
+  --workspace PATH.xlw  open a workspace
+  --project PATH.xlp    open a standalone project
+  --open-file PATH  open an editable UTF-8 file
+  --select-project ID   initially selected project
+  --demo xlang|c  initially selected syntax example
+  --catalog PATH.json  use an explicit command catalog
+  --command ID         initially selected command help
+  --help-chapter N      initially scroll to a help chapter (0-based)
+  --command-search TEXT filter command catalog
+  --compiler PATH.exe  select xlang toolchain
+  --settings PATH.json  use an explicit preferences file
+  --session-root PATH  isolate session and recovery storage
+  --diagnostic-root PATH  isolate fatal error reports
+  --no-session         disable session restore and persistence
+  --no-auto-diagnostics use explicit xlang checks
+  --configuration ID   select project build configuration
+  --font-settings open code font preferences
+  --ui-font-settings open interface font preferences
+  --recovery-manager open session and recovery manager
+  --edit-configurations open selected project configuration editor
+  --task build|run|build-file|run-file|test  start a task
+  --wait-task          wait up to 30s before bounded render exits
+  --theme classic-light|graphite-dark|warm-white|ocean

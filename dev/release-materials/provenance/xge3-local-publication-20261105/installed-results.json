@@ -1,0 +1,875 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Actual published locations only: default package lookup and correct run subcommand; no source driver or package/core override.",
+  "priorFailedR1Preserved": {
+    "F:\\xlang-validation\\foreign-completion-20261103\\published-location-smoke-r1\\results.json": "3bff0ac6af5233b94fafba904df2513df13ad106fdadf93db42b140227a286fb",
+    "F:\\xlang-validation\\foreign-completion-20261103\\published-location-smoke-r1\\win-frame.log": "029f5f24d97f480f2ffa60493f64779cbaa6e3aa276226e848118742f87f272c"
+  },
+  "packagePublicationAudits": [
+    {
+      "platform": "win_x64",
+      "receipt": "F:\\xlang-validation\\foreign-completion-20261103\\ui-publish-win-apply-r1\\receipt.json",
+      "receiptSha256": "dc0a6e70e4a2a6903b6c924694b8266d0ea3081a2c95de2ded096c993b4b7210",
+      "journalSha256": "7911b8cc130d8fc3ef0d6730dad90dd7bb6291412b2e6d437df5599b8cd90780",
+      "targetsVerified": 73,
+      "retiredAbsent": 260,
+      "backupsVerified": 263,
+      "operationScopeExcludesUserState": true,
+      "unknownAndHiddenFilesEnumerated": false,
+      "targets": [
+        {
+          "path": "release/win_x64/examples/xge/README.md",
+          "sha256": "59e85ec519654b0521c314eb5000b007b3069da4bb5c29a374a1f5e645a4ae44"
+        },
+        {
+          "path": "release/win_x64/examples/xge/gui_shapes.xl",
+          "sha256": "33ecf635b267e67ccb59e8c0852e41d1ed97f8bed4cd4e50fe5fa94271c7079f"
+        },
+        {
+          "path": "release/win_x64/examples/xge/headless_frame.xl",
+          "sha256": "f609b4f2e45cd4c571f2ee83c0e11b000afdd46b8c6123e5fe758115dfb77ef9"
+        },
+        {
+          "path": "release/win_x64/examples/xge/headless_shape.xl",
+          "sha256": "604881d4b0ebe27fe57de79387a7aba33c6dd6d15d3d1096774d3d02c67a053b"
+        },
+        {
+          "path": "release/win_x64/examples/xui/README.md",
+          "sha256": "8c5c3f38b9bffe3b26ea83bd71fd71fcdd9775bc9ade87dcfe16df0b086e13c0"
+        },
+        {
+          "path": "release/win_x64/examples/xui/context_graph.xl",
+          "sha256": "3dd88afa57f700c7c6266904c5115e4dd247da3ae5a2370b8d6f7e0d6b8ce868"
+        },
+        {
+          "path": "release/win_x64/examples/xui/data_object.xl",
+          "sha256": "74bd0f37a2708d116c685b98b1329ea4d5acf915836d7becfec935ab7791e96d"
+        },
+        {
+          "path": "release/win_x64/examples/xui/document_model.xl",
+          "sha256": "f4ac1b08c9bee88fffe0331f720f5278c37ed9d0c524254f98d7bf4f515a4c52"
+        },
+        {
+          "path": "release/win_x64/examples/xui/document_ui_headless.xl",
+          "sha256": "c5a04ef4742b0136cf89c1322ed5745e216f55f7e250f25eedbf3093eb25ad1d"
+        },
+        {
+          "path": "release/win_x64/examples/xui/gui_surface_draw.xl",
+          "sha256": "6151f8e006865593b65f30660ccf3062e17402fecc5f6bf8e97c37f323e45126"
+        },
+        {
+          "path": "release/win_x64/examples/xui/headless_cell.xl",
+          "sha256": "8120e63db03bf332ab9515ecb0229cffa909a73322d79a3a949ce9295109dfc0"
+        },
+        {
+          "path": "release/win_x64/examples/xui/headless_path.xl",
+          "sha256": "b2bad5446a434dbcff574ad37321ce230afc2c76e44dc7e4b025d3fcc0cc0c0f"
+        },
+        {
+          "path": "release/win_x64/examples/xui/manager_lifetime.xl",
+          "sha256": "52fd66469509a4317e992fe4b2d76922a18345766c8e28518f288d159565cd32"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/include/extlibs/xrt/xrt.h",
+          "sha256": "52a2147eb97846a2166c5c6008715e9f741196bb1afc17320b16074b54e9a6ad"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/include/extlibs/xrt/xrt_config.h",
+          "sha256": "0aa49016ab725145a8043619b860f780d0b81cbb2184084aaf1c485fa57bf314"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/include/xge.h",
+          "sha256": "c64dcc31d83634631697a316f4cae0d211041f51770629128474cc384c4d299b"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/include/xge3_runtime.h",
+          "sha256": "d22aff119f3736b1afbce13c1d4248ddec2189c5af5b24a48e685fc3b3fc2779"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/include/xge_build_config.h",
+          "sha256": "f288418bedcc5eeed9559ec294dd9091fbbb8283487258b7910b018d45997d03"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/include/xge_config.h",
+          "sha256": "5d960786a736321b22d1b88cbe2d3aaac807e8afaa8a7bd0a4e509b06f7b76bf"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/include/xge_host_xrt.h",
+          "sha256": "5e43dc2cff98741941c1be6d02832d6cf34256521c94975e4fe96fd411e7b60f"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/include/xge_host_xrt_contract.h",
+          "sha256": "37378d9d6fa70a5b480db5ee69a24fd97942c361c7908d69bc33301a1bc986ec"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/include/xge_host_xrt_fingerprint.h",
+          "sha256": "3f5744ec0d8273cb30b3e32dbf40aa70f3564f3fd19b5eb1d330038283f326c5"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/include/xge_host_xrt_slots.inc",
+          "sha256": "52ac78dcf6173cac80d20ae06561511acad80cf3b98a831b9a9ccef7ea25f530"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/include/xnative_transfer.h",
+          "sha256": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/include/xui.h",
+          "sha256": "b10940d61965e0d85e4481d9e6a157410bc6a308a0d7e69f49c0a500d3da56c0"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/include/xui_config.h",
+          "sha256": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/include/xui_document.h",
+          "sha256": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/include/xui_document_ui.h",
+          "sha256": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/native/xge3_host.dll",
+          "sha256": "b60bab3050fb8523cc46acb769cf32b15a81896abfbb6cbe47b5e74073ee139c"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/src/bootstrap.xl",
+          "sha256": "54d74fc4d81f9bade0f3fa358178073d885425e59bda9fd64cd79073c8bc19f0"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/src/runtime.c",
+          "sha256": "c85138389db8cca57cd560fd24323b127dd5d4aa9f0d8401928eb6ac614cba4e"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/src/transfer.c",
+          "sha256": "20f0b5820b6d46c77364935724575a9d885965c3e636c1138019384d289a4eb7"
+        },
+        {
+          "path": "release/win_x64/extlibs/_xge_native/xlang.package.json",
+          "sha256": "9669cfee1cf4252bf5334550cbebb2c675bc6202ccc15068a857ff27edd01c84"
+        },
+        {
+          "path": "release/win_x64/extlibs/xge/README.md",
+          "sha256": "32c43bf79f231ff846d6fafd45c9c91f0b5d4afe5337cff4e08bc17519dcf6e6"
+        },
+        {
+          "path": "release/win_x64/extlibs/xge/examples/README.md",
+          "sha256": "59e85ec519654b0521c314eb5000b007b3069da4bb5c29a374a1f5e645a4ae44"
+        },
+        {
+          "path": "release/win_x64/extlibs/xge/examples/gui_shapes.xl",
+          "sha256": "33ecf635b267e67ccb59e8c0852e41d1ed97f8bed4cd4e50fe5fa94271c7079f"
+        },
+        {
+          "path": "release/win_x64/extlibs/xge/examples/headless_frame.xl",
+          "sha256": "f609b4f2e45cd4c571f2ee83c0e11b000afdd46b8c6123e5fe758115dfb77ef9"
+        },
+        {
+          "path": "release/win_x64/extlibs/xge/examples/headless_shape.xl",
+          "sha256": "604881d4b0ebe27fe57de79387a7aba33c6dd6d15d3d1096774d3d02c67a053b"
+        },
+        {
+          "path": "release/win_x64/extlibs/xge/src/bootstrap.xl",
+          "sha256": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557"
+        },
+        {
+          "path": "release/win_x64/extlibs/xge/src/callbacks.xl",
+          "sha256": "2d74e1a1ecec9850d658478af08086e5708186c407add0c988b371e22d89cd45"
+        },
+        {
+          "path": "release/win_x64/extlibs/xge/src/constants.xl",
+          "sha256": "8f65b793351547d449cde57ca88ad66e132d2fe45595a199e88afd6c01faae71"
+        },
+        {
+          "path": "release/win_x64/extlibs/xge/src/data_object.xl",
+          "sha256": "f30dd0685a04afeb806aa4f83c82ccd697424d9b1e991c17a0f8f7d5870deaad"
+        },
+        {
+          "path": "release/win_x64/extlibs/xge/src/functions.xl",
+          "sha256": "f73d8e37a57c4c566a18da0b03de8ea7953a9cee025bf83ea93345b17e7fbb48"
+        },
+        {
+          "path": "release/win_x64/extlibs/xge/src/records.xl",
+          "sha256": "75f43f39f0aeb5bff6c3aab420dd6ac2b1eca47dcadb05d78deeacce8287a521"
+        },
+        {
+          "path": "release/win_x64/extlibs/xge/src/resources.xl",
+          "sha256": "6b54c4de89c087bfae0e0a73b8535c3f17c40ccedb15b638664092398d898e7a"
+        },
+        {
+          "path": "release/win_x64/extlibs/xge/src/shapes.xl",
+          "sha256": "a20456775c010ebd2f6a15ea7c5b8faaa5dadd27bf68ff8e5c299953ccdd893e"
+        },
+        {
+          "path": "release/win_x64/extlibs/xge/xlang.package.json",
+          "sha256": "df1520f5f3e532a892f470775e9efbc0309042c345533fe1b555ac95772da891"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/README.md",
+          "sha256": "4771e5536a864f644b262510e92f6d122d291a2938408e5e032106042d07b2c8"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/examples/README.md",
+          "sha256": "8c5c3f38b9bffe3b26ea83bd71fd71fcdd9775bc9ade87dcfe16df0b086e13c0"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/examples/context_graph.xl",
+          "sha256": "3dd88afa57f700c7c6266904c5115e4dd247da3ae5a2370b8d6f7e0d6b8ce868"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/examples/data_object.xl",
+          "sha256": "74bd0f37a2708d116c685b98b1329ea4d5acf915836d7becfec935ab7791e96d"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/examples/document_model.xl",
+          "sha256": "f4ac1b08c9bee88fffe0331f720f5278c37ed9d0c524254f98d7bf4f515a4c52"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/examples/document_ui_headless.xl",
+          "sha256": "c5a04ef4742b0136cf89c1322ed5745e216f55f7e250f25eedbf3093eb25ad1d"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/examples/gui_surface_draw.xl",
+          "sha256": "6151f8e006865593b65f30660ccf3062e17402fecc5f6bf8e97c37f323e45126"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/examples/headless_cell.xl",
+          "sha256": "8120e63db03bf332ab9515ecb0229cffa909a73322d79a3a949ce9295109dfc0"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/examples/headless_path.xl",
+          "sha256": "b2bad5446a434dbcff574ad37321ce230afc2c76e44dc7e4b025d3fcc0cc0c0f"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/examples/manager_lifetime.xl",
+          "sha256": "52fd66469509a4317e992fe4b2d76922a18345766c8e28518f288d159565cd32"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/src/bootstrap.xl",
+          "sha256": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/src/cell.xl",
+          "sha256": "852cb65a590028fb42af45c07724e99976b915a49c5a1bdfa386e2cedeb6162b"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/src/constants.xl",
+          "sha256": "91b4a7b8c8dfa85b0c627604eccf2659eb193ba4acf618e8f9b464129207ea05"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/src/data_object.xl",
+          "sha256": "32710274d0f069fae960966e0d2d1b94c01a9d27155963fdf95bddf65a5a8774"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/src/document.xl",
+          "sha256": "97747c52db93cb015e0fb3d1065c10752350946bb6062d66709f6011c1a647b5"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/src/document_records.xl",
+          "sha256": "aa6e9d36ce9ebd07317aa616e32cfb35f19206365b345543d22f3350f5b27727"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/src/document_ui.xl",
+          "sha256": "aedb3c2ab8f7c81b54622d61e6e41b6fdaf4081f547e8b2102ea0bafce784bad"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/src/document_ui_message_methods.inc",
+          "sha256": "b274aaae51cb778920a0d7d91162a743440ac90a10bd2e3c43e53be9bb550f40"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/src/document_ui_records.xl",
+          "sha256": "e1733bd428c6ef3a6534f60ccb95988b502de0819ce65d3f43847e4cad4480e3"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/src/draw.xl",
+          "sha256": "522236365e3d98a35062a200386b62f5b89df9b6738b59679ad81050cd4eb14a"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/src/managed.xl",
+          "sha256": "21e766295f854fb761b51c9a4c31df9584ac7ee95df9215e29ff04a8b05a78ff"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/src/managers.xl",
+          "sha256": "cc696cc23bbffca5d5e102b6368e87af766742575b1477fd75b54b1247d6290f"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/src/proxy.xl",
+          "sha256": "ef323ba00bfd49431be35a927f4f4088d52620c1fbb2c7c3f6d75e06a136cec5"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/src/records.xl",
+          "sha256": "f42623d9961a4474cfbadd206cf66e5f24c1151bf9763084cfcd623272532779"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/src/text_shape.xl",
+          "sha256": "a4e463dcbe2aa1ec8bfac3f008eeda7590b7635ae519c720af142e39ff3496f7"
+        },
+        {
+          "path": "release/win_x64/extlibs/xui/xlang.package.json",
+          "sha256": "8ff144ff6cc2bd42ec76bdfe7e6f5fee4d1ed3567adac08989e2638810994e50"
+        }
+      ]
+    },
+    {
+      "platform": "linux_x64",
+      "receipt": "F:\\xlang-validation\\foreign-completion-20261103\\ui-publish-linux-apply-r1\\receipt.json",
+      "receiptSha256": "696556b71e4b04031cb7dda27d895c720ef0fb53dbe446a2bf61f23ad2d3cbb3",
+      "journalSha256": "5842aae0083376dac96c9d43a1062f4d7aef704c9c45966854dd409132d4cfe6",
+      "targetsVerified": 73,
+      "retiredAbsent": 0,
+      "backupsVerified": 0,
+      "operationScopeExcludesUserState": true,
+      "unknownAndHiddenFilesEnumerated": false,
+      "targets": [
+        {
+          "path": "release/linux_x64/examples/xge/README.md",
+          "sha256": "59e85ec519654b0521c314eb5000b007b3069da4bb5c29a374a1f5e645a4ae44"
+        },
+        {
+          "path": "release/linux_x64/examples/xge/gui_shapes.xl",
+          "sha256": "33ecf635b267e67ccb59e8c0852e41d1ed97f8bed4cd4e50fe5fa94271c7079f"
+        },
+        {
+          "path": "release/linux_x64/examples/xge/headless_frame.xl",
+          "sha256": "f609b4f2e45cd4c571f2ee83c0e11b000afdd46b8c6123e5fe758115dfb77ef9"
+        },
+        {
+          "path": "release/linux_x64/examples/xge/headless_shape.xl",
+          "sha256": "604881d4b0ebe27fe57de79387a7aba33c6dd6d15d3d1096774d3d02c67a053b"
+        },
+        {
+          "path": "release/linux_x64/examples/xui/README.md",
+          "sha256": "8c5c3f38b9bffe3b26ea83bd71fd71fcdd9775bc9ade87dcfe16df0b086e13c0"
+        },
+        {
+          "path": "release/linux_x64/examples/xui/context_graph.xl",
+          "sha256": "3dd88afa57f700c7c6266904c5115e4dd247da3ae5a2370b8d6f7e0d6b8ce868"
+        },
+        {
+          "path": "release/linux_x64/examples/xui/data_object.xl",
+          "sha256": "74bd0f37a2708d116c685b98b1329ea4d5acf915836d7becfec935ab7791e96d"
+        },
+        {
+          "path": "release/linux_x64/examples/xui/document_model.xl",
+          "sha256": "f4ac1b08c9bee88fffe0331f720f5278c37ed9d0c524254f98d7bf4f515a4c52"
+        },
+        {
+          "path": "release/linux_x64/examples/xui/document_ui_headless.xl",
+          "sha256": "c5a04ef4742b0136cf89c1322ed5745e216f55f7e250f25eedbf3093eb25ad1d"
+        },
+        {
+          "path": "release/linux_x64/examples/xui/gui_surface_draw.xl",
+          "sha256": "6151f8e006865593b65f30660ccf3062e17402fecc5f6bf8e97c37f323e45126"
+        },
+        {
+          "path": "release/linux_x64/examples/xui/headless_cell.xl",
+          "sha256": "8120e63db03bf332ab9515ecb0229cffa909a73322d79a3a949ce9295109dfc0"
+        },
+        {
+          "path": "release/linux_x64/examples/xui/headless_path.xl",
+          "sha256": "b2bad5446a434dbcff574ad37321ce230afc2c76e44dc7e4b025d3fcc0cc0c0f"
+        },
+        {
+          "path": "release/linux_x64/examples/xui/manager_lifetime.xl",
+          "sha256": "52fd66469509a4317e992fe4b2d76922a18345766c8e28518f288d159565cd32"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/include/extlibs/xrt/xrt.h",
+          "sha256": "4c78a60a71e9b78403d84c85ef6c7e20331b669a0fb3bb65e5cfaca92dcdde1e"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/include/extlibs/xrt/xrt_config.h",
+          "sha256": "0aa49016ab725145a8043619b860f780d0b81cbb2184084aaf1c485fa57bf314"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/include/xge.h",
+          "sha256": "c64dcc31d83634631697a316f4cae0d211041f51770629128474cc384c4d299b"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/include/xge3_runtime.h",
+          "sha256": "d22aff119f3736b1afbce13c1d4248ddec2189c5af5b24a48e685fc3b3fc2779"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/include/xge_build_config.h",
+          "sha256": "989d23b4f4e0f75d9fbab4a1847fc45b42bdff6fbc386c92839bd7818e30b873"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/include/xge_config.h",
+          "sha256": "5d960786a736321b22d1b88cbe2d3aaac807e8afaa8a7bd0a4e509b06f7b76bf"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/include/xge_host_xrt.h",
+          "sha256": "5e43dc2cff98741941c1be6d02832d6cf34256521c94975e4fe96fd411e7b60f"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/include/xge_host_xrt_contract.h",
+          "sha256": "37378d9d6fa70a5b480db5ee69a24fd97942c361c7908d69bc33301a1bc986ec"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/include/xge_host_xrt_fingerprint.h",
+          "sha256": "3f5744ec0d8273cb30b3e32dbf40aa70f3564f3fd19b5eb1d330038283f326c5"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/include/xge_host_xrt_slots.inc",
+          "sha256": "bd6ee95bedc1f09874c78699f5ec5338dc254e610aca4590957a64d05956bc9b"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/include/xnative_transfer.h",
+          "sha256": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/include/xui.h",
+          "sha256": "b10940d61965e0d85e4481d9e6a157410bc6a308a0d7e69f49c0a500d3da56c0"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/include/xui_config.h",
+          "sha256": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/include/xui_document.h",
+          "sha256": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/include/xui_document_ui.h",
+          "sha256": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/native/libxge3_host.so",
+          "sha256": "ffa77a906c0d630613a97304fa0faeaab7e656e9dba64b74628056321ffa3723"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/src/bootstrap.xl",
+          "sha256": "54d74fc4d81f9bade0f3fa358178073d885425e59bda9fd64cd79073c8bc19f0"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/src/runtime.c",
+          "sha256": "c85138389db8cca57cd560fd24323b127dd5d4aa9f0d8401928eb6ac614cba4e"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/src/transfer.c",
+          "sha256": "20f0b5820b6d46c77364935724575a9d885965c3e636c1138019384d289a4eb7"
+        },
+        {
+          "path": "release/linux_x64/extlibs/_xge_native/xlang.package.json",
+          "sha256": "01810dc4edd5688110e0fca698c7cf889f2bc91bdadcaa5181548fff602de32c"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xge/README.md",
+          "sha256": "32c43bf79f231ff846d6fafd45c9c91f0b5d4afe5337cff4e08bc17519dcf6e6"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xge/examples/README.md",
+          "sha256": "59e85ec519654b0521c314eb5000b007b3069da4bb5c29a374a1f5e645a4ae44"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xge/examples/gui_shapes.xl",
+          "sha256": "33ecf635b267e67ccb59e8c0852e41d1ed97f8bed4cd4e50fe5fa94271c7079f"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xge/examples/headless_frame.xl",
+          "sha256": "f609b4f2e45cd4c571f2ee83c0e11b000afdd46b8c6123e5fe758115dfb77ef9"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xge/examples/headless_shape.xl",
+          "sha256": "604881d4b0ebe27fe57de79387a7aba33c6dd6d15d3d1096774d3d02c67a053b"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xge/src/bootstrap.xl",
+          "sha256": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xge/src/callbacks.xl",
+          "sha256": "2d74e1a1ecec9850d658478af08086e5708186c407add0c988b371e22d89cd45"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xge/src/constants.xl",
+          "sha256": "8f65b793351547d449cde57ca88ad66e132d2fe45595a199e88afd6c01faae71"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xge/src/data_object.xl",
+          "sha256": "f30dd0685a04afeb806aa4f83c82ccd697424d9b1e991c17a0f8f7d5870deaad"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xge/src/functions.xl",
+          "sha256": "f73d8e37a57c4c566a18da0b03de8ea7953a9cee025bf83ea93345b17e7fbb48"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xge/src/records.xl",
+          "sha256": "75f43f39f0aeb5bff6c3aab420dd6ac2b1eca47dcadb05d78deeacce8287a521"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xge/src/resources.xl",
+          "sha256": "6b54c4de89c087bfae0e0a73b8535c3f17c40ccedb15b638664092398d898e7a"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xge/src/shapes.xl",
+          "sha256": "a20456775c010ebd2f6a15ea7c5b8faaa5dadd27bf68ff8e5c299953ccdd893e"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xge/xlang.package.json",
+          "sha256": "df1520f5f3e532a892f470775e9efbc0309042c345533fe1b555ac95772da891"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/README.md",
+          "sha256": "4771e5536a864f644b262510e92f6d122d291a2938408e5e032106042d07b2c8"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/examples/README.md",
+          "sha256": "8c5c3f38b9bffe3b26ea83bd71fd71fcdd9775bc9ade87dcfe16df0b086e13c0"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/examples/context_graph.xl",
+          "sha256": "3dd88afa57f700c7c6266904c5115e4dd247da3ae5a2370b8d6f7e0d6b8ce868"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/examples/data_object.xl",
+          "sha256": "74bd0f37a2708d116c685b98b1329ea4d5acf915836d7becfec935ab7791e96d"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/examples/document_model.xl",
+          "sha256": "f4ac1b08c9bee88fffe0331f720f5278c37ed9d0c524254f98d7bf4f515a4c52"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/examples/document_ui_headless.xl",
+          "sha256": "c5a04ef4742b0136cf89c1322ed5745e216f55f7e250f25eedbf3093eb25ad1d"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/examples/gui_surface_draw.xl",
+          "sha256": "6151f8e006865593b65f30660ccf3062e17402fecc5f6bf8e97c37f323e45126"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/examples/headless_cell.xl",
+          "sha256": "8120e63db03bf332ab9515ecb0229cffa909a73322d79a3a949ce9295109dfc0"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/examples/headless_path.xl",
+          "sha256": "b2bad5446a434dbcff574ad37321ce230afc2c76e44dc7e4b025d3fcc0cc0c0f"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/examples/manager_lifetime.xl",
+          "sha256": "52fd66469509a4317e992fe4b2d76922a18345766c8e28518f288d159565cd32"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/src/bootstrap.xl",
+          "sha256": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/src/cell.xl",
+          "sha256": "852cb65a590028fb42af45c07724e99976b915a49c5a1bdfa386e2cedeb6162b"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/src/constants.xl",
+          "sha256": "91b4a7b8c8dfa85b0c627604eccf2659eb193ba4acf618e8f9b464129207ea05"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/src/data_object.xl",
+          "sha256": "32710274d0f069fae960966e0d2d1b94c01a9d27155963fdf95bddf65a5a8774"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/src/document.xl",
+          "sha256": "97747c52db93cb015e0fb3d1065c10752350946bb6062d66709f6011c1a647b5"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/src/document_records.xl",
+          "sha256": "aa6e9d36ce9ebd07317aa616e32cfb35f19206365b345543d22f3350f5b27727"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/src/document_ui.xl",
+          "sha256": "aedb3c2ab8f7c81b54622d61e6e41b6fdaf4081f547e8b2102ea0bafce784bad"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/src/document_ui_message_methods.inc",
+          "sha256": "b274aaae51cb778920a0d7d91162a743440ac90a10bd2e3c43e53be9bb550f40"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/src/document_ui_records.xl",
+          "sha256": "e1733bd428c6ef3a6534f60ccb95988b502de0819ce65d3f43847e4cad4480e3"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/src/draw.xl",
+          "sha256": "522236365e3d98a35062a200386b62f5b89df9b6738b59679ad81050cd4eb14a"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/src/managed.xl",
+          "sha256": "21e766295f854fb761b51c9a4c31df9584ac7ee95df9215e29ff04a8b05a78ff"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/src/managers.xl",
+          "sha256": "cc696cc23bbffca5d5e102b6368e87af766742575b1477fd75b54b1247d6290f"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/src/proxy.xl",
+          "sha256": "ef323ba00bfd49431be35a927f4f4088d52620c1fbb2c7c3f6d75e06a136cec5"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/src/records.xl",
+          "sha256": "f42623d9961a4474cfbadd206cf66e5f24c1151bf9763084cfcd623272532779"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/src/text_shape.xl",
+          "sha256": "a4e463dcbe2aa1ec8bfac3f008eeda7590b7635ae519c720af142e39ff3496f7"
+        },
+        {
+          "path": "release/linux_x64/extlibs/xui/xlang.package.json",
+          "sha256": "8ff144ff6cc2bd42ec76bdfe7e6f5fee4d1ed3567adac08989e2638810994e50"
+        }
+      ]
+    }
+  ],
+  "userStateProof": {
+    "packageOperationsExcluded": true,
+    "runtimeOperationsExcluded": true,
+    "prePublicationUserBytesSnapshotUsed": false,
+    "claim": "Publication journals contain no user-state targets; a byte-for-byte claim requires an independent pre-publication snapshot."
+  },
+  "environment": {
+    "removedOverrideNames": [],
+    "TEMP": "F:\\xlang-validation\\foreign-completion-20261103\\published-location-smoke-r2\\tmp",
+    "packagePathOverride": false
+  },
+  "inputs": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\xge\\README.md": "59e85ec519654b0521c314eb5000b007b3069da4bb5c29a374a1f5e645a4ae44",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\xge\\gui_shapes.xl": "33ecf635b267e67ccb59e8c0852e41d1ed97f8bed4cd4e50fe5fa94271c7079f",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\xge\\headless_frame.xl": "f609b4f2e45cd4c571f2ee83c0e11b000afdd46b8c6123e5fe758115dfb77ef9",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\xge\\headless_shape.xl": "604881d4b0ebe27fe57de79387a7aba33c6dd6d15d3d1096774d3d02c67a053b",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\xui\\README.md": "8c5c3f38b9bffe3b26ea83bd71fd71fcdd9775bc9ade87dcfe16df0b086e13c0",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\xui\\context_graph.xl": "3dd88afa57f700c7c6266904c5115e4dd247da3ae5a2370b8d6f7e0d6b8ce868",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\xui\\data_object.xl": "74bd0f37a2708d116c685b98b1329ea4d5acf915836d7becfec935ab7791e96d",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\xui\\document_model.xl": "f4ac1b08c9bee88fffe0331f720f5278c37ed9d0c524254f98d7bf4f515a4c52",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\xui\\document_ui_headless.xl": "c5a04ef4742b0136cf89c1322ed5745e216f55f7e250f25eedbf3093eb25ad1d",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\xui\\gui_surface_draw.xl": "6151f8e006865593b65f30660ccf3062e17402fecc5f6bf8e97c37f323e45126",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\xui\\headless_cell.xl": "8120e63db03bf332ab9515ecb0229cffa909a73322d79a3a949ce9295109dfc0",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\xui\\headless_path.xl": "b2bad5446a434dbcff574ad37321ce230afc2c76e44dc7e4b025d3fcc0cc0c0f",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\xui\\manager_lifetime.xl": "52fd66469509a4317e992fe4b2d76922a18345766c8e28518f288d159565cd32",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\include\\extlibs\\xrt\\xrt.h": "52a2147eb97846a2166c5c6008715e9f741196bb1afc17320b16074b54e9a6ad",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\include\\extlibs\\xrt\\xrt_config.h": "0aa49016ab725145a8043619b860f780d0b81cbb2184084aaf1c485fa57bf314",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\include\\xge.h": "c64dcc31d83634631697a316f4cae0d211041f51770629128474cc384c4d299b",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\include\\xge3_runtime.h": "d22aff119f3736b1afbce13c1d4248ddec2189c5af5b24a48e685fc3b3fc2779",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\include\\xge_build_config.h": "f288418bedcc5eeed9559ec294dd9091fbbb8283487258b7910b018d45997d03",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\include\\xge_config.h": "5d960786a736321b22d1b88cbe2d3aaac807e8afaa8a7bd0a4e509b06f7b76bf",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\include\\xge_host_xrt.h": "5e43dc2cff98741941c1be6d02832d6cf34256521c94975e4fe96fd411e7b60f",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\include\\xge_host_xrt_contract.h": "37378d9d6fa70a5b480db5ee69a24fd97942c361c7908d69bc33301a1bc986ec",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\include\\xge_host_xrt_fingerprint.h": "3f5744ec0d8273cb30b3e32dbf40aa70f3564f3fd19b5eb1d330038283f326c5",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\include\\xge_host_xrt_slots.inc": "52ac78dcf6173cac80d20ae06561511acad80cf3b98a831b9a9ccef7ea25f530",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\include\\xnative_transfer.h": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\include\\xui.h": "b10940d61965e0d85e4481d9e6a157410bc6a308a0d7e69f49c0a500d3da56c0",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\include\\xui_config.h": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\include\\xui_document.h": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\include\\xui_document_ui.h": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\native\\xge3_host.dll": "b60bab3050fb8523cc46acb769cf32b15a81896abfbb6cbe47b5e74073ee139c",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\src\\bootstrap.xl": "54d74fc4d81f9bade0f3fa358178073d885425e59bda9fd64cd79073c8bc19f0",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\src\\runtime.c": "c85138389db8cca57cd560fd24323b127dd5d4aa9f0d8401928eb6ac614cba4e",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\src\\transfer.c": "20f0b5820b6d46c77364935724575a9d885965c3e636c1138019384d289a4eb7",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_xge_native\\xlang.package.json": "9669cfee1cf4252bf5334550cbebb2c675bc6202ccc15068a857ff27edd01c84",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xge\\README.md": "32c43bf79f231ff846d6fafd45c9c91f0b5d4afe5337cff4e08bc17519dcf6e6",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xge\\examples\\README.md": "59e85ec519654b0521c314eb5000b007b3069da4bb5c29a374a1f5e645a4ae44",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xge\\examples\\gui_shapes.xl": "33ecf635b267e67ccb59e8c0852e41d1ed97f8bed4cd4e50fe5fa94271c7079f",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xge\\examples\\headless_frame.xl": "f609b4f2e45cd4c571f2ee83c0e11b000afdd46b8c6123e5fe758115dfb77ef9",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xge\\examples\\headless_shape.xl": "604881d4b0ebe27fe57de79387a7aba33c6dd6d15d3d1096774d3d02c67a053b",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xge\\src\\bootstrap.xl": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xge\\src\\callbacks.xl": "2d74e1a1ecec9850d658478af08086e5708186c407add0c988b371e22d89cd45",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xge\\src\\constants.xl": "8f65b793351547d449cde57ca88ad66e132d2fe45595a199e88afd6c01faae71",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xge\\src\\data_object.xl": "f30dd0685a04afeb806aa4f83c82ccd697424d9b1e991c17a0f8f7d5870deaad",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xge\\src\\functions.xl": "f73d8e37a57c4c566a18da0b03de8ea7953a9cee025bf83ea93345b17e7fbb48",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xge\\src\\records.xl": "75f43f39f0aeb5bff6c3aab420dd6ac2b1eca47dcadb05d78deeacce8287a521",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xge\\src\\resources.xl": "6b54c4de89c087bfae0e0a73b8535c3f17c40ccedb15b638664092398d898e7a",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xge\\src\\shapes.xl": "a20456775c010ebd2f6a15ea7c5b8faaa5dadd27bf68ff8e5c299953ccdd893e",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xge\\xlang.package.json": "df1520f5f3e532a892f470775e9efbc0309042c345533fe1b555ac95772da891",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\README.md": "4771e5536a864f644b262510e92f6d122d291a2938408e5e032106042d07b2c8",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\examples\\README.md": "8c5c3f38b9bffe3b26ea83bd71fd71fcdd9775bc9ade87dcfe16df0b086e13c0",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\examples\\context_graph.xl": "3dd88afa57f700c7c6266904c5115e4dd247da3ae5a2370b8d6f7e0d6b8ce868",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\examples\\data_object.xl": "74bd0f37a2708d116c685b98b1329ea4d5acf915836d7becfec935ab7791e96d",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\examples\\document_model.xl": "f4ac1b08c9bee88fffe0331f720f5278c37ed9d0c524254f98d7bf4f515a4c52",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\examples\\document_ui_headless.xl": "c5a04ef4742b0136cf89c1322ed5745e216f55f7e250f25eedbf3093eb25ad1d",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\examples\\gui_surface_draw.xl": "6151f8e006865593b65f30660ccf3062e17402fecc5f6bf8e97c37f323e45126",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\examples\\headless_cell.xl": "8120e63db03bf332ab9515ecb0229cffa909a73322d79a3a949ce9295109dfc0",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\examples\\headless_path.xl": "b2bad5446a434dbcff574ad37321ce230afc2c76e44dc7e4b025d3fcc0cc0c0f",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\examples\\manager_lifetime.xl": "52fd66469509a4317e992fe4b2d76922a18345766c8e28518f288d159565cd32",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\src\\bootstrap.xl": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\src\\cell.xl": "852cb65a590028fb42af45c07724e99976b915a49c5a1bdfa386e2cedeb6162b",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\src\\constants.xl": "91b4a7b8c8dfa85b0c627604eccf2659eb193ba4acf618e8f9b464129207ea05",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\src\\data_object.xl": "32710274d0f069fae960966e0d2d1b94c01a9d27155963fdf95bddf65a5a8774",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\src\\document.xl": "97747c52db93cb015e0fb3d1065c10752350946bb6062d66709f6011c1a647b5",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\src\\document_records.xl": "aa6e9d36ce9ebd07317aa616e32cfb35f19206365b345543d22f3350f5b27727",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\src\\document_ui.xl": "aedb3c2ab8f7c81b54622d61e6e41b6fdaf4081f547e8b2102ea0bafce784bad",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\src\\document_ui_message_methods.inc": "b274aaae51cb778920a0d7d91162a743440ac90a10bd2e3c43e53be9bb550f40",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\src\\document_ui_records.xl": "e1733bd428c6ef3a6534f60ccb95988b502de0819ce65d3f43847e4cad4480e3",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\src\\draw.xl": "522236365e3d98a35062a200386b62f5b89df9b6738b59679ad81050cd4eb14a",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\src\\managed.xl": "21e766295f854fb761b51c9a4c31df9584ac7ee95df9215e29ff04a8b05a78ff",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\src\\managers.xl": "cc696cc23bbffca5d5e102b6368e87af766742575b1477fd75b54b1247d6290f",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\src\\proxy.xl": "ef323ba00bfd49431be35a927f4f4088d52620c1fbb2c7c3f6d75e06a136cec5",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\src\\records.xl": "f42623d9961a4474cfbadd206cf66e5f24c1151bf9763084cfcd623272532779",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\src\\text_shape.xl": "a4e463dcbe2aa1ec8bfac3f008eeda7590b7635ae519c720af142e39ff3496f7",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\xui\\xlang.package.json": "8ff144ff6cc2bd42ec76bdfe7e6f5fee4d1ed3567adac08989e2638810994e50",
+    "F:\\xlang-validation\\foreign-completion-20261103\\ui-publish-win-apply-r1\\receipt.json": "dc0a6e70e4a2a6903b6c924694b8266d0ea3081a2c95de2ded096c993b4b7210",
+    "F:\\xlang-validation\\foreign-completion-20261103\\ui-publish-win-apply-r1\\journal.json": "7911b8cc130d8fc3ef0d6730dad90dd7bb6291412b2e6d437df5599b8cd90780",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\examples\\xge\\README.md": "59e85ec519654b0521c314eb5000b007b3069da4bb5c29a374a1f5e645a4ae44",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\examples\\xge\\gui_shapes.xl": "33ecf635b267e67ccb59e8c0852e41d1ed97f8bed4cd4e50fe5fa94271c7079f",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\examples\\xge\\headless_frame.xl": "f609b4f2e45cd4c571f2ee83c0e11b000afdd46b8c6123e5fe758115dfb77ef9",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\examples\\xge\\headless_shape.xl": "604881d4b0ebe27fe57de79387a7aba33c6dd6d15d3d1096774d3d02c67a053b",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\examples\\xui\\README.md": "8c5c3f38b9bffe3b26ea83bd71fd71fcdd9775bc9ade87dcfe16df0b086e13c0",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\examples\\xui\\context_graph.xl": "3dd88afa57f700c7c6266904c5115e4dd247da3ae5a2370b8d6f7e0d6b8ce868",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\examples\\xui\\data_object.xl": "74bd0f37a2708d116c685b98b1329ea4d5acf915836d7becfec935ab7791e96d",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\examples\\xui\\document_model.xl": "f4ac1b08c9bee88fffe0331f720f5278c37ed9d0c524254f98d7bf4f515a4c52",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\examples\\xui\\document_ui_headless.xl": "c5a04ef4742b0136cf89c1322ed5745e216f55f7e250f25eedbf3093eb25ad1d",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\examples\\xui\\gui_surface_draw.xl": "6151f8e006865593b65f30660ccf3062e17402fecc5f6bf8e97c37f323e45126",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\examples\\xui\\headless_cell.xl": "8120e63db03bf332ab9515ecb0229cffa909a73322d79a3a949ce9295109dfc0",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\examples\\xui\\headless_path.xl": "b2bad5446a434dbcff574ad37321ce230afc2c76e44dc7e4b025d3fcc0cc0c0f",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\examples\\xui\\manager_lifetime.xl": "52fd66469509a4317e992fe4b2d76922a18345766c8e28518f288d159565cd32",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include\\extlibs\\xrt\\xrt.h": "4c78a60a71e9b78403d84c85ef6c7e20331b669a0fb3bb65e5cfaca92dcdde1e",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include\\extlibs\\xrt\\xrt_config.h": "0aa49016ab725145a8043619b860f780d0b81cbb2184084aaf1c485fa57bf314",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include\\xge.h": "c64dcc31d83634631697a316f4cae0d211041f51770629128474cc384c4d299b",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include\\xge3_runtime.h": "d22aff119f3736b1afbce13c1d4248ddec2189c5af5b24a48e685fc3b3fc2779",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include\\xge_build_config.h": "989d23b4f4e0f75d9fbab4a1847fc45b42bdff6fbc386c92839bd7818e30b873",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include\\xge_config.h": "5d960786a736321b22d1b88cbe2d3aaac807e8afaa8a7bd0a4e509b06f7b76bf",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include\\xge_host_xrt.h": "5e43dc2cff98741941c1be6d02832d6cf34256521c94975e4fe96fd411e7b60f",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include\\xge_host_xrt_contract.h": "37378d9d6fa70a5b480db5ee69a24fd97942c361c7908d69bc33301a1bc986ec",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include\\xge_host_xrt_fingerprint.h": "3f5744ec0d8273cb30b3e32dbf40aa70f3564f3fd19b5eb1d330038283f326c5",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include\\xge_host_xrt_slots.inc": "bd6ee95bedc1f09874c78699f5ec5338dc254e610aca4590957a64d05956bc9b",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include\\xnative_transfer.h": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include\\xui.h": "b10940d61965e0d85e4481d9e6a157410bc6a308a0d7e69f49c0a500d3da56c0",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include\\xui_config.h": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include\\xui_document.h": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\include\\xui_document_ui.h": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\native\\libxge3_host.so": "ffa77a906c0d630613a97304fa0faeaab7e656e9dba64b74628056321ffa3723",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\src\\bootstrap.xl": "54d74fc4d81f9bade0f3fa358178073d885425e59bda9fd64cd79073c8bc19f0",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\src\\runtime.c": "c85138389db8cca57cd560fd24323b127dd5d4aa9f0d8401928eb6ac614cba4e",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\src\\transfer.c": "20f0b5820b6d46c77364935724575a9d885965c3e636c1138019384d289a4eb7",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\_xge_native\\xlang.package.json": "01810dc4edd5688110e0fca698c7cf889f2bc91bdadcaa5181548fff602de32c",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xge\\README.md": "32c43bf79f231ff846d6fafd45c9c91f0b5d4afe5337cff4e08bc17519dcf6e6",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xge\\examples\\README.md": "59e85ec519654b0521c314eb5000b007b3069da4bb5c29a374a1f5e645a4ae44",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xge\\examples\\gui_shapes.xl": "33ecf635b267e67ccb59e8c0852e41d1ed97f8bed4cd4e50fe5fa94271c7079f",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xge\\examples\\headless_frame.xl": "f609b4f2e45cd4c571f2ee83c0e11b000afdd46b8c6123e5fe758115dfb77ef9",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xge\\examples\\headless_shape.xl": "604881d4b0ebe27fe57de79387a7aba33c6dd6d15d3d1096774d3d02c67a053b",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xge\\src\\bootstrap.xl": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xge\\src\\callbacks.xl": "2d74e1a1ecec9850d658478af08086e5708186c407add0c988b371e22d89cd45",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xge\\src\\constants.xl": "8f65b793351547d449cde57ca88ad66e132d2fe45595a199e88afd6c01faae71",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xge\\src\\data_object.xl": "f30dd0685a04afeb806aa4f83c82ccd697424d9b1e991c17a0f8f7d5870deaad",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xge\\src\\functions.xl": "f73d8e37a57c4c566a18da0b03de8ea7953a9cee025bf83ea93345b17e7fbb48",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xge\\src\\records.xl": "75f43f39f0aeb5bff6c3aab420dd6ac2b1eca47dcadb05d78deeacce8287a521",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xge\\src\\resources.xl": "6b54c4de89c087bfae0e0a73b8535c3f17c40ccedb15b638664092398d898e7a",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xge\\src\\shapes.xl": "a20456775c010ebd2f6a15ea7c5b8faaa5dadd27bf68ff8e5c299953ccdd893e",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xge\\xlang.package.json": "df1520f5f3e532a892f470775e9efbc0309042c345533fe1b555ac95772da891",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\README.md": "4771e5536a864f644b262510e92f6d122d291a2938408e5e032106042d07b2c8",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\examples\\README.md": "8c5c3f38b9bffe3b26ea83bd71fd71fcdd9775bc9ade87dcfe16df0b086e13c0",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\examples\\context_graph.xl": "3dd88afa57f700c7c6266904c5115e4dd247da3ae5a2370b8d6f7e0d6b8ce868",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\examples\\data_object.xl": "74bd0f37a2708d116c685b98b1329ea4d5acf915836d7becfec935ab7791e96d",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\examples\\document_model.xl": "f4ac1b08c9bee88fffe0331f720f5278c37ed9d0c524254f98d7bf4f515a4c52",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\examples\\document_ui_headless.xl": "c5a04ef4742b0136cf89c1322ed5745e216f55f7e250f25eedbf3093eb25ad1d",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\examples\\gui_surface_draw.xl": "6151f8e006865593b65f30660ccf3062e17402fecc5f6bf8e97c37f323e45126",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\examples\\headless_cell.xl": "8120e63db03bf332ab9515ecb0229cffa909a73322d79a3a949ce9295109dfc0",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\examples\\headless_path.xl": "b2bad5446a434dbcff574ad37321ce230afc2c76e44dc7e4b025d3fcc0cc0c0f",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\examples\\manager_lifetime.xl": "52fd66469509a4317e992fe4b2d76922a18345766c8e28518f288d159565cd32",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\src\\bootstrap.xl": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\src\\cell.xl": "852cb65a590028fb42af45c07724e99976b915a49c5a1bdfa386e2cedeb6162b",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\src\\constants.xl": "91b4a7b8c8dfa85b0c627604eccf2659eb193ba4acf618e8f9b464129207ea05",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\src\\data_object.xl": "32710274d0f069fae960966e0d2d1b94c01a9d27155963fdf95bddf65a5a8774",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\src\\document.xl": "97747c52db93cb015e0fb3d1065c10752350946bb6062d66709f6011c1a647b5",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\src\\document_records.xl": "aa6e9d36ce9ebd07317aa616e32cfb35f19206365b345543d22f3350f5b27727",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\src\\document_ui.xl": "aedb3c2ab8f7c81b54622d61e6e41b6fdaf4081f547e8b2102ea0bafce784bad",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\src\\document_ui_message_methods.inc": "b274aaae51cb778920a0d7d91162a743440ac90a10bd2e3c43e53be9bb550f40",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\src\\document_ui_records.xl": "e1733bd428c6ef3a6534f60ccb95988b502de0819ce65d3f43847e4cad4480e3",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\src\\draw.xl": "522236365e3d98a35062a200386b62f5b89df9b6738b59679ad81050cd4eb14a",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\src\\managed.xl": "21e766295f854fb761b51c9a4c31df9584ac7ee95df9215e29ff04a8b05a78ff",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\src\\managers.xl": "cc696cc23bbffca5d5e102b6368e87af766742575b1477fd75b54b1247d6290f",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\src\\proxy.xl": "ef323ba00bfd49431be35a927f4f4088d52620c1fbb2c7c3f6d75e06a136cec5",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\src\\records.xl": "f42623d9961a4474cfbadd206cf66e5f24c1151bf9763084cfcd623272532779",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\src\\text_shape.xl": "a4e463dcbe2aa1ec8bfac3f008eeda7590b7635ae519c720af142e39ff3496f7",
+    "D:\\GIT\\x-lang\\release\\linux_x64\\extlibs\\xui\\xlang.package.json": "8ff144ff6cc2bd42ec76bdfe7e6f5fee4d1ed3567adac08989e2638810994e50",
+    "F:\\xlang-validation\\foreign-completion-20261103\\ui-publish-linux-apply-r1\\receipt.json": "696556b71e4b04031cb7dda27d895c720ef0fb53dbe446a2bf61f23ad2d3cbb3",
+    "F:\\xlang-validation\\foreign-completion-20261103\\ui-publish-linux-apply-r1\\journal.json": "5842aae0083376dac96c9d43a1062f4d7aef704c9c45966854dd409132d4cfe6",
+    "F:\\xlang-validation\\foreign-completion-20261103\\runtime-files-publish-r1\\journal.json": "b0dd5747dea92544fca912eb8d3cdebaf92f09503cd644c13dbe976701cbf3aa",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "6a9378f3c772b40bcd035969212fd1ee99a1b8ed22be00c30c37114e0523a2f6",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "6ee80b3d2370289c1077b924d700985226c8df8aef17779b87c5c3e38a425835",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "e4ab39f8137fd91781bcc57dfd20d9904aa6bc2e74f422073d6015de3c489642",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe": "5fdc6080d90c60aea26cd3416c3217599a1fdbd1fdf2d70a2e1c55a1648bac8c",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "edafbc3d3520f47cbb851365c98375b27f9a0f09404535dc7e03237e2ddc02fc",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232"
+  },
+  "rows": [
+    {
+      "name": "win-frame",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\xge\\headless_frame.xl"
+      ],
+      "cwd": "D:\\GIT\\x-lang\\release\\win_x64",
+      "exitCode": 0,
+      "seconds": 0.687,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "win-data",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\xui\\data_object.xl"
+      ],
+      "cwd": "D:\\GIT\\x-lang\\release\\win_x64",
+      "exitCode": 0,
+      "seconds": 14.984,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "win-gui-hidden-help",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+        "--hidden",
+        "--help"
+      ],
+      "cwd": "D:\\GIT\\x-lang\\release\\win_x64",
+      "exitCode": 0,
+      "seconds": 0.016,
+      "logSha256": "bec71761a456755926f2bf4eb112d3bf19eaa8d7599ab1eeba2da937f6ba6e6f"
+    },
+    {
+      "name": "win-installed-ls-stdio-initialize-shutdown",
+      "exitCode": 0,
+      "transcriptSha256": "dec94ccc081c92f0b3fca136eb6fa91a06672dfc07b65cf97bf306872d1fbb49"
+    },
+    {
+      "name": "linux-frame",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/examples/xge/headless_frame.xl"
+      ],
+      "cwd": "/mnt/d/GIT/x-lang/release/linux_x64",
+      "exitCode": 0,
+      "seconds": 3.139,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "linux-data",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/examples/xui/data_object.xl"
+      ],
+      "cwd": "/mnt/d/GIT/x-lang/release/linux_x64",
+      "exitCode": 0,
+      "seconds": 24.339,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "osNetworkGpuRenderingExecuted": false,
+  "windowsPassed": true,
+  "inputsUnchangedAfterWindows": true,
+  "priorR1Unchanged": true,
+  "linuxReport": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\published-location-smoke-r2\\linux\\results.json",
+    "sha256": "51bde26a3a214d6da3a65537e2f5da9758c5713d2e750ce56363ae25ad5f298d"
+  },
+  "linuxEnvironment": {
+    "removedOverrideNames": [],
+    "LD_LIBRARY_PATH": "/mnt/d/GIT/x-lang/release/linux_x64",
+    "packagePathOverride": false
+  },
+  "actualRunSubcommand": true,
+  "defaultPackageLookupBothPlatforms": true,
+  "desiredPublishedTargetsVerified": 146,
+  "inputsUnchanged": true
+}

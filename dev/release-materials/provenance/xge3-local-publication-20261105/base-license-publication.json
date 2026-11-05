@@ -1,0 +1,70 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Preserve existing project/TCC notices; retain original Win LGPL notice bytes and copy to Linux. No relicensing or legal conclusion.",
+  "files": [
+    {
+      "path": "release/win_x64/notices/LICENSE.xlang-MIT.txt",
+      "source": "git:HEAD:LICENSE",
+      "sha256": "1ef2f4366ef12ebedf3a7a56f22e118bd0d437de717006f42aea953c7c5788da",
+      "bytes": 1116,
+      "before": null
+    },
+    {
+      "path": "release/linux_x64/notices/LICENSE.xlang-MIT.txt",
+      "source": "git:HEAD:LICENSE",
+      "sha256": "1ef2f4366ef12ebedf3a7a56f22e118bd0d437de717006f42aea953c7c5788da",
+      "bytes": 1116,
+      "before": null
+    },
+    {
+      "path": "release/win_x64/notices/THIRD_PARTY_NOTICES.md",
+      "source": "git:HEAD:THIRD_PARTY_NOTICES.md",
+      "sha256": "797e05e0cdfd461cff2399ed1cba8ee47569202cf34e5d05bda5b72ba14404fa",
+      "bytes": 3206,
+      "before": null
+    },
+    {
+      "path": "release/linux_x64/notices/THIRD_PARTY_NOTICES.md",
+      "source": "git:HEAD:THIRD_PARTY_NOTICES.md",
+      "sha256": "797e05e0cdfd461cff2399ed1cba8ee47569202cf34e5d05bda5b72ba14404fa",
+      "bytes": 3206,
+      "before": null
+    },
+    {
+      "path": "release/win_x64/notices/tcc/GPL-2.0.txt",
+      "source": "git:HEAD:LICENSES/GPL-2.0.txt",
+      "sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
+      "bytes": 17984,
+      "before": null
+    },
+    {
+      "path": "release/linux_x64/notices/tcc/GPL-2.0.txt",
+      "source": "git:HEAD:LICENSES/GPL-2.0.txt",
+      "sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
+      "bytes": 17984,
+      "before": null
+    },
+    {
+      "path": "release/win_x64/notices/tcc/XLANG-LICENSE-NOTICE.md",
+      "source": "git:HEAD:lib/tcc/XLANG-LICENSE-NOTICE.md",
+      "sha256": "5aaae5e13c12aaaa0acfccda2663175b92bd1f45dedde7288b1748976c874967",
+      "bytes": 1121,
+      "before": null
+    },
+    {
+      "path": "release/linux_x64/notices/tcc/XLANG-LICENSE-NOTICE.md",
+      "source": "git:HEAD:lib/tcc/XLANG-LICENSE-NOTICE.md",
+      "sha256": "5aaae5e13c12aaaa0acfccda2663175b92bd1f45dedde7288b1748976c874967",
+      "bytes": 1121,
+      "before": null
+    },
+    {
+      "path": "release/linux_x64/notices/tcc/COPYING",
+      "source": "release/win_x64/notices/tcc/COPYING",
+      "sha256": "9b183e7f0356c398cc0a65c4a2d2cd56f2149a8e244264c4d26ac59e9dada3e8",
+      "bytes": 26932,
+      "before": null
+    }
+  ]
+}

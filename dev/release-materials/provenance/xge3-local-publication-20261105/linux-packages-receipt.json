@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "mode": "apply",
+  "complete": true,
+  "applied": true,
+  "root": "D:\\GIT\\x-lang",
+  "platform": "linux_x64",
+  "baselineSha256": "9e14e9db59d5fdc61aef92230956e7a017b5698ceb207f322c40b3f9ce059164",
+  "journal": "F:\\xlang-validation\\foreign-completion-20261103\\ui-publish-linux-apply-r1\\journal.json",
+  "sourceInputsUnchanged": true,
+  "finalAllTargetsVerified": true,
+  "knownOldFilesRetired": 0,
+  "filesWritten": 73,
+  "noops": 0,
+  "unknownAndHiddenFilesEnumerated": false,
+  "backupDirectory": "F:\\xlang-validation\\foreign-completion-20261103\\ui-publish-linux-apply-r1\\backups"
+}

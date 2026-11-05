@@ -1,0 +1,14 @@
+{
+  "complete": false,
+  "rows": [
+    {
+      "name": "win-frame",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\xge\\headless_frame.xl"
+      ],
+      "exitCode": 1,
+      "logSha256": "029f5f24d97f480f2ffa60493f64779cbaa6e3aa276226e848118742f87f272c"
+    }
+  ]
+}

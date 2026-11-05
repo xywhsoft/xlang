@@ -1,0 +1,130 @@
+[
+  {
+    "send": {
+      "jsonrpc": "2.0",
+      "method": "initialize",
+      "params": {
+        "capabilities": {},
+        "initializationOptions": {
+          "checkOnSave": false,
+          "automaticDiagnostics": false
+        }
+      },
+      "id": 1
+    }
+  },
+  {
+    "receive": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "capabilities": {
+          "positionEncoding": "utf-16",
+          "textDocumentSync": {
+            "openClose": true,
+            "change": 2,
+            "save": {
+              "includeText": true
+            }
+          },
+          "foldingRangeProvider": true,
+          "selectionRangeProvider": true,
+          "definitionProvider": true,
+          "hoverProvider": true,
+          "documentSymbolProvider": true,
+          "completionProvider": {
+            "resolveProvider": false,
+            "triggerCharacters": [
+              "."
+            ]
+          },
+          "experimental": {
+            "residentSyntax": true,
+            "analysisRuntime": "compiler-xrt",
+            "nativeCursorCompletion": true,
+            "completionBackend": "native",
+            "analysisConfiguration": 1,
+            "analysisProfile": "xlang-ls/compiler-xrt-v1",
+            "retainedDiskEntry": 1,
+            "retainedEntryParse": 1,
+            "retainedModuleParse": 1,
+            "retainedCursorCompletion": true,
+            "retainedCursorSyntax": true,
+            "automaticSemanticQueries": true,
+            "automaticDiagnostics": false,
+            "diagnosticDelay": 75,
+            "diagnosticInputProof": true,
+            "diagnosticDependencyProof": true,
+            "diagnosticOverlayProof": true,
+            "inputState": true,
+            "definitionInputProof": true,
+            "referenceInputProof": true,
+            "nativeSnapshotDiagnostics": true,
+            "diagnosticsBackend": "native",
+            "retainedSemanticChecks": true,
+            "retainedNativeInputs": true,
+            "incrementalEntrySyntax": true,
+            "incrementalFunctionSemantics": true,
+            "savedDiagnosticsBackend": "cli",
+            "savedEntryDiagnostics": true,
+            "unsavedDependencies": true,
+            "snapshotDiagnostics": true,
+            "snapshotDocumentFingerprint": true,
+            "snapshotInputGuard": "background-poll",
+            "cSemantics": false,
+            "snapshotDefinition": true,
+            "cursorCompletion": true,
+            "completionInputGuard": "background-poll",
+            "snapshotHover": true,
+            "snapshotDocumentSymbols": true,
+            "signatureInputGuard": "background-poll",
+            "referenceCompilationOwners": true
+          },
+          "signatureHelpProvider": {
+            "triggerCharacters": [
+              "(",
+              ","
+            ],
+            "retriggerCharacters": [
+              ")"
+            ]
+          },
+          "documentHighlightProvider": true,
+          "referencesProvider": true
+        },
+        "serverInfo": {
+          "name": "xlang-ls",
+          "version": "0.101"
+        }
+      }
+    }
+  },
+  {
+    "send": {
+      "jsonrpc": "2.0",
+      "method": "initialized",
+      "params": {}
+    }
+  },
+  {
+    "send": {
+      "jsonrpc": "2.0",
+      "method": "shutdown",
+      "params": {},
+      "id": 99999
+    }
+  },
+  {
+    "receive": {
+      "jsonrpc": "2.0",
+      "id": 99999,
+      "result": null
+    }
+  },
+  {
+    "send": {
+      "jsonrpc": "2.0",
+      "method": "exit"
+    }
+  }
+]

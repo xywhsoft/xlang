@@ -1,0 +1,27 @@
+{
+  "complete": true,
+  "passed": true,
+  "currentDelivery": {
+    "path": "dev/release-materials/provenance/current-delivery.json",
+    "sha256": "860dd532874f32668b52cb4b8281bfb247f694eb40d4f6951eb386392c661b2d",
+    "bytes": 162157
+  },
+  "materialIndexes": [
+    {
+      "path": "release/win_x64/notices/material-index.json",
+      "sha256": "ec7ebae6a9910c094d67a5d3ea5cb585cbfb265d4a314d93c00cd39bae0b39dd",
+      "bytes": 9186
+    },
+    {
+      "path": "release/linux_x64/notices/material-index.json",
+      "sha256": "ec1f8a75286e78a4844132129a903d63ea7376fce7c737187214fb830fcb193d",
+      "bytes": 8147
+    }
+  ],
+  "publicationReceipt": {
+    "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
+    "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
+    "bytes": 10653
+  },
+  "priorExternalPublicationHistoryPreserved": true
+}
