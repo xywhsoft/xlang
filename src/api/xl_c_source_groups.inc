@@ -29,6 +29,14 @@ static int xlCSourceGroupReport(xvalue* root, const XL6_CompileUnit* unit)
     if (ok) ok = xrtValueObjectSet(root, xrtStrView("cSourceGroups"), array) &&
         xlCEnvPut(root, "selectedCSources", xlCSourceGroupStrings(&deps->cSources)) &&
         xlCEnvPut(root, "requiredRuntimeSymbols", xlCSourceGroupStrings(&deps->runtimeSymbols));
+    xvalue* nativeLink = ok ? xrtValueObject() : NULL;
+    if (ok) ok = nativeLink &&
+        xlCEnvPut(nativeLink, "functionSections", xrtValueBool((deps->nativeLinkFlags & XL6_NATIVE_LINK_FUNCTION_SECTIONS) != 0)) &&
+        xlCEnvPut(nativeLink, "dataSections", xrtValueBool((deps->nativeLinkFlags & XL6_NATIVE_LINK_DATA_SECTIONS) != 0)) &&
+        xlCEnvPut(nativeLink, "gcSections", xrtValueBool((deps->nativeLinkFlags & XL6_NATIVE_LINK_GC_SECTIONS) != 0)) &&
+        xlCEnvPut(nativeLink, "printGcSections", xrtValueBool((deps->nativeLinkFlags & XL6_NATIVE_LINK_PRINT_GC_SECTIONS) != 0)) &&
+        xrtValueObjectSet(root, xrtStrView("nativeLink"), nativeLink);
+    xrtValueRelease(nativeLink);
     xrtValueRelease(array);
     return ok;
 }
