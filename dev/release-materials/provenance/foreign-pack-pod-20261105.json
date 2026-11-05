@@ -1,0 +1,106 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "scope": "Pointer-free trivial C record inputs in declaration packs, including nested POD. Existing physical struct and exact compile-time field proofs; no runtime or Native wrapper change.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\pack-pod-candidate-r1\\manifest.json",
+    "sha256": "8f647f9285a1c3c63ac17c552a146cf42ae267e70073eafada90e625a227ac15"
+  },
+  "reports": [
+    {
+      "platform": "win_x64",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\pack-pod-gate-win-r2\\results.json",
+      "sha256": "b0dfba8ab5a894b11e1122fcbb62ec61437c8da1852998fb88f9c49f2f152849",
+      "steps": 31
+    },
+    {
+      "platform": "linux_x64",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\pack-pod-gate-linux-r1\\results.json",
+      "sha256": "5d3d8117d6d7bc23067f3a5364480db67e03ce837c030f7c779505220b17782f",
+      "steps": 31
+    },
+    {
+      "platform": "win_x64_tcc",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\output-record-pack-pod-tcc-win-r1\\results.json",
+      "sha256": "3a41ed1df671b8b0567021bf94c51ca4ce274ef8970728f451f12db5392262e0",
+      "steps": 2
+    },
+    {
+      "platform": "linux_x64_tcc",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\output-record-pack-pod-tcc-linux-r1\\results.json",
+      "sha256": "0f3fa3297ae6d4a737ba5df4431a9496818856efec1b1141e39f414b61a87ee4",
+      "steps": 2
+    }
+  ],
+  "irMutationsPerOptimization": 60,
+  "optimizations": [
+    "O0",
+    "O2"
+  ],
+  "declarationNegatives": 10,
+  "badNativeHeaders": 7,
+  "noAllocationUnderFailAfterZero": true,
+  "factsBytes": 88,
+  "limitations": [
+    "Frontend overlay over R35; complete R36 and shipping provider/VFS are separate",
+    "No pointer, managed, nullable, union or fixed-array pack values enabled"
+  ],
+  "files": [
+    {
+      "path": "src/sem/xl6_sem_foreign_pack.c",
+      "sha256": "aa8f9aab1a77be6e11c9578a65af683342ac202bd4c2b3491a5cb1ecb07468ae",
+      "blob": "442c0bc47e714ecfb9207e84a32986d7e8f76877"
+    },
+    {
+      "path": "src/sem/xl6_sem_foreign_output_record.c",
+      "sha256": "aa2c3b0e7057b81fa092d66471be3e4d74d36da08167aab53b6abfdf40be6279",
+      "blob": "766fcff854a972f69c78376943f1355e4222391d"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_output_record.c",
+      "sha256": "85eeb577e354bb87384e441b9ffa0f406d2420aa0e51226fca8759b6cd9fb398",
+      "blob": "1476166e1bdae89a12991f654839fbcd4377a14d"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_pack.c",
+      "sha256": "086f9d8d93bae92623e4101ee689d2af0e1f0e02a22a143e33efa6ef1a0f209d",
+      "blob": "7b736a95829010915bff3f77526c6504d52f043a"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_foreign_pack.c",
+      "sha256": "7a7cebd3d30e8d744ffb008407dcbf33a2f006fce04652df3717b2cc0a218fb9",
+      "blob": "b67bac8676fa76843233ae39b36ecdc69598773f"
+    },
+    {
+      "path": "test/cases/foreign_pack_pod.h",
+      "sha256": "44327d6199ab04723bef0d7a27c4016c4e5b5377737a6683df933aa31feffb61",
+      "blob": "7a612ae5107063b77c0ccb665c2d27abe09a69a9"
+    },
+    {
+      "path": "test/cases/foreign_pack_pod.xl",
+      "sha256": "5bd6a5a13995938503e15845890b92ea97d52f16b70c448574f28b2dd34da052",
+      "blob": "d10ae07a7dd1d3ad692b1f724b325c8392ccb03f"
+    },
+    {
+      "path": "test/cases/foreign_pack_pod_ir.c",
+      "sha256": "937803b45d8e4680b000a1840eb28b202b4a3792ccb8bdff49845510db2d532f",
+      "blob": "a83e95040931799a72bd30476f3ea4bbdbc5d82e"
+    },
+    {
+      "path": "test/cases/foreign_pack_pod_native.c",
+      "sha256": "173c4b08a9cbc202fc97475de23165c70c13c48b43ecda5677f086aabce7a9e0",
+      "blob": "f69cb7b0edc5a1af391fea8dceb0f28d0459ca06"
+    },
+    {
+      "path": "tools/check_foreign_pack_pod.py",
+      "sha256": "da775d520fe7ae88588eb0dd2ed1dd1ce0ec2fac6aebb51813d49f5ebfe2dfcc",
+      "blob": "c8732d10853c106853cd91f72983a5108c9cc38d"
+    },
+    {
+      "path": "docs/foreign-declarations.md",
+      "sha256": "43389554ff781d82f2b563bc8cb1ed06b24f8c7dabff80ea48def3203f77ddb1",
+      "blob": "e69068e3929f0f4b1961ab27442b21415e4d424b"
+    }
+  ]
+}

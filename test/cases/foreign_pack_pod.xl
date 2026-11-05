@@ -1,0 +1,57 @@
+extern "PackPodPoint" struct Point @header("test/cases/foreign_pack_pod.h")
+ c_float x
+ c_float y
+end
+extern "PackPodBox" struct Box @header("test/cases/foreign_pack_pod.h")
+ Point origin
+ c_int width
+ c_int height
+end
+extern "PackPodRoot*" class Root @header("test/cases/foreign_pack_pod.h") @lifetime("owned") @policy("packPodPolicy")
+ native point handle
+ extern "pack_pod_call" @no_raise @c_output(2,0) @c_pack(1,"PackPodDesc",0,3) @c_pack_size(1,"size","uint32_t") @c_pack_field(1,"factor",0,"value") @c_pack_field(1,"point",1,"value") @c_pack_field(1,"box",2,"value") func call(c_int factor,Point at,Box bounds) as c_int
+ extern "evaluate" @c_field_call @no_raise @c_output(2,0) @c_pack(1,"PackPodDesc",0,3) @c_pack_size(1,"size","uint32_t") @c_pack_field(1,"factor",0,"value") @c_pack_field(1,"point",1,"value") @c_pack_field(1,"box",2,"value") func evaluate(c_int factor,Point at,Box bounds) as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "pack_pod_create" @header("test/cases/foreign_pack_pod.h") @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Root
+extern "pack_pod_drop" @header("test/cases/foreign_pack_pod.h") @no_raise func rollback(Root root)
+extern "pack_pod_free" @header("test/cases/foreign_pack_pod.h") @no_raise @c_output(1,0) @c_pack(0,"PackPodDesc",0,3) @c_pack_size(0,"size","uint32_t") @c_pack_field(0,"factor",0,"value") @c_pack_field(0,"point",1,"value") @c_pack_field(0,"box",2,"value") func freeValue(c_int factor,Point at,Box bounds) as c_int
+extern "pack_pod_calls" @header("test/cases/foreign_pack_pod.h") @no_raise func calls() as c_int
+extern "pack_pod_fail_after" @header("test/cases/foreign_pack_pod.h") @no_raise func failAfter(c_int count)
+extern "pack_pod_reset" @header("test/cases/foreign_pack_pod.h") @no_raise func resetFailure()
+protocol Evaluator
+ func evaluate(c_int factor,Point at,Box bounds) as c_int
+end
+func main(...) as int
+ Root root=create()
+ Point at=Point()
+ at.x=c_float(1)
+ at.y=c_float(2)
+ Box bounds=Box()
+ Point origin=Point()
+ origin.x=c_float(3)
+ origin.y=c_float(4)
+ bounds.origin=origin
+ bounds.width=c_int(5)
+ bounds.height=c_int(6)
+ assert root.call(c_int(7),at,bounds)==c_int(39)
+ assert root.evaluate(c_int(7),at,bounds)==c_int(39)
+ func(c_int,Point,Box) as c_int bound=root.evaluate
+ assert bound(c_int(7),at,bounds)==c_int(39)
+ Evaluator evaluator=root
+ assert evaluator.evaluate(c_int(7),at,bounds)==c_int(39)
+ assert freeValue(c_int(7),at,bounds)==c_int(28)
+ assert calls()==c_int(5)
+ failAfter(c_int(0))
+ try
+  assert root.call(c_int(7),at,bounds)==c_int(39)
+  assert root.evaluate(c_int(7),at,bounds)==c_int(39)
+  assert freeValue(c_int(7),at,bounds)==c_int(28)
+ finally
+  resetFailure()
+ end
+ assert calls()==c_int(8)
+ assert at.x==c_float(1) and bounds.origin.y==c_float(4)
+ root.close()
+ return 0
+end
