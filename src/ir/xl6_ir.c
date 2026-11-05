@@ -273,6 +273,8 @@ static XL6_IrRuntimeResourceAbi xl6IrRuntimeResourceAbiFromName(
         return XL6_IR_RUNTIME_RESOURCE_MPMC_QUEUE;
     if ( strcmp(canonicalName, "WaitQueue") == 0 )
         return XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE;
+    if ( strcmp(canonicalName, "NativeSequence") == 0 )
+        return XL6_IR_RUNTIME_RESOURCE_NATIVE_SEQUENCE;
     return XL6_IR_RUNTIME_RESOURCE_NONE;
 }
 
@@ -421,6 +423,7 @@ static XL6_IrNullAbi xl6IrNullAbiFromCAbi(XL6_IrCAbi cAbi)
     case XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR:
     case XL6_IR_C_ABI_CLOSURE_PTR:
     case XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR:
+    case XL6_IR_C_ABI_NATIVE_SEQUENCE_READ_PTR:
     case XL6_IR_C_ABI_STORAGE_REF_PTR:
     case XL6_IR_C_ABI_C_FUNCTION_POINTER:
         return XL6_IR_NULL_ABI_POINTER_SENTINEL;
@@ -1894,6 +1897,7 @@ int xl6IrTypeFinalizeTypeValueId(XL6_IrTypePool* pool, XL6_IrType* type)
     /* Compiler-private storage carriers are not source-language type values. */
     if ( type->kind == XL6_IR_TYPE_CELL ||
          type->kind == XL6_IR_TYPE_VALUE_ITERATOR ||
+         type->kind == XL6_IR_TYPE_NATIVE_SEQUENCE_READ ||
          type->kind == XL6_IR_TYPE_C_FUNCTION_POINTER ||
          type->kind == XL6_IR_TYPE_STORAGE_REF ||
          type->kind == XL6_IR_TYPE_PERSISTENCE_WIRE ||
@@ -2483,6 +2487,7 @@ void xl6IrModuleFree(XL6_IrModule* module)
     xrtFree(module->foreignOutputs);
     xrtFree(module->foreignOutputSizes);
     xrtFree(module->foreignOutputViews);
+    xrtFree(module->foreignNativeSequences);
     xrtFree(module->foreignOutputRecords);
     xrtFree(module->foreignOutputFields);
     xrtFree(module->foreignRegions);
@@ -4592,7 +4597,16 @@ static XL6_IrNodeId xl6IrBuildAstNode(
                     module->foreignCallbackSpanCount,sizeof(*module->foreignCallbackSpans))){*ok=0;return 0;}
             row.declaration=id;module->foreignCallbackSpans[module->foreignCallbackSpanCount++]=row;continue;
         }
+        if(declaration && declaration->text && !strcmp(declaration->text,"c_owned_sequence")){
+            XL6_ForeignNativeSequenceContract row={0};XL6_ForeignRetainContract retain={0};size_t found=0;
+            for(size_t r=0;foreignAttributes && r<foreignAttributes->childCount;++r)if(xl6ForeignRetainRead(foreignAttributes->children[r],&retain))++found;
+            if(!xl6ForeignNativeSequenceRead(declaration,&row) || found!=1 || !retain.retainSymbol || !retain.rollbackSymbol ||
+                !xl6IrGrow((void**)&module->foreignNativeSequences,&module->foreignNativeSequenceCapacity,module->foreignNativeSequenceCount,sizeof(*module->foreignNativeSequences))){*ok=0;return 0;}
+            row.declaration=id;row.retainSymbol=retain.retainSymbol;row.rollbackSymbol=retain.rollbackSymbol;row.retainSuccess=retain.success;
+            module->foreignNativeSequences[module->foreignNativeSequenceCount++]=row;continue;
+        }
         if(declaration && declaration->text && !strcmp(declaration->text,"c_retain")){
+            XL6_ForeignCallFacts sourceFacts={0};if(xl6ForeignFunctionRead(source,&sourceFacts) && xl6ForeignValueOutputBase(sourceFacts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS)continue;
             XL6_ForeignRetainContract row;
             if(!xl6ForeignRetainRead(declaration,&row) || !row.retainSymbol || !row.rollbackSymbol ||
                 !xl6IrGrow((void**)&module->foreignRetains,&module->foreignRetainCapacity,
@@ -5940,6 +5954,7 @@ static int xl6IrBuildUnionLayouts(XL6_IrModule* module)
 #include "src/ir/xl6_ir_foreign_output_size.c"
 #include "src/ir/xl6_ir_foreign_output_record.c"
 #include "src/ir/xl6_ir_foreign_output_view.c"
+#include "src/ir/xl6_ir_foreign_native_sequence.c"
 
 typedef struct XL6_IrBuildFieldPersistence {
     int skip;
@@ -12103,7 +12118,7 @@ static XL6_IrIntrinsicKind xl6IrFutureMemberCalleeKind(
 
 static int xl6IrRuntimeResourceOpCreates(XL6_IrRuntimeResourceOp operation)
 {
-    return operation == XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_CREATE || operation == XL6_IR_RUNTIME_RESOURCE_OP_THREAD_CREATE ||
+    return operation == XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_CREATE || operation == XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_CREATE || operation == XL6_IR_RUNTIME_RESOURCE_OP_THREAD_CREATE ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CREATE ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_MUTEX_CREATE ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_SEM_CREATE ||
@@ -12118,7 +12133,7 @@ static int xl6IrRuntimeResourceOpCreates(XL6_IrRuntimeResourceOp operation)
 static int xl6IrRuntimeResourceOpReturnsOwned(
     XL6_IrRuntimeResourceOp operation, const XL6_IrType* result)
 {
-    return xl6IrRuntimeResourceOpCreates(operation) ||
+    return operation==XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_SLICE || xl6IrRuntimeResourceOpCreates(operation) ||
            ((xl6IrSlotMapResourceOpIs(operation) || xl6IrTreeQuerySpecResource(operation) ||
              xl6IrChannelReceiveSpecResource(operation)) &&
             result && result->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED) ||
@@ -12160,7 +12175,7 @@ XL6_IrIntrinsicResultAbi xl6IrRuntimeResourceResultAbiForType(
 
 static int xl6IrRuntimeResourceOpMayRaise(XL6_IrRuntimeResourceOp operation)
 {
-    return xl6IrChannelSendSpecResource(operation) || xl6IrChannelReceiveSpecResource(operation) || xl6IrTreeQuerySpecResource(operation) || xl6IrSlotMapResourceOpIs(operation) || xl6IrRuntimeResourceOpCreates(operation) ||
+    return (operation>=XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_CREATE && operation<=XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_SLICE) || xl6IrChannelSendSpecResource(operation) || xl6IrChannelReceiveSpecResource(operation) || xl6IrTreeQuerySpecResource(operation) || xl6IrSlotMapResourceOpIs(operation) || xl6IrRuntimeResourceOpCreates(operation) ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CLOSE ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_IS_CLOSED ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_COUNT ||
@@ -12232,6 +12247,7 @@ static int xl6IrRuntimeResourceAbiIsSpecialQueue(
 static XL6_IrRuntimeResourceAbi xl6IrRuntimeResourceAbiForOp(
     XL6_IrRuntimeResourceOp operation)
 {
+    if(operation>=XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_CREATE && operation<=XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_SLICE)return XL6_IR_RUNTIME_RESOURCE_NATIVE_SEQUENCE;
     if(xl6IrSlotMapResourceOpIs(operation)) return XL6_IR_RUNTIME_RESOURCE_SLOT_MAP;
     if ( operation >= XL6_IR_RUNTIME_RESOURCE_OP_THREAD_CREATE &&
          operation <= XL6_IR_RUNTIME_RESOURCE_OP_THREAD_STOP )
@@ -12452,6 +12468,9 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
          resource->paramCount == 1 && resource->params != NULL &&
          resource->params[0] == genericPayload )
         return XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_CREATE;
+    if(genericName && genericName->text && strcmp(genericName->text,"NativeSequence")==0 && resource &&
+        resource->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NATIVE_SEQUENCE && resource->paramCount==1 && resource->params && resource->params[0]==genericPayload)
+        return XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_CREATE;
     if(genericName && genericName->text && strcmp(genericName->text,"SlotMap")==0 && resource &&
         resource->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SLOT_MAP && resource->kind==XL6_IR_TYPE_GENERIC_INSTANCE &&
         resource->paramCount==1 && resource->params && resource->params[0]==genericPayload)
@@ -12502,6 +12521,11 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
     resource = xl6IrTypeGet(&module->types,receiverValueType);
     if ( resource == NULL ) return XL6_IR_RUNTIME_RESOURCE_OP_INVALID;
     *outReceiver = receiverId;
+    if(resource->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NATIVE_SEQUENCE){
+        if(!strcmp(callee->text,"count"))return XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_COUNT;
+        if(!strcmp(callee->text,"slice"))return XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_SLICE;
+        return XL6_IR_RUNTIME_RESOURCE_OP_INVALID;
+    }
     if(resource->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SLOT_MAP) return xl6IrSlotMapMethod(callee->text);
     if ( resource->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_THREAD ) {
         if ( strcmp(callee->text, "wait") == 0 )
@@ -12899,6 +12923,8 @@ static int xl6IrRuntimeResourceSignatureCompatible(
     XL6_IrTypeId payloadType;
     XL6_IrTypeId keyType;
     if ( module == NULL ) return 0;
+    if(operation>=XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_CREATE && operation<=XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_SLICE)
+        return xl6IrNativeSequenceResourceSignature(module,operation,receiverType,resultType,operandTypes,operandCount);
     const XL6_IrChannelReceiveSpec* receive=xl6IrChannelReceiveSpecResource(operation);
     if (receive)
         return xl6IrChannelReceiveSignatureCompatible(module,receive->kind,receiverType,resultType,operandTypes,operandCount);
@@ -17466,6 +17492,8 @@ static XL6_IrRuntimeResourceOp xl6IrDefaultRuntimeResourceOp(
          type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
          type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED )
         return XL6_IR_RUNTIME_RESOURCE_OP_INVALID;
+    if(xl6IrNativeSequenceElement(module,typeId))
+        return XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_CREATE;
     if ( type->kind == XL6_IR_TYPE_GENERIC_INSTANCE &&
          type->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_STACK &&
          type->paramCount == 1 && type->params != NULL &&
@@ -18863,6 +18891,7 @@ static XL6_IrMemberAbi xl6IrClassifyMemberAbi(
     if (receiverType && receiverType->cAbi == XL6_IR_C_ABI_C_ARRAY &&
         resultType && resultType->cAbi == XL6_IR_C_ABI_I64 && member->text &&
         !strcmp(member->text, "length")) return XL6_IR_MEMBER_ABI_C_ARRAY_LENGTH;
+    if(receiverType && receiverType->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NATIVE_SEQUENCE && resultType && resultType->cAbi==XL6_IR_C_ABI_I64 && member->text && !strcmp(member->text,"length"))return XL6_IR_MEMBER_ABI_NATIVE_SEQUENCE_LENGTH;
     {
         XL6_IrMemberAbi errorAbi = xl6IrClassifyErrorMemberAbi(
             member, receiverType, resultType);
@@ -20784,6 +20813,22 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
     }
 
     iteratorType = xl6IrTypeGet(&module->types, iterator->storageType);
+    if(xl6IrNativeSequenceElement(module,iterator->storageType)){
+        XL6_IrTypeId element=xl6IrNativeSequenceElement(module,iterator->storageType),cursor=0;
+        for(size_t n=0;n<module->types.count;++n){const XL6_IrType* t=&module->types.items[n];if(t->kind==XL6_IR_TYPE_NATIVE_SEQUENCE_READ && t->paramCount==1 && t->params && t->params[0]==iterator->storageType){cursor=(XL6_IrTypeId)n+1;break;}}
+        if(!cursor)return XL6_IR_LOOP_ABI_NONE;
+        for(size_t n=0;n<targets->childCount;++n){const XL6_IrNode* target=xl6IrNodeGet(module,module->children[targets->firstChild+n]);
+            const XL6_IrType* t=target ? xl6IrTypeGet(&module->types,target->storageType):NULL;
+            bool discard=target && target->text && !strcmp(target->text,"_") && !target->symbol;
+            if(!target || (!discard && (!t || (targets->childCount==2 && !n ? t->cAbi!=XL6_IR_C_ABI_I64:target->storageType!=element))))return XL6_IR_LOOP_ABI_NONE;
+        }
+        if(errorAbi)*errorAbi=XL6_IR_ERROR_ABI_MAY_RAISE;
+        if(resourceAbi)*resourceAbi=XL6_IR_LOOP_RESOURCE_NATIVE_SEQUENCE_READ_END;
+        if(resourceType)*resourceType=cursor;
+        if(keyAbi)*keyAbi=targets->childCount==2 ? (discardKey ? XL6_IR_LOOP_KEY_DISCARD:XL6_IR_LOOP_KEY_ORDINAL_I64):XL6_IR_LOOP_KEY_NONE;
+        if(itemAbi)*itemAbi=discardItem ? XL6_IR_LOOP_ITEM_DISCARD:XL6_IR_LOOP_ITEM_PROTOCOL_PRODUCT_VALUE;
+        return targets->childCount==1 ? XL6_IR_LOOP_ABI_NATIVE_SEQUENCE_VALUE:XL6_IR_LOOP_ABI_NATIVE_SEQUENCE_INDEX_VALUE;
+    }
     stableNamedIterator = iterator->kind == XL6_IR_NODE_NAME &&
         iterator->symbol != 0 && iterator->targetSymbol == iterator->symbol &&
         iterator->valueCategory != XL6_IR_VALUE_RVALUE;
@@ -21377,6 +21422,10 @@ int xl6IrRefreshLoopAbis(XL6_IrModule* module)
             module, module->children[loop->firstChild + 1]);
         collection = iterator != NULL
             ? xl6IrTypeGet(&module->types, iterator->storageType) : NULL;
+        if(iterator && xl6IrNativeSequenceElement(module,iterator->storageType)){
+            if(!xl6IrTypeInternNativeSequenceRead(module,iterator->storageType))return 0;
+            collection=xl6IrTypeGet(&module->types,iterator->storageType);
+        }
         if (collection && collection->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SLOT_MAP) {
             const XL6_IrNode* targets=xl6IrNodeGet(module,module->children[loop->firstChild]);
             const XL6_IrNode* key=targets && targets->childCount
@@ -21840,6 +21889,8 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
         buildFailure = "cannot close physical output record field contracts";
     else if ( !xl6IrCloseOutputViews(module) )
         buildFailure = "cannot close native borrowed output conversion contracts";
+    else if ( !xl6IrCloseNativeSequences(module) )
+        buildFailure = "cannot close owning Native sequence output contracts";
     else if ( !xl6IrBuildEnumLayouts(module) )
         buildFailure = "cannot build XLIR enum layouts";
     else if ( !xl6IrRefreshClassLayoutsDetailed(
@@ -23413,7 +23464,9 @@ int xl6IrCallResultCAbiMatches(const XL6_IrModule* module, const XL6_IrCallTarge
                 (source->sourceKind==XL6_AST_EXTERN_FUNC || source->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC) &&
                 (source->sourceKind!=XL6_AST_NATIVE_EXTERN_FUNC || (source->flags&XL6_AST_FLAG_STATIC) ||
                     (target->parameterCount && xl6IrForeignManagedViewParameter(module,target,0) &&
-                     xl6IrTypeGet(&module->types,target->parameterTypes[0])->foreignLifetime!=XL6_FOREIGN_LIFETIME_CALLBACK)) &&
+                     (xl6IrTypeGet(&module->types,target->parameterTypes[0])->foreignLifetime!=XL6_FOREIGN_LIFETIME_CALLBACK ||
+                      (result->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && source->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE &&
+                       !source->foreignCall.resultOwnerIndexPlusOne && !source->foreignCall.inplaceOutput)))) &&
                 target->variadicAbi==XL6_IR_CALL_VARIADIC_NONE &&
                 !target->nativeServicesRequired && !target->nativeContextAbi && !target->nativeResultAbi && !target->nativeArrayResultAbi &&
                 rollback && rollbackDecl && rollbackDecl->sourceKind==XL6_AST_EXTERN_FUNC &&
@@ -23987,6 +24040,8 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     XL6_IrCallErrorPhysicalAbi stringAbi;
     if (instruction == NULL || instruction->kind != XL6_IR_INSTR_RUNTIME_CALL)
         return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
+    if(instruction->runtimeOp>=XL6_IR_RUNTIME_NATIVE_SEQUENCE_CREATE && instruction->runtimeOp<=XL6_IR_RUNTIME_NATIVE_SEQUENCE_READ_BEGIN)
+        return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
     if(xl6IrCOwnedErrorPhysicalAbi(instruction->runtimeOp)!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID)
         return xl6IrCOwnedErrorPhysicalAbi(instruction->runtimeOp);
     if((instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DYNAMIC_CALL || instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DYNAMIC_METHOD_CALL) &&
@@ -24770,16 +24825,16 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
         const char* expectedResultName;
         size_t j;
          if ( type->kind < XL6_IR_TYPE_BUILTIN ||
-              type->kind > XL6_IR_TYPE_C_FUNCTION_POINTER ||
+              type->kind > XL6_IR_TYPE_NATIVE_SEQUENCE_READ ||
                type->collectionAbi < XL6_IR_COLLECTION_NONE ||
                type->collectionAbi > XL6_IR_COLLECTION_DICT ||
                type->persistenceValueAbi < XL6_IR_PERSISTENCE_VALUE_NONE ||
                type->persistenceValueAbi >
                    XL6_IR_PERSISTENCE_VALUE_DICT_OBJECT ||
                type->runtimeResourceAbi < XL6_IR_RUNTIME_RESOURCE_NONE ||
-              type->runtimeResourceAbi > XL6_IR_RUNTIME_RESOURCE_SLOT_MAP ||
+              type->runtimeResourceAbi > XL6_IR_RUNTIME_RESOURCE_NATIVE_SEQUENCE ||
               type->cAbi < XL6_IR_C_ABI_UNSUPPORTED ||
-             type->cAbi > XL6_IR_C_ABI_C_FUNCTION_POINTER ||
+             type->cAbi > XL6_IR_C_ABI_NATIVE_SEQUENCE_READ_PTR ||
              type->ownershipAbi < XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
              type->ownershipAbi > XL6_IR_OWNERSHIP_ABI_MANAGED ||
              type->callableErasureAbi < XL6_IR_CALLABLE_ERASURE_INVALID ||
@@ -24942,7 +24997,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
                         type->runtimeResourceAbi <= XL6_IR_RUNTIME_RESOURCE_SEM
                       ? (type->kind != XL6_IR_TYPE_BUILTIN || type->paramCount != 0)
                       : type->runtimeResourceAbi >= XL6_IR_RUNTIME_RESOURCE_STACK &&
-                        type->runtimeResourceAbi <= XL6_IR_RUNTIME_RESOURCE_SLOT_MAP
+                        type->runtimeResourceAbi <= XL6_IR_RUNTIME_RESOURCE_NATIVE_SEQUENCE
                       ? !((type->kind == XL6_IR_TYPE_BUILTIN &&
                            type->paramCount == 0) ||
                           (type->kind == XL6_IR_TYPE_GENERIC_INSTANCE &&
@@ -25066,6 +25121,11 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
         }
         if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR &&
              type->kind != XL6_IR_TYPE_VALUE_ITERATOR ) return 0;
+        if(type->kind==XL6_IR_TYPE_NATIVE_SEQUENCE_READ || type->cAbi==XL6_IR_C_ABI_NATIVE_SEQUENCE_READ_PTR){
+            if(type->kind!=XL6_IR_TYPE_NATIVE_SEQUENCE_READ || type->cAbi!=XL6_IR_C_ABI_NATIVE_SEQUENCE_READ_PTR || type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
+                type->nullAbi!=XL6_IR_NULL_ABI_POINTER_SENTINEL || type->sourceTypeId || type->abiId || type->nominalSymbol || type->typeValueId || type->returnCount ||
+                type->paramCount!=1 || !type->params || !xl6IrTypeGet(pool,type->params[0]) || xl6IrTypeGet(pool,type->params[0])->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_NATIVE_SEQUENCE)return 0;
+        }
         if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR ) {
             const XL6_IrType* item = type->paramCount == 1 && type->params != NULL
                 ? xl6IrTypeGet(pool, type->params[0]) : NULL;
@@ -25515,6 +25575,7 @@ static int xl6IrTypeHasStorageReleaseAbiDepth(
          item->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR ||
          item->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
          item->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR ||
+         item->cAbi == XL6_IR_C_ABI_NATIVE_SEQUENCE_READ_PTR ||
          item->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ||
          item->cAbi == XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR ) return 1;
     if ( item->kind != XL6_IR_TYPE_TUPLE ||
@@ -25547,7 +25608,7 @@ static XL6_IrReleaseEffect xl6IrTypeReleaseEffectDepth(
     }
     if (item->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
         item->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR || item->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR ||
-        item->cAbi == XL6_IR_C_ABI_CLOSURE_PTR || item->cAbi == XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR)
+        item->cAbi == XL6_IR_C_ABI_CLOSURE_PTR || item->cAbi == XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR || item->cAbi==XL6_IR_C_ABI_NATIVE_SEQUENCE_READ_PTR)
         return XL6_IR_RELEASE_EFFECT_MAY_RAISE;
     if (item->kind != XL6_IR_TYPE_TUPLE || item->cAbi != XL6_IR_C_ABI_PRODUCT ||
         (item->paramCount != 0 && item->params == NULL)) return XL6_IR_RELEASE_EFFECT_INVALID;
@@ -27062,6 +27123,8 @@ int xl6IrNativeContainerProjectionTarget(const XL6_IrModule* module,XL6_IrTypeId
     } else if(type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_AVL_TREE) {
         if(!xl6IrAvlConstructionRecipe(module,base,NULL,NULL,NULL,&set))return 0;
         role=XL6_IR_NATIVE_PROJECTION_TREE;
+    } else if(xl6IrNativeSequenceElement(module,base)){
+        role=XL6_IR_NATIVE_PROJECTION_NATIVE_SEQUENCE;
     } else if(xl6IrHasResidentProjectionDomain(type->runtimeResourceAbi)) {
         XL6_IrTypeId witness=xl6IrNativeContainerProjectionWitnessType(module,base);
         if(!witness || !xl6IrSequenceConstructionRecipe(module,witness,XL6_IR_SEQUENCE_ROLE_ARRAY,&set))return 0;
@@ -27087,6 +27150,18 @@ XL6_IrRuntimeOp xl6IrNativeContainerProjectionFactory(XL6_IrNativeContainerProje
 }
 int xl6IrNativeContainerProjectionInstructionCompatible(const XL6_IrModule* module,const XL6_IrInstruction* instruction)
 {
+    if(module && instruction && instruction->kind==XL6_IR_INSTR_RUNTIME_CALL && instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED && instruction->operandCount==1){
+        const XL6_IrNode* origin=xl6IrNodeGet(module,instruction->origin);
+        const XL6_IrType* result=xl6IrTypeGet(&module->types,instruction->type);
+        XL6_IrTypeId base=result && result->kind==XL6_IR_TYPE_NULLABLE && result->paramCount==1 && result->params ? result->params[0]:instruction->type;
+        XL6_IrTypeId element=xl6IrNativeSequenceElement(module,base);
+        const XL6_IrInstruction* source=instruction->firstOperand<module->operandCount ? xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL):NULL;
+        return element && result && source && xl6IrTypeIsDynamicXValueBuiltin(module,source->type) && origin && origin->sourceKind==XL6_AST_TYPE_AS && origin->storageType==instruction->type &&
+            origin->castAbi==instruction->castAbi && instruction->castAbi==(result->kind==XL6_IR_TYPE_NULLABLE ? XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY:XL6_IR_CAST_XVALUE_TO_NATIVE_CONTAINER_CHECKED) &&
+            origin->castErrorAbi==XL6_IR_ERROR_ABI_MAY_RAISE && instruction->runtimeIdentityType==base && instruction->payloadType==element && !instruction->immediateText && !instruction->targetSymbol && !instruction->targetValue &&
+            !instruction->calleeType && !instruction->opcode && !instruction->integerTarget && !instruction->integerSourceAbi && !instruction->runtimeResourcePayloadAbi && !instruction->collectionAdmissionAbi &&
+            !instruction->collectionAdmissionIdentitySet && !instruction->collectionAdmissionNullable && !instruction->sequenceResultArrayType && !instruction->sequenceAdmissionIdentitySet;
+    }
     if (!module || !instruction || instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
         instruction->runtimeOp!=XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED || instruction->operandCount!=2 ||
         instruction->firstOperand>=module->operandCount || module->operandCount-instruction->firstOperand<2 ||
@@ -37373,7 +37448,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             (target->foreignHeaderIndexPlusOne && target->kind!=XL6_IR_CALL_TARGET_EXTERN_C))
             return xl6IrDiag(diags,NULL,"native function header index disagrees with its declaration");
     }
-    if (!xl6IrVerifyForeignOutputs(module,diags) || !xl6IrVerifyOutputRecords(module,diags) || !xl6IrVerifyOutputSizes(module,diags) || !xl6IrVerifyOutputViews(module,diags) || !xl6IrVerifyRegions(module,diags) || !xl6IrVerifyPacks(module,diags) || !xl6IrVerifyArrayGroups(module,diags) || !xl6IrVerifyForeignParameters(module,diags) || !xl6IrVerifyForeignFieldLengths(module,diags) ||
+    if (!xl6IrVerifyNativeSequences(module,diags) || !xl6IrVerifyNativeSequenceReads(module,diags) || !xl6IrVerifyForeignOutputs(module,diags) || !xl6IrVerifyOutputRecords(module,diags) || !xl6IrVerifyOutputSizes(module,diags) || !xl6IrVerifyOutputViews(module,diags) || !xl6IrVerifyRegions(module,diags) || !xl6IrVerifyPacks(module,diags) || !xl6IrVerifyArrayGroups(module,diags) || !xl6IrVerifyForeignParameters(module,diags) || !xl6IrVerifyForeignFieldLengths(module,diags) ||
         !xl6IrVerifyForeignStorage(module,diags) || !xl6IrVerifyForeignRetains(module,diags) ||
         !xl6IrVerifyForeignCallbackSpans(module,diags) || !xl6IrVerifyForeignValues(module,diags) ||
         !xl6IrVerifyPointerQualifiers(module,diags) || !xl6IrVerifyFunctionHeaders(module,diags) ||
@@ -41611,7 +41686,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 "typed XLIR named callable has no exact declaration and signature ABI");
         }
         if ( node->memberAbi < XL6_IR_MEMBER_ABI_NONE ||
-             node->memberAbi > XL6_IR_MEMBER_ABI_C_AGGREGATE_PATH_WRITE ||
+             node->memberAbi > XL6_IR_MEMBER_ABI_NATIVE_SEQUENCE_LENGTH ||
              node->memberAbi != expectedMemberAbi ||
              node->unionField != expectedUnionField ) {
             xrtFree(incoming);
@@ -41633,7 +41708,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                  "typed XLIR index mutation has no exact canonical write and failure ABI");
          }
         if ( node->loopAbi < XL6_IR_LOOP_ABI_NONE ||
-             node->loopAbi > XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY_VALUE ||
+             node->loopAbi > XL6_IR_LOOP_ABI_NATIVE_SEQUENCE_INDEX_VALUE ||
              node->loopAbi != expectedLoopAbi ||
              node->loopErrorAbi != expectedLoopErrorAbi ||
              node->loopKeyAbi < XL6_IR_LOOP_KEY_NONE ||
@@ -41652,7 +41727,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              node->loopItemLifetimeAbi != expectedLoopItemLifetimeAbi ||
               node->loopResourceAbi < XL6_IR_LOOP_RESOURCE_NONE ||
               node->loopResourceAbi >
-                  XL6_IR_LOOP_RESOURCE_BYTES_SNAPSHOT_RELEASE ||
+                  XL6_IR_LOOP_RESOURCE_NATIVE_SEQUENCE_READ_END ||
              node->loopResourceAbi != expectedLoopResourceAbi ||
              node->loopResourceType != expectedLoopResourceType ||
              node->loopProtocolIterTarget !=
@@ -46713,6 +46788,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             outcome->firstOperand>=module->operandCount ||
                             module->operands[outcome->firstOperand]!=instruction->result)
                             return xl6IrDiag(diags,NULL,"XLIR SlotMap has no exact typed slot, owner, key or checked outcome contract");
+                    } else if(instruction->runtimeOp>=XL6_IR_RUNTIME_NATIVE_SEQUENCE_CREATE && instruction->runtimeOp<=XL6_IR_RUNTIME_NATIVE_SEQUENCE_ORDINAL){
+                        if(!xl6IrNativeSequenceInstructionCompatible(module,instruction))return xl6IrDiag(diags,NULL,"NativeSequence runtime operation requires an exact sealed element, cursor and owner");
                     } else if ( instruction->runtimeOp >=
                                     XL6_IR_RUNTIME_STACK_CREATE &&
                                 instruction->runtimeOp <=
@@ -51002,6 +51079,7 @@ static const char* xl6IrRuntimeResourceAbiName(XL6_IrRuntimeResourceAbi abi)
 {
     switch ( abi ) {
     case XL6_IR_RUNTIME_RESOURCE_THREAD: return "thread";
+    case XL6_IR_RUNTIME_RESOURCE_NATIVE_SEQUENCE: return "native-sequence";
     case XL6_IR_RUNTIME_RESOURCE_CHANNEL: return "channel";
     case XL6_IR_RUNTIME_RESOURCE_MUTEX: return "mutex";
     case XL6_IR_RUNTIME_RESOURCE_COND: return "cond";
@@ -51070,6 +51148,7 @@ static const char* xl6IrMemberAbiName(XL6_IrMemberAbi abi)
         return "safe-class-field-nullable";
     case XL6_IR_MEMBER_ABI_BYTES_LENGTH: return "bytes-length";
     case XL6_IR_MEMBER_ABI_C_ARRAY_LENGTH: return "c-array-length";
+    case XL6_IR_MEMBER_ABI_NATIVE_SEQUENCE_LENGTH: return "native-sequence-length";
     case XL6_IR_MEMBER_ABI_C_AGGREGATE_PATH_WRITE: return "c-aggregate-path-write";
     case XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE: return "class-field-exact-value";
     default: return "invalid";
@@ -51123,6 +51202,8 @@ static const char* xl6IrLoopAbiName(XL6_IrLoopAbi abi)
 {
     switch ( abi ) {
     case XL6_IR_LOOP_ABI_NONE: return "none";
+    case XL6_IR_LOOP_ABI_NATIVE_SEQUENCE_VALUE: return "native-sequence-value";
+    case XL6_IR_LOOP_ABI_NATIVE_SEQUENCE_INDEX_VALUE: return "native-sequence-index-value";
     case XL6_IR_LOOP_ABI_RANGE_I64_VALUE: return "range-i64-value";
     case XL6_IR_LOOP_ABI_RANGE_I64_INDEX_VALUE: return "range-i64-index-value";
     case XL6_IR_LOOP_ABI_XVALUE_ARRAY_I64_VALUE:
@@ -51232,6 +51313,7 @@ static const char* xl6IrLoopResourceAbiName(XL6_IrLoopResourceAbi abi)
 {
     switch ( abi ) {
     case XL6_IR_LOOP_RESOURCE_NONE: return "none";
+    case XL6_IR_LOOP_RESOURCE_NATIVE_SEQUENCE_READ_END: return "native-sequence-read-end";
     case XL6_IR_LOOP_RESOURCE_XVALUE_SHALLOW_SNAPSHOT_RELEASE:
         return "xvalue-shallow-snapshot-release";
     case XL6_IR_LOOP_RESOURCE_XVALUE_OWNED_ITERATOR_RELEASE:
@@ -51475,6 +51557,14 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_STRING_COPY: return "string-copy";
     case XL6_IR_RUNTIME_CBYTES_FORMAT: return "cbytes-format";
     case XL6_IR_RUNTIME_C_BORROW_VIEW: return "c-borrow-view";
+    case XL6_IR_RUNTIME_NATIVE_SEQUENCE_CREATE: return "native-sequence-create";
+    case XL6_IR_RUNTIME_NATIVE_SEQUENCE_COUNT: return "native-sequence-count";
+    case XL6_IR_RUNTIME_NATIVE_SEQUENCE_SLICE: return "native-sequence-slice";
+    case XL6_IR_RUNTIME_NATIVE_SEQUENCE_INDEX: return "native-sequence-index";
+    case XL6_IR_RUNTIME_NATIVE_SEQUENCE_READ_BEGIN: return "native-sequence-read-begin";
+    case XL6_IR_RUNTIME_NATIVE_SEQUENCE_ADVANCE: return "native-sequence-advance";
+    case XL6_IR_RUNTIME_NATIVE_SEQUENCE_ITEM: return "native-sequence-item";
+    case XL6_IR_RUNTIME_NATIVE_SEQUENCE_ORDINAL: return "native-sequence-ordinal";
     case XL6_IR_RUNTIME_CBYTES_CONCAT: return "cbytes-concat";
     case XL6_IR_RUNTIME_C_PRINT: return "c-print";
     case XL6_IR_RUNTIME_C_PRINTLN: return "c-println";
@@ -54327,6 +54417,14 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         const XL6_ForeignOutputViewContract* row=&module->foreignOutputViews[i];
         xl6OutputPrintf(out,"    {\"declaration\":%u,\"physicalIndex\":%u,\"ordinal\":%u,\"logicalType\":%u,\"conversion\":%u,\"retainSymbol\":%u,\"rollbackSymbol\":%u,\"retainSuccess\":%u}%s\n",
             row->declaration,row->physicalIndex,row->ordinal,row->logicalType,(unsigned)row->conversion,row->retainSymbol,row->rollbackSymbol,(unsigned)row->retainSuccess,i+1==module->foreignOutputViewCount ? "":",");
+    }
+    xl6OutputPuts("  ],\n  \"foreignNativeSequences\": [\n",out);
+    for(i=0;i<module->foreignNativeSequenceCount;++i){
+        const XL6_ForeignNativeSequenceContract* row=&module->foreignNativeSequences[i];
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"dataIndex\":%u,\"countIndex\":%u,\"ownerParameter\":%u,\"sequenceType\":%u,\"elementType\":%u,\"ownerType\":%u,\"retainSymbol\":%u,\"rollbackSymbol\":%u,\"retainSuccess\":%u,\"countAbi\":%u,\"successCode\":%d,\"dataCName\":\"%s\"}%s\n",
+            row->declaration,row->dataIndex,row->countIndex,row->ownerParameter,row->sequenceType,row->elementType,row->ownerType,
+            row->retainSymbol,row->rollbackSymbol,(unsigned)row->retainSuccess,(unsigned)row->countAbi,row->successCode,row->dataCName,
+            i+1==module->foreignNativeSequenceCount ? "":",");
     }
     xl6OutputPuts("  ],\n  \"foreignArrayGroups\": [\n",out);
     for(i=0;i<module->foreignArrayGroupCount;++i){const XL6_ForeignArrayGroupContract* row=&module->foreignArrayGroups[i];

@@ -211,7 +211,11 @@ static int xl6IrCgenEmitFunction(
              !xl6IrCgenResultStorageOmitted(module, instruction) ) {
             const char* type = xl6IrCgenType(module, instruction->type);
             if ( type == NULL ) return xl6IrCgenDiag(diags, module, instruction->origin, "XLIR C emitter does not support a value ABI");
-            xl6OutputPrintf(out, "    %s v%u;\n", type, (unsigned int)instruction->result);
+            if(instruction->kind==XL6_IR_INSTR_RUNTIME_CALL && instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SEQUENCE_INDEX)
+                xl6OutputPrintf(out, "    %s v%u={0};\n", type, (unsigned int)instruction->result);
+            else
+                xl6OutputPrintf(out, "    %s v%u;\n", type, (unsigned int)instruction->result);
+            xl6IrCgenNativeSequenceCursorDeclaration(out,instruction);
         }
     }
     xl6OutputPrintf(out, "    goto b%u;\n", (unsigned int)function->entryBlock);

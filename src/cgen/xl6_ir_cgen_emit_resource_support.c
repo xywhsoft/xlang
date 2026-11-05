@@ -4,6 +4,7 @@ static int xl6IrCgenEmitResourceRuntime(
 {
     size_t i;
     size_t parameter;
+    if(needs->needsNativeSequenceRuntime && !xl6IrCgenNativeSequenceSchemas(out,module))return 0;
     for(size_t site=0;site<module->dynamicCallSiteCount;++site)
         if(module->dynamicCallSites[site].boundCollectionOp!=XL6_IR_DYNAMIC_COLLECTION_INVALID ||
            (module->dynamicCallSites[site].fallbackCollectionOp>=XL6_IR_DYNAMIC_COLLECTION_TRY_POP &&

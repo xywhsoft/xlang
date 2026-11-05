@@ -1,0 +1,72 @@
+NativeSequence<c_int> globalEmpty
+class SequenceHolder
+    NativeSequence<c_int> values
+end
+class Wrapped<T>
+    T value
+    create(T input)
+        self.value=input
+    end
+end
+func preserve(NativeSequence<c_int> input) as NativeSequence<c_int>
+    return input
+end
+async func one() as int
+    return 1
+end
+async func traverseBetweenAwaits() as int
+    int before=await one()
+    NativeSequence<c_int> values
+    for index,value in values
+        assert index<0 and value==c_int(0)
+    end
+    int after=await one()
+    return before+after
+end
+assert await traverseBetweenAwaits()==2
+func traverseBetweenYields() as generator<int>
+    yield 1
+    auto values=NativeSequence::<c_int>()
+    for value in values
+        assert value==c_int(0)
+    end
+    yield 2
+end
+func main(...) as int
+    NativeSequence<c_int> empty
+    auto holder=SequenceHolder()
+    assert empty.length==0 and globalEmpty.length==0 and holder.values.length==0
+    auto first=NativeSequence::<c_int>()
+    var boxed=preserve(first)
+    array<var> stored=[boxed]
+    auto fromDynamic=stored[0] as NativeSequence<c_int>
+    auto wrapped=Wrapped::<NativeSequence<c_int>>(fromDynamic)
+    assert wrapped.value.length==0
+    auto exact=boxed as NativeSequence<c_int>
+    auto lifted=exact as NativeSequence<c_int>?
+    assert lifted!=null
+    var absent=null
+    assert (absent as NativeSequence<c_int>?)==null
+    assert (boxed as NativeSequence<c_double>?)==null
+    bool wrong=false
+    try
+        auto rejected=boxed as NativeSequence<c_double>
+    catch error
+        wrong=true
+    end
+    assert wrong
+    auto copied=exact
+    auto sliced=copied.slice(0)
+    assert sliced.count()==0
+    for value in sliced
+        if value==c_int(1) then continue end
+        if value==c_int(2) then break end
+        throw "empty sequence unexpectedly produced an element"
+    end
+    int sum=0
+    for value in traverseBetweenYields()
+        sum+=int(value)
+    end
+    assert sum==3
+    return 0
+end

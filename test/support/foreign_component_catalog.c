@@ -43,6 +43,12 @@ int main(void)
         {"xl6OwnershipCatalogResolveFinalizationV1",XL6_ARTIFACT_OWNERSHIP_CATALOG},
         {"xl6StaticModuleCreateV3",XL6_ARTIFACT_STATIC_MODULE},
         {"xl6StaticModuleCreateV4",XL6_ARTIFACT_STATIC_MODULE},
+        {"xl6NativeSequenceResultReserveV1",XL6_ARTIFACT_NATIVE_SEQUENCE},
+        {"xl6NativeSequenceReadBeginV1",XL6_ARTIFACT_NATIVE_SEQUENCE},
+        {"xl6OwnershipDomainNativeSequenceV1Get",XL6_ARTIFACT_NATIVE_SEQUENCE},
+        {"xl6SequenceReadPinBeginV1",XL6_ARTIFACT_SEQUENCE},
+        {"xl6SequenceReadPinEndV1",XL6_ARTIFACT_SEQUENCE},
+        {"xl6SequenceReadPinSlotV1",XL6_ARTIFACT_SEQUENCE},
         {"xl6NativeGraphFuturePayloadRuntimeV1Get",XL6_ARTIFACT_NATIVE_GRAPH_FUTURE_PAYLOAD},
         {"xl6OwnershipDomainNativeGraphFuturePayloadV1Get",XL6_ARTIFACT_OWNERSHIP_DOMAIN_NATIVE_GRAPH_FUTURE_PAYLOAD}};
     for(size_t i=0;i<sizeof(symbols)/sizeof(symbols[0]);++i){
@@ -71,5 +77,7 @@ int main(void)
         XL6_ARTIFACT_OWNERSHIP_PLAN,XL6_ARTIFACT_OWNERSHIP_CATALOG,XL6_ARTIFACT_STATIC_MODULE};
     for(size_t i=0;i<sizeof(generic)/sizeof(generic[0]);++i)require(generic[i],XL6_ARTIFACT_FOREIGN_VIEW,false);
     require(XL6_ARTIFACT_SEQUENCE,XL6_ARTIFACT_FOREIGN_VIEW_SEQUENCE,false);
+    require(XL6_ARTIFACT_NATIVE_SEQUENCE,XL6_ARTIFACT_FOREIGN_VIEW,true);
+    require(XL6_ARTIFACT_SEQUENCE,XL6_ARTIFACT_NATIVE_SEQUENCE,false);
     puts("native component catalog: exact symbol owners, complete callback dependencies, unique sources and generic/view separation passed");return 0;
 }

@@ -1,0 +1,31 @@
+extern "SequenceContractItem" struct Item @header("test/cases/native_sequence_contract.h")
+    c_int value
+    c_double weight
+end
+extern "SequenceContractOwner*" class Owner @header("test/cases/native_sequence_contract.h") @lifetime("owned") @policy("sequenceContractPolicy")
+    native point handle
+    extern "sequence_contract_ints" @no_raise @c_owned_sequence(1,2,0,"int",0) @c_retain(retain,"zero",release) func ints() as NativeSequence<c_int>
+end
+extern "sequence_contract_hold" @header("test/cases/native_sequence_contract.h") @no_raise func retain(Owner owner) as c_int
+extern "sequence_contract_hold_positive" @header("test/cases/native_sequence_contract.h") @no_raise func retainPositive(Owner owner) as c_int
+extern "sequence_contract_drop" @header("test/cases/native_sequence_contract.h") @no_raise @c_result("status",0) func release(Owner owner)
+extern "sequence_contract_records" @header("test/cases/native_sequence_contract.h") @no_raise @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainPositive,"positive",release) func records(Owner owner) as NativeSequence<Item>
+export func examine(Owner owner) as int
+    auto first=owner.ints()
+    auto second=records(owner)
+    auto copied=second[0]
+    copied.value=c_int(99)
+    auto tail=first.slice(0)
+    auto empty=NativeSequence::<c_int>()
+    int result=tail.count()+empty.length
+    for index,value in first
+        result+=index+int(value)
+    end
+    for value in second
+        result+=int(value.value)
+    end
+    return result
+end
+func main(...) as int
+    return 0
+end

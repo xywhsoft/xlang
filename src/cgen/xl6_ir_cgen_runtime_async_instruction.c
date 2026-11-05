@@ -257,6 +257,8 @@ static int xl6IrCgenEmitRawRuntimeCallInstruction(
     const XL6_IrInstruction* instruction, size_t instructionIndex,
     XL6_DiagList* diags)
 {
+    int nativeSequence=xl6IrCgenNativeSequenceInstruction(out,module,instruction);
+    if(nativeSequence)return nativeSequence>0;
     int emitted = xl6IrCgenEmitScalarRuntimeInstruction(
         out, module, instruction, diags);
     if ( emitted < 0 ) return 0;

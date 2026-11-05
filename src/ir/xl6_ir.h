@@ -67,7 +67,8 @@ typedef enum XL6_IrTypeKind {
     XL6_IR_TYPE_PERSISTENCE_WIRE,
     XL6_IR_TYPE_C_RECORD,
     XL6_IR_TYPE_C_ARRAY,
-    XL6_IR_TYPE_C_FUNCTION_POINTER
+    XL6_IR_TYPE_C_FUNCTION_POINTER,
+    XL6_IR_TYPE_NATIVE_SEQUENCE_READ
 } XL6_IrTypeKind;
 
 static inline int xl6IrTypeKindIsAggregate(XL6_IrTypeKind kind)
@@ -153,7 +154,8 @@ typedef enum XL6_IrRuntimeResourceAbi {
     XL6_IR_RUNTIME_RESOURCE_MPSC_QUEUE,
     XL6_IR_RUNTIME_RESOURCE_MPMC_QUEUE,
     XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE,
-    XL6_IR_RUNTIME_RESOURCE_SLOT_MAP
+    XL6_IR_RUNTIME_RESOURCE_SLOT_MAP,
+    XL6_IR_RUNTIME_RESOURCE_NATIVE_SEQUENCE
 } XL6_IrRuntimeResourceAbi;
 
 /* A source constructor/member spelling is converted once into this exact
@@ -284,6 +286,9 @@ typedef enum XL6_IrRuntimeResourceOp {
     XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_CANCEL,
     XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_FOR_CANCEL,
     XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_UNTIL_CANCEL,
+    XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_CREATE,
+    XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_COUNT,
+    XL6_IR_RUNTIME_RESOURCE_OP_NATIVE_SEQUENCE_SLICE,
 } XL6_IrRuntimeResourceOp;
 
 /* Runtime resources with generic payloads carry an explicit transfer ABI in
@@ -493,7 +498,8 @@ typedef enum XL6_IrCAbi {
     XL6_IR_C_ABI_C_BYTES,
     XL6_IR_C_ABI_C_RECORD,
     XL6_IR_C_ABI_C_ARRAY,
-    XL6_IR_C_ABI_C_FUNCTION_POINTER
+    XL6_IR_C_ABI_C_FUNCTION_POINTER,
+    XL6_IR_C_ABI_NATIVE_SEQUENCE_READ_PTR
 } XL6_IrCAbi;
 
 static inline int xl6IrCAbiIsAggregate(XL6_IrCAbi abi)
@@ -2275,6 +2281,14 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_CBYTES_CONCAT,
     XL6_IR_RUNTIME_CBYTES_FORMAT,
     XL6_IR_RUNTIME_C_BORROW_VIEW,
+    XL6_IR_RUNTIME_NATIVE_SEQUENCE_CREATE,
+    XL6_IR_RUNTIME_NATIVE_SEQUENCE_COUNT,
+    XL6_IR_RUNTIME_NATIVE_SEQUENCE_SLICE,
+    XL6_IR_RUNTIME_NATIVE_SEQUENCE_INDEX,
+    XL6_IR_RUNTIME_NATIVE_SEQUENCE_READ_BEGIN,
+    XL6_IR_RUNTIME_NATIVE_SEQUENCE_ADVANCE,
+    XL6_IR_RUNTIME_NATIVE_SEQUENCE_ITEM,
+    XL6_IR_RUNTIME_NATIVE_SEQUENCE_ORDINAL,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -3025,7 +3039,8 @@ typedef enum XL6_IrMemberAbi {
     XL6_IR_MEMBER_ABI_C_ARRAY_LENGTH,
     /* A named, trivial C aggregate place reached through exact record fields
      * and fixed-array indexes. Lowering owns the complete write-back path. */
-    XL6_IR_MEMBER_ABI_C_AGGREGATE_PATH_WRITE
+    XL6_IR_MEMBER_ABI_C_AGGREGATE_PATH_WRITE,
+    XL6_IR_MEMBER_ABI_NATIVE_SEQUENCE_LENGTH
 } XL6_IrMemberAbi;
 
 /* Safe builtin indexing evaluates its key only on the present successor.
@@ -3112,7 +3127,9 @@ typedef enum XL6_IrLoopAbi {
     /* One paired native capture. A single target receives the complete key,
      * never the value or the integer slot ordinal. */
     XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY,
-    XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY_VALUE
+    XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY_VALUE,
+    XL6_IR_LOOP_ABI_NATIVE_SEQUENCE_VALUE,
+    XL6_IR_LOOP_ABI_NATIVE_SEQUENCE_INDEX_VALUE
 } XL6_IrLoopAbi;
 
 typedef enum XL6_IrLoopKeyAbi {
@@ -3246,7 +3263,8 @@ typedef enum XL6_IrLoopResourceAbi {
      * handles exist only at verified extern-C projection/call boundaries. */
     XL6_IR_LOOP_RESOURCE_PROTOCOL_ITERATOR_RELEASE,
     XL6_IR_LOOP_RESOURCE_GENERATOR_CLOSE,
-    XL6_IR_LOOP_RESOURCE_BYTES_SNAPSHOT_RELEASE
+    XL6_IR_LOOP_RESOURCE_BYTES_SNAPSHOT_RELEASE,
+    XL6_IR_LOOP_RESOURCE_NATIVE_SEQUENCE_READ_END
 } XL6_IrLoopResourceAbi;
 
 typedef struct XL6_IrNode {
@@ -7065,6 +7083,8 @@ typedef struct XL6_IrModule {
     size_t foreignFunctionHeaderCount,foreignFunctionHeaderCapacity;
     XL6_ForeignOutputSizeContract* foreignOutputSizes;
     size_t foreignOutputSizeCount,foreignOutputSizeCapacity;
+    XL6_ForeignNativeSequenceContract* foreignNativeSequences;
+    size_t foreignNativeSequenceCount,foreignNativeSequenceCapacity;
     XL6_ForeignOutputViewContract* foreignOutputViews;
     size_t foreignOutputViewCount,foreignOutputViewCapacity;
     XL6_ForeignOutputRecordContract* foreignOutputRecords;
@@ -8080,6 +8100,13 @@ XL6_IrTypeId xl6IrForeignOutputType(const XL6_IrModule*,const XL6_IrCallTarget*,
 int xl6IrForeignOutputValueMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignOutputSizeContract* xl6IrForeignOutputSizeGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 int xl6IrForeignOutputSizesMatch(const XL6_IrModule*,const XL6_IrCallTarget*);
+XL6_IrTypeId xl6IrTypeInternNativeSequenceRead(XL6_IrModule*,XL6_IrTypeId);
+XL6_IrTypeId xl6IrNativeSequenceElement(const XL6_IrModule*,XL6_IrTypeId);
+int xl6IrNativeSequencePod(const XL6_IrModule*,XL6_IrTypeId,size_t);
+int xl6IrNativeSequenceResourceSignature(const XL6_IrModule*,XL6_IrRuntimeResourceOp,XL6_IrTypeId,XL6_IrTypeId,const XL6_IrTypeId*,size_t);
+int xl6IrNativeSequenceInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
+const XL6_ForeignNativeSequenceContract* xl6IrForeignNativeSequenceGet(const XL6_IrModule*,const XL6_IrCallTarget*);
+int xl6IrForeignNativeSequenceMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignOutputViewContract* xl6IrForeignOutputViewGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 int xl6IrForeignOutputViewsMatch(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignPackContract* xl6IrForeignPackGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
@@ -8196,7 +8223,8 @@ typedef enum XL6_IrNativeContainerProjectionAbi {
     XL6_IR_NATIVE_PROJECTION_STACK, XL6_IR_NATIVE_PROJECTION_LIST,
     XL6_IR_NATIVE_PROJECTION_SET, XL6_IR_NATIVE_PROJECTION_DICT,
     XL6_IR_NATIVE_PROJECTION_TREE,
-    XL6_IR_NATIVE_PROJECTION_DOMAIN
+    XL6_IR_NATIVE_PROJECTION_DOMAIN,
+    XL6_IR_NATIVE_PROJECTION_NATIVE_SEQUENCE
 } XL6_IrNativeContainerProjectionAbi;
 int xl6IrNativeContainerProjectionTarget(const XL6_IrModule*,XL6_IrTypeId,
     XL6_IrTypeId*,XL6_IrNativeContainerProjectionAbi*,XL6_IrNominalIdentitySetId*);

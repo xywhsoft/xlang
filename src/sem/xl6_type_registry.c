@@ -51,7 +51,8 @@ static const XL6_BuiltinTypeSeed g_xl6BuiltinTypeSeeds[] = {
     {"cond", NULL, 0, 0}, {"rwlock", NULL, 0, 0},
     {"sem", NULL, 0, 0},
     /* Append new builtins so existing semantic registry identities stay stable. */
-    {"cstring", "xlang.cstring.v1", 0, 0}, {"cbytes", "xlang.cbytes.v1", 0, 0}
+    {"cstring", "xlang.cstring.v1", 0, 0}, {"cbytes", "xlang.cbytes.v1", 0, 0},
+    {"NativeSequence", "xlang.native-sequence.v1", 1, 1}
 };
 
 int xl6TypeRegistryIsBuiltinName(const char* name)

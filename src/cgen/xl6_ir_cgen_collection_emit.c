@@ -13,6 +13,7 @@ static const char* xl6IrCgenContainerProjectionSymbol(const XL6_IrModule* module
     case XL6_IR_NATIVE_PROJECTION_DICT:return "xl6DictProjectionWitnessTakeV1";
     case XL6_IR_NATIVE_PROJECTION_TREE:return "xl6TreeProjectionWitnessTakeV1";
     case XL6_IR_NATIVE_PROJECTION_DOMAIN:return "xl6ValueDomainProjectionWitnessTakeV1";
+    case XL6_IR_NATIVE_PROJECTION_NATIVE_SEQUENCE:return "xl6NativeSequenceAdmitsV1";
     default:return NULL;
     }
 }
@@ -642,6 +643,19 @@ static int xl6IrCgenEmitStackRuntime(
         const char* symbol=xl6IrCgenContainerProjectionSymbol(module,instruction);
         if (!symbol ||
             !xl6IrNativeContainerProjectionTarget(module,instruction->type,NULL,&role,NULL)) return -1;
+        if(role==XL6_IR_NATIVE_PROJECTION_NATIVE_SEQUENCE){
+            const XL6_IrType* sequence=xl6IrTypeGet(&module->types,instruction->runtimeIdentityType);
+            const XL6_IrType* element=xl6IrTypeGet(&module->types,instruction->payloadType);
+            unsigned source=(unsigned)module->operands[instruction->firstOperand],result=(unsigned)instruction->result;
+            bool nullable=instruction->castAbi==XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY;
+            xl6OutputPrintf(out,"    v%u=NULL; bool projection_ok_%u=true;\n    if(xl6NativeSequenceAdmitsV1(v%u,UINT64_C(0x%016llX),UINT64_C(0x%016llX)))v%u=v%u;\n"
+                "    else { xl6_error_scope sequence_cast_cleanup={0};if(!xl6ErrorScopeBeginCleanup(&sequence_cast_cleanup,%s))abort();\n",result,result,source,(unsigned long long)sequence->typeValueId,(unsigned long long)element->typeValueId,result,source,"false");
+            if(!nullable)xl6OutputPuts("        xrtSetErrorKind(XERR_TYPE);xl6ErrorScopeCaptureFailure(&sequence_cast_cleanup);\n",out);
+            xl6OutputPrintf(out,"        xrtValueRelease(v%u);xl6_error_result sequence_cast_outcome=xl6ErrorScopeEnd(&sequence_cast_cleanup);projection_ok_%u=sequence_cast_outcome.ok;\n",source,result);
+            if(nullable)xl6OutputPrintf(out,"        v%u=xrtValueRetain(xrtValueNull());\n",result);
+            xl6OutputPrintf(out,"        if(!sequence_cast_outcome.ok)xl6ErrorScopePropagateFailure(sequence_cast_outcome);else xrtErrorFree(sequence_cast_outcome.error);\n    }\n    v%u=NULL;\n",source);
+            return xl6OutputHasFailed(out) ? -1:1;
+        }
         XL6_IrValueId seed=module->operands[instruction->firstOperand];
         XL6_IrValueId source=module->operands[instruction->firstOperand+1];
         xl6OutputPrintf(out,"    v%u = NULL;\n    bool projection_ok_%u = %s(v%u, ",

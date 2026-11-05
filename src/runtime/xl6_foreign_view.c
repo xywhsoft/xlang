@@ -126,8 +126,7 @@ static bool viewDescriptorValid(const XL6_ForeignViewDescriptorV1* d,bool root)
         ((d->flags&XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE) && (!root || !d->Busy || !d->CallBegin)) ||
         ((d->flags&XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE) && !root) ||
         ((d->flags&XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE) &&
-         (!root || !(d->flags&XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE) ||
-          !(d->flags&XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE))) ||
+         (!root || !(d->flags&XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE))) ||
         (d->RequestClose && !root) ||
         ((d->flags&XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH) && (!root || !d->Watch)) ||
         ((d->flags&XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY) && (!root || !d->CallBegin || !d->CallEnd)) ||

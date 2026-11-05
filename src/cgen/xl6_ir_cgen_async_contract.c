@@ -1013,7 +1013,9 @@ static int xl6IrCgenAsyncDeclareMachineProgramValues(
             }
             declared[valueLocal] = 1;
             xl6OutputPrintf(out, "    %s v%u%s;\n", type, (unsigned int)instruction->result,
-                instruction->kind == XL6_IR_INSTR_AWAIT ? " = {0}" : "");
+                instruction->kind == XL6_IR_INSTR_AWAIT ||
+                (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL && instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SEQUENCE_INDEX) ? " = {0}" : "");
+            xl6IrCgenNativeSequenceCursorDeclaration(out,instruction);
         }
     }
     /* One executable CFG serves launch and every resume entry. A resumed

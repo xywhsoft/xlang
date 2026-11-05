@@ -47,7 +47,8 @@ typedef enum XL6_ForeignValueOutputKind {
     XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS,
     XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID,
     XL6_FOREIGN_VALUE_OUTPUT_RECORD_STATUS,
-    XL6_FOREIGN_VALUE_OUTPUT_RECORD_VOID
+    XL6_FOREIGN_VALUE_OUTPUT_RECORD_VOID,
+    XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS
 } XL6_ForeignValueOutputKind;
 
 /* The output-mode byte authenticates sparse sizeof initializers and borrowed
@@ -68,7 +69,9 @@ static inline int xl6ForeignValueOutputIsVoid(uint8 mode)
 static inline int xl6ForeignValueOutputBitsValid(uint8 mode)
 {
     return !(mode&~(XL6_FOREIGN_VALUE_OUTPUT_KIND_MASK|XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED|XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED)) &&
-        xl6ForeignValueOutputBase(mode)<=XL6_FOREIGN_VALUE_OUTPUT_RECORD_VOID &&
+        xl6ForeignValueOutputBase(mode)<=XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS &&
+        (xl6ForeignValueOutputBase(mode)!=XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS ||
+         !(mode&(XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED|XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED))) &&
         (!(xl6ForeignValueOutputHasSize(mode)||xl6ForeignValueOutputHasView(mode)) || xl6ForeignValueOutputBase(mode)!=XL6_FOREIGN_VALUE_OUTPUT_NONE);
 }
 /* Closed input-contract bits: expected callback-span count plus sparse input
@@ -291,4 +294,5 @@ typedef struct XL6_ForeignParameterContract {
     XL6_ForeignCallbackResultKind callbackResultKind;
 } XL6_ForeignParameterContract;
 
+#include "src/type/xl6_foreign_native_sequence_contract.h"
 #endif

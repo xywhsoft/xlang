@@ -23,7 +23,7 @@ static int xl6SemIsSpecialQueueTypeName(const char* name)
 
 static int xl6SemIsSpecialCollectionTypeName(const char* name)
 {
-    return xl6TextEquals(name, "SlotMap") || xl6TextEquals(name, "Stack") ||
+    return xl6TextEquals(name,"NativeSequence") || xl6TextEquals(name, "SlotMap") || xl6TextEquals(name, "Stack") ||
            xl6TextEquals(name, "OrderedMap") ||
            xl6SemIsSpecialQueueTypeName(name);
 }
@@ -268,10 +268,16 @@ static int xl6SemCheckSpecialCollectionCtorCall(XL6_SemContext* ctx, XL6_AstNode
     if ( !xl6SemIsSpecialCollectionGenericInstant(callee) ) {
         return -1;
     }
+    if(!xl6SemNativeSequenceContainerArguments(ctx,nameNode ? nameNode->text:NULL,typeArgs,node))return 0;
     for ( i = 0; typeArgs != NULL && i < typeArgs->childCount; ++i ) {
         if ( !xl6SemCheckType(ctx, typeArgs->children[i]) ) {
             ok = 0;
         }
+    }
+    if(nameNode && xl6TextEquals(nameNode->text,"NativeSequence") &&
+       (!typeArgs || typeArgs->childCount!=1 || !xl6SemNativeSequencePod(ctx,typeArgs->children[0],0))) {
+        xl6SemErrorNode(ctx,node,"NativeSequence<T> requires one exact pointer-free C scalar or C record POD element");
+        ok=0;
     }
     if ( nameNode != NULL && xl6TextEquals(nameNode->text, "OrderedMap") &&
          typeArgs != NULL && typeArgs->childCount > 0 &&
@@ -390,7 +396,7 @@ static int xl6SemCheckSpecialCollectionMethodCall(XL6_SemContext* ctx, XL6_AstNo
         xl6AstFree(receiverType);
         return -1;
     }
-    if (!xl6TextEquals(typeName,"WaitQueue") && (member->children[0] == NULL ||
+    if (!xl6TextEquals(typeName,"WaitQueue") && !xl6TextEquals(typeName,"NativeSequence") && (member->children[0] == NULL ||
          (member->children[0]->kind != XL6_AST_NAME && member->children[0]->kind != XL6_AST_MEMBER))) {
         xl6SemErrorNode(ctx, member->children[0],
                         "[SC-TEMP-RECEIVER] 专用数据结构方法必须通过具名变量或字段调用");
@@ -403,7 +409,12 @@ static int xl6SemCheckSpecialCollectionMethodCall(XL6_SemContext* ctx, XL6_AstNo
     itemType = xl6SemSpecialCollectionTypeArg(ctx, receiverType, xl6TextEquals(typeName, "OrderedMap") ? 1u : 0u);
     keyType = xl6TextEquals(typeName, "OrderedMap") ? xl6SemSpecialCollectionTypeArg(ctx, receiverType, 0u) : NULL;
 
-    if (xl6TextEquals(typeName,"SlotMap")) {
+    if(xl6TextEquals(typeName,"NativeSequence")){
+        ok=xl6TextEquals(method,"count") ? xl6SemCheckSpecialCollectionArgCount(ctx,member,count,0) :
+            xl6TextEquals(method,"slice") && (count==1 || count==2);
+        for(size_t i=0;ok && i<count;++i)ok=xl6SemCheckSpecialCollectionIntArg(ctx,xl6SemSpecialCollectionArgExpr(args,i),"NativeSequence bounds must be int");
+        if(!ok)xl6SemErrorNode(ctx,member,"NativeSequence exposes count() and slice(start,count=-1)");
+    } else if (xl6TextEquals(typeName,"SlotMap")) {
         ok=xl6SemCheckSlotMapMethod(ctx,member,args,count,itemType);
     } else if ( xl6TextEquals(typeName, "Stack") ) {
         if ( xl6TextEquals(method, "push") ) {
@@ -586,6 +597,9 @@ static const char* xl6SemSpecialCollectionCallResultTypeName(XL6_SemContext* ctx
         return NULL;
     }
     method = member->text;
+    if(xl6TextEquals(concreteType->text,"NativeSequence")){
+        result=xl6TextEquals(method,"count") ? "int" : NULL;xl6AstFree(receiverType);return result;
+    }
     if(xl6TextEquals(concreteType->text,"SlotMap")) {
         const XL6_SemSlotMapMethod* spec=xl6SemSlotMapMethod(method);
         result=spec ? (spec->result==XL6_SEM_SLOT_MAP_KEY ? "SlotMapKey" :
@@ -657,6 +671,10 @@ static XL6_AstNode* xl6SemCloneSpecialCollectionCallType(XL6_SemContext* ctx, XL
     member = node->children[0];
     receiverType=xl6SemCloneSpecialCollectionReceiverType(ctx,member);
     concreteType=xl6SemResolveAliasType(ctx,receiverType);
+    if(concreteType && xl6TextEquals(concreteType->text,"NativeSequence")){
+        XL6_AstNode* r=xl6TextEquals(member->text,"slice") ? xl6SemCloneTypeNode(receiverType):NULL;
+        xl6AstFree(receiverType);return r;
+    }
     if(concreteType && xl6TextEquals(concreteType->text,"OrderedMap")) {
         const XL6_SemTreeQuery* query=xl6SemTreeQuery(member->text);
         if(query) {

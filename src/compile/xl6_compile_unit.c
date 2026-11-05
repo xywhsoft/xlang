@@ -299,7 +299,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_crc32_bytes.c", D(), {"XRT_MODULE_CRC32", "XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_crc32_buffer.c", D(), {"XRT_MODULE_CRC32", "XRT_MODULE_BUFFER"}},
     {"src/runtime/xl6_sequence.c", D(R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_TYPED_ARRAY", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE",
-        "XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE", "XRT_MODULE_ATOMIC"}},
+        "XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE", "XRT_MODULE_ATOMIC", "XRT_MODULE_THREAD"}},
     {"src/runtime/xl6_array.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_TYPED_ARRAY"}},
     {"src/runtime/xl6_stack.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_TYPED_STACK"}},
     {"src/runtime/xl6_nullable_bool.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
@@ -1024,6 +1024,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_sync_callback.c",D(R(CLOSURE),R(CODE_LEASE),R(FOREIGN_ERROR),R(FOREIGN_CALLBACK_SCOPE)),{"XRT_MODULE_ATOMIC","XRT_MODULE_ERROR"}},
     {"src/runtime/xl6_callback_failure.c",D(R(FOREIGN_ERROR),R(FOREIGN_CALLBACK_SCOPE)),{"XRT_MODULE_ATOMIC","XRT_MODULE_ERROR","XRT_MODULE_THREAD"}},
     {"src/runtime/xl6_host_xrt.c",D(),{NULL},0,XL6_ARTIFACT_RUNTIME_IN_XRT_TRANSLATION_UNIT},
+    {"src/runtime/xl6_native_sequence.c",D(R(FOREIGN_VIEW),R(CALLBACK_FAILURE),R(FOREIGN_ERROR)),
+        {"XRT_MODULE_MEMORY","XRT_MODULE_VALUE","XRT_MODULE_VALUE_GRAPH","XRT_MODULE_THREAD"}},
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -1562,6 +1564,8 @@ int xl6ArtifactRuntimePlanBuildWithOptions(const XL6_IrModule* module, XL6_Artif
     for (size_t i=0;i<module->classFieldCount;++i) xl6ArtifactTypeRequire(&work,module->classFields[i].type);
     for (size_t i=0;i<work.count;++i) {
         const XL6_IrType* type=xl6IrTypeGet(&module->types,work.queue[i]);
+        if(type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NATIVE_SEQUENCE)
+            REQUIRE(R(NATIVE_SEQUENCE));
         if(type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_AVL_TREE &&
             xl6IrAvlKeyOrderAbi(module,work.queue[i])==XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_BYTES)
             REQUIRE(R(TREE_BYTES_KEY));

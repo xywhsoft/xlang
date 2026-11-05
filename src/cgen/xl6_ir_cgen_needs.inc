@@ -299,3 +299,5 @@ XL6_IR_CGEN_NEED(int, needsLastErrorTextBridgeRuntime, NONE)
 XL6_IR_CGEN_NEED(int, needsStringContainsOperation, STRING)
 XL6_IR_CGEN_NEED(int, needsI64RangeContainsRuntime, NONE)
 XL6_IR_CGEN_NEED(unsigned, namedValueOperations, NONE)
+
+XL6_IR_CGEN_NEED(int, needsNativeSequenceRuntime, NONE)

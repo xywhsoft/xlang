@@ -6,6 +6,7 @@ static int xl6IrCgenAnalyzeInstructionNeeds(const XL6_IrModule* module,
     for ( i = 0; i < module->instructionCount; ++i ) {
         const XL6_IrType* instructionType;
         if ( !xl6IrCgenInstructionIsReachable(module, i) ) continue;
+        if(module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL && module->instructions[i].runtimeOp>=XL6_IR_RUNTIME_NATIVE_SEQUENCE_CREATE && module->instructions[i].runtimeOp<=XL6_IR_RUNTIME_NATIVE_SEQUENCE_ORDINAL)needs->needsNativeSequenceRuntime=1;
         instructionType = xl6IrTypeGet(&module->types, module->instructions[i].type);
         if (module->instructions[i].kind == XL6_IR_INSTR_CLOSURE_CALL) {
             const XL6_IrType* signature = xl6IrTypeGet(&module->types,module->instructions[i].calleeType);

@@ -51,7 +51,9 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
         if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED) {
             if (!xl6IrNativeContainerProjectionInstructionCompatible(module,&module->instructions[i]))
                 return xl6IrCgenDiag(diags,module,module->instructions[i].origin,"Native container projection has no full target/schema contract");
-            needs->needsNativeContainerProjection=1;
+            const XL6_IrType* target=xl6IrTypeGet(&module->types,module->instructions[i].runtimeIdentityType);
+            if(target && target->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NATIVE_SEQUENCE)needs->needsNativeSequenceRuntime=1;
+            else needs->needsNativeContainerProjection=1;
         }
         if (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT ||
             module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT ||
