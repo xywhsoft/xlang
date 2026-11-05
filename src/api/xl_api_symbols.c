@@ -400,6 +400,7 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6ForeignViewCreateRootV1", (const void*)xl6ForeignViewCreateRootV1)) return 0;
     if (!visit(user, "xl6ForeignViewCreateRootProbedV1", (const void*)xl6ForeignViewCreateRootProbedV1)) return 0;
     if (!visit(user, "xl6ForeignViewCreateRootWithDomainV1", (const void*)xl6ForeignViewCreateRootWithDomainV1)) return 0;
+    if (!visit(user, "xl6ForeignViewCreateRootFromLeaseV1", (const void*)xl6ForeignViewCreateRootFromLeaseV1)) return 0;
     if (!visit(user, "xl6ForeignViewCreateRootWithDomainProbedV1", (const void*)xl6ForeignViewCreateRootWithDomainProbedV1)) return 0;
     if (!visit(user, "xl6ForeignViewBorrowChildV1", (const void*)xl6ForeignViewBorrowChildV1)) return 0;
     if (!visit(user, "xl6ForeignViewBorrowRootV1", (const void*)xl6ForeignViewBorrowRootV1)) return 0;
@@ -427,6 +428,7 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6ForeignViewCloseV1", (const void*)xl6ForeignViewCloseV1)) return 0;
     if (!visit(user, "xl6ForeignViewNativePinV1", (const void*)xl6ForeignViewNativePinV1)) return 0;
     if (!visit(user, "xl6ForeignViewNativeUnpinV1", (const void*)xl6ForeignViewNativeUnpinV1)) return 0;
+    if (!visit(user, "xl6ForeignViewRetainCodeLeaseV1", (const void*)xl6ForeignViewRetainCodeLeaseV1)) return 0;
     if (!visit(user, "xl6ForeignViewDrainV1", (const void*)xl6ForeignViewDrainV1)) return 0;
     if (!visit(user, "xl6ForeignViewPendingV1", (const void*)xl6ForeignViewPendingV1)) return 0;
     if (!visit(user, "xl6ForeignViewDiscoverV1", (const void*)xl6ForeignViewDiscoverV1)) return 0;
