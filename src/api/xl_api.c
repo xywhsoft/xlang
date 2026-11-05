@@ -1285,7 +1285,8 @@ static int xlEnsureUnitXlirLowered(XL_Context* ctx, XL6_CompileUnit* unit)
     }
     if ( unit->ir.stage != XL6_IR_STAGE_LOWERED ||
          !xl6CompileUnitPrepareCompiledPackages(unit) ||
-         !xl6IrVerifyModule(&unit->ir, &unit->parse.diags) ) {
+         !xl6IrVerifyModule(&unit->ir, &unit->parse.diags) ||
+         !xl6CompileUnitPrepareCSourceGroups(unit) ) {
         unit->irReady = 0;
         xlSetCompileStageError(ctx, unit, "ir-verify");
         return 0;
@@ -2217,12 +2218,16 @@ static void xlAddDefaultTccLinkLibraries(TCCState* s)
     (void)tcc_add_library(s, "Ws2_32");
     (void)tcc_add_library(s, "IPHLPAPI");
     (void)tcc_add_library(s, "Shell32");
+    /* Resident transfer capsules release OS-owned STGMEDIUM outputs. Only
+     * an actual unresolved reference creates an import; no COM root is added. */
+    (void)tcc_add_library(s, "Ole32");
     (void)tcc_add_library(s, "ucrtbase");
 # else
     if ( xl__tcc.tcc_add_library != NULL ) {
         (void)xl__tcc.tcc_add_library(s, "Ws2_32");
         (void)xl__tcc.tcc_add_library(s, "IPHLPAPI");
         (void)xl__tcc.tcc_add_library(s, "Shell32");
+        (void)xl__tcc.tcc_add_library(s, "Ole32");
         (void)xl__tcc.tcc_add_library(s, "ucrtbase");
     }
 # endif
@@ -5289,6 +5294,7 @@ static xvalue* xlCEnvString(const char* text)
 {
     return xrtValueString(xrtStrView(text != NULL ? text : ""));
 }
+#include "xl_c_source_groups.inc"
 static int xlCEnvCollect(void* user, const char* kind, const char* text, const char* value, int required)
 {
     XL_CEnvCollector* c = (XL_CEnvCollector*)user;
@@ -5402,7 +5408,8 @@ static char* xlBuildNativeCEnvironment(XL_Context* ctx, const XL6_CompileUnit* u
             false
 #endif
         )) && xrtValueObjectSet(root, xrtStrView("operations"), operations) &&
-        xrtValueObjectSet(root, xrtStrView("builtinHeaders"), headers);
+        xrtValueObjectSet(root, xrtStrView("builtinHeaders"), headers) &&
+        xlCSourceGroupReport(root, unit);
     if (ok) {
         xrtJsonWriteConfigInit(&config); config.MaxOutputBytes = 64u * 1024u * 1024u;
         writer = xrtJsonWriterCreate(&config);

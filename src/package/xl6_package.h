@@ -29,6 +29,16 @@ typedef struct XL6_PackageStringList {
     size_t count;
 } XL6_PackageStringList;
 
+/* Cold, opt-in source dependency. Legacy cSources remain unconditional. */
+typedef struct XL6_PackageCSourceGroup {
+    char* source;
+    XL6_PackageStringList providedSymbols;
+    XL6_PackageStringList requiredSymbols;
+    int xrtModulesDeclared;
+    int selected; /* Set only by the verified compile-unit selection. */
+} XL6_PackageCSourceGroup;
+void xl6PackageCSourceGroupFree(XL6_PackageCSourceGroup* group);
+
 typedef struct XL6_PackageDependency {
     char* name;
     char* version;
@@ -54,6 +64,8 @@ typedef struct XL6_PackageManifest {
     XL6_PackageStringList xlSources;
     XL6_PackageStringList xrtModules;
     XL6_PackageStringList runtimeSymbols;
+    XL6_PackageCSourceGroup* cSourceGroups;
+    size_t cSourceGroupCount;
     int xrtModulesDeclared;
     XL6_PackageStringList links;
     XL6_PackageStringList loadlibs;

@@ -222,6 +222,9 @@ void xl6ImportDepsFree(XL6_ImportDeps* deps)
     xl6PackageStringListFree(&deps->includeDirs);
     xl6PackageStringListFree(&deps->xrtModules);
     xl6PackageStringListFree(&deps->runtimeSymbols);
+    for (i = 0; i < deps->cSourceGroupCount; ++i)
+        xl6PackageCSourceGroupFree(&deps->cSourceGroups[i]);
+    xrtFree(deps->cSourceGroups);
     xl6PackageStringListFree(&deps->links);
     xl6PackageStringListFree(&deps->loadlibs);
     xl6PackageStringListFree(&deps->activeSources);
@@ -526,6 +529,8 @@ static int xl6ImportsSymbolTableAdd(
     int supported);
 static void xl6ImportsNamespaceFromTarget(char* out, size_t outSize, const char* target);
 
+#include "xl6_import_c_source_groups.inc"
+
 static int xl6ImportsCollectManifestDeps(
     XL6_ImportDeps* deps,
     const XL6_PackageManifest* manifest,
@@ -579,6 +584,12 @@ static int xl6ImportsCollectManifestDeps(
     for ( i = 0; i < manifest->runtimeSymbols.count; ++i ) {
         if ( !xl6ImportsStringListAppendUnique(&deps->runtimeSymbols, manifest->runtimeSymbols.items[i]) ) return 0;
     }
+    for (i = 0; i < manifest->cSourceGroupCount; ++i)
+        if (!xl6ImportsAppendCSourceGroup(deps, manifest->dir, &manifest->cSourceGroups[i])) {
+            xl6DiagAdd(diags, importNode ? importNode->line : 0,
+                importNode ? importNode->column : 0, "conflicting or unavailable package C source group");
+            return 0;
+        }
     for ( i = 0; i < manifest->links.count; ++i ) {
         if ( !xl6ImportsAppendPackagePath(&deps->links, manifest->dir, manifest->links.items[i], 0) ) {
             return 0;

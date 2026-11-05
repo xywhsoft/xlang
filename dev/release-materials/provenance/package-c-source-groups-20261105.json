@@ -1,0 +1,185 @@
+{
+  "format": "xlang-acceptance-1",
+  "shippingDelivery": false,
+  "complete": true,
+  "passed": true,
+  "scope": "Conditional C source metadata and required Windows Ole32 default; internal compiler ABI only. Source-compiler partial qualification, no matched new final SDK/VFS or full compiler rebuild claim.",
+  "manifest": "F:\\xlang-validation\\foreign-completion-20261103\\c-source-groups-candidate-r1\\manifest.json",
+  "manifestSha256": "15f2348d0aaaa42fc81dc1902ac8d062483c766dfaf5ced9dd8fa3e5cf6740de",
+  "reports": [
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\c-source-groups-win-r10\\results.json",
+      "sha256": "820a881aaeefb09650462f58fa7e07f8c5d73b4fc47c4e73abbaf434a06a2437",
+      "steps": 84,
+      "historicalPath": "F:\\xlang-validation\\foreign-completion-20261103\\c-source-groups-win-r10\\results.json"
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\c-source-groups-candidate-r1\\linux-results-localCopy.json",
+      "sha256": "592424f06d2034d57901aa64449f101b6fc304d9d79731c4827cc79fadb437ee",
+      "steps": 84,
+      "historicalPath": "/home/ubuntu/xlang-validation/c-source-groups-linux-r3/results.json"
+    }
+  ],
+  "totalSteps": 168,
+  "compilerConsumers": "F:\\xlang-validation\\foreign-completion-20261103\\c-source-groups-candidate-r1\\compiler-consumers.json",
+  "compilerConsumersSha256": "17f68afc852af75865d0bfd09fa7e72b5d9a031e4bc28d12dfd26e440cd2d91d",
+  "qualifiedSources": [
+    {
+      "path": "src/package/xl6_package.h",
+      "actualSource": "F:\\xlang-validation\\foreign-completion-20261103\\source-c-source-groups-r2\\src\\package\\xl6_package.h",
+      "actualSha256": "59bc9f99a2e97b1363784da90b046ff1abd5eeaebdf61200d8a2825babbbe0e4",
+      "candidateSha256": "59bc9f99a2e97b1363784da90b046ff1abd5eeaebdf61200d8a2825babbbe0e4",
+      "qualification": "Exact canonical LF bytes; any original CRLF source bytes retained by historical source cohort"
+    },
+    {
+      "path": "src/package/xl6_package.c",
+      "actualSource": "F:\\xlang-validation\\foreign-completion-20261103\\source-c-source-groups-r2\\src\\package\\xl6_package.c",
+      "actualSha256": "02176dfdeed0612460f65efaba618a7c4284e74526537da175641d8ae4173b13",
+      "candidateSha256": "7c29b22487a8fc79635ad5dd6b478bec0aa27f3ed377650b12065304d18f66ab",
+      "qualification": "Exact canonical LF bytes; any original CRLF source bytes retained by historical source cohort"
+    },
+    {
+      "path": "src/package/xl6_package_c_source_groups.inc",
+      "actualSource": "F:\\xlang-validation\\foreign-completion-20261103\\source-c-source-groups-r2\\src\\package\\xl6_package_c_source_groups.inc",
+      "actualSha256": "1e041d6f7b269ea6fa6b5c803ddf46a99f0f31b9646c66b69b4a832e13492f72",
+      "candidateSha256": "1e041d6f7b269ea6fa6b5c803ddf46a99f0f31b9646c66b69b4a832e13492f72",
+      "qualification": "Exact canonical LF bytes; any original CRLF source bytes retained by historical source cohort"
+    },
+    {
+      "path": "src/compile/xl6_imports.h",
+      "actualSource": "F:\\xlang-validation\\foreign-completion-20261103\\source-c-source-groups-r2\\src\\compile\\xl6_imports.h",
+      "actualSha256": "bcfe1b2f37d3dc8997ccd67896f2a37b4f33e1f594560d4efcca48674ed04cae",
+      "candidateSha256": "bcfe1b2f37d3dc8997ccd67896f2a37b4f33e1f594560d4efcca48674ed04cae",
+      "qualification": "Exact canonical LF bytes; any original CRLF source bytes retained by historical source cohort"
+    },
+    {
+      "path": "src/compile/xl6_imports.c",
+      "actualSource": "F:\\xlang-validation\\foreign-completion-20261103\\source-c-source-groups-r2\\src\\compile\\xl6_imports.c",
+      "actualSha256": "ab2e152814ebe198b9c43fbc1a0ec2e3a556ef25c54c6a602779cf29ff63f88d",
+      "candidateSha256": "ab2e152814ebe198b9c43fbc1a0ec2e3a556ef25c54c6a602779cf29ff63f88d",
+      "qualification": "Exact canonical LF bytes; any original CRLF source bytes retained by historical source cohort"
+    },
+    {
+      "path": "src/compile/xl6_import_c_source_groups.inc",
+      "actualSource": "F:\\xlang-validation\\foreign-completion-20261103\\source-c-source-groups-r2\\src\\compile\\xl6_import_c_source_groups.inc",
+      "actualSha256": "607f62e0ec84969f3f6add758b492fec1b1d60a0296a6417eef72c8cb4c333d7",
+      "candidateSha256": "607f62e0ec84969f3f6add758b492fec1b1d60a0296a6417eef72c8cb4c333d7",
+      "qualification": "Exact canonical LF bytes; any original CRLF source bytes retained by historical source cohort"
+    },
+    {
+      "path": "src/compile/xl6_compile_unit.h",
+      "actualSource": "F:\\xlang-validation\\foreign-completion-20261103\\source-c-source-groups-r2\\src\\compile\\xl6_compile_unit.h",
+      "actualSha256": "dda71aae1afb181ba3c437aad128fdb7e4f09244ae8388c001f30d79a8a564d4",
+      "candidateSha256": "dda71aae1afb181ba3c437aad128fdb7e4f09244ae8388c001f30d79a8a564d4",
+      "qualification": "Exact canonical LF bytes; any original CRLF source bytes retained by historical source cohort"
+    },
+    {
+      "path": "src/compile/xl6_compile_unit.c",
+      "actualSource": "F:\\xlang-validation\\foreign-completion-20261103\\source-c-source-groups-r2\\src\\compile\\xl6_compile_unit.c",
+      "actualSha256": "5fd416c619bed682e2af06566763b6eb3a93b89fd22f9caf583796f4b9719092",
+      "candidateSha256": "7f3e88ba36522fae03762b6836f9c7c511737fbf91f3d60891e7844052de0fc5",
+      "qualification": "Exact canonical LF bytes; any original CRLF source bytes retained by historical source cohort"
+    },
+    {
+      "path": "src/compile/xl6_c_source_groups.inc",
+      "actualSource": "F:\\xlang-validation\\foreign-completion-20261103\\source-c-source-groups-r2\\src\\compile\\xl6_c_source_groups.inc",
+      "actualSha256": "63a5ead6ca6cf2a2ca12bf09021e4d7faaf72008211305c0f9809ef37bfe37c0",
+      "candidateSha256": "63a5ead6ca6cf2a2ca12bf09021e4d7faaf72008211305c0f9809ef37bfe37c0",
+      "qualification": "Exact canonical LF bytes; any original CRLF source bytes retained by historical source cohort"
+    },
+    {
+      "path": "src/api/xl_api.c",
+      "actualSource": "F:\\xlang-validation\\foreign-completion-20261103\\c-source-groups-candidate-r1\\src\\api\\xl_api.c",
+      "actualSha256": "ecd66088250f9bee41de2167998862a3d4ad78ed86d8b2c0012e4258f4e3b654",
+      "candidateSha256": "ecd66088250f9bee41de2167998862a3d4ad78ed86d8b2c0012e4258f4e3b654",
+      "qualification": "Exact canonical LF bytes; any original CRLF source bytes retained by historical source cohort"
+    },
+    {
+      "path": "src/api/xl_c_source_groups.inc",
+      "actualSource": "F:\\xlang-validation\\foreign-completion-20261103\\source-c-source-groups-r2\\src\\api\\xl_c_source_groups.inc",
+      "actualSha256": "981b4753ad73a0043ba47332b3b7a739822134f34fa1e9d4648c8bf0d33011cd",
+      "candidateSha256": "981b4753ad73a0043ba47332b3b7a739822134f34fa1e9d4648c8bf0d33011cd",
+      "qualification": "Exact canonical LF bytes; any original CRLF source bytes retained by historical source cohort"
+    }
+  ],
+  "windowsProviderImports": {
+    "_tcc_error_noabort": "xlc.dll",
+    "tcc_basename": "xlc.dll",
+    "tcc_delete": "xlc.dll",
+    "tcc_enter_state": "xlc.dll",
+    "tcc_fileextension": "xlc.dll",
+    "tcc_free": "xlc.dll",
+    "tcc_get_dllexports": "xlc.dll",
+    "tcc_malloc": "xlc.dll",
+    "tcc_realloc": "xlc.dll"
+  },
+  "tccFourHelperLink": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\transfer-cold-tcc-link-r2\\results.json",
+    "sha256": "1ad4a6600b1ca165870e0dfaed3d38008b45a7d76073a4c0f1440d834e936820",
+    "executionAttempted": false,
+    "scope": "Exact production transfer source, nine real resident TUs, selected XRT, typed Native fakes. One actual PE resolves all four cold helper references and Ole32 import. Link-only; existing GCC cold runtime gate separate."
+  },
+  "correction": "Earlier progress step totals were provisional. Actual final reports contain 84 rows per platform (168 total), retained byte-for-byte.",
+  "historicalFailuresRetained": true,
+  "releaseWritten": false,
+  "files": [
+    {
+      "path": "src/package/xl6_package.h",
+      "canonicalLfSha256": "59bc9f99a2e97b1363784da90b046ff1abd5eeaebdf61200d8a2825babbbe0e4"
+    },
+    {
+      "path": "src/package/xl6_package.c",
+      "canonicalLfSha256": "7c29b22487a8fc79635ad5dd6b478bec0aa27f3ed377650b12065304d18f66ab"
+    },
+    {
+      "path": "src/package/xl6_package_c_source_groups.inc",
+      "canonicalLfSha256": "1e041d6f7b269ea6fa6b5c803ddf46a99f0f31b9646c66b69b4a832e13492f72"
+    },
+    {
+      "path": "src/compile/xl6_imports.h",
+      "canonicalLfSha256": "bcfe1b2f37d3dc8997ccd67896f2a37b4f33e1f594560d4efcca48674ed04cae"
+    },
+    {
+      "path": "src/compile/xl6_imports.c",
+      "canonicalLfSha256": "ab2e152814ebe198b9c43fbc1a0ec2e3a556ef25c54c6a602779cf29ff63f88d"
+    },
+    {
+      "path": "src/compile/xl6_import_c_source_groups.inc",
+      "canonicalLfSha256": "607f62e0ec84969f3f6add758b492fec1b1d60a0296a6417eef72c8cb4c333d7"
+    },
+    {
+      "path": "src/compile/xl6_compile_unit.h",
+      "canonicalLfSha256": "dda71aae1afb181ba3c437aad128fdb7e4f09244ae8388c001f30d79a8a564d4"
+    },
+    {
+      "path": "src/compile/xl6_compile_unit.c",
+      "canonicalLfSha256": "7f3e88ba36522fae03762b6836f9c7c511737fbf91f3d60891e7844052de0fc5"
+    },
+    {
+      "path": "src/compile/xl6_c_source_groups.inc",
+      "canonicalLfSha256": "63a5ead6ca6cf2a2ca12bf09021e4d7faaf72008211305c0f9809ef37bfe37c0"
+    },
+    {
+      "path": "src/api/xl_api.c",
+      "canonicalLfSha256": "ecd66088250f9bee41de2167998862a3d4ad78ed86d8b2c0012e4258f4e3b654"
+    },
+    {
+      "path": "src/api/xl_c_source_groups.inc",
+      "canonicalLfSha256": "981b4753ad73a0043ba47332b3b7a739822134f34fa1e9d4648c8bf0d33011cd"
+    },
+    {
+      "path": "test/cases/package_c_source_groups.c",
+      "canonicalLfSha256": "83f2da4fb508a5fe2ad328040ac8da6128fc4ed660442ae55006050097f7ea23"
+    },
+    {
+      "path": "tools/check_package_c_source_groups.py",
+      "canonicalLfSha256": "570aff84fef87c76911552cdcf7f108073b72158499450455576bd5887f5caca"
+    },
+    {
+      "path": "docs/package-c-source-groups.md",
+      "canonicalLfSha256": "4b390476739f86a51a9454c4929adfda0977b082e1ae8e58677e6fa4f00f05e6"
+    }
+  ]
+}

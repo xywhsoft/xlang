@@ -143,6 +143,15 @@ void xl6PackageManifestInit(XL6_PackageManifest* manifest)
     }
 }
 
+void xl6PackageCSourceGroupFree(XL6_PackageCSourceGroup* group)
+{
+    if (!group) return;
+    xrtFree(group->source);
+    xl6PackageStringListFree(&group->providedSymbols);
+    xl6PackageStringListFree(&group->requiredSymbols);
+    memset(group, 0, sizeof(*group));
+}
+
 void xl6PackageManifestFree(XL6_PackageManifest* manifest)
 {
     size_t i;
@@ -161,6 +170,9 @@ void xl6PackageManifestFree(XL6_PackageManifest* manifest)
     xl6PackageStringListFree(&manifest->xlSources);
     xl6PackageStringListFree(&manifest->xrtModules);
     xl6PackageStringListFree(&manifest->runtimeSymbols);
+    for (i = 0; i < manifest->cSourceGroupCount; ++i)
+        xl6PackageCSourceGroupFree(&manifest->cSourceGroups[i]);
+    xrtFree(manifest->cSourceGroups);
     xl6PackageStringListFree(&manifest->links);
     xl6PackageStringListFree(&manifest->loadlibs);
     for ( i = 0; i < manifest->dependencyCount; ++i ) {
@@ -367,6 +379,8 @@ static int xl6PackageValueReadDependencies(const xvalue* root, XL6_PackageManife
     return 1;
 }
 
+#include "xl6_package_c_source_groups.inc"
+
 static int xl6PackageValueReadArtifact(const xvalue* root, XL6_PackageManifest* manifest)
 {
     xvalue* artifact;
@@ -381,7 +395,8 @@ static int xl6PackageValueReadArtifact(const xvalue* root, XL6_PackageManifest* 
          !xl6PackageValueReadStringArray(artifact, "includeDirs", &manifest->includeDirs) ||
          !xl6PackageValueReadStringArray(artifact, "xlSources", &manifest->xlSources) ||
          !xl6PackageValueReadStringArray(artifact, "xrtModules", &manifest->xrtModules) ||
-         !xl6PackageValueReadStringArray(artifact, "runtimeSymbols", &manifest->runtimeSymbols) ) {
+         !xl6PackageValueReadStringArray(artifact, "runtimeSymbols", &manifest->runtimeSymbols) ||
+         !xl6PackageValueReadCSourceGroups(artifact, manifest) ) {
         return 0;
     }
 
