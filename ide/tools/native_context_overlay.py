@@ -1,3 +1,5 @@
+from native_final_c_interop_profile import COHORT as FINAL_COHORT, PINS as FINAL_PINS
+from native_c_interop_profile import pins_for as final_active_pins
 """Audit and adapt shared resolution inputs without copying its search rules."""
 from pathlib import Path
 import hashlib
@@ -41,7 +43,7 @@ def completion_source(frontend: Path) -> tuple[Path,str,dict]:
     if c_interop or audited[str(original)]=='d56f80b8b3ca93e9ec4009a56ee9235a86b66674f2c2ea174a0f5db36fdef2bf':
         path=frontend/'src/common/xl6_path_identity.h'
         digest='48fd7456ad348c974da20aefa87f32862daeab664a341cfa144e2817d03c2683'
-        if c_interop:digest=C_INTEROP_PINS['src/common/xl6_path_identity.h']
+        if c_interop:digest=final_active_pins(frontend)['src/common/xl6_path_identity.h']
         if hashlib.sha256(path.read_bytes()).hexdigest()!=digest:
             raise ValueError('shared completion path identity changed; audit failure and equality contracts')
         audited[str(path)]=digest
@@ -68,7 +70,7 @@ def derive(frontend: Path, output: Path) -> list[dict]:
         "src/package/xl6_package.c": "628681072acdd939c85b112ccd19af647b9084b9e460db6850d8140c18c5e881",
         "src/compile/xl6_source_overlay.c": "cfe3ed6985af841504c13b62deeb24e552086ed8a67c1f34e46847f21cf281cf",
     }
-    current=hashlib.sha256((frontend/'src/compile/xl6_source_report.c').read_bytes()).hexdigest()=='5fa20cfe1b687f3fb2834bc4417e064e52e6714bce394c69a2a3a3a868d16b66'
+    current=c_interop_selected(frontend) or hashlib.sha256((frontend/'src/compile/xl6_source_report.c').read_bytes()).hexdigest()=='5fa20cfe1b687f3fb2834bc4417e064e52e6714bce394c69a2a3a3a868d16b66'
     audited={}
     if current:
         from native_current_context_profile import profile

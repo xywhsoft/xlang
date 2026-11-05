@@ -4,6 +4,7 @@ Recorded from GCC dependencies,not a second copy of language declarations.
 The top-level IR C and class-identity TU have their separate guarded pins.
 """
 
+from native_final_c_interop_profile import COHORT as FINAL_COHORT, PINS as FINAL_PINS
 PINS = {'lib/xrt/xrt.h': 'd8c4d3cb7da7d91c35b38cdb22be516425d3cbd2ed69ddb90b59ec5dfb5714cc',
     'release/include/xl_clock.h': 'a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18',
     'release/include/xrt_decl.h': '442badfd81330e9b9cb93b12ca1d1dd7000691a018b0a77372e5553bb024906b',
@@ -221,3 +222,5 @@ from native_current_unified_profile import COHORT as UNIFIED_COHORT, PINS as UNI
 PROFILES[UNIFIED_COHORT] = {**PROFILES['current-ed78373d'],**UNIFIED_PINS}
 from native_c_interop_profile import COHORT as C_INTEROP_COHORT, PINS as C_INTEROP_PINS
 PROFILES[C_INTEROP_COHORT] = C_INTEROP_PINS
+
+PROFILES[FINAL_COHORT]=dict(FINAL_PINS)

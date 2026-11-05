@@ -1,3 +1,5 @@
+from native_final_c_interop_profile import COHORT as FINAL_COHORT, PINS as FINAL_PINS
+from native_c_interop_profile import pins_for as final_active_pins
 """Release original Lemon AST stack values during error/final stack unwind.
 
 The pinned grammar gives every AST-valued nonterminal an explicit LHS alias.
@@ -22,7 +24,7 @@ def derive(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         'e2afa53003d34fd77de0f8fd44ec65499f8dab5ff1f971f653a5f7c32fa88f95':
             '9d82450476c4a1784f220177bfda545c34bb85878bf9203558aea23a31baefe0',
     }
-    profiles[C_INTEROP_PINS['src/parser/xl6_parser.c']]=C_INTEROP_PINS['src/parser/xl6_parser.y']
+    profiles[final_active_pins(frontend)['src/parser/xl6_parser.c']]=final_active_pins(frontend)['src/parser/xl6_parser.y']
     sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
     expected = sha(original)
     if expected not in profiles or sha(grammar) != profiles[expected]:
@@ -32,7 +34,9 @@ def derive(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     rules = grammar.read_text(encoding='utf8')
     assert '%default_type { XL6_AstNode* }' in rules
     c_interop=c_interop_selected(frontend)
-    ast_tag='yy230' if c_interop else 'yy270'
+    from native_final_c_interop_profile import selected as final_selected
+    final=final_selected(frontend)
+    ast_tag='yy454' if final else 'yy230' if c_interop else 'yy270'
     assert 'XL6_AstNode* '+ast_tag+';' in source
     overrides = dict(re.findall(r'%type\s+(\w+)\s*\{([^}]+)\}', rules))
     aliases = {}
@@ -56,7 +60,8 @@ def derive(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         assert overrides['extern_func_contract'].strip()=='XL6_PExternContract'
         assert 'extern_func_contract' not in owned
         assert re.findall(r'case\s+(\d+):',existing)==[str(symbols['extern_func_contract'])]
-        assert 'xl6AstFree((yypminor->yy166).attributes);' in existing
+        contract_tag='yy424' if final else 'yy166'
+        assert 'xl6AstFree((yypminor->'+contract_tag+').attributes);' in existing
         # Lemon's inline finalizer skips symbols below this bound. The new
         # explicit contract destructor changed it from0 to138; newly added
         # AST destructors include import_name/target132/133. Update the range
@@ -64,7 +69,7 @@ def derive(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         lo=min(symbols[name] for name in owned | {'extern_func_contract'})
         hi=max(symbols[name] for name in owned | {'extern_func_contract'})
         for name,value in (('YY_MIN_DSTRCTR',lo),('YY_MAX_DSTRCTR',hi)):
-            old='#define '+name+'       138'
+            old='#define '+name+'       '+('139' if final else '138')
             assert source.count(old)==1
             source=source.replace(old,'#define '+name+'       '+str(value),1)
     else:

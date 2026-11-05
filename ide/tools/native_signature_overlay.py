@@ -1,3 +1,5 @@
+from native_final_c_interop_profile import COHORT as FINAL_COHORT, PINS as FINAL_PINS
+from native_c_interop_profile import pins_for as final_active_pins
 """Audited parser/signature and scanner adapters for exact frontend profiles."""
 from pathlib import Path
 import hashlib
@@ -43,6 +45,7 @@ PROFILES['current-ed78373d'] = {**PROFILES['current-9192a99f'],
 PROFILES[UNIFIED_COHORT] = {**PROFILES['current-ed78373d'],
     'lib/xrt/xrt.h': UNIFIED_PINS['lib/xrt/xrt.h']}
 PROFILES[C_INTEROP_COHORT] = {key:C_INTEROP_PINS[key] for key in PROFILES['current-9192a99f']}
+PROFILES[FINAL_COHORT] = {key:FINAL_PINS[key] for key in PROFILES['current-9192a99f']}
 
 
 def profile(frontend: Path) -> dict[str, str]:
@@ -65,7 +68,7 @@ def parser(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         'a54d4f36062caddccab5c77070c655219e2e4fd531a5710e14ae3d524a62fd13':
             'bb389787227c49b2d4ae8155d6cb0aa65a5f9c20e8155271989e2b8f8e01bb10',
     }
-    profiles[C_INTEROP_PINS['src/parser/xl6_parser_api.c']]=C_INTEROP_PINS['src/parser/xl6_parser_api.h']
+    profiles[final_active_pins(frontend)['src/parser/xl6_parser_api.c']]=final_active_pins(frontend)['src/parser/xl6_parser_api.h']
     expected = sha(original)
     header = frontend / 'src/parser/xl6_parser_api.h'
     if expected not in profiles or sha(header) != profiles[expected]:
@@ -111,7 +114,7 @@ def lexer(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         'da5629614caad4e7afa6af3504555679c8e81f5ea20a1990865bf9bdd6d94a7f':
             '4d082dc3e0672dc34e76c17db1511262d15f344f47e5356ab697e823cb2d8f49',
     }
-    profiles[C_INTEROP_PINS['src/lexer/xl6_lexer_gen.c']]=C_INTEROP_PINS['src/lexer/xl6_literal_span.h']
+    profiles[final_active_pins(frontend)['src/lexer/xl6_lexer_gen.c']]=final_active_pins(frontend)['src/lexer/xl6_literal_span.h']
     expected = sha(original)
     if expected not in profiles:
         raise ValueError('shared scanner changed; audit buffer lifetime,resume and original position advance')

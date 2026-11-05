@@ -4,6 +4,8 @@ No compiler/SDK files are copied or changed. This target owns compiler XRT and
 must not be linked into the XGE-owned IDE. It does not replace the shipped LS.
 """
 from __future__ import annotations
+from native_final_c_interop_profile import COHORT as FINAL_COHORT, PINS as FINAL_PINS
+from native_c_interop_profile import pins_for as final_active_pins
 
 import argparse
 from native_raw_body_overlay import stdlib as derive_raw_stdlib,verify_domains
@@ -196,18 +198,19 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
     registry = frontend / 'src/sem/xl6_type_registry.c'
     registry_sha = 'a0c37403f28d8a29ac4589e1dd78344a0d5fa2c8051ba2ead0209b9e0a228583'
     if current: registry_sha = 'f8be2409dc6188091d831a68df657b64b6911d07b197736796d74ce2379260ba'
+    if c_interop: registry_sha = final_active_pins(frontend)['src/sem/xl6_type_registry.c']
     if sha(registry) != registry_sha:
         raise ValueError('shared type registry changed; audit generic identity reservation replay')
     registry_header = frontend / 'src/sem/xl6_type_registry.h'
     registry_header_sha = 'f5967cce13c1d6051cf0c5c716e422e2865c69c5fd3451b39cbad95e642cd8a3'
     if current: registry_header_sha = '27f0415459b060075b8e18a677e9c05d7460412ef5d908a86dc10d519f30ccd1'
-    if c_interop: registry_header_sha = C_INTEROP_PINS['src/sem/xl6_type_registry.h']
+    if c_interop: registry_header_sha = final_active_pins(frontend)['src/sem/xl6_type_registry.h']
     if sha(registry_header) != registry_header_sha:
         raise ValueError('shared type registry fields changed; audit complete observed type records')
     ast = frontend / 'src/ast/xl6_ast.c'
     ast_sha = 'adf07bc08b6e6949fe1bb6095e373d130df205535e9e2fa1662d2cc7b4c65035'
     if current: ast_sha = 'b8bbafaed7b469232b73f6256282607f4644eb605fb1aa7a636bf123143cf026'
-    if c_interop: ast_sha = C_INTEROP_PINS['src/ast/xl6_ast.c']
+    if c_interop: ast_sha = final_active_pins(frontend)['src/ast/xl6_ast.c']
     if sha(ast) != ast_sha:
         raise ValueError('shared AST source/range ownership changed; audit synthetic type origins')
     source = body.decode('utf-8').replace('\r\n', '\n')
@@ -449,7 +452,7 @@ def prepare_native_completion(frontend: Path, output: Path, namespaced: Path, *,
         # by the same standalone composer; its output must be byte-exact.
         _,verified,_=completion_source(frontend)
         if current_emitter:
-            digest=C_INTEROP_PINS['src/sem/xl6_completion.c'] if c_interop else 'd56f80b8b3ca93e9ec4009a56ee9235a86b66674f2c2ea174a0f5db36fdef2bf'
+            digest=final_active_pins(frontend)['src/sem/xl6_completion.c'] if c_interop else 'd56f80b8b3ca93e9ec4009a56ee9235a86b66674f2c2ea174a0f5db36fdef2bf'
             namespace_sha='5c7a7cd4c89938549d2a3da6a19621a7ba89ee875855def5b955c384da594bac'
         if hashlib.sha256(verified.encode('utf8')).hexdigest()!=namespace_sha:
             raise ValueError('completion namespace composition changed; audit')
@@ -741,7 +744,7 @@ def main() -> None:
         runtime_overlay = derive_process_runtime(frontend / 'lib/xrt/xrt.h', output / 'native_xrt/xrt.h')
     except ValueError as error:
         parser.error(str(error))
-    if not args.skip_tests and ir_overlay.get('irDependencyCohort') in ('current-ed78373d',UNIFIED_COHORT,C_INTEROP_COHORT):
+    if not args.skip_tests and ir_overlay.get('irDependencyCohort') in ('current-ed78373d',UNIFIED_COHORT,C_INTEROP_COHORT,FINAL_COHORT):
         # Original backend builds populated targets for the provider verifier
         # fixture only; the analysis service still uses its existing raw IR.
         sources.append((frontend/'src/ir/xl6_ir_lower.c',False))
@@ -779,9 +782,10 @@ def main() -> None:
     # Debug keeps the diagnostic allocator. This does not change analysis or
     # source/provenance validation and does not touch the XGE-owned GUI runtime.
     common += ["-O2", "-DXRT_EXCLUDE_MEMORY_DEBUG="] if args.configuration == "Release" else ["-O0", "-g"]
-    if ir_overlay.get('irDependencyCohort') in ('current-ed78373d',UNIFIED_COHORT,C_INTEROP_COHORT):common+=['-DXLS_NATIVE_IR_PROVIDER_FIELDS=1']
-    if ir_overlay.get('irDependencyCohort')==C_INTEROP_COHORT:common+=['-DXLS_NATIVE_IR_FOREIGN_FIELDS=1']
+    if ir_overlay.get('irDependencyCohort') in ('current-ed78373d',UNIFIED_COHORT,C_INTEROP_COHORT,FINAL_COHORT):common+=['-DXLS_NATIVE_IR_PROVIDER_FIELDS=1']
+    if ir_overlay.get('irDependencyCohort') in (C_INTEROP_COHORT,FINAL_COHORT):common+=['-DXLS_NATIVE_IR_FOREIGN_FIELDS=1']
     if async_corpus(frontend):common+=['-DXLS_NATIVE_ASYNC_RESULTS=1']
+    if frontend_materials.get('cohort')==FINAL_COHORT:common+=['-DXLS_NATIVE_FINAL_INTEROP=1']
     index_budget_flag = "-DXL6_INDEX_BYTES=" + str(NATIVE_INDEX_BYTES) + "u"
     common += [index_budget_flag]
     common += args.cflag
@@ -849,6 +853,12 @@ def main() -> None:
 
     def unit_flags(source: Path, owned: bool) -> list[str]:
         flags = common + (strict if owned else shared)
+        # Relocated native TUs keep their original quote-include directory.
+        # This is independent of source semantics and preserves local .inc
+        # lookup without copying another set into the generated directory.
+        for row in source_overlays:
+            if row.get('compiledSource')==str(source) and row.get('source'):
+                flags += ['-iquote',str(Path(row['source']).parent)]
         if source==ide/'tests/analysis_unified_semantic_test.c':
             flags+=['-DXLS_UNIFIED_CASES_DIRECTORY="'+(output/'unified-fixtures').as_posix()+'"','-I'+str(output/'unified-fixtures')]
         if source in loader_references:flags+=['-include',str(loader_aliases)]
@@ -910,7 +920,7 @@ def main() -> None:
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
             if name == "analysis_source_text_test":extra.append("-Wl,--wrap=xlsInputBatchAt")
             if name == "analysis_ast_replacement_test":extra.append("-Wl,--wrap=xrtPoolFree")
-            if name=='analysis_current_provider_test' and ir_overlay.get('irDependencyCohort') in ('current-ed78373d',UNIFIED_COHORT,C_INTEROP_COHORT):extra+=[str(objects['xl6_ir_lower'])]
+            if name=='analysis_current_provider_test' and ir_overlay.get('irDependencyCohort') in ('current-ed78373d',UNIFIED_COHORT,C_INTEROP_COHORT,FINAL_COHORT):extra+=[str(objects['xl6_ir_lower'])]
             if name=='analysis_current_loader_test' and loader_references:
                 extra += [str(objects[p.stem]) for p in loader_references]+['-Wl,--wrap=xrtMalloc']
             if name=='analysis_ir_callsite_test':extra+=['-Wl,--wrap=xrtArrayReserve','-Wl,--wrap=xrtArrayResize']

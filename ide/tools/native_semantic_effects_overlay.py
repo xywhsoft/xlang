@@ -33,7 +33,7 @@ def derive(frontend:Path,output:Path,source:str):
         if body.count(before)!=1:raise ValueError('shared C-owned mutation seam changed')
         body=body.replace(before,after)
     async_seams=0
-    if revision(frontend)=='async-results-20261103':
+    if revision(frontend) in ('async-results-20261103','final-c-interop-20261105'):
         one=function(body,'xl6SemCOwnedAsyncResultMethodOne')
         observed=one.replace('{','{\n    xlsSemFunctionMutation(ctx);',1)
         before='    if(!xl6SemAssignEntitySymbolIds(ctx,copy))'

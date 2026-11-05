@@ -5,6 +5,7 @@ Every consuming adapter must validate the full pins and its own ownership,
 mutation and serializer seams. Existing cohorts remain unchanged.
 """
 from pathlib import Path
+import native_final_c_interop_profile as final_profile
 import hashlib
 
 COHORT = 'current-c-interop-20261102'
@@ -398,6 +399,7 @@ def sha(path):
 
 
 def pins_for(frontend: Path):
+    if final_profile.selected(frontend):return final_profile.PINS
     # EOL counterparts select a candidate only. Preparation/profile admission
     # still requires EVERY file to reproduce its exact registered digest.
     path=frontend/'src/sem/xl6_sem.c'
@@ -410,14 +412,15 @@ def pins_for(frontend: Path):
 
 
 def revision(frontend: Path):
-    return 'async-results-20261103' if pins_for(frontend) is not PINS else 'foreign-calls-20261102'
+    return final_profile.COHORT if final_profile.selected(frontend) else 'async-results-20261103' if pins_for(frontend) is not PINS else 'foreign-calls-20261102'
 
 
 def async_corpus(frontend: Path):
-    return ASYNC_RESULT_CORPUS if revision(frontend)=='async-results-20261103' else ()
+    return ASYNC_RESULT_CORPUS if revision(frontend) in ('async-results-20261103',final_profile.COHORT) else ()
 
 
 def selected(frontend: Path):
+    if final_profile.selected(frontend):return True
     # Runtime alone also names the earlier unified cohort. Never select this
     # AST/IR schema from the common XRT digest alone.
     return all((frontend/rel).is_file() and sha(frontend/rel)==PINS[rel]

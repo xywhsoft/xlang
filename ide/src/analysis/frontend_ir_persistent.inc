@@ -71,6 +71,9 @@ static int xlsIrPersistentPositions(XL6_IrModule* module,const XL6_AstNode* node
 }
 static int xlsIrPersistentCapture(xls_ir_result* result,const XL6_AstNode* root,xls_ir_persistent_keys* key,size_t limit,int record)
 {
+#ifdef XLS_NATIVE_FINAL_INTEROP
+    if(!xlsFinalIrTablesEmpty(&result->module) || xlsFinalIrForeignAst(root,0))return 0;
+#endif
     /* Lowered instructions have their own sourceSpan mapping and are outside
      * this typed-AST owner. Never reuse their coordinates without that proof. */
     if(!key->size || !result->module.ready || result->module.instructionCount || result->persistent ||
@@ -142,6 +145,9 @@ failed:xlsFrontendIrMemoDestroy(memo);return NULL;
 }
 static xls_ir_result* xlsIrPersistentClone(const xls_ir_result* previous,const XL6_AstNode* root,size_t rawBytes,size_t limit)
 {
+#ifdef XLS_NATIVE_FINAL_INTEROP
+    if((previous && !xlsFinalIrTablesEmpty(&previous->module)) || xlsFinalIrForeignAst(root,0))return NULL;
+#endif
     xls_ir_persistent_storage* storage=xlsIrPersistentReady(previous);
     if(!storage || storage->metadataBytes>limit || previous->module.nodeCount>SIZE_MAX/sizeof(XL6_IrNode))return NULL;
     xls_ir_result* result=xrtCalloc(1,sizeof(*result));if(!result)return NULL;

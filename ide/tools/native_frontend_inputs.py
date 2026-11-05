@@ -44,6 +44,8 @@ def recover(data,relative,pins=None):
 
 def prepare(frontend: Path, destination: Path):
     frontend=frontend.resolve(strict=True)
+    import native_final_c_interop_profile as final_profile
+    if final_profile.selected(frontend):return final_profile.prepare(frontend,destination)
     pins=pins_for(frontend)
     metadata=dict(status='unchanged-other-cohort',sourceRoot=str(frontend),
                   frontendRoot=str(frontend),originalInputs={},transformations=[])
