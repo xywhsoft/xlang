@@ -243,6 +243,20 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     XL_ADD_TCC_API_SYMBOL(user, tcc_get_symbol, "tcc_get_symbol");
     XL_ADD_TCC_API_SYMBOL(user, tcc_list_symbols, "tcc_list_symbols");
     XL_ADD_TCC_API_SYMBOL(user, tcc_set_backtrace_func, "tcc_set_backtrace_func");
+    /* Optional addresses belong to the actual loaded provider. Do not require
+     * VFS extensions from vanilla libtcc or register a NULL call target. */
+#define XL_ADD_OPTIONAL_TCC_VFS(member) do { \
+    if (xl__tcc.member && !visit(user, #member, (const void*)xl__tcc.member)) return 0; \
+} while (0)
+    XL_ADD_OPTIONAL_TCC_VFS(tcc_vfs_open);
+    XL_ADD_OPTIONAL_TCC_VFS(tcc_vfs_close);
+    XL_ADD_OPTIONAL_TCC_VFS(tcc_vfs_read);
+    XL_ADD_OPTIONAL_TCC_VFS(tcc_vfs_lseek);
+    XL_ADD_OPTIONAL_TCC_VFS(tcc_vfs_fopen);
+    XL_ADD_OPTIONAL_TCC_VFS(tcc_vfs_fclose);
+    XL_ADD_OPTIONAL_TCC_VFS(tcc_vfs_mount_memory);
+    XL_ADD_OPTIONAL_TCC_VFS(tcc_vfs_clear_dynamic);
+#undef XL_ADD_OPTIONAL_TCC_VFS
     if ( !visit(user, "xlGetVersionString", (const void*)xlGetVersionString) ||
          !visit(user, "xlGetVersionCode", (const void*)xlGetVersionCode) ||
          !visit(user, "xlDefaultContextOptions", (const void*)xlDefaultContextOptions) ||
@@ -857,18 +871,6 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     }
 #endif
 
-#ifdef XL_STATIC_TCC_VFS
-    if ( !visit(user, "tcc_vfs_open", (const void*)tcc_vfs_open) ||
-         !visit(user, "tcc_vfs_close", (const void*)tcc_vfs_close) ||
-         !visit(user, "tcc_vfs_read", (const void*)tcc_vfs_read) ||
-         !visit(user, "tcc_vfs_lseek", (const void*)tcc_vfs_lseek) ||
-         !visit(user, "tcc_vfs_fopen", (const void*)tcc_vfs_fopen) ||
-         !visit(user, "tcc_vfs_fclose", (const void*)tcc_vfs_fclose) ||
-         !visit(user, "tcc_vfs_mount_memory", (const void*)tcc_vfs_mount_memory) ||
-         !visit(user, "tcc_vfs_clear_dynamic", (const void*)tcc_vfs_clear_dynamic) ) {
-        return 0;
-    }
-#endif
     return 1;
 }
 

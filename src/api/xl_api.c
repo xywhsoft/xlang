@@ -870,6 +870,16 @@ static int xlLoadStaticTcc(XL_Context* ctx)
     loaded.tcc_get_symbol = tcc_get_symbol;
     loaded.tcc_list_symbols = tcc_list_symbols;
     loaded.tcc_set_backtrace_func = tcc_set_backtrace_func;
+#ifdef XL_STATIC_TCC_VFS
+    loaded.tcc_vfs_open = tcc_vfs_open;
+    loaded.tcc_vfs_close = tcc_vfs_close;
+    loaded.tcc_vfs_read = tcc_vfs_read;
+    loaded.tcc_vfs_lseek = tcc_vfs_lseek;
+    loaded.tcc_vfs_fopen = tcc_vfs_fopen;
+    loaded.tcc_vfs_fclose = tcc_vfs_fclose;
+    loaded.tcc_vfs_mount_memory = tcc_vfs_mount_memory;
+    loaded.tcc_vfs_clear_dynamic = tcc_vfs_clear_dynamic;
+#endif
     loaded.path = xlDupText("<static libtcc>");
     if ( loaded.path == NULL ) {
         xlSetError(ctx, "cannot remember static libtcc path");
@@ -934,6 +944,14 @@ static int xlLoadTccFromPath(XL_Context* ctx, const char* path)
     loaded.tcc_get_symbol = (XL_TccGetSymbolProc)xlLoadProc(&loaded, "tcc_get_symbol");
     loaded.tcc_list_symbols = (XL_TccListSymbolsProc)xlLoadProc(&loaded, "tcc_list_symbols");
     loaded.tcc_set_backtrace_func = (XL_TccSetBacktraceFuncProc)xlLoadProc(&loaded, "tcc_set_backtrace_func");
+    loaded.tcc_vfs_open = (XL_TccVfsOpenProc)xlLoadProc(&loaded, "tcc_vfs_open");
+    loaded.tcc_vfs_close = (XL_TccVfsCloseProc)xlLoadProc(&loaded, "tcc_vfs_close");
+    loaded.tcc_vfs_read = (XL_TccVfsReadProc)xlLoadProc(&loaded, "tcc_vfs_read");
+    loaded.tcc_vfs_lseek = (XL_TccVfsLseekProc)xlLoadProc(&loaded, "tcc_vfs_lseek");
+    loaded.tcc_vfs_fopen = (XL_TccVfsFopenProc)xlLoadProc(&loaded, "tcc_vfs_fopen");
+    loaded.tcc_vfs_fclose = (XL_TccVfsFcloseProc)xlLoadProc(&loaded, "tcc_vfs_fclose");
+    loaded.tcc_vfs_mount_memory = (XL_TccVfsMountMemoryProc)xlLoadProc(&loaded, "tcc_vfs_mount_memory");
+    loaded.tcc_vfs_clear_dynamic = (XL_TccVfsClearDynamicProc)xlLoadProc(&loaded, "tcc_vfs_clear_dynamic");
 
     if ( loaded.tcc_new == NULL || loaded.tcc_delete == NULL || loaded.tcc_set_lib_path == NULL ||
          loaded.tcc_set_error_func == NULL || loaded.tcc_add_include_path == NULL ||
