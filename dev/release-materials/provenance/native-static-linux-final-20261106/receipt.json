@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "scope": "Linux matched SourceDriver/full-TCC-VFS integration only. Fresh1564 O2 GCC sectioned targets; honest six-body then two-body successors; immutable path/hash inheritance with schema2 validation. No shipping production DLL/CLI rebuild or release publication in this evidence.",
+  "passed": true,
+  "reports": [
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r1\\final-manifest.json",
+      "archivePath": "final-manifest.json",
+      "sha256": "1f60c939efc36c95651034d64a94219340d47b2fed280ccfe8f93597db5148fa"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r1\\finalProvider.json",
+      "archivePath": "finalProvider.json",
+      "sha256": "b0b08ae66275305adddbcbe2a0f7c570648135ce30c96628d200e794d4e08162"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r1\\finalSchema2.json",
+      "archivePath": "finalSchema2.json",
+      "sha256": "a39d21c5d86a5f761f6e84395b1074eeffc3e82b24bd5b96e77202760cde34ae"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r1\\fresh1564.json",
+      "archivePath": "fresh1564.json",
+      "sha256": "1eda5c4a4587ecd4077668b91b577992548b6d30cfe961898e74cf4ac7b44769"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r1\\mixed6.json",
+      "archivePath": "mixed6.json",
+      "sha256": "78730595e0830a5ef0c0ccd4a0fc558b0f6814077f8ab35ffb04c70e798de739"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r1\\mixed6Schema2.json",
+      "archivePath": "mixed6Schema2.json",
+      "sha256": "fe7710b85302bd9132a2f0d57e488a43ed109f6600ce1cf973a003e8d42913f6"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r1\\receipt.json",
+      "archivePath": "receipt.json",
+      "sha256": "4b58280f3daaaf96689383db2a574775c4e98b95e66898268a56dbe61645079c"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r1\\six-manifest.json",
+      "archivePath": "six-manifest.json",
+      "sha256": "be735fbaf02d12ed6ede8af79d6e41040c47fa6234a8ed90a4e2a1968cb598ae"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r1\\sourcefree40.json",
+      "archivePath": "sourcefree40.json",
+      "sha256": "75910a29f167fce7e97f98f345a9297df018730da2a3958ef4488a2922df9434"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r1\\staticXge6.json",
+      "archivePath": "staticXge6.json",
+      "sha256": "09c323c7ca6145cae897a832815be176fbc879aa949c043f01b7ab1272b8314f"
+    }
+  ],
+  "archiveSha256": "8d757ebb7e409d24d7e26a2a5acb6839c0a81f9461b69154e23685a94faf4f2a",
+  "sourceFreeRows": 40,
+  "sourceFreeRowsRerunAfterCopyFix": false,
+  "sourceFreeInheritance": "API/Core and all target runtime objects unchanged; only two serialized linker-body objects changed after source-free acceptance",
+  "staticXgeRows": 6,
+  "shippingDelivery": false,
+  "productionLinuxDllRebuilt": false
+}
