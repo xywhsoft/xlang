@@ -75,7 +75,8 @@ def main():
         actual_driver=next((row for row in description.get('Objects',[])if row.get('ParentObject')==driver_rows[0]['Path']),driver_rows[0])
         driver_source=Path(actual_driver['Source'])
         expected_driver=selected['cohort']/'test/cases/xlir_public_source_driver.c'
-        assert driver_source.name==expected_driver.name and sha(driver_source)==sha(expected_driver)
+        assert driver_source.name==expected_driver.name
+        assert driver_source.read_bytes().replace(b'\r\n',b'\n')==expected_driver.read_bytes().replace(b'\r\n',b'\n'),'Stock driver source differs beyond canonical LF'
     manifest=json.loads((precompiled/'manifest.json').read_text())
     assert manifest['target']=='win64'
     assert manifest['sources']==source_fingerprint(root),'Precompiled objects mismatch VFS source inputs'
@@ -151,8 +152,15 @@ def main():
         scope='Stock SourceDriver fixes the API DLL to adjacent xlc.dll; this is not a guarantee for arbitrary custom tccDllPath/provider swapping')
     if a.match_provider_imports:
         binding['source']=str(driver_source);binding['sourceSha256']=sha(driver_source)
+        binding['cohortSource']=str(expected_driver);binding['cohortSourceSha256']=sha(expected_driver)
+        binding['canonicalLFSame']=True
     report['providerImportBinding']=binding
-    shutil.copytree(base/'include',out/'include')
+    # The compiler successor may carry new private/runtime headers and included
+    # frontend fragments absent from its older full parent. Stage the actual
+    # selected SDK, then refresh source-backed aliases from the frozen tree.
+    selected_headers=Path(description.get('RuntimeHeaders',base/'include')) if a.overlay else base/'include'
+    assert selected_headers.is_dir(),selected_headers
+    shutil.copytree(selected_headers,out/'include')
     staged=copy.deepcopy(description)
     staged.update(Driver=str(out/'public_source.exe'),DriverSha256=sha(out/'public_source.exe'),
         RuntimeLibrary=str(out/selected['runtime'].name),RuntimeLibrarySha256=sha(out/selected['runtime'].name),
@@ -164,20 +172,39 @@ def main():
     if a.match_provider_imports:
         staged['linkResponse']=str(out/'driver-provider-relink.rsp')
         staged['linkResponseSha256']=sha(out/'driver-provider-relink.rsp')
-    staged['Headers']=copy.deepcopy(original['Headers'])
+    staged['Headers']=copy.deepcopy(description.get('Headers',original['Headers']))
+    alias_families={}
     for row in staged['Headers']:
         path=Path(row['Path'])
         if a.overlay:
             source=Path(row['Source'])
             if source.is_relative_to(parent['cohort']):source=selected['cohort']/source.relative_to(parent['cohort'])
             assert source.is_file(),source
-            assert path.is_relative_to(base/'include'),path
-            shutil.copy2(source,out/'include'/path.relative_to(base/'include'))
+            relative=next((path.relative_to(folder) for folder in (selected_headers,base/'include') if path.is_relative_to(folder)),None)
+            assert relative is not None,path
+            shutil.copy2(source,out/'include'/relative)
             row.update(Source=str(source),Sha256=sha(source))
+            row['Path']=str(out/'include'/relative)
+            alias_families.setdefault((source.parent,relative.parent),set()).add(source.suffix)
             inputs[str(source)]=sha(source)
         if path.is_relative_to(base/'include'):
             row['Path']=str(out/'include'/path.relative_to(base/'include'))
             assert sha(row['Path']).lower()==row['Sha256'].lower()
+    if a.overlay:
+        recorded={Path(row['Path']).resolve() for row in staged['Headers']}
+        for (folder,relative),suffixes in alias_families.items():
+            for source in sorted(folder.iterdir()):
+                target=out/'include'/relative/source.name
+                if not source.is_file() or source.suffix not in suffixes or target.resolve() in recorded:continue
+                shutil.copy2(source,target);inputs[str(source)]=sha(source);recorded.add(target.resolve())
+                staged['Headers'].append(dict(Source=str(source),Path=str(target),Sha256=sha(source)))
+        # New resident headers are guaranteed even when no predecessor alias
+        # family existed for them. Never manufacture old flat release aliases.
+        runtime_alias=out/'include/__xl_runtime';runtime_alias.mkdir(exist_ok=True)
+        for source in sorted((selected['cohort']/'src/runtime').glob('*.h')):
+            target=runtime_alias/source.name;shutil.copy2(source,target);inputs[str(source)]=sha(source)
+            if target.resolve() not in recorded:
+                recorded.add(target.resolve());staged['Headers'].append(dict(Source=str(source),Path=str(target),Sha256=sha(source)))
     if a.overlay:
         staged.update(fullRebuild=False,complete=True,passed=True,
             ParentCompilerOverlay=str(a.overlay.resolve()),ParentCompilerOverlaySha256=sha(a.overlay),

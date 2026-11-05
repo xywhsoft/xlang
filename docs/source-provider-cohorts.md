@@ -60,3 +60,28 @@ adds its declared native test sidecar; this is not a compiler-source fallback.
 with VFS disabled. `check_tcc_provider_loaded_libraries.py` checks actual selected
 provider load/unload references. A TCC state must be created, relocated and
 destroyed by the same provider instance, including native-handle finalizers.
+
+An authoritative source candidate can be assembled with
+`assemble_source_candidate.py` from exact tracked Git blobs and explicit
+material allowlists. It excludes Python caches and validation outputs. Git
+archive attribute conversion is checked against each blob and corrected to
+the authoritative bytes. `build_source_candidate.py` compares the actual
+parent sources, flags, compiler and include closure, producing an explicit
+rebuild/reuse plan. Additive-header inheritance requires separately pinned
+old/new qualification and a forbidden-reference audit; it is never inferred
+from unchanged source alone.
+
+The Linux stager uses an explicit native configuration and current
+`release/linux_x64` provider path. It includes additional runtime objects from
+the overlay and derives only the diagnostic driver's platform-provider path.
+An interrupted stage whose precompile/catalog/provider steps completed may
+be resumed into a new directory with `--reuse-provider-stage` and the exact
+archived `--prior-tool`. This verifies prior inputs, target objects, resource
+stamps and logs, preserving the original failed report and avoiding a second
+precompile. Normal cache hit/rebuild counts remain those actually observed.
+
+SourceDriver profiles are distinct from production `XL_BUILD_DLL` profiles.
+Their object reuse proves only the original flags. Production images require
+their actual static-TCC factory/destructor profile, with independent build and
+CPU acceptance evidence. Provider verification never updates active release
+files or the delivery index.

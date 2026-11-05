@@ -43,6 +43,16 @@ def main():
     second.write_text('import xlang\nauto context=xlang.Context()\nassert context.run('
         +json.dumps(middle)+'), context.lastError\nprintln("double nested compiler: PASS")\n',encoding='utf-8')
     cases.append(second);inputs[str(second)]=sha(second)
+    sidecars={}
+    for name in ('foreign_output_record_size.xl',):
+        fixture=root/'test/cases'/name
+        native=root/'test/cases'/(fixture.stem+'_native.c')
+        header=root/'test/cases'/(fixture.stem+'.h')
+        local=out/fixture.name;sidecar=out/native.name;target=headers/'test/cases'/header.name
+        target.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copy2(fixture,local);shutil.copy2(native,sidecar);shutil.copy2(header,target)
+        cases.append(local);sidecars[local.name]=[sidecar]
+        inputs.update((str(path),sha(path)) for path in (fixture,native,header))
     work=out/'empty-work';work.mkdir();(work/'build/test').mkdir(parents=True)
     relocated=out/'relocated';relocated.mkdir();(relocated/'build/test').mkdir(parents=True)
     env={key:value for key,value in os.environ.items() if not key.startswith('XL6_') and key not in
@@ -51,7 +61,8 @@ def main():
         LD_LIBRARY_PATH=str(selected['runtime'].parent),TMPDIR=str(out),TEMP=str(out),TMP=str(out))
     report=dict(scope=__doc__,complete=False,passed=False,inputs=inputs,rows=[],sourceFreeSdk=True,shippingAccepted=False,
         compilerBuild=selected['buildManifest'],compilerOverlay=selected['overlay'],fullSourceRebuild=selected['fullSourceRebuild'],
-        providerDirectory=str(public),providerObjectsRebuiltByThisGate=False)
+        providerDirectory=str(public),providerObjectsRebuiltByThisGate=False,
+        nativeTestSidecars=[str(path) for values in sidecars.values() for path in values])
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n')
     def run(name,command,cwd=work):
         start=time.monotonic();r=subprocess.run(list(map(str,command)),cwd=cwd,env=env,capture_output=True,timeout=360)
@@ -64,7 +75,7 @@ def main():
         if local!=case:shutil.copy2(case,local)
         for mode in ('run','module','exe'):
             output=out/(case.stem+'-'+mode)
-            ok,_=run(case.stem+'-'+mode,[driver,local,mode,output])
+            ok,_=run(case.stem+'-'+mode,[driver,local,mode,output,*sidecars.get(local.name,[])])
             if ok and mode=='exe':
                 _,dependencies=run(case.stem+'-dependencies',['readelf','-d',output]);dependencies=dependencies.decode()
                 assert not any(name in dependencies for name in ('libxlc.so','libxl.so','libtcc.so'))
