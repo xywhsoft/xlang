@@ -1,0 +1,22 @@
+import xui
+from xui import MsgBox as RetainedMsgBox
+extern "binding_manager_cycle_observe" @header("test/cases/foreign_xge3_binding_manager_cycle.h") @no_raise @c_result("status",0) func observeManager(xui.MsgBox manager)
+xui.MsgBox? retainedManager
+func main(...) as int
+ if retainedManager!=null
+  auto manager=retainedManager as RetainedMsgBox
+  assert (manager.title() as string)=="manager cycle"
+  return 0
+ end
+ auto proxy=xui.createProxy()
+ auto context=xui.create(proxy)
+ auto manager=xui.createMsgBox(context,"manager cycle","native unique directory")
+ manager.setResult(func(xui.CallbackMsgBox source,c_int code)
+  auto size=context.getViewportSize()
+  assert size.iW>=0
+  assert (manager.title() as string)=="manager cycle"
+ end)
+ observeManager(manager)
+ retainedManager=manager
+ return 0
+end

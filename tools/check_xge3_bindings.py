@@ -16,12 +16,51 @@ GEN=c_generator.CGenerator() if c_generator else None
 def clean(text):
     return re.sub(r'/\*.*?\*/|//[^\n]*',lambda m:'\n'*m.group().count('\n'),text,flags=re.S)
 def split(text,delimiter=','):
-    out=[];start=0;depth=0
+    out=[];start=0;depth=0;quote=None;escaped=False
     for i,c in enumerate(text):
-        if c in '([{':depth+=1
+        if escaped:escaped=False;continue
+        if quote:
+            if c=='\\':escaped=True
+            elif c==quote:quote=None
+            continue
+        if c in ('"',"'"):quote=c
+        elif c in '([{':depth+=1
         elif c in ')]}':depth-=1
         elif c==delimiter and not depth:out.append(text[start:i].strip());start=i+1
     out.append(text[start:].strip());return [x for x in out if x]
+
+def foreign_method_declaration(line):
+    """Read one declaration without dropping nested defaults/function types."""
+    native=re.match(r'\s*(?:export )?extern "([^"]+)"',line)
+    if not native:return None
+    quote=None;escaped=False;method=None
+    for i in range(native.end(),len(line)):
+        c=line[i]
+        if escaped:escaped=False;continue
+        if quote:
+            if c=='\\':escaped=True
+            elif c==quote:quote=None
+            continue
+        if c in ('"',"'"):quote=c;continue
+        method=re.match(r'(func|get|let)\s+(\w+)\(',line[i:])
+        if method:break
+    if not method:return None
+    start=i+method.end();depth=1;quote=None;escaped=False
+    for end in range(start,len(line)):
+        c=line[end]
+        if escaped:escaped=False;continue
+        if quote:
+            if c=='\\':escaped=True
+            elif c==quote:quote=None
+            continue
+        if c in ('"',"'"):quote=c
+        elif c=='(':depth+=1
+        elif c==')':
+            depth-=1
+            if not depth:break
+    if depth or (line[end+1:].strip() and not line[end+1:].strip().startswith('as ')):
+        raise ValueError('unclosed foreign method declaration: '+line)
+    return native[1],method[1],method[2],line[start:end]
 
 def macro_definitions(text):
     """Retain complete replacement lists, including backslash continuations."""
@@ -83,7 +122,7 @@ def type_json(node):
     if isinstance(node,c_ast.Enum):return dict(kind='enum',tag=node.name,values=None if node.values is None else [dict(name=x.name,expression=GEN.visit(x.value) if x.value else None) for x in node.values.enumerators])
     raise ValueError(type(node).__name__)
 
-def header_inventory(path):
+def header_inventory(path,external_types=()):
     assert c_parser,'API inventory requires pycparser; acceptance does not'
     header_bytes=path.read_bytes()
     original=header_bytes.decode('utf-8-sig').replace('\r\n','\n');text=clean(original)
@@ -99,7 +138,7 @@ def header_inventory(path):
         conditions[line]=[x for x in stack if re.search(r'X(?:GE|UI)_(?:ENABLE|HAS)_',x)]
     type_text=re.sub(r'^[ \t]*#(?:[^\n\\]|\\\n)*\n',lambda m:'\n'*m.group().count('\n'),text,flags=re.M)
     td=typedefs(type_text)
-    names=set()
+    names=set(external_types)
     for _,raw in td:
         cb=re.search(r'\(\s*\*\s*(\w+)\s*\)',raw)
         last=re.search(r'\b(\w+)\s*(?:\[[^\]]*\])?\s*;\s*$',raw)
@@ -110,7 +149,7 @@ def header_inventory(path):
     parser=c_parser.CParser();types=[];errors=[]
     for pos,raw in td:
         symbols=set(re.findall(r'\b[A-Za-z_]\w*\b',raw))
-        known={x for x in symbols if x in names or re.match(r'(?:u?int\d+_t|size_t|wchar_t|va_list|bool|xtime|xvalue|xstrview|xbytesview|xatomic\d+|xrt\w+)$',x)}
+        known={x for x in symbols if x in names or re.match(r'(?:u?int\d+_t|size_t|wchar_t|va_list|bool|xtime|xvalue|xerror|xstrview|xbytesview|xatomic\d+|xrt\w+)$',x)}
         pre='\n'.join('typedef int '+x+';' for x in known)
         try:
             tree=parser.parse(pre+'\n'+raw)
@@ -128,7 +167,7 @@ def header_inventory(path):
             elif declarations[end]=='}':depth-=1
             end+=1
         raw=declarations[match.start():end]+';'
-        known=(set(re.findall(r'\b[A-Za-z_]\w*\b',raw)) & names) | {'size_t','uintptr_t','intptr_t','bool','uint8_t','uint16_t','uint32_t','uint64_t','int8_t','int16_t','int32_t','int64_t','xtime','xstrview','xvalue'}
+        known=(set(re.findall(r'\b[A-Za-z_]\w*\b',raw)) & names) | {'size_t','uintptr_t','intptr_t','bool','uint8_t','uint16_t','uint32_t','uint64_t','int8_t','int16_t','int32_t','int64_t','xtime','xstrview','xvalue','xerror'}
         try:
             tree=parser.parse('\n'.join('typedef int '+n+';' for n in known)+'\n'+raw)
             definitions[(match[1],match[2])]=type_json(tree.ext[-1].type)
@@ -147,6 +186,14 @@ def header_inventory(path):
         try:
             line=text.count('\n',0,m.start())+1
             d=parser.parse(pre+'\n'+raw+';').ext[-1];functions.append(dict(name=name,line=line,conditions=conditions.get(line,[]),declaration=' '.join(raw.split()),type=type_json(d.type),state='requires-contract-review'))
+        except Exception as error:errors.append(dict(declaration=' '.join(raw.split()),error=str(error)))
+    enums=[];enum_constants=[]
+    for match in re.finditer(r'(?m)^[ \t]*enum\s+([A-Za-z_]\w*)?\s*\{[^{}]*\}\s*;',declarations):
+        raw=match.group();line=declarations.count('\n',0,match.start())+1
+        try:
+            definition=type_json(parser.parse(raw).ext[-1].type)
+            enums.append(dict(name=match[1],line=line,conditions=conditions.get(line,[]),declaration=' '.join(raw.split()),type=definition))
+            enum_constants.extend(dict(name=value['name'],expression=value['expression'],enum=match[1],line=line,conditions=conditions.get(line,[])) for value in definition['values'])
         except Exception as error:errors.append(dict(declaration=' '.join(raw.split()),error=str(error)))
     constants=[];function_macros=[]
     for name,line,replacement in macro_definitions(original):
@@ -167,11 +214,24 @@ def header_inventory(path):
                 seen.add(alias);callback=alias;target=aliases[alias]
             if target.get('kind')=='pointer' and target['to'].get('kind')=='function':
                 callable_fields.append(dict(record=record['name'],member=member['name'],callbackTypedef=callback,signature=target['to'],globalSymbol=False,state='requires-callable-field-and-lifetime-contract'))
-    return dict(header=str(path),sha256=hashlib.sha256(header_bytes).hexdigest(),functions=functions,types=types,constants=constants,functionMacros=function_macros,callableFields=callable_fields,parseErrors=errors)
+    return dict(header=str(path),sha256=hashlib.sha256(header_bytes).hexdigest(),functions=functions,types=types,constants=constants,enums=enums,enumConstants=enum_constants,functionMacros=function_macros,callableFields=callable_fields,parseErrors=errors)
 
 def inventory(root,out):
     result=dict(schema=1,scope=__doc__,headers=[header_inventory(root/'include'/name) for name in ('xge.h','xui.h')])
-    result['counts']={k:sum(len(h[k]) for h in result['headers']) for k in ('functions','types','constants','functionMacros','callableFields','parseErrors')}
+    result['counts']={k:sum(len(h[k]) for h in result['headers']) for k in ('functions','types','constants','enums','enumConstants','functionMacros','callableFields','parseErrors')}
+    # These are independent public headers, not reverse-included by xui.h.
+    # Keep them explicit instead of silently counting the primary two headers
+    # as the entire include/ surface. They are not auto-generated as caller
+    # resources: each owning Document/Renderer handle needs a real contract.
+    known={t['name'] for h in result['headers'] for t in h['types']}
+    result['supplementaryHeaders']=[]
+    for name in ('xui_document.h','xui_document_ui.h'):
+        path=root/'include'/name
+        if not path.exists():continue
+        row=header_inventory(path,known);result['supplementaryHeaders'].append(row)
+        known.update(t['name'] for t in row['types'])
+    result['supplementaryCounts']={k:sum(len(h[k]) for h in result['supplementaryHeaders']) for k in result['counts']}
+    result['combinedCounts']={k:result['counts'][k]+result['supplementaryCounts'][k] for k in result['counts']}
     out.parent.mkdir(parents=True,exist_ok=True);out.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     print(json.dumps(result['counts']));return result
 
@@ -223,7 +283,8 @@ def is_build_macro(name):
 def generate(root,data):
     reserved=set(re.findall(r'\{\"([A-Za-z_]\w*)\", XL6_KW_', (root/'src/lexer/xl6_lexer_gen.c').read_text(encoding='utf8')))
     storage_path=root/'docs/xge3-xui3-api-map-storage.json'
-    storage=json.loads(storage_path.read_text(encoding='utf8'))['entries']
+    storage_inventory=json.loads(storage_path.read_text(encoding='utf8'));storage=storage_inventory['entries']
+    field_storage=storage_inventory.get('fieldEntries',{})
     storage_sources={}
     def reviewed_span(f,pointer,count):
         # A matching C shape proves ABI, never non-escape. New signatures must
@@ -390,24 +451,76 @@ def generate(root,data):
         for f in header['functions']:
             if f['name'] in mapped:f.update(state='direct-declaration',language=mapped[f['name']])
         (src/'bootstrap.xl').write_text('// Normal module import executes the shared native initializer once.\nimport "_xge_native"\n',encoding='utf8')
-        manifest={'format':'xlang-package-1','name':package,'version':'3.0.0','abiVersion':'2','kind':'xlang-extlib','artifact':{'kind':'source','cSources':[],'xlSources':['src/bootstrap.xl','src/records.xl','src/constants.xl']+(['src/functions.xl','src/resources.xl','src/callbacks.xl','src/shapes.xl'] if package=='xge' else ['src/managed.xl','src/cell.xl'])},'links':[],'loadlibs':[],'dependencies':[{'name':'_xge_native','version':'3.0.0','abiVersion':'2'}],'native':{'singleton':False,'loadName':'','version':''}}
+        manifest={'format':'xlang-package-1','name':package,'version':'3.0.0','abiVersion':'2','kind':'xlang-extlib','artifact':{'kind':'source','cSources':[],'xlSources':['src/bootstrap.xl','src/records.xl','src/constants.xl']+(['src/functions.xl','src/resources.xl','src/callbacks.xl','src/shapes.xl'] if package=='xge' else ['src/managed.xl','src/cell.xl','src/proxy.xl','src/draw.xl','src/text_shape.xl','src/managers.xl'])},'links':[],'loadlibs':[],'dependencies':[{'name':'_xge_native','version':'3.0.0','abiVersion':'2'}],'native':{'singleton':False,'loadName':'','version':''}}
         (folder/'xlang.package.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf8')
-        # Reconcile hand-authored ownership/callback declarations too. A private
-        # rollback helper is implementation metadata, not a public free API.
-        by_name={f['name']:f for f in header['functions']};class_bindings=[]
-        for relative in manifest['artifact']['xlSources']:
-            owner=None
-            for line in (folder/relative).read_text(encoding='utf8').splitlines():
-                cls=re.match(r'export extern "([^"]+)" class (\w+).*@lifetime\("([^"]+)"\)',line)
-                if cls:
-                    owner=cls[2];class_bindings.append(dict(language=package+'.'+owner,cName=cls[1],lifetime=cls[3],declaration=line,source=relative));continue
-                if line=='end':owner=None;continue
-                declaration=re.search(r'extern "([^"]+)".*\b(func|get|let) (\w+)\(',line)
-                if declaration and declaration[1] in by_name and (owner or line.startswith('export extern')):
-                    f=by_name[declaration[1]];f.update(state='direct-declaration',language=package+'.'+(owner+'.' if owner else '')+declaration[3],bindingSource=relative)
-        header['classBindings']=class_bindings
-        header['bindingSummary']['publicFunctionsMapped']=sum(f['state']=='direct-declaration' for f in header['functions'])
-        print(package,header['bindingSummary'])
+    annotate_existing_bindings(root,data,strict_storage=True,generated=True)
+
+
+def annotate_existing_bindings(root,data,strict_storage=False,generated=False):
+    """Read existing public declarations without generating or editing sources.
+
+    Presence is deliberately independent of compiler/header ABI proof and
+    runtime qualification. Stale pointer reviews are reported; the generator
+    remains fail-closed when strict_storage is selected.
+    """
+    storage_path=root/'docs/xge3-xui3-api-map-storage.json'
+    field_storage=json.loads(storage_path.read_text(encoding='utf8')).get('fieldEntries',{})
+    pins={}
+    for header in data['headers']:
+        package=Path(header['header']).stem;folder=root/'lib/bindings'/package
+        folders=[folder]
+        if package=='xge':folders += [folder/'three_d',folder/'debug']
+        by_name={f['name']:f for f in header['functions']}
+        callable_fields={(f['record'],f['member']):f for f in header['callableFields']}
+        classes=[];records=[];unresolved=[]
+        for public_folder in folders:
+            manifest_path=public_folder/'xlang.package.json'
+            if not manifest_path.is_file():continue
+            manifest_bytes=manifest_path.read_bytes();manifest=json.loads(manifest_bytes.decode('utf-8-sig'));public_package=manifest['name']
+            pins[manifest_path.relative_to(root).as_posix()]=hashlib.sha256(manifest_bytes).hexdigest()
+            for relative in manifest['artifact']['xlSources']:
+                path=public_folder/relative;source_bytes=path.read_bytes();source=source_bytes.decode('utf-8-sig');source_path=path.relative_to(root).as_posix()
+                pins[source_path]=hashlib.sha256(source_bytes).hexdigest();owner=None;native_owner=None
+                for number,line in enumerate(source.splitlines(),1):
+                    cls=re.match(r'export extern "([^"]+)" class (\w+).*@lifetime\("([^"]+)"\)',line)
+                    if cls:
+                        owner=cls[2];native_owner=cls[1].removeprefix('const ').rstrip('*').strip()
+                        classes.append(dict(language=public_package+'.'+owner,cName=cls[1],lifetime=cls[3],declaration=line,source=source_path,line=number));continue
+                    record=re.match(r'export extern "([^"]+)" struct (\w+)',line)
+                    if record:records.append(dict(language=public_package+'.'+record[2],cName=record[1],source=source_path,line=number))
+                    if line=='end':owner=None;native_owner=None;continue
+                    declaration=re.search(r'extern "([^"]+)".*\b(func|get|let) (\w+)\(',line)
+                    if not declaration or not (owner or line.startswith('export extern')):continue
+                    binding=dict(language=public_package+'.'+(owner+'.' if owner else '')+declaration[3],source=source_path,line=number,declaration=line.strip(),profile='default' if public_folder==folder else public_package,
+                                 evidence=dict(declarationPresent=True,abiAccepted=False,runtimeAccepted=False))
+                    binding['surface']='explicit-C-interop' if re.search(r'\bNative\w*Pointer\??\b',line) else 'typed-declaration'
+                    if '@c_field_call' in line:
+                        field=callable_fields.get((native_owner,declaration[1]))
+                        if field is None:
+                            unresolved.append(dict(native=declaration[1],owner=native_owner,**binding));continue
+                        if '@c_span(' in line or '@c_region(' in line or re.search(r'\[[1-9][0-9]*\]',line):
+                            review=field_storage.get(native_owner+'.'+declaration[1]);matching=False
+                            if review:
+                                source_file=Path(header['header']).parents[1]/review['sourceFile']
+                                matching=source_file.is_file() and native_function_sha(source_file.read_text(encoding='utf-8-sig'),review['nativeHelper'])==review['functionSha256']
+                            binding['storageReview']=dict(state='matching' if matching else 'changed' if review else 'missing',inventory=str(storage_path.relative_to(root)).replace('\\','/'))
+                            if strict_storage and not matching:raise ValueError('callable-field pointer storage requires matching native review: '+native_owner+'.'+declaration[1])
+                            if matching:field['storageContract']=dict(inventory=str(storage_path.relative_to(root)).replace('\\','/'),**review)
+                        field.update(state='direct-callable-field-declaration' if generated else 'callable-field-declaration-present')
+                        field.setdefault('bindings',[]).append(binding)
+                    elif declaration[1] in by_name:
+                        function=by_name[declaration[1]];function.update(state='direct-declaration' if generated else 'declaration-present',language=binding['language'],bindingSource=source_path)
+                        function.setdefault('declarations',[]).append(binding)
+                    elif not re.search(r'@c_(?:field|deref|control)\b',line):
+                        unresolved.append(dict(native=declaration[1],owner=native_owner,authority='runtime-or-CRT' if declaration[1].startswith(('xl6','xrt')) or declaration[1] in ('strlen',) else 'not-in-primary-header',**binding))
+        header.update(classBindings=classes,recordBindings=records,unresolvedDeclarations=unresolved)
+        summary=header.setdefault('bindingSummary',{})
+        summary.update(publicFunctionsDeclared=sum(bool(f.get('declarations')) for f in header['functions']),callableFieldsDeclared=sum(bool(f.get('bindings')) for f in header['callableFields']),foreignClasses=len(classes),recordDeclarations=len(records),nonPrimaryDeclarations=len(unresolved))
+        if generated:summary.update(publicFunctionsMapped=summary['publicFunctionsDeclared'],callableFieldsMapped=summary['callableFieldsDeclared'])
+        print(package,summary)
+    unchanged=all(hashlib.sha256((root/path).read_bytes()).hexdigest()==digest for path,digest in pins.items())
+    if not unchanged:raise ValueError('public binding source changed during inventory annotation')
+    data['existingBindingAnnotation']=dict(declarationOnly=True,abiAccepted=False,runtimeAccepted=False,sourceFilesModified=False,inputsUnchanged=unchanged,generatorWroteSourcesBeforeAnnotation=generated,sourceSha256=pins)
 
 
 def generate_xge_objects(root,header,records,types,primitive,param,reserved,reviewed_span):
@@ -480,6 +593,30 @@ def generate_xge_objects(root,header,records,types,primitive,param,reserved,revi
 
 def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_span):
     src=root/'lib/bindings/xui/src';functions=header['functions'];mapped={};raw={};callbacks={};views={};classes={'Widget':[]};context=[];free=[]
+    # A resource-shaped C argument is not itself an owning storage proof.
+    # These publishers/consumers have separately reviewed native owning slots
+    # or synchronous use; do not broaden this list by matching a type name.
+    surface_setters={
+        'xuiBreadcrumbSetSeparatorIcon','xuiImageSetSurface','xuiQrCodeSetIcon',
+        'xuiPanelSetIcon','xuiButtonSetIcon','xuiButtonSetBadgeSurface',
+        'xuiCheckBoxSetIndicatorSurface','xuiCheckBoxSetMixedIndicatorSurface',
+        'xuiRadioSetIndicatorSurface','xuiToggleSetIndicatorSurface',
+        'xuiVirtualJoystickSetSurface','xuiWindowSetIcon',
+        'xuiDockPanelSetWindowIcon','xuiToolbarSetItemIcon'}
+    surface_getters={
+        'xuiBreadcrumbGetSeparatorIcon','xuiImageGetSurface','xuiQrCodeGetIcon',
+        'xuiPanelGetIconSurface','xuiButtonGetIconSurface','xuiWindowGetIconSurface',
+        'xuiDockPanelGetWindowIconSurface','xuiCanvasGetSurface','xuiWidgetGetCacheSurface'}
+    surface_outputs={
+        'xuiButtonGetIcon','xuiButtonGetBadgeSurface',
+        'xuiCheckBoxGetIndicatorSurface','xuiCheckBoxGetMixedIndicatorSurface',
+        'xuiRadioGetIndicatorSurface','xuiToggleGetIndicatorSurface',
+        'xuiVirtualJoystickGetSurface','xuiBuiltinAssetGetAtlas'}
+    surface_consumers={'xuiRender','xuiWidgetRenderCache','xuiWidgetRenderTree',
+                       'xuiCanvasDrawSurface','xuiCanvasDrawSurfaceQuad'}
+    surface_allowed=surface_setters|surface_getters|surface_outputs|surface_consumers
+    resource_allowed=surface_allowed|{'xuiWidgetUpdateBegin','xuiWidgetUpdateEnd'}
+    current_function=None
     # Native ownership drafts remain in the authoritative inventory, but are
     # not public callable bindings until their consumer/lifetime gate passes.
     # Exact Grid owning output signatures come from the matching native header.
@@ -516,6 +653,14 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
     def simple(t,index,result=False):
         if widget(t):return 'Widget'+('?' if result else ''),[]
         if same(t,'xui_context'):return 'Context'+('?' if result else ''),[]
+        if same(t,'xui_font'):return 'Font'+('?' if result else ''),[]
+        if same(t,'xui_proxy'):return 'Proxy'+('?' if result else ''),[]
+        if same(t,'xui_surface'):
+            if current_function not in surface_allowed:raise ValueError('Surface ownership/consumer contract not reviewed')
+            return 'Surface'+('?' if result and current_function!='xuiCanvasGetSurface' else ''),[]
+        if same(t,'xui_draw_context'):
+            if current_function not in resource_allowed:raise ValueError('Draw session contract not reviewed')
+            return 'DrawContext',[]
         if result and t['kind']=='pointer' and same(t['to'],'char') and 'const' in t['to'].get('qualifiers',[]):return 'string?',[]
         return param(t,index) if not result else (primitive(t),[])
     def source_contract(f):
@@ -523,7 +668,8 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
         # preserve its integer result and leave its pointer output unadapted.
         if f['name'] in native_bodies:
             path,body=native_bodies[f['name']]
-            return dict(file=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),statusZero=bool(re.search(r'\breturn\s+XUI_OK\s*;',body)))
+            font_slot_status=f['name'].endswith('SetFont') and bool(re.search(r'\bxuiInternalFontSlot(?:Begin|Prepare)\(',body))
+            return dict(file=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),statusZero=font_slot_status or bool(re.search(r'\breturn\s+XUI_OK\s*;',body)))
         return {}
     constructors=[]
     for f in functions:
@@ -630,6 +776,26 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
         'xui_timeline_frame_changing_proc','xui_timeline_span_changing_proc','xui_timeline_context_opening_proc')})
     failures['xui_table_view_merge_proc']=-16
     failures.update({name:-16 for name in ('xui_table_grid_validate_proc','xui_table_grid_editor_owned_proc','xui_table_grid_editor_config_owned_proc')})
+    # These Native records contain a retained Surface slot, not a trivial
+    # language record. Flat inputs pack one stack descriptor; borrowed outputs
+    # project POD fields plus one independently retained resource.
+    nine_patch={}
+    for native,owner,member,state in (
+        ('xuiButtonSetPatch','Button','setPatch',True),('xuiButtonGetPatch','Button','getPatch',True),
+        ('xuiProgressSetTrackPatch','Progress','setTrackPatch',False),('xuiProgressGetTrackPatch','Progress','getTrackPatch',False),
+        ('xuiProgressSetFillPatch','Progress','setFillPatch',False),('xuiProgressGetFillPatch','Progress','getFillPatch',False)):
+        setting='Set' in native;slot=2 if state else 1;first=1 if state else 0
+        prefix='c_uint state,' if state else ''
+        if setting:
+            attrs='@c_result("status",0) @c_pack('+str(slot)+',"xui_nine_patch_t",'+str(first)+',5) @c_pack_size('+str(slot)+',"iSize","uint32_t")'
+            for offset,field,kind in ((0,'pSurface','view_raw'),(1,'tSrc','value'),(2,'tSlice','value'),(3,'iColor','value'),(4,'iMode','value')):
+                attrs+=' @c_pack_field('+str(slot)+',"'+field+'",'+str(first+offset)+',"'+kind+'")'
+            signature='('+prefix+'Surface surface,Rect source,Thickness slice,c_uint color=0xFFFFFFFF,c_int mode=0)'
+        else:
+            attrs='@c_output_record('+str(slot)+',"xui_nine_patch_t","borrowed") @c_status(0) @c_output_field(0,"pSurface","retain",retainSurface,"zero",rollbackSurface)'
+            for ordinal,field in ((1,'tSrc'),(2,'tSlice'),(3,'iColor'),(4,'iMode')):attrs+=' @c_output_field('+str(ordinal)+',"'+field+'")'
+            signature='('+('c_uint state' if state else '')+') as (Surface?,Rect,Thickness,c_uint,c_int)'
+        nine_patch[native]=(owner,member,' extern "'+native+'" @no_raise '+attrs+' func '+member+signature)
     def callback_type(native):
         if native in callbacks:return callbacks[native]
         t=types[native]
@@ -661,7 +827,14 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
         callback_declarations.append('export typedef '+name+' = func('+','.join(params)+')'+(' as '+result if result else ''))
         return name
     for f in functions:
-        if f.get('state') in ('requires-owned-pinned-storage','requires-native-lifecycle-acceptance') or f['name'] in constructors or f['name'] in ('xuiCreate','xuiDestroy','xuiWidgetDestroy','xuiWidgetDestroyChecked','xuiContextLifetimeWatch','xuiWidgetLifetimeWatch'):continue
+        if f['name'] in nine_patch:
+            owner,member,declaration=nine_patch[f['name']];p=f['type']['parameters'];setting='Set' in f['name'];state=owner=='Button'
+            expected=(['uint32_t'] if state else [])+['const xui_nine_patch_t*' if setting else 'xui_nine_patch_t*']
+            if not p or not widget(p[0]['type']) or [spelling(a['type']) for a in p[1:]]!=expected or spelling(f['type']['returns'])!='int':
+                raise ValueError('NinePatch authoritative physical signature changed: '+f['name'])
+            classes[owner].append(declaration);mapped[f['name']]='xui.'+owner+'.'+member;f['sourceContract']=source_contract(f);continue
+        if f.get('state') in ('requires-owned-pinned-storage','requires-native-lifecycle-acceptance') or f['name'] in constructors or f['name'] in ('xuiCreate','xuiCreateOwned','xuiGetProxyOwned','xuiSetProxyOwned','xuiDestroy','xuiWidgetDestroy','xuiWidgetDestroyChecked','xuiContextLifetimeWatch','xuiWidgetLifetimeWatch'):continue
+        current_function=f['name']
         p=f['type']['parameters'];sig=f['type'];receiver=False;owner=None;prefix='xui'
         if p and same(p[0]['type'],'xui_context'):owner='Context';receiver=True
         elif p and widget(p[0]['type']):
@@ -675,10 +848,16 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
         try:
             ret,at=simple(sig['returns'],0,True);attrs+=at
             if widget(sig['returns']) or same(sig['returns'],'xui_context'):attrs.append('@c_result("owner_view",0)')
+            if same(sig['returns'],'xui_font'):attrs+=['@c_result("retained_view")','@c_retain(retainFont,"zero",rollbackFont)']
+            if same(sig['returns'],'xui_surface'):attrs+=['@c_result("retained_view")','@c_retain(retainSurface,"zero",rollbackSurface)']
             explicit=p[1:] if receiver else p
             i=0
             while i<len(explicit):
                 a=explicit[i];t=a['type'];logical=len(params)
+                if f['name']=='xuiCanvasDrawSurfaceQuad' and spelling(t)=='const xui_surface_vertex_t*':
+                    # The native consumer reads exactly four vertices. One
+                    # const-record c_ref would compile but under-size storage.
+                    params.append('SurfaceVertex[4] '+a['name']);attrs.append('@c_ref('+str(logical)+')');i+=1;continue
                 if f['name']=='xuiTableViewGetCellOwned' and spelling(t)=='xui_table_view_cell_output_t*':
                     # This is an initialized owned object mutated transactionally,
                     # not a raw record output or a newly produced native pointer.
@@ -701,21 +880,30 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
                     attrs+=['@c_callback_span('+str(logical)+','+str(arg)+',"'+pointer+'","'+count+'")' for arg,pointer,count in callback_spans.get(native,[])]
                     i+=3;callback_seen=True;continue
                 if t['kind']=='pointer' and 'const' not in t['to'].get('qualifiers',[]):
-                    if not re.search(r'Get|Query|Measure|Hit|OffsetTo|LineColumnTo',f['name']):raise ValueError('mutable pointer requires an explicit out/inout review')
-                    pt=primitive(t['to'])
+                    if not re.search(r'Get|Query|Measure|Hit|OffsetTo|LineColumnTo',f['name']) and f['name']!='xuiWidgetUpdateBegin':raise ValueError('mutable pointer requires an explicit out/inout review')
+                    if same(t['to'],'xui_surface'):
+                        if f['name'] not in surface_outputs:raise ValueError('unreviewed retained Surface output')
+                        pt='Surface?' if f['name']!='xuiBuiltinAssetGetAtlas' else 'Surface'
+                        attrs.append('@c_output_retain('+str(i+1)+',retainSurface,"zero",rollbackSurface)')
+                    elif same(t['to'],'xui_draw_context'):
+                        if f['name']!='xuiWidgetUpdateBegin':raise ValueError('unreviewed retained Draw output')
+                        pt='DrawContext';attrs.append('@c_output_retain('+str(i+1)+',retainDraw,"zero",rollbackDraw)')
+                    else:pt=primitive(t['to'])
                     if not pt:raise ValueError('void output')
                     outputs.append(i+1);returns.append(pt);i+=1;continue
                 pt,at=simple(t,logical);attrs+=at
+                if same(t,'xui_font') and f['name']!='xuiRegisterFont':pt+='?'
+                if same(t,'xui_surface') and f['name'] in surface_setters:pt+='?'
                 if (widget(t) or same(t,'xui_context')) and t['kind']=='pointer' and 'const' in t['to'].get('qualifiers',[]):attrs.append('@c_const('+str(logical+int(receiver))+')')
                 params.append(pt+' '+('arg'+str(i) if a['name'] in reserved else a['name']));i+=1
             contract=source_contract(f)
             if outputs:
-                if ret!='c_int' or not contract.get('statusZero') or callback_seen:raise ValueError('unreviewed output status')
+                if ret!='c_int' or not (contract.get('statusZero') or f['name']=='xuiWidgetUpdateBegin') or callback_seen:raise ValueError('unreviewed output status')
                 attrs.append(('@c_output('+str(outputs[0])+',0)') if len(outputs)==1 else '@c_outputs('+','.join(map(str,outputs))+') @c_status(0)')
                 ret=returns[0] if len(returns)==1 else '('+','.join(returns)+')'
             # Literal XUI_OK guarantees the native int is a status, not a count.
             # Never infer this from a Set/Get spelling alone.
-            elif ret=='c_int' and (callback_seen or f['name']=='xuiTableViewGetCellOwned' or contract.get('statusZero') and not re.search(r'Get|Count|Index|Find|Hit|Query|Is|Has|Contains|Compare',f['name'])):
+            elif ret=='c_int' and (callback_seen or f['name'] in ('xuiTableViewGetCellOwned','xuiSetDefaultFont','xuiRegisterFont','xuiSetProxyOwned') or contract.get('statusZero') and not re.search(r'Get|Count|Index|Find|Hit|Query|Is|Has|Contains|Compare',f['name'])):
                 attrs.append('@c_result("status",0)');ret=None
             name=f['name'][len(prefix):];name=name[:1].lower()+name[1:]
             if name.endswith('Owned'):name=name[:-5]
@@ -764,7 +952,7 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
     lines=['// Managed owner graph and direct native methods. Generated; no per-method C wrappers.']
     for c,n in sorted(raw.items()):lines+=['// Explicit C-interop-only descriptor pointer; this does not own the pointed-to data.','export extern "'+c+'" class '+n+' @header("xge3_runtime.h") @lifetime("caller")',' native point handle','end']
     lines+=callback_declarations
-    lines+=['export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3ContextPolicy") @scope("xui_call_scope_t") @watch("xui_lifetime_link_t") @domain("xuiTableViewCellOutputOwnershipDomainV1")',' native point handle',*context,' extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()','end']
+    lines+=['export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3ContextPolicy") @scope("xui_call_scope_t") @watch("xui_lifetime_link_t") @domain("xl6Xui3OwnershipDomainV1")',' native point handle',*context,' extern "xuiGetProxyOwned" @no_raise @c_result("retained_view") @c_retain(retainProxy,"zero",rollbackProxy) func proxy() as Proxy',' extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()','end']
     for group,methods in classes.items():
         lines+=['export extern "xui_widget_t*" class '+group+' @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t")'+(' extends Widget' if group!='Widget' else '')]
         if group=='Widget':lines+=[' native point handle']
@@ -773,7 +961,7 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
         lines+=['end']
     lines+=['extern "xuiDestroy" @no_raise func rollback(Context value)']
     lines+=['extern "xuiWidgetDestroyChecked" @no_raise @c_result("status",0) func rollback'+group+'('+group+' value)' for group in classes]
-    lines+=['export extern "xuiCreate" @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Context']
+    lines+=['export extern "xuiCreateOwned" @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(Proxy proxy) as Context']
     lines+=free
     (src/'managed.xl').write_text('\n\n'.join(lines)+'\n',encoding='utf8')
     print('xui managed',len(mapped),'functions',len(classes),'classes',len(callbacks),'callbacks',len(views),'callback views')
@@ -800,15 +988,17 @@ def probes(args):
             if view_owner not in callback_views:continue
             member=re.search(r'\b(func|get|let) (\w+)\(([^()\n]*)\)(?: as .*)?$',line)
             if member:view_operations[view_owner].append(member.groups())
-        methods=[];owner=None;index=0
+        methods=[];owner=None;index=0;array_storage={}
+        native_records=dict(re.findall(r'export extern "([^"]+)" struct (\w+)',source))
+        native_records={language:native for native,language in native_records.items()}
         for line in source.splitlines():
             cls=re.match(r'export extern "[^"]+" class (\w+)',line)
             if cls:owner=cls.group(1);continue
             if line=='end':owner=None;continue
-            call=re.search(r'extern "([^"]+)".*\b(func|get|let) (\w+)\(([^()\n]*)\)(?: as .*)?$',line)
+            call=foreign_method_declaration(line)
             if not call or (not owner and not line.startswith('export extern')):continue
             if owner in callback_views:continue
-            native,kind,name,parameters=call.groups();params=[];arguments=[]
+            native,kind,name,parameters=call;params=[];arguments=[];locals=[];epoch_arguments=[]
             if owner:params.append(owner+' receiver')
             for i,p in enumerate(split(parameters)):
                 p=p.split('=',1)[0].strip();pt=p.rsplit(' ',1)[0]
@@ -831,20 +1021,48 @@ def probes(args):
                     result=callback_results.get(pt.rstrip('?'))
                     if result:body.append('  return '+('""' if result=='string' else result+'(0)' if result.startswith('c_') else result+'()'))
                     arguments.append('func('+','.join(args)+')'+(' as '+result if result else '')+'\n'+'\n'.join(body)+'\n end');continue
+                if pt=='CallbackDrawContext':
+                    # Exercise an epoch input only inside the real typed native
+                    # cache-render callback, never through an escaping C export.
+                    assert package=='xui' and not epoch_arguments
+                    params.append('Widget callbackOwner');arguments.append('callbackDraw');epoch_arguments.append(pt);continue
+                if pt in ('bytes?','Buffer?'):
+                    # Typed nullable arguments preserve overload resolution,
+                    # without inventing a nullable raw C export representation.
+                    locals.append(pt+' arg'+str(i)+'=null');arguments.append('arg'+str(i));continue
+                if re.fullmatch(r'[A-Za-z_]\w*\[[1-9][0-9]*\]',pt):
+                    # Fixed native arrays have value semantics inside XLIR but
+                    # are not raw C export parameters. Reach their call using
+                    # initialized local storage instead of weakening exports.
+                    element,extent=pt[:-1].split('[');key=(element,int(extent))
+                    if key not in array_storage:
+                        assert element in native_records,('probe fixed array native element',element)
+                        array_storage[key]='BindingProbeStorage'+str(len(array_storage))
+                    storage=array_storage[key];local='arrayStorage'+str(i)
+                    locals.append(storage+' '+local+'='+storage+'()');arguments.append(local+'.values');continue
                 if pt.endswith('?'):
                     arguments.append('null');continue
                 params.append(pt+' arg'+str(i));arguments.append('arg'+str(i))
             expression=('receiver.' if owner else '')+name
             if kind=='func':expression+='('+','.join(arguments)+')'
             elif kind=='let':expression+='='+arguments[-1]
-            methods.append(dict(native=native,owner=owner,member=name,parameters=params,expression=expression))
+            if epoch_arguments:
+                expression='callbackOwner.setCacheRenderCallback(func(Widget callbackWidget,CallbackDrawContext callbackDraw,c_uint callbackState) as c_int\n  '+expression+'\n  return c_int(0)\n end)'
+            methods.append(dict(native=native,owner=owner,member=name,parameters=params,expression=expression,**({'locals':locals} if locals else {})))
+        storage_declarations=[]
+        storage_header=['#ifndef XL6_BINDING_PROBE_STORAGE_H','#define XL6_BINDING_PROBE_STORAGE_H','#include "xge3_runtime.h"']
+        for (element,extent),storage in array_storage.items():
+            storage_header.append('typedef struct '+storage+' { '+native_records[element]+' values['+str(extent)+']; } '+storage+';')
+            storage_declarations.append('extern "'+storage+'" struct '+storage+' @header("binding_probe_storage_'+package+'.h")\n '+element+' values['+str(extent)+']\nend\n')
+        storage_header.append('#endif')
+        (out/('binding_probe_storage_'+package+'.h')).write_text('\n'.join(storage_header)+'\n',encoding='utf8')
         for first in range(0,len(methods),128):
             selected=methods[first:first+128];cases=[]
             for row in selected:
-                index+=1;cases.append('export "binding_probe_'+package+'_'+str(index)+'" func probe'+str(index)+'('+','.join(row['parameters'])+')\n '+row['expression']+'\nend\n')
+                index+=1;cases.append('export "binding_probe_'+package+'_'+str(index)+'" func probe'+str(index)+'('+','.join(row['parameters'])+')\n '+''.join(local+'\n ' for local in row.get('locals',[]))+row['expression']+'\nend\n')
             target=out/(package+'-'+str(first//128)+'.xl')
-            target.write_text(source+'\n'+'\n'.join(cases)+'\nfunc main(...) as int\n return 0\nend\n',encoding='utf8')
-            report['rows'].append(dict(package=package,source=str(target),methods=selected))
+            target.write_text(source+'\n'+'\n'.join(storage_declarations)+'\n'+'\n'.join(cases)+'\nfunc main(...) as int\n return 0\nend\n',encoding='utf8')
+            report['rows'].append(dict(package=package,source=str(target),sourceSha256=hashlib.sha256(target.read_bytes()).hexdigest(),methods=selected))
     (out/'probes.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')
     print('Compile-only probes:',sum(len(r['methods']) for r in report['rows']),'methods in',len(report['rows']),'batches')
 
@@ -959,7 +1177,8 @@ def acceptance(args):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--native-root',type=Path,default=Path('D:/GIT/xge'));p.add_argument('--inventory',type=Path);p.add_argument('--generate',action='store_true');p.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1])
+    p.add_argument('--native-root',type=Path,default=Path('D:/GIT/xge'));p.add_argument('--inventory',type=Path);p.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1])
+    action=p.add_mutually_exclusive_group();action.add_argument('--generate',action='store_true');action.add_argument('--existing-bindings',action='store_true',help='Annotate current declarations without generating or editing library files; this does not certify ABI/runtime acceptance')
     p.add_argument('--acceptance',choices=('fields','outputs','exports','const','header','domain','value','rollback'));p.add_argument('--driver',type=Path);p.add_argument('--out',type=Path);p.add_argument('--engine-build',type=Path)
     p.add_argument('--fixture-root',type=Path)
     p.add_argument('--source',type=Path)
@@ -975,4 +1194,6 @@ def main():
     data=inventory(args.native_root,args.inventory)
     if args.generate:
         generate(args.root,data);args.inventory.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
+    elif args.existing_bindings:
+        annotate_existing_bindings(args.root,data);args.inventory.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
 if __name__=='__main__':main()

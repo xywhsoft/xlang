@@ -26,6 +26,10 @@ extern "C" {
 int xl6Xge3RuntimeBindV1(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3ContextPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3WidgetPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3MsgBoxPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3ToastPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3FileDialogPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3MsgTipPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3TableCellOutputPolicyGet(void);
 const XL6_OwnershipDomainV1* xuiTableViewCellOutputOwnershipDomainV1Get(void);
 const XL6_OwnershipDomainV1* xl6Xui3OwnershipDomainV1Get(void);
@@ -34,6 +38,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3FontPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3SurfacePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DrawPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3PathPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3TextShapePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3FontPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3TexturePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3ImagePolicyGet(void);
@@ -49,6 +54,10 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
  * importing a data symbol through a function-only registry is not portable. */
 #define xl6Xui3ContextPolicy (*xl6Xui3ContextPolicyGet())
 #define xl6Xui3WidgetPolicy (*xl6Xui3WidgetPolicyGet())
+#define xl6Xui3MsgBoxPolicy (*xl6Xui3MsgBoxPolicyGet())
+#define xl6Xui3ToastPolicy (*xl6Xui3ToastPolicyGet())
+#define xl6Xui3FileDialogPolicy (*xl6Xui3FileDialogPolicyGet())
+#define xl6Xui3MsgTipPolicy (*xl6Xui3MsgTipPolicyGet())
 #define xl6Xui3TableCellOutputPolicy (*xl6Xui3TableCellOutputPolicyGet())
 #define xuiTableViewCellOutputOwnershipDomainV1 (*xuiTableViewCellOutputOwnershipDomainV1Get())
 #define xl6Xui3OwnershipDomainV1 (*xl6Xui3OwnershipDomainV1Get())
@@ -57,6 +66,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
 #define xl6Xui3SurfacePolicy (*xl6Xui3SurfacePolicyGet())
 #define xl6Xui3DrawPolicy (*xl6Xui3DrawPolicyGet())
 #define xl6Xui3PathPolicy (*xl6Xui3PathPolicyGet())
+#define xl6Xui3TextShapePolicy (*xl6Xui3TextShapePolicyGet())
 #define xl6Xge3FontPolicy (*xl6Xge3FontPolicyGet())
 #define xl6Xge3TexturePolicy (*xl6Xge3TexturePolicyGet())
 #define xl6Xge3ImagePolicy (*xl6Xge3ImagePolicyGet())

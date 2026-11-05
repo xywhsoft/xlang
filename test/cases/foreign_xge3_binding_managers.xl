@@ -1,0 +1,94 @@
+import xui
+from xui import Widget as UIWidget
+extern "binding_manager_budget_begin" @header("test/cases/foreign_xge3_binding_managers.h") @no_raise @c_result("status",0) func startBudget()
+extern "binding_manager_budget_end" @header("test/cases/foreign_xge3_binding_managers.h") @no_raise func endBudget() as c_int
+extern "binding_manager_callback_entered" @header("test/cases/foreign_xge3_binding_managers.h") @no_raise func callbackEntered()
+extern "binding_manager_callback_count" @header("test/cases/foreign_xge3_binding_managers.h") @no_raise func callbackCount() as c_int
+func main(...) as int
+ auto proxy=xui.createProxy()
+ auto context=xui.create(proxy)
+ auto box=xui.createMsgBox(context,"Manager title","Manager body")
+ assert (box.title() as string)=="Manager title"
+ assert (box.message() as string)=="Manager body"
+ bool rejected=false
+ try
+  box.setMessage("bad\0text")
+ catch error
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ int denied=0
+ startBudget()
+ try
+  auto noMemory=xui.createToast(context)
+  noMemory.close()
+ catch error
+  rejected=true
+ finally
+  denied=endBudget()
+ end
+ assert rejected and denied==1
+ rejected=false
+ startBudget()
+ try
+  box.setTitle("replacement that requires allocation")
+ catch error
+  rejected=true
+ finally
+  denied=endBudget()
+ end
+ assert rejected and denied==1
+ assert (box.title() as string)=="Manager title"
+ auto nativeWindow=box.window() as UIWidget
+ nativeWindow.close()
+ rejected=false
+ try
+  box.title()
+ catch error
+  rejected=true
+ end
+ assert rejected
+ auto toast=xui.createToast(context)
+ auto id=toast.show(0,"Title","Body")
+ assert id>0
+ assert toast.activeCount()==1
+ toast.clear()
+ toast.close()
+ auto tip=xui.createMsgTip(context,"Message")
+ tip.show(0,"Shown")
+ assert tip.isOpen()==1
+ tip.setDismissed(func(xui.CallbackMsgTip source,c_int expired)
+  callbackEntered()
+  assert false
+ end)
+ rejected=false
+ startBudget()
+ try
+  tip.dismiss()
+ catch error
+  rejected=true
+ finally
+  denied=endBudget()
+ end
+ assert rejected and denied==1 and callbackCount()==1
+ tip.setDismissed(null)
+ tip.close()
+ context.close()
+ return 0
+end
+
+// Compile-only coverage: the real filesystem dialogs may need atlas textures,
+// so the headless executable does not call this exported ABI probe. Native C
+// tests exercise all three convenience factories with the CPU provider.
+export func managerCapabilitiesAbi(xui.Context context,xui.MsgBox box,xui.Toast toast)
+ auto backdrop=box.backdropRect()
+ auto icon=toast.iconRect(0)
+ auto close=toast.closeRect(0)
+ auto opened=xui.openFileDialog(context)
+ opened.close()
+ auto saved=xui.saveFileDialog(context)
+ saved.close()
+ auto folder=xui.selectFolderDialog(context)
+ folder.close()
+end

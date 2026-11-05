@@ -1,0 +1,22 @@
+// Immutable Native-owned shaping data. Pointer arrays and paint ownership
+// hooks stay private; scalar reads and range calls use the actual record.
+export extern "const xui_text_shape_t*" class TextShape @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3TextShapePolicy") @domain("xl6Xui3OwnershipDomainV1")
+ native point handle
+ extern "iFlags" @c_field get flags() as c_uint
+ extern "iTextSize" @c_field get textSize() as c_int
+ extern "iClusterCount" @c_field get clusterCount() as c_int
+ extern "iCaretCount" @c_field get caretCount() as c_int
+ extern "fWidth" @c_field get width() as c_float
+ extern "fHeight" @c_field get height() as c_float
+ extern "fAscent" @c_field get ascent() as c_float
+ extern "fDescent" @c_field get descent() as c_float
+ extern "fLineHeight" @c_field get lineHeight() as c_float
+ extern "iPaintBytes" @c_field get paintBytes() as c_size
+ // Each indexed query is one Native call and returns an independent value.
+ // Native INVALID_ARGUMENT rejects an index outside its immutable array.
+ extern "xuiTextShapeGetCluster" @no_raise @c_output(2,0) func cluster(c_size index) as TextCluster
+ extern "xuiTextShapeGetCaret" @no_raise @c_output(2,0) func caret(c_size index) as TextCaret
+ extern "xuiTextShapeGetProxy" @no_raise @c_result("retained_view") @c_retain(retainProxy,"zero",rollbackProxy) func proxy() as Proxy
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiTextShapeReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackTextShape(TextShape value)
