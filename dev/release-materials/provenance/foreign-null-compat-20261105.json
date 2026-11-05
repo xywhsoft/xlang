@@ -1,0 +1,92 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "fullCompilerRebuild": false,
+  "scope": "Narrow typed NULL versus const POD-reference/pack compatibility; no emission/runtime changes; HEAD plus exact hooks excludes unrelated IDE hunks.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\null-compat-core-candidate-r2\\manifest.json",
+    "sha256": "3ccdc8b682b80c34c6a9e008ddce488d803bc1e96fdaaf58ff4fb39aaaf89bb0"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\null-compat-win-r7\\results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\null-compat-win-r7\\results.json",
+      "sha256": "4948a4b939468c229839abcccec2867ac9b73f3d082684753ef6135e09c031a7",
+      "processRows": 44
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/null-compat-linux-r3/results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\null-compat-core-candidate-r2\\report-local-1.json",
+      "sha256": "8fc8334838cd3d37b19b99a4ce087a600adb4b3f06eba4a5ebed05d7e046f029",
+      "processRows": 44
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\null-compat-nested-regression-win-r2\\results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\null-compat-nested-regression-win-r2\\results.json",
+      "sha256": "819841afdeeafb9be18fafe11574f18bbc7ca77fd623903d970b4807511c1f0d",
+      "processRows": 44
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/null-compat-nested-regression-linux-r2/results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\null-compat-core-candidate-r2\\report-local-3.json",
+      "sha256": "8ced9ee86ea850ce1a0aec36428d64bf49ab80efdc4bb7d9298910926027e47c",
+      "processRows": 44
+    }
+  ],
+  "irMutationsPerOptimization": 174,
+  "optimizations": [
+    "O0",
+    "O2"
+  ],
+  "runtimeOrEmitterChanges": false,
+  "limitations": [
+    "Exact const POD-reference or packed descriptor substitution only.",
+    "No resource/span/output/callback/module-owner omission.",
+    "Final matching Native SDK and DocUI clear methods are separate qualification.",
+    "Unrelated live IDE Sem changes excluded."
+  ],
+  "files": [
+    {
+      "path": "src/sem/xl6_sem_foreign_null_compat.c",
+      "canonicalLfSha256": "f87de13176b548805e6dc960054f94b2b94640a9585dd8e03a86fac1ec080b2d"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_null_compat.c",
+      "canonicalLfSha256": "620a8173102c9b9685e3341ef986d37fe06c3cbbdd9f0d63871dd72956620c7f"
+    },
+    {
+      "path": "test/cases/foreign_null_compat.xl",
+      "canonicalLfSha256": "eaa0506d1d2aa61ff3863a00f0e93ae6ead3517d147f259480edcfa9ac86e9ed"
+    },
+    {
+      "path": "test/cases/foreign_null_compat.h",
+      "canonicalLfSha256": "99d42f05cf3963c4347a76758b2d5d95ad69b7d9be4bb9e62d62204ea764d873"
+    },
+    {
+      "path": "test/cases/foreign_null_compat_native.c",
+      "canonicalLfSha256": "32dd47a2b5b5c5602c9b5cdc0de338d41a876561891e148fb7b082ef72a6509e"
+    },
+    {
+      "path": "test/cases/foreign_null_compat_ir.c",
+      "canonicalLfSha256": "91f607c2b4972c87814976539ec42ac71e45a1e09b4a657c57ff0f000e39dfaf"
+    },
+    {
+      "path": "tools/check_foreign_null_compat.py",
+      "canonicalLfSha256": "4440f097c9947eb32bc0091663ec347ec086f6d573e26f8f15750d5533bef88e"
+    },
+    {
+      "path": "docs/foreign-null-compat.md",
+      "canonicalLfSha256": "3ed0e4f40b5c12445642a18080649c0f0e0e1dbf845078cab87ca0da03ba1d71"
+    },
+    {
+      "path": "src/sem/xl6_sem.c",
+      "canonicalLfSha256": "68f9e57251aae73d99f4e77b7b3fc0f5eeb877295a441ea475c62fd7c6fe0d04"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_compat.c",
+      "canonicalLfSha256": "6b18e64a7b5b118975295d51128f1391c0c87b22e9f4d825359b1a3079f4919f"
+    }
+  ]
+}
