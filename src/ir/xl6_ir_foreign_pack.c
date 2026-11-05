@@ -213,7 +213,11 @@ static int xl6IrPackFieldExpected(const XL6_IrModule* m,const XL6_ForeignPackFie
         cName=inner->cName;
     }else if(row->kind==XL6_FOREIGN_PACK_FIELD_SPAN_DATA || row->kind==XL6_FOREIGN_PACK_FIELD_SPAN_COUNT){
         const XL6_ForeignParameterContract* span=xl6IrPackSpan(m,row->declaration,p,receiver);
-        if(!span || !type || type->kind==XL6_IR_TYPE_NULLABLE)return 0;
+        if(!span || !type)return 0;
+        if(type->kind==XL6_IR_TYPE_NULLABLE){
+            const XL6_IrClassField* buffer=type->paramCount==1 && type->params ? xl6IrManagedNativeConstructorField(m,type->params[0]):NULL;
+            if(!buffer || !buffer->nativeHandlePolicyCName || strcmp(buffer->nativeHandlePolicyCName,"xl6BufferHandlePolicyV1Get"))return 0;
+        }
         cName=row->kind==XL6_FOREIGN_PACK_FIELD_SPAN_DATA ? span->pointerCName:span->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int":"size_t";
         if(row->kind==XL6_FOREIGN_PACK_FIELD_SPAN_COUNT)countAbi=span->countAbi;
     }else{

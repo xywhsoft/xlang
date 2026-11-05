@@ -1,0 +1,97 @@
+extern "NullableSpanPod" struct Pod @header("test/cases/foreign_nullable_span.h")
+ c_uint value
+end
+extern "NullableSpanRoot*" class SpanApi @header("test/cases/foreign_nullable_span.h") @lifetime("owned") @policy("nullableSpanPolicy")
+ native point handle
+ extern "nullable_span_read" @no_raise @c_span(0,"const void*","size_t") @c_output(3,0) func read(string data) as c_int
+ extern "nullable_span_read" @no_raise @c_span(0,"const void*","size_t") @c_output(3,0) func read(bytes data) as c_int
+ extern "nullable_span_read" @no_raise @c_span(0,"const void*","size_t") @c_output(3,0) func read(Buffer data) as c_int
+ extern "nullable_span_probe" @no_raise @c_span(0,"const void*","size_t") @c_output(3,0) func probe(Buffer? data=null) as c_int
+ extern "nullable_span_words" @no_raise @c_span(0,"const uint32_t*","size_t") @c_output(3,0) func words(Buffer? data) as c_int
+ extern "nullable_span_write" @no_raise @c_span(0,"void*","int") @c_output(4,0) func write(Buffer? data,c_int fail=c_int(0)) as c_int
+ extern "nullable_span_pack" @no_raise @c_span(0,"const void*","size_t") @c_pack(1,"NullableSpanDesc",0,1) @c_pack_field(1,"data",0,"span_data") @c_pack_field(1,"count",0,"span_count") @c_output(2,0) func pack(string data) as c_int
+ extern "nullable_span_pack" @no_raise @c_span(0,"const void*","size_t") @c_pack(1,"NullableSpanDesc",0,1) @c_pack_field(1,"data",0,"span_data") @c_pack_field(1,"count",0,"span_count") @c_output(2,0) func pack(bytes data) as c_int
+ extern "nullable_span_pack" @no_raise @c_span(0,"const void*","size_t") @c_pack(1,"NullableSpanDesc",0,1) @c_pack_field(1,"data",0,"span_data") @c_pack_field(1,"count",0,"span_count") @c_output(2,0) func pack(Buffer data) as c_int
+ extern "nullable_span_pack_optional" @no_raise @c_span(0,"const void*","size_t") @c_pack(1,"NullableSpanDesc",0,1) @c_pack_field(1,"data",0,"span_data") @c_pack_field(1,"count",0,"span_count") @c_output(2,0) func packOptional(Buffer? data) as c_int
+ extern "nullable_span_callback" @no_raise @c_span(0,"const void*","size_t") @c_sync_callback(1,0,-16) @c_output(5,0) func inspect(Buffer? data,func() as c_int callback) as c_int
+ extern "nullable_span_text_callback" @no_raise @c_span(0,"const void*","size_t") @c_sync_callback(1,0,-16) @c_output(5,0) func inspectText(string data,func() as c_int callback) as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "nullable_span_create" @header("test/cases/foreign_nullable_span.h") @no_raise @c_result("owned_view") @factory(0,0,rollback) func createSpanApi() as SpanApi
+extern "nullable_span_drop" @header("test/cases/foreign_nullable_span.h") @no_raise func rollback(SpanApi value)
+extern "nullable_span_calls" @header("test/cases/foreign_nullable_span.h") @no_raise func calls() as c_int
+extern "nullable_span_fail_after" @header("test/cases/foreign_nullable_span.h") @no_raise func failAfter(c_int count)
+extern "nullable_span_reset" @header("test/cases/foreign_nullable_span.h") @no_raise func resetFailure()
+protocol SpanReader
+ func read(Buffer data) as c_int
+end
+string retainedText=""
+Buffer? retainedBuffer=null
+func main(...) as int
+ SpanApi api=createSpanApi()
+ Buffer? absent=null
+ Buffer empty=Buffer()
+ Buffer? optionalEmpty=empty
+ assert api.probe(absent)==c_int(0) and api.write(absent)==c_int(0)
+ assert api.probe()==c_int(0)
+ assert api.probe(optionalEmpty)==c_int(0) and api.write(optionalEmpty)==c_int(0)
+ assert api.packOptional(absent)==c_int(0) and api.packOptional(optionalEmpty)==c_int(0)
+ failAfter(c_int(0))
+ assert api.probe(absent)==c_int(0) and api.write(absent)==c_int(0) and api.probe(optionalEmpty)==c_int(0)
+ resetFailure()
+ int blocked=0
+ assert api.inspect(optionalEmpty,func() as c_int
+  try
+   empty.appendByte(77)
+  catch error
+   blocked+=1
+  end
+  return c_int(0)
+ end)==c_int(0)
+ assert blocked==1 and empty.len()==0
+ Buffer data=Buffer(b"a\0b")
+ Buffer? optionalData=data
+ assert api.read("a\0b")==c_int(195)
+ assert api.read(b"a\0b")==c_int(195)
+ assert api.read(data)==c_int(195)
+ func(Buffer) as c_int saved=api.read
+ assert saved(data)==c_int(195)
+ SpanReader reader=api
+ assert reader.read(data)==c_int(195)
+ assert api.pack("a\0b")==c_int(195) and api.pack(b"a\0b")==c_int(195) and api.pack(data)==c_int(195)
+ assert api.probe(optionalData)==c_int(195) and api.packOptional(optionalData)==c_int(195)
+ assert api.write(optionalData)==c_int(3) and data.len()==3
+ assert api.read(data)==c_int(197)
+ bool failed=false
+ try
+  api.write(optionalData,c_int(1))
+ catch error
+  failed=true
+ end
+ assert failed and data.len()==3 and api.read(data)==c_int(197)
+ retainedText="a\0b"
+ assert api.inspectText(retainedText,func() as c_int
+  retainedText="replaced"
+  return c_int(0)
+ end)==c_int(195)
+ assert retainedText=="replaced"
+ retainedBuffer=Buffer(b"a\0b")
+ assert api.inspect(retainedBuffer,func() as c_int
+  retainedBuffer=null
+  return c_int(0)
+ end)==c_int(195)
+ assert retainedBuffer==null
+ c_int before=calls()
+ failed=false
+ failAfter(c_int(0))
+ try
+  api.words(optionalData)
+ catch error
+  failed=true
+ end
+ resetFailure()
+ assert failed and calls()==before and data.len()==3
+ assert api.words(absent)==c_int(0) and api.words(optionalEmpty)==c_int(0)
+ api.close()
+ return 0
+end

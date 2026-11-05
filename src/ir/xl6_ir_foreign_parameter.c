@@ -529,7 +529,10 @@ const XL6_IrClassField* xl6IrForeignSpanBufferField(const XL6_IrModule* module,
 {
     const XL6_ForeignParameterContract* contract=xl6IrForeignParameterGet(module,target,parameter);
     if(!contract || contract->kind!=XL6_FOREIGN_PARAMETER_SPAN)return NULL;
-    const XL6_IrClassField* field=xl6IrManagedNativeConstructorField(module,target->parameterTypes[parameter]);
+    XL6_IrTypeId typeId=target->parameterTypes[parameter];
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,typeId);
+    if(type && type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1 && type->params)typeId=type->params[0];
+    const XL6_IrClassField* field=xl6IrManagedNativeConstructorField(module,typeId);
     return field && field->nativeHandlePolicyCName &&
         !strcmp(field->nativeHandlePolicyCName,"xl6BufferHandlePolicyV1Get") ? field : NULL;
 }
@@ -612,7 +615,11 @@ int xl6IrForeignSpanParameterMatches(const XL6_IrModule* module,const XL6_IrCall
         target->parameterAbis[parameter]!=((type->cAbi==XL6_IR_C_ABI_C_ARRAY || type->cAbi==XL6_IR_C_ABI_C_RECORD) ? XL6_IR_PARAMETER_ABI_VALUE : XL6_IR_PARAMETER_ABI_BORROW) ||
         target->parameterConstraintAbis[parameter])return 0;
     const XL6_IrClassField* buffer=xl6IrForeignSpanBufferField(module,target,parameter);
-    if(buffer)return type->kind==XL6_IR_TYPE_CLASS && target->parameterPhysicalFieldDeclarations[parameter]==buffer->declaration;
+    if(buffer){
+        if(type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1 && type->params)type=xl6IrTypeGet(&module->types,type->params[0]);
+        return type && type->kind==XL6_IR_TYPE_CLASS && target->parameterPhysicalFieldDeclarations[parameter]==buffer->declaration;
+    }
+    if(type->kind==XL6_IR_TYPE_NULLABLE)return 0;
     if(target->parameterPhysicalFieldDeclarations[parameter])return 0;
     return row->readOnly && ((type->kind==XL6_IR_TYPE_BUILTIN && (type->cAbi==XL6_IR_C_ABI_MANAGED_STRING ||
         type->cAbi==XL6_IR_C_ABI_MANAGED_BYTES)) || type->cAbi==XL6_IR_C_ABI_C_ARRAY || type->cAbi==XL6_IR_C_ABI_C_RECORD);
