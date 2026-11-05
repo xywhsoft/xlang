@@ -8,13 +8,14 @@ import argparse,hashlib,json,os,shutil,subprocess,time
 from foreign_validation_build import add_build_arguments,load_build
 from compiler_response import command_with_response
 from check_foreign_xge3_data_object import verify_stage
+from foreign_native_artifacts import native_artifacts
 
 def main():
  p=argparse.ArgumentParser(description=__doc__)
  for name in ('root','packages','out','tcc-core','tcc-libraries','tcc-include','engine-build','stage-report'):p.add_argument('--'+name,type=Path,required=True)
- add_build_arguments(p);a=p.parse_args();root,packages,out,tcc,libraries,tccInclude=[v.resolve() for v in (a.root,a.packages,a.out,a.tcc_core,a.tcc_libraries,a.tcc_include)];b=load_build(a.build,a.overlay);cohort,runtime=b['cohort'],b['runtime'];windows=os.name=='nt';sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();private=packages/'_xge_native';engine=private/'native'/('xge.dll' if windows else 'libxge.so');assert engine.is_file() and tcc.is_file() and libraries.is_dir() and tccInclude.is_dir()
+ add_build_arguments(p);a=p.parse_args();root,packages,out,tcc,libraries,tccInclude=[v.resolve() for v in (a.root,a.packages,a.out,a.tcc_core,a.tcc_libraries,a.tcc_include)];b=load_build(a.build,a.overlay);cohort,runtime=b['cohort'],b['runtime'];windows=os.name=='nt';sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();private=packages/'_xge_native';artifacts=native_artifacts(packages,a.engine_build);engine=artifacts['stagedImage'];assert tcc.is_file() and libraries.is_dir() and tccInclude.is_dir()
  build,binary=verify_stage(packages,a.engine_build.resolve(),a.stage_report.resolve());assert sha(binary)==sha(engine)
- fixture=root/'test/cases/foreign_xge3_data_object_cycle.xl';header=fixture.with_suffix('.h');host=root/'test/cases/foreign_xge3_data_object_cycle_host.c';inputs=dict(b['inputs']);inputs.update((str(f),sha(f)) for f in (Path(__file__),Path(__file__).with_name('check_foreign_xge3_data_object.py'),a.stage_report,a.engine_build/'build-report.json',fixture,header,host,tcc,engine,*[x for x in packages.rglob('*') if x.is_file()],*[x for x in libraries.rglob('*') if x.is_file()],*[x for x in tccInclude.rglob('*') if x.is_file()]));out.mkdir(parents=True,exist_ok=False)
+ fixture=root/'test/cases/foreign_xge3_data_object_cycle.xl';header=fixture.with_suffix('.h');host=root/'test/cases/foreign_xge3_data_object_cycle_host.c';inputs=dict(b['inputs']);inputs.update((str(f),sha(f)) for f in (Path(__file__),Path(__file__).with_name('check_foreign_xge3_data_object.py'),Path(__file__).with_name('foreign_native_artifacts.py'),a.stage_report,a.engine_build/'build-report.json',fixture,header,host,tcc,engine,*[x for x in packages.rglob('*') if x.is_file()],*[x for x in libraries.rglob('*') if x.is_file()],*[x for x in tccInclude.rglob('*') if x.is_file()]));out.mkdir(parents=True,exist_ok=False)
  env=dict(os.environ,XLANG_PACKAGE_PATH=str(packages),XL6_SOURCE_NATIVE_ROOT=str(cohort))
  if windows:shutil.copy2(runtime,out/runtime.name)
  else:env['LD_LIBRARY_PATH']=str(runtime.parent)+':'+str(engine.parent)+':'+env.get('LD_LIBRARY_PATH','')
