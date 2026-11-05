@@ -1,0 +1,38 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Linux source-free double-nested compiler regression and documentation successor; existing SDK discovery implementation unchanged. Separate R39 Windows immutable source/producer post-verification proof.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\sdk-include-core-candidate-r5\\manifest.json",
+    "sha256": "057acc6e6ddec4c834be605b572d20f1a39f58eef5298c76946b7f201250eb00"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\sdk-include-core-candidate-r5\\linux-acceptance-146-localCopy.json",
+      "sha256": "529188879149e89362457d7f6f440b8930bb3e85dda7b35c27f8fa58f9d5efd9"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\sdk-include-core-candidate-r5\\linux-sourcefree-35-localCopy.json",
+      "sha256": "e78bade7ea2eb7a40ea298ca09a68bc96dd48896d9369898c6b590ea3c58a78a"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\r39-source-unchanged-after-provider.json",
+      "sha256": "42bf4f6f41d2f1f71f4eaedd1a006aba5977f5bcbe9e8c3ba472045b48850490"
+    }
+  ],
+  "linuxAggregateSteps": 146,
+  "sourcefreeStepsIncludedInAggregate": 35,
+  "windowsUnchangedSourceFilesPerRoot": 10355,
+  "files": [
+    {
+      "path": "tools/check_source_provider_nested_linux.py",
+      "canonicalLfSha256": "821cf7d491c198f31b39e2faa6458e1a1e7a84e85fb0778edfe14a76ecc8f983"
+    },
+    {
+      "path": "docs/embedded-compiler-sdk-paths.md",
+      "canonicalLfSha256": "fedade617a71e48e137ae08ea5db6dd4308626f369493f039125b287c83c8ffa"
+    }
+  ]
+}

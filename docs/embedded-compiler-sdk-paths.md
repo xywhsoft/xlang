@@ -27,9 +27,11 @@ and accepts an explicitly partial compiler `--overlay` for a focused regression.
 The report distinguishes the compiler overlay from the separately qualified
 serialized provider objects. It copies declarations only beside the executable,
 clears source/include environment overrides, runs from an empty work directory,
-and tests six programs through JIT, module, standalone compilation, dependency
+and tests seven programs through JIT, module, standalone compilation, dependency
 inspection and relocated execution. One program uses `NativeSequence` directly;
-another compiles it through an inner `xlang.Context`. Linux system libc headers,
+another compiles it through an inner `xlang.Context`. A double-nested compiler
+also imports `xlang` in the inner program, checking the serialized compiler's
+own generated-wrapper SDK setup. Linux system libc headers,
 CRT and linker inputs remain required.
 
 Example with a final provider:

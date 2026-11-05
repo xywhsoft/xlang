@@ -37,6 +37,12 @@ def main():
     nested.write_text('import xlang\nauto context=xlang.Context()\nassert context.run('
         +json.dumps(inner)+'), context.lastError\nprintln("nested NativeSequence: PASS")\n',encoding='utf-8')
     cases.append(nested);inputs[str(nested)]=sha(nested)
+    second=out/'double-nested-compiler.xl'
+    middle=('import xlang\nauto innerContext=xlang.Context()\nassert innerContext.run('
+        +json.dumps(inner)+'), innerContext.lastError\n')
+    second.write_text('import xlang\nauto context=xlang.Context()\nassert context.run('
+        +json.dumps(middle)+'), context.lastError\nprintln("double nested compiler: PASS")\n',encoding='utf-8')
+    cases.append(second);inputs[str(second)]=sha(second)
     work=out/'empty-work';work.mkdir();(work/'build/test').mkdir(parents=True)
     relocated=out/'relocated';relocated.mkdir();(relocated/'build/test').mkdir(parents=True)
     env={key:value for key,value in os.environ.items() if not key.startswith('XL6_') and key not in
