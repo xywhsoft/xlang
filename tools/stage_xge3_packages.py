@@ -17,6 +17,13 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def public_abi_inputs(root):
+    paths = sorted(path.relative_to(root).as_posix() for path in (root / "include").glob("*.h"))
+    paths.append("extlibs/xrt/xrt.h")
+    return "XGE_PUBLIC_ABI_V2\n" + "".join(
+        name + "\0" + (root / name).read_text(encoding="utf-8") + "\0" for name in paths)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root',type=Path,required=True)
@@ -46,6 +53,8 @@ def main():
     metadata = json.loads((build / "build-report.json").read_text(encoding="utf-8"))
     if metadata.get("xrt_mode") != "host" or not metadata.get("linked"):
         raise SystemExit("The engine must be a linked shared-host-XRT build")
+    if metadata.get("public_abi_schema") != 2:
+        raise SystemExit("The engine must be rebuilt with the complete public-header ABI fingerprint (schema 2)")
     canonical_xrt = hashlib.sha256((root / "lib/xrt/xrt.h").read_bytes().replace(b"\r\n", b"\n")).hexdigest()
     if metadata.get("xrt_host_header_sha256") != canonical_xrt:
         raise SystemExit("The engine's XRT fingerprint does not match the language runtime")
@@ -68,9 +77,8 @@ def main():
     match=re.search(r'^#define XGE_BUILD_ABI_FINGERPRINT UINT64_C\(0x([0-9a-f]{16})\)$',config,re.M)
     if not match:
         raise SystemExit('The engine configuration has no supported ABI fingerprint')
-    abi_files=[native/path for path in ('include/xge.h','include/xui.h','include/xge_host_xrt.h',
-        'include/xge_config.h','include/xui_config.h','extlibs/xrt/xrt.h')]
-    abi_inputs=config[:match.start()]+''.join(path.read_text(encoding='utf-8') for path in abi_files)
+    abi_files=[*headers,native/'extlibs/xrt/xrt.h']
+    abi_inputs=config[:match.start()]+public_abi_inputs(native)
     actual_abi=hashlib.sha256((abi_inputs+metadata['compiler'][2]+debug_flags[0][-1]).encode()).hexdigest()[:16]
     if actual_abi!=match.group(1):
         raise SystemExit('The supplied native SDK headers do not match the engine ABI fingerprint')

@@ -1,0 +1,28 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "fullEngineRebuild": false,
+  "scope": "Package staging independently checks complete Native ABI inputs and rejects schema 1 before output.",
+  "nativeCommit": "433c7a150a4c60f124fb39bdf80c76db8921b537",
+  "report": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-sdk-fingerprint-r1\\results.json",
+    "sha256": "427102315db7787cd4e235e304ea1c26f8f3a26df862b09622d03f680fcded99",
+    "checks": 13
+  },
+  "files": [
+    {
+      "path": "tools/stage_xge3_packages.py",
+      "canonicalLfSha256": "4f0e38c41de419378a74c33d817b96ee0259649e0a4ef49c23423658cee8c2b6"
+    },
+    {
+      "path": "tools/check_xge3_sdk_fingerprint.py",
+      "canonicalLfSha256": "3388fc2933d445eb34f7ea1d87139cc305b9663e0dd7efb6673e588d1ec0962a"
+    },
+    {
+      "path": "docs/xge3-sdk-abi-fingerprint.md",
+      "canonicalLfSha256": "9112048c1e731eb6a3989e036d16745e794adf7c2393cf5a86822c1e4d11cc75"
+    }
+  ]
+}
