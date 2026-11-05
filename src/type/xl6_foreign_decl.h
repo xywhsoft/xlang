@@ -286,7 +286,7 @@ static inline int xl6ForeignFunctionFieldCall(const XL6_AstNode* node)
 static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     XL6_ForeignCallFacts* output)
 {
-    XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0,outputStatus=0,fieldCall=0;uint64 callbackSpans=0,callbackParameters=0,outputSizes=0,outputViews=0,regions=0,regionObservers=0,packs=0,packText=0,packCstrings=0;size_t callbackSpanCount=0,packFields=0;
+    XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0,outputStatus=0,fieldCall=0;uint64 callbackSpans=0,callbackParameters=0,outputSizes=0,outputViews=0,regions=0,regionObservers=0,packs=0,packText=0,packCstrings=0,nulls=0;size_t callbackSpanCount=0,packFields=0;
     uint64 recordFields=0,recordRetains=0,arrayGroups=0,arrayRecords=0;size_t arrayInputs=0,arrayFields=0;
     const XL6_AstNode* attributes = xl6ForeignFunctionAttributes(node);
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
@@ -315,7 +315,12 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             if(!xl6ForeignPackRead(attr,&row) || (packs&(UINT64_C(1)<<row.physicalIndex)))return 0;
             packs|=UINT64_C(1)<<row.physicalIndex;continue;
         }
-        if(attr && attr->text && (!strcmp(attr->text,"c_pack_field") || !strcmp(attr->text,"c_pack_size"))){
+        if(attr && attr->text && !strcmp(attr->text,"c_null")){
+            XL6_ForeignNullContract row;
+            if(!xl6ForeignNullRead(attr,&row) || (nulls&(UINT64_C(1)<<row.physicalIndex)))return 0;
+            nulls|=UINT64_C(1)<<row.physicalIndex;continue;
+        }
+        if(attr && attr->text && (!strcmp(attr->text,"c_pack_field") || !strcmp(attr->text,"c_pack_size") || !strcmp(attr->text,"c_pack_record"))){
             XL6_ForeignPackFieldContract row;
             if(!xl6ForeignPackFieldRead(attr,&row))return 0;
             ++packFields;
@@ -534,6 +539,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     if((arrayRecords&~arrayGroups) || (!arrayGroups && (arrayInputs || arrayFields)) ||
         (arrayGroups && (packs || regions || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)))return 0;
     if(arrayGroups)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT;
+    if(nulls)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_NULLS_PRESENT;
     if (output) *output = facts;
     return 1;
 }

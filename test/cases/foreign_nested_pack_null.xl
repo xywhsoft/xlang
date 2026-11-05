@@ -1,0 +1,54 @@
+extern "NestedRoot*" class Root @header("test/cases/foreign_nested_pack_null.h") @lifetime("owned") @policy("nestedRootPolicy")
+ native point handle
+ extern "nested_call" @no_raise @c_output(3,0) @c_null(2,"const int*") @c_pack(1,"NestedOuter",0,3) @c_pack_record(1,"view","NestedView") @c_pack_record(1,"view.renderer","NestedRenderer") @c_pack_record(1,"view.renderer.fonts","NestedFonts") @c_pack_size(1,"size","uint32_t") @c_pack_size(1,"view.size","uint32_t","view") @c_pack_size(1,"view.renderer.size","uint32_t","view.renderer") @c_pack_field(1,"factor",0,"value") @c_pack_field(1,"view.renderer.fonts.source",1,"view_raw") @c_pack_field(1,"view.renderer.text",2,"text_data") @c_pack_field(1,"view.renderer.length",2,"text_size","size_t") func call(c_int factor,Root? source,string text) as c_int
+ extern "evaluate" @c_field_call @no_raise @c_output(3,0) @c_null(2,"const int*") @c_pack(1,"NestedOuter",0,3) @c_pack_record(1,"view","NestedView") @c_pack_record(1,"view.renderer","NestedRenderer") @c_pack_record(1,"view.renderer.fonts","NestedFonts") @c_pack_size(1,"size","uint32_t") @c_pack_size(1,"view.size","uint32_t","view") @c_pack_size(1,"view.renderer.size","uint32_t","view.renderer") @c_pack_field(1,"factor",0,"value") @c_pack_field(1,"view.renderer.fonts.source",1,"view_raw") @c_pack_field(1,"view.renderer.text",2,"text_data") @c_pack_field(1,"view.renderer.length",2,"text_size","size_t") func evaluate(c_int factor,Root? source,string text) as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "nested_create" @header("test/cases/foreign_nested_pack_null.h") @no_raise @c_result("owned_view") @factory(0,0,rollback) @c_null(1,"const void*") func create() as Root
+extern "nested_drop" @header("test/cases/foreign_nested_pack_null.h") @no_raise func rollback(Root root)
+extern "nested_free" @header("test/cases/foreign_nested_pack_null.h") @no_raise @c_output(2,0) @c_null(1,"const int*") @c_pack(0,"NestedOuter",0,3) @c_pack_record(0,"view","NestedView") @c_pack_record(0,"view.renderer","NestedRenderer") @c_pack_record(0,"view.renderer.fonts","NestedFonts") @c_pack_size(0,"size","uint32_t") @c_pack_size(0,"view.size","uint32_t","view") @c_pack_size(0,"view.renderer.size","uint32_t","view.renderer") @c_pack_field(0,"factor",0,"value") @c_pack_field(0,"view.renderer.fonts.source",1,"view_raw") @c_pack_field(0,"view.renderer.text",2,"text_data") @c_pack_field(0,"view.renderer.length",2,"text_size","size_t") func freeValue(c_int factor,Root? source,string text) as c_int
+extern "nested_null_only" @header("test/cases/foreign_nested_pack_null.h") @no_raise @c_output(1,0) @c_null(0,"const int*") func onlyNull() as c_int
+extern "nested_trailing" @header("test/cases/foreign_nested_pack_null.h") @no_raise @c_null(1,"const NestedRoot*") @c_null(2,"const void*") func trailing(c_int input) as c_int
+extern "nested_multi" @header("test/cases/foreign_nested_pack_null.h") @no_raise @c_outputs(1,3) @c_status(0) @c_null(0,"const int*") @c_null(2,"const void*") func multiNull() as (c_int,c_int)
+extern "nested_span" @header("test/cases/foreign_nested_pack_null.h") @no_raise @c_span(0,"const uint8_t*","size_t") @c_output(3,0) @c_null(2,"const int*") func spanNull(bytes data) as c_int
+extern "nested_calls" @header("test/cases/foreign_nested_pack_null.h") @no_raise func calls() as c_int
+extern "nested_fail_after" @header("test/cases/foreign_nested_pack_null.h") @no_raise func failAfter(c_int n)
+extern "nested_reset" @header("test/cases/foreign_nested_pack_null.h") @no_raise func resetFailure()
+protocol Evaluator
+ func evaluate(c_int factor,Root? source,string text) as c_int
+end
+func main(...) as int
+ Root root=create()
+ assert root.call(c_int(7),root,"a\0b")==c_int(32)
+ assert root.evaluate(c_int(7),root,"a\0b")==c_int(32)
+ func(c_int,Root?,string) as c_int bound=root.evaluate
+ assert bound(c_int(7),root,"a\0b")==c_int(32)
+ Evaluator evaluator=root
+ assert evaluator.evaluate(c_int(7),root,"a\0b")==c_int(32)
+ assert freeValue(c_int(7),root,"a\0b")==c_int(21)
+ assert freeValue(c_int(7),null,"a\0b")==c_int(10)
+ assert onlyNull()==c_int(17)
+ assert trailing(c_int(19))==c_int(19)
+ assert calls()==c_int(8)
+ failAfter(c_int(0))
+ try
+  assert onlyNull()==c_int(17)
+  assert trailing(c_int(21))==c_int(21)
+ finally
+  resetFailure()
+ end
+ assert calls()==c_int(10)
+ auto first,second=multiNull()
+ assert first==c_int(23) and second==c_int(29)
+ assert spanNull(b"a\0b")==c_int(31)
+ assert calls()==c_int(12)
+ root.close()
+ auto rejected=false
+ try
+  freeValue(c_int(7),root,"a\0b")
+ catch error
+  rejected=true
+ end
+ assert rejected and calls()==c_int(12)
+ return 0
+end

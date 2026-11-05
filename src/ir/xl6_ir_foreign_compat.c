@@ -40,6 +40,7 @@ static int xl6IrForeignPackFieldsEqual(const XL6_IrModule* m,const XL6_IrCallTar
         ++left;size_t matches=0;
         for(size_t j=0;j<m->foreignPackFieldCount;++j){const XL6_ForeignPackFieldContract* other=&m->foreignPackFields[j];if(other->declaration!=b->declaration)continue;
             XL6_ForeignPackFieldContract x=*row,y=*other;x.declaration=y.declaration=0;
+            x.recordParentIndexPlusOne=y.recordParentIndexPlusOne=0;
             if(x.logicalType!=y.logicalType){
                 if(x.parameter!=y.parameter || x.kind!=y.kind ||
                     (x.kind!=XL6_FOREIGN_PACK_FIELD_SPAN_DATA && x.kind!=XL6_FOREIGN_PACK_FIELD_SPAN_COUNT) ||
@@ -62,6 +63,7 @@ static int xl6IrForeignOverloadMetadataEqual(const XL6_IrModule* m,const XL6_IrC
     XL6_EQUAL_ROWS(foreignOutputRecords,foreignOutputRecordCount);
     XL6_EQUAL_ROWS(foreignOutputFields,foreignOutputFieldCount);
     XL6_EQUAL_ROWS(foreignPacks,foreignPackCount);
+    XL6_EQUAL_ROWS(foreignNulls,foreignNullCount);
     if(!xl6IrForeignPackFieldsEqual(m,left,right))return 0;
     XL6_EQUAL_ROWS(foreignPointerQualifiers,foreignPointerQualifierCount);
     XL6_EQUAL_ROWS(foreignValues,foreignValueCount);
@@ -156,6 +158,7 @@ static int xl6IrVerifyForeignOverloads(const XL6_IrModule* module,XL6_DiagList* 
             if(left->sourceKind!=XL6_AST_NATIVE_EXTERN_FUNC && !spans && !xl6ForeignInputHasRegions(left->foreignCall.inputMappingFacts) &&
                 !xl6ForeignInputHasRegions(right->foreignCall.inputMappingFacts) && !xl6ForeignInputHasPacks(left->foreignCall.inputMappingFacts) &&
                 !xl6ForeignInputHasPacks(right->foreignCall.inputMappingFacts) &&
+                !xl6ForeignInputHasNulls(left->foreignCall.inputMappingFacts) && !xl6ForeignInputHasNulls(right->foreignCall.inputMappingFacts) &&
                 !xl6ForeignValueOutputIsRecord(left->foreignCall.valueOutput) &&
                 !xl6ForeignValueOutputIsRecord(right->foreignCall.valueOutput) && !lifetimeVariants && !retainedOutputs)continue;
             if(!xl6IrForeignOverloadsCompatible(module,a,b))return xl6IrDiag(diags,NULL,"native target overloads disagree on their sealed physical, effect or ownership contract");

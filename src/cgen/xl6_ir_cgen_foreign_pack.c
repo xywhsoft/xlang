@@ -19,14 +19,26 @@ static int xl6IrCgenPackProof(XL6_Output* out,const XL6_IrModule* module,const X
     for(size_t i=0;i<module->foreignPackCount;++i){const XL6_ForeignPackContract* pack=&module->foreignPacks[i];
         if(pack->declaration!=target->declaration)continue;
         xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE((%s*)0,struct %s*), \"native descriptor tagged struct\");\n"
-            "XLIR_NATIVE_ASSERT(sizeof(%s)>0, \"native descriptor completeness\");\n",pack->recordCName,pack->recordCName,pack->recordCName);
+            "XLIR_NATIVE_ASSERT(sizeof(%s)>0, \"native descriptor completeness\");\n"
+            "#ifdef __cplusplus\nXLIR_NATIVE_ASSERT(std::is_trivial<%s>::value && std::is_standard_layout<%s>::value, \"native descriptor trivial layout\");\n#endif\n",
+            pack->recordCName,pack->recordCName,pack->recordCName,pack->recordCName,pack->recordCName);
         for(size_t f=0;f<module->foreignPackFieldCount;++f){const XL6_ForeignPackFieldContract* field=&module->foreignPackFields[f];
             if(field->declaration!=pack->declaration || field->packPhysicalIndex!=pack->physicalIndex)continue;
+            if(field->kind==XL6_FOREIGN_PACK_FIELD_RECORD){
+                xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE((%s*)0,struct %s*), \"native nested descriptor tagged struct\");\n"
+                    "XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(&((%s*)0)->%s,%s*), \"native nested descriptor field\");\n"
+                    "XLIR_NATIVE_ASSERT(sizeof(%s)>0, \"native nested descriptor completeness\");\n"
+                    "#ifdef __cplusplus\nXLIR_NATIVE_ASSERT(std::is_trivial<%s>::value && std::is_standard_layout<%s>::value, \"native nested descriptor trivial layout\");\n#endif\n",
+                    field->physicalCName,field->physicalCName,pack->recordCName,field->field,field->physicalCName,
+                    field->physicalCName,field->physicalCName,field->physicalCName);continue;
+            }
             xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s*)0)->%s,%s), \"native descriptor field type\");\n",
                 pack->recordCName,field->field,field->physicalCName);
             if(field->kind==XL6_FOREIGN_PACK_FIELD_VALUE && !xl6IrCgenPackPodProof(out,module,field->logicalType,0))return 0;
-            if(field->kind==XL6_FOREIGN_PACK_FIELD_SIZEOF)xl6OutputPrintf(out,
-                "XLIR_NATIVE_ASSERT(sizeof(%s)<=((%s)~(%s)0), \"native descriptor size range\");\n",pack->recordCName,field->physicalCName,field->physicalCName);
+            if(field->kind==XL6_FOREIGN_PACK_FIELD_SIZEOF){
+                const char* record=field->recordParentIndexPlusOne ? module->foreignPackFields[field->recordParentIndexPlusOne-1].physicalCName:pack->recordCName;
+                xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(sizeof(%s)<=((%s)~(%s)0), \"native descriptor size range\");\n",record,field->physicalCName,field->physicalCName);
+            }
         }
     }
     return !xl6OutputHasFailed(out);
@@ -43,6 +55,7 @@ static int xl6IrCgenForeignPacksBegin(XL6_Output* out,const XL6_IrModule* module
         xl6OutputPrintf(out,"    %s native_pack_%u={0};\n",pack->recordCName,pack->physicalIndex);
         for(size_t f=0;f<module->foreignPackFieldCount;++f){const XL6_ForeignPackFieldContract* field=&module->foreignPackFields[f];
             if(field->declaration!=pack->declaration || field->packPhysicalIndex!=pack->physicalIndex)continue;
+            if(field->kind==XL6_FOREIGN_PACK_FIELD_RECORD)continue;
             size_t p=field->parameter;
             if(field->kind==XL6_FOREIGN_PACK_FIELD_TEXT_SIZE && field->countAbi==XL6_FOREIGN_SPAN_COUNT_INT){
                 xl6OutputPuts("    if (native_packs_ok && ",out);xl6IrCgenForeignViewArgument(out,operands,p,NULL);
@@ -50,7 +63,10 @@ static int xl6IrCgenForeignPacksBegin(XL6_Output* out,const XL6_IrModule* module
             }
             xl6OutputPrintf(out,"    if (native_packs_ok) native_pack_%u.%s=",pack->physicalIndex,field->field);
             switch(field->kind){
-            case XL6_FOREIGN_PACK_FIELD_SIZEOF:xl6OutputPrintf(out,"sizeof(native_pack_%u)",pack->physicalIndex);break;
+            case XL6_FOREIGN_PACK_FIELD_SIZEOF:
+                if(field->recordParentIndexPlusOne)xl6OutputPrintf(out,"sizeof(%s)",module->foreignPackFields[field->recordParentIndexPlusOne-1].physicalCName);
+                else xl6OutputPrintf(out,"sizeof(native_pack_%u)",pack->physicalIndex);
+                break;
             case XL6_FOREIGN_PACK_FIELD_VALUE:xl6IrCgenForeignViewArgument(out,operands,p,NULL);break;
             case XL6_FOREIGN_PACK_FIELD_VIEW_RAW:xl6OutputPrintf(out,"(%s)native_view_%lu.raw",field->physicalCName,(unsigned long)p);break;
             case XL6_FOREIGN_PACK_FIELD_C_STRING:xl6OutputPrintf(out,"xlir_cstr_arg_%lu",(unsigned long)p);break;

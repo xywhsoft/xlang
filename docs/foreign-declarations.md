@@ -1341,3 +1341,39 @@ from this value projection. Resource handles continue to require `view_raw`
 and their separate native owning contract. A POD input is assigned by value
 into the stack descriptor; it creates no heap object, runtime conversion,
 reference alias, extra native call or forwarding C function.
+
+### Nested descriptor packs and fixed physical NULL arguments
+
+Descriptor packing accepts closed member paths with at most eight identifier
+components. Each intermediate member needs its own exact native struct witness:
+
+```xlang
+@c_pack(1,"EditorDesc",0,2)
+@c_pack_record(1,"view","ViewDesc")
+@c_pack_record(1,"view.renderer","RendererDesc")
+@c_pack_size(1,"size","uint32_t")
+@c_pack_size(1,"view.size","uint32_t","view")
+@c_pack_field(1,"view.document",0,"view_raw")
+@c_pack_field(1,"view.renderer.zoom",1,"value")
+```
+
+`c_pack_record` is a compile-time C-layout witness, not a language record or
+an owning object. Header proofs require a complete actual tagged struct and
+the exact containing-field type; C++ additionally requires trivial, standard
+layout. Pointer and union intermediate members are rejected. The optional
+fourth `c_pack_size` argument must be precisely the containing registered
+record path; it selects that record's `sizeof`, rather than the outer size.
+All field paths, parent-row identities and types are sealed in IR. Calls
+construct one zero-initialized outer stack descriptor; nested packing adds no
+heap allocation, native forwarding function or dynamic member lookup. Existing
+text validation, resource pinning and error/cleanup costs still apply.
+
+`@c_null(physicalIndex,"const NativeType*")` inserts an exact typed NULL into
+one physical C pointer slot without adding a logical argument. It is useful
+when a native API explicitly allows an optional descriptor or output pointer
+to be absent. It requires an authoritative header and `@no_raise`; the emitted
+function-pointer proof includes this pointer type. It cannot replace a
+receiver, another output/descriptor, or one half of a span/callback group.
+Duplicate, unreachable, malformed and nonpointer slots are rejected. It does
+not make native dereferencing of NULL safe, erase an output ownership duty,
+or relax compatibility between different logical declarations of one symbol.

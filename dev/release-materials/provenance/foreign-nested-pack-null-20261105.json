@@ -1,0 +1,138 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "fullCompilerRebuild": false,
+  "scope": "Closed nested native descriptor paths/sizeof witnesses and typed physical NULL; pure frontend, no Runtime/native/public-package changes",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\nested-pack-null-core-candidate-r1\\manifest.json",
+    "sha256": "11261da1c3d583d4ffcda4973f5c2f20d167aaab6e461555bae01dc9f1b24918"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\nested-pack-null-win-r6\\results.json",
+      "sha256": "f68f5de7ca0f1c16119717ef2c77f2ade9ebfc7921db76e0712dbd170fb3600a",
+      "steps": 44
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\nested-pack-null-linux-r2\\results.json",
+      "sha256": "99244f44ee29aa259a39fb2d6d26b8335b802f35a1176b626f78781af48b5b6b",
+      "steps": 44
+    }
+  ],
+  "factsBytes": 88,
+  "packFieldSparseGrowthBytes": 4,
+  "irModuleSparseStorageGrowthBytes": 24,
+  "mutationsPerOptPerPlatform": 249,
+  "qualification": "46 frontend O2 rebuild, then ir.o point correction; inherited exact R38 runtime over actual full R37, not full rebuild/provider/shipping qualification",
+  "semFilter": "Frozen source starts HEAD plus exactly two NULL compatibility/output-slot hunks; three unrelated live IDE hunks excluded",
+  "files": [
+    {
+      "path": "src/type/xl6_foreign_pack_contract.h",
+      "acceptedBytesSha256": "17f46b9f7a31796da44521efde195c9f908eb92f2be9ca24c30129e448d41302",
+      "canonicalLfSha256": "17f46b9f7a31796da44521efde195c9f908eb92f2be9ca24c30129e448d41302"
+    },
+    {
+      "path": "src/type/xl6_foreign_pack_decl.h",
+      "acceptedBytesSha256": "342a982255925975ee31fc90b0760ac800288d0e9c744a3b2144538827e699fb",
+      "canonicalLfSha256": "0578d849271b133137598a67190c2e6c4227510c7a4e1b28cb96ba3b1e2a20e8"
+    },
+    {
+      "path": "src/type/xl6_foreign_call_contract.h",
+      "acceptedBytesSha256": "10b29fe03671db28e5f4b2d219f066be69f6c0fee891a80d345ef7d2d47c73ca",
+      "canonicalLfSha256": "10b29fe03671db28e5f4b2d219f066be69f6c0fee891a80d345ef7d2d47c73ca"
+    },
+    {
+      "path": "src/type/xl6_foreign_decl.h",
+      "acceptedBytesSha256": "7a0d5b67862575ccb0f4666e236dcd0286e3e2e0262c7432f77a74b3c76a9cea",
+      "canonicalLfSha256": "7a0d5b67862575ccb0f4666e236dcd0286e3e2e0262c7432f77a74b3c76a9cea"
+    },
+    {
+      "path": "src/sem/xl6_sem_foreign_pack.c",
+      "acceptedBytesSha256": "46c131306f2bc2f381b43f174a1436f2dd8708856983d58869a2f17e1cb5fcfa",
+      "canonicalLfSha256": "46c131306f2bc2f381b43f174a1436f2dd8708856983d58869a2f17e1cb5fcfa"
+    },
+    {
+      "path": "src/sem/xl6_sem.c",
+      "acceptedBytesSha256": "26020b37a5328b003510e273ac13c88e3ffed06cb81950ee86d7c36fcda086fa",
+      "canonicalLfSha256": "4cd44c507540d2fb4131e76a5a60855ec376b23b9ba0365285f8f0300f560df3"
+    },
+    {
+      "path": "src/ir/xl6_ir.h",
+      "acceptedBytesSha256": "791cdfb65d3bff896eed4e491b4db02b4e94f176290d4419c4a93b32bc1f0736",
+      "canonicalLfSha256": "d2d54b089751c03b101bde2df4d0e173b1bfa7dd54f74cbf730994dab7836841"
+    },
+    {
+      "path": "src/ir/xl6_ir.c",
+      "acceptedBytesSha256": "53d09a4d7de709bb9a63b06178179ce78196c731ed2a7e684e56a453b5a855e1",
+      "canonicalLfSha256": "b185fb2e190363702bdd62954d6ffb49e5af91e5ae0e83548c0067de3ee067f8"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_pack.c",
+      "acceptedBytesSha256": "4466ed41b20fb3e4d7a4219e3ec2eb313896e5016890b91fcf8f10ddd6028dcf",
+      "canonicalLfSha256": "acf68398fcdf8bc8480ae42269a4ade4a6687ee86f29218efe6ccb9cd18fa480"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_parameter.c",
+      "acceptedBytesSha256": "33b0dcc2ea55439ad13ed27b5fd810da3c2b6f650bcbe861874024ded1895087",
+      "canonicalLfSha256": "47af589aec994a73d1626c8f0cbfe5682989fd46eefe282b35ee32cf269099ad"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_compat.c",
+      "acceptedBytesSha256": "3985a5d7120f09f90718d086fcfb07688462ee7dc2f916d4be17141904246a1c",
+      "canonicalLfSha256": "3985a5d7120f09f90718d086fcfb07688462ee7dc2f916d4be17141904246a1c"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_foreign_pack.c",
+      "acceptedBytesSha256": "6379cf05a2216fad2737d09805f6212b34dc27ac89a08cd48d26a7eea33acd86",
+      "canonicalLfSha256": "6379cf05a2216fad2737d09805f6212b34dc27ac89a08cd48d26a7eea33acd86"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_identity_closure.c",
+      "acceptedBytesSha256": "33582cad282fadfa76e55bd4354d83d01513a36442730f9a262d2886e97999b3",
+      "canonicalLfSha256": "33582cad282fadfa76e55bd4354d83d01513a36442730f9a262d2886e97999b3"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_type_call.c",
+      "acceptedBytesSha256": "b43f3133df621f14cbc935f97964c9f87c7fe61f458a8bd700724fc3fa67081d",
+      "canonicalLfSha256": "69f3b041253aaf100c890e83507c55bfbf3ec739b8f1c18504eed7537eb98675"
+    },
+    {
+      "path": "test/cases/foreign_nested_pack_null.h",
+      "acceptedBytesSha256": "2d054aab3bff38e1f372d2e99d0f773c1ee4a1e2c8f5603c16c2e7ba866b13b0",
+      "canonicalLfSha256": "2d054aab3bff38e1f372d2e99d0f773c1ee4a1e2c8f5603c16c2e7ba866b13b0"
+    },
+    {
+      "path": "test/cases/foreign_nested_pack_null.xl",
+      "acceptedBytesSha256": "318220f68f51e089b1e61c156b5650269e8762feca2356d94c906299266cc70d",
+      "canonicalLfSha256": "6ba1f2a3e76b1769ad4ea2b51859e446b85baab8ba7327c9fdc5ab7f8ae14c78"
+    },
+    {
+      "path": "test/cases/foreign_nested_pack_null_native.c",
+      "acceptedBytesSha256": "d4a472b925d7b2977e6a169e2e1571ef21a998db2e8a80afe7a8f687ff4735c6",
+      "canonicalLfSha256": "d4a472b925d7b2977e6a169e2e1571ef21a998db2e8a80afe7a8f687ff4735c6"
+    },
+    {
+      "path": "test/cases/foreign_nested_pack_null_ir.c",
+      "acceptedBytesSha256": "a714720099713227ff2d94aeda512454dc9718721bc8e6a167668d9524e57665",
+      "canonicalLfSha256": "a714720099713227ff2d94aeda512454dc9718721bc8e6a167668d9524e57665"
+    },
+    {
+      "path": "tools/check_foreign_nested_pack_null.py",
+      "acceptedBytesSha256": "825a4aaf0d7de48c20d5e497a0573967661f7e1b293170fe0e8178af8c8dd20d",
+      "canonicalLfSha256": "825a4aaf0d7de48c20d5e497a0573967661f7e1b293170fe0e8178af8c8dd20d"
+    },
+    {
+      "path": "docs/foreign-declarations.md",
+      "acceptedBytesSha256": "0c7d733562e1818bf5676621e0512a01c0c81dbebc7b255ffbf4d3e83d93accb",
+      "canonicalLfSha256": "7fde8cb0d3e3c6744fbb84fd4767fbf30c434188df1ed370f95c3489e962beb6"
+    }
+  ],
+  "normalization": "CRLF-to-LF only, plus duplicate blank line at documentation EOF removed.",
+  "limitations": [
+    "New sparse IR directory requires matched compiler objects; driver is an explicit 46-TU overlay.",
+    "Existing typed NULL vs full-input native aliases remain strictly incompatible.",
+    "No Runtime/native code change; final VFS/provider/shipping refresh is separate."
+  ]
+}
