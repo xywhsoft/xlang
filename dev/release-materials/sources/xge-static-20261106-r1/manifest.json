@@ -1,0 +1,287 @@
+{
+  "schemaVersion": 1,
+  "scope": "Source overlay and exact CPU/static-package preparation evidence; no installed release changes and no claim of final TCC alias/TLS integration.",
+  "xlangBaseHEAD": "38efd14fa8fb0e68148efba610adae2bd5ba292c",
+  "nativeBaseHEAD": "86d0a15b0cb2fb0d17463f3283f6898c941eeaa4",
+  "baseArchive": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\xge-ide-update-20261106\\xge3-ide-current-source.tar.gz",
+    "sha256": "3c30319c93a2bcdcfa269f1432abd823fe75a10dc7031a3291c2eab0762d86b3",
+    "bytes": 20912092,
+    "prefix": "xge3/"
+  },
+  "baseSourceFreeze": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\xge-ide-update-20261106\\source-freeze.json",
+    "sha256": "4fe557426d33594969aff5075bfe6a588855045da44e213977b75d139f18aec9"
+  },
+  "currentNativeDelta": [
+    {
+      "path": "src/xui/controls/xui_tree_view.c",
+      "frozenSha256": "aeb8945f66ea72274ad37efdb1757a7de8a4b66a161ef8cf7190f96fb3332a44",
+      "currentSha256": "83d133ff2ef4ac14df5bf7fda431990a92eee8e21d9a00d8f032da71e45b6650"
+    },
+    {
+      "path": "src/xui/core/xui_proxy_xge.c",
+      "frozenSha256": "38331feb0bc9542934608268d19882fd4c8e1759059529de710b456f0bc6224a",
+      "currentSha256": "b0443b56f558ae5eb79fba7d04a6003008e111c620bfac1578e8aa190fba5cfd"
+    },
+    {
+      "path": "tests/xui/xui_tree_view_test.c",
+      "frozenSha256": "279d8ada6264c7beac0c17cb9521f50628654298fe4a0b1b8509ac243fe7ba24",
+      "currentSha256": "7a48772d70cf5023eba60256f4a599b4d4a97564567ae6696c3932f526c273fc"
+    }
+  ],
+  "ownedNativePaths": [
+    "tools/build/static.py",
+    "tools/build/static_support.py",
+    "tools/test/check_static.py",
+    "docs/static-build.md"
+  ],
+  "ownedLanguagePaths": [
+    "tools/stage_xge3_static_packages.py",
+    "tools/check_xge3_static_packages.py",
+    "lib/bindings/_xge_native/include/xge3_runtime.h",
+    "lib/bindings/_xge_native/src/runtime.c",
+    "docs/xge3-static-packages.md"
+  ],
+  "archive": {
+    "path": "xge-static-overlay.zip",
+    "sha256": "900480c7f872427bc588fec1e9d1fe7447d09cd3eda4e9839e57d22ea2432756",
+    "bytes": 2361880,
+    "files": 28
+  },
+  "files": [
+    {
+      "role": "owned-native-tool",
+      "source": "D:\\GIT\\xge\\tools\\build\\static.py",
+      "archivePath": "native-overlay/tools/build/static.py",
+      "sha256": "e0bd9cc8217611083a529fc589c698edd59e192f4faf0f74d9e29955224db257",
+      "bytes": 17349
+    },
+    {
+      "role": "owned-native-tool",
+      "source": "D:\\GIT\\xge\\tools\\build\\static_support.py",
+      "archivePath": "native-overlay/tools/build/static_support.py",
+      "sha256": "6cffc87938ac2c58ccc3305bae8431b440a0d063255a3315ea6abb721fb4ba26",
+      "bytes": 9025
+    },
+    {
+      "role": "owned-native-tool",
+      "source": "D:\\GIT\\xge\\tools\\test\\check_static.py",
+      "archivePath": "native-overlay/tools/test/check_static.py",
+      "sha256": "b995660244901a025f1d7545ddce5e051215f264d06f6cb8797a10f2dc52887a",
+      "bytes": 5087
+    },
+    {
+      "role": "owned-native-tool",
+      "source": "D:\\GIT\\xge\\docs\\static-build.md",
+      "archivePath": "native-overlay/docs/static-build.md",
+      "sha256": "069e5cd81ac2f6dff4f50bcd28a3134b2de2505b22415ff571305f17c3884e5a",
+      "bytes": 3908
+    },
+    {
+      "role": "owned-language-cold-tool",
+      "source": "D:\\GIT\\x-lang\\tools\\stage_xge3_static_packages.py",
+      "archivePath": "xlang-overlay/tools/stage_xge3_static_packages.py",
+      "sha256": "446e5b8ec4f9ce7c9a8411a894defd48d021c8136014fbb84e584a637334b827",
+      "bytes": 8369
+    },
+    {
+      "role": "owned-language-cold-tool",
+      "source": "D:\\GIT\\x-lang\\tools\\check_xge3_static_packages.py",
+      "archivePath": "xlang-overlay/tools/check_xge3_static_packages.py",
+      "sha256": "9b941c5bf1b9ccb9cfba5777612d5091ae53c0e50850a11dda7f9259227c8742",
+      "bytes": 2988
+    },
+    {
+      "role": "owned-language-cold-tool",
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\_xge_native\\include\\xge3_runtime.h",
+      "archivePath": "xlang-overlay/lib/bindings/_xge_native/include/xge3_runtime.h",
+      "sha256": "603723af0fef2d749d3093ff1b12c516cd3d1600bdae9914add404e4db967483",
+      "bytes": 6303
+    },
+    {
+      "role": "owned-language-cold-tool",
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\_xge_native\\src\\runtime.c",
+      "archivePath": "xlang-overlay/lib/bindings/_xge_native/src/runtime.c",
+      "sha256": "946b3b483fcbbb0aa12b7347da5891f0cd4626ea949e4747e0dc6af4dd19c3c7",
+      "bytes": 32605
+    },
+    {
+      "role": "owned-language-cold-tool",
+      "source": "D:\\GIT\\x-lang\\docs\\xge3-static-packages.md",
+      "archivePath": "xlang-overlay/docs/xge3-static-packages.md",
+      "sha256": "460cf6ed46cc39622e1fe7667ef26152a240c2433da3e516604ff6bb6ec8cab6",
+      "bytes": 3292
+    },
+    {
+      "role": "existing-native-current-source-delta-not-owned",
+      "source": "F:\\xlang-validation\\native-static-20261106\\xge\\source-r1\\src\\xui\\controls\\xui_tree_view.c",
+      "archivePath": "native-overlay/src/xui/controls/xui_tree_view.c",
+      "sha256": "83d133ff2ef4ac14df5bf7fda431990a92eee8e21d9a00d8f032da71e45b6650",
+      "bytes": 141284
+    },
+    {
+      "role": "existing-native-current-source-delta-not-owned",
+      "source": "F:\\xlang-validation\\native-static-20261106\\xge\\source-r1\\src\\xui\\core\\xui_proxy_xge.c",
+      "archivePath": "native-overlay/src/xui/core/xui_proxy_xge.c",
+      "sha256": "b0443b56f558ae5eb79fba7d04a6003008e111c620bfac1578e8aa190fba5cfd",
+      "bytes": 123857
+    },
+    {
+      "role": "existing-native-current-source-delta-not-owned",
+      "source": "F:\\xlang-validation\\native-static-20261106\\xge\\source-r1\\tests\\xui\\xui_tree_view_test.c",
+      "archivePath": "native-overlay/tests/xui/xui_tree_view_test.c",
+      "sha256": "7a48772d70cf5023eba60256f4a599b4d4a97564567ae6696c3932f526c273fc",
+      "bytes": 44934
+    },
+    {
+      "role": "historical-evidence",
+      "source": "F:\\xlang-validation\\native-static-20261106\\xge\\win-default-r8\\build-report.json",
+      "archivePath": "evidence/win-build.json",
+      "sha256": "4b32922d8c1e4571bc52bfef3fc7a9eb5a6a89593012899632d08781f6c8e3a5",
+      "bytes": 5404597
+    },
+    {
+      "role": "historical-evidence",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-static-20261106\\xge\\linux-default-r5\\build-report.json",
+      "archivePath": "evidence/linux-build.json",
+      "sha256": "2f98985161d208224e620fc8c5456b83aac1bc90ccae1387202cf384bd80767e",
+      "bytes": 400269
+    },
+    {
+      "role": "historical-evidence",
+      "source": "F:\\xlang-validation\\native-static-20261106\\xge\\packages-win-r3.json",
+      "archivePath": "evidence/win-packages.json",
+      "sha256": "33a828599de332aea0870ba2e03c72ec711e8bf9264c9b12d4d81e54c17c261a",
+      "bytes": 4896620
+    },
+    {
+      "role": "historical-evidence",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-static-20261106\\xge\\packages-linux-r2.json",
+      "archivePath": "evidence/linux-packages.json",
+      "sha256": "e6e3a4029a99db9c154e8846583e05765ada127e610bf030fd952e1ccb77069d",
+      "bytes": 33351
+    },
+    {
+      "role": "historical-evidence",
+      "source": "F:\\xlang-validation\\native-static-20261106\\xge\\cpu-win-r3\\results.json",
+      "archivePath": "evidence/win-cpu.json",
+      "sha256": "b1f28ef06196630c0c48e10609845bbc8a01afb86fa51f61ed76d0788afcc4ca",
+      "bytes": 7970
+    },
+    {
+      "role": "historical-evidence",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-static-20261106\\xge\\cpu-linux-r2\\results.json",
+      "archivePath": "evidence/linux-cpu.json",
+      "sha256": "51aa1dac5ec2014edf8e51cc5518f4fe54311982689738794bdfeda633ae23ff",
+      "bytes": 7639
+    },
+    {
+      "role": "historical-evidence",
+      "source": "F:\\xlang-validation\\native-static-20261106\\xge\\static-policy-win-r3\\results.json",
+      "archivePath": "evidence/win-policy.json",
+      "sha256": "bcc72937268c1f16c1da5bf0c8288722f400c042ad2d886dc77da5d5dae935b4",
+      "bytes": 5255
+    },
+    {
+      "role": "historical-evidence",
+      "source": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-static-20261106\\xge\\static-policy-linux-r3\\results.json",
+      "archivePath": "evidence/linux-policy.json",
+      "sha256": "d8d68b03221a41d406c16c320cec424f00bdf3772a146a824ab76c9430617324",
+      "bytes": 5210
+    },
+    {
+      "role": "historical-evidence",
+      "source": "F:\\xlang-validation\\native-static-20261106\\xge\\dynamic-policy-check-r2\\results.json",
+      "archivePath": "evidence/dynamic-policy.json",
+      "sha256": "b4c86a33ec7d31d37436cfc70ea2296f4e13145eecffe402e15d14abfb546992",
+      "bytes": 1168
+    },
+    {
+      "role": "historical-evidence",
+      "source": "F:\\xlang-validation\\native-static-20261106\\xge\\source-r1.json",
+      "archivePath": "evidence/source-freeze.json",
+      "sha256": "7cf2d4d89311650b0952dc683a926003345e4843662d9c28fb43da695ecfe7c4",
+      "bytes": 802736
+    },
+    {
+      "role": "historical-evidence",
+      "source": "F:\\xlang-validation\\native-static-20261106\\xge\\tls-audit-r1\\results.json",
+      "archivePath": "evidence/tls-audit.json",
+      "sha256": "57dc0a74559e694192c4886c869c1a387a0891b2bd5c71cd4c65a1fac9f932d9",
+      "bytes": 58514
+    },
+    {
+      "role": "historical-evidence",
+      "source": "F:\\xlang-validation\\native-static-20261106\\xge\\support-selected-closure-r2.json",
+      "archivePath": "evidence/support-closure-diagnostic.json",
+      "sha256": "a276adcdac5aeee4c9be5dd8ec5d8c6582c7111a5775e9b2280c16feb0f362a5",
+      "bytes": 16863
+    },
+    {
+      "role": "compiler-license-text",
+      "source": "F:\\xlang-validation\\native-static-20261106\\xge\\toolchain-notices\\COPYING.RUNTIME",
+      "archivePath": "notices/COPYING.RUNTIME",
+      "sha256": "28e85c5aa4af9b4f1dfe6b4817aa3eefb3eaaee7fd735045016f29ccf50276a1",
+      "bytes": 3323
+    },
+    {
+      "role": "compiler-license-text",
+      "source": "F:\\xlang-validation\\native-static-20261106\\xge\\toolchain-notices\\COPYING3",
+      "archivePath": "notices/COPYING3",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "bytes": 35149
+    },
+    {
+      "role": "toolchain-notice",
+      "source": "E:\\software\\w64devkit\\COPYING.MinGW-w64-runtime.txt",
+      "archivePath": "notices/w64devkit-COPYING.MinGW-w64-runtime.txt",
+      "sha256": "ecff91ddb5799c8b79a4bdb576921b9c3e2989783fd1944527e8eb9b41a5ff5f",
+      "bytes": 15076
+    },
+    {
+      "role": "toolchain-notice",
+      "source": "E:\\software\\w64devkit\\README.md",
+      "archivePath": "notices/w64devkit-README.md",
+      "sha256": "a52579d119af5d0213f75f94e931bc82d50dda5cf1b2ba039970f9b1af239832",
+      "bytes": 12109
+    }
+  ],
+  "memberIdentityProof": {
+    "win": {
+      "all145ObjectBytesIdentical": true,
+      "qualifiedCpuBuildReport": "F:\\xlang-validation\\native-static-20261106\\xge\\win-default-r3\\build-report.json",
+      "qualifiedCpuBuildReportSha256": "553afb65d16cbfead6be565ef6b9b1204969cde4321deed0c8a7e1a641930a76",
+      "currentBuildReport": "F:\\xlang-validation\\native-static-20261106\\xge\\win-default-r8\\build-report.json",
+      "currentBuildReportSha256": "4b32922d8c1e4571bc52bfef3fc7a9eb5a6a89593012899632d08781f6c8e3a5",
+      "compiledInSuccessor": 1,
+      "verifiedReused": 144
+    },
+    "linux": {
+      "all145ObjectBytesIdentical": true,
+      "qualifiedCpuBuildReport": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-static-20261106\\xge\\linux-default-r2\\build-report.json",
+      "qualifiedCpuBuildReportSha256": "7633d2b9638d61440b04950b0736a796227e2ae9e0a2de728c6dde54cf7633cb",
+      "currentBuildReport": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-static-20261106\\xge\\linux-default-r5\\build-report.json",
+      "currentBuildReportSha256": "2f98985161d208224e620fc8c5456b83aac1bc90ccae1387202cf384bd80767e",
+      "compiledInSuccessor": 1,
+      "verifiedReused": 144
+    }
+  },
+  "nativeCpuPassed": true,
+  "nativeCpuStepsPerPlatform": 10,
+  "staticPolicyCompilePassed": true,
+  "staticPolicyStepsPerPlatform": 6,
+  "dynamicBranchCompilePassed": true,
+  "tccIntegrationQualified": false,
+  "shippingDelivery": false,
+  "pending": [
+    "Root matching TCC native-link/COFF/import-alias integration.",
+    "Correct PE static-TLS support for reachable Markdown Native code; JIT must fail closed when unsupported.",
+    "Program CRT startup duty such as atexit is not supplied by an invented Native wrapper."
+  ],
+  "licenseTextOrigins": {
+    "COPYING.RUNTIME": "Exact standardized GCC Runtime Library Exception text extracted from /usr/share/doc/gcc-15-base/copyright; not a claim that the Windows GCC16.2 artifact came from Debian GCC15.",
+    "COPYING3": "Exact /usr/share/common-licenses/GPL-3 text.",
+    "MinGW": "Actual w64devkit COPY/README notice files."
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "scope": "Static XGE native build and declarative package preparation, separate from final TinyCC/Core delivery",
+  "nativeBuildCommit": "cc13c674",
+  "packageBuildCommit": "32939141f",
+  "files": [
+    {
+      "path": "dev/release-materials/sources/xge-static-20261106-r1/manifest.json",
+      "sha256": "581b794f68b7c0499bf8699f4913964f6c0cddc95c9c1db5f46ad4acb98d36f6",
+      "bytes": 13027
+    },
+    {
+      "path": "dev/release-materials/sources/xge-static-20261106-r1/README.md",
+      "sha256": "b6bed1192a98890fe1de087aa3b187e6853ed23495454151c595a17c620bc6e2",
+      "bytes": 1814
+    },
+    {
+      "path": "dev/release-materials/sources/xge-static-20261106-r1/xge-static-overlay.zip",
+      "sha256": "900480c7f872427bc588fec1e9d1fe7447d09cd3eda4e9839e57d22ea2432756",
+      "bytes": 2361880
+    }
+  ],
+  "qualification": {
+    "nativeGccCpuWindows": true,
+    "nativeGccCpuLinux": true,
+    "staticPolicyCompileBothPlatforms": true,
+    "actualXlangTccStaticIntegration": false,
+    "releaseInstalled": false
+  },
+  "pending": [
+    "actual xlang/TinyCC static integration",
+    "PE static TLS support and qualification",
+    "matched production provider/VFS/SDK publishing"
+  ]
+}
