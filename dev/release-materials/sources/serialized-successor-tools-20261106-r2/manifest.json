@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "scope": "Exact owned tools/docs plus read-only helper dependencies. No Core implementation or target object bytes changed; no release update.",
+  "candidate": "F:\\xlang-validation\\native-static-20261106\\serialized-successor-tools-candidate-r3\\manifest.json",
+  "candidateSha256": "d7f04fdb41c8fecf4d60cede5c41390559adb842d0bfc47286a7e495283c47f6",
+  "files": [
+    {
+      "path": "tools/precompile_builtin_successor.py",
+      "sha256": "85f2dbaa9262ce42e1f701f303679062423425e40600abcd7a9675e7e3f98b1b",
+      "owned": true
+    },
+    {
+      "path": "tools/check_precompile_builtin_successor.py",
+      "sha256": "70f13fe6dfbf1b0c00d162d3aac1dd534c81a205e3566f49c0a198c48fc9b91e",
+      "owned": true
+    },
+    {
+      "path": "tools/stage_source_tcc_provider.py",
+      "sha256": "f014df497af90c40a0c0df5c6af453089bfef6250631d3cf6b487c495606e913",
+      "owned": true
+    },
+    {
+      "path": "tools/gen_tcc_vfs_resources.py",
+      "sha256": "c12d273a1e6f623767fc84b679c25256b266f938f7b489ecca0d9e4712c8c928",
+      "owned": true
+    },
+    {
+      "path": "docs/serialized-object-successors.md",
+      "sha256": "613d6fc8cdfc525a43c387ecde7cce777837212428b19c776eb7a432947598f4",
+      "owned": true
+    },
+    {
+      "path": "tools/precompile_builtin.py",
+      "sha256": "4f500a0b87f5f88135154db35bf32444563dd5fee50c1670e027cc41cf5ef6d9",
+      "owned": false
+    },
+    {
+      "path": "tools/runtime_layout.py",
+      "sha256": "f4431747beafa7e5ba7b556c30fe9339f348ed39831b2c3ef9b372c8f03018fe",
+      "owned": false
+    }
+  ],
+  "archiveSha256": "547d46850c580bd0b0914f2d1de44e3be374dbe6b2334e841c20074b9e2c8339"
+}

@@ -29,6 +29,29 @@ class PackedResource:
     method: str
 
 
+def validate_precompiled_manifest(path: Path, root: Path):
+    """Check a read-only packaging input without granting rebuild permission."""
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    schema = manifest.get("schema")
+    external_headers = manifest.get("nativeSystemHeaders") != hashlib.sha256(b"").hexdigest()
+    if schema == 2:
+        from precompile_builtin_successor import validate_mixed_manifest
+        # Packaging inherits the external native ABI/system-header qualification.
+        # The stronger rebuild permission gate belongs to the producer CLI.
+        validate_mixed_manifest(path, root, verify_sources=not external_headers)
+    elif schema != 1:
+        raise RuntimeError("unsupported serialized-object manifest schema")
+    from precompile_builtin import source_fingerprint
+    if manifest["sources"] != source_fingerprint(root):
+        raise RuntimeError("precompiled objects do not match current source tree")
+    return manifest, dict(schema=schema, readOnlyPackaging=True,
+        projectSourceFingerprintVerified=True,
+        nativeSystemHeadersRequalified=False,
+        externalNativeAbiQualificationRequired=external_headers,
+        scope=("Existing qualified objects only; external native ABI/system-header "
+               "qualification is inherited, not recomputed by packaging."))
+
+
 def normalize_virtual_name(text: str) -> str:
     return text.replace("\\", "/").strip("/").lower()
 
@@ -370,13 +393,11 @@ def main() -> int:
     resources = [r for r in resources if not r.virtual.endswith("/tcc_builtin_resources_runtime.c")]
     precompiled = args.precompiled or output.resolve().parent / "precompiled/manifest.json"
     compiler_catalog = any(r.virtual.startswith("__xl_compiler/") for r in resources)
+    serialized_validation = None
     if compiler_catalog or any(r.virtual == "include/xl.h" for r in resources):
         if not precompiled.is_file():
             raise RuntimeError("language SDK requires precompile_builtin.py output: " + str(precompiled))
-        manifest_data = json.loads(precompiled.read_text(encoding="utf-8"))
-        from precompile_builtin import source_fingerprint
-        if manifest_data["sources"] != source_fingerprint(root):
-            raise RuntimeError("precompiled objects do not match current source tree")
+        manifest_data, serialized_validation = validate_precompiled_manifest(precompiled, root)
         resources = [r for r in resources if not (r.virtual.startswith("__xl_compiler/") and r.source.suffix in (".c", ".inc"))]
         for row in manifest_data["objects"]:
             if not compiler_catalog and row.get("product") != "xrt":continue
@@ -387,6 +408,11 @@ def main() -> int:
 
     write_catalog(output.resolve(), resources, pack_tool.resolve(),
                   max(0, min(9, args.pack_level)), args.no_compress, args.packing, args.block_size, args.packing_order)
+    if serialized_validation is not None:
+        stamp_path = Path(str(output.resolve()) + ".stamp.json")
+        stamp = json.loads(stamp_path.read_text(encoding="utf-8"))
+        stamp["serializedObjectValidation"] = serialized_validation
+        stamp_path.write_text(json.dumps(stamp, indent=2) + "\n", encoding="utf-8")
     return 0
 
 

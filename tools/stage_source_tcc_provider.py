@@ -41,6 +41,20 @@ def pe_tcc_imports(text):
             owners[name]=current
     return owners
 
+
+def current_alias_source(source,cohort,parent_cohort,description):
+    """SDK fallbacks use current source, independently of object provenance."""
+    roots=[Path(parent_cohort),Path(cohort)]
+    original=description.get('sourceEquivalence',{}).get('originalCohort')
+    if original:roots.insert(0,Path(original))
+    for origin in roots:
+        if source.is_relative_to(origin):
+            selected=Path(cohort)/source.relative_to(origin)
+            assert selected.is_file(),selected
+            return selected
+    return source
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('base','precompiled','out'):p.add_argument('--'+name,type=Path,required=True)
@@ -82,11 +96,19 @@ def main():
     assert manifest['target']=='win64'
     assert manifest['sources']==source_fingerprint(root),'Precompiled objects mismatch VFS source inputs'
     for row in manifest['objects']:assert sha(row['source'])==row['sha256'],row['source']
-    if a.producer_tool:assert sha(a.producer_tool)==manifest['tcc'],'Producer executable mismatch'
+    if manifest.get('schema')==2:
+        from precompile_builtin_successor import validate_mixed_manifest
+        validate_mixed_manifest(precompiled/'manifest.json',root,a.producer_tool)
+    else:
+        assert manifest.get('schema')==1,'Unsupported precompiled manifest schema'
+        if a.producer_tool:assert sha(a.producer_tool)==manifest['tcc'],'Producer executable mismatch'
     out.mkdir(parents=True,exist_ok=False);(out/'tmp').mkdir()
     files=[Path(__file__).resolve(),root/'tools/compiler_response.py',base/'build.json',precompiled/'manifest.json',
         root/'tools/gen_tcc_vfs_resources.py',root/'tools/precompile_builtin.py',root/'tools/runtime_layout.py',Path(cc),Path(nm)]
     files += [Path(row['source']) for row in manifest['objects']]
+    if manifest.get('schema')==2:
+        files += [Path(__file__).with_name('precompile_builtin_successor.py'),Path(manifest['parentManifest']['path'])]
+        files += [Path(row['path']) for row in manifest['producers'].values()]
     files += [Path(__file__).with_name('foreign_validation_build.py')]
     files += [Path(row['Source']) for row in description.get('Objects',[])]
     files += [root/name for name in identity]
@@ -104,6 +126,10 @@ def main():
         compilerOverlay=str(a.overlay.resolve()) if a.overlay else None,fullSourceCompilerParent=selected['fullSourceRebuild'],
         compilerObjectsRebuiltByThisTool=False,sourceRoot=str(selected['cohort']),vfsProducerRoot=str(root),
         precompiledObjectCount=len(manifest['objects']),peSmokeSkipped=a.skip_pe_smoke,peAotQualified=False,shippingDelivery=False)
+    if manifest.get('schema')==2:
+        report['serializedObjects']=dict(schema=2,fullRecompile=False,counts=manifest['counts'],
+            currentProducer=manifest['currentProducer'],parentManifest=manifest['parentManifest'],
+            headerInventorySha256=manifest['inheritanceProof']['headerInventorySha256'])
     if a.skip_pe_smoke:report['scope']+=' This invocation qualifies provider/VFS and JIT only; PE/AOT emission and execution are explicitly skipped.'
     if a.producer_tool:report['precompilerTool']=dict(path=str(a.producer_tool.resolve()),sha256=sha(a.producer_tool),reused=True)
     env=dict(os.environ,TEMP=str(out/'tmp'),TMP=str(out/'tmp'),PYTHONDONTWRITEBYTECODE='1')
@@ -180,8 +206,7 @@ def main():
     for row in staged['Headers']:
         path=Path(row['Path'])
         if a.overlay:
-            source=Path(row['Source'])
-            if source.is_relative_to(parent['cohort']):source=selected['cohort']/source.relative_to(parent['cohort'])
+            source=current_alias_source(Path(row['Source']),selected['cohort'],parent['cohort'],description)
             assert source.is_file(),source
             relative=next((path.relative_to(folder) for folder in (selected_headers,base/'include') if path.is_relative_to(folder)),None)
             assert relative is not None,path

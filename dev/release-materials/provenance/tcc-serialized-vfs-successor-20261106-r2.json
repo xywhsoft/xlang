@@ -1,0 +1,153 @@
+{
+  "scope": "Read-only packaging consumer correction over the already qualified R7 Windows images/resources. No C target, resource or provider recompilation. Windows source/header proof remains checked; native-compiler consumers verify checksummed metadata, object/producer integrity and full project fingerprint while inheriting external native ABI/system-header qualification.",
+  "complete": true,
+  "passed": true,
+  "parentQualification": {
+    "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2-final-qualification.json",
+    "sha256": "34d2b3bb0a89890af8cc1a86948cc4a99ecf00ea67b44c3e8a1dee14b5079aea"
+  },
+  "currentToolCandidate": {
+    "path": "F:\\xlang-validation\\native-static-20261106\\serialized-successor-tools-candidate-r3\\manifest.json",
+    "sha256": "d7f04fdb41c8fecf4d60cede5c41390559adb842d0bfc47286a7e495283c47f6"
+  },
+  "focusedTests": {
+    "path": "F:\\xlang-validation\\native-static-20261106\\mixed-schema-focused-r8\\results.json",
+    "sha256": "e4192c7d0f174b9e28feb68c946938cd23f4d59d344f3e98861aeebc7584d7a6",
+    "steps": 24
+  },
+  "windowsReadOnlyConsumer": {
+    "manifest": "F:\\xlang-validation\\native-static-20261106\\precompiled-win-r2\\manifest.json",
+    "manifestSha256": "8431fa3968b63ecb30016f0e151c489758470a6a82719805065bafbc4709d1dc",
+    "qualification": {
+      "schema": 2,
+      "readOnlyPackaging": true,
+      "projectSourceFingerprintVerified": true,
+      "nativeSystemHeadersRequalified": false,
+      "externalNativeAbiQualificationRequired": false,
+      "scope": "Existing qualified objects only; external native ABI/system-header qualification is inherited, not recomputed by packaging."
+    }
+  },
+  "linuxReadOnlyConsumer": {
+    "originalPath": "/home/ubuntu/xlang-validation/native-static-20261106/mixed-consumer-plan-linux-r2/results.json",
+    "localCopy": "F:\\xlang-validation\\native-static-20261106\\mixed-consumer-plan-linux-r2-local.json",
+    "sha256": "f9d686f8ee2d4373b4f5daafbf0177897d4e647f816373fcee8dfc5b9d37e947",
+    "details": {
+      "scope": "Read-only consumer plan against the actual final Linux schema-2 chain. Full project fingerprint, checksummed metadata, producer and object bytes checked. External GCC/system-header qualification remains inherited; no compiler invocation or VFS repack.",
+      "complete": true,
+      "passed": true,
+      "manifest": "/home/ubuntu/xlang-validation/native-static-20261106/mixed-schema2-linux-r3/manifest.json",
+      "manifestSha256": "1f60c939efc36c95651034d64a94219340d47b2fed280ccfe8f93597db5148fa",
+      "sourceRoot": "/home/ubuntu/xlang-validation/native-static-20261106/provider-vfs-linux-r3/producer",
+      "objects": 1564,
+      "qualification": {
+        "schema": 2,
+        "readOnlyPackaging": true,
+        "projectSourceFingerprintVerified": true,
+        "nativeSystemHeadersRequalified": false,
+        "externalNativeAbiQualificationRequired": true,
+        "scope": "Existing qualified objects only; external native ABI/system-header qualification is inherited, not recomputed by packaging."
+      },
+      "toolsManifest": "/mnt/f/xlang-validation/native-static-20261106/serialized-successor-tools-candidate-r3/manifest.json",
+      "toolsManifestSha256": "d7f04fdb41c8fecf4d60cede5c41390559adb842d0bfc47286a7e495283c47f6",
+      "targetObjectsRecompiled": 0,
+      "vfsRepacked": false
+    }
+  },
+  "images": [
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2-qualified-r2\\public_source.exe",
+      "sha256": "4a5fc0ae56ecfeb3beba76cf85bc824d2ef2a55d15fd20e7a58f931048d88036",
+      "original": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2\\public_source.exe",
+      "originalSha256": "4a5fc0ae56ecfeb3beba76cf85bc824d2ef2a55d15fd20e7a58f931048d88036"
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2-qualified-r2\\xl.dll",
+      "sha256": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930",
+      "original": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2\\xl.dll",
+      "originalSha256": "cf89bbe9757b18d56f15c10b60eecb61f51390bb4fd5b8a8667b25bdae86c930"
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2-qualified-r2\\xlc.dll",
+      "sha256": "8d1a88ec71e8f4a5b5f96c98c030d2dfc8dc595775871933ad270cb7a13194c6",
+      "original": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2\\xlc.dll",
+      "originalSha256": "8d1a88ec71e8f4a5b5f96c98c030d2dfc8dc595775871933ad270cb7a13194c6"
+    }
+  ],
+  "resources": [
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2\\tcc_builtin_resources.c",
+      "sha256": "7af78fedebef834233d7c0da73eee2d688754d6fc174436ee04a8d98c5c64a44",
+      "stamp": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2\\tcc_builtin_resources.c.stamp.json",
+      "stampSha256": "b7ce6c402f06d2c0bcf16f0b733b68487343662cffd93ce4783f2ccbc9c9b52b"
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2\\tcc_builtin_resources_runtime.c",
+      "sha256": "f699d1425689779740d2a68224c7a6871bf834da476cec4adb44ad9f8e7754ca",
+      "stamp": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2\\tcc_builtin_resources_runtime.c.stamp.json",
+      "stampSha256": "ccf250c9310a2126ed0cc0d465ddb6373c8be37bb5a63924ef0dd854e7996395"
+    }
+  ],
+  "counts": {
+    "recompiled": 6,
+    "inherited": 1560
+  },
+  "fullRecompile": false,
+  "rebuildsThisCorrection": {
+    "targetObjects": 0,
+    "resources": 0,
+    "providers": 0
+  },
+  "runtimeQualificationInherited": {
+    "path": "F:\\xlang-validation\\native-static-20261106\\sourcefree-nested-win-r2\\results.json",
+    "sha256": "9a34bafc4280c90a9ff12bb1ff3e7de478fff3fe030cc1de1bc609b9ae45059b",
+    "cpuJitSteps": 12,
+    "actualStaticXgeSteps": 3
+  },
+  "peSmokeSkipped": true,
+  "peAotQualified": false,
+  "shippingDelivery": false,
+  "ownedFiles": [
+    {
+      "path": "tools/precompile_builtin_successor.py",
+      "sha256": "85f2dbaa9262ce42e1f701f303679062423425e40600abcd7a9675e7e3f98b1b",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\serialized-successor-tools-candidate-r3\\tools\\precompile_builtin_successor.py"
+    },
+    {
+      "path": "tools/check_precompile_builtin_successor.py",
+      "sha256": "70f13fe6dfbf1b0c00d162d3aac1dd534c81a205e3566f49c0a198c48fc9b91e",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\serialized-successor-tools-candidate-r3\\tools\\check_precompile_builtin_successor.py"
+    },
+    {
+      "path": "tools/stage_source_tcc_provider.py",
+      "sha256": "f014df497af90c40a0c0df5c6af453089bfef6250631d3cf6b487c495606e913",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\serialized-successor-tools-candidate-r3\\tools\\stage_source_tcc_provider.py"
+    },
+    {
+      "path": "tools/gen_tcc_vfs_resources.py",
+      "sha256": "c12d273a1e6f623767fc84b679c25256b266f938f7b489ecca0d9e4712c8c928",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\serialized-successor-tools-candidate-r3\\tools\\gen_tcc_vfs_resources.py"
+    },
+    {
+      "path": "docs/serialized-object-successors.md",
+      "sha256": "613d6fc8cdfc525a43c387ecde7cce777837212428b19c776eb7a432947598f4",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\serialized-successor-tools-candidate-r3\\docs\\serialized-object-successors.md"
+    }
+  ],
+  "inputs": {
+    "F:\\xlang-validation\\native-static-20261106\\provider-win-r2-final-qualification.json": "34d2b3bb0a89890af8cc1a86948cc4a99ecf00ea67b44c3e8a1dee14b5079aea",
+    "F:\\xlang-validation\\native-static-20261106\\precompiled-win-r2\\manifest.json": "8431fa3968b63ecb30016f0e151c489758470a6a82719805065bafbc4709d1dc",
+    "F:\\xlang-validation\\native-static-20261106\\serialized-successor-tools-candidate-r3\\manifest.json": "d7f04fdb41c8fecf4d60cede5c41390559adb842d0bfc47286a7e495283c47f6",
+    "F:\\xlang-validation\\native-static-20261106\\mixed-schema-focused-r8\\results.json": "e4192c7d0f174b9e28feb68c946938cd23f4d59d344f3e98861aeebc7584d7a6",
+    "F:\\xlang-validation\\native-static-20261106\\mixed-consumer-plan-linux-r2-local.json": "f9d686f8ee2d4373b4f5daafbf0177897d4e647f816373fcee8dfc5b9d37e947",
+    "F:\\xlang-validation\\native-static-20261106\\qualify-provider-consumer-successor-r2.py": "418f75cd41b8363d0d6bba245916e8d2bf9c7a94bb4f44e08a04a72282e91593"
+  },
+  "inputsUnchanged": true,
+  "finalQualification": {
+    "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r2-final-qualification-r2.json",
+    "sha256": "2b1309ef6ee01a3acaa08acc009c186985f007b17e5ee73fc94a0ac53d1c51a2"
+  },
+  "preservedPriorReceipt": {
+    "path": "dev/release-materials/provenance/tcc-serialized-vfs-successor-20261106-r1.json",
+    "sha256": "932887cf97284d7549287249370751ae4783fb0b99c3380765f1dd89a046cab0"
+  }
+}
