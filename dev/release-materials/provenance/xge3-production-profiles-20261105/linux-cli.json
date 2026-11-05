@@ -1,0 +1,55 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Actual build_linux thin xl backed solely by new libxlc.so; version/help, NativeSequence run/build/standalone",
+  "rows": [
+    {
+      "name": "version",
+      "command": [
+        "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/release/linux_x64/xl",
+        "--version"
+      ],
+      "exitCode": 0
+    },
+    {
+      "name": "help",
+      "command": [
+        "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/release/linux_x64/xl",
+        "--help"
+      ],
+      "exitCode": 0
+    },
+    {
+      "name": "run",
+      "command": [
+        "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/release/linux_x64/xl",
+        "run",
+        "/home/ubuntu/xlang-validation/source-final-core-r1/test/cases/native_sequence.xl",
+        "--inc-path",
+        "/home/ubuntu/xlang-validation/provider-final-core-linux-r3/include"
+      ],
+      "exitCode": 0
+    },
+    {
+      "name": "build",
+      "command": [
+        "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/release/linux_x64/xl",
+        "build",
+        "/home/ubuntu/xlang-validation/source-final-core-r1/test/cases/native_sequence.xl",
+        "--inc-path",
+        "/home/ubuntu/xlang-validation/provider-final-core-linux-r3/include",
+        "-o",
+        "/home/ubuntu/xlang-validation/production-cli-linux-r1/sequence"
+      ],
+      "exitCode": 0
+    },
+    {
+      "name": "standalone",
+      "command": [
+        "/home/ubuntu/xlang-validation/production-cli-linux-r1/sequence"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "cliSha256": "0afa441e1e3486c3e8ea2d7fbde7be5e5ea6caa850bc76a2bca1dc767b60f1d0"
+}

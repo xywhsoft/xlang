@@ -1,0 +1,74 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Actual fresh static production profiles under the Windows debug heap; factory/relocate/delete same DLL; relocated standalone execution",
+  "inputs": {
+    "F:\\xlang-validation\\foreign-completion-20261103\\production-final-acceptance-win-r1\\results.json": "71e01af95b77c4ed38b3eb3082c7308eab8c8250a59227259c7e9b882b52686c",
+    "F:\\xlang-validation\\foreign-completion-20261103\\production-final-acceptance-win-r1\\xlc.dll": "e4ab39f8137fd91781bcc57dfd20d9904aa6bc2e74f422073d6015de3c489642",
+    "F:\\xlang-validation\\foreign-completion-20261103\\production-final-acceptance-win-r1\\xl.dll": "6ee80b3d2370289c1077b924d700985226c8df8aef17779b87c5c3e38a425835",
+    "F:\\xlang-validation\\foreign-completion-20261103\\production-final-acceptance-win-r1\\runtime-O2.exe": "5d0ccd67684e37a298baf6098d38889b90a2d2f32c4fcf6c1d0e624ba693cec2",
+    "F:\\xlang-validation\\foreign-completion-20261103\\production-final-acceptance-win-r1\\public_source.exe": "cb9615de3ca92f19338f3e66a81107b258b84d2a815a33601fe09e3136cde294"
+  },
+  "rows": [
+    {
+      "name": "runtime-static-image",
+      "exitCode": 0,
+      "logSha256": "e7d6e2359d51a7b6eaac2fc99d4f385c98666c8d62e9fe7face3de318043ea9c",
+      "sameImage": true
+    },
+    {
+      "name": "stdlib_tcc_embed-run",
+      "exitCode": 0,
+      "logSha256": "173a53c315bd23196e68595881ac9f275b154ff3d8bb1a083b982b811feaf698",
+      "sameImage": true
+    },
+    {
+      "name": "stdlib_tcc_embed-module",
+      "exitCode": 0,
+      "logSha256": "9bed6fc21de5bb6371fcb8a19b3b85c990be54bc054b1d0ef11550cc1888d118",
+      "sameImage": true
+    },
+    {
+      "name": "stdlib_tcc_embed-standalone",
+      "exitCode": 0,
+      "logSha256": "2aa81d6e4ccf0f4f063df2a83769aaba266dd7aa4570874bc4f870a0b6ce9324",
+      "sameImage": false
+    },
+    {
+      "name": "double-nested-compiler-run",
+      "exitCode": 0,
+      "logSha256": "a33a5c851667036061001480a147f26fd4a844e4a2fd4eead63daaeda2d2ddc0",
+      "sameImage": true
+    },
+    {
+      "name": "double-nested-compiler-module",
+      "exitCode": 0,
+      "logSha256": "2454c523c5c458920c5cf0812499a02eaacc9aec66faec107f03ae119501921b",
+      "sameImage": true
+    },
+    {
+      "name": "double-nested-compiler-standalone",
+      "exitCode": 0,
+      "logSha256": "31b320e8294e378d8bec1bb2240363c340a7c366d1f2ed76f109cefdb2c81308",
+      "sameImage": false
+    },
+    {
+      "name": "foreign_output_record_size-run",
+      "exitCode": 0,
+      "logSha256": "b10ea9411a6b28ed73d1873a03f34cf573221b578a63514d4d8a6bdb16c344e9",
+      "sameImage": true
+    },
+    {
+      "name": "foreign_output_record_size-module",
+      "exitCode": 0,
+      "logSha256": "b55ae2a5e1c8c54641d9fe874dfe1c6469186a04dca1d5da646428b66eda91fe",
+      "sameImage": true
+    },
+    {
+      "name": "foreign_output_record_size-standalone",
+      "exitCode": 0,
+      "logSha256": "9eb5ce2fe968bd5c9e644192c779a3b0dcb14a874971fbbe5c75a66412719136",
+      "sameImage": false
+    }
+  ]
+}

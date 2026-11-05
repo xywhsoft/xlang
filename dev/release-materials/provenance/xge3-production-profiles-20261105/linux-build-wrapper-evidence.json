@@ -1,0 +1,24 @@
+{
+  "buildScriptReachedSuccessfulEnd": true,
+  "buildScriptUsesSetE": true,
+  "launchWrapperExitCode": 1,
+  "launchWrapperFailure": "outer exit argument became empty after successful script completion; original log preserved; no compiler failed",
+  "buildLogSha256": "51b3f6c4c75e8190a090a370a4c966a276509bf8ff17d9af11169143120186f9",
+  "images": {
+    "libxlc.so": {
+      "path": "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/release/linux_x64/libxlc.so",
+      "bytes": 21957328,
+      "sha256": "b0f5557eede29dcc7a9381a8d3796f6bc0a5c782e07a5cd22166ae407e62a56d"
+    },
+    "libxl.so": {
+      "path": "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/release/linux_x64/libxl.so",
+      "bytes": 16259536,
+      "sha256": "82f1786ae29b4cf919bb6b1da7d88b6003cc1609e09e3e28620938486bf3d638"
+    },
+    "xl": {
+      "path": "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/release/linux_x64/xl",
+      "bytes": 47224,
+      "sha256": "0afa441e1e3486c3e8ea2d7fbde7be5e5ea6caa850bc76a2bca1dc767b60f1d0"
+    }
+  }
+}

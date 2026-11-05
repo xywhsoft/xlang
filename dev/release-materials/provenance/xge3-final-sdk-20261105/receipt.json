@@ -1,0 +1,61 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Final authoritative implementation-capable header SDK; external compiler aliases audited/refreshed without changing validated images or embedded catalogs",
+  "reports": [
+    {
+      "name": "win-sdk",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-win-r3\\manifest.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-sdk-correction-receipt-r1\\win-sdk.json",
+      "sha256": "5516ba90f26d8131181ef177b57c2a7796a3360e831dbcd418d3b2a63ae9906a"
+    },
+    {
+      "name": "win-probes",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\sdk-final-core-header-win-r3\\results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-sdk-correction-receipt-r1\\win-probes.json",
+      "sha256": "eafff485ba583eac6e9c142fe10a1e8ff934fd2173d6bea15c0a8dfa3a4e53e8"
+    },
+    {
+      "name": "embedded-audit",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\embedded-compiler-sdk-audit-r1\\results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-sdk-correction-receipt-r1\\embedded-audit.json",
+      "sha256": "c41f5dbfa5c319527d1c70e2cc71ff94e5524e49881ef4210c6d205a03dc71d4"
+    },
+    {
+      "name": "linux-sdk",
+      "path": "/home/ubuntu/xlang-validation/sdk-final-core-linux-r3/manifest.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-sdk-correction-receipt-r1\\linux-sdk.json",
+      "sha256": "30d3194c7c278b56e5f96537ae808f18fc5b52b51e6b24f5199f4b1902d7348b"
+    },
+    {
+      "name": "linux-probes",
+      "path": "/home/ubuntu/xlang-validation/sdk-final-core-header-linux-r1/results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-sdk-correction-receipt-r1\\linux-probes.json",
+      "sha256": "fa3dd3e67746b385e764a6881c50816f2a054e6e70a309c4a195696704a871ee"
+    },
+    {
+      "name": "linux-alias-audit",
+      "path": "/home/ubuntu/xlang-validation/final-sdk-alias-audit-r1.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-sdk-correction-receipt-r1\\linux-alias-audit.json",
+      "sha256": "3d886ada5a0ab5951455ce5ebf1d70167e2891bd5bccab99a3cadd58440896a7"
+    },
+    {
+      "name": "sdk-refresh-helper",
+      "path": "/home/ubuntu/xlang-validation/source-sdk-refresh-helper-r1/results.json",
+      "localCopy": "F:\\xlang-validation\\foreign-completion-20261103\\final-sdk-correction-receipt-r1\\sdk-refresh-helper.json",
+      "sha256": "95af16ae376c09bd8fd58c6a8bdfb4f4fe15ca8dccbe30fd8df0eddfb9adfa54"
+    }
+  ],
+  "sourceCommit": "a1d18117b935c4e14c93b59c25b8db0e500826f9",
+  "headerSdkFileCount": 1538,
+  "semanticAliasUpdates": {
+    "win_x64": 0,
+    "linux_x64": 12
+  },
+  "runtimeSemanticAliasUpdates": 0,
+  "embeddedSemanticDrift": 0,
+  "headerProbeSteps": 10,
+  "implementationHeadersPreserved": true,
+  "legacyFlatRuntimeBridge": "xl_runtime.h retains its established C inline bridge; C11 probe covers it. Public API and current private ABI headers are independently C++11/17-checked; no C++ claim is made for that legacy C bridge.",
+  "productionImagesRebuiltBySdkCorrection": false
+}

@@ -1,0 +1,254 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Read-only final embedded/public SDK drift boundary. No source, old report, catalog, object or release was modified and no compiler was run.",
+  "oldDiskSdkAliasAudit": {
+    "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\final-sdk-alias-audit-r1.json",
+    "sha256": "3d886ada5a0ab5951455ce5ebf1d70167e2891bd5bccab99a3cadd58440896a7"
+  },
+  "aliasCount": 12,
+  "platforms": {
+    "win": {
+      "tcc_builtin_resources": {
+        "stamp": {
+          "path": "F:\\xlang-validation\\foreign-completion-20261103\\provider-final-core-win-r2\\tcc_builtin_resources.c.stamp.json",
+          "sha256": "b023fb8b08b351552fa16572485eeb57e3a3df16e4f5f453b35a2a8e920ccdce"
+        },
+        "generated": {
+          "path": "F:\\xlang-validation\\foreign-completion-20261103\\provider-final-core-win-r2\\tcc_builtin_resources.c",
+          "sha256": "1db3aa9caf9efc60919543652500e8ebf390052f81d0ad206df7841da9357a67"
+        },
+        "productionCopy": {
+          "path": "F:\\xlang-validation\\foreign-completion-20261103\\production-final-win-r1\\build\\tcc_builtin_resources.c",
+          "sha256": "1db3aa9caf9efc60919543652500e8ebf390052f81d0ad206df7841da9357a67"
+        },
+        "productionStamp": {
+          "path": "F:\\xlang-validation\\foreign-completion-20261103\\production-final-win-r1\\build\\tcc_builtin_resources.c.stamp.json",
+          "sha256": "b023fb8b08b351552fa16572485eeb57e3a3df16e4f5f453b35a2a8e920ccdce"
+        },
+        "oldPublicCompilerAliasesEmbedded": 0,
+        "checks": [
+          {
+            "virtual": "__xl_compiler/src/compile/xl6_artifact_runtime.h",
+            "status": "embedded-current-a1-source",
+            "source": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2\\src\\compile\\xl6_artifact_runtime.h",
+            "sha256": "711444a7a6010c3a38326768e47939f6c3bef5167f13268a5a8a6c5a9f1ffe19"
+          },
+          {
+            "virtual": "__xl_compiler/src/compile/xl6_artifact_runtime_symbols.inc",
+            "status": "not-embedded",
+            "canonicalSource": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2\\src\\compile\\xl6_artifact_runtime_symbols.inc",
+            "sha256": "7e570e4490fb2eb12f0bc4581c5e2ec751699ef6ba6691b18e6cdd4abcd37c85",
+            "reason": "Compiler .c/.inc resources are removed after exact precompiled source_fingerprint verification; this is an input to the precompiled source cohort."
+          },
+          {
+            "virtual": "__xl_compiler/src/compile/xl6_compile_unit.h",
+            "status": "embedded-current-a1-source",
+            "source": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2\\src\\compile\\xl6_compile_unit.h",
+            "sha256": "dda71aae1afb181ba3c437aad128fdb7e4f09244ae8388c001f30d79a8a564d4"
+          },
+          {
+            "virtual": "__xl_compiler/src/compile/xl6_imports.h",
+            "status": "embedded-current-a1-source",
+            "source": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2\\src\\compile\\xl6_imports.h",
+            "sha256": "bcfe1b2f37d3dc8997ccd67896f2a37b4f33e1f594560d4efcca48674ed04cae"
+          },
+          {
+            "virtual": "__xl_compiler/src/ir/xl6_ir.h",
+            "status": "embedded-current-a1-source",
+            "source": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2\\src\\ir\\xl6_ir.h",
+            "sha256": "05cedaa99ccec7ad8ed4b2be4f41782d52bd90edc8a5dd6838c1e7d9a7ad46b5"
+          },
+          {
+            "virtual": "__xl_compiler/src/package/xl6_package.h",
+            "status": "embedded-current-a1-source",
+            "source": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2\\src\\package\\xl6_package.h",
+            "sha256": "59bc9f99a2e97b1363784da90b046ff1abd5eeaebdf61200d8a2825babbbe0e4"
+          },
+          {
+            "virtual": "__xl_compiler/src/runtime/xl6_foreign_view.h",
+            "status": "embedded-current-a1-source",
+            "source": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2\\src\\runtime\\xl6_foreign_view.h",
+            "sha256": "827a3cda6dea2b552897c0873c76f0b09a946761f02edddefa50947d056f2420"
+          },
+          {
+            "virtual": "__xl_compiler/src/runtime/xl6_ownership_catalog.h",
+            "status": "embedded-current-a1-source",
+            "source": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2\\src\\runtime\\xl6_ownership_catalog.h",
+            "sha256": "d5756a22f73d6f85842e6000e1cc37be3583a2fef2f38d390e778e655fd1a3f7"
+          },
+          {
+            "virtual": "__xl_compiler/src/type/xl6_foreign_call_contract.h",
+            "status": "embedded-current-a1-source",
+            "source": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2\\src\\type\\xl6_foreign_call_contract.h",
+            "sha256": "46b1bcb0cfa7302f2dd83b47ea062df5da7189c786347570a912b9cb6f6dbefb"
+          },
+          {
+            "virtual": "__xl_compiler/src/type/xl6_foreign_decl.h",
+            "status": "embedded-current-a1-source",
+            "source": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2\\src\\type\\xl6_foreign_decl.h",
+            "sha256": "99963a89d6155264a0ec21a7cef4294f7a2e34fc78b55d62a310331ce0c09054"
+          },
+          {
+            "virtual": "__xl_compiler/src/type/xl6_foreign_pack_contract.h",
+            "status": "embedded-current-a1-source",
+            "source": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2\\src\\type\\xl6_foreign_pack_contract.h",
+            "sha256": "0f3c0fc9da6c9d41d27c4ab6fb11f10ecc80fd9290d71d91d10f13541e2b1a8b"
+          },
+          {
+            "virtual": "__xl_compiler/src/type/xl6_foreign_pack_decl.h",
+            "status": "embedded-current-a1-source",
+            "source": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2\\src\\type\\xl6_foreign_pack_decl.h",
+            "sha256": "7db39f141cf6f8e426d8422a5af377948c879e74589825f2c473923718ab7849"
+          }
+        ]
+      },
+      "tcc_builtin_resources_runtime": {
+        "stamp": {
+          "path": "F:\\xlang-validation\\foreign-completion-20261103\\provider-final-core-win-r2\\tcc_builtin_resources_runtime.c.stamp.json",
+          "sha256": "435bfd3c18371e510abaa00665cf0cc9163ad42bc8b60d579a0ffbf05e38c1e1"
+        },
+        "generated": {
+          "path": "F:\\xlang-validation\\foreign-completion-20261103\\provider-final-core-win-r2\\tcc_builtin_resources_runtime.c",
+          "sha256": "8ad1b4327c3935eac471dc29c05cc58d559dd887c508ca0ed25050a2fd538d2a"
+        },
+        "productionCopy": {
+          "path": "F:\\xlang-validation\\foreign-completion-20261103\\production-final-win-r1\\build\\tcc_builtin_resources_runtime.c",
+          "sha256": "8ad1b4327c3935eac471dc29c05cc58d559dd887c508ca0ed25050a2fd538d2a"
+        },
+        "productionStamp": {
+          "path": "F:\\xlang-validation\\foreign-completion-20261103\\production-final-win-r1\\build\\tcc_builtin_resources_runtime.c.stamp.json",
+          "sha256": "435bfd3c18371e510abaa00665cf0cc9163ad42bc8b60d579a0ffbf05e38c1e1"
+        },
+        "oldPublicCompilerAliasesEmbedded": 0,
+        "checks": []
+      }
+    },
+    "linux": {
+      "tcc_builtin_resources": {
+        "stamp": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\provider-final-core-linux-r1\\tcc_builtin_resources.c.stamp.json",
+          "sha256": "75cb65cc4f72834e37e3e272585c5edd19ef439e81706607041a8e4f15d286a4"
+        },
+        "generated": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\provider-final-core-linux-r1\\tcc_builtin_resources.c",
+          "sha256": "ea2ea5fe1ca129152c9f85d8221741b3422911bc023037b757d6384344511432"
+        },
+        "productionCopy": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\production-final-linux-r1\\build\\tcc_builtin_resources.c",
+          "sha256": "ea2ea5fe1ca129152c9f85d8221741b3422911bc023037b757d6384344511432"
+        },
+        "productionStamp": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\production-final-linux-r1\\build\\tcc_builtin_resources.c.stamp.json",
+          "sha256": "75cb65cc4f72834e37e3e272585c5edd19ef439e81706607041a8e4f15d286a4"
+        },
+        "oldPublicCompilerAliasesEmbedded": 0,
+        "checks": [
+          {
+            "virtual": "__xl_compiler/src/compile/xl6_artifact_runtime.h",
+            "status": "embedded-current-a1-source",
+            "source": "/home/ubuntu/xlang-validation/provider-final-core-linux-r1/producer/src/compile/xl6_artifact_runtime.h",
+            "sha256": "711444a7a6010c3a38326768e47939f6c3bef5167f13268a5a8a6c5a9f1ffe19"
+          },
+          {
+            "virtual": "__xl_compiler/src/compile/xl6_artifact_runtime_symbols.inc",
+            "status": "not-embedded",
+            "canonicalSource": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\provider-final-core-linux-r1\\producer\\src\\compile\\xl6_artifact_runtime_symbols.inc",
+            "sha256": "7e570e4490fb2eb12f0bc4581c5e2ec751699ef6ba6691b18e6cdd4abcd37c85",
+            "reason": "Compiler .c/.inc resources are removed after exact precompiled source_fingerprint verification; this is an input to the precompiled source cohort."
+          },
+          {
+            "virtual": "__xl_compiler/src/compile/xl6_compile_unit.h",
+            "status": "embedded-current-a1-source",
+            "source": "/home/ubuntu/xlang-validation/provider-final-core-linux-r1/producer/src/compile/xl6_compile_unit.h",
+            "sha256": "dda71aae1afb181ba3c437aad128fdb7e4f09244ae8388c001f30d79a8a564d4"
+          },
+          {
+            "virtual": "__xl_compiler/src/compile/xl6_imports.h",
+            "status": "embedded-current-a1-source",
+            "source": "/home/ubuntu/xlang-validation/provider-final-core-linux-r1/producer/src/compile/xl6_imports.h",
+            "sha256": "bcfe1b2f37d3dc8997ccd67896f2a37b4f33e1f594560d4efcca48674ed04cae"
+          },
+          {
+            "virtual": "__xl_compiler/src/ir/xl6_ir.h",
+            "status": "embedded-current-a1-source",
+            "source": "/home/ubuntu/xlang-validation/provider-final-core-linux-r1/producer/src/ir/xl6_ir.h",
+            "sha256": "05cedaa99ccec7ad8ed4b2be4f41782d52bd90edc8a5dd6838c1e7d9a7ad46b5"
+          },
+          {
+            "virtual": "__xl_compiler/src/package/xl6_package.h",
+            "status": "embedded-current-a1-source",
+            "source": "/home/ubuntu/xlang-validation/provider-final-core-linux-r1/producer/src/package/xl6_package.h",
+            "sha256": "59bc9f99a2e97b1363784da90b046ff1abd5eeaebdf61200d8a2825babbbe0e4"
+          },
+          {
+            "virtual": "__xl_compiler/src/runtime/xl6_foreign_view.h",
+            "status": "embedded-current-a1-source",
+            "source": "/home/ubuntu/xlang-validation/provider-final-core-linux-r1/producer/src/runtime/xl6_foreign_view.h",
+            "sha256": "827a3cda6dea2b552897c0873c76f0b09a946761f02edddefa50947d056f2420"
+          },
+          {
+            "virtual": "__xl_compiler/src/runtime/xl6_ownership_catalog.h",
+            "status": "embedded-current-a1-source",
+            "source": "/home/ubuntu/xlang-validation/provider-final-core-linux-r1/producer/src/runtime/xl6_ownership_catalog.h",
+            "sha256": "d5756a22f73d6f85842e6000e1cc37be3583a2fef2f38d390e778e655fd1a3f7"
+          },
+          {
+            "virtual": "__xl_compiler/src/type/xl6_foreign_call_contract.h",
+            "status": "embedded-current-a1-source",
+            "source": "/home/ubuntu/xlang-validation/provider-final-core-linux-r1/producer/src/type/xl6_foreign_call_contract.h",
+            "sha256": "46b1bcb0cfa7302f2dd83b47ea062df5da7189c786347570a912b9cb6f6dbefb"
+          },
+          {
+            "virtual": "__xl_compiler/src/type/xl6_foreign_decl.h",
+            "status": "embedded-current-a1-source",
+            "source": "/home/ubuntu/xlang-validation/provider-final-core-linux-r1/producer/src/type/xl6_foreign_decl.h",
+            "sha256": "99963a89d6155264a0ec21a7cef4294f7a2e34fc78b55d62a310331ce0c09054"
+          },
+          {
+            "virtual": "__xl_compiler/src/type/xl6_foreign_pack_contract.h",
+            "status": "embedded-current-a1-source",
+            "source": "/home/ubuntu/xlang-validation/provider-final-core-linux-r1/producer/src/type/xl6_foreign_pack_contract.h",
+            "sha256": "0f3c0fc9da6c9d41d27c4ab6fb11f10ecc80fd9290d71d91d10f13541e2b1a8b"
+          },
+          {
+            "virtual": "__xl_compiler/src/type/xl6_foreign_pack_decl.h",
+            "status": "embedded-current-a1-source",
+            "source": "/home/ubuntu/xlang-validation/provider-final-core-linux-r1/producer/src/type/xl6_foreign_pack_decl.h",
+            "sha256": "7db39f141cf6f8e426d8422a5af377948c879e74589825f2c473923718ab7849"
+          }
+        ]
+      },
+      "tcc_builtin_resources_runtime": {
+        "stamp": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\provider-final-core-linux-r1\\tcc_builtin_resources_runtime.c.stamp.json",
+          "sha256": "257fdb02c04e40ce98b9c378c1d15cbdc485b54a3442a5b2f02cfc1b87c2a2f2"
+        },
+        "generated": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\provider-final-core-linux-r1\\tcc_builtin_resources_runtime.c",
+          "sha256": "987d23393c112b457854e73bc67d4cb1e724227db4d16b673c76aa38a968e0b5"
+        },
+        "productionCopy": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\production-final-linux-r1\\build\\tcc_builtin_resources_runtime.c",
+          "sha256": "987d23393c112b457854e73bc67d4cb1e724227db4d16b673c76aa38a968e0b5"
+        },
+        "productionStamp": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\production-final-linux-r1\\build\\tcc_builtin_resources_runtime.c.stamp.json",
+          "sha256": "257fdb02c04e40ce98b9c378c1d15cbdc485b54a3442a5b2f02cfc1b87c2a2f2"
+        },
+        "oldPublicCompilerAliasesEmbedded": 0,
+        "checks": []
+      }
+    }
+  },
+  "conclusion": "Disk-only compiler aliases: 11 matching .h resources per platform use canonical a1 src directly; the symbols .inc is deliberately not embedded. Runtime catalogs contain none of the12. Production catalogs/stamps are byte-identical to the qualified provider catalogs. No embedded drift or rebuild is required.",
+  "generator": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2\\tools\\gen_tcc_vfs_resources.py",
+    "sha256": "450cff0f81dc7d63785d6f796c068d07933cefeeb44ba6c7ad7ec34cdfa71d15"
+  },
+  "precompiler": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2\\tools\\precompile_builtin.py",
+    "sha256": "a1a1622801237df73252e02bea6ab1f5a87abb0175b94ec6745219566c526de6"
+  },
+  "rule": "gen_tcc_vfs_resources.py checks manifest_data.sources == source_fingerprint(root), then excludes __xl_compiler .c/.inc. source_fingerprint covers .c/.h/.inc/.def under source_directories(root)."
+}

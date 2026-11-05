@@ -1,0 +1,83 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Authoritative current SDK public/private key header ABI and current compiler-layout facts; actual production CLI compilation. Implementation-capable XRT headers retained, no image rebuild.",
+  "sdkManifest": "/home/ubuntu/xlang-validation/sdk-final-core-linux-r3/manifest.json",
+  "sdkManifestSha256": "30d3194c7c278b56e5f96537ae808f18fc5b52b51e6b24f5199f4b1902d7348b",
+  "cliSha256": "0afa441e1e3486c3e8ea2d7fbde7be5e5ea6caa850bc76a2bca1dc767b60f1d0",
+  "rows": [
+    {
+      "name": "C11",
+      "exitCode": 0,
+      "command": [
+        "gcc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I/home/ubuntu/xlang-validation/sdk-final-core-linux-r3/include",
+        "-I/home/ubuntu/xlang-validation/sdk-final-core-linux-r3/include/__xl_compiler",
+        "-fsyntax-only",
+        "/home/ubuntu/xlang-validation/sdk-final-core-header-linux-r1/sdk.c"
+      ]
+    },
+    {
+      "name": "Cpp11",
+      "exitCode": 0,
+      "command": [
+        "g++",
+        "-std=c++11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I/home/ubuntu/xlang-validation/sdk-final-core-linux-r3/include",
+        "-I/home/ubuntu/xlang-validation/sdk-final-core-linux-r3/include/__xl_compiler",
+        "-fsyntax-only",
+        "/home/ubuntu/xlang-validation/sdk-final-core-header-linux-r1/sdk.cpp"
+      ]
+    },
+    {
+      "name": "Cpp17",
+      "exitCode": 0,
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I/home/ubuntu/xlang-validation/sdk-final-core-linux-r3/include",
+        "-I/home/ubuntu/xlang-validation/sdk-final-core-linux-r3/include/__xl_compiler",
+        "-fsyntax-only",
+        "/home/ubuntu/xlang-validation/sdk-final-core-header-linux-r1/sdk.cpp"
+      ]
+    },
+    {
+      "name": "compiler-C11",
+      "exitCode": 0,
+      "command": [
+        "gcc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I/home/ubuntu/xlang-validation/sdk-final-core-linux-r3/include",
+        "-I/home/ubuntu/xlang-validation/sdk-final-core-linux-r3/include/__xl_compiler",
+        "-fsyntax-only",
+        "/home/ubuntu/xlang-validation/sdk-final-core-header-linux-r1/compiler-sdk.c"
+      ]
+    },
+    {
+      "name": "production-CLI-build",
+      "exitCode": 0,
+      "command": [
+        "/home/ubuntu/xlang-validation/production-final-linux-r1/producer/release/linux_x64/xl",
+        "build",
+        "/home/ubuntu/xlang-validation/source-final-core-r1/test/cases/native_sequence.xl",
+        "--inc-path",
+        "/home/ubuntu/xlang-validation/sdk-final-core-linux-r3/include",
+        "-o",
+        "/home/ubuntu/xlang-validation/sdk-final-core-header-linux-r1/sequence"
+      ]
+    }
+  ]
+}
