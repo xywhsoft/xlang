@@ -45,6 +45,17 @@ def main():
   relative=Path(original['Source']).relative_to(originalRoot);candidate=Path(oldMapping.get(original['Path'],original)['Source']).resolve()
   for _ in relative.parts:candidate=candidate.parent
   knownRoots.add(candidate)
+ extraRelative={}
+ for row in parent.get('ExtraObjects',[]):
+  source=Path(row['Source']).resolve()
+  matches=[(ancestor,inside(source,ancestor))for ancestor in knownRoots if inside(source,ancestor)is not None]
+  if not matches:
+   # An unchanged extra may still belong to an older cohort than every
+   # replacement TU. Recover only an unambiguous project-relative source path.
+   matches=[(ancestor,source.relative_to(ancestor))for ancestor in source.parents
+    if source.relative_to(ancestor).parts[0]in('src','lib')and(root/source.relative_to(ancestor)).is_file()]
+  assert len(matches)==1,('Ambiguous inherited extra source root',str(source),matches)
+  ancestor,relative=matches[0];knownRoots.add(ancestor);extraRelative[row['Path']]=relative
  compilerHash=sha(cc);matchingCompiler=[row for row in base.get('Inputs',[])if row['Sha256'].lower()==compilerHash]
  assert matchingCompiler,'Compiler bytes differ from the parent profile; require an explicitly qualified new profile'
  aliases={Path(row['Path']).resolve():Path(row['Source']).resolve()for row in parent.get('Headers',base.get('Headers',[]))}
@@ -186,7 +197,7 @@ def main():
   if len(units)%100==0:print('Dependency scan:',len(units),'TUs;',sum(v['rebuild']for v in units),'changed',flush=True)
  for old in base['Objects']:
   row=oldMapping.get(old['Path'],old);inspect(row,old,Path(old['Source']).relative_to(originalRoot))
- for row in parent.get('ExtraObjects',[]):inspect(row,row,Path(row['Source']).relative_to(selected['cohort']),True)
+ for row in parent.get('ExtraObjects',[]):inspect(row,row,extraRelative[row['Path']],True)
  plan=dict(complete=True,passed=True,mode='build'if a.execute else'plan',scope=__doc__,fullRebuild=False,sourceRoot=str(root),sourceFreeze=str(a.freeze),sourceFreezeSha256=sha(a.freeze),
   parentOverlay=str(a.parent_overlay),parentOverlaySha256=sha(a.parent_overlay),parentBuild=parent['parentBuild'],parentBuildSha256=parent['parentBuildSha256'],
   compiler=dict(path=cc,sha256=compilerHash,parentInputs=matchingCompiler),units=units,inputHashes=allInputs,rebuildCount=sum(v['rebuild']for v in units),reuseCount=sum(not v['rebuild']for v in units),

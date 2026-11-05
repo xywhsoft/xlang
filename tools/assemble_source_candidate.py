@@ -72,6 +72,14 @@ def main():
   source=base/name;assert sha(source)==digest,source
   target=out/name;target.parent.mkdir(parents=True,exist_ok=True);copy_link(source,target)
  process=subprocess.Popen(['git','-C',str(repo),'archive','--format=tar',commit,'--',*roots],stdout=subprocess.PIPE)
+ # One persistent reader keeps exact committed-byte recovery linear even when
+ # archive attributes transform thousands of files (e.g. CRLF checkouts).
+ blobs=subprocess.Popen(['git','-C',str(repo),'cat-file','--batch'],stdin=subprocess.PIPE,stdout=subprocess.PIPE)
+ def committed_blob(oid):
+  blobs.stdin.write(oid.encode()+b'\n');blobs.stdin.flush()
+  header=blobs.stdout.readline().split();assert len(header)==3 and header[0].decode()==oid and header[1]==b'blob',header
+  data=blobs.stdout.read(int(header[2]));assert len(data)==int(header[2]) and blobs.stdout.read(1)==b'\n'
+  return data
  written=set();archiveConversions=[]
  try:
   with tarfile.open(fileobj=process.stdout,mode='r|')as archive:
@@ -86,20 +94,22 @@ def main():
      # archive applies attributes (including EOL/export substitutions). Source
      # qualification needs the actual committed blob, not checkout conversion.
      archiveConversions.append(relative)
-     data=subprocess.check_output(['git','-C',str(repo),'cat-file','blob',gitFiles[relative]])
+     data=committed_blob(gitFiles[relative])
      assert hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()==gitFiles[relative],relative
     target=out/relative;target.parent.mkdir(parents=True,exist_ok=True);target.unlink(missing_ok=True);target.write_bytes(data)
     if member.mode&0o111:target.chmod(target.stat().st_mode|0o111)
     written.add(relative)
   assert process.wait()==0
   for relative in sorted(set(gitFiles)-written):
-   data=subprocess.check_output(['git','-C',str(repo),'cat-file','blob',gitFiles[relative]])
+   data=committed_blob(gitFiles[relative])
    assert hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()==gitFiles[relative],relative
    target=out/relative;target.parent.mkdir(parents=True,exist_ok=True);target.unlink(missing_ok=True);target.write_bytes(data);written.add(relative)
    archiveConversions.append(relative)
   assert written==set(gitFiles)
  except BaseException:
   process.kill();process.wait();raise
+ finally:
+  blobs.stdin.close();blobs.wait();blobs.stdout.close();process.stdout.close()
  for layer in layers:
   assert sha(layer['manifest'])==layer['manifestSha256']
   for row in layer['files']:

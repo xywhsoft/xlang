@@ -81,6 +81,7 @@ typedef void (*XL_TccDeleteProc)(TCCState* s);
 typedef void (*XL_TccSetLibPathProc)(TCCState* s, const char* path);
 typedef void (*XL_TccSetErrorFuncProc)(TCCState* s, void* opaque, TCCErrorFunc* errorFunc);
 typedef int (*XL_TccSetOptionsProc)(TCCState* s, const char* options);
+typedef unsigned int (*XL_TccNativeLinkFeaturesProc)(void);
 typedef int (*XL_TccAddIncludePathProc)(TCCState* s, const char* path);
 typedef int (*XL_TccAddSysIncludePathProc)(TCCState* s, const char* path);
 typedef void (*XL_TccDefineSymbolProc)(TCCState* s, const char* sym, const char* value);
@@ -121,6 +122,7 @@ typedef struct XL_TccApi {
     XL_TccSetLibPathProc tcc_set_lib_path;
     XL_TccSetErrorFuncProc tcc_set_error_func;
     XL_TccSetOptionsProc tcc_set_options;
+    XL_TccNativeLinkFeaturesProc tcc_native_link_features; /* Optional capability query. */
     XL_TccAddIncludePathProc tcc_add_include_path;
     XL_TccAddSysIncludePathProc tcc_add_sysinclude_path;
     XL_TccDefineSymbolProc tcc_define_symbol;

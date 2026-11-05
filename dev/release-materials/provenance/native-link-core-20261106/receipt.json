@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "scope": "Core nativeLink integration and actual static XGE CPU acceptance; separate from serialized/compiler-production delivery",
+  "sourceCandidate": "F:\\xlang-validation\\native-static-20261106\\core-source-r5.json",
+  "sourceCandidateSha256": "688ea9d54817ff92302c5638e00bb244f66784f796361cc60a12e144d1c5b90a",
+  "windowsCoreOverlay": "F:\\xlang-validation\\native-static-20261106\\compiler-core-win-r3\\overlay.json",
+  "windowsCoreOverlaySha256": "73f01a7d766f52a7a9527be9456a87069cf7708f7786a3e31aff3c539c1b4345",
+  "sourceFiles": [
+    {
+      "path": "src/api/xl_api.c",
+      "sha256": "991349f1eb484c6f0bfbd1e26eec45dffb737fd7c7bf7e30c776e5551b9982e9"
+    },
+    {
+      "path": "src/api/xl_api_internal.h",
+      "sha256": "4e35a3dcd8133f7028bbe89514204e6c47ada05246a92eecf27c56503afa6786"
+    },
+    {
+      "path": "src/api/xl_module_native_abi.inc",
+      "sha256": "1a8a8a4e9c2ad47c875972637fbd1e4d3981ace8b5f5541a375512cf51994952"
+    },
+    {
+      "path": "docs/package-native-link.md",
+      "sha256": "54f3b9a4add14d036022ddb56f4d1fb42177ec95a359e4e5d27678e9d2539fd4"
+    },
+    {
+      "path": "test/cases/native_link_module.c",
+      "sha256": "a8d3ed95dcba9444c3c75ced10f49846c9b11b563d0184b26d32ac51c22032b9"
+    },
+    {
+      "path": "tools/check_native_link_compiler.py",
+      "sha256": "6a8e0f3d6b36ebcf9a702f09220809d48ac5fb582eacb98a804bc76e965bcd88"
+    },
+    {
+      "path": "tools/assemble_source_candidate.py",
+      "sha256": "be1beb6ec03cbbd987fc177b5e18e42ea864b192348bb6be4095342564970d17"
+    },
+    {
+      "path": "tools/build_source_candidate.py",
+      "sha256": "e8a64d073f946b6638fba938d38d1879de3b9dee49ffcd60978cb0def9570929"
+    }
+  ],
+  "reports": [
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\native-link-compiler-win-r3\\results.json",
+      "archivePath": "windows-core.json",
+      "sha256": "1be4fd9caa692ce6d05deb841b7cdb6efaea1b812092d185e325eb0061ad2777"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-integration-r2\\core.json",
+      "archivePath": "linux-core.json",
+      "sha256": "e89fa7af59415daeea049dd89042ef198f79ea1ff2db61ff769a9b0c9741896b"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-integration-r2\\receipt.json",
+      "archivePath": "linux-receipt.json",
+      "sha256": "9ac892c518981d09655c593c0ccc42af6eb252483c0cd3ece3b17a0b79fe7dc1"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\xge-core-probe-win-r3\\results.json",
+      "archivePath": "windows-static-xge.json",
+      "sha256": "dbe41ee50ce9c1f2b315949645787c2f1dd5d82846471ad48f68a6c54b0e3cc0"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-integration-r2\\xgeJit.json",
+      "archivePath": "linux-static-xge-jit.json",
+      "sha256": "9b8488e10c04228a05d8c82103f8e99c4e6c3e1b68fc17843b03770464b80f09"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-integration-r2\\xgeAot.json",
+      "archivePath": "linux-static-xge-aot.json",
+      "sha256": "e04a0a8d6cbd4d09d91aaca2287b62069af6e14a44f2006192906799c686049a"
+    }
+  ],
+  "archiveSha256": "f4e591d8816598cfd562e1eb6e91b5cfc01adbff6eae4aadbf4c707245aaa49b",
+  "qualified": {
+    "coreO0O2WindowsRows": 6,
+    "coreO0O2LinuxRows": 6,
+    "unusedExports": true,
+    "checkedErrors": true,
+    "moduleRetirementExactlyOnce": true,
+    "legacyProviderRejected": true,
+    "staticXgeWindowsJit": true,
+    "staticXgeLinuxJitAndAot": true
+  },
+  "limits": [
+    "No new production DLL/VFS was published by this stage",
+    "Windows TinyCC-produced PE execution remains blocked by Defender",
+    "Static XGE CPU checks do not execute a window, GPU, clipboard or network"
+  ]
+}
