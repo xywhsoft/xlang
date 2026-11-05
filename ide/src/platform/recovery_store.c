@@ -1,3 +1,4 @@
+#include "model/metadata_read.h"
 #include "platform/recovery_store.h"
 #include "platform/state_file.h"
 #include "platform/recovery_backup.h"
@@ -95,13 +96,13 @@ static int add(names* n,const char* s)
 }
 static void clearNames(names* n) { for(size_t i=0;i<n->count;++i) free(n->items[i]); free(n->items); }
 static int compare(const void* a,const void* b) { return _stricmp(*(const char* const*)a,*(const char* const*)b); }
-static xvalue* get(const xvalue* root,const char* key) { return root ? xrtValueObjectGet(root,(xstrview){key,strlen(key)}) : NULL; }
-static const char* text(const xvalue* value) { xstrview s={0}; return xrtValueGetString(value,&s) && !memchr(s.Data,0,s.Size) ? s.Data : NULL; }
+static xvalue* get(const xvalue* root,const char* key) { return root ? xideMetaField(root,(xstrview){key,strlen(key)}) : NULL; }
+static const char* text(const xvalue* value) { xstrview s={0}; return xideMetaString(value,&s) && !memchr(s.Data,0,s.Size) ? s.Data : NULL; }
 static int refs(const xvalue* root,names* n)
 {
     const xvalue* docs=get(root,"openDocuments");
-    if(docs && (!xrtValueIs(docs,XVALUE_ARRAY) || xrtValueCount(docs)>10000)) return 0;
-    for(size_t i=0;i<xrtValueCount(docs);++i) {
+    if(docs && (!xrtValueIs(docs,XVALUE_ARRAY) || xideMetaCount(docs)>10000)) return 0;
+    for(size_t i=0;i<xideMetaCount(docs);++i) {
         const xvalue* d=xrtValueArrayGet(docs,i); if(!xrtValueIs(d,XVALUE_OBJECT)) return 0;
         const char* fields[]={"recoveryText","recoveryBaseline"};
         if(!!get(d,fields[0])!=!!get(d,fields[1])) return 0;
@@ -181,7 +182,7 @@ int xideRecoveryCollect(xide_recovery_guard* g,uint64_t now,int (*validate)(cons
     if(!journalPath) return 0;
     if(xidePathExists(journalPath)) {
         xide_state_file journal={0}; int retired=xideStateOpen(&journal,journalPath,"xlang-ide-rename-journal-1",e);
-        xstrview state={0}; retired=retired && xrtValueGetString(xrtValueObjectGet(journal.source,(xstrview){"state",5}),&state) && state.Size==7 && !memcmp(state.Data,"retired",7);
+        xstrview state={0}; retired=retired && xideMetaString(xideMetaField(journal.source,(xstrview){"state",5}),&state) && state.Size==7 && !memcmp(state.Data,"retired",7);
         xideStateClear(&journal); free(journalPath);
         if(!retired) return fail(e,XIDE_MODEL_CONFLICT,"Pending or damaged rename transaction protects all recovery files.");
     } else free(journalPath);

@@ -1,0 +1,111 @@
+{
+  "complete": true,
+  "passed": true,
+  "date": "2026-11-06",
+  "scope": "IDE startup and retained DPI-paint lifecycle correction; candidate acceptance only, installation is recorded separately.",
+  "rootCause": "A missing execution target was passed to checked string access, leaving XERR_ARGUMENT; native checked control initialization later returned XUI_ERROR_CALLBACK_FAILED.",
+  "additionalFixes": [
+    "Type-directed optional metadata probes for saved UI/session/recovery state",
+    "Handled unreadable-preferences diagnostics remain local while preserving an existing caller diagnostic",
+    "DPI carrier owns the complete logical and physical paint contracts; borrowed views restore all native callbacks/metadata"
+  ],
+  "sourceManifest": {
+    "path": "dev/release-materials/sources/ide-startup-fix-20261106/source-manifest.json",
+    "sha256": "62699954478a710352f937147b1a76d9cecd031e91dc461d2982d596e74a56e3"
+  },
+  "reports": [
+    {
+      "original": "F:\\xlang-validation\\ide-startup-20261106-r1\\before.json",
+      "copy": "before.json",
+      "sha256": "790bf68a33b97258fa9565f98b1b6ca85583eb710bf96fa4d6a91ed932c3e349",
+      "bytes": 407
+    },
+    {
+      "original": "F:\\xlang-validation\\ide-startup-20261106-r1\\before.log",
+      "copy": "before.log",
+      "sha256": "b8b6c2ac1d11e4c884327fd34d826da18b077633eb739d7a3b7961b29e46da73",
+      "bytes": 654
+    },
+    {
+      "original": "F:\\xlang-validation\\ide-startup-20261106-r1\\fresh-build-r1\\build-attempt-1.json",
+      "copy": "strict-build-initial-attempt.json",
+      "sha256": "1c1d7331be70016ac3477aee1319b085a3cb4e6939ef74ce1787610b0e27c6e1",
+      "bytes": 147830
+    },
+    {
+      "original": "F:\\xlang-validation\\ide-startup-20261106-r1\\fresh-build-r1\\build.json",
+      "copy": "fresh-gui-build.json",
+      "sha256": "83b14f7d273dd415c12f4f2d91b9aff8f220dfc68690f34672fd2fb53d9d046c",
+      "bytes": 191370
+    },
+    {
+      "original": "F:\\xlang-validation\\ide-startup-20261106-r1\\settings-successor-r1\\build.json",
+      "copy": "settings-successor-build.json",
+      "sha256": "3a5bd312b0a902c848141af45de5b03e8a8c099ca98eb44a071e65af2d4e77b1",
+      "bytes": 24776
+    },
+    {
+      "original": "F:\\xlang-validation\\ide-startup-20261106-r1\\acceptance-r3\\results.json",
+      "copy": "initial-render-matrix.json",
+      "sha256": "975a766300ba3e2ba1fa8e768ab4b306c83a3adbe4603514d7fc7262ed0fc2bb",
+      "bytes": 30704
+    },
+    {
+      "original": "F:\\xlang-validation\\ide-startup-20261106-r1\\final-gui-r1\\results.json",
+      "copy": "final-render-cases.json",
+      "sha256": "bb4125148bd62199ea2069aaea177a5abdd80e985cca01bda855aef59ce192df",
+      "bytes": 3187
+    },
+    {
+      "original": "F:\\xlang-validation\\ide-startup-20261106-r1\\metadata-fixtures-r3\\results.json",
+      "copy": "metadata-fixtures.json",
+      "sha256": "53e8ad62c46abd58b169d8ae6f89f73b364770301188c58e788a2910efb43df1",
+      "bytes": 38497
+    },
+    {
+      "original": "F:\\xlang-validation\\ide-startup-20261106-r1\\retained-native-regression-r1\\results.json",
+      "copy": "retained-native-regression.json",
+      "sha256": "fb7406781dcf1f4bfcd26927beb7877d84053f7c5f83e00e766ce40b9d72a4a0",
+      "bytes": 24884
+    },
+    {
+      "original": "F:\\xlang-validation\\ide-startup-20261106-r1\\nullable-regression-r1\\results.json",
+      "copy": "nullable-regression.json",
+      "sha256": "cd7793fab561fca3e377321761e47b4bcbb1b6433066da0308f0996ca42e3f0c",
+      "bytes": 24828
+    }
+  ],
+  "candidate": {
+    "path": "F:\\xlang-validation\\ide-startup-20261106-r1\\settings-successor-r1\\xlang_ide.exe",
+    "sha256": "25ade2a9867ed229edbf4b9013f26d99890dabaf8e9629c226fcea4a4f294883",
+    "bytes": 1794464
+  },
+  "unchangedEngine": {
+    "path": "release/win_x64/xge.dll",
+    "sha256": "edafbc3d3520f47cbb851365c98375b27f9a0f09404535dc7e03237e2ddc02fc"
+  },
+  "optimization": "O2",
+  "freshGuiCUnits": 103,
+  "languageCoreNativeAbiChanged": false,
+  "unrelatedWorkIncluded": false,
+  "tests": {
+    "initialRenderMatrix": 5,
+    "finalRenderCases": 3,
+    "metadataFixtures": 3,
+    "beforeAfterRegressions": 2,
+    "paintFaultCases": [
+      "OOM",
+      "wrong thread/deferred",
+      "not ready/deferred",
+      "two cleanup failures",
+      "prior diagnostic",
+      "logical/physical tracing",
+      "real retained paints at 1/1.25/2 scale surviving font/proxy destruction"
+    ]
+  },
+  "historicalNotes": [
+    "Initial strict compile rejected feature-define/include ordering; corrected before qualification",
+    "Settings fixture still expected a fatal load for deliberately recoverable malformed/out-of-range preferences; aligned to its existing fallback contract and strengthened byte/diagnostic preservation checks"
+  ],
+  "installed": false
+}

@@ -1,0 +1,6 @@
+UI call failed at line 182: xideWorkspaceViewCreate(app) -> -16
+workbench call failed at F:\xlang-validation\foreign-completion-20261103\ide-final-source-r1\ide\src\app\xide_app.c:107: xideWorkbenchCreate(app) -> -16
+workbench call failed at F:\xlang-validation\foreign-completion-20261103\ide-final-source-r1\ide\src\app\xide_app.c:186: xideAppCreate(app) -> -16
+xlang IDE startup/render failed: -16
+xlang IDE failure: stage=3 domain=XUI code=-16 recovery=1 detail=The interface could not create or render a required resource.
+xlang IDE diagnostic: F:/xlang-validation/ide-startup-20261106-r1/diagnostics/xlang-ide-20261105-164713-279-41072-1.log

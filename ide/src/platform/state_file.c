@@ -1,3 +1,4 @@
+#include "model/metadata_read.h"
 #include "platform/state_file.h"
 #include "platform/path.h"
 #include <windows.h>
@@ -26,7 +27,7 @@ int xideStateOpen(xide_state_file* state,const char* path,const char* format,xid
     xide_state_file fresh={0}; fresh.path=xidePathResolve(NULL,path); if(!fresh.path) return fail(error,XIDE_MODEL_INVALID,"Invalid state-file path.");
     fresh.existed=xidePathExists(fresh.path); fresh.source=fresh.existed ? read(fresh.path) : xrtValueObject();
     xstrview value={0};
-    if(!fresh.source || (fresh.existed && (!xrtValueGetString(xrtValueObjectGet(fresh.source,sv("format")),&value) || value.Size!=strlen(format) || memcmp(value.Data,format,value.Size)))) {
+    if(!fresh.source || (fresh.existed && (!xideMetaString(xideMetaField(fresh.source,sv("format")),&value) || value.Size!=strlen(format) || memcmp(value.Data,format,value.Size)))) {
         xideStateClear(&fresh); return fail(error,XIDE_MODEL_INVALID,"State is unreadable or unsupported; the original file is preserved.");
     }
     xideStateClear(state); *state=fresh; return 1;

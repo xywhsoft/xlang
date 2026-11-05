@@ -1,0 +1,2 @@
+deep Unicode recovery child exited 0
+recovery_backup_test passed: raw invalid/oversize metadata copies, complete independent bodies, cancellation/locked originals, retirement undo, worker cancellation and pending-result teardown, backed-up preview after active GC and damaged archive protection

@@ -1,3 +1,4 @@
+#include "model/metadata_read.h"
 #include "services/build_inputs.h"
 #include "platform/path.h"
 #include "platform/file_io.h"
@@ -20,12 +21,12 @@ struct xide_build_inputs {
  char* receipt; xide_build_cancel cancel; void* user;
 };
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
-static const xvalue* get(const xvalue* v,const char* key) { return v && xrtValueType(v)==XVALUE_OBJECT ? xrtValueObjectGet(v,sv(key)) : NULL; }
+static const xvalue* get(const xvalue* v,const char* key) { return v && xrtValueType(v)==XVALUE_OBJECT ? xideMetaField(v,sv(key)) : NULL; }
 static int fail(xide_model_error* e,const char* reason,const char* path) { if(e) { e->code=XIDE_MODEL_INVALID; snprintf(e->message,sizeof(e->message),"%s%s%s",reason,path ? ": " : "",path ? path : ""); } return 0; }
-static const char* text(const xvalue* v) { xstrview s={0}; return xrtValueGetString(v,&s) && !memchr(s.Data,0,s.Size) && s.Size<=32768 && (!s.Size || MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,s.Data,(int)s.Size,NULL,0)) ? s.Data : NULL; }
+static const char* text(const xvalue* v) { xstrview s={0}; return xideMetaString(v,&s) && !memchr(s.Data,0,s.Size) && s.Size<=32768 && (!s.Size || MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,s.Data,(int)s.Size,NULL,0)) ? s.Data : NULL; }
 static wchar_t* wide(const char* s) { int n=s ? MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,s,-1,NULL,0) : 0; wchar_t* p=n ? malloc((size_t)n*sizeof(*p)) : NULL; if(p) MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,s,-1,p,n); return p; }
 static int same(const wchar_t* a,const wchar_t* b) { return a && b && CompareStringOrdinal(a,-1,b,-1,TRUE)==CSTR_EQUAL; }
-static int integer(const xvalue* v,int64* n,int64 max) { return xrtValueType(v)==XVALUE_INT && xrtValueGetInt(v,n) && *n>=0 && *n<=max; }
+static int integer(const xvalue* v,int64* n,int64 max) { return xrtValueType(v)==XVALUE_INT && xideMetaInt(v,n) && *n>=0 && *n<=max; }
 static int hex(const xvalue* value,unsigned char* bytes,size_t count) {
  const char* s=text(value); if(!s || strlen(s)!=count*2) return 0;
  for(size_t i=0;i<count;++i) { unsigned n=0; for(int j=0;j<2;++j) { char c=s[i*2+j]; unsigned d=c>='0' && c<='9' ? (unsigned)(c-'0') : c>='a' && c<='f' ? (unsigned)(c-'a'+10) : 16u; if(d>15) return 0; n=n*16+d; } bytes[i]=(unsigned char)n; } return 1;
@@ -49,7 +50,7 @@ static int infoEqual(const xfileinfo* a,const xfileinfo* b) {
 }
 static int parseFile(const xvalue* row,input* f,int schema) {
  const xvalue* m=get(row,"metadata"); int64 size=0,available=0,attributes=0;
- if(xrtValueCount(row)!=4 || xideReceiptMetadataSchema(m)!=schema || !canonical(get(row,"path"),&f->path,&f->key) || !integer(get(row,"size"),&size,FILE_LIMIT) || !hex(get(row,"sha256"),f->hash,32) || !integer(get(m,"available"),&available,UINT32_MAX) || !integer(get(m,"attributes"),&attributes,UINT32_MAX) || !hex64(get(m,"device"),&f->info.Device) || !hex64(get(m,"identity"),&f->info.Identity) || !decimal(get(m,schema==1 ? "modifiedUs" : "modifiedMs"),&f->info.Modified) || !decimal(get(m,schema==1 ? "changedUs" : "changedMs"),&f->info.Changed)) return 0;
+ if(xideMetaCount(row)!=4 || xideReceiptMetadataSchema(m)!=schema || !canonical(get(row,"path"),&f->path,&f->key) || !integer(get(row,"size"),&size,FILE_LIMIT) || !hex(get(row,"sha256"),f->hash,32) || !integer(get(m,"available"),&available,UINT32_MAX) || !integer(get(m,"attributes"),&attributes,UINT32_MAX) || !hex64(get(m,"device"),&f->info.Device) || !hex64(get(m,"identity"),&f->info.Identity) || !decimal(get(m,schema==1 ? "modifiedUs" : "modifiedMs"),&f->info.Modified) || !decimal(get(m,schema==1 ? "changedUs" : "changedMs"),&f->info.Changed)) return 0;
  f->schema=schema;
  f->info.Type=XFILE_TYPE_FILE; f->info.Size=(uint64)size; f->info.Available=(uint32)available; f->info.Attributes=(uint32)attributes;
  return infoEqual(&f->info,&f->info);
@@ -115,8 +116,8 @@ xide_build_inputs* xideBuildInputsLoad(const char* receipt,const char* artifact,
  xide_build_inputs* r=NULL; int64 schema=0; bool complete=false,observed=false;
  const xvalue *files=get(root,"files"),*native=get(root,"nativeMissing"),*probes=get(root,"xlangProbes"),*env=get(root,"XLANG_PACKAGE_PATH");
  const char* scope=text(get(root,"scope")),*package=text(env);
- if(!root || xrtValueCount(root)!=9 || !integer(get(root,"schema"),&schema,2) || schema<1 || !scope || strcmp(scope,"xlang-native-build-disk-inputs") || !xrtValueGetBool(get(root,"complete"),&complete) || !complete || !xrtValueGetBool(get(root,"packagePathObserved"),&observed) || !env || (!package && xrtValueType(env)!=XVALUE_NULL) || (!observed && package) || (observed && (package && packagePath ? strcmp(package,packagePath)!=0 : package!=packagePath)) || xrtValueType(files)!=XVALUE_ARRAY || !xrtValueCount(files) || xrtValueCount(files)>FILES_LIMIT || xrtValueType(native)!=XVALUE_ARRAY || xrtValueCount(native)>NATIVE_LIMIT || xrtValueType(probes)!=XVALUE_ARRAY || xrtValueCount(probes)>XLANG_LIMIT) { fail(e,"Incomplete, malformed or out-of-scope compiler input receipt",receipt); goto done; }
- r=calloc(1,sizeof(*r)); if(!r) goto invalid; r->cancel=cancel; r->user=user; r->count=xrtValueCount(files); r->nativeCount=xrtValueCount(native); r->probeCount=r->nativeCount+xrtValueCount(probes);
+ if(!root || xideMetaCount(root)!=9 || !integer(get(root,"schema"),&schema,2) || schema<1 || !scope || strcmp(scope,"xlang-native-build-disk-inputs") || !xideMetaBool(get(root,"complete"),&complete) || !complete || !xideMetaBool(get(root,"packagePathObserved"),&observed) || !env || (!package && xrtValueType(env)!=XVALUE_NULL) || (!observed && package) || (observed && (package && packagePath ? strcmp(package,packagePath)!=0 : package!=packagePath)) || xrtValueType(files)!=XVALUE_ARRAY || !xideMetaCount(files) || xideMetaCount(files)>FILES_LIMIT || xrtValueType(native)!=XVALUE_ARRAY || xideMetaCount(native)>NATIVE_LIMIT || xrtValueType(probes)!=XVALUE_ARRAY || xideMetaCount(probes)>XLANG_LIMIT) { fail(e,"Incomplete, malformed or out-of-scope compiler input receipt",receipt); goto done; }
+ r=calloc(1,sizeof(*r)); if(!r) goto invalid; r->cancel=cancel; r->user=user; r->count=xideMetaCount(files); r->nativeCount=xideMetaCount(native); r->probeCount=r->nativeCount+xideMetaCount(probes);
  r->files=calloc(r->count,sizeof(*r->files)); r->probes=calloc(r->probeCount+1,sizeof(*r->probes)); r->receipt=xidePathResolveLexical(NULL,receipt);
  if(!r->files || !r->probes || !r->receipt || !parseFile(get(root,"artifact"),&r->artifact,(int)schema) || !xidePathLexicalEqual(r->artifact.path,artifact)) goto invalid;
  uint64 total=0;
@@ -126,7 +127,7 @@ xide_build_inputs* xideBuildInputsLoad(const char* receipt,const char* artifact,
  }
  for(size_t i=0;i<r->probeCount;++i) {
   probe* p=&r->probes[i]; p->native=i<r->nativeCount; const xvalue* row=p->native ? xrtValueArrayGet(native,i) : xrtValueArrayGet(probes,i-r->nativeCount); bool exists=false;
-  if(stopped(r,e) || !canonical(p->native ? row : get(row,"path"),&p->path,&p->key) || (!p->native && (xrtValueCount(row)!=2 || !xrtValueGetBool(get(row,"exists"),&exists)))) goto invalid;
+  if(stopped(r,e) || !canonical(p->native ? row : get(row,"path"),&p->path,&p->key) || (!p->native && (xideMetaCount(row)!=2 || !xideMetaBool(get(row,"exists"),&exists)))) goto invalid;
   p->exists=exists;
   if(same(p->key,r->artifact.key) || xidePathLexicalEqual(p->path,r->receipt)) goto invalid;
   for(size_t j=0;j<i;++j) if(same(p->key,r->probes[j].key) && (p->native==r->probes[j].native || p->exists!=r->probes[j].exists)) goto invalid;

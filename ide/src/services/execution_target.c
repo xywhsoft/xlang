@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
-static const xvalue* get(const xvalue* v,const char* key) { return v ? xrtValueObjectGet(v,sv(key)) : NULL; }
-static const char* text(const xvalue* v) { xstrview s={0};return xrtValueGetString(v,&s) && s.Size<=8192 && !memchr(s.Data,0,s.Size) ? s.Data : NULL; }
+static const xvalue* get(const xvalue* v,const char* key) { return xrtValueIs(v,XVALUE_OBJECT) ? xrtValueObjectGet(v,sv(key)) : NULL; }
+static const char* text(const xvalue* v) { xstrview s={0};return xrtValueIs(v,XVALUE_STRING) && xrtValueGetString(v,&s) && s.Size<=8192 && !memchr(s.Data,0,s.Size) ? s.Data : NULL; }
 static const char* modes[]={"auto","startup","project","file"};
 int xideExecutionMode(xide_app* app)
 {

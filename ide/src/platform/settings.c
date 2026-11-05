@@ -1,3 +1,4 @@
+#include "model/metadata_read.h"
 #include "platform/settings.h"
 #include "platform/path.h"
 #include "platform/startup_alias.h"
@@ -12,18 +13,23 @@ static int fail(xide_model_error* error,int code,const char* message)
 {
     if(error) { error->code=code; snprintf(error->message,sizeof(error->message),"%s",message); } return 0;
 }
-static xvalue* get(const xvalue* root,const char* key) { return root ? xrtValueObjectGet(root,sv(key)) : NULL; }
+static xvalue* get(const xvalue* root,const char* key) { return root ? xideMetaField(root,sv(key)) : NULL; }
 static char* string(const xvalue* root)
 {
-    xstrview value; if(!root || !xrtValueGetString(root,&value) || memchr(value.Data,0,value.Size)) return NULL;
+    xstrview value; if(!root || !xideMetaString(root,&value) || memchr(value.Data,0,value.Size)) return NULL;
     char* text=malloc(value.Size+1); if(text) { memcpy(text,value.Data,value.Size); text[value.Size]=0; } return text;
 }
 static xvalue* read(const char* path)
 {
-    size_t size; unsigned char* bytes=xideIoReadAllLimit(path,256*1024,&size); if(!bytes) return NULL;
+    /* Handled settings failures use xide_model_error, not the next UI callback.
+       Preserve the caller's prior diagnostic while trying this fallback read. */
+    xerror* previous=xrtTakeError();
+    size_t size; unsigned char* bytes=xideIoReadAllLimit(path,256*1024,&size);
+    if(!bytes) { xrtErrorFree(xrtTakeError());xrtSetErrorTake(previous);return NULL; }
     size_t offset=size>=3 && bytes[0]==0xef && bytes[1]==0xbb && bytes[2]==0xbf ? 3 : 0;
     xvalue* value=size>offset && !memchr(bytes+offset,0,size-offset) && MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,(char*)bytes+offset,(int)(size-offset),NULL,0) ? xrtJsonParse((xstrview){(char*)bytes+offset,size-offset}) : NULL; xrtFree(bytes);
-    if(!value || !xrtValueIs(value,XVALUE_OBJECT)) { xrtValueRelease(value); return NULL; } return value;
+    if(!value || !xrtValueIs(value,XVALUE_OBJECT)) { xrtValueRelease(value);value=NULL; }
+    xrtErrorFree(xrtTakeError());xrtSetErrorTake(previous);return value;
 }
 char* xideSettingsDefaultPath(void)
 {
@@ -74,7 +80,7 @@ int xideSettingsLoad(xide_settings* settings,const char* path,xide_model_error* 
         free(value);
     }
     if(okay && get(font,"size")) {
-        int64_t size=0; okay=xrtValueGetInt(get(font,"size"),&size) && size>=8 && size<=40;
+        int64_t size=0; okay=xideMetaInt(get(font,"size"),&size) && size>=8 && size<=40;
         if(okay) temporary.editorFontSize=(int)size;
     }
     {
@@ -87,7 +93,7 @@ int xideSettingsLoad(xide_settings* settings,const char* path,xide_model_error* 
         free(value);
     }
     if(okay && get(font,"size")) {
-        int64_t size=0; okay=xrtValueGetInt(get(font,"size"),&size) && size>=8 && size<=40;
+        int64_t size=0; okay=xideMetaInt(get(font,"size"),&size) && size>=8 && size<=40;
         if(okay) temporary.uiFontSize=(int)size;
     }
     }
@@ -175,7 +181,7 @@ int xideSettingsRememberOpen(xide_settings* settings,const char* path,xide_model
     xvalue *root=xrtValueDeepClone(settings->source),*recent=xrtValueArray();int okay=root && recent;
     if(okay)okay=xrtValueArrayAppendNew(recent,xrtValueString(sv(resolved)));
     const xvalue* old=get(settings->source,"recent");
-    for(size_t i=0;okay && xrtValueIs(old,XVALUE_ARRAY) && i<xrtValueCount(old) && i<12 && xrtValueCount(recent)<12;++i) {
+    for(size_t i=0;okay && xrtValueIs(old,XVALUE_ARRAY) && i<xideMetaCount(old) && i<12 && xideMetaCount(recent)<12;++i) {
         char* previous=string(xrtValueArrayGet(old,i));
         if(previous && strlen(previous)<=8192 && !xidePathEqual(previous,resolved))okay=xrtValueArrayAppendNew(recent,xrtValueString(sv(previous)));
         free(previous);

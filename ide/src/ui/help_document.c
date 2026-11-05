@@ -1,3 +1,4 @@
+#include "model/metadata_read.h"
 #include "ui/help_document.h"
 #include "platform/dpi_proxy.h"
 #include "ui/reading_state.h"
@@ -369,8 +370,8 @@ void xideHelpApplyJump(xide_help_view* view)
 int xideHelpUiFont(xide_help_view* view) { if(view) view->width=-1; return XUI_OK; }
 
 static xstrview readingString(const char* text) { return (xstrview){text,strlen(text)}; }
-static const xvalue* readingGet(const xvalue* value,const char* key) { return value ? xrtValueObjectGet(value,readingString(key)) : NULL; }
-static const char* readingText(const xvalue* value) { xstrview text={0}; return xrtValueGetString(value,&text) ? text.Data : ""; }
+static const xvalue* readingGet(const xvalue* value,const char* key) { return value ? xideMetaField(value,readingString(key)) : NULL; }
+static const char* readingText(const xvalue* value) { xstrview text={0}; return xideMetaString(value,&text) ? text.Data : ""; }
 static int readingPut(xvalue* value,const char* key,xvalue* item) { return item && xrtValueObjectSetNew(value,readingString(key),item); }
 static xvalue* readingObject(const xvalue* old) { return xrtValueIs(old,XVALUE_OBJECT) ? xrtValueDeepClone(old) : xrtValueObject(); }
 static void blockIdentity(const help_block* block,char identity[100])
@@ -423,7 +424,7 @@ void xideHelpRestoreReading(xide_help_view* view,const xvalue* position)
     double y=xideReadingNumber(readingGet(position,"scrollY"),0);
     if(anchor!=SIZE_MAX) y=blockTop(view,anchor)+xideReadingNumber(readingGet(block,"fraction"),0)*(view->blocks[anchor]->height+10);
     else if(block && foundChapter!=SIZE_MAX) y=blockTop(view,view->chapters[foundChapter].block);
-    bool atEnd=false; if(xrtValueGetBool(readingGet(position,"end"),&atEnd) && atEnd) y=10000000;
+    bool atEnd=false; if(xideMetaBool(readingGet(position,"end"),&atEnd) && atEnd) y=10000000;
     xuiScrollViewSetOffset(view->app->help,(float)xideReadingNumber(readingGet(position,"scrollX"),0),(float)y);
 }
 

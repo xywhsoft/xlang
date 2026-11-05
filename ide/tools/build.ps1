@@ -47,6 +47,7 @@ $sources += 'src\services\build_inputs.c'
 $sources += 'src\platform\file_io.c'
 $sources += 'src\platform\task_stage.c'
 $sources += 'src\platform\runtime_failure.c'
+$sources += 'src\platform\dpi_text_paint.c'
 $sources += 'src\services\catalog_sources.c'
 $sources += 'src\ui\dialog.c'
 $sources += 'src\ui\message_box.c'
@@ -162,10 +163,12 @@ if ($nativeBuildReceipt) { $nativeBuildReceipt | ConvertTo-Json | Set-Content -L
 if ($Tests) {
     & $compiler @flags (Join-Path $ideRoot 'tests\sha256_test.c') @objects @libraries -o (Join-Path $releaseRoot 'sha256_test.exe')
     if ($LASTEXITCODE -ne 0) { throw 'XRT SHA-256 integration test link failed.' }
-    foreach ($fixture in @('diagnostic_dependencies_test','diagnostic_notice_test')) {
+    foreach ($fixture in @('diagnostic_dependencies_test','diagnostic_notice_test','startup_values_test')) {
         & $compiler @flags (Join-Path $ideRoot ('tests\'+$fixture+'.c')) @objects @libraries -o (Join-Path $releaseRoot ($fixture+'.exe'))
         if ($LASTEXITCODE -ne 0) { throw "$fixture link failed." }
     }
+    & $compiler @flags (Join-Path $ideRoot 'tests\dpi_text_paint_test.c') @objects @libraries '-Wl,--wrap=calloc' -o (Join-Path $releaseRoot 'dpi_text_paint_test.exe')
+    if ($LASTEXITCODE -ne 0) { throw 'DPI retained paint ownership test link failed.' }
     # The stream fixture owns the implementation for deterministic worker gates.
     $diagnosticStreamObjects = $objects | Where-Object { $_ -notmatch 'src_services_diagnostic_stream\.c\.o$' }
     & $compiler @flags (Join-Path $ideRoot 'tests\diagnostic_stream_test.c') @diagnosticStreamObjects @libraries -o (Join-Path $releaseRoot 'diagnostic_stream_test.exe')

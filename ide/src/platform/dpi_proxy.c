@@ -1,5 +1,6 @@
 #include "app_xrt.h"
 #include "platform/dpi_proxy.h"
+#include "platform/dpi_text_paint.h"
 #include "xge.h"
 #include <stdlib.h>
 #include <string.h>
@@ -123,22 +124,9 @@ static int fontGetMetrics(xui_proxy p,xui_font value,xui_font_metrics_t* metrics
 { xide_dpi_proxy* s=state(p); dpi_font* f=font(value); return s && f ? s->raw.fontGetMetrics(&s->raw,f->base,metrics) : XUI_ERROR_INVALID_ARGUMENT; }
 /* Keep layout geometry in DIP and retained paint at the physical font size.
    XGE 3 owns each immutable shape; the wrapper owns both paint lifetimes. */
-typedef struct dpi_text_paint {
-    void* logicalPaint; void (*logicalFree)(void*);
-    xui_text_shape_t physical; float scale; int hasPhysical;
-} dpi_text_paint;
-static void freeTextPaint(void* value)
-{
-    dpi_text_paint* paint=value; if(!paint) return;
-    if(paint->logicalFree) paint->logicalFree(paint->logicalPaint);
-    xuiTextShapeFree(&paint->physical); free(paint);
-}
-static dpi_text_paint* textPaint(const xui_text_shape_t* shape)
-{ return shape && shape->paintFree==freeTextPaint ? shape->pPaint : NULL; }
 static void logicalShape(const xui_text_shape_t* shape,xui_text_shape_t* out)
 {
-    *out=*shape; dpi_text_paint* paint=textPaint(shape);
-    if(paint) { out->pPaint=paint->logicalPaint; out->paintFree=paint->logicalFree; }
+    xideDpiTextPaintLogical(shape,out);
 }
 static int mapTextItem(xide_dpi_proxy* s,const xui_text_item_t* input,int physical,
     xui_text_item_t* output,xui_text_shape_t* borrowed)
@@ -147,9 +135,8 @@ static int mapTextItem(xide_dpi_proxy* s,const xui_text_item_t* input,int physic
     dpi_font* f=font(input->pFont); if(!f) return XUI_ERROR_INVALID_ARGUMENT;
     *output=*input; output->pFont=physical ? f->raw : f->base;
     if(input->pShape) {
-        dpi_text_paint* paint=textPaint(input->pShape);
         if(physical && f->raw!=f->base) {
-            output->pShape=paint && paint->hasPhysical && paint->scale==s->scale ? &paint->physical : NULL;
+            output->pShape=xideDpiTextPaintPhysical(input->pShape,s->scale,borrowed)==XUI_OK ? borrowed:NULL;
         } else {
             logicalShape(input->pShape,borrowed); output->pShape=borrowed;
         }
@@ -175,28 +162,26 @@ static int textShape(xui_proxy p,const xui_text_item_t* input,xui_text_shape_t* 
     if(result!=XUI_OK) return result;
     result=s->raw.textShape(&s->raw,&item,shaped);
     if(result!=XUI_OK || !shaped->pPaint) return result;
-    dpi_text_paint* paint=calloc(1,sizeof(*paint));
-    if(!paint) return XUI_OK; /* Ordinary item painting remains available. */
-    paint->logicalPaint=shaped->pPaint; paint->logicalFree=shaped->paintFree; paint->scale=s->scale;
+    xui_text_shape_t physical={0};
     dpi_font* f=font(input->pFont);
-    if(f->raw!=f->base && mapTextItem(s,input,1,&item,&borrowed)==XUI_OK) {
-        paint->physical.iSize=sizeof(paint->physical);
-        paint->hasPhysical=s->raw.textShape(&s->raw,&item,&paint->physical)==XUI_OK;
+    if(f->raw!=f->base) {
+        result=mapTextItem(s,input,1,&item,&borrowed);
+        if(result==XUI_OK) {
+            physical.iSize=sizeof(physical);
+            result=s->raw.textShape(&s->raw,&item,&physical);
+        }
     }
-    shaped->pPaint=paint; shaped->paintFree=freeTextPaint;
-    shaped->iPaintBytes+=sizeof(*paint)+paint->physical.iPaintBytes+
-        (size_t)paint->physical.iClusterCount*sizeof(xui_text_cluster_t)+
-        (size_t)paint->physical.iCaretCount*sizeof(xui_text_caret_t);
-    return XUI_OK;
+    if(result==XUI_OK)result=xideDpiTextPaintWrap(shaped,f->raw!=f->base ? &physical:NULL,s->scale);
+    if(result!=XUI_OK) {
+        xerror* primary=xrtTakeError();
+        (void)xuiTextShapeFreeChecked(&physical);(void)xuiTextShapeFreeChecked(shaped);
+        if(primary) { xrtErrorFree(xrtTakeError());xrtSetErrorTake(primary); }
+    }
+    return result;
 }
 static int retainedShape(const xui_text_shape_t* input,float scale,xui_text_shape_t* out)
 {
-    dpi_text_paint* paint=textPaint(input);
-    if(!paint || paint->scale!=scale) return XUI_ERROR_UNSUPPORTED;
-    if(scale==1) logicalShape(input,out);
-    else if(paint->hasPhysical) *out=paint->physical;
-    else return XUI_ERROR_UNSUPPORTED;
-    return XUI_OK;
+    return xideDpiTextPaintPhysical(input,scale,out);
 }
 static int textShapeRangeMeasure(xui_proxy p,const xui_text_shape_t* shape,int start,int end,xui_vec2_t* size)
 {

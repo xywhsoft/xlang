@@ -1,0 +1,11 @@
+xlang-ide-runtime-failure-1
+utc=2026-11-05T16:45:37.041Z
+pid=16244
+stage=workbench
+domain=XUI
+code=-16
+frames=0
+detail=The interface could not create or render a required resource.
+operation=xideWorkbenchCreate(app)
+recovery=0
+recovery-detail=

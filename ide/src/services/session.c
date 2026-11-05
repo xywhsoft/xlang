@@ -1,3 +1,4 @@
+#include "model/metadata_read.h"
 #include "services/session.h"
 #include "services/rename_journal.h"
 #include "services/migration_journal.h"
@@ -38,23 +39,23 @@ struct xide_session {
     char issue[512];
 };
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
-static xvalue* get(const xvalue* v,const char* key) { return v ? xrtValueObjectGet(v,sv(key)) : NULL; }
-static const char* text(const xvalue* v) { xstrview s={0}; return xrtValueGetString(v,&s) && !memchr(s.Data,0,s.Size) ? s.Data : NULL; }
+static xvalue* get(const xvalue* v,const char* key) { return v ? xideMetaField(v,sv(key)) : NULL; }
+static const char* text(const xvalue* v) { xstrview s={0}; return xideMetaString(v,&s) && !memchr(s.Data,0,s.Size) ? s.Data : NULL; }
 static const char* string(const xvalue* v,const char* key,const char* fallback) { const char* s=text(get(v,key)); return s ? s : fallback; }
 static char* copy(const char* text) { size_t n=strlen(text)+1; char* p=malloc(n); if(p) memcpy(p,text,n); return p; }
 static int integer(const xvalue* v,int fallback)
 {
     int64 n=0; uint64 u=0;
-    if(xrtValueGetInt(v,&n) && n>=0 && n<=INT_MAX) return (int)n;
-    if(xrtValueGetUInt(v,&u) && u<=INT_MAX) return (int)u;
+    if(xideMetaInt(v,&n) && n>=0 && n<=INT_MAX) return (int)n;
+    if(xideMetaUInt(v,&u) && u<=INT_MAX) return (int)u;
     return fallback;
 }
 static int numeric(const xvalue* value,double* result)
 {
     int64 i=0; uint64 u=0;
-    if(xrtValueGetFloat(value,result)) return 1;
-    if(xrtValueGetInt(value,&i)) { *result=(double)i; return 1; }
-    if(xrtValueGetUInt(value,&u)) { *result=(double)u; return 1; }
+    if(xideMetaFloat(value,result)) return 1;
+    if(xideMetaInt(value,&i)) { *result=(double)i; return 1; }
+    if(xideMetaUInt(value,&u)) { *result=(double)u; return 1; }
     return 0;
 }
 static int set(xvalue* v,const char* key,xvalue* value) { return value && xrtValueObjectSetNew(v,sv(key),value); }
@@ -123,10 +124,10 @@ static int recoveryRef(const char* s)
 { if(!s || strncmp(s,"recovery/",9) || !s[9] || !strcmp(s+9,".") || !strcmp(s+9,"..")) return 0; for(s+=9;*s;++s) if(!isalnum((unsigned char)*s) && *s!='-' && *s!='_' && *s!='.') return 0; return 1; }
 static int validSession(const xvalue* root)
 {
-    bool pending=false; if(get(root,"renameResourcesPending") && !xrtValueGetBool(get(root,"renameResourcesPending"),&pending)) return 0;
+    bool pending=false; if(get(root,"renameResourcesPending") && !xideMetaBool(get(root,"renameResourcesPending"),&pending)) return 0;
     xvalue* docs=get(root,"openDocuments");
-    if(docs && (!xrtValueIs(docs,XVALUE_ARRAY) || xrtValueCount(docs)>10000)) return 0;
-    for(size_t i=0;i<xrtValueCount(docs);++i) {
+    if(docs && (!xrtValueIs(docs,XVALUE_ARRAY) || xideMetaCount(docs)>10000)) return 0;
+    for(size_t i=0;i<xideMetaCount(docs);++i) {
         xvalue* d=xrtValueArrayGet(docs,i); const char* path=text(get(d,"path")); const char* language=string(d,"language","text"); const char* id=text(get(d,"id"));
         if(!xrtValueIs(d,XVALUE_OBJECT) || !path || (id && !safeId(id)) || (strcmp(language,"c") && strcmp(language,"xlang") && strcmp(language,"text")) || integer(get(d,"line"),1)<1 || integer(get(d,"column"),1)<1) return 0;
         const char* positions[]={"line","column","anchorLine","anchorColumn"};
@@ -136,19 +137,19 @@ static int validSession(const xvalue* root)
         if(get(d,"language") && !text(get(d,"language"))) return 0;
         const char* scroll[]={"scrollX","scrollY"};
         for(int k=0;k<2;++k) if(get(d,scroll[k])) { double n=0; if(!numeric(get(d,scroll[k]),&n) || !isfinite(n) || n<0 || n>10000000) return 0; }
-        if(get(d,"collapsedFolds") && (!xrtValueIs(get(d,"collapsedFolds"),XVALUE_ARRAY) || xrtValueCount(get(d,"collapsedFolds"))>10000)) return 0;
-        for(size_t k=0;k<xrtValueCount(get(d,"collapsedFolds"));++k) {
+        if(get(d,"collapsedFolds") && (!xrtValueIs(get(d,"collapsedFolds"),XVALUE_ARRAY) || xideMetaCount(get(d,"collapsedFolds"))>10000)) return 0;
+        for(size_t k=0;k<xideMetaCount(get(d,"collapsedFolds"));++k) {
             const xvalue* fold=xrtValueArrayGet(get(d,"collapsedFolds"),k);
             if(!xrtValueIs(fold,XVALUE_OBJECT) || integer(get(fold,"line"),0)<1 || integer(get(fold,"endLine"),0)<=integer(get(fold,"line"),0)) return 0;
         }
         if(!xideDocumentCContextValid(get(d,"cAnalysisContext"))) return 0;
-        bool override=false; if(get(d,"languageOverride") && !xrtValueGetBool(get(d,"languageOverride"),&override)) return 0;
+        bool override=false; if(get(d,"languageOverride") && !xideMetaBool(get(d,"languageOverride"),&override)) return 0;
         if(get(d,"recoveryBaseline") && !get(d,"recoveryText")) return 0;
         if(get(d,"recoveryText") && (!recoveryRef(text(get(d,"recoveryText"))) || !recoveryRef(text(get(d,"recoveryBaseline"))))) return 0;
         for(size_t j=0;id && j<i;++j) if(!strcmp(id,string(xrtValueArrayGet(docs,j),"id",""))) return 0;
     }
-    if(get(root,"configurations") && (!xrtValueIs(get(root,"configurations"),XVALUE_ARRAY) || xrtValueCount(get(root,"configurations"))>10000)) return 0;
-    for(size_t i=0;i<xrtValueCount(get(root,"configurations"));++i) {
+    if(get(root,"configurations") && (!xrtValueIs(get(root,"configurations"),XVALUE_ARRAY) || xideMetaCount(get(root,"configurations"))>10000)) return 0;
+    for(size_t i=0;i<xideMetaCount(get(root,"configurations"));++i) {
         const xvalue* entry=xrtValueArrayGet(get(root,"configurations"),i);
         if(!xrtValueIs(entry,XVALUE_OBJECT) || !text(get(entry,"id")) || !text(get(entry,"manifest")) || !text(get(entry,"configuration"))) return 0;
     }
@@ -160,8 +161,8 @@ int xideSessionValidate(const xvalue* root) { return root && validSession(root);
 static int validLayout(const xvalue* root)
 {
     const xvalue* states=get(root,"states");
-    if(!xrtValueIs(states,XVALUE_ARRAY) || xrtValueCount(states)>64) return 0;
-    for(size_t i=0;i<xrtValueCount(states);++i) {
+    if(!xrtValueIs(states,XVALUE_ARRAY) || xideMetaCount(states)>64) return 0;
+    for(size_t i=0;i<xideMetaCount(states);++i) {
         const xvalue* state=xrtValueArrayGet(states,i); const char* id=text(get(state,"id"));
         if(!xrtValueIs(state,XVALUE_OBJECT) || !safeId(id) || !xrtValueIs(get(state,"dock"),XVALUE_OBJECT)) return 0;
         for(size_t j=0;j<i;++j) if(!strcmp(id,string(xrtValueArrayGet(states,j),"id",""))) return 0;
@@ -201,7 +202,7 @@ static int configure(xide_app* app)
 static const xvalue* oldEntry(xide_session* s,const char* id)
 {
     xvalue* docs=get(s->restoredCheckpoint ? s->restoredCheckpoint : s->metadata.source,"openDocuments");
-    for(size_t i=0;i<xrtValueCount(docs);++i) { const xvalue* d=xrtValueArrayGet(docs,i); if(!strcmp(id,string(d,"id",""))) return d; }
+    for(size_t i=0;i<xideMetaCount(docs);++i) { const xvalue* d=xrtValueArrayGet(docs,i); if(!strcmp(id,string(d,"id",""))) return d; }
     return NULL;
 }
 static char* snapshot(xide_session* s,const char* id,const char* kind,const unsigned char* bytes,size_t length,xide_model_error* error)
@@ -227,7 +228,7 @@ static char* snapshot(xide_session* s,const char* id,const char* kind,const unsi
 static xvalue* captureDocument(xide_app* app,xide_document* d,int cleanExit,size_t* recoveryBytes,xide_model_error* error)
 {
     xide_session* s=app->session; const xvalue* old=oldEntry(s,d->sessionId);
-    for(size_t i=0;!old && d->path && i<xrtValueCount(get(s->metadata.source,"openDocuments"));++i) {
+    for(size_t i=0;!old && d->path && i<xideMetaCount(get(s->metadata.source,"openDocuments"));++i) {
         const xvalue* candidate=xrtValueArrayGet(get(s->metadata.source,"openDocuments"),i);
         const char* relative=string(candidate,"path",""); char* path=*relative ? xidePathResolve(s->base,relative) : NULL;
         if(path && xidePathEqual(path,d->path)) old=candidate;
@@ -270,7 +271,7 @@ static xvalue* configurations(xide_app* app)
     for(size_t i=0;i<app->workspaceModel.projectCount;++i) {
         xide_project* p=&app->workspaceModel.projects[i]; char* path=xidePathRelative(app->session->base,p->manifest); const xvalue* old=NULL;
         const xvalue* before=get(app->session->metadata.source,"configurations");
-        for(size_t j=0;!old && j<xrtValueCount(before);++j) {
+        for(size_t j=0;!old && j<xideMetaCount(before);++j) {
             const xvalue* candidate=xrtValueArrayGet(before,j);
             if(!strcmp(p->id,string(candidate,"id","")) || (path && !strcmp(path,string(candidate,"manifest","")))) old=candidate;
         }
@@ -283,7 +284,7 @@ static xvalue* configurations(xide_app* app)
 static const xvalue* layoutState(xide_session* s,const char* generation)
 {
     const xvalue* states=get(s->layout.source,"states");
-    for(size_t i=0;i<xrtValueCount(states);++i) { const xvalue* state=xrtValueArrayGet(states,i); if(!strcmp(generation,string(state,"id",""))) return state; }
+    for(size_t i=0;i<xideMetaCount(states);++i) { const xvalue* state=xrtValueArrayGet(states,i); if(!strcmp(generation,string(state,"id",""))) return state; }
     return NULL;
 }
 
@@ -296,20 +297,20 @@ static xvalue* preserveFields(const xvalue* fresh,const xvalue* old,int depth)
         const char* type=text(get(fresh,"type")),*before=text(get(old,"type"));
         if(type && before && strcmp(type,before)) return xrtValueDeepClone(fresh);
         xvalue* result=xrtValueDeepClone(old); if(!result) return NULL;
-        for(size_t i=0;i<xrtValueCount(fresh);++i) {
+        for(size_t i=0;i<xideMetaCount(fresh);++i) {
             xstrview key={0}; const xvalue* value=xrtValueObjectAt(fresh,i,&key);
-            xvalue* merged=preserveFields(value,xrtValueObjectGet(old,key),depth+1);
+            xvalue* merged=preserveFields(value,xideMetaField(old,key),depth+1);
             if(!merged || !xrtValueObjectSetNew(result,key,merged)) { xrtValueRelease(result); return NULL; }
         }
         return result;
     }
     if(xrtValueIs(fresh,XVALUE_ARRAY) && xrtValueIs(old,XVALUE_ARRAY)) {
         xvalue* result=xrtValueArray(); if(!result) return NULL;
-        for(size_t i=0;i<xrtValueCount(fresh);++i) {
+        for(size_t i=0;i<xideMetaCount(fresh);++i) {
             const xvalue* value=xrtValueArrayGet(fresh,i),*match=NULL;
             const char* identity=text(get(value,"id")); const char* field="id";
             if(!identity) { identity=text(get(value,"kind")); field="kind"; }
-            for(size_t j=0;identity && j<xrtValueCount(old);++j) {
+            for(size_t j=0;identity && j<xideMetaCount(old);++j) {
                 const xvalue* candidate=xrtValueArrayGet(old,j);
                 if(!strcmp(identity,string(candidate,field,""))) { match=candidate; break; }
             }
@@ -329,7 +330,7 @@ static int checkpointLocked(xide_app* app,int cleanExit,xide_model_error* error,
         xide_document* d=app->documents.items[i]; if(!d->open || (cleanExit && d->dirty && !d->path)) continue;
         xvalue* entry=captureDocument(app,d,cleanExit,&bytes,error); okay=entry && xrtValueArrayAppendNew(docs,entry);
     }
-    for(size_t i=0;okay && i<xrtValueCount(s->unavailable);++i) {
+    for(size_t i=0;okay && i<xideMetaCount(s->unavailable);++i) {
         const xvalue* missing=xrtValueArrayGet(s->unavailable,i); char* path=xidePathResolve(s->base,string(missing,"path",""));
         int opened=path && xideDocumentsFind(&app->documents,path); free(path);
         for(size_t j=0;!opened && j<app->documents.count;++j) if(app->documents.items[j]->open && !strcmp(app->documents.items[j]->sessionId,string(missing,"id",""))) opened=1;
@@ -549,7 +550,7 @@ static int restoreDocument(xide_app* app,const xvalue* entry)
     if(!d) { char message[512]; snprintf(message,sizeof(message),"无法恢复文件 %s：%.240s；会话引用和恢复文件已保留。",relative,error.message); report(app,message); xrtValueArrayAppendNew(s->unavailable,xrtValueDeepClone(entry)); return 0; }
     const char* id=text(get(entry,"id")); if(id) { char* owned=copy(id); if(owned) { free(d->sessionId); d->sessionId=owned; } }
     if(strcmp(d->language,language)) xideDocumentSetLanguage(d,language,&error);
-    bool override=false; xrtValueGetBool(get(entry,"languageOverride"),&override); d->languageOverride=override;
+    bool override=false; xideMetaBool(get(entry,"languageOverride"),&override); d->languageOverride=override;
     const xvalue* context=get(entry,"cAnalysisContext");
     if(context) { xvalue* cloned=xrtValueDeepClone(context); if(!cloned) { report(app,"无法恢复 C 项目上下文；会话引用已保留。"); xrtValueArrayAppendNew(s->unavailable,xrtValueDeepClone(entry)); return 0; } xrtValueRelease(d->cAnalysisContext); d->cAnalysisContext=cloned; }
     if(xideEditorShow(app,d)!=XUI_OK) return 0;
@@ -559,7 +560,7 @@ static int restoreDocument(xide_app* app,const xvalue* entry)
     const xvalue* collapsed=get(entry,"collapsedFolds"); xui_code_fold_state folds=xuiCodeEditGetFoldState(d->editor);
     for(int i=0;i<xuiCodeFoldStateGetCount(folds);++i) {
         xui_code_fold_range_t range={0}; range.iSize=sizeof(range); xuiCodeFoldStateGetRange(folds,i,&range);
-        for(size_t j=0;j<xrtValueCount(collapsed);++j) {
+        for(size_t j=0;j<xideMetaCount(collapsed);++j) {
             const xvalue* fold=xrtValueArrayGet(collapsed,j);
             if(range.iStartLine+1==integer(get(fold,"line"),0) && range.iEndLine+1==integer(get(fold,"endLine"),0) && !(range.iFlags & XUI_CODE_FOLD_COLLAPSED)) { xuiCodeFoldStateToggleLine(folds,range.iStartLine); break; }
         }
@@ -572,22 +573,22 @@ static int legacyStatusValid(const xvalue* status)
  if(!status) return 1;
  if(!xrtValueIs(status,XVALUE_OBJECT)) return 0;
  const char* fields[]={"IsExpand","ProjExpand","FileExpand","LibsExpand","ResourceExpand"};
- for(size_t i=0;i<sizeof(fields)/sizeof(*fields);++i) { bool b=false; if(get(status,fields[i]) && !xrtValueGetBool(get(status,fields[i]),&b)) return 0; }
+ for(size_t i=0;i<sizeof(fields)/sizeof(*fields);++i) { bool b=false; if(get(status,fields[i]) && !xideMetaBool(get(status,fields[i]),&b)) return 0; }
  return 1;
 }
 static int legacyFiles(xide_app* a,const xvalue* hints,const xide_files* files,const char* base,xvalue* entries,xide_model_error* e)
 {
  if(!xrtValueIs(hints,XVALUE_ARRAY)) return fail(e,XIDE_MODEL_INVALID,"旧会话文件提示类型无效。");
- for(size_t i=0;i<xrtValueCount(hints);++i) {
+ for(size_t i=0;i<xideMetaCount(hints);++i) {
   const xvalue* item=xrtValueArrayGet(hints,i); const char *id=text(get(item,"id")),*ref=text(get(item,"path")); bool open=false;
-  if(!xrtValueIs(item,XVALUE_OBJECT) || !id || !*id || !ref || !*ref || !xrtValueGetBool(get(item,"open"),&open)) return fail(e,XIDE_MODEL_INVALID,"旧会话文件标识、路径或打开状态无效。");
+  if(!xrtValueIs(item,XVALUE_OBJECT) || !id || !*id || !ref || !*ref || !xideMetaBool(get(item,"open"),&open)) return fail(e,XIDE_MODEL_INVALID,"旧会话文件标识、路径或打开状态无效。");
   const xide_file* file=NULL; for(size_t j=0;j<files->count;++j) if(!strcmp(files->items[j].id,id)) { file=&files->items[j]; break; }
   char* path=xidePathResolve(base,ref); int same=file && path && xidePathEqual(file->path,path);
   if(!same) { free(path); return fail(e,XIDE_MODEL_CONFLICT,"旧会话文件提示与当前导入清单不一致。"); }
   if(!open) { free(path); continue; }
-  int duplicate=0; for(size_t j=0;j<xrtValueCount(entries);++j) if(xidePathEqual(path,string(xrtValueArrayGet(entries,j),"path",""))) { duplicate=1; break; }
+  int duplicate=0; for(size_t j=0;j<xideMetaCount(entries);++j) if(xidePathEqual(path,string(xrtValueArrayGet(entries,j),"path",""))) { duplicate=1; break; }
   if(duplicate) { free(path); continue; }
-  if(xrtValueCount(entries)>=10000) { free(path); return fail(e,XIDE_MODEL_INVALID,"旧打开文件超过当前 10000 项会话限制。"); }
+  if(xideMetaCount(entries)>=10000) { free(path); return fail(e,XIDE_MODEL_INVALID,"旧打开文件超过当前 10000 项会话限制。"); }
   xvalue* entry=xrtValueObject(); char* nativeId=xideCreateId("document");
   int okay=entry && nativeId && setText(entry,"id",nativeId) && setText(entry,"path",path) && setText(entry,"language",xideLanguageForPath(path)) && set(entry,"line",xrtValueInt(1)) && set(entry,"column",xrtValueInt(1));
   free(nativeId); free(path);
@@ -599,16 +600,16 @@ static int legacyFiles(xide_app* a,const xvalue* hints,const xide_files* files,c
 static const xvalue* legacyProject(const xvalue* hints,const char* id)
 {
  const xvalue* projects=get(hints,"projects");
- for(size_t i=0;i<xrtValueCount(projects);++i) { const xvalue* p=xrtValueArrayGet(projects,i); if(!strcmp(id,string(p,"id",""))) return p; }
+ for(size_t i=0;i<xideMetaCount(projects);++i) { const xvalue* p=xrtValueArrayGet(projects,i); if(!strcmp(id,string(p,"id",""))) return p; }
  return NULL;
 }
 static int legacyTree(xvalue* reading,const xvalue* hints)
 {
  xvalue* nodes=get(get(reading,"workspace"),"nodes");
- for(size_t i=0;i<xrtValueCount(nodes);++i) {
+ for(size_t i=0;i<xideMetaCount(nodes);++i) {
   xvalue* node=xrtValueArrayGet(nodes,i); const char* id=string(node,"id",""); xvalue* key=xrtJsonParse(sv(id));
   const char *kind="",*project="",*group="";
-  if(key && xrtValueIs(key,XVALUE_ARRAY) && xrtValueCount(key)==3) { kind=text(xrtValueArrayGet(key,0)); project=text(xrtValueArrayGet(key,1)); group=text(xrtValueArrayGet(key,2)); }
+  if(key && xrtValueIs(key,XVALUE_ARRAY) && xideMetaCount(key)==3) { kind=text(xrtValueArrayGet(key,0)); project=text(xrtValueArrayGet(key,1)); group=text(xrtValueArrayGet(key,2)); }
   const xvalue* status=NULL; const char* field=NULL;
   if(kind && project && group) {
    if(!strcmp(kind,"workspace")) { status=get(hints,"status"); field="IsExpand"; }
@@ -621,7 +622,7 @@ static int legacyTree(xvalue* reading,const xvalue* hints)
     }
    }
   }
-  bool expanded=false; int okay=!field || !get(status,field) || (xrtValueGetBool(get(status,field),&expanded) && set(node,"expanded",xrtValueBool(expanded)));
+  bool expanded=false; int okay=!field || !get(status,field) || (xideMetaBool(get(status,field),&expanded) && set(node,"expanded",xrtValueBool(expanded)));
   xrtValueRelease(key); if(!okay) return 0;
  }
  return xideReadingValid(reading);
@@ -634,25 +635,25 @@ int xideSessionApplyLegacyHints(xide_app* a,const xvalue* hints,xide_legacy_sess
  if(!a || !a->workspaceModel.manifest || !xrtValueIs(hints,XVALUE_OBJECT) || strcmp(string(hints,"format",""),"xlang-ide-legacy-session-hints-1") || !xidePathEqual(a->workspaceModel.manifest,string(hints,"workspace",""))) return fail(e,XIDE_MODEL_INVALID,"旧会话提示不属于当前导入的工作空间。");
  if(s && (!s->ready || !s->layoutReady || s->metadata.existed || s->layout.existed || s->legacyHints)) return fail(e,XIDE_MODEL_CONFLICT,"已有或受保护的原生会话不会被旧状态覆盖。");
  const xvalue* projects=get(hints,"projects");
- if(!xrtValueIs(projects,XVALUE_ARRAY) || xrtValueCount(projects)!=a->workspaceModel.projectCount || !legacyStatusValid(get(hints,"status"))) return fail(e,XIDE_MODEL_INVALID,"旧会话项目或展开状态无效。");
+ if(!xrtValueIs(projects,XVALUE_ARRAY) || xideMetaCount(projects)!=a->workspaceModel.projectCount || !legacyStatusValid(get(hints,"status"))) return fail(e,XIDE_MODEL_INVALID,"旧会话项目或展开状态无效。");
  char* base=xidePathDirectory(a->workspaceModel.manifest); xvalue *entries=xrtValueArray(),*reading=NULL,*raw=xrtValueDeepClone(hints);
  int okay=base && entries && raw;
- for(size_t i=0;okay && i<xrtValueCount(projects);++i) {
+ for(size_t i=0;okay && i<xideMetaCount(projects);++i) {
   const xvalue* item=xrtValueArrayGet(projects,i); const char *id=text(get(item,"id")),*manifest=text(get(item,"manifest")); bool open=false,supported=false;
   xide_project* p=id ? xideWorkspaceFindProject(&a->workspaceModel,id) : NULL;
-  okay=p && manifest && xidePathEqual(p->manifest,manifest) && xrtValueGetBool(get(item,"open"),&open) && xrtValueGetBool(get(item,"supported"),&supported) && legacyStatusValid(get(item,"status"));
+  okay=p && manifest && xidePathEqual(p->manifest,manifest) && xideMetaBool(get(item,"open"),&open) && xideMetaBool(get(item,"supported"),&supported) && legacyStatusValid(get(item,"status"));
   for(size_t j=0;okay && j<i;++j) if(!strcmp(id,string(xrtValueArrayGet(projects,j),"id",""))) okay=0;
   if(okay) okay=legacyFiles(a,get(item,"files"),&p->files,base,entries,e);
  }
  if(okay) okay=legacyFiles(a,get(hints,"files"),&a->workspaceModel.files,base,entries,e);
- if(okay && s) for(size_t i=0;okay && i<xrtValueCount(entries);++i) {
+ if(okay && s) for(size_t i=0;okay && i<xideMetaCount(entries);++i) {
   xvalue* entry=xrtValueArrayGet(entries,i); char* relative=xidePathRelative(s->base,string(entry,"path",""));
   okay=relative && setText(entry,"path",relative); free(relative);
  }
  if(okay) { reading=xideReadingCapture(a,NULL); okay=reading && legacyTree(reading,hints); }
  if(!okay) { free(base); xrtValueRelease(entries); xrtValueRelease(reading); xrtValueRelease(raw); if(!e || !e->code) fail(e,XIDE_MODEL_INVALID,"旧会话提示与当前清单不匹配，当前状态保留。"); return 0; }
  if(s) s->restoring=1;
- for(size_t i=0;i<xrtValueCount(entries);++i) {
+ for(size_t i=0;i<xideMetaCount(entries);++i) {
   xvalue* entry=xrtValueArrayGet(entries,i); const char* path=string(entry,"path","");
   int opened=s ? restoreDocument(a,entry) : xideEditorOpen(a,path,NULL);
   if(opened) ++result->opened; else ++result->unavailable;
@@ -678,7 +679,7 @@ static void restore(xide_app* app)
     if(!recovered && !s->restoredCheckpoint && (!s->ready || !s->metadata.existed)) return;
     s->restoring=1; const xvalue* root=recovered ? recovered : s->restoredCheckpoint ? s->restoredCheckpoint : s->metadata.source;
     xvalue* docs=get(root,"openDocuments");
-    for(size_t i=0;i<xrtValueCount(docs);++i) restoreDocument(app,xrtValueArrayGet(docs,i));
+    for(size_t i=0;i<xideMetaCount(docs);++i) restoreDocument(app,xrtValueArrayGet(docs,i));
     if(recovered && !xideRenameJournalApplyRecovered(s->renameJournal,app,&journalError)) report(app,journalError.message);
     xide_document* active=NULL; const char* id=string(root,"activeDocumentId","");
     for(size_t i=0;i<app->documents.count;++i) if(app->documents.items[i]->open && !strcmp(app->documents.items[i]->sessionId,id)) active=app->documents.items[i];
@@ -686,8 +687,8 @@ static void restore(xide_app* app)
     if(active) xideEditorShow(app,active);
     const char* project=string(root,"activeProject",""); if(*project) xideWorkspaceViewSelectProject(app,project);
     xvalue* configs=get(root,"configurations");
-    for(size_t i=0;i<xrtValueCount(configs);++i) { xide_project* p=findProject(app,xrtValueArrayGet(configs,i)); const char* config=string(xrtValueArrayGet(configs,i),"configuration",""); if(p && xideProjectFindConfiguration(p,config)) { char* value=copy(config); if(value) { free(p->activeConfiguration); p->activeConfiguration=value; } } }
-    if(*project && !xideWorkspaceFindProject(&app->workspaceModel,project) && xrtValueCount(configs)) { xide_project* p=findProject(app,xrtValueArrayGet(configs,0)); if(p) xideWorkspaceViewSelectProject(app,p->id); }
+    for(size_t i=0;i<xideMetaCount(configs);++i) { xide_project* p=findProject(app,xrtValueArrayGet(configs,i)); const char* config=string(xrtValueArrayGet(configs,i),"configuration",""); if(p && xideProjectFindConfiguration(p,config)) { char* value=copy(config); if(value) { free(p->activeConfiguration); p->activeConfiguration=value; } } }
+    if(*project && !xideWorkspaceFindProject(&app->workspaceModel,project) && xideMetaCount(configs)) { xide_project* p=findProject(app,xrtValueArrayGet(configs,0)); if(p) xideWorkspaceViewSelectProject(app,p->id); }
     xideWorkspaceViewRefresh(app);
     if(!app->themeExplicit) { int theme=ideThemeFind(string(root,"theme","")); if(theme>=0) xideWorkbenchApplyTheme(app,theme); }
     const char* query=string(root,"commandSearch",""); xideCatalogViewSearch(app,query);

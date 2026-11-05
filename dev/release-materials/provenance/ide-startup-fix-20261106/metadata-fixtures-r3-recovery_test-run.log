@@ -1,0 +1,1 @@
+recovery_test passed: cross-process lock, current/previous pins, seven-day grace, creation time, locked/read-only/hardlinked/foreign files, damaged references, archive protection and junction rejection
