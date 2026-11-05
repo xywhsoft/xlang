@@ -3,10 +3,11 @@ from pathlib import Path
 import argparse,hashlib,json,os,shutil,subprocess,time
 from foreign_validation_build import add_build_arguments,load_build
 from compiler_response import command_with_response
+from foreign_native_artifacts import native_artifacts
 def main():
  p=argparse.ArgumentParser(description=__doc__)
  for n in ('root','native-root','packages','engine-build','out'):p.add_argument('--'+n,type=Path,required=True)
- p.add_argument('--negative-private-runtime',type=Path);add_build_arguments(p);a=p.parse_args();root,native,packages,engine,out=[x.resolve() for x in (a.root,a.native_root,a.packages,a.engine_build,a.out)];b=load_build(a.build,a.overlay);source=b['cohort'];runtime=b['runtime'];sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();windows=os.name=='nt';private=packages/'_xge_native';fixture=root/'test/cases/foreign_xge3_document_renderer_policy.c';library=engine/('xge.lib' if windows else 'libxge.so');binary=engine/('xge.dll' if windows else 'libxge.so');inputs=dict(b['inputs']);inputs.update((str(x),sha(x)) for x in [Path(__file__),fixture,library,binary,engine/'build-report.json',*[p for p in private.rglob('*') if p.is_file()],*[native/'tests/xui'/n for n in ('xui_owned_renderer_test.c','xui_owned_layout_test.c','xui_owned_fonts_test.c','xui_test_proxy.c','xui_test_proxy.h')]])
+ p.add_argument('--negative-private-runtime',type=Path);add_build_arguments(p);a=p.parse_args();root,native,packages,engine,out=[x.resolve() for x in (a.root,a.native_root,a.packages,a.engine_build,a.out)];b=load_build(a.build,a.overlay);source=b['cohort'];runtime=b['runtime'];sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();windows=os.name=='nt';private=packages/'_xge_native';fixture=root/'test/cases/foreign_xge3_document_renderer_policy.c';artifacts=native_artifacts(packages,engine);library=artifacts['library'];binary=artifacts['image'];inputs=dict(b['inputs']);inputs.update((str(x),sha(x)) for x in [Path(__file__),Path(__file__).with_name('foreign_native_artifacts.py'),fixture,library,binary,engine/'build-report.json',*[p for p in private.rglob('*') if p.is_file()],*[native/'tests/xui'/n for n in ('xui_owned_renderer_test.c','xui_owned_layout_test.c','xui_owned_fonts_test.c','xui_test_proxy.c','xui_test_proxy.h')]])
  if a.negative_private_runtime:inputs[str(a.negative_private_runtime.resolve())]=sha(a.negative_private_runtime)
  out.mkdir(parents=True,exist_ok=False);sdk=out/'sdk/__xl_runtime';sdk.mkdir(parents=True)
  for h in (source/'src/runtime').glob('*.h'):shutil.copy2(h,sdk/h.name);inputs[str(h)]=sha(h)

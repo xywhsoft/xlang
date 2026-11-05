@@ -6,6 +6,7 @@ script builds a logical View/Editor/MessageList graph and CPU object layout.
 from pathlib import Path
 import argparse,hashlib,json,os,re,shutil,subprocess,time
 from compiler_response import command_with_response
+from foreign_native_artifacts import native_artifacts
 from foreign_validation_build import add_build_arguments,load_build
 from check_xge3_bindings import foreign_method_declaration,split
 
@@ -37,7 +38,7 @@ def main():
  p=argparse.ArgumentParser(description=__doc__)
  for n in ('root','packages','engine-build','out'):p.add_argument('--'+n,type=Path,required=True)
  p.add_argument('--actual-only',action='store_true');add_build_arguments(p);a=p.parse_args();root,packages,engine,out=[x.resolve() for x in (a.root,a.packages,a.engine_build,a.out)];b=load_build(a.build,a.overlay);source=b['cohort'];driver=b['driver'];runtime=b['runtime'];sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();windows=os.name=='nt'
- metadata=engine/'build-report.json';native=json.loads(metadata.read_text());assert native['linked'] and native['xrt_mode']=='host';binary=engine/('xge.dll' if windows else 'libxge.so');library=engine/('xge.lib' if windows else 'libxge.so');private=packages/'_xge_native';fixture=root/'test/cases/foreign_xge3_package_document_ui.xl';host=root/'test/cases/foreign_decl_module_host.c';inputs=dict(b['inputs']);inputs.update((str(x),sha(x)) for x in [Path(__file__),fixture,host,metadata,binary,library,*[p for p in packages.rglob('*') if p.is_file()]])
+ metadata=engine/'build-report.json';native=json.loads(metadata.read_text());assert native['linked'] and native['xrt_mode']=='host';artifacts=native_artifacts(packages,engine);binary=artifacts['image'];library=artifacts['library'];private=packages/'_xge_native';fixture=root/'test/cases/foreign_xge3_package_document_ui.xl';host=root/'test/cases/foreign_decl_module_host.c';inputs=dict(b['inputs']);inputs.update((str(x),sha(x)) for x in [Path(__file__),Path(__file__).with_name('foreign_native_artifacts.py'),fixture,host,metadata,binary,library,*[p for p in packages.rglob('*') if p.is_file()]])
  out.mkdir(parents=True,exist_ok=False);sdk=out/'sdk/__xl_runtime';sdk.mkdir(parents=True)
  for h in (source/'src/runtime').glob('*.h'):shutil.copy2(h,sdk/h.name);inputs[str(h)]=sha(h)
  env=dict(os.environ,XLANG_PACKAGE_PATH=str(packages),XL6_SOURCE_NATIVE_ROOT=str(source))

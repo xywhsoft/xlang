@@ -7,6 +7,7 @@ No C forwarding function is added to the package. This is not shipping proof.
 from pathlib import Path
 import argparse,hashlib,json,os,re,shutil,subprocess,time
 from compiler_response import command_with_response
+from foreign_native_artifacts import native_artifacts
 from foreign_validation_build import add_build_arguments,load_build
 from check_xge3_bindings import foreign_method_declaration,split
 
@@ -43,10 +44,10 @@ def main():
  add_build_arguments(p);a=p.parse_args();root,packages,engine,out=[x.resolve() for x in (a.root,a.packages,a.engine_build,a.out)]
  b=load_build(a.build,a.overlay);source=b['cohort'];driver=b['driver'];runtime=b['runtime'];windows=os.name=='nt';sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
  metadata=engine/'build-report.json';native=json.loads(metadata.read_text(encoding='utf-8-sig'));assert native['linked'] and native['xrt_mode']=='host'
- binary=engine/('xge.dll' if windows else 'libxge.so');library=engine/('xge.lib' if windows else 'libxge.so');private=packages/'_xge_native'
+ artifacts=native_artifacts(packages,engine);binary=artifacts['image'];library=artifacts['library'];private=packages/'_xge_native'
  fixture=root/'test/cases/foreign_xge3_package_document.xl';host=fixture.with_name('foreign_xge3_package_document_host.c')
  example=root/'lib/bindings/xui/examples/document_model.xl'
- inputs=dict(b['inputs']);inputs.update((str(p),sha(p)) for p in (fixture,host,example,Path(__file__),metadata,binary,library,engine/'xge_build_config.h'))
+ inputs=dict(b['inputs']);inputs.update((str(p),sha(p)) for p in (fixture,host,example,Path(__file__),Path(__file__).with_name('foreign_native_artifacts.py'),metadata,binary,library,engine/'xge_build_config.h'))
  inputs.update((str(p),sha(p)) for p in packages.rglob('*') if p.is_file());headers=list((source/'src/runtime').glob('*.h'));inputs.update((str(p),sha(p)) for p in headers)
  out.mkdir(parents=True,exist_ok=False);local=out/'sdk/__xl_runtime';local.mkdir(parents=True)
  for p in headers:shutil.copy2(p,local/p.name)
