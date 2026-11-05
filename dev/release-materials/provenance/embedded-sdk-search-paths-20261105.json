@@ -1,0 +1,66 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "scope": "Current SDK include paths are installed before generated C; compiler-source SDK paths match its actual layout",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\sdk-include-core-candidate-r4\\manifest.json",
+    "sha256": "9aa904e4c3e07b5840628aa930ba98caebe74f0b5e33e7d175a48799b5282e78"
+  },
+  "files": [
+    {
+      "path": "src/api/xl_api.c",
+      "sourceSha256": "bea94dbad3fb306aebc1e19dd5f67ab63a0f3488b42ac6d4186d59760609007d",
+      "canonicalSha256": "7c749b5f44f7fe501bcf94d21256a632030a0670939da75ddd0af08528d02b59",
+      "blob": "333c24f93ee6b9bbcbf50fc75e708995766224b2"
+    },
+    {
+      "path": "tools/check_source_provider_nested_linux.py",
+      "sourceSha256": "da38bb9aa9b4dae19bfe45cc46eabe59c974011791c6da4093e7a18a0f1aacaf",
+      "canonicalSha256": "da38bb9aa9b4dae19bfe45cc46eabe59c974011791c6da4093e7a18a0f1aacaf",
+      "blob": "8b3fcfc063f954ef35c435e5098db7d2f61b890a"
+    },
+    {
+      "path": "docs/embedded-compiler-sdk-paths.md",
+      "sourceSha256": "8a20130acddccaa64b73e0b33da7f387c26b986bfe4b904147a9fb126b00bbb4",
+      "canonicalSha256": "8a20130acddccaa64b73e0b33da7f387c26b986bfe4b904147a9fb126b00bbb4",
+      "blob": "325e0d6960b929d802dd89b15cde8496b1026c20"
+    }
+  ],
+  "reports": [
+    {
+      "platform": "windows",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\sdk-include-optional-vfs-win-r1\\results.json",
+      "sha256": "c2a019b1b5e934e4bb8f8944070e32635ee5eedc4c9064fa6eeb805b5039787e",
+      "rows": 17
+    },
+    {
+      "platform": "windows",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\r38-source-free-nested-win-r1\\results.json",
+      "sha256": "b04fe60cc821f0f6e476fe0d3b9745ed71682e1c209c782b6b5ce1e0fcecf192",
+      "rows": 20
+    },
+    {
+      "platform": "linux",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-completion-20261105-r37\\sdk-include-optional-vfs-r1\\results.json",
+      "sha256": "727d56b64df16fb31618d6f28ffe58d70c8f461264f48dac567c9841c14412a4",
+      "rows": 17
+    },
+    {
+      "platform": "linux",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-completion-20261105-r37\\provider-nested-permanent-r1\\results.json",
+      "sha256": "3a2113bf4782113eecc7c080998d8259ebfed87a4a707623af5404e75e29fba3",
+      "rows": 30
+    }
+  ],
+  "optionalVfsSlots": 8,
+  "ordinaryCallAdditionalWork": 0,
+  "fullCompilerRebuild": false,
+  "serializedProviderObjectsRebuiltByThisGate": false,
+  "shippingDelivery": false,
+  "limitations": [
+    "Existing R37 provider resources remain preserved; serialized R38 provider and double-nested acceptance follow separately",
+    "Newer live checker/doc double-nested edits were preserved unstaged; only exact frozen r4 source was committed"
+  ],
+  "sourceCanonicalization": "Only CRLF-to-LF for project text; historical candidate/report bytes unchanged"
+}
