@@ -1,0 +1,24 @@
+// CPU-only: no window, renderer, network, clipboard or OS drag operation.
+import xui
+func main(...) as int
+ auto data=xui.createDataObject()
+ data.set("application/example",b"a\0b")
+ assert data.readInto("application/example")==c_size(3)
+ auto output=Buffer(b"...")
+ assert data.readInto("application/example",output)==c_size(3)
+ assert output.toBytes()==b"a\0b"
+ data.setProvider("application/lazy",func(xui.DataFormat format,xui.DataOutput sink) as c_int
+  assert format.text=="application/lazy"
+  sink.write(c_size(0),"hello")
+  sink.write(c_size(5),b"\0world")
+  return c_int(0)
+ end)
+ assert output.resize(int(data.readInto("application/lazy")))
+ assert data.readInto("application/lazy",output)==c_size(11)
+ assert output.toBytes()==b"hello\0world"
+ auto shared=data.share()
+ data.close()
+ assert shared.has("application/example")==c_int(1)
+ shared.close()
+ return 0
+end

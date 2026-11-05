@@ -1,0 +1,98 @@
+// Real Native checked dispatch with stack events. No OS drag operation.
+import xge
+from xge import DragEffectOutput as EffectOutput
+from xge import CallbackDataObject as PayloadView
+from xge import DataObject as OwnedPayload
+extern "binding_drag_dispatch" @header("test/cases/foreign_xge3_checked_drag.h") @no_raise @c_output(1,0) func dispatch(xge.DataObject data) as c_uint
+extern "binding_drag_last_status" @header("test/cases/foreign_xge3_checked_drag.h") @no_raise func lastStatus() as c_int
+extern "binding_drag_last_effect" @header("test/cases/foreign_xge3_checked_drag.h") @no_raise func lastEffect() as c_uint
+extern "binding_drag_no_alloc" @header("test/cases/foreign_xge3_checked_drag.h") @no_raise func noAlloc()
+extern "binding_drag_reset_alloc" @header("test/cases/foreign_xge3_checked_drag.h") @no_raise func resetAlloc() as c_int
+xge.DragEffectOutput? expiredEffect=null
+xge.CallbackDataObject? expiredPayload=null
+xge.DataObject? retainedPayload=null
+func main(...) as int
+ auto data=xge.createDataObject()
+ data.set("application/drag",b"D\0G")
+ xge.setDragCallbackChecked(func(xge.DragEvent event,xge.DragEffectOutput effect) as c_int
+  assert event.sequence==uint64(23) and event.type==c_int(1)
+  assert event.allowedEffects==c_uint(3)
+  auto payload=event.data as PayloadView
+  assert payload.formatCount==c_int(1)
+  assert payload.has("application/drag")==c_int(1)
+  assert (payload.formatAt(c_int(0)) as string)=="application/drag"
+  auto output=Buffer(b"...")
+  assert payload.readInto("application/drag",output)==c_size(3)
+  assert output.toBytes()==b"D\0G"
+  retainedPayload=payload.share()
+  expiredPayload=payload
+  expiredEffect=effect
+  assert effect.value==c_uint(0)
+  effect.value=c_uint(2)
+  assert effect.value==c_uint(2)
+  return c_int(0)
+ end)
+ assert dispatch(data)==c_uint(2)
+ bool rejected=false
+ try
+  auto old=expiredEffect as EffectOutput
+  old.value=c_uint(1)
+ catch error
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ try
+  auto old=expiredPayload as PayloadView
+  old.has("application/drag")
+ catch error
+  rejected=true
+ end
+ assert rejected
+ data.close()
+ auto retained=retainedPayload as OwnedPayload
+ auto output=Buffer(b"...")
+ assert retained.readInto("application/drag",output)==c_size(3)
+ assert output.toBytes()==b"D\0G"
+ xge.setDragCallbackChecked(func(xge.DragEvent event,xge.DragEffectOutput effect) as c_int
+  effect.value=c_uint(1)
+  throw RuntimeError "checked drag body"
+ end)
+ rejected=false
+ try
+  dispatch(retained)
+ catch error
+  assert error.message=="checked drag body"
+  rejected=true
+ end
+ assert rejected and lastStatus()==c_int(-16) and lastEffect()==c_uint(0xa5)
+ xge.setDragCallbackChecked(func(xge.DragEvent event,xge.DragEffectOutput effect) as c_int
+  effect.value=c_uint(1)
+  return c_int(1)
+ end)
+ rejected=false
+ try
+  dispatch(retained)
+ catch error
+  rejected=true
+ end
+ assert rejected and lastStatus()==c_int(-16) and lastEffect()==c_uint(0xa5)
+ xge.setDragCallbackChecked(func(xge.DragEvent event,xge.DragEffectOutput effect) as c_int
+  effect.value=c_uint(1)
+  noAlloc()
+  throw RuntimeError "checked drag OOM"
+ end)
+ rejected=false
+ try
+  dispatch(retained)
+ catch error
+  rejected=true
+ end
+ auto allocationFailed=resetAlloc()
+ assert rejected and allocationFailed==c_int(1)
+ assert lastStatus()==c_int(-16) and lastEffect()==c_uint(0xa5)
+ xge.setDragCallbackChecked(null)
+ retained.close()
+ retainedPayload=null
+ return 0
+end

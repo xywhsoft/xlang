@@ -1,0 +1,55 @@
+// Owned native objects. Payload Set copies once in Native; reads use the
+// caller Buffer in place. Callback views expire when the provider returns.
+export extern "const xstrview*" class DataFormat @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "Size" @c_field get length() as c_size
+ extern "Data" @c_field @c_length("Size","size_t") @c_result("text_view") get text() as string
+end
+export extern "xui_data_output_t*" class DataOutput @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iCapacity" @c_field get capacity() as c_size
+ extern "iRequired" @c_field get required() as c_size
+ extern "xuiDataOutputSet" @no_raise @c_span(0,"const void*","size_t") @c_result("status",0) func set(string data)
+ extern "xuiDataOutputWrite" @no_raise @c_span(1,"const void*","size_t") @c_result("status",0) func write(c_size offset,string data)
+ extern "xuiDataOutputSet" @no_raise @c_span(0,"const void*","size_t") @c_result("status",0) func set(bytes data)
+ extern "xuiDataOutputWrite" @no_raise @c_span(1,"const void*","size_t") @c_result("status",0) func write(c_size offset,bytes data)
+ extern "xuiDataOutputSet" @no_raise @c_span(0,"const void*","size_t") @c_result("status",0) func set(Buffer data)
+ extern "xuiDataOutputWrite" @no_raise @c_span(1,"const void*","size_t") @c_result("status",0) func write(c_size offset,Buffer data)
+end
+export typedef DataProvider = func(DataFormat,DataOutput) as c_int
+// A typed drag event and its data are views of the current event callback.
+// Source/target Widget pointers are deliberately not promoted to owned views.
+export extern "const xui_drag_event_data_t*" class CallbackDragData @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "pData" @c_field @c_result("scope_view",0) get data() as CallbackDataObject?
+ extern "iAllowedEffects" @c_field get allowedEffects() as c_uint
+ extern "iSuggestedEffect" @c_field get suggestedEffect() as c_uint
+ extern "iEffect" @c_field get effect() as c_uint
+ extern "bExternal" @c_field get external() as c_int
+end
+export extern "struct xui_data_object_t*" class CallbackDataObject @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiDataObjectShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackDataObject) func share() as DataObject
+ extern "xuiDataObjectFormatCount" @no_raise get formatCount() as c_int
+ extern "xuiDataObjectFormatAt" @no_raise func formatAt(c_int index) as string?
+ extern "xuiDataObjectHas" @no_raise @c_cstr(0) func has(string format) as c_int
+ extern "xuiDataObjectGet" @no_raise @c_cstr(0) @c_span(1,"void*","size_t") @c_output(4,0) func readInto(string format,Buffer? output=null) as c_size
+end
+export extern "xui_data_object" class DataObject @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3DataObjectPolicy") @domain("xl6Xui3OwnershipDomainV1")
+ native point handle
+ extern "xuiDataObjectShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackDataObject) func share() as DataObject
+ extern "xuiDataObjectIsOwned" @no_raise func isOwned() as bool
+ extern "xuiDataObjectFormatCount" @no_raise get formatCount() as c_int
+ extern "xuiDataObjectFormatAt" @no_raise func formatAt(c_int index) as string?
+ extern "xuiDataObjectHas" @no_raise @c_cstr(0) func has(string format) as c_int
+ extern "xuiDataObjectSet" @no_raise @c_cstr(0) @c_span(1,"const void*","size_t") @c_result("status",0) func set(string format,string data)
+ extern "xuiDataObjectSet" @no_raise @c_cstr(0) @c_span(1,"const void*","size_t") @c_result("status",0) func set(string format,bytes data)
+ extern "xuiDataObjectSet" @no_raise @c_cstr(0) @c_span(1,"const void*","size_t") @c_result("status",0) func set(string format,Buffer data)
+ // Native object/generation/owner pins span the callback and cleanup tail.
+ // The provider belongs to that shared Native generation, not this one view.
+ extern "xuiDataObjectSetProviderOwned" @no_raise @c_cstr(0) @c_owned_callback(1,-1,"xui_callback_owner_t",-16) @c_result("status",0) func setProvider(string format,DataProvider provider)
+ extern "xuiDataObjectGet" @no_raise @c_cstr(0) @c_span(1,"void*","size_t") @c_output(4,0) func readInto(string format,Buffer? output=null) as c_size
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiDataObjectReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackDataObject(DataObject value)
+export extern "xuiDataObjectCreateOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackDataObject) func createDataObject() as DataObject

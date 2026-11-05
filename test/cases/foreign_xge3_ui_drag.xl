@@ -1,0 +1,74 @@
+// Typed Native transfer event payload. Stack events; no OS drag operation.
+import xui
+from xui import CallbackDragData as DragPayload
+from xui import CallbackDataObject as DataView
+from xui import DataObject as OwnedData
+extern "binding_ui_drag_dispatch" @header("test/cases/foreign_xge3_ui_drag.h") @no_raise @c_result("status",0) func dispatch(xui.Context context,xui.Widget widget,xui.DataObject data,c_int type,c_int sizedPayload)
+xui.CallbackDragData? expiredDrag=null
+xui.CallbackDataObject? expiredData=null
+xui.DataObject? retainedData=null
+bool expectedPayload=true
+int callbacks=0
+func main(...) as int
+ auto proxy=xui.createProxy()
+ auto context=xui.create(proxy)
+ auto widget=context.widget()
+ auto data=xui.createDataObject()
+ data.set("application/ui-drag",b"U\0I")
+ widget.setEventCallback(func(xui.Widget target,xui.CallbackConstEvent event) as c_int
+  callbacks+=1
+  if not expectedPayload
+   assert event.dragData()==null
+   return c_int(0)
+  end
+  auto drag=event.dragData() as DragPayload
+  assert drag.allowedEffects==c_uint(3) and drag.suggestedEffect==c_uint(1)
+  assert drag.effect==c_uint(2) and drag.external==c_int(0)
+  auto payload=drag.data as DataView
+  assert payload.formatCount==c_int(1) and payload.has("application/ui-drag")==c_int(1)
+  assert (payload.formatAt(c_int(0)) as string)=="application/ui-drag"
+  auto output=Buffer(b"...")
+  assert payload.readInto("application/ui-drag",output)==c_size(3)
+  assert output.toBytes()==b"U\0I"
+  if retainedData==null
+   retainedData=payload.share()
+  end
+  expiredDrag=drag
+  expiredData=payload
+  return c_int(0)
+ end)
+ dispatch(context,widget,data,c_int(28),c_int(1))
+ assert callbacks>0 and retainedData!=null
+ bool rejected=false
+ try
+  auto old=expiredDrag as DragPayload
+  auto forbidden=old.effect
+ catch error
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ try
+  auto old=expiredData as DataView
+  old.readInto("application/ui-drag")
+ catch error
+  rejected=true
+ end
+ assert rejected
+ // A geometric DRAG_MOVE is not the typed data-transfer payload.
+ expectedPayload=false
+ dispatch(context,widget,data,c_int(20),c_int(1))
+ // A transfer event with an undersized descriptor is also rejected by getter.
+ dispatch(context,widget,data,c_int(28),c_int(0))
+ data.close()
+ auto retained=retainedData as OwnedData
+ auto output=Buffer(b"...")
+ assert retained.readInto("application/ui-drag",output)==c_size(3)
+ assert output.toBytes()==b"U\0I"
+ widget.setEventCallback(null)
+ retained.close()
+ retainedData=null
+ context.close()
+ proxy.close()
+ return 0
+end

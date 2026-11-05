@@ -8,12 +8,13 @@ Run from the installed runtime directory named by `$runtime`:
 
 ```powershell
 $env:XLANG_PACKAGE_PATH = "$runtime\extlibs"
-& "$runtime\xl.exe" "D:\GIT\x-lang\lib\bindings\xui\examples\headless_path.xl"
-& "$runtime\xl.exe" "D:\GIT\x-lang\lib\bindings\xui\examples\headless_cell.xl"
-& "$runtime\xl.exe" "D:\GIT\x-lang\lib\bindings\xui\examples\context_graph.xl"
-& "$runtime\xl.exe" "D:\GIT\x-lang\lib\bindings\xui\examples\manager_lifetime.xl"
-& "$runtime\xl.exe" "D:\GIT\x-lang\lib\bindings\xui\examples\document_model.xl"
-& "$runtime\xl.exe" "D:\GIT\x-lang\lib\bindings\xui\examples\document_ui_headless.xl"
+& "$runtime\xl.exe" "$runtime\examples\xui\headless_path.xl"
+& "$runtime\xl.exe" "$runtime\examples\xui\headless_cell.xl"
+& "$runtime\xl.exe" "$runtime\examples\xui\context_graph.xl"
+& "$runtime\xl.exe" "$runtime\examples\xui\manager_lifetime.xl"
+& "$runtime\xl.exe" "$runtime\examples\xui\document_model.xl"
+& "$runtime\xl.exe" "$runtime\examples\xui\document_ui_headless.xl"
+& "$runtime\xl.exe" "$runtime\examples\xui\data_object.xl"
 ```
 
 | Example | Prerequisites and assertions | Cleanup |
@@ -24,12 +25,13 @@ $env:XLANG_PACKAGE_PATH = "$runtime\extlibs"
 | `manager_lifetime.xl` | Context-owned Manager support. Creates an unopened MsgBox and a logical MsgTip; dismiss invokes a typed callback exactly once. No OS dialog, frame, browser or clipboard operation is requested. | Clears the callback and closes the children, Context and Proxy in order. |
 | `document_model.xl` | Matched default-provenance Model engine, leased-domain runtime and sized-record compiler. Builds a Rich document with no Context/Proxy/window, commits a unique transaction, reads exact UTF-8 text into a scoped Buffer and keeps the immutable snapshot readable after Document closes. | Transaction shell, Document, Snapshot and ChangeSet each release their real native owner. |
 | `document_ui_headless.xl` | Matched Document UI declarations and nested-pack compiler. Builds a View/Editor/MessageList graph; a real Renderer measurement callback updates the native Vec2/float outputs and saves an independently shared Snapshot. No frame, draw, browser, file or clipboard operation. | Clears owning callbacks, closes Context-owned widgets and Context, verifies the independent Renderer rejects expired-Context methods, then releases Renderer/Model/Proxy owners. |
+| `data_object.xl` | Owned DataObject and nullable writable-span support. Preserves embedded NUL, queries a lazy provider, reads into a pre-sized Buffer and keeps an independent shared owner readable. No Context, frame, clipboard or OS drag operation. | Both owned DataObject references close. |
 | `gui_surface_draw.xl` | Interactive desktop, matching XGE 2D backend, target-Surface and Draw support. Allocates only after a frame begins. Draw ends before release, then the image is presented for one frame and the demo exits. | Releases Draw, Surface, callback, Proxy and engine, including exceptional exits. |
 
 The GUI example is separate and must be requested explicitly:
 
 ```powershell
-& "$runtime\xl.exe" "D:\GIT\x-lang\lib\bindings\xui\examples\gui_surface_draw.xl"
+& "$runtime\xl.exe" "$runtime\examples\xui\gui_surface_draw.xl"
 ```
 
 `panelNative()` and `buttonNative()` here use only the native-validated NULL
@@ -51,3 +53,5 @@ example retains compilation/ABI acceptance only. Allocator fault injection
 and lifetime/module-unload tests remain separate fixtures. See
 `docs/xge3-xui3-example-status.md` for exact qualification and legacy gaps;
 these checks do not qualify final runtime delivery or graphics execution.
+DataObject has a separate CPU/ABI matrix documented in
+`docs/xge3-xui3-data-object.md`.
