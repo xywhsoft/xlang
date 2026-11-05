@@ -1,0 +1,49 @@
+extern "NullPod" struct Pod @header("test/cases/foreign_null_compat.h")
+ c_int value
+end
+extern "NullRoot*" class Root @header("test/cases/foreign_null_compat.h") @lifetime("owned") @policy("nullPolicy")
+ native point handle
+ extern "null_pod" @no_raise @c_ref(0) @c_cstr(2) @c_output(4,0) func pod(Pod config,c_int number,string suffix) as c_int
+ extern "null_pod" @no_raise @c_null(1,"const NullPod*") @c_cstr(1) @c_output(4,0) func clearPod(c_int number,string suffix) as c_int
+ extern "apply" @c_field_call @no_raise @c_pack(1,"NullDesc",0,3) @c_pack_size(1,"size","uint32_t") @c_pack_field(1,"mode",0,"value") @c_pack_field(1,"source",1,"view_raw") @c_pack_field(1,"text",2,"c_string") @c_cstr(4) @c_output(4,0) func apply(c_int mode,Root source,string text,c_int number,string suffix) as c_int
+ extern "apply" @c_field_call @no_raise @c_null(1,"const NullDesc*") @c_cstr(1) @c_output(4,0) func clear(c_int number,string suffix) as c_int
+ extern "paired" @c_field_call @no_raise @c_pack(1,"NullDesc",0,3) @c_pack_size(1,"size","uint32_t") @c_pack_field(1,"mode",0,"value") @c_pack_field(1,"source",1,"view_raw") @c_pack_field(1,"text",2,"c_string") @c_pack(2,"NullNested",3,3) @c_pack_size(2,"size","uint32_t") @c_pack_record(2,"inner","NullInner") @c_pack_size(2,"inner.size","uint32_t","inner") @c_pack_field(2,"inner.mode",3,"value") @c_pack_field(2,"inner.source",4,"view_raw") @c_pack_field(2,"inner.text",5,"c_string") @c_cstr(7) @c_output(5,0) func applyBoth(c_int mode,Root source,string text,c_int secondMode,Root secondSource,string secondText,c_int number,string suffix) as c_int
+ extern "paired" @c_field_call @no_raise @c_null(1,"const NullDesc*") @c_pack(2,"NullNested",0,3) @c_pack_size(2,"size","uint32_t") @c_pack_record(2,"inner","NullInner") @c_pack_size(2,"inner.size","uint32_t","inner") @c_pack_field(2,"inner.mode",0,"value") @c_pack_field(2,"inner.source",1,"view_raw") @c_pack_field(2,"inner.text",2,"c_string") @c_cstr(4) @c_output(5,0) func clearFirst(c_int secondMode,Root secondSource,string secondText,c_int number,string suffix) as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "null_create" @header("test/cases/foreign_null_compat.h") @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Root
+extern "null_create_config" @header("test/cases/foreign_null_compat.h") @no_raise @c_result("owned_view") @factory(1,0,rollback) @c_pack(0,"NullDesc",0,3) @c_pack_size(0,"size","uint32_t") @c_pack_field(0,"mode",0,"value") @c_pack_field(0,"source",1,"view_raw") @c_pack_field(0,"text",2,"c_string") func createConfigured(c_int mode,Root source,string text) as Root
+extern "null_create_config" @header("test/cases/foreign_null_compat.h") @no_raise @c_result("owned_view") @factory(1,0,rollback) @c_null(0,"const NullDesc*") func createDefault() as Root
+extern "null_drop" @header("test/cases/foreign_null_compat.h") @no_raise func rollback(Root value)
+extern "null_free" @header("test/cases/foreign_null_compat.h") @no_raise @c_ref(0) @c_cstr(2) @c_output(3,0) func freePod(Pod config,c_int number,string suffix) as c_int
+extern "null_free" @header("test/cases/foreign_null_compat.h") @no_raise @c_null(0,"const NullPod*") @c_cstr(1) @c_output(3,0) func freeClear(c_int number,string suffix) as c_int
+extern "null_calls" @header("test/cases/foreign_null_compat.h") @no_raise func calls() as c_int
+protocol Clearer
+ func clear(c_int number,string suffix) as c_int
+end
+func main(...) as int
+ Root root=create()
+ Pod config=Pod()
+ config.value=c_int(7)
+ assert root.pod(config,c_int(11),"end")==c_int(23)
+ assert root.clearPod(c_int(11),"end")==c_int(16)
+ assert root.apply(c_int(7),root,"packed",c_int(11),"end")==c_int(28)
+ assert root.clear(c_int(11),"end")==c_int(16)
+ func(c_int,string) as c_int bound=root.clear
+ assert bound(c_int(11),"end")==c_int(16)
+ Clearer clearer=root
+ assert clearer.clear(c_int(11),"end")==c_int(16)
+ assert root.applyBoth(c_int(7),root,"packed",c_int(9),root,"packed",c_int(11),"end")==c_int(42)
+ assert root.clearFirst(c_int(9),root,"packed",c_int(11),"end")==c_int(30)
+ assert freePod(config,c_int(11),"end")==c_int(18)
+ assert freeClear(c_int(11),"end")==c_int(11)
+ Root configured=createConfigured(c_int(3),root,"packed")
+ Root defaults=createDefault()
+ assert configured.clearPod(c_int(0),"end")==c_int(8)
+ assert defaults.clearPod(c_int(0),"end")==c_int(5)
+ configured.close()
+ defaults.close()
+ assert calls()==c_int(14)
+ root.close()
+ return 0
+end

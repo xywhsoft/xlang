@@ -94,8 +94,11 @@ static int xl6IrForeignManagedInputCompatible(const XL6_IrModule* module,const X
          (right->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && left->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK)) &&
         left->foreignHeader && right->foreignHeader && !strcmp(left->cName,right->cName) && !strcmp(left->foreignHeader,right->foreignHeader);
 }
+#include "src/ir/xl6_ir_foreign_null_compat.c"
 static int xl6IrForeignOverloadsCompatible(const XL6_IrModule* module,const XL6_IrCallTarget* a,const XL6_IrCallTarget* b)
 {
+    int nullCompatibility=xl6IrForeignNullPhysicalCompatible(module,a,b);
+    if(nullCompatibility>=0)return nullCompatibility;
     const XL6_IrNode* left=xl6IrNodeGet(module,a->declaration);const XL6_IrNode* right=xl6IrNodeGet(module,b->declaration);
     if(!left || !right || !xl6ForeignCallFactsEqual(&left->foreignCall,&right->foreignCall) ||
         ((left->flags^right->flags)&(XL6_AST_FLAG_STATIC|XL6_AST_FLAG_FOREIGN_OWNED_STRING|XL6_AST_FLAG_FOREIGN_PURE|

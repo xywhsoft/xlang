@@ -9205,14 +9205,18 @@ static int xl6SemExternParameterListsCompatible(XL6_SemContext* ctx,const XL6_As
     }
     return 1;
 }
-static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* a, const XL6_AstNode* b)
+#include "src/sem/xl6_sem_foreign_null_compat.c"
+static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* a, const XL6_AstNode* b,const XL6_AstNode* ownerClass)
 {
     if ( a == NULL || b == NULL ) {
         return 0;
     }
     if ( a->kind == XL6_AST_EXTERN_FUNC || a->kind == XL6_AST_NATIVE_EXTERN_FUNC ) {
         XL6_ForeignCallFacts left, right;
-        if (!xl6ForeignFunctionRead(a, &left) || !xl6ForeignFunctionRead(b, &right) ||
+        if (!xl6ForeignFunctionRead(a, &left) || !xl6ForeignFunctionRead(b, &right))return 0;
+        int nullCompatibility=xl6SemForeignNullPhysicalCompatible(ctx,a,b,ownerClass);
+        if(nullCompatibility>=0)return nullCompatibility;
+        if (
             left.constAggregateAddresses != right.constAggregateAddresses ||
             left.staticCallbackAddresses != right.staticCallbackAddresses ||
             left.outputIndexPlusOne != right.outputIndexPlusOne || left.successCode != right.successCode) return 0;
@@ -9256,7 +9260,7 @@ static int xl6SemCheckExternCAbiConflicts(XL6_SemContext* ctx)
             if ( !xl6SemIsExternCDecl(b) || !xl6TextEquals(a->text, b->text) ) {
                 continue;
             }
-            if ( !xl6SemExternCDeclsCompatible(ctx, a, b) ) {
+            if ( !xl6SemExternCDeclsCompatible(ctx, a, b,NULL) ) {
                 xl6SemErrorNode(ctx, b, "extern C symbol declared with incompatible ABI");
                 ok = 0;
             }
@@ -24890,7 +24894,7 @@ static int xl6SemCheckClassMemberConflicts(XL6_SemContext* ctx, XL6_AstNode* typ
                  xl6TextEquals(member->text, other->text) &&
                  !((member->flags|other->flags)&XL6_AST_FLAG_FOREIGN_FIELD) &&
                  !xl6ForeignFunctionDereferences(member) && !xl6ForeignFunctionDereferences(other) ) {
-                if(!xl6SemExternCDeclsCompatible(ctx,member,other)){
+                if(!xl6SemExternCDeclsCompatible(ctx,member,other,typeNode)){
                     xl6SemErrorNode(ctx, other, "same native C target requires an identical physical ABI and lifetime/effect contract");
                     ok = 0;
                 }
