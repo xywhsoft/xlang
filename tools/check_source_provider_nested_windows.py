@@ -1,6 +1,6 @@
 """Windows source-free JIT/module/AOT with a real full or explicit successor provider.
 
-The copied SDK contains declarations only. The outer diagnostic compiler uses
+The copied SDK contains headers, including required XRT implementation products. The outer diagnostic compiler uses
 an explicit frozen standard C distribution. Relocated standalone programs have
 no SDK, provider DLL or distribution beside them, and run with XL6 overrides
 removed. Includes true double-nested compiler and record+size output fixtures.

@@ -11,6 +11,29 @@ does not qualify embedded-VFS, standalone AOT or nested compilation.
 from pathlib import Path
 import argparse,copy,hashlib,json,os,re,shutil,subprocess,sys,time
 
+def refresh_sdk_headers(root,base,build,overlay,destination,sha,inputs):
+    """Recreate every recorded alias from authoritative successor sources."""
+    original=next(Path(row['Source']).parents[2] for row in build['Objects']
+        if Path(row['Source']).name=='xlir_public_source_linux_driver.c')
+    old_headers=Path(overlay['RuntimeHeaders'])
+    records=copy.deepcopy(overlay.get('Headers',build['Headers']));families={};recorded=set()
+    for row in records:
+        path=Path(row['Path']);source=Path(row['Source'])
+        relative=next((path.relative_to(folder) for folder in (old_headers,base/'include') if path.is_relative_to(folder)),None)
+        assert relative is not None,path
+        if source.is_relative_to(original):source=root/source.relative_to(original)
+        assert source.is_relative_to(root) and source.is_file(),source
+        target=destination/relative;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target)
+        row.update(Source=str(source),Path=str(target),Sha256=sha(source));inputs[str(source)]=sha(source)
+        recorded.add(target);families.setdefault((source.parent,relative.parent),set()).add(source.suffix)
+    for (folder,relative),suffixes in families.items():
+        for source in sorted(folder.iterdir()):
+            target=destination/relative/source.name
+            if not source.is_file() or source.suffix not in suffixes or target in recorded:continue
+            shutil.copy2(source,target);inputs[str(source)]=sha(source);recorded.add(target)
+            records.append(dict(Source=str(source),Path=str(target),Sha256=sha(source)))
+    return records
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('root','base','native-root','out'):p.add_argument('--'+name,type=Path,required=True)
@@ -167,9 +190,7 @@ def main():
         RuntimeLibrary=str(provider),NativeRoot=str(out),ParentSourceBuild=str(base/'build.json'),
         ParentSourceBuildSha256=sha(base/'build.json'),TccProviderRole='Only TinyCC and '+a.mode+' VFS; no resident xlang/XRT implementation',
         ProviderStageScope=__doc__,ProviderStageMode=a.mode)
-    for row in staged.get('Headers',[]):
-        path=Path(row['Path'])
-        if path.is_relative_to(base/'include'):row['Path']=str(out/'include'/path.relative_to(base/'include'))
+    staged['Headers']=refresh_sdk_headers(root,base,build,overlay,out/'include',sha,inputs)
     staged['ProviderInputs']=[dict(Path=path,Sha256=value) for path,value in inputs.items()]
     staged['fullRebuild']=False
     staged['providerSerializedObjectCache']='Normal inherited cache; inspect precompile.log for actual reuse'
