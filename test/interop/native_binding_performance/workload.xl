@@ -1,0 +1,62 @@
+import xui
+extern "xuiProxyReleaseChecked" @header("binding_perf.h") @no_raise @c_result("status",0) func rollbackProxy(xui.Proxy value)
+extern "xuiSurfaceReleaseChecked" @header("binding_perf.h") @no_raise @c_result("status",0) func rollbackSurface(xui.Surface value)
+extern "xuiDrawReleaseChecked" @header("binding_perf.h") @no_raise @c_result("status",0) func rollbackDraw(xui.DrawContext value)
+extern "binding_perf_proxy" @header("binding_perf.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackProxy) func cpuProxy() as xui.Proxy
+extern "binding_perf_surface" @header("binding_perf.h") @no_raise @c_result("owned_view") @factory(1,0,rollbackSurface) func cpuSurface(xui.Proxy proxy) as xui.Surface
+extern "binding_perf_draw" @header("binding_perf.h") @no_raise @c_result("owned_view") @factory(2,0,rollbackDraw) func cpuDraw(xui.Proxy proxy,xui.Surface target) as xui.DrawContext
+extern "binding_perf_clock" @header("binding_perf.h") @no_raise func clockTicks() as c_ulonglong
+extern "binding_perf_frequency" @header("binding_perf.h") @no_raise func frequency() as c_ulonglong
+extern "binding_perf_checksum" @header("binding_perf.h") @no_raise func checksum() as c_ulonglong
+extern "binding_perf_counter_begin" @header("binding_perf.h") @no_raise func counterBegin()
+extern "binding_perf_counter_end" @header("binding_perf.h") @no_raise func counterEnd(c_int tag)
+func main(...) as int
+ counterBegin()
+ auto proxy=cpuProxy()
+ auto target=cpuSurface(proxy)
+ auto draw=cpuDraw(proxy,target)
+ counterEnd(0)
+ auto rect=xui.Rect()
+ rect.fX=3
+ rect.fW=10
+ rect.fH=10
+ uint64 sum=0
+ counterBegin()
+ auto start=clockTicks()
+ int i=0
+ while i<500000
+  auto caps=proxy.caps()
+  sum+=uint64(caps.iSurfaceFormat)
+  i+=1
+ end
+ auto elapsed=clockTicks()-start
+ counterEnd(1)
+ print("caps",elapsed,frequency(),sum)
+ counterBegin()
+ start=clockTicks()
+ i=0
+ while i<500000
+  proxy.fillRect(draw,rect,7)
+  i+=1
+ end
+ elapsed=clockTicks()-start
+ counterEnd(2)
+ print("draw",elapsed,frequency(),checksum())
+ counterBegin()
+ start=clockTicks()
+ i=0
+ while i<50000
+  auto retained=draw.target()
+  i+=1
+ end
+ elapsed=clockTicks()-start
+ counterEnd(3)
+ print("target",elapsed,frequency())
+ counterBegin()
+ draw.finish()
+ draw.close()
+ target.close()
+ proxy.close()
+ counterEnd(4)
+ return 0
+end

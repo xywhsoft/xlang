@@ -1,0 +1,42 @@
+import xui
+extern "xuiProxyReleaseChecked" @header("binding_perf.h") @no_raise @c_result("status",0) func rollbackProxy(xui.Proxy value)
+extern "xuiFontReleaseChecked" @header("binding_perf.h") @no_raise @c_result("status",0) func rollbackFont(xui.Font value)
+extern "xuiTextShapeReleaseChecked" @header("binding_perf.h") @no_raise @c_result("status",0) func rollbackShape(xui.TextShape value)
+extern "binding_perf_proxy" @header("binding_perf.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackProxy) func cpuProxy() as xui.Proxy
+extern "binding_perf_font" @header("binding_perf.h") @no_raise @c_result("owned_view") @factory(1,0,rollbackFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "binding_perf_shape" @header("binding_perf.h") @no_raise @c_result("owned_view") @factory(2,0,rollbackShape) func cpuShape(xui.Proxy proxy,xui.Font font) as xui.TextShape
+extern "binding_perf_clock" @header("binding_perf.h") @no_raise func clockTicks() as c_ulonglong
+extern "binding_perf_frequency" @header("binding_perf.h") @no_raise func frequency() as c_ulonglong
+extern "binding_perf_counter_begin" @header("binding_perf.h") @no_raise func counterBegin()
+extern "binding_perf_counter_end" @header("binding_perf.h") @no_raise func counterEnd(c_int tag)
+func main(...) as int
+ counterBegin()
+ auto proxy=cpuProxy()
+ auto font=cpuFont(proxy)
+ auto shape=cpuShape(proxy,font)
+ auto clusters=shape.clusters()
+ auto carets=shape.carets()
+ assert clusters.length==4096 and carets.length==4096
+ shape.close()
+ font.close()
+ proxy.close()
+ counterEnd(0)
+ int sum=0
+ int iteration=0
+ counterBegin()
+ auto start=clockTicks()
+ while iteration<5000
+  for cluster in clusters
+   sum=(sum ^ int(cluster.iTextStart))+iteration
+  end
+  for caret in carets
+   sum=(sum ^ int(caret.iTextOffset))+iteration
+  end
+  iteration+=1
+ end
+ auto elapsed=clockTicks()-start
+ counterEnd(1)
+ print("shape",elapsed,frequency(),sum)
+ counterBegin()
+ return 0
+end
