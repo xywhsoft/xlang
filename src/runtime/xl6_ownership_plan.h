@@ -4,6 +4,7 @@
 struct xrtownershipref;
 struct xrtownershipadapterv1;
 struct xrtownershippreparationv1;
+struct xrtownershipfinalizationv1;
 
 typedef struct XL6_OwnershipPlan XL6_OwnershipPlan;
 /* Optional native lifecycle boundary, acquired before Freeze and released
@@ -67,7 +68,10 @@ typedef enum XL6_OwnershipStepResult {
     XL6_OWNERSHIP_STEP_ERROR = -2,
     XL6_OWNERSHIP_STEP_FAILED = -1,
     XL6_OWNERSHIP_STEP_BUSY = 0,
-    XL6_OWNERSHIP_STEP_READY = 1
+    XL6_OWNERSHIP_STEP_READY = 1,
+    /* An accepted resumable semantic duty remains owned; it may have made
+     * progress. This is not preparation/physical BUSY without side effects. */
+    XL6_OWNERSHIP_STEP_WAITING = 2
 } XL6_OwnershipStepResult;
 /* Optional physical completion protocol. BUSY retains every plan pin; FAILED
  * is an explicit callback failure even without a diagnostic. A failed duty
@@ -119,6 +123,26 @@ XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV6(
 XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV7(
     struct xrtownershipref,XL6_OwnershipProbeV1,XL6_OwnershipDiscoverV1,
     bool pinRoot,void*,const XL6_OwnershipBoundaryV1*,XL6_OwnershipPlan**);
+/* Separate exact semantic continuation query. true+NULL keeps V1 behavior;
+ * false refuses admission. It is frozen/read-only, with outputs NULL on refusal. */
+typedef bool (*XL6_OwnershipFinalizationResolveV1)(struct xrtownershipref,void*,
+    const XL6_OwnershipAdapterV1*,const struct xrtownershipfinalizationv1**);
+XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV8(
+    struct xrtownershipref,XL6_OwnershipProbeV1,XL6_OwnershipDiscoverV1,
+    XL6_OwnershipFinalizationResolveV1,bool pinRoot,void*,
+    const XL6_OwnershipBoundaryV1*,XL6_OwnershipPlan**);
+/* Completion and failure are independent. WAITING preserves pins/claims and
+ * accepted progress. A failed extended duty may resume only on a subsequent
+ * explicit checked retry; complete-with-failure is never replayed. Legacy V1
+ * false remains terminal STEP_FAILED. Snapshot ERROR is not semantic failure.
+ * READY ends this finalize turn, not the transaction: the caller must still
+ * TryCommit, which freshly routes resurrection/new preparation without Clear. */
+XL6_CODE_LEASE_API XL6_OwnershipStepResult xl6OwnershipPlanFinalizeStepV1(
+    XL6_OwnershipPlan*,bool* semanticFailed);
+/* Acknowledge exactly one explicit checked retry of a previously failed,
+ * incomplete semantic duty. No callback or graph operation is performed.
+ * Automatic drivers and timeout-loop iterations must not acknowledge it. */
+XL6_CODE_LEASE_API bool xl6OwnershipPlanRetryFinalizationV1(XL6_OwnershipPlan*);
 /* Continue only actual held+claimed immutable preparation capabilities even
  * while their asynchronous transition temporarily refuses Count/Trace.
  * Every ready/commit decision still rebuilds the whole graph; this grants no

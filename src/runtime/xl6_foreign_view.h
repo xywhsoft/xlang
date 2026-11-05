@@ -84,6 +84,11 @@ typedef struct XL6_ForeignViewDescriptorV1 {
  * false only means its owner remains unconsumed and may wait without error.
  * This does not change the conservative DestroyUnadopted contract. */
 #define XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE UINT64_C(8)
+/* Cold opt-in to the independent semantic FinalizationV1 protocol. The
+ * native scope-owning destructor reports failure separately from owner
+ * consumption and may make durable progress while retaining that owner.
+ * Only a continuation-aware plan may invoke it as a graph finalizer. */
+#define XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE UINT64_C(16)
 
 /* Stable compiler-owned storage; never copy a live call or callback scope.
  * nativeStorage is a separately typed C record emitted from the declaration,

@@ -2,6 +2,7 @@
 #include "src/common/xl6_xrt.h"
 #include "xl6_ownership_plan.h"
 #include "xl6_ownership_completion.h"
+#include "xl6_ownership_finalization.h"
 #include "xl6_callback_failure.h"
 #include "src/api/xl_foreign_error.h"
 #include <stdlib.h>
@@ -12,6 +13,8 @@ typedef struct PlanNode {
     const XL6_OwnershipAdapterV1* adapter;
     const xrtownershippreparationv1* preparation;
     const XL6_OwnershipFinishV1* completion;
+    const xrtownershipfinalizationv1* finalization;
+    bool finalizationStarted;
     bool held, claimed, finalized, finished, reachable, newClaim, prepared, preparationStarted;
 } PlanNode;
 struct XL6_OwnershipPlan {
@@ -22,10 +25,11 @@ struct XL6_OwnershipPlan {
     XL6_OwnershipResolveV3 resolveV3;
     XL6_OwnershipProbeV1 probe;
     XL6_OwnershipDiscoverV1 discover;
+    XL6_OwnershipFinalizationResolveV1 resolveFinalization;
     void* context;
     PlanNode* nodes;
     size_t count;
-    bool running, committed, finalizerFailed;
+    bool running, committed, finalizerFailed, semanticRetryRequired;
 };
 typedef struct PlanBuild {
     XL6_OwnershipPlan* plan;
@@ -57,6 +61,7 @@ static bool admit(xrtownershipref ref,void* context)
     const XL6_OwnershipAdapterV1* adapter=NULL;
     const xrtownershippreparationv1* preparation=NULL;
     const XL6_OwnershipFinishV1* completion=NULL;
+    const xrtownershipfinalizationv1* finalization=NULL;
     PlanNode node={0};
     if(plan->probe){
         XL6_OwnershipAdmissionV1 status=plan->probe(ref,plan->context,&adapter,&preparation,&completion);
@@ -78,16 +83,19 @@ static bool admit(xrtownershipref ref,void* context)
     if(preparation && (preparation->size!=sizeof(*preparation) || preparation->Adapter!=adapter ||
         !preparation->Ready || !preparation->Prepare))return false;
     if(!xl6OwnershipCompletionValid(completion,adapter))return false;
+    if(plan->resolveFinalization &&
+       !plan->resolveFinalization(ref,plan->context,adapter,&finalization))return false;
+    if(!xl6OwnershipFinalizationValidV1(finalization,adapter))return false;
     const xrtownershipfinishv2* checked=xl6OwnershipCompletionV2Get(completion);
     if(checked && !checked->DropReady(ref.Data)){build->busy=true;return false;}
-    node.ref=ref;node.adapter=adapter;node.preparation=preparation;node.completion=completion;
-    node.finalized=adapter->Finalize==NULL;node.finished=!completion && adapter->Finish==NULL;
+    node.ref=ref;node.adapter=adapter;node.preparation=preparation;node.completion=completion;node.finalization=finalization;
+    node.finalized=!finalization && adapter->Finalize==NULL;node.finished=!completion && adapter->Finish==NULL;
     /* Old held identities are supplied as anchors, in this same order, before
      * traversal discovers new nodes. Descriptor replacement is not accepted. */
     if(build->count<plan->count){
         const PlanNode* old=&plan->nodes[build->count];
         if(!same_ref(old->ref,ref) || old->adapter!=adapter || old->preparation!=preparation ||
-            old->completion!=completion)return false;
+            old->completion!=completion || old->finalization!=finalization)return false;
         node=*old;node.newClaim=false;
     }
     node.prepared=!preparation || preparation->Ready(ref.Data);
@@ -214,7 +222,8 @@ static XL6_OwnershipPlanResult rebuild(XL6_OwnershipPlan* plan)
 }
 static XL6_OwnershipPlanResult create(xrtownershipref root,XL6_OwnershipResolve resolve,
     XL6_OwnershipResolveV2 resolveV2,XL6_OwnershipResolveV3 resolveV3,
-    XL6_OwnershipDiscoverV1 discover,bool pinRoot,void* context,XL6_OwnershipPlan** output,XL6_OwnershipProbeV1 probe,const XL6_OwnershipBoundaryV1* boundary)
+    XL6_OwnershipDiscoverV1 discover,bool pinRoot,void* context,XL6_OwnershipPlan** output,XL6_OwnershipProbeV1 probe,const XL6_OwnershipBoundaryV1* boundary,
+    XL6_OwnershipFinalizationResolveV1 finalization)
 {
     xrtownershipscope freeze={0};XL6_OwnershipPlan* plan;XL6_OwnershipPlanResult result;
     if(!root.Data || !root.Ops || (!resolve && !resolveV2 && !resolveV3 && !probe) || !output){xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_PLAN_ERROR;}
@@ -225,7 +234,7 @@ static XL6_OwnershipPlanResult create(xrtownershipref root,XL6_OwnershipResolve 
     plan=xrtCalloc(1,sizeof(*plan));
     if(!plan){freeze_end(boundary,&freeze);return XL6_OWNERSHIP_PLAN_ERROR;}
     plan->boundary=boundary;plan->root=root;plan->resolve=resolve;plan->resolveV2=resolveV2;plan->resolveV3=resolveV3;
-    plan->discover=discover;plan->context=context;plan->probe=probe;
+    plan->discover=discover;plan->context=context;plan->probe=probe;plan->resolveFinalization=finalization;
     if(pinRoot){
         /* Acquire a real plan-owned pin before snapshotting a native control
          * record with independent storage lifetime and no incoming lease.
@@ -260,37 +269,44 @@ static XL6_OwnershipPlanResult create(xrtownershipref root,XL6_OwnershipResolve 
 }
 XL6_OwnershipPlanResult xl6OwnershipPlanTryCreate(xrtownershipref root,XL6_OwnershipResolve resolve,
     void* context,XL6_OwnershipPlan** output)
-{ return create(root,resolve,NULL,NULL,NULL,false,context,output,NULL,NULL); }
+{ return create(root,resolve,NULL,NULL,NULL,false,context,output,NULL,NULL,NULL); }
 XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV2(xrtownershipref root,XL6_OwnershipResolveV2 resolve,
     void* context,XL6_OwnershipPlan** output)
-{ return create(root,NULL,resolve,NULL,NULL,false,context,output,NULL,NULL); }
+{ return create(root,NULL,resolve,NULL,NULL,false,context,output,NULL,NULL,NULL); }
 XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV3(xrtownershipref root,XL6_OwnershipResolveV3 resolve,
     void* context,XL6_OwnershipPlan** output)
-{ return create(root,NULL,NULL,resolve,NULL,false,context,output,NULL,NULL); }
+{ return create(root,NULL,NULL,resolve,NULL,false,context,output,NULL,NULL,NULL); }
 XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV4(xrtownershipref root,XL6_OwnershipResolveV3 resolve,
     XL6_OwnershipDiscoverV1 discover,void* context,XL6_OwnershipPlan** output)
 {
     if(!resolve || !discover){xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_PLAN_ERROR;}
-    return create(root,NULL,NULL,resolve,discover,false,context,output,NULL,NULL);
+    return create(root,NULL,NULL,resolve,discover,false,context,output,NULL,NULL,NULL);
 }
 XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV5(xrtownershipref root,XL6_OwnershipResolveV3 resolve,
     XL6_OwnershipDiscoverV1 discover,void* context,XL6_OwnershipPlan** output)
 {
     if(!resolve || !discover){xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_PLAN_ERROR;}
-    return create(root,NULL,NULL,resolve,discover,true,context,output,NULL,NULL);
+    return create(root,NULL,NULL,resolve,discover,true,context,output,NULL,NULL,NULL);
 }
 XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV6(xrtownershipref root,XL6_OwnershipProbeV1 probe,
     XL6_OwnershipDiscoverV1 discover,bool pinRoot,void* context,XL6_OwnershipPlan** output)
 {
     if(!probe){xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_PLAN_ERROR;}
-    return create(root,NULL,NULL,NULL,discover,pinRoot,context,output,probe,NULL);
+    return create(root,NULL,NULL,NULL,discover,pinRoot,context,output,probe,NULL,NULL);
 }
 XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV7(xrtownershipref root,XL6_OwnershipProbeV1 probe,
     XL6_OwnershipDiscoverV1 discover,bool pinRoot,void* context,
     const XL6_OwnershipBoundaryV1* boundary,XL6_OwnershipPlan** output)
 {
     if(!probe){xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_PLAN_ERROR;}
-    return create(root,NULL,NULL,NULL,discover,pinRoot,context,output,probe,boundary);
+    return create(root,NULL,NULL,NULL,discover,pinRoot,context,output,probe,boundary,NULL);
+}
+XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV8(xrtownershipref root,XL6_OwnershipProbeV1 probe,
+    XL6_OwnershipDiscoverV1 discover,XL6_OwnershipFinalizationResolveV1 finalization,
+    bool pinRoot,void* context,const XL6_OwnershipBoundaryV1* boundary,XL6_OwnershipPlan** output)
+{
+    if(!probe || !finalization){xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_PLAN_ERROR;}
+    return create(root,NULL,NULL,NULL,discover,pinRoot,context,output,probe,boundary,finalization);
 }
 XL6_OwnershipStepResult xl6OwnershipPlanPrepare(XL6_OwnershipPlan* plan)
 {
@@ -349,26 +365,97 @@ XL6_OwnershipPlanResult xl6OwnershipPlanTryRefresh(XL6_OwnershipPlan* plan)
     if(!freeze_begin(plan->boundary,&freeze))return XL6_OWNERSHIP_PLAN_BUSY;
     result=rebuild(plan);freeze_end(plan->boundary,&freeze);return result;
 }
-XL6_OwnershipStepResult xl6OwnershipPlanFinalizeV2(XL6_OwnershipPlan* plan)
+bool xl6OwnershipPlanRetryFinalizationV1(XL6_OwnershipPlan* plan)
 {
-    if(!plan || (!plan->resolveV2 && !plan->resolveV3 && !plan->probe) || plan->running || plan->committed || plan->finalizerFailed){
+    if(!plan || plan->running || plan->committed || plan->finalizerFailed){xrtSetErrorKind(XERR_STATE);return false;}
+    plan->semanticRetryRequired=false;return true;
+}
+XL6_OwnershipStepResult xl6OwnershipPlanFinalizeStepV1(XL6_OwnershipPlan* plan,bool* semanticFailed)
+{
+    if(!semanticFailed){xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_STEP_ERROR;}
+    *semanticFailed=false;
+    if(!plan || (!plan->resolveV2 && !plan->resolveV3 && !plan->probe) ||
+       plan->running || plan->committed || plan->finalizerFailed){
         xrtSetErrorKind(XERR_STATE);return XL6_OWNERSHIP_STEP_ERROR;
     }
-    size_t budget=plan->count;
-    for(size_t step=0;step<budget;++step){
-        xrtownershipscope freeze={0};XL6_OwnershipPlanResult result;PlanNode* next=NULL;
-        if(!freeze_begin(plan->boundary,&freeze))return XL6_OWNERSHIP_STEP_BUSY;
-        result=rebuild(plan);freeze_end(plan->boundary,&freeze);
-        if(result==XL6_OWNERSHIP_PLAN_ERROR)return XL6_OWNERSHIP_STEP_ERROR;
-        if(result==XL6_OWNERSHIP_PLAN_BUSY)return XL6_OWNERSHIP_STEP_BUSY;
-        if(result!=XL6_OWNERSHIP_PLAN_FINALIZERS)return XL6_OWNERSHIP_STEP_READY;
-        for(size_t i=0;i<plan->count;++i)if(plan->nodes[i].claimed && !plan->nodes[i].finalized){next=&plan->nodes[i];break;}
-        if(!next)abort();
-        plan->running=true;next->finalized=true;
-        bool ok=next->adapter->Finalize(next->ref.Data,plan);plan->running=false;
-        if(!ok){plan->finalizerFailed=true;return XL6_OWNERSHIP_STEP_FAILED;}
+    /* An incomplete failed semantic duty is never replayed by automatic
+     * retirement or by the timeout loop of the same checked drain. */
+    if(plan->semanticRetryRequired)return XL6_OWNERSHIP_STEP_WAITING;
+    xerror* ambient=xrtTakeError();xl6_error_result first={true,NULL};
+    XL6_OwnershipStepResult result=XL6_OWNERSHIP_STEP_READY;
+    /* Every old identity is an anchor in EXACT original order in rebuild();
+     * admit() rejects any identity/descriptor mismatch before publication.
+     * Index+initial count therefore bounds a turn without admitting a new
+     * callback-created peer or invoking a waiting peer twice. */
+    size_t initial=plan->count;bool waiting=false,progressed=false;
+    for(size_t index=0;index<initial;++index){
+        xrtownershipscope freeze={0};
+        if(!freeze_begin(plan->boundary,&freeze)){result=(waiting||progressed)?XL6_OWNERSHIP_STEP_WAITING:XL6_OWNERSHIP_STEP_BUSY;goto done;}
+        XL6_OwnershipPlanResult status=rebuild(plan);
+        if(status==XL6_OWNERSHIP_PLAN_ERROR){freeze_end(plan->boundary,&freeze);result=XL6_OWNERSHIP_STEP_ERROR;goto done;}
+        bool continuing=status==XL6_OWNERSHIP_PLAN_BUSY;
+        if(!continuing && status!=XL6_OWNERSHIP_PLAN_FINALIZERS){
+            freeze_end(plan->boundary,&freeze);goto done;
+        }
+        PlanNode* node=&plan->nodes[index];
+        bool invoke=node->held && node->claimed && !node->reachable && !node->finalized;
+        if(continuing)invoke=invoke && node->finalization && node->finalizationStarted;
+        if(invoke && node->finalization && !node->finalization->CanStep(node->ref.Data,plan)){
+            invoke=false;waiting=true;
+        }
+        freeze_end(plan->boundary,&freeze);
+        if(!invoke){if(continuing)waiting=true;continue;}
+        xl6_error_scope errors={0};
+        if(!xl6ErrorScopeBegin(&errors)){result=XL6_OWNERSHIP_STEP_ERROR;goto done;}
+        plan->running=true;
+        if(node->finalization){
+            node->finalizationStarted=true;progressed=true;bool complete=false;
+            bool ok=node->finalization->Step(node->ref.Data,plan,&complete);
+            plan->running=false;node->finalized=complete;
+            if(!ok || xrtGetError())xl6ErrorScopeCaptureFailure(&errors);
+            xl6_error_result outcome=xl6ErrorScopeEnd(&errors);
+            if(!outcome.ok){
+                /* A separate failed bit retains even NULL. A later snapshot
+                 * OOM or peer cleanup cannot replace this first outcome. */
+                first=outcome;
+                if(!complete){plan->semanticRetryRequired=true;result=XL6_OWNERSHIP_STEP_WAITING;goto done;}
+                /* This duty is definitely consumed. Revalidate before Clear,
+                 * but neither replay it nor run another semantic callback in
+                 * the same failed turn. */
+                break;
+            }
+            xrtErrorFree(outcome.error);if(!complete)waiting=true;
+        }else{
+            /* The V1 synchronous finalizer is still attempted at most once.
+             * Its false result is terminal, never a resumable wait. */
+            node->finalized=true;
+            bool ok=!node->adapter->Finalize || node->adapter->Finalize(node->ref.Data,plan);
+            plan->running=false;
+            if(!ok || xrtGetError())xl6ErrorScopeCaptureFailure(&errors);
+            xl6_error_result outcome=xl6ErrorScopeEnd(&errors);
+            if(!outcome.ok){plan->finalizerFailed=true;first=outcome;result=XL6_OWNERSHIP_STEP_FAILED;goto done;}
+            xrtErrorFree(outcome.error);
+        }
     }
-    return XL6_OWNERSHIP_STEP_BUSY;
+    { xrtownershipscope freeze={0};
+      if(!freeze_begin(plan->boundary,&freeze)){result=(waiting||progressed)?XL6_OWNERSHIP_STEP_WAITING:XL6_OWNERSHIP_STEP_BUSY;goto done;}
+      XL6_OwnershipPlanResult status=rebuild(plan);freeze_end(plan->boundary,&freeze);
+      if(status==XL6_OWNERSHIP_PLAN_ERROR)result=XL6_OWNERSHIP_STEP_ERROR;
+      else if(status==XL6_OWNERSHIP_PLAN_BUSY)result=(waiting||progressed)?XL6_OWNERSHIP_STEP_WAITING:XL6_OWNERSHIP_STEP_BUSY;
+      else if(status==XL6_OWNERSHIP_PLAN_FINALIZERS)result=XL6_OWNERSHIP_STEP_WAITING;
+    }
+done:
+    *semanticFailed=!first.ok;
+    if(!first.ok){xrtErrorFree(ambient);xrtClearError();xrtSetErrorTake(first.error);}
+    else if(ambient){xrtClearError();xrtSetErrorTake(ambient);}
+    return result;
+}
+XL6_OwnershipStepResult xl6OwnershipPlanFinalizeV2(XL6_OwnershipPlan* plan)
+{
+    bool failed=false;XL6_OwnershipStepResult result=xl6OwnershipPlanFinalizeStepV1(plan,&failed);
+    /* The old result cannot honestly describe a side-effecting WAIT. Require
+     * explicit consumers to use the new orthogonal API; retain actual owners. */
+    return failed || result==XL6_OWNERSHIP_STEP_WAITING ? XL6_OWNERSHIP_STEP_FAILED:result;
 }
 bool xl6OwnershipPlanFinalize(XL6_OwnershipPlan* plan)
 {
@@ -391,6 +478,7 @@ XL6_OwnershipPlanResult xl6OwnershipPlanTryCommit(XL6_OwnershipPlan* plan)
     if(!plan || plan->running || plan->committed || plan->finalizerFailed){xrtSetErrorKind(XERR_STATE);return XL6_OWNERSHIP_PLAN_ERROR;}
     if(!freeze_begin(plan->boundary,&freeze))return XL6_OWNERSHIP_PLAN_BUSY;
     result=rebuild(plan);
+    if(result==XL6_OWNERSHIP_PLAN_READY && plan->semanticRetryRequired)result=XL6_OWNERSHIP_PLAN_FINALIZERS;
     if(result==XL6_OWNERSHIP_PLAN_READY){
         for(size_t i=0;i<plan->count;++i){PlanNode* node=&plan->nodes[i];if(node->claimed)node->adapter->Clear(node->ref.Data,plan);}
         plan->committed=true;

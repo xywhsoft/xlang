@@ -2932,6 +2932,12 @@ static XL6_OwnershipAdmissionV1 xlModuleProbeOwnershipV1(xrtownershipref ref,voi
     return module ? xl6OwnershipCatalogProbeV1(ref,module->ownershipCatalog,adapter,preparation,completion)
         : XL6_OWNERSHIP_ADMISSION_REFUSED;
 }
+static bool xlModuleFinalizationOwnershipV1(xrtownershipref ref,void* context,
+    const XL6_OwnershipAdapterV1* adapter,const xrtownershipfinalizationv1** output)
+{
+    const XL_Module* module=context;
+    return xl6OwnershipCatalogResolveFinalizationV1(ref,module->ownershipCatalog,adapter,output);
+}
 /* Every host-module snapshot needs API state exclusion, including modules
  * which never import xlang. The probe remains nonblocking; callbacks run
  * after releasing both this boundary and the XRT ownership freeze. */
@@ -2958,6 +2964,19 @@ static XL6_OwnershipStepResult xlModuleOwnershipStepV2(XL6_OwnershipPlan* plan,
     }
     return status;
 }
+static XL6_OwnershipStepResult xlModuleOwnershipFinalizeStep(XL6_OwnershipPlan* plan,xl6_error_result* outcome)
+{
+    xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))abort();
+    bool failed=false;XL6_OwnershipStepResult status=xl6OwnershipPlanFinalizeStepV1(plan,&failed);
+    if(failed || status==XL6_OWNERSHIP_STEP_FAILED)xl6ErrorScopeCaptureFailure(&scope);
+    bool semanticFailure=scope.failed;*outcome=xl6ErrorScopeEnd(&scope);
+    if(status==XL6_OWNERSHIP_STEP_ERROR && !semanticFailure){xrtErrorFree(outcome->error);*outcome=(xl6_error_result){true,NULL};}
+    return status;
+}
+static void xlModuleOwnershipMergeOutcome(xl6_error_result* first,xl6_error_result next)
+{
+    if(!next.ok && first->ok)*first=next;else xrtErrorFree(next.error);
+}
 static bool xlModuleDiscoverOwnership(XL6_ModuleOwnershipVisit visit,void* visitorContext,void* context)
 {
     const XL_Module* module=context;size_t count;
@@ -2977,8 +2996,8 @@ static void xlModuleAdvanceOwnershipUnlocked(XL_Module* module)
     module->ownershipAdmissionRefused=0;
     if (!module->ownershipPlan) {
         const XL6_OwnershipBoundaryV1* boundary=xl6OwnershipCatalogBoundaryV1Get(module->ownershipCatalog);
-        result = xl6OwnershipPlanTryCreateV7((xrtownershipref){module, &xlModuleOwnershipOps},
-            xlModuleProbeOwnershipV1, xlModuleDiscoverOwnership, false, module,
+        result = xl6OwnershipPlanTryCreateV8((xrtownershipref){module, &xlModuleOwnershipOps},
+            xlModuleProbeOwnershipV1, xlModuleDiscoverOwnership, xlModuleFinalizationOwnershipV1, false, module,
             boundary ? boundary : &xlModuleApiBoundary, &module->ownershipPlan);
         if (result <= XL6_OWNERSHIP_PLAN_BUSY) {
             module->ownershipAdmissionRefused=result==XL6_OWNERSHIP_PLAN_ERROR;goto done;
@@ -2989,20 +3008,22 @@ static void xlModuleAdvanceOwnershipUnlocked(XL_Module* module)
     /* A bounded driver turn. New semantic duties can request another pass;
      * BUSY/failure keeps the exact plan and real pins in the registry. */
     if (module->ownershipPhase == 6) {
-        XL6_OwnershipStepResult prepared;
+        XL6_OwnershipStepResult prepared;xl6_error_result stage={true,NULL};
         xlApiUnlock();
-        prepared=xlModuleOwnershipStepV2(module->ownershipPlan,xl6OwnershipPlanPrepare,&outcome);xlApiLock();
+        prepared=xlModuleOwnershipStepV2(module->ownershipPlan,xl6OwnershipPlanPrepare,&stage);xlApiLock();
+        xlModuleOwnershipMergeOutcome(&outcome,stage);
         if(prepared==XL6_OWNERSHIP_STEP_ERROR)module->ownershipAdmissionRefused=1;
         if(!outcome.ok || prepared==XL6_OWNERSHIP_STEP_ERROR)module->ownershipPhase=5;
         else if(prepared==XL6_OWNERSHIP_STEP_READY)module->ownershipPhase=1;
         else goto done;
     }
     if (module->ownershipPhase == 1) {
-        XL6_OwnershipStepResult finalized;
-        xlApiUnlock();finalized=xlModuleOwnershipStepV2(module->ownershipPlan,xl6OwnershipPlanFinalizeV2,&outcome);xlApiLock();
-        if(finalized==XL6_OWNERSHIP_STEP_ERROR)module->ownershipAdmissionRefused=1;
-        if(!outcome.ok || finalized==XL6_OWNERSHIP_STEP_ERROR)module->ownershipPhase=5;
-        else if(finalized==XL6_OWNERSHIP_STEP_BUSY)goto done;
+        XL6_OwnershipStepResult finalized;xl6_error_result stage={true,NULL};
+        xlApiUnlock();finalized=xlModuleOwnershipFinalizeStep(module->ownershipPlan,&stage);xlApiLock();
+        xlModuleOwnershipMergeOutcome(&outcome,stage);
+        if(finalized==XL6_OWNERSHIP_STEP_ERROR){module->ownershipAdmissionRefused=1;goto done;}
+        if(finalized==XL6_OWNERSHIP_STEP_FAILED)module->ownershipPhase=5;
+        else if(finalized==XL6_OWNERSHIP_STEP_BUSY || finalized==XL6_OWNERSHIP_STEP_WAITING)goto done;
         else module->ownershipPhase=2;
     }
     if (module->ownershipPhase == 2) {
@@ -3014,15 +3035,21 @@ static void xlModuleAdvanceOwnershipUnlocked(XL_Module* module)
         else if (result != XL6_OWNERSHIP_PLAN_BUSY) module->ownershipPhase = 5;
     }
     if (module->ownershipPhase == 3) {
-        XL6_OwnershipStepResult finished;
-        xlApiUnlock(); finished = xlModuleOwnershipStepV2(module->ownershipPlan, xl6OwnershipPlanFinishV2, &outcome); xlApiLock();
+        XL6_OwnershipStepResult finished;xl6_error_result stage={true,NULL};
+        xlApiUnlock(); finished = xlModuleOwnershipStepV2(module->ownershipPlan, xl6OwnershipPlanFinishV2, &stage); xlApiLock();
+        bool finishedOk=stage.ok;xlModuleOwnershipMergeOutcome(&outcome,stage);
         if(finished==XL6_OWNERSHIP_STEP_ERROR)module->ownershipAdmissionRefused=1;
-        if (outcome.ok && finished == XL6_OWNERSHIP_STEP_READY) module->ownershipPhase = 4;
+        if (finishedOk && finished == XL6_OWNERSHIP_STEP_READY) module->ownershipPhase = 4;
     }
     if (module->ownershipPhase == 4 || module->ownershipPhase == 5) {
         /* Abort restores quarantine under its Freeze. Drop may invoke host
          * release hooks, so the API mutex must not span this operation. */
+        xl6_error_scope dropping={0};if(!xl6ErrorScopeBegin(&dropping))abort();
         xlApiUnlock(); result = xl6OwnershipPlanTryDestroy(module->ownershipPlan); xlApiLock();
+        bool dropFailed=dropping.failed;
+        xl6_error_result dropOutcome=xl6ErrorScopeEnd(&dropping);
+        if(result==XL6_OWNERSHIP_PLAN_ERROR && !dropFailed){xrtErrorFree(dropOutcome.error);dropOutcome=(xl6_error_result){true,NULL};}
+        xlModuleOwnershipMergeOutcome(&outcome,dropOutcome);
         if(result==XL6_OWNERSHIP_PLAN_ERROR)module->ownershipAdmissionRefused=1;
         if (result == XL6_OWNERSHIP_PLAN_READY) {
             module->ownershipPlan = NULL; module->ownershipPhase = 0;
@@ -3219,8 +3246,11 @@ XL_RuntimeDrainResult xlRuntimeDrainRetiringChecked(long long milliseconds)
      * Acknowledge only the initial batch; new tails created by cleanup callbacks
      * need a later explicit drain rather than being cleared inside this loop. */
     xlApiLock();
-    for(XL_Module* module=xl__retiringModules;module;module=module->retirementNext)
+    for(XL_Module* module=xl__retiringModules;module;module=module->retirementNext){
         module->nativeTailRetirementPending=0;
+        if(!xl__ownershipDriverRunning && module->ownershipPlan && module->ownershipPhase==1 &&
+           !xl6OwnershipPlanRetryFinalizationV1(module->ownershipPlan))xl6ErrorScopeCaptureFailure(&scope);
+    }
     xlApiUnlock();
     uint64 timeout=milliseconds<0 ? UINT64_MAX : (uint64)milliseconds;
     XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(timeout);

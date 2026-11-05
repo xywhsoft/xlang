@@ -35,6 +35,14 @@ int main(void)
         {"xl6ClosureRuntimeV4Get",XL6_ARTIFACT_CLOSURE_CAPTURE_V4},
         {"xl6CellCreateGraphV1",XL6_ARTIFACT_CELL},
         {"xl6CellCreateNativeGraphV3",XL6_ARTIFACT_CELL_NATIVE_GRAPH},
+        {"xl6OwnershipPlanTryCreateV7",XL6_ARTIFACT_OWNERSHIP_PLAN},
+        {"xl6OwnershipPlanTryCreateV8",XL6_ARTIFACT_OWNERSHIP_PLAN},
+        {"xl6OwnershipPlanFinalizeStepV1",XL6_ARTIFACT_OWNERSHIP_PLAN},
+        {"xl6OwnershipPlanRetryFinalizationV1",XL6_ARTIFACT_OWNERSHIP_PLAN},
+        {"xl6OwnershipCatalogAddFinalizationV1",XL6_ARTIFACT_OWNERSHIP_CATALOG},
+        {"xl6OwnershipCatalogResolveFinalizationV1",XL6_ARTIFACT_OWNERSHIP_CATALOG},
+        {"xl6StaticModuleCreateV3",XL6_ARTIFACT_STATIC_MODULE},
+        {"xl6StaticModuleCreateV4",XL6_ARTIFACT_STATIC_MODULE},
         {"xl6NativeGraphFuturePayloadRuntimeV1Get",XL6_ARTIFACT_NATIVE_GRAPH_FUTURE_PAYLOAD},
         {"xl6OwnershipDomainNativeGraphFuturePayloadV1Get",XL6_ARTIFACT_OWNERSHIP_DOMAIN_NATIVE_GRAPH_FUTURE_PAYLOAD}};
     for(size_t i=0;i<sizeof(symbols)/sizeof(symbols[0]);++i){
@@ -59,7 +67,8 @@ int main(void)
     /* A generic graph storage capability does not pull in a UI view registry. */
     const unsigned generic[]={XL6_ARTIFACT_CELL,XL6_ARTIFACT_CLOSURE,XL6_ARTIFACT_CODE_FINALIZER,
         XL6_ARTIFACT_NATIVE_CAPTURE_GRAPH,XL6_ARTIFACT_CAPTURE_V3,XL6_ARTIFACT_CLOSURE_CAPTURE_V4,
-        XL6_ARTIFACT_CELL_NATIVE_GRAPH,XL6_ARTIFACT_NATIVE_GRAPH_FUTURE_PAYLOAD};
+        XL6_ARTIFACT_CELL_NATIVE_GRAPH,XL6_ARTIFACT_NATIVE_GRAPH_FUTURE_PAYLOAD,
+        XL6_ARTIFACT_OWNERSHIP_PLAN,XL6_ARTIFACT_OWNERSHIP_CATALOG,XL6_ARTIFACT_STATIC_MODULE};
     for(size_t i=0;i<sizeof(generic)/sizeof(generic[0]);++i)require(generic[i],XL6_ARTIFACT_FOREIGN_VIEW,false);
     require(XL6_ARTIFACT_SEQUENCE,XL6_ARTIFACT_FOREIGN_VIEW_SEQUENCE,false);
     puts("native component catalog: exact symbol owners, complete callback dependencies, unique sources and generic/view separation passed");return 0;

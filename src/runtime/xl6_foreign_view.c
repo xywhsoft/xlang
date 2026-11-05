@@ -122,9 +122,12 @@ static bool viewDescriptorValid(const XL6_ForeignViewDescriptorV1* d,bool root)
 {
     if (!d || d->size!=sizeof(*d) || d->abiTag!=XL6_FOREIGN_VIEW_V1_TAG ||
         !d->family || !*d->family || !d->Destroy || !!d->Watch!=!!d->Unwatch ||
-        (d->flags&~(XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY|XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH|XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE|XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE)) ||
+        (d->flags&~(XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY|XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH|XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE|XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE|XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE)) ||
         ((d->flags&XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE) && (!root || !d->Busy || !d->CallBegin)) ||
         ((d->flags&XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE) && !root) ||
+        ((d->flags&XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE) &&
+         (!root || !(d->flags&XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE) ||
+          !(d->flags&XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE))) ||
         (d->RequestClose && !root) ||
         ((d->flags&XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH) && (!root || !d->Watch)) ||
         ((d->flags&XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY) && (!root || !d->CallBegin || !d->CallEnd)) ||
@@ -790,6 +793,7 @@ static bool viewFinalize(const void* raw,const void* token)
     if (!token || view->claim!=token || view->cleared || !viewReady(view)) return false;
     /* Borrowed children do not independently consume a root-owned C payload. */
     if(view->owner)return true;
+    if(!view->raw && !view->binding)return xl6ForeignViewThrowIfCallbackFailedV1(view);
     /* Logical acceptance is not owner consumption. A deferred destructor
      * must never authorize Clear while its actual native payload is alive. */
     return xl6ForeignViewCloseV1(view) && !view->raw;
@@ -805,6 +809,72 @@ static bool viewFinish(const void* raw,const void* token)
     const XL6_ForeignView* view=raw;
     return token && view->claim==token && view->cleared && !view->raw && !view->binding;
 }
+/* Remove only this already consumed owner's queued bookkeeping. The plan
+ * still owns its physical pin; callbacks for unrelated queued peers must not
+ * run as a side effect of one semantic Step. */
+static void viewFinalizationDetach(XL6_ForeignView* view)
+{
+    if(view->raw)return;
+    xrtownershipscope mutation={0};viewMutationBegin(&mutation);viewLockEnter();
+    bool queued=false;
+    if(view->work){
+        XL6_ForeignView** slot=&viewWork;
+        while(*slot && *slot!=view)slot=&(*slot)->workNext;
+        if(*slot!=view)abort();
+        *slot=view->workNext;if(!view->workNext)viewWorkTail=slot;
+        view->workNext=NULL;view->work=0;queued=true;
+        if(!xrtAtomic64FetchSub(&viewQueued,1,XMEMORY_ACQ_REL))abort();
+    }
+    viewLockLeave();viewMutationEnd(&mutation);
+    viewDetach(view);if(queued)viewDrop(view);
+}
+static bool viewFinalizationCanStep(const void* raw,const void* token)
+{
+    const XL6_ForeignView* view=raw;
+    return view && token && view->thread==xrtThreadCurrentId() &&
+        view->claim==token && !view->cleared && view->prepared &&
+        !view->owner && !view->unadopted && !xrtAtomic32Load(&view->active,XMEMORY_ACQUIRE);
+}
+static bool viewFinalizationStep(const void* raw,const void* token,bool* complete)
+{
+    XL6_ForeignView* view=(XL6_ForeignView*)raw;
+    if(!complete){xrtSetErrorKind(XERR_ARGUMENT);return false;}*complete=false;
+    if(!viewFinalizationCanStep(view,token)){xrtSetErrorKind(XERR_STATE);return false;}
+    xl6_error_scope errors={0};if(!xl6ErrorScopeBegin(&errors))return false;
+    if(!xl6ForeignViewThrowIfCallbackFailedV1(view))xl6ErrorScopeCaptureFailure(&errors);
+    bool cancelled=false;
+    if(!viewDestroyNative(view,false,&cancelled) || xrtGetError())xl6ErrorScopeCaptureFailure(&errors);
+    *complete=view->raw==NULL;
+    if(*complete){
+        /* Native owner consumption also physically invalidates its borrowed
+         * children. Balance their detached binding/queue references without
+         * invoking another semantic destructor or draining unrelated roots. */
+        for(;;){
+            xrtownershipscope mutation={0};viewMutationBegin(&mutation);
+            XL6_ForeignView* child=view->children;
+            while(child && child->raw)child=child->next;
+            if(child && (child->owner!=view || !viewHold(child)))abort();
+            viewMutationEnd(&mutation);
+            if(!child)break;
+            viewFinalizationDetach(child);viewDrop(child);
+            /* A final code-lease Drop may reenter cleanup. Rescan the actual
+             * live directory; no cached unpinned next pointer crosses it. */
+        }
+        viewFinalizationDetach(view);
+    }
+    if(xrtGetError())xl6ErrorScopeCaptureFailure(&errors);
+    return viewPublish(xl6ErrorScopeEnd(&errors));
+}
+/* Legacy planners must fail closed before doing any resumable semantic work.
+ * The distinct immutable adapter prevents capability erasure by V1 consumers. */
+static bool viewFinalizationLegacyReject(const void* raw,const void* token)
+{(void)raw;(void)token;return false;}
+static const xrtownershipadapterv1 viewContinuationAdapter={sizeof(viewContinuationAdapter),viewHold,viewDrop,
+    viewClaim,viewRestore,viewFinalizationLegacyReject,viewClear,viewFinish};
+static const xrtownershippreparationv1 viewContinuationPreparation={sizeof(viewContinuationPreparation),
+    &viewContinuationAdapter,viewReady,viewPrepare};
+static const xrtownershipfinalizationv1 viewFinalization={sizeof(viewFinalization),
+    XRT_OWNERSHIP_FINALIZATION_V1_TAG,&viewContinuationAdapter,viewFinalizationCanStep,viewFinalizationStep};
 static const xrtownershipadapterv1 viewAdapter={sizeof(viewAdapter),viewHold,viewDrop,
     viewClaim,viewRestore,viewFinalize,viewClear,viewFinish};
 static const xrtownershippreparationv1 viewPreparation={sizeof(viewPreparation),&viewAdapter,viewReady,viewPrepare};
@@ -815,7 +885,8 @@ static bool viewDomainLoad(XL6_OwnershipCatalog* catalog)
 {
     static const XL6_OwnershipDiscoveryV1 discovery={sizeof(discovery),viewDomainDiscover,NULL};
     return xl6OwnershipCatalogAddQuiescenceV1(catalog,&viewQuiescence) &&
-        xl6OwnershipCatalogAddDiscoveryV1(catalog,&discovery);
+        xl6OwnershipCatalogAddDiscoveryV1(catalog,&discovery) &&
+        xl6OwnershipCatalogAddFinalizationV1(catalog,&viewFinalization);
 }
 /* Freeze-only query of leased native capabilities. Failure also stays
  * allocation-free: the caller's snapshot/checked boundary owns diagnostics. */
@@ -856,7 +927,10 @@ static bool viewDomainResolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1*
     (void)policies;
     if(!ref.Data || !ref.Ops)return false;
     if(ref.Ops==&viewOps){
-        *adapter=&viewAdapter;*preparation=&viewPreparation;*finish=NULL;return true;
+        const XL6_ForeignView* view=ref.Data;
+        bool continuation=(view->descriptor.flags&XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE)!=0;
+        *adapter=continuation?&viewContinuationAdapter:&viewAdapter;
+        *preparation=continuation?&viewContinuationPreparation:&viewPreparation;*finish=NULL;return true;
     }
     return viewNativeDomainQuery(ref,false,adapter,preparation,finish);
 }

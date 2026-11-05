@@ -4,6 +4,7 @@
 #include "src/common/xl6_xrt.h"
 #include "xl6_ownership_catalog.h"
 #include "xl6_ownership_completion.h"
+#include "xl6_ownership_finalization.h"
 #include "xl6_native_handle.h"
 #include "src/api/xl_foreign_error.h"
 #include <string.h>
@@ -129,6 +130,14 @@ XL6_OwnershipCatalog* xl6OwnershipCatalogCreateV1(
         const XL6_OwnershipDiscoveryV1* discovery=catalog->Discovery[i];
         if(discovery->size!=sizeof(*discovery) || !discovery->Discover){xrtSetErrorKind(XERR_ARGUMENT);goto failed;}
     }
+    for(size_t i=0;i<catalog->policies.FinalizationCount;++i){
+        const xrtownershipfinalizationv1* semantic=catalog->Finalization[i];
+        if(!xl6OwnershipFinalizationValidV1(semantic,NULL)){
+            xrtSetErrorKind(XERR_ARGUMENT);goto failed;
+        }
+        for(size_t j=0;j<i;++j)if(catalog->Finalization[j]->Adapter==semantic->Adapter &&
+            catalog->Finalization[j]!=semantic){xrtSetErrorKind(XERR_STATE);goto failed;}
+    }
     catalog->combinedBoundary=(XL6_OwnershipBoundaryV1){sizeof(catalog->combinedBoundary),
         catalogBoundaryEnter,catalogBoundaryLeave,catalogBoundaryDiscover,catalog};
     catalog->building=false;
@@ -205,4 +214,22 @@ bool xl6OwnershipCatalogAdmitsReadV1(xrtownershipref ref,void* data)
     for(size_t i=0;i<catalog->count;++i)
         if(catalog->domains[i]->AdmitsRead && catalog->domains[i]->AdmitsRead(ref))return true;
     return false;
+}
+
+bool xl6OwnershipCatalogResolveFinalizationV1(xrtownershipref ref,void* data,
+    const XL6_OwnershipAdapterV1* adapter,const xrtownershipfinalizationv1** output)
+{
+    (void)ref;
+    if(!output)return false;
+    *output=NULL;const XL6_OwnershipCatalog* catalog=data;
+    if(!catalog || catalog->building || !adapter)return false;
+    const xrtownershipfinalizationv1* selected=NULL;
+    for(size_t i=0;i<catalog->policies.FinalizationCount;++i){
+        const xrtownershipfinalizationv1* value=catalog->Finalization[i];
+        if(!xl6OwnershipFinalizationValidV1(value,NULL))return false;
+        if(value->Adapter!=adapter)continue;
+        if(selected && selected!=value)return false;
+        selected=value;
+    }
+    *output=selected;return true;
 }
