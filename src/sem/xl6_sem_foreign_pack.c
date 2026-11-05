@@ -31,7 +31,7 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
 {
     const XL6_AstNode* params=xl6SemExternFuncParams(node);size_t count=params ? params->childCount:0;
     size_t packCount=0,fieldCount=0;uint64 consumed=0;
-    if(!xl6ForeignInputHasPacks(facts->inputMappingFacts))return 1;
+    if(!xl6ForeignInputHasPacks(facts->inputMappingFacts) && !xl6ForeignInputHasNulls(facts->inputMappingFacts))return 1;
     char header[256]={0};XL6_ForeignClassDecl owner={0};
     if(ownerClass && xl6ForeignClassRead(ownerClass,&owner,NULL)==1)strcpy(header,owner.header);
     for(size_t i=0;attrs && i<attrs->childCount;++i)if(xl6ForeignFunctionHeaderRead(attrs->children[i],header,sizeof(header)))break;
@@ -58,7 +58,12 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
             ++fields;++fieldCount;
             for(size_t old=0;old<f;++old){XL6_ForeignPackFieldContract previous;
                 if(xl6ForeignPackFieldRead(attrs->children[old],&previous) && previous.packPhysicalIndex==field.packPhysicalIndex && !strcmp(previous.field,field.field))goto invalid;}
-            if(field.kind==XL6_FOREIGN_PACK_FIELD_SIZEOF)continue;
+            size_t parent=xl6ForeignPackParentLength(field.field),parents=0;
+            for(size_t nested=0;nested<attrs->childCount;++nested){XL6_ForeignPackFieldContract witness;
+                if(xl6ForeignPackFieldRead(attrs->children[nested],&witness) && witness.packPhysicalIndex==field.packPhysicalIndex &&
+                    witness.kind==XL6_FOREIGN_PACK_FIELD_RECORD && strlen(witness.field)==parent && !strncmp(witness.field,field.field,parent))++parents;}
+            if(parent ? parents!=1:parents!=0)goto invalid;
+            if(field.kind==XL6_FOREIGN_PACK_FIELD_SIZEOF || field.kind==XL6_FOREIGN_PACK_FIELD_RECORD)continue;
             size_t p=field.parameter;if(p<pack.firstParameter || p-pack.firstParameter>=pack.parameterCount)goto invalid;
             const XL6_AstNode* type=xl6SemResolveAliasType(ctx,params->children[p]->children[0]);
             const XL6_AstNode* inner=type && xl6SemTypeIsNullable(type) ? xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(type)):type;
@@ -84,16 +89,23 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
         uint64 expected=pack.parameterCount==64 ? UINT64_MAX:((UINT64_C(1)<<pack.parameterCount)-1)<<pack.firstParameter;
         if(!fields || used!=expected || textData!=textSize || spanData!=spanCount)goto invalid;
     }
-    if(!packCount || !fieldCount)goto invalid;
+    if((packCount!=0)!=(fieldCount!=0))goto invalid;
     {
         size_t receiver=(node->kind==XL6_AST_NATIVE_EXTERN_FUNC || node->kind==XL6_AST_GET || node->kind==XL6_AST_LET) &&
             !(node->flags&XL6_AST_FLAG_STATIC) ? 1u:0u;
         uint32 outputs[64];size_t outputCount;
         if(!xl6ForeignPhysicalOutputSlots(node,facts,outputs,&outputCount))goto invalid;
         size_t steps=xl6ForeignPhysicalStepCount(node,count+receiver,outputCount);
-        if(steps>count+receiver+outputCount)goto invalid;
+        if(steps>count+receiver+outputCount+64)goto invalid;
         for(size_t i=0;i<steps;++i)
             if(!xl6ForeignPhysicalStepRead(node,facts,count+receiver,receiver,outputs,outputCount,i,NULL))goto invalid;
+        for(size_t a=0;attrs && a<attrs->childCount;++a){XL6_ForeignNullContract nullRow;
+            if(!xl6ForeignNullRead(attrs->children[a],&nullRow))continue;
+            size_t found=0;for(size_t i=0;i<steps;++i){XL6_ForeignPhysicalStep step;
+                if(!xl6ForeignPhysicalStepRead(node,facts,count+receiver,receiver,outputs,outputCount,i,&step))goto invalid;
+                found+=step.kind==XL6_FOREIGN_PHYSICAL_STEP_NULL && step.physicalIndex==nullRow.physicalIndex;}
+            if(found!=1 || (receiver && !nullRow.physicalIndex))goto invalid;
+        }
         if(receiver<64 && ((consumed<<receiver)&facts->controlViews))goto invalid;
         for(size_t a=0;attrs && a<attrs->childCount;++a){uint32 qualifier;XL6_ForeignValueContract value;
             if(xl6ForeignPointerQualifierRead(attrs->children[a],&qualifier) && qualifier>=receiver &&

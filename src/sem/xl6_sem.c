@@ -9221,6 +9221,7 @@ static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* 
             xl6ForeignValueOutputIsRecord(left.valueOutput) || xl6ForeignValueOutputIsRecord(right.valueOutput) ||
             xl6SemForeignHasRetainedOutputs(a) || xl6SemForeignHasRetainedOutputs(b) ||
             xl6ForeignInputHasPacks(left.inputMappingFacts) || xl6ForeignInputHasPacks(right.inputMappingFacts) ||
+            xl6ForeignInputHasNulls(left.inputMappingFacts) || xl6ForeignInputHasNulls(right.inputMappingFacts) ||
             xl6ForeignInputHasRegions(left.inputMappingFacts) || xl6ForeignInputHasRegions(right.inputMappingFacts)) &&
             (!xl6ForeignCallFactsEqual(&left,&right) || !xl6SemForeignAttributesEqual(a,b) ||
              ((a->flags^b->flags)&(XL6_AST_FLAG_STATIC|XL6_AST_FLAG_FOREIGN_OWNED_STRING|XL6_AST_FLAG_FOREIGN_PURE|
@@ -21847,7 +21848,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             int found=0;
             for(size_t a=0;attrs && a<attrs->childCount;++a)
                 if(xl6ForeignMultiOutputRead(attrs->children[a],slots,&outputs))++found;
-            if(found!=1 || (!xl6ForeignInputHasPacks(facts.inputMappingFacts) && !xl6ForeignInputHasArrayGroups(facts.inputMappingFacts) && !xl6ForeignMultiOutputSlotsValid(&facts,count+receiver,receiver,slots,outputs))){
+            if(found!=1 || (!xl6ForeignInputHasPacks(facts.inputMappingFacts) && !xl6ForeignInputHasArrayGroups(facts.inputMappingFacts) && !xl6ForeignInputHasNulls(facts.inputMappingFacts) && !xl6ForeignMultiOutputSlotsValid(&facts,count+receiver,receiver,slots,outputs))){
                 xl6SemErrorNode(ctx,node,"@c_outputs requires complete increasing physical slots outside expanded parameter groups");return 0;
             }
         }

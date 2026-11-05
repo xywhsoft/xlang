@@ -2494,6 +2494,7 @@ void xl6IrModuleFree(XL6_IrModule* module)
     xrtFree(module->foreignRegionObservers);
     xrtFree(module->foreignPacks);
     xrtFree(module->foreignPackFields);
+    xrtFree(module->foreignNulls);
     xrtFree(module->foreignArrayGroups);
     xrtFree(module->foreignArrayInputs);
     xrtFree(module->foreignArrayFields);
@@ -4499,7 +4500,13 @@ static XL6_IrNodeId xl6IrBuildAstNode(
             if(source->kind==XL6_AST_NATIVE_EXTERN_FUNC && !(source->flags&XL6_AST_FLAG_STATIC))++row.firstParameter;
             module->foreignPacks[module->foreignPackCount++]=row;continue;
         }
-        if(declaration && declaration->text && (!strcmp(declaration->text,"c_pack_field") || !strcmp(declaration->text,"c_pack_size"))){
+        if(declaration && declaration->text && !strcmp(declaration->text,"c_null")){
+            XL6_ForeignNullContract row;
+            if(!xl6ForeignNullRead(declaration,&row) || !xl6IrGrow((void**)&module->foreignNulls,&module->foreignNullCapacity,
+                module->foreignNullCount,sizeof(*module->foreignNulls))){*ok=0;return 0;}
+            row.declaration=id;module->foreignNulls[module->foreignNullCount++]=row;continue;
+        }
+        if(declaration && declaration->text && (!strcmp(declaration->text,"c_pack_field") || !strcmp(declaration->text,"c_pack_size") || !strcmp(declaration->text,"c_pack_record"))){
             XL6_ForeignPackFieldContract row;
             if(!xl6ForeignPackFieldRead(declaration,&row) || !xl6IrGrow((void**)&module->foreignPackFields,&module->foreignPackFieldCapacity,
                 module->foreignPackFieldCount,sizeof(*module->foreignPackFields))){*ok=0;return 0;}
@@ -23197,6 +23204,7 @@ int xl6IrCFunctionAddressTargetMatches(const XL6_IrModule* module,
         target->nativeServicesRequired || target->nativeContextAbi || target->nativeResultAbi || target->nativeArrayResultAbi ||
         declaration->foreignCall.outputIndexPlusOne || target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
         xl6ForeignInputHasPacks(declaration->foreignCall.inputMappingFacts) ||
+        xl6ForeignInputHasNulls(declaration->foreignCall.inputMappingFacts) ||
         target->parameterCount != signature->paramCount || target->returnType != signature->callableResultType) return 0;
     if (target->kind == XL6_IR_CALL_TARGET_INTERNAL) {
         /* No lexical environment, receiver, argument defaults frame or coroutine. */
@@ -40466,7 +40474,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         }
         if (!xl6IrCallResultCAbiMatches(module,target))
             return xl6IrDiag(diags,NULL,"XLIR call target has no exact native C result signature");
-        if(declaration && xl6ForeignInputHasPacks(declaration->foreignCall.inputMappingFacts) && !xl6IrForeignPacksMatch(module,target))
+        if(declaration && (xl6ForeignInputHasPacks(declaration->foreignCall.inputMappingFacts) || xl6ForeignInputHasNulls(declaration->foreignCall.inputMappingFacts)) && !xl6IrForeignPacksMatch(module,target))
             return xl6IrDiag(diags,NULL,"XLIR native descriptor inputs disagree with their closed logical and physical contracts");
         if(!xl6IrForeignArrayGroupsMatch(module,target))
             return xl6IrDiag(diags,NULL,"XLIR native Array inputs disagree with their typed projection contracts");
@@ -54448,8 +54456,12 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     }
     xl6OutputPuts("  ],\n  \"foreignPackFields\": [\n",out);
     for(i=0;i<module->foreignPackFieldCount;++i){const XL6_ForeignPackFieldContract* row=&module->foreignPackFields[i];
-        xl6OutputPrintf(out,"    {\"declaration\":%u,\"packPhysicalIndex\":%u,\"parameter\":%u,\"logicalType\":%u,\"kind\":%u,\"countAbi\":%u,\"field\":\"%s\",\"physicalCName\":\"%s\"}%s\n",
-            row->declaration,row->packPhysicalIndex,row->parameter,row->logicalType,(unsigned)row->kind,(unsigned)row->countAbi,row->field,row->physicalCName,i+1==module->foreignPackFieldCount ? "":",");
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"packPhysicalIndex\":%u,\"parameter\":%u,\"logicalType\":%u,\"kind\":%u,\"countAbi\":%u,\"parentRow\":%u,\"field\":\"%s\",\"physicalCName\":\"%s\"}%s\n",
+            row->declaration,row->packPhysicalIndex,row->parameter,row->logicalType,(unsigned)row->kind,(unsigned)row->countAbi,row->recordParentIndexPlusOne,row->field,row->physicalCName,i+1==module->foreignPackFieldCount ? "":",");
+    }
+    xl6OutputPuts("  ],\n  \"foreignNulls\": [\n",out);
+    for(i=0;i<module->foreignNullCount;++i){const XL6_ForeignNullContract* row=&module->foreignNulls[i];
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"physicalIndex\":%u,\"pointerCName\":\"%s\"}%s\n",row->declaration,row->physicalIndex,row->pointerCName,i+1==module->foreignNullCount ? "":",");
     }
     xl6OutputPuts("  ],\n  \"foreignRegions\": [\n",out);
     for(i=0;i<module->foreignRegionCount;++i){

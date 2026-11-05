@@ -31,8 +31,20 @@ static int xl6IrPackArraysValid(const XL6_IrModule* m)
 {
     return m && m->foreignPackCount<=m->foreignPackCapacity && (!m->foreignPackCount || m->foreignPacks) &&
         m->foreignPackFieldCount<=m->foreignPackFieldCapacity && (!m->foreignPackFieldCount || m->foreignPackFields) &&
+        m->foreignNullCount<=m->foreignNullCapacity && (!m->foreignNullCount || m->foreignNulls) &&
+        (!m->foreignNullCount || (m->foreignNullCount-1)/64<m->nodeCount) &&
         (!m->foreignPackCount || (m->foreignPackCount-1)/64<m->nodeCount) &&
         (!m->foreignPackFieldCount || (m->foreignPackFieldCount-1)/256<m->nodeCount);
+}
+const XL6_ForeignNullContract* xl6IrForeignNullGet(const XL6_IrModule* m,const XL6_IrCallTarget* t,size_t physical)
+{
+    if(!t || !xl6IrPackArraysValid(m))return NULL;
+    const XL6_ForeignNullContract* found=NULL;
+    for(size_t i=0;i<m->foreignNullCount;++i)if(m->foreignNulls[i].declaration==t->declaration && m->foreignNulls[i].physicalIndex==physical){
+        if(found)return NULL;
+        found=&m->foreignNulls[i];
+    }
+    return found;
 }
 const XL6_ForeignPackContract* xl6IrForeignPackGet(const XL6_IrModule* m,const XL6_IrCallTarget* t,size_t physical)
 {
@@ -61,6 +73,7 @@ size_t xl6IrForeignPhysicalStepCount(const XL6_IrModule* m,const XL6_IrCallTarge
     const XL6_IrNode* node=xl6IrNodeGet(m,t->declaration);if(!node)return SIZE_MAX;
     size_t outputs=node->foreignCall.valueOutput ? xl6IrForeignPhysicalOutputCount(m,t):(node->foreignCall.outputIndexPlusOne ? 1:0);
     size_t count=t->parameterCount+outputs;
+    for(size_t i=0;i<m->foreignNullCount;++i)count+=m->foreignNulls[i].declaration==t->declaration;
     for(size_t i=0;i<m->foreignPackCount;++i){const XL6_ForeignPackContract* row=&m->foreignPacks[i];
         if(row->declaration!=t->declaration)continue;
         if(!row->parameterCount || row->parameterCount-1>count)return SIZE_MAX;
@@ -89,6 +102,8 @@ int xl6IrForeignPhysicalStepGet(const XL6_IrModule* m,const XL6_IrCallTarget* t,
         XL6_ForeignPhysicalStep step={0};step.physicalIndex=(uint32)physical;
         if(o<outputs && slot==physical){
             step.kind=XL6_FOREIGN_PHYSICAL_STEP_OUTPUT;step.ordinal=(uint32)o;step.parameter=UINT32_MAX;++o;++physical;
+        }else if(xl6IrForeignNullGet(m,t,physical)){
+            step.kind=XL6_FOREIGN_PHYSICAL_STEP_NULL;step.parameter=UINT32_MAX;++physical;
         }else{
             if(p>=t->parameterCount || (o<outputs && slot<physical))return 0;
             const XL6_ForeignPackContract* pack=xl6IrForeignPackParameter(m,t,p);step.parameter=(uint32)p;
@@ -121,7 +136,7 @@ size_t xl6IrForeignFirstOutputLogical(const XL6_IrModule* m,const XL6_IrCallTarg
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT)return before;
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_INPUT)++before;
         else if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){const XL6_ForeignArrayGroupContract* group=xl6IrForeignArrayGroupGet(m,t,step.physicalIndex);if(!group)return SIZE_MAX;before+=group->arrayCount+1;}
-        else{const XL6_ForeignPackContract* pack=xl6IrForeignPackGet(m,t,step.physicalIndex);if(!pack)return SIZE_MAX;before+=pack->parameterCount;}
+        else if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){const XL6_ForeignPackContract* pack=xl6IrForeignPackGet(m,t,step.physicalIndex);if(!pack)return SIZE_MAX;before+=pack->parameterCount;}
     }
     return SIZE_MAX;
 }
@@ -157,8 +172,22 @@ static int xl6IrPackFieldExpected(const XL6_IrModule* m,const XL6_ForeignPackFie
     const XL6_ForeignPackContract* pack=xl6IrForeignPackGet(m,&target,row->packPhysicalIndex);
     const XL6_IrNode* params;size_t receiver,outputs;uint32 slots[64]={0};
     const XL6_IrNode* node=xl6IrRegionSignature(m,row->declaration,&params,&receiver,slots,&outputs);
-    if(!pack || !node || !memchr(row->field,0,sizeof(row->field)) || !xl6ForeignIdentifier(row->field))return 0;
+    if(!pack || !node || !memchr(row->field,0,sizeof(row->field)) || !xl6ForeignPackPath(row->field))return 0;
     *expected=*row;
+    size_t parentLength=xl6ForeignPackParentLength(row->field),parents=0;uint32 parentIndex=0;
+    for(size_t i=0;i<m->foreignPackFieldCount;++i){const XL6_ForeignPackFieldContract* parent=&m->foreignPackFields[i];
+        if(parent->declaration==row->declaration && parent->packPhysicalIndex==row->packPhysicalIndex &&
+            parent->kind==XL6_FOREIGN_PACK_FIELD_RECORD && memchr(parent->field,0,sizeof(parent->field)) &&
+            strlen(parent->field)==parentLength && !strncmp(parent->field,row->field,parentLength)){
+            ++parents;parentIndex=(uint32)i+1;
+        }
+    }
+    if(parentLength ? parents!=1:parents!=0)return 0;
+    expected->recordParentIndexPlusOne=parentIndex;
+    if(row->kind==XL6_FOREIGN_PACK_FIELD_RECORD){
+        return row->parameter==UINT32_MAX && !row->logicalType && !row->countAbi &&
+            memchr(row->physicalCName,0,sizeof(row->physicalCName)) && xl6ForeignIdentifier(row->physicalCName);
+    }
     if(row->kind==XL6_FOREIGN_PACK_FIELD_SIZEOF){
         if(row->parameter!=UINT32_MAX || row->logicalType || row->countAbi || !memchr(row->physicalCName,0,sizeof(row->physicalCName)) ||
             (strcmp(row->physicalCName,"uint8_t") && strcmp(row->physicalCName,"uint16_t") && strcmp(row->physicalCName,"uint32_t") &&
@@ -216,6 +245,18 @@ static int xl6IrClosePacks(XL6_IrModule* m)
 static int xl6IrVerifyPacks(const XL6_IrModule* m,XL6_DiagList* diags)
 {
     if(!xl6IrPackArraysValid(m))goto invalid;
+    for(size_t i=0;i<m->foreignNullCount;++i){const XL6_ForeignNullContract* row=&m->foreignNulls[i];
+        const XL6_IrNode* params;size_t receiver,outputs;uint32 slots[64]={0};
+        const XL6_IrNode* node=xl6IrRegionSignature(m,row->declaration,&params,&receiver,slots,&outputs);
+        const XL6_IrType* owner=node ? xl6IrTypeGet(&m->types,node->declarationOwnerType):NULL;
+        const char* header=owner ? owner->foreignHeader:NULL;
+        for(size_t h=0;h<m->foreignFunctionHeaderCount;++h)if(m->foreignFunctionHeaders[h].declaration==row->declaration)header=m->foreignFunctionHeaders[h].header;
+        if(!node || !header || !xl6ForeignHeaderName(header) || !xl6ForeignInputHasNulls(node->foreignCall.inputMappingFacts) ||
+            !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) || (node->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) ||
+            xl6ForeignInputHasRegions(node->foreignCall.inputMappingFacts) || !memchr(row->pointerCName,0,sizeof(row->pointerCName)) ||
+            !strchr(row->pointerCName,'*') || !xl6ForeignPointerSpelling(row->pointerCName))goto invalid;
+        for(size_t old=0;old<i;++old)if(m->foreignNulls[old].declaration==row->declaration && m->foreignNulls[old].physicalIndex==row->physicalIndex)goto invalid;
+    }
     for(size_t i=0;i<m->foreignPackCount;++i){const XL6_ForeignPackContract* pack=&m->foreignPacks[i];XL6_ForeignPackContract expected;
         if(!xl6IrPackExpected(m,pack,&expected) || !memchr(pack->header,0,sizeof(pack->header)) || strcmp(pack->header,expected.header))goto invalid;
         for(size_t j=0;j<i;++j){const XL6_ForeignPackContract* old=&m->foreignPacks[j];if(old->declaration!=pack->declaration)continue;
@@ -225,7 +266,7 @@ static int xl6IrVerifyPacks(const XL6_IrModule* m,XL6_DiagList* diags)
         for(size_t f=0;f<m->foreignPackFieldCount;++f){const XL6_ForeignPackFieldContract* field=&m->foreignPackFields[f];
             if(field->declaration!=pack->declaration || field->packPhysicalIndex!=pack->physicalIndex)continue;
             ++fields;
-            if(field->kind==XL6_FOREIGN_PACK_FIELD_SIZEOF)continue;
+            if(field->kind==XL6_FOREIGN_PACK_FIELD_SIZEOF || field->kind==XL6_FOREIGN_PACK_FIELD_RECORD)continue;
             if(field->parameter>=64)goto invalid;
             uint64 bit=UINT64_C(1)<<field->parameter;used|=bit;
             uint64* paired=field->kind==XL6_FOREIGN_PACK_FIELD_TEXT_DATA ? &textData:field->kind==XL6_FOREIGN_PACK_FIELD_TEXT_SIZE ? &textSize:
@@ -237,6 +278,7 @@ static int xl6IrVerifyPacks(const XL6_IrModule* m,XL6_DiagList* diags)
     }
     for(size_t i=0;i<m->foreignPackFieldCount;++i){const XL6_ForeignPackFieldContract* row=&m->foreignPackFields[i];XL6_ForeignPackFieldContract expected;
         if(!xl6IrPackFieldExpected(m,row,&expected) || row->logicalType!=expected.logicalType || row->countAbi!=expected.countAbi ||
+            row->recordParentIndexPlusOne!=expected.recordParentIndexPlusOne ||
             !memchr(row->physicalCName,0,sizeof(row->physicalCName)) || strcmp(row->physicalCName,expected.physicalCName))goto invalid;
         for(size_t j=0;j<i;++j){const XL6_ForeignPackFieldContract* old=&m->foreignPackFields[j];
             if(old->declaration==row->declaration && old->packPhysicalIndex==row->packPhysicalIndex && !strcmp(old->field,row->field))goto invalid;}
@@ -244,12 +286,23 @@ static int xl6IrVerifyPacks(const XL6_IrModule* m,XL6_DiagList* diags)
     for(size_t n=0;n<m->nodeCount;++n){size_t packs=0,fields=0;for(size_t i=0;i<m->foreignPackCount;++i)packs+=m->foreignPacks[i].declaration==n+1;
         for(size_t i=0;i<m->foreignPackFieldCount;++i)fields+=m->foreignPackFields[i].declaration==n+1;
         if((packs!=0)!=xl6ForeignInputHasPacks(m->nodes[n].foreignCall.inputMappingFacts) || (packs!=0)!=(fields!=0))goto invalid;
-        if(!packs)continue;
+        size_t nulls=0;for(size_t i=0;i<m->foreignNullCount;++i)nulls+=m->foreignNulls[i].declaration==n+1;
+        if((nulls!=0)!=xl6ForeignInputHasNulls(m->nodes[n].foreignCall.inputMappingFacts))goto invalid;
+        if(!packs && !nulls)continue;
         const XL6_IrNode* params;size_t receiver,outputs;uint32 slots[64]={0};
         const XL6_IrNode* node=xl6IrRegionSignature(m,(uint32)n+1,&params,&receiver,slots,&outputs);if(!node)goto invalid;
         XL6_IrCallTarget target={0};target.declaration=(uint32)n+1;target.parameterCount=params->childCount+receiver;
-        size_t count=xl6IrForeignPhysicalStepCount(m,&target);if(count>target.parameterCount+outputs)goto invalid;
+        size_t count=xl6IrForeignPhysicalStepCount(m,&target);if(count>target.parameterCount+outputs+64)goto invalid;
         for(size_t i=0;i<count;++i)if(!xl6IrForeignPhysicalStepGet(m,&target,i,NULL))goto invalid;
+        for(size_t i=0;i<m->foreignNullCount;++i){const XL6_ForeignNullContract* row=&m->foreignNulls[i];if(row->declaration!=n+1)continue;
+            if(row->physicalIndex>=64 || (receiver && !row->physicalIndex) ||
+                !memchr(row->pointerCName,0,sizeof(row->pointerCName)) || !strchr(row->pointerCName,'*') || !xl6ForeignPointerSpelling(row->pointerCName))goto invalid;
+            size_t found=0;for(size_t s=0;s<count;++s){XL6_ForeignPhysicalStep step;
+                if(!xl6IrForeignPhysicalStepGet(m,&target,s,&step))goto invalid;
+                found+=step.kind==XL6_FOREIGN_PHYSICAL_STEP_NULL && step.physicalIndex==row->physicalIndex;
+            }
+            if(found!=1)goto invalid;
+        }
     }
     return 1;
 invalid:return xl6IrDiag(diags,NULL,"native descriptor packs require closed disjoint inputs, paired scoped fields and exact physical slots/types");
@@ -270,5 +323,13 @@ int xl6IrForeignPacksMatch(const XL6_IrModule* m,const XL6_IrCallTarget* t)
                 if(field->declaration==t->declaration && field->packPhysicalIndex==pack->physicalIndex && field->parameter==p && field->logicalType!=t->parameterTypes[p])return 0;}
         }
     }
-    return (found!=0)==xl6ForeignInputHasPacks(node->foreignCall.inputMappingFacts);
+    if((found!=0)!=xl6ForeignInputHasPacks(node->foreignCall.inputMappingFacts))return 0;
+    size_t nulls=0;
+    for(size_t i=0;i<m->foreignNullCount;++i){const XL6_ForeignNullContract* row=&m->foreignNulls[i];if(row->declaration!=t->declaration)continue;
+        ++nulls;
+        if(t->kind!=XL6_IR_CALL_TARGET_EXTERN_C || t->runtimeBridge || t->variadicAbi || t->nativeContextAbi || t->nativeServicesRequired ||
+            t->nativeResultAbi || t->nativeArrayResultAbi || node->flags&XL6_AST_FLAG_FOREIGN_FIELD ||
+            !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE))return 0;
+    }
+    return (nulls!=0)==xl6ForeignInputHasNulls(node->foreignCall.inputMappingFacts);
 }

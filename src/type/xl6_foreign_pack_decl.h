@@ -1,6 +1,41 @@
 #ifndef XL6_FOREIGN_PACK_DECL_H
 #define XL6_FOREIGN_PACK_DECL_H
 
+/* Closed member paths contain identifiers only, with bounded nesting. */
+static inline int xl6ForeignPackPath(const char* path)
+{
+    if(!path || !*path)return 0;
+    size_t depth=0;const char* part=path;
+    for(const char* p=path;;++p)if(*p=='.' || !*p){
+        size_t length=(size_t)(p-part);char name[64];
+        if(!length || length>=sizeof(name) || ++depth>8)return 0;
+        memcpy(name,part,length);name[length]=0;if(!xl6ForeignIdentifier(name))return 0;
+        if(!*p)return 1;
+        part=p+1;
+    }
+}
+static inline size_t xl6ForeignPackParentLength(const char* path)
+{const char* dot=strrchr(path,'.');return dot ? (size_t)(dot-path):0;}
+static inline int xl6ForeignNullRead(const XL6_AstNode* attr,XL6_ForeignNullContract* output)
+{
+    int32 physical;XL6_ForeignNullContract row={0};
+    if(!attr || !attr->text || strcmp(attr->text,"c_null") || attr->childCount!=2 ||
+        !xl6ForeignDecimalInt(attr->children[0],&physical) || physical<0 || physical>=64 ||
+        !xl6ForeignQuotedText(attr->children[1],row.pointerCName,sizeof(row.pointerCName)) ||
+        !strchr(row.pointerCName,'*') || !xl6ForeignPointerSpelling(row.pointerCName) || strchr(row.pointerCName,'(') ||
+        strchr(row.pointerCName,'['))return 0;
+    row.physicalIndex=(uint32)physical;if(output)*output=row;return 1;
+}
+static inline int xl6ForeignNullAt(const XL6_AstNode* node,size_t physical,XL6_ForeignNullContract* output)
+{
+    const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);size_t found=0;XL6_ForeignNullContract match={0};
+    for(size_t i=0;attrs && i<attrs->childCount;++i){XL6_ForeignNullContract row;
+        if(xl6ForeignNullRead(attrs->children[i],&row) && row.physicalIndex==physical){match=row;++found;}}
+    if(found!=1)return 0;
+    if(output)*output=match;
+    return 1;
+}
+
 static inline int xl6ForeignPackRead(const XL6_AstNode* attr,XL6_ForeignPackContract* output)
 {
     int32 physical,first,count;XL6_ForeignPackContract row={0};
@@ -18,18 +53,26 @@ static inline int xl6ForeignPackFieldRead(const XL6_AstNode* attr,XL6_ForeignPac
 {
     int32 physical,parameter;XL6_ForeignPackFieldContract row={0};char mode[24],count[32];
     if(!attr || !attr->text)return 0;
-    int size=!strcmp(attr->text,"c_pack_size");
-    if((!size && strcmp(attr->text,"c_pack_field")) ||
-        (size ? attr->childCount!=3 : (attr->childCount!=4 && attr->childCount!=5)) ||
+    int size=!strcmp(attr->text,"c_pack_size"),record=!strcmp(attr->text,"c_pack_record");
+    if((!size && !record && strcmp(attr->text,"c_pack_field")) ||
+        (record ? attr->childCount!=3 : size ? (attr->childCount!=3 && attr->childCount!=4) : (attr->childCount!=4 && attr->childCount!=5)) ||
         !xl6ForeignDecimalInt(attr->children[0],&physical) || physical<0 || physical>=64 ||
-        !xl6ForeignQuotedText(attr->children[1],row.field,sizeof(row.field)) || !xl6ForeignIdentifier(row.field))return 0;
+        !xl6ForeignQuotedText(attr->children[1],row.field,sizeof(row.field)) || !xl6ForeignPackPath(row.field))return 0;
     row.packPhysicalIndex=(uint32)physical;
-    if(size){
+    if(record){
+        if(!xl6ForeignQuotedText(attr->children[2],row.physicalCName,sizeof(row.physicalCName)) ||
+            !xl6ForeignIdentifier(row.physicalCName))return 0;
+        row.parameter=UINT32_MAX;row.kind=XL6_FOREIGN_PACK_FIELD_RECORD;
+    }else if(size){
         if(!xl6ForeignQuotedText(attr->children[2],row.physicalCName,sizeof(row.physicalCName)) ||
             (strcmp(row.physicalCName,"uint8_t") && strcmp(row.physicalCName,"uint16_t") &&
              strcmp(row.physicalCName,"uint32_t") && strcmp(row.physicalCName,"uint64_t") &&
              strcmp(row.physicalCName,"size_t")))return 0;
         row.parameter=UINT32_MAX;row.kind=XL6_FOREIGN_PACK_FIELD_SIZEOF;
+        if(attr->childCount==4){char target[64];size_t parent=xl6ForeignPackParentLength(row.field);
+            if(!xl6ForeignQuotedText(attr->children[3],target,sizeof(target)) || !parent ||
+                strlen(target)!=parent || strncmp(target,row.field,parent))return 0;
+        }else if(xl6ForeignPackParentLength(row.field))return 0;
     }else{
         if(!xl6ForeignDecimalInt(attr->children[2],&parameter) || parameter<0 || parameter>=64 ||
             !xl6ForeignQuotedText(attr->children[3],mode,sizeof(mode)))return 0;
@@ -95,7 +138,7 @@ static inline size_t xl6ForeignPhysicalStepCount(const XL6_AstNode* node,size_t 
         if(xl6ForeignArrayGroupRead(attrs->children[i],&group)){
             if(group.arrayCount>count)return SIZE_MAX;
             count-=group.arrayCount;
-        }}
+        }XL6_ForeignNullContract nullRow;if(xl6ForeignNullRead(attrs->children[i],&nullRow))++count;}
     return count;
 }
 static inline int xl6ForeignPhysicalStepRead(const XL6_AstNode* node,const XL6_ForeignCallFacts* facts,
@@ -108,6 +151,8 @@ static inline int xl6ForeignPhysicalStepRead(const XL6_AstNode* node,const XL6_F
         if(ordinal<outputs && slots[ordinal]==physical){
             step.kind=XL6_FOREIGN_PHYSICAL_STEP_OUTPUT;step.ordinal=(uint32)ordinal;step.parameter=UINT32_MAX;
             ++ordinal;++physical;
+        }else if(xl6ForeignNullAt(node,physical,NULL)){
+            step.kind=XL6_FOREIGN_PHYSICAL_STEP_NULL;step.parameter=UINT32_MAX;++physical;
         }else{
             if(parameter>=parameters || (ordinal<outputs && slots[ordinal]<physical))return 0;
             XL6_ForeignPackContract pack;size_t explicitParameter=parameter>=receiver ? parameter-receiver:SIZE_MAX;
@@ -139,7 +184,7 @@ static inline size_t xl6ForeignOutputLogicalForDeclaration(const XL6_AstNode* no
     uint32 slots[64];size_t outputs;
     if(!xl6ForeignPhysicalOutputSlots(node,facts,slots,&outputs) || !outputs)return SIZE_MAX;
     size_t steps=xl6ForeignPhysicalStepCount(node,parameters,outputs);
-    if(steps>parameters+outputs)return SIZE_MAX;
+    if(steps>parameters+outputs+64)return SIZE_MAX;
     for(size_t i=0;i<steps;++i){XL6_ForeignPhysicalStep step;
         if(!xl6ForeignPhysicalStepRead(node,facts,parameters,receiver,slots,outputs,i,&step))return SIZE_MAX;
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){

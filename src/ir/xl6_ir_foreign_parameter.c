@@ -431,7 +431,7 @@ static int xl6IrVerifyForeignOutputs(const XL6_IrModule* module,XL6_DiagList* di
             slots[o]=row->physicalIndex;
         }
         if(node->foreignCall.outputIndexPlusOne!=slots[0]+1 ||
-            (!xl6ForeignInputHasPacks(node->foreignCall.inputMappingFacts) && !xl6ForeignInputHasArrayGroups(node->foreignCall.inputMappingFacts) && !xl6ForeignMultiOutputSlotsValid(&node->foreignCall,params->childCount+receiver,receiver,slots,count)))goto invalid;
+            (!xl6ForeignInputHasPacks(node->foreignCall.inputMappingFacts) && !xl6ForeignInputHasArrayGroups(node->foreignCall.inputMappingFacts) && !xl6ForeignInputHasNulls(node->foreignCall.inputMappingFacts) && !xl6ForeignMultiOutputSlotsValid(&node->foreignCall,params->childCount+receiver,receiver,slots,count)))goto invalid;
     }
     return 1;
 invalid:return xl6IrDiag(diags,NULL,"native multi-output rows must exactly cover increasing complete C slots and language results");
@@ -450,7 +450,7 @@ int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTa
         if(count<2 || !result || result->kind!=XL6_IR_TYPE_TUPLE || result->paramCount!=count)return 0;
     }else if(xl6IrForeignFirstOutputLogical(module,target)==SIZE_MAX)return 0;
     size_t steps=xl6IrForeignPhysicalStepCount(module,target);
-    if(steps>target->parameterCount+count)return 0;
+    if(steps>target->parameterCount+count+64)return 0;
     for(size_t step=0;step<steps;++step)if(!xl6IrForeignPhysicalStepGet(module,target,step,NULL))return 0;
     return xl6ForeignValueOutputBitsValid(node->foreignCall.valueOutput) &&
         (!xl6ForeignValueOutputIsVoid(node->foreignCall.valueOutput) || !node->foreignCall.successCode) &&
