@@ -58,7 +58,7 @@ def main():
         'duplicate-group':group+' '+group,'missing-group':'','negative-physical':'@c_output_record(-1,"OutputRecordNative","borrowed")',
         'incomplete-physical':'@c_output_record(63,"OutputRecordNative","borrowed")','owned-record':'@c_output_record(1,"OutputRecordNative","owned")',
         'record-expression':'@c_output_record(1,"Native);bad(","borrowed")','missing-record-argument':'@c_output_record(1,"OutputRecordNative")',
-        'view-overlap':group+' @c_output_view(1,"text")','size-overlap':group+' @c_output_size(1,"size")'}
+        'view-overlap':group+' @c_output_view(1,"text")','size-wrong-slot':group+' @c_output_size(63,"size")'}
     negatives={name:original.replace(group,change,1) for name,change in changes.items()}
     fieldChanges={'duplicate-field':field+' '+field,'missing-field':'','bare-pointer':'@c_output_field(1,"first")',
         'negative-ordinal':'@c_output_field(-1,"first","retain",retain,"zero",rollback)',

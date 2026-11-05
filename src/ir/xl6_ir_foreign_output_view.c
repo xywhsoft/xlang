@@ -81,7 +81,8 @@ static int xl6IrVerifyOutputViews(const XL6_IrModule* module,XL6_DiagList* diags
              (module->foreignOutputViews[j].physicalIndex==row->physicalIndex &&
               !xl6ForeignValueOutputIsRecord(xl6IrNodeGet(module,row->declaration)->foreignCall.valueOutput))))goto invalid;
         for(size_t j=0;j<module->foreignOutputSizeCount;++j)if(module->foreignOutputSizes[j].declaration==row->declaration &&
-            module->foreignOutputSizes[j].physicalIndex==row->physicalIndex)goto invalid;
+            module->foreignOutputSizes[j].physicalIndex==row->physicalIndex &&
+            !xl6ForeignValueOutputIsRecord(xl6IrNodeGet(module,row->declaration)->foreignCall.valueOutput))goto invalid;
     }
     for(size_t n=0;n<module->nodeCount;++n){
         const XL6_IrNode* node=&module->nodes[n];if(node->kind!=XL6_IR_NODE_FUNC_DECL)continue;

@@ -24,6 +24,20 @@ static int xl6IrCgenOutputRecordProof(XL6_Output* out,const XL6_IrModule* module
         "XLIR_NATIVE_ASSERT(sizeof(%s)>0, \"borrowed output record completeness\");\n"
         "#ifdef __cplusplus\nXLIR_NATIVE_ASSERT(std::is_trivial<%s>::value && std::is_standard_layout<%s>::value, \"borrowed output trivial C layout\");\n#endif\n",
         record->recordCName,record->recordCName,record->recordCName,record->recordCName,record->recordCName);
+    const XL6_ForeignOutputSizeContract* init=xl6IrForeignOutputSizeGet(module,target,0);
+    if(init){
+        if(!xl6IrForeignOutputSizesMatch(module,target))return 0;
+        xl6OutputPrintf(out,
+            "XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s*)0)->%s,unsigned char) || "
+            "XLIR_NATIVE_IS_TYPE(((%s*)0)->%s,unsigned short) || "
+            "XLIR_NATIVE_IS_TYPE(((%s*)0)->%s,unsigned int) || "
+            "XLIR_NATIVE_IS_TYPE(((%s*)0)->%s,unsigned long) || "
+            "XLIR_NATIVE_IS_TYPE(((%s*)0)->%s,unsigned long long), \"C output size unsigned member\");\n"
+            "XLIR_NATIVE_ASSERT(sizeof(%s) <= (~0ULL >> ((sizeof(unsigned long long)-sizeof(((%s*)0)->%s))*CHAR_BIT)), \"C output size field range\");\n",
+            record->recordCName,init->field,record->recordCName,init->field,record->recordCName,init->field,
+            record->recordCName,init->field,record->recordCName,init->field,
+            record->recordCName,record->recordCName,init->field);
+    }
     for(size_t o=0;o<xl6IrForeignOutputCount(module,target);++o){
         const XL6_ForeignOutputFieldContract* field=xl6IrForeignOutputFieldGet(module,target,o);
         const XL6_ForeignOutputViewContract* view=xl6IrForeignOutputViewGet(module,target,o);
@@ -49,7 +63,7 @@ static int xl6IrCgenOutputRawDeclare(XL6_Output* out,const XL6_IrModule* module,
     if(record){
         if(!xl6IrForeignOutputRecordsMatch(module,target))return 0;
         xl6OutputPrintf(out,"    %s native_raw = {0};\n",record->recordCName);
-        return !xl6OutputHasFailed(out);
+        return xl6IrCgenOutputSizeInitialize(out,module,target) && !xl6OutputHasFailed(out);
     }else if(!xl6ForeignValueOutputHasView(declaration->foreignCall.valueOutput))
         xl6OutputPrintf(out,"    %s native_raw = {0};\n",xl6IrCgenType(module,target->returnType));
     else if(count==1)xl6OutputPrintf(out,"    %s native_raw = {0};\n",xl6IrCgenOutputRawType(module,target,0));

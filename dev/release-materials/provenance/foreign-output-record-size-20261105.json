@@ -1,0 +1,136 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "scope": "Compose existing borrowed output-record projection with exact physical sizeof-field initialization, without new syntax or runtime ABI changes",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\output-record-size-core-candidate-r1\\manifest.json",
+    "sha256": "edbd068252f2799193c0837283dfb32ce69810b89e1c40d6d99357d1d1ec4e3a"
+  },
+  "files": [
+    {
+      "path": "src/type/xl6_foreign_decl.h",
+      "sourceSha256": "170b60f0a20680d5ea7b4a2713ecd78559a8f21babad793df89b9b01a120cec4",
+      "canonicalSha256": "170b60f0a20680d5ea7b4a2713ecd78559a8f21babad793df89b9b01a120cec4",
+      "blob": "06ae4ce7a7c06878d0d8937e516aad3d5df11270"
+    },
+    {
+      "path": "src/type/xl6_foreign_call_contract.h",
+      "sourceSha256": "025af543913a6c43ce0cdb08d997f6971aca0a8a619d580c3a85d11170771662",
+      "canonicalSha256": "025af543913a6c43ce0cdb08d997f6971aca0a8a619d580c3a85d11170771662",
+      "blob": "d1a12ba62ef00ace5283a090f48332faa19e3cb6"
+    },
+    {
+      "path": "src/sem/xl6_sem_foreign_output_size.c",
+      "sourceSha256": "1bb038020c266551c3329f299af64ae495f0a471d7c4055a1d322ceab3ef289b",
+      "canonicalSha256": "1bb038020c266551c3329f299af64ae495f0a471d7c4055a1d322ceab3ef289b",
+      "blob": "02b314a6bd1791d71f8b02fde8032ca86d2b7f15"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_output_record.c",
+      "sourceSha256": "37b9b3319980bf60b520803d375a806f0cf1ece6552b79daeb28b7867a522e2d",
+      "canonicalSha256": "37b9b3319980bf60b520803d375a806f0cf1ece6552b79daeb28b7867a522e2d",
+      "blob": "8fc74b126a1d18a98a9dc6c2aaa4101550bfc678"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_output_size.c",
+      "sourceSha256": "7e887dc1ac59d5dddbfa2a0c97507f64d92253fbe341a984fd3acb1ce89bc671",
+      "canonicalSha256": "7e887dc1ac59d5dddbfa2a0c97507f64d92253fbe341a984fd3acb1ce89bc671",
+      "blob": "31916e7b7c49903c9c02aedc4a8acd6460e380de"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_output_view.c",
+      "sourceSha256": "4218beffc958db94ead6d505f3e1741e45c6de2d21f25533758a6b02750dac94",
+      "canonicalSha256": "4218beffc958db94ead6d505f3e1741e45c6de2d21f25533758a6b02750dac94",
+      "blob": "377a979a28ef79ae87dae5a14efabc5c23049e3d"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_foreign_output_view.c",
+      "sourceSha256": "f64576d5af47bc3b2886c228aaca1249c79cf7d65d825a5790c2198486ecbb12",
+      "canonicalSha256": "ef33d49d008f584b03056bf458a83280325c9e4760df18367a383a957b1f02fb",
+      "blob": "ae19f0dd4f312c4c7dcd576d3de32ffb008952cf"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_foreign_output_size.c",
+      "sourceSha256": "ad1509f2a253f7474288d1442ae8bc669bd10c001bcfe42c7a494326a2c6671d",
+      "canonicalSha256": "ad1509f2a253f7474288d1442ae8bc669bd10c001bcfe42c7a494326a2c6671d",
+      "blob": "60fe4dcded474bf964874305a33b1d96c7353c54"
+    },
+    {
+      "path": "test/cases/foreign_output_record_size.xl",
+      "sourceSha256": "df1746b557108fa758237f974468c5e1af1fd470342d25491766d42cf6b2ee45",
+      "canonicalSha256": "df1746b557108fa758237f974468c5e1af1fd470342d25491766d42cf6b2ee45",
+      "blob": "5b6dc252272a3b9df1abc750396b0d25d4fb0664"
+    },
+    {
+      "path": "test/cases/foreign_output_record_size.h",
+      "sourceSha256": "4bd732d675404afb7769e9fe241476e83c5f12e9543b82defaf32f10770e459c",
+      "canonicalSha256": "4bd732d675404afb7769e9fe241476e83c5f12e9543b82defaf32f10770e459c",
+      "blob": "a154b7d60b2c9933437076b8d3e934a0da5d732d"
+    },
+    {
+      "path": "test/cases/foreign_output_record_size_native.c",
+      "sourceSha256": "24145d77b0a6fdaec33eaf68b26afbe9cb7857b4c7745db277f6a044b50bd199",
+      "canonicalSha256": "24145d77b0a6fdaec33eaf68b26afbe9cb7857b4c7745db277f6a044b50bd199",
+      "blob": "cda53440e632a0e3dbc239f569756630cf48e46c"
+    },
+    {
+      "path": "test/cases/foreign_output_record_size_ir.c",
+      "sourceSha256": "efd1c2895b194f350b982cf403dbe8acc02b868a6bc0faf6f3144df3adb774de",
+      "canonicalSha256": "efd1c2895b194f350b982cf403dbe8acc02b868a6bc0faf6f3144df3adb774de",
+      "blob": "7f59c7621718276eefad3602a772dc6b9dccd6e3"
+    },
+    {
+      "path": "tools/check_foreign_output_record_size.py",
+      "sourceSha256": "fe7ec3c645bdaf3f5fd6d17b414cb3b2da877d0c91c34acd0c6fa1041e454c58",
+      "canonicalSha256": "8c8f7f3560cac98cb40bc3c5615a1dcc7a65276b9c1918e0e0aa24ae6c622f25",
+      "blob": "e7c33f353c219af31faea53995a86aa1f0829bb1"
+    },
+    {
+      "path": "tools/check_foreign_output_record.py",
+      "sourceSha256": "31c170b613635efcc410aae4156f6af5faa081ca81bdd9c2bd7cbdb132331fdf",
+      "canonicalSha256": "31c170b613635efcc410aae4156f6af5faa081ca81bdd9c2bd7cbdb132331fdf",
+      "blob": "03b5de7bf852d6c455cbd29ff54f2ee09cec089e"
+    },
+    {
+      "path": "docs/foreign-declarations.md",
+      "sourceSha256": "0289465ff65a99794307f950db835a6623da6aa80452bf6559a74cdefe56a202",
+      "canonicalSha256": "351316d7f3b12481ee836754a9087e3bceed859477fb08a51d6fde027951fb8d",
+      "blob": "8ea31ef3ebc27532e0b16d02099449bb660a3822"
+    }
+  ],
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\output-record-size-win-r2\\results.json",
+      "sha256": "6c3966659cbd36673b46d2181f7214ccf5892ee19055f2a1ee135c9a0594ec14",
+      "rows": 67,
+      "passed": true
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\output-record-base-win-r1\\results.json",
+      "sha256": "2022d9e7443d7af23d608f9c6aee5718c7e6cdc374696f9167d2e6d6d557a8fe",
+      "rows": 57,
+      "passed": true
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/output-record-size-linux-r1/results.json",
+      "sha256": "0ac114f53da91e7b6fc937847213ab734488940419fa60857e7660fe1bc9fbee",
+      "rows": 67,
+      "passed": true
+    }
+  ],
+  "irMutationsPerOptimizationPerPlatform": 429,
+  "fullCompilerRebuild": false,
+  "shippingDelivery": false,
+  "costs": "Stack record zero initialization plus one native size-field assignment before direct call; projection/retention and rollback preserve existing contracts",
+  "limitations": [
+    "Explicit three-frontend-unit successor over R38; final serialized VFS/provider acceptance is separate",
+    "Output fields remain POD or retained views; borrowed nested text/pointer fields are not promoted"
+  ],
+  "sourceCanonicalization": "Only CRLF-to-LF in committed project text; exact candidate/report bytes preserved",
+  "excluded": [
+    "Unrelated live IDE sem.c hunks",
+    "Public Model declaration work",
+    "Runtime/provider changes"
+  ]
+}

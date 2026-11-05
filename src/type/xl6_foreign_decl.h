@@ -495,7 +495,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         else return 0;
     }
     if(xl6ForeignValueOutputIsRecord(facts.valueOutput)){
-        if(!recordFields || outputSizes || outputViews)return 0;
+        if(!recordFields || outputViews)return 0;
     }else if(recordFields)return 0;
     if((outputSizes|outputViews) && (!facts.valueOutput || (outputSizes&outputViews)))return 0;
     if(voidFactory){

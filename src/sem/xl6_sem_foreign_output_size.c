@@ -10,7 +10,15 @@ static int xl6SemForeignOutputSizes(XL6_SemContext* ctx,XL6_AstNode* node,
     for(size_t a=0;attrs && a<attrs->childCount;++a){
         const XL6_AstNode* attr=attrs->children[a];XL6_ForeignOutputSizeContract row;
         if(!attr || !attr->text || strcmp(attr->text,"c_output_size"))continue;
-        if(!xl6ForeignOutputSizeRead(attr,&row) || !facts->valueOutput || !returns || returns->childCount!=count)goto invalid;
+        if(!xl6ForeignOutputSizeRead(attr,&row) || !facts->valueOutput || !returns)goto invalid;
+        if(xl6ForeignValueOutputIsRecord(facts->valueOutput)){
+            XL6_ForeignOutputRecordContract group;
+            if(!xl6ForeignOutputRecordForDeclaration(node,&group) || row.physicalIndex!=group.physicalIndex)goto invalid;
+            /* This physical struct need not be a pointer-free logical record.
+             * Its field qualification/range is checked against the C header. */
+            continue;
+        }
+        if(returns->childCount!=count)goto invalid;
         size_t ordinal=0;while(ordinal<count && slots[ordinal]!=row.physicalIndex)++ordinal;
         if(ordinal==count)goto invalid;
         const XL6_AstNode* result=xl6SemResolveAliasType(ctx,returns->children[ordinal]);

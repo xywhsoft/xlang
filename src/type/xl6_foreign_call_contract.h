@@ -160,8 +160,11 @@ typedef struct XL6_ForeignOutputContract {
     uint32 declaration,ordinal,physicalIndex;
 } XL6_ForeignOutputContract;
 
-/* Only outputs with an explicit sizeof initializer occupy a row. The typed
- * IR closes recordType and fieldDeclaration/fieldType before publication. */
+  /* Only outputs with an explicit sizeof initializer occupy a row. The typed
+   * IR closes recordType and fieldDeclaration/fieldType before publication.
+   * A physical borrowed output-record group has ordinal 0 and all three type/
+   * declaration identities zero: its exact C struct and unsigned size member
+   * are proved by the authoritative native header, not a logical result type. */
 typedef struct XL6_ForeignOutputSizeContract {
     uint32 declaration,physicalIndex,ordinal,recordType,fieldDeclaration,fieldType;
     char field[64];
