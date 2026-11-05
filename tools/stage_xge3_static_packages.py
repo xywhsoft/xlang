@@ -21,6 +21,15 @@ def main():
     assert metadata['complete']and metadata['passed']and metadata['sourceUnchanged']
     assert metadata['linkage']=='static-archive'and metadata['xrt_mode']=='direct-external'
     assert not metadata['xrt_implementation']and not metadata['host_xrt_import_slots']
+    classification=None
+    if metadata['platform']=='win_x64':
+        classification=metadata.get('compiler_support',{}).get('importClassification')
+        assert classification and not classification['unknownInventory'],'Windows import kind is not proven'
+        for path,digest in classification['dllInputs'].items():
+            assert sha(path)==digest,'System DLL changed after import classification: '+path
+        for library in metadata['compiler_support']['archives']:
+            assert all(row.get('kindKnown')and row['kind']in('function','data')
+                for row in library['importMembers']),'Import kind must be explicit, never guessed'
     assert Path(metadata['source_root']).resolve()==native
     canonical=hashlib.sha256((root/'lib/xrt/xrt.h').read_bytes().replace(b'\r\n',b'\n')).hexdigest()
     assert canonical==metadata['xrt_header_sha256'],'Native and language XRT contracts differ'
@@ -41,6 +50,7 @@ def main():
     if not a.bootstrap_only and metadata['debug_api']:packages.append('xgeDebug')
     sources=root/'lib/bindings';source_paths={name:sources/({'xge3d':'xge/three_d','xgeDebug':'xge/debug'}.get(name,name))for name in packages}
     inputs={str(v):sha(v)for v in [Path(__file__).resolve(),catalog,root/'lib/xrt/xrt.h',build/'build-report.json',archive]}
+    if classification:inputs.update(classification['dllInputs'])
     headers=list((native/'include').glob('*.h'))
     for path in [*headers,native/'extlibs/xrt/xrt_config.h',build/'xge_build_config.h',build/'xge_static_xrt_contract.h']:inputs[str(path)]=sha(path)
     for name,folder in source_paths.items():
