@@ -1,0 +1,548 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Measured successful-path CPU fixtures and allocation evidence only. No universal zero-overhead, GUI delivery or complete compiler rebuild claim.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-binding-perf-candidate-r5\\manifest.json",
+    "sha256": "afa9f1fd664fed07096c7d87f07263fca6605dc3b29568b49ba043e2ac342d6b"
+  },
+  "reports": [
+    {
+      "platform": "win_x64",
+      "kind": "warm",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-binding-perf-formal-warm-r38-win-r2\\preparation.json",
+      "sha256": "379ca77d3ac1299db8620ea775a021420614d487cc4eff204160a8777ee18adb",
+      "steps": 36
+    },
+    {
+      "platform": "win_x64",
+      "kind": "shape",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-binding-perf-formal-shape-r38-win-r1\\preparation.json",
+      "sha256": "4c63d31a4ba66f8356c3fdaca5279a9db7bf006ffbe3dca76e01cbdab604f512",
+      "steps": 37
+    },
+    {
+      "platform": "win_x64",
+      "kind": "warmCounter",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-binding-perf-formal-warm-counter-r38-win-r1\\preparation.json",
+      "sha256": "b283c2505efb92b761ad11ef221ec67717779422749a9c63f00af66dc921379e",
+      "steps": 36
+    },
+    {
+      "platform": "win_x64",
+      "kind": "shapeCounter",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-binding-perf-formal-shape-counter-r38-win-r1\\preparation.json",
+      "sha256": "b023c342b465d01efaba0be62652290c258d7dad67412cd054aebbcb4a2a3d21",
+      "steps": 37
+    },
+    {
+      "platform": "win_x64",
+      "kind": "warmTiming",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-binding-perf-formal-warm-timing-win-r2\\timing.json",
+      "sha256": "218864d2865c1650d142b354ef23b4e01f856e858da3304a15dcbeb5d667821b",
+      "steps": 42
+    },
+    {
+      "platform": "win_x64",
+      "kind": "shapeTiming",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-binding-perf-formal-shape-timing-win-r2\\timing.json",
+      "sha256": "9e28cf9c5c5b71df80c5ada654b171e6e0fb105218bffa756a90f848727ecca9",
+      "steps": 42
+    },
+    {
+      "platform": "linux_x64",
+      "kind": "warm",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-binding-perf-formal-warm-r39-linux-r1\\preparation.json",
+      "sha256": "6b4bef5326c339835f0ae732c46729e974e4f290ffc02d9dc0112cda12fcb331",
+      "steps": 36
+    },
+    {
+      "platform": "linux_x64",
+      "kind": "shape",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-binding-perf-formal-shape-r39-linux-r1\\preparation.json",
+      "sha256": "5323cd3de0e9bd292410ad911f287393e35b9a4b4728b818fee463025f04cb37",
+      "steps": 37
+    },
+    {
+      "platform": "linux_x64",
+      "kind": "warmCounter",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-binding-perf-formal-warm-counter-r39-linux-r1\\preparation.json",
+      "sha256": "8db4f1e09cb9ff085f86db7ac15af630a7f9c389d03d14e955e875229389d743",
+      "steps": 36
+    },
+    {
+      "platform": "linux_x64",
+      "kind": "shapeCounter",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-binding-perf-formal-shape-counter-r39-linux-r1\\preparation.json",
+      "sha256": "a4fd39c1f8ee0ec8341411ad6850e47d66db63c12d9a0958cc24ba5fa635ef23",
+      "steps": 37
+    },
+    {
+      "platform": "linux_x64",
+      "kind": "warmTiming",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-binding-perf-formal-warm-timing-linux-r1\\timing.json",
+      "sha256": "431825f7242b53ac2c58ec77602b0b191060cb5ce707c6c30fe8ec7d69ef1e33",
+      "steps": 42
+    },
+    {
+      "platform": "linux_x64",
+      "kind": "shapeTiming",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-binding-perf-formal-shape-timing-linux-r1\\timing.json",
+      "sha256": "9391681d52bc0a462e7cfb5e6f342b033d04502e47fb36960bc5a3a581baace3",
+      "steps": 42
+    }
+  ],
+  "summaryNsPerOperation": {
+    "win_x64": {
+      "caps": {
+        "raw": {
+          "samples": 12,
+          "minimum": 1.3522,
+          "median": 1.6762000000000001,
+          "maximum": 2.2212,
+          "p25": 1.3901,
+          "p75": 1.8607999999999998
+        },
+        "safe": {
+          "samples": 12,
+          "minimum": 304.6486,
+          "median": 349.1672,
+          "maximum": 413.986,
+          "p25": 328.15155,
+          "p75": 377.16044999999997
+        },
+        "language": {
+          "samples": 12,
+          "minimum": 364.1926,
+          "median": 398.9077,
+          "maximum": 451.2434,
+          "p25": 388.8056,
+          "p75": 414.00350000000003
+        },
+        "languageOverSafe": 1.1424546750095657,
+        "languageOverRaw": 237.98335520820902
+      },
+      "draw": {
+        "raw": {
+          "samples": 12,
+          "minimum": 1.4634,
+          "median": 1.6033,
+          "maximum": 2.2578,
+          "p25": 1.4708,
+          "p75": 1.9231500000000001
+        },
+        "safe": {
+          "samples": 12,
+          "minimum": 675.994,
+          "median": 736.1899,
+          "maximum": 833.3822,
+          "p25": 728.0707000000001,
+          "p75": 754.9981
+        },
+        "language": {
+          "samples": 12,
+          "minimum": 749.8596,
+          "median": 790.7657,
+          "maximum": 981.946,
+          "p25": 770.5233000000001,
+          "p75": 829.3941500000001
+        },
+        "languageOverSafe": 1.0741327747093516,
+        "languageOverRaw": 493.2113141645357
+      },
+      "target": {
+        "raw": {
+          "samples": 12,
+          "minimum": 40.906,
+          "median": 43.532,
+          "maximum": 72.692,
+          "p25": 41.665499999999994,
+          "p75": 48.6915
+        },
+        "safe": {
+          "samples": 12,
+          "minimum": 1600.19,
+          "median": 1826.196,
+          "maximum": 2191.182,
+          "p25": 1758.4305,
+          "p75": 1924.0185000000001
+        },
+        "language": {
+          "samples": 12,
+          "minimum": 1718.62,
+          "median": 2009.221,
+          "maximum": 2505.89,
+          "p25": 1889.287,
+          "p75": 2121.1935000000003
+        },
+        "languageOverSafe": 1.1002219915058407,
+        "languageOverRaw": 46.15503537627493
+      },
+      "shape": {
+        "raw": {
+          "samples": 12,
+          "minimum": 0.457978515625,
+          "median": 0.480009765625,
+          "maximum": 0.55650634765625,
+          "p25": 0.47089599609375,
+          "p75": 0.4936578369140625
+        },
+        "safe": {
+          "samples": 12,
+          "minimum": 0.56010498046875,
+          "median": 0.60872802734375,
+          "maximum": 0.70204345703125,
+          "p25": 0.5740606689453125,
+          "p75": 0.6445599365234376
+        },
+        "language": {
+          "samples": 12,
+          "minimum": 0.62116943359375,
+          "median": 0.670340576171875,
+          "maximum": 0.7716333007812499,
+          "p25": 0.649149169921875,
+          "p75": 0.6975189208984375
+        },
+        "languageOverSafe": 1.1012152325184994,
+        "languageOverRaw": 1.3965144548654205
+      }
+    },
+    "linux_x64": {
+      "caps": {
+        "raw": {
+          "samples": 12,
+          "minimum": 1.342,
+          "median": 1.3868,
+          "maximum": 1.766,
+          "p25": 1.3680999999999999,
+          "p75": 1.562002
+        },
+        "safe": {
+          "samples": 12,
+          "minimum": 278.93558,
+          "median": 299.545543,
+          "maximum": 327.773842,
+          "p25": 280.03594,
+          "p75": 303.845151
+        },
+        "language": {
+          "samples": 12,
+          "minimum": 304.15838,
+          "median": 309.76928,
+          "maximum": 343.378666,
+          "p25": 307.97108199999997,
+          "p75": 317.5707155
+        },
+        "languageOverSafe": 1.034130826643613,
+        "languageOverRaw": 223.36982982405536
+      },
+      "draw": {
+        "raw": {
+          "samples": 12,
+          "minimum": 1.3602,
+          "median": 1.4253,
+          "maximum": 1.717198,
+          "p25": 1.3848515,
+          "p75": 1.4784985000000002
+        },
+        "safe": {
+          "samples": 12,
+          "minimum": 618.130558,
+          "median": 667.7995470000001,
+          "maximum": 715.37132,
+          "p25": 622.0353064999999,
+          "p75": 677.8197755
+        },
+        "language": {
+          "samples": 12,
+          "minimum": 640.717262,
+          "median": 660.0616239999999,
+          "maximum": 700.679726,
+          "p25": 650.798196,
+          "p75": 675.575786
+        },
+        "languageOverSafe": 0.9884128058565452,
+        "languageOverRaw": 463.10364414509223
+      },
+      "target": {
+        "raw": {
+          "samples": 12,
+          "minimum": 55.50798,
+          "median": 56.23003,
+          "maximum": 76.82,
+          "p25": 55.73758000000001,
+          "p75": 58.454
+        },
+        "safe": {
+          "samples": 12,
+          "minimum": 1566.43738,
+          "median": 1629.88708,
+          "maximum": 1879.55126,
+          "p25": 1577.7869699999999,
+          "p75": 1799.5325950000001
+        },
+        "language": {
+          "samples": 12,
+          "minimum": 1695.5479,
+          "median": 1753.13086,
+          "maximum": 2100.90986,
+          "p25": 1708.10008,
+          "p75": 1779.343945
+        },
+        "languageOverSafe": 1.0756149192863103,
+        "languageOverRaw": 31.177839670368307
+      },
+      "shape": {
+        "raw": {
+          "samples": 12,
+          "minimum": 0.493144580078125,
+          "median": 0.5225134765625,
+          "maximum": 0.581347705078125,
+          "p25": 0.5091229736328124,
+          "p75": 0.5560071044921875
+        },
+        "safe": {
+          "samples": 12,
+          "minimum": 0.563781787109375,
+          "median": 0.675231982421875,
+          "maximum": 0.803054248046875,
+          "p25": 0.656533251953125,
+          "p75": 0.7040119140625
+        },
+        "language": {
+          "samples": 12,
+          "minimum": 0.648225146484375,
+          "median": 0.79208134765625,
+          "maximum": 0.9180542724609375,
+          "p25": 0.7282532226562499,
+          "p75": 0.8468421142578125
+        },
+        "languageOverSafe": 1.1730506970586136,
+        "languageOverRaw": 1.5159060640257112
+      }
+    }
+  },
+  "counterLogs": [
+    {
+      "platform": "win_x64",
+      "fixture": "warm",
+      "logs": [
+        {
+          "mode": "raw",
+          "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-binding-perf-formal-warm-counter-r38-win-r1\\raw-correctness.log",
+          "sha256": "6622bca9eae5e153e16dcba2896b49eb4877c6fdadd36bd4cd553bebf6c849e5"
+        },
+        {
+          "mode": "safe",
+          "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-binding-perf-formal-warm-counter-r38-win-r1\\safe-correctness.log",
+          "sha256": "f24d2f9dc6d836c94e1b3f8eee23d39a32e3872e127ba05229ee59e6ea3acf9b"
+        },
+        {
+          "mode": "language",
+          "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-binding-perf-formal-warm-counter-r38-win-r1\\language-correctness.log",
+          "sha256": "8892e62c9547b4a6a816e64c8d1d7eb7ac403e16749454341ae7fcfc0cd30c1f"
+        }
+      ]
+    },
+    {
+      "platform": "win_x64",
+      "fixture": "shape",
+      "logs": [
+        {
+          "mode": "raw",
+          "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-binding-perf-formal-shape-counter-r38-win-r1\\raw-correctness.log",
+          "sha256": "ef7396e92dd26fd874ba673f5318087fae435d737914bf67ff86ed2830e5f097"
+        },
+        {
+          "mode": "safe",
+          "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-binding-perf-formal-shape-counter-r38-win-r1\\safe-correctness.log",
+          "sha256": "5daf701a9b2f270a94b8622bc986660851f156a182369313b66f1bd908c5ce49"
+        },
+        {
+          "mode": "language",
+          "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-binding-perf-formal-shape-counter-r38-win-r1\\language-correctness.log",
+          "sha256": "e405e7759a628382b06880047c60eb1ebfdf1e0047db189d88311611248753ae"
+        }
+      ]
+    },
+    {
+      "platform": "linux_x64",
+      "fixture": "warm",
+      "logs": [
+        {
+          "mode": "raw",
+          "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-binding-perf-formal-warm-counter-r39-linux-r1\\raw-correctness.log",
+          "sha256": "1bf19b56cc6dce6e83900943e4929b0255f72527acb117f9245bb4b7848f4735"
+        },
+        {
+          "mode": "safe",
+          "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-binding-perf-formal-warm-counter-r39-linux-r1\\safe-correctness.log",
+          "sha256": "6dc58ecc3e20d58031cebdcc8e6cd871b3b4051dcaea916b94e302f1cf16e620"
+        },
+        {
+          "mode": "language",
+          "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-binding-perf-formal-warm-counter-r39-linux-r1\\language-correctness.log",
+          "sha256": "fa9e65588b65a2b2f863e22f4daa183c627e2dbd3fff512e84a5b6e844b5ac21"
+        }
+      ]
+    },
+    {
+      "platform": "linux_x64",
+      "fixture": "shape",
+      "logs": [
+        {
+          "mode": "raw",
+          "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-binding-perf-formal-shape-counter-r39-linux-r1\\raw-correctness.log",
+          "sha256": "778ba2894445076b53f2d221b57158090a37986a7c4596e95870e57c7f1b2fd6"
+        },
+        {
+          "mode": "safe",
+          "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-binding-perf-formal-shape-counter-r39-linux-r1\\safe-correctness.log",
+          "sha256": "4df3be4083f2fd529a455745c94220af43c4d6a410b1ae577193e193e8fe0a5e"
+        },
+        {
+          "mode": "language",
+          "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-binding-perf-formal-shape-counter-r39-linux-r1\\language-correctness.log",
+          "sha256": "771b1a27c7b3c2d97f6abdeb8f48cc0dbfacdd7a539a1284a398311e6dc7df2a"
+        }
+      ]
+    }
+  ],
+  "assembly": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-binding-perf-shape-assembly-win-r1\\inspection-r2.json",
+      "sha256": "822c8e5b1b7c13b31374d592e2e014e0a269fa6b30ea58316f9497001792b8e3",
+      "binarySha256": "0d32d37a2a24d80c6ecb39b8063c807bca5e4d88fb2c295dcd63b4b40c1d63c9",
+      "loops": [
+        {
+          "start": "0x140027c00",
+          "end": "0x140027c11",
+          "calls": [],
+          "instructions": [
+            "   140027c00:\t4c 63 48 04          \tmovslq 0x4(%rax),%r9",
+            "   140027c04:\t48 83 c0 1c          \tadd    $0x1c,%rax",
+            "   140027c08:\t4c 31 ce             \txor    %r9,%rsi",
+            "   140027c0b:\t48 01 de             \tadd    %rbx,%rsi",
+            "   140027c0e:\t48 39 c1             \tcmp    %rax,%rcx",
+            "   140027c11:\t75 ed                \tjne    140027c00 <xlir_fn_3326+0x3310>"
+          ]
+        },
+        {
+          "start": "0x140027ec0",
+          "end": "0x140027ed0",
+          "calls": [],
+          "instructions": [
+            "   140027ec0:\t4c 63 08             \tmovslq (%rax),%r9",
+            "   140027ec3:\t48 83 c0 0c          \tadd    $0xc,%rax",
+            "   140027ec7:\t4c 31 ce             \txor    %r9,%rsi",
+            "   140027eca:\t48 01 de             \tadd    %rbx,%rsi",
+            "   140027ecd:\t48 39 c8             \tcmp    %rcx,%rax",
+            "   140027ed0:\t75 ee                \tjne    140027ec0 <xlir_fn_3326+0x35d0>"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\native-binding-perf-shape-assembly-linux-r1.json",
+      "sha256": "3d07a7b4fa38db55b206fe1194840b7e156b434a454be90cc713d760272e7ee5",
+      "binarySha256": "be4f5332b5686033cec27428bd4249a3d0f5c8e11651e496d56f8b11f6c4853d",
+      "loops": [
+        {
+          "start": "0x32c40",
+          "end": "0x32c51",
+          "calls": [],
+          "instructions": [
+            "   32c40:\t48 63 78 04          \tmovslq 0x4(%rax),%rdi",
+            "   32c44:\t48 83 c0 1c          \tadd    $0x1c,%rax",
+            "   32c48:\t49 31 fc             \txor    %rdi,%r12",
+            "   32c4b:\t49 01 dc             \tadd    %rbx,%r12",
+            "   32c4e:\t48 39 c1             \tcmp    %rax,%rcx",
+            "   32c51:\t75 ed                \tjne    32c40 <xlir_fn_3538+0x3040>"
+          ]
+        },
+        {
+          "start": "0x32ea0",
+          "end": "0x32eb0",
+          "calls": [],
+          "instructions": [
+            "   32ea0:\t48 63 38             \tmovslq (%rax),%rdi",
+            "   32ea3:\t48 83 c0 0c          \tadd    $0xc,%rax",
+            "   32ea7:\t49 31 fc             \txor    %rdi,%r12",
+            "   32eaa:\t49 01 dc             \tadd    %rbx,%r12",
+            "   32ead:\t48 39 c8             \tcmp    %rcx,%rax",
+            "   32eb0:\t75 ee                \tjne    32ea0 <xlir_fn_3538+0x32a0>"
+          ]
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "O2 static CPU backend; no dynamic CodeLease cost measured.",
+    "Checked C assert failure differs from language checked unwinding; cold factory pre-reservation is not equivalent.",
+    "Native SDKs pinned per platform; later B/DocUI and final delivery are separate.",
+    "Phase live counters are deltas; process peaks are global."
+  ],
+  "files": [
+    {
+      "path": "test/interop/native_binding_performance/binding_perf.h",
+      "acceptedSha256": "9fe914235093e9ed98a133db36b693f62387a6c308994ff1ac7721533ad058d4",
+      "canonicalLfSha256": "9fe914235093e9ed98a133db36b693f62387a6c308994ff1ac7721533ad058d4"
+    },
+    {
+      "path": "test/interop/native_binding_performance/binding_perf_native.c",
+      "acceptedSha256": "6121da46684d28638ca54964f784c55e1f3833be101f694063997ea5dc4431c0",
+      "canonicalLfSha256": "6121da46684d28638ca54964f784c55e1f3833be101f694063997ea5dc4431c0"
+    },
+    {
+      "path": "test/interop/native_binding_performance/handwritten.c",
+      "acceptedSha256": "bc890d9efc2e6ede79f2c4551898b9224bff3d2b1ae8507d13d8c526e32e38a3",
+      "canonicalLfSha256": "bc890d9efc2e6ede79f2c4551898b9224bff3d2b1ae8507d13d8c526e32e38a3"
+    },
+    {
+      "path": "test/interop/native_binding_performance/handwritten_shape.c",
+      "acceptedSha256": "4c6fd5afe7b259256cf8407363d0ce1f1004fb7f625b84438a40d53f6bf80630",
+      "canonicalLfSha256": "4c6fd5afe7b259256cf8407363d0ce1f1004fb7f625b84438a40d53f6bf80630"
+    },
+    {
+      "path": "test/interop/native_binding_performance/language_host.c",
+      "acceptedSha256": "a43c073a99001f52ebcb7183c56055b1bdfc523140f162b7104c9da2281a1426",
+      "canonicalLfSha256": "a43c073a99001f52ebcb7183c56055b1bdfc523140f162b7104c9da2281a1426"
+    },
+    {
+      "path": "test/interop/native_binding_performance/planner.c",
+      "acceptedSha256": "32291f7ccaabee24fb313e5283c3895484c60808dd9245c23fedc7236540e907",
+      "canonicalLfSha256": "32291f7ccaabee24fb313e5283c3895484c60808dd9245c23fedc7236540e907"
+    },
+    {
+      "path": "test/interop/native_binding_performance/prepare.py",
+      "acceptedSha256": "178daa7f19690ce894ca00cf78e5e9ab262a12a9a140c472a34f5ab66d547aeb",
+      "canonicalLfSha256": "178daa7f19690ce894ca00cf78e5e9ab262a12a9a140c472a34f5ab66d547aeb"
+    },
+    {
+      "path": "test/interop/native_binding_performance/README.md",
+      "acceptedSha256": "be2f83e0ca86f3fbf800fe6555459ddc4cbb1289e6549a907afe63c0c6d2bf9e",
+      "canonicalLfSha256": "be2f83e0ca86f3fbf800fe6555459ddc4cbb1289e6549a907afe63c0c6d2bf9e"
+    },
+    {
+      "path": "test/interop/native_binding_performance/sample.py",
+      "acceptedSha256": "fcdd94835ee3426f76f04083b99a2eda34681121e2b7527b6505adb7938f9072",
+      "canonicalLfSha256": "fcdd94835ee3426f76f04083b99a2eda34681121e2b7527b6505adb7938f9072"
+    },
+    {
+      "path": "test/interop/native_binding_performance/shape_workload.xl",
+      "acceptedSha256": "f5f25fea657e527eefb588b5aeb798396c55914b2714135fe8e2c88457253169",
+      "canonicalLfSha256": "f5f25fea657e527eefb588b5aeb798396c55914b2714135fe8e2c88457253169"
+    },
+    {
+      "path": "test/interop/native_binding_performance/workload.xl",
+      "acceptedSha256": "c5333a102c00505ca619b6755f456eb47991fbe8a4c5e7b9afad943bf2eb7b5b",
+      "canonicalLfSha256": "c5333a102c00505ca619b6755f456eb47991fbe8a4c5e7b9afad943bf2eb7b5b"
+    },
+    {
+      "path": "docs/xge3-xui3-binding-costs.md",
+      "sha256": "4a04bcda8916d0fa00bbdbc6c8732d94e4e79d8a964bcb2815895b4c0691ba1d"
+    }
+  ]
+}
