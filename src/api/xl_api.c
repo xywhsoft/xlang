@@ -1236,6 +1236,16 @@ static int xlConfigureTccStateEnvironment(XL_Context* ctx, TCCState* s, int outp
             return 0;
         }
     }
+#ifndef XL_STATIC_TCC_VFS
+    /* Dynamic providers can supply the standard support library from their
+       VFS even when the default physical distribution is absent. Keep every
+       explicit library path ahead of this fallback. */
+    if (xl__tcc.tcc_vfs_open != NULL &&
+        xl__tcc.tcc_add_library_path(s, "lib") != 0) {
+        xlSetError(ctx, "cannot configure embedded compiler support library path");
+        return 0;
+    }
+#endif
     return 1;
 }
 

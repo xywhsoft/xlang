@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "scope": "Dynamic-provider default contexts gain a final virtual lib fallback after every configured physical library path. Static-provider search behavior unchanged. No blanket XGE static-AOT qualification.",
+  "passed": true,
+  "source": "src/api/xl_api.c",
+  "sourceSha256": "13f71acc7e262c924662db932974833cb2c0be67f7dd6e8dc4d749d6765f4a36",
+  "sourceFreeze": "F:\\xlang-validation\\native-static-20261106\\core-source-r6.json",
+  "sourceFreezeSha256": "239d00023ae6d200f1c9f3def3ae43fa547bf2b632386fb8ad4829a57996eb55",
+  "sourceFreeRows": 40,
+  "reports": [
+    {
+      "originalPath": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-static-20261106\\sourcefree-vfs-linux-r2\\results.json",
+      "archivePath": "sourcefree-results.json",
+      "sha256": "75910a29f167fce7e97f98f345a9297df018730da2a3958ef4488a2922df9434"
+    },
+    {
+      "originalPath": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-static-20261106\\libpath-default-probe-linux-r2\\results.json",
+      "archivePath": "default-context-proof.json",
+      "sha256": "babcfa0bd515db90fbe7a3cc1917379dcf7fbc3a13b4d6f117d11e3259b96660"
+    }
+  ],
+  "archiveSha256": "eadd654fb7bfffdc635330a3520976d0a4c53ddd563521e0a779b9e5db198550",
+  "shippingDelivery": false
+}
