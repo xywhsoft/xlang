@@ -1,0 +1,32 @@
+extern "module_owner_capture" @header("test/cases/foreign_module_code_owner.h") @no_raise @c_code_owner(0) func capture(c_int value) as c_int
+extern "module_owner_after" @header("test/cases/foreign_module_code_owner.h") @no_raise @c_code_owner(1) @c_null(2,"const void*") func after(c_int value) as c_int
+extern "module_owner_dual" @header("test/cases/foreign_module_code_owner.h") @no_raise @c_code_owner(0) @c_code_owner(2) func dual(c_int value) as c_int
+extern "module_owner_only" @header("test/cases/foreign_module_code_owner.h") @no_raise @c_code_owner(0) @c_output(1,0) func ownerOnly() as c_int
+extern "module_owner_expected" @header("test/cases/foreign_module_code_owner.h") @no_raise func expected() as c_int
+extern "OwnerReceiver*" class Receiver @header("test/cases/foreign_module_code_owner.h") @lifetime("owned") @policy("moduleOwnerPolicy")
+ native point handle
+ extern "module_owner_method" @no_raise @c_code_owner(1) func method(c_int value) as c_int
+ extern "invoke" @c_field_call @no_raise @c_code_owner(1) func invoke(c_int value) as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "module_owner_create" @header("test/cases/foreign_module_code_owner.h") @no_raise @c_result("owned_view") @factory(0,0,rollback) func createReceiver() as Receiver
+extern "module_owner_drop" @header("test/cases/foreign_module_code_owner.h") @no_raise func rollback(Receiver value)
+protocol Caller
+ func invoke(c_int value) as c_int
+end
+func main(...) as int
+ auto extra=expected()
+ assert capture(c_int(3))==c_int(3)+extra
+ assert after(c_int(5))==c_int(5)+extra
+ assert dual(c_int(11))==c_int(11)+extra
+ assert ownerOnly()==c_int(41)+extra
+ auto receiver=createReceiver()
+ assert receiver.method(c_int(13))==c_int(20)+extra
+ assert receiver.invoke(c_int(17))==c_int(24)+extra
+ func(c_int) as c_int bound=receiver.invoke
+ assert bound(c_int(19))==c_int(26)+extra
+ Caller caller=receiver
+ assert caller.invoke(c_int(23))==c_int(30)+extra
+ receiver.close()
+ return 0
+end

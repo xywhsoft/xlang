@@ -30,10 +30,15 @@ typedef struct XL6_ForeignPackFieldContract {
     char field[64],physicalCName[128];
 } XL6_ForeignPackFieldContract;
 
-typedef struct XL6_ForeignNullContract {
+typedef enum XL6_ForeignFixedInputKind {
+    XL6_FOREIGN_FIXED_TYPED_NULL = 1,
+    XL6_FOREIGN_FIXED_MODULE_CODE_OWNER
+} XL6_ForeignFixedInputKind;
+typedef struct XL6_ForeignFixedInputContract {
     uint32 declaration,physicalIndex;
+    XL6_ForeignFixedInputKind kind;
     char pointerCName[128];
-} XL6_ForeignNullContract;
+} XL6_ForeignFixedInputContract;
 
 /* A physical step is one native input group or one output pointer. A span
  * step still has its inseparable pointer/count ABI. A pack step consumes its
@@ -44,7 +49,7 @@ typedef enum XL6_ForeignPhysicalStepKind {
     XL6_FOREIGN_PHYSICAL_STEP_OUTPUT,
     XL6_FOREIGN_PHYSICAL_STEP_PACK,
     XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP,
-    XL6_FOREIGN_PHYSICAL_STEP_NULL
+    XL6_FOREIGN_PHYSICAL_STEP_FIXED
 } XL6_ForeignPhysicalStepKind;
 typedef struct XL6_ForeignPhysicalStep {
     XL6_ForeignPhysicalStepKind kind;

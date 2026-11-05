@@ -662,7 +662,13 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
         if (physical) xl6OutputPuts(", ", out);
         XL6_ForeignPhysicalStep step;if(!xl6IrForeignPhysicalStepGet(module,target,physical,&step))return 0;
         size_t p=step.parameter;
-        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_NULL){const XL6_ForeignNullContract* row=xl6IrForeignNullGet(module,target,step.physicalIndex);if(!row)return 0;xl6OutputPrintf(out,"(%s)0",row->pointerCName);continue;}
+        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_FIXED){
+            const XL6_ForeignFixedInputContract* row=xl6IrForeignFixedInputGet(module,target,step.physicalIndex);if(!row)return 0;
+            if(row->kind==XL6_FOREIGN_FIXED_MODULE_CODE_OWNER && module->abi.codeOwnerAbi==XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT)
+                xl6OutputPuts("(xlir_code_owner.size ? &xlir_code_owner : NULL)",out);
+            else xl6OutputPrintf(out,"(%s)0",row->pointerCName);
+            continue;
+        }
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){if(!xl6IrCgenArrayArguments(out,module,target,step.physicalIndex))return 0;continue;}
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){xl6OutputPrintf(out,"&native_pack_%u",step.physicalIndex);continue;}
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){
@@ -1111,7 +1117,13 @@ static int xl6IrCgenEmitDirectCall(
         if(physical<physicalSteps){
             XL6_ForeignPhysicalStep step;if(!xl6IrForeignPhysicalStepGet(module,target,physical,&step))return 0;
             argument=step.parameter;
-            if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_NULL){const XL6_ForeignNullContract* row=xl6IrForeignNullGet(module,target,step.physicalIndex);if(!row)return 0;xl6OutputPrintf(out,"(%s)0",row->pointerCName);continue;}
+            if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_FIXED){
+                const XL6_ForeignFixedInputContract* row=xl6IrForeignFixedInputGet(module,target,step.physicalIndex);if(!row)return 0;
+                if(row->kind==XL6_FOREIGN_FIXED_MODULE_CODE_OWNER && module->abi.codeOwnerAbi==XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT)
+                    xl6OutputPuts("(xlir_code_owner.size ? &xlir_code_owner : NULL)",out);
+                else xl6OutputPrintf(out,"(%s)0",row->pointerCName);
+                continue;
+            }
             if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){if(!xl6IrCgenArrayArguments(out,module,target,step.physicalIndex))return 0;continue;}
             if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){xl6OutputPrintf(out,"&native_pack_%u",step.physicalIndex);continue;}
             if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){

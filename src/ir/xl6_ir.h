@@ -7099,8 +7099,8 @@ typedef struct XL6_IrModule {
     size_t foreignPackCount,foreignPackCapacity;
     XL6_ForeignPackFieldContract* foreignPackFields;
     size_t foreignPackFieldCount,foreignPackFieldCapacity;
-    XL6_ForeignNullContract* foreignNulls;
-    size_t foreignNullCount,foreignNullCapacity;
+    XL6_ForeignFixedInputContract* foreignFixedInputs;
+    size_t foreignFixedInputCount,foreignFixedInputCapacity;
     XL6_ForeignArrayGroupContract* foreignArrayGroups;
     size_t foreignArrayGroupCount,foreignArrayGroupCapacity;
     XL6_ForeignArrayInputContract* foreignArrayInputs;
@@ -8113,7 +8113,7 @@ const XL6_ForeignOutputViewContract* xl6IrForeignOutputViewGet(const XL6_IrModul
 int xl6IrForeignOutputViewsMatch(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignPackContract* xl6IrForeignPackGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 const XL6_ForeignPackContract* xl6IrForeignPackParameter(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
-const XL6_ForeignNullContract* xl6IrForeignNullGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+const XL6_ForeignFixedInputContract* xl6IrForeignFixedInputGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 size_t xl6IrForeignPhysicalStepCount(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignPhysicalStepGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t,XL6_ForeignPhysicalStep*);
 size_t xl6IrForeignFirstOutputLogical(const XL6_IrModule*,const XL6_IrCallTarget*);

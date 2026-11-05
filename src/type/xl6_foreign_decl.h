@@ -315,9 +315,9 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             if(!xl6ForeignPackRead(attr,&row) || (packs&(UINT64_C(1)<<row.physicalIndex)))return 0;
             packs|=UINT64_C(1)<<row.physicalIndex;continue;
         }
-        if(attr && attr->text && !strcmp(attr->text,"c_null")){
-            XL6_ForeignNullContract row;
-            if(!xl6ForeignNullRead(attr,&row) || (nulls&(UINT64_C(1)<<row.physicalIndex)))return 0;
+        if(attr && attr->text && (!strcmp(attr->text,"c_null") || !strcmp(attr->text,"c_code_owner"))){
+            XL6_ForeignFixedInputContract row;
+            if(!xl6ForeignFixedInputRead(attr,&row) || (nulls&(UINT64_C(1)<<row.physicalIndex)))return 0;
             nulls|=UINT64_C(1)<<row.physicalIndex;continue;
         }
         if(attr && attr->text && (!strcmp(attr->text,"c_pack_field") || !strcmp(attr->text,"c_pack_size") || !strcmp(attr->text,"c_pack_record"))){
@@ -539,7 +539,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     if((arrayRecords&~arrayGroups) || (!arrayGroups && (arrayInputs || arrayFields)) ||
         (arrayGroups && (packs || regions || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)))return 0;
     if(arrayGroups)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT;
-    if(nulls)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_NULLS_PRESENT;
+    if(nulls)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_FIXED_PRESENT;
     if (output) *output = facts;
     return 1;
 }

@@ -1,0 +1,124 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "fullCompilerRebuild": false,
+  "scope": "Explicit borrowed current-module code owner in sparse physical fixed inputs; direct C calls without hidden global lookup.",
+  "frozenInputs": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-module-code-owner-r1\\module-code-owner-inputs.json",
+    "sha256": "ae1a7dbabbd1bef04fdc59309fa8019b17107c70fc7847d8a343239b9fb42604"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\module-code-owner-win-r1\\results.json",
+      "sha256": "93f77d32d998b4f01bc9a061a7054cb813bc032019e57e1f3061a094bb4dda02",
+      "processRows": 29
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\nested-pack-null-module-owner-win-r1\\results.json",
+      "sha256": "b486922212a8ea1bc129ba7841b061df8d7f2902bbb42cd3c988379fb126544e",
+      "processRows": 44
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\module-code-owner-linux-r1\\results.json",
+      "sha256": "b53b5dcef6413f186c7ffb422d1b64d7144fa062f8bcc893e93f753f54ab2b38",
+      "processRows": 29
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\nested-pack-null-module-owner-linux-r2\\results.json",
+      "sha256": "9e967bc38c1d54256111128a46f007a0887f477c66e3681e4932f5c9274a5c69",
+      "processRows": 44
+    }
+  ],
+  "nodeFactsBytes": 88,
+  "sparseRowDeltaBytes": 4,
+  "limitations": [
+    "No COM/clipboard/drag integration qualification implied.",
+    "Windows and Linux focused compiler overlays; final matched provider/SDK delivery remains separate.",
+    "Live unrelated IDE Sem changes excluded.",
+    "Test-only late mutator/fixture pairing is recorded by each acceptance report."
+  ],
+  "files": [
+    {
+      "path": "src/cgen/xl6_ir_cgen_identity_closure.c",
+      "canonicalLfSha256": "ebb1fa41a140fda8dcacc041aeed2306f02d1ac432de35075708dda653d752ca"
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_type_call.c",
+      "canonicalLfSha256": "3b2ed3f83296cd3550596cc7f39cc873732054756cb402fbc0ae47cd3695eb42"
+    },
+    {
+      "path": "src/ir/xl6_ir.c",
+      "canonicalLfSha256": "f18cba280d8439243b43db7f8ccaa3412b4e9f6fe8cf1dfe989bab65af310fa7"
+    },
+    {
+      "path": "src/ir/xl6_ir.h",
+      "canonicalLfSha256": "05cedaa99ccec7ad8ed4b2be4f41782d52bd90edc8a5dd6838c1e7d9a7ad46b5"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_compat.c",
+      "canonicalLfSha256": "d65784e4f068ab81ebf7d5432daa1f7c536993704bab624d9d3da9dd9a067913"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_pack.c",
+      "canonicalLfSha256": "10ef1cf818b155f6e230e554688c43baf04fb0d0dcfbeb1015e2feda7800384b"
+    },
+    {
+      "path": "src/ir/xl6_ir_foreign_parameter.c",
+      "canonicalLfSha256": "a212371813f0bd285f1fac3efc66298a332fc22c209c82585f5a9a0445a2a726"
+    },
+    {
+      "path": "src/sem/xl6_sem.c",
+      "canonicalLfSha256": "0bd2b4d1cf07f6f74c5f97c5498760980e0d6b990416038ed1ce2a69e0bc2125"
+    },
+    {
+      "path": "src/sem/xl6_sem_foreign_pack.c",
+      "canonicalLfSha256": "24b80a3dc8beb7901df4e9c05415806fd9114500e3b91e82202ad3e5c9ca9be6"
+    },
+    {
+      "path": "src/type/xl6_foreign_call_contract.h",
+      "canonicalLfSha256": "46b1bcb0cfa7302f2dd83b47ea062df5da7189c786347570a912b9cb6f6dbefb"
+    },
+    {
+      "path": "src/type/xl6_foreign_decl.h",
+      "canonicalLfSha256": "99963a89d6155264a0ec21a7cef4294f7a2e34fc78b55d62a310331ce0c09054"
+    },
+    {
+      "path": "src/type/xl6_foreign_pack_contract.h",
+      "canonicalLfSha256": "0f3c0fc9da6c9d41d27c4ab6fb11f10ecc80fd9290d71d91d10f13541e2b1a8b"
+    },
+    {
+      "path": "src/type/xl6_foreign_pack_decl.h",
+      "canonicalLfSha256": "7db39f141cf6f8e426d8422a5af377948c879e74589825f2c473923718ab7849"
+    },
+    {
+      "path": "test/cases/foreign_nested_pack_null_ir.c",
+      "canonicalLfSha256": "732bdd952caa4d52ba7e051e7367cc59e45e2373f918f5a28409f18892327ffe"
+    },
+    {
+      "path": "test/cases/foreign_module_code_owner.h",
+      "canonicalLfSha256": "8880075af8c0aad9656589e91a35def08214d84e700b4f1c634ab9160e4018da"
+    },
+    {
+      "path": "test/cases/foreign_module_code_owner.xl",
+      "canonicalLfSha256": "e47ca9b227f37b6ae1e1a1a11d003df05e98b23b5001ec6c8a8eb54fb2eb7bd1"
+    },
+    {
+      "path": "test/cases/foreign_module_code_owner_native.c",
+      "canonicalLfSha256": "c7fd0ea4bf83f7dea3dbd0f66469db9e0c3c684cc43cc209b0223b2810fd073f"
+    },
+    {
+      "path": "test/cases/foreign_module_code_owner_host.c",
+      "canonicalLfSha256": "db18c2e7c891a67477c1c6a5b6674ebe39254157697ccb8a0c1f299317d4be40"
+    },
+    {
+      "path": "tools/check_foreign_module_code_owner.py",
+      "canonicalLfSha256": "f30ce57570e90213bdc1fcf96042178d046fc3dd2d10438315e83a103f1096aa"
+    },
+    {
+      "path": "docs/foreign-module-code-owner.md",
+      "canonicalLfSha256": "182111943a34d43a8c4beea8bdc0e7ede84d48fd5916ef8a7b5697a7f6b16cf1"
+    }
+  ]
+}
