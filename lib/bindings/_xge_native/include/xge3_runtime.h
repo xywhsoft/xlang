@@ -26,6 +26,11 @@ extern "C" {
 /* Cold checked initialization. Repeat calls validate the identical runtime;
  * the native engine never acquires or embeds a second XRT implementation. */
 int xl6Xge3RuntimeBindV1(void);
+int xl6Xge3RunOwned(xge_scene_proc,void*,const xge_callback_owner_t*,const XL6_CodeOwner*);
+int xl6Xge3DragBegin(xge_data_object,uint32_t,uint32_t,const XL6_CodeOwner*);
+int xl6Xge3CopyToClipboard(xge_data_object,const XL6_CodeOwner*);
+int xl6Xui3CopyToClipboard(xui_context,xui_data_object,const XL6_CodeOwner*);
+
 const XL6_ForeignViewDescriptorV1* xl6Xui3ContextPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3WidgetPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3MsgBoxPolicyGet(void);
@@ -35,6 +40,9 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3MsgTipPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3TableCellOutputPolicyGet(void);
 const XL6_OwnershipDomainV1* xuiTableViewCellOutputOwnershipDomainV1Get(void);
 const XL6_OwnershipDomainV1* xl6Xui3OwnershipDomainV1Get(void);
+const XL6_OwnershipDomainV1* xl6Xge3TransferDomainV1Get(void);
+const XL6_ForeignViewDescriptorV1* xl6Xge3DataObjectPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3DataObjectPolicyGet(void);
 const XL6_OwnershipDomainV1* xl6Xui3DocumentModelDomainV1Get(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentSnapshotPolicyGet(void);
@@ -83,6 +91,9 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
 #define xl6Xui3DocumentFragmentPolicy (*xl6Xui3DocumentFragmentPolicyGet())
 #define xl6Xui3DocumentSourceIndexPolicy (*xl6Xui3DocumentSourceIndexPolicyGet())
 #define xl6Xui3DocumentTxnPolicy (*xl6Xui3DocumentTxnPolicyGet())
+#define xl6Xge3TransferDomainV1 (*xl6Xge3TransferDomainV1Get())
+#define xl6Xge3DataObjectPolicy (*xl6Xge3DataObjectPolicyGet())
+#define xl6Xui3DataObjectPolicy (*xl6Xui3DataObjectPolicyGet())
 #define xl6Xui3DocumentRendererPolicy (*xl6Xui3DocumentRendererPolicyGet())
 #define xl6Xui3DocumentHtmlInteractionPolicy (*xl6Xui3DocumentHtmlInteractionPolicyGet())
 #define xl6Xui3DocumentWebProviderPolicy (*xl6Xui3DocumentWebProviderPolicyGet())
