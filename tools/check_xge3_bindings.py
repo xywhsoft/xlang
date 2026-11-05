@@ -949,6 +949,15 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
             free.append('export extern "'+f['name']+'" @header("xge3_runtime.h") @no_raise '+(' '.join(attrs)+' ' if attrs else '')+'func '+name+'('+','.join(params)+')'+(' as '+result if result else ''))
             mapped[f['name']]='xui.'+name
         except ValueError:continue
+    array_methods={
+        'xuiTabsSetItems':('Tabs','setItems','@c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const char**","c_string")','array<string> titles,int size=-1'),
+        'xuiTabsSetIcons':('Tabs','setIcons','@c_array_group(1,0,2,"int",2) @c_array_input(1,0,"xui_surface*","view_raw") @c_array_input(1,1,"const xui_rect_t*","value")','array<Surface?> icons,array<Rect> sources,int size=-1'),
+        'xuiToolbarSetItems':('Toolbar','setItemsColumns','@c_array_group(1,0,8,"int",8) @c_array_record(1,"xui_toolbar_item_t") @c_array_field(1,"sText",0,"c_string") @c_array_field(1,"sTooltip",1,"c_string") @c_array_field(1,"iType",2,"value") @c_array_field(1,"iState",3,"value") @c_array_field(1,"iValue",4,"value") @c_array_field(1,"iGroup",5,"value") @c_array_field(1,"pIcon",6,"view_raw") @c_array_field(1,"tIconSrc",7,"value")','array<string?> texts,array<string?> tooltips,array<c_int> types,array<c_uint> states,array<c_int> values,array<c_int> groups,array<Surface?> icons,array<Rect> iconSources,int size=-1')}
+    for native,(owner,name,contract,parameters) in array_methods.items():
+        if not any(f['name']==native for f in functions):continue
+        classes[owner]=[declaration for declaration in classes[owner] if 'extern "'+native+'"' not in declaration]
+        classes[owner].append(' extern "'+native+'" @no_raise @c_result("status",0) '+contract+' func '+name+'('+parameters+')')
+        mapped[native]='xui.'+owner+'.'+name
     lines=['// Managed owner graph and direct native methods. Generated; no per-method C wrappers.']
     for c,n in sorted(raw.items()):lines+=['// Explicit C-interop-only descriptor pointer; this does not own the pointed-to data.','export extern "'+c+'" class '+n+' @header("xge3_runtime.h") @lifetime("caller")',' native point handle','end']
     lines+=callback_declarations

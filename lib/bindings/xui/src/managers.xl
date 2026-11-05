@@ -46,6 +46,8 @@ export extern "xui_msgbox_t*" class MsgBox @header("xge3_runtime.h") @lifetime("
  extern "xuiMsgBoxSetIconSurface" @no_raise @c_result("status",0) func setIcon(Surface? surface,Rect source)
  extern "xuiMsgBoxUseBuiltinIcon" @no_raise @c_result("status",0) func useBuiltinIcon()
  extern "xuiMsgBoxSetButtons" @no_raise @c_result("status",0) func setButtons(c_int buttons)
+ // Columnar bulk input: strict equal lengths by default, bounded common prefix for explicit size.
+ extern "xuiMsgBoxSetCustomButtons" @no_raise @c_result("status",0) @c_array_group(1,0,3,"int",3) @c_array_record(1,"xui_msgbox_button_t") @c_array_field(1,"sText",0,"c_string") @c_array_field(1,"iResult",1,"value") @c_array_field(1,"iSemantic",2,"value") func setCustomButtonsColumns(array<string> texts,array<c_int> results,array<c_int> semantics,int size=-1)
  extern "xuiMsgBoxSetPresetButtonTitle" @no_raise @c_cstr(1) @c_result("status",0) func setPresetButtonTitle(c_int index,string title)
  extern "xuiMsgBoxGetPresetButtonTitle" @no_raise func presetButtonTitle(c_int index) as string?
  extern "xuiMsgBoxSetResultOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setResult(MsgBoxResultProc? callback)

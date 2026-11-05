@@ -110,3 +110,15 @@ getters return a NULL Surface with zero fields when unset. Clear methods retain
 their native behavior. These declarations require the borrowed-output-record
 compiler contract and its matching runtime/SDK acceptance; prior ABI reports
 do not validate these newer methods.
+
+Typed bulk inputs use `Tabs.setItems(titles, size=-1)` and
+`Tabs.setIcons(icons, sources, size=-1)`. Strings are NUL-checked; icon resources
+are pinned through the native transaction and its cleanup. Icon source Rects
+are explicit. `Toolbar.setItemsColumns(texts, tooltips, types, states, values,
+groups, icons, iconSources, size=-1)` and
+`MsgBox.setCustomButtonsColumns(texts, results, semantics, size=-1)` expose
+explicit columnar descriptor input. Default size requires equal column lengths;
+an explicit nonnegative size uses at most the common prefix. Their O(n)
+temporary records and resource scopes are intentional, with no per-method C
+wrapper. See [projection contracts and costs](../../../../docs/foreign-array-projections.md).
+Ordinary mutable object arrays are not treated as native descriptor storage.

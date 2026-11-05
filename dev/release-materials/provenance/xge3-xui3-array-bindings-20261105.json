@@ -1,0 +1,90 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "scope": "Four OOP typed Array bulk entry points and generator preservation; no C forwarding helpers, no new core, no release, no NativeSequence attrs",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\array-public-candidate-r1\\manifest.json",
+    "sha256": "e9282a58e1afbbf2420e64babc0b4f6d9364aac4a3ba3a4ac5e95522ba1f2b5e"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\array-public-abi-win-r1\\results.json",
+      "sha256": "b252d5cda7eeeb4e9e4cc275e9f23237ce4ebc0082d5ea03b9efa9e16ba60b17"
+    },
+    {
+      "path": "/home/ubuntu/xlang-validation/array-public-abi-linux-r1/results.json",
+      "sha256": "d2fc06c7a6c8b54f4b40ba92ca8fa2a3da654dfeafd5c550032cc36d2fc2da44"
+    }
+  ],
+  "sdkStages": [
+    "F:\\xlang-validation\\foreign-completion-20261103\\array-public-packages-win-r2.json",
+    "/home/ubuntu/xlang-validation/array-public-packages-linux-r1.json"
+  ],
+  "files": [
+    {
+      "path": "lib/bindings/xui/src/managed.xl",
+      "sourceSha256": "c9b506a7b064f91acedf051cf67aa7ec95f90f0e2ec9b118adf2ca4b85c88ebc",
+      "canonicalSha256": "7a6cc4d6d7b35dd94cda788513e35369ffae5a442f9243a8f696cce2afe82a11",
+      "blob": "b0d3b7c37c2f83288da3708f96673801b9ab8bf6"
+    },
+    {
+      "path": "lib/bindings/xui/src/managers.xl",
+      "sourceSha256": "cc696cc23bbffca5d5e102b6368e87af766742575b1477fd75b54b1247d6290f",
+      "canonicalSha256": "3a6d827c4985fbb14895a90e0967c5a30a6a6b7e78ea76374b15ef8b270968db",
+      "blob": "f64a16f805f6e15158a58185bdf0b0f180f99b95"
+    },
+    {
+      "path": "lib/bindings/xui/README.md",
+      "sourceSha256": "6d862a8f5d01b0bec8c84d2cfb803f099f2d1c6bebf17b84fbd6ab988fb500f4",
+      "canonicalSha256": "6d862a8f5d01b0bec8c84d2cfb803f099f2d1c6bebf17b84fbd6ab988fb500f4",
+      "blob": "e3a7af953337d44213fa9540c4818466356a543a"
+    },
+    {
+      "path": "tools/check_xge3_bindings.py",
+      "sourceSha256": "cd0d8344fc1d4f9b476bd099156e964be79cff6d4d3d8482bf54431b4685a436",
+      "canonicalSha256": "5322b5b09c7d449345d84a09f41b926607545f69390967535aaa743aadd20675",
+      "blob": "f701e660ffd58a0b595c28596a08aa72228310be"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_arrays.xl",
+      "sourceSha256": "2011af6ef5e277b70d1d2895b63040c85a6412fdcc809f9f5fcbe42ac2371618",
+      "canonicalSha256": "2011af6ef5e277b70d1d2895b63040c85a6412fdcc809f9f5fcbe42ac2371618",
+      "blob": "f19dcbcd76856fb8edc6ba899ec75f49c55589c5"
+    },
+    {
+      "path": "tools/check_foreign_xge3_array_bindings.py",
+      "sourceSha256": "6f2bab1c232cb6e067dfd5824f4d4d8961b74a967131a43126d31a4a0154237c",
+      "canonicalSha256": "6f2bab1c232cb6e067dfd5824f4d4d8961b74a967131a43126d31a4a0154237c",
+      "blob": "d121aced6cb8d6fa3442c94851fc3a13bc4919a3"
+    },
+    {
+      "path": "docs/xge3-xui3-array-api-map.json",
+      "sourceSha256": "bc2be622e16e2bf55989cd34db495a69b7b7531d07f827214c4337f30c82d479",
+      "canonicalSha256": "0553927233e0798bf163650c47c2e66950bdb0911b9a0fc804cfe2854f4b90c0",
+      "blob": "5fcb478727462b600288e298d64ed8789b9564e2"
+    }
+  ],
+  "publicMethods": [
+    "Tabs.setItems",
+    "Tabs.setIcons",
+    "Toolbar.setItemsColumns",
+    "MsgBox.setCustomButtonsColumns"
+  ],
+  "originalNativeFunctions": [
+    "xuiTabsSetItems",
+    "xuiTabsSetIcons",
+    "xuiToolbarSetItems",
+    "xuiMsgBoxSetCustomButtons"
+  ],
+  "qualification": "Both platforms actual Cgen/IR plus C11/C++11/C++17 header proofs and GCC O0/O2 object compilation; no GUI execution/no shipping claim",
+  "sourceCanonicalization": "Project-owned candidate source is committed with canonical LF. This is exactly CRLF-to-LF translation, no other byte change; immutable candidate/report bytes are preserved.",
+  "excludedCandidateFiles": [
+    "docs/xge3-xui3-api-map.md"
+  ],
+  "coreCommit": "2a59f5396c08d5d4a47e76b19cd5b34e35558c86",
+  "forwardingCFunctions": 0,
+  "executed": false,
+  "shippingDelivery": false,
+  "costs": "Exact native scalar backing is read-pinned. String columns scan for embedded NUL without copying bytes. Resource columns project O(n) pointers, retaining each view and entering its actual native scope; record columns allocate one temporary C record array."
+}
