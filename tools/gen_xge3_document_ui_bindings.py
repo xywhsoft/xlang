@@ -5,7 +5,7 @@ Every remaining C interface has an individual inventory reason.
 """
 from pathlib import Path
 import argparse,sys,re,json
-p=argparse.ArgumentParser(description=__doc__);p.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1]);p.add_argument('--native-root',type=Path,required=True);a=p.parse_args();root=a.root.resolve();native=a.native_root.resolve();sys.path.insert(0,str(root/'tools'));import check_xge3_bindings as inv
+p=argparse.ArgumentParser(description=__doc__);p.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1]);p.add_argument('--native-root',type=Path,required=True);p.add_argument('--no-managed-write',action='store_true');p.add_argument('--no-manifest-write',action='store_true');a=p.parse_args();root=a.root.resolve();native=a.native_root.resolve();sys.path.insert(0,str(root/'tools'));import check_xge3_bindings as inv
 known=set();previous=[]
 for n in ('xge.h','xui.h','xui_document.h'):
  h=inv.header_inventory(native/'include'/n,known);known.update(x['name'] for x in h['types']);previous+=h['types']
@@ -151,6 +151,16 @@ name='xuiDocumentImageResourceGetAsyncStats';globalFunctions.append('export'+dec
 for name,mn,first in [('xuiDocumentEditorInsertImage','insertImage',0),('xuiDocumentEditorUpdateImage','updateImage',1)]:
  fs=[('sResource','string resource','c_string'),('sAlt','string alt=""','text_data'),('iAltBytes',None,'text_size'),('sTitle','string? title=null','c_string'),('sLinkTarget','string? linkTarget=null','c_string'),('sLinkTitle','string? linkTitle=null','c_string'),('fWidth','c_float width=0','value'),('fHeight','c_float height=0','value')];logical=[x for x in fs if x[1]];attrs=pack(first+1,'xui_doc_image_desc_t',first,logical);attrs=[s.replace('"sAlt",'+str(first+1)+',"text_data")','"sAlt",'+str(first+1)+',"text_data")') for s in attrs];attrs+=['@c_pack_field('+str(first+1)+',"iAltBytes",'+str(first+1)+',"text_size","size_t")'];status('DocumentEditor',name,mn,('uint64 imageId,' if first else '')+','.join(x[1] for x in logical),attrs)
 
+# Only Native-defined NULL branches: no synthetic active-position or View
+# selection reset, since those Native entry points explicitly reject NULL.
+status('DocumentRenderer','xuiDocumentRendererDraw','draw','DrawContext draw,c_double origin_x,c_double origin_y,Rect clip,c_uint selection_color=0',['@c_null(5,"const xui_doc_range_t*")'])
+status('DocumentView','xuiDocumentViewSetTableSelection','clearTableSelection','',['@c_null(1,"const xui_doc_table_selection_t*")'])
+status('DocumentView','xuiDocumentViewSetFindScope','clearFindScope','',['@c_null(1,"const xui_doc_range_t*")'])
+for suffix,flags,slot in [('',False,5),('Ex',True,6)]:
+ add('DocumentEditor','xuiDocumentEditorReplaceAll'+suffix,'replaceAll'+suffix,'string pattern,string replacement'+(',c_uint flags' if flags else ''),['@c_span(0,"const char*","size_t")','@c_span(1,"const char*","size_t")','@c_null('+str(slot)+',"const xui_doc_range_t*")','@c_output('+str(slot+1)+',0)'],'uint64')
+status('MessageList','xuiMessageListSetNodeDocument','clearDocument','string messageId',['@c_cstr(0)','@c_null(2,"const xui_message_document_desc_t*")'])
+status('MessageList','xuiMessageListSetNodeDocumentTableSelection','clearDocumentTableSelection','string messageId',['@c_cstr(0)','@c_null(2,"const xui_doc_table_selection_t*")'])
+
 output=prefixLines[:]
 for cl in ('DocumentRenderer','DocumentView','DocumentEditor','DocumentWebProvider','DocumentHtmlInteraction','DocumentImageRequest'):
  if cl=='DocumentRenderer':physical='struct xui_document_renderer_t*';attributes='@lifetime("owned") @policy("xl6Xui3DocumentRendererPolicy") @domain("xl6Xui3OwnershipDomainV1")';base='';close=' extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()';release='xuiDocumentRendererReleaseChecked'
@@ -163,10 +173,12 @@ output+=['extern "xuiDocumentAddRef" @header("xge3_runtime.h") @no_raise func re
 for name,logical in [('xuiDocumentFontOutputSetFont','CallbackDocumentFontOutput.setFont'),('xuiDocumentFontOutputGetFont','CallbackDocumentFontOutput.font'),('xuiDocumentFontOutputDisposeChecked','CallbackDocumentFontOutput.clear'),('xuiDocumentRendererRequestClose','CallbackDocumentRenderer.requestClose')]:mapped[name]=[logical];reasons.pop(name,None)
 message='\n// Document UI declarations generated from xui_document_ui.h.\n'+'\n'.join(classes['MessageList'])+'\n'
 (root/'lib/bindings/xui/src/document_ui_message_methods.inc').write_text(message)
-path=root/'lib/bindings/xui/src/managed.xl';text=path.read_text();start=text.index('export extern "xui_widget_t*" class MessageList ');end=text.index('\nend',start);marker='\n// Document UI declarations generated from xui_document_ui.h.\n';old=text.find(marker,start,end)
-if old>=0:text=text[:old]+text[end:];end=old
-text=text[:end]+message+text[end:];path.write_text(text)
-manifest=root/'lib/bindings/xui/xlang.package.json';j=json.loads(manifest.read_text());sources=j['artifact']['xlSources'];sources[:]=[x for x in sources if x not in ('src/document_ui_records.xl','src/document_ui.xl')];sources+=['src/document_ui_records.xl','src/document_ui.xl'];manifest.write_text(json.dumps(j,indent=2)+'\n')
+if not a.no_managed_write:
+ path=root/'lib/bindings/xui/src/managed.xl';text=path.read_text();start=text.index('export extern "xui_widget_t*" class MessageList ');end=text.index('\nend',start);marker='\n// Document UI declarations generated from xui_document_ui.h.\n';old=text.find(marker,start,end)
+ if old>=0:text=text[:old]+text[end:];end=old
+ text=text[:end]+message+text[end:];path.write_text(text)
+if not a.no_manifest_write:
+ manifest=root/'lib/bindings/xui/xlang.package.json';j=json.loads(manifest.read_text());sources=j['artifact']['xlSources'];sources[:]=[x for x in sources if x not in ('src/document_ui_records.xl','src/document_ui.xl')];sources+=['src/document_ui_records.xl','src/document_ui.xl'];manifest.write_text(json.dumps(j,indent=2)+'\n')
 rows=[]
 for f in h['functions']:
  name=f['name'];reason=reasons.get(name,'');state='declared-not-yet-qualified'
@@ -180,5 +192,5 @@ for f in h['functions']:
   elif name=='xuiDocumentRendererGetRangeRects':state='explicit-C'
   elif any(x in name for x in ('Release','LifetimeWatch','TraceOwnership','OwnershipBusy')):reason='Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner'
  rows.append(dict(native=name,declaration=f['declaration'],line=f['line'],logical=mapped.get(name,[]),status=state,reason=reason))
-api=dict(scope=__doc__,authority=h['header'],authoritySha256=h['sha256'],functions=rows,records=newRecords,constants=constants,notes=['No per-method C forwarding wrapper','Descriptors are synchronous zeroed stack records; Native copies/pins/retains remain real costs','Browser/image APIs are declaration/ABI only, no external I/O execution','Optional NULL variants of the same Native symbol still require separately reviewed physical-signature alias compatibility'])
+api=dict(scope=__doc__,authority=h['header'],authoritySha256=h['sha256'],functions=rows,records=newRecords,constants=constants,notes=['No per-method C forwarding wrapper','Descriptors are synchronous zeroed stack records; Native copies/pins/retains remain real costs','Browser/image APIs are declaration/ABI only, no external I/O execution','Supported NULL branches use exact same-symbol physical aliases; Renderer active-position and View ordinary selection reject NULL and have no invented clear method'])
 (root/'docs/xge3-xui3-document-ui-api-map.json').write_text(json.dumps(api,indent=2)+'\n');print('Document UI',len(mapped),'functions /',len(h['functions']),'Native,',len(newRecords),'POD records')

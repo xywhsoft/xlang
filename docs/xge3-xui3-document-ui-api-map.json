@@ -430,6 +430,7 @@
       "declaration": "int xuiDocumentRendererDraw(xui_document_renderer renderer, xui_draw_context draw, double origin_x, double origin_y, xui_rect_t clip, const xui_doc_range_t* selection, uint32_t selection_color)",
       "line": 253,
       "logical": [
+        "DocumentRenderer.draw",
         "DocumentRenderer.draw"
       ],
       "status": "reachable-abi-qualified-runtime-not-executed",
@@ -870,7 +871,8 @@
       "declaration": "int xuiDocumentViewSetTableSelection(xui_widget view, const xui_doc_table_selection_t* selection)",
       "line": 444,
       "logical": [
-        "DocumentView.setTableSelection"
+        "DocumentView.setTableSelection",
+        "DocumentView.clearTableSelection"
       ],
       "status": "reachable-abi-qualified-runtime-not-executed",
       "reason": ""
@@ -930,7 +932,8 @@
       "declaration": "int xuiDocumentViewSetFindScope(xui_widget view, const xui_doc_range_t* scope)",
       "line": 465,
       "logical": [
-        "DocumentView.setFindScope"
+        "DocumentView.setFindScope",
+        "DocumentView.clearFindScope"
       ],
       "status": "reachable-abi-qualified-runtime-not-executed",
       "reason": ""
@@ -990,7 +993,8 @@
       "declaration": "int xuiMessageListSetNodeDocument(xui_widget list, const char* message_id, const xui_message_document_desc_t* desc)",
       "line": 498,
       "logical": [
-        "MessageList.setNodeDocument"
+        "MessageList.setNodeDocument",
+        "MessageList.clearDocument"
       ],
       "status": "cpu-runtime-and-abi-qualified",
       "reason": ""
@@ -1080,7 +1084,8 @@
       "declaration": "int xuiMessageListSetNodeDocumentTableSelection(xui_widget list, const char* message_id, const xui_doc_table_selection_t* selection)",
       "line": 524,
       "logical": [
-        "MessageList.setNodeDocumentTableSelection"
+        "MessageList.setNodeDocumentTableSelection",
+        "MessageList.clearDocumentTableSelection"
       ],
       "status": "reachable-abi-qualified-runtime-not-executed",
       "reason": ""
@@ -1478,6 +1483,7 @@
       "declaration": "int xuiDocumentEditorReplaceAll(xui_widget editor, const char* pattern, uint64_t pattern_bytes, const char* replacement, uint64_t replacement_bytes, const xui_doc_range_t* scope, uint64_t* replaced)",
       "line": 740,
       "logical": [
+        "DocumentEditor.replaceAll",
         "DocumentEditor.replaceAll"
       ],
       "status": "reachable-abi-qualified-runtime-not-executed",
@@ -1488,6 +1494,7 @@
       "declaration": "int xuiDocumentEditorReplaceAllEx(xui_widget editor, const char* pattern, uint64_t pattern_bytes, const char* replacement, uint64_t replacement_bytes, uint32_t flags, const xui_doc_range_t* scope, uint64_t* replaced)",
       "line": 743,
       "logical": [
+        "DocumentEditor.replaceAllEx",
         "DocumentEditor.replaceAllEx"
       ],
       "status": "reachable-abi-qualified-runtime-not-executed",
@@ -1865,7 +1872,65 @@
     "No per-method C forwarding wrapper",
     "Descriptors are synchronous zeroed stack records; Native copies/pins/retains remain real costs",
     "Browser/image APIs are declaration/ABI only, no external I/O execution",
-    "Optional NULL variants of the same Native symbol still require separately reviewed physical-signature alias compatibility"
+    "Supported NULL branches use exact same-symbol physical aliases; Renderer active-position and View ordinary selection reject NULL and have no invented clear method"
+  ],
+  "nullBranches": [
+    {
+      "native": "xuiDocumentRendererDraw",
+      "logicalSignature": "DocumentRenderer.draw(DrawContext,c_double,c_double,Rect,c_uint=0)",
+      "physicalNullSlot": 5,
+      "meaning": "No selection highlighting",
+      "qualified": "abi-only",
+      "runtimeLimit": "Drawing not executed"
+    },
+    {
+      "native": "xuiDocumentViewSetTableSelection",
+      "logicalSignature": "DocumentView.clearTableSelection()",
+      "physicalNullSlot": 1,
+      "meaning": "Clear table rectangle",
+      "qualified": "cpu-runtime-and-abi",
+      "runtimeLimit": "CPU clear/default/no-match branch; not all Native input combinations"
+    },
+    {
+      "native": "xuiDocumentViewSetFindScope",
+      "logicalSignature": "DocumentView.clearFindScope()",
+      "physicalNullSlot": 1,
+      "meaning": "Default whole-document find scope",
+      "qualified": "cpu-runtime-and-abi",
+      "runtimeLimit": "CPU clear/default/no-match branch; not all Native input combinations"
+    },
+    {
+      "native": "xuiDocumentEditorReplaceAll",
+      "logicalSignature": "DocumentEditor.replaceAll(string,string)",
+      "physicalNullSlot": 5,
+      "meaning": "Default replacement scope",
+      "qualified": "cpu-runtime-and-abi",
+      "runtimeLimit": "CPU clear/default/no-match branch; not all Native input combinations"
+    },
+    {
+      "native": "xuiDocumentEditorReplaceAllEx",
+      "logicalSignature": "DocumentEditor.replaceAllEx(string,string,c_uint)",
+      "physicalNullSlot": 6,
+      "meaning": "Default replacement scope with matching flags",
+      "qualified": "cpu-runtime-and-abi",
+      "runtimeLimit": "CPU clear/default/no-match branch; not all Native input combinations"
+    },
+    {
+      "native": "xuiMessageListSetNodeDocument",
+      "logicalSignature": "MessageList.clearDocument(string)",
+      "physicalNullSlot": 2,
+      "meaning": "Detach one item Document binding",
+      "qualified": "cpu-runtime-and-abi",
+      "runtimeLimit": "CPU clear/default/no-match branch; not all Native input combinations"
+    },
+    {
+      "native": "xuiMessageListSetNodeDocumentTableSelection",
+      "logicalSignature": "MessageList.clearDocumentTableSelection(string)",
+      "physicalNullSlot": 2,
+      "meaning": "Clear item table rectangle",
+      "qualified": "cpu-runtime-and-abi",
+      "runtimeLimit": "CPU clear/default/no-match branch; not all Native input combinations"
+    }
   ],
   "supplementalFunctions": [
     {
@@ -1882,6 +1947,13 @@
     "F:\\xlang-validation\\foreign-completion-20261103\\document-renderer-policy-win-r4\\results.json",
     "/home/ubuntu/xlang-validation/document-renderer-policy-linux-r1/results.json",
     "F:\\xlang-validation\\foreign-completion-20261103\\document-ui-actual-win-r3\\results.json",
-    "/home/ubuntu/xlang-validation/document-ui-actual-linux-r2/results.json"
+    "/home/ubuntu/xlang-validation/document-ui-actual-linux-r2/results.json",
+    "F:/xlang-validation/foreign-completion-20261103/document-ui-null-win-r1/results.json",
+    "/home/ubuntu/xlang-validation/document-ui-null-linux-r1/results.json"
+  ],
+  "qualificationLimits": [
+    "New aliases: 159 logical probes exact ABI; six CPU branches, drawing compile-only",
+    "Historical Native Model r5/r6 matched SDK plus explicit public declaration layer; not final Proxy18/schema2 shipping qualification",
+    "Renderer active position and ordinary View selection still reject Native NULL; no synthetic clear API"
   ]
 }
