@@ -26,6 +26,11 @@ def inspect(root,batch=None,linux=None,unit=None,linux_sources=None):
     assert not requested-known,('Unknown native feature declarations',sorted(requested-known))
     expected=re.findall(r'^\s*\{\s*"([^"\n]+\.c)"',body,re.M)
     assert len(expected)>=100 and len(expected)==len(set(expected)), 'Unrecognized runtime registry'
+    # These components are emitted inside the selected artifact XRT unit.
+    # Their full-host implementation is already in the host's symbol catalog;
+    # compiling the include-only source independently provides no definition.
+    embedded=set(re.findall(r'^\s*\{\s*"([^"\n]+\.c)"[^\n]*,\s*XL6_ARTIFACT_RUNTIME_IN_XRT_TRANSLATION_UNIT\s*\}',body,re.M))
+    expected=[source for source in expected if source not in embedded]
     batch=(root/'build_dll.bat').read_text(encoding='utf-8-sig') if batch is None else batch
     linux=(root/'build_linux.sh').read_text(encoding='utf-8-sig') if linux is None else linux
     shared=[m.group(1).replace('\\','/') for m in OBJECT.finditer(batch)]
@@ -36,6 +41,7 @@ def inspect(root,batch=None,linux=None,unit=None,linux_sources=None):
     errors=[];profiles=[];inputs=[root/'src/compile/xl6_compile_unit.c',root/'build_dll.bat',root/'build_linux.sh',kernel,*native_headers]
     def profile(name,direct):
         counts=Counter(direct)
+        assert not embedded.intersection(counts), 'Artifact-XRT include compiled as an independent shipping source'
         # The two shipping libraries each compile one shared XRT/error unit.
         # Foreign-error TLS is deliberately included there, not instantiated
         # a second time as an independent source on their link command.
@@ -84,6 +90,14 @@ def main():
     rejected,_,_=inspect(root,linux_sources=[p for p in direct if p!=source])
     controls.append(dict(Name='missing-linux-provider',Rejected=any(e['Profile'].startswith('linux-') and e['Source']==source for e in rejected)))
     unit=(root/'src/compile/xl6_compile_unit.c').read_text(encoding='utf-8-sig')
+    embedded=re.findall(r'^\s*\{\s*"([^"\n]+\.c)"[^\n]*,\s*XL6_ARTIFACT_RUNTIME_IN_XRT_TRANSLATION_UNIT\s*\}',unit,re.M)
+    assert embedded
+    caught=False
+    try:inspect(root,linux_sources=direct+embedded)
+    except AssertionError as error:caught='independent shipping source' in str(error)
+    controls.append(dict(Name='reject-independent-artifact-xrt-source',Rejected=caught))
+    rejected,_,_=inspect(root,unit=unit.replace(',XL6_ARTIFACT_RUNTIME_IN_XRT_TRANSLATION_UNIT}',',XL6_ARTIFACT_RUNTIME_RESIDENT_SOURCE}'))
+    controls.append(dict(Name='missing-resident-placement-provider',Rejected=any(e['Source'] in embedded and e['Kind']=='missing' for e in rejected)))
     changed=unit.replace('"XRUNTIME_MODULE_RUNTIME_VALUE_FUTURE"','"XRT_MODULE_MISSING_REQUIRED_TEST_V1"',1);assert changed!=unit
     caught=False
     try:inspect(root,unit=changed)

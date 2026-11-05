@@ -1,0 +1,71 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Source assembly, explicit dependency-qualified incremental planning, matched OnlyTCC provider staging and CPU acceptance tooling. No production DLL or shipping delivery claim.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\final-source-provider-tools-candidate-r1\\manifest.json",
+    "sha256": "061b5827e79df2fd84e790903ffea33e8f0e26c319394780ff5db63cdf2530ad"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\final-source-provider-acceptance-r1.json",
+      "sha256": "b2e47520c4798bb790973bc60d0c50c6bbbb321153e20499d655db6495405e1a"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\final-shipping-sources-r2.json",
+      "sha256": "e5d42c635d85b3b7e5e0c006a51c9a4f4618439b5ea3864139524cac7061f144"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\source-final-core-r2.json",
+      "sha256": "eb0dab141ac73236a022acd241c96f48cfa814d3586cd119bb78596f329b87b9"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\final-core-inherited-header-qualification-r1.json",
+      "sha256": "3342cce6fdf4206ff82db1fea0f81fa053125015a06b02f346c148af2b2b72ff"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\final-core-compiler-win-plan-r1\\plan.json",
+      "sha256": "f246efe73400c147c25c02bd9e1787bcfa1e68aed2e5f2497d30e92ab50f4b8a"
+    }
+  ],
+  "sourceProfile": "SourceDriver; inherited profiles remain explicit and are not production DLL objects",
+  "sourceAcceptanceSteps": 134,
+  "shippingProfiles": 4,
+  "shippingNegativeControls": 7,
+  "files": [
+    {
+      "path": "tools/assemble_source_candidate.py",
+      "canonicalLfSha256": "3085d7f4c37cb3cdf5d958ddf268978a5873e35437101e181f1bc9099151654d"
+    },
+    {
+      "path": "tools/build_source_candidate.py",
+      "canonicalLfSha256": "6e6b4d3acc36b5057002fb46992cb9ab6e7ce7136ef6869ab55cb15e4dae0865"
+    },
+    {
+      "path": "tools/stage_source_tcc_provider.py",
+      "canonicalLfSha256": "71627a2d5107d5c2894c13fdec58366f3ad0c1d081012241407443693410c075"
+    },
+    {
+      "path": "tools/stage_source_tcc_provider_linux.py",
+      "canonicalLfSha256": "fcf84c6a3c4f8d8ab6eaf3370e1713ea61462b4c0ec435d8c3743a3ad11b4ae0"
+    },
+    {
+      "path": "tools/check_source_provider_nested_linux.py",
+      "canonicalLfSha256": "876e2831db72026b4bd5b3c0e2ea7411fe8e8fbc46167dcc23741a2243f9fd47"
+    },
+    {
+      "path": "tools/check_tcc_optional_vfs.py",
+      "canonicalLfSha256": "cf39786a2b7064f5da0883c5001c58bfe91749fb2fc0f49e1068e71faa1dbb4a"
+    },
+    {
+      "path": "tools/check_stdlib_shipping_sources.py",
+      "canonicalLfSha256": "2b7c8df69cbae1f876b9b648598b1dffbb0ce28bbd3bb080c60609e28cdaedc6"
+    },
+    {
+      "path": "docs/source-provider-cohorts.md",
+      "canonicalLfSha256": "64e919fa49589de7c0211dd585cb8c1d7f9f5eb6b9b98219fd899a662b0e7f0d"
+    }
+  ]
+}

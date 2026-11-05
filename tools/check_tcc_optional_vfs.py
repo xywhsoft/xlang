@@ -54,7 +54,10 @@ def main():
         # Frozen host/source cohorts retain the Windows config; use the same
         # independently recorded Linux producer configuration as the real VFS.
         nativeSource=out/'vanilla-source';shutil.copytree(source,nativeSource)
-        producer=provider.parent.parent/'producer/lib/tcc'
+        stage=Path(overlay.get('NativeRoot',provider.parent.parent))
+        provider_report=stage/'provider.json'
+        inputs[str(provider_report)]=sha(provider_report)
+        producer=Path(json.loads(provider_report.read_text())['producer'])/'lib/tcc'
         for name in ('config.h','tccdefs_.h'):
             inputs[str(producer/name)]=sha(producer/name);shutil.copy2(producer/name,nativeSource/name)
         source=nativeSource;nativeFlags=['gcc','-std=c11','-O2','-DTCC_DISABLE_BUILTIN_VFS','-DLIBTCC_AS_DLL','-I'+str(source),'-fPIC','-Wl,-Bsymbolic']
@@ -62,7 +65,7 @@ def main():
     run('vanilla-provider',['gcc',*nativeFlags[1:],'-shared',*units,*(['-lws2_32'] if os.name=='nt' else ['-ldl','-lm']),'-o',vanilla])
     report['vanillaProvider']=dict(path=str(vanilla),sha256=sha(vanilla))
     if os.name=='nt':distribution=cohort/'res/tcc/win64/x86_64'
-    else:distribution=provider.parent.parent/'build/linux/tcc-dist'
+    else:distribution=Path(overlay.get('NativeRoot',provider.parent.parent))/'build/linux/tcc-dist'
     systems=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-Wl,--export-dynamic','-pthread','-ldl','-lm','-Wl,-rpath,'+str(runtime.parent)]
     for opt in ('O0','O2'):
         exe=out/('loader-'+opt+('.exe' if os.name=='nt' else '.out'));run(opt+'-build',['gcc',*flags,'-'+opt,fixtures[0],*objects,runtime,*systems,'-o',exe])
