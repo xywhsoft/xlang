@@ -1,0 +1,15 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Report link correction only; preserve the original acceptance report bytes",
+  "originalReport": "dev/release-materials/provenance/platform-build-paths-20261105.json",
+  "originalReportSha256": "9d6a09362d8ec6c3926d7bb0052396889a26af0b6cead8c503d747e6869ac107",
+  "incorrectField": "productionReceipt",
+  "incorrectValue": "dev/release-materials/provenance/final-production-delivery-20261105.json",
+  "correctProductionReceipt": "dev/release-materials/provenance/xge3-production-profiles-20261105/receipt.json",
+  "correctProductionReceiptSha256": "1be446145329f2d31b73246a8d80bb3fea6ff0ce005698073cbac2edfdf22483",
+  "sourceArchiveManifest": "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.manifest.json",
+  "sourceArchiveManifestSha256": "26ba28940a0da86ebbe970dae419ee6b45ced38062367d392f21585a75727833",
+  "sourceArchiveSha256": "d6152ffbe21499ecf74ee64d7266661d31af42d285c36291c2a6c41f35e49787",
+  "runtimeOrSourceImplementationChanged": false
+}
