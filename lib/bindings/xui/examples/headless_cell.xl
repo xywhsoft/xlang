@@ -1,11 +1,14 @@
 import xui
 func main(...) as int
  auto cell=xui.createTableCell()
- cell.setText("cell text")
- cell.setTooltip("independent text")
- cell.setValue(uint64(18446744073709551615))
- assert cell.text()=="cell text"
- assert cell.value()==uint64(18446744073709551615)
- cell.close()
+ try
+  cell.setText("cell text")
+  cell.setTooltip("independent text")
+  cell.setValue(uint64(18446744073709551615))
+  assert cell.text()=="cell text"
+  assert cell.value()==uint64(18446744073709551615)
+ finally
+  cell.close()
+ end
  return 0
 end
