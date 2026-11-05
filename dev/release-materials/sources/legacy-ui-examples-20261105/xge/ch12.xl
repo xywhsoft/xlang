@@ -1,0 +1,40 @@
+// ch12 — 混合模式：加法混合发光效果
+import xge
+
+func draw_scene()
+    // 底层圆形（正常 Alpha 混合）
+    xge.xgeBlendSet(xge.XGE_BLEND_ALPHA)
+    xge.Shape.circleFill(400, 280, 100, xge.Color.rgba(79, 216, 194, 255))
+
+    // 切换为加法混合 → 重叠区域更亮
+    xge.xgeBlendSet(xge.XGE_BLEND_ADD)
+    xge.Shape.circleFill(350, 280, 80, xge.Color.rgba(255, 107, 94, 128))
+    xge.Shape.circleFill(450, 280, 80, xge.Color.rgba(255, 180, 84, 128))
+
+    // 恢复默认
+    xge.xgeBlendSet(xge.XGE_BLEND_ALPHA)
+
+    // 下方：正片叠底阴影演示
+    xge.Shape.rectFill(150, 400, 500, 150, xge.Color.rgba(109, 179, 242, 255))
+
+    xge.xgeBlendSet(xge.XGE_BLEND_MULTIPLY)
+    xge.Shape.rectFill(250, 430, 250, 100, xge.Color.rgba(128, 128, 128, 255))
+
+    xge.xgeBlendSet(xge.XGE_BLEND_ALPHA)
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch12")
+    if ret != 0 then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

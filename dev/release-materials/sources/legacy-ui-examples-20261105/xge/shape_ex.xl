@@ -1,0 +1,64 @@
+// shape_ex.xl — 增强矢量形状演示（迁移自 audit_shape_ex_fill）
+// 展示 ShapeEx class：路径构建 + 填充/描边 + 圆/矩形追加
+import xge
+import xge_shape_ex
+
+func draw_scene()
+    // 三角形（moveTo + lineTo + closePath + 填充）
+    xge_shape_ex.ShapeEx tri = xge_shape_ex.ShapeEx()
+    tri.moveTo(100.0, 100.0)
+    tri.lineTo(200.0, 250.0)
+    tri.lineTo(50.0, 250.0)
+    tri.closePath()
+    tri.fillColor(xge.Color.rgba(79, 216, 194, 255))
+    tri.draw(0.5)
+
+    // 圆形（appendCircle + 描边）
+    xge_shape_ex.ShapeEx circle = xge_shape_ex.ShapeEx()
+    circle.appendCircle(400.0, 180.0, 60.0, 60.0, 1)
+    circle.strokeColor(xge.Color.rgba(255, 180, 84, 255))
+    circle.strokeWidth(3.0)
+    circle.draw(0.5)
+
+    // 圆角矩形（appendRect + 填充 + 描边）
+    xge_shape_ex.ShapeEx rrect = xge_shape_ex.ShapeEx()
+    rrect.appendRect(550.0, 100.0, 200.0, 120.0, 16.0, 16.0, 1)
+    rrect.fillColor(xge.Color.rgba(109, 179, 242, 200))
+    rrect.strokeColor(xge.Color.rgba(255, 255, 255, 150))
+    rrect.strokeWidth(2.0)
+    rrect.draw(0.5)
+
+    // 椭圆（appendCircle 非等比半径）
+    xge_shape_ex.ShapeEx ellipse = xge_shape_ex.ShapeEx()
+    ellipse.appendCircle(300.0, 450.0, 120.0, 50.0, 1)
+    ellipse.fillColor(xge.Color.rgba(255, 107, 94, 180))
+    ellipse.draw(0.5)
+
+    // 折线（仅描边）
+    xge_shape_ex.ShapeEx polyline = xge_shape_ex.ShapeEx()
+    polyline.moveTo(500.0, 400.0)
+    polyline.lineTo(560.0, 340.0)
+    polyline.lineTo(620.0, 420.0)
+    polyline.lineTo(700.0, 360.0)
+    polyline.strokeColor(xge.Color.rgba(160, 120, 255, 255))
+    polyline.strokeWidth(4.0)
+    polyline.strokeJoin(1)  // JOIN_ROUND
+    polyline.strokeCap(1)   // CAP_ROUND
+    polyline.draw(0.5)
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ShapeEx Demo")
+    if ret != 0 then
+        println("XgeApp.init failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

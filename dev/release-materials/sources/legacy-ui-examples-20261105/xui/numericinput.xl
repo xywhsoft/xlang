@@ -1,0 +1,28 @@
+// numericinput.xl — 数字输入：NumericInput 控件
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "NumericInput Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "NumericInput Demo", font)
+    root.addChild(title)
+
+    xui.Label lblQty = xui.Label(ctx, "Quantity:", font)
+    root.addChild(lblQty)
+
+    xui.NumericInput num = xui.NumericInput(ctx, font)
+    num.setPreferredSize(220.0, 36.0)
+    root.addChild(num)
+
+    g_app.run(onFrame)
+    return 0
+end

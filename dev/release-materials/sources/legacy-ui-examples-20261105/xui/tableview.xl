@@ -1,0 +1,29 @@
+// tableview.xl — 表格视图：TableView 控件
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "TableView Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "TableView Demo", font)
+    root.addChild(title)
+
+    xui.TableView table = xui.TableView(ctx)
+    table.setFlex(1.0, 1.0)
+    table.setPreferredSize(760.0, 380.0)
+    root.addChild(table)
+
+    xui.Label hint = xui.Label(ctx, "Table fills the remaining space", font)
+    root.addChild(hint)
+
+    g_app.run(onFrame)
+    return 0
+end

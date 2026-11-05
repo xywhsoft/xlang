@@ -1,0 +1,30 @@
+// window.xl — 窗口：Window 控件内放 Label
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Window Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "Window Demo", font)
+    root.addChild(title)
+
+    xui.Window win = xui.Window(ctx, "Child Window", font)
+    win.setPreferredSize(480.0, 320.0)
+    win.setMargin(20.0, 10.0, 20.0, 10.0)
+
+    xui.Label body = xui.Label(ctx, "A Label inside the Window", font)
+    win.addChild(body)
+
+    root.addChild(win)
+
+    g_app.run(onFrame)
+    return 0
+end

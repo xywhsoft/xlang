@@ -1,0 +1,33 @@
+// checkbox.xl — 复选框：3 个 CheckBox（未选 / 已选 / 禁用）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "CheckBox Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "CheckBox Demo", font)
+    root.addChild(title)
+
+    xui.CheckBox chkUnchecked = xui.CheckBox(ctx, "Unchecked", font)
+    root.addChild(chkUnchecked)
+
+    xui.CheckBox chkChecked = xui.CheckBox(ctx, "Checked", font)
+    chkChecked.setChecked(1)
+    root.addChild(chkChecked)
+
+    xui.CheckBox chkDisabled = xui.CheckBox(ctx, "Disabled (checked)", font)
+    chkDisabled.setChecked(1)
+    chkDisabled.setEnabled(0)
+    root.addChild(chkDisabled)
+
+    g_app.run(onFrame)
+    return 0
+end

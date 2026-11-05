@@ -1,0 +1,41 @@
+// ch14 — 正交投影相机：相机跟随与缩放
+import xge
+
+func draw_scene()
+    // 设置相机：平移 + 缩放
+    xge.Camera.setSimple(500, 300, 1.5, 1.5, 800, 600)
+
+    // 世界空间中的物体
+    // 地面
+    xge.Shape.rectFill(0, 350, 2000, 50, xge.Color.rgba(42, 74, 63, 255))
+
+    // 玩家（琥珀色圆形）
+    xge.Shape.circleFill(500, 300, 20, xge.Color.rgba(255, 180, 84, 255))
+
+    // 周围建筑物
+    xge.Shape.rectFill(300, 250, 60, 100, xge.Color.rgba(79, 216, 194, 200))
+    xge.Shape.rectFill(600, 220, 80, 130, xge.Color.rgba(109, 179, 242, 200))
+    xge.Shape.rectFill(750, 270, 50, 80, xge.Color.rgba(255, 107, 94, 200))
+
+    // 恢复默认相机
+    xge.Camera.setSimple(0, 0, 1, 1, 800, 600)
+
+    // 视口边框
+    xge.Shape.rectStroke(5, 5, 790, 590, 2.0, xge.Color.rgba(200, 210, 220, 80))
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch14")
+    if ret != 0 then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

@@ -1,0 +1,35 @@
+// menu.xl — 菜单：MenuBar + Menu
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Menu Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.MenuBar bar = xui.MenuBar(ctx)
+    bar.setPreferredSize(780.0, 32.0)
+
+    xui.Menu fileMenu = xui.Menu(ctx)
+    xui.xuiMenuBarAddItem(bar.handle, "File", fileMenu.handle, 0)
+
+    xui.Menu editMenu = xui.Menu(ctx)
+    xui.xuiMenuBarAddItem(bar.handle, "Edit", editMenu.handle, 1)
+
+    xui.Menu helpMenu = xui.Menu(ctx)
+    xui.xuiMenuBarAddItem(bar.handle, "Help", helpMenu.handle, 2)
+
+    root.addChild(bar)
+
+    xui.Label body = xui.Label(ctx, "Main content below the menu bar", font)
+    root.addChild(body)
+
+    g_app.run(onFrame)
+    return 0
+end

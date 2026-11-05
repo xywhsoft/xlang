@@ -1,0 +1,62 @@
+// ch19 — 渲染线程：主线程与渲染线程协作示意
+import xge
+
+func draw_scene()
+    // 主线程管道（上方）
+    xge.Shape.rectFill(50, 100, 700, 80, xge.Color.rgba(25, 40, 55, 255))
+    xge.Shape.rectStroke(50, 100, 700, 80, 1.5, xge.Color.rgba(79, 216, 194, 150))
+
+    // 主线程阶段块
+    int i = 0
+    while i < 4
+        float x = 70.0 + float(i) * 170.0
+        xge.Shape.rectFill(x, 120, 140, 40, xge.Color.rgba(79, 216, 194, 180))
+        i = i + 1
+    end
+
+    // 渲染线程管道（下方）
+    xge.Shape.rectFill(50, 280, 700, 80, xge.Color.rgba(40, 30, 20, 255))
+    xge.Shape.rectStroke(50, 280, 700, 80, 1.5, xge.Color.rgba(255, 180, 84, 150))
+
+    // 渲染线程阶段块
+    i = 0
+    while i < 3
+        float x = 150.0 + float(i) * 200.0
+        xge.Shape.rectFill(x, 300, 160, 40, xge.Color.rgba(255, 180, 84, 180))
+        i = i + 1
+    end
+
+    // 命令缓冲区（连接线）
+    xge.Shape.line(400, 180, 400, 280, 2.0, xge.Color.rgba(255, 107, 94, 200))
+    xge.Shape.line(400, 180, 390, 195, 2.0, xge.Color.rgba(255, 107, 94, 200))
+    xge.Shape.line(400, 180, 410, 195, 2.0, xge.Color.rgba(255, 107, 94, 200))
+
+    // 时间轴箭头
+    xge.Shape.line(50, 450, 750, 450, 1.5, xge.Color.rgba(200, 210, 220, 120))
+    xge.Shape.line(750, 450, 735, 443, 1.5, xge.Color.rgba(200, 210, 220, 120))
+    xge.Shape.line(750, 450, 735, 457, 1.5, xge.Color.rgba(200, 210, 220, 120))
+
+    // 帧标记
+    i = 0
+    while i < 5
+        float x = 100.0 + float(i) * 150.0
+        xge.Shape.line(x, 440, x, 460, 1.0, xge.Color.rgba(200, 210, 220, 100))
+        i = i + 1
+    end
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch19")
+    if ret != 0 then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

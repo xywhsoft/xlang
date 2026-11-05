@@ -1,0 +1,36 @@
+// ch30 — 圆角矩形（进阶）：四角独立半径
+import xge
+
+func draw_scene()
+    // 仅上方圆角（卡片头部）
+    xge.Shape.roundRectFillEx(100, 80, 300, 60,
+        16, 16, 0, 0, 0,
+        xge.Color.rgba(42, 74, 80, 255))
+    // 下方主体
+    xge.Shape.rectFill(100, 140, 300, 140, xge.Color.rgba(26, 42, 48, 255))
+
+    // 对角圆角（标签样式）
+    xge.Shape.roundRectFillEx(500, 100, 150, 45,
+        12, 0, 12, 0, 1,
+        xge.Color.rgba(255, 180, 84, 255))
+
+    // 大圆角 SDF
+    xge.Shape.roundRectFill(200, 380, 400, 150, 40.0, xge.Color.rgba(79, 216, 194, 200))
+    xge.Shape.roundRectStroke(200, 380, 400, 150, 40.0, 2.0, xge.Color.rgba(255, 255, 255, 100))
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch30")
+    if ret != 0 then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

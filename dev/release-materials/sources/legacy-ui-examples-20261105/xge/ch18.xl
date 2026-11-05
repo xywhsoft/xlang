@@ -1,0 +1,64 @@
+// ch18 — 按需渲染：静态工具界面
+import xge
+
+func draw_scene()
+    // 工具栏背景
+    xge.Shape.rectFill(0, 0, 800, 40, xge.Color.rgba(25, 35, 45, 255))
+
+    // 工具栏按钮
+    int i = 0
+    while i < 5
+        float x = 10.0 + float(i) * 55.0
+        xge.Shape.rectFill(x, 8, 45, 24, xge.Color.rgba(40, 55, 70, 255))
+        xge.Shape.rectStroke(x, 8, 45, 24, 1.0, xge.Color.rgba(79, 216, 194, 80))
+        i = i + 1
+    end
+
+    // 主编辑区
+    xge.Shape.rectFill(0, 40, 600, 530, xge.Color.rgba(18, 24, 30, 255))
+
+    // 静态内容（网格线）
+    i = 1
+    while i < 6
+        xge.Shape.line(0, 40.0 + float(i) * 88.0, 600, 40.0 + float(i) * 88.0,
+            0.5, xge.Color.rgba(50, 65, 80, 100))
+        i = i + 1
+    end
+    i = 1
+    while i < 8
+        xge.Shape.line(float(i) * 75.0, 40, float(i) * 75.0, 570,
+            0.5, xge.Color.rgba(50, 65, 80, 100))
+        i = i + 1
+    end
+
+    // 右侧属性面板
+    xge.Shape.rectFill(600, 40, 200, 530, xge.Color.rgba(22, 30, 38, 255))
+    xge.Shape.line(600, 40, 600, 570, 1.0, xge.Color.rgba(79, 216, 194, 60))
+
+    // 属性面板条目
+    i = 0
+    while i < 6
+        float y = 60.0 + float(i) * 45.0
+        xge.Shape.rectFill(615, y, 170, 30, xge.Color.rgba(35, 48, 60, 255))
+        i = i + 1
+    end
+
+    // 状态栏
+    xge.Shape.rectFill(0, 570, 800, 30, xge.Color.rgba(25, 35, 45, 255))
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch18")
+    if ret != 0 then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

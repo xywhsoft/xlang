@@ -1,0 +1,29 @@
+// rangeslider.xl — 范围滑块：RangeSlider 控件（20 - 80）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "RangeSlider Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "RangeSlider Demo", font)
+    root.addChild(title)
+
+    // (ctx, min, max, start, end)
+    xui.RangeSlider range = xui.RangeSlider(ctx, 0.0, 100.0, 20.0, 80.0)
+    range.setPreferredSize(600.0, 32.0)
+    root.addChild(range)
+
+    xui.Label hint = xui.Label(ctx, "Selected range: 20 - 80", font)
+    root.addChild(hint)
+
+    g_app.run(onFrame)
+    return 0
+end

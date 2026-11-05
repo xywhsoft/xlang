@@ -1,0 +1,36 @@
+// separator.xl — 分隔线：Separator 控件
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Separator Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "Separator Demo", font)
+    root.addChild(title)
+
+    xui.Label lbl1 = xui.Label(ctx, "Section One", font)
+    root.addChild(lbl1)
+
+    xui.Separator sep1 = xui.Separator(ctx)
+    root.addChild(sep1)
+
+    xui.Label lbl2 = xui.Label(ctx, "Section Two", font)
+    root.addChild(lbl2)
+
+    xui.Separator sep2 = xui.Separator(ctx)
+    root.addChild(sep2)
+
+    xui.Label lbl3 = xui.Label(ctx, "Section Three", font)
+    root.addChild(lbl3)
+
+    g_app.run(onFrame)
+    return 0
+end

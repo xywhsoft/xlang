@@ -1,0 +1,48 @@
+// ch20 — 场景栈管理：栈式场景切换示意
+import xge
+
+func draw_scene()
+    // 场景栈可视化（从底到顶）
+    // 底层：游戏场景
+    xge.Shape.rectFill(150, 380, 500, 120, xge.Color.rgba(42, 74, 63, 255))
+    xge.Shape.rectStroke(150, 380, 500, 120, 2.0, xge.Color.rgba(79, 216, 194, 150))
+    // 游戏场景内容
+    xge.Shape.circleFill(250, 440, 15, xge.Color.rgba(79, 216, 194, 200))
+    xge.Shape.circleFill(400, 430, 20, xge.Color.rgba(255, 180, 84, 200))
+
+    // 中层：暂停菜单（半透明覆盖）
+    xge.Shape.rectFill(150, 240, 500, 120, xge.Color.rgba(20, 25, 35, 230))
+    xge.Shape.rectStroke(150, 240, 500, 120, 2.0, xge.Color.rgba(255, 180, 84, 150))
+    // 暂停菜单按钮
+    xge.Shape.rectFill(300, 270, 200, 30, xge.Color.rgba(50, 65, 80, 255))
+    xge.Shape.rectFill(300, 310, 200, 30, xge.Color.rgba(50, 65, 80, 255))
+
+    // 顶层标注
+    xge.Shape.rectFill(150, 100, 500, 120, xge.Color.rgba(30, 20, 40, 200))
+    xge.Shape.rectStroke(150, 100, 500, 120, 2.0, xge.Color.rgba(255, 107, 94, 150))
+    // 设置面板内容
+    xge.Shape.rectFill(200, 120, 400, 20, xge.Color.rgba(60, 50, 70, 255))
+    xge.Shape.rectFill(200, 155, 400, 20, xge.Color.rgba(60, 50, 70, 255))
+    xge.Shape.rectFill(200, 190, 400, 20, xge.Color.rgba(60, 50, 70, 255))
+
+    // 栈方向箭头
+    xge.Shape.line(700, 500, 700, 100, 2.0, xge.Color.rgba(200, 210, 220, 150))
+    xge.Shape.line(700, 100, 692, 115, 2.0, xge.Color.rgba(200, 210, 220, 150))
+    xge.Shape.line(700, 100, 708, 115, 2.0, xge.Color.rgba(200, 210, 220, 150))
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch20")
+    if ret != 0 then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

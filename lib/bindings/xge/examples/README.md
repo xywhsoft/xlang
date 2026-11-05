@@ -8,8 +8,8 @@ these declarations. The commands below assume `$runtime` names that directory.
 
 ```powershell
 $env:XLANG_PACKAGE_PATH = "$runtime\extlibs"
-& "$runtime\xl.exe" "D:\GIT\x-lang\lib\bindings\xge\examples\headless_frame.xl"
-& "$runtime\xl.exe" "D:\GIT\x-lang\lib\bindings\xge\examples\headless_shape.xl"
+& "$runtime\xl.exe" "$runtime\examples\xge\headless_frame.xl"
+& "$runtime\xl.exe" "$runtime\examples\xge\headless_shape.xl"
 ```
 
 | Example | Prerequisites and expected assertions | Cleanup |
@@ -21,7 +21,7 @@ $env:XLANG_PACKAGE_PATH = "$runtime\extlibs"
 Run the GUI example explicitly:
 
 ```powershell
-& "$runtime\xl.exe" "D:\GIT\x-lang\lib\bindings\xge\examples\gui_shapes.xl"
+& "$runtime\xl.exe" "$runtime\examples\xge\gui_shapes.xl"
 ```
 
 `initNative()` passes the native-supported NULL descriptor default. This does

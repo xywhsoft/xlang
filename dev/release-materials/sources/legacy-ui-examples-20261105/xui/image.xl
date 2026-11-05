@@ -1,0 +1,28 @@
+// image.xl — 图片：Image 控件（占位区域）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Image Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "Image Demo", font)
+    root.addChild(title)
+
+    xui.Image img = xui.Image(ctx)
+    img.setPreferredSize(360.0, 240.0)
+    root.addChild(img)
+
+    xui.Label caption = xui.Label(ctx, "Image placeholder (360x240)", font)
+    root.addChild(caption)
+
+    g_app.run(onFrame)
+    return 0
+end

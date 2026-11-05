@@ -1,0 +1,40 @@
+// ch13 — 深度测试：重叠图形的遮挡关系
+import xge
+
+func draw_scene()
+    // 绘制三个重叠的矩形，用不同颜色表示不同"深度层"
+    // 后层（远）
+    xge.Shape.rectFill(200, 150, 250, 200, xge.Color.rgba(109, 179, 242, 255))
+
+    // 中层
+    xge.Shape.rectFill(300, 220, 250, 200, xge.Color.rgba(79, 216, 194, 255))
+
+    // 前层（近）
+    xge.Shape.rectFill(400, 290, 250, 200, xge.Color.rgba(255, 180, 84, 255))
+
+    // 深度指示箭头
+    xge.Shape.line(150, 500, 700, 500, 2.0, xge.Color.rgba(200, 210, 220, 150))
+    xge.Shape.line(700, 500, 685, 492, 2.0, xge.Color.rgba(200, 210, 220, 150))
+    xge.Shape.line(700, 500, 685, 508, 2.0, xge.Color.rgba(200, 210, 220, 150))
+
+    // Z 轴标记点
+    xge.Shape.circleFill(200, 500, 5, xge.Color.rgba(109, 179, 242, 255))
+    xge.Shape.circleFill(425, 500, 5, xge.Color.rgba(79, 216, 194, 255))
+    xge.Shape.circleFill(650, 500, 5, xge.Color.rgba(255, 180, 84, 255))
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch13")
+    if ret != 0 then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

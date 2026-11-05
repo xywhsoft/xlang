@@ -1,0 +1,46 @@
+// ch22 — 矩形：填充、描边、网格
+import xge
+
+func draw_scene()
+    // 网格背景
+    float x = 0.0
+    while x < 800.0
+        xge.Shape.line(x, 0, x, 600, 0.5, xge.Color.rgba(26, 42, 48, 64))
+        x = x + 40.0
+    end
+    float y = 0.0
+    while y < 600.0
+        xge.Shape.line(0, y, 800, y, 0.5, xge.Color.rgba(26, 42, 48, 64))
+        y = y + 40.0
+    end
+
+    // 填充矩形
+    xge.Shape.rectFill(100, 100, 300, 200, xge.Color.rgba(79, 216, 194, 255))
+
+    // 半透明叠加
+    xge.Shape.rectFill(200, 150, 300, 200, xge.Color.rgba(255, 180, 84, 128))
+
+    // 描边矩形
+    xge.Shape.rectFill(150, 400, 500, 100, xge.Color.rgba(26, 42, 48, 255))
+    xge.Shape.rectStroke(150, 400, 500, 100, 1.5, xge.Color.rgba(109, 179, 242, 255))
+
+    // 高亮单元格
+    xge.Shape.rectFill(120, 80, 40, 40, xge.Color.rgba(79, 216, 194, 48))
+    xge.Shape.rectStroke(120, 80, 40, 40, 1.0, xge.Color.rgba(79, 216, 194, 255))
+end
+
+func on_frame()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw_scene()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    int ret = xge.XgeApp.init(840, 640, "ch22")
+    if ret != 0 then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.XgeApp.run(on_frame)
+    return 0
+end

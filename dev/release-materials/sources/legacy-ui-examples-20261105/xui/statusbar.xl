@@ -1,0 +1,33 @@
+// statusbar.xl — 状态栏：StatusBar 控件
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "StatusBar Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label body = xui.Label(ctx, "Main content above the status bar", font)
+    body.setFlex(1.0, 1.0)
+    root.addChild(body)
+
+    xui.StatusBar bar = xui.StatusBar(ctx)
+    bar.setPreferredSize(780.0, 32.0)
+
+    xui.Label cell1 = xui.Label(ctx, "Ready", font)
+    bar.addChild(cell1)
+
+    xui.Label cell2 = xui.Label(ctx, "Ln 1, Col 1", font)
+    bar.addChild(cell2)
+
+    root.addChild(bar)
+
+    g_app.run(onFrame)
+    return 0
+end
