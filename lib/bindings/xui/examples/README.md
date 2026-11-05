@@ -42,8 +42,10 @@ frames. This deliberately single-frame lifetime example does not recommend
 reallocating render targets every frame. It does not cover input pumping,
 window resize, font selection, layout policy or a full application framework.
 
-Automated example acceptance is Cgen/IR plus strict authoritative-header ABI
-compilation only; it never runs these scripts or starts graphics. Allocator
-fault injection and lifetime/module-unload tests remain separate test fixtures,
-not ordinary application examples. See `docs/xge3-xui3-example-status.md` in
-the source repository for the exact boundary and old-example migration gaps.
+The first four headless examples pass Cgen/IR and actual generated-C execution
+at O0 and O2 on Windows and Linux against the matched Model engine. The
+Document model example has its separate real Model acceptance. The GUI
+example retains compilation/ABI acceptance only. Allocator fault injection
+and lifetime/module-unload tests remain separate fixtures. See
+`docs/xge3-xui3-example-status.md` for exact qualification and legacy gaps;
+these checks do not qualify final runtime delivery or graphics execution.

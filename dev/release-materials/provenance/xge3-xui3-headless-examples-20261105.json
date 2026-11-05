@@ -1,0 +1,50 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "fullCompilerRebuild": false,
+  "scope": "Actual six maintained headless examples; no GUI execution or shipping provider claim",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\headless-six-candidate-r1\\manifest.json",
+    "sha256": "d7d3e029be333ff247003e2b1d3e709b0e47f1d82cdd8a0ef38b6e1368d5caf8"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\headless-six-win-r1\\results.json",
+      "sha256": "ee42dca6b2d84b619970dab3f145a64cc11695868d9502a5270b11bdaf6877cb",
+      "steps": 36
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\headless-six-linux-r1\\results.json",
+      "sha256": "b91174d330cbe8f9ad36a1c11aa9de54c05ebac69e6daff9c5c5f3b0aaa26553",
+      "steps": 36
+    }
+  ],
+  "files": [
+    {
+      "path": "tools/check_xge3_headless_examples.py",
+      "acceptedSha256": "4ade8a047ba8ebfb9118fac426d250c0cbb45e6306b1b2c080bd1a033fa87b4d",
+      "canonicalLfSha256": "23e4af7efb0ae9660540c75f8d4a162cbad849b32758196cc0b9e6f26f32b41a"
+    },
+    {
+      "path": "lib/bindings/xge/examples/README.md",
+      "acceptedSha256": "c92b6058eecf5a86173d55c56ad32a9f3e310dfe94aa960b6e637892eaefe6c6",
+      "canonicalLfSha256": "c92b6058eecf5a86173d55c56ad32a9f3e310dfe94aa960b6e637892eaefe6c6"
+    },
+    {
+      "path": "lib/bindings/xui/examples/README.md",
+      "acceptedSha256": "aeb560deff2bfebcb62da29d771f78f09ad4bff84fe1934d24fc25cfdb832201",
+      "canonicalLfSha256": "aeb560deff2bfebcb62da29d771f78f09ad4bff84fe1934d24fc25cfdb832201"
+    },
+    {
+      "path": "docs/xge3-xui3-example-status.md",
+      "acceptedSha256": "198a272a226f0b8f926bd815f7c99a1535cacd81c8abf49ab6b0b91d23c57fd7",
+      "canonicalLfSha256": "198a272a226f0b8f926bd815f7c99a1535cacd81c8abf49ab6b0b91d23c57fd7"
+    }
+  ],
+  "limitations": [
+    "Actual generated-C execution only; GUI execution and final embedded provider are separate.",
+    "Legacy 76 scripts remain recorded as migration gaps rather than counted as passing."
+  ]
+}

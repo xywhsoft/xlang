@@ -29,8 +29,8 @@ not demonstrate construction of a caller-managed descriptor with nested raw
 pointers. `run()` retains its closure; its `c_int` result is 0 to continue,
 positive to stop normally and negative for checked failure.
 
-The automated example gate only generates C/IR and compiles against the exact
-SDK headers. It never executes these examples or opens a window. Runtime,
-forced-OOM and module-unload evidence is tracked separately in the source
-repository's `docs/xge3-xui3-example-status.md`. No zero-overhead performance
-claim follows from an ABI compile.
+Both headless examples also pass actual generated-C execution at O0 and O2
+on Windows and Linux against the matched Model engine. The interactive
+example has compilation/ABI acceptance only. The headless runner never opens
+a window. See `docs/xge3-xui3-example-status.md` for the exact evidence and
+compiler qualification; this does not qualify a final shipped runtime or GPU.

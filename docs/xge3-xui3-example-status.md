@@ -30,6 +30,21 @@ containment is checked separately in C11, C++11 and C++17. Its report explicitly
 sets execution, UI/GPU and shipping-delivery acceptance to false. This work
 does not refresh prior runtime/OOM/unload reports or assert GUI correctness.
 
+The six maintained CPU/headless examples now have a separate **actual runtime**
+gate: `tools/check_xge3_headless_examples.py` generates C and lowered IR,
+builds and executes each example with GCC O0 and O2 on both platforms.
+Windows evidence is
+`F:/xlang-validation/foreign-completion-20261103/headless-six-win-r1/results.json`;
+Linux evidence is
+`/home/ubuntu/xlang-validation/headless-six-linux-r1/results.json`.
+Each report has 36 passing process rows and unchanged pinned inputs. The
+compiler is the honest R38-plus-sized-record frontend overlay over full R37,
+with final matching Model Native r5/r6 and matching public packages. This is
+generated-C runtime evidence, not a claim of a full compiler rebuild, refreshed
+embedded TCC provider, shipped release acceptance or graphics execution.
+`document_model.xl` is additionally executed by its dedicated seven-root Model
+gate; it is not included in the six-example count above.
+
 ## Legacy delivery examples (read-only audit)
 
 The read-only corpus contains 28 XGE and 48 XUI scripts. All 48 XUI scripts
