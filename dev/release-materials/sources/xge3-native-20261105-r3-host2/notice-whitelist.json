@@ -1,0 +1,243 @@
+{
+  "schema": 1,
+  "scope": "Exact notice additions for the qualified default host and IDE profiles only; source bundle retains every original license, including optional/test/web-asset licenses. No runtime or notice index is modified by this file.",
+  "sourcePlan": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\release-ui-replacement-plan-r4\\plan.json",
+    "sha256": "9e14e9db59d5fdc61aef92230956e7a017b5698ceb207f322c40b3f9ce059164",
+    "bytes": 336690
+  },
+  "add": [
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\harfbuzz\\src\\ms-use\\COPYING",
+      "sourceArchivePath": "xge3/extlibs/harfbuzz/src/ms-use/COPYING",
+      "relativeNativePath": "extlibs/harfbuzz/src/ms-use/COPYING",
+      "sha256": "9906940f61b1f0b533fa7d99baf55178b2808fbe113ea51dfbfad8572ccd5f2b",
+      "bytes": 1162,
+      "targetRelative": "notices/xge/extlibs/harfbuzz/src/ms-use/COPYING",
+      "targets": [
+        "release/win_x64/notices/xge/extlibs/harfbuzz/src/ms-use/COPYING",
+        "release/linux_x64/notices/xge/extlibs/harfbuzz/src/ms-use/COPYING"
+      ],
+      "reason": "The qualified default and IDE HarfBuzz amalgam dependency includes hb-ot-shaper-vowel-constraints.cc, whose generator header explicitly identifies ms-use/IndicShapingInvalidCluster.txt; HarfBuzz COPYING points to subdirectory licenses.",
+      "kind": "dependency-license"
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\sokol\\XGE_FORK.md",
+      "sourceArchivePath": "xge3/extlibs/sokol/XGE_FORK.md",
+      "relativeNativePath": "extlibs/sokol/XGE_FORK.md",
+      "sha256": "fce9686119c4d6b9b539c2f0b9f18e789692fa84a38f4f57e0c8db75994ad6d4",
+      "bytes": 323,
+      "targetRelative": "notices/xge/extlibs/sokol/XGE_FORK.md",
+      "targets": [
+        "release/win_x64/notices/xge/extlibs/sokol/XGE_FORK.md",
+        "release/linux_x64/notices/xge/extlibs/sokol/XGE_FORK.md"
+      ],
+      "reason": "The qualified default and IDE single/xge.c includes the forked Sokol backend. Preserve the exact local-fork provenance alongside its existing source license notices.",
+      "kind": "fork-provenance"
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\stb\\stb_vorbis.LICENSE",
+      "sourceArchivePath": "xge3/extlibs/stb/stb_vorbis.LICENSE",
+      "relativeNativePath": "extlibs/stb/stb_vorbis.LICENSE",
+      "sha256": "814b915fefba4d825b55ea3d10a32c27daefe5f3adba431004eb5b76fc139a62",
+      "bytes": 2772,
+      "targetRelative": "notices/xge/extlibs/stb/stb_vorbis.LICENSE",
+      "targets": [
+        "release/win_x64/notices/xge/extlibs/stb/stb_vorbis.LICENSE",
+        "release/linux_x64/notices/xge/extlibs/stb/stb_vorbis.LICENSE"
+      ],
+      "reason": "single/xge.c dependency files in both qualified default and IDE builds include extlibs/stb/stb_vorbis.c; XGE_ENABLE_AUDIO is selected.",
+      "kind": "dependency-license"
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\unicode\\LICENSE",
+      "sourceArchivePath": "xge3/extlibs/unicode/LICENSE",
+      "relativeNativePath": "extlibs/unicode/LICENSE",
+      "sha256": "8437ba5f4e4c8ae0268c3df5cf106006f2d045ff3452eedd1f27e8eb26c5f327",
+      "bytes": 2034,
+      "targetRelative": "notices/xge/extlibs/unicode/LICENSE",
+      "targets": [
+        "release/win_x64/notices/xge/extlibs/unicode/LICENSE",
+        "release/linux_x64/notices/xge/extlibs/unicode/LICENSE"
+      ],
+      "reason": "Compiled xge_unicode_grapheme_data.inc, xge_unicode_joining_data.inc, xge_unicode_script_data.inc and xge_text_ignorable_data.inc identify extlibs/unicode/LICENSE as their data license.",
+      "kind": "dependency-license"
+    }
+  ],
+  "preserveExisting": [
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\harfbuzz\\COPYING",
+      "sourceArchivePath": "xge3/extlibs/harfbuzz/COPYING",
+      "relativeNativePath": "extlibs/harfbuzz/COPYING",
+      "sha256": "bd836c0ddca8ea0bab54a03cd32b6ff7256cbb3840fca2edc1249a4ed92c5b02",
+      "bytes": 2013,
+      "targetRelative": "notices/xge/extlibs/harfbuzz/COPYING",
+      "targets": [
+        "release/win_x64/notices/xge/extlibs/harfbuzz/COPYING",
+        "release/linux_x64/notices/xge/extlibs/harfbuzz/COPYING"
+      ],
+      "reason": "Existing matching notice; retain. Applies to compiled/default embedded assets; do not delete while adding the whitelist."
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\libunibreak\\LICENCE",
+      "sourceArchivePath": "xge3/extlibs/libunibreak/LICENCE",
+      "relativeNativePath": "extlibs/libunibreak/LICENCE",
+      "sha256": "8c7b1018f608e05a21af078ca4303d545d6b8719b95306eda83df64845283564",
+      "bytes": 1066,
+      "targetRelative": "notices/xge/extlibs/libunibreak/LICENCE",
+      "targets": [
+        "release/win_x64/notices/xge/extlibs/libunibreak/LICENCE",
+        "release/linux_x64/notices/xge/extlibs/libunibreak/LICENCE"
+      ],
+      "reason": "Existing matching notice; retain. Applies to compiled/default embedded assets; do not delete while adding the whitelist."
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\libunibreak\\UNICODE-LICENSE.txt",
+      "sourceArchivePath": "xge3/extlibs/libunibreak/UNICODE-LICENSE.txt",
+      "relativeNativePath": "extlibs/libunibreak/UNICODE-LICENSE.txt",
+      "sha256": "85d2c71ce603e6facf0029043f82992556f099eebe55417b456ec27332665fed",
+      "bytes": 2026,
+      "targetRelative": "notices/xge/extlibs/libunibreak/UNICODE-LICENSE.txt",
+      "targets": [
+        "release/win_x64/notices/xge/extlibs/libunibreak/UNICODE-LICENSE.txt",
+        "release/linux_x64/notices/xge/extlibs/libunibreak/UNICODE-LICENSE.txt"
+      ],
+      "reason": "Existing matching notice; retain. Applies to compiled/default embedded assets; do not delete while adding the whitelist."
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\md4c\\LICENSE.md",
+      "sourceArchivePath": "xge3/extlibs/md4c/LICENSE.md",
+      "relativeNativePath": "extlibs/md4c/LICENSE.md",
+      "sha256": "e547c9a66c120b19f9838a1f7c2f51137f5c71ba27b70c3611b673f2cdb4e02e",
+      "bytes": 1096,
+      "targetRelative": "notices/xge/extlibs/md4c/LICENSE.md",
+      "targets": [
+        "release/win_x64/notices/xge/extlibs/md4c/LICENSE.md",
+        "release/linux_x64/notices/xge/extlibs/md4c/LICENSE.md"
+      ],
+      "reason": "Existing matching notice; retain. Applies to compiled/default embedded assets; do not delete while adding the whitelist."
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\sheenbidi\\LICENSE",
+      "sourceArchivePath": "xge3/extlibs/sheenbidi/LICENSE",
+      "relativeNativePath": "extlibs/sheenbidi/LICENSE",
+      "sha256": "3ddf9be5c28fe27dad143a5dc76eea25222ad1dd68934a047064e56ed2fa40c5",
+      "bytes": 11560,
+      "targetRelative": "notices/xge/extlibs/sheenbidi/LICENSE",
+      "targets": [
+        "release/win_x64/notices/xge/extlibs/sheenbidi/LICENSE",
+        "release/linux_x64/notices/xge/extlibs/sheenbidi/LICENSE"
+      ],
+      "reason": "Existing matching notice; retain. Applies to compiled/default embedded assets; do not delete while adding the whitelist."
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\zstd\\LICENSE",
+      "sourceArchivePath": "xge3/extlibs/zstd/LICENSE",
+      "relativeNativePath": "extlibs/zstd/LICENSE",
+      "sha256": "e15eea76150c59fc3079289fb170478cbe7d5880a7e0fc8bb12320bfbcfc49ca",
+      "bytes": 1579,
+      "targetRelative": "notices/xge/extlibs/zstd/LICENSE",
+      "targets": [
+        "release/win_x64/notices/xge/extlibs/zstd/LICENSE",
+        "release/linux_x64/notices/xge/extlibs/zstd/LICENSE"
+      ],
+      "reason": "Existing matching notice; retain. Applies to compiled/default embedded assets; do not delete while adding the whitelist."
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\res\\xge\\emoji\\twemoji_core\\17.0\\LICENSE-GRAPHICS",
+      "sourceArchivePath": "xge3/res/xge/emoji/twemoji_core/17.0/LICENSE-GRAPHICS",
+      "relativeNativePath": "res/xge/emoji/twemoji_core/17.0/LICENSE-GRAPHICS",
+      "sha256": "f7c011ea2361bca6404b53a3e4d7ae8f9ca2d5abdc3916f83787789e71029d07",
+      "bytes": 18917,
+      "targetRelative": "notices/xge/res/xge/emoji/twemoji_core/17.0/LICENSE-GRAPHICS",
+      "targets": [
+        "release/win_x64/notices/xge/res/xge/emoji/twemoji_core/17.0/LICENSE-GRAPHICS",
+        "release/linux_x64/notices/xge/res/xge/emoji/twemoji_core/17.0/LICENSE-GRAPHICS"
+      ],
+      "reason": "Existing matching notice; retain. Applies to compiled/default embedded assets; do not delete while adding the whitelist."
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\res\\xge\\emoji\\twemoji_core\\17.0\\NOTICE.md",
+      "sourceArchivePath": "xge3/res/xge/emoji/twemoji_core/17.0/NOTICE.md",
+      "relativeNativePath": "res/xge/emoji/twemoji_core/17.0/NOTICE.md",
+      "sha256": "a704e4e5eee567288a1c74d61486de8e1f328c29ae475ac9feac1b50df4feeb6",
+      "bytes": 667,
+      "targetRelative": "notices/xge/res/xge/emoji/twemoji_core/17.0/NOTICE.md",
+      "targets": [
+        "release/win_x64/notices/xge/res/xge/emoji/twemoji_core/17.0/NOTICE.md",
+        "release/linux_x64/notices/xge/res/xge/emoji/twemoji_core/17.0/NOTICE.md"
+      ],
+      "reason": "Existing matching notice; retain. Applies to compiled/default embedded assets; do not delete while adding the whitelist."
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\res\\xui\\dockpanel_suite\\LICENSE.dockpanelsuite.txt",
+      "sourceArchivePath": "xge3/res/xui/dockpanel_suite/LICENSE.dockpanelsuite.txt",
+      "relativeNativePath": "res/xui/dockpanel_suite/LICENSE.dockpanelsuite.txt",
+      "sha256": "bda3b93fd24606d3a413c35930380c1850658f59876ab6bc5c32d036f9a94967",
+      "bytes": 1109,
+      "targetRelative": "notices/xge/res/xui/dockpanel_suite/LICENSE.dockpanelsuite.txt",
+      "targets": [
+        "release/win_x64/notices/xge/res/xui/dockpanel_suite/LICENSE.dockpanelsuite.txt",
+        "release/linux_x64/notices/xge/res/xui/dockpanel_suite/LICENSE.dockpanelsuite.txt"
+      ],
+      "reason": "Existing matching notice; retain. Applies to compiled/default embedded assets; do not delete while adding the whitelist."
+    }
+  ],
+  "notDefaultRuntime": [
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\cgltf\\LICENSE",
+      "sourceArchivePath": "xge3/extlibs/cgltf/LICENSE",
+      "relativeNativePath": "extlibs/cgltf/LICENSE",
+      "sha256": "49aa274374181a398d96848be001e1773b6929119e4dd9600c4a281012171154",
+      "bytes": 1073,
+      "reason": "Optional 3D profile is disabled in both qualified profiles.",
+      "originalCategory": "optional-3d-profile"
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\extlibs\\ufbx\\LICENSE",
+      "sourceArchivePath": "xge3/extlibs/ufbx/LICENSE",
+      "relativeNativePath": "extlibs/ufbx/LICENSE",
+      "sha256": "e52669716973273fb77033552cf6d8dbb88d3dad8600fa4d78088a5f92b3fd65",
+      "bytes": 2670,
+      "reason": "Optional 3D profile is disabled in both qualified profiles.",
+      "originalCategory": "optional-3d-profile"
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\res\\xui\\document_web\\LICENSE.dompurify",
+      "sourceArchivePath": "xge3/res/xui/document_web/LICENSE.dompurify",
+      "relativeNativePath": "res/xui/document_web/LICENSE.dompurify",
+      "sha256": "3ddf9be5c28fe27dad143a5dc76eea25222ad1dd68934a047064e56ed2fa40c5",
+      "bytes": 11560,
+      "reason": "These scripts/CSS/fonts are caller-provided static browser assets, not compiled into the Native library and not present in the final default packages or runtime resource delivery; ship their licenses whenever the corresponding assets are distributed.",
+      "originalCategory": "production-dependency-material"
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\res\\xui\\document_web\\LICENSE.katex",
+      "sourceArchivePath": "xge3/res/xui/document_web/LICENSE.katex",
+      "relativeNativePath": "res/xui/document_web/LICENSE.katex",
+      "sha256": "4313255416487a4a7602f134a7cdd2b33dd9f7e7b41d3af63dc9f785bca425a0",
+      "bytes": 1128,
+      "reason": "These scripts/CSS/fonts are caller-provided static browser assets, not compiled into the Native library and not present in the final default packages or runtime resource delivery; ship their licenses whenever the corresponding assets are distributed.",
+      "originalCategory": "production-dependency-material"
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\res\\xui\\document_web\\LICENSE.mermaid",
+      "sourceArchivePath": "xge3/res/xui/document_web/LICENSE.mermaid",
+      "relativeNativePath": "res/xui/document_web/LICENSE.mermaid",
+      "sha256": "e44b44d50e98cbf0c7e047e58d701fe5f26f181d5403fdcccba371ee31400e10",
+      "bytes": 1110,
+      "reason": "These scripts/CSS/fonts are caller-provided static browser assets, not compiled into the Native library and not present in the final default packages or runtime resource delivery; ship their licenses whenever the corresponding assets are distributed.",
+      "originalCategory": "production-dependency-material"
+    },
+    {
+      "source": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\tests\\xge\\assets\\3d_motion\\LICENSE-KayKit.txt",
+      "sourceArchivePath": "xge3/tests/xge/assets/3d_motion/LICENSE-KayKit.txt",
+      "relativeNativePath": "tests/xge/assets/3d_motion/LICENSE-KayKit.txt",
+      "sha256": "efdd298aae817351e8939a4ea60600cf33aea87c1ce188e5710beff655c23173",
+      "bytes": 923,
+      "reason": "Test-only KayKit assets are not part of runtime delivery.",
+      "originalCategory": "test-assets-not-runtime"
+    }
+  ],
+  "notLegalRelicensing": "Original licensing terms remain in the corresponding source files; this material does not assign a new XGE license or replace existing xlang/XRT/TCC notices."
+}
