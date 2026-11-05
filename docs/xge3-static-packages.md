@@ -56,3 +56,8 @@ TLS/SECREL relocations. AOT needs a correct PE TLS directory/template; a JIT
 provider without corresponding OS static-TLS support must reject reachable
 TLS code. Unselected sections may be discarded by the genuine linker; the
 archive feature configuration itself is never silently reduced.
+
+The dated integration status, actual tested profiles and remaining release
+qualification are recorded in `docs/reports/native-static-linking-20261106.md`.
+In particular, a successful CPU JIT report does not qualify Windows PE/TLS
+loader execution or imply that the installed release compiler was replaced.
