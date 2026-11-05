@@ -9,6 +9,7 @@ import argparse,hashlib,json,os,shutil,subprocess,time
 from compiler_response import command_with_response
 from foreign_validation_build import add_build_arguments,load_build
 from check_foreign_xge3_data_object import verify_stage
+from foreign_native_artifacts import native_artifacts
 
 def main():
  p=argparse.ArgumentParser(description=__doc__)
@@ -19,14 +20,14 @@ def main():
  assert all(prior['inputs'].get(f)==value for f,value in b['inputs'].items()),'compiler cohort changed'
  rows={v['name']:v for v in prior['rows']};scripts=('actual','drag','ui-drag','example')
  for name in scripts:assert rows[name+'-cgen-default']['exitCode']==0 and (prepared/(name+'.c')).is_file()
- out.mkdir(parents=True,exist_ok=False);inputs=dict(prior['inputs']);inputs.update((str(f),sha(f)) for f in (Path(__file__),previous,stage,binary));generated=[]
+ out.mkdir(parents=True,exist_ok=False);inputs=dict(prior['inputs']);inputs.update((str(f),sha(f)) for f in (Path(__file__),Path(__file__).with_name('foreign_native_artifacts.py'),previous,stage,binary));generated=[]
  for name in scripts:
   source=prepared/(name+'.c');inputs[str(source)]=sha(source);shutil.copy2(source,out/source.name);generated.append(dict(script=name,path=str(source),sha256=sha(source),cgenRow=rows[name+'-cgen-default']))
  sdk=out/'sdk/__xl_runtime';sdk.mkdir(parents=True)
  for f in (cohort/'src/runtime').glob('*.h'):shutil.copy2(f,sdk/f.name)
  base=Path(b['base'].get('SdkDirectory') or b['base'].get('RuntimeDirectory') or runtime.parent);includes=(private/'include',out/'sdk',cohort,root,b['basePath'].parent/'include',base,base/'include');flags=['-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-DXGE_XRT_HOST=1',*['-I'+str(f) for f in includes]]
  if windows:flags+=['-DXGE_DLL','-DXUI_DLL'];shutil.copy2(runtime,out/runtime.name);shutil.copy2(binary,out/binary.name)
- warnings=['-Wno-'+x for x in ('unused-function','unused-variable','unused-label','unused-const-variable','unused-but-set-variable','cast-function-type')];systems=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if windows else ['-Wl,--export-dynamic','-pthread','-ldl','-lm','-Wl,-rpath,'+str(runtime.parent),'-Wl,-rpath,'+str(engine)];library=engine/('xge.lib' if windows else 'libxge.so');inputs[str(library)]=sha(library);env=dict(os.environ)
+ warnings=['-Wno-'+x for x in ('unused-function','unused-variable','unused-label','unused-const-variable','unused-but-set-variable','cast-function-type')];systems=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if windows else ['-Wl,--export-dynamic','-pthread','-ldl','-lm','-Wl,-rpath,'+str(runtime.parent),'-Wl,-rpath,'+str(engine)];library=native_artifacts(packages,engine)['library'];inputs[str(library)]=sha(library);env=dict(os.environ)
  if not windows:env['LD_LIBRARY_PATH']=str(runtime.parent)+':'+str(engine)+':'+env.get('LD_LIBRARY_PATH','')
  host=root/'test/cases/foreign_decl_module_host.c';report=dict(scope=__doc__,complete=False,passed=False,shippingDelivery=False,compiler=b['buildManifest'] or b['overlay'],fullSourceRebuild=b['fullSourceRebuild'],frontendRerun=False,frontendEvidence=str(previous),generatedClientC=generated,matchedNativeSdk=True,coldTransferRuntimeLinked=False,osClipboardDragUiNetworkGpuExecuted=False,inputs=inputs,rows=[])
  def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n')

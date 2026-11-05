@@ -1,0 +1,57 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Test-only Native artifacts selected from runtime_image/import_library and staged native.loadName; no compiler/runtime/public binding changes. Legacy named metadata remains readable without overriding supplied new names.",
+  "candidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\data-artifact-harness-candidate-r1\\manifest.json",
+    "sha256": "7582dadf9ac476bf18413f6500445f1dd0176427f4ec992558a3dddfe0816ea3"
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\data-native-artifacts-win-r1\\results.json",
+      "sha256": "4840f6212ff72154620f163470782fc211a1126e5d0b01648c7a5f68c1696d8a"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\data-native-artifacts-named-win-r1\\results.json",
+      "sha256": "2044d54af7e363bf497cd485a03bbd878e3a8aea14bebbdb91d7293169fcb4d2"
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\data-native-artifacts-linux-r1\\results.json",
+      "sha256": "65bb0059bda3351041be553f340c4627a2b3565151651681666cc56211d13cf0"
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\data-native-artifacts-named-linux-r1\\results.json",
+      "sha256": "48b41270f23c49812963ac599b4e755dc65cfc51268022d229e6f2894f4358e4"
+    }
+  ],
+  "runtimeQualified": false,
+  "tests": "14 metadata cases per platform including actual legacy normal stage, plus actual final Windows named normal stage read/byte validation. Synthetic fixtures never execute; module cycle pending final provider.",
+  "files": [
+    {
+      "path": "tools/foreign_native_artifacts.py",
+      "canonicalLfSha256": "0b97edeaff676887fc07310caadf20cf71beb614801ec12b122565b9884e4a46"
+    },
+    {
+      "path": "tools/check_foreign_native_artifacts.py",
+      "canonicalLfSha256": "d836b82bc8570d74bc0ce5adc8324765519da58370bd89601628adf5db33f17f"
+    },
+    {
+      "path": "tools/check_foreign_xge3_data_object.py",
+      "canonicalLfSha256": "7c1125c6250794032ab164d7676e81b2733c13259a721c42fd89534fa7282837"
+    },
+    {
+      "path": "tools/check_foreign_xge3_data_cycle.py",
+      "canonicalLfSha256": "e1705e1efd77539915b8fb6ffa138a8f27d106130257378864befca252021886"
+    },
+    {
+      "path": "tools/check_foreign_xge3_data_prepared.py",
+      "canonicalLfSha256": "6f39579691b57f73b600adc70fcf6cea70b2d754aab08434160a5ebc03153932"
+    },
+    {
+      "path": "tools/check_foreign_xge3_data_share.py",
+      "canonicalLfSha256": "62c1694f9165038497541f4a197987bacd69e92ddee16b7ac067bed899a54ede"
+    }
+  ]
+}

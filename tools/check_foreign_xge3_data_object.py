@@ -9,6 +9,7 @@ import argparse,hashlib,json,os,re,shutil,subprocess,time
 from foreign_validation_build import add_build_arguments,load_build
 from compiler_response import command_with_response
 from check_xge3_bindings import foreign_method_declaration,split
+from foreign_native_artifacts import native_artifacts
 
 def qualify(ty,family):
  return re.sub(r'\b(DataFormat|DataOutput|DataObject|CallbackDataObject|CallbackDragData|DataProvider|Context|Widget)\b',lambda m:family+'.'+m[0],ty)
@@ -69,7 +70,7 @@ def verify_stage(packages,engine,stageReport):
  sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();stage=json.loads(stageReport.read_text());metadata=engine/'build-report.json';build=json.loads(metadata.read_text());assert stage['complete'] and stage['inputsUnchanged'] and build['linked'] and build['xrt_mode']=='host' and build['public_abi_schema']==2
  assert Path(stage['engineBuild']).resolve()==metadata.resolve()
  assert all(sha(packages/f)==value for f,value in stage['outputs'].items())
- binary=engine/('xge.dll' if os.name=='nt' else 'libxge.so');assert sha(binary)==sha(packages/'_xge_native/native'/binary.name)
+ binary=native_artifacts(packages,engine)['image']
  return build,binary
 
 def main():
@@ -89,7 +90,8 @@ def main():
   assert all(sha(f)==h for f,h in origins.items()),'source changed while snapshotting'
   (out/'header-only-snapshot.json').write_text(json.dumps(dict(scope='Real Native headers and public source snapshot, FP0, no SDK or runtime qualification',origins=origins,sourceUnchangedDuringCopy=True),indent=2)+'\n');engine=None;library=None
  else:
-  assert a.packages and a.engine_build and a.stage_report and not a.native_root;packages=a.packages.resolve();private=packages/'_xge_native';engine=a.engine_build.resolve();metadata=engine/'build-report.json';stageReport=a.stage_report.resolve();build,binary=verify_stage(packages,engine,stageReport);library=engine/('xge.lib' if windows else 'libxge.so');inputs.update((str(f),sha(f)) for f in (metadata,binary,library,stageReport))
+  assert a.packages and a.engine_build and a.stage_report and not a.native_root;packages=a.packages.resolve();private=packages/'_xge_native';engine=a.engine_build.resolve();metadata=engine/'build-report.json';stageReport=a.stage_report.resolve();build,binary=verify_stage(packages,engine,stageReport);artifacts=native_artifacts(packages,engine);library=artifacts['library'];inputs.update((str(f),sha(f)) for f in (metadata,binary,library,stageReport))
+ inputs[str(Path(__file__).with_name('foreign_native_artifacts.py'))]=sha(Path(__file__).with_name('foreign_native_artifacts.py'))
  for f in packages.rglob('*'):
   if f.is_file():inputs[str(f)]=sha(f)
  fixture=root/'test/cases/foreign_xge3_package_data_object.xl';cycle=root/'test/cases/foreign_xge3_data_object_cycle.xl';cycleHeader=cycle.with_suffix('.h');drag=root/'test/cases/foreign_xge3_checked_drag.xl';dragHeader=drag.with_suffix('.h');dragNative=root/'test/cases/foreign_xge3_checked_drag_native.c';uiDrag=root/'test/cases/foreign_xge3_ui_drag.xl';uiDragHeader=uiDrag.with_suffix('.h');uiDragNative=root/'test/cases/foreign_xge3_ui_drag_native.c';example=root/'lib/bindings/xui/examples/data_object.xl';host=root/'test/cases/foreign_decl_module_host.c';inputs.update((str(f),sha(f)) for f in (fixture,cycle,cycleHeader,drag,dragHeader,dragNative,uiDrag,uiDragHeader,uiDragNative,example,host))
