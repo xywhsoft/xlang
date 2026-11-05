@@ -2,7 +2,7 @@
 
 The executable is the exact staged full-source driver or an explicit overlay.
 The provider remains a verified full source/provider cohort. Adjacent SDK copies
-contain declarations only, no compiler .c/.o files. Standalone outputs are
+contain headers only, including required XRT implementation products; no loose compiler .c/.o files. Standalone outputs are
 relocated and checked for accidental dynamic xlang/TinyCC dependencies.
 Native Linux system CRT, libc headers and linker inputs remain required.
 """

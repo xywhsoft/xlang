@@ -85,3 +85,12 @@ Their object reuse proves only the original flags. Production images require
 their actual static-TCC factory/destructor profile, with independent build and
 CPU acceptance evidence. Provider verification never updates active release
 files or the delivery index.
+
+A header-only SDK is not a declaration-only SDK. Standalone emission in
+`src/compile/xl6_xrt_trim.c` defines `XRT_IMPLEMENTATION` and
+`XRUNTIME_IMPLEMENTATION` before including the complete dependency headers.
+Keep these implementation-capable SDK headers and include fragments; the
+source-isolation guarantee excludes loose compiler/runtime `.c` and `.o`
+files, not definitions contained in required SDK headers. Every compiler
+header alias is refreshed from the authoritative frozen source, alongside
+public and resident runtime headers.
