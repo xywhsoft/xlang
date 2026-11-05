@@ -1,0 +1,4 @@
+// Imported once per language module. Native repeat binding checks the exact
+// XRT identity; failure is checked, including failure without a diagnostic.
+extern "xl6Xge3RuntimeBindV1" @no_raise @c_result("status",0) func __xl6Xge3Initialize()
+__xl6Xge3Initialize()

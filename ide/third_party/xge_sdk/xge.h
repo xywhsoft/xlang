@@ -9,6 +9,7 @@ extern "C" {
 #include "xge_config.h"
 #include "extlibs/xrt/xrt_config.h"
 #include "extlibs/xrt/xrt.h"
+#include "xnative_transfer.h"
 
 #ifndef TRUE
 #define TRUE 1
@@ -566,6 +567,8 @@ typedef struct xge_texture_storage_info_t {
 typedef enum xge_result_t {
 /* 成功。 */
 	XGE_OK = 0,
+/* Pure lifecycle wait; never a callback failure. */
+	XGE_STATUS_DEFERRED = 1,
 /* 通用失败。 */
 	XGE_ERROR = -1,
 /* 参数非法（空指针/越界/零尺寸）。 */
@@ -595,7 +598,11 @@ typedef enum xge_result_t {
 /* 目标条目不存在。 */
 	XGE_ERROR_NOT_FOUND = -14,
 /* 当前状态不允许该操作。 */
-	XGE_ERROR_INVALID_STATE = -15
+	XGE_ERROR_INVALID_STATE = -15,
+/* A retained callback reported failure, including unavailable diagnostics. */
+	XGE_ERROR_CALLBACK_FAILED = -16,
+/* Active operation, collector claim or creator-thread admission blocks work. */
+	XGE_ERROR_BUSY = -17
 } xge_result_t;
 
 typedef struct xge_error_info_t {
@@ -608,6 +615,19 @@ typedef struct xge_error_info_t {
 } xge_error_info_t;
 
 typedef void (*xge_error_proc)(const xge_error_info_t* pError, void* pUser);
+
+/* A native registration retains one real owner reference. Each invocation
+ * retains an independent snapshot through the callback's complete C return.
+ * Hold/Drop run outside publisher locks; false is a checked failure, even
+ * without an allocated diagnostic. Global registrations are external roots
+ * until explicitly cleared, not implicitly cycle-collected module fields.
+ * Failed Hold acquires nothing. Drop consumes its one acquired reference on
+ * both success and failure; a failed Drop must not be retried on that reference. */
+typedef struct xge_callback_owner_t {
+	xrtownershipref tReference;
+	bool (*onHold)(const void*);
+	bool (*onDrop)(const void*);
+} xge_callback_owner_t;
 
 typedef struct xge_desc_t {
 /* 窗口客户区初始宽度（像素）。 */
@@ -1595,6 +1615,18 @@ typedef int (*xge_data_provider_proc)(const char* sFormat, void* pOutput,
 	size_t iCapacity, size_t* pOutputSize, void* pUser);
 typedef void (*xge_data_provider_free_proc)(void* pUser);
 
+/* Callback-period bounded output; underscore fields are private and the
+ * size fields are readonly in safe bindings. Never retain this stack view. */
+typedef struct xge_data_output_t {
+    const void* _pSelf;
+    void* _pDestination;
+    size_t iCapacity;
+    size_t iRequired;
+} xge_data_output_t;
+typedef int (*xge_data_provider_owned_proc)(const xstrview* pFormat,
+    xge_data_output_t* pOutput,void* pUser);
+
+
 typedef struct xge_drag_drop_caps_t {
 	uint32_t iSize;
 	int bNativeDragIn;
@@ -1619,6 +1651,11 @@ typedef struct xge_drag_event_t {
 
 typedef uint32_t (*xge_drag_event_proc)(const xge_drag_event_t* pEvent,
 	void* pUser);
+/* Checked delivery separates callback status from the negotiated effect.
+ * Zero succeeds; negative status fails; positive nonzero is CALLBACK_FAILED.
+ * The effect is published only after successful callback and owner cleanup. */
+typedef int (*xge_drag_event_checked_proc)(const xge_drag_event_t* pEvent,
+    uint32_t* pEffect,void* pUser);
 
 typedef struct xge_scene_t xge_scene_t;
 typedef xge_scene_t* xge_scene;
@@ -1765,10 +1802,36 @@ XGE_API int xgeGetBuildInfo(xge_build_info_t *out);
 XGE_API int xgeCheckBuildCompatibility(uint64_t fingerprint, uint32_t features);
 /* 关闭引擎并释放全局资源（主循环结束后调用）。 */
 XGE_API void xgeUnit(void);
+/* Retires frame/quit/drag registrations and engine resources. Reports cleanup
+ * failure independently of a diagnostic allocation, and rejects reentry. The
+ * error callback remains available for shutdown logging until explicitly cleared.
+ * Owned callbacks/owner admission in progress return INVALID_STATE for retry. */
+XGE_API int xgeUnitChecked(void);
 /* 释放引擎 API 输出的堆块（如 xgeFontBuildXRFMemory 的产物）。 */
 XGE_API void xgeMemoryFree(void* pData);
 /* 创建窗口并进入主循环；每帧回调 onProc，直到退出。 */
 XGE_API int xgeRun(xge_scene_proc procFrame, void* pUser);
+/* Retained frame registration. Registration holds one real owner until
+ * replacement, explicit clear or Unit. Replacement commits before old-owner
+ * cleanup; that cleanup can fail while the new registration remains active.
+ * Raw xgeRun remains caller-managed; no implicit owner is invented. */
+XGE_API int xgeSetFrameCallbackOwned(xge_scene_proc procFrame, void* pUser, const xge_callback_owner_t* pOwner);
+/* CPU-only publisher entry, independent of renderer/engine initialization.
+ * 0 means continue; positive callback values mean a normal stop request.
+ * A negative callback or ownership-cleanup failure is returned as status and
+ * leaves pFrameResult unchanged. Retained snapshots cover the physical return
+ * tail. Concurrent/recursive dispatch is rejected. During Run, only its
+ * thread may dispatch. This function does not itself render or stop a loop. */
+XGE_API int xgeFrameCallbackDispatchChecked(int* pFrameResult);
+/* Manual/mobile Run retains registration after returning. Blocking Run
+ * returns its first negative callback/cleanup status, retaining the first
+ * diagnostic independently of later TLS changes (including a NULL first
+ * diagnostic). Positive callback stop values are successful completion.
+ * Quit is allowed in a callback; Unit rejects an active owned snapshot. */
+XGE_API int xgeRunOwned(xge_scene_proc procFrame, void* pUser, const xge_callback_owner_t* pOwner);
+/* Borrowed services must cover external COM return tails before publication. */
+XGE_API int xgeRunOwnedWithTransfer(xge_scene_proc frame,void* user,
+    const xge_callback_owner_t* owner,const xn_transfer_services_v1* services);
 /* 立即退出主循环。 */
 XGE_API void xgeQuit(void);
 /* Native close and xgeRequestQuit call this on the UI thread. Return zero to
@@ -1777,6 +1840,12 @@ XGE_API void xgeQuit(void);
 typedef int (*xge_quit_request_proc)(void* pUser);
 /* 注册退出请求回调：返回 0 阻止退出，返回非 0 允许退出。xgeQuit 不经过此回调。 */
 XGE_API void xgeSetQuitRequestCallback(xge_quit_request_proc proc, void* pUser);
+XGE_API int xgeSetQuitRequestCallbackOwned(xge_quit_request_proc proc, void* pUser,
+	const xge_callback_owner_t* pOwner);
+/* Evaluate a native close request without stopping the engine. Output is
+ * written only on success; reentrant dispatch vetoes with a successful zero. */
+XGE_API int xgeQuitRequestDispatch(int* pAllowed);
+XGE_API int xgeRequestQuitChecked(int* pAllowed);
 /* 请求退出主循环（触发退出请求回调）。 */
 XGE_API int xgeRequestQuit(void);
 /* 请求渲染下一帧（on-demand 模式下唤醒帧循环）。 */
@@ -1809,6 +1878,8 @@ XGE_API int xgeLogWrite(int iLevel, const char* sTag, const char* sMessage);
 XGE_API int xgeLogFlush(void);
 /* 注册错误回调（带重入保护）。 */
 XGE_API int xgeSetErrorCallback(xge_error_proc onError, void* pUser);
+XGE_API int xgeSetErrorCallbackOwned(xge_error_proc onError, void* pUser,
+	const xge_callback_owner_t* pOwner);
 /* 主动上报一条错误（走错误回调链）。 */
 XGE_API int xgeReportError(const xge_error_info_t* pError);
 /* 取默认平台后端描述（Sokol）。 */
@@ -1847,23 +1918,56 @@ XGE_API int xgeDataObjectSet(xge_data_object pData, const char* sFormat,
 XGE_API int xgeDataObjectSetProvider(xge_data_object pData,
 	const char* sFormat, xge_data_provider_proc onRead,
 	xge_data_provider_free_proc onFree, void* pUser);
+/* Owned origin is sticky. Raw providers cannot enter an Owned object.
+ * References are real native RC. Semantic calls/cleanup are creator-affine.
+ * Capture owner Drop is checked and consumes one acquired reference on every
+ * result, including false with no diagnostic. No second cleanup closure. */
+XGE_API int xgeDataObjectCreateOwned(xge_data_object* pOutput);
+XGE_API int xgeDataObjectShareOwned(xge_data_object source,xge_data_object* pOutput);
+XGE_API bool xgeDataObjectIsOwned(xge_data_object data);
+XGE_API int xgeDataObjectReleaseOwnerChecked(xge_data_object data,bool* pConsumed);
+XGE_API int xgeDataObjectReleaseChecked(xge_data_object data);
+XGE_API int xgeDataObjectSetProviderOwned(xge_data_object data,const char* sFormat,
+    xge_data_provider_owned_proc proc,void* pUser,const xge_callback_owner_t* pOwner);
+XGE_API int xgeDataOutputSet(xge_data_output_t* output,const void* data,size_t size);
+XGE_API int xgeDataOutputWrite(xge_data_output_t* output,size_t offset,const void* data,size_t size);
+XGE_API xrtownershipref xgeDataObjectOwnership(xge_data_object data);
+XGE_API const xrtownershipadapterv1* xgeDataObjectOwnershipAdapterV1(xrtownershipref ref);
+XGE_API const xrtownershippreparationv1* xgeDataObjectOwnershipPreparationV1(xrtownershipref ref);
+XGE_API const xrtownershipquiescencev1* xgeDataObjectOwnershipQuiescenceV1(xrtownershipref ref);
+XGE_API const xrtownershipfinishv2* xgeDataObjectOwnershipCompletionV2(xrtownershipref ref);
+XGE_API const xrtownershipfinalizationv1* xgeDataObjectOwnershipFinalizationV1(xrtownershipref ref);
+XGE_API bool xgeDataObjectOwnershipReadReady(xrtownershipref ref);
+
 /* 读取格式数量。 */
 XGE_API int xgeDataObjectFormatCount(xge_data_object pData);
 /* 按索引取格式名。 */
 XGE_API const char* xgeDataObjectFormatAt(xge_data_object pData, int iIndex);
 /* 是否包含指定格式。 */
 XGE_API int xgeDataObjectHas(xge_data_object pData, const char* sFormat);
-/* 读指定格式数据；iCapacity 不足时仅输出所需大小。 */
+/* NULL/0 queries the required byte count without copying. Immediate values
+ * do not write a short output. A lazy provider may have completed earlier
+ * Write commands before a later command makes the whole read too small;
+ * explicit caller buffers keep those bytes. Required size is still returned. */
 XGE_API int xgeDataObjectGet(xge_data_object pData, const char* sFormat,
 	void* pOutput, size_t iCapacity, size_t* pOutputSize);
 /* 注册拖放事件回调（进入/悬停/放下/离开）。 */
 XGE_API int xgeDragEventCallbackSet(xge_drag_event_proc onEvent, void* pUser);
+XGE_API int xgeDragEventCallbackSetOwned(xge_drag_event_proc onEvent, void* pUser,
+	const xge_callback_owner_t* pOwner);
+XGE_API int xgeDragEventCallbackSetCheckedOwned(xge_drag_event_checked_proc onEvent,
+    void* pUser,const xge_callback_owner_t* pOwner);
+/* Status and negotiated effect are independent; output is unchanged on
+ * invalid input or owner Hold/Drop failure. */
+XGE_API int xgeDragEventDispatchChecked(const xge_drag_event_t* pEvent, uint32_t* pEffect);
 /* Dispatches a platform drag event synchronously. Custom window backends use
  * this entry point so effect negotiation completes before returning to the OS. */
 XGE_API uint32_t xgeDragEventDispatch(const xge_drag_event_t* pEvent);
 /* 发起拖出会话（完整 OLE 拖出仅 Windows；其他平台仅内部会话）。 */
 XGE_API int xgeDragBegin(xge_data_object pData, uint32_t iAllowedEffects,
 	uint32_t iSuggestedEffect);
+XGE_API int xgeDragBeginWithTransfer(xge_data_object data,uint32_t allowedEffects,
+    uint32_t suggestedEffect,const xn_transfer_services_v1* services);
 /* 取消当前拖放会话。 */
 XGE_API int xgeDragCancel(void);
 /* 是否有拖放会话进行中。 */
@@ -2213,8 +2317,17 @@ XGE_API int xgeFontLoadCached(xge_font pFont, const char* sTTFPath, const char* 
 XGE_API int xgeFontAddRef(xge_font pFont);
 /* 字体实例引用计数减一，归零时释放。 */
 XGE_API void xgeFontFree(xge_font pFont);
+/* Transfer the RECORD storage to its native reference count. pFont must be an
+ * individually xrt-allocated, successfully initialized record with exactly one
+ * native reference. No allocation/copy occurs here. On success, the final
+ * xgeFontFree also frees the record itself; never free/reuse/copy that storage.
+ * On failure storage ownership is unchanged. Stack/embedded records must not
+ * use this API. The font payload and ordinary draw APIs are unchanged. */
+XGE_API int xgeFontAdoptStorage(xge_font pFont);
 /* 设置当前字体实例的后备字体。 */
 XGE_API void xgeFontSetFallback(xge_font pFont, xge_font pFallback);
+/* Checked form; failure preserves the previous owning fallback reference. */
+XGE_API int xgeFontSetFallbackChecked(xge_font pFont, xge_font pFallback);
 /* 设置全局后备字体（缺字形时兜底）。 */
 XGE_API int xgeFontFallbackSet(const char* sPath, float fSize);
 /* 从内存设置全局后备字体。 */
@@ -2382,6 +2495,10 @@ XGE_API xge_vec2_t xgeTextureMapUV(const xge_texture_t* pTexture, xge_vec2_t tUV
 XGE_API int xgeTextureReadPixels(xge_texture pTexture, void* pPixels, int iStride);
 /* 纹理引用计数减一，归零时释放。 */
 XGE_API void xgeTextureFree(xge_texture pTexture);
+/* Same record-storage transfer contract as xgeFontAdoptStorage. Sharing via
+ * xgeTextureAddRef keeps BOTH the resource and the adopted record alive until
+ * the final xgeTextureFree. No public record layout or drawing ABI changes. */
+XGE_API int xgeTextureAdoptStorage(xge_texture pTexture);
 /* 绑定窗口帧缓冲为渲染目标。 */
 XGE_API int xgeRenderTargetWindow(xge_render_target pTarget);
 /* 创建 FBO 离屏渲染目标。 */
@@ -2435,16 +2552,22 @@ XGE_API int xgeShaderVariantGet(xge_shader_variant_set pSet, uint32_t iKey, cons
 /* 材质重置为默认（内置纹理着色器）。 */
 #if XGE_ENABLE_2D
 XGE_API void xgeMaterialInit(xge_material pMaterial);
-/* 释放材质（不释放其引用的 shader/纹理）。 */
+/* 清空材质并释放三个纹理槽持有的引用；shader 为借用，不释放记录存储。 */
 XGE_API void xgeMaterialFree(xge_material pMaterial);
-/* 绑定自定义着色器。 */
+/* 绑定借用的自定义着色器；调用方保证 shader 记录与程序在使用期间有效。 */
 XGE_API void xgeMaterialSetShader(xge_material pMaterial, xge_shader pShader);
 /* 设置主纹理槽。 */
 XGE_API void xgeMaterialSetTexture(xge_material pMaterial, xge_texture pTexture);
+/* Checked retain-before-publish; failure preserves the prior texture slot. */
+XGE_API int xgeMaterialSetTextureChecked(xge_material pMaterial, xge_texture pTexture);
 /* 设置第二纹理槽。 */
 XGE_API void xgeMaterialSetTexture2(xge_material pMaterial, xge_texture pTexture);
+/* Checked retain-before-publish; failure preserves the prior texture slot. */
+XGE_API int xgeMaterialSetTexture2Checked(xge_material pMaterial, xge_texture pTexture);
 /* 设置第三纹理槽。 */
 XGE_API void xgeMaterialSetTexture3(xge_material pMaterial, xge_texture pTexture);
+/* Checked retain-before-publish; failure preserves the prior texture slot. */
+XGE_API int xgeMaterialSetTexture3Checked(xge_material pMaterial, xge_texture pTexture);
 /* 设置材质着色（乘色）。 */
 XGE_API void xgeMaterialSetColor(xge_material pMaterial, uint32_t iColor);
 /* 设置材质混合模式。 */
@@ -3196,9 +3319,22 @@ typedef struct xge_clipboard_item_t {
 #define XGE_CLIPBOARD_FORMAT_HTML "text/html"
 #define XGE_CLIPBOARD_FORMAT_IMAGE_PNG "image/png"
 
-/* 多格式写剪贴板（多格式仅 Windows，其他平台取首文本项）。
- * Windows 的有效 PNG 项额外提供带 alpha 的 CF_DIBV5 位图表示。 */
+/* Prepare every representation before one publication: Windows uses one
+ * OleSetClipboard; X11 serves TARGETS plus every custom binary target. Other
+ * text-only backends reject multiple formats before writing anything.
+ * Windows also provides CF_DIBV5 for a supported PNG representation.
+ * Raw C entry points keep their explicit caller-managed code lifetime. */
 XGE_API int xgeClipboardSetItems(const xge_clipboard_item_t* pItems, int iItemCount);
+XGE_API int xgeClipboardSetItemsWithTransfer(const xge_clipboard_item_t* items,
+    int count,const xn_transfer_services_v1* services);
+/* A cold Windows STA call initializes/balances OLE and flushes the prepared
+ * data. Once OleSetClipboard succeeds, a later Flush failure is reported but
+ * cannot promise OS rollback. Run-time exported COM references retain their
+ * actual resident capsule/code capability until physical cleanup returns. */
+/* Captures one generation snapshot. Lazy size/revision changes are rejected
+ * before publication; immediate bytes stay pinned through the backend call. */
+XGE_API int xgeDataObjectCopyToClipboardWithTransfer(xge_data_object data,
+    const xn_transfer_services_v1* services);
 /* 按格式读剪贴板数据（多格式仅 Windows）；Windows image/png 可从
  * 常见未压缩 CF_DIB(V5) 转换。 */
 XGE_API int xgeClipboardGetData(const char* sFormat, void* pData, size_t iCapacity);
@@ -3523,6 +3659,35 @@ XGE_API int xgeParticleRender(xge_particle_renderer pRenderer, xge_particle_worl
 #endif
 
 
+
+#if XGE_ENABLE_INPUT_ACTIONS
+#define XGE_ACTION_KEY 0
+#define XGE_ACTION_MOUSE_BUTTON 1
+#define XGE_ACTION_GAMEPAD_BUTTON 2
+#define XGE_ACTION_GAMEPAD_AXIS 3
+typedef struct xge_actions xge_actions;
+typedef struct xge_action_binding_t {
+    int type, device; /* Gamepad 0..3, or -1 for strongest connected device. */
+    uint32_t code; /* Key code, mouse/button bit, or axis index. */
+    float scale;
+} xge_action_binding_t;
+typedef struct xge_action_state_t { float value;int down,pressed,released; } xge_action_state_t;
+typedef float (*xge_action_read_proc)(const xge_action_binding_t *binding,void *user);
+/* Fixed capacities; actions are application-defined indices. CPU-only. */
+XGE_API int xgeActionsCreate(uint32_t action_count,uint32_t binding_capacity,xge_actions **out);
+XGE_API void xgeActionsFree(xge_actions *actions);
+XGE_API int xgeActionsBind(xge_actions *actions,uint32_t action,const xge_action_binding_t *binding);
+XGE_API int xgeActionsClearBindings(xge_actions *actions,uint32_t action);
+XGE_API int xgeActionsSetDeadzone(xge_actions *actions,uint32_t action,float deadzone);
+XGE_API int xgeActionsSetEnabled(xge_actions *actions,uint32_t action,int enabled);
+/* Once per input frame, before querying. NULL read polls XGE and honors consumed
+ * keys. Custom read returns finite [-1,1]; invalid input preserves all states.
+ * Opposing bindings sum, clamp, then apply a rescaled deadzone. No allocations. */
+XGE_API int xgeActionsUpdate(xge_actions *actions,xge_action_read_proc read,void *user);
+XGE_API int xgeActionsGet(const xge_actions *actions,uint32_t action,xge_action_state_t *out);
+/* Focus loss: clears values/edges without generating synthetic release events. */
+XGE_API void xgeActionsReset(xge_actions *actions);
+#endif
 
 #if XGE_ENABLE_3D
 /* Right-handed, Y up, metres and radians; column-major matrices. Scene mutation
@@ -3864,6 +4029,59 @@ XGE_API int xge3dRender(xge3d_renderer *renderer, xge3d_scene *scene,
 /* Default NONE. FXAA filters the final 3D image only, before later 2D/UI draws.
  * Geometry draw statistics exclude the compositor's fullscreen passes. */
 XGE_API int xge3dRendererSetAntialiasing(xge3d_renderer *renderer, int mode);
+#endif
+#if XGE3D_ENABLE_TONEMAP || XGE3D_ENABLE_COLOR_GRADING
+#define XGE3D_TONEMAP_NONE 0
+#if XGE3D_ENABLE_TONEMAP
+#define XGE3D_TONEMAP_REINHARD 1
+#define XGE3D_TONEMAP_ACES 2
+#endif
+typedef struct xge3d_color_settings_t {
+    uint32_t size;
+    int tone_mapping;
+    float saturation, contrast; /* [0,4], identity 1; linear contrast pivot .18. */
+    xge3d_vec3_t gain; /* Linear RGB multipliers [0,16], identity (1,1,1). */
+} xge3d_color_settings_t;
+/* Useful opt-in preset: ACES if compiled, identity grading. Renderer defaults
+ * to all effects off. Existing render_desc.exposure remains the exposure. */
+XGE_API xge3d_color_settings_t xge3dColorDefault(void);
+/* Copies settings; NULL resets. Grading precedes tone mapping and sRGB output,
+ * in the existing final pass. Trimmed features require identity values or
+ * return UNSUPPORTED. Enabled color/bloom requires CLEAR_COLOR per Render to
+ * avoid reprocessing an already display-mapped image. Draw UI afterwards.
+ * Call setters on the renderer's context thread. */
+XGE_API int xge3dRendererSetColor(xge3d_renderer *renderer,const xge3d_color_settings_t *settings);
+#endif
+#if XGE3D_ENABLE_BLOOM
+typedef struct xge3d_bloom_settings_t {
+    uint32_t size;
+    float strength, threshold, knee; /* [0,4], [0,64], [0,64]; zero strength disables. */
+    int levels; /* 1..6, starting at half resolution, truncated at 1x1. */
+} xge3d_bloom_settings_t;
+typedef struct xge3d_bloom_info_t {
+    uint32_t size, levels, passes; /* Allocated levels; passes in the last Render attempt. */
+    uint64_t storage_bytes; /* RGBA16F textures only; excludes driver/program overhead. */
+} xge3d_bloom_info_t;
+XGE_API xge3d_bloom_settings_t xge3dBloomDefault(void);
+/* Copies settings. Default off; textures and shader are lazy. NULL/strength=0
+ * skips bloom passes and immediately releases its textures (program is cached).
+ * Bloom is added before grading/tone mapping; transparent glow extends alpha
+ * coverage while preserving the display-premultiplied public output contract. */
+XGE_API int xge3dRendererSetBloom(xge3d_renderer *renderer,const xge3d_bloom_settings_t *settings);
+XGE_API int xge3dRendererBloomInfo(const xge3d_renderer *renderer,xge3d_bloom_info_t *out);
+#endif
+#if XGE3D_ENABLE_HEIGHT_FOG
+typedef struct xge3d_height_fog_settings_t {
+    uint32_t size;
+    xge3d_vec3_t color; /* Nonnegative finite linear RGB, before exposure. */
+    double height; /* Global Y in metres, independent of SceneSetOrigin. */
+    float density, falloff, max_opacity; /* [0,1000] per metre, [0,1000], [0,1]. */
+} xge3d_height_fog_settings_t;
+XGE_API xge3d_height_fog_settings_t xge3dHeightFogDefault(void);
+/* Copies settings; NULL/density=0/max_opacity=0 disables. Integrates exponential
+ * height density along the view ray without ray marching or auxiliary buffers.
+ * Applies to geometry after distance fog, before exposure; sky is unchanged. */
+XGE_API int xge3dRendererSetHeightFog(xge3d_renderer *renderer,const xge3d_height_fog_settings_t *settings);
 #endif
 #if XGE3D_ENABLE_MODEL
 typedef struct xge3d_model_info_t {
@@ -4397,6 +4615,116 @@ XGE_API xge3d_scene_node_desc_t xge3dSceneNodeDefault(void);
  * chosen file format. Failure removes the staged hierarchy and releases assets. */
 XGE_API int xge3dSceneLoad(xge3d_scene *scene,xge3d_node_t parent,const xge3d_scene_desc_t *desc,xge3d_node_t *out_root);
 #endif
+#if XGE3D_ENABLE_DYNAMIC
+/* Shared materials affect every user. Validation/ref acquisition is transactional;
+ * old descriptors and parameters remain intact on failure. Owner thread. */
+XGE_API int xge3dMaterialSetDesc(xge3d_material *material,const xge3d_material_desc_t *desc);
+/* Straight RGBA8 rows, top-to-bottom like TextureCreate. Uploaded objects require
+ * their context thread. Target views are read-only. No new persistent allocation. */
+XGE_API int xge3dTextureUpdate(xge3d_texture *texture,int x,int y,int width,int height,
+    const void *pixels,int stride);
+/* Retains target, follows resize, and decodes its display-premultiplied colors
+ * when sampled. Color/emissive slots only. Rendering into the sampled target is
+ * rejected. Release view and target before destroying their GL context. */
+XGE_API int xge3dTextureFromTarget(xge3d_target *target,xge3d_texture **out);
+#endif
+
+#if XGE3D_ENABLE_DEBUG_DRAW
+/* Renderer-owned persistent queue. Clear explicitly each frame if rebuilding.
+ * Colors are straight linear RGBA, geometry is relative to the scene origin.
+ * Lazy GPU allocation; drawn before postprocessing, no depth writes. */
+XGE_API void xge3dDebugClear(xge3d_renderer *renderer);
+XGE_API int xge3dDebugLine(xge3d_renderer *renderer,xge3d_vec3_t a,xge3d_vec3_t b,const float color[4],int depth_test);
+XGE_API int xge3dDebugBox(xge3d_renderer *renderer,const xge3d_aabb_t *box,const xge3d_mat4_t *world,const float color[4],int depth_test);
+XGE_API int xge3dDebugAxes(xge3d_renderer *renderer,const xge3d_mat4_t *world,float length,int depth_test);
+#if XGE3D_ENABLE_COLLISION
+XGE_API int xge3dDebugShape(xge3d_renderer *renderer,const xge3d_shape_t *shape,const xge3d_mat4_t *world,const float color[4],int depth_test);
+#endif
+#if XGE3D_ENABLE_ANIMATION
+XGE_API int xge3dDebugSkeleton(xge3d_renderer *renderer,xge3d_scene *scene,xge3d_node_t skinned_node,const float color[4],int depth_test);
+#endif
+#endif
+
+#if XGE3D_ENABLE_MOTION
+typedef struct xge3d_contact_t { xge3d_collision_hit_t hit;float depth; } xge3d_contact_t;
+typedef struct xge3d_motion_settings_t {
+    uint32_t size;int iterations;float margin,max_recovery;
+} xge3d_motion_settings_t;
+#define XGE3D_MOTION_BLOCKED 1u
+#define XGE3D_MOTION_RECOVERED 2u
+#define XGE3D_MOTION_LIMITED 4u
+typedef struct xge3d_motion_result_t {
+    uint32_t size,flags;int iterations,contact_count;
+    xge3d_vec3_t displacement,recovery,remainder,normals[8];
+} xge3d_motion_result_t;
+/* Deepest contact per collider. Normals point toward the query shape; depth is
+ * metres along that normal. Touching has depth 0. Same capacity rules as overlap.
+ * Zero-volume query shapes may report UNSUPPORTED for penetration resolution. */
+XGE_API int xge3dSceneContactShape(xge3d_scene *scene,const xge3d_shape_t *shape,const xge3d_mat4_t *world,
+    const xge3d_collision_filter_t *filter,xge3d_contact_t *contacts,size_t capacity,size_t *count);
+XGE_API xge3d_motion_settings_t xge3dMotionDefault(void);
+/* Pure query: never moves a node. Recovers overlaps then sweeps/slides a convex
+ * shape, with finite iteration/distance limits. LIMITED exposes unresolved work.
+ * No gravity, stairs, slope policy or rigid-body simulation. */
+XGE_API int xge3dSceneMoveShape(xge3d_scene *scene,const xge3d_shape_t *shape,const xge3d_mat4_t *world,
+    xge3d_vec3_t movement,const xge3d_collision_filter_t *filter,const xge3d_motion_settings_t *settings,
+    xge3d_motion_result_t *out);
+#endif
+
+#if XGE3D_ENABLE_SHADER
+typedef struct xge3d_shader xge3d_shader;
+typedef struct xge3d_shader_desc_t {
+    uint32_t size;
+    const char *vertex,*surface; /* NULL = identity. Function contracts in guide. */
+    float bounds_margin; /* Nonnegative local displacement bound, incl shadows. */
+} xge3d_shader_desc_t;
+/* Compile on context thread. The same hooks feed normal/skinned/instanced and
+ * shadow programs. Four vec4 xge3dParams uniforms are copied per material. */
+XGE_API int xge3dShaderCreate(const xge3d_shader_desc_t *desc,xge3d_shader **out);
+XGE_API void xge3dShaderFree(xge3d_shader *shader);
+XGE_API int xge3dMaterialSetShader(xge3d_material *material,xge3d_shader *shader,const float parameters[16]);
+#endif
+
+#if XGE3D_ENABLE_BILLBOARD
+#define XGE3D_BILLBOARD_ALPHA 0
+#define XGE3D_BILLBOARD_ADD 1
+typedef struct xge3d_billboard_t {
+    xge3d_vec3_t position;
+    float width,height,rotation,color[4],uv[4]; /* uv: u,v,width,height; radians. */
+    xge3d_texture *texture; /* Retained by renderer queue. NULL = white. */
+    int blend,depth_test;
+} xge3d_billboard_t;
+/* Persistent queue, sorted back-to-front with automatic adjacent batching.
+ * Camera-facing quads, straight linear color; no depth writes or shadow casting. */
+XGE_API xge3d_billboard_t xge3dBillboardDefault(void);
+XGE_API int xge3dBillboardsSet(xge3d_renderer *renderer,const xge3d_billboard_t *items,size_t count);
+#endif
+
+#if XGE3D_ENABLE_PARTICLES
+typedef struct xge3d_particles xge3d_particles;
+typedef struct xge3d_particle_desc_t {
+    uint32_t size,capacity,seed;
+    float rate,life_min,life_max,speed_min,speed_max,size_start,size_end,spread,drag;
+    xge3d_vec3_t position,direction,gravity;
+    float color_start[4],color_end[4];
+    int columns,rows;float fps; /* Grid sequence; 1x1 disables animation. */
+} xge3d_particle_desc_t;
+typedef struct xge3d_particle_info_t { uint32_t size,alive;uint64_t emitted,dropped; } xge3d_particle_info_t;
+XGE_API xge3d_particle_desc_t xge3dParticlesDefault(void);
+/* CPU-only bounded storage. Deterministic for the same seed and update steps. */
+XGE_API int xge3dParticlesCreate(const xge3d_particle_desc_t *desc,xge3d_particles **out);
+XGE_API void xge3dParticlesFree(xge3d_particles *particles);
+XGE_API int xge3dParticlesSetPosition(xge3d_particles *particles,xge3d_vec3_t position);
+XGE_API int xge3dParticlesEmit(xge3d_particles *particles,uint32_t count);
+/* emit=0 drains existing particles. dt in [0,1]; integration substeps <=1/60 s. */
+XGE_API int xge3dParticlesUpdate(xge3d_particles *particles,float dt,int emit);
+XGE_API int xge3dParticlesInfo(const xge3d_particles *particles,xge3d_particle_info_t *out);
+/* Writes caller-owned billboard descriptions, borrowing texture. Short capacity
+ * returns required count and BUFFER_TOO_SMALL. Submit to BillboardsSet to retain. */
+XGE_API int xge3dParticlesBillboards(const xge3d_particles *particles,xge3d_texture *texture,int blend,
+    xge3d_billboard_t *items,size_t capacity,size_t *count);
+#endif
+
 /* 将 TRS 变换转换为 4x4 仿射矩阵。 */
 XGE_API int xge3dTransformMatrix(const xge3d_transform_t *transform, xge3d_mat4_t *out);
 /* 按视野角、宽高比和裁剪面构造透视相机。 */

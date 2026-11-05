@@ -7,6 +7,23 @@ extern "C" {
 #endif
 
 typedef struct xui_document_renderer_t* xui_document_renderer;
+/* Callback-period output. SetFont takes a real native Font owner; the consumer
+ * moves that owner before disposing the automatic record. Never copy a live
+ * record or keep its borrowed backend identity after its callback period. */
+typedef struct xui_doc_font_output_t {
+    xui_font _pFont;
+    xui_proxy _pProxy;
+    uint64_t _iCreatorThread;
+    uint32_t _iMagic;
+} xui_doc_font_output_t;
+typedef int (*xui_doc_font_owned_proc)(xui_document_renderer renderer,const char* family,
+    uint32_t marks,float size,xui_doc_font_output_t* output,void* user);
+typedef int (*xui_doc_object_measure_owned_proc)(xui_document_renderer renderer,
+    xui_document_snapshot snapshot,xui_doc_node_id node,float width,float zoom,
+    xui_vec2_t* size,float* baseline,void* user);
+typedef int (*xui_doc_object_draw_owned_proc)(xui_document_renderer renderer,
+    xui_document_snapshot snapshot,xui_doc_node_id node,xui_draw_context draw,xui_rect_t bounds,void* user);
+
 enum xui_doc_display_mode { XUI_DOC_VISUAL = 1, XUI_DOC_SOURCE_TEXT = 2, XUI_DOC_LIVE_MARKDOWN = 3 };
 typedef struct xui_doc_rect_t { double x, y, width, height; } xui_doc_rect_t;
 typedef struct xui_doc_font_set_t {
@@ -91,8 +108,10 @@ XUI_API int xuiDocumentImageResourceLoadFile(xui_context context, const char* re
  * copied encoded input. Poll reaps finished workers and publishes all ready
  * requests on the XUI owner thread, returning BUSY until its request is terminal.
  * Starting another request for the same context/name cancels the older one;
- * a resource changed outside the request makes its result STALE. Release may
- * wait for a running decoder and must precede context destruction. */
+ * a resource changed outside the request makes its result STALE. The Context
+ * uniquely owns each request. Release requests logical close and cancellation;
+ * a running decoder keeps its actual Context/code carrier until a subsequent
+ * creator-thread checked boundary observes that the worker has returned. */
 typedef struct xui_doc_image_request_t* xui_doc_image_request;
 /* Queue decoding of a host-authorized image file. */
 #if XUI_ENABLE_DOCUMENT_VIEW
@@ -106,8 +125,15 @@ XUI_API int xuiDocumentImageResourceLoadMemoryAsync(xui_context context, const c
 XUI_API int xuiDocumentImageResourcePoll(xui_doc_image_request request, xui_resource* out);
 /* Cancel an outstanding image request. */
 XUI_API int xuiDocumentImageResourceCancel(xui_doc_image_request request);
-/* Release an image request and join its worker if needed. */
+/* Logical close is nonblocking. The Context retains pending worker/storage;
+ * consumed describes the handle's accepted logical close, separately from a
+ * checked cleanup error. No worker destroys/unloads itself at its return tail. */
+XUI_API int xuiDocumentImageResourceReleaseOwnerChecked(xui_doc_image_request request,bool* consumed);
+XUI_API int xuiDocumentImageResourceReleaseChecked(xui_doc_image_request request);
 XUI_API void xuiDocumentImageResourceRelease(xui_doc_image_request request);
+XUI_API xui_context xuiDocumentImageResourceGetContext(xui_doc_image_request request);
+XUI_API int xuiDocumentImageResourceLifetimeWatch(xui_doc_image_request request,
+    xui_lifetime_link_t* link,xui_lifetime_invalidate_proc invalidate,void* user);
 #endif
 typedef struct xui_doc_image_async_stats_t {
     uint32_t iSize;
@@ -119,11 +145,34 @@ typedef struct xui_doc_image_async_stats_t {
 #if XUI_ENABLE_DOCUMENT_VIEW
 XUI_API int xuiDocumentImageResourceGetAsyncStats(xui_context context, xui_doc_image_async_stats_t* stats);
 
-/* The renderer borrows its context/fonts and retains its immutable snapshot.
- * It owns no widget, document writer, selection history, or window. */
+/* Unique renderer; no RC wrapper. Owned Context backends retain their actual
+ * proxy/font/paint resources. Context expiry rejects further operations while
+ * the unique owner can still release those resources. Legacy raw C callbacks
+ * keep their explicit caller-borrowed userdata contract. */
 XUI_API int xuiDocumentRendererCreate(xui_context context, const xui_doc_renderer_desc_t* desc, xui_document_renderer* out);
+XUI_API int xuiDocumentFontOutputInit(xui_document_renderer renderer,xui_doc_font_output_t* output);
+XUI_API int xuiDocumentFontOutputSetFont(xui_doc_font_output_t* output,xui_font font);
+XUI_API xui_font xuiDocumentFontOutputGetFont(const xui_doc_font_output_t* output); /* borrowed */
+XUI_API int xuiDocumentFontOutputDisposeChecked(xui_doc_font_output_t* output);
+/* Independent owning callback slots. Font: 0 fallback, 1 selected, negative
+ * checked failure. Object callbacks keep the same handled/fallback convention. */
+XUI_API int xuiDocumentRendererSetFontResolverOwned(xui_document_renderer renderer,
+    xui_doc_font_owned_proc callback,void* user,const xui_callback_owner_t* owner);
+XUI_API int xuiDocumentRendererSetObjectMeasureOwned(xui_document_renderer renderer,
+    xui_doc_object_measure_owned_proc callback,void* user,const xui_callback_owner_t* owner);
+XUI_API int xuiDocumentRendererSetObjectDrawOwned(xui_document_renderer renderer,
+    xui_doc_object_draw_owned_proc callback,void* user,const xui_callback_owner_t* owner);
 /* Release renderer layout and its retained snapshot. */
 XUI_API void xuiDocumentRendererRelease(xui_document_renderer renderer);
+/* Logical close request: no native owner is consumed; existing metadata
+ * watches remain valid until checked release physically consumes the owner. */
+XUI_API int xuiDocumentRendererRequestClose(xui_document_renderer renderer);
+XUI_API int xuiDocumentRendererReleaseOwnerChecked(xui_document_renderer renderer,bool* consumed);
+XUI_API int xuiDocumentRendererReleaseChecked(xui_document_renderer renderer);
+XUI_API xui_context xuiDocumentRendererGetContext(xui_document_renderer renderer);
+XUI_API bool xuiDocumentRendererOwnershipBusy(xui_document_renderer renderer);
+XUI_API bool xuiDocumentRendererTraceOwnership(xui_document_renderer renderer,xrtownershipvisitor visit,void* user);
+XUI_API int xuiDocumentRendererLifetimeWatch(xui_document_renderer renderer,xui_lifetime_link_t* link,xui_lifetime_invalidate_proc invalidated,void* user);
 /* Bind a committed snapshot and optional change set. */
 XUI_API int xuiDocumentRendererSetSnapshot(xui_document_renderer renderer, xui_document_snapshot snapshot, xui_document_change_set changes);
 /* SOURCE_TEXT / LIVE_MARKDOWN input projection over the retained committed snapshot. Candidate
@@ -211,7 +260,9 @@ XUI_API int xuiDocumentRendererGetStats(xui_document_renderer renderer, xui_doc_
  * WebView worker attached to parent and caches PNG surfaces by document,
  * revision, node, width, zoom and palette generation. Call Update after XUI Update on the UI
  * thread; onInvalidate should invalidate affected Document views/renderers.
- * Release before destroying the parent/context. The worker uses a one-pixel
+ * The Context uniquely owns the provider; explicit Release requests checked
+ * closure, and parent/Context closure also retires it. Returned handles do not
+ * outlive that Context. The worker uses a one-pixel
  * visible host slot to keep WebView2 rendering while capturing full viewport. */
 typedef struct xui_doc_web_provider_t* xui_doc_web_provider;
 typedef void (*xui_doc_web_invalidate_proc)(void* user);
@@ -229,8 +280,20 @@ typedef struct xui_doc_web_provider_desc_t {
 #if XUI_ENABLE_WEBVIEW
 XUI_API int xuiDocumentWebProviderCreate(const xui_doc_web_provider_desc_t* desc,
     xui_doc_web_provider* out);
-/* Release the provider and its WebView worker. */
+/* Logical close invalidates lifetime watches immediately. Physical storage
+ * remains with the Context until in-flight native calls and the worker's
+ * destruction tail have completed. consumed is independent of cleanup status. */
+XUI_API int xuiDocumentWebProviderReleaseOwnerChecked(xui_doc_web_provider provider,
+    bool* consumed);
+XUI_API int xuiDocumentWebProviderReleaseChecked(xui_doc_web_provider provider);
 XUI_API void xuiDocumentWebProviderRelease(xui_doc_web_provider provider);
+XUI_API xui_context xuiDocumentWebProviderGetContext(xui_doc_web_provider provider);
+XUI_API int xuiDocumentWebProviderLifetimeWatch(xui_doc_web_provider provider,
+    xui_lifetime_link_t* link,xui_lifetime_invalidate_proc invalidate,void* user);
+XUI_API int xuiDocumentWebProviderSetInvalidate(xui_doc_web_provider provider,
+    xui_doc_web_invalidate_proc callback,void* user);
+XUI_API int xuiDocumentWebProviderSetInvalidateOwned(xui_doc_web_provider provider,
+    xui_doc_web_invalidate_proc callback,void* user,const xui_callback_owner_t* owner);
 /* Worker failure is a nonfatal display state. Browser-process loss schedules
  * up to three worker restarts; other failures remain visible as error cards.
  * Call Update after XUI Update so due restarts and pending renders advance. */
@@ -269,7 +332,9 @@ XUI_API int xuiDocumentWebObjectDraw(xui_document_snapshot snapshot,
  * mutates Document history. Create requires a root widget and nonzero input
  * viewport. The caller edits source through Document transactions and calls
  * Update on the UI thread each frame after layout, including while focus is
- * pending.
+ * pending. The Context uniquely owns the panel after successful Create;
+ * explicit Release requests nonblocking logical close and its physical tail
+ * waits for all native Window/WebView callbacks and delegate references.
  * Unrelated revisions do not reset browser form state. Release before the
  * context is destroyed. Only Windows WebView2 builds create a live panel. */
 typedef struct xui_doc_html_interaction_t* xui_doc_html_interaction;
@@ -277,6 +342,10 @@ typedef struct xui_doc_html_interaction_t* xui_doc_html_interaction;
  * valid only during this call. Without a callback, external navigation is
  * suppressed; the host chooses whether/how to open it. */
 typedef void (*xui_doc_html_open_link_proc)(const char* url, void* user);
+/* The immutable view and its bytes are borrowed only until callback return
+ * and the native callback-owner snapshot Drop have completed. Copy explicitly
+ * to keep text. This is not a managed-string callback ABI. */
+typedef void (*xui_doc_html_open_link_view_proc)(const xstrview* url, void* user);
 typedef struct xui_doc_html_interaction_desc_t {
     uint32_t iSize;
     xui_context pContext;
@@ -301,9 +370,20 @@ XUI_API xui_widget xuiDocumentHtmlInteractionGetWindow(xui_doc_html_interaction 
 XUI_API xui_widget xuiDocumentHtmlInteractionGetWebView(xui_doc_html_interaction interaction);
 /* Release the HTML panel before its context is destroyed. */
 XUI_API void xuiDocumentHtmlInteractionRelease(xui_doc_html_interaction interaction);
+XUI_API int xuiDocumentHtmlInteractionReleaseOwnerChecked(xui_doc_html_interaction interaction, bool* consumed);
+XUI_API int xuiDocumentHtmlInteractionReleaseChecked(xui_doc_html_interaction interaction);
+XUI_API xui_context xuiDocumentHtmlInteractionGetContext(xui_doc_html_interaction interaction);
+XUI_API int xuiDocumentHtmlInteractionLifetimeWatch(xui_doc_html_interaction interaction, xui_lifetime_link_t* link, xui_lifetime_invalidate_proc invalidate, void* user);
+/* The raw setter is caller-managed C interoperability. Owned stores a real
+ * callback owner, traces it and snapshots it through the final native tail. */
+XUI_API int xuiDocumentHtmlInteractionSetOpenLink(xui_doc_html_interaction interaction, xui_doc_html_open_link_proc callback, void* user);
+XUI_API int xuiDocumentHtmlInteractionSetOpenLinkOwned(xui_doc_html_interaction interaction, xui_doc_html_open_link_view_proc callback, void* user, const xui_callback_owner_t* owner);
 #endif
 
 typedef void (*xui_doc_view_event_proc)(xui_widget view, xui_doc_node_id node, const char* resource, void* user);
+/* Resource is an immutable callback-period view; copy explicitly to retain it. */
+typedef void (*xui_doc_view_activate_owned_proc)(xui_widget view, xui_doc_node_id node, const xstrview* resource, void* user);
+typedef void (*xui_doc_task_toggle_proc)(xui_widget list, xui_doc_node_id item, int checked, void* user);
 typedef struct xui_doc_view_desc_t {
     uint32_t iSize;
     xui_document pDocument;
@@ -320,6 +400,7 @@ typedef struct xui_doc_view_desc_t {
 XUI_API xui_widget_type xuiDocumentViewGetType(xui_context context);
 /* Create a DocumentView bound to its configured Document. */
 XUI_API int xuiDocumentViewCreate(xui_context context, const xui_doc_view_desc_t* desc, xui_widget* out);
+XUI_API int xuiDocumentViewSetActivateOwned(xui_widget view, xui_doc_view_activate_owned_proc callback, void* user, const xui_callback_owner_t* owner);
 /* Bind a Document and refresh view state. */
 XUI_API int xuiDocumentViewSetDocument(xui_widget view, xui_document document);
 /* Return the currently bound Document handle. */
@@ -416,6 +497,8 @@ typedef struct xui_message_document_desc_t {
 #if XUI_ENABLE_MESSAGE_LIST
 XUI_API int xuiMessageListSetNodeDocument(xui_widget list, const char* message_id,
     const xui_message_document_desc_t* desc);
+XUI_API int xuiMessageListSetNodeDocumentActivateOwned(xui_widget list, const char* message_id, xui_doc_view_activate_owned_proc callback, void* user, const xui_callback_owner_t* owner);
+XUI_API int xuiMessageListSetNodeDocumentTaskToggleOwned(xui_widget list, const char* message_id, xui_doc_task_toggle_proc callback, void* user, const xui_callback_owner_t* owner);
 /* Return the Document bound to one MessageList item. */
 XUI_API xui_document xuiMessageListGetNodeDocument(xui_widget list, const char* message_id);
 /* Read the bound message's current renderer counters without synchronizing or
@@ -523,6 +606,8 @@ typedef struct xui_doc_paragraph_spacing_state_t {
 XUI_API xui_widget_type xuiDocumentEditorGetType(xui_context context);
 /* Create a DocumentEditor using a DocumentView base. */
 XUI_API int xuiDocumentEditorCreate(xui_context context, const xui_doc_editor_desc_t* desc, xui_widget* out);
+/* Independently owned scalar error notification. */
+XUI_API int xuiDocumentEditorSetErrorOwned(xui_widget editor, xui_doc_editor_error_proc callback, void* user, const xui_callback_owner_t* owner);
 /* Direct InsertText/Execute calls are programmatic transactions. Unpublished
  * SOURCE calls may share their current batch; published calls do not acquire
  * automatic input groups. To deliver interactive input, dispatch text/key/IME

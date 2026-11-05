@@ -1,0 +1,181 @@
+#ifndef XL6_OWNERSHIP_PLAN_H
+#define XL6_OWNERSHIP_PLAN_H
+#include "xl6_code_lease.h"
+struct xrtownershipref;
+struct xrtownershipadapterv1;
+struct xrtownershippreparationv1;
+struct xrtownershipfinalizationv1;
+
+typedef struct XL6_OwnershipPlan XL6_OwnershipPlan;
+/* Optional native lifecycle boundary, acquired before Freeze and released
+ * immediately after it. Enter is a nonblocking, diagnostic-preserving probe;
+ * a false result means BUSY. No native lock spans semantic callbacks. The
+ * immutable resident descriptor and its context outlive every plan. */
+typedef struct XL6_OwnershipBoundaryV1 {
+    size_t size;
+    bool (*Enter)(void*);
+    void (*Leave)(void*);
+    /* Optional discovery anchors under the same boundary and Freeze. They
+     * identify physical objects, never extra owning slots or synthetic roots. */
+    bool (*Discover)(bool (*)(struct xrtownershipref,void*),void*,void*);
+    void* context;
+} XL6_OwnershipBoundaryV1;
+
+/* One physical lifecycle protocol shared with XRT, not a second incompatible
+ * definition of Value/node retirement. The plan itself is the claim token. */
+typedef struct xrtownershipadapterv1 XL6_OwnershipAdapterV1;
+typedef const XL6_OwnershipAdapterV1* (*XL6_OwnershipResolve)(struct xrtownershipref, void*);
+/* Resolver supplies both independently validated immutable identities BEFORE
+ * Count/Trace. NULL preparation explicitly means no semantic preparation;
+ * it is not a fallback for an unrecognized preparation descriptor. */
+typedef bool (*XL6_OwnershipResolveV2)(struct xrtownershipref, void*,
+    const XL6_OwnershipAdapterV1**, const struct xrtownershippreparationv1**);
+typedef enum XL6_OwnershipPlanResult {
+    XL6_OWNERSHIP_PLAN_ERROR = -1,
+    XL6_OWNERSHIP_PLAN_BUSY = 0,
+    XL6_OWNERSHIP_PLAN_READY = 1,
+    XL6_OWNERSHIP_PLAN_FINALIZERS = 2,
+    XL6_OWNERSHIP_PLAN_ROOTED = 3,
+    XL6_OWNERSHIP_PLAN_PREPARATIONS = 4
+} XL6_OwnershipPlanResult;
+
+/* The root must be a REAL owning node, including its enclosing host handle or
+ * module-global slots. No synthetic graph roots or estimated RC subtraction.
+ * Resolver/data/code and host-specific lifecycle exclusion outlive the plan.
+ * Caller serializes ALL access to the same plan, across native threads too.
+ * Finalize/Finish/Destroy must not inherit an outer freeze or mutation: their
+ * callbacks may wait or reenter the host. The running guard rejects callback
+ * reentry, but does not replace the caller's cross-thread lifecycle mutex.
+ * Each Try operation obtains a nonblocking freeze; never call it while holding
+ * a lock that another active mutation needs. BUSY does not change output.
+ * Every node is admitted before its Trace/Count is invoked. Unknown means
+ * refusal, not a leaf, root guess, or a reason to omit a transitive edge. */
+XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreate(
+    struct xrtownershipref, XL6_OwnershipResolve, void*, XL6_OwnershipPlan**);
+XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV2(
+    struct xrtownershipref, XL6_OwnershipResolveV2, void*, XL6_OwnershipPlan**);
+/* Rebuild before starting each preparation, outside freeze for its invocation.
+ * An already-started, held/claimed duty may continue through its own temporary
+ * read refusal, using only the exact frozen Ready/Prepare capability. READY
+ * forces a fresh whole graph before any different duty or semantic Finalize.
+ * BUSY participants may be skipped only under their no-side-effect contract.
+ * A turn is bounded by the initial participant count; new work or a busy
+ * dependency may require retry, preserving the actual plan and completed work.
+ * No object finalizer is allowed while a preparation remains unready. */
+typedef enum XL6_OwnershipStepResult {
+    /* Snapshot/admission failure is NOT a semantic callback failure. The host
+     * may abort/restore and retry without permanently failing its module. */
+    XL6_OWNERSHIP_STEP_ERROR = -2,
+    XL6_OWNERSHIP_STEP_FAILED = -1,
+    XL6_OWNERSHIP_STEP_BUSY = 0,
+    XL6_OWNERSHIP_STEP_READY = 1,
+    /* An accepted resumable semantic duty remains owned; it may have made
+     * progress. This is not preparation/physical BUSY without side effects. */
+    XL6_OWNERSHIP_STEP_WAITING = 2
+} XL6_OwnershipStepResult;
+/* Optional physical completion protocol. BUSY retains every plan pin; FAILED
+ * is an explicit callback failure even without a diagnostic. A failed duty
+ * may be retried, but a READY duty is never invoked again. These immutable
+ * identities are admitted before Count/Trace, just like preparation. Step
+ * is XRT's canonical descriptor, including its callback return type; no
+ * layout or function-pointer casts are permitted at the resident boundary.
+ * Step returns XRT_OWNERSHIP_FINISH_FAILED/BUSY/READY. The plan maps them to
+ * XL6_OWNERSHIP_STEP_*; STEP_ERROR is reserved for plan misuse/snapshots. */
+struct xrtownershipfinishv1;
+typedef struct xrtownershipfinishv1 XL6_OwnershipFinishV1;
+typedef bool (*XL6_OwnershipResolveV3)(struct xrtownershipref, void*,
+    const XL6_OwnershipAdapterV1**, const struct xrtownershippreparationv1**,
+    const XL6_OwnershipFinishV1**);
+/* BUSY is an explicit resident capability decision, never inferred from an
+ * exception kind or a failed Count/Trace. REFUSED remains fail-closed. A BUSY
+ * probe leaves every output NULL and performs no semantic work. */
+typedef enum XL6_OwnershipAdmissionV1 {
+    XL6_OWNERSHIP_ADMISSION_REFUSED = 0,
+    XL6_OWNERSHIP_ADMISSION_ADMITTED = 1,
+    XL6_OWNERSHIP_ADMISSION_BUSY = 2
+} XL6_OwnershipAdmissionV1;
+typedef XL6_OwnershipAdmissionV1 (*XL6_OwnershipProbeV1)(struct xrtownershipref,void*,
+    const XL6_OwnershipAdapterV1**,const struct xrtownershippreparationv1**,
+    const XL6_OwnershipFinishV1**);
+XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV3(
+    struct xrtownershipref, XL6_OwnershipResolveV3, void*, XL6_OwnershipPlan**);
+/* Read-only, resident discovery under the SAME freeze as each snapshot/pin
+ * transaction, including revalidation before semantic duties and Commit.
+ * These are borrowed physical anchors, NEVER extra internal owning slots.
+ * Discovery/data outlive the plan, obey its lifecycle exclusion, and may
+ * append only known live identities. Admission still precedes Count/Trace.
+ * false discards the entire partial anchor list without changing the old
+ * plan; preserve the discovery callback's primary diagnostic. */
+typedef bool (*XL6_OwnershipDiscoverV1)(XL6_ModuleOwnershipVisit, void*, void*);
+XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV4(
+    struct xrtownershipref, XL6_OwnershipResolveV3, XL6_OwnershipDiscoverV1,
+    void*, XL6_OwnershipPlan**);
+/* Native root with independent, caller-guaranteed storage lifetime: acquire
+ * one actual adapter Hold before its first snapshot. The plan owns this pin,
+ * records it as an internal slot and balances Drop on success or failure.
+ * This does not resurrect an invalid Value or admit an unknown descriptor. */
+XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV5(
+    struct xrtownershipref, XL6_OwnershipResolveV3, XL6_OwnershipDiscoverV1,
+    void*, XL6_OwnershipPlan**);
+XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV6(
+    struct xrtownershipref,XL6_OwnershipProbeV1,XL6_OwnershipDiscoverV1,
+    bool pinRoot,void*,XL6_OwnershipPlan**);
+XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV7(
+    struct xrtownershipref,XL6_OwnershipProbeV1,XL6_OwnershipDiscoverV1,
+    bool pinRoot,void*,const XL6_OwnershipBoundaryV1*,XL6_OwnershipPlan**);
+/* Separate exact semantic continuation query. true+NULL keeps V1 behavior;
+ * false refuses admission. It is frozen/read-only, with outputs NULL on refusal. */
+typedef bool (*XL6_OwnershipFinalizationResolveV1)(struct xrtownershipref,void*,
+    const XL6_OwnershipAdapterV1*,const struct xrtownershipfinalizationv1**);
+XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV8(
+    struct xrtownershipref,XL6_OwnershipProbeV1,XL6_OwnershipDiscoverV1,
+    XL6_OwnershipFinalizationResolveV1,bool pinRoot,void*,
+    const XL6_OwnershipBoundaryV1*,XL6_OwnershipPlan**);
+/* Completion and failure are independent. WAITING preserves pins/claims and
+ * accepted progress. A failed extended duty may resume only on a subsequent
+ * explicit checked retry; complete-with-failure is never replayed. Legacy V1
+ * false remains terminal STEP_FAILED. Snapshot ERROR is not semantic failure.
+ * READY ends this finalize turn, not the transaction: the caller must still
+ * TryCommit, which freshly routes resurrection/new preparation without Clear. */
+XL6_CODE_LEASE_API XL6_OwnershipStepResult xl6OwnershipPlanFinalizeStepV1(
+    XL6_OwnershipPlan*,bool* semanticFailed);
+/* Acknowledge exactly one explicit checked retry of a previously failed,
+ * incomplete semantic duty. No callback or graph operation is performed.
+ * Automatic drivers and timeout-loop iterations must not acknowledge it. */
+XL6_CODE_LEASE_API bool xl6OwnershipPlanRetryFinalizationV1(XL6_OwnershipPlan*);
+/* Continue only actual held+claimed immutable preparation capabilities even
+ * while their asynchronous transition temporarily refuses Count/Trace.
+ * Every ready/commit decision still rebuilds the whole graph; this grants no
+ * read/admission exception and cannot clear a resurrected or unknown child. */
+XL6_CODE_LEASE_API XL6_OwnershipStepResult xl6OwnershipPlanPrepare(XL6_OwnershipPlan*);
+XL6_CODE_LEASE_API XL6_OwnershipStepResult xl6OwnershipPlanFinalizeV2(XL6_OwnershipPlan*);
+/* Rebuild from EVERY real plan-held node, subtracting exactly those holds as
+ * internal slots. New edges/nodes are discovered, pinned, and quarantined;
+ * all fallible preparation precedes publication of the replacement snapshot. */
+XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryRefresh(XL6_OwnershipPlan*);
+XL6_CODE_LEASE_API bool xl6OwnershipPlanFinalize(XL6_OwnershipPlan*);
+/* Refresh + root/finalizer decision + field detach under ONE freeze, not two
+ * counts with an admission gap. ROOTED preserves all fields for abort. New
+ * preparations/finalizers produce their distinct statuses. V2 Finalize takes
+ * a fresh graph before EACH semantic duty; a turn is bounded by the initial
+ * participant count. New preparation/resurrection stops that finalize pass. */
+XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCommit(XL6_OwnershipPlan*);
+/* Visits each remaining duty at most once per turn. BUSY does not prevent
+ * independent participants from making progress; no pins are dropped until
+ * all participants report READY. Legacy bool Finish false maps to FAILED. */
+XL6_CODE_LEASE_API XL6_OwnershipStepResult xl6OwnershipPlanFinishV2(XL6_OwnershipPlan*);
+XL6_CODE_LEASE_API bool xl6OwnershipPlanFinish(XL6_OwnershipPlan*);
+/* Abort restores quarantine before dropping holds; a committed plan first
+ * requires successful Finish. Release callbacks run after leaving freeze.
+ * BUSY leaves the plan alive for a later retry. READY consumes it, including
+ * a checked V2 snapshot Drop failure: that reference was already consumed and
+ * must not be retried. Such failures reach the enclosing checked error scope,
+ * or the resident callback-failure mailbox if there is no enclosing scope.
+ * The V2 pure DropReady gate is checked before acquiring any new Hold and
+ * again for every held node under one Freeze before any Restore/Drop. A moved
+ * plan can therefore report BUSY without partially releasing a creator-affine
+ * graph. Committed V2 plans use the same gate before physical Drop.
+ * V1 void Drop behavior is unchanged. V2 is accepted only at its exact size
+ * and ABI tag, and invokes DropChecked instead of (never in addition to) Drop. */
+XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryDestroy(XL6_OwnershipPlan*);
+#endif

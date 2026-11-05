@@ -4,11 +4,11 @@
 #include "xge_config.h"
 
 /* XRT is part of xge.dll's public runtime surface. */
-#if defined(XGE_BUILD_DLL) || defined(XUI_BUILD_DLL)
+#if !defined(XGE_XRT_HOST) && (defined(XGE_BUILD_DLL) || defined(XUI_BUILD_DLL))
 	#ifndef XRT_BUILD_SHARED
 		#define XRT_BUILD_SHARED
 	#endif
-#elif defined(XGE_DLL) || defined(XUI_DLL)
+#elif !defined(XGE_XRT_HOST) && (defined(XGE_DLL) || defined(XUI_DLL))
 	#ifndef XRT_USE_SHARED
 		#define XRT_USE_SHARED
 	#endif

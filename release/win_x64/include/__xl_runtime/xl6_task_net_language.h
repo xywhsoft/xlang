@@ -1,0 +1,11 @@
+#ifndef XL6_TASK_NET_LANGUAGE_H
+#define XL6_TASK_NET_LANGUAGE_H
+#include "xl6_task_result_closure.h"
+struct xfuture;
+XL6_CODE_LEASE_API struct xfuture* xl6NetEngineSubmitV1(XL6_FutureValueProfileV1,void*,XL6_CheckedResultClosureBorrowV1,uint64_t);
+XL6_CODE_LEASE_API struct xfuture* xl6NetEngineSubmitCancelV1(XL6_FutureValueProfileV1,void*,XL6_CheckedResultClosureBorrowV1,void*,uint64_t);
+XL6_CODE_LEASE_API struct xfuture* xl6NetEngineSubmitAfterV1(XL6_FutureValueProfileV1,void*,int64_t,XL6_CheckedResultClosureBorrowV1,uint64_t);
+XL6_CODE_LEASE_API struct xfuture* xl6NetEngineSubmitAfterCancelV1(XL6_FutureValueProfileV1,void*,int64_t,XL6_CheckedResultClosureBorrowV1,void*,uint64_t);
+XL6_CODE_LEASE_API struct xfuture* xl6NetEngineSubmitUntilV1(XL6_FutureValueProfileV1,void*,uint64_t,XL6_CheckedResultClosureBorrowV1,uint64_t);
+XL6_CODE_LEASE_API struct xfuture* xl6NetEngineSubmitUntilCancelV1(XL6_FutureValueProfileV1,void*,uint64_t,XL6_CheckedResultClosureBorrowV1,void*,uint64_t);
+#endif

@@ -1,0 +1,41 @@
+{
+  "format": "xlang-package-1",
+  "name": "xui",
+  "version": "3.0.0",
+  "abiVersion": "2",
+  "kind": "xlang-extlib",
+  "artifact": {
+    "kind": "source",
+    "cSources": [],
+    "xlSources": [
+      "src/bootstrap.xl",
+      "src/records.xl",
+      "src/constants.xl",
+      "src/managed.xl",
+      "src/cell.xl",
+      "src/proxy.xl",
+      "src/draw.xl",
+      "src/text_shape.xl",
+      "src/managers.xl",
+      "src/document_records.xl",
+      "src/document.xl",
+      "src/document_ui_records.xl",
+      "src/document_ui.xl",
+      "src/data_object.xl"
+    ]
+  },
+  "links": [],
+  "loadlibs": [],
+  "dependencies": [
+    {
+      "name": "_xge_native",
+      "version": "3.0.0",
+      "abiVersion": "2"
+    }
+  ],
+  "native": {
+    "singleton": false,
+    "loadName": "",
+    "version": ""
+  }
+}

@@ -1,0 +1,232 @@
+#ifndef XL6_SEQUENCE_H
+#define XL6_SEQUENCE_H
+#include "xl6_sequence_abi.h"
+#include "xl6_text_value.h"
+#include "xl6_native_value_abi.h"
+
+/* Native-only shared owner for contiguous typed storage. The opaque token
+ * pins one wrapper and closes its graph while an operation runs. No raw
+ * element borrows or parameter write-back are exposed to xlang. */
+typedef struct XL6_Sequence XL6_Sequence;
+/* Compiler-private synchronous FFI backing pin. It owns one actual Sequence
+ * reference, not just its Value shell. Readers remain admitted; every storage
+ * mutation is rejected until the last pin ends. Never copy an active token. */
+typedef struct XL6_SequenceReadPinV1 {
+    struct XL6_SequenceReadPinV1* self;
+    XL6_Sequence* owner;
+    const xtypedarray* storage;
+    size_t count;
+    uint64_t thread;
+} XL6_SequenceReadPinV1;
+XL6_TEXT_API bool xl6SequenceReadPinBeginV1(const xvalue*,uint64_t,uint64_t,unsigned int,size_t,const xrttype*,XL6_SequenceReadPinV1*);
+XL6_TEXT_API bool xl6SequenceReadPinEndV1(XL6_SequenceReadPinV1*);
+XL6_TEXT_API const void* xl6SequenceReadPinSlotV1(const XL6_SequenceReadPinV1*,size_t);
+/* Private immutable resident policy. No function/context from generated code
+ * may be stored here. Data owns its identity metadata independently of the
+ * source module; it has no owning Value edges. Retain/Drop share that metadata
+ * across clones and snapshots. Slot/Value predicates are allocation-free and
+ * error-transparent. Empty policies preserve the low-level unprofiled ABI. */
+typedef struct XL6_SequenceAdmissionOpsV2 {
+    bool (*Retain)(const void*);
+    void (*Drop)(const void*);
+    bool (*Slot)(const void*, const void*);
+    bool (*Value)(const void*, const xvalue*);
+    bool (*Equivalent)(const void*, const void*);
+    bool (*Defaultable)(const void*);
+    /* Optional per-growth default. This is a resident callback, not source
+     * code; it initializes a zeroed inactive slot or cleans up on failure. */
+    bool (*InitDefault)(const void*, ptr);
+    /* Optional native-reference edge, under the graph's frozen observation.
+     * Required for FUTURE_REF; the resident policy visits the actual control
+     * block, never an invented Value shell. Other transfers leave it NULL. */
+    bool (*TraceSlot)(const void*, const void*, xrtownershipvisitor, void*);
+} XL6_SequenceAdmissionOpsV2;
+typedef struct XL6_SequenceAdmissionV3 {
+    const XL6_SequenceAdmissionOpsV2* ops;
+    const void* data;
+    uint64_t elementIdentity;
+    unsigned int transfer;
+    /* Immutable encoded scalar domain of a newly boxed projection; zero for
+     * references/non-scalar codecs. Uses the existing 64-bit alignment gap:
+     * V3 size and every preexisting field offset stay unchanged on Win/Linux64. */
+    uint32_t scalarDomain;
+    size_t size;
+    const xrttype* type;
+    /* Required nonzero logical primitive identity on owned boxed projections.
+     * Zero preserves a retained reference's actual identity (ANY/nominal).
+     * This is copied with the policy, never recovered from a type spelling. */
+    uint64_t boxedIdentity;
+} XL6_SequenceAdmissionV3;
+/* Copy returns an owned metadata reference; Take consumes valid policies on
+ * both paths (a malformed foreign descriptor remains the caller's property).
+ * Binding is only allowed on an Array/Stack/Cursor with no prior policy and
+ * validates existing slots before publication.
+ * These functions require an operation pin. They do not retain source code.
+ * V3 requires the larger V2 ops record with native-reference tracing. V1/V2
+ * entry points are retired; a stale smaller ops record cannot reach this ABI. */
+XL6_TEXT_API bool xl6SequenceAdmissionCopyV3(XL6_Sequence*, XL6_SequenceAdmissionV3*);
+XL6_TEXT_API bool xl6SequenceAdmissionTakeV3(XL6_Sequence*, XL6_SequenceAdmissionV3*);
+XL6_TEXT_API void xl6SequenceAdmissionDropV3(XL6_SequenceAdmissionV3*);
+XL6_TEXT_API bool xl6SequenceAdmitSlotV1(XL6_Sequence*, const void*);
+XL6_TEXT_API bool xl6SequenceAdmitValueV1(XL6_Sequence*, const xvalue*);
+/* Valid only under an operation pin. Absent nullable projections keep the
+ * canonical null identity; the returned ID is for present primitive values. */
+XL6_TEXT_API uint64_t xl6SequenceBoxedIdentityV1(XL6_Sequence*);
+XL6_TEXT_API uint32_t xl6SequenceScalarDomainV1(XL6_Sequence*);
+XL6_TEXT_API bool xl6SequenceAdmissionEquivalentV1(XL6_Sequence*, XL6_Sequence*);
+XL6_TEXT_API bool xl6SequenceAdmissionDefaultableV1(XL6_Sequence*);
+XL6_TEXT_API bool xl6SequenceResizeStorageV1(XL6_Sequence*, size_t);
+/* Both owners are pinned. Target is an already-created empty ARRAY with its
+ * final owned admission/projection metadata. Source is ARRAY or STACK with
+ * the same element/physical tuple. All range/policy checks and allocations
+ * precede ownership movement. A take only extracts the tail (depth zero).
+ * Success publishes top-down order without allocating a post-move wrapper;
+ * failure preserves both counts, capacity, storage and target metadata. */
+XL6_TEXT_API bool xl6SequenceExtractTailV1(XL6_Sequence*, XL6_Sequence*, size_t, size_t, bool);
+typedef enum XL6_SequenceRoleV1 {
+    XL6_SEQUENCE_ARRAY_V1=1, XL6_SEQUENCE_STACK_V1, XL6_SEQUENCE_CURSOR_V1
+} XL6_SequenceRoleV1;
+XL6_TEXT_API XL6_Sequence* xl6SequenceBeginReadRoleV1(const xvalue*,XL6_SequenceRoleV1,uint64_t,uint64_t,unsigned int,size_t,const xrttype*);
+XL6_TEXT_API XL6_Sequence* xl6SequenceBeginOtherReadV1(const xvalue*,uint64_t,uint64_t,unsigned int,size_t,const xrttype*,XL6_Sequence*);
+XL6_TEXT_API int xl6SequenceBeginErasedReadRoleV1(const xvalue*,XL6_SequenceRoleV1,XL6_Sequence**,XL6_SequenceLayoutV1*,const xvalueconverter**);
+enum { XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 = 4 };
+/* Transfer 5's owned resident data starts with this immutable record. No
+ * generated callback or context is permitted. Content grants equality/hash,
+ * NOT ordering. Empty recognizes an inactive private transfer destination.
+ * Existing V2 operations and V3 policy layout remain unchanged; only the new
+ * transfer uses this explicitly versioned data contract. TraceSlot is required
+ * even for leaf records, and graph resolvers must authorize the actual ops. */
+typedef struct XL6_SequenceNativeValuePolicyV1 {
+    const xrttype* type;
+    const xtypedsetkeypolicy* content;
+    bool (*Empty)(const void*);
+    /* Checked, failure-atomic copied read into an Empty destination. The
+     * actual record callback owns temporary/partial-copy rollback. */
+    bool (*Copy)(const void*,void*);
+} XL6_SequenceNativeValuePolicyV1;
+XL6_TEXT_API const XL6_SequenceNativeValuePolicyV1* xl6SequenceNativeValuePolicyV1(const XL6_SequenceAdmissionV3*);
+/* Callbacks re-enter Value identity with fresh XRT graph contexts. Bound the
+ * shared per-thread native Hash/Equal call path, including untyped ANY graphs,
+ * independently of their schema depth. Refusal is a normal XERR_RANGE, not C
+ * stack exhaustion; this does not impose a limit on container element count. */
+enum { XL6_SEQUENCE_IDENTITY_DEPTH_MAX_V1 = 64 };
+/* Shared resident call path for Array/Stack/List identity callbacks. The
+ * frame lives on the native caller stack, initially zeroed; no C TLS
+ * relocation or heap key. Enter refuses NULL/active frames without corrupting
+ * their links. Each successful Enter requires Leave on the same synchronous
+ * execution path; a live frame must not be copied, suspended or reused. Leave
+ * resets it for reuse. This
+ * bounds recursion across container families, not independently per family. */
+typedef struct XL6_CollectionIdentityFrameV1 {
+    struct XL6_CollectionIdentityFrameV1* next;
+    uint64_t thread;
+    unsigned int depth;
+} XL6_CollectionIdentityFrameV1;
+XL6_TEXT_API bool xl6CollectionIdentityEnterV1(XL6_CollectionIdentityFrameV1*);
+XL6_TEXT_API void xl6CollectionIdentityLeaveV1(XL6_CollectionIdentityFrameV1*);
+/* Native-only cursor state belongs to the counted Sequence wrapper, not a
+ * second owning node. Access is valid only inside a Begin/End operation pin.
+ * No slot pointer is cached: snapshot storage is the sole element owner. */
+typedef struct XL6_SequenceIteratorStateV1 {
+    size_t next, current;
+    bool prepared, ended, currentValid, failed;
+} XL6_SequenceIteratorStateV1;
+XL6_TEXT_API XL6_SequenceIteratorStateV1* xl6SequenceIteratorStateV1(XL6_Sequence*);
+/* A nullable managed carrier may use the C ABI's NULL slot or XRT's immortal
+ * null value. They denote one absent value; never send a NULL C pointer to
+ * xrtValueEqual, which requires two actual xvalue instances. */
+static inline bool xl6SequenceReferenceEqualV1(const xvalue* left, const xvalue* right)
+{
+    if (left == right) return true;
+    if (!left || !right) return xrtValueType(left ? left : right) == XVALUE_NULL;
+    return xrtValueEqual(left,right);
+}
+XL6_TEXT_API bool xl6SequenceTupleV1(uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
+/* Error-transparent resident domain probe, not an element borrow. Requires a
+ * sealed ARRAY owner with a published immutable admission policy and exact
+ * logical identity. BUSY is allowed: no storage or mutable policy is read.
+ * Private ops are checked before dereferencing a foreign handle pointer. */
+XL6_TEXT_API bool xl6SequenceAdmitsArrayV1(const xvalue*, uint64_t);
+/* Exact immutable role/physical tuple probe. Like the erased Array probe it
+ * is error-transparent and permits BUSY, without reading slots or callbacks. */
+XL6_TEXT_API bool xl6SequenceAdmitsRoleV1(const xvalue*, XL6_SequenceRoleV1, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
+/* Immutable schema capture, not storage capture: ARRAY/STACK only. Copy owns
+ * the admission metadata independently of the source wrapper; the admission
+ * output must be empty and all outputs are unchanged on failure. BUSY is legal because no slots or
+ * projection state are read. The match probe is allocation/error transparent
+ * and compares the complete owned logical policy as well as the physical
+ * tuple, under the same graph-mutation exclusion as the role probe. */
+XL6_TEXT_API bool xl6SequenceSchemaCopyV1(const xvalue*, XL6_SequenceRoleV1*,
+    XL6_SequenceLayoutV1*, XL6_SequenceAdmissionV3*);
+XL6_TEXT_API bool xl6SequenceAdmitsSchemaV1(const xvalue*, XL6_SequenceRoleV1,
+    const XL6_SequenceLayoutV1*, const XL6_SequenceAdmissionV3*);
+XL6_TEXT_API const xrttype* xl6SequenceStorageTypeV1(unsigned int, const xrttype*);
+/* Consumes valid owned storage on both success and failure. */
+XL6_TEXT_API xvalue* xl6SequenceWrapV1(xtypedarray*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
+XL6_TEXT_API xvalue* xl6SequenceWrapAsV1(xtypedarray*, XL6_SequenceRoleV1, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
+/* One construction/publication transaction for ARRAY/STACK. A nonempty valid
+ * resident policy supplies the exact element/physical tuple and is consumed
+ * on both paths, including invalid role/owner identity. Malformed descriptors
+ * remain the caller's property. No unprofiled owner escapes on failure.
+ * STACK shares XRT's typed-array storage, not a second allocator/container. */
+XL6_TEXT_API xvalue* xl6SequenceCreateAdmittedV1(XL6_SequenceRoleV1, uint64_t, XL6_SequenceAdmissionV3*);
+/* Clone ARRAY/STACK storage and its immutable admission metadata together.
+ * Existing low-level unprofiled owners remain unprofiled; a profiled owner
+ * cannot lose its domain through clone. Source is unchanged on failure. */
+XL6_TEXT_API xvalue* xl6SequenceCloneRoleV1(const xvalue*, XL6_SequenceRoleV1, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
+/* Both ARRAY owners are operation-pinned (the same pin is allowed). Copies
+ * storage into a new owner only after the complete schema and projection
+ * policies match; inputs and their capacity are never changed. The result
+ * preserves the independently owned admission and resident projection. */
+XL6_TEXT_API xvalue* xl6SequenceConcatPinnedV1(XL6_Sequence*, XL6_Sequence*);
+XL6_TEXT_API XL6_Sequence* xl6SequenceBeginRoleV1(const xvalue*, XL6_SequenceRoleV1, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
+/* Erasure is a reference alias, never a dynamic Value snapshot. The converter
+ * is an immutable resident policy with module-independent lifetime and NULL
+ * Context (like the stored resident xrttype), not a borrowed call converter.
+ * Binding requires an ARRAY operation pin. A different second policy fails.
+ * Probe returns 0 for another carrier/role without touching the error; 1 for
+ * an admitted ARRAY; -1 for invalid/unbound/BUSY ARRAY state. */
+XL6_TEXT_API bool xl6SequenceBindProjectionV1(XL6_Sequence*, const xvalueconverter*);
+XL6_TEXT_API int xl6SequenceBeginErasedArrayV1(const xvalue*, XL6_Sequence**, XL6_SequenceLayoutV1*, const xvalueconverter**);
+/* Exact ARRAY/STACK erasure boundary. The ARRAY-only wrappers above retain
+ * their original family contract. Binding requires the matching operation
+ * pin; probing authenticates resident handle ops before reading its role.
+ * Outputs are reset on every valid-output call. A wrong family returns 0
+ * without allocating/changing diagnostics; unbound/BUSY owners return -1.
+ * Successful probing returns one pin that the caller must end. Neither
+ * function publishes a raw slot borrow or retains generated-code callbacks. */
+XL6_TEXT_API bool xl6SequenceBindProjectionRoleV1(XL6_Sequence*, XL6_SequenceRoleV1, const xvalueconverter*);
+XL6_TEXT_API int xl6SequenceBeginErasedRoleV1(const xvalue*, XL6_SequenceRoleV1, XL6_Sequence**, XL6_SequenceLayoutV1*, const xvalueconverter**);
+/* STACK pin only. Immutable module-independent canonical array<T> identity,
+ * copied with clone. Binding requires a bound projection; rebind is refused.
+ * Zero means not supplied by an old low-level native erasure, never inferred. */
+XL6_TEXT_API bool xl6SequenceBindStackResultArrayV1(XL6_Sequence*,uint64_t);
+XL6_TEXT_API uint64_t xl6SequenceStackResultArrayV1(XL6_Sequence*);
+/* Captured Handle fields from XRT's guarded graph callback. Exact resident
+ * ops are checked BEFORE the opaque pointer is dereferenced. The source
+ * Value is BUSY, so a public GetHandle probe is deliberately not used.
+ * Returns 0 for an unrelated handle, -1 for a refused native Array, or 1
+ * with an independent operation pin. Caller ends that pin on every path. */
+XL6_TEXT_API int xl6SequenceGraphBeginV1(const xvaluehandleops*, ptr, ptr, uint64_t,
+    XL6_Sequence**, XL6_SequenceLayoutV1*, const xvalueconverter**);
+XL6_TEXT_API XL6_Sequence* xl6SequenceBeginV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
+XL6_TEXT_API XL6_Sequence* xl6SequenceIteratorBeginV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
+XL6_TEXT_API XL6_Sequence* xl6SequenceBeginOtherV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, XL6_Sequence*);
+XL6_TEXT_API xtypedarray* xl6SequenceStorageV1(XL6_Sequence*);
+XL6_TEXT_API void xl6SequenceEndV1(XL6_Sequence*);
+XL6_TEXT_API bool xl6SequenceEqualsV1(const xvalue*, const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
+/* ARRAY/STACK identities share this structural comparison with their guarded
+ * xvalue handle callbacks. Primitive/string slots use their typed descriptors;
+ * reference slots use Value equality/hash, Future slots use reference identity.
+ * Role and exact sealed logical/physical policy are part of the domain. Hash
+ * failure leaves the public output unchanged; no addresses of movable storage,
+ * physical padding, C string sentinel or invented reference ordering are used.
+ * CURSOR is stateful execution machinery and refuses key Hash/Equal. */
+XL6_TEXT_API bool xl6SequenceEqualsRoleV1(const xvalue*, const xvalue*, XL6_SequenceRoleV1, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
+XL6_TEXT_API const xrtownershipadapterv1* xl6SequenceOwnershipAdapterV1(xrtownershipref);
+/* Native-reference TraceSlot is authorized separately by exact resident ops
+ * identity BEFORE Count/Trace. V1 refuses those wrappers; an absent or wrong
+ * allowlist is not permission to ignore children or execute unknown callbacks. */
+XL6_TEXT_API const xrtownershipadapterv1* xl6SequenceOwnershipAdapterV2(xrtownershipref,
+    const XL6_SequenceAdmissionOpsV2* const*, size_t);
+#endif

@@ -1,0 +1,147 @@
+#ifndef XL6_OWNERSHIP_CATALOG_H
+#define XL6_OWNERSHIP_CATALOG_H
+#include "xl6_ownership_plan.h"
+
+/* Typed policy groups. No function-pointer casts, erased pointer arrays,
+ * spelling tests, speculative Count/Trace or arbitrary population limit. */
+#define XL6_OWNERSHIP_POLICY_GROUPS(X) \
+    X(Sequence, XL6_SequenceAdmissionOpsV2) \
+    X(Handle, XL6_NativeHandlePolicyV1) \
+    X(Payload, xfuturepayloadownershipv1) \
+    X(Producer, xfutureproducerownershipv1) \
+    X(Watch, xfuturewatchownershipv1) \
+    X(ProjectedWatch, xfuturewatchownershipv2) \
+    X(CancelWatch, xcancelwatchownershipv1) \
+    X(Combine, xfuturecombineownershipv1) \
+    X(LogSink, xlogsinkownershipv1) \
+    X(Task, xtaskdataownershipv1) \
+    X(TaskNet, xtasknetdataownershipv1) \
+    X(NetFileInput, xnetfiledataownershipv1) \
+    X(QueuedStorage, XL6_ContinuationStorageV2) \
+    X(ChannelSubscription, xchannelsubscribeownershipv1) \
+    X(ResolverRequest, xnetresolveownershipv1) \
+    X(DialDone, xnetdialownershipv1) \
+    X(Quiescence, xrtownershipquiescencev1) \
+    X(Executor, xexecutordataownershipv1) \
+    X(ExecutionFamily, XL6_ExecutionFamilyV1) \
+    X(ExecutorExit, xexecutorworkerexitownershipv1) \
+    X(TaskPoolExit, xtaskpoolworkerexitownershipv1) \
+    X(NetRuntime, xnetruntimeownershipv1) \
+    X(ProxyDialDone, xnetproxydialownershipv1) \
+    X(StreamEvents, xnetstreameventsownershipv1) \
+    X(ListenerEvents, xnetlistenereventsownershipv1) \
+    X(NetTask, xnettaskownershipv1) \
+    X(NetTimer, xnettimerownershipv1) \
+    X(NetWorkerExit, xnetengineworkerexitownershipv1) \
+    X(TlsStreamEvents, xtlsstreamownershipv1) \
+    X(TlsListenerEvents, xtlslistenerownershipv1) \
+    X(TlsDialDone, xtlsdialownershipv1) \
+    X(TlsVerifierContext, xtlsverifiercontextownershipv1) \
+    X(Discovery, XL6_OwnershipDiscoveryV1) \
+    X(Finalization, xrtownershipfinalizationv1)
+#define XL6_DECLARE_POLICY(Name, Type) struct Type;
+XL6_OWNERSHIP_POLICY_GROUPS(XL6_DECLARE_POLICY)
+#undef XL6_DECLARE_POLICY
+
+typedef struct XL6_OwnershipCatalog XL6_OwnershipCatalog;
+struct XL6_OwnershipDomainV1;
+XL6_CODE_LEASE_API const struct XL6_OwnershipDomainV1* xl6OwnershipDomainXacmeV1Get(void);
+/* Independent exact-identity capability to recognize a valid native
+ * transition. BUSY does not grant Count/Trace or lifecycle admission.
+ * Frozen, read-only, resident, no callbacks/allocations/reference changes. */
+typedef struct xrtownershipquiescencev1 XL6_OwnershipQuiescenceV1;
+/* Cold-registered exact physical discovery. Called only under the plan's
+ * native boundary and whole-domain Freeze, with no allocation, callbacks into
+ * language code, reference transitions, or synthetic owning slots. Immutable
+ * descriptor/context/code remain protected until the last plan releases all
+ * physical pins. This adds discovery without making ordinary class plans
+ * depend on a particular foreign-resource implementation. */
+typedef struct XL6_OwnershipDiscoveryV1 {
+    size_t size;
+    XL6_OwnershipDiscoverV1 Discover;
+    void* context;
+} XL6_OwnershipDiscoveryV1;
+typedef struct XL6_OwnershipPoliciesV1 {
+#define XL6_POLICY_VIEW(Name, Type) const struct Type* const* Name; size_t Name##Count;
+    XL6_OWNERSHIP_POLICY_GROUPS(XL6_POLICY_VIEW)
+#undef XL6_POLICY_VIEW
+} XL6_OwnershipPoliciesV1;
+
+typedef struct XL6_OwnershipDomainV1 {
+    size_t size;
+    /* Load executes only during creation, outside Freeze, before publication.
+     * Policies and callbacks are borrowed immutable capabilities. Ordinary
+     * catalog domains are resident. A ForeignView's separately leased native
+     * domain has no Load hook: its physical anchor/code pins protect queries
+     * and saved native descriptors through the entire plan Drop batch. */
+    bool (*Load)(XL6_OwnershipCatalog*);
+    /* Exact query only. false must leave all outputs NULL. The catalog checks
+     * every domain and refuses conflicting admission instead of first-match
+     * priority. Queries must not allocate or execute semantic callbacks. */
+    bool (*Resolve)(struct xrtownershipref,const XL6_OwnershipPoliciesV1*,
+        const struct xrtownershipadapterv1**,const struct xrtownershippreparationv1**,
+        const XL6_OwnershipFinishV1**);
+    /* Independent whole-graph READ capability, not implied by lifecycle
+     * admission. NULL refuses opaque read participation. Frozen, no callbacks
+     * through unknown node tables, no allocation or reference transitions. */
+    bool (*AdmitsRead)(struct xrtownershipref);
+} XL6_OwnershipDomainV1;
+
+/* Optional, immutable cold query for a leased native domain. V1 retains its
+ * original layout. V1.size identifies this complete extension; an unknown
+ * size/tag is refused before any extension callback is read. Returning true
+ * with NULL means no semantic continuation for this exact reference/adapter.
+ * False is query failure and must leave the output NULL. No allocation,
+ * reference transition, semantic callback or diagnostic mutation is allowed
+ * under Freeze. The domain's existing physical/code pins protect both the
+ * query and its returned descriptor through the plan's final Drop batch. */
+typedef struct XL6_OwnershipDomainV2 {
+    XL6_OwnershipDomainV1 V1;
+    uint64_t abiTag;
+    bool (*ResolveFinalization)(struct xrtownershipref,
+        const struct xrtownershipadapterv1*,const struct xrtownershipfinalizationv1**);
+} XL6_OwnershipDomainV2;
+#define XL6_OWNERSHIP_DOMAIN_V2_TAG UINT64_C(0x584C364F444F4D32)
+static inline bool xl6OwnershipDomainValidV1(const XL6_OwnershipDomainV1* domain)
+{
+    if(!domain)return false;
+    if(domain->size==sizeof(*domain))return true;
+    if(domain->size!=sizeof(XL6_OwnershipDomainV2))return false;
+    const XL6_OwnershipDomainV2* extended=(const XL6_OwnershipDomainV2*)domain;
+    return extended->abiTag==XL6_OWNERSHIP_DOMAIN_V2_TAG && extended->ResolveFinalization;
+}
+
+/* Create copies the domain pointer list and seals the policy population.
+ * Descriptors, policies and callback code outlive the catalog and all plans.
+ * Failure consumes nothing and releases every partial allocation. Lifecycle
+ * exclusion is required for Create/Destroy. Resolve is read-only and may run
+ * concurrently, but the caller must hold the physical graph's Freeze while
+ * querying mutable nodes, as with every OwnershipPlan resolver. Borrowed node
+ * lifetimes remain the caller's responsibility. Publication seals mutation. */
+XL6_CODE_LEASE_API XL6_OwnershipCatalog* xl6OwnershipCatalogCreateV1(
+    const XL6_OwnershipDomainV1* const*,size_t);
+XL6_CODE_LEASE_API void xl6OwnershipCatalogDestroyV1(XL6_OwnershipCatalog*);
+XL6_CODE_LEASE_API bool xl6OwnershipCatalogResolveV1(struct xrtownershipref,void*,
+    const struct xrtownershipadapterv1**,const struct xrtownershippreparationv1**,
+    const XL6_OwnershipFinishV1**);
+XL6_CODE_LEASE_API bool xl6OwnershipCatalogAdmitsReadV1(struct xrtownershipref,void*);
+/* Exact adapter-keyed cold capability. true+NULL means no continuation. */
+XL6_CODE_LEASE_API bool xl6OwnershipCatalogResolveFinalizationV1(
+    struct xrtownershipref,void*,const XL6_OwnershipAdapterV1*,
+    const struct xrtownershipfinalizationv1**);
+
+XL6_CODE_LEASE_API XL6_OwnershipAdmissionV1 xl6OwnershipCatalogProbeV1(struct xrtownershipref,void*,
+    const struct xrtownershipadapterv1**,const struct xrtownershippreparationv1**,
+    const XL6_OwnershipFinishV1**);
+/* Only a Load callback on its unpublished catalog may append a non-NULL
+ * capability. Repeated identical capabilities are deduplicated by identity. */
+#define XL6_POLICY_ADD(Name, Type) \
+    XL6_CODE_LEASE_API bool xl6OwnershipCatalogAdd##Name##V1(XL6_OwnershipCatalog*,const struct Type*);
+XL6_OWNERSHIP_POLICY_GROUPS(XL6_POLICY_ADD)
+#undef XL6_POLICY_ADD
+/* A domain may bind one exact resident native boundary during Load. Multiple
+ * domains can request the same descriptor; incompatible lock domains refuse
+ * catalog construction rather than inventing a lock order. */
+XL6_CODE_LEASE_API bool xl6OwnershipCatalogSetBoundaryV1(XL6_OwnershipCatalog*,const XL6_OwnershipBoundaryV1*);
+XL6_CODE_LEASE_API const XL6_OwnershipBoundaryV1* xl6OwnershipCatalogBoundaryV1Get(const XL6_OwnershipCatalog*);
+#endif

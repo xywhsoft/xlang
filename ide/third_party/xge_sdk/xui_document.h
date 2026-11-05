@@ -628,10 +628,70 @@ typedef struct xui_doc_memory_stats_t {
 
 typedef void (*xui_doc_change_proc)(xui_document document,
     xui_document_change_set change, void* user);
+/* Owned notifications report a physical checked outcome: zero succeeds,
+ * every nonzero status fails even with no diagnostic. Raw C stays void. */
+typedef int (*xui_doc_change_owned_proc)(xui_document document,
+    xui_document_change_set change, void* user);
 
 /* Lifetime, immutable reads, subscriptions and diagnostics. */
 #if XUI_ENABLE_DOCUMENT
 XUI_API int xuiDocumentCreate(const xui_doc_desc_t* desc, xui_document* out);
+/* Default allocator provenance only. Rejects custom allocator callbacks/user;
+ * no old raw Document or allocator family is silently promoted. Derived models
+ * preserve this Native provenance. Raw APIs remain explicit C interoperability. */
+XUI_API int xuiDocumentCreateOwned(const xui_doc_desc_t* desc, xui_document* out);
+XUI_API bool xuiDocumentIsOwned(xui_document document);
+/* Existing valid strong releases remain legal after graph Claim. New AddRef
+ * and model publication reject claimed/retiring roots. Physical Count/Trace,
+ * exact domain metadata and final pin Drop remain valid while really held.
+ * Pure immutable business reads require an intact pre-Clear payload; semantic
+ * retirement is not permission to keep using a released borrowed model. */
+XUI_API int xuiDocumentAddRef(xui_document document);
+/* Explicit safe sharing creates one real Native owner. Output is independent
+ * caller storage, set NULL before validation; raw origins are never promoted. */
+XUI_API int xuiDocumentShareOwned(xui_document document, xui_document* out);
+XUI_API int xuiDocumentReleaseOwnerChecked(xui_document document, bool* consumed);
+XUI_API int xuiDocumentReleaseChecked(xui_document document);
+XUI_API xrtownershipref xuiDocumentOwnership(xui_document document);
+XUI_API int xuiDocumentSnapshotAddRef(xui_document_snapshot snapshot);
+XUI_API int xuiDocumentSnapshotShareOwned(xui_document_snapshot snapshot, xui_document_snapshot* out);
+XUI_API int xuiDocumentSnapshotReleaseOwnerChecked(xui_document_snapshot snapshot, bool* consumed);
+XUI_API int xuiDocumentSnapshotReleaseChecked(xui_document_snapshot snapshot);
+XUI_API xrtownershipref xuiDocumentSnapshotOwnership(xui_document_snapshot snapshot);
+XUI_API int xuiDocumentChangeSetAddRef(xui_document_change_set change);
+XUI_API int xuiDocumentChangeSetShareOwned(xui_document_change_set change, xui_document_change_set* out);
+XUI_API int xuiDocumentChangeSetReleaseOwnerChecked(xui_document_change_set change, bool* consumed);
+XUI_API int xuiDocumentChangeSetReleaseChecked(xui_document_change_set change);
+XUI_API xrtownershipref xuiDocumentChangeSetOwnership(xui_document_change_set change);
+XUI_API int xuiDocumentPrepareAddRef(xui_document_prepare prepare);
+XUI_API int xuiDocumentPrepareShareOwned(xui_document_prepare prepare, xui_document_prepare* out);
+XUI_API int xuiDocumentPrepareReleaseOwnerChecked(xui_document_prepare prepare, bool* consumed);
+XUI_API int xuiDocumentPrepareReleaseChecked(xui_document_prepare prepare);
+XUI_API xrtownershipref xuiDocumentPrepareOwnership(xui_document_prepare prepare);
+XUI_API int xuiDocumentFragmentAddRef(xui_document_fragment fragment);
+XUI_API int xuiDocumentFragmentShareOwned(xui_document_fragment fragment, xui_document_fragment* out);
+XUI_API int xuiDocumentFragmentReleaseOwnerChecked(xui_document_fragment fragment, bool* consumed);
+XUI_API int xuiDocumentFragmentReleaseChecked(xui_document_fragment fragment);
+XUI_API xrtownershipref xuiDocumentFragmentOwnership(xui_document_fragment fragment);
+XUI_API int xuiDocumentSourceIndexAddRef(xui_document_source_index index);
+XUI_API int xuiDocumentSourceIndexShareOwned(xui_document_source_index index, xui_document_source_index* out);
+XUI_API int xuiDocumentSourceIndexReleaseOwnerChecked(xui_document_source_index index, bool* consumed);
+XUI_API int xuiDocumentSourceIndexReleaseChecked(xui_document_source_index index);
+XUI_API xrtownershipref xuiDocumentSourceIndexOwnership(xui_document_source_index index);
+/* Transaction is unique: no public AddRef. Its Count includes the one actual
+ * owner duty and actual temporary collector/call pins, not an invented RC. */
+XUI_API int xuiDocumentTxnReleaseOwnerChecked(xui_document_transaction transaction, bool* consumed);
+XUI_API int xuiDocumentTxnReleaseChecked(xui_document_transaction transaction);
+XUI_API xrtownershipref xuiDocumentTxnOwnership(xui_document_transaction transaction);
+XUI_API const xrtownershipadapterv1* xuiDocumentModelOwnershipAdapterV1(xrtownershipref reference);
+XUI_API const xrtownershippreparationv1* xuiDocumentModelOwnershipPreparationV1(xrtownershipref reference);
+XUI_API const xrtownershipquiescencev1* xuiDocumentModelOwnershipQuiescenceV1(xrtownershipref reference);
+XUI_API const xrtownershipfinishv2* xuiDocumentModelOwnershipCompletionV2(xrtownershipref reference);
+XUI_API const xrtownershipfinalizationv1* xuiDocumentModelOwnershipFinalizationV1(xrtownershipref reference);
+/* Pure business-read admission. Claimed but intact payloads remain readable;
+ * semantic Finalize/Clear retires business reads. Independent metadata
+ * Count/Trace identities remain resolvable, including a cleared participant. */
+XUI_API bool xuiDocumentModelOwnershipReadReady(xrtownershipref reference);
 /* Retain a shared Document handle. */
 XUI_API void xuiDocumentRetain(xui_document document);
 /* Release a shared Document handle. */
@@ -753,6 +813,22 @@ XUI_API int xuiDocumentSnapshotReadText(xui_document_snapshot snapshot, xui_doc_
 XUI_API int xuiDocumentSnapshotReadSource(xui_document_snapshot snapshot, uint64_t offset, void* buffer, uint64_t bytes);
 /* Register a change callback and return its subscription token. */
 XUI_API int xuiDocumentSubscribe(xui_document document, xui_doc_change_proc callback, void* user, uint64_t* token);
+/* Managed registration owns its independent captures. Callback arguments are
+ * borrowed through snapshot Drop; retain explicitly to keep a model handle.
+ * Commit publishes content before notifications; failure cannot undo it. */
+XUI_API int xuiDocumentSubscribeOwned(xui_document document, xui_doc_change_owned_proc callback,
+    void* user, const xui_callback_owner_t* owner, uint64_t* token);
+XUI_API int xuiDocumentUnsubscribeChecked(xui_document document, uint64_t token);
+/* Explicit checked delivery of the first nullable notification failure.
+ * clear detaches that exact batch before delivery; reentrant new failures are
+ * never erased by a prior batch. Count/revision are creator-thread pure reads. */
+XUI_API int xuiDocumentCheckNotifications(xui_document document, bool clear);
+XUI_API uint64_t xuiDocumentGetNotificationFailureCount(xui_document document);
+XUI_API uint64_t xuiDocumentGetNotificationFailureRevision(xui_document document);
+/* The first raw callback status in the pending batch (any nonzero int).
+ * Checked notification/retirement failure is always the negative
+ * XUI_ERROR_CALLBACK_FAILED; a raw +1 must never masquerade as DEFERRED. */
+XUI_API int xuiDocumentGetNotificationFailureStatus(xui_document document);
 /* Remove the subscription identified by its token. */
 XUI_API void xuiDocumentUnsubscribe(xui_document document, uint64_t token);
 /* Read allocation, history and parse diagnostics. */
@@ -792,6 +868,7 @@ XUI_API int xuiDocumentSaveFile(xui_document document, const char* path, uint32_
  * other filesystem read failures return XUI_DOC_ERROR_IO. Native and Markdown
  * are accepted input formats. */
 XUI_API int xuiDocumentOpenFile(const char* path, uint32_t format, const xui_doc_desc_t* desc, uint64_t max_file_bytes, xui_document* out);
+XUI_API int xuiDocumentOpenFileOwned(const char* path, uint32_t format, const xui_doc_desc_t* desc, uint64_t max_file_bytes, xui_document* out);
 /* Inspect a Rich snapshot before explicitly converting it to Markdown.
  * Reports one entry per affected node in document order; a root ROUNDTRIP
  * entry covers syntax/parser differences not attributable to one attribute.
@@ -876,8 +953,12 @@ XUI_API int xuiDocumentFragmentExportHtml(xui_document_fragment fragment,
  * Unsupported presentation details may be dropped. */
 XUI_API int xuiDocumentFragmentImportHtml(const char* html, uint64_t bytes,
     xui_document_fragment* out);
+XUI_API int xuiDocumentFragmentImportHtmlOwned(const char* html, uint64_t bytes,
+    xui_document_fragment* out);
 /* Deserialize a native buffer into an independent fragment. */
 XUI_API int xuiDocumentFragmentDeserialize(const char* data, uint64_t bytes,
+    xui_document_fragment* out);
+XUI_API int xuiDocumentFragmentDeserializeOwned(const char* data, uint64_t bytes,
     xui_document_fragment* out);
 /* Copy a fragment's roots into the target transaction. */
 XUI_API int xuiDocumentTxnInsertFragment(xui_document_transaction transaction,
@@ -1375,6 +1456,7 @@ XUI_API int xuiDocumentLoadMarkdown(xui_document document, const char* utf8, uin
 XUI_API int xuiDocumentSerialize(xui_document_snapshot snapshot, char** out, uint64_t* bytes);
 /* Create a Document from native serialized data. */
 XUI_API int xuiDocumentDeserialize(const xui_doc_desc_t* desc, const char* data, uint64_t bytes, xui_document* out);
+XUI_API int xuiDocumentDeserializeOwned(const xui_doc_desc_t* desc, const char* data, uint64_t bytes, xui_document* out);
 /* Allocate a UTF-8 HTML export of the snapshot. */
 XUI_API int xuiDocumentExportHtml(xui_document_snapshot snapshot, char** out, uint64_t* bytes);
 /* Buffers returned by serialize/export are released with this function. */

@@ -1,0 +1,53 @@
+#ifndef XL6_DYNAMIC_COLLECTION_H
+#define XL6_DYNAMIC_COLLECTION_H
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
+typedef struct xvalue xvalue;
+typedef enum XL6_DynamicCollectionOpV1 {
+    XL6_DYNAMIC_COLLECTION_PUSH=1,
+    XL6_DYNAMIC_COLLECTION_INSERT,
+    XL6_DYNAMIC_COLLECTION_REMOVE,
+    XL6_DYNAMIC_COLLECTION_REMOVE_VALUE,
+    XL6_DYNAMIC_COLLECTION_POP,
+    XL6_DYNAMIC_COLLECTION_TAKE,
+    XL6_DYNAMIC_COLLECTION_CLEAR,
+    XL6_DYNAMIC_COLLECTION_RESERVE,
+    XL6_DYNAMIC_COLLECTION_SWAP,
+    XL6_DYNAMIC_COLLECTION_ADD,
+    XL6_DYNAMIC_COLLECTION_CONTAINS,
+    XL6_DYNAMIC_COLLECTION_INDEX_OF,
+    XL6_DYNAMIC_COLLECTION_COUNT,
+    XL6_DYNAMIC_COLLECTION_CAPACITY,
+    XL6_DYNAMIC_COLLECTION_PEEK,
+    XL6_DYNAMIC_COLLECTION_PEEK_AT,
+    XL6_DYNAMIC_COLLECTION_TRIM,
+    XL6_DYNAMIC_COLLECTION_CLONE,
+    XL6_DYNAMIC_COLLECTION_PUSH_BATCH,
+    XL6_DYNAMIC_COLLECTION_POP_BATCH,
+    XL6_DYNAMIC_COLLECTION_PEEK_BATCH,
+    XL6_DYNAMIC_COLLECTION_PEEK_BATCH_AT,
+    XL6_DYNAMIC_COLLECTION_EQUALS,
+    XL6_DYNAMIC_COLLECTION_TRY_POP,
+    XL6_DYNAMIC_COLLECTION_TRY_PEEK,
+    XL6_DYNAMIC_COLLECTION_TRY_PEEK_AT
+} XL6_DynamicCollectionOpV1;
+#if defined(_WIN32) && defined(XL_BUILD_DLL)
+#define XL6_DYNAMIC_COLLECTION_API __declspec(dllexport)
+#else
+#define XL6_DYNAMIC_COLLECTION_API
+#endif
+/* Borrowed receiver, BOTH arguments consumed on every path (including invalid
+ * arity/opcode/receiver). Owned result; NULL is failure, never null data.
+ * Native Array/List/Stack dispatch authenticates the resident family, not HANDLE
+ * payload casts. List exposes only remove(key), take(key), clear and contains;
+ * Array-only methods and two-argument range removal cannot mutate a List.
+ * Stack push/pop/peek/peekAt, clear/reserve/trim, count/capacity and clone
+ * require a bound immutable Stack projection. Reads own values before pop.
+ * Missing map keys return null/false, empty Array pop and bad bounds raise.
+ * Destructive operations may commit before a destructor reports failure. */
+XL6_DYNAMIC_COLLECTION_API xvalue* xl6DynamicCollectionCallTakeV1(xvalue*,unsigned,xvalue*,xvalue*);
+/* Allocation/error transparent dispatcher preflight. Keywords are rejected
+ * by the caller before passing positional owned values to CallTake. */
+XL6_DYNAMIC_COLLECTION_API bool xl6DynamicCollectionArityV1(unsigned,size_t);
+#endif

@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include "extlibs/xrt/xrt_config.h"
 #include "extlibs/xrt/xrt.h"
+#include "xnative_transfer.h"
 
 #ifndef TRUE
 #define TRUE 1
@@ -22,11 +23,13 @@ extern "C" {
 #define XUI_VERSION_MINOR	0
 #define XUI_VERSION_PATCH	0
 
-#define XUI_PROXY_VERSION	16
+#define XUI_PROXY_VERSION	18
 
 typedef enum xui_result_t {
 /* 成功。 */
 	XUI_OK = 0,
+    /* Cleanup request accepted; the actual owner remains with the caller. */
+    XUI_STATUS_DEFERRED = 1,
 /* 通用失败。 */
 	XUI_ERROR = -1,
 /* 参数非法（空指针/越界）。 */
@@ -56,7 +59,10 @@ typedef enum xui_result_t {
 /* 当前状态不允许该操作。 */
 	XUI_ERROR_INVALID_STATE = -14,
 	/* 有界异步操作队列已满。 */
-	XUI_ERROR_LIMIT_EXCEEDED = -15
+	XUI_ERROR_LIMIT_EXCEEDED = -15,
+/* An admitted owned callback or its consuming cleanup returned false. */
+	XUI_ERROR_CALLBACK_FAILED = -16,
+	XUI_ERROR_BUSY = -17
 } xui_result_t;
 
 /* 错误发生阶段（错误信息定位用）。 */
@@ -1817,6 +1823,20 @@ typedef struct xui_text_caret_t {
 	float fAdvance;
 } xui_text_caret_t;
 
+/* Retained paint is a unique native owner. Metadata is immutable and kept
+ * resident by the paint's actual backend/capability owners, not by a borrowed
+ * function-table pointer. TraceRaw lists real owned references once. DropReady
+ * is pure/nonallocating under freeze; after successful admission, DropChecked
+ * runs outside freeze and consumes exactly one owner on EVERY return status.
+ * A record copy is an ownership move only; it does not create a second owner. */
+#define XUI_TEXT_PAINT_OWNERSHIP_V1_TAG UINT64_C(0x58554954504f5731)
+typedef struct xui_text_paint_ownership_v1_t {
+    size_t size;
+    uint64_t AbiTag;
+    bool (*DropReady)(const void* pPaint);
+    bool (*TraceRaw)(const void* pPaint,xrtownershipvisitor onVisit,void* pUser);
+    int (*DropChecked)(void* pPaint);
+} xui_text_paint_ownership_v1_t;
 typedef struct xui_text_shape_t {
 	uint32_t iSize;
 	uint32_t iFlags;
@@ -1839,6 +1859,9 @@ typedef struct xui_text_shape_t {
 	void* pPaint;
 	size_t iPaintBytes;
 	void (*paintFree)(void* pPaint);
+    /* Checked consuming release; status and semantic consumption are independent. */
+    int (*paintFreeChecked)(void* pPaint,bool* pConsumed);
+    const xui_text_paint_ownership_v1_t* pPaintOwnership;
 } xui_text_shape_t;
 
 typedef struct xui_text_paint_span_t {
@@ -1973,6 +1996,10 @@ typedef struct xui_breadcrumb_desc_t {
 	float fPaddingY;
 } xui_breadcrumb_desc_t;
 
+/* Font/Surface ownership terminology below describes legacy xuiCreate
+ * contexts. A context created by xuiCreateOwned retains compatible resources
+ * in its native slots; see that constructor's ownership contract. This does
+ * not grant ownership to unrelated raw userdata, arrays or callbacks. */
 /* 图片创建描述（surface/源区/适配模式）。pSurface 为借用资源，调用方须保证
  * 其生命周期覆盖 Image 对它的使用期。 */
 typedef struct xui_image_desc_t {
@@ -2035,6 +2062,21 @@ typedef struct xui_separator_desc_t {
 	int iLineStyle;
 } xui_separator_desc_t;
 
+/* An actual owned userdata slot, not a trace-only annotation. The immutable
+ * reference and resident Hold/Drop code remain valid through the last Drop.
+ * Hold borrows and owns one reference on true, retains nothing on false;
+ * Drop always consumes, including false without a diagnostic. Neither hook
+ * unwinds across C. All-zero explicitly denotes borrowed userdata.
+ * Owned setters borrow this descriptor and retain its reference. Replacement
+ * is committed before old cleanup, so cleanup failure does not undo it.
+ * Invocation retains an independent snapshot until the typed callback has
+ * completely returned, including its native adapter's return instructions. */
+typedef struct xui_callback_owner_t {
+	xrtownershipref tReference;
+	bool (*onHold)(const void*);
+	bool (*onDrop)(const void*);
+} xui_callback_owner_t;
+
 typedef struct xui_context_t xui_context_t;
 typedef struct xui_language_t xui_language_t;
 typedef struct xui_widget_t xui_widget_t;
@@ -2047,9 +2089,13 @@ typedef struct xui_file_dialog_t xui_file_dialog_t;
 typedef struct xui_msgtip_t xui_msgtip_t;
 typedef struct xui_toast_t xui_toast_t;
 typedef struct xui_tree_view_node_t xui_tree_view_node_t;
+typedef struct xui_tree_view_node_output_t xui_tree_view_node_output_t;
 typedef struct xui_table_view_column_t xui_table_view_column_t;
 typedef struct xui_table_view_row_t xui_table_view_row_t;
 typedef struct xui_table_view_cell_t xui_table_view_cell_t;
+typedef struct xui_table_view_cell_output_t xui_table_view_cell_output_t;
+struct xui_table_cell_scope_t;
+struct xui_lifetime_link_t;
 typedef struct xui_table_view_colors_t xui_table_view_colors_t;
 typedef struct xui_message_node_t xui_message_node_t;
 typedef struct xui_message_list_metrics_t xui_message_list_metrics_t;
@@ -2060,6 +2106,7 @@ typedef struct xui_cascader_item_t xui_cascader_item_t;
 typedef struct xui_icon_category_t xui_icon_category_t;
 typedef struct xui_icon_t xui_icon_t;
 typedef struct xui_table_grid_editor_config_t xui_table_grid_editor_config_t;
+typedef struct xui_table_grid_editor_config_output_t xui_table_grid_editor_config_output_t;
 typedef struct xui_timeline_frame_t xui_timeline_frame_t;
 typedef struct xui_timeline_span_t xui_timeline_span_t;
 typedef struct xui_timeline_layer_t xui_timeline_layer_t;
@@ -2106,6 +2153,7 @@ typedef struct xui_code_command_context_t xui_code_command_context_t;
 typedef struct xui_code_theme_t xui_code_theme_t;
 typedef struct xui_code_command_map_t xui_code_command_map_t;
 typedef struct xui_code_find_scope_t xui_code_find_scope_t;
+struct xui_proxy_capability_t;
 typedef struct xui_proxy_t xui_proxy_t;
 typedef struct xui_code_annotation_store_t xui_code_annotation_store_t;
 typedef struct xui_code_language_registry_t xui_code_language_registry_t;
@@ -2451,8 +2499,8 @@ typedef struct xui_nine_patch_t {
 	int iMode;
 } xui_nine_patch_t;
 
-/* 进度条创建描述。sText 会被复制；pFont 与 nine-patch surface 为借用资源，
- * 调用方须保证其生命周期覆盖 Progress 对它们的使用期。nine-patch 的源矩形
+/* 进度条创建描述。sText 会被复制；pFont 与 nine-patch surface 按 Context
+ * 资源规则保存：xuiCreateOwned 上下文持有，旧式上下文借用。nine-patch 的源矩形
  * 与切片均使用整数像素；源区域宽高必须同时为 0（整图）或同时为正，
  * 尺寸及切片不得为负，组合几何不得超过 XUI_LAYOUT_UNBOUNDED。 */
 typedef struct xui_progress_desc_t {
@@ -2979,10 +3027,21 @@ typedef int (*xui_tree_view_context_proc)(xui_widget_t* pWidget, int iNodeId, in
  * only for the duration of the node callback. */
 typedef int (*xui_tree_view_count_proc)(xui_widget_t* pWidget, void* pUser);
 typedef int (*xui_tree_view_node_proc)(xui_widget_t* pWidget, int iIndex, xui_tree_view_node_t* pNode, void* pUser);
+/* The native caller initializes this owning output before entry. Set text
+ * through NodeOutputSetText; ordinary scalar fields may be assigned directly.
+ * Neither output storage nor a view of it may escape this callback. */
+typedef int (*xui_tree_view_node_owned_proc)(xui_widget_t* pWidget, int iIndex,
+    xui_tree_view_node_output_t* pOutput, void* pUser);
 /* pNode is a read-only snapshot. Mutating or destroying the TreeView aborts
  * the current render batch safely. */
 typedef int (*xui_tree_view_item_proc)(xui_widget_t* pWidget, int iNodeId, int iVisible, const xui_tree_view_node_t* pNode, xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);
 typedef int (*xui_table_view_count_proc)(xui_widget_t* pWidget, void* pUser);
+/* Owned output callbacks use a real record; pValue in the raw cell is never
+ * interpreted as a language value. A text callback transfers one XRT allocation
+ * (terminated at Size, no embedded NUL), even when Size is zero. */
+typedef int (*xui_table_view_cell_owned_proc)(xui_widget_t* pWidget, int iRow, int iColumn, xui_table_view_cell_output_t* pCell, void* pUser);
+typedef xstrview (*xui_table_view_cell_text_owned_proc)(xui_widget_t* pWidget, int iRow, int iColumn, const xui_table_view_cell_output_t* pCell, void* pUser);
+typedef int (*xui_table_view_cell_render_owned_proc)(xui_widget_t* pWidget, int iRow, int iColumn, const xui_table_view_cell_output_t* pCell, xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);
 typedef int (*xui_table_view_cell_proc)(xui_widget_t* pWidget, int iRow, int iColumn, xui_table_view_cell_t* pCell, void* pUser);
 typedef int (*xui_table_view_format_proc)(xui_widget_t* pWidget, int iRow, int iColumn, const xui_table_view_cell_t* pCell, char* sBuffer, int iCapacity, void* pUser);
 typedef int (*xui_table_view_cell_renderer_proc)(xui_widget_t* pWidget, int iRow, int iColumn, const xui_table_view_cell_t* pCell, xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);
@@ -2998,8 +3057,11 @@ typedef int (*xui_table_view_context_proc)(xui_widget_t* pWidget, int iPart, int
 typedef void (*xui_table_grid_set_proc)(xui_widget_t* pWidget, int iRow, int iColumn, const char* sValue, int iType, void* pUser);
 typedef int (*xui_table_grid_validate_proc)(xui_widget_t* pWidget, int iRow, int iColumn, const char* sValue, int iType, void* pUser);
 typedef void (*xui_table_grid_change_proc)(xui_widget_t* pWidget, int iRow, int iColumn, const char* sValue, int iType, void* pUser);
+typedef int (*xui_table_grid_editor_owned_proc)(xui_widget_t* pWidget, int iRow, int iColumn, const xui_table_view_cell_output_t* pCell, const xui_table_grid_editor_config_output_t* pConfig, xui_rect_t tWorldRect, void* pUser);
 typedef int (*xui_table_grid_editor_proc)(xui_widget_t* pWidget, int iRow, int iColumn, const xui_table_view_cell_t* pCell, xui_rect_t tWorldRect, void* pUser);
 typedef int (*xui_table_grid_editor_config_proc)(xui_widget_t* pWidget, int iRow, int iColumn, int iType, xui_table_grid_editor_config_t* pConfig, void* pUser);
+/* Zero succeeds; any other result is a checked failure. The output owns data. */
+typedef int (*xui_table_grid_editor_config_owned_proc)(xui_widget_t* pWidget,int iRow,int iColumn,int iType,xui_table_grid_editor_config_output_t* pConfig,void* pUser);
 typedef int (*xui_table_grid_context_proc)(xui_widget_t* pWidget, int iPart, int iRow, int iColumn, float fX, float fY, void* pUser);
 /* TimelineView callbacks run synchronously on the UI thread and may mutate or
  * destroy the control or its context. A reentrant changing callback supersedes
@@ -4456,6 +4518,23 @@ struct xui_tree_view_node_t {
 	void* pUser;
 };
 
+/* Owning adapter output. Initialize once, never bit-copy a live record, and
+ * Dispose after use. _tText is PRIVATE owned XRT storage; bindings must hide
+ * it. Text access goes through SetText/GetText, not writable pointer fields. */
+struct xui_tree_view_node_output_t {
+    int iId;
+    int iParent;
+    int iDepth;
+    int bExpanded;
+    int bEnabled;
+    int bHasChildren;
+    int bIconReserved;
+    int bCheckReserved;
+    int bChecked;
+    void* pUser; /* Explicit opaque C value, never a language object. */
+    xstrview _tText;
+};
+
 /* 树视图创建描述。节点记录与文本会被复制；pUser 仅作为不透明值复制。
  * pFont 为借用资源，调用方须保证其生命周期覆盖 TreeView。 */
 typedef struct xui_tree_view_desc_t {
@@ -4546,6 +4625,34 @@ struct xui_table_view_cell_t {
 	int bReadOnly;
 };
 
+/* Address-stable owning cell. Only scalar/style fields are public data.
+ * All _ fields are private native state. Never copy/move an initialized record;
+ * use Use for a no-copy payload snapshot or the setters for owned copies.
+ * The UI execution thread serializes these methods, as with the widget APIs. */
+struct xui_table_view_cell_output_t {
+    int iType, iRowSpan, iColSpan;
+    int bDisabled, bEditing, bInvalid, bDirty, bHasStyle;
+    uint32_t iBackgroundColor, iTextColor, iGridColor;
+    int bReadOnly;
+    uint32_t _iMagic;
+    uint64_t _iCreatorThread; /* immutable cleanup affinity; not a UI mutex */
+    int _bHeap, _bRetiring;
+    const void* _pOwnershipClaim;
+    int _bOwnershipCleared, _bOwnershipFinished;
+    size_t _iReferences, _iExternalReferences, _iReadPins, _iUsePins, _iCalls;
+    xstrview _tText, _tTooltip;
+    xvalue* _pValue;
+    xui_table_view_cell_text_owned_proc _onText;
+    void* _pTextUser;
+    xui_callback_owner_t _tTextOwner;
+    xui_table_view_cell_render_owned_proc _onRender;
+    void* _pRenderUser;
+    xui_callback_owner_t _tRenderOwner;
+    xui_table_view_cell_output_t* _pSource;
+    struct xui_lifetime_link_t* _pLifetimeLinks;
+    struct xui_table_cell_scope_t* _pScopes;
+};
+
 struct xui_table_view_colors_t {
 	uint32_t iBackgroundColor;
 	uint32_t iHeaderColor;
@@ -4631,6 +4738,35 @@ struct xui_table_grid_editor_config_t {
 	const char* sRangeSeparator;
 	void* pUser;
 };
+
+/* Owning callback output. Init fresh storage; Dispose releases every owned
+ * text/enum/palette. Public fields are scalars; private payload is never copied
+ * as a raw language value. Views expire with their callback epoch. */
+struct xui_table_grid_editor_config_output_t {
+    int iEnumSelected;
+    int bEnumUseValue;
+    int iEnumSelectedValue;
+    float fMin;
+    float fMax;
+    float fStep;
+    int iPrecision;
+    int bNullable;
+    int iDateMode;
+    int bDateModeSet;
+    int bShowSecond;
+    xtime tDateMin;
+    xtime tDateMax;
+    int bDateHasMin;
+    int bDateHasMax;
+    xtime tDefaultRangeSpan;
+    int bAlphaEnabled;
+    int _iEnumCount;
+    xui_combobox_item_t* _pEnumItems;
+    int _iPaletteCount;
+    uint32_t* _pPalette;
+    xstrview _tDateFormat,_tActionText,_tFileFilter,_tRangeSeparator;
+};
+
 
 /* 数据网格创建描述。 */
 typedef struct xui_table_grid_desc_t {
@@ -5468,6 +5604,31 @@ typedef struct xui_path_t xui_path_t;
 typedef struct xui_data_object_t xui_data_object_t;
 
 typedef xui_context_t* xui_context;
+/* Intrusive weak-lifetime registration. Zero-initialize before first use;
+ * do not copy/move or edit these fields while attached. The caller owns its
+ * storage until Unwatch returns or the invalidator is entered. The callback
+ * runs after detachment, may release the link itself or unwatch peers, and
+ * must return normally. All operations use the context's UI thread. */
+typedef void (*xui_lifetime_invalidate_proc)(void* pUser);
+typedef struct xui_lifetime_link_t {
+	struct xui_lifetime_link_t* pNext;
+	struct xui_lifetime_link_t** ppPrevious;
+	xui_lifetime_invalidate_proc onInvalidate;
+	void* pUser;
+} xui_lifetime_link_t;
+/* Caller-owned, zero-initialized, address-stable native call protection.
+ * Fields are private; never copy/move a live scope. */
+typedef struct xui_call_scope_t {
+	xui_context pContext;
+	struct xui_call_scope_t* pSelf;
+	struct xui_call_scope_t* pPrevious;
+	struct xui_call_scope_t* pNext;
+	int iResult;
+	int bEnding;
+	xerror* _pFirstError; /* iResult==OK: owned ambient; otherwise exact first failure, possibly NULL. */
+} xui_call_scope_t;
+
+
 typedef xui_language_t* xui_language;
 typedef xui_widget_t* xui_widget;
 typedef xui_widget_type_t* xui_widget_type;
@@ -5503,6 +5664,18 @@ typedef uint32_t xui_icon_id;
 typedef int (*xui_data_provider_proc)(const char* sFormat, void* pOutput,
 	size_t iCapacity, size_t* pOutputSize, void* pUser);
 typedef void (*xui_data_provider_free_proc)(void* pUser);
+
+/* Callback-period bounded output; underscore fields are private and the
+ * size fields are readonly in safe bindings. Never retain this stack view. */
+typedef struct xui_data_output_t {
+    const void* _pSelf;
+    void* _pDestination;
+    size_t iCapacity;
+    size_t iRequired;
+} xui_data_output_t;
+typedef int (*xui_data_provider_owned_proc)(const xstrview* pFormat,
+    xui_data_output_t* pOutput,void* pUser);
+
 
 typedef struct xui_drag_event_data_t {
 	uint32_t iSize;
@@ -5746,6 +5919,22 @@ struct xui_event_t {
 	int iCompositionAttribute;
 };
 
+/* Callback-period typed payload for transfer events. Geometric DRAG_BEGIN /
+ * MOVE / END / CANCEL events have a different contract and are excluded.
+ * A C custom producer using ENTER / OVER / LEAVE / DROP must supply this
+ * sized payload. This cannot validate an arbitrary forged native pointer. */
+static inline const xui_drag_event_data_t* xuiEventDragData(const xui_event_t* event)
+{
+    if(!event || event->iSize<sizeof(*event) || !event->pData)return NULL;
+    switch(event->iType){
+    case XUI_EVENT_DRAG_ENTER:case XUI_EVENT_DRAG_OVER:
+    case XUI_EVENT_DRAG_LEAVE:case XUI_EVENT_DROP:break;
+    default:return NULL;
+    }
+    const xui_drag_event_data_t* data=(const xui_drag_event_data_t*)event->pData;
+    return data->iSize>=sizeof(*data) ? data:NULL;
+}
+
 /* Context-wide desktop interaction parameters. All distances are pixels. */
 typedef struct xui_interaction_policy_t {
 	uint32_t iSize;
@@ -5825,6 +6014,12 @@ typedef struct xui_debug_widget_info_t {
 
 typedef int (*xui_widget_type_init_proc)(xui_widget pWidget, void* pTypeData, const void* pCreateData, void* pUser);
 typedef void (*xui_widget_type_destroy_proc)(xui_widget pWidget, void* pTypeData, void* pUser);
+/* Frozen, creator-thread read of the actual owning slots introduced by this
+ * type. Parent tracers are invoked separately. Do not visit borrowed pointers
+ * or recursively flatten independently shared owners. No allocation, mutation,
+ * hold/drop, locking or language callback is allowed in a tracer. */
+typedef bool (*xui_widget_type_ownership_trace_proc)(xui_widget pWidget,
+    const void* pTypeData, xrtownershipvisitor onVisit, void* pUser);
 
 /* 控件类型注册描述（名称/父类型/虚函数表/实例尺寸）。 */
 typedef struct xui_widget_type_desc_t {
@@ -5867,6 +6062,9 @@ typedef struct xui_clipboard_item_t {
 /* Replaces the clipboard atomically with every supplied representation. */
 typedef int (*xui_clipboard_set_items_proc)(xui_proxy pProxy,
 	const xui_clipboard_item_t* pItems, int iItemCount);
+/* Cold, synchronous services; the provider must not store this borrowed record. */
+typedef int (*xui_clipboard_set_items_with_transfer_proc)(xui_proxy proxy,
+    const xui_clipboard_item_t* items,int count,const xn_transfer_services_v1* services);
 /* Returns the complete byte size. pData may be NULL when iCapacity is zero. */
 typedef int (*xui_clipboard_get_data_proc)(xui_proxy pProxy, const char* sFormat,
 	void* pData, size_t iCapacity);
@@ -6029,13 +6227,69 @@ struct xui_proxy_t {
 	xui_zstd_decompress_proc zstdDecompress;
 	xui_clock_seconds_proc clockSeconds;
 	xui_request_frame_proc requestFrame;
+    struct xui_proxy_capability_t* _pCapability; /* Private immutable owned backend capability. */
+    /* Optional cold capability; all earlier Proxy field offsets are preserved. */
+    xui_clipboard_set_items_with_transfer_proc clipboardSetItemsWithTransfer;
 };
 
 /* 创建 XUI 上下文（根与覆盖根就绪；渲染前需 xuiSetProxy 绑定后端）。 */
 #if XGE_ENABLE_XUI
 XUI_API int xuiCreate(xui_context* ppContext);
+/* Managed contexts require and retain an owned Proxy before publication.
+ * The backend binding is immutable. Font/Surface slots retain actual native
+ * references and reject resources from another backend; replacement/teardown
+ * releases those references after active operations and drawing sessions end.
+ * The legacy constructor and unowned handles remain explicit C interop.
+ * Raw userdata/array/provider pointers and raw callbacks are not made owning
+ * by this constructor; use their documented Owned registrations where present. */
+XUI_API int xuiCreateOwned(xui_proxy pProxy, xui_context* ppContext);
+XUI_API xui_proxy xuiGetProxyOwned(xui_context pContext);
+/* Request is logical only; the caller still owns the Context until its
+ * checked destructor consumes it after active calls and retained data end. */
+XUI_API int xuiRequestClose(xui_context pContext);
+/* Unsupported when the optional backend capability is absent. Items are
+ * prepared as one complete snapshot before the backend is called once;
+ * text-only backends must reject multiple formats before publication.
+ * Services are borrowed for this call, exported capsules retain real code.
+ * A post-publication OS/Flush failure does not promise clipboard rollback. */
+XUI_API int xuiClipboardSetItemsWithTransfer(xui_context context,
+    const xui_clipboard_item_t* items,int count,const xn_transfer_services_v1* services);
+/* Uses fixed generations, rejects lazy size/source-revision changes before
+ * publication, and pins immediate bytes until the backend call returns. */
+XUI_API int xuiClipboardCopyDataWithTransfer(xui_context context,xui_data_object data,
+    const xn_transfer_services_v1* services);
 /* 销毁上下文及全部控件树。 */
 XUI_API void xuiDestroy(xui_context pContext);
+/* Accepted logical close consumes the context owner even when physical cleanup
+ * fails. A surrounding operation can defer that cleanup; its enclosing Scope
+ * reports the failure at its physical tail. Rejected calls consume nothing. */
+XUI_API int xuiDestroyOwnerChecked(xui_context pContext, bool* pConsumed);
+XUI_API int xuiDestroyChecked(xui_context pContext);
+/* Watch logical destruction, before user destructors and physical free.
+ * Context close also invalidates all widget links, including unattached
+ * instances. No allocation; failure leaves the zeroed link untouched.
+ * A watch is weak: it neither owns the native object nor retains pUser/code.
+ * The caller must keep callback code/data resident until detach/notification. */
+XUI_API int xuiContextLifetimeWatch(xui_context pContext, xui_lifetime_link_t* pLink,
+	xui_lifetime_invalidate_proc onInvalidate, void* pUser);
+XUI_API int xuiWidgetLifetimeWatch(xui_widget pWidget, xui_lifetime_link_t* pLink,
+	xui_lifetime_invalidate_proc onInvalidate, void* pUser);
+/* O(1), idempotent; NULL is allowed. Never reads a destroyed native object. */
+XUI_API void xuiLifetimeUnwatch(xui_lifetime_link_t* pLink);
+/* Nestable UI-thread scopes. Begin refuses a closing context and allocates
+ * nothing. Logical invalidation remains immediate; physical widget/context
+ * destruction waits until the last enclosing native operation/callback ends.
+ * End marks the token as ending before deferred callbacks/destructors, retains
+ * its checked cleanup receipt until they return, and then zeros the token.
+ * It may physically destroy the context. Cleanup receipts retain their exact
+ * first status and diagnostic (which may be NULL). The entry diagnostic is
+ * isolated and restored on success; a new failure replaces it even with NULL.
+ * Balanced tokens may end out of order. Owned contexts admit only their Proxy
+ * creator thread. Diagnostic references require no allocation. End on an empty token
+ * is a no-op. Balance every successful Begin on all exits; End executes user
+ * code and rejects reentry on the same ending token. */
+XUI_API int xuiCallScopeBegin(xui_context pContext, xui_call_scope_t* pScope);
+XUI_API int xuiCallScopeEnd(xui_call_scope_t* pScope);
 /* 注册错误回调（全部框架错误的统一出口）。 */
 XUI_API int xuiSetErrorCallback(xui_context pContext, xui_error_proc onError, void* pUser);
 /* 注册无障碍事件回调（平台桥接消费）。 */
@@ -6072,6 +6326,67 @@ XUI_API const char* xuiGetLanguageName(xui_language pLanguage);
 XUI_API const char* xuiTranslate(xui_context pContext, int iTextId);
 /* 绑定渲染代理（xuiCreate 后、渲染前调用；引擎适配见 xuiProxyXge）。 */
 XUI_API int xuiSetProxy(xui_context pContext, const xui_proxy_t* pProxy);
+/* Safe shared capability/resource protocol; legacy by-value proxies stay caller-managed. */
+/* Owned custom proxy providers borrow memory/text/descriptor inputs only for
+ * the physical call, including nested borrowed pointers. They must not store
+ * or silently own those pointers. Persistent use requires a native copy or an
+ * explicit retain of an owned Font/Surface/Proxy resource. Default-backend
+ * synchronous copying does not imply that arbitrary custom providers copy. */
+/* Called at most once. Every return semantically consumes the backend payload;
+ * a nonzero status reports failure and must never request a second finalization. */
+typedef int (*xui_proxy_payload_finalize_proc)(xui_proxy pProxy, void* pPayload);
+typedef bool (*xui_proxy_payload_ready_proc)(const void* pPayload);
+/* Explicit provider promise: every resource/payload/backend-owner finalizer
+ * can run on any thread. This does not make ordinary UI calls thread-safe. */
+#define XUI_PROXY_OWNED_ANYTHREAD_FINALIZE UINT32_C(1)
+XUI_API int xuiProxyCreateOwnedEx(const xui_proxy_t* pSource, const xui_callback_owner_t* pBackendOwner, uint32_t iFlags, xui_proxy* ppProxy);
+XUI_API int xuiProxyCreateOwned(const xui_proxy_t* pSource, const xui_callback_owner_t* pBackendOwner, xui_proxy* ppProxy);
+XUI_API int xuiProxyXgeCreate(xui_proxy* ppProxy);
+XUI_API int xuiProxyAddRef(xui_proxy pProxy);
+XUI_API int xuiProxyReleaseOwnerChecked(xui_proxy pProxy, bool* pConsumed);
+XUI_API xrtownershipref xuiProxyOwnership(xui_proxy pProxy);
+XUI_API bool xuiProxyIsOwned(const xui_proxy_t* pProxy);
+/* Existing xuiSetProxy/by-value xuiProxyXge remain explicit caller-managed C. */
+XUI_API int xuiSetProxyOwned(xui_context pContext, xui_proxy pProxy);
+/* One allocation: common header + zeroed backend payload. Finalize runs
+ * outside graph freeze, never frees the common header, never repeats on failure. */
+XUI_API int xuiFontCreateOwned(xui_proxy pProxy, size_t iPayloadSize, xui_proxy_payload_finalize_proc onFinalize, xui_font* ppFont, void** ppPayload);
+XUI_API int xuiSurfaceCreateOwned(xui_proxy pProxy, size_t iPayloadSize, xui_proxy_payload_finalize_proc onFinalize, xui_surface* ppSurface, void** ppPayload);
+/* A session owns its proxy/target. End semantically consumes its drawing
+ * payload at most once; the RC carrier can remain alive for checked cleanup. */
+typedef struct xui_draw_scope_t {const void* _pSelf; xui_draw_context _pDraw;} xui_draw_scope_t;
+XUI_API int xuiDrawCreateOwned(xui_proxy pProxy, xui_surface pTarget, size_t iPayloadSize, xui_proxy_payload_finalize_proc onEnd, xui_draw_context* ppDraw, void** ppPayload);
+XUI_API int xuiDrawCreateOwnedEx(xui_proxy pProxy, xui_surface pTarget, size_t iPayloadSize, xui_proxy_payload_finalize_proc onEnd, xui_proxy_payload_ready_proc onCanEnd, xui_draw_context* ppDraw, void** ppPayload);
+XUI_API int xuiDrawEndChecked(xui_draw_context pDraw);
+XUI_API int xuiDrawAddRef(xui_draw_context pDraw);
+XUI_API int xuiDrawReleaseOwnerChecked(xui_draw_context pDraw, bool* pConsumed);
+XUI_API int xuiDrawReleaseChecked(xui_draw_context pDraw);
+XUI_API int xuiDrawCallScopeBegin(xui_draw_context pDraw, xui_draw_scope_t* pScope);
+XUI_API int xuiDrawCallScopeEnd(xui_draw_scope_t* pScope);
+XUI_API bool xuiDrawEnded(xui_draw_context pDraw);
+XUI_API xui_proxy xuiDrawGetProxy(xui_draw_context pDraw); /* borrowed; NULL after End */
+XUI_API xui_surface xuiDrawGetTarget(xui_draw_context pDraw); /* borrowed; NULL after End */
+XUI_API xrtownershipref xuiDrawOwnership(xui_draw_context pDraw);
+XUI_API int xuiFontAddRef(xui_font pFont);
+XUI_API int xuiFontReleaseOwnerChecked(xui_font pFont, bool* pConsumed);
+XUI_API xui_proxy xuiFontGetProxy(xui_font pFont); /* borrowed, exact capability */
+XUI_API xrtownershipref xuiFontOwnership(xui_font pFont);
+XUI_API int xuiSurfaceAddRef(xui_surface pSurface);
+XUI_API int xuiSurfaceReleaseOwnerChecked(xui_surface pSurface, bool* pConsumed);
+XUI_API xui_proxy xuiSurfaceGetProxy(xui_surface pSurface);
+XUI_API xrtownershipref xuiSurfaceOwnership(xui_surface pSurface);
+/* Exact no-hook/no-allocation NativeOps admission, including busy participants. */
+XUI_API const xrtownershipadapterv1* xuiProxyResourceOwnershipAdapterV1(xrtownershipref ref);
+XUI_API const xrtownershippreparationv1* xuiProxyResourceOwnershipPreparationV1(xrtownershipref ref);
+XUI_API const xrtownershipfinishv1* xuiProxyResourceOwnershipCompletionV1(xrtownershipref ref);
+XUI_API const xrtownershipfinishv2* xuiProxyResourceOwnershipCompletionV2(xrtownershipref ref);
+XUI_API const xrtownershipquiescencev1* xuiProxyResourceOwnershipQuiescenceV1(xrtownershipref ref);
+XUI_API bool xuiProxyResourceOwnershipBusy(xrtownershipref ref);
+
+XUI_API int xuiProxyReleaseChecked(xui_proxy pProxy);
+XUI_API int xuiFontReleaseChecked(xui_font pFont);
+XUI_API int xuiSurfaceReleaseChecked(xui_surface pSurface);
+
 /* 输出当前渲染代理函数表。 */
 XUI_API int xuiGetProxy(xui_context pContext, xui_proxy_t* pProxy);
 /* 输出代理能力位。 */
@@ -6089,13 +6404,37 @@ XUI_API int xuiDataObjectSet(xui_data_object pData, const char* sFormat,
 XUI_API int xuiDataObjectSetProvider(xui_data_object pData,
 	const char* sFormat, xui_data_provider_proc onRead,
 	xui_data_provider_free_proc onFree, void* pUser);
+/* Owned origin is sticky. Raw providers cannot enter an Owned object.
+ * References are real native RC. Semantic calls/cleanup are creator-affine.
+ * Capture owner Drop is checked and consumes one acquired reference on every
+ * result, including false with no diagnostic. No second cleanup closure. */
+XUI_API int xuiDataObjectCreateOwned(xui_data_object* pOutput);
+XUI_API int xuiDataObjectShareOwned(xui_data_object source,xui_data_object* pOutput);
+XUI_API bool xuiDataObjectIsOwned(xui_data_object data);
+XUI_API int xuiDataObjectReleaseOwnerChecked(xui_data_object data,bool* pConsumed);
+XUI_API int xuiDataObjectReleaseChecked(xui_data_object data);
+XUI_API int xuiDataObjectSetProviderOwned(xui_data_object data,const char* sFormat,
+    xui_data_provider_owned_proc proc,void* pUser,const xui_callback_owner_t* pOwner);
+XUI_API int xuiDataOutputSet(xui_data_output_t* output,const void* data,size_t size);
+XUI_API int xuiDataOutputWrite(xui_data_output_t* output,size_t offset,const void* data,size_t size);
+XUI_API xrtownershipref xuiDataObjectOwnership(xui_data_object data);
+XUI_API const xrtownershipadapterv1* xuiDataObjectOwnershipAdapterV1(xrtownershipref ref);
+XUI_API const xrtownershippreparationv1* xuiDataObjectOwnershipPreparationV1(xrtownershipref ref);
+XUI_API const xrtownershipquiescencev1* xuiDataObjectOwnershipQuiescenceV1(xrtownershipref ref);
+XUI_API const xrtownershipfinishv2* xuiDataObjectOwnershipCompletionV2(xrtownershipref ref);
+XUI_API const xrtownershipfinalizationv1* xuiDataObjectOwnershipFinalizationV1(xrtownershipref ref);
+XUI_API bool xuiDataObjectOwnershipReadReady(xrtownershipref ref);
+
 /* 读取格式数量。 */
 XUI_API int xuiDataObjectFormatCount(xui_data_object pData);
 /* 按索引取格式名。 */
 XUI_API const char* xuiDataObjectFormatAt(xui_data_object pData, int iIndex);
 /* 是否含指定格式。 */
 XUI_API int xuiDataObjectHas(xui_data_object pData, const char* sFormat);
-/* 读格式数据；容量不足时仅输出所需大小。 */
+/* NULL/0 queries byte count without copying. A short immediate value leaves
+ * output untouched. Lazy providers may have completed earlier Write commands
+ * before a later command makes the read too small; caller buffers keep that
+ * prefix and the required byte count is still returned. */
 XUI_API int xuiDataObjectGet(xui_data_object pData, const char* sFormat,
 	void* pOutput, size_t iCapacity, size_t* pOutputSize);
 /* 以控件为源发起拖拽会话（效果位协商）。 */
@@ -6536,6 +6875,18 @@ XUI_API int xuiCommandDispatch(xui_context pContext, xui_widget pTarget, int iCo
 XUI_API int xuiTextLayoutCreate(xui_context pContext, xui_text_layout* ppLayout, const xui_text_layout_desc_t* pDesc);
 /* 释放文本布局。 */
 XUI_API void xuiTextLayoutDestroy(xui_text_layout pLayout);
+/* Unique native owner, no reference-count layer. Context expiry makes methods
+ * invalid but the owner can still release Font/paint/backend afterwards. */
+XUI_API int xuiTextLayoutDestroyOwnerChecked(xui_text_layout pLayout,bool* pConsumed);
+XUI_API int xuiTextLayoutDestroyChecked(xui_text_layout pLayout);
+XUI_API int xuiTextLayoutRequestClose(xui_text_layout pLayout);
+XUI_API xui_context xuiTextLayoutGetContext(xui_text_layout pLayout);
+XUI_API bool xuiTextLayoutOwnershipBusy(xui_text_layout pLayout);
+XUI_API bool xuiTextLayoutTraceOwnership(xui_text_layout pLayout,xrtownershipvisitor onVisit,void* pUser);
+/* Only actual unique destruction consumes this watch; Context expiry merely
+ * clears GetContext and must not pretend the unique owner was consumed. */
+XUI_API int xuiTextLayoutLifetimeWatch(xui_text_layout pLayout,xui_lifetime_link_t* pLink,xui_lifetime_invalidate_proc onInvalidate,void* pUser);
+
 /* 以新描述重置布局（复用对象）。 */
 XUI_API int xuiTextLayoutReset(xui_text_layout pLayout, const xui_text_layout_desc_t* pDesc);
 /* 读取布局内容尺寸。 */
@@ -6554,7 +6905,26 @@ XUI_API int xuiTextLayoutDraw(xui_text_layout pLayout, xui_surface pTarget, xui_
 XUI_API int xuiTextMeasureLayout(xui_context pContext, const xui_text_layout_desc_t* pDesc, xui_vec2_t* pSize);
 /* 经引擎代理整形文本（字形序列，供自绘）。 */
 XUI_API int xuiTextShape(xui_context pContext, const xui_text_item_t* pTextItem, xui_text_shape_t* pShape);
+/* These lifetime APIs accept only the owned factory's record handle.
+ * Raw stack records continue to use xuiTextShapeFreeChecked. */
+XUI_API int xuiTextShapeCreateOwned(xui_proxy pProxy, const xui_text_item_t* pTextItem, const xui_text_shape_t** ppShape);
+XUI_API int xuiTextShapeAddRef(const xui_text_shape_t* pShape);
+XUI_API int xuiTextShapeReleaseOwnerChecked(const xui_text_shape_t* pShape, bool* pConsumed);
+XUI_API int xuiTextShapeReleaseChecked(const xui_text_shape_t* pShape);
+XUI_API xui_proxy xuiTextShapeGetProxy(const xui_text_shape_t* pShape);
+XUI_API xrtownershipref xuiTextShapeOwnership(const xui_text_shape_t* pShape);
+/* Borrowed native arrays remain valid while the immutable Shape is owned. */
+XUI_API int xuiTextShapeGetClusters(const xui_text_shape_t* pShape, const xui_text_cluster_t** ppClusters, size_t* pCount);
+XUI_API int xuiTextShapeGetCarets(const xui_text_shape_t* pShape, const xui_text_caret_t** ppCarets, size_t* pCount);
+XUI_API int xuiTextShapeGetCluster(const xui_text_shape_t* pShape, size_t iIndex, xui_text_cluster_t* pCluster);
+XUI_API int xuiTextShapeGetCaret(const xui_text_shape_t* pShape, size_t iIndex, xui_text_caret_t* pCaret);
 /* 释放整形输出的字形序列。 */
+/* Checked cleanup always frees clusters/carets. A consumed paint is cleared
+ * even on failure; an unconsumed paint and its hooks remain for explicit retry.
+ * The caller exclusively owns the record: hooks must not replace it during
+ * cleanup. A pre-existing diagnostic is preserved; status reports cleanup
+ * failure independently, including failure with a NULL diagnostic. */
+XUI_API int xuiTextShapeFreeChecked(xui_text_shape_t* pShape);
 XUI_API void xuiTextShapeFree(xui_text_shape_t* pShape);
 #endif
 
@@ -6608,6 +6978,7 @@ XUI_API xui_widget_type xuiHyperlinkGetType(xui_context pContext);
 XUI_API int xuiHyperlinkCreate(xui_context pContext, xui_widget* ppWidget, const xui_hyperlink_desc_t* pDesc);
 /* 注册同步点击回调；回调可销毁控件、父控件或上下文。 */
 XUI_API int xuiHyperlinkSetClick(xui_widget pWidget, xui_hyperlink_click_proc onClick, void* pUser);
+XUI_API int xuiHyperlinkSetClickOwned(xui_widget pWidget,xui_hyperlink_click_proc onClick,void* pUser,const xui_callback_owner_t* pOwner);
 /* 设置并复制链接文本；NULL 清空。 */
 XUI_API int xuiHyperlinkSetText(xui_widget pWidget, const char* sText);
 /* 读取文本。 */
@@ -6672,8 +7043,10 @@ XUI_API xui_widget_type xuiBreadcrumbGetType(xui_context pContext);
 XUI_API int xuiBreadcrumbCreate(xui_context pContext, xui_widget* ppWidget, const xui_breadcrumb_desc_t* pDesc);
 /* 注册节点点击回调。 */
 XUI_API int xuiBreadcrumbSetClick(xui_widget pWidget, xui_breadcrumb_click_proc onClick, void* pUser);
+XUI_API int xuiBreadcrumbSetClickOwned(xui_widget pWidget,xui_breadcrumb_click_proc onClick,void* pUser,const xui_callback_owner_t* pOwner);
 /* 注册节点右键回调。 */
 XUI_API int xuiBreadcrumbSetContextMenu(xui_widget pWidget, xui_breadcrumb_context_proc onContext, void* pUser);
+XUI_API int xuiBreadcrumbSetContextMenuOwned(xui_widget pWidget,xui_breadcrumb_context_proc onContext,void* pUser,const xui_callback_owner_t* pOwner);
 /* 批量设置节点（替换现有）。 */
 XUI_API int xuiBreadcrumbSetItems(xui_widget pWidget, const xui_breadcrumb_item_t* pItems, int iItemCount);
 /* 清空全部节点。 */
@@ -7215,6 +7588,10 @@ XUI_API int xuiChartHitTest(xui_widget pWidget, float fX, float fY, xui_chart_hi
 XUI_API int xuiCodeDocumentCreate(xui_code_document* ppDocument);
 /* 释放代码文档。 */
 XUI_API void xuiCodeDocumentDestroy(xui_code_document pDocument);
+XUI_API int xuiCodeDocumentDestroyOwnerChecked(xui_code_document pDocument, bool* pConsumed);
+XUI_API int xuiCodeDocumentDestroyChecked(xui_code_document pDocument);
+XUI_API bool xuiCodeDocumentOwnershipBusy(xui_code_document pDocument);
+XUI_API int xuiCodeDocumentLifetimeWatch(xui_code_document pDocument, xui_lifetime_link_t* pLink, xui_lifetime_invalidate_proc onInvalidate, void* pUser);
 /* 整体替换文档内容（清空撤销历史）。 */
 XUI_API int xuiCodeDocumentSetText(xui_code_document pDocument, const char* sText);
 /* 以指定字节长度替换文档内容（支持内嵌 NUL）。 */
@@ -7893,6 +8270,7 @@ XUI_API xui_widget_type xuiInputGetType(xui_context pContext);
 XUI_API int xuiInputCreate(xui_context pContext, xui_widget* ppWidget, const xui_input_desc_t* pDesc);
 /* 注册文本变更回调。 */
 XUI_API int xuiInputSetChange(xui_widget pWidget, xui_input_change_proc onChange, void* pUser);
+XUI_API int xuiInputSetChangeOwned(xui_widget pWidget, xui_input_change_proc onChange, void* pUser, const xui_callback_owner_t* pOwner);
 /* 整体替换并复制文本；NULL 视为空串。成功后清空撤销/重做状态，且不触发变更回调。 */
 XUI_API int xuiInputSetText(xui_widget pWidget, const char* sText);
 /* 读取文本。 */
@@ -8006,8 +8384,10 @@ XUI_API xui_widget_type xuiTagInputGetType(xui_context pContext);
 XUI_API int xuiTagInputCreate(xui_context pContext, xui_widget* ppWidget, const xui_tag_input_desc_t* pDesc);
 /* 注册标签集变更回调；同步调用，回调可销毁控件或上下文。 */
 XUI_API int xuiTagInputSetChange(xui_widget pWidget, xui_tag_input_change_proc onChange, void* pUser);
+XUI_API int xuiTagInputSetChangeOwned(xui_widget pWidget, xui_tag_input_change_proc onChange, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册右键回调；同步调用，回调可销毁控件或上下文。 */
 XUI_API int xuiTagInputSetContextMenu(xui_widget pWidget, xui_tag_input_context_proc onContext, void* pUser);
+XUI_API int xuiTagInputSetContextMenuOwned(xui_widget pWidget, xui_tag_input_context_proc onContext, void* pUser, const xui_callback_owner_t* pOwner);
 /* 追加一个标签。 */
 XUI_API int xuiTagInputAddTag(xui_widget pWidget, const char* sText);
 /* 按索引移除标签。 */
@@ -8075,8 +8455,10 @@ XUI_API xui_widget_type xuiNumericInputGetType(xui_context pContext);
 XUI_API int xuiNumericInputCreate(xui_context pContext, xui_widget* ppWidget, const xui_numeric_input_desc_t* pDesc);
 /* 注册值变更回调；同步调用，回调可销毁控件或上下文。 */
 XUI_API int xuiNumericInputSetChange(xui_widget pWidget, xui_numeric_input_change_proc onChange, void* pUser);
+XUI_API int xuiNumericInputSetChangeOwned(xui_widget pWidget, xui_numeric_input_change_proc onChange, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册非法输入错误回调；同步调用，回调可销毁控件或上下文。 */
 XUI_API int xuiNumericInputSetErrorChange(xui_widget pWidget, xui_numeric_input_error_proc onError, void* pUser);
+XUI_API int xuiNumericInputSetErrorChangeOwned(xui_widget pWidget, xui_numeric_input_error_proc onError, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册显示格式化回调（单位/千分位）；同步调用，回调可销毁控件或上下文。 */
 XUI_API int xuiNumericInputSetFormatter(xui_widget pWidget, xui_numeric_input_format_proc onFormat, void* pUser);
 /* 设置值范围（钳制当前值）。 */
@@ -8174,6 +8556,7 @@ XUI_API xui_widget_type xuiTextEditGetType(xui_context pContext);
 XUI_API int xuiTextEditCreate(xui_context pContext, xui_widget* ppWidget, const xui_text_edit_desc_t* pDesc);
 /* 注册内容变更回调。 */
 XUI_API int xuiTextEditSetChange(xui_widget pWidget, xui_text_edit_change_proc onChange, void* pUser);
+XUI_API int xuiTextEditSetChangeOwned(xui_widget pWidget, xui_text_edit_change_proc onChange, void* pUser, const xui_callback_owner_t* pOwner);
 /* 整体替换并复制文本；NULL 视为空串。成功后清空撤销/重做历史，且不触发变更回调。 */
 XUI_API int xuiTextEditSetText(xui_widget pWidget, const char* sText);
 /* 读取全文。 */
@@ -8299,6 +8682,7 @@ XUI_API xui_widget_type xuiButtonGetType(xui_context pContext);
 XUI_API int xuiButtonCreate(xui_context pContext, xui_widget* ppWidget, const xui_button_desc_t* pDesc);
 /* 注册点击回调。 */
 XUI_API int xuiButtonSetClick(xui_widget pWidget, xui_button_click_proc onClick, void* pUser);
+XUI_API int xuiButtonSetClickOwned(xui_widget pWidget,xui_button_click_proc onClick,void* pUser,const xui_callback_owner_t* pOwner);
 /* 设置按钮文本。 */
 XUI_API int xuiButtonSetText(xui_widget pWidget, const char* sText);
 /* 读取按钮文本（借用指针，修改文本或销毁按钮后失效）。 */
@@ -8394,6 +8778,7 @@ XUI_API xui_widget_type xuiCheckBoxGetType(xui_context pContext);
 XUI_API int xuiCheckBoxCreate(xui_context pContext, xui_widget* ppWidget, const xui_checkbox_desc_t* pDesc);
 /* 注册勾选变更回调。 */
 XUI_API int xuiCheckBoxSetChange(xui_widget pWidget, xui_checkbox_change_proc onChange, void* pUser);
+XUI_API int xuiCheckBoxSetChangeOwned(xui_widget pWidget,xui_checkbox_change_proc onChange,void* pUser,const xui_callback_owner_t* pOwner);
 /* 设置标签文本。 */
 XUI_API int xuiCheckBoxSetText(xui_widget pWidget, const char* sText);
 /* 读取标签文本。 */
@@ -8465,6 +8850,7 @@ XUI_API xui_widget_type xuiCheckCardGetType(xui_context pContext);
 XUI_API int xuiCheckCardCreate(xui_context pContext, xui_widget* ppWidget, const xui_check_card_desc_t* pDesc);
 /* 注册选中变更回调。 */
 XUI_API int xuiCheckCardSetChange(xui_widget pWidget, xui_check_card_change_proc onChange, void* pUser);
+XUI_API int xuiCheckCardSetChangeOwned(xui_widget pWidget,xui_check_card_change_proc onChange,void* pUser,const xui_callback_owner_t* pOwner);
 /* 设置选中态。 */
 XUI_API int xuiCheckCardSetChecked(xui_widget pWidget, int bChecked);
 /* 组内设置选中（单选组联动，可控制通知）。 */
@@ -8503,6 +8889,7 @@ XUI_API xui_widget_type xuiRadioGetType(xui_context pContext);
 XUI_API int xuiRadioCreate(xui_context pContext, xui_widget* ppWidget, const xui_radio_desc_t* pDesc);
 /* 注册选中变更回调。 */
 XUI_API int xuiRadioSetChange(xui_widget pWidget, xui_radio_change_proc onChange, void* pUser);
+XUI_API int xuiRadioSetChangeOwned(xui_widget pWidget,xui_radio_change_proc onChange,void* pUser,const xui_callback_owner_t* pOwner);
 /* 设置标签文本。 */
 XUI_API int xuiRadioSetText(xui_widget pWidget, const char* sText);
 /* 读取文本。 */
@@ -8562,6 +8949,7 @@ XUI_API xui_widget_type xuiRadioGroupGetType(xui_context pContext);
 XUI_API int xuiRadioGroupCreate(xui_context pContext, xui_widget* ppWidget, const xui_radio_group_desc_t* pDesc);
 /* 注册选中变更回调。 */
 XUI_API int xuiRadioGroupSetChange(xui_widget pGroup, xui_radio_group_change_proc onChange, void* pUser);
+XUI_API int xuiRadioGroupSetChangeOwned(xui_widget pGroup, xui_radio_group_change_proc onChange, void* pUser, const xui_callback_owner_t* pOwner);
 /* 添加已有单选框到组，并将其重设为组的直接子项。 */
 XUI_API int xuiRadioGroupAddRadio(xui_widget pGroup, xui_widget pRadio);
 /* 添加勾选卡片到组（卡片式单选），并将其重设为组的直接子项。 */
@@ -8595,6 +8983,7 @@ XUI_API xui_widget_type xuiToggleGetType(xui_context pContext);
 XUI_API int xuiToggleCreate(xui_context pContext, xui_widget* ppWidget, const xui_toggle_desc_t* pDesc);
 /* 注册开关变更回调。 */
 XUI_API int xuiToggleSetChange(xui_widget pWidget, xui_toggle_change_proc onChange, void* pUser);
+XUI_API int xuiToggleSetChangeOwned(xui_widget pWidget,xui_toggle_change_proc onChange,void* pUser,const xui_callback_owner_t* pOwner);
 /* 设置外部标签文本。 */
 XUI_API int xuiToggleSetText(xui_widget pWidget, const char* sText);
 /* 读取标签文本。 */
@@ -8678,6 +9067,7 @@ XUI_API xui_widget_type xuiScrollBarGetType(xui_context pContext);
 XUI_API int xuiScrollBarCreate(xui_context pContext, xui_widget* ppWidget, const xui_scrollbar_desc_t* pDesc);
 /* 注册值变更回调；回调可销毁控件或上下文，返回后不得继续使用原控件。 */
 XUI_API int xuiScrollBarSetChange(xui_widget pWidget, xui_scrollbar_change_proc onChange, void* pUser);
+XUI_API int xuiScrollBarSetChangeOwned(xui_widget pWidget,xui_scrollbar_change_proc onChange,void* pUser,const xui_callback_owner_t* pOwner);
 /* 设置值域与页大小（决定滑块比例）。 */
 XUI_API int xuiScrollBarSetRange(xui_widget pWidget, float fMin, float fMax, float fPage);
 /* 输出值域与页大小。 */
@@ -8743,6 +9133,7 @@ XUI_API xui_widget_type xuiSliderGetType(xui_context pContext);
 XUI_API int xuiSliderCreate(xui_context pContext, xui_widget* ppWidget, const xui_slider_desc_t* pDesc);
 /* 注册用户交互值变更回调；程序调用 SetValue 不触发回调。 */
 XUI_API int xuiSliderSetChange(xui_widget pWidget, xui_slider_change_proc onChange, void* pUser);
+XUI_API int xuiSliderSetChangeOwned(xui_widget pWidget,xui_slider_change_proc onChange,void* pUser,const xui_callback_owner_t* pOwner);
 /* 设置值范围。 */
 XUI_API int xuiSliderSetRange(xui_widget pWidget, float fMin, float fMax);
 /* 输出值范围。 */
@@ -8796,6 +9187,7 @@ XUI_API xui_widget_type xuiRangeSliderGetType(xui_context pContext);
 XUI_API int xuiRangeSliderCreate(xui_context pContext, xui_widget* ppWidget, const xui_range_slider_desc_t* pDesc);
 /* 注册用户交互区间变更回调；程序调用 SetValues 不触发回调。 */
 XUI_API int xuiRangeSliderSetChange(xui_widget pWidget, xui_range_slider_change_proc onChange, void* pUser);
+XUI_API int xuiRangeSliderSetChangeOwned(xui_widget pWidget,xui_range_slider_change_proc onChange,void* pUser,const xui_callback_owner_t* pOwner);
 /* 设置值范围。 */
 XUI_API int xuiRangeSliderSetRange(xui_widget pWidget, float fMin, float fMax);
 /* 输出值范围。 */
@@ -8866,6 +9258,7 @@ XUI_API xui_widget_type xuiPageGetType(xui_context pContext);
 XUI_API int xuiPageCreate(xui_context pContext, xui_widget* ppWidget, const xui_page_desc_t* pDesc);
 /* 注册翻页回调。 */
 XUI_API int xuiPageSetChange(xui_widget pWidget, xui_page_change_proc onChange, void* pUser);
+XUI_API int xuiPageSetChangeOwned(xui_widget pWidget,xui_page_change_proc onChange,void* pUser,const xui_callback_owner_t* pOwner);
 /* 设置总页数。当前页超界时会被钳制并计为一次变更，但不调用用户回调。 */
 XUI_API int xuiPageSetPageCount(xui_widget pWidget, int iPageCount);
 /* 读取总页数。 */
@@ -8921,6 +9314,7 @@ XUI_API xui_widget_type xuiCarouselGetType(xui_context pContext);
 XUI_API int xuiCarouselCreate(xui_context pContext, xui_widget* ppWidget, const xui_carousel_desc_t* pDesc);
 /* 注册翻页回调。 */
 XUI_API int xuiCarouselSetChange(xui_widget pWidget, xui_carousel_change_proc onChange, void* pUser);
+XUI_API int xuiCarouselSetChangeOwned(xui_widget pWidget,xui_carousel_change_proc onChange,void* pUser,const xui_callback_owner_t* pOwner);
 /* 设置页数。已有页面容器会保留并按索引复用；缩页导致当前索引越界时会
  * 钳制到末页并递增变更计数，但不会触发用户回调。 */
 XUI_API int xuiCarouselSetPageCount(xui_widget pWidget, int iPageCount);
@@ -8986,6 +9380,7 @@ XUI_API xui_widget_type xuiVirtualJoystickGetType(xui_context pContext);
 XUI_API int xuiVirtualJoystickCreate(xui_context pContext, xui_widget* ppWidget, const xui_virtual_joystick_desc_t* pDesc);
 /* 注册摇杆/按钮变更回调；回调可销毁控件或其 Context。 */
 XUI_API int xuiVirtualJoystickSetChange(xui_widget pWidget, xui_virtual_joystick_change_proc onChange, void* pUser);
+XUI_API int xuiVirtualJoystickSetChangeOwned(xui_widget pWidget, xui_virtual_joystick_change_proc onChange, void* pUser, const xui_callback_owner_t* pOwner);
 /* 直接设置摇杆值（[-1,1]²）；bNotify 控制通知。 */
 XUI_API int xuiVirtualJoystickSetValue(xui_widget pWidget, float fX, float fY, int bNotify);
 /* 摇杆回中并清零。 */
@@ -9097,16 +9492,20 @@ XUI_API int xuiInventoryGridGetGamepadProfile(xui_widget pWidget, xui_inventory_
 XUI_API int xuiInventoryGridGamepadButton(xui_widget pWidget, int iButton, int bPressed, uint32_t iModifiers);
 /* 注册槽位选择回调。 */
 XUI_API int xuiInventoryGridSetSelectCallback(xui_widget pWidget, xui_inventory_select_proc onSelect, void* pUser);
+XUI_API int xuiInventoryGridSetSelectCallbackOwned(xui_widget pWidget, xui_inventory_select_proc onSelect, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册槽位激活（双击/确认）回调。 */
 XUI_API int xuiInventoryGridSetActivateCallback(xui_widget pWidget, xui_inventory_activate_proc onActivate, void* pUser);
+XUI_API int xuiInventoryGridSetActivateCallbackOwned(xui_widget pWidget, xui_inventory_activate_proc onActivate, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册槽位右键回调。 */
 XUI_API int xuiInventoryGridSetContextCallback(xui_widget pWidget, xui_inventory_context_proc onContext, void* pUser);
+XUI_API int xuiInventoryGridSetContextCallbackOwned(xui_widget pWidget, xui_inventory_context_proc onContext, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册拖出回调。 */
 XUI_API int xuiInventoryGridSetDragCallback(xui_widget pWidget, xui_inventory_drag_proc onDrag, void* pUser);
 /* 注册放置回调。 */
 XUI_API int xuiInventoryGridSetDropCallback(xui_widget pWidget, xui_inventory_drop_proc onDrop, void* pUser);
 /* 注册拆分堆叠回调。 */
 XUI_API int xuiInventoryGridSetSplitCallback(xui_widget pWidget, xui_inventory_split_proc onSplit, void* pUser);
+XUI_API int xuiInventoryGridSetSplitCallbackOwned(xui_widget pWidget, xui_inventory_split_proc onSplit, void* pUser, const xui_callback_owner_t* pOwner);
 /* 设置物品提示开关。 */
 XUI_API int xuiInventoryGridSetTooltipVisible(xui_widget pWidget, int bVisible);
 /* 读取提示开关。 */
@@ -9210,12 +9609,16 @@ XUI_API int xuiTerminalGetRows(xui_widget pWidget);
 XUI_API int xuiTerminalGetCursor(xui_widget pWidget, int* pColumn, int* pRow);
 /* 注册输入回调（用户按键/粘贴回传会话）。 */
 XUI_API int xuiTerminalSetInputCallback(xui_widget pWidget, xui_terminal_data_proc onData, void* pUser);
+XUI_API int xuiTerminalSetInputCallbackOwned(xui_widget pWidget, xui_terminal_data_proc onData, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册尺寸变更回调。 */
 XUI_API int xuiTerminalSetResizeCallback(xui_widget pWidget, xui_terminal_resize_proc onResize, void* pUser);
+XUI_API int xuiTerminalSetResizeCallbackOwned(xui_widget pWidget, xui_terminal_resize_proc onResize, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册标题回调（OSC 0/2）。 */
 XUI_API int xuiTerminalSetTitleCallback(xui_widget pWidget, xui_terminal_title_proc onTitle, void* pUser);
+XUI_API int xuiTerminalSetTitleCallbackOwned(xui_widget pWidget, xui_terminal_title_proc onTitle, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册超链接回调（OSC 8）。 */
 XUI_API int xuiTerminalSetLinkCallback(xui_widget pWidget, xui_terminal_link_proc onLink, void* pUser);
+XUI_API int xuiTerminalSetLinkCallbackOwned(xui_widget pWidget, xui_terminal_link_proc onLink, void* pUser, const xui_callback_owner_t* pOwner);
 #endif
 /* 注册内嵌图像回调；当前终端后端尚不支持 Sixel/iTerm2，返回 XUI_ERROR_UNSUPPORTED。 */
 #if XUI_ENABLE_TERMINAL
@@ -9319,6 +9722,7 @@ XUI_API xui_widget_type xuiSplitLayoutGetType(xui_context pContext);
 XUI_API int xuiSplitLayoutCreate(xui_context pContext, xui_widget* ppWidget, const xui_split_layout_desc_t* pDesc);
 /* 注册分割变更回调；回调可销毁 SplitLayout 或其 Context。 */
 XUI_API int xuiSplitLayoutSetChange(xui_widget pWidget, xui_split_layout_change_proc onChange, void* pUser);
+XUI_API int xuiSplitLayoutSetChangeOwned(xui_widget pWidget, xui_split_layout_change_proc onChange, void* pUser, const xui_callback_owner_t* pOwner);
 /* 设置分割方向。 */
 XUI_API int xuiSplitLayoutSetOrientation(xui_widget pWidget, int iOrientation);
 /* 读取分割方向。 */
@@ -9393,10 +9797,12 @@ XUI_API xui_widget_type xuiTabsGetType(xui_context pContext);
 XUI_API int xuiTabsCreate(xui_context pContext, xui_widget* ppWidget, const xui_tabs_desc_t* pDesc);
 /* 注册页签切换回调。 */
 XUI_API int xuiTabsSetSelect(xui_widget pWidget, xui_tabs_select_proc onSelect, void* pUser);
+XUI_API int xuiTabsSetSelectOwned(xui_widget pWidget, xui_tabs_select_proc onSelect, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册页签关闭回调；bCloseButtons 控制显示关闭钮。控件不自动删除页面，回调可调用 xuiTabsRemovePage。 */
 XUI_API int xuiTabsSetClose(xui_widget pWidget, xui_tabs_close_proc onClose, int bCloseButtons, void* pUser);
 /* 注册页签右键回调。 */
 XUI_API int xuiTabsSetContextMenu(xui_widget pWidget, xui_tabs_context_proc onContext, void* pUser);
+XUI_API int xuiTabsSetContextMenuOwned(xui_widget pWidget, xui_tabs_context_proc onContext, void* pUser, const xui_callback_owner_t* pOwner);
 /* 添加页面（标题会复制）；*ppPage 可空输出借用的页面容器。 */
 XUI_API int xuiTabsAddPage(xui_widget pWidget, const char* sTitle, xui_widget* ppPage);
 /* 修改指定页签标题；标题按 UTF-8 字素边界复制。 */
@@ -9504,6 +9910,7 @@ XUI_API xui_widget_type xuiAccordionGetType(xui_context pContext);
 XUI_API int xuiAccordionCreate(xui_context pContext, xui_widget* ppWidget, const xui_accordion_desc_t* pDesc);
 /* 注册分区展开/收起回调。 */
 XUI_API int xuiAccordionSetSelect(xui_widget pWidget, xui_accordion_select_proc onSelect, void* pUser);
+XUI_API int xuiAccordionSetSelectOwned(xui_widget pWidget, xui_accordion_select_proc onSelect, void* pUser, const xui_callback_owner_t* pOwner);
 /* 移除全部分区（子控件一并销毁）。 */
 XUI_API int xuiAccordionClear(xui_widget pWidget);
 /* 添加分区（标题/id/初始展开）；标题会复制，*ppClient 可空并输出内容容器。 */
@@ -9583,8 +9990,10 @@ XUI_API xui_widget_type xuiWindowGetType(xui_context pContext);
 XUI_API int xuiWindowCreate(xui_context pContext, xui_widget* ppWidget, const xui_window_desc_t* pDesc);
 /* 注册关闭完成通知；回调在窗口隐藏后运行，可销毁窗口或其上下文。 */
 XUI_API int xuiWindowSetClose(xui_widget pWidget, xui_window_close_proc onClose, void* pUser);
+XUI_API int xuiWindowSetCloseOwned(xui_widget pWidget, xui_window_close_proc onClose, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册标题栏右键回调。 */
 XUI_API int xuiWindowSetContextMenu(xui_widget pWidget, xui_window_context_proc onContext, void* pUser);
+XUI_API int xuiWindowSetContextMenuOwned(xui_widget pWidget, xui_window_context_proc onContext, void* pUser, const xui_callback_owner_t* pOwner);
 /* 取内容容器控件。 */
 XUI_API xui_widget xuiWindowGetClientWidget(xui_widget pWidget);
 /* 取折叠按钮控件。 */
@@ -9817,12 +10226,16 @@ XUI_API int xuiDockPanelSetColors(xui_widget pWidget, const xui_dock_panel_color
 XUI_API int xuiDockPanelGetColors(xui_widget pWidget, xui_dock_panel_colors_t* pColors);
 /* 注册窗口状态变更回调。 */
 XUI_API int xuiDockPanelSetWindowStateChanged(xui_widget pWidget, xui_dock_window_state_proc onState, void* pUser);
+XUI_API int xuiDockPanelSetWindowStateChangedOwned(xui_widget pWidget, xui_dock_window_state_proc onState, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册活动窗口变更回调。 */
 XUI_API int xuiDockPanelSetActiveChanged(xui_widget pWidget, xui_dock_active_proc onActive, void* pUser);
+XUI_API int xuiDockPanelSetActiveChangedOwned(xui_widget pWidget, xui_dock_active_proc onActive, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册窗口关闭请求回调。 */
 XUI_API int xuiDockPanelSetWindowClose(xui_widget pWidget, xui_dock_window_close_proc onClose, void* pUser);
+XUI_API int xuiDockPanelSetWindowCloseOwned(xui_widget pWidget, xui_dock_window_close_proc onClose, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册窗口右键回调。 */
 XUI_API int xuiDockPanelSetContextMenu(xui_widget pWidget, xui_dock_context_proc onContext, void* pUser);
+XUI_API int xuiDockPanelSetContextMenuOwned(xui_widget pWidget, xui_dock_context_proc onContext, void* pUser, const xui_callback_owner_t* pOwner);
 /* 坐标命中测试（窗格/标签/拖拽指示）。 */
 XUI_API int xuiDockPanelHitTest(xui_widget pWidget, float fX, float fY, xui_dock_hit_t* pHit);
 /* 按拖拽位置求停放目标。 */
@@ -9870,6 +10283,10 @@ XUI_API int xuiDockPanelGetWindowChangeCount(xui_widget pWidget);
 XUI_API int xuiMsgBoxCreate(xui_context pContext, xui_msgbox* ppBox, const xui_msgbox_desc_t* pDesc);
 /* 释放消息框。 */
 XUI_API void xuiMsgBoxDestroy(xui_msgbox pBox);
+XUI_API int xuiMsgBoxDestroyOwnerChecked(xui_msgbox pBox, bool* pConsumed);
+XUI_API int xuiMsgBoxDestroyChecked(xui_msgbox pBox);
+XUI_API xui_context xuiMsgBoxGetContext(xui_msgbox pBox);
+XUI_API int xuiMsgBoxLifetimeWatch(xui_msgbox pBox, xui_lifetime_link_t* pLink, xui_lifetime_invalidate_proc onInvalidate, void* pUser);
 /* 设置内容文本（消息主体）。 */
 XUI_API int xuiMsgBoxSetText(xui_msgbox pBox, const char* sTitle, const char* sMessage);
 /* 设置标题。 */
@@ -9898,6 +10315,7 @@ XUI_API int xuiMsgBoxSetPresetButtonTitle(xui_msgbox pBox, int iTitle, const cha
 XUI_API const char* xuiMsgBoxGetPresetButtonTitle(xui_msgbox pBox, int iTitle);
 /* 设置结果回调；回调可销毁当前消息框，框架不会在回调返回后继续访问它。 */
 XUI_API int xuiMsgBoxSetResult(xui_msgbox pBox, xui_msgbox_result_proc onResult, void* pUser);
+XUI_API int xuiMsgBoxSetResultOwned(xui_msgbox pBox, xui_msgbox_result_proc onResult, void* pUser, const xui_callback_owner_t* pOwner);
 /* 设置模态（带背景护罩）。 */
 XUI_API int xuiMsgBoxSetModal(xui_msgbox pBox, int bModal);
 /* 读取模态标志。 */
@@ -9947,6 +10365,10 @@ XUI_API int xuiMsgBoxGetChangeCount(xui_msgbox pBox);
 XUI_API int xuiFileDialogCreate(xui_context pContext, xui_file_dialog* ppDialog, const xui_file_dialog_desc_t* pDesc);
 /* 释放文件对话框。 */
 XUI_API void xuiFileDialogDestroy(xui_file_dialog pDialog);
+XUI_API int xuiFileDialogDestroyOwnerChecked(xui_file_dialog pDialog, bool* pConsumed);
+XUI_API int xuiFileDialogDestroyChecked(xui_file_dialog pDialog);
+XUI_API xui_context xuiFileDialogGetContext(xui_file_dialog pDialog);
+XUI_API int xuiFileDialogLifetimeWatch(xui_file_dialog pDialog, xui_lifetime_link_t* pLink, xui_lifetime_invalidate_proc onInvalidate, void* pUser);
 /* 一步打开文件选择对话框（模态；结果经 GetResultPath 读取）。 */
 XUI_API int xuiOpenFileDialog(xui_context pContext, xui_file_dialog* ppDialog, const xui_file_dialog_desc_t* pDesc);
 /* 一步打开保存文件对话框（模态；覆盖确认）。 */
@@ -9963,8 +10385,10 @@ XUI_API int xuiFileDialogSetModal(xui_file_dialog pDialog, int bModal);
 XUI_API int xuiFileDialogIsModal(xui_file_dialog pDialog);
 /* 注册结果回调。 */
 XUI_API int xuiFileDialogSetResult(xui_file_dialog pDialog, xui_file_dialog_result_proc onResult, void* pUser);
+XUI_API int xuiFileDialogSetResultOwned(xui_file_dialog pDialog, xui_file_dialog_result_proc onResult, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册列表右键回调。 */
 XUI_API int xuiFileDialogSetContextMenu(xui_file_dialog pDialog, xui_file_dialog_context_proc onContext, void* pUser);
+XUI_API int xuiFileDialogSetContextMenuOwned(xui_file_dialog pDialog, xui_file_dialog_context_proc onContext, void* pUser, const xui_callback_owner_t* pOwner);
 /* 设置过滤器（显示名 + 通配模式，分号分隔）。 */
 XUI_API int xuiFileDialogSetFilter(xui_file_dialog pDialog, const char* sFilter);
 /* 读取当前过滤器串。 */
@@ -10032,6 +10456,10 @@ XUI_API int xuiFileDialogEntryIsDir(xui_file_dialog pDialog, int iIndex);
 XUI_API int xuiMsgTipCreate(xui_context pContext, xui_msgtip* ppTip, const xui_msgtip_desc_t* pDesc);
 /* 释放轻提示。 */
 XUI_API void xuiMsgTipDestroy(xui_msgtip pTip);
+XUI_API int xuiMsgTipDestroyOwnerChecked(xui_msgtip pTip, bool* pConsumed);
+XUI_API int xuiMsgTipDestroyChecked(xui_msgtip pTip);
+XUI_API xui_context xuiMsgTipGetContext(xui_msgtip pTip);
+XUI_API int xuiMsgTipLifetimeWatch(xui_msgtip pTip, xui_lifetime_link_t* pLink, xui_lifetime_invalidate_proc onInvalidate, void* pUser);
 /* 显示提示（类型/文本/非负持续秒数；持续 0 不自动关闭）。 */
 XUI_API int xuiMsgTipShow(xui_msgtip pTip, int iType, const char* sText, float fDuration);
 /* 关闭提示。 */
@@ -10064,6 +10492,7 @@ XUI_API int xuiMsgTipSetColors(xui_msgtip pTip, const xui_msgtip_colors_t* pColo
 XUI_API int xuiMsgTipGetColors(xui_msgtip pTip, xui_msgtip_colors_t* pColors);
 /* 注册关闭回调（含超时到期）；回调可销毁当前轻提示。 */
 XUI_API int xuiMsgTipSetClose(xui_msgtip pTip, xui_msgtip_close_proc onClose, void* pUser);
+XUI_API int xuiMsgTipSetCloseOwned(xui_msgtip pTip, xui_msgtip_close_proc onClose, void* pUser, const xui_callback_owner_t* pOwner);
 /* 取提示关联的显示控件（借用句柄，轻提示销毁后失效）。 */
 XUI_API xui_widget xuiMsgTipGetWidget(xui_msgtip pTip);
 /* 读取提示整体矩形。 */
@@ -10089,6 +10518,10 @@ XUI_API int xuiMsgTipGetChangeCount(xui_msgtip pTip);
 XUI_API int xuiToastCreate(xui_context pContext, xui_toast* ppToast, const xui_toast_desc_t* pDesc);
 /* 释放通知中心。 */
 XUI_API void xuiToastDestroy(xui_toast pToast);
+XUI_API int xuiToastDestroyOwnerChecked(xui_toast pToast, bool* pConsumed);
+XUI_API int xuiToastDestroyChecked(xui_toast pToast);
+XUI_API xui_context xuiToastGetContext(xui_toast pToast);
+XUI_API int xuiToastLifetimeWatch(xui_toast pToast, xui_lifetime_link_t* pLink, xui_lifetime_invalidate_proc onInvalidate, void* pUser);
 /* 显示一条通知；标题和正文会被复制。返回通知 id，fDuration 为非负秒数（0 不自动关闭），
  * 鼠标悬停在通知上时自动关闭倒计时暂停。
  * 队列满时丢弃最早的待显示通知，并以 XUI_TOAST_CLOSE_CAPACITY_DROP 通知关闭回调。 */
@@ -10123,6 +10556,8 @@ XUI_API int xuiToastSetFont(xui_toast pToast, xui_font pFont);
 XUI_API xui_font xuiToastGetFont(xui_toast pToast);
 /* 注册通知关闭回调（含超时到期和容量丢弃）；回调可销毁当前通知中心。 */
 XUI_API int xuiToastSetClose(xui_toast pToast, xui_toast_close_proc onClose, void* pUser);
+XUI_API int xuiToastSetCloseOwned(xui_toast pToast, xui_toast_close_proc onClose, void* pUser, const xui_callback_owner_t* pOwner);
+XUI_API int xuiToastShowOwned(xui_toast pToast, int iType, const char* sTitle, const char* sMessage, float fDuration, xui_toast_click_proc onClick, void* pUser, const xui_callback_owner_t* pOwner, int* pToastId);
 /* 按槽位取通知项控件。 */
 XUI_API xui_widget xuiToastGetItemWidget(xui_toast pToast, int iSlot);
 /* 按槽位读取通知矩形。 */
@@ -10183,6 +10618,7 @@ XUI_API xui_widget_type xuiScrollFrameGetType(xui_context pContext);
 XUI_API int xuiScrollFrameCreate(xui_context pContext, xui_widget* ppWidget, const xui_scroll_frame_desc_t* pDesc);
 /* 注册滚动变更回调；回调可销毁控件或上下文。 */
 XUI_API int xuiScrollFrameSetChange(xui_widget pWidget, xui_scroll_frame_change_proc onChange, void* pUser);
+XUI_API int xuiScrollFrameSetChangeOwned(xui_widget pWidget, xui_scroll_frame_change_proc onChange, void* pUser, const xui_callback_owner_t* pOwner);
 /* 取内嵌滚动模型（借用指针；不要释放，修改滚动状态应优先使用 ScrollFrame API）。 */
 XUI_API xui_scroll_model_t* xuiScrollFrameGetModel(xui_widget pWidget);
 /* 取视口子控件（借用句柄；由 ScrollFrame 持有，不得销毁或迁移）。 */
@@ -10278,6 +10714,7 @@ XUI_API xui_widget_type xuiScrollViewGetType(xui_context pContext);
 XUI_API int xuiScrollViewCreate(xui_context pContext, xui_widget* ppWidget, const xui_scroll_view_desc_t* pDesc);
 /* 注册滚动变更回调；回调可销毁控件或上下文。 */
 XUI_API int xuiScrollViewSetChange(xui_widget pWidget, xui_scroll_view_change_proc onChange, void* pUser);
+XUI_API int xuiScrollViewSetChangeOwned(xui_widget pWidget, xui_scroll_view_change_proc onChange, void* pUser, const xui_callback_owner_t* pOwner);
 /* 取内部滚动框架控件（借用句柄；由 ScrollView 持有，不得销毁或迁移）。 */
 XUI_API xui_widget xuiScrollViewGetFrameWidget(xui_widget pWidget);
 /* 取内容容器（添加子控件的目标；借用句柄，不得销毁或迁移）。 */
@@ -10437,10 +10874,12 @@ XUI_API xui_widget_type xuiListViewGetType(xui_context pContext);
 XUI_API int xuiListViewCreate(xui_context pContext, xui_widget* ppWidget, const xui_list_view_desc_t* pDesc);
 /* 注册选中项回调；回调可销毁 ListView 或其 Context。 */
 XUI_API int xuiListViewSetSelect(xui_widget pWidget, xui_list_view_select_proc onSelect, void* pUser);
+XUI_API int xuiListViewSetSelectOwned(xui_widget pWidget, xui_list_view_select_proc onSelect, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册条目激活回调（双击、Enter 或无障碍 Activate）；回调可销毁 ListView 或其 Context。 */
 XUI_API int xuiListViewSetActivate(xui_widget pWidget, xui_list_view_activate_proc onActivate, void* pUser);
 /* 注册条目右键回调；回调可销毁 ListView 或其 Context。 */
 XUI_API int xuiListViewSetContextMenu(xui_widget pWidget, xui_list_view_context_proc onContext, void* pUser);
+XUI_API int xuiListViewSetContextMenuOwned(xui_widget pWidget, xui_list_view_context_proc onContext, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册条目自绘回调（覆盖默认绘制）；允许回调销毁控件，修改列表会终止当前绘制批次。 */
 XUI_API int xuiListViewSetItemRenderer(xui_widget pWidget, xui_list_view_item_proc onRender, void* pUser);
 /* 以字符串数组批量设置条目。 */
@@ -10541,8 +10980,12 @@ XUI_API xui_widget_type xuiMessageListGetType(xui_context pContext);
 XUI_API int xuiMessageListCreate(xui_context pContext, xui_widget* ppWidget, const xui_message_list_desc_t* pDesc);
 /* 注册消息事件回调（点击/链接/选择）。 */
 XUI_API int xuiMessageListSetEvent(xui_widget pWidget, xui_message_list_event_proc onEvent, void* pUser);
+XUI_API int xuiMessageListSetEventOwned(xui_widget pWidget, xui_message_list_event_proc onEvent, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册气泡自绘回调（覆盖默认绘制）。 */
 XUI_API int xuiMessageListSetNodeRenderer(xui_widget pWidget, xui_message_list_node_renderer_proc onRender, void* pUser);
+/* Renderer status: zero uses the default renderer, positive means handled,
+ * negative reports a checked failure. Node/Draw arguments are callback views. */
+XUI_API int xuiMessageListSetNodeRendererOwned(xui_widget pWidget, xui_message_list_node_renderer_proc onRender, void* pUser, const xui_callback_owner_t* pOwner);
 /* 批量设置消息节点。 */
 XUI_API int xuiMessageListSetNodes(xui_widget pWidget, const xui_message_node_t* pNodes, int iCount);
 /* 追加一条消息。 */
@@ -10630,13 +11073,31 @@ XUI_API xui_widget_type xuiTreeViewGetType(xui_context pContext);
 XUI_API int xuiTreeViewCreate(xui_context pContext, xui_widget* ppWidget, const xui_tree_view_desc_t* pDesc);
 /* 注册节点选择回调。 */
 XUI_API int xuiTreeViewSetSelect(xui_widget pWidget, xui_tree_view_select_proc onSelect, void* pUser);
+XUI_API int xuiTreeViewSetSelectOwned(xui_widget pWidget, xui_tree_view_select_proc onSelect, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册节点右键回调。 */
 XUI_API int xuiTreeViewSetContextMenu(xui_widget pWidget, xui_tree_view_context_proc onContext, void* pUser);
+XUI_API int xuiTreeViewSetContextMenuOwned(xui_widget pWidget, xui_tree_view_context_proc onContext, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册行自绘回调。 */
 XUI_API int xuiTreeViewSetItemRenderer(xui_widget pWidget, xui_tree_view_item_proc onRender, void* pUser);
 /* 设置数据适配器（总节点数 + 按索引读取节点描述）。回调绑定成功后立即刷新；
  * 刷新失败时保留绑定，调用方可修正数据后重试 xuiTreeViewRefreshAdapter。 */
 XUI_API int xuiTreeViewSetAdapter(xui_widget pWidget, xui_tree_view_count_proc onCount, xui_tree_view_node_proc onNode, void* pUser);
+/* Init requires fresh storage. Dispose is idempotent on initialized storage.
+ * SetText clones exactly Size bytes, rejects embedded NUL (TreeView's native
+ * display text is C text), and preserves the old value on allocation failure.
+ * GetText borrows until the next SetText/Dispose; the callback output itself
+ * remains valid only for the current callback. */
+XUI_API void xuiTreeViewNodeOutputInit(xui_tree_view_node_output_t* pOutput);
+XUI_API int xuiTreeViewNodeOutputSetText(xui_tree_view_node_output_t* pOutput, xstrview Text);
+XUI_API xstrview xuiTreeViewNodeOutputGetText(const xui_tree_view_node_output_t* pOutput);
+XUI_API void xuiTreeViewNodeOutputDispose(xui_tree_view_node_output_t* pOutput);
+/* Each callback owns its own userdata. The pair publishes atomically. A node
+ * output is consumed and disposed BEFORE its callback owner snapshot drops.
+ * Registration remains committed if refresh fails; visible nodes are atomic.
+ * Reentrant SetAdapter during refresh is checked-rejected, as for raw adapters. */
+XUI_API int xuiTreeViewSetAdapterOwned(xui_widget pWidget,
+    xui_tree_view_count_proc onCount, void* pCountUser, const xui_callback_owner_t* pCountOwner,
+    xui_tree_view_node_owned_proc onNode, void* pNodeUser, const xui_callback_owner_t* pNodeOwner);
 /* Adapter reads observe the old tree until commit. Reentrant refresh/rebind or
  * a callback invalidating the tree aborts with XUI_ERROR_INVALID_STATE. */
 XUI_API int xuiTreeViewRefreshAdapter(xui_widget pWidget);
@@ -10746,21 +11207,83 @@ XUI_API int xuiTableViewSetRows(xui_widget pWidget, const xui_table_view_row_t* 
 /* 设置虚拟化适配器（count + cell 回调，按需取值）。回调在调用线程同步执行；
  * cell 输出中的字符串/用户指针仅须在本次回调消费完成前有效。回调可重入修改或
  * 销毁控件；此时外层读取以 XUI_ERROR_INVALID_STATE 中止，重入修改保留。 */
+/* Init requires fresh automatic storage; Dispose consumes it. Create owns one
+ * heap reference; ReleaseChecked consumes one even when final cleanup fails.
+ * AddRef cannot retain automatic storage. A Use read pin keeps cached payloads
+ * alive and setters/Reset on that source return BUSY until the last consumer.
+ * Returned text/value views are borrowed until the next successful mutation.
+ * Mutations and owning cleanup belong to the creator thread; Use/Copy never
+ * transfer callback owners to another creator. Frozen ownership Count/Trace
+ * remains readable from other threads. Init queries the native thread ID once. */
+XUI_API void xuiTableViewCellOutputInit(xui_table_view_cell_output_t* pCell);
+XUI_API int xuiTableViewCellOutputCreate(xui_table_view_cell_output_t** ppCell);
+XUI_API int xuiTableViewCellOutputAddRef(xui_table_view_cell_output_t* pCell);
+XUI_API int xuiTableViewCellOutputReleaseChecked(xui_table_view_cell_output_t* pCell);
+/* pConsumed is independent caller storage; true means one owner was consumed,
+ * including final cleanup failure without a diagnostic. False is retryable. */
+XUI_API int xuiTableViewCellOutputReleaseOwnerChecked(xui_table_view_cell_output_t* pCell, bool* pConsumed);
+XUI_API int xuiTableViewCellOutputDisposeChecked(xui_table_view_cell_output_t* pCell);
+XUI_API int xuiTableViewCellOutputReset(xui_table_view_cell_output_t* pCell);
+XUI_API int xuiTableViewCellOutputUse(xui_table_view_cell_output_t* pCell, xui_table_view_cell_output_t* pCached);
+XUI_API int xuiTableViewCellOutputSetText(xui_table_view_cell_output_t* pCell, xstrview tText);
+XUI_API xstrview xuiTableViewCellOutputGetText(const xui_table_view_cell_output_t* pCell);
+XUI_API int xuiTableViewCellOutputSetTooltip(xui_table_view_cell_output_t* pCell, xstrview tText);
+XUI_API xstrview xuiTableViewCellOutputGetTooltip(const xui_table_view_cell_output_t* pCell);
+XUI_API int xuiTableViewCellOutputSetValue(xui_table_view_cell_output_t* pCell, const xvalue* pValue);
+XUI_API const xvalue* xuiTableViewCellOutputGetValue(const xui_table_view_cell_output_t* pCell);
+XUI_API int xuiTableViewCellOutputSetFormatterOwned(xui_table_view_cell_output_t* pCell, xui_table_view_cell_text_owned_proc onText, void* pUser, const xui_callback_owner_t* pOwner);
+XUI_API int xuiTableViewCellOutputSetRendererOwned(xui_table_view_cell_output_t* pCell, xui_table_view_cell_render_owned_proc onRender, void* pUser, const xui_callback_owner_t* pOwner);
+XUI_API xrtownershipref xuiTableViewCellOutputOwnership(const xui_table_view_cell_output_t* pCell);
+XUI_API const xrtownershipadapterv1* xuiTableViewCellOutputOwnershipAdapterV1(xrtownershipref tReference);
+XUI_API const xrtownershippreparationv1* xuiTableViewCellOutputOwnershipPreparationV1(xrtownershipref tReference);
+XUI_API const xrtownershipfinishv2* xuiTableViewCellOutputOwnershipCompletionV2(xrtownershipref tReference);
+XUI_API const xrtownershipquiescencev1* xuiTableViewCellOutputOwnershipQuiescenceV1(xrtownershipref tReference);
+XUI_API bool xuiTableViewCellOutputBusy(const xui_table_view_cell_output_t* pCell);
+XUI_API bool xuiTableViewCellOutputCanRetire(const xui_table_view_cell_output_t* pCell);
+XUI_API int xuiTableViewCellOutputLifetimeWatch(xui_table_view_cell_output_t* pCell, xui_lifetime_link_t* pLink, xui_lifetime_invalidate_proc onInvalidate, void* pUser);
+/* Zero-initialized, address-stable, caller-owned token. Never copy a live token. */
+typedef struct xui_table_cell_scope_t {
+    xui_table_view_cell_output_t* pCell;
+    struct xui_table_cell_scope_t* pSelf;
+    struct xui_table_cell_scope_t* pPrevious;
+    struct xui_table_cell_scope_t* pNext;
+    int iResult;
+    int bEnding;
+    xerror* _pFirstError;
+} xui_table_cell_scope_t;
+XUI_API int xuiTableViewCellOutputCallScopeBegin(xui_table_view_cell_output_t* pCell, xui_table_cell_scope_t* pScope);
+XUI_API int xuiTableViewCellOutputCallScopeEnd(xui_table_cell_scope_t* pScope);
+
+/* Owned registration is committed before refresh/old-owner cleanup. A failed
+ * refresh preserves the registration so it can be retried. Independent owners
+ * are held through the actual native output consumption, including formatting. */
+XUI_API int xuiTableViewSetAdapterOwned(xui_widget pWidget,
+    xui_table_view_count_proc onCount, void* pCountUser, const xui_callback_owner_t* pCountOwner,
+    xui_table_view_cell_owned_proc onCell, void* pCellUser, const xui_callback_owner_t* pCellOwner);
+/* pCell is an initialized caller-owned record. Provider/clone failure leaves it
+ * intact. Cleanup failure can follow a committed replacement. */
+XUI_API int xuiTableViewGetCellOwned(xui_widget pWidget, int iRow, int iColumn, xui_table_view_cell_output_t* pCell);
 XUI_API int xuiTableViewSetAdapter(xui_widget pWidget, xui_table_view_count_proc onCount, xui_table_view_cell_proc onCell, void* pUser);
 /* 数据源变更后请求重取（行数变化）。 */
 XUI_API int xuiTableViewRefreshAdapter(xui_widget pWidget);
 /* 注册排序回调（同一表头按下并抬起时触发；回调可销毁控件或上下文）。 */
 XUI_API int xuiTableViewSetSort(xui_widget pWidget, xui_table_view_sort_proc onSort, void* pUser);
+XUI_API int xuiTableViewSetSortOwned(xui_widget pWidget, xui_table_view_sort_proc onSort, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册选择回调；回调可销毁控件或上下文。 */
 XUI_API int xuiTableViewSetSelect(xui_widget pWidget, xui_table_view_select_proc onSelect, void* pUser);
+XUI_API int xuiTableViewSetSelectOwned(xui_widget pWidget, xui_table_view_select_proc onSelect, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册列宽调整回调（拖拽边界；回调可销毁控件或上下文）。 */
 XUI_API int xuiTableViewSetColumnResize(xui_widget pWidget, xui_table_view_column_resize_proc onResize, void* pUser);
+XUI_API int xuiTableViewSetColumnResizeOwned(xui_widget pWidget, xui_table_view_column_resize_proc onResize, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册悬停回调。 */
 XUI_API int xuiTableViewSetHover(xui_widget pWidget, xui_table_view_hover_proc onHover, void* pUser);
+XUI_API int xuiTableViewSetHoverOwned(xui_widget pWidget, xui_table_view_hover_proc onHover, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册右键回调；回调可销毁控件或上下文。 */
 XUI_API int xuiTableViewSetContextMenu(xui_widget pWidget, xui_table_view_context_proc onContext, void* pUser);
+XUI_API int xuiTableViewSetContextMenuOwned(xui_widget pWidget, xui_table_view_context_proc onContext, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册单元格合并判定回调；同步调用，允许重入修改/销毁并中止当前外层读取。 */
 XUI_API int xuiTableViewSetMergeProvider(xui_widget pWidget, xui_table_view_merge_proc onMerge, void* pUser);
+XUI_API int xuiTableViewSetMergeProviderOwned(xui_widget pWidget, xui_table_view_merge_proc onMerge, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册表头自绘回调；传入列描述仅在回调期间有效，回调可销毁控件或上下文。 */
 XUI_API int xuiTableViewSetHeaderRenderer(xui_widget pWidget, xui_table_view_header_renderer_proc onRender, void* pUser);
 /* 注册单元格自绘回调（覆盖默认文本绘制）；传入单元格仅在回调期间有效，回调可销毁控件或上下文。 */
@@ -10872,17 +11395,50 @@ XUI_API int xuiTableGridSetColumns(xui_widget pWidget, const xui_table_view_colu
 /* 批量设置行数据。 */
 XUI_API int xuiTableGridSetRows(xui_widget pWidget, const xui_table_view_row_t* arrRows, int iCount);
 /* 设置虚拟化适配器（行数 + 单元格取值 + 写回）。 */
+/* Independent typed owned callbacks; registration stays committed if refresh
+ * fails. Values remain in CellOutput, never an unowned raw pValue. */
+XUI_API int xuiTableGridSetAdapterOwned(xui_widget pWidget,
+    xui_table_view_count_proc onCount, void* pCountUser, const xui_callback_owner_t* pCountOwner,
+    xui_table_view_cell_owned_proc onCell, void* pCellUser, const xui_callback_owner_t* pCellOwner,
+    xui_table_grid_set_proc onSet, void* pSetUser, const xui_callback_owner_t* pSetOwner);
+XUI_API int xuiTableGridSetValidateOwned(xui_widget pWidget, xui_table_grid_validate_proc onValidate, void* pUser, const xui_callback_owner_t* pOwner);
+XUI_API int xuiTableGridSetEditorOwned(xui_widget pWidget, xui_table_grid_editor_owned_proc onEditor, void* pUser, const xui_callback_owner_t* pOwner);
 XUI_API int xuiTableGridSetAdapter(xui_widget pWidget, xui_table_view_count_proc onCount, xui_table_view_cell_proc onCell, xui_table_grid_set_proc onSet, void* pUser);
 /* 注册单元格写回校验回调（拒绝非法值）。 */
 XUI_API int xuiTableGridSetValidate(xui_widget pWidget, xui_table_grid_validate_proc onValidate, void* pUser);
 /* 注册单元格提交回调。 */
 XUI_API int xuiTableGridSetChange(xui_widget pWidget, xui_table_grid_change_proc onChange, void* pUser);
+XUI_API int xuiTableGridSetChangeOwned(xui_widget pWidget, xui_table_grid_change_proc onChange, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册编辑器工厂回调（按列创建编辑控件）。 */
 XUI_API int xuiTableGridSetEditor(xui_widget pWidget, xui_table_grid_editor_proc onEditor, void* pUser);
 /* 注册编辑器配置回调（编辑前初始化控件）；配置期间对同一网格的编辑/模型修改重入会被拒绝。 */
 XUI_API int xuiTableGridSetEditorConfig(xui_widget pWidget, xui_table_grid_editor_config_proc onConfig, void* pUser);
+/* Owned config is zero-success, negative-checked; raw config cannot be mixed
+ * with OwnedEditor. OwnedEditor returns >0 handled / 0 fallback / <0 checked. */
+XUI_API int xuiTableGridSetEditorConfigOwned(xui_widget pWidget,xui_table_grid_editor_config_owned_proc onConfig,void* pUser,const xui_callback_owner_t* pOwner);
+XUI_API void xuiTableGridEditorConfigOutputInit(xui_table_grid_editor_config_output_t* pOutput);
+XUI_API void xuiTableGridEditorConfigOutputDispose(xui_table_grid_editor_config_output_t* pOutput);
+XUI_API int xuiTableGridEditorConfigOutputSetEnumCount(xui_table_grid_editor_config_output_t* pOutput,int iCount);
+XUI_API int xuiTableGridEditorConfigOutputGetEnumCount(const xui_table_grid_editor_config_output_t* pOutput);
+XUI_API int xuiTableGridEditorConfigOutputGetEnumItem(const xui_table_grid_editor_config_output_t* pOutput,int iIndex,xstrview* pText,int* pValue,int* pEnabled,int* pSeparator,int* pIcon);
+XUI_API int xuiTableGridEditorConfigOutputSetEnumItem(xui_table_grid_editor_config_output_t* pOutput,int iIndex,xstrview Text,int iValue,int bEnabled,int bSeparator,int iIcon);
+XUI_API int xuiTableGridEditorConfigOutputSetPalette(xui_table_grid_editor_config_output_t* pOutput,const uint32_t* pColors,int iCount);
+XUI_API int xuiTableGridEditorConfigOutputSetPaletteCount(xui_table_grid_editor_config_output_t* pOutput,int iCount);
+XUI_API int xuiTableGridEditorConfigOutputSetPaletteItem(xui_table_grid_editor_config_output_t* pOutput,int iIndex,uint32_t iColor);
+XUI_API int xuiTableGridEditorConfigOutputGetPaletteCount(const xui_table_grid_editor_config_output_t* pOutput);
+XUI_API int xuiTableGridEditorConfigOutputGetPaletteItem(const xui_table_grid_editor_config_output_t* pOutput,int iIndex,uint32_t* pColor);
+XUI_API int xuiTableGridEditorConfigOutputSetDateFormat(xui_table_grid_editor_config_output_t* pOutput,xstrview Text);
+XUI_API xstrview xuiTableGridEditorConfigOutputGetDateFormat(const xui_table_grid_editor_config_output_t* pOutput);
+XUI_API int xuiTableGridEditorConfigOutputSetActionText(xui_table_grid_editor_config_output_t* pOutput,xstrview Text);
+XUI_API xstrview xuiTableGridEditorConfigOutputGetActionText(const xui_table_grid_editor_config_output_t* pOutput);
+XUI_API int xuiTableGridEditorConfigOutputSetFileFilter(xui_table_grid_editor_config_output_t* pOutput,xstrview Text);
+XUI_API xstrview xuiTableGridEditorConfigOutputGetFileFilter(const xui_table_grid_editor_config_output_t* pOutput);
+XUI_API int xuiTableGridEditorConfigOutputSetRangeSeparator(xui_table_grid_editor_config_output_t* pOutput,xstrview Text);
+XUI_API xstrview xuiTableGridEditorConfigOutputGetRangeSeparator(const xui_table_grid_editor_config_output_t* pOutput);
+
 /* 注册右键回调。 */
 XUI_API int xuiTableGridSetContextMenu(xui_widget pWidget, xui_table_grid_context_proc onContext, void* pUser);
+XUI_API int xuiTableGridSetContextMenuOwned(xui_widget pWidget, xui_table_grid_context_proc onContext, void* pUser, const xui_callback_owner_t* pOwner);
 /* 设置编辑模式：DISPLAY 双击进入，QUICK 在单击抬起时进入，IMMEDIATE 在单击按下时进入；键盘 Enter/Space/F2 均可进入。 */
 XUI_API int xuiTableGridSetEditMode(xui_widget pWidget, int iMode);
 /* 读取编辑模式。 */
@@ -11045,17 +11601,23 @@ XUI_API int xuiTimeLineViewGetSelectionCount(xui_widget pWidget);
 XUI_API int xuiTimeLineViewGetSelection(xui_widget pWidget, int iIndex, xui_timeline_selection_t* pSelection);
 /* 注册当前帧 changing/changed 回调对。 */
 XUI_API int xuiTimeLineViewSetCurrentFrameCallbacks(xui_widget pWidget, xui_timeline_current_frame_changing_proc onChanging, xui_timeline_current_frame_changed_proc onChanged, void* pUser);
+XUI_API int xuiTimeLineViewSetCurrentFrameCallbacksOwned(xui_widget pWidget, xui_timeline_current_frame_changing_proc onChanging, void* pUser0, const xui_callback_owner_t* pOwner0, xui_timeline_current_frame_changed_proc onChanged, void* pUser1, const xui_callback_owner_t* pOwner1);
 /* 注册图层名称、可见性、锁定与激活选择的 changing/changed 回调对；
  * changing 返回 0 可否决对应变更。 */
 XUI_API int xuiTimeLineViewSetLayerCallbacks(xui_widget pWidget, xui_timeline_layer_changing_proc onChanging, xui_timeline_layer_changed_proc onChanged, void* pUser);
+XUI_API int xuiTimeLineViewSetLayerCallbacksOwned(xui_widget pWidget, xui_timeline_layer_changing_proc onChanging, void* pUser0, const xui_callback_owner_t* pOwner0, xui_timeline_layer_changed_proc onChanged, void* pUser1, const xui_callback_owner_t* pOwner1);
 /* 注册关键帧变更回调对。 */
 XUI_API int xuiTimeLineViewSetFrameCallbacks(xui_widget pWidget, xui_timeline_frame_changing_proc onChanging, xui_timeline_frame_changed_proc onChanged, void* pUser);
+XUI_API int xuiTimeLineViewSetFrameCallbacksOwned(xui_widget pWidget, xui_timeline_frame_changing_proc onChanging, void* pUser0, const xui_callback_owner_t* pOwner0, xui_timeline_frame_changed_proc onChanged, void* pUser1, const xui_callback_owner_t* pOwner1);
 /* 注册区间变更回调对。 */
 XUI_API int xuiTimeLineViewSetSpanCallbacks(xui_widget pWidget, xui_timeline_span_changing_proc onChanging, xui_timeline_span_changed_proc onChanged, void* pUser);
+XUI_API int xuiTimeLineViewSetSpanCallbacksOwned(xui_widget pWidget, xui_timeline_span_changing_proc onChanging, void* pUser0, const xui_callback_owner_t* pOwner0, xui_timeline_span_changed_proc onChanged, void* pUser1, const xui_callback_owner_t* pOwner1);
 /* 注册图层选中回调。 */
 XUI_API int xuiTimeLineViewSetLayerSelected(xui_widget pWidget, xui_timeline_layer_selected_proc onSelected, void* pUser);
+XUI_API int xuiTimeLineViewSetLayerSelectedOwned(xui_widget pWidget, xui_timeline_layer_selected_proc onSelected, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册右键菜单打开/命令回调对。 */
 XUI_API int xuiTimeLineViewSetContextMenu(xui_widget pWidget, xui_timeline_context_opening_proc onOpening, xui_timeline_context_command_proc onCommand, void* pUser);
+XUI_API int xuiTimeLineViewSetContextMenuOwned(xui_widget pWidget, xui_timeline_context_opening_proc onOpening, void* pUser0, const xui_callback_owner_t* pOwner0, xui_timeline_context_command_proc onCommand, void* pUser1, const xui_callback_owner_t* pOwner1);
 /* 按命令 id 设置菜单标题。 */
 XUI_API int xuiTimeLineViewSetMenuTitle(xui_widget pWidget, int iCommand, const char* sTitle);
 /* 按命令 id 读取菜单标题；返回借用字符串，下次标题修改或控件销毁后失效。 */
@@ -11064,8 +11626,10 @@ XUI_API const char* xuiTimeLineViewGetMenuTitle(xui_widget pWidget, int iCommand
 XUI_API int xuiTimeLineViewRunContextCommand(xui_widget pWidget, int iCommand);
 /* 注册帧单击/双击回调。 */
 XUI_API int xuiTimeLineViewSetFrameClick(xui_widget pWidget, xui_timeline_frame_click_proc onClick, xui_timeline_frame_click_proc onDoubleClick, void* pUser);
+XUI_API int xuiTimeLineViewSetFrameClickOwned(xui_widget pWidget, xui_timeline_frame_click_proc onClick, void* pUser0, const xui_callback_owner_t* pOwner0, xui_timeline_frame_click_proc onDoubleClick, void* pUser1, const xui_callback_owner_t* pOwner1);
 /* 注册选择集变更回调。 */
 XUI_API int xuiTimeLineViewSetSelectionChange(xui_widget pWidget, xui_timeline_selection_proc onSelection, void* pUser);
+XUI_API int xuiTimeLineViewSetSelectionChangeOwned(xui_widget pWidget, xui_timeline_selection_proc onSelection, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册图层/标尺/帧/区间自绘回调（返回非 0 全量覆盖默认绘制）。回调参数均为只读借用快照。 */
 XUI_API int xuiTimeLineViewSetRenderers(xui_widget pWidget, xui_timeline_layer_renderer_proc onLayer, xui_timeline_ruler_renderer_proc onRuler, xui_timeline_frame_renderer_proc onFrame, xui_timeline_span_renderer_proc onSpan, void* pUser);
 /* 以结构体批量设置颜色组。 */
@@ -11194,16 +11758,19 @@ XUI_API int xuiPropertyGridSetScrollbarMode(xui_widget pWidget, int iMode);
 XUI_API int xuiPropertyGridGetScrollbarMode(xui_widget pWidget);
 /* 注册行选择回调。 */
 XUI_API int xuiPropertyGridSetSelect(xui_widget pWidget, xui_property_grid_select_proc onSelect, void* pUser);
+XUI_API int xuiPropertyGridSetSelectOwned(xui_widget pWidget, xui_property_grid_select_proc onSelect, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册值校验回调。 */
 XUI_API int xuiPropertyGridSetValidate(xui_widget pWidget, xui_property_grid_validate_proc onValidate, void* pUser);
 /* 注册值变更回调。 */
 XUI_API int xuiPropertyGridSetChange(xui_widget pWidget, xui_property_grid_change_proc onChange, void* pUser);
+XUI_API int xuiPropertyGridSetChangeOwned(xui_widget pWidget, xui_property_grid_change_proc onChange, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册全局动作回调（缺省动作兜底）。 */
 XUI_API int xuiPropertyGridSetGlobalAction(xui_widget pWidget, xui_property_grid_action_proc onAction, void* pUser);
 /* 注册全局自绘回调（缺省绘制兜底）。 */
 XUI_API int xuiPropertyGridSetGlobalRenderer(xui_widget pWidget, xui_property_grid_render_proc onRender, void* pUser);
 /* 注册右键回调。 */
 XUI_API int xuiPropertyGridSetContextMenu(xui_widget pWidget, xui_property_grid_context_proc onContext, void* pUser);
+XUI_API int xuiPropertyGridSetContextMenuOwned(xui_widget pWidget, xui_property_grid_context_proc onContext, void* pUser, const xui_callback_owner_t* pOwner);
 /* 以结构体设置样式组。 */
 XUI_API int xuiPropertyGridSetStyle(xui_widget pWidget, const xui_property_grid_style_t* pStyle);
 /* 输出样式组。 */
@@ -11223,6 +11790,7 @@ XUI_API xui_widget_type xuiPopupGetType(xui_context pContext);
 XUI_API int xuiPopupCreate(xui_context pContext, xui_widget* ppWidget, const xui_popup_desc_t* pDesc);
 /* 注册开合变更回调；回调可销毁弹层或其上下文。 */
 XUI_API int xuiPopupSetChange(xui_widget pWidget, xui_popup_change_proc onChange, void* pUser);
+XUI_API int xuiPopupSetChangeOwned(xui_widget pWidget, xui_popup_change_proc onChange, void* pUser, const xui_callback_owner_t* pOwner);
 /* 设置开合状态。 */
 XUI_API int xuiPopupSetOpen(xui_widget pWidget, int bOpen);
 /* 是否打开。 */
@@ -11360,6 +11928,7 @@ XUI_API int xuiMenuSetHoverIndex(xui_widget pWidget, int iIndex);
 XUI_API int xuiMenuCommitHover(xui_widget pWidget);
 /* 注册菜单项选择回调；子菜单未设置回调时，在打开链中继承最近父菜单回调。回调可销毁菜单或上下文。 */
 XUI_API int xuiMenuSetSelect(xui_widget pWidget, xui_menu_select_proc onSelect, void* pUser);
+XUI_API int xuiMenuSetSelectOwned(xui_widget pWidget, xui_menu_select_proc onSelect, void* pUser, const xui_callback_owner_t* pOwner);
 /* 读取选择计数（测试用）。 */
 XUI_API int xuiMenuGetSelectCount(xui_widget pWidget);
 /* 设置字体。 */
@@ -11435,6 +12004,7 @@ XUI_API int xuiMenuBarIsOpen(xui_widget pWidget);
 XUI_API xui_widget xuiMenuBarGetOpenMenu(xui_widget pWidget);
 /* 注册菜单选择回调（透传自各下拉菜单）；回调可销毁菜单栏或上下文。 */
 XUI_API int xuiMenuBarSetSelect(xui_widget pWidget, xui_menu_select_proc onSelect, void* pUser);
+XUI_API int xuiMenuBarSetSelectOwned(xui_widget pWidget, xui_menu_select_proc onSelect, void* pUser, const xui_callback_owner_t* pOwner);
 /* 设置字体。 */
 XUI_API int xuiMenuBarSetFont(xui_widget pWidget, xui_font pFont);
 /* 读取字体。 */
@@ -11460,8 +12030,10 @@ XUI_API xui_widget_type xuiToolbarGetType(xui_context pContext);
 XUI_API int xuiToolbarCreate(xui_context pContext, xui_widget* ppWidget, const xui_toolbar_desc_t* pDesc);
 /* 注册按钮选择回调；回调可销毁 Toolbar 或其 Context。 */
 XUI_API int xuiToolbarSetSelect(xui_widget pWidget, xui_toolbar_select_proc onSelect, void* pUser);
+XUI_API int xuiToolbarSetSelectOwned(xui_widget pWidget, xui_toolbar_select_proc onSelect, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册右键回调。 */
 XUI_API int xuiToolbarSetContextMenu(xui_widget pWidget, xui_toolbar_context_proc onContext, void* pUser);
+XUI_API int xuiToolbarSetContextMenuOwned(xui_widget pWidget, xui_toolbar_context_proc onContext, void* pUser, const xui_callback_owner_t* pOwner);
 /* 启用溢出收纳（窄空间折叠进菜单）；回调可销毁 Toolbar 或其 Context。 */
 XUI_API int xuiToolbarSetOverflow(xui_widget pWidget, int bEnabled, float fButtonSize, xui_toolbar_overflow_proc onOverflow, void* pUser);
 /* 读取溢出开关。 */
@@ -11549,8 +12121,10 @@ XUI_API xui_widget_type xuiStatusBarGetType(xui_context pContext);
 XUI_API int xuiStatusBarCreate(xui_context pContext, xui_widget* ppWidget, const xui_statusbar_desc_t* pDesc);
 /* 注册条目点击回调。 */
 XUI_API int xuiStatusBarSetSelect(xui_widget pWidget, xui_statusbar_select_proc onSelect, void* pUser);
+XUI_API int xuiStatusBarSetSelectOwned(xui_widget pWidget, xui_statusbar_select_proc onSelect, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册条目右键回调。 */
 XUI_API int xuiStatusBarSetContextMenu(xui_widget pWidget, xui_statusbar_context_proc onContext, void* pUser);
+XUI_API int xuiStatusBarSetContextMenuOwned(xui_widget pWidget, xui_statusbar_context_proc onContext, void* pUser, const xui_callback_owner_t* pOwner);
 /* 批量设置条目。条目文本会被复制；pUser 等非文本指针仍由调用方管理。
  * 输入条目的 tRect 会被忽略并由布局重新计算。 */
 XUI_API int xuiStatusBarSetItems(xui_widget pWidget, const xui_statusbar_item_t* pItems, int iCount);
@@ -11627,8 +12201,10 @@ XUI_API xui_widget_type xuiComboBoxGetType(xui_context pContext);
 XUI_API int xuiComboBoxCreate(xui_context pContext, xui_widget* ppWidget, const xui_combobox_desc_t* pDesc);
 /* 注册选中项回调；提交与回焦已完成后调用，回调可销毁控件。 */
 XUI_API int xuiComboBoxSetSelect(xui_widget pWidget, xui_combobox_select_proc onSelect, void* pUser);
+XUI_API int xuiComboBoxSetSelectOwned(xui_widget pWidget, xui_combobox_select_proc onSelect, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册可编辑文本变更回调；回调可销毁控件。 */
 XUI_API int xuiComboBoxSetTextChange(xui_widget pWidget, xui_combobox_text_proc onChange, void* pUser);
+XUI_API int xuiComboBoxSetTextChangeOwned(xui_widget pWidget, xui_combobox_text_proc onChange, void* pUser, const xui_callback_owner_t* pOwner);
 /* 以字符串数组批量设置选项；数量不得超过 XUI_COMBOBOX_ITEM_CAPACITY，文本在调用期间读取并复制。 */
 XUI_API int xuiComboBoxSetItems(xui_widget pWidget, const char** arrItems, int iCount);
 /* 以完整项描述批量设置选项（含值/禁用/图标）；项文本在调用期间读取并复制。 */
@@ -11755,6 +12331,7 @@ XUI_API xui_widget_type xuiCascaderGetType(xui_context pContext);
 XUI_API int xuiCascaderCreate(xui_context pContext, xui_widget* ppWidget, const xui_cascader_desc_t* pDesc);
 /* 注册选择路径变更回调；回调在弹层关闭后触发，并允许销毁控件。 */
 XUI_API int xuiCascaderSetChange(xui_widget pWidget, xui_cascader_change_proc onChange, void* pUser);
+XUI_API int xuiCascaderSetChangeOwned(xui_widget pWidget, xui_cascader_change_proc onChange, void* pUser, const xui_callback_owner_t* pOwner);
 /* 批量设置选项树（扁平数组 + 层级字段）。同级 value 必须唯一，树深不超过
  * XUI_CASCADER_PATH_CAPACITY；控件深拷贝 sText，pUser 保持借用。 */
 XUI_API int xuiCascaderSetItems(xui_widget pWidget, const xui_cascader_item_t* pItems, int iCount);
@@ -11874,6 +12451,7 @@ XUI_API xui_widget_type xuiColorPickerGetType(xui_context pContext);
 XUI_API int xuiColorPickerCreate(xui_context pContext, xui_widget* ppWidget, const xui_color_picker_desc_t* pDesc);
 /* 注册颜色变更回调；由用户交互触发，回调可销毁当前控件。 */
 XUI_API int xuiColorPickerSetChange(xui_widget pWidget, xui_color_picker_change_proc onChange, void* pUser);
+XUI_API int xuiColorPickerSetChangeOwned(xui_widget pWidget, xui_color_picker_change_proc onChange, void* pUser, const xui_callback_owner_t* pOwner);
 /* 设置当前颜色。 */
 XUI_API int xuiColorPickerSetColor(xui_widget pWidget, uint32_t iColor);
 /* 读取当前颜色。 */
@@ -11981,6 +12559,7 @@ XUI_API xui_widget_type xuiIconPickerGetType(xui_context pContext);
 XUI_API int xuiIconPickerCreate(xui_context pContext, xui_widget* ppWidget, const xui_icon_picker_desc_t* pDesc);
 /* 注册选中图标回调；回调可销毁当前控件。 */
 XUI_API int xuiIconPickerSetChange(xui_widget pWidget, xui_icon_picker_change_proc onChange, void* pUser);
+XUI_API int xuiIconPickerSetChangeOwned(xui_widget pWidget, xui_icon_picker_change_proc onChange, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册显示文本格式化回调；回调在绘制期间同步执行，仅应写入给定缓冲区。 */
 XUI_API int xuiIconPickerSetFormatter(xui_widget pWidget, xui_icon_picker_format_proc onFormat, void* pUser);
 /* 设置同一 xui_context 内的图标类别（控件持有引用；重复设置同一类别不会清除选择）。 */
@@ -12090,14 +12669,19 @@ XUI_API xui_widget_type xuiDatePickerGetType(xui_context pContext);
 XUI_API int xuiDatePickerCreate(xui_context pContext, xui_widget* ppWidget, const xui_date_picker_desc_t* pDesc);
 /* 注册值调整中回调（翻页/选日未提交）；回调可销毁控件。 */
 XUI_API int xuiDatePickerSetChanging(xui_widget pWidget, xui_date_picker_proc onChanging, void* pUser);
+XUI_API int xuiDatePickerSetChangingOwned(xui_widget pWidget, xui_date_picker_proc onChanging, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册值变更回调；回调可销毁控件。 */
 XUI_API int xuiDatePickerSetChange(xui_widget pWidget, xui_date_picker_proc onChange, void* pUser);
+XUI_API int xuiDatePickerSetChangeOwned(xui_widget pWidget, xui_date_picker_proc onChange, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册确认回调；回调触发时弹层已关闭，且回调可销毁控件。 */
 XUI_API int xuiDatePickerSetCommit(xui_widget pWidget, xui_date_picker_proc onCommit, void* pUser);
+XUI_API int xuiDatePickerSetCommitOwned(xui_widget pWidget, xui_date_picker_proc onCommit, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册取消回调；回调触发时弹层已关闭，且回调可销毁控件。 */
 XUI_API int xuiDatePickerSetCancel(xui_widget pWidget, xui_date_picker_proc onCancel, void* pUser);
+XUI_API int xuiDatePickerSetCancelOwned(xui_widget pWidget, xui_date_picker_proc onCancel, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册清除回调；回调触发时弹层已关闭，且回调可销毁控件。 */
 XUI_API int xuiDatePickerSetClear(xui_widget pWidget, xui_date_picker_proc onClear, void* pUser);
+XUI_API int xuiDatePickerSetClearOwned(xui_widget pWidget, xui_date_picker_proc onClear, void* pUser, const xui_callback_owner_t* pOwner);
 /* 设置模式（单值/范围）。 */
 XUI_API int xuiDatePickerSetMode(xui_widget pWidget, int iMode);
 /* 读取模式。 */
@@ -12243,6 +12827,9 @@ XUI_API xui_widget xuiGetRootWidget(xui_context pContext);
 XUI_API xui_widget_type xuiWidgetGetBaseType(void);
 /* 注册控件类型（pDesc 声明父类型与虚函数表）；*ppType 输出类型句柄。 */
 XUI_API int xuiWidgetRegisterType(xui_context pContext, xui_widget_type* ppType, const xui_widget_type_desc_t* pDesc);
+/* Configure before the first live instance; the tracer's native code must
+ * remain resident with the context. This does not itself own any userdata. */
+XUI_API int xuiWidgetTypeSetOwnershipTrace(xui_widget_type pType, xui_widget_type_ownership_trace_proc onTrace);
 /* 注销控件类型（类型未被实例引用时方可成功）。 */
 XUI_API int xuiWidgetUnregisterType(xui_widget_type pType);
 /* 按类型名查找已注册类型；未注册返回 NULL。 */
@@ -12255,11 +12842,18 @@ XUI_API xui_widget_type xuiWidgetTypeGetParent(xui_widget_type pType);
 XUI_API void* xuiWidgetTypeGetUserData(xui_widget_type pType);
 
 /* 创建基类型控件实例（未挂父级）；无 widget 级引用计数，
- * 生命周期由 context/父级持有，销毁用 xuiWidgetDestroy。 */
+ * 生命周期由 context 持有，包括尚未挂树、已移出父级的实例。
+ * xuiDestroy 回收 context 内全部实例；销毁父级仍递归销毁子级。
+ * 单独销毁用 xuiWidgetDestroy，之后已有原生指针均失效。
+ * context 开始销毁后禁止创建新实例。 */
 XUI_API int xuiWidgetCreate(xui_context pContext, xui_widget* ppWidget);
 /* 按注册类型创建实例；pCreateData 为该类型私有描述（可为 NULL）。 */
 XUI_API int xuiWidgetCreateTyped(xui_context pContext, xui_widget_type pType, xui_widget* ppWidget, const void* pCreateData);
 /* 销毁控件及其子树；延迟到当前调度周期后执行，帧回调内调用安全。 */
+/* Checked destruction rejects borrowed internal parts without changing their
+ * native state or hierarchy. Ordinary application widgets retain their existing
+ * lifecycle. A rejected close leaves the borrowed widget usable. */
+XUI_API int xuiWidgetDestroyChecked(xui_widget pWidget);
 XUI_API void xuiWidgetDestroy(xui_widget pWidget);
 /* 取所属上下文。 */
 XUI_API xui_context xuiWidgetGetContext(xui_widget pWidget);
@@ -12309,20 +12903,24 @@ XUI_API int xuiWidgetSetLayout(xui_widget pWidget, const xui_layout_t* pLayout);
 XUI_API xui_layout_t xuiWidgetGetLayout(xui_widget pWidget);
 /* 注册内容测量回调（子布局外的自定义内容尺寸）。 */
 XUI_API int xuiWidgetSetContentMeasureCallback(xui_widget pWidget, xui_widget_content_measure_proc onMeasure, void* pUser);
+XUI_API int xuiWidgetSetContentMeasureCallbackOwned(xui_widget pWidget, xui_widget_content_measure_proc onMeasure, void* pUser, const xui_callback_owner_t* pOwner);
 /* 输出内容测量回调与用户指针。 */
 XUI_API int xuiWidgetGetContentMeasureCallback(xui_widget pWidget, xui_widget_content_measure_proc* pMeasure, void** ppUser);
 /* 注册布局准备回调（子控件布局前调用）。 */
 XUI_API int xuiWidgetSetLayoutPrepareCallback(xui_widget pWidget, xui_widget_layout_prepare_proc onPrepare, void* pUser);
+XUI_API int xuiWidgetSetLayoutPrepareCallbackOwned(xui_widget pWidget, xui_widget_layout_prepare_proc onPrepare, void* pUser, const xui_callback_owner_t* pOwner);
 /* 输出布局准备回调与用户指针。 */
 XUI_API int xuiWidgetGetLayoutPrepareCallback(xui_widget pWidget, xui_widget_layout_prepare_proc* pPrepare, void** ppUser);
 /* 注册子控件排布回调（自定义容器布局）。 */
 XUI_API int xuiWidgetSetLayoutChildrenCallback(xui_widget pWidget, xui_widget_layout_children_proc onChildren, void* pUser);
+XUI_API int xuiWidgetSetLayoutChildrenCallbackOwned(xui_widget pWidget, xui_widget_layout_children_proc onChildren, void* pUser, const xui_callback_owner_t* pOwner);
 /* 输出子控件排布回调与用户指针。 */
 XUI_API int xuiWidgetGetLayoutChildrenCallback(xui_widget pWidget, xui_widget_layout_children_proc* pChildren, void** ppUser);
 /* Only from pParent's layout-children callback; tRect is parent-local. */
 XUI_API int xuiLayoutArrangeChild(xui_widget pParent, xui_widget pChild, xui_rect_t tRect);
 /* 注册布局完成回调（布局结果就绪后调用）。 */
 XUI_API int xuiWidgetSetLayoutCompleteCallback(xui_widget pWidget, xui_widget_layout_complete_proc onComplete, void* pUser);
+XUI_API int xuiWidgetSetLayoutCompleteCallbackOwned(xui_widget pWidget, xui_widget_layout_complete_proc onComplete, void* pUser, const xui_callback_owner_t* pOwner);
 /* 输出布局完成回调与用户指针。 */
 XUI_API int xuiWidgetGetLayoutCompleteCallback(xui_widget pWidget, xui_widget_layout_complete_proc* pComplete, void** ppUser);
 /* 以约束尺寸测量内容（触发内容测量回调）。 */
@@ -12453,8 +13051,10 @@ XUI_API int xuiWidgetSetFocusScope(xui_widget pWidget, int bFocusScope);
 XUI_API int xuiWidgetGetFocusScope(xui_widget pWidget);
 /* 注册默认动作回调（域内回车触发，如默认按钮）。 */
 XUI_API int xuiWidgetSetDefaultAction(xui_widget pWidget, xui_widget_action_proc onAction, void* pUser);
+XUI_API int xuiWidgetSetDefaultActionOwned(xui_widget pWidget,xui_widget_action_proc onAction,void* pUser,const xui_callback_owner_t* pOwner);
 /* 注册取消动作回调（域内 Esc 触发）。 */
 XUI_API int xuiWidgetSetCancelAction(xui_widget pWidget, xui_widget_action_proc onAction, void* pUser);
+XUI_API int xuiWidgetSetCancelActionOwned(xui_widget pWidget,xui_widget_action_proc onAction,void* pUser,const xui_callback_owner_t* pOwner);
 /* 设置允许作为拖拽源。 */
 XUI_API int xuiWidgetSetDragEnabled(xui_widget pWidget, int bEnabled);
 /* 读取拖拽源标志。 */
@@ -12469,6 +13069,7 @@ XUI_API int xuiWidgetSetImeMode(xui_widget pWidget, int iImeMode);
 XUI_API int xuiWidgetGetImeMode(xui_widget pWidget);
 /* 注册候选框锚点矩形回调（聚焦时询问位置）。 */
 XUI_API int xuiWidgetSetImeCandidateRect(xui_widget pWidget, xui_widget_ime_rect_proc onRect, void* pUser);
+XUI_API int xuiWidgetSetImeCandidateRectOwned(xui_widget pWidget,xui_widget_ime_rect_proc onRect,void* pUser,const xui_callback_owner_t* pOwner);
 /* 输出候选框锚点回调与用户指针。 */
 XUI_API int xuiWidgetGetImeCandidateRect(xui_widget pWidget, xui_widget_ime_rect_proc* pRect, void** ppUser);
 /* 注册无障碍节点提供回调（count/get/action 三件套）。 */
@@ -12506,10 +13107,23 @@ XUI_API xui_rect_t xuiGetImeCandidateRect(xui_context pContext);
 /* 注册全类型事件回调（CAPTURE/TARGET/BUBBLE 三阶段都会收到；
  * 回调返回 XUI_EVENT_DISPATCH_STOP 可中断传播）。 */
 XUI_API int xuiWidgetSetEventCallback(xui_widget pWidget, xui_widget_event_proc onEvent, void* pUser);
+XUI_API int xuiWidgetSetEventCallbackOwned(xui_widget pWidget, xui_widget_event_proc onEvent, void* pUser,
+	const xui_callback_owner_t* pOwner);
 /* 输出全类型事件回调与用户指针。 */
 XUI_API int xuiWidgetGetEventCallback(xui_widget pWidget, xui_widget_event_proc* pEvent, void** ppUser);
 /* 按事件类型注册回调（替换该类型原有回调）。 */
 XUI_API int xuiWidgetSetEventHandler(xui_widget pWidget, int iEventType, xui_widget_event_proc onEvent, void* pUser);
+XUI_API int xuiWidgetSetEventHandlerOwned(xui_widget pWidget, int iEventType, xui_widget_event_proc onEvent, void* pUser,
+	const xui_callback_owner_t* pOwner);
+/* Frozen, creator-thread read of these event slots ONLY. This is not a
+ * complete ownership policy for all XUI resources, controls or value models.
+ * Refuses native operation/destruction, and never calls unknown graph ops. */
+XUI_API bool xuiContextTraceEventOwners(xui_context pContext, xrtownershipvisitor onVisit, void* pUser);
+/* All actual owned event slots plus each native type's unique payload slots,
+ * including unattached widgets. Caller holds whole-domain Freeze and keeps
+ * the context on its creator thread, quiescent for the entire enumeration. */
+XUI_API bool xuiContextTraceOwnership(xui_context pContext, xrtownershipvisitor onVisit, void* pUser);
+XUI_API bool xuiContextOwnershipBusy(xui_context pContext);
 /* 按事件类型输出回调与用户指针。 */
 XUI_API int xuiWidgetGetEventHandler(xui_widget pWidget, int iEventType, xui_widget_event_proc* pEvent, void** ppUser);
 /* 按事件掩码开关兴趣标记（优化无接收者子树的派发跳过）。 */
@@ -12520,6 +13134,7 @@ XUI_API uint64_t xuiWidgetGetEventMask(xui_widget pWidget);
 XUI_API uint64_t xuiWidgetGetSubtreeEventMask(xui_widget pWidget);
 /* 注册光标查询回调（悬停时决定光标形状）。 */
 XUI_API int xuiWidgetSetCursorQueryCallback(xui_widget pWidget, xui_widget_cursor_proc onQueryCursor, void* pUser);
+XUI_API int xuiWidgetSetCursorQueryCallbackOwned(xui_widget pWidget,xui_widget_cursor_proc onQueryCursor,void* pUser,const xui_callback_owner_t* pOwner);
 /* 输出光标查询回调与用户指针。 */
 XUI_API int xuiWidgetGetCursorQueryCallback(xui_widget pWidget, xui_widget_cursor_proc* pQueryCursor, void** ppUser);
 /* 查询坐标处应显示的光标（经光标回调链）。 */
@@ -12605,7 +13220,11 @@ XUI_API int xuiWidgetSetCachePolicy(xui_widget pWidget, const xui_cache_policy_t
 /* 读取缓存策略。 */
 XUI_API xui_cache_policy_t xuiWidgetGetCachePolicy(xui_widget pWidget);
 /* 注册缓存位图绘制回调（策略生效时以此绘制）。 */
+XUI_API int xuiWidgetSetUpdateCallback(xui_widget pWidget, xui_widget_update_proc onUpdate, void* pUser);
+XUI_API int xuiWidgetSetUpdateCallbackOwned(xui_widget pWidget,xui_widget_update_proc onUpdate,void* pUser,const xui_callback_owner_t* pOwner);
+
 XUI_API int xuiWidgetSetCacheRenderCallback(xui_widget pWidget, xui_widget_cache_render_proc onRender, void* pUser);
+XUI_API int xuiWidgetSetCacheRenderCallbackOwned(xui_widget pWidget,xui_widget_cache_render_proc onRender,void* pUser,const xui_callback_owner_t* pOwner);
 /* 输出缓存绘制回调与用户指针。 */
 XUI_API int xuiWidgetGetCacheRenderCallback(xui_widget pWidget, xui_widget_cache_render_proc* pRender, void** ppUser);
 /* 设置缓存状态槽数量（每状态一张位图）。 */
@@ -12644,6 +13263,12 @@ XUI_API int xuiDebugEventTrace(xui_context pContext, const xui_event_t* pEvent, 
 XUI_API int xuiFlowGraphCreate(xui_flow_graph* ppGraph);
 /* 释放流程图模型。 */
 XUI_API void xuiFlowGraphDestroy(xui_flow_graph pGraph);
+/* Frozen, read-only owning slots in the uniquely owned native model: current
+ * node configs and all undo/redo snapshots, including delete-selection groups.
+ * The visitor receives each actual xvalue reference once; repeated targets are
+ * separate edges. Caller guarantees creator-thread quiescence. No copies,
+ * refcount transitions or visitor dispatch on borrowed callback userdata. */
+XUI_API bool xuiFlowGraphTraceOwnedValues(xui_flow_graph pGraph, xrtownershipvisitor onVisit, void* pUser);
 /* 添加节点；*pIndex 可空，输出索引。 */
 XUI_API int xuiFlowGraphAddNode(xui_flow_graph pGraph, const xui_flow_node_desc_t* pDesc, int* pIndex);
 /* 为节点添加端口（输入/输出）。 */
@@ -12778,6 +13403,7 @@ XUI_API xui_flow_graph xuiFlowGraphWidgetGetGraph(xui_widget pWidget);
 XUI_API int xuiFlowGraphWidgetSetGraph(xui_widget pWidget, xui_flow_graph pGraph, int bOwnGraph);
 /* 注册画布右键回调。 */
 XUI_API int xuiFlowGraphWidgetSetContextMenu(xui_widget pWidget, xui_flow_context_proc onContext, void* pUser);
+XUI_API int xuiFlowGraphWidgetSetContextMenuOwned(xui_widget pWidget, xui_flow_context_proc onContext, void* pUser, const xui_callback_owner_t* pOwner);
 /* 坐标命中测试（节点/端口/连线/画布）。 */
 XUI_API int xuiFlowGraphWidgetHitTest(xui_widget pWidget, float fX, float fY, xui_flow_hit_t* pHit);
 /* 输出当前悬停命中。 */
@@ -12797,6 +13423,7 @@ XUI_API xui_workflow xuiWorkflowWidgetGetWorkflow(xui_widget pWidget);
 XUI_API int xuiWorkflowWidgetSetWorkflow(xui_widget pWidget, xui_workflow pWorkflow, int bOwnWorkflow);
 /* 注册画布右键回调。 */
 XUI_API int xuiWorkflowWidgetSetContextMenu(xui_widget pWidget, xui_flow_context_proc onContext, void* pUser);
+XUI_API int xuiWorkflowWidgetSetContextMenuOwned(xui_widget pWidget, xui_flow_context_proc onContext, void* pUser, const xui_callback_owner_t* pOwner);
 /* 取内部流程图画布控件。 */
 XUI_API xui_widget xuiWorkflowWidgetGetCanvas(xui_widget pWidget);
 
@@ -12804,6 +13431,9 @@ XUI_API xui_widget xuiWorkflowWidgetGetCanvas(xui_widget pWidget);
 XUI_API int xuiWorkflowCreate(xui_workflow* ppWorkflow);
 /* 释放工作流模型。 */
 XUI_API void xuiWorkflowDestroy(xui_workflow pWorkflow);
+/* Includes the workflow's uniquely owned graph, registered config schemas and
+ * variable defaults. Same frozen/quiescent contract as the graph tracer. */
+XUI_API bool xuiWorkflowTraceOwnedValues(xui_workflow pWorkflow, xrtownershipvisitor onVisit, void* pUser);
 /* 取底层流程图模型。 */
 XUI_API xui_flow_graph xuiWorkflowGetGraph(xui_workflow pWorkflow);
 /* 创建节点配置 schema（xvalue 树）；调用方持有。 */
@@ -12924,6 +13554,8 @@ XUI_API xui_widget_type xuiWebViewGetType(xui_context pContext);
 /* 创建尚未初始化浏览器后端的 WebView 控件。 */
 XUI_API int xuiWebViewCreate(xui_context pContext, xui_widget* ppWidget,
 	const xui_webview_desc_t* pDesc);
+XUI_API int xuiWebViewSetEvent(xui_widget pWidget, xui_webview_event_proc onEvent, void* pUser);
+XUI_API int xuiWebViewSetEventOwned(xui_widget pWidget, xui_webview_event_proc onEvent, void* pUser, const xui_callback_owner_t* pOwner);
 /* 在 UI STA 线程异步建立浏览器；就绪或失败由事件回调报告。 */
 XUI_API int xuiWebViewInitializeAsync(xui_widget pWidget);
 /* 将 XUI 焦点和浏览器原生键盘焦点一起转入 WebView。 */

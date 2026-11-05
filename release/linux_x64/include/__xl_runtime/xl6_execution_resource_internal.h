@@ -1,0 +1,92 @@
+#ifndef XL6_EXECUTION_RESOURCE_INTERNAL_H
+#define XL6_EXECUTION_RESOURCE_INTERNAL_H
+#include "include/xrt_decl.h"
+#include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
+#include "xl6_execution_resource.h"
+/* Same resident build only. Concrete family tables and every transitive
+ * callback are permanent runtime code, never generated/module-local policy.
+ * A generic record is admitted by exact registered family identity BEFORE
+ * graph Count/Trace dispatch. No void payload/function-pointer erasure.
+ * Families are separate providers so Executor does not link TaskPool (or vice
+ * versa); this declaration header has no native algorithm implementation. */
+typedef struct XL6_ExecutionCreateOptionsV1 {
+    XL6_ExecutionKindV1 kind;
+    /* Explicit factory capability: false Rollback may mean asynchronous
+     * pending only for this call. Otherwise false (even without a diagnostic)
+     * is a checked failure and the retained record stalls until Retry. */
+    bool deferRollback;
+    union {
+        struct { uint32_t threads; size_t limit,stack; } workers;
+        const struct xnetengineconfig* engine; /* call-only, copied by the native ctor */
+        const struct xnetresolverconfig* resolver; /* call-only, copied by the native ctor */
+        const struct XL6_TcpCreateOptionsV1* tcp; /* call-only typed transport factory */
+        const struct XL6_TcpServerCreateOptionsV1* server;
+        const struct XL6_UdpCreateOptionsV1* udp;
+        const struct XL6_NetFileCreateOptionsV1* file;
+        const struct XL6_TlsStreamCreateOptionsV1* tlsStream;
+        const struct XL6_TlsListenerCreateOptionsV1* tlsListener;
+        const struct XL6_WsCreateOptions* websocket;
+    } value;
+} XL6_ExecutionCreateOptionsV1;
+typedef struct XL6_ExecutionFamilyV1 {
+    size_t size;
+    uint64_t abiTag;
+    XL6_ExecutionKindV1 kind;
+    bool (*Create)(XL6_ExecutionResourceV1*,const XL6_ExecutionCreateOptionsV1*);
+    /* true: fields disposed synchronously. false: retain this exact record as
+     * an ownerless checked registration; the call must explicitly authorize
+     * deferred rollback or its false outcome is latched as failure. */
+    bool (*Rollback)(XL6_ExecutionResourceV1*);
+    XL6_ModulePrepareResult (*Retire)(XL6_ExecutionResourceV1*);
+    bool (*Finish)(XL6_ExecutionResourceV1*);
+    void (*Drop)(XL6_ExecutionResourceV1*);
+    bool (*Trace)(const XL6_ExecutionResourceV1*,xrtownershipvisitor,void*);
+    bool (*Close)(XL6_ExecutionResourceV1*);
+    bool (*Cancel)(XL6_ExecutionResourceV1*);
+    size_t instanceBytes; /* typed provider extension; base is the first member */
+    /* Pure native-slot presence, under the metadata gate / graph Freeze.
+     * Atomic loads only; no resource control, allocation, locks, callbacks or
+     * reference changes.
+     * Extended families keep typed storage outside every other resource. */
+    bool (*Present)(const XL6_ExecutionResourceV1*);
+} XL6_ExecutionFamilyV1;
+#define XL6_EXECUTION_FAMILY_TAG_V1 UINT64_C(0x584C364558464D31)
+struct XL6_ExecutionResourceV1 {
+    XL6_ExecutionSourceV1* source;
+    const XL6_ExecutionFamilyV1* family;
+    XL6_ExecutionResourceV1 *previous,*next;
+    struct xexecutor* executor;
+    XL6_TaskPool* pool;
+    struct xnetengine* engine;
+    struct xnetresolver* resolver;
+    XL6_ExecutionFailuresV1* failures;
+    size_t references,owners,entries;
+    uint64_t cycle;
+    XL6_ExecutionKindV1 kind;
+    const void* claim;
+    bool requested,retiring,stalled,cleared,control;
+};
+#if defined(__GNUC__) && !defined(_WIN32)
+#define XL6_EXECUTION_INTERNAL __attribute__((visibility("hidden")))
+#else
+#define XL6_EXECUTION_INTERNAL
+#endif
+XL6_EXECUTION_INTERNAL XL6_ExecutionResourceV1* xl6ExecutionCreateInternalV1(
+    XL6_ExecutionSourceV1*,const XL6_ExecutionFamilyV1*,const XL6_ExecutionCreateOptionsV1*);
+XL6_EXECUTION_INTERNAL bool xl6ExecutionRequestedInternalV1(const XL6_ExecutionResourceV1*);
+/* Actual native Data credits, not language owners. A trusted resident factory
+ * acquires one before an owned native constructor, transfers it on success,
+ * and drops it itself on failure (which consumes zero). These credits do not
+ * suppress last-language-owner retirement. No callback inference or fake leaf.
+ * The exact same Ops backs ordinary Resource graph references. */
+XL6_EXECUTION_INTERNAL extern const xrtownershipops xl6ExecutionResourceNativeOpsV1;
+XL6_EXECUTION_INTERNAL bool xl6ExecutionResourceNativePinV1(XL6_ExecutionResourceV1*);
+XL6_EXECUTION_INTERNAL void xl6ExecutionResourceNativeDropV1(const void*);
+/* Exclusive Resolver lifecycle scope has already consumed its native creator.
+ * Clear the slot under the shared metadata gate; keep the registered resource
+ * until its actual user owners are released. No joins or releases here. */
+XL6_EXECUTION_INTERNAL void xl6ExecutionResolverConsumedInternalV1(XL6_ExecutionScopeV1*);
+XL6_CODE_LEASE_API const XL6_ExecutionFamilyV1* xl6ExecutionExecutorFamilyV1Get(void);
+XL6_CODE_LEASE_API const XL6_ExecutionFamilyV1* xl6ExecutionTaskPoolFamilyV1Get(void);
+#endif

@@ -1,32 +1,60 @@
 {
   "source_repository": "D:\\GIT\\xrt",
   "source_branch": "master",
-  "source_commit": "ca0856824f649147419f3dc1342d5e8ce5a893ff",
-  "source_worktree_dirty": true,
-  "source_snapshot_sha256": "b4965f695b0e43ca8e0102cb469163b197fa486645fac93d0de854d372bb8bd6",
-  "header_sha256": "095a852f390a83e7adef52e8e456634298f40245b7a36ec1e55b138e91143e16",
-  "declaration_header_sha256": "f3d9fff774815759265b008f452561f732c5f0d5afb4a19cfdaf60d2e5327845",
+  "source_commit": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
+  "source_worktree_dirty": false,
+  "source_snapshot_sha256": "637ec2268d16418eaae78a600e210667e7dd67dd957a8e715f5bea95ee851f3d",
+  "header_sha256": "4c02cd11accbd06c4e5de725b1f19bacbf44a92e4791a3819ba45540bc6e4f5d",
+  "declaration_header_sha256": "3508abef61bd9b48e8b13bd4acca02e789cc3b770aa7c7fa70fe752f380a2726",
   "generation": "tools/amalgamate.py in isolated source snapshot",
+  "text_eol": "lf",
+  "snapshot_mode": "immutable_base_with_explicit_overlays",
+  "overlay_files": {},
   "extensions": [
     "xllm",
     "xllm-session",
     "xwork"
   ],
-  "base_header_sha256": "a222542a4abe652ee92cd28f6de21d6fa7a76398d04c03c6b24b45329c57d1a3",
-  "ide_source_overlays": [
+  "local_patches": [
     {
-      "source": "E:\\codex-builds-xlang-lsp-20261023\\m7a2b7d-c1c36026\\sdk-tree-v1\\source\\extlibs\\xrt\\xrt.h",
-      "sourceSha256": "a222542a4abe652ee92cd28f6de21d6fa7a76398d04c03c6b24b45329c57d1a3",
-      "compiledSource": "E:\\codex-builds-xlang-lsp-20261023\\m7a2b7d-c1c36026\\sdk-tree-v1\\generated\\xrt.h",
-      "compiledSha256": "095a852f390a83e7adef52e8e456634298f40245b7a36ec1e55b138e91143e16",
-      "change": "Windows KillTree cleans the retained Job after terminal root publication; other stop kinds and POSIX unchanged",
-      "unchangedOutsideSourceFunction": true,
-      "sourceMaterials": {
-        "D:\\GIT\\x-lang\\ide\\third_party\\sdk_patches\\xrt-process-tree-v1\\process_stop.before.inc": "7f5af3acd8de655a8a52269f188458fb2a38275a29d9549dbe76f81604cb301f",
-        "D:\\GIT\\x-lang\\ide\\third_party\\sdk_patches\\xrt-process-tree-v1\\process_stop.inc": "a34d5eb813b9c51a35dcf3af2f1799242bfa905da565c7fcf7201108d1060d9a",
-        "D:\\GIT\\x-lang\\ide\\third_party\\sdk_patches\\xrt-process-tree-v1\\process_stop.patch": "bed8615415a1954fb88c44f650ae0fcf4d6fb4ac10cb802b34c6295fc2b265d5",
-        "D:\\GIT\\x-lang\\ide\\tools\\xrt_process_tree_overlay.py": "862ae5d8a34bef9e245cb32d4f38a386f09f388fdea7c01cad7089e66e1f0555"
-      }
+      "commit": "50bd79a5be18922fdf4f31daf763981ce3654a7b",
+      "kind": "C++ linkage guards only",
+      "modules": [
+        "include/xrt/http1_net.h",
+        "include/xrt/http1_tls.h",
+        "include/xrt/websocket_upgrade.h"
+      ],
+      "abiChanged": false
+    },
+    {
+      "commit": "c6d40f00fff9cf6ec7b818e610a2bdf1c1343964",
+      "kind": "Versioned ownership completion checked-drop declaration only",
+      "modules": [
+        "include/xrt/core.h"
+      ],
+      "abiChanged": false,
+      "protocolExtension": "xrtownershipfinishv2"
+    },
+    {
+      "commit": "031e59a04644701a54fc8af3c7bf5aaf678c9874",
+      "kind": "Unreleased FinishV2 pure snapshot-drop preflight",
+      "modules": [
+        "include/xrt/core.h"
+      ],
+      "abiChanged": false,
+      "protocolExtension": "xrtownershipfinishv2.DropReady",
+      "unreleasedPrototypeBytesBefore": 40,
+      "descriptorBytes": 48
+    },
+    {
+      "commit": "7cecb354dd67aba47eb47cf9c118aea2b0195498",
+      "kind": "Independent resumable semantic finalization declaration only",
+      "modules": [
+        "include/xrt/core.h"
+      ],
+      "abiChanged": false,
+      "protocolExtension": "xrtownershipfinalizationv1",
+      "descriptorBytes": 40
     }
   ]
 }

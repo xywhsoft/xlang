@@ -1,0 +1,1124 @@
+// Exact, pointer-free native value records. Generated from the authoritative header.
+export extern "xui_vec2_t" struct Vec2 @header("xge3_runtime.h")
+ c_float fX
+ c_float fY
+end
+
+export extern "xui_size_t" struct Size @header("xge3_runtime.h")
+ c_int iW
+ c_int iH
+end
+
+export extern "xui_rect_t" struct Rect @header("xge3_runtime.h")
+ c_int fX
+ c_int fY
+ c_int fW
+ c_int fH
+end
+
+export extern "xui_rect_i_t" struct RectI @header("xge3_runtime.h")
+ c_int iX
+ c_int iY
+ c_int iW
+ c_int iH
+end
+
+export extern "xui_thickness_t" struct Thickness @header("xge3_runtime.h")
+ c_int fLeft
+ c_int fTop
+ c_int fRight
+ c_int fBottom
+end
+
+export extern "xui_layout_t" struct Layout @header("xge3_runtime.h")
+ c_int iLayoutType
+ c_int iWidthMode
+ c_int iHeightMode
+ c_int iFlowMode
+ c_int iDock
+ c_int iOverflow
+ c_int iMeasureContainment
+ c_int iAlignX
+ c_int iAlignY
+ c_int iTableRow
+ c_int iTableColumn
+ c_int iTableRowSpan
+ c_int iTableColumnSpan
+ c_int iGridColumnCount
+ c_int iLayer
+ c_int iZIndex
+ c_float fPreferredWidth
+ c_float fPreferredHeight
+ c_float fMinWidth
+ c_float fMinHeight
+ c_float fMaxWidth
+ c_float fMaxHeight
+ c_float fGrow
+ c_float fShrink
+ c_float fGap
+ c_float fGridItemWidth
+ c_float fGridItemHeight
+ c_float fBaseline
+ Thickness tMargin
+ Thickness tPadding
+end
+
+export extern "xui_table_track_t" struct TableTrack @header("xge3_runtime.h")
+ c_int iSizeMode
+ c_float fValue
+ c_float fMin
+ c_float fMax
+ c_float fWeight
+ c_float fShrink
+end
+
+export extern "xui_surface_desc_t" struct SurfaceDesc @header("xge3_runtime.h")
+ c_int iKind
+ c_int iFormat
+ c_int iWidth
+ c_int iHeight
+ c_uint iFlags
+end
+
+export extern "xui_surface_vertex_t" struct SurfaceVertex @header("xge3_runtime.h")
+ c_float fX
+ c_float fY
+ c_float fZ
+ c_float fW
+ c_float fU
+ c_float fV
+ c_uint iColor
+end
+
+export extern "xui_mesh_vertex_t" struct MeshVertex @header("xge3_runtime.h")
+ c_float fX
+ c_float fY
+ c_uint iColor
+end
+
+export extern "xui_path_command_t" struct PathCommand @header("xge3_runtime.h")
+ c_int iCommand
+ Vec2 arrPoints[3]
+end
+
+export extern "xui_surface_sampler_t" struct SurfaceSampler @header("xge3_runtime.h")
+ c_int iMinFilter
+ c_int iMagFilter
+ c_int iWrapS
+ c_int iWrapT
+end
+
+export extern "xui_proxy_caps_t" struct ProxyCaps @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iCaps
+ c_int iSurfaceFormat
+ c_int iInternalAlpha
+ SurfaceSampler tDefaultSampler
+end
+
+export extern "xui_font_metrics_t" struct FontMetrics @header("xge3_runtime.h")
+ c_float fSize
+ c_float fAscent
+ c_float fDescent
+ c_float fLineGap
+ c_float fLineHeight
+ c_float fUnderlinePosition
+ c_float fUnderlineThickness
+ c_float fStrikePosition
+ c_float fStrikeThickness
+end
+
+export extern "xui_text_cluster_t" struct TextCluster @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iTextStart
+ c_int iTextEnd
+ c_uint iFlags
+ c_float fAdvance
+ c_float fOffsetX
+ c_float fOffsetY
+end
+
+export extern "xui_text_caret_t" struct TextCaret @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iTextOffset
+ c_float fAdvance
+end
+
+export extern "xui_text_paint_span_t" struct TextPaintSpan @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iStart
+ c_int iEnd
+ c_uint iColor
+end
+
+export extern "xui_text_line_t" struct TextLine @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iTextOffset
+ c_int iTextSize
+ c_int iBreakType
+ c_float fX
+ c_float fY
+ c_float fW
+ c_float fH
+ c_float fBaseline
+end
+
+export extern "xui_separator_desc_t" struct SeparatorDesc @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iColor
+ c_float fThickness
+ c_int iOrientation
+ c_int iAlign
+ c_int iLineStyle
+end
+
+export extern "xui_table_view_row_t" struct TableViewRow @header("xge3_runtime.h")
+ c_float fHeight
+ c_int bSelected
+ c_int bDisabled
+ c_int bHasStyle
+ c_uint iBackgroundColor
+ c_uint iTextColor
+ c_uint iGridColor
+end
+
+export extern "xui_table_view_colors_t" struct TableViewColors @header("xge3_runtime.h")
+ c_uint iBackgroundColor
+ c_uint iHeaderColor
+ c_uint iHeaderTextColor
+ c_uint iRowColor
+ c_uint iAltRowColor
+ c_uint iHoverColor
+ c_uint iSelectedColor
+ c_uint iDisabledColor
+ c_uint iGridColor
+ c_uint iTextColor
+ c_uint iDisabledTextColor
+ c_uint iFocusRingColor
+ c_uint iBarColor
+ c_uint iThumbColor
+end
+
+export extern "xui_message_list_metrics_t" struct MessageListMetrics @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fPaddingX
+ c_float fPaddingY
+ c_float fNodeGap
+ c_float fAvatarSize
+ c_float fAvatarGap
+ c_float fBubblePaddingX
+ c_float fBubblePaddingY
+ c_float fSystemPaddingX
+ c_float fSystemPaddingY
+ c_float fMetaHeight
+ c_float fMinBubbleHeight
+ c_float fWheelStep
+end
+
+export extern "xui_message_list_colors_t" struct MessageListColors @header("xge3_runtime.h")
+ c_uint iBackgroundColor
+ c_uint iSelfBubbleColor
+ c_uint iOtherBubbleColor
+ c_uint iSystemBubbleColor
+ c_uint iSelfTextColor
+ c_uint iOtherTextColor
+ c_uint iSystemTextColor
+ c_uint iMetaTextColor
+ c_uint iAvatarSelfColor
+ c_uint iAvatarOtherColor
+ c_uint iHoverColor
+ c_uint iSelectedColor
+ c_uint iBorderColor
+end
+
+export extern "xui_timeline_selection_t" struct TimelineSelection @header("xge3_runtime.h")
+ c_int iLayer
+ c_int iFrame
+end
+
+export extern "xui_timeline_hit_t" struct TimelineHit @header("xge3_runtime.h")
+ c_int iType
+ c_int iLayer
+ c_int iLayerId
+ c_int iFrame
+ c_int iSpanId
+ Rect tRect
+end
+
+export extern "xui_timeline_view_colors_t" struct TimelineViewColors @header("xge3_runtime.h")
+ c_uint iBackgroundColor
+ c_uint iCornerColor
+ c_uint iRulerColor
+ c_uint iLayerColor
+ c_uint iLayerAltColor
+ c_uint iGridColor
+ c_uint iGridStrongColor
+ c_uint iTextColor
+ c_uint iMutedTextColor
+ c_uint iSelectedColor
+ c_uint iHoverColor
+ c_uint iCurrentColor
+ c_uint iFrameColor
+ c_uint iKeyFrameColor
+ c_uint iBlankKeyFrameColor
+ c_uint iSpanColor
+ c_uint iSpanTextColor
+ c_uint iIconColor
+ c_uint iHiddenIconColor
+ c_uint iLockedIconColor
+ c_uint iBorderColor
+ c_uint iFocusColor
+ c_uint iDisabledColor
+ c_uint iTrackColor
+ c_uint iThumbColor
+ c_uint iScrollbarHoverColor
+ c_uint iScrollbarActiveColor
+ c_uint iScrollbarFocusColor
+ c_uint iScrollbarDisabledColor
+end
+
+export extern "xui_dock_panel_metrics_t" struct DockPanelMetrics @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fCaptionHeight
+ c_float fTabStripHeight
+ c_float fButtonSize
+ c_float fButtonGap
+ c_float fBorderWidth
+ c_float fSplitterSize
+ c_float fSplitterHitSize
+ c_float fMinPaneWidth
+ c_float fMinPaneHeight
+ c_float fTabMinWidth
+ c_float fTabMaxWidth
+ c_float fTabPaddingX
+ c_float fFloatTitleHeight
+ c_float fFloatBorderWidth
+ c_float fAutoHideStripSize
+end
+
+export extern "xui_dock_panel_colors_t" struct DockPanelColors @header("xge3_runtime.h")
+ c_uint iBackgroundColor
+ c_uint iPaneColor
+ c_uint iClientColor
+ c_uint iCaptionColor
+ c_uint iActiveCaptionColor
+ c_uint iCaptionTextColor
+ c_uint iActiveCaptionTextColor
+ c_uint iTabColor
+ c_uint iTabHoverColor
+ c_uint iActiveTabColor
+ c_uint iTabTextColor
+ c_uint iActiveTabTextColor
+ c_uint iBorderColor
+ c_uint iFocusColor
+ c_uint iSplitterColor
+ c_uint iSplitterHoverColor
+ c_uint iSplitterActiveColor
+ c_uint iButtonColor
+ c_uint iButtonHoverColor
+ c_uint iButtonActiveColor
+ c_uint iAutoHideColor
+ c_uint iAutoHideHoverColor
+ c_uint iFloatTitleColor
+ c_uint iFloatBorderColor
+end
+
+export extern "xui_dock_pane_info_t" struct DockPaneInfo @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iPane
+ c_int iRegion
+ c_int iWindowCount
+ c_int iActiveIndex
+ c_int iActiveWindow
+ c_int iFirstVisibleTab
+ c_int iVisibleTabCount
+ c_int bOverflow
+ Rect tRect
+ Rect tCaptionRect
+ Rect tTabStripRect
+ Rect tClientRect
+ Rect tOptionRect
+ Rect tOverflowRect
+end
+
+export extern "xui_dock_hit_t" struct DockHit @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iType
+ c_int iWindow
+ c_int iPane
+ c_int iNode
+ c_int iRegion
+ Rect tRect
+end
+
+export extern "xui_dock_drop_info_t" struct DockDropInfo @header("xge3_runtime.h")
+ c_uint iSize
+ c_int bValid
+ c_int iWindow
+ c_int iPane
+ c_int iRegion
+ c_int iSide
+ Rect tRect
+end
+
+export extern "xui_property_grid_style_t" struct PropertyGridStyle @header("xge3_runtime.h")
+ c_uint iBackgroundColor
+ c_uint iGridColor
+ c_uint iCategoryBackgroundColor
+ c_uint iCategoryHoverColor
+ c_uint iCategoryTextColor
+ c_uint iCategoryIconColor
+ c_uint iNameBackgroundColor
+ c_uint iNameTextColor
+ c_uint iNameHoverColor
+ c_uint iValueBackgroundColor
+ c_uint iValueTextColor
+ c_uint iSelectedColor
+ c_uint iReadonlyTextColor
+ c_uint iInvalidColor
+ c_uint iDirtyColor
+end
+
+export extern "xui_chart_hit_t" struct ChartHit @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iPart
+ c_int iSeries
+ c_int iItem
+ Rect tRect
+ c_float fX
+ c_float fY
+end
+
+export extern "xui_code_pos_t" struct CodePos @header("xge3_runtime.h")
+ c_int iOffset
+ c_int iLine
+ c_int iColumn
+end
+
+export extern "xui_code_range_t" struct CodeRange @header("xge3_runtime.h")
+ c_int iStart
+ c_int iEnd
+end
+
+export extern "xui_code_selection_t" struct CodeSelection @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iAnchorOffset
+ c_int iCaretOffset
+ c_int iPreferredColumn
+ c_uint iFlags
+end
+
+export extern "xui_code_token_t" struct CodeToken @header("xge3_runtime.h")
+ c_int iStartOffset
+ c_int iEndOffset
+ c_int iStyle
+ c_int iKind
+ c_int iFlags
+end
+
+export extern "xui_code_fold_range_t" struct CodeFoldRange @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iStartLine
+ c_int iEndLine
+ c_int iLevel
+ c_uint iFlags
+end
+
+export extern "xui_code_layout_line_t" struct CodeLayoutLine @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iLine
+ c_int iVisibleIndex
+ c_int iStartOffset
+ c_int iEndOffset
+ Rect tRect
+end
+
+export extern "xui_code_hit_t" struct CodeHit @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iPart
+ c_int iLine
+ c_int iColumn
+ c_int iOffset
+ Rect tLineRect
+end
+
+export extern "xui_code_edit_text_hit_t" struct CodeEditTextHit @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iByteOffset
+ c_int iLine
+ c_int iVisualLine
+ c_int iVisualColumn
+ c_int iClusterStart
+ c_int iClusterEnd
+ Rect tCharacterRect
+ Rect tLineRect
+ c_int bInsideText
+ c_int bTrailing
+end
+
+export extern "xui_code_indicator_t" struct CodeIndicator @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iIndicator
+ c_int iStyle
+ CodeRange tRange
+ c_uint iFlags
+ c_uintptr iUserData
+end
+
+export extern "xui_code_style_t" struct CodeStyle @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iForeground
+ c_uint iBackground
+ c_uint iFlags
+end
+
+export extern "xui_code_key_binding_t" struct CodeKeyBinding @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iKey
+ c_uint iModifiers
+ c_int iCommand
+ c_int iWhen
+end
+
+export extern "xui_code_placeholder_t" struct CodePlaceholder @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iIndex
+ CodeRange tRange
+ c_uint iFlags
+end
+
+export extern "xui_code_margin_hit_t" struct CodeMarginHit @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iId
+ c_int iKind
+ c_int iIndex
+ c_int iLine
+ Rect tRect
+end
+
+export extern "xui_virtual_joystick_state_t" struct VirtualJoystickState @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fX
+ c_float fY
+ c_float fMagnitude
+ c_float fAngle
+ c_int bActive
+ c_int iSource
+ uint64 iPointerId
+ c_int iPointerType
+end
+
+export extern "xui_flow_hit_t" struct FlowHit @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iType
+ c_int iNode
+ c_int iPort
+ c_int iEdge
+ Rect tRect
+ c_float fX
+ c_float fY
+end
+
+export extern "xui_flow_viewport_t" struct FlowViewport @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fPanX
+ c_float fPanY
+ c_float fZoom
+ c_float fWidth
+ c_float fHeight
+end
+
+export extern "xui_edit_behavior_t" struct EditBehavior @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iTabBehavior
+ c_int iEnterBehavior
+ c_int iEscapeBehavior
+ c_int bSelectAllOnFocus
+ c_int bCommitOnBlur
+end
+
+export extern "xui_radio_group_desc_t" struct RadioGroupDesc @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iOrientation
+ c_int iSelectedIndex
+ c_float fGap
+end
+
+export extern "xui_scrollbar_desc_t" struct ScrollbarDesc @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fMin
+ c_float fMax
+ c_float fValue
+ c_float fPage
+ c_float fSmallStep
+ c_float fLargeStep
+ c_int iOrientation
+ c_int iMode
+ c_int iButtonMode
+ c_float fThickness
+ c_float fMinThumbSize
+ c_float fButtonSize
+ c_uint iTrackColor
+ c_uint iThumbColor
+ c_uint iHoverColor
+ c_uint iActiveColor
+ c_uint iFocusColor
+ c_uint iDisabledColor
+ c_uint iButtonColor
+ c_uint iButtonIconColor
+end
+
+export extern "xui_slider_desc_t" struct SliderDesc @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fMin
+ c_float fMax
+ c_float fValue
+ c_float fStep
+ c_float fPageStep
+ c_int iOrientation
+ c_float fTrackSize
+ c_float fKnobSize
+ c_float fTrackRadius
+ c_uint iTrackColor
+ c_uint iFillColor
+ c_uint iKnobColor
+ c_uint iKnobBorderColor
+ c_uint iFocusColor
+ c_uint iDisabledColor
+end
+
+export extern "xui_range_slider_desc_t" struct RangeSliderDesc @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fMin
+ c_float fMax
+ c_float fStart
+ c_float fEnd
+ c_float fStep
+ c_float fPageStep
+ c_float fMinInterval
+ c_float fMaxInterval
+ c_int iOrientation
+ c_float fTrackSize
+ c_float fKnobSize
+ c_uint iTrackColor
+ c_uint iFillColor
+ c_uint iKnobColor
+ c_uint iKnobBorderColor
+ c_uint iFocusColor
+ c_uint iDisabledColor
+end
+
+export extern "xui_page_item_info_t" struct PageItemInfo @header("xge3_runtime.h")
+ c_uint iSize
+ Rect tRect
+ c_int iType
+ c_int iPage
+ c_int bEnabled
+ c_char sText[16]
+end
+
+export extern "xui_inventory_grid_layout_t" struct InventoryGridLayout @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iColumns
+ c_int iSelectionMode
+ c_float fSlotSize
+ c_float fSlotGap
+ c_float fPadding
+ c_float fIconPadding
+ c_float fBorderWidth
+ c_float fWheelStep
+ c_float fDragThreshold
+end
+
+export extern "xui_inventory_grid_colors_t" struct InventoryGridColors @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iBackgroundColor
+ c_uint iSlotColor
+ c_uint iEmptyColor
+ c_uint iHoverColor
+ c_uint iActiveColor
+ c_uint iSelectedColor
+ c_uint iDisabledColor
+ c_uint iLockedColor
+ c_uint iBorderColor
+ c_uint iQualityColor
+ c_uint iFocusColor
+ c_uint iTextColor
+ c_uint iMutedTextColor
+ c_uint iCountColor
+ c_uint iHotkeyColor
+ c_uint iCooldownColor
+ c_uint iDurabilityColor
+ c_uint iDragColor
+ c_uint iDropColor
+end
+
+export extern "xui_inventory_hit_t" struct InventoryHit @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iPart
+ c_int iSlot
+ Rect tRect
+ c_float fX
+ c_float fY
+end
+
+export extern "xui_inventory_visible_range_t" struct InventoryVisibleRange @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iFirstSlot
+ c_int iLastSlot
+ c_int iSlotCount
+ c_int iFirstRow
+ c_int iLastRow
+ c_int iRowCount
+ c_int iFirstColumn
+ c_int iLastColumn
+ c_int iColumnCount
+ c_int iTotalRows
+ c_int iTotalColumns
+ c_int iPaintSlotCount
+end
+
+export extern "xui_inventory_gamepad_profile_t" struct InventoryGamepadProfile @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iFlags
+ c_int iAcceptButton
+ c_int iCancelButton
+ c_int iContextButton
+ c_int iLeftButton
+ c_int iRightButton
+ c_int iUpButton
+ c_int iDownButton
+ c_int iPageUpButton
+ c_int iPageDownButton
+ c_int iHomeButton
+ c_int iEndButton
+end
+
+export extern "xui_terminal_stats_t" struct TerminalStats @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iColumns
+ c_int iRows
+ c_int iHistoryLogicalLines
+ c_int iHistoryDisplayRows
+ c_int iQueuedBytes
+ c_int iQueueCapacity
+ c_int iQueuePeakBytes
+ c_int iDirtyRows
+ c_int iChangeCount
+ uint64 iOutputBytesReceived
+ uint64 iOutputBytesParsed
+ c_size iScreenMemoryBytes
+ c_size iHistoryMemoryBytes
+ c_size iQueueMemoryBytes
+end
+
+export extern "xui_canvas_desc_t" struct CanvasDesc @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fCanvasWidth
+ c_float fCanvasHeight
+ c_float fOffsetX
+ c_float fOffsetY
+ c_int iPolicyX
+ c_int iPolicyY
+ c_int iScrollbarMode
+ c_int iWheelAxis
+ c_int iCornerMode
+ c_int bContentDragEnabled
+ c_int bPenEnabled
+ c_float fPenWidth
+ c_float fScrollbarSize
+ c_float fMinThumbSize
+ c_float fButtonSize
+ c_float fWheelStep
+ c_uint iClearColor
+ c_uint iBackgroundColor
+ c_uint iBorderColor
+ c_uint iPenColor
+ c_uint iTrackColor
+ c_uint iThumbColor
+ c_uint iHoverColor
+ c_uint iActiveColor
+ c_uint iFocusColor
+ c_uint iDisabledColor
+ c_uint iButtonColor
+ c_uint iButtonIconColor
+ c_uint iCornerColor
+ c_uint iGripColor
+ c_float fViewportWidth
+ c_float fViewportHeight
+end
+
+export extern "xui_split_layout_desc_t" struct SplitLayoutDesc @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iOrientation
+ c_int iPaneCount
+ c_float fDividerSize
+ c_float fDividerVisualSize
+ c_float fDividerHitSize
+ c_uint iDividerColor
+ c_uint iDividerHoverColor
+ c_uint iDividerActiveColor
+ c_uint iShadowColor
+end
+
+export extern "xui_msgbox_metrics_t" struct MsgboxMetrics @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fPaddingX
+ c_float fPaddingY
+ c_float fIconSize
+ c_float fIconGap
+ c_float fButtonWidth
+ c_float fButtonHeight
+ c_float fButtonGap
+ c_float fFooterHeight
+ c_float fMinMessageHeight
+ c_float fMinWidth
+ c_float fMaxWidth
+ c_float fMaxWidthRatio
+end
+
+export extern "xui_msgbox_colors_t" struct MsgboxColors @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iBackdropColor
+ c_uint iClientColor
+ c_uint iMessageColor
+ c_uint iMutedTextColor
+ c_uint iIconColor
+ c_uint iButtonColor
+ c_uint iButtonHoverColor
+ c_uint iButtonActiveColor
+ c_uint iButtonFocusColor
+ c_uint iButtonDisabledColor
+end
+
+export extern "xui_msgtip_metrics_t" struct MsgtipMetrics @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fMinWidth
+ c_float fMaxWidth
+ c_float fMinHeight
+ c_float fPaddingX
+ c_float fPaddingY
+ c_float fIconSize
+ c_float fIconGap
+ c_float fOffsetY
+end
+
+export extern "xui_msgtip_colors_t" struct MsgtipColors @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iBackgroundColor
+ c_uint iBorderColor
+ c_uint iTextColor
+ c_uint iIconColor
+ c_uint iShadowColor
+end
+
+export extern "xui_toast_metrics_t" struct ToastMetrics @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fWidth
+ c_float fMinWidth
+ c_float fMinHeight
+ c_float fMargin
+ c_float fGap
+ c_float fPaddingX
+ c_float fPaddingY
+ c_float fIconSize
+ c_float fIconGap
+ c_float fCloseSize
+ c_float fProgressHeight
+ c_int iMaxVisible
+end
+
+export extern "xui_toast_colors_t" struct ToastColors @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iBackgroundColor
+ c_uint iBorderColor
+ c_uint iTextColor
+ c_uint iMutedTextColor
+ c_uint iShadowColor
+ c_uint iInfoColor
+ c_uint iSuccessColor
+ c_uint iWarningColor
+ c_uint iErrorColor
+ c_uint iCloseColor
+ c_uint iCloseHoverColor
+end
+
+export extern "xui_scroll_model_t" struct ScrollModel @header("xge3_runtime.h")
+ c_uint iSize
+ Rect tViewportRect
+ c_float fContentWidth
+ c_float fContentHeight
+ c_float fScrollX
+ c_float fScrollY
+end
+
+export extern "xui_scroll_frame_desc_t" struct ScrollFrameDesc @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fContentWidth
+ c_float fContentHeight
+ c_float fOffsetX
+ c_float fOffsetY
+ c_int iPolicyX
+ c_int iPolicyY
+ c_int iScrollbarMode
+ c_int iWheelAxis
+ c_int iCornerMode
+ c_int bContentDragEnabled
+ c_float fScrollbarSize
+ c_float fMinThumbSize
+ c_float fButtonSize
+ c_float fWheelStep
+ c_uint iBackgroundColor
+ c_uint iTrackColor
+ c_uint iThumbColor
+ c_uint iHoverColor
+ c_uint iActiveColor
+ c_uint iFocusColor
+ c_uint iDisabledColor
+ c_uint iButtonColor
+ c_uint iButtonIconColor
+ c_uint iCornerColor
+ c_uint iGripColor
+ c_float fViewportWidth
+ c_float fViewportHeight
+end
+
+export extern "xui_scroll_view_desc_t" struct ScrollViewDesc @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fContentWidth
+ c_float fContentHeight
+ c_float fOffsetX
+ c_float fOffsetY
+ c_int iPolicyX
+ c_int iPolicyY
+ c_int iScrollbarMode
+ c_int iWheelAxis
+ c_int iCornerMode
+ c_int bContentDragEnabled
+ c_float fScrollbarSize
+ c_float fMinThumbSize
+ c_float fButtonSize
+ c_float fWheelStep
+ c_uint iBackgroundColor
+ c_uint iTrackColor
+ c_uint iThumbColor
+ c_uint iHoverColor
+ c_uint iActiveColor
+ c_uint iFocusColor
+ c_uint iDisabledColor
+ c_uint iButtonColor
+ c_uint iButtonIconColor
+ c_uint iCornerColor
+ c_uint iGripColor
+ c_float fViewportWidth
+ c_float fViewportHeight
+end
+
+export extern "xui_menu_metrics_t" struct MenuMetrics @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fItemHeight
+ c_float fSeparatorHeight
+ c_float fPaddingX
+ c_float fPaddingY
+ c_float fMarkWidth
+ c_float fIconWidth
+ c_float fShortcutGap
+ c_float fArrowWidth
+ c_float fMinWidth
+ c_float fMaxHeight
+end
+
+export extern "xui_menu_colors_t" struct MenuColors @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iPanelColor
+ c_uint iBorderColor
+ c_uint iShadowColor
+ c_uint iHoverColor
+ c_uint iTextColor
+ c_uint iHoverTextColor
+ c_uint iDisabledTextColor
+ c_uint iShortcutColor
+ c_uint iDangerTextColor
+ c_uint iMarkColor
+ c_uint iSeparatorColor
+ c_uint iFocusColor
+end
+
+export extern "xui_menubar_metrics_t" struct MenubarMetrics @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fHeight
+ c_float fPaddingX
+ c_float fPaddingY
+ c_float fItemPaddingX
+ c_float fItemGap
+ c_float fBorderWidth
+end
+
+export extern "xui_menubar_colors_t" struct MenubarColors @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iBackgroundColor
+ c_uint iBorderColor
+ c_uint iItemColor
+ c_uint iHoverColor
+ c_uint iActiveColor
+ c_uint iTextColor
+ c_uint iDisabledTextColor
+ c_uint iFocusColor
+end
+
+export extern "xui_toolbar_metrics_t" struct ToolbarMetrics @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iOrientation
+ c_float fItemWidth
+ c_float fItemHeight
+ c_float fSeparatorSize
+ c_float fGroupGap
+ c_float fPaddingX
+ c_float fPaddingY
+ c_float fOverflowSize
+ c_float fBorderWidth
+ c_float fIconSize
+ c_float fIconGap
+end
+
+export extern "xui_toolbar_colors_t" struct ToolbarColors @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iBackgroundColor
+ c_uint iBorderColor
+ c_uint iItemColor
+ c_uint iHoverColor
+ c_uint iActiveColor
+ c_uint iCheckedColor
+ c_uint iFocusColor
+ c_uint iDisabledColor
+ c_uint iSeparatorColor
+ c_uint iTextColor
+ c_uint iDisabledTextColor
+ c_uint iIconColor
+end
+
+export extern "xui_statusbar_metrics_t" struct StatusbarMetrics @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fHeight
+ c_float fPaddingX
+ c_float fPaddingY
+ c_float fGap
+ c_float fItemPaddingX
+ c_float fItemPaddingY
+ c_float fProgressHeight
+ c_float fBorderWidth
+ c_float fTopBorderWidth
+end
+
+export extern "xui_statusbar_colors_t" struct StatusbarColors @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iBackgroundColor
+ c_uint iBorderColor
+ c_uint iHighlightColor
+ c_uint iItemColor
+ c_uint iHoverColor
+ c_uint iActiveColor
+ c_uint iFocusColor
+ c_uint iTextColor
+ c_uint iDisabledTextColor
+ c_uint iProgressTrackColor
+ c_uint iProgressFillColor
+end
+
+export extern "xui_cache_policy_t" struct CachePolicy @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iPolicy
+ c_uint iFlags
+ c_uint iClearColor
+ c_int iTileWidth
+ c_int iTileHeight
+ c_size iMaxBytes
+end
+
+export extern "xui_cache_stats_t" struct CacheStats @header("xge3_runtime.h")
+ c_uint iSize
+ c_size iBudgetBytes
+ c_size iUsedBytes
+ c_int iSurfaceCount
+ c_uint iGeneration
+end
+
+export extern "xui_render_stats_t" struct RenderStats @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iGeneration
+ c_int iUpdatedWidgets
+ c_int iUpdatedCaches
+ c_int iDrawnCaches
+ c_int iSkippedWidgets
+ c_int iRecoveredErrors
+end
+
+export extern "xui_layout_stats_t" struct LayoutStats @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iGeneration
+ c_int iPassCount
+ c_int iMaxPassCount
+ c_int bStabilized
+end
+
+export extern "xui_accessible_range_t" struct AccessibleRange @header("xge3_runtime.h")
+ c_uint iSize
+ c_double fValue
+ c_double fMin
+ c_double fMax
+ c_double fStep
+ c_double fPageStep
+end
+
+export extern "xui_accessible_selection_t" struct AccessibleSelection @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iAnchor
+ c_int iCaret
+end
+
+export extern "xui_accessibility_event_t" struct AccessibilityEvent @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iType
+ uint64 iNodeId
+ c_uint iRevision
+end
+
+export extern "xui_icon_category_desc_t" struct IconCategoryDesc @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iSizeMode
+ c_float fWidth
+ c_float fHeight
+ c_int iFitMode
+ c_int iCacheCapacity
+end
+
+export extern "xui_icon_draw_desc_t" struct IconDrawDesc @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iColor
+ c_uint iFlags
+ c_int iFitMode
+end
+
+export extern "xui_interaction_policy_t" struct InteractionPolicy @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fDoubleClickSeconds
+ c_int iDoubleClickWidth
+ c_int iDoubleClickHeight
+ c_int iDragWidth
+ c_int iDragHeight
+ c_int iWheelScrollLines
+ c_float fTooltipInitialDelay
+ c_float fCaretBlinkSeconds
+end
+
+export extern "xui_chrome_style_t" struct ChromeStyle @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iBackdropColor
+ c_uint iPopupColor
+ c_uint iPopupBorderColor
+ c_uint iTooltipColor
+ c_uint iTooltipTextColor
+ c_uint iModalOverlayColor
+ c_float fBorderWidth
+ c_float fShadowSize
+end

@@ -1,0 +1,588 @@
+// Exact, pointer-free native value records. Generated from the authoritative header.
+export extern "xge_build_info_t" struct BuildInfo @header("xge3_runtime.h")
+ c_uint size
+ c_uint api_major
+ c_uint api_minor
+ c_uint api_patch
+ c_uint foundation_revision
+ c_uint features
+ uint64 abi_fingerprint
+end
+
+export extern "xge_texture_storage_info_t" struct TextureStorageInfo @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iCompression
+ c_int iStorage
+ c_int bResident
+ uint64 iGpuBytes
+ uint64 iCpuBytes
+end
+
+export extern "xge_rect_t" struct Rect @header("xge3_runtime.h")
+ c_float fX
+ c_float fY
+ c_float fW
+ c_float fH
+end
+
+export extern "xge_point_i_t" struct PointI @header("xge3_runtime.h")
+ c_int iX
+ c_int iY
+end
+
+export extern "xge_size_i_t" struct SizeI @header("xge3_runtime.h")
+ c_int iW
+ c_int iH
+end
+
+export extern "xge_rect_i_t" struct RectI @header("xge3_runtime.h")
+ c_int iX
+ c_int iY
+ c_int iW
+ c_int iH
+end
+
+export extern "xge_edges_i_t" struct EdgesI @header("xge3_runtime.h")
+ c_int iLeft
+ c_int iTop
+ c_int iRight
+ c_int iBottom
+end
+
+export extern "xge_vec2_t" struct Vec2 @header("xge3_runtime.h")
+ c_float fX
+ c_float fY
+end
+
+export extern "xge_vec3_t" struct Vec3 @header("xge3_runtime.h")
+ c_float fX
+ c_float fY
+ c_float fZ
+end
+
+export extern "xge_mat3_t" struct Mat3 @header("xge3_runtime.h")
+ c_float m[9]
+end
+
+export extern "xge_mat4_t" struct Mat4 @header("xge3_runtime.h")
+ c_float m[16]
+end
+
+export extern "xge_color_t" struct Color @header("xge3_runtime.h")
+ c_float fR
+ c_float fG
+ c_float fB
+ c_float fA
+end
+
+export extern "xge_frame_stats_t" struct FrameStats @header("xge3_runtime.h")
+ c_int iFrameCount
+ c_int iDrawCallCount
+ c_int iBatchCount
+ c_int iDirtyRectCount
+ c_float fFrameTimeMs
+ c_float fFrameTimeAvgMs
+ c_float fFrameTimeMaxMs
+end
+
+export extern "xge_gpu_caps_t" struct GpuCaps @header("xge3_runtime.h")
+ c_int iBackend
+ c_int iMajorVersion
+ c_int iMinorVersion
+ c_int iMaxTextureSize
+ c_char sVendor[64]
+ c_char sRenderer[128]
+ c_char sVersion[64]
+ c_char sShadingLanguage[64]
+end
+
+export extern "xge_graphics_mapping_t" struct GraphicsMapping @header("xge3_runtime.h")
+ c_int iBackend
+ c_int bOpenGLCore
+ c_int bGLES
+ c_int bWebGL
+ c_int bVAO
+ c_int bFramebufferObject
+ c_int bDepthTexture
+ c_int bClientSideVertexArray
+ c_int iRGBA8InternalFormat
+ c_int iRGBAFormat
+ c_int iUnsignedByteType
+ c_char sShaderHeader[128]
+end
+
+export extern "xge_platform_caps_t" struct PlatformCaps @header("xge3_runtime.h")
+ c_int iPlatformBackend
+ c_int iGraphicsBackend
+ c_char sPlatformName[64]
+ c_char sGraphicsName[64]
+ c_char sSokolTargetName[64]
+ c_int bWindow
+ c_int bOffscreen
+ c_int bRenderTarget
+ c_int bPBuffer
+ c_int bSurfaceless
+ c_int bBoardLinux
+ c_int bMiniProgram
+ c_int bWASM
+ c_int bTouch
+ c_int bMouse
+ c_int bKeyboard
+ c_int bTextInput
+ c_int bGamepad
+ c_int bAudio
+ c_int bResourceProvider
+ c_int bThreadSafeSubmit
+ c_int bHighDPI
+ c_int bSokol
+ c_int bSokolWindows
+ c_int bSokolLinuxX11
+ c_int bSokolLinuxWayland
+ c_int bSokolMacOS
+ c_int bSokolAndroid
+ c_int bSokolIOS
+ c_int bSokolWeb
+ c_int bSokolGLCore
+ c_int bSokolGLES3
+ c_int bSokolD3D11
+ c_int bSokolMetal
+ c_int bSokolDummy
+end
+
+export extern "xge_platform_runtime_t" struct PlatformRuntime @header("xge3_runtime.h")
+ c_int bRunning
+ c_int iWindowWidth
+ c_int iWindowHeight
+ c_int iFramebufferWidth
+ c_int iFramebufferHeight
+ c_float fDpiScale
+ c_int iKeyEventCount
+ c_int iTextEventCount
+ c_int iMouseEventCount
+ c_int iTouchEventCount
+ c_int iGamepadEventCount
+ c_int iResizeEventCount
+ c_int iQuitEventCount
+end
+
+export extern "xge_render_thread_caps_t" struct RenderThreadCaps @header("xge3_runtime.h")
+ c_int bSupported
+ c_int bEnabled
+ c_int bWorkerDrain
+ c_int bGLContextOwned
+ c_int bAsyncFlush
+ c_int bCanUseWithCurrentContext
+end
+
+export extern "xge_camera_t" struct Camera @header("xge3_runtime.h")
+ Vec2 tPosition
+ Vec2 tScale
+ c_float fRotation
+ Rect tViewport
+ c_int iCoordinateMode
+ c_int iProjectionMode
+ c_float fFovY
+ c_float fNearZ
+ c_float fFarZ
+ c_float fPerspectiveDistance
+end
+
+export extern "xge_vertex_t" struct Vertex @header("xge3_runtime.h")
+ c_float fX
+ c_float fY
+ c_float fZ
+ c_float fW
+ c_float fU
+ c_float fV
+ c_uint iColor
+end
+
+export extern "xge_shape_vertex_t" struct ShapeVertex @header("xge3_runtime.h")
+ c_float fX
+ c_float fY
+ c_uint iColor
+end
+
+export extern "xge_shape_round_rect_t" struct ShapeRoundRect @header("xge3_runtime.h")
+ c_float fTopLeft
+ c_float fTopRight
+ c_float fBottomRight
+ c_float fBottomLeft
+end
+
+export extern "xge_shape_ex_matrix_t" struct ShapeExMatrix @header("xge3_runtime.h")
+ c_float fA
+ c_float fB
+ c_float fC
+ c_float fD
+ c_float fE
+ c_float fF
+end
+
+export extern "xge_shape_ex_command_t" struct ShapeExCommand @header("xge3_runtime.h")
+ c_uchar iCommand
+end
+
+export extern "xge_shape_ex_color_stop_t" struct ShapeExColorStop @header("xge3_runtime.h")
+ c_float fOffset
+ c_uint iColor
+end
+
+export extern "xge_shape_ex_scene_effect_t" struct ShapeExSceneEffect @header("xge3_runtime.h")
+ c_int iType
+ c_uint iColor
+ c_uint iColor2
+ c_uint iColor3
+ c_float fSigma
+ c_float fAngleDegrees
+ c_float fDistance
+ c_float fIntensity
+ c_int iDirection
+ c_int iBorder
+ c_int iQuality
+ c_int iBlend
+end
+
+export extern "xge_sampler_t" struct Sampler @header("xge3_runtime.h")
+ c_int iMinFilter
+ c_int iMagFilter
+ c_int iWrapS
+ c_int iWrapT
+end
+
+export extern "xge_pipeline_state_t" struct PipelineState @header("xge3_runtime.h")
+ c_int iBlend
+ c_int bDepthTest
+ c_uint iFlags
+end
+
+export extern "xge_texture_uv_transform_t" struct TextureUvTransform @header("xge3_runtime.h")
+ c_float fScaleU
+ c_float fScaleV
+ c_float fOffsetU
+ c_float fOffsetV
+end
+
+export extern "xge_miniprogram_touch_t" struct MiniprogramTouch @header("xge3_runtime.h")
+ uint64 iId
+ c_float fX
+ c_float fY
+ c_float fForce
+end
+
+export extern "xge_egl_caps_t" struct EglCaps @header("xge3_runtime.h")
+ c_int bCompiled
+ c_int bOffscreen
+ c_int bPBuffer
+ c_int bSurfaceless
+ c_int bNativeWindow
+ c_int bBoardLinux
+ c_int iLastError
+ c_char sBackendName[64]
+ c_char sLastStage[64]
+end
+
+export extern "xge_audio_clip_info_t" struct AudioClipInfo @header("xge3_runtime.h")
+ c_uint channels
+ c_uint sample_rate
+ uint64 frames
+ uint64 bytes
+end
+
+export extern "xge_audio_listener_t" struct AudioListener @header("xge3_runtime.h")
+ Vec3 tPosition
+ Vec3 tForward
+ Vec3 tUp
+end
+
+export extern "xge_font_face_desc_t" struct FontFaceDesc @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iFaceIndex
+ c_uint iFlags
+end
+
+export extern "xge_font_instance_desc_t" struct FontInstanceDesc @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fPixelSize
+ c_uint iFlags
+end
+
+export extern "xge_font_face_info_t" struct FontFaceInfo @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iFaceIndex
+ c_int iWeight
+ c_int iStretch
+ c_int iSlant
+ uint64 iSourceHash
+ c_uint iFlags
+end
+
+export extern "xge_font_metrics_t" struct FontMetrics @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fPixelSize
+ c_float fAscent
+ c_float fDescent
+ c_float fLineGap
+ c_float fLineHeight
+ c_float fUnderlinePosition
+ c_float fUnderlineThickness
+ c_float fStrikePosition
+ c_float fStrikeThickness
+end
+
+export extern "xge_font_cache_stats_t" struct FontCacheStats @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iGlyphCount
+ c_uint iCodepointCount
+ c_uint iBucketCount
+ c_uint iAtlasPageCount
+ uint64 iAtlasCpuBytes
+ uint64 iAtlasGpuBytes
+end
+
+export extern "xge_glyph_metrics_t" struct GlyphMetrics @header("xge3_runtime.h")
+ c_uint iCodepoint
+ c_int iGlyph
+ c_float fAdvanceX
+ c_float fLeftSideBearing
+ c_float fX0
+ c_float fY0
+ c_float fX1
+ c_float fY1
+end
+
+export extern "xge_glyph_t" struct Glyph @header("xge3_runtime.h")
+ c_uint iCodepoint
+ c_int iGlyph
+ c_int iPage
+ c_int iX
+ c_int iY
+ c_int iWidth
+ c_int iHeight
+ c_float fOffsetX
+ c_float fOffsetY
+ c_float fAdvanceX
+end
+
+export extern "xge_xrf_header_t" struct XrfHeader @header("xge3_runtime.h")
+ c_uint iMagic
+ c_ushort iVersion
+ c_ushort iHeaderSize
+ c_uint iFlags
+ c_uint iGlyphCount
+ c_uint iPageCount
+ c_uint iRangeCount
+ c_uint iKerningCount
+ c_float fAscent
+ c_float fDescent
+ c_float fLineGap
+ c_float fLineHeight
+ c_uint iGlyphOffset
+ c_uint iPageOffset
+ c_uint iRangeOffset
+ c_uint iKerningOffset
+ c_uint iPixelOffset
+end
+
+export extern "xge_xrf_range_t" struct XrfRange @header("xge3_runtime.h")
+ c_uint iFirstCodepoint
+ c_uint iCount
+end
+
+export extern "xge_xrf_glyph_t" struct XrfGlyph @header("xge3_runtime.h")
+ c_uint iCodepoint
+ c_ushort iPage
+ c_ushort iGlyph
+ c_ushort iX
+ c_ushort iY
+ c_ushort iWidth
+ c_ushort iHeight
+ c_float fOffsetX
+ c_float fOffsetY
+ c_float fAdvanceX
+end
+
+export extern "xge_xrf_page_t" struct XrfPage @header("xge3_runtime.h")
+ c_ushort iWidth
+ c_ushort iHeight
+ c_ushort iFormat
+ c_ushort iReserved
+ c_uint iPixelOffset
+ c_uint iPixelSize
+end
+
+export extern "xge_xrf_kerning_t" struct XrfKerning @header("xge3_runtime.h")
+ c_uint iLeftCodepoint
+ c_uint iRightCodepoint
+ c_float fAdvanceX
+end
+
+export extern "xge_xrf_header_v2_t" struct XrfHeaderV2 @header("xge3_runtime.h")
+ XrfHeader tBase
+ uint64 iSourceHash
+ c_float fPixelSize
+ c_int iFaceIndex
+ c_int iWeight
+ c_int iStretch
+ c_int iSlant
+ c_float fUnderlinePosition
+ c_float fUnderlineThickness
+ c_float fStrikePosition
+ c_float fStrikeThickness
+end
+
+export extern "xge_glyph_caret_t" struct GlyphCaret @header("xge3_runtime.h")
+ c_uint iTextOffset
+ c_float fAdvance
+end
+
+export extern "xge_text_paint_span_t" struct TextPaintSpan @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iStart
+ c_int iEnd
+ c_uint iColor
+end
+
+export extern "xge_emoji_metrics_t" struct EmojiMetrics @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fAdvanceEm
+ c_float fWidthEm
+ c_float fHeightEm
+ c_float fBaselineRatio
+ c_uint iFlags
+end
+
+export extern "xge_emoji_match_t" struct EmojiMatch @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iEmojiId
+ c_int iTextSize
+ EmojiMetrics tMetrics
+end
+
+export extern "xge_text_decoration_t" struct TextDecoration @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iType
+ c_uint iColor
+ c_uint iFlags
+ c_int iStart
+ c_int iEnd
+ c_float fThickness
+ c_float fOffset
+ c_float fAmplitude
+ c_float fWavelength
+ c_float fPhase
+end
+
+export extern "xge_drag_drop_caps_t" struct DragDropCaps @header("xge3_runtime.h")
+ c_uint iSize
+ c_int bNativeDragIn
+ c_int bNativeDragOut
+ c_int bCustomFormats
+ c_int bInternalOnly
+end
+
+export extern "xge_ime_candidate_info_t" struct ImeCandidateInfo @header("xge3_runtime.h")
+ c_uint iSize
+ c_int bVisible
+ c_int bCanSelect
+ c_int iCount
+ c_int iSelection
+ c_int iPageStart
+ c_int iPageSize
+end
+
+export extern "xge_touch_point_t" struct TouchPoint @header("xge3_runtime.h")
+ uint64 iId
+ c_float fX
+ c_float fY
+ c_float fDX
+ c_float fDY
+ c_int iPhase
+ c_int bChanged
+ c_int bDown
+end
+
+export extern "xge_particle_range_t" struct ParticleRange @header("xge3_runtime.h")
+ c_float fMin
+ c_float fMax
+end
+
+export extern "xge_particle_key_t" struct ParticleKey @header("xge3_runtime.h")
+ c_float fTime
+ c_float fValue
+ c_float fInTangent
+ c_float fOutTangent
+end
+
+export extern "xge_particle_color_key_t" struct ParticleColorKey @header("xge3_runtime.h")
+ c_float fTime
+ c_uint iColor
+end
+
+export extern "xge_particle_burst_t" struct ParticleBurst @header("xge3_runtime.h")
+ c_float fTime
+ c_uint iCount
+end
+
+export extern "xge_particle_subemitter_t" struct ParticleSubemitter @header("xge3_runtime.h")
+ c_int iEmitter
+ c_uint iCount
+ c_float fInheritVelocity
+end
+
+export extern "xge_particle_transform_t" struct ParticleTransform @header("xge3_runtime.h")
+ Vec2 tPosition
+ Vec2 tScale
+ c_float fRotation
+end
+
+export extern "xge_particle_parameters_t" struct ParticleParameters @header("xge3_runtime.h")
+ c_float fRateScale
+ c_float fSpeedScale
+ c_float fSizeScale
+ c_float fTimeScale
+ c_uint iTint
+end
+
+export extern "xge_particle_play_t" struct ParticlePlay @header("xge3_runtime.h")
+ ParticleTransform tTransform
+ ParticleParameters tParameters
+ uint64 iSeed
+ c_int bAutoRelease
+ c_int iCullPolicy
+end
+
+export extern "xge_particle_hit_t" struct ParticleHit @header("xge3_runtime.h")
+ Vec2 tPosition
+ Vec2 tNormal
+ c_float fFraction
+end
+
+export extern "xge_particle_stats_t" struct ParticleStats @header("xge3_runtime.h")
+ c_uint iActiveEffects
+ c_uint iCachedEffects
+ c_uint iLiveParticles
+ c_uint iPeakParticles
+ c_uint iPendingEvents
+ uint64 iSpawned
+ uint64 iDroppedParticles
+ uint64 iDroppedEvents
+ uint64 iCollisions
+ uint64 iSteps
+ c_double fDroppedTime
+ c_double fLastUpdateSeconds
+end
+
+export extern "xge_action_binding_t" struct ActionBinding @header("xge3_runtime.h")
+ c_int type
+ c_int device
+ c_uint code
+ c_float scale
+end
+
+export extern "xge_action_state_t" struct ActionState @header("xge3_runtime.h")
+ c_float value
+ c_int down
+ c_int pressed
+ c_int released
+end

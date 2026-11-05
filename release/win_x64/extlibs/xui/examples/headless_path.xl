@@ -1,0 +1,16 @@
+// Pure native path storage: no Proxy, Context, window or graphics device.
+import xui
+
+func main(...) as int
+ auto path=xui.createPath()
+ try
+  path.moveTo(0,0)
+  path.lineTo(30,40)
+  assert path.commandCount()==2
+  path.clear()
+  assert path.commandCount()==0
+ finally
+  path.close()
+ end
+ return 0
+end

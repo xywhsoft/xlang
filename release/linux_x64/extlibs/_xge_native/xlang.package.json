@@ -1,0 +1,92 @@
+{
+  "format": "xlang-package-1",
+  "name": "_xge_native",
+  "version": "3.0.0",
+  "abiVersion": "2",
+  "kind": "xlang-private-extlib",
+  "artifact": {
+    "kind": "source",
+    "cSources": [
+      "src/runtime.c"
+    ],
+    "includeDirs": [
+      "include"
+    ],
+    "xlSources": [
+      "src/bootstrap.xl"
+    ],
+    "runtimeSymbols": [
+      "xl6HostXrtResolveV1",
+      "xl6ErrorScopeTryPropagateFailureV1",
+      "xl6CallbackFailureRecordV1",
+      "xl6ForeignStatusFailureV1"
+    ],
+    "cSourceGroups": [
+      {
+        "source": "src/transfer.c",
+        "providedSymbols": [
+          "xl6Xge3RunOwned",
+          "xl6Xge3DragBegin",
+          "xl6Xge3CopyToClipboard",
+          "xl6Xui3CopyToClipboard"
+        ],
+        "requiredSymbols": [
+          "xl6CodeLeaseAcquireScoped",
+          "xl6CodeLeaseRelease",
+          "xl6TransferServicesFromLeaseV1",
+          "xl6TransferServicesProcessResidentV1"
+        ]
+      }
+    ],
+    "xrtModules": [
+      "XRT_MODULE_ARRAY",
+      "XRT_MODULE_ATOMIC",
+      "XRT_MODULE_CODEC_BASE64",
+      "XRT_MODULE_COND",
+      "XRT_MODULE_DIR",
+      "XRT_MODULE_FILE",
+      "XRT_MODULE_FILE_TEXT",
+      "XRT_MODULE_FILE_WHOLE",
+      "XRT_MODULE_JSON_READ",
+      "XRT_MODULE_JSON_WRITE",
+      "XRT_MODULE_MAP",
+      "XRT_MODULE_MUTEX",
+      "XRT_MODULE_NUMBER_FLOAT",
+      "XRT_MODULE_NUMBER_FORMAT",
+      "XRT_MODULE_PATH",
+      "XRT_MODULE_PATH_SYSTEM",
+      "XRT_MODULE_POOL",
+      "XRT_MODULE_RANDOM",
+      "XRT_MODULE_REGEX_CORE",
+      "XRT_MODULE_REGEX_MATCH",
+      "XRT_MODULE_SLOT_MAP",
+      "XRT_MODULE_SPIN",
+      "XRT_MODULE_STRING",
+      "XRT_MODULE_STRING_GLOB",
+      "XRT_MODULE_THREAD",
+      "XRT_MODULE_TIME",
+      "XRT_MODULE_TIME_TEXT",
+      "XRT_MODULE_UNICODE",
+      "XRT_MODULE_VALUE",
+      "XRT_MODULE_VALUE_CONTAINER",
+      "XRT_MODULE_VALUE_GRAPH",
+      "XRT_MODULE_XLON_FILE",
+      "XRT_MODULE_XLON_READ",
+      "XRT_MODULE_XLON_WRITE"
+    ]
+  },
+  "links": [
+    "native/libxge3_host.so"
+  ],
+  "loadlibs": [
+    "native/libxge3_host.so"
+  ],
+  "dependencies": [],
+  "native": {
+    "singleton": true,
+    "loadName": "libxge3_host.so",
+    "version": "3.0.0",
+    "platform": "linux_x64",
+    "sha256": "ffa77a906c0d630613a97304fa0faeaab7e656e9dba64b74628056321ffa3723"
+  }
+}

@@ -1,0 +1,99 @@
+#ifndef XL6_PACKAGE_H
+#define XL6_PACKAGE_H
+
+#include <stddef.h>
+
+struct XL6_SourceReport;
+
+typedef enum XL6_PackageResolveKind {
+    XL6_PACKAGE_RESOLVE_UNRESOLVED,
+    XL6_PACKAGE_RESOLVE_FILE,
+    XL6_PACKAGE_RESOLVE_PACKAGE
+} XL6_PackageResolveKind;
+
+typedef struct XL6_PackageResolveResult {
+    XL6_PackageResolveKind kind;
+    int resolved;
+    char* target;
+    char* manifestPath;
+    char* packageDir;
+    char* packageName;
+    char* packageVersion;
+    char* abiVersion;
+    char* packageId;
+    struct XL6_SourceReport* sourceReport; /* Borrowed during resolution. */
+} XL6_PackageResolveResult;
+
+typedef struct XL6_PackageStringList {
+    char** items;
+    size_t count;
+} XL6_PackageStringList;
+
+/* Cold, opt-in source dependency. Legacy cSources remain unconditional. */
+typedef struct XL6_PackageCSourceGroup {
+    char* source;
+    XL6_PackageStringList providedSymbols;
+    XL6_PackageStringList requiredSymbols;
+    int xrtModulesDeclared;
+    int selected; /* Set only by the verified compile-unit selection. */
+} XL6_PackageCSourceGroup;
+void xl6PackageCSourceGroupFree(XL6_PackageCSourceGroup* group);
+
+typedef struct XL6_PackageDependency {
+    char* name;
+    char* version;
+    char* abiVersion;
+    char* packageId;
+} XL6_PackageDependency;
+
+typedef struct XL6_PackageNativeInfo {
+    int singleton;
+    char* loadName;
+    char* version;
+} XL6_PackageNativeInfo;
+
+typedef struct XL6_PackageManifest {
+    char* format;
+    char* name;
+    char* version;
+    char* abiVersion;
+    char* packageId;
+    char* dir;
+    XL6_PackageStringList cSources;
+    XL6_PackageStringList includeDirs;
+    XL6_PackageStringList xlSources;
+    XL6_PackageStringList xrtModules;
+    XL6_PackageStringList runtimeSymbols;
+    XL6_PackageCSourceGroup* cSourceGroups;
+    size_t cSourceGroupCount;
+    int xrtModulesDeclared;
+    XL6_PackageStringList links;
+    XL6_PackageStringList loadlibs;
+    XL6_PackageDependency* dependencies;
+    size_t dependencyCount;
+    XL6_PackageNativeInfo nativeInfo;
+} XL6_PackageManifest;
+
+void xl6PackageStringListInit(XL6_PackageStringList* list);
+void xl6PackageStringListFree(XL6_PackageStringList* list);
+int xl6PackageStringListAppend(XL6_PackageStringList* list, const char* text);
+
+void xl6PackageManifestInit(XL6_PackageManifest* manifest);
+void xl6PackageManifestFree(XL6_PackageManifest* manifest);
+int xl6PackageLoadManifest(const char* path, XL6_PackageManifest* manifest);
+
+void xl6PackageResolveResultInit(XL6_PackageResolveResult* result);
+void xl6PackageResolveResultFree(XL6_PackageResolveResult* result);
+const char* xl6PackageResolveKindName(XL6_PackageResolveKind kind);
+/* Speculative resolution reports hit/miss through the return value/result,
+ * never through the caller's runtime error slot. Both hit and miss preserve
+ * its exact prior error. Explicit LoadManifest still publishes parse errors. */
+int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_PackageResolveResult* result);
+int xl6PackageLoadManifestObserved(const char* path, XL6_PackageManifest* manifest,
+                                   struct XL6_SourceReport* report);
+int xl6PackageResolveImportObserved(const char* importerPath, const char* target,
+                                    XL6_PackageResolveResult* result,
+                                    struct XL6_SourceReport* report);
+int xl6PackageJoinPath(char* out, size_t outSize, const char* a, const char* b);
+
+#endif

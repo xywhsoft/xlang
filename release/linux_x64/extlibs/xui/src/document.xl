@@ -1,0 +1,219 @@
+// Default-provenance models only. Every ordinary method is one direct native call.
+// Raw allocator/observer installers and pointer-bearing value records stay C interoperability.
+export extern "struct xui_document_t*" class Document @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3DocumentPolicy") @domain("xl6Xui3DocumentModelDomainV1")
+ native point handle
+ extern "xuiDocumentIsOwned" @no_raise func isOwned() as bool
+ extern "xuiDocumentShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackDocument) func share() as Document
+ extern "xuiDocumentGetRevision" @no_raise func revision() as uint64
+ extern "xuiDocumentGetIdentity" @no_raise func identity() as uint64
+ extern "xuiDocumentGetProfile" @no_raise func profile() as c_int
+ extern "xuiDocumentGetMarkdownDialect" @no_raise func markdownDialect() as c_int
+ extern "xuiDocumentAcquireSnapshot" @no_raise @c_result("owned_view") @factory(1,0,rollbackDocumentSnapshot) func snapshot() as DocumentSnapshot
+ extern "xuiDocumentUnsubscribeChecked" @no_raise @c_result("status",0) func unsubscribeChecked(uint64 token)
+ extern "xuiDocumentCheckNotifications" @no_raise @c_result("status",0) func checkNotifications(bool clear)
+ extern "xuiDocumentGetNotificationFailureCount" @no_raise func notificationFailureCount() as uint64
+ extern "xuiDocumentGetNotificationFailureRevision" @no_raise func notificationFailureRevision() as uint64
+ extern "xuiDocumentGetNotificationFailureStatus" @no_raise func notificationFailureStatus() as c_int
+ extern "xuiDocumentGetStats" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func stats() as DocumentStats
+ extern "xuiDocumentGetMemoryStats" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func memoryStats() as DocumentMemoryStats
+ extern "xuiDocumentSetHistoryLimits" @no_raise @c_result("status",0) func setHistoryLimits(c_uint max_steps,uint64 max_bytes)
+ extern "xuiDocumentClearHistory" @no_raise @c_result("status",0) func clearHistory()
+ extern "xuiDocumentIsDirty" @no_raise func isDirty() as c_int
+ extern "xuiDocumentMarkSaved" @no_raise @c_result("status",0) func markSaved(DocumentSnapshot saved)
+ extern "xuiDocumentSaveFile" @no_raise @c_cstr(0) @c_result("status",0) func saveFile(string path,c_uint format)
+ extern "xuiDocumentUndo" @no_raise @c_result("owned_view") @factory(1,0,rollbackDocumentChangeSet) func undo() as DocumentChangeSet
+ extern "xuiDocumentRedo" @no_raise @c_result("owned_view") @factory(1,0,rollbackDocumentChangeSet) func redo() as DocumentChangeSet
+ extern "xuiDocumentCanUndo" @no_raise func canUndo() as c_int
+ extern "xuiDocumentCanRedo" @no_raise func canRedo() as c_int
+ extern "xuiDocumentCancelPrepare" @no_raise @c_result("status",0) func cancelPrepare()
+ extern "xuiDocumentHasPrepare" @no_raise func hasPrepare() as c_int
+ extern "xuiDocumentPreparePublish" @no_raise @c_result("owned_view") @factory(2,0,rollbackDocumentChangeSet) func preparePublish(DocumentPrepare prepare) as DocumentChangeSet
+ extern "xuiDocumentLoadMarkdown" @no_raise @c_span(0,"const char*","size_t") @c_result("status",0) func loadMarkdown(string utf8)
+ extern "xuiDocumentBeginTransaction" @no_raise @c_result("owned_view") @factory(2,0,rollbackDocumentTransaction) @c_pack(1,"xui_doc_txn_desc_t",0,4) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"iDomain",0,"value") @c_pack_field(1,"iBaseRevision",1,"value") @c_pack_field(1,"iOrigin",2,"value") @c_pack_field(1,"iGroup",3,"value") func beginTransaction(c_uint domain=1,uint64 baseRevision=0,uint64 origin=0,uint64 group=0) as DocumentTransaction
+ extern "xuiDocumentPrepareStreamSource" @no_raise @c_result("owned_view") @factory(6,0,rollbackDocumentPrepare) @c_pack(2,"xui_doc_txn_desc_t",1,4) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"iDomain",1,"value") @c_pack_field(2,"iBaseRevision",2,"value") @c_pack_field(2,"iOrigin",3,"value") @c_pack_field(2,"iGroup",4,"value") @c_span(5,"const char*","size_t") func prepareStreamSource(DocumentPrepare? previous,c_uint domain=2,uint64 baseRevision=0,uint64 origin=0,uint64 group=0,string utf8="",c_int finalChunk=1) as DocumentPrepare
+ extern "xuiDocumentSubscribeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_output(4,0) func subscribe(DocumentChangeProc callback) as uint64
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiDocumentReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackDocument(Document value)
+
+export extern "struct xui_doc_snapshot_t*" class DocumentSnapshot @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3DocumentSnapshotPolicy") @domain("xl6Xui3DocumentModelDomainV1")
+ native point handle
+ extern "xuiDocumentSnapshotShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackDocumentSnapshot) func share() as DocumentSnapshot
+ extern "xuiDocumentSnapshotGetIdentity" @no_raise func identity() as uint64
+ extern "xuiDocumentSnapshotGetRevision" @no_raise func revision() as uint64
+ extern "xuiDocumentSnapshotGetChild" @no_raise @c_output(3,0) func child(uint64 parent,uint64 index) as uint64
+ extern "xuiDocumentSnapshotGetSourceSegment" @no_raise @c_output(3,0) @c_output_size(3,"iSize") func sourceSegment(uint64 node,uint64 index) as DocumentSourceSegment
+ extern "xuiDocumentSnapshotGetSourceLine" @no_raise @c_output(2,0) @c_output_size(2,"iSize") func sourceLine(uint64 source_offset) as DocumentSourceLine
+ extern "xuiDocumentSnapshotGetBlockSyntax" @no_raise @c_output(2,0) @c_output_size(2,"iSize") func blockSyntax(uint64 node) as DocumentBlockSyntax
+ extern "xuiDocumentSnapshotGetBreakSyntax" @no_raise @c_output(2,0) @c_output_size(2,"iSize") func breakSyntax(uint64 node) as DocumentBreakSyntax
+ extern "xuiDocumentSnapshotGetQuotePrefix" @no_raise @c_outputs(3,4) @c_status(0) func quotePrefix(uint64 node,uint64 index) as (uint64,uint64)
+ extern "xuiDocumentSnapshotGetListContinuationIndent" @no_raise @c_output(3,0) @c_output_size(3,"iSize") func listContinuationIndent(uint64 item,uint64 index) as DocumentListIndent
+ extern "xuiDocumentSnapshotGetCodeIndent" @no_raise @c_output(3,0) @c_output_size(3,"iSize") func codeIndent(uint64 code,uint64 index) as DocumentCodeIndent
+ extern "xuiDocumentSnapshotGetTableToken" @no_raise @c_output(3,0) @c_output_size(3,"iSize") func tableToken(uint64 table,uint64 index) as DocumentTableToken
+ extern "xuiDocumentSnapshotGetSourceInfo" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func sourceInfo() as DocumentSourceInfo
+ extern "xuiDocumentSnapshotGetInlineSyntax" @no_raise @c_output(2,0) @c_output_size(2,"iSize") func inlineSyntax(uint64 index) as DocumentInlineSyntax
+ extern "xuiDocumentSnapshotGetReferenceDefinition" @no_raise @c_output(2,0) @c_output_size(2,"iSize") func referenceDefinition(uint64 index) as DocumentReferenceDefinition
+ extern "xuiDocumentSnapshotGetReferenceCandidate" @no_raise @c_output(2,0) @c_output_size(2,"iSize") func referenceCandidate(uint64 index) as DocumentInlineSyntax
+ extern "xuiDocumentSnapshotCopyText" @no_raise @c_span(1,"char*","size_t") @c_output(4,0) func copyText(uint64 node,Buffer buffer) as uint64
+ extern "xuiDocumentSnapshotCopyExtensionPayload" @no_raise @c_span(1,"void*","size_t") @c_output(4,0) func copyExtensionPayload(uint64 node,Buffer buffer) as uint64
+ extern "xuiDocumentSnapshotCopySource" @no_raise @c_span(0,"char*","size_t") @c_output(3,0) func copySource(Buffer buffer) as uint64
+ extern "xuiDocumentSnapshotReadText" @no_raise @c_span(2,"void*","size_t") @c_result("status",0) func readText(uint64 node,uint64 offset,Buffer buffer)
+ extern "xuiDocumentSnapshotReadSource" @no_raise @c_span(1,"void*","size_t") @c_result("status",0) func readSource(uint64 offset,Buffer buffer)
+ extern "xuiDocumentSnapshotGetMemoryStats" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func memoryStats() as DocumentMemoryStats
+ extern "xuiDocumentSnapshotExportFile" @no_raise @c_cstr(0) @c_result("status",0) func exportFile(string path,c_uint format)
+ extern "xuiDocumentSnapshotConvertToMarkdown" @no_raise @c_result("owned_view") @factory(2,0,rollbackDocument) func convertToMarkdown(c_uint dialect) as Document
+ extern "xuiDocumentSnapshotConvertToMarkdownWithPolicy" @no_raise @c_result("owned_view") @factory(3,0,rollbackDocument) func convertToMarkdownWithPolicy(c_uint dialect,c_uint accepted_reasons) as Document
+ extern "xuiDocumentSnapshotAnalyzeRichConversion" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func analyzeRichConversion() as DocumentRichConversionReport
+ extern "xuiDocumentSnapshotConvertToRich" @no_raise @c_result("owned_view") @factory(2,0,rollbackDocument) func convertToRich(c_uint accepted_reasons) as Document
+ extern "xuiDocumentFragmentCreateRange" @no_raise @c_ref(0) @c_result("owned_view") @factory(2,0,rollbackDocumentFragment) func fragmentCreateRange(DocumentRange range) as DocumentFragment
+ extern "xuiDocumentSnapshotQueryMarks" @no_raise @c_ref(0) @c_outputs(2,3) @c_status(0) func queryMarks(DocumentRange range) as (c_uint,c_uint)
+ extern "xuiDocumentSnapshotQueryTextStyle" @no_raise @c_ref(0) @c_output(2,0) @c_output_size(2,"iSize") func queryTextStyle(DocumentRange range) as DocumentTextStyleQuery
+ extern "xuiDocumentSnapshotGetTableColumnWidth" @no_raise @c_output(3,0) func tableColumnWidth(uint64 table,c_uint column) as c_float
+ extern "xuiDocumentSourceToPosition" @no_raise @c_outputs(2,3) @c_status(0) @c_output_size(2,"iSize") func sourceToPosition(uint64 source_offset) as (DocumentPosition,c_int)
+ extern "xuiDocumentSourceToPositionEx" @no_raise @c_outputs(3,4) @c_status(0) @c_output_size(3,"iSize") func sourceToPositionEx(uint64 source_offset,c_uint affinity) as (DocumentPosition,c_int)
+ extern "xuiDocumentPositionToSource" @no_raise @c_ref(0) @c_outputs(2,3) @c_status(0) func positionToSource(DocumentPosition position) as (uint64,c_int)
+ extern "xuiDocumentSnapshotComparePositions" @no_raise @c_ref(0) @c_ref(1) @c_output(3,0) func comparePositions(DocumentPosition a,DocumentPosition b) as c_int
+ extern "xuiDocumentSnapshotCreateSourceIndex" @no_raise @c_result("owned_view") @factory(2,0,rollbackDocumentSourceIndex) @c_pack(1,"xui_doc_source_index_desc_t",0,1) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"iMaxWorkingBytes",0,"value") func createSourceIndex(uint64 maxWorkingBytes=0) as DocumentSourceIndex
+ extern "xuiDocumentSnapshotGetNode" @no_raise @c_output_record(2,"xui_doc_node_info_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"iKind") @c_output_field(1,"iId") @c_output_field(2,"iParentId") @c_output_field(3,"iChildCount") @c_output_field(4,"iTextBytes") @c_output_field(5,"iSourceStart") @c_output_field(6,"iSourceEnd") @c_output_field(7,"bSourceExact") @c_output_field(8,"iSyntaxStart") @c_output_field(9,"iSyntaxEnd") @c_output_field(10,"iSourceSegmentCount") @c_output_field(11,"iExtensionPayloadBytes") @c_output_field(12,"iExtensionVersion") @c_output_field(13,"bExtensionRequired") func nodeInfo(uint64 node) as (c_uint,uint64,uint64,uint64,uint64,uint64,uint64,c_int,uint64,uint64,uint64,uint64,c_uint,c_int)
+ extern "xuiDocumentSnapshotQueryLink" @no_raise @c_output_record(2,"xui_doc_link_info_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_ref(0) @c_output_field(0,"bLinked") @c_output_field(1,"bMixed") func linkState(DocumentRange range) as (c_int,c_int)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiDocumentSnapshotReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackDocumentSnapshot(DocumentSnapshot value)
+
+export extern "struct xui_doc_change_set_t*" class DocumentChangeSet @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3DocumentChangeSetPolicy") @domain("xl6Xui3DocumentModelDomainV1")
+ native point handle
+ extern "xuiDocumentChangeSetShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackDocumentChangeSet) func share() as DocumentChangeSet
+ extern "xuiDocumentMapPosition" @no_raise @c_ref(0) @c_outputs(2,3) @c_status(0) @c_output_size(2,"iSize") func mapPosition(DocumentPosition before) as (DocumentPosition,c_int)
+ extern "xuiDocumentChangeSetGetInfo" @no_raise @c_output_record(1,"xui_doc_change_info_t","borrowed") @c_output_size(1,"iSize") @c_status(0) @c_output_field(0,"iFlags") @c_output_field(1,"iBeforeRevision") @c_output_field(2,"iAfterRevision") @c_output_field(3,"iOrigin") @c_output_field(4,"iInputGeneration") @c_output_field(5,"iOperationCount") @c_output_field(6,"bUndo") @c_output_field(7,"iDomain") func info() as (c_uint,uint64,uint64,uint64,uint64,uint64,c_int,c_uint)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiDocumentChangeSetReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackDocumentChangeSet(DocumentChangeSet value)
+
+export extern "struct xui_doc_prepare_t*" class DocumentPrepare @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3DocumentPreparePolicy") @domain("xl6Xui3DocumentModelDomainV1")
+ native point handle
+ extern "xuiDocumentPrepareShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackDocumentPrepare) func share() as DocumentPrepare
+ extern "xuiDocumentPrepareRun" @no_raise @c_result("status",0) func run()
+ extern "xuiDocumentPrepareGetInfo" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func info() as DocumentPrepareInfo
+ extern "xuiDocumentPrepareCopySource" @no_raise @c_span(0,"char*","size_t") @c_output(3,0) func copySource(Buffer buffer) as uint64
+ extern "xuiDocumentPrepareReadSource" @no_raise @c_span(1,"void*","size_t") @c_result("status",0) func readSource(uint64 offset,Buffer buffer)
+ extern "xuiDocumentPrepareSourcePosition" @no_raise @c_output(3,0) @c_output_size(3,"iSize") func sourcePosition(uint64 offset,c_uint affinity) as DocumentPosition
+ extern "xuiDocumentPrepareMapSourcePosition" @no_raise @c_ref(1) @c_outputs(3,4) @c_status(0) @c_output_size(3,"iSize") func mapSourcePosition(DocumentPrepare to,DocumentPosition position) as (DocumentPosition,c_int)
+ extern "xuiDocumentPrepareSemanticPosition" @no_raise @c_output(5,0) @c_output_size(5,"iSize") func semanticPosition(uint64 node,c_uint kind,uint64 offset,c_uint affinity) as DocumentPosition
+ extern "xuiDocumentPrepareMapPosition" @no_raise @c_ref(1) @c_outputs(3,4) @c_status(0) @c_output_size(3,"iSize") func mapPosition(DocumentPrepare to,DocumentPosition position) as (DocumentPosition,c_int)
+ extern "xuiDocumentPrepareCancel" @no_raise func cancel()
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiDocumentPrepareReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackDocumentPrepare(DocumentPrepare value)
+
+export extern "struct xui_doc_fragment_t*" class DocumentFragment @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3DocumentFragmentPolicy") @domain("xl6Xui3DocumentModelDomainV1")
+ native point handle
+ extern "xuiDocumentFragmentShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackDocumentFragment) func share() as DocumentFragment
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiDocumentFragmentReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackDocumentFragment(DocumentFragment value)
+
+export extern "struct xui_doc_source_index_t*" class DocumentSourceIndex @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3DocumentSourceIndexPolicy") @domain("xl6Xui3DocumentModelDomainV1")
+ native point handle
+ extern "xuiDocumentSourceIndexShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackDocumentSourceIndex) func share() as DocumentSourceIndex
+ extern "xuiDocumentSourceIndexGetInfo" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func info() as DocumentSourceIndexInfo
+ extern "xuiDocumentSourceIndexGetRecord" @no_raise @c_output(2,0) @c_output_size(2,"iSize") func record(uint64 ordinal) as DocumentSourceRecord
+ extern "xuiDocumentSourceIndexGetToken" @no_raise @c_output(2,0) @c_output_size(2,"iSize") func token(uint64 ordinal) as DocumentSourceToken
+ extern "xuiDocumentSourceIndexGetBinding" @no_raise @c_output(2,0) @c_output_size(2,"iSize") func binding(uint64 ordinal) as DocumentSourceBinding
+ extern "xuiDocumentSourceIndexFindToken" @no_raise @c_output(2,0) func findToken(uint64 offset) as uint64
+ extern "xuiDocumentSourceIndexReadSource" @no_raise @c_span(1,"void*","size_t") @c_result("status",0) func readSource(uint64 offset,Buffer buffer)
+ extern "xuiDocumentSourceIndexVisitBindings" @no_raise @c_sync_callback(2,-1,-16,"first") @c_output(5,0) func visitBindings(uint64 start,uint64 endValue,DocumentSourceBindingProc callback) as uint64
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiDocumentSourceIndexReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackDocumentSourceIndex(DocumentSourceIndex value)
+
+export extern "struct xui_doc_transaction_t*" class DocumentTransaction @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3DocumentTxnPolicy") @domain("xl6Xui3DocumentModelDomainV1")
+ native point handle
+ extern "xuiDocumentTxnCopySubtree" @no_raise @c_output(5,0) func copySubtree(DocumentSnapshot source,uint64 source_node,uint64 target_parent,uint64 child_index) as uint64
+ extern "xuiDocumentTxnCopyRange" @no_raise @c_ref(1) @c_outputs(5,6) @c_status(0) func copyRange(DocumentSnapshot source,DocumentRange range,uint64 target_parent,uint64 child_index) as (uint64,uint64)
+ extern "xuiDocumentTxnInsertFragment" @no_raise @c_outputs(4,5) @c_status(0) func insertFragment(DocumentFragment fragment,uint64 target_parent,uint64 child_index) as (uint64,uint64)
+ extern "xuiDocumentTxnReplaceRangeWithFragment" @no_raise @c_ref(0) @c_output(3,0) @c_output_size(3,"iSize") func replaceRangeWithFragment(DocumentRange range,DocumentFragment fragment) as DocumentPosition
+ extern "xuiDocumentTxnDeleteNode" @no_raise @c_result("status",0) func deleteNode(uint64 node)
+ extern "xuiDocumentTxnMoveNode" @no_raise @c_result("status",0) func moveNode(uint64 node,uint64 parent,uint64 child_index)
+ extern "xuiDocumentTxnReplaceText" @no_raise @c_span(3,"const char*","size_t") @c_result("status",0) func replaceText(uint64 node,uint64 start,uint64 endValue,string utf8)
+ extern "xuiDocumentTxnSetResource" @no_raise @c_cstr(1) @c_cstr(2) @c_cstr(3) @c_result("status",0) func setResource(uint64 node,string resource,string info,string title)
+ extern "xuiDocumentTxnSetExtensionPayload" @no_raise @c_span(1,"const void*","size_t") @c_result("status",0) func setExtensionPayload(uint64 node,bytes payload,c_uint version,c_int required)
+ extern "xuiDocumentTxnInsertObject" @no_raise @c_ref(0) @c_span(3,"const char*","size_t") @c_outputs(6,7) @c_status(0) @c_output_size(7,"iSize") func insertObject(DocumentRange range,c_uint kind,c_uint flags,string utf8) as (uint64,DocumentPosition)
+ extern "xuiDocumentTxnInsertCodeBlock" @no_raise @c_ref(0) @c_cstr(1) @c_span(2,"const char*","size_t") @c_outputs(5,6) @c_status(0) @c_output_size(6,"iSize") func insertCodeBlock(DocumentRange range,string language,string utf8) as (uint64,DocumentPosition)
+ extern "xuiDocumentTxnSetCodeBlockLanguage" @no_raise @c_cstr(1) @c_result("status",0) func setCodeBlockLanguage(uint64 code_id,string language)
+ extern "xuiDocumentTxnInsertRule" @no_raise @c_ref(0) @c_outputs(2,3) @c_status(0) @c_output_size(3,"iSize") func insertRule(DocumentRange range) as (uint64,DocumentPosition)
+ extern "xuiDocumentTxnWrapQuoteRange" @no_raise @c_ref(0) @c_outputs(2,3) @c_status(0) func wrapQuoteRange(DocumentRange range) as (uint64,DocumentRange)
+ extern "xuiDocumentTxnUnwrapQuote" @no_raise @c_ref(0) @c_output(2,0) @c_output_size(2,"iSize") func unwrapQuote(DocumentPosition at) as DocumentPosition
+ extern "xuiDocumentTxnCreateListRange" @no_raise @c_ref(0) @c_outputs(4,5) @c_status(0) func createListRange(DocumentRange range,c_uint flags,uint64 start) as (uint64,DocumentRange)
+ extern "xuiDocumentTxnSetListStyleRange" @no_raise @c_ref(0) @c_output(4,0) func setListStyleRange(DocumentRange range,c_uint flags,uint64 start) as DocumentRange
+ extern "xuiDocumentTxnUnlistRange" @no_raise @c_ref(0) @c_output(2,0) func unlistRange(DocumentRange range) as DocumentRange
+ extern "xuiDocumentTxnInsertFootnote" @no_raise @c_ref(0) @c_cstr(1) @c_span(2,"const char*","size_t") @c_outputs(5,6,7,8) @c_status(0) @c_output_size(7,"iSize") @c_output_size(8,"iSize") func insertFootnote(DocumentRange range,string label,string initial_utf8) as (uint64,uint64,DocumentPosition,DocumentPosition)
+ extern "xuiDocumentTxnRemoveFootnoteReference" @no_raise @c_output(2,0) @c_output_size(2,"iSize") func removeFootnoteReference(uint64 reference_id) as DocumentPosition
+ extern "xuiDocumentTxnSetMarks" @no_raise @c_ref(0) @c_result("status",0) func setMarks(DocumentRange range,c_uint set,c_uint clear)
+ extern "xuiDocumentTxnSetLink" @no_raise @c_ref(0) @c_cstr(1) @c_cstr(2) @c_result("status",0) func setLink(DocumentRange range,string uri,string title)
+ extern "xuiDocumentTxnInsertLink" @no_raise @c_ref(0) @c_span(1,"const char*","size_t") @c_cstr(2) @c_cstr(3) @c_output(6,0) @c_output_size(6,"iSize") func insertLink(DocumentRange range,string label,string uri,string title) as DocumentPosition
+ extern "xuiDocumentTxnSetTextStyle" @no_raise @c_ref(0) @c_ref(2) @c_result("status",0) func setTextStyle(DocumentRange range,c_uint fields,DocumentTextStyle style)
+ extern "xuiDocumentTxnClearFormatting" @no_raise @c_ref(0) @c_result("status",0) func clearFormatting(DocumentRange range)
+ extern "xuiDocumentTxnReplaceAll" @no_raise @c_span(0,"const char*","size_t") @c_span(1,"const char*","size_t") @c_ref(2) @c_output(6,0) func replaceAll(string pattern,string replacement,DocumentRange scope) as uint64
+ extern "xuiDocumentTxnReplaceAllEx" @no_raise @c_span(0,"const char*","size_t") @c_span(1,"const char*","size_t") @c_ref(3) @c_output(7,0) func replaceAllEx(string pattern,string replacement,c_uint flags,DocumentRange scope) as uint64
+ extern "xuiDocumentTxnReplaceRange" @no_raise @c_ref(0) @c_span(1,"const char*","size_t") @c_output(4,0) @c_output_size(4,"iSize") func replaceRange(DocumentRange range,string utf8) as DocumentPosition
+ extern "xuiDocumentTxnSplitBlock" @no_raise @c_ref(0) @c_output(2,0) @c_output_size(2,"iSize") func splitBlock(DocumentPosition at) as DocumentPosition
+ extern "xuiDocumentTxnSplitListItem" @no_raise @c_ref(0) @c_output(2,0) @c_output_size(2,"iSize") func splitListItem(DocumentPosition at) as DocumentPosition
+ extern "xuiDocumentTxnExitListItem" @no_raise @c_ref(0) @c_output(2,0) @c_output_size(2,"iSize") func exitListItem(DocumentPosition at) as DocumentPosition
+ extern "xuiDocumentTxnIndentListItem" @no_raise @c_ref(0) @c_output(2,0) @c_output_size(2,"iSize") func indentListItem(DocumentPosition at) as DocumentPosition
+ extern "xuiDocumentTxnOutdentListItem" @no_raise @c_ref(0) @c_output(2,0) @c_output_size(2,"iSize") func outdentListItem(DocumentPosition at) as DocumentPosition
+ extern "xuiDocumentTxnIndentListRange" @no_raise @c_ref(0) @c_output(2,0) func indentListRange(DocumentRange range) as DocumentRange
+ extern "xuiDocumentTxnOutdentListRange" @no_raise @c_ref(0) @c_output(2,0) func outdentListRange(DocumentRange range) as DocumentRange
+ extern "xuiDocumentTxnSetHeading" @no_raise @c_ref(0) @c_output(3,0) func setHeading(DocumentRange range,c_uint level) as DocumentRange
+ extern "xuiDocumentTxnSetBlockStyleRange" @no_raise @c_ref(0) @c_ref(2) @c_output(4,0) func setBlockStyleRange(DocumentRange range,c_uint fields,DocumentBlockStyle style) as DocumentRange
+ extern "xuiDocumentTxnMoveBlockRange" @no_raise @c_ref(0) @c_output(3,0) func moveBlockRange(DocumentRange range,c_int down) as DocumentRange
+ extern "xuiDocumentTxnJoinBlocks" @no_raise @c_output(3,0) @c_output_size(3,"iSize") func joinBlocks(uint64 left,uint64 right) as DocumentPosition
+ extern "xuiDocumentTxnInsertTable" @no_raise @c_output(6,0) func insertTable(uint64 parent,uint64 index,c_uint rows,c_uint columns,c_int header) as uint64
+ extern "xuiDocumentTxnInsertTableRow" @no_raise @c_result("status",0) func insertTableRow(uint64 table,c_uint row)
+ extern "xuiDocumentTxnDeleteTableRow" @no_raise @c_result("status",0) func deleteTableRow(uint64 table,c_uint row)
+ extern "xuiDocumentTxnInsertTableColumn" @no_raise @c_result("status",0) func insertTableColumn(uint64 table,c_uint column)
+ extern "xuiDocumentTxnDeleteTableColumn" @no_raise @c_result("status",0) func deleteTableColumn(uint64 table,c_uint column)
+ extern "xuiDocumentTxnSetTableColumnWidth" @no_raise @c_result("status",0) func setTableColumnWidth(uint64 table,c_uint column,c_float width)
+ extern "xuiDocumentTxnMergeCells" @no_raise @c_output(6,0) func mergeCells(uint64 table,c_uint row,c_uint column,c_uint rows,c_uint columns) as uint64
+ extern "xuiDocumentTxnSplitCell" @no_raise @c_result("status",0) func splitCell(uint64 cell)
+ extern "xuiDocumentTxnPasteTableMatrix" @no_raise @c_span(3,"const char*","size_t") @c_output(6,0) func pasteTableMatrix(uint64 table,c_uint row,c_uint column,string utf8) as uint64
+ extern "xuiDocumentTxnClearTableMatrix" @no_raise @c_output(6,0) func clearTableMatrix(uint64 table,c_uint row,c_uint column,c_uint rows,c_uint columns) as uint64
+ extern "xuiDocumentTxnReplaceSource" @no_raise @c_span(2,"const char*","size_t") @c_result("status",0) func replaceSource(uint64 start,uint64 endValue,string utf8)
+ extern "xuiDocumentTxnCommit" @no_raise @c_result("owned_view") @factory(1,0,rollbackDocumentChangeSet) func commit() as DocumentChangeSet
+ extern "xuiDocumentTxnAbort" @no_raise func abort()
+ extern "xuiDocumentTxnGetNode" @no_raise @c_output_record(2,"xui_doc_node_info_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"iKind") @c_output_field(1,"iId") @c_output_field(2,"iParentId") @c_output_field(3,"iChildCount") @c_output_field(4,"iTextBytes") @c_output_field(5,"iSourceStart") @c_output_field(6,"iSourceEnd") @c_output_field(7,"bSourceExact") @c_output_field(8,"iSyntaxStart") @c_output_field(9,"iSyntaxEnd") @c_output_field(10,"iSourceSegmentCount") @c_output_field(11,"iExtensionPayloadBytes") @c_output_field(12,"iExtensionVersion") @c_output_field(13,"bExtensionRequired") func nodeInfo(uint64 node) as (c_uint,uint64,uint64,uint64,uint64,uint64,uint64,c_int,uint64,uint64,uint64,uint64,c_uint,c_int)
+ extern "xuiDocumentTxnInsertNode" @no_raise @c_pack(3,"xui_doc_node_desc_t",2,7) @c_pack_size(3,"iSize","uint32_t") @c_pack_field(3,"iKind",2,"value") @c_pack_field(3,"sText",3,"text_data") @c_pack_field(3,"iTextBytes",3,"text_size","size_t") @c_pack_field(3,"sResource",4,"c_string") @c_pack_field(3,"sInfo",5,"c_string") @c_pack_field(3,"sTitle",6,"c_string") @c_pack_field(3,"sLinkTarget",7,"c_string") @c_pack_field(3,"sLinkTitle",8,"c_string") @c_output(4,0) func insertNode(uint64 parent,uint64 childIndex,c_uint kind,string text="",string? resource=null,string? info=null,string? title=null,string? linkTarget=null,string? linkTitle=null) as uint64
+ extern "xuiDocumentTxnInsertImage" @no_raise @c_pack(2,"xui_doc_image_desc_t",1,7) @c_pack_size(2,"iSize","uint32_t") @c_ref(0) @c_pack_field(2,"sResource",1,"c_string") @c_pack_field(2,"sAlt",2,"text_data") @c_pack_field(2,"iAltBytes",2,"text_size","size_t") @c_pack_field(2,"sTitle",3,"c_string") @c_pack_field(2,"sLinkTarget",4,"c_string") @c_pack_field(2,"sLinkTitle",5,"c_string") @c_pack_field(2,"fWidth",6,"value") @c_pack_field(2,"fHeight",7,"value") @c_outputs(3,4) @c_status(0) @c_output_size(4,"iSize") func insertImage(DocumentRange range,string resource,string alt="",string? title=null,string? linkTarget=null,string? linkTitle=null,c_float width=0,c_float height=0) as (uint64,DocumentPosition)
+ extern "xuiDocumentTxnUpdateImage" @no_raise @c_pack(2,"xui_doc_image_desc_t",1,7) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sResource",1,"c_string") @c_pack_field(2,"sAlt",2,"text_data") @c_pack_field(2,"iAltBytes",2,"text_size","size_t") @c_pack_field(2,"sTitle",3,"c_string") @c_pack_field(2,"sLinkTarget",4,"c_string") @c_pack_field(2,"sLinkTitle",5,"c_string") @c_pack_field(2,"fWidth",6,"value") @c_pack_field(2,"fHeight",7,"value") @c_result("status",0) func updateImage(uint64 image,string resource,string alt="",string? title=null,string? linkTarget=null,string? linkTitle=null,c_float width=0,c_float height=0)
+ extern "xuiDocumentTxnSetAttributes" @no_raise @c_result("status",0) @c_pack(2,"xui_doc_attributes_t",1,14) @c_pack_field(2,"iMarks",1,"value") @c_pack_field(2,"iFlags",2,"value") @c_pack_field(2,"iHeadingLevel",3,"value") @c_pack_field(2,"iAlignment",4,"value") @c_pack_field(2,"iRowSpan",5,"value") @c_pack_field(2,"iColumnSpan",6,"value") @c_pack_field(2,"iListStart",7,"value") @c_pack_field(2,"iTextColor",8,"value") @c_pack_field(2,"iBackgroundColor",9,"value") @c_pack_field(2,"fFontSize",10,"value") @c_pack_field(2,"fWidth",11,"value") @c_pack_field(2,"fHeight",12,"value") @c_pack_field(2,"fParagraphSpacing",13,"value") @c_pack_field(2,"sLanguage",14,"c_string") func setAttributesColumns(uint64 node,c_uint marks=0,c_uint flags=0,c_uint headingLevel=0,c_uint alignment=0,c_uint rowSpan=0,c_uint columnSpan=0,uint64 listStart=0,c_uint textColor=0,c_uint backgroundColor=0,c_float fontSize=0,c_float width=0,c_float height=0,c_float paragraphSpacing=0,string? language=null)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiDocumentTxnReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackDocumentTransaction(DocumentTransaction value)
+
+export extern "struct xui_document_t*" class CallbackDocument @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiDocumentShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackDocument) func share() as Document
+ extern "xuiDocumentGetRevision" @no_raise func revision() as uint64
+ extern "xuiDocumentGetIdentity" @no_raise func identity() as uint64
+ extern "xuiDocumentGetProfile" @no_raise func profile() as c_int
+ extern "xuiDocumentGetMarkdownDialect" @no_raise func markdownDialect() as c_int
+end
+
+export extern "struct xui_doc_change_set_t*" class CallbackDocumentChangeSet @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiDocumentChangeSetShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackDocumentChangeSet) func share() as DocumentChangeSet
+ extern "xuiDocumentChangeSetGetInfo" @no_raise @c_output_record(1,"xui_doc_change_info_t","borrowed") @c_output_size(1,"iSize") @c_status(0) @c_output_field(0,"iFlags") @c_output_field(1,"iBeforeRevision") @c_output_field(2,"iAfterRevision") @c_output_field(3,"iOrigin") @c_output_field(4,"iInputGeneration") @c_output_field(5,"iOperationCount") @c_output_field(6,"bUndo") @c_output_field(7,"iDomain") func info() as (c_uint,uint64,uint64,uint64,uint64,uint64,c_int,c_uint)
+end
+
+export extern "const xui_doc_source_binding_t*" class CallbackDocumentSourceBinding @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_deref get value() as DocumentSourceBinding
+end
+export typedef DocumentSourceBindingProc = func(uint64,CallbackDocumentSourceBinding) as c_int
+
+export typedef DocumentChangeProc = func(CallbackDocument,CallbackDocumentChangeSet) as c_int
+
+export extern "xuiDocumentCreateOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(1,0,rollbackDocument) @c_pack(0,"xui_doc_desc_t",0,8) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"iProfile",0,"value") @c_pack_field(0,"iMarkdownDialect",1,"value") @c_pack_field(0,"iHistoryLimit",2,"value") @c_pack_field(0,"iHistoryMaxBytes",3,"value") @c_pack_field(0,"bDisableHistory",4,"value") @c_pack_field(0,"iMaxTextBytes",5,"value") @c_pack_field(0,"iMaxNodes",6,"value") @c_pack_field(0,"iMaxSyntaxRecords",7,"value") func createDocument(c_uint profile=1,c_uint markdownDialect=0,c_uint historyLimit=0,uint64 historyMaxBytes=0,c_int disableHistory=0,uint64 maxTextBytes=0,uint64 maxNodes=0,uint64 maxSyntaxRecords=0) as Document
+export extern "xuiDocumentFragmentImportHtmlOwned" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","size_t") @c_result("owned_view") @factory(2,0,rollbackDocumentFragment) func importDocumentFragmentHtml(string data) as DocumentFragment
+export extern "xuiDocumentFragmentDeserializeOwned" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","size_t") @c_result("owned_view") @factory(2,0,rollbackDocumentFragment) func deserializeDocumentFragment(bytes data) as DocumentFragment
+export extern "xuiDocumentOpenFileOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(4,0,rollbackDocument) @c_cstr(0) @c_pack(2,"xui_doc_desc_t",2,8) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"iProfile",2,"value") @c_pack_field(2,"iMarkdownDialect",3,"value") @c_pack_field(2,"iHistoryLimit",4,"value") @c_pack_field(2,"iHistoryMaxBytes",5,"value") @c_pack_field(2,"bDisableHistory",6,"value") @c_pack_field(2,"iMaxTextBytes",7,"value") @c_pack_field(2,"iMaxNodes",8,"value") @c_pack_field(2,"iMaxSyntaxRecords",9,"value") func openDocument(string path,c_uint format,c_uint profile=1,c_uint markdownDialect=0,c_uint historyLimit=0,uint64 historyMaxBytes=0,c_int disableHistory=0,uint64 maxTextBytes=0,uint64 maxNodes=0,uint64 maxSyntaxRecords=0,uint64 maxFileBytes=0) as Document
+export extern "xuiDocumentDeserializeOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(3,0,rollbackDocument) @c_span(8,"const char*","size_t") @c_pack(0,"xui_doc_desc_t",0,8) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"iProfile",0,"value") @c_pack_field(0,"iMarkdownDialect",1,"value") @c_pack_field(0,"iHistoryLimit",2,"value") @c_pack_field(0,"iHistoryMaxBytes",3,"value") @c_pack_field(0,"bDisableHistory",4,"value") @c_pack_field(0,"iMaxTextBytes",5,"value") @c_pack_field(0,"iMaxNodes",6,"value") @c_pack_field(0,"iMaxSyntaxRecords",7,"value") func deserializeDocument(c_uint profile=1,c_uint markdownDialect=0,c_uint historyLimit=0,uint64 historyMaxBytes=0,c_int disableHistory=0,uint64 maxTextBytes=0,uint64 maxNodes=0,uint64 maxSyntaxRecords=0,string data="") as Document

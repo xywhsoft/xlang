@@ -1,0 +1,201 @@
+// Context uniquely owns these composite managers. Copying a language child
+// keeps the real Context owner; releasing the last child view does not destroy
+// the native manager. close() requests native close; Context.close() closes all.
+// Native callback/font/layout edges are traced once by the Context directory.
+
+export extern "xui_msgbox_t*" class CallbackMsgBox @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiMsgBoxDestroyChecked" @no_raise @c_result("status",0) func close()
+ extern "xuiMsgBoxGetResult" @no_raise func result() as c_int
+end
+
+export extern "xui_toast_t*" class CallbackToast @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiToastDestroyChecked" @no_raise @c_result("status",0) func close()
+ extern "xuiToastGetActiveCount" @no_raise func activeCount() as c_int
+end
+
+export extern "xui_file_dialog_t*" class CallbackFileDialog @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiFileDialogDestroyChecked" @no_raise @c_result("status",0) func close()
+ extern "xuiFileDialogGetResult" @no_raise func result() as c_int
+end
+
+export extern "xui_msgtip_t*" class CallbackMsgTip @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiMsgTipDestroyChecked" @no_raise @c_result("status",0) func close()
+ extern "xuiMsgTipIsOpen" @no_raise func isOpen() as c_int
+end
+
+export typedef MsgBoxResultProc = func(CallbackMsgBox,c_int)
+export typedef ToastClickProc = func(CallbackToast,c_int)
+export typedef ToastCloseProc = func(CallbackToast,c_int,c_int)
+export typedef FileDialogResultProc = func(CallbackFileDialog,c_int,CString)
+export typedef FileDialogContextProc = func(CallbackFileDialog,c_int,CString,c_int,c_float,c_float) as c_int
+export typedef MsgTipCloseProc = func(CallbackMsgTip,c_int)
+
+export extern "xui_msgbox_t*" class MsgBox @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3MsgBoxPolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiMsgBoxSetText" @no_raise @c_cstr(0) @c_cstr(1) @c_result("status",0) func setText(string title,string message)
+ extern "xuiMsgBoxSetTitle" @no_raise @c_cstr(0) @c_result("status",0) func setTitle(string title)
+ extern "xuiMsgBoxGetTitle" @no_raise func title() as string?
+ extern "xuiMsgBoxSetMessage" @no_raise @c_cstr(0) @c_result("status",0) func setMessage(string message)
+ extern "xuiMsgBoxGetMessage" @no_raise func message() as string?
+ extern "xuiMsgBoxSetType" @no_raise @c_result("status",0) func setType(c_int iconType)
+ extern "xuiMsgBoxGetType" @no_raise func iconType() as c_int
+ extern "xuiMsgBoxSetIconSurface" @no_raise @c_result("status",0) func setIcon(Surface? surface,Rect source)
+ extern "xuiMsgBoxUseBuiltinIcon" @no_raise @c_result("status",0) func useBuiltinIcon()
+ extern "xuiMsgBoxSetButtons" @no_raise @c_result("status",0) func setButtons(c_int buttons)
+ // Columnar bulk input: strict equal lengths by default, bounded common prefix for explicit size.
+ extern "xuiMsgBoxSetCustomButtons" @no_raise @c_result("status",0) @c_array_group(1,0,3,"int",3) @c_array_record(1,"xui_msgbox_button_t") @c_array_field(1,"sText",0,"c_string") @c_array_field(1,"iResult",1,"value") @c_array_field(1,"iSemantic",2,"value") func setCustomButtonsColumns(array<string> texts,array<c_int> results,array<c_int> semantics,int size=-1)
+ extern "xuiMsgBoxSetPresetButtonTitle" @no_raise @c_cstr(1) @c_result("status",0) func setPresetButtonTitle(c_int index,string title)
+ extern "xuiMsgBoxGetPresetButtonTitle" @no_raise func presetButtonTitle(c_int index) as string?
+ extern "xuiMsgBoxSetResultOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setResult(MsgBoxResultProc? callback)
+ extern "xuiMsgBoxSetModal" @no_raise @c_result("status",0) func setModal(c_int modal)
+ extern "xuiMsgBoxIsModal" @no_raise func isModal() as c_int
+ extern "xuiMsgBoxSetOpen" @no_raise @c_result("status",0) func setOpen(c_int open)
+ extern "xuiMsgBoxIsOpen" @no_raise func isOpen() as c_int
+ extern "xuiMsgBoxGetResult" @no_raise func result() as c_int
+ extern "xuiMsgBoxSetMetrics" @no_raise @c_ref(0) @c_result("status",0) func setMetrics(MsgboxMetrics metrics)
+ extern "xuiMsgBoxGetMetrics" @no_raise @c_output(1,0) func metrics() as MsgboxMetrics
+ extern "xuiMsgBoxSetColors" @no_raise @c_ref(0) @c_result("status",0) func setColors(MsgboxColors colors)
+ extern "xuiMsgBoxGetColors" @no_raise @c_output(1,0) func colors() as MsgboxColors
+ extern "xuiMsgBoxGetWindowWidget" @no_raise @c_result("owner_view",0) func window() as Widget?
+ extern "xuiMsgBoxGetContentWidget" @no_raise @c_result("owner_view",0) func content() as Widget?
+ extern "xuiMsgBoxGetBackdropWidget" @no_raise @c_result("owner_view",0) func backdrop() as Widget?
+ extern "xuiMsgBoxGetButtonWidget" @no_raise @c_result("owner_view",0) func button(c_int index) as Widget?
+ extern "xuiMsgBoxGetButtonCount" @no_raise func buttonCount() as c_int
+ extern "xuiMsgBoxGetButtonRect" @no_raise func buttonRect(c_int index) as Rect
+ extern "xuiMsgBoxGetBackdropRect" @no_raise func backdropRect() as Rect
+ extern "xuiMsgBoxGetMessageRect" @no_raise func messageRect() as Rect
+ extern "xuiMsgBoxGetIconRect" @no_raise func iconRect() as Rect
+ extern "xuiMsgBoxGetWrapLineCount" @no_raise func wrapLineCount() as c_int
+ extern "xuiMsgBoxGetResultCount" @no_raise func resultCount() as c_int
+ extern "xuiMsgBoxGetChangeCount" @no_raise func changeCount() as c_int
+ extern "xuiMsgBoxGetContext" @no_raise @c_result("owner_view",0) func context() as Context?
+ extern "xuiMsgBoxDestroyChecked" @no_raise @c_result("status",0) func close()
+end
+
+export extern "xui_toast_t*" class Toast @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3ToastPolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiToastShowOwned" @no_raise @c_cstr(1) @c_cstr(2) @c_owned_callback(4,0,"xui_callback_owner_t",0) @c_output(8,0) func show(c_int toastType,string title,string message,c_float duration=3,ToastClickProc? callback=null) as c_int
+ extern "xuiToastClose" @no_raise @c_result("status",0) func dismiss(c_int id)
+ extern "xuiToastClear" @no_raise @c_result("status",0) func clear()
+ extern "xuiToastGetActiveCount" @no_raise func activeCount() as c_int
+ extern "xuiToastGetPendingCount" @no_raise func pendingCount() as c_int
+ extern "xuiToastSetPlacement" @no_raise @c_result("status",0) func setPlacement(c_int placement)
+ extern "xuiToastGetPlacement" @no_raise func placement() as c_int
+ extern "xuiToastSetDirection" @no_raise @c_result("status",0) func setDirection(c_int direction)
+ extern "xuiToastGetDirection" @no_raise func direction() as c_int
+ extern "xuiToastSetMetrics" @no_raise @c_ref(0) @c_result("status",0) func setMetrics(ToastMetrics metrics)
+ extern "xuiToastGetMetrics" @no_raise @c_output(1,0) func metrics() as ToastMetrics
+ extern "xuiToastSetColors" @no_raise @c_ref(0) @c_result("status",0) func setColors(ToastColors colors)
+ extern "xuiToastGetColors" @no_raise @c_output(1,0) func colors() as ToastColors
+ extern "xuiToastSetFont" @no_raise @c_result("status",0) func setFont(Font? font)
+ extern "xuiToastGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func font() as Font?
+ extern "xuiToastSetCloseOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setDismissed(ToastCloseProc? callback)
+ extern "xuiToastGetItemWidget" @no_raise @c_result("owner_view",0) func itemWidget(c_int index) as Widget?
+ extern "xuiToastGetIconRect" @no_raise func iconRect(c_int index) as Rect
+ extern "xuiToastGetCloseRect" @no_raise func closeRect(c_int index) as Rect
+ extern "xuiToastGetItemRect" @no_raise func itemRect(c_int index) as Rect
+ extern "xuiToastGetShowCount" @no_raise func showCount() as c_int
+ extern "xuiToastGetCloseCount" @no_raise func closeCount() as c_int
+ extern "xuiToastGetExpireCount" @no_raise func expireCount() as c_int
+ extern "xuiToastGetDropCount" @no_raise func dropCount() as c_int
+ extern "xuiToastGetChangeCount" @no_raise func changeCount() as c_int
+ extern "xuiToastGetContext" @no_raise @c_result("owner_view",0) func context() as Context?
+ extern "xuiToastDestroyChecked" @no_raise @c_result("status",0) func close()
+end
+
+export extern "xui_file_dialog_t*" class FileDialog @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3FileDialogPolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiFileDialogSetOpen" @no_raise @c_result("status",0) func setOpen(c_int open)
+ extern "xuiFileDialogIsOpen" @no_raise func isOpen() as c_int
+ extern "xuiFileDialogSetModal" @no_raise @c_result("status",0) func setModal(c_int modal)
+ extern "xuiFileDialogIsModal" @no_raise func isModal() as c_int
+ extern "xuiFileDialogSetResultOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setResult(FileDialogResultProc? callback)
+ extern "xuiFileDialogSetContextMenuOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setContextMenu(FileDialogContextProc? callback)
+ extern "xuiFileDialogSetFilter" @no_raise @c_cstr(0) @c_result("status",0) func setFilter(string filterPattern)
+ extern "xuiFileDialogGetFilter" @no_raise func filterPattern() as string?
+ extern "xuiFileDialogSetDirectory" @no_raise @c_cstr(0) @c_result("status",0) func setDirectory(string directory)
+ extern "xuiFileDialogGetDirectory" @no_raise func directory() as string?
+ extern "xuiFileDialogGoUp" @no_raise @c_result("status",0) func goUp()
+ extern "xuiFileDialogRefresh" @no_raise @c_result("status",0) func refresh()
+ extern "xuiFileDialogSelectIndex" @no_raise @c_result("status",0) func selectIndex(c_int index)
+ extern "xuiFileDialogCommit" @no_raise @c_result("status",0) func commit()
+ extern "xuiFileDialogCancel" @no_raise @c_result("status",0) func cancel()
+ extern "xuiFileDialogGetResult" @no_raise func result() as c_int
+ extern "xuiFileDialogGetResultPath" @no_raise func resultPath() as string?
+ extern "xuiFileDialogGetWindowWidget" @no_raise @c_result("owner_view",0) func window() as Widget?
+ extern "xuiFileDialogGetRootListWidget" @no_raise @c_result("owner_view",0) func rootList() as Widget?
+ extern "xuiFileDialogGetFileListWidget" @no_raise @c_result("owner_view",0) func fileList() as Widget?
+ extern "xuiFileDialogGetPathBreadcrumbWidget" @no_raise @c_result("owner_view",0) func pathBreadcrumb() as Widget?
+ extern "xuiFileDialogGetPathInputWidget" @no_raise @c_result("owner_view",0) func pathInput() as Widget?
+ extern "xuiFileDialogGetNameInputWidget" @no_raise @c_result("owner_view",0) func nameInput() as Widget?
+ extern "xuiFileDialogGetFilterComboWidget" @no_raise @c_result("owner_view",0) func filterCombo() as Widget?
+ extern "xuiFileDialogGetUpButtonWidget" @no_raise @c_result("owner_view",0) func upButton() as Widget?
+ extern "xuiFileDialogGetRefreshButtonWidget" @no_raise @c_result("owner_view",0) func refreshButton() as Widget?
+ extern "xuiFileDialogGetOkButtonWidget" @no_raise @c_result("owner_view",0) func okButton() as Widget?
+ extern "xuiFileDialogGetCancelButtonWidget" @no_raise @c_result("owner_view",0) func cancelButton() as Widget?
+ extern "xuiFileDialogGetOverwriteMsgBox" @no_raise @c_result("owner_view",0) func overwriteBox() as MsgBox?
+ extern "xuiFileDialogGetFilterCount" @no_raise func filterCount() as c_int
+ extern "xuiFileDialogGetFilterName" @no_raise func filterName(c_int index) as string?
+ extern "xuiFileDialogGetFilterPattern" @no_raise func filterAt(c_int index) as string?
+ extern "xuiFileDialogGetEntryCount" @no_raise func entryCount() as c_int
+ extern "xuiFileDialogGetEntryName" @no_raise func entryName(c_int index) as string?
+ extern "xuiFileDialogGetEntryPath" @no_raise func entryPath(c_int index) as string?
+ extern "xuiFileDialogEntryIsDir" @no_raise func entryIsDirectory(c_int index) as c_int
+ extern "xuiFileDialogGetContext" @no_raise @c_result("owner_view",0) func context() as Context?
+ extern "xuiFileDialogDestroyChecked" @no_raise @c_result("status",0) func close()
+end
+
+export extern "xui_msgtip_t*" class MsgTip @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3MsgTipPolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiMsgTipShow" @no_raise @c_cstr(1) @c_result("status",0) func show(c_int iconType,string text,c_float duration=1.8)
+ extern "xuiMsgTipClose" @no_raise @c_result("status",0) func dismiss()
+ extern "xuiMsgTipIsOpen" @no_raise func isOpen() as c_int
+ extern "xuiMsgTipSetText" @no_raise @c_cstr(0) @c_result("status",0) func setText(string text)
+ extern "xuiMsgTipGetText" @no_raise func text() as string?
+ extern "xuiMsgTipSetType" @no_raise @c_result("status",0) func setType(c_int iconType)
+ extern "xuiMsgTipGetType" @no_raise func iconType() as c_int
+ extern "xuiMsgTipSetDuration" @no_raise @c_result("status",0) func setDuration(c_float duration)
+ extern "xuiMsgTipGetDuration" @no_raise func duration() as c_float
+ extern "xuiMsgTipSetIconSurface" @no_raise @c_result("status",0) func setIcon(Surface? surface,Rect source)
+ extern "xuiMsgTipUseBuiltinIcon" @no_raise @c_result("status",0) func useBuiltinIcon()
+ extern "xuiMsgTipSetMetrics" @no_raise @c_ref(0) @c_result("status",0) func setMetrics(MsgtipMetrics metrics)
+ extern "xuiMsgTipGetMetrics" @no_raise @c_output(1,0) func metrics() as MsgtipMetrics
+ extern "xuiMsgTipSetColors" @no_raise @c_ref(0) @c_result("status",0) func setColors(MsgtipColors colors)
+ extern "xuiMsgTipGetColors" @no_raise @c_output(1,0) func colors() as MsgtipColors
+ extern "xuiMsgTipSetCloseOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setDismissed(MsgTipCloseProc? callback)
+ extern "xuiMsgTipGetWidget" @no_raise @c_result("owner_view",0) func widget() as Widget?
+ extern "xuiMsgTipGetTipRect" @no_raise func rect() as Rect
+ extern "xuiMsgTipGetIconRect" @no_raise func iconRect() as Rect
+ extern "xuiMsgTipGetTextRect" @no_raise func textRect() as Rect
+ extern "xuiMsgTipGetWrapLineCount" @no_raise func wrapLineCount() as c_int
+ extern "xuiMsgTipGetShowCount" @no_raise func showCount() as c_int
+ extern "xuiMsgTipGetCloseCount" @no_raise func closeCount() as c_int
+ extern "xuiMsgTipGetExpireCount" @no_raise func expireCount() as c_int
+ extern "xuiMsgTipGetChangeCount" @no_raise func changeCount() as c_int
+ extern "xuiMsgTipGetContext" @no_raise @c_result("owner_view",0) func context() as Context?
+ extern "xuiMsgTipDestroyChecked" @no_raise @c_result("status",0) func close()
+end
+
+// MsgBox construction uses Native modal=1; setModal() changes it before setOpen().
+// The Native bHasModal presence bit is not exposed as an implementation parameter.
+export extern "xuiMsgBoxCreate" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) @factory(1,0,rollbackMsgBox) @c_pack(2,"xui_msgbox_desc_t",1,5) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sTitle",1,"c_string") @c_pack_field(2,"sMessage",2,"c_string") @c_pack_field(2,"iType",3,"value") @c_pack_field(2,"iButtons",4,"value") @c_pack_field(2,"pFont",5,"view_raw") func createMsgBox(Context context,string title="",string message="",c_int iconType=0,c_int buttons=0,Font? font=null) as MsgBox
+extern "xuiMsgBoxDestroyChecked" @no_raise @c_result("status",0) func rollbackMsgBox(MsgBox value)
+
+export extern "xuiToastCreate" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) @factory(1,0,rollbackToast) @c_pack(2,"xui_toast_desc_t",1,3) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"iPlacement",1,"value") @c_pack_field(2,"iDirection",2,"value") @c_pack_field(2,"pFont",3,"view_raw") func createToast(Context context,c_int placement=0,c_int direction=0,Font? font=null) as Toast
+extern "xuiToastDestroyChecked" @no_raise @c_result("status",0) func rollbackToast(Toast value)
+
+export extern "xuiMsgTipCreate" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) @factory(1,0,rollbackMsgTip) @c_pack(2,"xui_msgtip_desc_t",1,4) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sText",1,"c_string") @c_pack_field(2,"iType",2,"value") @c_pack_field(2,"fDuration",3,"value") @c_pack_field(2,"pFont",4,"view_raw") func createMsgTip(Context context,string text="",c_int iconType=0,c_float duration=1.8,Font? font=null) as MsgTip
+extern "xuiMsgTipDestroyChecked" @no_raise @c_result("status",0) func rollbackMsgTip(MsgTip value)
+
+export extern "xuiFileDialogCreate" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) @factory(1,0,rollbackFileDialog) @c_pack(2,"xui_file_dialog_desc_t",1,9) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sInitialDir",1,"c_string") @c_pack_field(2,"sTitle",2,"c_string") @c_pack_field(2,"sFileName",3,"c_string") @c_pack_field(2,"sFilter",4,"c_string") @c_pack_field(2,"iMode",5,"value") @c_pack_field(2,"bModal",6,"value") @c_pack_field(2,"pFont",7,"view_raw") @c_pack_field(2,"fWidth",8,"value") @c_pack_field(2,"fHeight",9,"value") func createFileDialog(Context context,string directory=".",string? title=null,string fileName="",string? filterPattern=null,c_int mode=1,c_int modal=1,Font? font=null,c_float width=0,c_float height=0) as FileDialog
+extern "xuiFileDialogDestroyChecked" @no_raise @c_result("status",0) func rollbackFileDialog(FileDialog value)
+
+export extern "xuiOpenFileDialog" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) @factory(1,0,rollbackFileDialog) @c_pack(2,"xui_file_dialog_desc_t",1,7) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sInitialDir",1,"c_string") @c_pack_field(2,"sTitle",2,"c_string") @c_pack_field(2,"sFileName",3,"c_string") @c_pack_field(2,"sFilter",4,"c_string") @c_pack_field(2,"pFont",5,"view_raw") @c_pack_field(2,"fWidth",6,"value") @c_pack_field(2,"fHeight",7,"value") func openFileDialog(Context context,string directory=".",string? title=null,string fileName="",string? filterPattern=null,Font? font=null,c_float width=0,c_float height=0) as FileDialog
+
+export extern "xuiSaveFileDialog" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) @factory(1,0,rollbackFileDialog) @c_pack(2,"xui_file_dialog_desc_t",1,7) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sInitialDir",1,"c_string") @c_pack_field(2,"sTitle",2,"c_string") @c_pack_field(2,"sFileName",3,"c_string") @c_pack_field(2,"sFilter",4,"c_string") @c_pack_field(2,"pFont",5,"view_raw") @c_pack_field(2,"fWidth",6,"value") @c_pack_field(2,"fHeight",7,"value") func saveFileDialog(Context context,string directory=".",string? title=null,string fileName="",string? filterPattern=null,Font? font=null,c_float width=0,c_float height=0) as FileDialog
+
+export extern "xuiSelectFolderDialog" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) @factory(1,0,rollbackFileDialog) @c_pack(2,"xui_file_dialog_desc_t",1,7) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sInitialDir",1,"c_string") @c_pack_field(2,"sTitle",2,"c_string") @c_pack_field(2,"sFileName",3,"c_string") @c_pack_field(2,"sFilter",4,"c_string") @c_pack_field(2,"pFont",5,"view_raw") @c_pack_field(2,"fWidth",6,"value") @c_pack_field(2,"fHeight",7,"value") func selectFolderDialog(Context context,string directory=".",string? title=null,string fileName="",string? filterPattern=null,Font? font=null,c_float width=0,c_float height=0) as FileDialog

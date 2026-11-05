@@ -1,0 +1,3 @@
+#define TCC_VERSION "0.9.28rc"
+#define TCC_GITHASH "2026-06-13_mob@a338258d*"
+#define CONFIG_TCC_BUILTIN_VFS 1

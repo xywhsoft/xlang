@@ -1,0 +1,53 @@
+#ifndef XL6_UDP_TRANSFER_ABI_H
+#define XL6_UDP_TRANSFER_ABI_H
+#include "xl6_native_class_abi.h"
+XL6_TEXT_API void* xl6UdpMessageTextV1(xstrview,int64_t);
+XL6_TEXT_API void* xl6UdpMessageBytesV1(const xvalue*,int64_t);
+XL6_TEXT_API void* xl6UdpMessageBufferV1(void*,int64_t);
+XL6_TEXT_API void* xl6UdpMessageRefBytesV1(void*,int64_t,int64_t);
+XL6_TEXT_API void* xl6UdpMessageRefPacketV1(void*,int64_t,int64_t);
+XL6_TEXT_API void* xl6UdpMessageRefsV1(XL6_NativeClassArrayContextV1,const xvalue*,int64_t);
+XL6_TEXT_API void xl6UdpMessageDestroyV1(void*);
+XL6_TEXT_API void* xl6UdpMessageTargetV1(const void*,const void*);
+XL6_TEXT_API void* xl6UdpMessageControlV1(const void*,const void*);
+XL6_TEXT_API void* xl6UdpMessageNoTargetV1(const void*);
+XL6_TEXT_API void* xl6UdpMessageNoControlV1(const void*);
+XL6_TEXT_API uint64_t xl6UdpMessageLengthV1(const void*);
+XL6_TEXT_API bool xl6UdpMessageHasTargetV1(const void*);
+XL6_TEXT_API int64_t xl6UdpMessageControlFlagsV1(const void*);
+XL6_TEXT_API int64_t xl6UdpSendVectorTextV1(void*,const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6UdpSendVectorToTextV1(void*,const void*,const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6UdpSendVectorMessageTextV1(void*,const void*,const void*,const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6UdpSendVectorConnectedMessageTextV1(void*,const void*,const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6UdpSendVectorBytesV1(void*,const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6UdpSendVectorToBytesV1(void*,const void*,const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6UdpSendVectorMessageBytesV1(void*,const void*,const void*,const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6UdpSendVectorConnectedMessageBytesV1(void*,const void*,const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6UdpSendVectorBufferV1(XL6_NativeClassArrayContextV1,void*,const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6UdpSendVectorToBufferV1(XL6_NativeClassArrayContextV1,void*,const void*,const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6UdpSendVectorMessageBufferV1(XL6_NativeClassArrayContextV1,void*,const void*,const void*,const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6UdpSendVectorConnectedMessageBufferV1(XL6_NativeClassArrayContextV1,void*,const void*,const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6UdpSendRefsV1(XL6_NativeClassArrayContextV1,void*,const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6UdpSendRefsToV1(XL6_NativeClassArrayContextV1,void*,const void*,const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6UdpSendRefsMessageV1(XL6_NativeClassArrayContextV1,void*,const void*,const void*,const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6UdpSendRefsConnectedMessageV1(XL6_NativeClassArrayContextV1,void*,const void*,const xvalue*,int64_t);
+XL6_TEXT_API int64_t xl6UdpSendMessageV1(void*,const void*);
+XL6_TEXT_API XL6_ProductI64U64V1 xl6UdpSendMessagesV1(XL6_NativeClassArrayContextV1,void*,const xvalue*,void*,int64_t,int64_t);
+XL6_TEXT_API XL6_ProductI64U64V1 xl6UdpSendPacketBatchV1(XL6_NativeClassArrayContextV1,void*,const xvalue*,void*,int64_t,int64_t);
+XL6_TEXT_API void xl6UdpMulticastJoinV1(void*,const void*);
+XL6_TEXT_API xfuture* xl6UdpMulticastJoinAsyncV1(void*,const void*);
+XL6_TEXT_API void xl6UdpMulticastJoinOnV1(void*,const void*,const void*);
+XL6_TEXT_API xfuture* xl6UdpMulticastJoinOnAsyncV1(void*,const void*,const void*);
+XL6_TEXT_API void xl6UdpMulticastLeaveV1(void*,const void*);
+XL6_TEXT_API xfuture* xl6UdpMulticastLeaveAsyncV1(void*,const void*);
+XL6_TEXT_API void xl6UdpMulticastLeaveOnV1(void*,const void*,const void*);
+XL6_TEXT_API xfuture* xl6UdpMulticastLeaveOnAsyncV1(void*,const void*,const void*);
+XL6_TEXT_API void xl6UdpMulticastLoopV1(void*,bool);
+XL6_TEXT_API xfuture* xl6UdpMulticastLoopAsyncV1(void*,bool);
+XL6_TEXT_API void xl6UdpMulticastHopLimitV1(void*,int64_t);
+XL6_TEXT_API xfuture* xl6UdpMulticastHopLimitAsyncV1(void*,int64_t);
+XL6_TEXT_API void xl6UdpMulticastInterfaceV1(void*,const void*);
+XL6_TEXT_API xfuture* xl6UdpMulticastInterfaceAsyncV1(void*,const void*);
+XL6_TEXT_API void xl6UdpMulticastInterfaceDefaultV1(void*);
+XL6_TEXT_API xfuture* xl6UdpMulticastInterfaceDefaultAsyncV1(void*);
+#endif

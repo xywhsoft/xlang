@@ -1,0 +1,25 @@
+// CPU-only default document model; no Context, window, device or filesystem.
+import xui
+func main(...) as int
+ auto document=xui.createDocument()
+ auto transaction=document.beginTransaction()
+ uint64 paragraph=transaction.insertNode(uint64(1),xui.XUI_DOCUMENT_APPEND,c_uint(2))
+ uint64 textNode=transaction.insertNode(paragraph,xui.XUI_DOCUMENT_APPEND,c_uint(4),text="Hello, xlang")
+ auto changes=transaction.commit()
+ transaction.close()
+ auto snapshot=document.snapshot()
+ Buffer text=Buffer()
+ uint64 count=snapshot.copyText(textNode,text)
+ assert count<uint64(1024)
+ assert text.resize(int(count)+1)
+ snapshot.copyText(textNode,text)
+ // Copy returns a byte length, excluding the optional NUL terminator.
+ assert text.text(int(count))=="Hello, xlang"
+ println(text.text(int(count)))
+ document.close()
+ // Immutable snapshot has an independent native owner after Document closes.
+ assert snapshot.copyText(textNode,text)==count
+ snapshot.close()
+ changes.close()
+ return 0
+end
