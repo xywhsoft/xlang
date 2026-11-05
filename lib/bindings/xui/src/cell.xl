@@ -1,6 +1,6 @@
 // Refcounted, owned cell cache. Underscore native fields stay private.
 // A callback can use(cache) without cloning cached text; setters reject read pins.
-export extern "xui_table_view_cell_output_t*" class TableCellOutput @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3TableCellOutputPolicy") @domain("xuiTableViewCellOutputOwnershipDomainV1")
+export extern "xui_table_view_cell_output_t*" class TableCellOutput @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3TableCellOutputPolicy") @domain("xl6Xui3OwnershipDomainV1")
  native point handle
  extern "xuiTableViewCellOutputSetText" @no_raise @c_text_view(0) @c_result("status",0) func setText(string text)
  extern "xuiTableViewCellOutputGetText" @no_raise @c_const(0) @c_result("text_view") func text() as string

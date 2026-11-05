@@ -1,0 +1,202 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "scope": "Direct Surface/Draw/Shape/Cell declarations and four Context-owned composite manager families; source milestone with existing compile/runtime qualifications, not final R37 shipping SDK acceptance.",
+  "files": [
+    {
+      "path": "lib/bindings/xui/README.md",
+      "sha256": "74f2255292508d42bf3ece3d94b69eef1475f7d6e341aaff268c506c995159f1",
+      "originalCandidateSha256": "74f2255292508d42bf3ece3d94b69eef1475f7d6e341aaff268c506c995159f1",
+      "consumerQualification": null,
+      "blob": "25651d68c1d970d4ad5cfb1d4fbb2b31fc771562"
+    },
+    {
+      "path": "lib/bindings/xui/src/cell.xl",
+      "sha256": "852cb65a590028fb42af45c07724e99976b915a49c5a1bdfa386e2cedeb6162b",
+      "originalCandidateSha256": "852cb65a590028fb42af45c07724e99976b915a49c5a1bdfa386e2cedeb6162b",
+      "consumerQualification": null,
+      "blob": "1080fe75978174e574732fcb575c13352550e9a5"
+    },
+    {
+      "path": "lib/bindings/xui/src/constants.xl",
+      "sha256": "91b4a7b8c8dfa85b0c627604eccf2659eb193ba4acf618e8f9b464129207ea05",
+      "originalCandidateSha256": "91b4a7b8c8dfa85b0c627604eccf2659eb193ba4acf618e8f9b464129207ea05",
+      "consumerQualification": null,
+      "blob": "ca3d639e14d51b8e24fc5f516aadb933f51f249f"
+    },
+    {
+      "path": "lib/bindings/xui/src/managed.xl",
+      "sha256": "d6fc2d69bae64f5fc639e2cadb4dff54dfb164ef942453da1d6c6bb9f771aa72",
+      "originalCandidateSha256": "d6fc2d69bae64f5fc639e2cadb4dff54dfb164ef942453da1d6c6bb9f771aa72",
+      "consumerQualification": null,
+      "blob": "ecb03ce5b7185a650c8524d6d9df9ec28aec7bb0"
+    },
+    {
+      "path": "lib/bindings/xui/src/draw.xl",
+      "sha256": "522236365e3d98a35062a200386b62f5b89df9b6738b59679ad81050cd4eb14a",
+      "originalCandidateSha256": "522236365e3d98a35062a200386b62f5b89df9b6738b59679ad81050cd4eb14a",
+      "consumerQualification": null,
+      "blob": "92f73b911604e08581a1d6c08c2dbb6d264875e2"
+    },
+    {
+      "path": "lib/bindings/xui/src/proxy.xl",
+      "sha256": "ef323ba00bfd49431be35a927f4f4088d52620c1fbb2c7c3f6d75e06a136cec5",
+      "originalCandidateSha256": "ef323ba00bfd49431be35a927f4f4088d52620c1fbb2c7c3f6d75e06a136cec5",
+      "consumerQualification": null,
+      "blob": "4b172a5a969a7e8ae96a870bb3a0975f9d66e12e"
+    },
+    {
+      "path": "lib/bindings/xui/src/text_shape.xl",
+      "sha256": "a712ce7a96cbdc3b5fa97f3f86a8fd06b88f0378e9994e9c54ab6edb162ba18e",
+      "originalCandidateSha256": "a712ce7a96cbdc3b5fa97f3f86a8fd06b88f0378e9994e9c54ab6edb162ba18e",
+      "consumerQualification": null,
+      "blob": "6e051574d5999f1f3536615c7bfffb0617fe3a46"
+    },
+    {
+      "path": "lib/bindings/xui/xlang.package.json",
+      "sha256": "b96b773d0c315a39e47c87a9467c6d3fbb50f42461497dde6e793dda22adccd3",
+      "originalCandidateSha256": "b96b773d0c315a39e47c87a9467c6d3fbb50f42461497dde6e793dda22adccd3",
+      "consumerQualification": null,
+      "blob": "4fbd86a2f0b017200ef7743ebb93f5b54229d6ee"
+    },
+    {
+      "path": "tools/check_xge3_bindings.py",
+      "sha256": "1e62dc1442549713e20ca1dd2d3c04fba7a98b38ab404dd8635f05b5ec942408",
+      "originalCandidateSha256": "1e62dc1442549713e20ca1dd2d3c04fba7a98b38ab404dd8635f05b5ec942408",
+      "consumerQualification": null,
+      "blob": "0635104a656fc1e48e506efc75279c8699f6fede"
+    },
+    {
+      "path": "lib/bindings/_xge_native/include/xge3_runtime.h",
+      "sha256": "3e726300bf80f043d0d5d708c357c8f2a5136d099265f45f3e0005ad38b2775d",
+      "originalCandidateSha256": "3e726300bf80f043d0d5d708c357c8f2a5136d099265f45f3e0005ad38b2775d",
+      "consumerQualification": null,
+      "blob": "c4607ca284dd76cdef9102997533b3e756d5dcf6"
+    },
+    {
+      "path": "lib/bindings/_xge_native/src/runtime.c",
+      "sha256": "ad291c8203ef22276e012ac68bbc11343060dae0d21e77513ede104cff3dc3a8",
+      "originalCandidateSha256": "9003598e56e91f88b7828c89baf2171588f09ed30da11425578d8c209dedd1ca",
+      "consumerQualification": "F:\\xlang-validation\\foreign-completion-20261103\\webview-finalization-packages-win-r1\\_xge_native\\src\\runtime.c",
+      "blob": "0632b4e8e97831e038613c64f52873a9cfa1009d"
+    },
+    {
+      "path": "lib/bindings/xui/src/managers.xl",
+      "sha256": "378947857dc51da8cbc7ca721b147b611375d32f45f7983da3e6f09385e4028a",
+      "originalCandidateSha256": "378947857dc51da8cbc7ca721b147b611375d32f45f7983da3e6f09385e4028a",
+      "consumerQualification": null,
+      "blob": "5c4a5cb96fe1e5e989b45b0d145ded8d2a085805"
+    },
+    {
+      "path": "docs/xge3-package-managers.md",
+      "sha256": "1f370c86a527e54dc3e55ff9a642a7b02005efabed9cc73fa6094cf1afdbe482",
+      "originalCandidateSha256": "1f370c86a527e54dc3e55ff9a642a7b02005efabed9cc73fa6094cf1afdbe482",
+      "consumerQualification": null,
+      "blob": "7a478b74911d68f3358e5300097aff9741a7a9a8"
+    },
+    {
+      "path": "docs/xge3-package-data-object-gap.md",
+      "sha256": "d6922435e722f948f866a64abe05711319911824f2d1e303a1d29bee88d61bc7",
+      "originalCandidateSha256": "d6922435e722f948f866a64abe05711319911824f2d1e303a1d29bee88d61bc7",
+      "consumerQualification": null,
+      "blob": "beaf18591a08ca3b7a95d23ecc080cb4753f7303"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_managers.xl",
+      "sha256": "45f251332025301810debee8f02c3d2838f12653e74edfbea80b3ca89c82db1f",
+      "originalCandidateSha256": "45f251332025301810debee8f02c3d2838f12653e74edfbea80b3ca89c82db1f",
+      "consumerQualification": null,
+      "blob": "9bbb1b326623112469cdc6c20b73dd5a0570e84c"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_managers.h",
+      "sha256": "b436a9da7e273a2b0608693a8cb941ad8b2a3ef2b9ecc0013a9eadedeb90889e",
+      "originalCandidateSha256": "b436a9da7e273a2b0608693a8cb941ad8b2a3ef2b9ecc0013a9eadedeb90889e",
+      "consumerQualification": null,
+      "blob": "5fcfa942f167c3695211c08d0a19b13ac54f5cfd"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_managers_host.c",
+      "sha256": "effbe4ce7bf7193884e2301cb344049daced6015965366837b11366b3fe2cdc1",
+      "originalCandidateSha256": "effbe4ce7bf7193884e2301cb344049daced6015965366837b11366b3fe2cdc1",
+      "consumerQualification": null,
+      "blob": "154a2bbad7417d814bb5e67d4df23d82d6424060"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_managers_check.py",
+      "sha256": "ecab7199f3bef56d56940481dd7399c6c7eed3c825355e15c0b1bb7f1d546e45",
+      "originalCandidateSha256": "ecab7199f3bef56d56940481dd7399c6c7eed3c825355e15c0b1bb7f1d546e45",
+      "consumerQualification": null,
+      "blob": "efea3225b09905ecc8c936230ee0205f65905946"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_manager_cycle.xl",
+      "sha256": "d12ccc96a81ae43c873a2f312a2b1aed5748945d54d25a8f738ab5102900709e",
+      "originalCandidateSha256": "d12ccc96a81ae43c873a2f312a2b1aed5748945d54d25a8f738ab5102900709e",
+      "consumerQualification": null,
+      "blob": "bf1a16e01df064d8ca8742c6c171b9b41cdaec5d"
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_manager_cycle.h",
+      "sha256": "29dd383a63f3eabb28c822215fb7f4ff014f77dba0ddb5b741d2aac6d4102aa8",
+      "originalCandidateSha256": "29dd383a63f3eabb28c822215fb7f4ff014f77dba0ddb5b741d2aac6d4102aa8",
+      "consumerQualification": null,
+      "blob": "600ceecf1c9be3ec2af57baadace3dc83dfa7e1e"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_manager_script_host.c",
+      "sha256": "a01daf1d6e16a2ef116691e355996a4af7b417c225055a10b15985df86387d47",
+      "originalCandidateSha256": "a01daf1d6e16a2ef116691e355996a4af7b417c225055a10b15985df86387d47",
+      "consumerQualification": null,
+      "blob": "3d2796959c06e707f0b0af1d9787deed35de291b"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_manager_script_check.py",
+      "sha256": "16a3045df772ffa389267540258dd7551cf237d1fdab6e7d4b0701e50a668e8e",
+      "originalCandidateSha256": "16a3045df772ffa389267540258dd7551cf237d1fdab6e7d4b0701e50a668e8e",
+      "consumerQualification": null,
+      "blob": "788402269b37b4a8e42f74e4f4bb52065583eab2"
+    }
+  ],
+  "publicCandidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\public-xui-current-candidate-r1\\manifest.json",
+    "sha256": "5cfade923513303ae31a7ac442b497d08eb558a5a72c589424c3076067fd2386"
+  },
+  "managerCandidate": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\manager-xlang-candidate-r1\\manifest.json",
+    "sha256": "18a3476e0050d2dd100b9992a7eea574b184797db3385c88b22c8edc4a8cafde"
+  },
+  "reachableDeclarationAbi": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\binding-probes-final-public-r1\\abi-results.json",
+      "sha256": "2c36f9bacbd012b325e2ea4e1bd8f6240ad9f1fd43ee4a00ee8da3dbe9b9fc6f",
+      "methods": 3048
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\binding-probes-final-public-linux-r1\\abi-results.json",
+      "sha256": "c93c4b600eff997dfc17bd4d2d9bd0f9702063fb83b770b4f3893426a4b3b4ee",
+      "methods": 3048
+    }
+  ],
+  "defaultMethods": 3048,
+  "separatelyQualifiedManagerMethods": 6,
+  "managerRuntime": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\manager-seal-acceptance-r1.json",
+    "sha256": "a4c36b68f3f7a9f9fcd537e50e59ce0637e8e07fca6aefb76db28d02743d7602",
+    "rows": 78
+  },
+  "consumerContinuation": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\webview-finalization-win-r4\\results.json",
+    "sha256": "45fb52a65e24b692f680fd26aef8bf9066480fc51cdb69c1e4924e9c37cc358b",
+    "runtimeSourceSha256": "ad291c8203ef22276e012ac68bbc11343060dae0d21e77513ede104cff3dc3a8",
+    "qualification": "The R7 policy body differs only by the Context continuation flag; the exact updated source was used by the successful R4 real DLL test."
+  },
+  "limitations": [
+    "Final matched R37 compiler/runtime/Native R12 or successor/provider/VFS and package acceptance remains required",
+    "Array projection and readonly owning native sequences are independent active work",
+    "Historical inventory narrative is intentionally not promoted as current source mapping",
+    "No device, window, browser or GPU acceptance inferred"
+  ],
+  "shippingDelivery": false
+}

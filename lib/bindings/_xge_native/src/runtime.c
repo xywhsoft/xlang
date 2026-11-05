@@ -30,12 +30,24 @@ int xl6Xge3RuntimeBindV1(void)
     return bind_failure(result,missing?missing:"bind",reason);
 }
 static bool watch_context(void* raw,void* storage,void(*invalidate)(void*),void* user)
-{return xuiContextLifetimeWatch(raw,storage,invalidate,user)==XUI_OK;}
+{
+    int status=xuiContextLifetimeWatch(raw,storage,invalidate,user);
+    if(status!=XUI_OK){report_resource_failure(status,"xuiContextLifetimeWatch");return false;}
+    /* Language roots require the atomic owned creation contract. A legacy C
+     * Context cannot be admitted. Physical observation remains attached on
+     * qualification failure so the already-transferred owner can retire. */
+    if(!xuiGetProxyOwned(raw)){
+        report_resource_failure(XUI_ERROR_INVALID_STATE,"xui.Context.owned");
+    }
+    return true;
+}
 static bool watch_widget(void* raw,void* storage,void(*invalidate)(void*),void* user)
 {return xuiWidgetLifetimeWatch(raw,storage,invalidate,user)==XUI_OK;}
 static void unwatch(void* storage){xuiLifetimeUnwatch(storage);}
 static bool destroy_context(void* raw)
-{bool consumed=false;int status=xuiDestroyOwnerChecked(raw,&consumed);report_resource_failure(status,"xuiDestroyOwnerChecked");return consumed;}
+{bool consumed=false;int status=xuiDestroyOwnerChecked(raw,&consumed);if(status!=XUI_STATUS_DEFERRED)report_resource_failure(status,"xuiDestroyOwnerChecked");return consumed;}
+static bool request_context(void* raw)
+{int status=xuiRequestClose(raw);if(status!=XUI_OK)report_resource_failure(status,"xuiRequestClose");return status==XUI_OK;}
 static bool destroy_widget(void* raw)
 {int status=xuiWidgetDestroyChecked(raw);report_resource_failure(status,"xuiWidgetDestroyChecked");return status==XUI_OK;}
 static bool context_begin(void* raw,void* storage)
@@ -49,15 +61,38 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3ContextPolicyGet(void)
 {
     static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui_context",
         sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_context,unwatch,destroy_context,
-        sizeof(xui_call_scope_t),_Alignof(xui_call_scope_t),context_begin,context_end,context_trace,context_busy};
+        sizeof(xui_call_scope_t),_Alignof(xui_call_scope_t),context_begin,context_end,context_trace,context_busy,
+        XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH|XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY|
+        XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE|XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE|XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE,NULL,request_context};
     return &value;
 }
 const XL6_ForeignViewDescriptorV1* xl6Xui3WidgetPolicyGet(void)
 {
     static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui_widget",
-        sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_widget,unwatch,destroy_widget,0,1,NULL,NULL,NULL,NULL};
+        sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_widget,unwatch,destroy_widget,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
     return &value;
 }
+/* Context owns each manager exactly once. These are distinct composite child
+ * views, not Widget casts and not independent native RC roots. Context's real
+ * directory traces their callback/font/layout edges; tracing them again from
+ * a child descriptor would invent a second owning edge. Calls borrow the
+ * actual parent Context root scope and the native business body holds its
+ * ManagerScope through the complete callback tail. */
+#define XL6_XUI_MANAGER_POLICY(Name,Prefix) \
+static bool watch_##Name(void* raw,void* storage,void(*invalidate)(void*),void* user) \
+{int status=Prefix##LifetimeWatch(raw,storage,invalidate,user);if(status!=XUI_OK)report_resource_failure(status,#Prefix "LifetimeWatch");return status==XUI_OK;} \
+static bool destroy_##Name(void* raw) \
+{bool accepted=false;int status=Prefix##DestroyOwnerChecked(raw,&accepted);if(status!=XUI_OK)report_resource_failure(status,#Prefix "DestroyOwnerChecked");return accepted;} \
+const XL6_ForeignViewDescriptorV1* xl6Xui3##Name##PolicyGet(void) \
+{static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui." #Name, \
+sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_##Name,unwatch,destroy_##Name, \
+0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};return &value;}
+XL6_XUI_MANAGER_POLICY(MsgBox,xuiMsgBox)
+XL6_XUI_MANAGER_POLICY(Toast,xuiToast)
+XL6_XUI_MANAGER_POLICY(FileDialog,xuiFileDialog)
+XL6_XUI_MANAGER_POLICY(MsgTip,xuiMsgTip)
+#undef XL6_XUI_MANAGER_POLICY
+
 static bool destroy_cell(void* raw)
 {
     bool consumed=false;
@@ -81,7 +116,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3TableCellOutputPolicyGet(void)
      * External Release cannot invalidate it; heap Dispose is forbidden.
      * Its native RC node remains independent, with ALL of its real edges. */
     static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,
-        "xui.table_cell_output",0,1,NULL,NULL,destroy_cell,0,1,NULL,NULL,cell_trace,cell_busy};
+        "xui.table_cell_output",0,1,NULL,NULL,destroy_cell,0,1,NULL,NULL,cell_trace,cell_busy,0,NULL,NULL};
     return &value;
 }
 static bool cell_domain_resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
@@ -164,7 +199,7 @@ static bool surface_trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* u
 {return visit(xuiSurfaceOwnership((xui_surface)raw),user);}
 #define XUI_SHARED_POLICY(Name,Family,Destroy,Trace) \
 const XL6_ForeignViewDescriptorV1* Name(void) { \
-    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,Family,0,1,NULL,NULL,Destroy,0,1,NULL,NULL,Trace,NULL};return &value;}
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,Family,0,1,NULL,NULL,Destroy,0,1,NULL,NULL,Trace,NULL,0,NULL,NULL};return &value;}
 /* An owning RC reference protects each shared record. A language close
  * consumes that owner; native active pins and other owners keep storage alive.
  * Native quiescence/preparation belongs to the independent native graph node. */
@@ -180,38 +215,78 @@ static bool draw_begin(void* raw,void* storage)
 {int status=xuiDrawCallScopeBegin(raw,storage);if(status!=XUI_OK)report_resource_failure(status,"xuiDrawCallScopeBegin");return status==XUI_OK;}
 static bool draw_end(void* storage)
 {int status=xuiDrawCallScopeEnd(storage);if(status!=XUI_OK)report_resource_failure(status,"xuiDrawCallScopeEnd");return status==XUI_OK;}
+static bool draw_busy(const void* raw)
+{
+    xrtownershipref ref=xuiDrawOwnership((xui_draw_context)raw);
+    const xrtownershipquiescencev1* quiet=xuiProxyResourceOwnershipQuiescenceV1(ref);
+    return !quiet || quiet->Busy(ref.Data);
+}
 const XL6_ForeignViewDescriptorV1* xl6Xui3DrawPolicyGet(void)
 {
     /* Scope pins are independent from snapshot refs: the last call tail must
      * finish a requested End even while an ownership plan retains storage. */
     static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.draw",
-        0,1,NULL,NULL,destroy_draw,sizeof(xui_draw_scope_t),_Alignof(xui_draw_scope_t),draw_begin,draw_end,draw_trace,NULL};
+        0,1,NULL,NULL,destroy_draw,sizeof(xui_draw_scope_t),_Alignof(xui_draw_scope_t),draw_begin,draw_end,draw_trace,draw_busy,XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY,NULL,NULL};
+    return &value;
+}
+static bool destroy_text_shape(void* raw)
+{bool consumed=false;int status=xuiTextShapeReleaseOwnerChecked(raw,&consumed);if(status!=XUI_STATUS_DEFERRED)report_resource_failure(status,"xuiTextShapeReleaseOwnerChecked");return consumed;}
+static bool text_shape_trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
+{return visit(xuiTextShapeOwnership(raw),user);}
+static bool text_shape_busy(const void* raw)
+{
+    xrtownershipref ref=xuiTextShapeOwnership(raw);
+    const xrtownershipquiescencev1* quiet=xuiProxyResourceOwnershipQuiescenceV1(ref);
+    return !quiet || quiet->Busy(ref.Data);
+}
+const XL6_ForeignViewDescriptorV1* xl6Xui3TextShapePolicyGet(void)
+{
+    /* The immutable public record is the real payload address, not a wrapper.
+     * Its native RC owner protects it throughout resident input call scopes. */
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.textShape",
+        0,1,NULL,NULL,destroy_text_shape,0,1,NULL,NULL,text_shape_trace,text_shape_busy,
+        XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE,NULL,NULL};
     return &value;
 }
 static bool destroy_path(void* raw){xuiPathDestroy(raw);return true;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3PathPolicyGet(void)
 {
     static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.path",
-        0,1,NULL,NULL,destroy_path,0,1,NULL,NULL,NULL,NULL};return &value;
+        0,1,NULL,NULL,destroy_path,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};return &value;
 }
 static bool destroy_font(void* raw){xgeFontFree(raw);return true;}
 static bool destroy_texture(void* raw){xgeTextureFree(raw);return true;}
+/* Before AdoptStorage succeeds Native does not own this xrt-allocated
+ * record. Do not consume our reference while another C reference still
+ * needs its address: retirement retries after those references are gone. */
+static bool destroy_unadopted_font(void* raw)
+{
+    xge_font font=raw;
+    if(font->iRefCount>1){xrtSetErrorKind(XERR_STATE);return false;}
+    xgeFontFree(font);xrtFree(font);return true;
+}
+static bool destroy_unadopted_texture(void* raw)
+{
+    xge_texture texture=raw;
+    if(texture->iRefCount>1){xrtSetErrorKind(XERR_STATE);return false;}
+    xgeTextureFree(texture);xrtFree(texture);return true;
+}
 static bool destroy_image(void* raw){xgeImageFree(raw);xrtFree(raw);return true;}
 static bool destroy_material(void* raw){xgeMaterialFree(raw);xrtFree(raw);return true;}
-#define RESOURCE_POLICY(Name,Family,Destroy) \
+#define RESOURCE_POLICY(Name,Family,Destroy,DestroyUnadopted) \
 const XL6_ForeignViewDescriptorV1* Name(void) { \
-    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,Family,0,1,NULL,NULL,Destroy,0,1,NULL,NULL,NULL,NULL};return &value;}
-RESOURCE_POLICY(xl6Xge3FontPolicyGet,"xge.font",destroy_font)
-RESOURCE_POLICY(xl6Xge3TexturePolicyGet,"xge.texture",destroy_texture)
-RESOURCE_POLICY(xl6Xge3ImagePolicyGet,"xge.image",destroy_image)
-RESOURCE_POLICY(xl6Xge3MaterialPolicyGet,"xge.material",destroy_material)
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,Family,0,1,NULL,NULL,Destroy,0,1,NULL,NULL,NULL,NULL,0,DestroyUnadopted,NULL};return &value;}
+RESOURCE_POLICY(xl6Xge3FontPolicyGet,"xge.font",destroy_font,destroy_unadopted_font)
+RESOURCE_POLICY(xl6Xge3TexturePolicyGet,"xge.texture",destroy_texture,destroy_unadopted_texture)
+RESOURCE_POLICY(xl6Xge3ImagePolicyGet,"xge.image",destroy_image,destroy_image)
+RESOURCE_POLICY(xl6Xge3MaterialPolicyGet,"xge.material",destroy_material,destroy_material)
 #if XGE_ENABLE_SHAPE_EX
 static bool destroy_shape(void* raw){xgeShapeExDestroy(raw);return true;}
 static bool destroy_scene(void* raw){xgeShapeExSceneDestroy(raw);return true;}
 static bool destroy_measure(void* raw){xgeShapeExPathMeasureDestroy(raw);return true;}
-RESOURCE_POLICY(xl6Xge3ShapePolicyGet,"xge.shape_ex",destroy_shape)
-RESOURCE_POLICY(xl6Xge3ShapeScenePolicyGet,"xge.shape_ex_scene",destroy_scene)
-RESOURCE_POLICY(xl6Xge3PathMeasurePolicyGet,"xge.shape_ex_path_measure",destroy_measure)
+RESOURCE_POLICY(xl6Xge3ShapePolicyGet,"xge.shape_ex",destroy_shape,NULL)
+RESOURCE_POLICY(xl6Xge3ShapeScenePolicyGet,"xge.shape_ex_scene",destroy_scene,NULL)
+RESOURCE_POLICY(xl6Xge3PathMeasurePolicyGet,"xge.shape_ex_path_measure",destroy_measure,NULL)
 #else
 const XL6_ForeignViewDescriptorV1* xl6Xge3ShapePolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xge3ShapeScenePolicyGet(void){return NULL;}
@@ -219,7 +294,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3PathMeasurePolicyGet(void){return NULL
 #endif
 #if XGE_ENABLE_AUDIO
 static bool destroy_audio_clip(void* raw){xgeAudioClipFree(raw);return true;}
-RESOURCE_POLICY(xl6Xge3AudioClipPolicyGet,"xge.audio_clip",destroy_audio_clip)
+RESOURCE_POLICY(xl6Xge3AudioClipPolicyGet,"xge.audio_clip",destroy_audio_clip,NULL)
 #else
 const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void){return NULL;}
 #endif

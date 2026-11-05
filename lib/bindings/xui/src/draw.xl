@@ -1,0 +1,13 @@
+// An owned draw session pins its actual Proxy/target. End is logical; the
+// native last call-scope tail finishes it, and close consumes its owner.
+export extern "xui_draw_context_t*" class DrawContext @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3DrawPolicy") @scope("xui_draw_scope_t") @domain("xl6Xui3OwnershipDomainV1")
+ native point handle
+ extern "xuiDrawEndChecked" @no_raise @c_result("status",0) func finish()
+ extern "xuiDrawEnded" @no_raise func ended() as bool
+ extern "xuiDrawGetProxy" @no_raise @c_result("retained_view") @c_retain(retainProxy,"zero",rollbackProxy) func proxy() as Proxy?
+ extern "xuiDrawGetTarget" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func target() as Surface?
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiDrawReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackDraw(DrawContext value)
+extern "xuiSurfaceAddRef" @header("xge3_runtime.h") @no_raise func retainSurface(Surface value) as c_int
+extern "xuiDrawAddRef" @header("xge3_runtime.h") @no_raise func retainDraw(DrawContext value) as c_int

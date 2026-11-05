@@ -2,7 +2,7 @@
 export const c_int XUI_VERSION_MAJOR = 2
 export const c_int XUI_VERSION_MINOR = 0
 export const c_int XUI_VERSION_PATCH = 0
-export const c_int XUI_PROXY_VERSION = 16
+export const c_int XUI_PROXY_VERSION = 17
 export const c_int XUI_LAYOUT_MAX_PASSES = 8
 export const c_int XUI_LANGUAGE_EN = 0
 export const c_int XUI_LANGUAGE_ZH = 1

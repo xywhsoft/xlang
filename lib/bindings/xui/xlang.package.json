@@ -12,7 +12,11 @@
       "src/records.xl",
       "src/constants.xl",
       "src/managed.xl",
-      "src/cell.xl"
+      "src/cell.xl",
+      "src/proxy.xl",
+      "src/draw.xl",
+      "src/text_shape.xl",
+      "src/managers.xl"
     ]
   },
   "links": [],

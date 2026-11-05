@@ -886,7 +886,7 @@ export typedef TableViewCellTextOwnedProc = func(CallbackWidget,c_int,c_int,Call
 
 export typedef TableViewCellRenderOwnedProc = func(CallbackWidget,c_int,c_int,CallbackConstTableViewCellOutput,CallbackDrawContext,Rect,c_int) as c_int
 
-export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3ContextPolicy") @scope("xui_call_scope_t") @watch("xui_lifetime_link_t") @domain("xuiTableViewCellOutputOwnershipDomainV1")
+export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3ContextPolicy") @scope("xui_call_scope_t") @watch("xui_lifetime_link_t") @domain("xl6Xui3OwnershipDomainV1")
 
  native point handle
 
@@ -1006,6 +1006,8 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
 
  extern "xuiWebViewCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWebView) func webViewNative(NativeConstXuiWebviewDescTPointer pDesc) as WebView
 
+ extern "xuiDestroyChecked" @no_raise func destroyChecked() as c_int
+
  extern "xuiSetLanguage" @no_raise @c_result("status",0) func setLanguage(c_int iLanguageId)
 
  extern "xuiGetLanguage" @no_raise func getLanguage() as c_int
@@ -1013,6 +1015,7 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
  extern "xuiGetLanguageRevision" @no_raise func getLanguageRevision() as c_uint
 
  extern "xuiTranslate" @no_raise func translate(c_int iTextId) as string?
+
 
  extern "xuiGetProxyCaps" @no_raise @c_output(1,0) func getProxyCaps() as ProxyCaps
 
@@ -1089,6 +1092,14 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
  extern "xuiSetChromeStyle" @no_raise @c_ref(0) func setChromeStyle(ChromeStyle pChrome) as c_int
 
  extern "xuiGetChromeStyle" @no_raise @c_output(1,0) func getChromeStyle() as ChromeStyle
+
+ extern "xuiSetDefaultFont" @no_raise @c_result("status",0) func setDefaultFont(Font? pFont)
+
+ extern "xuiGetDefaultFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getDefaultFont() as Font?
+
+ extern "xuiRegisterFont" @no_raise @c_cstr(0) @c_result("status",0) func registerFont(string sName,Font pFont)
+
+ extern "xuiFindFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) @c_cstr(0) func findFont(string sName) as Font?
 
  extern "xuiClearFonts" @no_raise func clearFonts()
 
@@ -1208,8 +1219,11 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
 
  extern "xuiProxyXgePumpInputRect" @no_raise func proxyXgePumpInputRect(Rect tWindowRect) as c_int
 
+ extern "xuiGetProxyOwned" @no_raise @c_result("retained_view") @c_retain(retainProxy,"zero",rollbackProxy) func proxy() as Proxy
+
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 
+ extern "xuiBuiltinAssetGetAtlas" @no_raise @c_output_retain(1,retainSurface,"zero",rollbackSurface) @c_output(1,0) func builtinAssetGetAtlas() as Surface
 end
 
 export extern "xui_widget_t*" class Widget @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t")
@@ -1532,6 +1546,11 @@ export extern "xui_widget_t*" class Widget @header("xge3_runtime.h") @lifetime("
 
  extern "xuiWidgetDestroyChecked" @no_raise @c_result("status",0) func close()
 
+ extern "xuiWidgetGetCacheSurface" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func getCacheSurface(c_uint iStateId) as Surface?
+ extern "xuiWidgetUpdateBegin" @no_raise @c_output_retain(4,retainDraw,"zero",rollbackDraw) @c_output(4,0) func updateBegin(c_uint iStateId,c_uint iFlags,c_uint iClearColor) as DrawContext
+ extern "xuiWidgetUpdateEnd" @no_raise func updateEnd(c_uint iStateId,DrawContext pDraw) as c_int
+ extern "xuiWidgetRenderCache" @no_raise @c_result("status",0) func renderCache(Surface pTarget)
+ extern "xuiWidgetRenderTree" @no_raise func renderTree(Surface pTarget) as c_int
 end
 
 export extern "xui_widget_t*" class Label @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -1539,6 +1558,10 @@ export extern "xui_widget_t*" class Label @header("xge3_runtime.h") @lifetime("o
  extern "xuiLabelSetText" @no_raise @c_cstr(0) @c_result("status",0) func setText(string sText)
 
  extern "xuiLabelGetText" @no_raise func getText() as string?
+
+ extern "xuiLabelSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiLabelGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiLabelSetTextColor" @no_raise @c_result("status",0) func setTextColor(c_uint iColor)
 
@@ -1577,6 +1600,10 @@ export extern "xui_widget_t*" class Hyperlink @header("xge3_runtime.h") @lifetim
  extern "xuiHyperlinkSetText" @no_raise @c_cstr(0) @c_result("status",0) func setText(string sText)
 
  extern "xuiHyperlinkGetText" @no_raise func getText() as string?
+
+ extern "xuiHyperlinkSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiHyperlinkGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiHyperlinkSetTextColor" @no_raise func setTextColor(c_uint iColor) as c_int
 
@@ -1654,6 +1681,10 @@ export extern "xui_widget_t*" class Breadcrumb @header("xge3_runtime.h") @lifeti
 
  extern "xuiBreadcrumbGetSeparatorIconSize" @no_raise func getSeparatorIconSize() as c_float
 
+ extern "xuiBreadcrumbSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiBreadcrumbGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
+
  extern "xuiBreadcrumbSetTextColors" @no_raise @c_result("status",0) func setTextColors(c_uint iNormal,c_uint iHover,c_uint iActive,c_uint iDisabled)
 
  extern "xuiBreadcrumbGetTextColors" @no_raise @c_outputs(1,2,3,4) @c_status(0) func getTextColors() as (c_uint,c_uint,c_uint,c_uint)
@@ -1680,6 +1711,8 @@ export extern "xui_widget_t*" class Breadcrumb @header("xge3_runtime.h") @lifeti
 
  extern "xuiBreadcrumbGetClickCount" @no_raise func getClickCount() as c_int
 
+ extern "xuiBreadcrumbSetSeparatorIcon" @no_raise @c_result("status",0) func setSeparatorIcon(Surface? pSurface,Rect tSrc,c_float fIconSize)
+ extern "xuiBreadcrumbGetSeparatorIcon" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func getSeparatorIcon() as Surface?
 end
 
 export extern "xui_widget_t*" class Image @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -1712,6 +1745,8 @@ export extern "xui_widget_t*" class Image @header("xge3_runtime.h") @lifetime("o
 
  extern "xuiImageGetDrawRect" @no_raise func getDrawRect() as Rect
 
+ extern "xuiImageSetSurface" @no_raise @c_result("status",0) func setSurface(Surface? pSurface)
+ extern "xuiImageGetSurface" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func getSurface() as Surface?
 end
 
 export extern "xui_widget_t*" class QrCode @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -1748,6 +1783,8 @@ export extern "xui_widget_t*" class QrCode @header("xge3_runtime.h") @lifetime("
 
  extern "xuiQrCodeGetChangeCount" @no_raise func getChangeCount() as c_int
 
+ extern "xuiQrCodeSetIcon" @no_raise @c_result("status",0) func setIcon(Surface? pIconSurface,Rect tIconSrc,c_float fIconSize)
+ extern "xuiQrCodeGetIcon" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func getIcon() as Surface?
 end
 
 export extern "xui_widget_t*" class Panel @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -1767,6 +1804,10 @@ export extern "xui_widget_t*" class Panel @header("xge3_runtime.h") @lifetime("o
  extern "xuiPanelSetTitle" @no_raise @c_cstr(0) @c_result("status",0) func setTitle(string sTitle)
 
  extern "xuiPanelGetTitle" @no_raise func getTitle() as string?
+
+ extern "xuiPanelSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiPanelGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiPanelSetTitleColor" @no_raise func setTitleColor(c_uint iColor) as c_int
 
@@ -1824,6 +1865,8 @@ export extern "xui_widget_t*" class Panel @header("xge3_runtime.h") @lifetime("o
 
  extern "xuiPanelGetState" @no_raise func getState() as c_uint
 
+ extern "xuiPanelSetIcon" @no_raise @c_result("status",0) func setIcon(Surface? pSurface,Rect tSrc)
+ extern "xuiPanelGetIconSurface" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func getIconSurface() as Surface?
 end
 
 export extern "xui_widget_t*" class Separator @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -1872,11 +1915,17 @@ export extern "xui_widget_t*" class Progress @header("xge3_runtime.h") @lifetime
 
  extern "xuiProgressGetMarqueeInterval" @no_raise func getMarqueeInterval() as c_float
 
+ extern "xuiProgressSetText" @no_raise @c_cstr(1) func setText(Font? pFont,string sText) as c_int
+
  extern "xuiProgressSetTextTemplate" @no_raise @c_cstr(0) @c_result("status",0) func setTextTemplate(string sTextTemplate)
 
  extern "xuiProgressGetTextTemplate" @no_raise func getTextTemplate() as string?
 
  extern "xuiProgressGetDisplayText" @no_raise func getDisplayText() as string?
+
+ extern "xuiProgressSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiProgressGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiProgressSetTextColor" @no_raise @c_result("status",0) func setTextColor(c_uint iColor)
 
@@ -1904,9 +1953,17 @@ export extern "xui_widget_t*" class Progress @header("xge3_runtime.h") @lifetime
 
  extern "xuiProgressHasTrackPatch" @no_raise func hasTrackPatch() as c_int
 
+ extern "xuiProgressSetTrackPatch" @no_raise @c_result("status",0) @c_pack(1,"xui_nine_patch_t",0,5) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"pSurface",0,"view_raw") @c_pack_field(1,"tSrc",1,"value") @c_pack_field(1,"tSlice",2,"value") @c_pack_field(1,"iColor",3,"value") @c_pack_field(1,"iMode",4,"value") func setTrackPatch(Surface surface,Rect source,Thickness slice,c_uint color=0xFFFFFFFF,c_int mode=0)
+
+ extern "xuiProgressGetTrackPatch" @no_raise @c_output_record(1,"xui_nine_patch_t","borrowed") @c_status(0) @c_output_field(0,"pSurface","retain",retainSurface,"zero",rollbackSurface) @c_output_field(1,"tSrc") @c_output_field(2,"tSlice") @c_output_field(3,"iColor") @c_output_field(4,"iMode") func getTrackPatch() as (Surface?,Rect,Thickness,c_uint,c_int)
+
  extern "xuiProgressClearFillPatch" @no_raise func clearFillPatch() as c_int
 
  extern "xuiProgressHasFillPatch" @no_raise func hasFillPatch() as c_int
+
+ extern "xuiProgressSetFillPatch" @no_raise @c_result("status",0) @c_pack(1,"xui_nine_patch_t",0,5) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"pSurface",0,"view_raw") @c_pack_field(1,"tSrc",1,"value") @c_pack_field(1,"tSlice",2,"value") @c_pack_field(1,"iColor",3,"value") @c_pack_field(1,"iMode",4,"value") func setFillPatch(Surface surface,Rect source,Thickness slice,c_uint color=0xFFFFFFFF,c_int mode=0)
+
+ extern "xuiProgressGetFillPatch" @no_raise @c_output_record(1,"xui_nine_patch_t","borrowed") @c_status(0) @c_output_field(0,"pSurface","retain",retainSurface,"zero",rollbackSurface) @c_output_field(1,"tSrc") @c_output_field(2,"tSlice") @c_output_field(3,"iColor") @c_output_field(4,"iMode") func getFillPatch() as (Surface?,Rect,Thickness,c_uint,c_int)
 
  extern "xuiProgressSetFillPatchMode" @no_raise @c_result("status",0) func setFillPatchMode(c_int iMode)
 
@@ -1931,6 +1988,10 @@ export extern "xui_widget_t*" class StepBar @header("xge3_runtime.h") @lifetime(
  extern "xuiStepBarSetStyle" @no_raise @c_result("status",0) func setStyle(c_int iStyle)
 
  extern "xuiStepBarGetStyle" @no_raise func getStyle() as c_int
+
+ extern "xuiStepBarSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiStepBarGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiStepBarSetColors" @no_raise @c_result("status",0) func setColors(c_uint iDone,c_uint iActive,c_uint iPending,c_uint iLine)
 
@@ -1961,6 +2022,10 @@ export extern "xui_widget_t*" class Chart @header("xge3_runtime.h") @lifetime("o
  extern "xuiChartSetTitle" @no_raise @c_cstr(0) @c_result("status",0) func setTitle(string sTitle)
 
  extern "xuiChartGetTitle" @no_raise func getTitle() as string?
+
+ extern "xuiChartSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiChartGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiChartSetColors" @no_raise @c_result("status",0) func setColors(c_uint iBackground,c_uint iPlot,c_uint iGrid,c_uint iAxis,c_uint iText,c_uint iTooltip,c_uint iTooltipText)
 
@@ -2083,6 +2148,10 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
  extern "xuiCodeEditSetMenuTitle" @no_raise @c_cstr(1) @c_result("status",0) func setMenuTitle(c_int iCommand,string sTitle)
 
  extern "xuiCodeEditGetMenuTitle" @no_raise func getMenuTitle(c_int iCommand) as string?
+
+ extern "xuiCodeEditSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiCodeEditGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiCodeEditSetText" @no_raise @c_cstr(0) func setText(string sText) as c_int
 
@@ -2218,6 +2287,10 @@ export extern "xui_widget_t*" class Input @header("xge3_runtime.h") @lifetime("o
 
  extern "xuiInputGetPlaceholder" @no_raise func getPlaceholder() as string?
 
+ extern "xuiInputSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiInputGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
+
  extern "xuiInputSetMaxLength" @no_raise @c_result("status",0) func setMaxLength(c_int iMaxLength)
 
  extern "xuiInputGetMaxLength" @no_raise func getMaxLength() as c_int
@@ -2326,6 +2399,10 @@ export extern "xui_widget_t*" class TagInput @header("xge3_runtime.h") @lifetime
 
  extern "xuiTagInputGetPlaceholder" @no_raise func getPlaceholder() as string?
 
+ extern "xuiTagInputSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiTagInputGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
+
  extern "xuiTagInputSetMaxTags" @no_raise @c_result("status",0) func setMaxTags(c_int iMaxTags)
 
  extern "xuiTagInputGetMaxTags" @no_raise func getMaxTags() as c_int
@@ -2381,6 +2458,10 @@ export extern "xui_widget_t*" class NumericInput @header("xge3_runtime.h") @life
  extern "xuiNumericInputSetPrecision" @no_raise @c_result("status",0) func setPrecision(c_int iPrecision)
 
  extern "xuiNumericInputGetPrecision" @no_raise func getPrecision() as c_int
+
+ extern "xuiNumericInputSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiNumericInputGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiNumericInputSetReadonly" @no_raise @c_result("status",0) func setReadonly(c_int bReadonly)
 
@@ -2461,6 +2542,10 @@ export extern "xui_widget_t*" class TextEdit @header("xge3_runtime.h") @lifetime
  extern "xuiTextEditSetPlaceholder" @no_raise @c_cstr(0) @c_result("status",0) func setPlaceholder(string sText)
 
  extern "xuiTextEditGetPlaceholder" @no_raise func getPlaceholder() as string?
+
+ extern "xuiTextEditSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiTextEditGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiTextEditSetMaxLength" @no_raise @c_result("status",0) func setMaxLength(c_int iMaxLength)
 
@@ -2566,6 +2651,10 @@ export extern "xui_widget_t*" class Button @header("xge3_runtime.h") @lifetime("
 
  extern "xuiButtonGetText" @no_raise func getText() as string?
 
+ extern "xuiButtonSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiButtonGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
+
  extern "xuiButtonSetTextFlags" @no_raise @c_result("status",0) func setTextFlags(c_uint iTextFlags)
 
  extern "xuiButtonGetTextFlags" @no_raise func getTextFlags() as c_uint
@@ -2608,6 +2697,10 @@ export extern "xui_widget_t*" class Button @header("xge3_runtime.h") @lifetime("
 
  extern "xuiButtonHasPatch" @no_raise func hasPatch(c_uint iState) as c_int
 
+ extern "xuiButtonSetPatch" @no_raise @c_result("status",0) @c_pack(2,"xui_nine_patch_t",1,5) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"pSurface",1,"view_raw") @c_pack_field(2,"tSrc",2,"value") @c_pack_field(2,"tSlice",3,"value") @c_pack_field(2,"iColor",4,"value") @c_pack_field(2,"iMode",5,"value") func setPatch(c_uint state,Surface surface,Rect source,Thickness slice,c_uint color=0xFFFFFFFF,c_int mode=0)
+
+ extern "xuiButtonGetPatch" @no_raise @c_output_record(2,"xui_nine_patch_t","borrowed") @c_status(0) @c_output_field(0,"pSurface","retain",retainSurface,"zero",rollbackSurface) @c_output_field(1,"tSrc") @c_output_field(2,"tSlice") @c_output_field(3,"iColor") @c_output_field(4,"iMode") func getPatch(c_uint state) as (Surface?,Rect,Thickness,c_uint,c_int)
+
  extern "xuiButtonSetBadgeVisible" @no_raise @c_result("status",0) func setBadgeVisible(c_int bVisible)
 
  extern "xuiButtonGetBadgeVisible" @no_raise func getBadgeVisible() as c_int
@@ -2628,6 +2721,11 @@ export extern "xui_widget_t*" class Button @header("xge3_runtime.h") @lifetime("
 
  extern "xuiButtonGetClickCount" @no_raise func getClickCount() as c_int
 
+ extern "xuiButtonSetIcon" @no_raise @c_result("status",0) func setIcon(Surface? pSurface,Rect tSrc)
+ extern "xuiButtonGetIcon" @no_raise @c_output_retain(1,retainSurface,"zero",rollbackSurface) @c_outputs(1,2) @c_status(0) func getIcon() as (Surface?,Rect)
+ extern "xuiButtonGetIconSurface" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func getIconSurface() as Surface?
+ extern "xuiButtonSetBadgeSurface" @no_raise @c_result("status",0) func setBadgeSurface(Surface? pSurface,Rect tSrc)
+ extern "xuiButtonGetBadgeSurface" @no_raise @c_output_retain(1,retainSurface,"zero",rollbackSurface) @c_outputs(1,2) @c_status(0) func getBadgeSurface() as (Surface?,Rect)
 end
 
 export extern "xui_widget_t*" class CheckBox @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -2637,6 +2735,10 @@ export extern "xui_widget_t*" class CheckBox @header("xge3_runtime.h") @lifetime
  extern "xuiCheckBoxSetText" @no_raise @c_cstr(0) @c_result("status",0) func setText(string sText)
 
  extern "xuiCheckBoxGetText" @no_raise func getText() as string?
+
+ extern "xuiCheckBoxSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiCheckBoxGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiCheckBoxSetTextFlags" @no_raise @c_result("status",0) func setTextFlags(c_uint iTextFlags)
 
@@ -2684,6 +2786,10 @@ export extern "xui_widget_t*" class CheckBox @header("xge3_runtime.h") @lifetime
 
  extern "xuiCheckBoxGetState" @no_raise func getState() as c_uint
 
+ extern "xuiCheckBoxSetIndicatorSurface" @no_raise @c_result("status",0) func setIndicatorSurface(Surface? pUncheckedSurface,Rect tUncheckedSrc,Surface? pCheckedSurface,Rect tCheckedSrc)
+ extern "xuiCheckBoxGetIndicatorSurface" @no_raise @c_output_retain(1,retainSurface,"zero",rollbackSurface) @c_output_retain(3,retainSurface,"zero",rollbackSurface) @c_outputs(1,2,3,4) @c_status(0) func getIndicatorSurface() as (Surface?,Rect,Surface?,Rect)
+ extern "xuiCheckBoxSetMixedIndicatorSurface" @no_raise @c_result("status",0) func setMixedIndicatorSurface(Surface? pSurface,Rect tSrc)
+ extern "xuiCheckBoxGetMixedIndicatorSurface" @no_raise @c_output_retain(1,retainSurface,"zero",rollbackSurface) @c_outputs(1,2) @c_status(0) func getMixedIndicatorSurface() as (Surface?,Rect)
 end
 
 export extern "xui_widget_t*" class CheckCard @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -2726,6 +2832,10 @@ export extern "xui_widget_t*" class Radio @header("xge3_runtime.h") @lifetime("o
 
  extern "xuiRadioGetText" @no_raise func getText() as string?
 
+ extern "xuiRadioSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiRadioGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
+
  extern "xuiRadioSetTextFlags" @no_raise @c_result("status",0) func setTextFlags(c_uint iTextFlags)
 
  extern "xuiRadioGetTextFlags" @no_raise func getTextFlags() as c_uint
@@ -2764,6 +2874,8 @@ export extern "xui_widget_t*" class Radio @header("xge3_runtime.h") @lifetime("o
 
  extern "xuiRadioGetState" @no_raise func getState() as c_uint
 
+ extern "xuiRadioSetIndicatorSurface" @no_raise @c_result("status",0) func setIndicatorSurface(Surface? pUncheckedSurface,Rect tUncheckedSrc,Surface? pCheckedSurface,Rect tCheckedSrc)
+ extern "xuiRadioGetIndicatorSurface" @no_raise @c_output_retain(1,retainSurface,"zero",rollbackSurface) @c_output_retain(3,retainSurface,"zero",rollbackSurface) @c_outputs(1,2,3,4) @c_status(0) func getIndicatorSurface() as (Surface?,Rect,Surface?,Rect)
 end
 
 export extern "xui_widget_t*" class RadioGroup @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -2816,6 +2928,10 @@ export extern "xui_widget_t*" class Toggle @header("xge3_runtime.h") @lifetime("
 
  extern "xuiToggleGetInnerTextMetrics" @no_raise @c_outputs(1,2) @c_status(0) func getInnerTextMetrics() as (c_float,c_float)
 
+ extern "xuiToggleSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiToggleGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
+
  extern "xuiToggleSetTextFlags" @no_raise @c_result("status",0) func setTextFlags(c_uint iTextFlags)
 
  extern "xuiToggleGetTextFlags" @no_raise func getTextFlags() as c_uint
@@ -2864,6 +2980,8 @@ export extern "xui_widget_t*" class Toggle @header("xge3_runtime.h") @lifetime("
 
  extern "xuiToggleGetState" @no_raise func getState() as c_uint
 
+ extern "xuiToggleSetIndicatorSurface" @no_raise @c_result("status",0) func setIndicatorSurface(Surface? pUncheckedSurface,Rect tUncheckedSrc,Surface? pCheckedSurface,Rect tCheckedSrc)
+ extern "xuiToggleGetIndicatorSurface" @no_raise @c_output_retain(1,retainSurface,"zero",rollbackSurface) @c_output_retain(3,retainSurface,"zero",rollbackSurface) @c_outputs(1,2,3,4) @c_status(0) func getIndicatorSurface() as (Surface?,Rect,Surface?,Rect)
 end
 
 export extern "xui_widget_t*" class ScrollBar @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -3048,6 +3166,10 @@ export extern "xui_widget_t*" class Page @header("xge3_runtime.h") @lifetime("ow
 
  extern "xuiPageSetText" @no_raise @c_cstr(0) @c_cstr(1) @c_cstr(2) @c_cstr(3) @c_result("status",0) func setText(string sFirst,string sLast,string sPrev,string sNext)
 
+ extern "xuiPageSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiPageGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
+
  extern "xuiPageSetMetrics" @no_raise @c_result("status",0) func setMetrics(c_float fItemHeight,c_float fPageWidth,c_float fTextWidth,c_float fNavWidth,c_float fEllipsisWidth)
 
  extern "xuiPageGetMetrics" @no_raise @c_outputs(1,2,3,4,5) @c_status(0) func getMetrics() as (c_float,c_float,c_float,c_float,c_float)
@@ -3105,6 +3227,10 @@ export extern "xui_widget_t*" class Carousel @header("xge3_runtime.h") @lifetime
  extern "xuiCarouselSetIndicatorsVisible" @no_raise @c_result("status",0) func setIndicatorsVisible(c_int bVisible)
 
  extern "xuiCarouselGetIndicatorsVisible" @no_raise func getIndicatorsVisible() as c_int
+
+ extern "xuiCarouselSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiCarouselGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiCarouselSetArrowsOnHover" @no_raise @c_result("status",0) func setArrowsOnHover(c_int bEnabled)
 
@@ -3168,6 +3294,8 @@ export extern "xui_widget_t*" class VirtualJoystick @header("xge3_runtime.h") @l
 
  extern "xuiVirtualJoystickGetKnobRect" @no_raise func getKnobRect() as Rect
 
+ extern "xuiVirtualJoystickSetSurface" @no_raise @c_result("status",0) func setSurface(c_int iPart,Surface? pSurface,Rect tSrc)
+ extern "xuiVirtualJoystickGetSurface" @no_raise @c_output_retain(2,retainSurface,"zero",rollbackSurface) @c_outputs(2,3) @c_status(0) func getSurface(c_int iPart) as (Surface?,Rect)
 end
 
 export extern "xui_widget_t*" class InventoryGrid @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -3193,6 +3321,10 @@ export extern "xui_widget_t*" class InventoryGrid @header("xge3_runtime.h") @lif
  extern "xuiInventoryGridSetLayout" @no_raise @c_ref(0) @c_result("status",0) func setLayout(InventoryGridLayout pLayout)
 
  extern "xuiInventoryGridGetLayout" @no_raise @c_output(1,0) func getLayout() as InventoryGridLayout
+
+ extern "xuiInventoryGridSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiInventoryGridGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiInventoryGridSetMetrics" @no_raise @c_result("status",0) func setMetrics(c_float fSlotSize,c_float fSlotGap,c_float fPadding,c_float fIconPadding,c_float fBorderWidth)
 
@@ -3281,6 +3413,10 @@ export extern "xui_widget_t*" class Terminal @header("xge3_runtime.h") @lifetime
  extern "xuiTerminalSetParseBudget" @no_raise @c_result("status",0) func setParseBudget(c_int iBytesPerUpdate)
 
  extern "xuiTerminalGetParseBudget" @no_raise func getParseBudget() as c_int
+
+ extern "xuiTerminalSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiTerminalGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiTerminalSetMetrics" @no_raise @c_result("status",0) func setMetrics(c_float fCellWidth,c_float fCellHeight,c_float fPadding)
 
@@ -3456,6 +3592,10 @@ export extern "xui_widget_t*" class Tabs @header("xge3_runtime.h") @lifetime("ow
 
  extern "xuiTabsSetDirtyItems" @no_raise @c_span(0,"const int*","int") func setDirtyItems(Buffer arrDirty) as c_int
 
+ extern "xuiTabsSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiTabsGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
+
  extern "xuiTabsSetSelected" @no_raise func setSelected(c_int iIndex) as c_int
 
  extern "xuiTabsGetSelected" @no_raise func getSelected() as c_int
@@ -3564,6 +3704,10 @@ export extern "xui_widget_t*" class Accordion @header("xge3_runtime.h") @lifetim
 
  extern "xuiAccordionGetMode" @no_raise func getMode() as c_int
 
+ extern "xuiAccordionSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiAccordionGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
+
  extern "xuiAccordionSetMetrics" @no_raise @c_result("status",0) func setMetrics(c_float fHeaderHeight,c_float fSpacing,c_float fContentPadding)
 
  extern "xuiAccordionGetMetrics" @no_raise @c_outputs(1,2,3) @c_status(0) func getMetrics() as (c_float,c_float,c_float)
@@ -3615,6 +3759,10 @@ export extern "xui_widget_t*" class Window @header("xge3_runtime.h") @lifetime("
  extern "xuiWindowSetTitle" @no_raise @c_cstr(0) @c_result("status",0) func setTitle(string sTitle)
 
  extern "xuiWindowGetTitle" @no_raise func getTitle() as string?
+
+ extern "xuiWindowSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiWindowGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiWindowGetIconSource" @no_raise func getIconSource() as Rect
 
@@ -3710,11 +3858,13 @@ export extern "xui_widget_t*" class Window @header("xge3_runtime.h") @lifetime("
 
  extern "xuiWindowGetCloseCount" @no_raise func getCloseCount() as c_int
 
+ extern "xuiWindowSetIcon" @no_raise @c_result("status",0) func setIcon(Surface? pSurface,Rect tSrc)
+ extern "xuiWindowGetIconSurface" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func getIconSurface() as Surface?
 end
 
 export extern "xui_widget_t*" class DockPanel @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
 
- extern "xuiDockPanelClear" @no_raise @c_result("status",0) func clear()
+ extern "xuiDockPanelClear" @no_raise func clear() as c_int
 
  extern "xuiDockPanelSetWindowClient" @no_raise @c_result("status",0) func setWindowClient(c_int iWindow,Widget pClient)
 
@@ -3747,6 +3897,10 @@ export extern "xui_widget_t*" class DockPanel @header("xge3_runtime.h") @lifetim
  extern "xuiDockPanelGetWindowCloseButtonWidget" @no_raise @c_result("owner_view",0) func getWindowCloseButtonWidget(c_int iWindow) as Widget?
 
  extern "xuiDockPanelGetWindowPinButtonWidget" @no_raise @c_result("owner_view",0) func getWindowPinButtonWidget(c_int iWindow) as Widget?
+
+ extern "xuiDockPanelSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiDockPanelGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiDockPanelDockWindowToPane" @no_raise func dockWindowToPane(c_int iWindow,c_int iPane) as c_int
 
@@ -3830,6 +3984,8 @@ export extern "xui_widget_t*" class DockPanel @header("xge3_runtime.h") @lifetim
 
  extern "xuiDockPanelGetWindowChangeCount" @no_raise func getWindowChangeCount() as c_int
 
+ extern "xuiDockPanelSetWindowIcon" @no_raise @c_result("status",0) func setWindowIcon(c_int iWindow,Surface? pSurface,Rect tSrc)
+ extern "xuiDockPanelGetWindowIconSurface" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func getWindowIconSurface(c_int iWindow) as Surface?
 end
 
 export extern "xui_widget_t*" class ScrollFrame @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -4018,6 +4174,8 @@ export extern "xui_widget_t*" class Canvas @header("xge3_runtime.h") @lifetime("
 
  extern "xuiCanvasDrawCircleStroke" @no_raise func drawCircleStroke(c_float fX,c_float fY,c_float fRadius,c_float fWidth,c_uint iColor) as c_int
 
+ extern "xuiCanvasDrawText" @no_raise @c_cstr(1) func drawText(Font? pFont,string sText,Rect tRect,c_uint iColor,c_uint iFlags) as c_int
+
  extern "xuiCanvasSetPen" @no_raise @c_result("status",0) func setPen(c_int bEnabled,c_float fWidth,c_uint iColor)
 
  extern "xuiCanvasGetPen" @no_raise @c_outputs(1,2,3) @c_status(0) func getPen() as (c_int,c_float,c_uint)
@@ -4034,6 +4192,9 @@ export extern "xui_widget_t*" class Canvas @header("xge3_runtime.h") @lifetime("
 
  extern "xuiCanvasGetDrawCount" @no_raise func getDrawCount() as c_int
 
+ extern "xuiCanvasGetSurface" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func getSurface() as Surface
+ extern "xuiCanvasDrawSurface" @no_raise func drawSurface(Surface pSurface,Rect tSrc,Rect tDst,c_uint iColor,c_uint iFlags) as c_int
+ extern "xuiCanvasDrawSurfaceQuad" @no_raise @c_ref(1) func drawSurfaceQuad(Surface pSurface,SurfaceVertex[4] pVertices,c_uint iFlags) as c_int
 end
 
 export extern "xui_widget_t*" class ListView @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -4049,6 +4210,10 @@ export extern "xui_widget_t*" class ListView @header("xge3_runtime.h") @lifetime
  extern "xuiListViewGetItemText" @no_raise func getItemText(c_int iIndex) as string?
 
  extern "xuiListViewIsItemEnabled" @no_raise func isItemEnabled(c_int iIndex) as c_int
+
+ extern "xuiListViewSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiListViewGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiListViewSetItemHeight" @no_raise @c_result("status",0) func setItemHeight(c_float fHeight)
 
@@ -4158,6 +4323,10 @@ export extern "xui_widget_t*" class MessageList @header("xge3_runtime.h") @lifet
 
  extern "xuiMessageListGetAutoScroll" @no_raise func getAutoScroll() as c_int
 
+ extern "xuiMessageListSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiMessageListGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
+
  extern "xuiMessageListSetMetrics" @no_raise @c_ref(0) @c_result("status",0) func setMetrics(MessageListMetrics pMetrics)
 
  extern "xuiMessageListGetMetrics" @no_raise @c_output(1,0) func getMetrics() as MessageListMetrics
@@ -4232,6 +4401,10 @@ export extern "xui_widget_t*" class TreeView @header("xge3_runtime.h") @lifetime
 
  extern "xuiTreeViewGetVisibleIndexOfId" @no_raise func getVisibleIndexOfId(c_int iNodeId) as c_int
 
+ extern "xuiTreeViewSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiTreeViewGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
+
  extern "xuiTreeViewSetMetrics" @no_raise @c_result("status",0) func setMetrics(c_float fItemHeight,c_float fIndent,c_float fPadding,c_float fBorderWidth)
 
  extern "xuiTreeViewGetMetrics" @no_raise @c_outputs(1,2,3,4) @c_status(0) func getMetrics() as (c_float,c_float,c_float,c_float)
@@ -4299,6 +4472,10 @@ export extern "xui_widget_t*" class TableView @header("xge3_runtime.h") @lifetim
  extern "xuiTableViewSetContextMenuOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setContextMenu(TableViewContextProc? onContext)
 
  extern "xuiTableViewSetMergeProviderOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setMergeProvider(TableViewMergeProc? onMerge)
+
+ extern "xuiTableViewSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiTableViewGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiTableViewSetDefaultMetrics" @no_raise func setDefaultMetrics(c_float fColumnWidth,c_float fRowHeight,c_float fHeaderHeight) as c_int
 
@@ -4396,6 +4573,10 @@ export extern "xui_widget_t*" class TableGrid @header("xge3_runtime.h") @lifetim
 
  extern "xuiTableGridGetEditMode" @no_raise func getEditMode() as c_int
 
+ extern "xuiTableGridSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiTableGridGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
+
  extern "xuiTableGridSetDefaultMetrics" @no_raise func setDefaultMetrics(c_float fColumnWidth,c_float fRowHeight,c_float fHeaderHeight) as c_int
 
  extern "xuiTableGridSetSelectionMode" @no_raise func setSelectionMode(c_int iMode) as c_int
@@ -4433,6 +4614,10 @@ export extern "xui_widget_t*" class TimeLineView @header("xge3_runtime.h") @life
  extern "xuiTimeLineViewGetViewportWidget" @no_raise @c_result("owner_view",0) func getViewportWidget() as Widget?
 
  extern "xuiTimeLineViewClear" @no_raise @c_result("status",0) func clear()
+
+ extern "xuiTimeLineViewSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiTimeLineViewGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiTimeLineViewSetFrameCount" @no_raise func setFrameCount(c_int iFrameCount) as c_int
 
@@ -4620,6 +4805,10 @@ export extern "xui_widget_t*" class PropertyGrid @header("xge3_runtime.h") @life
 
  extern "xuiPropertyGridEndEdit" @no_raise func endEdit(c_int bCommit) as c_int
 
+ extern "xuiPropertyGridSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiPropertyGridGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
+
  extern "xuiPropertyGridSetMetrics" @no_raise @c_result("status",0) func setMetrics(c_float fNameWidth,c_float fRowHeight,c_float fCategoryHeight)
 
  extern "xuiPropertyGridGetMetrics" @no_raise @c_outputs(1,2,3) @c_status(0) func getMetrics() as (c_float,c_float,c_float)
@@ -4784,6 +4973,10 @@ export extern "xui_widget_t*" class Menu @header("xge3_runtime.h") @lifetime("ow
 
  extern "xuiMenuGetSelectCount" @no_raise func getSelectCount() as c_int
 
+ extern "xuiMenuSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiMenuGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
+
  extern "xuiMenuSetMetrics" @no_raise @c_ref(0) @c_result("status",0) func setMetrics(MenuMetrics pMetrics)
 
  extern "xuiMenuGetMetrics" @no_raise @c_output(1,0) func getMetrics() as MenuMetrics
@@ -4845,6 +5038,10 @@ export extern "xui_widget_t*" class MenuBar @header("xge3_runtime.h") @lifetime(
  extern "xuiMenuBarGetOpenMenu" @no_raise @c_result("owner_view",0) func getOpenMenu() as Widget?
 
  extern "xuiMenuBarSetSelectOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setSelect(MenuSelectProc? onSelect)
+
+ extern "xuiMenuBarSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiMenuBarGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiMenuBarSetMetrics" @no_raise @c_ref(0) @c_result("status",0) func setMetrics(MenubarMetrics pMetrics)
 
@@ -4916,6 +5113,10 @@ export extern "xui_widget_t*" class Toolbar @header("xge3_runtime.h") @lifetime(
 
  extern "xuiToolbarGetOverflowRect" @no_raise func getOverflowRect() as Rect
 
+ extern "xuiToolbarSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiToolbarGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
+
  extern "xuiToolbarSetMetrics" @no_raise @c_ref(0) @c_result("status",0) func setMetrics(ToolbarMetrics pMetrics)
 
  extern "xuiToolbarGetMetrics" @no_raise @c_output(1,0) func getMetrics() as ToolbarMetrics
@@ -4932,6 +5133,7 @@ export extern "xui_widget_t*" class Toolbar @header("xge3_runtime.h") @lifetime(
 
  extern "xuiToolbarGetChangeCount" @no_raise func getChangeCount() as c_int
 
+ extern "xuiToolbarSetItemIcon" @no_raise @c_result("status",0) func setItemIcon(c_int iIndex,Surface? pIcon,Rect tSrc)
 end
 
 export extern "xui_widget_t*" class StatusBar @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -4983,6 +5185,10 @@ export extern "xui_widget_t*" class StatusBar @header("xge3_runtime.h") @lifetim
  extern "xuiStatusBarSetHoverIndex" @no_raise func setHoverIndex(c_int iIndex) as c_int
 
  extern "xuiStatusBarGetActiveIndex" @no_raise func getActiveIndex() as c_int
+
+ extern "xuiStatusBarSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiStatusBarGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiStatusBarSetMetrics" @no_raise @c_ref(0) @c_result("status",0) func setMetrics(StatusbarMetrics pMetrics)
 
@@ -5092,6 +5298,10 @@ export extern "xui_widget_t*" class ComboBox @header("xge3_runtime.h") @lifetime
 
  extern "xuiComboBoxGetPopupColors" @no_raise @c_outputs(1,2,3,4,5,6,7,8) @c_status(0) func getPopupColors() as (c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint)
 
+ extern "xuiComboBoxSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiComboBoxGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
+
  extern "xuiComboBoxGetMenuWidget" @no_raise @c_result("owner_view",0) func getMenuWidget() as Widget?
 
  extern "xuiComboBoxGetPopupWidget" @no_raise @c_result("owner_view",0) func getPopupWidget() as Widget?
@@ -5179,6 +5389,10 @@ export extern "xui_widget_t*" class Cascader @header("xge3_runtime.h") @lifetime
  extern "xuiCascaderSetPopupColors" @no_raise @c_result("status",0) func setPopupColors(c_uint iPanel,c_uint iBorder,c_uint iShadow,c_uint iText,c_uint iMutedText,c_uint iHover,c_uint iActive,c_uint iSelected,c_uint iActiveText,c_uint iDisabledText,c_uint iSeparator)
 
  extern "xuiCascaderGetPopupColors" @no_raise @c_outputs(1,2,3,4,5,6,7,8,9,10,11) @c_status(0) func getPopupColors() as (c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint)
+
+ extern "xuiCascaderSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiCascaderGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiCascaderSetPlaceholder" @no_raise @c_cstr(0) @c_result("status",0) func setPlaceholder(string sPlaceholder)
 
@@ -5273,6 +5487,10 @@ export extern "xui_widget_t*" class ColorPicker @header("xge3_runtime.h") @lifet
  extern "xuiColorPickerSetPopupColors" @no_raise @c_result("status",0) func setPopupColors(c_uint iPanel,c_uint iBorder,c_uint iShadow,c_uint iText,c_uint iMutedText,c_uint iAccent,c_uint iField,c_uint iFieldBorder,c_uint iSeparator)
 
  extern "xuiColorPickerGetPopupColors" @no_raise @c_outputs(1,2,3,4,5,6,7,8,9) @c_status(0) func getPopupColors() as (c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint)
+
+ extern "xuiColorPickerSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiColorPickerGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiColorPickerGetPopupWidget" @no_raise @c_result("owner_view",0) func getPopupWidget() as Widget?
 
@@ -5371,6 +5589,10 @@ export extern "xui_widget_t*" class IconPicker @header("xge3_runtime.h") @lifeti
  extern "xuiIconPickerSetPopupColors" @no_raise @c_result("status",0) func setPopupColors(c_uint iPanel,c_uint iBorder,c_uint iShadow,c_uint iHover,c_uint iSelected,c_uint iFocus)
 
  extern "xuiIconPickerGetPopupColors" @no_raise @c_outputs(1,2,3,4,5,6) @c_status(0) func getPopupColors() as (c_uint,c_uint,c_uint,c_uint,c_uint,c_uint)
+
+ extern "xuiIconPickerSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiIconPickerGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiIconPickerGetPopupWidget" @no_raise @c_result("owner_view",0) func getPopupWidget() as Widget?
 
@@ -5491,6 +5713,10 @@ export extern "xui_widget_t*" class DatePicker @header("xge3_runtime.h") @lifeti
  extern "xuiDatePickerSetPopupColors" @no_raise @c_result("status",0) func setPopupColors(c_uint iPanel,c_uint iBorder,c_uint iShadow,c_uint iText,c_uint iMutedText,c_uint iAccent,c_uint iField,c_uint iFieldBorder,c_uint iSelectedText,c_uint iDisabledDay,c_uint iSeparator)
 
  extern "xuiDatePickerGetPopupColors" @no_raise @c_outputs(1,2,3,4,5,6,7,8,9,10,11) @c_status(0) func getPopupColors() as (c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint)
+
+ extern "xuiDatePickerSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
+
+ extern "xuiDatePickerGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
  extern "xuiDatePickerGetText" @no_raise func getText() as string?
 
@@ -5694,7 +5920,7 @@ extern "xuiWidgetDestroyChecked" @no_raise @c_result("status",0) func rollbackWo
 
 extern "xuiWidgetDestroyChecked" @no_raise @c_result("status",0) func rollbackWebView(WebView value)
 
-export extern "xuiCreate" @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Context
+export extern "xuiCreateOwned" @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(Proxy proxy) as Context
 
 export extern "xuiSetDefaultLanguage" @header("xge3_runtime.h") @no_raise func setDefaultLanguage(c_int iLanguageId) as c_int
 
