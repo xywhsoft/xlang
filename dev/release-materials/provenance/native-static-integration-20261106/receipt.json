@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "status": "source-integrated-windows-pe-qualification-pending",
+  "implemented": [
+    "artifact.nativeLink opt-in requirements and provider feature admission",
+    "Independent function/data sections and relocation reachability GC",
+    "Checked AMD64 GCC COFF/archive input, imports and PE TLS metadata",
+    "Static XGE/XUI packages using one program XRT",
+    "Matched serialized-object/VFS updates with per-object provenance"
+  ],
+  "optimization": "O2",
+  "implementationCommit": "426348740c8e435ef0e7fafae646b2ac5574e579",
+  "sourceIdentity": {
+    "freezeSha256": "0b66c60929627eb755cc74561a1071a801be80f2ebd664cd7dd674d777b68aee",
+    "sourceMaterials": "dev/release-materials/sources/native-static-core-20261106/manifest.json",
+    "sourceMaterialsSha256": "5ce67c250d890cd76c53a1a955bd01659f7faec109cacffa13e4cd082a493c44"
+  },
+  "qualifications": [
+    {
+      "path": "dev/release-materials/provenance/native-link-package-20261106.json",
+      "sha256": "5a25dbfcc681ac042c3c4acd7f7f502b792d3fa39cc5f8b06c1050925a0433b7"
+    },
+    {
+      "path": "dev/release-materials/provenance/xge-static-package-preparation-20261106.json",
+      "sha256": "7894b79a8dd0ae263adf5e8c096d5813af5202c272aa9be4385766f987a3f276"
+    },
+    {
+      "path": "dev/release-materials/provenance/native-link-core-20261106/receipt.json",
+      "sha256": "18c437d94e1e47e6c79218cd5bf5275daaedd38d73b8c7b2816de7853bd6b780"
+    },
+    {
+      "path": "dev/release-materials/provenance/tcc-native-static-20261106/receipt.json",
+      "sha256": "4c9cc235f29593f4c69c7fcc4092ff757c92066ff2788bb3d4fc54ddd2073d79"
+    },
+    {
+      "path": "dev/release-materials/provenance/tcc-elf-budget-20261106/receipt.json",
+      "sha256": "c0f4e828ca388b9aa87b2af68a849510317410e981172ddbc5c0421e4264616b"
+    },
+    {
+      "path": "dev/release-materials/provenance/dynamic-vfs-library-path-20261106/receipt.json",
+      "sha256": "c06f452a94e6ae5c64d055fa24088417de772de8c17e47855f95b85e864aebe9"
+    },
+    {
+      "path": "dev/release-materials/provenance/tcc-elf-copy-gc-20261106/receipt.json",
+      "sha256": "11ac28d26cb46e059f420603d52a74197fee0a0e76f131ae21b9e14255fd5ad9"
+    },
+    {
+      "path": "dev/release-materials/provenance/native-static-production-win-20261106/receipt.json",
+      "sha256": "e956367f8cdf5fe65b0c15c51b20545332b66f8040eeb9bcc5735b93772ee774"
+    },
+    {
+      "path": "dev/release-materials/provenance/native-static-linux-final-20261106/receipt.json",
+      "sha256": "bcc6b8e768e1944e36b5502afdad16cd4391cb0cafb6cf8bb1d292264a6d9a77"
+    },
+    {
+      "path": "dev/release-materials/provenance/tcc-serialized-vfs-successor-20261106-r2.json",
+      "sha256": "d0cf5ee76bdbafebc8e97a268f29a950dda94e7290739142b180146e570f221d"
+    },
+    {
+      "path": "dev/release-materials/provenance/tcc-serialized-vfs-successor-20261106/receipt.json",
+      "sha256": "b650b6bf072dbbc072967a28469f1f6c7027503aee328eccad6486fc7750a27e"
+    }
+  ],
+  "finalCpuEvidence": {
+    "windowsProductionRows": 22,
+    "windowsProductionStaticXgeRows": 6,
+    "windowsCliSteps": 3,
+    "windowsSourceFreeJitRows": 12,
+    "linuxSourceFreeRows": 40,
+    "linuxStaticXgeSteps": 6,
+    "mixedMetadataChecks": 24
+  },
+  "reports": [
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-cli-win-r1\\results.json",
+      "archivePath": "cli-results.json",
+      "sha256": "014068c5b8e7e14558b0a669f4b3ebab28f357cfa92efb7c8617fefdaff48e0a"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\core-source-r7.json",
+      "archivePath": "source-freeze.json",
+      "sha256": "0b66c60929627eb755cc74561a1071a801be80f2ebd664cd7dd674d777b68aee"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\xge\\packages-win-r5.json",
+      "archivePath": "static-package.json",
+      "sha256": "037544b4576af273868e66d44fdaf55ee6ef0f2271dfa8e264a078588a05bdd4"
+    }
+  ],
+  "acceptanceArchiveSha256": "b70b02e08bd764587f746b67a51ae9539b561f0212a8a3993f308f26b46f5968",
+  "candidateWindowsProductionImages": {
+    "xl.dll": {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-win-r3\\release\\win_x64\\xl.dll",
+      "bytes": 15316480,
+      "sha256": "17ae784eb630fa2de9bc54e369c6b7be23b98ac1238268bb1b41cff4815ad5a7",
+      "optimization": "O2",
+      "profile": "runtime"
+    },
+    "xlc.dll": {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-win-r3\\release\\win_x64\\xlc.dll",
+      "bytes": 21649408,
+      "sha256": "979d353367fc5bbe1fd43005c836b46a71bdc6f8655e908af687fb36d22854a4",
+      "optimization": "O2",
+      "profile": "compiler"
+    }
+  },
+  "installedWindowsImages": {
+    "xl.dll": {
+      "path": "release/win_x64/xl.dll",
+      "bytes": 14828544,
+      "sha256": "6ee80b3d2370289c1077b924d700985226c8df8aef17779b87c5c3e38a425835"
+    },
+    "xlc.dll": {
+      "path": "release/win_x64/xlc.dll",
+      "bytes": 20278272,
+      "sha256": "e4ab39f8137fd91781bcc57dfd20d9904aa6bc2e74f422073d6015de3c489642"
+    }
+  },
+  "releaseImagesReplaced": false,
+  "linuxProductionDllRebuilt": false,
+  "externalPublishPerformed": false,
+  "pending": [
+    {
+      "id": "windows-pe-os-loader",
+      "status": "awaiting-restoration-of-defender-blocked-test-file",
+      "path": "F:/xlang-validation/native-static-20261106/coff/gate-r3/tinycc.exe",
+      "scope": "Actual TCC-produced PE standalone/TLS OS initialization and related static XGE AOT"
+    }
+  ],
+  "limits": [
+    "Windows live static TLS is checked-rejected by memory/JIT linking",
+    "Linux evidence covers SourceDriver/full VFS and real standalone ELF, not newly built shipping Linux DLL profiles"
+  ],
+  "report": "docs/reports/native-static-linking-20261106.md"
+}

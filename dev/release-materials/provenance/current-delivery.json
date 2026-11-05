@@ -3392,5 +3392,30 @@
     "path": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
     "sha256": "5846a963f9bfde550bd561fd44fd36edeb668e292caf669399e799f66d6ad976",
     "bytes": 4379
+  },
+  "nativeStaticIntegration": {
+    "status": "source-integrated-windows-pe-qualification-pending",
+    "provenance": "dev/release-materials/provenance/native-static-integration-20261106/receipt.json",
+    "provenanceSha256": "08ec7577148442a2b491c3b011da7d2716c542612a8af15e2fbc30d00dc7029d",
+    "report": "docs/reports/native-static-linking-20261106.md",
+    "optimization": "O2",
+    "releaseImagesReplaced": false,
+    "sourceIdentity": {
+      "freezeSha256": "0b66c60929627eb755cc74561a1071a801be80f2ebd664cd7dd674d777b68aee",
+      "sourceMaterials": "dev/release-materials/sources/native-static-core-20261106/manifest.json",
+      "sourceMaterialsSha256": "5ce67c250d890cd76c53a1a955bd01659f7faec109cacffa13e4cd082a493c44"
+    },
+    "windowsCandidateDirectory": "F:/xlang-validation/native-static-20261106/production-win-r3/release/win_x64",
+    "windowsStaticPackages": "F:/xlang-validation/native-static-20261106/xge/packages-win-r5",
+    "windowsPeAotQualified": false,
+    "linuxProductionDllRebuilt": false,
+    "pending": [
+      {
+        "id": "windows-pe-os-loader",
+        "status": "awaiting-restoration-of-defender-blocked-test-file",
+        "path": "F:/xlang-validation/native-static-20261106/coff/gate-r3/tinycc.exe",
+        "scope": "Actual TCC-produced PE standalone/TLS OS initialization and related static XGE AOT"
+      }
+    ]
   }
 }
