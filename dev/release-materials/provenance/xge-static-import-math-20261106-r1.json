@@ -1,0 +1,33 @@
+{
+  "scope": "Five actual MSVCRT volatile-runtime-input math imports: prior DATA definitions rejected, corrected package definitions execute. No Native compile or PE image.",
+  "files": [
+    {
+      "path": "test/cases/tcc_static_import_math.c",
+      "sha256": "a30237bdd3937389098a39e42b67358add16f9a5365ed9378647f896122cf162",
+      "bytes": 1143
+    },
+    {
+      "path": "tools/check_tcc_static_import_math.py",
+      "sha256": "09ce9129420d75692408f015b77edc69e81b57d36f57945a5efbf750bf99b814",
+      "bytes": 4928
+    }
+  ],
+  "report": {
+    "path": "F:\\xlang-validation\\native-static-20261106\\xge\\import-math-jit-win-r1\\results.json",
+    "sha256": "d95d2f52bcbc43a3a5c645d0bd54ebc2af105927ba9dadd4552befd1778496fb"
+  },
+  "checks": 10,
+  "positiveFunctions": [
+    "sin",
+    "cos",
+    "sqrt",
+    "pow",
+    "fmod"
+  ],
+  "oldMetadataRejectedAsData": true,
+  "newMetadataRealCalls": true,
+  "nativeCompilations": 0,
+  "peEmitted": false,
+  "peExecuted": false,
+  "passed": true
+}

@@ -1,0 +1,99 @@
+{
+  "scope": "Readonly PE import-kind correction and strict static package admission; no Native code or ABI changed.",
+  "baseOverlay": "../xge-static-20261106-r1/xge-static-overlay.zip",
+  "baseOverlaySha256": "900480c7f872427bc588fec1e9d1fe7447d09cd3eda4e9839e57d22ea2432756",
+  "sourceOverlay": {
+    "path": "source-overlay.zip",
+    "sha256": "c8d97e454a609eb6ef16e56c5e58c63f94df9f4c2eb789bce0cfa2dd5d08d798",
+    "bytes": 1040377
+  },
+  "candidateManifestSha256": "f8d61c34859f1a9689a895a8dc8466849c68d93172893973bb4e65461681670d",
+  "files": [
+    {
+      "repo": "native",
+      "path": "tools/build/static_support.py",
+      "sha256": "0fd726defe34fbe91988621bc1ef2645e35f36100fd951ef2b2ca8880ef17ed4",
+      "bytes": 17777
+    },
+    {
+      "repo": "native",
+      "path": "tools/test/check_static.py",
+      "sha256": "952b7cdecd8aa4b6c44b069121044ea8b9e9c9681d600d9ca52138374d65f671",
+      "bytes": 7912
+    },
+    {
+      "repo": "native",
+      "path": "docs/static-build.md",
+      "sha256": "069e5cd81ac2f6dff4f50bcd28a3134b2de2505b22415ff571305f17c3884e5a",
+      "bytes": 3908
+    },
+    {
+      "repo": "xlang",
+      "path": "tools/stage_xge3_static_packages.py",
+      "sha256": "59584d22147650d72ea3d5118f5d63d740dd02d99d3ce652ed420cc7b16f15fc",
+      "bytes": 9095
+    },
+    {
+      "repo": "xlang",
+      "path": "docs/xge3-static-packages.md",
+      "sha256": "3d993646ac716988eb63b0e00a314637e502c6e6b75932513eaad272e5bba3da",
+      "bytes": 3543
+    }
+  ],
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\xge\\win-default-r12\\build-report.json",
+      "sha256": "0cc1ae0f9f4cd31830d2192984bfe612bae59ac20ae01a030ebb22fbf164951d"
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\xge\\import-kinds-win-r2\\results.json",
+      "sha256": "f5d815af35552ba24edd96c3217a59b45b87b061131a639b5805b9d7d2302dc1"
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\xge\\import-kind-admission-r1\\results.json",
+      "sha256": "51273d07038fe887ba070419916a3bd44f9bd29452dfc9327b92c64f8e9e5ad9"
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\xge\\packages-win-r5.json",
+      "sha256": "037544b4576af273868e66d44fdaf55ee6ef0f2271dfa8e264a078588a05bdd4"
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\xge\\static-policy-win-r5\\results.json",
+      "sha256": "24b4321112c39b3464a89e49ca301f499e70f2ca4d8befc2664a098e01877bfd"
+    }
+  ],
+  "nativeCode": {
+    "all145ObjectsUnchanged": true,
+    "archiveSha256": "91942fad856432e4ade157cea671305c8b78df2b10b13f4ed422306ba94288fa",
+    "freshNativeCompilations": 0,
+    "originalBuild": "F:\\xlang-validation\\native-static-20261106\\xge\\win-default-r8\\build-report.json",
+    "originalBuildSha256": "4b32922d8c1e4571bc52bfef3fc7a9eb5a6a89593012899632d08781f6c8e3a5"
+  },
+  "importKinds": {
+    "records": 8139,
+    "counts": {
+      "function": 8074,
+      "data": 65
+    },
+    "unknown": 0,
+    "realExecutableIatThunks": 8038,
+    "readonlyPeResolved": 101,
+    "dllInputs": {
+      "C:\\Windows\\System32\\msvcrt.dll": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+      "C:\\Windows\\System32\\kernel32.dll": "4636f65d449b1353100578c6cb139933cf2b134f5e246119d18968873a058bed",
+      "C:\\Windows\\System32\\advapi32.dll": "bde5f0e6f36a706a8a2e0fab1b362eea267aa6ee9f18aab1f899f38888c21280",
+      "C:\\Windows\\System32\\ws2_32.dll": "5e9857a80a301ad21d0e0a0928a4ff2b5360c305a97bfc88886e3b686bf8d503",
+      "C:\\Windows\\System32\\IPHLPAPI.DLL": "12cfa67d12cb37a6473411479b2afe30afa6a4e68b0fa17ec83de09d39a2d469",
+      "C:\\Windows\\System32\\gdi32.dll": "b5f5a3f16d03366cdb02020fc4dadceb0892e243f8aa94d205e124045da9457f",
+      "C:\\Windows\\System32\\user32.dll": "82870be1e008d5232cb175ebc815f645a2add4c0b164fd4ba20744192c1c81f7",
+      "C:\\Windows\\System32\\shell32.dll": "936c33a8283196a070aa6f844a65a29a8f99f760eae0016754c1cbf17d62bdb7",
+      "C:\\Windows\\System32\\ole32.dll": "4a7b8ed9f2aeca875f948d9a1bce8b8d177744475f253704362792d7182d55f2",
+      "C:\\Windows\\System32\\oleaut32.dll": "4dd40579e7254dd553b49b229aa85b9c079586b034e37e564909da25eb298345",
+      "C:\\Windows\\System32\\imm32.dll": "2a882bc0df58f4f6dd906889b1fb6d7b7bc70da7109e016e0f1e67b264d073b6",
+      "C:\\Windows\\System32\\winmm.dll": "ead9055dc522bcab041c8eb7b875adb681a2f1fa851d4075789d78d0242711a0",
+      "C:\\Windows\\System32\\avrt.dll": "ba494df49affaa9f2e374f961e0182f6edf93261214a7650c9a7b75b039c7a9e"
+    }
+  },
+  "passed": true,
+  "shippingDelivery": false
+}

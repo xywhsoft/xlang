@@ -1,0 +1,906 @@
+{
+  "scope": "Import-kind correction only; all Native code/archive bytes unchanged and no Native TU recompiled.",
+  "previousReport": {
+    "path": "F:\\xlang-validation\\native-static-20261106\\xge\\win-default-r8\\build-report.json",
+    "sha256": "4b32922d8c1e4571bc52bfef3fc7a9eb5a6a89593012899632d08781f6c8e3a5"
+  },
+  "correctedReport": {
+    "path": "F:\\xlang-validation\\native-static-20261106\\xge\\win-default-r12\\build-report.json",
+    "sha256": "0cc1ae0f9f4cd31830d2192984bfe612bae59ac20ae01a030ebb22fbf164951d"
+  },
+  "sourceMaterial": {
+    "path": "dev/release-materials/sources/xge-static-import-kinds-20261106-r1/manifest.json",
+    "sha256": "4d6a194047b3572095a87733c83dfac0e70c9e277af203c9abc70a1aede5144a"
+  },
+  "changedImports": [
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "__msvcrt_iswctype",
+      "actualExport": "iswctype",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "iswctype",
+            "ordinal": 1140,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 13872,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "__msvcrt_assert",
+      "actualExport": "_assert",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "_assert",
+            "ordinal": 177,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 177280,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "_cabs",
+      "actualExport": "_cabs",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "_cabs",
+            "ordinal": 192,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 426448,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "_fpreset",
+      "actualExport": "_fpreset",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "_fpreset",
+            "ordinal": 300,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 427424,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "acosf",
+      "actualExport": "acosf",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "acosf",
+            "ordinal": 1047,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 434832,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "asinf",
+      "actualExport": "asinf",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "asinf",
+            "ordinal": 1051,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 436144,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "atan2",
+      "actualExport": "atan2",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "atan2",
+            "ordinal": 1053,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 437296,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "atan2f",
+      "actualExport": "atan2f",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "atan2f",
+            "ordinal": 1054,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 439152,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "atanf",
+      "actualExport": "atanf",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "atanf",
+            "ordinal": 1055,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 440272,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "ceil",
+      "actualExport": "ceil",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "ceil",
+            "ordinal": 1064,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 440848,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "ceilf",
+      "actualExport": "ceilf",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "ceilf",
+            "ordinal": 1065,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 441136,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "cos",
+      "actualExport": "cos",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "cos",
+            "ordinal": 1069,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 441360,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "cosf",
+      "actualExport": "cosf",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "cosf",
+            "ordinal": 1070,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 444256,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "coshf",
+      "actualExport": "coshf",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "coshf",
+            "ordinal": 1072,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 447568,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "exp",
+      "actualExport": "exp",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "exp",
+            "ordinal": 1077,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 448592,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "expf",
+      "actualExport": "expf",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "expf",
+            "ordinal": 1078,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 449600,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "fabs",
+      "actualExport": "fabs",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "fabs",
+            "ordinal": 1079,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 450304,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "floor",
+      "actualExport": "floor",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "floor",
+            "ordinal": 1089,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 450528,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "floorf",
+      "actualExport": "floorf",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "floorf",
+            "ordinal": 1090,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 450800,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "fmod",
+      "actualExport": "fmod",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "fmod",
+            "ordinal": 1091,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 451008,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "fmodf",
+      "actualExport": "fmodf",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "fmodf",
+            "ordinal": 1092,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 452368,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "frexp",
+      "actualExport": "frexp",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "frexp",
+            "ordinal": 1105,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 453072,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "ldexp",
+      "actualExport": "ldexp",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "ldexp",
+            "ordinal": 1151,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 453328,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "log",
+      "actualExport": "log",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "log",
+            "ordinal": 1155,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 453712,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "log10f",
+      "actualExport": "log10f",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "log10f",
+            "ordinal": 1157,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 455280,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "logf",
+      "actualExport": "logf",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "logf",
+            "ordinal": 1158,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 455792,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "modf",
+      "actualExport": "modf",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "modf",
+            "ordinal": 1178,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 456320,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "modff",
+      "actualExport": "modff",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "modff",
+            "ordinal": 1179,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 456528,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "pow",
+      "actualExport": "pow",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "pow",
+            "ordinal": 1181,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 470912,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "powf",
+      "actualExport": "powf",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "powf",
+            "ordinal": 1182,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 473920,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "sin",
+      "actualExport": "sin",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "sin",
+            "ordinal": 1206,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 442416,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "sinf",
+      "actualExport": "sinf",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "sinf",
+            "ordinal": 1207,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 445232,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "sinhf",
+      "actualExport": "sinhf",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "sinhf",
+            "ordinal": 1209,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 458000,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "sqrt",
+      "actualExport": "sqrt",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "sqrt",
+            "ordinal": 1212,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 459040,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "sqrtf",
+      "actualExport": "sqrtf",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "sqrtf",
+            "ordinal": 1213,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 459312,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    },
+    {
+      "sourceLibrary": "libmsvcrt.a",
+      "localName": "tanf",
+      "actualExport": "tanf",
+      "previousKind": "data",
+      "correctKind": "function",
+      "evidence": {
+        "kind": "function",
+        "known": true,
+        "reason": "System32-PE-export-section",
+        "chain": [
+          {
+            "dll": "msvcrt.dll",
+            "name": "tanf",
+            "ordinal": 1251,
+            "path": "C:\\Windows\\System32\\msvcrt.dll",
+            "sha256": "a7f4196d9476d36894ce17c3b0dd97504ca2cc31b3e0a774fee326e867565885",
+            "rva": 461344,
+            "section": ".text",
+            "sectionFlags": "0x60000020"
+          }
+        ]
+      }
+    }
+  ],
+  "counts": {
+    "correctedFunctions": 36,
+    "knownFunctionRecords": 8074,
+    "knownDataRecords": 65,
+    "unknown": 0,
+    "realIatThunkProofs": 8038,
+    "readonlyPeProofs": 101,
+    "systemDllFiles": 13
+  },
+  "actualPackage": "F:\\xlang-validation\\native-static-20261106\\xge\\packages-win-r5",
+  "classificationTests": {
+    "path": "F:\\xlang-validation\\native-static-20261106\\xge\\import-kinds-win-r2\\results.json",
+    "sha256": "f5d815af35552ba24edd96c3217a59b45b87b061131a639b5805b9d7d2302dc1"
+  },
+  "unknownRejected": {
+    "path": "F:\\xlang-validation\\native-static-20261106\\xge\\import-kind-admission-r1\\results.json",
+    "sha256": "51273d07038fe887ba070419916a3bd44f9bd29452dfc9327b92c64f8e9e5ad9"
+  },
+  "nativeCode": {
+    "compilations": 0,
+    "archiveSha256": "91942fad856432e4ade157cea671305c8b78df2b10b13f4ed422306ba94288fa",
+    "same145ObjectBytes": true
+  },
+  "passed": true,
+  "shippingDelivery": false
+}

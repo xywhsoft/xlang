@@ -40,7 +40,10 @@ this package.
 Windows support archives contain the original compiler compatibility code,
 not GNU import table fragments. Imports are separate declarative .def data
 from the real source import archive, including local-to-DLL export aliases
-and GNU import kind/hint/ordinal metadata. All selected Windows system
+and exact hint/ordinal metadata. Import kind comes from a real executable
+thunk or readonly System32 export RVA/section evidence; IAT-only never
+automatically means DATA. Forwarders are resolved with bounded, cycle-aware
+reads, without loading DLLs. Unknown kinds are omitted and fail staging. All selected Windows system
 libraries use declared package-local code/import inputs, rather than
 undeclared adjacent libraries. MSVCRT/MinGW ANSI-stdio and the exact
 compiler/runtime licenses and hashes are recorded. TinyCC must actually
