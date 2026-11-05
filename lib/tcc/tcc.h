@@ -600,6 +600,8 @@ typedef struct Section {
     struct Section *reloc;   /* corresponding section for relocation, if any */
     struct Section *hash;    /* hash table for symbols */
     struct Section *prev;    /* previous section on section stack */
+    struct Section *gc_owner; /* metadata belonging to one code section */
+    unsigned coff_name_len; /* original COFF key length, excluding unique suffix */
     char name[1];           /* section name */
 } Section;
 
@@ -783,6 +785,15 @@ struct TCCState {
     unsigned char reverse_funcargs; /* if true, evaluate last function arg first */
     unsigned char gnu89_inline; /* treat 'extern inline' like 'static inline' */
     unsigned char unwind_tables; /* create eh_frame section */
+    unsigned char function_sections; /* one section per emitted function */
+    unsigned char data_sections; /* one section per allocated data object */
+    unsigned char gc_sections; /* opt-in final-link section reachability */
+    unsigned char print_gc_sections;
+    unsigned char gc_sections_done;
+    unsigned gc_section_serial;
+    char **gc_roots;
+    int nb_gc_roots;
+    jmp_buf *section_limit_jmp; /* stack-owned linker section-limit recovery */
 
     /* warning switches */
     unsigned char warn_none;
@@ -975,6 +986,7 @@ struct TCCState {
     unsigned pe_file_align;
     unsigned pe_stack_size;
     addr_t pe_imagebase;
+    Section *pe_import_names; /* private dynsym-index -> exact DLL export name */
 # if defined(TCC_TARGET_X86_64) || defined(TCC_TARGET_ARM64)
     Section *uw_pdata;
     int uw_sym;
@@ -1574,6 +1586,9 @@ ST_FUNC void tccelf_delete(TCCState *s);
 ST_FUNC void tccelf_begin_file(TCCState *s1);
 ST_FUNC void tccelf_end_file(TCCState *s1);
 ST_FUNC Section *new_section(TCCState *s1, const char *name, int sh_type, int sh_flags);
+ST_FUNC Section *tcc_split_section(TCCState *s1, Section *base, const char *symbol);
+ST_FUNC void tcc_gc_sections(TCCState *s1, const char *entry, int keep_exports);
+ST_FUNC int tcc_gc_live_undefined(TCCState *s1, unsigned char **used, int *length);
 ST_FUNC void section_realloc(Section *sec, unsigned long new_size);
 ST_FUNC size_t section_add(Section *sec, addr_t size, int align);
 ST_FUNC void *section_ptr_add(Section *sec, addr_t size);
@@ -1791,6 +1806,10 @@ ST_FUNC void asm_clobber(uint8_t *clobber_regs, const char *str);
 #ifdef TCC_TARGET_PE
 ST_FUNC int pe_load_file(struct TCCState *s1, int fd, const char *filename);
 ST_FUNC int pe_output_file(TCCState * s1, const char *filename);
+ST_FUNC void pe_sort_pdata(TCCState *s1);
+#define R_TCC_PE_SECTION 0x100
+#define R_TCC_PE_SECREL 0x101
+ST_FUNC int tcc_load_coff_object(TCCState *s1, int fd, unsigned long file_offset);
 ST_FUNC int pe_putimport(TCCState *s1, int dllindex, const char *name, addr_t value);
 ST_FUNC int pe_setsubsy(TCCState *s1, const char *arg);
 #if defined TCC_TARGET_I386 || defined TCC_TARGET_X86_64

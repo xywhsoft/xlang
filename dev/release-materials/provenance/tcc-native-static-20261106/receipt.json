@@ -1,0 +1,481 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "scope": "Opt-in section GC and native AMD64 COFF linking; exact qualified subset, not arbitrary MSVC/C++ or loader-qualified PE TLS",
+  "productionSources": [
+    {
+      "path": "lib/tcc/.gitignore",
+      "sha256": "e7b1a52b0649ee78944f8229fcdcc178a3e19f2a1db8b650292925bb323b10a9"
+    },
+    {
+      "path": "lib/tcc/arm-asm.c",
+      "sha256": "aaae7643e66bd013d8fd8b728b0f1184b92a2a88e52423cef73556e38151b944"
+    },
+    {
+      "path": "lib/tcc/arm-gen.c",
+      "sha256": "c8bb7f03287ecae7c75686a1b6e59b6f34e37552ad53a0ae6b8375d6999e150d"
+    },
+    {
+      "path": "lib/tcc/arm-link.c",
+      "sha256": "8cb43b535c24abd656839f0fc96b367339699c39f1bf47e0f6049d0f76a60799"
+    },
+    {
+      "path": "lib/tcc/arm-tok.h",
+      "sha256": "9733358cd52d72cd90148686b6a9dde99e3e3e5e89eaef9fac889e45edbe08d0"
+    },
+    {
+      "path": "lib/tcc/arm64-asm.c",
+      "sha256": "855845a4a24d648e2af024ac2d32a995f921610bf7e16f987ebdb0d5a9aef173"
+    },
+    {
+      "path": "lib/tcc/arm64-gen.c",
+      "sha256": "3cee5eee5741168ac6cd6aa114f3ff4ae1e9a2512b5e4bb30ea145a770962196"
+    },
+    {
+      "path": "lib/tcc/arm64-link.c",
+      "sha256": "907ef96331fe5b6ac4d1aa60ace132a18754ff081c3057d6e6d03d9d078fac7e"
+    },
+    {
+      "path": "lib/tcc/arm64-tok.h",
+      "sha256": "bc15efb1ac59c9637f9137e518eebd7b004e2c4c24b985bae88d70cc65713a73"
+    },
+    {
+      "path": "lib/tcc/c67-gen.c",
+      "sha256": "b377773cc7829787832b643062ffe1cb790e4278fd0ca30dc113271185ed5b18"
+    },
+    {
+      "path": "lib/tcc/c67-link.c",
+      "sha256": "6ecc22fda635a94a5c314023aff0e4cc2c87006cbe6cadf2e6e72a306cde08e5"
+    },
+    {
+      "path": "lib/tcc/Changelog",
+      "sha256": "7d5c0249013308b0f9ebcc1c17d71a0001bcf7e25e1f7d2e3952cf0dfc8a89c5"
+    },
+    {
+      "path": "lib/tcc/CodingStyle",
+      "sha256": "69e10ff55740c823740a9c88671bc9850d8396c59e3e0b196004be4795f83493"
+    },
+    {
+      "path": "lib/tcc/coff.h",
+      "sha256": "b55dd186a7a639c9b6f734a8af6912db6ba02f08217e9edaaaffbc35b2e9bc9e"
+    },
+    {
+      "path": "lib/tcc/config.h",
+      "sha256": "e2068499c90cd6391c3498523b51f90354059d11cc28a5ffc2b38813c313e68d"
+    },
+    {
+      "path": "lib/tcc/configure",
+      "sha256": "373d3a6ed5a122cc17a914ef18fdf172aa1eb01c46eb0b409e385f39eba7519e"
+    },
+    {
+      "path": "lib/tcc/conftest.c",
+      "sha256": "f7e9f80e1d50f5b255ee0c88052c8dc298f40b58162571cc09eb4c47c5e4fb90"
+    },
+    {
+      "path": "lib/tcc/COPYING",
+      "sha256": "9b183e7f0356c398cc0a65c4a2d2cd56f2149a8e244264c4d26ac59e9dada3e8"
+    },
+    {
+      "path": "lib/tcc/dwarf.h",
+      "sha256": "919b0525b12ccbb9bb8ea7538a19df72f9a4f322da0491fcf980cca07d790bf4"
+    },
+    {
+      "path": "lib/tcc/elf.h",
+      "sha256": "3467112508803bbb8755461cfc9d4556ea39b8ad1772d441fe6e47f51dcf1fc1"
+    },
+    {
+      "path": "lib/tcc/i386-asm.c",
+      "sha256": "a042425eabbc268382e1a0c50fd34f6b69c7c84ed336ef7f6e1d0a07b83a722b"
+    },
+    {
+      "path": "lib/tcc/i386-asm.h",
+      "sha256": "6bc6b1cb9f7321b14d5eb2342d916abfb921afd1d8cae04e00a5b1c345a50163"
+    },
+    {
+      "path": "lib/tcc/i386-gen.c",
+      "sha256": "215ead4e6325d0bea44385b4243e64933a54dfddc60df36ecb992dc33e5129bc"
+    },
+    {
+      "path": "lib/tcc/i386-link.c",
+      "sha256": "6bf8aefae120e92033a0a61f721a67487ed98dd1f943348bb344d42597b84a1c"
+    },
+    {
+      "path": "lib/tcc/i386-tok.h",
+      "sha256": "9555ee826fa6b1b039c9198fadc7957244a45d5661078b6f1ff87897f2ad760c"
+    },
+    {
+      "path": "lib/tcc/il-gen.c",
+      "sha256": "974b61466badad1843bdfdd182888011f78c48160d61051fcffc069d71841ccf"
+    },
+    {
+      "path": "lib/tcc/il-opcodes.h",
+      "sha256": "3b9686e027cc8ec3c90e61851c6b969a15a8a77b33dbf3926bd69a813e4a4972"
+    },
+    {
+      "path": "lib/tcc/include/float.h",
+      "sha256": "507ecd2dd9d26df6b084d6a1dd4a5867310fdb4edae9a3bc005338dfddba813c"
+    },
+    {
+      "path": "lib/tcc/include/stdalign.h",
+      "sha256": "1fa970a0f0b45f9469952b1960532a9a4927b27cb00c952f7fd0eb472df4b40b"
+    },
+    {
+      "path": "lib/tcc/include/stdarg.h",
+      "sha256": "834e661dc7b7811be628ec0f75d6d7c36b2aa492e98bf37f4fdf1a5f9f712fb2"
+    },
+    {
+      "path": "lib/tcc/include/stdatomic.h",
+      "sha256": "7abfc5f7bee1c12d31a081b7c8474c4388a3e107b09343e386e9a708bec76df1"
+    },
+    {
+      "path": "lib/tcc/include/stdbool.h",
+      "sha256": "10d9d6fa8e43f8f95475584d41ff7c049e0b3017b234cd828b9814c33be5ae98"
+    },
+    {
+      "path": "lib/tcc/include/stddef.h",
+      "sha256": "b14d6aa555bd23c136c519738a3cba5bd0189e72c06ac794ba72509867b91db7"
+    },
+    {
+      "path": "lib/tcc/include/stdnoreturn.h",
+      "sha256": "a96966389d7b47748cfba0c2b6bf9522fcc31343e2f3647ba28fb2b9a83f352d"
+    },
+    {
+      "path": "lib/tcc/include/tccdefs.h",
+      "sha256": "03fe4c1dc456a37fcec4ff59af5a0ccbe80a8975bb22835eb343e474856b24ed"
+    },
+    {
+      "path": "lib/tcc/include/tgmath.h",
+      "sha256": "0766abfc1515852fca929d13ee1ae75f2da665f9718e78a045427de2c1391bde"
+    },
+    {
+      "path": "lib/tcc/include/varargs.h",
+      "sha256": "eabde10c768ae692f12a1737dcc21b2fae4fa07c849c9d88a94c5d2cd097e059"
+    },
+    {
+      "path": "lib/tcc/lib/alloca-bt.S",
+      "sha256": "6e0db3502e9cff9570048239e9f816796ec5e92c4d114e8ff1bac2e4841e2d08"
+    },
+    {
+      "path": "lib/tcc/lib/alloca.S",
+      "sha256": "4e314795b8aeec6a68ecb8382153adc1e6143134b6acf6da84de96106d809e86"
+    },
+    {
+      "path": "lib/tcc/lib/armeabi.c",
+      "sha256": "d594f575b0062e2497dfafd1c064d8fff84f536de9c5e7b21d172f1ef948e16c"
+    },
+    {
+      "path": "lib/tcc/lib/armflush.c",
+      "sha256": "e1c3f06d5a8db93bd52087438107e1cecbdf16e3aad9ba094fbc8b98aaccbbf9"
+    },
+    {
+      "path": "lib/tcc/lib/atomic.S",
+      "sha256": "ea3896c156853891e85374847dab43dcdcc38be4b0305d7a9db31c00bf7df9cf"
+    },
+    {
+      "path": "lib/tcc/lib/bcheck.c",
+      "sha256": "c6c93f7348575d395b155be7f07f66f0c444bcd3efa02ec20ab624bc9e09d188"
+    },
+    {
+      "path": "lib/tcc/lib/bt-dll.c",
+      "sha256": "7a25d12fecc716c19be9ea2efd210bf0a9f865402e2c1ee99ef197594024715d"
+    },
+    {
+      "path": "lib/tcc/lib/bt-exe.c",
+      "sha256": "86c4cd573e83737c2f83ce15e42f7efeed376f6e5b4c733b9cfb782f3a268955"
+    },
+    {
+      "path": "lib/tcc/lib/bt-log.c",
+      "sha256": "d63828591af577732c265f9f9872e21617b6abfb82b1c07ac3999ca25f4521e2"
+    },
+    {
+      "path": "lib/tcc/lib/builtin.c",
+      "sha256": "f49d487e1d771a1cb38def7acc659ce5c620be4ba3d2dc1451e4fd6cc4bd6220"
+    },
+    {
+      "path": "lib/tcc/lib/dsohandle.c",
+      "sha256": "6e069b52779de10b3adb297bba0c27456903d3327e59419825d121fa93483027"
+    },
+    {
+      "path": "lib/tcc/lib/lib-arm64.c",
+      "sha256": "02e599eba6f30d999901e6326d68a62cf7c6c5fcb660c2f16c50734864e4200c"
+    },
+    {
+      "path": "lib/tcc/lib/lib-riscv.c",
+      "sha256": "4d4a914917ce7c1579bd572410bdb5e2da05e6da0fc63b9dc6cb7c274ee568b6"
+    },
+    {
+      "path": "lib/tcc/lib/libtcc1.c",
+      "sha256": "e81e6f73f5e73c76b652faacba6474d7fd80a05b7c1d1615eaf7029e249dc2bd"
+    },
+    {
+      "path": "lib/tcc/lib/Makefile",
+      "sha256": "986c82d2c2307262bd4de1c016979f226edf026a61b7adad1db166bb9b2214cc"
+    },
+    {
+      "path": "lib/tcc/lib/pic86.S",
+      "sha256": "778e11c87ee2277d71f92822ad365a5b26a05e88bed2dbfa709f026529b19fe9"
+    },
+    {
+      "path": "lib/tcc/lib/runmain.c",
+      "sha256": "81a5493ea6c69f880d654bb1ebffd7e8443c1e512e4129da74d3025ed71086e1"
+    },
+    {
+      "path": "lib/tcc/lib/stdatomic.c",
+      "sha256": "5cdecd012cf6c8d841775c6321c46d61c50ace7b2a0d5f5525f5550679ce53e1"
+    },
+    {
+      "path": "lib/tcc/lib/tcov.c",
+      "sha256": "9ecab4890111e7c8e75dcfc1e83f06ace64179db655674813f01501fee7b2891"
+    },
+    {
+      "path": "lib/tcc/lib/va_list.c",
+      "sha256": "2e5a50767df3a79f012b94a0143f56aca38bef420f986c6e9379b60380018438"
+    },
+    {
+      "path": "lib/tcc/libtcc.c",
+      "sha256": "a66d6a466f5c891ed97e9fa32efafeba19b0c29d90aa478d6f53c3b598ec1ef0"
+    },
+    {
+      "path": "lib/tcc/libtcc.h",
+      "sha256": "99f08eef70ec87cd07099f9586459083187b577b10a84e80c0d006bd379ff754"
+    },
+    {
+      "path": "lib/tcc/Makefile",
+      "sha256": "80b8092790a43ae8fbf93fb2fc76f2202599188162a2cfc5c9404b2d2aac0eaa"
+    },
+    {
+      "path": "lib/tcc/README",
+      "sha256": "1975351e66617a944dba1153f236442acac1917f6c265bdbc78964b389b26141"
+    },
+    {
+      "path": "lib/tcc/RELICENSING",
+      "sha256": "265afa17cd9ee2fa5ec5aab211f4e2698c88a95c20ce9b918d79ab23275a9101"
+    },
+    {
+      "path": "lib/tcc/riscv64-asm.c",
+      "sha256": "a67d0beddb26c26c8233375126f908b46b80fad228a3627713390e45cf49f85b"
+    },
+    {
+      "path": "lib/tcc/riscv64-gen.c",
+      "sha256": "f5be42afea1f0e4c3bb394baa5c07941c6bb0969c41bce017b267d93449073e1"
+    },
+    {
+      "path": "lib/tcc/riscv64-link.c",
+      "sha256": "7621b4d39fab4b05cee58339f81b4aeca968042d69adb3d1a25ad606f97b7920"
+    },
+    {
+      "path": "lib/tcc/riscv64-tok.h",
+      "sha256": "f538f9eec2197b4a47b837b9445437377857781cef171b703ec6383f43bf4c17"
+    },
+    {
+      "path": "lib/tcc/stab.def",
+      "sha256": "af20a2a914fee3e6a63e0ad7565aa49d1d876f87c7c881a99fa3709a5f8f1567"
+    },
+    {
+      "path": "lib/tcc/stab.h",
+      "sha256": "e4a7131de935ab758ff12ea0237f9628dd20d6f9b7b549aeeff80feb1c459ec4"
+    },
+    {
+      "path": "lib/tcc/tcc-coff.inc",
+      "sha256": "fdf15fa1f335edc0edf03341d39e28e4b1394c7a38bbc970ff044cd93cdb1873"
+    },
+    {
+      "path": "lib/tcc/tcc-debug-sections.inc",
+      "sha256": "9a59452dcd9394cf91b88f9215cc23939e7434bebec6cc0aba95f51af0b5c646"
+    },
+    {
+      "path": "lib/tcc/tcc-doc.texi",
+      "sha256": "47a7e0bd9f930ac62166eb2f8d413363974e31db17be853999f464f69681fe27"
+    },
+    {
+      "path": "lib/tcc/tcc-gc.inc",
+      "sha256": "7bab136414f2d99f9d99078c2f7d45b6440f8856006de0f358ff5e75cb3df29a"
+    },
+    {
+      "path": "lib/tcc/tcc-pe-gc.inc",
+      "sha256": "3c722dc9f9ddfc65f0a4fdf8f11e11be46ae742c723960792c1861f07d581328"
+    },
+    {
+      "path": "lib/tcc/tcc-pe-import-def.inc",
+      "sha256": "d0f92030243fc43bf71a5a6c02cf641dc69772b28ef4654e9364c62f42db7f81"
+    },
+    {
+      "path": "lib/tcc/tcc-pe-tls.inc",
+      "sha256": "d870065be433674de1d9a7327bbc8c60562130c01f4856e2f61f1f265ea7f006"
+    },
+    {
+      "path": "lib/tcc/tcc.c",
+      "sha256": "51d83eacb931f9eb013b4cb5cd1804fa7374eaef3c2d9fca4810cb167b91d5b5"
+    },
+    {
+      "path": "lib/tcc/tcc.h",
+      "sha256": "10880e4f11efd79f2aa4d74ea6da28791e160ba0ccfd38619d639730bd69de7a"
+    },
+    {
+      "path": "lib/tcc/tcc_builtin_vfs.c",
+      "sha256": "5a38c8b1877576f8680393faa0023413a41b303aae5021a86c5c11ee5c4c2b2d"
+    },
+    {
+      "path": "lib/tcc/tcc_builtin_vfs.h",
+      "sha256": "fe65ed329eff3560d2d33f3cab1a8cc319a9a290fe1a95dbaaae0e51aa3d6ea2"
+    },
+    {
+      "path": "lib/tcc/tcc_utf8_io.c",
+      "sha256": "e786a130d76fc6a02854c2d6d9f7b392979ef9db9eb61552211882f8e76c58cc"
+    },
+    {
+      "path": "lib/tcc/tcc_utf8_io.h",
+      "sha256": "79d499cbc0e0d50f13405afbfcd98a4f1555a20960c36773be80f07dc782a264"
+    },
+    {
+      "path": "lib/tcc/tccasm.c",
+      "sha256": "0de312757a5625bbce463137af72023531260f5a7bca1717c3ee17e67b31204e"
+    },
+    {
+      "path": "lib/tcc/tcccoff.c",
+      "sha256": "8088f0e8d640b3a5d136772a9db640637af0ff6be7838855593ad9986a9a60c4"
+    },
+    {
+      "path": "lib/tcc/tccdbg.c",
+      "sha256": "e3f0bffc1975071550c3a70e2c28ab0750ceeb4bcb841eb857c510d4e81fbf14"
+    },
+    {
+      "path": "lib/tcc/tccelf.c",
+      "sha256": "6afaf5dcb4cc58a261a2925d3c71338b88306f488c3fbb862546abecc73441d7"
+    },
+    {
+      "path": "lib/tcc/tccgen.c",
+      "sha256": "8c09f62dd77383f07fdf96e975a0f0330ef7b82a63004907ae3ba5b696f181a3"
+    },
+    {
+      "path": "lib/tcc/tcclib.h",
+      "sha256": "9c67fd55d79c9aa6186b213249f9ada448601cb8f46c3502e571b3038cf4b00d"
+    },
+    {
+      "path": "lib/tcc/tccmacho.c",
+      "sha256": "cf5d4739fc38b5a69ab11bf04f4cde5db2d7f9b5817ff9f11357dc3e0edb392d"
+    },
+    {
+      "path": "lib/tcc/tccpe.c",
+      "sha256": "d6b3680185e85d81c692cee9f869a41b631d31a89c01b7a0e2abf9f408c33912"
+    },
+    {
+      "path": "lib/tcc/tccpp.c",
+      "sha256": "4fd9bf6c3e391ed1a2527aa5457a30684751edcd97fff4696a2d991d5af5adf3"
+    },
+    {
+      "path": "lib/tcc/tccrun.c",
+      "sha256": "51d3dc30c509d275ef576e647892281e0d597578b173b564e3bad16bd6dca37d"
+    },
+    {
+      "path": "lib/tcc/tcctok.h",
+      "sha256": "61211e61c398ab671a81231497dafa8c8b79a6801d280ba9cacdc4d457391662"
+    },
+    {
+      "path": "lib/tcc/tcctools.c",
+      "sha256": "302b34837a84b6f25f475550e6f013c005a667fbc9a6862bbd121953cdd28920"
+    },
+    {
+      "path": "lib/tcc/texi2pod.pl",
+      "sha256": "70979a45b3e7228650b3e74d5562bbf56da493c3c0b99499d2a17365ba1a3c56"
+    },
+    {
+      "path": "lib/tcc/TODO",
+      "sha256": "d8e930a72bdbedb81b308b86a950a28c8d61ac7b707d5680672025e7fcfc698a"
+    },
+    {
+      "path": "lib/tcc/USES",
+      "sha256": "b9a961bd28e47783825af0de2914b8c0320c0200b1ef4e68e85d5a4087623ead"
+    },
+    {
+      "path": "lib/tcc/VERSION",
+      "sha256": "7e16e90ecd0060dd78590d196203359ba0781f7b046b90776331f7ddd6ab6ca7"
+    },
+    {
+      "path": "lib/tcc/x86_64-asm.h",
+      "sha256": "7171514537fe5746d27146e36eb74bb565d631baa4a8f0b38c407cec3aade6a6"
+    },
+    {
+      "path": "lib/tcc/x86_64-gen.c",
+      "sha256": "2e5c34fc8862b001b462926e8a4d372c65da434ed3b562228169ee2c3c4ccc4a"
+    },
+    {
+      "path": "lib/tcc/x86_64-link.c",
+      "sha256": "24ba5a2bea7253b56bafbd5f87e1cbc65b65193b832d5c246e337b0c82cc2c77"
+    },
+    {
+      "path": "lib/tcc/XLANG-LICENSE-NOTICE.md",
+      "sha256": "5aaae5e13c12aaaa0acfccda2663175b92bd1f45dedde7288b1748976c874967"
+    },
+    {
+      "path": "lib/tcc/xlang_bootstrap_sources.json",
+      "sha256": "66f6301d09ce2ca5d9067322e03fd6a0ab6b9c6e8d4288c683cf46de9dcb2e9f"
+    }
+  ],
+  "reports": [
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-gc\\post-archive-final-receipt-r1\\receipt.json",
+      "archivePath": "gc-final-receipt.json",
+      "sha256": "1c116e3ab681fcd01163c0e5cd704a4bd952242f3c760f2155426a5dfdb75416"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-gc\\final-win-r1\\results.json",
+      "archivePath": "gc-final-windows.json",
+      "sha256": "80da89975a5a85cb99d12d2587c9d711f37f5af9c068b36df42d7ff315c42473"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-tls\\qualified-win-r3\\results.json",
+      "archivePath": "tls.json",
+      "sha256": "207d3148afbe2fedd47be59ce8381b1de3d3c7d3ab8a92e8b6675d9a8be7d299"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-archive\\qualified-win-r2\\results.json",
+      "archivePath": "archive-query.json",
+      "sha256": "e51c2a15aaeee87de5c093781f3d304bd95e0d7559162facbabdfcdd337195d0"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-archive\\qualified-r1\\manifest.json",
+      "archivePath": "archive-layer.json",
+      "sha256": "fd305529c5d327ecd0e5bdc5a6295a3fda01bafcadcc2f271cc6fd4ce4e99d57"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-archive\\partial-qualified-r1\\manifest.json",
+      "archivePath": "partial-layer.json",
+      "sha256": "a0f7c119992ea66b0d08ff94ab52e3b33ac81ca439a8c402a336184df3c028a5"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\coff\\final-api-win-r1\\results.json",
+      "archivePath": "coff-final.json",
+      "sha256": "0d725d64c01a8e543e0b17d15664c4b73fba095cbb67cbef40034ee9577caead"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\coff\\final-api-win-r1\\source-freeze.json",
+      "archivePath": "coff-final-source.json",
+      "sha256": "b2e58dea6b74ac015d827551314b13ad5eb7abb0fb639fde82f76b0663053684"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-integration-r2\\got.json",
+      "archivePath": "elf-got.json",
+      "sha256": "e95c595e98d9ef32b5b0a423bbb0668717ae7e9089d1e1f64f88e034551e3571"
+    }
+  ],
+  "archiveSha256": "27d67273431e1e3b23ebbbcd239227f864d32ec142490a2969597c94b0c0d18d",
+  "checks": {
+    "finalFullGcDebugExportWindows": 268,
+    "finalFullGcDebugExportLinux": 264,
+    "archiveQueryAndRelatedWindowsLinux": 706,
+    "tlsStructureAndGccReference": 260,
+    "coffObjectPartialLinkFocusedWindowsLinux": 44,
+    "finalNativeCoffCppApiJit": 154,
+    "elfGotRows": 16
+  },
+  "countsOverlap": true,
+  "defaultsUnchanged": true,
+  "nativeCodeOptimization": "GCC O2",
+  "limits": [
+    "TCC-produced Windows PE execution still blocked by Defender; no security-product bypass",
+    "Windows native static TLS supports PE layout; reachable static TLS is checked-rejected in JIT",
+    "COFF partial object output rejected; normal source precompilation retained",
+    "No new shipping images are installed by this source commit"
+  ]
+}

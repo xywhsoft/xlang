@@ -148,7 +148,7 @@ static int rt_mem(TCCState *s1, int size)
 /* Do all relocations (needed before using tcc_get_symbol())
    Returns -1 on error. */
 
-LIBTCCAPI int tcc_relocate(TCCState *s1)
+static int tcc_relocate_impl(TCCState *s1)
 {
     int size, ret, ptr_diff;
 
@@ -167,6 +167,21 @@ LIBTCCAPI int tcc_relocate(TCCState *s1)
     ret = tcc_relocate_ex(s1, s1->run_ptr, ptr_diff);
     if (ret == 0)
         st_link(s1);
+    return ret;
+}
+
+LIBTCCAPI int tcc_relocate(TCCState *s1)
+{
+    int ret;
+    jmp_buf frame;
+    jmp_buf *previous = s1->section_limit_jmp;
+    if (setjmp(frame)) {
+        s1->section_limit_jmp = previous;
+        return -1;
+    }
+    s1->section_limit_jmp = &frame;
+    ret = tcc_relocate_impl(s1);
+    s1->section_limit_jmp = previous;
     return ret;
 }
 
@@ -344,6 +359,7 @@ static int tcc_relocate_ex(TCCState *s1, void *ptr, unsigned ptr_diff)
 #else
         tcc_add_runtime(s1);
 	resolve_common_syms(s1);
+        tcc_gc_sections(s1, s1->run_main ? s1->run_main : s1->elf_entryname, 0);
         build_got_entries(s1, 0);
 #endif
     }
@@ -462,6 +478,9 @@ redo:
     relocate_plt(s1);
 #endif
     relocate_sections(s1);
+#ifdef TCC_TARGET_PE
+    pe_sort_pdata(s1);
+#endif
     goto redo;
 }
 
@@ -1009,6 +1028,12 @@ check_pc:
 		        goto next_line;
 		    switch (dwarf_read_1(cp, end)) {
 		    case DW_LNE_end_sequence:
+                        pc = last_pc = 0;
+                        opindex = 0;
+                        line = 1;
+                        function = NULL;
+                        func_addr = 0;
+                        filename = filename_size ? filename_table[version >= 5 && filename_size > 1 ? 1 : 0].name : NULL;
 		        break;
 		    case DW_LNE_set_address:
 #if PTR_SIZE == 4

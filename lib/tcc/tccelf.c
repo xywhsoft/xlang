@@ -85,6 +85,8 @@ ST_FUNC void tccelf_new(TCCState *s)
                                       ".dynstrtab",
                                       ".dynhashtab", SHF_PRIVATE);
     get_sym_attr(s, 0, 1);
+    { int i; for (i = 0; i < s->nb_gc_roots; ++i)
+        set_global_sym(s, s->gc_roots[i], NULL, 0); }
 
     if (s->do_debug) {
         /* add debug sections */
@@ -230,6 +232,14 @@ ST_FUNC Section *new_section(TCCState *s1, const char *name, int sh_type, int sh
 {
     Section *sec;
 
+    if (!(sh_flags & SHF_PRIVATE) && s1->nb_sections >= SHN_LORESERVE) {
+        tcc_error_noabort("too many sections (16-bit section index limit)");
+        if (s1->error_set_jmp_enabled)
+            longjmp(s1->error_jmp_buf, 1);
+        if (s1->section_limit_jmp)
+            longjmp(*s1->section_limit_jmp, 1);
+        return NULL;
+    }
     sec = tcc_mallocz(sizeof(Section) + strlen(name));
     sec->s1 = s1;
     strcpy(sec->name, name);
@@ -361,6 +371,9 @@ static Section *have_section(TCCState *s1, const char *name)
     return NULL;
 }
 
+static void rebuild_hash(Section *s, unsigned int nb_buckets);
+#include "tcc-gc.inc"
+
 /* return a reference to a section, and create it if it does not
    exists */
 ST_FUNC Section *find_section(TCCState *s1, const char *name)
@@ -424,9 +437,11 @@ static void rebuild_hash(Section *s, unsigned int nb_buckets)
     memset(hash, 0, (nb_buckets + 1) * sizeof(int));
     ptr += nb_buckets + 1;
 
+    s->hash->nb_hashed_syms = 0;
     sym = (ElfW(Sym) *)s->data + 1;
     for(sym_index = 1; sym_index < nb_syms; sym_index++) {
         if (ELFW(ST_BIND)(sym->st_info) != STB_LOCAL) {
+            ++s->hash->nb_hashed_syms;
             h = elf_hash(strtab + sym->st_name) % nb_buckets;
             *ptr = hash[h];
             hash[h] = sym_index;
@@ -575,7 +590,9 @@ ST_FUNC void list_elf_symbols(TCCState *s, void *ctx,
     end_sym = symtab->data_offset / sizeof (ElfSym);
     for (sym_index = 0; sym_index < end_sym; ++sym_index) {
         sym = &((ElfW(Sym) *)symtab->data)[sym_index];
-        if (sym->st_value) {
+        /* A defined symbol at offset zero is real before relocation, notably
+           with function/data sections. Unresolved symbols are not definitions. */
+        if (sym->st_shndx != SHN_UNDEF) {
             name = (char *) symtab->link->data + sym->st_name;
             sym_bind = ELFW(ST_BIND)(sym->st_info);
             sym_vis = ELFW(ST_VISIBILITY)(sym->st_other);
@@ -3026,6 +3043,10 @@ static int elf_output_file(TCCState *s1, const char *filename)
         /* if linking, also link in runtime libraries (libc, libgcc, etc.) */
         tcc_add_runtime(s1);
 	resolve_common_syms(s1);
+        tcc_gc_sections(s1, s1->elf_entryname ? s1->elf_entryname : "_start",
+                        !(file_type & TCC_OUTPUT_EXE));
+        if (s1->nb_errors)
+            goto the_end;
 
         if (!s1->static_link) {
             if (file_type & TCC_OUTPUT_EXE) {
@@ -3206,7 +3227,7 @@ static int elf_output_obj(TCCState *s1, const char *filename)
     return ret;
 }
 
-LIBTCCAPI int tcc_output_file(TCCState *s, const char *filename)
+static int tcc_output_file_impl(TCCState *s, const char *filename)
 {
     s->nb_errors = 0;
     if (s->test_coverage)
@@ -3220,6 +3241,21 @@ LIBTCCAPI int tcc_output_file(TCCState *s, const char *filename)
 #else
     return elf_output_file(s, filename);
 #endif
+}
+
+LIBTCCAPI int tcc_output_file(TCCState *s, const char *filename)
+{
+    int ret;
+    jmp_buf frame;
+    jmp_buf *previous = s->section_limit_jmp;
+    if (setjmp(frame)) {
+        s->section_limit_jmp = previous;
+        return -1;
+    }
+    s->section_limit_jmp = &frame;
+    ret = tcc_output_file_impl(s, filename);
+    s->section_limit_jmp = previous;
+    return ret;
 }
 
 ST_FUNC ssize_t full_read(int fd, void *buf, size_t count) {
@@ -3270,6 +3306,15 @@ ST_FUNC int tcc_object_type(int fd, ElfW(Ehdr) *h)
     return 0;
 }
 
+static int tcc_independent_input_section(const char *name)
+{
+    return !strncmp(name, ".text.", 6) || !strncmp(name, ".data.", 6)
+        || !strncmp(name, ".rodata.", 8) || !strncmp(name, ".rdata.", 7)
+        || !strncmp(name, ".bss.", 5) || !strncmp(name, ".tdata.", 7)
+        || !strncmp(name, ".tbss.", 6) || !strncmp(name, ".pdata.", 7)
+        || !strncmp(name, ".xdata.", 7);
+}
+
 /* load an object file and merge it with current files */
 /* XXX: handle correctly stab (debug) info */
 ST_FUNC int tcc_load_object_file(TCCState *s1,
@@ -3289,14 +3334,23 @@ ST_FUNC int tcc_load_object_file(TCCState *s1,
     Section *s;
 
     lseek(fd, file_offset, SEEK_SET);
-    if (tcc_object_type(fd, &ehdr) != AFF_BINTYPE_REL)
+    if (tcc_object_type(fd, &ehdr) != AFF_BINTYPE_REL) {
+#ifdef TCC_TARGET_PE
+        return tcc_load_coff_object(s1, fd, file_offset);
+#else
         goto invalid;
+#endif
+    }
     /* test CPU specific stuff */
     if (ehdr.e_ident[5] != ELFDATA2LSB ||
         ehdr.e_machine != EM_TCC_TARGET) {
 invalid:
         return tcc_error_noabort("invalid object file");
     }
+    /* Leave headroom for relocation tables and final linker metadata. */
+    if (s1->nb_sections > SHN_LORESERVE - 32
+        || ehdr.e_shnum > (SHN_LORESERVE - s1->nb_sections - 32) / 2)
+        return tcc_error_noabort("object exceeds 16-bit section index limit");
     /* read sections */
     shdr = load_data(fd, file_offset + ehdr.e_shoff,
                      sizeof(ElfW(Shdr)) * ehdr.e_shnum);
@@ -3379,6 +3433,14 @@ invalid:
         sh_name = strsec + sh->sh_name;
         if (sh->sh_addralign < 1)
             sh->sh_addralign = 1;
+        /* Function/data sections are independent input contributions, even
+           when two translation units chose the same static symbol name. */
+        if (s1->gc_sections || s1->function_sections || s1->data_sections) {
+            if (((sh->sh_flags & SHF_ALLOC) && tcc_independent_input_section(sh_name))
+                || (sh->sh_type == SHT_RELX && sh->sh_info < ehdr.e_shnum
+                    && tcc_independent_input_section(strsec + shdr[sh->sh_info].sh_name)))
+                goto new_input_section;
+        }
         /* find corresponding section, if any */
         for(j = 1; j < s1->nb_sections;j++) {
             s = s1->sections[j];
@@ -3409,6 +3471,7 @@ invalid:
             goto found;
         }
         /* not found: create new section */
+    new_input_section:
         s = new_section(s1, sh_name, sh->sh_type, sh->sh_flags & ~SHF_GROUP);
         /* take as much info as possible from the section. sh_link and
            sh_info will be updated later */
@@ -3628,6 +3691,10 @@ static int tcc_load_alacarte(TCCState *s1, int fd, int size, int entrysize)
     int i, bound, nsyms, sym_index, len, ret = -1;
     unsigned long long off;
     uint8_t *data;
+    unsigned char *live_undefined = NULL;
+    int live_count = 0, use_live = 0;
+    use_live = s1->gc_sections && s1->nb_gc_roots > 0
+        && s1->output_type == TCC_OUTPUT_MEMORY;
     const char *ar_names, *p;
     const uint8_t *ar_index;
     ElfW(Sym) *sym;
@@ -3642,6 +3709,11 @@ static int tcc_load_alacarte(TCCState *s1, int fd, int size, int entrysize)
 
     do {
         bound = 0;
+        if (use_live) {
+            tcc_free(live_undefined); live_undefined = NULL;
+            if (tcc_gc_live_undefined(s1, &live_undefined, &live_count) < 0)
+                goto the_end;
+        }
         for (p = ar_names, i = 0; i < nsyms; i++, p += strlen(p)+1) {
             Section *s = symtab_section;
             sym_index = find_elf_sym(s, p);
@@ -3649,6 +3721,8 @@ static int tcc_load_alacarte(TCCState *s1, int fd, int size, int entrysize)
                 continue;
             sym = &((ElfW(Sym) *)s->data)[sym_index];
             if(sym->st_shndx != SHN_UNDEF)
+                continue;
+            if (use_live && (sym_index >= live_count || !live_undefined[sym_index]))
                 continue;
             off = get_be(ar_index + i * entrysize, entrysize);
             len = read_ar_header(fd, off, &hdr);
@@ -3663,10 +3737,14 @@ static int tcc_load_alacarte(TCCState *s1, int fd, int size, int entrysize)
             if (tcc_load_object_file(s1, fd, off) < 0)
                 goto the_end;
             ++bound;
+            /* New members can add constructors, replace weak definitions or
+               introduce new live edges. Recompute before selecting another. */
+            if (use_live) break;
         }
     } while(bound);
     ret = 0;
  the_end:
+    tcc_free(live_undefined);
     tcc_free(data);
     return ret;
 }
@@ -3698,11 +3776,30 @@ ST_FUNC int tcc_load_archive(TCCState *s1, int fd, int alacarte)
                 return tcc_load_alacarte(s1, fd, size, 4);
             if (!strcmp(hdr.ar_name, "/SYM64/"))
                 return tcc_load_alacarte(s1, fd, size, 8);
-        } else if (tcc_object_type(fd, &ehdr) == AFF_BINTYPE_REL) {
-            if (s1->verbose == 2)
-                printf("   -> %s\n", hdr.ar_name);
-            if (tcc_load_object_file(s1, fd, file_offset) < 0)
-                return -1;
+        } else if (strcmp(hdr.ar_name, "/") && strcmp(hdr.ar_name, "//")
+                   && strcmp(hdr.ar_name, "/SYM64/")) {
+            int object = tcc_object_type(fd, &ehdr) == AFF_BINTYPE_REL;
+#ifdef TCC_TARGET_PE
+            unsigned char coff_header[20];
+            /* Whole-archive uses the same COFF reader as indexed selection.
+               Read a bounded, fully initialized header, not ELF lookahead
+               bytes from a possibly shorter archive metadata member. */
+            if (!object && size >= (int)sizeof coff_header) {
+                if (lseek(fd, file_offset, SEEK_SET) < 0
+                    || full_read(fd, coff_header, sizeof coff_header) != sizeof coff_header)
+                    return tcc_error_noabort("truncated archive object header");
+                if (!coff_header[0] && !coff_header[1]
+                    && coff_header[2] == 0xff && coff_header[3] == 0xff)
+                    return tcc_error_noabort("COFF short import objects are unsupported; use import definition files");
+                object = coff_header[0] == 0x64 && coff_header[1] == 0x86;
+            }
+#endif
+            if (object) {
+                if (s1->verbose == 2)
+                    printf("   -> %s\n", hdr.ar_name);
+                if (tcc_load_object_file(s1, fd, file_offset) < 0)
+                    return -1;
+            }
         }
         /* align to even */
         file_offset = (file_offset + size + 1) & ~1;
