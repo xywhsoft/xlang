@@ -2077,6 +2077,9 @@ static void bind_exe_dynsyms(TCCState *s1, int is_PIE)
                 } else if (type == STT_OBJECT) {
                     unsigned long offset;
                     ElfW(Sym) *dynsym;
+                    /* GC may discard an empty canonical .bss. COPY storage
+                       is allocated later and must re-enter the image. */
+                    bss_section->sh_flags |= SHF_ALLOC | SHF_WRITE;
                     offset = bss_section->data_offset;
                     /* XXX: which alignment ? */
                     offset = (offset + 16 - 1) & -16;
@@ -3344,7 +3347,9 @@ ST_FUNC int tcc_load_object_file(TCCState *s1,
     /* test CPU specific stuff */
     if (ehdr.e_ident[5] != ELFDATA2LSB ||
         ehdr.e_machine != EM_TCC_TARGET) {
+#ifndef TCC_TARGET_PE
 invalid:
+#endif
         return tcc_error_noabort("invalid object file");
     }
     /* Each non-null input header can create at most one Section below.

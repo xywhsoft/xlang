@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "scope": "Minimal ELF COPY allocation after GC plus PE unused-label cleanup; one production file, two small hunks. No broad test changes or new linking feature.",
+  "passed": true,
+  "focusedChecks": 34,
+  "staticXgeFullVfsSteps": 6,
+  "staticXgeStandaloneBytes": 849367,
+  "reports": [
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-elf-copy\\qualified-r1\\manifest.json",
+      "archivePath": "qualification.json",
+      "sha256": "36a0a913360589d4a0431479925a4e95fe43039171158283891876250869a01f"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-elf-copy\\qualified-r1\\source-only.patch",
+      "archivePath": "source-only.patch",
+      "sha256": "86f58c4b9ab19db907beecfa8aedb24ea6a26a3c3afe1a3f2975e5bbadbd5dee"
+    },
+    {
+      "originalPath": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\native-static-20261106\\static-xge-vfs-linux-r3\\results.json",
+      "archivePath": "static-xge-standalone.json",
+      "sha256": "09c323c7ca6145cae897a832815be176fbc879aa949c043f01b7ab1272b8314f"
+    },
+    {
+      "originalPath": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\tcc-elf-copy-qualified-linux-r2\\results.json",
+      "archivePath": "focused-results-0.json",
+      "sha256": "5d4c88545ee756a70324f530064ddc0ebd859d0ed4c18bb896bb084b6b8765b7"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-elf-copy\\win-label-r1\\results.json",
+      "archivePath": "focused-results-1.json",
+      "sha256": "c62020cf6047d134841e1ab1d035726daa8d20f25657415d189d2f7424896523"
+    }
+  ],
+  "files": [
+    {
+      "path": "lib/tcc/tccelf.c",
+      "source": "F:\\xlang-validation\\native-static-20261106\\tcc-elf-copy\\qualified-r1\\files\\lib\\tcc\\tccelf.c",
+      "sha256": "d6c5d5cfee517e66e582d09a5cc55f3f3c143a9610363db69c96ff938def67d2",
+      "sharedWithParent": true
+    },
+    {
+      "path": "test/cases/tcc_elf_copy_gc.c",
+      "source": "F:\\xlang-validation\\native-static-20261106\\tcc-elf-copy\\qualified-r1\\files\\test\\cases\\tcc_elf_copy_gc.c",
+      "sha256": "22ca67d51a8991d29e54a04109063f64981502f07bc4021f44077f164bbdce81",
+      "sharedWithParent": false
+    },
+    {
+      "path": "tools/check_tcc_elf_copy_gc.py",
+      "source": "F:\\xlang-validation\\native-static-20261106\\tcc-elf-copy\\qualified-r1\\files\\tools\\check_tcc_elf_copy_gc.py",
+      "sha256": "45f1d741cc78d8d3d52cce40346efa7d67cfdf48dff3f86bd2ec9ab614b82fe5",
+      "sharedWithParent": false
+    }
+  ],
+  "archiveSha256": "05f50e3bcd7bc4c1b22bddf3f613f1cd68e27e23198f39b9bac132b9a5dd712f",
+  "shippingDelivery": false,
+  "windowsPeAotQualified": false
+}

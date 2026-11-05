@@ -49,7 +49,14 @@ Dead sections lose their allocated payload and relocations. Their symbol indices
 remain stable until the normal output sorter; dead definitions and unreferenced
 undefineds become local zero-valued absolute tombstones. A live unresolved symbol
 still fails. This does not remove arbitrary referenced import libraries from
-`DT_NEEDED`, introduce `--as-needed`, or change static archive extraction policy.
+`DT_NEEDED` or introduce `--as-needed`.
+
+For memory output with GC and explicit roots, archive extraction queries only
+undefined symbols reachable from those roots. The query does not mutate the
+symbol/section tables, and is repeated after each selected archive member adds
+new references. This avoids extracting members for unused policy functions
+before final GC. Ordinary JIT without explicit roots, non-GC links and AOT keep
+their established archive-selection rules.
 
 Unwind metadata is preserved. ELF CIE/FDE records are traced by initial-PC
 ownership; only live FDEs and their CIE/personality/LSDA dependencies survive,
