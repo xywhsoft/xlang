@@ -266,6 +266,7 @@ static inline int xl6ForeignMultiOutputSlotsValid(const XL6_ForeignCallFacts* f,
     }
     return 1;
 }
+#include "src/type/xl6_foreign_array_decl.h"
 #include "src/type/xl6_foreign_pack_decl.h"
 
 static inline int xl6ForeignFieldCallName(const XL6_AstNode* node,char* field,size_t capacity)
@@ -285,11 +286,29 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     XL6_ForeignCallFacts* output)
 {
     XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0,outputStatus=0,fieldCall=0;uint64 callbackSpans=0,callbackParameters=0,outputSizes=0,outputViews=0,regions=0,regionObservers=0,packs=0,packText=0,packCstrings=0;size_t callbackSpanCount=0,packFields=0;
-    uint64 recordFields=0,recordRetains=0;
+    uint64 recordFields=0,recordRetains=0,arrayGroups=0,arrayRecords=0;size_t arrayInputs=0,arrayFields=0;
     const XL6_AstNode* attributes = xl6ForeignFunctionAttributes(node);
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
         const XL6_AstNode* attr = attributes->children[i];
         int32 index;
+        if(attr && attr->text && !strcmp(attr->text,"c_array_group")){
+            XL6_ForeignArrayGroupContract row;
+            if(!xl6ForeignArrayGroupRead(attr,&row) || (arrayGroups&(UINT64_C(1)<<row.physicalIndex)))return 0;
+            arrayGroups|=UINT64_C(1)<<row.physicalIndex;continue;
+        }
+        if(attr && attr->text && !strcmp(attr->text,"c_array_input")){
+            XL6_ForeignArrayInputContract row;if(!xl6ForeignArrayInputRead(attr,&row))return 0;
+            ++arrayInputs;continue;
+        }
+        if(attr && attr->text && !strcmp(attr->text,"c_array_record")){
+            uint32 slot;char name[64];
+            if(!xl6ForeignArrayRecordRead(attr,&slot,name,sizeof(name)) || (arrayRecords&(UINT64_C(1)<<slot)))return 0;
+            arrayRecords|=UINT64_C(1)<<slot;continue;
+        }
+        if(attr && attr->text && !strcmp(attr->text,"c_array_field")){
+            XL6_ForeignArrayFieldContract row;if(!xl6ForeignArrayFieldRead(attr,&row))return 0;
+            ++arrayFields;continue;
+        }
         if(attr && attr->text && !strcmp(attr->text,"c_pack")){
             XL6_ForeignPackContract row;
             if(!xl6ForeignPackRead(attr,&row) || (packs&(UINT64_C(1)<<row.physicalIndex)))return 0;
@@ -501,6 +520,9 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     if((regionObservers&~regions) || (regions && ((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)) ||
         (packs && (regions || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)) ||
         !xl6ForeignInputMappingsSet(callbackSpanCount,regions!=0,packs!=0,&facts.inputMappingFacts))return 0;
+    if((arrayRecords&~arrayGroups) || (!arrayGroups && (arrayInputs || arrayFields)) ||
+        (arrayGroups && (packs || regions || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)))return 0;
+    if(arrayGroups)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT;
     if (output) *output = facts;
     return 1;
 }

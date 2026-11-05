@@ -298,7 +298,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
 
     {"src/runtime/xl6_crc32_bytes.c", D(), {"XRT_MODULE_CRC32", "XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_crc32_buffer.c", D(), {"XRT_MODULE_CRC32", "XRT_MODULE_BUFFER"}},
-    {"src/runtime/xl6_sequence.c", D(), {"XRUNTIME_MODULE_TYPED_ARRAY", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE",
+    {"src/runtime/xl6_sequence.c", D(R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_TYPED_ARRAY", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE",
         "XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE", "XRT_MODULE_ATOMIC"}},
     {"src/runtime/xl6_array.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_TYPED_ARRAY"}},
     {"src/runtime/xl6_stack.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_TYPED_STACK"}},

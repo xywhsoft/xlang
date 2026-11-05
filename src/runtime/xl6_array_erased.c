@@ -16,6 +16,13 @@ static XL6_Sequence* begin(const xvalue* value, XL6_SequenceLayoutV1* layout,
 }
 static bool allocation(bool ok)
 { if (!ok && !xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return ok; }
+static XL6_Sequence* beginRead(const xvalue* value,XL6_SequenceLayoutV1* layout,const xvalueconverter** converter)
+{
+    XL6_Sequence* owner=NULL;
+    int status=xl6SequenceBeginErasedReadRoleV1(value,XL6_SEQUENCE_ARRAY_V1,&owner,layout,converter);
+    if(!status)xrtSetErrorKind(XERR_TYPE);
+    return status==1 ? owner:NULL;
+}
 xvalue* xl6ArrayEraseV1(const xvalue* source, uint64_t identity, uint64_t elementIdentity,
     unsigned int transfer, size_t size, const xrttype* type, const xvalueconverter* converter)
 {
@@ -46,7 +53,7 @@ xvalue* xl6ArrayProjectionTakeV1(xvalue* source, uint64_t identity, uint64_t ele
 static xvalue* read(const xvalue* source, int64_t index, bool take)
 {
     XL6_SequenceLayoutV1 layout; const xvalueconverter* converter;
-    XL6_Sequence* owner=begin(source,&layout,&converter);
+    XL6_Sequence* owner=take ? begin(source,&layout,&converter):beginRead(source,&layout,&converter);
     if (!owner) return NULL;
     xtypedarray* storage=xl6SequenceStorageV1(owner); size_t at;
     xvalue* result=NULL;
@@ -141,7 +148,7 @@ bool xl6ArrayValueSetTakeV1(xvalue* source, int64_t index, xvalue* item)
 int64_t xl6ArrayErasedSizeV1(const xvalue* source)
 {
     XL6_SequenceLayoutV1 layout; const xvalueconverter* converter;
-    XL6_Sequence* owner=begin(source,&layout,&converter);
+    XL6_Sequence* owner=beginRead(source,&layout,&converter);
     if (!owner) return 0;
     size_t count=xrtTypedArrayCount(xl6SequenceStorageV1(owner));
     xl6SequenceEndV1(owner);
@@ -151,7 +158,7 @@ int64_t xl6ArrayErasedSizeV1(const xvalue* source)
 xvalue* xl6ArrayErasedCloneV1(const xvalue* source)
 {
     XL6_SequenceLayoutV1 layout; const xvalueconverter* converter;
-    XL6_Sequence* owner=begin(source,&layout,&converter);
+    XL6_Sequence* owner=beginRead(source,&layout,&converter);
     if (!owner) return NULL;
     xtypedarray* storage=xrtTypedArrayClone(xl6SequenceStorageV1(owner));
     XL6_SequenceAdmissionV3 admission={0};
@@ -183,7 +190,7 @@ xvalue* xl6ValueCloneV1(const xvalue* source)
     }
     XL6_Sequence* owner=NULL; XL6_SequenceLayoutV1 layout;
     const xvalueconverter* converter=NULL;
-    int status=xl6SequenceBeginErasedArrayV1(source,&owner,&layout,&converter);
+    int status=xl6SequenceBeginErasedReadRoleV1(source,XL6_SEQUENCE_ARRAY_V1,&owner,&layout,&converter);
     if (owner) xl6SequenceEndV1(owner);
     xvalue* result=status<0 ? NULL : status ? xl6ArrayErasedCloneV1(source) : xrtValueClone(source);
     if (!result || xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);

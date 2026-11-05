@@ -22,7 +22,7 @@ xvalue* xl6ArrayEntryAcquireV1(uint64_t identity,uint64_t element,const xvalue* 
     if(input) {
         XL6_Sequence* sequence=NULL; XL6_SequenceLayoutV1 layout;
         const xvalueconverter* converter=NULL;
-        int status=xl6SequenceBeginErasedArrayV1(input,&sequence,&layout,&converter);
+        int status=xl6SequenceBeginErasedReadRoleV1(input,XL6_SEQUENCE_ARRAY_V1,&sequence,&layout,&converter);
         if(status<0) return NULL;
         if(status) {
             bool exact=layout.identity==identity && layout.elementIdentity==element &&

@@ -77,6 +77,10 @@ static int xl6IrCgenVerifyDeclarations(
                     target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
                     target->parameterPhysicalFieldDeclarations[parameter] || target->parameterConstraintAbis[parameter])
                     return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no exact borrowed bytes view ABI");
+            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_ARRAY_COLUMN ||
+                      target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_ARRAY_SIZE){
+                if(!xl6IrForeignPreparedParameterMatches(module,target,parameter))
+                    return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no sealed native Array projection");
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_REGION_BORROW){
                 if(!xl6IrForeignRegionParameterMatches(module,target,parameter))
                     return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no sealed fixed region");

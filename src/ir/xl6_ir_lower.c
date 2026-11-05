@@ -13661,6 +13661,11 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
             const XL6_IrClassField* buffer=xl6IrForeignRegionBufferField(module,target,i);
             target->parameterPhysicalFieldDeclarations[i]=buffer ? buffer->declaration:0;
         }
+        const XL6_ForeignArrayGroupContract* nativeArrays=xl6IrForeignArrayParameter(module,target,i);
+        if(nativeArrays){
+            target->parameterAbis[i]=i==nativeArrays->sizeParameter ? XL6_IR_PARAMETER_ABI_VALUE:XL6_IR_PARAMETER_ABI_BORROW;
+            target->parameterPhysicalAbis[i]=i==nativeArrays->sizeParameter ? XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_ARRAY_SIZE:XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_ARRAY_COLUMN;
+        }
         if(xl6IrForeignManagedViewParameter(module,target,i))
             target->parameterPhysicalAbis[i]=xl6IrForeignValueGet(module,target,i) ?
                 XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VALUE_BORROW : XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW;

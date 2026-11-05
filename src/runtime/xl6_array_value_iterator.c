@@ -7,7 +7,7 @@ int xl6ArrayIteratorCreateErasedV1(const xvalue* source, xvalue** target,
     if (!target || !targetLayout || !targetProjection) { xrtSetErrorKind(XERR_ARGUMENT); return -1; }
     XL6_Sequence* owner=NULL; XL6_SequenceLayoutV1 layout;
     const xvalueconverter* projection=NULL;
-    int status=xl6SequenceBeginErasedArrayV1(source,&owner,&layout,&projection);
+    int status=xl6SequenceBeginErasedReadRoleV1(source,XL6_SEQUENCE_ARRAY_V1,&owner,&layout,&projection);
     if (status!=1) return status;
     xvalue* result=xl6ArrayIteratorSnapshotV1(owner,layout.identity,layout.elementIdentity,
         layout.transfer,layout.size,layout.type,layout.identity);

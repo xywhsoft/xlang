@@ -2489,6 +2489,9 @@ void xl6IrModuleFree(XL6_IrModule* module)
     xrtFree(module->foreignRegionObservers);
     xrtFree(module->foreignPacks);
     xrtFree(module->foreignPackFields);
+    xrtFree(module->foreignArrayGroups);
+    xrtFree(module->foreignArrayInputs);
+    xrtFree(module->foreignArrayFields);
     xrtFree(module->foreignFieldLengths);
     xrtFree(module->foreignStorage);
     xrtFree(module->foreignRetains);
@@ -4460,6 +4463,29 @@ static XL6_IrNodeId xl6IrBuildAstNode(
     for(size_t attr=0;foreignAttributes && attr<foreignAttributes->childCount;++attr) {
         const XL6_AstNode* declaration=foreignAttributes->children[attr];
         XL6_ForeignParameterContract contract;
+        if(declaration && declaration->text && !strcmp(declaration->text,"c_array_group")){
+            XL6_ForeignArrayGroupContract row;
+            if(!xl6ForeignArrayGroupRead(declaration,&row) || !xl6IrGrow((void**)&module->foreignArrayGroups,&module->foreignArrayGroupCapacity,
+                module->foreignArrayGroupCount,sizeof(*module->foreignArrayGroups))){*ok=0;return 0;}
+            row.declaration=id;
+            for(size_t a=0;a<foreignAttributes->childCount;++a){uint32 physical;char name[64];
+                if(xl6ForeignArrayRecordRead(foreignAttributes->children[a],&physical,name,sizeof(name)) && physical==row.physicalIndex)strcpy(row.recordCName,name);}
+            if(source->kind==XL6_AST_NATIVE_EXTERN_FUNC && !(source->flags&XL6_AST_FLAG_STATIC)){++row.firstParameter;++row.sizeParameter;}
+            module->foreignArrayGroups[module->foreignArrayGroupCount++]=row;continue;
+        }
+        if(declaration && declaration->text && !strcmp(declaration->text,"c_array_input")){
+            XL6_ForeignArrayInputContract row;
+            if(!xl6ForeignArrayInputRead(declaration,&row) || !xl6IrGrow((void**)&module->foreignArrayInputs,&module->foreignArrayInputCapacity,
+                module->foreignArrayInputCount,sizeof(*module->foreignArrayInputs))){*ok=0;return 0;}
+            row.declaration=id;module->foreignArrayInputs[module->foreignArrayInputCount++]=row;continue;
+        }
+        if(declaration && declaration->text && !strcmp(declaration->text,"c_array_record"))continue;
+        if(declaration && declaration->text && !strcmp(declaration->text,"c_array_field")){
+            XL6_ForeignArrayFieldContract row;
+            if(!xl6ForeignArrayFieldRead(declaration,&row) || !xl6IrGrow((void**)&module->foreignArrayFields,&module->foreignArrayFieldCapacity,
+                module->foreignArrayFieldCount,sizeof(*module->foreignArrayFields))){*ok=0;return 0;}
+            row.declaration=id;module->foreignArrayFields[module->foreignArrayFieldCount++]=row;continue;
+        }
         if(declaration && declaration->text && !strcmp(declaration->text,"c_pack")){
             XL6_ForeignPackContract row;
             if(!xl6ForeignPackRead(declaration,&row) || !xl6IrGrow((void**)&module->foreignPacks,&module->foreignPackCapacity,
@@ -11061,6 +11087,7 @@ static int xl6IrBuildCAbiIsNumericScalar(XL6_IrCAbi abi)
 
 #include "src/ir/xl6_ir_foreign_region.c"
 #include "src/ir/xl6_ir_foreign_pack.c"
+#include "src/ir/xl6_ir_foreign_array.c"
 #include "src/ir/xl6_ir_foreign_compat.c"
 
 static int xl6IrBuildCAbiIsBoolScalar(XL6_IrCAbi abi)
@@ -21825,6 +21852,8 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
         buildFailure = "cannot close typed fixed-pointer region contracts";
     else if ( !xl6IrClosePacks(module) )
         buildFailure = "cannot close typed native descriptor pack contracts";
+    else if ( !xl6IrCloseArrayGroups(module) )
+        buildFailure = "cannot close typed native Array projection contracts";
     else if ( !xl6IrBuildImplicitNameAbis(module) )
         buildFailure = "cannot build XLIR implicit name ABIs";
     else if ( (buildFailure = xl6IrBuildClassDispatchTables(
@@ -23296,7 +23325,8 @@ int xl6IrForeignCallAdmissionMayRaise(const XL6_IrModule* module,const XL6_IrCal
 {
     if(!target)return 0;
     const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
-    if(declaration && xl6ForeignInputHasPacks(declaration->foreignCall.inputMappingFacts))return 1;
+    if(declaration && (xl6ForeignInputHasPacks(declaration->foreignCall.inputMappingFacts) ||
+        xl6ForeignInputHasArrayGroups(declaration->foreignCall.inputMappingFacts)))return 1;
     if(target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_FIELD_CALL)return 1;
     if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY ||
         target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT ||
@@ -37343,7 +37373,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             (target->foreignHeaderIndexPlusOne && target->kind!=XL6_IR_CALL_TARGET_EXTERN_C))
             return xl6IrDiag(diags,NULL,"native function header index disagrees with its declaration");
     }
-    if (!xl6IrVerifyForeignOutputs(module,diags) || !xl6IrVerifyOutputRecords(module,diags) || !xl6IrVerifyOutputSizes(module,diags) || !xl6IrVerifyOutputViews(module,diags) || !xl6IrVerifyRegions(module,diags) || !xl6IrVerifyPacks(module,diags) || !xl6IrVerifyForeignParameters(module,diags) || !xl6IrVerifyForeignFieldLengths(module,diags) ||
+    if (!xl6IrVerifyForeignOutputs(module,diags) || !xl6IrVerifyOutputRecords(module,diags) || !xl6IrVerifyOutputSizes(module,diags) || !xl6IrVerifyOutputViews(module,diags) || !xl6IrVerifyRegions(module,diags) || !xl6IrVerifyPacks(module,diags) || !xl6IrVerifyArrayGroups(module,diags) || !xl6IrVerifyForeignParameters(module,diags) || !xl6IrVerifyForeignFieldLengths(module,diags) ||
         !xl6IrVerifyForeignStorage(module,diags) || !xl6IrVerifyForeignRetains(module,diags) ||
         !xl6IrVerifyForeignCallbackSpans(module,diags) || !xl6IrVerifyForeignValues(module,diags) ||
         !xl6IrVerifyPointerQualifiers(module,diags) || !xl6IrVerifyFunctionHeaders(module,diags) ||
@@ -40363,6 +40393,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             return xl6IrDiag(diags,NULL,"XLIR call target has no exact native C result signature");
         if(declaration && xl6ForeignInputHasPacks(declaration->foreignCall.inputMappingFacts) && !xl6IrForeignPacksMatch(module,target))
             return xl6IrDiag(diags,NULL,"XLIR native descriptor inputs disagree with their closed logical and physical contracts");
+        if(!xl6IrForeignArrayGroupsMatch(module,target))
+            return xl6IrDiag(diags,NULL,"XLIR native Array inputs disagree with their typed projection contracts");
         if (target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE) {
             /* Includes imported and class declarations, which are not all
              * siblings in the semantic root's extern conflict check. */
@@ -40743,6 +40775,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         "XLIR foreign C function parameter has no verified raw C callback physical ABI");
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW) {
                 if(!xl6IrForeignSpanParameterMatches(module,target,parameter))return xl6IrDiag(diags,NULL,"foreign span has no exact input storage contract");
+            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_ARRAY_COLUMN ||
+                target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_ARRAY_SIZE) {
+                if(!xl6IrForeignPreparedParameterMatches(module,target,parameter))return xl6IrDiag(diags,NULL,"native Array projection lacks its exact input group");
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_REGION_BORROW) {
                 if(!xl6IrForeignRegionParameterMatches(module,target,parameter))return xl6IrDiag(diags,NULL,"fixed region has no exact storage/observer contract");
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK ||
@@ -50750,6 +50785,8 @@ static const char* xl6IrCallParameterPhysicalAbiName(
     case XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_HANDLE_ACCESS_BORROW: return "native-handle-access-borrow";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW: return "foreign-span-borrow";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_REGION_BORROW: return "foreign-region-borrow";
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_ARRAY_COLUMN: return "foreign-array-column";
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_ARRAY_SIZE: return "foreign-array-size";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK: return "retained-c-callback";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK: return "sync-c-callback";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_TEXT_VIEW_BORROW: return "text-view-borrow";
@@ -54290,6 +54327,21 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         const XL6_ForeignOutputViewContract* row=&module->foreignOutputViews[i];
         xl6OutputPrintf(out,"    {\"declaration\":%u,\"physicalIndex\":%u,\"ordinal\":%u,\"logicalType\":%u,\"conversion\":%u,\"retainSymbol\":%u,\"rollbackSymbol\":%u,\"retainSuccess\":%u}%s\n",
             row->declaration,row->physicalIndex,row->ordinal,row->logicalType,(unsigned)row->conversion,row->retainSymbol,row->rollbackSymbol,(unsigned)row->retainSuccess,i+1==module->foreignOutputViewCount ? "":",");
+    }
+    xl6OutputPuts("  ],\n  \"foreignArrayGroups\": [\n",out);
+    for(i=0;i<module->foreignArrayGroupCount;++i){const XL6_ForeignArrayGroupContract* row=&module->foreignArrayGroups[i];
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"physicalIndex\":%u,\"firstParameter\":%u,\"arrayCount\":%u,\"sizeParameter\":%u,\"countAbi\":%u,\"recordCName\":\"%s\",\"header\":\"%s\"}%s\n",
+            row->declaration,row->physicalIndex,row->firstParameter,row->arrayCount,row->sizeParameter,(unsigned)row->countAbi,row->recordCName,row->header,i+1==module->foreignArrayGroupCount ? "":",");
+    }
+    xl6OutputPuts("  ],\n  \"foreignArrayInputs\": [\n",out);
+    for(i=0;i<module->foreignArrayInputCount;++i){const XL6_ForeignArrayInputContract* row=&module->foreignArrayInputs[i];
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"groupPhysicalIndex\":%u,\"column\":%u,\"arrayType\":%u,\"elementType\":%u,\"kind\":%u,\"profile\":%u,\"pointerCName\":\"%s\",\"elementCName\":\"%s\"}%s\n",
+            row->declaration,row->groupPhysicalIndex,row->column,row->arrayType,row->elementType,(unsigned)row->kind,(unsigned)row->profile,row->pointerCName,row->elementCName,i+1==module->foreignArrayInputCount ? "":",");
+    }
+    xl6OutputPuts("  ],\n  \"foreignArrayFields\": [\n",out);
+    for(i=0;i<module->foreignArrayFieldCount;++i){const XL6_ForeignArrayFieldContract* row=&module->foreignArrayFields[i];
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"groupPhysicalIndex\":%u,\"column\":%u,\"arrayType\":%u,\"elementType\":%u,\"kind\":%u,\"profile\":%u,\"field\":\"%s\",\"physicalCName\":\"%s\"}%s\n",
+            row->declaration,row->groupPhysicalIndex,row->column,row->arrayType,row->elementType,(unsigned)row->kind,(unsigned)row->profile,row->field,row->physicalCName,i+1==module->foreignArrayFieldCount ? "":",");
     }
     xl6OutputPuts("  ],\n  \"foreignPacks\": [\n",out);
     for(i=0;i<module->foreignPackCount;++i){const XL6_ForeignPackContract* row=&module->foreignPacks[i];

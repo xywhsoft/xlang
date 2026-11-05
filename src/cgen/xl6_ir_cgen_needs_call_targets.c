@@ -208,6 +208,9 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
                     needs->needsStringRuntime = 1;
                     needs->needsStringViews = 1;
                 }
+            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_ARRAY_COLUMN ||
+                      target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_ARRAY_SIZE){
+                needs->needsXValueRuntime=1;needs->needsForeignErrorRuntime=1;
             } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW){
                 needs->needsClosureRuntime=1;
             } else if((target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK || target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK)) {

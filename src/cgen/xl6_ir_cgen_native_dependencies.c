@@ -476,6 +476,15 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     for(size_t t=0;t<module->callTargetCount;++t) {
         const XL6_IrCallTarget* target=&module->callTargets[t];
         if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        for(size_t g=0;g<module->foreignArrayGroupCount;++g)if(module->foreignArrayGroups[g].declaration==target->declaration){
+            if(!visitor(context,"xl6SequenceReadPinBeginV1") || !visitor(context,"xl6SequenceReadPinEndV1") ||
+                !visitor(context,"xl6SequenceReadPinSlotV1"))return 0;
+            for(size_t c=0;c<module->foreignArrayGroups[g].arrayCount;++c){XL6_ForeignArrayInputContract column;
+                if(!xl6IrForeignArrayColumn(module,&module->foreignArrayGroups[g],c,&column,NULL))return 0;
+                if(column.kind==XL6_FOREIGN_ARRAY_ELEMENT_VIEW_RAW && (!visitor(context,"xl6ForeignViewCopyValueV1") ||
+                    !visitor(context,"xl6ForeignViewDropValueV1") || !visitor(context,"xl6ForeignViewCallBeginV1") || !visitor(context,"xl6ForeignViewCallEndV1")))return 0;
+            }
+        }
         for(size_t p=0;p<target->parameterCount;++p) {
             if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_HANDLE_ACCESS_BORROW) {
                 const XL6_IrClassField* field=xl6IrCallTargetNativeAccessField(module,target,p);

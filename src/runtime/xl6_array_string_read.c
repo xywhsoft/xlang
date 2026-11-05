@@ -10,7 +10,7 @@ xstrview xl6ArrayReadStringV1(const xvalue* source, uint64_t identity,
     }
     XL6_Sequence* owner=NULL; xvalue* wireItem=NULL; XL6_SequenceLayoutV1 layout;
     const xvalueconverter* converter=NULL;
-    int status=xl6SequenceBeginErasedArrayV1(source,&owner,&layout,&converter);
+    int status=xl6SequenceBeginErasedReadRoleV1(source,XL6_SEQUENCE_ARRAY_V1,&owner,&layout,&converter);
     if (status<0) return result;
     if (status) {
         if (layout.identity!=identity || layout.elementIdentity!=elementIdentity ||

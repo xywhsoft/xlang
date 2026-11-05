@@ -21518,6 +21518,7 @@ static const XL6_AstNode* xl6SemForeignOwnershipHelper(XL6_SemContext* ctx,
 #include "src/sem/xl6_sem_foreign_output_view.c"
 #include "src/sem/xl6_sem_foreign_region.c"
 #include "src/sem/xl6_sem_foreign_pack.c"
+#include "src/sem/xl6_sem_foreign_array.c"
 #include "src/sem/xl6_sem_foreign_output_record.c"
 static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNode* node,const XL6_AstNode* ownerClass)
 {
@@ -21536,6 +21537,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
     XL6_AstNode* params = node->childCount > 1 ? node->children[1] : NULL;
     size_t count = params ? params->childCount : 0;
     if(!xl6SemForeignPacks(ctx,node,ownerClass,attrs,&facts))return 0;
+    if(!xl6SemForeignArrayGroups(ctx,node,ownerClass,attrs,&facts))return 0;
     if(xl6ForeignFunctionFieldCall(node)){
         XL6_ForeignClassDecl owner;
         if(!ownerClass || xl6ForeignClassRead(ownerClass,&owner,NULL)!=1 || !owner.header[0] ||
@@ -21814,7 +21816,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             int found=0;
             for(size_t a=0;attrs && a<attrs->childCount;++a)
                 if(xl6ForeignMultiOutputRead(attrs->children[a],slots,&outputs))++found;
-            if(found!=1 || (!xl6ForeignInputHasPacks(facts.inputMappingFacts) && !xl6ForeignMultiOutputSlotsValid(&facts,count+receiver,receiver,slots,outputs))){
+            if(found!=1 || (!xl6ForeignInputHasPacks(facts.inputMappingFacts) && !xl6ForeignInputHasArrayGroups(facts.inputMappingFacts) && !xl6ForeignMultiOutputSlotsValid(&facts,count+receiver,receiver,slots,outputs))){
                 xl6SemErrorNode(ctx,node,"@c_outputs requires complete increasing physical slots outside expanded parameter groups");return 0;
             }
         }
@@ -21981,7 +21983,7 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node,const XL
             if(xl6ForeignFunctionRead(node,&parameterFacts) && i<64 &&
                 ((parameterFacts.retainedCallbacks|parameterFacts.physicalPairs) & (UINT64_C(1)<<i)))continue;
             if(xl6SemForeignRegionParameter(node,i))continue;
-            if(xl6ForeignPackForParameter(node,i,NULL))continue;
+            if(xl6ForeignPackForParameter(node,i,NULL) || xl6ForeignArrayForParameter(node,i,NULL))continue;
             if(i<64 && (parameterFacts.constAggregateAddresses&(UINT64_C(1)<<i)))continue;
             if ( typeNode != NULL && xl6TextEquals(typeNode->text, "function") ) {
                 if ( (param->flags & XL6_AST_FLAG_C_CALLBACK) != 0 &&
@@ -24027,6 +24029,7 @@ static int xl6SemCheckNativeMemberDirectCAbi(XL6_SemContext* ctx, XL6_AstNode* n
     XL6_AstNode* params=node->childCount>1?node->children[1]:NULL;
     for (size_t i=0;params&&i<params->childCount;++i) {
         XL6_AstNode* param=params->children[i];
+        if(xl6ForeignArrayForParameter(node,i,NULL))continue;
         XL6_AstNode* type=param&&param->childCount?(XL6_AstNode*)xl6SemResolveAliasType(ctx,param->children[0]):NULL;
         if (xl6SemIsCAbiTypedContainerType(ctx,type)) {
             xl6SemErrorNode(ctx,type,"native-backed class extern parameter does not support typed container direct C ABI");ok=0;

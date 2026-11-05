@@ -1,0 +1,136 @@
+extern "ArrayPod" struct Pod @header("test/cases/foreign_array_projection.h")
+ c_int x
+ c_int y
+end
+extern "array_projection_sum" @header("test/cases/foreign_array_projection.h") @pure @no_raise @nonblocking @c_array_group(0,0,1,"int",1) @c_array_input(0,0,"const int*","value") func sum(array<c_int> values,int size=-1) as c_int
+extern "array_projection_pair" @header("test/cases/foreign_array_projection.h") @no_raise @c_array_group(0,0,2,"int",2) @c_array_input(0,0,"const int*","value") @c_array_input(0,1,"const int*","value") func pair(array<c_int> left,array<c_int> right,int size=-1) as c_int
+extern "array_projection_pods" @header("test/cases/foreign_array_projection.h") @no_raise @c_array_group(0,0,1,"size_t",1) @c_array_input(0,0,"const ArrayPod*","value") func pods(array<Pod> values,int size=-1) as c_int
+extern "array_projection_items" @header("test/cases/foreign_array_projection.h") @no_raise @c_array_group(0,0,3,"int",3) @c_array_record(0,"ArrayItem") @c_array_field(0,"title",0,"c_string") @c_array_field(0,"result",1,"value") @c_array_field(0,"semantic",2,"value") func items(array<string> texts,array<c_int> results,array<c_int> semantics,int size=-1) as c_int
+extern "array_projection_calls" @header("test/cases/foreign_array_projection.h") @no_raise func calls() as c_int
+extern "ArrayRoot*" class Root @header("test/cases/foreign_array_projection.h") @lifetime("owned") @policy("arrayRootPolicy") @scope("ArrayScope")
+ native point handle
+ extern "array_projection_roots" @no_raise @c_output(6,0) @c_sync_callback(3,0,-16) @c_array_group(1,0,2,"int",2) @c_array_input(1,0,"ArrayRoot* const*","view_raw") @c_array_input(1,1,"const char* const*","c_string") func inspect(array<Root?> roots,array<string?> texts,int size,func() as c_int callback) as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "array_projection_create" @header("test/cases/foreign_array_projection.h") @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(c_int value) as Root
+extern "array_projection_destroy" @header("test/cases/foreign_array_projection.h") @no_raise func rollback(Root root)
+extern "array_projection_live" @header("test/cases/foreign_array_projection.h") @no_raise func live() as c_int
+extern "array_projection_fail_after" @header("test/cases/foreign_array_projection.h") @no_raise func failAfter(c_int count)
+extern "array_projection_reset_failure" @header("test/cases/foreign_array_projection.h") @no_raise func resetFailure()
+protocol Inspector
+ func inspect(array<Root?> roots,array<string?> texts,int size,func() as c_int callback) as c_int
+end
+func main(...) as int
+ array<c_int> values=[c_int(1),c_int(2),c_int(3)]
+ array<c_int> other=[c_int(4),c_int(5)]
+ assert sum(values)==c_int(6)
+ assert sum(values,20)==c_int(6)
+ assert sum(values,0)==c_int(0)
+ failAfter(c_int(0))
+ try
+  assert sum(values)==c_int(6)
+ finally
+  resetFailure()
+ end
+ assert pair(values,other,20)==c_int(14)
+ int before=calls()
+ bool rejected=false
+ try
+  pair(values,other)
+ catch error
+  rejected=true
+ end
+ assert rejected and calls()==before
+ array<c_int> empty=[]
+ assert sum(empty)==c_int(0)
+ before=calls()
+ rejected=false
+ try
+  sum(values,-2)
+ catch error
+  rejected=true
+ end
+ assert rejected and calls()==before
+ Pod first=Pod()
+ first.x=c_int(7)
+ first.y=c_int(8)
+ Pod second=Pod()
+ second.x=c_int(9)
+ second.y=c_int(10)
+ array<Pod> points=[first,second]
+ assert pods(points)==c_int(34)
+ array<string> texts=["a","你"]
+ assert items(texts,values,other,2)==c_int(16)
+ texts[0]="a\0b"
+ before=calls()
+ rejected=false
+ try
+  items(texts,values,other,2)
+ catch error
+  rejected=true
+ end
+ assert rejected and calls()==before
+ Root root=create(c_int(10))
+ Root firstRoot=create(c_int(20))
+ Root lastRoot=create(c_int(30))
+ array<Root?> roots=[firstRoot,null,lastRoot]
+ array<string?> labels=["a",null,"你"]
+ auto callback=func() as c_int
+  assert (labels[0] as string)=="a" and labels.length==3
+  bool blocked=false
+  try
+   labels[0]="changed"
+  catch error
+   blocked=true
+  end
+  assert blocked
+  blocked=false
+  try
+   roots.clear()
+  catch error
+   blocked=true
+  end
+  assert blocked
+  lastRoot.close()
+  return c_int(0)
+ end
+ assert root.inspect(roots,labels,-1,callback)==c_int(64)
+ func(array<Root?>,array<string?>,int,func() as c_int) as c_int bound=root.inspect
+ auto noop=func() as c_int
+  return c_int(0)
+ end
+ bool closedRejected=false
+ before=calls()
+ try
+  bound(roots,labels,-1,noop)
+ catch error
+  closedRejected=true
+ end
+ assert closedRejected and calls()==before
+ assert bound(roots,labels,0,noop)==c_int(10)
+ Inspector inspector=root
+ assert inspector.inspect(roots,labels,0,noop)==c_int(10)
+ bool succeeded=false
+ int attempt=0
+ while attempt<40
+  bool oom=false
+  before=calls()
+  failAfter(c_int(attempt))
+  try
+   items(["a","b"],values,other,2)
+   succeeded=true
+  catch error
+   oom=true
+  finally
+   resetFailure()
+  end
+  if oom then
+   assert calls()==before
+  end
+  attempt+=1
+ end
+ assert succeeded
+ firstRoot.close()
+ root.close()
+ return 0
+end

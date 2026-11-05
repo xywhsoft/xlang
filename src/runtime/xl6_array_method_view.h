@@ -11,12 +11,12 @@ typedef struct ArrayView {
     xvalue* wire;
 } ArrayView;
 
-static inline bool begin(const xvalue* source, ArrayView* view)
+static inline bool beginMode(const xvalue* source, ArrayView* view, bool readOnly)
 {
     if (!source) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
     XL6_SequenceLayoutV1 layout;
-    int status = xl6SequenceBeginErasedArrayV1(source, &view->owner,
-        &layout, &view->converter);
+    int status = readOnly ? xl6SequenceBeginErasedReadRoleV1(source,XL6_SEQUENCE_ARRAY_V1,&view->owner,&layout,&view->converter) :
+        xl6SequenceBeginErasedArrayV1(source,&view->owner,&layout,&view->converter);
     if (status < 0) return false;
     if (status) {
         view->storage = xl6SequenceStorageV1(view->owner);
@@ -28,6 +28,8 @@ static inline bool begin(const xvalue* source, ArrayView* view)
     view->wire = xrtValueRetain(source);
     return view->wire != NULL;
 }
+static inline bool begin(const xvalue* source,ArrayView* view) { return beginMode(source,view,false); }
+static inline bool beginRead(const xvalue* source,ArrayView* view) { return beginMode(source,view,true); }
 
 static inline void finish(ArrayView* view)
 {

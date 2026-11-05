@@ -12,7 +12,7 @@ static xvalue* read(const xvalue* source,int64_t index,bool safe,bool otherIsNul
     }
     XL6_Sequence* owner=NULL; XL6_SequenceLayoutV1 layout;
     const xvalueconverter* converter=NULL;
-    int status=xl6SequenceBeginErasedArrayV1(source,&owner,&layout,&converter);
+    int status=xl6SequenceBeginErasedReadRoleV1(source,XL6_SEQUENCE_ARRAY_V1,&owner,&layout,&converter);
     if (status<0) return NULL;
     if (!status && xrtValueType(source)!=XVALUE_ARRAY) {
         if (otherIsNull) return missing();
