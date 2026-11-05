@@ -1,0 +1,117 @@
+import xui
+from xui import TextCluster as Cluster
+from xui import TextCaret as Caret
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackProxy(xui.Proxy value)
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackFont(xui.Font value)
+extern "sequence_cpu_proxy" @header("test/cases/foreign_xge3_package_native_sequence.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackProxy) func cpuProxy() as xui.Proxy
+extern "sequence_cpu_font" @header("test/cases/foreign_xge3_package_native_sequence.h") @no_raise @c_result("owned_view") @factory(1,0,rollbackFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "sequence_cpu_shape_drops" @header("test/cases/foreign_xge3_package_native_sequence.h") @no_raise func shapeDrops() as c_int
+extern "sequence_cpu_font_drops" @header("test/cases/foreign_xge3_package_native_sequence.h") @no_raise func fontDrops() as c_int
+extern "sequence_cpu_no_alloc" @header("test/cases/foreign_xge3_package_native_sequence.h") @no_raise func noAlloc()
+extern "sequence_cpu_reset_alloc" @header("test/cases/foreign_xge3_package_native_sequence.h") @no_raise func resetAlloc() as c_int
+func keep(NativeSequence<Cluster> values) as func() as c_int
+ return func() as c_int
+  return values[0].iTextEnd
+ end
+end
+export func copyClusters(NativeSequence<Cluster> values) as NativeSequence<Cluster>
+ return values
+end
+int finallyCount=0
+func flow(NativeSequence<Cluster> values) as int
+ int result=0
+ for value in values
+  try
+   if value.iTextStart==c_int(0) then continue end
+   result=int(value.iTextEnd)
+   break
+  finally
+   finallyCount+=1
+  end
+ end
+ return result
+end
+func fromLoop(NativeSequence<Cluster> values) as int
+ for value in values
+  try
+   return int(value.iTextEnd)
+  finally
+   finallyCount+=1
+  end
+ end
+ return -1
+end
+func throwFromLoop(NativeSequence<Cluster> values)
+ for value in values
+  try
+   throw "sequence loop exit"
+  finally
+   finallyCount+=1
+  end
+ end
+end
+func main(...) as int
+ auto proxy=cpuProxy()
+ auto font=cpuFont(proxy)
+ auto shape=proxy.shapeText(font,"a\0bc")
+ auto clusters=shape.clusters()
+ auto carets=shape.carets()
+ auto tail=clusters.slice(1)
+ auto picked=keep(tail)
+ var boxed=copyClusters(clusters)
+ auto restored=boxed as NativeSequence<Cluster>
+ auto emptyShape=proxy.shapeText(font,"")
+ auto empty=emptyShape.clusters()
+ shape.close()
+ emptyShape.close()
+ font.close()
+ proxy.close()
+ assert shapeDrops()==0 and fontDrops()==0
+ assert clusters.length==2 and clusters.count()==2 and carets.length==2
+ assert empty.length==0 and empty.count()==0
+ assert tail.length==1 and picked()==c_int(4)
+ auto copied=clusters[0]
+ copied.iTextEnd=c_int(99)
+ assert clusters[0].iTextEnd==c_int(2)
+ int total=0
+ int ordinal=0
+ noAlloc()
+ try
+  auto again=boxed as NativeSequence<Cluster>
+  assert again.length==2
+  for value in restored
+   total+=int(value.iTextEnd)
+  end
+  for index,value in carets
+   ordinal+=index+int(value.iTextOffset)
+  end
+  assert clusters[1].iTextStart==c_int(2)
+  assert empty.length==0
+ finally
+  assert resetAlloc()==c_int(0)
+ end
+ assert total==6 and ordinal==5
+ assert flow(restored)==4 and fromLoop(restored)==2
+ bool rejected=false
+ try
+  throwFromLoop(restored)
+ catch error
+  rejected=true
+ end
+ assert rejected and finallyCount==4 and shapeDrops()==0
+ rejected=false
+ try
+  auto absent=clusters[99]
+ catch error
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ try
+  auto wrong=boxed as NativeSequence<Caret>
+ catch error
+  rejected=true
+ end
+ assert rejected
+ return 0
+end
