@@ -1,16 +1,25 @@
-/* ELF loader references must belong to the TCCState that keeps code alive. */
+/* Native loader references belong to the TCCState that keeps code alive. */
 #define _GNU_SOURCE 1
 #include "libtcc.h"
 #include <assert.h>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#else
 #include <dlfcn.h>
+#endif
 #include <stdio.h>
 
 static int loaded(const char* path)
 {
+#ifdef _WIN32
+    return GetModuleHandleA(path)!=NULL;
+#else
     void* handle=dlopen(path,RTLD_NOW|RTLD_NOLOAD);
     if(!handle)return 0;
     dlclose(handle);
     return 1;
+#endif
 }
 static int replacement(void){return 88;}
 static TCCState* create(const char* library,const char* tccdir,int registered)
