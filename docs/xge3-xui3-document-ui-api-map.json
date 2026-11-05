@@ -1,0 +1,1887 @@
+{
+  "scope": "Generate direct Document UI declarations from one matched Native authority.\n\nOnly explicitly audited ownership/callback/descriptor contracts are added.\nEvery remaining C interface has an individual inventory reason.\n",
+  "authority": "F:\\xlang-validation\\foreign-completion-20261103\\native-model-a-native-source-r5\\include\\xui_document_ui.h",
+  "authoritySha256": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2",
+  "functions": [
+    {
+      "native": "xuiDocumentImageResourceLoadMemory",
+      "declaration": "int xuiDocumentImageResourceLoadMemory(xui_context context, const char* resource_name, const void* encoded, uint64_t encoded_bytes, const xui_doc_image_load_limits_t* limits, xui_resource* out)",
+      "line": 99,
+      "logical": [
+        "loadDocumentImageMemory"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentImageResourceLoadFile",
+      "declaration": "int xuiDocumentImageResourceLoadFile(xui_context context, const char* resource_name, const char* authorized_path, const xui_doc_image_load_limits_t* limits, xui_resource* out)",
+      "line": 103,
+      "logical": [
+        "loadDocumentImageFile"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentImageResourceLoadFileAsync",
+      "declaration": "int xuiDocumentImageResourceLoadFileAsync(xui_context context, const char* resource_name, const char* authorized_path, const xui_doc_image_load_limits_t* limits, xui_doc_image_request* out)",
+      "line": 118,
+      "logical": [
+        "loadDocumentImageFileAsync"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentImageResourceLoadMemoryAsync",
+      "declaration": "int xuiDocumentImageResourceLoadMemoryAsync(xui_context context, const char* resource_name, const void* encoded, uint64_t encoded_bytes, const xui_doc_image_load_limits_t* limits, xui_doc_image_request* out)",
+      "line": 121,
+      "logical": [
+        "loadDocumentImageMemoryAsync"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentImageResourcePoll",
+      "declaration": "int xuiDocumentImageResourcePoll(xui_doc_image_request request, xui_resource* out)",
+      "line": 125,
+      "logical": [
+        "DocumentImageRequest.poll"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentImageResourceCancel",
+      "declaration": "int xuiDocumentImageResourceCancel(xui_doc_image_request request)",
+      "line": 127,
+      "logical": [
+        "DocumentImageRequest.cancel"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentImageResourceReleaseOwnerChecked",
+      "declaration": "int xuiDocumentImageResourceReleaseOwnerChecked(xui_doc_image_request request,bool* consumed)",
+      "line": 131,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentImageResourceReleaseChecked",
+      "declaration": "int xuiDocumentImageResourceReleaseChecked(xui_doc_image_request request)",
+      "line": 132,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentImageResourceRelease",
+      "declaration": "void xuiDocumentImageResourceRelease(xui_doc_image_request request)",
+      "line": 133,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentImageResourceGetContext",
+      "declaration": "xui_context xuiDocumentImageResourceGetContext(xui_doc_image_request request)",
+      "line": 134,
+      "logical": [],
+      "status": "explicit-C",
+      "reason": "Borrowed Context pointer has no independent native owner to upgrade; use the existing constructor Context"
+    },
+    {
+      "native": "xuiDocumentImageResourceLifetimeWatch",
+      "declaration": "int xuiDocumentImageResourceLifetimeWatch(xui_doc_image_request request, xui_lifetime_link_t* link,xui_lifetime_invalidate_proc invalidate,void* user)",
+      "line": 135,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentImageResourceGetAsyncStats",
+      "declaration": "int xuiDocumentImageResourceGetAsyncStats(xui_context context, xui_doc_image_async_stats_t* stats)",
+      "line": 146,
+      "logical": [
+        "documentImageAsyncStats"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererCreate",
+      "declaration": "int xuiDocumentRendererCreate(xui_context context, const xui_doc_renderer_desc_t* desc, xui_document_renderer* out)",
+      "line": 152,
+      "logical": [
+        "createDocumentRenderer"
+      ],
+      "status": "cpu-runtime-and-abi-qualified",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentFontOutputInit",
+      "declaration": "int xuiDocumentFontOutputInit(xui_document_renderer renderer,xui_doc_font_output_t* output)",
+      "line": 153,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Fresh native callback storage only; resetting a live output would erase owning Font state"
+    },
+    {
+      "native": "xuiDocumentFontOutputSetFont",
+      "declaration": "int xuiDocumentFontOutputSetFont(xui_doc_font_output_t* output,xui_font font)",
+      "line": 154,
+      "logical": [
+        "CallbackDocumentFontOutput.setFont"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentFontOutputGetFont",
+      "declaration": "xui_font xuiDocumentFontOutputGetFont(const xui_doc_font_output_t* output)",
+      "line": 155,
+      "logical": [
+        "CallbackDocumentFontOutput.font"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentFontOutputDisposeChecked",
+      "declaration": "int xuiDocumentFontOutputDisposeChecked(xui_doc_font_output_t* output)",
+      "line": 156,
+      "logical": [
+        "CallbackDocumentFontOutput.clear"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererSetFontResolverOwned",
+      "declaration": "int xuiDocumentRendererSetFontResolverOwned(xui_document_renderer renderer, xui_doc_font_owned_proc callback,void* user,const xui_callback_owner_t* owner)",
+      "line": 159,
+      "logical": [
+        "DocumentRenderer.setFontResolver"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererSetObjectMeasureOwned",
+      "declaration": "int xuiDocumentRendererSetObjectMeasureOwned(xui_document_renderer renderer, xui_doc_object_measure_owned_proc callback,void* user,const xui_callback_owner_t* owner)",
+      "line": 161,
+      "logical": [
+        "DocumentRenderer.setObjectMeasure"
+      ],
+      "status": "cpu-runtime-and-abi-qualified",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererSetObjectDrawOwned",
+      "declaration": "int xuiDocumentRendererSetObjectDrawOwned(xui_document_renderer renderer, xui_doc_object_draw_owned_proc callback,void* user,const xui_callback_owner_t* owner)",
+      "line": 163,
+      "logical": [
+        "DocumentRenderer.setObjectDraw"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererRelease",
+      "declaration": "void xuiDocumentRendererRelease(xui_document_renderer renderer)",
+      "line": 166,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentRendererRequestClose",
+      "declaration": "int xuiDocumentRendererRequestClose(xui_document_renderer renderer)",
+      "line": 169,
+      "logical": [
+        "CallbackDocumentRenderer.requestClose"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererReleaseOwnerChecked",
+      "declaration": "int xuiDocumentRendererReleaseOwnerChecked(xui_document_renderer renderer,bool* consumed)",
+      "line": 170,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentRendererReleaseChecked",
+      "declaration": "int xuiDocumentRendererReleaseChecked(xui_document_renderer renderer)",
+      "line": 171,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentRendererGetContext",
+      "declaration": "xui_context xuiDocumentRendererGetContext(xui_document_renderer renderer)",
+      "line": 172,
+      "logical": [],
+      "status": "explicit-C",
+      "reason": "Borrowed Context pointer has no independent native owner to upgrade; use the existing constructor Context"
+    },
+    {
+      "native": "xuiDocumentRendererOwnershipBusy",
+      "declaration": "bool xuiDocumentRendererOwnershipBusy(xui_document_renderer renderer)",
+      "line": 173,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentRendererTraceOwnership",
+      "declaration": "bool xuiDocumentRendererTraceOwnership(xui_document_renderer renderer,xrtownershipvisitor visit,void* user)",
+      "line": 174,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentRendererLifetimeWatch",
+      "declaration": "int xuiDocumentRendererLifetimeWatch(xui_document_renderer renderer,xui_lifetime_link_t* link,xui_lifetime_invalidate_proc invalidated,void* user)",
+      "line": 175,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentRendererSetSnapshot",
+      "declaration": "int xuiDocumentRendererSetSnapshot(xui_document_renderer renderer, xui_document_snapshot snapshot, xui_document_change_set changes)",
+      "line": 177,
+      "logical": [
+        "DocumentRenderer.setSnapshot"
+      ],
+      "status": "cpu-runtime-and-abi-qualified",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererSetSourceInput",
+      "declaration": "int xuiDocumentRendererSetSourceInput(xui_document_renderer renderer, xui_document_prepare prepare)",
+      "line": 186,
+      "logical": [
+        "DocumentRenderer.setSourceInput"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererSetMode",
+      "declaration": "int xuiDocumentRendererSetMode(xui_document_renderer renderer, uint32_t mode)",
+      "line": 188,
+      "logical": [
+        "DocumentRenderer.setMode"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererInvalidateObjects",
+      "declaration": "int xuiDocumentRendererInvalidateObjects(xui_document_renderer renderer)",
+      "line": 192,
+      "logical": [
+        "DocumentRenderer.invalidateObjects"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererInvalidateFonts",
+      "declaration": "int xuiDocumentRendererInvalidateFonts(xui_document_renderer renderer)",
+      "line": 195,
+      "logical": [
+        "DocumentRenderer.invalidateFonts"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererSetActivePosition",
+      "declaration": "int xuiDocumentRendererSetActivePosition(xui_document_renderer renderer, const xui_doc_position_t* position)",
+      "line": 199,
+      "logical": [
+        "DocumentRenderer.setActivePosition"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererGetActiveSourceRange",
+      "declaration": "int xuiDocumentRendererGetActiveSourceRange(xui_document_renderer renderer, uint64_t* start, uint64_t* end)",
+      "line": 201,
+      "logical": [
+        "DocumentRenderer.activeSourceRange"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererLayout",
+      "declaration": "int xuiDocumentRendererLayout(xui_document_renderer renderer, double width, double viewport_top, double viewport_height)",
+      "line": 204,
+      "logical": [
+        "DocumentRenderer.layout"
+      ],
+      "status": "cpu-runtime-and-abi-qualified",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererGetSize",
+      "declaration": "int xuiDocumentRendererGetSize(xui_document_renderer renderer, xui_doc_rect_t* size, int* exact)",
+      "line": 206,
+      "logical": [
+        "DocumentRenderer.size"
+      ],
+      "status": "cpu-runtime-and-abi-qualified",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererHitTest",
+      "declaration": "int xuiDocumentRendererHitTest(xui_document_renderer renderer, double x, double y, xui_doc_position_t* position)",
+      "line": 208,
+      "logical": [
+        "DocumentRenderer.hitTest"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererHitTaskMarker",
+      "declaration": "int xuiDocumentRendererHitTaskMarker(xui_document_renderer renderer, double x, double y, xui_doc_node_id* item)",
+      "line": 211,
+      "logical": [
+        "DocumentRenderer.hitTaskMarker"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererHitTestCell",
+      "declaration": "int xuiDocumentRendererHitTestCell(xui_document_renderer renderer, double x, double y, xui_doc_cell_hit_t* out)",
+      "line": 227,
+      "logical": [
+        "DocumentRenderer.hitTestCell"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererGetCellRect",
+      "declaration": "int xuiDocumentRendererGetCellRect(xui_document_renderer renderer, xui_doc_node_id cell, xui_doc_cell_hit_t* out)",
+      "line": 229,
+      "logical": [
+        "DocumentRenderer.cellRect"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererGetNodeRect",
+      "declaration": "int xuiDocumentRendererGetNodeRect(xui_document_renderer renderer, xui_doc_node_id node, xui_doc_rect_t* out)",
+      "line": 232,
+      "logical": [
+        "DocumentRenderer.nodeRect"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererGetCaretRect",
+      "declaration": "int xuiDocumentRendererGetCaretRect(xui_document_renderer renderer, const xui_doc_position_t* position, xui_doc_rect_t* rect)",
+      "line": 234,
+      "logical": [
+        "DocumentRenderer.caretRect"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererGetLineRange",
+      "declaration": "int xuiDocumentRendererGetLineRange(xui_document_renderer renderer, const xui_doc_position_t* position, xui_doc_range_t* range)",
+      "line": 241,
+      "logical": [
+        "DocumentRenderer.lineRange"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererGetRangeRects",
+      "declaration": "int xuiDocumentRendererGetRangeRects(xui_document_renderer renderer, const xui_doc_range_t* range, xui_doc_rect_t* rects, uint64_t capacity, uint64_t* total)",
+      "line": 249,
+      "logical": [],
+      "status": "explicit-C",
+      "reason": "Caller rectangle output array/capacity needs a checked typed writable output-array contract; never one record plus arbitrary capacity"
+    },
+    {
+      "native": "xuiDocumentRendererDraw",
+      "declaration": "int xuiDocumentRendererDraw(xui_document_renderer renderer, xui_draw_context draw, double origin_x, double origin_y, xui_rect_t clip, const xui_doc_range_t* selection, uint32_t selection_color)",
+      "line": 253,
+      "logical": [
+        "DocumentRenderer.draw"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentRendererGetStats",
+      "declaration": "int xuiDocumentRendererGetStats(xui_document_renderer renderer, xui_doc_renderer_stats_t* stats)",
+      "line": 256,
+      "logical": [
+        "DocumentRenderer.stats"
+      ],
+      "status": "cpu-runtime-and-abi-qualified",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentWebProviderCreate",
+      "declaration": "int xuiDocumentWebProviderCreate(const xui_doc_web_provider_desc_t* desc, xui_doc_web_provider* out)",
+      "line": 281,
+      "logical": [
+        "createDocumentWebProvider"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentWebProviderReleaseOwnerChecked",
+      "declaration": "int xuiDocumentWebProviderReleaseOwnerChecked(xui_doc_web_provider provider, bool* consumed)",
+      "line": 286,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentWebProviderReleaseChecked",
+      "declaration": "int xuiDocumentWebProviderReleaseChecked(xui_doc_web_provider provider)",
+      "line": 288,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentWebProviderRelease",
+      "declaration": "void xuiDocumentWebProviderRelease(xui_doc_web_provider provider)",
+      "line": 289,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentWebProviderGetContext",
+      "declaration": "xui_context xuiDocumentWebProviderGetContext(xui_doc_web_provider provider)",
+      "line": 290,
+      "logical": [],
+      "status": "explicit-C",
+      "reason": "Borrowed Context pointer has no independent native owner to upgrade; use the existing constructor Context"
+    },
+    {
+      "native": "xuiDocumentWebProviderLifetimeWatch",
+      "declaration": "int xuiDocumentWebProviderLifetimeWatch(xui_doc_web_provider provider, xui_lifetime_link_t* link,xui_lifetime_invalidate_proc invalidate,void* user)",
+      "line": 291,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentWebProviderSetInvalidate",
+      "declaration": "int xuiDocumentWebProviderSetInvalidate(xui_doc_web_provider provider, xui_doc_web_invalidate_proc callback,void* user)",
+      "line": 293,
+      "logical": [],
+      "status": "explicit-C",
+      "reason": "Persistent raw callback/userdata contract; use the typed Owned setter"
+    },
+    {
+      "native": "xuiDocumentWebProviderSetInvalidateOwned",
+      "declaration": "int xuiDocumentWebProviderSetInvalidateOwned(xui_doc_web_provider provider, xui_doc_web_invalidate_proc callback,void* user,const xui_callback_owner_t* owner)",
+      "line": 295,
+      "logical": [
+        "DocumentWebProvider.setInvalidate"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentWebProviderUpdate",
+      "declaration": "int xuiDocumentWebProviderUpdate(xui_doc_web_provider provider)",
+      "line": 300,
+      "logical": [
+        "DocumentWebProvider.update"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentWebProviderSetPalette",
+      "declaration": "int xuiDocumentWebProviderSetPalette(xui_doc_web_provider provider, uint32_t foreground, uint32_t background)",
+      "line": 303,
+      "logical": [
+        "DocumentWebProvider.setPalette"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentWebProviderGetStats",
+      "declaration": "int xuiDocumentWebProviderGetStats(xui_doc_web_provider provider, xui_doc_web_provider_stats_t* out)",
+      "line": 316,
+      "logical": [
+        "DocumentWebProvider.stats"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentWebObjectMeasure",
+      "declaration": "int xuiDocumentWebObjectMeasure(xui_document_snapshot snapshot, xui_doc_node_id node, float width, float zoom, xui_vec2_t* size, float* baseline, void* provider)",
+      "line": 319,
+      "logical": [],
+      "status": "explicit-C",
+      "reason": "Legacy callback adapter erases provider as void*; typed Renderer Owned callbacks avoid untracked userdata"
+    },
+    {
+      "native": "xuiDocumentWebObjectDraw",
+      "declaration": "int xuiDocumentWebObjectDraw(xui_document_snapshot snapshot, xui_doc_node_id node, xui_proxy proxy, xui_draw_context draw, xui_rect_t bounds, void* provider)",
+      "line": 323,
+      "logical": [],
+      "status": "explicit-C",
+      "reason": "Legacy callback adapter erases provider as void*; typed Renderer Owned callbacks avoid untracked userdata"
+    },
+    {
+      "native": "xuiDocumentHtmlInteractionCreate",
+      "declaration": "int xuiDocumentHtmlInteractionCreate( const xui_doc_html_interaction_desc_t* desc, xui_doc_html_interaction* out)",
+      "line": 361,
+      "logical": [
+        "createDocumentHtmlInteraction"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentHtmlInteractionUpdate",
+      "declaration": "int xuiDocumentHtmlInteractionUpdate(xui_doc_html_interaction interaction)",
+      "line": 364,
+      "logical": [
+        "DocumentHtmlInteraction.update"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentHtmlInteractionShow",
+      "declaration": "int xuiDocumentHtmlInteractionShow(xui_doc_html_interaction interaction)",
+      "line": 366,
+      "logical": [
+        "DocumentHtmlInteraction.show"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentHtmlInteractionGetWindow",
+      "declaration": "xui_widget xuiDocumentHtmlInteractionGetWindow(xui_doc_html_interaction interaction)",
+      "line": 368,
+      "logical": [
+        "DocumentHtmlInteraction.window"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentHtmlInteractionGetWebView",
+      "declaration": "xui_widget xuiDocumentHtmlInteractionGetWebView(xui_doc_html_interaction interaction)",
+      "line": 370,
+      "logical": [
+        "DocumentHtmlInteraction.webView"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentHtmlInteractionRelease",
+      "declaration": "void xuiDocumentHtmlInteractionRelease(xui_doc_html_interaction interaction)",
+      "line": 372,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentHtmlInteractionReleaseOwnerChecked",
+      "declaration": "int xuiDocumentHtmlInteractionReleaseOwnerChecked(xui_doc_html_interaction interaction, bool* consumed)",
+      "line": 373,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentHtmlInteractionReleaseChecked",
+      "declaration": "int xuiDocumentHtmlInteractionReleaseChecked(xui_doc_html_interaction interaction)",
+      "line": 374,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentHtmlInteractionGetContext",
+      "declaration": "xui_context xuiDocumentHtmlInteractionGetContext(xui_doc_html_interaction interaction)",
+      "line": 375,
+      "logical": [],
+      "status": "explicit-C",
+      "reason": "Borrowed Context pointer has no independent native owner to upgrade; use the existing constructor Context"
+    },
+    {
+      "native": "xuiDocumentHtmlInteractionLifetimeWatch",
+      "declaration": "int xuiDocumentHtmlInteractionLifetimeWatch(xui_doc_html_interaction interaction, xui_lifetime_link_t* link, xui_lifetime_invalidate_proc invalidate, void* user)",
+      "line": 376,
+      "logical": [],
+      "status": "private-lifetime-infrastructure",
+      "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
+    },
+    {
+      "native": "xuiDocumentHtmlInteractionSetOpenLink",
+      "declaration": "int xuiDocumentHtmlInteractionSetOpenLink(xui_doc_html_interaction interaction, xui_doc_html_open_link_proc callback, void* user)",
+      "line": 379,
+      "logical": [],
+      "status": "explicit-C",
+      "reason": "Persistent raw callback/userdata contract; use the typed Owned setter"
+    },
+    {
+      "native": "xuiDocumentHtmlInteractionSetOpenLinkOwned",
+      "declaration": "int xuiDocumentHtmlInteractionSetOpenLinkOwned(xui_doc_html_interaction interaction, xui_doc_html_open_link_view_proc callback, void* user, const xui_callback_owner_t* owner)",
+      "line": 380,
+      "logical": [
+        "DocumentHtmlInteraction.setOpenLink"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewGetType",
+      "declaration": "xui_widget_type xuiDocumentViewGetType(xui_context context)",
+      "line": 400,
+      "logical": [],
+      "status": "explicit-C",
+      "reason": "Native WidgetType registry identity is not an owned public Widget object"
+    },
+    {
+      "native": "xuiDocumentViewCreate",
+      "declaration": "int xuiDocumentViewCreate(xui_context context, const xui_doc_view_desc_t* desc, xui_widget* out)",
+      "line": 402,
+      "logical": [
+        "createDocumentView"
+      ],
+      "status": "cpu-runtime-and-abi-qualified",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewSetActivateOwned",
+      "declaration": "int xuiDocumentViewSetActivateOwned(xui_widget view, xui_doc_view_activate_owned_proc callback, void* user, const xui_callback_owner_t* owner)",
+      "line": 403,
+      "logical": [
+        "DocumentView.setActivate"
+      ],
+      "status": "cpu-runtime-and-abi-qualified",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewSetDocument",
+      "declaration": "int xuiDocumentViewSetDocument(xui_widget view, xui_document document)",
+      "line": 405,
+      "logical": [
+        "DocumentView.setDocument"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewGetDocument",
+      "declaration": "xui_document xuiDocumentViewGetDocument(xui_widget view)",
+      "line": 407,
+      "logical": [
+        "DocumentView.document"
+      ],
+      "status": "cpu-runtime-and-abi-qualified",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewSetSelection",
+      "declaration": "int xuiDocumentViewSetSelection(xui_widget view, const xui_doc_range_t* range)",
+      "line": 409,
+      "logical": [
+        "DocumentView.setSelection"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewGetSelection",
+      "declaration": "int xuiDocumentViewGetSelection(xui_widget view, xui_doc_range_t* range)",
+      "line": 411,
+      "logical": [
+        "DocumentView.selection"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewSelectObject",
+      "declaration": "int xuiDocumentViewSelectObject(xui_widget view, xui_doc_node_id node)",
+      "line": 414,
+      "logical": [
+        "DocumentView.selectObject"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewSetScroll",
+      "declaration": "int xuiDocumentViewSetScroll(xui_widget view, double x, double y)",
+      "line": 416,
+      "logical": [
+        "DocumentView.setScroll"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewGetScroll",
+      "declaration": "int xuiDocumentViewGetScroll(xui_widget view, double* x, double* y)",
+      "line": 418,
+      "logical": [
+        "DocumentView.scroll"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewSetZoom",
+      "declaration": "int xuiDocumentViewSetZoom(xui_widget view, float zoom)",
+      "line": 420,
+      "logical": [
+        "DocumentView.setZoom"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewSetMode",
+      "declaration": "int xuiDocumentViewSetMode(xui_widget view, uint32_t mode)",
+      "line": 422,
+      "logical": [
+        "DocumentView.setMode"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewInvalidateObjects",
+      "declaration": "int xuiDocumentViewInvalidateObjects(xui_widget view)",
+      "line": 424,
+      "logical": [
+        "DocumentView.invalidateObjects"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewInvalidateFonts",
+      "declaration": "int xuiDocumentViewInvalidateFonts(xui_widget view)",
+      "line": 427,
+      "logical": [
+        "DocumentView.invalidateFonts"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewGetMode",
+      "declaration": "uint32_t xuiDocumentViewGetMode(xui_widget view)",
+      "line": 429,
+      "logical": [
+        "DocumentView.mode"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewGetContentSize",
+      "declaration": "int xuiDocumentViewGetContentSize(xui_widget view, xui_doc_rect_t* size, int* exact)",
+      "line": 431,
+      "logical": [
+        "DocumentView.contentSize"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewGetRenderStats",
+      "declaration": "int xuiDocumentViewGetRenderStats(xui_widget view, xui_doc_renderer_stats_t* stats)",
+      "line": 433,
+      "logical": [
+        "DocumentView.renderStats"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewHitTest",
+      "declaration": "int xuiDocumentViewHitTest(xui_widget view, double x, double y, xui_doc_position_t* position)",
+      "line": 435,
+      "logical": [
+        "DocumentView.hitTest"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewHitTestCell",
+      "declaration": "int xuiDocumentViewHitTestCell(xui_widget view, double x, double y, xui_doc_cell_hit_t* out)",
+      "line": 437,
+      "logical": [
+        "DocumentView.hitTestCell"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewGetCellRect",
+      "declaration": "int xuiDocumentViewGetCellRect(xui_widget view, xui_doc_node_id cell, xui_doc_cell_hit_t* out)",
+      "line": 439,
+      "logical": [
+        "DocumentView.cellRect"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewSetTableSelection",
+      "declaration": "int xuiDocumentViewSetTableSelection(xui_widget view, const xui_doc_table_selection_t* selection)",
+      "line": 444,
+      "logical": [
+        "DocumentView.setTableSelection"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewGetTableSelection",
+      "declaration": "int xuiDocumentViewGetTableSelection(xui_widget view, xui_doc_table_selection_t* out)",
+      "line": 447,
+      "logical": [
+        "DocumentView.tableSelection"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewFind",
+      "declaration": "int xuiDocumentViewFind(xui_widget view, const char* pattern, uint64_t bytes, int backward, int wrap, xui_doc_range_t* match)",
+      "line": 449,
+      "logical": [
+        "DocumentView.find"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewFindEx",
+      "declaration": "int xuiDocumentViewFindEx(xui_widget view, const char* pattern, uint64_t bytes, uint32_t flags, int backward, int wrap, xui_doc_range_t* match)",
+      "line": 451,
+      "logical": [
+        "DocumentView.findEx"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewSetFindQuery",
+      "declaration": "int xuiDocumentViewSetFindQuery(xui_widget view, const char* pattern, uint64_t bytes)",
+      "line": 459,
+      "logical": [
+        "DocumentView.setFindQuery"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewSetFindQueryEx",
+      "declaration": "int xuiDocumentViewSetFindQueryEx(xui_widget view, const char* pattern, uint64_t bytes, uint32_t flags)",
+      "line": 461,
+      "logical": [
+        "DocumentView.setFindQueryEx"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewSetFindScope",
+      "declaration": "int xuiDocumentViewSetFindScope(xui_widget view, const xui_doc_range_t* scope)",
+      "line": 465,
+      "logical": [
+        "DocumentView.setFindScope"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewGetFindScope",
+      "declaration": "int xuiDocumentViewGetFindScope(xui_widget view, xui_doc_range_t* scope)",
+      "line": 467,
+      "logical": [
+        "DocumentView.findScope"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewClearFind",
+      "declaration": "int xuiDocumentViewClearFind(xui_widget view)",
+      "line": 469,
+      "logical": [
+        "DocumentView.clearFind"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewGetFindResultCount",
+      "declaration": "int xuiDocumentViewGetFindResultCount(xui_widget view, uint64_t* count)",
+      "line": 471,
+      "logical": [
+        "DocumentView.findResultCount"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewGetFindResult",
+      "declaration": "int xuiDocumentViewGetFindResult(xui_widget view, uint64_t index, xui_doc_range_t* range, int* active)",
+      "line": 473,
+      "logical": [
+        "DocumentView.findResult"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentViewActivateFindResult",
+      "declaration": "int xuiDocumentViewActivateFindResult(xui_widget view, uint64_t index, xui_doc_range_t* match)",
+      "line": 475,
+      "logical": [
+        "DocumentView.activateFindResult"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiMessageListSetNodeDocument",
+      "declaration": "int xuiMessageListSetNodeDocument(xui_widget list, const char* message_id, const xui_message_document_desc_t* desc)",
+      "line": 498,
+      "logical": [
+        "MessageList.setNodeDocument"
+      ],
+      "status": "cpu-runtime-and-abi-qualified",
+      "reason": ""
+    },
+    {
+      "native": "xuiMessageListSetNodeDocumentActivateOwned",
+      "declaration": "int xuiMessageListSetNodeDocumentActivateOwned(xui_widget list, const char* message_id, xui_doc_view_activate_owned_proc callback, void* user, const xui_callback_owner_t* owner)",
+      "line": 500,
+      "logical": [
+        "MessageList.setNodeDocumentActivate"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiMessageListSetNodeDocumentTaskToggleOwned",
+      "declaration": "int xuiMessageListSetNodeDocumentTaskToggleOwned(xui_widget list, const char* message_id, xui_doc_task_toggle_proc callback, void* user, const xui_callback_owner_t* owner)",
+      "line": 501,
+      "logical": [
+        "MessageList.setNodeDocumentTaskToggle"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiMessageListGetNodeDocument",
+      "declaration": "xui_document xuiMessageListGetNodeDocument(xui_widget list, const char* message_id)",
+      "line": 503,
+      "logical": [
+        "MessageList.nodeDocument"
+      ],
+      "status": "cpu-runtime-and-abi-qualified",
+      "reason": ""
+    },
+    {
+      "native": "xuiMessageListGetNodeDocumentRenderStats",
+      "declaration": "int xuiMessageListGetNodeDocumentRenderStats(xui_widget list, const char* message_id, xui_doc_renderer_stats_t* stats)",
+      "line": 507,
+      "logical": [
+        "MessageList.nodeDocumentRenderStats"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiMessageListInvalidateNodeDocumentObjects",
+      "declaration": "int xuiMessageListInvalidateNodeDocumentObjects(xui_widget list, const char* message_id)",
+      "line": 510,
+      "logical": [
+        "MessageList.invalidateNodeDocumentObjects"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiMessageListInvalidateNodeDocumentFonts",
+      "declaration": "int xuiMessageListInvalidateNodeDocumentFonts(xui_widget list, const char* message_id)",
+      "line": 513,
+      "logical": [
+        "MessageList.invalidateNodeDocumentFonts"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiMessageListHitNodeDocument",
+      "declaration": "int xuiMessageListHitNodeDocument(xui_widget list, const char* message_id, double world_x, double world_y, xui_doc_position_t* position)",
+      "line": 516,
+      "logical": [
+        "MessageList.hitNodeDocument"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiMessageListGetNodeDocumentSelection",
+      "declaration": "int xuiMessageListGetNodeDocumentSelection(xui_widget list, const char* message_id, xui_doc_range_t* range)",
+      "line": 520,
+      "logical": [
+        "MessageList.nodeDocumentSelection"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiMessageListSetNodeDocumentTableSelection",
+      "declaration": "int xuiMessageListSetNodeDocumentTableSelection(xui_widget list, const char* message_id, const xui_doc_table_selection_t* selection)",
+      "line": 524,
+      "logical": [
+        "MessageList.setNodeDocumentTableSelection"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiMessageListGetNodeDocumentTableSelection",
+      "declaration": "int xuiMessageListGetNodeDocumentTableSelection(xui_widget list, const char* message_id, xui_doc_table_selection_t* out)",
+      "line": 527,
+      "logical": [
+        "MessageList.nodeDocumentTableSelection"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorGetType",
+      "declaration": "xui_widget_type xuiDocumentEditorGetType(xui_context context)",
+      "line": 606,
+      "logical": [],
+      "status": "explicit-C",
+      "reason": "Native WidgetType registry identity is not an owned public Widget object"
+    },
+    {
+      "native": "xuiDocumentEditorCreate",
+      "declaration": "int xuiDocumentEditorCreate(xui_context context, const xui_doc_editor_desc_t* desc, xui_widget* out)",
+      "line": 608,
+      "logical": [
+        "createDocumentEditor"
+      ],
+      "status": "cpu-runtime-and-abi-qualified",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorSetErrorOwned",
+      "declaration": "int xuiDocumentEditorSetErrorOwned(xui_widget editor, xui_doc_editor_error_proc callback, void* user, const xui_callback_owner_t* owner)",
+      "line": 610,
+      "logical": [
+        "DocumentEditor.setError"
+      ],
+      "status": "cpu-runtime-and-abi-qualified",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorInsertText",
+      "declaration": "int xuiDocumentEditorInsertText(xui_widget editor, const char* text, uint64_t bytes)",
+      "line": 618,
+      "logical": [
+        "DocumentEditor.insertText"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorAppendStreamSource",
+      "declaration": "int xuiDocumentEditorAppendStreamSource(xui_widget editor, const char* text, uint64_t bytes, int final_chunk)",
+      "line": 626,
+      "logical": [
+        "DocumentEditor.appendStreamSource"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorExecute",
+      "declaration": "int xuiDocumentEditorExecute(xui_widget editor, uint32_t command)",
+      "line": 629,
+      "logical": [
+        "DocumentEditor.execute"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorGetMenuWidget",
+      "declaration": "xui_widget xuiDocumentEditorGetMenuWidget(xui_widget editor)",
+      "line": 632,
+      "logical": [
+        "DocumentEditor.menuWidget"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorOpenMenu",
+      "declaration": "int xuiDocumentEditorOpenMenu(xui_widget editor, float x, float y)",
+      "line": 634,
+      "logical": [
+        "DocumentEditor.openMenu"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorSetupToolbar",
+      "declaration": "int xuiDocumentEditorSetupToolbar(xui_widget editor, xui_widget toolbar, uint32_t groups)",
+      "line": 639,
+      "logical": [
+        "DocumentEditor.setupToolbar"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorSyncToolbar",
+      "declaration": "int xuiDocumentEditorSyncToolbar(xui_widget editor, xui_widget toolbar)",
+      "line": 641,
+      "logical": [
+        "DocumentEditor.syncToolbar"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorExecuteToolbarItem",
+      "declaration": "int xuiDocumentEditorExecuteToolbarItem(xui_widget editor, xui_widget toolbar, int index)",
+      "line": 643,
+      "logical": [
+        "DocumentEditor.executeToolbarItem"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorQueryCommand",
+      "declaration": "int xuiDocumentEditorQueryCommand(xui_widget editor, uint32_t command, xui_doc_command_state_t* state)",
+      "line": 646,
+      "logical": [
+        "DocumentEditor.queryCommand"
+      ],
+      "status": "cpu-runtime-and-abi-qualified",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorCanExecute",
+      "declaration": "int xuiDocumentEditorCanExecute(xui_widget editor, uint32_t command)",
+      "line": 648,
+      "logical": [
+        "DocumentEditor.canExecute"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorQueryParagraphSpacing",
+      "declaration": "int xuiDocumentEditorQueryParagraphSpacing(xui_widget editor, xui_doc_paragraph_spacing_state_t* state)",
+      "line": 651,
+      "logical": [
+        "DocumentEditor.queryParagraphSpacing"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorSetParagraphSpacing",
+      "declaration": "int xuiDocumentEditorSetParagraphSpacing(xui_widget editor, float spacing, int use_default)",
+      "line": 653,
+      "logical": [
+        "DocumentEditor.setParagraphSpacing"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorSetReadOnly",
+      "declaration": "int xuiDocumentEditorSetReadOnly(xui_widget editor, int read_only)",
+      "line": 655,
+      "logical": [
+        "DocumentEditor.setReadOnly"
+      ],
+      "status": "cpu-runtime-and-abi-qualified",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorSetTableColumnWidth",
+      "declaration": "int xuiDocumentEditorSetTableColumnWidth(xui_widget editor, xui_doc_node_id table, uint32_t column, float width)",
+      "line": 658,
+      "logical": [
+        "DocumentEditor.setTableColumnWidth"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorToggleTaskItem",
+      "declaration": "int xuiDocumentEditorToggleTaskItem(xui_widget editor, xui_doc_node_id item)",
+      "line": 662,
+      "logical": [
+        "DocumentEditor.toggleTaskItem"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorGetReadOnly",
+      "declaration": "int xuiDocumentEditorGetReadOnly(xui_widget editor)",
+      "line": 665,
+      "logical": [
+        "DocumentEditor.readOnly"
+      ],
+      "status": "cpu-runtime-and-abi-qualified",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorSetMarks",
+      "declaration": "int xuiDocumentEditorSetMarks(xui_widget editor, uint32_t set, uint32_t clear)",
+      "line": 667,
+      "logical": [
+        "DocumentEditor.setMarks"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorQueryTextStyle",
+      "declaration": "int xuiDocumentEditorQueryTextStyle(xui_widget editor, xui_doc_editor_text_style_state_t* state)",
+      "line": 678,
+      "logical": [
+        "DocumentEditor.queryTextStyle"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorSetTextStyle",
+      "declaration": "int xuiDocumentEditorSetTextStyle(xui_widget editor, uint32_t fields, const xui_doc_text_style_t* style)",
+      "line": 680,
+      "logical": [
+        "DocumentEditor.setTextStyle"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorInsertLink",
+      "declaration": "int xuiDocumentEditorInsertLink(xui_widget editor, const char* label, uint64_t label_bytes, const char* uri, const char* title)",
+      "line": 685,
+      "logical": [
+        "DocumentEditor.insertLink"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorSetLink",
+      "declaration": "int xuiDocumentEditorSetLink(xui_widget editor, const char* uri, const char* title)",
+      "line": 688,
+      "logical": [
+        "DocumentEditor.setLink"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorInsertImage",
+      "declaration": "int xuiDocumentEditorInsertImage(xui_widget editor, const xui_doc_image_desc_t* image)",
+      "line": 690,
+      "logical": [
+        "DocumentEditor.insertImage"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorInsertObject",
+      "declaration": "int xuiDocumentEditorInsertObject(xui_widget editor, uint32_t kind, uint32_t flags, const char* utf8, uint64_t bytes)",
+      "line": 693,
+      "logical": [
+        "DocumentEditor.insertObject"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorInsertCodeBlock",
+      "declaration": "int xuiDocumentEditorInsertCodeBlock(xui_widget editor, const char* language, const char* utf8, uint64_t bytes)",
+      "line": 697,
+      "logical": [
+        "DocumentEditor.insertCodeBlock"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorSetCodeBlockLanguage",
+      "declaration": "int xuiDocumentEditorSetCodeBlockLanguage(xui_widget editor, xui_doc_node_id code_id, const char* language)",
+      "line": 702,
+      "logical": [
+        "DocumentEditor.setCodeBlockLanguage"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorInsertRule",
+      "declaration": "int xuiDocumentEditorInsertRule(xui_widget editor)",
+      "line": 705,
+      "logical": [
+        "DocumentEditor.insertRule"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorWrapQuote",
+      "declaration": "int xuiDocumentEditorWrapQuote(xui_widget editor)",
+      "line": 708,
+      "logical": [
+        "DocumentEditor.wrapQuote"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorUnwrapQuote",
+      "declaration": "int xuiDocumentEditorUnwrapQuote(xui_widget editor)",
+      "line": 710,
+      "logical": [
+        "DocumentEditor.unwrapQuote"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorInsertFootnote",
+      "declaration": "int xuiDocumentEditorInsertFootnote(xui_widget editor, const char* label, const char* initial_utf8, uint64_t initial_bytes)",
+      "line": 713,
+      "logical": [
+        "DocumentEditor.insertFootnote"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorRemoveFootnoteReference",
+      "declaration": "int xuiDocumentEditorRemoveFootnoteReference(xui_widget editor, xui_doc_node_id reference_id)",
+      "line": 716,
+      "logical": [
+        "DocumentEditor.removeFootnoteReference"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorInsertTable",
+      "declaration": "int xuiDocumentEditorInsertTable(xui_widget editor, uint32_t rows, uint32_t columns)",
+      "line": 721,
+      "logical": [
+        "DocumentEditor.insertTable"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorUpdateImage",
+      "declaration": "int xuiDocumentEditorUpdateImage(xui_widget editor, xui_doc_node_id image_id, const xui_doc_image_desc_t* image)",
+      "line": 723,
+      "logical": [
+        "DocumentEditor.updateImage"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorUpdateObjectSource",
+      "declaration": "int xuiDocumentEditorUpdateObjectSource(xui_widget editor, xui_doc_node_id object_id, const char* utf8, uint64_t bytes)",
+      "line": 729,
+      "logical": [
+        "DocumentEditor.updateObjectSource"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorReplaceCurrent",
+      "declaration": "int xuiDocumentEditorReplaceCurrent(xui_widget editor, const char* pattern, uint64_t pattern_bytes, const char* replacement, uint64_t replacement_bytes)",
+      "line": 733,
+      "logical": [
+        "DocumentEditor.replaceCurrent"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorReplaceCurrentEx",
+      "declaration": "int xuiDocumentEditorReplaceCurrentEx(xui_widget editor, const char* pattern, uint64_t pattern_bytes, const char* replacement, uint64_t replacement_bytes, uint32_t flags)",
+      "line": 736,
+      "logical": [
+        "DocumentEditor.replaceCurrentEx"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorReplaceAll",
+      "declaration": "int xuiDocumentEditorReplaceAll(xui_widget editor, const char* pattern, uint64_t pattern_bytes, const char* replacement, uint64_t replacement_bytes, const xui_doc_range_t* scope, uint64_t* replaced)",
+      "line": 740,
+      "logical": [
+        "DocumentEditor.replaceAll"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorReplaceAllEx",
+      "declaration": "int xuiDocumentEditorReplaceAllEx(xui_widget editor, const char* pattern, uint64_t pattern_bytes, const char* replacement, uint64_t replacement_bytes, uint32_t flags, const xui_doc_range_t* scope, uint64_t* replaced)",
+      "line": 743,
+      "logical": [
+        "DocumentEditor.replaceAllEx"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorOpenFind",
+      "declaration": "int xuiDocumentEditorOpenFind(xui_widget editor)",
+      "line": 749,
+      "logical": [
+        "DocumentEditor.openFind"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorOpenReplace",
+      "declaration": "int xuiDocumentEditorOpenReplace(xui_widget editor)",
+      "line": 751,
+      "logical": [
+        "DocumentEditor.openReplace"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorGetFindWindow",
+      "declaration": "xui_widget xuiDocumentEditorGetFindWindow(xui_widget editor)",
+      "line": 753,
+      "logical": [
+        "DocumentEditor.findWindow"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorCancelComposition",
+      "declaration": "int xuiDocumentEditorCancelComposition(xui_widget editor)",
+      "line": 755,
+      "logical": [
+        "DocumentEditor.cancelComposition"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorIsComposing",
+      "declaration": "int xuiDocumentEditorIsComposing(xui_widget editor)",
+      "line": 757,
+      "logical": [
+        "DocumentEditor.isComposing"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorFlush",
+      "declaration": "int xuiDocumentEditorFlush(xui_widget editor)",
+      "line": 765,
+      "logical": [
+        "DocumentEditor.flush"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorRetryInput",
+      "declaration": "int xuiDocumentEditorRetryInput(xui_widget editor)",
+      "line": 767,
+      "logical": [
+        "DocumentEditor.retryInput"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorCancelInput",
+      "declaration": "int xuiDocumentEditorCancelInput(xui_widget editor)",
+      "line": 769,
+      "logical": [
+        "DocumentEditor.cancelInput"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorGetPendingInput",
+      "declaration": "int xuiDocumentEditorGetPendingInput(xui_widget editor, xui_doc_prepare_info_t* info)",
+      "line": 771,
+      "logical": [
+        "DocumentEditor.pendingInput"
+      ],
+      "status": "reachable-abi-qualified-runtime-not-executed",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentEditorGetPendingWork",
+      "declaration": "int xuiDocumentEditorGetPendingWork(xui_widget editor, xui_doc_editor_pending_work_t* info)",
+      "line": 789,
+      "logical": [
+        "DocumentEditor.pendingWork"
+      ],
+      "status": "cpu-runtime-and-abi-qualified",
+      "reason": ""
+    }
+  ],
+  "records": {
+    "xui_doc_rect_t": "DocumentRect",
+    "xui_doc_renderer_stats_t": "DocumentRendererStats",
+    "xui_doc_image_load_limits_t": "DocumentImageLoadLimits",
+    "xui_doc_image_async_stats_t": "DocumentImageAsyncStats",
+    "xui_doc_cell_hit_t": "DocumentCellHit",
+    "xui_doc_table_selection_t": "DocumentTableSelection",
+    "xui_doc_web_provider_stats_t": "DocumentWebProviderStats",
+    "xui_doc_command_state_t": "DocumentCommandState",
+    "xui_doc_paragraph_spacing_state_t": "DocumentParagraphSpacingState",
+    "xui_doc_editor_text_style_state_t": "DocumentEditorTextStyleState",
+    "xui_doc_editor_pending_work_t": "DocumentEditorPendingWork"
+  },
+  "constants": [
+    [
+      "XUI_DOC_VISUAL",
+      1
+    ],
+    [
+      "XUI_DOC_SOURCE_TEXT",
+      2
+    ],
+    [
+      "XUI_DOC_LIVE_MARKDOWN",
+      3
+    ],
+    [
+      "XUI_DOC_EDIT_UNDO",
+      1
+    ],
+    [
+      "XUI_DOC_EDIT_REDO",
+      2
+    ],
+    [
+      "XUI_DOC_EDIT_SELECT_ALL",
+      3
+    ],
+    [
+      "XUI_DOC_EDIT_COPY",
+      4
+    ],
+    [
+      "XUI_DOC_EDIT_CUT",
+      5
+    ],
+    [
+      "XUI_DOC_EDIT_PASTE",
+      6
+    ],
+    [
+      "XUI_DOC_EDIT_BACKSPACE",
+      7
+    ],
+    [
+      "XUI_DOC_EDIT_DELETE",
+      8
+    ],
+    [
+      "XUI_DOC_EDIT_ENTER",
+      9
+    ],
+    [
+      "XUI_DOC_EDIT_BOLD",
+      10
+    ],
+    [
+      "XUI_DOC_EDIT_ITALIC",
+      11
+    ],
+    [
+      "XUI_DOC_EDIT_UNDERLINE",
+      12
+    ],
+    [
+      "XUI_DOC_EDIT_STRIKE",
+      13
+    ],
+    [
+      "XUI_DOC_EDIT_INDENT_LIST",
+      14
+    ],
+    [
+      "XUI_DOC_EDIT_OUTDENT_LIST",
+      15
+    ],
+    [
+      "XUI_DOC_EDIT_PARAGRAPH",
+      16
+    ],
+    [
+      "XUI_DOC_EDIT_HEADING_1",
+      17
+    ],
+    [
+      "XUI_DOC_EDIT_HEADING_2",
+      18
+    ],
+    [
+      "XUI_DOC_EDIT_HEADING_3",
+      19
+    ],
+    [
+      "XUI_DOC_EDIT_HEADING_4",
+      20
+    ],
+    [
+      "XUI_DOC_EDIT_HEADING_5",
+      21
+    ],
+    [
+      "XUI_DOC_EDIT_HEADING_6",
+      22
+    ],
+    [
+      "XUI_DOC_EDIT_ALIGN_LEFT",
+      23
+    ],
+    [
+      "XUI_DOC_EDIT_ALIGN_CENTER",
+      24
+    ],
+    [
+      "XUI_DOC_EDIT_ALIGN_RIGHT",
+      25
+    ],
+    [
+      "XUI_DOC_EDIT_ALIGN_JUSTIFY",
+      26
+    ],
+    [
+      "XUI_DOC_EDIT_CODE",
+      27
+    ],
+    [
+      "XUI_DOC_EDIT_SUBSCRIPT",
+      28
+    ],
+    [
+      "XUI_DOC_EDIT_SUPERSCRIPT",
+      29
+    ],
+    [
+      "XUI_DOC_EDIT_HIGHLIGHT",
+      30
+    ],
+    [
+      "XUI_DOC_EDIT_TABLE_NEXT_CELL",
+      31
+    ],
+    [
+      "XUI_DOC_EDIT_TABLE_PREVIOUS_CELL",
+      32
+    ],
+    [
+      "XUI_DOC_EDIT_TABLE_INSERT_ROW_BEFORE",
+      33
+    ],
+    [
+      "XUI_DOC_EDIT_TABLE_INSERT_ROW_AFTER",
+      34
+    ],
+    [
+      "XUI_DOC_EDIT_TABLE_DELETE_ROW",
+      35
+    ],
+    [
+      "XUI_DOC_EDIT_TABLE_INSERT_COLUMN_BEFORE",
+      36
+    ],
+    [
+      "XUI_DOC_EDIT_TABLE_INSERT_COLUMN_AFTER",
+      37
+    ],
+    [
+      "XUI_DOC_EDIT_TABLE_DELETE_COLUMN",
+      38
+    ],
+    [
+      "XUI_DOC_EDIT_TABLE_SPLIT_CELL",
+      39
+    ],
+    [
+      "XUI_DOC_EDIT_TABLE_MERGE_CELLS",
+      40
+    ],
+    [
+      "XUI_DOC_EDIT_TABLE_COLUMN_NARROWER",
+      41
+    ],
+    [
+      "XUI_DOC_EDIT_TABLE_COLUMN_WIDER",
+      42
+    ],
+    [
+      "XUI_DOC_EDIT_TABLE_COLUMN_AUTO",
+      43
+    ],
+    [
+      "XUI_DOC_EDIT_CLEAR_FORMATTING",
+      44
+    ],
+    [
+      "XUI_DOC_EDIT_BULLET_LIST",
+      45
+    ],
+    [
+      "XUI_DOC_EDIT_NUMBER_LIST",
+      46
+    ],
+    [
+      "XUI_DOC_EDIT_TASK_LIST",
+      47
+    ],
+    [
+      "XUI_DOC_EDIT_MOVE_BLOCK_UP",
+      48
+    ],
+    [
+      "XUI_DOC_EDIT_MOVE_BLOCK_DOWN",
+      49
+    ],
+    [
+      "XUI_DOC_EDIT_BLOCK_QUOTE",
+      50
+    ],
+    [
+      "XUI_DOC_EDIT_INSERT_RULE",
+      51
+    ],
+    [
+      "XUI_DOC_EDIT_INSERT_CODE_BLOCK",
+      52
+    ],
+    [
+      "XUI_DOC_EDIT_TOGGLE_TASK",
+      53
+    ],
+    [
+      "XUI_DOC_TOOLBAR_HISTORY",
+      1
+    ],
+    [
+      "XUI_DOC_TOOLBAR_CLIPBOARD",
+      2
+    ],
+    [
+      "XUI_DOC_TOOLBAR_INLINE_FORMAT",
+      4
+    ],
+    [
+      "XUI_DOC_TOOLBAR_ALIGNMENT",
+      8
+    ],
+    [
+      "XUI_DOC_TOOLBAR_BLOCKS",
+      16
+    ],
+    [
+      "XUI_DOC_TOOLBAR_LISTS",
+      32
+    ],
+    [
+      "XUI_DOC_TOOLBAR_DEFAULT",
+      31
+    ]
+  ],
+  "notes": [
+    "No per-method C forwarding wrapper",
+    "Descriptors are synchronous zeroed stack records; Native copies/pins/retains remain real costs",
+    "Browser/image APIs are declaration/ABI only, no external I/O execution",
+    "Optional NULL variants of the same Native symbol still require separately reviewed physical-signature alias compatibility"
+  ],
+  "supplementalFunctions": [
+    {
+      "native": "xuiMessageListAddNode",
+      "logical": "MessageList.addNode",
+      "status": "cpu-runtime-and-abi-qualified",
+      "authority": "include/xui.h",
+      "copyAudit": "src/xui/controls/xui_message_list.c:940-970 copies all incoming strings; pUser NULL"
+    }
+  ],
+  "reports": [
+    "F:\\xlang-validation\\foreign-completion-20261103\\document-ui-full-win-r1\\results.json",
+    "/home/ubuntu/xlang-validation/document-ui-full-linux-r1/results.json",
+    "F:\\xlang-validation\\foreign-completion-20261103\\document-renderer-policy-win-r4\\results.json",
+    "/home/ubuntu/xlang-validation/document-renderer-policy-linux-r1/results.json",
+    "F:\\xlang-validation\\foreign-completion-20261103\\document-ui-actual-win-r3\\results.json",
+    "/home/ubuntu/xlang-validation/document-ui-actual-linux-r2/results.json"
+  ]
+}

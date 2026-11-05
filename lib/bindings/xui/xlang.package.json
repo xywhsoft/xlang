@@ -18,7 +18,9 @@
       "src/text_shape.xl",
       "src/managers.xl",
       "src/document_records.xl",
-      "src/document.xl"
+      "src/document.xl",
+      "src/document_ui_records.xl",
+      "src/document_ui.xl"
     ]
   },
   "links": [],

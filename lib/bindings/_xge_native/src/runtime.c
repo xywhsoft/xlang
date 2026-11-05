@@ -94,6 +94,52 @@ XL6_XUI_MANAGER_POLICY(FileDialog,xuiFileDialog)
 XL6_XUI_MANAGER_POLICY(MsgTip,xuiMsgTip)
 #undef XL6_XUI_MANAGER_POLICY
 
+/* These composite children live in the Context's actual native directory.
+ * Their descriptor only watches identity; Context traces each native edge
+ * once, and the existing parent operation scope pins complete native tails. */
+#define XL6_XUI_DOCUMENT_CHILD_POLICY(Name,Prefix) \
+static bool watch_##Name(void* raw,void* storage,void(*invalidate)(void*),void* user) \
+{int status=Prefix##LifetimeWatch(raw,storage,invalidate,user);if(status!=XUI_OK)report_resource_failure(status,#Prefix "LifetimeWatch");return status==XUI_OK;} \
+static bool destroy_##Name(void* raw) \
+{bool consumed=false;int status=Prefix##ReleaseOwnerChecked(raw,&consumed);if(status!=XUI_OK && status!=XUI_STATUS_DEFERRED)report_resource_failure(status,#Prefix "ReleaseOwnerChecked");return consumed;} \
+const XL6_ForeignViewDescriptorV1* xl6Xui3##Name##PolicyGet(void) \
+{static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui." #Name, \
+sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_##Name,unwatch,destroy_##Name, \
+0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};return &value;}
+#if XUI_ENABLE_DOCUMENT_VIEW
+XL6_XUI_DOCUMENT_CHILD_POLICY(DocumentImageRequest,xuiDocumentImageResource)
+static bool destroy_document_renderer(void* raw)
+{bool consumed=false;int status=xuiDocumentRendererReleaseOwnerChecked(raw,&consumed);if(status!=XUI_STATUS_DEFERRED)report_resource_failure(status,"xuiDocumentRendererReleaseOwnerChecked");return consumed;}
+static bool request_document_renderer(void* raw)
+{int status=xuiDocumentRendererRequestClose(raw);report_resource_failure(status,"xuiDocumentRendererRequestClose");return status==XUI_OK;}
+static bool trace_document_renderer(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
+{return xuiDocumentRendererTraceOwnership((xui_document_renderer)raw,visit,user);}
+static bool busy_document_renderer(const void* raw)
+{return xuiDocumentRendererOwnershipBusy((xui_document_renderer)raw);}
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentRendererPolicyGet(void)
+{
+    /* Unique ownership transferred to the language, not Context ownership or
+     * native RC. Context is weak and may expire; native operations then reject
+     * admission. Resident active calls defer root destruction; native bodies
+     * pin their own calls, so no synthetic NativeCallBegin/Watch is invented. */
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.documentRenderer",
+        0,1,NULL,NULL,destroy_document_renderer,0,1,NULL,NULL,trace_document_renderer,busy_document_renderer,
+        XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE|XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE,NULL,request_document_renderer};
+    return &value;
+}
+#else
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentImageRequestPolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentRendererPolicyGet(void){return NULL;}
+#endif
+#if XUI_ENABLE_WEBVIEW
+XL6_XUI_DOCUMENT_CHILD_POLICY(DocumentHtmlInteraction,xuiDocumentHtmlInteraction)
+XL6_XUI_DOCUMENT_CHILD_POLICY(DocumentWebProvider,xuiDocumentWebProvider)
+#else
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentHtmlInteractionPolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentWebProviderPolicyGet(void){return NULL;}
+#endif
+#undef XL6_XUI_DOCUMENT_CHILD_POLICY
+
 static bool destroy_cell(void* raw)
 {
     bool consumed=false;
