@@ -1,0 +1,188 @@
+{
+  "complete": false,
+  "passed": false,
+  "scope": "Current production IDE-profile DLL, O2 upstream CPU control and accessibility tests with xui_test_proxy; no screen-reader or hardware certification",
+  "dllSha256": "b3dcabc7051634461f68852024a48e856bbe5b7ef66ed5693cae97c5f6dc1e3d",
+  "rows": [
+    {
+      "name": "list_view-build",
+      "command": [
+        "E:\\software\\w64devkit\\bin\\gcc.EXE",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Wno-unused-parameter",
+        "-Wno-unused-function",
+        "-Wno-cast-function-type",
+        "-DXGE_DLL",
+        "-DXUI_DLL",
+        "-DXGE_DEBUGMODE=0",
+        "-include",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\engine-build\\xge_build_config.h",
+        "@config/includes.rsp",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\native-source\\tests\\xui\\xui_list_view_test.c",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\native-source\\tests\\xui\\xui_test_proxy.c",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\engine-build\\xge.lib",
+        "-lm",
+        "-lws2_32",
+        "-liphlpapi",
+        "-lgdi32",
+        "-luser32",
+        "-lshell32",
+        "-lopengl32",
+        "-lole32",
+        "-lwinmm",
+        "-lavrt",
+        "-o",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\native-controls-check\\list_view.exe"
+      ],
+      "exitCode": 0,
+      "seconds": 1.296,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "list_view-run",
+      "command": [
+        "F:\\xlang-validation\\xge-update-20261106-r2\\native-controls-check\\list_view.exe"
+      ],
+      "exitCode": 0,
+      "seconds": 0.094,
+      "logSha256": "3d91f4360bc52e3404f2baaf25c9467fa99b2b8cf609e3c9761e54b98590151e"
+    },
+    {
+      "name": "table_view-build",
+      "command": [
+        "E:\\software\\w64devkit\\bin\\gcc.EXE",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Wno-unused-parameter",
+        "-Wno-unused-function",
+        "-Wno-cast-function-type",
+        "-DXGE_DLL",
+        "-DXUI_DLL",
+        "-DXGE_DEBUGMODE=0",
+        "-include",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\engine-build\\xge_build_config.h",
+        "@config/includes.rsp",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\native-source\\tests\\xui\\xui_table_view_test.c",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\native-source\\tests\\xui\\xui_test_proxy.c",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\engine-build\\xge.lib",
+        "-lm",
+        "-lws2_32",
+        "-liphlpapi",
+        "-lgdi32",
+        "-luser32",
+        "-lshell32",
+        "-lopengl32",
+        "-lole32",
+        "-lwinmm",
+        "-lavrt",
+        "-o",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\native-controls-check\\table_view.exe"
+      ],
+      "exitCode": 0,
+      "seconds": 1.265,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "table_view-run",
+      "command": [
+        "F:\\xlang-validation\\xge-update-20261106-r2\\native-controls-check\\table_view.exe"
+      ],
+      "exitCode": 0,
+      "seconds": 0.063,
+      "logSha256": "0055d5fb84c3f0af56547c131b536155a85a28e8c2b4e60a88227c82e454f116"
+    },
+    {
+      "name": "tree_view-build",
+      "command": [
+        "E:\\software\\w64devkit\\bin\\gcc.EXE",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Wno-unused-parameter",
+        "-Wno-unused-function",
+        "-Wno-cast-function-type",
+        "-DXGE_DLL",
+        "-DXUI_DLL",
+        "-DXGE_DEBUGMODE=0",
+        "-include",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\engine-build\\xge_build_config.h",
+        "@config/includes.rsp",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\native-source\\tests\\xui\\xui_tree_view_test.c",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\native-source\\tests\\xui\\xui_test_proxy.c",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\engine-build\\xge.lib",
+        "-lm",
+        "-lws2_32",
+        "-liphlpapi",
+        "-lgdi32",
+        "-luser32",
+        "-lshell32",
+        "-lopengl32",
+        "-lole32",
+        "-lwinmm",
+        "-lavrt",
+        "-o",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\native-controls-check\\tree_view.exe"
+      ],
+      "exitCode": 0,
+      "seconds": 1.312,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "tree_view-run",
+      "command": [
+        "F:\\xlang-validation\\xge-update-20261106-r2\\native-controls-check\\tree_view.exe"
+      ],
+      "exitCode": 0,
+      "seconds": 0.078,
+      "logSha256": "a2f4733af7456f46cda695daf6178cef051385e68b107b5dc2e0f37b56d1a73e"
+    },
+    {
+      "name": "dock_panel-build",
+      "command": [
+        "E:\\software\\w64devkit\\bin\\gcc.EXE",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Wno-unused-parameter",
+        "-Wno-unused-function",
+        "-Wno-cast-function-type",
+        "-DXGE_DLL",
+        "-DXUI_DLL",
+        "-DXGE_DEBUGMODE=0",
+        "-include",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\engine-build\\xge_build_config.h",
+        "@config/includes.rsp",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\native-source\\tests\\xui\\xui_dock_panel_test.c",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\native-source\\tests\\xui\\xui_test_proxy.c",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\engine-build\\xge.lib",
+        "-lm",
+        "-lws2_32",
+        "-liphlpapi",
+        "-lgdi32",
+        "-luser32",
+        "-lshell32",
+        "-lopengl32",
+        "-lole32",
+        "-lwinmm",
+        "-lavrt",
+        "-o",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\native-controls-check\\dock_panel.exe"
+      ],
+      "exitCode": 0,
+      "seconds": 2.156,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "dock_panel-run",
+      "command": [
+        "F:\\xlang-validation\\xge-update-20261106-r2\\native-controls-check\\dock_panel.exe"
+      ],
+      "exitCode": 1,
+      "seconds": 0.078,
+      "logSha256": "6c4d8eec0859449acdf6804f6ce1efc9459b5d4fc3aee4595f66062b017f551a"
+    }
+  ]
+}

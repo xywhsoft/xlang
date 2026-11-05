@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-06T02:28:45.361437+08:00",
+  "complete": true,
+  "passed": true,
+  "scope": "Latest local XGE/XUI working-source IDE-profile rebuild and matched Windows SDK/GUI installation",
+  "externalPublishPerformed": false,
+  "nativeBaseHEAD": "86d0a15b0cb2fb0d17463f3283f6898c941eeaa4",
+  "nativeWorktreeDirty": true,
+  "sourceFiles": 4504,
+  "sourceUnchangedThroughPublication": true,
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/xge-ide-update-20261106/source-manifest.json",
+    "sha256": "85521c1a3f1bfc4675ce5e2a13dd31049f27f18bbb08e0109ee325e1a4679f65",
+    "bytes": 628
+  },
+  "nativeBuild": {
+    "path": "dev/release-materials/provenance/xge-ide-update-20261106/native-build-report.json",
+    "sha256": "83b8c377aba1ee747ec15e5565544d9a2c006ee6bea0b7959c4cddda65b2db9e",
+    "bytes": 19875
+  },
+  "nativeDependencyVerification": {
+    "path": "dev/release-materials/provenance/xge-ide-update-20261106/engine-source-dependencies.json",
+    "sha256": "e646d622c2daca1f9497801d83581fb26e74c53b1bc93bb0af60bdbb4f1459f5",
+    "bytes": 21910
+  },
+  "guiBuild": {
+    "path": "dev/release-materials/provenance/xge-ide-update-20261106/gui-candidate-build-inputs.json",
+    "sha256": "aea43163c117a1ef97237b0181e70744c24a4d66e986851f3b5e06c91dc9719a",
+    "bytes": 104923
+  },
+  "guiSources": {
+    "path": "dev/release-materials/provenance/xge-ide-update-20261106/gui-source-freeze.json",
+    "sha256": "472c6e5f3e4a6d09c3075ebde7d4d130f71ad04cd2a71703c90462481d025773",
+    "bytes": 267993
+  },
+  "publicAbiSchema": 2,
+  "publicAbiFingerprint": "9a70075c21d0350a",
+  "sdkManifest": {
+    "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+    "sha256": "371be1c1d14e71cbdd95b5f8b9169324acbe1df1e7415e50507902d6cc3cb411",
+    "bytes": 14590
+  },
+  "optimization": "-O2",
+  "guiTranslationUnits": 103,
+  "xrtOwner": "xge.dll in separate IDE process",
+  "xrtChanged": false,
+  "products": [
+    {
+      "path": "release/win_x64/xge.dll",
+      "sha256": "b3dcabc7051634461f68852024a48e856bbe5b7ef66ed5693cae97c5f6dc1e3d",
+      "bytes": 11130425
+    },
+    {
+      "path": "release/win_x64/xlang_ide.exe",
+      "sha256": "0261d2ab6c619dd8e4304e159ae6e2d6b9897ce337142c940e32f3266a5b6f47",
+      "bytes": 1794464
+    }
+  ],
+  "acceptance": {
+    "gui-check": {
+      "path": "dev/release-materials/provenance/xge-ide-update-20261106/gui-check/results.json",
+      "sha256": "e503e065a25a33dac9594d5b138f97f1f6f6b82bf11c9084a0b8e5581cc46c8c",
+      "bytes": 4286
+    },
+    "targeted-check": {
+      "path": "dev/release-materials/provenance/xge-ide-update-20261106/targeted-check/results.json",
+      "sha256": "f3c943a163d277043933513570927e37e5985a3d1402e07925187023aa41bdab",
+      "bytes": 30534
+    },
+    "native-controls-check": {
+      "path": "dev/release-materials/provenance/xge-ide-update-20261106/native-controls-check/results.json",
+      "sha256": "d851a25eeee64b59ee3bca512c908ba9f619a276c3e1489a4f734a1ab45533e6",
+      "bytes": 8258
+    },
+    "installed-check": {
+      "path": "dev/release-materials/provenance/xge-ide-update-20261106/installed-check/results.json",
+      "sha256": "3b058767602aac1c5ebd1b445777e6138b076ae95255d692bf4af4f491db241b",
+      "bytes": 4218
+    }
+  },
+  "previousDelivery": {
+    "path": "dev/release-materials/provenance/xge-ide-update-20261106/previous-current-delivery.json",
+    "sha256": "c0e68b41ea4b9aad97e9b98e8887914014edba19bb7c952adce965c5eb9d2590",
+    "bytes": 160883
+  },
+  "previousNoticeIndex": {
+    "path": "dev/release-materials/provenance/xge-ide-update-20261106/previous-win-material-index.json",
+    "sha256": "b8cc7572f13a82b6221b3c3bf155c2e778ddfb29ca70cb3b364702ca357ff19a",
+    "bytes": 9893
+  },
+  "installedFiles": {
+    "path": "dev/release-materials/provenance/xge-ide-update-20261106/installed-products.json",
+    "sha256": "6f7e9ec1c25afcc94bdd97cbede7826e924c5b9e1d4ad72768edb0f8323b0108",
+    "bytes": 22148
+  },
+  "excludedUnownedIdeDevelopment": true,
+  "limits": [
+    "No full XGE GPU/hardware or physical screen-reader certification.",
+    "Linux and language host-XRT extension images retain their separate matched cohorts.",
+    "Native local source edits are frozen here but not committed to the upstream XGE working tree."
+  ]
+}

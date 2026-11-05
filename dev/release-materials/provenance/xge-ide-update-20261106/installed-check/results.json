@@ -1,0 +1,106 @@
+{
+  "complete": true,
+  "passed": true,
+  "inputs": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe": "0261d2ab6c619dd8e4304e159ae6e2d6b9897ce337142c940e32f3266a5b6f47",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "b3dcabc7051634461f68852024a48e856bbe5b7ef66ed5693cae97c5f6dc1e3d",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json": "8b5a5151212487910ae88a7385fc6574f08e1ba3f1b8cb20885c4421dc5eff65"
+  },
+  "rows": [
+    {
+      "name": "default",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+        "--hidden",
+        "--frames",
+        "4",
+        "--no-auto-diagnostics",
+        "--session-root",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\installed-check\\session",
+        "--diagnostic-root",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\installed-check\\diagnostics",
+        "--screenshot",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\installed-check\\default.png",
+        "--no-session"
+      ],
+      "exitCode": 0,
+      "seconds": 11.609,
+      "rendered": true,
+      "screenshot": true,
+      "logSha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db"
+    },
+    {
+      "name": "fresh-session",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+        "--hidden",
+        "--frames",
+        "4",
+        "--no-auto-diagnostics",
+        "--session-root",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\installed-check\\session",
+        "--diagnostic-root",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\installed-check\\diagnostics",
+        "--screenshot",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\installed-check\\fresh-session.png",
+        "--settings",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\installed-check\\copied-settings.json"
+      ],
+      "exitCode": 0,
+      "seconds": 9.734,
+      "rendered": true,
+      "screenshot": true,
+      "logSha256": "fa8e518ec8093d8cf1b8cc68df2d2195839cc5a4a4eeeae176248a7eb0f78d08"
+    },
+    {
+      "name": "restored-session",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+        "--hidden",
+        "--frames",
+        "4",
+        "--no-auto-diagnostics",
+        "--session-root",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\installed-check\\session",
+        "--diagnostic-root",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\installed-check\\diagnostics",
+        "--screenshot",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\installed-check\\restored-session.png",
+        "--settings",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\installed-check\\copied-settings.json"
+      ],
+      "exitCode": 0,
+      "seconds": 11.922,
+      "rendered": true,
+      "screenshot": true,
+      "logSha256": "fa8e518ec8093d8cf1b8cc68df2d2195839cc5a4a4eeeae176248a7eb0f78d08"
+    },
+    {
+      "name": "malformed-preferences",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+        "--hidden",
+        "--frames",
+        "4",
+        "--no-auto-diagnostics",
+        "--session-root",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\installed-check\\malformed-session",
+        "--diagnostic-root",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\installed-check\\diagnostics",
+        "--screenshot",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\installed-check\\malformed-preferences.png",
+        "--settings",
+        "F:\\xlang-validation\\xge-update-20261106-r2\\installed-check\\malformed-settings.json"
+      ],
+      "exitCode": 0,
+      "seconds": 9.938,
+      "rendered": true,
+      "screenshot": true,
+      "logSha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db"
+    }
+  ],
+  "scope": "Real hidden window/workbench creation, rendering and isolated session restore; no user setting/session writes",
+  "inputsUnchanged": true,
+  "malformedPreferencesPreserved": true
+}
