@@ -1,0 +1,23 @@
+"""Actual binary Fragment envelope admission, allocator-safe copy and exact typed ABI."""
+from pathlib import Path
+import argparse,json,hashlib,subprocess,shutil,sys,os,time
+p=argparse.ArgumentParser();[p.add_argument('--'+n,type=Path,required=True) for n in ('root','overlay','packages','engine','out')];a=p.parse_args();root,overlay,packages,engine,out=[x.resolve() for x in (a.root,a.overlay,a.packages,a.engine,a.out)];sys.path.insert(0,str(root/'tools'));from foreign_validation_build import load_build;from check_foreign_xge3_document import reachable;from compiler_response import command_with_response
+b=load_build(overlay=overlay);source=b['cohort'];driver=b['driver'];runtime=b['runtime'];base=b['base'];windows=os.name=='nt';sha=lambda x:hashlib.sha256(Path(x).read_bytes()).hexdigest();fixture=root/'test/cases/foreign_xge3_document_fragment_binary.xl';native=fixture.with_name(fixture.stem+'_native.c');host=root/'test/cases/foreign_decl_module_host.c';private=packages/'_xge_native';library=engine/('xge.lib' if windows else 'libxge.so');binary=engine/('xge.dll' if windows else 'libxge.so');out.mkdir();local=out/'sdk/__xl_runtime';local.mkdir(parents=True)
+for h in (source/'src/runtime').glob('*.h'):shutil.copy2(h,local/h.name)
+inputs=dict(b['inputs']);inputs.update((str(x),sha(x)) for x in [Path(__file__),fixture,native,fixture.with_suffix('.h'),host,library,binary,*[x for x in packages.rglob('*') if x.is_file()]])
+env=dict(os.environ,XLANG_PACKAGE_PATH=str(packages),XL6_SOURCE_NATIVE_ROOT=str(source))
+if windows:shutil.copy2(runtime,out/runtime.name);shutil.copy2(binary,out/binary.name)
+else:env['LD_LIBRARY_PATH']=str(engine)+':'+str(runtime.parent)+':'+env.get('LD_LIBRARY_PATH','')
+report=dict(complete=False,passed=False,scope='Fragment binary input semantic correction, actual native serializer buffer copied to bytes then poisoned/free through native allocator before Owned deserialize',inputs=inputs,rows=[],fullSourceRebuild=False,compilerOverlay=str(overlay),shippingDelivery=False)
+def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n')
+def run(name,cmd,accepted=True):
+ cmd=list(map(str,cmd));actual=command_with_response(cmd,'gcc',out/(name+'.rsp')) if cmd[0] in ('gcc','g++') else cmd;t=time.monotonic();z=subprocess.run(actual,cwd=source,env=env,capture_output=True,timeout=240);log=out/(name+'.log');log.write_bytes(z.stdout+z.stderr);report['rows'].append(dict(name=name,exitCode=z.returncode,accepted=accepted,logSha256=sha(log),seconds=round(time.monotonic()-t,3)));save();print(name,z.returncode,flush=True);assert (not z.returncode)==accepted,log
+sdk=Path(base.get('SdkDirectory') or base.get('RuntimeDirectory') or runtime.parent);includes=['-I'+str(x) for x in (private/'include',out/'sdk',source,root,b['basePath'].parent/'include',sdk,sdk/'include')];flags=['-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-DXGE_XRT_HOST=1',*includes];flags+=['-DXGE_DLL','-DXUI_DLL'] if windows else [];warning=['-Wno-'+x for x in ('unused-function','unused-variable','unused-label','unused-const-variable','unused-but-set-variable','cast-function-type')]
+text,methods=reachable(packages/'xui');probe=out/'all.xl';probe.write_text(text);run('all-cgen',[driver,probe,'cgen-default',out/'all.c']);run('all-header',[driver,probe,'emit',out/'all-public']);run('all-O2-compile',['gcc','-std=c11',*flags,*warning,'-O2','-c',out/'all.c','-o',out/'all.o'])
+run('binary-cgen',[driver,fixture,'cgen-default',out/'binary.c']);run('binary-ir',[driver,fixture,'ir-lowered',out/'binary.json']);run('binary-header',[driver,fixture,'emit',out/'public'])
+for cc,std,language in [('gcc','c11','c'),('g++','c++11','c++'),('g++','c++17','c++')]:run('header-'+std,[cc,'-std='+std,*flags,'-x',language,'-fsyntax-only',out/'public.h'])
+systems=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if windows else ['-Wl,--export-dynamic','-pthread','-ldl','-lm','-Wl,-rpath,'+str(runtime.parent),'-Wl,-rpath,'+str(engine)]
+for opt in ('O0','O2'):
+ exe=out/(opt+('.exe' if windows else '.out'));run(opt+'-build',['gcc','-std=c11',*flags,*warning,'-'+opt,out/'binary.c',native,host,private/'src/runtime.c',*b['objects'],runtime,library,*systems,'-o',exe]);run(opt+'-run',[exe])
+wrong=out/'wrong-string.xl';wrong.write_text('import xui\nfunc main(...) as int\n xui.deserializeDocumentFragment("text")\n return 0\nend\n');run('reject-string-input',[driver,wrong,'cgen-default',out/'wrong.c'],False);assert not (out/'wrong.c').exists() or not (out/'wrong.c').stat().st_size
+report.update(complete=True,passed=True,logicalCallsCompiled=len(methods),inputsUnchanged=all(sha(x)==y for x,y in inputs.items()));assert report['inputsUnchanged'];save()

@@ -1,0 +1,206 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Seven real default-provenance native Document Model roots, exact leased ownership domain, direct declarations, POD records and binary Fragment envelope. Focused partial frontend/runtime overlays over complete source parents; no complete rebuild or GUI qualification implied.",
+  "nativeCommit": "036e9183",
+  "candidates": [
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\model-policy-root-candidate-r2\\manifest.json",
+      "sha256": "426a20544d642140188ddf06649f6f9de2c3407d6d5f80ce9fcd1b0a610c5e48"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\document-public-candidate-r1\\manifest.json",
+      "sha256": "806a3e71370bc7f65005fe536ba530f2d1e5718b62fe41b77646abbb9663af46"
+    },
+    {
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\document-public-candidate-r2-binary\\manifest.json",
+      "sha256": "f4c82b5953f7b271c35f49c59a905b6679a22a50220f4bfc27d4d5265eef855f"
+    }
+  ],
+  "reports": [
+    {
+      "platform": "win_x64",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\model-policy-kernel-win-r10\\results.json",
+      "sha256": "760b3263c6c34980568ab5e53211d096f5f43964f1097ed780b0eb3360e72350",
+      "steps": 14
+    },
+    {
+      "platform": "linux_x64",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-completion-20261105-r38\\model-policy-kernel-linux-r6\\results.json",
+      "sha256": "af4e1977e8116e6bb35aa3eafe2710865cb6ec299d9735e54b7f341c202c57f0",
+      "steps": 14
+    },
+    {
+      "platform": "win_x64",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\document-public-win-r4\\results.json",
+      "sha256": "6d2651f2a8b34dd86e211a287b6f1a8e657f31a929cefd6e9b873580961a248f",
+      "steps": 21
+    },
+    {
+      "platform": "linux_x64",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\document-public-linux-r4\\results.json",
+      "sha256": "b9eae167ad0f4a908ac317ee4f58ba6d67452552ba1fa534d619552746e00949",
+      "steps": 21
+    },
+    {
+      "platform": "win_x64",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\document-fragment-binary-win-r1\\results.json",
+      "sha256": "81382d0313681e688516e28425c674fd562cb6a209ca910324d0d66a0ffdb0c3",
+      "steps": 14
+    },
+    {
+      "platform": "linux_x64",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\document-fragment-binary-linux-r1\\results.json",
+      "sha256": "712eb974762728fef89eb728b4b80236ac1d6c0d412f1849efa78b0c6621891b",
+      "steps": 14
+    }
+  ],
+  "counts": {
+    "ownedRoots": 7,
+    "nativeFunctions": 218,
+    "declaredNative": 152,
+    "logicalCalls": 159,
+    "podRecords": 26,
+    "constants": 255
+  },
+  "limitations": [
+    "Caller-owned output arrays, counted patch arrays and producer-allocated char** remain explicit C interoperability.",
+    "Pointer-bearing metadata is not exposed as POD; custom allocator callbacks remain explicit C.",
+    "Fragment deserialization consumes bytes; native producer allocations are released only with xuiDocumentFreeBuffer.",
+    "Native notification error and owner consumption are separate outcomes; NULL diagnostics do not mean successful cleanup.",
+    "Existing safe ForeignView admission remains creator-thread affine, including immutable native model handles.",
+    "Final matched source/provider/SDK publication and DocUI are separate work."
+  ],
+  "files": [
+    {
+      "path": "lib/bindings/_xge_native/include/xge3_runtime.h",
+      "candidate": "model-policy-root-candidate-r2",
+      "acceptedBytesSha256": "51a65f5a66fd63191db89c9cd549cf5d027d9351fb3690c7431e4d7df5028499",
+      "canonicalLfSha256": "51a65f5a66fd63191db89c9cd549cf5d027d9351fb3690c7431e4d7df5028499"
+    },
+    {
+      "path": "lib/bindings/_xge_native/src/runtime.c",
+      "candidate": "model-policy-root-candidate-r2",
+      "acceptedBytesSha256": "92a13be94f75698046f3bffd9ef55c36911c68c9f4251c4160428bec658ba966",
+      "canonicalLfSha256": "92a13be94f75698046f3bffd9ef55c36911c68c9f4251c4160428bec658ba966"
+    },
+    {
+      "path": "test/cases/foreign_xui_document_model_policy.c",
+      "candidate": "model-policy-root-candidate-r2",
+      "acceptedBytesSha256": "70ad2be71268561947acd1f606e6d38bec5e175f14c9ca34fb8807323e2602bb",
+      "canonicalLfSha256": "70ad2be71268561947acd1f606e6d38bec5e175f14c9ca34fb8807323e2602bb"
+    },
+    {
+      "path": "tools/check_foreign_xui_document_model_runtime.py",
+      "candidate": "model-policy-root-candidate-r2",
+      "acceptedBytesSha256": "fd9f6548bbcd91f4cea4a3cf57b4bebb0872be167c0caaa6dc005eb61d1dfca8",
+      "canonicalLfSha256": "fd9f6548bbcd91f4cea4a3cf57b4bebb0872be167c0caaa6dc005eb61d1dfca8"
+    },
+    {
+      "path": "lib/bindings/xui/src/document_records.xl",
+      "candidate": "document-public-candidate-r1",
+      "acceptedBytesSha256": "aa6e9d36ce9ebd07317aa616e32cfb35f19206365b345543d22f3350f5b27727",
+      "canonicalLfSha256": "aa6e9d36ce9ebd07317aa616e32cfb35f19206365b345543d22f3350f5b27727"
+    },
+    {
+      "path": "lib/bindings/xui/src/document.xl",
+      "candidate": "document-public-candidate-r2-binary",
+      "acceptedBytesSha256": "97747c52db93cb015e0fb3d1065c10752350946bb6062d66709f6011c1a647b5",
+      "canonicalLfSha256": "97747c52db93cb015e0fb3d1065c10752350946bb6062d66709f6011c1a647b5"
+    },
+    {
+      "path": "lib/bindings/xui/xlang.package.json",
+      "candidate": "document-public-candidate-r1",
+      "acceptedBytesSha256": "7512ca11bd48ec88c935e84f83ab14688cb644df93b24f73a21e6ec737e362a7",
+      "canonicalLfSha256": "a4cfa9f326fd65fbc0c3573b7156a320a35e7581b164269dfe1500431c62a4e3"
+    },
+    {
+      "path": "lib/bindings/xui/README.md",
+      "candidate": "document-public-candidate-r1",
+      "acceptedBytesSha256": "6aba165645ab8ad660b77b8d10e04f80dc50d94fbd541dab349369e5d68102db",
+      "canonicalLfSha256": "6aba165645ab8ad660b77b8d10e04f80dc50d94fbd541dab349369e5d68102db"
+    },
+    {
+      "path": "tools/check_xge3_bindings.py",
+      "candidate": "document-public-candidate-r1",
+      "acceptedBytesSha256": "cb7aca8736a9a54f62639b38400ad19bc982a5245cbdabb06fab15f8b3ca4acc",
+      "canonicalLfSha256": "311bb9b9210ef87c59d6f8f4b0045174865715fc9f3011a4bee66da5850f2b78"
+    },
+    {
+      "path": "tools/gen_xge3_document_bindings.py",
+      "candidate": "document-public-candidate-r2-binary",
+      "acceptedBytesSha256": "8413a57bf357502820605af646183246cea3bfe59750b79f0781766732b7f3c5",
+      "canonicalLfSha256": "ff52bcfc8fc527ed2df45b685e8271f5e590ec2a10b5722157868b81f14ded19",
+      "postAcceptanceWhitespaceOnly": "Remove duplicate blank line at EOF."
+    },
+    {
+      "path": "tools/check_foreign_xge3_document.py",
+      "candidate": "document-public-candidate-r1",
+      "acceptedBytesSha256": "76f283c8b9a15c704cc2e117de77d69f57800d3876c9b4f9970807019bb7f33e",
+      "canonicalLfSha256": "76f283c8b9a15c704cc2e117de77d69f57800d3876c9b4f9970807019bb7f33e"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_document.xl",
+      "candidate": "document-public-candidate-r1",
+      "acceptedBytesSha256": "c1d6f577a5aa8c67190616153d65a264a84256618444bc2d4ce7a9de1ddaefae",
+      "canonicalLfSha256": "c1d6f577a5aa8c67190616153d65a264a84256618444bc2d4ce7a9de1ddaefae"
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_document_host.c",
+      "candidate": "document-public-candidate-r1",
+      "acceptedBytesSha256": "bb76ef7e5fed7651df6d1f65263327632b3f849677e48c540c5306a598439518",
+      "canonicalLfSha256": "7f0dbb87141bbee8acedd135b7f69f6f90d6edfc1855d4719f51c412e5948734"
+    },
+    {
+      "path": "docs/xge3-xui3-document-api-map.json",
+      "candidate": "document-public-candidate-r1",
+      "acceptedBytesSha256": "9ec3cf5fade4f1a82d92d5781c4fc4a88630525b5b945b12cafc5a8ff1f68dc7",
+      "canonicalLfSha256": "9ec3cf5fade4f1a82d92d5781c4fc4a88630525b5b945b12cafc5a8ff1f68dc7"
+    },
+    {
+      "path": "docs/xge3-xui3-document-api-map.md",
+      "candidate": "document-public-candidate-r2-binary",
+      "acceptedBytesSha256": "670918d8bd18cd399e0e02d1808212b0edbe1043eb71f0bf07542c6d2491da6a",
+      "canonicalLfSha256": "17c4cf5e61898027f3a35a921bd7c9263059814299d7f7a6f0894201bd51b37d",
+      "postAcceptanceDocumentationOnly": "Clarify native threading versus existing creator-affine ForeignView admission; no implementation delta."
+    },
+    {
+      "path": "lib/bindings/xui/examples/document_model.xl",
+      "candidate": "document-public-candidate-r1",
+      "acceptedBytesSha256": "f4ac1b08c9bee88fffe0331f720f5278c37ed9d0c524254f98d7bf4f515a4c52",
+      "canonicalLfSha256": "e7ba015920c83034b5d1cd8dca7d1282644c079524e36f4f552b63b52e65fadf"
+    },
+    {
+      "path": "lib/bindings/xui/examples/README.md",
+      "candidate": "document-public-candidate-r1",
+      "acceptedBytesSha256": "de0f735869de806f0c52ebd10ba167f490164109a5e69ba8df6b37766d4ad968",
+      "canonicalLfSha256": "de0f735869de806f0c52ebd10ba167f490164109a5e69ba8df6b37766d4ad968"
+    },
+    {
+      "path": "tools/check_foreign_xge3_document_binary.py",
+      "candidate": "document-public-candidate-r2-binary",
+      "acceptedBytesSha256": "512b677e30c6f6cce7f2f3f9aa8e60fb8a08449d096b72d5b33274bb547f6570",
+      "canonicalLfSha256": "512b677e30c6f6cce7f2f3f9aa8e60fb8a08449d096b72d5b33274bb547f6570"
+    },
+    {
+      "path": "test/cases/foreign_xge3_document_fragment_binary.h",
+      "candidate": "document-public-candidate-r2-binary",
+      "acceptedBytesSha256": "2b899ee785e084da35830af835cd51af87a49f3c01a9b95c0b8f42a63da61fe3",
+      "canonicalLfSha256": "467defe4924c7a4274937fde754fe720d496a598a6e5c78f17dc081702a610cf"
+    },
+    {
+      "path": "test/cases/foreign_xge3_document_fragment_binary.xl",
+      "candidate": "document-public-candidate-r2-binary",
+      "acceptedBytesSha256": "08517c9212d25c93ae874222ba5676d56269d1ad2946c9909019fe133e946da4",
+      "canonicalLfSha256": "aa96082eb88992fd82dd2ca5188340d9005d08e9141e2af67917a5b329f9c1b3"
+    },
+    {
+      "path": "test/cases/foreign_xge3_document_fragment_binary_native.c",
+      "candidate": "document-public-candidate-r2-binary",
+      "acceptedBytesSha256": "c24b0844b94a5aba9e8e27fbff48e97b41f1b897fe18019638bb060f419dbb53",
+      "canonicalLfSha256": "52ddceb26363c17c9dd54fee789ae76feb2b600bedd303602729bc5ad2df7821"
+    }
+  ]
+}

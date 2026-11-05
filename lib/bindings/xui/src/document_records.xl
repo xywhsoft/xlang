@@ -1,0 +1,569 @@
+// Pointer-free exact C records from frozen xui_document.h. Fixed char arrays are C bytes.
+export extern "xui_doc_source_segment_t" struct DocumentSourceSegment @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iKind
+ uint64 iTextStart
+ uint64 iTextEnd
+ uint64 iSourceStart
+ uint64 iSourceEnd
+ c_uint iFlags
+ c_uint iReserved
+end
+
+export extern "xui_doc_source_line_t" struct DocumentSourceLine @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iReserved
+ uint64 iLineStart
+ uint64 iIndentEnd
+ uint64 iTrailingStart
+ uint64 iContentEnd
+ uint64 iLineEnd
+end
+
+export extern "xui_doc_block_syntax_t" struct DocumentBlockSyntax @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iKind
+ uint64 iPrimaryStart
+ uint64 iPrimaryEnd
+ uint64 iSecondaryStart
+ uint64 iSecondaryEnd
+ uint64 iFenceTailStart
+ uint64 iFenceTailEnd
+ uint64 iQuotePrefixCount
+ uint64 iTableTokenCount
+ uint64 iListIndentCount
+ uint64 iListMarkerGapStart
+ uint64 iListMarkerGapEnd
+ uint64 iTaskMarkerGapStart
+ uint64 iTaskMarkerGapEnd
+ uint64 iFenceInfoStart
+ uint64 iFenceInfoEnd
+ uint64 iFenceLanguageStart
+ uint64 iFenceLanguageEnd
+ uint64 iCodeIndentCount
+ uint64 iHeadingContentStart
+ uint64 iHeadingContentEnd
+end
+
+export extern "xui_doc_code_indent_t" struct DocumentCodeIndent @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iFlags
+ uint64 iSourceStart
+ uint64 iSourceEnd
+ c_uint iIndentStartColumn
+ c_uint iContentColumn
+ c_uint iIndentEndColumn
+ c_uint iReserved
+end
+
+export extern "xui_doc_break_syntax_t" struct DocumentBreakSyntax @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iKind
+ uint64 iTrailingStart
+ uint64 iTrailingEnd
+ uint64 iHardMarkerStart
+ uint64 iHardMarkerEnd
+ uint64 iLineEndingStart
+ uint64 iLineEndingEnd
+end
+
+export extern "xui_doc_list_indent_t" struct DocumentListIndent @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iReserved
+ uint64 iSourceStart
+ uint64 iSourceEnd
+ c_uint iIndentStartColumn
+ c_uint iContentColumn
+ c_uint iIndentEndColumn
+ c_uint iReserved2
+end
+
+export extern "xui_doc_table_token_t" struct DocumentTableToken @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iKind
+ c_uint iRow
+ c_uint iOrdinal
+ c_uint iFlags
+ c_uint iReserved
+ uint64 iSourceStart
+ uint64 iSourceEnd
+end
+
+export extern "xui_doc_inline_syntax_t" struct DocumentInlineSyntax @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iKind
+ uint64 iParentIndex
+ uint64 iDefinitionIndex
+ uint64 iSourceStart
+ uint64 iContentStart
+ uint64 iContentEnd
+ uint64 iSourceEnd
+ c_uint iFlags
+ c_uint iReserved
+end
+
+export extern "xui_doc_reference_definition_t" struct DocumentReferenceDefinition @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iKind
+ uint64 iSourceStart
+ uint64 iSourceEnd
+ uint64 iLabelStart
+ uint64 iLabelEnd
+ uint64 iDestinationStart
+ uint64 iDestinationEnd
+ uint64 iTitleStart
+ uint64 iTitleEnd
+end
+
+export extern "xui_doc_source_info_t" struct DocumentSourceInfo @header("xge3_runtime.h")
+ c_uint iSize
+ uint64 iInlineSyntaxCount
+ uint64 iReferenceDefinitionCount
+ uint64 iReferenceCandidateCount
+end
+
+export extern "xui_doc_source_record_t" struct DocumentSourceRecord @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iKind
+ c_uint iDetail
+ c_uint iFlags
+ uint64 iParentIndex
+ uint64 iNodeId
+ uint64 iOriginIndex
+ uint64 iSourceStart
+ uint64 iSourceEnd
+ uint64 iContentStart
+ uint64 iContentEnd
+end
+
+export extern "xui_doc_source_token_t" struct DocumentSourceToken @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iKind
+ c_uint iDetail
+ c_uint iFlags
+ uint64 iSourceStart
+ uint64 iSourceEnd
+ uint64 iRecordIndex
+ uint64 iNodeId
+ uint64 iTextStart
+ uint64 iTextEnd
+ uint64 iOriginalSourceStart
+ uint64 iOriginalSourceEnd
+ c_uint iSegmentKind
+ c_uint iSegmentFlags
+end
+
+export extern "xui_doc_source_binding_t" struct DocumentSourceBinding @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iOriginKind
+ DocumentSourceToken tRange
+ uint64 iOriginIndex
+ c_uint iMetadata
+ c_uint iMarkerFlags
+ c_uint iRow
+ c_uint iOrdinal
+ uint64 iStartColumn
+ uint64 iMarkerColumn
+ uint64 iContentColumn
+ uint64 iEndColumn
+end
+
+export extern "xui_doc_source_index_info_t" struct DocumentSourceIndexInfo @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iReserved
+ uint64 iDocumentId
+ uint64 iRevision
+ uint64 iSourceBytes
+ uint64 iRecordCount
+ uint64 iTokenCount
+ uint64 iUnclassifiedBytes
+ uint64 iOpaqueBytes
+ uint64 iAllocatedBytes
+ uint64 iPeakWorkingBytes
+ uint64 iBuildSteps
+ uint64 iSourceBytesRead
+ uint64 iAnnotationCount
+ uint64 iBindingCount
+end
+
+export extern "xui_doc_text_style_t" struct DocumentTextStyle @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iExplicitFields
+ c_uint iTextColor
+ c_uint iBackgroundColor
+ c_float fFontSize
+ c_char sFontFamily[64]
+ c_uint iCurrentColorFields
+ c_char sLanguage[256]
+end
+
+export extern "xui_doc_text_style_query_t" struct DocumentTextStyleQuery @header("xge3_runtime.h")
+ c_uint iSize
+ c_int bHasText
+ c_uint iMixedFields
+ DocumentTextStyle tStyle
+end
+
+export extern "xui_doc_block_style_t" struct DocumentBlockStyle @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iAlignment
+ c_float fParagraphSpacing
+ c_int bSpacingExplicit
+ c_int bAlignmentInherited
+end
+
+export extern "xui_doc_markdown_loss_t" struct DocumentMarkdownLoss @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iNodeKind
+ uint64 iNodeId
+ c_uint iReasons
+ c_uint iReserved
+end
+
+export extern "xui_doc_rich_conversion_report_t" struct DocumentRichConversionReport @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iReasons
+ uint64 iSourceBytes
+ uint64 iReferenceDefinitions
+ uint64 iInlineSyntaxEntries
+end
+
+export extern "xui_doc_position_t" struct DocumentPosition @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iKind
+ uint64 iDocumentId
+ uint64 iRevision
+ uint64 iNodeId
+ uint64 iOffset
+ c_uint iAffinity
+ c_uint iReserved
+ uint64 iInputGeneration
+end
+
+export extern "xui_doc_range_t" struct DocumentRange @header("xge3_runtime.h")
+ DocumentPosition tAnchor
+ DocumentPosition tCaret
+end
+
+export extern "xui_doc_txn_desc_t" struct DocumentTransactionDesc @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iDomain
+ uint64 iBaseRevision
+ uint64 iOrigin
+ uint64 iGroup
+end
+
+export extern "xui_doc_operation_t" struct DocumentOperation @header("xge3_runtime.h")
+ c_uint iKind
+ c_uint iFlags
+ uint64 iNodeId
+ uint64 iParentId
+ uint64 iOtherNodeId
+ uint64 iOffset
+ uint64 iOldLength
+ uint64 iNewLength
+ c_uint iMappingFlags
+ c_uint iReserved
+end
+
+export extern "xui_doc_stats_t" struct DocumentStats @header("xge3_runtime.h")
+ c_uint iSize
+ uint64 iLiveBytes
+ uint64 iPeakBytes
+ uint64 iAllocations
+ uint64 iNodes
+ uint64 iUndoCount
+ uint64 iRedoCount
+ uint64 iMarkdownParses
+ uint64 iMarkdownParsedBytes
+ uint64 iPreparedPublishes
+ uint64 iPreparedStorageUpdates
+ uint64 iCurrentBytes
+ uint64 iHistoryBytes
+ uint64 iHistoryMaxBytes
+ uint64 iSnapshotCount
+ uint64 iMarkdownIncrementalParses
+ uint64 iPreparedAccountingVisits
+end
+
+export extern "xui_doc_memory_stats_t" struct DocumentMemoryStats @header("xge3_runtime.h")
+ c_uint iSize
+ uint64 iLiveBytes
+ uint64 iCurrentBytes
+ uint64 iHistoryBytes
+ uint64 iSnapshotBytes
+ uint64 iSnapshotAdditionalBytes
+ uint64 iSnapshotCount
+ uint64 iSnapshotHandleBytes
+ uint64 iOtherBytes
+end
+
+export extern "xui_doc_prepare_info_t" struct DocumentPrepareInfo @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iState
+ uint64 iDocumentId
+ uint64 iBaseRevision
+ uint64 iGeneration
+ uint64 iSourceBytes
+ uint64 iPatchCount
+ uint64 iCommittedRevision
+ c_int iResult
+ c_int bCancellationRequested
+ c_uint iBufferedUtf8Bytes
+end
+
+export const c_int XUI_DOCUMENT_RICH = 1
+export const c_int XUI_DOCUMENT_MARKDOWN = 2
+export const c_int XUI_MD_COMMONMARK = 1
+export const c_int XUI_MD_GFM = 2
+export const c_int XUI_MD_EXTENDED = 3
+export const c_int XUI_DOC_ROOT = 1
+export const c_int XUI_DOC_PARAGRAPH = 2
+export const c_int XUI_DOC_HEADING = 3
+export const c_int XUI_DOC_TEXT = 4
+export const c_int XUI_DOC_QUOTE = 5
+export const c_int XUI_DOC_LIST = 6
+export const c_int XUI_DOC_LIST_ITEM = 7
+export const c_int XUI_DOC_CODE_BLOCK = 8
+export const c_int XUI_DOC_TABLE = 9
+export const c_int XUI_DOC_ROW = 10
+export const c_int XUI_DOC_CELL = 11
+export const c_int XUI_DOC_IMAGE = 12
+export const c_int XUI_DOC_RULE = 13
+export const c_int XUI_DOC_SOFT_BREAK = 14
+export const c_int XUI_DOC_HARD_BREAK = 15
+export const c_int XUI_DOC_HTML = 16
+export const c_int XUI_DOC_MATH = 17
+export const c_int XUI_DOC_DIAGRAM = 18
+export const c_int XUI_DOC_FOOTNOTE = 19
+export const c_int XUI_DOC_FOOTNOTE_REF = 20
+export const c_int XUI_DOC_FRONT_MATTER = 21
+export const c_int XUI_DOC_EXTENSION = 22
+export const c_int XUI_DOC_BOLD = 1
+export const c_int XUI_DOC_ITALIC = 2
+export const c_int XUI_DOC_UNDERLINE = 4
+export const c_int XUI_DOC_STRIKE = 8
+export const c_int XUI_DOC_CODE = 16
+export const c_int XUI_DOC_SUBSCRIPT = 32
+export const c_int XUI_DOC_SUPERSCRIPT = 64
+export const c_int XUI_DOC_LINK = 128
+export const c_int XUI_DOC_HIGHLIGHT = 256
+export const c_int XUI_DOC_ERROR_SCHEMA = -100
+export const c_int XUI_DOC_ERROR_UTF8 = -101
+export const c_int XUI_DOC_ERROR_STALE = -102
+export const c_int XUI_DOC_ERROR_BUSY = -103
+export const c_int XUI_DOC_ERROR_LIMIT = -104
+export const c_int XUI_DOC_ERROR_FORMAT = -105
+export const c_int XUI_DOC_ERROR_DOMAIN = -106
+export const c_int XUI_DOC_ERROR_UNREPRESENTABLE = -107
+export const c_int XUI_DOC_ERROR_IO = -108
+export const c_int XUI_DOC_ERROR_CANCELLED = -109
+export const c_int XUI_DOC_POSITION_TEXT = 1
+export const c_int XUI_DOC_POSITION_GAP = 2
+export const c_int XUI_DOC_POSITION_SOURCE = 3
+export const c_int XUI_DOC_BEFORE = 0
+export const c_int XUI_DOC_AFTER = 1
+export const c_int XUI_DOC_SEMANTIC = 1
+export const c_int XUI_DOC_SOURCE = 2
+export const c_int XUI_DOC_FILE_NATIVE = 1
+export const c_int XUI_DOC_FILE_MARKDOWN = 2
+export const c_int XUI_DOC_FILE_TEXT = 3
+export const c_int XUI_DOC_FILE_HTML = 4
+export const c_int XUI_DOC_MD_LOSS_NODE = 1
+export const c_int XUI_DOC_MD_LOSS_DIALECT = 2
+export const c_int XUI_DOC_MD_LOSS_MARK = 4
+export const c_int XUI_DOC_MD_LOSS_TEXT_STYLE = 8
+export const c_int XUI_DOC_MD_LOSS_BLOCK_STYLE = 16
+export const c_int XUI_DOC_MD_LOSS_GEOMETRY = 32
+export const c_int XUI_DOC_MD_LOSS_TABLE_CONTENT = 64
+export const c_int XUI_DOC_MD_LOSS_METADATA = 128
+export const c_int XUI_DOC_MD_LOSS_EMPTY_BLOCK = 256
+export const c_int XUI_DOC_MD_LOSS_ROUNDTRIP = 512
+export const c_int XUI_DOC_MD_LOSS_LANGUAGE = 1024
+export const c_int XUI_DOC_CHANGE_TEXT = 1
+export const c_int XUI_DOC_CHANGE_STRUCTURE = 2
+export const c_int XUI_DOC_CHANGE_STYLE = 4
+export const c_int XUI_DOC_CHANGE_SOURCE = 8
+export const c_int XUI_DOC_CHANGE_RESOURCE = 16
+export const c_int XUI_DOC_CHANGE_RESET = 32
+export const c_int XUI_DOC_OP_TEXT = 1
+export const c_int XUI_DOC_OP_INSERT = 2
+export const c_int XUI_DOC_OP_DELETE = 3
+export const c_int XUI_DOC_OP_MOVE = 4
+export const c_int XUI_DOC_OP_ATTRIBUTES = 5
+export const c_int XUI_DOC_OP_SOURCE = 6
+export const c_int XUI_DOC_OP_SPLIT = 7
+export const c_int XUI_DOC_OP_MERGE = 8
+export const c_int XUI_DOC_OP_ANCESTRY_ONLY = 1
+export const c_int XUI_DOC_MAP_EXACT = 0
+export const c_int XUI_DOC_MAP_DELETED = 1
+export const c_int XUI_DOC_MAP_APPROXIMATE = 2
+export const c_int XUI_DOC_MAP_COLLAPSED = 3
+export const c_int XUI_DOC_MAP_SYNTAX = 4
+export const c_int XUI_DOC_SOURCE_DIRECT = 1
+export const c_int XUI_DOC_SOURCE_ESCAPE = 2
+export const c_int XUI_DOC_SOURCE_ENTITY = 3
+export const c_int XUI_DOC_SOURCE_NORMALIZED = 4
+export const c_int XUI_DOC_SOURCE_SYNTHETIC = 5
+export const c_int XUI_DOC_SOURCE_PARTIAL_START = 1
+export const c_int XUI_DOC_SOURCE_PARTIAL_END = 2
+export const c_int XUI_DOC_BLOCK_SYNTAX_ATX_HEADING = 1
+export const c_int XUI_DOC_BLOCK_SYNTAX_SETEXT_HEADING = 2
+export const c_int XUI_DOC_BLOCK_SYNTAX_FENCED_CODE = 3
+export const c_int XUI_DOC_BLOCK_SYNTAX_THEMATIC_BREAK = 4
+export const c_int XUI_DOC_BLOCK_SYNTAX_LIST_ITEM = 5
+export const c_int XUI_DOC_BLOCK_SYNTAX_QUOTE_OPEN = 6
+export const c_int XUI_DOC_BLOCK_SYNTAX_TABLE_UNDERLINE = 7
+export const c_int XUI_DOC_BLOCK_SYNTAX_INDENTED_CODE = 8
+export const c_int XUI_DOC_BLOCK_SYNTAX_FRONT_MATTER = 9
+export const c_int XUI_DOC_CODE_INDENT_BLANK = 1
+export const c_int XUI_DOC_BREAK_SOFT = 1
+export const c_int XUI_DOC_BREAK_HARD_BACKSLASH = 2
+export const c_int XUI_DOC_BREAK_HARD_SPACES = 3
+export const c_int XUI_DOC_BREAK_HARD_FORCED = 4
+export const c_int XUI_DOC_TABLE_TOKEN_PIPE = 1
+export const c_int XUI_DOC_TABLE_TOKEN_UNDERLINE = 2
+export const c_int XUI_DOC_TABLE_TOKEN_LEFT_COLON = 1
+export const c_int XUI_DOC_TABLE_TOKEN_RIGHT_COLON = 2
+export const c_int XUI_DOC_SYNTAX_EMPHASIS = 1
+export const c_int XUI_DOC_SYNTAX_STRONG = 2
+export const c_int XUI_DOC_SYNTAX_UNDERLINE = 3
+export const c_int XUI_DOC_SYNTAX_STRIKE = 4
+export const c_int XUI_DOC_SYNTAX_CODE = 5
+export const c_int XUI_DOC_SYNTAX_LINK = 6
+export const c_int XUI_DOC_SYNTAX_IMAGE = 7
+export const c_int XUI_DOC_SYNTAX_MATH = 8
+export const c_int XUI_DOC_SYNTAX_DISPLAY_MATH = 9
+export const c_int XUI_DOC_SYNTAX_FOOTNOTE_REF = 10
+export const c_int XUI_DOC_SYNTAX_HIGHLIGHT = 11
+export const c_int XUI_DOC_SYNTAX_SUBSCRIPT = 12
+export const c_int XUI_DOC_SYNTAX_SUPERSCRIPT = 13
+export const c_int XUI_DOC_SYNTAX_CANDIDATE_LINK = 14
+export const c_int XUI_DOC_SYNTAX_CANDIDATE_IMAGE = 15
+export const c_int XUI_DOC_SYNTAX_CANDIDATE_FOOTNOTE = 16
+export const c_int XUI_DOC_SYNTAX_DESTINATION = 17
+export const c_int XUI_DOC_SYNTAX_TITLE = 18
+export const c_int XUI_DOC_SYNTAX_AUTOLINK = 1
+export const c_int XUI_DOC_REFERENCE_LINK = 1
+export const c_int XUI_DOC_REFERENCE_FOOTNOTE = 2
+export const c_int XUI_DOC_SOURCE_RECORD_ROOT = 1
+export const c_int XUI_DOC_SOURCE_RECORD_NODE = 2
+export const c_int XUI_DOC_SOURCE_RECORD_INLINE = 3
+export const c_int XUI_DOC_SOURCE_RECORD_DEFINITION = 4
+export const c_int XUI_DOC_SOURCE_RECORD_CANDIDATE = 5
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX = 6
+export const c_int XUI_DOC_SOURCE_SYNTAX_SCOPE = 1
+export const c_int XUI_DOC_SOURCE_SYNTAX_BLOCK = 2
+export const c_int XUI_DOC_SOURCE_SYNTAX_INLINE = 3
+export const c_int XUI_DOC_SOURCE_SYNTAX_TEXT = 4
+export const c_int XUI_DOC_SOURCE_SYNTAX_MARKER = 5
+export const c_int XUI_DOC_SOURCE_SYNTAX_FIELD = 6
+export const c_int XUI_DOC_SOURCE_SYNTAX_INDENT = 7
+export const c_int XUI_DOC_SOURCE_SYNTAX_BREAK = 8
+export const c_int XUI_DOC_SOURCE_SYNTAX_OPAQUE = 9
+export const c_int XUI_DOC_SOURCE_RECORD_UNMAPPED = 1
+export const c_int XUI_DOC_SOURCE_RECORD_OPAQUE = 2
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_OPEN = 4
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_CLOSE = 8
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_TABLE = 16
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_CANDIDATE = 32
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_QUOTE_INDENT = 64
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_LIST_FIRST_INDENT = 128
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_LIST_CONTINUATION_INDENT = 256
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_CODE_INDENT = 512
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_BREAK_TRAILING = 1024
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_BREAK_MARKER = 2048
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_BREAK_ENDING = 4096
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_REFERENCE = 8192
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_TAIL = 16384
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_FENCE_INFO = 32768
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_FENCE_LANGUAGE = 65536
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_DEFINITION_PREFIX = 131072
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_DEFINITION_SEPARATOR = 262144
+export const c_int XUI_DOC_SOURCE_RECORD_SYNTAX_DOCUMENT = 524288
+export const c_int XUI_DOC_SOURCE_TOKEN_CONTENT = 1
+export const c_int XUI_DOC_SOURCE_TOKEN_INLINE_MARKER = 2
+export const c_int XUI_DOC_SOURCE_TOKEN_BLOCK_MARKER = 3
+export const c_int XUI_DOC_SOURCE_TOKEN_FIELD_CONTENT = 4
+export const c_int XUI_DOC_SOURCE_TOKEN_REFERENCE_SYNTAX = 5
+export const c_int XUI_DOC_SOURCE_TOKEN_REFERENCE_LABEL = 6
+export const c_int XUI_DOC_SOURCE_TOKEN_REFERENCE_DESTINATION = 7
+export const c_int XUI_DOC_SOURCE_TOKEN_REFERENCE_TITLE = 8
+export const c_int XUI_DOC_SOURCE_TOKEN_HORIZONTAL_SPACE = 9
+export const c_int XUI_DOC_SOURCE_TOKEN_LINE_ENDING = 10
+export const c_int XUI_DOC_SOURCE_TOKEN_BOM = 11
+export const c_int XUI_DOC_SOURCE_TOKEN_HTML = 12
+export const c_int XUI_DOC_SOURCE_TOKEN_HTML_COMMENT = 13
+export const c_int XUI_DOC_SOURCE_TOKEN_UNCLASSIFIED = 14
+export const c_int XUI_DOC_SOURCE_TOKEN_OPAQUE = 15
+export const c_int XUI_DOC_SOURCE_TOKEN_FENCE_INFO = 16
+export const c_int XUI_DOC_SOURCE_TOKEN_CONTAINER_INDENT = 17
+export const c_int XUI_DOC_SOURCE_TOKEN_LIST_GAP = 18
+export const c_int XUI_DOC_SOURCE_TOKEN_CODE_INDENT = 19
+export const c_int XUI_DOC_SOURCE_TOKEN_TABLE = 20
+export const c_int XUI_DOC_SOURCE_TOKEN_BREAK_MARKER = 21
+export const c_int XUI_DOC_SOURCE_TOKEN_SCOPE = 22
+export const c_int XUI_DOC_SOURCE_TOKEN_PARSER_CONFIRMED = 1
+export const c_int XUI_DOC_SOURCE_TOKEN_OPAQUE_PAYLOAD = 2
+export const c_int XUI_DOC_SOURCE_BINDING_RANGE = 0
+export const c_int XUI_DOC_SOURCE_BINDING_PROVENANCE = 1
+export const c_int XUI_DOC_SOURCE_BINDING_BLOCK_PRIMARY = 2
+export const c_int XUI_DOC_SOURCE_BINDING_BLOCK_SECONDARY = 3
+export const c_int XUI_DOC_SOURCE_BINDING_FENCE_TAIL = 4
+export const c_int XUI_DOC_SOURCE_BINDING_FENCE_INFO = 5
+export const c_int XUI_DOC_SOURCE_BINDING_FENCE_LANGUAGE = 6
+export const c_int XUI_DOC_SOURCE_BINDING_LIST_MARKER_GAP = 7
+export const c_int XUI_DOC_SOURCE_BINDING_TASK_MARKER_GAP = 8
+export const c_int XUI_DOC_SOURCE_BINDING_QUOTE_PREFIX = 9
+export const c_int XUI_DOC_SOURCE_BINDING_QUOTE_INDENT = 10
+export const c_int XUI_DOC_SOURCE_BINDING_LIST_FIRST_INDENT = 11
+export const c_int XUI_DOC_SOURCE_BINDING_LIST_CONTINUATION_INDENT = 12
+export const c_int XUI_DOC_SOURCE_BINDING_CODE_INDENT = 13
+export const c_int XUI_DOC_SOURCE_BINDING_TABLE_TOKEN = 14
+export const c_int XUI_DOC_SOURCE_BINDING_INLINE_OPEN = 15
+export const c_int XUI_DOC_SOURCE_BINDING_INLINE_CLOSE = 16
+export const c_int XUI_DOC_SOURCE_BINDING_INLINE_FIELD = 17
+export const c_int XUI_DOC_SOURCE_BINDING_REFERENCE_LABEL = 18
+export const c_int XUI_DOC_SOURCE_BINDING_REFERENCE_DESTINATION = 19
+export const c_int XUI_DOC_SOURCE_BINDING_REFERENCE_TITLE = 20
+export const c_int XUI_DOC_SOURCE_BINDING_BREAK_TRAILING = 21
+export const c_int XUI_DOC_SOURCE_BINDING_BREAK_HARD_MARKER = 22
+export const c_int XUI_DOC_SOURCE_BINDING_BREAK_LINE_ENDING = 23
+export const c_int XUI_DOC_SOURCE_BINDING_DEFINITION_SYNTAX = 24
+export const c_int XUI_DOC_SOURCE_BINDING_DOCUMENT_SYNTAX = 25
+export const c_int XUI_DOC_SOURCE_BINDING_COLUMNS = 1
+export const c_int XUI_DOC_SOURCE_BINDING_TABLE = 2
+export const c_int XUI_DOC_SOURCE_BINDING_SOURCE_ONLY = 4
+export const c_int XUI_DOC_ORDERED = 1
+export const c_int XUI_DOC_TASK = 2
+export const c_int XUI_DOC_CHECKED = 4
+export const c_int XUI_DOC_HEADER = 8
+export const c_int XUI_DOC_BLOCK = 16
+export const c_int XUI_DOC_TIGHT = 32
+export const c_int XUI_DOC_SPACING_EXPLICIT = 64
+export const c_int XUI_DOC_TEXT_COLOR_EXPLICIT_ZERO = 128
+export const c_int XUI_DOC_BACKGROUND_COLOR_EXPLICIT_ZERO = 256
+export const c_int XUI_DOC_TEXT_COLOR_CURRENT = 512
+export const c_int XUI_DOC_BACKGROUND_COLOR_CURRENT = 1024
+export const c_int XUI_DOC_ALIGNMENT_EXPLICIT_LEFT = 2048
+export const c_int XUI_DOC_TEXT_STYLE_COLOR = 1
+export const c_int XUI_DOC_TEXT_STYLE_BACKGROUND = 2
+export const c_int XUI_DOC_TEXT_STYLE_FONT_SIZE = 4
+export const c_int XUI_DOC_TEXT_STYLE_FONT_FAMILY = 8
+export const c_int XUI_DOC_TEXT_STYLE_LANGUAGE = 16
+export const c_int XUI_DOC_BLOCK_STYLE_ALIGNMENT = 1
+export const c_int XUI_DOC_BLOCK_STYLE_SPACING = 2
+export const c_int XUI_DOC_RICH_LOSS_SOURCE_SYNTAX = 1
+export const c_int XUI_DOC_RICH_LOSS_REFERENCE_DEFINITIONS = 2
+export const c_int XUI_DOC_FIND_REGEX = 1
+export const c_int XUI_DOC_FIND_IGNORE_CASE = 2
+export const c_int XUI_DOC_FIND_WHOLE_WORD = 4
+export const c_int XUI_DOC_REPLACE_EXPAND = 8
+export const c_int XUI_DOC_PREPARE_QUEUED = 1
+export const c_int XUI_DOC_PREPARE_RUNNING = 2
+export const c_int XUI_DOC_PREPARE_READY = 3
+export const c_int XUI_DOC_PREPARE_PUBLISHING = 4
+export const c_int XUI_DOC_PREPARE_COMMITTED = 5
+export const c_int XUI_DOC_PREPARE_FAILED = 6
+export const uint64 XUI_DOCUMENT_ROOT = 1
+export const uint64 XUI_DOCUMENT_APPEND = 18446744073709551615

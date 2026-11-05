@@ -15,6 +15,7 @@
 #endif
 #include <xge.h>
 #include <xui.h>
+#include <xui_document.h>
 #include <xge_host_xrt.h>
 #include <__xl_runtime/xl6_foreign_view.h>
 
@@ -33,6 +34,14 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3MsgTipPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3TableCellOutputPolicyGet(void);
 const XL6_OwnershipDomainV1* xuiTableViewCellOutputOwnershipDomainV1Get(void);
 const XL6_OwnershipDomainV1* xl6Xui3OwnershipDomainV1Get(void);
+const XL6_OwnershipDomainV1* xl6Xui3DocumentModelDomainV1Get(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentSnapshotPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentChangeSetPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentPreparePolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentFragmentPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentSourceIndexPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentTxnPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3ProxyPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3FontPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3SurfacePolicyGet(void);
@@ -61,6 +70,14 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
 #define xl6Xui3TableCellOutputPolicy (*xl6Xui3TableCellOutputPolicyGet())
 #define xuiTableViewCellOutputOwnershipDomainV1 (*xuiTableViewCellOutputOwnershipDomainV1Get())
 #define xl6Xui3OwnershipDomainV1 (*xl6Xui3OwnershipDomainV1Get())
+#define xl6Xui3DocumentModelDomainV1 (*xl6Xui3DocumentModelDomainV1Get())
+#define xl6Xui3DocumentPolicy (*xl6Xui3DocumentPolicyGet())
+#define xl6Xui3DocumentSnapshotPolicy (*xl6Xui3DocumentSnapshotPolicyGet())
+#define xl6Xui3DocumentChangeSetPolicy (*xl6Xui3DocumentChangeSetPolicyGet())
+#define xl6Xui3DocumentPreparePolicy (*xl6Xui3DocumentPreparePolicyGet())
+#define xl6Xui3DocumentFragmentPolicy (*xl6Xui3DocumentFragmentPolicyGet())
+#define xl6Xui3DocumentSourceIndexPolicy (*xl6Xui3DocumentSourceIndexPolicyGet())
+#define xl6Xui3DocumentTxnPolicy (*xl6Xui3DocumentTxnPolicyGet())
 #define xl6Xui3ProxyPolicy (*xl6Xui3ProxyPolicyGet())
 #define xl6Xui3FontPolicy (*xl6Xui3FontPolicyGet())
 #define xl6Xui3SurfacePolicy (*xl6Xui3SurfacePolicyGet())

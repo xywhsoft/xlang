@@ -1,0 +1,1969 @@
+{
+  "scope": "Default-provenance Model A direct declaration coverage; declarations are not ABI/runtime qualification",
+  "authority": "F:\\xlang-validation\\foreign-completion-20261103\\native-model-a-native-source-r5\\include\\xui_document.h",
+  "authoritySha256": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2",
+  "roots": {
+    "xui_document": {
+      "logical": "Document",
+      "cName": "struct xui_document_t*",
+      "policy": "xl6Xui3DocumentPolicy"
+    },
+    "xui_document_snapshot": {
+      "logical": "DocumentSnapshot",
+      "cName": "struct xui_doc_snapshot_t*",
+      "policy": "xl6Xui3DocumentSnapshotPolicy"
+    },
+    "xui_document_change_set": {
+      "logical": "DocumentChangeSet",
+      "cName": "struct xui_doc_change_set_t*",
+      "policy": "xl6Xui3DocumentChangeSetPolicy"
+    },
+    "xui_document_prepare": {
+      "logical": "DocumentPrepare",
+      "cName": "struct xui_doc_prepare_t*",
+      "policy": "xl6Xui3DocumentPreparePolicy"
+    },
+    "xui_document_fragment": {
+      "logical": "DocumentFragment",
+      "cName": "struct xui_doc_fragment_t*",
+      "policy": "xl6Xui3DocumentFragmentPolicy"
+    },
+    "xui_document_source_index": {
+      "logical": "DocumentSourceIndex",
+      "cName": "struct xui_doc_source_index_t*",
+      "policy": "xl6Xui3DocumentSourceIndexPolicy"
+    },
+    "xui_document_transaction": {
+      "logical": "DocumentTransaction",
+      "cName": "struct xui_doc_transaction_t*",
+      "policy": "xl6Xui3DocumentTxnPolicy"
+    }
+  },
+  "records": {
+    "xui_doc_source_segment_t": "DocumentSourceSegment",
+    "xui_doc_source_line_t": "DocumentSourceLine",
+    "xui_doc_block_syntax_t": "DocumentBlockSyntax",
+    "xui_doc_code_indent_t": "DocumentCodeIndent",
+    "xui_doc_break_syntax_t": "DocumentBreakSyntax",
+    "xui_doc_list_indent_t": "DocumentListIndent",
+    "xui_doc_table_token_t": "DocumentTableToken",
+    "xui_doc_inline_syntax_t": "DocumentInlineSyntax",
+    "xui_doc_reference_definition_t": "DocumentReferenceDefinition",
+    "xui_doc_source_info_t": "DocumentSourceInfo",
+    "xui_doc_source_record_t": "DocumentSourceRecord",
+    "xui_doc_source_token_t": "DocumentSourceToken",
+    "xui_doc_source_binding_t": "DocumentSourceBinding",
+    "xui_doc_source_index_info_t": "DocumentSourceIndexInfo",
+    "xui_doc_text_style_t": "DocumentTextStyle",
+    "xui_doc_text_style_query_t": "DocumentTextStyleQuery",
+    "xui_doc_block_style_t": "DocumentBlockStyle",
+    "xui_doc_markdown_loss_t": "DocumentMarkdownLoss",
+    "xui_doc_rich_conversion_report_t": "DocumentRichConversionReport",
+    "xui_doc_position_t": "DocumentPosition",
+    "xui_doc_range_t": "DocumentRange",
+    "xui_doc_txn_desc_t": "DocumentTransactionDesc",
+    "xui_doc_operation_t": "DocumentOperation",
+    "xui_doc_stats_t": "DocumentStats",
+    "xui_doc_memory_stats_t": "DocumentMemoryStats",
+    "xui_doc_prepare_info_t": "DocumentPrepareInfo"
+  },
+  "pointerBearingRecords": [
+    "xui_doc_source_index_desc_t",
+    "xui_doc_desc_t",
+    "xui_doc_attributes_t",
+    "xui_doc_node_desc_t",
+    "xui_doc_node_info_t",
+    "xui_doc_change_info_t",
+    "xui_doc_image_desc_t",
+    "xui_doc_link_info_t",
+    "xui_doc_source_patch_t"
+  ],
+  "entries": [
+    {
+      "native": "xuiDocumentCreate",
+      "declaration": "int xuiDocumentCreate(const xui_doc_desc_t* desc, xui_document* out)",
+      "line": 638,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Legacy raw/custom-allocator provenance; createDocument maps CreateOwned with default allocator only."
+    },
+    {
+      "native": "xuiDocumentCreateOwned",
+      "declaration": "int xuiDocumentCreateOwned(const xui_doc_desc_t* desc, xui_document* out)",
+      "line": 642,
+      "logical": "createDocument",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentIsOwned",
+      "declaration": "bool xuiDocumentIsOwned(xui_document document)",
+      "line": 643,
+      "logical": "Document.isOwned",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentAddRef",
+      "declaration": "int xuiDocumentAddRef(xui_document document)",
+      "line": 649,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentShareOwned",
+      "declaration": "int xuiDocumentShareOwned(xui_document document, xui_document* out)",
+      "line": 652,
+      "logical": "Document.share",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentReleaseOwnerChecked",
+      "declaration": "int xuiDocumentReleaseOwnerChecked(xui_document document, bool* consumed)",
+      "line": 653,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentReleaseChecked",
+      "declaration": "int xuiDocumentReleaseChecked(xui_document document)",
+      "line": 654,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentOwnership",
+      "declaration": "xrtownershipref xuiDocumentOwnership(xui_document document)",
+      "line": 655,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentSnapshotAddRef",
+      "declaration": "int xuiDocumentSnapshotAddRef(xui_document_snapshot snapshot)",
+      "line": 656,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentSnapshotShareOwned",
+      "declaration": "int xuiDocumentSnapshotShareOwned(xui_document_snapshot snapshot, xui_document_snapshot* out)",
+      "line": 657,
+      "logical": "DocumentSnapshot.share",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotReleaseOwnerChecked",
+      "declaration": "int xuiDocumentSnapshotReleaseOwnerChecked(xui_document_snapshot snapshot, bool* consumed)",
+      "line": 658,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentSnapshotReleaseChecked",
+      "declaration": "int xuiDocumentSnapshotReleaseChecked(xui_document_snapshot snapshot)",
+      "line": 659,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentSnapshotOwnership",
+      "declaration": "xrtownershipref xuiDocumentSnapshotOwnership(xui_document_snapshot snapshot)",
+      "line": 660,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentChangeSetAddRef",
+      "declaration": "int xuiDocumentChangeSetAddRef(xui_document_change_set change)",
+      "line": 661,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentChangeSetShareOwned",
+      "declaration": "int xuiDocumentChangeSetShareOwned(xui_document_change_set change, xui_document_change_set* out)",
+      "line": 662,
+      "logical": "DocumentChangeSet.share",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentChangeSetReleaseOwnerChecked",
+      "declaration": "int xuiDocumentChangeSetReleaseOwnerChecked(xui_document_change_set change, bool* consumed)",
+      "line": 663,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentChangeSetReleaseChecked",
+      "declaration": "int xuiDocumentChangeSetReleaseChecked(xui_document_change_set change)",
+      "line": 664,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentChangeSetOwnership",
+      "declaration": "xrtownershipref xuiDocumentChangeSetOwnership(xui_document_change_set change)",
+      "line": 665,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentPrepareAddRef",
+      "declaration": "int xuiDocumentPrepareAddRef(xui_document_prepare prepare)",
+      "line": 666,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentPrepareShareOwned",
+      "declaration": "int xuiDocumentPrepareShareOwned(xui_document_prepare prepare, xui_document_prepare* out)",
+      "line": 667,
+      "logical": "DocumentPrepare.share",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentPrepareReleaseOwnerChecked",
+      "declaration": "int xuiDocumentPrepareReleaseOwnerChecked(xui_document_prepare prepare, bool* consumed)",
+      "line": 668,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentPrepareReleaseChecked",
+      "declaration": "int xuiDocumentPrepareReleaseChecked(xui_document_prepare prepare)",
+      "line": 669,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentPrepareOwnership",
+      "declaration": "xrtownershipref xuiDocumentPrepareOwnership(xui_document_prepare prepare)",
+      "line": 670,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentFragmentAddRef",
+      "declaration": "int xuiDocumentFragmentAddRef(xui_document_fragment fragment)",
+      "line": 671,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentFragmentShareOwned",
+      "declaration": "int xuiDocumentFragmentShareOwned(xui_document_fragment fragment, xui_document_fragment* out)",
+      "line": 672,
+      "logical": "DocumentFragment.share",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentFragmentReleaseOwnerChecked",
+      "declaration": "int xuiDocumentFragmentReleaseOwnerChecked(xui_document_fragment fragment, bool* consumed)",
+      "line": 673,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentFragmentReleaseChecked",
+      "declaration": "int xuiDocumentFragmentReleaseChecked(xui_document_fragment fragment)",
+      "line": 674,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentFragmentOwnership",
+      "declaration": "xrtownershipref xuiDocumentFragmentOwnership(xui_document_fragment fragment)",
+      "line": 675,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentSourceIndexAddRef",
+      "declaration": "int xuiDocumentSourceIndexAddRef(xui_document_source_index index)",
+      "line": 676,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentSourceIndexShareOwned",
+      "declaration": "int xuiDocumentSourceIndexShareOwned(xui_document_source_index index, xui_document_source_index* out)",
+      "line": 677,
+      "logical": "DocumentSourceIndex.share",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSourceIndexReleaseOwnerChecked",
+      "declaration": "int xuiDocumentSourceIndexReleaseOwnerChecked(xui_document_source_index index, bool* consumed)",
+      "line": 678,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentSourceIndexReleaseChecked",
+      "declaration": "int xuiDocumentSourceIndexReleaseChecked(xui_document_source_index index)",
+      "line": 679,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentSourceIndexOwnership",
+      "declaration": "xrtownershipref xuiDocumentSourceIndexOwnership(xui_document_source_index index)",
+      "line": 680,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentTxnReleaseOwnerChecked",
+      "declaration": "int xuiDocumentTxnReleaseOwnerChecked(xui_document_transaction transaction, bool* consumed)",
+      "line": 683,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentTxnReleaseChecked",
+      "declaration": "int xuiDocumentTxnReleaseChecked(xui_document_transaction transaction)",
+      "line": 684,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentTxnOwnership",
+      "declaration": "xrtownershipref xuiDocumentTxnOwnership(xui_document_transaction transaction)",
+      "line": 685,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentModelOwnershipAdapterV1",
+      "declaration": "const xrtownershipadapterv1* xuiDocumentModelOwnershipAdapterV1(xrtownershipref reference)",
+      "line": 686,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentModelOwnershipPreparationV1",
+      "declaration": "const xrtownershippreparationv1* xuiDocumentModelOwnershipPreparationV1(xrtownershipref reference)",
+      "line": 687,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentModelOwnershipQuiescenceV1",
+      "declaration": "const xrtownershipquiescencev1* xuiDocumentModelOwnershipQuiescenceV1(xrtownershipref reference)",
+      "line": 688,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentModelOwnershipCompletionV2",
+      "declaration": "const xrtownershipfinishv2* xuiDocumentModelOwnershipCompletionV2(xrtownershipref reference)",
+      "line": 689,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentModelOwnershipFinalizationV1",
+      "declaration": "const xrtownershipfinalizationv1* xuiDocumentModelOwnershipFinalizationV1(xrtownershipref reference)",
+      "line": 690,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentModelOwnershipReadReady",
+      "declaration": "bool xuiDocumentModelOwnershipReadReady(xrtownershipref reference)",
+      "line": 694,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentRetain",
+      "declaration": "void xuiDocumentRetain(xui_document document)",
+      "line": 696,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentRelease",
+      "declaration": "void xuiDocumentRelease(xui_document document)",
+      "line": 698,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentGetRevision",
+      "declaration": "uint64_t xuiDocumentGetRevision(xui_document document)",
+      "line": 700,
+      "logical": "Document.revision",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentGetIdentity",
+      "declaration": "uint64_t xuiDocumentGetIdentity(xui_document document)",
+      "line": 702,
+      "logical": "Document.identity",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentGetProfile",
+      "declaration": "int xuiDocumentGetProfile(xui_document document)",
+      "line": 704,
+      "logical": "Document.profile",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentGetMarkdownDialect",
+      "declaration": "int xuiDocumentGetMarkdownDialect(xui_document document)",
+      "line": 706,
+      "logical": "Document.markdownDialect",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentAcquireSnapshot",
+      "declaration": "int xuiDocumentAcquireSnapshot(xui_document document, xui_document_snapshot* out)",
+      "line": 708,
+      "logical": "Document.snapshot",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotRetain",
+      "declaration": "void xuiDocumentSnapshotRetain(xui_document_snapshot snapshot)",
+      "line": 710,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentSnapshotRelease",
+      "declaration": "void xuiDocumentSnapshotRelease(xui_document_snapshot snapshot)",
+      "line": 712,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentSnapshotGetIdentity",
+      "declaration": "uint64_t xuiDocumentSnapshotGetIdentity(xui_document_snapshot snapshot)",
+      "line": 714,
+      "logical": "DocumentSnapshot.identity",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotGetRevision",
+      "declaration": "uint64_t xuiDocumentSnapshotGetRevision(xui_document_snapshot snapshot)",
+      "line": 716,
+      "logical": "DocumentSnapshot.revision",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotGetNode",
+      "declaration": "int xuiDocumentSnapshotGetNode(xui_document_snapshot snapshot, xui_doc_node_id id, xui_doc_node_info_t* out)",
+      "line": 718,
+      "logical": "DocumentSnapshot.nodeInfo",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotGetChild",
+      "declaration": "int xuiDocumentSnapshotGetChild(xui_document_snapshot snapshot, xui_doc_node_id parent, uint64_t index, xui_doc_node_id* out)",
+      "line": 720,
+      "logical": "DocumentSnapshot.child",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotGetSourceSegment",
+      "declaration": "int xuiDocumentSnapshotGetSourceSegment(xui_document_snapshot snapshot, xui_doc_node_id node, uint64_t index, xui_doc_source_segment_t* out)",
+      "line": 722,
+      "logical": "DocumentSnapshot.sourceSegment",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotGetSourceLine",
+      "declaration": "int xuiDocumentSnapshotGetSourceLine(xui_document_snapshot snapshot, uint64_t source_offset, xui_doc_source_line_t* out)",
+      "line": 725,
+      "logical": "DocumentSnapshot.sourceLine",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotGetBlockSyntax",
+      "declaration": "int xuiDocumentSnapshotGetBlockSyntax(xui_document_snapshot snapshot, xui_doc_node_id node, xui_doc_block_syntax_t* out)",
+      "line": 728,
+      "logical": "DocumentSnapshot.blockSyntax",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotGetBreakSyntax",
+      "declaration": "int xuiDocumentSnapshotGetBreakSyntax(xui_document_snapshot snapshot, xui_doc_node_id node, xui_doc_break_syntax_t* out)",
+      "line": 731,
+      "logical": "DocumentSnapshot.breakSyntax",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotGetQuotePrefix",
+      "declaration": "int xuiDocumentSnapshotGetQuotePrefix(xui_document_snapshot snapshot, xui_doc_node_id node, uint64_t index, uint64_t* start, uint64_t* end)",
+      "line": 735,
+      "logical": "DocumentSnapshot.quotePrefix",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotGetListContinuationIndent",
+      "declaration": "int xuiDocumentSnapshotGetListContinuationIndent(xui_document_snapshot snapshot, xui_doc_node_id item, uint64_t index, xui_doc_list_indent_t* out)",
+      "line": 740,
+      "logical": "DocumentSnapshot.listContinuationIndent",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotGetCodeIndent",
+      "declaration": "int xuiDocumentSnapshotGetCodeIndent(xui_document_snapshot snapshot, xui_doc_node_id code, uint64_t index, xui_doc_code_indent_t* out)",
+      "line": 744,
+      "logical": "DocumentSnapshot.codeIndent",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotGetTableToken",
+      "declaration": "int xuiDocumentSnapshotGetTableToken(xui_document_snapshot snapshot, xui_doc_node_id table, uint64_t index, xui_doc_table_token_t* out)",
+      "line": 750,
+      "logical": "DocumentSnapshot.tableToken",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotGetSourceInfo",
+      "declaration": "int xuiDocumentSnapshotGetSourceInfo(xui_document_snapshot snapshot, xui_doc_source_info_t* out)",
+      "line": 753,
+      "logical": "DocumentSnapshot.sourceInfo",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotGetInlineSyntax",
+      "declaration": "int xuiDocumentSnapshotGetInlineSyntax(xui_document_snapshot snapshot, uint64_t index, xui_doc_inline_syntax_t* out)",
+      "line": 755,
+      "logical": "DocumentSnapshot.inlineSyntax",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotGetReferenceDefinition",
+      "declaration": "int xuiDocumentSnapshotGetReferenceDefinition(xui_document_snapshot snapshot, uint64_t index, xui_doc_reference_definition_t* out)",
+      "line": 757,
+      "logical": "DocumentSnapshot.referenceDefinition",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotGetReferenceCandidate",
+      "declaration": "int xuiDocumentSnapshotGetReferenceCandidate(xui_document_snapshot snapshot, uint64_t index, xui_doc_inline_syntax_t* out)",
+      "line": 762,
+      "logical": "DocumentSnapshot.referenceCandidate",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotCreateSourceIndex",
+      "declaration": "int xuiDocumentSnapshotCreateSourceIndex(xui_document_snapshot snapshot, const xui_doc_source_index_desc_t* desc, xui_document_source_index* out)",
+      "line": 765,
+      "logical": "DocumentSnapshot.createSourceIndex",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSourceIndexRetain",
+      "declaration": "void xuiDocumentSourceIndexRetain(xui_document_source_index index)",
+      "line": 768,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentSourceIndexRelease",
+      "declaration": "void xuiDocumentSourceIndexRelease(xui_document_source_index index)",
+      "line": 770,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentSourceIndexGetInfo",
+      "declaration": "int xuiDocumentSourceIndexGetInfo(xui_document_source_index index, xui_doc_source_index_info_t* out)",
+      "line": 772,
+      "logical": "DocumentSourceIndex.info",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSourceIndexGetRecord",
+      "declaration": "int xuiDocumentSourceIndexGetRecord(xui_document_source_index index, uint64_t ordinal, xui_doc_source_record_t* out)",
+      "line": 775,
+      "logical": "DocumentSourceIndex.record",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSourceIndexGetToken",
+      "declaration": "int xuiDocumentSourceIndexGetToken(xui_document_source_index index, uint64_t ordinal, xui_doc_source_token_t* out)",
+      "line": 778,
+      "logical": "DocumentSourceIndex.token",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSourceIndexGetBinding",
+      "declaration": "int xuiDocumentSourceIndexGetBinding(xui_document_source_index index, uint64_t ordinal, xui_doc_source_binding_t* out)",
+      "line": 781,
+      "logical": "DocumentSourceIndex.binding",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSourceIndexVisitBindings",
+      "declaration": "int xuiDocumentSourceIndexVisitBindings(xui_document_source_index index, uint64_t start, uint64_t end, xui_doc_source_binding_proc onBinding, void* user, uint64_t* visited)",
+      "line": 790,
+      "logical": "DocumentSourceIndex.visitBindings",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSourceIndexFindToken",
+      "declaration": "int xuiDocumentSourceIndexFindToken(xui_document_source_index index, uint64_t offset, uint64_t* ordinal)",
+      "line": 795,
+      "logical": "DocumentSourceIndex.findToken",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSourceIndexReadSource",
+      "declaration": "int xuiDocumentSourceIndexReadSource(xui_document_source_index index, uint64_t offset, void* buffer, uint64_t bytes)",
+      "line": 799,
+      "logical": "DocumentSourceIndex.readSource",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotCopyText",
+      "declaration": "int xuiDocumentSnapshotCopyText(xui_document_snapshot snapshot, xui_doc_node_id node, char* buffer, uint64_t capacity, uint64_t* length)",
+      "line": 803,
+      "logical": "DocumentSnapshot.copyText",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotCopyExtensionPayload",
+      "declaration": "int xuiDocumentSnapshotCopyExtensionPayload(xui_document_snapshot snapshot, xui_doc_node_id node, void* buffer, uint64_t capacity, uint64_t* length)",
+      "line": 806,
+      "logical": "DocumentSnapshot.copyExtensionPayload",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotCopySource",
+      "declaration": "int xuiDocumentSnapshotCopySource(xui_document_snapshot snapshot, char* buffer, uint64_t capacity, uint64_t* length)",
+      "line": 809,
+      "logical": "DocumentSnapshot.copySource",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotReadText",
+      "declaration": "int xuiDocumentSnapshotReadText(xui_document_snapshot snapshot, xui_doc_node_id node, uint64_t offset, void* buffer, uint64_t bytes)",
+      "line": 811,
+      "logical": "DocumentSnapshot.readText",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotReadSource",
+      "declaration": "int xuiDocumentSnapshotReadSource(xui_document_snapshot snapshot, uint64_t offset, void* buffer, uint64_t bytes)",
+      "line": 813,
+      "logical": "DocumentSnapshot.readSource",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSubscribe",
+      "declaration": "int xuiDocumentSubscribe(xui_document document, xui_doc_change_proc callback, void* user, uint64_t* token)",
+      "line": 815,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Raw callback installer; use SubscribeOwned"
+    },
+    {
+      "native": "xuiDocumentSubscribeOwned",
+      "declaration": "int xuiDocumentSubscribeOwned(xui_document document, xui_doc_change_owned_proc callback, void* user, const xui_callback_owner_t* owner, uint64_t* token)",
+      "line": 819,
+      "logical": "Document.subscribe",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentUnsubscribeChecked",
+      "declaration": "int xuiDocumentUnsubscribeChecked(xui_document document, uint64_t token)",
+      "line": 821,
+      "logical": "Document.unsubscribeChecked",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentCheckNotifications",
+      "declaration": "int xuiDocumentCheckNotifications(xui_document document, bool clear)",
+      "line": 825,
+      "logical": "Document.checkNotifications",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentGetNotificationFailureCount",
+      "declaration": "uint64_t xuiDocumentGetNotificationFailureCount(xui_document document)",
+      "line": 826,
+      "logical": "Document.notificationFailureCount",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentGetNotificationFailureRevision",
+      "declaration": "uint64_t xuiDocumentGetNotificationFailureRevision(xui_document document)",
+      "line": 827,
+      "logical": "Document.notificationFailureRevision",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentGetNotificationFailureStatus",
+      "declaration": "int xuiDocumentGetNotificationFailureStatus(xui_document document)",
+      "line": 831,
+      "logical": "Document.notificationFailureStatus",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentUnsubscribe",
+      "declaration": "void xuiDocumentUnsubscribe(xui_document document, uint64_t token)",
+      "line": 833,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Legacy void outcome; use UnsubscribeChecked"
+    },
+    {
+      "native": "xuiDocumentGetStats",
+      "declaration": "int xuiDocumentGetStats(xui_document document, xui_doc_stats_t* out)",
+      "line": 835,
+      "logical": "Document.stats",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentGetMemoryStats",
+      "declaration": "int xuiDocumentGetMemoryStats(xui_document document, xui_doc_memory_stats_t* out)",
+      "line": 842,
+      "logical": "Document.memoryStats",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotGetMemoryStats",
+      "declaration": "int xuiDocumentSnapshotGetMemoryStats(xui_document_snapshot snapshot, xui_doc_memory_stats_t* out)",
+      "line": 845,
+      "logical": "DocumentSnapshot.memoryStats",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSetHistoryLimits",
+      "declaration": "int xuiDocumentSetHistoryLimits(xui_document document, uint32_t max_steps, uint64_t max_bytes)",
+      "line": 851,
+      "logical": "Document.setHistoryLimits",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentClearHistory",
+      "declaration": "int xuiDocumentClearHistory(xui_document document)",
+      "line": 853,
+      "logical": "Document.clearHistory",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentIsDirty",
+      "declaration": "int xuiDocumentIsDirty(xui_document document)",
+      "line": 855,
+      "logical": "Document.isDirty",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentMarkSaved",
+      "declaration": "int xuiDocumentMarkSaved(xui_document document, xui_document_snapshot saved)",
+      "line": 857,
+      "logical": "Document.markSaved",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotExportFile",
+      "declaration": "int xuiDocumentSnapshotExportFile(xui_document_snapshot snapshot, const char* path, uint32_t format)",
+      "line": 863,
+      "logical": "DocumentSnapshot.exportFile",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSaveFile",
+      "declaration": "int xuiDocumentSaveFile(xui_document document, const char* path, uint32_t format)",
+      "line": 865,
+      "logical": "Document.saveFile",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentOpenFile",
+      "declaration": "int xuiDocumentOpenFile(const char* path, uint32_t format, const xui_doc_desc_t* desc, uint64_t max_file_bytes, xui_document* out)",
+      "line": 870,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Legacy raw/custom-allocator provenance; openDocument maps OpenFileOwned with default allocator only."
+    },
+    {
+      "native": "xuiDocumentOpenFileOwned",
+      "declaration": "int xuiDocumentOpenFileOwned(const char* path, uint32_t format, const xui_doc_desc_t* desc, uint64_t max_file_bytes, xui_document* out)",
+      "line": 871,
+      "logical": "openDocument",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotAnalyzeMarkdownConversion",
+      "declaration": "int xuiDocumentSnapshotAnalyzeMarkdownConversion( xui_document_snapshot snapshot, uint32_t dialect, xui_doc_markdown_loss_t* losses, uint64_t capacity, uint64_t* total)",
+      "line": 878,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Writable caller output array; a single POD plus arbitrary capacity is unsafe. A checked typed-array output contract is not declared."
+    },
+    {
+      "native": "xuiDocumentSnapshotConvertToMarkdown",
+      "declaration": "int xuiDocumentSnapshotConvertToMarkdown( xui_document_snapshot snapshot, uint32_t dialect, xui_document* out)",
+      "line": 884,
+      "logical": "DocumentSnapshot.convertToMarkdown",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotConvertToMarkdownWithPolicy",
+      "declaration": "int xuiDocumentSnapshotConvertToMarkdownWithPolicy( xui_document_snapshot snapshot, uint32_t dialect, uint32_t accepted_reasons, xui_document* out)",
+      "line": 891,
+      "logical": "DocumentSnapshot.convertToMarkdownWithPolicy",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotAnalyzeRichConversion",
+      "declaration": "int xuiDocumentSnapshotAnalyzeRichConversion( xui_document_snapshot snapshot, xui_doc_rich_conversion_report_t* report)",
+      "line": 898,
+      "logical": "DocumentSnapshot.analyzeRichConversion",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotConvertToRich",
+      "declaration": "int xuiDocumentSnapshotConvertToRich( xui_document_snapshot snapshot, uint32_t accepted_reasons, xui_document* out)",
+      "line": 901,
+      "logical": "DocumentSnapshot.convertToRich",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentBeginTransaction",
+      "declaration": "int xuiDocumentBeginTransaction(xui_document document, const xui_doc_txn_desc_t* desc, xui_document_transaction* out)",
+      "line": 906,
+      "logical": "Document.beginTransaction",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnGetNode",
+      "declaration": "int xuiDocumentTxnGetNode(xui_document_transaction transaction, xui_doc_node_id id, xui_doc_node_info_t* out)",
+      "line": 908,
+      "logical": "DocumentTransaction.nodeInfo",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnInsertNode",
+      "declaration": "int xuiDocumentTxnInsertNode(xui_document_transaction transaction, xui_doc_node_id parent, uint64_t child_index, const xui_doc_node_desc_t* desc, xui_doc_node_id* out)",
+      "line": 910,
+      "logical": "DocumentTransaction.insertNode",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnCopySubtree",
+      "declaration": "int xuiDocumentTxnCopySubtree(xui_document_transaction transaction, xui_document_snapshot source, xui_doc_node_id source_node, xui_doc_node_id target_parent, uint64_t child_index, xui_doc_node_id* copied_root)",
+      "line": 916,
+      "logical": "DocumentTransaction.copySubtree",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnCopyRange",
+      "declaration": "int xuiDocumentTxnCopyRange(xui_document_transaction transaction, xui_document_snapshot source, const xui_doc_range_t* range, xui_doc_node_id target_parent, uint64_t child_index, xui_doc_node_id* copied_first, uint64_t* copied_count)",
+      "line": 926,
+      "logical": "DocumentTransaction.copyRange",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentFragmentCreateRange",
+      "declaration": "int xuiDocumentFragmentCreateRange(xui_document_snapshot source, const xui_doc_range_t* range, xui_document_fragment* out)",
+      "line": 936,
+      "logical": "DocumentSnapshot.fragmentCreateRange",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentFragmentRetain",
+      "declaration": "void xuiDocumentFragmentRetain(xui_document_fragment fragment)",
+      "line": 939,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentFragmentRelease",
+      "declaration": "void xuiDocumentFragmentRelease(xui_document_fragment fragment)",
+      "line": 941,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentFragmentSerialize",
+      "declaration": "int xuiDocumentFragmentSerialize(xui_document_fragment fragment, char** out, uint64_t* bytes)",
+      "line": 943,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Producer-owned libc/default-allocator text + explicit byte count; must release through xuiDocumentFreeBuffer. No compatible allocator-aware owned-buffer output contract is declared."
+    },
+    {
+      "native": "xuiDocumentFragmentExportHtml",
+      "declaration": "int xuiDocumentFragmentExportHtml(xui_document_fragment fragment, char** out, uint64_t* bytes)",
+      "line": 948,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Producer-owned libc/default-allocator text + explicit byte count; must release through xuiDocumentFreeBuffer. No compatible allocator-aware owned-buffer output contract is declared."
+    },
+    {
+      "native": "xuiDocumentFragmentImportHtml",
+      "declaration": "int xuiDocumentFragmentImportHtml(const char* html, uint64_t bytes, xui_document_fragment* out)",
+      "line": 954,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Legacy raw output; importDocumentFragmentHtml maps the real ImportHtmlOwned entry."
+    },
+    {
+      "native": "xuiDocumentFragmentImportHtmlOwned",
+      "declaration": "int xuiDocumentFragmentImportHtmlOwned(const char* html, uint64_t bytes, xui_document_fragment* out)",
+      "line": 956,
+      "logical": "importDocumentFragmentHtml",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentFragmentDeserialize",
+      "declaration": "int xuiDocumentFragmentDeserialize(const char* data, uint64_t bytes, xui_document_fragment* out)",
+      "line": 959,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Legacy raw output; deserializeDocumentFragment maps the real DeserializeOwned entry."
+    },
+    {
+      "native": "xuiDocumentFragmentDeserializeOwned",
+      "declaration": "int xuiDocumentFragmentDeserializeOwned(const char* data, uint64_t bytes, xui_document_fragment* out)",
+      "line": 961,
+      "logical": "deserializeDocumentFragment",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnInsertFragment",
+      "declaration": "int xuiDocumentTxnInsertFragment(xui_document_transaction transaction, xui_document_fragment fragment, xui_doc_node_id target_parent, uint64_t child_index, xui_doc_node_id* copied_first, uint64_t* copied_count)",
+      "line": 964,
+      "logical": "DocumentTransaction.insertFragment",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnReplaceRangeWithFragment",
+      "declaration": "int xuiDocumentTxnReplaceRangeWithFragment( xui_document_transaction transaction, const xui_doc_range_t* range, xui_document_fragment fragment, xui_doc_position_t* caret)",
+      "line": 972,
+      "logical": "DocumentTransaction.replaceRangeWithFragment",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnDeleteNode",
+      "declaration": "int xuiDocumentTxnDeleteNode(xui_document_transaction transaction, xui_doc_node_id node)",
+      "line": 976,
+      "logical": "DocumentTransaction.deleteNode",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnMoveNode",
+      "declaration": "int xuiDocumentTxnMoveNode(xui_document_transaction transaction, xui_doc_node_id node, xui_doc_node_id parent, uint64_t child_index)",
+      "line": 978,
+      "logical": "DocumentTransaction.moveNode",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnReplaceText",
+      "declaration": "int xuiDocumentTxnReplaceText(xui_document_transaction transaction, xui_doc_node_id node, uint64_t start, uint64_t end, const char* utf8, uint64_t bytes)",
+      "line": 980,
+      "logical": "DocumentTransaction.replaceText",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnSetAttributes",
+      "declaration": "int xuiDocumentTxnSetAttributes(xui_document_transaction transaction, xui_doc_node_id node, const xui_doc_attributes_t* attributes)",
+      "line": 982,
+      "logical": "DocumentTransaction.setAttributesColumns",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnSetResource",
+      "declaration": "int xuiDocumentTxnSetResource(xui_document_transaction transaction, xui_doc_node_id node, const char* resource, const char* info, const char* title)",
+      "line": 984,
+      "logical": "DocumentTransaction.setResource",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnSetExtensionPayload",
+      "declaration": "int xuiDocumentTxnSetExtensionPayload(xui_document_transaction transaction, xui_doc_node_id node, const void* payload, uint64_t bytes, uint32_t version, int required)",
+      "line": 986,
+      "logical": "DocumentTransaction.setExtensionPayload",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnInsertImage",
+      "declaration": "int xuiDocumentTxnInsertImage(xui_document_transaction transaction, const xui_doc_range_t* range, const xui_doc_image_desc_t* image, xui_doc_node_id* image_id, xui_doc_position_t* caret)",
+      "line": 1005,
+      "logical": "DocumentTransaction.insertImage",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnInsertObject",
+      "declaration": "int xuiDocumentTxnInsertObject(xui_document_transaction transaction, const xui_doc_range_t* range, uint32_t kind, uint32_t flags, const char* utf8, uint64_t bytes, xui_doc_node_id* object_id, xui_doc_position_t* caret)",
+      "line": 1014,
+      "logical": "DocumentTransaction.insertObject",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnInsertCodeBlock",
+      "declaration": "int xuiDocumentTxnInsertCodeBlock(xui_document_transaction transaction, const xui_doc_range_t* range, const char* language, const char* utf8, uint64_t bytes, xui_doc_node_id* code_id, xui_doc_position_t* caret)",
+      "line": 1021,
+      "logical": "DocumentTransaction.insertCodeBlock",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnSetCodeBlockLanguage",
+      "declaration": "int xuiDocumentTxnSetCodeBlockLanguage(xui_document_transaction transaction, xui_doc_node_id code_id, const char* language)",
+      "line": 1028,
+      "logical": "DocumentTransaction.setCodeBlockLanguage",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnInsertRule",
+      "declaration": "int xuiDocumentTxnInsertRule(xui_document_transaction transaction, const xui_doc_range_t* range, xui_doc_node_id* rule_id, xui_doc_position_t* caret)",
+      "line": 1031,
+      "logical": "DocumentTransaction.insertRule",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnWrapQuoteRange",
+      "declaration": "int xuiDocumentTxnWrapQuoteRange(xui_document_transaction transaction, const xui_doc_range_t* range, xui_doc_node_id* quote_id, xui_doc_range_t* after)",
+      "line": 1058,
+      "logical": "DocumentTransaction.wrapQuoteRange",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnUnwrapQuote",
+      "declaration": "int xuiDocumentTxnUnwrapQuote(xui_document_transaction transaction, const xui_doc_position_t* at, xui_doc_position_t* caret)",
+      "line": 1062,
+      "logical": "DocumentTransaction.unwrapQuote",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnCreateListRange",
+      "declaration": "int xuiDocumentTxnCreateListRange(xui_document_transaction transaction, const xui_doc_range_t* range, uint32_t flags, uint64_t start, xui_doc_node_id* list_id, xui_doc_range_t* after)",
+      "line": 1069,
+      "logical": "DocumentTransaction.createListRange",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnSetListStyleRange",
+      "declaration": "int xuiDocumentTxnSetListStyleRange(xui_document_transaction transaction, const xui_doc_range_t* range, uint32_t flags, uint64_t start, xui_doc_range_t* after)",
+      "line": 1078,
+      "logical": "DocumentTransaction.setListStyleRange",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnUnlistRange",
+      "declaration": "int xuiDocumentTxnUnlistRange(xui_document_transaction transaction, const xui_doc_range_t* range, xui_doc_range_t* after)",
+      "line": 1085,
+      "logical": "DocumentTransaction.unlistRange",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnInsertFootnote",
+      "declaration": "int xuiDocumentTxnInsertFootnote(xui_document_transaction transaction, const xui_doc_range_t* range, const char* label, const char* initial_utf8, uint64_t initial_bytes, xui_doc_node_id* reference_id, xui_doc_node_id* footnote_id, xui_doc_position_t* reference_caret, xui_doc_position_t* body_caret)",
+      "line": 1092,
+      "logical": "DocumentTransaction.insertFootnote",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnRemoveFootnoteReference",
+      "declaration": "int xuiDocumentTxnRemoveFootnoteReference(xui_document_transaction transaction, xui_doc_node_id reference_id, xui_doc_position_t* caret)",
+      "line": 1101,
+      "logical": "DocumentTransaction.removeFootnoteReference",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnUpdateImage",
+      "declaration": "int xuiDocumentTxnUpdateImage(xui_document_transaction transaction, xui_doc_node_id image_id, const xui_doc_image_desc_t* image)",
+      "line": 1104,
+      "logical": "DocumentTransaction.updateImage",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnSetMarks",
+      "declaration": "int xuiDocumentTxnSetMarks(xui_document_transaction transaction, const xui_doc_range_t* range, uint32_t set, uint32_t clear)",
+      "line": 1107,
+      "logical": "DocumentTransaction.setMarks",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnSetLink",
+      "declaration": "int xuiDocumentTxnSetLink(xui_document_transaction transaction, const xui_doc_range_t* range, const char* uri, const char* title)",
+      "line": 1112,
+      "logical": "DocumentTransaction.setLink",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnInsertLink",
+      "declaration": "int xuiDocumentTxnInsertLink(xui_document_transaction transaction, const xui_doc_range_t* range, const char* label, uint64_t label_bytes, const char* uri, const char* title, xui_doc_position_t* caret)",
+      "line": 1117,
+      "logical": "DocumentTransaction.insertLink",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotQueryMarks",
+      "declaration": "int xuiDocumentSnapshotQueryMarks(xui_document_snapshot snapshot, const xui_doc_range_t* range, uint32_t* common, uint32_t* mixed)",
+      "line": 1122,
+      "logical": "DocumentSnapshot.queryMarks",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotQueryLink",
+      "declaration": "int xuiDocumentSnapshotQueryLink(xui_document_snapshot snapshot, const xui_doc_range_t* range, xui_doc_link_info_t* out)",
+      "line": 1134,
+      "logical": "DocumentSnapshot.linkState",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnSetTextStyle",
+      "declaration": "int xuiDocumentTxnSetTextStyle(xui_document_transaction transaction, const xui_doc_range_t* range, uint32_t fields, const xui_doc_text_style_t* style)",
+      "line": 1139,
+      "logical": "DocumentTransaction.setTextStyle",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnClearFormatting",
+      "declaration": "int xuiDocumentTxnClearFormatting(xui_document_transaction transaction, const xui_doc_range_t* range)",
+      "line": 1145,
+      "logical": "DocumentTransaction.clearFormatting",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotQueryTextStyle",
+      "declaration": "int xuiDocumentSnapshotQueryTextStyle(xui_document_snapshot snapshot, const xui_doc_range_t* range, xui_doc_text_style_query_t* out)",
+      "line": 1149,
+      "logical": "DocumentSnapshot.queryTextStyle",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotFind",
+      "declaration": "int xuiDocumentSnapshotFind(xui_document_snapshot snapshot, uint32_t domain, const char* pattern, uint64_t pattern_bytes, const xui_doc_range_t* scope, xui_doc_range_t* matches, uint64_t capacity, uint64_t* total)",
+      "line": 1155,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Writable matches array plus capacity; nullable scope and complete array capacity must be represented together, not a single output record."
+    },
+    {
+      "native": "xuiDocumentSnapshotFindEx",
+      "declaration": "int xuiDocumentSnapshotFindEx(xui_document_snapshot snapshot, uint32_t domain, const char* pattern, uint64_t pattern_bytes, uint32_t flags, const xui_doc_range_t* scope, xui_doc_range_t* matches, uint64_t capacity, uint64_t* total)",
+      "line": 1173,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Writable matches array plus capacity; same boundary as Find, with native regex flags."
+    },
+    {
+      "native": "xuiDocumentTxnReplaceAll",
+      "declaration": "int xuiDocumentTxnReplaceAll(xui_document_transaction transaction, const char* pattern, uint64_t pattern_bytes, const char* replacement, uint64_t replacement_bytes, const xui_doc_range_t* scope, uint64_t* replaced)",
+      "line": 1179,
+      "logical": "DocumentTransaction.replaceAll",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnReplaceAllEx",
+      "declaration": "int xuiDocumentTxnReplaceAllEx(xui_document_transaction transaction, const char* pattern, uint64_t pattern_bytes, const char* replacement, uint64_t replacement_bytes, uint32_t flags, const xui_doc_range_t* scope, uint64_t* replaced)",
+      "line": 1185,
+      "logical": "DocumentTransaction.replaceAllEx",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnReplaceRange",
+      "declaration": "int xuiDocumentTxnReplaceRange(xui_document_transaction transaction, const xui_doc_range_t* range, const char* utf8, uint64_t bytes, xui_doc_position_t* caret)",
+      "line": 1193,
+      "logical": "DocumentTransaction.replaceRange",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnSplitBlock",
+      "declaration": "int xuiDocumentTxnSplitBlock(xui_document_transaction transaction, const xui_doc_position_t* at, xui_doc_position_t* caret)",
+      "line": 1196,
+      "logical": "DocumentTransaction.splitBlock",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnSplitListItem",
+      "declaration": "int xuiDocumentTxnSplitListItem(xui_document_transaction transaction, const xui_doc_position_t* at, xui_doc_position_t* caret)",
+      "line": 1200,
+      "logical": "DocumentTransaction.splitListItem",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnExitListItem",
+      "declaration": "int xuiDocumentTxnExitListItem(xui_document_transaction transaction, const xui_doc_position_t* at, xui_doc_position_t* caret)",
+      "line": 1204,
+      "logical": "DocumentTransaction.exitListItem",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnIndentListItem",
+      "declaration": "int xuiDocumentTxnIndentListItem(xui_document_transaction transaction, const xui_doc_position_t* at, xui_doc_position_t* caret)",
+      "line": 1209,
+      "logical": "DocumentTransaction.indentListItem",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnOutdentListItem",
+      "declaration": "int xuiDocumentTxnOutdentListItem(xui_document_transaction transaction, const xui_doc_position_t* at, xui_doc_position_t* caret)",
+      "line": 1211,
+      "logical": "DocumentTransaction.outdentListItem",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnIndentListRange",
+      "declaration": "int xuiDocumentTxnIndentListRange(xui_document_transaction transaction, const xui_doc_range_t* range, xui_doc_range_t* after)",
+      "line": 1217,
+      "logical": "DocumentTransaction.indentListRange",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnOutdentListRange",
+      "declaration": "int xuiDocumentTxnOutdentListRange(xui_document_transaction transaction, const xui_doc_range_t* range, xui_doc_range_t* after)",
+      "line": 1219,
+      "logical": "DocumentTransaction.outdentListRange",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnSetHeading",
+      "declaration": "int xuiDocumentTxnSetHeading(xui_document_transaction transaction, const xui_doc_range_t* range, uint32_t level, xui_doc_range_t* after)",
+      "line": 1225,
+      "logical": "DocumentTransaction.setHeading",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnSetBlockStyleRange",
+      "declaration": "int xuiDocumentTxnSetBlockStyleRange(xui_document_transaction transaction, const xui_doc_range_t* range, uint32_t fields, const xui_doc_block_style_t* style, xui_doc_range_t* after)",
+      "line": 1231,
+      "logical": "DocumentTransaction.setBlockStyleRange",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnMoveBlockRange",
+      "declaration": "int xuiDocumentTxnMoveBlockRange(xui_document_transaction transaction, const xui_doc_range_t* range, int down, xui_doc_range_t* after)",
+      "line": 1236,
+      "logical": "DocumentTransaction.moveBlockRange",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnJoinBlocks",
+      "declaration": "int xuiDocumentTxnJoinBlocks(xui_document_transaction transaction, xui_doc_node_id left, xui_doc_node_id right, xui_doc_position_t* caret)",
+      "line": 1239,
+      "logical": "DocumentTransaction.joinBlocks",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotCopyRange",
+      "declaration": "int xuiDocumentSnapshotCopyRange(xui_document_snapshot snapshot, const xui_doc_range_t* range, char** out, uint64_t* bytes)",
+      "line": 1241,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Producer-owned libc/default-allocator text + explicit byte count; must release through xuiDocumentFreeBuffer. No compatible allocator-aware owned-buffer output contract is declared."
+    },
+    {
+      "native": "xuiDocumentTxnInsertTable",
+      "declaration": "int xuiDocumentTxnInsertTable(xui_document_transaction transaction, xui_doc_node_id parent, uint64_t index, uint32_t rows, uint32_t columns, int header, xui_doc_node_id* out)",
+      "line": 1246,
+      "logical": "DocumentTransaction.insertTable",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnInsertTableRow",
+      "declaration": "int xuiDocumentTxnInsertTableRow(xui_document_transaction transaction, xui_doc_node_id table, uint32_t row)",
+      "line": 1249,
+      "logical": "DocumentTransaction.insertTableRow",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnDeleteTableRow",
+      "declaration": "int xuiDocumentTxnDeleteTableRow(xui_document_transaction transaction, xui_doc_node_id table, uint32_t row)",
+      "line": 1251,
+      "logical": "DocumentTransaction.deleteTableRow",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnInsertTableColumn",
+      "declaration": "int xuiDocumentTxnInsertTableColumn(xui_document_transaction transaction, xui_doc_node_id table, uint32_t column)",
+      "line": 1253,
+      "logical": "DocumentTransaction.insertTableColumn",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnDeleteTableColumn",
+      "declaration": "int xuiDocumentTxnDeleteTableColumn(xui_document_transaction transaction, xui_doc_node_id table, uint32_t column)",
+      "line": 1255,
+      "logical": "DocumentTransaction.deleteTableColumn",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotGetTableColumnWidth",
+      "declaration": "int xuiDocumentSnapshotGetTableColumnWidth(xui_document_snapshot snapshot, xui_doc_node_id table, uint32_t column, float* out)",
+      "line": 1259,
+      "logical": "DocumentSnapshot.tableColumnWidth",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnSetTableColumnWidth",
+      "declaration": "int xuiDocumentTxnSetTableColumnWidth(xui_document_transaction transaction, xui_doc_node_id table, uint32_t column, float width)",
+      "line": 1262,
+      "logical": "DocumentTransaction.setTableColumnWidth",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnMergeCells",
+      "declaration": "int xuiDocumentTxnMergeCells(xui_document_transaction transaction, xui_doc_node_id table, uint32_t row, uint32_t column, uint32_t rows, uint32_t columns, xui_doc_node_id* out)",
+      "line": 1265,
+      "logical": "DocumentTransaction.mergeCells",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnSplitCell",
+      "declaration": "int xuiDocumentTxnSplitCell(xui_document_transaction transaction, xui_doc_node_id cell)",
+      "line": 1270,
+      "logical": "DocumentTransaction.splitCell",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnPasteTableMatrix",
+      "declaration": "int xuiDocumentTxnPasteTableMatrix(xui_document_transaction transaction, xui_doc_node_id table, uint32_t row, uint32_t column, const char* utf8, uint64_t bytes, xui_doc_node_id* last_cell)",
+      "line": 1277,
+      "logical": "DocumentTransaction.pasteTableMatrix",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnClearTableMatrix",
+      "declaration": "int xuiDocumentTxnClearTableMatrix(xui_document_transaction transaction, xui_doc_node_id table, uint32_t row, uint32_t column, uint32_t rows, uint32_t columns, xui_doc_node_id* first_cell)",
+      "line": 1283,
+      "logical": "DocumentTransaction.clearTableMatrix",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotCopyTableMatrix",
+      "declaration": "int xuiDocumentSnapshotCopyTableMatrix(xui_document_snapshot snapshot, xui_doc_node_id table, uint32_t row, uint32_t column, uint32_t rows, uint32_t columns, char** out, uint64_t* bytes)",
+      "line": 1288,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Producer-owned libc/default-allocator text + explicit byte count; must release through xuiDocumentFreeBuffer. No compatible allocator-aware owned-buffer output contract is declared."
+    },
+    {
+      "native": "xuiDocumentTxnReplaceSource",
+      "declaration": "int xuiDocumentTxnReplaceSource(xui_document_transaction transaction, uint64_t start, uint64_t end, const char* utf8, uint64_t bytes)",
+      "line": 1292,
+      "logical": "DocumentTransaction.replaceSource",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnCommit",
+      "declaration": "int xuiDocumentTxnCommit(xui_document_transaction transaction, xui_document_change_set* out)",
+      "line": 1294,
+      "logical": "DocumentTransaction.commit",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnAbort",
+      "declaration": "void xuiDocumentTxnAbort(xui_document_transaction transaction)",
+      "line": 1296,
+      "logical": "DocumentTransaction.abort",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentTxnRelease",
+      "declaration": "void xuiDocumentTxnRelease(xui_document_transaction transaction)",
+      "line": 1298,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentUndo",
+      "declaration": "int xuiDocumentUndo(xui_document document, xui_document_change_set* out)",
+      "line": 1300,
+      "logical": "Document.undo",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentRedo",
+      "declaration": "int xuiDocumentRedo(xui_document document, xui_document_change_set* out)",
+      "line": 1302,
+      "logical": "Document.redo",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentCanUndo",
+      "declaration": "int xuiDocumentCanUndo(xui_document document)",
+      "line": 1304,
+      "logical": "Document.canUndo",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentCanRedo",
+      "declaration": "int xuiDocumentCanRedo(xui_document document)",
+      "line": 1306,
+      "logical": "Document.canRedo",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentPrepareSource",
+      "declaration": "int xuiDocumentPrepareSource(xui_document document, const xui_doc_txn_desc_t* desc, const xui_doc_source_patch_t* patches, uint64_t count, xui_document_prepare* out)",
+      "line": 1344,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Array of size-prefixed patch records with counted text pointers. Existing column packs do not initialize each iSize or map per-element text byte lengths."
+    },
+    {
+      "native": "xuiDocumentPrepareContinueSource",
+      "declaration": "int xuiDocumentPrepareContinueSource(xui_document document, xui_document_prepare previous, const xui_doc_source_patch_t* patches, uint64_t count, xui_document_prepare* out)",
+      "line": 1354,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Same counted patch-array boundary. prepareStreamSource provides safe incremental UTF-8 append but does not replace arbitrary patches."
+    },
+    {
+      "native": "xuiDocumentPrepareStreamSource",
+      "declaration": "int xuiDocumentPrepareStreamSource(xui_document document, xui_document_prepare previous, const xui_doc_txn_desc_t* desc, const char* utf8, uint64_t bytes, int final_chunk, xui_document_prepare* out)",
+      "line": 1366,
+      "logical": "Document.prepareStreamSource",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentPrepareRetain",
+      "declaration": "void xuiDocumentPrepareRetain(xui_document_prepare prepare)",
+      "line": 1369,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentPrepareRelease",
+      "declaration": "void xuiDocumentPrepareRelease(xui_document_prepare prepare)",
+      "line": 1373,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentPrepareRun",
+      "declaration": "int xuiDocumentPrepareRun(xui_document_prepare prepare)",
+      "line": 1375,
+      "logical": "DocumentPrepare.run",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentPrepareGetInfo",
+      "declaration": "int xuiDocumentPrepareGetInfo(xui_document_prepare prepare, xui_doc_prepare_info_t* out)",
+      "line": 1377,
+      "logical": "DocumentPrepare.info",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentPrepareCopySource",
+      "declaration": "int xuiDocumentPrepareCopySource(xui_document_prepare prepare, char* buffer, uint64_t capacity, uint64_t* length)",
+      "line": 1380,
+      "logical": "DocumentPrepare.copySource",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentPrepareReadSource",
+      "declaration": "int xuiDocumentPrepareReadSource(xui_document_prepare prepare, uint64_t offset, void* buffer, uint64_t bytes)",
+      "line": 1383,
+      "logical": "DocumentPrepare.readSource",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentPrepareSourcePosition",
+      "declaration": "int xuiDocumentPrepareSourcePosition(xui_document_prepare prepare, uint64_t offset, uint32_t affinity, xui_doc_position_t* position)",
+      "line": 1386,
+      "logical": "DocumentPrepare.sourcePosition",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentPrepareMapSourcePosition",
+      "declaration": "int xuiDocumentPrepareMapSourcePosition(xui_document_prepare from, xui_document_prepare to, const xui_doc_position_t* position, xui_doc_position_t* output, int* mapping)",
+      "line": 1397,
+      "logical": "DocumentPrepare.mapSourcePosition",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentPrepareSemanticPosition",
+      "declaration": "int xuiDocumentPrepareSemanticPosition(xui_document_prepare prepare, uint64_t node, uint32_t kind, uint64_t offset, uint32_t affinity, xui_doc_position_t* position)",
+      "line": 1403,
+      "logical": "DocumentPrepare.semanticPosition",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentPrepareMapPosition",
+      "declaration": "int xuiDocumentPrepareMapPosition(xui_document_prepare from, xui_document_prepare to, const xui_doc_position_t* position, xui_doc_position_t* output, int* mapping)",
+      "line": 1413,
+      "logical": "DocumentPrepare.mapPosition",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentPrepareCancel",
+      "declaration": "void xuiDocumentPrepareCancel(xui_document_prepare prepare)",
+      "line": 1418,
+      "logical": "DocumentPrepare.cancel",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentCancelPrepare",
+      "declaration": "int xuiDocumentCancelPrepare(xui_document document)",
+      "line": 1422,
+      "logical": "Document.cancelPrepare",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentHasPrepare",
+      "declaration": "int xuiDocumentHasPrepare(xui_document document)",
+      "line": 1424,
+      "logical": "Document.hasPrepare",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentPreparePublish",
+      "declaration": "int xuiDocumentPreparePublish(xui_document document, xui_document_prepare prepare, xui_document_change_set* out)",
+      "line": 1432,
+      "logical": "Document.preparePublish",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentChangeSetRetain",
+      "declaration": "void xuiDocumentChangeSetRetain(xui_document_change_set change)",
+      "line": 1434,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentChangeSetRelease",
+      "declaration": "void xuiDocumentChangeSetRelease(xui_document_change_set change)",
+      "line": 1436,
+      "logical": null,
+      "state": "policy-or-legacy-C-infrastructure",
+      "reason": "Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner."
+    },
+    {
+      "native": "xuiDocumentChangeSetGetInfo",
+      "declaration": "int xuiDocumentChangeSetGetInfo(xui_document_change_set change, xui_doc_change_info_t* out)",
+      "line": 1438,
+      "logical": "DocumentChangeSet.info",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentMapPosition",
+      "declaration": "int xuiDocumentMapPosition(xui_document_change_set change, const xui_doc_position_t* before, xui_doc_position_t* after, int* mapping)",
+      "line": 1441,
+      "logical": "DocumentChangeSet.mapPosition",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSourceToPosition",
+      "declaration": "int xuiDocumentSourceToPosition(xui_document_snapshot snapshot, uint64_t source_offset, xui_doc_position_t* out, int* mapping)",
+      "line": 1443,
+      "logical": "DocumentSnapshot.sourceToPosition",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSourceToPositionEx",
+      "declaration": "int xuiDocumentSourceToPositionEx(xui_document_snapshot snapshot, uint64_t source_offset, uint32_t affinity, xui_doc_position_t* out, int* mapping)",
+      "line": 1445,
+      "logical": "DocumentSnapshot.sourceToPositionEx",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentPositionToSource",
+      "declaration": "int xuiDocumentPositionToSource(xui_document_snapshot snapshot, const xui_doc_position_t* position, uint64_t* out, int* mapping)",
+      "line": 1447,
+      "logical": "DocumentSnapshot.positionToSource",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotComparePositions",
+      "declaration": "int xuiDocumentSnapshotComparePositions(xui_document_snapshot snapshot, const xui_doc_position_t* a, const xui_doc_position_t* b, int* order)",
+      "line": 1449,
+      "logical": "DocumentSnapshot.comparePositions",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSnapshotCopyPlainText",
+      "declaration": "int xuiDocumentSnapshotCopyPlainText(xui_document_snapshot snapshot, char** out, uint64_t* bytes)",
+      "line": 1451,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Producer-owned libc/default-allocator text + explicit byte count; must release through xuiDocumentFreeBuffer. No compatible allocator-aware owned-buffer output contract is declared."
+    },
+    {
+      "native": "xuiDocumentLoadMarkdown",
+      "declaration": "int xuiDocumentLoadMarkdown(xui_document document, const char* utf8, uint64_t bytes)",
+      "line": 1454,
+      "logical": "Document.loadMarkdown",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentSerialize",
+      "declaration": "int xuiDocumentSerialize(xui_document_snapshot snapshot, char** out, uint64_t* bytes)",
+      "line": 1456,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Producer-owned libc/default-allocator text + explicit byte count; must release through xuiDocumentFreeBuffer. No compatible allocator-aware owned-buffer output contract is declared."
+    },
+    {
+      "native": "xuiDocumentDeserialize",
+      "declaration": "int xuiDocumentDeserialize(const xui_doc_desc_t* desc, const char* data, uint64_t bytes, xui_document* out)",
+      "line": 1458,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Legacy raw/custom-allocator provenance; deserializeDocument maps DeserializeOwned with default allocator only."
+    },
+    {
+      "native": "xuiDocumentDeserializeOwned",
+      "declaration": "int xuiDocumentDeserializeOwned(const xui_doc_desc_t* desc, const char* data, uint64_t bytes, xui_document* out)",
+      "line": 1459,
+      "logical": "deserializeDocument",
+      "state": "declared-ABI-compiled",
+      "reason": null
+    },
+    {
+      "native": "xuiDocumentExportHtml",
+      "declaration": "int xuiDocumentExportHtml(xui_document_snapshot snapshot, char** out, uint64_t* bytes)",
+      "line": 1461,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Producer-owned libc/default-allocator text + explicit byte count; must release through xuiDocumentFreeBuffer. No compatible allocator-aware owned-buffer output contract is declared."
+    },
+    {
+      "native": "xuiDocumentFreeBuffer",
+      "declaration": "void xuiDocumentFreeBuffer(void* buffer)",
+      "line": 1463,
+      "logical": null,
+      "state": "explicit-C-interoperability",
+      "reason": "Paired only with Native libc/default-allocator output buffers. xrtFree/take_cstr are incompatible."
+    }
+  ],
+  "counts": {
+    "publicFunctions": 218,
+    "declared": 152,
+    "ownedRoots": 7,
+    "pointerFreeRecords": 26,
+    "constants": 255
+  },
+  "fields": {
+    "xui_doc_node_info_t": {
+      "projectedPOD": [
+        "iKind",
+        "iId",
+        "iParentId",
+        "iChildCount",
+        "iTextBytes",
+        "iSourceStart",
+        "iSourceEnd",
+        "bSourceExact",
+        "iSyntaxStart",
+        "iSyntaxEnd",
+        "iSourceSegmentCount",
+        "iExtensionPayloadBytes",
+        "iExtensionVersion",
+        "bExtensionRequired"
+      ],
+      "notProjected": {
+        "tAttributes": "Contains borrowed sLanguage plus fixed font-family bytes; not pointer-free POD.",
+        "sResource": "Borrowed NUL text, unsupported output-record field conversion.",
+        "sInfo": "Borrowed NUL text.",
+        "sTitle": "Borrowed NUL text.",
+        "sLinkTarget": "Borrowed NUL text.",
+        "sLinkTitle": "Borrowed NUL text."
+      },
+      "safeTextAlternative": "copyText/readText and copySource/readSource write into scoped Buffer storage."
+    },
+    "xui_doc_change_info_t": {
+      "projectedPOD": [
+        "iFlags",
+        "iBeforeRevision",
+        "iAfterRevision",
+        "iOrigin",
+        "iInputGeneration",
+        "iOperationCount",
+        "bUndo",
+        "iDomain"
+      ],
+      "notProjected": {
+        "pOperations": "Borrowed counted POD array; no implicit raw pointer exposure. NativeSequence currently requires distinct data/count output slots."
+      }
+    },
+    "xui_doc_link_info_t": {
+      "projectedPOD": [
+        "bLinked",
+        "bMixed"
+      ],
+      "notProjected": {
+        "sUri": "Borrowed NUL text; no output-record string-field conversion.",
+        "sTitle": "Borrowed NUL text; no output-record string-field conversion."
+      }
+    },
+    "xui_doc_attributes_t": {
+      "input": "setAttributesColumns packs 13 scalar fields and nullable language; replaces the complete attributes value.",
+      "notProjected": {
+        "sFontFamily": "Fixed char[64] is zeroed by this basic pack. Use range setTextStyle with a real DocumentTextStyle POD for a font family."
+      }
+    },
+    "xui_doc_node_desc_t": {
+      "input": "insertNode packs kind, counted text, resource/info/title/link fields; Native copies them before return.",
+      "notProjected": {
+        "tAttributes": "Zero-initialized default attributes; adjust the inserted node with transaction methods.",
+        "pExtensionPayload": "Use setExtensionPayload with checked bytes; no opaque pointer field."
+      }
+    },
+    "xui_doc_image_desc_t": {
+      "input": "insertImage/updateImage pack all public fields with counted alt text and nullable NUL strings."
+    },
+    "xui_doc_source_index_desc_t": {
+      "input": "createSourceIndex packs default allocator settings and maxWorkingBytes.",
+      "notProjected": {
+        "onCancel": "Callback nested inside a packed descriptor is not synthesized as a persistent raw callback.",
+        "pCancelUser": "No user pointer exposed."
+      }
+    },
+    "xui_doc_desc_t": {
+      "input": "Owned constructors pack size and all eight ordinary settings.",
+      "notProjected": {
+        "onAlloc": "Custom allocator callback lifetime is C-only.",
+        "onFree": "Must be paired with allocator, outlives all handles.",
+        "pAllocatorUser": "No raw userdata exposed."
+      }
+    },
+    "xui_doc_source_patch_t": {
+      "notProjected": {
+        "iSize": "Per-element sizeof initialization needs a checked array-record field contract.",
+        "sText": "Per-element counted string lifetime/byte length cannot be replaced by NUL scanning.",
+        "iTextBytes": "Must be paired with its actual element text source."
+      }
+    }
+  },
+  "costs": {
+    "nativeForwardingFunctions": 0,
+    "descriptorPacks": "Stack initialization and field assignments; counted inputs are pinned; NUL strings require validation/scans.",
+    "owningRoots": "One resident control/code lease and real native owner per independent root; share/factories reserve before producer.",
+    "POD": "Exact native values or stack output-record field copies; no arbitrary pointer projection.",
+    "buffers": "Scope/pin/length checks; Native Copy performs its documented bytes copy; lengths remain unchanged.",
+    "callbacks": "Native Owned capture ownership plus checked epoch admission; explicit share acquires a real separate owner.",
+    "overallZeroOverheadClaim": false
+  },
+  "qualification": {
+    "scope": "C11/C++11/C++17 exact Native ABI, 255 constants, 26 PODs and separate actual seven-model CPU script; no GUI/filesystem/network/shipping qualification",
+    "reports": [
+      {
+        "platform": "win_x64",
+        "path": "F:\\xlang-validation\\foreign-completion-20261103\\document-public-win-r4\\results.json",
+        "sha256": "6d2651f2a8b34dd86e211a287b6f1a8e657f31a929cefd6e9b873580961a248f",
+        "rows": 21,
+        "stage": "F:\\xlang-validation\\foreign-completion-20261103\\document-public-packages-win-r6.json",
+        "stageSha256": "96cc2da8344ec1b11d8fd7990671743023d63fdbefc5957ec854b73879178570"
+      },
+      {
+        "platform": "linux_x64",
+        "path": "/home/ubuntu/xlang-validation/document-public-linux-r4/results.json",
+        "sha256": "b9eae167ad0f4a908ac317ee4f58ba6d67452552ba1fa534d619552746e00949",
+        "rows": 21,
+        "stage": "/home/ubuntu/xlang-validation/document-public-packages-linux-r2.json"
+      }
+    ],
+    "declaredLogicalCalls": 159,
+    "fullSourceRebuild": false,
+    "compilerBase": "Full R37 O2 plus explicit R38 three-runtime/API TU and three frontend sized-record TU successors",
+    "executedFamilies": [
+      "xui_document",
+      "xui_document_snapshot",
+      "xui_document_change_set",
+      "xui_document_prepare",
+      "xui_document_fragment",
+      "xui_document_source_index",
+      "xui_document_transaction"
+    ],
+    "allDeclaredFunctionsExecuted": false,
+    "exampleExecuted": false
+  }
+}

@@ -1,0 +1,110 @@
+import xui
+from xui import Document as Document
+from xui import DocumentChangeSet as ChangeSet
+from xui import DocumentTransaction as Transaction
+Document? savedDocument=null
+ChangeSet? savedChange=null
+int notifications=0
+int bindings=0
+func main(...) as int
+ auto document=xui.createDocument(profile=c_uint(2))
+ uint64 token=document.subscribe(func(xui.CallbackDocument current,xui.CallbackDocumentChangeSet changed) as c_int
+  notifications+=1
+  assert current.identity()>uint64(0)
+  auto cf,cb,ca,co,cg,cc,cu,cd=changed.info()
+  assert ca>=cb
+  if savedDocument!=null then (savedDocument as Document).close() end
+  if savedChange!=null then (savedChange as ChangeSet).close() end
+  savedDocument=current.share()
+  savedChange=changed.share()
+  return c_int(0)
+ end)
+ document.loadMarkdown("# Heading\n\nbody\n")
+ assert notifications>0 and savedDocument!=null and savedChange!=null
+ auto snapshot=document.snapshot()
+ auto kind,id,parent,children,textBytes,sourceStart,sourceEnd,exact,syntaxStart,syntaxEnd,segments,payloadBytes,version,required=snapshot.nodeInfo(uint64(1))
+ assert kind==c_uint(1) and id==uint64(1) and children>uint64(0)
+ auto index=snapshot.createSourceIndex()
+ auto stats=index.info()
+ assert stats.iSourceBytes>uint64(0) and stats.iRecordCount>uint64(0)
+ index.visitBindings(uint64(0),stats.iSourceBytes,func(uint64 ordinal,xui.CallbackDocumentSourceBinding binding) as c_int
+  auto copied=binding.value
+  assert copied.iSize>c_uint(0)
+  bindings+=1
+  return c_int(0)
+ end)
+ assert bindings>0
+ Buffer output=Buffer()
+ assert output.resize(128)
+ uint64 copied=snapshot.copySource(output)
+ assert copied==stats.iSourceBytes and output.length==128
+ Buffer shortBuffer=Buffer(b"!")
+ bool shortRejected=false
+ try
+  snapshot.copySource(shortBuffer)
+ catch error
+  shortRejected=true
+ end
+ assert shortRejected and shortBuffer.length==1
+ Buffer exactBytes=Buffer()
+ assert exactBytes.resize(int(copied))
+ snapshot.readSource(uint64(0),exactBytes)
+ assert exactBytes.length==int(copied)
+ auto fragment=xui.importDocumentFragmentHtml("<p>fragment</p>")
+ auto sharedFragment=fragment.share()
+ fragment.close()
+ sharedFragment.close()
+ auto prepare=document.prepareStreamSource(null,utf8="tail\n")
+ prepare.run()
+ auto prepared=prepare.info()
+ assert prepared.iSourceBytes>uint64(0)
+ auto changes=document.preparePublish(prepare)
+ auto flags,beforeRevision,afterRevision,origin,generation,operations,undo,domain=changes.info()
+ assert afterRevision>beforeRevision and operations>uint64(0)
+ document.unsubscribeChecked(token)
+ assert savedDocument!=null and savedChange!=null
+ (savedDocument as Document).close()
+ (savedChange as ChangeSet).close()
+ savedDocument=null
+ savedChange=null
+ changes.close()
+ prepare.close()
+ auto indexCopy=index.share()
+ index.close()
+ snapshot.close()
+ document.close()
+ assert indexCopy.info().iSourceBytes==stats.iSourceBytes
+ indexCopy.readSource(uint64(0),exactBytes)
+ indexCopy.close()
+ auto rich=xui.createDocument()
+ auto transaction=rich.beginTransaction()
+ uint64 paragraph=transaction.insertNode(uint64(1),xui.XUI_DOCUMENT_APPEND,c_uint(2))
+ uint64 text=transaction.insertNode(paragraph,xui.XUI_DOCUMENT_APPEND,c_uint(4),text="value")
+ transaction.setAttributesColumns(text,marks=c_uint(1),language="en")
+ auto tk,tid,tp,tc,tb,ts,te,tx,ty,tz,tg,tyb,tv,tr=transaction.nodeInfo(text)
+ assert tk==c_uint(4) and tid==text and tb==uint64(5)
+ auto committed=transaction.commit()
+ // commit closes the writer, not the unique Native owner shell.
+ transaction.close()
+ committed.close()
+ auto abandoned=rich.beginTransaction()
+ abandoned.abort()
+ abandoned.close()
+ rich.close()
+ auto failing=xui.createDocument(profile=c_uint(2))
+ uint64 failureToken=failing.subscribe(func(xui.CallbackDocument current,xui.CallbackDocumentChangeSet changed) as c_int
+  return c_int(1)
+ end)
+ failing.loadMarkdown("notification\n")
+ assert failing.notificationFailureCount()>uint64(0) and failing.notificationFailureStatus()==c_int(1)
+ bool deliveryRejected=false
+ try
+  failing.checkNotifications(true)
+ catch error
+  deliveryRejected=true
+ end
+ assert deliveryRejected and failing.notificationFailureCount()==uint64(0)
+ failing.unsubscribeChecked(failureToken)
+ failing.close()
+ return 0
+end

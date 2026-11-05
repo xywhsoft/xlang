@@ -1,0 +1,25 @@
+import xui
+extern "document_fragment_binary_buffer" @header("test/cases/foreign_xge3_document_fragment_binary.h") @no_raise @c_result("bytes_view") func binaryBuffer(xui.DocumentFragment value) as bytes
+extern "document_fragment_binary_free" @header("test/cases/foreign_xge3_document_fragment_binary.h") @no_raise func freeNativeBuffer()
+extern "document_fragment_binary_verify" @header("test/cases/foreign_xge3_document_fragment_binary.h") @no_raise func verify(xui.DocumentFragment value) as c_int
+func main(...) as int
+ auto source=xui.importDocumentFragmentHtml("<p>binary</p>")
+ bytes encoded=binaryBuffer(source)
+ assert encoded.length>16 and encoded[0]==88 and encoded[7]==49
+ assert encoded[9]==0 and encoded[15]==0
+ freeNativeBuffer()
+ source.close()
+ // Native source bytes have been poisoned and freed; encoded owns its copy.
+ assert encoded[9]==0 and encoded[15]==0
+ auto restored=xui.deserializeDocumentFragment(encoded)
+ assert verify(restored)==c_int(1)
+ restored.close()
+ bool rejected=false
+ try
+  auto invalid=xui.deserializeDocumentFragment(b"BADFRAG1\0\0\0\0\0\0\0\0{}")
+ catch error
+  rejected=true
+ end
+ assert rejected
+ return 0
+end

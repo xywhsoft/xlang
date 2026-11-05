@@ -16,7 +16,9 @@
       "src/proxy.xl",
       "src/draw.xl",
       "src/text_shape.xl",
-      "src/managers.xl"
+      "src/managers.xl",
+      "src/document_records.xl",
+      "src/document.xl"
     ]
   },
   "links": [],
