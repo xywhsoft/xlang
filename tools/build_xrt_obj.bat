@@ -14,7 +14,7 @@ call tools\bootstrap_tcc.bat
 if errorlevel 1 exit /b 1
 
 echo Building DEMO6 local XRT object...
-"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -I. %XL6_TCC_INCLUDES_WINAPI% -c tools\xrt_single_header_impl.c -o "%XL6_XRT_OBJ%"
+"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -I. -Irelease/win_x64 %XL6_TCC_INCLUDES_WINAPI% -c tools\xrt_single_header_impl.c -o "%XL6_XRT_OBJ%"
 if errorlevel 1 (
     echo DEMO6 XRT object build failed.
     exit /b 1

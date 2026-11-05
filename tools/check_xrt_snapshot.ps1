@@ -31,8 +31,8 @@ if ($CheckIndex) {
     try { $upstreamHash=[BitConverter]::ToString($upstreamSha.ComputeHash($upstreamBytes)).Replace('-','') }
     finally { $upstreamSha.Dispose() }
     foreach ($product in @(
-        @{Metadata='lib/xrt/xrt.snapshot.json';Implementation='lib/xrt/xrt.h';Declarations='release/include/xrt_decl.h'},
-        @{Metadata='lib/xruntime/xruntime.snapshot.json';Implementation='lib/xruntime/xruntime.h';Declarations='release/include/xruntime_decl.h';Features='lib/xruntime/xruntime_features.h'})) {
+        @{Metadata='lib/xrt/xrt.snapshot.json';Implementation='lib/xrt/xrt.h';Declarations='release/win_x64/include/xrt_decl.h'},
+        @{Metadata='lib/xruntime/xruntime.snapshot.json';Implementation='lib/xruntime/xruntime.h';Declarations='release/win_x64/include/xruntime_decl.h';Features='lib/xruntime/xruntime_features.h'})) {
         $bytes=Read-SnapshotIndexBlob $product.Metadata
         $metadata=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json
         if ($metadata.upstreamSha256 -cne $upstreamHash) {
