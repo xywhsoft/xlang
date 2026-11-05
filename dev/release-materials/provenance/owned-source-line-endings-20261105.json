@@ -1,0 +1,301 @@
+{
+  "format": "source-line-endings-1",
+  "complete": true,
+  "passed": true,
+  "scope": "Canonical LF for project-owned committed sources only; no worktree implementation delta staged. Historical report bytes and dependency snapshots are preserved.",
+  "sourceCommits": [
+    "21e2ec418",
+    "f032d8883",
+    "b93229162",
+    "fc40a9325",
+    "512c94e1f",
+    "2a59f5396"
+  ],
+  "files": [
+    {
+      "path": "docs/foreign-callback-textviews.md",
+      "oldSha256": "3c2b128b3f1019ca8123b10b0129ba64ec1e028b298265ec6c3cda07f3eeb81b",
+      "newSha256": "0d46c338d24014ec542d057365cbd78379aea6f0386af571a5d330ee8a148e79",
+      "removedCrBytes": 68
+    },
+    {
+      "path": "docs/foreign-declarations.md",
+      "oldSha256": "3fe2d2ab3f818f397e3eaaf1c2da7366014d9ff07092c90058aa6c99d50970ee",
+      "newSha256": "76f1add1b0b175f0fddae1df37bb330e387c7ad7da193820fcf37d5799dc60cd",
+      "removedCrBytes": 1328
+    },
+    {
+      "path": "docs/xge3-package-data-object-gap.md",
+      "oldSha256": "d6922435e722f948f866a64abe05711319911824f2d1e303a1d29bee88d61bc7",
+      "newSha256": "f22289ff3e9df112c8167564b93972558b6c1e42067b996c360c0c2b642290f2",
+      "removedCrBytes": 63
+    },
+    {
+      "path": "docs/xge3-package-managers.md",
+      "oldSha256": "1f370c86a527e54dc3e55ff9a642a7b02005efabed9cc73fa6094cf1afdbe482",
+      "newSha256": "6e3492bf9649351e9e67d4a6c6b67712d7ef3a91842e6dee6563162b44dc8190",
+      "removedCrBytes": 107
+    },
+    {
+      "path": "docs/xge3-package-semantic-finalization.md",
+      "oldSha256": "259af26d4a99313d71c659f87aab5c22a10ac92b126022f4dcd4d7c2c94c5ee8",
+      "newSha256": "00ffd18a38f6b26fb407688be42dc09dd4515d5e6ec7a916817dce8a53671acf",
+      "removedCrBytes": 46
+    },
+    {
+      "path": "lib/bindings/_xge_native/include/xge3_runtime.h",
+      "oldSha256": "3e726300bf80f043d0d5d708c357c8f2a5136d099265f45f3e0005ad38b2775d",
+      "newSha256": "cf8cff5712e5e30b4a9e044b2fe440c93df0646b3a865f5717a8286d2a31db9c",
+      "removedCrBytes": 78
+    },
+    {
+      "path": "lib/bindings/_xge_native/src/runtime.c",
+      "oldSha256": "ad291c8203ef22276e012ac68bbc11343060dae0d21e77513ede104cff3dc3a8",
+      "newSha256": "b91345b9a6294636945a73a6089e69a0beee06baca244d1d75c54add140f0ead",
+      "removedCrBytes": 301
+    },
+    {
+      "path": "lib/bindings/xui/src/constants.xl",
+      "oldSha256": "91b4a7b8c8dfa85b0c627604eccf2659eb193ba4acf618e8f9b464129207ea05",
+      "newSha256": "175d2083c63cf40971511954c44483fd8ebc93be69c48a12055209a191a436d9",
+      "removedCrBytes": 1491
+    },
+    {
+      "path": "lib/bindings/xui/src/managed.xl",
+      "oldSha256": "d6fc2d69bae64f5fc639e2cadb4dff54dfb164ef942453da1d6c6bb9f771aa72",
+      "newSha256": "50d761ea69b60de769b1198b959d9162340aec6b112c3ad5b305ec08da30c1eb",
+      "removedCrBytes": 5965
+    },
+    {
+      "path": "lib/bindings/xui/src/managers.xl",
+      "oldSha256": "378947857dc51da8cbc7ca721b147b611375d32f45f7983da3e6f09385e4028a",
+      "newSha256": "7e28695e318b1330652baf2a107644919111537aafbc032d234b5aacfeb3db62",
+      "removedCrBytes": 199
+    },
+    {
+      "path": "lib/bindings/xui/src/proxy.xl",
+      "oldSha256": "ef323ba00bfd49431be35a927f4f4088d52620c1fbb2c7c3f6d75e06a136cec5",
+      "newSha256": "e55417b4b749ec9dd7dfc2e7c26a60d0e363e45686119c2fbed915fe9d69932a",
+      "removedCrBytes": 141
+    },
+    {
+      "path": "lib/bindings/xui/xlang.package.json",
+      "oldSha256": "b96b773d0c315a39e47c87a9467c6d3fbb50f42461497dde6e793dda22adccd3",
+      "newSha256": "9bbcbb60d47c37f9d180904f34cad9c9f4837793cc40a07e6996858ef28007ef",
+      "removedCrBytes": 36
+    },
+    {
+      "path": "src/api/xl_api.c",
+      "oldSha256": "9123374de625519fc2a444995a3d224ab10482e3db444c1320cd3ee13f0d41eb",
+      "newSha256": "10d0fdcfe658a31c4853866a028695a1a3883b8e96877eb5a0c4ebe472086176",
+      "removedCrBytes": 6075
+    },
+    {
+      "path": "src/api/xl_api_internal.h",
+      "oldSha256": "ee56c03c7812456c9fa88fc2895e60ae578ad24139f25656d38b033db944dd79",
+      "newSha256": "84b2dbb8ec15dc6bbafae91199ffa23668bc16766bff12ca837ef2d1950b685d",
+      "removedCrBytes": 157
+    },
+    {
+      "path": "src/api/xl_api_symbols.c",
+      "oldSha256": "40157ec9233565f909b09918546a29decfcf9a961c02f73b73db6b239531b8fa",
+      "newSha256": "6334d5500058f80cb3e4b6a71e26b0912203ca692c6de6653281f1b2d9ba92ad",
+      "removedCrBytes": 939
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen.c",
+      "oldSha256": "691ffcb7fc1883cc74582ce1683a360015ad23351f3a45e57dde39a2c5d60e7a",
+      "newSha256": "8281d692d534bcaca07bea184a01f551e04ef197836eba9963517ef3091c1ad1",
+      "removedCrBytes": 102
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_emit_prelude.c",
+      "oldSha256": "d5b12ecd180ad4dba06c6cf02263efa3d950f6320a00355b8d49ed0849a5fba7",
+      "newSha256": "c629b6206713da0eaecc026e58e818fa315f31a9ffe1d2a7ec45ffb4edff2021",
+      "removedCrBytes": 587
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_needs_call_targets.c",
+      "oldSha256": "ffe72a2e8937bcfd417ae4c14ac6c4783eb1fdb1aa291365f7d266020ee63b23",
+      "newSha256": "85bb4c4419b0facb22f676809dd4da3ed55e1bfb988f00e3d7e28956483f71ac",
+      "removedCrBytes": 520
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_static_entry.c",
+      "oldSha256": "5e8238931e4b3d6de0ba7fe11d9f1c176d7a415e2c7eec6feb6a5b07cad68e6c",
+      "newSha256": "332d29f8502b2c47f73d49bbcbe4d3087ea252bc7eacb21dfd904f05c1a01ea1",
+      "removedCrBytes": 99
+    },
+    {
+      "path": "src/cgen/xl6_ir_cgen_verify_declarations.c",
+      "oldSha256": "720e398f1b42510c71fa9d70319a8bfe26ee1fcb356cd6f2273cbb4f2ce8a3d0",
+      "newSha256": "b1585b3ce417a71fbe2e14802d12f378f0facfc4d3679b88b0ae0f4d11b8227b",
+      "removedCrBytes": 361
+    },
+    {
+      "path": "src/compile/xl6_artifact_runtime_symbols.inc",
+      "oldSha256": "c31376b42c682004833ad689069d2c6223812adcfba93a460f657a38da1687ad",
+      "newSha256": "bdd44245ebe0866d18698123174ab9a5ff82e6a30f4402ac4da83c6489141212",
+      "removedCrBytes": 847
+    },
+    {
+      "path": "src/ir/xl6_ir.c",
+      "oldSha256": "ef55087abff8125aa7b17ab5f651ff181165056fd699bb0e35a8770f34eac1a9",
+      "newSha256": "37efbe3679855fcfcff4ba3dd4aa5eba04a067bedb8779f6273c054a4b387065",
+      "removedCrBytes": 55255
+    },
+    {
+      "path": "src/runtime/xl6_array_method_view.h",
+      "oldSha256": "ddd47ccf2c7a2152df33acef29b47fadb9a841ae96d9ec2689599f766d3f7d17",
+      "newSha256": "4403905381d1d6fdad2503d60b5eeaee47a8aaf6ece6b540766cf9b222bb2e53",
+      "removedCrBytes": 67
+    },
+    {
+      "path": "src/runtime/xl6_array_methods.c",
+      "oldSha256": "01fd74e76b3eefb0e198e56731b36483b8cd47103e43bf3c6f4065a42bd5842c",
+      "newSha256": "691fe0bdd5364178a159b3dc5ed868a27e9fca50e090b5106ec444b696d5542d",
+      "removedCrBytes": 68
+    },
+    {
+      "path": "src/runtime/xl6_foreign_view.c",
+      "oldSha256": "de22de66c9c08cb0c98a437a27a1b7f825f569c3738184fcdf7e2b45f88c2dd6",
+      "newSha256": "bf665f5af907dbe79331ec28a2f637ce8ae74c3ccef1830b0819938689ee77a8",
+      "removedCrBytes": 1109
+    },
+    {
+      "path": "src/runtime/xl6_foreign_view.h",
+      "oldSha256": "b933dddeba6cf223d8a0a028e1c170895e78ee89aeedcbd5d83ca2ab634911fa",
+      "newSha256": "4a9a7cace483adaa86dc667d6a85066eecec717899e95e1705aad7063d09fcc2",
+      "removedCrBytes": 157
+    },
+    {
+      "path": "src/runtime/xl6_ownership_catalog.c",
+      "oldSha256": "35c24c78c3149dd47cba289c4e95b6f72bcb4a3dcd4a03a8d040cc2163f88b69",
+      "newSha256": "134c78d07879a27d0b355c2450508a2fa3a28f87e297bb6257964c5c2f31ad2a",
+      "removedCrBytes": 235
+    },
+    {
+      "path": "src/runtime/xl6_ownership_catalog.h",
+      "oldSha256": "c017ee5fef2beb9c7b9996fc59d29c09fe4f8f902f28b53b8bb03bcecafe2a1e",
+      "newSha256": "5e27e6dc60f3e1046da3e4c2052fc7cee537bc77ca4f1c13eb00f32bd2de4c6f",
+      "removedCrBytes": 123
+    },
+    {
+      "path": "src/runtime/xl6_ownership_finalization.h",
+      "oldSha256": "ff23abe2eac7dd3bb013d17e008c1c30aa0459705623de17fc73629e937c73ac",
+      "newSha256": "ca20b049dcf32674916de0430a519a1991ab74e738072a41b24def119d57deb9",
+      "removedCrBytes": 13
+    },
+    {
+      "path": "src/runtime/xl6_ownership_plan.c",
+      "oldSha256": "a4459bb8092da818e965b4cd77512792902d92a8b2c4f3d35f8198b80797ee81",
+      "newSha256": "a080996145ee80879f669a51fda09c66fef667fa1992534d34ba89a0686f8fe2",
+      "removedCrBytes": 587
+    },
+    {
+      "path": "src/runtime/xl6_ownership_plan.h",
+      "oldSha256": "40ca4d7c69596569790693cd540091ad75419e86a1c210306da082281402ca01",
+      "newSha256": "f9d95f4e6c334efb63214c43c629f256872e0efb97857c077b7b0ef0a186fbde",
+      "removedCrBytes": 181
+    },
+    {
+      "path": "src/runtime/xl6_static_module.c",
+      "oldSha256": "59725f270100b8c3b2c6072870ea283b2ed5b14999e19e923b4ce4f1b6688a56",
+      "newSha256": "5bee671c82ee68c89bf6f0c227e1fb8c22da59f4297ec7b2f614bd67abb44f40",
+      "removedCrBytes": 443
+    },
+    {
+      "path": "src/runtime/xl6_static_module.h",
+      "oldSha256": "c7eca209f81d61583e14a727678520eea3b2e2a98b981d8ed055734f0d896b43",
+      "newSha256": "6a7ae6c07080c509f54a034ecaed01f37ec3f62b997a538c4280456509763358",
+      "removedCrBytes": 73
+    },
+    {
+      "path": "src/sem/xl6_sem.c",
+      "oldSha256": "53b56f7d0936f6c575a90fe48e4a1c46ed9054ce3f34de846d5b10b4a392d735",
+      "newSha256": "6565908d09c3cd8188a4fbd9713f91956d7c336e56fce47d004bcc4678208fa0",
+      "removedCrBytes": 27279
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_manager_cycle.h",
+      "oldSha256": "29dd383a63f3eabb28c822215fb7f4ff014f77dba0ddb5b741d2aac6d4102aa8",
+      "newSha256": "ead3fd9977c59fe0114b2460091e365a09f8adf615bce823467d37ef8d7bb347",
+      "removedCrBytes": 6
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_manager_cycle.xl",
+      "oldSha256": "d12ccc96a81ae43c873a2f312a2b1aed5748945d54d25a8f738ab5102900709e",
+      "newSha256": "57854bf449eae100cec097512a9ed148c8269e3155d43456d7b66f5bec93fb97",
+      "removedCrBytes": 22
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_managers.h",
+      "oldSha256": "b436a9da7e273a2b0608693a8cb941ad8b2a3ef2b9ecc0013a9eadedeb90889e",
+      "newSha256": "64d931b09e2872972d2ee4e49807efc055e86a9b79dcf8b1c6c7bb55a15976aa",
+      "removedCrBytes": 7
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_managers.xl",
+      "oldSha256": "45f251332025301810debee8f02c3d2838f12653e74edfbea80b3ca89c82db1f",
+      "newSha256": "1b905908381a8239ed0cc181ec2e74ce357ab1d4fdbe393cbf97ff33e5e96fca",
+      "removedCrBytes": 94
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_managers_check.py",
+      "oldSha256": "ecab7199f3bef56d56940481dd7399c6c7eed3c825355e15c0b1bb7f1d546e45",
+      "newSha256": "a0d2bdcd0e428d158a7016a2d17390b92ee0a878bdef280aad0dbfc06c76dd93",
+      "removedCrBytes": 57
+    },
+    {
+      "path": "test/cases/foreign_xge3_binding_managers_host.c",
+      "oldSha256": "effbe4ce7bf7193884e2301cb344049daced6015965366837b11366b3fe2cdc1",
+      "newSha256": "92b2363a46d94207d0ead4a7141997799ae568754ff86e2c5920b45093eab602",
+      "removedCrBytes": 35
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_manager_script_check.py",
+      "oldSha256": "16a3045df772ffa389267540258dd7551cf237d1fdab6e7d4b0701e50a668e8e",
+      "newSha256": "0242cb67630d172d67865e275e0080a0b87771f19874c1ccf24169a172eb776a",
+      "removedCrBytes": 55
+    },
+    {
+      "path": "test/cases/foreign_xge3_package_manager_script_host.c",
+      "oldSha256": "a01daf1d6e16a2ef116691e355996a4af7b417c225055a10b15985df86387d47",
+      "newSha256": "abd52a57b74812399e0f3f9cdc5319ebff7d175e9c7d39a03ca5ff284f45b30f",
+      "removedCrBytes": 87
+    },
+    {
+      "path": "test/cases/xlir_ownership_finalization_runtime.c",
+      "oldSha256": "e471e7226a0da37ca52b64db8895e549e593aa56aa4877a6421e5b7cd6bc12f6",
+      "newSha256": "0c5bba9155eedf325854883b624f92cf0296d1d0fcf7d41c6fe5f449c567df74",
+      "removedCrBytes": 232
+    },
+    {
+      "path": "test/cases/xlir_ownership_finalization_view_runtime.c",
+      "oldSha256": "a73cfd8d5854530b7ad4ab78a84eb1bf6ced1e04bad2cd619cfe62c4abcf8e64",
+      "newSha256": "edfa0749efe0c0669c0229a58df8874ed313ce1b5981616645d36712946960c0",
+      "removedCrBytes": 132
+    },
+    {
+      "path": "tools/check_ownership_finalization.py",
+      "oldSha256": "cf8123e91bb9d295a9c63ba6712fd84f451ed9e911561017124c403ada92a32c",
+      "newSha256": "c0f90612e198bd9575044a450e82a184c6e6ef314d0f9b9a2f6b76b587273318",
+      "removedCrBytes": 69
+    },
+    {
+      "path": "tools/check_ownership_finalization_view.py",
+      "oldSha256": "1fa28b0a758a89df6b8ce3d082bd6f4d4ad823dfd523b7c0117207e245d56f1b",
+      "newSha256": "998a34a07271aafa1a07b8436a9e44e5fac3bdea66f9282e7f24dea72d8d5e93",
+      "removedCrBytes": 39
+    },
+    {
+      "path": "tools/check_xge3_bindings.py",
+      "oldSha256": "1e62dc1442549713e20ca1dd2d3c04fba7a98b38ab404dd8635f05b5ec942408",
+      "newSha256": "9ebb89675b27b82318acd80a144f67ad335241374d183e1b914593994e10361b",
+      "removedCrBytes": 1199
+    }
+  ],
+  "validation": "Every source output equals its exact HEAD input after CRLF-to-LF translation; no other byte differs. No implementation behavior changed; full combined source/SDK acceptance remains separate.",
+  "testsAdded": false,
+  "shippingDelivery": false
+}
