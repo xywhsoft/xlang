@@ -1,0 +1,53 @@
+{
+  "format": "xlang-acceptance-1",
+  "complete": true,
+  "passed": true,
+  "scope": "Frozen R37 full O2 source compiler contract milestone, Windows and Linux; full-source aware NativeSequence kernel helper",
+  "sourceFreeze": {
+    "path": "F:\\xlang-validation\\foreign-completion-20261103\\snapshot-completion-r37.json",
+    "sha256": "a9921280cd35fdf9603ecfdd9239b54be20a349f1918dbe1bd70c40345a002a1"
+  },
+  "reports": [
+    {
+      "name": "windows-new",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\core-r37-win-r1\\results.json",
+      "sha256": "51922af24207f6176adfe69bc0c77d5b054d68f344daab0c361542cba40f72e9",
+      "groups": 6
+    },
+    {
+      "name": "windows-prior",
+      "path": "F:\\xlang-validation\\foreign-completion-20261103\\contracts-r37-win-r1\\results.json",
+      "sha256": "c42b233b7168c30f287eebcc08acefd7d796030068e707951a8fef37ed0644f8",
+      "groups": 10
+    },
+    {
+      "name": "linux-all",
+      "path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\foreign-completion-20261105-r37\\gates-r1\\acceptance-r2.json",
+      "sha256": "69cdfc255603f2389b93e2e540562671c19696613d0b9768484a3177c13f5b55",
+      "groups": 16
+    }
+  ],
+  "platforms": {
+    "windows": {
+      "translationUnits": 1417,
+      "groups": 16,
+      "steps": 438
+    },
+    "linux": {
+      "translationUnits": 1416,
+      "groups": 16,
+      "steps": 438
+    }
+  },
+  "helper": {
+    "path": "tools/check_native_sequence_runtime.py",
+    "sourceSha256": "113e74a82f4296dc431cdbbfa6d3b07ecc9190c1a0a7caf0e8a0ad50205a1840",
+    "canonicalSha256": "bcc91e5bf029ea1bcde56bb0d0e34a12e5559ff2cb53e69905eca0f21ba1a2a1"
+  },
+  "constraints": [
+    "R37 precedes subsequent leased DomainV2 and API cold include changes; those require separate successor acceptance",
+    "Native R12 packages only for the actual CPU Shape fixture; no UI/GPU qualification",
+    "No shipping publication or Model A completion is implied"
+  ],
+  "shippingDelivery": false
+}
