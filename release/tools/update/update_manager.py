@@ -28,6 +28,11 @@ TOP = {'xlang_ide.exe','xlang-ls.exe','xge.dll','xl.exe','xl.dll','xlc.dll','xl.
 META = ('update.json','update.lzma','version.txt')
 HEX = re.compile(r'[0-9a-f]{64}(?:-[1-9][0-9]*)?\.lzma\Z')
 
+def display_version(value):
+    if not isinstance(value,str) or not re.fullmatch(r'[0-9]{1,5}\.[0-9]{1,5}\.[0-9]{1,5}',value) or any(int(p)>65535 for p in value.split('.')):
+        raise ValueError('displayVersion must be a version such as 0.6.0')
+    return value
+
 def digest(path):
     with Path(path).open('rb') as f:
         return hashlib.file_digest(f, 'sha256').hexdigest()
@@ -53,6 +58,7 @@ def version_marker(text):
     if isinstance(value,dict):
         version=value.get('version');force=value.get('forceUpdate')
         if type(force) is not bool:raise ValueError('version marker forceUpdate must be boolean')
+        if 'displayVersion' in value:display_version(value['displayVersion'])
     else:version=value;force=False
     if type(version) is not int or not 0<=version<=2147483647:raise ValueError('invalid version marker')
     return version,force
@@ -193,6 +199,10 @@ def make(args,store):
     if not source.is_dir() or source==store or store.is_relative_to(source): raise ValueError('source missing or output is inside source')
     if source.name in PLATFORMS and source.name!=args.platform:raise ValueError('source platform directory does not match requested platform')
     binding_current=validate_runtime(source)
+    version_file=source/'data/version.json'
+    source_display=display_version(read(version_file)['displayVersion']) if version_file.is_file() else None
+    display=display_version(args.display_version or source_display or config.get('displayVersion'))
+    if source_display and display!=source_display:raise ValueError('--display-version differs from source data/version.json; rebuild the IDE with the intended version first')
     if (store/f'ver{args.version}').exists() or (store/'.state/history'/str(args.version)).exists(): raise ValueError('version already exists')
     key=Path(args.key or config.get('key') or default_key()).resolve();crypto=crypto_path(args.crypto)
     old=payload(store/'.state/history'/str(previous)/'update.json') if previous else {'files':[],'delete':[]}
@@ -255,18 +265,18 @@ def make(args,store):
         for p,sha in inputs:
             if digest(p)!=sha: raise ValueError('input changed during preparation: '+str(p))
         notes=Path(args.notes_file).read_text(encoding='utf-8') if args.notes_file else args.notes or ''
-        manifest={'schema':4,'platform':args.platform,'version':args.version,'forceUpdate':args.force_update,'notes':notes,'files':files,
+        manifest={'schema':4,'platform':args.platform,'version':args.version,'displayVersion':display,'forceUpdate':args.force_update,'notes':notes,'files':files,
                   'delete':sorted(p for p in known-{f['path'] for f in files} if managed(p,args.include_mdo) and p not in ('update.exe','update'))}
         data=signed(manifest,key,crypto,args.co_sign_key)
-        maker.write_atomic(staging/'update.json',data);maker.write_atomic(staging/'update.lzma',maker.lzma_alone(data));write(staging/'version.txt',{'version':args.version,'forceUpdate':args.force_update})
+        maker.write_atomic(staging/'update.json',data);maker.write_atomic(staging/'update.lzma',maker.lzma_alone(data));write(staging/'version.txt',{'version':args.version,'displayVersion':display,'forceUpdate':args.force_update})
         oldspec=object_specs(old);specs=object_specs(manifest);batch=store/f'ver{args.version}';batch.mkdir()
         for name in specs:
             if name not in oldspec: link(objects/name,batch/name)
             link(objects/name,store/'update'/name)
         history=store/'.state/history'/str(args.version);history.mkdir(parents=True)
         for name in META: maker.copy_atomic(staging/name,history/name)
-        write(history/'record.json',{'version':args.version,'forceUpdate':args.force_update,'previous':previous,'platform':args.platform,'created':int(time.time()),'published':False,'catalogCompilerBindingCurrent':binding_current,'changedFiles':changed,'objects':len(specs),'newObjects':len(list(batch.glob('*.lzma')))})
-        write(store/'.state/config.json',{'source':str(source),'platform':args.platform,'key':str(key)})
+        write(history/'record.json',{'version':args.version,'displayVersion':display,'forceUpdate':args.force_update,'previous':previous,'platform':args.platform,'created':int(time.time()),'published':False,'catalogCompilerBindingCurrent':binding_current,'changedFiles':changed,'objects':len(specs),'newObjects':len(list(batch.glob('*.lzma')))})
+        write(store/'.state/config.json',{'source':str(source),'platform':args.platform,'key':str(key),'displayVersion':display})
         activate_local(store,args.version);restore_main(store,manifest)
         print(json.dumps({'version':args.version,'changedFiles':changed,'newObjects':len(list(batch.glob('*.lzma'))),'store':str(store)},ensure_ascii=False))
     finally: shutil.rmtree(staging)
@@ -443,6 +453,8 @@ def menu():
             version=input('新版本号（递增整数）: ').strip()
             if not version.isdigit(): print('版本号无效');continue
             args+=['--version',version,'--notes',input('更新简介: ')]
+            display=input('程序显示版本号（如 0.6.0，留空使用发行目录 data/version.json）: ').strip()
+            if display:args+=['--display-version',display]
             if input('是否强制旧版本更新？[y/N]: ').strip().lower()=='y':args+=['--force-update']
             if command=='init':args+=['--source',input('平台发行目录: ').strip()]
         if command=='configure':
@@ -456,6 +468,7 @@ def main(argv=None):
     parser.add_argument('command',choices=('init','prepare','list','status','rebuild','discard','configure','push','verify'))
     parser.add_argument('--platform',choices=PLATFORMS,default='win_x64' if os.name=='nt' else 'linux_x64')
     parser.add_argument('--store',type=Path);parser.add_argument('--source');parser.add_argument('--version',type=int,default=0)
+    parser.add_argument('--display-version',help='display-only program version; defaults to source data/version.json')
     parser.add_argument('--key');parser.add_argument('--crypto');parser.add_argument('--notes');parser.add_argument('--notes-file');parser.add_argument('--include-mdo',action='store_true')
     parser.add_argument('--force-update',action=argparse.BooleanOptionalAction,default=False,help='require older IDE installations to update; default is optional')
     parser.add_argument('--verify-public-on-server',action='store_true',help='verify public bodies over HTTPS from the SSH server (requires curl 7.71+)')

@@ -1,0 +1,107 @@
+{
+  "status": "passed",
+  "date": "2026-11-06",
+  "scope": "Native XUI about window and independent display/iteration versions",
+  "displayVersion": "0.6.0",
+  "installedIteration": 3,
+  "externalPublishPerformed": false,
+  "completeCompilerCatalogAcceptance": false,
+  "guiBuild": {
+    "existingCatalogRetained": true,
+    "allAppLayoutConsumersRebuilt": true,
+    "receipt": "dev/release-materials/provenance/ide-about-versions-20261106/gui-candidate-build-inputs.json"
+  },
+  "runtimeCompatibility": {
+    "sdk": {
+      "size": 32,
+      "api_major": 3,
+      "api_minor": 0,
+      "api_patch": 0,
+      "foundation_revision": 1,
+      "features": 1021,
+      "abi_fingerprint": 11128402771518174474
+    },
+    "actual": {
+      "size": 32,
+      "api_major": 3,
+      "api_minor": 0,
+      "api_patch": 0,
+      "foundation_revision": 1,
+      "features": 1021,
+      "abi_fingerprint": 11128402771518174474
+    },
+    "sdkDll": "b3dcabc7051634461f68852024a48e856bbe5b7ef66ed5693cae97c5f6dc1e3d",
+    "preservedRuntimeDll": "b83417d354dc2818fb51c2d64ccf5ddd8341b1beb4eb02c01ef9f897452d2604",
+    "basis": "exact public ABI fingerprint, API version, foundation revision and feature bits; existing runtime preserved"
+  },
+  "publication": {
+    "products": [
+      {
+        "path": "release/win_x64/xlang_ide.exe",
+        "sha256": "9eeded9c9d9e32aa2215a985aa0c42ca8f33b5303e61119926a01a5b34e34403",
+        "bytes": 1802375
+      },
+      {
+        "path": "release/win_x64/data/version.json",
+        "sha256": "44a151ab97d67fcb4cca6e544db12f7dcce8d4944e15729f17dc00ca82873057",
+        "bytes": 32
+      },
+      {
+        "path": "release/win_x64/update.exe",
+        "sha256": "78589feddcb40af516863539fcb89146b01c8102ee15acccaec3074deeec3e36",
+        "bytes": 1441792
+      },
+      {
+        "path": "release/linux_x64/update",
+        "sha256": "c61defaafafdb9fd10508a59cba17986e147df18f51da5defc8eb669fe3c72ec",
+        "bytes": 986184
+      }
+    ],
+    "protectedRuntime": {
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "6a9378f3c772b40bcd035969212fd1ee99a1b8ed22be00c30c37114e0523a2f6",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "7a05d69bea0d4889735e115c2bd9bc1e74280c7a1245d7e955c97d7798310c9e",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "585edd3bceded526fb226cbe2f5321cc6f7ebcbae566af0da47d7315b5bba623",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "b83417d354dc2818fb51c2d64ccf5ddd8341b1beb4eb02c01ef9f897452d2604",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+      "D:\\GIT\\x-lang\\release\\win_x64\\data\\commands.json": "27e17cb16f25a4b1c16714736faee0e6df2098f472b0fd393166acc2e98de30a",
+      "D:\\GIT\\x-lang\\release\\win_x64\\data\\catalog-sources\\index.json": "2ab9cd46e0179056a0357f453465a633f7d17fa2482f3a38ee5f2fc993c18546",
+      "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json": "275179d66d2528fe8007fe0f13714620b9acb1ab476e1b1136a902ebe7136e72"
+    },
+    "previousGui": "0abfbd2290c616d35c64e8e91f344e7d8c6d0bed1c23ddf96ad244bba3020acf"
+  },
+  "acceptance": {
+    "windows": {
+      "total": 37,
+      "passed": 35,
+      "skipped": 2
+    },
+    "linux": {
+      "total": 37,
+      "passed": 32,
+      "skipped": 5
+    },
+    "sshPublisherFixture": true,
+    "tuiTerminals": [
+      "80 xterm",
+      "50 xterm",
+      "80 dumb"
+    ],
+    "nativeFixtures": [
+      "about_view_test",
+      "input_test",
+      "update_client_test"
+    ],
+    "visualReview": [
+      "dark",
+      "light",
+      "DPI 2.0"
+    ],
+    "publishedGuiExitCode": 0
+  },
+  "versionFields": {
+    "version": "Monotonic update iteration; sole comparison key",
+    "displayVersion": "Program display only",
+    "forceUpdate": "Signed required update policy"
+  },
+  "sourceMaterials": "dev/release-materials/sources/ide-about-versions-20261106/manifest.json"
+}

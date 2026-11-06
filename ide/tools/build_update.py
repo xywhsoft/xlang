@@ -12,6 +12,15 @@ import sys
 ROOT=Path(__file__).resolve().parents[2]
 def run(argv):
     print(' '.join(map(str,argv)),flush=True);subprocess.run(list(map(str,argv)),check=True)
+
+def publish_copy(source,target):
+    # Replace instead of truncating an installed script. In particular, Windows
+    # may hold a script open while a WSL build refreshes the shared tool bundle.
+    target=Path(target);temp=target.with_name(target.name+'.publish-'+str(os.getpid()))
+    if target.is_file() and target.read_bytes()==Path(source).read_bytes():return
+    try:
+        shutil.copy2(source,temp);os.replace(temp,target)
+    finally:temp.unlink(missing_ok=True)
 def main():
     p=argparse.ArgumentParser();p.add_argument('--cc',default='gcc');p.add_argument('--platform',choices=('win_x64','linux_x64','linux_arm','linux_arm64'),default='win_x64' if os.name=='nt' else 'linux_x64');p.add_argument('--key',type=Path);p.add_argument('--public-key');p.add_argument('--static',action='store_true');p.add_argument('--skip-run',action='store_true',help='cross-compilation: verify architecture without running foreign code');a=p.parse_args()
     windows=a.platform.startswith('win_');suffix='.exe' if windows else '';out=ROOT/'ide/build/Release/update'/a.platform;out.mkdir(parents=True,exist_ok=True)
@@ -65,16 +74,16 @@ def main():
         output=subprocess.check_output([candidate,'--version'],text=True).strip()
         if output!='xlang-update 2 '+a.platform:raise ValueError('runtime platform identity mismatch')
         print(output)
-    executable=release/candidate.name;temp=executable.with_suffix('.publish');shutil.copy2(candidate,temp);os.replace(temp,executable)
+    executable=release/candidate.name;publish_copy(candidate,executable)
     tools=ROOT/'release/tools/update';tools.mkdir(parents=True,exist_ok=True)
-    shutil.copy2(crypto,tools/crypto.name)
+    publish_copy(crypto,tools/crypto.name)
     for source in (ROOT/'ide/tools/update').iterdir():
-        if source.is_file() and source.suffix in ('.py','.bat','.sh','.md','.json'): shutil.copy2(source,tools/source.name)
+        if source.is_file() and source.suffix in ('.py','.bat','.sh','.md','.json'): publish_copy(source,tools/source.name)
     if windows:
         defaults=release/'option/defaults';defaults.mkdir(parents=True,exist_ok=True)
-        shutil.copy2(ROOT/'ide/data/defaults/settings.json',defaults/'settings.json')
+        publish_copy(ROOT/'ide/data/defaults/settings.json',defaults/'settings.json')
     notices=release/'notices';notices.mkdir(exist_ok=True)
-    shutil.copy2(src/'NOTICE.txt',notices/'xlang-update.txt');shutil.copy2(src/'NOTICE.txt',tools/'NOTICE.txt')
+    publish_copy(src/'NOTICE.txt',notices/'xlang-update.txt');publish_copy(src/'NOTICE.txt',tools/'NOTICE.txt')
     receipt={'platform':a.platform,'compiler':compiler_identity,'publicKey':public,'static':windows or a.static,'inputs':inputs,'sha256':hashlib.sha256(executable.read_bytes()).hexdigest(),'bytes':executable.stat().st_size}
     (out/'build.json').write_text(json.dumps(receipt,indent=2)+'\n',encoding='utf-8');print(json.dumps(receipt,ensure_ascii=False))
 if __name__=='__main__': main()

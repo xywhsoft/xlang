@@ -124,7 +124,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-about-versions-20261106.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -202,6 +202,13 @@
       "profile": "ide",
       "xrtMode": "embedded",
       "runtime": "release/win_x64/xge.dll"
+    },
+    "previousBuildProvenanceBeforeAbout": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
+    "aboutWindow": {
+      "displayVersion": "0.6.0",
+      "iterationSource": ".xlang-update/installed.json",
+      "entry": "help.about",
+      "sourceVersion": "ide/data/version.json"
     }
   },
   "catalog": {
@@ -3270,10 +3277,10 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "0261d2ab6c619dd8e4304e159ae6e2d6b9897ce337142c940e32f3266a5b6f47",
-      "bytes": 1794464,
+      "sha256": "9eeded9c9d9e32aa2215a985aa0c42ca8f33b5303e61119926a01a5b34e34403",
+      "bytes": 1802375,
       "path": "release/win_x64/xlang_ide.exe",
-      "origin": "xge-ide-update-20261106"
+      "origin": "ide-about-versions-20261106"
     },
     {
       "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
@@ -3289,15 +3296,15 @@
     },
     {
       "path": "release/win_x64/update.exe",
-      "sha256": "b5af349428867c1bc59ecce602bc160e3b4ddf96d6f13a0661bd828dd0d24546",
-      "bytes": 1440768,
-      "origin": "ide-update-policy-20261103-targeted-validated"
+      "sha256": "78589feddcb40af516863539fcb89146b01c8102ee15acccaec3074deeec3e36",
+      "bytes": 1441792,
+      "origin": "ide-about-versions-20261106"
     },
     {
       "path": "release/linux_x64/update",
-      "sha256": "78109cd8a6af3e22b007d37c51ced6d08b21fb36a1976ff895ac3fd2033e05fd",
+      "sha256": "c61defaafafdb9fd10508a59cba17986e147df18f51da5defc8eb669fe3c72ec",
       "bytes": 986184,
-      "origin": "ide-update-policy-20261103-targeted-validated"
+      "origin": "ide-about-versions-20261106"
     },
     {
       "path": "release/win_x64/extlibs/_xge_native/native/xge3_host.dll",
@@ -3310,6 +3317,12 @@
       "sha256": "ffa77a906c0d630613a97304fa0faeaab7e656e9dba64b74628056321ffa3723",
       "bytes": 9898672,
       "origin": "matched-host-xrt-native-image"
+    },
+    {
+      "path": "release/win_x64/data/version.json",
+      "sha256": "44a151ab97d67fcb4cca6e544db12f7dcce8d4944e15729f17dc00ca82873057",
+      "bytes": 32,
+      "origin": "ide-about-versions-20261106"
     }
   ],
   "acceptance": {
@@ -3365,7 +3378,7 @@
   "developmentMaterialsDirectory": "dev/release-materials",
   "materialsMigration": "docs/reports/release-materials-migration-20261031.json",
   "updater": {
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-update-policy-20261103.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-about-versions-20261106.json",
     "implementation": "C/XRT TUI",
     "platformsBuiltAndTested": [
       "win_x64",
@@ -3391,7 +3404,9 @@
     "remoteRoot": "/opt/www/host/xlang/wwwroot/download/update_win_x64",
     "localBootstrapObservedPath": "release/win_x64/update.exe",
     "preparedForceUpdate": false,
-    "publishedForceUpdate": false
+    "publishedForceUpdate": false,
+    "displayVersionSupported": true,
+    "comparisonField": "version"
   },
   "runtimeLayout": {
     "windows": "release/win_x64",
@@ -3543,5 +3558,12 @@
     "path": "dev/release-materials/provenance/native-static-release-20261106-r2/receipt.json",
     "sha256": "083fdff2160fd8ae6e0021f0ede35d6bac44fbcad205afa772773a19982ff12f",
     "bytes": 56690
+  },
+  "deliveryMaterials": {
+    "ideAboutVersions": {
+      "path": "dev/release-materials/provenance/ide-about-versions-20261106.json",
+      "sha256": "13daaf363503cb570a1d4de23ea63a36cc2ba074837997e04d1a479d5dac2109",
+      "bytes": 4004
+    }
   }
 }

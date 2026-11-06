@@ -26,6 +26,7 @@
 #endif
 #include "ui/font_view.h"
 #include "ui/goto_view.h"
+#include "ui/about_view.h"
 #include "ui/recovery_view.h"
 #include "ui/file_changes_view.h"
 #include <stdio.h>
@@ -131,7 +132,7 @@ static int createChrome(xide_app* app)
 XIDE_ACTION_C_SERVER,
 #endif
 XIDE_ACTION_TOOLCHAIN_INFO,0,XIDE_ACTION_CHECK_CURRENT,XIDE_ACTION_CHECK_SAVED,XIDE_ACTION_CANCEL_CHECK};
-    const int help[]={XIDE_ACTION_UPDATE_CHECK,XIDE_ACTION_UPDATE_REPAIR,0,XIDE_ACTION_XLANG,XIDE_ACTION_C};
+    const int help[]={XIDE_ACTION_UPDATE_CHECK,XIDE_ACTION_UPDATE_REPAIR,0,XIDE_ACTION_XLANG,XIDE_ACTION_C,0,XIDE_ACTION_ABOUT};
     TRY(addMenu(app, "文件", file, sizeof(file)/sizeof(*file)));
     TRY(addMenu(app, "项目", project, sizeof(project)/sizeof(*project)));
     const int edit[]={XIDE_ACTION_EDITOR_UNDO,XIDE_ACTION_EDITOR_REDO,0,XIDE_ACTION_EDITOR_CUT,XIDE_ACTION_EDITOR_COPY,XIDE_ACTION_EDITOR_PASTE,XIDE_ACTION_EDITOR_SELECT_ALL,0,XIDE_ACTION_EDITOR_INDENT,XIDE_ACTION_EDITOR_OUTDENT,XIDE_ACTION_EDITOR_COMMENT,0,XIDE_ACTION_EDITOR_FIND,XIDE_ACTION_EDITOR_REPLACE,XIDE_ACTION_EDITOR_GOTO,XIDE_ACTION_EDITOR_COMPLETE,XIDE_ACTION_SIGNATURE,0,XIDE_ACTION_DEFINITION,XIDE_ACTION_FIND_REFERENCES,XIDE_ACTION_HOVER};
@@ -226,7 +227,7 @@ void xideWorkbenchLayout(xide_app* app)
     xuiStatusBarSetItemWidth(app->statusBar,2,fminf((float)xideUiHeight(app,165),width*0.42f));
     xuiWidgetSetRect(app->dock, (xui_rect_t){0,menu+toolbar,width,height-menu-toolbar-status});
     xideCatalogViewLayout(app);
-    xideWorkspaceViewLayout(app); xideConfigurationViewLayout(app); xideReferencesViewLayout(app); xideResourceViewLayout(app); xideToolchainViewLayout(app); xideTemplateViewLayout(app); xideImportViewLayout(app); xideRenameViewLayout(app); xideFontViewLayout(app); xideRecoveryViewLayout(app); xideFileChangesViewLayout(app); xideGotoViewLayout(app); xideDialogLayoutAll(app); xideFileDialogLayout(app);
+    xideWorkspaceViewLayout(app); xideConfigurationViewLayout(app); xideReferencesViewLayout(app); xideResourceViewLayout(app); xideToolchainViewLayout(app); xideTemplateViewLayout(app); xideImportViewLayout(app); xideRenameViewLayout(app); xideFontViewLayout(app); xideRecoveryViewLayout(app); xideFileChangesViewLayout(app); xideGotoViewLayout(app); xideAboutViewLayout(app); xideDialogLayoutAll(app); xideFileDialogLayout(app);
 }
 int xideWorkbenchApplyTheme(xide_app* app, int theme)
 {

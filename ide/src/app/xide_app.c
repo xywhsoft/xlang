@@ -1,3 +1,4 @@
+#include "ui/about_view.h"
 #include "ui/import_view.h"
 #include "ui/template_view.h"
 #include "ui/rename_view.h"
@@ -133,6 +134,7 @@ int xideAppCreate(xide_app* app)
     if(app->initialFontSettings && !xideFontViewOpen(app)) return XUI_ERROR;
     if(app->initialRecovery && !xideRecoveryViewOpen(app)) return XUI_ERROR;
     if(app->initialUiFontSettings && !xideFontViewOpenUi(app)) return XUI_ERROR;
+    if(app->initialAbout && !xideAboutViewOpen(app)) return XUI_ERROR;
     xide_model_error syncError={0}; if(!xideFileSyncStart(app,&syncError)) { xideFailureSet(&app->failure,XIDE_FAILURE_STARTUP,"model",syncError.code,syncError.message,"xideFileSyncStart"); fprintf(stderr,"file monitor startup: %s\n",syncError.message); return XUI_ERROR; }
     return xideWorkbenchApplyTheme(app, app->theme);
 }
@@ -156,6 +158,7 @@ void xideAppDestroy(xide_app* app)
     xuiCodeFindScopeDestroy(app->editorFindScope); app->editorFindScope=NULL;
     if (app->context) { xideMessageDestroy(app); xideDialogDestroyAll(app); xideDocumentsClear(&app->documents); xuiDestroy(app->context); }
     xideActionsDestroy(app);
+    xideAboutViewDestroy(app);
     xideMainToolbarDestroy(app);xideExecutionReset(app);
     xideCatalogViewDestroy(app); xideCatalogClear(&app->catalog);
 

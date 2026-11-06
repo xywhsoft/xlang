@@ -7,6 +7,7 @@
 #include "ui/catalog_view.h"
 #include "ui/font_view.h"
 #include "ui/goto_view.h"
+#include "ui/about_view.h"
 #include "ui/recovery_view.h"
 #include "ui/workspace_view.h"
 #include "ui/configuration_view.h"
@@ -98,6 +99,7 @@ static int bind(xide_app* app,xui_widget widget,xui_font previous,xui_font repla
     int visited=firstVisit(scan,widget); if(visited<=0) return visited==0 ? XUI_OK : XUI_ERROR_OUT_OF_MEMORY;
     xui_widget_type type=xuiWidgetGetType(widget); xui_font current=NULL; int (*setter)(xui_widget,xui_font)=NULL;
     if(type==xuiWidgetFindType(app->context,"label")) { current=xuiLabelGetFont(widget); setter=xuiLabelSetFont; }
+    else if(type==xuiWidgetFindType(app->context,"hyperlink")) { current=xuiHyperlinkGetFont(widget); setter=xuiHyperlinkSetFont; }
     else if(type==xuiWidgetFindType(app->context,"input")) { current=xuiInputGetFont(widget); setter=xuiInputSetFont; }
     else if(type==xuiCheckBoxGetType(app->context)) { current=xuiCheckBoxGetFont(widget); setter=xuiCheckBoxSetFont; }
     else if(type==xuiWidgetFindType(app->context,"button")) { current=xuiButtonGetFont(widget); setter=xuiButtonSetFont; }
@@ -143,6 +145,7 @@ static int install(xide_app* app,xui_font previous,xui_font replacement,int size
     for(int i=0;i<XIDE_WINDOW_COUNT && result==XUI_OK;++i) result=bind(app,app->panels[i],previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideGotoViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideFontViewWindow(app),previous,replacement,&scan);
+    if(result==XUI_OK) result=bind(app,xideAboutViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideReferencesViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideResourceViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideToolchainViewWindow(app),previous,replacement,&scan);

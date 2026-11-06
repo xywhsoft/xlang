@@ -1,0 +1,92 @@
+test_bootstrap_repair_and_user_state (__main__.UpdateTests.test_bootstrap_repair_and_user_state) ... ok
+test_corrupt_object_before_commit (__main__.UpdateTests.test_corrupt_object_before_commit) ... ok
+test_crash_recovery (__main__.UpdateTests.test_crash_recovery) ... ok
+test_display_and_iteration_are_independent (__main__.UpdateTests.test_display_and_iteration_are_independent) ... ok
+test_display_cannot_trigger_update_without_iteration (__main__.UpdateTests.test_display_cannot_trigger_update_without_iteration) ... ok
+test_display_must_match_signed_manifest (__main__.UpdateTests.test_display_must_match_signed_manifest) ... ok
+test_duplicate_path (__main__.UpdateTests.test_duplicate_path) ... ok
+test_executable_permission_repair (__main__.UpdateTests.test_executable_permission_repair) ... skipped 'Unix executable permission repair'
+test_http_streaming (__main__.UpdateTests.test_http_streaming) ... ok
+test_incremental_delete_and_discard (__main__.UpdateTests.test_incremental_delete_and_discard) ... ok
+test_invalid_json_version_types (__main__.UpdateTests.test_invalid_json_version_types) ... ok
+test_key_rotation (__main__.UpdateTests.test_key_rotation) ... ok
+test_legacy_numeric_version (__main__.UpdateTests.test_legacy_numeric_version) ... ok
+test_locked_file_rolls_back (__main__.UpdateTests.test_locked_file_rolls_back) ... ok
+test_long_install_path (__main__.UpdateTests.test_long_install_path) ... ok
+test_multipart (__main__.UpdateTests.test_multipart) ... ok
+test_new_signed_optional_policy_releases_gate (__main__.UpdateTests.test_new_signed_optional_policy_releases_gate) ... ok
+test_older_signed_policy_cannot_remove_required_gate (__main__.UpdateTests.test_older_signed_policy_cannot_remove_required_gate) ... ok
+test_path_traversal (__main__.UpdateTests.test_path_traversal) ... ok
+test_platform_mismatch (__main__.UpdateTests.test_platform_mismatch) ... ok
+test_protected_deletion (__main__.UpdateTests.test_protected_deletion) ... ok
+test_protected_file (__main__.UpdateTests.test_protected_file) ... ok
+test_publisher_refuses_display_source_mismatch (__main__.UpdateTests.test_publisher_refuses_display_source_mismatch) ... ERROR: --display-version differs from source data/version.json; rebuild the IDE with the intended version first
+ok
+test_recovery_preserves_external_modification (__main__.UpdateTests.test_recovery_preserves_external_modification) ... ok
+test_required_policy_cache_and_install (__main__.UpdateTests.test_required_policy_cache_and_install) ... ok
+test_required_policy_survives_interrupted_install (__main__.UpdateTests.test_required_policy_survives_interrupted_install) ... ok
+test_running_updater_replacement (__main__.UpdateTests.test_running_updater_replacement) ... ok
+test_self_staging (__main__.UpdateTests.test_self_staging) ... ok
+test_signed_display_type_is_checked (__main__.UpdateTests.test_signed_display_type_is_checked) ... ok
+test_symlink_escape (__main__.UpdateTests.test_symlink_escape) ... skipped 'symlinks require extra Windows privileges; junction case is separately checked'
+test_tampered_signature (__main__.UpdateTests.test_tampered_signature) ... ok
+test_unsigned_force_marker_is_rejected (__main__.UpdateTests.test_unsigned_force_marker_is_rejected) ... ok
+test_updater_cannot_be_deleted (__main__.UpdateTests.test_updater_cannot_be_deleted) ... ok
+test_version_manifest_race (__main__.UpdateTests.test_version_manifest_race) ... ok
+test_waits_for_parent_checker_before_lock (__main__.UpdateTests.test_waits_for_parent_checker_before_lock) ... ok
+test_windows_junction_escape (__main__.UpdateTests.test_windows_junction_escape) ... ok
+test_wrong_key (__main__.UpdateTests.test_wrong_key) ... ok
+
+----------------------------------------------------------------------
+Ran 37 tests in 15.654s
+
+OK (skipped=2)
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-cfvcqiyh\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-lhleqjb1\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-5266ze08\\repository"}
+{"version": 2, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-5266ze08\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-fon5pu6m\\repository"}
+{"version": 2, "changedFiles": 0, "newObjects": 0, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-fon5pu6m\\repository"}
+{"version": 3, "changedFiles": 1, "newObjects": 1, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-fon5pu6m\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-o93dujv9\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-6rmug_6f\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-szlah08t\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-16732079\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-cwv4lkpn\\repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 1, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-cwv4lkpn\\repository"}
+Restored local version 1
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-tr0jywpj\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-4bm_lazy\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-pckefq4q\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-bbztw9mz\\repository"}
+{"version": 2, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-bbztw9mz\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-mfwcmp06\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-_gos253h\\repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 7, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-_gos253h\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-9afozy05\\repository"}
+{"version": 2, "changedFiles": 0, "newObjects": 0, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-9afozy05\\repository"}
+{"version": 3, "changedFiles": 0, "newObjects": 0, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-9afozy05\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-s81bdpf_\\repository"}
+{"version": 2, "changedFiles": 0, "newObjects": 0, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-s81bdpf_\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-bz2wml21\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-pmn2wv2o\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-r355g4qt\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-ucpiq2j4\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-q8xjvb3b\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-ory40xzm\\repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 1, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-ory40xzm\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-hs_hjogc\\repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 1, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-hs_hjogc\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-fk9dm0c2\\repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 1, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-fk9dm0c2\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-0qr11t8u\\repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 1, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-0qr11t8u\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-g4o6cvzn\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-d22ldopa\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-7xxog0ts\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-757p2gzo\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-k0avy39o\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-z84xptl7\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-btmkkqnw\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-g9su459j\\repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-dgnd8_8m\\repository"}

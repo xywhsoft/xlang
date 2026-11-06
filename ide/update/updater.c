@@ -24,12 +24,21 @@ static void cancel(int sig){(void)sig;up_cancel=1;}
 static int path(char out[UP_PATH],const up_config* cfg,const char* rel){return up_join(out,UP_PATH,cfg->root,rel);}
 static int matches(const char* file,const char* hash){char actual[65];return hash&&up_regular(file)==1&&up_hash(file,actual)&&!strcmp(actual,hash);}
 static int valid_hash(const char* s){unsigned char b[32];return up_hex(s,b,32);}
+/* Optional only for already-created local test releases. New publishers always
+   include this signed display value; ordering still uses the integer alone. */
+static const char* display_version(const xvalue* m){
+    if(!up_get(m,"displayVersion"))return "";
+    const char* s=up_text(m,"displayVersion");if(!s)return NULL;const char* p=s;
+    for(int i=0;i<3;i++){unsigned n=0,digits=0;while(*p>='0'&&*p<='9'){if(++digits>5)return NULL;n=n*10+(unsigned)(*p++-'0');}if(!digits||n>65535)return NULL;if(i<2){if(*p++!='.')return NULL;}else if(*p)return NULL;}
+    return s;
+}
 static int force_flag(const xvalue* m,int* force){bool b=false;xvalue* v=up_get(m,"forceUpdate");if(v&&!xrtValueGetBool(v,&b))return 0;*force=b;return 1;}
-static int marker(const char* path,int64_t* version,int* force){
+static int marker(const char* path,int64_t* version,int* force,char display[64]){
     xvalue* value=load(path);int64_t n=0;int ok=0;*force=0;
+    const char* text=display_version(value);display[0]=0;if(text)snprintf(display,64,"%s",text);
     if(value&&xrtValueIs(value,XVALUE_OBJECT))ok=up_get(value,"forceUpdate")&&force_flag(value,force)&&(n=up_int(value,"version",0))>0;
     else if(value)ok=xrtValueGetInt(value,&n)&&n>0;
-    *version=n;xrtValueRelease(value);return ok&&n<=2147483647;
+    *version=n;xrtValueRelease(value);return text&&ok&&n<=2147483647;
 }
 static int signature_ok(const up_config* c,const xvalue* envelope,const char* payload){
     unsigned char key[32],sig[64];if(!up_hex(c->key,key,32))return 0;
@@ -43,8 +52,9 @@ static xvalue* manifest(const up_config* c,up_ui* ui) {
     char package[UP_PATH],json[UP_PATH],versionfile[UP_PATH];path(package,c,".xlang-update/cache/update.lzma");path(json,c,".xlang-update/cache/update.json");path(versionfile,c,".xlang-update/cache/version.txt");
     for(int retry=0;retry<3&&!up_cancel;retry++){
         int64_t first=0,last=0;int firstForce=0,lastForce=0,signedForce=0;
+        char firstDisplay[64],lastDisplay[64];
         if(!up_fetch(c,"version.txt",versionfile,2048,NULL))return NULL;
-        if(!marker(versionfile,&first,&firstForce)){up_error("Invalid version.txt");return NULL;}
+        if(!marker(versionfile,&first,&firstForce,firstDisplay)){up_error("Invalid version.txt");return NULL;}
         if(!up_fetch(c,"update.lzma",package,UP_META_LIMIT,NULL)||!up_decode(package,json,UP_META_LIMIT))return NULL;
         xvalue* envelope=load(json);const char* payload=up_text(envelope,"payload");
         const char* format=up_text(envelope,"format");
@@ -52,8 +62,9 @@ static xvalue* manifest(const up_config* c,up_ui* ui) {
         xvalue* m=xrtJsonParse(sv(payload));xrtValueRelease(envelope);
         if(!m||up_int(m,"schema",0)!=4||!up_text(m,"platform")||strcmp(up_text(m,"platform"),UP_PLATFORM)){xrtValueRelease(m);up_error("Wrong platform or unsupported manifest schema");return NULL;}
         if(!up_fetch(c,"version.txt",versionfile,2048,NULL)){xrtValueRelease(m);return NULL;}
-        if(!marker(versionfile,&last,&lastForce)||!force_flag(m,&signedForce)){xrtValueRelease(m);up_error("Invalid update policy");return NULL;}
-        if(first==last&&firstForce==lastForce&&up_int(m,"version",0)==first&&firstForce==signedForce){ui->version=first;const char* notes=up_text(m,"notes");snprintf(ui->notes,sizeof(ui->notes),"%s",notes?notes:"");return m;}
+        const char* signedDisplay=display_version(m);
+        if(!marker(versionfile,&last,&lastForce,lastDisplay)||!force_flag(m,&signedForce)||!signedDisplay){xrtValueRelease(m);up_error("Invalid update policy");return NULL;}
+        if(first==last&&firstForce==lastForce&&up_int(m,"version",0)==first&&firstForce==signedForce&&!strcmp(firstDisplay,lastDisplay)&&!strcmp(firstDisplay,signedDisplay)){ui->version=first;snprintf(ui->displayVersion,sizeof(ui->displayVersion),"%s",signedDisplay);const char* notes=up_text(m,"notes");snprintf(ui->notes,sizeof(ui->notes),"%s",notes?notes:"");return m;}
         xrtValueRelease(m);snprintf(ui->phase,sizeof(ui->phase),"发布正在切换，重新获取清单");up_ui_draw(ui,1);xrtSleep(700);
     }up_error("Version and manifest are inconsistent; retry later");return NULL;
 }
@@ -163,7 +174,7 @@ static int run(up_config* c,up_ui* ui) {
     if(ui->version<required&&required>ui->local){xrtValueRelease(m);return c->check?4:up_error("Server is older than the verified required update");}
     int force=0;if(!force_flag(m,&force)){xrtValueRelease(m);return up_error("Invalid signed update policy");}
     if(!remember_policy(c,force&&ui->version>ui->local)){int block=c->check&&force&&ui->version>ui->local;xrtValueRelease(m);up_error("Cannot persist verified update policy");return block?4:0;}
-    if(c->versionOnly){int newer=ui->version>ui->local;printf("CHECK version=%lld local=%lld forceUpdate=%d\n",(long long)ui->version,(long long)ui->local,force);xrtValueRelease(m);return newer?(force?4:2):1;}
+    if(c->versionOnly){int newer=ui->version>ui->local;printf("CHECK version=%lld local=%lld forceUpdate=%d displayVersion=%s\n",(long long)ui->version,(long long)ui->local,force,ui->displayVersion);xrtValueRelease(m);return newer?(force?4:2):1;}
     xvalue* files=up_get(m,"files"),*deletes=up_get(m,"delete"),*ops=xrtValueArray(),*state=xrtValueObject();int ok=ops&&state;uint64_t space=16u*1024u*1024u;
     for(unsigned i=0;ok&&i<xrtValueCount(files);i++){xvalue* item=xrtValueArrayGet(files,i);char dest[UP_PATH];path(dest,c,up_text(item,"path"));
         if(matches(dest,up_text(item,"sha256"))&&(up_int(item,"mode",0644)!=0755||up_executable(dest)))continue;xvalue* op=xrtValueObject();char old[65]="";int existed=up_exists(dest);
@@ -175,7 +186,7 @@ static int run(up_config* c,up_ui* ui) {
     unsigned count=xrtValueCount(ops);printf("\nPLAN version=%lld changes=%u download=%llu\n",(long long)ui->version,count,(unsigned long long)ui->total);
     if(c->check){xrtValueRelease(ops);xrtValueRelease(state);xrtValueRelease(m);return ok?(count?2:1):0;}
     if(!ok||up_cancel||up_space(c->root)<space){xrtValueRelease(ops);xrtValueRelease(state);xrtValueRelease(m);return up_error("Planning failed, cancelled or insufficient free space (need %llu bytes)",(unsigned long long)space);}
-    ok=number(state,"version",ui->version)&&string(state,"phase","prepared")&&set(state,"ops",ops); /* state owns ops */
+    ok=number(state,"version",ui->version)&&string(state,"displayVersion",ui->displayVersion)&&string(state,"phase","prepared")&&set(state,"ops",ops); /* state owns ops */
     char txn[UP_PATH],journal[UP_PATH];path(txn,c,".xlang-update/txn");path(journal,c,".xlang-update/txn/journal.json");
     for(unsigned i=0;ok&&i<count;i++){xvalue* op=xrtValueArrayGet(ops,i);int64_t index=up_int(op,"file",-1);if(index<0)continue;char stage[UP_PATH],rel[128];snprintf(rel,sizeof(rel),".xlang-update/txn/stage/%u",i);path(stage,c,rel);
         snprintf(ui->phase,sizeof(ui->phase),"下载更新文件");snprintf(ui->file,sizeof(ui->file),"%s",up_text(op,"path"));ui->fileIndex++;up_ui_draw(ui,1);

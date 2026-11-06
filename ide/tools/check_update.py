@@ -29,6 +29,7 @@ class UpdateTests(unittest.TestCase):
         self.key=self.base/'seed';self.key.write_bytes(bytes(range(32)))
         self.public=subprocess.check_output([str(CRYPTO),'public',str(self.key)],text=True).strip()
         (self.source/'data').mkdir();(self.source/'data/commands.json').write_bytes(b'A'*24000)
+        manager.write(self.source/'data/version.json',{'displayVersion':'0.6.0'})
         (self.source/'xl.exe').write_bytes(b'engine-v1' if os.name=='nt' else b'engine')
         (self.source/'extlibs').mkdir();(self.source/'extlibs/private').write_text('never ship')
         self.prepare(1,'init');self.server=None
@@ -145,7 +146,38 @@ class UpdateTests(unittest.TestCase):
     def test_version_manifest_race(self):
         (self.store/'version.txt').write_text('2\n');self.update(expected=1);self.assertFalse((self.install/'xl.exe').exists())
     def test_legacy_numeric_version(self):
+        self.resign(lambda m:m.pop('displayVersion'))
         (self.store/'version.txt').write_text('1\n');self.update()
+    def test_display_and_iteration_are_independent(self):
+        self.update()
+        receipt=manager.read(self.install/'.xlang-update/installed.json')
+        self.assertEqual((receipt['displayVersion'],receipt['version']),('0.6.0',1))
+        # A second release with the same program version still needs an update,
+        # even with no changed runtime files. Comparison never uses semver.
+        self.prepare(2);self.update('--check-version',expected=2);self.update()
+        self.assertEqual(manager.read(self.install/'.xlang-update/installed.json')['version'],2)
+        manager.write(self.source/'data/version.json',{'displayVersion':'0.5.9'})
+        self.prepare(3);self.update('--check-version',expected=2);self.update()
+        receipt=manager.read(self.install/'.xlang-update/installed.json')
+        self.assertEqual((receipt['displayVersion'],receipt['version']),('0.5.9',3))
+        self.assertEqual(manager.read(self.store/'version.txt'),{'version':3,'displayVersion':'0.5.9','forceUpdate':False})
+    def test_display_cannot_trigger_update_without_iteration(self):
+        self.update();self.resign(lambda m:m.update(displayVersion='9.0.0'))
+        manager.write(self.store/'version.txt',{'version':1,'displayVersion':'9.0.0','forceUpdate':False})
+        self.update('--check-version')
+        self.assertEqual(manager.read(self.install/'.xlang-update/installed.json')['displayVersion'],'0.6.0')
+    def test_display_must_match_signed_manifest(self):
+        for value in ('9.0.0',False,'0.6.0\nBAD','65536.0.0'):
+            with self.subTest(value=value):
+                manager.write(self.store/'version.txt',{'version':1,'displayVersion':value,'forceUpdate':False})
+                self.update('--check-version',expected=1)
+        self.assertFalse((self.install/'.xlang-update/installed.json').exists())
+    def test_signed_display_type_is_checked(self):
+        self.resign(lambda m:m.update(displayVersion=42));self.update(expected=1)
+    def test_publisher_refuses_display_source_mismatch(self):
+        args=['prepare','--platform',PLATFORM,'--source',str(self.source),'--store',str(self.store),'--version','2','--display-version','0.7.0','--key',str(self.key),'--crypto',str(CRYPTO)]
+        self.assertEqual(manager.main(args),1)
+        self.assertEqual(manager.current(self.store),1)
     def test_required_policy_cache_and_install(self):
         self.update();(self.source/'xl.exe').write_bytes(b'forced-v2');self.prepare(2,'prepare','--force-update')
         self.update('--check-version',expected=4);self.update('--cached-policy',expected=4)

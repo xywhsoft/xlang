@@ -17,6 +17,20 @@ python release/tools/update/update_manager.py verify --platform win_x64 --store 
 
 `update/` 保存最新版本需要的全部对象；`verN/` 保存本次新对象。三个根信息文件为 `version.txt`、`update.json` 和 `update.lzma`。`.state/history/` 只保存很小的版本清单与记录，不保存全量客户端。支持时主线和差分对象使用硬链接，因此不要直接编辑对象文件。
 
+## 程序版本与更新迭代
+
+版本信息有两个独立字段，`version.txt` 的格式为：
+
+```json
+{"version": 4, "displayVersion": "0.6.0", "forceUpdate": false}
+```
+
+`displayVersion` 是显示用的程序版本，例如 `0.6.0`。IDE 构建从 `ide/data/version.json` 生成程序内版本与 Windows 文件版本资源，并在发行目录保存 `data/version.json`。关于窗口显示正在运行的程序版本，以及 `.xlang-update/installed.json` 中已安装的更新迭代号；没有安装记录时显示迭代 0，不查询网络，也不会把线上最新版本误当成本机版本。
+
+`version` 是每次上线递增的整数迭代号，更新检测只比较这个字段。相同 `0.6.0` 可以连续发布多个更新；改变显示版本号本身不会触发升级。`forceUpdate` 决定发现更高迭代时是否必须更新。
+
+制作更新默认从发行目录 `data/version.json` 获取显示版本。其他来源可显式传入 `--display-version 0.6.0`；如果发行目录已有该文件，参数必须与文件一致。要升级程序版本，先修改 `ide/data/version.json` 并重新构建 IDE。签名清单、版本标记、历史记录及安装回执均包含显示版本；客户端核对版本标记与签名清单一致。已发布迭代不可原地修改，所有修改均需通过新迭代制作、签名和推送。
+
 沿用 AutoTestIDE schema 4、SHA-256 对象名、LZMA-Alone、无压缩回退及 50 MiB 分片。清单新增 `platform`、传输大小/摘要及 Unix 权限。清单 JSON 使用 `xlang-update-signed-1` 封套：`payload` 是精确的 UTF-8 清单字符串，`signature` 对该字符串原始字节签名，避免不同 JSON 序列化器产生歧义；`update.lzma` 压缩同一 JSON。封套的 `publicKey` 只供审阅，客户端只信任本地固定公钥。
 
 受管文件为 IDE、独立更新器、xlang 工具链、语言服务、公开头文件、官方资源/字体/帮助、必要说明及 `option/defaults/`。不遍历和上传 `extlibs/`、用户项目、示例、用户设置、会话、恢复数据、mdo-home、缓存或开发材料。`mdo` 默认自行更新，只有明确传入 `--include-mdo` 时纳入。完整 IDE 制包检查最小运行文件和命令帮助/来源成对；编译器帮助绑定状态另记入版本记录，保留旧资料的 GUI 交付应沿用已有验收边界。打包完整性校验不代替编译器/帮助兼容验收。

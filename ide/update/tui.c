@@ -53,14 +53,14 @@ void up_ui_draw(up_ui* u,int force) {
     char title[256],phase[160],file[256],notes[4096],b1[80],b2[80],line[2048];uint32 cols=80,rows=24;
     if(u->interactive)xrtConsoleSize(XCONSOLE_STDOUT,&cols,&rows);if(cols<40)cols=40;if(cols>110)cols=110;
     clean(phase,sizeof(phase),u->phase,cols>14?cols-14:20);clean(file,sizeof(file),u->file,cols>14?cols-14:20);
-    if(!u->interactive){if(u->version&&!u->shownNotes){u->shownNotes=1;char safe[4096];clean(safe,sizeof(safe),u->notes,2000);snprintf(line,sizeof(line),"版本 %lld -> %lld\n",(long long)u->local,(long long)u->version);text(line);text(safe);text("\n");}snprintf(line,sizeof(line),"%s | %s | %llu/%llu bytes\n",phase,file,(unsigned long long)u->done,(unsigned long long)u->total);text(line);return;}
+    if(!u->interactive){if(u->version&&!u->shownNotes){u->shownNotes=1;char safe[4096];clean(safe,sizeof(safe),u->notes,2000);snprintf(line,sizeof(line),"程序 %s  ·  更新迭代 %lld -> %lld\n",u->displayVersion,(long long)u->local,(long long)u->version);text(line);text(safe);text("\n");}snprintf(line,sizeof(line),"%s | %s | %llu/%llu bytes\n",phase,file,(unsigned long long)u->done,(unsigned long long)u->total);text(line);return;}
 #ifdef _WIN32
     HANDLE out=GetStdHandle(STD_OUTPUT_HANDLE);CONSOLE_SCREEN_BUFFER_INFO info;DWORD written;
     if(GetConsoleScreenBufferInfo(out,&info)){origin.Y=info.srWindow.Top;origin.X=info.srWindow.Left;FillConsoleOutputCharacterW(out,L' ',(DWORD)(info.dwSize.X*(info.srWindow.Bottom-info.srWindow.Top+1)),origin,&written);SetConsoleCursorPosition(out,origin);}
 #else
     text("\033[H\033[2J");
 #endif
-    snprintf(title,sizeof(title),"xlang 更新器  |  %s\n版本：%lld -> %lld\n",UP_PLATFORM,(long long)u->local,(long long)u->version);text(title);
+    snprintf(title,sizeof(title),"xlang 更新器  |  %s\n程序 %s  |  更新迭代 %lld -> %lld\n",UP_PLATFORM,u->displayVersion,(long long)u->local,(long long)u->version);text(title);
     char border[128];unsigned bw=cols>1?cols-1:39;memset(border,'-',bw);border[bw]=0;text(border);text("\n更新内容\n");
     snprintf(notes,sizeof(notes),"%s",u->notes[0]?u->notes:"正在获取更新信息...");char* start=notes;
     for(unsigned i=0;i<(rows<20?2:4)&&start&&*start;i++){char* next=strchr(start,'\n');if(next)*next++=0;char safe[512];clean(safe,sizeof(safe),start,cols-4);text("  ");text(safe);text("\n");start=next;}

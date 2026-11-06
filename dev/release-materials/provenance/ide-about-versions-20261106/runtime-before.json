@@ -1,0 +1,32 @@
+{
+  "protected": {
+    "xl.exe": "6a9378f3c772b40bcd035969212fd1ee99a1b8ed22be00c30c37114e0523a2f6",
+    "xl.dll": "7a05d69bea0d4889735e115c2bd9bc1e74280c7a1245d7e955c97d7798310c9e",
+    "xlc.dll": "585edd3bceded526fb226cbe2f5321cc6f7ebcbae566af0da47d7315b5bba623",
+    "xge.dll": "b83417d354dc2818fb51c2d64ccf5ddd8341b1beb4eb02c01ef9f897452d2604",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "data/commands.json": "27e17cb16f25a4b1c16714736faee0e6df2098f472b0fd393166acc2e98de30a",
+    "data/catalog-sources/index.json": "2ab9cd46e0179056a0357f453465a633f7d17fa2482f3a38ee5f2fc993c18546",
+    "option/settings.json": "275179d66d2528fe8007fe0f13714620b9acb1ab476e1b1136a902ebe7136e72"
+  },
+  "sdkInfo": {
+    "size": 32,
+    "api_major": 3,
+    "api_minor": 0,
+    "api_patch": 0,
+    "foundation_revision": 1,
+    "features": 1021,
+    "abi_fingerprint": 11128402771518174474
+  },
+  "runtimeInfo": {
+    "size": 32,
+    "api_major": 3,
+    "api_minor": 0,
+    "api_patch": 0,
+    "foundation_revision": 1,
+    "features": 1021,
+    "abi_fingerprint": 11128402771518174474
+  },
+  "sdkDll": "b3dcabc7051634461f68852024a48e856bbe5b7ef66ed5693cae97c5f6dc1e3d",
+  "gui": "0abfbd2290c616d35c64e8e91f344e7d8c6d0bed1c23ddf96ad244bba3020acf"
+}

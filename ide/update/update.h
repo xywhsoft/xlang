@@ -21,7 +21,7 @@
 #endif
 typedef struct up_ui {
     int interactive,vt,plain,committing,failed,shownNotes; uint64_t started,last,done,total,fileDone,fileTotal;
-    unsigned fileIndex,fileCount; char phase[128],file[2048],notes[4096]; int64_t local,version;
+    unsigned fileIndex,fileCount; char phase[128],file[2048],notes[4096],displayVersion[64]; int64_t local,version;
 } up_ui;
 typedef struct up_config {
     char root[UP_PATH],base[2048],offline[UP_PATH],key[65],cleanupHelper[UP_PATH];

@@ -25,6 +25,7 @@
 #include "ui/goto_view.h"
 #include "ui/catalog_view.h"
 #include "services/update_client.h"
+#include "ui/about_view.h"
 #include <stdlib.h>
 #include <string.h>
 enum requirement { WORKBENCH, WORKSPACE_VIEW, WORKSPACE, NEW_PROJECT, IMPORT_VIEW, PROJECT, AVAILABLE_PROJECT, REFERENCES, RESOURCES, NEW_RESOURCE, ADD_FILE, REMOVE_FILE, RENAME_SELECTED_FILE, MIGRATE_PROJECT, PROPERTIES,
@@ -40,11 +41,13 @@ static int renameAction(xide_app* a,int id) { (void)id; return xideRenameViewOpe
 static int importAction(xide_app* a,int id) { (void)id; return xideImportViewOpen(a); }
 static int changesAction(xide_app* a,int id) { (void)id; return xideFileChangesViewOpen(a); }
 static int gotoAction(xide_app* a,int id) { (void)id; return xideGotoViewOpen(a); }
+static int aboutAction(xide_app* a,int id) { (void)id; return xideAboutViewOpen(a); }
 static int sourceAction(xide_app* a,int id) { return xideCatalogSourceOpen(a,id==XIDE_ACTION_SOURCE_DOCUMENT); }
 #define A(id,name,title,shorttitle,chord,key,mods,scope,cmd,need,check,proc) {{id,name,title,shorttitle,chord,key,mods,scope,cmd},need,check,proc}
 #define W(id,name,title,need) A(id,name,title,NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,need,NO_CHECK,xideWorkspaceAction)
 #define E(id,name,title,chord,key,mods,need,scope,cmd) A(id,name,title,NULL,chord,key,mods,scope,cmd,need,NO_CHECK,xideEditorAction)
 static const action_def definitions[]={
+    A(XIDE_ACTION_ABOUT,"help.about","关于 xlang…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,aboutAction),
     A(XIDE_ACTION_UPDATE_CHECK,"help.checkUpdates","检查更新…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideUpdateAction),
     A(XIDE_ACTION_UPDATE_REPAIR,"help.repairInstallation","更新／修复安装…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideUpdateAction),
     A(XIDE_ACTION_RESET,"view.resetLayout","恢复默认布局","恢复布局",NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideWorkbenchAction),
@@ -140,7 +143,7 @@ static const action_def* definition(int id) { for(size_t i=0;i<xideActionCount()
 const xide_action_info* xideActionFind(int id) { const action_def* d=definition(id); return d ? &d->info : NULL; }
 const xide_action_info* xideActionNamed(const char* name) { if(name) for(size_t i=0;i<xideActionCount();++i) if(!strcmp(name,definitions[i].info.name)) return &definitions[i].info; return NULL; }
 int xideActionsHasOtherModal(xide_app* a)
-{ return a && ( xideFileDialogBusy(a) || xideMessageBusy(a) || xideCatalogSourceIsOpen(a) || xideGotoViewIsOpen(a) || xideToolchainViewIsOpen(a) || xideResourceViewIsOpen(a) || xideImportViewIsOpen(a) || xideRenameViewIsOpen(a) || xideRenameViewHasPending(a) || xideTemplateViewIsOpen(a) || xideReferencesViewIsOpen(a) || xideConfigurationViewIsOpen(a) || xideFontViewIsOpen(a) || xideRecoveryViewIsOpen(a) || xideFileChangesViewIsOpen(a)); }
+{ return a && ( xideAboutViewIsOpen(a) || xideFileDialogBusy(a) || xideMessageBusy(a) || xideCatalogSourceIsOpen(a) || xideGotoViewIsOpen(a) || xideToolchainViewIsOpen(a) || xideResourceViewIsOpen(a) || xideImportViewIsOpen(a) || xideRenameViewIsOpen(a) || xideRenameViewHasPending(a) || xideTemplateViewIsOpen(a) || xideReferencesViewIsOpen(a) || xideConfigurationViewIsOpen(a) || xideFontViewIsOpen(a) || xideRecoveryViewIsOpen(a) || xideFileChangesViewIsOpen(a)); }
 int xideActionsHasModal(xide_app* a)
 { return a && (xideUpdateIsModal(a) || xideActionsHasOtherModal(a)); }
 xide_action_state xideActionQuery(xide_app* a,int id)
