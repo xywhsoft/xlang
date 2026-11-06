@@ -1,0 +1,161 @@
+// Shared example window loop. Control methods remain direct xui declarations.
+import xge
+import xui
+from xui import Surface,Font
+
+export typedef Build = func(xui.Context,xui.Widget,xui.Proxy)
+
+export class Gallery
+ static func rect(int x,int y,int width,int height) as xui.Rect
+  auto result=xui.Rect()
+  result.fX=c_int(x)
+  result.fY=c_int(y)
+  result.fW=c_int(width)
+  result.fH=c_int(height)
+  return result
+ end
+
+ static func place(xui.Widget parent,xui.Widget child,int x,int y,int width,int height)
+  assert child.setRect(Gallery.rect(x,y,width,height))==0
+  assert parent.addChild(child)==0
+ end
+
+ // Native Panel/Window insertion targets their client, not the raw Widget.
+ static func place(xui.Panel parent,xui.Widget child,int x,int y,int width,int height)
+  assert child.setRect(Gallery.rect(x,y,width,height))==0
+  assert parent.addChild(child)==0
+ end
+
+ static func place(xui.Window parent,xui.Widget child,int x,int y,int width,int height)
+  assert child.setRect(Gallery.rect(x,y,width,height))==0
+  assert parent.addChild(child)==0
+ end
+
+ static func label(xui.Context context,xui.Widget parent,string text,int x,int y,int width=640)
+  auto value=context.labelNative()
+  value.setText(text)
+  Gallery.place(parent,value,x,y,width,28)
+ end
+
+ static func label(xui.Context context,xui.Panel parent,string text,int x,int y,int width=640)
+  auto value=context.labelNative()
+  value.setText(text)
+  Gallery.place(parent,value,x,y,width,28)
+ end
+
+ static func run(string title,Build build) as int
+  int frameLimit=0
+  auto dumpPath=env.get("XUI_EXAMPLE_DUMP")
+  auto requested=env.get("XUI_EXAMPLE_FRAMES")
+  if requested!=null then
+   frameLimit=int.parse(requested as string)
+   assert frameLimit>0
+  end
+  xge.initNative()
+  try
+   xge.setTitle("xlang XUI - "+title)
+   auto proxy=xui.createProxy()
+   try
+    auto context=xui.create(proxy)
+    try
+     auto root=context.widget()
+     assert context.setRootWidget(root)==0
+     xui.Surface? target=null
+     xui.Font? font=null
+     int width=0
+     int height=0
+     int frames=0
+     bool ready=false
+     try
+      xge.run(func() as c_int
+       assert xge.begin()==0
+       int w=int(xge.getWidth())
+       int h=int(xge.getHeight())
+       if w<=0 or h<=0 then
+        assert xge.nativeEnd()==0
+        return c_int(0)
+       end
+       context.setViewportSize(c_int(w),c_int(h))
+       assert root.setRect(Gallery.rect(0,0,w,h))==0
+       if not ready then
+        string fontPath="data/fonts/Consolas-with-Yahei_Nerd_Font.ttf"
+        auto overridePath=env.get("XUI_EXAMPLE_FONT")
+        if overridePath!=null then fontPath=overridePath as string end
+        if overridePath==null and not file.exists(fontPath) then
+         for candidate in ["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf","/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf","C:/Windows/Fonts/segoeui.ttf"]
+          if file.exists(candidate) then
+           fontPath=candidate
+           break
+          end
+         end
+        end
+        auto loadedFont=proxy.loadFont(path.abs(fontPath),c_float(16),c_uint(xui.XUI_FONT_FORMAT_TTF))
+        font=loadedFont
+        context.setDefaultFont(font)
+        build(context,root,proxy)
+        ready=true
+       end
+       if target==null or w!=width or h!=height then
+        if target!=null then
+         auto previous=target as Surface
+         previous.close()
+        end
+        target=proxy.createSurfaceRGBA(c_int(w),c_int(h),flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+        proxy.clearSurface(target,0xF4F6FAFF)
+        assert context.invalidateAll()==0
+        width=w
+        height=h
+       end
+       assert context.proxyXgePumpInput()==0
+       assert context.dispatchPendingEvents()==0
+       assert context.layout()==0
+       assert context.update(xge.getDelta())==0
+       context.render(target as Surface)
+       if frames==0 or frameLimit>0 then
+        auto statistics=context.getRenderStats()
+        assert statistics.iRecoveredErrors==0, "XUI cache/render preparation failed"
+       end
+       if dumpPath!=null and frameLimit>0 and frames+1>=frameLimit then
+        assert xge.flush()==0
+        println("nodes "+string(int(context.getRenderNodeCount()))+" children "+string(int(root.getChildCount())))
+        auto pixels=Buffer()
+        assert pixels.resize(w*h*4)
+        proxy.readSurfaceRGBA(target as Surface,pixels)
+        assert file.writeBytes(dumpPath as string,pixels.toBytes())
+        println("RGBA "+string(w)+" "+string(h))
+       end
+       xge.clear(0xF4F6FAFF)
+       proxy.drawSurface(target as Surface,Gallery.rect(0,0,w,h),Gallery.rect(0,0,w,h),0xFFFFFFFF,c_uint(xui.XUI_SURFACE_DRAW_SCREEN_SPACE))
+       assert xge.nativeEnd()==0
+       frames+=1
+       if xge.keyPressed(xge.XGE_KEY_ESCAPE)!=0 or (frameLimit>0 and frames>=frameLimit) then
+        return c_int(1)
+       end
+       return c_int(0)
+      end)
+     finally
+      // Native persistent callbacks must stop before releasing their resources.
+      xge.setFrameCallback(null)
+      if target!=null then
+       auto previous=target as Surface
+       previous.close()
+      end
+      // Context.close clears all control callbacks and its complete widget graph.
+      context.close()
+      if font!=null then
+       auto previousFont=font as Font
+       previousFont.close()
+      end
+     end
+    finally
+     context.close()
+    end
+   finally
+    proxy.close()
+   end
+  finally
+   xge.unit()
+  end
+  return 0
+ end
+end

@@ -1,0 +1,17 @@
+// Color picker / RGBA popup. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class ColorpickerExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Color picker / RGBA popup",24,16)
+  auto control=context.colorPickerNative()
+  demo.Gallery.place(root,control,24,64,640,44)
+  assert control.setColor(c_uint(0x3C9AE8FF))==0
+  assert control.getColor()==c_uint(0x3C9AE8FF)
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Color picker / RGBA popup",ColorpickerExample.build)
+end

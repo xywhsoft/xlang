@@ -1,0 +1,18 @@
+// Step bar / workflow stages. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class StepbarExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Step bar / workflow stages",24,16)
+  auto control=context.stepBarNative()
+  demo.Gallery.place(root,control,24,64,640,92)
+  control.setSteps(["Configure","Build","Run","Finish"])
+  control.setCurrent(c_int(1))
+  assert control.getStepCount()==c_int(4)
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Step bar / workflow stages",StepbarExample.build)
+end

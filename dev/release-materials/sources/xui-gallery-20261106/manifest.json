@@ -1,0 +1,542 @@
+{
+  "schema": 1,
+  "scope": "Exact gallery/binding/source overlays over preserved compiler and Native source cohorts. Compiler Linux baseline remains its earlier frozen production source; only its resource tool changes.",
+  "archive": {
+    "path": "dev/release-materials/sources/xui-gallery-20261106/overlay.zip",
+    "sha256": "99d4e54643be203e787e2a84284218c0d302f66de201f294530374992be0ea5f",
+    "bytes": 382500
+  },
+  "entries": [
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\_support.xl",
+      "entry": "xlang/lib/bindings/xui/examples/_support.xl",
+      "sha256": "8030c7320698188f7aa110bf44f07b39e074be759cad4f49045d353efaed71d6",
+      "bytes": 5596
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\accordion.xl",
+      "entry": "xlang/lib/bindings/xui/examples/accordion.xl",
+      "sha256": "d89bad5d680c4b19b0be630c3d0110ec1e4b2cbbe79a7b80bb2b5963c5967d10",
+      "bytes": 1042
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\all_controls.xl",
+      "entry": "xlang/lib/bindings/xui/examples/all_controls.xl",
+      "sha256": "426546d986f905ba0ca95d3782f3817d297c4c7bb77ee3a434b5efacf8b86da0",
+      "bytes": 33893
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\basic.xl",
+      "entry": "xlang/lib/bindings/xui/examples/basic.xl",
+      "sha256": "752c62b77892f8de1b9636b34ee7db33a484b466c6a7286e83af684441134a46",
+      "bytes": 1040
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\breadcrumb.xl",
+      "entry": "xlang/lib/bindings/xui/examples/breadcrumb.xl",
+      "sha256": "d5627f7ac88b95269638db8c67e3919fe8a0515b8267587a31a27614068bb6fa",
+      "bytes": 753
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\button.xl",
+      "entry": "xlang/lib/bindings/xui/examples/button.xl",
+      "sha256": "33db16068687276d5d8c1cb510789d06cb824871d613d276a00c356b6d91e98a",
+      "bytes": 1407
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\canvas.xl",
+      "entry": "xlang/lib/bindings/xui/examples/canvas.xl",
+      "sha256": "5aa7e9ce1d3daffb6f0b91fd63ccaca6724fe8ccd1c21250df1a103d8c36aacc",
+      "bytes": 866
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\carousel.xl",
+      "entry": "xlang/lib/bindings/xui/examples/carousel.xl",
+      "sha256": "7316b42a83af218a9bce22842292707f550ee38556467bd1461994a3272a16d2",
+      "bytes": 905
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\chart.xl",
+      "entry": "xlang/lib/bindings/xui/examples/chart.xl",
+      "sha256": "29342ec5435b6d933348edfc7ed0aa880f38fa988a401c600241363073301f07",
+      "bytes": 827
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\checkbox.xl",
+      "entry": "xlang/lib/bindings/xui/examples/checkbox.xl",
+      "sha256": "af12587e61e67b8d02a33818ef6e62b71f4d501eb367e36a15e74613aad4ee67",
+      "bytes": 689
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\codeedit.xl",
+      "entry": "xlang/lib/bindings/xui/examples/codeedit.xl",
+      "sha256": "4a9fa670100ea9cc285196041d7664a5573db070a588eb2770ee87a8f44b08cf",
+      "bytes": 1444
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\colorpicker.xl",
+      "entry": "xlang/lib/bindings/xui/examples/colorpicker.xl",
+      "sha256": "438de8b999d00ad2701628918620b8b941e5894062f09d27e7b6104df9a052c4",
+      "bytes": 618
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\combobox.xl",
+      "entry": "xlang/lib/bindings/xui/examples/combobox.xl",
+      "sha256": "916a1224b412fa6bb0d52075e297da51001a00fe8c886c4489cb170c0089b3c8",
+      "bytes": 653
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\context_graph.xl",
+      "entry": "xlang/lib/bindings/xui/examples/context_graph.xl",
+      "sha256": "4759dcf3808ee250de1bf20e182b57634036d70d9e75bbe697002349dc96d8dc",
+      "bytes": 1236
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\data_object.xl",
+      "entry": "xlang/lib/bindings/xui/examples/data_object.xl",
+      "sha256": "cc458345eb0f06a9a5e8a044b54f7dfb4b25680cb2ed66ff0bf2f541a624d686",
+      "bytes": 901
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\datepicker.xl",
+      "entry": "xlang/lib/bindings/xui/examples/datepicker.xl",
+      "sha256": "b3eb93128092fc7584e4ba89daa7f76b048f7c957dcf7d128657a3194024882d",
+      "bytes": 594
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\dockpanel.xl",
+      "entry": "xlang/lib/bindings/xui/examples/dockpanel.xl",
+      "sha256": "df70915540c75f1c9fbdb03f2927650f219e1f5eb41e687e9395482a2e6049bd",
+      "bytes": 737
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\document_model.xl",
+      "entry": "xlang/lib/bindings/xui/examples/document_model.xl",
+      "sha256": "9a9f66314cd4f57e553f82c029b60056dddd9ba4dcba9d4d48aa81df38eee84e",
+      "bytes": 1006
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\document_ui_headless.xl",
+      "entry": "xlang/lib/bindings/xui/examples/document_ui_headless.xl",
+      "sha256": "fb554b34998fef68566ac4c657b23def11c00de7d9e744228d1b37d372eae2b4",
+      "bytes": 3274
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\gallery.json",
+      "entry": "xlang/lib/bindings/xui/examples/gallery.json",
+      "sha256": "1903c77c7f9066b6faff67e95b22b148082fc3b3fdc01f8c3e09965f935efaa4",
+      "bytes": 6327
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\gui_surface_draw.xl",
+      "entry": "xlang/lib/bindings/xui/examples/gui_surface_draw.xl",
+      "sha256": "3b41d1d71674c22f31a35a169eaff3e8511ba497b45eab6b3e759d2d89829fd2",
+      "bytes": 1517
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\headless_cell.xl",
+      "entry": "xlang/lib/bindings/xui/examples/headless_cell.xl",
+      "sha256": "b5097ade7fed07ca3a443a81256214d58ed1b06136b80998f2f6259516c193a9",
+      "bytes": 326
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\headless_path.xl",
+      "entry": "xlang/lib/bindings/xui/examples/headless_path.xl",
+      "sha256": "8b6fe0c944ead83b285db63efae1ec777907f6f41c396264711f0fce95a398de",
+      "bytes": 320
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\hyperlink.xl",
+      "entry": "xlang/lib/bindings/xui/examples/hyperlink.xl",
+      "sha256": "5eb022ba29da06f69e322941424ee0290f04ec2b1d634080f0639ef71b0683d9",
+      "bytes": 685
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\image.xl",
+      "entry": "xlang/lib/bindings/xui/examples/image.xl",
+      "sha256": "b590e5b6db81f9491d4a2ae7c72a9e0e7718cca2ec00e8f4fad98b8d3676fa6e",
+      "bytes": 877
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\input.xl",
+      "entry": "xlang/lib/bindings/xui/examples/input.xl",
+      "sha256": "28d2d1882ea2007e7719e32922cfe718075cf85b4da8c8683270fd1c2260b551",
+      "bytes": 631
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\listview.xl",
+      "entry": "xlang/lib/bindings/xui/examples/listview.xl",
+      "sha256": "7d500606b8081e98c22a1cb91f66539d6988fb5a2675e27ef7b60cffe3032768",
+      "bytes": 702
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\manager_lifetime.xl",
+      "entry": "xlang/lib/bindings/xui/examples/manager_lifetime.xl",
+      "sha256": "8746f0c5394ee0a430da9a8f7b22281218435ff4133a8e727b075f193eaa65ec",
+      "bytes": 890
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\menu.xl",
+      "entry": "xlang/lib/bindings/xui/examples/menu.xl",
+      "sha256": "b531d254d0b19ee152ffb50458379819b6c1774efb914329860a1ef72121d544",
+      "bytes": 1223
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\messagelist.xl",
+      "entry": "xlang/lib/bindings/xui/examples/messagelist.xl",
+      "sha256": "ba06e3cf67476ab937f681a1f65024799d75e50e54424c53b9b5bc4bc16bdb49",
+      "bytes": 743
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\numericinput.xl",
+      "entry": "xlang/lib/bindings/xui/examples/numericinput.xl",
+      "sha256": "f095bf86c2839acf70608363536961f9dc3d8190e1d8ed0630d554702d7c8852",
+      "bytes": 677
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\page.xl",
+      "entry": "xlang/lib/bindings/xui/examples/page.xl",
+      "sha256": "bbcafeb802741ab0ed8976a9ef992f98c227beef972a982f697b50bd0b18fedf",
+      "bytes": 629
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\panel.xl",
+      "entry": "xlang/lib/bindings/xui/examples/panel.xl",
+      "sha256": "94c131ef114004f3b1680ade522afa3df75c8d92272a57efef76ba2ee76e2ad4",
+      "bytes": 710
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\popup.xl",
+      "entry": "xlang/lib/bindings/xui/examples/popup.xl",
+      "sha256": "40073f90d092c4caabf970af9185af33e6c915da0faa96c20c5277f32b3da2a1",
+      "bytes": 996
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\progress.xl",
+      "entry": "xlang/lib/bindings/xui/examples/progress.xl",
+      "sha256": "a1ec9f3ef2a442c88a588656238ef66ef7b1fd9b08e5d7e264c93509324d0f3a",
+      "bytes": 675
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\propertygrid.xl",
+      "entry": "xlang/lib/bindings/xui/examples/propertygrid.xl",
+      "sha256": "88aeefc3f5086262219b9e2de5a43468c6aba56696abba55d4341fc3e6f26400",
+      "bytes": 827
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\qrcode.xl",
+      "entry": "xlang/lib/bindings/xui/examples/qrcode.xl",
+      "sha256": "c20bc034e89db3ac05664cc4611172bffd9cff6d1298303fe76a1546df994015",
+      "bytes": 650
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\radio.xl",
+      "entry": "xlang/lib/bindings/xui/examples/radio.xl",
+      "sha256": "5dc9609fa4aaf529f725cb4a45ccf36f969311e97a3ddcbf1ebda3ab241e80fc",
+      "bytes": 730
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\rangeslider.xl",
+      "entry": "xlang/lib/bindings/xui/examples/rangeslider.xl",
+      "sha256": "5559914039a5e41288bf03519e32cb0a4b510b8bc673a061e4f504dae92faf2e",
+      "bytes": 731
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\README.md",
+      "entry": "xlang/lib/bindings/xui/examples/README.md",
+      "sha256": "b6e2b9992c077c7063092ada7a4aff491b31a9787c72660ddee35411bd6d2fbc",
+      "bytes": 11037
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\richtext.xl",
+      "entry": "xlang/lib/bindings/xui/examples/richtext.xl",
+      "sha256": "9330cf32a32ac77f67ec11941881962b265f82215fa2f4049ad837962e2e303e",
+      "bytes": 1129
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\run_xui_examples.bat",
+      "entry": "xlang/lib/bindings/xui/examples/run_xui_examples.bat",
+      "sha256": "4fa4f3cf1f0caa34a260895a56d8b0f9c6429bf776cb963706608b4637b4f6fc",
+      "bytes": 773
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\scrollbar.xl",
+      "entry": "xlang/lib/bindings/xui/examples/scrollbar.xl",
+      "sha256": "1a15ad66f38880c15a3de4110452919407e2bd74431a0fee5df1432a71324d56",
+      "bytes": 655
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\scrollview.xl",
+      "entry": "xlang/lib/bindings/xui/examples/scrollview.xl",
+      "sha256": "2a2624d11c07b00c38d7281b2fb25e88bbc2609611ffb4b0c8e7bd1021c7cf91",
+      "bytes": 845
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\separator.xl",
+      "entry": "xlang/lib/bindings/xui/examples/separator.xl",
+      "sha256": "08573fd7a7a11d427403ac2dc3fa1d40245099e6c77e968176c0e40c1e684d6d",
+      "bytes": 689
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\slider.xl",
+      "entry": "xlang/lib/bindings/xui/examples/slider.xl",
+      "sha256": "e8899fbddfbc66927e81f031d681bde2fc73a73cbec151b5813fb0e476bf3e16",
+      "bytes": 619
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\splitlayout.xl",
+      "entry": "xlang/lib/bindings/xui/examples/splitlayout.xl",
+      "sha256": "c4ce95cde808c5a1c5313a3a22c3a3c80c83d0e601b6142f27fa6b394a346c61",
+      "bytes": 928
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\statusbar.xl",
+      "entry": "xlang/lib/bindings/xui/examples/statusbar.xl",
+      "sha256": "c69334a2e9e0fb2cf35f30108068692fb1787d500c34c4ad232a48a60b818d89",
+      "bytes": 741
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\stepbar.xl",
+      "entry": "xlang/lib/bindings/xui/examples/stepbar.xl",
+      "sha256": "c1739228736fcbbf2ce1a243e7d9bedcc35da751d682b7619c01f99e5b375c24",
+      "bytes": 643
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\tablegrid.xl",
+      "entry": "xlang/lib/bindings/xui/examples/tablegrid.xl",
+      "sha256": "ba9b349a7ccc0e0b3e7b3218e1081de3b6a106081f858e635b11788aa91b3834",
+      "bytes": 1053
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\tableview.xl",
+      "entry": "xlang/lib/bindings/xui/examples/tableview.xl",
+      "sha256": "a11f99ddf9a3e3acfd771a9273897752a433b9cca964c025dc7e291861617c6e",
+      "bytes": 926
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\tabs.xl",
+      "entry": "xlang/lib/bindings/xui/examples/tabs.xl",
+      "sha256": "e21bbdb41818971916228b8fb0c3ed9d7c9537c523e893e9c59b7d5cac8b372e",
+      "bytes": 885
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\taginput.xl",
+      "entry": "xlang/lib/bindings/xui/examples/taginput.xl",
+      "sha256": "4f1868f86a4e00e54bc6f4af323d07e826408b835fb3468959f88d54bfca9113",
+      "bytes": 640
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\terminal.xl",
+      "entry": "xlang/lib/bindings/xui/examples/terminal.xl",
+      "sha256": "1caa801088163f38981ba689a896306054c1373738d250299dbc39b727ad9da1",
+      "bytes": 711
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\textedit.xl",
+      "entry": "xlang/lib/bindings/xui/examples/textedit.xl",
+      "sha256": "b680879e140df2ecd61aee6efde8faa760c75c81ad9ffa52b727c3f49335fc30",
+      "bytes": 679
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\timeline.xl",
+      "entry": "xlang/lib/bindings/xui/examples/timeline.xl",
+      "sha256": "8c983f3aca34677dcc3e5763c868f9669bcc45f919e062547611142cb655e7c5",
+      "bytes": 777
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\toggle.xl",
+      "entry": "xlang/lib/bindings/xui/examples/toggle.xl",
+      "sha256": "4ad63250e2c8056493679be74272bd0c8238309a5eb65faf59e0a622486867bb",
+      "bytes": 613
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\toolbar.xl",
+      "entry": "xlang/lib/bindings/xui/examples/toolbar.xl",
+      "sha256": "a1a760eb8706de6d820c85cf392c010515ab519c6bb9527d6d94a031a96a95b8",
+      "bytes": 832
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\treeview.xl",
+      "entry": "xlang/lib/bindings/xui/examples/treeview.xl",
+      "sha256": "e4338f8895c078a282e6d79f53d9453bbb771ed4649da12f504b075a08289d3d",
+      "bytes": 818
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\window.xl",
+      "entry": "xlang/lib/bindings/xui/examples/window.xl",
+      "sha256": "63c9cc3db672f3d4666114e8033051e34d3444b57134d37297b9ed54b1ab6df8",
+      "bytes": 922
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "entry": "xlang/lib/bindings/xui/src/managed.xl",
+      "sha256": "68d2fefde98920f9ca6a32272a8e701f322024d0600b7e9b617acfc3e53f9b97",
+      "bytes": 323663
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\tools\\xui_gallery_contracts.py",
+      "entry": "xlang/tools/xui_gallery_contracts.py",
+      "sha256": "b6a1e5ceaed51e31ee8dad77bb91af874abab5714b6f46d9853b9a17dd567ec5",
+      "bytes": 5267
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\tools\\update_xui_gallery.py",
+      "entry": "xlang/tools/update_xui_gallery.py",
+      "sha256": "615cd6de6d9c750f8eadba64ddc0495c05782c54eba6e69c999225b1cba0a7e1",
+      "bytes": 3398
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\tools\\check_xui_gallery.py",
+      "entry": "xlang/tools/check_xui_gallery.py",
+      "sha256": "c9c2f85b9df7a33a7ae31655be09989f8a0d08095815a0f5fdc12cd0e012328d",
+      "bytes": 5835
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\tools\\run_xui_examples.ps1",
+      "entry": "xlang/tools/run_xui_examples.ps1",
+      "sha256": "60c5eb67447219c803333e05e60331cc75d718e73679ba8b5d86f81a26c841b1",
+      "bytes": 2166
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\tools\\check_xge3_bindings.py",
+      "entry": "xlang/tools/check_xge3_bindings.py",
+      "sha256": "c041260537d153b2185c42193dce5ace2f4ab59e73757d932a0311d7297cd6bb",
+      "bytes": 100876
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\tools\\gen_tcc_vfs_resources.py",
+      "entry": "xlang/tools/gen_tcc_vfs_resources.py",
+      "sha256": "ae9af9b513293690d0b6f5dcbc031d103a188a114e84bd8c1ded08f48bf4a5cf",
+      "bytes": 20127
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\docs\\xge3-xui3-example-status.md",
+      "entry": "xlang/docs/xge3-xui3-example-status.md",
+      "sha256": "725284cb96fc108ee3a69e8e18571e0a55668c969c9b45139e790ad607daa486",
+      "bytes": 4656
+    },
+    {
+      "source": "F:\\xlang-validation\\xui-gallery-20261106\\columns-r1\\source\\src\\xui\\core\\xui_core.c",
+      "entry": "native/src/xui/core/xui_core.c",
+      "sha256": "d17735fa8e1289c8bd16f838a8702ac341e64a6ac4b36818659debeb9d63fd04",
+      "bytes": 153852
+    },
+    {
+      "source": "F:\\xlang-validation\\xui-gallery-20261106\\columns-r1\\source\\src\\xui\\controls\\xui_table_view.c",
+      "entry": "native/src/xui/controls/xui_table_view.c",
+      "sha256": "100d4775c99ae619406cd3d6ba695cd89cf8aa44a5fcca60b3867d666e58eedf",
+      "bytes": 212181
+    },
+    {
+      "source": "F:\\xlang-validation\\xui-gallery-20261106\\columns-r1\\source\\src\\xui\\controls\\xui_table_grid.c",
+      "entry": "native/src/xui/controls/xui_table_grid.c",
+      "sha256": "439bcecc3f4c302f5e46210173de96a6f40183382e97c0442536cb29af3cee68",
+      "bytes": 115591
+    },
+    {
+      "source": "F:\\xlang-validation\\xui-gallery-20261106\\columns-r1\\source\\include\\xui.h",
+      "entry": "native/include/xui.h",
+      "sha256": "8f9c9ee71d5d9e7a18c5144ccadd012861929358b6e6226723dbd67920435fca",
+      "bytes": 704478
+    },
+    {
+      "source": "F:\\xlang-validation\\xui-gallery-20261106\\columns-r1\\source\\tools\\build\\static.py",
+      "entry": "native/tools/build/static.py",
+      "sha256": "e0bd9cc8217611083a529fc589c698edd59e192f4faf0f74d9e29955224db257",
+      "bytes": 17349
+    },
+    {
+      "source": "F:\\xlang-validation\\xui-gallery-20261106\\columns-r1\\source\\tools\\build\\static_support.py",
+      "entry": "native/tools/build/static_support.py",
+      "sha256": "70869447b989bcbb0b55c8f3df187b163457d1733c910e26c8adc23d1215ef3b",
+      "bytes": 20809
+    },
+    {
+      "source": "D:\\GIT\\xge\\tests\\test_xui_owned_context_proxy.c",
+      "entry": "native/tests/test_xui_owned_context_proxy.c",
+      "sha256": "00213e7b7c35a6fc0baf5c28a60b1a8aaf61f8c6747618d05d16a4ca327816ae",
+      "bytes": 1220
+    },
+    {
+      "source": "D:\\GIT\\xge\\tests\\test_xui_column_copy.c",
+      "entry": "native/tests/test_xui_column_copy.c",
+      "sha256": "f4a6e2bcc1e242e534e18229bf46d55619a9684cbeb6b0ad2ef8f2e726aff575",
+      "bytes": 4453
+    },
+    {
+      "source": "F:\\xlang-validation\\xui-gallery-20261106\\rebuild-inline-catalog.py",
+      "entry": "recipes/rebuild-inline-catalog.py",
+      "sha256": "00b25aa6902db869b14d4c0e2bd407b6e430bdc2d13dbbc894fd52f191588070",
+      "bytes": 3190
+    },
+    {
+      "source": "F:\\xlang-validation\\xui-gallery-20261106\\rebuild-inline-linux.py",
+      "entry": "recipes/rebuild-inline-linux.py",
+      "sha256": "27c193ff2dd128f51e4397bbe08bc4304584796d52ac5d7be501175a73ec279f",
+      "bytes": 3904
+    },
+    {
+      "source": "F:\\xlang-validation\\xui-gallery-20261106\\patch-column-copy.py",
+      "entry": "recipes/patch-column-copy.py",
+      "sha256": "222ae5e2943648ae27010a5d9f6f8c6390a97b9b5c19e7d73c95ec5a467a99ba",
+      "bytes": 8812
+    },
+    {
+      "source": "F:\\xlang-validation\\xui-gallery-20261106\\publish-native.py",
+      "entry": "recipes/publish-native.py",
+      "sha256": "1d25fa341a2a2d9f784e93d4a8d7388f64f2d69387e403b80177005195b7693c",
+      "bytes": 2800
+    },
+    {
+      "source": "F:\\xlang-validation\\xui-gallery-20261106\\publish-linux.py",
+      "entry": "recipes/publish-linux.py",
+      "sha256": "48756d1d18a46687341dd0954726c904abc8a51b955b90c14f9455ac5b3ae9ac",
+      "bytes": 1464
+    },
+    {
+      "source": "F:\\xlang-validation\\xui-gallery-20261106\\check-final-linux.py",
+      "entry": "recipes/check-final-linux.py",
+      "sha256": "db03af0ae21ec9d097c03d6fcd79f225e06df354cedd6f6a1d0dff33105f62a8",
+      "bytes": 1483
+    },
+    {
+      "source": "F:\\xlang-validation\\xui-gallery-20261106\\check-alias-candidate.py",
+      "entry": "recipes/check-alias-candidate.py",
+      "sha256": "e2a7f58c50843b47af2f199b21e487e5be6281b729ead18f51d782f2101f0e7f",
+      "bytes": 2513
+    },
+    {
+      "source": "F:\\xlang-validation\\xui-gallery-20261106\\publish-and-check.py",
+      "entry": "recipes/publish-and-check.py",
+      "sha256": "5b3a7472e93c2bab9891f62806d528651cd32cbc8040ce86029cadf273c6a3f0",
+      "bytes": 4117
+    },
+    {
+      "source": "F:\\xlang-validation\\xui-gallery-20261106\\seal-gallery-final.py",
+      "entry": "recipes/seal-gallery-final.py",
+      "sha256": "68db2a656ff56a87bb4ba91f7c47a3afd031b89fb6a699113a7cd69fd54c90f5",
+      "bytes": 9052
+    },
+    {
+      "source": "F:\\xlang-validation\\xui-gallery-20261106\\linux-evidence\\compiler-inline-r3\\gen_tcc_vfs_resources.py",
+      "entry": "recipes/linux-legacy-gen_tcc_vfs_resources.py",
+      "sha256": "35cfeb876e1797e0cb9467a9061a32d31b004bade01d929abacd8f0f9ce9baf8",
+      "bytes": 18057
+    }
+  ],
+  "nativeCommits": [
+    "a9eb0aa6",
+    "4d402c0"
+  ],
+  "nativeBase": {
+    "path": "dev/release-materials/sources/xge-static-20261106-r1/manifest.json",
+    "sha256": "581b794f68b7c0499bf8699f4913964f6c0cddc95c9c1db5f46ad4acb98d36f6",
+    "bytes": 13027
+  },
+  "windowsCoreBase": {
+    "path": "dev/release-materials/sources/native-static-core-20261106/manifest.json",
+    "sha256": "5ce67c250d890cd76c53a1a955bd01659f7faec109cacffa13e4cd082a493c44",
+    "bytes": 485661
+  },
+  "linuxCoreParent": "linux-evidence/compiler-inline-r3/results.json in acceptance.zip"
+}

@@ -1,0 +1,25 @@
+// Tablegrid / columns and cells. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class TablegridExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Tablegrid / columns and cells",24,16)
+  auto control=context.tableGridNative()
+  demo.Gallery.place(root,control,24,64,640,300)
+  control.setColumns(["Name","Value"],[c_float(250),c_float(220)])
+  array<array<string>> rows=[["Alpha","10"],["Beta","20"],["Gamma","30"]]
+  control.setAdapter(func(xui.Widget table) as c_int
+   return c_int(rows.length)
+  end,func(xui.Widget table,c_int row,c_int column,xui.CallbackTableViewCellOutput cell) as c_int
+   cell.setText(rows[int(row)][int(column)])
+   return c_int(0)
+  end,func(xui.Widget table,c_int row,c_int column,xui.CString value,c_int type)
+   rows[int(row)][int(column)]=value.copy()
+  end)
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Tablegrid / columns and cells",TablegridExample.build)
+end

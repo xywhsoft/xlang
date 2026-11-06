@@ -1,0 +1,19 @@
+// Property grid / editable values. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class PropertygridExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Property grid / editable values",24,16)
+  auto control=context.propertyGridNative()
+  demo.Gallery.place(root,control,24,64,640,300)
+  c_int category=control.addCategory("general","General",c_int(1))
+  assert control.addProperty(category,"name","Name",description="Project name",value="xlang")>=0
+  assert control.addProperty(category,"mode","Mode",value="Release")>=0
+  assert control.getPropertyCount()==c_int(2)
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Property grid / editable values",PropertygridExample.build)
+end
