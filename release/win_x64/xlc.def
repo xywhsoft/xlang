@@ -6183,6 +6183,7 @@ xlcRemoveSourceOverlay
 xlcRun
 xlcRuntimeContext
 xlcSetBackend
+xlcSetNativeLinkage
 xlcSetSaveTemps
 xlcSetSourceOverlay
 xlcSetTempDir
