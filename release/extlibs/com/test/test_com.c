@@ -67,6 +67,22 @@ int main(void)
     pObject = x_com_attach(dispatch);
     if (pObject == NULL) { return fail("test object creation"); }
 
+    /* Failure before conversion must not clear uninitialized/out-of-range VARIANTs. */
+    pArgs = xrtValueString((xstrview){"bad", 3});
+    pResult = x_com_invoke_array(pObject, "Sub", pArgs);
+    if (xrtValueType(pResult) != XVALUE_NULL ||
+        strcmp(x_com_last_error(), "arguments must be an array") != 0)
+        return fail("non-array argument cleanup");
+    xrtValueRelease(pResult); xrtValueRelease(pArgs); xrtClearError();
+    pArgs = xrtValueArray();
+    for (size_t index = 0; index < 65; ++index)
+        if (!xrtValueArrayAppendNew(pArgs, xrtValueInt(1))) return fail("oversized arguments setup");
+    pResult = x_com_invoke_array(pObject, "Sub", pArgs);
+    if (xrtValueType(pResult) != XVALUE_NULL ||
+        strcmp(x_com_last_error(), "unsupported argument count") != 0)
+        return fail("oversized argument cleanup");
+    xrtValueRelease(pResult); xrtValueRelease(pArgs); xrtClearError();
+
     pArgs = xrtValueArray();
     if (pArgs == NULL || !xrtValueArrayAppendNew(pArgs, xrtValueInt(9)) ||
         !xrtValueArrayAppendNew(pArgs, xrtValueInt(4))) {

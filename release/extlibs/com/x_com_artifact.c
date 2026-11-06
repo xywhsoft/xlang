@@ -1143,7 +1143,8 @@ static xvalue* x_com_invoke_array_internal(
 	VARIANT holders[64];
 	size_t destinations[64];
 	VARIANT result;
-	size_t iCount;
+	size_t iCount = 0u;
+	size_t initializedCount = 0u;
 	size_t i;
 	size_t positional_count = 0u;
 	UINT named_count = 0u;
@@ -1155,7 +1156,6 @@ static xvalue* x_com_invoke_array_internal(
 	if ( !x_com_check_handle(object) ) {
 		return xrtValueNull();
 	}
-	for (i = 0; i < 64; ++i) { VariantInit(&invoke_args[i]); VariantInit(&holders[i]); }
 	if (pArgs != NULL) {
 		if (!xlValueReadBeginV1(xlValueBorrowV1(pArgs), &scopes[0]) || scopes[0].kind != XVALUE_ARRAY) {
 			x_com_set_error("arguments must be an array"); goto fail;
@@ -1180,10 +1180,11 @@ static xvalue* x_com_invoke_array_internal(
 		}
 	}
 	memset(named_ids, 0, sizeof(named_ids));
-	for ( i = 0u; i < 64u; ++i ) {
+	for ( i = 0u; i < iCount; ++i ) {
 		VariantInit(&invoke_args[i]);
 		VariantInit(&holders[i]);
 	}
+	initializedCount = iCount;
 	if ( !x_com_resolve_call_names(object->dispatch, name, names, iCount,
 		destinations, &dispid, named_ids, &named_count) ) {
 		goto fail;
@@ -1247,7 +1248,7 @@ static xvalue* x_com_invoke_array_internal(
 	return pOutput;
 
 fail:
-	for ( i = 0u; i < iCount; ++i ) {
+	for ( i = 0u; i < initializedCount; ++i ) {
 		VariantClear(&invoke_args[i]);
 		VariantClear(&holders[i]);
 	}
