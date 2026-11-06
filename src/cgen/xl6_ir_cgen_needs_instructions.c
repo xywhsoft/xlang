@@ -233,6 +233,10 @@ static int xl6IrCgenAnalyzeInstructionNeeds(const XL6_IrModule* module,
             needs->needsStringViews = 1;
             needs->needsErrorRuntime = 1;
         }
+        if (xl6IrInstructionIsNominalRetainProjection(module, &module->instructions[i])) {
+            needs->needsNominalIdentityRuntime = 1;
+            needs->needsXValueRuntime = 1;
+        }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              (module->instructions[i].runtimeOp ==
                   XL6_IR_RUNTIME_XVALUE_NOMINAL_TEST ||
